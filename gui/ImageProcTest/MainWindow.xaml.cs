@@ -324,9 +324,9 @@ public partial class MainWindow : System.Windows.Window
             report.ChainStatus = viewModel.ChainStatus;
             report.ChainStages = viewModel.LastChain?.Stages.Select(s => $"{s.StageId}={s.Status} {s.ElapsedMs:0}ms").ToList() ?? new();
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
-            report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
-            report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
-            report.DefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
+            report.RequestedCalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
+            report.RequestedOffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
+            report.RequestedDefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
             // #225 rows 7 and 8 (GUI-C-170): the persisted flags, as they stood when the run started.
             // Reported, never part of the verdict below.
             report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
@@ -724,8 +724,8 @@ public partial class MainWindow : System.Windows.Window
                 report.ActiveImageSummary.StartsWith("RAW ", StringComparison.Ordinal) &&
                 report.LastRawDirPersisted &&
                 report.DisplayPipelineApplied &&
-                report.CalibrationEvaluationSummary.Contains("Offset=Off", StringComparison.Ordinal) &&
-                report.CalibrationEvaluationSummary.Contains("Defect=On", StringComparison.Ordinal) &&
+                report.RequestedCalibrationEvaluationSummary.Contains("Offset=Off", StringComparison.Ordinal) &&
+                report.RequestedCalibrationEvaluationSummary.Contains("Defect=On", StringComparison.Ordinal) &&
                 report.CalibrationEvaluationEvidenceExported &&
                 // GUI-C-170: "report.DisplayPanelVisible &&" stood here (since the panel flag was constantly
                 // true). It is not a verdict term. Whether a panel is showing is the operator's layout

@@ -1,0 +1,34 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W9_SuggestedName_Overwrite_AndAWriteFailureKeepsThePreviousFile [47 s]
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    ok: preprocess=Applied
+ STEP 1 save under the suggested name (no name typed)
+    dialog: 'Save Corrected Image (float32 raw)'
+    ok: the file exists at the suggested name in the opened image's folder
+    status: Saved corrected image (float32 raw): C:\Users\drake\AppData\Local\Temp\xpe_c232b_w9_8f9d18de84e74d4ba7f31f7b3d01b989\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+    saved file == reference: True; files in the folder: wrist_lat_3072x3072.raw, wrist_lat_3072x3072_corrected_f32le.raw
+ STEP 2 save again under the same suggested name: the file is replaced whole
+    dialog: 'Save Corrected Image (float32 raw)'
+    ok: the status line reports the second save
+    replaced: write time 2026-10-08T00:59:37.5707421Z -> 2026-10-08T01:00:00.8682817Z; identical to reference: True
+ STEP 3 the target is held open by another program: the save fails and the previous file stays
+    dialog: 'Save Corrected Image (float32 raw)'
+    ok: the status line says Save failed
+    status: Save failed: The process cannot access the file because it is being used by another process.
+    previous file intact after the failed save: True; files in the folder: wrist_lat_3072x3072.raw, wrist_lat_3072x3072_corrected_f32le.raw
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 47.9435 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

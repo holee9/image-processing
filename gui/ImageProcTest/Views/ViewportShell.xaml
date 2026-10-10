@@ -34,22 +34,83 @@
              can be read independently. They sit under the main viewport and stay collapsed until both
              lanes have been drawn, so an app that never renders them shows nothing rather than two
              empty boxes claiming to be lanes. -->
+        <!-- GUI-C-233j (Codex #178): the row IS always there (the comment above said "collapsed until both lanes have been drawn"; nothing ever did that), and ImageComparisonViewport draws the SOURCE
+             in place of a missing processed image - right for the main viewport (a loaded RAW shows before any render), wrong for a lane, whose whole claim is "this is what was applied". So a lane
+             with no applied image hides its viewport and says so; only the lanes are changed, the main viewport keeps its RAW fallback. -->
         <Grid x:Name="LaneRow" VerticalAlignment="Bottom" Height="180" Margin="8,0,8,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="8" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <controls:ImageComparisonViewport x:Name="LaneAViewport"
-                                              AutomationProperties.AutomationId="LaneAViewport"
-                                              CompareMode="ProcessedOnly"
-                                              SourceImage="{Binding SourceImage}"
-                                              ProcessedImage="{Binding LaneAImage}" />
-            <controls:ImageComparisonViewport x:Name="LaneBViewport" Grid.Column="2"
-                                              AutomationProperties.AutomationId="LaneBViewport"
-                                              CompareMode="ProcessedOnly"
-                                              SourceImage="{Binding SourceImage}"
-                                              ProcessedImage="{Binding LaneBImage}" />
+            <Grid>
+                <controls:ImageComparisonViewport x:Name="LaneAViewport"
+                                                  AutomationProperties.AutomationId="LaneAViewport"
+                                                  CompareMode="ProcessedOnly"
+                                                  SourceImage="{Binding SourceImage}"
+                                                  ProcessedImage="{Binding LaneAImage}">
+                    <controls:ImageComparisonViewport.Style>
+                        <Style TargetType="controls:ImageComparisonViewport">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LaneAImage}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:ImageComparisonViewport.Style>
+                </controls:ImageComparisonViewport>
+                <Border x:Name="LaneAEmpty" Background="#0E1015" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="6">
+                    <TextBlock AutomationProperties.AutomationId="LaneAEmptyText" Text="No applied image"
+                               Foreground="#8b92a0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LaneAImage}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+            </Grid>
+            <Grid Grid.Column="2">
+                <controls:ImageComparisonViewport x:Name="LaneBViewport"
+                                                  AutomationProperties.AutomationId="LaneBViewport"
+                                                  CompareMode="ProcessedOnly"
+                                                  SourceImage="{Binding SourceImage}"
+                                                  ProcessedImage="{Binding LaneBImage}">
+                    <controls:ImageComparisonViewport.Style>
+                        <Style TargetType="controls:ImageComparisonViewport">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LaneBImage}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </controls:ImageComparisonViewport.Style>
+                </controls:ImageComparisonViewport>
+                <Border x:Name="LaneBEmpty" Background="#0E1015" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="6">
+                    <TextBlock AutomationProperties.AutomationId="LaneBEmptyText" Text="No applied image"
+                               Foreground="#8b92a0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LaneBImage}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                </Border>
+                <!-- the Candidate was drawn with settings that are no longer the current ones -->
+                <Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0" Padding="8,3" CornerRadius="4" Background="#E6B45309"
+                        Visibility="{Binding LaneBIsStale, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock AutomationProperties.AutomationId="LaneBStaleText" Text="Candidate: settings changed - apply again"
+                               Foreground="#FFFFFBEB" FontSize="11" FontWeight="SemiBold" />
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- #171 ①/③ (GUI-C-79): the processed image is not the result of what was asked for. -->
@@ -299,7 +360,7 @@
                 <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#7dd3fc" Margin="0,0,6,0" />
                 <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center">
                     <Run Text="A" Foreground="#7dd3fc" /><Run Text=" " />
-                    <Run Text="{Binding LaneAAlgorithm, FallbackValue=—}" Foreground="#b0b6c0" />
+                    <Run Text="{Binding RenderedLaneAAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
                 </TextBlock>
             </StackPanel>
         </Border>
@@ -326,7 +387,7 @@
                 <Rectangle Width="4" Height="14" RadiusX="2" RadiusY="2" Fill="#c4b5fd" Margin="0,0,6,0" />
                 <TextBlock FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center">
                     <Run Text="B" Foreground="#c4b5fd" /><Run Text=" " />
-                    <Run Text="{Binding LaneBAlgorithm, FallbackValue=—}" Foreground="#b0b6c0" />
+                    <Run Text="{Binding RenderedLaneBAlgorithm, Mode=OneWay, TargetNullValue=—, FallbackValue=—}" Foreground="#b0b6c0" />
                 </TextBlock>
             </StackPanel>
         </Border>

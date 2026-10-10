@@ -125,7 +125,7 @@ The emitted report includes:
 - `DisplayPipelineSummary`
 - `DisplayPanelVisible`
 - `DisplayVersion`
-- `CalibrationEvaluationSummary`
+- `RequestedCalibrationEvaluationSummary` (the settings the self-check asked for; renamed from `CalibrationEvaluationSummary` in GUI-C-233f)
 - `VoiPresetApplied`
 - `ComparisonViewportDetected`
 - `ComparisonSourcePreserved`

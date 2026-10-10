@@ -1,0 +1,33 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndTheFileLengthDecidesTheRawSize [31 s]
+  표준 출력 메시지:
+ STEP A: started on Mock, then Backend > Backend Mode > Native
+    Run Preprocessing enabled on Mock: False
+    ok: Native
+    Run Preprocessing enabled right after the switch: True
+ STEP B: the settings say 1024x1024, the file is 3072x3072
+    dialog: 'Load Raw Image'
+    ok: the image opens at the size the file length gives
+    summary: RAW 3072x3072, min=2481, max=15451, bytes=18874368 [size from the file length: 18874368 bytes = 3072x3072x2, the settings said 1024x1024 (2097152 bytes)] | MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+ STEP B: a 1000x500 file (not square, not the settings' size)
+    dialog: 'Load Raw Image'
+    ok: the refusal names the numbers
+    error: Load failed: Raw file is too small. Expected at least 2097152 bytes, got 1000000. The length is not a square 16-bit image either. Set the right width and height (rawWidth/rawHeight in the settings, or --automation-width/--automation-height) and open it again.
+ STEP B: a 2000x1100 file (not square, not the settings' size)
+    dialog: 'Load Raw Image'
+    ok: the refusal names the numbers
+    error: Load failed: Raw file has 4400000 bytes, more than the 2097152 bytes of 1024x1024 16-bit, and the length is not a square image either. Set the right width and height (rawWidth/rawHeight in the settings, or --automation-width/--automation-height) and open it again.
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 32.2738 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

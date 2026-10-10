@@ -57,12 +57,15 @@ public sealed class NativeCommonSingleInstanceTests
             .ToArray();
 
         // Diagnostics for a red run: every module name that is loaded from more than one path (the same hazard for any xpe_* module).
-        var doubled = modules.Where(m => m.ModuleName.StartsWith("xpe_", StringComparison.OrdinalIgnoreCase))
+        var doubled = modules.Where(m => m.ModuleName.StartsWith("xpe_", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(m.ModuleName, "spdlog.dll", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(m.ModuleName, "fmt.dll", StringComparison.OrdinalIgnoreCase))   // GUI-C-233b: the shared runtime libraries count too
             .GroupBy(m => m.ModuleName, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Select(m => m.FileName).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
             .Select(g => g.Key + " at " + string.Join(" and ", g.Select(m => m.FileName).Distinct(StringComparer.OrdinalIgnoreCase)))
             .ToArray();
-        Assert.True(doubled.Length == 0, "an xpe_* module is loaded from two paths: " + string.Join(" ; ", doubled));
+        Assert.True(doubled.Length == 0, "a module is loaded from two paths: " + string.Join(" ; ", doubled)
+            + ". Usual cause (GUI-C-233b): copies of xpe_common/xpe_preprocess/spdlog/fmt left in the test output folder by a build WITHOUT XPE_NATIVE_DIR, next to a run WITH it. The build now removes them when XPE_NATIVE_DIR is set; rebuild with the variable set.");
 
         Assert.True(copies.Length == 1, "more than one copy of xpe_common.dll is loaded, so the alert queue is split: " + string.Join(" ; ", copies));
     }

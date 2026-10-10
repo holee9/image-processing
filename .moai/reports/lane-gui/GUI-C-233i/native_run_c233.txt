@@ -1,0 +1,2 @@
+GUI real automation E2E passed.
+Automation report: D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\automation-report.json

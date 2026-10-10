@@ -28,17 +28,16 @@ public sealed class RawImageLoader
             throw new InvalidOperationException("Raw width and height must be positive.");
         }
 
-        var expectedBytes = checked(settings.RawWidth * settings.RawHeight * 2);
         var data = File.ReadAllBytes(path);
-        if (data.Length < expectedBytes)
-        {
-            throw new InvalidDataException($"Raw file is too small. Expected at least {expectedBytes} bytes, got {data.Length}.");
-        }
+        var width = settings.RawWidth;
+        var height = settings.RawHeight;
+        RawSizeRules.CheckLength(data.Length, width, height);
+        RawSizeRules.CheckMapSizes(width, height, ("Offset", settings.OffsetCalibrationDirectory), ("Gain", settings.GainCalibrationDirectory), ("Defect", settings.DefectCalibrationDirectory));
 
         ushort minValue = ushort.MaxValue;
         ushort maxValue = ushort.MinValue;
-        var rawPixels = new ushort[settings.RawWidth * settings.RawHeight];
-        var grayscale = new byte[settings.RawWidth * settings.RawHeight];
+        var rawPixels = new ushort[width * height];
+        var grayscale = new byte[width * height];
 
         for (var i = 0; i < grayscale.Length; i++)
         {
@@ -63,33 +62,33 @@ public sealed class RawImageLoader
         }
 
         var preview = BitmapSource.Create(
-            settings.RawWidth,
-            settings.RawHeight,
+            width,
+            height,
             96,
             96,
             PixelFormats.Gray8,
             null,
             grayscale,
-            settings.RawWidth);
+            width);
         preview.Freeze();
 
         return new LoadedImageFrame
         {
             Preview = preview,
             ProcessedPreview = preview,
-            Summary = $"RAW {settings.RawWidth}x{settings.RawHeight}, min={minValue}, max={maxValue}, bytes={data.Length}",
+            Summary = $"RAW {width}x{height}, min={minValue}, max={maxValue}, bytes={data.Length}",
             MetadataText =
                 $"Source: {path}{Environment.NewLine}" +
                 $"Kind: Raw frame{Environment.NewLine}" +
                 $"Pixel format: {settings.RawPixelFormat}{Environment.NewLine}" +
-                $"Dimensions: {settings.RawWidth}x{settings.RawHeight}{Environment.NewLine}" +
+                $"Dimensions: {width}x{height}{Environment.NewLine}" +
                 $"Min/Max: {minValue}/{maxValue}{Environment.NewLine}" +
                 $"Offset calibration dir: {settings.OffsetCalibrationDirectory}{Environment.NewLine}" +
                 $"Gain calibration dir: {settings.GainCalibrationDirectory}{Environment.NewLine}" +
                 $"Defect calibration dir: {settings.DefectCalibrationDirectory}",
             RawPixels = rawPixels,
-            Width = settings.RawWidth,
-            Height = settings.RawHeight,
+            Width = width,
+            Height = height,
             BitsStored = 16
         };
     }

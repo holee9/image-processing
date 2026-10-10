@@ -177,7 +177,6 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         {
             ("no maps in the folder", native!, Path.Combine(sets!, "empty"), raw1024, 1024),
             ("expired map set", native!, Path.Combine(sets!, "expired1024"), raw1024, 1024),
-            ("maps are 1024x1024 but the raw image is 3072x3072", native!, Path.Combine(sets!, "ok1024"), raw3072, 3072),
             ("native DLL folder has no DLLs", Path.Combine(sets!, "nodll"), Path.Combine(sets!, "ok1024"), raw1024, 1024),
         };
         if (invalidGain is not null) cases.Insert(0, ("gain map with values outside 0.1..10 (a pre build artifact)", native!, invalidGain, raw3072, 3072));
@@ -215,6 +214,179 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             app.ClickButtonByName("Log");
             Thread.Sleep(1200);
             foreach (var line in app.ListItems("LogListBox").TakeLast(12)) output.WriteLine("   LOG " + line);
+        }
+
+        // GUI-C-232b: maps made for 1024x1024 and a 3072x3072 raw image: the image is NOT opened (it used to open and fail later with only a code)
+        output.WriteLine("CASE maps are 1024x1024 but the raw image is 3072x3072");
+        using (var app = GuiApp.Launch(output, native!, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", Path.Combine(sets!, "ok1024"), "--automation-width", "3072", "--automation-height", "3072"]))
+        {
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw3072, confirmId: "1");
+            app.WaitFor(() => app.AnyTextContains("calibration map") && app.AnyTextContains("is 1024x1024, but the raw image is 3072x3072"), "the open is refused with both sizes", 90);
+            foreach (var text in app.TextsContaining("Load failed")) output.WriteLine("   error: " + text);
+            Assert.False(app.AnyTextContains("RAW 3072x3072"), "the image was opened although the maps are another size");
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-232b/c: the save flow with the name the dialog SUGGESTS (beside the opened image): the file is exactly the reference, saving again replaces it whole, and a target that cannot be written (held open
+    /// by another program) shows "Save failed" and leaves the previous file untouched. All files are in this test's own temp folder.
+    /// NOT covered, and not claimed: a name the user TYPES. The common save dialog ignored a name set through the Value pattern (232) and through WM_SETTEXT (232b), so that flow is UNVERIFIED here; likewise the
+    /// "file exists, replace?" confirmation was not observed (the file was replaced, but no prompt was seen). See the 232c report.
+    /// </summary>
+    [EnvGatedFact]
+    public void W9_SuggestedName_Overwrite_AndAWriteFailureKeepsThePreviousFile()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        var baseline = Env("XPE_C231_BASELINE_F32");
+        Assert.False(baseline is null, "XPE_C231_BASELINE_F32 is not set.");
+        var folder = Path.Combine(Path.GetTempPath(), "xpe_c232b_w9_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        var rawCopy = Path.Combine(folder, Path.GetFileName(raw));
+        File.Copy(raw, rawCopy);
+        var typed = Path.Combine(folder, Path.GetFileNameWithoutExtension(rawCopy) + "_corrected_f32le.raw");   // the dialog's suggestion
+        try
+        {
+            using var app = GuiApp.Launch(output, native, extraArguments:
+                ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", rawCopy, confirmId: "1");
+            app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+            app.Menu("PipelineMenu");
+            app.InvokeMenuItem("RunPreprocessingMenuItem");
+            app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
+            Thread.Sleep(3000);
+
+            app.Step("1 save under the suggested name (no name typed)");
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", null, confirmId: "1");
+            app.WaitFor(() => File.Exists(typed), "the file exists at the suggested name in the opened image's folder", 60);
+            output.WriteLine("   status: " + app.Read("StatusBarText"));
+            Assert.True(File.ReadAllBytes(typed).AsSpan().SequenceEqual(File.ReadAllBytes(baseline!)), "the saved file differs from the reference");
+            output.WriteLine("   saved file == reference: True; files in the folder: " + string.Join(", ", Directory.GetFiles(folder).Select(Path.GetFileName)));
+
+            app.Step("2 save again under the same suggested name: the file is replaced whole");
+            app.ConfirmOverwrite = true;
+            var before = File.GetLastWriteTimeUtc(typed);
+            Thread.Sleep(1200);
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", null, confirmId: "1");
+            app.WaitFor(() => app.Read("StatusBarText").StartsWith("Saved corrected image (float32 raw)", StringComparison.Ordinal), "the status line reports the second save", 60);
+            output.WriteLine($"   replaced: write time {before:O} -> {File.GetLastWriteTimeUtc(typed):O}; identical to reference: " + File.ReadAllBytes(typed).AsSpan().SequenceEqual(File.ReadAllBytes(baseline!)));
+            Assert.Equal(new[] { Path.GetFileName(rawCopy), Path.GetFileName(typed) }.OrderBy(x => x), Directory.GetFiles(folder).Select(Path.GetFileName).OrderBy(x => x));
+
+            app.Step("3 the target is held open by another program: the save fails and the previous file stays");
+            var previous = File.ReadAllBytes(typed);
+            using (new FileStream(typed, FileMode.Open, FileAccess.Read, FileShare.None))
+            {
+                app.Menu("FileMenu");
+                app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", null, confirmId: "1");
+                app.WaitFor(() => app.Read("StatusBarText").StartsWith("Save failed", StringComparison.Ordinal), "the status line says Save failed", 60);
+                output.WriteLine("   status: " + app.Read("StatusBarText"));
+            }
+
+            Assert.True(File.ReadAllBytes(typed).AsSpan().SequenceEqual(previous), "the previous file changed after a failed save");
+            output.WriteLine("   previous file intact after the failed save: True; files in the folder: " + string.Join(", ", Directory.GetFiles(folder).Select(Path.GetFileName)));
+            Assert.Equal(2, Directory.GetFiles(folder).Length);
+        }
+        finally
+        {
+            try { Directory.Delete(folder, true); } catch (Exception) { /* this test's own temp folder */ }
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-232b (SRS-CALIB-SAFE-004, leader decision): native DLLs that predate <c>xpe_preprocess_pipeline_out</c> do NOT run the older stage-by-stage path. Run Preprocessing fails, says the DLL is too old and to update it,
+    /// and no image is processed. Needs <c>XPE_C232B_OLD_NATIVE_DIR</c> (such a DLL folder), <c>XPE_C231_SETS</c> (for the <c>ok1024</c> maps) and <c>XPE_C231_FIXTURE_RAW</c>.
+    /// </summary>
+    [EnvGatedFact]
+    public void W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing()
+    {
+        var oldNative = Env("XPE_C232B_OLD_NATIVE_DIR");
+        var sets = Env("XPE_C231_SETS");
+        var fixtures = Env("XPE_C231_FIXTURE_RAW");
+        Assert.False(oldNative is null || sets is null || fixtures is null, "XPE_C232B_OLD_NATIVE_DIR / XPE_C231_SETS / XPE_C231_FIXTURE_RAW are not all set.");
+        var dll = Path.Combine(oldNative!, "xpe_preprocess.dll");
+        output.WriteLine($"   DLL: {dll} sha256 {Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(dll))).ToLowerInvariant()} written {File.GetLastWriteTime(dll):yyyy-MM-dd HH:mm:ss}");
+        using var app = GuiApp.Launch(output, oldNative!, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", Path.Combine(sets!, "ok1024"), "--automation-width", "1024", "--automation-height", "1024"]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", Path.Combine(fixtures!, "synthetic_1024x1024.raw"), confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains("RAW 1024x1024"), "the image summary appears", 90);
+        app.Menu("PipelineMenu");
+        app.InvokeMenuItem("RunPreprocessingMenuItem");
+        app.WaitFor(() => app.Read("ChainStatusText") != "chain: not run", "the chain status changes", 120);
+        Thread.Sleep(2500);
+        var chain = app.Read("ChainStatusText");
+        output.WriteLine("   chain: " + chain);
+        output.WriteLine("   status bar: " + app.Read("StatusBarText"));
+        app.Menu("ViewMenu");
+        if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
+        app.ClickButtonByName("Log");
+        Thread.Sleep(1200);
+        var log = app.ListItems("LogListBox").TakeLast(12).ToList();
+        foreach (var line in log) output.WriteLine("   LOG " + line);
+        Assert.DoesNotContain("preprocess=Applied", chain);
+        Assert.Contains("preprocess=RequestedNotApplied", chain);
+        Assert.Contains("has no xpe_preprocess_pipeline_out", chain);
+        Assert.Contains("Update the native DLLs", chain);
+        app.Menu("FileMenu");
+        Assert.False(app.IsEnabled("SaveCorrectedFloatMenuItem"), "a corrected image can be saved although nothing was processed");
+        output.WriteLine("   Save Corrected Image enabled: False");
+    }
+
+    /// <summary>
+    /// GUI-C-233 (user decision on #251, QA-B-214): the default display of real data. Preprocessing is run on the real set, and what the app DRAWS (the render dump, UIA only, no foreground input) is
+    /// checked against the decision: the window comes from the image itself (the display summary says "VOI(auto, LinearExact, C=..., W=...)", and C and W are not the settings' fixed numbers) and the polarity
+    /// is bone bright / air dark (most of the frame, which is air in this wrist image, is dark). The measured numbers go to the output: they are the evidence the report compares with the post lane's chain.
+    /// Needs <c>XPE_C231_NATIVE_DIR</c> with a 214 display module, <c>XPE_C231_CALIB_DIR</c>, <c>XPE_C231_RAW</c>, <c>XPE_C231_RAW_SIZE</c>.
+    /// </summary>
+    [EnvGatedFact]
+    public void W11_TheDefaultDisplay_UsesTheAutomaticWindow_AndShowsAirDark()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        var dump = Path.Combine(Path.GetTempPath(), "xpe_c233_render_" + Guid.NewGuid().ToString("N") + ".bgra");
+        try
+        {
+            using var app = GuiApp.Launch(output, native, extraArguments:
+                ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString(), "--automation-export-render", dump]);
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+            app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+            app.Menu("PipelineMenu");
+            app.InvokeMenuItem("RunPreprocessingMenuItem");
+            app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
+            Thread.Sleep(4000);
+
+            app.Menu("ViewMenu");
+            if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
+            app.ClickButtonByName("Log");
+            Thread.Sleep(1200);
+            var displayLine = app.ListItems("LogListBox").FirstOrDefault(l => l.Contains("-> Display:", StringComparison.Ordinal) && l.Contains("VOI(", StringComparison.Ordinal));
+            output.WriteLine("   display summary: " + displayLine);
+            Assert.NotNull(displayLine);
+            var voi = System.Text.RegularExpressions.Regex.Match(displayLine!, @"VOI\(auto, LinearExact, C=(?<c>[-0-9.,]+), W=(?<w>[-0-9.,]+)\)");
+            Assert.True(voi.Success, "the display summary does not say that the window is automatic");
+            output.WriteLine($"   automatic window: C={voi.Groups["c"].Value} W={voi.Groups["w"].Value}");
+
+            var bytes = File.ReadAllBytes(dump);
+            var headerEnd = Array.IndexOf(bytes, (byte)'\n');
+            var header = System.Text.Encoding.ASCII.GetString(bytes, 0, headerEnd).Split(' ');
+            int w = int.Parse(header[1]), h = int.Parse(header[2]);
+            var gray = new byte[w * h];
+            for (var i = 0; i < gray.Length; i++) gray[i] = bytes[headerEnd + 1 + i * 4];   // BGRA: the blue byte of a grey pixel
+            var sorted = gray.OrderBy(v => v).ToArray();
+            double Q(double f) => sorted[(int)Math.Round((sorted.Length - 1) * f)];
+            var dark = gray.Count(v => v < 32) / (double)gray.Length;
+            var atMax = gray.Count(v => v == 255) / (double)gray.Length;
+            output.WriteLine($"   drawn frame {w}x{h}: share of pixels below 32/255 = {dark:P1}; at 255 = {atMax:P2}; p5/p50/p95/p99 = {Q(0.05)}/{Q(0.5)}/{Q(0.95)}/{Q(0.99)}");
+            Assert.True(dark > 0.5, $"most of this frame is air and should be dark; only {dark:P1} of it is");
+            Assert.True(Q(0.99) > 128, "the brightest 1% (bone) is not bright");
+        }
+        finally
+        {
+            try { File.Delete(dump); } catch (Exception) { /* temp file */ }
         }
     }
 
@@ -352,6 +524,147 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// GUI-C-232, the core evidence: open the real raw image, run Phase 1a with the real calibration set, save the corrected float image from the File menu, and compare the saved file byte for byte with the
+    /// first-stage reference image (<c>XPE_C231_BASELINE_F32</c>). Also saves the 16-bit PNG. UI Automation only; the save dialogs are driven like the open dialogs.
+    /// </summary>
+    [EnvGatedFact]
+    public void W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        var baseline = Env("XPE_C231_BASELINE_F32");
+        Assert.False(baseline is null, "XPE_C231_BASELINE_F32 (the first-stage reference float file) is not set.");
+        var outDir = Path.Combine(Path.GetTempPath(), "xpe_c232_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(outDir);
+        // GUI-C-232b: the test works on its OWN copy of the raw file in its own temp folder; the app saves beside the image it opened, so every file the test writes or deletes is in outDir
+        var original = raw;
+        raw = Path.Combine(outDir, Path.GetFileName(original));
+        File.Copy(original, raw);
+        try
+        {
+            using var app = GuiApp.Launch(output, native, extraArguments:
+                ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+            var dll = Path.Combine(native, "xpe_preprocess.dll");
+            output.WriteLine($"   DLL: {dll} sha256 {Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(dll))).ToLowerInvariant()} written {File.GetLastWriteTime(dll):yyyy-MM-dd HH:mm:ss}; provenance.json {(File.Exists(Path.Combine(native, "provenance.json")) ? "present" : "absent")}");
+            app.Step("1 started on Native; Save Corrected Image is dimmed before anything ran");
+            app.Menu("FileMenu");
+            output.WriteLine("   Save float enabled: " + app.IsEnabled("SaveCorrectedFloatMenuItem") + "; Save PNG enabled: " + app.IsEnabled("SaveCorrectedPngMenuItem"));
+            Assert.False(app.IsEnabled("SaveCorrectedFloatMenuItem"));
+
+            app.Step("2 File > Open Raw...");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+            app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+            Thread.Sleep(2000);
+            app.Menu("FileMenu");
+            output.WriteLine("   after the load, before the run: Save float enabled: " + app.IsEnabled("SaveCorrectedFloatMenuItem"));
+            Assert.False(app.IsEnabled("SaveCorrectedFloatMenuItem"));
+
+            app.Step("3 Pipeline > Run Preprocessing (Phase 1a)");
+            app.Menu("PipelineMenu");
+            app.InvokeMenuItem("RunPreprocessingMenuItem");
+            app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
+            Thread.Sleep(3000);
+            output.WriteLine("   chain: " + app.Read("ChainStatusText"));
+            app.Menu("ViewMenu");
+            if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
+            app.ClickButtonByName("Log");
+            Thread.Sleep(800);
+            foreach (var line in app.ListItems("LogListBox").Where(l => l.Contains("pipeline_out", StringComparison.Ordinal)).Take(2)) output.WriteLine("   LOG " + line);
+
+            app.Step("4 File > Save Corrected Image (float32 .raw)...");
+            var suggestedStem = Path.Combine(Path.GetDirectoryName(raw)!, Path.GetFileNameWithoutExtension(raw));
+            var floatPath = suggestedStem + "_corrected_f32le.raw";
+            app.Menu("FileMenu");
+            output.WriteLine("   Save float enabled after the run: " + app.IsEnabled("SaveCorrectedFloatMenuItem"));
+            app.InvokeMenuItemThenDialog("SaveCorrectedFloatMenuItem", null, confirmId: "1");
+            app.WaitFor(() => File.Exists(floatPath) && app.Read("StatusBarText").StartsWith("Saved corrected image (float32 raw)", StringComparison.Ordinal), "the status line reports the save", 60);
+            output.WriteLine("   status: " + app.Read("StatusBarText"));
+
+            app.Step("5 File > Save Corrected Image (16-bit PNG)...");
+            var pngPath = suggestedStem + "_corrected_16bit.png";
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("SaveCorrectedPngMenuItem", null, confirmId: "1");
+            app.WaitFor(() => File.Exists(pngPath) && app.Read("StatusBarText").StartsWith("Saved corrected image (16-bit PNG)", StringComparison.Ordinal), "the PNG is saved", 120);
+            output.WriteLine("   status: " + app.Read("StatusBarText"));
+
+            var saved = File.ReadAllBytes(floatPath);
+            var reference = File.ReadAllBytes(baseline!);
+            var savedSha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(saved)).ToLowerInvariant();
+            var referenceSha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(reference)).ToLowerInvariant();
+            var firstDifference = -1;
+            for (var i = 0; i < Math.Min(saved.Length, reference.Length); i++)
+            {
+                if (saved[i] != reference[i]) { firstDifference = i; break; }
+            }
+
+            output.WriteLine($"   saved     : {saved.Length} bytes sha256 {savedSha}");
+            output.WriteLine($"   reference : {reference.Length} bytes sha256 {referenceSha}");
+            output.WriteLine($"   identical : {saved.AsSpan().SequenceEqual(reference)}; first differing byte: {firstDifference}");
+            var png = new FileInfo(pngPath);
+            output.WriteLine($"   png       : {png.Length} bytes");
+            Assert.True(saved.AsSpan().SequenceEqual(reference), $"the saved float file differs from the reference (sha {savedSha} vs {referenceSha})");
+        }
+        finally
+        {
+            try { Directory.Delete(outDir, true); } catch (Exception) { /* temp folder */ }
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-232 (A): after Backend > Backend Mode > Native on a running app, Run Preprocessing is enabled at once (no restart). (B): a file whose length is not width x height x 2 is not opened silently:
+    /// the size is never guessed: a file of any other length (square or not) is refused with the numbers.
+    /// </summary>
+    [EnvGatedFact]
+    public void W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused()
+    {
+        var (native, _, raw, width, height) = Inputs();
+        using (var app = GuiApp.Launch(output, native, extraArguments: []))
+        {
+            app.Step("A: started on Mock, then Backend > Backend Mode > Native");
+            app.Menu("PipelineMenu");
+            output.WriteLine("   Run Preprocessing enabled on Mock: " + app.IsEnabled("RunPreprocessingMenuItem"));
+            Assert.False(app.IsEnabled("RunPreprocessingMenuItem"));
+            app.Menu("BackendMenu", "BackendModeMenuItem");
+            app.InvokeMenuItem("NativeBackendModeMenuItem");
+            app.WaitFor(() => app.Read("RuntimeCommonVersionText").Contains("mode=Native", StringComparison.Ordinal), "Native", 60);
+            app.Menu("PipelineMenu");
+            var enabled = app.IsEnabled("RunPreprocessingMenuItem");
+            output.WriteLine("   Run Preprocessing enabled right after the switch: " + enabled);
+            Assert.True(enabled);
+        }
+
+        // a SQUARE file with the wrong setting is refused too (232b: no inference from the length)
+        using (var app = GuiApp.Launch(output, native, ["--automation-width", "1024", "--automation-height", "1024"]))
+        {
+            app.Step($"B: the settings say 1024x1024, the file is {width}x{height} (square)");
+            app.Menu("FileMenu");
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+            var bytes = (long)width * height * 2;
+            app.WaitFor(() => app.AnyTextContains($"Load failed: Raw file has {bytes} bytes, more than the 2097152 bytes of 1024x1024"), "the square file is refused with the numbers", 90);
+            foreach (var text in app.TextsContaining("Load failed")) output.WriteLine("   error: " + text);
+            Assert.False(app.AnyTextContains($"RAW {width}x{height}"), "the file was opened at a guessed size");
+        }
+
+        foreach (var (w, h, expectedText) in new[] { (1000, 500, "Load failed: Raw file is too small. Expected at least 2097152 bytes, got 1000000"), (2000, 1100, "Load failed: Raw file has 4400000 bytes, more than the 2097152 bytes") })
+        {
+            var odd = Path.Combine(Path.GetTempPath(), "xpe_c232_odd_" + Guid.NewGuid().ToString("N") + ".raw");
+            File.WriteAllBytes(odd, new byte[w * h * 2]);
+            try
+            {
+                using var app = GuiApp.Launch(output, native, ["--automation-width", "1024", "--automation-height", "1024"]);
+                app.Step($"B: a {w}x{h} file (not square, not the settings' size)");
+                app.Menu("FileMenu");
+                app.InvokeMenuItemThenDialog("OpenRawMenuItem", odd, confirmId: "1");
+                app.WaitFor(() => app.AnyTextContains(expectedText), "the refusal names the numbers", 30);
+                foreach (var text in app.TextsContaining("Load failed")) output.WriteLine("   error: " + text);
+            }
+            finally
+            {
+                try { File.Delete(odd); } catch (Exception) { /* temp file */ }
+            }
+        }
+    }
+
     private static (string Native, string Calib, string Raw, int Width, int Height) Inputs()
     {
         var native = Env("XPE_C231_NATIVE_DIR");
@@ -368,6 +681,14 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     {
         [DllImport("user32.dll", EntryPoint = "SendMessageW")]
         private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", EntryPoint = "SendMessageW", CharSet = CharSet.Unicode)]
+        private static extern IntPtr SendMessageText(IntPtr window, uint message, IntPtr wParam, string text);
+
+        private const uint WmSetText = 0x000C;
+
+        /// <summary>GUI-C-232b: when set, a "file already exists" confirmation that follows the save dialog's Save button is answered Yes (button id 6) instead of being left open.</summary>
+        public bool ConfirmOverwrite { get; set; }
 
         private const uint BmClick = 0x00F5;
 
@@ -525,7 +846,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             Thread.Sleep(600);
         }
 
-        public void InvokeMenuItemThenDialog(string automationId, string path, string confirmId)
+        public void InvokeMenuItemThenDialog(string automationId, string? path, string confirmId)
         {
             var item = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsMenuItem();
             Assert.True(item is not null && item.IsEnabled, $"menu item '{automationId}' was not found or is disabled");
@@ -541,7 +862,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             DriveDialog(path, confirmId);
         }
 
-        private void DriveDialog(string path, string confirmId)
+        private void DriveDialog(string? path, string confirmId)
         {
             Window? dialog = null;
             var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
@@ -553,20 +874,38 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
             Assert.True(dialog is not null, "the dialog did not appear within 20 s");
             _output.WriteLine("   dialog: '" + dialog!.Title + "'");
-            // the file dialog's name edit is id 1148, the folder dialog's is id 1152 (measured, GUI-C-231)
-            var edit = dialog.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit).And(cf.ByAutomationId("1148").Or(cf.ByAutomationId("1152"))));
-            var value = edit?.Patterns.Value.PatternOrDefault;
-            if (value is null)
+            // the open dialog's name edit is id 1148, the folder dialog's is id 1152, the save dialog's is id 1001 (measured, GUI-C-231/232)
+            if (path is not null)
             {
-                foreach (var d in dialog.FindAllDescendants().Take(120))
+                // The open dialog's name edit is id 1148, the folder dialog's is id 1152 (measured, GUI-C-231). The SAVE dialog ignores a name typed this way (measured, GUI-C-232: the file went to
+                // the suggested name in the suggested folder although the edit and its host combo both read back the typed path), so saves pass null and leave the suggestion as it is.
+                var edit = dialog.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit).And(cf.ByAutomationId("1148").Or(cf.ByAutomationId("1152")).Or(cf.ByAutomationId("1001"))));
+                var viaMessage = false;
+                if (edit is not null && Safe(() => edit.AutomationId) == "1001" && edit.Properties.NativeWindowHandle.ValueOrDefault is var editHandle && editHandle != IntPtr.Zero)
                 {
-                    _output.WriteLine($"      DLG {Safe(() => d.ControlType.ToString())} id='{Safe(() => d.AutomationId)}' name='{Safe(() => d.Name)}' class='{Safe(() => d.ClassName)}'");
+                    // GUI-C-232b: the save dialog ignored a name set through the Value pattern (232). WM_SETTEXT on the edit's own window is what typed text ends up as, without any foreground input.
+                    SendMessageText(editHandle, WmSetText, IntPtr.Zero, path);
+                    _output.WriteLine("   save dialog: name set by WM_SETTEXT: " + path);
+                    viaMessage = true;
+                }
+
+                var value = viaMessage ? null : edit?.Patterns.Value.PatternOrDefault;
+                if (value is null)
+                {
+                    foreach (var d in dialog.FindAllDescendants().Take(120))
+                    {
+                        _output.WriteLine($"      DLG {Safe(() => d.ControlType.ToString())} id='{Safe(() => d.AutomationId)}' name='{Safe(() => d.Name)}' class='{Safe(() => d.ClassName)}'");
+                    }
+                }
+
+                Assert.True(viaMessage || value is not null, "the dialog's name edit (id 1148, 1152 or 1001) was not found");
+                if (value is not null)
+                {
+                    value.SetValue(path);
+                    Assert.Equal(path, value.Value.ValueOrDefault);
                 }
             }
 
-            Assert.True(value is not null, "the dialog's name edit (id 1148 or 1152) was not found");
-            value!.SetValue(path);
-            Assert.Equal(path, value.Value.ValueOrDefault);
             var confirm = dialog.FindFirstDescendant(cf => cf.ByAutomationId(confirmId).And(cf.ByControlType(ControlType.Button)));
             Assert.True(confirm is not null, $"the dialog's confirm button (id {confirmId}) was not found");
             var handle = confirm!.Properties.NativeWindowHandle.ValueOrDefault;
@@ -574,7 +913,21 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             SendMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
 
             var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-            while (DateTime.UtcNow < closeDeadline && _window.ModalWindows.Length > 0) Thread.Sleep(200);
+            while (DateTime.UtcNow < closeDeadline && _window.ModalWindows.Length > 0)
+            {
+                if (ConfirmOverwrite)
+                {
+                    var yes = dialog.ModalWindows.FirstOrDefault()?.FindFirstDescendant(cf => cf.ByAutomationId("6").And(cf.ByControlType(ControlType.Button)));
+                    var yesHandle = yes?.Properties.NativeWindowHandle.ValueOrDefault ?? IntPtr.Zero;
+                    if (yesHandle != IntPtr.Zero)
+                    {
+                        _output.WriteLine("   dialog: the file exists; answering Yes to the overwrite prompt");
+                        SendMessage(yesHandle, BmClick, IntPtr.Zero, IntPtr.Zero);
+                    }
+                }
+
+                Thread.Sleep(200);
+            }
             Assert.True(_window.ModalWindows.Length == 0, "the dialog is still open after BM_CLICK on its confirm button");
         }
 

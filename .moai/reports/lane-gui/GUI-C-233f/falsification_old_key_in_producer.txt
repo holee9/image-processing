@@ -1,0 +1,2 @@
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests.TheSelfCheckReport_NamesItsCalibrationFieldsRequested_InTheClassTheProducerAndTheReadme [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 29 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -223,13 +223,13 @@ public sealed class BackendLifecycleTests
     {
         var source = Source("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs");
 
-        Assert.Contains("await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket);", source, StringComparison.Ordinal);
+        Assert.Contains("await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket, committed.Id);", source, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(() => RenderLane(backend, sourceFrame, candidate))", source, StringComparison.Ordinal);
         Assert.Equal(1, CountOf(source, "RenderLane(backend, sourceFrame, candidate)"));          // no second, synchronous call
         Assert.DoesNotContain("RenderLane(sourceFrame, candidate)", source, StringComparison.Ordinal);
         Assert.Contains("private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend,", source, StringComparison.Ordinal);
         // The result is applied only if the backend is still the one it was made for and nothing is shutting down.
-        var apply = source.IndexOf("LaneBImage = candidateImage;", StringComparison.Ordinal);
+        var apply = source.IndexOf("UpdateRender(renderId, r => r with { LaneB = candidateImage });", StringComparison.Ordinal);
         var drop = source.LastIndexOf("if (!IsCurrent(ticket))", apply, StringComparison.Ordinal);
         Assert.True(apply >= 0 && drop >= 0 && apply - drop < 300, "The lane result must be checked against its ticket right before it is applied.");
     }

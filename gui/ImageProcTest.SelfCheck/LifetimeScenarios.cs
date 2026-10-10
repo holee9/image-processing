@@ -43,7 +43,7 @@ internal class ScenarioBackend : IXpeBackend
     /// <summary>When set, Shutdown waits for it: the transition stays running until the scenario lets it end.</summary>
     public ManualResetEventSlim? ShutdownMayEnd;
 
-    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    public virtual ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
     {
         var call = Interlocked.Increment(ref ChainCalls);
         var requestsAi = stages.Any(stage => stage.StageId == StageIds.AiBoneSuppression && stage.Enabled);
@@ -70,7 +70,7 @@ internal class ScenarioBackend : IXpeBackend
         return _inner.RunChain(rawFrame, stages, settings);
     }
 
-    public LoadedImageFrame LoadRawImage(string path, AppSettings settings)
+    public virtual LoadedImageFrame LoadRawImage(string path, AppSettings settings)
     {
         Interlocked.Increment(ref LoadCalls);
         return _inner.LoadRawImage(path, settings);
@@ -82,7 +82,7 @@ internal class ScenarioBackend : IXpeBackend
         return _inner.CreateVoiPreset(bodyPart);
     }
 
-    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    public virtual LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
         Interlocked.Increment(ref ApplyCalls);
         return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
@@ -94,7 +94,7 @@ internal class ScenarioBackend : IXpeBackend
         _inner.Shutdown();
     }
 
-    public BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);
+    public virtual BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);
 
     public string GetVersion() => _inner.GetVersion();
 
@@ -104,7 +104,86 @@ internal class ScenarioBackend : IXpeBackend
 
     public TelemetrySnapshot GetTelemetrySince(int logsSeen, int alertsSeen) => _inner.GetTelemetrySince(logsSeen, alertsSeen);
 
-    public BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
+    public virtual BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
+}
+
+/// <summary>GUI-C-233g: a scripted backend that identifies itself as the native one (RealXpeBackend, its own display version), so a Mock to Native switch can be driven without the DLLs.</summary>
+internal sealed class NativeNamedBackend : ScenarioBackend
+{
+    private static BackendRuntimeInfo Info() => new() { BackendName = "RealXpeBackend", Version = "native-9.9", DisplayVersion = "native-display-9.9", NativeSource = "scripted" };
+
+    public override BackendRuntimeInfo Initialize(AppSettings settings) => Info();
+
+    public override BackendRuntimeInfo GetRuntimeInfo() => Info();
+}
+
+/// <summary>
+/// GUI-C-233b: a scripted display stage that REPORTS the window it applied (as RealXpeBackend does): an automatic window answers fixed numbers that differ from the settings' center/width, a hand-chosen one
+/// answers the settings', and <see cref="FailAutomaticWindow"/> makes the automatic window fail the way a refused xpe_voi_auto_window call does (the render throws).
+/// </summary>
+internal sealed class VoiReportingBackend : ScenarioBackend
+{
+    public const float AutoCenter = 1234.5f;
+    public const float AutoWidth = 987.0f;
+
+    public bool FailAutomaticWindow;
+
+    /// <summary>GUI-C-233j: a window chosen by hand fails (the Candidate lane's settings carry one; the main render, on the automatic window, is untouched).</summary>
+    public bool FailManualWindow;
+
+    public override LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    {
+        if (settings.VoiWindowAuto && FailAutomaticWindow)
+        {
+            throw new InvalidOperationException("xpe_voi_auto_window failed (-1)");
+        }
+
+        if (!settings.VoiWindowAuto && FailManualWindow)
+        {
+            throw new InvalidOperationException("scripted failure of a manual window (the Candidate lane)");
+        }
+
+        var inner = base.ApplyDisplayPipeline(rawFrame, displayInput, settings);
+        return new LoadedImageFrame
+        {
+            Preview = inner.Preview,
+            ProcessedPreview = inner.ProcessedPreview,
+            Summary = inner.Summary,
+            MetadataText = inner.MetadataText,
+            RawPixels = inner.RawPixels,
+            Width = inner.Width,
+            Height = inner.Height,
+            BitsStored = inner.BitsStored,
+            DisplayPipelineApplied = inner.DisplayPipelineApplied,
+            DisplayPipelineSummary = inner.DisplayPipelineSummary,
+            AppliedVoi = settings.VoiWindowAuto
+                ? new AppliedVoiWindow("LinearExact", AutoCenter, AutoWidth, true)
+                : new AppliedVoiWindow(settings.VoiLutMode, settings.VoiWindowCenter, settings.VoiWindowWidth, false),
+        };
+    }
+}
+
+/// <summary>
+/// GUI-C-232c: a scripted backend that also offers a Save Corrected Image candidate for every chain run (its Floats carry the run's number, taken when the run STARTS), and refuses to load a path
+/// ending in "bad.raw". The candidate hangs on the run's own <see cref="ChainResult"/>, as in <see cref="RealXpeBackend"/>.
+/// </summary>
+internal sealed class CandidateBackend : ScenarioBackend, ICorrectedImageSource
+{
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ChainResult, CorrectedImage> _candidates = new();
+    private int _runs;
+
+    public CorrectedImage? CorrectedFor(ChainResult chain) => _candidates.TryGetValue(chain, out var corrected) ? corrected : null;
+
+    public override ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        var id = Interlocked.Increment(ref _runs);
+        var result = base.RunChain(rawFrame, stages, settings);
+        _candidates.Add(result, new CorrectedImage([id], 1, 1, rawFrame.RawPixels));
+        return result;
+    }
+
+    public override LoadedImageFrame LoadRawImage(string path, AppSettings settings) =>
+        path.EndsWith("bad.raw", StringComparison.Ordinal) ? throw new InvalidDataException("scripted: this file cannot be opened") : base.LoadRawImage(path, settings);
 }
 
 /// <summary>
@@ -267,6 +346,12 @@ internal static class LifetimeScenarios
                         await Timed(() => AnOlderApplyFinishingLateChangesNothing(rawPath, width, height, holdLane: true, fail: true));
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+                        await Timed(() => TheHudShowsTheWindowThatWasApplied_NotTheSettings(rawPath, width, height));
+                        await Timed(() => TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(rawPath, width, height));
+                        await Timed(() => EveryEventLeavesTheHudAndTheReportEqualToTheRenderRecord(rawPath, width, height));
+                        await Timed(() => TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(rawPath, width, height));
+                        await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
+                        await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
 #endif
@@ -946,6 +1031,443 @@ internal static class LifetimeScenarios
             await Task.Delay(1500);                                // the failing reads go on; the old mark must not come back
             await FlushUi();
             Check(!vm.AiWorkerMarkVisible && !vm.AiWorkerDisabled, "the old switched-off state came back while the new session's reads were failing");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-232c (Codex #166 / #165 items 2 and 3): the Save Corrected Image candidate and the save name -----------------------------------
+
+    private static CorrectedImage? Committed(MainWindowViewModel vm) =>
+        (CorrectedImage?)typeof(MainWindowViewModel).GetField("_committedCorrected", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(vm);
+
+    private static string? SaveSourcePath(MainWindowViewModel vm) =>
+        (string?)typeof(MainWindowViewModel).GetProperty("ActiveImageSourcePath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(vm);
+
+    /// <summary>Apply A starts first and finishes LAST; Apply B starts later and finishes first. The save candidate stays B's, byte for byte (its Floats carry the run number).</summary>
+    private static async Task TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(string rawPath, int width, int height)
+    {
+        _scenario = "8 save candidate: an older Apply finishing late";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new CandidateBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);                 // chain runs 1 and 2
+            Check(Committed(vm) is not null, "no save candidate after the first render");
+
+            backend.BlockChainCall = 3;                          // Apply A's main chain
+            var settingsOfA = vm.Settings.LaneBVoiWindowWidth;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => backend.ChainBlocked.IsSet, "Apply A's held chain run");
+
+            var laneBBeforeB = vm.LaneBImage;
+            vm.Settings.LaneBVoiWindowWidth = settingsOfA + 300f;
+            vm.ApplyDisplayPipelineCommand.Execute(null);        // Apply B: runs 4 and 5
+            await Until(() => backend.ChainCalls >= 5, "Apply B's two chain runs");
+            await Until(() => !ReferenceEquals(vm.LaneBImage, laneBBeforeB) && !vm.LaneBIsStale, "Apply B's Lane B");
+            await FlushUi();
+
+            var committedByB = Committed(vm);
+            Check(committedByB is not null && committedByB.Floats[0] == 4f, $"after B the candidate is not B's run 4 (got {committedByB?.Floats[0]})");
+
+            backend.ChainRelease.Set();                          // A (run 3) ends long after B
+            await Until(() => vm.Logs.Any(line => line.Contains("a newer Apply", StringComparison.Ordinal)
+                || line.Contains("no longer current failed", StringComparison.Ordinal)), "A's late outcome to be recognised as stale");
+            await FlushUi();
+            await FlushUi();
+
+            var after = Committed(vm);
+            Check(ReferenceEquals(after, committedByB), $"the older Apply replaced the save candidate (run {after?.Floats[0]} instead of 4)");
+            Check(after!.Floats.SequenceEqual(new[] { 4f }), "the candidate bytes changed");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    /// <summary>Open A (and run it), then fail to open B: the save name still comes from A and the candidate is still A's.</summary>
+    private static async Task AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(string rawPath, int width, int height)
+    {
+        _scenario = "9 failed open keeps the save name and candidate";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new CandidateBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);
+            var candidate = Committed(vm);
+            Check(candidate is not null, "no save candidate after opening A");
+            Check(SaveSourcePath(vm) == rawPath, $"the save name does not come from A ({SaveSourcePath(vm)})");
+
+            var badPath = Path.Combine(directory, "bad.raw");
+            File.WriteAllBytes(badPath, new byte[2]);               // the automation path is only used when the file exists; the scripted backend refuses it
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", badPath);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+                await Until(() => vm.StatusText.Contains("fail", StringComparison.OrdinalIgnoreCase) || vm.Logs.Any(l => l.Contains("cannot be opened", StringComparison.Ordinal)), "the failed open to be reported");
+                await FlushUi();
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            Check(SaveSourcePath(vm) == rawPath, $"the failed open of B renamed the save name ({SaveSourcePath(vm)})");
+            Check(ReferenceEquals(Committed(vm), candidate), "the failed open changed the save candidate");
+            Check(!SaveSourcePath(vm)!.EndsWith("bad.raw", StringComparison.Ordinal), "the save name is B's");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233b (Codex #171 finding 1): the HUD and the settings panel show the window that was APPLIED --------------------------------
+
+    private static async Task TheHudShowsTheWindowThatWasApplied_NotTheSettings(string rawPath, int width, int height)
+    {
+        _scenario = "10 HUD shows the applied window";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new VoiReportingBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            Check(vm.Settings.VoiWindowAuto, "the automatic window is not the default");
+            await LoadAndDrawLanes(vm, rawPath);
+
+            // 1. automatic: the HUD carries the numbers the display stage chose, not the settings' fixed center/width/mode
+            Check(vm.RenderedVoiCenter == VoiReportingBackend.AutoCenter && vm.RenderedVoiWidth == VoiReportingBackend.AutoWidth && vm.RenderedVoiMode == "LinearExact",
+                $"the HUD does not show the applied automatic window (C={vm.RenderedVoiCenter} W={vm.RenderedVoiWidth} mode={vm.RenderedVoiMode}; settings say C={vm.Settings.VoiWindowCenter} W={vm.Settings.VoiWindowWidth} mode={vm.Settings.VoiLutMode})");
+            Check(vm.PreviewStaleReason is null, $"a fresh automatic render is already stale: {vm.PreviewStaleReason}");
+
+            // 2. automatic -> chosen by hand: the picture on screen no longer matches what is asked for (stale), then Apply makes the HUD show the chosen numbers
+            vm.Settings.VoiWindowAuto = false;
+            Check(vm.PreviewStaleReason is not null, "switching the automatic window off did not mark the picture stale (VoiWindowAuto is not in the comparison)");
+            var applies = backend.ApplyCalls;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => backend.ApplyCalls > applies, "the manual-window render");
+            await Until(() => vm.PreviewStaleReason is null && vm.RenderedVoiMode == vm.Settings.VoiLutMode, "the manual-window render to be shown");
+            Check(vm.RenderedVoiCenter == vm.Settings.VoiWindowCenter && vm.RenderedVoiWidth == vm.Settings.VoiWindowWidth, "after a manual render the HUD does not show the chosen window");
+
+            // 3. chosen by hand -> automatic, and the automatic window FAILS: nothing new is drawn, the HUD keeps describing the picture that is still on screen, and the failure is shown
+            backend.FailAutomaticWindow = true;
+            var shown = vm.ProcessedImage;
+            var (centerBefore, widthBefore, modeBefore) = (vm.RenderedVoiCenter, vm.RenderedVoiWidth, vm.RenderedVoiMode);
+            vm.UseAutomaticWindowCommand.Execute(null);
+            await Until(() => vm.StatusText.StartsWith("Display pipeline failed", StringComparison.Ordinal), "the failed automatic render to be reported");   // (the stale reason is already set by the settings change itself)
+            await FlushUi();
+            Check(ReferenceEquals(vm.ProcessedImage, shown), "a failed automatic render replaced the picture on screen");
+            Check(vm.RenderedVoiCenter == centerBefore && vm.RenderedVoiWidth == widthBefore && vm.RenderedVoiMode == modeBefore, "a failed automatic render changed what the HUD says was rendered");
+            Check(vm.StatusText.Contains("xpe_voi_auto_window failed (-1)", StringComparison.Ordinal), "the status line does not name the failed automatic window and its code");
+            Check(vm.Alerts.Any(a => a.Code == "DISPLAY_PIPELINE_FAILED" && a.Message.Contains("xpe_voi_auto_window", StringComparison.Ordinal)), "no DISPLAY_PIPELINE_FAILED alert names the automatic window");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233c (Codex #173 finding 1): the automation report describes THIS frame's render ------------------------------------------
+
+    private static System.Text.Json.JsonElement ReportRoot(MainWindowViewModel vm)
+    {
+        typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
+        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+        return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.Clone();
+    }
+
+    private static System.Text.Json.JsonElement ReportDisplayPipeline(MainWindowViewModel vm)
+    {
+        typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
+        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+        return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("displayPipeline");
+    }
+
+    private static async Task TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(string rawPath, int width, int height)
+    {
+        _scenario = "11 report describes the current frame";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new VoiReportingBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);
+
+            // (b) a successful automatic render: the report carries the window that was APPLIED (not the settings' numbers) and says it was automatic
+            var ok = ReportDisplayPipeline(vm);
+            Check(ok.GetProperty("windowSource").GetString() == "automatic", $"report windowSource for a successful automatic render is '{ok.GetProperty("windowSource").GetString()}'");
+            Check(Math.Abs(ok.GetProperty("center").GetSingle() - VoiReportingBackend.AutoCenter) < 0.01f && Math.Abs(ok.GetProperty("width").GetSingle() - VoiReportingBackend.AutoWidth) < 0.01f && ok.GetProperty("mode").GetString() == "LinearExact",
+                $"report window is not the applied one: {ok}");
+            var summaryA = vm.DisplayPipelineSummary;
+
+            // GUI-C-233d (Codex #174): after frame A the report's processingChain is A's; remember it so the next check can prove it is gone
+            var chainA = ReportRoot(vm).GetProperty("processingChain");
+            Check(chainA.GetProperty("stages").GetArrayLength() > 0 && chainA.GetProperty("displayInput").GetString() != "not run", $"frame A's report has no chain to compare with: {chainA}");
+            var statusA = chainA.GetProperty("status").GetString();
+
+            // GUI-C-233e (a): A is applied; ONE calibration mode is changed and the frame is NOT re-applied (the report is read in the same synchronous step, before any re-render can start).
+            // The summary and the seven modes must still be A's applied values; only `requested` carries the new one.
+            var calibA = ReportRoot(vm).GetProperty("calibrationEvaluation");
+            var summaryAppliedA = calibA.GetProperty("summary").GetString();
+            var offsetAppliedA = calibA.GetProperty("offset").GetString();
+            var newOffset = string.Equals(vm.Settings.OffsetCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            vm.Settings.OffsetCorrectionMode = newOffset;
+            var calibChanged = ReportRoot(vm).GetProperty("calibrationEvaluation");
+            Check(calibChanged.GetProperty("summary").GetString() == summaryAppliedA && calibChanged.GetProperty("offset").GetString() == offsetAppliedA,
+                $"the report's calibration summary/offset followed the settings instead of the applied render: {calibChanged}");
+            Check(calibChanged.GetProperty("requested").GetProperty("offset").GetString() == newOffset && calibChanged.GetProperty("requested").GetProperty("summary").GetString()!.Contains($"Offset={newOffset}", StringComparison.Ordinal),
+                $"requested does not carry the new offset '{newOffset}': {calibChanged.GetProperty("requested")}");
+            Check(summaryAppliedA!.Contains($"Offset={offsetAppliedA}", StringComparison.Ordinal), $"the applied summary does not agree with the applied offset: '{summaryAppliedA}' / '{offsetAppliedA}'");
+            Check(!string.IsNullOrEmpty(summaryA) && ok.GetProperty("summary").GetString() == summaryA, "report summary is not the render's summary");
+
+            // (a) frame B arrives and ITS automatic window fails: the report is B's, with none of A's values
+            var secondFrame = Path.Combine(directory, "second_frame.raw");
+            File.Copy(rawPath, secondFrame);
+            backend.FailAutomaticWindow = true;
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", secondFrame);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+                await Until(() => vm.StatusText.StartsWith("Display pipeline failed", StringComparison.Ordinal), "frame B's failed automatic render to be reported");
+                await FlushUi();
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            var failed = ReportDisplayPipeline(vm);
+            Check(failed.GetProperty("windowSource").GetString() == "failed", $"report windowSource after B's failure is '{failed.GetProperty("windowSource").GetString()}'");
+            Check(failed.GetProperty("center").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("width").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("mode").ValueKind == System.Text.Json.JsonValueKind.Null,
+                $"report still carries a window after B's failure: {failed}");
+            var summaryB = failed.GetProperty("summary").GetString() ?? string.Empty;
+            Check(summaryB != summaryA && !summaryB.Contains("Display: Modality", StringComparison.Ordinal), $"report summary after B's failure is still A's success: '{summaryB}'");
+            Check(string.IsNullOrEmpty(vm.PipelineTimings), $"the previous frame's timings survived into frame B: '{vm.PipelineTimings}'");
+
+            // GUI-C-233d: the WHOLE report is B's. B's display threw before its chain was reported, so the chain says "not run" - nothing of A's stages, status or display input, and no leftover preprocess/AI diagnostics
+            var rootB = ReportRoot(vm);
+            var chainB = rootB.GetProperty("processingChain");
+            Check(chainB.GetProperty("stages").GetArrayLength() == 0, $"report stages after B's failure are still A's: {chainB.GetProperty("stages")}");
+            Check(chainB.GetProperty("displayInput").GetString() == "not run", $"report displayInput after B's failure is '{chainB.GetProperty("displayInput").GetString()}'");
+            Check(chainB.GetProperty("status").GetString() == "chain: not run" && chainB.GetProperty("status").GetString() != statusA, $"report chain status after B's failure is '{chainB.GetProperty("status").GetString()}'");
+            Check(!vm.PreprocessRan && string.IsNullOrEmpty(vm.PreprocessStages) && vm.LastChain is null, "B kept A's preprocess/chain diagnostics");
+            // the calibration and display fields describe what a render USED: none for B; what is asked for now is reported apart, as `requested`
+            Check(failed.GetProperty("requested").GetProperty("automatic").GetBoolean(), $"the report does not say what is asked for now: {failed}");
+            Check(rootB.GetProperty("calibrationEvaluation").GetProperty("summary").ValueKind == System.Text.Json.JsonValueKind.Null, $"B's report carries a calibration summary no render of B produced: {rootB.GetProperty("calibrationEvaluation").GetProperty("summary")}");
+            Check(rootB.GetProperty("calibrationEvaluation").GetProperty("offset").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("bodyPart").ValueKind == System.Text.Json.JsonValueKind.Null, $"B's report carries calibration/display values no render of B used: {rootB.GetProperty("calibrationEvaluation")}");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233g: every event x every field -------------------------------------------------------------------------------------------------
+
+    /// <summary>One row of the event x field table: what the record, the HUD properties and the whole report say right after an event.</summary>
+    private static string TableRow(string eventName, MainWindowViewModel vm)
+    {
+        var root = ReportRoot(vm);
+        var display = root.GetProperty("displayPipeline");
+        var calibration = root.GetProperty("calibrationEvaluation");
+        var chain = root.GetProperty("processingChain");
+        string Text(System.Text.Json.JsonElement e) => e.ValueKind == System.Text.Json.JsonValueKind.Null ? "null" : e.ToString();
+        var by = display.GetProperty("renderedBy");
+        return $"| {eventName,-44} | {(vm.CurrentRender is null ? "none" : vm.CurrentRender.Backend.Mode),-6} | {Text(display.GetProperty("applied")),-5} | {(by.ValueKind == System.Text.Json.JsonValueKind.Null ? "null" : by.GetProperty("backendMode").GetString()),-6} | "
+            + $"{Text(display.GetProperty("version")),-18} | {Text(display.GetProperty("windowSource")),-13} | {(Text(calibration.GetProperty("summary")).Length > 0 && calibration.GetProperty("summary").ValueKind != System.Text.Json.JsonValueKind.Null ? "set" : "null"),-4} | "
+            + $"{(chain.GetProperty("stages").GetArrayLength() == 0 ? "empty" : "stages"),-6} | {chain.GetProperty("displayInput").GetString(),-7} | {(vm.PreviewStaleReason is null ? "-" : vm.PreviewStaleReason == MainWindowViewModel.StaleBackendReplaced ? "backend" : vm.PreviewStaleReason == MainWindowViewModel.StalePipelineFailed ? "failed" : "settings"),-9} | "
+            + $"{(vm.LaneAImage is null ? "-" : "A")}/{(vm.LaneBImage is null ? "-" : "B")}{(vm.CurrentRender is { LaneA: not null } r && r.Backend.Mode is { } m ? " by " + m : string.Empty),-9} | {root.GetProperty("actualBackendMode").GetString()} |";
+    }
+
+    /// <summary>With no render standing, EVERY field the record feeds says so: the properties, the HUD values and the whole report agree on "none".</summary>
+    private static void CheckNoRender(MainWindowViewModel vm, string after)
+    {
+        var root = ReportRoot(vm);
+        var display = root.GetProperty("displayPipeline");
+        var calibration = root.GetProperty("calibrationEvaluation");
+        var chain = root.GetProperty("processingChain");
+        Check(vm.CurrentRender is null && vm.LastChain is null && !vm.HasPipelineDiagnostics, $"after {after}: a render record still stands");
+        Check(vm.LaneAImage is null && vm.LaneBImage is null && !vm.LaneBIsStale, $"after {after}: the comparison lanes still show a render's pictures (A={(vm.LaneAImage is null ? "none" : "set")}, B={(vm.LaneBImage is null ? "none" : "set")})");
+        Check(vm.ChainStatus == "chain: not run" && string.IsNullOrEmpty(vm.PipelineTimings) && vm.DisplayPipelineSummary == "Display pipeline has not run.", $"after {after}: status/timings/summary are still a render's: '{vm.ChainStatus}' / '{vm.PipelineTimings}' / '{vm.DisplayPipelineSummary}'");
+        Check(vm.RenderedVoiCenter is null && vm.RenderedVoiWidth is null && vm.RenderedVoiMode is null && vm.RenderedVoiAutomatic is null, $"after {after}: the HUD window is still a render's");
+        Check(!vm.PreprocessRan && string.IsNullOrEmpty(vm.PreprocessStages) && string.IsNullOrEmpty(vm.AiProcessedLabel), $"after {after}: preprocess/AI diagnostics are still a render's");
+        Check(!display.GetProperty("applied").GetBoolean() && display.GetProperty("version").ValueKind == System.Text.Json.JsonValueKind.Null && display.GetProperty("renderedBy").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report names a producer or says applied: {display}");
+        Check(display.GetProperty("windowSource").GetString() is "not applied" or "failed" && display.GetProperty("mode").ValueKind == System.Text.Json.JsonValueKind.Null && display.GetProperty("center").ValueKind == System.Text.Json.JsonValueKind.Null && display.GetProperty("bodyPart").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report's window/bodyPart are still a render's: {display}");
+        Check(calibration.GetProperty("summary").ValueKind == System.Text.Json.JsonValueKind.Null && calibration.GetProperty("offset").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report's calibration is still a render's: {calibration}");
+        Check(chain.GetProperty("stages").GetArrayLength() == 0 && chain.GetProperty("displayInput").GetString() == "not run" && chain.GetProperty("status").GetString() == "chain: not run" && chain.GetProperty("exposureKvp").ValueKind == System.Text.Json.JsonValueKind.Null, $"after {after}: the report's chain is still a render's: {chain}");
+    }
+
+    private static async Task EveryEventLeavesTheHudAndTheReportEqualToTheRenderRecord(string rawPath, int width, int height)
+    {
+        _scenario = "13 event x field table";
+        var directory = TempDirectory();
+        try
+        {
+            // builds 1 and 2 are the constructor's; 3 is the switch to Native, 4 the switch back to Mock, 5 a re-initialisation, 6 the second Native
+            var built = new List<ScenarioBackend>();
+            ScenarioBackend For(int build)
+            {
+                ScenarioBackend backend = build is 3 or 6 ? new NativeNamedBackend() : new VoiReportingBackend();
+                built.Add(backend);
+                return backend;
+            }
+
+            var vm = NewViewModel(width, height, For, directory, out _);
+            var rows = new List<string>();
+            Console.WriteLine("| event                                        | record | appl. | by     | display version    | windowSource  | cal. | chain  | input   | stale     | lanes A/B     | actual |");
+
+            // 0. before any load
+            CheckNoRender(vm, "start-up");
+            rows.Add(TableRow("start-up (nothing loaded)", vm));
+
+            // 1. frame A rendered by the first (Mock-named) backend
+            await LoadAndDrawLanes(vm, rawPath);
+            var recordA = vm.CurrentRender;
+            Check(recordA is not null && recordA.Backend.Mode == "Mock" && recordA.Chain.Stages.Count > 0, "frame A has no Mock record");
+            var rootA = ReportRoot(vm).GetProperty("displayPipeline");
+            Check(rootA.GetProperty("applied").GetBoolean() && rootA.GetProperty("renderedBy").GetProperty("backendMode").GetString() == "Mock", $"A's report does not name the Mock backend: {rootA}");
+            Check(vm.RenderedVoiMode == recordA!.Voi.Mode && vm.ChainStatus == recordA.ChainStatus && vm.DisplayPipelineSummary == recordA.DisplaySummary, "A's HUD/status properties are not the record's");
+            Check(vm.LaneAImage is not null && vm.LaneBImage is not null && ReferenceEquals(recordA.LaneA, vm.LaneAImage) && ReferenceEquals(vm.LaneAImage, vm.ProcessedImage), "A's lanes are not the record's / the Reference is not the main picture");
+            rows.Add(TableRow("A rendered (Mock)", vm));
+
+            // 2. a setting changes and nothing is re-applied: the SAME record stands, only `requested` moves
+            vm.Settings.OffsetCorrectionMode = string.Equals(vm.Settings.OffsetCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            Check(ReferenceEquals(vm.CurrentRender, recordA), "a settings change replaced or dropped the record");
+            rows.Add(TableRow("setting changed, not re-applied", vm));
+
+            // 2b. the SAME frame is rendered again and the display fails: the picture on screen is unchanged, so its record stands (same object), marked failed - the report says "failed", not "applied just now"
+            var current = (VoiReportingBackend)built[^1];
+            current.FailAutomaticWindow = true;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.PreviewStaleReason == MainWindowViewModel.StalePipelineFailed, "the same-frame re-render's failure to be reported");
+            Check(ReferenceEquals(vm.CurrentRender, recordA), "a failed re-render of the same frame replaced or dropped the record of the picture that is still shown");
+            Check(vm.LaneAImage is not null && vm.LaneBImage is not null && ReferenceEquals(vm.LaneAImage, recordA.LaneA), "a failed same-frame re-render took the lanes away although the picture and its record stand");
+            Check(ReportRoot(vm).GetProperty("displayPipeline").GetProperty("windowSource").GetString() == "failed", "the report does not say the last attempt failed");
+            rows.Add(TableRow("same frame re-render, display fails", vm));
+
+            // 2c. a NEW frame whose display fails: nothing of A survives
+            var secondFrame = Path.Combine(directory, "second_frame.raw");
+            File.Copy(rawPath, secondFrame);
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", secondFrame);
+            try
+            {
+                vm.LoadImageCommand.Execute(null);
+                await Until(() => vm.StatusText.StartsWith("Display pipeline failed", StringComparison.Ordinal) && vm.CurrentRender is null, "frame B's failed render to be reported");
+                await FlushUi();
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            CheckNoRender(vm, "new frame whose display fails");
+            rows.Add(TableRow("new frame, display fails", vm));
+
+            // back to a standing render for the backend switches
+            current.FailAutomaticWindow = false;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && vm.PreviewStaleReason is null, "frame B to render once the display works");
+            await FlushUi();
+            rows.Add(TableRow("B rendered (Mock)", vm));
+
+            // 3. Mock -> Native: the Mock-made picture is not described as the Native backend's
+            vm.SetBackendModeCommand.Execute("Native");
+            await FlushUi();
+            CheckNoRender(vm, "Mock -> Native");
+            Check(vm.ActualBackendMode == "Native" && ReportRoot(vm).GetProperty("actualBackendMode").GetString() == "Native", "the current runtime is not Native after the switch");
+            Check(vm.PreviewStaleReason == MainWindowViewModel.StaleBackendReplaced, $"the stale reason after the switch is '{vm.PreviewStaleReason}'");
+            Check(ReferenceEquals(vm.ProcessedImage, vm.SourceImage), "the viewport still shows the old backend's processed picture after the switch");
+            rows.Add(TableRow("Mock -> Native", vm));
+
+            // 4. a successful re-render under the new backend: the record names it
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && vm.LaneBImage is not null, "the re-render under the Native backend to commit with its lanes");
+            await FlushUi();
+            Check(vm.CurrentRender!.Backend.Mode == "Native" && vm.LaneAImage is not null, "the lanes after the Native re-render are not drawn by the Native backend's render");
+            var recordN = vm.CurrentRender!;
+            Check(recordN.Backend.Mode == "Native" && recordN.Backend.DisplayVersion == "native-display-9.9" && vm.PreviewStaleReason is null, $"the re-render's record is not the Native backend's: {recordN.Backend}");
+            Check(ReportRoot(vm).GetProperty("displayPipeline").GetProperty("version").GetString() == "native-display-9.9", "the report's display version is not the producing backend's");
+            rows.Add(TableRow("re-render succeeded (Native)", vm));
+
+            // 5. Native -> Mock
+            vm.SetBackendModeCommand.Execute("Mock");
+            await FlushUi();
+            CheckNoRender(vm, "Native -> Mock");
+            Check(vm.ActualBackendMode == "Mock", "the current runtime is not Mock after the switch back");
+            rows.Add(TableRow("Native -> Mock", vm));
+
+            // 6. a render, then a re-initialisation of the same mode
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null, "the re-render under the Mock backend to commit");
+            await FlushUi();
+            vm.InitializeBackendCommand.Execute(null);
+            await FlushUi();
+            CheckNoRender(vm, "re-initialisation");
+            rows.Add(TableRow("re-initialise (same mode)", vm));
+
+            foreach (var row in rows)
+            {
+                Console.WriteLine(row);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233j: what the screen says about the drawn image -------------------------------------------------------------------------------
+
+    private static async Task TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(string rawPath, int width, int height)
+    {
+        _scenario = "14 lane tags, stage count, failed candidate";
+        var directory = TempDirectory();
+        try
+        {
+            var built = new List<ScenarioBackend>();
+            var vm = NewViewModel(width, height, build => { var b = new VoiReportingBackend(); built.Add(b); return b; }, directory, out _);
+
+            // before anything is rendered nothing is claimed
+            Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null && vm.CalibStageCountDisplay == "—" && !vm.LaneBIsStale, "start-up: the lane tags / stage count claim a render");
+
+            await LoadAndDrawLanes(vm, rawPath);
+            var tagA = vm.RenderedLaneAAlgorithm;
+            var tagB = vm.RenderedLaneBAlgorithm;
+            var stages = vm.CalibStageCountDisplay;
+            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm && stages.EndsWith("/7 stages", StringComparison.Ordinal), $"after the render the tags/count are not the record's: '{tagA}' '{tagB}' '{stages}'");
+
+            // settings change, nothing re-applied: the tags and the count still describe what was DRAWN; the Candidate is stale
+            var otherA = MainWindowViewModel.AlgorithmOptions.First(o => o != vm.Settings.LaneAAlgorithm);
+            var otherB = MainWindowViewModel.AlgorithmOptions.First(o => o != vm.Settings.LaneBAlgorithm);
+            vm.Settings.LaneAAlgorithm = otherA;
+            vm.Settings.LaneBAlgorithm = otherB;
+            vm.Settings.OffsetCorrectionMode = string.Equals(vm.Settings.OffsetCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            vm.Settings.DefectCorrectionMode = string.Equals(vm.Settings.DefectCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            Check(vm.RenderedLaneAAlgorithm == tagA && vm.RenderedLaneBAlgorithm == tagB, $"the lane tags followed the settings instead of the render: '{vm.RenderedLaneAAlgorithm}' '{vm.RenderedLaneBAlgorithm}' (settings now {otherA} / {otherB})");
+            Check(vm.CalibStageCountDisplay == stages, $"the HUD stage count followed the settings: was '{stages}', now '{vm.CalibStageCountDisplay}'");
+            Check(vm.LaneBIsStale, "the Candidate is not marked stale after its algorithm setting changed");
+
+            // a render that fails on the Candidate lane: the main render commits, the lanes are NOT left holding anything
+            var current = (VoiReportingBackend)built[^1];
+            current.FailManualWindow = true;
+            vm.Settings.LaneBVoiWindowWidth = 900f;   // a Candidate override is a window chosen by hand
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender.Inputs, null) && vm.CurrentRender.Inputs.LaneBVoiWindowWidth > 0f, "the render with a failing Candidate to commit");
+            await Task.Delay(300);
+            await FlushUi();
+            Check(vm.CurrentRender is not null && vm.LaneAImage is null && vm.LaneBImage is null, $"a failed Candidate left lane pictures behind (A={(vm.LaneAImage is null ? "none" : "set")}, B={(vm.LaneBImage is null ? "none" : "set")})");
+            Check(vm.RenderedLaneAAlgorithm == otherA && vm.RenderedLaneBAlgorithm == otherB, "the tags after the second render are not the second render's");
+            Console.WriteLine($"| lane tags after render {tagA}/{tagB} -> after unapplied change {vm.RenderedLaneAAlgorithm}/{vm.RenderedLaneBAlgorithm} (requested {otherA}/{otherB}); stages {stages}; Candidate failed -> lanes {(vm.LaneAImage is null ? "none" : "set")}/{(vm.LaneBImage is null ? "none" : "set")} |");
+
+            // the new frame / backend replacement cases are rows of scenario 13; here the tags go with them
+            vm.InitializeBackendCommand.Execute(null);
+            await FlushUi();
+            Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null && vm.CalibStageCountDisplay == "—" && string.IsNullOrEmpty(vm.MetadataText) == false, "after the backend was replaced the tags / stage count still describe the old render");
         }
         finally
         {

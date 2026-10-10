@@ -7,7 +7,7 @@ using ImageProcTest.Services.Native;
 
 namespace ImageProcTest.Services;
 
-public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBackend
+public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBackend, ICorrectedImageSource
 {
     private static readonly string[] RequiredCommonExports =
     {
@@ -22,6 +22,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         "xpe_apply_voi_lut",
         "xpe_voi_preset_create",
         "xpe_apply_presentation_lut",
+        "xpe_apply_presentation_lut_ex",
+        "xpe_voi_auto_window",
         "xpe_gsdf_calibrate"
     };
 
@@ -29,6 +31,11 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     private readonly string _commonDllPath;
     private readonly string _displayDllPath;
     private readonly BackendTelemetry _telemetry = new();
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ChainResult, CorrectedImage> _candidates = new();
+
+    /// <summary>GUI-C-232b: the corrected float image the given chain run produced (see <see cref="ICorrectedImageSource"/>).</summary>
+    public CorrectedImage? CorrectedFor(ChainResult chain) => _candidates.TryGetValue(chain, out var corrected) ? corrected : null;
     private BackendRuntimeInfo _runtimeInfo = new();
 
     public RealXpeBackend(RawImageLoader rawImageLoader, string commonDllPath, string displayDllPath)
@@ -155,6 +162,13 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                 MinOut = 0.0f,
                 MaxOut = 1.0f
             };
+            if (settings.VoiWindowAuto)
+            {
+                // GUI-C-233 (user decision, #251): the default window is the module's anatomy-based one, taken from the float image that reaches the VOI stage (after the modality LUT, the same
+                // values xpe_apply_voi_lut is about to window). A window the user chose (VoiWindowAuto false) is used as given: manual wins.
+                CheckNativeResult(XpeDisplayNative.xpe_voi_auto_window(ref image, ref voi), "xpe_voi_auto_window");
+            }
+
             CheckNativeResult(XpeDisplayNative.xpe_apply_voi_lut(ref image, ref voi), "xpe_apply_voi_lut");
 
             var presentation = XpePresentationLutParamsNative.CreateLinear(settings.GsdfEnabled);
@@ -180,7 +194,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                     "xpe_gsdf_calibrate");
             }
 
-            CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut(ref image, ref presentation), "xpe_apply_presentation_lut");
+            // GUI-C-233: the polarity is stated, not left to the module's default: the shipped display shows bone bright and air dark (user decision, #251; QA-B-214).
+            CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut_ex(ref image, ref presentation, XpeDisplayNative.PresentationInverted), "xpe_apply_presentation_lut_ex");
 
             nativeMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
@@ -189,7 +204,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
 
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
             previewMs = phase.Elapsed.TotalMilliseconds;
-            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; preprocess native bridge pending) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
+            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; the preprocess result is the chain line) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({(settings.VoiWindowAuto ? "auto, LinearExact" : NormalizeVoiMode(settings.VoiLutMode))}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
             return new LoadedImageFrame
@@ -204,6 +219,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                 BitsStored = rawFrame.BitsStored,
                 DisplayPipelineApplied = true,
                 DisplayPipelineSummary = summary,
+                AppliedVoi = new AppliedVoiWindow(settings.VoiWindowAuto ? "LinearExact" : NormalizeVoiMode(settings.VoiLutMode), voi.Center, voi.Width, settings.VoiWindowAuto),
                 DisplayTimings = $"display: marshal-in={marshalInMs:0} ms, native={nativeMs:0} ms, " +
                                  $"marshal-out={marshalOutMs:0} ms, preview={previewMs:0} ms"
             };
@@ -291,14 +307,20 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             throw new InvalidOperationException("The pixel chain requires a loaded UInt16 raw frame.");
         }
 
+        CorrectedImage? candidate = null;
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
         {
-            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex),
+            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex, rawFrame.RawPixels, found => candidate = found),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
+
+        if (candidate is not null)
+        {
+            _candidates.Add(result, candidate);   // GUI-C-232b: attached to this run's result; nothing global is replaced
+        }
 
         foreach (var stage in result.Stages)
         {
@@ -308,7 +330,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         return result;
     }
 
-    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false)
+    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false, ushort[]? frameKey = null, Action<CorrectedImage?>? candidateSink = null)
     {
         // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
         // failure paths — a stage that refuses is exactly when the queue holds something to show.
@@ -323,6 +345,12 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.ExposureKvp,
             settings.PixelPitchMm,
             measureExposureIndex));
+
+        // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
+        if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
+        {
+            candidateSink?.Invoke(new CorrectedImage(floats, width, height, frameKey));
+        }
 
         return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);
     }

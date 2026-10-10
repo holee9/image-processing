@@ -9,6 +9,7 @@ using ImageProcTest.Services;
 namespace ImageProcTest.IntegrationTests.Functional;
 
 [Trait("Category", "Functional")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class BaselineReviewFixTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "xpe-baseline-m6-" + Guid.NewGuid().ToString("N"));
@@ -179,9 +180,10 @@ public sealed class BaselineReviewFixTests : IDisposable
         Assert.Contains("return BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);
 
         var preprocess = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
-        var counted = preprocess.IndexOf("BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats)", StringComparison.Ordinal);
-        var scaled = preprocess.IndexOf("var pixels = ScaleToUInt16(defectFloats);", StringComparison.Ordinal);
-        Assert.True(counted >= 0 && scaled > counted, "the non-finite count must be taken on the float images BEFORE the result is scaled to 16 bits");
+        // GUI-C-232b: the shipped path is xpe_preprocess_pipeline_out, whose gain output is internal; the count is taken on the pipeline's float output, still BEFORE it is scaled to 16 bits.
+        var counted = preprocess.IndexOf("BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats)", StringComparison.Ordinal);
+        var scaled = preprocess.IndexOf("ScaleToUInt16(floats),", StringComparison.Ordinal);
+        Assert.True(counted >= 0 && scaled > counted, "the non-finite count must be taken on the float image BEFORE the result is scaled to 16 bits");
     }
 
     // ---- finding 2: the evidence file is required --------------------------------------------------------------------------------------------
@@ -501,6 +503,7 @@ public sealed class BaselineReviewFixTests : IDisposable
     [Fact]
     public void ANonFiniteGainOutput_ThatTheDefectStageHid_FailsTheBaseline_WithTheCountInTheStatusAndTheJson()
     {
+        // GUI-C-232d: this pins the count ARITHMETIC (still used when a stage supplies a count). The real runner no longer has a gain intermediate to count: the pipeline call fails instead (the test below).
         float[] gain = [1f, float.NaN, 3f, 4f, 5f, 6f];
         float[] defectFilled = [1f, 2f, 3f, 4f, 5f, 6f];
         var counted = BaselineStageAdapters.CountPreprocessNonFinite(gain, defectFilled);
@@ -519,14 +522,204 @@ public sealed class BaselineReviewFixTests : IDisposable
         Assert.True(control.Passed, control.Status);
     }
 
+    /// <summary>
+    /// GUI-C-232d (Codex #169 finding 2, #245; leader decision): the M8 diagnostic changed. It used to COUNT the non-finite values the gain stage made and the defect stage hid. With the shipped path
+    /// (xpe_preprocess_pipeline_out) that is not needed: gain makes no non-finite value from a finite input and the defect stage REFUSES a non-finite input (INVALID_INPUT, with the module's warning
+    /// XPE_WARN_DEFECT_INPUT_NOT_FINITE), so the pipeline call fails. The count is replaced by this: the pipeline failing fails the Baseline, writes no DICOM, and the error code and the stage name stay in
+    /// the status (the text the BASELINE_FAILED alert carries) and in the result JSON. The preprocess stage is scripted here (no module); the text is the one the real runner produces for a failed call
+    /// (the next test gets that text from the real runner and the real module). The module's warning code is not part of the agreed scope: the app does not read module warnings (GUI-C-233b).
+    /// </summary>
     [Fact]
-    public void TheRealPreprocessRunner_CountsTheGainOutputBeforeTheDefectStage_AndBothFloatArraysReachTheCount()
+    public void WhenThePipelineFails_WithInvalidInput_TheBaselineFails_WritesNoDicom_AndKeepsTheErrorCodeAndTheStageName()
     {
+        const string pipelineFailure = "xpe_preprocess_pipeline_out failed (-1).";   // GUI-C-233b: exactly what the runner writes; the module's own XPE_WARN_* are NOT read by the app, so they are not asserted
+        BaselineSingleRun FailingRun()
+        {
+            var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
+            {
+                StageIds.Preprocess => BaselineStageAdapters.FromPreprocess(false, null, pipelineFailure, 0),
+                StageIds.EnhanceBasic => BaselineStageAdapters.FromEnhance(EnhanceBasicStage.Run(input, 3, 2, new PoisoningBackend(0))),
+                _ => new StageExecution(false, null, "not available"),
+            });
+            var applied = chain.Stages.All(s => s.Status is StageStatus.Applied or StageStatus.AppliedNoChange);
+            return new BaselineSingleRun(chain, applied ? chain.DisplayInput : []);
+        }
+
+        var dicom = new FileDicom();
+        var folder = Path.Combine(_root, "pipeline-fails");
+        var result = Execute(FailingRun, dicom, folder);
+
+        Assert.False(result.Passed);
+        Assert.Equal(0, dicom.Writes);
+        Assert.Empty(Directory.Exists(folder) ? Directory.GetFiles(folder, "*.dcm") : []);
+        foreach (var text in new[] { result.Status, ReadJson(result).GetProperty("failureReason").GetString()! })
+        {
+            Assert.Contains("preprocess", text, StringComparison.Ordinal);                               // the stage name
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", text, StringComparison.Ordinal);  // the call and its error code
+        }
+
+        Assert.Equal("Fail", ReadJson(result).GetProperty("status").GetString());
+
+        // The control: the same chain with the preprocess stage succeeding passes, so the Fail above comes from the failed pipeline call and from nothing else.
+        var control = Execute(() => RunOnce(0, 0), new FileDicom(), Path.Combine(_root, "pipeline-ok"));
+        Assert.True(control.Passed, control.Status);
+    }
+
+    /// <summary>
+    /// GUI-C-233b/c (Codex #171 finding 2, #173 finding 2): the same fact through the REAL <c>GuiPreprocessRunner</c> and the REAL module, with NO outside data: the test makes its own 16 x 16
+    /// calibration maps with the module's own generators (and a defect map file) and hands the runner a 64 x 64 frame, which makes xpe_preprocess_pipeline_out answer INVALID_INPUT (-1). The runner's
+    /// own text for that, fed to the Baseline exactly as RealXpeBackend feeds it, fails the Baseline. The modules come from <c>XPE_NATIVE_DIR</c> when set, else from the test output folder
+    /// (staged by the project from build/ci-common/bin); with neither, it is skipped, and the CI gate (ci_gate_patch.txt) requires that it PASSED there.
+    /// </summary>
+    /// <summary>
+    /// GUI-C-233f (leader decision on Codex #175): the self-check report (<c>GuiAutomationReport</c>) keeps reading the SETTINGS - the self-check sets Offset=Off and Defect=On itself and judges exactly those -
+    /// so its keys say "Requested". Pinned from the three places that must agree: the class, the producer and judge in MainWindow, and the README list. The old unprefixed keys must not come back (a consumer reading
+    /// one would get an empty string and a silent "did not record").
+    /// </summary>
+    [Fact]
+    public void TheSelfCheckReport_NamesItsCalibrationFieldsRequested_InTheClassTheProducerAndTheReadme()
+    {
+        var report = Read("gui/ImageProcTest/Models/GuiAutomationReport.cs");
+        var window = Read("gui/ImageProcTest/MainWindow.xaml.cs");
+        var readme = Read("gui/ImageProcTest/README.md");
+        foreach (var name in new[] { "RequestedCalibrationEvaluationSummary", "RequestedOffsetCorrectionMode", "RequestedDefectCorrectionMode" })
+        {
+            Assert.Contains($"public string {name} {{ get; set; }}", report, StringComparison.Ordinal);
+            Assert.Contains($"report.{name}", window, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("`RequestedCalibrationEvaluationSummary`", readme, StringComparison.Ordinal);
+        foreach (var old in new[] { "report.CalibrationEvaluationSummary", "report.OffsetCorrectionMode", "report.DefectCorrectionMode" })
+        {
+            Assert.DoesNotContain(old, window, StringComparison.Ordinal);
+        }
+
+        foreach (var old in new[] { " CalibrationEvaluationSummary {", " OffsetCorrectionMode {", " DefectCorrectionMode {" })
+        {
+            Assert.DoesNotContain(old, report, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("- `CalibrationEvaluationSummary`", readme, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// GUI-C-233j: the module's own generators write the offset/gain maps (16 x 16) and the defect map into <paramref name="maps"/>. The module is initialised only for that, and shut down again on EVERY
+    /// path - the runner that reads the maps afterwards initialises it for itself. <paramref name="afterInit"/> lets a test inject a failure between the init and the end.
+    /// </summary>
+    internal static void PrepareMapsThroughTheModule(IntPtr handle, string maps, Action? afterInit = null)
+    {
+        ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+        try
+        {
+            Assert.Equal(0, ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_init(null));
+            afterInit?.Invoke();
+            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.GenerateAndLoadCalibration(handle, maps);   // the module's own generators: offset.xcal, gain.xcal (16 x 16)
+            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.WriteDefectMapFile(Path.Combine(maps, "defect.xcal"));
+        }
+        finally
+        {
+            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+        }
+    }
+
+    [SkippableFact]
+    public void WhenPreparingTheMapsFailsAfterTheInit_TheModuleIsLeftUninitialised()
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        if (string.IsNullOrWhiteSpace(native))
+        {
+            native = AppContext.BaseDirectory;
+        }
+
+        Skip.IfNot(File.Exists(Path.Combine(native, "xpe_common.dll")) && File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "xpe_common.dll and xpe_preprocess.dll are not staged");
+        ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(native);
+        var handle = System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(native, "xpe_preprocess.dll"));
+        var maps = Path.Combine(Path.GetTempPath(), "xpe_c233j_maps_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(maps);
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => PrepareMapsThroughTheModule(handle, maps, () => throw new InvalidOperationException("injected after init")));
+            var code = ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_init(null);
+            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+            Assert.True(code == 0, $"the module was left initialised after a failure while preparing the maps (init answered {code})");
+        }
+        finally
+        {
+            try { Directory.Delete(maps, true); } catch (Exception) { /* temp folder */ }
+        }
+    }
+
+    [SkippableFact]
+    public void TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode()
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        if (string.IsNullOrWhiteSpace(native))
+        {
+            native = AppContext.BaseDirectory;
+        }
+
+        Skip.IfNot(File.Exists(Path.Combine(native, "xpe_common.dll")) && File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "xpe_common.dll and xpe_preprocess.dll are not staged (XPE_NATIVE_DIR or the test output folder).");
+
+        // one copy of every module, all from the same folder (the loader the other native tests use; GUI-C-199)
+        ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(native);
+        var handle = System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(native, "xpe_preprocess.dll"));
+
+        var maps = Path.Combine(Path.GetTempPath(), "xpe_c233c_maps_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(maps);
+        try
+        {
+            PrepareMapsThroughTheModule(handle, maps);
+
+            // GUI-C-233d (Codex #174 item 3): the SAME maps, settings and call first with a frame of the maps' own size (16 x 16): that must SUCCEED. Only then does the 64 x 64 frame's -1 mean "the size
+            // does not match the maps" and not "this fixture or this call form never worked".
+            var small = new ushort[16 * 16];
+            for (var i = 0; i < small.Length; i++) small[i] = (ushort)(1000 + i % 500);
+            var good = ImageProcTest.Services.Native.GuiPreprocessRunner.Run(small, 16, 16, maps, maps, maps, "Abdomen", 70f, 0.14f, measureExposureIndex: true);
+            Skip.If(good.Summary.Contains("has no xpe_preprocess_pipeline_out", StringComparison.Ordinal), "the staged xpe_preprocess.dll predates xpe_preprocess_pipeline_out: " + good.Summary);
+            Assert.True(good.Ran, "the 16 x 16 frame with 16 x 16 maps must succeed before the 64 x 64 failure can be attributed to its size: " + good.Summary);
+            Assert.Equal(small.Length, good.Pixels.Length);
+            Assert.DoesNotContain("failed (", good.Summary, StringComparison.Ordinal);
+
+            var frame = new ushort[64 * 64];
+            for (var i = 0; i < frame.Length; i++) frame[i] = (ushort)(1000 + i % 500);
+            var run = ImageProcTest.Services.Native.GuiPreprocessRunner.Run(frame, 64, 64, maps, maps, maps, "Abdomen", 70f, 0.14f, measureExposureIndex: true);
+            // a module built before xpe_preprocess_pipeline_out existed (an old local build/ci-common) cannot answer -1: that is a stale environment, not a result. The CI gate requires a PASS there.
+            Skip.If(run.Summary.Contains("has no xpe_preprocess_pipeline_out", StringComparison.Ordinal), "the staged xpe_preprocess.dll predates xpe_preprocess_pipeline_out: " + run.Summary);
+            Assert.False(run.Ran);
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", run.Summary, StringComparison.Ordinal);   // same maps, same settings: only the frame size (64 x 64 against 16 x 16 maps) differs from the call that just succeeded
+
+            var dicom = new FileDicom();
+            var folder = Path.Combine(_root, "real-runner-fails");
+            var result = Execute(() =>
+            {
+                var chain = ProcessingChainRunner.Run(Raw, ProcessingChainPlan.BuildBaselineStages(), (request, input) => request.StageId switch
+                {
+                    StageIds.Preprocess => BaselineStageAdapters.FromPreprocess(run.Ran, run.Pixels, run.Summary, run.NonFiniteCount),
+                    _ => new StageExecution(false, null, "not run: the preprocess stage failed"),
+                });
+                return new BaselineSingleRun(chain, []);
+            }, dicom, folder);
+
+            Assert.False(result.Passed);
+            Assert.Equal(0, dicom.Writes);
+            Assert.Contains("preprocess", result.Status, StringComparison.Ordinal);
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", result.Status, StringComparison.Ordinal);
+            Assert.Contains("xpe_preprocess_pipeline_out failed (-1)", ReadJson(result).GetProperty("failureReason").GetString()!, StringComparison.Ordinal);
+        }
+        finally
+        {
+            try { Directory.Delete(maps, true); } catch (Exception) { /* temp folder */ }
+        }
+    }
+
+    [Fact]
+    public void TheRealPreprocessRunner_CountsNonFiniteValuesOnThePipelineOutput_BeforeScaling()
+    {
+        // GUI-C-232b (leader decision): this used to pin "the gain output is read before the defect stage is called, and both float arrays reach the count". With xpe_preprocess_pipeline_out the gain
+        // stage's intermediate image is internal to the module, so a non-finite value the gain stage makes and the defect stage repairs is no longer visible to the app; the count is of the final output only.
         var code = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
-        var gainRead = code.IndexOf("var gainFloats = ReadFloats(gainOut.Data, count);", StringComparison.Ordinal);
-        var defectCall = code.IndexOf("xpe_defect_correct(ref gainOut", StringComparison.Ordinal);
-        Assert.True(gainRead > 0 && defectCall > gainRead, "the gain output must be read BEFORE the defect stage is called");
-        Assert.Contains("BaselineStageAdapters.CountPreprocessNonFinite(gainFloats, defectFloats)", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("xpe_defect_correct(", code, StringComparison.Ordinal);
+        Assert.Contains("BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats)", code, StringComparison.Ordinal);
     }
 
     // ---- Codex #78 finding 1 (M9): one run at a time in a folder ---------------------------------------------------------------------------

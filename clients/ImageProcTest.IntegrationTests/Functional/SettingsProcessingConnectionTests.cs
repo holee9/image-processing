@@ -304,7 +304,14 @@ public sealed class SettingsProcessingConnectionTests
         Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBGsvgDenoiseK) && b.Via == "LaneBGsvgDenoiseK" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);
-        Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && !b.Writable);
+        // GUI-C-233j: the Reference/Candidate tags on the lane pictures used to bind LaneAAlgorithm one-way (the setting). They describe what was DRAWN, so they read the render record
+        // (RenderedLaneAAlgorithm / RenderedLaneBAlgorithm); the only LaneAAlgorithm bindings left are the writable selector. Both halves are pinned.
+        Assert.DoesNotContain(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && !b.Writable);
+        var viewport = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Views/ViewportShell.xaml"));
+        Assert.Contains("{Binding RenderedLaneAAlgorithm", viewport, StringComparison.Ordinal);
+        Assert.Contains("{Binding RenderedLaneBAlgorithm", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("{Binding LaneAAlgorithm", viewport, StringComparison.Ordinal);
+        Assert.DoesNotContain("{Binding LaneBAlgorithm", viewport, StringComparison.Ordinal);
         Assert.All(survey.Bindings.Where(b => b.Property == nameof(AppSettings.GhostCorrectionMode)), b => Assert.True(b.Writable && b.Disabled));
     }
 

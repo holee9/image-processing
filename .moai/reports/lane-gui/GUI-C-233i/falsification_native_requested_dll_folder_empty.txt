@@ -1,0 +1,394 @@
+Automation report marked failure.
+{
+  "Passed": false,
+  "BackendVersion": "v0.0.0-mock",
+  "BackendMode": "Native",
+  "BackendModeSource": "arg",
+  "ActualBackendMode": "Mock",
+  "MockBackend": true,
+  "BackendMatchesRequest": false,
+  "NativeSource": "",
+  "PreprocessRan": false,
+  "PreprocessStages": "not attempted (menu enabled=False, frame loaded=True)",
+  "ChainStatus": "chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0
+ ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw",
+  "ChainStages": [
+    "preprocess=NotRequested 0ms",
+    "gsvg=NotRequested 0ms",
+    "ai_bone_suppress=NotRequested 0ms"
+  ],
+  "InitialLogCount": 11,
+  "InitialAlertCount": 3,
+  "LogCountAfterLoad": 33,
+  "AlertCountAfterLoad": 3,
+  "LogCountAfterClearAlerts": 53,
+  "AlertCountAfterClearAlerts": 0,
+  "LogCountAfterClear": 0,
+  "AlertCountAfterClear": 0,
+  "ActiveImageSummary": "RAW 3072x3072, min=2481, max=15451, bytes=18874368 | MOCK CalibrationEval(Offset=Off/bypassed,
+ Gain=Auto/applied, Defect=On/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Aut
+o/bypassed) -\u003E Display: Modality(1/0) -\u003E VOI(Linear, C=32768, W=65535) -\u003E GSDF(off)",
+  "StatusAfterLoad": "chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | MOCK Calibrati
+onEval(Offset=Off/bypassed, Gain=Auto/applied, Defect=On/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity
+=Auto/bypassed, Binning=Auto/bypassed) -\u003E Display: Modality(1/0) -\u003E VOI(Linear, C=32768, W=65535) -\u003E GSD
+F(off)",
+  "RuntimeStateAfterShutdown": "Shutdown",
+  "LastRawDirectory": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\fixtures\\gui-s0\
+\raw",
+  "LastRawDirPersisted": true,
+  "HelpWindowOpened": true,
+  "HelpDocumentLoaded": true,
+  "HelpWindowTitle": "ImageProcTest Help - Quick Start",
+  "HelpDocumentPath": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\help\\quick-start
+.html",
+  "TopLevelMenuCount": 6,
+  "CanonicalMenuGroupsDetected": true,
+  "PlannedMenuPlaceholdersDetected": true,
+  "ToolbarMenuCommandParity": true,
+  "DisplayPipelineApplied": true,
+  "DisplayPipelineSummary": "MOCK CalibrationEval(Offset=Off/bypassed, Gain=Auto/applied, Defect=On/applied, Ghost=Auto
+/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -\u003E Display: Modality(1/0) -\u003
+E VOI(Linear, C=32768, W=65535) -\u003E GSDF(off)",
+  "RequestedCalibrationEvaluationSummary": "Offset=Off, Gain=Auto, Defect=On, Ghost=Auto, Temp=Auto, Nonlinearity=Auto,
+ Binning=Auto",
+  "RequestedOffsetCorrectionMode": "Off",
+  "RequestedDefectCorrectionMode": "On",
+  "CalibrationEvaluationEvidenceExported": true,
+  "DisplayPanelVisible": false,
+  "CalibrationPanelVisible": false,
+  "CalibrationPanelRendered": true,
+  "DisplayPanelRendered": true,
+  "CalibrationPanelRenderedAtStart": false,
+  "DisplayPanelRenderedAtStart": false,
+  "CalibrationPanelTexts": [
+    "Calibration paths",
+    "Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.",
+    "Offset",
+    "data/calibration/offset",
+    "Browse...",
+    "Gain",
+    "data/calibration/gain",
+    "Browse...",
+    "Defect",
+    "data/calibration/defect",
+    "Browse..."
+  ],
+  "DisplayPanelTexts": [
+    "Display settings",
+    "Requested is the current setting; rendered is what the last render used. Edit in Analysis \u003E Parameters.",
+    "STALE \u2014 the display pipeline failed; the image shown is from before the failed attempt.",
+    "Requested",
+    "Rendered",
+    "Mode",
+    "Linear",
+    "Linear",
+    "Center",
+    "32768",
+    "32768",
+    "Width",
+    "65535",
+    "65535",
+    "Body-part preset",
+    "Linear \u00B7 C=32768 \u00B7 W=65535",
+    "Available modes",
+    "Linear",
+    "LinearExact",
+    "Sigmoid"
+  ],
+  "DisplayVersion": "v0.0.0-mock-display",
+  "VoiPresetApplied": true,
+  "VoiPresetCenter": 32768,
+  "VoiPresetWidth": 65535,
+  "ComparisonViewportDetected": true,
+  "ComparisonMode": "SwipeVertical",
+  "ComparisonZoomScale": 1,
+  "ComparisonSwipePosition": 0.5,
+  "ComparisonSourcePreserved": true,
+  "ComparisonEvidenceExported": true,
+  "DisabledFutureCommandCount": 3,
+  "UnimplementedMenuLeafCount": 3,
+  "PInvokeSmokeTestPassed": false,
+  "PInvokeSmokeTestDetail": "xpe_alloc_image threw DllNotFoundException: Unable to load DLL \u0027xpe_common.dll\u0027
+or one of its dependencies: \uC9C0\uC815\uB41C \uBAA8\uB4C8\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. (0x8007
+007E); xpe_display_version threw DllNotFoundException: Unable to load DLL \u0027xpe_display.dll\u0027 or one of its dep
+endencies: \uC9C0\uC815\uB41C \uBAA8\uB4C8\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. (0x8007007E); xpe_get_pe
+nding_alert_count threw DllNotFoundException: Unable to load DLL \u0027xpe_common.dll\u0027 or one of its dependencies:
+ \uC9C0\uC815\uB41C \uBAA8\uB4C8\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. (0x8007007E)",
+  "StageTimingReport": "work=207 ms; vm=1 ms || chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=Not
+Requested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw",
+  "StopWithNothingRunningStatus": "Stop: no render is in flight.",
+  "StopInFlightStatus": "Render stopped; the result was discarded after 233 ms of work.",
+  "StoppedRenderCount": 1,
+  "SelfCheckPassed": true,
+  "SelfCheckStatus": "Self-check passed in 5298 ms.",
+  "GuiE2EPassed": false,
+  "GuiE2EStatus": "GUI E2E FAILED (exit -532462766): Unhandled exception. System.InvalidOperationException: The copy of
+ the gui app that ImageProcTest.E2E runs against is older than its sources, so this run would test the PREVIOUS build.
+\u0027D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest.E2E\\bin\\Debug\\net8.0-windows\\ImageProcTest.dll\u0027 writte
+n 2026-10-07T08:38:01.5300574Z; newest source \u0027D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\Models\\GuiFixtu
+reManifest.cs\u0027 written 2026-10-10T12:35:09.1037743Z. Build the RUNNER, not the app: dotnet build gui/ImageProcTest
+.E2E/ImageProcTest.E2E.csproj -c Debug. Building gui/ImageProcTest alone does not refresh this copy.",
+  "RuntimeLogExportStatus": "Runtime logs exported (49 lines): D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\
+Debug\\net8.0-windows\\evidence\\20261010-213620-abae2c\\runtime-log.txt",
+  "RuntimeLogExportPath": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\evidence\\202
+61010-213620-abae2c\\runtime-log.txt",
+  "RuntimeLogExportLineCount": 49,
+  "RecentRawFileCountAtStartup": 0,
+  "RecentRawFileCount": 1,
+  "MostRecentRawFile": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\fixtures\\gui-s0
+\\raw\\wrist_lat_3072x3072.raw",
+  "RecentHistoryPersistedBeforeSave": true,
+  "EvidenceFolderStatus": "Evidence folder resolved (launch suppressed under automation): D:\\workspace-github\\xpe-gui
+\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\evidence\\20261010-213620-abae2c",
+  "EvidenceFolderPath": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\evidence\\20261
+010-213620-abae2c",
+  "EvidenceFolderLaunchSuppressed": true,
+  "EvidenceBundleStatus": "Evidence bundle exported: D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net
+8.0-windows\\evidence\\bundles\\20261010-213620-abae2c.zip",
+  "EvidenceBundleMenuSharesButtonCommand": true,
+  "PipelineDiagnosticsVisible": true,
+  "ApiReferenceStatus": "API reference has not been generated. Generate it: in docs/help/doxygen run \u0027git clone ht
+tps://github.com/jothepro/doxygen-awesome-css doxygen-awesome\u0027 and then \u0027doxygen Doxyfile\u0027 (Doxygen 1.12
+\u002B; see docs/help/doxygen/README.md).",
+  "ApiReferencePath": null,
+  "ApiReferenceLaunchSuppressed": false,
+  "TroubleshootingStatus": "Troubleshooting page has not been generated. Generate it: install DocFX with \u0027dotnet t
+ool install -g docfx\u0027 and then run \u0027docfx docs/help/docfx/docfx.json\u0027 (see .github/workflows/docs-genera
+te.yml).",
+  "TroubleshootingPagePath": null,
+  "TroubleshootingLaunchSuppressed": false,
+  "BenchmarkPassed": null,
+  "BenchmarkStatus": "Benchmark runner is not built: build/ci-post has no CTestTestfile.cmake. Build it first: \u0027cm
+ake --preset ci-post\u0027 and then \u0027cmake --build --preset ci-post --parallel\u0027 (see .github/workflows/benchm
+ark-regression.yml).",
+  "BenchmarkLaunchSuppressed": false,
+  "PipelineDiagnosticsStageLines": [
+    "preprocess \u00B7 NotRequested \u00B7 \u2014 switched off",
+    "gsvg \u00B7 NotRequested \u00B7 \u2014 switched off",
+    "ai_bone_suppress \u00B7 NotRequested \u00B7 \u2014 switched off"
+  ],
+  "PipelineDiagnosticsHasMeasurement": true,
+  "PipelineDiagnosticsStaleReason": "STALE \u2014 the display pipeline failed; the image shown is from before the faile
+d attempt.",
+  "PipelineDiagnosticsHadMeasurementAtStartup": false,
+  "StaleReasonBeforeParameterEdit": null,
+  "StaleReasonAfterParameterEdit": "STALE \u2014 display parameters changed since this image was rendered. Apply the di
+splay pipeline to update it.",
+  "StaleReasonAfterParameterRestored": null,
+  "BaselineMenuEnabled": false,
+  "BaselineRan": false,
+  "BaselineStatus": "NotRun",
+  "BaselineStatusText": "Deterministic Baseline: not run",
+  "BaselineBitIdentical": false,
+  "BaselineFirstDifference": "",
+  "BaselineOutputSha256": null,
+  "BaselineStageTimes": null,
+  "BaselineTotalMs": 0,
+  "BaselineDicomValid": false,
+  "BaselineDicomRoundTripIdentical": false,
+  "BaselineExposureIndex": null,
+  "BaselineEvidenceFolder": null,
+  "MenuCommandReportCreated": true,
+  "Error": null
+}
+��ġ D:\workspace-github\xpe-gui\tools\e2e\Invoke-ImageProcTestGuiRealE2E.ps1:34 ����:9
++         throw $Message
++         ~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Automation repo...Error": null
+}:String) [], RuntimeException
+    + FullyQualifiedErrorId : Automation report marked failure.
+{
+  "Passed": false,
+  "BackendVersion": "v0.0.0-mock",
+  "BackendMode": "Native",
+  "BackendModeSource": "arg",
+  "ActualBackendMode": "Mock",
+  "MockBackend": true,
+  "BackendMatchesRequest": false,
+  "NativeSource": "",
+  "PreprocessRan": false,
+  "PreprocessStages": "not attempted (menu enabled=False, frame loaded=True)",
+      "ChainStatus": "chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preproc
+   ess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw",
+  "ChainStages": [
+    "preprocess=NotRequested 0ms",
+    "gsvg=NotRequested 0ms",
+    "ai_bone_suppress=NotRequested 0ms"
+  ],
+  "InitialLogCount": 11,
+  "InitialAlertCount": 3,
+  "LogCountAfterLoad": 33,
+  "AlertCountAfterLoad": 3,
+  "LogCountAfterClearAlerts": 53,
+  "AlertCountAfterClearAlerts": 0,
+  "LogCountAfterClear": 0,
+  "AlertCountAfterClear": 0,
+      "ActiveImageSummary": "RAW 3072x3072, min=2481, max=15451, bytes=18874368 | MOCK CalibrationEval(Offset=Off/bypa
+   ssed, Gain=Auto/applied, Defect=On/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, B
+  inning=Auto/bypassed) -\u003E Display: Modality(1/0) -\u003E VOI(Linear, C=32768, W=65535) -\u003E GSDF(off)",
+      "StatusAfterLoad": "chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | MOCK Cali
+   brationEval(Offset=Off/bypassed, Gain=Auto/applied, Defect=On/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, No
+  nlinearity=Auto/bypassed, Binning=Auto/bypassed) -\u003E Display: Modality(1/0) -\u003E VOI(Linear, C=32768, W=655
+ 35) -\u003E GSDF(off)",
+  "RuntimeStateAfterShutdown": "Shutdown",
+      "LastRawDirectory": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\fixtures\\gu
+   i-s0\\raw",
+  "LastRawDirPersisted": true,
+  "HelpWindowOpened": true,
+  "HelpDocumentLoaded": true,
+  "HelpWindowTitle": "ImageProcTest Help - Quick Start",
+      "HelpDocumentPath": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\help\\quick-
+   start.html",
+  "TopLevelMenuCount": 6,
+  "CanonicalMenuGroupsDetected": true,
+  "PlannedMenuPlaceholdersDetected": true,
+  "ToolbarMenuCommandParity": true,
+  "DisplayPipelineApplied": true,
+      "DisplayPipelineSummary": "MOCK CalibrationEval(Offset=Off/bypassed, Gain=Auto/applied, Defect=On/applied, Ghost
+   =Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -\u003E Display: Modality(1
+  /0) -\u003E VOI(Linear, C=32768, W=65535) -\u003E GSDF(off)",
+      "RequestedCalibrationEvaluationSummary": "Offset=Off, Gain=Auto, Defect=On, Ghost=Auto, Temp=Auto, Nonlinearity=
+   Auto, Binning=Auto",
+  "RequestedOffsetCorrectionMode": "Off",
+  "RequestedDefectCorrectionMode": "On",
+  "CalibrationEvaluationEvidenceExported": true,
+  "DisplayPanelVisible": false,
+  "CalibrationPanelVisible": false,
+  "CalibrationPanelRendered": true,
+  "DisplayPanelRendered": true,
+  "CalibrationPanelRenderedAtStart": false,
+  "DisplayPanelRenderedAtStart": false,
+  "CalibrationPanelTexts": [
+    "Calibration paths",
+    "Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.",
+    "Offset",
+    "data/calibration/offset",
+    "Browse...",
+    "Gain",
+    "data/calibration/gain",
+    "Browse...",
+    "Defect",
+    "data/calibration/defect",
+    "Browse..."
+  ],
+  "DisplayPanelTexts": [
+    "Display settings",
+        "Requested is the current setting; rendered is what the last render used. Edit in Analysis \u003E Parameters."
+   ,
+    "STALE \u2014 the display pipeline failed; the image shown is from before the failed attempt.",
+    "Requested",
+    "Rendered",
+    "Mode",
+    "Linear",
+    "Linear",
+    "Center",
+    "32768",
+    "32768",
+    "Width",
+    "65535",
+    "65535",
+    "Body-part preset",
+    "Linear \u00B7 C=32768 \u00B7 W=65535",
+    "Available modes",
+    "Linear",
+    "LinearExact",
+    "Sigmoid"
+  ],
+  "DisplayVersion": "v0.0.0-mock-display",
+  "VoiPresetApplied": true,
+  "VoiPresetCenter": 32768,
+  "VoiPresetWidth": 65535,
+  "ComparisonViewportDetected": true,
+  "ComparisonMode": "SwipeVertical",
+  "ComparisonZoomScale": 1,
+  "ComparisonSwipePosition": 0.5,
+  "ComparisonSourcePreserved": true,
+  "ComparisonEvidenceExported": true,
+  "DisabledFutureCommandCount": 3,
+  "UnimplementedMenuLeafCount": 3,
+  "PInvokeSmokeTestPassed": false,
+      "PInvokeSmokeTestDetail": "xpe_alloc_image threw DllNotFoundException: Unable to load DLL \u0027xpe_common.dll\u
+   0027 or one of its dependencies: \uC9C0\uC815\uB41C \uBAA8\uB4C8\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E
+  4. (0x8007007E); xpe_display_version threw DllNotFoundException: Unable to load DLL \u0027xpe_display.dll\u0027 or
+  one of its dependencies: \uC9C0\uC815\uB41C \uBAA8\uB4C8\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. (0x8
+007007E); xpe_get_pending_alert_count threw DllNotFoundException: Unable to load DLL \u0027xpe_common.dll\u0027 or
+one of its dependencies: \uC9C0\uC815\uB41C \uBAA8\uB4C8\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. (0x8    00
+7007E)",
+      "StageTimingReport": "work=207 ms; vm=1 ms || chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppres
+   s=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw",
+  "StopWithNothingRunningStatus": "Stop: no render is in flight.",
+  "StopInFlightStatus": "Render stopped; the result was discarded after 233 ms of work.",
+  "StoppedRenderCount": 1,
+  "SelfCheckPassed": true,
+  "SelfCheckStatus": "Self-check passed in 5298 ms.",
+  "GuiE2EPassed": false,
+      "GuiE2EStatus": "GUI E2E FAILED (exit -532462766): Unhandled exception. System.InvalidOperationException: The co
+   py of the gui app that ImageProcTest.E2E runs against is older than its sources, so this run would test the PREVIO
+  US build. \u0027D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest.E2E\\bin\\Debug\\net8.0-windows\\ImageProcTest.d
+ ll\u0027 written 2026-10-07T08:38:01.5300574Z; newest source \u0027D:\\workspace-github\\xpe-gui\\gui\\ImageProcTe
+st\\Models\\GuiFixtureManifest.cs\u0027 written 2026-10-10T12:35:09.1037743Z. Build the RUNNER, not the app: dotne    t
+ build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug. Building gui/ImageProcTest alone does not refresh     t
+his copy.",
+      "RuntimeLogExportStatus": "Runtime logs exported (49 lines): D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\
+   bin\\Debug\\net8.0-windows\\evidence\\20261010-213620-abae2c\\runtime-log.txt",
+      "RuntimeLogExportPath": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\evidence
+   \\20261010-213620-abae2c\\runtime-log.txt",
+  "RuntimeLogExportLineCount": 49,
+  "RecentRawFileCountAtStartup": 0,
+  "RecentRawFileCount": 1,
+      "MostRecentRawFile": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\fixtures\\g
+   ui-s0\\raw\\wrist_lat_3072x3072.raw",
+  "RecentHistoryPersistedBeforeSave": true,
+      "EvidenceFolderStatus": "Evidence folder resolved (launch suppressed under automation): D:\\workspace-github\\xp
+   e-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\evidence\\20261010-213620-abae2c",
+      "EvidenceFolderPath": "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\evidence\\
+   20261010-213620-abae2c",
+  "EvidenceFolderLaunchSuppressed": true,
+      "EvidenceBundleStatus": "Evidence bundle exported: D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug
+   \\net8.0-windows\\evidence\\bundles\\20261010-213620-abae2c.zip",
+  "EvidenceBundleMenuSharesButtonCommand": true,
+  "PipelineDiagnosticsVisible": true,
+      "ApiReferenceStatus": "API reference has not been generated. Generate it: in docs/help/doxygen run \u0027git clo
+   ne https://github.com/jothepro/doxygen-awesome-css doxygen-awesome\u0027 and then \u0027doxygen Doxyfile\u0027 (Do
+  xygen 1.12\u002B; see docs/help/doxygen/README.md).",
+  "ApiReferencePath": null,
+  "ApiReferenceLaunchSuppressed": false,
+      "TroubleshootingStatus": "Troubleshooting page has not been generated. Generate it: install DocFX with \u0027dot
+   net tool install -g docfx\u0027 and then run \u0027docfx docs/help/docfx/docfx.json\u0027 (see .github/workflows/d
+  ocs-generate.yml).",
+  "TroubleshootingPagePath": null,
+  "TroubleshootingLaunchSuppressed": false,
+  "BenchmarkPassed": null,
+      "BenchmarkStatus": "Benchmark runner is not built: build/ci-post has no CTestTestfile.cmake. Build it first: \u0
+   027cmake --preset ci-post\u0027 and then \u0027cmake --build --preset ci-post --parallel\u0027 (see .github/workfl
+  ows/benchmark-regression.yml).",
+  "BenchmarkLaunchSuppressed": false,
+  "PipelineDiagnosticsStageLines": [
+    "preprocess \u00B7 NotRequested \u00B7 \u2014 switched off",
+    "gsvg \u00B7 NotRequested \u00B7 \u2014 switched off",
+    "ai_bone_suppress \u00B7 NotRequested \u00B7 \u2014 switched off"
+  ],
+  "PipelineDiagnosticsHasMeasurement": true,
+      "PipelineDiagnosticsStaleReason": "STALE \u2014 the display pipeline failed; the image shown is from before the
+   failed attempt.",
+  "PipelineDiagnosticsHadMeasurementAtStartup": false,
+  "StaleReasonBeforeParameterEdit": null,
+      "StaleReasonAfterParameterEdit": "STALE \u2014 display parameters changed since this image was rendered. Apply t
+   he display pipeline to update it.",
+  "StaleReasonAfterParameterRestored": null,
+  "BaselineMenuEnabled": false,
+  "BaselineRan": false,
+  "BaselineStatus": "NotRun",
+  "BaselineStatusText": "Deterministic Baseline: not run",
+  "BaselineBitIdentical": false,
+  "BaselineFirstDifference": "",
+  "BaselineOutputSha256": null,
+  "BaselineStageTimes": null,
+  "BaselineTotalMs": 0,
+  "BaselineDicomValid": false,
+  "BaselineDicomRoundTripIdentical": false,
+  "BaselineExposureIndex": null,
+  "BaselineEvidenceFolder": null,
+  "MenuCommandReportCreated": true,
+  "Error": null
+}

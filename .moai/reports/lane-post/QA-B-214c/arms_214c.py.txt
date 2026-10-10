@@ -1,0 +1,99 @@
+"""QA-B-214c falsification arms: mutate voi_auto_window.cpp, build, run the auto-window tests, record which go red, restore, rebuild.
+
+arm8  the 1/16 sampling grid is back (every 4th pixel of every 4th row, the Otsu class counts of the sample) -> the Codex #168
+      reproduction and the other position-sensitive tests must go red
+arm9  the float check of center/width is removed (both layers)                                              -> the +-FLT_MAX tests must go red
+arm10 the four sub-histograms are not added up (only the first one is read)                                  -> nearly every test must go red (control of the harness)
+"""
+import hashlib, os, re, subprocess
+
+ROOT = r'D:/workspace-github/xpe-post'
+OUT = ROOT + '/.moai/reports/lane-post/QA-B-214c'
+PATH = 'modules/display/src/voi_auto_window.cpp'
+os.chdir(ROOT)
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd):
+    return subprocess.run(cmd, shell=True, capture_output=True, text=True)
+
+
+def build():
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214c\\_build.bat build\\g214c-arm-build.txt"')
+    t = open('build/g214c-arm-build.txt', encoding='utf-8', errors='replace').read()
+    m = re.findall(r'===BUILD=(\d+)===', t)
+    return m[-1] if m else '?'
+
+
+def run_tests(tag):
+    summary = 'build/g214-%s-summary.txt' % tag
+    if os.path.exists(summary):
+        os.remove(summary)
+    sh('cmd.exe /c ".moai\\reports\\lane-post\\QA-B-214\\_rundisp.bat %s"' % tag)
+    t = open('build/g214-%s-test_display_voi_auto_window.txt' % tag, encoding='utf-8', errors='replace').read()
+    failed = sorted({re.sub(r' \(\d+ ms\)$', '', l[len('[  FAILED  ] '):]) for l in t.splitlines()
+                     if l.startswith('[  FAILED  ]') and l.rstrip().endswith('ms)')})
+    passed = re.findall(r'\[  PASSED  \] (\d+) tests?', t)
+    return failed, (passed[-1] if passed else '0')
+
+
+FLOAT_LOOP = """        size_t i = 0;
+        for (; i + 4 <= count; i += 4) {
+            for (size_t k = 0; k < 4; ++k) {
+                int32_t b = static_cast<int32_t>((px[i + k] - lo) * scale);
+                b = b < 0 ? 0 : (b >= kBins ? kBins - 1 : b);
+                ++sub[k][b];
+            }
+        }
+        for (; i < count; ++i) {
+            int32_t b = static_cast<int32_t>((px[i] - lo) * scale);
+            b = b < 0 ? 0 : (b >= kBins ? kBins - 1 : b);
+            ++sub[0][b];
+        }
+"""
+SAMPLED_LOOP = """        const size_t W = img->width, H = img->height;
+        for (size_t y = 0; y < H; y += 4) {
+            for (size_t x = 0; x < W; x += 4) {
+                int32_t b = static_cast<int32_t>((px[y * W + x] - lo) * scale);
+                b = b < 0 ? 0 : (b >= kBins ? kBins - 1 : b);
+                ++sub[0][b];
+            }
+        }
+"""
+TOTAL = 'const double total = static_cast<double>(count);'
+SAMPLED_TOTAL = 'const double total = static_cast<double>(((img->width + 3) / 4) * ((img->height + 3) / 4));'
+CHECK1 = 'if (!(std::fabs(center) <= static_cast<double>(FLT_MAX)) || !(winSpan > 0.0) || !(winSpan <= static_cast<double>(FLT_MAX))) {'
+CHECK2 = 'if (!xpe_float_is_finite(res.center) || !xpe_float_is_finite(res.width) || !(res.width > 0.0f)) {'
+SUM = 'for (int32_t b = 0; b < kBins; ++b) hist[b] = sub[0][b] + sub[1][b] + sub[2][b] + sub[3][b];'
+
+arms = [
+    ('arm8_sampling_grid_back', [(FLOAT_LOOP, SAMPLED_LOOP), (TOTAL, SAMPLED_TOTAL)]),
+    ('arm9_float_check_removed', [(CHECK1, 'if (!(winSpan > 0.0)) {'), (CHECK2, 'if (res.width < 0.0f) {')]),
+    ('arm10_sub_histograms_not_added_up', [(SUM, 'for (int32_t b = 0; b < kBins; ++b) hist[b] = sub[0][b];')]),
+]
+report = []
+orig = open(PATH, 'rb').read()
+h0 = sha(PATH)
+text0 = orig.decode('utf-8').replace('\r\n', '\n')
+for name, edits in arms:
+    t = text0
+    for old, new in edits:
+        assert t.count(old) == 1, (name, old[:60], t.count(old))
+        t = t.replace(old, new)
+    open(PATH, 'wb').write(t.encode('utf-8'))
+    try:
+        rc = build()
+        failed, passed = run_tests('arm214c') if rc == '0' else (['BUILD FAILED rc=' + rc], '0')
+    finally:
+        open(PATH, 'wb').write(orig)
+    report.append('== %s\n   mutations:\n%s   build rc=%s\n   auto-window tests red (%d): %s\n   file restored: sha256 identical=%s\n' % (
+        name, ''.join('     - %s\n     + %s\n' % (o[:200].replace('\n', ' / '), n[:200].replace('\n', ' / ')) for o, n in edits), rc, len(failed),
+        '; '.join(failed), h0 == sha(PATH)))
+rc = build()
+failed, passed = run_tests('restored214c')
+report.append('== restored tree: build rc=%s, auto-window tests red: %d %s, passed %s\n' % (rc, len(failed), failed, passed))
+open(OUT + '/arms_falsification.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(report))
+print('\n'.join(report))

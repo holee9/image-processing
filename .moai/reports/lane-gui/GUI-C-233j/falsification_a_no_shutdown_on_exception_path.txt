@@ -1,0 +1,3 @@
+[xUnit.net 00:00:00.21]     ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionBoundaryTests.LoadCalibrated_WhenTheCalibrationStepThrows_LeavesTheModuleUninitialised [FAIL]
+[xUnit.net 00:00:00.21]       the module was left initialised by LoadCalibrated's exception path (init answered INVALID_INPUT)
+   the module was left initialised by LoadCalibrated's exception path (init answered INVALID_INPUT)

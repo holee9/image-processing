@@ -1,0 +1,3 @@
+new key, Offset=Off : True
+new key, Defect=On  : True
+old key: 이 개체에서 'CalibrationEvaluationSummary' 속성을 찾을 수 없습니다. 해당 속성이 있는지 검증하십시오.

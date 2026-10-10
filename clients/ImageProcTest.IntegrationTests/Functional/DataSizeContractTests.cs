@@ -22,6 +22,7 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// covered elsewhere and is deliberately not re-checked here.
 /// </summary>
 [Trait("Category", "Functional")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class DataSizeContractTests
 {
     private const uint Width = 16;
@@ -136,10 +137,12 @@ public sealed class DataSizeContractTests
 
         var inputHandle = GCHandle.Alloc(inputPixels, GCHandleType.Pinned);
         var outputHandle = GCHandle.Alloc(outputPixels, GCHandleType.Pinned);
+        XpePreprocessNative.ShutdownDelegate? shutdownAtEnd = null;
         try
         {
             var init = GetExport<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
             var shutdown = GetExport<XpePreprocessNative.ShutdownDelegate>(handle, "xpe_preprocess_shutdown");
+            shutdownAtEnd = shutdown;
             var offsetCorrect = GetExport<XpePreprocessNative.CorrectionDelegate>(handle, "xpe_offset_correct");
 
             shutdown();
@@ -157,6 +160,9 @@ public sealed class DataSizeContractTests
         }
         finally
         {
+            // GUI-C-233h (Codex #177): this helper initialised the module and never shut it down, so the module stayed initialised for whichever test ran next (PreprocessHandshakeTests expects an
+            // uninitialised one and failed with INVALID_INPUT from init). Found by PreprocessModuleLeakTests; it ends in the state it found.
+            shutdownAtEnd?.Invoke();
             outputHandle.Free();
             inputHandle.Free();
             NativeLibrary.Free(handle);

@@ -11,6 +11,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// The input array is copied before the call and compared after. The calls use the header's shape (input, output, metadata) with the calibration loaded as the chain tests load it.
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class PreprocessCorrectionBoundaryTests
 {
     private const int Guard = 64;   // elements of margin on each side of the output
@@ -118,27 +119,62 @@ public sealed class PreprocessCorrectionBoundaryTests
 
     // ---- plumbing
 
-    private static IntPtr LoadCalibrated()
+    /// <summary>
+    /// Loads the DLL, initialises the module and loads a calibration. GUI-C-233j: when anything after the successful <c>init</c> throws, the module is shut down again before the exception leaves
+    /// (it used to free only the library handle and leave the module initialised for the next test); <paramref name="generate"/> lets a test inject that exception.
+    /// </summary>
+    internal static IntPtr LoadCalibrated(Action<IntPtr, string>? generate = null)
     {
         var handle = LoadDll();
+        XpePreprocessNative.ShutdownDelegate? undoInit = null;
         try
         {
             var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
             var shutdown = GetDelegate<XpePreprocessNative.ShutdownDelegate>(handle, "xpe_preprocess_shutdown");
             shutdown();
             Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));
+            undoInit = shutdown;
             var dir = Path.Combine(Path.GetTempPath(), $"xpe_bound_{Guid.NewGuid():N}");
             Directory.CreateDirectory(dir);
-            try { GenerateAndLoadCalibration(handle, dir); }
+            try { (generate ?? GenerateAndLoadCalibration)(handle, dir); }
             finally { try { Directory.Delete(dir, recursive: true); } catch (IOException) { /* temp folder */ } }
         }
         catch
         {
+            undoInit?.Invoke();
             NativeLibrary.Free(handle);
             throw;
         }
 
         return handle;
+    }
+
+    /// <summary>GUI-C-233j: the exception path of <see cref="LoadCalibrated"/> ends with the module UNINITIALISED (an injected failure after the init, then a first init must be accepted).</summary>
+    [SkippableFact]
+    public void LoadCalibrated_WhenTheCalibrationStepThrows_LeavesTheModuleUninitialised()
+    {
+        // The library is held loaded for the whole test: freeing the last handle unloads the DLL and with it the module's state, which would hide a leak (LoadDll also skips here when it is not staged).
+        var keepLoaded = LoadDll();
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => LoadCalibrated((_, _) => throw new InvalidOperationException("injected after init")));
+        }
+        catch
+        {
+            NativeLibrary.Free(keepLoaded);
+            throw;
+        }
+
+        var handle = keepLoaded;
+        try
+        {
+            var init = GetDelegate<XpePreprocessNative.InitDelegate>(handle, "xpe_preprocess_init");
+            var shutdown = GetDelegate<XpePreprocessNative.ShutdownDelegate>(handle, "xpe_preprocess_shutdown");
+            var code = init(IntPtr.Zero);
+            shutdown();
+            Assert.True(code == XpeCommonNative.XpeErrorCode.OK, $"the module was left initialised by LoadCalibrated's exception path (init answered {code})");
+        }
+        finally { NativeLibrary.Free(handle); }
     }
 
     private static void Release(IntPtr handle)

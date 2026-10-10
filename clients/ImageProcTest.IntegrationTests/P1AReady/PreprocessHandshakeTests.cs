@@ -11,6 +11,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// Covers REQ-GUI-IT-060, AC-14, AC-15.
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class PreprocessHandshakeTests
 {
     private static readonly string? DllPath = XpePreprocessNative.TryFindDll();
@@ -60,9 +61,55 @@ public sealed class PreprocessHandshakeTests
             var init = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.InitDelegate>(initSym);
             var shutdown = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.ShutdownDelegate>(shutdownSym);
 
-            var result = init(IntPtr.Zero);
-            Assert.Equal(XpeCommonNative.XpeErrorCode.OK, result);
-            shutdown();
+            // GUI-C-233h (Codex #177): the module must be UNINITIALISED here. No shutdown() first - that would hide the test that left it initialised; if one did, init is refused and this test is
+            // red, which is how the culprit shows (PreprocessModuleLeakTests names it; DataSizeContractTests was one). It ends uninitialised on every path, including a failed assertion.
+            try
+            {
+                var result = init(IntPtr.Zero);
+                Assert.True(result == XpeCommonNative.XpeErrorCode.OK,
+                    $"xpe_preprocess_init answered {result}: the module was already initialised, i.e. an earlier test left it initialised (see PreprocessModuleLeakTests)");
+            }
+            finally
+            {
+                shutdown();
+            }
+        }
+        finally
+        {
+            NativeLibrary.Free(handle);
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-233g/h (Codex #176, #177): the mechanism that makes the test above fail, made deterministic. The module has one process-wide state; while it is initialised (by a test that did not shut
+    /// it down), a second <c>xpe_preprocess_init</c> is refused (INVALID_INPUT), which is exactly the assertion that failed. This pins both halves: init without a prior shutdown is refused, init after
+    /// one succeeds. Which earlier test actually left it initialised in the failing runs was never captured; PreprocessModuleLeakTests found and fixed one that could (DataSizeContractTests).
+    /// </summary>
+    [SkippableFact]
+    public void PreprocessInit_WhileAnotherCallerHoldsTheModuleInitialised_IsRefused_AndSucceedsAfterAShutdown()
+    {
+        SkipHelper.SkipIf(DllPath is null, SkipReason);
+
+        SkipHelper.SkipIf(!NativeLibrary.TryLoad(DllPath!, out var handle), $"Skipped: xpe_preprocess.dll load failed: {DllPath}");
+
+        try
+        {
+            Assert.True(NativeLibrary.TryGetExport(handle, "xpe_preprocess_init", out var initSym));
+            Assert.True(NativeLibrary.TryGetExport(handle, "xpe_preprocess_shutdown", out var shutdownSym));
+            var init = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.InitDelegate>(initSym);
+            var shutdown = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.ShutdownDelegate>(shutdownSym);
+
+            try
+            {
+                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                    // the "other caller" now holds the module (no shutdown first: an earlier leak must show here too)
+                Assert.NotEqual(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                 // a second caller without a shutdown: refused - the failure observed in the full runs
+                shutdown();
+                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                    // with the start-of-test shutdown the same call succeeds
+            }
+            finally
+            {
+                shutdown();
+            }
         }
         finally
         {
