@@ -1,0 +1,12 @@
+== dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+빌드했습니다.
+    경고 7개
+    오류 0개
+== dotnet build gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug
+빌드했습니다.
+    경고 1개
+    오류 0개
+== dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug
+빌드했습니다.
+    경고 0개
+    오류 0개

@@ -1,0 +1,8 @@
+Unhandled exception. System.InvalidOperationException: WPF E2E failed.
+ ---> System.InvalidOperationException: After a render whose preprocess stage is NotRequested the HUD line should be 'not run', got: 7/7 stages
+   at Program.<<Main>$>g__Assert|0_14(Boolean condition, String message) in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 647
+   at Program.<<Main>$>g__RunWpfE2E|0_2() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 479
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__15() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 56
+   --- End of inner exception stack trace ---
+   at Program.<<Main>$>g__RunWpfE2EOnStaThread|0_1() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 70
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 23

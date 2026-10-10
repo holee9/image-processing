@@ -357,7 +357,8 @@ static void RunWpfE2E()
         var fixtureSetLabel = FindVisualChildByPredicate<TextBlock>(studyQueue!, tb => tb.Text == "FIXTURE SET");
         Assert(fixtureSetLabel is not null, "StudyQueue should display FIXTURE SET footer label.");
 
-        // --- AnalysisPanel: all 7 calibration stages (Temperature, Nonlinearity, Binning added) ---
+        // --- AnalysisPanel: mode controls for all 7 calibration stages (Temperature, Nonlinearity, Binning added) ---
+        // These are SETTINGS controls. The preprocess call itself runs only offset, gain and defect (GuiPreprocessRunner.ExecutedStages); what the HUD says ran is checked below.
         var tempRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Temperature");
         Assert(tempRadio is not null, "AnalysisPanel should have Temperature calibration stage controls.");
         var nonlinearityRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Nonlinearity");
@@ -365,11 +366,15 @@ static void RunWpfE2E()
         var binningRadio = FindVisualChildByPredicate<RadioButton>(analysisPanel!, rb => rb.GroupName == "Binning");
         Assert(binningRadio is not null, "AnalysisPanel should have Binning calibration stage controls.");
 
-        // --- ViewModel: CalibStageCountDisplay format ---
+        // --- ViewModel: the HUD's "Calib:" line says what the render on screen ACTUALLY RAN (GUI-C-233k; it used to be a count of configured modes, "N/7 stages") ---
+        // No frame has been loaded at this point of the run, so no render stands and the line must be exactly "—"; the rule is derived from the chain the view model holds (ExpectedCalibLine),
+        // not from a format. The same rule is checked against a real render at the end of the run.
         if (window.DataContext is MainWindowViewModel vmEarly)
         {
-            Assert(vmEarly.CalibStageCountDisplay.EndsWith("/7 stages", StringComparison.Ordinal),
-                $"CalibStageCountDisplay should end with '/7 stages', got: {vmEarly.CalibStageCountDisplay}");
+            Assert(vmEarly.CalibStageCountDisplay == ExpectedCalibLine(vmEarly),
+                $"CalibStageCountDisplay should be '{ExpectedCalibLine(vmEarly)}' for the chain the view model holds (LastChain {(vmEarly.LastChain is null ? "null" : vmEarly.ChainStatus)}), got: {vmEarly.CalibStageCountDisplay}");
+            Assert(vmEarly.CurrentRender is null && vmEarly.CalibStageCountDisplay == "—",
+                $"No frame is loaded at this point of the run, so no render stands and the HUD line must be '—', got: {vmEarly.CalibStageCountDisplay}");
         }
 
         // --- Help windows ---
@@ -444,6 +449,36 @@ static void RunWpfE2E()
         ExecuteCommand(zoomFitMenuItem.Command, "Zoom Fit command missing.");
         DoEvents();
         Assert(Math.Abs(viewModel.Settings.ComparisonZoomScale) < 0.001, "Zoom Fit command should restore fit mode.");
+
+        // --- A real render (GUI-C-233l): the early check above runs before any frame exists, where "—" is right whatever the HUD derives from. With a frame rendered by the Mock backend with the default settings
+        // (preprocessing not requested) the chain's preprocess stage is NotRequested, so the HUD must say "not run" - and a HUD that counted configured modes ("7/7 stages") would fail here.
+        {
+            var rawFixture = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "ImageProcTest", "fixtures", "gui-s0", "raw", "synthetic_1024x1024.raw"));
+            Assert(File.Exists(rawFixture), $"The 1024 x 1024 fixture frame was not found at '{rawFixture}'.");
+            viewModel.Settings.RawWidth = 1024;
+            viewModel.Settings.RawHeight = 1024;
+            Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", rawFixture);
+            try
+            {
+                // The load is async void and its continuations return to the dispatcher captured when it STARTED: it is started from inside a pumped frame (a plain call outside one captures no
+                // dispatcher, and the continuation then writes to a UI collection from a pool thread), and the wait pumps too. Done = the render committed with its lanes and timings.
+                PumpUntil(
+                    () => viewModel.CurrentRender is { LaneB: not null, Timings.Length: > 0 },
+                    TimeSpan.FromSeconds(30),
+                    () => ExecuteCommand(viewModel.LoadImageCommand, "Load image command missing."));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_RAW_PATH", null);
+            }
+
+            Assert(viewModel.CurrentRender is not null, $"The fixture frame did not render within 30 s (status: {viewModel.StatusText}).");
+            var preprocess = viewModel.LastChain!.Stages.Single(st => st.StageId == ImageProcTest.Models.StageIds.Preprocess);
+            Assert(preprocess.Status == ImageProcTest.Models.StageStatus.NotRequested && !viewModel.PreprocessRan,
+                $"With the default settings the chain should not have requested preprocessing, but it says {viewModel.ChainStatus}.");
+            Assert(viewModel.CalibStageCountDisplay == "not run" && viewModel.CalibStageCountDisplay == ExpectedCalibLine(viewModel),
+                $"After a render whose preprocess stage is {preprocess.Status} the HUD line should be 'not run', got: {viewModel.CalibStageCountDisplay}");
+        }
 
         // --- Shutdown ---
         ExecuteCommand(shutdownButton.Command, "Shutdown button command missing before shutdown invoke.");
@@ -525,6 +560,42 @@ static T? FindVisualChildByName<T>(DependencyObject parent, string name) where T
     }
 
     return null;
+}
+
+/// <summary>The HUD's "Calib:" line by its rule, from the chain the view model holds: no chain "—"; preprocess requested and not applied "failed"; applied the stages the call runs; otherwise "not run".</summary>
+static string ExpectedCalibLine(MainWindowViewModel vm)
+{
+    if (vm.LastChain is null)
+    {
+        return "—";
+    }
+
+    return vm.LastChain.Stages.FirstOrDefault(st => st.StageId == ImageProcTest.Models.StageIds.Preprocess)?.Status switch
+    {
+        ImageProcTest.Models.StageStatus.Applied or ImageProcTest.Models.StageStatus.AppliedNoChange => "3 stages (offset · gain · defect)",
+        ImageProcTest.Models.StageStatus.RequestedNotApplied => "failed",
+        _ => "not run",
+    };
+}
+
+/// <summary>Runs <paramref name="start"/> on the dispatcher and pumps messages until <paramref name="done"/> holds or the time is up.</summary>
+static void PumpUntil(Func<bool> done, TimeSpan limit, Action start)
+{
+    var deadline = DateTime.UtcNow + limit;
+    var frame = new DispatcherFrame();
+    var dispatcher = Dispatcher.CurrentDispatcher;
+    dispatcher.BeginInvoke(DispatcherPriority.Normal, start);
+    var timer = new DispatcherTimer(DispatcherPriority.Background, dispatcher) { Interval = TimeSpan.FromMilliseconds(50) };
+    timer.Tick += (_, _) =>
+    {
+        if (done() || DateTime.UtcNow > deadline)
+        {
+            frame.Continue = false;
+        }
+    };
+    timer.Start();
+    Dispatcher.PushFrame(frame);
+    timer.Stop();
 }
 
 static void DoEvents()
