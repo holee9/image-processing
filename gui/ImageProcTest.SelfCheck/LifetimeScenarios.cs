@@ -128,11 +128,19 @@ internal sealed class VoiReportingBackend : ScenarioBackend
 
     public bool FailAutomaticWindow;
 
+    /// <summary>GUI-C-233j: a window chosen by hand fails (the Candidate lane's settings carry one; the main render, on the automatic window, is untouched).</summary>
+    public bool FailManualWindow;
+
     public override LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
         if (settings.VoiWindowAuto && FailAutomaticWindow)
         {
             throw new InvalidOperationException("xpe_voi_auto_window failed (-1)");
+        }
+
+        if (!settings.VoiWindowAuto && FailManualWindow)
+        {
+            throw new InvalidOperationException("scripted failure of a manual window (the Candidate lane)");
         }
 
         var inner = base.ApplyDisplayPipeline(rawFrame, displayInput, settings);
@@ -341,6 +349,7 @@ internal static class LifetimeScenarios
                         await Timed(() => TheHudShowsTheWindowThatWasApplied_NotTheSettings(rawPath, width, height));
                         await Timed(() => TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(rawPath, width, height));
                         await Timed(() => EveryEventLeavesTheHudAndTheReportEqualToTheRenderRecord(rawPath, width, height));
+                        await Timed(() => TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(rawPath, width, height));
                         await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
                         await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
@@ -1405,6 +1414,60 @@ internal static class LifetimeScenarios
             {
                 Console.WriteLine(row);
             }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-233j: what the screen says about the drawn image -------------------------------------------------------------------------------
+
+    private static async Task TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(string rawPath, int width, int height)
+    {
+        _scenario = "14 lane tags, stage count, failed candidate";
+        var directory = TempDirectory();
+        try
+        {
+            var built = new List<ScenarioBackend>();
+            var vm = NewViewModel(width, height, build => { var b = new VoiReportingBackend(); built.Add(b); return b; }, directory, out _);
+
+            // before anything is rendered nothing is claimed
+            Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null && vm.CalibStageCountDisplay == "—" && !vm.LaneBIsStale, "start-up: the lane tags / stage count claim a render");
+
+            await LoadAndDrawLanes(vm, rawPath);
+            var tagA = vm.RenderedLaneAAlgorithm;
+            var tagB = vm.RenderedLaneBAlgorithm;
+            var stages = vm.CalibStageCountDisplay;
+            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm && stages.EndsWith("/7 stages", StringComparison.Ordinal), $"after the render the tags/count are not the record's: '{tagA}' '{tagB}' '{stages}'");
+
+            // settings change, nothing re-applied: the tags and the count still describe what was DRAWN; the Candidate is stale
+            var otherA = MainWindowViewModel.AlgorithmOptions.First(o => o != vm.Settings.LaneAAlgorithm);
+            var otherB = MainWindowViewModel.AlgorithmOptions.First(o => o != vm.Settings.LaneBAlgorithm);
+            vm.Settings.LaneAAlgorithm = otherA;
+            vm.Settings.LaneBAlgorithm = otherB;
+            vm.Settings.OffsetCorrectionMode = string.Equals(vm.Settings.OffsetCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            vm.Settings.DefectCorrectionMode = string.Equals(vm.Settings.DefectCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            Check(vm.RenderedLaneAAlgorithm == tagA && vm.RenderedLaneBAlgorithm == tagB, $"the lane tags followed the settings instead of the render: '{vm.RenderedLaneAAlgorithm}' '{vm.RenderedLaneBAlgorithm}' (settings now {otherA} / {otherB})");
+            Check(vm.CalibStageCountDisplay == stages, $"the HUD stage count followed the settings: was '{stages}', now '{vm.CalibStageCountDisplay}'");
+            Check(vm.LaneBIsStale, "the Candidate is not marked stale after its algorithm setting changed");
+
+            // a render that fails on the Candidate lane: the main render commits, the lanes are NOT left holding anything
+            var current = (VoiReportingBackend)built[^1];
+            current.FailManualWindow = true;
+            vm.Settings.LaneBVoiWindowWidth = 900f;   // a Candidate override is a window chosen by hand
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender.Inputs, null) && vm.CurrentRender.Inputs.LaneBVoiWindowWidth > 0f, "the render with a failing Candidate to commit");
+            await Task.Delay(300);
+            await FlushUi();
+            Check(vm.CurrentRender is not null && vm.LaneAImage is null && vm.LaneBImage is null, $"a failed Candidate left lane pictures behind (A={(vm.LaneAImage is null ? "none" : "set")}, B={(vm.LaneBImage is null ? "none" : "set")})");
+            Check(vm.RenderedLaneAAlgorithm == otherA && vm.RenderedLaneBAlgorithm == otherB, "the tags after the second render are not the second render's");
+            Console.WriteLine($"| lane tags after render {tagA}/{tagB} -> after unapplied change {vm.RenderedLaneAAlgorithm}/{vm.RenderedLaneBAlgorithm} (requested {otherA}/{otherB}); stages {stages}; Candidate failed -> lanes {(vm.LaneAImage is null ? "none" : "set")}/{(vm.LaneBImage is null ? "none" : "set")} |");
+
+            // the new frame / backend replacement cases are rows of scenario 13; here the tags go with them
+            vm.InitializeBackendCommand.Execute(null);
+            await FlushUi();
+            Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null && vm.CalibStageCountDisplay == "—" && string.IsNullOrEmpty(vm.MetadataText) == false, "after the backend was replaced the tags / stage count still describe the old render");
         }
         finally
         {

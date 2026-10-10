@@ -1,0 +1,2 @@
+     1>"D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj" 프로젝트를 빌드했습니다(VSTest 대상). - 실패
+     1>"D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj" 프로젝트를 빌드했습니다(기본 대상). - 실패

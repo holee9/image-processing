@@ -1,0 +1,3 @@
+[xUnit.net 00:00:00.22]     ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests.WhenPreparingTheMapsFailsAfterTheInit_TheModuleIsLeftUninitialised [FAIL]
+[xUnit.net 00:00:00.22]       the module was left initialised after a failure while preparing the maps (init answered -1)
+   the module was left initialised after a failure while preparing the maps (init answered -1)
