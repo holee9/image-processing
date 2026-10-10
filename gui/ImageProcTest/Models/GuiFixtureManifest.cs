@@ -73,12 +73,23 @@ public sealed class GuiFixtureCalibrationDirectories
 
 public sealed class GuiFixtureExpectedTelemetry
 {
-    [JsonPropertyName("backendVersion")]
-    public string BackendVersion { get; set; } = string.Empty;
+    // GUI-C-233i: one expected value per backend (a single "backendVersion" was the Mock string and was asserted against a Native run). The Native value is not a constant: it is read from the DLL.
+    [JsonPropertyName("backendVersionMock")]
+    public string BackendVersionMock { get; set; } = string.Empty;
+
+    [JsonPropertyName("backendVersionNative")]
+    public string BackendVersionNative { get; set; } = string.Empty;
 
     [JsonPropertyName("initialLogCount")]
     public int InitialLogCount { get; set; }
 
-    [JsonPropertyName("initialAlertCount")]
-    public int InitialAlertCount { get; set; }
+    // GUI-C-233i: the Mock backend raises three scripted alerts at start-up; the Native one raises one (INFO REAL_DISPLAY_BACKEND_ACTIVE). One number for both was wrong for the one not measured.
+    [JsonPropertyName("initialAlertCountMock")]
+    public int InitialAlertCountMock { get; set; }
+
+    [JsonPropertyName("initialAlertCountNative")]
+    public int InitialAlertCountNative { get; set; }
+
+    [JsonPropertyName("initialAlertNative")]
+    public string InitialAlertNative { get; set; } = string.Empty;
 }
