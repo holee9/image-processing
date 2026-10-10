@@ -1,0 +1,2 @@
+         D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\PreprocessModuleLeakTests.cs(29,153): error CS1061: 'DataSizeContractTests'에는 'OffsetCorrect_ZeroDataSize_PassesSizeGate'에 대한 정의가 포함되어 있지 않고, 'DataSizeContractTests' 형식의 첫 번째 인수를 허용하는 �
+     1>D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\PreprocessModuleLeakTests.cs(29,153): error CS1061: 'DataSizeContractTests'에는 'OffsetCorrect_ZeroDataSize_PassesSizeGate'에 대한 정의가 포함되어 있지 않고, 'DataSizeContractTests' 형식의 첫 번째 인수를 허용하는 액

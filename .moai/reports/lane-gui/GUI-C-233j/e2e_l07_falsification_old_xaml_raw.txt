@@ -1,0 +1,44 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x840080A pid=27044 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:08.13]     ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage [FAIL]
+[xUnit.net 00:00:08.13]       Lane A still has a drawn viewport after the backend was replaced (it would show the source as if it were a result).
+[xUnit.net 00:00:08.13]       Stack Trace:
+[xUnit.net 00:00:08.13]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs(267,0): at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.<L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage>b__13_0(Window window)
+[xUnit.net 00:00:08.13]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs(301,0): at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.Measure(String scenario, Action`1 body)
+[xUnit.net 00:00:08.13]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs(247,0): at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage()
+[xUnit.net 00:00:08.13]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:08.13]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:08.13]       Output:
+[xUnit.net 00:00:08.13]         L-07 lane A: viewport in tree=True, placeholder='' offscreen=
+[xUnit.net 00:00:08.13]         L-07: 7020 ms
+[xUnit.net 00:00:08.16]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage [7 s]
+  오류 메시지:
+   Lane A still has a drawn viewport after the backend was replaced (it would show the source as if it were a result).
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.<L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage>b__13_0(Window window) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 267
+   at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.Measure(String scenario, Action`1 body) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 301
+   at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 247
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ L-07 lane A: viewport in tree=True, placeholder='' offscreen=
+ L-07: 7020 ms
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 8.5002 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

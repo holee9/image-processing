@@ -236,6 +236,49 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
         Thread.Sleep(150);
     }
 
+    /// <summary>
+    /// L-07 (GUI-C-233j, Codex #178): after the backend is replaced the lanes hold no applied image, and the screen says so. ImageComparisonViewport draws the SOURCE in place of a missing
+    /// processed image; for a lane that would look like an applied result. So each lane's viewport is collapsed (absent from the automation tree) and an "No applied image" text stands in its
+    /// place; the main viewport keeps its RAW fallback and stays. Applying again brings the lanes back and the placeholders go.
+    /// </summary>
+    [SkippableFact]
+    public void L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage()
+    {
+        Measure("L-07", window =>
+        {
+            MakeLanesIdentical(window);
+            ApplyDisplayPipeline(window);
+            var drawn = ReadLane(window, "A");
+            var shownWhileDrawn = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAEmptyText"));
+            Assert.True(shownWhileDrawn is null || shownWhileDrawn.IsOffscreen, "The placeholder is shown while the lane is drawn.");
+
+            UiaMenu.Open(window, "BackendMenu");
+            Thread.Sleep(350);
+            var init = window.FindFirstDescendant(cf => cf.ByAutomationId("InitializeBackendMenuItem"));
+            Assert.True(init is not null, "Initialize Backend was not found in the Backend menu.");
+            init!.AsMenuItem().Invoke();
+            Thread.Sleep(1500);
+
+            foreach (var lane in new[] { "A", "B" })
+            {
+                var viewport = window.FindFirstDescendant(cf => cf.ByAutomationId($"Lane{lane}Viewport"));
+                var empty = window.FindFirstDescendant(cf => cf.ByAutomationId($"Lane{lane}EmptyText"));
+                output.WriteLine($"L-07 lane {lane}: viewport in tree={viewport is not null}, placeholder='{empty?.Name}' offscreen={empty?.IsOffscreen}");
+                Assert.True(viewport is null || viewport.IsOffscreen, $"Lane {lane} still has a drawn viewport after the backend was replaced (it would show the source as if it were a result).");
+                Assert.True(empty is not null && !empty.IsOffscreen && empty.Name == "No applied image", $"Lane {lane} does not say it holds no applied image.");
+            }
+
+            Assert.NotNull(window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport")));   // the main viewport (RAW fallback) is untouched
+            Assert.Contains("backend was replaced", StaleIndicator(window) ?? string.Empty);
+
+            ApplyDisplayPipeline(window);
+            var again = ReadLane(window, "A");
+            output.WriteLine($"L-07 lane A before {drawn} / after re-apply {again}");
+            var emptyAfter = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAEmptyText"));
+            Assert.True(emptyAfter is null || emptyAfter.IsOffscreen, "The placeholder is still shown although the lane was drawn again.");
+        });
+    }
+
     private void MeasureNative(string scenario, Action<Window> body)
     {
         Skip.If(app.BackendMode != "Native",
