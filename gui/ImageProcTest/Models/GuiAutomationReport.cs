@@ -95,11 +95,13 @@ public sealed class GuiAutomationReport
 
     public string DisplayPipelineSummary { get; set; } = string.Empty;
 
-    public string CalibrationEvaluationSummary { get; set; } = string.Empty;
+    // GUI-C-233f: these three are the settings the self-check ASKED for (it sets Offset=Off, Defect=On itself and then judges them); they are not what a render applied. The key says so, like
+    // `requested` in the menu-command report (GUI-C-233d/e).
+    public string RequestedCalibrationEvaluationSummary { get; set; } = string.Empty;
 
-    public string OffsetCorrectionMode { get; set; } = string.Empty;
+    public string RequestedOffsetCorrectionMode { get; set; } = string.Empty;
 
-    public string DefectCorrectionMode { get; set; } = string.Empty;
+    public string RequestedDefectCorrectionMode { get; set; } = string.Empty;
 
     public bool CalibrationEvaluationEvidenceExported { get; set; }
 
