@@ -9,6 +9,7 @@ using ImageProcTest.Services;
 namespace ImageProcTest.IntegrationTests.Functional;
 
 [Trait("Category", "Functional")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class BaselineReviewFixTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "xpe-baseline-m6-" + Guid.NewGuid().ToString("N"));

@@ -20,6 +20,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// passing through — that is a finding, not a pass.</para>
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class NonlinearityStageWiringTests
 {
     private const int Width = 16;

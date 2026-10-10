@@ -22,6 +22,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// silently skip there.
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class PreprocessCorrectionChainSmokeTests
 {
     internal const int Width = 16;

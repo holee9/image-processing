@@ -37,6 +37,6 @@ public sealed class CorrectedImageCommitTests
         Assert.True(stale > 0 && cancelled > stale, "the stale and cancel checks were not found in the expected order");
         Assert.True(commit > cancelled, "the candidate is committed before the stale/cancel checks have run");
         Assert.True(frame > commit, "the candidate must be committed before the frame it belongs to becomes current");
-        Assert.Single(System.Text.RegularExpressions.Regex.Matches(vm, @"_committedCorrected\s*=\s*(?!null)"));   // one writer of the committed candidate
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(vm, @"_committedCorrected\s*=\s*(?!\s*null\b)"));   // one writer of a committed candidate; clearing it (= null) is InvalidateRender's job (GUI-C-233g) and is not a writer
     }
 }
