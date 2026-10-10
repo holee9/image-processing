@@ -252,6 +252,12 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
             var shownWhileDrawn = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAEmptyText"));
             Assert.True(shownWhileDrawn is null || shownWhileDrawn.IsOffscreen, "The placeholder is shown while the lane is drawn.");
 
+            // GUI-C-233k: while the lanes are drawn their tags name an algorithm; the HUD's Calib line says what the chain ran (the default settings request no preprocessing: "not run", not "7/7")
+            string TextOf(string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id))?.Name ?? "(not in the tree)";
+            output.WriteLine($"L-07 before: tagA='{TextOf("LaneATag")}' tagB='{TextOf("LaneBTag")}' calib='{TextOf("HudCalibStages")}'");
+            Assert.DoesNotContain("—", TextOf("LaneATag"));
+            Assert.Contains("not run", TextOf("HudCalibStages"));
+
             UiaMenu.Open(window, "BackendMenu");
             Thread.Sleep(350);
             var init = window.FindFirstDescendant(cf => cf.ByAutomationId("InitializeBackendMenuItem"));
@@ -268,6 +274,10 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
                 Assert.True(empty is not null && !empty.IsOffscreen && empty.Name == "No applied image", $"Lane {lane} does not say it holds no applied image.");
             }
 
+            output.WriteLine($"L-07 after: tagA='{TextOf("LaneATag")}' tagB='{TextOf("LaneBTag")}' calib='{TextOf("HudCalibStages")}'");
+            Assert.Contains("—", TextOf("LaneATag"));
+            Assert.Contains("—", TextOf("LaneBTag"));
+            Assert.Contains("—", TextOf("HudCalibStages"));   // no render stands: the Calib line claims nothing
             Assert.NotNull(window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport")));   // the main viewport (RAW fallback) is untouched
             Assert.Contains("backend was replaced", StaleIndicator(window) ?? string.Empty);
 

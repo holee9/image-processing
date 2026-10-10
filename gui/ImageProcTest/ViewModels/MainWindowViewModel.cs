@@ -959,35 +959,38 @@ public sealed class MainWindowViewModel : ObservableObject
         $"Nonlinearity={s.NonlinearityCorrectionMode}, Binning={s.BinningCorrectionMode}";
 
     /// <summary>
-    /// GUI-C-233j (Codex #178): the HUD line "N/7 stages" describes the picture on screen, so it counts the calibration modes the RENDER used (the record's inputs), not the settings as they
-    /// stand now; "—" while no render stands. What is asked for now is not shown here.
+    /// GUI-C-233k (Codex #179): the HUD's "Calib:" line says what the render's chain ACTUALLY RAN, taken from the preprocess stage's own outcome - not from how many calibration modes the settings
+    /// hold (that counted 7/7 on a render where preprocessing never ran: the default <c>PreprocessInChain</c> is off). "—" while no render stands; "not run" when the stage was not requested;
+    /// "failed" when it was requested and did not apply; otherwise the stages the call runs (<see cref="GuiPreprocessRunner.ExecutedStages"/>). The configured modes are in the report under
+    /// <c>calibrationEvaluation</c>, labelled as configured.
     /// </summary>
     public string CalibStageCountDisplay
     {
         get
         {
-            if (RenderedInputs is not { } rendered)
+            if (_render is not { } rendered)
             {
                 return "—";
             }
 
-            string[] modes =
-            [
-                rendered.OffsetCorrectionMode, rendered.GainCorrectionMode,
-                rendered.DefectCorrectionMode, rendered.GhostCorrectionMode,
-                rendered.TemperatureCompensationMode, rendered.NonlinearityCorrectionMode,
-                rendered.BinningCorrectionMode
-            ];
-            var enabled = modes.Count(m => !string.Equals(m, "Off", StringComparison.OrdinalIgnoreCase));
-            return $"{enabled}/7 stages";
+            var preprocess = rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+            return preprocess?.Status switch
+            {
+                StageStatus.Applied or StageStatus.AppliedNoChange => $"{GuiPreprocessRunner.ExecutedStages.Length} stages ({string.Join(" · ", GuiPreprocessRunner.ExecutedStages)})",
+                StageStatus.RequestedNotApplied => "failed",
+                _ => "not run",
+            };
         }
     }
 
-    /// <summary>GUI-C-233j: the algorithm the Reference lane on screen was drawn with (from the render record); null while no render stands. The selector in the algorithm bar edits the REQUESTED one (<see cref="LaneAAlgorithm"/>).</summary>
-    public string? RenderedLaneAAlgorithm => _render?.Inputs.LaneAAlgorithm;
+    /// <summary>The preprocess stage's status in the render on screen, or null when no render stands / the chain has no such stage.</summary>
+    private StageStatus? RenderedPreprocessStatus => _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Status;
 
-    /// <summary>GUI-C-233j: the algorithm the Candidate lane on screen was drawn with (from the render record); null while no render stands.</summary>
-    public string? RenderedLaneBAlgorithm => _render?.Inputs.LaneBAlgorithm;
+    /// <summary>GUI-C-233j/k: the algorithm the Reference lane on screen was drawn with (from the render record); null while that lane holds no picture (no render, or the lane work failed) - the screen then shows "—". The selector in the algorithm bar edits the REQUESTED one (<see cref="LaneAAlgorithm"/>).</summary>
+    public string? RenderedLaneAAlgorithm => _render is { LaneA: not null } rendered ? rendered.Inputs.LaneAAlgorithm : null;
+
+    /// <summary>GUI-C-233j/k: the algorithm the Candidate lane on screen was drawn with (from the render record); null while that lane holds no picture.</summary>
+    public string? RenderedLaneBAlgorithm => _render is { LaneB: not null } rendered ? rendered.Inputs.LaneBAlgorithm : null;
 
     public string ComparisonStatus =>
         $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
@@ -2401,6 +2404,9 @@ public sealed class MainWindowViewModel : ObservableObject
             },
             calibrationEvaluation = new
             {
+                // GUI-C-233k: the modes and the summary below are what was CONFIGURED for the render. What actually ran is `executed` (the preprocess stage runs offset, gain and defect; the other four
+                // modes are not connected to that call), and it is what the HUD's "Calib:" line shows.
+                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), hud = CalibStageCountDisplay, stages = RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
                 // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
                 summary = RenderedInputs is null ? null : FormatCalibrationModes(RenderedInputs),
                 // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`

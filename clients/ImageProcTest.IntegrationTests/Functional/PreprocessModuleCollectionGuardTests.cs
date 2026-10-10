@@ -7,12 +7,7 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// </summary>
 public sealed class PreprocessModuleCollectionGuardTests
 {
-    private static readonly string[] CallMarkers =
-    [
-        "xpe_preprocess_init(",
-        "XpePreprocessNative.InitDelegate>(",
-        "GuiPreprocessRunner.Run(",
-    ];
+    private static readonly string[] CallMarkers = ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCallMarkers.All;
 
     private static string ProjectDirectory() =>
         Path.GetDirectoryName(BenchmarkRunnerServiceTests.ResolveRepositoryFile("clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj"))!;
@@ -27,7 +22,7 @@ public sealed class PreprocessModuleCollectionGuardTests
         {
             var relative = Path.GetRelativePath(project, file).Replace(Path.DirectorySeparatorChar, '/');
             if (relative.StartsWith("obj/", StringComparison.Ordinal) || relative.StartsWith("bin/", StringComparison.Ordinal) || relative.StartsWith("PInvoke/", StringComparison.Ordinal)
-                || relative == "Functional/PreprocessModuleCollectionGuardTests.cs")
+                || ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCallMarkers.FilesThatOnlyNameThem.Contains(relative))
             {
                 continue;
             }
