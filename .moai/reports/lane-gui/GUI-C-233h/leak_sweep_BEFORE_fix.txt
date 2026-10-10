@@ -1,0 +1,1 @@
+these tests leave xpe_preprocess initialised for the next test: DataSizeContractTests.OffsetCorrect_ExactDataSize_PassesSizeGate, DataSizeContractTests.OffsetCorrect_ShortDataSize_ReturnsInvalidInput, DataSizeContractTests.OffsetCorrect_ZeroDataSize_PassesSizeGate

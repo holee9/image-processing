@@ -61,12 +61,13 @@ public sealed class PreprocessHandshakeTests
             var init = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.InitDelegate>(initSym);
             var shutdown = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.ShutdownDelegate>(shutdownSym);
 
-            // GUI-C-233g: start from a KNOWN state (this test used to assume the module was uninitialised) and end in one on every path, including a failed assertion.
-            shutdown();
+            // GUI-C-233h (Codex #177): the module must be UNINITIALISED here. No shutdown() first - that would hide the test that left it initialised; if one did, init is refused and this test is
+            // red, which is how the culprit shows (PreprocessModuleLeakTests names it; DataSizeContractTests was one). It ends uninitialised on every path, including a failed assertion.
             try
             {
                 var result = init(IntPtr.Zero);
-                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, result);
+                Assert.True(result == XpeCommonNative.XpeErrorCode.OK,
+                    $"xpe_preprocess_init answered {result}: the module was already initialised, i.e. an earlier test left it initialised (see PreprocessModuleLeakTests)");
             }
             finally
             {
@@ -80,9 +81,9 @@ public sealed class PreprocessHandshakeTests
     }
 
     /// <summary>
-    /// GUI-C-233g (Codex #176): the mechanism behind the intermittent failure of the test above, made deterministic. The module has one process-wide state; while a test has it initialised, a second
-    /// <c>xpe_preprocess_init</c> is refused (INVALID_INPUT), which is exactly the assertion that failed. Hence every class that touches the module is in <see cref="PreprocessModuleCollection"/>, and this
-    /// test pins both halves: init without a prior shutdown is refused, init after one succeeds.
+    /// GUI-C-233g/h (Codex #176, #177): the mechanism that makes the test above fail, made deterministic. The module has one process-wide state; while it is initialised (by a test that did not shut
+    /// it down), a second <c>xpe_preprocess_init</c> is refused (INVALID_INPUT), which is exactly the assertion that failed. This pins both halves: init without a prior shutdown is refused, init after
+    /// one succeeds. Which earlier test actually left it initialised in the failing runs was never captured; PreprocessModuleLeakTests found and fixed one that could (DataSizeContractTests).
     /// </summary>
     [SkippableFact]
     public void PreprocessInit_WhileAnotherCallerHoldsTheModuleInitialised_IsRefused_AndSucceedsAfterAShutdown()
@@ -98,10 +99,9 @@ public sealed class PreprocessHandshakeTests
             var init = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.InitDelegate>(initSym);
             var shutdown = Marshal.GetDelegateForFunctionPointer<XpePreprocessNative.ShutdownDelegate>(shutdownSym);
 
-            shutdown();
             try
             {
-                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                    // the "other caller" now holds the module
+                Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                    // the "other caller" now holds the module (no shutdown first: an earlier leak must show here too)
                 Assert.NotEqual(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                 // a second caller without a shutdown: refused - the failure observed in the full runs
                 shutdown();
                 Assert.Equal(XpeCommonNative.XpeErrorCode.OK, init(IntPtr.Zero));                    // with the start-of-test shutdown the same call succeeds

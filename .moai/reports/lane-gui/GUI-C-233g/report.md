@@ -35,12 +35,11 @@ dev/gui 에서 작업. 푸시 안 함. 233f(자동 점검 키 이름 `Requested*
 - 새 프레임 때의 `InvalidateRender` 를 빼면 시나리오 11·13 이 17칸 빨강 (`falsification_no_invalidation_on_new_frame.txt`).
 - 두 번 모두 복구 후 통과 (`selfcheck_final.txt`).
 
-## PreprocessHandshakeTests 간헐 실패 (Codex #176 발견 2)
-- **확정한 것(결정론적)**: 모듈은 프로세스 전역 상태 하나다. 초기화된 동안 두 번째 `xpe_preprocess_init` 은 `XPE_ERR_INVALID_INPUT` 을 돌려준다(`modules/preprocess/src/preprocess.cpp`). 새 시험 `PreprocessInit_WhileAnotherCallerHoldsTheModuleInitialised_IsRefused_AndSucceedsAfterAShutdown` 이 이를 고정한다(init→OK, 재init→OK 아님, shutdown 뒤 init→OK). 실패한 단언(`init == OK`)과 정확히 일치한다.
-- **병렬성이 가능한 경로**: `xpe_preprocess_init` 을 부르는 시험 클래스가 7개(Handshake, DataSizeContract, GainPolyClampAlert, NonlinearityStageWiring, PreprocessCorrectionBoundary, PreprocessCorrectionChainSmoke, 그리고 233c 의 실모듈 러너 시험을 가진 BaselineReviewFix)인데 어느 것도 collection 이 없었다 → xUnit 이 병렬로 돌릴 수 있다. 이 실패를 처음 본 것은 233e 의 전체 실행이다(233c 가 같은 모듈을 부르는 시험을 추가한 뒤이지만, 그 전에 없었는지는 확인하지 못했다).
-- **고친 것**: 그 7개 클래스를 한 collection(`PreprocessModuleState`)에 넣었고(직렬), 핸드셰이크 시험은 시작 전 shutdown·끝에서 finally shutdown 으로 맞췄다. 새 가드 시험(`PreprocessModuleCollectionGuardTests`)이 "모듈을 init/실행하는 호출을 가진 파일은 모두 이 collection 안" 을 파일 내용으로 검사한다(양성 대조 포함). 클래스 하나에서 속성을 빼면 빨강 (`falsification_collection_attribute_removed.txt`).
-- **확정하지 못한 것**: 실제 실패가 정확히 어느 두 시험의 겹침이었는지는 못 잡았다. 실패 TRX 를 남기지 못했고(233e 첫 관측은 한 줄만 보존, 이후 한 번은 리다이렉트 실수), 이 카드에서의 재현 시도는 **재현 실패**다: 러너 시험+핸드셰이크 시험을 함께 20회 실행해 0건, 그 뒤 전체 스위트를 19회 더 돌려(−v q, 일부 −v n) 핸드셰이크 실패 0건 (`handshake_repro_runs.txt`). 즉 "병렬 겹침이 원인" 은 위 메커니즘과 병렬 가능 경로로 **추정**이며, 수정 뒤 간헐이 사라졌음을 입증한 것은 아니다. 부모 커밋(`17d77303`)과의 비교로 회귀를 분리하지는 못했다. 관찰이 쌓일 때까지 가설로 둔다.
-- 별개로, 이 카드 중 전체 스위트 10회에서 매번 1건 실패한 것은 **이 카드의 변경이 원인**이었다: `CorrectedImageCommitTests` 의 "후보 쓰기는 한 곳" 정규식이 `InvalidateRender` 의 `_committedCorrected = null;` 도 쓰기로 셌다(`\s*` 역추적). 널 대입을 제외하도록 고쳤다 (원문 1건: `full_suite_failing_run_raw_1.txt`).
+## PreprocessHandshakeTests 간헐 실패 (Codex #176 발견 2) — 233h 에서 정정됨
+**이 절의 원래 결론("병렬 겹침이 원인")은 틀렸다.** `xunit.runner.json` 이 이미 `parallelizeTestCollections: false`, `maxParallelThreads: 1` 이어서 시험은 직렬로 돈다. 그 파일을 확인하지 않고 "xUnit 이 클래스를 병렬로 돌린다"고 가정했다. 원인은 **미확인**이다.
+- 확정한 것: 모듈은 프로세스 전역 상태 하나이고, 초기화된 동안 두 번째 `xpe_preprocess_init` 은 `XPE_ERR_INVALID_INPUT`(결정론 시험으로 고정).
+- 7개 클래스를 한 collection 에 넣은 것은 **병렬화를 켤 때를 대비한 보호 장치**일 뿐이고 현재 간헐을 고치지 않는다(233h 보고서 참조).
+- 233h 에서 실제 누수를 찾았다: `DataSizeContractTests` 의 `OffsetCorrect_*` 3개가 모듈을 init 하고 shutdown 하지 않았다. 233h 보고서에 판정과 한계.
 
 ## 통과·범위
 - 통합 시험 연속 3회: 949 통과 / 0 실패 / 2 건너뜀 (`integration_suite_runs.txt`). SelfCheck 전 시나리오 통과 (`selfcheck_final.txt`).

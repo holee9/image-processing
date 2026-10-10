@@ -8,6 +8,10 @@ namespace ImageProcTest.Models;
 /// outliving or being overwritten by an event (new frame, settings change, display failure, backend switch). Each fix cleared one more field, and the next field was the one left. With
 /// one record there is nothing to forget: the HUD, the panels and the automation report read their APPLIED values only from here, and "no render" is a single <c>null</c>.</para>
 ///
+/// <para><b>Lanes (GUI-C-233h, Codex #177).</b> The comparison viewport's Reference (<c>LaneA</c>) and Candidate (<c>LaneB</c>) pictures belong to the render too: they are produced after the commit
+/// by the same backend and are added to THIS record (by <c>Id</c>, so a newer render or an invalidation wins), and they go with it. They are the same kind of thing as the main picture and
+/// had been the one piece of "the drawn image" outside the record.</para>
+///
 /// <para><b>What is not in here.</b> What is asked for now (<c>Settings</c>) and what is running now (the backend's runtime info) are different facts from what produced the picture,
 /// and the report keeps them under their own names (<c>requested</c>, the top-level runtime keys).</para>
 /// </summary>
@@ -21,7 +25,10 @@ public sealed record RenderRecord(
     bool PreprocessRan,
     string PreprocessStages,
     string DisplaySummary,
-    string Timings);
+    string Timings,
+    long Id = 0,
+    System.Windows.Media.ImageSource? LaneA = null,
+    System.Windows.Media.ImageSource? LaneB = null);
 
 /// <summary>The backend that PRODUCED a render, captured when it was committed (not read from the backend that is current later).</summary>
 public sealed record RenderBackend(string Mode, string BackendName, string CommonVersion, string DisplayVersion, string NativeSource)
