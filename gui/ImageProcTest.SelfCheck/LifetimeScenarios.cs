@@ -1189,6 +1189,20 @@ internal static class LifetimeScenarios
             var chainA = ReportRoot(vm).GetProperty("processingChain");
             Check(chainA.GetProperty("stages").GetArrayLength() > 0 && chainA.GetProperty("displayInput").GetString() != "not run", $"frame A's report has no chain to compare with: {chainA}");
             var statusA = chainA.GetProperty("status").GetString();
+
+            // GUI-C-233e (a): A is applied; ONE calibration mode is changed and the frame is NOT re-applied (the report is read in the same synchronous step, before any re-render can start).
+            // The summary and the seven modes must still be A's applied values; only `requested` carries the new one.
+            var calibA = ReportRoot(vm).GetProperty("calibrationEvaluation");
+            var summaryAppliedA = calibA.GetProperty("summary").GetString();
+            var offsetAppliedA = calibA.GetProperty("offset").GetString();
+            var newOffset = string.Equals(vm.Settings.OffsetCorrectionMode, "Off", StringComparison.OrdinalIgnoreCase) ? "On" : "Off";
+            vm.Settings.OffsetCorrectionMode = newOffset;
+            var calibChanged = ReportRoot(vm).GetProperty("calibrationEvaluation");
+            Check(calibChanged.GetProperty("summary").GetString() == summaryAppliedA && calibChanged.GetProperty("offset").GetString() == offsetAppliedA,
+                $"the report's calibration summary/offset followed the settings instead of the applied render: {calibChanged}");
+            Check(calibChanged.GetProperty("requested").GetProperty("offset").GetString() == newOffset && calibChanged.GetProperty("requested").GetProperty("summary").GetString()!.Contains($"Offset={newOffset}", StringComparison.Ordinal),
+                $"requested does not carry the new offset '{newOffset}': {calibChanged.GetProperty("requested")}");
+            Check(summaryAppliedA!.Contains($"Offset={offsetAppliedA}", StringComparison.Ordinal), $"the applied summary does not agree with the applied offset: '{summaryAppliedA}' / '{offsetAppliedA}'");
             Check(!string.IsNullOrEmpty(summaryA) && ok.GetProperty("summary").GetString() == summaryA, "report summary is not the render's summary");
 
             // (a) frame B arrives and ITS automatic window fails: the report is B's, with none of A's values
@@ -1224,6 +1238,7 @@ internal static class LifetimeScenarios
             Check(!vm.PreprocessRan && string.IsNullOrEmpty(vm.PreprocessStages) && vm.LastChain is null, "B kept A's preprocess/chain diagnostics");
             // the calibration and display fields describe what a render USED: none for B; what is asked for now is reported apart, as `requested`
             Check(failed.GetProperty("requested").GetProperty("automatic").GetBoolean(), $"the report does not say what is asked for now: {failed}");
+            Check(rootB.GetProperty("calibrationEvaluation").GetProperty("summary").ValueKind == System.Text.Json.JsonValueKind.Null, $"B's report carries a calibration summary no render of B produced: {rootB.GetProperty("calibrationEvaluation").GetProperty("summary")}");
             Check(rootB.GetProperty("calibrationEvaluation").GetProperty("offset").ValueKind == System.Text.Json.JsonValueKind.Null && failed.GetProperty("bodyPart").ValueKind == System.Text.Json.JsonValueKind.Null, $"B's report carries calibration/display values no render of B used: {rootB.GetProperty("calibrationEvaluation")}");
         }
         finally
