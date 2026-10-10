@@ -1,0 +1,52 @@
+import glob
+import re
+
+root = "D:/workspace-github/xpe-gui/gui/ImageProcTest/"
+xaml = glob.glob(root + "**/*.xaml", recursive=True)
+xaml = [f for f in xaml if "/obj/" not in f.replace("\\", "/") and "/bin/" not in f.replace("\\", "/")]
+binds = {}
+for f in xaml:
+    t = open(f, encoding="utf-8").read()
+    for m in re.finditer(r"\{Binding\s+(?:Path=)?([A-Za-z_][A-Za-z0-9_.]*)", t):
+        line = t.count("\n", 0, m.start()) + 1
+        binds.setdefault(m.group(1), []).append(f"{f.replace(root, '').replace(chr(92), '/')}:{line}")
+
+vm = open(root + "ViewModels/MainWindowViewModel.cs", encoding="utf-8").read()
+# property bodies: "public <type> Name =>" up to ';' or "{ get ... }" block
+props = {}
+for m in re.finditer(r"public\s+[\w<>\?\.\[\], ]+?\s+(\w+)\s*(=>|\{)", vm):
+    name = m.group(1)
+    start = m.end()
+    if m.group(2) == "=>":
+        end = vm.index(";", start)
+        body = vm[start:end]
+    else:
+        depth, i = 1, start
+        while depth and i < len(vm):
+            depth += (vm[i] == "{") - (vm[i] == "}")
+            i += 1
+        body = vm[start:i]
+    props.setdefault(name, body)
+
+rows = []
+for name, where in sorted(binds.items()):
+    head = name.split(".")[0]
+    body = props.get(head)
+    if body is None:
+        rows.append((head, "model/other", len(where)))
+        continue
+    reads_settings = "Settings." in body or "Settings)" in body
+    reads_render = "_render" in body
+    kind = ("_render" if reads_render else "") + ("+Settings" if reads_settings and reads_render else ("Settings" if reads_settings else ""))
+    if not kind:
+        kind = "field/other"
+    rows.append((head, kind, len(where)))
+
+for r in rows:
+    if r[1] in ("Settings", "+Settings", "_render+Settings") or "Settings" in r[1]:
+        print("SETTINGS-READING:", r, binds[r[0]][:3])
+print("---")
+for r in rows:
+    if r[1].startswith("_render"):
+        print("render-derived:", r[0], r[2])
+print("total bound names:", len(rows))

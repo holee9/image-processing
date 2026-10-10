@@ -958,21 +958,36 @@ public sealed class MainWindowViewModel : ObservableObject
         $"Ghost={s.GhostCorrectionMode}, Temp={s.TemperatureCompensationMode}, " +
         $"Nonlinearity={s.NonlinearityCorrectionMode}, Binning={s.BinningCorrectionMode}";
 
+    /// <summary>
+    /// GUI-C-233j (Codex #178): the HUD line "N/7 stages" describes the picture on screen, so it counts the calibration modes the RENDER used (the record's inputs), not the settings as they
+    /// stand now; "—" while no render stands. What is asked for now is not shown here.
+    /// </summary>
     public string CalibStageCountDisplay
     {
         get
         {
+            if (RenderedInputs is not { } rendered)
+            {
+                return "—";
+            }
+
             string[] modes =
             [
-                Settings.OffsetCorrectionMode, Settings.GainCorrectionMode,
-                Settings.DefectCorrectionMode, Settings.GhostCorrectionMode,
-                Settings.TemperatureCompensationMode, Settings.NonlinearityCorrectionMode,
-                Settings.BinningCorrectionMode
+                rendered.OffsetCorrectionMode, rendered.GainCorrectionMode,
+                rendered.DefectCorrectionMode, rendered.GhostCorrectionMode,
+                rendered.TemperatureCompensationMode, rendered.NonlinearityCorrectionMode,
+                rendered.BinningCorrectionMode
             ];
             var enabled = modes.Count(m => !string.Equals(m, "Off", StringComparison.OrdinalIgnoreCase));
             return $"{enabled}/7 stages";
         }
     }
+
+    /// <summary>GUI-C-233j: the algorithm the Reference lane on screen was drawn with (from the render record); null while no render stands. The selector in the algorithm bar edits the REQUESTED one (<see cref="LaneAAlgorithm"/>).</summary>
+    public string? RenderedLaneAAlgorithm => _render?.Inputs.LaneAAlgorithm;
+
+    /// <summary>GUI-C-233j: the algorithm the Candidate lane on screen was drawn with (from the render record); null while no render stands.</summary>
+    public string? RenderedLaneBAlgorithm => _render?.Inputs.LaneBAlgorithm;
 
     public string ComparisonStatus =>
         $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
@@ -1034,7 +1049,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private static readonly string[] RenderDerivedProperties =
     [
-        nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale),
+        nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
         nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
         nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel),
@@ -1054,6 +1069,7 @@ public sealed class MainWindowViewModel : ObservableObject
             ActiveImageFrame = source;
             ProcessedImage = source.ProcessedPreview ?? source.Preview;
             ActiveImageSummary = source.Summary;
+            MetadataText = source.MetadataText;   // GUI-C-233j: the processed frame's metadata text goes with the render, like the summary
         }
 
         RefreshCorrectedAvailability();

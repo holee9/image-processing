@@ -602,6 +602,53 @@ public sealed class BaselineReviewFixTests : IDisposable
         Assert.DoesNotContain("- `CalibrationEvaluationSummary`", readme, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// GUI-C-233j: the module's own generators write the offset/gain maps (16 x 16) and the defect map into <paramref name="maps"/>. The module is initialised only for that, and shut down again on EVERY
+    /// path - the runner that reads the maps afterwards initialises it for itself. <paramref name="afterInit"/> lets a test inject a failure between the init and the end.
+    /// </summary>
+    internal static void PrepareMapsThroughTheModule(IntPtr handle, string maps, Action? afterInit = null)
+    {
+        ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+        try
+        {
+            Assert.Equal(0, ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_init(null));
+            afterInit?.Invoke();
+            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.GenerateAndLoadCalibration(handle, maps);   // the module's own generators: offset.xcal, gain.xcal (16 x 16)
+            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.WriteDefectMapFile(Path.Combine(maps, "defect.xcal"));
+        }
+        finally
+        {
+            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+        }
+    }
+
+    [SkippableFact]
+    public void WhenPreparingTheMapsFailsAfterTheInit_TheModuleIsLeftUninitialised()
+    {
+        var native = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        if (string.IsNullOrWhiteSpace(native))
+        {
+            native = AppContext.BaseDirectory;
+        }
+
+        Skip.IfNot(File.Exists(Path.Combine(native, "xpe_common.dll")) && File.Exists(Path.Combine(native, "xpe_preprocess.dll")), "xpe_common.dll and xpe_preprocess.dll are not staged");
+        ImageProcTest.IntegrationTests.Fixtures.SharedCommonModule.Load(native);
+        var handle = System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(native, "xpe_preprocess.dll"));
+        var maps = Path.Combine(Path.GetTempPath(), "xpe_c233j_maps_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(maps);
+        try
+        {
+            Assert.Throws<InvalidOperationException>(() => PrepareMapsThroughTheModule(handle, maps, () => throw new InvalidOperationException("injected after init")));
+            var code = ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_init(null);
+            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+            Assert.True(code == 0, $"the module was left initialised after a failure while preparing the maps (init answered {code})");
+        }
+        finally
+        {
+            try { Directory.Delete(maps, true); } catch (Exception) { /* temp folder */ }
+        }
+    }
+
     [SkippableFact]
     public void TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode()
     {
@@ -621,11 +668,7 @@ public sealed class BaselineReviewFixTests : IDisposable
         Directory.CreateDirectory(maps);
         try
         {
-            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
-            Assert.Equal(0, ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_init(null));
-            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.GenerateAndLoadCalibration(handle, maps);   // the module's own generators: offset.xcal, gain.xcal (16 x 16)
-            ImageProcTest.IntegrationTests.P1AReady.PreprocessCorrectionChainSmokeTests.WriteDefectMapFile(Path.Combine(maps, "defect.xcal"));
-            ImageProcTest.Services.Native.XpePreprocessNative.xpe_preprocess_shutdown();
+            PrepareMapsThroughTheModule(handle, maps);
 
             // GUI-C-233d (Codex #174 item 3): the SAME maps, settings and call first with a frame of the maps' own size (16 x 16): that must SUCCEED. Only then does the 64 x 64 frame's -1 mean "the size
             // does not match the maps" and not "this fixture or this call form never worked".

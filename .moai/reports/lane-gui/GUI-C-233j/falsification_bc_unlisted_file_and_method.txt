@@ -1,0 +1,9 @@
+   files call the preprocess module but are not in the sweep: Functional/ZzTmpCaller.cs
+   test methods missing from the sweep: DataSizeContractTests.ZzTmp_ANewTestNobodyListed
+   these files call the preprocess module but are not in PreprocessModuleCollection: Functional/ZzTmpCaller.cs
+[xUnit.net 00:00:01.25]       files call the preprocess module but are not in the sweep: Functional/ZzTmpCaller.cs
+[xUnit.net 00:00:01.25]       test methods missing from the sweep: DataSizeContractTests.ZzTmp_ANewTestNobodyListed
+[xUnit.net 00:00:01.25]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.TheFileList_EqualsTheFilesThatCallTheModule [FAIL]
+[xUnit.net 00:00:01.25]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.TheMethodList_EqualsTheTestMethodsOfThoseFiles [FAIL]
+[xUnit.net 00:00:01.26]       these files call the preprocess module but are not in PreprocessModuleCollection: Functional/ZzTmpCaller.cs
+[xUnit.net 00:00:01.26]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleCollectionGuardTests.EveryTestFileThatInitialisesOrRunsThePreprocessModule_IsInThePreprocessModuleCollection [FAIL]
