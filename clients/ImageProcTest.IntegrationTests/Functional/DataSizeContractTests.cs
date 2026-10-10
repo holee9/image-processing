@@ -22,6 +22,7 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// covered elsewhere and is deliberately not re-checked here.
 /// </summary>
 [Trait("Category", "Functional")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class DataSizeContractTests
 {
     private const uint Width = 16;

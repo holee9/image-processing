@@ -11,6 +11,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// The input array is copied before the call and compared after. The calls use the header's shape (input, output, metadata) with the calibration loaded as the chain tests load it.
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class PreprocessCorrectionBoundaryTests
 {
     private const int Guard = 64;   // elements of margin on each side of the output
