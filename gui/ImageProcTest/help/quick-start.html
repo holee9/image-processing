@@ -84,8 +84,8 @@
             <td>You switched to Native through the menu. Save Settings, close the app and start it again (step 1).</td>
           </tr>
           <tr>
-            <td><code>preprocess: Preprocessing skipped: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal</code></td>
-            <td>The calibration folder does not directly contain the three files (it may be the parent folder, or empty). The message lists the exact paths the app looked for.</td>
+            <td><code>preprocess: no calibration data: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal</code> (the HUD's Calib line says <code>not run (no calibration data)</code>)</td>
+            <td>The calibration folder does not directly contain the three files (it may be the parent folder, or empty). The message lists the exact paths the app looked for. Preprocessing is on by default; without the files it is skipped, not run, and the picture is not corrected.</td>
           </tr>
           <tr>
             <td><code>preprocess: Loading offset calibration failed (-5)</code></td>

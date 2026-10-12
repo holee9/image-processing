@@ -79,8 +79,8 @@
             <td>네이티브 DLL을 찾지 못했거나 불러오지 못했습니다. <code>XPE_NATIVE_DIR</code> 폴더를 확인하십시오(<code>xpe_common.dll</code>, <code>xpe_display.dll</code>, 이 단계에는 <code>xpe_preprocess.dll</code> 도 필요). <strong>Backend &gt; Native DLL Diagnostics</strong> 는 상태 줄에 display DLL 을 찾았는지와 위치를 보여 주고, 시도한 경로를 로그에 씁니다.</td>
           </tr>
           <tr>
-            <td><code>preprocess: Preprocessing skipped: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal</code></td>
-            <td>보정 폴더 <em>바로 아래</em>에 세 파일이 없습니다(상위 폴더이거나 빈 폴더일 수 있음). 앱이 찾아본 경로가 문장에 그대로 나옵니다.</td>
+            <td><code>preprocess: no calibration data: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal</code> (HUD 의 Calib 줄은 <code>not run (no calibration data)</code>)</td>
+            <td>보정 폴더 <em>바로 아래</em>에 세 파일이 없습니다(상위 폴더이거나 빈 폴더일 수 있음). 앱이 찾아본 경로가 문장에 그대로 나옵니다. 전처리는 기본으로 켜져 있어서, 파일이 없으면 실행하지 않고 건너뛰며(조용히 빠지지 않고 사유를 표시) 그림은 보정되지 않은 상태입니다.</td>
           </tr>
           <tr>
             <td><code>preprocess: Loading offset calibration failed (-5)</code></td>

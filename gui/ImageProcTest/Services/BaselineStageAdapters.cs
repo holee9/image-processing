@@ -33,6 +33,6 @@ public static class BaselineStageAdapters
         new(result.Ran, result.Pixels, result.Summary, result.NaNInfCount);
 
     /// <summary>The preprocess stage's result as the chain runner takes it, with the count the runner made on its float image.</summary>
-    public static StageExecution FromPreprocess(bool ran, ushort[]? pixels, string summary, long nonFiniteCount) =>
-        new(ran, pixels, summary, nonFiniteCount);
+    public static StageExecution FromPreprocess(bool ran, ushort[]? pixels, string summary, long nonFiniteCount, bool skipped = false) =>
+        new(ran, pixels, summary, nonFiniteCount, skipped);
 }

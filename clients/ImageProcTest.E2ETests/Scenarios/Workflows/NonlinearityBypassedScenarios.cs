@@ -42,6 +42,9 @@ public sealed class NonlinearityBypassedScenarios(ITestOutputHelper output)
 
     private const int Frames = 3;
 
+    /// <summary>GUI-C-234b (U3): preprocessing is on by default, so the render that opens the frame preprocesses it too: one more preprocess run, one more per-frame alert, before the first Run Preprocessing.</summary>
+    private const int RenderThatOpenedTheFrame = 1;
+
     [SkippableFact]
     public void TheShippedPath_RunsNoNonlinearityStage_SoNoNoopAlertIsRaised_WhileThePerFrameAlertKeepsArriving()
     {
@@ -58,13 +61,20 @@ public sealed class NonlinearityBypassedScenarios(ITestOutputHelper output)
 
         OpenLogs(window);
 
+        // The log list is virtualised: UI Automation sees the lines that are on screen, and since GUI-C-234 every render also logs a long (wrapping) enhance line, so one read at the end sees only the newest
+        // few. The newest line is first, so each frame's lines are collected right after the frame and the scenario counts over the union.
+        var seen = new List<string>();
         for (var i = 1; i <= Frames; i++)
         {
             RunPreprocessing(window);
             output.WriteLine($"frame {i}: preprocessing invoked");
+            foreach (var line in LogLines(window))
+            {
+                if (!seen.Contains(line)) seen.Add(line);
+            }
         }
 
-        var lines = LogLines(window);
+        var lines = seen.ToArray();
         var noop = lines.Where(t => t.Contains(NoopMarker, StringComparison.Ordinal)).ToArray();
         var clamp = lines.Where(t => t.Contains(ClampMarker, StringComparison.Ordinal)).ToArray();
         var preprocess = lines.Where(t => t.Contains("Preprocess", StringComparison.Ordinal)).ToArray();
@@ -84,8 +94,8 @@ public sealed class NonlinearityBypassedScenarios(ITestOutputHelper output)
         Assert.Contains(ExecutedStagesHud, hud, StringComparison.Ordinal);
 
         // (3) The control, first: the queue is alive in this same run and delivers per frame. Without it the absence in (2) would not mean anything.
-        Assert.True(clamp.Length == Frames,
-            $"{Frames} frames produced {clamp.Length} per-frame #194 clamp line(s), so the alert queue is not shown to deliver once per frame and the #196 count below cannot be read.");
+        Assert.True(clamp.Length == Frames + RenderThatOpenedTheFrame,
+            $"{Frames} Run Preprocessing frames (plus the render that opened the frame) produced {clamp.Length} per-frame #194 clamp line(s), expected {Frames + RenderThatOpenedTheFrame}: the alert queue is not shown to deliver once per frame and the #196 count below cannot be read.");
 
         // (2) The stage did not run, so it did not report.
         Assert.True(noop.Length == 0,

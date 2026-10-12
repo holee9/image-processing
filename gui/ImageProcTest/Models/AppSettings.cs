@@ -64,7 +64,7 @@ public sealed class AppSettings : ObservableObject
     private double _laneBGsvgDenoiseK = 2.0;
     private float _laneBVoiWindowWidth;
     private string _lastRunSetId = string.Empty;
-    private bool _preprocessInChain;
+    private bool _preprocessInChain = true;
     private bool _aiBoneSuppressionInChain;
     private string _aiModelDirectory = "data/models";
     private float _exposureKvp = 70.0f;
@@ -522,9 +522,15 @@ public sealed class AppSettings : ObservableObject
 
     /// <summary>
     /// Whether the preprocess stage (offset → gain → defect) runs in the pixel chain before the display
-    /// pipeline (#180, GUI-C-99). Off by default: the display then starts from the raw frame, as before.
+    /// pipeline (#180, GUI-C-99). GUI-C-234b (pipeline-spec 6.1, U3): ON by default - the ordinary chain starts with the preprocess. Without calibration data the stage is skipped and the screen says
+    /// why ("not run (no calibration data)"); it is not silently left out.
+    ///
+    /// <para><b>The stored key is <c>preprocessInDefaultChain</c>, not the old <c>preprocessInChain</c> (GUI-C-234b).</b> Before this card the default was off and Run Preprocessing was the only way to turn it on, so a
+    /// <c>false</c> in an existing file was the old default, not a choice a person made - read under the same key it would keep the new default from ever reaching anyone who had run the app before (the same
+    /// trap GUI-C-170b met with <c>showDisplayPanel</c>). An old file's old key is not read (the loader ignores unknown keys), so an upgraded app starts with preprocessing on; a value saved by this code
+    /// lands under the new key and is kept. The old key's <c>true</c> is not carried over either: it is the new default anyway.</para>
     /// </summary>
-    [JsonPropertyName("preprocessInChain")]
+    [JsonPropertyName("preprocessInDefaultChain")]
     public bool PreprocessInChain
     {
         get => _preprocessInChain;

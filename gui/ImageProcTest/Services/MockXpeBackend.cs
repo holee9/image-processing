@@ -351,7 +351,8 @@ public sealed class MockXpeBackend : IXpeBackend
 
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, _) => request.StageId switch
         {
-            StageIds.Preprocess => new StageExecution(false, null, "Preprocessing requires the native backend (xpe_preprocess.dll)."),
+            // GUI-C-234b: the Mock has no such module - a skip with a reason, not a failure (and still never "done", HAZ-GUI-005).
+            StageIds.Preprocess => new StageExecution(false, null, "native backend required: Preprocessing requires the native backend (xpe_preprocess.dll).", Skipped: true),
             StageIds.Gsvg => new StageExecution(false, null, "Grid correction requires the native backend (gsvg.dll)."),
             StageIds.AiBoneSuppression => new StageExecution(false, null, "AI bone suppression requires the native backend (xpe_ai.dll)."),
             StageIds.EnhanceBasic => new StageExecution(false, null, "Basic enhancement requires the native backend (xpe_enhance_basic.dll)."),

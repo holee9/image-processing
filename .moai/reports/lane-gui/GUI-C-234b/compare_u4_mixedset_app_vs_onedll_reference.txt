@@ -1,0 +1,4 @@
+app file 9437184 values; reference 9437184 values
+identical uint16 pixels: 9437184 of 9437184 (100.000000%)
+max |diff| = 0; mean diff = 0.000000
+BYTE-IDENTICAL

@@ -14,7 +14,8 @@ public delegate StageExecution StageExecutor(StageRequest request, ushort[] inpu
 /// <param name="Pixels">The stage's output when it ran.</param>
 /// <param name="Message">The stage's summary, or why it did not run.</param>
 /// <param name="NonFiniteCount">NaN/Inf values the stage saw in a float intermediate (0 when it measured none). Carried to the chain result even when the stage refused.</param>
-public sealed record StageExecution(bool Ran, ushort[]? Pixels, string Message, long NonFiniteCount = 0);
+/// <param name="Skipped">GUI-C-234b: with <paramref name="Ran"/> false, true when the stage had nothing to run with (no calibration data, no such module in this backend) rather than failing. Reported as <see cref="StageStatus.Skipped"/>.</param>
+public sealed record StageExecution(bool Ran, ushort[]? Pixels, string Message, long NonFiniteCount = 0, bool Skipped = false);
 
 /// <summary>
 /// Runs an ordered stage list over a raw frame (GUI-C-99, contract B of GUI-C-97).
@@ -66,7 +67,7 @@ public static class ProcessingChainRunner
 
             if (!execution.Ran || execution.Pixels is null)
             {
-                outcomes.Add(new StageOutcome(request.StageId, StageStatus.RequestedNotApplied, null, execution.Message, elapsedMs, execution.NonFiniteCount));
+                outcomes.Add(new StageOutcome(request.StageId, execution.Skipped && !execution.Ran ? StageStatus.Skipped : StageStatus.RequestedNotApplied, null, execution.Message, elapsedMs, execution.NonFiniteCount));
                 continue;
             }
 

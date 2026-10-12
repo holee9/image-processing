@@ -961,8 +961,8 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>
     /// GUI-C-233k (Codex #179): the HUD's "Calib:" line says what the render's chain ACTUALLY RAN, taken from the preprocess stage's own outcome - not from how many calibration modes the settings
     /// hold (that counted 7/7 on a render where preprocessing never ran: the default <c>PreprocessInChain</c> is off). "—" while no render stands; "not run" when the stage was not requested;
-    /// "failed" when it was requested and did not apply; otherwise the stages the call runs (<see cref="GuiPreprocessRunner.ExecutedStages"/>). The configured modes are in the report under
-    /// <c>calibrationEvaluation</c>, labelled as configured.
+    /// "failed" when it was requested and did not apply; otherwise the stages the call runs (<see cref="GuiPreprocessRunner.ExecutedStages"/>). GUI-C-234b: a stage that was asked for and SKIPPED
+    /// (no calibration data, a backend without the module) is "not run (&lt;short reason&gt;)", never "failed". The configured modes are in the report under <c>calibrationEvaluation</c>, labelled as configured.
     /// </summary>
     public string CalibStageCountDisplay
     {
@@ -978,9 +978,22 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 StageStatus.Applied or StageStatus.AppliedNoChange => $"{GuiPreprocessRunner.ExecutedStages.Length} stages ({string.Join(" · ", GuiPreprocessRunner.ExecutedStages)})",
                 StageStatus.RequestedNotApplied => "failed",
+                StageStatus.Skipped => $"not run ({ShortReasonOf(preprocess.Reason)})",
                 _ => "not run",
             };
         }
+    }
+
+    /// <summary>GUI-C-234b: the part of a skip reason before the first colon ("no calibration data: offset.xcal ... not found" gives "no calibration data").</summary>
+    private static string ShortReasonOf(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return "skipped";
+        }
+
+        var colon = reason.IndexOf(':', StringComparison.Ordinal);
+        return (colon > 0 ? reason[..colon] : reason).Trim();
     }
 
     /// <summary>The preprocess stage's status in the render on screen, or null when no render stands / the chain has no such stage.</summary>
@@ -1031,7 +1044,15 @@ public sealed class MainWindowViewModel : ObservableObject
         var preprocess = chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
         if (preprocess is null || preprocess.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange))
         {
-            return "Exposure index: not measured (preprocessing did not run for this image).";
+            // GUI-C-234b: the same reason the HUD gives ("not run (no calibration data)"), so the two lines cannot disagree about why there is no value.
+            var why = preprocess?.Status switch
+            {
+                StageStatus.Skipped => $": {ShortReasonOf(preprocess.Reason)}",
+                StageStatus.RequestedNotApplied => ": it failed",
+                StageStatus.NotRequested => ": it is switched off",
+                _ => string.Empty,
+            };
+            return $"Exposure index: not measured (preprocessing did not run{why}).";
         }
 
         const string Marker = "uncalibrated EI";
@@ -2428,7 +2449,8 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 // GUI-C-233k: the modes and the summary below are what was CONFIGURED for the render. What actually ran is `executed` (the preprocess stage runs offset, gain and defect; the other four
                 // modes are not connected to that call), and it is what the HUD's "Calib:" line shows.
-                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), hud = CalibStageCountDisplay, stages = RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
+                // GUI-C-234b: `reason` is the preprocess stage's own reason (why it was skipped or failed, or its summary when it ran); null with no render.
+                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages =RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
                 // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
                 summary = RenderedInputs is null ? null : FormatCalibrationModes(RenderedInputs),
                 // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
@@ -2957,7 +2979,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // The reason of a stage that did not apply belongs on screen: "RequestedNotApplied" alone sends
         // the operator to the log to find out why (#180, GUI-C-101).
         var refused = chain.Stages
-            .Where(st => st.Status == StageStatus.RequestedNotApplied)
+            .Where(st => st.Status is StageStatus.RequestedNotApplied or StageStatus.Skipped)
             .Select(st => $"{st.StageId}: {st.Reason}")
             .ToArray();
         // #225 row 10 (GUI-C-184): the label is derived from the stage's STATUS, which the chain derives from the module's

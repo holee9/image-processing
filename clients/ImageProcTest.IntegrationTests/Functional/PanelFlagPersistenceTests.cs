@@ -15,6 +15,34 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// </summary>
 public sealed class PanelFlagPersistenceTests
 {
+    /// <summary>
+    /// GUI-C-234b (U3): preprocessing is ON in the default chain, also for someone who ran an older version. The old default was off, so an old file's <c>"preprocessInChain": false</c> is not a choice
+    /// and must not keep the new default from arriving; a choice made with this version (stored under the new key) is kept. The control: the same file's other keys are read.
+    /// </summary>
+    [Fact]
+    public void PreprocessIsOnByDefault_AnOldFilesSavedOffDoesNotKeepItOff_ButAChoiceMadeNowIsKept()
+    {
+        Assert.True(new AppSettings().PreprocessInChain);
+
+        var path = Path.Combine(Path.GetTempPath(), $"xpe-c234b-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "{ \"voiWindowCenter\": 1234, \"preprocessInChain\": false }");
+        try
+        {
+            var service = new AppSettingsService(path);
+            var upgraded = service.Load().Settings;
+            Assert.Equal(1234, upgraded.VoiWindowCenter);        // control: the file was read
+            Assert.True(upgraded.PreprocessInChain);             // the old default does not win
+
+            service.Save(new AppSettings { PreprocessInChain = false });
+            Assert.False(service.Load().Settings.PreprocessInChain);   // a choice made now is kept
+            Assert.Contains("\"preprocessInDefaultChain\"", File.ReadAllText(path), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void BothPanelFlags_AreOffByDefault()
     {

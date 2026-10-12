@@ -390,7 +390,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             candidateSink?.Invoke(new CorrectedImage(floats, width, height, frameKey));
         }
 
-        return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);
+        return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount, result.Skipped);
     }
 
     /// <summary>

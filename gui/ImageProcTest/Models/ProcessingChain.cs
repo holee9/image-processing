@@ -3,7 +3,7 @@ namespace ImageProcTest.Models;
 // #180 / #173 (GUI-C-99): the GUI's pixel chain. Contract B from GUI-C-97 — the backend runs an ordered
 // list of stages on the loaded raw frame, keeps the raw frame untouched, and returns what each stage did.
 
-/// <summary>What a requested stage did. The four values keep "asked for" apart from "done" (HAZ-GUI-005).</summary>
+/// <summary>What a requested stage did. The five values keep "asked for" apart from "done" (HAZ-GUI-005), and "could not run, by no fault" apart from "failed" (GUI-C-234b).</summary>
 public enum StageStatus
 {
     /// <summary>The stage was in the list but switched off.</summary>
@@ -17,6 +17,12 @@ public enum StageStatus
 
     /// <summary>The stage was asked for and did not run, or failed; the chain fell back to its input.</summary>
     RequestedNotApplied,
+
+    /// <summary>
+    /// GUI-C-234b: the stage was asked for and was SKIPPED because there was nothing to run it with (no calibration data, a backend that has no such module) - not because it broke. The chain falls
+    /// back to its input exactly as for <see cref="RequestedNotApplied"/>, and the reason is shown ("not run (no calibration data)"), never "failed". The reason text is <c>&lt;short reason&gt;: &lt;detail&gt;</c>.
+    /// </summary>
+    Skipped,
 }
 
 /// <summary>Stage identifiers. Strings, so a list can be written down and compared in reports.</summary>

@@ -120,7 +120,7 @@ internal sealed class PreprocessOutcomeBackend : ScenarioBackend
             return chain;
         }
 
-        var replaced = chain.Stages.Select(st => st.StageId == StageIds.Preprocess ? st with { Status = status, Reason = "scripted: " + status } : st).ToList();
+        var replaced = chain.Stages.Select(st => st.StageId == StageIds.Preprocess ? st with { Status = status, Reason = status == StageStatus.Skipped ? "no calibration data: scripted" : "scripted: " + status } : st).ToList();
         return chain with { Stages = replaced };
     }
 }
@@ -1460,7 +1460,7 @@ internal static class LifetimeScenarios
             var tagA = vm.RenderedLaneAAlgorithm;
             var tagB = vm.RenderedLaneBAlgorithm;
             var stages = vm.CalibStageCountDisplay;
-            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm && stages == "not run", $"after the render the tags/count are not the record's: '{tagA}' '{tagB}' '{stages}'");
+            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm && stages == "not run (native backend required)", $"after the render the tags/count are not the record's: '{tagA}' '{tagB}' '{stages}'");
 
             // settings change, nothing re-applied: the tags and the count still describe what was DRAWN; the Candidate is stale
             var otherA = MainWindowViewModel.AlgorithmOptions.First(o => o != vm.Settings.LaneAAlgorithm);
@@ -1511,7 +1511,7 @@ internal static class LifetimeScenarios
             var backend = (PreprocessOutcomeBackend)built[^1];
             var configured = vm.CalibrationEvaluationSummary;   // the seven configured modes, whatever they are
 
-            string Cross(string label, string expectedHud, string expectedStatus, bool expectedRan)
+            string Cross(string label, string expectedHud, string expectedStatus, bool expectedRan, string expectedEiPart)
             {
                 var executed = ReportRoot(vm).GetProperty("calibrationEvaluation").GetProperty("executed");
                 var hud = executed.GetProperty("hud").GetString();
@@ -1520,25 +1520,35 @@ internal static class LifetimeScenarios
                 Check(preprocess == expectedStatus, $"{label}: the report's preprocess status is '{preprocess}', expected '{expectedStatus}'");
                 Check(vm.PreprocessRan == expectedRan, $"{label}: PreprocessRan is {vm.PreprocessRan}, expected {expectedRan}");
                 Check(vm.CurrentRender!.Chain.Stages.Single(st => st.StageId == StageIds.Preprocess).Status.ToString() == expectedStatus, $"{label}: the record's chain disagrees with the report");
-                Check(vm.CalibrationEvaluationSummary == configured, $"{label}: the configured modes changed during the scenario");   // the HUD is NOT a function of them
+                Check(vm.CalibrationEvaluationSummary == configured, $"{label}: the configured modes changed during the scenario");
+                // GUI-C-234b: the exposure-index text gives the same reason as the HUD ("no value" and "not run" cannot disagree about why).
+                Check(vm.ExposureIndexText.Contains(expectedEiPart, StringComparison.Ordinal), $"{label}: the exposure index text '{vm.ExposureIndexText}' does not carry '{expectedEiPart}'");
+                Check(executed.GetProperty("reason").ValueKind == System.Text.Json.JsonValueKind.String, $"{label}: the report's preprocess `reason` is missing");   // the HUD is NOT a function of them
                 return $"| {label,-34} | {vm.CalibStageCountDisplay,-32} | {preprocess,-20} | {vm.PreprocessRan,-5} | {vm.ChainStatus.Split(';')[0]} |";
             }
 
             var rows = new List<string>();
 
-            // (1) default settings: preprocessing is not requested, so it did not run - although all seven modes are configured
-            Check(!vm.Settings.PreprocessInChain, "the default PreprocessInChain is expected to be off in this scenario");
+            // (1) default settings (GUI-C-234b, U3): preprocessing IS requested; this backend (the Mock) has no module, so it is skipped WITH its reason - not left out silently, and not "failed"
+            Check(vm.Settings.PreprocessInChain, "the default PreprocessInChain is expected to be on (U3)");
             await LoadAndDrawLanes(vm, rawPath);
-            rows.Add(Cross("default (preprocess not requested)", "not run", "NotRequested", false));
+            rows.Add(Cross("default (requested; backend has no module)", "not run (native backend required)", "Skipped", false, "preprocessing did not run: native backend required"));
+
+            // (1b) requested and skipped for want of calibration data
+            backend.Force = StageStatus.Skipped;
+            var before0 = vm.CurrentRender;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before0), "the render with a skipped preprocess to commit");
+            await FlushUi();
+            rows.Add(Cross("preprocess skipped, no calibration", "not run (no calibration data)", "Skipped", false, "preprocessing did not run: no calibration data"));
 
             // (2) requested and failed
-            vm.Settings.PreprocessInChain = true;
             backend.Force = StageStatus.RequestedNotApplied;
             var before = vm.CurrentRender;
             vm.ApplyDisplayPipelineCommand.Execute(null);
             await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with a failing preprocess to commit");
             await FlushUi();
-            rows.Add(Cross("preprocess requested, failed", "failed", "RequestedNotApplied", false));
+            rows.Add(Cross("preprocess requested, failed", "failed", "RequestedNotApplied", false, "preprocessing did not run: it failed"));
 
             // (3) requested and ran
             backend.Force = StageStatus.Applied;
@@ -1546,7 +1556,16 @@ internal static class LifetimeScenarios
             vm.ApplyDisplayPipelineCommand.Execute(null);
             await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with a successful preprocess to commit");
             await FlushUi();
-            rows.Add(Cross("preprocess requested, ran", "3 stages (offset · gain · defect)", "Applied", true));
+            rows.Add(Cross("preprocess requested, ran", "3 stages (offset · gain · defect)", "Applied", true, "Exposure index:"));
+
+            // (3b) switched off by the user: the only way the stage is NotRequested now
+            vm.Settings.PreprocessInChain = false;
+            backend.Force = null;
+            before = vm.CurrentRender;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with preprocessing switched off to commit");
+            await FlushUi();
+            rows.Add(Cross("preprocess switched off", "not run", "NotRequested", false, "preprocessing did not run: it is switched off"));
 
             // (4) a new frame: nothing is claimed until it is rendered
             Console.WriteLine("| case                               | HUD \"Calib:\" line               | report preprocess    | ran   | chain |");

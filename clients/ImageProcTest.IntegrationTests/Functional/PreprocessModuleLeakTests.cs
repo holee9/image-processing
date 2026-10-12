@@ -52,6 +52,7 @@ public sealed class PreprocessModuleLeakTests
         ("PreprocessHandshakeTests.PreprocessInitShutdown_WhenDllStaged_LifecycleSucceeds", () => new ImageProcTest.IntegrationTests.P1AReady.PreprocessHandshakeTests().PreprocessInitShutdown_WhenDllStaged_LifecycleSucceeds()),
         ("PreprocessHandshakeTests.PreprocessDll_WhenStaged_HasAllRequiredExports", () => new ImageProcTest.IntegrationTests.P1AReady.PreprocessHandshakeTests().PreprocessDll_WhenStaged_HasAllRequiredExports()),
         ("BaselineReviewFixTests.WhenPreparingTheMapsFailsAfterTheInit_TheModuleIsLeftUninitialised", () => { using var t = new ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests(); t.WhenPreparingTheMapsFailsAfterTheInit_TheModuleIsLeftUninitialised(); }),
+        ("BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData", () => new ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe(new NullOutput()).PrintTheStageHashesOfTheBaselineChainOnRealData()),
         ("BaselineReviewFixTests.TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode", () => { using var t = new ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests(); t.TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode(); }),
     ];
 
@@ -65,6 +66,7 @@ public sealed class PreprocessModuleLeakTests
         ("P1AReady/PreprocessCorrectionChainSmokeTests.cs", null),
         ("P1AReady/PreprocessHandshakeTests.cs", null),
         ("Functional/BaselineReviewFixTests.cs", new[] { "TheRealRunner_", "WhenPreparingTheMaps" }),
+        ("Functional/BaselineFingerprintProbe.cs", null),
     ];
 
     /// <summary>

@@ -119,8 +119,8 @@ public sealed class LogAlertDiscriminabilityObservation(ITestOutputHelper output
 
         // Instrument check: the log actually grew, so "C3 did not move" would mean the cost is bounded
         // rather than that nothing happened.
-        Assert.True(frequent.Lines > rare.Lines,
-            $"CONTROL FAILED: the log stayed at {frequent.Lines} lines after {ran} re-runs (was "
+        Assert.True(_everSeen.Count > rare.Lines,
+            $"CONTROL FAILED: only {_everSeen.Count} distinct lines were ever seen after {ran} re-runs (the first reading had "
           + $"{rare.Lines}), so this run cannot tell a bounded cost from an idle harness.");
 
         // #206 target: finding every alert must cost no more than the number of alerts there are.
@@ -189,10 +189,15 @@ public sealed class LogAlertDiscriminabilityObservation(ITestOutputHelper output
     /// </summary>
     private sealed record Observation(int Page, int Lines, int Alerts, int Newest, int All, int Gap, double ViewSize);
 
+    /// <summary>GUI-C-234b: every distinct line any measurement saw. The list is virtualised (UI Automation sees the lines on screen, and a wrapping enhance line per render takes more room than a short one), so
+    /// the count of lines read at one moment can stay flat while the log grows; the instrument check below counts the union.</summary>
+    private readonly HashSet<string> _everSeen = [];
+
     private Observation Measure(Window window, string label)
     {
         var page = PageSize(window);
         var lines = LogLines(window);
+        foreach (var line in lines) _everSeen.Add(line);
         var alertAt = Enumerable.Range(0, lines.Length)
             .Where(i => lines[i].Contains(AlertMarker, StringComparison.Ordinal))
             .ToArray();

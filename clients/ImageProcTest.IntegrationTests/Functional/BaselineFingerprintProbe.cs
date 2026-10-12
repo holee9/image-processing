@@ -10,6 +10,8 @@ using Xunit.Abstractions;
 
 namespace ImageProcTest.IntegrationTests.Functional;
 
+// GUI-C-234b: it initialises and runs the preprocess module (through GuiPreprocessRunner.Run), so it belongs to the module's collection and to the leak sweep like every other file that does.
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class BaselineFingerprintProbe(ITestOutputHelper output)
 {
     private static string Sha(ushort[] pixels) => Convert.ToHexString(SHA256.HashData(MemoryMarshal.AsBytes(pixels.AsSpan()))).ToLowerInvariant();

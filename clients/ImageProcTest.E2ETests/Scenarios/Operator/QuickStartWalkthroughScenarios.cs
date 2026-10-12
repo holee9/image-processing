@@ -403,6 +403,60 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// GUI-C-234b (U3): the DEFAULT chain preprocesses. Nothing is switched on by hand - no Run Preprocessing, no checkbox: a real calibration set is given and a frame is opened, and the chain that
+    /// the first render ran says <c>preprocess=Applied</c>, the HUD's Calib line names offset, gain and defect, and the exposure index has a value. (Before this card the default was OFF and the first
+    /// render of a freshly opened frame was the raw one.) Falsified by turning the default back off: this scenario then waits for an Applied that never comes. UIA only.
+    /// Needs <c>XPE_C231_NATIVE_DIR</c>, <c>XPE_C231_CALIB_DIR</c>, <c>XPE_C231_RAW</c>, <c>XPE_C231_RAW_SIZE</c>.
+    /// </summary>
+    [EnvGatedFact]
+    public void W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+        app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied without Run Preprocessing", 180);
+        Thread.Sleep(1500);
+
+        var chain = app.Read("ChainStatusText");
+        var hud = app.Read("HudCalibStages");
+        var status = app.Read("StatusBarText");
+        output.WriteLine($"   chain: {chain}");
+        output.WriteLine($"   HUD: '{hud}'");
+        Assert.Contains("3 stages (offset · gain · defect)", hud, StringComparison.Ordinal);
+        Assert.Contains("Exposure index: uncalibrated EI", status, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// GUI-C-234b (U3): with NO calibration data the default chain does not silently leave the preprocess out. It is skipped with its reason: the chain line says <c>preprocess=Skipped</c>, the HUD says
+    /// <c>not run (no calibration data)</c> - not "failed" - and the exposure-index text gives the same reason. No calibration folder is given and the settings file is the test's own empty one.
+    /// </summary>
+    [EnvGatedFact]
+    public void W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed()
+    {
+        var (native, _, raw, width, height) = Inputs();
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+        app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Skipped", StringComparison.Ordinal), "preprocess=Skipped", 180);
+        Thread.Sleep(1500);
+
+        var chain = app.Read("ChainStatusText");
+        var hud = app.Read("HudCalibStages");
+        var status = app.Read("StatusBarText");
+        output.WriteLine($"   chain: {chain}");
+        output.WriteLine($"   HUD: '{hud}'");
+        Assert.Contains("not run (no calibration data)", hud, StringComparison.Ordinal);
+        Assert.DoesNotContain("failed", hud, StringComparison.Ordinal);
+        Assert.Contains("preprocessing did not run: no calibration data", status, StringComparison.Ordinal);
+        Assert.Contains("no calibration data", chain, StringComparison.Ordinal);   // the status line carries the reason too
+    }
+
+    /// <summary>
     /// GUI-C-234 (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms): one frame from "Run Preprocessing" to the finished picture, five times, on real data, measured on the machine the test runs on. The wall time includes the
     /// UIA polling of this test (a few ten ms); the app's own per-stage times are printed next to it from the chain line. This machine's median is evidence for THIS machine only; the milestone asks for the CI
     /// median. Needs the same variables as W7.

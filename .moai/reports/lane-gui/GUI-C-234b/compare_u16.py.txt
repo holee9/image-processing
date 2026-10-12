@@ -1,0 +1,20 @@
+# GUI-C-234b: byte comparison of the app's final uint16 (XPE_GUI_AUTOMATION_EXPORT_PROCESSED16) with the module chain's presentation output.
+# usage: python compare_u16.py <app.u16> <reference.u16> [width height]
+import sys
+import numpy as np
+a = np.fromfile(sys.argv[1], dtype="<u2")
+b = np.fromfile(sys.argv[2], dtype="<u2")
+print("app file %d values; reference %d values" % (a.size, b.size))
+if a.size != b.size:
+    print("SIZE MISMATCH")
+    sys.exit(2)
+d = a.astype(np.int32) - b.astype(np.int32)
+n = int(np.count_nonzero(d))
+print("identical uint16 pixels: %d of %d (%.6f%%)" % (a.size - n, a.size, 100.0 * (a.size - n) / a.size))
+print("max |diff| = %d; mean diff = %.6f" % (int(np.abs(d).max()), float(d.mean())))
+if n:
+    w = int(sys.argv[3]) if len(sys.argv) > 3 else 3072
+    first = int(np.flatnonzero(d)[0])
+    print("first differing pixel: y=%d x=%d (app %d, reference %d)" % (first // w, first % w, a[first], b[first]))
+else:
+    print("BYTE-IDENTICAL")

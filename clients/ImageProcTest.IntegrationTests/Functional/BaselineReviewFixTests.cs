@@ -176,7 +176,7 @@ public sealed class BaselineReviewFixTests : IDisposable
     public void TheRealBackendAndThePreprocessRunner_UseTheCountingHops()
     {
         var real = Read("gui/ImageProcTest/Services/RealXpeBackend.cs");
-        Assert.Contains("return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);", real, StringComparison.Ordinal);
+        Assert.Contains("return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount, result.Skipped);", real, StringComparison.Ordinal);   // GUI-C-234b: and whether the run was a skip
         Assert.Contains("var execution = BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);   // GUI-C-234: the result is also read for its floats before it is returned
 
         var preprocess = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
