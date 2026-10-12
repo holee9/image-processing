@@ -1,0 +1,30 @@
+"""QA-B-216: m2-post-v3 = the same eight images as m2-post-v2 (same names, same raw sources), made with the CI DLLs.
+usage: python make_pngs_v3.py.txt <raw output dir written by run216.py.txt> <output dir>
+(same body as .moai/reports/lane-post/QA-B-214/make_pngs_v2.py.txt; kept as a copy so the evidence folder is self-contained)"""
+import hashlib, os, sys
+import numpy as np
+from PIL import Image
+
+src, dst = sys.argv[1], sys.argv[2]
+os.makedirs(dst, exist_ok=True)
+N = 3072
+files = [
+    ('00_input_adu_DISPLAY_ONLY.png', '00_input_adu.u16'),
+    ('01_log_DISPLAY_ONLY.png', '01_log_p01p99.u16'),
+    ('02_noise_bilateral_DISPLAY_ONLY.png', '02_noise_bilateral_p01p99.u16'),
+    ('03_clahe_DISPLAY_ONLY.png', '03_clahe_p01p99.u16'),
+    ('04_usm_DISPLAY_ONLY.png', '04_usm_p01p99.u16'),
+    ('05_FINAL_default_inverted_auto_window.png', '07_presentation_uint16.u16'),
+    ('06_ALT_window_top_at_background_q01.png', 'p8_v8_alt_window_top_at_background_q01_inverted.u16'),
+    ('07_OLD_default_air_white_whole_image_window.png', 'p8_v1_whole_p01p99_ascending.u16'),
+]
+rows = []
+for name, raw in files:
+    a = np.fromfile(os.path.join(src, raw), dtype='<u2')
+    assert a.size == N * N, raw
+    out = os.path.join(dst, name)
+    Image.fromarray(a.reshape(N, N).astype('<u2')).save(out)
+    rows.append((name, hashlib.sha256(open(out, 'rb').read()).hexdigest()))
+open(os.path.join(dst, 'sha256.txt'), 'w').write(''.join(f'{h}  {n}\n' for n, h in rows))
+for n, h in rows:
+    print(h, n)

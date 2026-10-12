@@ -1,0 +1,37 @@
+"""QA-B-216: run the stage-2 chain harness (Chain_P1_P3_P4_P5_P7 then Variants_P8) with a chosen DLL set into its own output dir.
+usage: python run216.py.txt <dllset: ci|post> <label>      -> raw outputs in build/s216/out_<label>, logs in QA-B-216/chain_<label>_*.txt"""
+import os, shutil, subprocess, sys
+
+ROOT = r'D:/workspace-github/xpe-post'
+BIN = ROOT + '/build/ci-post/bin'
+CI = r'D:/workspace-github/xpe-data/ci-dlls-de5afc01/_dl'
+EV = ROOT + '/.moai/reports/lane-post/QA-B-216/'
+kind, label = sys.argv[1], sys.argv[2]
+run_dir = '%s/build/s216/run_%s' % (ROOT, label)
+out_dir = '%s/build/s216/out_%s' % (ROOT, label)
+shutil.rmtree(run_dir, ignore_errors=True)
+shutil.rmtree(out_dir, ignore_errors=True)
+os.makedirs(run_dir)
+os.makedirs(out_dir)
+for f in os.listdir(BIN):
+    if f.endswith(('.dll', '.exe')):
+        shutil.copy2('%s/%s' % (BIN, f), run_dir)
+if kind == 'ci':
+    for f in os.listdir(CI):
+        if f.endswith('.dll'):
+            shutil.copy2('%s/%s' % (CI, f), run_dir)
+bat = ['@echo off', 'call "%s/.moai/reports/lane-post/QA-B-120/_env.bat"' % ROOT, 'cd /d %s' % run_dir.replace('/', '\\'),
+       'set XPE_M2_IN=D:\\workspace-github\\xpe-data\\m1-baseline-v2\\wrist_lat_3072x3072_corrected_v2_f32le.raw',
+       'set XPE_M2_OUT=%s' % out_dir.replace('/', '\\')]
+for t in ('DISABLED_Chain_P1_P3_P4_P5_P7', 'DISABLED_Variants_P8'):
+    log = (EV + 'chain_%s_%s.txt' % (label, t.split('_')[1])).replace('/', '\\')
+    bat.append('"%%CD%%\\test_e2e_post_pipeline.exe" --gtest_also_run_disabled_tests --gtest_filter=M2Measure.%s > %s 2>&1' % (t, log))
+    bat.append('echo ===EXIT=%%errorlevel%%=== >> %s' % log)
+bp = '%s/build/s216/_run_%s.bat' % (ROOT, label)
+open(bp, 'w').write('\r\n'.join(bat) + '\r\n')
+subprocess.run('cmd.exe /c "%s"' % bp.replace('/', '\\'), shell=True)
+for t in ('Chain', 'Variants'):
+    p = EV + 'chain_%s_%s.txt' % (label, t)
+    txt = open(p, encoding='utf-8', errors='replace').read().splitlines()
+    print(t, [l for l in txt if 'EXIT' in l or 'FAILED' in l or 'PASSED' in l])
+    print('\n'.join(l for l in txt if 'enhance_basic=' in l or 'VOI window' in l))
