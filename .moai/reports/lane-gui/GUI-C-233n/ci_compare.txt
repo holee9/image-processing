@@ -1,0 +1,24 @@
+CI job logs: main = run 38191202158 job 114627461313 (b545bc07, success, 29 min); integ = run 38191239667 attempt 1 job 114627852185 (05fe964b, cancelled at 45 min)
+rows parsed (distinct test names incl. theory rows): main 218, integ 215
+Passed/Failed/Skipped  main: 218/0/0   integ: 202/12/1
+
+== FAILED in integ (all passed in main) ==
+      6 s (main 6 s)  Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen
+      4 s (main 7 s)  Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate
+     67 s (main 10 s)  Workflows.GsvgWristSliceScenarios.P02_RepeatedRender_RunsTheStageAgain
+     81 s (main 16 s)  Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature
+     77 s (main 23 s)  Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot
+     74 s (main 21 s)  Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels
+     67 s (main 53 s)  Workflows.GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread
+     80 s (main 17 s)  Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels
+     67 s (main 7 s)  Workflows.GsvgWristSliceScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag
+     63 s (main 11 s)  Workflows.GsvgWristSliceScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases
+     66 s (main 13 s)  Workflows.GsvgWristSliceScenarios.P04_TheDrawnHud_NamesTheChain
+     60 s (main 54 s)  Workflows.NonlinearityNoopAlertScenarios.TheNoopAlert_ReachesTheLogEveryFrame_WhileOtherAlertsKeepArriving
+  failed rows: 12, integ time 712 s, main time for the same rows 238 s, excess 474 s
+
+== passed in both (201 rows) ==
+  sum main 1192 s, integ 1351 s, diff 159 s (13.3%)
+  rows with main>=5 s (n=56): ratio median 1.134 p25 1.100 p75 1.231; abs diff median 2.0 s p25 1.0 p75 4.0
+  not run in integ before the 45 min cut: ['C09_AWorkerThatCannotBeStarted_IsSwitchedOffByRepeatedFailur', 'C11a_RestoringTheAiSession_RemovesTheMarkAndTheCount_OfAWork', 'C11b_RestoringTheAiSession_PutsACountBackToZero_WhenNoMarkWa', 'M03_TheNeverConfirmedNotice_IsAbsentAtStart_ThenAppears_AndI']
+  run only in integ: ['L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedIm']
