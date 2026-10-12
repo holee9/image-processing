@@ -13,7 +13,7 @@
 | U1 | 앱이 CI 산출 DLL(출처 기록 있는 것)로 Native 시작. 옛 DLL 이면 Mock 으로 조용히 바뀌지 않고 갱신 안내로 거부 | `tools/Start-ImageProcTestNative.ps1` + 표시된 모드·DLL 출처 | 대기 |
 | U2 | 실데이터 보정 세트(`xpe-data/calib-real-v2`)와 실영상을 빠른 시작 문서의 단계대로 불러온다 | 문서 단계를 그대로 따르는 E2E | 대기 |
 | U3 | 앱의 **기본** 처리 체인 = 전처리((1)(2)(3)) → (EI-0) → (5) 로그 → (6) 잡음 → (7) CLAHE → (8) USM → Modality → VOI(자동 창) → Presentation(반전). 출시 모드에서 (5)~(8) 을 끄는 설정이 없다 | 체인 계획·실행 기록(단계 이름 목록) 단언 | 미구현 (GUI-C-234) |
-| U4 | 앱이 그린 영상이 같은 DLL·같은 입력의 모듈 체인 출력(2단계 기준 `m2-post-v2/05_FINAL_default_inverted_auto_window.png` 를 만든 경로)과 **비트 동일** | 저장 PNG/uint16 바이트 비교 | 미구현 (GUI-C-234) |
+| U4 | 앱이 그린 영상이 같은 DLL·같은 입력의 모듈 체인 출력(2단계 기준 `m2-post-v3/05_FINAL_default_inverted_auto_window.png` 를 만든 경로 — 출하 CI DLL 로 만든 기준, 출처는 같은 폴더 `provenance.txt`, QA-B-216)과 **비트 동일** | 저장 PNG/uint16 바이트 비교 | 미구현 (GUI-C-234) |
 | U5 | EI/DI 값이 화면·결과 기록에 나온다 | UIA 값 + 결과 JSON | 미구현 (GUI-C-234) |
 | U6 | 수동 W/L 이 자동 창보다 우선, 메뉴로 자동 복귀 | E2E | GUI-C-233 (검토 중) |
 | U7 | 실패 경로: 보정 파일 손상·크기 불일치·네이티브 오류 → 처리 실패 알림, 이전 영상으로 조용히 넘어가지 않음, 결과 기록에 단계·코드 | E2E + 가짜 백엔드 시험 | GUI-C-232c/d (검토 중) |
