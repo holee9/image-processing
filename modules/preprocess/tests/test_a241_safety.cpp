@@ -365,6 +365,55 @@ TEST_F(A241Safety, PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTh
     }
 }
 
+// ---------------------------------------------------------------- QA-A-246c (Codex #169): the order of the size and overlap refusals, at a FIXED layout
+// The two refusals are different answers to different problems: an output room that cannot hold the result is BUFFER_TOO_SMALL; a result that
+// would be written over the input is INVALID_INPUT. When both apply the size comes first (QA-A-246b). The earlier test of the size refusal
+// put its buffers in two std::vectors and so depended on where the allocator placed them (5 of 60 runs failed before 246b); these two put
+// the input and the output into ONE arena at offsets the test chooses, so the layout is the same in every run.
+TEST_F(A241Safety, ATooSmallOutputJustBeforeTheInputWhoseRequiredRangeReachesTheInputIsBufferTooSmall) {
+    loadAll(0, 0, 0);
+    const size_t inBytes = kN * sizeof(uint16_t);    // the uint16 input frame
+    const size_t needBytes = kN * sizeof(float);     // the float result kCfg produces
+    // arena: [ output room (inBytes) | input (inBytes) | spare ]. The output declares inBytes (< needBytes); the bytes the RESULT would need,
+    // [0, needBytes), run through the input at [inBytes, 2 * inBytes).
+    std::vector<uint8_t> arena(needBytes + inBytes, 0xA7);
+    uint8_t* const outPtr = arena.data();
+    uint8_t* const inPtr = arena.data() + inBytes;
+    std::vector<uint16_t> frame(kN);
+    fillRaw(frame);
+    std::memcpy(inPtr, frame.data(), inBytes);
+    const std::vector<uint8_t> before = arena;
+    const XpeImageBuffer input = bufferOf(inPtr, inBytes);
+    XpeImageBuffer out = bufferOf(outPtr, inBytes);
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_ERR_BUFFER_TOO_SMALL, xpe_preprocess_pipeline_out(&input, &out, &meta, nullptr, nullptr, kCfg))
+        << "the output cannot hold the result: that is the answer, whatever the required range would have touched";
+    EXPECT_EQ(before, arena) << "a refused call leaves every byte of the arena, input and output room, as it was";
+    EXPECT_EQ(0u, meta.flags);
+}
+
+TEST_F(A241Safety, AnOutputBigEnoughForTheResultThatOverlapsTheInputIsInvalidInput) {
+    loadAll(0, 0, 0);
+    const size_t inBytes = kN * sizeof(uint16_t);
+    const size_t needBytes = kN * sizeof(float);
+    // arena: [ output (needBytes) over [0, needBytes) ] with the input at [inBytes, 2 * inBytes) inside it: the declared output is big enough,
+    // and the result would be written over the input.
+    std::vector<uint8_t> arena(needBytes + inBytes, 0xA7);
+    uint8_t* const outPtr = arena.data();
+    uint8_t* const inPtr = arena.data() + inBytes;
+    std::vector<uint16_t> frame(kN);
+    fillRaw(frame);
+    std::memcpy(inPtr, frame.data(), inBytes);
+    const std::vector<uint8_t> before = arena;
+    const XpeImageBuffer input = bufferOf(inPtr, inBytes);
+    XpeImageBuffer out = bufferOf(outPtr, needBytes);
+    XpeImageMetadata meta{};
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_preprocess_pipeline_out(&input, &out, &meta, nullptr, nullptr, kCfg))
+        << "room enough, but the result would destroy the input";
+    EXPECT_EQ(before, arena) << "a refused call leaves every byte of the arena, input and output, as it was";
+    EXPECT_EQ(0u, meta.flags);
+}
+
 TEST_F(A241Safety, PipelineOutOverlapCheckIsOverflowSafe) {
     loadAll(0, 0, 0);
     const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true,"

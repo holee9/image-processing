@@ -1,0 +1,9 @@
+[a245] header expiry as the generators wrote it: offset 0 gain 0 (0 = never); set below to 1822893017654 (now + 365 days)
+[a245] wrote D:/workspace-github/xpe-data/calib-real-v2\offset.xcal, D:/workspace-github/xpe-data/calib-real-v2\gain.xcal, D:/workspace-github/xpe-data/calib-real-v2\defect.xcal (session id generated, expiry 1822893017654)
+[a245] app path: input buffer unchanged
+[a245] app stage chain (from the exported files) vs reference v2: byte-identical YES | differing pixels 0 of 9437184 | non-finite pairs 0 | mean |diff| 0 | max |diff| 0 | |diff| quantiles p50 0 p99 0 p99.9 0
+[a245] shipping pipeline_out (from the exported files) vs reference v2: byte-identical YES | differing pixels 0 of 9437184 | non-finite pairs 0 | mean |diff| 0 | max |diff| 0 | |diff| quantiles p50 0 p99 0 p99.9 0
+[a245] app stage chain vs shipping pipeline_out (same files): byte-identical YES | differing pixels 0 of 9437184 | non-finite pairs 0 | mean |diff| 0 | max |diff| 0 | |diff| quantiles p50 0 p99 0 p99.9 0
+[a245] reference v2: mean 2198.1751 ADU
+[       OK ] A241Measure.DISABLED_A245_ExportAndAppPath (2124 ms)
+[----------] 1 test from A241Measure (2124 ms total)
