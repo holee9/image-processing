@@ -1,0 +1,73 @@
+# GUI-C-233m: one app launch, timed. Prints one JSON line.
+# usage: launch.ps1 -Tree <main|integ> -Kind <bare|raw> [-Probe] [-WaitSec 40]
+param(
+    [Parameter(Mandatory)][string]$Root,
+    [Parameter(Mandatory)][ValidateSet('bare', 'raw')][string]$Kind,
+    [Parameter(Mandatory)][string]$Native,
+    [switch]$Probe,
+    [int]$WaitSec = 40
+)
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
+$exe = Join-Path $Root 'gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.exe'
+$psi = New-Object System.Diagnostics.ProcessStartInfo $exe
+$psi.WorkingDirectory = Split-Path $exe
+$psi.UseShellExecute = $false
+$psi.EnvironmentVariables['XPE_NATIVE_DIR'] = $Native
+$psi.EnvironmentVariables['XPE_NATIVE_DIR_EXCLUSIVE'] = '1'
+$a = @('--automation-backend', 'Native')
+if ($Kind -eq 'raw') {
+    $raw = Join-Path (Split-Path $exe) 'fixtures\gui-s0\raw\synthetic_1024x1024.raw'
+    $a += @('--automation-raw', $raw, '--automation-width', '1024', '--automation-height', '1024')
+}
+$psi.Arguments = ($a | ForEach-Object { '"' + $_ + '"' }) -join ' '
+
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$p = [System.Diagnostics.Process]::Start($psi)
+$tProc = $sw.Elapsed.TotalMilliseconds
+$tHwnd = $null; $tUia = $null; $tStatus = $null; $tChain = $null; $statusFinal = ''
+$idProp = [System.Windows.Automation.AutomationElement]::AutomationIdProperty
+$samples = New-Object System.Collections.Generic.List[string]
+$last = ''
+$win = $null
+while ($sw.Elapsed.TotalSeconds -lt $WaitSec) {
+    $p.Refresh()
+    if ($p.HasExited) { break }
+    if ($null -eq $tHwnd -and $p.MainWindowHandle -ne [IntPtr]::Zero) { $tHwnd = $sw.Elapsed.TotalMilliseconds }
+    if ($null -ne $tHwnd -and $null -eq $win) {
+        try {
+            $e = [System.Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
+            if ($e.Current.AutomationId -eq 'MainWindow') { $win = $e; $tUia = $sw.Elapsed.TotalMilliseconds }
+        } catch { }
+    }
+    if ($null -ne $win) {
+        try {
+            $s = $win.FindFirst([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition($idProp, 'StatusBarText')))
+            if ($null -ne $s) {
+                $name = $s.Current.Name
+                if ($name -ne $last) {
+                    $last = $name
+                    $samples.Add(('{0:N0}ms {1}' -f $sw.Elapsed.TotalMilliseconds, $name))
+                    if ($null -eq $tStatus) { $tStatus = $sw.Elapsed.TotalMilliseconds }
+                }
+            }
+        } catch { }
+        if (-not $Probe -and $Kind -eq 'raw' -and $last -match 'chain:') { break }
+        if (-not $Probe -and $Kind -eq 'bare' -and $null -ne $tUia -and $null -ne $tUia) { break }
+    }
+    Start-Sleep -Milliseconds 10
+}
+$tEnd = $sw.Elapsed.TotalMilliseconds
+$idle = -1
+if (-not $Probe -and -not $p.HasExited) {
+    Start-Sleep -Seconds 3; $p.Refresh(); $c0 = $p.TotalProcessorTime.TotalMilliseconds
+    Start-Sleep -Seconds 5; $p.Refresh(); $idle = [math]::Round($p.TotalProcessorTime.TotalMilliseconds - $c0)
+}
+$cpu = try { $p.Refresh(); [math]::Round($p.TotalProcessorTime.TotalMilliseconds) } catch { -1 }
+try { $null = $p.CloseMainWindow(); if (-not $p.WaitForExit(8000)) { $p.Kill() } } catch { }
+Get-Process -Name 'xpe_ai_worker' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+$o = [ordered]@{
+    kind = $Kind; procStartMs = [math]::Round($tProc); hwndMs = [math]::Round($tHwnd); uiaMs = [math]::Round($tUia)
+    statusMs = [math]::Round($tStatus); endMs = [math]::Round($tEnd); cpuMs = $cpu; idleCpuMsPer5s = $idle; status = $last
+}
+if ($Probe) { $o['samples'] = $samples }
+$o | ConvertTo-Json -Compress
