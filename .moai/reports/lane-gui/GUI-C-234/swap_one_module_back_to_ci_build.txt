@@ -1,0 +1,14 @@
+all-post module set (common, display, enhance_basic, spdlog, fmt from xpe-post ci-post; preprocess from CI) gave 100% identical; swap ONE module back to the CI build (ci-dlls-39f9727a) and compare the app's uint16 with 05:
+--- xpe_enhance_basic from CI build:
+test passed: 1
+identical uint16 pixels: 9431047 of 9437184 (99.934970%)
+max |diff| = 384; mean diff = -0.026470
+NOT byte-identical
+first differing pixel: y=0 x=1436 app=21781 ref=21717
+--- xpe_display from CI build:
+test passed: 0
+--- xpe_common from CI build:
+test passed: 1
+identical uint16 pixels: 9437184 of 9437184 (100.000000%)
+max |diff| = 0; mean diff = 0.000000
+BYTE-IDENTICAL

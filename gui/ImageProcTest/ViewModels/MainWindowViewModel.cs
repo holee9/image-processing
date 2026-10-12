@@ -1018,6 +1018,27 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public string? RenderedVoiMode => _render?.Voi.Mode;
 
+    /// <summary>
+    /// GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index of the last chain run, in words. The value is the preprocess stage's own sentence (the module's EI/DI of the corrected image, labelled
+    /// "uncalibrated" because K_cal and S0 are not calibrated: a measurement, not a pass criterion); when no value could be made, the reason (a stage that did not run, a module refusal).
+    /// </summary>
+    public string ExposureIndexText => _render is null ? NoExposureIndex : ExposureIndexOf(_render.Chain);
+
+    private const string NoExposureIndex = "Exposure index: not measured yet.";
+
+    private static string ExposureIndexOf(ChainResult chain)
+    {
+        var preprocess = chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+        if (preprocess is null || preprocess.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange))
+        {
+            return "Exposure index: not measured (preprocessing did not run for this image).";
+        }
+
+        const string Marker = "uncalibrated EI";
+        var at = preprocess.Reason?.IndexOf(Marker, StringComparison.Ordinal) ?? -1;
+        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + preprocess.Reason![at..].Trim();
+    }
+
     /// <summary>GUI-C-233c: whether the window of the render on screen was the automatic one (true), one chosen by hand (false), or unknown / no render yet (null).</summary>
     public bool? RenderedVoiAutomatic => _render?.Voi.Automatic;
 
@@ -1053,7 +1074,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private static readonly string[] RenderDerivedProperties =
     [
         nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
-        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
+        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
         nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel),
     ];
@@ -2384,6 +2405,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 display = Settings.ShowDisplayPanel,
                 logs = ShowLogsPanel
             },
+            exposureIndex = ExposureIndexText,   // GUI-C-234
             displayPipeline = new
             {
                 // GUI-C-233g: every applied value below is read from the render record (null / false while none stands); the CURRENT runtime is the top-level backend / actualBackendMode / mockBackend,
@@ -2670,7 +2692,7 @@ public sealed class MainWindowViewModel : ObservableObject
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
-            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
+            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary} | {ExposureIndexText}";
             await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket, committed.Id);
             if (!IsCurrent(ticket))
             {

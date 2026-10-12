@@ -365,6 +365,7 @@ internal static class LifetimeScenarios
                         await Timed(() => TheCandidateLaneIsASecondAiCall_AndTheStatusIsReadAfterIt(rawPath, width, height));
                         await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
                         await Timed(() => TheHudShowsTheWindowThatWasApplied_NotTheSettings(rawPath, width, height));
+                        await Timed(() => TheOrdinaryChainListsTheEnhanceStage_AndTheExposureIndexSaysWhyItIsMissing(rawPath, width, height));
                         await Timed(() => TheAutomationReportDescribesTheCurrentFrame_NotThePreviousOne(rawPath, width, height));
                         await Timed(() => EveryEventLeavesTheHudAndTheReportEqualToTheRenderRecord(rawPath, width, height));
                         await Timed(() => TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(rawPath, width, height));
@@ -1553,6 +1554,30 @@ internal static class LifetimeScenarios
             {
                 Console.WriteLine(row);
             }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-234: the ordinary chain carries (5)-(8) and the exposure index says why it is missing -------------------------------------
+
+    private static async Task TheOrdinaryChainListsTheEnhanceStage_AndTheExposureIndexSaysWhyItIsMissing(string rawPath, int width, int height)
+    {
+        _scenario = "16 enhance stage in the ordinary chain; EI text";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new ScenarioBackend();   // the Mock behind it: it can run no native stage, but it must LIST the same stages as the Native backend does
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);
+
+            var chain = vm.ChainStatus;
+            var order = new[] { "preprocess=", "enhance_basic=", "gsvg=", "ai_bone_suppress=" }.Select(token => chain.IndexOf(token, StringComparison.Ordinal)).ToArray();
+            Check(order.All(i => i >= 0) && order.SequenceEqual(order.OrderBy(i => i)), $"the chain line does not list preprocess, enhance_basic, gsvg, ai_bone_suppress in that order: '{chain}'");
+            Check(vm.ExposureIndexText.StartsWith("Exposure index: not measured (preprocessing did not run", StringComparison.Ordinal), $"the exposure index text does not say why it is missing: '{vm.ExposureIndexText}'");
+            Check(vm.StatusText.Contains(vm.ExposureIndexText, StringComparison.Ordinal), "the status line does not carry the exposure index text");
         }
         finally
         {

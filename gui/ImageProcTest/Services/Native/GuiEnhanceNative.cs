@@ -6,7 +6,9 @@ namespace ImageProcTest.Services.Native;
 /// <summary>Opens a float32 buffer from xpe_common (xpe_alloc_image) and runs the module's functions on it in place.</summary>
 internal sealed class NativeEnhanceBasicBackend : IEnhanceBasicBackend
 {
-    public IEnhanceImage Open(ushort[] input, int width, int height) => new NativeEnhanceImage(input, width, height);
+    public IEnhanceImage Open(ushort[] input, int width, int height) => new NativeEnhanceImage(input, null, width, height);
+
+    public IEnhanceImage OpenFloats(float[] input, int width, int height) => new NativeEnhanceImage(null, input, width, height);
 
     private sealed class NativeEnhanceImage : IEnhanceImage
     {
@@ -14,7 +16,7 @@ internal sealed class NativeEnhanceBasicBackend : IEnhanceBasicBackend
         private readonly int _count;
         private bool _allocated;
 
-        public NativeEnhanceImage(ushort[] input, int width, int height)
+        public NativeEnhanceImage(ushort[]? input, float[]? floatInput, int width, int height)
         {
             _count = checked(width * height);
             var code = XpeCommonNative.xpe_alloc_image((uint)width, (uint)height, XpePixelFormatNative.Float32, out _buffer);
@@ -24,10 +26,13 @@ internal sealed class NativeEnhanceBasicBackend : IEnhanceBasicBackend
             }
 
             _allocated = true;
-            var floats = new float[_count];
-            for (var i = 0; i < _count; i++)
+            var floats = floatInput ?? new float[_count];
+            if (floatInput is null)
             {
-                floats[i] = input[i];
+                for (var i = 0; i < _count; i++)
+                {
+                    floats[i] = input![i];
+                }
             }
 
             Marshal.Copy(floats, 0, _buffer.Data, _count);

@@ -177,7 +177,7 @@ public sealed class BaselineReviewFixTests : IDisposable
     {
         var real = Read("gui/ImageProcTest/Services/RealXpeBackend.cs");
         Assert.Contains("return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);", real, StringComparison.Ordinal);
-        Assert.Contains("return BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);
+        Assert.Contains("var execution = BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);   // GUI-C-234: the result is also read for its floats before it is returned
 
         var preprocess = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
         // GUI-C-232b: the shipped path is xpe_preprocess_pipeline_out, whose gain output is internal; the count is taken on the pipeline's float output, still BEFORE it is scaled to 16 bits.

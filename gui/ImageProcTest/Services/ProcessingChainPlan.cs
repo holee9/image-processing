@@ -15,9 +15,12 @@ public static class ProcessingChainPlan
 
         // Order (#180, GUI-C-101): preprocess, then GSVG, then (#225 row 10, GUI-C-184) AI bone suppression, then the
         // display pipeline.
+        // GUI-C-234 (pipeline-spec 6.1, release mode): (5) log, (6) bilateral noise, (7) CLAHE and (8) USM are mandatory and cannot be skipped, so EnhanceBasic is in the ordinary chain with no setting that
+        // turns it off. It follows preprocess (the corrected image is what is enhanced) and precedes the assistive stages.
         return
         [
             new StageRequest(StageIds.Preprocess, settings.PreprocessInChain),
+            new StageRequest(StageIds.EnhanceBasic, true),
             new StageRequest(StageIds.Gsvg, GsvgModes.Normalize(settings.GsvgMode) != GsvgModes.None),
             new StageRequest(StageIds.AiBoneSuppression, settings.AiBoneSuppressionInChain),
         ];
