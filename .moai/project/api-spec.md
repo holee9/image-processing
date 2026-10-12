@@ -31,7 +31,7 @@ because a sweep is how the previous errors were introduced.
 | `xpe_preprocess` | 45 | `xpe_binning_correct`, `xpe_bpm_generate`, `xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`, `xpe_calib_check_expiry`, `xpe_calib_generate_gain`, `xpe_calib_generate_gain_polynomial`, `xpe_calib_generate_offset`, `xpe_calib_get_max_points`, `xpe_calib_get_mode`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_meta`, `xpe_calib_load_defect_cached`, `xpe_calib_load_defect_map`, `xpe_calib_load_gain`, `xpe_calib_load_gain_cached`, `xpe_calib_load_offset`, `xpe_calib_load_offset_cached`, `xpe_calib_save`, `xpe_calib_set_mode`, `xpe_calib_state_load`, `xpe_calib_state_release`, `xpe_crc32`, `xpe_defect_correct`, `xpe_defect_detect_runtime`, `xpe_gain_correct`, `xpe_ghost_correct`, `xpe_ghost_create`, `xpe_ghost_destroy`, `xpe_ghost_reset`, `xpe_nonlinearity_correct`, `xpe_offset_correct`, `xpe_preprocess_get_param_range`, `xpe_preprocess_init`, `xpe_preprocess_pipeline`, `xpe_preprocess_pipeline_batch`, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_shutdown`, `xpe_preprocess_version`, `xpe_temp_compensate`, `xpe_validate_readout_artifact`, `xpe_verify_defect`, `xpe_verify_gain`, `xpe_verify_offset`, `xpe_verify_pipeline` |
 | `xpe_enhance_basic` | 8 | `xpe_calc_exposure_index`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_enhance_basic_version`, `xpe_log_inverse`, `xpe_log_transform`, `xpe_noise_estimate_sigma`, `xpe_noise_reduce` |
 | `xpe_enhance_advanced` | 7 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
-| `xpe_display` | 6 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_preset_create` |
+| `xpe_display` | 8 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_presentation_lut_ex`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_auto_window`, `xpe_voi_preset_create` |
 | `xpe_ai` | 10 | `xpe_ai_get_model_card`, `xpe_ai_init`, `xpe_ai_set_fallback_mode`, `xpe_ai_shutdown`, `xpe_ai_version`, `xpe_bodypart_recognize`, `xpe_bone_suppress`, `xpe_dl_denoise`, `xpe_stitch_estimate_size`, `xpe_stitch_images` |
 | `xpe_dicom` | 10 | `xpe_dicom_cancel`, `xpe_dicom_cfind_mwl`, `xpe_dicom_close`, `xpe_dicom_cstore`, `xpe_dicom_get_metadata`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_validate`, `xpe_dicom_write`, `xpe_dicom_write_j2k` |
 | `xpe_gsvg` | 4 | `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_shutdown`, `xpe_gsvg_version` |
@@ -1244,6 +1244,101 @@ XPE_API XpeErrorCode xpe_lut_auto_select(const XpeImageMetadata* meta,
 **SRS**: SRS-DISP-040  
 **Thread safety**: Thread-safe.  
 **Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`
+
+---
+
+### 10.12 Contract additions — display polarity and automatic VOI window (QA-B-214, #251)
+
+Sections 10.1–10.11 above predate the real exports and are stale (see §0). This section documents the real exports
+added by QA-B-214 and the polarity change to `xpe_apply_presentation_lut`. The source is the Doxygen of
+`modules/display/include/xpe/display/display_api.h` (current as of 3846b5ab); where they differ, the header is correct.
+
+#### 10.12.1 `xpe_apply_presentation_lut` — default polarity
+
+```c
+XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                  img,
+                                                  const XpePresentationLutParams*  params);
+```
+
+**Polarity (REQ-DISP-038)**: this function shows the high end of the data DARK: it reads the 1024-entry table backwards,
+`output[i] = lutData[1023 - index]`, and is identical to `xpe_apply_presentation_lut_ex(img, params, XPE_PRESENTATION_INVERTED)`
+(§10.12.3). Before QA-B-214 it applied the ascending mapping `output[i] = lutData[index]`; that mapping is now
+`xpe_apply_presentation_lut_ex(.., XPE_PRESENTATION_AS_IS)`.
+
+**Caller responsibility**: the function cannot know which end of the data is the background. Data whose background is
+already the LOW end (a MONOCHROME1 file normalised by `xpe_dicom_read_image`) must be presented with
+`XPE_PRESENTATION_AS_IS`; a caller that has its own invert switch must not stack it on the default. (The MONOCHROME1
+polarity contract is deferred to the DICOM stage.)
+
+**SRS**: SRS-FUNC-023, REQ-DISP-019, REQ-DISP-038
+
+#### 10.12.2 `XpePresentationPolarity`
+
+```c
+typedef enum XpePresentationPolarity {
+    XPE_PRESENTATION_INVERTED = 0, /* output = lutData[1023 - index]: high input shown dark (the default) */
+    XPE_PRESENTATION_AS_IS    = 1  /* output = lutData[index]: high input shown bright (behaviour before QA-B-214) */
+} XpePresentationPolarity;
+```
+
+**Description**: display polarity of the Presentation LUT stage. The pipeline carries "a larger value is brighter"
+(MONOCHROME2 sense) from the reader to the writer and no earlier stage inverts; the polarity is decided here, at the last
+display stage. Reading the table backwards is the DICOM INVERSE shape of PS3.3 C.11.6 applied to the P-Values; for a
+GSDF table it keeps the perceptual linearity, which `65535 - value` would not. Pixel data written to DICOM afterwards is
+MONOCHROME2 with Presentation LUT Shape IDENTITY and already carries the inversion.
+
+#### 10.12.3 `xpe_apply_presentation_lut_ex`
+
+```c
+XPE_API XpeErrorCode xpe_apply_presentation_lut_ex(XpeImageBuffer*                  img,
+                                                     const XpePresentationLutParams*  params,
+                                                     XpePresentationPolarity          polarity);
+```
+
+**Description**: `xpe_apply_presentation_lut` with the polarity chosen by the caller. Identical in every other respect:
+float32 in, uint16 out (converted in place on success), input clamped to [0, 1], `index = round(input * 1023)`,
+non-finite pixels refused, the image untouched on any error.
+
+**SRS**: REQ-DISP-038
+
+**Thread safety**: Thread-safe when called with independent buffers.
+
+**Error codes**: as `xpe_apply_presentation_lut` (`XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_UNSUPPORTED_FORMAT`,
+`XPE_ERR_OUT_OF_MEMORY`), plus `XPE_ERR_INVALID_INPUT` for a `polarity` that is neither enum value (image untouched).
+
+#### 10.12.4 `xpe_voi_auto_window`
+
+```c
+XPE_API XpeErrorCode xpe_voi_auto_window(const XpeImageBuffer* img,
+                                           XpeVoiLutParams*      outParams);
+```
+
+**Description**: chooses a VOI window from the anatomy in the image itself, derived from the values that reach the VOI
+stage whatever their domain (log domain after `xpe_log_transform`, detector DN, ...). EVERY pixel is histogrammed
+(1024 bins between the lowest and the highest value, no sampling); an Otsu split separates the HIGH class (background,
+unattenuated beam) from the low class (anatomy); window low = 0.5 % quantile of the anatomy class, window high = 5 %
+quantile of the background class.
+
+**Output (`XpeVoiLutParams`)**: mode `XPE_VOI_LINEAR_EXACT`, center = (low + high) / 2, width = high - low, minOut 0,
+maxOut 1 — the [0, 1] input range `xpe_apply_presentation_lut` expects.
+
+**Fallback**: if either class holds under 2 % of the pixels or the Otsu separability (between-class variance / total
+variance) is under 0.75, the window is the 1 % .. 99 % quantile range of the whole image (one-bin resolution) and one Info
+alert is posted. A flat image (maximum == minimum) gets center = that value, width 1.0, with the same Info alert.
+
+**Determinism**: the result depends only on the SET of pixel values; the same DLL on the same input is bit-identical.
+Identity between different builds (compiler, optimisation) is not guaranteed; the shipped product is one verified DLL.
+
+**Contract**: the background is the HIGH end of the data; MONOCHROME1-sense data would isolate the wrong class. A
+collimator shadow is counted into the anatomy class.
+
+**SRS**: REQ-DISP-037
+
+**Thread safety**: Thread-safe when called with independent buffers.
+
+**Error codes**: `XPE_OK`; `XPE_ERR_INVALID_INPUT` (NULL `img`/`outParams`/data, empty image, inconsistent `dataSize`,
+non-finite pixel, or a window a float cannot hold — center or width beyond ±FLT_MAX, or width not above zero as a float);
+`XPE_ERR_UNSUPPORTED_FORMAT` (not float32). `outParams` is untouched on any error.
 
 ---
 

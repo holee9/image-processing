@@ -1084,14 +1084,14 @@ Comparison viewport support (SRS-FUNC-024, SRS-SAFE-009, SRS-SAFE-013, HAZ-009):
   Toggle/switch latency: < 100ms for mode changes without pipeline reprocessing
 ```
 
-**극성 처리**: 극성은 `xpe_dicom_read_image` 가 읽을 때 정규화한다(FR-DCM-109). 이 단계는 항상 MONOCHROME2 의미의 입력을 받고 반전하지 않는다. 읽기 정규화가 보존하는 것은 극성이다. `xpe_dicom_write` 는 원본 파일의 Window Center/Width, Rescale, Presentation LUT Shape 를 보존하지 않고(Window 없음, Rescale 1/0, IDENTITY) 소스 파일에서 아무것도 복사하지 않으므로, 원본에 비항등 VOI 나 Rescale 이 있었다면 읽기→쓰기 뒤 밝기·대비가 달라질 수 있다.
+**극성 처리**: 극성은 `xpe_dicom_read_image` 가 읽을 때 정규화한다(FR-DCM-109). 이 단계는 항상 MONOCHROME2 의미의 입력을 받는다. 표시 극성은 Presentation LUT 단계가 정한다(SRS-FUNC-023, REQ-DISP-038). 읽기 정규화가 보존하는 것은 극성이다. `xpe_dicom_write` 는 원본 파일의 Window Center/Width, Rescale, Presentation LUT Shape 를 보존하지 않고(Window 없음, Rescale 1/0, IDENTITY) 소스 파일에서 아무것도 복사하지 않으므로, 원본에 비항등 VOI 나 Rescale 이 있었다면 읽기→쓰기 뒤 밝기·대비가 달라질 수 있다.
 
 #### Edge Case
 
 | Case | Input | Action | Rationale |
 |------|-------|--------|-----------|
 | Non-GSDF display | gsdfEnabled=0 | Linear LUT + WARNING | SRS-SAFE-007 |
-| MONOCHROME1 | 이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨 | 이 단계는 반전하지 않음 (원본의 Window·Rescale 은 쓰기에서 보존되지 않는다) | SRS-FUNC-023 |
+| MONOCHROME1 | 이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨(뼈가 높은 값) | Presentation LUT 는 `XPE_PRESENTATION_AS_IS` 로 호출한다(기본 극성을 쓰면 두 번 뒤집힌다). 원본의 Window·Rescale 은 쓰기에서 보존되지 않는다 | SRS-FUNC-023 |
 | Toggle / compare request | switch comparison mode | < 100ms switch without source overwrite | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 |
 
 ---

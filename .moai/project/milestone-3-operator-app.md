@@ -6,6 +6,8 @@
 
 근거 요구: `.moai/project/pipeline-spec.md` §6.1(출시 모드에서 건너뛸 수 없음: (1) offset, (2) gain, (EI-0) 전체 영상 EI, (5)~(8) 로그·잡음·대비·선명화, (14)~(17) 표시·DICOM), §성능 `PERF-P1-001` ≤ 3000 ms. 변경 기록 §13(극성은 Presentation LUT 에서 반전, 기본 창은 해부 영역 자동 창).
 
+**비트 동일의 범위.** 기준 영상과의 '비트 동일' 판정(U4)은 같은 DLL·같은 입력에서만 성립한다. 컴파일러가 다른 빌드 사이(CI MSVC 14.51 대 로컬 14.44, QA-B-215: enhance_basic 의 bilateral 에서 최대 7 ulp, CLAHE 뒤 uint16 에서 최대 384)의 동일성은 보장하지 않는다. 기준 영상은 출하 CI DLL 로 만들고, 출처(컴파일러 버전 + DLL sha256)를 함께 기록한다.
+
 | # | 통과 조건 | 판정 방법 | 상태 |
 |---|---|---|---|
 | U1 | 앱이 CI 산출 DLL(출처 기록 있는 것)로 Native 시작. 옛 DLL 이면 Mock 으로 조용히 바뀌지 않고 갱신 안내로 거부 | `tools/Start-ImageProcTestNative.ps1` + 표시된 모드·DLL 출처 | 대기 |

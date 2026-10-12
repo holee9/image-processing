@@ -280,7 +280,7 @@
 - **Description**: 모든 출력 이미지 MONOCHROME2로 표준화
 - **Acceptance Criteria**:
   - (0028,0004) PhotometricInterpretation = "MONOCHROME2"
-  - 쓰기기는 입력 화소의 극성을 해석하지 않고 항상 MONOCHROME2 로 쓴다. MONOCHROME1 정규화는 읽기 단계(FR-DCM-109)에서 이미 일어난다.
+  - 쓰기기는 입력 화소의 극성을 해석하지 않고 항상 MONOCHROME2 로 쓴다. MONOCHROME1 정규화는 읽기 단계(FR-DCM-109)에서 이미 일어난다. 표시 극성은 Presentation LUT 단계가 정하므로(XPE-SRS-001 SRS-FUNC-023, REQ-DISP-038) 쓰기기가 받는 화소에는 그 반전이 이미 반영되어 있고, 쓰기기는 그것을 다시 해석하지 않는다.
 - **Priority**: M
 
 #### FR-DCM-206: 필수 Type 1 태그 쓰기

@@ -40,8 +40,8 @@ SPEC-XPE-P1B-DISP implementation is complete. All 3 Software Units providing 5 C
 | SWU | Function(s) | Purpose | Status |
 |-----|-------------|---------|--------|
 | SWU-3.1 | `xpe_apply_modality_lut` | DICOM Modality LUT (linear rescale + LUT table) | Implemented (REQ-DISP-001..008) |
-| SWU-3.2 | `xpe_apply_voi_lut`, `xpe_voi_preset_create` | DICOM VOI LUT (LINEAR/EXACT/SIGMOID) + body presets | Implemented (REQ-DISP-009..018) |
-| SWU-3.3 | `xpe_apply_presentation_lut`, `xpe_gsdf_calibrate` | Presentation LUT + GSDF perceptual calibration | Implemented (REQ-DISP-019..028) |
+| SWU-3.2 | `xpe_apply_voi_lut`, `xpe_voi_preset_create`, `xpe_voi_auto_window` | DICOM VOI LUT (LINEAR/EXACT/SIGMOID) + body presets + anatomy-based automatic window | Implemented (REQ-DISP-009..018, 037) |
+| SWU-3.3 | `xpe_apply_presentation_lut`, `xpe_apply_presentation_lut_ex`, `xpe_gsdf_calibrate` | Presentation LUT (display polarity) + GSDF perceptual calibration | Implemented (REQ-DISP-019..028, 038) |
 
 ### Key Implementation Details
 
@@ -310,7 +310,7 @@ XPE_API xpe_error_t xpe_gsdf_calibrate(
 
 **REQ-DISP-008**: The system SHALL complete Modality LUT application within 20ms for a 3072x3072 float32 image.
 
-### 3.2 VOI LUT (SWU-3.2 / POST-12b) -- REQ-DISP-009..018
+### 3.2 VOI LUT (SWU-3.2 / POST-12b) -- REQ-DISP-009..018, 037
 
 **REQ-DISP-009**: WHEN `xpe_apply_voi_lut` is called with `mode == XPE_VOI_LINEAR`, the system SHALL apply the DICOM PS3.3 C.11.2.1.2.1 *Default LINEAR* function, which windows about `center - 0.5` over a width of `width - 1`:
 
@@ -364,7 +364,7 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 
 **REQ-DISP-016**: The system SHALL complete VOI LUT application within 16ms for a 3072x3072 float32 image (interactive latency requirement per Pipeline Spec).
 
-**REQ-DISP-017** (개정 2026-09-17, 사용자 결정): WHEN `xpe_voi_preset_create` is called with a valid `XpeBodyPart`, the system SHALL populate the `params` struct with window center/width values in the **detector DN domain** of the raw input as it reaches VOI (modality LUT identity: slope 1, intercept 0). Until per-body-part DN values are derived from real detector data (#151), every body part SHALL use the full 16-bit window: center=32768, width=65535.
+**REQ-DISP-017** (개정 2026-09-17, 사용자 결정; 개정 2026-10 QA-B-214, 창의 도메인): WHEN `xpe_voi_preset_create` is called with a valid `XpeBodyPart`, the system SHALL populate the `params` struct with a window for that body part, expressed in the **domain of the values that reach the VOI stage** -- the domain the pipeline of the caller has produced (the log domain of REQ-ENH-001 when `xpe_log_transform` has run, detector DN when it has not), NOT necessarily detector DN (modality LUT identity: slope 1, intercept 0). Until per-body-part windows are derived from real data (#259), every body part SHALL use `mode` LINEAR, center=32768, width=65535, minOut 0.0, maxOut 255.0.
 
 > **개정 사유.** 이전 문언은 CT 의 HU 창(BONE 500/2000, LUNG −600/1600, ABDOMEN 40/400, HEAD 40/80)을
 > "clinically standard" 로 요구했습니다. 그런데 이 제품의 VOI 는 HU 로 바꾸는 변환 없이 **raw DN** 에 적용됩니다.
@@ -372,14 +372,37 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 > 32768/65535 는 105단계를 냅니다. DR 검출기에는 물리적 HU 가 없어, HU 로 바꾸는 모달리티 값을 정하는 것은
 > 근거 없는 상수를 새로 만드는 일이 됩니다.
 >
-> **임시 값의 한계.** 네 부위가 같은 창을 씁니다 — 부위 선택이 출력을 바꾸지 않습니다. 부위별 DN 창은 실장비 데이터(#151)가
+> **임시 값의 한계.** 네 부위가 같은 창을 씁니다 — 부위 선택이 출력을 바꾸지 않습니다. 부위별 DN 창은 실장비 데이터(#259)가
 > 오면 정합니다. 이 문언의 구현은 post 레인 카드 QA-B-82 입니다. 추적: #177.
+
+**REQ-DISP-017a**: A body-part preset is a fixed window for a caller that chooses one; it is meaningful only where its numbers are in the domain of the values that reach the VOI stage. Its output range (`minOut` 0, `maxOut` 255) is not the [0, 1] input range of `xpe_apply_presentation_lut` (REQ-DISP-019): a caller that feeds a preset window to the Presentation LUT SHALL set `minOut` to 0 and `maxOut` to 1 first. A window chosen from the anatomy in the image itself is provided by `xpe_voi_auto_window` (REQ-DISP-037) and needs no preset. The body-part preset is NOT the default window: the default window of the pipeline is the one `xpe_voi_auto_window` returns.
 
 **REQ-DISP-018**: IF `params` is NULL or `bodyPart` is not a recognized `XpeBodyPart` enum value, THEN `xpe_voi_preset_create` SHALL return `XPE_ERR_INVALID_INPUT`.
 
-### 3.3 Presentation LUT + GSDF (SWU-3.3 / POST-12c) -- REQ-DISP-019..029
+**REQ-DISP-037** (QA-B-214, user decision on #251): WHEN `xpe_voi_auto_window` is called with a valid float32 image and a non-NULL output, the system SHALL fill `outParams` with a VOI window derived from the anatomy in the image:
+(a) build a histogram of 1024 bins between the lowest and the highest pixel value of the image, counting EVERY pixel (the system SHALL NOT sample);
+(b) split the histogram into two classes with Otsu's method; the HIGH class is the background (unattenuated beam), the low class is the anatomy;
+(c) window low = the 0.5 % quantile of the anatomy class, window high = the 5 % quantile of the background class;
+(d) output mode `XPE_VOI_LINEAR_EXACT`, center = (low + high) / 2, width = high - low (at least one histogram bin), minOut 0.0, maxOut 1.0;
+(e) IF either class holds under 2 % of the pixels, OR the Otsu separability (between-class variance / total variance) is under 0.75, THEN the window SHALL be the 1 % .. 99 % quantile range of the same histogram of every pixel (resolution one bin, 0.1 % of the value range) and ONE Info alert "VOI auto window: <reason> -- the whole-image 1%..99% window was used instead of an anatomy window" SHALL be posted;
+(f) IF the image is flat (maximum == minimum) THEN center = that value and width = 1.0, with the same Info alert;
+(g) IF `img` or `outParams` is NULL, `img->data` is NULL, the image is empty or its `dataSize` is inconsistent, THEN `XPE_ERR_INVALID_INPUT`; IF `img->format` is not float32, THEN `XPE_ERR_UNSUPPORTED_FORMAT`; IF any pixel is NaN or infinite, THEN `XPE_ERR_INVALID_INPUT`; IF the window cannot be held as a float (its center or width is beyond FLT_MAX in magnitude, or its width is not above zero as a float), THEN `XPE_ERR_INVALID_INPUT`. In every error case `outParams` SHALL be untouched; on `XPE_OK` the center and the width SHALL be finite floats and the width SHALL be positive;
+(h) the window SHALL be derived from the values that reach the VOI stage, in whatever domain they are in;
+(i) the window SHALL depend only on the SET of pixel values of the image, not on where the pixels are: the same pixels in any order give a bit-identical window (same DLL, same input; identity between different builds -- compiler, optimisation -- is not guaranteed, the product ships one verified DLL, QA-B-214d).
+Limits: the background is assumed to be the HIGH end of the data; a collimator shadow (darker than the anatomy) is counted into the low class; an image that is almost entirely anatomy with two tissue populations is split among its own tissues.
+Proposed performance (the lead decides): <= 16 ms for 3072 x 3072 (measured median 7.8 .. 8.1 ms, QA-B-214c).
 
-**REQ-DISP-019**: WHEN `xpe_apply_presentation_lut` is called, the system SHALL map each float32 pixel value from the [0,1] range to a uint16 output value using the 1024-entry Presentation LUT: `index = clamp(round(input[i] * 1023), 0, 1023); output[i] = lutData[index]`.
+### 3.3 Presentation LUT + GSDF (SWU-3.3 / POST-12c) -- REQ-DISP-019..029, 038
+
+**REQ-DISP-019**: WHEN `xpe_apply_presentation_lut` is called, the system SHALL map each float32 pixel value from the [0,1] range to a uint16 output value using the 1024-entry Presentation LUT: `index = clamp(round(input[i] * 1023), 0, 1023); output[i] = lutData[index]` (the mapping of `XPE_PRESENTATION_AS_IS`; the default polarity reads the table backwards, REQ-DISP-038).
+
+**REQ-DISP-038** (QA-B-214, user decision on #251): The system SHALL decide the display polarity at the Presentation LUT stage and nowhere earlier.
+(a) WHEN `xpe_apply_presentation_lut` is called, the system SHALL read the 1024-entry table backwards: `output[i] = lutData[1023 - index]`, with `index` and the input clamping as in REQ-DISP-019 and REQ-DISP-021. The highest input value is therefore shown dark.
+(b) WHEN `xpe_apply_presentation_lut_ex` is called with `XPE_PRESENTATION_INVERTED`, the system SHALL behave as in (a); with `XPE_PRESENTATION_AS_IS` it SHALL apply `output[i] = lutData[index]`.
+(c) IF `polarity` is neither value, THEN `xpe_apply_presentation_lut_ex` SHALL return `XPE_ERR_INVALID_INPUT` and leave the image untouched.
+(d) The values of every stage before the Presentation LUT SHALL keep their meaning ("a larger value is brighter", MONOCHROME2 sense); `xpe_dicom_write` SHALL keep writing MONOCHROME2 with Presentation LUT Shape IDENTITY, the pixel data already carrying the inversion.
+Rationale: a detector linear signal rises with dose, so the unexposed background is the high end of the data and, shown as is, is white. Reading the table backwards is the DICOM INVERSE shape of PS3.3 C.11.6 applied to the P-Values (cited from memory, not re-fetched); for a GSDF table it keeps the perceptual spacing, which `65535 - value` would not.
+Caller responsibility: the function cannot know which end of the data is the background. Data whose background is already the LOW end (a MONOCHROME1 file normalised by `xpe_dicom_read_image`) must be presented with `XPE_PRESENTATION_AS_IS`; a caller that has its own invert switch must not stack it on the default. (The MONOCHROME1 polarity contract is deferred to the DICOM stage.)
 
 **REQ-DISP-020**: WHEN `xpe_apply_presentation_lut` completes successfully, the system SHALL convert `img->format` from `XPE_PIXEL_FLOAT32` to `XPE_PIXEL_UINT16` and update `img->bitsAllocated`, `img->bitsStored`, and `img->dataSize` accordingly (float32 -> uint16 domain transition).
 
@@ -509,8 +532,8 @@ output[i] = clamp( ((input[i] - center) / width + 0.5) * (maxOut - minOut) + min
 | SWU | MASTER Ref | SRS Trace | Pipeline Stage | REQ Range |
 |-----|------------|-----------|:--------------:|-----------|
 | SWU-3.1 ModalityLUT | SWI-3, P1b-05 | SRS-DISP-001 | POST-12a (stage 14) | REQ-DISP-001..008 |
-| SWU-3.2 VOILUT | SWI-3, P1b-06 | SRS-DISP-002 | POST-12b (stage 15) | REQ-DISP-009..018 |
-| SWU-3.3 PresentationLUT | SWI-3, P1b-07 | SRS-DISP-003 | POST-12c (stage 16) | REQ-DISP-019..029 |
+| SWU-3.2 VOILUT | SWI-3, P1b-06 | SRS-DISP-002 | POST-12b (stage 15) | REQ-DISP-009..018, 037 |
+| SWU-3.3 PresentationLUT | SWI-3, P1b-07 | SRS-DISP-003 | POST-12c (stage 16) | REQ-DISP-019..029, 038 |
 | Cross-cutting | -- | -- | -- | REQ-DISP-030..036 |
 
 > 범위 갱신 (2026-10-03, QA-B-199, #251): `REQ-DISP-029` 는 §3.3 의 광도 배열 계약 하나만 가리키고, §3.4 의 ABI 요구는 `REQ-DISP-036` 이 되었다. 옛 범위는 `019..028` / `029..035` 였다.
