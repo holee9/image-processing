@@ -38,13 +38,62 @@ namespace ImageProcTest.E2ETests.Fixtures;
 /// move every one of them. Whether the GSVG cost requirement is satisfied by this slice is a question
 /// for the lane that owns that requirement, not a detail to tidy up here.</para>
 /// </summary>
-public sealed class Wrist1024SliceApplicationFixture : ApplicationFixture
+public sealed class Wrist1024SliceApplicationFixture : ApplicationFixture, IDisposable
 {
     private const string FixtureRelativePath = @"fixtures\gui-s0\raw\wrist_lat_3072x3072.raw";
 
+    /// <summary>The 1024x1024 16-bit frame size in bytes - what the app is told to open (<c>--automation-width/height 1024</c>).</summary>
+    private const int SliceBytes = 1024 * 1024 * 2;
+
+    private readonly string _slicePath;
+
+    // GUI-C-233n: since GUI-C-232b the app opens a raw file only when its length is exactly width x height x 2 (RawSizeRules), so the 18 MB file can no longer be handed to it with 1024 x 1024.
+    // The app used to read the FIRST width x height samples of such a file and ignore the rest (RawImageLoader on origin/main: ReadAllBytes, then samples 0..w*h-1), so the frame these scenarios were
+    // measured on is exactly the first SliceBytes of the file. The fixture now writes those bytes to a temp file of exactly that length and opens it: the same pixels, a size the app accepts.
     public Wrist1024SliceApplicationFixture()
-        : base(FixtureRelativePath, ["--automation-export-render", RenderDumpPath], skipLeftoverSweep: false)
+        : this(CreateSlice())
     {
+    }
+
+    private Wrist1024SliceApplicationFixture(string slicePath)
+        : base(slicePath, ["--automation-export-render", RenderDumpPath], skipLeftoverSweep: false)
+    {
+        _slicePath = slicePath;
+    }
+
+    /// <summary>Writes the first <see cref="SliceBytes"/> of the bundled wrist file to a new temp file and returns its absolute path (Path.Combine in the base class keeps an absolute path as it is).</summary>
+    private static string CreateSlice()
+    {
+        var exe = ResolveApplicationExecutable();
+        var source = exe is null ? null : Path.Combine(Path.GetDirectoryName(exe)!, FixtureRelativePath);
+        var path = Path.Combine(Path.GetTempPath(), $"xpe-gui-e2e-wrist-1024-slice-{Guid.NewGuid():N}.raw");
+        if (source is null || !File.Exists(source))
+        {
+            // No app or no source file: the base class skips with its own reason (the temp file is not created, so its "fixture image not found" skip applies).
+            return path;
+        }
+
+        var buffer = new byte[SliceBytes];
+        using (var input = File.OpenRead(source))
+        {
+            input.ReadExactly(buffer);
+        }
+
+        File.WriteAllBytes(path, buffer);
+        return path;
+    }
+
+    public new void Dispose()
+    {
+        base.Dispose();
+        try
+        {
+            File.Delete(_slicePath);
+        }
+        catch (IOException)
+        {
+            // Left in the temp folder if something still holds it; the name is unique per run.
+        }
     }
 
     /// <summary>
