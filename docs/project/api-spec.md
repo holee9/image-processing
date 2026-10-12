@@ -28,15 +28,17 @@ because a sweep is how the previous errors were introduced.
 | Module | Count | Exports |
 |---|---:|---|
 | `xpe_common` | 16 | `xpe_alert_push`, `xpe_alloc_image`, `xpe_clear_alerts`, `xpe_configure`, `xpe_copy_image`, `xpe_error_string`, `xpe_free_image`, `xpe_get_param_range`, `xpe_get_pending_alert`, `xpe_get_pending_alert_count`, `xpe_init`, `xpe_log_flush`, `xpe_log_set_file`, `xpe_log_set_level`, `xpe_shutdown`, `xpe_version` |
-| `xpe_preprocess` | 45 | `xpe_binning_correct`, `xpe_bpm_generate`, `xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`, `xpe_calib_check_expiry`, `xpe_calib_generate_gain`, `xpe_calib_generate_gain_polynomial`, `xpe_calib_generate_offset`, `xpe_calib_get_max_points`, `xpe_calib_get_mode`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_meta`, `xpe_calib_load_defect_cached`, `xpe_calib_load_defect_map`, `xpe_calib_load_gain`, `xpe_calib_load_gain_cached`, `xpe_calib_load_offset`, `xpe_calib_load_offset_cached`, `xpe_calib_save`, `xpe_calib_set_mode`, `xpe_calib_state_load`, `xpe_calib_state_release`, `xpe_crc32`, `xpe_defect_correct`, `xpe_defect_detect_runtime`, `xpe_gain_correct`, `xpe_ghost_correct`, `xpe_ghost_create`, `xpe_ghost_destroy`, `xpe_ghost_reset`, `xpe_nonlinearity_correct`, `xpe_offset_correct`, `xpe_preprocess_get_param_range`, `xpe_preprocess_init`, `xpe_preprocess_pipeline`, `xpe_preprocess_pipeline_batch`, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_shutdown`, `xpe_preprocess_version`, `xpe_temp_compensate`, `xpe_validate_readout_artifact`, `xpe_verify_defect`, `xpe_verify_gain`, `xpe_verify_offset`, `xpe_verify_pipeline` |
-| `xpe_enhance_basic` | 8 | `xpe_calc_exposure_index`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_enhance_basic_version`, `xpe_log_inverse`, `xpe_log_transform`, `xpe_noise_estimate_sigma`, `xpe_noise_reduce` |
-| `xpe_enhance_advanced` | 7 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
+| `xpe_preprocess` | 49 | `xpe_binning_correct`, `xpe_bpm_generate`, `xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`, `xpe_calib_check_expiry`, `xpe_calib_generate_gain`, `xpe_calib_generate_gain_polynomial`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_generate_offset`, `xpe_calib_get_max_points`, `xpe_calib_get_mode`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_meta`, `xpe_calib_load_defect_cached`, `xpe_calib_load_defect_map`, `xpe_calib_load_gain`, `xpe_calib_load_gain_cached`, `xpe_calib_load_nonlin_lut`, `xpe_calib_load_offset`, `xpe_calib_load_offset_cached`, `xpe_calib_save`, `xpe_calib_set_mode`, `xpe_calib_state_load`, `xpe_calib_state_release`, `xpe_calib_unload_nonlin_lut`, `xpe_defect_correct`, `xpe_defect_detect_runtime`, `xpe_gain_correct`, `xpe_ghost_correct`, `xpe_ghost_create`, `xpe_ghost_destroy`, `xpe_ghost_reset`, `xpe_nonlinearity_correct`, `xpe_offset_correct`, `xpe_preprocess_get_param_range`, `xpe_preprocess_init`, `xpe_preprocess_is_initialized`, `xpe_preprocess_pipeline`, `xpe_preprocess_pipeline_batch`, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_pipeline_out`, `xpe_preprocess_shutdown`, `xpe_preprocess_version`, `xpe_temp_compensate`, `xpe_validate_readout_artifact`, `xpe_verify_defect`, `xpe_verify_gain`, `xpe_verify_offset`, `xpe_verify_pipeline` |
+| `xpe_enhance_basic` | 10 | `xpe_calc_exposure_index`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_enhance_basic_get_max_threads`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_version`, `xpe_log_inverse`, `xpe_log_transform`, `xpe_noise_estimate_sigma`, `xpe_noise_reduce` |
+| `xpe_enhance_advanced` | 9 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_get_max_threads`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_set_max_threads`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
 | `xpe_display` | 8 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_presentation_lut_ex`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_auto_window`, `xpe_voi_preset_create` |
 | `xpe_ai` | 11 | `xpe_ai_get_model_card`, `xpe_ai_init`, `xpe_ai_set_fallback_mode`, `xpe_ai_shutdown`, `xpe_ai_version`, `xpe_ai_worker_state`, `xpe_bodypart_recognize`, `xpe_bone_suppress`, `xpe_dl_denoise`, `xpe_stitch_estimate_size`, `xpe_stitch_images` |
 | `xpe_dicom` | 11 | `xpe_dicom_cancel`, `xpe_dicom_cfind_mwl`, `xpe_dicom_close`, `xpe_dicom_cstore`, `xpe_dicom_get_metadata`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_validate`, `xpe_dicom_version`, `xpe_dicom_write`, `xpe_dicom_write_j2k` |
-| `xpe_gsvg` | 4 | `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_shutdown`, `xpe_gsvg_version` |
+| `xpe_gsvg` | 8 | `xpe_gsvg_get_max_threads`, `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_process_ex`, `xpe_gsvg_process_masked`, `xpe_gsvg_set_max_threads`, `xpe_gsvg_shutdown`, `xpe_gsvg_version` |
 
-**Cross-module duplicate exports: 0** (re-measured 2026-09-12 after QA-B-55). Every one of the 106 names above belongs to exactly one module. The one collision that existed — `xpe_calc_exposure_index` in both `xpe_enhance_basic` (REQ-ENH-030) and `xpe_enhance_advanced` (REQ-ADV-013), identical signatures, values 500x apart — was resolved by renaming the advanced export to `xpe_adv_calc_exposure_index` (#153).
+**What the counts count.** One name = one `XPE_API` / `GSVG_API` function declared in a public header under `modules/*/include`; 122 in total. A DLL built for testing can export more: the CI test build of `xpe_ai.dll` also exports 6 `xpe_ai_test_set_*` hooks (compiled only with `XPE_AI_TEST_HOOKS` / `XPE_AI_TEST_LOG_CAPTURE`; the delivery preset `release` turns them OFF), and the CI `xpe_preprocess.dll` exports 6 C++-mangled symbols (`read_xcal_file`, `write_xcal_file`, `write_xcal_file_ex`, `validate_xcal_header`, `validate_xcal_session_field`, `xcal_bytes_per_pixel`) because the internal header `modules/preprocess/src/xcal_reader.hpp` marks them `XPE_API`; they are not part of the C ABI. Measured on the CI artifacts: 134 exported names = 122 + 6 + 6.
+
+**Cross-module duplicate exports: 0** (re-measured 2026-09-12 after QA-B-55). Every one of the 122 names above belongs to exactly one module. The one collision that existed — `xpe_calc_exposure_index` in both `xpe_enhance_basic` (REQ-ENH-030) and `xpe_enhance_advanced` (REQ-ADV-013), identical signatures, values 500x apart — was resolved by renaming the advanced export to `xpe_adv_calc_exposure_index` (#153).
 
 **What this table does not say:** whether each function behaves as its requirement demands,
 and whether the parameter lists in the sections below match the headers. The first is what
@@ -216,14 +218,14 @@ typedef int32_t GsvgErrorCode;
 | DLL | Exported Functions | Notes |
 |-----|--------------------|----|
 | xpe_common.dll | 16 | removed 3 AED functions; AED is detector hardware only. 15 public API + `xpe_alert_push` (§5.16; renamed from `xpe_test_inject_alert` in #111, alias removed QA-A-19) |
-| xpe_preprocess.dll | 18 | no change |
-| xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
-| xpe_enhance_advanced.dll | 7 | `xpe_calc_exposure_index` moved to enhance_basic; count corrected 2026-09-11 (QA-B-39 header audit) |
+| xpe_preprocess.dll | 49 | count corrected 2026-10-12 (QA-B-217, public-header declarations) |
+| xpe_enhance_basic.dll | 10 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
+| xpe_enhance_advanced.dll | 9 | `xpe_calc_exposure_index` moved to enhance_basic; count corrected 2026-09-11 (QA-B-39 header audit) |
 | xpe_ai.dll | 11 | `xpe_ai_worker_state` added 2026-10-01 (QA-B-173, #130); count corrected 2026-09-11 (QA-B-39); stub build unless `XPE_AI_USE_ONNXRUNTIME` — inference entry points return `XPE_ERR_PROCESSING_FAILED` after argument validation |
-| xpe_display.dll | 6 | count corrected 2026-09-11 (QA-B-39) |
-| xpe_dicom.dll | 10 | no change |
-| gsvg.dll | 4 | count corrected 2026-09-11 (QA-B-39) |
-| **Total** | **80** | **-3 from v1.3.0, +1 `xpe_ai_worker_state` (2026-10-01)** |
+| xpe_display.dll | 8 | count corrected 2026-09-11 (QA-B-39) |
+| xpe_dicom.dll | 11 | count corrected 2026-10-12 (QA-B-217) |
+| gsvg.dll | 8 | count corrected 2026-09-11 (QA-B-39) |
+| **Total** | **122** | **public-header declarations (QA-B-217, main e421c1ff); what the counts count: see the paragraph after the section 0 table** |
 
 ---
 
