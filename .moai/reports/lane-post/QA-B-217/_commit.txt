@@ -1,0 +1,9 @@
+docs(report): QA-B-217 출하 DLL 내보내기 수 측정 — 내보내기 134, 공개 헤더 선언 122, api-spec 개수 표 정정 초안
+
+main e421c1ff push CI 산출물 8개 DLL 의 dumpbin /exports 와 같은 커밋의 공개 헤더 XPE_API 선언을 이름 축으로 대조(대조군 통과).
+차이 12 = xpe_ai 시험 훅 6(컴파일 조건 안) + xpe_preprocess 의 C++ 장식 이름 6(내부 헤더가 XPE_API 를 붙임). docs §0(110)·§4(80)는
+헤더 기준으로 낡았음(13개 누락, 철회된 xpe_crc32 잔존). 두 사본의 정정 문구 초안(.txt)을 헤더 목록에서 생성. 제품 코드 무변경.
+
+Refs #251
+
+🗿 MoAI

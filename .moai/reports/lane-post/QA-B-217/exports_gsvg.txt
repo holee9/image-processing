@@ -1,0 +1,38 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\workspace-github\xpe-post\build\s217\post\gsvg.dll
+
+File Type: DLL
+
+  Section contains the following exports for gsvg.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+           8 number of functions
+           8 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00001DED xpe_gsvg_get_max_threads = @ILT+3560(xpe_gsvg_get_max_threads)
+          2    1 000014EC xpe_gsvg_init = @ILT+1255(xpe_gsvg_init)
+          3    2 00002BBC xpe_gsvg_process = @ILT+7095(xpe_gsvg_process)
+          4    3 000021F3 xpe_gsvg_process_ex = @ILT+4590(xpe_gsvg_process_ex)
+          5    4 00002360 xpe_gsvg_process_masked = @ILT+4955(xpe_gsvg_process_masked)
+          6    5 00001DE3 xpe_gsvg_set_max_threads = @ILT+3550(xpe_gsvg_set_max_threads)
+          7    6 000021FD xpe_gsvg_shutdown = @ILT+4600(xpe_gsvg_shutdown)
+          8    7 00001041 xpe_gsvg_version = @ILT+60(xpe_gsvg_version)
+
+  Summary
+
+        1000 .00cfg
+        1000 .data
+        3000 .idata
+        6000 .pdata
+       12000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       91000 .text
