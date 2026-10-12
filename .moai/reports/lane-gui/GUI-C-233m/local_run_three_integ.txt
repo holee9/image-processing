@@ -1,0 +1,92 @@
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\integ\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x73C00C2 pid=2096 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:44.41]     ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AReInitialise_WritesASeparatorAndKeepsWhatWasThere [SKIP]
+[xUnit.net 00:00:44.41]       The native alert is not present, so there is nothing to keep.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AReInitialise_WritesASeparatorAndKeepsWhatWasThere [5 s]
+[xUnit.net 00:00:52.10]     ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen [FAIL]
+[xUnit.net 00:00:52.10]       The native module pushed an alert and nothing new reached the screen: 0 -> 0 (#198 ②).
+[xUnit.net 00:00:52.10]         C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\integ\clients\ImageProcTest.E2ETests\Scenarios\Workflows\NativeAlertScenarios.cs(66,0): at ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen()
+[xUnit.net 00:00:52.10]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:52.10]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:52.10]       Output:
+[xUnit.net 00:00:52.10]         before: 15 lines, 0 carrying the gsvg alert
+[xUnit.net 00:00:52.10]         after: 17 lines, 0 carrying the gsvg alert
+[xUnit.net 00:00:52.10]         native alert line: (none)
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen [7 s]
+  오류 메시지:
+   The native module pushed an alert and nothing new reached the screen: 0 -> 0 (#198 ②).
+  표준 출력 메시지:
+ before: 15 lines, 0 carrying the gsvg alert
+ after: 17 lines, 0 carrying the gsvg alert
+ native alert line: (none)
+
+
+[xUnit.net 00:00:55.57]     ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate [FAIL]
+[xUnit.net 00:00:55.57]       LaneAViewport is not in the automation tree, so this lane draws nothing.
+[xUnit.net 00:00:55.57]         C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\integ\clients\ImageProcTest.E2ETests\Scenarios\Workflows\WorkbenchObservation.cs(56,0): at ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation.ReadLane(Window window, String lane)
+[xUnit.net 00:00:55.57]         C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\integ\clients\ImageProcTest.E2ETests\Scenarios\Workflows\LaneDenoiseScenarios.cs(59,0): at ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate()
+[xUnit.net 00:00:55.57]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:55.57]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate [3 s]
+  오류 메시지:
+   LaneAViewport is not in the automation tree, so this lane draws nothing.
+XPE-C56-PROBE hwnd=0x4DB0124 pid=33236 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:01:50.02]     ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityNoopAlertScenarios.TheNoopAlert_ReachesTheLogEveryFrame_WhileOtherAlertsKeepArriving [FAIL]
+[xUnit.net 00:01:50.02]       The nonlinearity stage ran 3 time(s) with no LUT loaded and no #196 line reached the log. Lines carrying ALERT: 20.
+[xUnit.net 00:01:50.02]         C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\integ\clients\ImageProcTest.E2ETests\Scenarios\Workflows\NonlinearityNoopAlertScenarios.cs(102,0): at ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityNoopAlertScenarios.TheNoopAlert_ReachesTheLogEveryFrame_WhileOtherAlertsKeepArriving()
+[xUnit.net 00:01:50.02]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:01:50.02]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:01:50.02]       Output:
+[xUnit.net 00:01:50.02]         calibration: polynomial set in C:\Users\drake\AppData\Local\Temp\xpe-c129-e2e-6b131b46bc96476cb2c65296ec702e45. offset.xcal  c58057f1f2efe180b767ab4764b5641321ce79520f3d7b45da3f04f61d49ee4c
+[xUnit.net 00:01:50.02]         gain.xcal    0328f715d3ce89373dd4d014d0a86dc5c1591f25c3776f35158f75e25f5a7acd
+[xUnit.net 00:01:50.02]         defect.xcal  6c692f90dd2e1e6ad7eef1376b57b4246b0d520562c90b8b646f8f25faeae379  (4 defect pixels)
+[xUnit.net 00:01:50.02]         gain_poly.xcal 4ae7cd37bbded1ccaee665435c7efdd3e5957afc72452380645b3765c68e3761  (degree<=2, 4 dose levels)
+[xUnit.net 00:01:50.02]         manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe-c129-e2e-6b131b46bc96476cb2c65296ec702e45\manifest.json
+[xUnit.net 00:01:50.02]         frame 1: preprocessing invoked
+[xUnit.net 00:01:50.03]         frame 2: preprocessing invoked
+[xUnit.net 00:01:50.03]         frame 3: preprocessing invoked
+[xUnit.net 00:01:50.03]         log lines: 69
+[xUnit.net 00:01:50.03]         preprocess lines: 6
+[xUnit.net 00:01:50.03]         #196 no-op lines: 0
+[xUnit.net 00:01:50.03]         #194 clamp lines: 3
+[xUnit.net 00:01:50.03]           [194] [12:38:23.831] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+[xUnit.net 00:01:50.03]           [194] [12:38:19.920] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+[xUnit.net 00:01:50.03]           [194] [12:38:15.810] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+[xUnit.net 00:01:50.03]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityNoopAlertScenarios.TheNoopAlert_ReachesTheLogEveryFrame_WhileOtherAlertsKeepArriving [54 s]
+  오류 메시지:
+   The nonlinearity stage ran 3 time(s) with no LUT loaded and no #196 line reached the log. Lines carrying ALERT: 20.
+  표준 출력 메시지:
+ calibration: polynomial set in C:\Users\drake\AppData\Local\Temp\xpe-c129-e2e-6b131b46bc96476cb2c65296ec702e45. offset.xcal  c58057f1f2efe180b767ab4764b5641321ce79520f3d7b45da3f04f61d49ee4c
+ gain.xcal    0328f715d3ce89373dd4d014d0a86dc5c1591f25c3776f35158f75e25f5a7acd
+ defect.xcal  6c692f90dd2e1e6ad7eef1376b57b4246b0d520562c90b8b646f8f25faeae379  (4 defect pixels)
+ gain_poly.xcal 4ae7cd37bbded1ccaee665435c7efdd3e5957afc72452380645b3765c68e3761  (degree<=2, 4 dose levels)
+ manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe-c129-e2e-6b131b46bc96476cb2c65296ec702e45\manifest.json
+ frame 1: preprocessing invoked
+ frame 2: preprocessing invoked
+ frame 3: preprocessing invoked
+ log lines: 69
+ preprocess lines: 6
+ #196 no-op lines: 0
+ #194 clamp lines: 3
+   [194] [12:38:23.831] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+   [194] [12:38:19.920] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+   [194] [12:38:15.810] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 4
+     실패: 3
+    건너뜀: 1
+ 총 시간: 1.8391 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

@@ -1,0 +1,12 @@
+LOCAL (this machine, CI DLLs of run 38191239667), Scenarios.Smoke + Scenarios.Operator, integ run FIRST then main
+rows main 45 integ 45; failed main: ['NativeRun_NamesTheBinariesItExercises'] | failed integ: ['NativeRun_NamesTheBinariesItExercises']
+passed in both: 37 rows, sum main 221 s, integ 260 s, diff 39 s (17.4%)
+rows with main>=5 s (n=15): ratio median 1.000 p25 1.000 p75 1.000
+largest per-row differences (integ - main), locally:
+   +37 s  (  1 ->  38)  Smoke.WindowReacquireTests.ReadableWindow_IsKept_AndLeavesNoNote
+    +2 s  ( 11 ->  13)  W0_EveryMenuPathInTheQuickStartExistsInTheApp
+    +0 s  (  0 ->   0)  S02_MenuBar_HasSixGroups
+    +0 s  (  0 ->   0)  S01_Launch_HasMainWindow
+    +0 s  (  0 ->   0)  S05_RuntimePanel_ShowsBackendVersion
+    +0 s  (  0 ->   0)  Smoke.RunnerVerdictWordingTests.VerdictOrSkip_SkipsOnlyThroughTheRule_AndOtherwi
+rows with |diff|<10 s: 36, main 221 integ 222
