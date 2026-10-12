@@ -92,15 +92,15 @@ typedef enum XpeVoiLutMode {
  * Used by xpe_voi_preset_create() to populate XpeVoiLutParams with a
  * window in the detector DN domain (REQ-DISP-017, revised 2026-09-17).
  *
- * Until per-body-part DN windows are derived from real detector data (#151),
+ * Until per-body-part DN windows are derived from real detector data (#259),
  * every body part yields the same full 16-bit window, center=32768 and
  * width=65535: selecting a body part does not change the output (#177).
  */
 typedef enum XpeBodyPart {
-    XPE_BODY_BONE    = 0, /**< Bone: center=32768, width=65535 (provisional, #151) */
-    XPE_BODY_LUNG    = 1, /**< Lung: center=32768, width=65535 (provisional, #151) */
-    XPE_BODY_ABDOMEN = 2, /**< Abdomen: center=32768, width=65535 (provisional, #151) */
-    XPE_BODY_HEAD    = 3  /**< Head: center=32768, width=65535 (provisional, #151) */
+    XPE_BODY_BONE    = 0, /**< Bone: center=32768, width=65535 (provisional, #259) */
+    XPE_BODY_LUNG    = 1, /**< Lung: center=32768, width=65535 (provisional, #259) */
+    XPE_BODY_ABDOMEN = 2, /**< Abdomen: center=32768, width=65535 (provisional, #259) */
+    XPE_BODY_HEAD    = 3  /**< Head: center=32768, width=65535 (provisional, #259) */
 } XpeBodyPart;
 
 /**
@@ -250,7 +250,7 @@ XPE_API XpeErrorCode xpe_apply_voi_lut(XpeImageBuffer*          img,
  *
  * The window is expressed in raw detector DN, as VOI receives it (modality
  * LUT identity: slope 1, intercept 0). Until per-body-part DN values are
- * derived from real detector data (#151), all four body parts return the
+ * derived from real detector data (#259), all four body parts return the
  * same full 16-bit window, center=32768 and width=65535 (REQ-DISP-017,
  * #177). These are not CT HU windows.
  *

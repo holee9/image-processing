@@ -920,3 +920,44 @@ TEST(M2Measure, DISABLED_StageDump_215) {
     }
     xpe_free_image(&img);
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-216: can a SMALL synthetic fixture tell two compiler builds of enhance_basic apart? Integer-only generation (no libm),
+// so the input bytes are identical on every machine. Prints one FNV-1a 64 hash per fixture and stage; compare across DLL sets.
+//   XPE_M2_FIXTURE_N (optional): side of the square fixtures, default 512.
+// ---------------------------------------------------------------------------------------------------------------------
+TEST(M2Measure, DISABLED_FingerprintFixture_216) {
+    const std::string nEnv = env_or_empty("XPE_M2_FIXTURE_N");
+    const uint32_t n = nEnv.empty() ? 512u : static_cast<uint32_t>(std::atoi(nEnv.c_str()));
+    std::printf("== QA-B-216 fixture fingerprints, %ux%u, enhance_basic=%s ==\n", n, n, xpe_enhance_basic_version());
+    auto fnv = [](const float* px, size_t cnt) {
+        uint64_t h = 1469598103934665603ULL;
+        const unsigned char* b = reinterpret_cast<const unsigned char*>(px);
+        for (size_t i = 0; i < cnt * sizeof(float); ++i) { h ^= b[i]; h *= 1099511628211ULL; }
+        return h;
+    };
+    const ChainParams p = make_params();
+    for (int fx = 0; fx < 3; ++fx) {
+        XpeImageBuffer img{};
+        ASSERT_EQ(XPE_OK, xpe_alloc_image(n, n, XPE_PIXEL_FLOAT32, &img));
+        float* d = static_cast<float*>(img.data);
+        uint64_t s = 12345u + static_cast<uint64_t>(fx);
+        for (uint32_t y = 0; y < n; ++y) {
+            for (uint32_t x = 0; x < n; ++x) {
+                s = s * 6364136223846793005ULL + 1442695040888963407ULL;
+                const int32_t noise = static_cast<int32_t>((s >> 33) % 61u) - 30;               // +-30 ADU
+                int32_t base;
+                if (fx == 0) base = 600 + static_cast<int32_t>((x * 3400u) / n);                 // ramp
+                else if (fx == 1) base = ((x / 64u + y / 64u) % 2u) ? 3000 : 900;                // blocks (edges for USM)
+                else base = 500 + static_cast<int32_t>(((x ^ y) & 255u) * 13u);                  // textured
+                d[static_cast<size_t>(y) * n + x] = static_cast<float>(base + noise);
+            }
+        }
+        std::printf("  fixture %d input        fnv1a64=%016llx\n", fx, static_cast<unsigned long long>(fnv(d, static_cast<size_t>(n) * n)));
+        for (int st = 0; st < 4; ++st) {
+            ASSERT_EQ(XPE_OK, run_stage(st, img, p)) << kStageName[st];
+            std::printf("  fixture %d %-15s fnv1a64=%016llx\n", fx, kStageName[st], static_cast<unsigned long long>(fnv(d, static_cast<size_t>(n) * n)));
+        }
+        xpe_free_image(&img);
+    }
+}
