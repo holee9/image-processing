@@ -50,33 +50,49 @@ public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, I
 
         var window = app.MainWindow!;
 
-        ClearCandidateOverride(window);
-        SelectAlgorithm(window, "A", CandidateAlgorithm);   // both lanes on the virtual grid
-        SelectAlgorithm(window, "B", CandidateAlgorithm);
-        SetCandidateDenoiseK(window, MainDenoiseK);
-        ApplyDisplayPipeline(window);
+        // GUI-C-233n: this scenario shares one app with the rest of the wrist-slice collection and used to leave the Candidate on the virtual grid with its own de-noise k of 8.0. P-11 (which draws the
+        // main viewport) then failed in any run where this scenario came first (mean|dtile| 59.3, worst tile 712; alone, and in the other order, it passed). The state is put back in a finally.
+        try
+        {
+            ClearCandidateOverride(window);
+            SelectAlgorithm(window, "A", CandidateAlgorithm);   // both lanes on the virtual grid
+            SelectAlgorithm(window, "B", CandidateAlgorithm);
+            SetCandidateDenoiseK(window, MainDenoiseK);
+            ApplyDisplayPipeline(window);
 
-        var beforeA = ReadLane(window, "A");
-        var beforeB = ReadLane(window, "B");
-        output.WriteLine($"L-05 same k: A={beforeA.Hash} B={beforeB.Hash}");
-        Assert.Equal(beforeA.Hash, beforeB.Hash);   // same k, so the lanes must agree first
+            var beforeA = ReadLane(window, "A");
+            var beforeB = ReadLane(window, "B");
+            output.WriteLine($"L-05 same k: A={beforeA.Hash} B={beforeB.Hash}");
+            Assert.Equal(beforeA.Hash, beforeB.Hash);   // same k, so the lanes must agree first
 
-        SetCandidateDenoiseK(window, OtherDenoiseK);
-        ApplyDisplayPipeline(window);
-        var afterA = ReadLane(window, "A");
-        var afterB = ReadLane(window, "B");
+            SetCandidateDenoiseK(window, OtherDenoiseK);
+            ApplyDisplayPipeline(window);
+            var afterA = ReadLane(window, "A");
+            var afterB = ReadLane(window, "B");
 
-        output.WriteLine($"L-05 A: {beforeA.Hash} -> {afterA.Hash}");
-        output.WriteLine($"L-05 B: {beforeB.Hash} -> {afterB.Hash}");
+            output.WriteLine($"L-05 A: {beforeA.Hash} -> {afterA.Hash}");
+            output.WriteLine($"L-05 B: {beforeB.Hash} -> {afterB.Hash}");
 
-        Assert.True(afterB.Hash != beforeB.Hash,
-            $"Setting the Candidate's de-noise k to {OtherDenoiseK} did not reach its drawn pixels: still {afterB.Hash}.");
-        Assert.True(afterA.Hash == beforeA.Hash,
-            $"The Reference moved with a de-noise k set for the Candidate ({beforeA.Hash} -> {afterA.Hash}) — " +
-            "the two lanes run one pipeline, so nothing here compares two values.");
+            Assert.True(afterB.Hash != beforeB.Hash,
+                $"Setting the Candidate's de-noise k to {OtherDenoiseK} did not reach its drawn pixels: still {afterB.Hash}.");
+            Assert.True(afterA.Hash == beforeA.Hash,
+                $"The Reference moved with a de-noise k set for the Candidate ({beforeA.Hash} -> {afterA.Hash}) — " +
+                "the two lanes run one pipeline, so nothing here compares two values.");
+        }
+        finally
+        {
+            // The app starts with both lanes on "Grid suppression" (AppSettings.LaneAAlgorithm / LaneBAlgorithm) and no Candidate override; that is the state the next scenario of the collection assumes.
+            ClearCandidateOverride(window);
+            SelectAlgorithm(window, "A", AppDefaultLaneAlgorithm);
+            SelectAlgorithm(window, "B", AppDefaultLaneAlgorithm);
+            ApplyDisplayPipeline(window);
+        }
     }
 
     /// <summary>The value the main chain carries, so the lanes start in agreement.</summary>
+    /// <summary>The lanes' algorithm in a freshly started app (<c>AppSettings._laneAAlgorithm</c> / <c>_laneBAlgorithm</c>).</summary>
+    private const string AppDefaultLaneAlgorithm = "Grid suppression";
+
     private const string MainDenoiseK = "2.0";
 
     /// <summary>A k far enough from the main one that the soft threshold removes visibly more.</summary>

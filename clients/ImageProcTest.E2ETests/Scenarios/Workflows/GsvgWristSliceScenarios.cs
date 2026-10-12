@@ -621,6 +621,7 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
             SetNumber(window, "GsvgPyramidLevelsInput", "0");
             SetNumber(window, "GsvgGridFrequencyInput", "60");;;
             SetNumber(window, "GsvgAirSignalInput", "60000");
+            PinTheDisplayWindow(window);
             var render = MeasureRender(window);
 
             var drawnHash = Field(window, "processed");
@@ -649,6 +650,7 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
             SetNumber(window, "GsvgDenoiseKInput", "2");
             SetNumber(window, "GsvgPyramidGainInput", "1.3");
             SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            ReleaseTheDisplayWindow(window);
             SetMode(window, "GsvgModeNone");
             Apply(window);
         }
@@ -679,8 +681,20 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
     ///
     /// <para><b>If this constant ever needs updating again</b>, the display pipeline's formula changed
     /// again — find and cite that change first. A hash that moved with no such change is a regression.</para>
+    ///
+    /// <para><b>Updated in GUI-C-233n: <c>f2a5640e9bd1a7fc</c> → <c>a4b5e7c27126dfd7</c>.</b> The display module changed, not the application. QA-B-214 (<c>756678cf</c>, with 214b-d) gave
+    /// <c>xpe_display</c> a stated presentation polarity and the anatomy-based automatic window; the shipped display now draws bone bright. Measured, both directions, same frame (the first 1024x1024
+    /// samples of the wrist file) and the same settings (P-10's, with the window pinned to the manual 32768 / 65535 this hash was recorded at):</para>
+    /// <code>
+    /// main app  + main CI DLLs   (run 38191202158) : f2a5640e9bd1a7fc   (the old golden returns, bit-exact)
+    /// main app  + PR  CI DLLs    (run 38191239667) : a4b5e7c27126dfd7
+    /// integ app + PR  CI DLLs    (run 38191239667) : a4b5e7c27126dfd7   (twice)
+    /// </code>
+    /// <para>The application's own display changes (GUI-C-233) do not move these pixels once the window is pinned; the DLL does. The window is pinned by typing it, because the default window is now the
+    /// automatic one and depends on the image content (see <c>PinTheDisplayWindow</c>). The tile signature of P-11 was re-recorded in the same run, from the same render; its thresholds are
+    /// unchanged and were NOT re-derived (they describe the tolerance for a rounding-scale correction, which this change is not).</para>
     /// </summary>
-    private const string PreviewBaselineHash = "f2a5640e9bd1a7fc";
+    private const string PreviewBaselineHash = "a4b5e7c27126dfd7";
 
     // ---- P-11: the tile signature that answers what the hash cannot (#200, GUI-C-138) -----------
 
@@ -770,6 +784,7 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
             SetNumber(window, "GsvgPyramidLevelsInput", "0");
             SetNumber(window, "GsvgGridFrequencyInput", "60");;;
             SetNumber(window, "GsvgAirSignalInput", "60000");
+            PinTheDisplayWindow(window);
             MeasureRender(window);
 
             var drawn = ReadTileSignatureFromRenderDump();
@@ -824,6 +839,7 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
             SetNumber(window, "GsvgDenoiseKInput", "2");
             SetNumber(window, "GsvgPyramidGainInput", "1.3");
             SetNumber(window, "GsvgPyramidLevelsInput", "4");
+            ReleaseTheDisplayWindow(window);
             SetMode(window, "GsvgModeNone");
             Apply(window);
         }
@@ -1013,6 +1029,27 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
         Assert.True(radio is not null, $"{radioId} is not in the Parameters tab.");
         radio!.AsRadioButton().IsChecked = true;
         Thread.Sleep(250);
+    }
+
+    /// <summary>
+    /// GUI-C-233n: the default display window is now the automatic one (GUI-C-233, user decision #251), which depends on the image content. P-10 and P-11 record the drawn preview at the window they were
+    /// recorded at (the manual default centre 32768, width 65535), so they type those values: a window the user chooses turns the automatic one off. The value is first set to a neighbour so that the
+    /// edit is a change in any starting state. The automatic window is handed back in <see cref="ReleaseTheDisplayWindow"/>, so the shared fixture's other scenarios see the default they were written for.
+    /// </summary>
+    private static void PinTheDisplayWindow(Window window)
+    {
+        SetNumber(window, "VoiWindowCenterInput", "32767");
+        SetNumber(window, "VoiWindowCenterInput", "32768");
+        SetNumber(window, "VoiWindowWidthInput", "65535");
+    }
+
+    /// <summary>Pipeline &gt; Use Automatic Window (the default), then the render the other scenarios start from.</summary>
+    private static void ReleaseTheDisplayWindow(Window window)
+    {
+        UiaMenu.Open(window, "PipelineMenu");
+        Thread.Sleep(350);
+        window.FindFirstDescendant(cf => cf.ByAutomationId("UseAutomaticWindowMenuItem"))?.AsMenuItem().Invoke();
+        Thread.Sleep(600);
     }
 
     private static void SetNumber(Window window, string automationId, string value)

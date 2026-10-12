@@ -1,0 +1,39 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.08]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.16]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x921004 pid=17492 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:01:35.29]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityBypassedScenarios.TheShippedPath_RunsNoNonlinearityStage_SoNoNoopAlertIsRaised_WhileThePerFrameAlertKeepsArriving [1 m 35 s]
+  표준 출력 메시지:
+ calibration: polynomial set in C:\Users\drake\AppData\Local\Temp\xpe-c129-e2e-5a7b2a99755542a1b484878faaa7640c. offset.xcal  c58057f1f2efe180b767ab4764b5641321ce79520f3d7b45da3f04f61d49ee4c
+ gain.xcal    0328f715d3ce89373dd4d014d0a86dc5c1591f25c3776f35158f75e25f5a7acd
+ defect.xcal  6c692f90dd2e1e6ad7eef1376b57b4246b0d520562c90b8b646f8f25faeae379  (4 defect pixels)
+ gain_poly.xcal e7e614eec3daed160f84d04001281d87bc5426a5f850362d927d84bdf23d583c  (degree<=2, 4 dose levels)
+ manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe-c129-e2e-5a7b2a99755542a1b484878faaa7640c\manifest.json
+ frame 1: preprocessing invoked
+ frame 2: preprocessing invoked
+ frame 3: preprocessing invoked
+ log lines: 69
+ preprocess lines: 6
+ HUD calibration line: 'Calib:  3 stages (offset · gain · defect)'
+ #196 no-op lines: 0
+ #194 clamp lines: 3
+   [194] [13:37:23.816] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+   [194] [13:37:19.891] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+   [194] [13:37:15.786] ALERT WARN NATIVE_ALERT: 869755 pixel(s) fell outside the gain polynomial's fitted dose range [8000.0, 20000.0] and were evaluated at the range edge; values beyond the calibrated levels are not extrapolated (issue #194)
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 1.5941 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
