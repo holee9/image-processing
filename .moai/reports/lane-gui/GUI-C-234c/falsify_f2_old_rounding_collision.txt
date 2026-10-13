@@ -1,0 +1,7 @@
+GUI-C-234c finding 2 - the OLD identity test (RealXpeBackend.IsRoundedFrom, commit 5a4a9e31) accepts floats of ANOTHER run.
+Old rule: use the backend-wide last enhance floats when the 16-bit display input equals their rounding (round half to even, clamp 0..65535).
+run A floats [100.1, 200.6, 300.5] -> ushort [100, 201, 300]
+run B floats [100.4, 200.9, 300.4] -> ushort [100, 201, 300]
+old IsRoundedFrom(pixelsA, floatsOfA) = True
+old IsRoundedFrom(pixelsA, floatsOfB) = True  <- the other run's floats are accepted for A's display call
+floats differ: True

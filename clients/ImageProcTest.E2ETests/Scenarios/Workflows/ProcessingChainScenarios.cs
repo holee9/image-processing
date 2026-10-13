@@ -15,7 +15,7 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 /// "Applied" while the drawn pixels are unchanged is the failure this class exists to catch.
 ///
 /// <para>Per backend: Mock has no preprocess module, so a requested stage must show
-/// <c>RequestedNotApplied</c>, the display must stay on the raw frame and the pixels must not change.
+/// <c>Skipped</c> (GUI-C-234b: a skip with its reason, no longer <c>RequestedNotApplied</c>), the display must stay on the raw frame and the pixels must not change.
 /// Native with a calibration set must show <c>Applied</c> and draw different pixels, and switching the
 /// stage off must bring the first pixels back.</para>
 /// </summary>
@@ -36,7 +36,9 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             var off = WaitForChain(window, "preprocess=NotRequested");
             var offHash = DrawnHash(window);
             output.WriteLine($"C01 off: chain='{off}' hash={offHash}");
-            Assert.Contains("display input=raw", off, StringComparison.Ordinal);
+            // GUI-C-234: the basic enhancement (5)-(8) is always in the chain and cannot be switched off, so with preprocessing OFF the Native display starts from its output ("chain"); only a backend that
+            // runs no stage at all (Mock) still displays the raw frame. The comparison that matters is below: switching preprocessing off again brings back THESE pixels.
+            Assert.Contains(app.BackendMode == "Native" ? "display input=chain" : "display input=raw", off, StringComparison.Ordinal);
             Assert.NotEqual("-", offHash);
 
             SetPreprocess(window, true);
@@ -44,7 +46,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
 
             if (app.BackendMode != "Native")
             {
-                var refused = WaitForChain(window, "preprocess=RequestedNotApplied");
+                var refused = WaitForChain(window, "preprocess=Skipped");
                 var refusedHash = DrawnHash(window);
                 output.WriteLine($"C01 mock on: chain='{refused}' hash={refusedHash}");
                 Assert.Contains("display input=raw", refused, StringComparison.Ordinal);
@@ -67,11 +69,12 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
             var backHash = WaitForHash(window, h => h == offHash);
             output.WriteLine($"C01 native off again: hash={backHash ?? DrawnHash(window)}");
             Assert.True(backHash is not null,
-                $"With the stage off again the display should start from the raw frame; drawn {DrawnHash(window)}, first {offHash}.");
+                $"With the stage off again the display should show the pixels it showed with the stage off at first; drawn {DrawnHash(window)}, first {offHash}.");
         }
         finally
         {
-            SetPreprocess(window, false);
+            // GUI-C-234b: the app's default is now ON (U3); the shared application is handed back in the state the next scenario of the collection assumes.
+            SetPreprocess(window, true);
             ApplyDisplayPipeline(window);
         }
     }

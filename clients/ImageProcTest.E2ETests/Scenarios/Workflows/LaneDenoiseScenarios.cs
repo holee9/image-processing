@@ -89,6 +89,46 @@ public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, I
         }
     }
 
+    /// <summary>
+    /// L-06 (GUI-C-234c, Codex #181 finding 4): picking the Reference lane's algorithm changes the grid correction and nothing else - in particular it does not switch the main chain's preprocessing off
+    /// (three of the four presets are defined with it off, and the first version of the default-on change let that through). P-10/P-11 switch the checkbox on again before they measure; this is the case that
+    /// does not, so the state after the pick is what an operator would see.
+    /// </summary>
+    [SkippableFact]
+    public void L06_ChoosingTheReferenceAlgorithm_LeavesThePreprocessingSwitchOn()
+    {
+        Skip.If(!app.IsAvailable, app.SkipReason ?? "The application is not available.");
+        var window = app.MainWindow!;
+
+        OpenParameters(window);
+        var box = window.FindFirstDescendant(cf => cf.ByAutomationId("PreprocessInChainCheckBox"));
+        Assert.True(box is not null, "PreprocessInChainCheckBox is not in the Parameters tab.");
+        var preprocess = box!.AsCheckBox();
+        preprocess.IsChecked = true;   // the app's default; set explicitly because the collection shares one app
+
+        try
+        {
+            foreach (var option in new[] { "No correction", "Grid suppression", "Virtual grid", "Preprocess + virtual grid" })
+            {
+                SelectAlgorithm(window, "A", option);
+                OpenParameters(window);
+                var after = window.FindFirstDescendant(cf => cf.ByAutomationId("PreprocessInChainCheckBox"))!.AsCheckBox().IsChecked;
+                output.WriteLine($"L-06 after choosing '{option}': preprocess checked = {after}");
+                Assert.True(after == true, $"Choosing '{option}' for the Reference lane switched the main preprocessing off.");
+            }
+
+            ApplyDisplayPipeline(window);
+            var chain = window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"))?.Name ?? string.Empty;
+            output.WriteLine($"L-06 chain after the picks: {chain}");
+            Assert.DoesNotContain("preprocess=NotRequested", chain, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SelectAlgorithm(window, "A", AppDefaultLaneAlgorithm);
+            ApplyDisplayPipeline(window);
+        }
+    }
+
     /// <summary>The value the main chain carries, so the lanes start in agreement.</summary>
     /// <summary>The lanes' algorithm in a freshly started app (<c>AppSettings._laneAAlgorithm</c> / <c>_laneBAlgorithm</c>).</summary>
     private const string AppDefaultLaneAlgorithm = "Grid suppression";

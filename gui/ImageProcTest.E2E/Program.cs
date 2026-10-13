@@ -451,7 +451,8 @@ static void RunWpfE2E()
         Assert(Math.Abs(viewModel.Settings.ComparisonZoomScale) < 0.001, "Zoom Fit command should restore fit mode.");
 
         // --- A real render (GUI-C-233l): the early check above runs before any frame exists, where "—" is right whatever the HUD derives from. With a frame rendered by the Mock backend with the default settings
-        // (preprocessing not requested) the chain's preprocess stage is NotRequested, so the HUD must say "not run" - and a HUD that counted configured modes ("7/7 stages") would fail here.
+        // (GUI-C-234b: preprocessing IS requested by default, and the Mock has no such module) the chain's preprocess stage is Skipped with its reason, so the HUD must say "not run (native backend required)"
+        // - and a HUD that counted configured modes ("7/7 stages") or called a skip "failed" would fail here.
         {
             var rawFixture = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "ImageProcTest", "fixtures", "gui-s0", "raw", "synthetic_1024x1024.raw"));
             Assert(File.Exists(rawFixture), $"The 1024 x 1024 fixture frame was not found at '{rawFixture}'.");
@@ -474,10 +475,10 @@ static void RunWpfE2E()
 
             Assert(viewModel.CurrentRender is not null, $"The fixture frame did not render within 30 s (status: {viewModel.StatusText}).");
             var preprocess = viewModel.LastChain!.Stages.Single(st => st.StageId == ImageProcTest.Models.StageIds.Preprocess);
-            Assert(preprocess.Status == ImageProcTest.Models.StageStatus.NotRequested && !viewModel.PreprocessRan,
-                $"With the default settings the chain should not have requested preprocessing, but it says {viewModel.ChainStatus}.");
-            Assert(viewModel.CalibStageCountDisplay == "not run" && viewModel.CalibStageCountDisplay == ExpectedCalibLine(viewModel),
-                $"After a render whose preprocess stage is {preprocess.Status} the HUD line should be 'not run', got: {viewModel.CalibStageCountDisplay}");
+            Assert(preprocess.Status == ImageProcTest.Models.StageStatus.Skipped && !viewModel.PreprocessRan,
+                $"With the default settings the chain should have requested preprocessing and the Mock backend should have skipped it with a reason, but it says {viewModel.ChainStatus}.");
+            Assert(viewModel.CalibStageCountDisplay == "not run (native backend required)" && viewModel.CalibStageCountDisplay == ExpectedCalibLine(viewModel),
+                $"After a render whose preprocess stage is {preprocess.Status} the HUD line should be 'not run (native backend required)', got: {viewModel.CalibStageCountDisplay}");
         }
 
         // --- Shutdown ---
@@ -562,7 +563,7 @@ static T? FindVisualChildByName<T>(DependencyObject parent, string name) where T
     return null;
 }
 
-/// <summary>The HUD's "Calib:" line by its rule, from the chain the view model holds: no chain "—"; preprocess requested and not applied "failed"; applied the stages the call runs; otherwise "not run".</summary>
+/// <summary>The HUD's "Calib:" line by its rule, from the chain the view model holds: no chain "—"; preprocess requested and failed "failed"; skipped "not run (reason)"; applied the stages the call runs; otherwise "not run".</summary>
 static string ExpectedCalibLine(MainWindowViewModel vm)
 {
     if (vm.LastChain is null)
@@ -570,10 +571,12 @@ static string ExpectedCalibLine(MainWindowViewModel vm)
         return "—";
     }
 
-    return vm.LastChain.Stages.FirstOrDefault(st => st.StageId == ImageProcTest.Models.StageIds.Preprocess)?.Status switch
+    var stage = vm.LastChain.Stages.FirstOrDefault(st => st.StageId == ImageProcTest.Models.StageIds.Preprocess);
+    return stage?.Status switch
     {
         ImageProcTest.Models.StageStatus.Applied or ImageProcTest.Models.StageStatus.AppliedNoChange => "3 stages (offset · gain · defect)",
         ImageProcTest.Models.StageStatus.RequestedNotApplied => "failed",
+        ImageProcTest.Models.StageStatus.Skipped => $"not run ({(stage.Reason.Contains(':') ? stage.Reason[..stage.Reason.IndexOf(':')].Trim() : stage.Reason.Trim())})",
         _ => "not run",
     };
 }

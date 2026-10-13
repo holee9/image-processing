@@ -65,6 +65,30 @@ public sealed class AlgorithmPresetTests
         }
     }
 
+    /// <summary>
+    /// GUI-C-234c (Codex #181 finding 4): the Reference lane choice (<see cref="AlgorithmPreset.ApplyToMain"/>) is the grid correction only. No preset switches the main preprocessing OFF (three of the four
+    /// are defined with it off, for the Candidate lane own copy); the one that includes preprocessing may switch it ON. Control: <see cref="AlgorithmPreset.ApplyTo"/>, the Candidate lane copy, still writes it.
+    /// </summary>
+    [Fact]
+    public void ChoosingAPresetForTheMainChain_ChangesTheGridCorrection_AndNeverSwitchesPreprocessingOff()
+    {
+        foreach (var preset in AlgorithmPreset.All)
+        {
+            var main = new AppSettings { PreprocessInChain = true, GsvgMode = GsvgModes.None };
+            preset.ApplyToMain(main);
+            Assert.True(main.PreprocessInChain, $"'{preset.Name}' switched the main preprocessing off.");
+            Assert.Equal(preset.GsvgMode, main.GsvgMode);
+
+            var operatorOff = new AppSettings { PreprocessInChain = false };
+            preset.ApplyToMain(operatorOff);
+            Assert.Equal(preset.PreprocessInChain, operatorOff.PreprocessInChain);   // only a preset that includes preprocessing turns it on; none turns it off
+        }
+
+        var candidate = new AppSettings { PreprocessInChain = true };
+        AlgorithmPreset.For("Virtual grid").ApplyTo(candidate);
+        Assert.False(candidate.PreprocessInChain);   // control: the lane own copy takes the preset whole
+    }
+
     /// <summary>A name nobody ever used still falls back rather than throwing.</summary>
     [Fact]
     public void AnUnknownName_FallsBackToTheFirstPreset()

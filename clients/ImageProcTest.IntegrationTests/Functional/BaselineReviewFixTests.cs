@@ -176,8 +176,8 @@ public sealed class BaselineReviewFixTests : IDisposable
     public void TheRealBackendAndThePreprocessRunner_UseTheCountingHops()
     {
         var real = Read("gui/ImageProcTest/Services/RealXpeBackend.cs");
-        Assert.Contains("return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);", real, StringComparison.Ordinal);
-        Assert.Contains("return BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);
+        Assert.Contains("return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount, result.Skipped);", real, StringComparison.Ordinal);   // GUI-C-234b: and whether the run was a skip
+        Assert.Contains("return BaselineStageAdapters.FromEnhance(result);", real, StringComparison.Ordinal);   // GUI-C-234c: the floats ride on the execution (FromEnhance carries them), not in a field of the backend
 
         var preprocess = Read("gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs");
         // GUI-C-232b: the shipped path is xpe_preprocess_pipeline_out, whose gain output is internal; the count is taken on the pipeline's float output, still BEFORE it is scaled to 16 bits.

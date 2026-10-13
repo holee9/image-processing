@@ -1,0 +1,30 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.17]   Discovered:  ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.97]   Finished:    ImageProcTest.IntegrationTests
+  통과 ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData [760 ms]
+  표준 출력 메시지:
+ LogNormFactor = 1000
+ input sha256 = c823233f2196a217f4512bfec47e62a17f003cc894ef7947e1f40dd0b59a3d70
+ preprocess sha256 = 2ab3c65cea9c731ad97af3dd478c30564a3fe338ccfebc2d36df2fa2b3312c75
+ preprocess summary = Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+ enhance sha256 = c5b673dad95fde857e06fb72a498336ecb97c730f136f56ea48a24d3085c215c
+ enhance summary = enhance_basic: log ok 26 ms; noise(bilateral 3/50) ok 70 ms; contrast(clahe 3 8x8) ok 68 ms; edge(usm 0.5/2/10) ok 42 ms; to 16 bit: round-half-even, clamped below 0 above 0
+ display sha256 = f360938d8cc5509cac09655f147f9447217b9a0f910ad3c80affe194a886e616 (nonfinite 0)
+ display min/max = 60730/62332
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 1.3953 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

@@ -64,7 +64,8 @@ public sealed class AppSettings : ObservableObject
     private double _laneBGsvgDenoiseK = 2.0;
     private float _laneBVoiWindowWidth;
     private string _lastRunSetId = string.Empty;
-    private bool _preprocessInChain;
+    private bool _preprocessInChain = true;
+    private bool _preprocessOffNoticeUnacknowledged;
     private bool _aiBoneSuppressionInChain;
     private string _aiModelDirectory = "data/models";
     private float _exposureKvp = 70.0f;
@@ -522,13 +523,46 @@ public sealed class AppSettings : ObservableObject
 
     /// <summary>
     /// Whether the preprocess stage (offset → gain → defect) runs in the pixel chain before the display
-    /// pipeline (#180, GUI-C-99). Off by default: the display then starts from the raw frame, as before.
+    /// pipeline (#180, GUI-C-99). GUI-C-234b (pipeline-spec 6.1, U3): ON by default - the ordinary chain starts with the preprocess. Without calibration data the stage is skipped and the screen says
+    /// why ("not run (no calibration data)"); it is not silently left out.
+    ///
+    /// <para><b>A stored value is kept (GUI-C-234c, Codex #181 finding 1).</b> The key is the original <c>preprocessInChain</c>. The first version of the default change moved it to a new key so an old
+    /// file's <c>false</c> (which was the old default as often as it was a choice) would not win - but that silently changed the correction path of everyone who had switched it off on purpose. The loader
+    /// cannot tell the two apart, so it does not guess: a stored <c>false</c> stays <c>false</c>, and the app says so until the operator acknowledges it (<see cref="PreprocessOffNoticeUnacknowledged"/>). Only a settings file without the key
+    /// (a new install) gets the new default.</para>
     /// </summary>
     [JsonPropertyName("preprocessInChain")]
     public bool PreprocessInChain
     {
         get => _preprocessInChain;
         set => SetProperty(ref _preprocessInChain, value);
+    }
+
+    /// <summary>
+    /// The settings file format this build writes. A file written by an earlier build has no <c>settingsSchemaVersion</c> or a lower one (GUI-C-234d, Codex #182 finding 1): that is how a stored
+    /// <c>"preprocessInChain": false</c> that may only be the old default is told from an OFF chosen with this version.
+    /// </summary>
+    public const int CurrentSchemaVersion = 1;
+
+    /// <summary>
+    /// Written on every save as <see cref="CurrentSchemaVersion"/>; what a loaded file said is read from the raw JSON by the loader (this property cannot report it: a file without the key must not look current).
+    /// </summary>
+    [JsonPropertyName("settingsSchemaVersion")]
+    public int SettingsSchemaVersion
+    {
+        get => CurrentSchemaVersion;
+        set { /* the stored value is inspected by AppSettingsService.Load; saving always writes the current one */ }
+    }
+
+    /// <summary>
+    /// Stored (GUI-C-234d, Codex #182 finding 2): preprocessing is off in a file written by an earlier version and the operator has not yet acknowledged the notice. Set by the loader for such a file; cleared only
+    /// by an explicit acknowledgement (or by switching preprocessing on). It is stored with every save, so a restart before the acknowledgement - and clearing the alert list - leave the notice standing.
+    /// </summary>
+    [JsonPropertyName("preprocessOffNoticeUnacknowledged")]
+    public bool PreprocessOffNoticeUnacknowledged
+    {
+        get => _preprocessOffNoticeUnacknowledged;
+        set => SetProperty(ref _preprocessOffNoticeUnacknowledged, value);
     }
 
     /// <summary>

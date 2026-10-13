@@ -1,0 +1,6 @@
+frame 3072x3072; reference 05 uint16 min/max = 0/65535
+identical pixels: 9372030 of 9437184 (99.3096%)
+|diff|<=1: 100.0000%; max |diff| = 1; mean diff = 0.0069
+first differing pixel (row-major): y=0 x=1411 app=23 ref=22
+air share (ref8 == min): 84.06%; app8 at same pixels equals: 99.99%
+app8 p5/p50/p95/p99: [  0.   0. 162. 227.]; ref8: [  0.   0. 162. 227.]

@@ -1,0 +1,2 @@
+  실패 ImageProcTest.IntegrationTests.Functional.AlgorithmPresetTests.ChoosingAPresetForTheMainChain_ChangesTheGridCorrection_AndNeverSwitchesPreprocessingOff [2 ms]
+  오류 메시지:

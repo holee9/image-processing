@@ -12,15 +12,23 @@ namespace ImageProcTest.Services;
 /// threshold 10.0. Whether those defaults suit an image in the 0..65535 range after the log transform has NOT been checked; that is image quality,
 /// which this command does not judge.</para>
 ///
-/// <para><b>The log normalisation factor is an ASSUMPTION with no basis in any specification, valid for the baseline command only.</b> The module computes
+/// <para><b>The log normalisation factor is a chosen value, not a specified one</b> (GUI-C-234c: this paragraph used to describe the GUI-C-196 value, which the field below replaced). The module computes
 /// <c>normFactor * log10(x + 1)</c> (xpe_log_transform); no document gives a value (docs/enhance-basic/README.md shows the second argument as "epsilon", which
-/// contradicts the API). <c>65535 / log10(65536)</c> maps the 16-bit full scale to the 16-bit full scale, so the display stage that follows keeps the pixel range
-/// its default window assumes. A different value, if the lead sets one, changes this constant and nothing else.</para>
+/// contradicts the API). The value in force is the one the module chain was verified with - see <see cref="LogNormFactor"/> for the reason and the consequence for the Baseline's fingerprint and display range.
+/// A different value, if the lead sets one, changes that constant and nothing else.</para>
 /// </summary>
 public static class BaselineParameters
 {
-    /// <summary>ASSUMPTION (see the type remarks): 65535 / log10(65536), about 13652.</summary>
-    public static readonly float LogNormFactor = (float)(65535.0 / Math.Log10(65536.0));
+    /// <summary>
+    /// GUI-C-234 (leader decision): 1000. REQ-ENH-001 fixes only the formula <c>normFactor * log10(x + 1)</c>, not the value. 1000 is the value of the chain the second stage judged (QA-B-213, and the post lane's
+    /// m2-post-v2/05 picture) and of the module's own end-to-end test (test_e2e_full_pipeline.cpp), and the parameters of the stages after it (bilateral range sigma 50, CLAHE, USM) were validated in THAT log domain;
+    /// the operator app must equal the verified module chain bit for bit (milestone 3, U4). It replaces GUI-C-196's 65535 / log10(65536) (about 13606), which was an assumption with no basis in any specification,
+    /// chosen so the 16-bit full scale mapped to itself. That value put the stages after the log transform into a domain nobody had verified, and moved the automatic window and the picture away from the module
+    /// chain's (measured: 86.27 % of the drawn pixels identical to the module chain's, largest difference 48, against 99.35 % / 2 with 1000).
+    /// CONSEQUENCE: the Deterministic Baseline's fingerprint changes (before/after in .moai/reports/lane-gui/GUI-C-234/baseline_fingerprint_*.txt), and its fixed display window (center 32768, width 65535) now
+    /// covers only the low part of the log-domain range (about 0..4800), so the Baseline's displayed picture is nearly flat (measured display range 60730..62332 of 65535 after the inverted presentation); the Baseline checks determinism, not looks.
+    /// </summary>
+    public static readonly float LogNormFactor = 1000.0f;
 
     public const float NoiseSigmaSpace = 3.0f;
     public const float NoiseSigmaRange = 50.0f;

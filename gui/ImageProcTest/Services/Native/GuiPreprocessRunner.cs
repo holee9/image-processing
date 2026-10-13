@@ -57,12 +57,14 @@ internal static class GuiPreprocessRunner
         var missing = new[] { offset, gain, defect }.Where(p => !File.Exists(p)).ToArray();
         if (missing.Length > 0)
         {
+            // GUI-C-234b: a skip with a reason (<short>: <detail>), not a failure - the HUD says "not run (no calibration data)".
             return new PreprocessRunResult(
                 false,
-                $"Preprocessing skipped: calibration file(s) not found — {string.Join(", ", missing)}. " +
+                $"no calibration data: calibration file(s) not found — {string.Join(", ", missing)}. " +
                 "Generate a set with xpe_calib_fixture_gen --out <dir> and point the calibration " +
                 "directories at it.",
-                null);
+                null,
+                Skipped: true);
         }
 
         var initCode = XpePreprocessNative.xpe_preprocess_init(null);

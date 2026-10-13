@@ -33,6 +33,13 @@ public interface IXpeBackend
     LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings);
 
     /// <summary>
+    /// GUI-C-234c: the display pipeline over a chain run's result. A backend that can window the chain's float image (<see cref="ChainResult.DisplayFloats"/>) overrides this and uses it; the default is the
+    /// 16-bit call. The floats come from <paramref name="chain"/> itself - the run that made the pixels - never from state shared between runs.
+    /// </summary>
+    LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings) =>
+        ApplyDisplayPipeline(rawFrame, chain.DisplayInput, settings);
+
+    /// <summary>
     /// Runs the pixel chain (#180, GUI-C-99, contract B) over the loaded raw frame: the stages in order,
     /// each on the previous result, the raw frame untouched, a refused stage falling back to its input.
     /// Backends without a stage report it as <see cref="StageStatus.RequestedNotApplied"/>, not as an error.

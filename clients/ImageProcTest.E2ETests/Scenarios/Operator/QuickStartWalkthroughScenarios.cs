@@ -347,6 +347,8 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     {
         var (native, calib, raw, width, height) = Inputs();
         var dump = Path.Combine(Path.GetTempPath(), "xpe_c233_render_" + Guid.NewGuid().ToString("N") + ".bgra");
+        var keep16 = Environment.GetEnvironmentVariable("XPE_C234_KEEP_PROCESSED16");   // GUI-C-234: ask the app for its final uint16 pixels (byte comparison with the module chain)
+        if (!string.IsNullOrEmpty(keep16)) Environment.SetEnvironmentVariable("XPE_GUI_AUTOMATION_EXPORT_PROCESSED16", keep16);
         try
         {
             using var app = GuiApp.Launch(output, native, extraArguments:
@@ -363,13 +365,16 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
             app.ClickButtonByName("Log");
             Thread.Sleep(1200);
-            var displayLine = app.ListItems("LogListBox").FirstOrDefault(l => l.Contains("-> Display:", StringComparison.Ordinal) && l.Contains("VOI(", StringComparison.Ordinal));
+            // the NEWEST display line (the log is not in time order for the reader): the first render happens at load time, before preprocessing, with another window; the picture dumped below is the last render
+            var displayLine = app.ListItems("LogListBox").Where(l => l.Contains("-> Display:", StringComparison.Ordinal) && l.Contains("VOI(", StringComparison.Ordinal)).OrderBy(l => l, StringComparer.Ordinal).LastOrDefault();
             output.WriteLine("   display summary: " + displayLine);
             Assert.NotNull(displayLine);
             var voi = System.Text.RegularExpressions.Regex.Match(displayLine!, @"VOI\(auto, LinearExact, C=(?<c>[-0-9.,]+), W=(?<w>[-0-9.,]+)\)");
             Assert.True(voi.Success, "the display summary does not say that the window is automatic");
             output.WriteLine($"   automatic window: C={voi.Groups["c"].Value} W={voi.Groups["w"].Value}");
 
+            var keep = Environment.GetEnvironmentVariable("XPE_C234_KEEP_DUMP");   // GUI-C-234: keep the drawn frame for the comparison with the module chain
+            if (!string.IsNullOrEmpty(keep)) File.Copy(dump, keep, overwrite: true);
             var bytes = File.ReadAllBytes(dump);
             var headerEnd = Array.IndexOf(bytes, (byte)'\n');
             var header = System.Text.Encoding.ASCII.GetString(bytes, 0, headerEnd).Split(' ');
@@ -381,6 +386,13 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             var dark = gray.Count(v => v < 32) / (double)gray.Length;
             var atMax = gray.Count(v => v == 255) / (double)gray.Length;
             output.WriteLine($"   drawn frame {w}x{h}: share of pixels below 32/255 = {dark:P1}; at 255 = {atMax:P2}; p5/p50/p95/p99 = {Q(0.05)}/{Q(0.5)}/{Q(0.95)}/{Q(0.99)}");
+            // GUI-C-234: the ordinary chain carries the mandatory enhancement and the exposure index is shown
+            var chainText = app.Read("ChainStatusText");
+            output.WriteLine("   chain: " + chainText);
+            Assert.Contains("enhance_basic=Applied", chainText);
+            var statusBar = app.Read("StatusBarText");
+            output.WriteLine("   status bar: " + statusBar);
+            Assert.Contains("Exposure index: uncalibrated EI", statusBar);
             Assert.True(dark > 0.5, $"most of this frame is air and should be dark; only {dark:P1} of it is");
             Assert.True(Q(0.99) > 128, "the brightest 1% (bone) is not bright");
         }
@@ -388,6 +400,102 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         {
             try { File.Delete(dump); } catch (Exception) { /* temp file */ }
         }
+    }
+
+    /// <summary>
+    /// GUI-C-234b (U3): the DEFAULT chain preprocesses. Nothing is switched on by hand - no Run Preprocessing, no checkbox: a real calibration set is given and a frame is opened, and the chain that
+    /// the first render ran says <c>preprocess=Applied</c>, the HUD's Calib line names offset, gain and defect, and the exposure index has a value. (Before this card the default was OFF and the first
+    /// render of a freshly opened frame was the raw one.) Falsified by turning the default back off: this scenario then waits for an Applied that never comes. UIA only.
+    /// Needs <c>XPE_C231_NATIVE_DIR</c>, <c>XPE_C231_CALIB_DIR</c>, <c>XPE_C231_RAW</c>, <c>XPE_C231_RAW_SIZE</c>.
+    /// </summary>
+    [EnvGatedFact]
+    public void W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+        app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied without Run Preprocessing", 180);
+        Thread.Sleep(1500);
+
+        var chain = app.Read("ChainStatusText");
+        var hud = app.Read("HudCalibStages");
+        var status = app.Read("StatusBarText");
+        output.WriteLine($"   chain: {chain}");
+        output.WriteLine($"   HUD: '{hud}'");
+        Assert.Contains("3 stages (offset · gain · defect)", hud, StringComparison.Ordinal);
+        Assert.Contains("Exposure index: uncalibrated EI", status, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// GUI-C-234b (U3): with NO calibration data the default chain does not silently leave the preprocess out. It is skipped with its reason: the chain line says <c>preprocess=Skipped</c>, the HUD says
+    /// <c>not run (no calibration data)</c> - not "failed" - and the exposure-index text gives the same reason. No calibration folder is given and the settings file is the test's own empty one.
+    /// </summary>
+    [EnvGatedFact]
+    public void W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed()
+    {
+        var (native, _, raw, width, height) = Inputs();
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+        app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Skipped", StringComparison.Ordinal), "preprocess=Skipped", 180);
+        Thread.Sleep(1500);
+
+        var chain = app.Read("ChainStatusText");
+        var hud = app.Read("HudCalibStages");
+        var status = app.Read("StatusBarText");
+        output.WriteLine($"   chain: {chain}");
+        output.WriteLine($"   HUD: '{hud}'");
+        Assert.Contains("not run (no calibration data)", hud, StringComparison.Ordinal);
+        Assert.DoesNotContain("failed", hud, StringComparison.Ordinal);
+        Assert.Contains("preprocessing did not run: no calibration data", status, StringComparison.Ordinal);
+        Assert.Contains("no calibration data", chain, StringComparison.Ordinal);   // the status line carries the reason too
+    }
+
+    /// <summary>
+    /// GUI-C-234 (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms): one frame from "Run Preprocessing" to the finished picture, five times, on real data, measured on the machine the test runs on. The wall time includes the
+    /// UIA polling of this test (a few ten ms); the app's own per-stage times are printed next to it from the chain line. This machine's median is evidence for THIS machine only; the milestone asks for the CI
+    /// median. Needs the same variables as W7.
+    /// </summary>
+    [EnvGatedFact]
+    public void W12_OneFrame_RunPreprocessingToThePicture_FiveTimes()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+        var loadWatch = System.Diagnostics.Stopwatch.StartNew();
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+        output.WriteLine($"   open -> summary on screen (includes the dialog driving): {loadWatch.ElapsedMilliseconds} ms");
+        Thread.Sleep(3000);
+
+        var wall = new List<double>();
+        var previousTimes = app.Read("ChainStatusText");
+        for (var i = 1; i <= 5; i++)
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            app.Menu("PipelineMenu");
+            app.InvokeMenuItem("RunPreprocessingMenuItem");
+            string chain = string.Empty;
+            app.WaitFor(() =>
+            {
+                chain = app.Read("ChainStatusText");
+                return chain != previousTimes && chain.Contains("enhance_basic=Applied", StringComparison.Ordinal) && app.Read("StatusBarText").Contains("Exposure index:", StringComparison.Ordinal);
+            }, "the chain and the picture are done", 60);
+            wall.Add(watch.Elapsed.TotalMilliseconds);
+            previousTimes = chain;
+            output.WriteLine($"   run {i}: wall {wall[^1]:0} ms; {chain}");
+            Thread.Sleep(1500);
+        }
+
+        var sorted = wall.OrderBy(x => x).ToArray();
+        output.WriteLine($"   wall times (ms): {string.Join(", ", wall.Select(x => x.ToString("0")))}; median {sorted[2]:0} ms (limit 3000 ms, PERF-P1-001)");
+        Assert.True(sorted[2] <= 3000, $"median {sorted[2]:0} ms exceeds 3000 ms");
     }
 
     /// <summary>

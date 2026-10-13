@@ -152,8 +152,8 @@ other documents also call the deterministic baseline.
 **Chain (fixed; no user setting is read).** preprocess (offset, nonlinearity, gain, defect; the uncalibrated EI is measured on its float image) ->
 enhance_basic (log, bilateral noise reduction sigma-space 3.0 / sigma-range 50.0, CLAHE clip 3.0 with 8x8 tiles, unsharp mask amount 0.5 / radius 2.0 /
 threshold 10.0, all on one float image, converted to 16 bits once at the end with round-half-even and clamping) -> display (modality slope 1 / intercept 0,
-linear VOI centre 32768 / width 65535, GSDF off). The log normalisation factor is 65535/log10(65536); no document specifies it, so it is an assumption of
-this command only. Every stage must be applied: a stage the module refuses fails the command (nothing is compared and no DICOM file is written).
+linear VOI centre 32768 / width 65535, GSDF off). The log normalisation factor is 1000 (GUI-C-234: REQ-ENH-001 gives only the formula; 1000 is the value of the verified module chain, QA-B-213 / m2-post-v2, and of the module's end-to-end test; it replaced the
+65535/log10(65536) assumption of GUI-C-196). The fixed display window (centre 32768 / width 65535) therefore covers only the low part of the log range and the Baseline picture is nearly flat; the Baseline checks determinism, not looks. Every stage must be applied: a stage the module refuses fails the command (nothing is compared and no DICOM file is written).
 
 **Pass criteria (all of them).** (1) both runs applied every stage; (2) the loaded raw frame is unchanged (SHA-256 before = after); (3) no NaN/Inf was
 counted in any float intermediate (the preprocess float images after the gain stage and after the defect stage, the enhance_basic float image, and the display step's float image after the modality LUT and after the VOI LUT); (4) the two final 16-bit outputs are bit-identical; (5) the first output was written as DICOM, the module's own validator

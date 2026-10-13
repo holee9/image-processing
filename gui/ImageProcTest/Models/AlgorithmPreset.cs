@@ -73,10 +73,27 @@ public sealed record AlgorithmPreset(string Name, bool PreprocessInChain, string
         return All[0];
     }
 
-    /// <summary>Writes this preset's stages into a settings object.</summary>
+    /// <summary>
+    /// Writes this preset's stages into a settings object that is a COPY made for the Candidate lane's own render (the lane's chain is the preset's, whatever the main chain is).
+    /// </summary>
     public void ApplyTo(AppSettings settings)
     {
         settings.PreprocessInChain = PreprocessInChain;
+        settings.GsvgMode = GsvgMode;
+    }
+
+    /// <summary>
+    /// GUI-C-234c (Codex #181 finding 4): choosing the Reference lane's algorithm changes the MAIN chain's grid correction and nothing else. Preprocessing is on by default and is the operator's own switch
+    /// (the Parameters tab); three of the four presets are defined with it off, and writing that into the main settings made picking "Grid suppression" quietly switch the correction off for the whole window.
+    /// A preset that includes preprocessing ("Preprocess + virtual grid") may switch it ON; no preset switches it off.
+    /// </summary>
+    public void ApplyToMain(AppSettings settings)
+    {
+        if (PreprocessInChain)
+        {
+            settings.PreprocessInChain = true;
+        }
+
         settings.GsvgMode = GsvgMode;
     }
 }

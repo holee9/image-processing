@@ -1,0 +1,10 @@
+[xUnit.net 00:00:00.23]       Assert.Same() Failure: Values are not the same instance
+[xUnit.net 00:00:00.23]       Expected: [100.099998, 200.600006, 300.5]
+[xUnit.net 00:00:00.23]       Actual:   null
+  통과 ImageProcTest.IntegrationTests.Functional.ChainFloatOwnershipTests.ALaterStageWithoutFloats_ReplacesThePixels_SoNoFloatsRemain [5 ms]
+  실패 ImageProcTest.IntegrationTests.Functional.ChainFloatOwnershipTests.OverlappingRuns_WithTheSameRoundedPixels_KeepTheirOwnFloats [2 ms]
+  오류 메시지:
+   Assert.Same() Failure: Values are not the same instance
+Expected: [100.099998, 200.600006, 300.5]
+Actual:   null
+  통과 ImageProcTest.IntegrationTests.Functional.ChainFloatOwnershipTests.FloatsOfTheWrongLength_AreDropped [< 1 ms]

@@ -1,0 +1,8 @@
+build errors: 0
+exit=3762504530
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (2) no alert and notice for an OFF from an earlier build
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (2) starting the view model wrote the settings file (the notice must not be consumed by being shown)
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (3) the notice did not come back after a restart without an acknowledgement
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (4) clearing the alerts took the notice away
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (4) the notice did not come back after the alerts were cleared and the app restarted
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (6) precondition: the old OFF is announced

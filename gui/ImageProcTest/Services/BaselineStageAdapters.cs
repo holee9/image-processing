@@ -30,9 +30,9 @@ public static class BaselineStageAdapters
 
     /// <summary>The enhance stage's result as the chain runner takes it, with its non-finite count carried.</summary>
     internal static StageExecution FromEnhance(EnhanceBasicResult result) =>
-        new(result.Ran, result.Pixels, result.Summary, result.NaNInfCount);
+        new(result.Ran, result.Pixels, result.Summary, result.NaNInfCount, Floats: result.Floats);
 
     /// <summary>The preprocess stage's result as the chain runner takes it, with the count the runner made on its float image.</summary>
-    public static StageExecution FromPreprocess(bool ran, ushort[]? pixels, string summary, long nonFiniteCount) =>
-        new(ran, pixels, summary, nonFiniteCount);
+    public static StageExecution FromPreprocess(bool ran, ushort[]? pixels, string summary, long nonFiniteCount, bool skipped = false) =>
+        new(ran, pixels, summary, nonFiniteCount, skipped);
 }

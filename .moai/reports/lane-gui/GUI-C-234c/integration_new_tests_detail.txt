@@ -1,0 +1,12 @@
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+  통과 ImageProcTest.IntegrationTests.Functional.PanelFlagPersistenceTests.PreprocessIsOnForANewInstall_AStoredValueIsKept_AndAStoredOffIsAnnouncedOnce [45 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.ChainFloatOwnershipTests.ALaterStageWithoutFloats_ReplacesThePixels_SoNoFloatsRemain [3 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.ChainFloatOwnershipTests.OverlappingRuns_WithTheSameRoundedPixels_KeepTheirOwnFloats [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.ChainFloatOwnershipTests.FloatsOfTheWrongLength_AreDropped [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData [783 ms]
+ preprocess sha256 = 2ab3c65cea9c731ad97af3dd478c30564a3fe338ccfebc2d36df2fa2b3312c75
+ enhance sha256 = c5b673dad95fde857e06fb72a498336ecb97c730f136f56ea48a24d3085c215c
+ display sha256 = f360938d8cc5509cac09655f147f9447217b9a0f910ad3c80affe194a886e616 (nonfinite 0)
+  통과 ImageProcTest.IntegrationTests.Functional.AlgorithmPresetTests.ChoosingAPresetForTheMainChain_ChangesTheGridCorrection_AndNeverSwitchesPreprocessingOff [1 ms]
+총 테스트 수: 6
+ 총 시간: 1.4345 초

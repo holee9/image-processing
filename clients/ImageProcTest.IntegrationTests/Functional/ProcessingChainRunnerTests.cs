@@ -187,10 +187,12 @@ public sealed class ProcessingChainRunnerTests
     {
         var stages = ProcessingChainPlan.BuildStages(new AppSettings { PreprocessInChain = preprocess, GsvgMode = gsvgMode });
 
-        Assert.Equal([StageIds.Preprocess, StageIds.Gsvg, StageIds.AiBoneSuppression], stages.Select(s => s.StageId));
+        // GUI-C-234: EnhanceBasic sits second and is ALWAYS on (pipeline-spec 6.1: (5)-(8) cannot be skipped in release mode; no setting turns it off), whatever the toggles say.
+        Assert.Equal([StageIds.Preprocess, StageIds.EnhanceBasic, StageIds.Gsvg, StageIds.AiBoneSuppression], stages.Select(s => s.StageId));
         Assert.Equal(preprocessEnabled, stages[0].Enabled);
-        Assert.Equal(gsvgEnabled, stages[1].Enabled);
-        Assert.False(stages[2].Enabled);
+        Assert.True(stages[1].Enabled);
+        Assert.Equal(gsvgEnabled, stages[2].Enabled);
+        Assert.False(stages[3].Enabled);
     }
 
     /// <summary>An unknown GSVG mode is None — the module's own pass-through default.</summary>
@@ -199,7 +201,7 @@ public sealed class ProcessingChainRunnerTests
     {
         var settings = new AppSettings { GsvgMode = "NotAMode" };
         Assert.Equal(GsvgModes.None, settings.GsvgMode);
-        Assert.False(ProcessingChainPlan.BuildStages(settings)[1].Enabled);
+        Assert.False(ProcessingChainPlan.BuildStages(settings)[2].Enabled);   // GUI-C-234: GSVG is third now (EnhanceBasic is second)
     }
 
     /// <summary>

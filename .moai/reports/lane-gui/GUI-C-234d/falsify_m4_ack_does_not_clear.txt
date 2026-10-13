@@ -1,0 +1,4 @@
+build errors: 0
+exit=3762504530
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (5) the notice stayed after the acknowledgement
+[19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build] (5) the notice came back after it was acknowledged

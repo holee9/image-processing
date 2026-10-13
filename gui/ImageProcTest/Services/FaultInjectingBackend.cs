@@ -60,7 +60,19 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
                     + (Armed._aiWorkerDisabled ? $" {AutomationArgs.AiWorkerDisabledFault}" : string.Empty)
                 : $"faultInjection={(Armed._aiWorkerSilentAfter is 0 ? AutomationArgs.AiWorkerSilentFromStartFault : Armed._aiWorkerSilentAfter is not null ? AutomationArgs.AiWorkerSilentFault : AutomationArgs.AiWorkerDisabledFault)} calls={Armed._calls}";
 
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings)
+    {
+        CountAndMaybeFail();
+        return _inner.ApplyDisplayPipeline(rawFrame, chain, settings);
+    }
+
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    {
+        CountAndMaybeFail();
+        return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
+    }
+
+    private void CountAndMaybeFail()
     {
         var call = Interlocked.Increment(ref _calls);
         if (call > _failAfter)
@@ -69,8 +81,6 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
                 $"FAULT INJECTION: display pipeline call {call} failed on purpose " +
                 $"(--automation-fault {AutomationArgs.DisplayPipelineFaultPrefix}{_failAfter}).");
         }
-
-        return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
     }
 
     public BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);

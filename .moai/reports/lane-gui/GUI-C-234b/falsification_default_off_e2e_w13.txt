@@ -1,0 +1,383 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:03:09.62]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed [FAIL]
+[xUnit.net 00:03:09.62]       timed out (180 s) waiting for: preprocess=Skipped
+[xUnit.net 00:03:09.62]       Stack Trace:
+[xUnit.net 00:03:09.62]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(921,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds)
+[xUnit.net 00:03:09.62]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(445,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed()
+[xUnit.net 00:03:09.62]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:03:09.62]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:03:09.62]       Output:
+[xUnit.net 00:03:09.62]            dialog: 'Load Raw Image'
+[xUnit.net 00:03:09.62]            ok: the image summary appears
+[xUnit.net 00:03:09.62]            == TIMEOUT waiting for: preprocess=Skipped: title='ImageProcTest GUI-S0'
+[xUnit.net 00:03:09.62]               + +
+[xUnit.net 00:03:09.62]               + -
+[xUnit.net 00:03:09.62]               + 0
+[xUnit.net 00:03:09.62]               + 0  /  0
+[xUnit.net 00:03:09.62]               + 0 defer
+[xUnit.net 00:03:09.62]               + 0 fail
+[xUnit.net 00:03:09.62]               + 0 pass
+[xUnit.net 00:03:09.62]               + 0 studies loaded
+[xUnit.net 00:03:09.62]               + 1:1
+[xUnit.net 00:03:09.62]               + ?
+[xUnit.net 00:03:09.62]               + A  Grid suppression
+[xUnit.net 00:03:09.62]               + All
+[xUnit.net 00:03:09.62]               + B  Grid suppression
+[xUnit.net 00:03:09.62]               + Body Part
+[xUnit.net 00:03:09.62]               + C  3659  · W  460
+[xUnit.net 00:03:09.62]               + Calib:  not run
+[xUnit.net 00:03:09.62]               + Clear Alerts
+[xUnit.net 00:03:09.62]               + Clear Logs
+[xUnit.net 00:03:09.63]               + Delta
+[xUnit.net 00:03:09.63]               + Difference
+[xUnit.net 00:03:09.63]               + Done
+[xUnit.net 00:03:09.63]               + Export bundle
+[xUnit.net 00:03:09.63]               + FIXTURE SET
+[xUnit.net 00:03:09.63]               + Fit
+[xUnit.net 00:03:09.63]               + Focus
+[xUnit.net 00:03:09.63]               + Histogram
+[xUnit.net 00:03:09.63]               + ImageProcTest GUI ·  Run #20261012-163501-f6ff4e
+[xUnit.net 00:03:09.63]               + Initialize Backend
+[xUnit.net 00:03:09.63]               + LANE A
+[xUnit.net 00:03:09.63]               + LANE A — REFERENCE
+[xUnit.net 00:03:09.63]               + LANE B
+[xUnit.net 00:03:09.63]               + LANE B — CANDIDATE
+[xUnit.net 00:03:09.63]               + Load Raw Image
+[xUnit.net 00:03:09.63]               + Log
+[xUnit.net 00:03:09.63]               + METRIC
+[xUnit.net 00:03:09.63]               + Metrics
+[xUnit.net 00:03:09.63]               + Metrics populated after pipeline run.
+[xUnit.net 00:03:09.63]               + Overlay
+[xUnit.net 00:03:09.63]               + Parameters
+[xUnit.net 00:03:09.63]               + Processed
+[xUnit.net 00:03:09.63]               + Quantitative Quality
+[xUnit.net 00:03:09.63]               + Queued
+[xUnit.net 00:03:09.63]               + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3659.338, W=459.577) -> GSDF(off)
+[xUnit.net 00:03:09.63]               + ROI
+[xUnit.net 00:03:09.63]               + RUN-SET
+[xUnit.net 00:03:09.63]               + Record result for
+[xUnit.net 00:03:09.63]               + Run on all queued
+[xUnit.net 00:03:09.63]               + Run-set
+[xUnit.net 00:03:09.63]               + STUDY
+[xUnit.net 00:03:09.63]               + Save & Next →
+[xUnit.net 00:03:09.63]               + Save Settings
+[xUnit.net 00:03:09.63]               + Shutdown Backend
+[xUnit.net 00:03:09.63]               + Source
+[xUnit.net 00:03:09.63]               + Split
+[xUnit.net 00:03:09.63]               + Study queue
+[xUnit.net 00:03:09.63]               + Swipe
+[xUnit.net 00:03:09.63]               + VERDICT
+[xUnit.net 00:03:09.63]               + VOI 폭
+[xUnit.net 00:03:09.63]               + VOI:  LinearExact
+[xUnit.net 00:03:09.63]               + WINDOW
+[xUnit.net 00:03:09.63]               + X
+[xUnit.net 00:03:09.63]               + XPE Evaluation Workbench
+[xUnit.net 00:03:09.63]               + _Backend
+[xUnit.net 00:03:09.63]               + _File
+[xUnit.net 00:03:09.63]               + _Help
+[xUnit.net 00:03:09.63]               + _Pipeline
+[xUnit.net 00:03:09.63]               + _Tools
+[xUnit.net 00:03:09.63]               + _View
+[xUnit.net 00:03:09.63]               + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, Linea...
+[xUnit.net 00:03:09.63]               + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, enhance_basic=300 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+[xUnit.net 00:03:09.63]               + fit
+[xUnit.net 00:03:09.63]               + gui-s0/golden-26.manifest
+[xUnit.net 00:03:09.63]               + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=onedll
+[xUnit.net 00:03:09.63]               + ⌕
+[xUnit.net 00:03:09.63]               + ⏸ Defer
+[xUnit.net 00:03:09.63]               + ⚙
+[xUnit.net 00:03:09.63]               + ✓ Pass
+[xUnit.net 00:03:09.63]               + ✗ Fail
+[xUnit.net 00:03:09.63]               + 미적용
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed [3 m 9 s]
+  오류 메시지:
+   timed out (180 s) waiting for: preprocess=Skipped
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 921
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 445
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    == TIMEOUT waiting for: preprocess=Skipped: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  Grid suppression
+       + All
+       + B  Grid suppression
+       + Body Part
+       + C  3659  · W  460
+       + Calib:  not run
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261012-163501-f6ff4e
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Metrics
+       + Metrics populated after pipeline run.
+       + Overlay
+       + Parameters
+       + Processed
+       + Quantitative Quality
+       + Queued
+       + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3659.338, W=459.577) -> GSDF(off)
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI 폭
+       + VOI:  LinearExact
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, Linea...
+       + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, enhance_basic=300 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=onedll
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+       + 미적용
+
+
+[xUnit.net 00:06:17.88]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing [FAIL]
+[xUnit.net 00:06:17.88]       timed out (180 s) waiting for: preprocess=Applied without Run Preprocessing
+[xUnit.net 00:06:17.88]       Stack Trace:
+[xUnit.net 00:06:17.88]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(921,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds)
+[xUnit.net 00:06:17.88]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(420,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing()
+[xUnit.net 00:06:17.88]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:06:17.88]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:06:17.88]       Output:
+[xUnit.net 00:06:17.88]            dialog: 'Load Raw Image'
+[xUnit.net 00:06:17.88]            ok: the image summary appears
+[xUnit.net 00:06:17.88]            == TIMEOUT waiting for: preprocess=Applied without Run Preprocessing: title='ImageProcTest GUI-S0'
+[xUnit.net 00:06:17.88]               + +
+[xUnit.net 00:06:17.88]               + -
+[xUnit.net 00:06:17.88]               + 0
+[xUnit.net 00:06:17.88]               + 0  /  0
+[xUnit.net 00:06:17.88]               + 0 defer
+[xUnit.net 00:06:17.88]               + 0 fail
+[xUnit.net 00:06:17.88]               + 0 pass
+[xUnit.net 00:06:17.88]               + 0 studies loaded
+[xUnit.net 00:06:17.88]               + 1:1
+[xUnit.net 00:06:17.88]               + ?
+[xUnit.net 00:06:17.88]               + A  Grid suppression
+[xUnit.net 00:06:17.88]               + All
+[xUnit.net 00:06:17.88]               + B  Grid suppression
+[xUnit.net 00:06:17.88]               + Body Part
+[xUnit.net 00:06:17.88]               + C  3659  · W  460
+[xUnit.net 00:06:17.88]               + Calib:  not run
+[xUnit.net 00:06:17.88]               + Clear Alerts
+[xUnit.net 00:06:17.88]               + Clear Logs
+[xUnit.net 00:06:17.88]               + Delta
+[xUnit.net 00:06:17.88]               + Difference
+[xUnit.net 00:06:17.88]               + Done
+[xUnit.net 00:06:17.88]               + Export bundle
+[xUnit.net 00:06:17.88]               + FIXTURE SET
+[xUnit.net 00:06:17.88]               + Fit
+[xUnit.net 00:06:17.88]               + Focus
+[xUnit.net 00:06:17.88]               + Histogram
+[xUnit.net 00:06:17.88]               + ImageProcTest GUI ·  Run #20261012-163810-638d6d
+[xUnit.net 00:06:17.88]               + Initialize Backend
+[xUnit.net 00:06:17.88]               + LANE A
+[xUnit.net 00:06:17.88]               + LANE A — REFERENCE
+[xUnit.net 00:06:17.88]               + LANE B
+[xUnit.net 00:06:17.88]               + LANE B — CANDIDATE
+[xUnit.net 00:06:17.88]               + Load Raw Image
+[xUnit.net 00:06:17.88]               + Log
+[xUnit.net 00:06:17.88]               + METRIC
+[xUnit.net 00:06:17.88]               + Metrics
+[xUnit.net 00:06:17.88]               + Metrics populated after pipeline run.
+[xUnit.net 00:06:17.88]               + Overlay
+[xUnit.net 00:06:17.88]               + Parameters
+[xUnit.net 00:06:17.88]               + Processed
+[xUnit.net 00:06:17.88]               + Quantitative Quality
+[xUnit.net 00:06:17.88]               + Queued
+[xUnit.net 00:06:17.88]               + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3659.338, W=459.577) -> GSDF(off)
+[xUnit.net 00:06:17.88]               + ROI
+[xUnit.net 00:06:17.88]               + RUN-SET
+[xUnit.net 00:06:17.88]               + Record result for
+[xUnit.net 00:06:17.88]               + Run on all queued
+[xUnit.net 00:06:17.88]               + Run-set
+[xUnit.net 00:06:17.88]               + STUDY
+[xUnit.net 00:06:17.88]               + Save & Next →
+[xUnit.net 00:06:17.88]               + Save Settings
+[xUnit.net 00:06:17.88]               + Shutdown Backend
+[xUnit.net 00:06:17.88]               + Source
+[xUnit.net 00:06:17.88]               + Split
+[xUnit.net 00:06:17.88]               + Study queue
+[xUnit.net 00:06:17.88]               + Swipe
+[xUnit.net 00:06:17.88]               + VERDICT
+[xUnit.net 00:06:17.88]               + VOI 폭
+[xUnit.net 00:06:17.88]               + VOI:  LinearExact
+[xUnit.net 00:06:17.88]               + WINDOW
+[xUnit.net 00:06:17.88]               + X
+[xUnit.net 00:06:17.88]               + XPE Evaluation Workbench
+[xUnit.net 00:06:17.88]               + _Backend
+[xUnit.net 00:06:17.88]               + _File
+[xUnit.net 00:06:17.88]               + _Help
+[xUnit.net 00:06:17.88]               + _Pipeline
+[xUnit.net 00:06:17.88]               + _Tools
+[xUnit.net 00:06:17.88]               + _View
+[xUnit.net 00:06:17.88]               + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, Linea...
+[xUnit.net 00:06:17.88]               + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, enhance_basic=296 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+[xUnit.net 00:06:17.88]               + fit
+[xUnit.net 00:06:17.88]               + gui-s0/golden-26.manifest
+[xUnit.net 00:06:17.88]               + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=onedll
+[xUnit.net 00:06:17.88]               + ⌕
+[xUnit.net 00:06:17.88]               + ⏸ Defer
+[xUnit.net 00:06:17.88]               + ⚙
+[xUnit.net 00:06:17.88]               + ✓ Pass
+[xUnit.net 00:06:17.88]               + ✗ Fail
+[xUnit.net 00:06:17.88]               + 미적용
+[xUnit.net 00:06:17.88]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing [3 m 8 s]
+  오류 메시지:
+   timed out (180 s) waiting for: preprocess=Applied without Run Preprocessing
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 921
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 420
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    == TIMEOUT waiting for: preprocess=Applied without Run Preprocessing: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  Grid suppression
+       + All
+       + B  Grid suppression
+       + Body Part
+       + C  3659  · W  460
+       + Calib:  not run
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261012-163810-638d6d
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Metrics
+       + Metrics populated after pipeline run.
+       + Overlay
+       + Parameters
+       + Processed
+       + Quantitative Quality
+       + Queued
+       + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3659.338, W=459.577) -> GSDF(off)
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI 폭
+       + VOI:  LinearExact
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, Linea...
+       + chain: preprocess=NotRequested, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, enhance_basic=296 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=onedll
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+       + 미적용
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 2
+     실패: 2
+ 총 시간: 6.3038 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

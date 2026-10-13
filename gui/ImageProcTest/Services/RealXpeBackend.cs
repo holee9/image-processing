@@ -100,9 +100,13 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     // @MX:WARN: [AUTO] Allocates native XpeImageBufferNative via xpe_alloc_image; try/finally ensures xpe_free_image on any exception path
     // @MX:REASON: Native memory is not GC-managed; omitting finally causes heap leak in xpe_common.dll; do not restructure without preserving the try/finally guard
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings) =>
-        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, displayInput, settings));
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, displayInput, null, settings));
 
-    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    /// <summary>GUI-C-234c: windows the float image of the chain run that made <paramref name="chain"/>'s pixels (when its last stage had one), taken from the run's own result.</summary>
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings) =>
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, chain.DisplayInput, chain.DisplayFloats, settings));
+
+    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, ushort[] displayInput, float[]? chainFloats, AppSettings settings)
     {
         if (displayInput is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
@@ -133,10 +137,20 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                 "xpe_alloc_image");
             allocated = true;
 
-            var floatPixels = new float[count];
-            for (var i = 0; i < count; i++)
+            // GUI-C-234 / 234c: when the chain's last stage was the enhancement, window ITS float image (the module chain's), not the copy rounded to 16 bits. The floats arrive with the run's own result
+            // (ChainResult.DisplayFloats); nothing shared between runs is read, so an overlapping run cannot supply them.
+            float[] floatPixels;
+            if (chainFloats is not null && chainFloats.Length == count)
             {
-                floatPixels[i] = displayInput[i];
+                floatPixels = chainFloats;
+            }
+            else
+            {
+                floatPixels = new float[count];
+                for (var i = 0; i < count; i++)
+                {
+                    floatPixels[i] = displayInput[i];
+                }
             }
 
             Marshal.Copy(floatPixels, 0, image.Data, count);
@@ -200,6 +214,12 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             nativeMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
             var processedPixels = CopyNativeUInt16Pixels(image.Data, count);
+            // GUI-C-234 (milestone 3, U4): a test hook, like XPE_GUI_AUTOMATION_RAW_PATH: when this variable names a file, the display stage's final 16-bit pixels are written there (raw little-endian, row-major,
+            // width x height x 2 bytes) so a test can compare them byte for byte with the module chain's output. Nothing else reads it; an unwritable path never disturbs the render.
+            if (Environment.GetEnvironmentVariable("XPE_GUI_AUTOMATION_EXPORT_PROCESSED16") is { Length: > 0 } processed16Path)
+            {
+                try { File.WriteAllBytes(processed16Path, MemoryMarshal.AsBytes(processedPixels.AsSpan()).ToArray()); } catch (IOException) { /* diagnostics only */ } catch (UnauthorizedAccessException) { /* diagnostics only */ }
+            }
             marshalOutMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
@@ -313,7 +333,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex, rawFrame.RawPixels, found => candidate = found),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
-            StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height),
+            StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height, !measureExposureIndex && candidate is not null ? candidate.Floats : null),   // BuildStages puts enhance right after preprocess, so a preprocess that applied is its input
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
 
@@ -344,7 +364,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.SelectedBodyPart,
             settings.ExposureKvp,
             settings.PixelPitchMm,
-            measureExposureIndex));
+            true));   // GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index is measured on every run, not only the Baseline's (measureExposureIndex here means 'Baseline run' and is not passed on)
 
         // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
         if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
@@ -352,7 +372,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             candidateSink?.Invoke(new CorrectedImage(floats, width, height, frameKey));
         }
 
-        return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount);
+        return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount, result.Skipped);
     }
 
     /// <summary>
@@ -391,10 +411,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     /// #225 row 9 (GUI-C-196 M2): the basic enhancement stage of the Deterministic Baseline. InvokeNative so the alert drain runs afterwards on every path,
     /// as for the other stages. All of the stage's rules (one float image, one conversion back, all-or-nothing) are in <see cref="EnhanceBasicStage"/>.
     /// </summary>
-    private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height)
+    private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height, float[]? floatInput = null)
     {
-        var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend()));
-        return BaselineStageAdapters.FromEnhance(result);
+        var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend(), floatInput));
+        return BaselineStageAdapters.FromEnhance(result);   // GUI-C-234c: the floats ride on the stage's outcome (StageExecution.Floats), not in a field of this backend
     }
 
     /// <summary>

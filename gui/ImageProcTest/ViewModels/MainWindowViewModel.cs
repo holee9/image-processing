@@ -133,6 +133,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // #161: one list, in Models. This array used to be a third copy of the mode vocabulary.
         CompareModeOptions = ComparisonModes.All;
         Settings.PropertyChanged += OnSettingsPropertyChanged;
+        AcknowledgePreprocessOffNoticeCommand = new RelayCommand(AcknowledgePreprocessOffNotice);
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
         SetBackendModeCommand = new RelayCommand<string>(SetBackendMode);
@@ -213,6 +214,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // Same ordering reason as the line above (and it no longer depends on the clear, which
         // GUI-C-126 replaced with a separator).
         ReportUnreadableSettings(preservedSettingsPath, preservedSettingsIsFromAnEarlierFailure);
+        ReportPreprocessOffFromEarlierSettings();
     }
 
     /// <summary>
@@ -248,6 +250,57 @@ public sealed class MainWindowViewModel : ObservableObject
         // RaiseAlert already wrote the line; saying it twice would put the same sentence in the log
         // twice, once with the ALERT marker and once without (#198 ①, GUI-C-125).
         StatusText = message;
+    }
+
+    /// <summary>
+    /// GUI-C-234c/234d (Codex #181 finding 1, #182 findings 1-2): the settings file was written by an earlier build with preprocessing off, which may only be the old default. The value is kept and the
+    /// operator is told - with an alert (it stays in the list, and clearing the list does not acknowledge it), a status line and a notice with an OK button (<see cref="PreprocessOffNotice"/>) that stays until
+    /// it is acknowledged. Nothing here writes the file: the notice counts as seen only when the operator says so (<see cref="AcknowledgePreprocessOffNotice"/>), so quitting before that brings it back at
+    /// the next start.
+    /// </summary>
+    private void ReportPreprocessOffFromEarlierSettings()
+    {
+        if (PreprocessOffNotice is not { } message)
+        {
+            return;
+        }
+
+        RaiseAlert(new AlertEntry
+        {
+            Severity = "WARN",
+            Code = "PREPROCESS_OFF_FROM_EARLIER_SETTINGS",
+            Message = message,
+            Timestamp = DateTimeOffset.Now
+        });
+        StatusText = message;
+    }
+
+    /// <summary>The notice text while it stands: stored unacknowledged and preprocessing really is off. Null otherwise.</summary>
+    public string? PreprocessOffNotice =>
+        Settings.PreprocessOffNoticeUnacknowledged && !Settings.PreprocessInChain
+            ? "Preprocessing is off because of a setting stored by an earlier version. The default is now on (offset, gain and defect correction run when calibration data is loaded). " +
+              "Turn on \"Preprocess (offset → gain → defect)\" in the Parameters tab (or Run Preprocessing) to use it, or press OK to keep it off."
+            : null;
+
+    public bool HasPreprocessOffNotice => PreprocessOffNotice is not null;
+
+    public RelayCommand AcknowledgePreprocessOffNoticeCommand { get; private set; } = null!;
+
+    /// <summary>The operator acknowledged the notice: stored as acknowledged. Preprocessing stays as it is; the render still says "not run" in the HUD.</summary>
+    private void AcknowledgePreprocessOffNotice()
+    {
+        Settings.PreprocessOffNoticeUnacknowledged = false;
+        try
+        {
+            _settingsService.Save(Settings);
+        }
+        catch (Exception exception)
+        {
+            Log($"Could not store that the notice was acknowledged: {exception.Message}");
+        }
+
+        OnPropertyChanged(nameof(PreprocessOffNotice));
+        OnPropertyChanged(nameof(HasPreprocessOffNotice));
     }
 
     public AppSettings Settings { get; }
@@ -961,8 +1014,8 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>
     /// GUI-C-233k (Codex #179): the HUD's "Calib:" line says what the render's chain ACTUALLY RAN, taken from the preprocess stage's own outcome - not from how many calibration modes the settings
     /// hold (that counted 7/7 on a render where preprocessing never ran: the default <c>PreprocessInChain</c> is off). "—" while no render stands; "not run" when the stage was not requested;
-    /// "failed" when it was requested and did not apply; otherwise the stages the call runs (<see cref="GuiPreprocessRunner.ExecutedStages"/>). The configured modes are in the report under
-    /// <c>calibrationEvaluation</c>, labelled as configured.
+    /// "failed" when it was requested and did not apply; otherwise the stages the call runs (<see cref="GuiPreprocessRunner.ExecutedStages"/>). GUI-C-234b: a stage that was asked for and SKIPPED
+    /// (no calibration data, a backend without the module) is "not run (&lt;short reason&gt;)", never "failed". The configured modes are in the report under <c>calibrationEvaluation</c>, labelled as configured.
     /// </summary>
     public string CalibStageCountDisplay
     {
@@ -978,10 +1031,36 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 StageStatus.Applied or StageStatus.AppliedNoChange => $"{GuiPreprocessRunner.ExecutedStages.Length} stages ({string.Join(" · ", GuiPreprocessRunner.ExecutedStages)})",
                 StageStatus.RequestedNotApplied => "failed",
+                StageStatus.Skipped => $"not run ({ShortReasonOf(preprocess.Reason)})",
                 _ => "not run",
             };
         }
     }
+
+    /// <summary>GUI-C-234b: the part of a skip reason before the first colon ("no calibration data: offset.xcal ... not found" gives "no calibration data").</summary>
+    private static string ShortReasonOf(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return "skipped";
+        }
+
+        var colon = reason.IndexOf(':', StringComparison.Ordinal);
+        return (colon > 0 ? reason[..colon] : reason).Trim();
+    }
+
+    /// <summary>
+    /// GUI-C-234c (Codex #181 finding 3): the warning that belongs to the render on screen - preprocessing was asked for (it is on by default) but skipped for want of calibration data, on the NATIVE backend, so the
+    /// picture is not corrected. Read from the render record, so it stays while that image is shown (a later alert, status line or other action does not replace it) and goes with the record. Null otherwise;
+    /// the Mock backend, which has no module, gets an INFO alert and no banner.
+    /// </summary>
+    public string? RenderedPreprocessWarning =>
+        _render is { Backend.Mode: "Native" } rendered
+        && rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess) is { Status: StageStatus.Skipped } skipped
+            ? $"NOT CORRECTED - preprocessing is on but was skipped ({ShortReasonOf(skipped.Reason)}). Load calibration data and apply again."
+            : null;
+
+    public bool HasRenderedPreprocessWarning => RenderedPreprocessWarning is not null;
 
     /// <summary>The preprocess stage's status in the render on screen, or null when no render stands / the chain has no such stage.</summary>
     private StageStatus? RenderedPreprocessStatus => _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Status;
@@ -1018,6 +1097,35 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public string? RenderedVoiMode => _render?.Voi.Mode;
 
+    /// <summary>
+    /// GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index of the last chain run, in words. The value is the preprocess stage's own sentence (the module's EI/DI of the corrected image, labelled
+    /// "uncalibrated" because K_cal and S0 are not calibrated: a measurement, not a pass criterion); when no value could be made, the reason (a stage that did not run, a module refusal).
+    /// </summary>
+    public string ExposureIndexText => _render is null ? NoExposureIndex : ExposureIndexOf(_render.Chain);
+
+    private const string NoExposureIndex = "Exposure index: not measured yet.";
+
+    private static string ExposureIndexOf(ChainResult chain)
+    {
+        var preprocess = chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+        if (preprocess is null || preprocess.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange))
+        {
+            // GUI-C-234b: the same reason the HUD gives ("not run (no calibration data)"), so the two lines cannot disagree about why there is no value.
+            var why = preprocess?.Status switch
+            {
+                StageStatus.Skipped => $": {ShortReasonOf(preprocess.Reason)}",
+                StageStatus.RequestedNotApplied => ": it failed",
+                StageStatus.NotRequested => ": it is switched off",
+                _ => string.Empty,
+            };
+            return $"Exposure index: not measured (preprocessing did not run{why}).";
+        }
+
+        const string Marker = "uncalibrated EI";
+        var at = preprocess.Reason?.IndexOf(Marker, StringComparison.Ordinal) ?? -1;
+        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + preprocess.Reason![at..].Trim();
+    }
+
     /// <summary>GUI-C-233c: whether the window of the render on screen was the automatic one (true), one chosen by hand (false), or unknown / no render yet (null).</summary>
     public bool? RenderedVoiAutomatic => _render?.Voi.Automatic;
 
@@ -1053,9 +1161,9 @@ public sealed class MainWindowViewModel : ObservableObject
     private static readonly string[] RenderDerivedProperties =
     [
         nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
-        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
+        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
-        nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel),
+        nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel), nameof(RenderedPreprocessWarning), nameof(HasRenderedPreprocessWarning),
     ];
 
     /// <summary>
@@ -1370,7 +1478,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             if (Settings.LaneAAlgorithm == value) return;
             Settings.LaneAAlgorithm = value;
-            AlgorithmPreset.For(value).ApplyTo(Settings);
+            AlgorithmPreset.For(value).ApplyToMain(Settings);   // GUI-C-234c: the grid correction only; the preprocessing switch is not the preset's to turn off
             OnPropertyChanged();
         }
     }
@@ -2384,6 +2492,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 display = Settings.ShowDisplayPanel,
                 logs = ShowLogsPanel
             },
+            exposureIndex = ExposureIndexText,   // GUI-C-234
             displayPipeline = new
             {
                 // GUI-C-233g: every applied value below is read from the render record (null / false while none stands); the CURRENT runtime is the top-level backend / actualBackendMode / mockBackend,
@@ -2406,7 +2515,8 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 // GUI-C-233k: the modes and the summary below are what was CONFIGURED for the render. What actually ran is `executed` (the preprocess stage runs offset, gain and defect; the other four
                 // modes are not connected to that call), and it is what the HUD's "Calib:" line shows.
-                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), hud = CalibStageCountDisplay, stages = RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
+                // GUI-C-234b: `reason` is the preprocess stage's own reason (why it was skipped or failed, or its summary when it ran); null with no render.
+                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages =RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
                 // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
                 summary = RenderedInputs is null ? null : FormatCalibrationModes(RenderedInputs),
                 // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
@@ -2618,7 +2728,7 @@ public sealed class MainWindowViewModel : ObservableObject
             var (chain, processedFrame) = await Task.Run(() =>
             {
                 var chainResult = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(inputs), inputs);
-                return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
+                return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult, inputs));
             });
             var workMs = work.Elapsed.TotalMilliseconds;
 
@@ -2644,7 +2754,8 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             DrainBackendTelemetry();
-            var chainReport = ReportChain(chain);
+            var renderBackend = RenderBackend.From(backend.GetRuntimeInfo());
+            var chainReport = ReportChain(chain, renderBackend.Mode == "Native");
 
             // GUI-C-232b: the save candidate is committed together with the render and only from THIS (current, not cancelled) result; a run that applied no preprocess clears it.
             _committedCorrected = (backend as ICorrectedImageSource)?.CorrectedFor(chain);
@@ -2655,7 +2766,7 @@ public sealed class MainWindowViewModel : ObservableObject
             // GUI-C-233g: the commit. One record, made from this render's own inputs, chain, window, summary and the backend that ran it (asked from the ticket's backend, not from whatever is current later).
             var committed = new RenderRecord(
                 inputs,
-                RenderBackend.From(backend.GetRuntimeInfo()),
+                renderBackend,
                 RenderedVoi.From(inputs, processedFrame.AppliedVoi),
                 chain,
                 chainReport.Status,
@@ -2670,7 +2781,7 @@ public sealed class MainWindowViewModel : ObservableObject
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
-            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
+            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary} | {ExposureIndexText}";
             await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket, committed.Id);
             if (!IsCurrent(ticket))
             {
@@ -2930,12 +3041,12 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>What <see cref="ReportChain"/> derives from a chain for the render record.</summary>
     private readonly record struct ChainReport(string Status, string AiLabel, bool PreprocessRan, string PreprocessStages);
 
-    private ChainReport ReportChain(ChainResult chain)
+    private ChainReport ReportChain(ChainResult chain, bool native)
     {
         // The reason of a stage that did not apply belongs on screen: "RequestedNotApplied" alone sends
         // the operator to the log to find out why (#180, GUI-C-101).
         var refused = chain.Stages
-            .Where(st => st.Status == StageStatus.RequestedNotApplied)
+            .Where(st => st.Status is StageStatus.RequestedNotApplied or StageStatus.Skipped)
             .Select(st => $"{st.StageId}: {st.Reason}")
             .ToArray();
         // #225 row 10 (GUI-C-184): the label is derived from the stage's STATUS, which the chain derives from the module's
@@ -2957,6 +3068,28 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 preprocessRan = stage.Status is StageStatus.Applied or StageStatus.AppliedNoChange;
                 preprocessStages = stage.Reason;
+            }
+
+            if (stage.Status == StageStatus.Skipped)
+            {
+                // GUI-C-234c (Codex #181 finding 3): preprocessing is on by default, so an image shown without it is not a neutral outcome. Native: the operator asked for the correction (default) and the
+                // image is UNCORRECTED - a WARN, and the render record keeps the warning (RenderedPreprocessWarning) for as long as that image is on screen. Mock has no preprocessing module at all: INFO,
+                // different wording, no banner.
+                RaiseAlert(native
+                    ? new AlertEntry
+                    {
+                        Severity = "WARN",
+                        Code = "PREPROCESS_SKIPPED_NO_CALIBRATION",
+                        Message = $"Preprocessing is on but was skipped: {stage.Reason} The image is shown WITHOUT offset/gain/defect correction.",
+                        Timestamp = DateTimeOffset.Now,
+                    }
+                    : new AlertEntry
+                    {
+                        Severity = "INFO",
+                        Code = "PREPROCESS_UNAVAILABLE_IN_MOCK",
+                        Message = $"Preprocessing was not run: {stage.Reason}",
+                        Timestamp = DateTimeOffset.Now,
+                    });
             }
 
             if (stage.Status == StageStatus.RequestedNotApplied)
@@ -3287,6 +3420,18 @@ public sealed class MainWindowViewModel : ObservableObject
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         RefreshParametersStale();   // #171 ①
+
+        // GUI-C-234d: switching preprocessing on is the answer to the notice; the notice goes with it (and does not return if it is switched off again by hand).
+        if (e.PropertyName == nameof(AppSettings.PreprocessInChain) && Settings.PreprocessInChain && Settings.PreprocessOffNoticeUnacknowledged)
+        {
+            Settings.PreprocessOffNoticeUnacknowledged = false;
+        }
+
+        if (e.PropertyName is nameof(AppSettings.PreprocessInChain) or nameof(AppSettings.PreprocessOffNoticeUnacknowledged))
+        {
+            OnPropertyChanged(nameof(PreprocessOffNotice));
+            OnPropertyChanged(nameof(HasPreprocessOffNotice));
+        }
 
         // GUI-C-233: a window the user chooses wins over the automatic one. Only this handler turns the automatic window off, so loading a settings file (which sets these values) never does.
         if (e.PropertyName is nameof(AppSettings.VoiWindowCenter) or nameof(AppSettings.VoiWindowWidth) or nameof(AppSettings.VoiLutMode) && Settings.VoiWindowAuto)
@@ -3829,7 +3974,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
     {
         var chain = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
-        var frame = backend.ApplyDisplayPipeline(sourceFrame, chain.DisplayInput, settings);
+        var frame = backend.ApplyDisplayPipeline(sourceFrame, chain, settings);
         return frame.ProcessedPreview ?? frame.Preview;
     }
 
