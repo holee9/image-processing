@@ -133,6 +133,26 @@
                        MaxWidth="520" />
         </Border>
 
+        <!-- GUI-C-234c (Codex #181): preprocessing is on by default; on the Native backend a skip leaves the image uncorrected, and this stays up as long as that image is on screen. -->
+        <Border x:Name="PreprocessSkippedBanner"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,100,0,0"
+                Padding="10,6"
+                CornerRadius="6"
+                Background="#E6B91C1C"
+                BorderBrush="#FFEF4444"
+                BorderThickness="1"
+                Visibility="{Binding HasRenderedPreprocessWarning, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+            <TextBlock AutomationProperties.AutomationId="PreprocessSkippedIndicator"
+                       Text="{Binding RenderedPreprocessWarning, Mode=OneWay}"
+                       Foreground="#FFFEF2F2"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       TextWrapping="Wrap"
+                       MaxWidth="520" />
+        </Border>
+
         <!-- View Toolbar (floating, top-center) -->
         <Border HorizontalAlignment="Center"
                 VerticalAlignment="Top"

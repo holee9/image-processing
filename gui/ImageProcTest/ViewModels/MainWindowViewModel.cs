@@ -213,6 +213,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // Same ordering reason as the line above (and it no longer depends on the clear, which
         // GUI-C-126 replaced with a separator).
         ReportUnreadableSettings(preservedSettingsPath, preservedSettingsIsFromAnEarlierFailure);
+        ReportPreprocessOffFromEarlierSettings();
     }
 
     /// <summary>
@@ -248,6 +249,39 @@ public sealed class MainWindowViewModel : ObservableObject
         // RaiseAlert already wrote the line; saying it twice would put the same sentence in the log
         // twice, once with the ALERT marker and once without (#198 ①, GUI-C-125).
         StatusText = message;
+    }
+
+    /// <summary>
+    /// GUI-C-234c (Codex #181 finding 1): the stored settings say preprocessing is off. Before the default was changed to on, off was the default and the settings file recorded it whether or not anyone chose
+    /// it, so the app keeps the stored value (the choice cannot be told from the default) and says so once, as an alert that stays in the list: the image is then shown without offset/gain/defect correction.
+    /// </summary>
+    private void ReportPreprocessOffFromEarlierSettings()
+    {
+        if (!Settings.PreprocessOffNoticePending)
+        {
+            return;
+        }
+
+        Settings.PreprocessOffNoticePending = false;
+        Settings.PreprocessOffNoticeShown = true;
+        var message = "Preprocessing is off because of a setting stored by an earlier version. The default is now on (offset, gain and defect correction run when calibration data is loaded). " +
+                      "Turn on \"Preprocess (offset → gain → defect)\" in the Parameters tab (or Run Preprocessing) to use it.";
+        RaiseAlert(new AlertEntry
+        {
+            Severity = "WARN",
+            Code = "PREPROCESS_OFF_FROM_EARLIER_SETTINGS",
+            Message = message,
+            Timestamp = DateTimeOffset.Now
+        });
+        StatusText = message;
+        try
+        {
+            _settingsService.Save(Settings);   // so the notice is once, not on every start
+        }
+        catch (Exception exception)
+        {
+            Log($"Could not store that the notice was shown: {exception.Message}");
+        }
     }
 
     public AppSettings Settings { get; }
@@ -996,6 +1030,19 @@ public sealed class MainWindowViewModel : ObservableObject
         return (colon > 0 ? reason[..colon] : reason).Trim();
     }
 
+    /// <summary>
+    /// GUI-C-234c (Codex #181 finding 3): the warning that belongs to the render on screen - preprocessing was asked for (it is on by default) but skipped for want of calibration data, on the NATIVE backend, so the
+    /// picture is not corrected. Read from the render record, so it stays while that image is shown (a later alert, status line or other action does not replace it) and goes with the record. Null otherwise;
+    /// the Mock backend, which has no module, gets an INFO alert and no banner.
+    /// </summary>
+    public string? RenderedPreprocessWarning =>
+        _render is { Backend.Mode: "Native" } rendered
+        && rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess) is { Status: StageStatus.Skipped } skipped
+            ? $"NOT CORRECTED - preprocessing is on but was skipped ({ShortReasonOf(skipped.Reason)}). Load calibration data and apply again."
+            : null;
+
+    public bool HasRenderedPreprocessWarning => RenderedPreprocessWarning is not null;
+
     /// <summary>The preprocess stage's status in the render on screen, or null when no render stands / the chain has no such stage.</summary>
     private StageStatus? RenderedPreprocessStatus => _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Status;
 
@@ -1097,7 +1144,7 @@ public sealed class MainWindowViewModel : ObservableObject
         nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
         nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
-        nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel),
+        nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel), nameof(RenderedPreprocessWarning), nameof(HasRenderedPreprocessWarning),
     ];
 
     /// <summary>
@@ -1412,7 +1459,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             if (Settings.LaneAAlgorithm == value) return;
             Settings.LaneAAlgorithm = value;
-            AlgorithmPreset.For(value).ApplyTo(Settings);
+            AlgorithmPreset.For(value).ApplyToMain(Settings);   // GUI-C-234c: the grid correction only; the preprocessing switch is not the preset's to turn off
             OnPropertyChanged();
         }
     }
@@ -2662,7 +2709,7 @@ public sealed class MainWindowViewModel : ObservableObject
             var (chain, processedFrame) = await Task.Run(() =>
             {
                 var chainResult = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(inputs), inputs);
-                return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
+                return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult, inputs));
             });
             var workMs = work.Elapsed.TotalMilliseconds;
 
@@ -2688,7 +2735,8 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             DrainBackendTelemetry();
-            var chainReport = ReportChain(chain);
+            var renderBackend = RenderBackend.From(backend.GetRuntimeInfo());
+            var chainReport = ReportChain(chain, renderBackend.Mode == "Native");
 
             // GUI-C-232b: the save candidate is committed together with the render and only from THIS (current, not cancelled) result; a run that applied no preprocess clears it.
             _committedCorrected = (backend as ICorrectedImageSource)?.CorrectedFor(chain);
@@ -2699,7 +2747,7 @@ public sealed class MainWindowViewModel : ObservableObject
             // GUI-C-233g: the commit. One record, made from this render's own inputs, chain, window, summary and the backend that ran it (asked from the ticket's backend, not from whatever is current later).
             var committed = new RenderRecord(
                 inputs,
-                RenderBackend.From(backend.GetRuntimeInfo()),
+                renderBackend,
                 RenderedVoi.From(inputs, processedFrame.AppliedVoi),
                 chain,
                 chainReport.Status,
@@ -2974,7 +3022,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>What <see cref="ReportChain"/> derives from a chain for the render record.</summary>
     private readonly record struct ChainReport(string Status, string AiLabel, bool PreprocessRan, string PreprocessStages);
 
-    private ChainReport ReportChain(ChainResult chain)
+    private ChainReport ReportChain(ChainResult chain, bool native)
     {
         // The reason of a stage that did not apply belongs on screen: "RequestedNotApplied" alone sends
         // the operator to the log to find out why (#180, GUI-C-101).
@@ -3001,6 +3049,28 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 preprocessRan = stage.Status is StageStatus.Applied or StageStatus.AppliedNoChange;
                 preprocessStages = stage.Reason;
+            }
+
+            if (stage.Status == StageStatus.Skipped)
+            {
+                // GUI-C-234c (Codex #181 finding 3): preprocessing is on by default, so an image shown without it is not a neutral outcome. Native: the operator asked for the correction (default) and the
+                // image is UNCORRECTED - a WARN, and the render record keeps the warning (RenderedPreprocessWarning) for as long as that image is on screen. Mock has no preprocessing module at all: INFO,
+                // different wording, no banner.
+                RaiseAlert(native
+                    ? new AlertEntry
+                    {
+                        Severity = "WARN",
+                        Code = "PREPROCESS_SKIPPED_NO_CALIBRATION",
+                        Message = $"Preprocessing is on but was skipped: {stage.Reason} The image is shown WITHOUT offset/gain/defect correction.",
+                        Timestamp = DateTimeOffset.Now,
+                    }
+                    : new AlertEntry
+                    {
+                        Severity = "INFO",
+                        Code = "PREPROCESS_UNAVAILABLE_IN_MOCK",
+                        Message = $"Preprocessing was not run: {stage.Reason}",
+                        Timestamp = DateTimeOffset.Now,
+                    });
             }
 
             if (stage.Status == StageStatus.RequestedNotApplied)
@@ -3873,7 +3943,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
     {
         var chain = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
-        var frame = backend.ApplyDisplayPipeline(sourceFrame, chain.DisplayInput, settings);
+        var frame = backend.ApplyDisplayPipeline(sourceFrame, chain, settings);
         return frame.ProcessedPreview ?? frame.Preview;
     }
 

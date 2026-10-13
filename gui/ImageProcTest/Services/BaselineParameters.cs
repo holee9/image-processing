@@ -12,10 +12,10 @@ namespace ImageProcTest.Services;
 /// threshold 10.0. Whether those defaults suit an image in the 0..65535 range after the log transform has NOT been checked; that is image quality,
 /// which this command does not judge.</para>
 ///
-/// <para><b>The log normalisation factor is an ASSUMPTION with no basis in any specification, valid for the baseline command only.</b> The module computes
+/// <para><b>The log normalisation factor is a chosen value, not a specified one</b> (GUI-C-234c: this paragraph used to describe the GUI-C-196 value, which the field below replaced). The module computes
 /// <c>normFactor * log10(x + 1)</c> (xpe_log_transform); no document gives a value (docs/enhance-basic/README.md shows the second argument as "epsilon", which
-/// contradicts the API). <c>65535 / log10(65536)</c> maps the 16-bit full scale to the 16-bit full scale, so the display stage that follows keeps the pixel range
-/// its default window assumes. A different value, if the lead sets one, changes this constant and nothing else.</para>
+/// contradicts the API). The value in force is the one the module chain was verified with - see <see cref="LogNormFactor"/> for the reason and the consequence for the Baseline's fingerprint and display range.
+/// A different value, if the lead sets one, changes that constant and nothing else.</para>
 /// </summary>
 public static class BaselineParameters
 {

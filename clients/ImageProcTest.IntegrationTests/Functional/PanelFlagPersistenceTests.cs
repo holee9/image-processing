@@ -16,26 +16,47 @@ namespace ImageProcTest.IntegrationTests.Functional;
 public sealed class PanelFlagPersistenceTests
 {
     /// <summary>
-    /// GUI-C-234b (U3): preprocessing is ON in the default chain, also for someone who ran an older version. The old default was off, so an old file's <c>"preprocessInChain": false</c> is not a choice
-    /// and must not keep the new default from arriving; a choice made with this version (stored under the new key) is kept. The control: the same file's other keys are read.
+    /// GUI-C-234c (Codex #181 finding 1): preprocessing is ON for a new install, and a stored value is KEPT. An old file's <c>"preprocessInChain": false</c> was the old default as often as it was a choice and
+    /// the loader cannot tell which, so it does not guess: the off stays off and is announced once (<see cref="AppSettings.PreprocessOffNoticePending"/>, then <see cref="AppSettings.PreprocessOffNoticeShown"/>).
+    /// A file without the key gets the default and no notice; a stored on is kept quietly.
     /// </summary>
     [Fact]
-    public void PreprocessIsOnByDefault_AnOldFilesSavedOffDoesNotKeepItOff_ButAChoiceMadeNowIsKept()
+    public void PreprocessIsOnForANewInstall_AStoredValueIsKept_AndAStoredOffIsAnnouncedOnce()
     {
         Assert.True(new AppSettings().PreprocessInChain);
 
-        var path = Path.Combine(Path.GetTempPath(), $"xpe-c234b-{Guid.NewGuid():N}.json");
-        File.WriteAllText(path, "{ \"voiWindowCenter\": 1234, \"preprocessInChain\": false }");
+        var path = Path.Combine(Path.GetTempPath(), $"xpe-c234c-{Guid.NewGuid():N}.json");
         try
         {
             var service = new AppSettingsService(path);
-            var upgraded = service.Load().Settings;
-            Assert.Equal(1234, upgraded.VoiWindowCenter);        // control: the file was read
-            Assert.True(upgraded.PreprocessInChain);             // the old default does not win
+
+            File.WriteAllText(path, "{ \"voiWindowCenter\": 1234, \"preprocessInChain\": false }");
+            var storedOff = service.Load().Settings;
+            Assert.Equal(1234, storedOff.VoiWindowCenter);              // control: the file was read
+            Assert.False(storedOff.PreprocessInChain);                  // the stored value is kept, not replaced by the new default
+            Assert.True(storedOff.PreprocessOffNoticePending);          // and the operator is told
+
+            storedOff.PreprocessOffNoticeShown = true;                  // what the view model does once it has said it
+            service.Save(storedOff);
+            var afterNotice = service.Load().Settings;
+            Assert.False(afterNotice.PreprocessInChain);
+            Assert.False(afterNotice.PreprocessOffNoticePending);       // once, not on every start
+            var written = File.ReadAllText(path);
+            Assert.Contains("\"preprocessInChain\": false", written, StringComparison.Ordinal);   // the original key
+            Assert.DoesNotContain("preprocessInDefaultChain", written, StringComparison.Ordinal);
+
+            File.WriteAllText(path, "{ \"voiWindowCenter\": 1234 }");
+            var fresh = service.Load().Settings;
+            Assert.True(fresh.PreprocessInChain);                       // no key: the new default
+            Assert.False(fresh.PreprocessOffNoticePending);
+
+            File.WriteAllText(path, "{ \"preprocessInChain\": true }");
+            var storedOn = service.Load().Settings;
+            Assert.True(storedOn.PreprocessInChain);
+            Assert.False(storedOn.PreprocessOffNoticePending);
 
             service.Save(new AppSettings { PreprocessInChain = false });
-            Assert.False(service.Load().Settings.PreprocessInChain);   // a choice made now is kept
-            Assert.Contains("\"preprocessInDefaultChain\"", File.ReadAllText(path), StringComparison.Ordinal);
+            Assert.False(service.Load().Settings.PreprocessInChain);    // a choice made now is kept
         }
         finally
         {

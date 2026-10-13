@@ -88,6 +88,10 @@ internal class ScenarioBackend : IXpeBackend
         return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
     }
 
+    /// <summary>GUI-C-234c: the display call over a chain run's result (the one the view model makes); the default is the 16-bit call.</summary>
+    public virtual LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings) =>
+        ApplyDisplayPipeline(rawFrame, chain.DisplayInput, settings);
+
     public void Shutdown()
     {
         ShutdownMayEnd?.Wait(TimeSpan.FromSeconds(30));
@@ -112,6 +116,13 @@ internal sealed class PreprocessOutcomeBackend : ScenarioBackend
 {
     public StageStatus? Force;
 
+    /// <summary>GUI-C-234c: identify as the native backend (RealXpeBackend) so the Native-only skip warning can be driven without the DLLs.</summary>
+    public bool AsNative;
+
+    public override BackendRuntimeInfo Initialize(AppSettings settings) => AsNative ? NativeNamedBackend.Info() : base.Initialize(settings);
+
+    public override BackendRuntimeInfo GetRuntimeInfo() => AsNative ? NativeNamedBackend.Info() : base.GetRuntimeInfo();
+
     public override ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
     {
         var chain = base.RunChain(rawFrame, stages, settings);
@@ -125,10 +136,69 @@ internal sealed class PreprocessOutcomeBackend : ScenarioBackend
     }
 }
 
+/// <summary>
+/// GUI-C-234c: a scripted backend whose chain ends in a stage that carries a float image (as the enhancement does), the SAME rounded pixels for every run but a float array tagged with the run's number, and whose
+/// display call records the tag of the chain it was called with and the tag of the floats it was given.
+/// </summary>
+internal sealed class FloatTaggingBackend : ScenarioBackend
+{
+    private int _runs;
+
+    public readonly System.Collections.Concurrent.ConcurrentQueue<(int ChainTag, int FloatsTag)> DisplayCallQueue = new();
+
+    public IReadOnlyCollection<(int ChainTag, int FloatsTag)> DisplayCalls => DisplayCallQueue;
+
+    /// <summary>True while every display call came through the chain overload (none through the 16-bit one).</summary>
+    public bool ChainOverloadOnly => Volatile.Read(ref _ushortCalls) == 0;
+
+    private int _ushortCalls;
+
+    [ThreadStatic]
+    private static bool _inChainCall;
+
+    public override ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        var tag = Interlocked.Increment(ref _runs);
+        var chain = base.RunChain(rawFrame, stages, settings);
+        var raw = rawFrame.RawPixels ?? chain.Raw;
+        var floats = new float[raw.Length];
+        Array.Fill(floats, tag);   // tag in every element; the pixels below are identical for all runs
+        var tagged = new StageOutcome(StageIds.EnhanceBasic, StageStatus.Applied, (ushort[])raw.Clone(), "run " + tag, 0, 0, floats);
+        return chain with { Stages = new List<StageOutcome>(chain.Stages) { tagged } };
+    }
+
+    public override LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings)
+    {
+        var last = chain.Stages.LastOrDefault(s => s.Pixels is not null);
+        var chainTag = last is null ? -1 : int.Parse(last.Reason.AsSpan(4), System.Globalization.CultureInfo.InvariantCulture);
+        var floatsTag = chain.DisplayFloats is { Length: > 0 } f ? (int)f[0] : -2;
+        DisplayCallQueue.Enqueue((chainTag, floatsTag));
+        _inChainCall = true;   // the scenario backend's chain overload delegates to the 16-bit one on this thread; that delegation is not a 16-bit call by the view model
+        try
+        {
+            return base.ApplyDisplayPipeline(rawFrame, chain, settings);
+        }
+        finally
+        {
+            _inChainCall = false;
+        }
+    }
+
+    public override LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    {
+        if (!_inChainCall)
+        {
+            Interlocked.Increment(ref _ushortCalls);
+        }
+
+        return base.ApplyDisplayPipeline(rawFrame, displayInput, settings);
+    }
+}
+
 /// <summary>GUI-C-233g: a scripted backend that identifies itself as the native one (RealXpeBackend, its own display version), so a Mock to Native switch can be driven without the DLLs.</summary>
 internal sealed class NativeNamedBackend : ScenarioBackend
 {
-    private static BackendRuntimeInfo Info() => new() { BackendName = "RealXpeBackend", Version = "native-9.9", DisplayVersion = "native-display-9.9", NativeSource = "scripted" };
+    internal static BackendRuntimeInfo Info() => new() { BackendName = "RealXpeBackend", Version = "native-9.9", DisplayVersion = "native-display-9.9", NativeSource = "scripted" };
 
     public override BackendRuntimeInfo Initialize(AppSettings settings) => Info();
 
@@ -371,6 +441,10 @@ internal static class LifetimeScenarios
                         await Timed(() => TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(rawPath, width, height));
                         await Timed(() => TheHudCalibrationLineSaysWhatTheChainRan_NotHowManyModesAreConfigured(rawPath, width, height));
                         await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
+                        await Timed(() => ASkippedPreprocessWarnsOnNative_AndTheWarningStaysWithTheImage(rawPath, width, height));
+                        await Timed(() => ChoosingTheReferenceAlgorithmNeverSwitchesTheMainPreprocessingOff(rawPath, width, height));
+                        await Timed(() => AStoredOffIsKeptAndSaidOnce(rawPath, width, height));
+                        await Timed(() => EachDisplayCallGetsTheFloatsOfItsOwnRun_EvenWhenTheRoundedPixelsAreTheSame(rawPath, width, height));
                         await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
@@ -1597,6 +1671,186 @@ internal static class LifetimeScenarios
             Check(order.All(i => i >= 0) && order.SequenceEqual(order.OrderBy(i => i)), $"the chain line does not list preprocess, enhance_basic, gsvg, ai_bone_suppress in that order: '{chain}'");
             Check(vm.ExposureIndexText.StartsWith("Exposure index: not measured (preprocessing did not run", StringComparison.Ordinal), $"the exposure index text does not say why it is missing: '{vm.ExposureIndexText}'");
             Check(vm.StatusText.Contains(vm.ExposureIndexText, StringComparison.Ordinal), "the status line does not carry the exposure index text");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // ---- GUI-C-234c (Codex #181): the four findings ---------------------------------------------------------------------------------------
+
+    private static bool HasAlert(MainWindowViewModel vm, string severity, string code) =>
+        vm.Alerts.Any(a => a.Severity == severity && a.Code == code);
+
+    // finding 3: preprocessing is on by default, so a skip leaves the image uncorrected - Native warns and the warning stays with the image; Mock only informs.
+    private static async Task ASkippedPreprocessWarnsOnNative_AndTheWarningStaysWithTheImage(string rawPath, int width, int height)
+    {
+        _scenario = "17 skipped preprocess: Native warns, Mock informs";
+        var directory = TempDirectory();
+        try
+        {
+            var built = new List<ScenarioBackend>();
+            var vm = NewViewModel(width, height, build => { var b = new PreprocessOutcomeBackend { AsNative = true, Force = StageStatus.Skipped }; built.Add(b); return b; }, directory, out _);
+            var backend = (PreprocessOutcomeBackend)built[^1];
+            await LoadAndDrawLanes(vm, rawPath);
+
+            Check(HasAlert(vm, "WARN", "PREPROCESS_SKIPPED_NO_CALIBRATION"), "Native: a skipped preprocess raised no WARN alert");
+            Check(!HasAlert(vm, "INFO", "PREPROCESS_UNAVAILABLE_IN_MOCK"), "Native: the Mock's INFO alert was raised");
+            Check(vm.HasRenderedPreprocessWarning && vm.RenderedPreprocessWarning!.Contains("NOT CORRECTED", StringComparison.Ordinal) && vm.RenderedPreprocessWarning.Contains("no calibration data", StringComparison.Ordinal),
+                $"Native: the render record carries no warning ('{vm.RenderedPreprocessWarning}')");
+
+            // The warning is the record's, not an alert's or the status line's: clearing the alerts, writing another status and changing a setting leave it.
+            vm.ClearAlertsCommand.Execute(null);
+            vm.Settings.VoiWindowCenter += 1f;
+            await FlushUi();
+            Check(vm.HasRenderedPreprocessWarning, "Native: the warning went away with the alert list / a settings change while the same image is on screen");
+
+            // A render that applied preprocessing takes it back; the next skipped one brings it again.
+            backend.Force = StageStatus.Applied;
+            var before = vm.CurrentRender;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with an applied preprocess to commit");
+            await FlushUi();
+            Check(!vm.HasRenderedPreprocessWarning, "Native: the warning stayed after a render that ran preprocessing");
+            backend.Force = StageStatus.Skipped;
+            before = vm.CurrentRender;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with a skipped preprocess to commit");
+            await FlushUi();
+            Check(vm.HasRenderedPreprocessWarning, "Native: the warning did not come back with the next skipped render");
+
+            // Mock: the module is absent altogether - an INFO of its own, no warning on the picture.
+            var mockDirectory = TempDirectory();
+            try
+            {
+                var mockVm = NewViewModel(width, height, _ => new PreprocessOutcomeBackend { Force = StageStatus.Skipped }, mockDirectory, out _);
+                await LoadAndDrawLanes(mockVm, rawPath);
+                Check(HasAlert(mockVm, "INFO", "PREPROCESS_UNAVAILABLE_IN_MOCK"), "Mock: no INFO alert for the skipped preprocess");
+                Check(!HasAlert(mockVm, "WARN", "PREPROCESS_SKIPPED_NO_CALIBRATION"), "Mock: the Native WARN was raised");
+                Check(!mockVm.HasRenderedPreprocessWarning, "Mock: a warning is on the picture");
+            }
+            finally
+            {
+                Directory.Delete(mockDirectory, recursive: true);
+            }
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // finding 4: the Reference lane's algorithm is the grid correction; the preprocessing switch is not the preset's to turn off.
+    private static async Task ChoosingTheReferenceAlgorithmNeverSwitchesTheMainPreprocessingOff(string rawPath, int width, int height)
+    {
+        _scenario = "18 Lane A preset keeps main preprocessing";
+        var directory = TempDirectory();
+        try
+        {
+            var vm = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);
+            Check(vm.Settings.PreprocessInChain, "preprocessing is not on by default");
+            foreach (var preset in AlgorithmPreset.All)
+            {
+                vm.LaneAAlgorithm = preset.Name == vm.LaneAAlgorithm ? "No correction" : preset.Name;
+                vm.LaneAAlgorithm = preset.Name;
+                Check(vm.Settings.PreprocessInChain, $"choosing '{preset.Name}' switched the main preprocessing off");
+                Check(vm.Settings.GsvgMode == preset.GsvgMode, $"choosing '{preset.Name}' did not set the grid correction ({vm.Settings.GsvgMode})");
+            }
+
+            // The render after the choice still asks for the preprocessing.
+            vm.LaneAAlgorithm = "Grid suppression";
+            var before = vm.CurrentRender;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render after the choice to commit");
+            await FlushUi();
+            var preprocess = vm.CurrentRender!.Chain.Stages.Single(st => st.StageId == StageIds.Preprocess);
+            Check(preprocess.Status != StageStatus.NotRequested, $"the render after choosing Grid suppression did not request preprocessing ({preprocess.Status})");
+
+            // A preset that includes preprocessing may switch it ON; none switches it off.
+            vm.Settings.PreprocessInChain = false;
+            vm.LaneAAlgorithm = "No correction";
+            Check(!vm.Settings.PreprocessInChain, "choosing a preset switched an operator's OFF back on");
+            vm.LaneAAlgorithm = "Preprocess + virtual grid";
+            Check(vm.Settings.PreprocessInChain, "'Preprocess + virtual grid' did not switch preprocessing on");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    // finding 1: a stored "preprocessInChain": false is kept, and said once.
+    private static Task AStoredOffIsKeptAndSaidOnce(string rawPath, int width, int height)
+    {
+        _scenario = "19 stored preprocessing-off is kept and announced once";
+        var directory = TempDirectory();
+        try
+        {
+            var path = Path.Combine(directory, "appsettings.json");
+            File.WriteAllText(path, "{ \"rawWidth\": " + width + ", \"rawHeight\": " + height + ", \"preprocessInChain\": false }");
+            var service = new AppSettingsService(path);
+            var loaded = service.Load().Settings;
+            Check(!loaded.PreprocessInChain, "the stored off was not kept");
+            Check(loaded.PreprocessOffNoticePending, "the loader did not mark the notice as pending");
+
+            var vm = new MainWindowViewModel(loaded, service, _ => new ScenarioBackend());
+            Check(!vm.Settings.PreprocessInChain, "constructing the view model changed the stored off");
+            Check(HasAlert(vm, "WARN", "PREPROCESS_OFF_FROM_EARLIER_SETTINGS"), "no alert said that preprocessing is off because of an earlier version's setting");
+            Check(vm.Alerts.Count(a => a.Code == "PREPROCESS_OFF_FROM_EARLIER_SETTINGS") == 1, "the notice was raised more than once");
+
+            var again = service.Load().Settings;
+            Check(!again.PreprocessInChain, "the saved file lost the stored off");
+            Check(!again.PreprocessOffNoticePending, "the notice would be shown again at the next start");
+
+            // A file without the key (a new install) gets the default and no notice; a stored true is kept.
+            File.WriteAllText(path, "{ \"rawWidth\": " + width + " }");
+            var fresh = service.Load().Settings;
+            Check(fresh.PreprocessInChain && !fresh.PreprocessOffNoticePending, "a file without the key did not get the default (on) without a notice");
+            File.WriteAllText(path, "{ \"preprocessInChain\": true }");
+            var kept = service.Load().Settings;
+            Check(kept.PreprocessInChain && !kept.PreprocessOffNoticePending, "a stored on was not kept quietly");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // finding 2: the float image behind a display call is the one of the run that made the pixels - several runs at once, the rounded pixels identical.
+    private static async Task EachDisplayCallGetsTheFloatsOfItsOwnRun_EvenWhenTheRoundedPixelsAreTheSame(string rawPath, int width, int height)
+    {
+        _scenario = "20 display floats belong to their own run";
+        var directory = TempDirectory();
+        try
+        {
+            var backend = new FloatTaggingBackend();
+            var vm = NewViewModel(width, height, _ => backend, directory, out _);
+            await LoadAndDrawLanes(vm, rawPath);
+
+            // Apply A's main chain is held; Apply B runs to its end meanwhile; A's chain then ends last - its display call must still get A's floats.
+            backend.BlockChainCall = backend.ChainCalls + 1;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => backend.ChainBlocked.IsSet, "Apply A's held chain call");
+            var settled = backend.DisplayCalls.Count;
+            vm.Settings.LaneBVoiWindowWidth += 300f;
+            vm.ApplyDisplayPipelineCommand.Execute(null);
+            await Until(() => backend.DisplayCalls.Count >= settled + 2, "Apply B's display calls");
+            backend.ChainRelease.Set();
+            await Until(() => backend.DisplayCalls.Count >= settled + 3, "Apply A's display call");
+            await FlushUi();
+
+            Check(backend.ChainOverloadOnly, "the view model made a display call without the chain (the floats could not travel with it)");
+            Check(backend.DisplayCalls.Count >= 5, $"too few display calls to say anything ({backend.DisplayCalls.Count})");
+            foreach (var (chainTag, floatsTag) in backend.DisplayCalls)
+            {
+                Check(chainTag == floatsTag, $"a display call for the chain of run {chainTag} was given the floats of run {floatsTag}");
+            }
+
+            Check(backend.DisplayCalls.Select(c => c.ChainTag).Distinct().Count() >= 3, "the runs were not told apart (the scenario did not overlap anything)");
         }
         finally
         {

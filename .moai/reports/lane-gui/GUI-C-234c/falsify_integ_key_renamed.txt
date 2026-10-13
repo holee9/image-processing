@@ -1,0 +1,8 @@
+[xUnit.net 00:00:00.23]       Assert.False() Failure
+[xUnit.net 00:00:00.23]       Expected: False
+[xUnit.net 00:00:00.23]       Actual:   True
+  실패 ImageProcTest.IntegrationTests.Functional.PanelFlagPersistenceTests.PreprocessIsOnForANewInstall_AStoredValueIsKept_AndAStoredOffIsAnnouncedOnce [27 ms]
+  오류 메시지:
+   Assert.False() Failure
+Expected: False
+Actual:   True

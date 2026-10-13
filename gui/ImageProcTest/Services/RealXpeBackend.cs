@@ -34,28 +34,6 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
 
     private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ChainResult, CorrectedImage> _candidates = new();
 
-    /// <summary>
-    /// GUI-C-234: the float image the enhance stage ended with (before its one rounding to 16 bits), kept for the display stage. The chain runner CLONES every array between stages, so the link cannot be the
-    /// array's identity: the display stage uses these floats only when its 16-bit input is exactly their rounding (<see cref="IsRoundedFrom"/>), which also protects against overlapping runs.
-    /// </summary>
-    private float[]? _lastEnhanceFloats;
-
-    /// <summary>True when <paramref name="pixels"/> is, element for element, what the enhance stage's final conversion (round half to even, clamped to 0..65535) makes of <paramref name="floats"/>.</summary>
-    private static bool IsRoundedFrom(ushort[] pixels, float[] floats, int count)
-    {
-        for (var i = 0; i < count; i++)
-        {
-            var rounded = MathF.Round(floats[i], MidpointRounding.ToEven);
-            var expected = rounded < 0f ? (ushort)0 : rounded > ushort.MaxValue ? ushort.MaxValue : (ushort)rounded;
-            if (pixels[i] != expected)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     /// <summary>GUI-C-232b: the corrected float image the given chain run produced (see <see cref="ICorrectedImageSource"/>).</summary>
     public CorrectedImage? CorrectedFor(ChainResult chain) => _candidates.TryGetValue(chain, out var corrected) ? corrected : null;
     private BackendRuntimeInfo _runtimeInfo = new();
@@ -122,9 +100,13 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     // @MX:WARN: [AUTO] Allocates native XpeImageBufferNative via xpe_alloc_image; try/finally ensures xpe_free_image on any exception path
     // @MX:REASON: Native memory is not GC-managed; omitting finally causes heap leak in xpe_common.dll; do not restructure without preserving the try/finally guard
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings) =>
-        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, displayInput, settings));
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, displayInput, null, settings));
 
-    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    /// <summary>GUI-C-234c: windows the float image of the chain run that made <paramref name="chain"/>'s pixels (when its last stage had one), taken from the run's own result.</summary>
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings) =>
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, chain.DisplayInput, chain.DisplayFloats, settings));
+
+    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, ushort[] displayInput, float[]? chainFloats, AppSettings settings)
     {
         if (displayInput is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
@@ -155,10 +137,10 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
                 "xpe_alloc_image");
             allocated = true;
 
-            // GUI-C-234: when the chain's last stage was the enhancement, window ITS float image (the module chain's), not the copy rounded to 16 bits.
+            // GUI-C-234 / 234c: when the chain's last stage was the enhancement, window ITS float image (the module chain's), not the copy rounded to 16 bits. The floats arrive with the run's own result
+            // (ChainResult.DisplayFloats); nothing shared between runs is read, so an overlapping run cannot supply them.
             float[] floatPixels;
-            var chainFloats = Volatile.Read(ref _lastEnhanceFloats);
-            if (chainFloats is not null && chainFloats.Length == count && IsRoundedFrom(displayInput, chainFloats, count))
+            if (chainFloats is not null && chainFloats.Length == count)
             {
                 floatPixels = chainFloats;
             }
@@ -432,13 +414,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height, float[]? floatInput = null)
     {
         var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend(), floatInput));
-        var execution = BaselineStageAdapters.FromEnhance(result);
-        if (result is { Ran: true, Floats: { } floats })
-        {
-            Volatile.Write(ref _lastEnhanceFloats, floats);   // GUI-C-234: for the display stage (checked against its input there)
-        }
-
-        return execution;
+        return BaselineStageAdapters.FromEnhance(result);   // GUI-C-234c: the floats ride on the stage's outcome (StageExecution.Floats), not in a field of this backend
     }
 
     /// <summary>

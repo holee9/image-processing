@@ -82,6 +82,8 @@ public sealed class AppSettingsService
             var settings = JsonSerializer.Deserialize<AppSettings>(json, _serializerOptions);
             if (settings is not null)
             {
+                // GUI-C-234c (Codex #181 finding 1): a stored "preprocessInChain": false is kept - the loader cannot tell the old default from a choice - and the operator is told once.
+                settings.PreprocessOffNoticePending = !settings.PreprocessOffNoticeShown && StoresPreprocessOff(json);
                 return new SettingsLoadResult(settings, null);
             }
         }
@@ -124,6 +126,21 @@ public sealed class AppSettingsService
     /// but it returns null rather than a path, so the caller never tells the user the original is
     /// somewhere it is not.</para>
     /// </summary>
+    private static bool StoresPreprocessOff(string json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("preprocessInChain", out var value)
+                && value.ValueKind == JsonValueKind.False;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>
     /// The rescue an earlier failed read left behind, or null when there is none.
     ///
