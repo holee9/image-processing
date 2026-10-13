@@ -1,0 +1,7 @@
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.PreprocessOffNoticeScenarios.AnEarlierBuildsPreprocessOff_IsOnScreenUntilOkIsInvoked_AndDoesNotComeBack [1 m 12 s]
+   The notice stayed after OK was invoked.
+ 1 notice text: Preprocessing is off because of a setting stored by an earlier version. The default is now on (offset, gain and defect correction run when calibration data is loaded). Turn on "Preprocess (offset → gain → defect)" in the Parameters tab (or Run Preprocessing) to use it, or press OK to keep it off.
+ 2 after Clear Alerts: notice present = True
+ 3 after OK: notice present = True
+     실패: 1
+테스트 실행이 실패했습니다.
