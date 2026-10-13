@@ -75,18 +75,20 @@ public sealed class AlgorithmPresetTests
         foreach (var preset in AlgorithmPreset.All)
         {
             var main = new AppSettings { PreprocessInChain = true, GsvgMode = GsvgModes.None };
-            preset.ApplyToMain(main);
+            preset.ApplyTo(main);
             Assert.True(main.PreprocessInChain, $"'{preset.Name}' switched the main preprocessing off.");
             Assert.Equal(preset.GsvgMode, main.GsvgMode);
 
             var operatorOff = new AppSettings { PreprocessInChain = false };
-            preset.ApplyToMain(operatorOff);
+            preset.ApplyTo(operatorOff);
             Assert.Equal(preset.PreprocessInChain, operatorOff.PreprocessInChain);   // only a preset that includes preprocessing turns it on; none turns it off
         }
 
+        // GUI-C-234f: the Candidate lane copy follows the same rule (one rule for both lanes) - a lane is a function of its algorithm and the shared preprocessing switch.
         var candidate = new AppSettings { PreprocessInChain = true };
         AlgorithmPreset.For("Virtual grid").ApplyTo(candidate);
-        Assert.False(candidate.PreprocessInChain);   // control: the lane own copy takes the preset whole
+        Assert.True(candidate.PreprocessInChain);
+        Assert.Equal(GsvgModes.VirtualGrid, candidate.GsvgMode);
     }
 
     /// <summary>A name nobody ever used still falls back rather than throwing.</summary>

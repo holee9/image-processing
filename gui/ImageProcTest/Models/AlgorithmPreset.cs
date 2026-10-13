@@ -74,20 +74,15 @@ public sealed record AlgorithmPreset(string Name, bool PreprocessInChain, string
     }
 
     /// <summary>
-    /// Writes this preset's stages into a settings object that is a COPY made for the Candidate lane's own render (the lane's chain is the preset's, whatever the main chain is).
+    /// Writes this preset into a settings object: the grid correction, and nothing that switches the preprocessing off (GUI-C-234c, Codex #181 finding 4; GUI-C-234f).
+    /// Preprocessing is on by default and is the operator own switch (the Parameters tab); three of the four presets are defined with it off, and writing that into the main settings made picking
+    /// "Grid suppression" quietly switch the correction off for the whole window. A preset that includes preprocessing ("Preprocess + virtual grid") may switch it ON.
+    ///
+    /// <para><b>The same rule for the Candidate lane copy.</b> GUI-C-234c applied it to the main settings only and left the Candidate lane copy writing the preset whole. The two lanes then disagreed about
+    /// preprocessing for one and the same algorithm name: with equal algorithms the Candidate is the Reference render (preprocessing on), with different ones it was rendered from its own copy (preprocessing off), so
+    /// choosing a Reference algorithm moved the Candidate picture (E2E L-06, PR #260). One rule for both keeps a lane a function of its algorithm name and the shared preprocessing switch.</para>
     /// </summary>
     public void ApplyTo(AppSettings settings)
-    {
-        settings.PreprocessInChain = PreprocessInChain;
-        settings.GsvgMode = GsvgMode;
-    }
-
-    /// <summary>
-    /// GUI-C-234c (Codex #181 finding 4): choosing the Reference lane's algorithm changes the MAIN chain's grid correction and nothing else. Preprocessing is on by default and is the operator's own switch
-    /// (the Parameters tab); three of the four presets are defined with it off, and writing that into the main settings made picking "Grid suppression" quietly switch the correction off for the whole window.
-    /// A preset that includes preprocessing ("Preprocess + virtual grid") may switch it ON; no preset switches it off.
-    /// </summary>
-    public void ApplyToMain(AppSettings settings)
     {
         if (PreprocessInChain)
         {

@@ -48,7 +48,8 @@ public sealed class NativeAlertScenarios(Wrist1024SliceApplicationFixture app, I
         OpenLogs(window);
 
         var before = LogLines(window);
-        var beforeGsvg = before.Count(t => t.Contains(GsvgAlertText, StringComparison.Ordinal));
+        var beforeGsvgLines = before.Where(t => t.Contains(GsvgAlertText, StringComparison.Ordinal)).ToHashSet(StringComparer.Ordinal);
+        var beforeGsvg = beforeGsvgLines.Count;
         output.WriteLine($"before: {before.Length} lines, {beforeGsvg} carrying the gsvg alert");
         Assert.True(before.Length > 0, "The log is empty, so this case would pass on a dead panel.");
 
@@ -59,14 +60,14 @@ public sealed class NativeAlertScenarios(Wrist1024SliceApplicationFixture app, I
 
         var after = LogLines(window);
         var afterGsvg = after.Count(t => t.Contains(GsvgAlertText, StringComparison.Ordinal));
-        var alert = after.FirstOrDefault(t => t.Contains(GsvgAlertText, StringComparison.Ordinal));
+        // GUI-C-234f: the log list is virtualized - UI Automation sees only the lines that are realized, and that number changes as lines are added (65 before, 26 after in PR #260), so an older gsvg alert
+        // can fall out of view and a COUNT of 1 -> 1 hides a new one. A new alert is a line (its timestamp is part of it) that was not there before.
+        var alert = after.FirstOrDefault(t => t.Contains(GsvgAlertText, StringComparison.Ordinal) && !beforeGsvgLines.Contains(t));
         output.WriteLine($"after: {after.Length} lines, {afterGsvg} carrying the gsvg alert");
         output.WriteLine($"native alert line: {alert ?? "(none)"}");
 
-        Assert.True(afterGsvg > beforeGsvg,
-            $"The native module pushed an alert and nothing new reached the screen: {beforeGsvg} -> {afterGsvg} (#198 ②).");
         Assert.True(alert is not null,
-            "The native module pushed an alert and nothing reached the screen (#198 ②).");
+            $"The native module pushed an alert and nothing new reached the screen: {beforeGsvg} -> {afterGsvg} gsvg alert lines, none new (#198 ②).");
 
         // It arrives marked as an alert (GUI-C-125) and says it came from the native queue.
         Assert.Contains("ALERT", alert!, StringComparison.Ordinal);

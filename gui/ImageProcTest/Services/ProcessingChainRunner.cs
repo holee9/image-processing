@@ -83,6 +83,13 @@ public static class ProcessingChainRunner
             var output = ReferenceEquals(execution.Pixels, input) ? input : (ushort[])execution.Pixels.Clone();
             var status = output.AsSpan().SequenceEqual(current) ? StageStatus.AppliedNoChange : StageStatus.Applied;
             var floats = execution.Floats is { } given && given.Length == output.Length ? given : null;   // only a float image of the pixels' own length belongs to them
+            if (floats is null && status == StageStatus.AppliedNoChange)
+            {
+                // GUI-C-234f: a stage whose output equals its input changed nothing, so the image - and the float image it was rounded from - is still the previous one. Dropping the floats here made a
+                // grid-suppression pass that changed no pixel draw a different picture from the same chain without the stage (E2E C-03, PR #260).
+                floats = outcomes.LastOrDefault(o => o.Pixels is not null)?.Floats;
+            }
+
             outcomes.Add(new StageOutcome(request.StageId, status, output, execution.Message, elapsedMs, execution.NonFiniteCount, floats));
             current = output;
         }

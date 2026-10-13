@@ -252,11 +252,22 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
             var shownWhileDrawn = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAEmptyText"));
             Assert.True(shownWhileDrawn is null || shownWhileDrawn.IsOffscreen, "The placeholder is shown while the lane is drawn.");
 
-            // GUI-C-233k: while the lanes are drawn their tags name an algorithm; the HUD's Calib line says what the chain ran (the default settings request no preprocessing: "not run", not "7/7")
+            // GUI-C-233k: while the lanes are drawn their tags name an algorithm; the HUD's Calib line says what the chain ran, not how many modes are configured ("7/7").
+            // GUI-C-234f: preprocessing is ON by default since GUI-C-234b, so what the HUD says depends on the chain: it ran ("3 stages"), was skipped for want of calibration data / the module ("not run"), or failed.
             string TextOf(string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id))?.Name ?? "(not in the tree)";
             output.WriteLine($"L-07 before: tagA='{TextOf("LaneATag")}' tagB='{TextOf("LaneBTag")}' calib='{TextOf("HudCalibStages")}'");
             Assert.DoesNotContain("—", TextOf("LaneATag"));
-            Assert.Contains("not run", TextOf("HudCalibStages"));
+            var chainText = TextOf("ChainStatusText");
+            var preprocess = System.Text.RegularExpressions.Regex.Match(chainText, @"preprocess=(\w+)").Groups[1].Value;
+            Assert.NotEqual("NotRequested", preprocess);   // the default settings request preprocessing (U3)
+            var expectedHud = preprocess switch
+            {
+                "Applied" or "AppliedNoChange" => "3 stages (offset · gain · defect)",
+                "Skipped" => "not run",
+                "RequestedNotApplied" => "failed",
+                _ => "(unknown chain status: " + chainText + ")",
+            };
+            Assert.Contains(expectedHud, TextOf("HudCalibStages"));
 
             UiaMenu.Open(window, "BackendMenu");
             Thread.Sleep(350);

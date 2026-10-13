@@ -1478,7 +1478,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             if (Settings.LaneAAlgorithm == value) return;
             Settings.LaneAAlgorithm = value;
-            AlgorithmPreset.For(value).ApplyToMain(Settings);   // GUI-C-234c: the grid correction only; the preprocessing switch is not the preset's to turn off
+            AlgorithmPreset.For(value).ApplyTo(Settings);   // GUI-C-234c: the grid correction only; the preprocessing switch is not the preset's to turn off
             OnPropertyChanged();
         }
     }

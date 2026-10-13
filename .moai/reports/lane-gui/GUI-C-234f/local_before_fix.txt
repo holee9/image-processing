@@ -1,0 +1,145 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[2026-10-13 17:18:25.126] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-13 17:18:25.151] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.151] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.151] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.151] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.265] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.265] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.339] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.339] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.339] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.339] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.340] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.340] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.436] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.436] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.436] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.436] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.437] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.437] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.776] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-13 17:18:25.777] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.777] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.777] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.777] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.779] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.779] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.786] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.786] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.786] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.786] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:25.788] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:25.788] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:27.056] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-13 17:18:27.056] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.056] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.056] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.056] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.058] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:27.058] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:27.067] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.067] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.067] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.067] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:27.069] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:27.069] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:28.340] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-13 17:18:28.341] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.341] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.341] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.341] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.343] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:28.343] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:28.348] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.348] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.348] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.348] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 17:18:28.349] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 17:18:28.349] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [4 s]
+  표준 출력 메시지:
+ 1 refused, check held: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and that check has FINISHED without passing (Not run); the command stays blocked until the preprocess DLLs pass. Native preview: load a target raw image to run pre/post algorithms.
+ 2 re-check failed:        Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and that check has FINISHED without passing (Not run); the command stays blocked until the preprocess DLLs pass. Native preview: load a target raw image to run pre/post algorithms.
+
+
+XPE-C56-PROBE hwnd=0xBC80EC0 pid=45204 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen [8 s]
+  표준 출력 메시지:
+ before: 39 lines, 0 carrying the gsvg alert
+ after: 63 lines, 1 carrying the gsvg alert
+ native alert line: [17:19:27.808] ALERT WARN NATIVE_ALERT: gsvg virtual grid: no collimation field mask; scatter outside the field is treated as object
+ drain line: [17:19:27.808] Drained 1 native alert(s) from the xpe_common queue.
+
+
+XPE-C56-PROBE hwnd=0x13E306D0 pid=41476 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L06_AReferenceAlgorithm_MovesOnlyTheReference [7 s]
+  오류 메시지:
+   The Candidate moved with an algorithm chosen for the Reference (fac4bbd1e7eae4c5 -> 386a96f054cd1562) — the lane override did not hold, so the two lanes are not independent.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.<L06_AReferenceAlgorithm_MovesOnlyTheReference>b__7_0(Window window) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 198
+   at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.Measure(String scenario, Action`1 body) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 311
+   at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.MeasureNative(String scenario, Action`1 body) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 296
+   at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L06_AReferenceAlgorithm_MovesOnlyTheReference() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 177
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ L-06 fixture: The launched window did not support AutomationId (framework=Win32); re-located it by process id 41476. hwnd launched=0x13E306D0 reacquired=0x13E306D0 topLevelWindowsForProcess=1
+ L-06 same algorithm: A=fac4bbd1e7eae4c5 B=fac4bbd1e7eae4c5
+ L-06 A: fac4bbd1e7eae4c5 -> 6967623d96d2debf (mean 57.952 -> 166.427)
+ L-06 B: fac4bbd1e7eae4c5 -> 386a96f054cd1562 (mean 57.952 -> 66.139)
+ L-06: 7696 ms
+
+
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage [4 s]
+  오류 메시지:
+   Assert.Contains() Failure: Sub-string not found
+String:    "Calib:  3 stages (offset · gain · defect)"
+Not found: "not run"
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.<L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage>b__13_0(Window window) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 259
+   at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.Measure(String scenario, Action`1 body) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 311
+   at ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\TwoLaneWorkbenchScenarios.cs:line 247
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ L-07 fixture: The launched window did not support AutomationId (framework=Win32); re-located it by process id 41476. hwnd launched=0x13E306D0 reacquired=0x13E306D0 topLevelWindowsForProcess=1
+ L-07 before: tagA='A  No correction' tagB='B  No correction' calib='Calib:  3 stages (offset · gain · defect)'
+ L-07: 4430 ms
+
+
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [8 s]
+  오류 메시지:
+   Assert.Equal() Failure: Strings differ
+           ↓ (pos 0)
+Expected: "fac4bbd1e7eae4c5"
+Actual:   "b6a600f877b5f0fc"
+           ↑ (pos 0)
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(String radioId, String mode) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs:line 192
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ C03 GridSuppression off: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=26 ms, enhance_basic=25 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain' hash=fac4bbd1e7eae4c5
+ C03 GridSuppression native: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=AppliedNoChange, ai_bone_suppress=NotRequested; times: preprocess=27 ms, enhance_basic=25 ms, gsvg=5 ms, ai_bone_suppress=0 ms; display input=chain' hash=b6a600f877b5f0fc
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+  표준 출력 메시지:
+ C03 VirtualGrid off: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=26 ms, enhance_basic=24 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain' hash=fac4bbd1e7eae4c5
+ C03 VirtualGrid native: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=Applied, ai_bone_suppress=NotRequested; times: preprocess=24 ms, enhance_basic=26 ms, gsvg=64 ms, ai_bone_suppress=0 ms; display input=chain' hash=6967623d96d2debf
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 6
+     통과: 3
+     실패: 3
+ 총 시간: 1.5948 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

@@ -1,0 +1,6 @@
+exit=1
+   The Candidate moved with an algorithm chosen for the Reference (fac4bbd1e7eae4c5 -> 386a96f054cd1562) — the lane override did not hold, so the two lanes are not independent.
+ L-06 same algorithm: A=fac4bbd1e7eae4c5 B=fac4bbd1e7eae4c5
+ L-06 A: fac4bbd1e7eae4c5 -> 6967623d96d2debf (mean 57.952 -> 166.427)
+ L-06 B: fac4bbd1e7eae4c5 -> 386a96f054cd1562 (mean 57.952 -> 66.139)
+ L-06: 7368 ms
