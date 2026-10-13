@@ -16,47 +16,56 @@ namespace ImageProcTest.IntegrationTests.Functional;
 public sealed class PanelFlagPersistenceTests
 {
     /// <summary>
-    /// GUI-C-234c (Codex #181 finding 1): preprocessing is ON for a new install, and a stored value is KEPT. An old file's <c>"preprocessInChain": false</c> was the old default as often as it was a choice and
-    /// the loader cannot tell which, so it does not guess: the off stays off and is announced once (<see cref="AppSettings.PreprocessOffNoticePending"/>, then <see cref="AppSettings.PreprocessOffNoticeShown"/>).
-    /// A file without the key gets the default and no notice; a stored on is kept quietly.
+    /// GUI-C-234c/234d (Codex #181 finding 1, #182 finding 1): preprocessing is ON for a new install and a stored value is KEPT. Whether a stored OFF is the old default's is decided by the file's
+    /// <c>settingsSchemaVersion</c>: none or lower than <see cref="AppSettings.CurrentSchemaVersion"/> with <c>"preprocessInChain": false</c> marks the notice unacknowledged; an OFF saved by this version never does.
     /// </summary>
     [Fact]
-    public void PreprocessIsOnForANewInstall_AStoredValueIsKept_AndAStoredOffIsAnnouncedOnce()
+    public void PreprocessIsOnForANewInstall_AStoredValueIsKept_AndOnlyAnEarlierBuildsOffIsMarkedForTheNotice()
     {
         Assert.True(new AppSettings().PreprocessInChain);
+        Assert.False(new AppSettings().PreprocessOffNoticeUnacknowledged);
 
-        var path = Path.Combine(Path.GetTempPath(), $"xpe-c234c-{Guid.NewGuid():N}.json");
+        var path = Path.Combine(Path.GetTempPath(), $"xpe-c234d-{Guid.NewGuid():N}.json");
         try
         {
             var service = new AppSettingsService(path);
 
-            File.WriteAllText(path, "{ \"voiWindowCenter\": 1234, \"preprocessInChain\": false }");
+            File.WriteAllText(path, "{ \"voiWindowCenter\": 1234, \"preprocessInChain\": false }");   // no schema version: an earlier build
             var storedOff = service.Load().Settings;
             Assert.Equal(1234, storedOff.VoiWindowCenter);              // control: the file was read
-            Assert.False(storedOff.PreprocessInChain);                  // the stored value is kept, not replaced by the new default
-            Assert.True(storedOff.PreprocessOffNoticePending);          // and the operator is told
-
-            storedOff.PreprocessOffNoticeShown = true;                  // what the view model does once it has said it
-            service.Save(storedOff);
-            var afterNotice = service.Load().Settings;
-            Assert.False(afterNotice.PreprocessInChain);
-            Assert.False(afterNotice.PreprocessOffNoticePending);       // once, not on every start
+            Assert.False(storedOff.PreprocessInChain);                  // kept
+            Assert.True(storedOff.PreprocessOffNoticeUnacknowledged);   // and marked
+            service.Save(storedOff);                                    // a save (e.g. at close) stamps the version but keeps the mark until it is acknowledged
             var written = File.ReadAllText(path);
-            Assert.Contains("\"preprocessInChain\": false", written, StringComparison.Ordinal);   // the original key
+            Assert.Contains("\"settingsSchemaVersion\": " + AppSettings.CurrentSchemaVersion, written, StringComparison.Ordinal);
+            Assert.Contains("\"preprocessInChain\": false", written, StringComparison.Ordinal);
             Assert.DoesNotContain("preprocessInDefaultChain", written, StringComparison.Ordinal);
+            Assert.True(service.Load().Settings.PreprocessOffNoticeUnacknowledged);
+
+            var acknowledged = service.Load().Settings;
+            acknowledged.PreprocessOffNoticeUnacknowledged = false;
+            service.Save(acknowledged);
+            var afterAck = service.Load().Settings;
+            Assert.False(afterAck.PreprocessInChain);
+            Assert.False(afterAck.PreprocessOffNoticeUnacknowledged);
+
+            File.WriteAllText(path, "{ \"settingsSchemaVersion\": 0, \"preprocessInChain\": false }");   // a lower version is an earlier build too
+            Assert.True(service.Load().Settings.PreprocessOffNoticeUnacknowledged);
+
+            service.Save(new AppSettings { PreprocessInChain = false });   // an OFF chosen with this version
+            var chosen = service.Load().Settings;
+            Assert.False(chosen.PreprocessInChain);
+            Assert.False(chosen.PreprocessOffNoticeUnacknowledged);
 
             File.WriteAllText(path, "{ \"voiWindowCenter\": 1234 }");
             var fresh = service.Load().Settings;
             Assert.True(fresh.PreprocessInChain);                       // no key: the new default
-            Assert.False(fresh.PreprocessOffNoticePending);
+            Assert.False(fresh.PreprocessOffNoticeUnacknowledged);
 
             File.WriteAllText(path, "{ \"preprocessInChain\": true }");
             var storedOn = service.Load().Settings;
             Assert.True(storedOn.PreprocessInChain);
-            Assert.False(storedOn.PreprocessOffNoticePending);
-
-            service.Save(new AppSettings { PreprocessInChain = false });
-            Assert.False(service.Load().Settings.PreprocessInChain);    // a choice made now is kept
+            Assert.False(storedOn.PreprocessOffNoticeUnacknowledged);
         }
         finally
         {

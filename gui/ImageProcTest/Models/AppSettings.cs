@@ -65,7 +65,7 @@ public sealed class AppSettings : ObservableObject
     private float _laneBVoiWindowWidth;
     private string _lastRunSetId = string.Empty;
     private bool _preprocessInChain = true;
-    private bool _preprocessOffNoticeShown;
+    private bool _preprocessOffNoticeUnacknowledged;
     private bool _aiBoneSuppressionInChain;
     private string _aiModelDirectory = "data/models";
     private float _exposureKvp = 70.0f;
@@ -528,7 +528,7 @@ public sealed class AppSettings : ObservableObject
     ///
     /// <para><b>A stored value is kept (GUI-C-234c, Codex #181 finding 1).</b> The key is the original <c>preprocessInChain</c>. The first version of the default change moved it to a new key so an old
     /// file's <c>false</c> (which was the old default as often as it was a choice) would not win - but that silently changed the correction path of everyone who had switched it off on purpose. The loader
-    /// cannot tell the two apart, so it does not guess: a stored <c>false</c> stays <c>false</c>, and the app says so once (<see cref="PreprocessOffNoticePending"/>). Only a settings file without the key
+    /// cannot tell the two apart, so it does not guess: a stored <c>false</c> stays <c>false</c>, and the app says so until the operator acknowledges it (<see cref="PreprocessOffNoticeUnacknowledged"/>). Only a settings file without the key
     /// (a new install) gets the new default.</para>
     /// </summary>
     [JsonPropertyName("preprocessInChain")]
@@ -539,18 +539,30 @@ public sealed class AppSettings : ObservableObject
     }
 
     /// <summary>
-    /// Set by the loader (never stored) when the file it read carries <c>"preprocessInChain": false</c> and the notice has not been shown yet: preprocessing is off because of an older version's setting,
-    /// and the view model tells the operator once (GUI-C-234c).
+    /// The settings file format this build writes. A file written by an earlier build has no <c>settingsSchemaVersion</c> or a lower one (GUI-C-234d, Codex #182 finding 1): that is how a stored
+    /// <c>"preprocessInChain": false</c> that may only be the old default is told from an OFF chosen with this version.
     /// </summary>
-    [JsonIgnore]
-    public bool PreprocessOffNoticePending { get; set; }
+    public const int CurrentSchemaVersion = 1;
 
-    /// <summary>Stored: the "preprocessing is off from an earlier version's settings" notice was shown, so it is not shown again on every start (GUI-C-234c).</summary>
-    [JsonPropertyName("preprocessOffNoticeShown")]
-    public bool PreprocessOffNoticeShown
+    /// <summary>
+    /// Written on every save as <see cref="CurrentSchemaVersion"/>; what a loaded file said is read from the raw JSON by the loader (this property cannot report it: a file without the key must not look current).
+    /// </summary>
+    [JsonPropertyName("settingsSchemaVersion")]
+    public int SettingsSchemaVersion
     {
-        get => _preprocessOffNoticeShown;
-        set => SetProperty(ref _preprocessOffNoticeShown, value);
+        get => CurrentSchemaVersion;
+        set { /* the stored value is inspected by AppSettingsService.Load; saving always writes the current one */ }
+    }
+
+    /// <summary>
+    /// Stored (GUI-C-234d, Codex #182 finding 2): preprocessing is off in a file written by an earlier version and the operator has not yet acknowledged the notice. Set by the loader for such a file; cleared only
+    /// by an explicit acknowledgement (or by switching preprocessing on). It is stored with every save, so a restart before the acknowledgement - and clearing the alert list - leave the notice standing.
+    /// </summary>
+    [JsonPropertyName("preprocessOffNoticeUnacknowledged")]
+    public bool PreprocessOffNoticeUnacknowledged
+    {
+        get => _preprocessOffNoticeUnacknowledged;
+        set => SetProperty(ref _preprocessOffNoticeUnacknowledged, value);
     }
 
     /// <summary>

@@ -133,6 +133,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // #161: one list, in Models. This array used to be a third copy of the mode vocabulary.
         CompareModeOptions = ComparisonModes.All;
         Settings.PropertyChanged += OnSettingsPropertyChanged;
+        AcknowledgePreprocessOffNoticeCommand = new RelayCommand(AcknowledgePreprocessOffNotice);
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
         SetBackendModeCommand = new RelayCommand<string>(SetBackendMode);
@@ -252,20 +253,18 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// GUI-C-234c (Codex #181 finding 1): the stored settings say preprocessing is off. Before the default was changed to on, off was the default and the settings file recorded it whether or not anyone chose
-    /// it, so the app keeps the stored value (the choice cannot be told from the default) and says so once, as an alert that stays in the list: the image is then shown without offset/gain/defect correction.
+    /// GUI-C-234c/234d (Codex #181 finding 1, #182 findings 1-2): the settings file was written by an earlier build with preprocessing off, which may only be the old default. The value is kept and the
+    /// operator is told - with an alert (it stays in the list, and clearing the list does not acknowledge it), a status line and a notice with an OK button (<see cref="PreprocessOffNotice"/>) that stays until
+    /// it is acknowledged. Nothing here writes the file: the notice counts as seen only when the operator says so (<see cref="AcknowledgePreprocessOffNotice"/>), so quitting before that brings it back at
+    /// the next start.
     /// </summary>
     private void ReportPreprocessOffFromEarlierSettings()
     {
-        if (!Settings.PreprocessOffNoticePending)
+        if (PreprocessOffNotice is not { } message)
         {
             return;
         }
 
-        Settings.PreprocessOffNoticePending = false;
-        Settings.PreprocessOffNoticeShown = true;
-        var message = "Preprocessing is off because of a setting stored by an earlier version. The default is now on (offset, gain and defect correction run when calibration data is loaded). " +
-                      "Turn on \"Preprocess (offset → gain → defect)\" in the Parameters tab (or Run Preprocessing) to use it.";
         RaiseAlert(new AlertEntry
         {
             Severity = "WARN",
@@ -274,14 +273,34 @@ public sealed class MainWindowViewModel : ObservableObject
             Timestamp = DateTimeOffset.Now
         });
         StatusText = message;
+    }
+
+    /// <summary>The notice text while it stands: stored unacknowledged and preprocessing really is off. Null otherwise.</summary>
+    public string? PreprocessOffNotice =>
+        Settings.PreprocessOffNoticeUnacknowledged && !Settings.PreprocessInChain
+            ? "Preprocessing is off because of a setting stored by an earlier version. The default is now on (offset, gain and defect correction run when calibration data is loaded). " +
+              "Turn on \"Preprocess (offset → gain → defect)\" in the Parameters tab (or Run Preprocessing) to use it, or press OK to keep it off."
+            : null;
+
+    public bool HasPreprocessOffNotice => PreprocessOffNotice is not null;
+
+    public RelayCommand AcknowledgePreprocessOffNoticeCommand { get; private set; } = null!;
+
+    /// <summary>The operator acknowledged the notice: stored as acknowledged. Preprocessing stays as it is; the render still says "not run" in the HUD.</summary>
+    private void AcknowledgePreprocessOffNotice()
+    {
+        Settings.PreprocessOffNoticeUnacknowledged = false;
         try
         {
-            _settingsService.Save(Settings);   // so the notice is once, not on every start
+            _settingsService.Save(Settings);
         }
         catch (Exception exception)
         {
-            Log($"Could not store that the notice was shown: {exception.Message}");
+            Log($"Could not store that the notice was acknowledged: {exception.Message}");
         }
+
+        OnPropertyChanged(nameof(PreprocessOffNotice));
+        OnPropertyChanged(nameof(HasPreprocessOffNotice));
     }
 
     public AppSettings Settings { get; }
@@ -3401,6 +3420,18 @@ public sealed class MainWindowViewModel : ObservableObject
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         RefreshParametersStale();   // #171 ①
+
+        // GUI-C-234d: switching preprocessing on is the answer to the notice; the notice goes with it (and does not return if it is switched off again by hand).
+        if (e.PropertyName == nameof(AppSettings.PreprocessInChain) && Settings.PreprocessInChain && Settings.PreprocessOffNoticeUnacknowledged)
+        {
+            Settings.PreprocessOffNoticeUnacknowledged = false;
+        }
+
+        if (e.PropertyName is nameof(AppSettings.PreprocessInChain) or nameof(AppSettings.PreprocessOffNoticeUnacknowledged))
+        {
+            OnPropertyChanged(nameof(PreprocessOffNotice));
+            OnPropertyChanged(nameof(HasPreprocessOffNotice));
+        }
 
         // GUI-C-233: a window the user chooses wins over the automatic one. Only this handler turns the automatic window off, so loading a settings file (which sets these values) never does.
         if (e.PropertyName is nameof(AppSettings.VoiWindowCenter) or nameof(AppSettings.VoiWindowWidth) or nameof(AppSettings.VoiLutMode) && Settings.VoiWindowAuto)

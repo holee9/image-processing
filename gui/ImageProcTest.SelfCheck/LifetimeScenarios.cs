@@ -443,7 +443,7 @@ internal static class LifetimeScenarios
                         await Timed(() => TheSaveCandidateOfAnOlderApplyFinishingLateIsNeverCommitted(rawPath, width, height));
                         await Timed(() => ASkippedPreprocessWarnsOnNative_AndTheWarningStaysWithTheImage(rawPath, width, height));
                         await Timed(() => ChoosingTheReferenceAlgorithmNeverSwitchesTheMainPreprocessingOff(rawPath, width, height));
-                        await Timed(() => AStoredOffIsKeptAndSaidOnce(rawPath, width, height));
+                        await Timed(() => AStoredOffIsKeptAndSaidUntilAcknowledged(rawPath, width, height));
                         await Timed(() => EachDisplayCallGetsTheFloatsOfItsOwnRun_EvenWhenTheRoundedPixelsAreTheSame(rawPath, width, height));
                         await Timed(() => AFailedOpenKeepsTheSaveNameAndTheCandidateOfTheImageThatIsStillOpen(rawPath, width, height));
 #if XPE_TEST_FAULTS
@@ -1781,36 +1781,67 @@ internal static class LifetimeScenarios
         }
     }
 
-    // finding 1: a stored "preprocessInChain": false is kept, and said once.
-    private static Task AStoredOffIsKeptAndSaidOnce(string rawPath, int width, int height)
+    // finding 1 (234c) / findings 1-2 (234d, Codex #182): a stored "preprocessInChain": false is kept; an OFF written by an EARLIER build is announced until the operator acknowledges it; an OFF chosen with this version never is.
+    private static Task AStoredOffIsKeptAndSaidUntilAcknowledged(string rawPath, int width, int height)
     {
-        _scenario = "19 stored preprocessing-off is kept and announced once";
+        _scenario = "19 stored preprocessing-off: announced until acknowledged, only when it came from an earlier build";
         var directory = TempDirectory();
         try
         {
             var path = Path.Combine(directory, "appsettings.json");
-            File.WriteAllText(path, "{ \"rawWidth\": " + width + ", \"rawHeight\": " + height + ", \"preprocessInChain\": false }");
             var service = new AppSettingsService(path);
-            var loaded = service.Load().Settings;
-            Check(!loaded.PreprocessInChain, "the stored off was not kept");
-            Check(loaded.PreprocessOffNoticePending, "the loader did not mark the notice as pending");
 
-            var vm = new MainWindowViewModel(loaded, service, _ => new ScenarioBackend());
-            Check(!vm.Settings.PreprocessInChain, "constructing the view model changed the stored off");
-            Check(HasAlert(vm, "WARN", "PREPROCESS_OFF_FROM_EARLIER_SETTINGS"), "no alert said that preprocessing is off because of an earlier version's setting");
-            Check(vm.Alerts.Count(a => a.Code == "PREPROCESS_OFF_FROM_EARLIER_SETTINGS") == 1, "the notice was raised more than once");
+            // A "restart": load the file again and build a view model from it, as the app does.
+            MainWindowViewModel Start() => new(service.Load().Settings, service, _ => new ScenarioBackend());
+            bool Told(MainWindowViewModel vm) => HasAlert(vm, "WARN", "PREPROCESS_OFF_FROM_EARLIER_SETTINGS");
 
-            var again = service.Load().Settings;
-            Check(!again.PreprocessInChain, "the saved file lost the stored off");
-            Check(!again.PreprocessOffNoticePending, "the notice would be shown again at the next start");
+            // (1) a new install: the operator switches preprocessing off, saves, restarts - no notice (it is their choice, saved by this version).
+            var fresh = Start();
+            Check(fresh.Settings.PreprocessInChain && !Told(fresh) && !fresh.HasPreprocessOffNotice, "(1) a new install started with a notice or with preprocessing off");
+            fresh.Settings.PreprocessInChain = false;
+            fresh.SaveSettingsCommand.Execute(null);
+            Check(File.ReadAllText(path).Contains("\"settingsSchemaVersion\": " + AppSettings.CurrentSchemaVersion, StringComparison.Ordinal), "(1) the saved file carries no schema version");
+            var again = Start();
+            Check(!again.Settings.PreprocessInChain && !Told(again) && !again.HasPreprocessOffNotice, "(1) an OFF chosen with this version was announced as an earlier version's");
 
-            // A file without the key (a new install) gets the default and no notice; a stored true is kept.
+            // (2) a file written by an earlier build (no schema version) with the OFF: kept, and announced - alert, notice and status line.
+            File.WriteAllText(path, "{ \"rawWidth\": " + width + ", \"rawHeight\": " + height + ", \"preprocessInChain\": false }");
+            var before = File.ReadAllText(path);
+            var old = Start();
+            Check(!old.Settings.PreprocessInChain, "(2) the stored off was not kept");
+            Check(Told(old) && old.HasPreprocessOffNotice && old.PreprocessOffNotice!.Contains("earlier version", StringComparison.Ordinal), "(2) no alert and notice for an OFF from an earlier build");
+            Check(old.Alerts.Count(a => a.Code == "PREPROCESS_OFF_FROM_EARLIER_SETTINGS") == 1, "(2) the alert was raised more than once");
+            Check(File.ReadAllText(path) == before, "(2) starting the view model wrote the settings file (the notice must not be consumed by being shown)");
+
+            // (3) it was not acknowledged and the app was closed (a close saves the settings): the next start tells again.
+            old.SaveSettingsCommand.Execute(null);
+            var restarted = Start();
+            Check(Told(restarted) && restarted.HasPreprocessOffNotice && !restarted.Settings.PreprocessInChain, "(3) the notice did not come back after a restart without an acknowledgement");
+
+            // (4) clearing the alert list is not an acknowledgement: the notice stands, and so does it after a restart.
+            restarted.ClearAlertsCommand.Execute(null);
+            Check(restarted.HasPreprocessOffNotice, "(4) clearing the alerts took the notice away");
+            restarted.SaveSettingsCommand.Execute(null);
+            var afterClear = Start();
+            Check(Told(afterClear) && afterClear.HasPreprocessOffNotice, "(4) the notice did not come back after the alerts were cleared and the app restarted");
+
+            // (5) acknowledged: no notice at the next start, and preprocessing is still off.
+            afterClear.AcknowledgePreprocessOffNoticeCommand.Execute(null);
+            Check(!afterClear.HasPreprocessOffNotice, "(5) the notice stayed after the acknowledgement");
+            var acknowledged = Start();
+            Check(!Told(acknowledged) && !acknowledged.HasPreprocessOffNotice, "(5) the notice came back after it was acknowledged");
+            Check(!acknowledged.Settings.PreprocessInChain, "(5) preprocessing did not stay off after the acknowledgement");
+
+            // switching preprocessing on is an answer too; an old file without the OFF, or with an ON, gets nothing.
+            File.WriteAllText(path, "{ \"preprocessInChain\": false }");
+            var turnedOn = Start();
+            Check(turnedOn.HasPreprocessOffNotice, "(6) precondition: the old OFF is announced");
+            turnedOn.Settings.PreprocessInChain = true;
+            Check(!turnedOn.HasPreprocessOffNotice, "(6) switching preprocessing on left the notice up");
             File.WriteAllText(path, "{ \"rawWidth\": " + width + " }");
-            var fresh = service.Load().Settings;
-            Check(fresh.PreprocessInChain && !fresh.PreprocessOffNoticePending, "a file without the key did not get the default (on) without a notice");
+            Check(!Start().HasPreprocessOffNotice, "(6) a file without the key was announced");
             File.WriteAllText(path, "{ \"preprocessInChain\": true }");
-            var kept = service.Load().Settings;
-            Check(kept.PreprocessInChain && !kept.PreprocessOffNoticePending, "a stored on was not kept quietly");
+            Check(!Start().HasPreprocessOffNotice, "(6) a stored ON was announced");
         }
         finally
         {
