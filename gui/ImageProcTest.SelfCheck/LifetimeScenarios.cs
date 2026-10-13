@@ -1753,7 +1753,7 @@ internal static class LifetimeScenarios
             Check(vm.Settings.PreprocessInChain, "preprocessing is not on by default");
             foreach (var preset in AlgorithmPreset.All)
             {
-                vm.LaneAAlgorithm = preset.Name == vm.LaneAAlgorithm ? "No correction" : preset.Name;
+                vm.LaneAAlgorithm = preset.Name == vm.LaneAAlgorithm ? "No grid correction" : preset.Name;
                 vm.LaneAAlgorithm = preset.Name;
                 Check(vm.Settings.PreprocessInChain, $"choosing '{preset.Name}' switched the main preprocessing off");
                 Check(vm.Settings.GsvgMode == preset.GsvgMode, $"choosing '{preset.Name}' did not set the grid correction ({vm.Settings.GsvgMode})");
@@ -1770,7 +1770,7 @@ internal static class LifetimeScenarios
 
             // A preset that includes preprocessing may switch it ON; none switches it off.
             vm.Settings.PreprocessInChain = false;
-            vm.LaneAAlgorithm = "No correction";
+            vm.LaneAAlgorithm = "No grid correction";
             Check(!vm.Settings.PreprocessInChain, "choosing a preset switched an operator's OFF back on");
             vm.LaneAAlgorithm = "Preprocess + virtual grid";
             Check(vm.Settings.PreprocessInChain, "'Preprocess + virtual grid' did not switch preprocessing on");

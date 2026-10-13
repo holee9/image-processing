@@ -78,7 +78,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
                 window.FindFirstDescendant(cf => cf.ByAutomationId("LaneBSharpeningSigmaInput")) is null,
                 "The Lane B sharpening input is back; no chain stage reads it (#193).");
 
-            SelectLaneBAlgorithm(window, "No correction");
+            SelectLaneBAlgorithm(window, "No grid correction");
             var offInput = Find(window, "LaneBGsvgDenoiseKInput");
             output.WriteLine($"U02 no-correction: enabled={offInput.IsEnabled} text='{offInput.AsTextBox().Text}'");
             Assert.False(offInput.IsEnabled,

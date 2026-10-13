@@ -40,18 +40,22 @@ public sealed class NativeAlertScenarios(Wrist1024SliceApplicationFixture app, I
     {
         var window = Ready();
 
-        // The count BEFORE this run's virtual grid, not zero: the fixture is shared, so an earlier
-        // case may have left one here. What this case claims is that running the stage produces a new
-        // one — a claim a pre-existing line cannot satisfy.
-        SelectAlgorithm(window, "A", "No correction");
+        // GUI-C-234g (Codex #184): the fixture is shared, so an earlier case may have left this very alert on screen, and the log list is virtualized (UI Automation sees only the realized lines), so neither a
+        // count nor "a line that was not there before" proves the line is THIS call's. So nothing old is left: the log and the alerts are emptied through the UI first, and whatever the stage produces afterwards
+        // is, by construction, what this call produced.
+        SelectAlgorithm(window, "A", "No grid correction");
         ApplyDisplayPipeline(window);
         OpenLogs(window);
+        var beforeClearing = LogLines(window);
+        Assert.True(beforeClearing.Length > 0, "The log is empty, so this case would pass on a dead panel.");
+        PressButton(window, "ClearAlertsButton");
+        PressButton(window, "ClearLogsButton");
 
         var before = LogLines(window);
-        var beforeGsvgLines = before.Where(t => t.Contains(GsvgAlertText, StringComparison.Ordinal)).ToHashSet(StringComparer.Ordinal);
-        var beforeGsvg = beforeGsvgLines.Count;
-        output.WriteLine($"before: {before.Length} lines, {beforeGsvg} carrying the gsvg alert");
-        Assert.True(before.Length > 0, "The log is empty, so this case would pass on a dead panel.");
+        output.WriteLine($"before: {beforeClearing.Length} lines, {before.Length} after clearing");
+        Assert.DoesNotContain(before, t => t.Contains(GsvgAlertText, StringComparison.Ordinal));   // control: the older alert (if any) is gone, so a hit below is new
+        Assert.DoesNotContain(before, t => t.Contains("native alert(s) from the xpe_common queue", StringComparison.Ordinal));
+        Assert.True(before.Length < beforeClearing.Length, "Clearing did not shrink the log, so it proves nothing about what is new.");
 
         // Run the stage that pushes it.
         SelectAlgorithm(window, "A", "Virtual grid");
@@ -59,15 +63,12 @@ public sealed class NativeAlertScenarios(Wrist1024SliceApplicationFixture app, I
         Thread.Sleep(500);
 
         var after = LogLines(window);
-        var afterGsvg = after.Count(t => t.Contains(GsvgAlertText, StringComparison.Ordinal));
-        // GUI-C-234f: the log list is virtualized - UI Automation sees only the lines that are realized, and that number changes as lines are added (65 before, 26 after in PR #260), so an older gsvg alert
-        // can fall out of view and a COUNT of 1 -> 1 hides a new one. A new alert is a line (its timestamp is part of it) that was not there before.
-        var alert = after.FirstOrDefault(t => t.Contains(GsvgAlertText, StringComparison.Ordinal) && !beforeGsvgLines.Contains(t));
-        output.WriteLine($"after: {after.Length} lines, {afterGsvg} carrying the gsvg alert");
+        var alert = after.FirstOrDefault(t => t.Contains(GsvgAlertText, StringComparison.Ordinal));
+        output.WriteLine($"after: {after.Length} lines");
         output.WriteLine($"native alert line: {alert ?? "(none)"}");
 
         Assert.True(alert is not null,
-            $"The native module pushed an alert and nothing new reached the screen: {beforeGsvg} -> {afterGsvg} gsvg alert lines, none new (#198 ②).");
+            "The native module pushed an alert and nothing reached the screen after the log had been emptied (#198 ②).");
 
         // It arrives marked as an alert (GUI-C-125) and says it came from the native queue.
         Assert.Contains("ALERT", alert!, StringComparison.Ordinal);
@@ -146,6 +147,14 @@ public sealed class NativeAlertScenarios(Wrist1024SliceApplicationFixture app, I
         Assert.True(picker is not null, $"Lane{lane}AlgorithmPicker is not in the tree.");
         picker!.AsComboBox().Select(option);
         Thread.Sleep(200);
+    }
+
+    private static void PressButton(Window window, string automationId)
+    {
+        var button = window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+        Assert.True(button is not null, $"{automationId} is not in the tree.");
+        button!.AsButton().Invoke();
+        Thread.Sleep(300);
     }
 
     private static string[] LogLines(Window window)

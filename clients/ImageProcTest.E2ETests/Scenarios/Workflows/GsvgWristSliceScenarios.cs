@@ -795,6 +795,14 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
             output.WriteLine($"P11 chain (what the signature was drawn from): {measured.Status}");   // GUI-C-234b
 
             var drawn = ReadTileSignatureFromRenderDump();
+
+            // GUI-C-234g: the dump has to be the MAIN viewport's picture. Until then every viewport wrote it, and a separately rendered Candidate lane could be the last to: this scenario compared the Candidate's tiles with
+            // a signature recorded from it (recorded mean 106.3, the main viewport's own mean for the same settings 164.9 - P-10). The dump's mean has to equal what the main viewport reports.
+            var viewportMean = Mean(window);
+            output.WriteLine($"P11 dump mean={drawn.Average():0.000} main viewport mean={viewportMean:0.000}");
+            Assert.True(Math.Abs(drawn.Average() - viewportMean) < 0.01,
+                $"The render dump is not the main viewport's picture (dump mean {drawn.Average():0.000}, main viewport {viewportMean:0.000}).");
+
             // Writes the drawn signature where asked, for the ONE case that needs it: re-deriving the
             // thresholds from a legitimate correction's before and after (the procedure in
             // PreviewTileSignatureTolerance). It exists because the signature can only be read at this

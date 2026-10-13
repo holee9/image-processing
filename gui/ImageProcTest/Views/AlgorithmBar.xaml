@@ -22,7 +22,7 @@
             <ComboBox AutomationProperties.AutomationId="LaneAAlgorithmPicker"
                       ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneAAlgorithm, Mode=TwoWay}"
-                      ToolTip="이 lane 이 실행할 처리 구성 (#173). 기준 lane 의 선택은 주 파이프라인 설정이 됩니다."
+                      ToolTip="이 lane 의 격자 보정(None / Grid suppression / Virtual grid)을 고릅니다 (#173). 전처리는 Parameters 탭의 별도 스위치이며 이 선택이 끄지 않습니다; &quot;Preprocess + virtual grid&quot; 는 전처리를 켭니다. 기준 lane 의 선택은 주 파이프라인 설정이 됩니다."
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />
@@ -41,7 +41,7 @@
             <ComboBox AutomationProperties.AutomationId="LaneBAlgorithmPicker"
                       ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneBAlgorithm, Mode=TwoWay}"
-                      ToolTip="이 lane 이 실행할 처리 구성 (#173)."
+                      ToolTip="이 lane 의 격자 보정을 고릅니다 (#173). 전처리는 Parameters 탭의 별도 스위치이며 이 선택이 끄지 않습니다; &quot;Preprocess + virtual grid&quot; 는 전처리를 켭니다."
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />

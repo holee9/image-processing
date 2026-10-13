@@ -35,7 +35,7 @@ public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, I
     /// <c>vg_denoise_k</c>.</para>
     ///
     /// <para><b>Both lanes are put on the virtual grid first.</b> Outside it the runner sends
-    /// <c>null</c> for this key (GuiGsvgRunner.cs:124), so the same case run on "No correction" would
+    /// <c>null</c> for this key (GuiGsvgRunner.cs:124), so the same case run on "No grid correction" would
     /// change nothing and pass — measuring the absence of an effect rather than its presence.</para>
     ///
     /// <para>Native only, for the reason L-04 is: the Mock backend refuses the grid stage by design, so
@@ -108,7 +108,7 @@ public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, I
 
         try
         {
-            foreach (var option in new[] { "No correction", "Grid suppression", "Virtual grid", "Preprocess + virtual grid" })
+            foreach (var option in new[] { "No grid correction", "Grid suppression", "Virtual grid", "Preprocess + virtual grid" })
             {
                 SelectAlgorithm(window, "A", option);
                 OpenParameters(window);

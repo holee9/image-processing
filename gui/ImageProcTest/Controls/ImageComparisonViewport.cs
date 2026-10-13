@@ -184,7 +184,12 @@ public sealed class ImageComparisonViewport : FrameworkElement
             _hashedValue = hash.ToString("x16", CultureInfo.InvariantCulture);
             _hashedMean = buffer.Length == 0 ? -1.0 : sum / (buffer.Length / 4.0 * 3.0);
 
-            DumpForAutomation(buffer, converted.PixelWidth, converted.PixelHeight);
+            // GUI-C-234g: ONLY the main viewport dumps. The two lane viewports (GUI-C-113) hash their own pictures through this same method and used to overwrite the file as well, so the "render dump" was
+            // whichever of the three hashed last - the Candidate lane's picture whenever the Candidate was rendered separately (E2E P-11 compared the Candidate's tiles with a signature recorded from it).
+            if (System.Windows.Automation.AutomationProperties.GetAutomationId(this) == MainViewportAutomationId)
+            {
+                DumpForAutomation(buffer, converted.PixelWidth, converted.PixelHeight);
+            }
         }
 
         return _hashedValue;
@@ -233,6 +238,9 @@ public sealed class ImageComparisonViewport : FrameworkElement
     /// constructor argument to carry it.
     /// </summary>
     internal static string? AutomationRenderDumpPath { get; set; }
+
+    /// <summary>The automation id of the main viewport (ViewportShell.xaml), the only one whose pixels the render dump holds.</summary>
+    internal const string MainViewportAutomationId = "WorkbenchViewport";
 
     /// <summary>
     /// Mean of the processed layer's colour bytes (#180, GUI-C-102), so a test can say whether a setting

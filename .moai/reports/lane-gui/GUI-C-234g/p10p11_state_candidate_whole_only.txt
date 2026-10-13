@@ -1,0 +1,2 @@
+P11 tiles=1024 mean|dtile|=0.000000 max|dtile|=0.000000 worst tile=4 (row 0, col 4)
+P10 hash=fe7220286c8a4013 mean=164.938
