@@ -359,5 +359,5 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     }
 
     /// <summary>The option both lanes are put on when a case needs them to agree.</summary>
-    internal const string BaselineAlgorithm = "No correction";
+    internal const string BaselineAlgorithm = "No grid correction";
 }

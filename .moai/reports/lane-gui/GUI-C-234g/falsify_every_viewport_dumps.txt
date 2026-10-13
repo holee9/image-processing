@@ -1,0 +1,3 @@
+exit=1
+The render dump is not the main viewport's picture (dump mean 100.094, main viewport 164.938).
+P11 dump mean=100.094 main viewport mean=164.938

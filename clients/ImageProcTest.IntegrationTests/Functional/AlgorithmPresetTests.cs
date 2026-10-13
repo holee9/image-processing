@@ -23,7 +23,7 @@ public sealed class AlgorithmPresetTests
 {
     /// <summary>Each old name resolves to the preset that runs what it always ran.</summary>
     [Theory]
-    [InlineData("Baseline v1.0", "No correction", false, GsvgModes.None)]
+    [InlineData("Baseline v1.0", "No grid correction", false, GsvgModes.None)]
     [InlineData("Production v1.2", "Grid suppression", false, GsvgModes.GridSuppression)]
     [InlineData("Candidate v1.4", "Virtual grid", false, GsvgModes.VirtualGrid)]
     [InlineData("Candidate v1.5-rc", "Preprocess + virtual grid", true, GsvgModes.VirtualGrid)]
@@ -89,6 +89,17 @@ public sealed class AlgorithmPresetTests
         AlgorithmPreset.For("Virtual grid").ApplyTo(candidate);
         Assert.True(candidate.PreprocessInChain);
         Assert.Equal(GsvgModes.VirtualGrid, candidate.GsvgMode);
+    }
+
+    /// <summary>GUI-C-234g: "No correction" became "No grid correction"; a stored old name still means the same preset, also in the settings the lanes keep.</summary>
+    [Fact]
+    public void TheOldNoCorrectionName_StillMeansNoGridCorrection()
+    {
+        Assert.Equal("No grid correction", AlgorithmPreset.For("No correction").Name);
+        Assert.Equal("No grid correction", AlgorithmPreset.Canonical("No correction"));
+        Assert.Equal("Virtual grid", AlgorithmPreset.Canonical("Virtual grid"));
+        Assert.Equal("No grid correction", new AppSettings { LaneAAlgorithm = "No correction", LaneBAlgorithm = "Baseline v1.0" }.LaneAAlgorithm);
+        Assert.Equal("No grid correction", new AppSettings { LaneBAlgorithm = "Baseline v1.0" }.LaneBAlgorithm);
     }
 
     /// <summary>A name nobody ever used still falls back rather than throwing.</summary>

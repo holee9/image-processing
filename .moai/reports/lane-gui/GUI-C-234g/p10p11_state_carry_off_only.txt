@@ -1,0 +1,3 @@
+[xUnit.net 00:01:14.14]         P11 tiles=1024 mean|dtile|=7.896461 max|dtile|=27.234375 worst tile=576 (row 18, col 0)
+P11 tiles=1024 mean|dtile|=7.896461 max|dtile|=27.234375 worst tile=576 (row 18, col 0)
+P10 hash=fe7220286c8a4013 mean=164.938

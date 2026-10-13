@@ -452,14 +452,14 @@ public sealed class AppSettings : ObservableObject
     public string LaneAAlgorithm
     {
         get => _laneAAlgorithm;
-        set => SetProperty(ref _laneAAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : value);
+        set => SetProperty(ref _laneAAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : AlgorithmPreset.Canonical(value));
     }
 
     [JsonPropertyName("laneBAlgorithm")]
     public string LaneBAlgorithm
     {
         get => _laneBAlgorithm;
-        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : value);
+        set => SetProperty(ref _laneBAlgorithm, string.IsNullOrWhiteSpace(value) ? "Grid suppression" : AlgorithmPreset.Canonical(value));
     }
 
     [JsonPropertyName("focusMode")]

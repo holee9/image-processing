@@ -30,7 +30,7 @@ public sealed record AlgorithmPreset(string Name, bool PreprocessInChain, string
     /// <summary>The four options the picker offers, in the order it offers them.</summary>
     public static readonly AlgorithmPreset[] All =
     [
-        new("No correction", PreprocessInChain: false, GsvgModes.None),
+        new("No grid correction", PreprocessInChain: false, GsvgModes.None),
         new("Grid suppression", PreprocessInChain: false, GsvgModes.GridSuppression),
         new("Virtual grid", PreprocessInChain: false, GsvgModes.VirtualGrid),
         new("Preprocess + virtual grid", PreprocessInChain: true, GsvgModes.VirtualGrid),
@@ -48,11 +48,15 @@ public sealed record AlgorithmPreset(string Name, bool PreprocessInChain, string
     public static readonly IReadOnlyDictionary<string, string> RenamedFrom =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Baseline v1.0"] = "No correction",
+            ["Baseline v1.0"] = "No grid correction",
+            ["No correction"] = "No grid correction",   // GUI-C-234g: the picker chooses the GRID correction; preprocessing is its own switch and stays on
             ["Production v1.2"] = "Grid suppression",
             ["Candidate v1.4"] = "Virtual grid",
             ["Candidate v1.5-rc"] = "Preprocess + virtual grid",
         };
+
+    /// <summary>The current name of an option stored under an older one (a settings file written before a rename), else the name unchanged.</summary>
+    public static string Canonical(string name) => RenamedFrom.TryGetValue(name, out var current) ? current : name;
 
     /// <summary>
     /// The preset for an option name, or the first one when the name is unknown — an unknown name is a
