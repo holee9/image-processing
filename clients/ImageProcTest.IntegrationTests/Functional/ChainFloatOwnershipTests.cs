@@ -54,6 +54,25 @@ public sealed class ChainFloatOwnershipTests
         Assert.True(refused.DisplaysRaw);
     }
 
+    /// <summary>
+    /// GUI-C-234f: a later stage that changed nothing (output equal to input, <see cref="StageStatus.AppliedNoChange"/>) leaves the enhancement float image standing; one that changed a pixel does not.
+    /// </summary>
+    [Fact]
+    public void ALaterStageThatChangedNothing_KeepsTheFloatsOfTheImageItLeftAlone()
+    {
+        float[] floats = [100.1f, 200.6f, 300.5f];
+        var unchanged = ProcessingChainRunner.Run(Raw, [new(StageIds.EnhanceBasic, true), new(StageIds.Gsvg, true)], (request, input) =>
+            request.StageId == StageIds.EnhanceBasic ? Enhance(floats) : new StageExecution(true, (ushort[])input.Clone(), "gsvg: no change"));
+
+        Assert.Equal(StageStatus.AppliedNoChange, unchanged.Stages[1].Status);
+        Assert.Same(floats, unchanged.DisplayFloats);
+
+        var changed = ProcessingChainRunner.Run(Raw, [new(StageIds.EnhanceBasic, true), new(StageIds.Gsvg, true)], (request, input) =>
+            request.StageId == StageIds.EnhanceBasic ? Enhance(floats) : new StageExecution(true, input.Select(v => (ushort)(v + 1)).ToArray(), "gsvg"));
+        Assert.Equal(StageStatus.Applied, changed.Stages[1].Status);
+        Assert.Null(changed.DisplayFloats);
+    }
+
     /// <summary>A float image whose length is not the pixels is not theirs.</summary>
     [Fact]
     public void FloatsOfTheWrongLength_AreDropped()
