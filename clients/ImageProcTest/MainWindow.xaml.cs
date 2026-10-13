@@ -74,9 +74,18 @@ namespace ImageProcTest
 
         private bool isClosingWindow;
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// GUI-C-235: the start-up native probing no longer runs on the UI thread. It used to (RefreshNativeHealth(), synchronously, here): xpe_init, the memory ABI smoke, the display/DICOM/GSVG/preprocess
+        /// probes (each loads a module and calls into it) and the readiness report file - about 0.4 s of a fast desktop's start-up, 78 ms of it the common backend and 284 ms the probes (measured,
+        /// .moai/reports/lane-gui/GUI-C-235/startup_trace_copy1.txt), and longer on a slower machine or for freshly copied DLLs. The window handle exists before that work starts, UI Automation answers from the
+        /// UI thread, and FlaUI's call has a 2 s budget: on CI it ran out ("UIA Timeout" from Application.GetMainWindow, before the scenario began; R05/R06/R08 across three runs of the same tree). A window that
+        /// cannot answer for that long while it starts is a frozen window for a person too. The probing now runs on the thread pool and its results are applied here; what the window shows meanwhile is stated
+        /// (status "Checking native common backend...", the oracle line already says "checking in the background").
+        /// </summary>
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            RefreshNativeHealth();
+            await RefreshNativeHealthOffTheUiThreadAsync();
+            if (isClosingWindow) return;
             LoadFixtureCases();
             RefreshModuleReadiness();
             UpdateEvaluationDashboards();
@@ -1065,6 +1074,41 @@ namespace ImageProcTest
             }
         }
 
+        /// <summary>What the native probing found: the common backend's health and either the readiness report or why there is none. Nothing here touches the UI.</summary>
+        private sealed record NativeProbe(BackendHealthResult Result, NativeReadinessReportWriteResult? Report, Exception? ReportError);
+
+        /// <summary>The probing itself (no UI access, so it can run on any thread).</summary>
+        private NativeProbe ProbeNative()
+        {
+            // Test hook (GUI-C-235): makes the probing as slow as a slow machine's, so a scenario can show that a slow probe does not freeze the window. Unset in every real run.
+            if (int.TryParse(Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_DELAY_MS"), out var delayMs) && delayMs > 0)
+            {
+                System.Threading.Thread.Sleep(delayMs);
+            }
+
+            var result = backend.CheckHealth();
+            try
+            {
+                return new NativeProbe(result, NativeReadinessProbe.WriteReport(result, waitForOracle: false), null);
+            }
+            catch (Exception ex)
+            {
+                return new NativeProbe(result, null, ex);
+            }
+        }
+
+        /// <summary>The start-up refresh: the probing on the pool, the results applied on the UI thread.</summary>
+        private async System.Threading.Tasks.Task RefreshNativeHealthOffTheUiThreadAsync()
+        {
+            SetStatus("Checking native common backend...", Brushes.Goldenrod);
+            PreprocessSmokeText.Text = "Preprocess smoke: checking in the background";
+            var generation = nativeHealthGeneration;
+            var probe = await System.Threading.Tasks.Task.Run(ProbeNative);
+            // A refresh that ran on this thread while the probing was away (the oracle's verdict arriving, a button) is newer than this probe: applying this one would put its older "checking" back.
+            if (isClosingWindow || nativeHealthGeneration != generation) return;
+            ApplyNativeProbe(probe);
+        }
+
         private void RefreshNativeHealth(bool recheckOracle = false)
         {
             if (recheckOracle)
@@ -1073,7 +1117,15 @@ namespace ImageProcTest
             }
 
             SetStatus("Checking native common backend...", Brushes.Goldenrod);
-            var result = backend.CheckHealth();
+            ApplyNativeProbe(ProbeNative());
+        }
+
+        private int nativeHealthGeneration;
+
+        private void ApplyNativeProbe(NativeProbe probe)
+        {
+            nativeHealthGeneration++;
+            var result = probe.Result;
             lastBackendHealth = result;
             VersionText.Text = $"Version: {result.Version}";
             NativePathText.Text = $"DLL: {result.DllPath}";
@@ -1089,7 +1141,8 @@ namespace ImageProcTest
 
             try
             {
-                var report = NativeReadinessProbe.WriteReport(result, waitForOracle: false);
+                if (probe.ReportError is not null) throw probe.ReportError;
+                var report = probe.Report!;
                 lastReadinessReportPath = report.ReportPath;
                 lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";

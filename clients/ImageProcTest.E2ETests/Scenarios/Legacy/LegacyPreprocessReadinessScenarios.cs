@@ -478,7 +478,9 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
                 application = Application.Launch(info);
                 var window = application.GetMainWindow(automation, windowTimeout ?? TimeSpan.FromSeconds(60));
                 Assert.NotNull(window);
-                return new LegacyApp(application, window, automation, faultFile);
+                var app = new LegacyApp(application, window, automation, faultFile);
+                app.WaitForStartupToFinish(windowTimeout ?? TimeSpan.FromSeconds(60));
+                return app;
             }
             catch
             {
@@ -503,6 +505,17 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             {
                 // already gone
             }
+        }
+
+        /// <summary>
+        /// GUI-C-235: the app no longer blocks its UI thread while it probes the native modules at start-up (it did, and UI Automation could not answer for as long: the "UIA Timeout" of R05/R06/R08), so the window
+        /// can answer before the probing is done. What the old blocking gave every scenario implicitly - "the first UIA call returns after start-up" - is stated here: the Diagnostics tab's module summary is the
+        /// last thing start-up writes ("Executable modules=").
+        /// </summary>
+        public void WaitForStartupToFinish(TimeSpan timeout)
+        {
+            SelectTab("Diagnostics");
+            WaitForText("ModuleReadinessSummaryText", t => t.StartsWith("Executable modules=", StringComparison.Ordinal), timeout);
         }
 
         public TabView ReadPreprocessOnEveryTab()

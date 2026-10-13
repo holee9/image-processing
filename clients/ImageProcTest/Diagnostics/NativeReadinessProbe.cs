@@ -90,6 +90,8 @@ namespace ImageProcTest
 
     internal static class NativeReadinessProbe
     {
+        private static readonly object ReportFileLock = new();
+
         /// <param name="commonResult">The common backend's health.</param>
         /// <param name="waitForOracle">
         /// True (headless callers): wait for the synthetic oracle. False (the window, GUI-C-219): never wait; a verdict not yet in is reported as "checking" and the window is told when it arrives.
@@ -122,7 +124,12 @@ namespace ImageProcTest
                 WriteIndented = true,
                 NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
             });
-            File.WriteAllText(path, json);
+            // GUI-C-235: two refreshes can now overlap (the start-up probing runs on the thread pool while the oracle's verdict triggers a refresh on the UI thread), and both write this one file.
+            // Unserialised, the second got "The process cannot access the file ... because it is being used by another process" and the window showed "Report generation skipped" (R02, 2 of 4 runs).
+            lock (ReportFileLock)
+            {
+                File.WriteAllText(path, json);
+            }
 
             return new NativeReadinessReportWriteResult(
                 path,

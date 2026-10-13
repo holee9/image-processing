@@ -1,0 +1,58 @@
+agePumpAndUiAutomation [2 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheFlaUiWindowCall_WithASlowStartUpProbe [1 ms]
+[2026-10-13 23:03:15.230] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-13 23:03:15.231] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.231] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.231] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.231] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.233] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:03:15.233] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:03:15.241] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.241] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.241] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.241] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 23:03:15.242] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:03:15.242] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [57 s]
+[2026-10-13 23:04:12.233] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-13 23:04:12.244] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.244] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.244] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.244] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.250] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.250] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.297] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.297] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.297] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.297] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.299] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.299] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.345] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.345] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.345] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.345] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.347] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.347] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.622] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-13 23:04:12.623] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.623] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.623] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.623] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.625] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.625] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.633] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.633] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.633] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.633] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-13 23:04:12.635] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-13 23:04:12.635] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[xUnit.net 00:02:57.64]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [41 s]
+
+테스트를 실행했습니다.
+총 테스트 수: 22
+     통과: 20
+    건너뜀: 2
+ 총 시간: 2.9662 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
