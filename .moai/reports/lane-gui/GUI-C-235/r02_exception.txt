@@ -1,0 +1,4 @@
+2026-10-13 오후 10:56:15 System.IO.IOException: The process cannot access the file 'D:\workspace-github\xpe-gui\clients\ImageProcTest\bin\Debug\net8.0-windows\native-readiness-report.json' because it is being used by another process.
+   at ImageProcTest.MainWindow.ApplyNativeProbe(NativeProbe probe) in D:\workspace-github\xpe-gui\clients\ImageProcTest\MainWindow.xaml.cs:line 1144
+2026-10-13 오후 10:57:27 System.IO.IOException: The process cannot access the file 'D:\workspace-github\xpe-gui\clients\ImageProcTest\bin\Debug\net8.0-windows\native-readiness-report.json' because it is being used by another process.
+   at ImageProcTest.MainWindow.ApplyNativeProbe(NativeProbe probe) in D:\workspace-github\xpe-gui\clients\ImageProcTest\MainWindow.xaml.cs:line 1144

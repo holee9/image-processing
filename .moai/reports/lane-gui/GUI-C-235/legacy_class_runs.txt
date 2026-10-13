@@ -1,0 +1,10 @@
+after_nodelay_1: passed=20 failed=0 |  | 
+after_nodelay_2: passed=19 failed=1 | R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [1 m 2 s] | 
+after_nodelay_3: passed=20 failed=0 |  | 
+after_delay3000: passed=19 failed=1 | R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRun | 
+before_delay3000: passed=10 failed=10 | L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRun ; L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [2 s] ; R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed [2 s] ; R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [2 s] ; R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_From ; R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [3 s] ; R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRun ; R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [2 s] ; R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady [2 s] ; R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [2 s] | 
+after_lock_nodelay_1: passed=20 failed=0 |  | 
+after_lock_nodelay_2: passed=20 failed=0 |  | 
+after_lock_nodelay_3: passed=20 failed=0 |  | 
+after_lock_nodelay_4: passed=20 failed=0 |  | 
+after_lock_delay3000: passed=20 failed=0 |  | 
