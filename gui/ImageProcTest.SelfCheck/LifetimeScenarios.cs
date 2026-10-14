@@ -1032,11 +1032,12 @@ internal static class LifetimeScenarios
 
         // the REAL wait: whichever way it ends - ticks, timeout, cancellation - the subscription is gone. (No window here, so a tick may never come; the outcome is printed, the count is what is checked.)
         Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"a subscription was already held before the check ({MainWindowViewModel.ActiveCompositionSubscriptions})");
-        var byTimeout = MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromMilliseconds(120), CancellationToken.None);
-        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 1, $"a running wait holds {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions, expected 1");
-        var endedBy = await byTimeout;
+        // GUI-C-241: the time-out path is made deterministic by asking for ticks that cannot come (int.MaxValue of them), so the limit is the only way out; and no count is asserted WHILE this wait runs:
+        // its limit is short, and a loaded runner can stall this thread for longer than the limit between the call and the check (measured: 2 of 12 instances run in parallel failed with
+        // "a running wait holds 0 subscriptions"). The running state is asserted below on a wait that only the scenario can end (a 30 s limit, ended by cancellation).
+        var endedBy = await MainWindowViewModel.WaitForCompositionTicksAsync(int.MaxValue, TimeSpan.FromMilliseconds(150), CancellationToken.None);
+        Check(endedBy == MainWindowViewModel.CompositionWait.TimedOut, $"a wait for ticks that cannot come ended as {endedBy}, expected TimedOut");
         Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"after the wait ended ({endedBy}) {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions were left");
-        Check(endedBy != MainWindowViewModel.CompositionWait.Cancelled, "a wait nobody cancelled ended as cancelled");
         using var cancel = new CancellationTokenSource();
         var byCancel = MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromSeconds(30), cancel.Token);
         Check(MainWindowViewModel.ActiveCompositionSubscriptions == 1, $"a second running wait holds {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions, expected 1");
