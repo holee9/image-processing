@@ -96,7 +96,13 @@ namespace ImageProcTest
                     return;
                 }
 
-                if (NativeLibrary.TryLoad(dependencyPath, out var handle))
+                // GUI-C-243 (Codex #195): with the search pinned, a dependency is loaded with the SAME restricted search as the module that imports it (its own folder + System32), never through the default
+                // search: a copy of fmt.dll / spdlog.dll / dcm*.dll in the application folder must not stand in for one that is missing from the pinned folder.
+                IntPtr handle;
+                var loaded = NativeSearchPolicy.StopAtInjectedDirectory
+                    ? OracleModuleConfinement.TryLoad(dependencyPath, out handle, out _)
+                    : NativeLibrary.TryLoad(dependencyPath, out handle);
+                if (loaded)
                 {
                     LoadedHandles.Add(handle);
                 }

@@ -105,6 +105,21 @@ public sealed class NativeLaunchPathTests(ITestOutputHelper output)
         Assert.Contains("could not be loaded", banner, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// GUI-C-243 (Codex #195): the DLLs a module IMPORTS are held to the pinned folder too. The pinned folder has xpe_common.dll but not the spdlog.dll it imports; a WORKING spdlog.dll (and the rest) stands in the application
+    /// folder. The app must not take that copy: Mock, and the banner says the pinned xpe_common.dll could not be loaded (it used to load, with the application folder's spdlog.dll, and the app started on Native).
+    /// </summary>
+    [SkippableFact]
+    public void PinnedFolderMissingARuntimeDll_AWorkingCopyBesideTheExe_IsNotTaken_MockWithTheReason()
+    {
+        var nativeDirectory = NativeDirectoryOrSkip();
+        using var launch = LaunchedCopy.Start(output, nativeDirectory, new Launch(Exclusive: true, AppFolder: AppFolderDlls.Working, Pinned: PinnedFolder.WithoutARuntimeDll));
+
+        var banner = BannerOf(launch);
+        Assert.Contains("xpe_common.dll at '" + Path.Combine(launch.PinnedFolderPath!, "xpe_common.dll") + "'", banner, StringComparison.Ordinal);
+        Assert.Contains("could not be loaded", banner, StringComparison.Ordinal);
+    }
+
     /// <summary>XPE_NATIVE_DIR_EXCLUSIVE=1 and no XPE_NATIVE_DIR, with WORKING DLLs in the application folder: a pin that names no folder is not quietly turned into the default search. Mock, and the banner says so.</summary>
     [SkippableFact]
     public void ExclusiveWithoutAFolder_WorkingDllsBesideTheExe_AreNotUsed_MockWithTheReason()
@@ -157,6 +172,9 @@ public sealed class NativeLaunchPathTests(ITestOutputHelper output)
 
         /// <summary>A temp folder with the real xpe_display.dll, fmt.dll, spdlog.dll and a damaged xpe_common.dll.</summary>
         WithADamagedCommon,
+
+        /// <summary>GUI-C-243: a temp folder with the real xpe_common.dll, xpe_display.dll and fmt.dll but NO spdlog.dll (which xpe_common.dll imports: measured with a PE import read, GUI-C-243 dll_imports.txt).</summary>
+        WithoutARuntimeDll,
     }
 
     private sealed record Launch(bool Exclusive, AppFolderDlls AppFolder, bool SetNativeDir = true, PinnedFolder Pinned = PinnedFolder.Staged);
@@ -214,6 +232,15 @@ public sealed class NativeLaunchPathTests(ITestOutputHelper output)
             {
                 case PinnedFolder.Staged:
                     pinnedFolder = nativeDirectory;
+                    break;
+                case PinnedFolder.WithoutARuntimeDll:
+                    pinnedFolder = Path.Combine(root, "pinned");
+                    Directory.CreateDirectory(pinnedFolder);
+                    foreach (var name in new[] { "xpe_common.dll", "xpe_display.dll", "fmt.dll" })
+                    {
+                        File.Copy(Path.Combine(nativeDirectory, name), Path.Combine(pinnedFolder, name));
+                    }
+
                     break;
                 case PinnedFolder.WithoutCommon:
                 case PinnedFolder.WithADamagedCommon:

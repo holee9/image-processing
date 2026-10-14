@@ -1120,6 +1120,47 @@ internal static class LifetimeScenarios
             try { File.Delete(decoy); } catch (IOException) { /* loaded copy: the process end removes it */ }
         }
 
+        // GUI-C-243: a feature that needs every module from the pinned folder FAILS instead of warning. A real module of the product (the decoy, a loadable DLL named xpe_ai.dll) is loaded from the runner's
+        // own folder while nothing is pinned; then the search is pinned to an empty folder: the check must throw and name it. Nothing loaded from the pinned folder -> no throw (the control).
+        var decoyPath = Path.Combine(AppContext.BaseDirectory, "xpe_ai.dll");
+        var pinnedElsewhere = Path.Combine(TempDirectory(), "pinned-empty");
+        Directory.CreateDirectory(pinnedElsewhere);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "version.dll"), decoyPath, overwrite: true);
+        var decoyHandle = System.Runtime.InteropServices.NativeLibrary.Load(decoyPath);
+        var savedDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        var savedExclusive = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE");
+        try
+        {
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", null);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", null);
+            ImageProcTest.Services.Native.NativeModuleAudit.ThrowIfOutsidePinnedFolder("control (nothing pinned)");   // must not throw: nothing is pinned
+
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", pinnedElsewhere);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", "1");
+            try
+            {
+                ImageProcTest.Services.Native.NativeModuleAudit.ThrowIfOutsidePinnedFolder("DICOM export");
+                Fail("a native module loaded from outside the pinned folder did not stop the feature");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Check(ex.Message.Contains("xpe_ai.dll", StringComparison.Ordinal) && ex.Message.Contains(pinnedElsewhere, StringComparison.Ordinal) && ex.Message.StartsWith("DICOM export", StringComparison.Ordinal),
+                    $"the failure does not name the feature, the stray module and the pinned folder: {ex.Message}");
+            }
+
+            // the AI worker is expected beside the loaded xpe_ai.dll; a worker that is not ours (or none) never fails the check
+            Check(ImageProcTest.Services.Native.NativeModuleAudit.AiWorkerPathBeside(@"C:\pinned\xpe_ai.dll") == @"C:\pinned\xpe_ai_worker.exe", "the worker is expected beside xpe_ai.dll");
+            Check(ImageProcTest.Services.Native.NativeModuleAudit.AiWorkerPathBeside(null) is null, "no xpe_ai.dll, no worker path");
+            Check(ImageProcTest.Services.Native.NativeModuleAudit.DescribeAndCheckAiWorker(Path.Combine(pinnedElsewhere, "xpe_ai.dll")).Contains("exists=False", StringComparison.Ordinal), "the worker description should say the expected file does not exist");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", savedDir);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", savedExclusive);
+            System.Runtime.InteropServices.NativeLibrary.Free(decoyHandle);
+            try { File.Delete(decoyPath); } catch (IOException) { /* loaded copy: the process end removes it */ }
+        }
+
         // the audit: which native modules are NOT from the pinned folder (pure on its inputs)
         var modules = ImageProcTest.Services.Native.NativeModuleAudit.Classify(
             [@"C:\pinned\xpe_common.dll", @"C:\pinned\dcmdata.dll", @"C:\app\fmt.dll", @"C:\Windows\System32\kernel32.dll", @"c:\PINNED\xpe_display.dll"], @"C:\pinned");

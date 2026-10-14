@@ -606,9 +606,16 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
 
         var info = new FileInfo(dllPath);
         var described = $"{dllName} at '{dllPath}' ({info.Length} bytes, written {info.LastWriteTime:yyyy-MM-dd})";
-        if (!NativeLibrary.TryLoad(dllPath, out var handle))
+        // GUI-C-243: with the search pinned the check loads the DLL the way the app will (its own folder + System32). The default search would let a copy of a dependency in the application folder make a DLL
+        // that cannot work from the pinned folder look loadable here, and the app would then fail later, at the first call, instead of starting on Mock with the reason.
+        IntPtr handle;
+        string? loadError = null;
+        var loaded = NativeSearchPolicy.StopAtInjectedDirectory
+            ? OracleModuleConfinement.TryLoad(dllPath, out handle, out loadError)
+            : NativeLibrary.TryLoad(dllPath, out handle);
+        if (!loaded)
         {
-            return $"{described} could not be loaded";
+            return $"{described} could not be loaded{(loadError is null ? string.Empty : $" ({loadError})")}";
         }
 
         try
