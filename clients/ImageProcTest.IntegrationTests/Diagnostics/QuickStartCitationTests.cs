@@ -24,6 +24,8 @@ public sealed class QuickStartCitationTests(ITestOutputHelper output)
     private static readonly Dictionary<string, string> NotQuotes = new(StringComparer.Ordinal)
     {
         ["directly contains"] = "emphasis in the prose of 'What You Need'",
+        ["MATCH"] = "a word the launch script prints (tools/Start-ImageProcTestNative.ps1: the result of its DLL check), not the app",
+        ["testdata-calib-v1"] = "the name of a GitHub release (checked against the CI step that downloads it, see TheScriptsAndCommandsTheQuickStartGives_…)",
         ["바로 들어 있는"] = "emphasis in the prose of '준비물'",
         ["바로 아래"] = "emphasis in the prose",
         ["Starting on Mock and switching:"] = "a lead-in label of the prose",
@@ -78,12 +80,13 @@ public sealed class QuickStartCitationTests(ITestOutputHelper output)
         if (span.Length == 0) return "empty";
         if (span.StartsWith("--", StringComparison.Ordinal) || span.StartsWith("-Raw", StringComparison.Ordinal) || span.StartsWith(".\\", StringComparison.Ordinal)
             || span.StartsWith("$env", StringComparison.Ordinal) || span.StartsWith("XPE_NATIVE_DIR", StringComparison.Ordinal) || span.StartsWith("tools\\", StringComparison.Ordinal)
-            || span.StartsWith("Get-FileHash", StringComparison.Ordinal))
+            || span.StartsWith("Get-FileHash", StringComparison.Ordinal) || span.StartsWith("gh ", StringComparison.Ordinal) || span.StartsWith("build\\", StringComparison.Ordinal)
+            || span.StartsWith("-NativeDir", StringComparison.Ordinal) || Regex.IsMatch(span, @"^[A-Za-z]:\\"))
         {
             return "launch command or flag (not an app string)";
         }
 
-        if (Regex.IsMatch(span, @"^[\w.\\/-]+\.(dll|xcal|raw|png|ps1|h)$") || Regex.IsMatch(span, @"^(_corrected_\w+\.\w+|data/calibration/\w+|xpe_\w+|-?\d+|src|main|bytes|times)$"))
+        if (Regex.IsMatch(span, @"^[\w.\\/-]+\.(dll|xcal|raw|png|ps1|h|json|txt|exe)$") || Regex.IsMatch(span, @"^(_corrected_\w+\.\w+|data/calibration/\w+|xpe_\w+|-?\d+|src|main|bytes|times)$"))
         {
             return "file, flag, library or module name (not an app string)";
         }
@@ -182,6 +185,105 @@ public sealed class QuickStartCitationTests(ITestOutputHelper output)
         output.WriteLine($"{checkedCount} quoted strings checked in {Pages.Length} pages ({string.Join(", ", tiers.Select(kv => $"{kv.Key}: {kv.Value}"))}); not app strings (by category): " + string.Join("; ", skipped.Select(kv => $"{kv.Key} x{kv.Value}")));
         Assert.True(checkedCount >= 40, $"only {checkedCount} quoted strings were found: the page parse is broken.");
         Assert.True(failures.Count == 0, "strings a quick-start page quotes that the app source does not have:\n" + string.Join("\n", failures));
+    }
+
+    /// <summary>
+    /// GUI-C-240: the commands and scripts the pages tell the reader to run (getting the DLLs, making the calibration folder, starting the app) are checked against the files and options they name, so a page
+    /// cannot keep telling the reader to run a script that was renamed or to pass an option the tool no longer has. What is checked, and against what:
+    /// <list type="bullet">
+    /// <item>every <c>.\tools\&lt;name&gt;.ps1</c> exists in <c>tools/</c>, and every <c>-Parameter</c> the page gives it (or names on its own, like <c>-NativeDir</c>) is a parameter of that script;</item>
+    /// <item>the folder the pages call the DLL folder (<c>build\e2e-native-dlls</c>) is the default of BOTH scripts (the page says the launch script uses it when <c>-NativeDir</c> is left out);</item>
+    /// <item>every <c>--option</c> given to <c>xpe_calib_fixture_gen.exe</c> is an option its source parses;</item>
+    /// <item>the repository and release a <c>gh release download</c> names: the repository is the one <c>Get-CiNativeDlls.ps1</c> defaults to, and the release and the asset names the pages cite are the ones the CI step that builds the calibration set downloads.</item>
+    /// </list>
+    /// NOT checked: that the release really holds those assets right now, and that the generator ships in the downloaded DLL set (both need the network / a CI run); the leader's CI step is where they are exercised.
+    /// </summary>
+    [Fact]
+    public void TheScriptsAndCommandsTheQuickStartGives_NameRealFilesParametersAndOptions()
+    {
+        var root = RepositoryRoot();
+        var codes = Pages.SelectMany(page => Spans(Page(page), "code")).Distinct().ToList();
+
+        // scripts and their parameters
+        var scriptsByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var code in codes)
+        {
+            foreach (Match m in Regex.Matches(code, @"\.\\tools\\([\w.-]+\.ps1)"))
+            {
+                var path = Path.Combine(root, "tools", m.Groups[1].Value);
+                Assert.True(File.Exists(path), $"the page tells the reader to run {m.Value}, but {path} does not exist");
+                scriptsByName[m.Groups[1].Value] = File.ReadAllText(path);
+            }
+        }
+
+        Assert.True(scriptsByName.ContainsKey("Get-CiNativeDlls.ps1") && scriptsByName.ContainsKey("Start-ImageProcTestNative.ps1"),
+            "the pages no longer name both scripts (Get-CiNativeDlls.ps1, Start-ImageProcTestNative.ps1): " + string.Join(", ", scriptsByName.Keys));
+        var parametersChecked = 0;
+        foreach (var code in codes)
+        {
+            var script = scriptsByName.FirstOrDefault(kv => code.Contains(kv.Key, StringComparison.OrdinalIgnoreCase));
+            var tokens = Regex.Matches(code, @"(?<![\w-])-([A-Z]\w+)").Select(m => m.Groups[1].Value).ToList();
+            if (tokens.Count == 0 || (script.Key is null && !(code.StartsWith("-NativeDir", StringComparison.Ordinal)))) continue;
+            // a span that is only a parameter (the prose names -NativeDir) belongs to the launch script
+            var text = script.Key is null ? scriptsByName["Start-ImageProcTestNative.ps1"] : script.Value;
+            foreach (var token in tokens)
+            {
+                Assert.True(Regex.IsMatch(text, @"\$" + Regex.Escape(token) + @"\b", RegexOptions.IgnoreCase), $"the page gives -{token} ({code}) but {(script.Key ?? "Start-ImageProcTestNative.ps1")} has no parameter ${token}");
+                parametersChecked++;
+            }
+        }
+
+        Assert.True(parametersChecked >= 4, $"only {parametersChecked} script parameters were found on the pages: the parse is broken");
+
+        // the default DLL folder
+        const string DllFolder = @"build\e2e-native-dlls";
+        Assert.True(Pages.All(page => Page(page).Contains(DllFolder, StringComparison.Ordinal)), "a page no longer names " + DllFolder);
+        foreach (var name in new[] { "Get-CiNativeDlls.ps1", "Start-ImageProcTestNative.ps1" })
+        {
+            Assert.Contains(DllFolder, scriptsByName[name], StringComparison.Ordinal);
+        }
+
+        // generator options
+        var generatorCommands = codes.Where(code => code.Contains("xpe_calib_fixture_gen.exe --", StringComparison.Ordinal)).ToList();
+        Assert.True(generatorCommands.Count >= 1, "the pages no longer give a command for xpe_calib_fixture_gen.exe");
+        var generatorSource = File.ReadAllText(Path.Combine(root, "modules", "preprocess", "tools", "xpe_calib_fixture_gen.cpp"));
+        var options = generatorCommands.SelectMany(command => Regex.Matches(command, @"(?<=\s)--[a-z-]+").Select(m => m.Value)).Distinct().ToList();
+        Assert.Contains("--caldata", options);
+        foreach (var option in options)
+        {
+            Assert.True(generatorSource.Contains("\"" + option + "\"", StringComparison.Ordinal), $"the page gives {option} to xpe_calib_fixture_gen.exe, but its source does not parse that option");
+        }
+
+        // the reasons the banner gives: each one the pages quote must be written by the code that makes the reason (RealXpeBackend.WhyNativeUnusable, XpeBackendFactory), not merely occur somewhere in the app
+        var reasonSource = File.ReadAllText(Path.Combine(root, "gui", "ImageProcTest", "Services", "RealXpeBackend.cs")) + File.ReadAllText(Path.Combine(root, "gui", "ImageProcTest", "Services", "XpeBackendFactory.cs"));
+        var reasonSpans = Pages.SelectMany(page => Spans(Page(page), "code"))
+            .Where(code => code.StartsWith("…", StringComparison.Ordinal) || code.StartsWith("(an older build", StringComparison.Ordinal) || code.Contains("does not name it", StringComparison.Ordinal)).ToList();
+        Assert.True(reasonSpans.Count >= 8, $"only {reasonSpans.Count} reason spans were found on the two pages (4 each expected): the parse is broken");
+        foreach (var span in reasonSpans)
+        {
+            foreach (var fragment in span.Contains("does not name it", StringComparison.Ordinal) ? ["does not name it"] : Fragments(span).Select(f => f.Trim('\'', ' ')))
+            {
+                Assert.True(reasonSource.Contains(fragment, StringComparison.Ordinal), $"the page quotes the banner reason '{span}', but the code that writes the reason (RealXpeBackend.WhyNativeUnusable / XpeBackendFactory) does not contain '{fragment}'");
+            }
+        }
+
+        // release download
+        var workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "ci.yml"));
+        var downloads = codes.Select(code => Regex.Match(code, @"^gh release download (\S+) -R (\S+) ")).Where(m => m.Success).ToList();
+        Assert.True(downloads.Count >= 1, "the pages no longer give a gh release download command");
+        foreach (var download in downloads)
+        {
+            Assert.Contains("'" + download.Groups[2].Value + "'", scriptsByName["Get-CiNativeDlls.ps1"], StringComparison.Ordinal);
+            Assert.Contains(download.Groups[1].Value, workflow, StringComparison.Ordinal);
+        }
+
+        foreach (var asset in new[] { "SHA256SUMS.txt", "wrist_lat_3072x3072_corrected_v2_f32le.raw" })
+        {
+            Assert.True(Pages.All(page => Page(page).Contains(asset, StringComparison.Ordinal)), $"a page no longer names the release asset {asset}");
+            Assert.True(workflow.Contains(asset, StringComparison.Ordinal), $"the pages cite the release asset {asset}, but the CI step that downloads the release does not use it");
+        }
+
+        output.WriteLine($"scripts {string.Join(", ", scriptsByName.Keys)}; {parametersChecked} parameters; generator options {string.Join(" ", options)}; release {string.Join(", ", downloads.Select(d => d.Groups[1].Value + " in " + d.Groups[2].Value))}");
     }
 
     private sealed class PathComparer : IEqualityComparer<string[]>
