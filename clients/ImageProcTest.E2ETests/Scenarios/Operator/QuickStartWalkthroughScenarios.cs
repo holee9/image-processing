@@ -925,9 +925,9 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var size = Env("XPE_C231_RAW_SIZE");
         var missing = new[] { ("XPE_C231_NATIVE_DIR", native), ("XPE_C231_CALIB_DIR", calib), ("XPE_C231_RAW", raw), ("XPE_C231_RAW_SIZE", size) }.Where(v => v.Item2 is null).Select(v => v.Item1).ToArray();
 
-        // The CI allow-list token goes on the end of this reason once the leader has made its issue (GUI-C-236): XPE-SKIP-ALLOWED:<issue>. Until then the CI gate reads this skip as unexplained, on purpose.
+        // The reason ends with the CI allow-list token for issue #262 (ci.yml lists it), so the Native E2E skip gate counts this skip as explained.
         Skip.If(missing.Length > 0, "NOT MEASURED: the real-data walkthroughs W1, W7, W12-W15 need " + string.Join(", ", missing)
-            + " (the .xcal calibration set of xpe-data/calib-real-v2 is not in the repository; the CI runner has no staged DLLs for it). They were not discovered, so none of them ran.");
+            + " (the .xcal calibration set of xpe-data/calib-real-v2 is not in the repository; the CI runner has no staged DLLs for it). They were not discovered, so none of them ran. XPE-SKIP-ALLOWED:262");
 
         var (nativeDir, calibDir, rawFile, width, height) = Inputs();
         Assert.True(File.Exists(Path.Combine(nativeDir, "xpe_preprocess.dll")), $"XPE_C231_NATIVE_DIR '{nativeDir}' holds no xpe_preprocess.dll");
