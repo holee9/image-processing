@@ -826,6 +826,9 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         bottomLine = bottomLine[..bottomLine.IndexOf(" | common=", StringComparison.Ordinal)];
         app.WaitFor(() => app.Read("RuntimeCommonVersionText").Contains(bottomLine, StringComparison.Ordinal), $"the bottom line says '{bottomLine}'", 60);
         Assert.DoesNotContain("[MOCK]", app.Title);
+        // GUI-C-237: the page says the bottom line shows "chain: not run" only while no image has been opened
+        var notRun = DocCode(page, @"^chain: not run$").Value;
+        Assert.Equal(notRun, app.Read("ChainStatusText"));
 
         // step 2: the calibration panel, by the path the page prints, with the title and the rows the page names
         var panelPath = DocPath(menuPaths, "View", "Calibration Paths Panel");
@@ -847,6 +850,9 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var summaryHead = $"RAW {summary.Groups[1].Value}x{summary.Groups[2].Value}";
         app.WaitFor(() => app.AnyTextContains(summaryHead), $"an image summary starting '{summaryHead}'", 90);
         Assert.True(app.AnyTextContains($"bytes={summary.Groups[3].Value}"), $"the summary says bytes={summary.Groups[3].Value}, as the page does");
+        // GUI-C-237: and that opening the image already runs the preprocessing (it is on by default): with the calibration folders given, the line is no longer "chain: not run"
+        app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "opening the image already ran the preprocessing, as the page says", 180);
+        Assert.NotEqual(notRun, app.Read("ChainStatusText"));
         app.Snapshot("raw opened");
 
         // step 4: Run Preprocessing, by the page's path; the line at the bottom says what the page says it will

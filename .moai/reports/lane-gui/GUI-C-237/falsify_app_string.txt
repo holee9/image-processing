@@ -1,0 +1,11 @@
+== control (nothing changed)
+   EveryStringTheQuickStartQuotes_IsAStringOfTheApp: Passed; EveryMenuPathTheQuickStartPrints_NamesMenuItemsOfTheApp: Passed
+== A message literal changed in the app: "Raw file is too small." -> "Raw file is tiny." (occurrences replaced: 1)
+   EveryStringTheQuickStartQuotes_IsAStringOfTheApp: Failed; EveryMenuPathTheQuickStartPrints_NamesMenuItemsOfTheApp: Passed
+   restored: True
+== B menu header changed in the app: _Open Raw... -> _Open Raw Image... (occurrences replaced: 1)
+   EveryStringTheQuickStartQuotes_IsAStringOfTheApp: Passed; EveryMenuPathTheQuickStartPrints_NamesMenuItemsOfTheApp: Failed
+   restored: True
+== C composed status word changed in the app: "display input=" -> "display source=" (occurrences replaced: 1)
+   EveryStringTheQuickStartQuotes_IsAStringOfTheApp: Passed; EveryMenuPathTheQuickStartPrints_NamesMenuItemsOfTheApp: Passed
+   restored: True
