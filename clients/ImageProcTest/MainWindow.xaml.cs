@@ -1077,19 +1077,13 @@ namespace ImageProcTest
         /// <summary>What the native probing found: the common backend's health and either the readiness report or why there is none. Nothing here touches the UI.</summary>
         private sealed record NativeProbe(BackendHealthResult Result, NativeReadinessReportWriteResult? Report, Exception? ReportError);
 
-        /// <summary>The probing itself (no UI access, so it can run on any thread).</summary>
+        /// <summary>The probing itself (no UI access, so it can run on any thread). It builds the report and does NOT write it: publishing is ApplyNativeProbe's, on the UI thread, after the generation check.</summary>
         private NativeProbe ProbeNative()
         {
-            // Test hook (GUI-C-235): makes the probing as slow as a slow machine's, so a scenario can show that a slow probe does not freeze the window. Unset in every real run.
-            if (int.TryParse(Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_DELAY_MS"), out var delayMs) && delayMs > 0)
-            {
-                System.Threading.Thread.Sleep(delayMs);
-            }
-
             var result = backend.CheckHealth();
             try
             {
-                return new NativeProbe(result, NativeReadinessProbe.WriteReport(result, waitForOracle: false), null);
+                return new NativeProbe(result, NativeReadinessProbe.BuildReport(result, waitForOracle: false), null);
             }
             catch (Exception ex)
             {
@@ -1103,7 +1097,19 @@ namespace ImageProcTest
             SetStatus("Checking native common backend...", Brushes.Goldenrod);
             PreprocessSmokeText.Text = "Preprocess smoke: checking in the background";
             var generation = nativeHealthGeneration;
-            var probe = await System.Threading.Tasks.Task.Run(ProbeNative);
+            var probe = await System.Threading.Tasks.Task.Run(() =>
+            {
+                var built = ProbeNative();
+#if DEBUG
+                // Test hook (GUI-C-235/235b), compiled into Debug builds only - a shipped (Release) build has no such code - and read only here, in the start-up path (never on a refresh, so it can never
+                // block the UI thread): it holds a FINISHED start-up probe back on the pool for N ms, which is what a slow machine does, so a scenario can let the oracle's verdict and a refresh overtake it.
+                if (int.TryParse(Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_DELAY_MS"), out var delayMs) && delayMs > 0)
+                {
+                    System.Threading.Thread.Sleep(delayMs);
+                }
+#endif
+                return built;
+            });
             // A refresh that ran on this thread while the probing was away (the oracle's verdict arriving, a button) is newer than this probe: applying this one would put its older "checking" back.
             if (isClosingWindow || nativeHealthGeneration != generation) return;
             ApplyNativeProbe(probe);
@@ -1143,6 +1149,8 @@ namespace ImageProcTest
             {
                 if (probe.ReportError is not null) throw probe.ReportError;
                 var report = probe.Report!;
+                // GUI-C-235b (Codex #186): the file is published HERE, with the screen, on the UI thread and only for a result that passed the generation check - the file and the window always show the same probe.
+                NativeReadinessProbe.PublishReport(report);
                 lastReadinessReportPath = report.ReportPath;
                 lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";

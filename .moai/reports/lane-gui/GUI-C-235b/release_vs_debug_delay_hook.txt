@@ -1,0 +1,6 @@
+Release: XPE_STARTUP_PROBE_DELAY_MS=3000, oracle held -> start-up report published after 541 ms
+Debug: XPE_STARTUP_PROBE_DELAY_MS=3000, oracle held -> start-up report published after 3554 ms
+Release: XPE_STARTUP_PROBE_DELAY_MS=3000, oracle held -> start-up report published after 1278 ms
+Debug: XPE_STARTUP_PROBE_DELAY_MS=3000, oracle held -> start-up report published after 3553 ms
+Release: XPE_STARTUP_PROBE_DELAY_MS=3000, oracle held -> start-up report published after 539 ms
+Debug: XPE_STARTUP_PROBE_DELAY_MS=3000, oracle held -> start-up report published after 3554 ms
