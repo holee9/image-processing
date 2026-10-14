@@ -992,13 +992,13 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// GUI-C-236b / 236c (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms): from the moment the open starts reading the file to the moment the PROCESSED first picture is on the screen. Two values are taken for the same
+    /// GUI-C-236b / 236c / 242 (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms, approved rule 1500 ms): from the moment the open starts reading the file to the moment the PROCESSED first picture is on the screen. Two values are taken for the same
     /// five opens and printed side by side.
     /// <para>(1) The app's own line (<c>FrameTimingText</c>, status bar and log) is a PROXY: its end is the second WPF composition tick after the processed picture was handed to the viewport, and
     /// <c>CompositionTarget.Rendering</c> is raised before the frame is rendered, so it is not proof that the picture was drawn.</para>
     /// <para>(2) The SCREEN value is observed from outside, independently of the app (<see cref="ScreenPoller"/>, <see cref="ScreenSettle"/>): from the moment the open is confirmed, the viewport's area is copied off
     /// the screen again and again; the picture appeared when the final unbroken run of captures that equal the settled final picture began. It starts at the confirmation of the dialog, a little before the app
-    /// starts reading (the dialog has to close first), so it can only be later than the proxy's start. The U8 verdict is judged on the SCREEN value.</para>
+    /// starts reading (the dialog has to close first), so it can only be later than the proxy's start. The U8 VERDICT is the approved rule of milestone 3 (leader decision 2026-10-14, main 5537f4e5): the median of the five PROXY values must be &lt;= 1500 ms (half of the PERF-P1-001 limit, because the end point is a proxy). It is asserted whether or not the screen can be read (<see cref="U8Verdict"/>, with boundary tests). Where the screen CAN be read, the screen median must additionally be &lt;= 3000 ms. How many frames after the proxy the picture is really presented is NOT measured in this environment: any such figure is an unmeasured estimate.</para>
     /// The first open includes the start-up cost of the code (JIT). The numbers are this machine's observations, with the observer running (it uses a core), not a CI figure. Needs the same variables as W7.
     /// </summary>
     [EnvGatedFact]
@@ -1069,10 +1069,14 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
         var proxy = rows.Select(r => (double)r.Proxy).OrderBy(x => x).ToArray();
         output.WriteLine($"   screenshots of each open's final capture: {shots}");
+
+        // THE verdict (approved rule, main 5537f4e5): proxy median of five <= 1500 ms, screen or no screen
+        var verdict = U8Verdict.OfProxyMedian(rows.Select(r => (double)r.Proxy).ToArray());
+        output.WriteLine($"   U8 verdict (approved: proxy median of five <= {U8Verdict.ProxyLimitMs:0} ms): median {verdict.MedianMs:0} ms -> {(verdict.Passes ? "PASS" : "FAIL")}. The end point is the second composition tick (a proxy); how many frames later the picture is really presented is NOT measured here (unmeasured estimate).");
+        Assert.True(verdict.Passes, $"the proxy median {verdict.MedianMs:0} ms exceeds the approved {U8Verdict.ProxyLimitMs:0} ms (U8, main 5537f4e5)");
         if (rows.Any(r => r.Screen is null))
         {
             output.WriteLine($"   U8 BY THE SCREEN: NOT MEASURED ({rows.Count(r => r.Screen is not null)} of {rows.Count} opens observable). The proxy median is {proxy[2]:0} ms (app's second composition tick; NOT proof the picture was drawn) and is the only figure.");
-            Assert.True(proxy[2] <= 3000, $"the proxy median {proxy[2]:0} ms exceeds 3000 ms");
             return;
         }
 
