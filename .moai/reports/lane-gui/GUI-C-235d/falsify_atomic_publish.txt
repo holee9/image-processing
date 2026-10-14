@@ -1,0 +1,9 @@
+== A: reverted (final name created first, content written 400 ms later): build rc=0
+run1: Failed  System.IO.IOException : The process cannot access the file 'C:\Users\drake\AppData\Local\Temp\xpe_c235c_barrier_c6f74ffb5c1948cbb41381d9841cd58f\built' because it is being used by another process.
+run2: Failed  System.IO.IOException : The process cannot access the file 'C:\Users\drake\AppData\Local\Temp\xpe_c235c_barrier_dc74c633e4e24f49ace924eea644218a\built' because it is being used by another process.
+run3: Failed  System.IO.IOException : The process cannot access the file 'C:\Users\drake\AppData\Local\Temp\xpe_c235c_barrier_6e8c6b01abe84b18baf981754a5a6c31\built' because it is being used by another process.
+== B: fixed (temporary name, moved after close) with the same 400 ms pause: build rc=0
+run1: Passed
+run2: Passed
+run3: Passed
+restored, rebuild rc=0

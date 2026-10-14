@@ -1,0 +1,8 @@
+injected probe delay ms | run | outcome | GetMainWindow ms | UI thread unanswered (longest ms)
+0 |   1 | ok |              647 | 164
+0 |   2 | ok |              595 | 152
+3000 |   1 | FAILED TimeoutException: UIA Timeout |             2457 | 0
+3000 |   2 | FAILED TimeoutException: UIA Timeout |             2470 | 0
+6000 |   1 | FAILED TimeoutException: UIA Timeout |             2757 | 0
+6000 |   2 | FAILED TimeoutException: UIA Timeout |             2465 | 0
+summary: GetMainWindow failed 4/6

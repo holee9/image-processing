@@ -367,6 +367,83 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// GUI-C-235b/235c (Codex #186, #187): a start-up probe that has been OVERTAKEN never replaces the newer readiness report. The start-up probe builds its report on the thread pool; the window publishes
+    /// it (the <c>native-readiness-report.json</c> file) on the UI thread only if no refresh happened meanwhile. The order is forced by explicit barriers, not by guessed times (Debug-only hook
+    /// <c>XPE_STARTUP_PROBE_BARRIER_DIR</c>): the finished start-up probe writes <c>built</c> and waits for <c>release</c>; the oracle is gated until <c>built</c> exists, so the start-up report is certain to
+    /// say "checking"; the oracle is released and its verdict refreshes the window; only then is the probe released, and the test waits for its <c>done</c> (dropped). The report file is deleted first and
+    /// the JSON read at the end must not be the start-up report (its timestamp differs from the one <c>built</c> carried) and must hold the verdict the screen shows.
+    /// </summary>
+    [SkippableFact]
+    public void R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile()
+    {
+        var gate = Path.Combine(Path.GetTempPath(), $"xpe_c235c_gate_{Guid.NewGuid():N}.txt");   // absent: the oracle worker waits for it
+        var barrier = Path.Combine(Path.GetTempPath(), $"xpe_c235c_barrier_{Guid.NewGuid():N}");
+        var exe = FindLegacyExecutable();
+        Skip.If(exe is null, "clients/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found: build clients/ImageProcTest first.");
+        var reportPath = Path.Combine(Path.GetDirectoryName(exe!)!, "native-readiness-report.json");
+        try
+        {
+            if (File.Exists(reportPath)) File.Delete(reportPath);   // a report left by an earlier run cannot be read as this one's
+            Directory.CreateDirectory(barrier);
+            var env = new Dictionary<string, string> { ["XPE_ORACLE_TEST_GATE"] = gate, ["XPE_STARTUP_PROBE_BARRIER_DIR"] = barrier };
+            using var app = LegacyApp.LaunchOrSkip(breakTemp: false, extraEnvironment: env, waitForStartupToFinish: false);
+
+            // 1) the start-up probe has BUILT its report and is held: the oracle is still gated, so that report says "checking"; and it has not been published
+            var builtMarker = Path.Combine(barrier, "built");
+            WaitFor(() => File.Exists(builtMarker), TimeSpan.FromSeconds(30), "the start-up probe never reported that its report was built");
+            var builtTimestamp = File.ReadAllText(builtMarker);   // the marker is published atomically (temporary name, then moved): seeing the final name means seeing all of it
+            Assert.NotEmpty(builtTimestamp);
+            Assert.False(File.Exists(reportPath), "the report file exists before anything was published: it is not this run's, or the start-up probe published it itself.");
+            output.WriteLine($"1 start-up report built (timestamp {builtTimestamp}), held, nothing published");
+
+            // 2) the oracle's verdict overtakes it: release the gate, wait for the verdict on screen (the refresh it triggers publishes the newer report)
+            File.WriteAllText(gate, "go");
+            var smoke = app.WaitForTextOnTab("Diagnostics", "PreprocessSmokeText", t => t.Contains("pass=", StringComparison.Ordinal), TimeSpan.FromSeconds(30));
+            output.WriteLine($"2 verdict on screen: {smoke}");
+            Assert.True(File.Exists(reportPath), "the verdict reached the screen but no report file was published for it.");
+
+            // 3) only now let the overtaken start-up probe go, and wait for its explicit end
+            File.WriteAllText(Path.Combine(barrier, "release"), "go");
+            var doneMarker = Path.Combine(barrier, "done");
+            WaitFor(() => File.Exists(doneMarker), TimeSpan.FromSeconds(30), "the start-up probe never reported its end");
+            var disposition = File.ReadAllText(doneMarker);
+            output.WriteLine($"3 start-up probe ended: {disposition}");
+            Assert.Equal("dropped", disposition);
+
+            // 4) the file is the refresh's, not the start-up probe's
+            var finalSmoke = app.ReadText("Diagnostics", "PreprocessSmokeText");
+            using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(reportPath));
+            var root = document.RootElement;
+            var fileTimestamp = root.GetProperty("timestampUtc").GetString();
+            var preprocess = root.GetProperty("preprocess");
+            var checking = preprocess.GetProperty("IsSyntheticOracleChecking").GetBoolean();
+            var passedInFile = preprocess.GetProperty("SyntheticOracle").GetProperty("Passed").GetBoolean();
+            output.WriteLine($"4 screen '{finalSmoke}'; file timestamp {fileTimestamp} (start-up report {builtTimestamp}), checking={checking}, passed={passedInFile}");
+
+            Assert.Contains("pass=True", finalSmoke, StringComparison.Ordinal);
+            Assert.NotEqual(builtTimestamp, fileTimestamp);   // the file is not the start-up report
+            Assert.False(checking, "the report file says the oracle is still checking: the start-up probe, built before the verdict, was published after it.");
+            Assert.True(passedInFile, "the report file holds no passed verdict, but the screen does.");
+        }
+        finally
+        {
+            try { File.Delete(gate); } catch (IOException) { }
+            try { Directory.Delete(barrier, recursive: true); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+        }
+    }
+
+    /// <summary>Polls a condition (a file the app writes) for at most <paramref name="timeout"/>; the wait is for an event, never a guess of how long something takes.</summary>
+    private static void WaitFor(Func<bool> condition, TimeSpan timeout, string failure)
+    {
+        var clock = Stopwatch.StartNew();
+        while (!condition())
+        {
+            if (clock.Elapsed > timeout) throw new TimeoutException(failure + $" (within {timeout.TotalSeconds:0} s).");
+            Thread.Sleep(20);
+        }
+    }
+
     private sealed record ClickOutcome(string CommandBefore, string CommandAfter, string PreviewText);
 
     private static ClickOutcome RunTheCommandAfter(bool changeDll)
@@ -448,7 +525,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         /// existed. The test's <c>using var app</c> then had nothing to dispose: the app, the automation object and the fault file leaked, and the leaked app (started with
         /// <c>UseShellExecute=false</c>, so it inherits this process's standard handles) kept the test host's output pipe open, which is what made <c>dotnet test</c> look hung.
         /// </summary>
-        public static LegacyApp LaunchOrSkip(bool breakTemp, TimeSpan? windowTimeout = null, IReadOnlyDictionary<string, string>? extraEnvironment = null)
+        public static LegacyApp LaunchOrSkip(bool breakTemp, TimeSpan? windowTimeout = null, IReadOnlyDictionary<string, string>? extraEnvironment = null, bool waitForStartupToFinish = true)
         {
             var exe = FindExecutable();
             Skip.If(exe is null, "clients/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found: build clients/ImageProcTest first.");
@@ -478,7 +555,9 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
                 application = Application.Launch(info);
                 var window = application.GetMainWindow(automation, windowTimeout ?? TimeSpan.FromSeconds(60));
                 Assert.NotNull(window);
-                return new LegacyApp(application, window, automation, faultFile);
+                var app = new LegacyApp(application, window, automation, faultFile);
+                if (waitForStartupToFinish) app.WaitForStartupToFinish(windowTimeout ?? TimeSpan.FromSeconds(60));
+                return app;
             }
             catch
             {
@@ -503,6 +582,17 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             {
                 // already gone
             }
+        }
+
+        /// <summary>
+        /// GUI-C-235: the app no longer blocks its UI thread while it probes the native modules at start-up (it did, and UI Automation could not answer for as long: the "UIA Timeout" of R05/R06/R08), so the window
+        /// can answer before the probing is done. What the old blocking gave every scenario implicitly - "the first UIA call returns after start-up" - is stated here: the Diagnostics tab's module summary is the
+        /// last thing start-up writes ("Executable modules=").
+        /// </summary>
+        public void WaitForStartupToFinish(TimeSpan timeout)
+        {
+            SelectTab("Diagnostics");
+            WaitForText("ModuleReadinessSummaryText", t => t.StartsWith("Executable modules=", StringComparison.Ordinal), timeout);
         }
 
         public TabView ReadPreprocessOnEveryTab()

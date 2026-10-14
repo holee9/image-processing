@@ -1,0 +1,8 @@
+run 1: exit=1
+the report file says the oracle is still checking: the start-up probe, built before the verdict, was published after it.
+1 verdict on screen after 5189 ms: Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.227ms
+2 after the held probe was released (11255 ms): screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.227ms'; file checking=True, a passed verdict in the file=False; file written 2026-10-14T00:25:34.9150233Z
+run 2: exit=1
+the report file says the oracle is still checking: the start-up probe, built before the verdict, was published after it.
+1 verdict on screen after 3208 ms: Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.706ms
+2 after the held probe was released (11445 ms): screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.706ms'; file checking=True, a passed verdict in the file=False; file written 2026-10-14T00:25:48.5413572Z

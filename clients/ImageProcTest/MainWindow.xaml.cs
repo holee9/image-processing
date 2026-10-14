@@ -74,9 +74,18 @@ namespace ImageProcTest
 
         private bool isClosingWindow;
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// GUI-C-235: the start-up native probing no longer runs on the UI thread. It used to (RefreshNativeHealth(), synchronously, here): xpe_init, the memory ABI smoke, the display/DICOM/GSVG/preprocess
+        /// probes (each loads a module and calls into it) and the readiness report file - about 0.4 s of a fast desktop's start-up, 78 ms of it the common backend and 284 ms the probes (measured,
+        /// .moai/reports/lane-gui/GUI-C-235/startup_trace_copy1.txt), and longer on a slower machine or for freshly copied DLLs. The window handle exists before that work starts, UI Automation answers from the
+        /// UI thread, and FlaUI's call has a 2 s budget: on CI it ran out ("UIA Timeout" from Application.GetMainWindow, before the scenario began; R05/R06/R08 across three runs of the same tree). A window that
+        /// cannot answer for that long while it starts is a frozen window for a person too. The probing now runs on the thread pool and its results are applied here; what the window shows meanwhile is stated
+        /// (status "Checking native common backend...", the oracle line already says "checking in the background").
+        /// </summary>
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            RefreshNativeHealth();
+            await RefreshNativeHealthOffTheUiThreadAsync();
+            if (isClosingWindow) return;
             LoadFixtureCases();
             RefreshModuleReadiness();
             UpdateEvaluationDashboards();
@@ -1065,6 +1074,82 @@ namespace ImageProcTest
             }
         }
 
+        /// <summary>What the native probing found: the common backend's health and either the readiness report or why there is none. Nothing here touches the UI.</summary>
+        private sealed record NativeProbe(BackendHealthResult Result, NativeReadinessReportWriteResult? Report, Exception? ReportError);
+
+        /// <summary>The probing itself (no UI access, so it can run on any thread). It builds the report and does NOT write it: publishing is ApplyNativeProbe's, on the UI thread, after the generation check.</summary>
+        private NativeProbe ProbeNative()
+        {
+            var result = backend.CheckHealth();
+            try
+            {
+                return new NativeProbe(result, NativeReadinessProbe.BuildReport(result, waitForOracle: false), null);
+            }
+            catch (Exception ex)
+            {
+                return new NativeProbe(result, null, ex);
+            }
+        }
+
+        /// <summary>The start-up refresh: the probing on the pool, the results applied on the UI thread.</summary>
+        private async System.Threading.Tasks.Task RefreshNativeHealthOffTheUiThreadAsync()
+        {
+            SetStatus("Checking native common backend...", Brushes.Goldenrod);
+            PreprocessSmokeText.Text = "Preprocess smoke: checking in the background";
+            var generation = nativeHealthGeneration;
+            var probe = await System.Threading.Tasks.Task.Run(() =>
+            {
+                var built = ProbeNative();
+#if DEBUG
+                // Test hooks (GUI-C-235/235b/235c), compiled into Debug builds only - a shipped (Release) build has no such code - and read only here, in the start-up path (never on a refresh, so they can never
+                // block the UI thread). XPE_STARTUP_PROBE_BARRIER_DIR: an explicit barrier instead of a timing guess - the finished start-up probe writes "built" (the report's timestamp) into the directory and
+                // waits there for a "release" file (at most 60 s), so a scenario can do whatever it needs while the probe is held and let it go when it chooses; "done" (dropped / applied) is written after.
+                var barrierDir = Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_BARRIER_DIR");
+                if (!string.IsNullOrEmpty(barrierDir) && built.Report?.ReportJson is { } builtJson)
+                {
+                    using (var parsed = System.Text.Json.JsonDocument.Parse(builtJson))
+                    {
+                        BarrierSignal(barrierDir, "built", parsed.RootElement.GetProperty("timestampUtc").GetString() ?? string.Empty);
+                    }
+
+                    var waited = System.Diagnostics.Stopwatch.StartNew();
+                    while (!System.IO.File.Exists(System.IO.Path.Combine(barrierDir, "release")) && waited.Elapsed < TimeSpan.FromSeconds(60))
+                    {
+                        System.Threading.Thread.Sleep(20);
+                    }
+                }
+
+                // XPE_STARTUP_PROBE_DELAY_MS: holds the finished probe back for N ms (what a slow machine does) - used by the responsiveness measurements.
+                if (int.TryParse(Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_DELAY_MS"), out var delayMs) && delayMs > 0)
+                {
+                    System.Threading.Thread.Sleep(delayMs);
+                }
+#endif
+                return built;
+            });
+            // A refresh that ran on this thread while the probing was away (the oracle's verdict arriving, a button) is newer than this probe: applying this one would put its older "checking" back.
+            var overtaken = isClosingWindow || nativeHealthGeneration != generation;
+#if DEBUG
+            if (Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_BARRIER_DIR") is { Length: > 0 } doneDir)
+            {
+                BarrierSignal(doneDir, "done", overtaken ? "dropped" : "applied");   // GUI-C-235c: the end of the start-up probe, said explicitly
+            }
+#endif
+            if (overtaken) return;
+            ApplyNativeProbe(probe);
+        }
+
+#if DEBUG
+        private static void BarrierSignal(string directory, string name, string content)
+        {
+            // GUI-C-235d: published atomically - written and closed under a temporary name, then moved to the final one - so a reader that sees the final name sees all of its content.
+            System.IO.Directory.CreateDirectory(directory);
+            var temporary = System.IO.Path.Combine(directory, name + ".tmp");
+            System.IO.File.WriteAllText(temporary, content);
+            System.IO.File.Move(temporary, System.IO.Path.Combine(directory, name), overwrite: true);
+        }
+#endif
+
         private void RefreshNativeHealth(bool recheckOracle = false)
         {
             if (recheckOracle)
@@ -1073,7 +1158,15 @@ namespace ImageProcTest
             }
 
             SetStatus("Checking native common backend...", Brushes.Goldenrod);
-            var result = backend.CheckHealth();
+            ApplyNativeProbe(ProbeNative());
+        }
+
+        private int nativeHealthGeneration;
+
+        private void ApplyNativeProbe(NativeProbe probe)
+        {
+            nativeHealthGeneration++;
+            var result = probe.Result;
             lastBackendHealth = result;
             VersionText.Text = $"Version: {result.Version}";
             NativePathText.Text = $"DLL: {result.DllPath}";
@@ -1089,7 +1182,10 @@ namespace ImageProcTest
 
             try
             {
-                var report = NativeReadinessProbe.WriteReport(result, waitForOracle: false);
+                if (probe.ReportError is not null) throw probe.ReportError;
+                var report = probe.Report!;
+                // GUI-C-235b (Codex #186): the file is published HERE, with the screen, on the UI thread and only for a result that passed the generation check - the file and the window always show the same probe.
+                NativeReadinessProbe.PublishReport(report);
                 lastReadinessReportPath = report.ReportPath;
                 lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";

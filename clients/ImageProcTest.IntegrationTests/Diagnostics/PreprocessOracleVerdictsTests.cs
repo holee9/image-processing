@@ -491,7 +491,7 @@ public sealed class PreprocessOracleVerdictsTests : IDisposable
             .Concat(Directory.EnumerateFiles(Path.Combine(appDir, "ViewModels"), "*.cs", SearchOption.AllDirectories))
             .ToList();
         var forbidden = new[] { "XpePreprocessOracleProcess.Run(", "XpePreprocessSyntheticOracle.Run(", "PreprocessOracleVerdicts.Wait(" };
-        var mustSayNo = new[] { "NativeReadinessProbe.WriteReport(", "XpePreprocessReadinessProbe.Check(", "ModuleReadinessService.Evaluate(", "moduleReadinessViewModel.Refresh(" };
+        var mustSayNo = new[] { "NativeReadinessProbe.WriteReport(", "NativeReadinessProbe.BuildReport(", "XpePreprocessReadinessProbe.Check(", "ModuleReadinessService.Evaluate(", "moduleReadinessViewModel.Refresh(" };
         var seen = 0;
         foreach (var file in uiFiles)
         {
