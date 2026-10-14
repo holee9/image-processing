@@ -1360,6 +1360,7 @@ jobs:
           # deliberate act that shows up in the run summary.
           $allowed = @{
             '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
+            '265' = 'walkthrough W10 needs an old-build DLL folder (XPE_C232B_OLD_NATIVE_DIR); no such DLLs in the repository or CI (GUI-C-239)'
           }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
