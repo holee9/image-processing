@@ -1,0 +1,45 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:09.71]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens [FAIL]
+[xUnit.net 00:00:09.71]       open 1: the screen observation is inconclusive: every capture already equalled the final picture: nothing was seen to appear. Watched area {X=548,Y=448,Width=884,Height=438}; screenshot of the last capture: C:\Users\drake\AppData\Local\Temp\xpe_w15_shots_151503\open1_final.png
+[xUnit.net 00:00:09.72]       Stack Trace:
+[xUnit.net 00:00:09.72]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(1031,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens()
+[xUnit.net 00:00:09.72]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:09.72]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:09.72]       Output:
+[xUnit.net 00:00:09.72]            watched area (screen pixels): {X=548,Y=448,Width=884,Height=438}
+[xUnit.net 00:00:09.72]            dialog: 'Load Raw Image'
+[xUnit.net 00:00:09.72]            ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+[xUnit.net 00:00:09.72]            open-to-2nd-tick (proxy) #1: 1317 ms = read 316 + prepare 31 + chain-and-display 710 [preprocess=287 ms, enhance_basic=281 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 259
+[xUnit.net 00:00:09.72]            screen: 26 captures (every 105.0 ms); settled=False (every capture already equalled the final picture: nothing was seen to appear); picture seen between NaN and NaN ms after the confirmation; the picture before it differed from the final one at NaN of the points; the final picture stayed 0 ms (0 captures)
+[xUnit.net 00:00:09.72]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens [9 s]
+  오류 메시지:
+   open 1: the screen observation is inconclusive: every capture already equalled the final picture: nothing was seen to appear. Watched area {X=548,Y=448,Width=884,Height=438}; screenshot of the last capture: C:\Users\drake\AppData\Local\Temp\xpe_w15_shots_151503\open1_final.png
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1031
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    watched area (screen pixels): {X=548,Y=448,Width=884,Height=438}
+    dialog: 'Load Raw Image'
+    ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+    open-to-2nd-tick (proxy) #1: 1317 ms = read 316 + prepare 31 + chain-and-display 710 [preprocess=287 ms, enhance_basic=281 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 259
+    screen: 26 captures (every 105.0 ms); settled=False (every capture already equalled the final picture: nothing was seen to appear); picture seen between NaN and NaN ms after the confirmation; the picture before it differed from the final one at NaN of the points; the final picture stayed 0 ms (0 captures)
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 10.0573 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

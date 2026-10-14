@@ -1,0 +1,45 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.07]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:10.46]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens [FAIL]
+[xUnit.net 00:00:10.46]       open 1: the picture just before the final one differs from it at only 1.4% of the points: what appeared is not distinguishable from what was there (a window in front of the app, or no visible change?)
+[xUnit.net 00:00:10.46]       Stack Trace:
+[xUnit.net 00:00:10.46]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(1034,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens()
+[xUnit.net 00:00:10.46]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:10.46]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:10.46]       Output:
+[xUnit.net 00:00:10.46]            watched area (screen pixels): {X=574,Y=474,Width=884,Height=438}
+[xUnit.net 00:00:10.46]            dialog: 'Load Raw Image'
+[xUnit.net 00:00:10.46]            ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+[xUnit.net 00:00:10.46]            open-to-2nd-tick (proxy) #1: 1306 ms = read 332 + prepare 28 + chain-and-display 654 [preprocess=256 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 290
+[xUnit.net 00:00:10.46]            screen: 31 captures (every 86.4 ms); settled=True (ok); picture seen between 99 and 241 ms after the confirmation; the picture before it differed from the final one at 1% of the points; the final picture stayed 2489 ms (28 captures)
+[xUnit.net 00:00:10.46]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens [10 s]
+  오류 메시지:
+   open 1: the picture just before the final one differs from it at only 1.4% of the points: what appeared is not distinguishable from what was there (a window in front of the app, or no visible change?)
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1034
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    watched area (screen pixels): {X=574,Y=474,Width=884,Height=438}
+    dialog: 'Load Raw Image'
+    ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+    open-to-2nd-tick (proxy) #1: 1306 ms = read 332 + prepare 28 + chain-and-display 654 [preprocess=256 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 290
+    screen: 31 captures (every 86.4 ms); settled=True (ok); picture seen between 99 and 241 ms after the confirmation; the picture before it differed from the final one at 1% of the points; the final picture stayed 2489 ms (28 captures)
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 10.8115 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
