@@ -1,0 +1,51 @@
+"--no-build" 인수가 무시되었습니다.
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients/ImageProcTest.E2ETests/bin/Debug/net8.0-windows/ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+[2026-10-14 11:54:00.402] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 11:54:00.413] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.413] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.413] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.413] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.419] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 11:54:00.419] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 11:54:00.826] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 11:54:00.827] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.827] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.827] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.827] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.829] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 11:54:00.829] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 11:54:00.837] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.837] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.837] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.837] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:00.838] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 11:54:00.838] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 11:54:01.283] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:01.283] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:01.283] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:01.283] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 11:54:01.285] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 11:54:01.285] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[xUnit.net 00:00:02.56]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile [2 s]
+  표준 출력 메시지:
+ 1 start-up report built (timestamp 2026-10-14T02:54:00.4247031+00:00), held, nothing published
+ 2 verdict on screen: Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.211ms
+ 3 start-up probe ended: dropped
+ 4 screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.211ms'; file timestamp 2026-10-14T02:54:00.8310875+00:00 (start-up report 2026-10-14T02:54:00.4247031+00:00), checking=False, passed=True
+
+
+결과 파일: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-235d\runs\run7.trx
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 2.8840 초

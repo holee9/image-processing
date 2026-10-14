@@ -1142,8 +1142,11 @@ namespace ImageProcTest
 #if DEBUG
         private static void BarrierSignal(string directory, string name, string content)
         {
+            // GUI-C-235d: published atomically - written and closed under a temporary name, then moved to the final one - so a reader that sees the final name sees all of its content.
             System.IO.Directory.CreateDirectory(directory);
-            System.IO.File.WriteAllText(System.IO.Path.Combine(directory, name), content);
+            var temporary = System.IO.Path.Combine(directory, name + ".tmp");
+            System.IO.File.WriteAllText(temporary, content);
+            System.IO.File.Move(temporary, System.IO.Path.Combine(directory, name), overwrite: true);
         }
 #endif
 
