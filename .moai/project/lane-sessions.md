@@ -266,6 +266,8 @@ E2ETests/.../ClampAlertOnScreenScenarios.cs:77       @"\d+ pixel\(s\) fell outsi
 
 **확인**: 리더가 각 레인에 시각 표기 메시지를 받아 형식과 실제 시각(±5분)을 대조한다.
 
+**공통 규칙의 배포 경로**: 네 세션 공통 규칙은 `.claude/rules/xpe/lane-session-rules.md`(추적, 리더 소유)에 두고 main 으로 배포한다. 리더는 레인의 `CLAUDE.local.md`(추적 안 됨, 그 세션의 사용자 지시 파일) 수정을 카드·메시지로 요청하지 않는다 — Claude Code 런타임이 동료 메시지로 설정 파일을 고치는 것을 막아(권한 세탁 방지) 레인이 사용자 승인 대기로 멈춘다(2026-10-14 QA-A-TS·GUI-C-TS 에서 실측).
+
 ---
 
 ## 4. 각 터미널 세션 시작 메시지 (붙여넣기용)
