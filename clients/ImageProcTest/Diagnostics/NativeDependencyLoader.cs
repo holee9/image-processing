@@ -61,6 +61,13 @@ namespace ImageProcTest
 
             yield return nativeDirectory;
 
+            // GUI-C-238b (Codex #193 B-3): a pinned search (XPE_NATIVE_DIR_EXCLUSIVE=1) takes the dependencies from the pinned folder and nowhere else. The vcpkg_installed folder found above it loaded a SECOND
+            // copy of fmt.dll next to the pinned one (measured by the module audit in the app log, 2026-10-14).
+            if (NativeSearchPolicy.StopAtInjectedDirectory)
+            {
+                yield break;
+            }
+
             var directory = new DirectoryInfo(nativeDirectory);
             while (directory is not null)
             {

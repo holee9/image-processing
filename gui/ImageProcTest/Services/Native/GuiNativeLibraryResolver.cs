@@ -85,7 +85,7 @@ internal static class GuiNativeLibraryResolver
             : new DirectoryInfo(directory).Name;
     }
 
-    private static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+    internal static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
         var candidates = CandidatesFor(libraryName);
         if (candidates is null)
@@ -93,15 +93,25 @@ internal static class GuiNativeLibraryResolver
             return IntPtr.Zero;   // Not ours — let the runtime handle it.
         }
 
+        // GUI-C-238b (Codex #193): with the search pinned (XPE_NATIVE_DIR_EXCLUSIVE=1) the app's own DLLs are loaded ONLY from the pinned folder, and a failure is a failure: it is not handed to the default .NET
+        // loader below (which would search the application folder). The load is also restricted (the DLL's own folder + System32, not the executable's folder or PATH) so that the DLLs it imports by name are
+        // not taken from the application folder either; NativeModuleAudit says afterwards where every native module really came from.
+        var pinned = NativeSearchPolicy.StopAtInjectedDirectory;
+        string? lastFailure = null;
         foreach (var candidate in candidates)
         {
             if (!File.Exists(candidate))
             {
+                lastFailure ??= $"'{candidate}' does not exist";
                 continue;
             }
 
             NativeDependencyLoader.TryLoadFor(candidate);
-            if (NativeLibrary.TryLoad(candidate, out var handle))
+            IntPtr handle;
+            var loaded = pinned
+                ? OracleModuleConfinement.TryLoad(candidate, out handle, out lastFailure)
+                : NativeLibrary.TryLoad(candidate, out handle);
+            if (loaded)
             {
                 lock (Gate)
                 {
@@ -110,6 +120,13 @@ internal static class GuiNativeLibraryResolver
 
                 return handle;
             }
+        }
+
+        if (pinned)
+        {
+            throw new DllNotFoundException(NativeSearchPolicy.ExclusiveWithoutDirectory
+                ? $"{libraryName} cannot be loaded: XPE_NATIVE_DIR_EXCLUSIVE=1 pins the native search to one folder, but XPE_NATIVE_DIR does not name it. The default search was not used."
+                : $"{libraryName} cannot be loaded from the pinned folder '{NativeSearchPolicy.ExclusiveDirectory}' ({lastFailure ?? "no candidate"}). XPE_NATIVE_DIR_EXCLUSIVE=1: the default search (application folder) was not used.");
         }
 
         // No candidate loaded. Returning Zero lets the default loader try, which keeps a missing

@@ -82,6 +82,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         AddLog($"xpe_common.dll = {_commonDllPath}");
         AddLog($"xpe_display.dll = {_displayDllPath}");
         AddLog($"Display version = {displayVersion}");
+        AuditNativeModules("after initialisation");
 
         _telemetry.AddAlert(new AlertEntry
         {
@@ -324,8 +325,32 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     /// #180 (GUI-C-99): the pixel chain. Order, copies and fallback are ProcessingChainRunner's; this
     /// method only says how each stage runs natively.
     /// </summary>
-    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings) =>
-        RunChainCore(rawFrame, stages, settings, measureExposureIndex: false);
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        var chain = RunChainCore(rawFrame, stages, settings, measureExposureIndex: false);
+        if (!_modulesAuditedAfterChain)
+        {
+            _modulesAuditedAfterChain = true;
+            AuditNativeModules("after the first chain");   // the other modules (preprocess, enhance_basic, dicom ...) load on first use, so they are only in the list now
+        }
+
+        return chain;
+    }
+
+    private bool _modulesAuditedAfterChain;
+
+    /// <summary>GUI-C-238b: where the native modules loaded so far came from (log), and a warning alert for each one that is not from the pinned folder.</summary>
+    private void AuditNativeModules(string stage)
+    {
+        foreach (var line in NativeModuleAudit.Report(stage))
+        {
+            AddLog(line);
+            if (line.Contains("is NOT the pinned folder", StringComparison.Ordinal))
+            {
+                _telemetry.AddAlert(new AlertEntry { Severity = "WARN", Code = "NATIVE_MODULE_OUTSIDE_PINNED_FOLDER", Message = line, Timestamp = DateTimeOffset.Now });
+            }
+        }
+    }
 
     private ChainResult RunChainCore(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings, bool measureExposureIndex)
     {

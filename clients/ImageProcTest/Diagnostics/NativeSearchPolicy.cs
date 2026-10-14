@@ -50,6 +50,12 @@ namespace ImageProcTest
         public static string? ExclusiveDirectory => StopAtInjectedDirectory ? InjectedDirectory : null;
 
         /// <summary>
+        /// GUI-C-238b: <see cref="ExclusiveVariable"/> is 1 but <see cref="DirectoryVariable"/> names nothing. A search pinned to a folder that is not named has nowhere to look: the locators return NO
+        /// candidate (they do not fall back to the application folder), and the caller reports why.
+        /// </summary>
+        public static bool ExclusiveWithoutDirectory => StopAtInjectedDirectory && InjectedDirectory is null;
+
+        /// <summary>
         /// True when repository build directories and sibling checkouts may be searched.
         /// Off by default: a DLL found there has no recorded provenance.
         /// </summary>
