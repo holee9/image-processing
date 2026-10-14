@@ -22,6 +22,8 @@
 
 문서와 앱의 문자열이 어긋나면 이 시험이 실패한다(U9 인용 대조의 한 축). 입력은 UIA 패턴만(메뉴 ExpandCollapse/Invoke, 대화상자는 패턴 호출 + 대화상자 자신의 단추에 BM_CLICK) — 전역 키보드·마우스 없음. 반증은 문서 쪽만 바꿨다 — 앱 쪽 문자열을 바꾸는 반증은 하지 않았다(어긋남은 양쪽에서 같은 단언으로 잡힌다는 것은 추론이며 관측하지 않음).
 
+> **정정 (GUI-C-236b)**: 이 절의 636 ms 는 Deterministic Baseline 명령의 구간(전처리+향상+표시 합성)이며 U8 의 정의(열기 시작 → 처리된 첫 화면 렌더 완료)가 아니다. 파일 읽기와 렌더가 빠져 있다. 정의대로 잰 값은 `.moai/reports/lane-gui/GUI-C-236b/report.md` — 중앙값 1172 ms.
+
 ## U8 — W15: 앱이 직접 남긴 시간, 5회
 
 `W15_OneFrame_TheAppsOwnBaselineTimes_FiveCommands` 는 같은 실데이터를 열고 `Pipeline > Run Deterministic Baseline` 을 5번 실행한다. 이 명령은 실행마다 `baseline.json` 을 남기며(`runTotalsMs`: 두 번의 체인 실행 각각의 시간, `stageTimes`: 단계별), 시험은 새로 생긴 파일을 읽는다. 별도 기록 기능을 새로 만들지 않았다. 표본은 각 명령의 첫 실행이다.
@@ -44,7 +46,8 @@
 W1·W7·W12~W15 는 데이터가 없으면 `EnvGatedFact` 때문에 **발견조차 안 된다**(조용한 부재). 리더 결정(a)에 따라 `W16_TheRealDataWalkthroughs_HaveTheirData` 를 더했다:
 - 환경변수 4개(`XPE_C231_NATIVE_DIR/CALIB_DIR/RAW/RAW_SIZE`) 중 빠진 것이 있으면 **건너뜀**, 이유 문장에 무엇이 없는지와 "발견되지 않아 아무것도 안 돌았다"를 적는다(`no_data_run.txt`: W0 통과 + W16 건너뜀 1건).
 - 데이터가 있으면 진짜 점검: DLL, .xcal 3개, raw 크기 = 가로×세로×2 (`w16_with_data.txt` 통과).
-- **CI 허용 목록 토큰 자리는 비워 두었다**: 이슈 번호가 정해지면 이유 문장 끝에 `XPE-SKIP-ALLOWED:<번호>` 를 붙이면 된다(코드 주석에 표시). 그 전에는 CI 의 "설명되지 않은 건너뜀" 게이트가 이 건너뜀을 빨갛게 읽는다 — 푸시 전에 토큰을 정해야 한다.
+- **허용 목록 토큰은 붙어 있다** (`d12b82de`, GUI-C-236b 에서 규칙 보강): 이유 문장 끝에 `XPE-SKIP-ALLOWED:262` (ci.yml 허용 목록의 #262). 네 변수가 **모두** 없을 때만 건너뛰고, 일부만 있으면 실패한다 (GUI-C-236b).
+- **CI 상태(정확히)**: U2(W14)·U8(W15)의 실데이터 시험은 CI 에서 **수집되지 않는다**(`EnvGatedFact`). CI 에서 보이는 것은 W16 의 "설명된 건너뜀" 1건뿐이며, 이것은 U2·U8 이 CI 에서 측정되었다는 뜻이 아니다.
 
 ## CI 측정 경로 제안
 - W15 는 `XPE_C231_*` 4개가 있어야 돈다. 러너에는 .xcal(85 MB, 저장소 밖)이 없다. 영상과 보정 입력(`tests/test_data/CalData_6`)은 저장소 안에 있고, 세트는 lane-pre 하니스(`A241Measure.DISABLED_A245_ExportAndAppPath`)가 만든다 — 리더가 말한 (b) 카드(U10 닫힌 뒤 pre 와 따로)가 이 경로다.
