@@ -733,6 +733,174 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
         private static extern bool IsWindow(IntPtr window);
 
+        // GUI-C-246: the native calls that stand in for UI Automation while a message box may be open inside the app (see GuiApp.DriveDialog in QuickStartWalkthroughScenarios).
+        private delegate bool EnumWindowsProc(IntPtr window, IntPtr state);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr window);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr state);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int GetClassNameW(IntPtr window, System.Text.StringBuilder text, int capacity);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        private static extern int GetWindowTextW(IntPtr window, System.Text.StringBuilder text, int capacity);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
+
+        private const uint WmClose = 0x0010;
+
+        /// <summary>The single place a dialog button is pressed: POSTED (see the note at <see cref="LoadRawThroughDialog"/>). The falsification of GUI-C-246 changes only this line.</summary>
+        private static void PressDialogButton(IntPtr button) => PostMessage(button, BmClick, IntPtr.Zero, IntPtr.Zero);
+
+        /// <summary>The visible top-level dialogs (#32770) of the app other than <paramref name="except"/>: handle and title. Native calls only.</summary>
+        private List<(IntPtr Window, string Title, string Class)> OtherWindows(IntPtr except, bool dialogsOnly)
+        {
+            var processId = (uint)_application.ProcessId;
+            var found = new List<(IntPtr, string, string)>();
+            EnumWindows((window, _) =>
+            {
+                if (window == except || !IsWindowVisible(window)) return true;
+                GetWindowThreadProcessId(window, out var owner);
+                if (owner != processId) return true;
+                var className = new System.Text.StringBuilder(64);
+                GetClassNameW(window, className, className.Capacity);
+                if (dialogsOnly && className.ToString() != "#32770") return true;
+                var title = new System.Text.StringBuilder(256);
+                GetWindowTextW(window, title, title.Capacity);
+                found.Add((window, title.ToString(), className.ToString()));
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+
+        private List<(IntPtr Window, string Title, string Class)> OtherDialogs(IntPtr except) => OtherWindows(except, dialogsOnly: true);
+
+        /// <summary>Ends the app and its children; the watchdog of a test that may wait on a message box calls this.</summary>
+        public void Kill() => KillTree(_application);
+
+        /// <summary>
+        /// GUI-C-246 (Codex #197 finding 5, 411c7c30): "Load Raw..." with a file that does NOT exist. The dialog answers [Open] with a message box of its own ("file not found"); with a sent BM_CLICK this thread would wait for
+        /// a box that only it answers. Here: [Open] is posted, the message box is found and closed with native window messages (its OK button, else WM_CLOSE), the file dialog that stays open is cancelled
+        /// ([Cancel], id 2), and every step is bounded. Returns what was seen. No key and no mouse input is used.
+        /// </summary>
+        public MissingFileOutcome TryOpenAMissingFile(string missingPath, TimeSpan limit)
+        {
+            SelectTab("Calibration");
+            var button = _window.FindFirstDescendant(cf => cf.ByAutomationId("WorkflowBrowseButton"))?.AsButton();
+            Assert.True(button is not null && button.IsEnabled, "'Load Raw...' was not found or is not enabled");
+            _ = Task.Run(() => button!.Invoke());
+
+            Window? dialog = null;
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+            while (DateTime.UtcNow < deadline && dialog is null)
+            {
+                dialog = _window.ModalWindows.FirstOrDefault();
+                if (dialog is null) Thread.Sleep(200);
+            }
+
+            Assert.True(dialog is not null, "the file dialog did not appear within 20 s");
+            var nameBox = dialog!.FindFirstDescendant(cf => cf.ByAutomationId("1148").And(cf.ByControlType(ControlType.Edit)))?.Patterns.Value.PatternOrDefault;
+            Assert.True(nameBox is not null, "the dialog's file-name edit (id 1148) has no ValuePattern");
+            nameBox!.SetValue(missingPath);
+            var open = dialog.FindFirstDescendant(cf => cf.ByAutomationId("1").And(cf.ByControlType(ControlType.Button)))?.Properties.NativeWindowHandle.ValueOrDefault ?? IntPtr.Zero;
+            var cancel = dialog.FindFirstDescendant(cf => cf.ByAutomationId("2").And(cf.ByControlType(ControlType.Button)))?.Properties.NativeWindowHandle.ValueOrDefault ?? IntPtr.Zero;
+            var dialogHandle = dialog.Properties.NativeWindowHandle.ValueOrDefault;
+            Assert.True(open != IntPtr.Zero && cancel != IntPtr.Zero && dialogHandle != IntPtr.Zero, "the dialog's Open / Cancel buttons or its own window have no handle");
+
+            // from here on only native calls: a UI Automation walk of the app's window can wait for a dispatcher that is inside the message box
+            var trace = new List<string>();
+            var lastSeen = string.Empty;
+            var started = DateTime.UtcNow;
+            void Trace(string when)
+            {
+                var seen = string.Join(", ", OtherWindows(dialogHandle, dialogsOnly: false).Select(w => $"0x{w.Window.ToInt64():X} {w.Class} '{w.Title}'")) + $"; dialog {(IsWindow(dialogHandle) ? "open" : "gone")}";
+                if (seen != lastSeen) { trace.Add($"+{(DateTime.UtcNow - started).TotalMilliseconds:0} ms {when}: {seen}"); lastSeen = seen; }
+            }
+
+            Trace("before the click");
+            PressDialogButton(open);
+            var stop = DateTime.UtcNow + limit;
+            string? boxTitle = null;
+            var answeredBy = "never appeared";
+            var boxWait = DateTime.UtcNow + TimeSpan.FromSeconds(10);   // a box that is going to appear does so within moments; no box is a finding, not a reason to wait the whole limit
+            var presses = 1;
+            var nextPress = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+            while (DateTime.UtcNow < boxWait && boxTitle is null)
+            {
+                Trace("waiting for the box");
+                if (DateTime.UtcNow >= nextPress && presses < 4 && IsWindow(dialogHandle))
+                {
+                    // a first click can be spent on something other than Open (an auto-suggest list under the name box, say): press again, counting the presses
+                    PressDialogButton(open);
+                    presses++;
+                    nextPress = DateTime.UtcNow + TimeSpan.FromSeconds(2);
+                    trace.Add($"Open pressed again (press {presses})");
+                }
+
+                var box = OtherDialogs(dialogHandle).FirstOrDefault();
+                if (box.Window != IntPtr.Zero)
+                {
+                    boxTitle = box.Title;
+                    var ok = GetDlgItem(box.Window, 1);
+                    if (ok != IntPtr.Zero) { PressDialogButton(ok); answeredBy = "its OK button"; }
+                    else { PostMessage(box.Window, WmClose, IntPtr.Zero, IntPtr.Zero); answeredBy = "WM_CLOSE"; }
+                }
+                else
+                {
+                    Thread.Sleep(100);
+                }
+            }
+
+            if (boxTitle is null)
+            {
+                // no message box: say what the dialog itself shows now (it is a native dialog, not the app's WPF window, so this walk does not wait for the app's dispatcher)
+                static string Read(Func<string?> read)
+                {
+                    try { return read() ?? string.Empty; } catch (Exception) { return "(not supported)"; }
+                }
+
+                foreach (var d in dialog.FindAllDescendants().Take(80))
+                {
+                    var name = Read(() => d.Name).Replace("\r", " ").Replace("\n", " | ");
+                    trace.Add($"dialog element {Read(() => d.ControlType.ToString())} id='{Read(() => d.AutomationId)}' name='{(name.Length > 120 ? name[..120] : name)}' class='{Read(() => d.ClassName)}'");
+                }
+            }
+
+            var boxGone = false;
+            if (boxTitle is not null)
+            {
+                while (DateTime.UtcNow < stop && !boxGone)
+                {
+                    boxGone = OtherDialogs(dialogHandle).Count == 0;
+                    if (!boxGone) Thread.Sleep(100);
+                }
+            }
+
+            var dialogStillOpen = IsWindow(dialogHandle);
+            if (dialogStillOpen)
+            {
+                Trace("before Cancel");
+                PressDialogButton(cancel);
+                var cancelStop = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+                while (DateTime.UtcNow < cancelStop && IsWindow(dialogHandle)) { Trace("waiting for the dialog to go"); Thread.Sleep(100); }
+            }
+
+            Trace("end");
+            return new MissingFileOutcome(boxTitle, answeredBy, boxGone, dialogStillOpen, IsWindow(dialogHandle), trace);
+        }
+
+        /// <summary>What <see cref="TryOpenAMissingFile"/> saw: the message box's title (null: none appeared), how it was answered, whether it went, whether the file dialog stayed open after it, and whether it is still open now.</summary>
+        public sealed record MissingFileOutcome(string? BoxTitle, string AnsweredBy, bool BoxGone, bool DialogStayedOpen, bool DialogStillOpenAtTheEnd, IReadOnlyList<string> Trace);
+
         private const uint BmClick = 0x00F5;
 
         /// <summary>
@@ -768,7 +936,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             Assert.True(handle != IntPtr.Zero, "the dialog's Open button has no window handle");
             var dialogHandle = dialog.Properties.NativeWindowHandle.ValueOrDefault;
             Assert.True(dialogHandle != IntPtr.Zero, "the file dialog has no window handle");
-            PostMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
+            PressDialogButton(handle);
 
             // native calls only while the dialog may still be raising a message box (a UIA walk of the window would wait for the app's dispatcher; see GuiApp.DriveDialog)
             var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
