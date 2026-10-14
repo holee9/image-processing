@@ -392,7 +392,8 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             // 1) the start-up probe has BUILT its report and is held: the oracle is still gated, so that report says "checking"; and it has not been published
             var builtMarker = Path.Combine(barrier, "built");
             WaitFor(() => File.Exists(builtMarker), TimeSpan.FromSeconds(30), "the start-up probe never reported that its report was built");
-            var builtTimestamp = File.ReadAllText(builtMarker);
+            var builtTimestamp = File.ReadAllText(builtMarker);   // the marker is published atomically (temporary name, then moved): seeing the final name means seeing all of it
+            Assert.NotEmpty(builtTimestamp);
             Assert.False(File.Exists(reportPath), "the report file exists before anything was published: it is not this run's, or the start-up probe published it itself.");
             output.WriteLine($"1 start-up report built (timestamp {builtTimestamp}), held, nothing published");
 
