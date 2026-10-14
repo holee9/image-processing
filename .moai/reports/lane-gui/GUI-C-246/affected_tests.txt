@@ -1,0 +1,15 @@
+=== W15c_SwipeVertical
+    [swipe] screen: NOT OBSERVABLE for open 1: the processed and the source previews cannot be told apart on this screen (they agree at 100.0% of the points, more than 90%). Last capture: C:\Users\drake\AppData\Local\Temp\xpe_w15c_shots_214917\swipe_open1_final.png
+    DISCLOSURE ONLY (SwipeVertical, the default mode; the U8 verdict is W15 in ProcessedOnly): proxy median 1242 ms; screen: validly observed for 0 of 5 opens, no median claimed
+leftover ImageProcTest/testhost/xpe_ai_worker after W15c_SwipeVertical : 0
+=== W15_OpenToProcessedPicture
+    [W15] screen: NOT OBSERVABLE for open 1: the processed and the source previews cannot be told apart on this screen (they agree at 100.0% of the points, more than 90%). Last capture: C:\Users\drake\AppData\Local\Temp\xpe_w15_shots_214957\W15_open1_final.png
+    medians (ms): proxy 1170; screen: not all opens could be validated
+    U8 verdict BY THE PROXY (the screen was validly observed for 0 of 5 opens, not all): proxy median 1170 ms, limit 1500 ms (half of PERF-P1-001, the end point being a proxy) -> PASS. The end point is the second composition tick (NOT proof the picture was drawn); how many frames later it is presented is not measured (unmeasured
+leftover ImageProcTest/testhost/xpe_ai_worker after W15_OpenToProcessedPicture : 0
+=== W15b_TheScreenValue
+    [no-delay] screen: NOT OBSERVABLE for open 1: the processed and the source previews cannot be told apart on this screen (they agree at 100.0% of the points, more than 90%). Last capture: C:\Users\drake\AppData\Local\Temp\xpe_w15b_shots_215032\no-delay_open1_final.png
+    [delay-1500] screen: NOT OBSERVABLE for open 1: the processed and the source previews cannot be told apart on this screen (they agree at 100.0% of the points, more than 90%). Last capture: C:\Users\drake\AppData\Local\Temp\xpe_w15b_shots_215032\delay-1500_open1_final.png
+    proxy medians: no delay 1176 ms, with a 1500 ms delay 2657 ms -> moved by 1481 ms
+    screen: NOT OBSERVABLE in 6 of 6 opens: whether the screen value follows the delay is NOT established here (the proxy moved by 1481 ms)
+leftover ImageProcTest/testhost/xpe_ai_worker after W15b_TheScreenValue : 0

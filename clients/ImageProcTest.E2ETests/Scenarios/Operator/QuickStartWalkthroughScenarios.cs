@@ -1012,13 +1012,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
         var rows = MeasureOpens(app, raw, opens: 5, shots, tag: "W15");
 
-        output.WriteLine("   | open | proxy ms (app: read start -> 2nd tick) | screen ms (confirmation -> processed picture seen, no later than) | not yet there at | screen - proxy |");
-        for (var i = 0; i < rows.Count; i++)
-        {
-            output.WriteLine(rows[i].ScreenMs is null
-                ? $"   | {i + 1} | {rows[i].Proxy} | not observable | | |"
-                : $"   | {i + 1} | {rows[i].Proxy} | {rows[i].ScreenMs:0} | {rows[i].EarliestMs:0} | {rows[i].ScreenMs - rows[i].Proxy:+0;-0} |");
-        }
+        PrintMeasurements(rows);
 
         var proxy = rows.Select(r => (double)r.Proxy).OrderBy(x => x).ToArray();
         output.WriteLine($"   screenshots of each open's final capture: {shots}");
@@ -1045,6 +1039,17 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
     /// <summary>One open as measured: the app's proxy value and, when the SCREEN observation of that open is valid, the screen value (no later than) and the time before which the picture was not yet there.</summary>
     private sealed record OpenMeasurement(int Proxy, double? ScreenMs, double? EarliestMs);
+
+    private void PrintMeasurements(List<OpenMeasurement> rows)
+    {
+        output.WriteLine("   | open | proxy ms (app: read start -> 2nd tick) | screen ms (confirmation -> processed picture seen, no later than) | not yet there at | screen - proxy |");
+        for (var i = 0; i < rows.Count; i++)
+        {
+            output.WriteLine(rows[i].ScreenMs is null
+                ? $"   | {i + 1} | {rows[i].Proxy} | not observable | | |"
+                : $"   | {i + 1} | {rows[i].Proxy} | {rows[i].ScreenMs:0} | {rows[i].EarliestMs:0} | {rows[i].ScreenMs - rows[i].Proxy:+0;-0} |");
+        }
+    }
 
     private static void SelectCompareMode(GuiApp app, string menuItemId)
     {
@@ -1079,13 +1084,13 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     /// modes give two REFERENCE captures of the same viewport (Processed only, Source only); an open's screen value counts only when its settled picture IS the processed reference (so a dialog over the viewport,
     /// the source preview or a blank screen cannot be mistaken for it), the two references can be told apart, and the screen was seen to change (<see cref="ScreenIdentity"/>, <see cref="ScreenSettle"/>).
     /// </summary>
-    private List<OpenMeasurement> MeasureOpens(GuiApp app, string raw, int opens, string shots, string tag)
+    private List<OpenMeasurement> MeasureOpens(GuiApp app, string raw, int opens, string shots, string tag, string modeItemId = "CompareProcessedOnlyMenuItem")
     {
         ScreenPoller.RaiseWithoutFocus(app.WindowHandle);   // above the other windows of a shared desktop, without taking the focus
         Thread.Sleep(800);
         var area = app.MainViewportArea(laneStripHeight: 200);
         output.WriteLine($"   [{tag}] watched area (screen pixels): {area}");
-        SelectCompareMode(app, "CompareProcessedOnlyMenuItem");   // the picture on screen is the processed one alone
+        SelectCompareMode(app, modeItemId);   // the default: the picture on screen is the processed one alone (U8); GUI-C-246: W15c measures the other mode the same way
 
         var taken = new List<(int Proxy, IReadOnlyList<ScreenSample> Samples, long StartedAt)>();
         for (var i = 1; i <= opens; i++)
@@ -1115,10 +1120,10 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         // the reference pictures: what this viewport shows of THIS image in each mode
         ScreenPoller.RaiseWithoutFocus(app.WindowHandle);
         Thread.Sleep(400);
-        var processedReference = SettledCapture(area, "processed preview");
+        var processedReference = SettledCapture(area, "processed state in this mode");   // what the app draws in this mode once the image is processed
         SelectCompareMode(app, "CompareSourceOnlyMenuItem");
         var sourceReference = SettledCapture(area, "source preview");
-        SelectCompareMode(app, "CompareProcessedOnlyMenuItem");
+        SelectCompareMode(app, modeItemId);
 
         var rows = new List<OpenMeasurement>();
         for (var i = 0; i < taken.Count; i++)
@@ -1149,6 +1154,29 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         }
 
         return rows;
+    }
+
+    /// <summary>
+    /// GUI-C-246 (Codex #197 finding 3): the DEFAULT comparison mode is SwipeVertical (left/right split). The U8 verdict is taken in ProcessedOnly (main 1b128f7d, fixed before the CI result); this test only
+    /// DISCLOSES the same five opens measured in the default mode, the same way as W15 (settled + change seen + the picture is the one the app draws in that mode once the image is processed, not the source
+    /// preview). It asserts NO value: only a measurement that cannot be made (an exception) fails it. The reference for the identity check is the screen of that mode after processing, the unprocessed one the
+    /// Source-only screen.
+    /// </summary>
+    [EnvGatedFact]
+    public void W15c_SwipeVertical_TheTimeIsDisclosed_NotJudged()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+        var shots = Path.Combine(Path.GetTempPath(), "xpe_w15c_shots_" + DateTime.Now.ToString("HHmmss"));
+        Directory.CreateDirectory(shots);
+
+        var rows = MeasureOpens(app, raw, opens: 5, shots, tag: "swipe", modeItemId: "CompareSwipeMenuItem");
+        PrintMeasurements(rows);
+        var proxy = rows.Select(r => (double)r.Proxy).OrderBy(x => x).ToArray();
+        var observed = rows.Where(r => r.ScreenMs is not null).Select(r => r.ScreenMs!.Value).OrderBy(x => x).ToArray();
+        output.WriteLine($"   DISCLOSURE ONLY (SwipeVertical, the default mode; the U8 verdict is W15 in ProcessedOnly): proxy median {proxy[2]:0} ms; " +
+                         (observed.Length == rows.Count ? $"screen median {observed[2]:0} ms (all {rows.Count} opens validly observed)" : $"screen: validly observed for {observed.Length} of {rows.Count} opens, no median claimed"));
     }
 
     /// <summary>
