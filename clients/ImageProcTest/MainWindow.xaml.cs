@@ -1101,8 +1101,25 @@ namespace ImageProcTest
             {
                 var built = ProbeNative();
 #if DEBUG
-                // Test hook (GUI-C-235/235b), compiled into Debug builds only - a shipped (Release) build has no such code - and read only here, in the start-up path (never on a refresh, so it can never
-                // block the UI thread): it holds a FINISHED start-up probe back on the pool for N ms, which is what a slow machine does, so a scenario can let the oracle's verdict and a refresh overtake it.
+                // Test hooks (GUI-C-235/235b/235c), compiled into Debug builds only - a shipped (Release) build has no such code - and read only here, in the start-up path (never on a refresh, so they can never
+                // block the UI thread). XPE_STARTUP_PROBE_BARRIER_DIR: an explicit barrier instead of a timing guess - the finished start-up probe writes "built" (the report's timestamp) into the directory and
+                // waits there for a "release" file (at most 60 s), so a scenario can do whatever it needs while the probe is held and let it go when it chooses; "done" (dropped / applied) is written after.
+                var barrierDir = Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_BARRIER_DIR");
+                if (!string.IsNullOrEmpty(barrierDir) && built.Report?.ReportJson is { } builtJson)
+                {
+                    using (var parsed = System.Text.Json.JsonDocument.Parse(builtJson))
+                    {
+                        BarrierSignal(barrierDir, "built", parsed.RootElement.GetProperty("timestampUtc").GetString() ?? string.Empty);
+                    }
+
+                    var waited = System.Diagnostics.Stopwatch.StartNew();
+                    while (!System.IO.File.Exists(System.IO.Path.Combine(barrierDir, "release")) && waited.Elapsed < TimeSpan.FromSeconds(60))
+                    {
+                        System.Threading.Thread.Sleep(20);
+                    }
+                }
+
+                // XPE_STARTUP_PROBE_DELAY_MS: holds the finished probe back for N ms (what a slow machine does) - used by the responsiveness measurements.
                 if (int.TryParse(Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_DELAY_MS"), out var delayMs) && delayMs > 0)
                 {
                     System.Threading.Thread.Sleep(delayMs);
@@ -1111,9 +1128,24 @@ namespace ImageProcTest
                 return built;
             });
             // A refresh that ran on this thread while the probing was away (the oracle's verdict arriving, a button) is newer than this probe: applying this one would put its older "checking" back.
-            if (isClosingWindow || nativeHealthGeneration != generation) return;
+            var overtaken = isClosingWindow || nativeHealthGeneration != generation;
+#if DEBUG
+            if (Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_BARRIER_DIR") is { Length: > 0 } doneDir)
+            {
+                BarrierSignal(doneDir, "done", overtaken ? "dropped" : "applied");   // GUI-C-235c: the end of the start-up probe, said explicitly
+            }
+#endif
+            if (overtaken) return;
             ApplyNativeProbe(probe);
         }
+
+#if DEBUG
+        private static void BarrierSignal(string directory, string name, string content)
+        {
+            System.IO.Directory.CreateDirectory(directory);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(directory, name), content);
+        }
+#endif
 
         private void RefreshNativeHealth(bool recheckOracle = false)
         {
