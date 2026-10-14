@@ -1,0 +1,101 @@
+22981 warnings and 1 error generated.
+Error while processing D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp.
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:58:10: error: 'xpe/preprocess_api.h' file not found [clang-diagnostic-error]
+   58 | #include "xpe/preprocess_api.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:225:52: warning: 2 adjacent parameters of 'u16Buffer' of similar type ('uint32_t') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  225 | XpeImageBuffer u16Buffer(std::vector<uint16_t>& v, uint32_t w, uint32_t h) {
+      |                                                    ^~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:225:61: note: the first parameter in the range is 'w'
+  225 | XpeImageBuffer u16Buffer(std::vector<uint16_t>& v, uint32_t w, uint32_t h) {
+      |                                                             ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:225:73: note: the last parameter in the range is 'h'
+  225 | XpeImageBuffer u16Buffer(std::vector<uint16_t>& v, uint32_t w, uint32_t h) {
+      |                                                                         ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:236:52: warning: 4 adjacent parameters of 'writeFixture' of convertible types are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  236 | XpeErrorCode writeFixture(const std::string& path, XCalType type,
+      |                                                    ^~~~~~~~~~~~~~
+  237 |                           XCalPixelFormat format, uint32_t w, uint32_t h,
+      |                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:236:61: note: the first parameter in the range is 'type'
+  236 | XpeErrorCode writeFixture(const std::string& path, XCalType type,
+      |                                                             ^~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:237:72: note: the last parameter in the range is 'h'
+  237 |                           XCalPixelFormat format, uint32_t w, uint32_t h,
+      |                                                                        ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:236:52: note:
+  236 | XpeErrorCode writeFixture(const std::string& path, XCalType type,
+      |                                                    ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:237:51: note: 'int' and 'uint32_t' may be implicitly converted: 'int' -> 'uint32_t' (as 'unsigned int'), 'uint32_t' (as 'unsigned int') -> 'int'
+  237 |                           XCalPixelFormat format, uint32_t w, uint32_t h,
+      |                                                   ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:238:48: warning: 2 adjacent parameters of 'writeFixture' of similar type ('uint64_t') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  238 |                           const void* payload, uint64_t payloadLen,
+      |                                                ^~~~~~~~~~~~~~~~~~~~
+  239 |                           uint64_t expiryMs) {
+      |                           ~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:238:57: note: the first parameter in the range is 'payloadLen'
+  238 |                           const void* payload, uint64_t payloadLen,
+      |                                                         ^~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:239:36: note: the last parameter in the range is 'expiryMs'
+  239 |                           uint64_t expiryMs) {
+      |                                    ^~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:344:71: warning: 3 adjacent parameters of 'makeFlatFrames' of convertible types are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  344 | std::vector<std::vector<uint16_t>> makeFlatFrames(const Options& opt, int count,
+      |                                                                       ^~~~~~~~~~
+  345 |                                                   double exposure = 1.0,
+      |                                                   ~~~~~~~~~~~~~~~~~~~~~~
+  346 |                                                   uint32_t seedOffset = 1u) {
+      |                                                   ~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:344:75: note: the first parameter in the range is 'count'
+  344 | std::vector<std::vector<uint16_t>> makeFlatFrames(const Options& opt, int count,
+      |                                                                           ^~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:346:60: note: the last parameter in the range is 'seedOffset'
+  346 |                                                   uint32_t seedOffset = 1u) {
+      |                                                            ^~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:345:51: note: 'int' and 'double' may be implicitly converted
+  345 |                                                   double exposure = 1.0,
+      |                                                   ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:344:71: note:
+  344 | std::vector<std::vector<uint16_t>> makeFlatFrames(const Options& opt, int count,
+      |                                                                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:346:51: note: 'int' and 'uint32_t' may be implicitly converted: 'int' -> 'uint32_t' (as 'unsigned int'), 'uint32_t' (as 'unsigned int') -> 'int'
+  346 |                                                   uint32_t seedOffset = 1u) {
+      |                                                   ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:345:51: note:
+  345 |                                                   double exposure = 1.0,
+      |                                                   ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:346:51: note: 'double' and 'uint32_t' may be implicitly converted: 'double' -> 'uint32_t' (as 'unsigned int'), 'uint32_t' (as 'unsigned int') -> 'double'
+  346 |                                                   uint32_t seedOffset = 1u) {
+      |                                                   ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:411:23: warning: unused local variable 'offsetPath' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  411 |     const std::string offsetPath = (out / "offset.xcal").string();
+      |                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:412:23: warning: unused local variable 'gainPath' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  412 |     const std::string gainPath   = (out / "gain.xcal").string();
+      |                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:413:23: warning: unused local variable 'defectPath' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  413 |     const std::string defectPath = (out / "defect.xcal").string();
+      |                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:419:23: warning: unused local variable 'offsetScratch' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  419 |     const std::string offsetScratch = (out / "_scratch_offset.xcal").string();
+      |                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:420:23: warning: unused local variable 'gainScratch' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  420 |     const std::string gainScratch   = (out / "_scratch_gain.xcal").string();
+      |                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:539:31: warning: unused local variable 'lvlScratch' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  539 |             const std::string lvlScratch =
+      |                               ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:541:31: warning: unused local variable 'lvlPath' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  541 |             const std::string lvlPath =
+      |                               ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:665:23: warning: unused local variable 'offsetSha' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  665 |     const std::string offsetSha = sha256Hex(offsetPath);
+      |                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:666:23: warning: unused local variable 'gainSha' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  666 |     const std::string gainSha   = sha256Hex(gainPath);
+      |                       ^
+D:\workspace-github\xpe-pre\modules\preprocess\tools\xpe_calib_fixture_gen.cpp:667:23: warning: unused local variable 'defectSha' of type 'const std::string' (aka 'const basic_string<char, char_traits<char>, allocator<char>>') [bugprone-unused-local-non-trivial-variable]
+  667 |     const std::string defectSha = sha256Hex(defectPath);
+      |                       ^
+TIDY_EXIT=1

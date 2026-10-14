@@ -1,0 +1,9 @@
+offset.xcal: ours 37748888 B (everything before the payload: 152 B) | calib-real-v2 37748950 B (214 B before the payload)
+   payload bytes identical: True   (compared 37748736 bytes from the end of each file)
+   differing bytes inside the first 152 header bytes: 54
+gain.xcal: ours 37748888 B (everything before the payload: 152 B) | calib-real-v2 37749092 B (356 B before the payload)
+   payload bytes identical: True   (compared 37748736 bytes from the end of each file)
+   differing bytes inside the first 152 header bytes: 54
+defect.xcal: ours 9437336 B (everything before the payload: 152 B) | calib-real-v2 9437336 B (152 B before the payload)
+   payload bytes identical: True   (compared 9437184 bytes from the end of each file)
+   differing bytes inside the first 152 header bytes: 15

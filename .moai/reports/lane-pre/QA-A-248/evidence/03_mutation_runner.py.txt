@@ -1,0 +1,78 @@
+import hashlib, os, subprocess, sys, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+TOOL = ROOT + 'modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-248/evidence/51_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+DLL = ROOT + 'build/ci-preprocess/bin/xpe_calib_fixture_gen.exe'
+FILTER = 'CalibFixtureGenTest.*'
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + '\n')
+
+
+def sha(path):
+    return hashlib.sha256(open(path, 'rb').read()).hexdigest()
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', '\\'), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    tail = (r.stdout.strip().splitlines() or ['?'])[-1]
+    return tail
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILTER], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip() for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip() for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+original = open(TOOL, 'rb').read()
+src_sha = hashlib.sha256(original).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-248 mutation check of the --caldata tests. Source hash at the start: ' + src_sha)
+say('PREDICTIONS (written before any run):')
+say('  M1 defect mask zeroed after counting   -> CalDataModeBuildsTheSet... red (defect.xcal no longer carries BPMap.map)')
+say('  M2 size check loosened (!= to <)       -> CalDataModeRefuses... red (the one-byte-too-long dark frame is accepted)')
+say('  M3 default size 3072 -> 1024           -> CalDataModeRefuses... red (the message says expected 2097152, not 18874368)')
+say('  M4 --gain-poly refusal disabled        -> CalDataModeCannotBeCombined... red')
+say('  M5 caldata manifest keys leak to synthetic runs -> TheSyntheticManifestCarriesNoCalDataKeys red')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('M1', b'for (uint8_t m : realMask) if (m) ++defectCount;\r\n',
+     b'for (uint8_t m : realMask) if (m) ++defectCount;\r\n        std::fill(realMask.begin(), realMask.end(), static_cast<uint8_t>(0));\r\n'),
+    ('M2', b'size < 0 || static_cast<size_t>(size) != bytes', b'size < 0 || static_cast<size_t>(size) < bytes'),
+    ('M3', b'opt->width = opt->height = 3072u;', b'opt->width = opt->height = 1024u;'),
+    ('M4', b'if (!opt->calDir.empty()) {\r\n        if (opt->gainPoly) {', b'if (!opt->calDir.empty()) {\r\n        if (opt->gainPoly && opt->width == 0xFFFFFFFFu) {'),
+    ('M5', b'(real ? realManifestKeys(inputShas) : std::string())', b'realManifestKeys(inputShas)'),
+]
+
+try:
+    say('--- step 0: unmutated source')
+    say('build: ' + build() + ' | tool exe sha256 ' + sha(DLL)[:16])
+    rc, ok, bad = run_tests()
+    say(f'tests exit {rc}: {len(ok)} passed, failed: {bad}')
+    for name, old, new in mutants:
+        assert original.count(old) == 1, (name, original.count(old))
+        say(f'--- {name}')
+        open(TOOL, 'wb').write(original.replace(old, new))
+        say('build: ' + build() + ' | tool exe sha256 ' + sha(DLL)[:16])
+        rc, ok, bad = run_tests()
+        say(f'tests exit {rc}: {len(ok)} passed, FAILED: {bad}')
+        open(TOOL, 'wb').write(original)
+        os.utime(TOOL, None)
+        time.sleep(1)
+finally:
+    open(TOOL, 'wb').write(original)
+    os.utime(TOOL, None)
+
+say('--- restored: touch + rebuild')
+say('source hash now: ' + hashlib.sha256(open(TOOL, 'rb').read()).hexdigest()[:16] + ' (start: ' + src_sha + ')')
+say('build: ' + build() + ' | tool exe sha256 ' + sha(DLL)[:16])
+rc, ok, bad = run_tests()
+say(f'tests exit {rc}: {len(ok)} passed, failed: {bad}')
