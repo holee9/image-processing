@@ -723,8 +723,15 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
         /// <summary>How many top-level windows the app has: a dialog or a message box the app raised would show here.</summary>
         public int TopLevelWindowCount() => _application.GetAllTopLevelWindows(_automation).Length;
 
-        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "SendMessageW")]
-        private static extern IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+        // GUI-C-244 (#268): BM_CLICK is POSTED. A sent one returns only when the button's handler has, and a handler that opens a modal message box (a file that cannot be opened, say) would make this thread wait for a
+        // box that only this thread answers (the self-deadlock that stopped W9 for the whole job time; see QuickStartWalkthroughScenarios.GuiApp.DriveDialog).
+        [System.Runtime.InteropServices.DllImport("user32.dll", EntryPoint = "PostMessageW")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool IsWindow(IntPtr window);
 
         private const uint BmClick = 0x00F5;
 
@@ -759,11 +766,14 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             Assert.True(open is not null, "the dialog's Open button (id 1) was not found");
             var handle = open!.Properties.NativeWindowHandle.ValueOrDefault;
             Assert.True(handle != IntPtr.Zero, "the dialog's Open button has no window handle");
-            SendMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
+            var dialogHandle = dialog.Properties.NativeWindowHandle.ValueOrDefault;
+            Assert.True(dialogHandle != IntPtr.Zero, "the file dialog has no window handle");
+            PostMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
 
+            // native calls only while the dialog may still be raising a message box (a UIA walk of the window would wait for the app's dispatcher; see GuiApp.DriveDialog)
             var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
-            while (DateTime.UtcNow < closeDeadline && _window.ModalWindows.Length > 0) Thread.Sleep(200);
-            Assert.True(_window.ModalWindows.Length == 0, "the file dialog is still open after BM_CLICK on Open");
+            while (DateTime.UtcNow < closeDeadline && IsWindow(dialogHandle)) Thread.Sleep(200);
+            Assert.True(!IsWindow(dialogHandle), "the file dialog is still open after BM_CLICK on Open");
         }
 
         public bool IsChecked(string tab, string automationId)
