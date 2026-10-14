@@ -1,0 +1,3 @@
+통과!  - 실패:     0, 통과:   962, 건너뜀:     2, 전체:   964, 기간: 29 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
