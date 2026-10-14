@@ -1408,7 +1408,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>HAZ-GUI-005 (1): the text of the banner that cannot be dismissed while Mock is active.</summary>
     public string MockBackendWarning =>
         RequestedBackendMismatch is { } requested
-            ? $"MOCK BACKEND — {requested} was requested but could not be used. Images and results are synthetic; not for clinical judgement."
+            ? $"MOCK BACKEND — {requested} was requested but could not be used{(RuntimeInfo.NativeRefusal.Length > 0 ? ": " + RuntimeInfo.NativeRefusal : string.Empty)}. Images and results are synthetic; not for clinical judgement."
             : "MOCK BACKEND — images and results are synthetic; not for clinical judgement.";
 
     /// <summary>HAZ-GUI-005 (2): <c>[MOCK]</c> in the title while Mock is active.</summary>

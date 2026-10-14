@@ -14,13 +14,18 @@ public sealed class MockXpeBackend : IXpeBackend
     private readonly BackendTelemetry _telemetry = new();
     private BackendRuntimeInfo _runtimeInfo = new();
 
+    /// <summary>GUI-C-238: why the factory did not start the native backend although it was requested (empty when Mock was chosen or the reason is unknown).</summary>
+    private readonly string _nativeRefusal;
+
     public MockXpeBackend(
         RawImageLoader rawImageLoader,
         string commonDllPath,
         bool commonDllDetected,
         string displayDllPath,
-        bool displayDllDetected)
+        bool displayDllDetected,
+        string? nativeRefusal = null)
     {
+        _nativeRefusal = nativeRefusal ?? string.Empty;
         _rawImageLoader = rawImageLoader;
         _commonDllPath = commonDllPath;
         _commonDllDetected = commonDllDetected;
@@ -42,11 +47,16 @@ public sealed class MockXpeBackend : IXpeBackend
             NativeDllPath = _commonDllPath,
             DisplayVersion = GetDisplayVersion(),
             DisplayDllDetected = _displayDllDetected,
-            DisplayDllPath = _displayDllPath
+            DisplayDllPath = _displayDllPath,
+            NativeRefusal = _nativeRefusal
         };
 
         AddLog("MockXpeBackend bootstrap started.");
         AddLog($"Requested backend mode = {settings.BackendMode}");
+        if (_nativeRefusal.Length > 0)
+        {
+            AddLog($"Native was requested but not used: {_nativeRefusal}");
+        }
         AddLog($"Offset calib dir = {settings.OffsetCalibrationDirectory}");
         AddLog($"Gain calib dir = {settings.GainCalibrationDirectory}");
         AddLog($"Defect calib dir = {settings.DefectCalibrationDirectory}");
@@ -379,7 +389,8 @@ public sealed class MockXpeBackend : IXpeBackend
             NativeDllPath = _commonDllPath,
             DisplayVersion = GetDisplayVersion(),
             DisplayDllDetected = _displayDllDetected,
-            DisplayDllPath = _displayDllPath
+            DisplayDllPath = _displayDllPath,
+            NativeRefusal = _nativeRefusal
         };
     }
 

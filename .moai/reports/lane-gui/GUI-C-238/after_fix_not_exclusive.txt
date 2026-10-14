@@ -1,0 +1,13 @@
+[fixed_NOT_exclusive_wrongdll_beside_exe] pid 63880 windows: 1
+[fixed_NOT_exclusive_wrongdll_beside_exe] title: [MOCK] ImageProcTest GUI-S0
+[fixed_NOT_exclusive_wrongdll_beside_exe]   MOCK BACKEND ? Native was requested but could not be used: xpe_common.dll at 'C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\u238\app\xpe_common.dll' (429568 bytes, written 2026-10-14) could not be loaded. Images and results are s
+[fixed_NOT_exclusive_wrongdll_beside_exe]   Backend
+[fixed_NOT_exclusive_wrongdll_beside_exe]   _Backend
+[fixed_NOT_exclusive_wrongdll_beside_exe]   Backend initialized: v0.0.0-mock
+[fixed_NOT_exclusive_wrongdll_beside_exe]   Backend initialized: v0.0.0-mock
+[fixed_NOT_exclusive_wrongdll_beside_exe]   mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display
+[fixed_NOT_exclusive_wrongdll_beside_exe]   mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display
+[fixed_NOT_exclusive_wrongdll_beside_exe]   Initialize Backend
+[fixed_NOT_exclusive_wrongdll_beside_exe]   Initialize Backend
+[fixed_NOT_exclusive_wrongdll_beside_exe]   Shutdown Backend
+[fixed_NOT_exclusive_wrongdll_beside_exe]   Shutdown Backend
