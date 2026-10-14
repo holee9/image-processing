@@ -1,0 +1,16 @@
+BS = chr(92)
+NL = chr(10)
+for p in ['D:/workspace-github/xpe-pre/modules/preprocess/tests/test_zz_a241_measure.cpp',
+          'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-249/evidence/02_harness_a249.cpp.txt']:
+    s = open(p, encoding='utf-8', newline='').read()
+    i = s.index('// QA-A-249 (#242): the three provisional verdict lines')
+    head, block = s[:i], s[i:]
+    broken = NL + '", '
+    n = block.count(broken)
+    block = block.replace(broken, BS + 'n", ')
+    # a printf format string that ends the line with no closing quote is also a broken one: report any that remain
+    bad = [l for l in block.split(NL) if l.count('"') % 2 == 1 and "'" not in l and 'ASSERT' not in l and '<<' not in l]
+    open(p, 'w', encoding='utf-8', newline='').write(head + block)
+    print(p.split('/')[-1], 'fixed', n, 'odd-quote lines left:', len(bad))
+    for l in bad[:5]:
+        print('   ', l[:150])

@@ -30,6 +30,7 @@
  *                         Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A245_OUT, XPE_A245_REF.
  *   A247_AppPathTiming    (QA-A-247) the calls the operator app makes for one frame (init, three loads, pipeline_out, shutdown), timed per call, 5 rounds.
  *                         Needs XPE_A240_WRIST, XPE_A245_OUT, XPE_A245_REF.
+ *   A249_VerifyThresholds (QA-A-249) the three provisional xpe_verify_* verdict lines on real data, gates taken apart. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A245_OUT.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -1685,4 +1686,137 @@ TEST(A241Measure, DISABLED_A247_AppPathTiming) {
     std::printf("[a247] medians over 5 rounds: init %.2f | offset %.2f gain %.2f defect %.2f | loads %.2f | pipeline_out %.2f | shutdown %.2f | sum of calls %.2f ms\n", med(&Round::init),
                 med(&Round::off), med(&Round::gain), med(&Round::def), loads[loads.size() / 2], med(&Round::pipe), med(&Round::shut), med(&Round::total));
     std::printf("[a247] every round's output vs reference image v2: %s\n", identical ? "byte-identical" : "DIFFERENT");
+}
+
+// QA-A-249 (#242): the three provisional verdict lines of xpe_verify_gain / xpe_verify_pipeline on REAL data. calib-real-v2 (the delivered maps, made
+// from bright04/05/06) against the six real flats of CalData_6 - 04/05/06 are in the sample the gain map was made from, 01/02/03 are not - and
+// against the wrist frame for xpe_verify_pipeline. The verdict is printed with its gates taken apart: each gate is recomputed here from the
+// metrics with the module's own formulas (xpe_verify_metrics.cpp, xpe_verify_gain, "Pass/fail determination"), and the verdict the module returned is
+// printed beside it so a disagreement would show. Nothing here changes a threshold.
+// Needs XPE_A240_CAL (CalData_6), XPE_A240_WRIST, XPE_A245_OUT (calib-real-v2).
+TEST(A241Measure, DISABLED_A249_VerifyThresholdsOnRealData) {
+    const std::string cal = envOr("XPE_A240_CAL", ""), wristPath = envOr("XPE_A240_WRIST", ""), setDir = envOr("XPE_A245_OUT", "");
+    ASSERT_FALSE(cal.empty());
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(setDir.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N), wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(dark.empty());
+    ASSERT_FALSE(wrist.empty());
+    std::vector<std::vector<uint16_t>> bright(7);
+    for (int k = 1; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        bright[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(bright[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const std::string offP = (fs::path(setDir) / "offset.xcal").string(), gainP = (fs::path(setDir) / "gain.xcal").string(), defP = (fs::path(setDir) / "defect.xcal").string();
+    XCal gx;
+    ASSERT_TRUE(readXCal(gainP, &gx));
+    const float* gain = reinterpret_cast<const float*>(gx.payload.data());
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+
+    // ---- the gain map as xpe_verify_gain counts it
+    size_t finitePositive = 0, inProductRange = 0, notFinite = 0, nonPositive = 0, belowRange = 0, aboveRange = 0;
+    for (size_t i = 0; i < N; ++i) {
+        if (std::isfinite(gain[i]) && gain[i] > 0.0f) ++finitePositive;
+        if (gain[i] >= 0.1f && gain[i] <= 10.0f) ++inProductRange;
+        if (!std::isfinite(gain[i])) ++notFinite;
+        else if (gain[i] <= 0.0f) ++nonPositive;
+        else if (gain[i] < 0.1f) ++belowRange;
+        else if (gain[i] > 10.0f) ++aboveRange;
+    }
+    std::printf("[a249] gain map outside [0.1, 10.0] by kind: not finite %zu | finite and <= 0 %zu | positive below 0.1 %zu | above 10.0 %zu\n", notFinite, nonPositive, belowRange, aboveRange);
+    std::printf("[a249] gain map of calib-real-v2: finite and > 0 (what xpe_verify_gain calls valid): %zu of %zu = %.6f | inside the product range [0.1, 10.0]: %zu = %.6f\n", finitePositive, N,
+                static_cast<double>(finitePositive) / static_cast<double>(N), inProductRange, static_cast<double>(inProductRange) / static_cast<double>(N));
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offP.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainP.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defP.c_str()));
+    xpe_clear_alerts();
+
+    // ---- xpe_verify_gain on each real flat (the flats are already offset-corrected: before = the flat as it is, after = the module's gain stage)
+    std::printf("[a249] xpe_verify_gain, calib-real-v2 gain map, flat k = bright0k.raw as the 'before gain' frame\n");
+    std::printf("[a249]  k  sample    mean   prnu_before%%  prnu_after%%  coverage   improve_dB | gates: prnu_improved  coverage>=0.99  improve>=3.0  flat<=0.5/1.0 | verdict NORMALIZED  UNKNOWN | without the two provisional gates: NORMALIZED  UNKNOWN\n");
+    for (int k = 1; k <= 6; ++k) {
+        std::vector<uint16_t> before = bright[static_cast<size_t>(k)];
+        std::vector<float> after(N, 0.0f);
+        XpeImageBuffer bb = buf(before.data(), N * 2, XPE_PIXEL_UINT16), ab = buf(after.data(), N * 4, XPE_PIXEL_FLOAT32), gb = buf(gain, N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_gain_correct(&bb, &ab, &meta));
+        XpeCalibrationMetrics norm{}, unk{};
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_NORMALIZED, &norm));
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_UNKNOWN, &unk));
+        double sum = 0;
+        for (size_t i = 0; i < N; ++i) sum += before[i];
+        const bool prnuImproved = norm.prnu_after < norm.prnu_before || (norm.prnu_before < 0.01 && norm.prnu_after < 0.01);
+        const bool coverageOk = norm.gain_coverage >= 0.99;
+        const bool improveOk = norm.snr_improvement_db >= 3.0;
+        const bool flatNorm = norm.prnu_after <= 0.5, flatUnk = unk.prnu_after <= 1.0;
+        const bool measurable = (norm.measured_mask & XPE_METRIC_PRNU) != 0;
+        const bool withoutNorm = measurable && prnuImproved && flatNorm, withoutUnk = measurable && prnuImproved && flatUnk;
+        std::printf("[a249]  %d  %-8s %7.1f  %11.4f  %10.4f  %.6f  %9.3f | %14d %15d %12d %13d | %17d %8d | %29d %8d\n", k, k >= 4 ? "in" : "held out", sum / static_cast<double>(N),
+                    norm.prnu_before, norm.prnu_after, norm.gain_coverage, norm.snr_improvement_db, prnuImproved, coverageOk, improveOk, flatNorm ? 1 : 0, static_cast<int>(norm.overall_pass),
+                    static_cast<int>(unk.overall_pass), withoutNorm, withoutUnk);
+    }
+
+    // ---- the same verdict with the gain map's out-of-range pixels made INVALID (0.0f), the way the protocol section 5.3 leaves them out of FlatResidualPct
+    std::vector<float> gainMasked(gain, gain + N);
+    for (size_t i = 0; i < N; ++i) if (!(gain[i] >= 0.1f && gain[i] <= 10.0f)) gainMasked[i] = 0.0f;
+    std::printf("[a249] xpe_verify_gain again, out-of-range gain pixels handed over as invalid (0.0): same frames, same 'after' images\n");
+    std::printf("[a249]  k  sample    prnu_before%%  prnu_after%%  coverage   improve_dB | improve>=3.0  coverage>=0.99  flat<=0.5/1.0 | verdict NORMALIZED  UNKNOWN | without the two provisional gates: NORMALIZED  UNKNOWN\n");
+    for (int k = 1; k <= 6; ++k) {
+        std::vector<uint16_t> before = bright[static_cast<size_t>(k)];
+        std::vector<float> after(N, 0.0f);
+        XpeImageBuffer bb = buf(before.data(), N * 2, XPE_PIXEL_UINT16), ab = buf(after.data(), N * 4, XPE_PIXEL_FLOAT32), gb = buf(gainMasked.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_gain_correct(&bb, &ab, &meta));
+        XpeCalibrationMetrics norm{}, unk{};
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_NORMALIZED, &norm));
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_UNKNOWN, &unk));
+        const bool prnuImproved = norm.prnu_after < norm.prnu_before || (norm.prnu_before < 0.01 && norm.prnu_after < 0.01);
+        const bool measurable = (norm.measured_mask & XPE_METRIC_PRNU) != 0;
+        const bool flatNorm = norm.prnu_after <= 0.5, flatUnk = unk.prnu_after <= 1.0;
+        std::printf("[a249]  %d  %-8s %11.4f  %10.4f  %.6f  %9.3f | %12d %14d %13d | %17d %8d | %29d %8d\n", k, k >= 4 ? "in" : "held out", norm.prnu_before, norm.prnu_after, norm.gain_coverage,
+                    norm.snr_improvement_db, norm.snr_improvement_db >= 3.0, norm.gain_coverage >= 0.99, flatNorm ? 1 : 0, static_cast<int>(norm.overall_pass), static_cast<int>(unk.overall_pass),
+                    measurable && prnuImproved && flatNorm, measurable && prnuImproved && flatUnk);
+    }
+
+    // ---- xpe_verify_pipeline: raw = dark + flat (as B6 builds a raw flat), and the wrist frame; final = the app's pipeline_out
+    std::printf("[a249] xpe_verify_pipeline, final = xpe_preprocess_pipeline_out (the app's configuration)\n");
+    std::printf("[a249]  frame        raw_mean  final_mean  improve_dB | >=2.0  >=3.0 | overall_pass\n");
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    for (int k = 0; k <= 6; ++k) {
+        std::vector<uint16_t> raw(N);
+        if (k == 0) raw = wrist;
+        else for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(std::min<uint32_t>(65535u, static_cast<uint32_t>(dark[i]) + bright[static_cast<size_t>(k)][i]));
+        std::vector<float> fin(N, 0.0f);
+        const XpeImageBuffer rb = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer fb = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&rb, &fb, &meta, nullptr, nullptr, cfg));
+        XpeCalibrationMetrics met{};
+        ASSERT_EQ(XPE_OK, xpe_verify_pipeline(&rb, &fb, nullptr, &met));
+        double sr = 0, sf = 0;
+        for (size_t i = 0; i < N; ++i) { sr += raw[i]; sf += fin[i]; }
+        char label[24];
+        if (k == 0) std::snprintf(label, sizeof label, "wrist");
+        else std::snprintf(label, sizeof label, "dark+flat %d", k);
+        std::printf("[a249]  %-12s %8.1f  %10.1f  %9.3f | %4d  %5d | %d\n", label, sr / static_cast<double>(N), sf / static_cast<double>(N), met.snr_improvement_db, met.snr_improvement_db >= 2.0,
+                    met.snr_improvement_db >= 3.0, static_cast<int>(met.overall_pass));
+    }
+    xpe_preprocess_shutdown();
 }

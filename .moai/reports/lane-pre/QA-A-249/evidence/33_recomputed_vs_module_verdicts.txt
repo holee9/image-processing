@@ -1,0 +1,13 @@
+unmasked k=1 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+unmasked k=2 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+unmasked k=3 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+unmasked k=4 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+unmasked k=5 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+unmasked k=6 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+masked k=1 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+masked k=2 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+masked k=3 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+masked k=4 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+masked k=5 module-returned NORMALIZED verdict 0 recomputed here 0 | without-provisional-gates value printed by the harness 0 recomputed here 0 OK
+masked k=6 module-returned NORMALIZED verdict 1 recomputed here 1 | without-provisional-gates value printed by the harness 1 recomputed here 1 OK
+mismatching rows: 0
