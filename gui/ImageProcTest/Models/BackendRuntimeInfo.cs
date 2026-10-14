@@ -25,4 +25,7 @@ public sealed class BackendRuntimeInfo
     public bool DisplayDllDetected { get; init; }
 
     public string DisplayDllPath { get; init; } = string.Empty;
+
+    /// <summary>GUI-C-238: for a Mock run that was started because Native could not be used - which DLL, which path, and what is wrong with it. Empty otherwise.</summary>
+    public string NativeRefusal { get; init; } = string.Empty;
 }

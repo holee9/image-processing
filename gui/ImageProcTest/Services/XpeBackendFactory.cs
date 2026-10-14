@@ -22,14 +22,17 @@ public static class XpeBackendFactory
         var displayDllDetected = File.Exists(displayDllPath);
         var rawImageLoader = new RawImageLoader();
 
-        if (string.Equals(settings.BackendMode, "Native", StringComparison.OrdinalIgnoreCase) &&
-            commonDllDetected &&
-            displayDllDetected &&
-            RealXpeBackend.CanUseNative(commonDllPath, displayDllPath))
+        string? refusal = null;
+        if (string.Equals(settings.BackendMode, "Native", StringComparison.OrdinalIgnoreCase))
         {
-            return new RealXpeBackend(rawImageLoader, commonDllPath, displayDllPath);
+            // GUI-C-238: the reason is asked for, not guessed from the flags - a DLL that exists can still be the wrong one (an old copy, missing exports).
+            refusal = RealXpeBackend.WhyNativeUnusable(commonDllPath, displayDllPath);
+            if (refusal is null)
+            {
+                return new RealXpeBackend(rawImageLoader, commonDllPath, displayDllPath);
+            }
         }
 
-        return new MockXpeBackend(rawImageLoader, commonDllPath, commonDllDetected, displayDllPath, displayDllDetected);
+        return new MockXpeBackend(rawImageLoader, commonDllPath, commonDllDetected, displayDllPath, displayDllDetected, refusal);
     }
 }

@@ -48,8 +48,15 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     // @MX:ANCHOR: [AUTO] Factory guard: verifies both DLLs have all required exports before routing to RealXpeBackend
     // @MX:REASON: Called by XpeBackendFactory.Create; must remain side-effect-free (loads DLL, checks exports, immediately frees); false → MockXpeBackend
     public static bool CanUseNative(string commonDllPath, string displayDllPath) =>
-        HasExports(commonDllPath, RequiredCommonExports) &&
-        HasExports(displayDllPath, RequiredDisplayExports);
+        WhyNativeUnusable(commonDllPath, displayDllPath) is null;
+
+    /// <summary>
+    /// GUI-C-238: null when both DLLs load and export everything the backend calls; otherwise ONE sentence saying which DLL, at which path (with its size and date: an old copy is recognised by them),
+    /// and what is wrong with it - not found, not loadable, or the first export it lacks. This is what the banner and the log show when Native was requested and Mock was started instead.
+    /// </summary>
+    public static string? WhyNativeUnusable(string commonDllPath, string displayDllPath) =>
+        WhyUnusable("xpe_common.dll", commonDllPath, RequiredCommonExports) ??
+        WhyUnusable("xpe_display.dll", displayDllPath, RequiredDisplayExports);
 
     public BackendRuntimeInfo Initialize(AppSettings settings)
     {
@@ -565,16 +572,18 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         _telemetry.AddLog($"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
     }
 
-    private static bool HasExports(string dllPath, IEnumerable<string> requiredExports)
+    private static string? WhyUnusable(string dllName, string dllPath, IEnumerable<string> requiredExports)
     {
         if (!File.Exists(dllPath))
         {
-            return false;
+            return $"{dllName} was not found at '{dllPath}'";
         }
 
+        var info = new FileInfo(dllPath);
+        var described = $"{dllName} at '{dllPath}' ({info.Length} bytes, written {info.LastWriteTime:yyyy-MM-dd})";
         if (!NativeLibrary.TryLoad(dllPath, out var handle))
         {
-            return false;
+            return $"{described} could not be loaded";
         }
 
         try
@@ -583,11 +592,11 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             {
                 if (!NativeLibrary.TryGetExport(handle, exportName, out _))
                 {
-                    return false;
+                    return $"{described} does not export {exportName} (an older build than this application expects)";
                 }
             }
 
-            return true;
+            return null;
         }
         finally
         {

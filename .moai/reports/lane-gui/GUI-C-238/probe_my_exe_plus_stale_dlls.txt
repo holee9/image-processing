@@ -1,0 +1,13 @@
+[copy_with_stale] pid 37520 windows: 1
+[copy_with_stale] title: [MOCK] ImageProcTest GUI-S0
+[copy_with_stale]   MOCK BACKEND ? Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.
+[copy_with_stale]   Backend
+[copy_with_stale]   _Backend
+[copy_with_stale]   Backend initialized: v0.0.0-mock
+[copy_with_stale]   Backend initialized: v0.0.0-mock
+[copy_with_stale]   mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display
+[copy_with_stale]   mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display
+[copy_with_stale]   Initialize Backend
+[copy_with_stale]   Initialize Backend
+[copy_with_stale]   Shutdown Backend
+[copy_with_stale]   Shutdown Backend

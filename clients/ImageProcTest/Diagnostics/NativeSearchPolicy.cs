@@ -44,6 +44,12 @@ namespace ImageProcTest
         public static bool StopAtInjectedDirectory => IsSet(ExclusiveVariable);
 
         /// <summary>
+        /// GUI-C-238: the ONLY directory a search may look in - <see cref="InjectedDirectory"/> when <see cref="ExclusiveVariable"/> is 1, otherwise null (no restriction).
+        /// The locators check it before anything else, so a DLL beside the executable cannot win over the directory the caller pinned the search to.
+        /// </summary>
+        public static string? ExclusiveDirectory => StopAtInjectedDirectory ? InjectedDirectory : null;
+
+        /// <summary>
         /// True when repository build directories and sibling checkouts may be searched.
         /// Off by default: a DLL found there has no recorded provenance.
         /// </summary>

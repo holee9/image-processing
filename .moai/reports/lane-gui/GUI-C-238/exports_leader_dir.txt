@@ -1,0 +1,3 @@
+== D:\workspace-github\image-processing\build\e2e-native-dlls
+  xpe_common.dll: loaded; missing exports: []
+  xpe_display.dll: loaded; missing exports: []
