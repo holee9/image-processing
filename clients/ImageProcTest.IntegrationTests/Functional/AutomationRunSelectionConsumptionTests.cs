@@ -47,6 +47,9 @@ public sealed class AutomationRunSelectionConsumptionTests
         ["AiWorkerSilentAfter"] = "GUI-C-192c fault seam, the third accepted --automation-fault: wraps the backend in the MainWindow " +
                               "constructor (FaultInjectingBackend.Wrap), not settings. Its effect is observed end to end by E2E M02 and M03 " +
                               "(the status-unconfirmed notice is in the automation tree at the minimum width)",
+        ["DisplayDelayMs"] = "GUI-C-245 fault seam, the fourth accepted --automation-fault (display-delay:MS): wraps the backend in the MainWindow " +
+                             "constructor (FaultInjectingBackend.Wrap), not settings. Its effect is observed end to end by E2E W15b (the proxy " +
+                             "and, where the screen can be read, the screen value move with the delay)",
 #endif
         ["SettingsPath"] = "#173 (GUI-C-119) names WHERE settings live, which CreateSettings decides — not WHAT the run " +
                            "selects, so ApplyRunSelection is the wrong place for it. Its effect is observed end to end by " +

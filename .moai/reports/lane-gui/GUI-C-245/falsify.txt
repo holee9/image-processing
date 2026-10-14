@@ -1,0 +1,36 @@
+=== ARM A: the DICOM writer is not checked before the call (Preflight removed from Write)
+  SelfCheck exit=3762504530 ["[11 pinned native search] Write: the call was made (or failed some other way) instead of being refused before it: DllNotFoundException: Unable to load DLL 'xpe_dicom.dll' or one of its dependencies: 지정된 모듈을 찾을 수 없습니다. (0x8007007E)", "[11 pinned native search] the export should report that nothing was written and why, said: xpe_dicom_write threw: EntryPointNotFoundException: Unable to find an entry point named 'xpe_dicom_write' in DLL 'xpe_dicom.dll'."]
+  guard + native DICOM tests exit=1 failed: ['TheDicomExport_FailsOnAModuleOutsideThePinnedFolder_RightAfterTheCallsThatLoadTheModule']
+
+restored byte-identical: True
+
+=== ARM B: the reader no longer gives the handle back (close removed)
+  guard + native DICOM tests exit=1 failed: ['TheReadBack_GivesTheHandleBack_WhenTheCheckAfterTheOpenThrows']
+
+restored byte-identical: True
+
+=== ARM C: the artificial delay does not delay (display-delay inert)
+  W15b exit=1 result=FAILED ['the artificial delay of 1500 ms moved the proxy by only -4 ms: the delay is not reaching the viewport, so this test cannot say anything about the screen value']
+
+restored byte-identical: True
+
+=== ARM D: the final capture is not required to be the processed picture
+  E2E screen unit tests exit=1 failed: ['AFinalCapture_ThatIsTheSourcePreview_IsNotTheProcessedPicture', 'TheShares_AreTheirBoundaries']
+
+restored byte-identical: True
+
+=== ARM E: two previews that look alike are accepted as distinguishable
+  E2E screen unit tests exit=1 failed: ['WhenTheTwoPreviewsLookAlike_NothingCanBeSaidAboutWhichOneIsOnScreen']
+
+restored byte-identical: True
+
+=== ARM F: a screen that did not end on the reference picture is still settled
+  E2E screen unit tests exit=1 failed: ['WithAReference_ALastCaptureThatIsSomethingElse_IsNotSettled']
+
+restored byte-identical: True
+
+=== AFTER RESTORE
+  E2E screen unit tests exit=0 failed: []
+  SelfCheck exit=0 []
+  guard + native DICOM tests exit=0 failed: []
+  W15b exit=0 result=passed []

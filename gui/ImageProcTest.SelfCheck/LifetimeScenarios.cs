@@ -1152,12 +1152,71 @@ internal static class LifetimeScenarios
             Check(ImageProcTest.Services.Native.NativeModuleAudit.AiWorkerPathBeside(@"C:\pinned\xpe_ai.dll") == @"C:\pinned\xpe_ai_worker.exe", "the worker is expected beside xpe_ai.dll");
             Check(ImageProcTest.Services.Native.NativeModuleAudit.AiWorkerPathBeside(null) is null, "no xpe_ai.dll, no worker path");
             Check(ImageProcTest.Services.Native.NativeModuleAudit.DescribeAndCheckAiWorker(Path.Combine(pinnedElsewhere, "xpe_ai.dll")).Contains("exists=False", StringComparison.Ordinal), "the worker description should say the expected file does not exist");
+
+            // GUI-C-245 (Codex #196): the DICOM session checks BEFORE it calls into the module. The pinned folder holds a loadable file named xpe_dicom.dll (a copy of version.dll: it loads, and has no xpe_dicom_*
+            // export, so a call that was made would fail with a missing entry point, not with the audit's words), while the stray xpe_ai.dll decoy is still loaded from the runner's folder. Every entry of the
+            // session must fail with the audit's words and BEFORE its call: the writer leaves no file behind, the export reports no write, the reader opens nothing.
+            File.Copy(Path.Combine(Environment.SystemDirectory, "version.dll"), Path.Combine(pinnedElsewhere, "xpe_dicom.dll"), overwrite: true);
+            var dicomDir = Path.Combine(TempDirectory(), "dicom-preflight");
+            Directory.CreateDirectory(dicomDir);
+            var dicomPath = Path.Combine(dicomDir, "output.dcm");
+            var partialPath = dicomPath + ImageProcTest.Services.BaselineDicomExport.PartialSuffix;
+            var session = new ImageProcTest.Services.Native.NativeDicomSession();
+            var metadata = new ImageProcTest.Services.BaselineDicomMetadata("CHEST", 120f, 0.15f);
+            var pixels = new ushort[16 * 16];
+
+            void ExpectAuditFailure(string what, string feature, Action call)
+            {
+                try
+                {
+                    call();
+                    Fail($"{what}: a native module outside the pinned folder did not stop the call");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Check(ex.Message.StartsWith(feature, StringComparison.Ordinal) && ex.Message.Contains("outside the pinned folder", StringComparison.Ordinal) && ex.Message.Contains("xpe_ai.dll", StringComparison.Ordinal),
+                        $"{what}: the failure is not the audit's (feature, outside the pinned folder, the stray module): {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Fail($"{what}: the call was made (or failed some other way) instead of being refused before it: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+
+            ExpectAuditFailure("Write", "xpe_dicom_write", () => session.Write(partialPath, pixels, 16, 16, metadata));
+            Check(!File.Exists(partialPath) && !File.Exists(dicomPath), "the writer left a file behind although it was refused before the call");
+            ExpectAuditFailure("Validate", "xpe_dicom_validate", () => session.Validate(partialPath));
+            ExpectAuditFailure("ReadBack", "xpe_dicom_open", () => session.ReadBack(partialPath));
+            var exported = ImageProcTest.Services.BaselineDicomExport.Export(dicomPath, pixels, 16, 16, metadata, session);
+            Check(!exported.Written && !exported.Passed && exported.Summary.Contains("outside the pinned folder", StringComparison.Ordinal), $"the export should report that nothing was written and why, said: {exported.Summary}");
+            Check(!File.Exists(partialPath) && !File.Exists(dicomPath), "the export left a file (partial or final) behind although every call was refused");
+
+            // the control: with the stray module gone, the same session is NOT refused (it then reaches the call, and the version.dll copy has no such export)
+            System.Runtime.InteropServices.NativeLibrary.Free(decoyHandle);
+            decoyHandle = IntPtr.Zero;
+            try
+            {
+                session.Validate(partialPath);
+                Fail("the control: a DLL without the export should have failed the call itself");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Fail($"the control failed: the call was refused by the audit although no stray module is loaded any more: {ex.Message}");
+            }
+            catch (Exception ex) when (ex is EntryPointNotFoundException or DllNotFoundException)
+            {
+                // reached the call (the version.dll copy has no such export): the audit let it through, as it must when everything is from the pinned folder
+            }
         }
         finally
         {
             Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", savedDir);
             Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", savedExclusive);
-            System.Runtime.InteropServices.NativeLibrary.Free(decoyHandle);
+            if (decoyHandle != IntPtr.Zero)
+            {
+                System.Runtime.InteropServices.NativeLibrary.Free(decoyHandle);
+            }
+
             try { File.Delete(decoyPath); } catch (IOException) { /* loaded copy: the process end removes it */ }
         }
 

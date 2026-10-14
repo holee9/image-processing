@@ -219,6 +219,27 @@ public sealed class AutomationArgsTests
         Assert.False(AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", "Ai-Worker-Silent"]).IsValid);
     }
 
+    /// <summary>GUI-C-245: the render-delay fault carries a millisecond count, nothing else, and arms only itself.</summary>
+    [Fact]
+    public void DisplayDelayFault_TakesAMillisecondCount_AndArmsOnlyThatFault()
+    {
+        var parsed = AutomationArgs.Parse(["--automation-fault", "display-delay:1500"]);
+
+        Assert.True(parsed.IsValid);
+        Assert.Equal(1500, parsed.DisplayDelayMs);
+        Assert.Null(parsed.DisplayPipelineFailAfter);
+        Assert.False(parsed.AiWorkerDisabled);
+        Assert.Null(parsed.AiWorkerSilentAfter);
+        Assert.Equal(0, AutomationArgs.Parse(["--automation-fault", "display-delay:0"]).DisplayDelayMs);
+        Assert.Equal(AutomationArgs.DisplayDelayMaxMs, AutomationArgs.Parse(["--automation-fault", $"display-delay:{AutomationArgs.DisplayDelayMaxMs}"]).DisplayDelayMs);
+        Assert.Null(AutomationArgs.Parse(["--automation-raw", "frame.raw"]).DisplayDelayMs);
+
+        foreach (var bad in new[] { "display-delay:", "display-delay:-5", "display-delay:abc", "display-delay:1.5", $"display-delay:{AutomationArgs.DisplayDelayMaxMs + 1}", "Display-Delay:100" })
+        {
+            Assert.False(AutomationArgs.Parse(["--automation-report", "r.json", "--automation-fault", bad]).IsValid, $"'{bad}' should be refused");
+        }
+    }
+
     [Theory]
     [InlineData("AI-Worker-Disabled")]
     [InlineData("ai-worker-disabled ")]

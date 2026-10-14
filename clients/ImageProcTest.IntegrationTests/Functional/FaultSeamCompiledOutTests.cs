@@ -18,7 +18,7 @@ public sealed class FaultSeamCompiledOutTests
         "FaultInjectingBackend", "--automation-fault", "ai-worker-disabled", "display-pipeline-after", "DisplayPipelineFailAfter",
         "AutomationAiWorkerDisabled", "AutomationDisplayPipelineFailAfter", "AiWorkerDisabledFault", "DisplayPipelineFaultPrefix",
         "AnnounceFaultInjection", "_faultInjectionAnnounced", "FAULT INJECTION ARMED", "ai-worker-silent", "AiWorkerSilentFault", "AiWorkerSilentFromStartFault", "AutomationAiWorkerSilentAfter", "AiWorkerSilentAfter",
-        "SilentWorkerStatus",
+        "SilentWorkerStatus", "display-delay", "DisplayDelayFaultPrefix", "DisplayDelayMaxMs", "AutomationDisplayDelayMs", "DisplayDelayMs", "DelayIfArmed",
     ];
 
     private static string Root() =>

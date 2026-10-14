@@ -93,6 +93,35 @@ public sealed class BaselineDicomNativeTests(ITestOutputHelper output) : IDispos
         return pixels;
     }
 
+    /// <summary>
+    /// GUI-C-245 (Codex #196): the reader's handle is given back when the check after the open throws. The check is replaced by one that throws (the stray-module case itself needs a second copy of a module, which the
+    /// SelfCheck runner stages), the close is wrapped to record the handle it is given and still closes it, so the real module's handle is not left open by this test either.
+    /// </summary>
+    [SkippableFact]
+    public void TheReadBack_GivesTheHandleBack_WhenTheCheckAfterTheOpenThrows()
+    {
+        RequireNative();
+        var pixels = Image(32, 32);
+        var path = Path.Combine(_root, "handle-1", "output.dcm");
+        var exported = BaselineDicomExport.Export(path, pixels, 32, 32, new BaselineDicomMetadata("CHEST", 120f, 0.15f), new NativeDicomSession());
+        Assert.True(exported.Passed, exported.Summary);
+        Assert.Null(BaselineDicomExport.Promote(exported));
+
+        var closed = new List<IntPtr>();
+        var session = new NativeDicomSession(
+            feature => throw new InvalidOperationException($"{feature}: native module(s) loaded from outside the pinned folder (test)"),
+            handle =>
+            {
+                closed.Add(handle);
+                XpeDicomNative.xpe_dicom_close(handle);
+            });
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => session.ReadBack(path));
+        Assert.Contains("xpe_dicom_open", thrown.Message, StringComparison.Ordinal);
+        Assert.Single(closed);
+        Assert.NotEqual(IntPtr.Zero, closed[0]);
+    }
+
     [SkippableFact]
     public void TheExport_OnTheRealModule_IsValid_AndTheReadBackIsBitIdentical()
     {

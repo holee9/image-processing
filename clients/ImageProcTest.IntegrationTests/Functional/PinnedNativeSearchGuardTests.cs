@@ -26,13 +26,22 @@ public sealed class PinnedNativeSearchGuardTests
     [Fact]
     public void TheDicomExport_FailsOnAModuleOutsideThePinnedFolder_RightAfterTheCallsThatLoadTheModule()
     {
+        // GUI-C-245: the audit is IN FRONT of every call into the module (the behaviour is run by SelfCheck scenario 11 with a stray module; this pins the order in the source), and after the calls too
         var source = Read("gui/ImageProcTest/Services/Native/GuiDicomNative.cs");
+        foreach (var (feature, call) in new[] { ("xpe_dicom_write", "XpeDicomNative.xpe_dicom_write("), ("xpe_dicom_validate", "XpeDicomNative.xpe_dicom_validate("), ("xpe_dicom_open", "XpeDicomNative.xpe_dicom_open(") })
+        {
+            var preflight = source.IndexOf($"Preflight(\"{feature}\")", StringComparison.Ordinal);
+            var first = source.IndexOf(call, StringComparison.Ordinal);
+            Assert.True(preflight > 0 && first > preflight, $"{feature} must be preceded by Preflight(\"{feature}\"): the modules are checked BEFORE the call, not only after it");
+        }
+
         var write = source.IndexOf("XpeDicomNative.xpe_dicom_write(", StringComparison.Ordinal);
-        var auditAfterWrite = source.IndexOf("NativeModuleAudit.ThrowIfOutsidePinnedFolder(\"xpe_dicom_write\")", StringComparison.Ordinal);
-        Assert.True(write > 0 && auditAfterWrite > write, "xpe_dicom_write must be followed by NativeModuleAudit.ThrowIfOutsidePinnedFolder(\"xpe_dicom_write\")");
+        Assert.True(source.IndexOf("_auditLoadedModules(\"xpe_dicom_write\")", write, StringComparison.Ordinal) > write, "xpe_dicom_write must also be followed by the audit of the loaded modules");
         var open = source.IndexOf("XpeDicomNative.xpe_dicom_open(", StringComparison.Ordinal);
-        var auditAfterOpen = source.IndexOf("NativeModuleAudit.ThrowIfOutsidePinnedFolder(\"xpe_dicom_open\")", StringComparison.Ordinal);
-        Assert.True(open > 0 && auditAfterOpen > open, "xpe_dicom_open must be followed by NativeModuleAudit.ThrowIfOutsidePinnedFolder(\"xpe_dicom_open\")");
+        var tryAt = source.IndexOf("try", open, StringComparison.Ordinal);
+        var auditAfterOpen = source.IndexOf("_auditLoadedModules(\"xpe_dicom_open\")", tryAt, StringComparison.Ordinal);
+        var finallyAt = auditAfterOpen < 0 ? -1 : source.IndexOf("finally", auditAfterOpen, StringComparison.Ordinal);
+        Assert.True(tryAt > open && auditAfterOpen > tryAt && finallyAt > auditAfterOpen, "the audit after xpe_dicom_open must be inside the try whose finally gives the handle back");
     }
 
     [Fact]
