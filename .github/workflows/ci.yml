@@ -1287,6 +1287,9 @@ jobs:
         # LegacyStartupResponsivenessProbe), not regression tests. Collected here they end
         # NotExecuted and trip the unexplained-skip gate below. Only those probes carry the
         # trait (checked with --list-tests); tagging a regression test with it hides it.
+        # #268: two runs (38523309095, 38530320078) stopped right after W12 with an ImageProcTest left running
+        # until the job limit. --blame-hang-timeout ends a test that runs past 10 minutes (longest observed
+        # test: 40 s) and names it in the log, so a hang fails one test instead of cancelling the job.
         run: >
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug
@@ -1294,6 +1297,8 @@ jobs:
           --logger "trx;LogFileName=e2e-smoke-native.trx"
           --logger "console;verbosity=detailed"
           --results-directory build/e2e-native-results
+          --blame-hang-timeout 10m
+          --blame-hang-dump-type none
 
       # GUI-C-218: a test that failed while launching an app could leave that app running, and an app started with
       # UseShellExecute=false inherits this step's output pipe - dotnet test then waits on the pipe until the job limit.
