@@ -1,0 +1,9 @@
+chore(display): QA-B-216 display_api.h 주석의 이슈 번호 #151 을 #259 로 (주석만)
+
+XpeBodyPart 값 주석과 body part 창 설명의 "실검출기 자료로 구한 부위별 창" 인용을 새 이슈 #259 로 옮긴다(리더 요청).
+코드 변경 없음, doxygen 오류 출력 0. 같은 커밋에 합성 지문 측정 하니스(DISABLED_FingerprintFixture_216)를 더했다:
+정수로만 만든 512x512 입력 3개로 로그·양방향·CLAHE·USM 단계 해시를 찍어 컴파일러 간 차이를 가르는 데 쓴다.
+
+Refs #251
+
+🗿 MoAI

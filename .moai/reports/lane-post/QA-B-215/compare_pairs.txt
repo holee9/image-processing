@@ -1,0 +1,18 @@
+### post v_fpprecise
+log              differing=484114 (5.1299%) max|d|=0.000488281 mean|d| over differing=0.000244773 max ulp=2  first idx=66 (y=0 x=66)
+noise_bilateral  differing=5890044 (62.4132%) max|d|=0.00195312 mean|d| over differing=0.000341504 max ulp=8  first idx=0 (y=0 x=0)
+clahe            differing=8287131 (87.8136%) max|d|=1.58057 mean|d| over differing=0.00306275 max ulp=6754  first idx=0 (y=0 x=0)
+usm              differing=8289365 (87.8373%) max|d|=7.20679 mean|d| over differing=0.00309785 max ulp=41003  first idx=0 (y=0 x=0)
+final uint16: identical 9429526 of 9437184 (99.9189%) max|diff|=385 mean diff=0.021362
+### ci_enh v_fpprecise
+log              differing=484114 (5.1299%) max|d|=0.000488281 mean|d| over differing=0.000244773 max ulp=2  first idx=66 (y=0 x=66)
+noise_bilateral  differing=6348834 (67.2747%) max|d|=0.00195312 mean|d| over differing=0.000353066 max ulp=8  first idx=0 (y=0 x=0)
+clahe            differing=8185693 (86.7387%) max|d|=1.58057 mean|d| over differing=0.00355277 max ulp=6665  first idx=0 (y=0 x=0)
+usm              differing=8197159 (86.8602%) max|d|=7.20679 mean|d| over differing=0.00357027 max ulp=29519  first idx=0 (y=0 x=0)
+final uint16: identical 9431384 of 9437184 (99.9385%) max|diff|=385 mean diff=-0.005108
+### post v_msvc1429
+log              differing=0 (0.0000%) max|d|=0 mean|d| over differing=0 max ulp=0  first idx=-1 (y=-1 x=-1)
+noise_bilateral  differing=0 (0.0000%) max|d|=0 mean|d| over differing=0 max ulp=0  first idx=-1 (y=-1 x=-1)
+clahe            differing=0 (0.0000%) max|d|=0 mean|d| over differing=0 max ulp=0  first idx=-1 (y=-1 x=-1)
+usm              differing=0 (0.0000%) max|d|=0 mean|d| over differing=0 max ulp=0  first idx=-1 (y=-1 x=-1)
+final uint16: identical 9437184 of 9437184 (100.0000%) max|diff|=0 mean diff=0.000000

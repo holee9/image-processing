@@ -1,0 +1,9 @@
+@echo off
+setlocal enabledelayedexpansion
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+set O=D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-215
+for %%V in (post ci) do (
+ if %%V==post (set P=D:\workspace-github\xpe-post\build\ci-post\bin\xpe_enhance_basic.dll) else (set P=D:\workspace-github\xpe-data\ci-dlls-39f9727a\xpe_enhance_basic.dll)
+ dumpbin /headers !P! > %O%\dumpbin_headers_%%V.txt 2>&1
+ dumpbin /dependents !P! > %O%\dumpbin_dependents_%%V.txt 2>&1
+)

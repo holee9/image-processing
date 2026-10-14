@@ -1,0 +1,204 @@
+post-build	UNKNOWN STEP	﻿2026-10-07T08:11:02.3703316Z Current runner version: '2.337.0'
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3737644Z ##[group]Runner Image Provisioner
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3738449Z Hosted Compute Agent
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3739006Z Version: 20260901.588
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3739726Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3740425Z Build Date: 2026-09-01T19:56:44Z
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3741110Z Worker ID: {cc3e0907-6280-406a-897f-a5171effcbe2}
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3741788Z Azure Region: eastus2
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3742308Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3743727Z ##[group]Operating System
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3744353Z Microsoft Windows Server 2025
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3744952Z 10.0.26100
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3745527Z Datacenter
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3746010Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3746976Z ##[group]Runner Image
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3748514Z Image: windows-2025-vs2026
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3749575Z Version: 20260925.250.1
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3752494Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3755629Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3758259Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3759834Z ##[group]GITHUB_TOKEN Permissions
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3761864Z Contents: read
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3762480Z Metadata: read
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3762998Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3765157Z Secret source: Actions
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3766068Z Cache mode: write
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.3766726Z Prepare workflow directory
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.4163940Z Prepare all required actions
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.4212515Z Getting action download info
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.6067230Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+post-build	UNKNOWN STEP	2026-10-07T08:11:02.7478980Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.0936346Z Complete job name: post-build
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2341560Z ##[group]Run actions/checkout@v6
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2342556Z with:
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2342990Z   repository: holee9/image-processing
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2346757Z   token: ***
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2347168Z   ssh-strict: true
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2347571Z   ssh-user: git
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2347986Z   persist-credentials: true
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2348440Z   clean: true
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2348850Z   sparse-checkout-cone-mode: true
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2349339Z   fetch-depth: 1
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2349732Z   fetch-tags: false
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2350140Z   show-progress: true
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2350539Z   lfs: false
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2350913Z   submodules: false
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2351322Z   set-safe-directory: true
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2351798Z   allow-unsafe-pr-checkout: false
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.2352765Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.3854470Z Syncing repository: holee9/image-processing
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.3857981Z ##[group]Getting Git version info
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.3859911Z Working directory is 'D:\a\image-processing\image-processing'
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.5191242Z [command]"C:\Program Files\Git\bin\git.exe" version
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8120914Z git version 2.55.0.windows.5
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8179706Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8203790Z Temporarily overriding HOME='D:\a\_temp\54f43305-ebed-4ef0-8da2-bd2592507b64' before making global git config changes
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8206575Z Adding repository directory to the temporary git global config as a safe directory
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8216545Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\image-processing\image-processing
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8804268Z Deleting the contents of 'D:\a\image-processing\image-processing'
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8810574Z ##[group]Determining repository object format
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8813704Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8814794Z ##[group]Initializing the repository
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.8824341Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\image-processing\image-processing
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.9601811Z Initialized empty Git repository in D:/a/image-processing/image-processing/.git/
+post-build	UNKNOWN STEP	2026-10-07T08:11:03.9647972Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/holee9/image-processing
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0212305Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0213255Z ##[group]Disabling automatic garbage collection
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0220951Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0539753Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0541874Z ##[group]Setting up auth
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0543426Z Removing SSH command configuration
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0551981Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+post-build	UNKNOWN STEP	2026-10-07T08:11:04.0857158Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+post-build	UNKNOWN STEP	2026-10-07T08:11:05.3753521Z Removing HTTP extra header
+post-build	UNKNOWN STEP	2026-10-07T08:11:05.3763642Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+post-build	UNKNOWN STEP	2026-10-07T08:11:05.4064128Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+post-build	UNKNOWN STEP	2026-10-07T08:11:05.9822409Z Removing includeIf entries pointing to credentials config files
+post-build	UNKNOWN STEP	2026-10-07T08:11:05.9824094Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.0149546Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.5637268Z [command]"C:\Program Files\Git\bin\git.exe" config --file D:\a\_temp\git-credentials-e23ef703-d60f-4e4f-a74d-28ad11eb7c2d.config http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.5945391Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/image-processing/image-processing/.git.path D:\a\_temp\git-credentials-e23ef703-d60f-4e4f-a74d-28ad11eb7c2d.config
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.6257647Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/image-processing/image-processing/.git/worktrees/*.path D:\a\_temp\git-credentials-e23ef703-d60f-4e4f-a74d-28ad11eb7c2d.config
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.6604661Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-e23ef703-d60f-4e4f-a74d-28ad11eb7c2d.config
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.6912772Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-e23ef703-d60f-4e4f-a74d-28ad11eb7c2d.config
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.7239829Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.7240490Z ##[group]Fetching the repository
+post-build	UNKNOWN STEP	2026-10-07T08:11:06.7254927Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +39f9727a7348f5cd5f928f2e1069aa731265ee0b:refs/remotes/origin/main
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.3812643Z From https://github.com/holee9/image-processing
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.3813249Z  * [new ref]         39f9727a7348f5cd5f928f2e1069aa731265ee0b -> origin/main
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.3864276Z [command]"C:\Program Files\Git\bin\git.exe" branch --list --remote origin/main
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4216247Z   origin/main
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4257812Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse refs/remotes/origin/main
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4513706Z 39f9727a7348f5cd5f928f2e1069aa731265ee0b
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4544787Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4545194Z ##[group]Determining the checkout info
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4546402Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4554466Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.4965427Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.5246318Z ##[group]Checking out the ref
+post-build	UNKNOWN STEP	2026-10-07T08:11:09.5254424Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B main refs/remotes/origin/main
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.5994474Z Updating files:  45% (3440/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.6213916Z Updating files:  46% (3496/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.6401382Z Updating files:  47% (3572/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.6582011Z Updating files:  48% (3648/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.6783629Z Updating files:  49% (3724/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.6976712Z Updating files:  50% (3800/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.7166369Z Updating files:  51% (3876/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.7361905Z Updating files:  52% (3952/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.7551637Z Updating files:  53% (4028/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.7754005Z Updating files:  54% (4104/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.7939596Z Updating files:  55% (4180/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.8130894Z Updating files:  56% (4256/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.8325252Z Updating files:  57% (4332/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.8522711Z Updating files:  58% (4408/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.8717382Z Updating files:  59% (4484/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.8877965Z Updating files:  60% (4560/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.9078406Z Updating files:  61% (4636/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.9271229Z Updating files:  62% (4712/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.9453630Z Updating files:  63% (4788/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.9679245Z Updating files:  64% (4864/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:10.9878334Z Updating files:  65% (4940/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.0050827Z Updating files:  66% (5016/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.0242094Z Updating files:  67% (5092/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.0481672Z Updating files:  68% (5168/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.0711025Z Updating files:  69% (5244/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.0925675Z Updating files:  70% (5320/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.1142937Z Updating files:  71% (5396/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.3467521Z Updating files:  72% (5472/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.3696849Z Updating files:  73% (5548/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.3918321Z Updating files:  74% (5624/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.4114791Z Updating files:  75% (5700/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.4331014Z Updating files:  76% (5776/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.4600142Z Updating files:  77% (5852/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.4892194Z Updating files:  78% (5928/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.5173823Z Updating files:  79% (6004/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.5383976Z Updating files:  80% (6080/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.5598236Z Updating files:  81% (6156/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.5818493Z Updating files:  82% (6232/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.5863876Z Updating files:  83% (6308/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.6051662Z Updating files:  83% (6318/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.6277287Z Updating files:  84% (6384/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.6483623Z Updating files:  85% (6460/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.6687192Z Updating files:  86% (6536/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.6952756Z Updating files:  87% (6612/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.7193587Z Updating files:  88% (6688/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.7474859Z Updating files:  89% (6764/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.7711248Z Updating files:  90% (6840/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.9323607Z Updating files:  91% (6916/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:11.9508404Z Updating files:  92% (6992/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.0024749Z Updating files:  93% (7068/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.0260123Z Updating files:  94% (7144/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.0515571Z Updating files:  95% (7220/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.0749465Z Updating files:  96% (7296/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.1014889Z Updating files:  97% (7372/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.1268522Z Updating files:  98% (7448/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.1917732Z Updating files:  99% (7524/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.1918179Z Updating files: 100% (7599/7599)
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.1918567Z Updating files: 100% (7599/7599), done.
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.2168666Z Switched to a new branch 'main'
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.2241562Z branch 'main' set up to track 'origin/main'.
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.2348146Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.2785537Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.3055721Z 39f9727a7348f5cd5f928f2e1069aa731265ee0b
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.3546053Z ##[group]Run if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.3546742Z ^[[36;1mif (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {^[[0m
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.3547212Z ^[[36;1m  choco install ninja -y --no-progress^[[0m
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.3547517Z ^[[36;1m}^[[0m
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.3547703Z ^[[36;1mninja --version^[[0m
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.4109032Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.4109550Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:12.9288864Z 1.13.2
+post-build	UNKNOWN STEP	2026-10-07T08:11:13.0683329Z ##[group]Run pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+post-build	UNKNOWN STEP	2026-10-07T08:11:13.0684400Z ^[[36;1mpwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions^[[0m
+post-build	UNKNOWN STEP	2026-10-07T08:11:13.0759098Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+post-build	UNKNOWN STEP	2026-10-07T08:11:13.0759449Z ##[endgroup]
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.1481585Z MSVC developer environment configured: C:\Program Files\Microsoft Visual Studio\18\Enterprise
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3229103Z ##[group]Run cmake --preset ci-post
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3229487Z ^[[36;1mcmake --preset ci-post^[[0m
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3301713Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3302068Z env:
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3302390Z   DevEnvDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3302941Z   ExtensionSdkDir: C:\Program Files (x86)\Microsoft SDKs\Windows Kits\10\ExtensionSDKs
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3303360Z   Framework40Version: v4.0
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3303623Z   FrameworkDir: C:\Windows\Microsoft.NET\Framework64\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3304004Z   FrameworkDir64: C:\Windows\Microsoft.NET\Framework64\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3304313Z   FrameworkVersion: v4.0.30319
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3304568Z   FrameworkVersion64: v4.0.30319
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3306901Z   INCLUDE: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\ATLMFC\include;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Auxiliary\VS\include;C:\Program Files (x86)\Windows Kits\10\include\10.0.26100.0\ucrt;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\um;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\shared;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\winrt;C:\Program Files (x86)\Windows Kits\10\\include\10.0.26100.0\\cppwinrt;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\include\um
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3310295Z   LIB: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\ATLMFC\lib\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\lib\x64;C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\lib\um\x64;C:\Program Files (x86)\Windows Kits\10\lib\10.0.26100.0\ucrt\x64;C:\Program Files (x86)\Windows Kits\10\\lib\10.0.26100.0\\um\x64
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3313457Z   LIBPATH: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\ATLMFC\lib\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\lib\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\lib\x86\store\references;C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.26100.0;C:\Program Files (x86)\Windows Kits\10\References\10.0.26100.0;C:\Windows\Microsoft.NET\Framework64\v4.0.30319
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3315176Z   NETFXSDKDir: C:\Program Files (x86)\Windows Kits\NETFXSDK\4.8.1\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3332543Z   Path: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\bin\HostX64\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\VC\VCPackages;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\TestWindow;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\TeamFoundation\Team Explorer;C:\Program Files\Microsoft Visual Studio\18\Enterprise\MSBuild\Current\bin\Roslyn;C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8.1 Tools\x64\;C:\Program Files (x86)\HTML Help Workshop;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Team Tools\DiagnosticsHub\Collector;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\Extensions\Microsoft\CodeCoverage.Console;C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\\x64;C:\Program Files (x86)\Windows Kits\10\bin\\x64;C:\Program Files\Microsoft Visual Studio\18\Enterprise\\MSBuild\Current\Bin\amd64;C:\Windows\Microsoft.NET\Framework64\v4.0.30319;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\Tools\;C:\Program Files\PowerShell\7;C:\Program Files\MongoDB\Server\7.0\bin;C:\vcpkg;C:\tools\zstd;C:\hostedtoolcache\windows\stack\3.11.1\x64;C:\cabal\bin;C:\\ghcup\bin;C:\mingw64\bin;C:\Program Files\dotnet;C:\Program Files\MySQL\MySQL Server 8.0\bin;C:\Program Files\R\R-4.6.1\bin\x64;C:\SeleniumWebDrivers\GeckoDriver;C:\SeleniumWebDrivers\EdgeDriver\;C:\SeleniumWebDrivers\ChromeDriver;C:\Program Files (x86)\sbt\bin;C:\Program Files (x86)\GitHub CLI;C:\Program Files\Git\bin;C:\Program Files (x86)\pipx_bin;C:\npm\prefix;C:\hostedtoolcache\windows\go\1.24.13\x64\bin;C:\hostedtoolcache\windows\Python\3.12.10\x64\Scripts;C:\hostedtoolcache\windows\Python\3.12.10\x64;C:\hostedtoolcache\windows\Ruby\3.3.12\x64\bin;C:\Program Files\OpenSSL\bin;C:\tools\kotlinc\bin;C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\17.0.20-101\x64\bin;C:\Program Files\ImageMagick-7.1.2-Q16-HDRI;C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;C:\ProgramData\kind;C:\ProgramData\Chocolatey\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\PowerShell\7\;C:\Program Files\Microsoft\Web Platform Installer\;C:\Program Files\Microsoft SQL Server\170\Tools\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\dotnet\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files (x86)\WiX Toolset v3.14\bin;C:\Program Files\Microsoft SQL Server\130\DTS\Binn\;C:\Program Files\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files\Microsoft SQL Server\160\DTS\Binn\;C:\Program Files\Microsoft SQL Server\170\DTS\Binn\;C:\ProgramData\chocolatey\lib\pulumi\tools\Pulumi\bin;C:\Program Files\CMake\bin;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.16\bin;C:\Program Files\Microsoft Service Fabric\bin\Fabric\Fabric.Code;C:\Program Files\Microsoft SDKs\Service Fabric\Tools\ServiceFabricLocalClusterManager;C:\Program Files\nodejs\;C:\Program Files\Git\cmd;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Program Files\GitHub CLI\;c:\tools\php;C:\Program Files (x86)\sbt\bin;C:\Program Files\Amazon\AWSCLIV2\;C:\Program Files\Amazon\SessionManagerPlugin\bin\;C:\Program Files\Amazon\AWSSAMCLI\bin\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\mongosh\;C:\Program Files\LLVM\bin;C:\Program Files (x86)\LLVM\bin;C:\Users\runneradmin\.dotnet\tools;C:\Users\runneradmin\.cargo\bin;C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\Llvm\x64\bin;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\VC\Linux\bin\ConnectionManagerExe;C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\vcpkg
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3348197Z   UCRTVersion: 10.0.26100.0
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3348499Z   UniversalCRTSdkDir: C:\Program Files (x86)\Windows Kits\10\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3348999Z   VCIDEInstallDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\VC\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3349536Z   VCINSTALLDIR: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3350097Z   VCToolsInstallDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3350757Z   VCToolsRedistDir: C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Redist\MSVC\14.51.36231\
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3351221Z   VCToolsVersion: 14.51.36231
+post-build	UNKNOWN STEP	2026-10-07T08:11:18.3351588Z   VisualStudioVersion: 18.0
+... (trimmed) ...
+post-build	UNKNOWN STEP	2026-10-07T08:12:22.0391005Z [22/228] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\noise_reduce.cpp.obj
+post-build	UNKNOWN STEP	2026-10-07T08:13:14.8267638Z [73/228] Linking CXX shared library bin\xpe_enhance_basic.dll
+post-build	UNKNOWN STEP	2026-10-07T08:13:14.9634950Z [74/228] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_noise_reduce.cpp.obj

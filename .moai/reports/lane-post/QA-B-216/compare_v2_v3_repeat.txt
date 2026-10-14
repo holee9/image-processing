@@ -1,0 +1,20 @@
+== (a) repeat: out_ci1 vs out_ci2, every file
+files compared: 24  differing: 0  (csv files with timings/memory excluded)
+== (b) control: post-local rerun vs published v2 PNGs
+00_input_adu_DISPLAY_ONLY.png                        differing        0  max     0
+01_log_DISPLAY_ONLY.png                              differing        0  max     0
+02_noise_bilateral_DISPLAY_ONLY.png                  differing        0  max     0
+03_clahe_DISPLAY_ONLY.png                            differing        0  max     0
+04_usm_DISPLAY_ONLY.png                              differing        0  max     0
+05_FINAL_default_inverted_auto_window.png            differing        0  max     0
+06_ALT_window_top_at_background_q01.png              differing        0  max     0
+07_OLD_default_air_white_whole_image_window.png      differing        0  max     0
+== (c) v3 (CI DLLs) vs v2 (post-local DLLs)
+00_input_adu_DISPLAY_ONLY.png                        differing        0 (0.0000%)  max     0
+01_log_DISPLAY_ONLY.png                              differing        0 (0.0000%)  max     0
+02_noise_bilateral_DISPLAY_ONLY.png                  differing   126489 (1.3403%)  max     1
+03_clahe_DISPLAY_ONLY.png                            differing   869940 (9.2182%)  max    76
+04_usm_DISPLAY_ONLY.png                              differing   800596 (8.4834%)  max   337
+05_FINAL_default_inverted_auto_window.png            differing     6137 (0.0650%)  max   384
+06_ALT_window_top_at_background_q01.png              differing     5561 (0.0589%)  max   385
+07_OLD_default_air_white_whole_image_window.png      differing    16801 (0.1780%)  max   321

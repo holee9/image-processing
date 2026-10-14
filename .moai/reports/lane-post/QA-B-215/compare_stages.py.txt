@@ -1,0 +1,22 @@
+# QA-B-215: compare two stage dumps (raw float32 3072x3072 / uint16) written by M2Measure.DISABLED_StageDump_215
+import numpy as np, sys
+D = r'D:/workspace-github/xpe-post/build/m2-scratch/'
+A, B = sys.argv[1], sys.argv[2]
+n = 3072 * 3072
+for st in ('log', 'noise_bilateral', 'clahe', 'usm'):
+    a = np.fromfile(D + 's215_%s_%s.f32' % (A, st), dtype=np.float32)
+    b = np.fromfile(D + 's215_%s_%s.f32' % (B, st), dtype=np.float32)
+    d = np.abs(a.astype(np.float64) - b.astype(np.float64))
+    nz = d > 0
+    ia = a.view(np.int32).astype(np.int64); ib = b.view(np.int32).astype(np.int64)
+    ulp = np.abs(ia - ib)
+    first = int(np.argmax(nz)) if nz.any() else -1
+    print('%-16s differing=%d (%.4f%%) max|d|=%.6g mean|d| over differing=%.6g max ulp=%d  first idx=%d (y=%d x=%d)' % (
+        st, int(nz.sum()), 100.0 * nz.sum() / n, d.max(), d[nz].mean() if nz.any() else 0, int(ulp.max()), first, first // 3072 if first >= 0 else -1, first % 3072 if first >= 0 else -1))
+    if nz.any():
+        rel = d[nz] / np.maximum(np.abs(a[nz].astype(np.float64)), 1e-30)
+        print('                 max rel diff=%.3g  ulp histogram (1,2,3-4,5-8,>8): %s' % (rel.max(), [int(((ulp[nz] >= lo) & (ulp[nz] <= hi)).sum()) for lo, hi in ((1, 1), (2, 2), (3, 4), (5, 8), (9, 1 << 40))]))
+a = np.fromfile(D + 's215_%s_final.u16' % A, dtype=np.uint16).astype(np.int32)
+b = np.fromfile(D + 's215_%s_final.u16' % B, dtype=np.uint16).astype(np.int32)
+d = np.abs(a - b)
+print('final uint16: identical %d of %d (%.4f%%) max|diff|=%d mean diff=%.6f' % ((d == 0).sum(), n, 100.0 * (d == 0).mean(), d.max(), float((a - b).mean())))

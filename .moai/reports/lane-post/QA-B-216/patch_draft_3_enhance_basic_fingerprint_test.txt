@@ -1,0 +1,30 @@
+PATCH DRAFT (not applied) -- modules/enhance_basic/tests/test_toolchain_fingerprint.cpp   (lane B owns the directory; a product-test change waits for the lead's decision)  QA-B-216, Refs #251
+
+Idea: integer-generated 512x512 fixtures (no libm, same bytes everywhere) -> log, bilateral, CLAHE, USM -> FNV-1a 64 per stage.
+The expected hashes are a table keyed by the MSVC tools major.minor (cl _MSC_VER / _MSC_FULL_VER at compile time of the TEST).
+
+  - toolchain row present, hash differs      -> FAIL   (same compiler, different numbers: a real regression)
+  - toolchain not in the table               -> GTEST_SKIP, message prints the three hashes of each fixture to paste into the table
+  - non-MSVC build                           -> GTEST_SKIP
+
+Measured values (QA-B-216, fixture generator = the DISABLED_FingerprintFixture_216 harness in tests/e2e_post_pipeline/test_m2_measure.cpp):
+
+  fixture 0 (ramp)     noise_bilateral   MSVC 14.44 = 14.29: 20fadb9314a54721    CI 14.51: 60d17bf52b2f74bf
+  fixture 1 (blocks)   noise_bilateral   MSVC 14.44 = 14.29: 4f0b9f5c0be09477    CI 14.51: 4e8c215920ba8c8c
+  fixture 2 (texture)  noise_bilateral   MSVC 14.44 = 14.29: daf8e17c4bff4b72    CI 14.51: 23c642d118ddba50
+  (the log stage hash is the same under all three: fixture 0 bafbd04274e462e6, fixture 1 8c16690f36aa0e39, fixture 2 e3ea95a9fba19014)
+  The full per-stage lists are in fixture_post.txt / fixture_ci_enh.txt / fixture_v_msvc1429.txt / fixture_v_fpprecise.txt.
+
+Skeleton (sketch, not compiled):
+
+  struct Row { int vcMajorMinor; uint64_t h[3][3]; };           // [fixture][bilateral, clahe, usm]
+  static const Row kRows[] = { {1944, {...}}, {1951, {...}} };  // 1944 = _MSC_VER of 14.44, 1951 = 14.51 (check the value on the runner)
+  TEST(ToolchainFingerprint, StagesMatchTheRecordedToolchain) {
+      const Row* row = find(_MSC_VER);
+      if (!row) GTEST_SKIP() << "toolchain " << _MSC_FULL_VER << " not recorded; hashes: " << print_all();
+      EXPECT_EQ(row->h[0][0], bilateral_hash(0)); ...
+  }
+
+Open points for the lead:
+  - the table row for 14.51 comes from the 39f9727a CI artifact; it must be re-confirmed against the current main artifact (QA-B-216 part 1 does that).
+  - the test runs the module in-process, so it shares the DLL under test with the product; it does not look at a shipped copy.

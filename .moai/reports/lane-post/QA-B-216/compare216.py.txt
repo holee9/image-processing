@@ -1,0 +1,49 @@
+"""QA-B-216: (a) repeat check ci1 vs ci2 (every raw output file byte-identical?), (b) control post1 vs the published m2-post-v2 PNGs,
+(c) m2-post-v3 (CI DLLs) vs m2-post-v2, file by file.   usage: python compare216.py.txt"""
+import hashlib, os
+import numpy as np
+from PIL import Image
+
+S = 'D:/workspace-github/xpe-post/build/s216/'
+V2 = 'D:/workspace-github/xpe-data/m2-post-v2/'
+V3 = 'D:/workspace-github/xpe-data/m2-post-v3/'
+N = 3072
+FILES = [
+    ('00_input_adu_DISPLAY_ONLY.png', '00_input_adu.u16'),
+    ('01_log_DISPLAY_ONLY.png', '01_log_p01p99.u16'),
+    ('02_noise_bilateral_DISPLAY_ONLY.png', '02_noise_bilateral_p01p99.u16'),
+    ('03_clahe_DISPLAY_ONLY.png', '03_clahe_p01p99.u16'),
+    ('04_usm_DISPLAY_ONLY.png', '04_usm_p01p99.u16'),
+    ('05_FINAL_default_inverted_auto_window.png', '07_presentation_uint16.u16'),
+    ('06_ALT_window_top_at_background_q01.png', 'p8_v8_alt_window_top_at_background_q01_inverted.u16'),
+    ('07_OLD_default_air_white_whole_image_window.png', 'p8_v1_whole_p01p99_ascending.u16'),
+]
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+print('== (a) repeat: out_ci1 vs out_ci2, every file')
+bad = 0
+names = sorted(f for f in os.listdir(S + 'out_ci1') if not f.endswith('.csv'))
+for f in names:
+    same = sha(S + 'out_ci1/' + f) == sha(S + 'out_ci2/' + f)
+    bad += 0 if same else 1
+print('files compared: %d  differing: %d  (csv files with timings/memory excluded)' % (len(names), bad))
+
+print('== (b) control: post-local rerun vs published v2 PNGs')
+for png, raw in FILES:
+    a = np.array(Image.open(V2 + png)).astype(np.int64)
+    b = np.fromfile(S + 'out_post1/' + raw, dtype='<u2').reshape(N, N).astype(np.int64)
+    d = np.abs(a - b)
+    print('%-52s differing %8d  max %5d' % (png, int((d > 0).sum()), int(d.max())))
+
+print('== (c) v3 (CI DLLs) vs v2 (post-local DLLs)')
+rows = []
+for png, raw in FILES:
+    a = np.array(Image.open(V2 + png)).astype(np.int64)
+    b = np.array(Image.open(V3 + png)).astype(np.int64)
+    d = np.abs(a - b)
+    rows.append((png, int((d > 0).sum()), int(d.max())))
+    print('%-52s differing %8d (%.4f%%)  max %5d' % (png, rows[-1][1], 100.0 * rows[-1][1] / (N * N), rows[-1][2]))

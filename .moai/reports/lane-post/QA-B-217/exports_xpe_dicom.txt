@@ -1,0 +1,42 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\workspace-github\xpe-post\build\s217\dicom\bin\xpe_dicom.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_dicom.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          11 number of functions
+          11 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00003F6C xpe_dicom_cancel = @ILT+12135(xpe_dicom_cancel)
+          2    1 000027C5 xpe_dicom_cfind_mwl = @ILT+6080(xpe_dicom_cfind_mwl)
+          3    2 00001E06 xpe_dicom_close = @ILT+3585(xpe_dicom_close)
+          4    3 00004AE3 xpe_dicom_cstore = @ILT+15070(xpe_dicom_cstore)
+          5    4 000048C7 xpe_dicom_get_metadata = @ILT+14530(xpe_dicom_get_metadata)
+          6    5 000037BA xpe_dicom_open = @ILT+10165(xpe_dicom_open)
+          7    6 00001F14 xpe_dicom_read_image = @ILT+3855(xpe_dicom_read_image)
+          8    7 000037C4 xpe_dicom_validate = @ILT+10175(xpe_dicom_validate)
+          9    8 0000112C xpe_dicom_version = @ILT+295(xpe_dicom_version)
+         10    9 00001CD0 xpe_dicom_write = @ILT+3275(xpe_dicom_write)
+         11    A 00001032 xpe_dicom_write_j2k = @ILT+45(xpe_dicom_write_j2k)
+
+  Summary
+
+        1000 .00cfg
+        2000 .data
+        C000 .idata
+        8000 .pdata
+       1F000 .rdata
+        2000 .reloc
+        1000 .rsrc
+       BA000 .text
+        1000 .tls

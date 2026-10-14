@@ -1,0 +1,12 @@
+QA-B-217: the 6 xpe_ai exports that no public header declares, and the preprocessor guard around each definition
+(modules/ai/src/ai.cpp at main e421c1ff; XPE_API definitions found by regex, enclosing #if stack computed from the file top)
+
+xpe_ai_test_set_after_verify_hook             line 673  guard: #ifdef XPE_AI_TEST_HOOKS
+xpe_ai_test_set_before_file_read_hook         line 670  guard: #ifdef XPE_AI_TEST_HOOKS
+xpe_ai_test_set_before_state_delete_hook      line 650  guard: #ifdef XPE_AI_TEST_HOOKS
+xpe_ai_test_set_log_capture                   line 608  guard: #ifdef XPE_AI_TEST_LOG_CAPTURE   (modules/ai/CMakeLists.txt defines it only together with XPE_AI_TEST_HOOKS and spdlog, per the comment at ai.cpp:601)
+xpe_ai_test_set_mutex_held_hook               line 639  guard: #ifdef XPE_AI_TEST_HOOKS
+xpe_ai_test_set_worker_path_hook              line 525  guard: #ifdef XPE_AI_TEST_HOOKS
+
+Switch: root CMakeLists.txt line 381  option(XPE_AI_TEST_HOOKS ... "OFF for a delivery build" ${_XPE_AI_BUILD_TESTS});  CMakePresets.json preset "release" sets XPE_AI_TEST_HOOKS OFF.
+The CI artifact is a test build (BUILD_TESTS ON, so the option defaults ON): it exports all six.

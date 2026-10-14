@@ -1,0 +1,3 @@
+@echo off
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+for %%V in (asis msvc1429 fpprecise) do dumpbin /headers D:\workspace-github\xpe-post\build\s215\v_%%V\xpe_enhance_basic.dll | findstr /C:"linker version" /C:"size of code"

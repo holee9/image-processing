@@ -1,0 +1,8 @@
+log              differing=0 (0.0000%) max|d|=0 mean|d| over differing=0 max ulp=0  first idx=-1 (y=-1 x=-1)
+noise_bilateral  differing=5367490 (56.8760%) max|d|=0.00170898 mean|d| over differing=0.000319124 max ulp=7  first idx=1 (y=0 x=1)
+                 max rel diff=5.81e-07  ulp histogram (1,2,3-4,5-8,>8): [3991336, 1138591, 233896, 3667, 0]
+clahe            differing=3133948 (33.2085%) max|d|=1.57837 mean|d| over differing=0.00621042 max ulp=6754  first idx=2 (y=0 x=2)
+                 max rel diff=0.000595  ulp histogram (1,2,3-4,5-8,>8): [705742, 124368, 214873, 345012, 1743953]
+usm              differing=3145167 (33.3274%) max|d|=7.01758 mean|d| over differing=0.0062436 max ulp=41002  first idx=2 (y=0 x=2)
+                 max rel diff=0.0029  ulp histogram (1,2,3-4,5-8,>8): [701867, 132964, 216987, 346792, 1746557]
+final uint16: identical 9431047 of 9437184 (99.9350%) max|diff|=384 mean diff=0.026470

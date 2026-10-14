@@ -1,0 +1,153 @@
+"""QA-B-217: DLL exports (dumpbin /exports of the CI artifacts of run 38223364628) against the public-header declarations
+(XPE_API / GSVG_API) at the same commit e421c1ff, and against the two api-spec tables (section 0 and section 4) of both copies.
+usage: python analyze217.py.txt        (run from the repository root; needs git and the evidence folder's exports_*.txt)"""
+import re, subprocess, sys
+
+COMMIT = 'e421c1ff'
+EV = '.moai/reports/lane-post/QA-B-217/'
+MODS = [('xpe_common', 'common'), ('xpe_preprocess', 'preprocess'), ('xpe_enhance_basic', 'enhance_basic'),
+        ('xpe_enhance_advanced', 'enhance_advanced'), ('xpe_display', 'display'), ('xpe_ai', 'ai'),
+        ('xpe_dicom', 'dicom'), ('gsvg', 'gsvg')]
+
+
+def git(*a):
+    return subprocess.run(['git'] + list(a), capture_output=True).stdout.decode('utf-8', 'replace')
+
+
+def exports_of(dll):
+    names = []
+    for l in open(EV + 'exports_%s.txt' % dll, encoding='utf-8', errors='replace'):
+        m = re.match(r'^\s+(\d+)\s+[0-9A-Fa-f]+\s+[0-9A-Fa-f]{8}\s+(\S+)', l)
+        if m:
+            names.append(m.group(2))
+    return names
+
+
+def strip_comments(t):
+    t = re.sub(r'/\*.*?\*/', lambda m: re.sub(r'[^\n]', ' ', m.group(0)), t, flags=re.S)
+    return re.sub(r'//[^\n]*', '', t)
+
+
+DECL = re.compile(r'\b(?:XPE_API|GSVG_API)\b([^;{}]*?)\b([A-Za-z_]\w*)\s*\(', re.S)
+
+
+def headers_of(mod):
+    paths = [p for p in git('ls-tree', '-r', '--name-only', COMMIT, 'modules/%s/include' % mod).split('\n') if p.endswith('.h')]
+    decl = {}      # name -> (file, enclosing #if conditions)
+    for p in paths:
+        txt = strip_comments(git('show', '%s:%s' % (COMMIT, p)))
+        # track the open #if stack by line so conditional declarations can be reported
+        stack, pos_cond = [], []
+        offset = 0
+        for line in txt.split('\n'):
+            s = line.strip()
+            if re.match(r'#\s*if', s):
+                stack.append(s)
+            elif re.match(r'#\s*endif', s) and stack:
+                stack.pop()
+            elif re.match(r'#\s*else|#\s*elif', s) and stack:
+                stack[-1] = stack[-1] + ' ' + s
+            pos_cond.append((offset, offset + len(line) + 1, list(stack)))
+            offset += len(line) + 1
+        for m in DECL.finditer(txt):
+            if re.search(r'#\s*define', txt[max(0, m.start() - 20):m.start()]):
+                continue
+            conds = next((c for a, b, c in pos_cond if a <= m.start(2) < b), [])
+            conds = [c for c in conds if not re.match(r'#\s*ifndef\s+\w+_H\b|#\s*if\s+defined\(__cplusplus\)|#\s*ifdef\s+__cplusplus', c)]
+            decl[m.group(2)] = (p.split('/')[-1], conds)
+    return decl
+
+
+def table_rows(path_or_text, heading_re, name_col_re):
+    return None
+
+
+def spec_tables(text):
+    sec0, sec4 = {}, {}
+    mode = None
+    for l in text.split('\n'):
+        if l.startswith('## 0.'):
+            mode = 0
+        elif l.startswith('## 4.'):
+            mode = 4
+        elif l.startswith('## '):
+            mode = None
+        if mode == 0:
+            m = re.match(r'^\|\s*`(\w+)`\s*\|\s*(\d+)\s*\|(.*)\|\s*$', l)
+            if m:
+                names = re.findall(r'`(\w+)`', m.group(3))
+                sec0[m.group(1)] = (int(m.group(2)), names)
+        if mode == 4:
+            m = re.match(r'^\|\s*(\w+)\.dll\s*\|\s*(\d+)\s*\|', l)
+            if m:
+                sec4[m.group(1)] = int(m.group(2))
+    return sec0, sec4
+
+
+out = []
+rows = []
+exp, hdr = {}, {}
+for dll, mod in MODS:
+    exp[dll] = exports_of(dll)
+    hdr[dll] = headers_of(mod)
+out.append('Run 38223364628, commit %s. Exports: dumpbin /exports of the CI artifacts. Headers: XPE_API / GSVG_API declarations of modules/<m>/include/**/*.h at the same commit.' % COMMIT)
+out.append('')
+out.append('| DLL | exports | header decls | only in exports | only in headers |')
+out.append('|---|---:|---:|---|---|')
+tot_e = tot_h = 0
+for dll, mod in MODS:
+    e, h = set(exp[dll]), set(hdr[dll])
+    oe, oh = sorted(e - h), sorted(h - e)
+    tot_e += len(e)
+    tot_h += len(h)
+    out.append('| %s | %d | %d | %s | %s |' % (dll, len(e), len(h), ', '.join(oe) or '-', ', '.join(oh) or '-'))
+out.append('| **total** | **%d** | **%d** | | |' % (tot_e, tot_h))
+out.append('')
+# control: both lists find at least one common name per DLL
+out.append('Control (both lists must find the same name at least once, otherwise a 0 would mean "tool read nothing"):')
+for dll, mod in MODS:
+    both = set(exp[dll]) & set(hdr[dll])
+    out.append('  %-22s names found by BOTH: %d%s' % (dll, len(both), '' if both else '   <-- CONTROL FAILED'))
+out.append('')
+# conditional declarations
+out.append('Declarations inside a preprocessor condition (name: condition):')
+for dll, mod in MODS:
+    for n, (f, conds) in sorted(hdr[dll].items()):
+        if conds:
+            out.append('  %-20s %-40s %s   [exported: %s]' % (dll, n, ' && '.join(conds), 'yes' if n in exp[dll] else 'NO'))
+# duplicates across DLLs
+allnames = {}
+for dll, _ in MODS:
+    for n in exp[dll]:
+        allnames.setdefault(n, []).append(dll)
+dup = {n: d for n, d in allnames.items() if len(d) > 1}
+out.append('')
+out.append('Names exported by more than one DLL: %s' % (dup or 'none'))
+out.append('Distinct exported names over all 8 DLLs: %d' % len(allnames))
+
+# spec tables
+for label, ref in (('docs/project/api-spec.md (origin/main)', 'origin/main:docs/project/api-spec.md'),
+                   ('.moai/project/api-spec.md (origin/main)', 'origin/main:.moai/project/api-spec.md')):
+    sec0, sec4 = spec_tables(git('show', ref))
+    out.append('')
+    out.append('### %s' % label)
+    out.append('| DLL | sec.0 count | sec.0 names listed | sec.4 count | exports | headers | sec.0 names = exports? | sec.0 names = headers? | sec.4 = exports? |')
+    out.append('|---|---:|---:|---:|---:|---:|---|---|---|')
+    s0t = s4t = 0
+    for dll, mod in MODS:
+        key = 'xpe_gsvg' if dll == 'gsvg' else dll
+        c0, n0 = sec0.get(key, (None, []))
+        c4 = sec4.get(dll)
+        s0t += c0 or 0
+        s4t += c4 or 0
+        e, h = set(exp[dll]), set(hdr[dll])
+        out.append('| %s | %s | %d | %s | %d | %d | %s | %s | %s |' % (
+            dll, c0 if c0 is not None else '-', len(n0), c4 if c4 is not None else '-', len(e), len(h),
+            ('yes' if set(n0) == e else 'no (spec-only: %s; export-only: %s)' % (sorted(set(n0) - e), sorted(e - set(n0)))) if n0 else '-',
+            ('yes' if set(n0) == h else 'no') if n0 else '-',
+            ('yes' if c4 == len(e) else 'no') if c4 is not None else '-'))
+    out.append('| **sum of the count column** | %d | | %d | %d | %d | | | |' % (s0t, s4t, tot_e, tot_h))
+
+text = '\n'.join(out)
+open(EV + 'analysis_tables.txt', 'w', encoding='utf-8', newline='\n').write(text + '\n')
+sys.stdout.buffer.write((text + '\n').encode('utf-8', 'replace'))

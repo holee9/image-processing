@@ -1,0 +1,46 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\workspace-github\xpe-post\build\s217\post\xpe_common.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_common.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          16 number of functions
+          16 number of names
+
+    ordinal hint RVA      name
+
+          1    0 000012FD xpe_alert_push = @ILT+760(xpe_alert_push)
+          2    1 00002437 xpe_alloc_image = @ILT+5170(xpe_alloc_image)
+          3    2 000022FC xpe_clear_alerts = @ILT+4855(xpe_clear_alerts)
+          4    3 00001672 xpe_configure = @ILT+1645(xpe_configure)
+          5    4 00001B4A xpe_copy_image = @ILT+2885(xpe_copy_image)
+          6    5 00002635 xpe_error_string = @ILT+5680(xpe_error_string)
+          7    6 000022DE xpe_free_image = @ILT+4825(xpe_free_image)
+          8    7 00001ACD xpe_get_param_range = @ILT+2760(xpe_get_param_range)
+          9    8 00002711 xpe_get_pending_alert = @ILT+5900(xpe_get_pending_alert)
+         10    9 0000143D xpe_get_pending_alert_count = @ILT+1080(xpe_get_pending_alert_count)
+         11    A 0000234C xpe_init = @ILT+4935(xpe_init)
+         12    B 00002A4F xpe_log_flush = @ILT+6730(xpe_log_flush)
+         13    C 0000141F xpe_log_set_file = @ILT+1050(xpe_log_set_file)
+         14    D 000013ED xpe_log_set_level = @ILT+1000(xpe_log_set_level)
+         15    E 00002892 xpe_shutdown = @ILT+6285(xpe_shutdown)
+         16    F 00002540 xpe_version = @ILT+5435(xpe_version)
+
+  Summary
+
+        1000 .00cfg
+        1000 .data
+        3000 .idata
+        5000 .pdata
+       10000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       69000 .text

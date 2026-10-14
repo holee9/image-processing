@@ -1,0 +1,11 @@
+# QA-B-215: size of the final uint16 difference between two builds (tags as in compare_stages.py.txt)
+import numpy as np, sys
+D = r'D:/workspace-github/xpe-post/build/m2-scratch/'
+a = np.fromfile(D + 's215_%s_final.u16' % sys.argv[1], dtype=np.uint16).astype(np.int64)
+b = np.fromfile(D + 's215_%s_final.u16' % sys.argv[2], dtype=np.uint16).astype(np.int64)
+d = np.abs(a - b)
+mse = float((d.astype(np.float64) ** 2).mean())
+print('pixels %d  differing %d  RMSE %.4f  PSNR %.1f dB (peak 65535)' % (a.size, int((d > 0).sum()), mse ** 0.5, 10 * np.log10(65535.0 ** 2 / mse) if mse else float('inf')))
+for t in (1, 8, 16, 64, 128, 256):
+    print('  |diff| >= %-3d : %7d pixels (%.5f%%)  = %.3f%% of full scale for t=%d' % (t, int((d >= t).sum()), 100.0 * (d >= t).mean(), 100.0 * t / 65535, t))
+print('  8-bit render (>>8) differing pixels: %d (%.5f%%)  max diff %d' % (int(((a >> 8) != (b >> 8)).sum()), 100.0 * ((a >> 8) != (b >> 8)).mean(), int(np.abs((a >> 8) - (b >> 8)).max())))

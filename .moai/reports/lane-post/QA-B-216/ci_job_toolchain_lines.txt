@@ -1,0 +1,4 @@
+167:2026-10-12T07:25:00.2353075Z MSVC developer environment configured: C:\Program Files\Microsoft Visual Studio\18\Enterprise
+190:2026-10-12T07:25:00.4106872Z   VCToolsVersion: 14.51.36231
+199:2026-10-12T07:25:05.7366294Z -- The C compiler identification is MSVC 19.51.36260.0
+200:2026-10-12T07:25:06.6265827Z -- The CXX compiler identification is MSVC 19.51.36260.0

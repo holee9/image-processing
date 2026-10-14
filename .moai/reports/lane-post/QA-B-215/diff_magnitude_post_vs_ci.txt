@@ -1,0 +1,8 @@
+pixels 9437184  differing 6137  RMSE 1.6799  PSNR 91.8 dB (peak 65535)
+  |diff| >= 1   :    6137 pixels (0.06503%)  = 0.002% of full scale for t=1
+  |diff| >= 8   :    6137 pixels (0.06503%)  = 0.012% of full scale for t=8
+  |diff| >= 16  :    6137 pixels (0.06503%)  = 0.024% of full scale for t=16
+  |diff| >= 64  :    6137 pixels (0.06503%)  = 0.098% of full scale for t=64
+  |diff| >= 128 :      35 pixels (0.00037%)  = 0.195% of full scale for t=128
+  |diff| >= 256 :      15 pixels (0.00016%)  = 0.391% of full scale for t=256
+  8-bit render (>>8) differing pixels: 1563 (0.01656%)  max diff 2

@@ -868,3 +868,96 @@ TEST(M2Measure, DISABLED_AutoWindowPathsTiming_214b) {
     for (size_t i = 0; i < smallImg.size(); ++i) smallImg[i] = off[i * 9 + 1];
     time_path("1000x1000 (below the 2^20 limit: full histogram)", 1000, 1000, smallImg);
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-215: stage-by-stage dump of the enhance_basic stages ((5) log, (6) bilateral, (7) CLAHE, (8) USM) so that two builds
+// of the module (different DLL directories, same test executable) can be compared byte for byte. Prints one FNV-1a 64-bit
+// hash per stage and writes the raw float32 stage images to XPE_M2_OUT/s215_<XPE_M2_TAG>_<stage>.f32.
+//   XPE_M2_THREADS (optional): value for xpe_enhance_basic_set_max_threads (0 = automatic).
+// ---------------------------------------------------------------------------------------------------------------------
+TEST(M2Measure, DISABLED_StageDump_215) {
+    const std::string inPath = env_or_empty("XPE_M2_IN");
+    const std::string outDir = env_or_empty("XPE_M2_OUT");
+    const std::string tag = env_or_empty("XPE_M2_TAG");
+    const std::string threads = env_or_empty("XPE_M2_THREADS");
+    ASSERT_FALSE(inPath.empty());
+    ASSERT_FALSE(outDir.empty());
+    ASSERT_FALSE(tag.empty());
+    std::vector<float> input = load_input(inPath);
+    ASSERT_EQ(kPixels, input.size()) << "input file missing or wrong size";
+    if (!threads.empty()) ASSERT_EQ(XPE_OK, xpe_enhance_basic_set_max_threads(std::atoi(threads.c_str())));
+    std::printf("== QA-B-215 stage dump tag=%s ==\n  enhance_basic=%s hardware threads=%u max_threads(request)=%d\n", tag.c_str(),
+                xpe_enhance_basic_version(), std::thread::hardware_concurrency(), static_cast<int>(xpe_enhance_basic_get_max_threads()));
+
+    auto fnv = [](const float* px, size_t n) {
+        uint64_t h = 1469598103934665603ULL;
+        const unsigned char* b = reinterpret_cast<const unsigned char*>(px);
+        for (size_t i = 0; i < n * sizeof(float); ++i) { h ^= b[i]; h *= 1099511628211ULL; }
+        return h;
+    };
+    ChainParams p = make_params();
+    XpeImageBuffer img = alloc_f32();
+    std::memcpy(img.data, input.data(), kPixels * sizeof(float));
+    std::printf("  %-18s fnv1a64=%016llx\n", "input", static_cast<unsigned long long>(fnv(f32(img), kPixels)));
+    for (int s = 0; s < 4; ++s) {
+        ASSERT_EQ(XPE_OK, run_stage(s, img, p)) << kStageName[s];
+        std::printf("  %-18s fnv1a64=%016llx\n", kStageName[s], static_cast<unsigned long long>(fnv(f32(img), kPixels)));
+        ASSERT_TRUE(write_file(outDir + "/s215_" + tag + "_" + kStageName[s] + ".f32", img.data, kPixels * sizeof(float)));
+    }
+    // display half of the chain (post display DLL in every set): modality, automatic VOI window, VOI, presentation -> uint16
+    ASSERT_EQ(XPE_OK, run_stage(4, img, p));
+    ASSERT_EQ(XPE_OK, xpe_voi_auto_window(&img, &p.voi));
+    std::printf("  VOI auto window: center=%.9g width=%.9g\n", static_cast<double>(p.voi.center), static_cast<double>(p.voi.width));
+    ASSERT_EQ(XPE_OK, run_stage(5, img, p));
+    ASSERT_EQ(XPE_OK, run_stage(6, img, p));
+    ASSERT_EQ(XPE_PIXEL_UINT16, img.format);
+    {
+        uint64_t h = 1469598103934665603ULL;
+        const unsigned char* b = static_cast<const unsigned char*>(img.data);
+        for (size_t k = 0; k < kPixels * sizeof(uint16_t); ++k) { h ^= b[k]; h *= 1099511628211ULL; }
+        std::printf("  %-18s fnv1a64=%016llx\n", "final_uint16", static_cast<unsigned long long>(h));
+        ASSERT_TRUE(write_file(outDir + "/s215_" + tag + "_final.u16", img.data, kPixels * sizeof(uint16_t)));
+    }
+    xpe_free_image(&img);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// QA-B-216: can a SMALL synthetic fixture tell two compiler builds of enhance_basic apart? Integer-only generation (no libm),
+// so the input bytes are identical on every machine. Prints one FNV-1a 64 hash per fixture and stage; compare across DLL sets.
+//   XPE_M2_FIXTURE_N (optional): side of the square fixtures, default 512.
+// ---------------------------------------------------------------------------------------------------------------------
+TEST(M2Measure, DISABLED_FingerprintFixture_216) {
+    const std::string nEnv = env_or_empty("XPE_M2_FIXTURE_N");
+    const uint32_t n = nEnv.empty() ? 512u : static_cast<uint32_t>(std::atoi(nEnv.c_str()));
+    std::printf("== QA-B-216 fixture fingerprints, %ux%u, enhance_basic=%s ==\n", n, n, xpe_enhance_basic_version());
+    auto fnv = [](const float* px, size_t cnt) {
+        uint64_t h = 1469598103934665603ULL;
+        const unsigned char* b = reinterpret_cast<const unsigned char*>(px);
+        for (size_t i = 0; i < cnt * sizeof(float); ++i) { h ^= b[i]; h *= 1099511628211ULL; }
+        return h;
+    };
+    const ChainParams p = make_params();
+    for (int fx = 0; fx < 3; ++fx) {
+        XpeImageBuffer img{};
+        ASSERT_EQ(XPE_OK, xpe_alloc_image(n, n, XPE_PIXEL_FLOAT32, &img));
+        float* d = static_cast<float*>(img.data);
+        uint64_t s = 12345u + static_cast<uint64_t>(fx);
+        for (uint32_t y = 0; y < n; ++y) {
+            for (uint32_t x = 0; x < n; ++x) {
+                s = s * 6364136223846793005ULL + 1442695040888963407ULL;
+                const int32_t noise = static_cast<int32_t>((s >> 33) % 61u) - 30;               // +-30 ADU
+                int32_t base;
+                if (fx == 0) base = 600 + static_cast<int32_t>((x * 3400u) / n);                 // ramp
+                else if (fx == 1) base = ((x / 64u + y / 64u) % 2u) ? 3000 : 900;                // blocks (edges for USM)
+                else base = 500 + static_cast<int32_t>(((x ^ y) & 255u) * 13u);                  // textured
+                d[static_cast<size_t>(y) * n + x] = static_cast<float>(base + noise);
+            }
+        }
+        std::printf("  fixture %d input        fnv1a64=%016llx\n", fx, static_cast<unsigned long long>(fnv(d, static_cast<size_t>(n) * n)));
+        for (int st = 0; st < 4; ++st) {
+            ASSERT_EQ(XPE_OK, run_stage(st, img, p)) << kStageName[st];
+            std::printf("  fixture %d %-15s fnv1a64=%016llx\n", fx, kStageName[st], static_cast<unsigned long long>(fnv(d, static_cast<size_t>(n) * n)));
+        }
+        xpe_free_image(&img);
+    }
+}

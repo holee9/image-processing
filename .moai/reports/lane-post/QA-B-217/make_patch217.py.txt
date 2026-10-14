@@ -1,0 +1,48 @@
+# QA-B-217: write the correction wording (file / find / replace) for both api-spec copies from the MEASURED header lists.
+import re, sys
+src = open('.moai/reports/lane-post/QA-B-217/analyze217.py.txt', encoding='utf-8').read().split("out = []")[0]
+exec(src)
+hdr = {d: headers_of(m) for d, m in MODS}
+cnt = {d: len(hdr[d]) for d, _ in MODS}
+total = sum(cnt.values())
+out = ['PATCH DRAFT (not applied) -- QA-B-217, Refs #251. Owner of both files: lead. Format: FILE / FIND (the whole current line) / REPLACE (the whole new line).',
+       'Counts below are PUBLIC-HEADER declarations (XPE_API / GSVG_API in modules/*/include) at main e421c1ff: %d in total.' % total, '']
+for label, ref in (('docs/project/api-spec.md', 'origin/main:docs/project/api-spec.md'), ('.moai/project/api-spec.md', 'origin/main:.moai/project/api-spec.md')):
+    lines = git('show', ref).split('\n')
+    out.append('=' * 110)
+    out.append('FILE ' + label)
+    out.append('=' * 110)
+    n = 0
+    mode = None
+    for l in lines:
+        if l.startswith('## 0.'): mode = 0
+        elif l.startswith('## 4.'): mode = 4
+        elif l.startswith('## '): mode = None
+        new = None
+        if '106 names' in l:
+            new = l.replace('106 names', '%d names' % total)
+        elif mode == 0:
+            m = re.match(r'^\|\s*`(\w+)`\s*\|\s*(\d+)\s*\|', l)
+            if m:
+                key = 'gsvg' if m.group(1) == 'xpe_gsvg' else m.group(1)
+                names = sorted(hdr[key])
+                new = '| `%s` | %d | %s |' % (m.group(1), len(names), ', '.join('`%s`' % x for x in names))
+        elif mode == 4:
+            m = re.match(r'^\|\s*(\w+)\.dll\s*\|\s*(\d+)\s*\|(.*)$', l)
+            if m:
+                new = '| %s.dll | %d |%s' % (m.group(1), cnt[m.group(1)], m.group(3))
+            elif l.startswith('| **Total**'):
+                new = '| **Total** | **%d** | **public-header declarations (QA-B-217, main e421c1ff); what the counts count: see the paragraph after the section 0 table** |' % total
+        if new is not None and new != l:
+            n += 1
+            out += ['[%d]' % n, 'FIND:    ' + l, 'REPLACE: ' + new, '']
+    out += ['[%d] (add after the section 0 table, new paragraph)' % (n + 1),
+            'INSERT BEFORE the line that starts with: **Cross-module duplicate exports: 0** (that line is also edited in the item above; apply that edit first)',
+            'INSERT:  **What the counts count.** One name = one `XPE_API` / `GSVG_API` function declared in a public header under `modules/*/include`; %d in total. '
+            'A DLL built for testing can export more: the CI test build of `xpe_ai.dll` also exports 6 `xpe_ai_test_set_*` hooks (compiled only with `XPE_AI_TEST_HOOKS` / `XPE_AI_TEST_LOG_CAPTURE`; the delivery preset `release` turns them OFF), '
+            'and the CI `xpe_preprocess.dll` exports 6 C++-mangled symbols (`read_xcal_file`, `write_xcal_file`, `write_xcal_file_ex`, `validate_xcal_header`, `validate_xcal_session_field`, `xcal_bytes_per_pixel`) '
+            'because the internal header `modules/preprocess/src/xcal_reader.hpp` marks them `XPE_API`; they are not part of the C ABI. Measured on the CI artifacts: 134 exported names = %d + 6 + 6.' % (total, total),
+            '']
+txt = '\n'.join(out)
+open('.moai/reports/lane-post/QA-B-217/patch_draft_api-spec_counts.txt', 'w', encoding='utf-8', newline='\n').write(txt + '\n')
+print(txt[:3000].encode('utf-8', 'replace').decode('utf-8', 'replace'))

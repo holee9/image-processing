@@ -1,0 +1,54 @@
+Run 38223364628, commit e421c1ff. Exports: dumpbin /exports of the CI artifacts. Headers: XPE_API / GSVG_API declarations of modules/<m>/include/**/*.h at the same commit.
+
+| DLL | exports | header decls | only in exports | only in headers |
+|---|---:|---:|---|---|
+| xpe_common | 16 | 16 | - | - |
+| xpe_preprocess | 55 | 49 | ?read_xcal_file@@YAHPEBDAEAUXCalFileHeader@@AEAV?$vector@EV?$allocator@E@std@@@std@@2_NHPEAUXpeConfigDoc@@PEAUXCalPayloadSink@@@Z, ?validate_xcal_header@@YAHAEBUXCalFileHeader@@H@Z, ?validate_xcal_session_field@@YAHAEBUXCalFileHeader@@@Z, ?write_xcal_file@@YAHPEBDUXCalFileHeader@@PEBE_K23@Z, ?write_xcal_file_ex@@YAHPEBDUXCalFileHeader@@PEBE_K23_N@Z, ?xcal_bytes_per_pixel@@YA_KI@Z | - |
+| xpe_enhance_basic | 10 | 10 | - | - |
+| xpe_enhance_advanced | 9 | 9 | - | - |
+| xpe_display | 8 | 8 | - | - |
+| xpe_ai | 17 | 11 | xpe_ai_test_set_after_verify_hook, xpe_ai_test_set_before_file_read_hook, xpe_ai_test_set_before_state_delete_hook, xpe_ai_test_set_log_capture, xpe_ai_test_set_mutex_held_hook, xpe_ai_test_set_worker_path_hook | - |
+| xpe_dicom | 11 | 11 | - | - |
+| gsvg | 8 | 8 | - | - |
+| **total** | **134** | **122** | | |
+
+Control (both lists must find the same name at least once, otherwise a 0 would mean "tool read nothing"):
+  xpe_common             names found by BOTH: 16
+  xpe_preprocess         names found by BOTH: 49
+  xpe_enhance_basic      names found by BOTH: 10
+  xpe_enhance_advanced   names found by BOTH: 9
+  xpe_display            names found by BOTH: 8
+  xpe_ai                 names found by BOTH: 11
+  xpe_dicom              names found by BOTH: 11
+  gsvg                   names found by BOTH: 8
+
+Declarations inside a preprocessor condition (name: condition):
+
+Names exported by more than one DLL: none
+Distinct exported names over all 8 DLLs: 134
+
+### docs/project/api-spec.md (origin/main)
+| DLL | sec.0 count | sec.0 names listed | sec.4 count | exports | headers | sec.0 names = exports? | sec.0 names = headers? | sec.4 = exports? |
+|---|---:|---:|---:|---:|---:|---|---|---|
+| xpe_common | 16 | 16 | 16 | 16 | 16 | yes | yes | yes |
+| xpe_preprocess | 45 | 45 | 18 | 55 | 49 | no (spec-only: ['xpe_crc32']; export-only: ['?read_xcal_file@@YAHPEBDAEAUXCalFileHeader@@AEAV?$vector@EV?$allocator@E@std@@@std@@2_NHPEAUXpeConfigDoc@@PEAUXCalPayloadSink@@@Z', '?validate_xcal_header@@YAHAEBUXCalFileHeader@@H@Z', '?validate_xcal_session_field@@YAHAEBUXCalFileHeader@@@Z', '?write_xcal_file@@YAHPEBDUXCalFileHeader@@PEBE_K23@Z', '?write_xcal_file_ex@@YAHPEBDUXCalFileHeader@@PEBE_K23_N@Z', '?xcal_bytes_per_pixel@@YA_KI@Z', 'xpe_calib_generate_nonlin_lut', 'xpe_calib_load_nonlin_lut', 'xpe_calib_unload_nonlin_lut', 'xpe_preprocess_is_initialized', 'xpe_preprocess_pipeline_out']) | no | no |
+| xpe_enhance_basic | 8 | 8 | 8 | 10 | 10 | no (spec-only: []; export-only: ['xpe_enhance_basic_get_max_threads', 'xpe_enhance_basic_set_max_threads']) | no | no |
+| xpe_enhance_advanced | 7 | 7 | 7 | 9 | 9 | no (spec-only: []; export-only: ['xpe_enhance_advanced_get_max_threads', 'xpe_enhance_advanced_set_max_threads']) | no | no |
+| xpe_display | 8 | 8 | 6 | 8 | 8 | yes | yes | no |
+| xpe_ai | 11 | 11 | 11 | 17 | 11 | no (spec-only: []; export-only: ['xpe_ai_test_set_after_verify_hook', 'xpe_ai_test_set_before_file_read_hook', 'xpe_ai_test_set_before_state_delete_hook', 'xpe_ai_test_set_log_capture', 'xpe_ai_test_set_mutex_held_hook', 'xpe_ai_test_set_worker_path_hook']) | yes | no |
+| xpe_dicom | 11 | 11 | 10 | 11 | 11 | yes | yes | no |
+| gsvg | 4 | 4 | 4 | 8 | 8 | no (spec-only: []; export-only: ['xpe_gsvg_get_max_threads', 'xpe_gsvg_process_ex', 'xpe_gsvg_process_masked', 'xpe_gsvg_set_max_threads']) | no | no |
+| **sum of the count column** | 110 | | 80 | 134 | 122 | | | |
+
+### .moai/project/api-spec.md (origin/main)
+| DLL | sec.0 count | sec.0 names listed | sec.4 count | exports | headers | sec.0 names = exports? | sec.0 names = headers? | sec.4 = exports? |
+|---|---:|---:|---:|---:|---:|---|---|---|
+| xpe_common | 16 | 16 | 16 | 16 | 16 | yes | yes | yes |
+| xpe_preprocess | 45 | 45 | 18 | 55 | 49 | no (spec-only: ['xpe_crc32']; export-only: ['?read_xcal_file@@YAHPEBDAEAUXCalFileHeader@@AEAV?$vector@EV?$allocator@E@std@@@std@@2_NHPEAUXpeConfigDoc@@PEAUXCalPayloadSink@@@Z', '?validate_xcal_header@@YAHAEBUXCalFileHeader@@H@Z', '?validate_xcal_session_field@@YAHAEBUXCalFileHeader@@@Z', '?write_xcal_file@@YAHPEBDUXCalFileHeader@@PEBE_K23@Z', '?write_xcal_file_ex@@YAHPEBDUXCalFileHeader@@PEBE_K23_N@Z', '?xcal_bytes_per_pixel@@YA_KI@Z', 'xpe_calib_generate_nonlin_lut', 'xpe_calib_load_nonlin_lut', 'xpe_calib_unload_nonlin_lut', 'xpe_preprocess_is_initialized', 'xpe_preprocess_pipeline_out']) | no | no |
+| xpe_enhance_basic | 8 | 8 | 8 | 10 | 10 | no (spec-only: []; export-only: ['xpe_enhance_basic_get_max_threads', 'xpe_enhance_basic_set_max_threads']) | no | no |
+| xpe_enhance_advanced | 7 | 7 | 7 | 9 | 9 | no (spec-only: []; export-only: ['xpe_enhance_advanced_get_max_threads', 'xpe_enhance_advanced_set_max_threads']) | no | no |
+| xpe_display | 8 | 8 | 6 | 8 | 8 | yes | yes | no |
+| xpe_ai | 10 | 10 | 10 | 17 | 11 | no (spec-only: []; export-only: ['xpe_ai_test_set_after_verify_hook', 'xpe_ai_test_set_before_file_read_hook', 'xpe_ai_test_set_before_state_delete_hook', 'xpe_ai_test_set_log_capture', 'xpe_ai_test_set_mutex_held_hook', 'xpe_ai_test_set_worker_path_hook', 'xpe_ai_worker_state']) | no | no |
+| xpe_dicom | 10 | 10 | 10 | 11 | 11 | no (spec-only: []; export-only: ['xpe_dicom_version']) | no | no |
+| gsvg | 4 | 4 | 4 | 8 | 8 | no (spec-only: []; export-only: ['xpe_gsvg_get_max_threads', 'xpe_gsvg_process_ex', 'xpe_gsvg_process_masked', 'xpe_gsvg_set_max_threads']) | no | no |
+| **sum of the count column** | 108 | | 79 | 134 | 122 | | | |

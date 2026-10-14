@@ -1,0 +1,48 @@
+-- post threads=auto
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+  VOI auto window: center=2580.34668 width=1198.49561
+  final_uint16       fnv1a64=a5a967732871a286
+-- ci_enh threads=auto
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+  VOI auto window: center=2580.34668 width=1198.49634
+  final_uint16       fnv1a64=fa6c10045cae367b
+-- ci_common3 threads=auto
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+  VOI auto window: center=2580.34668 width=1198.49561
+  final_uint16       fnv1a64=a5a967732871a286
+-- ci_all4 threads=auto
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+  VOI auto window: center=2580.34668 width=1198.49634
+  final_uint16       fnv1a64=fa6c10045cae367b
+-- post threads=auto
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+  VOI auto window: center=2580.34668 width=1198.49561
+  final_uint16       fnv1a64=a5a967732871a286
+-- ci_enh threads=auto
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+  VOI auto window: center=2580.34668 width=1198.49634
+  final_uint16       fnv1a64=fa6c10045cae367b
+-- ci_common3 threads=auto
+  noise_bilateral    fnv1a64=b6f5783bb3e64e1c
+  clahe              fnv1a64=4f31e563d9bfa352
+  usm                fnv1a64=29347ead592cfc6a
+  VOI auto window: center=2580.34668 width=1198.49561
+  final_uint16       fnv1a64=a5a967732871a286
+-- ci_all4 threads=auto
+  noise_bilateral    fnv1a64=0f5c29d7eec9442c
+  clahe              fnv1a64=2c06a31046e7742a
+  usm                fnv1a64=4fa88ed81a800a64
+  VOI auto window: center=2580.34668 width=1198.49634
+  final_uint16       fnv1a64=fa6c10045cae367b
