@@ -1,0 +1,7 @@
+== A menu path renamed on the page: File > Open Raw... -> File > Open Raw Image... (occurrences replaced: 1)
+   outcome: Failed; menu item 'Open Raw Image...' (of File > Open Raw Image...) was not found: the page and the app disagree.
+== B number changed on the page: bytes=18874368 -> bytes=18874369 (occurrences replaced: 1)
+   outcome: Failed; the summary says bytes=18874369, as the page does
+== C panel title changed on the page: Calibration paths -> Calibration folders (occurrences replaced: 1)
+   outcome: Failed; timed out (15 s) waiting for: a panel titled 'Calibration folders' appears
+restored the packaged page: True

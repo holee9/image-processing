@@ -773,6 +773,173 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         }
     }
 
+    /// <summary>The quick-start page next to the exe (the packaged help), as text; W0 reads the same file.</summary>
+    private static string QuickStartPage() =>
+        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "gui", "ImageProcTest", "bin", "Debug", "net8.0-windows", "help", "quick-start.html"));
+
+    /// <summary>The first <c>&lt;code&gt;</c> span of the page whose text (HTML-decoded) matches <paramref name="pattern"/>; fails loudly if the page no longer has one.</summary>
+    private static System.Text.RegularExpressions.Match DocCode(string page, string pattern)
+    {
+        foreach (System.Text.RegularExpressions.Match span in System.Text.RegularExpressions.Regex.Matches(page, @"<code>(.*?)</code>", System.Text.RegularExpressions.RegexOptions.Singleline))
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(System.Net.WebUtility.HtmlDecode(span.Groups[1].Value), pattern);
+            if (match.Success) return match;
+        }
+
+        Assert.Fail($"the quick-start page no longer has a code span matching /{pattern}/: this test follows the page's own words.");
+        return System.Text.RegularExpressions.Match.Empty;
+    }
+
+    /// <summary>The bold menu paths of the page in the order they are printed (<c>File &gt; Open Raw...</c> becomes ["File", "Open Raw..."]).</summary>
+    private static List<string[]> DocMenuPaths(string page) =>
+        System.Text.RegularExpressions.Regex.Matches(page, @"<strong>([^<]*?&gt;[^<]*?)</strong>")
+            .Select(m => System.Net.WebUtility.HtmlDecode(m.Groups[1].Value).Split('>').Select(x => x.Trim()).ToArray())
+            .Where(parts => parts.Length >= 2 && parts[0] is "File" or "Backend" or "View" or "Pipeline" or "Tools" or "Help")
+            .ToList();
+
+    private static string[] DocPath(IEnumerable<string[]> paths, string first, string last) =>
+        paths.FirstOrDefault(p => p[0] == first && p[^1].StartsWith(last, StringComparison.Ordinal))
+        ?? throw new XunitException($"the quick-start page does not print a menu path {first} > {last}.");
+
+    /// <summary>
+    /// GUI-C-236 (milestone 3, U2): the quick-start page FOLLOWED, in its own order and its own words, on real data (the calibration set and the wrist raw of the page). Everything the test looks for is read
+    /// from the page: the launch switches from its command line, the menu paths from its bold text, the strings it says you will see from its code spans. A renamed menu item, a changed message or a changed
+    /// number on either side (page or app) fails this test; it is one axis of the U9 citation check. UIA only. Needs the same variables as W7.
+    /// </summary>
+    [EnvGatedFact]
+    public void W14_TheQuickStartPage_FollowedStepByStep_OnRealData()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        var page = QuickStartPage();
+        var menuPaths = DocMenuPaths(page);
+
+        // step 1: the page's command line (switch names, backend, image size) with this machine's folders
+        var command = DocCode(page, @"^\.\\ImageProcTest\.exe .*--automation-width \d+ --automation-height \d+").Value;
+        var backend = System.Text.RegularExpressions.Regex.Match(command, @"--automation-backend (\w+)").Groups[1].Value;
+        var docWidth = int.Parse(System.Text.RegularExpressions.Regex.Match(command, @"--automation-width (\d+)").Groups[1].Value);
+        var docHeight = int.Parse(System.Text.RegularExpressions.Regex.Match(command, @"--automation-height (\d+)").Groups[1].Value);
+        Assert.True(docWidth == width && docHeight == height, $"the page's command says {docWidth}x{docHeight}, the data given is {width}x{height}: the walkthrough must use the page's size.");
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", backend, "--automation-calib", calib, "--automation-width", docWidth.ToString(), "--automation-height", docHeight.ToString()]);
+        app.Step($"1 launch with the page's switches (--automation-backend {backend} ... {docWidth}x{docHeight})");
+        var bottomLine = DocCode(page, @"^mode=\w+ \| common=").Value;
+        bottomLine = bottomLine[..bottomLine.IndexOf(" | common=", StringComparison.Ordinal)];
+        app.WaitFor(() => app.Read("RuntimeCommonVersionText").Contains(bottomLine, StringComparison.Ordinal), $"the bottom line says '{bottomLine}'", 60);
+        Assert.DoesNotContain("[MOCK]", app.Title);
+
+        // step 2: the calibration panel, by the path the page prints, with the title and the rows the page names
+        var panelPath = DocPath(menuPaths, "View", "Calibration Paths Panel");
+        app.Step("2 " + string.Join(" > ", panelPath));
+        app.InvokeMenuPath(panelPath);
+        var panelTitle = System.Text.RegularExpressions.Regex.Match(page, @"A panel titled <em>([^<]+)</em>").Groups[1].Value;
+        Assert.False(string.IsNullOrEmpty(panelTitle), "the page no longer names the panel's title.");
+        app.WaitFor(() => app.Exists("CalibrationPathsPanel") && app.AnyTextContains(panelTitle), $"a panel titled '{panelTitle}' appears", 15);
+        foreach (var row in new[] { "Offset", "Gain", "Defect" })
+        {
+            Assert.True(app.Read($"{row}CalibrationPathText").Length > 0, $"the {row} row shows the folder given on the command line, as the page says");
+        }
+
+        // step 3: the raw image by the page's path; the summary starts as the page says
+        var openPath = DocPath(menuPaths, "File", "Open Raw");
+        app.Step("3 " + string.Join(" > ", openPath));
+        app.InvokeMenuPathThenDialog(openPath, raw, confirmId: "1");
+        var summary = DocCode(page, @"^RAW (\d+)x(\d+), min=…, max=…, bytes=(\d+)");
+        var summaryHead = $"RAW {summary.Groups[1].Value}x{summary.Groups[2].Value}";
+        app.WaitFor(() => app.AnyTextContains(summaryHead), $"an image summary starting '{summaryHead}'", 90);
+        Assert.True(app.AnyTextContains($"bytes={summary.Groups[3].Value}"), $"the summary says bytes={summary.Groups[3].Value}, as the page does");
+        app.Snapshot("raw opened");
+
+        // step 4: Run Preprocessing, by the page's path; the line at the bottom says what the page says it will
+        var runPath = DocPath(menuPaths, "Pipeline", "Run Preprocessing");
+        app.Step("4 " + string.Join(" > ", runPath));
+        var chainDoc = DocCode(page, @"^chain: preprocess=\w+, enhance_basic=\w+, gsvg=\w+, ai_bone_suppress=\w+; times: .*; display input=\w+$").Value;
+        var chainHead = chainDoc[..chainDoc.IndexOf("; times:", StringComparison.Ordinal)];
+        var displayInput = chainDoc[(chainDoc.LastIndexOf("; ", StringComparison.Ordinal) + 2)..];
+        app.InvokeMenuPath(runPath);
+        app.WaitFor(() => app.Read("ChainStatusText").Contains(chainHead, StringComparison.Ordinal) && app.Read("StatusBarText").Contains("Exposure index:", StringComparison.Ordinal), $"the bottom line says '{chainHead}'", 180);
+        var chain = app.Read("ChainStatusText");
+        output.WriteLine($"   bottom line: {chain}");
+        Assert.Contains(displayInput, chain, StringComparison.Ordinal);
+        Assert.Contains("times:", chain, StringComparison.Ordinal);
+        app.Snapshot("after Run Preprocessing");
+    }
+
+    /// <summary>
+    /// GUI-C-236 (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms): one frame, the whole processing the app records itself. <b>Pipeline &gt; Run Deterministic Baseline</b> five times on real data; each command writes
+    /// <c>baseline.json</c> (<c>runTotalsMs</c>: the wall time of each of its two chain runs - preprocess, basic enhancement and the display step - and <c>stageTimes</c>: the stages inside). The first run of each
+    /// command is the sample (the second is printed beside it). The numbers are this machine's, an upper-bound estimate for CI; the median of the five is asserted against 3000 ms. Needs the same variables as W7.
+    /// </summary>
+    [EnvGatedFact]
+    public void W15_OneFrame_TheAppsOwnBaselineTimes_FiveCommands()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains($"RAW {width}x{height}"), "the image summary appears", 90);
+        app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "the default chain has run on the opened frame", 180);
+        Thread.Sleep(2000);
+
+        var evidenceRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "gui", "ImageProcTest", "bin", "Debug", "net8.0-windows", "evidence"));
+        var samples = new List<(double First, double Second, string Stages)>();
+        for (var i = 1; i <= 5; i++)
+        {
+            var before = Directory.Exists(evidenceRoot) ? Directory.GetFiles(evidenceRoot, "baseline.json", SearchOption.AllDirectories).ToHashSet() : [];
+            app.Menu("PipelineMenu");
+            app.InvokeMenuItem("RunDeterministicBaselineMenuItem");
+            app.WaitFor(() =>
+            {
+                var status = app.Read("StatusBarText");
+                return status.StartsWith("Deterministic Baseline ", StringComparison.Ordinal) && !status.Contains("Running", StringComparison.Ordinal);
+            }, $"baseline command {i} has finished", 120);
+            var written = Directory.GetFiles(evidenceRoot, "baseline.json", SearchOption.AllDirectories).Except(before).ToArray();
+            Assert.True(written.Length == 1, $"baseline command {i} should have written exactly one new baseline.json, found {written.Length}.");
+            using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(written[0]));
+            var root = document.RootElement;
+            Assert.Equal("Pass", root.GetProperty("status").GetString());
+            var totals = root.GetProperty("runTotalsMs").EnumerateArray().Select(e => e.GetDouble()).ToArray();
+            Assert.True(totals.Length >= 2, "runTotalsMs should hold the two runs.");
+            var stages = root.GetProperty("stageTimes").GetString() ?? string.Empty;
+            samples.Add((totals[0], totals[1], stages));
+            output.WriteLine($"   command {i}: run 1 {totals[0]:0} ms, run 2 {totals[1]:0} ms; {stages}");
+            Thread.Sleep(1000);
+        }
+
+        var sorted = samples.Select(s => s.First).OrderBy(x => x).ToArray();
+        output.WriteLine($"   first-run times (ms): {string.Join(", ", samples.Select(s => s.First.ToString("0")))}; median {sorted[2]:0} ms (limit 3000 ms, PERF-P1-001; this machine, an upper-bound estimate for CI)");
+        Assert.True(sorted[2] <= 3000, $"median {sorted[2]:0} ms exceeds 3000 ms");
+    }
+
+    /// <summary>
+    /// GUI-C-236: the real-data walkthroughs (W1, W7, W12-W15) exist only where their data does (see <see cref="EnvGatedFactAttribute"/>), so on a runner without it they are not even discovered. This is the visible
+    /// side of that: where the data is missing it is SKIPPED, saying what is missing, so the run's skip list names it instead of the walkthroughs silently being absent. Where the data is given it checks that the data
+    /// is what the walkthroughs assume (the DLL, the three calibration maps, a raw file of exactly width x height x 2 bytes) - a wrong path then fails here and not in the middle of a 3 minute scenario.
+    /// </summary>
+    [SkippableFact]
+    public void W16_TheRealDataWalkthroughs_HaveTheirData()
+    {
+        var native = Env("XPE_C231_NATIVE_DIR");
+        var calib = Env("XPE_C231_CALIB_DIR");
+        var raw = Env("XPE_C231_RAW");
+        var size = Env("XPE_C231_RAW_SIZE");
+        var missing = new[] { ("XPE_C231_NATIVE_DIR", native), ("XPE_C231_CALIB_DIR", calib), ("XPE_C231_RAW", raw), ("XPE_C231_RAW_SIZE", size) }.Where(v => v.Item2 is null).Select(v => v.Item1).ToArray();
+
+        // The CI allow-list token goes on the end of this reason once the leader has made its issue (GUI-C-236): XPE-SKIP-ALLOWED:<issue>. Until then the CI gate reads this skip as unexplained, on purpose.
+        Skip.If(missing.Length > 0, "NOT MEASURED: the real-data walkthroughs W1, W7, W12-W15 need " + string.Join(", ", missing)
+            + " (the .xcal calibration set of xpe-data/calib-real-v2 is not in the repository; the CI runner has no staged DLLs for it). They were not discovered, so none of them ran.");
+
+        var (nativeDir, calibDir, rawFile, width, height) = Inputs();
+        Assert.True(File.Exists(Path.Combine(nativeDir, "xpe_preprocess.dll")), $"XPE_C231_NATIVE_DIR '{nativeDir}' holds no xpe_preprocess.dll");
+        foreach (var name in new[] { "offset.xcal", "gain.xcal", "defect.xcal" })
+        {
+            Assert.True(File.Exists(Path.Combine(calibDir, name)), $"XPE_C231_CALIB_DIR '{calibDir}' holds no {name}");
+        }
+
+        Assert.True(File.Exists(rawFile), $"XPE_C231_RAW '{rawFile}' does not exist");
+        Assert.Equal((long)width * height * 2, new FileInfo(rawFile).Length);
+    }
+
     private static (string Native, string Calib, string Raw, int Width, int Height) Inputs()
     {
         var native = Env("XPE_C231_NATIVE_DIR");
@@ -888,6 +1055,33 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
             return true;
         }
+
+        /// <summary>GUI-C-236: opens the parents of a menu path by name (ExpandCollapse) and returns the AutomationId of the last item, so the id-based Invoke helpers can be used with the words the page prints.</summary>
+        public string MenuItemId(IReadOnlyList<string> path)
+        {
+            AutomationElement scope = _window;
+            string? id = null;
+            for (var i = 0; i < path.Count; i++)
+            {
+                var name = path[i];
+                var item = scope.FindFirstDescendant(cf => cf.ByControlType(ControlType.MenuItem).And(cf.ByName(name)))?.AsMenuItem();
+                Assert.True(item is not null, $"menu item '{name}' (of {string.Join(" > ", path)}) was not found: the page and the app disagree.");
+                if (i < path.Count - 1)
+                {
+                    item!.Expand();
+                    Thread.Sleep(400);
+                }
+
+                id = item!.AutomationId;
+                scope = item;
+            }
+
+            return id!;
+        }
+
+        public void InvokeMenuPath(IReadOnlyList<string> path) => InvokeMenuItem(MenuItemId(path));
+
+        public void InvokeMenuPathThenDialog(IReadOnlyList<string> path, string file, string confirmId) => InvokeMenuItemThenDialog(MenuItemId(path), file, confirmId);
 
         public bool IsToggled(string automationId) =>
             FindMenuItem(automationId)?.Patterns.Toggle.PatternOrDefault?.ToggleState.ValueOrDefault == ToggleState.On;
