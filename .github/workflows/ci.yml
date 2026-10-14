@@ -1110,7 +1110,9 @@ jobs:
     # finished scenario passing. The rise is spread across most scenarios (one
     # outlier: A3 filtered-list 34 -> 125 s), which reads as runner variance
     # plus content growth, not a hang. 45 restores ~80% headroom over 24.7 min.
-    timeout-minutes: 45
+    # #262: the real-data walkthroughs (W3 builds a 1024 set, W9 ~4 min, W12-W15 five opens each) push this job past 45 min:
+    # run 38523309095 was cancelled at 45 min after 281 cases, none failed. 75 leaves room; if it grows further, split the job.
+    timeout-minutes: 75
     steps:
       - name: Checkout
         uses: actions/checkout@v6
