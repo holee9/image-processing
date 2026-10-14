@@ -33,6 +33,7 @@ public sealed class LegacyStartupResponsivenessProbe(ITestOutputHelper output)
     private sealed record Launch(double HandleMs, double FirstReplyMs, double LongestBlockedMs, double TotalBlockedMs, int UiaTimeouts, double UiaFirstOkMs, double UiaFirstAttemptMs, bool UiaFirstAttemptOk);
 
     [SkippableFact]
+    [Trait("Category", "Measurement")]
     public void MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation()
     {
         var runsText = Environment.GetEnvironmentVariable("XPE_C235_RUNS");
@@ -86,6 +87,7 @@ public sealed class LegacyStartupResponsivenessProbe(ITestOutputHelper output)
     /// blocked longer than the budget while it starts gives "UIA Timeout" before any scenario step. XPE_C235_DELAYS (comma-separated ms, e.g. "0,1500,3000,6000"), XPE_C235_REPEAT (default 2).
     /// </summary>
     [SkippableFact]
+    [Trait("Category", "Measurement")]
     public void MeasureTheFlaUiWindowCall_WithASlowStartUpProbe()
     {
         var delays = Environment.GetEnvironmentVariable("XPE_C235_DELAYS");

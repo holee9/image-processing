@@ -1,0 +1,6 @@
+Debug: XPE_STARTUP_PROBE_BARRIER_DIR present in ImageProcTest.dll (UTF-16 literal): True
+Debug: XPE_STARTUP_PROBE_DELAY_MS present in ImageProcTest.dll (UTF-16 literal): True
+Debug: XPE_ORACLE_TEST_GATE present in ImageProcTest.dll (UTF-16 literal): True
+Release: XPE_STARTUP_PROBE_BARRIER_DIR present in ImageProcTest.dll (UTF-16 literal): False
+Release: XPE_STARTUP_PROBE_DELAY_MS present in ImageProcTest.dll (UTF-16 literal): False
+Release: XPE_ORACLE_TEST_GATE present in ImageProcTest.dll (UTF-16 literal): True
