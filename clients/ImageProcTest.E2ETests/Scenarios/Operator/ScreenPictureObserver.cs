@@ -235,3 +235,58 @@ public class ScreenSettleTests
         Assert.Equal(0.0, ScreenSettle.Match(a, beyond));
     }
 }
+
+/// <summary>
+/// GUI-C-242: the approved U8 rule of milestone 3 (leader decision 2026-10-14, main 5537f4e5): the MEDIAN of the five proxy values (open -> second composition tick after the processed picture was handed to the
+/// viewport) must be at most <see cref="ProxyLimitMs"/> - half of the 3000 ms PERF-P1-001 limit, because the end point is a proxy and not proof of presentation. Pure on its input so the boundary is tested.
+/// </summary>
+internal static class U8Verdict
+{
+    public const double ProxyLimitMs = 1500;
+
+    public readonly record struct Result(double MedianMs, bool Passes);
+
+    public static Result OfProxyMedian(IReadOnlyList<double> fiveValuesMs)
+    {
+        if (fiveValuesMs.Count != 5)
+        {
+            throw new ArgumentException($"the U8 rule takes the median of FIVE opens, got {fiveValuesMs.Count}", nameof(fiveValuesMs));
+        }
+
+        var median = fiveValuesMs.OrderBy(x => x).ElementAt(2);
+        return new Result(median, median <= ProxyLimitMs);
+    }
+}
+
+/// <summary>The verdict function on constructed values: it runs on every runner (no app, no data).</summary>
+public class U8VerdictTests
+{
+    [Fact]
+    public void TheMedianOfFive_At1500_Passes_And1501_Fails()
+    {
+        Assert.True(U8Verdict.OfProxyMedian([900, 1200, 1500, 1800, 2400]).Passes);
+        Assert.False(U8Verdict.OfProxyMedian([900, 1200, 1501, 1800, 2400]).Passes);
+        Assert.Equal(1500, U8Verdict.OfProxyMedian([1500, 1500, 1500, 1500, 1500]).MedianMs);
+    }
+
+    [Fact]
+    public void TheMedian_NotTheMeanOrTheMax_DecidesIt()
+    {
+        // one slow first open (JIT) does not fail a run whose median is fast; a fast outlier does not rescue a slow run
+        Assert.True(U8Verdict.OfProxyMedian([2900, 1200, 1100, 1300, 1250]).Passes);
+        Assert.False(U8Verdict.OfProxyMedian([100, 200, 1600, 1700, 1800]).Passes);
+    }
+
+    [Fact]
+    public void TheOrderOfTheOpens_DoesNotMatter()
+    {
+        Assert.Equal(U8Verdict.OfProxyMedian([1300, 900, 1600, 1100, 1400]), U8Verdict.OfProxyMedian([1600, 1400, 1300, 1100, 900]));
+    }
+
+    [Fact]
+    public void AnythingButFiveValues_IsRefused()
+    {
+        Assert.Throws<ArgumentException>(() => U8Verdict.OfProxyMedian([1000, 1000, 1000, 1000]));
+        Assert.Throws<ArgumentException>(() => U8Verdict.OfProxyMedian([1000, 1000, 1000, 1000, 1000, 1000]));
+    }
+}
