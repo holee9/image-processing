@@ -69,6 +69,23 @@ internal static class NativeModuleAudit
         }
     }
 
+    /// <summary>
+    /// GUI-C-245 (Codex #196): the check BEFORE a feature calls into a module. With the search pinned it loads <paramref name="dllName"/> the way the app's resolver does (restricted to the pinned folder,
+    /// its imports pre-loaded the same way) WITHOUT calling any of its exports, then runs <see cref="ThrowIfOutsidePinnedFolder"/>. The feature therefore never runs a call on a module, or on a module's
+    /// import, that came from elsewhere, and an export that writes (the DICOM writer) has not written anything when this throws. A DLL that cannot be loaded from the pinned folder throws
+    /// <see cref="DllNotFoundException"/> with the pinned folder named. Not pinned: nothing to enforce, nothing is loaded here.
+    /// </summary>
+    public static void PreflightModule(string dllName, string feature)
+    {
+        if (!NativeSearchPolicy.StopAtInjectedDirectory)
+        {
+            return;
+        }
+
+        GuiNativeLibraryResolver.Resolve(dllName, typeof(NativeModuleAudit).Assembly, null);
+        ThrowIfOutsidePinnedFolder(feature);
+    }
+
     /// <summary>Where the AI module looks for its worker: beside <c>xpe_ai.dll</c> (ai_api.h; the module does the search, this only says where). Null when the DLL has not been loaded through the resolver.</summary>
     internal static string? AiWorkerPathBeside(string? aiDllPath) =>
         string.IsNullOrEmpty(aiDllPath) ? null : System.IO.Path.Combine(System.IO.Path.GetDirectoryName(aiDllPath) ?? string.Empty, "xpe_ai_worker.exe");

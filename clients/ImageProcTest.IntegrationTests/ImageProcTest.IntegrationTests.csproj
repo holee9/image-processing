@@ -120,6 +120,8 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiDicomNative.cs" Link="Chain\Linked\GuiDicomNative.cs" />
     <!-- GUI-C-243: GuiDicomNative checks the loaded modules (pinned search) through NativeModuleAudit -->
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\NativeModuleAudit.cs" Link="Chain\Linked\NativeModuleAudit.cs" />
+    <!-- GUI-C-245: NativeModuleAudit.PreflightModule loads a module through the app's resolver (Resolve is called directly; no DllImport resolver is installed on this assembly) -->
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiNativeLibraryResolver.cs" Link="Chain\Linked\GuiNativeLibraryResolver.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDisplayInterop.cs" Link="Chain\Linked\XpeDisplayInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiPreprocessRunner.cs" Link="Chain\Linked\GuiPreprocessRunner.cs" />

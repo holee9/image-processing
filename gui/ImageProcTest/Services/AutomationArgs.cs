@@ -29,7 +29,8 @@ public sealed record AutomationArgs(
 #if XPE_TEST_FAULTS
     , int? DisplayPipelineFailAfter = null,
     bool AiWorkerDisabled = false,
-    int? AiWorkerSilentAfter = null
+    int? AiWorkerSilentAfter = null,
+    int? DisplayDelayMs = null
 #endif
     )
 {
@@ -60,6 +61,16 @@ public sealed record AutomationArgs(
 
     /// <summary>GUI-C-192d: <c>ai-worker-silent:0</c> is silent from the very first read (no answer is ever given), the never-confirmed case.</summary>
     public const string AiWorkerSilentFromStartFault = "ai-worker-silent:0";
+
+    /// <summary>
+    /// GUI-C-245 (Codex #196): the fourth accepted fault. <c>display-delay:MS</c> makes every display pipeline call wait MS milliseconds before it runs, so the processed picture reaches the viewport (and the
+    /// screen) that much later. It exists so a test can SHOW that the screen value of the open-to-picture measurement follows the processed picture: delay the render, and the screen time has to move with it.
+    /// Same terms as the others: command line only, test builds only, inert without the argument, loud when armed.
+    /// </summary>
+    public const string DisplayDelayFaultPrefix = "display-delay:";
+
+    /// <summary>The longest delay the switch accepts (a delay longer than this is a typo, not a measurement).</summary>
+    public const int DisplayDelayMaxMs = 30_000;
 #endif
 
     /// <summary>
@@ -105,6 +116,7 @@ public sealed record AutomationArgs(
         int? displayPipelineFailAfter = null;
         var aiWorkerDisabled = false;
         int? aiWorkerSilentAfter = null;
+        int? displayDelayMs = null;
 #endif
 
         for (var i = 0; i < args.Length; i++)
@@ -203,6 +215,16 @@ public sealed record AutomationArgs(
             {
                 aiWorkerSilentAfter = 0;
             }
+            else if (Is(switchName, "--automation-fault") && value.StartsWith(DisplayDelayFaultPrefix, StringComparison.Ordinal))
+            {
+                if (!int.TryParse(value[DisplayDelayFaultPrefix.Length..], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var delay) || delay > DisplayDelayMaxMs)
+                {
+                    error ??= $"--automation-fault '{value}' is not a recognised fault (expected {DisplayDelayFaultPrefix}<milliseconds, 0 to {DisplayDelayMaxMs}>).";
+                    continue;
+                }
+
+                displayDelayMs = delay;
+            }
             else if (Is(switchName, "--automation-fault"))
             {
                 if (!value.StartsWith(DisplayPipelineFaultPrefix, StringComparison.Ordinal)
@@ -210,7 +232,7 @@ public sealed record AutomationArgs(
                         System.Globalization.CultureInfo.InvariantCulture, out var failAfter))
                 {
                     error ??= $"--automation-fault '{value}' is not a recognised fault " +
-                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>, {AiWorkerDisabledFault}, {AiWorkerSilentFault} or {AiWorkerSilentFromStartFault}).";
+                              $"(expected {DisplayPipelineFaultPrefix}<non-negative integer>, {DisplayDelayFaultPrefix}<milliseconds>, {AiWorkerDisabledFault}, {AiWorkerSilentFault} or {AiWorkerSilentFromStartFault}).";
                     continue;
                 }
 
@@ -234,7 +256,7 @@ public sealed record AutomationArgs(
             ? new AutomationArgs(rawPath, reportPath, backendMode, calibrationDirectory, rawWidth, rawHeight, Error: null,
                 settingsPath, renderDumpPath, selfCheckExePath
 #if XPE_TEST_FAULTS
-                , displayPipelineFailAfter, aiWorkerDisabled, aiWorkerSilentAfter
+                , displayPipelineFailAfter, aiWorkerDisabled, aiWorkerSilentAfter, displayDelayMs
 #endif
                 )
             : new AutomationArgs(

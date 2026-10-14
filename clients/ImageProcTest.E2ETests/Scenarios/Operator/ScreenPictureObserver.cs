@@ -83,31 +83,46 @@ internal sealed class ScreenPoller
             var before = Stopwatch.GetTimestamp();
             graphics.CopyFromScreen(_area.Location, Point.Empty, _area.Size);
             var after = Stopwatch.GetTimestamp();
-            var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-            var gray = new byte[Columns * Rows];
-            try
-            {
-                for (var row = 0; row < Rows; row++)
-                {
-                    var y = (int)((row + 0.5) * bitmap.Height / Rows);
-                    for (var column = 0; column < Columns; column++)
-                    {
-                        var x = (int)((column + 0.5) * bitmap.Width / Columns);
-                        var pixel = Marshal.ReadInt32(data.Scan0, (y * data.Stride) + (x * 4));
-                        gray[(row * Columns) + column] = (byte)(((pixel & 0xFF) + ((pixel >> 8) & 0xFF) + ((pixel >> 16) & 0xFF)) / 3);
-                    }
-                }
-            }
-            finally
-            {
-                bitmap.UnlockBits(data);
-            }
-
-            _samples.Add(new ScreenSample(before, after, gray));
+            _samples.Add(new ScreenSample(before, after, Grid(bitmap)));
             Thread.Sleep(1);
         }
 
         _lastShot = (Bitmap)bitmap.Clone();
+    }
+
+    /// <summary>The coarse grid of grey values (B+G+R)/3 of a screen copy.</summary>
+    private static byte[] Grid(Bitmap bitmap)
+    {
+        var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        var gray = new byte[Columns * Rows];
+        try
+        {
+            for (var row = 0; row < Rows; row++)
+            {
+                var y = (int)((row + 0.5) * bitmap.Height / Rows);
+                for (var column = 0; column < Columns; column++)
+                {
+                    var x = (int)((column + 0.5) * bitmap.Width / Columns);
+                    var pixel = Marshal.ReadInt32(data.Scan0, (y * data.Stride) + (x * 4));
+                    gray[(row * Columns) + column] = (byte)(((pixel & 0xFF) + ((pixel >> 8) & 0xFF) + ((pixel >> 16) & 0xFF)) / 3);
+                }
+            }
+        }
+        finally
+        {
+            bitmap.UnlockBits(data);
+        }
+
+        return gray;
+    }
+
+    /// <summary>GUI-C-245: one screen copy of <paramref name="area"/>, as the same grid the poller keeps (a REFERENCE picture: what the viewport shows in a known state).</summary>
+    public static byte[] CaptureOnce(Rectangle area)
+    {
+        using var bitmap = new Bitmap(area.Width, area.Height, PixelFormat.Format32bppArgb);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.CopyFromScreen(area.Location, Point.Empty, area.Size);
+        return Grid(bitmap);
     }
 }
 
@@ -140,8 +155,10 @@ internal static class ScreenSettle
     /// <paramref name="startedAt"/> is the Stopwatch time the open was confirmed. The picture is judged to have appeared in the interval ending at the FIRST capture of the final run (<c>LatestMs</c>: no later than)
     /// and starting at the beginning of the capture before it (<c>EarliestMs</c>: not yet there). Not settled when the screen never left the final picture (nothing was observed to appear), when it was not
     /// stable for <paramref name="minimumStableMs"/> at the end, or when there were too few captures to say.
+    /// <para>GUI-C-245: with <paramref name="target"/> (a REFERENCE capture of the picture the open has to end on) the final run is the run of captures that equal THAT picture, and the open is not settled
+    /// when the screen did not end on it. Without it the last capture stands in for the final picture (the earlier behaviour).</para>
     /// </summary>
-    public static ScreenSettleResult Analyse(IReadOnlyList<ScreenSample> samples, long startedAt, double minimumStableMs)
+    public static ScreenSettleResult Analyse(IReadOnlyList<ScreenSample> samples, long startedAt, double minimumStableMs, byte[]? target = null)
     {
         static ScreenSettleResult No(string why, int captures) => new(false, why, double.NaN, double.NaN, double.NaN, captures, 0, 0);
 
@@ -150,8 +167,13 @@ internal static class ScreenSettle
             return No($"only {samples.Count} captures", samples.Count);
         }
 
-        var final = samples[^1].Gray;
+        var final = target ?? samples[^1].Gray;
         var matches = samples.Select(s => Match(s.Gray, final) >= MatchShare).ToArray();
+        if (target is not null && !matches[^1])
+        {
+            return No($"the screen did not end on the reference picture (the last capture agrees with it at {Match(samples[^1].Gray, target):P1} of the points)", samples.Count);
+        }
+
         var start = matches.Length - 1;
         while (start > 0 && matches[start - 1])
         {
@@ -233,6 +255,131 @@ public class ScreenSettleTests
         var beyond = Picture(100 + ScreenSettle.Tolerance + 1);
         Assert.Equal(1.0, ScreenSettle.Match(a, within));
         Assert.Equal(0.0, ScreenSettle.Match(a, beyond));
+    }
+}
+
+/// <summary>
+/// GUI-C-245 (Codex #196): is the picture the screen settled on THIS open's PROCESSED picture? Two reference captures of the same viewport, taken in the app's own comparison modes (Processed only, Source
+/// only) after the opens, say what each looks like on screen; the open's final capture has to be the processed one and the two references have to be tellable apart, or "the screen settled" says nothing
+/// about the processed picture (it could be the source preview, a dialog covering the viewport, or a blank). Pure on its inputs so the cases are tested.
+/// </summary>
+internal static class ScreenIdentity
+{
+    /// <summary>The processed and the source preview can be told apart when at most this share of the grid points agree between them.</summary>
+    public const double DistinctShare = 0.90;
+
+    /// <summary>The final capture is the processed picture when at least this share of the grid points agree with the processed reference.</summary>
+    public const double SameShare = 0.98;
+
+    public readonly record struct Result(bool Established, string Why, double ProcessedVsSource, double FinalVsProcessed, double FinalVsSource);
+
+    public static Result Judge(byte[] finalCapture, byte[] processedReference, byte[] sourceReference)
+    {
+        var processedVsSource = ScreenSettle.Match(processedReference, sourceReference);
+        var finalVsProcessed = ScreenSettle.Match(finalCapture, processedReference);
+        var finalVsSource = ScreenSettle.Match(finalCapture, sourceReference);
+        Result No(string why) => new(false, why, processedVsSource, finalVsProcessed, finalVsSource);
+
+        if (processedVsSource > DistinctShare)
+        {
+            return No($"the processed and the source previews cannot be told apart on this screen (they agree at {processedVsSource:P1} of the points, more than {DistinctShare:P0})");
+        }
+
+        if (finalVsProcessed < SameShare)
+        {
+            return No($"the picture the screen settled on is not the processed preview (it agrees with it at only {finalVsProcessed:P1} of the points, needs {SameShare:P0})");
+        }
+
+        if (finalVsSource >= finalVsProcessed)
+        {
+            return No($"the picture the screen settled on is as close to the source preview ({finalVsSource:P1}) as to the processed one ({finalVsProcessed:P1})");
+        }
+
+        return new Result(true, "ok", processedVsSource, finalVsProcessed, finalVsSource);
+    }
+}
+
+/// <summary>The identity judge on constructed pictures: it runs on every runner (no app, no screen).</summary>
+public class ScreenIdentityTests
+{
+    private static byte[] Picture(Func<int, byte> value) => Enumerable.Range(0, 64).Select(value).ToArray();
+
+    private static readonly byte[] Processed = Picture(i => (byte)(40 + (i * 3)));
+    private static readonly byte[] Source = Picture(i => (byte)(200 - (i * 2)));
+
+    [Fact]
+    public void AFinalCapture_ThatIsTheProcessedPreview_AndDiffersFromTheSource_IsEstablished()
+    {
+        var result = ScreenIdentity.Judge((byte[])Processed.Clone(), Processed, Source);
+        Assert.True(result.Established, result.Why);
+        Assert.Equal(1.0, result.FinalVsProcessed);
+    }
+
+    [Fact]
+    public void AFinalCapture_ThatIsTheSourcePreview_IsNotTheProcessedPicture()
+    {
+        var result = ScreenIdentity.Judge((byte[])Source.Clone(), Processed, Source);
+        Assert.False(result.Established);
+        Assert.Contains("not the processed preview", result.Why, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ABlankOrCoveredViewport_IsNotTheProcessedPicture()
+    {
+        var blank = Picture(_ => 255);
+        Assert.False(ScreenIdentity.Judge(blank, Processed, Source).Established);
+    }
+
+    [Fact]
+    public void WhenTheTwoPreviewsLookAlike_NothingCanBeSaidAboutWhichOneIsOnScreen()
+    {
+        // a screen that cannot be read shows the same picture for both references
+        var white = Picture(_ => 255);
+        var result = ScreenIdentity.Judge((byte[])white.Clone(), white, (byte[])white.Clone());
+        Assert.False(result.Established);
+        Assert.Contains("cannot be told apart", result.Why, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheShares_AreTheirBoundaries()
+    {
+        // 64 points: 63 of 64 agree = 98.4% (>= 98%): same; 62 of 64 = 96.9%: not the same
+        var oneOff = (byte[])Processed.Clone();
+        oneOff[0] = (byte)(oneOff[0] + 50);
+        Assert.True(ScreenIdentity.Judge(oneOff, Processed, Source).Established);
+        var twoOff = (byte[])oneOff.Clone();
+        twoOff[1] = (byte)(twoOff[1] + 50);
+        Assert.False(ScreenIdentity.Judge(twoOff, Processed, Source).Established);
+    }
+}
+
+public class ScreenSettleTargetTests
+{
+    private static byte[] Picture(byte value) => Enumerable.Repeat(value, 64).ToArray();
+
+    private static ScreenSample At(int ms, byte value)
+    {
+        var ticks = ms * Stopwatch.Frequency / 1000;
+        return new ScreenSample(ticks, ticks + (2 * Stopwatch.Frequency / 1000), Picture(value));
+    }
+
+    [Fact]
+    public void WithAReference_TheOpenIsDatedByTheReferencePicture()
+    {
+        // 40 = source preview, 200 = the processed reference, 90 = a dialog that covers the viewport at the end of the capture is NOT the reference
+        var samples = new[] { At(0, 40), At(100, 40), At(200, 200), At(300, 200), At(400, 200), At(1500, 200) };
+        var result = ScreenSettle.Analyse(samples, 0, 500, Picture(200));
+        Assert.True(result.Settled, result.Why);
+        Assert.InRange(result.LatestMs, 200, 205);
+    }
+
+    [Fact]
+    public void WithAReference_ALastCaptureThatIsSomethingElse_IsNotSettled()
+    {
+        var samples = new[] { At(0, 40), At(100, 200), At(200, 200), At(300, 90), At(400, 90), At(1500, 90) };
+        var result = ScreenSettle.Analyse(samples, 0, 500, Picture(200));
+        Assert.False(result.Settled);
+        Assert.Contains("did not end on the reference picture", result.Why, StringComparison.Ordinal);
     }
 }
 

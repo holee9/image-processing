@@ -8,8 +8,27 @@ internal sealed class NativeDicomSession : IDicomSession
 {
     private const int FirstReportBytes = 8192;
 
+    private readonly Action<string> _auditLoadedModules;
+    private readonly Action<IntPtr> _closeHandle;
+
+    public NativeDicomSession()
+        : this(NativeModuleAudit.ThrowIfOutsidePinnedFolder, XpeDicomNative.xpe_dicom_close)
+    {
+    }
+
+    /// <summary>The two seams a test replaces: the check of the loaded modules (after a call) and the close of the reader's handle.</summary>
+    internal NativeDicomSession(Action<string> auditLoadedModules, Action<IntPtr> closeHandle)
+    {
+        _auditLoadedModules = auditLoadedModules;
+        _closeHandle = closeHandle;
+    }
+
+    /// <summary>GUI-C-245 (Codex #196): before ANY call into xpe_dicom.dll - the module and what it imports are loaded from the pinned folder and nothing else is loaded, or the call is not made.</summary>
+    private static void Preflight(string feature) => NativeModuleAudit.PreflightModule("xpe_dicom.dll", feature);
+
     public int Write(string path, ushort[] pixels, int width, int height, BaselineDicomMetadata metadata)
     {
+        Preflight("xpe_dicom_write");   // before the call that creates a file: a stray module means no file
         var handle = GCHandle.Alloc(pixels, GCHandleType.Pinned);
         try
         {
@@ -27,7 +46,7 @@ internal sealed class NativeDicomSession : IDicomSession
             // mAs, SID and the acquisition time are unknown to the gui and are written as 0 (design D6).
             var meta = XpeImageMetadataNative.Create(metadata.BodyPart, metadata.KVp, 0f, 0f, metadata.PixelPitchMm);
             var code = XpeDicomNative.xpe_dicom_write(path, ref image, ref meta);
-            NativeModuleAudit.ThrowIfOutsidePinnedFolder("xpe_dicom_write");   // GUI-C-243: the module (and what it imports) is loaded by now; with the search pinned, none of it may be from elsewhere
+            _auditLoadedModules("xpe_dicom_write");   // GUI-C-243: after the call too (a lazily loaded import shows here); the check that matters is the one in front of the call
             return code;
         }
         finally
@@ -38,6 +57,7 @@ internal sealed class NativeDicomSession : IDicomSession
 
     public (int Code, string Json) Validate(string path)
     {
+        Preflight("xpe_dicom_validate");
         var buffer = new byte[FirstReportBytes];
         var code = XpeDicomNative.xpe_dicom_validate(path, buffer, (uint)buffer.Length);
         if (code != 0 && BitConverter.ToUInt32(buffer, 0) is var needed && needed > buffer.Length && needed <= 1_048_576)
@@ -53,10 +73,11 @@ internal sealed class NativeDicomSession : IDicomSession
 
     public DicomReadBack ReadBack(string path)
     {
+        Preflight("xpe_dicom_open");
         var openCode = XpeDicomNative.xpe_dicom_open(path, out var handle);
-        NativeModuleAudit.ThrowIfOutsidePinnedFolder("xpe_dicom_open");
         if (openCode != 0 || handle == IntPtr.Zero)
         {
+            _auditLoadedModules("xpe_dicom_open");
             return new DicomReadBack(openCode, -1, -1, 0, 0, null, null, null);
         }
 
@@ -64,6 +85,8 @@ internal sealed class NativeDicomSession : IDicomSession
         var imageAllocated = false;
         try
         {
+            // GUI-C-245: an open that succeeded has a handle to give back, whatever this check decides (it is inside the try, so the finally below closes it)
+            _auditLoadedModules("xpe_dicom_open");
             var readCode = XpeDicomNative.xpe_dicom_read_image(handle, out image);
             imageAllocated = readCode == 0;
             if (readCode != 0)
@@ -100,7 +123,7 @@ internal sealed class NativeDicomSession : IDicomSession
                 XpeCommonNative.xpe_free_image(ref image);
             }
 
-            XpeDicomNative.xpe_dicom_close(handle);
+            _closeHandle(handle);
         }
     }
 }

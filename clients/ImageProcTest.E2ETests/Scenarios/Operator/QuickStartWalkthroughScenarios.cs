@@ -1007,17 +1007,90 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var (native, calib, raw, width, height) = Inputs();
         using var app = GuiApp.Launch(output, native, extraArguments:
             ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
-        ScreenPoller.RaiseWithoutFocus(app.WindowHandle);   // above the other windows of a shared desktop, without taking the focus
-        Thread.Sleep(800);
-        var area = app.MainViewportArea(laneStripHeight: 200);
-        output.WriteLine($"   watched area (screen pixels): {area}");
         var shots = Path.Combine(Path.GetTempPath(), "xpe_w15_shots_" + DateTime.Now.ToString("HHmmss"));
         Directory.CreateDirectory(shots);
 
-        var rows = new List<(int Proxy, ScreenSettleResult? Screen)>();
-        byte[]? firstFinal = null;
-        for (var i = 1; i <= 5; i++)
+        var rows = MeasureOpens(app, raw, opens: 5, shots, tag: "W15");
+
+        output.WriteLine("   | open | proxy ms (app: read start -> 2nd tick) | screen ms (confirmation -> processed picture seen, no later than) | not yet there at | screen - proxy |");
+        for (var i = 0; i < rows.Count; i++)
         {
+            output.WriteLine(rows[i].ScreenMs is null
+                ? $"   | {i + 1} | {rows[i].Proxy} | not observable | | |"
+                : $"   | {i + 1} | {rows[i].Proxy} | {rows[i].ScreenMs:0} | {rows[i].EarliestMs:0} | {rows[i].ScreenMs - rows[i].Proxy:+0;-0} |");
+        }
+
+        var proxy = rows.Select(r => (double)r.Proxy).OrderBy(x => x).ToArray();
+        output.WriteLine($"   screenshots of each open's final capture: {shots}");
+
+        // THE verdict (U8, revised by GUI-C-244; "validly observed" includes the identity check of GUI-C-245): the SCREEN median of five <= 3000 ms when the screen was validly observed for all five opens,
+        // else the PROXY median of five <= 1500 ms. Both values stay in the output either way.
+        var verdict = U8Verdict.Judge(rows.Select(r => new U8Verdict.Open(r.Proxy, r.ScreenMs)).ToArray());
+        var observedCount = rows.Count(r => r.ScreenMs is not null);
+        if (verdict.Basis == U8Verdict.Basis.Screen)
+        {
+            var screenMs = rows.Select(r => r.ScreenMs!.Value).OrderBy(x => x).ToArray();
+            var differences = rows.Select(r => r.ScreenMs!.Value - r.Proxy).OrderBy(x => x).ToArray();
+            output.WriteLine($"   medians (ms): proxy {proxy[2]:0}, screen {screenMs[2]:0}, screen - proxy {differences[2]:+0;-0}   (this machine's observation, with the observer running)");
+            output.WriteLine($"   U8 verdict BY THE SCREEN ({observedCount} of {rows.Count} opens validly observed, each shown to end on the processed picture): screen median {verdict.MedianMs:0} ms, limit {verdict.LimitMs:0} ms (PERF-P1-001) -> {(verdict.Passes ? "PASS" : "FAIL")}.");
+        }
+        else
+        {
+            output.WriteLine($"   medians (ms): proxy {proxy[2]:0}; screen: not all opens could be validated");
+            output.WriteLine($"   U8 verdict BY THE PROXY (the screen was validly observed for {observedCount} of {rows.Count} opens, not all): proxy median {verdict.MedianMs:0} ms, limit {verdict.LimitMs:0} ms (half of PERF-P1-001, the end point being a proxy) -> {(verdict.Passes ? "PASS" : "FAIL")}. The end point is the second composition tick (NOT proof the picture was drawn); how many frames later it is presented is not measured (unmeasured estimate).");
+        }
+
+        Assert.True(verdict.Passes, $"U8 by the {verdict.Basis.ToString().ToLowerInvariant()}: the median {verdict.MedianMs:0} ms exceeds {verdict.LimitMs:0} ms");
+    }
+
+    /// <summary>One open as measured: the app's proxy value and, when the SCREEN observation of that open is valid, the screen value (no later than) and the time before which the picture was not yet there.</summary>
+    private sealed record OpenMeasurement(int Proxy, double? ScreenMs, double? EarliestMs);
+
+    private static void SelectCompareMode(GuiApp app, string menuItemId)
+    {
+        app.Menu("ViewMenu", "CompareModeMenuItem");
+        app.InvokeMenuItem(menuItemId);
+        Thread.Sleep(600);
+    }
+
+    /// <summary>Two screen copies 400 ms apart that agree: the viewport is at rest, and that copy is the reference picture of the state the app is in.</summary>
+    private static byte[] SettledCapture(System.Drawing.Rectangle area, string what)
+    {
+        byte[]? previous = null;
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(8);
+        while (DateTime.UtcNow < deadline)
+        {
+            var now = ScreenPoller.CaptureOnce(area);
+            if (previous is not null && ScreenSettle.Match(previous, now) >= ScreenSettle.MatchShare)
+            {
+                return now;
+            }
+
+            previous = now;
+            Thread.Sleep(400);
+        }
+
+        Assert.Fail($"the viewport did not come to rest within 8 s ({what})");
+        return previous!;
+    }
+
+    /// <summary>
+    /// GUI-C-245: <paramref name="opens"/> opens of the same raw file with the viewport in the mode that shows the PROCESSED picture alone, each watched from the screen. After the opens, the app's own comparison
+    /// modes give two REFERENCE captures of the same viewport (Processed only, Source only); an open's screen value counts only when its settled picture IS the processed reference (so a dialog over the viewport,
+    /// the source preview or a blank screen cannot be mistaken for it), the two references can be told apart, and the screen was seen to change (<see cref="ScreenIdentity"/>, <see cref="ScreenSettle"/>).
+    /// </summary>
+    private List<OpenMeasurement> MeasureOpens(GuiApp app, string raw, int opens, string shots, string tag)
+    {
+        ScreenPoller.RaiseWithoutFocus(app.WindowHandle);   // above the other windows of a shared desktop, without taking the focus
+        Thread.Sleep(800);
+        var area = app.MainViewportArea(laneStripHeight: 200);
+        output.WriteLine($"   [{tag}] watched area (screen pixels): {area}");
+        SelectCompareMode(app, "CompareProcessedOnlyMenuItem");   // the picture on screen is the processed one alone
+
+        var taken = new List<(int Proxy, IReadOnlyList<ScreenSample> Samples, long StartedAt)>();
+        for (var i = 1; i <= opens; i++)
+        {
+            ScreenPoller.RaiseWithoutFocus(app.WindowHandle);
             ScreenPoller? poller = null;
             app.Menu("FileMenu");
             app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1", beforeConfirm: () => poller = ScreenPoller.Start(app.WindowHandle, area));
@@ -1026,66 +1099,99 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             app.WaitFor(() => app.Read("FrameTimingText").StartsWith(prefix, StringComparison.Ordinal), $"the app wrote '{prefix}'", 120);
             Thread.Sleep(1200);                                          // the picture stays on screen: the end of the observation is a settled screen, not the moment the line appeared
             var samples = poller!.Stop(out var lastShot);
-            lastShot?.Save(Path.Combine(shots, $"open{i}_final.png"), System.Drawing.Imaging.ImageFormat.Png);
+            lastShot?.Save(Path.Combine(shots, $"{tag}_open{i}_final.png"), System.Drawing.Imaging.ImageFormat.Png);
             lastShot?.Dispose();
 
             var line = app.Read("FrameTimingText");
-            output.WriteLine($"   {line}");
+            output.WriteLine($"   [{tag}] {line}");
             Assert.DoesNotContain("TIMED OUT", line, StringComparison.Ordinal);
             var m = System.Text.RegularExpressions.Regex.Match(line, @"#\d+: (\d+) ms = ");
             Assert.True(m.Success, "the timing line has an unexpected shape: " + line);
             Assert.Contains("preprocess=Applied", app.Read("ChainStatusText"), StringComparison.Ordinal);   // the picture measured is the processed one
-
-            var screen = ScreenSettle.Analyse(samples, poller.StartedAt, minimumStableMs: 1000);
-            var spacing = samples.Count > 1 ? (samples[^1].Before - samples[0].Before) * 1000.0 / System.Diagnostics.Stopwatch.Frequency / (samples.Count - 1) : double.NaN;
-            output.WriteLine($"   screen: {screen.Captures} captures (every {spacing:0.0} ms); settled={screen.Settled} ({screen.Why}); picture seen between {screen.EarliestMs:0} and {screen.LatestMs:0} ms after the confirmation; the picture before it differed from the final one at {screen.LastBeforeMismatch:P0} of the points; the final picture stayed {screen.FinalRunMs:0} ms ({screen.FinalRunLength} captures)");
-            // An observation counts only when it SAW a change: the screen left one picture and settled on another that differs from it. A screen that never changes (every capture equal) or changes by noise
-            // is a blind observer, not a fast app: it is reported as not observable and no screen value is claimed. (GUI-C-236c measured exactly that on this machine: a plain dark-red WPF window
-            // probe reads as white through CopyFromScreen and through PrintWindow, so no WPF picture can be read here at all; see the report.)
-            var observable = screen.Settled && screen.LastBeforeMismatch >= 0.05;
-            if (!observable)
-            {
-                output.WriteLine($"   screen: NOT OBSERVABLE for open {i}: {(screen.Settled ? $"the picture before the final one differs from it at only {screen.LastBeforeMismatch:P1} of the points" : screen.Why)}. Watched area {area}; last capture: {Path.Combine(shots, $"open{i}_final.png")}");
-            }
-            else
-            {
-                var final = samples[^1].Gray;
-                firstFinal ??= final;
-                Assert.True(ScreenSettle.Match(final, firstFinal) >= ScreenSettle.MatchShare, $"open {i}: the settled picture differs from the first open's although the same file was opened (match {ScreenSettle.Match(final, firstFinal):P1})");
-            }
-
-            rows.Add((int.Parse(m.Groups[1].Value), observable ? screen : null));
+            taken.Add((int.Parse(m.Groups[1].Value), samples, poller.StartedAt));
             Thread.Sleep(500);
         }
 
-        output.WriteLine("   | open | proxy ms (app: read start -> 2nd tick) | screen ms (confirmation -> picture seen, no later than) | not yet there at | screen - proxy |");
-        for (var i = 0; i < rows.Count; i++)
+        // the reference pictures: what this viewport shows of THIS image in each mode
+        ScreenPoller.RaiseWithoutFocus(app.WindowHandle);
+        Thread.Sleep(400);
+        var processedReference = SettledCapture(area, "processed preview");
+        SelectCompareMode(app, "CompareSourceOnlyMenuItem");
+        var sourceReference = SettledCapture(area, "source preview");
+        SelectCompareMode(app, "CompareProcessedOnlyMenuItem");
+
+        var rows = new List<OpenMeasurement>();
+        for (var i = 0; i < taken.Count; i++)
         {
-            var s = rows[i].Screen;
-            output.WriteLine(s is null
-                ? $"   | {i + 1} | {rows[i].Proxy} | not observable | | |"
-                : $"   | {i + 1} | {rows[i].Proxy} | {s.LatestMs:0} | {s.EarliestMs:0} | {s.LatestMs - rows[i].Proxy:+0;-0} |");
+            var (proxyMs, samples, startedAt) = taken[i];
+            var screen = ScreenSettle.Analyse(samples, startedAt, minimumStableMs: 1000, target: processedReference);
+            var spacing = samples.Count > 1 ? (samples[^1].Before - samples[0].Before) * 1000.0 / System.Diagnostics.Stopwatch.Frequency / (samples.Count - 1) : double.NaN;
+            output.WriteLine($"   [{tag}] screen: {screen.Captures} captures (every {spacing:0.0} ms); settled on the processed reference={screen.Settled} ({screen.Why}); picture seen between {screen.EarliestMs:0} and {screen.LatestMs:0} ms after the confirmation; the picture before it differed from the final one at {screen.LastBeforeMismatch:P0} of the points; the final picture stayed {screen.FinalRunMs:0} ms ({screen.FinalRunLength} captures)");
+            // An observation counts only when (1) it SAW a change - a screen that never changes or changes by noise is a blind observer, not a fast app (GUI-C-236c measured exactly that on a machine whose WPF
+            // content reads as white), and (2) the picture it settled on IS this image's processed picture and not the source preview, a dialog or a blank (GUI-C-245).
+            var identity = screen.Settled ? ScreenIdentity.Judge(samples[^1].Gray, processedReference, sourceReference) : (ScreenIdentity.Result?)null;
+            var seenToChange = screen.Settled && screen.LastBeforeMismatch >= 0.05;
+            if (screen.Settled && identity is { Established: false } missing)
+            {
+                output.WriteLine($"   [{tag}] screen: NOT OBSERVABLE for open {i + 1}: {missing.Why}. Last capture: {Path.Combine(shots, $"{tag}_open{i + 1}_final.png")}");
+                rows.Add(new OpenMeasurement(proxyMs, null, null));
+            }
+            else if (!seenToChange)
+            {
+                output.WriteLine($"   [{tag}] screen: NOT OBSERVABLE for open {i + 1}: {(screen.Settled ? $"the picture before the final one differs from it at only {screen.LastBeforeMismatch:P1} of the points" : screen.Why)}. Watched area {area}; last capture: {Path.Combine(shots, $"{tag}_open{i + 1}_final.png")}");
+                rows.Add(new OpenMeasurement(proxyMs, null, null));
+            }
+            else
+            {
+                output.WriteLine($"   [{tag}] screen: open {i + 1} ends on the processed picture (agrees with the processed reference at {identity!.Value.FinalVsProcessed:P1}, with the source reference at {identity.Value.FinalVsSource:P1}; the two references agree with each other at {identity.Value.ProcessedVsSource:P1})");
+                rows.Add(new OpenMeasurement(proxyMs, screen.LatestMs, screen.EarliestMs));
+            }
         }
 
-        var proxy = rows.Select(r => (double)r.Proxy).OrderBy(x => x).ToArray();
-        output.WriteLine($"   screenshots of each open's final capture: {shots}");
+        return rows;
+    }
 
-        // THE verdict (U8, revised by GUI-C-244): the SCREEN median of five <= 3000 ms when the screen was validly observed for all five opens, else the PROXY median of five <= 1500 ms
-        var verdict = U8Verdict.Judge(rows.Select(r => new U8Verdict.Open(r.Proxy, r.Screen?.LatestMs)).ToArray());
-        var observedCount = rows.Count(r => r.Screen is not null);
-        if (verdict.Basis == U8Verdict.Basis.Screen)
+    /// <summary>
+    /// GUI-C-245 (Codex #196, the render-delay refutation): if the screen value of W15 points at the processed picture, delaying the processed picture must delay the screen value by as much. The same file is opened
+    /// 3 times by an app as it is and 3 times by an app started with <c>--automation-fault display-delay:1500</c> (a test-build switch: every display pipeline call waits 1500 ms first). The PROXY must move by at
+    /// least 80% of the delay (that is the delay reaching the viewport at all - checked wherever this runs); where the screen can be validly observed in all six opens it must move by at least 80% too, and if it does
+    /// not, the screen value does not follow the processed picture and the test FAILS saying so. Where the screen cannot be read the screen half is reported as not observable and asserts nothing.
+    /// </summary>
+    [EnvGatedFact]
+    public void W15b_TheScreenValue_FollowsAnArtificialRenderDelay()
+    {
+        var (native, calib, raw, width, height) = Inputs();
+        const int delayMs = 1500;
+        string[] common = ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()];
+        var shots = Path.Combine(Path.GetTempPath(), "xpe_w15b_shots_" + DateTime.Now.ToString("HHmmss"));
+        Directory.CreateDirectory(shots);
+
+        List<OpenMeasurement> baseline;
+        using (var app = GuiApp.Launch(output, native, extraArguments: common))
         {
-            var screenMs = rows.Select(r => r.Screen!.LatestMs).OrderBy(x => x).ToArray();
-            var differences = rows.Select(r => r.Screen!.LatestMs - r.Proxy).OrderBy(x => x).ToArray();
-            output.WriteLine($"   medians (ms): proxy {proxy[2]:0}, screen {screenMs[2]:0}, screen - proxy {differences[2]:+0;-0}   (this machine's observation, with the observer running)");
-            output.WriteLine($"   U8 verdict BY THE SCREEN ({observedCount} of {rows.Count} opens validly observed): screen median {verdict.MedianMs:0} ms, limit {verdict.LimitMs:0} ms (PERF-P1-001) -> {(verdict.Passes ? "PASS" : "FAIL")}.");
-        }
-        else
-        {
-            output.WriteLine($"   U8 verdict BY THE PROXY (the screen was validly observed for {observedCount} of {rows.Count} opens, not all): proxy median {verdict.MedianMs:0} ms, limit {verdict.LimitMs:0} ms (half of PERF-P1-001, the end point being a proxy) -> {(verdict.Passes ? "PASS" : "FAIL")}. The end point is the second composition tick (NOT proof the picture was drawn); how many frames later it is presented is not measured (unmeasured estimate).");
+            baseline = MeasureOpens(app, raw, opens: 3, shots, tag: "no-delay");
         }
 
-        Assert.True(verdict.Passes, $"U8 by the {verdict.Basis.ToString().ToLowerInvariant()}: the median {verdict.MedianMs:0} ms exceeds {verdict.LimitMs:0} ms");
+        List<OpenMeasurement> delayed;
+        using (var app = GuiApp.Launch(output, native, extraArguments: ["--automation-fault", $"display-delay:{delayMs}", .. common]))
+        {
+            delayed = MeasureOpens(app, raw, opens: 3, shots, tag: $"delay-{delayMs}");
+        }
+
+        static double Median(IEnumerable<double> values) => values.OrderBy(x => x).ElementAt(1);
+        var proxyShift = Median(delayed.Select(r => (double)r.Proxy)) - Median(baseline.Select(r => (double)r.Proxy));
+        output.WriteLine($"   proxy medians: no delay {Median(baseline.Select(r => (double)r.Proxy)):0} ms, with a {delayMs} ms delay {Median(delayed.Select(r => (double)r.Proxy)):0} ms -> moved by {proxyShift:0} ms");
+        Assert.True(proxyShift >= 0.8 * delayMs, $"the artificial delay of {delayMs} ms moved the proxy by only {proxyShift:0} ms: the delay is not reaching the viewport, so this test cannot say anything about the screen value");
+
+        if (baseline.Concat(delayed).Any(r => r.ScreenMs is null))
+        {
+            output.WriteLine($"   screen: NOT OBSERVABLE in {baseline.Concat(delayed).Count(r => r.ScreenMs is null)} of {baseline.Count + delayed.Count} opens: whether the screen value follows the delay is NOT established here (the proxy moved by {proxyShift:0} ms)");
+            return;
+        }
+
+        var screenShift = Median(delayed.Select(r => r.ScreenMs!.Value)) - Median(baseline.Select(r => r.ScreenMs!.Value));
+        output.WriteLine($"   screen medians: no delay {Median(baseline.Select(r => r.ScreenMs!.Value)):0} ms, with the delay {Median(delayed.Select(r => r.ScreenMs!.Value)):0} ms -> moved by {screenShift:0} ms (proxy moved by {proxyShift:0} ms)");
+        Assert.True(screenShift >= 0.8 * delayMs, $"the artificial delay of {delayMs} ms moved the screen value by only {screenShift:0} ms (the proxy by {proxyShift:0} ms): the screen value does NOT follow the processed picture");
     }
 
     /// <summary>
