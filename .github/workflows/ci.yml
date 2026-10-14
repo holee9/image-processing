@@ -1328,7 +1328,9 @@ jobs:
           # Each entry: issue number -> why this skip is understood. Adding a row is a
           # deliberate act that shows up in the run summary.
           $allowed = @{
-            '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'          }
+            '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
+            '262' = 'milestone 3 U2/U8 need the real calibration set xpe-data/calib-real-v2 (outside the repo), absent on the runner; evidence is a local real-data run (GUI-C-236)'
+          }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
           [xml]$x = Get-Content $trx.FullName
