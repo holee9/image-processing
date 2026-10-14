@@ -116,9 +116,13 @@ internal static class GuiAiSession
 
                 // GUI-C-201: the spelling the running session was started with, when this is the same directory (see AiSessionTracker.DirectoryToSend).
                 // Taken after the shutdown above, so a different directory has already ended the session and is sent as requested.
+                // GUI-C-243 (Codex #195): xpe_ai.dll is loaded by the probe above, so what it imports is loaded too. With the search pinned the AI start FAILS (it does not just warn) when any native module is from outside
+                // the pinned folder or a worker this process started runs from outside it; init is not called then. The expected worker path is part of the diagnostics line either way.
+                NativeModuleAudit.ThrowIfOutsidePinnedFolder("AI start");
+                var workerDescription = NativeModuleAudit.DescribeAndCheckAiWorker(GuiNativeLibraryResolver.ResolvedPath("xpe_ai.dll"));
                 directory = Tracker.DirectoryToSend(directory);
                 code = XpeAiNative.xpe_ai_init(directory, config);
-                _initDiagnostics = $"init#{++_initCount} dir='{directory}' config={config} {probe} -> code={code}";
+                _initDiagnostics = $"init#{++_initCount} dir='{directory}' config={config} {probe} {workerDescription} -> code={code}";
             }
             catch (DllNotFoundException)
             {

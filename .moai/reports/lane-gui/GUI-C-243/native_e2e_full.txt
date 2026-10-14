@@ -1,0 +1,724 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees [24 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W2_TheLaunchScriptRoute_NativeAtStart_CalibrationFromTheCommandLine [31 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W11_TheDefaultDisplay_UsesTheAutomaticWindow_AndShowsAirDark [16 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused [29 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens [29 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W12_OneFrame_RunPreprocessingToThePicture_FiveTimes [25 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W9_SuggestedName_Overwrite_AndAWriteFailureKeepsThePreviousFile [37 m 19 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference [22 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W3_FailureMessages_EachProducedForReal [2 m 1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W0_EveryMenuPathInTheQuickStartExistsInTheApp [13 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W1_TheMenuRoute_NativeBackend_CalibrationPanel_Raw_RunPreprocessing_Compare [29 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_TheRealDataWalkthroughs_HaveTheirData [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W6_CalibrationPanel_DefaultsAndEmptyDirectories [13 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W4_SwitchToNative_SaveSettings_Restart_RunPreprocessingIsEnabled [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing [9 s]
+[xUnit.net 00:43:57.36]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing [SKIP]
+[xUnit.net 00:43:57.36]       NOT RUN: W10 needs a native DLL folder that predates xpe_preprocess_pipeline_out (XPE_C232B_OLD_NATIVE_DIR); no such old build is in the repository or in the CI artifacts. Last run by hand on 2026-10-13 (GUI-C-232b report). XPE-SKIP-ALLOWED:265
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W14_TheQuickStartPage_Steps1To4_FollowedInThePagesOrder_OnRealData [16 s]
+XPE-C56-PROBE hwnd=0x1BF15BC pid=59480 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01b_Fallback_ShowsAPersistentBanner [4 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01a_Fallback_StatusBarNamesTheActualBackend [54 ms]
+XPE-C56-PROBE hwnd=0x1C015BC pid=58168 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01c_Fallback_TitlesSayMock [2 s]
+XPE-C56-PROBE hwnd=0x12A0E0C pid=42668 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+XPE-C56-PROBE hwnd=0x12B0E0C pid=41540 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.PreprocessOffNoticeScenarios.AnEarlierBuildsPreprocessOff_IsOnScreenUntilOkIsInvoked_AndDoesNotComeBack [15 s]
+XPE-C56-PROBE hwnd=0x24060614 pid=21920 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[2026-10-14 17:48:35.931] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-37852-0030c221e2b245bda2c065c86d42ab57, ep=0, timeout=5000 ms
+[2026-10-14 17:48:35.932] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 17:48:39.423] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 17:48:39.424] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-14 17:48:42.910] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 17:48:42.910] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-14 17:48:45.270] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 17:48:45.284] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-37852-0030c221e2b245bda2c065c86d42ab57, ep=0, timeout=5000 ms
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerAbsentScenarios.C11a_RestoringTheAiSession_RemovesTheMarkAndTheCount_OfAWorkerThatWasSwitchedOff [24 s]
+[2026-10-14 17:49:02.061] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 17:49:02.073] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-37852-737b8530dd87478bbd2c22c99b61557b, ep=0, timeout=5000 ms
+[2026-10-14 17:49:02.074] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 17:49:04.917] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 17:49:08.311] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-37852-737b8530dd87478bbd2c22c99b61557b, ep=0, timeout=5000 ms
+[2026-10-14 17:49:08.312] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 17:49:11.775] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 17:49:14.276] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-37852-737b8530dd87478bbd2c22c99b61557b, ep=0, timeout=5000 ms
+[2026-10-14 17:49:14.276] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 17:49:14.773] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 17:49:14.774] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-14 17:49:17.490] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 17:49:20.633] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-37852-737b8530dd87478bbd2c22c99b61557b, ep=0, timeout=5000 ms
+[2026-10-14 17:49:20.633] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 17:49:27.350] [info] xpe_ai shutdown: worker_pid=0
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerAbsentScenarios.C11b_RestoringTheAiSession_PutsACountBackToZero_WhenNoMarkWasShown [35 s]
+[2026-10-14 17:49:33.033] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-37852-c49ff15340b94e459af1506f39d810dd, ep=0, timeout=5000 ms
+[2026-10-14 17:49:33.034] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 17:49:37.396] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 17:49:37.396] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-14 17:49:41.713] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 17:49:41.714] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-14 17:49:44.494] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 17:49:44.508] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-37852-c49ff15340b94e459af1506f39d810dd, ep=0, timeout=5000 ms
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerAbsentScenarios.C09_AWorkerThatCannotBeStarted_IsSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves [21 s]
+[xUnit.net 00:46:33.02]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed [FAIL]
+[xUnit.net 00:46:33.03]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:33.03]       Stack Trace:
+[xUnit.net 00:46:33.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:33.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:33.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(288,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed()
+[xUnit.net 00:46:33.03]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:33.03]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:33.50]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [FAIL]
+[xUnit.net 00:46:33.50]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:33.50]       Stack Trace:
+[xUnit.net 00:46:33.50]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:33.50]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:33.50]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(458,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.RunTheCommandAfter(Boolean changeDll)
+[xUnit.net 00:46:33.50]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(191,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns()
+[xUnit.net 00:46:33.50]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:33.50]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:33.50]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun [FAIL]
+[xUnit.net 00:46:33.50]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:33.50]       Stack Trace:
+[xUnit.net 00:46:33.50]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:33.50]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:33.50]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(64,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun()
+[xUnit.net 00:46:33.50]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:33.50]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:34.00]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [FAIL]
+[xUnit.net 00:46:34.00]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:34.00]       Stack Trace:
+[xUnit.net 00:46:34.00]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:34.00]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:34.00]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(348,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails()
+[xUnit.net 00:46:34.00]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:34.00]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed [395 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 288
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.ALaunchThatFailsAfterTheAppStarted_LeavesNoAppAndNoFaultFileBehind [120 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [354 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.RunTheCommandAfter(Boolean changeDll) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 458
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 191
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 64
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [491 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 348
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:34.34]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns [FAIL]
+[xUnit.net 00:46:34.34]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:34.34]       Stack Trace:
+[xUnit.net 00:46:34.34]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:34.34]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:34.34]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(220,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns()
+[xUnit.net 00:46:34.34]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:34.34]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:34.34]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [FAIL]
+[xUnit.net 00:46:34.34]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:34.34]       Stack Trace:
+[xUnit.net 00:46:34.34]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:34.34]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:34.34]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(40,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem()
+[xUnit.net 00:46:34.34]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:34.34]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:34.35]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady [FAIL]
+[xUnit.net 00:46:34.35]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:34.35]       Stack Trace:
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(113,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady()
+[xUnit.net 00:46:34.35]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:34.35]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:34.35]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile [FAIL]
+[xUnit.net 00:46:34.35]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:34.35]       Stack Trace:
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(390,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile()
+[xUnit.net 00:46:34.35]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:34.35]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:34.35]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [FAIL]
+[xUnit.net 00:46:34.35]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:34.35]       Stack Trace:
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:34.35]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(28,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses()
+[xUnit.net 00:46:34.35]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:34.35]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns [346 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 220
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 40
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 113
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile [2 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 390
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [< 1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 28
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.WidthThatGrewByExactlyTheMissingTail_IsTheKeysGoingToAnotherBox [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AnotherProcessInFrontOnlyAtTheReRead_IsUnclassified_EvenThoughTheRestWouldFitAnExplanation [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.KeysNotSent_IsNotSent_EvenWhenTheBoxHoldsTheText [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AForegroundThatChangedAfterTheInputEnded_IsNotReadAsALossDuringTyping [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AWidthThatEndedInTheTailBeforeTheKeys_IsNotTakenForTheKeysGoingThere [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.ABoxThatKeepsGrowing_IsNotAnExplanationEitherWay [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AShortBoxThatStaysShortWithTheFocusElsewhereInTheApp_IsFocusLeftTheBox [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.ForegroundFacts_StateTheProcessesAndClaimNoDestination [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.ABoxThatIsNotAPrefixOfTheText_AndNothingElseFits_IsUnclassified [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.WhenTheAppIsNotInFront_TheRefusalIsAMessage_AndNothingIsSent [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.WhatWasTyped_IsNoCause [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AnotherProcessInFrontAtTheJudgment_IsUnclassified_NotTheKeysGoingThere [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.EveryCause_HasAnExplanation_AndTheFactsNameEveryReading [2 ms]
+XPE-C56-PROBE could not run: NullReferenceException
+XPE-C56-PROBE hwnd=0x24070614 pid=36260 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheClassWorksWithNoTimingGate [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AWidthThatAlreadyEndedInTheTailBeforeTheKeys_SaysNothing_SoTheAnswerIsUnclassified [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AShortBoxThatStaysShortWithTheFocusStillInIt_IsKeysNotInBoxFocusStayed [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AFullBoxALaterRead_IsAReadThatCameTooEarly [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheJudgmentLine_CarriesTheStartAndTheCompletion_AndSaysTheVerdictDoesNotDependOnThem [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.ApplicationFixtureConstructionTests.AConstructionThatFailsAfterTheAppStarted_LeavesNoAppRunning [134 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuExitScenarios.X01_FileExit_EndsTheProcessWithExitCodeZero_EvenWithAnUnsavedChange [2 s]
+XPE-C56-PROBE hwnd=0xDE2089E pid=67404 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+XPE-C56-PROBE hwnd=0xA9E058A pid=65756 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.AReadableSettingsFile_SaysNothingAboutIt [771 ms]
+XPE-C56-PROBE hwnd=0x83B00C2 pid=60988 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.ACorruptSettingsFile_IsReportedOnScreen [757 ms]
+XPE-C56-PROBE hwnd=0xAA0058A pid=66012 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x83D00C2 pid=47156 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.AfterARescue_TheNextLaunchIsQuiet [1 s]
+XPE-C56-PROBE hwnd=0xAA2058A pid=37600 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:46:42.51]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [FAIL]
+[xUnit.net 00:46:42.51]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:42.51]       Stack Trace:
+[xUnit.net 00:46:42.51]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:42.51]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:42.51]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyEnhanceInputLimitScenarios.cs(69,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns()
+[xUnit.net 00:46:42.51]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:42.51]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:46:42.51]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [FAIL]
+[xUnit.net 00:46:42.51]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:46:42.51]       Stack Trace:
+[xUnit.net 00:46:42.51]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(856,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe)
+[xUnit.net 00:46:42.51]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(532,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish)
+[xUnit.net 00:46:42.51]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyEnhanceInputLimitScenarios.cs(29,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping()
+[xUnit.net 00:46:42.51]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:46:42.51]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+XPE-C56-PROBE hwnd=0x83F00C2 pid=36808 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.ASecondFailure_DoesNotOverwriteTheFirstRescue [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [53 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyEnhanceInputLimitScenarios.cs:line 69
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 856
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment, Boolean waitForStartupToFinish) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 532
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyEnhanceInputLimitScenarios.cs:line 29
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [16 s]
+XPE-C56-PROBE hwnd=0xAA4058A pid=6344 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.AfterAReInitialise_TheLineIsGone_Measured [3 s]
+XPE-C56-PROBE hwnd=0xAA5058A pid=53800 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.WithReadableSettings_ThereIsNothingToFind [2 s]
+XPE-C56-PROBE hwnd=0xAA6058A pid=60108 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.AfterTheWarningIsGone_ThePathIsStillThereAndCopyable [6 s]
+[xUnit.net 00:47:11.89]     ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.CopyWithNothingSelected_CannotLookLikeItWorked [SKIP]
+[xUnit.net 00:47:11.89]       CopyWithNothingSelected (a mouse press on a disabled button) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+XPE-C56-PROBE hwnd=0xAA7058A pid=66740 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.CopyWithNothingSelected_CannotLookLikeItWorked [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S03_ToolbarButtons_AreEnabledInMockMode [151 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S04_HelpMenu_OffersOfflineHelpHome [436 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S01_Launch_HasMainWindow [3 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S05_RuntimePanel_ShowsBackendVersion [45 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S02_MenuBar_HasSixGroups [240 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowCalibrationPanelMenuItem", panelId: "CalibrationPathsPanel") [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowDisplaySettingsPanelMenuItem", panelId: "DisplaySettingsPanel") [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowImageSummaryPanelMenuItem") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowAlertsPanelMenuItem") [905 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowMetadataPanelMenuItem") [702 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRuntimePanelMenuItem") [717 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRawSettingsPanelMenuItem") [687 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S09_CalibrationSettings_OpensThePanelItAnnounces [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S10_ResetLayout_RestoresTheState [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S08_LogsToggle_ShowsAndHidesTheLogRegion [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow [1 s]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 32) [163 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 8) [22 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 64) [19 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 4) [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 16) [22 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 255) [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 64) [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 8) [20 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.SubtleChange_MeasuredAgainstTheRenderersOwnFloor [31 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.GradientBackground_WithALocalChange [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalSeparation_MatchesTheTrueDifference [21 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.EveryRenderedProvenance_LeadsWithTheTrustBoundary [15 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.LaneAndCi_ShareTheFieldsTheReaderDependsOn [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.ReaderAccepts_TheFileCiActuallyWrites [2 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.D_AForegroundCheckThatThrows_SendsNoKey_AndFails [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.C_ADiagnosticReadBeforeTheKeysThatThrows_DoesNotStopTheKeys [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.TheReReadAndTheDescriptionOfWhatIsInFront_AreIsolatedToo [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.ThePassingPath_ReadsNothingElse_AfterTheRecord_ThanTheOneObservation [< 1 ms]
+[xUnit.net 00:47:38.07]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCalibration_ByteForByte [FAIL]
+[xUnit.net 00:47:38.07]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 00:47:38.07]       Stack Trace:
+[xUnit.net 00:47:38.07]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs(118,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.AssertFresh(String exe)
+[xUnit.net 00:47:38.07]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs(154,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCalibration_ByteForByte()
+[xUnit.net 00:47:38.07]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:47:38.07]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.B_ADiagnosticReadThatThrows_DoesNotHideALoss_AndTheMessageStillHasTheRecord [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.A_ADiagnosticReadThatThrows_DoesNotFailARunWhoseCenterIs4321_AndTheRecordIsStillWritten [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.D_AnApplicationNotInFront_SendsNoKey_AndFails [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.Control_TheOracleInTheSameProcess_ErasesTheOperatorsCalibration_AndTheScenarioSeesIt [100 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCalibration_ByteForByte [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs:line 118
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCalibration_ByteForByte() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs:line 154
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A12_Panels_RenderWhatTheSettingsHold [52 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A19_Baseline_OnNative_PassesTwice_AndTheDicomFileIsValidAndReadsBackIdentical [20 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A15_ASelfCheckThatCannotBeStarted_IsDidNotRun_NotAFailure [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A16_TroubleshootingPage_NotGenerated_SaysSoAndHow_AndOpensNothing [18 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [18 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A18_Baseline_OnMock_IsNotRun_NeverAPassOrAFail [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A07_RuntimeLogs_AreWrittenToAFile [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A20_Baseline_OnNativeWithoutACalibrationSet_IsNotAttempted_NotAFailure [20 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason [12 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A10_PipelineDiagnostics_KeepsNoMeasurementApartFromZero [19 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependOnThem [35 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A04_SelfCheck_ActuallyRuns_AndThePassIsReported [18 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A02_MockRequested_IsStillAPass [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [20 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A21_Baseline_WhoseDicomWriteCannotHappen_FailsTheAutomationReport [21 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A09_EvidenceBundleAndFolder_Answer [18 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A08_RecentFileHistory_SurvivesTheProcess [34 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass [17 s]
+[xUnit.net 00:54:46.64]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [FAIL]
+[xUnit.net 00:54:46.64]       The GUI E2E runner RAN and FAILED when launched from the app: 'GUI E2E FAILED (exit -532462766): Unhandled exception. System.InvalidOperationException: The copy of the gui app that ImageProcTest.E2E runs against is older than its sources, so this run would test the PREVIOUS build. 'D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\bin\Debug\net8.0-windows\ImageProcTest.dll' written 2026-10-13T06:31:25.0919122Z; newest source 'D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\Native\GuiAiRunner.cs' written 2026-10-14T08:01:59.2284294Z. Build the RUNNER, not the app: dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug. Building gui/ImageProcTest alone does not refresh this copy.'.
+[xUnit.net 00:54:46.65]       Stack Trace:
+[xUnit.net 00:54:46.65]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Smoke\AutomationReportBackendTests.cs(186,0): at ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported()
+[xUnit.net 00:54:46.65]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:54:46.65]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:54:46.65]       Output:
+[xUnit.net 00:54:46.65]         A06 exit=0 BackendMode=Mock ActualBackendMode=Mock BackendMatchesRequest=True Passed=True
+  실패 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [18 s]
+  오류 메시지:
+   The GUI E2E runner RAN and FAILED when launched from the app: 'GUI E2E FAILED (exit -532462766): Unhandled exception. System.InvalidOperationException: The copy of the gui app that ImageProcTest.E2E runs against is older than its sources, so this run would test the PREVIOUS build. 'D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\bin\Debug\net8.0-windows\ImageProcTest.dll' written 2026-10-13T06:31:25.0919122Z; newest source 'D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\Native\GuiAiRunner.cs' written 2026-10-14T08:01:59.2284294Z. Build the RUNNER, not the app: dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug. Building gui/ImageProcTest alone does not refresh this copy.'.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Smoke\AutomationReportBackendTests.cs:line 186
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ A06 exit=0 BackendMode=Mock ActualBackendMode=Mock BackendMatchesRequest=True Passed=True
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A14_BenchmarkRunner_DescribesTheBuildTree_AndReportsNoVerdictItDidNotGet [18 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.AnEdgeThatMovesByTheToleranceIsTheSamePicture_AndOneBeyondIsNot [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.AScreenThatNeverLeftTheFinalPicture_IsNotSettled [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.AFlickerAfterTheFirstAppearance_MovesTheSettledTimeToTheEnd [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.ThePictureThatReplacesAStaleOne_IsDatedByTheFinalRun_NotByTheFirstEqualCapture [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.ASettleTooShortAtTheEnd_IsNotTrusted [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderMissingCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderMissingARuntimeDll_AWorkingCopyBesideTheExe_IsNotTaken_MockWithTheReason [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.WorkingDllsBesideTheExe_WhenNothingIsPinned_AreUsed_TheAppStartsOnNative [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderWithADamagedCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.OldDllsBesideTheExe_DoNotWinOverThePinnedFolder_TheAppStartsOnNative [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.ExclusiveWithoutAFolder_WorkingDllsBesideTheExe_AreNotUsed_MockWithTheReason [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.OldDllsBesideTheExe_WhenNotPinned_MockStartsAndTheBannerNamesTheDllAndTheProblem [5 s]
+XPE-C56-PROBE hwnd=0x2C30120 pid=41140 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "identical mid-grey", source: 128, processed: 128) [9 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "opposite extremes (Δ255)", source: 255, processed: 0) [7 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "moderate (Δ64)", source: 96, processed: 160) [7 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "near-identical (Δ8)", source: 128, processed: 136) [7 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.NoPairDeviates_FromAPerPixelDifference [26 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [954 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuWrappedBackendScenarios.L01_TheEntry_FollowsTheWrappedBackend_NotTheWrappersInterface [697 ms]
+XPE-C56-PROBE hwnd=0xDB603E4 pid=27136 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuLateDllScenarios.L02_ADllThatAppearsOrVanishesWhileTheAppRuns_IsSeenAtTheNextMenuOpening [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.ARunnerStillRunning_IsSaidAsNotAMissingExecutable_WhichIsTheCaseThatWasMisread [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.NoExecutable_IsSaidAsNoExecutable_AndNeverAsATimeout(status: "Self-check needs the repository; this build is not"···) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.NoExecutable_IsSaidAsNoExecutable_AndNeverAsATimeout(status: "Self-check runner is not built.") [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.ARunnerThatRanAndFailed_IsSaidAsFailed_AndCarriesTheStatus [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: Unexplained, skips: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: NoExecutable, skips: True) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: StillRunning, skips: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: DidNotStart, skips: False) [< 1 ms]
+XPE-C56-PROBE hwnd=0xDB703E4 pid=66916 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.AnExecutableThatCouldNotBeStarted_IsSaidAsSuch [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.TheFourCauses_AreFourDifferentTexts [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.TheSamplesAreTheAppsOwnStatusLines [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.AStatusNoOneRecognises_IsSaidAsUnknown_NotAsAnyOfTheOthers [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.VerdictOrSkip_SkipsOnlyThroughTheRule_AndOtherwiseThrowsTheReason [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.HiddenSelectionCopyObservation.ClearAlerts_PressedWhileTheFilterIsOn_LeavesThisBehind [5 s]
+XPE-C56-PROBE hwnd=0x14A803D2 pid=57168 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.HiddenSelectionCopyObservation.PlainCopyWorks_ThenWhatHappensWhenTheSelectedLineIsHidden [18 s]
+XPE-C56-PROBE hwnd=0xDB903E4 pid=29920 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.FlippedSign_IsTheRenderersDoing_NotTheMetrics [38 ms]
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.MaximumContrast_OnTheReferencePath_ApproachesTheChannelRange [17 ms]
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.NothingChanged_MeasuresNearZero [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.MisalignedMask_CollapsesTheMeasurement [25 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AlertVisibilityScenarios.AnAlert_IsOnScreenAndTellsItselfApartFromALogLine [3 s]
+XPE-C56-PROBE hwnd=0x2C20FCC pid=18624 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AlertVisibilityScenarios.WithNothingWrong_NoAlertLineIsThere [2 s]
+XPE-C56-PROBE hwnd=0x7C903C8 pid=34696 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ClampAlertOnScreenScenarios.TheClampAlert_ReachesTheLog [46 s]
+XPE-C56-PROBE hwnd=0x14AC03D2 pid=39736 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer [4 s]
+XPE-C56-PROBE hwnd=0x14AD03D2 pid=25312 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Rendering.LogSelectionHighlightRenderTests.TheTransparentBackgroundSetter_DecidesWhetherASelectedRowLooksDifferent [78 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale [5 s]
+XPE-C56-PROBE hwnd=0x14AE03D2 pid=48384 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB03_NothingIsWrittenIntoTheEvidenceRoot [3 s]
+XPE-C56-PROBE hwnd=0x14AF03D2 pid=38704 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB01_ExportAfterAVerdict_ProducesABundleNamingTheBackend [3 s]
+XPE-C56-PROBE hwnd=0x14B003D2 pid=24632 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.IB02_InitializeAfterTheDllsAppear_RecordsMockThenNative [6 s]
+XPE-C56-PROBE hwnd=0x14B103D2 pid=13772 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+XPE-C56-PROBE hwnd=0x14B203D2 pid=36764 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB02_TwoRunSets_KeepSeparateEvidence [7 s]
+XPE-C56-PROBE hwnd=0x14B303D2 pid=42952 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.IB01_InitializeBackend_StartsANewRunSet [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 0, threadId: 0, foregroundPid: 0, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 0, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 100, appPid: 100, expected: True) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 100, appPid: -1, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 100, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 0, threadId: 77, foregroundPid: 100, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 0, foregroundPid: 100, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 4294967295, appPid: -1, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 0, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 0, foregroundPid: 0, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 200, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 100, appPid: 100, expected: True) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 0, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 0, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: -1, appPid: -1, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 100, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 100, appPid: 200, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.AnUnknownForegroundPid_IsNotTakenForTheApplication_InTheReadingsOfAFailedRun [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 120, expectedPixels: 1600) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 144, expectedPixels: 1920) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 96, expectedPixels: 1280) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 192, expectedPixels: 2560) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.AWindowThatStopsWhereTheMinWidthSays_AndStaysThere_HasNoProblem [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.AWindowThatDriftsAwayFromItsMinimum_IsAProblem [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsReadFromMainWindowXaml_NotCopiedHere [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.AWindowThatStopsSomewhereElse_IsAProblem_WhichIsWhatAWideRunOrAWrongDpiLooksLike [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P02_OffsetThenGain_PassesTheOffsetOutputToTheGainStage [48 ms]
+[xUnit.net 00:57:52.64]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation [SKIP]
+[xUnit.net 00:57:52.64]       XPE_C235_RUNS is not set (this is a measurement, not a regression test).
+[xUnit.net 00:57:52.64]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheFlaUiWindowCall_WithASlowStartUpProbe [SKIP]
+[xUnit.net 00:57:52.64]       XPE_C235_DELAYS is not set (this is a measurement, not a regression test).
+XPE-C56-PROBE hwnd=0x2910F52 pid=32380 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P05_TheCalibrationIsLoadedIntoTheModule_NotJustWrittenToDisk [18 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P04_TheInputIsNotModified_NeitherTheFileNorThePreviewPixels [16 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P03_AllThreeStages_ChainToTheExpectedImage_AndOnlyTheMarkedPixelDiffersFromTheGainOutput [18 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P01_OffsetOnly_SubtractsTheDarkFrame_PixelByPixel [10 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheFlaUiWindowCall_WithASlowStartUpProbe [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AReInitialise_WritesASeparatorAndKeepsWhatWasThere [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R12_StageTiming_ShowsTheValuesTheRenderAlreadyReported [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R11b_StopWithNothingRunning_SaysSoAndDiscardsNothing [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R06_PInvokeSmoke_AnswersFromTheNativeLibraries [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds [13 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Scope and Limitations", expectedFile: "scope.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L06_ChoosingTheReferenceAlgorithm_LeavesThePreprocessingSwitchOn [9 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeGridSuppression") [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeVirtualGrid") [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P02_RepeatedRender_RunsTheStageAgain [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature [25 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot [24 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels [22 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread [54 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [25 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P04_TheDrawnHud_NamesTheChain [6 s]
+XPE-C56-PROBE hwnd=0x1B240624 pid=7584 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A3_WhenTheFilteredListIsLongerThanTheScreen_TheMovedRowIsAboveIt [41 s]
+XPE-C56-PROBE hwnd=0x1B250624 pid=64968 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A2_WithTheLogScrolled_IsTheMovedRowStillWhereTheUserCanSeeIt [30 s]
+XPE-C56-PROBE hwnd=0x3BD0572 pid=28528 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A_WhenTheFilterMovesTheSelection_IsThatRowWhereTheUserCanSeeIt [4 s]
+[xUnit.net 01:04:15.19]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable [FAIL]
+[xUnit.net 01:04:15.19]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 01:04:15.19]       Stack Trace:
+[xUnit.net 01:04:15.19]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs(118,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.AssertFresh(String exe)
+[xUnit.net 01:04:15.19]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleConfinementScenarios.cs(74,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable()
+[xUnit.net 01:04:15.19]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 01:04:15.19]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 01:04:15.19]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_WritesExactlyOneParsableResultLine_AsARealProcess_WhateverTheHostHasLoaded [FAIL]
+[xUnit.net 01:04:15.19]       clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+[xUnit.net 01:04:15.19]       Stack Trace:
+[xUnit.net 01:04:15.19]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs(118,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.AssertFresh(String exe)
+[xUnit.net 01:04:15.19]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleConfinementScenarios.cs(32,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_WritesExactlyOneParsableResultLine_AsARealProcess_WhateverTheHostHasLoaded()
+[xUnit.net 01:04:15.19]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 01:04:15.19]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+XPE-C56-PROBE hwnd=0x2DE0120 pid=27728 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs:line 118
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleConfinementScenarios.cs:line 74
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_WritesExactlyOneParsableResultLine_AsARealProcess_WhateverTheHostHasLoaded [1 ms]
+  오류 메시지:
+   clients/ImageProcTest's ImageProcTest.dll is older than D:\workspace-github\xpe-gui\clients\ImageProcTest\Diagnostics\NativeDependencyLoader.cs: rebuild it (dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug) before this scenario.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.AssertFresh(String exe) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleIsolationScenarios.cs:line 118
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_WritesExactlyOneParsableResultLine_AsARealProcess_WhateverTheHostHasLoaded() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyOracleConfinementScenarios.cs:line 32
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.DifferenceHeatmap_OfAnImageWithItself_IsOneColour [74 ms]
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.SourceOnlyAndProcessedOnly_RenderTheLayerTheyName [3 ms]
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.DifferenceHeatmap_OfIdenticalInputs_IsBlack [2 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LogAlertDiscriminabilityObservation.A_AnAppWithNoFrame_ShowsWhatTheReadingPathReturns [3 s]
+XPE-C56-PROBE hwnd=0xDC903E4 pid=5820 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LogAlertDiscriminabilityObservation.F_WithNoAlertLeft_TheFilteredListIsEmpty [5 s]
+XPE-C56-PROBE hwnd=0xDCA03E4 pid=41988 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LogAlertDiscriminabilityObservation.BandC_OneRunMeasuredShortThenLong_ShowsWhetherTheCostGrows [16 s]
+XPE-C56-PROBE hwnd=0x3120130 pid=37556 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.TheOrderOfTheOpens_DoesNotMatter [2 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.AnythingButFiveValues_IsRefused [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.TheMedian_NotTheMeanOrTheMax_DecidesIt [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.TheMedianOfFive_At1500_Passes_And1501_Fails [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01b_ApplyDisplayPipeline_LeavesVoiInputsPopulated [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W02_RunPreprocessing_MatchesTheBackendItRunsOn [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01_RawImageLoaded_ViewportAndStatusReflectIt [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W10_FixtureManager_ReportsWhetherTheFixturePackIsPresent [240 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03_BackendMenu_DrivesTheBackendAndTheAppFollows [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W09_ExportAutomationReport_WritesAReportFileAndNamesIt [311 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03b_SwitchingBackToNative_RestoresTheNativeBackend [2 s]
+[xUnit.net 01:05:04.47]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V03_PanX_ResetRecentres [SKIP]
+[xUnit.net 01:05:04.47]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V03_PanX_ResetRecentres [2 s]
+[xUnit.net 01:05:07.03]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V07_APan_PutsTheImageWhereItWasAsked [SKIP]
+[xUnit.net 01:05:07.03]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V07_APan_PutsTheImageWhereItWasAsked [2 s]
+[xUnit.net 01:05:09.36]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V02_ZoomScale_ResetDrawsFit [SKIP]
+[xUnit.net 01:05:09.36]       Scrolling the viewport with the mouse wheel sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V02_ZoomScale_ResetDrawsFit [2 s]
+[xUnit.net 01:05:11.76]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V06_AnExplicitZoom_IsTheScaleThatWasDrawn [SKIP]
+[xUnit.net 01:05:11.76]       Scrolling the viewport with the mouse wheel sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V06_AnExplicitZoom_IsTheScaleThatWasDrawn [2 s]
+[xUnit.net 01:05:14.33]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle [SKIP]
+[xUnit.net 01:05:14.33]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V01_OverlayOpacity_IsDrawnWithTheSliderValue [2 s]
+[xUnit.net 01:05:19.16]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V04_PanY_ResetRecentres [SKIP]
+[xUnit.net 01:05:19.16]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V04_PanY_ResetRecentres [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W24_OrdinaryLaunch_HasNoFaultInjection [283 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W25_DetachedViewer_MarksAnUnappliedEditStale [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W21_Hud_NamesTheWindowThatProducedTheImage [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W28_MainViewport_DrewTheImage [102 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W20_MainViewport_ReceivesTheLoadedImage [267 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W22_EditingVoiWithoutApplying_MarksTheImageStale [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U03_AlgorithmPickers_AreUsableAndUnmarked [330 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U01_CalibrationStages_AreDisabledAndMarked [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U05_PendingConnectionMark_IsShown [993 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U02_LaneBDenoiseK_IsUsableExactlyWhenItReachesPixels [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U04_FocusToggle_IsDisabledAndMarked [118 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L01_BothLanes_DrawTheSameOriginal [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L06_AReferenceAlgorithm_MovesOnlyTheReference [5 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L03_OnlyTheCandidate_GoesStale [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L04_ACandidateAlgorithm_MovesOnlyTheCandidate [5 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L02_ACandidateSetting_MovesOnlyTheCandidate [5 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage [9 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02e_ALateJudgmentRead_DoesNotChangeTheVerdict_ButTheRecordShowsTheLateCompletion [3 s]
+[xUnit.net 01:06:26.10]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [SKIP]
+[xUnit.net 01:06:26.10]       R02 (real key presses into a text box, then a real Tab) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 01:06:26.10]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R01_TheViewMenu_OpensWithARealMouseClick [SKIP]
+[xUnit.net 01:06:26.10]       R01 (a real mouse click on the View menu) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02f_TheForegroundCheck_AgreesWithAnIndependentReadOfTheForegroundProcess [4 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R01_TheViewMenu_OpensWithARealMouseClick [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C01_PreprocessStage_ReachesTheDrawnPixelsOrSaysWhyNot [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [10 s]
+[2026-10-14 18:10:12.780] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-spell-37852-3364d525aa624d83bcb96be7c91f715c, ep=0, timeout=5000 ms
+[2026-10-14 18:10:12.856] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 18:10:16.868] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 18:10:16.871] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [10 s]
+[2026-10-14 18:10:40.653] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 18:10:40.667] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-nomodel-file-37852-5aa0648df67041bf8526d20d4e771ce1, ep=0, timeout=5000 ms
+[2026-10-14 18:10:40.700] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 18:10:43.407] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 18:10:43.410] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 18:10:46.269] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 18:10:46.273] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 18:10:49.140] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 18:10:49.143] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C09b_ANonModelFile_IsReportedAsAModelTheModuleWillNotUse [19 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C05_GridCorrectionChoices_AreExclusive [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.BackendDisclosureControlScenarios.E01d_OrdinaryLaunch_DisclosesExactlyTheRequestedBackend [204 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DeterministicBaselineScenarios.B01_TheMenuItem_IsEnabledOnlyWhereTheBackendCanRunIt [116 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DeterministicBaselineScenarios.B02_Invoking_OnNative_PassesAndLeavesTheScreenSettingsAndChainAlone [5 s]
+[xUnit.net 01:08:42.05]     ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom [SKIP]
+[xUnit.net 01:08:42.05]       W15 (the mouse wheel over the detached viewer) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 01:08:42.05]     ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W16_ChangingTheModeInTheMainWindow_ReachesTheDetachedWindow [SKIP]
+[xUnit.net 01:08:42.05]       W16 (F5/F8 pressed in the main window) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W16_ChangingTheModeInTheMainWindow_ReachesTheDetachedWindow [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Overlay", mode: "OverlayOpacity") [483 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Difference", mode: "DifferenceHeatmap") [472 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Swipe", mode: "SwipeVertical") [474 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Split", mode: "SplitLocked") [475 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Swipe", mode: "SwipeVertical") [758 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Difference", mode: "DifferenceHeatmap") [771 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Overlay", mode: "OverlayOpacity") [777 ms]
+[xUnit.net 01:08:47.02]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F6", mode: "SplitLocked") [SKIP]
+[xUnit.net 01:08:47.02]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 01:08:47.02]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F5", mode: "SwipeVertical") [SKIP]
+[xUnit.net 01:08:47.02]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 01:08:47.02]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F7", mode: "OverlayOpacity") [SKIP]
+[xUnit.net 01:08:47.02]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 01:08:47.02]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F8", mode: "DifferenceHeatmap") [SKIP]
+[xUnit.net 01:08:47.02]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Split", mode: "SplitLocked") [753 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F6", mode: "SplitLocked") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F5", mode: "SwipeVertical") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F7", mode: "OverlayOpacity") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F8", mode: "DifferenceHeatmap") [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareProcessedOnlyMenuItem", mode: "ProcessedOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSplitMenuItem", mode: "SplitLocked") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareDifferenceMenuItem", mode: "DifferenceHeatmap") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareOverlayMenuItem", mode: "OverlayOpacity") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSourceOnlyMenuItem", mode: "SourceOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSwipeMenuItem", mode: "SwipeVertical") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonSwipeVertical", mode: "SwipeVertical") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonProcessedOnly", mode: "ProcessedOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonSplitLocked", mode: "SplitLocked") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonDifferenceHeatmap", mode: "DifferenceHeatmap") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonSourceOnly", mode: "SourceOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonOverlayOpacity", mode: "OverlayOpacity") [1 s]
+[2026-10-14 18:12:24.829] [info] xpe_ai shutdown: worker_pid=0
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuAvailabilityScenarios.E01_TheEntry_IsEnabledExactlyWhereTheAiModuleCanBeReached [459 ms]
+XPE-C56-PROBE hwnd=0x2990F52 pid=13136 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuAvailabilityScenarios.E02_AfterShutdown_TheEntryIsDisabled_AndFollowsTheBackendBackUp [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerNeverConfirmedAtMinimumWidthScenarios.M03_TheNeverConfirmedNotice_IsAbsentAtStart_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+XPE-C56-PROBE hwnd=0x57609BA pid=64032 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x119D06D4 pid=62860 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.ReadableWindow_IsKept_AndLeavesNoNote [707 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.UnreadableWindow_IsReplaced_AndTheRunSaysSo [754 ms]
+XPE-C56-PROBE hwnd=0x1B2E0624 pid=27428 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityBypassedScenarios.TheShippedPath_RunsNoNonlinearityStage_SoNoNoopAlertIsRaised_WhileThePerFrameAlertKeepsArriving [54 s]
+XPE-C56-PROBE hwnd=0x29D0F52 pid=49348 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ClearAlertsObservationScenarios.PressingClearAlerts_TakesTheAlertLinesOffScreen_AndClearLogsStillEmptiesTheLog [4 s]
+XPE-C56-PROBE hwnd=0x41E0784 pid=57200 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 01:10:28.85]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ClearAlertsObservationScenarios.PressingClearAlerts_KeepsTheOrdinaryLogLines [3 s]
+결과 파일: D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-243/native_e2e_full.trx
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 337
+     통과: 304
+     실패: 15
+    건너뜀: 18
+ 총 시간: 1.1748 시간
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
+exit=1

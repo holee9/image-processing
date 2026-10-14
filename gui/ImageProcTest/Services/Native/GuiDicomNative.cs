@@ -26,7 +26,9 @@ internal sealed class NativeDicomSession : IDicomSession
 
             // mAs, SID and the acquisition time are unknown to the gui and are written as 0 (design D6).
             var meta = XpeImageMetadataNative.Create(metadata.BodyPart, metadata.KVp, 0f, 0f, metadata.PixelPitchMm);
-            return XpeDicomNative.xpe_dicom_write(path, ref image, ref meta);
+            var code = XpeDicomNative.xpe_dicom_write(path, ref image, ref meta);
+            NativeModuleAudit.ThrowIfOutsidePinnedFolder("xpe_dicom_write");   // GUI-C-243: the module (and what it imports) is loaded by now; with the search pinned, none of it may be from elsewhere
+            return code;
         }
         finally
         {
@@ -52,6 +54,7 @@ internal sealed class NativeDicomSession : IDicomSession
     public DicomReadBack ReadBack(string path)
     {
         var openCode = XpeDicomNative.xpe_dicom_open(path, out var handle);
+        NativeModuleAudit.ThrowIfOutsidePinnedFolder("xpe_dicom_open");
         if (openCode != 0 || handle == IntPtr.Zero)
         {
             return new DicomReadBack(openCode, -1, -1, 0, 0, null, null, null);
