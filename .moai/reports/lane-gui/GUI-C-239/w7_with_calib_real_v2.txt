@@ -1,0 +1,53 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:10.34]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference [FAIL]
+[xUnit.net 00:00:10.34]       Assert.False() Failure
+[xUnit.net 00:00:10.34]       Expected: False
+[xUnit.net 00:00:10.34]       Actual:   True
+[xUnit.net 00:00:10.34]       Stack Trace:
+[xUnit.net 00:00:10.34]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(668,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference()
+[xUnit.net 00:00:10.34]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:10.34]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:10.34]       Output:
+[xUnit.net 00:00:10.34]            DLL: D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_preprocess.dll sha256 71403fd8e35c829ee633d27390902cbe5b71c3e3382eeaf63bdfd9098453e1fc written 2026-10-14 14:51:10; provenance.json present
+[xUnit.net 00:00:10.34]         STEP 1 started on Native; Save Corrected Image is dimmed before anything ran
+[xUnit.net 00:00:10.34]            Save float enabled: False; Save PNG enabled: False
+[xUnit.net 00:00:10.34]         STEP 2 File > Open Raw...
+[xUnit.net 00:00:10.34]            dialog: 'Load Raw Image'
+[xUnit.net 00:00:10.34]            ok: the image summary appears
+[xUnit.net 00:00:10.34]            after the load, before the run: Save float enabled: True
+[xUnit.net 00:00:10.35]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference [10 s]
+  오류 메시지:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 668
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    DLL: D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_preprocess.dll sha256 71403fd8e35c829ee633d27390902cbe5b71c3e3382eeaf63bdfd9098453e1fc written 2026-10-14 14:51:10; provenance.json present
+ STEP 1 started on Native; Save Corrected Image is dimmed before anything ran
+    Save float enabled: False; Save PNG enabled: False
+ STEP 2 File > Open Raw...
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    after the load, before the run: Save float enabled: True
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 10.6806 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
