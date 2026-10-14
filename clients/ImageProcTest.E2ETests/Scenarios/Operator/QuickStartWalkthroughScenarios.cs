@@ -166,10 +166,13 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     public void W3_FailureMessages_EachProducedForReal()
     {
         var native = Env("XPE_C231_NATIVE_DIR");
-        var sets = Env("XPE_C231_SETS");
-        var fixtures = Env("XPE_C231_FIXTURE_RAW");
         var invalidGain = Env("XPE_C231_INVALID_GAIN_DIR");
-        Assert.False(native is null || sets is null || fixtures is null, "XPE_C231_NATIVE_DIR / XPE_C231_SETS / XPE_C231_FIXTURE_RAW are not all set.");
+        Assert.False(native is null, "XPE_C231_NATIVE_DIR is not set.");
+        // GUI-C-239: the two inputs that used to need their own variables now come from what the run already has. The raw fixtures are in the repository; the map sets are made here from the staged
+        // xpe_calib_fixture_gen.exe (two 1024x1024 synthetic sets: valid and expired) plus two empty folders. A variable still overrides, for a hand-made set.
+        var fixtures = Env("XPE_C231_FIXTURE_RAW") ?? PackagedRawFixtures();
+        using var madeSets = Env("XPE_C231_SETS") is null ? GeneratedSets.Make(native!, output) : null;
+        var sets = Env("XPE_C231_SETS") ?? madeSets!.Folder;
 
         var raw1024 = Path.Combine(fixtures!, "synthetic_1024x1024.raw");
         var raw3072 = Path.Combine(fixtures!, "wrist_lat_3072x3072.raw");
@@ -300,13 +303,17 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     /// GUI-C-232b (SRS-CALIB-SAFE-004, leader decision): native DLLs that predate <c>xpe_preprocess_pipeline_out</c> do NOT run the older stage-by-stage path. Run Preprocessing fails, says the DLL is too old and to update it,
     /// and no image is processed. Needs <c>XPE_C232B_OLD_NATIVE_DIR</c> (such a DLL folder), <c>XPE_C231_SETS</c> (for the <c>ok1024</c> maps) and <c>XPE_C231_FIXTURE_RAW</c>.
     /// </summary>
-    [EnvGatedFact]
+    [SkippableFact]
     public void W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing()
     {
         var oldNative = Env("XPE_C232B_OLD_NATIVE_DIR");
-        var sets = Env("XPE_C231_SETS");
-        var fixtures = Env("XPE_C231_FIXTURE_RAW");
-        Assert.False(oldNative is null || sets is null || fixtures is null, "XPE_C232B_OLD_NATIVE_DIR / XPE_C231_SETS / XPE_C231_FIXTURE_RAW are not all set.");
+        // GUI-C-239: a DLL folder that predates xpe_preprocess_pipeline_out is an OLD BUILD, and neither the repository nor the CI artifacts hold one (CI builds the current modules only). So without the
+        // variable this is not run - and it says so, with the token of the allow-list entry for issue #262, instead of failing as a missing variable. (It was discovered whenever XPE_C231_NATIVE_DIR was set.)
+        Skip.If(oldNative is null, "NOT RUN: W10 needs a native DLL folder that predates xpe_preprocess_pipeline_out (XPE_C232B_OLD_NATIVE_DIR); no such old build is in the repository or in the CI artifacts. "
+            + "Last run by hand on 2026-10-13 (GUI-C-232b report). XPE-SKIP-ALLOWED:262");
+        var fixtures = Env("XPE_C231_FIXTURE_RAW") ?? PackagedRawFixtures();
+        using var madeSets = Env("XPE_C231_SETS") is null ? GeneratedSets.Make(Env("XPE_C231_NATIVE_DIR") ?? oldNative!, output) : null;
+        var sets = Env("XPE_C231_SETS") ?? madeSets!.Folder;
         var dll = Path.Combine(oldNative!, "xpe_preprocess.dll");
         output.WriteLine($"   DLL: {dll} sha256 {Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(dll))).ToLowerInvariant()} written {File.GetLastWriteTime(dll):yyyy-MM-dd HH:mm:ss}");
         using var app = GuiApp.Launch(output, oldNative!, extraArguments:
@@ -665,7 +672,9 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             Thread.Sleep(2000);
             app.Menu("FileMenu");
             output.WriteLine("   after the load, before the run: Save float enabled: " + app.IsEnabled("SaveCorrectedFloatMenuItem"));
-            Assert.False(app.IsEnabled("SaveCorrectedFloatMenuItem"));
+            // GUI-C-239: this said False. Since GUI-C-234b the default chain preprocesses an opened frame, so the corrected image already exists and is savable right after the load (the quick-start page says so:
+            // opening runs the stages). It failed the same way with calib-real-v2 and with a generated set, so it was a stale expectation, not a data difference.
+            Assert.True(app.IsEnabled("SaveCorrectedFloatMenuItem"), "the default chain preprocesses on open, so Save Corrected Image should be enabled right after the load");
 
             app.Step("3 Pipeline > Run Preprocessing (Phase 1a)");
             app.Menu("PipelineMenu");
@@ -1100,6 +1109,48 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
         Assert.True(File.Exists(rawFile), $"XPE_C231_RAW '{rawFile}' does not exist");
         Assert.Equal((long)width * height * 2, new FileInfo(rawFile).Length);
+    }
+
+    /// <summary>GUI-C-239: the raw fixtures that are packaged in the repository (gui/ImageProcTest/fixtures/gui-s0/raw).</summary>
+    private static string PackagedRawFixtures() =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "gui", "ImageProcTest", "fixtures", "gui-s0", "raw"));
+
+    /// <summary>
+    /// GUI-C-239: the map sets W3 needs, made in a temp folder with the generator that ships in the staged DLL folder: <c>ok1024</c> (valid) and <c>expired1024</c> (expiry in the year 2000), both 1024x1024
+    /// synthetic, and two folders with nothing in them (<c>empty</c>, <c>nodll</c>). The generator missing from the staged folder is a staging defect and fails with that sentence.
+    /// </summary>
+    private sealed class GeneratedSets : IDisposable
+    {
+        public string Folder { get; }
+
+        private GeneratedSets(string folder) => Folder = folder;
+
+        public static GeneratedSets Make(string nativeDirectory, ITestOutputHelper output)
+        {
+            var generator = Path.Combine(nativeDirectory, "xpe_calib_fixture_gen.exe");
+            Assert.True(File.Exists(generator), $"{generator} was not found: the staged DLL folder must hold xpe_calib_fixture_gen.exe (the map sets of W3 are generated with it).");
+            var folder = Path.Combine(Path.GetTempPath(), "xpe_c239_sets_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(folder, "empty"));
+            Directory.CreateDirectory(Path.Combine(folder, "nodll"));
+            var watch = Stopwatch.StartNew();
+            foreach (var (name, extra) in new[] { ("ok1024", Array.Empty<string>()), ("expired1024", new[] { "--expiry-ms", "946684800000" }) })
+            {
+                var info = new ProcessStartInfo(generator) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = nativeDirectory };
+                foreach (var argument in new[] { "--out", Path.Combine(folder, name), "--width", "1024", "--height", "1024" }.Concat(extra)) info.ArgumentList.Add(argument);
+                using var process = Process.Start(info)!;
+                var text = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+                process.WaitForExit();
+                Assert.True(process.ExitCode == 0, $"xpe_calib_fixture_gen for {name} exited {process.ExitCode}: {text}");
+            }
+
+            output.WriteLine($"   generated map sets in {folder} ({watch.Elapsed.TotalSeconds:0} s)");
+            return new GeneratedSets(folder);
+        }
+
+        public void Dispose()
+        {
+            try { Directory.Delete(Folder, recursive: true); } catch (IOException) { /* temp folder */ }
+        }
     }
 
     private static (string Native, string Calib, string Raw, int Width, int Height) Inputs()
