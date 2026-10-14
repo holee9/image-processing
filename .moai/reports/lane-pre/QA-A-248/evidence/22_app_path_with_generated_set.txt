@@ -1,0 +1,4 @@
+[a247] medians over 5 rounds: init 0.00 | offset 38.72 gain 45.42 defect 11.87 | loads 96.01 | pipeline_out 48.33 | shutdown 2.34 | sum of calls 146.52 ms
+[a247] every round's output vs reference image v2: byte-identical
+[       OK ] A241Measure.DISABLED_A247_AppPathTiming (952 ms)
+[  FAILED  ] 0 tests, listed below:

@@ -1,0 +1,40 @@
+# QA-A-248 (#262) - DRAFT for the leader, NOT applied. ci.yml is leader-owned.
+# Variant B: the calibration set is built from SYNTHETIC frames at 3072 x 3072 by the existing mode of xpe_calib_fixture_gen
+# (no input data needed: everything is in the repository). Whether such a set is enough for the real-data walkthroughs is the leader's call;
+# read the report section 6 first: W14 compares the saved image with a first-stage reference image byte for byte and cannot pass on this set.
+#
+# MEASURED COST (development machine, three runs of 3072 x 3072): 352 s, 356 s, 354 s; identical bytes every run; peak working set 375 MB;
+# output 37.7 MB + 37.7 MB + 9.4 MB. That is about 6 minutes of a job whose budget is 45 minutes and which already takes about 25
+# (ci.yml, gui-e2e-native comment). The runner was not measured. Where the time goes inside the tool was not measured either.
+#
+# Placement option that keeps the 6 minutes out of gui-e2e-native: run the same command once in preprocess-tests (which builds the exe)
+# and upload the three files as an artifact that gui-e2e-native downloads. Not drafted here; it is a choice about job structure.
+
+      - name: Build the synthetic 3072 calibration set (QA-A-248, #262)
+        shell: pwsh
+        run: |
+          $gen = Join-Path $PWD 'build/e2e-native-dlls/xpe_calib_fixture_gen.exe'
+          if (-not (Test-Path $gen)) { Write-Error "missing $gen"; exit 1 }
+          $out = Join-Path $env:RUNNER_TEMP 'calib-synthetic'
+          # --expiry-ms 4102444800000 = 2100-01-01: without it the files carry expiry 0 and the module raises XPE_WARN_NO_EXPIRY x3.
+          & $gen --out $out --width 3072 --height 3072 --expiry-ms 4102444800000
+          if ($LASTEXITCODE -ne 0) { Write-Error "xpe_calib_fixture_gen exited $LASTEXITCODE"; exit 1 }
+
+          # Guard (hashes reproduced only on the development machine - see the unverified-risk note in draft A).
+          $want = @{
+            'offset.xcal' = 'b3118648ff400fc785912eab595653c03457431373d2b67e0abc6d18d39fea65'
+            'gain.xcal'   = '163376523ce29af1b5cb17f1e4007e4ad824195295c6d301d6f1768451ddc29f'
+            'defect.xcal' = '9c0eeefe36e863e126d9a2fbfebe49161117a947dae77e13458bed969c7f2cd6'
+          }
+          foreach ($n in $want.Keys) {
+            $got = (Get-FileHash (Join-Path $out $n) -Algorithm SHA256).Hash.ToLower()
+            if ($got -ne $want[$n]) { Write-Error "$n sha256 $got, expected $($want[$n])"; exit 1 }
+          }
+
+          "XPE_C231_NATIVE_DIR=$(Join-Path $PWD 'build/e2e-native-dlls')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_CALIB_DIR=$out" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW=$(Join-Path $PWD 'gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW_SIZE=3072x3072" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+# Not solved by either draft: W14 needs XPE_C231_BASELINE_F32 or m1-baseline-v2/wrist_lat_3072x3072_corrected_v2_f32le.raw beside the
+# calibration folder's parent (QuickStartWalkthroughScenarios.cs on dev/gui, around lines 965-972), and that 37.7 MB file is not in the repository either.

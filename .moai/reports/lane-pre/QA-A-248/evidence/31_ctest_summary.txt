@@ -1,0 +1,13 @@
+	1136 - A240.B2_GainLoadAndRange (Disabled)
+	1137 - A240.B3_DefectLoadAndIntegrity (Disabled)
+	1138 - A240.B3b_DensityAboveFivePercent (Disabled)
+	1139 - A240.B4_SafeBehaviour (Disabled)
+	1140 - A240.B5_RealFrameOrder (Disabled)
+	1141 - A240.B6_Quality (Disabled)
+	1142 - A240.B7_FrameTime (Disabled)
+	1143 - A240.B9_LoadTime (Disabled)
+	1144 - A240.B10_Baseline (Disabled)
+	1293 - A237bMem.ShippedPath (Disabled)
+	1294 - A237gMaps.GenerateRealMaps (Disabled)
+	1295 - A237cRoute.WhichMagnitudesTakeTheScratchRoute (Disabled)
+100% tests passed, 0 tests failed out of 1290

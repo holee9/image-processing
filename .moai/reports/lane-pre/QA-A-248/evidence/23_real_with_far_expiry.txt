@@ -1,0 +1,17 @@
+expiry-ms 4102444800000 = 2100-01-01T00:00:00Z
+offset.xcal  dcc760504aa5f5dbdbf52437cf52b19dc431209a4d1004337e9f2e514add392f
+gain.xcal    46a390af48a0b145ce097dce6f96a210a3e33159ae4683b23752ded8ed794456
+defect.xcal  f00b1622ad105d52460563949f13fb892acaacc1ccf31ab458cef39f46e8ce14  (23505 defect pixels)
+offset.xcal identical across two runs
+gain.xcal identical across two runs
+defect.xcal identical across two runs
+=== alerts, set: real_c (generated, expiry 2100)
+[a245] 2 alert(s) after loading the exported set and running the app's stage order
+[a245]   alert 0 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed
+[a245]   alert 1 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut()
+[       OK ] A241Measure.DISABLED_A245_AlertsOfTheExportedSet (284 ms)
+[a245] 3 alert(s) after loading the exported set and running the app's stage order
+[a245]   alert 0 (severity 1): XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only
+[a245]   alert 1 (severity 1): XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed
+[a245]   alert 2 (severity 1): nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut()
+[       OK ] A241Measure.DISABLED_A245_AlertsOfTheExportedSet (297 ms)

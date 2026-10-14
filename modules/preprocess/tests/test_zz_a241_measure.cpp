@@ -28,6 +28,8 @@
  *   A245_ExportAndAppPath (QA-A-245) writes the stage-1 real-data calibration set as offset.xcal / gain.xcal / defect.xcal (the files the
  *                         operator app reads) and runs the app's stage-by-stage call order on the real frame against reference image v2.
  *                         Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A245_OUT, XPE_A245_REF.
+ *   A247_AppPathTiming    (QA-A-247) the calls the operator app makes for one frame (init, three loads, pipeline_out, shutdown), timed per call, 5 rounds.
+ *                         Needs XPE_A240_WRIST, XPE_A245_OUT, XPE_A245_REF.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -1526,4 +1528,161 @@ TEST(A241Measure, DISABLED_A245_AlertsOfTheExportedSet) {
         if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) == XPE_OK) std::printf("[a245]   alert %d (severity %d): %.300s\n", i, sev, msg);
     xpe_clear_alerts();
     xpe_preprocess_shutdown();
+}
+
+// QA-A-246: pipeline_out_ex on the real 3072x3072 frame with the exported calibration set (calib-real-v2): the output with a diagnostics
+// struct and with a NULL pointer is byte-identical to the reference image v2, the counts are zero, and what the counting pass costs.
+// Plain and extended calls alternate within each round (the machine state hits both alike). Needs XPE_A240_WRIST, XPE_A245_OUT (the set), XPE_A245_REF.
+TEST(A241Measure, DISABLED_A246_RealFrameDiagnostics) {
+    const std::string wristPath = envOr("XPE_A240_WRIST", ""), setDir = envOr("XPE_A245_OUT", ""), refPath = envOr("XPE_A245_REF", "");
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(setDir.empty());
+    ASSERT_FALSE(refPath.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::vector<uint16_t> wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(wrist.empty());
+    std::vector<float> ref(N);
+    {
+        std::ifstream f(refPath, std::ios::binary);
+        f.read(reinterpret_cast<char*>(ref.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        ASSERT_EQ(static_cast<std::streamsize>(N * sizeof(float)), f.gcount());
+    }
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset((fs::path(setDir) / "offset.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((fs::path(setDir) / "gain.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map((fs::path(setDir) / "defect.xcal").string().c_str()));
+    xpe_clear_alerts();
+    auto mk = [&](void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = d;
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    std::vector<uint16_t> input(wrist);
+    std::vector<float> outPlain(N), outEx(N);
+    const XpeImageBuffer in = mk(input.data(), N * 2, XPE_PIXEL_UINT16);
+    auto ms = [](auto fn) {
+        const auto t0 = std::chrono::steady_clock::now();
+        fn();
+        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+    };
+    std::vector<double> tPlain, tEx;
+    XpeStageDiagnostics d{};
+    d.structSize = sizeof(d);
+    for (int round = 0; round < 12; ++round) {
+        XpeImageBuffer ob1 = mk(outPlain.data(), N * 4, XPE_PIXEL_FLOAT32), ob2 = mk(outEx.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata m1{}, m2{};
+        XpeErrorCode r1 = XPE_OK, r2 = XPE_OK;
+        if (round % 2 == 0) {
+            tPlain.push_back(ms([&] { r1 = xpe_preprocess_pipeline_out(&in, &ob1, &m1, nullptr, nullptr, cfg); }));
+            tEx.push_back(ms([&] { r2 = xpe_preprocess_pipeline_out_ex(&in, &ob2, &m2, nullptr, nullptr, cfg, &d); }));
+        } else {
+            tEx.push_back(ms([&] { r2 = xpe_preprocess_pipeline_out_ex(&in, &ob2, &m2, nullptr, nullptr, cfg, &d); }));
+            tPlain.push_back(ms([&] { r1 = xpe_preprocess_pipeline_out(&in, &ob1, &m1, nullptr, nullptr, cfg); }));
+        }
+        ASSERT_EQ(XPE_OK, r1);
+        ASSERT_EQ(XPE_OK, r2);
+        xpe_clear_alerts();
+    }
+    auto median = [](std::vector<double> v) {
+        std::sort(v.begin(), v.end());
+        return v[v.size() / 2];
+    };
+    std::printf("[a246] real frame: pipeline_out median %.2f ms (min %.2f max %.2f) | pipeline_out_ex with diag median %.2f ms (min %.2f max %.2f) | difference of medians %.2f ms\n",
+                median(tPlain), *std::min_element(tPlain.begin(), tPlain.end()), *std::max_element(tPlain.begin(), tPlain.end()), median(tEx),
+                *std::min_element(tEx.begin(), tEx.end()), *std::max_element(tEx.begin(), tEx.end()), median(tEx) - median(tPlain));
+    std::printf("[a246] output of pipeline_out vs reference v2: %s | output of pipeline_out_ex (diag) vs reference v2: %s\n",
+                std::memcmp(outPlain.data(), ref.data(), N * 4) == 0 ? "byte-identical" : "DIFFERENT",
+                std::memcmp(outEx.data(), ref.data(), N * 4) == 0 ? "byte-identical" : "DIFFERENT");
+    std::printf("[a246] diagnostics: validMask 0x%x pixelCount %llu gainStageNonFinite %llu finalNonFinite %llu\n", d.validMask, static_cast<unsigned long long>(d.pixelCount),
+                static_cast<unsigned long long>(d.gainStageNonFinite), static_cast<unsigned long long>(d.finalNonFinite));
+    xpe_preprocess_shutdown();
+}
+
+// QA-A-247: the preprocess calls the operator app makes for one frame, in the app's order and with the app's arguments
+// (gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs, Run -> RunPipelineOut): xpe_preprocess_init(NULL); xpe_calib_load_offset; xpe_calib_load_gain;
+// xpe_calib_load_defect_map; xpe_preprocess_pipeline_out(input uint16, output float32, metadata, NULL, NULL, {"bypassTemp","bypassNonlinearity","bypassBinning"});
+// xpe_preprocess_shutdown. The app does ALL of this for every frame it processes (it shuts the module down in a finally block), so one round here is one frame there.
+// Rounds run in one process (the app keeps its DLL loaded between frames). Needs XPE_A240_WRIST, XPE_A245_OUT (calib-real-v2), XPE_A245_REF (reference v2, for the byte check).
+TEST(A241Measure, DISABLED_A247_AppPathTiming) {
+    const std::string wristPath = envOr("XPE_A240_WRIST", ""), setDir = envOr("XPE_A245_OUT", ""), refPath = envOr("XPE_A245_REF", "");
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(setDir.empty());
+    ASSERT_FALSE(refPath.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::vector<uint16_t> wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(wrist.empty());
+    std::vector<float> ref(N);
+    {
+        std::ifstream f(refPath, std::ios::binary);
+        f.read(reinterpret_cast<char*>(ref.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        ASSERT_EQ(static_cast<std::streamsize>(N * sizeof(float)), f.gcount());
+    }
+    const std::string offP = (fs::path(setDir) / "offset.xcal").string(), gainP = (fs::path(setDir) / "gain.xcal").string(), defP = (fs::path(setDir) / "defect.xcal").string();
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    using Clk = std::chrono::steady_clock;
+    auto since = [](Clk::time_point t0) { return std::chrono::duration<double, std::milli>(Clk::now() - t0).count(); };
+
+    struct Round { double init, off, gain, def, pipe, shut, total; };
+    std::vector<Round> rounds;
+    bool identical = true;
+    for (int r = 0; r < 5; ++r) {
+        Round rd{};
+        const auto tAll = Clk::now();
+        auto t = Clk::now();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+        rd.init = since(t);
+        t = Clk::now();
+        ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offP.c_str()));
+        rd.off = since(t);
+        t = Clk::now();
+        ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainP.c_str()));
+        rd.gain = since(t);
+        t = Clk::now();
+        ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defP.c_str()));
+        rd.def = since(t);
+
+        // the app's buffers: input uint16, output float32, metadata with its settings (body part, kVp, mAs, SID, pitch)
+        std::vector<uint16_t> input(wrist);
+        std::vector<float> output(N, 0.0f);
+        XpeImageBuffer ib{}, ob{};
+        ib.data = input.data(); ib.dataSize = N * 2; ib.width = W; ib.height = H; ib.format = XPE_PIXEL_UINT16; ib.bitsAllocated = 16; ib.bitsStored = 16;
+        ob.data = output.data(); ob.dataSize = N * 4; ob.width = W; ob.height = H; ob.format = XPE_PIXEL_FLOAT32; ob.bitsAllocated = 32; ob.bitsStored = 32;
+        XpeImageMetadata meta{};
+        std::snprintf(meta.bodyPart, sizeof meta.bodyPart, "WRIST");
+        meta.kVp = 60.0f; meta.mAs = 2.0f; meta.SID_mm = 1000.0f; meta.pixelPitch_mm = 0.15f;
+        t = Clk::now();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&ib, &ob, &meta, nullptr, nullptr, cfg));
+        rd.pipe = since(t);
+        if (std::memcmp(output.data(), ref.data(), N * 4) != 0) identical = false;
+        t = Clk::now();
+        xpe_preprocess_shutdown();
+        rd.shut = since(t);
+        rd.total = rd.init + rd.off + rd.gain + rd.def + rd.pipe + rd.shut;
+        (void)tAll;
+        rounds.push_back(rd);
+        std::printf("[a247] round %d: init %.2f | load offset %.2f gain %.2f defect %.2f (loads %.2f) | pipeline_out %.2f | shutdown %.2f | sum of calls %.2f ms\n", r + 1, rd.init, rd.off, rd.gain,
+                    rd.def, rd.off + rd.gain + rd.def, rd.pipe, rd.shut, rd.total);
+    }
+    auto med = [&](double Round::*m) {
+        std::vector<double> v;
+        for (const auto& x : rounds) v.push_back(x.*m);
+        std::sort(v.begin(), v.end());
+        return v[v.size() / 2];
+    };
+    std::vector<double> loads;
+    for (const auto& x : rounds) loads.push_back(x.off + x.gain + x.def);
+    std::sort(loads.begin(), loads.end());
+    std::printf("[a247] medians over 5 rounds: init %.2f | offset %.2f gain %.2f defect %.2f | loads %.2f | pipeline_out %.2f | shutdown %.2f | sum of calls %.2f ms\n", med(&Round::init),
+                med(&Round::off), med(&Round::gain), med(&Round::def), loads[loads.size() / 2], med(&Round::pipe), med(&Round::shut), med(&Round::total));
+    std::printf("[a247] every round's output vs reference image v2: %s\n", identical ? "byte-identical" : "DIFFERENT");
 }
