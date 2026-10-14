@@ -449,6 +449,7 @@ internal static class LifetimeScenarios
 #if XPE_TEST_FAULTS
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
 #endif
+                        await Timed(() => TheFrameTimingOfAnOpen_IsNeverWrittenLate_AndSaysWhenItTimedOut_AndLeavesNoSubscription(rawPath, width, height));
                         await Timed(() => AnOlderStatusReadIsNeverShownAfterANewerRequest(rawPath, width, height));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: true));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: false));
@@ -960,6 +961,92 @@ internal static class LifetimeScenarios
         return Task.CompletedTask;
     }
 #endif
+
+    // ---- 10: the frame-timing line of an open (GUI-C-236c, Codex #191 finding 3) --------------------------------------------------------
+    //
+    // The line is written when the second composition tick after an open's processed picture has passed. Three ways it must NOT say something false: a newer open began while the tick was awaited
+    // (the late result of the older open is dropped), the tick never came (the line is written and says TIMED OUT), the window is closing (nothing is written). And the subscription to
+    // CompositionTarget.Rendering is released on every way out. The runner has no window, so the wait for ticks is scripted through CompositionTicksOverride; the real wait is exercised directly.
+
+    private const string TimingPrefix = "open-to-2nd-tick (proxy) #";
+
+    private static async Task TheFrameTimingOfAnOpen_IsNeverWrittenLate_AndSaysWhenItTimedOut_AndLeavesNoSubscription(string rawPath, int width, int height)
+    {
+        _scenario = "10 frame timing of an open";
+
+        // control: an undisturbed open writes its line (so the absence checks below are not an artifact of a wait that never publishes)
+        var directory = TempDirectory();
+        try
+        {
+            var control = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            control.CompositionTicksOverride = (_, _, _) => Task.FromResult(MainWindowViewModel.CompositionWait.Ticked);
+            await LoadAndDrawLanes(control, rawPath);
+            await Until(() => control.FrameTimingText.StartsWith(TimingPrefix + "1:", StringComparison.Ordinal), "the control open's timing line");
+            Check(!control.FrameTimingText.Contains("TIMED OUT", StringComparison.Ordinal), $"an undisturbed open was marked timed out: {control.FrameTimingText}");
+
+            // a newer open begins while the older one still waits for its tick: the older line must never appear, even when its wait ends later
+            var calls = 0;
+            var held = new TaskCompletionSource<MainWindowViewModel.CompositionWait>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var vm = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            vm.CompositionTicksOverride = (_, _, _) => ++calls == 1 ? held.Task : Task.FromResult(MainWindowViewModel.CompositionWait.Ticked);
+            await LoadAndDrawLanes(vm, rawPath);                       // open 1: its wait is held
+            await FlushUi();
+            Check(vm.FrameTimingText.Length == 0, $"the held wait of open 1 already wrote a line: {vm.FrameTimingText}");
+            await LoadAndDrawLanes(vm, rawPath);                       // open 2: its wait ends at once
+            await Until(() => vm.FrameTimingText.StartsWith(TimingPrefix, StringComparison.Ordinal), "open 2's timing line");
+            var lineOfOpen2 = vm.FrameTimingText;
+            held.SetResult(MainWindowViewModel.CompositionWait.Ticked);   // open 1's tick comes late
+            await Until(() => vm.Logs.Any(l => l.Contains("Frame timing of open #1 dropped", StringComparison.Ordinal)), "open 1's late result to be dropped and logged");
+            await FlushUi();
+            Check(vm.FrameTimingText == lineOfOpen2, $"the older open's late result replaced the line ('{lineOfOpen2}' -> '{vm.FrameTimingText}')");
+            var lineCount = vm.Logs.Count(l => l.Contains(TimingPrefix, StringComparison.Ordinal));
+            Check(lineCount == 1, $"expected exactly one timing line in the log (open 2's), found {lineCount}");
+
+            // the tick never comes: the line is written, marked, and the log says it too
+            var timedOut = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            timedOut.CompositionTicksOverride = (_, _, _) => Task.FromResult(MainWindowViewModel.CompositionWait.TimedOut);
+            await LoadAndDrawLanes(timedOut, rawPath);
+            await Until(() => timedOut.FrameTimingText.Length > 0, "the timed-out line");
+            Check(timedOut.FrameTimingText.Contains("TIMED OUT", StringComparison.Ordinal), $"a wait that timed out was not marked in the status line: {timedOut.FrameTimingText}");
+            Check(timedOut.Logs.Any(l => l.Contains("TIMED OUT", StringComparison.Ordinal)), "a wait that timed out was not marked in the log");
+
+            // the window closes while the wait runs (the scripted wait honours the token as the real one does): nothing is written
+            var closing = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            closing.CompositionTicksOverride = (_, _, token) =>
+            {
+                var cancelled = new TaskCompletionSource<MainWindowViewModel.CompositionWait>(TaskCreationOptions.RunContinuationsAsynchronously);
+                token.Register(() => cancelled.TrySetResult(MainWindowViewModel.CompositionWait.Cancelled));
+                return cancelled.Task;
+            };
+            await LoadAndDrawLanes(closing, rawPath);
+            await FlushUi();
+            closing.BeginShutdown();
+            await Until(() => closing.Logs.Any(l => l.Contains("not written: the window is closing", StringComparison.Ordinal)), "the cancelled wait to be logged");
+            Check(closing.FrameTimingText.Length == 0, $"a line was written while the window was closing: {closing.FrameTimingText}");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        // the REAL wait: whichever way it ends - ticks, timeout, cancellation - the subscription is gone. (No window here, so a tick may never come; the outcome is printed, the count is what is checked.)
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"a subscription was already held before the check ({MainWindowViewModel.ActiveCompositionSubscriptions})");
+        var byTimeout = MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromMilliseconds(120), CancellationToken.None);
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 1, $"a running wait holds {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions, expected 1");
+        var endedBy = await byTimeout;
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"after the wait ended ({endedBy}) {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions were left");
+        Check(endedBy != MainWindowViewModel.CompositionWait.Cancelled, "a wait nobody cancelled ended as cancelled");
+        using var cancel = new CancellationTokenSource();
+        var byCancel = MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromSeconds(30), cancel.Token);
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 1, $"a second running wait holds {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions, expected 1");
+        cancel.Cancel();
+        var cancelledBy = await byCancel;
+        Check(cancelledBy == MainWindowViewModel.CompositionWait.Cancelled, $"a cancelled wait ended as {cancelledBy}");
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"after the cancellation {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions were left");
+        var alreadyCancelled = await MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromSeconds(30), cancel.Token);
+        Check(alreadyCancelled == MainWindowViewModel.CompositionWait.Cancelled && MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"a wait started with a token already cancelled ended as {alreadyCancelled} with {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions left");
+        Console.WriteLine($"    real wait without a window ended by: {endedBy}");
+    }
 
     // ---- 7: an older status read is never shown after a newer request (GUI-C-192, the GUI-C-191b reproduction) ---------------------------
     //

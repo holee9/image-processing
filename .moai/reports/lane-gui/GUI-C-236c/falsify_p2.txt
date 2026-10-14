@@ -1,0 +1,31 @@
+=== ARM A: no check that a newer open began / another picture replaced it
+build exit=0
+run exit=3762504530
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[10 frame timing of an open] timed out waiting for: open 1's late result to be dropped and logged
+[10 frame timing of an open] the older open's late result replaced the line ('open-to-2nd-tick (proxy) #1: 6 ms = read 2 + prepare 0 + chain-and-display 3 [preprocess=0 ms, enhance_basic=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 0' -> 'open-to-2nd-tick (proxy) #2: 62 ms = read 2 + prepare 0 + chain-and-display 3 [preprocess=0 ms, enhance_basic=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 56')
+[10 frame timing of an open] expected exactly one timing line in the log (open 2's), found 2
+
+=== ARM B: subscription count not released in the finally
+build exit=0
+run exit=3762504530
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[10 frame timing of an open] after the wait ended (Ticked) 1 subscriptions were left
+[10 frame timing of an open] a second running wait holds 2 subscriptions, expected 1
+[10 frame timing of an open] after the cancellation 2 subscriptions were left
+[10 frame timing of an open] a wait started with a token already cancelled ended as Cancelled with 3 subscriptions left
+
+=== ARM C: shutdown does not cancel the waiting timing
+build exit=0
+run exit=3762504530
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[10 frame timing of an open] timed out waiting for: the cancelled wait to be logged
+
+=== ARM D: a timed-out wait is not marked
+build exit=0
+run exit=3762504530
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[10 frame timing of an open] a wait that timed out was not marked in the status line: open-to-2nd-tick (proxy) #1: 5 ms = read 2 + prepare 0 + chain-and-display 2 [preprocess=0 ms, enhance_basic=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 0
+[10 frame timing of an open] a wait that timed out was not marked in the log
+
+restore byte-identical: True; rebuild exit=0

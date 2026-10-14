@@ -983,45 +983,94 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// GUI-C-236b (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms): from the moment the open starts reading the file to the moment the PROCESSED first picture has been rendered by WPF. The app records both ends
-    /// itself (<c>FrameTimingText</c> in the status bar and the log): the start is taken when the open begins reading the file (after the file dialog has answered), the end is the second WPF composition
-    /// tick after the processed picture was handed to the viewport. The line also gives the parts: read, prepare, chain-and-display (with the stage times), ui, render. The file is opened five times in one
-    /// session on real data; the first includes the start-up cost of the code (JIT), and is printed. The numbers are this machine's, an upper-bound estimate for CI; the median of the five is asserted against 3000 ms.
-    /// Needs the same variables as W7.
+    /// GUI-C-236b / 236c (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms): from the moment the open starts reading the file to the moment the PROCESSED first picture is on the screen. Two values are taken for the same
+    /// five opens and printed side by side.
+    /// <para>(1) The app's own line (<c>FrameTimingText</c>, status bar and log) is a PROXY: its end is the second WPF composition tick after the processed picture was handed to the viewport, and
+    /// <c>CompositionTarget.Rendering</c> is raised before the frame is rendered, so it is not proof that the picture was drawn.</para>
+    /// <para>(2) The SCREEN value is observed from outside, independently of the app (<see cref="ScreenPoller"/>, <see cref="ScreenSettle"/>): from the moment the open is confirmed, the viewport's area is copied off
+    /// the screen again and again; the picture appeared when the final unbroken run of captures that equal the settled final picture began. It starts at the confirmation of the dialog, a little before the app
+    /// starts reading (the dialog has to close first), so it can only be later than the proxy's start. The U8 verdict is judged on the SCREEN value.</para>
+    /// The first open includes the start-up cost of the code (JIT). The numbers are this machine's observations, with the observer running (it uses a core), not a CI figure. Needs the same variables as W7.
     /// </summary>
     [EnvGatedFact]
-    public void W15_OpenToProcessedPicture_AppRecordedBothEnds_FiveOpens()
+    public void W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens()
     {
         var (native, calib, raw, width, height) = Inputs();
         using var app = GuiApp.Launch(output, native, extraArguments:
             ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", width.ToString(), "--automation-height", height.ToString()]);
-        var rows = new List<(int Total, int Read, int Prepare, int Work, int Ui, int Render, string Stages)>();
+        ScreenPoller.RaiseWithoutFocus(app.WindowHandle);   // above the other windows of a shared desktop, without taking the focus
+        Thread.Sleep(800);
+        var area = app.MainViewportArea(laneStripHeight: 200);
+        output.WriteLine($"   watched area (screen pixels): {area}");
+        var shots = Path.Combine(Path.GetTempPath(), "xpe_w15_shots_" + DateTime.Now.ToString("HHmmss"));
+        Directory.CreateDirectory(shots);
+
+        var rows = new List<(int Proxy, ScreenSettleResult? Screen)>();
+        byte[]? firstFinal = null;
         for (var i = 1; i <= 5; i++)
         {
+            ScreenPoller? poller = null;
             app.Menu("FileMenu");
-            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
-            var prefix = $"open-to-picture #{i}:";
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1", beforeConfirm: () => poller = ScreenPoller.Start(app.WindowHandle, area));
+            Assert.NotNull(poller);
+            var prefix = $"open-to-2nd-tick (proxy) #{i}:";
             app.WaitFor(() => app.Read("FrameTimingText").StartsWith(prefix, StringComparison.Ordinal), $"the app wrote '{prefix}'", 120);
+            Thread.Sleep(1200);                                          // the picture stays on screen: the end of the observation is a settled screen, not the moment the line appeared
+            var samples = poller!.Stop(out var lastShot);
+            lastShot?.Save(Path.Combine(shots, $"open{i}_final.png"), System.Drawing.Imaging.ImageFormat.Png);
+            lastShot?.Dispose();
+
             var line = app.Read("FrameTimingText");
             output.WriteLine($"   {line}");
-            Assert.DoesNotContain("no composition tick", line, StringComparison.Ordinal);
-            var m = System.Text.RegularExpressions.Regex.Match(line, @"#\d+: (\d+) ms = read (\d+) \+ prepare (\d+) \+ chain-and-display (\d+) \[(.*?)\] \+ ui (\d+) \+ render (\d+)");
+            Assert.DoesNotContain("TIMED OUT", line, StringComparison.Ordinal);
+            var m = System.Text.RegularExpressions.Regex.Match(line, @"#\d+: (\d+) ms = ");
             Assert.True(m.Success, "the timing line has an unexpected shape: " + line);
-            rows.Add((int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value), int.Parse(m.Groups[4].Value), int.Parse(m.Groups[6].Value), int.Parse(m.Groups[7].Value), m.Groups[5].Value));
             Assert.Contains("preprocess=Applied", app.Read("ChainStatusText"), StringComparison.Ordinal);   // the picture measured is the processed one
-            Thread.Sleep(1500);
+
+            var screen = ScreenSettle.Analyse(samples, poller.StartedAt, minimumStableMs: 1000);
+            var spacing = samples.Count > 1 ? (samples[^1].Before - samples[0].Before) * 1000.0 / System.Diagnostics.Stopwatch.Frequency / (samples.Count - 1) : double.NaN;
+            output.WriteLine($"   screen: {screen.Captures} captures (every {spacing:0.0} ms); settled={screen.Settled} ({screen.Why}); picture seen between {screen.EarliestMs:0} and {screen.LatestMs:0} ms after the confirmation; the picture before it differed from the final one at {screen.LastBeforeMismatch:P0} of the points; the final picture stayed {screen.FinalRunMs:0} ms ({screen.FinalRunLength} captures)");
+            // An observation counts only when it SAW a change: the screen left one picture and settled on another that differs from it. A screen that never changes (every capture equal) or changes by noise
+            // is a blind observer, not a fast app: it is reported as not observable and no screen value is claimed. (GUI-C-236c measured exactly that on this machine: a plain dark-red WPF window
+            // probe reads as white through CopyFromScreen and through PrintWindow, so no WPF picture can be read here at all; see the report.)
+            var observable = screen.Settled && screen.LastBeforeMismatch >= 0.05;
+            if (!observable)
+            {
+                output.WriteLine($"   screen: NOT OBSERVABLE for open {i}: {(screen.Settled ? $"the picture before the final one differs from it at only {screen.LastBeforeMismatch:P1} of the points" : screen.Why)}. Watched area {area}; last capture: {Path.Combine(shots, $"open{i}_final.png")}");
+            }
+            else
+            {
+                var final = samples[^1].Gray;
+                firstFinal ??= final;
+                Assert.True(ScreenSettle.Match(final, firstFinal) >= ScreenSettle.MatchShare, $"open {i}: the settled picture differs from the first open's although the same file was opened (match {ScreenSettle.Match(final, firstFinal):P1})");
+            }
+
+            rows.Add((int.Parse(m.Groups[1].Value), observable ? screen : null));
+            Thread.Sleep(500);
         }
 
-        output.WriteLine("   | open | total ms | read | prepare | chain+display | ui | render | stages |");
+        output.WriteLine("   | open | proxy ms (app: read start -> 2nd tick) | screen ms (confirmation -> picture seen, no later than) | not yet there at | screen - proxy |");
         for (var i = 0; i < rows.Count; i++)
         {
-            var r = rows[i];
-            output.WriteLine($"   | {i + 1} | {r.Total} | {r.Read} | {r.Prepare} | {r.Work} | {r.Ui} | {r.Render} | {r.Stages} |");
+            var s = rows[i].Screen;
+            output.WriteLine(s is null
+                ? $"   | {i + 1} | {rows[i].Proxy} | not observable | | |"
+                : $"   | {i + 1} | {rows[i].Proxy} | {s.LatestMs:0} | {s.EarliestMs:0} | {s.LatestMs - rows[i].Proxy:+0;-0} |");
         }
 
-        var sorted = rows.Select(r => r.Total).OrderBy(x => x).ToArray();
-        output.WriteLine($"   totals (ms): {string.Join(", ", rows.Select(r => r.Total))}; median {sorted[2]} ms (limit 3000 ms, PERF-P1-001; this machine, an upper-bound estimate for CI)");
-        Assert.True(sorted[2] <= 3000, $"median {sorted[2]} ms exceeds 3000 ms");
+        var proxy = rows.Select(r => (double)r.Proxy).OrderBy(x => x).ToArray();
+        output.WriteLine($"   screenshots of each open's final capture: {shots}");
+        if (rows.Any(r => r.Screen is null))
+        {
+            output.WriteLine($"   U8 BY THE SCREEN: NOT MEASURED ({rows.Count(r => r.Screen is not null)} of {rows.Count} opens observable). The proxy median is {proxy[2]:0} ms (app's second composition tick; NOT proof the picture was drawn) and is the only figure.");
+            Assert.True(proxy[2] <= 3000, $"the proxy median {proxy[2]:0} ms exceeds 3000 ms");
+            return;
+        }
+
+        var screenMs = rows.Select(r => r.Screen!.LatestMs).OrderBy(x => x).ToArray();
+        var differences = rows.Select(r => r.Screen!.LatestMs - r.Proxy).OrderBy(x => x).ToArray();
+        output.WriteLine($"   medians (ms): proxy {proxy[2]:0}, screen {screenMs[2]:0}, screen - proxy {differences[2]:+0;-0}   (limit 3000 ms, PERF-P1-001; this machine's observation, with the observer running)");
+        Assert.True(screenMs[2] <= 3000, $"the screen median {screenMs[2]:0} ms exceeds 3000 ms");
     }
 
     /// <summary>
@@ -1097,6 +1146,9 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         }
 
         public string Title => _window.Title;
+
+        /// <summary>GUI-C-236c: the native handle of the main window (for reading its picture).</summary>
+        public IntPtr WindowHandle => _window.Properties.NativeWindowHandle.Value;
 
         /// <summary>GUI-C-236b: the title of the dialog the last Invoke...Dialog call drove.</summary>
         public string LastDialogTitle { get; private set; } = string.Empty;
@@ -1264,12 +1316,22 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             Thread.Sleep(600);
         }
 
-        public void InvokeMenuItemThenDialog(string automationId, string? path, string confirmId)
+        /// <param name="beforeConfirm">GUI-C-236c: called immediately before the dialog's confirm button is pressed - the moment the open is confirmed (the screen observer starts here).</param>
+        public void InvokeMenuItemThenDialog(string automationId, string? path, string confirmId, Action? beforeConfirm = null)
         {
             var item = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.AsMenuItem();
             Assert.True(item is not null && item.IsEnabled, $"menu item '{automationId}' was not found or is disabled");
             _ = Task.Run(() => item!.Invoke());
-            DriveDialog(path, confirmId);
+            DriveDialog(path, confirmId, beforeConfirm);
+        }
+
+        /// <summary>GUI-C-236c: the screen rectangle of the main viewport, as UI Automation reports it, without the bottom strip where the two lane pictures are drawn (they arrive after the main picture).</summary>
+        public System.Drawing.Rectangle MainViewportArea(int laneStripHeight)
+        {
+            var viewport = _window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport"));
+            Assert.True(viewport is not null, "the main viewport (WorkbenchViewport) was not found");
+            var bounds = viewport!.BoundingRectangle;
+            return new System.Drawing.Rectangle(bounds.X, bounds.Y, bounds.Width, Math.Max(0, bounds.Height - laneStripHeight));
         }
 
         public void InvokeButtonThenDialog(string automationId, string path, string confirmId)
@@ -1280,7 +1342,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             DriveDialog(path, confirmId);
         }
 
-        private void DriveDialog(string? path, string confirmId)
+        private void DriveDialog(string? path, string confirmId, Action? beforeConfirm = null)
         {
             Window? dialog = null;
             var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
@@ -1329,6 +1391,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             Assert.True(confirm is not null, $"the dialog's confirm button (id {confirmId}) was not found");
             var handle = confirm!.Properties.NativeWindowHandle.ValueOrDefault;
             Assert.True(handle != IntPtr.Zero, "the confirm button has no window handle");
+            beforeConfirm?.Invoke();
             SendMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
 
             var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
