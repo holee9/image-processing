@@ -1,0 +1,18 @@
+run 1 start 18:44:23
+크래시가 발생했을 때 실행 중이었던 테스트:
+이 테스트는 크래시의 원인이거나 원인이 아닐 수 있습니다.
+  D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\TestResults\4cd1282e-859e-4d4a-b6f2-98c43ea07018\testhost_38708_20261014T184926_hangdump.dmp
+  D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\TestResults\4cd1282e-859e-4d4a-b6f2-98c43ea07018\ImageProcTest_30296_20261014T184925_hangdump.dmp
+run 1 end 18:49:28
+run 2 start 18:49:28
+크래시가 발생했을 때 실행 중이었던 테스트:
+이 테스트는 크래시의 원인이거나 원인이 아닐 수 있습니다.
+  D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\TestResults\d223e746-594c-4435-8a80-e7ac715fdc5e\testhost_50100_20261014T185431_hangdump.dmp
+  D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\TestResults\d223e746-594c-4435-8a80-e7ac715fdc5e\ImageProcTest_45044_20261014T185429_hangdump.dmp
+run 2 end 18:54:33
+run 3 start 18:54:33
+크래시가 발생했을 때 실행 중이었던 테스트:
+이 테스트는 크래시의 원인이거나 원인이 아닐 수 있습니다.
+  D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\TestResults\1455dff7-7927-4d0b-88f2-b7e5ee5d6cfb\testhost_47112_20261014T185936_hangdump.dmp
+  D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\TestResults\1455dff7-7927-4d0b-88f2-b7e5ee5d6cfb\ImageProcTest_51960_20261014T185935_hangdump.dmp
+run 3 end 18:59:39

@@ -998,7 +998,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     /// <c>CompositionTarget.Rendering</c> is raised before the frame is rendered, so it is not proof that the picture was drawn.</para>
     /// <para>(2) The SCREEN value is observed from outside, independently of the app (<see cref="ScreenPoller"/>, <see cref="ScreenSettle"/>): from the moment the open is confirmed, the viewport's area is copied off
     /// the screen again and again; the picture appeared when the final unbroken run of captures that equal the settled final picture began. It starts at the confirmation of the dialog, a little before the app
-    /// starts reading (the dialog has to close first), so it can only be later than the proxy's start. The U8 VERDICT is the approved rule of milestone 3 (leader decision 2026-10-14, main 5537f4e5): the median of the five PROXY values must be &lt;= 1500 ms (half of the PERF-P1-001 limit, because the end point is a proxy). It is asserted whether or not the screen can be read (<see cref="U8Verdict"/>, with boundary tests). Where the screen CAN be read, the screen median must additionally be &lt;= 3000 ms. How many frames after the proxy the picture is really presented is NOT measured in this environment: any such figure is an unmeasured estimate.</para>
+    /// starts reading (the dialog has to close first), so it can only be later than the proxy's start. The U8 VERDICT (<see cref="U8Verdict"/>, with boundary tests; GUI-C-244): when the screen was validly observed for all five opens the median of the five SCREEN values must be &lt;= 3000 ms (PERF-P1-001); only when it was not (an environment that cannot read the screen) the median of the five PROXY values must be &lt;= 1500 ms (half of the limit, because the end point is a proxy). The branch taken is printed.</para>
     /// The first open includes the start-up cost of the code (JIT). The numbers are this machine's observations, with the observer running (it uses a core), not a CI figure. Needs the same variables as W7.
     /// </summary>
     [EnvGatedFact]
@@ -1070,20 +1070,22 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var proxy = rows.Select(r => (double)r.Proxy).OrderBy(x => x).ToArray();
         output.WriteLine($"   screenshots of each open's final capture: {shots}");
 
-        // THE verdict (approved rule, main 5537f4e5): proxy median of five <= 1500 ms, screen or no screen
-        var verdict = U8Verdict.OfProxyMedian(rows.Select(r => (double)r.Proxy).ToArray());
-        output.WriteLine($"   U8 verdict (approved: proxy median of five <= {U8Verdict.ProxyLimitMs:0} ms): median {verdict.MedianMs:0} ms -> {(verdict.Passes ? "PASS" : "FAIL")}. The end point is the second composition tick (a proxy); how many frames later the picture is really presented is NOT measured here (unmeasured estimate).");
-        Assert.True(verdict.Passes, $"the proxy median {verdict.MedianMs:0} ms exceeds the approved {U8Verdict.ProxyLimitMs:0} ms (U8, main 5537f4e5)");
-        if (rows.Any(r => r.Screen is null))
+        // THE verdict (U8, revised by GUI-C-244): the SCREEN median of five <= 3000 ms when the screen was validly observed for all five opens, else the PROXY median of five <= 1500 ms
+        var verdict = U8Verdict.Judge(rows.Select(r => new U8Verdict.Open(r.Proxy, r.Screen?.LatestMs)).ToArray());
+        var observedCount = rows.Count(r => r.Screen is not null);
+        if (verdict.Basis == U8Verdict.Basis.Screen)
         {
-            output.WriteLine($"   U8 BY THE SCREEN: NOT MEASURED ({rows.Count(r => r.Screen is not null)} of {rows.Count} opens observable). The proxy median is {proxy[2]:0} ms (app's second composition tick; NOT proof the picture was drawn) and is the only figure.");
-            return;
+            var screenMs = rows.Select(r => r.Screen!.LatestMs).OrderBy(x => x).ToArray();
+            var differences = rows.Select(r => r.Screen!.LatestMs - r.Proxy).OrderBy(x => x).ToArray();
+            output.WriteLine($"   medians (ms): proxy {proxy[2]:0}, screen {screenMs[2]:0}, screen - proxy {differences[2]:+0;-0}   (this machine's observation, with the observer running)");
+            output.WriteLine($"   U8 verdict BY THE SCREEN ({observedCount} of {rows.Count} opens validly observed): screen median {verdict.MedianMs:0} ms, limit {verdict.LimitMs:0} ms (PERF-P1-001) -> {(verdict.Passes ? "PASS" : "FAIL")}.");
+        }
+        else
+        {
+            output.WriteLine($"   U8 verdict BY THE PROXY (the screen was validly observed for {observedCount} of {rows.Count} opens, not all): proxy median {verdict.MedianMs:0} ms, limit {verdict.LimitMs:0} ms (half of PERF-P1-001, the end point being a proxy) -> {(verdict.Passes ? "PASS" : "FAIL")}. The end point is the second composition tick (NOT proof the picture was drawn); how many frames later it is presented is not measured (unmeasured estimate).");
         }
 
-        var screenMs = rows.Select(r => r.Screen!.LatestMs).OrderBy(x => x).ToArray();
-        var differences = rows.Select(r => r.Screen!.LatestMs - r.Proxy).OrderBy(x => x).ToArray();
-        output.WriteLine($"   medians (ms): proxy {proxy[2]:0}, screen {screenMs[2]:0}, screen - proxy {differences[2]:+0;-0}   (limit 3000 ms, PERF-P1-001; this machine's observation, with the observer running)");
-        Assert.True(screenMs[2] <= 3000, $"the screen median {screenMs[2]:0} ms exceeds 3000 ms");
+        Assert.True(verdict.Passes, $"U8 by the {verdict.Basis.ToString().ToLowerInvariant()}: the median {verdict.MedianMs:0} ms exceeds {verdict.LimitMs:0} ms");
     }
 
     /// <summary>
@@ -1179,6 +1181,54 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
         private const uint WmSetText = 0x000C;
 
+        // GUI-C-244 (#268): the native window calls that stand in for UI Automation while a message box is open inside the app (see DriveDialog).
+        private delegate bool EnumWindowsProc(IntPtr window, IntPtr state);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindow(IntPtr window);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool IsWindowVisible(IntPtr window);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr state);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int GetClassNameW(IntPtr window, System.Text.StringBuilder text, int capacity);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetDlgItem(IntPtr dialog, int id);
+
+        [DllImport("user32.dll", EntryPoint = "PostMessageW")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+        /// <summary>GUI-C-244: the visible top-level windows of the app other than <paramref name="except"/>, by native calls only (handle, class, Yes-button handle or zero). With a message box open inside the app's own message
+        /// handler, a UI Automation walk of the WPF window waits for the app's dispatcher, which is inside that message box, and does not come back.</summary>
+        private List<(IntPtr Window, string Class, IntPtr YesButton)> OtherTopLevelWindows(IntPtr except)
+        {
+            var processId = (uint)_application.ProcessId;
+            var found = new List<(IntPtr, string, IntPtr)>();
+            EnumWindows((window, _) =>
+            {
+                if (window == except) return true;
+                GetWindowThreadProcessId(window, out var owner);
+                if (owner != processId) return true;
+                var className = new System.Text.StringBuilder(64);
+                GetClassNameW(window, className, className.Capacity);
+                var label = className + (IsWindowVisible(window) ? string.Empty : " (hidden)");
+                found.Add((window, label, className.ToString() == "#32770" ? GetDlgItem(window, 6) : IntPtr.Zero));
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+
         /// <summary>GUI-C-232b: when set, a "file already exists" confirmation that follows the save dialog's Save button is answered Yes (button id 6) instead of being left open.</summary>
         public bool ConfirmOverwrite { get; set; }
 
@@ -1189,6 +1239,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         private readonly Application _application;
         private readonly Window _window;
         private readonly string? _settingsDirectory;
+        private readonly AppWatchdog _watchdog;
         private HashSet<string> _lastTexts = [];
 
         private GuiApp(ITestOutputHelper output, UIA3Automation automation, Application application, Window window, string? settingsDirectory)
@@ -1198,6 +1249,8 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             _application = application;
             _window = window;
             _settingsDirectory = settingsDirectory;
+            // GUI-C-244 (#268): a UI Automation call into an app that stopped answering never returns; killing the app is the only thing that frees it.
+            _watchdog = new AppWatchdog(AppWatchdog.DefaultLimit(), () => _application.Kill(), _output.WriteLine);
         }
 
         public string Title => _window.Title;
@@ -1446,26 +1499,42 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             Assert.True(confirm is not null, $"the dialog's confirm button (id {confirmId}) was not found");
             var handle = confirm!.Properties.NativeWindowHandle.ValueOrDefault;
             Assert.True(handle != IntPtr.Zero, "the confirm button has no window handle");
+            var dialogHandle = dialog.Properties.NativeWindowHandle.ValueOrDefault;
+            Assert.True(dialogHandle != IntPtr.Zero, "the dialog has no window handle");
             beforeConfirm?.Invoke();
-            SendMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
+            // GUI-C-244 (#268): POSTED, not sent. A sent BM_CLICK returns only when the button's handler has, and the handler of a save dialog that is about to replace an existing file shows the "replace?" message box:
+            // this thread then waits for a box that only this thread answers (the wait that stopped W9 for the whole job time; the watchdog's kill is what freed it in the trace).
+            PostMessage(handle, BmClick, IntPtr.Zero, IntPtr.Zero);
 
-            var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(30);
-            while (DateTime.UtcNow < closeDeadline && _window.ModalWindows.Length > 0)
+            // GUI-C-244 (#268): the wait for the dialog to go and the answer to the overwrite prompt use native window calls only. The prompt is a message box the app shows from inside its own message handler; while it is
+            // open, a UI Automation walk of the WPF window (what this loop did, through _window.ModalWindows) waits for the app's dispatcher, which is inside that message box, and does not come back. That stopped the
+            // PR #266 Native job right after W12 (W9 is the next test) and reproduced locally with W9 alone (hang dump: the app's UI thread in MessageBox, this thread in FindAllDescendants).
+            var closeStart = DateTime.UtcNow;
+            var closeDeadline = closeStart + TimeSpan.FromSeconds(30);
+            var gonePolls = 0;
+            var lastSeen = string.Empty;
+            while (DateTime.UtcNow < closeDeadline)
             {
+                var all = OtherTopLevelWindows(dialogHandle);
+                var others = all.Where(w => w.Class == "#32770").ToList();
+                var seen = $"dialog 0x{dialogHandle.ToInt64():X} {(IsWindow(dialogHandle) ? "open" : "gone")}; app windows: " + string.Join(", ", all.Select(w => $"0x{w.Window.ToInt64():X} {w.Class}{(w.YesButton != IntPtr.Zero ? " yes-button" : string.Empty)}"));
+                if (seen != lastSeen) { _output.WriteLine($"   native (+{(DateTime.UtcNow - closeStart).TotalMilliseconds:0} ms): " + seen); lastSeen = seen; }
                 if (ConfirmOverwrite)
                 {
-                    var yes = dialog.ModalWindows.FirstOrDefault()?.FindFirstDescendant(cf => cf.ByAutomationId("6").And(cf.ByControlType(ControlType.Button)));
-                    var yesHandle = yes?.Properties.NativeWindowHandle.ValueOrDefault ?? IntPtr.Zero;
-                    if (yesHandle != IntPtr.Zero)
+                    foreach (var box in others.Where(w => w.YesButton != IntPtr.Zero))
                     {
                         _output.WriteLine("   dialog: the file exists; answering Yes to the overwrite prompt");
-                        SendMessage(yesHandle, BmClick, IntPtr.Zero, IntPtr.Zero);
+                        PostMessage(box.YesButton, BmClick, IntPtr.Zero, IntPtr.Zero);
                     }
                 }
 
+                // Gone means: the dialog and every message box are gone on two polls in a row (the message box appears a moment after the dialog's button is pressed).
+                gonePolls = !IsWindow(dialogHandle) && others.Count == 0 ? gonePolls + 1 : 0;
+                if (gonePolls >= 2) break;
                 Thread.Sleep(200);
             }
-            Assert.True(_window.ModalWindows.Length == 0, "the dialog is still open after BM_CLICK on its confirm button");
+
+            Assert.True(gonePolls >= 2, "the dialog (or a message box it raised) is still open after BM_CLICK on its confirm button");
         }
 
         /// <summary>Prints every visible text that changed since the previous snapshot (and the window title), so the evidence is the screen's own words.</summary>
@@ -1491,6 +1560,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
         public void Dispose()
         {
+            _watchdog.Dispose();
             try { if (!_application.HasExited) _application.Close(); } catch (Exception) { /* the kill below is the guarantee */ }
             try { _application.Kill(); } catch (Exception) { /* already gone */ }
             _automation.Dispose();

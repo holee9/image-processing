@@ -1,0 +1,69 @@
+Loading core dump: ImageProcTest_51960_20261014T185935_hangdump.dmp ...
+OS Thread Id: 0x6554
+        Child SP               IP Call Site
+000000ABC9F7A470 00007ffd41e4ae84 [InlinedCallFrame: 000000abc9f7a470] MS.Win32.UnsafeNativeMethods.MessageBox(System.Runtime.InteropServices.HandleRef, System.String, System.String, Int32)
+000000ABC9F7A470 00007ffc612c9edd [InlinedCallFrame: 000000abc9f7a470] MS.Win32.UnsafeNativeMethods.MessageBox(System.Runtime.InteropServices.HandleRef, System.String, System.String, Int32)
+000000ABC9F7A440 00007FFC612C9EDD ILStubClass.IL_STUB_PInvoke(System.Runtime.InteropServices.HandleRef, System.String, System.String, Int32)
+000000ABC9F7A510 00007FFCA776E26F System.Windows.MessageBox.ShowCore(IntPtr, System.String, System.String, System.Windows.MessageBoxButton, System.Windows.MessageBoxImage, System.Windows.MessageBoxResult, System.Windows.MessageBoxOptions)
+000000ABC9F7A5A0 00007FFCA7644523 Microsoft.Win32.CommonItemDialog.MessageBoxWithFocusRestore(System.String, System.Windows.MessageBoxButton, System.Windows.MessageBoxImage)
+000000ABC9F7A630 00007FFCA7646639 Microsoft.Win32.SaveFileDialog.PromptUserIfAppropriate(System.String)
+000000ABC9F7A670 00007FFCA76458BB Microsoft.Win32.FileDialog.ProcessFileNames()
+000000ABC9F7A760 00007FFCA7644AE3 Microsoft.Win32.CommonItemDialog.HandleItemOk(MS.Internal.AppModel.IFileDialog)
+000000ABC9F7A7C0 00007FFCA7B3979F Microsoft.Win32.CommonItemDialog+VistaDialogEvents.MS.Internal.AppModel.IFileDialogEvents.OnFileOk(MS.Internal.AppModel.IFileDialog)
+000000ABC9F7A7F0 00007FFC60B34ECF ILStubClass.IL_STUB_COMtoCLR(IntPtr)
+000000ABC9F7A950 00007ffcbf75f339 [ComMethodFrame: 000000abc9f7a950]
+000000ABC9F7D738 00007ffcbf75f339 [InlinedCallFrame: 000000abc9f7d738] MS.Internal.AppModel.IFileDialog.Show(IntPtr)
+000000ABC9F7D738 00007ffc60b34dc0 [InlinedCallFrame: 000000abc9f7d738] MS.Internal.AppModel.IFileDialog.Show(IntPtr)
+000000ABC9F7D700 00007FFC60B34DC0 ILStubClass.IL_STUB_CLRtoCOM(IntPtr)
+000000ABC9F7D7E0 00007FFCA76443B0 Microsoft.Win32.CommonItemDialog.RunDialog(IntPtr)
+000000ABC9F7D850 00007FFCA7643B0F Microsoft.Win32.CommonDialog.ShowDialog()
+000000ABC9F7D8E0 00007FFC612A4647 ImageProcTest.ViewModels.MainWindowViewModel.SaveCorrected(System.String, System.String, System.String, System.Func`3<System.String,ImageProcTest.Services.CorrectedImage,ImageProcTest.Services.SavedFile>, System.String) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs @ 966]
+000000ABC9F7DB20 00007FFC612A4335 ImageProcTest.ViewModels.MainWindowViewModel.SaveCorrectedFloat() [D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs @ 935]
+000000ABC9F7DBA0 00007FFC60B32A62 ImageProcTest.ViewModels.RelayCommand.Execute(System.Object) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\RelayCommand.cs @ 18]
+000000ABC9F7DBE0 00007FFCA7A819DB System.Windows.Controls.MenuItem.InvokeClickAfterRender(System.Object)
+000000ABC9F7DC30 00007FFC6075A298 System.Windows.Threading.ExceptionWrapper.InternalRealCall(System.Delegate, System.Object, Int32)
+000000ABC9F7DCF0 00007FFC60759BC2 System.Windows.Threading.ExceptionWrapper.TryCatchWhen(System.Object, System.Delegate, System.Object, Int32, System.Delegate)
+000000ABC9F7DD40 00007FFC60E3919C System.Windows.Threading.DispatcherOperation.InvokeImpl()
+000000ABC9F7DDC0 00007FFC60E38F3D MS.Internal.CulturePreservingExecutionContext.CallbackWrapper(System.Object)
+000000ABC9F7DE20 00007FFC60E38D08 System.Threading.ExecutionContext.RunInternal(System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179]
+000000ABC9F7DEA0 00007FFC60E38928 MS.Internal.CulturePreservingExecutionContext.Run(MS.Internal.CulturePreservingExecutionContext, System.Threading.ContextCallback, System.Object)
+000000ABC9F7DF10 00007FFC60E385D3 System.Windows.Threading.DispatcherOperation.Invoke()
+000000ABC9F7DF70 00007FFC60E37F8D System.Windows.Threading.Dispatcher.ProcessQueue()
+000000ABC9F7E010 00007FFC60E368E0 System.Windows.Threading.Dispatcher.WndProcHook(IntPtr, Int32, IntPtr, IntPtr, Boolean ByRef)
+000000ABC9F7E080 00007FFC6075A01E System.Windows.Threading.ExceptionWrapper.InternalRealCall(System.Delegate, System.Object, Int32)
+000000ABC9F7E140 00007FFC60759BC2 System.Windows.Threading.ExceptionWrapper.TryCatchWhen(System.Object, System.Delegate, System.Object, Int32, System.Delegate)
+000000ABC9F7E190 00007FFC6075B2FA System.Windows.Threading.Dispatcher.LegacyInvokeImpl(System.Windows.Threading.DispatcherPriority, System.TimeSpan, System.Delegate, System.Object, Int32)
+000000ABC9F7E220 00007FFC6075AB52 MS.Win32.HwndSubclass.SubclassWndProc(IntPtr, Int32, IntPtr, IntPtr)
+000000ABC9F7E310 00007FFC5FBD8410 ILStubClass.IL_STUB_ReversePInvoke(Int64, Int32, Int64, Int64)
+000000ABC9F7E598 00007ffd4363c366 [InlinedCallFrame: 000000abc9f7e598] MS.Win32.UnsafeNativeMethods.DispatchMessage(System.Windows.Interop.MSG ByRef)
+000000ABC9F7E598 00007ffc5fbdd3cb [InlinedCallFrame: 000000abc9f7e598] MS.Win32.UnsafeNativeMethods.DispatchMessage(System.Windows.Interop.MSG ByRef)
+000000ABC9F7E570 00007FFC5FBDD3CB ILStubClass.IL_STUB_PInvoke(System.Windows.Interop.MSG ByRef)
+000000ABC9F7E630 00007FFCAE44B1BF System.Windows.Threading.Dispatcher.PushFrameImpl(System.Windows.Threading.DispatcherFrame)
+000000ABC9F7E6C0 00007FFCA7749EED System.Windows.Application.RunDispatcher(System.Object)
+000000ABC9F7E700 00007FFCA774872B System.Windows.Application.RunInternal(System.Windows.Window)
+000000ABC9F7E760 00007FFC5FBD3691 ImageProcTest.App.Main()
+OS Thread Id: 0xbc5c
+        Child SP               IP Call Site
+000000ABCA87F728 00007ffd44760ed4 [DebuggerU2MCatchHandlerFrame: 000000abca87f728]
+OS Thread Id: 0x5838
+        Child SP               IP Call Site
+000000ABC9AFF548 00007ffd44760ed4 [HelperMethodFrame: 000000abc9aff548] System.Threading.WaitHandle.WaitOneCore(IntPtr, Int32)
+000000ABC9AFF650 00007FFC60E3DEDE System.Threading.WaitHandle.WaitOneNoCheck(Int32) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/WaitHandle.cs @ 131]
+000000ABC9AFF6C0 00007FFCB3059624 System.Threading.PortableThreadPool+GateThread.GateThreadStart() [/_/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.GateThread.cs @ 64]
+000000ABC9AFFA38 00007ffcbf75f123 [DebuggerU2MCatchHandlerFrame: 000000abc9affa38]
+OS Thread Id: 0xae04
+        Child SP               IP Call Site
+000000ABCB47F870 00007ffd41e4ae84 [InlinedCallFrame: 000000abcb47f870] MS.Win32.Penimc.UnsafeNativeMethods.GetPenEvent(IntPtr, IntPtr, Int32 ByRef, Int32 ByRef, Int32 ByRef, Int32 ByRef, IntPtr ByRef)
+000000ABCB47F870 00007ffc60725434 [InlinedCallFrame: 000000abcb47f870] MS.Win32.Penimc.UnsafeNativeMethods.GetPenEvent(IntPtr, IntPtr, Int32 ByRef, Int32 ByRef, Int32 ByRef, Int32 ByRef, IntPtr ByRef)
+000000ABCB47F830 00007FFC60725434 ILStubClass.IL_STUB_PInvoke(IntPtr, IntPtr, Int32 ByRef, Int32 ByRef, Int32 ByRef, Int32 ByRef, IntPtr ByRef)
+000000ABCB47F930 00007FFCB16D8CD4 System.Windows.Input.PenThreadWorker.ThreadProc()
+000000ABCB47FA00 00007FFCB304682D System.Threading.ExecutionContext.RunInternal(System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179]
+000000ABCB47FC98 00007ffcbf75f123 [DebuggerU2MCatchHandlerFrame: 000000abcb47fc98]
+OS Thread Id: 0x3610
+        Child SP               IP Call Site
+OS Thread Id: 0x69ac
+        Child SP               IP Call Site
+000000ABCC37F7C8 00007ffd44760ed4 [HelperMethodFrame: 000000abcc37f7c8] System.Threading.WaitHandle.WaitOneCore(IntPtr, Int32)
+000000ABCC37F8D0 00007FFC60E3DEDE System.Threading.WaitHandle.WaitOneNoCheck(Int32) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/WaitHandle.cs @ 131]
+000000ABCC37F940 00007FFCB305247F System.Threading.TimerQueue.TimerThread() [/_/src/libraries/System.Private.CoreLib/src/System/Threading/TimerQueue.Portable.cs @ 87]
+000000ABCC37FBF8 00007ffcbf75f123 [DebuggerU2MCatchHandlerFrame: 000000abcc37fbf8]

@@ -1,0 +1,71 @@
+Loading core dump: ImageProcTest_40820_20261014T184126_hangdump.dmp ...
+OS Thread Id: 0xfdb0
+        Child SP               IP Call Site
+000000F08059A9E0 00007ffd41e4ae84 [InlinedCallFrame: 000000f08059a9e0] MS.Win32.UnsafeNativeMethods.MessageBox(System.Runtime.InteropServices.HandleRef, System.String, System.String, Int32)
+000000F08059A9E0 00007ffc5c38e20d [InlinedCallFrame: 000000f08059a9e0] MS.Win32.UnsafeNativeMethods.MessageBox(System.Runtime.InteropServices.HandleRef, System.String, System.String, Int32)
+000000F08059A9B0 00007FFC5C38E20D ILStubClass.IL_STUB_PInvoke(System.Runtime.InteropServices.HandleRef, System.String, System.String, Int32)
+000000F08059AA80 00007FFCA65EE26F System.Windows.MessageBox.ShowCore(IntPtr, System.String, System.String, System.Windows.MessageBoxButton, System.Windows.MessageBoxImage, System.Windows.MessageBoxResult, System.Windows.MessageBoxOptions)
+000000F08059AB10 00007FFCA64C4523 Microsoft.Win32.CommonItemDialog.MessageBoxWithFocusRestore(System.String, System.Windows.MessageBoxButton, System.Windows.MessageBoxImage)
+000000F08059ABA0 00007FFCA64C6639 Microsoft.Win32.SaveFileDialog.PromptUserIfAppropriate(System.String)
+000000F08059ABE0 00007FFCA64C58BB Microsoft.Win32.FileDialog.ProcessFileNames()
+000000F08059ACD0 00007FFCA64C4AE3 Microsoft.Win32.CommonItemDialog.HandleItemOk(MS.Internal.AppModel.IFileDialog)
+000000F08059AD30 00007FFCA69B979F Microsoft.Win32.CommonItemDialog+VistaDialogEvents.MS.Internal.AppModel.IFileDialogEvents.OnFileOk(MS.Internal.AppModel.IFileDialog)
+000000F08059AD60 00007FFC5BC0721F ILStubClass.IL_STUB_COMtoCLR(IntPtr)
+000000F08059AEC0 00007ffcba82f339 [ComMethodFrame: 000000f08059aec0]
+000000F08059DCA8 00007ffcba82f339 [InlinedCallFrame: 000000f08059dca8] MS.Internal.AppModel.IFileDialog.Show(IntPtr)
+000000F08059DCA8 00007ffc5bc07110 [InlinedCallFrame: 000000f08059dca8] MS.Internal.AppModel.IFileDialog.Show(IntPtr)
+000000F08059DC70 00007FFC5BC07110 ILStubClass.IL_STUB_CLRtoCOM(IntPtr)
+000000F08059DD50 00007FFCA64C43B0 Microsoft.Win32.CommonItemDialog.RunDialog(IntPtr)
+000000F08059DDC0 00007FFCA64C3B0F Microsoft.Win32.CommonDialog.ShowDialog()
+000000F08059DE50 00007FFC5C365737 ImageProcTest.ViewModels.MainWindowViewModel.SaveCorrected(System.String, System.String, System.String, System.Func`3<System.String,ImageProcTest.Services.CorrectedImage,ImageProcTest.Services.SavedFile>, System.String) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs @ 966]
+000000F08059E090 00007FFC5C365425 ImageProcTest.ViewModels.MainWindowViewModel.SaveCorrectedFloat() [D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs @ 935]
+000000F08059E110 00007FFC5BC04DB2 ImageProcTest.ViewModels.RelayCommand.Execute(System.Object) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\RelayCommand.cs @ 18]
+000000F08059E150 00007FFCA69019DB System.Windows.Controls.MenuItem.InvokeClickAfterRender(System.Object)
+000000F08059E1A0 00007FFC5B82A298 System.Windows.Threading.ExceptionWrapper.InternalRealCall(System.Delegate, System.Object, Int32)
+000000F08059E260 00007FFC5B829BC2 System.Windows.Threading.ExceptionWrapper.TryCatchWhen(System.Object, System.Delegate, System.Object, Int32, System.Delegate)
+000000F08059E2B0 00007FFC5BEB9EDC System.Windows.Threading.DispatcherOperation.InvokeImpl()
+000000F08059E330 00007FFC5BEB9C7D MS.Internal.CulturePreservingExecutionContext.CallbackWrapper(System.Object)
+000000F08059E390 00007FFC5BEB9A41 System.Threading.ExecutionContext.RunInternal(System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179]
+000000F08059E400 00007FFC5BEB966A MS.Internal.CulturePreservingExecutionContext.Run(MS.Internal.CulturePreservingExecutionContext, System.Threading.ContextCallback, System.Object)
+000000F08059E470 00007FFC5BEB9313 System.Windows.Threading.DispatcherOperation.Invoke()
+000000F08059E4D0 00007FFC5BEB8E0D System.Windows.Threading.Dispatcher.ProcessQueue()
+000000F08059E570 00007FFC5BEB78C0 System.Windows.Threading.Dispatcher.WndProcHook(IntPtr, Int32, IntPtr, IntPtr, Boolean ByRef)
+000000F08059E5E0 00007FFC5B82A01E System.Windows.Threading.ExceptionWrapper.InternalRealCall(System.Delegate, System.Object, Int32)
+000000F08059E6A0 00007FFC5B829BC2 System.Windows.Threading.ExceptionWrapper.TryCatchWhen(System.Object, System.Delegate, System.Object, Int32, System.Delegate)
+000000F08059E6F0 00007FFC5B82B2FA System.Windows.Threading.Dispatcher.LegacyInvokeImpl(System.Windows.Threading.DispatcherPriority, System.TimeSpan, System.Delegate, System.Object, Int32)
+000000F08059E780 00007FFC5B82AB52 MS.Win32.HwndSubclass.SubclassWndProc(IntPtr, Int32, IntPtr, IntPtr)
+000000F08059E870 00007FFC5ACA8410 ILStubClass.IL_STUB_ReversePInvoke(Int64, Int32, Int64, Int64)
+000000F08059EAF8 00007ffd4363c366 [InlinedCallFrame: 000000f08059eaf8] MS.Win32.UnsafeNativeMethods.DispatchMessage(System.Windows.Interop.MSG ByRef)
+000000F08059EAF8 00007ffc5acad3cb [InlinedCallFrame: 000000f08059eaf8] MS.Win32.UnsafeNativeMethods.DispatchMessage(System.Windows.Interop.MSG ByRef)
+000000F08059EAD0 00007FFC5ACAD3CB ILStubClass.IL_STUB_PInvoke(System.Windows.Interop.MSG ByRef)
+000000F08059EB90 00007FFCBF6AB1BF System.Windows.Threading.Dispatcher.PushFrameImpl(System.Windows.Threading.DispatcherFrame)
+000000F08059EC20 00007FFCA65C9EED System.Windows.Application.RunDispatcher(System.Object)
+000000F08059EC60 00007FFCA65C872B System.Windows.Application.RunInternal(System.Windows.Window)
+000000F08059ECC0 00007FFC5ACA3691 ImageProcTest.App.Main()
+OS Thread Id: 0xdbb4
+        Child SP               IP Call Site
+000000F0810FFA98 00007ffd44760ed4 [DebuggerU2MCatchHandlerFrame: 000000f0810ffa98]
+OS Thread Id: 0xe7dc
+        Child SP               IP Call Site
+000000F0805DF528 00007ffd44760ed4 [HelperMethodFrame: 000000f0805df528] System.Threading.WaitHandle.WaitOneCore(IntPtr, Int32)
+000000F0805DF630 00007FFC5BEBFB1E System.Threading.WaitHandle.WaitOneNoCheck(Int32) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/WaitHandle.cs @ 131]
+000000F0805DF6A0 00007FFCB3059624 System.Threading.PortableThreadPool+GateThread.GateThreadStart() [/_/src/libraries/System.Private.CoreLib/src/System/Threading/PortableThreadPool.GateThread.cs @ 64]
+000000F0805DFA18 00007ffcba82f123 [DebuggerU2MCatchHandlerFrame: 000000f0805dfa18]
+OS Thread Id: 0x5b5c
+        Child SP               IP Call Site
+000000F081CFF7F0 00007ffd41e4ae84 [InlinedCallFrame: 000000f081cff7f0] MS.Win32.Penimc.UnsafeNativeMethods.GetPenEvent(IntPtr, IntPtr, Int32 ByRef, Int32 ByRef, Int32 ByRef, Int32 ByRef, IntPtr ByRef)
+000000F081CFF7F0 00007ffc5b7f5434 [InlinedCallFrame: 000000f081cff7f0] MS.Win32.Penimc.UnsafeNativeMethods.GetPenEvent(IntPtr, IntPtr, Int32 ByRef, Int32 ByRef, Int32 ByRef, Int32 ByRef, IntPtr ByRef)
+000000F081CFF7B0 00007FFC5B7F5434 ILStubClass.IL_STUB_PInvoke(IntPtr, IntPtr, Int32 ByRef, Int32 ByRef, Int32 ByRef, Int32 ByRef, IntPtr ByRef)
+000000F081CFF8B0 00007FFCAAF28CD4 System.Windows.Input.PenThreadWorker.ThreadProc()
+000000F081CFF980 00007FFCB304682D System.Threading.ExecutionContext.RunInternal(System.Threading.ExecutionContext, System.Threading.ContextCallback, System.Object) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/ExecutionContext.cs @ 179]
+000000F081CFFC18 00007ffcba82f123 [DebuggerU2MCatchHandlerFrame: 000000f081cffc18]
+OS Thread Id: 0x107c8
+        Child SP               IP Call Site
+OS Thread Id: 0x8c78
+        Child SP               IP Call Site
+000000F082BFF568 00007ffd44760ed4 [HelperMethodFrame: 000000f082bff568] System.Threading.WaitHandle.WaitOneCore(IntPtr, Int32)
+000000F082BFF670 00007FFC5BEBFB1E System.Threading.WaitHandle.WaitOneNoCheck(Int32) [/_/src/libraries/System.Private.CoreLib/src/System/Threading/WaitHandle.cs @ 131]
+000000F082BFF6E0 00007FFCB305247F System.Threading.TimerQueue.TimerThread() [/_/src/libraries/System.Private.CoreLib/src/System/Threading/TimerQueue.Portable.cs @ 87]
+000000F082BFF998 00007ffcba82f123 [DebuggerU2MCatchHandlerFrame: 000000f082bff998]
+OS Thread Id: 0xb1f8
+        Child SP               IP Call Site

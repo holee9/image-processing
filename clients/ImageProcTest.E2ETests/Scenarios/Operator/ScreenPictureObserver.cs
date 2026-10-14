@@ -237,56 +237,113 @@ public class ScreenSettleTests
 }
 
 /// <summary>
-/// GUI-C-242: the approved U8 rule of milestone 3 (leader decision 2026-10-14, main 5537f4e5): the MEDIAN of the five proxy values (open -> second composition tick after the processed picture was handed to the
-/// viewport) must be at most <see cref="ProxyLimitMs"/> - half of the 3000 ms PERF-P1-001 limit, because the end point is a proxy and not proof of presentation. Pure on its input so the boundary is tested.
+/// The U8 rule of milestone 3 (main milestone-3, leader decision 2026-10-14, revised by GUI-C-244 after the CI runner showed the screen CAN be read there): the picture of an open must be on screen within the
+/// 3000 ms of PERF-P1-001, so
+/// (1) when the screen was validly observed for ALL five opens (each: settled on a final picture AND a change was seen), the MEDIAN of the five SCREEN values must be at most <see cref="ScreenLimitMs"/>;
+/// (2) otherwise (any open unsettled or without a seen change - an environment that cannot read the screen) the MEDIAN of the five PROXY values (open -> second composition tick after the processed picture was
+///     handed to the viewport) must be at most <see cref="ProxyLimitMs"/>, half of the limit, because the end point is a proxy and not proof of presentation.
+/// Pure on its input so the boundaries and the choice of branch are tested.
 /// </summary>
 internal static class U8Verdict
 {
+    public const double ScreenLimitMs = 3000;
     public const double ProxyLimitMs = 1500;
 
-    public readonly record struct Result(double MedianMs, bool Passes);
-
-    public static Result OfProxyMedian(IReadOnlyList<double> fiveValuesMs)
+    public enum Basis
     {
-        if (fiveValuesMs.Count != 5)
+        Screen,
+        Proxy,
+    }
+
+    /// <summary>The five opens as measured: the app's proxy value, and the screen value when this open's screen observation was valid (null otherwise).</summary>
+    public readonly record struct Open(double ProxyMs, double? ScreenMs);
+
+    public readonly record struct Result(Basis Basis, double MedianMs, double LimitMs, bool Passes);
+
+    public static Result Judge(IReadOnlyList<Open> fiveOpens)
+    {
+        if (fiveOpens.Count != 5)
         {
-            throw new ArgumentException($"the U8 rule takes the median of FIVE opens, got {fiveValuesMs.Count}", nameof(fiveValuesMs));
+            throw new ArgumentException($"the U8 rule takes the median of FIVE opens, got {fiveOpens.Count}", nameof(fiveOpens));
         }
 
-        var median = fiveValuesMs.OrderBy(x => x).ElementAt(2);
-        return new Result(median, median <= ProxyLimitMs);
+        var allObserved = fiveOpens.All(o => o.ScreenMs.HasValue);
+        var basis = allObserved ? Basis.Screen : Basis.Proxy;
+        var limit = allObserved ? ScreenLimitMs : ProxyLimitMs;
+        var median = fiveOpens.Select(o => allObserved ? o.ScreenMs!.Value : o.ProxyMs).OrderBy(x => x).ElementAt(2);
+        return new Result(basis, median, limit, median <= limit);
     }
 }
 
 /// <summary>The verdict function on constructed values: it runs on every runner (no app, no data).</summary>
 public class U8VerdictTests
 {
+    private static U8Verdict.Open[] Proxy(params double[] proxyMs) => proxyMs.Select(p => new U8Verdict.Open(p, null)).ToArray();
+
+    private static U8Verdict.Open[] Screen(double[] proxyMs, double[] screenMs) => proxyMs.Zip(screenMs, (p, s) => new U8Verdict.Open(p, s)).ToArray();
+
     [Fact]
-    public void TheMedianOfFive_At1500_Passes_And1501_Fails()
+    public void ObservedScreen_MedianAt3000_Passes_And3001_Fails()
     {
-        Assert.True(U8Verdict.OfProxyMedian([900, 1200, 1500, 1800, 2400]).Passes);
-        Assert.False(U8Verdict.OfProxyMedian([900, 1200, 1501, 1800, 2400]).Passes);
-        Assert.Equal(1500, U8Verdict.OfProxyMedian([1500, 1500, 1500, 1500, 1500]).MedianMs);
+        var proxy = new double[] { 1000, 1000, 1000, 1000, 1000 };
+        var pass = U8Verdict.Judge(Screen(proxy, [2000, 2500, 3000, 3500, 4000]));
+        Assert.Equal(U8Verdict.Basis.Screen, pass.Basis);
+        Assert.Equal(3000, pass.MedianMs);
+        Assert.True(pass.Passes);
+        Assert.False(U8Verdict.Judge(Screen(proxy, [2000, 2500, 3001, 3500, 4000])).Passes);
+    }
+
+    [Fact]
+    public void WhenTheScreenIsObserved_TheProxyDoesNotDecide()
+    {
+        // a proxy over 1500 ms passes when the screen median is within 3000 (the CI case: proxy 2277 ms, screen 2464 ms), and a fast proxy does not rescue a slow screen
+        Assert.True(U8Verdict.Judge(Screen([2200, 2277, 2300, 2350, 2400], [2400, 2464, 2500, 2550, 2600])).Passes);
+        Assert.False(U8Verdict.Judge(Screen([900, 900, 900, 900, 900], [3100, 3200, 3300, 3400, 3500])).Passes);
+    }
+
+    [Fact]
+    public void WithoutAScreen_TheProxyMedian_At1500_Passes_And1501_Fails()
+    {
+        var pass = U8Verdict.Judge(Proxy(900, 1200, 1500, 1800, 2400));
+        Assert.Equal(U8Verdict.Basis.Proxy, pass.Basis);
+        Assert.Equal(1500, pass.MedianMs);
+        Assert.True(pass.Passes);
+        Assert.False(U8Verdict.Judge(Proxy(900, 1200, 1501, 1800, 2400)).Passes);
+    }
+
+    [Fact]
+    public void OneOpenWithoutAValidScreen_SendsTheWholeRunToTheProxyRule()
+    {
+        // four valid screens that would pass at 3000 ms do not count when the fifth is unobserved: the proxy rule (1500) applies, so a 2200 ms proxy median fails
+        var opens = new[]
+        {
+            new U8Verdict.Open(2200, 2400), new U8Verdict.Open(2200, 2400), new U8Verdict.Open(2200, 2400), new U8Verdict.Open(2200, 2400), new U8Verdict.Open(2200, null),
+        };
+        var result = U8Verdict.Judge(opens);
+        Assert.Equal(U8Verdict.Basis.Proxy, result.Basis);
+        Assert.Equal(1500, result.LimitMs);
+        Assert.False(result.Passes);
     }
 
     [Fact]
     public void TheMedian_NotTheMeanOrTheMax_DecidesIt()
     {
         // one slow first open (JIT) does not fail a run whose median is fast; a fast outlier does not rescue a slow run
-        Assert.True(U8Verdict.OfProxyMedian([2900, 1200, 1100, 1300, 1250]).Passes);
-        Assert.False(U8Verdict.OfProxyMedian([100, 200, 1600, 1700, 1800]).Passes);
+        Assert.True(U8Verdict.Judge(Proxy(2900, 1200, 1100, 1300, 1250)).Passes);
+        Assert.False(U8Verdict.Judge(Proxy(100, 200, 1600, 1700, 1800)).Passes);
+        Assert.True(U8Verdict.Judge(Screen([1, 1, 1, 1, 1], [5000, 2000, 2100, 2200, 2300])).Passes);
     }
 
     [Fact]
     public void TheOrderOfTheOpens_DoesNotMatter()
     {
-        Assert.Equal(U8Verdict.OfProxyMedian([1300, 900, 1600, 1100, 1400]), U8Verdict.OfProxyMedian([1600, 1400, 1300, 1100, 900]));
+        Assert.Equal(U8Verdict.Judge(Proxy(1300, 900, 1600, 1100, 1400)), U8Verdict.Judge(Proxy(1600, 1400, 1300, 1100, 900)));
     }
 
     [Fact]
-    public void AnythingButFiveValues_IsRefused()
+    public void AnythingButFiveOpens_IsRefused()
     {
-        Assert.Throws<ArgumentException>(() => U8Verdict.OfProxyMedian([1000, 1000, 1000, 1000]));
-        Assert.Throws<ArgumentException>(() => U8Verdict.OfProxyMedian([1000, 1000, 1000, 1000, 1000, 1000]));
+        Assert.Throws<ArgumentException>(() => U8Verdict.Judge(Proxy(1000, 1000, 1000, 1000)));
+        Assert.Throws<ArgumentException>(() => U8Verdict.Judge(Proxy(1000, 1000, 1000, 1000, 1000, 1000)));
     }
 }

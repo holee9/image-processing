@@ -1,0 +1,3 @@
+통과!  - 실패:     0, 통과:     1, 건너뜀:     0, 전체:     1, 기간: 19 s - ImageProcTest.E2ETests.dll (net8.0)
+통과!  - 실패:     0, 통과:     1, 건너뜀:     0, 전체:     1, 기간: 19 s - ImageProcTest.E2ETests.dll (net8.0)
+통과!  - 실패:     0, 통과:     1, 건너뜀:     0, 전체:     1, 기간: 19 s - ImageProcTest.E2ETests.dll (net8.0)
