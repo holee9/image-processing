@@ -1250,9 +1250,14 @@ jobs:
           # deliberately NOT given an allow-list entry for these: an input-gated skip here
           # means the opt-in failed, and that should stay red.
           XPE_E2E_ALLOW_GLOBAL_INPUT: "1"
+        # GUI-C-235c: `Category=Measurement` marks env-gated measurement probes (e.g.
+        # LegacyStartupResponsivenessProbe), not regression tests. Collected here they end
+        # NotExecuted and trip the unexplained-skip gate below. Only those probes carry the
+        # trait (checked with --list-tests); tagging a regression test with it hides it.
         run: >
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug
+          --filter "Category!=Measurement"
           --logger "trx;LogFileName=e2e-smoke-native.trx"
           --logger "console;verbosity=detailed"
           --results-directory build/e2e-native-results
