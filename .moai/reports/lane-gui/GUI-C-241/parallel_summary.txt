@@ -1,0 +1,7 @@
+SelfCheck x N instances at once (each in its own copy of the output folder, bounded by timeout 300), before and after the scenario fix
+before (c6d9028e scenario): 6 instances x 2 rounds = 12 instances
+  FAILED r1_i6.txt: [10 frame timing of an open] a running wait holds 0 subscriptions, expected 1
+  FAILED r2_i2.txt: [10 frame timing of an open] a running wait holds 0 subscriptions, expected 1
+  failed: 2 of 12
+after: 6 x 3 rounds = 18 instances, then 6 x 5 rounds = 30 instances
+  failed: 0 of 48

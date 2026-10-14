@@ -28,7 +28,9 @@ public sealed class NativeCallWrapperGuardTests
     [
         ["DrainNativeAlerts", "the drain itself — wrapping it would recurse"],
         ["ReadNativeAlert", "reads one queue entry on behalf of the drain"],
-        ["HasExports", "static export probe used before an instance exists (CanUseNative)"],
+        // GUI-C-241: HasExports became WhyUnusable in GUI-C-238 (it now says WHY, for the banner); the reason for the exemption is the same: a static load-check made before any instance exists.
+        // It loads a DLL only to look for its exports and frees it in the same method; there is no backend instance, so no native alert queue exists to drain (CanUseNative / WhyNativeUnusable call it).
+        ["WhyUnusable", "static export probe used before an instance exists (CanUseNative / WhyNativeUnusable); loads, looks for exports, frees"],
     ];
 
     private static readonly string[] ExemptMemberNames =
