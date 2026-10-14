@@ -1,0 +1,9 @@
+== synthetic default after patch
+offset.xcal  c58057f1f2efe180b767ab4764b5641321ce79520f3d7b45da3f04f61d49ee4c
+gain.xcal    0328f715d3ce89373dd4d014d0a86dc5c1591f25c3776f35158f75e25f5a7acd
+defect.xcal  6c692f90dd2e1e6ad7eef1376b57b4246b0d520562c90b8b646f8f25faeae379  (4 defect pixels)
+== synthetic --gain-poly after patch
+offset.xcal  c58057f1f2efe180b767ab4764b5641321ce79520f3d7b45da3f04f61d49ee4c
+gain.xcal    0328f715d3ce89373dd4d014d0a86dc5c1591f25c3776f35158f75e25f5a7acd
+defect.xcal  6c692f90dd2e1e6ad7eef1376b57b4246b0d520562c90b8b646f8f25faeae379  (4 defect pixels)
+gain_poly.xcal 72ba9f90f3cc07ab10cf02cea01785615efbfd697182abe6336f3afa3df9efa2  (degree<=2, 4 dose levels)

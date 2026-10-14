@@ -1,0 +1,11 @@
+[  SKIPPED ] 8 tests, listed below:
+[  SKIPPED ] CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput
+[  SKIPPED ] PreprocessCalibrationTest.LoadOffset_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.LoadGain_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+[  SKIPPED ] PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+[  SKIPPED ] PreprocessCalibrationTest.Save_OffsetCalibration
+[  SKIPPED ] PreprocessCalibrationTest.Save_GainCalibration
+
+  YOU HAVE 66 DISABLED TESTS

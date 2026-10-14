@@ -1,0 +1,16 @@
+date: 2026-10-14 13:11
+offset.xcal  350a98c864b2cdce3830107038224384fdeb9c21a6042a101b8df3adbea06768
+gain.xcal    3c4a28700d64acdf462ae44df9c1962b03c521d4cbb6c460450042865b61ba46
+defect.xcal  8c79ee21c9a20b5359a1b798bf36dd6984c7412be1c5ffe0e9500461aa9caa55  (4 defect pixels)
+synthetic 3072x3072 run a: wall time 352080 ms
+offset.xcal  350a98c864b2cdce3830107038224384fdeb9c21a6042a101b8df3adbea06768
+gain.xcal    3c4a28700d64acdf462ae44df9c1962b03c521d4cbb6c460450042865b61ba46
+defect.xcal  8c79ee21c9a20b5359a1b798bf36dd6984c7412be1c5ffe0e9500461aa9caa55  (4 defect pixels)
+synthetic 3072x3072 run b: wall time 356462 ms
+offset.xcal identical across the two runs
+gain.xcal identical across the two runs
+defect.xcal identical across the two runs
+9437336 defect.xcal
+37748888 gain.xcal
+413 manifest.json
+37748888 offset.xcal
