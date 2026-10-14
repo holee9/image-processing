@@ -308,9 +308,9 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     {
         var oldNative = Env("XPE_C232B_OLD_NATIVE_DIR");
         // GUI-C-239: a DLL folder that predates xpe_preprocess_pipeline_out is an OLD BUILD, and neither the repository nor the CI artifacts hold one (CI builds the current modules only). So without the
-        // variable this is not run - and it says so, with the token of the allow-list entry for issue #262, instead of failing as a missing variable. (It was discovered whenever XPE_C231_NATIVE_DIR was set.)
+        // variable this is not run - and it says so, with the token of the allow-list entry for issue #265, instead of failing as a missing variable. (It was discovered whenever XPE_C231_NATIVE_DIR was set.)
         Skip.If(oldNative is null, "NOT RUN: W10 needs a native DLL folder that predates xpe_preprocess_pipeline_out (XPE_C232B_OLD_NATIVE_DIR); no such old build is in the repository or in the CI artifacts. "
-            + "Last run by hand on 2026-10-13 (GUI-C-232b report). XPE-SKIP-ALLOWED:262");
+            + "Last run by hand on 2026-10-13 (GUI-C-232b report). XPE-SKIP-ALLOWED:265");
         var fixtures = Env("XPE_C231_FIXTURE_RAW") ?? PackagedRawFixtures();
         using var madeSets = Env("XPE_C231_SETS") is null ? GeneratedSets.Make(Env("XPE_C231_NATIVE_DIR") ?? oldNative!, output) : null;
         var sets = Env("XPE_C231_SETS") ?? madeSets!.Folder;
