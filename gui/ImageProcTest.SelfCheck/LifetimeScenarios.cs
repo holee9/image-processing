@@ -450,6 +450,7 @@ internal static class LifetimeScenarios
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
 #endif
                         await Timed(() => TheFrameTimingOfAnOpen_IsNeverWrittenLate_AndSaysWhenItTimedOut_AndLeavesNoSubscription(rawPath, width, height));
+                        await Timed(() => ThePinnedNativeSearch_HasNoWayBackToTheApplicationFolder(rawPath, width, height));
                         await Timed(() => AnOlderStatusReadIsNeverShownAfterANewerRequest(rawPath, width, height));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: true));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: false));
@@ -1046,6 +1047,87 @@ internal static class LifetimeScenarios
         var alreadyCancelled = await MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromSeconds(30), cancel.Token);
         Check(alreadyCancelled == MainWindowViewModel.CompositionWait.Cancelled && MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"a wait started with a token already cancelled ended as {alreadyCancelled} with {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions left");
         Console.WriteLine($"    real wait without a window ended by: {endedBy}");
+    }
+
+    // ---- 11: the pinned native search has no way back to the default search (GUI-C-238b, Codex #193) ------------------------------------------------
+    //
+    // XPE_NATIVE_DIR_EXCLUSIVE=1 means: the app's native DLLs come from XPE_NATIVE_DIR and from nowhere else. The decoy is a real, loadable DLL (a copy of version.dll) with a module's name, put in the
+    // APPLICATION folder (the runner's own folder). The control shows that the decoy IS found and loaded when nothing is pinned; with the search pinned the same name must NOT be loaded from it - the resolver
+    // throws instead of handing the name to the default loader, which would search the application folder.
+
+    private static Task ThePinnedNativeSearch_HasNoWayBackToTheApplicationFolder(string rawPath, int width, int height)
+    {
+        _scenario = "11 pinned native search";
+        _ = (rawPath, width, height);
+        var assembly = typeof(ImageProcTest.Services.Native.GuiNativeLibraryResolver).Assembly;
+        var decoy = Path.Combine(AppContext.BaseDirectory, "xpe_ai.dll");
+        var pinnedFolder = Path.Combine(TempDirectory(), "pinned");
+        Directory.CreateDirectory(pinnedFolder);
+        var systemDll = Path.Combine(Environment.SystemDirectory, "version.dll");
+        var previousDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        var previousExclusive = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE");
+        File.Copy(systemDll, decoy, overwrite: true);
+        try
+        {
+
+            // control: nothing pinned - the decoy beside the runner is found and loads
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", null);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", null);
+            var control = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+            Check(control != IntPtr.Zero, "the control failed: the decoy beside the runner was not loaded although nothing was pinned");
+            System.Runtime.InteropServices.NativeLibrary.Free(control);
+
+            // pinned to an EMPTY folder: the decoy beside the runner must not be used; the failure names the pinned folder
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", pinnedFolder);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", "1");
+            try
+            {
+                var leaked = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+                System.Runtime.InteropServices.NativeLibrary.Free(leaked);
+                Fail("xpe_ai.dll was loaded although the search was pinned to an empty folder: the default search (application folder) was used");
+            }
+            catch (DllNotFoundException ex)
+            {
+                Check(ex.Message.Contains(pinnedFolder, StringComparison.Ordinal) && ex.Message.Contains("default search", StringComparison.Ordinal), $"the failure does not name the pinned folder and the refused default search: {ex.Message}");
+            }
+
+            // pinned, with a DLL of that name in the pinned folder: it is loaded, from there
+            File.Copy(systemDll, Path.Combine(pinnedFolder, "xpe_ai.dll"));
+            var inside = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+            Check(inside != IntPtr.Zero, "the DLL in the pinned folder was not loaded");
+            System.Runtime.InteropServices.NativeLibrary.Free(inside);
+            Check(string.Equals(ImageProcTest.Services.Native.GuiNativeLibraryResolver.ResolvedPath("xpe_ai.dll"), Path.Combine(pinnedFolder, "xpe_ai.dll"), StringComparison.OrdinalIgnoreCase),
+                $"xpe_ai.dll resolved to '{ImageProcTest.Services.Native.GuiNativeLibraryResolver.ResolvedPath("xpe_ai.dll")}', not the pinned folder's file");
+
+            // pinned without a folder: no quiet fall back to the default search
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", null);
+            try
+            {
+                var leaked = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+                System.Runtime.InteropServices.NativeLibrary.Free(leaked);
+                Fail("xpe_ai.dll was loaded although EXCLUSIVE=1 names no folder");
+            }
+            catch (DllNotFoundException ex)
+            {
+                Check(ex.Message.Contains("does not name it", StringComparison.Ordinal), $"the failure does not say that XPE_NATIVE_DIR names nothing: {ex.Message}");
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", previousDir);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", previousExclusive);
+            try { File.Delete(decoy); } catch (IOException) { /* loaded copy: the process end removes it */ }
+        }
+
+        // the audit: which native modules are NOT from the pinned folder (pure on its inputs)
+        var modules = ImageProcTest.Services.Native.NativeModuleAudit.Classify(
+            [@"C:\pinned\xpe_common.dll", @"C:\pinned\dcmdata.dll", @"C:\app\fmt.dll", @"C:\Windows\System32\kernel32.dll", @"c:\PINNED\xpe_display.dll"], @"C:\pinned");
+        Check(modules.Count == 4, $"the audit should list the 4 native modules and skip kernel32, listed {modules.Count}");
+        Check(modules.Count(m => !m.InsidePinnedFolder) == 1 && modules.Single(m => !m.InsidePinnedFolder).Name == "fmt.dll", "the audit should name fmt.dll (C:\\app) as the one module from outside the pinned folder");
+        Check(modules.Single(m => m.Name == "xpe_display.dll").InsidePinnedFolder, "the folder comparison must ignore the case of the path");
+        var report = ImageProcTest.Services.Native.NativeModuleAudit.Report("test", @"C:\pinned", [@"C:\pinned\xpe_common.dll", @"C:\app\fmt.dll"]);
+        Check(report.Count == 2 && report[1].Contains("fmt.dll", StringComparison.Ordinal) && report[1].Contains("is NOT the pinned folder", StringComparison.Ordinal), "the report should carry one line for the outsider");
+        return Task.CompletedTask;
     }
 
     // ---- 7: an older status read is never shown after a newer request (GUI-C-192, the GUI-C-191b reproduction) ---------------------------

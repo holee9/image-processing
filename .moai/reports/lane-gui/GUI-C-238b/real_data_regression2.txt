@@ -1,0 +1,332 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W12_OneFrame_RunPreprocessingToThePicture_FiveTimes [25 s]
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    open -> summary on screen (includes the dialog driving): 2706 ms
+    ok: the chain and the picture are done
+    run 1: wall 1564 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=252 ms, enhance_basic=227 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    ok: the chain and the picture are done
+    run 2: wall 1477 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=263 ms, enhance_basic=234 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    ok: the chain and the picture are done
+    run 3: wall 1496 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=243 ms, enhance_basic=253 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    ok: the chain and the picture are done
+    run 4: wall 1445 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=249 ms, enhance_basic=227 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    ok: the chain and the picture are done
+    run 5: wall 1465 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=247 ms, enhance_basic=233 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    wall times (ms): 1564, 1477, 1496, 1445, 1465; median 1477 ms (limit 3000 ms, PERF-P1-001)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference [22 s]
+  표준 출력 메시지:
+    DLL: D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_preprocess.dll sha256 71403fd8e35c829ee633d27390902cbe5b71c3e3382eeaf63bdfd9098453e1fc written 2026-10-14 14:51:10; provenance.json present
+ STEP 1 started on Native; Save Corrected Image is dimmed before anything ran
+    Save float enabled: False; Save PNG enabled: False
+ STEP 2 File > Open Raw...
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    after the load, before the run: Save float enabled: True
+ STEP 3 Pipeline > Run Preprocessing (Phase 1a)
+    ok: preprocess=Applied
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=246 ms, enhance_basic=241 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    LOG [15:48:26.933] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [15:48:26.832] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+ STEP 4 File > Save Corrected Image (float32 .raw)...
+    Save float enabled after the run: True
+    dialog: 'Save Corrected Image (float32 raw)'
+    ok: the status line reports the save
+    status: Saved corrected image (float32 raw): C:\Users\drake\AppData\Local\Temp\xpe_c232_aaf1db42db184c8f89f0e5be945ee599\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+ STEP 5 File > Save Corrected Image (16-bit PNG)...
+    dialog: 'Save Corrected Image (16-bit PNG)'
+    ok: the PNG is saved
+    status: Saved corrected image (16-bit PNG): C:\Users\drake\AppData\Local\Temp\xpe_c232_aaf1db42db184c8f89f0e5be945ee599\wrist_lat_3072x3072_corrected_16bit.png — 16912866 bytes, sha256 b9cfda221aa9295a24d6ce740d8bdf201bb985fb5853e0da7f1d8e5887719c92
+    saved     : 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+    reference : 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+    identical : True; first differing byte: -1
+    png       : 16912866 bytes
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W1_TheMenuRoute_NativeBackend_CalibrationPanel_Raw_RunPreprocessing_Compare [30 s]
+  표준 출력 메시지:
+ STEP 1 launch (no backend switch: the shipped default)
+ STEP 2 Backend > Backend Mode > Native
+    ok: the runtime line says mode=Native
+    == after Native: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  —
+       + All
+       + B  —
+       + Backend initialized: xpe_display 1.0.0
+       + Body Part
+       + C  —  · W  —
+       + Calib:  —
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261014-154844-356cd9
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Metrics
+       + Metrics populated after pipeline run.
+       + No applied image
+       + No raw image loaded.
+       + Overlay
+       + Parameters
+       + Processed
+       + Quantitative Quality
+       + Queued
+       + ROI
+       + RUN-SET
+       + Record result for 
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI 폭
+       + VOI:  not applied
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + chain: not run
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=e2e-native-dlls
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+       + 미적용
+ STEP 3 View > Calibration Paths Panel
+    ok: the panel appears
+    == panel open: title='ImageProcTest GUI-S0'
+       + Browse...
+       + Calibration paths
+       + Defect
+       + Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.
+       + Gain
+       + Offset
+       + data/calibration/defect
+       + data/calibration/gain
+       + data/calibration/offset
+ STEP 4 Offset: Browse...
+    dialog: 'Select calibration directory'
+    ok: Offset path shown
+ STEP 4 Gain: Browse...
+    dialog: 'Select calibration directory'
+    ok: Gain path shown
+ STEP 4 Defect: Browse...
+    dialog: 'Select calibration directory'
+    ok: Defect path shown
+    == three directories set: title='ImageProcTest GUI-S0'
+       + C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\calib-gen
+       - data/calibration/defect
+       - data/calibration/gain
+       - data/calibration/offset
+ STEP 5 File > Open Raw...
+    dialog: 'Load Raw Image'
+    ok: an image summary 'RAW 3072x3072' appears
+    == raw loaded: title='ImageProcTest GUI-S0'
+       + A  Grid suppression
+       + B  Grid suppression
+       + C  2580  · W  1198
+       + Calib:  3 stages (offset · gain · defect)
+       + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+       + VOI:  LinearExact
+       + chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExac...
+       + chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=251 ms, enhance_basic=246 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+       + open-to-2nd-tick (proxy) #1: 1248 ms = read 318 + prepare 27 + chain-and-display 660 [preprocess=251 ms, enhance_basic=246 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 241
+       - A  —
+       - B  —
+       - Backend initialized: xpe_display 1.0.0
+       - C  —  · W  —
+       - Calib:  —
+       - No applied image
+       - No raw image loaded.
+       - VOI:  not applied
+       - chain: not run
+ STEP 6 Pipeline > Run Preprocessing (Phase 1a)
+    Run Preprocessing enabled after switching to Native through the menu: True
+    ok: the chain status changes
+    == after Run Preprocessing: title='ImageProcTest GUI-S0'
+       + chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=236 ms, enhance_basic=226 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+       - chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=251 ms, enhance_basic=246 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chai...
+ STEP 7 View > Compare Mode > Difference, then Processed Only, then Source Only
+    == CompareDifferenceMenuItem: title='ImageProcTest GUI-S0'
+       - A  Grid suppression
+       - B  Grid suppression
+    == CompareProcessedOnlyMenuItem: title='ImageProcTest GUI-S0'
+       + A  Grid suppression
+       + B  Grid suppression
+    == CompareSourceOnlyMenuItem: title='ImageProcTest GUI-S0'
+
+
+[xUnit.net 00:01:35.32]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W14_TheQuickStartPage_Steps1To4_FollowedInThePagesOrder_OnRealData [16 s]
+  표준 출력 메시지:
+    page step: Start the app on the Native backend. -> launch the app
+    page step: Open the calibration panel: -> View > Calibration Paths Panel
+    page step: Open the raw image: -> File > Open Raw...
+    page step: Run the preprocessing stages: -> Pipeline > Run Preprocessing (Phase 1a)
+ STEP 1 launch with the page's switches (--automation-backend Native ... 3072x3072)
+    ok: the bottom line says 'mode=Native'
+    bottom line: mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=e2e-native-dlls
+ STEP Open the calibration panel: [View > Calibration Paths Panel]
+    ok: a panel titled 'Calibration paths' appears
+    Offset row shows: C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\calib-gen
+    Gain row shows: C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\calib-gen
+    Defect row shows: C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\calib-gen
+ STEP Open the raw image: [File > Open Raw...]
+    dialog: 'Load Raw Image'
+    ok: an image summary starting 'RAW 3072x3072'
+    summary: RAW 3072x3072, min=2481, max=15451, bytes=18874368
+    ok: opening the image already ran the preprocessing, as the page says
+    == raw opened: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  Grid suppression
+       + All
+       + B  Grid suppression
+       + Body Part
+       + Browse...
+       + C  2580  · W  1198
+       + C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\calib-gen
+       + Calib:  3 stages (offset · gain · defect)
+       + Calibration paths
+       + Clear Alerts
+       + Clear Logs
+       + Defect
+       + Delta
+       + Difference
+       + Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Gain
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261014-154908-44f9cf
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Metrics
+       + Metrics populated after pipeline run.
+       + Offset
+       + Overlay
+       + Parameters
+       + Processed
+       + Quantitative Quality
+       + Queued
+       + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+       + ROI
+       + RUN-SET
+       + Record result for 
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI 폭
+       + VOI:  LinearExact
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExac...
+       + chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=251 ms, enhance_basic=262 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=e2e-native-dlls
+       + open-to-2nd-tick (proxy) #1: 1263 ms = read 321 + prepare 26 + chain-and-display 667 [preprocess=251 ms, enhance_basic=262 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 247
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+       + 미적용
+ STEP Run the preprocessing stages: [Pipeline > Run Preprocessing (Phase 1a)]
+    ok: the run changed the bottom line (its times)
+    ok: the status line ends with the exposure index
+    bottom line: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=249 ms, enhance_basic=234 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+ STEP independent evidence: File > Save Corrected Image (float32 .raw)... and its digest against the first-stage reference
+    dialog: 'Save Corrected Image (float32 raw)'
+    ok: the status line reports the save
+    saved 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4; reference 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 4
+     통과: 4
+ 총 시간: 1.5941 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
