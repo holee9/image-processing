@@ -520,6 +520,14 @@
             <StatusBarItem AutomationProperties.AutomationId="ChainStatusText"
                            Content="{Binding ChainStatus}" />
             <Separator />
+            <Separator />
+            <StatusBarItem>
+                <TextBlock AutomationProperties.AutomationId="FrameTimingText"
+                           Text="{Binding FrameTimingText}"
+                           MaxWidth="420"
+                           TextTrimming="CharacterEllipsis" />
+            </StatusBarItem>
+            <Separator />
             <StatusBarItem x:Name="RuntimeCommonVersionText"
                            AutomationProperties.AutomationId="RuntimeCommonVersionText"
                            Content="{Binding RuntimeVersionSummary}" />

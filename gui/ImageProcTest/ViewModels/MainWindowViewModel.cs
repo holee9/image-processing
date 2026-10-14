@@ -1146,6 +1146,68 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private long _renderSequence;
 
+    // GUI-C-236b (U8, PERF-P1-001): "open -> the processed picture is on screen". The two ends are recorded here: the start is the moment the open begins reading the file (after any file dialog has answered),
+    // the end is the second WPF composition tick after the processed picture was handed to the viewport (the first tick can still be the frame that was already being built; the second one
+    // comes after the frame that carries the picture). The first display pipeline that completes after an open consumes the start.
+    private long _openStartedAt;
+    private long _openReadEndedAt;
+    private int _frameTimingSequence;
+    private string _frameTimingText = string.Empty;
+
+    /// <summary>One line, written when the processed picture of an open has been rendered: <c>open-to-picture #n: T ms = read a + prepare b + chain-and-display c [stage times] + ui d + render e</c>. Empty until the first one.</summary>
+    public string FrameTimingText
+    {
+        get => _frameTimingText;
+        private set => SetProperty(ref _frameTimingText, value);
+    }
+
+    private static double Milliseconds(long from, long to) => (to - from) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+    private static System.Threading.Tasks.Task NextCompositionTickAsync()
+    {
+        var tick = new System.Threading.Tasks.TaskCompletionSource();
+        System.EventHandler? handler = null;
+        handler = (_, _) =>
+        {
+            System.Windows.Media.CompositionTarget.Rendering -= handler;
+            tick.TrySetResult();
+        };
+        System.Windows.Media.CompositionTarget.Rendering += handler;
+        return tick.Task;
+    }
+
+    private static async System.Threading.Tasks.Task TwoCompositionTicksAsync()
+    {
+        await NextCompositionTickAsync();
+        await NextCompositionTickAsync();
+    }
+
+    private async System.Threading.Tasks.Task PublishFrameTimingAsync(long openStartedAt, long readEndedAt, long applyStartedAt, long workEndedAt, long shownAt, string stageTimes)
+    {
+        try
+        {
+            if (System.Windows.Application.Current is null)
+            {
+                return;
+            }
+
+            // Two composition ticks after the picture was handed over; a guard of 5 s so a window that does not render (minimised) cannot leave the number unwritten.
+            var ticks = TwoCompositionTicksAsync();
+            var finished = await System.Threading.Tasks.Task.WhenAny(ticks, System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(5)));
+            var renderedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            var rendered = finished == ticks;
+            var text = $"open-to-picture #{++_frameTimingSequence}: {Milliseconds(openStartedAt, renderedAt):0} ms = read {Milliseconds(openStartedAt, readEndedAt):0} + prepare {Milliseconds(readEndedAt, applyStartedAt):0}"
+                       + $" + chain-and-display {Milliseconds(applyStartedAt, workEndedAt):0} [{stageTimes.Replace("times: ", string.Empty)}] + ui {Milliseconds(workEndedAt, shownAt):0} + render {Milliseconds(shownAt, renderedAt):0}"
+                       + (rendered ? string.Empty : " (no composition tick within 5 s: the render figure is a lower bound)");
+            FrameTimingText = text;
+            Log(text);
+        }
+        catch (Exception ex)
+        {
+            Log($"Frame timing not written: {ex.Message}");
+        }
+    }
+
     /// <summary>
     /// GUI-C-233h: adds what becomes known AFTER the commit (the lane pictures, the timings) to the record it belongs to - and only if that render is still the one on screen. Matching is by
     /// <see cref="RenderRecord.Id"/>, not by object: every update makes a new record, so an object comparison would drop the second update.
@@ -2654,7 +2716,9 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         Settings.LastRawDirectory = Path.GetDirectoryName(path) ?? string.Empty;
+        _openStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();   // GUI-C-236b (U8): the open starts reading
         var loadedFrame = _backend.LoadRawImage(path, Settings);
+        _openReadEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
         ActiveImageSourcePath = path;   // GUI-C-232b: only after the load SUCCEEDED, so a failed open never renames the image that is still open
         DrainBackendTelemetry();
 
@@ -2699,6 +2763,12 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        // GUI-C-236b (U8): the first display pipeline after an open is the one whose picture ends the open-to-picture time
+        var timedOpenStartedAt = _openStartedAt;
+        var timedReadEndedAt = _openReadEndedAt;
+        _openStartedAt = 0;
+        var applyStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+
         CancellationTokenSource? cancellationMarker = null;
         StatusText = "Applying display pipeline...";
         Log($"Display pipeline requested: mode={Settings.VoiLutMode}, bodyPart={Settings.SelectedBodyPart}, center={Settings.VoiWindowCenter}, width={Settings.VoiWindowWidth}, GSDF={Settings.GsdfEnabled}, calibrationEval=[{CalibrationEvaluationSummary}].");
@@ -2731,6 +2801,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult, inputs));
             });
             var workMs = work.Elapsed.TotalMilliseconds;
+            var workEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
             // GUI-C-186f: a shutdown or a replacement may have started while the chain waited (for the AI gate, for instance). Its
             // result belongs to a backend that is going away: nothing on screen changes, and no Lane B work is scheduled.
@@ -2762,6 +2833,12 @@ public sealed class MainWindowViewModel : ObservableObject
             ActiveImageFrame = processedFrame;
             RefreshCorrectedAvailability();
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
+            if (timedOpenStartedAt != 0)
+            {
+                // GUI-C-236b (U8): the picture is handed to the viewport; the end of the open-to-picture time is two composition ticks later (not awaited here: nothing below waits for it)
+                _ = PublishFrameTimingAsync(timedOpenStartedAt, timedReadEndedAt, applyStartedAt, workEndedAt, System.Diagnostics.Stopwatch.GetTimestamp(), chain.Timings);
+            }
+
             PreviewStaleReason = null;   // #171 ③: this render is current; ① is re-evaluated just below
             // GUI-C-233g: the commit. One record, made from this render's own inputs, chain, window, summary and the backend that ran it (asked from the ticket's backend, not from whatever is current later).
             var committed = new RenderRecord(
