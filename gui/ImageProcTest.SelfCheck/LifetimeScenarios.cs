@@ -1056,6 +1056,26 @@ internal static class LifetimeScenarios
     // APPLICATION folder (the runner's own folder). The control shows that the decoy IS found and loaded when nothing is pinned; with the search pinned the same name must NOT be loaded from it - the resolver
     // throws instead of handing the name to the default loader, which would search the application folder.
 
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr GetModuleHandleW(string moduleName);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool FreeLibrary(IntPtr module);
+
+    /// <summary>GUI-C-246: how many references the process holds on a module, counted by giving them back until it is gone (this unloads it). Zero when it is not loaded.</summary>
+    private static int DrainReferences(string moduleName)
+    {
+        var count = 0;
+        while (count < 10_000 && GetModuleHandleW(moduleName) is var handle && handle != IntPtr.Zero)
+        {
+            FreeLibrary(handle);
+            count++;
+        }
+
+        return count;
+    }
+
     private static Task ThePinnedNativeSearch_HasNoWayBackToTheApplicationFolder(string rawPath, int width, int height)
     {
         _scenario = "11 pinned native search";
@@ -1191,6 +1211,37 @@ internal static class LifetimeScenarios
             Check(!exported.Written && !exported.Passed && exported.Summary.Contains("outside the pinned folder", StringComparison.Ordinal), $"the export should report that nothing was written and why, said: {exported.Summary}");
             Check(!File.Exists(partialPath) && !File.Exists(dicomPath), "the export left a file (partial or final) behind although every call was refused");
 
+            // GUI-C-246 (Codex #197): the check does not pile up references, and it does not unload anything either. The application's own DllImport would hold one reference on xpe_dicom.dll; this holds one the
+            // same way, runs the three entries' check 50 times each and then counts what is left by giving references back until the module is gone: the held one plus the ONE the check keeps (2), however many calls
+            // there were. Phase 1: the stray xpe_ai.dll is still loaded, so every call THROWS; phase 2 (below, after the control): nothing is stray, every call passes. Phase 3: a module the check loads FIRST (the
+            // application has not used it yet) is still loaded afterwards: the check does not unload a module under the call that follows it.
+            const int Repeats = 50;
+            string[] entries = ["xpe_dicom_write", "xpe_dicom_validate", "xpe_dicom_open"];
+            DrainReferences("xpe_dicom.dll");
+            ImageProcTest.Services.Native.NativeModuleAudit.ForgetPreflightHandlesForTests();
+            var heldByTheApplication = System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(pinnedElsewhere, "xpe_dicom.dll"));
+            var refused = 0;
+            for (var i = 0; i < Repeats; i++)
+            {
+                foreach (var entry in entries)
+                {
+                    try
+                    {
+                        ImageProcTest.Services.Native.NativeModuleAudit.PreflightModule("xpe_dicom.dll", entry);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        refused++;
+                    }
+                }
+            }
+
+            Check(refused == Repeats * entries.Length, $"phase 1: every check should have been refused while a stray module is loaded, {refused} of {Repeats * entries.Length} were");
+            Check(GetModuleHandleW("xpe_dicom.dll") != IntPtr.Zero, "phase 1: the module the application holds was unloaded by the checks");
+            var leftAfterRefused = DrainReferences("xpe_dicom.dll");
+            Check(leftAfterRefused == 2, $"phase 1: {leftAfterRefused} references on xpe_dicom.dll are left after {Repeats * entries.Length} refused checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)");
+            _ = heldByTheApplication;
+
             // the control: with the stray module gone, the same session is NOT refused (it then reaches the call, and the version.dll copy has no such export)
             System.Runtime.InteropServices.NativeLibrary.Free(decoyHandle);
             decoyHandle = IntPtr.Zero;
@@ -1207,6 +1258,29 @@ internal static class LifetimeScenarios
             {
                 // reached the call (the version.dll copy has no such export): the audit let it through, as it must when everything is from the pinned folder
             }
+
+            // phase 2 of the reference count: nothing stray, every check passes
+            DrainReferences("xpe_dicom.dll");
+            ImageProcTest.Services.Native.NativeModuleAudit.ForgetPreflightHandlesForTests();
+            System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(pinnedElsewhere, "xpe_dicom.dll"));
+            for (var i = 0; i < Repeats; i++)
+            {
+                foreach (var entry in entries)
+                {
+                    ImageProcTest.Services.Native.NativeModuleAudit.PreflightModule("xpe_dicom.dll", entry);   // must not throw
+                }
+            }
+
+            Check(GetModuleHandleW("xpe_dicom.dll") != IntPtr.Zero, "phase 2: the module the application holds was unloaded by the checks");
+            var leftAfterPassing = DrainReferences("xpe_dicom.dll");
+            Check(leftAfterPassing == 2, $"phase 2: {leftAfterPassing} references on xpe_dicom.dll are left after {Repeats * entries.Length} passing checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)");
+
+            // phase 3: the check is the module's FIRST loader (nothing else holds it). It must still be loaded afterwards, because the call that follows needs it
+            DrainReferences("xpe_dicom.dll");
+            ImageProcTest.Services.Native.NativeModuleAudit.ForgetPreflightHandlesForTests();
+            ImageProcTest.Services.Native.NativeModuleAudit.PreflightModule("xpe_dicom.dll", "xpe_dicom_write");
+            Check(GetModuleHandleW("xpe_dicom.dll") != IntPtr.Zero, "phase 3: the module the check loaded FIRST was unloaded again by the check; the call that follows would have to load it again");
+            DrainReferences("xpe_dicom.dll");
         }
         finally
         {
