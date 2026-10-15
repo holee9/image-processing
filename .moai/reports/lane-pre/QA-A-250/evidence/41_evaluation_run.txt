@@ -1,0 +1,50 @@
+start 2026-10-15 18:02:30  HEAD 35516c46
+xpe_preprocess.dll sha256 c2524c57d80f3c9cb7ad72195355c11e855ba40c53132bf7f26154858fb94d32 (local ci-preprocess build)
+xpe_preprocess_tests.exe sha256 39cf5943b09ab7a4da81841519f68983f04eaaee5ec669d4debdc41b0ac46ea8
+[a250] set D:/workspace-github/xpe-data/calib-cyan-v1 | flat-field ROI (gain finite and > 0): 9437184 of 9437184 pixels
+[a250] OFFSET  frame     part          DarkBias_ADU  DSNU_ADU  std(R)  DarkReduction_dB  ClampRate_%  |bias|<=5  red>=10  frame passes
+[a250] OFFSET  Dark_07  generation           0.000     0.119  41.613             50.91     100.0000          1        1  yes
+[a250] OFFSET  Dark_08  generation          14.467     3.052  42.121             22.80       0.0002          0        1  yes
+[a250] OFFSET  Dark_09  generation          14.476     3.049  42.070             22.79       0.0003          0        1  yes
+[a250] OFFSET  Dark_10  generation          14.258     3.050  42.083             22.80       0.0003          0        1  yes
+[a250] OFFSET  Dark_11  generation           8.575     3.026  42.037             22.86       0.2347          0        1  yes
+[a250] OFFSET  Dark_12  generation          14.400     3.031  42.097             22.85       0.0003          0        1  yes
+[a250] OFFSET  Dark_13  generation           8.549     3.017  42.032             22.88       0.2402          0        1  yes
+[a250] OFFSET  Dark_14  generation           8.612     3.035  42.048             22.83       0.2318          0        1  yes
+[a250] OFFSET  Dark_15  HELD OUT            14.276     3.468  42.075             21.68       0.0026          0        1  yes
+[a250] OFFSET  Dark_16  HELD OUT             8.556     3.418  42.034             21.80       0.6341          0        1  yes
+[a250] VERDICT offset (both held-out dark frames pass |DarkBias| <= 5 ADU or DarkReduction_dB >= 10): PASS
+[a250] GAIN    frame       part         ROI_mean_ADU  FlatResidualPct  signal>=2000  residual<=1.0  frame passes
+[a250] GAIN    Bright_17  generation          2745.8           1.2252             1              0  no
+[a250] GAIN    Bright_18  generation          2938.2           1.0503             1              0  no
+[a250] GAIN    Bright_19  generation          2942.4           1.0496             1              0  no
+[a250] GAIN    Bright_20  generation          5932.1           0.7322             1              1  yes
+[a250] GAIN    Bright_21  generation          5947.5           0.7317             1              1  yes
+[a250] GAIN    Bright_22  generation          5940.6           0.7323             1              1  yes
+[a250] GAIN    Bright_23  generation          9295.4           0.5791             1              1  yes
+[a250] GAIN    Bright_24  generation          9292.9           0.5799             1              1  yes
+[a250] GAIN    Bright_25  generation          9325.5           0.5783             1              1  yes
+[a250] GAIN    Bright_26  generation          9285.6           0.5800             1              1  yes
+[a250] GAIN    Bright_27  generation          9285.8           0.5796             1              1  yes
+[a250] GAIN    Bright_28  generation          9286.9           0.5796             1              1  yes
+[a250] GAIN    Bright_29  generation          9287.3           0.5794             1              1  yes
+[a250] GAIN    Bright_30  generation          9273.7           0.5804             1              1  yes
+[a250] GAIN    Bright_31  generation         18423.0           0.3999             1              1  yes
+[a250] GAIN    Bright_32  generation         18528.0           0.3982             1              1  yes
+[a250] GAIN    Bright_33  generation         18531.4           0.3985             1              1  yes
+[a250] GAIN    Bright_34  generation         29487.5           0.3060             1              1  yes
+[a250] GAIN    Bright_35  HELD OUT           29485.1           0.3589             1              1  yes
+[a250] GAIN    Bright_36  HELD OUT           29520.6           0.3582             1              1  yes
+[a250] VERDICT gain (both held-out bright frames: ROI mean >= 2000 ADU and FlatResidualPct <= 1.0 %): PASS
+[a250] PHANTOM 0 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00 | all pixels: pixels 9437184 | mean ours 25679.3 result 24024.2 | ours-result: mean 1655.15, mean|.| 3713.29, p50|.| 1366.24, p99|.| 19432.07, max|.| 33085.4 | correlation 0.97094 | median ours/result 0.93147 | raw at 65535: 1714626, result at its maximum 45000: 1945377 | written phantom_0_ours_f32le.raw
+[a250] PHANTOM 0 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00 | clipped pixels left out: pixels 7491806 | mean ours 17292.6 result 18577.4 | ours-result: mean -1284.88, mean|.| 1284.88, p50|.| 1159.70, p99|.| 2844.62, max|.| 3720.6 | correlation 0.99999 | median ours/result 0.93095 | raw at 65535: 1714626, result at its maximum 45000: 1945377 | written phantom_0_ours_f32le.raw
+[a250] PHANTOM 1 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01 | all pixels: pixels 9437184 | mean ours 38224.9 result 33658.5 | ours-result: mean 4566.42, mean|.| 5613.14, p50|.| 5338.81, p99|.| 17039.04, max|.| 26259.8 | correlation 0.98181 | median ours/result 1.11864 | raw at 65535: 5384321, result at its maximum 45000: 5487260 | written phantom_1_ours_f32le.raw
+[a250] PHANTOM 1 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01 | clipped pixels left out: pixels 3949924 | mean ours 16664.9 result 17902.7 | ours-result: mean -1237.78, mean|.| 1237.78, p50|.| 1146.71, p99|.| 2863.43, max|.| 3702.5 | correlation 0.99999 | median ours/result 0.93106 | raw at 65535: 5384321, result at its maximum 45000: 5487260 | written phantom_1_ours_f32le.raw
+[a250] PHANTOM 2 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02 | all pixels: pixels 9437184 | mean ours 25816.7 result 24156.1 | ours-result: mean 1660.56, mean|.| 3734.03, p50|.| 1377.14, p99|.| 19454.72, max|.| 33085.4 | correlation 0.97058 | median ours/result 0.93146 | raw at 65535: 1720085, result at its maximum 45000: 1950586 | written phantom_2_ours_f32le.raw
+[a250] PHANTOM 2 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02 | clipped pixels left out: pixels 7486597 | mean ours 17430.2 result 18725.4 | ours-result: mean -1295.17, mean|.| 1295.17, p50|.| 1170.60, p99|.| 2849.64, max|.| 3342.4 | correlation 0.99999 | median ours/result 0.93094 | raw at 65535: 1720085, result at its maximum 45000: 1950586 | written phantom_2_ours_f32le.raw
+[a250] PHANTOM 3 Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03 | all pixels: pixels 9437184 | mean ours 31438.7 result 33782.7 | ours-result: mean -2344.03, mean|.| 2344.03, p50|.| 2593.33, p99|.| 2950.59, max|.| 3217.0 | correlation 0.99998 | median ours/result 0.93070 | raw at 65535: 0, result at its maximum 42406: 1 | written phantom_3_ours_f32le.raw
+[a250] PHANTOM 3 Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03 | clipped pixels left out: pixels 9437183 | mean ours 31438.7 result 33782.7 | ours-result: mean -2344.03, mean|.| 2344.03, p50|.| 2593.33, p99|.| 2950.59, max|.| 3217.0 | correlation 0.99998 | median ours/result 0.93070 | raw at 65535: 0, result at its maximum 42406: 1 | written phantom_3_ours_f32le.raw
+[a250] PHANTOM 4 Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04 | all pixels: pixels 9437184 | mean ours 13333.4 result 14321.9 | ours-result: mean -988.51, mean|.| 988.51, p50|.| 1095.73, p99|.| 1260.84, max|.| 1379.9 | correlation 0.99998 | median ours/result 0.93110 | raw at 65535: 0, result at its maximum 18291: 1 | written phantom_4_ours_f32le.raw
+[a250] PHANTOM 4 Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04 | clipped pixels left out: pixels 9437183 | mean ours 13333.4 result 14321.9 | ours-result: mean -988.51, mean|.| 988.51, p50|.| 1095.73, p99|.| 1260.84, max|.| 1379.9 | correlation 0.99998 | median ours/result 0.93110 | raw at 65535: 0, result at its maximum 18291: 1 | written phantom_4_ours_f32le.raw
+[       OK ] A241Measure.DISABLED_A250_CyanCalibrationJudgement (8493 ms)
+end 2026-10-15 18:02:39

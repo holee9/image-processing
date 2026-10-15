@@ -1,0 +1,9 @@
+start 2026-10-15 17:56:08  HEAD 35516c46
+exe sha256 ec8f90c698ef7ef0289247a700c3dc9fc5fd2caeef07ab6abd67943c3e044643
+args: --out D:/workspace-github/xpe-data/calib-cyan-v1 --expiry-ms 4102444800000 --compare-bpm <cyan_test>/calfiles/BPM.raw --dark <cyan_test>/calfiles/Dark_07.raw --dark <cyan_test>/calfiles/Dark_08.raw --dark <cyan_test>/calfiles/Dark_09.raw --dark <cyan_test>/calfiles/Dark_10.raw --dark <cyan_test>/calfiles/Dark_11.raw --dark <cyan_test>/calfiles/Dark_12.raw --dark <cyan_test>/calfiles/Dark_13.raw --dark <cyan_test>/calfiles/Dark_14.raw --bright <cyan_test>/calfiles/Bright_17.raw --bright <cyan_test>/calfiles/Bright_18.raw --bright <cyan_test>/calfiles/Bright_19.raw --bright <cyan_test>/calfiles/Bright_20.raw --bright <cyan_test>/calfiles/Bright_21.raw --bright <cyan_test>/calfiles/Bright_22.raw --bright <cyan_test>/calfiles/Bright_23.raw --bright <cyan_test>/calfiles/Bright_24.raw --bright <cyan_test>/calfiles/Bright_25.raw --bright <cyan_test>/calfiles/Bright_26.raw --bright <cyan_test>/calfiles/Bright_27.raw --bright <cyan_test>/calfiles/Bright_28.raw --bright <cyan_test>/calfiles/Bright_29.raw --bright <cyan_test>/calfiles/Bright_30.raw --bright <cyan_test>/calfiles/Bright_31.raw --bright <cyan_test>/calfiles/Bright_32.raw --bright <cyan_test>/calfiles/Bright_33.raw --bright <cyan_test>/calfiles/Bright_34.raw
+bpm comparison: generated 133, reference 250, both 97, recall 0.388000, precision 0.729323, false positive rate 0.00000381
+offset.xcal  f1b0f088ccc68eb123113633980edbea31d158695ebe18b787e53a166ae2d476
+gain.xcal    a4589ede1c9c2c7bd2c06a4c1b99e44d2c928dca22a84439bf9c28e894c74aa5
+defect.xcal  4454a14025af8e241de3eeafb0c78ff1a65c7ac4414353b65e8e0f9d6134284c  (133 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/calib-cyan-v1\manifest.json
+exit 0 wall seconds 366 end 2026-10-15 18:02:14

@@ -1,0 +1,57 @@
+{
+  "generator": "xpe_calib_fixture_gen",
+  "mode": "frames",
+  "width": 3072,
+  "height": 3072,
+  "expiry_epoch_ms": 4102444800000,
+  "frames": {"dark": 8, "bright": 18},
+  "settings": {
+    "offset": {"exposure_ms": 100, "temperature_c": 25},
+    "gain_dark_reference": "mean",
+    "bpm": {"lambda_dark": 8.0, "mask_size_dark": 32, "mask_size_bright": 128, "tolerance_pct": 0.070, "min_frames_dark": 5, "min_frames_bright": 10},
+    "saturated_share_limit": 0.0010
+  },
+  "inputs": [
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_07.raw", "sha256": "5af7d2658337d89189df10665814f9deee7b2f4656b48a91495d00046de5e460", "mean": 10929.227},
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_08.raw", "sha256": "408938d3ecd635c508341d428a4ef7a4102f7e3a7488ed868939402da7bdf90f", "mean": 11026.524},
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_09.raw", "sha256": "89a34cec8000b188054c206e3eb24b90c1ee27e527816b2eeaeb60d2fcce2a21", "mean": 11026.534},
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_10.raw", "sha256": "0a6627bdf1df223a14a5e41584af17b9b4d131e0bde61f36f690091c6b820262", "mean": 11026.315},
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_11.raw", "sha256": "e8fa15c751cfc5aa6476cbfa6ccecfde89effffb02a58b91d7e365ea5cb2c80d", "mean": 11020.630},
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_12.raw", "sha256": "03f5d6bb2f868816036a07005ef615fd62d9f2586d53ac587096912543af34df", "mean": 11026.457},
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_13.raw", "sha256": "1260ea2e3bd3af50b5785b7f6dc1026b83bac7dcee0a759fcbbd7301628df7e8", "mean": 11020.604},
+    {"role": "dark", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_14.raw", "sha256": "1e6c1aced410ff00c87b1166343cdb75af6a9c1cb0edbea2551207feb5549b74", "mean": 11020.667},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_17.raw", "sha256": "bc0f97f2959121eeff034186dddcaa15af90289a5d7d6669376d9a932765d580", "mean": 13758.713},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_18.raw", "sha256": "ed646e7aec2d80da6de47e4dee8e42c436cb08e9909a11a80d2b7a9c298619d3", "mean": 13950.215},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_19.raw", "sha256": "b6065b6a2b2e2c0fafa37d35c3daa2183c7dea43e2f8803c2365a405429085fc", "mean": 13954.393},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_20.raw", "sha256": "ce17d45fd9ae80c4088f39c76ea95ff097d841b139d150c2239e18056594051c", "mean": 16944.149},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_21.raw", "sha256": "1fe20ad6408f0c7fa2864684a058dcc45808d8aa569014150603a68e06d8c53e", "mean": 16959.549},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_22.raw", "sha256": "97e4991291a194db51cd6030a73368cf8329bd015abca9a71f79f71ee66f7df1", "mean": 16952.702},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_23.raw", "sha256": "863ed58233fff6e86d25690900c5908b6bb044d103b6a46a230c5080cbea3c79", "mean": 20307.495},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_24.raw", "sha256": "5d859591f5552dca126a1094d510c3835f24794c1489869ff25d9297825fdca6", "mean": 20304.957},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_25.raw", "sha256": "b037b014adb90b66de05d234186407e74ef94a8c32b1b58f150053d65eeef8fb", "mean": 20337.382},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_26.raw", "sha256": "a42c4917cf9ddf9ca9678a9b1d10ab9ff4f2a15a3aa625ae348716a347470ab7", "mean": 20297.672},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_27.raw", "sha256": "a32400643c54a706e05ad9ccb6daff127c325b13e087587ad71eb4ed23c83adb", "mean": 20297.832},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_28.raw", "sha256": "1a54e42fc845f4ac8fbac36ca1ef7a32c4c52a7c88d3be4502206e48e1f7996d", "mean": 20298.972},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_29.raw", "sha256": "912a096c07b08241fb55673b0585a49f354d42a0db4aa2999e059cb16fae9a9a", "mean": 20299.266},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_30.raw", "sha256": "c797de2d46abddc73482f8e2f8fdb4add7d09bb2718ea5807d2b050132845b30", "mean": 20285.890},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_31.raw", "sha256": "24d58e48a045453b8f9cf47455478c92f960dbe4231dcf4066ad272938e200af", "mean": 29435.172},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_32.raw", "sha256": "ec28d83c106ae812d802b0f00a9d15bba9ded4f5b876a2120e6ff31d3d42d25d", "mean": 29540.020},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_33.raw", "sha256": "517e397a929351f31a53bc7cf6739bf8cd14df368cdc49dee78c7b8571864e60", "mean": 29543.335},
+    {"role": "bright", "path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_34.raw", "sha256": "9c971018b8f142defaa991316499e462948ee6ad2a6b7b944a2db77f5e372f49", "mean": 40498.895}
+  ],
+  "defect_pixels": 133,
+  "bpm_comparison": {
+    "reference_file": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/BPM.raw",
+    "generated": 133,
+    "reference": 250,
+    "both": 97,
+    "recall": 0.388000,
+    "precision": 0.729323,
+    "false_positive_rate": 0.00000381
+  },
+  "files": {
+    "offset.xcal": "f1b0f088ccc68eb123113633980edbea31d158695ebe18b787e53a166ae2d476",
+    "gain.xcal": "a4589ede1c9c2c7bd2c06a4c1b99e44d2c928dca22a84439bf9c28e894c74aa5",
+    "defect.xcal": "4454a14025af8e241de3eeafb0c78ff1a65c7ac4414353b65e8e0f9d6134284c"
+  }
+}
