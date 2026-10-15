@@ -62,3 +62,9 @@ dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj --no-bu
 - 노출 지수 EI 3143.86 (v1 3143.87): 두 세트가 거의 같은 보정 결과를 냈다. 세트를 읽는지는 1절 대조군으로 확인했다.
 - 가용 메모리 6628 -> 6603 MB, 남은 ImageProcTest/testhost/xpe_ai_worker 0.
 - 화면 캡처는 같은 한계(창 안쪽 흰색)로 얻지 못했다.
+
+## 7. 추가 실행: calib-cyan-v3 (최종 세트, 리더 요청 19:24)
+
+- `XPE_C247_CALIB=D:\workspace-github\xpe-data\calib-cyan-v3`, 같은 프레임·같은 단언으로 1회(`run_cyan_v3.txt`): **통과** 14 s.
+- `preprocess=Applied`, 단계 offset -> gain -> defect, HUD `3 stages (offset · gain · defect)`. ALERT 는 WARN 1(노출 편차 DI=11.00)+INFO 1 이고 보정 단계 경고·오류 0. EI 3143.86.
+- 가용 메모리 6322 -> 6215 MB, 남은 ImageProcTest/testhost/xpe_ai_worker 0. 화면 캡처는 같은 한계로 얻지 못했다.
