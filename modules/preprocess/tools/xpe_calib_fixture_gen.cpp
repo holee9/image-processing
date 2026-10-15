@@ -47,9 +47,17 @@
  *                 fewer than 5 dark frames, fewer than 5 bright frames (gain) or
  *                 10 (defect map), a file that is missing or not width x height x 2
  *                 bytes, a frame with more than 0.1 % of its pixels at 65535, bright
- *                 frames for the gain map that span more than one dose (QA-A-250b):
- *                 the largest and the smallest offset-subtracted frame mean (frame
- *                 mean minus the mean of the dark inputs) differ by more than 1.25.
+ *                 frames for the gain map that span more than one dose (QA-A-250b,
+ *                 QA-A-250c): the signal of a frame is formed exactly as the gain
+ *                 generator forms it, the mean over the pixels of max(0, frame -
+ *                 gain dark reference) (reference: --gain-dark-ref, none = 0); the
+ *                 largest and the smallest signal differ by more than 1.25, or a
+ *                 frame has no signal left (exit 12).
+ *                 QA-A-250c: the same file twice in one role (same path, same file
+ *                 by fs::equivalent, or same sha-256), exit 13. The set is built in
+ *                 a sibling directory and moved into --out only when all four files
+ *                 exist; a refusal or a failure leaves no output directory and an
+ *                 existing set untouched.
  *   --bpm-bright F, --bpm-bright-list L   QA-A-250b: the bright frames of the DEFECT
  *                 map, when they are not the gain frames. The gain map needs one
  *                 dose (xpe_calib_generate_gain averages the frames); the defect
@@ -576,32 +584,143 @@ std::vector<XpeImageBuffer> u16BuffersOf(const std::vector<InputFrame*>& frames,
 }
 
 /**
- * The gain map averages its bright frames, so they must come from one dose. The offset-subtracted mean of a frame is its mean minus the mean of the dark
- * inputs (the offset level). Returns 0 and the max/min ratio, or 12 with the reason on stderr.
+ * The signal of a bright frame as the gain generator forms it: the mean over the pixels of max(0, frame - dark reference). @p ref empty means no subtraction.
  */
-int checkSingleDose(const std::vector<InputFrame>& darks, const std::vector<InputFrame>& brights, double* ratio) {
-    double offsetLevel = 0.0;
-    for (const auto& d : darks) offsetLevel += d.mean;
-    offsetLevel /= static_cast<double>(darks.size());
+double gainSignalMean(const std::vector<uint16_t>& frame, const std::vector<uint16_t>& ref) {
+    double sum = 0.0;
+    for (size_t i = 0; i < frame.size(); ++i) {
+        const double corrected = static_cast<double>(frame[i]) - (ref.empty() ? 0.0 : static_cast<double>(ref[i]));
+        if (corrected > 0.0) sum += corrected;
+    }
+    return sum / static_cast<double>(frame.size());
+}
+
+/**
+ * The gain map averages its bright frames, so they must come from one dose. The dose is judged on the signal the generator will see (gainSignalMean with
+ * the reference the generator will get), so the check and the generator cannot disagree. Returns 0 and the max/min ratio, or 12 with the reason on stderr.
+ */
+int checkSingleDose(const std::vector<InputFrame>& brights, const std::vector<uint16_t>& ref, const std::string& refLabel, double* ratio) {
     const InputFrame* lo = nullptr;
     const InputFrame* hi = nullptr;
-    double loNet = 0.0, hiNet = 0.0;
+    double loSig = 0.0, hiSig = 0.0;
     for (const auto& b : brights) {
-        const double net = b.mean - offsetLevel;
-        if (net <= 0.0) {
-            std::fprintf(stderr, "%s: the frame mean %.3f is not above the dark level %.3f: not a bright frame for this offset\n", b.path.c_str(), b.mean, offsetLevel);
+        const double sig = gainSignalMean(b.px, ref);
+        if (sig <= 0.0) {
+            std::fprintf(stderr, "%s: no signal is left after subtracting the gain dark reference (%s): mean of max(0, frame - reference) is %.3f; not a bright frame for this reference\n",
+                         b.path.c_str(), refLabel.c_str(), sig);
             return 12;
         }
-        if (!lo || net < loNet) { lo = &b; loNet = net; }
-        if (!hi || net > hiNet) { hi = &b; hiNet = net; }
+        if (!lo || sig < loSig) { lo = &b; loSig = sig; }
+        if (!hi || sig > hiSig) { hi = &b; hiSig = sig; }
     }
-    *ratio = hiNet / loNet;
+    *ratio = hiSig / loSig;
     if (*ratio > kGainDoseRatioLimit) {
         std::fprintf(stderr,
-                     "bright frames for the gain map span more than one dose: offset-subtracted frame means from %.1f (%s) to %.1f (%s), ratio %.3f, limit %.2f. The gain "
+                     "bright frames for the gain map span more than one dose: gain signal (mean of max(0, frame - gain dark reference %s)) from %.1f (%s) to %.1f (%s), ratio %.3f, limit %.2f. The gain "
                      "generator averages its frames and assumes one dose; give frames of one dose with --bright (frames of several doses may go to the defect map with --bpm-bright)\n",
-                     loNet, lo->path.c_str(), hiNet, hi->path.c_str(), *ratio, kGainDoseRatioLimit);
+                     refLabel.c_str(), loSig, lo->path.c_str(), hiSig, hi->path.c_str(), *ratio, kGainDoseRatioLimit);
         return 12;
+    }
+    return 0;
+}
+
+// QA-A-250c: the same file twice in one role. A path duplicate is the same normalized path or the same file (fs::equivalent: links, case, ..), a content
+// duplicate the same sha-256. The first would be counted twice toward the frame minimum and averaged twice; a duplicate is refused (exit 13), not skipped.
+int rejectPathDuplicates(const std::vector<std::string>& paths, const char* role) {
+    for (size_t i = 0; i < paths.size(); ++i) {
+        for (size_t j = i + 1; j < paths.size(); ++j) {
+            std::error_code ec;
+            const bool same = fs::path(paths[i]).lexically_normal() == fs::path(paths[j]).lexically_normal() || fs::equivalent(paths[i], paths[j], ec);
+            if (same) {
+                std::fprintf(stderr, "duplicate %s frame: '%s' and '%s' are the same file; a frame is given once per role\n", role, paths[i].c_str(), paths[j].c_str());
+                return 13;
+            }
+        }
+    }
+    return 0;
+}
+
+int rejectContentDuplicates(const std::vector<const InputFrame*>& frames, const char* role) {
+    for (size_t i = 0; i < frames.size(); ++i) {
+        for (size_t j = i + 1; j < frames.size(); ++j) {
+            if (frames[i]->sha == frames[j]->sha) {
+                std::fprintf(stderr, "duplicate %s frame: '%s' and '%s' have the same content (sha-256 %s); a frame is given once per role\n", role, frames[i]->path.c_str(),
+                             frames[j]->path.c_str(), frames[i]->sha.c_str());
+                return 13;
+            }
+        }
+    }
+    return 0;
+}
+
+// Test seam: XPE_FIXTURE_GEN_FAIL=<stage> forces that stage to fail (gain, bpm, manifest, commit) so the rollback paths can be exercised.
+bool forcedFailure(const char* stage) {
+#ifdef _WIN32
+    char* v = nullptr;
+    size_t len = 0;
+    const bool hit = _dupenv_s(&v, &len, "XPE_FIXTURE_GEN_FAIL") == 0 && v != nullptr && std::strcmp(v, stage) == 0;
+    std::free(v);
+    return hit;
+#else
+    const char* v = std::getenv("XPE_FIXTURE_GEN_FAIL");
+    return v != nullptr && std::strcmp(v, stage) == 0;
+#endif
+}
+
+// The work directory is a sibling of --out. It is removed in every case, together with the parent directories this run had to create.
+struct WorkDir {
+    fs::path path, firstExisting;
+    explicit WorkDir(const fs::path& out) {
+        fs::path abs = fs::absolute(out).lexically_normal();
+        if (abs.filename().empty()) abs = abs.parent_path();
+        path = abs.parent_path() / (abs.filename().string() + ".building");
+        firstExisting = abs;
+        std::error_code ec;
+        while (!firstExisting.empty() && !fs::exists(firstExisting, ec) && firstExisting != firstExisting.parent_path()) firstExisting = firstExisting.parent_path();
+        fs::remove_all(path, ec);
+        fs::create_directories(path, ec);
+    }
+    bool ok() const {
+        std::error_code ec;
+        return fs::is_directory(path, ec);
+    }
+    ~WorkDir() {
+        std::error_code ec;
+        fs::remove_all(path, ec);
+        for (fs::path d = path.parent_path(); !d.empty() && d != firstExisting && d != d.parent_path(); d = d.parent_path()) fs::remove(d, ec);   // only if empty
+    }
+};
+
+// Moves the four finished files from the work directory into --out. Existing files of the same names are set aside first and put back if anything fails.
+int commitSet(const fs::path& work, const fs::path& out, const std::vector<std::string>& names) {
+    std::error_code ec;
+    const bool outExisted = fs::is_directory(out, ec);
+    fs::create_directories(out, ec);
+    if (!fs::is_directory(out, ec)) {
+        std::fprintf(stderr, "cannot create output directory: %s\n", out.string().c_str());
+        return 3;
+    }
+    std::vector<std::string> setAside, placed;
+    bool failed = false;
+    for (const std::string& n : names) {
+        if (fs::exists(out / n, ec)) {
+            fs::rename(out / n, work / ("old_" + n), ec);
+            if (ec) { failed = true; break; }
+            setAside.push_back(n);
+        }
+    }
+    for (size_t i = 0; !failed && i < names.size(); ++i) {
+        if (forcedFailure("commit") && i == 2) { failed = true; break; }
+        fs::rename(work / names[i], out / names[i], ec);
+        if (ec) { failed = true; break; }
+        placed.push_back(names[i]);
+    }
+    if (failed) {
+        for (const std::string& n : placed) fs::remove(out / n, ec);
+        for (const std::string& n : setAside) fs::rename(work / ("old_" + n), out / n, ec);
+        if (!outExisted) fs::remove(out, ec);
+        std::fprintf(stderr, "moving the finished set into %s failed; nothing was changed there\n", out.string().c_str());
+        return 8;
     }
     return 0;
 }
@@ -616,6 +735,19 @@ int runFramesMode(const Options& opt) {
     std::vector<std::string> bpmPaths = opt.bpmBrightFiles;
     if (!opt.bpmBrightList.empty() && !readList(opt.bpmBrightList, &bpmPaths)) return 9;
     const bool separateBpm = !bpmPaths.empty();
+
+    {
+        std::error_code ec;
+        if (fs::exists(out, ec) && !fs::is_directory(out, ec)) {
+            std::fprintf(stderr, "cannot create output directory: %s exists and is not a directory\n", opt.outDir.c_str());
+            return 3;
+        }
+    }
+    if (const int rc = rejectPathDuplicates(darkPaths, "dark")) return rc;
+    if (const int rc = rejectPathDuplicates(brightPaths, "bright")) return rc;
+    if (separateBpm) {
+        if (const int rc = rejectPathDuplicates(bpmPaths, "bpm_bright")) return rc;
+    }
 
     // Counts first: it costs nothing and needs no file.
     if (darkPaths.size() < kMinDarkFrames) {
@@ -664,10 +796,19 @@ int runFramesMode(const Options& opt) {
         }
     }
 
-    double doseRatio = 0.0;
-    if (const int rc = checkSingleDose(darks, brights, &doseRatio)) return rc;
+    {
+        std::vector<const InputFrame*> d, b, k;
+        for (const auto& f : darks) d.push_back(&f);
+        for (const auto& f : brights) b.push_back(&f);
+        for (const InputFrame* f : bpmFrames) k.push_back(f);
+        if (const int rc = rejectContentDuplicates(d, "dark")) return rc;
+        if (const int rc = rejectContentDuplicates(b, "bright")) return rc;
+        if (separateBpm) {
+            if (const int rc = rejectContentDuplicates(k, "bpm_bright")) return rc;
+        }
+    }
 
-    // The dark reference of the gain stage.
+    // The dark reference of the gain stage (read before the dose check: the check uses the same reference as the generator).
     std::vector<uint16_t> refPixels;
     InputFrame refFile;
     const bool refIsFile = opt.gainDarkRef != "mean" && opt.gainDarkRef != "none";
@@ -686,13 +827,22 @@ int runFramesMode(const Options& opt) {
         refFile = std::move(got[0]);
         refPixels = refFile.px;
     }
+    const std::string refLabel = refIsFile ? fs::path(opt.gainDarkRef).generic_string() : opt.gainDarkRef;
+    double doseRatio = 0.0;
+    if (const int rc = checkSingleDose(brights, refPixels, refLabel, &doseRatio)) return rc;
 
     std::vector<uint8_t> theirs;
     if (!opt.compareBpm.empty() && !readReferenceMask(opt.compareBpm, pixelCount, &theirs)) return 9;
 
-    // ---- generation
-    const std::string offsetPath = (out / "offset.xcal").string(), gainPath = (out / "gain.xcal").string(), defectPath = (out / "defect.xcal").string();
-    const std::string offsetScratch = (out / "_scratch_offset.xcal").string(), gainScratch = (out / "_scratch_gain.xcal").string();
+    // ---- generation, into a sibling work directory; --out is touched only by commitSet, after all four files exist
+    WorkDir workDir(out);
+    if (!workDir.ok()) {
+        std::fprintf(stderr, "cannot create the work directory %s\n", workDir.path.string().c_str());
+        return 3;
+    }
+    const fs::path work = workDir.path;
+    const std::string offsetPath = (work / "offset.xcal").string(), gainPath = (work / "gain.xcal").string(), defectPath = (work / "defect.xcal").string();
+    const std::string offsetScratch = (work / "_scratch_offset.xcal").string(), gainScratch = (work / "_scratch_gain.xcal").string();
     for (const std::string& tmp : {offsetScratch, gainScratch}) {
         std::remove(tmp.c_str());
         std::remove((tmp + ".tmp").c_str());
@@ -718,7 +868,7 @@ int runFramesMode(const Options& opt) {
         std::vector<XpeImageBuffer> bufs = u16Buffers(brights, opt.width, opt.height);
         XpeImageBuffer refBuf{};
         if (!refPixels.empty()) refBuf = u16Buffer(refPixels, opt.width, opt.height);
-        if (xpe_calib_generate_gain(bufs.data(), static_cast<int32_t>(bufs.size()), refPixels.empty() ? nullptr : &refBuf, gainScratch.c_str(), nullptr) != XPE_OK) {
+        if (forcedFailure("gain") || xpe_calib_generate_gain(bufs.data(), static_cast<int32_t>(bufs.size()), refPixels.empty() ? nullptr : &refBuf, gainScratch.c_str(), nullptr) != XPE_OK) {
             std::fprintf(stderr, "xpe_calib_generate_gain failed\n");
             return 6;
         }
@@ -751,7 +901,8 @@ int runFramesMode(const Options& opt) {
         maskBuf.bitsStored = 8;
         maskBuf.format = XPE_PIXEL_UINT8;
         maskBuf.dataSize = mask.size();
-        const XpeErrorCode rc = xpe_bpm_generate(darkBufs.data(), static_cast<uint32_t>(darkBufs.size()), brightBufs.data(), static_cast<uint32_t>(brightBufs.size()), &cfg, &maskBuf);
+        const XpeErrorCode rc = forcedFailure("bpm") ? XPE_ERR_PROCESSING_FAILED
+                                                     : xpe_bpm_generate(darkBufs.data(), static_cast<uint32_t>(darkBufs.size()), brightBufs.data(), static_cast<uint32_t>(brightBufs.size()), &cfg, &maskBuf);
         if (rc != XPE_OK) {
             std::fprintf(stderr, "xpe_bpm_generate failed (%d)\n", static_cast<int>(rc));
             return 7;
@@ -802,8 +953,8 @@ int runFramesMode(const Options& opt) {
         inputs += "    {\"role\": \"" + all[i]->role + "\", \"path\": \"" + jsonText(fs::path(all[i]->path).generic_string()) + "\", \"sha256\": \"" + all[i]->sha +
                   "\", \"mean\": " + fixed(all[i]->mean, 3) + "}" + (i + 1 < all.size() ? ",\n" : "\n");
     }
-    std::ofstream manifest((out / "manifest.json").string(), std::ios::binary);
-    if (!manifest) {
+    std::ofstream manifest((work / "manifest.json").string(), std::ios::binary);
+    if (!manifest || forcedFailure("manifest")) {
         std::fprintf(stderr, "writing manifest.json failed\n");
         return 8;
     }
@@ -813,11 +964,17 @@ int runFramesMode(const Options& opt) {
              << "\",\n    \"bpm\": {\"lambda_dark\": " << fixed(cfg.lambda_dark, 1) << ", \"mask_size_dark\": " << cfg.mask_size_dark << ", \"mask_size_bright\": "
              << cfg.mask_size_bright << ", \"tolerance_pct\": " << fixed(cfg.tolerance_pct, 3) << ", \"min_frames_dark\": " << cfg.min_frames_dark
              << ", \"min_frames_bright\": " << cfg.min_frames_bright << "},\n    \"saturated_share_limit\": " << fixed(kSaturatedShareLimit, 4) << ",\n    \"gain_dose_ratio\": " << fixed(doseRatio, 4)
-             << ",\n    \"gain_dose_ratio_limit\": " << fixed(kGainDoseRatioLimit, 2) << "\n  },\n  \"inputs\": [\n"
+             << ",\n    \"gain_dose_ratio_limit\": " << fixed(kGainDoseRatioLimit, 2)
+             << ",\n    \"gain_dose_basis\": \"mean over pixels of max(0, bright - gain dark reference); reference: " << jsonText(refLabel) << "\"\n  },\n  \"inputs\": [\n"
              << inputs << "  ],\n  \"defect_pixels\": " << defectCount << ",\n"
              << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
              << "\"\n  }\n}\n";
     manifest.close();
+    if (!manifest) {
+        std::fprintf(stderr, "writing manifest.json failed\n");
+        return 8;
+    }
+    if (const int rc = commitSet(work, out, {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"})) return rc;
 
     std::printf("offset.xcal  %s\ngain.xcal    %s\ndefect.xcal  %s  (%zu defect pixels)\nmanifest.json written to %s\n", offsetSha.c_str(), gainSha.c_str(), defectSha.c_str(),
                 defectCount, (out / "manifest.json").string().c_str());
@@ -833,11 +990,13 @@ int main(int argc, char** argv) {
         return 2;
     }
 
-    std::error_code ec;
-    fs::create_directories(opt.outDir, ec);
-    if (!fs::is_directory(opt.outDir)) {
-        std::fprintf(stderr, "cannot create output directory: %s\n", opt.outDir.c_str());
-        return 3;
+    if (!opt.framesMode) {   // the frames path creates --out itself, only when the whole set exists (QA-A-250c)
+        std::error_code ec;
+        fs::create_directories(opt.outDir, ec);
+        if (!fs::is_directory(opt.outDir)) {
+            std::fprintf(stderr, "cannot create output directory: %s\n", opt.outDir.c_str());
+            return 3;
+        }
     }
 
     if (xpe_preprocess_init(nullptr) != XPE_OK) {

@@ -1,0 +1,203 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_calib_fixture_gen.cpp'
+raw = open(p, 'rb').read()
+assert b'\r\n' not in raw and b'\0' not in raw
+s = raw.decode('utf-8')
+
+new_tests = r'''
+// ---------------------------------------------------------------- QA-A-250c: Codex #200 findings 2, 3 and 4
+// Finding 2: the dose check sees the signal the gain generator sees (mean over pixels of max(0, bright - gain dark reference), the reference being
+// --gain-dark-ref). Finding 3: a frame is given once per role. Finding 4: the set is built aside and moved into --out only when all four files exist.
+class ScopedEnv {
+public:
+    ScopedEnv(const char* key, const char* value) : key_(key) {
+#ifdef _WIN32
+        _putenv_s(key, value);
+#else
+        setenv(key, value, 1);
+#endif
+    }
+    ~ScopedEnv() {
+#ifdef _WIN32
+        _putenv_s(key_, "");
+#else
+        unsetenv(key_);
+#endif
+    }
+
+private:
+    const char* key_;
+};
+
+fs::path writeFlatReference(const fs::path& path, uint16_t value) {
+    writeU16(path, std::vector<uint16_t>(static_cast<size_t>(kW) * kH, value));
+    return path;
+}
+
+// Anything named *.building left next to the output is a leftover work directory.
+bool hasWorkDirLeftover(const fs::path& root) {
+    for (const auto& e : fs::recursive_directory_iterator(root))
+        if (e.path().filename().string().find(".building") != std::string::npos) return true;
+    return false;
+}
+
+// Codex #200 finding 2, first reproduction: dark mean 15000, bright means 35000 and 43000, --gain-dark-ref none. The generator sees 35000 and 43000
+// (ratio 1.23): accepted. The old check subtracted the dark mean anyway (20000 and 28000, ratio 1.4) and refused with exit 12.
+TEST_F(CalibFixtureGenTest, FramesModeDoseCheckUsesTheGeneratorsSignalWhenThereIsNoDarkReference) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12, {1.0, 1.4}, 15000);
+    const fs::path none = root / "none", mean = root / "mean";
+    ASSERT_EQ(0, runFrames(root, none, framesArgs(set) + " --gain-dark-ref none", "none"));
+    const std::string manifest = asText(readAll(none / "manifest.json"));
+    EXPECT_NE(std::string::npos, manifest.find("\"gain_dose_ratio\": 1.22")) << manifest;
+    EXPECT_NE(std::string::npos, manifest.find("\"gain_dose_basis\": \"mean over pixels of max(0, bright - gain dark reference); reference: none\"")) << manifest;
+    // the same frames with the default reference (the dark mean) have signals 20000 and 28000: refused
+    std::string err;
+    EXPECT_EQ(12, runFrames(root, mean, framesArgs(set), "mean", &err));
+    EXPECT_NE(std::string::npos, err.find("ratio 1.4")) << err;
+}
+
+// Codex #200 finding 2, second reproduction: dark mean 1000, bright means 20000 and 24000, external reference mean 15000. The old check saw 19000 and 23000
+// (ratio 1.21, accepted); the generator sees 5000 and 9000 (ratio 1.8).
+TEST_F(CalibFixtureGenTest, FramesModeDoseCheckUsesTheExternalDarkReferenceOfTheGenerator) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12, {0.95, 1.15}, 1000);
+    const fs::path ref = writeFlatReference(root / "ref15000.raw", 15000);
+    std::string err;
+    EXPECT_EQ(12, runFrames(root, root / "external", framesArgs(set) + " --gain-dark-ref \"" + ref.string() + "\"", "external", &err));
+    EXPECT_NE(std::string::npos, err.find("ratio 1.8")) << err;
+    EXPECT_NE(std::string::npos, err.find("ref15000.raw")) << "the message names the reference: " << err;
+    EXPECT_FALSE(fs::exists(root / "external"));
+    EXPECT_EQ(0, runFrames(root, root / "mean", framesArgs(set), "mean")) << "the same frames with the dark mean as reference are one dose";
+}
+
+// The generator floors every pixel at zero before it averages. A reference of 21000 leaves about 500 of the 21000-mean frame and about 2085 of the
+// 23000-mean frame (ratio 4.2); without the floor the first frame would have no signal at all.
+TEST_F(CalibFixtureGenTest, FramesModeDoseCheckFloorsEachPixelAtZeroLikeTheGenerator) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12, {1.0, 1.1}, 1000);
+    const fs::path ref = writeFlatReference(root / "ref21000.raw", 21000);
+    std::string err;
+    EXPECT_EQ(12, runFrames(root, root / "out", framesArgs(set) + " --gain-dark-ref \"" + ref.string() + "\"", "x", &err));
+    EXPECT_NE(std::string::npos, err.find("ratio")) << err;
+    EXPECT_EQ(std::string::npos, err.find("no signal")) << "the floored signal is positive: " << err;
+}
+
+// Codex #200 finding 4 reproduction: a reference above every bright frame leaves no signal. The old tool failed in the gain stage, after offset.xcal was
+// written, and left it behind. Now the frames are refused before anything is made, and --out does not exist afterwards.
+TEST_F(CalibFixtureGenTest, FramesModeRefusesFramesWithNoSignalAfterTheReferenceAndLeavesNothing) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path ref = writeFlatReference(root / "ref30000.raw", 30000);
+    const fs::path out = root / "deep" / "new" / "out";
+    std::string err;
+    EXPECT_EQ(12, runFrames(root, out, framesArgs(set) + " --gain-dark-ref \"" + ref.string() + "\"", "x", &err));
+    EXPECT_NE(std::string::npos, err.find("no signal")) << err;
+    EXPECT_FALSE(fs::exists(root / "deep")) << "a refusal creates no directory";
+}
+
+// Boundary on both sides of 1.25 for the references that matter: none (signal = frame mean) and the dark mean.
+TEST_F(CalibFixtureGenTest, FramesModeDoseLimitBoundaryForEachReferenceKind) {
+    const FrameSet below = writeFrameSet(root / "below", 6, 12, {1.0, 1.2}, 1000), above = writeFrameSet(root / "above", 6, 12, {1.0, 1.3}, 1000);
+    EXPECT_EQ(0, runFrames(root, root / "none_below", framesArgs(below) + " --gain-dark-ref none", "a"));   // 21000 and 25000: 1.19
+    EXPECT_EQ(12, runFrames(root, root / "none_above", framesArgs(above) + " --gain-dark-ref none", "b"));  // 21000 and 27000: 1.29
+    EXPECT_EQ(0, runFrames(root, root / "mean_below", framesArgs(below), "c"));                              // 20000 and 24000: 1.2
+    EXPECT_EQ(12, runFrames(root, root / "mean_above", framesArgs(above), "d"));                             // 20000 and 26000: 1.3
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesTheSameFileTwiceInOneRole) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    std::string err;
+    const fs::path out = root / "out";
+
+    // repeated option
+    EXPECT_EQ(13, runFrames(root, out, framesArgs(set) + " --dark \"" + set.darks[0] + "\"", "opt", &err));
+    EXPECT_NE(std::string::npos, err.find("duplicate dark frame")) << err;
+    EXPECT_NE(std::string::npos, err.find("are the same file")) << err;
+
+    // a list that names a frame twice
+    std::string listed;
+    for (const auto& b : set.brights) listed += b + "\n";
+    listed += set.brights[3] + "\n";
+    const fs::path list = root / "bright.lst";
+    writeBytes(list, listed.data(), listed.size());
+    std::string args = " --width " + std::to_string(kW) + " --height " + std::to_string(kH) + " --expiry-ms " + std::to_string(kFarExpiryMs) + " --bright-list \"" + list.string() + "\"";
+    for (const auto& d : set.darks) args += " --dark \"" + d + "\"";
+    EXPECT_EQ(13, runFrames(root, out, args, "list", &err));
+    EXPECT_NE(std::string::npos, err.find("duplicate bright frame")) << err;
+
+    // the same file under another spelling of its path
+    const std::string alias = (root / "in" / ".." / "in" / "bright_0.raw").string();
+    EXPECT_EQ(13, runFrames(root, out, framesArgs(set) + " --bright \"" + alias + "\"", "alias", &err));
+    EXPECT_NE(std::string::npos, err.find("are the same file")) << err;
+
+    // the defect map's own list
+    std::string bpm = framesArgs(set);
+    for (size_t i = 0; i < 10; ++i) bpm += " --bpm-bright \"" + set.brights[i] + "\"";
+    bpm += " --bpm-bright \"" + set.brights[2] + "\"";
+    EXPECT_EQ(13, runFrames(root, out, bpm, "bpm", &err));
+    EXPECT_NE(std::string::npos, err.find("duplicate bpm_bright frame")) << err;
+
+    EXPECT_FALSE(fs::exists(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesTwoFilesWithTheSameContentInOneRole) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path copy = root / "in" / "bright_copy.raw";
+    fs::copy_file(set.brights[4], copy);
+    std::string err;
+    EXPECT_EQ(13, runFrames(root, root / "out", framesArgs(set) + " --bright \"" + copy.string() + "\"", "x", &err));
+    EXPECT_NE(std::string::npos, err.find("same content")) << err;
+    EXPECT_FALSE(fs::exists(root / "out"));
+    // a copy does not make up a missing frame: 4 distinct frames and a copy are still refused
+    const FrameSet few = writeFrameSet(root / "few", 6, 4);
+    const fs::path copy2 = root / "few" / "bright_copy.raw";
+    fs::copy_file(few.brights[0], copy2);
+    EXPECT_EQ(13, runFrames(root, root / "out2", framesArgs(few) + " --bright \"" + copy2.string() + "\"", "y", &err));
+}
+
+// A refusal makes no directory, however deep --out is.
+TEST_F(CalibFixtureGenTest, FramesModeRefusalsLeaveNoOutputDirectory) {
+    const FrameSet few = writeFrameSet(root / "few", 3, 12);   // too few darks
+    const fs::path out = root / "deep" / "new" / "out";
+    EXPECT_EQ(10, runFrames(root, out, framesArgs(few), "x"));
+    EXPECT_FALSE(fs::exists(root / "deep"));
+    const FrameSet ok = writeFrameSet(root / "in", 6, 12);
+    EXPECT_EQ(9, runFrames(root, out, framesArgs(ok) + " --bright \"" + (root / "missing.raw").string() + "\"", "y"));
+    EXPECT_FALSE(fs::exists(root / "deep"));
+}
+
+// The set is all or nothing. Each stage is made to fail in turn: --out is not created, no work directory is left, and a complete set that was already
+// there is untouched down to the byte.
+TEST_F(CalibFixtureGenTest, FramesModeFailureInAnyStageLeavesNoPartialSetAndKeepsAnExistingOne) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    struct Stage { const char* name; int code; };
+    for (const Stage& st : {Stage{"gain", 6}, Stage{"bpm", 7}, Stage{"manifest", 8}, Stage{"commit", 8}}) {
+        const fs::path fresh = root / (std::string("fresh_") + st.name) / "out";
+        {
+            ScopedEnv fail("XPE_FIXTURE_GEN_FAIL", st.name);
+            EXPECT_EQ(st.code, runFrames(root, fresh, framesArgs(set), std::string("f_") + st.name)) << st.name;
+        }
+        EXPECT_FALSE(fs::exists(fresh)) << st.name << ": --out was created";
+        EXPECT_FALSE(fs::exists(fresh.parent_path())) << st.name << ": a parent directory was left";
+    }
+    EXPECT_FALSE(hasWorkDirLeftover(root));
+
+    // an existing complete set survives a failure in any stage, and is replaced by a success
+    const fs::path out = caseDir("kept");
+    ASSERT_EQ(0, runFrames(root, out, framesArgs(set), "first"));
+    std::vector<std::vector<char>> before;
+    for (const char* n : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"}) before.push_back(readAll(out / n));
+    const FrameSet other = writeFrameSet(root / "other", 6, 12, {1.0}, 3000);   // another pedestal: different maps
+    for (const char* stage : {"gain", "bpm", "manifest", "commit"}) {
+        ScopedEnv fail("XPE_FIXTURE_GEN_FAIL", stage);
+        EXPECT_NE(0, runFrames(root, out, framesArgs(other), std::string("k_") + stage)) << stage;
+        size_t i = 0;
+        for (const char* n : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"}) EXPECT_TRUE(before[i++] == readAll(out / n)) << stage << ": " << n << " changed";
+    }
+    EXPECT_FALSE(hasWorkDirLeftover(root));
+    ASSERT_EQ(0, runFrames(root, out, framesArgs(other), "second"));
+    EXPECT_FALSE(before[0] == readAll(out / "offset.xcal")) << "a successful run replaces the old set";
+}
+
+'''
+marker = '\n}  // namespace\n'
+assert s.count(marker) == 1
+s = s.replace(marker, new_tests + '}  // namespace\n', 1)
+open(p, 'wb').write(s.encode('utf-8'))
+print('patched')
