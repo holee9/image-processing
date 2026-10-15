@@ -29,6 +29,24 @@
  *                 dark reference (they are already offset-corrected, CalData_6
  *                 README), defect = BPMap.map as it is. --width/--height default
  *                 to 3072 in this mode. Not combinable with --gain-poly.
+ *   --dark F, --bright F   QA-A-250: build the set from any number of REAL frames
+ *                 (headerless little-endian uint16, width x height, offset-
+ *                 UNcorrected: the dark pedestal is still in the bright frames).
+ *                 Both options repeat. --dark-list L / --bright-list L read the
+ *                 same from a text file, one path per line ('#' and empty lines
+ *                 ignored, relative paths are relative to the list file).
+ *   --gain-dark-ref mean|none|FILE   the dark reference the gain stage subtracts
+ *                 from every bright frame: the rounded mean of the dark inputs
+ *                 (default), none, or one raw file.
+ *   --compare-bpm FILE   a defect map made by someone else (uint8 or uint16, any
+ *                 non-zero value = defective). It is NOT used to make defect.xcal;
+ *                 agreement with the generated map goes into manifest.json.
+ *                 In this mode offset.xcal = mean of the dark inputs, gain.xcal =
+ *                 the module's gain generator over the bright inputs, defect.xcal
+ *                 = xpe_bpm_generate over both. Refusals (nothing is written):
+ *                 fewer than 5 dark frames, fewer than 5 bright frames (gain) or
+ *                 10 (defect map), a file that is missing or not width x height x 2
+ *                 bytes, a frame with more than 0.1 % of its pixels at 65535.
  *
  * Output: offset.xcal, gain.xcal, defect.xcal, manifest.json
  *         (+ gain_poly.xcal with --gain-poly)
@@ -98,6 +116,15 @@ struct Options {
     // QA-A-248 (#262): real calibration frames instead of synthetic ones.
     std::string calDir;
     bool        sizeGiven{false};   // --width/--height was passed
+
+    // QA-A-250: any number of real dark/bright frames.
+    std::vector<std::string> darkFiles;
+    std::vector<std::string> brightFiles;
+    std::string              darkList;
+    std::string              brightList;
+    std::string              gainDarkRef{"mean"};   // mean | none | a file
+    std::string              compareBpm;
+    bool                     framesMode{false};
 };
 
 void printUsage() {
@@ -106,6 +133,8 @@ void printUsage() {
         "                             [--seed N] [--expiry-ms N]\n"
         "                             [--gain-poly] [--poly-degree N] [--poly-levels N]\n"
         "                             [--caldata <dir>]\n"
+        "                             [--dark F]... [--bright F]... [--dark-list L] [--bright-list L]\n"
+        "                             [--gain-dark-ref mean|none|F] [--compare-bpm F]\n"
         "\n"
         "Writes offset.xcal, gain.xcal, defect.xcal and manifest.json into <dir>.\n"
         "The same arguments always produce byte-identical files.\n"
@@ -115,7 +144,11 @@ void printUsage() {
         "  --poly-degree N maximum fitted degree, 1-4 (default 2)\n"
         "  --poly-levels N dose levels to acquire, 3 or more (default 4)\n"
         "  --caldata <dir> use real frames: dark.raw, bright04..06.raw, BPMap.map\n"
-        "                  (width/height default to 3072; not with --gain-poly)\n");
+        "                  (width/height default to 3072; not with --gain-poly)\n"
+        "  --dark/--bright F  one real frame per option (repeat), or --dark-list/--bright-list L\n"
+        "                  (a text file, one path per line). At least 5 dark and 10 bright frames.\n"
+        "  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file\n"
+        "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n");
 }
 
 bool parseArgs(int argc, char** argv, Options* opt) {
@@ -145,6 +178,16 @@ bool parseArgs(int argc, char** argv, Options* opt) {
         } else if (arg == "--expiry-ms") {
             if (!next(&value)) return false;
             opt->expiryMs = value;
+        } else if (arg == "--dark" || arg == "--bright" || arg == "--dark-list" || arg == "--bright-list" ||
+                   arg == "--gain-dark-ref" || arg == "--compare-bpm") {
+            if (i + 1 >= argc) return false;
+            const std::string v = argv[++i];
+            if (arg == "--dark") opt->darkFiles.push_back(v);
+            else if (arg == "--bright") opt->brightFiles.push_back(v);
+            else if (arg == "--dark-list") opt->darkList = v;
+            else if (arg == "--bright-list") opt->brightList = v;
+            else if (arg == "--gain-dark-ref") opt->gainDarkRef = v;
+            else opt->compareBpm = v;
         } else if (arg == "--gain-poly") {
             opt->gainPoly = true;
         } else if (arg == "--poly-degree") {
@@ -161,6 +204,21 @@ bool parseArgs(int argc, char** argv, Options* opt) {
         }
     }
     if (opt->outDir.empty()) return false;
+    opt->framesMode = !opt->darkFiles.empty() || !opt->brightFiles.empty() || !opt->darkList.empty() || !opt->brightList.empty();
+    if (opt->framesMode) {
+        if (!opt->calDir.empty()) {
+            std::fprintf(stderr, "--dark/--bright cannot be combined with --caldata\n");
+            return false;
+        }
+        if (opt->gainPoly) {
+            std::fprintf(stderr, "--dark/--bright cannot be combined with --gain-poly\n");
+            return false;
+        }
+        if (!opt->sizeGiven) opt->width = opt->height = 3072u;
+    } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean") {
+        std::fprintf(stderr, "--gain-dark-ref and --compare-bpm belong to the --dark/--bright mode\n");
+        return false;
+    }
     if (!opt->calDir.empty()) {
         if (opt->gainPoly) {
             std::fprintf(stderr, "--caldata cannot be combined with --gain-poly\n");
@@ -386,6 +444,293 @@ void injectDefects(std::vector<uint16_t>& frame, const Options& opt) {
     }
 }
 
+/* ------------------------------------------------------- frames mode (QA-A-250) */
+
+constexpr size_t kMinDarkFrames       = 5;      // offset map, gain dark reference, defect map (XpeBpmConfig.min_frames_dark)
+constexpr size_t kMinGainFrames       = 5;      // SRS-CALIB-FUNC-024, standard tier (5-10 frames)
+constexpr size_t kMinBrightForBpm     = 10;     // XpeBpmConfig.min_frames_bright
+constexpr double kSaturatedShareLimit = 0.001;  // a frame with more than 0.1 % of its pixels at 65535 is saturated, not defective
+
+struct InputFrame {
+    std::string           role;
+    std::string           path;
+    std::vector<uint16_t> px;
+    std::string           sha;
+    double                mean{0.0};
+};
+
+std::string jsonText(const std::string& text) {
+    std::string out;
+    for (char c : text) {
+        if (c == '"' || c == '\\') out.push_back('\\');
+        out.push_back(c);
+    }
+    return out;
+}
+
+std::string fixed(double v, int digits) {
+    char buf[64];
+    std::snprintf(buf, sizeof buf, "%.*f", digits, v);
+    return buf;
+}
+
+/** One path per line; '#' and empty lines are skipped; a relative path is relative to the list file. */
+bool readList(const std::string& listPath, std::vector<std::string>* out) {
+    std::ifstream f(listPath);
+    if (!f) {
+        std::fprintf(stderr, "cannot open list %s\n", listPath.c_str());
+        return false;
+    }
+    const fs::path base = fs::path(listPath).parent_path();
+    std::string line;
+    while (std::getline(f, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t')) line.pop_back();
+        size_t b = 0;
+        while (b < line.size() && (line[b] == ' ' || line[b] == '\t')) ++b;
+        line.erase(0, b);
+        if (line.empty() || line[0] == '#') continue;
+        const fs::path p(line);
+        out->push_back((p.is_absolute() ? p : base / p).generic_string());
+    }
+    return true;
+}
+
+/** Reads every frame, refusing a wrong size (readFrame16) and a saturated frame. Returns 0, 9 or 11. */
+int loadFrames(const std::vector<std::string>& paths, const char* role, size_t pixelCount, std::vector<InputFrame>* out) {
+    for (const std::string& p : paths) {
+        InputFrame fr;
+        fr.role = role;
+        fr.path = p;
+        if (!readFrame16(p, pixelCount, &fr.px)) return 9;
+        uint64_t sum = 0;
+        size_t saturated = 0;
+        for (uint16_t v : fr.px) {
+            sum += v;
+            if (v == 65535u) ++saturated;
+        }
+        fr.mean = static_cast<double>(sum) / static_cast<double>(pixelCount);
+        const double share = static_cast<double>(saturated) / static_cast<double>(pixelCount);
+        if (share > kSaturatedShareLimit) {
+            std::fprintf(stderr, "%s: %.4f %% of the pixels are at 65535 (limit %.2f %%): a saturated frame cannot be averaged into a calibration map\n", p.c_str(),
+                         share * 100.0, kSaturatedShareLimit * 100.0);
+            return 11;
+        }
+        fr.sha = sha256Hex(p);
+        out->push_back(std::move(fr));
+    }
+    return 0;
+}
+
+/** A defect map from someone else: uint8 (N bytes) or uint16 (2N bytes); flags[i] = 1 when the value is not zero. */
+bool readReferenceMask(const std::string& path, size_t pixelCount, std::vector<uint8_t>* flags) {
+    std::error_code ec;
+    const auto size = fs::file_size(path, ec);
+    if (ec) {
+        std::fprintf(stderr, "cannot open %s\n", path.c_str());
+        return false;
+    }
+    if (size != pixelCount && size != pixelCount * 2) {
+        std::fprintf(stderr, "%s is %llu bytes, expected %zu (uint8) or %zu (uint16) for width x height\n", path.c_str(), static_cast<unsigned long long>(size), pixelCount,
+                     pixelCount * 2);
+        return false;
+    }
+    std::vector<uint8_t> bytes;
+    if (!readExact(path, static_cast<size_t>(size), &bytes)) return false;
+    flags->assign(pixelCount, 0u);
+    for (size_t i = 0; i < pixelCount; ++i) {
+        (*flags)[i] = (size == pixelCount) ? (bytes[i] != 0u) : ((bytes[2 * i] | bytes[2 * i + 1]) != 0u);
+    }
+    return true;
+}
+
+std::vector<XpeImageBuffer> u16Buffers(std::vector<InputFrame>& frames, uint32_t w, uint32_t h) {
+    std::vector<XpeImageBuffer> bufs;
+    for (auto& f : frames) bufs.push_back(u16Buffer(f.px, w, h));
+    return bufs;
+}
+
+int runFramesMode(const Options& opt) {
+    const fs::path out(opt.outDir);
+    const size_t pixelCount = static_cast<size_t>(opt.width) * opt.height;
+
+    std::vector<std::string> darkPaths = opt.darkFiles, brightPaths = opt.brightFiles;
+    if (!opt.darkList.empty() && !readList(opt.darkList, &darkPaths)) return 9;
+    if (!opt.brightList.empty() && !readList(opt.brightList, &brightPaths)) return 9;
+
+    // Counts first: it costs nothing and needs no file.
+    if (darkPaths.size() < kMinDarkFrames) {
+        std::fprintf(stderr, "too few dark frames: %zu given, at least %zu are needed (offset map, gain dark reference and defect map)\n", darkPaths.size(), kMinDarkFrames);
+        return 10;
+    }
+    if (brightPaths.size() < kMinGainFrames) {
+        std::fprintf(stderr, "too few bright frames: %zu given, at least %zu are needed for the gain map (SRS-CALIB-FUNC-024 standard tier)\n", brightPaths.size(), kMinGainFrames);
+        return 10;
+    }
+    if (brightPaths.size() < kMinBrightForBpm) {
+        std::fprintf(stderr, "too few bright frames: %zu given, at least %zu are needed for the defect map (XpeBpmConfig.min_frames_bright)\n", brightPaths.size(),
+                     kMinBrightForBpm);
+        return 10;
+    }
+
+    std::vector<InputFrame> darks, brights;
+    if (const int rc = loadFrames(darkPaths, "dark", pixelCount, &darks)) return rc;
+    if (const int rc = loadFrames(brightPaths, "bright", pixelCount, &brights)) return rc;
+
+    // The dark reference of the gain stage.
+    std::vector<uint16_t> refPixels;
+    InputFrame refFile;
+    const bool refIsFile = opt.gainDarkRef != "mean" && opt.gainDarkRef != "none";
+    if (opt.gainDarkRef == "mean") {
+        std::vector<uint32_t> acc(pixelCount, 0u);
+        for (const auto& d : darks) {
+            for (size_t i = 0; i < pixelCount; ++i) acc[i] += d.px[i];
+        }
+        refPixels.assign(pixelCount, 0u);
+        const uint32_t n = static_cast<uint32_t>(darks.size());
+        for (size_t i = 0; i < pixelCount; ++i) refPixels[i] = static_cast<uint16_t>((acc[i] + n / 2u) / n);
+    } else if (refIsFile) {
+        std::vector<std::string> one{opt.gainDarkRef};
+        std::vector<InputFrame> got;
+        if (const int rc = loadFrames(one, "gain_dark_reference", pixelCount, &got)) return rc;
+        refFile = std::move(got[0]);
+        refPixels = refFile.px;
+    }
+
+    std::vector<uint8_t> theirs;
+    if (!opt.compareBpm.empty() && !readReferenceMask(opt.compareBpm, pixelCount, &theirs)) return 9;
+
+    // ---- generation
+    const std::string offsetPath = (out / "offset.xcal").string(), gainPath = (out / "gain.xcal").string(), defectPath = (out / "defect.xcal").string();
+    const std::string offsetScratch = (out / "_scratch_offset.xcal").string(), gainScratch = (out / "_scratch_gain.xcal").string();
+    for (const std::string& tmp : {offsetScratch, gainScratch}) {
+        std::remove(tmp.c_str());
+        std::remove((tmp + ".tmp").c_str());
+    }
+
+    {
+        std::vector<XpeImageBuffer> bufs = u16Buffers(darks, opt.width, opt.height);
+        if (xpe_calib_generate_offset(bufs.data(), static_cast<int32_t>(bufs.size()), 100.0f, 25.0f, offsetScratch.c_str(), nullptr) != XPE_OK) {
+            std::fprintf(stderr, "xpe_calib_generate_offset failed\n");
+            return 5;
+        }
+        std::vector<float> payload;
+        if (!readFloatPayload(offsetScratch, pixelCount, &payload)) {
+            std::fprintf(stderr, "reading back the generated offset map failed\n");
+            return 5;
+        }
+        if (writeFixture(offsetPath, XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, opt.width, opt.height, payload.data(), payload.size() * sizeof(float), opt.expiryMs) != XPE_OK) {
+            std::fprintf(stderr, "writing offset.xcal failed\n");
+            return 5;
+        }
+    }
+    {
+        std::vector<XpeImageBuffer> bufs = u16Buffers(brights, opt.width, opt.height);
+        XpeImageBuffer refBuf{};
+        if (!refPixels.empty()) refBuf = u16Buffer(refPixels, opt.width, opt.height);
+        if (xpe_calib_generate_gain(bufs.data(), static_cast<int32_t>(bufs.size()), refPixels.empty() ? nullptr : &refBuf, gainScratch.c_str(), nullptr) != XPE_OK) {
+            std::fprintf(stderr, "xpe_calib_generate_gain failed\n");
+            return 6;
+        }
+        std::vector<float> payload;
+        if (!readFloatPayload(gainScratch, pixelCount, &payload)) {
+            std::fprintf(stderr, "reading back the generated gain map failed\n");
+            return 6;
+        }
+        if (writeFixture(gainPath, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, opt.width, opt.height, payload.data(), payload.size() * sizeof(float), opt.expiryMs) != XPE_OK) {
+            std::fprintf(stderr, "writing gain.xcal failed\n");
+            return 6;
+        }
+    }
+    XpeBpmConfig cfg{};
+    cfg.lambda_dark       = 8.0f;
+    cfg.mask_size_dark    = 32u;
+    cfg.tolerance_pct     = 0.07f;
+    cfg.mask_size_bright  = 128u;
+    cfg.min_frames_dark   = 5u;
+    cfg.min_frames_bright = 10u;
+    std::vector<uint8_t> mask(pixelCount, 0u);
+    size_t defectCount = 0;
+    {
+        std::vector<XpeImageBuffer> darkBufs = u16Buffers(darks, opt.width, opt.height), brightBufs = u16Buffers(brights, opt.width, opt.height);
+        XpeImageBuffer maskBuf{};
+        maskBuf.data = mask.data();
+        maskBuf.width = opt.width;
+        maskBuf.height = opt.height;
+        maskBuf.bitsAllocated = 8;
+        maskBuf.bitsStored = 8;
+        maskBuf.format = XPE_PIXEL_UINT8;
+        maskBuf.dataSize = mask.size();
+        const XpeErrorCode rc = xpe_bpm_generate(darkBufs.data(), static_cast<uint32_t>(darkBufs.size()), brightBufs.data(), static_cast<uint32_t>(brightBufs.size()), &cfg, &maskBuf);
+        if (rc != XPE_OK) {
+            std::fprintf(stderr, "xpe_bpm_generate failed (%d)\n", static_cast<int>(rc));
+            return 7;
+        }
+        for (uint8_t m : mask) {
+            if (m) ++defectCount;
+        }
+        if (writeFixture(defectPath, XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK, opt.width, opt.height, mask.data(), mask.size(), opt.expiryMs) != XPE_OK) {
+            std::fprintf(stderr, "writing defect.xcal failed\n");
+            return 7;
+        }
+    }
+    for (const std::string& tmp : {offsetScratch, gainScratch}) {
+        std::remove(tmp.c_str());
+        std::remove((tmp + ".tmp").c_str());
+    }
+
+    // ---- agreement with someone else's defect map (reported, never used)
+    std::string comparison;
+    if (!opt.compareBpm.empty()) {
+        size_t ours = 0, their = 0, both = 0;
+        for (size_t i = 0; i < pixelCount; ++i) {
+            const bool o = mask[i] != 0u, t = theirs[i] != 0u;
+            ours += o;
+            their += t;
+            both += (o && t);
+        }
+        const double recall = their ? static_cast<double>(both) / static_cast<double>(their) : 0.0;
+        const double precision = ours ? static_cast<double>(both) / static_cast<double>(ours) : 0.0;
+        const size_t theirNegatives = pixelCount - their;
+        const double falsePositiveRate = theirNegatives ? static_cast<double>(ours - both) / static_cast<double>(theirNegatives) : 0.0;
+        comparison = "  \"bpm_comparison\": {\n    \"reference_file\": \"" + jsonText(fs::path(opt.compareBpm).generic_string()) + "\",\n    \"generated\": " + std::to_string(ours) +
+                     ",\n    \"reference\": " + std::to_string(their) + ",\n    \"both\": " + std::to_string(both) + ",\n    \"recall\": " + fixed(recall, 6) +
+                     ",\n    \"precision\": " + fixed(precision, 6) + ",\n    \"false_positive_rate\": " + fixed(falsePositiveRate, 8) + "\n  },\n";
+        std::printf("bpm comparison: generated %zu, reference %zu, both %zu, recall %.6f, precision %.6f, false positive rate %.8f\n", ours, their, both, recall, precision,
+                    falsePositiveRate);
+    }
+
+    // ---- manifest
+    const std::string offsetSha = sha256Hex(offsetPath), gainSha = sha256Hex(gainPath), defectSha = sha256Hex(defectPath);
+    std::string inputs;
+    std::vector<const InputFrame*> all;
+    for (const auto& d : darks) all.push_back(&d);
+    for (const auto& b : brights) all.push_back(&b);
+    if (refIsFile) all.push_back(&refFile);
+    for (size_t i = 0; i < all.size(); ++i) {
+        inputs += "    {\"role\": \"" + all[i]->role + "\", \"path\": \"" + jsonText(fs::path(all[i]->path).generic_string()) + "\", \"sha256\": \"" + all[i]->sha +
+                  "\", \"mean\": " + fixed(all[i]->mean, 3) + "}" + (i + 1 < all.size() ? ",\n" : "\n");
+    }
+    std::ofstream manifest((out / "manifest.json").string(), std::ios::binary);
+    if (!manifest) {
+        std::fprintf(stderr, "writing manifest.json failed\n");
+        return 8;
+    }
+    manifest << "{\n  \"generator\": \"xpe_calib_fixture_gen\",\n  \"mode\": \"frames\",\n  \"width\": " << opt.width << ",\n  \"height\": " << opt.height
+             << ",\n  \"expiry_epoch_ms\": " << opt.expiryMs << ",\n  \"frames\": {\"dark\": " << darks.size() << ", \"bright\": " << brights.size()
+             << "},\n  \"settings\": {\n    \"offset\": {\"exposure_ms\": 100, \"temperature_c\": 25},\n    \"gain_dark_reference\": \"" << jsonText(opt.gainDarkRef)
+             << "\",\n    \"bpm\": {\"lambda_dark\": " << fixed(cfg.lambda_dark, 1) << ", \"mask_size_dark\": " << cfg.mask_size_dark << ", \"mask_size_bright\": "
+             << cfg.mask_size_bright << ", \"tolerance_pct\": " << fixed(cfg.tolerance_pct, 3) << ", \"min_frames_dark\": " << cfg.min_frames_dark
+             << ", \"min_frames_bright\": " << cfg.min_frames_bright << "},\n    \"saturated_share_limit\": " << fixed(kSaturatedShareLimit, 4) << "\n  },\n  \"inputs\": [\n"
+             << inputs << "  ],\n  \"defect_pixels\": " << defectCount << ",\n"
+             << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
+             << "\"\n  }\n}\n";
+    manifest.close();
+
+    std::printf("offset.xcal  %s\ngain.xcal    %s\ndefect.xcal  %s  (%zu defect pixels)\nmanifest.json written to %s\n", offsetSha.c_str(), gainSha.c_str(), defectSha.c_str(),
+                defectCount, (out / "manifest.json").string().c_str());
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -405,6 +750,12 @@ int main(int argc, char** argv) {
     if (xpe_preprocess_init(nullptr) != XPE_OK) {
         std::fprintf(stderr, "xpe_preprocess_init failed\n");
         return 4;
+    }
+
+    if (opt.framesMode) {   // QA-A-250: its own path; the synthetic and --caldata paths below are untouched
+        const int rc = runFramesMode(opt);
+        xpe_preprocess_shutdown();
+        return rc;
     }
 
     const fs::path out(opt.outDir);
