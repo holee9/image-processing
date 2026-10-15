@@ -60,9 +60,11 @@ xpe_calib_fixture_gen.exe --out <보정 폴더> --expiry-ms <만료 Unix ms> `
 - 장비 회사 결함 맵과 비교만 하려면 `--compare-bpm <파일>` (세트에는 쓰지 않는다, 결과는 `manifest.json`).
 - `--expiry-ms`: 만료가 지나면 앱이 보정 단계에서 프레임을 거부한다(`XPE_ERR_CALIBRATION_EXPIRED`). 0 은 만료 없음이며 적재마다 경고가 난다. 유효 기간은 현장 정책으로 정한다(검증된 권장값 없음).
 
+`--out` 은 **새 폴더(없거나 비어 있는 폴더)**여야 한다. 이미 세트가 있는 폴더에 덮어쓰지 않는다 — 새 폴더에 만들고 앱의 보정 폴더를 바꾼다(QA-A-250d 반영 예정).
+
 종료 코드 0 이면 `<보정 폴더>` 에 `offset.xcal`·`gain.xcal`·`defect.xcal`·`manifest.json` 이 생긴다. `manifest.json` 에 입력 파일별 경로·sha256·평균, 장 수, 설정이 기록된다.
 
-**검증 중인 예 (cyan_test, QA-A-250c)** — 다크 `Dark_07~14`, 게인 `Bright_23~28`(한 선량), 결함 맵 `Bright_17~28`·`Bright_31~36`(18장, 평가용 29·30 제외). 생성 약 7분.
+**검증된 예 (cyan_test, QA-A-250c, 세트 `calib-cyan-v3`)** — 다크 `Dark_07~14`, 게인 `Bright_23~28`(한 선량), 결함 맵 `Bright_17~28`·`Bright_31~36`(18장, 평가용 29·30 제외). 생성 약 7분.
 
 ## 1.4 앱에서 쓰기
 
@@ -77,7 +79,7 @@ tools/Start-ImageProcTestNative.ps1 -CalibDir <보정 폴더> -RawWidth 3072 -Ra
 | 항목 | 기준 | 결과 | 근거 |
 |---|---|---|---|
 | offset | FUNC-016 `\|DarkBias\| ≤ 5 ADU` 또는 `DarkReduction_dB ≥ 10` (생성에 안 쓴 다크) | DarkReduction 21.68 / 21.80 dB → 통과. DarkBias +14.3 / +8.6 ADU 는 5 ADU 초과(다크 드리프트, 단일 맵 운영의 한계) | QA-A-250 |
-| gain | FUNC-017 `FlatResidualPct ≤ 1.0 %` (같은 선량, 어떤 생성 입력에도 안 쓴 2장) | **재측정 중** — QA-A-250b 의 0.642 / 0.643 % 는 평가 프레임이 결함 맵 입력에 섞여 있어 인정하지 않음(Codex #200) | QA-A-250c |
+| gain | FUNC-017 `FlatResidualPct ≤ 1.0 %` (같은 선량, 어떤 생성 입력에도 안 쓴 2장) | 0.6420 / 0.6429 % → 통과 (평가 4장이 생성 입력 26개에 0건임을 매니페스트로 단언, Codex #201 확인). QA-A-250b 의 같은 수치는 평가 프레임이 결함 맵 입력에 섞여 있어 근거로 쓰지 않음 | QA-A-250c |
 | 결함 맵 | 실데이터 수치 기준 없음(판정 아님) | 생성 133, 장비 회사 `BPM.raw` 250, 일치 97 (재현율 0.388) | QA-A-250 |
 | 장비 회사 보정본과 비교 | 판정 아님 | 팬텀 5장, 클리핑 제외 상관 0.99998 이상, 밝기 비 0.931 일정 | QA-A-250·250b |
 | 앱 사용 | 처리 성공, 보정 경고·오류 0 | 통과 (`calib-cyan-v1`) | GUI-C-247 |
