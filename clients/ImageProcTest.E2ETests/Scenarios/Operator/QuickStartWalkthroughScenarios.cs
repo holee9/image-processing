@@ -467,14 +467,18 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     /// GUI-C-247 (milestone 1, B14): a calibration set built from real frames is used by the app. The folder is given as the calibration folder, one real phantom frame is opened, and the chain that ran
     /// must say preprocess=Applied with the stages offset, gain and defect, with no ALERT line in the log (a warning or an error) and no failure on the status line. The same scenario is run against another set
     /// (the control) by changing only <c>XPE_C247_CALIB</c>. UI Automation only; the window picture is a screen copy of the window's rectangle (no input is sent).
-    /// Needs <c>XPE_C231_NATIVE_DIR</c>; optional <c>XPE_C247_CALIB</c> (default xpe-data/calib-cyan-v1), <c>XPE_C247_RAW</c> (default the cyan_test Foot phantom 55 kV), <c>XPE_C247_PICTURE</c> (where to write the PNG).
+    /// Needs <c>XPE_C231_NATIVE_DIR</c>, <c>XPE_C247_CALIB</c> (the calibration folder) and <c>XPE_C247_RAW</c> (the raw frame), all three set; there are no default paths because the real-frame set is not in the repository.
+    /// If any is unset the scenario is skipped with a reason (it is not hidden and does not pass). If they are set but the folder or file does not exist, it fails. Optional <c>XPE_C247_PICTURE</c> (where to write the PNG).
     /// </summary>
-    [EnvGatedFact]
+    [SkippableFact]
     public void W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings()
     {
-        var native = Env("XPE_C231_NATIVE_DIR")!;
-        var calib = Env("XPE_C247_CALIB") ?? @"D:\workspace-github\xpe-data\calib-cyan-v1";
-        var raw = Env("XPE_C247_RAW") ?? @"D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw";
+        var native = Env("XPE_C231_NATIVE_DIR");
+        var calib = Env("XPE_C247_CALIB");
+        var raw = Env("XPE_C247_RAW");
+        Skip.If(string.IsNullOrEmpty(native), "XPE_C231_NATIVE_DIR not set - the Native E2E folder is required");
+        Skip.If(string.IsNullOrEmpty(calib) || string.IsNullOrEmpty(raw), "XPE_C247_CALIB/XPE_C247_RAW not set - the real-frame set is not in the repository");
+        native = native!; calib = calib!; raw = raw!;
         Assert.True(Directory.Exists(calib), "the calibration folder does not exist: " + calib);
         Assert.True(File.Exists(raw), "the raw frame does not exist: " + raw);
         foreach (var name in new[] { "offset.xcal", "gain.xcal", "defect.xcal" }) Assert.True(File.Exists(Path.Combine(calib, name)), $"{name} is missing in {calib}");
