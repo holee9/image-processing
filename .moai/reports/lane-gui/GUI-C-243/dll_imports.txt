@@ -1,0 +1,8 @@
+D:/workspace-github/image-processing/build/e2e-native-dlls/xpe_common.dll -> spdlog.dll, MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+D:/workspace-github/image-processing/build/e2e-native-dlls/xpe_display.dll -> xpe_common.dll, spdlog.dll, MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+D:/workspace-github/image-processing/build/e2e-native-dlls/xpe_preprocess.dll -> xpe_common.dll, MSVCP140.dll, VCRUNTIME140_1.dll, VCRUNTIME140.dll
+D:/workspace-github/image-processing/build/e2e-native-dlls/xpe_dicom.dll -> xpe_common.dll, spdlog.dll, openjp2.dll, dcmjpeg.dll, dcmnet.dll, dcmdata.dll, ofstd.dll, MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+D:/workspace-github/image-processing/build/e2e-native-dlls/xpe_ai.dll -> xpe_common.dll, spdlog.dll, MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+D:/workspace-github/image-processing/build/e2e-native-dlls/xpe_enhance_basic.dll -> xpe_common.dll, MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+D:/workspace-github/image-processing/build/e2e-native-dlls/spdlog.dll -> MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll
+D:/workspace-github/image-processing/build/e2e-native-dlls/fmt.dll -> MSVCP140.dll, VCRUNTIME140.dll, VCRUNTIME140_1.dll

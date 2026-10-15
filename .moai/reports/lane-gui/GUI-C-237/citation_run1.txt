@@ -1,0 +1,62 @@
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients/ImageProcTest.IntegrationTests/bin/Debug/net8.0/ImageProcTest.IntegrationTests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.05]   Discovering: ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.17]   Discovered:  ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.29]     ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp [FAIL]
+[xUnit.net 00:00:00.29]       Assert.Contains() Failure: Sub-string not found
+[xUnit.net 00:00:00.29]       String:    "<Application x:Class="ImageProcTest.App"\n"···
+[xUnit.net 00:00:00.29]       Not found: "Load failed: Raw file is too small"
+[xUnit.net 00:00:00.29]       Stack Trace:
+[xUnit.net 00:00:00.29]         D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Diagnostics\QuickStartCitationTests.cs(125,0): at ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp()
+[xUnit.net 00:00:00.29]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.29]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.31]   Finished:    ImageProcTest.IntegrationTests
+  실패 ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp [73 ms]
+  오류 메시지:
+   Assert.Contains() Failure: Sub-string not found
+String:    "<Application x:Class="ImageProcTest.App"\n"···
+Not found: "Load failed: Raw file is too small"
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Diagnostics\QuickStartCitationTests.cs:line 125
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryMenuPathTheQuickStartPrints_NamesMenuItemsOfTheApp [15 ms]
+  표준 출력 메시지:
+ ok      quick-start.html: Backend > Backend Mode > Native
+ ok      quick-start.html: Pipeline > Run Preprocessing (Phase 1a)
+ ok      quick-start.html: File > Save Settings
+ ok      quick-start.html: View > Calibration Paths Panel
+ ok      quick-start.html: File > Open Raw...
+ ok      quick-start.html: View > Logs Panel
+ ok      quick-start.html: File > Save Corrected Image (float32 .raw)...
+ ok      quick-start.html: File > Save Corrected Image (16-bit PNG)...
+ ok      quick-start.html: View > Compare Mode
+ ok      quick-start.html: View > Reset Comparison View
+ ok      quick-start.html: Backend > Native DLL Diagnostics
+ ok      quick-start.html: Pipeline > Use Automatic Window
+ ok      quick-start.ko.html: Backend > Backend Mode > Native
+ ok      quick-start.ko.html: Pipeline > Run Preprocessing (Phase 1a)
+ ok      quick-start.ko.html: File > Save Settings
+ ok      quick-start.ko.html: View > Calibration Paths Panel
+ ok      quick-start.ko.html: File > Open Raw...
+ ok      quick-start.ko.html: View > Logs Panel
+ ok      quick-start.ko.html: File > Save Corrected Image (float32 .raw)...
+ ok      quick-start.ko.html: File > Save Corrected Image (16-bit PNG)...
+ ok      quick-start.ko.html: View > Compare Mode
+ ok      quick-start.ko.html: View > Reset Comparison View
+ ok      quick-start.ko.html: Backend > Native DLL Diagnostics
+ ok      quick-start.ko.html: Pipeline > Use Automatic Window
+ 24 menu paths checked in 2 pages
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 2
+     통과: 1
+     실패: 1
+ 총 시간: 0.6860 초

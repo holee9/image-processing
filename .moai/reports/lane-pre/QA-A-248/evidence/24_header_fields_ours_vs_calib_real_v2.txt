@@ -1,0 +1,30 @@
+offset.xcal
+   type     ours(expiry 0)=               0  ours(expiry 2100)=               0  calib-real-v2=               0
+   fmt      ours(expiry 0)=               1  ours(expiry 2100)=               1  calib-real-v2=               1
+   w        ours(expiry 0)=            3072  ours(expiry 2100)=            3072  calib-real-v2=            3072
+   h        ours(expiry 0)=            3072  ours(expiry 2100)=            3072  calib-real-v2=            3072
+   created  ours(expiry 0)=               0  ours(expiry 2100)=               0  calib-real-v2=   1791357017482   <-- differs from calib-real-v2
+   expiry   ours(expiry 0)=               0  ours(expiry 2100)=   4102444800000  calib-real-v2=   1822893017654   <-- differs from calib-real-v2
+   session  ours(expiry 0)=         fixture  ours(expiry 2100)=         fixture  calib-real-v2=       generated   <-- differs from calib-real-v2
+   cfg_len  ours(expiry 0)=               0  ours(expiry 2100)=               0  calib-real-v2=              62   <-- differs from calib-real-v2
+   payload  ours(expiry 0)=        37748736  ours(expiry 2100)=        37748736  calib-real-v2=        37748736
+gain.xcal
+   type     ours(expiry 0)=               1  ours(expiry 2100)=               1  calib-real-v2=               1
+   fmt      ours(expiry 0)=               1  ours(expiry 2100)=               1  calib-real-v2=               1
+   w        ours(expiry 0)=            3072  ours(expiry 2100)=            3072  calib-real-v2=            3072
+   h        ours(expiry 0)=            3072  ours(expiry 2100)=            3072  calib-real-v2=            3072
+   created  ours(expiry 0)=               0  ours(expiry 2100)=               0  calib-real-v2=   1791357017610   <-- differs from calib-real-v2
+   expiry   ours(expiry 0)=               0  ours(expiry 2100)=   4102444800000  calib-real-v2=   1822893017654   <-- differs from calib-real-v2
+   session  ours(expiry 0)=         fixture  ours(expiry 2100)=         fixture  calib-real-v2=       generated   <-- differs from calib-real-v2
+   cfg_len  ours(expiry 0)=               0  ours(expiry 2100)=               0  calib-real-v2=             204   <-- differs from calib-real-v2
+   payload  ours(expiry 0)=        37748736  ours(expiry 2100)=        37748736  calib-real-v2=        37748736
+defect.xcal
+   type     ours(expiry 0)=               2  ours(expiry 2100)=               2  calib-real-v2=               2
+   fmt      ours(expiry 0)=               2  ours(expiry 2100)=               2  calib-real-v2=               2
+   w        ours(expiry 0)=            3072  ours(expiry 2100)=            3072  calib-real-v2=            3072
+   h        ours(expiry 0)=            3072  ours(expiry 2100)=            3072  calib-real-v2=            3072
+   created  ours(expiry 0)=               0  ours(expiry 2100)=               0  calib-real-v2=               0
+   expiry   ours(expiry 0)=               0  ours(expiry 2100)=   4102444800000  calib-real-v2=   1822893017654   <-- differs from calib-real-v2
+   session  ours(expiry 0)=         fixture  ours(expiry 2100)=         fixture  calib-real-v2=       generated   <-- differs from calib-real-v2
+   cfg_len  ours(expiry 0)=               0  ours(expiry 2100)=               0  calib-real-v2=               0
+   payload  ours(expiry 0)=         9437184  ours(expiry 2100)=         9437184  calib-real-v2=         9437184

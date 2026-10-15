@@ -1,0 +1,13 @@
+=== ARM A: the limit is the old 3000 (the finding): boundary tests must go red
+test exit=1; failed: ['U8VerdictTests.TheMedianOfFive_At1500_Passes_And1501_Fails', 'U8VerdictTests.TheMedian_NotTheMeanOrTheMax_DecidesIt']
+  ['[xUnit.net 00:00:00.20]       Assert.False() Failure', '[xUnit.net 00:00:00.20]       Assert.False() Failure']
+
+restored byte-identical: True
+
+=== ARM B: the limit is 1000 (below this machine's proxy median ~1200 ms): W15 must go red
+test exit=1; failed: ['QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens']
+  ['[xUnit.net 00:00:29.75]       the proxy median 1213 ms exceeds the approved 1000 ms (U8, main 5537f4e5)', 'the proxy median 1213 ms exceeds the approved 1000 ms (U8, main 5537f4e5)']
+
+restored byte-identical: True
+
+after restore: exit=0

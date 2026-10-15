@@ -61,6 +61,13 @@ namespace ImageProcTest
 
             yield return nativeDirectory;
 
+            // GUI-C-238b (Codex #193 B-3): a pinned search (XPE_NATIVE_DIR_EXCLUSIVE=1) takes the dependencies from the pinned folder and nowhere else. The vcpkg_installed folder found above it loaded a SECOND
+            // copy of fmt.dll next to the pinned one (measured by the module audit in the app log, 2026-10-14).
+            if (NativeSearchPolicy.StopAtInjectedDirectory)
+            {
+                yield break;
+            }
+
             var directory = new DirectoryInfo(nativeDirectory);
             while (directory is not null)
             {
@@ -89,7 +96,13 @@ namespace ImageProcTest
                     return;
                 }
 
-                if (NativeLibrary.TryLoad(dependencyPath, out var handle))
+                // GUI-C-243 (Codex #195): with the search pinned, a dependency is loaded with the SAME restricted search as the module that imports it (its own folder + System32), never through the default
+                // search: a copy of fmt.dll / spdlog.dll / dcm*.dll in the application folder must not stand in for one that is missing from the pinned folder.
+                IntPtr handle;
+                var loaded = NativeSearchPolicy.StopAtInjectedDirectory
+                    ? OracleModuleConfinement.TryLoad(dependencyPath, out handle, out _)
+                    : NativeLibrary.TryLoad(dependencyPath, out handle);
+                if (loaded)
                 {
                     LoadedHandles.Add(handle);
                 }

@@ -1,0 +1,18 @@
+=== ARM A: one unobserved open no longer sends the run to the proxy rule (All -> Any)
+  U8VerdictTests exit=1 failed: ['OneOpenWithoutAValidScreen_SendsTheWholeRunToTheProxyRule']
+
+restored byte-identical: True
+
+=== ARM B: the screen limit is applied with the proxy limit (3000 -> 1500)
+  U8VerdictTests exit=1 failed: ['ObservedScreen_MedianAt3000_Passes_And3001_Fails', 'TheMedian_NotTheMeanOrTheMax_DecidesIt', 'WhenTheScreenIsObserved_TheProxyDoesNotDecide']
+
+restored byte-identical: True
+
+=== ARM C: the confirm click is SENT again (the wait that stopped W9)
+  W9 exit=1 result=unknown watchdog_fired=True
+
+restored byte-identical: True
+
+=== AFTER RESTORE
+  U8VerdictTests exit=0 failed: []
+  W9 exit=0 result=unknown watchdog_fired=False

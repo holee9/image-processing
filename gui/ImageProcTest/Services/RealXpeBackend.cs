@@ -48,8 +48,15 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     // @MX:ANCHOR: [AUTO] Factory guard: verifies both DLLs have all required exports before routing to RealXpeBackend
     // @MX:REASON: Called by XpeBackendFactory.Create; must remain side-effect-free (loads DLL, checks exports, immediately frees); false → MockXpeBackend
     public static bool CanUseNative(string commonDllPath, string displayDllPath) =>
-        HasExports(commonDllPath, RequiredCommonExports) &&
-        HasExports(displayDllPath, RequiredDisplayExports);
+        WhyNativeUnusable(commonDllPath, displayDllPath) is null;
+
+    /// <summary>
+    /// GUI-C-238: null when both DLLs load and export everything the backend calls; otherwise ONE sentence saying which DLL, at which path (with its size and date: an old copy is recognised by them),
+    /// and what is wrong with it - not found, not loadable, or the first export it lacks. This is what the banner and the log show when Native was requested and Mock was started instead.
+    /// </summary>
+    public static string? WhyNativeUnusable(string commonDllPath, string displayDllPath) =>
+        WhyUnusable("xpe_common.dll", commonDllPath, RequiredCommonExports) ??
+        WhyUnusable("xpe_display.dll", displayDllPath, RequiredDisplayExports);
 
     public BackendRuntimeInfo Initialize(AppSettings settings)
     {
@@ -75,6 +82,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         AddLog($"xpe_common.dll = {_commonDllPath}");
         AddLog($"xpe_display.dll = {_displayDllPath}");
         AddLog($"Display version = {displayVersion}");
+        AuditNativeModules("after initialisation");
 
         _telemetry.AddAlert(new AlertEntry
         {
@@ -317,8 +325,32 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     /// #180 (GUI-C-99): the pixel chain. Order, copies and fallback are ProcessingChainRunner's; this
     /// method only says how each stage runs natively.
     /// </summary>
-    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings) =>
-        RunChainCore(rawFrame, stages, settings, measureExposureIndex: false);
+    public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        var chain = RunChainCore(rawFrame, stages, settings, measureExposureIndex: false);
+        if (!_modulesAuditedAfterChain)
+        {
+            _modulesAuditedAfterChain = true;
+            AuditNativeModules("after the first chain");   // the other modules (preprocess, enhance_basic, dicom ...) load on first use, so they are only in the list now
+        }
+
+        return chain;
+    }
+
+    private bool _modulesAuditedAfterChain;
+
+    /// <summary>GUI-C-238b: where the native modules loaded so far came from (log), and a warning alert for each one that is not from the pinned folder.</summary>
+    private void AuditNativeModules(string stage)
+    {
+        foreach (var line in NativeModuleAudit.Report(stage))
+        {
+            AddLog(line);
+            if (line.Contains("is NOT the pinned folder", StringComparison.Ordinal))
+            {
+                _telemetry.AddAlert(new AlertEntry { Severity = "WARN", Code = "NATIVE_MODULE_OUTSIDE_PINNED_FOLDER", Message = line, Timestamp = DateTimeOffset.Now });
+            }
+        }
+    }
 
     private ChainResult RunChainCore(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings, bool measureExposureIndex)
     {
@@ -565,16 +597,25 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         _telemetry.AddLog($"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
     }
 
-    private static bool HasExports(string dllPath, IEnumerable<string> requiredExports)
+    private static string? WhyUnusable(string dllName, string dllPath, IEnumerable<string> requiredExports)
     {
         if (!File.Exists(dllPath))
         {
-            return false;
+            return $"{dllName} was not found at '{dllPath}'";
         }
 
-        if (!NativeLibrary.TryLoad(dllPath, out var handle))
+        var info = new FileInfo(dllPath);
+        var described = $"{dllName} at '{dllPath}' ({info.Length} bytes, written {info.LastWriteTime:yyyy-MM-dd})";
+        // GUI-C-243: with the search pinned the check loads the DLL the way the app will (its own folder + System32). The default search would let a copy of a dependency in the application folder make a DLL
+        // that cannot work from the pinned folder look loadable here, and the app would then fail later, at the first call, instead of starting on Mock with the reason.
+        IntPtr handle;
+        string? loadError = null;
+        var loaded = NativeSearchPolicy.StopAtInjectedDirectory
+            ? OracleModuleConfinement.TryLoad(dllPath, out handle, out loadError)
+            : NativeLibrary.TryLoad(dllPath, out handle);
+        if (!loaded)
         {
-            return false;
+            return $"{described} could not be loaded{(loadError is null ? string.Empty : $" ({loadError})")}";
         }
 
         try
@@ -583,11 +624,11 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             {
                 if (!NativeLibrary.TryGetExport(handle, exportName, out _))
                 {
-                    return false;
+                    return $"{described} does not export {exportName} (an older build than this application expects)";
                 }
             }
 
-            return true;
+            return null;
         }
         finally
         {

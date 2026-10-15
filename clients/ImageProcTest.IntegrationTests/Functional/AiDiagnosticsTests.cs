@@ -21,11 +21,11 @@ public sealed class AiDiagnosticsTests
         var runner = Source("gui/ImageProcTest/Services/Native/GuiAiRunner.cs");
         var init = runner.IndexOf("public static int InitCore(string directory) =>", StringComparison.Ordinal);
         Assert.True(init >= 0, "InitCore was not found.");
-        var body = runner[init..Math.Min(runner.Length, init + 2500)];
+        var body = runner[init..Math.Min(runner.Length, init + 3500)];
 
         var probe = body.IndexOf("var probeCode = XpeAiNative.xpe_ai_worker_state(", StringComparison.Ordinal);
         var call = body.IndexOf("code = XpeAiNative.xpe_ai_init(directory, config);", StringComparison.Ordinal);
-        var record = body.IndexOf("_initDiagnostics = $\"init#{++_initCount} dir='{directory}' config={config} {probe} -> code={code}\";", StringComparison.Ordinal);
+        var record = body.IndexOf("_initDiagnostics = $\"init#{++_initCount} dir='{directory}' config={config} {probe} {workerDescription} -> code={code}\";", StringComparison.Ordinal);
         Assert.True(probe >= 0 && call > probe && record > call,
             "The probe must run BEFORE the init call (an earlier init is what the probe is for), and the call is recorded after it.");
 

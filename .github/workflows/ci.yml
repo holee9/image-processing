@@ -1110,7 +1110,9 @@ jobs:
     # finished scenario passing. The rise is spread across most scenarios (one
     # outlier: A3 filtered-list 34 -> 125 s), which reads as runner variance
     # plus content growth, not a hang. 45 restores ~80% headroom over 24.7 min.
-    timeout-minutes: 45
+    # #262: the real-data walkthroughs (W3 builds a 1024 set, W9 ~4 min, W12-W15 five opens each) push this job past 45 min:
+    # run 38523309095 was cancelled at 45 min after 281 cases, none failed. 75 leaves room; if it grows further, split the job.
+    timeout-minutes: 75
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -1240,6 +1242,37 @@ jobs:
           } | ConvertTo-Json -Depth 4 | Set-Content "$dir/provenance.json" -Encoding utf8
           Get-Content "$dir/provenance.json"
 
+      # #262 (QA-A-248, user approval 2026-10-14): milestone 3 U2/U8 run on REAL data. The CalData_6 frames and the
+      # first-stage reference image are public assets of release testdata-calib-v1 (SHA256SUMS.txt checked below);
+      # xpe_calib_fixture_gen (in xpe-ci-preprocess-binaries, staged above) builds the calibration set from them.
+      # Without this step the walkthroughs W1/W7/W12-W15 are not even collected and W16 skips as #262.
+      - name: Build the real-data calibration set (QA-A-248, #262)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $in = Join-Path $env:RUNNER_TEMP 'CalData_6'
+          gh release download testdata-calib-v1 -R $env:GITHUB_REPOSITORY -D $in --clobber
+          if ($LASTEXITCODE -ne 0) { Write-Error 'release testdata-calib-v1 download failed'; exit 1 }
+          foreach ($line in Get-Content (Join-Path $in 'SHA256SUMS.txt')) {
+            $hash, $name = $line -split '\s+\*?', 2
+            $got = (Get-FileHash (Join-Path $in $name) -Algorithm SHA256).Hash.ToLower()
+            if ($got -ne $hash) { Write-Error "$name sha256 $got, expected $hash"; exit 1 }
+          }
+          $gen = Join-Path $PWD 'build/e2e-native-dlls/xpe_calib_fixture_gen.exe'
+          if (-not (Test-Path $gen)) { Write-Error "missing $gen (expected in xpe-ci-preprocess-binaries)"; exit 1 }
+          $out = Join-Path $env:RUNNER_TEMP 'calib-real'
+          # --expiry-ms 4102444800000 = 2100-01-01: a fixed far date keeps the files byte-identical between runs; without it the
+          # module raises XPE_WARN_NO_EXPIRY x3, which calib-real-v2 (what the walkthroughs were written against) does not.
+          & $gen --out $out --caldata $in --expiry-ms 4102444800000
+          if ($LASTEXITCODE -ne 0) { Write-Error "xpe_calib_fixture_gen exited $LASTEXITCODE"; exit 1 }
+          Get-ChildItem $out | Select-Object Name, Length
+          "XPE_C231_NATIVE_DIR=$(Join-Path $PWD 'build/e2e-native-dlls')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_CALIB_DIR=$out" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW=$(Join-Path $PWD 'gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW_SIZE=3072x3072" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_BASELINE_F32=$(Join-Path $in 'wrist_lat_3072x3072_corrected_v2_f32le.raw')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Run FlaUI E2E smoke (Native)
         shell: pwsh
         env:
@@ -1254,6 +1287,9 @@ jobs:
         # LegacyStartupResponsivenessProbe), not regression tests. Collected here they end
         # NotExecuted and trip the unexplained-skip gate below. Only those probes carry the
         # trait (checked with --list-tests); tagging a regression test with it hides it.
+        # #268: two runs (38523309095, 38530320078) stopped right after W12 with an ImageProcTest left running
+        # until the job limit. --blame-hang-timeout ends a test that runs past 10 minutes (longest observed
+        # test: 40 s) and names it in the log, so a hang fails one test instead of cancelling the job.
         run: >
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug
@@ -1261,6 +1297,8 @@ jobs:
           --logger "trx;LogFileName=e2e-smoke-native.trx"
           --logger "console;verbosity=detailed"
           --results-directory build/e2e-native-results
+          --blame-hang-timeout 10m
+          --blame-hang-dump-type none
 
       # GUI-C-218: a test that failed while launching an app could leave that app running, and an app started with
       # UseShellExecute=false inherits this step's output pipe - dotnet test then waits on the pipe until the job limit.
@@ -1329,7 +1367,7 @@ jobs:
           # deliberate act that shows up in the run summary.
           $allowed = @{
             '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
-            '262' = 'milestone 3 U2/U8 need the real calibration set xpe-data/calib-real-v2 (outside the repo), absent on the runner; evidence is a local real-data run (GUI-C-236)'
+            '265' = 'walkthrough W10 needs an old-build DLL folder (XPE_C232B_OLD_NATIVE_DIR); no such DLLs in the repository or CI (GUI-C-239)'
           }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }

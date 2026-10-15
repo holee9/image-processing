@@ -1146,6 +1146,131 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private long _renderSequence;
 
+    // GUI-C-236b / 236c (U8, PERF-P1-001): "open -> the second WPF composition tick after the processed picture was handed to the viewport". The start is the moment the open begins reading the file (after
+    // any file dialog has answered); the end is the second CompositionTarget.Rendering tick after the hand-over (the first tick can still be the frame that was already being built). THIS IS A PROXY,
+    // not the moment the picture is on the screen: Rendering is raised BEFORE the frame is rendered. The independent observation of the screen is made from outside, by the E2E (W15, GUI-C-236c).
+    // The first display pipeline that completes after an open consumes the start.
+    private long _openStartedAt;
+    private long _openReadEndedAt;
+    private int _openGeneration;
+    private int _frameTimingSequence;
+    private string _frameTimingText = string.Empty;
+    private CancellationTokenSource _frameTimingLifetime = new();
+
+    /// <summary>How a wait for composition ticks ended.</summary>
+    internal enum CompositionWait
+    {
+        Ticked,
+        TimedOut,
+        Cancelled,
+    }
+
+    /// <summary>How many waits for composition ticks hold a subscription to <c>CompositionTarget.Rendering</c> right now. Must be 0 when nothing is waiting: the subscription is released on every way out (ticked, timed out, cancelled).</summary>
+    internal static int ActiveCompositionSubscriptions;
+
+    /// <summary>Replaces the wait for composition ticks (the SelfCheck runner has no window, so no tick ever comes). Null: the real one.</summary>
+    internal Func<int, TimeSpan, CancellationToken, Task<CompositionWait>>? CompositionTicksOverride { get; set; }
+
+    /// <summary>The longest the wait for the second tick is allowed to take (a minimised window raises none).</summary>
+    internal TimeSpan FrameTimingLimit { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>One line, written when the second composition tick after an open's processed picture has passed: <c>open-to-2nd-tick (proxy) #n: T ms = read a + prepare b + chain-and-display c [stage times] + ui d + render e</c>. Empty until the first one.</summary>
+    public string FrameTimingText
+    {
+        get => _frameTimingText;
+        private set => SetProperty(ref _frameTimingText, value);
+    }
+
+    private static double Milliseconds(long from, long to) => (to - from) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+    /// <summary>
+    /// GUI-C-236c: waits for <paramref name="ticks"/> composition ticks, for at most <paramref name="limit"/>, or until <paramref name="cancel"/>. The subscription to <c>CompositionTarget.Rendering</c> is taken
+    /// and released HERE and nowhere else, and it is released in a <c>finally</c>: whichever way the wait ends, no handler is left behind (a static event keeps every handler - and the closure it holds - alive).
+    /// WPF can raise <c>Rendering</c> more than once for one frame; a frame is told by its <c>RenderingTime</c>, so one frame counts once.
+    /// </summary>
+    internal static async Task<CompositionWait> WaitForCompositionTicksAsync(int ticks, TimeSpan limit, CancellationToken cancel)
+    {
+        var done = new TaskCompletionSource<CompositionWait>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var seen = 0;
+        TimeSpan? lastFrame = null;
+        EventHandler handler = (_, e) =>
+        {
+            var frame = (e as System.Windows.Media.RenderingEventArgs)?.RenderingTime;
+            if (frame is not null && frame == lastFrame)
+            {
+                return;
+            }
+
+            lastFrame = frame;
+            if (++seen >= ticks)
+            {
+                done.TrySetResult(CompositionWait.Ticked);
+            }
+        };
+
+        using var timeout = new CancellationTokenSource(limit);
+        using var onTimeout = timeout.Token.Register(() => done.TrySetResult(CompositionWait.TimedOut));
+        using var onCancel = cancel.Register(() => done.TrySetResult(CompositionWait.Cancelled));
+        try
+        {
+            Interlocked.Increment(ref ActiveCompositionSubscriptions);
+            System.Windows.Media.CompositionTarget.Rendering += handler;
+            return await done.Task;
+        }
+        finally
+        {
+            System.Windows.Media.CompositionTarget.Rendering -= handler;
+            Interlocked.Decrement(ref ActiveCompositionSubscriptions);
+        }
+    }
+
+    /// <summary>Called when the backend is going away (the window is closing): a wait still running ends as cancelled and writes nothing.</summary>
+    private void CancelFrameTiming()
+    {
+        var old = Interlocked.Exchange(ref _frameTimingLifetime, new CancellationTokenSource());
+        old.Cancel();
+    }
+
+    /// <summary>
+    /// Waits for the second composition tick after <paramref name="shown"/> was handed to the viewport and writes the line - unless, when the wait ends, it no longer describes what is on screen: a newer
+    /// open began (<paramref name="generation"/> is no longer the current one) or another picture replaced <paramref name="shown"/>. A wait that ran out its limit is written AND marked as timed out
+    /// (in the line and in the log); a wait cancelled because the window is closing writes nothing.
+    /// </summary>
+    private async Task PublishFrameTimingAsync(int generation, System.Windows.Media.ImageSource shown, long openStartedAt, long readEndedAt, long applyStartedAt, long workEndedAt, long shownAt, string stageTimes)
+    {
+        try
+        {
+            if (CompositionTicksOverride is null && System.Windows.Application.Current is null)
+            {
+                return;
+            }
+
+            var wait = await (CompositionTicksOverride ?? WaitForCompositionTicksAsync)(2, FrameTimingLimit, _frameTimingLifetime.Token);
+            var renderedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (wait == CompositionWait.Cancelled)
+            {
+                Log($"Frame timing of open #{generation} not written: the window is closing.");
+                return;
+            }
+
+            if (generation != _openGeneration || !ReferenceEquals(ProcessedImage, shown))
+            {
+                Log($"Frame timing of open #{generation} dropped: {(generation != _openGeneration ? $"open #{_openGeneration} began meanwhile" : "another picture replaced it")}.");
+                return;
+            }
+
+            var text = $"open-to-2nd-tick (proxy) #{++_frameTimingSequence}: {Milliseconds(openStartedAt, renderedAt):0} ms = read {Milliseconds(openStartedAt, readEndedAt):0} + prepare {Milliseconds(readEndedAt, applyStartedAt):0}"
+                       + $" + chain-and-display {Milliseconds(applyStartedAt, workEndedAt):0} [{stageTimes.Replace("times: ", string.Empty)}] + ui {Milliseconds(workEndedAt, shownAt):0} + render {Milliseconds(shownAt, renderedAt):0}"
+                       + (wait == CompositionWait.TimedOut ? $" (TIMED OUT: no second composition tick within {FrameTimingLimit.TotalSeconds:0.#} s; the render figure is a lower bound)" : string.Empty);
+            FrameTimingText = text;
+            Log(text);
+        }
+        catch (Exception ex)
+        {
+            Log($"Frame timing not written: {ex.Message}");
+        }
+    }
+
     /// <summary>
     /// GUI-C-233h: adds what becomes known AFTER the commit (the lane pictures, the timings) to the record it belongs to - and only if that render is still the one on screen. Matching is by
     /// <see cref="RenderRecord.Id"/>, not by object: every update makes a new record, so an object comparison would drop the second update.
@@ -1346,7 +1471,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>HAZ-GUI-005 (1): the text of the banner that cannot be dismissed while Mock is active.</summary>
     public string MockBackendWarning =>
         RequestedBackendMismatch is { } requested
-            ? $"MOCK BACKEND — {requested} was requested but could not be used. Images and results are synthetic; not for clinical judgement."
+            ? $"MOCK BACKEND — {requested} was requested but could not be used{(RuntimeInfo.NativeRefusal.Length > 0 ? ": " + RuntimeInfo.NativeRefusal : string.Empty)}. Images and results are synthetic; not for clinical judgement."
             : "MOCK BACKEND — images and results are synthetic; not for clinical judgement.";
 
     /// <summary>HAZ-GUI-005 (2): <c>[MOCK]</c> in the title while Mock is active.</summary>
@@ -1613,6 +1738,7 @@ public sealed class MainWindowViewModel : ObservableObject
         var started = Lifecycle.Begin(() => backend.Shutdown(), error => FinishShutdown(backend, error));
         if (started)
         {
+            CancelFrameTiming();   // GUI-C-236c: a timing still waiting for its tick belongs to a picture that is going away
             AiStatus.Reset(); // the status shown belongs to a session that is ending; the read after the shutdown says what is left
             StatusText = "Backend shutting down...";
             Log("Backend shutdown requested.");
@@ -2654,7 +2780,10 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         Settings.LastRawDirectory = Path.GetDirectoryName(path) ?? string.Empty;
+        _openGeneration++;   // GUI-C-236c: a timing that began before this open must not be written after it
+        _openStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();   // GUI-C-236b (U8): the open starts reading
         var loadedFrame = _backend.LoadRawImage(path, Settings);
+        _openReadEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
         ActiveImageSourcePath = path;   // GUI-C-232b: only after the load SUCCEEDED, so a failed open never renames the image that is still open
         DrainBackendTelemetry();
 
@@ -2699,6 +2828,13 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        // GUI-C-236b (U8): the first display pipeline after an open is the one whose picture ends the timed span
+        var timedOpenStartedAt = _openStartedAt;
+        var timedReadEndedAt = _openReadEndedAt;
+        var timedGeneration = _openGeneration;
+        _openStartedAt = 0;
+        var applyStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+
         CancellationTokenSource? cancellationMarker = null;
         StatusText = "Applying display pipeline...";
         Log($"Display pipeline requested: mode={Settings.VoiLutMode}, bodyPart={Settings.SelectedBodyPart}, center={Settings.VoiWindowCenter}, width={Settings.VoiWindowWidth}, GSDF={Settings.GsdfEnabled}, calibrationEval=[{CalibrationEvaluationSummary}].");
@@ -2731,6 +2867,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult, inputs));
             });
             var workMs = work.Elapsed.TotalMilliseconds;
+            var workEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
             // GUI-C-186f: a shutdown or a replacement may have started while the chain waited (for the AI gate, for instance). Its
             // result belongs to a backend that is going away: nothing on screen changes, and no Lane B work is scheduled.
@@ -2762,6 +2899,12 @@ public sealed class MainWindowViewModel : ObservableObject
             ActiveImageFrame = processedFrame;
             RefreshCorrectedAvailability();
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
+            if (timedOpenStartedAt != 0)
+            {
+                // GUI-C-236b (U8): the picture is handed to the viewport; the end of the timed span is two composition ticks later (not awaited here: nothing below waits for it)
+                _ = PublishFrameTimingAsync(timedGeneration, ProcessedImage!, timedOpenStartedAt, timedReadEndedAt, applyStartedAt, workEndedAt, System.Diagnostics.Stopwatch.GetTimestamp(), chain.Timings);
+            }
+
             PreviewStaleReason = null;   // #171 ③: this render is current; ① is re-evaluated just below
             // GUI-C-233g: the commit. One record, made from this render's own inputs, chain, window, summary and the backend that ran it (asked from the ticket's backend, not from whatever is current later).
             var committed = new RenderRecord(

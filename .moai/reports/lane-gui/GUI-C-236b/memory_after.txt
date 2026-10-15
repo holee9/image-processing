@@ -1,0 +1,2 @@
+free MB after: 5766.04296875
+leftover app/testhost: 0

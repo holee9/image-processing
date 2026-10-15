@@ -24,11 +24,13 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     private readonly bool _displayFault;
     private readonly bool _aiWorkerDisabled;
     private readonly int? _aiWorkerSilentAfter;
+    private readonly int? _displayDelayMs;
     private int _calls;
     private int _statusReads;
 
-    private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled, int? aiWorkerSilentAfter)
+    private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled, int? aiWorkerSilentAfter, int? displayDelayMs)
     {
+        _displayDelayMs = displayDelayMs;
         _inner = inner;
         _displayFault = failAfter is not null;
         _failAfter = failAfter ?? int.MaxValue;
@@ -40,14 +42,14 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     public static FaultInjectingBackend? Armed { get; private set; }
 
     /// <summary>Returns <paramref name="backend"/> itself unless a fault was requested.</summary>
-    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter, bool aiWorkerDisabled = false, int? aiWorkerSilentAfter = null)
+    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter, bool aiWorkerDisabled = false, int? aiWorkerSilentAfter = null, int? displayDelayMs = null)
     {
-        if (failAfter is null && !aiWorkerDisabled && aiWorkerSilentAfter is null)
+        if (failAfter is null && !aiWorkerDisabled && aiWorkerSilentAfter is null && displayDelayMs is null)
         {
             return backend;
         }
 
-        Armed = new FaultInjectingBackend(backend, failAfter, aiWorkerDisabled, aiWorkerSilentAfter);
+        Armed = new FaultInjectingBackend(backend, failAfter, aiWorkerDisabled, aiWorkerSilentAfter, displayDelayMs);
         return Armed;
     }
 
@@ -55,6 +57,8 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     public static string Describe() =>
         Armed is null
             ? "faultInjection=off"
+            : Armed._displayDelayMs is not null && !Armed._displayFault && !Armed._aiWorkerDisabled && Armed._aiWorkerSilentAfter is null
+                ? $"faultInjection={AutomationArgs.DisplayDelayFaultPrefix}{Armed._displayDelayMs} calls={Armed._calls}"
             : Armed._displayFault
                 ? $"faultInjection={AutomationArgs.DisplayPipelineFaultPrefix}{Armed._failAfter} calls={Armed._calls}"
                     + (Armed._aiWorkerDisabled ? $" {AutomationArgs.AiWorkerDisabledFault}" : string.Empty)
@@ -63,13 +67,24 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings)
     {
         CountAndMaybeFail();
+        DelayIfArmed();
         return _inner.ApplyDisplayPipeline(rawFrame, chain, settings);
     }
 
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
         CountAndMaybeFail();
+        DelayIfArmed();
         return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
+    }
+
+    /// <summary>GUI-C-245: <c>display-delay:MS</c> - the display pipeline starts MS milliseconds late, so the picture it produces reaches the viewport (and the screen) that much later.</summary>
+    private void DelayIfArmed()
+    {
+        if (_displayDelayMs is > 0)
+        {
+            Thread.Sleep(_displayDelayMs.Value);
+        }
     }
 
     private void CountAndMaybeFail()

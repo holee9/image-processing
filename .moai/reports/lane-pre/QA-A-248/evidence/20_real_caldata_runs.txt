@@ -1,0 +1,12 @@
+date: 2026-10-14 13:10
+exe sha256: ede83d1f509d638e88d9901e4083fc5ab82e64b2ff404281422a348a79efef7e
+offset.xcal  1ef0998caed228b1a79eaf1d660824d687c643077361c82f5f58a01af776e581
+gain.xcal    5ef9ba730d7f1278dc5e1d8f9d5495bae841baea88b6577e89cd192e75596d20
+defect.xcal  74cdf3a30c966c865fc7d153d49a40fc3415b2b5604491d0867cc3a90ddf9c74  (23505 defect pixels)
+manifest.json written to .moai/reports/lane-pre/QA-A-248/evidence/real_a\manifest.json
+run a: exit 0, wall time 1752 ms
+offset.xcal  1ef0998caed228b1a79eaf1d660824d687c643077361c82f5f58a01af776e581
+gain.xcal    5ef9ba730d7f1278dc5e1d8f9d5495bae841baea88b6577e89cd192e75596d20
+defect.xcal  74cdf3a30c966c865fc7d153d49a40fc3415b2b5604491d0867cc3a90ddf9c74  (23505 defect pixels)
+manifest.json written to .moai/reports/lane-pre/QA-A-248/evidence/real_b\manifest.json
+run b: exit 0, wall time 1707 ms

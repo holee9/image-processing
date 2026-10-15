@@ -19,6 +19,16 @@
  *                 default so the scalar set stays byte-identical (QA-A-136, #198)
  *   --poly-degree maximum fitted degree, 1-4 (default 2)
  *   --poly-levels dose levels to acquire, 3 or more (default 4)
+ *   --caldata     QA-A-248 (#262): build the set from REAL calibration frames
+ *                 instead of synthetic ones. <dir> holds dark.raw,
+ *                 bright04.raw, bright05.raw, bright06.raw (uint16, headerless,
+ *                 width x height) and BPMap.map (uint8 mask). The maps are made
+ *                 the way QA-A-245 (test_zz_a241_measure.cpp,
+ *                 A245_ExportAndAppPath) made calib-real-v2: offset from the one
+ *                 dark frame (100 ms, 25 C), gain from the three flats with NO
+ *                 dark reference (they are already offset-corrected, CalData_6
+ *                 README), defect = BPMap.map as it is. --width/--height default
+ *                 to 3072 in this mode. Not combinable with --gain-poly.
  *
  * Output: offset.xcal, gain.xcal, defect.xcal, manifest.json
  *         (+ gain_poly.xcal with --gain-poly)
@@ -59,6 +69,7 @@
 #include <fstream>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -83,6 +94,10 @@ struct Options {
     bool        gainPoly{false};
     int32_t     polyDegree{2};
     int32_t     polyLevels{4};
+
+    // QA-A-248 (#262): real calibration frames instead of synthetic ones.
+    std::string calDir;
+    bool        sizeGiven{false};   // --width/--height was passed
 };
 
 void printUsage() {
@@ -90,6 +105,7 @@ void printUsage() {
         "usage: xpe_calib_fixture_gen --out <dir> [--width N] [--height N]\n"
         "                             [--seed N] [--expiry-ms N]\n"
         "                             [--gain-poly] [--poly-degree N] [--poly-levels N]\n"
+        "                             [--caldata <dir>]\n"
         "\n"
         "Writes offset.xcal, gain.xcal, defect.xcal and manifest.json into <dir>.\n"
         "The same arguments always produce byte-identical files.\n"
@@ -97,7 +113,9 @@ void printUsage() {
         "  --gain-poly     also write gain_poly.xcal (XCAL_TYPE_GAIN_POLY), a\n"
         "                  per-pixel dose-dependent gain polynomial\n"
         "  --poly-degree N maximum fitted degree, 1-4 (default 2)\n"
-        "  --poly-levels N dose levels to acquire, 3 or more (default 4)\n");
+        "  --poly-levels N dose levels to acquire, 3 or more (default 4)\n"
+        "  --caldata <dir> use real frames: dark.raw, bright04..06.raw, BPMap.map\n"
+        "                  (width/height default to 3072; not with --gain-poly)\n");
 }
 
 bool parseArgs(int argc, char** argv, Options* opt) {
@@ -110,15 +128,17 @@ bool parseArgs(int argc, char** argv, Options* opt) {
         };
         uint64_t value = 0;
 
-        if (arg == "--out") {
+        if (arg == "--out" || arg == "--caldata") {
             if (i + 1 >= argc) return false;
-            opt->outDir = argv[++i];
+            (arg == "--out" ? opt->outDir : opt->calDir) = argv[++i];
         } else if (arg == "--width") {
             if (!next(&value)) return false;
             opt->width = static_cast<uint32_t>(value);
+            opt->sizeGiven = true;
         } else if (arg == "--height") {
             if (!next(&value)) return false;
             opt->height = static_cast<uint32_t>(value);
+            opt->sizeGiven = true;
         } else if (arg == "--seed") {
             if (!next(&value)) return false;
             opt->seed = static_cast<uint32_t>(value);
@@ -141,6 +161,13 @@ bool parseArgs(int argc, char** argv, Options* opt) {
         }
     }
     if (opt->outDir.empty()) return false;
+    if (!opt->calDir.empty()) {
+        if (opt->gainPoly) {
+            std::fprintf(stderr, "--caldata cannot be combined with --gain-poly\n");
+            return false;
+        }
+        if (!opt->sizeGiven) opt->width = opt->height = 3072u;
+    }
     if (opt->width == 0 || opt->height == 0) {
         std::fprintf(stderr, "width and height must be greater than 0\n");
         return false;
@@ -247,6 +274,43 @@ std::string sha256Hex(const std::string& path) {
         out.push_back(hex[b & 0x0F]);
     }
     return out;
+}
+
+/** The manifest keys only a --caldata run adds: where the frames came from and their hashes. */
+std::string realManifestKeys(const std::vector<std::pair<std::string, std::string>>& inputs) {
+    std::string out = "  \"source\": \"caldata\",\n  \"inputs\": {\n";
+    for (size_t i = 0; i < inputs.size(); ++i) {
+        out += "    \"" + inputs[i].first + "\": \"" + inputs[i].second + "\"" + (i + 1 < inputs.size() ? ",\n" : "\n");
+    }
+    return out + "  },\n";
+}
+
+/** Reads a whole file; false when it is missing or not exactly `bytes` long. */
+bool readExact(const std::string& path, size_t bytes, std::vector<uint8_t>* out) {
+    std::ifstream f(path, std::ios::binary | std::ios::ate);
+    if (!f) {
+        std::fprintf(stderr, "cannot open %s\n", path.c_str());
+        return false;
+    }
+    const std::streamoff size = f.tellg();
+    if (size < 0 || static_cast<size_t>(size) != bytes) {
+        std::fprintf(stderr, "%s is %lld bytes, expected %zu (width x height of the set)\n",
+                     path.c_str(), static_cast<long long>(size), bytes);
+        return false;
+    }
+    f.seekg(0);
+    out->assign(bytes, 0u);
+    f.read(reinterpret_cast<char*>(out->data()), static_cast<std::streamsize>(bytes));
+    return f.gcount() == static_cast<std::streamsize>(bytes);
+}
+
+/** Reads a headerless little-endian uint16 frame of `count` pixels. */
+bool readFrame16(const std::string& path, size_t count, std::vector<uint16_t>* out) {
+    std::vector<uint8_t> bytes;
+    if (!readExact(path, count * sizeof(uint16_t), &bytes)) return false;
+    out->assign(count, 0u);
+    std::memcpy(out->data(), bytes.data(), bytes.size());   // x86-64 and ARM64 are little-endian
+    return true;
 }
 
 /* ------------------------------------------------------------------ frames */
@@ -369,9 +433,34 @@ int main(int argc, char** argv) {
     }
     const size_t pixelCount = static_cast<size_t>(opt.width) * opt.height;
 
+    // QA-A-248 (#262): with --caldata the frames come from files. They are all
+    // read before anything is written, so a missing or wrongly sized input
+    // leaves no half-made set behind.
+    const bool real = !opt.calDir.empty();
+    std::vector<uint16_t> realDark;
+    std::vector<std::vector<uint16_t>> realFlats(3);
+    std::vector<uint8_t> realMask;
+    std::vector<std::pair<std::string, std::string>> inputShas;   // file name, sha-256
+    if (real) {
+        const fs::path in(opt.calDir);
+        const char* const flatNames[3] = {"bright04.raw", "bright05.raw", "bright06.raw"};
+        bool ok = readFrame16((in / "dark.raw").string(), pixelCount, &realDark);
+        for (int k = 0; ok && k < 3; ++k) {
+            ok = readFrame16((in / flatNames[k]).string(), pixelCount, &realFlats[static_cast<size_t>(k)]);
+        }
+        ok = ok && readExact((in / "BPMap.map").string(), pixelCount, &realMask);
+        if (!ok) {
+            xpe_preprocess_shutdown();
+            return 9;
+        }
+        for (const char* n : {"dark.raw", "bright04.raw", "bright05.raw", "bright06.raw", "BPMap.map"}) {
+            inputShas.emplace_back(n, sha256Hex((in / n).string()));
+        }
+    }
+
     /* ---------------------------------------------------------- offset ---- */
     {
-        auto darks = makeDarkFrames(opt, 8);
+        auto darks = real ? std::vector<std::vector<uint16_t>>{realDark} : makeDarkFrames(opt, 8);
         std::vector<XpeImageBuffer> bufs;
         for (auto& d : darks) bufs.push_back(u16Buffer(d, opt.width, opt.height));
 
@@ -397,15 +486,16 @@ int main(int argc, char** argv) {
 
     /* ------------------------------------------------------------ gain ---- */
     {
-        auto flats = makeFlatFrames(opt, 4);
+        auto flats = real ? realFlats : makeFlatFrames(opt, 4);
         std::vector<XpeImageBuffer> bufs;
         for (auto& f : flats) bufs.push_back(u16Buffer(f, opt.width, opt.height));
 
-        auto darkRef = makeDarkFrames(opt, 1);
-        XpeImageBuffer darkBuf = u16Buffer(darkRef[0], opt.width, opt.height);
+        auto darkRef = makeDarkFrames(opt, real ? 0 : 1);
+        XpeImageBuffer darkBuf = darkRef.empty() ? XpeImageBuffer{} : u16Buffer(darkRef[0], opt.width, opt.height);
 
+        // Real flats are already offset-corrected: no dark reference (QA-A-245).
         if (xpe_calib_generate_gain(bufs.data(), static_cast<int32_t>(bufs.size()),
-                                    &darkBuf, gainScratch.c_str(), nullptr) != XPE_OK) {
+                                    real ? nullptr : &darkBuf, gainScratch.c_str(), nullptr) != XPE_OK) {
             std::fprintf(stderr, "xpe_calib_generate_gain failed\n");
             return 6;
         }
@@ -499,7 +589,15 @@ int main(int argc, char** argv) {
 
     /* ---------------------------------------------------------- defect ---- */
     size_t defectCount = 0;
-    {
+    if (real) {
+        for (uint8_t m : realMask) if (m) ++defectCount;
+        if (writeFixture(defectPath, XCAL_TYPE_DEFECT, XCAL_FMT_UINT8_MASK,
+                         opt.width, opt.height, realMask.data(), realMask.size(),
+                         opt.expiryMs) != XPE_OK) {
+            std::fprintf(stderr, "writing defect.xcal failed\n");
+            return 7;
+        }
+    } else {
         auto darks  = makeDarkFrames(opt, 5);
         auto brights = makeFlatFrames(opt, 10);
         for (auto& d : darks)   injectDefects(d, opt);
@@ -581,6 +679,7 @@ int main(int argc, char** argv) {
              << "  \"height\": " << opt.height << ",\n"
              << "  \"expiry_epoch_ms\": " << opt.expiryMs << ",\n"
              << "  \"defect_pixels\": " << defectCount << ",\n"
+             << (real ? realManifestKeys(inputShas) : std::string())
              << "  \"files\": {\n"
              << "    \"offset.xcal\": \"" << offsetSha << "\",\n"
              << "    \"gain.xcal\": \""   << gainSha   << "\",\n"

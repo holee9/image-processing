@@ -1,0 +1,172 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_calib_fixture_gen.cpp'
+raw = open(p, 'rb').read()
+assert b'\r\n' not in raw and b'\0' not in raw
+s = raw.decode('utf-8')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:60])
+    s = s.replace(old, new)
+
+
+sub('''#include <cstdint>
+#include <cstdlib>
+#include <filesystem>''', '''#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>''')
+
+sub('''std::vector<char> readAll(const fs::path& p) {''', '''/** Runs the generator with a free-form argument string and returns its exit code. */
+int runTool(const std::string& arguments) {
+    std::string cmd = "\\"";
+    cmd += XPE_FIXTURE_GEN_EXE;
+    cmd += "\\" " + arguments;
+#ifdef _WIN32
+    cmd = "\\"" + cmd + "\\"";   // see runGenerator
+#endif
+    return std::system(cmd.c_str());
+}
+
+std::vector<char> readAll(const fs::path& p) {''')
+
+new_tests = r'''
+// ---------------------------------------------------------------- QA-A-248 (#262): --caldata
+// The mode builds the set from real frames. The repository holds no CalData_6 frames (gitignored), so these tests write a small stand-in
+// for that folder - the five files the mode reads - and check the mode against it.
+constexpr uint64_t kFarExpiryMs = 4102444800000ull;   // 2100-01-01
+
+void writeBytes(const fs::path& p, const void* data, size_t bytes) {
+    std::ofstream f(p, std::ios::binary | std::ios::trunc);
+    f.write(static_cast<const char*>(data), static_cast<std::streamsize>(bytes));
+}
+
+/** dark.raw, bright04..06.raw (uint16, kW x kH) and BPMap.map (uint8, three marked pixels); returns the map. */
+std::vector<uint8_t> writeCalData(const fs::path& dir) {
+    fs::create_directories(dir);
+    const size_t n = static_cast<size_t>(kW) * kH;
+    std::vector<uint16_t> frame(n);
+    for (uint32_t y = 0; y < kH; ++y) {
+        for (uint32_t x = 0; x < kW; ++x) {
+            frame[y * kW + x] = static_cast<uint16_t>(300 + ((x * 7 + y * 13) % 11));
+        }
+    }
+    writeBytes(dir / "dark.raw", frame.data(), n * 2);
+    for (int k = 4; k <= 6; ++k) {
+        const double level = 4000.0 + 1000.0 * (k - 4);
+        for (uint32_t y = 0; y < kH; ++y) {
+            for (uint32_t x = 0; x < kW; ++x) {
+                frame[y * kW + x] = static_cast<uint16_t>(level * (0.9 + 0.2 * x / (kW - 1)) + (y % 5));
+            }
+        }
+        const std::string name = "bright0" + std::to_string(k) + ".raw";
+        writeBytes(dir / name, frame.data(), n * 2);
+    }
+    std::vector<uint8_t> map(n, 0u);
+    map[10 * kW + 10] = 1u;
+    map[200 * kW + 100] = 1u;
+    map[255 * kW + 255] = 1u;
+    writeBytes(dir / "BPMap.map", map.data(), n);
+    return map;
+}
+
+std::string asText(const std::vector<char>& v) { return std::string(v.begin(), v.end()); }
+
+// What the mode promises: the three files, byte-identical between runs, defect.xcal carrying BPMap.map as it is, the inputs' hashes in the
+// manifest, and a set the module loads.
+TEST_F(CalibFixtureGenTest, CalDataModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns) {
+    const std::vector<uint8_t> map = writeCalData(root / "in");
+    const std::string args = "--caldata \"" + (root / "in").string() + "\" --width " + std::to_string(kW) + " --height " + std::to_string(kH) +
+                             " --expiry-ms " + std::to_string(kFarExpiryMs);
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    ASSERT_EQ(0, runTool("--out \"" + a.string() + "\" " + args));
+    ASSERT_EQ(0, runTool("--out \"" + b.string() + "\" " + args));
+
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"}) {
+        const std::vector<char> lhs = readAll(a / name);
+        ASSERT_FALSE(lhs.empty()) << name << " is empty";
+        EXPECT_TRUE(lhs == readAll(b / name)) << name << " differs between two runs on the same frames";
+    }
+
+    // The defect map is the file's own bytes: the last kW*kH bytes of defect.xcal are BPMap.map.
+    const std::vector<char> defect = readAll(a / "defect.xcal");
+    ASSERT_GT(defect.size(), map.size());
+    EXPECT_EQ(0, std::memcmp(defect.data() + (defect.size() - map.size()), map.data(), map.size())) << "defect.xcal does not carry BPMap.map unchanged";
+
+    const std::string manifest = asText(readAll(a / "manifest.json"));
+    EXPECT_NE(std::string::npos, manifest.find("\"source\": \"caldata\""));
+    EXPECT_NE(std::string::npos, manifest.find("\"defect_pixels\": 3"));
+    for (const char* name : {"dark.raw", "bright04.raw", "bright05.raw", "bright06.raw", "BPMap.map"}) {
+        EXPECT_NE(std::string::npos, manifest.find(std::string("\"") + name + "\": \"")) << "manifest does not name input " << name;
+    }
+
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_offset((a / "offset.xcal").string().c_str()));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain((a / "gain.xcal").string().c_str()));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map((a / "defect.xcal").string().c_str()));
+    xpe_preprocess_shutdown();
+}
+
+// An input that is missing or the wrong size ends the run before anything is written: no half-made set for a later step to pick up.
+TEST_F(CalibFixtureGenTest, CalDataModeRefusesAMissingOrWronglySizedInputAndWritesNoMap) {
+    struct Case {
+        const char* what;
+        std::function<void(const fs::path&)> spoil;
+        bool giveSize;
+    };
+    const std::vector<Case> cases = {
+        {"a missing flat frame", [](const fs::path& in) { fs::remove(in / "bright06.raw"); }, true},
+        {"a dark frame one byte too long",
+         [](const fs::path& in) {
+             std::ofstream f(in / "dark.raw", std::ios::binary | std::ios::app);
+             f.put('\0');
+         },
+         true},
+        {"a defect map that is too short", [](const fs::path& in) { fs::resize_file(in / "BPMap.map", 100); }, true},
+        {"frames that are not the default 3072 x 3072 (no --width/--height given)", [](const fs::path&) {}, false},
+    };
+    int i = 0;
+    for (const Case& c : cases) {
+        const fs::path in = root / ("in" + std::to_string(i));
+        const fs::path out = caseDir(("out" + std::to_string(i)).c_str());
+        writeCalData(in);
+        c.spoil(in);
+        std::string args = "--out \"" + out.string() + "\" --caldata \"" + in.string() + "\"";
+        if (c.giveSize) args += " --width " + std::to_string(kW) + " --height " + std::to_string(kH);
+        EXPECT_NE(0, runTool(args)) << c.what << " was accepted";
+        for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"}) {
+            EXPECT_FALSE(fs::exists(out / name)) << c.what << ": " << name << " was written";
+        }
+        ++i;
+    }
+}
+
+// The polynomial gain has no real-frame source in this mode; asking for both is refused up front rather than ignoring one.
+TEST_F(CalibFixtureGenTest, CalDataModeCannotBeCombinedWithAGainPolynomial) {
+    writeCalData(root / "in");
+    const fs::path out = caseDir("out");
+    EXPECT_NE(0, runTool("--out \"" + out.string() + "\" --caldata \"" + (root / "in").string() + "\" --gain-poly --width " + std::to_string(kW) + " --height " +
+                         std::to_string(kH)));
+    EXPECT_FALSE(fs::exists(out / "offset.xcal"));
+}
+
+// The synthetic manifest is what it always was: the extra keys belong to --caldata runs only.
+TEST_F(CalibFixtureGenTest, TheSyntheticManifestCarriesNoCalDataKeys) {
+    const fs::path d = caseDir("set");
+    ASSERT_EQ(0, runGenerator(d, 0, 0));
+    const std::string manifest = asText(readAll(d / "manifest.json"));
+    EXPECT_EQ(std::string::npos, manifest.find("\"source\""));
+    EXPECT_EQ(std::string::npos, manifest.find("\"inputs\""));
+}
+
+}  // namespace
+'''
+sub('''
+}  // namespace
+''', new_tests)
+
+if '#include <functional>' not in s:
+    sub('#include <fstream>\n', '#include <fstream>\n#include <functional>\n')
+
+open(p, 'wb').write(s.encode('utf-8'))
+print('patched')

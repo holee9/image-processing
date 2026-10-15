@@ -449,6 +449,8 @@ internal static class LifetimeScenarios
 #if XPE_TEST_FAULTS
                         await Timed(() => TheAiWorkerDisabledFault_IsInertWithoutTheArgument_AndAnswersOffWithIt(rawPath, width, height));
 #endif
+                        await Timed(() => TheFrameTimingOfAnOpen_IsNeverWrittenLate_AndSaysWhenItTimedOut_AndLeavesNoSubscription(rawPath, width, height));
+                        await Timed(() => ThePinnedNativeSearch_HasNoWayBackToTheApplicationFolder(rawPath, width, height));
                         await Timed(() => AnOlderStatusReadIsNeverShownAfterANewerRequest(rawPath, width, height));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: true));
                         await Timed(() => AnOldDisabledAnswerIsNeverShownForANewSession(rawPath, width, height, viaRestartCommand: false));
@@ -960,6 +962,348 @@ internal static class LifetimeScenarios
         return Task.CompletedTask;
     }
 #endif
+
+    // ---- 10: the frame-timing line of an open (GUI-C-236c, Codex #191 finding 3) --------------------------------------------------------
+    //
+    // The line is written when the second composition tick after an open's processed picture has passed. Three ways it must NOT say something false: a newer open began while the tick was awaited
+    // (the late result of the older open is dropped), the tick never came (the line is written and says TIMED OUT), the window is closing (nothing is written). And the subscription to
+    // CompositionTarget.Rendering is released on every way out. The runner has no window, so the wait for ticks is scripted through CompositionTicksOverride; the real wait is exercised directly.
+
+    private const string TimingPrefix = "open-to-2nd-tick (proxy) #";
+
+    private static async Task TheFrameTimingOfAnOpen_IsNeverWrittenLate_AndSaysWhenItTimedOut_AndLeavesNoSubscription(string rawPath, int width, int height)
+    {
+        _scenario = "10 frame timing of an open";
+
+        // control: an undisturbed open writes its line (so the absence checks below are not an artifact of a wait that never publishes)
+        var directory = TempDirectory();
+        try
+        {
+            var control = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            control.CompositionTicksOverride = (_, _, _) => Task.FromResult(MainWindowViewModel.CompositionWait.Ticked);
+            await LoadAndDrawLanes(control, rawPath);
+            await Until(() => control.FrameTimingText.StartsWith(TimingPrefix + "1:", StringComparison.Ordinal), "the control open's timing line");
+            Check(!control.FrameTimingText.Contains("TIMED OUT", StringComparison.Ordinal), $"an undisturbed open was marked timed out: {control.FrameTimingText}");
+
+            // a newer open begins while the older one still waits for its tick: the older line must never appear, even when its wait ends later
+            var calls = 0;
+            var held = new TaskCompletionSource<MainWindowViewModel.CompositionWait>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var vm = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            vm.CompositionTicksOverride = (_, _, _) => ++calls == 1 ? held.Task : Task.FromResult(MainWindowViewModel.CompositionWait.Ticked);
+            await LoadAndDrawLanes(vm, rawPath);                       // open 1: its wait is held
+            await FlushUi();
+            Check(vm.FrameTimingText.Length == 0, $"the held wait of open 1 already wrote a line: {vm.FrameTimingText}");
+            await LoadAndDrawLanes(vm, rawPath);                       // open 2: its wait ends at once
+            await Until(() => vm.FrameTimingText.StartsWith(TimingPrefix, StringComparison.Ordinal), "open 2's timing line");
+            var lineOfOpen2 = vm.FrameTimingText;
+            held.SetResult(MainWindowViewModel.CompositionWait.Ticked);   // open 1's tick comes late
+            await Until(() => vm.Logs.Any(l => l.Contains("Frame timing of open #1 dropped", StringComparison.Ordinal)), "open 1's late result to be dropped and logged");
+            await FlushUi();
+            Check(vm.FrameTimingText == lineOfOpen2, $"the older open's late result replaced the line ('{lineOfOpen2}' -> '{vm.FrameTimingText}')");
+            var lineCount = vm.Logs.Count(l => l.Contains(TimingPrefix, StringComparison.Ordinal));
+            Check(lineCount == 1, $"expected exactly one timing line in the log (open 2's), found {lineCount}");
+
+            // the tick never comes: the line is written, marked, and the log says it too
+            var timedOut = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            timedOut.CompositionTicksOverride = (_, _, _) => Task.FromResult(MainWindowViewModel.CompositionWait.TimedOut);
+            await LoadAndDrawLanes(timedOut, rawPath);
+            await Until(() => timedOut.FrameTimingText.Length > 0, "the timed-out line");
+            Check(timedOut.FrameTimingText.Contains("TIMED OUT", StringComparison.Ordinal), $"a wait that timed out was not marked in the status line: {timedOut.FrameTimingText}");
+            Check(timedOut.Logs.Any(l => l.Contains("TIMED OUT", StringComparison.Ordinal)), "a wait that timed out was not marked in the log");
+
+            // the window closes while the wait runs (the scripted wait honours the token as the real one does): nothing is written
+            var closing = NewViewModel(width, height, _ => new ScenarioBackend(), directory, out _);
+            closing.CompositionTicksOverride = (_, _, token) =>
+            {
+                var cancelled = new TaskCompletionSource<MainWindowViewModel.CompositionWait>(TaskCreationOptions.RunContinuationsAsynchronously);
+                token.Register(() => cancelled.TrySetResult(MainWindowViewModel.CompositionWait.Cancelled));
+                return cancelled.Task;
+            };
+            await LoadAndDrawLanes(closing, rawPath);
+            await FlushUi();
+            closing.BeginShutdown();
+            await Until(() => closing.Logs.Any(l => l.Contains("not written: the window is closing", StringComparison.Ordinal)), "the cancelled wait to be logged");
+            Check(closing.FrameTimingText.Length == 0, $"a line was written while the window was closing: {closing.FrameTimingText}");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+
+        // the REAL wait: whichever way it ends - ticks, timeout, cancellation - the subscription is gone. (No window here, so a tick may never come; the outcome is printed, the count is what is checked.)
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"a subscription was already held before the check ({MainWindowViewModel.ActiveCompositionSubscriptions})");
+        // GUI-C-241: the time-out path is made deterministic by asking for ticks that cannot come (int.MaxValue of them), so the limit is the only way out; and no count is asserted WHILE this wait runs:
+        // its limit is short, and a loaded runner can stall this thread for longer than the limit between the call and the check (measured: 2 of 12 instances run in parallel failed with
+        // "a running wait holds 0 subscriptions"). The running state is asserted below on a wait that only the scenario can end (a 30 s limit, ended by cancellation).
+        var endedBy = await MainWindowViewModel.WaitForCompositionTicksAsync(int.MaxValue, TimeSpan.FromMilliseconds(150), CancellationToken.None);
+        Check(endedBy == MainWindowViewModel.CompositionWait.TimedOut, $"a wait for ticks that cannot come ended as {endedBy}, expected TimedOut");
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"after the wait ended ({endedBy}) {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions were left");
+        using var cancel = new CancellationTokenSource();
+        var byCancel = MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromSeconds(30), cancel.Token);
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 1, $"a second running wait holds {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions, expected 1");
+        cancel.Cancel();
+        var cancelledBy = await byCancel;
+        Check(cancelledBy == MainWindowViewModel.CompositionWait.Cancelled, $"a cancelled wait ended as {cancelledBy}");
+        Check(MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"after the cancellation {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions were left");
+        var alreadyCancelled = await MainWindowViewModel.WaitForCompositionTicksAsync(2, TimeSpan.FromSeconds(30), cancel.Token);
+        Check(alreadyCancelled == MainWindowViewModel.CompositionWait.Cancelled && MainWindowViewModel.ActiveCompositionSubscriptions == 0, $"a wait started with a token already cancelled ended as {alreadyCancelled} with {MainWindowViewModel.ActiveCompositionSubscriptions} subscriptions left");
+        Console.WriteLine($"    real wait without a window ended by: {endedBy}");
+    }
+
+    // ---- 11: the pinned native search has no way back to the default search (GUI-C-238b, Codex #193) ------------------------------------------------
+    //
+    // XPE_NATIVE_DIR_EXCLUSIVE=1 means: the app's native DLLs come from XPE_NATIVE_DIR and from nowhere else. The decoy is a real, loadable DLL (a copy of version.dll) with a module's name, put in the
+    // APPLICATION folder (the runner's own folder). The control shows that the decoy IS found and loaded when nothing is pinned; with the search pinned the same name must NOT be loaded from it - the resolver
+    // throws instead of handing the name to the default loader, which would search the application folder.
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern IntPtr GetModuleHandleW(string moduleName);
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool FreeLibrary(IntPtr module);
+
+    /// <summary>GUI-C-246: how many references the process holds on a module, counted by giving them back until it is gone (this unloads it). Zero when it is not loaded.</summary>
+    private static int DrainReferences(string moduleName)
+    {
+        var count = 0;
+        while (count < 10_000 && GetModuleHandleW(moduleName) is var handle && handle != IntPtr.Zero)
+        {
+            FreeLibrary(handle);
+            count++;
+        }
+
+        return count;
+    }
+
+    private static Task ThePinnedNativeSearch_HasNoWayBackToTheApplicationFolder(string rawPath, int width, int height)
+    {
+        _scenario = "11 pinned native search";
+        _ = (rawPath, width, height);
+        var assembly = typeof(ImageProcTest.Services.Native.GuiNativeLibraryResolver).Assembly;
+        var decoy = Path.Combine(AppContext.BaseDirectory, "xpe_ai.dll");
+        var pinnedFolder = Path.Combine(TempDirectory(), "pinned");
+        Directory.CreateDirectory(pinnedFolder);
+        var systemDll = Path.Combine(Environment.SystemDirectory, "version.dll");
+        var previousDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        var previousExclusive = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE");
+        File.Copy(systemDll, decoy, overwrite: true);
+        try
+        {
+
+            // control: nothing pinned - the decoy beside the runner is found and loads
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", null);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", null);
+            var control = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+            Check(control != IntPtr.Zero, "the control failed: the decoy beside the runner was not loaded although nothing was pinned");
+            System.Runtime.InteropServices.NativeLibrary.Free(control);
+
+            // pinned to an EMPTY folder: the decoy beside the runner must not be used; the failure names the pinned folder
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", pinnedFolder);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", "1");
+            try
+            {
+                var leaked = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+                System.Runtime.InteropServices.NativeLibrary.Free(leaked);
+                Fail("xpe_ai.dll was loaded although the search was pinned to an empty folder: the default search (application folder) was used");
+            }
+            catch (DllNotFoundException ex)
+            {
+                Check(ex.Message.Contains(pinnedFolder, StringComparison.Ordinal) && ex.Message.Contains("default search", StringComparison.Ordinal), $"the failure does not name the pinned folder and the refused default search: {ex.Message}");
+            }
+
+            // pinned, with a DLL of that name in the pinned folder: it is loaded, from there
+            File.Copy(systemDll, Path.Combine(pinnedFolder, "xpe_ai.dll"));
+            var inside = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+            Check(inside != IntPtr.Zero, "the DLL in the pinned folder was not loaded");
+            System.Runtime.InteropServices.NativeLibrary.Free(inside);
+            Check(string.Equals(ImageProcTest.Services.Native.GuiNativeLibraryResolver.ResolvedPath("xpe_ai.dll"), Path.Combine(pinnedFolder, "xpe_ai.dll"), StringComparison.OrdinalIgnoreCase),
+                $"xpe_ai.dll resolved to '{ImageProcTest.Services.Native.GuiNativeLibraryResolver.ResolvedPath("xpe_ai.dll")}', not the pinned folder's file");
+
+            // pinned without a folder: no quiet fall back to the default search
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", null);
+            try
+            {
+                var leaked = ImageProcTest.Services.Native.GuiNativeLibraryResolver.Resolve("xpe_ai.dll", assembly, null);
+                System.Runtime.InteropServices.NativeLibrary.Free(leaked);
+                Fail("xpe_ai.dll was loaded although EXCLUSIVE=1 names no folder");
+            }
+            catch (DllNotFoundException ex)
+            {
+                Check(ex.Message.Contains("does not name it", StringComparison.Ordinal), $"the failure does not say that XPE_NATIVE_DIR names nothing: {ex.Message}");
+            }
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", previousDir);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", previousExclusive);
+            try { File.Delete(decoy); } catch (IOException) { /* loaded copy: the process end removes it */ }
+        }
+
+        // GUI-C-243: a feature that needs every module from the pinned folder FAILS instead of warning. A real module of the product (the decoy, a loadable DLL named xpe_ai.dll) is loaded from the runner's
+        // own folder while nothing is pinned; then the search is pinned to an empty folder: the check must throw and name it. Nothing loaded from the pinned folder -> no throw (the control).
+        var decoyPath = Path.Combine(AppContext.BaseDirectory, "xpe_ai.dll");
+        var pinnedElsewhere = Path.Combine(TempDirectory(), "pinned-empty");
+        Directory.CreateDirectory(pinnedElsewhere);
+        File.Copy(Path.Combine(Environment.SystemDirectory, "version.dll"), decoyPath, overwrite: true);
+        var decoyHandle = System.Runtime.InteropServices.NativeLibrary.Load(decoyPath);
+        var savedDir = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR");
+        var savedExclusive = Environment.GetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE");
+        try
+        {
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", null);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", null);
+            ImageProcTest.Services.Native.NativeModuleAudit.ThrowIfOutsidePinnedFolder("control (nothing pinned)");   // must not throw: nothing is pinned
+
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", pinnedElsewhere);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", "1");
+            try
+            {
+                ImageProcTest.Services.Native.NativeModuleAudit.ThrowIfOutsidePinnedFolder("DICOM export");
+                Fail("a native module loaded from outside the pinned folder did not stop the feature");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Check(ex.Message.Contains("xpe_ai.dll", StringComparison.Ordinal) && ex.Message.Contains(pinnedElsewhere, StringComparison.Ordinal) && ex.Message.StartsWith("DICOM export", StringComparison.Ordinal),
+                    $"the failure does not name the feature, the stray module and the pinned folder: {ex.Message}");
+            }
+
+            // the AI worker is expected beside the loaded xpe_ai.dll; a worker that is not ours (or none) never fails the check
+            Check(ImageProcTest.Services.Native.NativeModuleAudit.AiWorkerPathBeside(@"C:\pinned\xpe_ai.dll") == @"C:\pinned\xpe_ai_worker.exe", "the worker is expected beside xpe_ai.dll");
+            Check(ImageProcTest.Services.Native.NativeModuleAudit.AiWorkerPathBeside(null) is null, "no xpe_ai.dll, no worker path");
+            Check(ImageProcTest.Services.Native.NativeModuleAudit.DescribeAndCheckAiWorker(Path.Combine(pinnedElsewhere, "xpe_ai.dll")).Contains("exists=False", StringComparison.Ordinal), "the worker description should say the expected file does not exist");
+
+            // GUI-C-245 (Codex #196): the DICOM session checks BEFORE it calls into the module. The pinned folder holds a loadable file named xpe_dicom.dll (a copy of version.dll: it loads, and has no xpe_dicom_*
+            // export, so a call that was made would fail with a missing entry point, not with the audit's words), while the stray xpe_ai.dll decoy is still loaded from the runner's folder. Every entry of the
+            // session must fail with the audit's words and BEFORE its call: the writer leaves no file behind, the export reports no write, the reader opens nothing.
+            File.Copy(Path.Combine(Environment.SystemDirectory, "version.dll"), Path.Combine(pinnedElsewhere, "xpe_dicom.dll"), overwrite: true);
+            var dicomDir = Path.Combine(TempDirectory(), "dicom-preflight");
+            Directory.CreateDirectory(dicomDir);
+            var dicomPath = Path.Combine(dicomDir, "output.dcm");
+            var partialPath = dicomPath + ImageProcTest.Services.BaselineDicomExport.PartialSuffix;
+            var session = new ImageProcTest.Services.Native.NativeDicomSession();
+            var metadata = new ImageProcTest.Services.BaselineDicomMetadata("CHEST", 120f, 0.15f);
+            var pixels = new ushort[16 * 16];
+
+            void ExpectAuditFailure(string what, string feature, Action call)
+            {
+                try
+                {
+                    call();
+                    Fail($"{what}: a native module outside the pinned folder did not stop the call");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Check(ex.Message.StartsWith(feature, StringComparison.Ordinal) && ex.Message.Contains("outside the pinned folder", StringComparison.Ordinal) && ex.Message.Contains("xpe_ai.dll", StringComparison.Ordinal),
+                        $"{what}: the failure is not the audit's (feature, outside the pinned folder, the stray module): {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    Fail($"{what}: the call was made (or failed some other way) instead of being refused before it: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
+
+            ExpectAuditFailure("Write", "xpe_dicom_write", () => session.Write(partialPath, pixels, 16, 16, metadata));
+            Check(!File.Exists(partialPath) && !File.Exists(dicomPath), "the writer left a file behind although it was refused before the call");
+            ExpectAuditFailure("Validate", "xpe_dicom_validate", () => session.Validate(partialPath));
+            ExpectAuditFailure("ReadBack", "xpe_dicom_open", () => session.ReadBack(partialPath));
+            var exported = ImageProcTest.Services.BaselineDicomExport.Export(dicomPath, pixels, 16, 16, metadata, session);
+            Check(!exported.Written && !exported.Passed && exported.Summary.Contains("outside the pinned folder", StringComparison.Ordinal), $"the export should report that nothing was written and why, said: {exported.Summary}");
+            Check(!File.Exists(partialPath) && !File.Exists(dicomPath), "the export left a file (partial or final) behind although every call was refused");
+
+            // GUI-C-246 (Codex #197): the check does not pile up references, and it does not unload anything either. The application's own DllImport would hold one reference on xpe_dicom.dll; this holds one the
+            // same way, runs the three entries' check 50 times each and then counts what is left by giving references back until the module is gone: the held one plus the ONE the check keeps (2), however many calls
+            // there were. Phase 1: the stray xpe_ai.dll is still loaded, so every call THROWS; phase 2 (below, after the control): nothing is stray, every call passes. Phase 3: a module the check loads FIRST (the
+            // application has not used it yet) is still loaded afterwards: the check does not unload a module under the call that follows it.
+            const int Repeats = 50;
+            string[] entries = ["xpe_dicom_write", "xpe_dicom_validate", "xpe_dicom_open"];
+            DrainReferences("xpe_dicom.dll");
+            ImageProcTest.Services.Native.NativeModuleAudit.ForgetPreflightHandlesForTests();
+            var heldByTheApplication = System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(pinnedElsewhere, "xpe_dicom.dll"));
+            var refused = 0;
+            for (var i = 0; i < Repeats; i++)
+            {
+                foreach (var entry in entries)
+                {
+                    try
+                    {
+                        ImageProcTest.Services.Native.NativeModuleAudit.PreflightModule("xpe_dicom.dll", entry);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        refused++;
+                    }
+                }
+            }
+
+            Check(refused == Repeats * entries.Length, $"phase 1: every check should have been refused while a stray module is loaded, {refused} of {Repeats * entries.Length} were");
+            Check(GetModuleHandleW("xpe_dicom.dll") != IntPtr.Zero, "phase 1: the module the application holds was unloaded by the checks");
+            var leftAfterRefused = DrainReferences("xpe_dicom.dll");
+            Check(leftAfterRefused == 2, $"phase 1: {leftAfterRefused} references on xpe_dicom.dll are left after {Repeats * entries.Length} refused checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)");
+            _ = heldByTheApplication;
+
+            // the control: with the stray module gone, the same session is NOT refused (it then reaches the call, and the version.dll copy has no such export)
+            System.Runtime.InteropServices.NativeLibrary.Free(decoyHandle);
+            decoyHandle = IntPtr.Zero;
+            try
+            {
+                session.Validate(partialPath);
+                Fail("the control: a DLL without the export should have failed the call itself");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Fail($"the control failed: the call was refused by the audit although no stray module is loaded any more: {ex.Message}");
+            }
+            catch (Exception ex) when (ex is EntryPointNotFoundException or DllNotFoundException)
+            {
+                // reached the call (the version.dll copy has no such export): the audit let it through, as it must when everything is from the pinned folder
+            }
+
+            // phase 2 of the reference count: nothing stray, every check passes
+            DrainReferences("xpe_dicom.dll");
+            ImageProcTest.Services.Native.NativeModuleAudit.ForgetPreflightHandlesForTests();
+            System.Runtime.InteropServices.NativeLibrary.Load(Path.Combine(pinnedElsewhere, "xpe_dicom.dll"));
+            for (var i = 0; i < Repeats; i++)
+            {
+                foreach (var entry in entries)
+                {
+                    ImageProcTest.Services.Native.NativeModuleAudit.PreflightModule("xpe_dicom.dll", entry);   // must not throw
+                }
+            }
+
+            Check(GetModuleHandleW("xpe_dicom.dll") != IntPtr.Zero, "phase 2: the module the application holds was unloaded by the checks");
+            var leftAfterPassing = DrainReferences("xpe_dicom.dll");
+            Check(leftAfterPassing == 2, $"phase 2: {leftAfterPassing} references on xpe_dicom.dll are left after {Repeats * entries.Length} passing checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)");
+
+            // phase 3: the check is the module's FIRST loader (nothing else holds it). It must still be loaded afterwards, because the call that follows needs it
+            DrainReferences("xpe_dicom.dll");
+            ImageProcTest.Services.Native.NativeModuleAudit.ForgetPreflightHandlesForTests();
+            ImageProcTest.Services.Native.NativeModuleAudit.PreflightModule("xpe_dicom.dll", "xpe_dicom_write");
+            Check(GetModuleHandleW("xpe_dicom.dll") != IntPtr.Zero, "phase 3: the module the check loaded FIRST was unloaded again by the check; the call that follows would have to load it again");
+            DrainReferences("xpe_dicom.dll");
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", savedDir);
+            Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", savedExclusive);
+            if (decoyHandle != IntPtr.Zero)
+            {
+                System.Runtime.InteropServices.NativeLibrary.Free(decoyHandle);
+            }
+
+            try { File.Delete(decoyPath); } catch (IOException) { /* loaded copy: the process end removes it */ }
+        }
+
+        // the audit: which native modules are NOT from the pinned folder (pure on its inputs)
+        var modules = ImageProcTest.Services.Native.NativeModuleAudit.Classify(
+            [@"C:\pinned\xpe_common.dll", @"C:\pinned\dcmdata.dll", @"C:\app\fmt.dll", @"C:\Windows\System32\kernel32.dll", @"c:\PINNED\xpe_display.dll"], @"C:\pinned");
+        Check(modules.Count == 4, $"the audit should list the 4 native modules and skip kernel32, listed {modules.Count}");
+        Check(modules.Count(m => !m.InsidePinnedFolder) == 1 && modules.Single(m => !m.InsidePinnedFolder).Name == "fmt.dll", "the audit should name fmt.dll (C:\\app) as the one module from outside the pinned folder");
+        Check(modules.Single(m => m.Name == "xpe_display.dll").InsidePinnedFolder, "the folder comparison must ignore the case of the path");
+        var report = ImageProcTest.Services.Native.NativeModuleAudit.Report("test", @"C:\pinned", [@"C:\pinned\xpe_common.dll", @"C:\app\fmt.dll"]);
+        Check(report.Count == 2 && report[1].Contains("fmt.dll", StringComparison.Ordinal) && report[1].Contains("is NOT the pinned folder", StringComparison.Ordinal), "the report should carry one line for the outsider");
+        return Task.CompletedTask;
+    }
 
     // ---- 7: an older status read is never shown after a newer request (GUI-C-192, the GUI-C-191b reproduction) ---------------------------
     //

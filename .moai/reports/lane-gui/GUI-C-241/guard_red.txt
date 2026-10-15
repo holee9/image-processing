@@ -1,0 +1,20 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.22]     ImageProcTest.IntegrationTests.Functional.NativeCallWrapperGuardTests.EveryNativeCall_IsInsideAWrappedOrExemptMember [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.NativeCallWrapperGuardTests.EveryNativeCall_IsInsideAWrappedOrExemptMember [21 ms]
+  오류 메시지:
+   Native calls outside InvokeNative and outside the exempt list — each loses the #110 alert drain:
+gui/ImageProcTest/Services/RealXpeBackend.cs:609 in 'WhyUnusable': if (!NativeLibrary.TryLoad(dllPath, out var handle))
+gui/ImageProcTest/Services/RealXpeBackend.cs:618 in 'WhyUnusable': if (!NativeLibrary.TryGetExport(handle, exportName, out _))
+gui/ImageProcTest/Services/RealXpeBackend.cs:628 in 'WhyUnusable': NativeLibrary.Free(handle);
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.NativeCallWrapperGuardTests.EveryNativeCall_IsInsideAWrappedOrExemptMember() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\NativeCallWrapperGuardTests.cs:line 80
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+실패!  - 실패:     1, 통과:     1, 건너뜀:     0, 전체:     2, 기간: 39 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

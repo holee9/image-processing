@@ -1,0 +1,5 @@
+offset.xcal  b3118648ff400fc785912eab595653c03457431373d2b67e0abc6d18d39fea65
+gain.xcal    163376523ce29af1b5cb17f1e4007e4ad824195295c6d301d6f1768451ddc29f
+defect.xcal  9c0eeefe36e863e126d9a2fbfebe49161117a947dae77e13458bed969c7f2cd6  (4 defect pixels)
+manifest.json written to .moai/reports/lane-pre/QA-A-248/evidence/s3k_c\manifest.json
+exit 0 wall time 353967 ms

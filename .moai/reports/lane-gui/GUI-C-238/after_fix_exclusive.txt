@@ -1,0 +1,12 @@
+[fixed_exclusive_wrongdll_beside_exe] pid 44040 windows: 1
+[fixed_exclusive_wrongdll_beside_exe] title: ImageProcTest GUI-S0
+[fixed_exclusive_wrongdll_beside_exe]   Backend
+[fixed_exclusive_wrongdll_beside_exe]   _Backend
+[fixed_exclusive_wrongdll_beside_exe]   Backend initialized: xpe_display 1.0.0
+[fixed_exclusive_wrongdll_beside_exe]   Backend initialized: xpe_display 1.0.0
+[fixed_exclusive_wrongdll_beside_exe]   mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=e2e-native-dlls
+[fixed_exclusive_wrongdll_beside_exe]   mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=e2e-native-dlls
+[fixed_exclusive_wrongdll_beside_exe]   Initialize Backend
+[fixed_exclusive_wrongdll_beside_exe]   Initialize Backend
+[fixed_exclusive_wrongdll_beside_exe]   Shutdown Backend
+[fixed_exclusive_wrongdll_beside_exe]   Shutdown Backend

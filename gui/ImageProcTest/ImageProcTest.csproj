@@ -79,6 +79,9 @@
              Link="Services\Native\Linked\NativeDependencyLoader.cs" />
     <Compile Include="..\..\clients\ImageProcTest\Diagnostics\XpePreprocessLibraryLocator.cs"
              Link="Services\Native\Linked\XpePreprocessLibraryLocator.cs" />
+    <!-- GUI-C-238b: the restricted LoadLibraryEx (the DLL's own folder + System32) and the loaded-module list, as the oracle worker already uses them. -->
+    <Compile Include="..\..\clients\ImageProcTest\Diagnostics\OracleModuleConfinement.cs"
+             Link="Services\Native\Linked\OracleModuleConfinement.cs" />
   </ItemGroup>
 
   <ItemGroup>

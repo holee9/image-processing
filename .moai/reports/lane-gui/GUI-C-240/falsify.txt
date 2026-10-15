@@ -1,0 +1,18 @@
+GUI-C-240 반증 (새 인용 시험 TheScriptsAndCommandsTheQuickStartGives_NameRealFilesParametersAndOptions 가 문서와 실제의 어긋남을 잡는지)
+방법: 빠른 시작 페이지(영·한) 한 곳을 어긋나게 바꾸고 QuickStartCitationTests 3건을 돌린 뒤, 원본으로 복원하고 바이트 비교. 스크립트(_falsify.py)가 cp949 콘솔로 출력을 받아 마지막 요약 줄의 한글이 깨져 있어 아래에 읽은 결과를 옮겨 적었다.
+전제: 시험은 통합 브랜치(#266)의 파일이 있어야 돈다(tools/Get-CiNativeDlls.ps1, --caldata 가 있는 xpe_calib_fixture_gen.cpp, 릴리스 단계가 있는 ci.yml). 로컬에서는 integ/m3-final 의 그 세 파일을 임시로 작업 트리에 덮어 돌리고 끝나면 되돌렸다.
+
+팔 A  EN 의 시작 스크립트 매개변수 -RawHeight 를 -RawHeigth 로 (없는 매개변수)
+  빨강: "the page gives -RawHeigth (…) but Start-ImageProcTestNative.ps1 has no parameter $RawHeigth"
+팔 B  EN 의 생성기 옵션 --caldata 를 --calldata 로 (생성기가 해석하지 않는 옵션)
+  빨강: "the page gives --calldata to xpe_calib_fixture_gen.exe, but its source does not parse that option"
+팔 C  KO 의 Get-CiNativeDlls.ps1 을 Get-CiNativeDll.ps1 로 (없는 스크립트)
+  빨강: "the page tells the reader to run .\tools\Get-CiNativeDll.ps1, but …\tools\Get-CiNativeDll.ps1 does not exist"
+팔 D  KO 의 배너 이유 "could not be loaded" 를 "cannot be loaded" 로 (앱이 쓰지 않는 문장)
+  1차(인용 시험 한 개만 있을 때): 빨강이 되지 않았다 — "cannot be loaded" 가 앱의 다른 곳에 있어 말뭉치 검색이 찾아냈다.
+  보강: 이유 인용은 이유를 쓰는 코드(RealXpeBackend.WhyNativeUnusable, XpeBackendFactory)에 있어야 하도록 시험을 좁혔다.
+  2차: 빨강: "the page quotes the banner reason '… cannot be loaded', but the code that writes the reason … does not contain 'cannot be loaded'"
+팔 E  EN 의 릴리스 자산 SHA256SUMS.txt 를 SHA256SUM.txt 로 (CI 단계가 쓰지 않는 이름)
+  빨강: "a page no longer names the release asset SHA256SUMS.txt"
+
+각 팔 뒤 복원 바이트 동일: True. 복원 뒤 QuickStartCitationTests: 실패 0, 통과 3.

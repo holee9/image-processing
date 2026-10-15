@@ -33,10 +33,11 @@ public partial class MainWindow : System.Windows.Window
         var failAfter = App.AutomationDisplayPipelineFailAfter;
         var aiWorkerDisabled = App.AutomationAiWorkerDisabled;
         var aiWorkerSilentAfter = App.AutomationAiWorkerSilentAfter;
+        var displayDelayMs = App.AutomationDisplayDelayMs;
         var viewModel = new MainWindowViewModel(
             settings,
             settingsService,
-            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled, aiWorkerSilentAfter),
+            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled, aiWorkerSilentAfter, displayDelayMs),
             preservedSettingsPath,
             preservedIsFromEarlier);
 #else

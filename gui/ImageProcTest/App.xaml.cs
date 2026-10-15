@@ -38,6 +38,9 @@ public partial class App : System.Windows.Application
 
     /// <summary>GUI-C-192c: <c>--automation-fault ai-worker-silent</c> was given (the AI worker status read answers once, or never with :0, and then stops). Test builds only.</summary>
     public static int? AutomationAiWorkerSilentAfter { get; private set; }
+
+    /// <summary>GUI-C-245: <c>--automation-fault display-delay:MS</c> was given (every display pipeline call waits MS milliseconds first). Test builds only.</summary>
+    public static int? AutomationDisplayDelayMs { get; private set; }
 #endif
 
     /// <summary>#173 (GUI-C-119): the settings file this run reads and writes, when one was named.</summary>
@@ -86,6 +89,7 @@ public partial class App : System.Windows.Application
         AutomationDisplayPipelineFailAfter = parsed.DisplayPipelineFailAfter;
         AutomationAiWorkerDisabled = parsed.AiWorkerDisabled;
         AutomationAiWorkerSilentAfter = parsed.AiWorkerSilentAfter;
+        AutomationDisplayDelayMs = parsed.DisplayDelayMs;
 #endif
         AutomationRawHeight = parsed.RawHeight;
 

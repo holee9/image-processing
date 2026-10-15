@@ -1,0 +1,7 @@
+=== ARM: the dialog button is SENT again (the wait that stopped W9); PressDialogButton changed to a synchronous SendMessage
+  legacy missing-file test exit=1 result=FAILED watchdog=True ['the watchdog had to kill the app: a click blocked']
+
+restored byte-identical: True
+
+=== AFTER RESTORE
+  legacy missing-file test exit=0 result=passed watchdog=False []

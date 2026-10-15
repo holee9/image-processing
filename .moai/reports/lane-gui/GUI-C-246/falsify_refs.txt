@@ -1,0 +1,10 @@
+=== ARM A: the check loads the module again on every call (the "already held" test removed)
+  arm: SelfCheck exit=3762504530 ['[11 pinned native search] phase 1: 151 references on xpe_dicom.dll are left after 150 refused checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)', '[11 pinned native search] phase 2: 151 references on xpe_dicom.dll are left after 150 passing checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)']
+
+=== ARM B: the check unloads what it loaded (the first fix: Free after every check)
+  arm: SelfCheck exit=3762504530 ['[11 pinned native search] phase 1: 1 references on xpe_dicom.dll are left after 150 refused checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)', '[11 pinned native search] phase 2: 1 references on xpe_dicom.dll are left after 150 passing checks, expected 2 (the one the application holds and the one the check keeps; more means the count grows with the calls)', '[11 pinned native search] phase 3: the module the check loaded FIRST was unloaded again by the check; the call that follows would have to load it again']
+
+restored byte-identical: True
+
+=== AFTER RESTORE
+  clean: SelfCheck exit=0 []
