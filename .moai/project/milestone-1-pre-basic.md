@@ -112,4 +112,4 @@
 | B12 | 통과 — offset DarkReduction 21.68/21.80 dB(DarkBias +14.3/+8.6 ADU 는 5 ADU 초과, OR 기준), gain FlatResidualPct 0.6420/0.6429 % | QA-A-250c, Codex #201 확인. QA-A-250(선량 혼합)·250b(평가 프레임 누출)의 gain 수치는 근거로 쓰지 않음 |
 | B13 | 통과 — 거부 경로(장 수·크기·포화·선량 혼합·중복·비어 있지 않은 출력), 원자적 게시 | QA-A-250c·250d `c32b10b4`, Codex #202 병합 가능 |
 | B14 | 통과 — `calib-cyan-v3` 로 앱 처리 성공, 보정 경고·오류 0 | GUI-C-247 `e8d4e7d1` |
-| B15 | 대기 — 절차서 v2.0.0 작성(`f0939143` 외), 문서대로 따라 하기는 main 병합·CI 산출물 뒤 | — |
+| B15 | 통과(생성) — 리더가 IAP-CALIB-001 1.3 대로 CI 빌드 도구(PR #271 run 38734937688, `d64f532a`, pre 코드는 병합 대상과 동일)로 새 폴더에 생성, 종료 0, 388 초. offset `f1b0f088…`·gain `e5037865…`·defect `1ad69d8c…`(134 화소) 세 파일 모두 `calib-cyan-v3` 와 sha256 일치, 입력 26개 역할·sha256 일치. 앱 단계는 바이트가 같은 v3 로 GUI-C-247 이 확인(B14) | `.moai/reports/lead/B15/gen_stdout.txt`·`sha256.txt`, 세트 `xpe-data/b15-run/set` |

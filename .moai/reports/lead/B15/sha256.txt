@@ -1,0 +1,7 @@
+# B15 sha256 (generated set vs calib-cyan-v3)
+1ad69d8c1224f8e2871ecff0f91ee5b889bd2b4c1592eee34abdbba1031ee7a6 *b15-run/set/defect.xcal
+e5037865e6ed182b34d4c9b606ab97f4313b4ea71194d891e9d900945f0de537 *b15-run/set/gain.xcal
+f1b0f088ccc68eb123113633980edbea31d158695ebe18b787e53a166ae2d476 *b15-run/set/offset.xcal
+1ad69d8c1224f8e2871ecff0f91ee5b889bd2b4c1592eee34abdbba1031ee7a6 *calib-cyan-v3/defect.xcal
+e5037865e6ed182b34d4c9b606ab97f4313b4ea71194d891e9d900945f0de537 *calib-cyan-v3/gain.xcal
+f1b0f088ccc68eb123113633980edbea31d158695ebe18b787e53a166ae2d476 *calib-cyan-v3/offset.xcal
