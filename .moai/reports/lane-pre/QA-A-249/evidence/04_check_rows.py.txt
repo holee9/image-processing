@@ -1,0 +1,30 @@
+import re
+E = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-249/evidence/'
+lines = open(E + '32_real_data_verify_values_with_masked_variant.txt', encoding='utf-8').read().splitlines()
+mode = None
+rows = {'unmasked': [], 'masked': []}
+for l in lines:
+    if 'xpe_verify_gain, calib-real-v2' in l: mode = 'unmasked'
+    elif 'xpe_verify_gain again' in l: mode = 'masked'
+    elif 'xpe_verify_pipeline' in l: mode = None
+    elif mode and re.match(r'\[a249\]\s+\d\s', l):
+        rows[mode].append(l)
+bad = 0
+for mode, rs in rows.items():
+    for l in rs:
+        nums = re.findall(r'-?\d+\.\d+|\b\d\b', l.split(']', 1)[1])
+        toks = l.replace('|', ' ').split()
+        # columns differ between the two tables; parse by position from the right: the last 6 integers are verdictN, verdictU, withoutN, withoutU preceded by gates
+        ints = [int(t) for t in toks if re.fullmatch(r'[01]', t)]
+        if mode == 'unmasked':
+            prnuImp, cov, imp, flat, vN, vU, wN, wU = ints[-8:]
+        else:
+            imp, cov, flat, vN, vU, wN, wU = ints[-7:]
+            prnuImp = 1 if float(re.findall(r'\d+\.\d+', l)[1]) < float(re.findall(r'\d+\.\d+', l)[0]) else 0   # prnu_after < prnu_before
+        # full verdict recomputed: all gates (NORMALIZED uses flat<=0.5; UNKNOWN needs its own 1.0 test, so only check the NORMALIZED column and the without-gates column)
+        fullN = int(prnuImp and cov and imp and flat)
+        woutN = int(prnuImp and flat)
+        ok = (fullN == vN) and (woutN == wN)
+        bad += 0 if ok else 1
+        print(mode, 'k=' + l.split()[1], 'module-returned NORMALIZED verdict', vN, 'recomputed here', fullN, '| without-provisional-gates value printed by the harness', wN, 'recomputed here', woutN, 'OK' if ok else 'MISMATCH')
+print('mismatching rows:', bad)

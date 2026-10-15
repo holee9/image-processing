@@ -1,0 +1,99 @@
+Input inspection, QA-A-250. numpy 2.5.3. Files read as little-endian uint16, 9437184 pixels (3072 x 3072) unless said otherwise.
+Folder: D:/workspace-github/image-processing/tests/test_data/cyan_test/
+
+## calfiles: size of every file
+  18874368 bytes: 39 file(s): BPM.raw, Bright_17.raw, Bright_18.raw, Bright_19.raw, Bright_20.raw, Bright_21.raw ...
+
+## dark frames (Dark_07 .. Dark_16): mean, p0.1, p50, p99.9, min, max, share at 65535, share at 0, sha256
+  Dark_07  mean 10929.227  p0.1  10836.0  p50  10920.0  p99.9  11058.0  min  10661  max  17786  at65535 0.000000  at0 0.000000  5af7d2658337d891
+  Dark_08  mean 11026.524  p0.1  10934.0  p50  11016.0  p99.9  11157.0  min  10770  max  18027  at65535 0.000000  at0 0.000000  408938d3ecd635c5
+  Dark_09  mean 11026.534  p0.1  10934.0  p50  11016.0  p99.9  11157.0  min  10778  max  17790  at65535 0.000000  at0 0.000000  89a34cec8000b188
+  Dark_10  mean 11026.315  p0.1  10934.0  p50  11016.0  p99.9  11157.0  min  10776  max  17518  at65535 0.000000  at0 0.000000  0a6627bdf1df223a
+  Dark_11  mean 11020.630  p0.1  10928.0  p50  11011.0  p99.9  11151.0  min  10761  max  17990  at65535 0.000000  at0 0.000000  e8fa15c751cfc5aa
+  Dark_12  mean 11026.457  p0.1  10934.0  p50  11016.0  p99.9  11157.0  min  10775  max  17838  at65535 0.000000  at0 0.000000  03f5d6bb2f868816
+  Dark_13  mean 11020.604  p0.1  10928.0  p50  11011.0  p99.9  11151.0  min  10763  max  17812  at65535 0.000000  at0 0.000000  1260ea2e3bd3af50
+  Dark_14  mean 11020.667  p0.1  10928.0  p50  11011.0  p99.9  11151.0  min  10761  max  17931  at65535 0.000000  at0 0.000000  1e6c1aced410ff00
+  Dark_15  mean 11026.333  p0.1  10934.0  p50  11016.0  p99.9  11157.0  min  10767  max  18110  at65535 0.000000  at0 0.000000  b2620ef9a0dfad5d
+  Dark_16  mean 11020.606  p0.1  10928.0  p50  11011.0  p99.9  11151.0  min  10767  max  18200  at65535 0.000000  at0 0.000000  f5e030c82cb9e9bd
+
+## bright frames (Bright_17 .. Bright_36)
+  Bright_17 mean 13758.713  p0.1  13160.0  p50  13784.0  p99.9  14248.0  min  12903  max  20678  at65535 0.000000  at0 0.000000  bc0f97f2959121ee
+  Bright_18 mean 13950.215  p0.1  13347.0  p50  13975.0  p99.9  14444.0  min  13089  max  20575  at65535 0.000000  at0 0.000000  ed646e7aec2d80da
+  Bright_19 mean 13954.393  p0.1  13349.0  p50  13980.0  p99.9  14449.0  min  13090  max  20431  at65535 0.000000  at0 0.000000  b6065b6a2b2e2c0f
+  Bright_20 mean 16944.149  p0.1  15754.0  p50  17002.0  p99.9  17806.0  min  15181  max  22895  at65535 0.000000  at0 0.000000  ce17d45fd9ae80c4
+  Bright_21 mean 16959.549  p0.1  15769.0  p50  17018.0  p99.9  17824.0  min  15177  max  23012  at65535 0.000000  at0 0.000000  1fe20ad6408f0c7f
+  Bright_22 mean 16952.702  p0.1  15758.0  p50  17011.0  p99.9  17818.0  min  15175  max  23056  at65535 0.000000  at0 0.000000  97e4991291a194db
+  Bright_23 mean 20307.495  p0.1  18457.0  p50  20402.0  p99.9  21581.0  min  17508  max  25462  at65535 0.000000  at0 0.000000  863ed58233fff6e8
+  Bright_24 mean 20304.957  p0.1  18454.0  p50  20400.0  p99.9  21579.0  min  17486  max  25635  at65535 0.000000  at0 0.000000  5d859591f5552dca
+  Bright_25 mean 20337.382  p0.1  18486.0  p50  20432.0  p99.9  21612.0  min  17574  max  25546  at65535 0.000000  at0 0.000000  b037b014adb90b66
+  Bright_26 mean 20297.672  p0.1  18447.0  p50  20392.0  p99.9  21571.0  min  17509  max  25899  at65535 0.000000  at0 0.000000  a42c4917cf9ddf9c
+  Bright_27 mean 20297.832  p0.1  18449.0  p50  20392.0  p99.9  21570.0  min  17588  max  25726  at65535 0.000000  at0 0.000000  a32400643c54a706
+  Bright_28 mean 20298.972  p0.1  18447.0  p50  20393.0  p99.9  21572.0  min  17483  max  25869  at65535 0.000000  at0 0.000000  1a54e42fc845f4ac
+  Bright_29 mean 20299.266  p0.1  18451.0  p50  20394.0  p99.9  21571.0  min  17480  max  26115  at65535 0.000000  at0 0.000000  912a096c07b08241
+  Bright_30 mean 20285.890  p0.1  18438.0  p50  20380.0  p99.9  21559.0  min  17508  max  25960  at65535 0.000000  at0 0.000000  c797de2d46abddc7
+  Bright_31 mean 29435.172  p0.1  25786.0  p50  29628.0  p99.9  31819.0  min  23897  max  33781  at65535 0.000000  at0 0.000000  24d58e48a045453b
+  Bright_32 mean 29540.020  p0.1  25879.0  p50  29734.0  p99.9  31935.0  min  23960  max  33581  at65535 0.000000  at0 0.000000  ec28d83c106ae812
+  Bright_33 mean 29543.335  p0.1  25879.0  p50  29738.0  p99.9  31939.0  min  23849  max  33635  at65535 0.000000  at0 0.000000  517e397a929351f3
+  Bright_34 mean 40498.895  p0.1  34707.0  p50  40809.0  p99.9  44209.0  min  31624  max  44616  at65535 0.000000  at0 0.000000  9c971018b8f142de
+  Bright_35 mean 40496.299  p0.1  34706.0  p50  40806.0  p99.9  44205.0  min  31581  max  44628  at65535 0.000000  at0 0.000000  660f58f7fc4b6ea2
+  Bright_36 mean 40531.837  p0.1  34731.0  p50  40842.0  p99.9  44248.0  min  31611  max  44652  at65535 0.000000  at0 0.000000  9d313cc109414d9d
+
+## are the bright frames offset-corrected? (compare with the dark level)
+  mean of all dark frames: 11014.390 ADU; its p0.1 / p99.9: 10922.7 / 11143.5
+  mean of all bright frames: 23249.737 ADU; bright p0.1 over the mean frame: 20831.2; fraction of pixels of the bright MEAN frame below the dark mean: 0.000000
+  bright mean frame minus dark mean frame: mean 12235.347 ADU
+  frame-to-frame drift of the bright series (mean of each frame): first 13758.713, last 40531.837, max-min 26773.124 ADU
+  drift of the dark series (mean of each frame): first 10929.227, last 11020.606, max-min 97.307 ADU
+
+## MasterDark.raw against the mean of Dark_07..16
+  MasterDark: 9437184 values, mean 11020.606; maximum |MasterDark - mean(Dark_07..16)| = 299.800 ADU; identical when rounded: False
+
+## BPM.raw (equipment maker defect map): values
+  9437184 pixels read as uint16; distinct values (up to 10): [0, 127, 255]; counts: [9436934, 247, 3]
+  the same bytes read as uint8: distinct values (up to 10): [0, 127, 255]; counts: [18874118, 247, 3]
+  sha256 fba8993665c9d853797600d0938355416f1257885d51994774ac0e8e650edcd8
+
+## other calfiles that are not dark/bright series
+  CalSet_14037.raw         9437184 values as uint16: mean 13887.774 min 13039 max 20561
+  CalSet_17285.raw         9437184 values as uint16: mean 16952.133 min 15179 max 22988
+  CalSet_20985.raw         9437184 values as uint16: mean 20303.682 min 17520 max 25776
+  CalSet_30868.raw         9437184 values as uint16: mean 29506.176 min 23903 max 33666
+  CalSet_42677.raw         9437184 values as uint16: mean 40509.010 min 31605 max 44460
+  Dark_14-Dark_13.raw      9437184 values as uint16: mean 29549.719 min 0 max 65535
+  Dark_15-Dark_14.raw      9437184 values as uint16: mean 5696.113 min 0 max 65535
+  Dark_16-Dark_15.raw      9437184 values as uint16: mean 57352.019 min 0 max 65535
+
+## phantom frames and the _result files
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00.raw                    18874368 bytes  mean 35947.726  min 15215  max 65535  sha256 62f2979250d5e0a5
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00_result.raw             18874368 bytes  mean 24024.183  min 4586  max 45000  sha256 ab932a9625a0f9f2
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01.raw                    18874368 bytes  mean 49579.411  min 12886  max 65535  sha256 5b2e41187321785e
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01_result.raw             18874368 bytes  mean 33658.463  min 2442  max 45000  sha256 170bbfc560f7061e
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02.raw                    18874368 bytes  mean 36079.578  min 15384  max 65535  sha256 bc29ce239ca31701
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02_result.raw             18874368 bytes  mean 24156.118  min 4771  max 45000  sha256 f8e2cac0741cb2cb
+  Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04.raw                     18874368 bytes  mean 24304.921  min 11450  max 32331  sha256 f8b46b8c6a336125
+  Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04_result.raw              18874368 bytes  mean 14321.914  min 348  max 18291  sha256 2a6006927235c4c1
+  Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw                     18874368 bytes  mean 42352.153  min 12314  max 55172  sha256 6d6e0b4d8a213ee7
+  Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03_result.raw              18874368 bytes  mean 33782.702  min 1188  max 42406  sha256 73acc82f96361b4c
+  MasterDark.raw                                                          18874368 bytes  mean 11020.606  min 10767  max 18200  sha256 f5e030c82cb9e9bd
+
+## relation of each _result to its original (original - MasterDark is the plain offset correction)
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00.raw
+     result mean 24024.183 | original mean 35947.726 | original-MasterDark mean 24927.120 | identical to original: False
+     result - (original - MasterDark): mean -902.936, std 4327.918, max |.| 11506.0; share exactly equal: 0.000952
+     ratio result / (original - MasterDark) over pixels with original-MasterDark > 100 (9437184 pixels): median 1.02107, p5 0.82514, p95 1.17742
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01.raw
+     result mean 33658.463 | original mean 49579.411 | original-MasterDark mean 38558.805 | identical to original: False
+     result - (original - MasterDark): mean -4900.342, std 5403.638, max |.| 11086.0; share exactly equal: 0.000115
+     ratio result / (original - MasterDark) over pixels with original-MasterDark > 100 (9437184 pixels): median 0.82639, p5 0.82472, p95 1.21622
+  Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02.raw
+     result mean 24156.118 | original mean 36079.578 | original-MasterDark mean 25058.972 | identical to original: False
+     result - (original - MasterDark): mean -902.854, std 4336.214, max |.| 11358.0; share exactly equal: 0.000924
+     ratio result / (original - MasterDark) over pixels with original-MasterDark > 100 (9437184 pixels): median 1.02103, p5 0.82514, p95 1.17717
+  Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04.raw
+     result mean 14321.914 | original mean 24304.921 | original-MasterDark mean 13284.315 | identical to original: False
+     result - (original - MasterDark): mean 1037.599, std 913.983, max |.| 4433.0; share exactly equal: 0.002364
+     ratio result / (original - MasterDark) over pixels with original-MasterDark > 100 (9437184 pixels): median 1.06338, p5 0.98601, p95 1.22653
+  Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw
+     result mean 33782.702 | original mean 42352.153 | original-MasterDark mean 31331.546 | identical to original: False
+     result - (original - MasterDark): mean 2451.156, std 2164.788, max |.| 10653.0; share exactly equal: 0.001190
+     ratio result / (original - MasterDark) over pixels with original-MasterDark > 100 (9437184 pixels): median 1.06340, p5 0.98614, p95 1.22654

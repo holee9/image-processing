@@ -1166,6 +1166,66 @@ XPE_API XpeErrorCode xpe_preprocess_pipeline_out(const XpeImageBuffer* in,
                                                    void* ghostHandle,
                                                    const char* configJsonOrNull);
 
+/** @name Per-stage diagnostics (xpe_preprocess_pipeline_out_ex)
+ *  Bits of XpeStageDiagnostics::validMask: which counts the call filled in.
+ *  @{ */
+#define XPE_DIAG_GAIN_NONFINITE  0x1u   /**< gainStageNonFinite is valid */
+#define XPE_DIAG_FINAL_NONFINITE 0x2u   /**< finalNonFinite is valid */
+/** @} */
+
+/**
+ * @brief Per-stage counts of non-finite pixels (NaN and +/- infinity), filled by xpe_preprocess_pipeline_out_ex()
+ *
+ * Why it exists: the defect stage replaces the pixels it corrects with finite values, so a gain stage that produced NaN or
+ * infinity in a pixel the defect stage then fills leaves no trace in the FINAL image. A caller that judges the pipeline by its
+ * output alone cannot tell that the gain stage failed. gainStageNonFinite is counted on the gain stage's own output, before
+ * binning, defect and ghost correction.
+ *
+ * Caller sets structSize = sizeof(XpeStageDiagnostics); the library fills the rest and only fields inside structSize (a larger
+ * struct from a newer caller is accepted, a smaller one is XPE_ERR_INVALID_INPUT). The layout is 32 bytes, 8-byte aligned.
+ */
+typedef struct XpeStageDiagnostics {
+    uint32_t structSize;          /**< [in] sizeof(XpeStageDiagnostics) as the caller compiled it */
+    uint32_t validMask;           /**< [out] XPE_DIAG_* bits of the counts below that were measured; 0 on a failed call */
+    uint64_t pixelCount;          /**< [out] width * height of the frame (the counts' denominator); 0 on a failed call */
+    uint64_t gainStageNonFinite;  /**< [out] non-finite pixels in the gain stage's output. 0 when the frame at that point is the uint16 frame
+                                   *   (gain bypassed and no float stage follows): an integer frame has none */
+    uint64_t finalNonFinite;      /**< [out] non-finite pixels in the final output written to @p out (0 for a uint16 final frame) */
+} XpeStageDiagnostics;
+
+#ifdef __cplusplus
+static_assert(sizeof(XpeStageDiagnostics) == 32u, "XpeStageDiagnostics must be 32 bytes for P/Invoke compatibility");
+#endif
+
+/**
+ * @brief xpe_preprocess_pipeline_out() that also reports per-stage non-finite counts (QA-A-246, #245)
+ *
+ * Everything of xpe_preprocess_pipeline_out() applies unchanged: stages, calibration set, configuration, metadata flags, errors and
+ * the rule that @p in is never written. The counts are taken straight after the stage that produces them (after the gain stage,
+ * and on the final frame before it is copied to @p out) and cost one pass over the float frame each.
+ *
+ * With @p diag == NULL this does exactly what xpe_preprocess_pipeline_out() does: the same calls, the same output bytes, and no
+ * counting pass (xpe_preprocess_pipeline_out() is this function with a NULL @p diag).
+ *
+ * @param in [in] The frame to process; read only (as for xpe_preprocess_pipeline_out)
+ * @param out [out] Receives the result (as for xpe_preprocess_pipeline_out)
+ * @param meta [in/out] Image metadata
+ * @param calibState Pre-loaded calibration state (as for xpe_preprocess_pipeline_ex)
+ * @param ghostHandle Ghost corrector handle (NULL = skip ghost)
+ * @param configJsonOrNull Pipeline configuration JSON (as for xpe_preprocess_pipeline)
+ * @param diag [out, optional] NULL, or a struct whose structSize the caller has set; on XPE_OK validMask names the counts that are
+ *        filled in, on any other result validMask is 0 and the counts are 0
+ * @return the results of xpe_preprocess_pipeline_out(), plus
+ *         XPE_ERR_INVALID_INPUT if @p diag is not NULL and diag->structSize is smaller than sizeof(XpeStageDiagnostics)
+ */
+XPE_API XpeErrorCode xpe_preprocess_pipeline_out_ex(const XpeImageBuffer* in,
+                                                      XpeImageBuffer* out,
+                                                      XpeImageMetadata* meta,
+                                                      const void* calibState,
+                                                      void* ghostHandle,
+                                                      const char* configJsonOrNull,
+                                                      XpeStageDiagnostics* diag);
+
 /**
  * @brief Process multiple frames with identical calibration in batch
  *

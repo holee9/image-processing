@@ -1,0 +1,39 @@
+start 2026-10-15 18:27:15  HEAD 7cd0a851
+xpe_preprocess.dll sha256 c2524c57d80f3c9cb7ad72195355c11e855ba40c53132bf7f26154858fb94d32 (local ci-preprocess build)
+[a250b] offset.xcal of v2 against v1: 37748888 and 37748888 bytes, BYTE-IDENTICAL
+[a250b] defect.xcal of v2 against v1: 9437336 and 9437336 bytes, BYTE-IDENTICAL
+[a250b] set D:/workspace-github/xpe-data/calib-cyan-v2 | flat-field ROI (gain finite and > 0): 9437184 of 9437184 pixels
+[a250b] GAIN    frame       part                 ROI_mean_ADU  FlatResidualPct  signal>=2000  residual<=1.0  frame passes
+[a250b] GAIN    Bright_17  other dose, reference        2745.8           1.2584             1              0  no
+[a250b] GAIN    Bright_18  other dose, reference        2938.2           1.0862             1              0  no
+[a250b] GAIN    Bright_19  other dose, reference        2942.4           1.0854             1              0  no
+[a250b] GAIN    Bright_20  other dose, reference        5932.1           0.7829             1              1  yes
+[a250b] GAIN    Bright_21  other dose, reference        5947.6           0.7822             1              1  yes
+[a250b] GAIN    Bright_22  other dose, reference        5940.6           0.7829             1              1  yes
+[a250b] GAIN    Bright_23  generation                  9295.4           0.5424             1              1  yes
+[a250b] GAIN    Bright_24  generation                  9292.9           0.5430             1              1  yes
+[a250b] GAIN    Bright_25  generation                  9325.5           0.5415             1              1  yes
+[a250b] GAIN    Bright_26  generation                  9285.6           0.5434             1              1  yes
+[a250b] GAIN    Bright_27  generation                  9285.8           0.5430             1              1  yes
+[a250b] GAIN    Bright_28  generation                  9286.9           0.5429             1              1  yes
+[a250b] GAIN    Bright_29  HELD OUT                    9287.3           0.6420             1              1  yes
+[a250b] GAIN    Bright_30  HELD OUT                    9273.8           0.6429             1              1  yes
+[a250b] GAIN    Bright_31  other dose, reference       18423.1           0.4864             1              1  yes
+[a250b] GAIN    Bright_32  other dose, reference       18528.1           0.4849             1              1  yes
+[a250b] GAIN    Bright_33  other dose, reference       18531.5           0.4850             1              1  yes
+[a250b] GAIN    Bright_34  other dose, reference       29487.7           0.4119             1              1  yes
+[a250b] GAIN    Bright_35  other dose, reference       29485.2           0.4126             1              1  yes
+[a250b] GAIN    Bright_36  other dose, reference       29520.7           0.4119             1              1  yes
+[a250b] VERDICT gain (both held-out bright frames Bright_29 and Bright_30: ROI mean >= 2000 ADU and FlatResidualPct <= 1.0 %): PASS
+[a250b] PHANTOM 0 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00 | all pixels: pixels 9437184 | mean ours 25678.9 result 24024.2 | ours-result: mean 1654.71, mean|.| 3712.59, p50|.| 1366.19, p99|.| 19434.96, max|.| 32928.2 | correlation 0.97094 | median ours/result 0.93135 | raw at 65535: 1714626, result at its maximum 45000: 1945377 | written phantom_0_ours_f32le.raw
+[a250b] PHANTOM 0 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00 | clipped pixels left out: pixels 7491806 | mean ours 17292.7 result 18577.4 | ours-result: mean -1284.71, mean|.| 1284.71, p50|.| 1160.13, p99|.| 2845.32, max|.| 3667.9 | correlation 1.00000 | median ours/result 0.93096 | raw at 65535: 1714626, result at its maximum 45000: 1945377 | written phantom_0_ours_f32le.raw
+[a250b] PHANTOM 1 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01 | all pixels: pixels 9437184 | mean ours 38224.6 result 33658.5 | ours-result: mean 4566.15, mean|.| 5612.52, p50|.| 5332.11, p99|.| 17039.16, max|.| 26166.2 | correlation 0.98181 | median ours/result 1.11849 | raw at 65535: 5384321, result at its maximum 45000: 5487260 | written phantom_1_ours_f32le.raw
+[a250b] PHANTOM 1 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01 | clipped pixels left out: pixels 3949924 | mean ours 16665.3 result 17902.7 | ours-result: mean -1237.40, mean|.| 1237.40, p50|.| 1146.55, p99|.| 2862.56, max|.| 3627.4 | correlation 1.00000 | median ours/result 0.93107 | raw at 65535: 5384321, result at its maximum 45000: 5487260 | written phantom_1_ours_f32le.raw
+[a250b] PHANTOM 2 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02 | all pixels: pixels 9437184 | mean ours 25816.3 result 24156.1 | ours-result: mean 1660.14, mean|.| 3733.36, p50|.| 1377.15, p99|.| 19460.34, max|.| 32928.2 | correlation 0.97058 | median ours/result 0.93135 | raw at 65535: 1720085, result at its maximum 45000: 1950586 | written phantom_2_ours_f32le.raw
+[a250b] PHANTOM 2 Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02 | clipped pixels left out: pixels 7486597 | mean ours 17430.4 result 18725.4 | ours-result: mean -1295.01, mean|.| 1295.01, p50|.| 1171.08, p99|.| 2850.16, max|.| 3288.9 | correlation 1.00000 | median ours/result 0.93095 | raw at 65535: 1720085, result at its maximum 45000: 1950586 | written phantom_2_ours_f32le.raw
+[a250b] PHANTOM 3 Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03 | all pixels: pixels 9437184 | mean ours 31438.6 result 33782.7 | ours-result: mean -2344.09, mean|.| 2344.09, p50|.| 2596.95, p99|.| 2920.70, max|.| 3183.2 | correlation 0.99999 | median ours/result 0.93068 | raw at 65535: 0, result at its maximum 42406: 1 | written phantom_3_ours_f32le.raw
+[a250b] PHANTOM 3 Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03 | clipped pixels left out: pixels 9437183 | mean ours 31438.6 result 33782.7 | ours-result: mean -2344.09, mean|.| 2344.09, p50|.| 2596.95, p99|.| 2920.70, max|.| 3183.2 | correlation 0.99999 | median ours/result 0.93068 | raw at 65535: 0, result at its maximum 42406: 1 | written phantom_3_ours_f32le.raw
+[a250b] PHANTOM 4 Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04 | all pixels: pixels 9437184 | mean ours 13333.4 result 14321.9 | ours-result: mean -988.54, mean|.| 988.54, p50|.| 1096.81, p99|.| 1248.04, max|.| 1369.7 | correlation 0.99999 | median ours/result 0.93107 | raw at 65535: 0, result at its maximum 18291: 1 | written phantom_4_ours_f32le.raw
+[a250b] PHANTOM 4 Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04 | clipped pixels left out: pixels 9437183 | mean ours 13333.4 result 14321.9 | ours-result: mean -988.54, mean|.| 988.54, p50|.| 1096.81, p99|.| 1248.04, max|.| 1369.7 | correlation 0.99999 | median ours/result 0.93107 | raw at 65535: 0, result at its maximum 18291: 1 | written phantom_4_ours_f32le.raw
+[       OK ] A241Measure.DISABLED_A250b_CyanGainRejudgement (7798 ms)
+end 2026-10-15 18:27:24

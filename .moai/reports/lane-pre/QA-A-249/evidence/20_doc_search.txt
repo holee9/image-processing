@@ -1,0 +1,58 @@
+Search scope: git grep -n -I -i -E <pattern> <tree> -- docs .moai/specs .moai/project
+Trees: HEAD, origin/main (HEAD = dev/preprocess 5c94d377; origin/main fetched 2026-10-14, 474 commits ahead of the merge base)
+docs/quality-eval/ is INCLUDED here (the in-source comment excludes it as a requirement source; it is listed separately below).
+
+### P1 3 dB  [value]  looks for: PRNU_IMPROVE_MIN_DB = 3.0
+    command: git grep -n -I -i -E "\b3(\.0)? ?dB\b" <tree> -- docs .moai/specs .moai/project
+    HEAD          13 hit line(s) in   9 file(s); 0 of them under docs/quality-eval/
+    origin/main   13 hit line(s) in   9 file(s); 0 of them under docs/quality-eval/
+
+### P2 0.99  [value]  looks for: GAIN_COVERAGE_MIN = 0.99
+    command: git grep -n -I -i -E "0\.99\b" <tree> -- docs .moai/specs .moai/project
+    HEAD          16 hit line(s) in   9 file(s); 6 of them under docs/quality-eval/
+    origin/main   16 hit line(s) in   9 file(s); 6 of them under docs/quality-eval/
+
+### P3 99 %  [value]  looks for: GAIN_COVERAGE_MIN as a percent
+    command: git grep -n -I -i -E "\b99 ?%" <tree> -- docs .moai/specs .moai/project
+    HEAD          22 hit line(s) in  14 file(s); 10 of them under docs/quality-eval/
+    origin/main   24 hit line(s) in  17 file(s); 10 of them under docs/quality-eval/
+
+### P4 2 dB  [value]  looks for: SNR_IMPROVE_MIN_DB = 2.0
+    command: git grep -n -I -i -E "\b2(\.0)? ?dB\b" <tree> -- docs .moai/specs .moai/project
+    HEAD           2 hit line(s) in   2 file(s); 0 of them under docs/quality-eval/
+    origin/main    3 hit line(s) in   3 file(s); 0 of them under docs/quality-eval/
+
+### C1 PRNU  [concept]  looks for: the gain-correction metric
+    command: git grep -n -I -i -E "PRNU" <tree> -- docs .moai/specs .moai/project
+    HEAD         126 hit line(s) in  13 file(s); 66 of them under docs/quality-eval/
+    origin/main  126 hit line(s) in  13 file(s); 66 of them under docs/quality-eval/
+
+### C2 gain coverage  [concept]  looks for: GAIN_COVERAGE_MIN
+    command: git grep -n -I -i -E "gain[ _-]?coverage|coverage of (the )?gain|valid gain" <tree> -- docs .moai/specs .moai/project
+    HEAD           3 hit line(s) in   3 file(s); 0 of them under docs/quality-eval/
+    origin/main    3 hit line(s) in   3 file(s); 0 of them under docs/quality-eval/
+
+### C3 SNR improvement  [concept]  looks for: SNR_IMPROVE_MIN_DB
+    command: git grep -n -I -i -E "SNR[ _]?improve|improvement[ _]?(in|of)? ?SNR|snr_improvement" <tree> -- docs .moai/specs .moai/project
+    HEAD          20 hit line(s) in  12 file(s); 0 of them under docs/quality-eval/
+    origin/main   21 hit line(s) in  13 file(s); 0 of them under docs/quality-eval/
+
+### C4 IEC 62220  [concept]  looks for: the DQE/noise standard family named in the card
+    command: git grep -n -I -i -E "62220" <tree> -- docs .moai/specs .moai/project
+    HEAD         325 hit line(s) in  36 file(s); 196 of them under docs/quality-eval/
+    origin/main  325 hit line(s) in  36 file(s); 196 of them under docs/quality-eval/
+
+### K1 5 ADU (control)  [control]  looks for: DARK_BIAS_MAX, SRS-CALIB-FUNC-016
+    command: git grep -n -I -i -E "\b5 ?ADU\b" <tree> -- docs .moai/specs .moai/project
+    HEAD          24 hit line(s) in  14 file(s); 0 of them under docs/quality-eval/
+    origin/main   24 hit line(s) in  14 file(s); 0 of them under docs/quality-eval/
+
+### K2 FlatResidualPct <= 1.0 (control)  [control]  looks for: FLAT_RESIDUAL_MAX_PCT, SRS-CALIB-FUNC-017
+    command: git grep -n -I -i -E "FlatResidualPct *(<=|<|=) *1(\.0)?" <tree> -- docs .moai/specs .moai/project
+    HEAD           5 hit line(s) in   4 file(s); 0 of them under docs/quality-eval/
+    origin/main    5 hit line(s) in   4 file(s); 0 of them under docs/quality-eval/
+
+### K3 10 dB (control)  [control]  looks for: DARK_REDUCTION_MIN_DB, SRS-CALIB-FUNC-016
+    command: git grep -n -I -i -E "\b10 ?dB\b" <tree> -- docs .moai/specs .moai/project
+    HEAD           9 hit line(s) in   5 file(s); 0 of them under docs/quality-eval/
+    origin/main    9 hit line(s) in   5 file(s); 0 of them under docs/quality-eval/

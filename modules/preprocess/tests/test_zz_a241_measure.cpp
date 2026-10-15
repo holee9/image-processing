@@ -30,6 +30,9 @@
  *                         Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A245_OUT, XPE_A245_REF.
  *   A247_AppPathTiming    (QA-A-247) the calls the operator app makes for one frame (init, three loads, pipeline_out, shutdown), timed per call, 5 rounds.
  *                         Needs XPE_A240_WRIST, XPE_A245_OUT, XPE_A245_REF.
+ *   A249_VerifyThresholds (QA-A-249) the three provisional xpe_verify_* verdict lines on real data, gates taken apart. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A245_OUT.
+ *   A250_CyanCalibrationJudgement (QA-A-250) judges a set made only from real cyan_test frames on held-out frames. Needs XPE_A250_DATA, XPE_A250_SET, XPE_A250_OUT.
+ *   A250b_CyanGainRejudgement (QA-A-250b) the QA-A-250 gain judgement repeated with bright frames of one dose. Needs XPE_A250_DATA, XPE_A250_SET, XPE_A250_V1, XPE_A250_OUT.
  *   B10v2_Baseline        (QA-A-243) the stage-2 input reference image: the real frame wrist_lat_3072x3072.raw through the shipping
  *                         path (xpe_preprocess_pipeline_out) with the gain made from ALL THREE flats of the one acquisition
  *                         condition (flats 4,5,6). Writes the float32 output. Needs XPE_A240_CAL, XPE_A240_WRIST, XPE_A243_OUT.
@@ -46,11 +49,14 @@
 #include <fstream>
 #include <cmath>
 #include <limits>
+#include <map>
+#include <regex>
 #include <random>
 #include <string>
 #include <vector>
 
 #include "xcal_writer.hpp"
+#include "xpe_sha256.hpp"
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xpe/preprocess_api.h"
@@ -1530,6 +1536,83 @@ TEST(A241Measure, DISABLED_A245_AlertsOfTheExportedSet) {
     xpe_preprocess_shutdown();
 }
 
+// QA-A-246: pipeline_out_ex on the real 3072x3072 frame with the exported calibration set (calib-real-v2): the output with a diagnostics
+// struct and with a NULL pointer is byte-identical to the reference image v2, the counts are zero, and what the counting pass costs.
+// Plain and extended calls alternate within each round (the machine state hits both alike). Needs XPE_A240_WRIST, XPE_A245_OUT (the set), XPE_A245_REF.
+TEST(A241Measure, DISABLED_A246_RealFrameDiagnostics) {
+    const std::string wristPath = envOr("XPE_A240_WRIST", ""), setDir = envOr("XPE_A245_OUT", ""), refPath = envOr("XPE_A245_REF", "");
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(setDir.empty());
+    ASSERT_FALSE(refPath.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::vector<uint16_t> wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(wrist.empty());
+    std::vector<float> ref(N);
+    {
+        std::ifstream f(refPath, std::ios::binary);
+        f.read(reinterpret_cast<char*>(ref.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        ASSERT_EQ(static_cast<std::streamsize>(N * sizeof(float)), f.gcount());
+    }
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset((fs::path(setDir) / "offset.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((fs::path(setDir) / "gain.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map((fs::path(setDir) / "defect.xcal").string().c_str()));
+    xpe_clear_alerts();
+    auto mk = [&](void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = d;
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    std::vector<uint16_t> input(wrist);
+    std::vector<float> outPlain(N), outEx(N);
+    const XpeImageBuffer in = mk(input.data(), N * 2, XPE_PIXEL_UINT16);
+    auto ms = [](auto fn) {
+        const auto t0 = std::chrono::steady_clock::now();
+        fn();
+        return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+    };
+    std::vector<double> tPlain, tEx;
+    XpeStageDiagnostics d{};
+    d.structSize = sizeof(d);
+    for (int round = 0; round < 12; ++round) {
+        XpeImageBuffer ob1 = mk(outPlain.data(), N * 4, XPE_PIXEL_FLOAT32), ob2 = mk(outEx.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata m1{}, m2{};
+        XpeErrorCode r1 = XPE_OK, r2 = XPE_OK;
+        if (round % 2 == 0) {
+            tPlain.push_back(ms([&] { r1 = xpe_preprocess_pipeline_out(&in, &ob1, &m1, nullptr, nullptr, cfg); }));
+            tEx.push_back(ms([&] { r2 = xpe_preprocess_pipeline_out_ex(&in, &ob2, &m2, nullptr, nullptr, cfg, &d); }));
+        } else {
+            tEx.push_back(ms([&] { r2 = xpe_preprocess_pipeline_out_ex(&in, &ob2, &m2, nullptr, nullptr, cfg, &d); }));
+            tPlain.push_back(ms([&] { r1 = xpe_preprocess_pipeline_out(&in, &ob1, &m1, nullptr, nullptr, cfg); }));
+        }
+        ASSERT_EQ(XPE_OK, r1);
+        ASSERT_EQ(XPE_OK, r2);
+        xpe_clear_alerts();
+    }
+    auto median = [](std::vector<double> v) {
+        std::sort(v.begin(), v.end());
+        return v[v.size() / 2];
+    };
+    std::printf("[a246] real frame: pipeline_out median %.2f ms (min %.2f max %.2f) | pipeline_out_ex with diag median %.2f ms (min %.2f max %.2f) | difference of medians %.2f ms\n",
+                median(tPlain), *std::min_element(tPlain.begin(), tPlain.end()), *std::max_element(tPlain.begin(), tPlain.end()), median(tEx),
+                *std::min_element(tEx.begin(), tEx.end()), *std::max_element(tEx.begin(), tEx.end()), median(tEx) - median(tPlain));
+    std::printf("[a246] output of pipeline_out vs reference v2: %s | output of pipeline_out_ex (diag) vs reference v2: %s\n",
+                std::memcmp(outPlain.data(), ref.data(), N * 4) == 0 ? "byte-identical" : "DIFFERENT",
+                std::memcmp(outEx.data(), ref.data(), N * 4) == 0 ? "byte-identical" : "DIFFERENT");
+    std::printf("[a246] diagnostics: validMask 0x%x pixelCount %llu gainStageNonFinite %llu finalNonFinite %llu\n", d.validMask, static_cast<unsigned long long>(d.pixelCount),
+                static_cast<unsigned long long>(d.gainStageNonFinite), static_cast<unsigned long long>(d.finalNonFinite));
+    xpe_preprocess_shutdown();
+}
+
 // QA-A-247: the preprocess calls the operator app makes for one frame, in the app's order and with the app's arguments
 // (gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs, Run -> RunPipelineOut): xpe_preprocess_init(NULL); xpe_calib_load_offset; xpe_calib_load_gain;
 // xpe_calib_load_defect_map; xpe_preprocess_pipeline_out(input uint16, output float32, metadata, NULL, NULL, {"bypassTemp","bypassNonlinearity","bypassBinning"});
@@ -1608,4 +1691,651 @@ TEST(A241Measure, DISABLED_A247_AppPathTiming) {
     std::printf("[a247] medians over 5 rounds: init %.2f | offset %.2f gain %.2f defect %.2f | loads %.2f | pipeline_out %.2f | shutdown %.2f | sum of calls %.2f ms\n", med(&Round::init),
                 med(&Round::off), med(&Round::gain), med(&Round::def), loads[loads.size() / 2], med(&Round::pipe), med(&Round::shut), med(&Round::total));
     std::printf("[a247] every round's output vs reference image v2: %s\n", identical ? "byte-identical" : "DIFFERENT");
+}
+
+// QA-A-249 (#242): the three provisional verdict lines of xpe_verify_gain / xpe_verify_pipeline on REAL data. calib-real-v2 (the delivered maps, made
+// from bright04/05/06) against the six real flats of CalData_6 - 04/05/06 are in the sample the gain map was made from, 01/02/03 are not - and
+// against the wrist frame for xpe_verify_pipeline. The verdict is printed with its gates taken apart: each gate is recomputed here from the
+// metrics with the module's own formulas (xpe_verify_metrics.cpp, xpe_verify_gain, "Pass/fail determination"), and the verdict the module returned is
+// printed beside it so a disagreement would show. Nothing here changes a threshold.
+// Needs XPE_A240_CAL (CalData_6), XPE_A240_WRIST, XPE_A245_OUT (calib-real-v2).
+TEST(A241Measure, DISABLED_A249_VerifyThresholdsOnRealData) {
+    const std::string cal = envOr("XPE_A240_CAL", ""), wristPath = envOr("XPE_A240_WRIST", ""), setDir = envOr("XPE_A245_OUT", "");
+    ASSERT_FALSE(cal.empty());
+    ASSERT_FALSE(wristPath.empty());
+    ASSERT_FALSE(setDir.empty());
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::vector<uint16_t> dark = readRaw16(cal + "/dark.raw", N), wrist = readRaw16(wristPath, N);
+    ASSERT_FALSE(dark.empty());
+    ASSERT_FALSE(wrist.empty());
+    std::vector<std::vector<uint16_t>> bright(7);
+    for (int k = 1; k <= 6; ++k) {
+        char nm[32];
+        std::snprintf(nm, sizeof nm, "/bright%02d.raw", k);
+        bright[static_cast<size_t>(k)] = readRaw16(cal + nm, N);
+        ASSERT_FALSE(bright[static_cast<size_t>(k)].empty()) << nm;
+    }
+    const std::string offP = (fs::path(setDir) / "offset.xcal").string(), gainP = (fs::path(setDir) / "gain.xcal").string(), defP = (fs::path(setDir) / "defect.xcal").string();
+    XCal gx;
+    ASSERT_TRUE(readXCal(gainP, &gx));
+    const float* gain = reinterpret_cast<const float*>(gx.payload.data());
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+
+    // ---- the gain map as xpe_verify_gain counts it
+    size_t finitePositive = 0, inProductRange = 0, notFinite = 0, nonPositive = 0, belowRange = 0, aboveRange = 0;
+    for (size_t i = 0; i < N; ++i) {
+        if (std::isfinite(gain[i]) && gain[i] > 0.0f) ++finitePositive;
+        if (gain[i] >= 0.1f && gain[i] <= 10.0f) ++inProductRange;
+        if (!std::isfinite(gain[i])) ++notFinite;
+        else if (gain[i] <= 0.0f) ++nonPositive;
+        else if (gain[i] < 0.1f) ++belowRange;
+        else if (gain[i] > 10.0f) ++aboveRange;
+    }
+    std::printf("[a249] gain map outside [0.1, 10.0] by kind: not finite %zu | finite and <= 0 %zu | positive below 0.1 %zu | above 10.0 %zu\n", notFinite, nonPositive, belowRange, aboveRange);
+    std::printf("[a249] gain map of calib-real-v2: finite and > 0 (what xpe_verify_gain calls valid): %zu of %zu = %.6f | inside the product range [0.1, 10.0]: %zu = %.6f\n", finitePositive, N,
+                static_cast<double>(finitePositive) / static_cast<double>(N), inProductRange, static_cast<double>(inProductRange) / static_cast<double>(N));
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offP.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(gainP.c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map(defP.c_str()));
+    xpe_clear_alerts();
+
+    // ---- xpe_verify_gain on each real flat (the flats are already offset-corrected: before = the flat as it is, after = the module's gain stage)
+    std::printf("[a249] xpe_verify_gain, calib-real-v2 gain map, flat k = bright0k.raw as the 'before gain' frame\n");
+    std::printf("[a249]  k  sample    mean   prnu_before%%  prnu_after%%  coverage   improve_dB | gates: prnu_improved  coverage>=0.99  improve>=3.0  flat<=0.5/1.0 | verdict NORMALIZED  UNKNOWN | without the two provisional gates: NORMALIZED  UNKNOWN\n");
+    for (int k = 1; k <= 6; ++k) {
+        std::vector<uint16_t> before = bright[static_cast<size_t>(k)];
+        std::vector<float> after(N, 0.0f);
+        XpeImageBuffer bb = buf(before.data(), N * 2, XPE_PIXEL_UINT16), ab = buf(after.data(), N * 4, XPE_PIXEL_FLOAT32), gb = buf(gain, N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_gain_correct(&bb, &ab, &meta));
+        XpeCalibrationMetrics norm{}, unk{};
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_NORMALIZED, &norm));
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_UNKNOWN, &unk));
+        double sum = 0;
+        for (size_t i = 0; i < N; ++i) sum += before[i];
+        const bool prnuImproved = norm.prnu_after < norm.prnu_before || (norm.prnu_before < 0.01 && norm.prnu_after < 0.01);
+        const bool coverageOk = norm.gain_coverage >= 0.99;
+        const bool improveOk = norm.snr_improvement_db >= 3.0;
+        const bool flatNorm = norm.prnu_after <= 0.5, flatUnk = unk.prnu_after <= 1.0;
+        const bool measurable = (norm.measured_mask & XPE_METRIC_PRNU) != 0;
+        const bool withoutNorm = measurable && prnuImproved && flatNorm, withoutUnk = measurable && prnuImproved && flatUnk;
+        std::printf("[a249]  %d  %-8s %7.1f  %11.4f  %10.4f  %.6f  %9.3f | %14d %15d %12d %13d | %17d %8d | %29d %8d\n", k, k >= 4 ? "in" : "held out", sum / static_cast<double>(N),
+                    norm.prnu_before, norm.prnu_after, norm.gain_coverage, norm.snr_improvement_db, prnuImproved, coverageOk, improveOk, flatNorm ? 1 : 0, static_cast<int>(norm.overall_pass),
+                    static_cast<int>(unk.overall_pass), withoutNorm, withoutUnk);
+    }
+
+    // ---- the same verdict with the gain map's out-of-range pixels made INVALID (0.0f), the way the protocol section 5.3 leaves them out of FlatResidualPct
+    std::vector<float> gainMasked(gain, gain + N);
+    for (size_t i = 0; i < N; ++i) if (!(gain[i] >= 0.1f && gain[i] <= 10.0f)) gainMasked[i] = 0.0f;
+    std::printf("[a249] xpe_verify_gain again, out-of-range gain pixels handed over as invalid (0.0): same frames, same 'after' images\n");
+    std::printf("[a249]  k  sample    prnu_before%%  prnu_after%%  coverage   improve_dB | improve>=3.0  coverage>=0.99  flat<=0.5/1.0 | verdict NORMALIZED  UNKNOWN | without the two provisional gates: NORMALIZED  UNKNOWN\n");
+    for (int k = 1; k <= 6; ++k) {
+        std::vector<uint16_t> before = bright[static_cast<size_t>(k)];
+        std::vector<float> after(N, 0.0f);
+        XpeImageBuffer bb = buf(before.data(), N * 2, XPE_PIXEL_UINT16), ab = buf(after.data(), N * 4, XPE_PIXEL_FLOAT32), gb = buf(gainMasked.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_gain_correct(&bb, &ab, &meta));
+        XpeCalibrationMetrics norm{}, unk{};
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_NORMALIZED, &norm));
+        ASSERT_EQ(XPE_OK, xpe_verify_gain(&bb, &ab, &gb, XPE_GAIN_SEMANTICS_UNKNOWN, &unk));
+        const bool prnuImproved = norm.prnu_after < norm.prnu_before || (norm.prnu_before < 0.01 && norm.prnu_after < 0.01);
+        const bool measurable = (norm.measured_mask & XPE_METRIC_PRNU) != 0;
+        const bool flatNorm = norm.prnu_after <= 0.5, flatUnk = unk.prnu_after <= 1.0;
+        std::printf("[a249]  %d  %-8s %11.4f  %10.4f  %.6f  %9.3f | %12d %14d %13d | %17d %8d | %29d %8d\n", k, k >= 4 ? "in" : "held out", norm.prnu_before, norm.prnu_after, norm.gain_coverage,
+                    norm.snr_improvement_db, norm.snr_improvement_db >= 3.0, norm.gain_coverage >= 0.99, flatNorm ? 1 : 0, static_cast<int>(norm.overall_pass), static_cast<int>(unk.overall_pass),
+                    measurable && prnuImproved && flatNorm, measurable && prnuImproved && flatUnk);
+    }
+
+    // ---- xpe_verify_pipeline: raw = dark + flat (as B6 builds a raw flat), and the wrist frame; final = the app's pipeline_out
+    std::printf("[a249] xpe_verify_pipeline, final = xpe_preprocess_pipeline_out (the app's configuration)\n");
+    std::printf("[a249]  frame        raw_mean  final_mean  improve_dB | >=2.0  >=3.0 | overall_pass\n");
+    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    for (int k = 0; k <= 6; ++k) {
+        std::vector<uint16_t> raw(N);
+        if (k == 0) raw = wrist;
+        else for (size_t i = 0; i < N; ++i) raw[i] = static_cast<uint16_t>(std::min<uint32_t>(65535u, static_cast<uint32_t>(dark[i]) + bright[static_cast<size_t>(k)][i]));
+        std::vector<float> fin(N, 0.0f);
+        const XpeImageBuffer rb = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer fb = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&rb, &fb, &meta, nullptr, nullptr, cfg));
+        XpeCalibrationMetrics met{};
+        ASSERT_EQ(XPE_OK, xpe_verify_pipeline(&rb, &fb, nullptr, &met));
+        double sr = 0, sf = 0;
+        for (size_t i = 0; i < N; ++i) { sr += raw[i]; sf += fin[i]; }
+        char label[24];
+        if (k == 0) std::snprintf(label, sizeof label, "wrist");
+        else std::snprintf(label, sizeof label, "dark+flat %d", k);
+        std::printf("[a249]  %-12s %8.1f  %10.1f  %9.3f | %4d  %5d | %d\n", label, sr / static_cast<double>(N), sf / static_cast<double>(N), met.snr_improvement_db, met.snr_improvement_db >= 2.0,
+                    met.snr_improvement_db >= 3.0, static_cast<int>(met.overall_pass));
+    }
+    xpe_preprocess_shutdown();
+}
+
+// QA-A-250: judgement of a calibration set made ONLY from real frames (cyan_test/calfiles), generated and evaluated on different frames.
+// The method (which frames, which formulas, which limits) is fixed in .moai/reports/lane-pre/QA-A-250/evidence/30_method_fixed_before_measurement.md and was
+// committed before this ran. Generation: Dark_07..14 and Bright_17..34 (xpe_calib_fixture_gen --dark/--bright). Held out and judged: Dark_15, Dark_16,
+// Bright_35, Bright_36. Every other frame is printed too, marked, for the reader; none of those rows is a verdict.
+// Needs XPE_A250_DATA (the cyan_test folder), XPE_A250_SET (the generated set), XPE_A250_OUT (where the corrected phantom frames are written).
+namespace a250 {
+
+struct Stat {
+    double mean{0}, sd{0};
+};
+
+// population mean and standard deviation over the pixels where roi[i] != 0 (every pixel when roi is null)
+template <class T>
+Stat popStat(const T* a, size_t n, const std::vector<uint8_t>* roi) {
+    double s1 = 0, s2 = 0;
+    size_t m = 0;
+    for (size_t i = 0; i < n; ++i) {
+        if (roi && !(*roi)[i]) continue;
+        const double v = static_cast<double>(a[i]);
+        s1 += v;
+        s2 += v * v;
+        ++m;
+    }
+    Stat r;
+    if (m == 0) return r;
+    r.mean = s1 / static_cast<double>(m);
+    r.sd = std::sqrt(std::max(0.0, s2 / static_cast<double>(m) - r.mean * r.mean));
+    return r;
+}
+
+std::string frameName(const char* prefix, int k) {
+    char b[64];
+    std::snprintf(b, sizeof b, "%s_%02d.raw", prefix, k);
+    return b;
+}
+
+}  // namespace a250
+
+TEST(A241Measure, DISABLED_A250_CyanCalibrationJudgement) {
+    const std::string data = envOr("XPE_A250_DATA", ""), setDir = envOr("XPE_A250_SET", ""), outDir = envOr("XPE_A250_OUT", "");
+    ASSERT_FALSE(data.empty());
+    ASSERT_FALSE(setDir.empty());
+    ASSERT_FALSE(outDir.empty());
+    fs::create_directories(outDir);
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::string cf = data + "/calfiles/";
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";   // what the operator app passes
+
+    XCal gx, ox;
+    ASSERT_TRUE(readXCal(setDir + "/gain.xcal", &gx));
+    ASSERT_TRUE(readXCal(setDir + "/offset.xcal", &ox));
+    const float* gain = reinterpret_cast<const float*>(gx.payload.data());
+    const float* offmap = reinterpret_cast<const float*>(ox.payload.data());
+    std::vector<uint8_t> roi(N, 0);
+    size_t roiN = 0;
+    for (size_t i = 0; i < N; ++i)
+        if (std::isfinite(gain[i]) && gain[i] > 0.0f) { roi[i] = 1; ++roiN; }
+    std::printf("[a250] set %s | flat-field ROI (gain finite and > 0): %zu of %zu pixels\n", setDir.c_str(), roiN, N);
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset((fs::path(setDir) / "offset.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((fs::path(setDir) / "gain.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map((fs::path(setDir) / "defect.xcal").string().c_str()));
+    xpe_clear_alerts();
+
+    // ---- offset: SRS-CALIB-FUNC-016, protocol 5.2. R = the raw dark frame, Y = what the offset stage returns for it; ROI = every pixel.
+    std::printf("[a250] OFFSET  frame     part          DarkBias_ADU  DSNU_ADU  std(R)  DarkReduction_dB  ClampRate_%%  |bias|<=5  red>=10  frame passes\n");
+    bool offsetAll = true;
+    int offsetHeld = 0;
+    for (int k = 7; k <= 16; ++k) {
+        const std::vector<uint16_t> raw = readRaw16(cf + a250::frameName("Dark", k), N);
+        ASSERT_FALSE(raw.empty());
+        std::vector<uint16_t> y(N, 0);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(y.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_offset_correct(&in, &ob, &meta));
+        const a250::Stat R = a250::popStat(raw.data(), N, nullptr), Y = a250::popStat(y.data(), N, nullptr);
+        size_t clamped = 0;
+        for (size_t i = 0; i < N; ++i)
+            if (static_cast<float>(raw[i]) - offmap[i] < 0.0f) ++clamped;
+        const double red = 20.0 * std::log10(R.sd / std::max(Y.sd, 1e-12));
+        const bool biasOk = std::fabs(Y.mean) <= 5.0, redOk = red >= 10.0, pass = biasOk || redOk;
+        const bool held = k >= 15;
+        if (held) { offsetAll = offsetAll && pass; ++offsetHeld; }
+        std::printf("[a250] OFFSET  Dark_%02d  %-12s %13.3f %9.3f %7.3f %17.2f %12.4f  %9d %8d  %s\n", k, held ? "HELD OUT" : "generation", Y.mean, Y.sd, R.sd, red,
+                    100.0 * static_cast<double>(clamped) / static_cast<double>(N), biasOk, redOk, pass ? "yes" : "no");
+    }
+    std::printf("[a250] VERDICT offset (both held-out dark frames pass |DarkBias| <= 5 ADU or DarkReduction_dB >= 10): %s\n", (offsetAll && offsetHeld == 2) ? "PASS" : "FAIL");
+
+    // ---- gain: SRS-CALIB-FUNC-017, protocol 5.3. Y = the final output of the pipeline for the raw bright frame; ROI = gain finite and > 0.
+    std::printf("[a250] GAIN    frame       part         ROI_mean_ADU  FlatResidualPct  signal>=2000  residual<=1.0  frame passes\n");
+    bool gainAll = true;
+    int gainHeld = 0;
+    std::vector<float> fin(N, 0.0f);
+    for (int k = 17; k <= 36; ++k) {
+        const std::vector<uint16_t> raw = readRaw16(cf + a250::frameName("Bright", k), N);
+        ASSERT_FALSE(raw.empty());
+        std::fill(fin.begin(), fin.end(), 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfgFinal));
+        xpe_clear_alerts();
+        const a250::Stat Y = a250::popStat(fin.data(), N, &roi);
+        const double resid = 100.0 * Y.sd / Y.mean;
+        const bool signalOk = Y.mean >= 2000.0, residOk = resid <= 1.0, pass = signalOk && residOk;
+        const bool held = k >= 35;
+        if (held) { gainAll = gainAll && pass; ++gainHeld; }
+        std::printf("[a250] GAIN    Bright_%02d  %-12s %13.1f %16.4f %13d %14d  %s\n", k, held ? "HELD OUT" : "generation", Y.mean, resid, signalOk, residOk, pass ? "yes" : "no");
+    }
+    std::printf("[a250] VERDICT gain (both held-out bright frames: ROI mean >= 2000 ADU and FlatResidualPct <= 1.0 %%): %s\n", (gainAll && gainHeld == 2) ? "PASS" : "FAIL");
+
+    // ---- phantoms: corrected with the generated set and written; compared with the *_result.raw files (provenance of those files is NOT established)
+    const char* stems[5] = {"Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00", "Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01", "Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02",
+                            "Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03", "Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04"};
+    for (int p = 0; p < 5; ++p) {
+        const std::vector<uint16_t> raw = readRaw16(data + "/" + stems[p] + ".raw", N), res = readRaw16(data + "/" + stems[p] + "_result.raw", N);
+        ASSERT_FALSE(raw.empty());
+        ASSERT_FALSE(res.empty());
+        std::fill(fin.begin(), fin.end(), 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfgFinal));
+        xpe_clear_alerts();
+        char outName[64];
+        std::snprintf(outName, sizeof outName, "phantom_%d_ours_f32le.raw", p);
+        {
+            std::ofstream f((fs::path(outDir) / outName).string(), std::ios::binary | std::ios::trunc);
+            f.write(reinterpret_cast<const char*>(fin.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        }
+        // differences, over every pixel and over the pixels that are not clipped on either side (raw < 65535 and result below its own maximum)
+        uint16_t resMax = 0;
+        for (uint16_t v : res) resMax = std::max(resMax, v);
+        size_t rawSat = 0, resClip = 0;
+        for (size_t i = 0; i < N; ++i) { rawSat += (raw[i] == 65535u); resClip += (res[i] == resMax); }
+        for (int pass = 0; pass < 2; ++pass) {
+            std::vector<float> absd;
+            absd.reserve(N);
+            double sd = 0, sad = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+            size_t m = 0;
+            std::vector<float> ratio;
+            for (size_t i = 0; i < N; ++i) {
+                if (pass == 1 && (raw[i] == 65535u || res[i] == resMax)) continue;
+                const double o = fin[i], r = res[i], d = o - r;
+                sd += d; sad += std::fabs(d); sx += o; sy += r; sxx += o * o; syy += r * r; sxy += o * r; ++m;
+                absd.push_back(static_cast<float>(std::fabs(d)));
+                if (r > 100.0) ratio.push_back(static_cast<float>(o / r));
+            }
+            const double mx = sx / static_cast<double>(m), my = sy / static_cast<double>(m);
+            const double corr = (sxy / static_cast<double>(m) - mx * my) / std::sqrt((sxx / static_cast<double>(m) - mx * mx) * (syy / static_cast<double>(m) - my * my));
+            std::nth_element(absd.begin(), absd.begin() + static_cast<std::ptrdiff_t>(absd.size() / 2), absd.end());
+            const double p50 = absd[absd.size() / 2];
+            std::nth_element(absd.begin(), absd.begin() + static_cast<std::ptrdiff_t>(absd.size() * 99 / 100), absd.end());
+            const double p99 = absd[absd.size() * 99 / 100];
+            const double mxd = *std::max_element(absd.begin(), absd.end());
+            std::nth_element(ratio.begin(), ratio.begin() + static_cast<std::ptrdiff_t>(ratio.size() / 2), ratio.end());
+            std::printf("[a250] PHANTOM %d %s | %s: pixels %zu | mean ours %.1f result %.1f | ours-result: mean %.2f, mean|.| %.2f, p50|.| %.2f, p99|.| %.2f, max|.| %.1f | correlation %.5f | median ours/result %.5f | raw at 65535: %zu, result at its maximum %u: %zu | written %s\n",
+                        p, stems[p], pass == 0 ? "all pixels" : "clipped pixels left out", m, mx, my, sd / static_cast<double>(m), sad / static_cast<double>(m), p50, p99, mxd, corr,
+                        ratio[ratio.size() / 2], rawSat, static_cast<unsigned>(resMax), resClip, outName);
+        }
+    }
+    xpe_preprocess_shutdown();
+}
+
+// QA-A-250b: the gain judgement of QA-A-250 repeated with bright frames of ONE dose. The method is fixed in
+// .moai/reports/lane-pre/QA-A-250b/evidence/30_method_fixed_before_measurement.md and was committed before this ran.
+// Gain map from Bright_23..28 (six frames of the ~9.3k dose); judged on the held-out Bright_29 and Bright_30. The offset and defect maps are those of
+// QA-A-250 (the same inputs; the run checks the files are byte-identical). Every other bright frame is printed as a reference row, none is a verdict.
+// The five phantom frames are corrected with the new set and compared with the *_result files exactly as in QA-A-250.
+// Needs XPE_A250_DATA (the cyan_test folder), XPE_A250_SET (calib-cyan-v2), XPE_A250_V1 (calib-cyan-v1), XPE_A250_OUT (phantom outputs).
+TEST(A241Measure, DISABLED_A250b_CyanGainRejudgement) {
+    const std::string data = envOr("XPE_A250_DATA", ""), setDir = envOr("XPE_A250_SET", ""), v1Dir = envOr("XPE_A250_V1", ""), outDir = envOr("XPE_A250_OUT", "");
+    ASSERT_FALSE(data.empty());
+    ASSERT_FALSE(setDir.empty());
+    ASSERT_FALSE(v1Dir.empty());
+    ASSERT_FALSE(outDir.empty());
+    fs::create_directories(outDir);
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::string cf = data + "/calfiles/";
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";   // what the operator app passes
+
+    // ---- the offset and defect maps are those of QA-A-250
+    for (const char* name : {"offset.xcal", "defect.xcal"}) {
+        const std::vector<uint8_t> a = readFile((fs::path(setDir) / name).string()), b = readFile((fs::path(v1Dir) / name).string());
+        std::printf("[a250b] %s of v2 against v1: %zu and %zu bytes, %s\n", name, a.size(), b.size(), (a == b) ? "BYTE-IDENTICAL" : "DIFFERENT");
+    }
+
+    XCal gx;
+    ASSERT_TRUE(readXCal(setDir + "/gain.xcal", &gx));
+    const float* gain = reinterpret_cast<const float*>(gx.payload.data());
+    std::vector<uint8_t> roi(N, 0);
+    size_t roiN = 0;
+    for (size_t i = 0; i < N; ++i)
+        if (std::isfinite(gain[i]) && gain[i] > 0.0f) { roi[i] = 1; ++roiN; }
+    std::printf("[a250b] set %s | flat-field ROI (gain finite and > 0): %zu of %zu pixels\n", setDir.c_str(), roiN, N);
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset((fs::path(setDir) / "offset.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((fs::path(setDir) / "gain.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map((fs::path(setDir) / "defect.xcal").string().c_str()));
+    xpe_clear_alerts();
+
+    // ---- gain: SRS-CALIB-FUNC-017, protocol 5.3, the same form as QA-A-250 and QA-A-241
+    std::printf("[a250b] GAIN    frame       part                 ROI_mean_ADU  FlatResidualPct  signal>=2000  residual<=1.0  frame passes\n");
+    bool gainAll = true;
+    int gainHeld = 0;
+    std::vector<float> fin(N, 0.0f);
+    for (int k = 17; k <= 36; ++k) {
+        const std::vector<uint16_t> raw = readRaw16(cf + a250::frameName("Bright", k), N);
+        ASSERT_FALSE(raw.empty());
+        std::fill(fin.begin(), fin.end(), 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfgFinal));
+        xpe_clear_alerts();
+        const a250::Stat Y = a250::popStat(fin.data(), N, &roi);
+        const double resid = 100.0 * Y.sd / Y.mean;
+        const bool signalOk = Y.mean >= 2000.0, residOk = resid <= 1.0, pass = signalOk && residOk;
+        const bool held = (k == 29 || k == 30), generation = (k >= 23 && k <= 28);
+        if (held) { gainAll = gainAll && pass; ++gainHeld; }
+        std::printf("[a250b] GAIN    Bright_%02d  %-20s %13.1f %16.4f %13d %14d  %s\n", k, held ? "HELD OUT" : (generation ? "generation" : "other dose, reference"), Y.mean, resid,
+                    signalOk, residOk, pass ? "yes" : "no");
+    }
+    std::printf("[a250b] VERDICT gain (both held-out bright frames Bright_29 and Bright_30: ROI mean >= 2000 ADU and FlatResidualPct <= 1.0 %%): %s\n",
+                (gainAll && gainHeld == 2) ? "PASS" : "FAIL");
+
+    // ---- phantoms: as in QA-A-250 (provenance of the *_result files is NOT established)
+    const char* stems[5] = {"Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00", "Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01", "Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02",
+                            "Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03", "Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04"};
+    for (int p = 0; p < 5; ++p) {
+        const std::vector<uint16_t> raw = readRaw16(data + "/" + stems[p] + ".raw", N), res = readRaw16(data + "/" + stems[p] + "_result.raw", N);
+        ASSERT_FALSE(raw.empty());
+        ASSERT_FALSE(res.empty());
+        std::fill(fin.begin(), fin.end(), 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfgFinal));
+        xpe_clear_alerts();
+        char outName[64];
+        std::snprintf(outName, sizeof outName, "phantom_%d_ours_f32le.raw", p);
+        {
+            std::ofstream f((fs::path(outDir) / outName).string(), std::ios::binary | std::ios::trunc);
+            f.write(reinterpret_cast<const char*>(fin.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        }
+        uint16_t resMax = 0;
+        for (uint16_t v : res) resMax = std::max(resMax, v);
+        size_t rawSat = 0, resClip = 0;
+        for (size_t i = 0; i < N; ++i) { rawSat += (raw[i] == 65535u); resClip += (res[i] == resMax); }
+        for (int pass = 0; pass < 2; ++pass) {
+            std::vector<float> absd;
+            absd.reserve(N);
+            double sd = 0, sad = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+            size_t m = 0;
+            std::vector<float> ratio;
+            for (size_t i = 0; i < N; ++i) {
+                if (pass == 1 && (raw[i] == 65535u || res[i] == resMax)) continue;
+                const double o = fin[i], r = res[i], d = o - r;
+                sd += d; sad += std::fabs(d); sx += o; sy += r; sxx += o * o; syy += r * r; sxy += o * r; ++m;
+                absd.push_back(static_cast<float>(std::fabs(d)));
+                if (r > 100.0) ratio.push_back(static_cast<float>(o / r));
+            }
+            const double mx = sx / static_cast<double>(m), my = sy / static_cast<double>(m);
+            const double corr = (sxy / static_cast<double>(m) - mx * my) / std::sqrt((sxx / static_cast<double>(m) - mx * mx) * (syy / static_cast<double>(m) - my * my));
+            std::nth_element(absd.begin(), absd.begin() + static_cast<std::ptrdiff_t>(absd.size() / 2), absd.end());
+            const double p50 = absd[absd.size() / 2];
+            std::nth_element(absd.begin(), absd.begin() + static_cast<std::ptrdiff_t>(absd.size() * 99 / 100), absd.end());
+            const double p99 = absd[absd.size() * 99 / 100];
+            const double mxd = *std::max_element(absd.begin(), absd.end());
+            std::nth_element(ratio.begin(), ratio.begin() + static_cast<std::ptrdiff_t>(ratio.size() / 2), ratio.end());
+            std::printf("[a250b] PHANTOM %d %s | %s: pixels %zu | mean ours %.1f result %.1f | ours-result: mean %.2f, mean|.| %.2f, p50|.| %.2f, p99|.| %.2f, max|.| %.1f | correlation %.5f | median ours/result %.5f | raw at 65535: %zu, result at its maximum %u: %zu | written %s\n",
+                        p, stems[p], pass == 0 ? "all pixels" : "clipped pixels left out", m, mx, my, sd / static_cast<double>(m), sad / static_cast<double>(m), p50, p99, mxd, corr,
+                        ratio[ratio.size() / 2], rawSat, static_cast<unsigned>(resMax), resClip, outName);
+        }
+    }
+    xpe_preprocess_shutdown();
+}
+
+// QA-A-250c: the QA-A-250 / 250b judgement with the evaluation frames kept out of EVERY generation role (Codex #200 finding 1). The method is fixed in
+// .moai/reports/lane-pre/QA-A-250c/evidence/30_method_fixed_before_measurement.md and was committed before this ran.
+// Generation: darks Dark_07..14; gain Bright_23..28; defect-map bright frames Bright_17..28 and Bright_31..36. Evaluation: darks Dark_15, Dark_16 (offset) and
+// brights Bright_29, Bright_30 (gain). The run reads the set's manifest.json and asserts that the sha-256 of each evaluation frame appears in no input of any role.
+// Needs XPE_A250_DATA (the cyan_test folder), XPE_A250_SET (calib-cyan-v3), XPE_A250_V1, XPE_A250_V2 (earlier sets, for byte comparison), XPE_A250_OUT (phantoms).
+TEST(A241Measure, DISABLED_A250c_CyanSeparatedJudgement) {
+    const std::string data = envOr("XPE_A250_DATA", ""), setDir = envOr("XPE_A250_SET", ""), v1Dir = envOr("XPE_A250_V1", ""), v2Dir = envOr("XPE_A250_V2", ""),
+                      outDir = envOr("XPE_A250_OUT", "");
+    ASSERT_FALSE(data.empty());
+    ASSERT_FALSE(setDir.empty());
+    ASSERT_FALSE(v1Dir.empty());
+    ASSERT_FALSE(v2Dir.empty());
+    ASSERT_FALSE(outDir.empty());
+    fs::create_directories(outDir);
+    const uint32_t W = 3072, H = 3072;
+    const size_t N = static_cast<size_t>(W) * H;
+    const std::string cf = data + "/calfiles/";
+    auto buf = [&](const void* d, size_t bytes, XpePixelFormat f) {
+        XpeImageBuffer b{};
+        b.data = const_cast<void*>(d);
+        b.dataSize = bytes;
+        b.width = W;
+        b.height = H;
+        b.format = f;
+        b.bitsAllocated = f == XPE_PIXEL_FLOAT32 ? 32u : 16u;
+        b.bitsStored = b.bitsAllocated;
+        return b;
+    };
+    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";   // what the operator app passes
+    auto sha256Of = [&](const std::string& path) {
+        const std::vector<uint8_t> bytes = readFile(path);
+        const auto d = compute_sha256(bytes.data(), bytes.size());
+        static const char* hex = "0123456789abcdef";
+        std::string s;
+        for (uint8_t b : d) { s.push_back(hex[b >> 4]); s.push_back(hex[b & 15]); }
+        return s;
+    };
+
+    // ---- the separation, from the manifest the tool wrote (not from this harness's own list of frames)
+    const std::vector<uint8_t> mraw = readFile((fs::path(setDir) / "manifest.json").string());
+    ASSERT_FALSE(mraw.empty());
+    const std::string manifest(mraw.begin(), mraw.end());
+    struct Input { std::string role, path, sha; };
+    std::vector<Input> inputs;
+    {
+        const std::regex re("\"role\": \"([a-z_]+)\", \"path\": \"([^\"]*)\", \"sha256\": \"([0-9a-f]{64})\"");
+        for (auto it = std::sregex_iterator(manifest.begin(), manifest.end(), re); it != std::sregex_iterator(); ++it) inputs.push_back({(*it)[1], (*it)[2], (*it)[3]});
+    }
+    std::map<std::string, int> perRole;
+    for (const auto& in : inputs) ++perRole[in.role];
+    std::printf("[a250c] manifest inputs: %zu", inputs.size());
+    for (const auto& kv : perRole) std::printf(" | %s %d", kv.first.c_str(), kv.second);
+    std::printf("\n");
+    const std::pair<std::string, std::string> evalFrames[4] = {{"Dark_15", cf + "Dark_15.raw"}, {"Dark_16", cf + "Dark_16.raw"}, {"Bright_29", cf + "Bright_29.raw"}, {"Bright_30", cf + "Bright_30.raw"}};
+    int evalFound = 0;
+    for (const auto& ef : evalFrames) {
+        const std::string sha = sha256Of(ef.second);
+        int hits = 0;
+        for (const auto& in : inputs) hits += (in.sha == sha);
+        evalFound += hits;
+        std::printf("[a250c] SEPARATION %-9s sha256 %s appears in %d of %zu generation inputs (any role)\n", ef.first.c_str(), sha.c_str(), hits, inputs.size());
+    }
+    // positive control: frames that ARE generation inputs are found by the same code
+    int controlFound = 0;
+    for (const char* name : {"Dark_07", "Dark_14", "Bright_17", "Bright_23", "Bright_28", "Bright_31", "Bright_36"}) {
+        const std::string sha = sha256Of(cf + name + ".raw");
+        int hits = 0;
+        for (const auto& in : inputs) hits += (in.sha == sha);
+        controlFound += (hits == 1);
+        std::printf("[a250c] CONTROL    %-9s sha256 %s appears in %d generation input(s)\n", name, sha.c_str(), hits);
+    }
+    std::printf("[a250c] SEPARATION RESULT: the four evaluation frames appear in %d generation inputs; the 7 control frames each appear exactly once: %s\n", evalFound,
+                controlFound == 7 ? "yes" : "NO");
+    ASSERT_EQ(0, evalFound);
+    ASSERT_EQ(7, controlFound);
+    ASSERT_EQ(8, perRole["dark"]);
+    ASSERT_EQ(6, perRole["bright_and_bpm_bright"]);
+    ASSERT_EQ(12, perRole["bpm_bright"]);
+
+    // ---- the sets of earlier runs, for the reader: byte comparison
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"}) {
+        const std::vector<uint8_t> a = readFile((fs::path(setDir) / name).string());
+        const std::vector<uint8_t> b1 = readFile((fs::path(v1Dir) / name).string()), b2 = readFile((fs::path(v2Dir) / name).string());
+        std::printf("[a250c] %s of v3 against v1: %s | against v2: %s\n", name, (a == b1) ? "BYTE-IDENTICAL" : "DIFFERENT", (a == b2) ? "BYTE-IDENTICAL" : "DIFFERENT");
+    }
+
+    XCal gx, ox;
+    ASSERT_TRUE(readXCal(setDir + "/gain.xcal", &gx));
+    ASSERT_TRUE(readXCal(setDir + "/offset.xcal", &ox));
+    const float* gain = reinterpret_cast<const float*>(gx.payload.data());
+    const float* offmap = reinterpret_cast<const float*>(ox.payload.data());
+    std::vector<uint8_t> roi(N, 0);
+    size_t roiN = 0;
+    for (size_t i = 0; i < N; ++i)
+        if (std::isfinite(gain[i]) && gain[i] > 0.0f) { roi[i] = 1; ++roiN; }
+    std::printf("[a250c] set %s | flat-field ROI (gain finite and > 0): %zu of %zu pixels\n", setDir.c_str(), roiN, N);
+
+    xpe_preprocess_shutdown();
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_offset((fs::path(setDir) / "offset.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((fs::path(setDir) / "gain.xcal").string().c_str()));
+    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map((fs::path(setDir) / "defect.xcal").string().c_str()));
+    xpe_clear_alerts();
+
+    // ---- offset: SRS-CALIB-FUNC-016, protocol 5.2, as in QA-A-250
+    std::printf("[a250c] OFFSET  frame     part          DarkBias_ADU  DSNU_ADU  std(R)  DarkReduction_dB  ClampRate_%%  |bias|<=5  red>=10  frame passes\n");
+    bool offsetAll = true;
+    int offsetHeld = 0;
+    for (int k = 7; k <= 16; ++k) {
+        const std::vector<uint16_t> raw = readRaw16(cf + a250::frameName("Dark", k), N);
+        ASSERT_FALSE(raw.empty());
+        std::vector<uint16_t> y(N, 0);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(y.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_offset_correct(&in, &ob, &meta));
+        const a250::Stat R = a250::popStat(raw.data(), N, nullptr), Y = a250::popStat(y.data(), N, nullptr);
+        size_t clamped = 0;
+        for (size_t i = 0; i < N; ++i)
+            if (static_cast<float>(raw[i]) - offmap[i] < 0.0f) ++clamped;
+        const double red = 20.0 * std::log10(R.sd / std::max(Y.sd, 1e-12));
+        const bool biasOk = std::fabs(Y.mean) <= 5.0, redOk = red >= 10.0, pass = biasOk || redOk;
+        const bool held = k >= 15;
+        if (held) { offsetAll = offsetAll && pass; ++offsetHeld; }
+        std::printf("[a250c] OFFSET  Dark_%02d  %-12s %13.3f %9.3f %7.3f %17.2f %12.4f  %9d %8d  %s\n", k, held ? "HELD OUT" : "generation", Y.mean, Y.sd, R.sd, red,
+                    100.0 * static_cast<double>(clamped) / static_cast<double>(N), biasOk, redOk, pass ? "yes" : "no");
+    }
+    std::printf("[a250c] VERDICT offset (both held-out dark frames Dark_15 and Dark_16: |DarkBias| <= 5 ADU or DarkReduction_dB >= 10): %s\n",
+                (offsetAll && offsetHeld == 2) ? "PASS" : "FAIL");
+
+    // ---- gain: SRS-CALIB-FUNC-017, protocol 5.3, as in QA-A-250b
+    std::printf("[a250c] GAIN    frame       part                 ROI_mean_ADU  FlatResidualPct  signal>=2000  residual<=1.0  frame passes\n");
+    bool gainAll = true;
+    int gainHeld = 0;
+    std::vector<float> fin(N, 0.0f);
+    for (int k = 17; k <= 36; ++k) {
+        const std::vector<uint16_t> raw = readRaw16(cf + a250::frameName("Bright", k), N);
+        ASSERT_FALSE(raw.empty());
+        std::fill(fin.begin(), fin.end(), 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfgFinal));
+        xpe_clear_alerts();
+        const a250::Stat Y = a250::popStat(fin.data(), N, &roi);
+        const double resid = 100.0 * Y.sd / Y.mean;
+        const bool signalOk = Y.mean >= 2000.0, residOk = resid <= 1.0, pass = signalOk && residOk;
+        const bool held = (k == 29 || k == 30), gainGen = (k >= 23 && k <= 28), bpmOnly = !held && !gainGen;
+        if (held) { gainAll = gainAll && pass; ++gainHeld; }
+        std::printf("[a250c] GAIN    Bright_%02d  %-20s %13.1f %16.4f %13d %14d  %s\n", k, held ? "HELD OUT" : (gainGen ? "gain+defect generation" : (bpmOnly ? "defect generation only" : "?")),
+                    Y.mean, resid, signalOk, residOk, pass ? "yes" : "no");
+    }
+    std::printf("[a250c] VERDICT gain (both held-out bright frames Bright_29 and Bright_30: ROI mean >= 2000 ADU and FlatResidualPct <= 1.0 %%): %s\n",
+                (gainAll && gainHeld == 2) ? "PASS" : "FAIL");
+
+    // ---- phantoms: as in QA-A-250 (provenance of the *_result files is NOT established)
+    const char* stems[5] = {"Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00", "Bright_Chest phantom_75kv_320ma_25.6(SID_110)_01", "Bright_Chest phantom_75kv_320ma_25.6(SID_110)_02",
+                            "Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03", "Bright_Foot phantom_50kv_200ma_5mas(SID_110)_04"};
+    for (int p = 0; p < 5; ++p) {
+        const std::vector<uint16_t> raw = readRaw16(data + "/" + stems[p] + ".raw", N), res = readRaw16(data + "/" + stems[p] + "_result.raw", N);
+        ASSERT_FALSE(raw.empty());
+        ASSERT_FALSE(res.empty());
+        std::fill(fin.begin(), fin.end(), 0.0f);
+        const XpeImageBuffer in = buf(raw.data(), N * 2, XPE_PIXEL_UINT16);
+        XpeImageBuffer ob = buf(fin.data(), N * 4, XPE_PIXEL_FLOAT32);
+        XpeImageMetadata meta{};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfgFinal));
+        xpe_clear_alerts();
+        char outName[64];
+        std::snprintf(outName, sizeof outName, "phantom_%d_ours_f32le.raw", p);
+        {
+            std::ofstream f((fs::path(outDir) / outName).string(), std::ios::binary | std::ios::trunc);
+            f.write(reinterpret_cast<const char*>(fin.data()), static_cast<std::streamsize>(N * sizeof(float)));
+        }
+        uint16_t resMax = 0;
+        for (uint16_t v : res) resMax = std::max(resMax, v);
+        size_t rawSat = 0, resClip = 0;
+        for (size_t i = 0; i < N; ++i) { rawSat += (raw[i] == 65535u); resClip += (res[i] == resMax); }
+        for (int pass = 0; pass < 2; ++pass) {
+            std::vector<float> absd;
+            absd.reserve(N);
+            double sd = 0, sad = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+            size_t m = 0;
+            std::vector<float> ratio;
+            for (size_t i = 0; i < N; ++i) {
+                if (pass == 1 && (raw[i] == 65535u || res[i] == resMax)) continue;
+                const double o = fin[i], r = res[i], d = o - r;
+                sd += d; sad += std::fabs(d); sx += o; sy += r; sxx += o * o; syy += r * r; sxy += o * r; ++m;
+                absd.push_back(static_cast<float>(std::fabs(d)));
+                if (r > 100.0) ratio.push_back(static_cast<float>(o / r));
+            }
+            const double mx = sx / static_cast<double>(m), my = sy / static_cast<double>(m);
+            const double corr = (sxy / static_cast<double>(m) - mx * my) / std::sqrt((sxx / static_cast<double>(m) - mx * mx) * (syy / static_cast<double>(m) - my * my));
+            std::nth_element(absd.begin(), absd.begin() + static_cast<std::ptrdiff_t>(absd.size() / 2), absd.end());
+            const double p50 = absd[absd.size() / 2];
+            std::nth_element(absd.begin(), absd.begin() + static_cast<std::ptrdiff_t>(absd.size() * 99 / 100), absd.end());
+            const double p99 = absd[absd.size() * 99 / 100];
+            const double mxd = *std::max_element(absd.begin(), absd.end());
+            std::nth_element(ratio.begin(), ratio.begin() + static_cast<std::ptrdiff_t>(ratio.size() / 2), ratio.end());
+            std::printf("[a250c] PHANTOM %d %s | %s: pixels %zu | mean ours %.1f result %.1f | ours-result: mean %.2f, mean|.| %.2f, p50|.| %.2f, p99|.| %.2f, max|.| %.1f | correlation %.5f | median ours/result %.5f | raw at 65535: %zu, result at its maximum %u: %zu | written %s\n",
+                        p, stems[p], pass == 0 ? "all pixels" : "clipped pixels left out", m, mx, my, sd / static_cast<double>(m), sad / static_cast<double>(m), p50, p99, mxd, corr,
+                        ratio[ratio.size() / 2], rawSat, static_cast<unsigned>(resMax), resClip, outName);
+        }
+    }
+    xpe_preprocess_shutdown();
 }

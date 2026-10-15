@@ -1,0 +1,43 @@
+##### \b3(\.0)? ?dB\b  (origin/main, which is a superset of HEAD for this pattern)
+.moai/specs/SPEC-XPE-P1B-ENH/acceptance.md:26:**Then** the output SNR improves by >= 3 dB compared to the noisy input, edge gradient magnitude is preserved within 90% at strong edges, and processing completes within 100ms.
+.moai/specs/SPEC-XPE-P1B-ENH/acceptance.md:161:- [x] SNR improvement >= 3 dB (bilateral)
+.moai/specs/SPEC-XPE-P1B-ENH/spec.md:427:| AC-02 | Bilateral filter noise reduction | SNR improvement >= 3 dB on synthetic noisy image |
+docs/enhance-advanced/README.md:608:- **PSNR/SSIM 품질 게이트** (FR-1900): 3 dB ≤ ΔPSNR ≤ 15 dB, SSIM ≥ 0.95 기준, Fast 모드 제외
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:335:| **FR-1900.3** | Quality gate thresholds for denoising acceptance (logged as warning if violated): (1) PSNR improvement: 3 dB ≤ ΔPSNR ≤ 15
+docs/post-processing/xpe/README.md:197:| §20 | TV-최소화 반복적 영상 복원 (ADMM, FFT 가속, PSNR+3dB) | GAP-BU |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:11276:| PSNR 향상 | ≥ 3 dB vs 입력 (σ=20 ADU 합성 잡음) |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:12472:| TV-ADMM Iterative Denoising (GAP-BU) | SRS-ITER-001 | SWU-20.0 | PSNR ≥ +3dB; SSIM ≥ 0.95; MTF f50 loss < 10%; convergence < 30 iter |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:12492:| 1.7 | 2026-04-15 | XPE Team | **Round 8 GAP 해소 10건 (GAP-BM~BV)**: GAP-BM (DICOM GSDF §6.5 — NEMA PS 3.14 JND 보정, LUT 1024엔�
+docs/post-processing/xpe/XPE-VVP-001_Verification_Validation_Plan.md:146:| SRS-FUNC-011 | ST-011 | Noise reduction SNR improvement | SNR gain ≥ 3dB |
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical Markdown set under docs/proje
+docs/project/sprint-plan.md:1323:2. DL denoise quality: PSNR improvement >= 3dB over classical bilateral
+docs/project/sprint-plan.md:1330:1. DL denoise on noisy chest image -> PSNR improvement >= 3dB vs `xpe_noise_reduce`
+##### \b2(\.0)? ?dB\b  (origin/main, which is a superset of HEAD for this pattern)
+docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md:285:| SRS 서술 없음 — #216 | `xpe_verify_pipeline` | 하는 일: UINT16 원시 영상과 FLOAT32 최종 영상에서 각각 중앙값 중심·RMS 퍼짐으�
+docs/post-processing/xpe/XPE-STP-001_Software_Test_Plan_and_Cases.md:123:| UT-2.2-001 | Bilateral basic | noisy synthetic (sigma=0.05) | SNR improved | SNR gain >= 2dB | SRS-FUNC-011 |
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical Markdown set under docs/proje
+##### gain coverage / SNR improvement concept
+.moai/specs/SPEC-XPE-P1A/spec-compact.md:177:And error message specifies invalid gain location
+.moai/specs/SPEC-XPE-P1B-ENH/acceptance.md:26:**Then** the output SNR improves by >= 3 dB compared to the noisy input, edge gradient magnitude is preserved within 90% at strong edges, and processing completes within 100ms.
+.moai/specs/SPEC-XPE-P1B-ENH/acceptance.md:32:**Then** the output SNR improves compared to bilateral mode for repetitive texture regions, and the function returns `XPE_OK`.
+.moai/specs/SPEC-XPE-P1B-ENH/acceptance.md:161:- [x] SNR improvement >= 3 dB (bilateral)
+.moai/specs/SPEC-XPE-P1B-ENH/plan.md:66:- RED: Write tests for SNR improvement, edge preservation, sigma estimation accuracy
+.moai/specs/SPEC-XPE-P1B-ENH/spec.md:427:| AC-02 | Bilateral filter noise reduction | SNR improvement >= 3 dB on synthetic noisy image |
+.moai/specs/xpe-algorithm-spec-deepsync.md:95:| Gain/offset calibration SNR | Ranger et al., J Digit Imaging 2014, [PMC3965338](https://pmc.ncbi.nlm.nih.gov/articles/PMC3965338/) | Gain/offset calibration reduces SNR variation. Re
+docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md:164:| **UT-1.5-002** | SRS-CALIB-FUNC-002 | Load valid gain map | gain.calib file | XPE_OK, buffer loaded | Map loaded correctly |
+docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md:285:| SRS 서술 없음 — #216 | `xpe_verify_pipeline` | 하는 일: UINT16 원시 영상과 FLOAT32 최종 영상에서 각각 중앙값 중심·RMS 퍼짐으�
+docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md:123:- Error handling: Zero/invalid gain values → `XPE_ERR_INVALID_CALIB_DATA`
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:333:| **FR-1900.1** | System shall compute PSNR (Peak Signal-to-Noise Ratio) before and after noise reduction: `PSNR = 10 × log₁₀(MAX²/ MSE)` w
+docs/enhance-advanced/SRS-ENHANCE-ADV-001_Software_Requirements_Specification.md:335:| **FR-1900.3** | Quality gate thresholds for denoising acceptance (logged as warning if violated): (1) PSNR improvement: 3 dB ≤ ΔPSNR ≤ 15
+docs/enhance-advanced/TDS-ENHANCE-ADV-001_Test_Dataset_Specification.md:63:- Metric: SNR improvement ≥ 40% (SNR_out ≥ 28 dB)
+docs/enhance-advanced/TDS-ENHANCE-ADV-001_Test_Dataset_Specification.md:390:| Gaussian (Tier 1) | SNR improvement ≥ 20%, MTF loss ≤ 8% |
+docs/post-processing/xpe/XPE-STP-001_Software_Test_Plan_and_Cases.md:123:| UT-2.2-001 | Bilateral basic | noisy synthetic (sigma=0.05) | SNR improved | SNR gain >= 2dB | SRS-FUNC-011 |
+docs/post-processing/xpe/XPE-STP-001_Software_Test_Plan_and_Cases.md:125:| UT-2.2-003 | NLM mode | noisy synthetic | SNR improved over bilateral | - | SRS-FUNC-011 |
+docs/post-processing/xpe/XPE-VVP-001_Verification_Validation_Plan.md:146:| SRS-FUNC-011 | ST-011 | Noise reduction SNR improvement | SNR gain ≥ 3dB |
+docs/post-processing/xpe/xray-postprocessing-prd.md:411:| 품질 | PSNR improvement ≥ 5 dB over input |
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical Markdown set under docs/proje
+docs/project/sprint-plan.md:808:3. Bilateral noise reduction on noisy image: output SNR improvement > 6dB
+docs/project/sprint-plan.md:1323:2. DL denoise quality: PSNR improvement >= 3dB over classical bilateral
+docs/project/sprint-plan.md:1330:1. DL denoise on noisy chest image -> PSNR improvement >= 3dB vs `xpe_noise_reduce`
+docs/project/vvp_adv.md:236:| TC-MFP-ALG-003 | Noise suppression balance | SNR measurement on synthetic noisy image | SNR improvement >= 5 dB without over-smoothing |
+docs/project/vvp_adv.md:257:| BP-06-MFP-noisy | Synthetic noisy image | Noise resilience | SNR improvement verified |
