@@ -477,7 +477,8 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var calib = Env("XPE_C247_CALIB");
         var raw = Env("XPE_C247_RAW");
         Skip.If(string.IsNullOrEmpty(native), "XPE_C231_NATIVE_DIR not set - the Native E2E folder is required");
-        Skip.If(string.IsNullOrEmpty(calib) || string.IsNullOrEmpty(raw), "XPE_C247_CALIB/XPE_C247_RAW not set - the real-frame set is not in the repository");
+        Skip.If(string.IsNullOrEmpty(calib) || string.IsNullOrEmpty(raw), "XPE_C247_CALIB/XPE_C247_RAW not set - the real-frame set is not in the repository. "
+            + "Last run by hand on 2026-10-15 against calib-cyan-v3 (GUI-C-247 report). XPE-SKIP-ALLOWED:272");
         native = native!; calib = calib!; raw = raw!;
         Assert.True(Directory.Exists(calib), "the calibration folder does not exist: " + calib);
         Assert.True(File.Exists(raw), "the raw frame does not exist: " + raw);
