@@ -1,0 +1,123 @@
+free MB before: 4943
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.08]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.17]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.19]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:14.67]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings [FAIL]
+[xUnit.net 00:00:14.68]       the run raised 2 warning/error alert(s) other than the exposure deviation: [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they a || [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is che
+[xUnit.net 00:00:14.68]       Stack Trace:
+[xUnit.net 00:00:14.68]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(521,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings()
+[xUnit.net 00:00:14.68]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:14.68]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:14.68]       Output:
+[xUnit.net 00:00:14.68]            calibration folder: D:\workspace-github\xpe-data\calib-real-v2
+[xUnit.net 00:00:14.68]            raw frame: D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw (18874368 bytes)
+[xUnit.net 00:00:14.68]            dialog: 'Load Raw Image'
+[xUnit.net 00:00:14.68]            native (+7 ms): dialog 0x1CC60A58 open; app windows: 0x1A88101A Auto-Suggest Dropdown (hidden), 0x3DC153E Auto-Suggest Dropdown (hidden), 0x89705E8 tooltips_class32 (hidden), 0x5EA0D74 tooltips_class32 (hidden), 0x3C70120 tooltips_class32 (hidden), 0xB3D1BE4 tooltips_class32 (hidden), 0x2F4189C ComboLBox (hidden), 0xFAE089E tooltips_class32 (hidden), 0x6AF0EB0 _SearchEditBoxFakeWindow (hidden), 0x9DD00C2 tooltips_class32 (hidden), 0x2D71AA0 tooltips_class32 (hidden), 0x6331CFA tooltips_class32 (hidden), 0x3AD1AAE HwndWrapper[ImageProcTest;;0270e01d-3b10-4300-a41a-0a39f77e6091, 0x45C1A58 ComboLBox (hidden), 0x3860D40 ComboLBox (hidden), 0x33C0E2E WorkerW (hidden), 0xA090F48 TabletPenServiceHelperClass (hidden), 0x10AD05F0 HwndWrapper[ImageProcTest;;25c09a79-da29-447c-80f9-86f012d1c31c (hidden), 0x1311132E HwndWrapper[ImageProcTest;;338d6646-c863-42e9-85a2-3cdd3f9aafc1 (hidden), 0x5D31C0E HwndWrapper[ImageProcTest;;722e7369-a484-44cb-8ab7-0bab6a42d900 (hidden), 0x30530210 HwndWrapper[ImageProcTest;;7272bad6-0a85-4830-919a-23e994371655 (hidden), 0x4C20E3C CiceroUIWndFrame (hidden), 0x13900670 MSCTFIME UI (hidden), 0x2B60E32 IME (hidden), 0x4120CD8 CiceroUIWndFrame (hidden), 0x4F80766 IME (hidden)
+[xUnit.net 00:00:14.68]            native (+223 ms): dialog 0x1CC60A58 gone; app windows: 0x3AD1AAE HwndWrapper[ImageProcTest;;0270e01d-3b10-4300-a41a-0a39f77e6091, 0xA090F48 TabletPenServiceHelperClass (hidden), 0x10AD05F0 HwndWrapper[ImageProcTest;;25c09a79-da29-447c-80f9-86f012d1c31c (hidden), 0x1311132E HwndWrapper[ImageProcTest;;338d6646-c863-42e9-85a2-3cdd3f9aafc1 (hidden), 0x5D31C0E HwndWrapper[ImageProcTest;;722e7369-a484-44cb-8ab7-0bab6a42d900 (hidden), 0x30530210 HwndWrapper[ImageProcTest;;7272bad6-0a85-4830-919a-23e994371655 (hidden), 0x4C20E3C CiceroUIWndFrame (hidden), 0x13900670 MSCTFIME UI (hidden), 0x2B60E32 IME (hidden), 0x4120CD8 CiceroUIWndFrame (hidden), 0x4F80766 IME (hidden)
+[xUnit.net 00:00:14.68]            ok: the image summary appears
+[xUnit.net 00:00:14.68]            ok: preprocess=Applied
+[xUnit.net 00:00:14.68]            chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=256 ms, enhance_basic=270 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+[xUnit.net 00:00:14.68]            HUD: 'Calib:  3 stages (offset · gain · defect)'
+[xUnit.net 00:00:14.68]            status: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=4580.321, W=1012.545) -> GSDF(off) | Exposure index: uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:14.68]            STAGES [18:16:55.134] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:14.68]            STAGES [18:16:54.991] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:14.68]            log lines: 30; ALERT lines: 5
+[xUnit.net 00:00:14.68]            ALERT [18:16:55.132] ALERT INFO NATIVE_ALERT: VOI auto window: the histogram is not two-class (Otsu separability under 0.75) -- the whole-image 1%..99% window was used instead of an anatomy window
+[xUnit.net 00:00:14.68]            ALERT [18:16:55.132] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=12.16 (outside [-3.0, +3.0] range)
+[xUnit.net 00:00:14.68]            ALERT [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+[xUnit.net 00:00:14.68]            ALERT [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that carry one
+[xUnit.net 00:00:14.68]            ALERT [18:16:47.522] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+[xUnit.net 00:00:14.68]            LOG [18:16:55.447] open-to-2nd-tick (proxy) #1: 1382 ms = read 342 + prepare 28 + chain-and-display 695 [preprocess=256 ms, enhance_basic=270 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 3 + render 313
+[xUnit.net 00:00:14.68]            LOG [18:16:55.134] Chain ai_bone_suppress: NotRequested — switched off
+[xUnit.net 00:00:14.68]            LOG [18:16:55.134] Chain gsvg: NotRequested — switched off
+[xUnit.net 00:00:14.68]            LOG [18:16:55.134] Chain enhance_basic: Applied — enhance_basic: log ok 29 ms; noise(bilateral 3/50) ok 62 ms; contrast(clahe 3 8x8) ok 67 ms; edge(usm 0.5/2/10) ok 48 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+[xUnit.net 00:00:14.68]            LOG [18:16:55.134] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:14.68]            LOG [18:16:55.131] Drained 1 native alert(s) from the xpe_common queue.
+[xUnit.net 00:00:14.68]            LOG [18:16:55.129] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=4580.321, W=1012.545) -> GSDF(off)
+[xUnit.net 00:00:14.68]            LOG [18:16:55.011] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-247-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+[xUnit.net 00:00:14.68]            LOG [18:16:54.991] ai_bone_suppress: NotRequested — switched off
+[xUnit.net 00:00:14.68]            LOG [18:16:54.991] gsvg: NotRequested — switched off
+[xUnit.net 00:00:14.68]            LOG [18:16:54.991] enhance_basic: Applied — enhance_basic: log ok 29 ms; noise(bilateral 3/50) ok 62 ms; contrast(clahe 3 8x8) ok 67 ms; edge(usm 0.5/2/10) ok 48 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+[xUnit.net 00:00:14.68]            LOG [18:16:54.991] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:14.68]            LOG [18:16:54.705] Drained 3 native alert(s) from the xpe_common queue.
+[xUnit.net 00:00:14.68]            LOG [18:16:54.436] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+[xUnit.net 00:00:14.68]            LOG [18:16:54.409] Loaded raw image 'D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw'.
+[xUnit.net 00:00:14.68]            LOG [18:16:54.065] LoadRawImage('D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw') invoked.
+[xUnit.net 00:00:14.68]            LOG [18:16:47.522] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+[xUnit.net 00:00:14.68]            LOG [18:16:47.520] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-247-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+[xUnit.net 00:00:14.68]            LOG [18:16:47.512] Display version = 1.0.0
+[xUnit.net 00:00:14.68]            LOG [18:16:47.512] xpe_display.dll = D:\workspace-github\xpe-data\gui-247-dlls\xpe_display.dll
+[xUnit.net 00:00:14.68]            LOG [18:16:47.512] xpe_common.dll = D:\workspace-github\xpe-data\gui-247-dlls\xpe_common.dll
+[xUnit.net 00:00:14.68]            LOG [18:16:47.512] Requested backend mode = Native
+[xUnit.net 00:00:14.68]            LOG [18:16:47.512] RealXpeBackend bootstrap started.
+[xUnit.net 00:00:14.68]            LOG [18:16:47.503] --- backend re-initialised ---
+[xUnit.net 00:00:14.68]            LOG [18:16:47.500] GUI-S0 initialized.
+[xUnit.net 00:00:14.68]            picture: D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-247/picture_calib-real-v2.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+[xUnit.net 00:00:14.68]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings [14 s]
+  오류 메시지:
+   the run raised 2 warning/error alert(s) other than the exposure deviation: [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they a || [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is che
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 521
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    calibration folder: D:\workspace-github\xpe-data\calib-real-v2
+    raw frame: D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw (18874368 bytes)
+    dialog: 'Load Raw Image'
+    native (+7 ms): dialog 0x1CC60A58 open; app windows: 0x1A88101A Auto-Suggest Dropdown (hidden), 0x3DC153E Auto-Suggest Dropdown (hidden), 0x89705E8 tooltips_class32 (hidden), 0x5EA0D74 tooltips_class32 (hidden), 0x3C70120 tooltips_class32 (hidden), 0xB3D1BE4 tooltips_class32 (hidden), 0x2F4189C ComboLBox (hidden), 0xFAE089E tooltips_class32 (hidden), 0x6AF0EB0 _SearchEditBoxFakeWindow (hidden), 0x9DD00C2 tooltips_class32 (hidden), 0x2D71AA0 tooltips_class32 (hidden), 0x6331CFA tooltips_class32 (hidden), 0x3AD1AAE HwndWrapper[ImageProcTest;;0270e01d-3b10-4300-a41a-0a39f77e6091, 0x45C1A58 ComboLBox (hidden), 0x3860D40 ComboLBox (hidden), 0x33C0E2E WorkerW (hidden), 0xA090F48 TabletPenServiceHelperClass (hidden), 0x10AD05F0 HwndWrapper[ImageProcTest;;25c09a79-da29-447c-80f9-86f012d1c31c (hidden), 0x1311132E HwndWrapper[ImageProcTest;;338d6646-c863-42e9-85a2-3cdd3f9aafc1 (hidden), 0x5D31C0E HwndWrapper[ImageProcTest;;722e7369-a484-44cb-8ab7-0bab6a42d900 (hidden), 0x30530210 HwndWrapper[ImageProcTest;;7272bad6-0a85-4830-919a-23e994371655 (hidden), 0x4C20E3C CiceroUIWndFrame (hidden), 0x13900670 MSCTFIME UI (hidden), 0x2B60E32 IME (hidden), 0x4120CD8 CiceroUIWndFrame (hidden), 0x4F80766 IME (hidden)
+    native (+223 ms): dialog 0x1CC60A58 gone; app windows: 0x3AD1AAE HwndWrapper[ImageProcTest;;0270e01d-3b10-4300-a41a-0a39f77e6091, 0xA090F48 TabletPenServiceHelperClass (hidden), 0x10AD05F0 HwndWrapper[ImageProcTest;;25c09a79-da29-447c-80f9-86f012d1c31c (hidden), 0x1311132E HwndWrapper[ImageProcTest;;338d6646-c863-42e9-85a2-3cdd3f9aafc1 (hidden), 0x5D31C0E HwndWrapper[ImageProcTest;;722e7369-a484-44cb-8ab7-0bab6a42d900 (hidden), 0x30530210 HwndWrapper[ImageProcTest;;7272bad6-0a85-4830-919a-23e994371655 (hidden), 0x4C20E3C CiceroUIWndFrame (hidden), 0x13900670 MSCTFIME UI (hidden), 0x2B60E32 IME (hidden), 0x4120CD8 CiceroUIWndFrame (hidden), 0x4F80766 IME (hidden)
+    ok: the image summary appears
+    ok: preprocess=Applied
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=256 ms, enhance_basic=270 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    HUD: 'Calib:  3 stages (offset · gain · defect)'
+    status: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=4580.321, W=1012.545) -> GSDF(off) | Exposure index: uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    STAGES [18:16:55.134] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    STAGES [18:16:54.991] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    log lines: 30; ALERT lines: 5
+    ALERT [18:16:55.132] ALERT INFO NATIVE_ALERT: VOI auto window: the histogram is not two-class (Otsu separability under 0.75) -- the whole-image 1%..99% window was used instead of an anatomy window
+    ALERT [18:16:55.132] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=12.16 (outside [-3.0, +3.0] range)
+    ALERT [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+    ALERT [18:16:55.132] ALERT WARN NATIVE_ALERT: XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that carry one
+    ALERT [18:16:47.522] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [18:16:55.447] open-to-2nd-tick (proxy) #1: 1382 ms = read 342 + prepare 28 + chain-and-display 695 [preprocess=256 ms, enhance_basic=270 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 3 + render 313
+    LOG [18:16:55.134] Chain ai_bone_suppress: NotRequested — switched off
+    LOG [18:16:55.134] Chain gsvg: NotRequested — switched off
+    LOG [18:16:55.134] Chain enhance_basic: Applied — enhance_basic: log ok 29 ms; noise(bilateral 3/50) ok 62 ms; contrast(clahe 3 8x8) ok 67 ms; edge(usm 0.5/2/10) ok 48 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [18:16:55.134] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [18:16:55.131] Drained 1 native alert(s) from the xpe_common queue.
+    LOG [18:16:55.129] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=4580.321, W=1012.545) -> GSDF(off)
+    LOG [18:16:55.011] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-247-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+    LOG [18:16:54.991] ai_bone_suppress: NotRequested — switched off
+    LOG [18:16:54.991] gsvg: NotRequested — switched off
+    LOG [18:16:54.991] enhance_basic: Applied — enhance_basic: log ok 29 ms; noise(bilateral 3/50) ok 62 ms; contrast(clahe 3 8x8) ok 67 ms; edge(usm 0.5/2/10) ok 48 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [18:16:54.991] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 4111.11, DI = 12.16 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [18:16:54.705] Drained 3 native alert(s) from the xpe_common queue.
+    LOG [18:16:54.436] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [18:16:54.409] Loaded raw image 'D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw'.
+    LOG [18:16:54.065] LoadRawImage('D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw') invoked.
+    LOG [18:16:47.522] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [18:16:47.520] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-247-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+    LOG [18:16:47.512] Display version = 1.0.0
+    LOG [18:16:47.512] xpe_display.dll = D:\workspace-github\xpe-data\gui-247-dlls\xpe_display.dll
+    LOG [18:16:47.512] xpe_common.dll = D:\workspace-github\xpe-data\gui-247-dlls\xpe_common.dll
+    LOG [18:16:47.512] Requested backend mode = Native
+    LOG [18:16:47.512] RealXpeBackend bootstrap started.
+    LOG [18:16:47.503] --- backend re-initialised ---
+    LOG [18:16:47.500] GUI-S0 initialized.
+    picture: D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-247/picture_calib-real-v2.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 15.1071 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
+free MB after: 4715
+leftover: 0
