@@ -1,0 +1,16 @@
+QA-A-250b predictions, written after the method (30_method_fixed_before_measurement.md) and before the generation and evaluation ran.
+Basis: the QA-A-250 results (41_evaluation_run.txt there). Confidence is stated; none of these is a result.
+
+ G1 FlatResidualPct of the held-out Bright_29 and Bright_30: between 0.60 % and 0.75 %, so PASS. Confidence about 85 %.
+    Reasoning: in QA-A-250 the frames of this dose gave 0.579..0.580 % with a map that averaged 18 frames; residual x sqrt(signal) was 52..64 there. A map of six frames of this dose
+    carries more map noise: about 0.58 % / sqrt(6) = 0.24 % in quadrature gives about 0.63 %.
+ G2 The generation frames Bright_23..28 give a little less than the held-out ones (in-sample fit), about 0.50..0.60 %. Confidence moderate.
+ G3 The reference rows of other doses: Bright_17..19 stay above 1.0 % (they were 1.05..1.23 % in QA-A-250); the rows of the higher doses stay below 1.0 %. Within a factor 1.3 of the
+    QA-A-250 values. Low confidence (about 50 %): the map no longer contains those doses.
+ G4 offset.xcal and defect.xcal of v2 are byte-identical to those of v1 (same inputs, no randomness in the generators). Confidence about 90 %.
+    If they differ the run is still reported; the difference would be a finding about determinism on real data.
+ G5 The gain dose ratio in the manifest of v2 is about 1.0043 (the offset-subtracted means of Bright_23..28 from QA-A-250/evidence/10_data_inspection.txt: 9295.4, 9292.8, 9325.3,
+    9285.6, 9285.7, 9286.9 -> max/min 9325.3 / 9285.6). Confidence high (arithmetic from per-frame means).
+ P1 Phantoms: correlation with *_result on the pixels that are not clipped and on the two foot frames at least 0.99997, median ours/result within 0.003 of the QA-A-250 value
+    (0.9307..0.9311), because the gain map is normalised to unit mean. Moderate confidence.
+ T1 Generation time about 6 minutes again (the defect-map stage is unchanged: the same 8 darks and 18 bright frames).

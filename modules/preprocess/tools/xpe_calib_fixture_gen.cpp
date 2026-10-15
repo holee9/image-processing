@@ -46,7 +46,15 @@
  *                 = xpe_bpm_generate over both. Refusals (nothing is written):
  *                 fewer than 5 dark frames, fewer than 5 bright frames (gain) or
  *                 10 (defect map), a file that is missing or not width x height x 2
- *                 bytes, a frame with more than 0.1 % of its pixels at 65535.
+ *                 bytes, a frame with more than 0.1 % of its pixels at 65535, bright
+ *                 frames for the gain map that span more than one dose (QA-A-250b):
+ *                 the largest and the smallest offset-subtracted frame mean (frame
+ *                 mean minus the mean of the dark inputs) differ by more than 1.25.
+ *   --bpm-bright F, --bpm-bright-list L   QA-A-250b: the bright frames of the DEFECT
+ *                 map, when they are not the gain frames. The gain map needs one
+ *                 dose (xpe_calib_generate_gain averages the frames); the defect
+ *                 map may use frames of several doses. Without these options the
+ *                 --bright frames serve both.
  *
  * Output: offset.xcal, gain.xcal, defect.xcal, manifest.json
  *         (+ gain_poly.xcal with --gain-poly)
@@ -124,6 +132,8 @@ struct Options {
     std::string              brightList;
     std::string              gainDarkRef{"mean"};   // mean | none | a file
     std::string              compareBpm;
+    std::vector<std::string> bpmBrightFiles;   // QA-A-250b: bright frames of the defect map when they differ from the gain frames
+    std::string              bpmBrightList;
     bool                     framesMode{false};
 };
 
@@ -135,6 +145,7 @@ void printUsage() {
         "                             [--caldata <dir>]\n"
         "                             [--dark F]... [--bright F]... [--dark-list L] [--bright-list L]\n"
         "                             [--gain-dark-ref mean|none|F] [--compare-bpm F]\n"
+        "                             [--bpm-bright F]... [--bpm-bright-list L]\n"
         "\n"
         "Writes offset.xcal, gain.xcal, defect.xcal and manifest.json into <dir>.\n"
         "The same arguments always produce byte-identical files.\n"
@@ -148,7 +159,9 @@ void printUsage() {
         "  --dark/--bright F  one real frame per option (repeat), or --dark-list/--bright-list L\n"
         "                  (a text file, one path per line). At least 5 dark and 10 bright frames.\n"
         "  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file\n"
-        "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n");
+        "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n"
+        "  --bpm-bright F   bright frames of the defect map only (several doses allowed); the\n"
+        "                  --bright frames of the gain map must be ONE dose (max/min <= 1.25)\n");
 }
 
 bool parseArgs(int argc, char** argv, Options* opt) {
@@ -179,7 +192,7 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             if (!next(&value)) return false;
             opt->expiryMs = value;
         } else if (arg == "--dark" || arg == "--bright" || arg == "--dark-list" || arg == "--bright-list" ||
-                   arg == "--gain-dark-ref" || arg == "--compare-bpm") {
+                   arg == "--gain-dark-ref" || arg == "--compare-bpm" || arg == "--bpm-bright" || arg == "--bpm-bright-list") {
             if (i + 1 >= argc) return false;
             const std::string v = argv[++i];
             if (arg == "--dark") opt->darkFiles.push_back(v);
@@ -187,6 +200,8 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             else if (arg == "--dark-list") opt->darkList = v;
             else if (arg == "--bright-list") opt->brightList = v;
             else if (arg == "--gain-dark-ref") opt->gainDarkRef = v;
+            else if (arg == "--bpm-bright") opt->bpmBrightFiles.push_back(v);
+            else if (arg == "--bpm-bright-list") opt->bpmBrightList = v;
             else opt->compareBpm = v;
         } else if (arg == "--gain-poly") {
             opt->gainPoly = true;
@@ -215,8 +230,8 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             return false;
         }
         if (!opt->sizeGiven) opt->width = opt->height = 3072u;
-    } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean") {
-        std::fprintf(stderr, "--gain-dark-ref and --compare-bpm belong to the --dark/--bright mode\n");
+    } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean" || !opt->bpmBrightFiles.empty() || !opt->bpmBrightList.empty()) {
+        std::fprintf(stderr, "--gain-dark-ref, --compare-bpm and --bpm-bright belong to the --dark/--bright mode\n");
         return false;
     }
     if (!opt->calDir.empty()) {
@@ -450,6 +465,11 @@ constexpr size_t kMinDarkFrames       = 5;      // offset map, gain dark referen
 constexpr size_t kMinGainFrames       = 5;      // SRS-CALIB-FUNC-024, standard tier (5-10 frames)
 constexpr size_t kMinBrightForBpm     = 10;     // XpeBpmConfig.min_frames_bright
 constexpr double kSaturatedShareLimit = 0.001;  // a frame with more than 0.1 % of its pixels at 65535 is saturated, not defective
+// QA-A-250b: bright frames of the GAIN map must come from one dose. Basis (evidence 10_dose_spread_basis.txt, the 20 cyan_test bright frames, offset level =
+// mean of the eight generation darks): inside one dose level the largest max/min of the offset-subtracted frame mean is 1.0712 (Bright_17..19, a first-frame
+// step); between two dose levels the smallest step is 1.5593, and no adjacent ratio lies between the two. 1.25 sits between them (1.167 times above the largest
+// spread inside a level, 1.247 times below the smallest step between levels). One data set; a panel whose dose steps are smaller than 25 % would pass mixed.
+constexpr double kGainDoseRatioLimit  = 1.25;
 
 struct InputFrame {
     std::string           role;
@@ -549,6 +569,43 @@ std::vector<XpeImageBuffer> u16Buffers(std::vector<InputFrame>& frames, uint32_t
     return bufs;
 }
 
+std::vector<XpeImageBuffer> u16BuffersOf(const std::vector<InputFrame*>& frames, uint32_t w, uint32_t h) {
+    std::vector<XpeImageBuffer> bufs;
+    for (InputFrame* f : frames) bufs.push_back(u16Buffer(f->px, w, h));
+    return bufs;
+}
+
+/**
+ * The gain map averages its bright frames, so they must come from one dose. The offset-subtracted mean of a frame is its mean minus the mean of the dark
+ * inputs (the offset level). Returns 0 and the max/min ratio, or 12 with the reason on stderr.
+ */
+int checkSingleDose(const std::vector<InputFrame>& darks, const std::vector<InputFrame>& brights, double* ratio) {
+    double offsetLevel = 0.0;
+    for (const auto& d : darks) offsetLevel += d.mean;
+    offsetLevel /= static_cast<double>(darks.size());
+    const InputFrame* lo = nullptr;
+    const InputFrame* hi = nullptr;
+    double loNet = 0.0, hiNet = 0.0;
+    for (const auto& b : brights) {
+        const double net = b.mean - offsetLevel;
+        if (net <= 0.0) {
+            std::fprintf(stderr, "%s: the frame mean %.3f is not above the dark level %.3f: not a bright frame for this offset\n", b.path.c_str(), b.mean, offsetLevel);
+            return 12;
+        }
+        if (!lo || net < loNet) { lo = &b; loNet = net; }
+        if (!hi || net > hiNet) { hi = &b; hiNet = net; }
+    }
+    *ratio = hiNet / loNet;
+    if (*ratio > kGainDoseRatioLimit) {
+        std::fprintf(stderr,
+                     "bright frames for the gain map span more than one dose: offset-subtracted frame means from %.1f (%s) to %.1f (%s), ratio %.3f, limit %.2f. The gain "
+                     "generator averages its frames and assumes one dose; give frames of one dose with --bright (frames of several doses may go to the defect map with --bpm-bright)\n",
+                     loNet, lo->path.c_str(), hiNet, hi->path.c_str(), *ratio, kGainDoseRatioLimit);
+        return 12;
+    }
+    return 0;
+}
+
 int runFramesMode(const Options& opt) {
     const fs::path out(opt.outDir);
     const size_t pixelCount = static_cast<size_t>(opt.width) * opt.height;
@@ -556,6 +613,9 @@ int runFramesMode(const Options& opt) {
     std::vector<std::string> darkPaths = opt.darkFiles, brightPaths = opt.brightFiles;
     if (!opt.darkList.empty() && !readList(opt.darkList, &darkPaths)) return 9;
     if (!opt.brightList.empty() && !readList(opt.brightList, &brightPaths)) return 9;
+    std::vector<std::string> bpmPaths = opt.bpmBrightFiles;
+    if (!opt.bpmBrightList.empty() && !readList(opt.bpmBrightList, &bpmPaths)) return 9;
+    const bool separateBpm = !bpmPaths.empty();
 
     // Counts first: it costs nothing and needs no file.
     if (darkPaths.size() < kMinDarkFrames) {
@@ -566,15 +626,46 @@ int runFramesMode(const Options& opt) {
         std::fprintf(stderr, "too few bright frames: %zu given, at least %zu are needed for the gain map (SRS-CALIB-FUNC-024 standard tier)\n", brightPaths.size(), kMinGainFrames);
         return 10;
     }
-    if (brightPaths.size() < kMinBrightForBpm) {
-        std::fprintf(stderr, "too few bright frames: %zu given, at least %zu are needed for the defect map (XpeBpmConfig.min_frames_bright)\n", brightPaths.size(),
-                     kMinBrightForBpm);
+    const size_t bpmCount = separateBpm ? bpmPaths.size() : brightPaths.size();
+    if (bpmCount < kMinBrightForBpm) {
+        std::fprintf(stderr,
+                     "too few bright frames: %zu given, at least %zu are needed for the defect map (XpeBpmConfig.min_frames_bright; the defect map may use frames of "
+                     "several doses, give them with --bpm-bright)\n",
+                     bpmCount, kMinBrightForBpm);
         return 10;
     }
 
     std::vector<InputFrame> darks, brights;
     if (const int rc = loadFrames(darkPaths, "dark", pixelCount, &darks)) return rc;
     if (const int rc = loadFrames(brightPaths, "bright", pixelCount, &brights)) return rc;
+
+    // The defect map's bright frames: the gain frames themselves, or their own list (frames named in both lists are read once).
+    std::vector<InputFrame> bpmOnly;
+    std::vector<InputFrame*> bpmFrames;
+    if (!separateBpm) {
+        for (auto& b : brights) bpmFrames.push_back(&b);
+    } else {
+        bpmOnly.reserve(bpmPaths.size());
+        for (const std::string& path : bpmPaths) {
+            InputFrame* shared = nullptr;
+            for (auto& b : brights) {
+                std::error_code same;
+                if (b.path == path || fs::equivalent(b.path, path, same)) shared = &b;
+            }
+            if (shared) {
+                shared->role = "bright_and_bpm_bright";
+                bpmFrames.push_back(shared);
+                continue;
+            }
+            std::vector<InputFrame> one;
+            if (const int rc = loadFrames(std::vector<std::string>{path}, "bpm_bright", pixelCount, &one)) return rc;
+            bpmOnly.push_back(std::move(one[0]));
+            bpmFrames.push_back(&bpmOnly.back());
+        }
+    }
+
+    double doseRatio = 0.0;
+    if (const int rc = checkSingleDose(darks, brights, &doseRatio)) return rc;
 
     // The dark reference of the gain stage.
     std::vector<uint16_t> refPixels;
@@ -651,7 +742,7 @@ int runFramesMode(const Options& opt) {
     std::vector<uint8_t> mask(pixelCount, 0u);
     size_t defectCount = 0;
     {
-        std::vector<XpeImageBuffer> darkBufs = u16Buffers(darks, opt.width, opt.height), brightBufs = u16Buffers(brights, opt.width, opt.height);
+        std::vector<XpeImageBuffer> darkBufs = u16Buffers(darks, opt.width, opt.height), brightBufs = u16BuffersOf(bpmFrames, opt.width, opt.height);
         XpeImageBuffer maskBuf{};
         maskBuf.data = mask.data();
         maskBuf.width = opt.width;
@@ -705,6 +796,7 @@ int runFramesMode(const Options& opt) {
     std::vector<const InputFrame*> all;
     for (const auto& d : darks) all.push_back(&d);
     for (const auto& b : brights) all.push_back(&b);
+    for (const auto& b : bpmOnly) all.push_back(&b);
     if (refIsFile) all.push_back(&refFile);
     for (size_t i = 0; i < all.size(); ++i) {
         inputs += "    {\"role\": \"" + all[i]->role + "\", \"path\": \"" + jsonText(fs::path(all[i]->path).generic_string()) + "\", \"sha256\": \"" + all[i]->sha +
@@ -717,10 +809,11 @@ int runFramesMode(const Options& opt) {
     }
     manifest << "{\n  \"generator\": \"xpe_calib_fixture_gen\",\n  \"mode\": \"frames\",\n  \"width\": " << opt.width << ",\n  \"height\": " << opt.height
              << ",\n  \"expiry_epoch_ms\": " << opt.expiryMs << ",\n  \"frames\": {\"dark\": " << darks.size() << ", \"bright\": " << brights.size()
-             << "},\n  \"settings\": {\n    \"offset\": {\"exposure_ms\": 100, \"temperature_c\": 25},\n    \"gain_dark_reference\": \"" << jsonText(opt.gainDarkRef)
+             << (separateBpm ? ", \"bpm_bright\": " + std::to_string(bpmFrames.size()) : std::string()) << "},\n  \"settings\": {\n    \"offset\": {\"exposure_ms\": 100, \"temperature_c\": 25},\n    \"gain_dark_reference\": \"" << jsonText(opt.gainDarkRef)
              << "\",\n    \"bpm\": {\"lambda_dark\": " << fixed(cfg.lambda_dark, 1) << ", \"mask_size_dark\": " << cfg.mask_size_dark << ", \"mask_size_bright\": "
              << cfg.mask_size_bright << ", \"tolerance_pct\": " << fixed(cfg.tolerance_pct, 3) << ", \"min_frames_dark\": " << cfg.min_frames_dark
-             << ", \"min_frames_bright\": " << cfg.min_frames_bright << "},\n    \"saturated_share_limit\": " << fixed(kSaturatedShareLimit, 4) << "\n  },\n  \"inputs\": [\n"
+             << ", \"min_frames_bright\": " << cfg.min_frames_bright << "},\n    \"saturated_share_limit\": " << fixed(kSaturatedShareLimit, 4) << ",\n    \"gain_dose_ratio\": " << fixed(doseRatio, 4)
+             << ",\n    \"gain_dose_ratio_limit\": " << fixed(kGainDoseRatioLimit, 2) << "\n  },\n  \"inputs\": [\n"
              << inputs << "  ],\n  \"defect_pixels\": " << defectCount << ",\n"
              << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
              << "\"\n  }\n}\n";

@@ -1,0 +1,181 @@
+Note: Google Test filter = CalibFixtureGenTest.*
+[==========] Running 27 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 27 tests from CalibFixtureGenTest
+[ RUN      ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055516547_EmitsThreeXCalFilesAndManifest\set\manifest.json
+[       OK ] CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest (2704 ms)
+[ RUN      ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055519260_SameSeedProducesIdenticalBytes\a\manifest.json
+offset.xcal  0581ce02cfb58b70cff2fe09ddba468c22f7ea42c2d8ffd742a833ed414d24b4
+gain.xcal    4b6e178c920ca8b2e24e5a2493fbe29b29c025e1008bc82dc48e1b78d1829ccd
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055519260_SameSeedProducesIdenticalBytes\b\manifest.json
+[       OK ] CalibFixtureGenTest.SameSeedProducesIdenticalBytes (5401 ms)
+[ RUN      ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain
+offset.xcal  19971d0a2c8d8b2a5e33fa13e5a14d167532c0dd439dbcb30cb6ee0901116f5e
+gain.xcal    d93bc7ec0012af549f6e8afef30c9507ffc4a28b8c778116f84d11cc4b5367a0
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055524662_DifferentSeedChangesOffsetAndGain\s1\manifest.json
+offset.xcal  f364e326d00ad47314133523f7a5a942bceccda7a651dd6e0e90d96c4657d68a
+gain.xcal    d17a3ea2429996ba53e3c600fbe41f7fc4383e69cda22e74388d6d73132540d2
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055524662_DifferentSeedChangesOffsetAndGain\s2\manifest.json
+[       OK ] CalibFixtureGenTest.DifferentSeedChangesOffsetAndGain (5415 ms)
+[ RUN      ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055530077_GeneratedSetDrivesThePipeline\pipe\manifest.json
+[       OK ] CalibFixtureGenTest.GeneratedSetDrivesThePipeline (2715 ms)
+[ RUN      ] CalibFixtureGenTest.ExpiryTimestampRoundTrips
+offset.xcal  8fc1249ccaf37e29a98b6bea88b88099f3310a5d8429aa214866d089f66a7b28
+gain.xcal    8e9af6c9c645e7db39986cc6d71653f470d89a7b3c2dce3c9876343404deff33
+defect.xcal  572343037ebf3e3ddf4ca49e9bf131779158bb7fe9dba54fc02a3647213d9398  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055532792_ExpiryTimestampRoundTrips\expired\manifest.json
+offset.xcal  31b42fd7e6c28966e87c5e495204df1e730dd3884162a597fe3b83883262f40b
+gain.xcal    0f7c6fcfdd3c1611205295a7575d65852b3b2eb4515708de74ba14313d1c5d42
+defect.xcal  e63265734dbb80e038340f3cdad482d7f6121edcb53c0f9964e559f593766cfa  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055532792_ExpiryTimestampRoundTrips\valid\manifest.json
+[       OK ] CalibFixtureGenTest.ExpiryTimestampRoundTrips (5374 ms)
+[ RUN      ] CalibFixtureGenTest.CalDataModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns
+offset.xcal  0ccf60b6af50e6375630abef40c56a97a01a28cffa524c0c14e1ee4a1f67ba5b
+gain.xcal    9ecd70018836c4268a990d234acba1316bcc06482d58b4941bb3372faa604b99
+defect.xcal  d42823f93ea26ce9ed7556b33955ea01e3be5c1087815b383d482e97256037a3  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055538167_CalDataModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns\a\manifest.json
+offset.xcal  0ccf60b6af50e6375630abef40c56a97a01a28cffa524c0c14e1ee4a1f67ba5b
+gain.xcal    9ecd70018836c4268a990d234acba1316bcc06482d58b4941bb3372faa604b99
+defect.xcal  d42823f93ea26ce9ed7556b33955ea01e3be5c1087815b383d482e97256037a3  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055538167_CalDataModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns\b\manifest.json
+[       OK ] CalibFixtureGenTest.CalDataModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns (188 ms)
+[ RUN      ] CalibFixtureGenTest.CalDataModeRefusesAMissingOrWronglySizedInputAndWritesNoMap
+[       OK ] CalibFixtureGenTest.CalDataModeRefusesAMissingOrWronglySizedInputAndWritesNoMap (227 ms)
+[ RUN      ] CalibFixtureGenTest.CalDataModeCannotBeCombinedWithAGainPolynomial
+--caldata cannot be combined with --gain-poly
+usage: xpe_calib_fixture_gen --out <dir> [--width N] [--height N]
+                             [--seed N] [--expiry-ms N]
+                             [--gain-poly] [--poly-degree N] [--poly-levels N]
+                             [--caldata <dir>]
+                             [--dark F]... [--bright F]... [--dark-list L] [--bright-list L]
+                             [--gain-dark-ref mean|none|F] [--compare-bpm F]
+                             [--bpm-bright F]... [--bpm-bright-list L]
+
+Writes offset.xcal, gain.xcal, defect.xcal and manifest.json into <dir>.
+The same arguments always produce byte-identical files.
+
+  --gain-poly     also write gain_poly.xcal (XCAL_TYPE_GAIN_POLY), a
+                  per-pixel dose-dependent gain polynomial
+  --poly-degree N maximum fitted degree, 1-4 (default 2)
+  --poly-levels N dose levels to acquire, 3 or more (default 4)
+  --caldata <dir> use real frames: dark.raw, bright04..06.raw, BPMap.map
+                  (width/height default to 3072; not with --gain-poly)
+  --dark/--bright F  one real frame per option (repeat), or --dark-list/--bright-list L
+                  (a text file, one path per line). At least 5 dark and 10 bright frames.
+  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file
+  --compare-bpm F  report agreement with someone else's defect map (not used for the set)
+  --bpm-bright F   bright frames of the defect map only (several doses allowed); the
+                  --bright frames of the gain map must be ONE dose (max/min <= 1.25)
+[       OK ] CalibFixtureGenTest.CalDataModeCannotBeCombinedWithAGainPolynomial (42 ms)
+[ RUN      ] CalibFixtureGenTest.TheSyntheticManifestCarriesNoCalDataKeys
+offset.xcal  e068c85a76f1838e473f76ca606c3e0fde65771200388313c935332ef8159c7d
+gain.xcal    c6330b7a0442eacead97712e59b2936415943bb9491e8e5151b874699e725d95
+defect.xcal  1609b6211015b60543da43ea0bf490abc8201ee5949d8ed8f159846cc92ca846  (4 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055538625_TheSyntheticManifestCarriesNoCalDataKeys\set\manifest.json
+[       OK ] CalibFixtureGenTest.TheSyntheticManifestCarriesNoCalDataKeys (2673 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055541298_FramesModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns\a\manifest.json
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055541298_FramesModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns\b\manifest.json
+[       OK ] CalibFixtureGenTest.FramesModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns (4917 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeListFilesGiveTheSameBytesAsRepeatedOptions
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055546215_FramesModeListFilesGiveTheSameBytesAsRepeatedOptions\opt\manifest.json
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055546215_FramesModeListFilesGiveTheSameBytesAsRepeatedOptions\lst\manifest.json
+[       OK ] CalibFixtureGenTest.FramesModeListFilesGiveTheSameBytesAsRepeatedOptions (4908 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeGainDarkReferenceIsAChoice
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055551124_FramesModeGainDarkReferenceIsAChoice\default\manifest.json
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    6a9a3f5ce8d493eaf18ed2ad6d96c8604b891f9baef5ea14de789f5970b3a712
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055551124_FramesModeGainDarkReferenceIsAChoice\none\manifest.json
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    9460b73eab14f0fffe3546b032119cc0c3d4e414a354bc08c0c2f7fa292b7926
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055551124_FramesModeGainDarkReferenceIsAChoice\file\manifest.json
+[       OK ] CalibFixtureGenTest.FramesModeGainDarkReferenceIsAChoice (7453 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeReportsAgreementWithAReferenceMapAndDoesNotUseIt
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055558577_FramesModeReportsAgreementWithAReferenceMapAndDoesNotUseIt\plain\manifest.json
+bpm comparison: generated 3, reference 4, both 3, recall 0.750000, precision 1.000000, false positive rate 0.00000000
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055558577_FramesModeReportsAgreementWithAReferenceMapAndDoesNotUseIt\with8\manifest.json
+bpm comparison: generated 3, reference 4, both 3, recall 0.750000, precision 1.000000, false positive rate 0.00000000
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    53779d41f09d152f14ba8acb83fa726d081279e564e248bb59e3055ad7a64d59
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055558577_FramesModeReportsAgreementWithAReferenceMapAndDoesNotUseIt\with16\manifest.json
+[       OK ] CalibFixtureGenTest.FramesModeReportsAgreementWithAReferenceMapAndDoesNotUseIt (7406 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesTooFewDarkFrames
+[       OK ] CalibFixtureGenTest.FramesModeRefusesTooFewDarkFrames (53 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesTooFewBrightFramesForTheGainMap
+[       OK ] CalibFixtureGenTest.FramesModeRefusesTooFewBrightFramesForTheGainMap (54 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesTooFewBrightFramesForTheDefectMap
+[       OK ] CalibFixtureGenTest.FramesModeRefusesTooFewBrightFramesForTheDefectMap (62 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesAFrameThatIsNotWidthTimesHeight
+[       OK ] CalibFixtureGenTest.FramesModeRefusesAFrameThatIsNotWidthTimesHeight (89 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesASaturatedFrame
+[       OK ] CalibFixtureGenTest.FramesModeRefusesASaturatedFrame (72 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesAMissingFrame
+[       OK ] CalibFixtureGenTest.FramesModeRefusesAMissingFrame (80 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesAReferenceMapOfTheWrongSize
+[       OK ] CalibFixtureGenTest.FramesModeRefusesAReferenceMapOfTheWrongSize (91 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeCannotBeCombinedWithCalDataOrAGainPolynomial
+[       OK ] CalibFixtureGenTest.FramesModeCannotBeCombinedWithCalDataOrAGainPolynomial (120 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesGainFramesOfMoreThanOneDose
+[       OK ] CalibFixtureGenTest.FramesModeRefusesGainFramesOfMoreThanOneDose (156 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeAcceptsGainFramesWithinTheDoseLimit
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    d2f5247964e222988f9db99033c30e9c85d5587343aeafcaeb6e675f84948e52
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055566767_FramesModeAcceptsGainFramesWithinTheDoseLimit\out\manifest.json
+[       OK ] CalibFixtureGenTest.FramesModeAcceptsGainFramesWithinTheDoseLimit (2488 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeJudgesTheDoseAfterSubtractingTheOffset
+[       OK ] CalibFixtureGenTest.FramesModeJudgesTheDoseAfterSubtractingTheOffset (87 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeTakesTheDefectMapFromItsOwnBrightFramesAndAllowsDoseMixingThere
+offset.xcal  fa687abc78a6d8b0bec66d2ea6e4a879acae2e8063d7bba67977aacf46fb6654
+gain.xcal    85a4aa9ac7fca8cfa50b583d3a727270017dc6254df6b0018f0fd0505cb69eb4
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792055569342_FramesModeTakesTheDefectMapFromItsOwnBrightFramesAndAllowsDoseMixingThere\out\manifest.json
+[       OK ] CalibFixtureGenTest.FramesModeTakesTheDefectMapFromItsOwnBrightFramesAndAllowsDoseMixingThere (2486 ms)
+[ RUN      ] CalibFixtureGenTest.FramesModeRefusesTooFewDefectMapFramesEvenWhenTheGainFramesAreEnough
+[       OK ] CalibFixtureGenTest.FramesModeRefusesTooFewDefectMapFramesEvenWhenTheGainFramesAreEnough (64 ms)
+[ RUN      ] CalibFixtureGenTest.TheBpmBrightOptionsBelongToTheFramesMode
+[       OK ] CalibFixtureGenTest.TheBpmBrightOptionsBelongToTheFramesMode (46 ms)
+[----------] 27 tests from CalibFixtureGenTest (55392 ms total)
+
+[----------] Global test environment tear-down
+[==========] 27 tests from 1 test suite ran. (55393 ms total)
+[  PASSED  ] 27 tests.

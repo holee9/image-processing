@@ -375,7 +375,7 @@ uint32_t nextNoise(uint32_t& state) {
 
 void writeU16(const fs::path& path, const std::vector<uint16_t>& v) { writeBytes(path, v.data(), v.size() * sizeof(uint16_t)); }
 
-FrameSet writeFrameSet(const fs::path& dir, size_t darkCount, size_t brightCount) {
+FrameSet writeFrameSet(const fs::path& dir, size_t darkCount, size_t brightCount, const std::vector<double>& brightDose = {}, int pedestal = 1000) {
     fs::create_directories(dir);
     FrameSet set;
     uint32_t state = 12345u;
@@ -383,7 +383,7 @@ FrameSet writeFrameSet(const fs::path& dir, size_t darkCount, size_t brightCount
     for (size_t k = 0; k < darkCount; ++k) {
         std::vector<uint16_t> f(n);
         for (uint32_t y = 0; y < kH; ++y)
-            for (uint32_t x = 0; x < kW; ++x) f[y * kW + x] = static_cast<uint16_t>(1000 + ((x * 7 + y * 13) % 11) + (nextNoise(state) % 7));
+            for (uint32_t x = 0; x < kW; ++x) f[y * kW + x] = static_cast<uint16_t>(pedestal + ((x * 7 + y * 13) % 11) + (nextNoise(state) % 7));
         f[40 * kW + 40] = 30000;   // hot in every dark frame
         const fs::path path = dir / ("dark_" + std::to_string(k) + ".raw");
         writeU16(path, f);
@@ -391,9 +391,10 @@ FrameSet writeFrameSet(const fs::path& dir, size_t darkCount, size_t brightCount
     }
     for (size_t k = 0; k < brightCount; ++k) {
         std::vector<uint16_t> f(n);
+        const double dose = brightDose.empty() ? 1.0 : brightDose[k % brightDose.size()];
         for (uint32_t y = 0; y < kH; ++y)
             for (uint32_t x = 0; x < kW; ++x)
-                f[y * kW + x] = static_cast<uint16_t>(1000 + 20000.0 * (0.9 + 0.2 * x / (kW - 1)) + (nextNoise(state) % 41));
+                f[y * kW + x] = static_cast<uint16_t>(pedestal + 20000.0 * dose * (0.9 + 0.2 * x / (kW - 1)) + (nextNoise(state) % 41));
         f[100 * kW + 100] = 0;       // dead in every bright frame
         f[50 * kW + 200] = 60000;    // hot in every bright frame
         const fs::path path = dir / ("bright_" + std::to_string(k) + ".raw");
@@ -631,6 +632,86 @@ TEST_F(CalibFixtureGenTest, FramesModeCannotBeCombinedWithCalDataOrAGainPolynomi
     EXPECT_NE(std::string::npos, err.find("--gain-poly")) << err;
     EXPECT_TRUE(hasNoMaps(a));
     EXPECT_TRUE(hasNoMaps(b));
+}
+
+// ---------------------------------------------------------------- QA-A-250b: the gain map takes one dose; the defect map may take several
+// The gain generator averages its frames and assumes one dose. Bright frames of the gain map whose offset-subtracted means differ by more than 1.25
+// (max/min) are refused before anything is written; the limit sits between the largest spread inside one dose level (1.0712) and the smallest step
+// between two levels (1.5593) of the cyan_test frames (evidence 10_dose_spread_basis.txt).
+TEST_F(CalibFixtureGenTest, FramesModeRefusesGainFramesOfMoreThanOneDose) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12, {1.0, 1.6});
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(12, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("more than one dose")) << err;
+    EXPECT_NE(std::string::npos, err.find("limit 1.25")) << err;
+    EXPECT_NE(std::string::npos, err.find("bright_")) << "the message names the lowest and the highest frame: " << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeAcceptsGainFramesWithinTheDoseLimit) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12, {1.0, 1.15});
+    const fs::path out = caseDir("out");
+    ASSERT_EQ(0, runFrames(root, out, framesArgs(set), "x"));
+    const std::string manifest = asText(readAll(out / "manifest.json"));
+    EXPECT_NE(std::string::npos, manifest.find("\"gain_dose_ratio_limit\": 1.25"));
+    EXPECT_NE(std::string::npos, manifest.find("\"gain_dose_ratio\": 1.1")) << "the measured ratio is written: " << manifest;
+}
+
+// The ratio is taken after the offset is subtracted. With a pedestal of 15000 ADU a net dose ratio of 1.4 is a raw-mean ratio of only 1.23: judged on the
+// raw means the frames would pass, judged on the offset-subtracted means they are refused.
+TEST_F(CalibFixtureGenTest, FramesModeJudgesTheDoseAfterSubtractingTheOffset) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12, {1.0, 1.4}, 15000);
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(12, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("ratio 1.4")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+// The defect map has its own bright frames, of any doses; frames named in both lists are read once and marked so in the manifest.
+TEST_F(CalibFixtureGenTest, FramesModeTakesTheDefectMapFromItsOwnBrightFramesAndAllowsDoseMixingThere) {
+    const FrameSet gain = writeFrameSet(root / "in", 6, 6);                  // one dose, enough for the gain map, too few for the defect map
+    const FrameSet more = writeFrameSet(root / "more", 0, 6, {1.6});         // another dose
+    std::string args = framesArgs(gain);
+    for (const auto& b : gain.brights) args += " --bpm-bright \"" + b + "\"";
+    for (const auto& b : more.brights) args += " --bpm-bright \"" + b + "\"";
+    const fs::path out = caseDir("out");
+    ASSERT_EQ(0, runFrames(root, out, args, "x"));
+    const std::string manifest = asText(readAll(out / "manifest.json"));
+    EXPECT_NE(std::string::npos, manifest.find("\"frames\": {\"dark\": 6, \"bright\": 6, \"bpm_bright\": 12}")) << manifest;
+    auto count = [&](const std::string& what) {
+        size_t n = 0;
+        for (size_t pos = manifest.find(what); pos != std::string::npos; pos = manifest.find(what, pos + 1)) ++n;
+        return n;
+    };
+    EXPECT_EQ(6u, count("\"role\": \"bright_and_bpm_bright\""));
+    EXPECT_EQ(6u, count("\"role\": \"bpm_bright\""));
+    EXPECT_EQ(18u, count("\"sha256\"")) << "each frame once: 6 darks + 6 shared + 6 defect-map-only";
+    const std::vector<char> defect = readAll(out / "defect.xcal");
+    const size_t n = static_cast<size_t>(kW) * kH;
+    ASSERT_GT(defect.size(), n);
+    const char* mask = defect.data() + (defect.size() - n);
+    EXPECT_NE(0, mask[100 * kW + 100]) << "the dead pixel of the bright frames is found from the defect map's own frames";
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesTooFewDefectMapFramesEvenWhenTheGainFramesAreEnough) {
+    const FrameSet gain = writeFrameSet(root / "in", 6, 12);
+    std::string args = framesArgs(gain);
+    for (size_t i = 0; i < 7; ++i) args += " --bpm-bright \"" + gain.brights[i] + "\"";
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(10, runFrames(root, out, args, "x", &err));
+    EXPECT_NE(std::string::npos, err.find("too few bright frames: 7")) << err;
+    EXPECT_NE(std::string::npos, err.find("defect map")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, TheBpmBrightOptionsBelongToTheFramesMode) {
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_NE(0, runFrames(root, out, " --bpm-bright \"x.raw\"", "x", &err));
+    EXPECT_NE(std::string::npos, err.find("--bpm-bright")) << err;
 }
 
 }  // namespace
