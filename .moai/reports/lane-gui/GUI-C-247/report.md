@@ -54,3 +54,11 @@ dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj --no-bu
 | 2. 대조군 calib-real-v2 1회 | GUI-C-247 (1절) |
 | 3. calib-cyan-v2 1회 | 리더가 알릴 때(미착수) |
 | 산출: 화면 캡처 1장 | 얻지 못함(2절, 읽기 한계) |
+
+## 6. 추가 실행: calib-cyan-v2 (카드 3번, 리더 요청 18:31)
+
+- `XPE_C247_CALIB=D:\workspace-github\xpe-data\calib-cyan-v2`, 같은 프레임·같은 단언으로 1회(`run_cyan_v2.txt`): **통과** 14 s.
+- `preprocess=Applied`, 단계 offset -> gain -> defect, HUD `3 stages (offset · gain · defect)`. ALERT 는 cyan-v1 과 같은 WARN 1(노출 편차 DI=11.00)+INFO 1 이고 보정 단계 경고·오류 0.
+- 노출 지수 EI 3143.86 (v1 3143.87): 두 세트가 거의 같은 보정 결과를 냈다. 세트를 읽는지는 1절 대조군으로 확인했다.
+- 가용 메모리 6628 -> 6603 MB, 남은 ImageProcTest/testhost/xpe_ai_worker 0.
+- 화면 캡처는 같은 한계(창 안쪽 흰색)로 얻지 못했다.
