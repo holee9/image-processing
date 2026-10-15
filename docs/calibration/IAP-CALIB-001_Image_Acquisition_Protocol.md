@@ -62,7 +62,7 @@ xpe_calib_fixture_gen.exe --out <보정 폴더> --expiry-ms <만료 Unix ms> `
 
 종료 코드 0 이면 `<보정 폴더>` 에 `offset.xcal`·`gain.xcal`·`defect.xcal`·`manifest.json` 이 생긴다. `manifest.json` 에 입력 파일별 경로·sha256·평균, 장 수, 설정이 기록된다.
 
-**검증된 예 (cyan_test, QA-A-250b)** — 다크 `Dark_07~14`, 게인 `Bright_23~28`(한 선량), 결함 맵 `Bright_17~34`(다섯 선량 18장). 생성 약 7분(416 초).
+**검증 중인 예 (cyan_test, QA-A-250c)** — 다크 `Dark_07~14`, 게인 `Bright_23~28`(한 선량), 결함 맵 `Bright_17~28`·`Bright_31~36`(18장, 평가용 29·30 제외). 생성 약 7분.
 
 ## 1.4 앱에서 쓰기
 
@@ -77,7 +77,7 @@ tools/Start-ImageProcTestNative.ps1 -CalibDir <보정 폴더> -RawWidth 3072 -Ra
 | 항목 | 기준 | 결과 | 근거 |
 |---|---|---|---|
 | offset | FUNC-016 `\|DarkBias\| ≤ 5 ADU` 또는 `DarkReduction_dB ≥ 10` (생성에 안 쓴 다크) | DarkReduction 21.68 / 21.80 dB → 통과. DarkBias +14.3 / +8.6 ADU 는 5 ADU 초과(다크 드리프트, 단일 맵 운영의 한계) | QA-A-250 |
-| gain | FUNC-017 `FlatResidualPct ≤ 1.0 %` (같은 선량, 생성에 안 쓴 2장) | 0.642 / 0.643 % → 통과 | QA-A-250b |
+| gain | FUNC-017 `FlatResidualPct ≤ 1.0 %` (같은 선량, 어떤 생성 입력에도 안 쓴 2장) | **재측정 중** — QA-A-250b 의 0.642 / 0.643 % 는 평가 프레임이 결함 맵 입력에 섞여 있어 인정하지 않음(Codex #200) | QA-A-250c |
 | 결함 맵 | 실데이터 수치 기준 없음(판정 아님) | 생성 133, 장비 회사 `BPM.raw` 250, 일치 97 (재현율 0.388) | QA-A-250 |
 | 장비 회사 보정본과 비교 | 판정 아님 | 팬텀 5장, 클리핑 제외 상관 0.99998 이상, 밝기 비 0.931 일정 | QA-A-250·250b |
 | 앱 사용 | 처리 성공, 보정 경고·오류 0 | 통과 (`calib-cyan-v1`) | GUI-C-247 |
