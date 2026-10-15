@@ -54,10 +54,15 @@
  *                 largest and the smallest signal differ by more than 1.25, or a
  *                 frame has no signal left (exit 12).
  *                 QA-A-250c: the same file twice in one role (same path, same file
- *                 by fs::equivalent, or same sha-256), exit 13. The set is built in
- *                 a sibling directory and moved into --out only when all four files
- *                 exist; a refusal or a failure leaves no output directory and an
- *                 existing set untouched.
+ *                 by fs::equivalent, or same sha-256), exit 13.
+ *                 QA-A-250d: --out must not exist or must be an EMPTY directory;
+ *                 a non-empty --out is refused (exit 14, nothing is written):
+ *                 there is no overwrite, a new set goes to a new folder. The set
+ *                 is built in a directory of its own, <out>.building-<pid>-<ms>,
+ *                 beside --out and published with ONE directory rename onto --out
+ *                 once all four files exist. A refusal or a failure (exit 5-8)
+ *                 leaves neither --out nor its own work directory, and a work
+ *                 directory of another run is never touched.
  *   --bpm-bright F, --bpm-bright-list L   QA-A-250b: the bright frames of the DEFECT
  *                 map, when they are not the gain frames. The gain map needs one
  *                 dose (xpe_calib_generate_gain averages the frames); the defect
@@ -96,6 +101,15 @@
 #include "xcal_writer.hpp"
 #include "xpe_sha256.hpp"
 
+#ifdef _WIN32
+#include <process.h>
+#define XPE_GETPID _getpid
+#else
+#include <unistd.h>
+#define XPE_GETPID getpid
+#endif
+
+#include <chrono>
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
@@ -667,59 +681,48 @@ bool forcedFailure(const char* stage) {
 #endif
 }
 
-// The work directory is a sibling of --out. It is removed in every case, together with the parent directories this run had to create.
+// The work directory is a sibling of --out with a name of this run alone (<out>.building-<pid>-<ms>), so a leftover of a killed run or a run on the same
+// --out at the same time never shares it. It is created empty and is never cleaned up on behalf of another run. It is removed in every case (after a
+// successful publish it no longer exists), together with the parent directories this run had to create.
 struct WorkDir {
     fs::path path, firstExisting;
+    bool     created{false};
     explicit WorkDir(const fs::path& out) {
         fs::path abs = fs::absolute(out).lexically_normal();
         if (abs.filename().empty()) abs = abs.parent_path();
-        path = abs.parent_path() / (abs.filename().string() + ".building");
+        const long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        path = abs.parent_path() / (abs.filename().string() + ".building-" + std::to_string(XPE_GETPID()) + "-" + std::to_string(ms));
         firstExisting = abs;
         std::error_code ec;
         while (!firstExisting.empty() && !fs::exists(firstExisting, ec) && firstExisting != firstExisting.parent_path()) firstExisting = firstExisting.parent_path();
-        fs::remove_all(path, ec);
-        fs::create_directories(path, ec);
+        fs::create_directories(path.parent_path(), ec);
+        created = fs::create_directory(path, ec);   // false when the name is taken: never adopt a directory that is not ours
     }
-    bool ok() const {
-        std::error_code ec;
-        return fs::is_directory(path, ec);
-    }
+    bool ok() const { return created; }
     ~WorkDir() {
         std::error_code ec;
-        fs::remove_all(path, ec);
+        if (created) fs::remove_all(path, ec);
         for (fs::path d = path.parent_path(); !d.empty() && d != firstExisting && d != d.parent_path(); d = d.parent_path()) fs::remove(d, ec);   // only if empty
     }
 };
 
-// Moves the four finished files from the work directory into --out. Existing files of the same names are set aside first and put back if anything fails.
-int commitSet(const fs::path& work, const fs::path& out, const std::vector<std::string>& names) {
+// QA-A-250d: publishes the finished set with one directory rename onto --out. There is no overwrite and nothing is moved aside: --out does not exist, or is
+// an empty directory (removed here, put back if the rename fails). A failed rename is a failure (exit 8), never reported as success.
+int publishSet(const fs::path& work, const fs::path& out) {
     std::error_code ec;
-    const bool outExisted = fs::is_directory(out, ec);
-    fs::create_directories(out, ec);
-    if (!fs::is_directory(out, ec)) {
-        std::fprintf(stderr, "cannot create output directory: %s\n", out.string().c_str());
-        return 3;
-    }
-    std::vector<std::string> setAside, placed;
-    bool failed = false;
-    for (const std::string& n : names) {
-        if (fs::exists(out / n, ec)) {
-            fs::rename(out / n, work / ("old_" + n), ec);
-            if (ec) { failed = true; break; }
-            setAside.push_back(n);
+    const bool wasEmptyDir = fs::is_directory(out, ec);
+    if (wasEmptyDir) {
+        fs::remove(out, ec);   // removes an empty directory only
+        if (ec) {
+            std::fprintf(stderr, "cannot publish into %s: %s\n", out.string().c_str(), ec.message().c_str());
+            return 8;
         }
     }
-    for (size_t i = 0; !failed && i < names.size(); ++i) {
-        if (forcedFailure("commit") && i == 2) { failed = true; break; }
-        fs::rename(work / names[i], out / names[i], ec);
-        if (ec) { failed = true; break; }
-        placed.push_back(names[i]);
-    }
-    if (failed) {
-        for (const std::string& n : placed) fs::remove(out / n, ec);
-        for (const std::string& n : setAside) fs::rename(work / ("old_" + n), out / n, ec);
-        if (!outExisted) fs::remove(out, ec);
-        std::fprintf(stderr, "moving the finished set into %s failed; nothing was changed there\n", out.string().c_str());
+    if (forcedFailure("commit")) ec = std::make_error_code(std::errc::io_error);
+    else fs::rename(work, out, ec);
+    if (ec) {
+        if (wasEmptyDir) fs::create_directory(out, ec);
+        std::fprintf(stderr, "publishing the finished set to %s failed; nothing was published\n", out.string().c_str());
         return 8;
     }
     return 0;
@@ -738,9 +741,16 @@ int runFramesMode(const Options& opt) {
 
     {
         std::error_code ec;
-        if (fs::exists(out, ec) && !fs::is_directory(out, ec)) {
-            std::fprintf(stderr, "cannot create output directory: %s exists and is not a directory\n", opt.outDir.c_str());
-            return 3;
+        if (fs::exists(out, ec)) {
+            if (!fs::is_directory(out, ec)) {
+                std::fprintf(stderr, "cannot create output directory: %s exists and is not a directory\n", opt.outDir.c_str());
+                return 3;
+            }
+            if (!fs::is_empty(out, ec)) {
+                std::fprintf(stderr, "output directory %s is not empty: nothing was written. A set is never written over another; give a new folder (and point the application at it)\n",
+                             opt.outDir.c_str());
+                return 14;
+            }
         }
     }
     if (const int rc = rejectPathDuplicates(darkPaths, "dark")) return rc;
@@ -834,7 +844,7 @@ int runFramesMode(const Options& opt) {
     std::vector<uint8_t> theirs;
     if (!opt.compareBpm.empty() && !readReferenceMask(opt.compareBpm, pixelCount, &theirs)) return 9;
 
-    // ---- generation, into a sibling work directory; --out is touched only by commitSet, after all four files exist
+    // ---- generation, into a work directory of this run beside --out; --out is touched only by publishSet, after all four files exist
     WorkDir workDir(out);
     if (!workDir.ok()) {
         std::fprintf(stderr, "cannot create the work directory %s\n", workDir.path.string().c_str());
@@ -974,7 +984,7 @@ int runFramesMode(const Options& opt) {
         std::fprintf(stderr, "writing manifest.json failed\n");
         return 8;
     }
-    if (const int rc = commitSet(work, out, {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"})) return rc;
+    if (const int rc = publishSet(work, out)) return rc;
 
     std::printf("offset.xcal  %s\ngain.xcal    %s\ndefect.xcal  %s  (%zu defect pixels)\nmanifest.json written to %s\n", offsetSha.c_str(), gainSha.c_str(), defectSha.c_str(),
                 defectCount, (out / "manifest.json").string().c_str());

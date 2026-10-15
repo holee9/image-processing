@@ -1,0 +1,134 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+raw = open(p, 'rb').read()
+assert raw.count(b'\r\n') == raw.count(b'\n') and b'\0' not in raw
+s = raw.decode('utf-8').replace('\r\n', '\n')
+
+
+def sub(old, new, count=1):
+    global s
+    assert s.count(old) == count, (s.count(old), old[:90])
+    s = s.replace(old, new)
+
+
+# ---------------------------------------------------------------- header comment
+sub(r''' *                 by fs::equivalent, or same sha-256), exit 13. The set is built in
+ *                 a sibling directory and moved into --out only when all four files
+ *                 exist; a refusal or a failure leaves no output directory and an
+ *                 existing set untouched.
+''', r''' *                 by fs::equivalent, or same sha-256), exit 13.
+ *                 QA-A-250d: --out must not exist or must be an EMPTY directory;
+ *                 a non-empty --out is refused (exit 14, nothing is written):
+ *                 there is no overwrite, a new set goes to a new folder. The set
+ *                 is built in a directory of its own, <out>.building-<pid>-<ms>,
+ *                 beside --out and published with ONE directory rename onto --out
+ *                 once all four files exist. A refusal or a failure (exit 5-8)
+ *                 leaves neither --out nor its own work directory, and a work
+ *                 directory of another run is never touched.
+''')
+
+# ---------------------------------------------------------------- includes
+sub(r'''#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+''', r'''#include <chrono>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+''')
+sub(r'''#include "xpe_sha256.hpp"
+''', r'''#include "xpe_sha256.hpp"
+
+#ifdef _WIN32
+#include <process.h>
+#define XPE_GETPID _getpid
+#else
+#include <unistd.h>
+#define XPE_GETPID getpid
+#endif
+''')
+
+# ---------------------------------------------------------------- WorkDir + commitSet -> WorkDir + publishSet
+start = s.index('// The work directory is a sibling of --out.')
+end = s.index('int runFramesMode(const Options& opt) {')
+s = s[:start] + r'''// The work directory is a sibling of --out with a name of this run alone (<out>.building-<pid>-<ms>), so a leftover of a killed run or a run on the same
+// --out at the same time never shares it. It is created empty and is never cleaned up on behalf of another run. It is removed in every case (after a
+// successful publish it no longer exists), together with the parent directories this run had to create.
+struct WorkDir {
+    fs::path path, firstExisting;
+    bool     created{false};
+    explicit WorkDir(const fs::path& out) {
+        fs::path abs = fs::absolute(out).lexically_normal();
+        if (abs.filename().empty()) abs = abs.parent_path();
+        const long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        path = abs.parent_path() / (abs.filename().string() + ".building-" + std::to_string(XPE_GETPID()) + "-" + std::to_string(ms));
+        firstExisting = abs;
+        std::error_code ec;
+        while (!firstExisting.empty() && !fs::exists(firstExisting, ec) && firstExisting != firstExisting.parent_path()) firstExisting = firstExisting.parent_path();
+        fs::create_directories(path.parent_path(), ec);
+        created = fs::create_directory(path, ec);   // false when the name is taken: never adopt a directory that is not ours
+    }
+    bool ok() const { return created; }
+    ~WorkDir() {
+        std::error_code ec;
+        if (created) fs::remove_all(path, ec);
+        for (fs::path d = path.parent_path(); !d.empty() && d != firstExisting && d != d.parent_path(); d = d.parent_path()) fs::remove(d, ec);   // only if empty
+    }
+};
+
+// QA-A-250d: publishes the finished set with one directory rename onto --out. There is no overwrite and nothing is moved aside: --out does not exist, or is
+// an empty directory (removed here, put back if the rename fails). A failed rename is a failure (exit 8), never reported as success.
+int publishSet(const fs::path& work, const fs::path& out) {
+    std::error_code ec;
+    const bool wasEmptyDir = fs::is_directory(out, ec);
+    if (wasEmptyDir) {
+        fs::remove(out, ec);   // removes an empty directory only
+        if (ec) {
+            std::fprintf(stderr, "cannot publish into %s: %s\n", out.string().c_str(), ec.message().c_str());
+            return 8;
+        }
+    }
+    if (forcedFailure("commit")) ec = std::make_error_code(std::errc::io_error);
+    else fs::rename(work, out, ec);
+    if (ec) {
+        if (wasEmptyDir) fs::create_directory(out, ec);
+        std::fprintf(stderr, "publishing the finished set to %s failed; nothing was published\n", out.string().c_str());
+        return 8;
+    }
+    return 0;
+}
+
+''' + s[end:]
+
+# ---------------------------------------------------------------- the refusal of a non-empty --out, at the start of the frames mode
+sub(r'''    {
+        std::error_code ec;
+        if (fs::exists(out, ec) && !fs::is_directory(out, ec)) {
+            std::fprintf(stderr, "cannot create output directory: %s exists and is not a directory\n", opt.outDir.c_str());
+            return 3;
+        }
+    }
+''', r'''    {
+        std::error_code ec;
+        if (fs::exists(out, ec)) {
+            if (!fs::is_directory(out, ec)) {
+                std::fprintf(stderr, "cannot create output directory: %s exists and is not a directory\n", opt.outDir.c_str());
+                return 3;
+            }
+            if (!fs::is_empty(out, ec)) {
+                std::fprintf(stderr, "output directory %s is not empty: nothing was written. A set is never written over another; give a new folder (and point the application at it)\n",
+                             opt.outDir.c_str());
+                return 14;
+            }
+        }
+    }
+''')
+
+# ---------------------------------------------------------------- call site
+sub(r'''    if (const int rc = commitSet(work, out, {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"})) return rc;
+''', r'''    if (const int rc = publishSet(work, out)) return rc;
+''')
+sub(r'''    // ---- generation, into a sibling work directory; --out is touched only by commitSet, after all four files exist''',
+    r'''    // ---- generation, into a work directory of this run beside --out; --out is touched only by publishSet, after all four files exist''')
+
+open(p, 'wb').write(s.replace('\n', '\r\n').encode('utf-8'))
+print('patched')

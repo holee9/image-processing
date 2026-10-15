@@ -1,0 +1,35 @@
+QA-A-250d mutation check of the publish design (no overwrite, own work directory, one rename). Source hash at the start: 02598050508fabee
+Short names: nonempty=RefusesANonEmptyOutAndLeavesItUntouched empty=AcceptsAnEmptyOutDirectory fail=FailureInAnyStageLeavesNothingBehind foreign=DoesNotTouchAnotherRunsWorkDirectory
+PREDICTIONS (written before any run):
+  N1 the early refusal of a non-empty --out removed        -> red: nonempty only (the publish step then fails with exit 8, not 14)
+  N2 the work directory name made fixed (out.building-1-2) -> red: foreign only (the name collides with a directory of another run: exit 3)
+  N3 a failed publish reported as success (seam)           -> red: fail only
+  N4 the work directory not removed on failure             -> red: fail only
+  N5 an empty --out is not removed before the rename       -> red: empty only (Windows: a rename onto an existing directory fails)
+  N6 the empty --out not put back after a failed publish   -> red: fail only
+  every other FramesMode test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 30 passed, failed: []
+--- N1
+build: BUILD_EXIT=0
+tests exit 1: 29 passed, FAILED: ['FramesModeRefusesANonEmptyOutAndLeavesItUntouched']
+--- N2
+build: BUILD_EXIT=0
+tests exit 1: 29 passed, FAILED: ['FramesModeDoesNotTouchAnotherRunsWorkDirectory']
+--- N3
+build: BUILD_EXIT=0
+tests exit 1: 29 passed, FAILED: ['FramesModeFailureInAnyStageLeavesNothingBehind']
+--- N4
+build: BUILD_EXIT=0
+tests exit 1: 29 passed, FAILED: ['FramesModeFailureInAnyStageLeavesNothingBehind']
+--- N5
+build: BUILD_EXIT=0
+tests exit 1: 23 passed, FAILED: ['FramesModeAcceptsAnEmptyOutDirectory', 'FramesModeAcceptsGainFramesWithinTheDoseLimit', 'FramesModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns', 'FramesModeGainDarkReferenceIsAChoice', 'FramesModeListFilesGiveTheSameBytesAsRepeatedOptions', 'FramesModeReportsAgreementWithAReferenceMapAndDoesNotUseIt', 'FramesModeTakesTheDefectMapFromItsOwnBrightFramesAndAllowsDoseMixingThere']
+--- N6
+build: BUILD_EXIT=0
+tests exit 1: 29 passed, FAILED: ['FramesModeFailureInAnyStageLeavesNothingBehind']
+--- restored: touch + rebuild
+source hash now: 02598050508fabee (start: 02598050508fabee)
+build: BUILD_EXIT=0
+tests exit 0: 30 passed, failed: []
