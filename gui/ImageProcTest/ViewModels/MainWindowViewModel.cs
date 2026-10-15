@@ -811,6 +811,12 @@ public sealed class MainWindowViewModel : ObservableObject
     public string ChainStatus => _render?.ChainStatus ?? NoChainStatus;
 
     /// <summary>
+    /// GUI-C-248: the number of the render on screen ("render #N", 0 before the first), exposed to UI Automation as the help text of the chain status item. <see cref="ChainStatus"/> carries stage times in whole
+    /// milliseconds, so two renders of one frame can print the same line; this number differs for every render, so a caller that waits for "a new render" can tell one from the last.
+    /// </summary>
+    public string RenderIdText => $"render #{_render?.Id ?? 0}";
+
+    /// <summary>
     /// Where the time of the last apply went (#180, GUI-C-103): the background work, this view model's own
     /// share, and the display pipeline's four phases. It does NOT include the render — nothing on this side
     /// can observe when the frame reached the screen, so that share is measured from outside.
@@ -1286,7 +1292,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private static readonly string[] RenderDerivedProperties =
     [
         nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
-        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
+        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(RenderIdText), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
         nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel), nameof(RenderedPreprocessWarning), nameof(HasRenderedPreprocessWarning),
     ];

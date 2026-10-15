@@ -518,6 +518,7 @@
                            Content="{Binding StatusText}" />
             <Separator />
             <StatusBarItem AutomationProperties.AutomationId="ChainStatusText"
+                           AutomationProperties.HelpText="{Binding RenderIdText}"
                            Content="{Binding ChainStatus}" />
             <Separator />
             <Separator />

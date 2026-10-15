@@ -545,7 +545,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         Thread.Sleep(3000);
 
         var wall = new List<double>();
-        var previousTimes = app.Read("ChainStatusText");
+        var previousRenderId = RenderIdOf(app.ReadHelpText("ChainStatusText"));
         for (var i = 1; i <= 5; i++)
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -555,10 +555,10 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             app.WaitFor(() =>
             {
                 chain = app.Read("ChainStatusText");
-                return chain != previousTimes && chain.Contains("enhance_basic=Applied", StringComparison.Ordinal) && app.Read("StatusBarText").Contains("Exposure index:", StringComparison.Ordinal);
+                return NewRenderIsDone(previousRenderId, RenderIdOf(app.ReadHelpText("ChainStatusText")), chain, app.Read("StatusBarText"));
             }, "the chain and the picture are done", 60);
             wall.Add(watch.Elapsed.TotalMilliseconds);
-            previousTimes = chain;
+            previousRenderId = RenderIdOf(app.ReadHelpText("ChainStatusText"));
             output.WriteLine($"   run {i}: wall {wall[^1]:0} ms; {chain}");
             Thread.Sleep(1500);
         }
@@ -566,6 +566,40 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var sorted = wall.OrderBy(x => x).ToArray();
         output.WriteLine($"   wall times (ms): {string.Join(", ", wall.Select(x => x.ToString("0")))}; median {sorted[2]:0} ms (limit 3000 ms, PERF-P1-001)");
         Assert.True(sorted[2] <= 3000, $"median {sorted[2]:0} ms exceeds 3000 ms");
+    }
+
+    /// <summary>GUI-C-248: the render number from the chain status item's help text ("render #N"); -1 when it cannot be read.</summary>
+    internal static long RenderIdOf(string helpText) =>
+        helpText.StartsWith("render #", StringComparison.Ordinal) && long.TryParse(helpText["render #".Length..], out var id) ? id : -1;
+
+    /// <summary>
+    /// GUI-C-248: "a NEW render has finished". The render number must have moved past the one seen before the run; the chain line cannot say that, because it prints stage times in whole milliseconds and two
+    /// renders of one frame can print the same line (CI run 38723968216 waited 60 s for a fifth run whose line equalled the fourth's).
+    /// </summary>
+    internal static bool NewRenderIsDone(long previousRenderId, long renderId, string chain, string status) =>
+        renderId > previousRenderId && chain.Contains("enhance_basic=Applied", StringComparison.Ordinal) && status.Contains("Exposure index:", StringComparison.Ordinal);
+
+    /// <summary>The condition W12 used before GUI-C-248, kept only so the next test can show that it never ends when the line repeats.</summary>
+    private static bool OldRenderIsDone(string previousChain, string chain, string status) =>
+        chain != previousChain && chain.Contains("enhance_basic=Applied", StringComparison.Ordinal) && status.Contains("Exposure index:", StringComparison.Ordinal);
+
+    /// <summary>
+    /// GUI-C-248 (no app): the fifth run of CI run 38723968216 printed the same chain line as the fourth. The old condition is false for that pair for as long as it is asked; the new one is true as soon as the
+    /// render number has moved, and stays false while it has not (the previous render's result must not end the wait).
+    /// </summary>
+    [Fact]
+    public void W12w_TheWaitForANewRender_EndsWhenTheChainLineRepeats()
+    {
+        const string line = "chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=337 ms, enhance_basic=386 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain";
+        const string status = "chain: ... | Exposure index: 3143.86";
+
+        for (var asks = 0; asks < 1000; asks++) Assert.False(OldRenderIsDone(line, line, status));   // the old condition: never true for a repeated line
+        Assert.False(NewRenderIsDone(4, 4, line, status));                                         // the render before: not new
+        Assert.True(NewRenderIsDone(4, 5, line, status));                                          // the fifth render, same line: done
+        Assert.False(NewRenderIsDone(4, 5, "chain: preprocess=Applied", status));                  // a new number but the chain not complete yet
+        Assert.False(NewRenderIsDone(4, -1, line, status));                                        // the number cannot be read: not done
+        Assert.Equal(7, RenderIdOf("render #7"));
+        Assert.Equal(-1, RenderIdOf(string.Empty));
     }
 
     /// <summary>
@@ -1526,6 +1560,13 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             var element = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
             if (element is null) return string.Empty;
             return element.Name ?? string.Empty;
+        }
+
+        /// <summary>GUI-C-248: the help text of an element ("render #N" on <c>ChainStatusText</c>). Empty when the element is missing or has none.</summary>
+        public string ReadHelpText(string automationId)
+        {
+            var element = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
+            return element is null ? string.Empty : Safe(() => element.HelpText) ?? string.Empty;
         }
 
         public bool Exists(string automationId) => _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId)) is { IsOffscreen: false };
