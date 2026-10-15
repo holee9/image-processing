@@ -82,8 +82,38 @@ internal static class NativeModuleAudit
             return;
         }
 
-        GuiNativeLibraryResolver.Resolve(dllName, typeof(NativeModuleAudit).Assembly, null);
+        // GUI-C-246 (Codex #197): the reference count must not grow with the number of calls. Each call used to take a new reference and keep it. Giving it back after every check would also unload a module
+        // whose FIRST loader is this check (the application's own DllImport has not run yet) and make the call that follows load it again - a reload that nothing here has shown to be harmless for a module
+        // with static state (DCMTK, spdlog). So the module is loaded once per process by this check and that single reference is kept for the life of the process: one reference per module, however many
+        // calls, and nothing is unloaded under the application. SelfCheck scenario 11 counts the references after 150 calls (the application's own plus this one) and checks that a module this check loaded
+        // first is still loaded afterwards.
+        lock (PreflightGate)
+        {
+            if (!PreflightHandles.ContainsKey(dllName))
+            {
+                var handle = GuiNativeLibraryResolver.Resolve(dllName, typeof(NativeModuleAudit).Assembly, null);   // throws when the pinned folder cannot supply it
+                if (handle != IntPtr.Zero)
+                {
+                    PreflightHandles[dllName] = handle;
+                }
+            }
+        }
+
         ThrowIfOutsidePinnedFolder(feature);
+    }
+
+    private static readonly object PreflightGate = new();
+
+    /// <summary>The one reference each preflighted module is held by (see <see cref="PreflightModule"/>).</summary>
+    private static readonly Dictionary<string, IntPtr> PreflightHandles = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>For a test that has unloaded the module under it: forget the held references without freeing them.</summary>
+    internal static void ForgetPreflightHandlesForTests()
+    {
+        lock (PreflightGate)
+        {
+            PreflightHandles.Clear();
+        }
     }
 
     /// <summary>Where the AI module looks for its worker: beside <c>xpe_ai.dll</c> (ai_api.h; the module does the search, this only says where). Null when the DLL has not been loaded through the resolver.</summary>
