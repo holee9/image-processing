@@ -1,0 +1,74 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 30 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 30 tests from DicomWriterTest
+[ RUN      ] DicomWriterTest.WriteBasic_CreatesFile
+[       OK ] DicomWriterTest.WriteBasic_CreatesFile (9 ms)
+[ RUN      ] DicomWriterTest.WriteRoundTrip_PixelExact
+[       OK ] DicomWriterTest.WriteRoundTrip_PixelExact (12 ms)
+[ RUN      ] DicomWriterTest.WriteMetadata_Preserved
+[       OK ] DicomWriterTest.WriteMetadata_Preserved (13 ms)
+[ RUN      ] DicomWriterTest.WriteIOError_ReturnsIOFailed
+[2026-10-03 19:08:58.410] [warning] [DicomWriter] saveFile failed: 지정된 경로를 찾을 수 없습니다.
+[       OK ] DicomWriterTest.WriteIOError_ReturnsIOFailed (1 ms)
+[ RUN      ] DicomWriterTest.WriteNullPath_ReturnsInvalidInput
+[       OK ] DicomWriterTest.WriteNullPath_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.WriteNullImg_ReturnsInvalidInput
+[       OK ] DicomWriterTest.WriteNullImg_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.WriteNullMeta_ReturnsInvalidInput
+[       OK ] DicomWriterTest.WriteNullMeta_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.WriteJ2KRoundTrip_PixelExact
+[       OK ] DicomWriterTest.WriteJ2KRoundTrip_PixelExact (14 ms)
+[ RUN      ] DicomWriterTest.RescaleDefaults_OneAndZero
+[       OK ] DicomWriterTest.RescaleDefaults_OneAndZero (8 ms)
+[ RUN      ] DicomWriterTest.WriteJ2KNullImg_ReturnsInvalidInput
+[       OK ] DicomWriterTest.WriteJ2KNullImg_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.DataSizeGuard_Write_ShortDataSize_ReturnsInvalidInput
+[       OK ] DicomWriterTest.DataSizeGuard_Write_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.DataSizeGuard_WriteJ2K_ShortDataSize_ReturnsInvalidInput
+[       OK ] DicomWriterTest.DataSizeGuard_WriteJ2K_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted
+[       OK ] DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted (1 ms)
+[ RUN      ] DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted
+[       OK ] DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted (5 ms)
+[ RUN      ] DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(266):: heap growth 0 bytes / 0 blocks over 1000 cycles, working set 81920 bytes (not asserted)
+[       OK ] DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow (1794 ms)
+[ RUN      ] DicomWriterTest.ThousandCycles_ControlLeakIsCaught
+
+[  INFO ] D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_writer.cpp(287):: control 64 B/cycle: heap growth 64000 bytes / 1000 blocks over 1000 cycles, working set 90112 bytes (not asserted)
+[       OK ] DicomWriterTest.ThousandCycles_ControlLeakIsCaught (1670 ms)
+[ RUN      ] DicomWriterTest.WriteEmptyBodyPart_StillWritesFile
+[       OK ] DicomWriterTest.WriteEmptyBodyPart_StillWritesFile (1 ms)
+[ RUN      ] DicomWriterTest.WriteJ2KNullPixelData_ReturnsInvalidInput
+[       OK ] DicomWriterTest.WriteJ2KNullPixelData_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck
+[       OK ] DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck (0 ms)
+[ RUN      ] DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade
+[       OK ] DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade (0 ms)
+[ RUN      ] DicomWriterTest.ARefusedFormatLeavesAnExistingDestinationFileUntouched
+[       OK ] DicomWriterTest.ARefusedFormatLeavesAnExistingDestinationFileUntouched (6 ms)
+[ RUN      ] DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads
+[       OK ] DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads (5 ms)
+[ RUN      ] DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput
+[       OK ] DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.EmptyImage_ZeroHeight_ReturnsInvalidInput
+[       OK ] DicomWriterTest.EmptyImage_ZeroHeight_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.EmptyImage_NullData_ReturnsInvalidInput
+[       OK ] DicomWriterTest.EmptyImage_NullData_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomWriterTest.EmptyImageContract_ValidImageStillAccepted
+[       OK ] DicomWriterTest.EmptyImageContract_ValidImageStillAccepted (5 ms)
+[ RUN      ] DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly
+[       OK ] DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly (6 ms)
+[ RUN      ] DicomWriterTest.ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo
+[       OK ] DicomWriterTest.ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo (14 ms)
+[ RUN      ] DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData
+[       OK ] DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData (6 ms)
+[ RUN      ] DicomWriterTest.ADataSizeOfOneByteLessThanTheImageIsStillRefusedAndNoFileIsMade
+[       OK ] DicomWriterTest.ADataSizeOfOneByteLessThanTheImageIsStillRefusedAndNoFileIsMade (0 ms)
+[----------] 30 tests from DicomWriterTest (3588 ms total)
+
+[----------] Global test environment tear-down
+[==========] 30 tests from 1 test suite ran. (3588 ms total)
+[  PASSED  ] 30 tests.

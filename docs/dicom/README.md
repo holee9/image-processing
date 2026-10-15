@@ -127,7 +127,7 @@ GSPS (Grayscale Softcopy Presentation State)
 
 | 인터프리테이션 | 입력 처리 | 출력 | 설명 |
 |-------------|---------|------|------|
-| MONOCHROME1 | 반전 (MAX - pixel) | MONOCHROME2 | 작은 값 = 밝음 |
+| MONOCHROME1 | 반전 (MAX - pixel) | MONOCHROME2 | 작은 값 = 밝음. MAX = `2^BitsStored − 1`, 반전 전에 BitsStored 위의 비트를 먼저 마스크한다 |
 | MONOCHROME2 | 그대로 사용 | MONOCHROME2 | 작은 값 = 어두움 |
 
 ---
@@ -574,7 +574,7 @@ typedef struct {
 } XpeMwlResult;
 
 
-> **Stale (2026-09-11, QA-B-39 audit):** the struct-based `xpe_dicom_cfind_mwl` shown below and the error code `XPE_ERR_LOSSY_COMPRESSION_NOT_ALLOWED` do not exist in the code. The real API is `xpe_dicom_cfind_mwl(host, port, aet, queryJson, outJson, outBufLen, timeoutMs)` (api-spec §11.10); lossy-compression rejection is not implemented as an error code. This README section is kept for history only.
+> **Stale (2026-09-11, QA-B-39 audit):** the struct-based `xpe_dicom_cfind_mwl` shown below and the error code `XPE_ERR_LOSSY_COMPRESSION_NOT_ALLOWED` do not exist in the code. The real API is `xpe_dicom_cfind_mwl(host, port, aet, queryJson, outJson, outBufLen, timeoutMs)` (api-spec §11.9); lossy-compression rejection is not implemented as an error code. This README section is kept for history only.
 
 int xpe_dicom_cfind_mwl(
     const char *ris_hostname,

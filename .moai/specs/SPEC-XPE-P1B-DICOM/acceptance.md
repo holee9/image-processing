@@ -136,8 +136,9 @@
 
 **Given** the built `xpe_dicom.dll`
 **When** `dumpbin /exports xpe_dicom.dll` is executed
-**Then** exactly 10 exported functions SHALL be listed matching the API surface table.
+**Then** exactly 11 exported functions SHALL be listed matching the API surface table (10 until 2026-10-03).
 **Result**: dicom.cpp에 10개 `XPE_API` export 확인 (cross-verified against dicom_api.h)
+> **상태 메모 (2026-10-03, QA-B-200 M2a, #253)**: 위 결과와 아래 AC-13·체크리스트의 "10개" 는 `xpe_dicom_version` 추가 전의 기록이다. 지금 헤더의 `XPE_API` 선언은 11개(리더가 `dicom_api.h` grep 으로 확인). 11번째 함수에 대한 `dumpbin` 재확인과 C# P/Invoke 호출은 미검증이다.
 
 ### AC-13: P/Invoke Compatibility ✅ PASS
 

@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+  schedule:
+    # QA-A-234: coverage-post and coverage-dicom, which are too slow for every push (24 min cold). Mondays 03:00 UTC.
+    - cron: '0 3 * * 1'
 
 permissions:
   contents: read
@@ -42,6 +45,16 @@ jobs:
             $lane = "postprocess"
           } elseif ($branch -eq "dev/gui") {
             $lane = "gui"
+          }
+
+          # A pull request into main (ref_name is "<n>/merge") and an integration branch
+          # (integ/*, the lead's cherry-picked bundle before it lands on main) are about to
+          # become main, so they run everything main runs. Before this, both resolved to
+          # "unknown" and every test job was skipped while the run reported success
+          # (PR #258, run 38052296484: only detect-lane, doxygen and gui-automation ran).
+          if ("${{ github.event_name }}" -eq "pull_request" -or $branch -like "integ/*") {
+            $isMain = "true"
+            $lane = "main"
           }
 
           Write-Output "lane=$lane" >> $env:GITHUB_OUTPUT
@@ -278,6 +291,70 @@ jobs:
   # enhance_advanced/display; dicom/ai off). Until 2026-09-10 no push-triggered
   # job built these DLLs at all, so Lane B code had no CI gate and
   # xpe_enhance_basic.dll was never staged for the C# suite (GUI-C-10, #123).
+  asan-tests:
+    # QA-A-234 (#253): the common and preprocess tests under MSVC AddressSanitizer. Any AddressSanitizer report
+    # aborts the test process, so a report fails this job. It is a gate from the first run: the local run of
+    # 2026-10-03 had 0 reports.
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Check the AddressSanitizer runtime is reachable
+        shell: pwsh
+        run: |
+          # The sanitized test executables load clang_rt.asan_dynamic-x86_64.dll from the MSVC bin directory that
+          # the developer shell puts on PATH. If the image has no such file, say so here instead of failing later
+          # with a loader error.
+          $dll = Get-Command clang_rt.asan_dynamic-x86_64.dll -ErrorAction SilentlyContinue
+          if (-not $dll) { Write-Error 'clang_rt.asan_dynamic-x86_64.dll is not on PATH: this runner image has no MSVC AddressSanitizer runtime'; exit 1 }
+          Write-Host ("ASan runtime: {0}" -f $dll.Source)
+
+      - name: Configure CMake (ASan)
+        shell: pwsh
+        run: cmake --preset ci-asan
+
+      - name: Build (ASan)
+        shell: pwsh
+        run: cmake --build --preset ci-asan --parallel
+
+      - name: Run tests under AddressSanitizer
+        shell: pwsh
+        run: |
+          # No test is excluded by name. Until QA-A-238 this step excluded four groups (ControlLeakIsCaught,
+          # Frame3072SquaredWithinMachineRatio, OomPipeline.*, PipelinePerformance3072...Perf001) on an UNCONFIRMED
+          # reading. QA-A-238 (Codex #156) reproduced each under ASan locally: none is a real memory defect. The
+          # OomPipeline guard and page-guard code now adapt under ASan, and the heap-walk controls and the timing
+          # gates skip with a stated reason when __SANITIZE_ADDRESS__ is defined. A test that fails here now fails
+          # the job -- add an exclusion only with a measured reason, never an inferred one.
+          ctest --test-dir build/ci-asan --build-config RelWithDebInfo --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload ASan test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: asan-test-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/ci-asan/Testing/
+
   post-build:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
@@ -430,6 +507,126 @@ jobs:
           retention-days: 14
           path: build/ci-post/bin/
 
+  # DICOM module gate (#235, 2026-10-02).
+  #
+  # Until this job, NO push-triggered job built modules/dicom: ci-post sets
+  # BUILD_DICOM=OFF and the only dicom preset (coverage-dicom) runs on
+  # workflow_dispatch alone. Every dicom change merged through #235
+  # (QA-B-182..185b) was gated by lane-local runs only — the "ci-dicom 243/0"
+  # cited in lane reports was a hand-configured local build directory, not a
+  # CI job. Found while judging GUI-C-196 M3, whose DICOM write test skips in
+  # dotnet-tests for the same reason (no xpe_dicom.dll is staged there).
+  #
+  # This job builds and runs the dicom tests on every main/lane push. It shares
+  # coverage-dicom's vcpkg binary cache (same manifest, same key), so DCMTK is
+  # built once and restored after. The binaries are uploaded for a later
+  # dotnet-tests handoff; that handoff is not wired yet because the DLL pairing
+  # (dicom's vcpkg fmt/spdlog vs common's) failed when overwritten locally
+  # (GUI-C-196 m3_report, 0x8007007F) and needs its own measurement.
+  dicom-build:
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Point VCPKG_ROOT at the runner vcpkg
+        shell: pwsh
+        run: |
+          $root = $env:VCPKG_INSTALLATION_ROOT
+          if (-not $root -or -not (Test-Path $root)) { $root = 'C:\vcpkg' }
+          if (-not (Test-Path (Join-Path $root 'scripts\buildsystems\vcpkg.cmake'))) {
+            Write-Error "vcpkg toolchain not found under $root"; exit 1
+          }
+          $cache = Join-Path $env:RUNNER_TEMP 'vcpkg-bincache'
+          New-Item -ItemType Directory -Force -Path $cache | Out-Null
+          "VCPKG_ROOT=$root" >> $env:GITHUB_ENV
+          "VCPKG_DEFAULT_BINARY_CACHE=$cache" >> $env:GITHUB_ENV
+          "VCPKG_DISABLE_METRICS=1" >> $env:GITHUB_ENV
+          & (Join-Path $root 'vcpkg.exe') --version
+
+      # Same key as coverage-dicom on purpose: one DCMTK build serves both.
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-bincache
+          key: vcpkg-bincache-${{ runner.os }}-dicom-${{ hashFiles('third_party/dicom/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-bincache-${{ runner.os }}-dicom-
+
+      - name: Configure CMake
+        shell: pwsh
+        run: cmake --preset ci-dicom
+
+      # Saved right after configure (the vcpkg install happens there), so a
+      # later test failure does not throw the DCMTK build away.
+      - name: Save vcpkg binary cache
+        if: always() && steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/vcpkg-bincache
+          key: vcpkg-bincache-${{ runner.os }}-dicom-${{ hashFiles('third_party/dicom/vcpkg.json') }}
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build --preset ci-dicom --parallel
+
+      - name: Put vcpkg runtime DLLs on PATH
+        shell: pwsh
+        run: |
+          $bin = Join-Path (Get-Location) 'build\ci-dicom\vcpkg_installed\x64-windows\bin'
+          "$bin;$env:PATH" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      # The count is printed so a reader can compare it with the lane reports'
+      # figure; a ctest run that registers zero tests is a failure, not a pass.
+      - name: Run dicom tests (timing-budget cases excluded)
+        shell: pwsh
+        run: |
+          $reg = ctest --test-dir build/ci-dicom --build-config RelWithDebInfo --show-only=json-v1 | Out-String | ConvertFrom-Json
+          $n = @($reg.tests).Count
+          Write-Host ("ctest registers {0} dicom test(s)" -f $n)
+          if ($n -eq 0) { Write-Error "ctest registered no tests under build/ci-dicom"; exit 1 }
+          ctest --test-dir build/ci-dicom --build-config RelWithDebInfo --output-on-failure -E "Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance"
+          exit $LASTEXITCODE
+
+      - name: Upload dicom test results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-dicom-test-results
+          if-no-files-found: ignore
+          retention-days: 14
+          path: build/ci-dicom/Testing/
+
+      - name: Upload dicom binaries
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: xpe-ci-dicom-binaries
+          if-no-files-found: warn
+          retention-days: 14
+          # vcpkg_installed/.../bin carries the DCMTK/OpenJPEG runtime xpe_dicom.dll
+          # loads; bin/ alone would upload a DLL that cannot load (GUI-C-196 M3b).
+          path: |
+            build/ci-dicom/bin/
+            build/ci-dicom/vcpkg_installed/x64-windows/bin/
+
   # ONNX Runtime inference gate (#130, QA-B-160).
   #
   # WHY THIS IS ITS OWN JOB AND NOT A FLAG ON post-build.
@@ -514,7 +711,7 @@ jobs:
         run: ctest --test-dir build/ci-ai --build-config RelWithDebInfo --output-on-failure
 
   dotnet-tests:
-    needs: [detect-lane, common-build, preprocess-tests, post-build]
+    needs: [detect-lane, common-build, preprocess-tests, post-build, dicom-build]
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane == 'gui'
     runs-on: windows-latest
     timeout-minutes: 30
@@ -555,11 +752,37 @@ jobs:
           name: xpe-ci-post-binaries
           path: build/ci-common/bin/
 
+      # GUI-C-196 M3b. The real-module DICOM tests need xpe_dicom.dll AND the
+      # DCMTK/OpenJPEG runtime next to it. The merge rule is "never replace a
+      # name that is already there": the common/preprocess/post set was built
+      # together and wins. Measured locally with a stand-in vcpkg tree: the
+      # no-replace rule loads and passes; replacing common's fmt/spdlog/gtest
+      # with the vcpkg-tree copies fails to load xpe_dicom.dll with 0x8007007F
+      # (m3b/step2_copy_rules.txt). The CI vcpkg tree's own contents were NOT
+      # measured; the rule does not depend on them.
+      - name: Download dicom binaries
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-dicom-binaries
+          path: build/ci-dicom/
+
+      - name: Merge dicom DLLs into the common set (never replace)
+        shell: pwsh
+        run: |
+          $dest = 'build/ci-common/bin'
+          $added = @(); $kept = @()
+          Get-ChildItem build/ci-dicom -Recurse -Filter *.dll | Sort-Object FullName | ForEach-Object {
+            $target = Join-Path $dest $_.Name
+            if (Test-Path $target) { $kept += $_.Name } else { Copy-Item $_.FullName $target; $added += $_.Name }
+          }
+          Write-Host ("added {0} dll(s): {1}" -f $added.Count, ($added -join ', '))
+          Write-Host ("kept the common set's copy of {0} dll(s): {1}" -f $kept.Count, ($kept -join ', '))
+
       - name: Verify native binaries present
         shell: pwsh
         run: |
           $missing = @()
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll')) {
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll', 'xpe_display.dll', 'xpe_dicom.dll', 'dcmdata.dll', 'openjp2.dll')) {
             if (-not (Test-Path "build/ci-common/bin/$n")) { $missing += $n }
           }
           if ($missing.Count -gt 0) {
@@ -575,6 +798,94 @@ jobs:
           -c Debug
           --logger "trx;LogFileName=integration-tests.trx"
           --results-directory build/dotnet-test-results
+
+      # GUI-C-209 M3 (#249, AC-12). SPEC-XPE-GUI-IT section 7 bounds three things in time: Category=Smoke < 30 s, the full run < 2 min,
+      # a single test < 5 s (and the 1000-cycle leak test, Category=Safety, < 90 s). Nothing measured any of them: the step above runs the whole
+      # suite with no filter, so Smoke was never selected on its own and no duration was ever compared with a limit. The SPEC recommends x1.5
+      # headroom on CI, applied here. A run that selects fewer tests than expected is a failure, not a fast pass (a filter that matches
+      # nothing finishes instantly). Measured locally on the reference box: full 11.6 s, Smoke 19 tests 2 s, slowest test 2.7 s.
+      - name: Assert the SPEC time gates (AC-12)
+        shell: pwsh
+        # Enforced from 2026-10-03 after reading the first runner output (483e8fd2, run 37095895181 dotnet-tests):
+        # full run 14.2 s of 180, slowest test 2.68 s of 7.5, Smoke 19 tests 1.3 s of 45, Safety 10 tests 1.3 s of 135.
+        env:
+          AC12_ENFORCE: '1'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $proj = 'clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj'
+          $trxPath = if ($env:AC12_TRX) { $env:AC12_TRX } else { 'build/dotnet-test-results/integration-tests.trx' }
+          # SPEC-XPE-GUI-IT section 7 limits x1.5 (the SPEC recommends x1.5 headroom on CI).
+          function Limit($name, $spec) { $v = [Environment]::GetEnvironmentVariable($name); if ($v) { [double]$v } else { $spec * 1.5 } }
+          $smokeLimit  = Limit 'AC12_SMOKE_LIMIT_S'  30
+          $fullLimit   = Limit 'AC12_FULL_LIMIT_S'   120
+          $testLimit   = Limit 'AC12_TEST_LIMIT_S'   5
+          $safetyLimit = Limit 'AC12_SAFETY_LIMIT_S' 90
+          $minSmoke    = if ($env:AC12_MIN_SMOKE) { [int]$env:AC12_MIN_SMOKE } else { 10 }
+          # GUI-C-216: a run that selected only one of the ten Safety tests used to pass this gate (minimum was 1).
+          $minSafety   = if ($env:AC12_MIN_SAFETY) { [int]$env:AC12_MIN_SAFETY } else { 10 }
+          $bad = @()
+
+          # Full Functional: the whole run just made by the previous step (trx start..finish), and the slowest single test.
+          [xml]$doc = Get-Content -LiteralPath $trxPath -Raw
+          $times = $doc.TestRun.Times
+          $full = ([datetime]$times.finish - [datetime]$times.start).TotalSeconds
+          $results = @($doc.TestRun.Results.UnitTestResult)
+          $slow = $results | ForEach-Object { [pscustomobject]@{ Name = $_.testName; Seconds = [timespan]::Parse($_.duration).TotalSeconds } } | Sort-Object Seconds -Descending | Select-Object -First 1
+          Write-Host ("full run: {0:N1} s over {1} result(s) (limit {2:N0} s); slowest test {3:N2} s: {4}" -f $full, $results.Count, $fullLimit, $slow.Seconds, $slow.Name)
+          if ($results.Count -eq 0) { $bad += 'the trx holds no results' }
+          if ($full -gt $fullLimit) { $bad += ("full run {0:N1} s > {1:N0} s" -f $full, $fullLimit) }
+          if ($slow.Seconds -gt $testLimit) { $bad += ("slowest test {0:N2} s > {1:N1} s: {2}" -f $slow.Seconds, $testLimit, $slow.Name) }
+
+          # Smoke and Safety are the categories the SPEC bounds; the trx carries no categories, so each is run on its own, wall-clock
+          # from process start (what the SPEC says it measures), and a run that selected too few tests is a failure, not a fast pass.
+          foreach ($c in @(@{ Cat = 'Smoke'; Limit = $smokeLimit; Min = $minSmoke }, @{ Cat = 'Safety'; Limit = $safetyLimit; Min = $minSafety })) {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $ErrorActionPreference = 'Continue'   # a native command's stderr must not become a terminating error
+            $out = dotnet test $proj -c Debug --no-build --filter "Category=$($c.Cat)" 2>&1 | Out-String
+            $sw.Stop()
+            $ErrorActionPreference = 'Stop'
+            # The summary line is 'Passed!  - Failed: 0, Passed: N, Skipped: 0, Total: N, ...' in every locale but with translated words; the four counts are positional (failed, passed, skipped, total).
+            $m = [regex]::Match($out, '(?m)^\S+!\s+-\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+)')
+            if (-not $m.Success) { $bad += ("Category={0}: no test summary line:`n{1}" -f $c.Cat, $out); continue }
+            if ([int]$m.Groups[1].Value -ne 0 -or [int]$m.Groups[3].Value -ne 0) { $bad += ("Category={0}: {1} failed, {2} skipped" -f $c.Cat, $m.Groups[1].Value, $m.Groups[3].Value) }
+            $total = [int]$m.Groups[4].Value
+            Write-Host ("Category={0}: {1} test(s), {2:N1} s wall-clock (limit {3:N0} s, at least {4} test(s))" -f $c.Cat, $total, $sw.Elapsed.TotalSeconds, $c.Limit, $c.Min)
+            if ($total -lt $c.Min) { $bad += ("Category={0} selected {1} test(s), expected at least {2}" -f $c.Cat, $total, $c.Min) }
+            if ($sw.Elapsed.TotalSeconds -gt $c.Limit) { $bad += ("Category={0} {1:N1} s > {2:N0} s" -f $c.Cat, $sw.Elapsed.TotalSeconds, $c.Limit) }
+          }
+
+          # Measure-first (lead, 2026-10-03): the limits above were derived on a local box; the runner's times are not yet known.
+          # Until the first CI runs have been read and the limits confirmed, an exceeded limit is reported as a warning.
+          # Set AC12_ENFORCE=1 (job env) to make it fail the job.
+          if ($bad.Count -gt 0) {
+            $msg = "AC-12 time gates exceeded:`n" + ($bad -join "`n")
+            if ($env:AC12_ENFORCE -eq '1') { Write-Error $msg; exit 1 } else { Write-Host "::warning::$($msg -replace "`n", ' | ')" }
+          }
+
+      # GUI-C-196 M3b. These tests are [SkippableFact]: without their DLLs they
+      # end NotExecuted and the run is still green. Here a skip is a failure,
+      # and so is finding fewer results than expected (zero rows would otherwise
+      # pass a "none failed" check).
+      - name: Assert the real-module tests ran (a skip fails)
+        shell: pwsh
+        run: |
+          [xml]$doc = Get-Content -LiteralPath build/dotnet-test-results/integration-tests.trx -Raw
+          $all = @($doc.TestRun.Results.UnitTestResult)
+          Write-Host ("trx holds {0} result(s)" -f $all.Count)
+          # GUI-C-233/233c: BaselineDisplayNativeTests gained the polarity regression test (3 now); the real-runner test lives in BaselineReviewFixTests and must have PASSED.
+          $min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 3 }
+          $bad = @()
+          foreach ($class in $min.Keys) {
+            $rows = @($all | Where-Object { $_.testName -like "*.$class.*" })
+            $passed = @($rows | Where-Object { $_.outcome -eq 'Passed' })
+            Write-Host ("{0}: {1} result(s), {2} passed, {3} not executed" -f $class, $rows.Count, $passed.Count, @($rows | Where-Object { $_.outcome -eq 'NotExecuted' }).Count)
+            if ($rows.Count -lt $min[$class] -or $passed.Count -ne $rows.Count) { $bad += $class }
+          }
+          if ($bad.Count -gt 0) { Write-Error ("real-module tests skipped or missing: " + ($bad -join ', ')); exit 1 }
+
+          $runner = @($all | Where-Object { $_.testName -like '*TheRealRunner_ReceivingInvalidInputFromTheRealModule_FailsTheBaseline_WithTheCallAndTheCode*' })
+          Write-Host ("real-runner test: {0} result(s), outcome(s): {1}" -f $runner.Count, (($runner | ForEach-Object { $_.outcome }) -join ','))
+          if ($runner.Count -ne 1 -or $runner[0].outcome -ne 'Passed') { Write-Error 'the real GuiPreprocessRunner test did not pass (skipped, failed or missing)'; exit 1 }
 
       - name: Upload C# test results
         if: always()
@@ -640,6 +951,29 @@ jobs:
         shell: pwsh
         run: dotnet run --project gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug --no-build
 
+  gui-shipped-build:
+    # GUI-C-192e/192f (GUI-C-193): the shipped (Release) operator app must not contain the test fault switches. Every other job builds Debug, so
+    # nothing else would notice a Release build that carries them. The script builds Debug as a positive control (the scan must FIND the strings
+    # there), builds Release and scans its dll/pdb/xml, checks that -p:XpeTestFaults=true is refused for Release with error XPE0001, and runs the
+    # Release exe with each switch expecting exit code 2.
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Check the shipped build
+        shell: pwsh
+        run: ./tools/ci/Test-ShippedBuild.ps1
+
   gui-automation:
     # WPF automation run of the operator app (gui/ImageProcTest) on a hosted
     # runner. GUI-C-25 (#136) showed a hidden-window non-interactive run works
@@ -648,9 +982,12 @@ jobs:
     # so no native DLLs are needed; the Native variant follows GUI-C-26
     # (--automation-backend). A failure here is one red job, not a gate on
     # the native lanes.
+    # 15 -> 30 (2026-10-03): the Mock suite took 14m39s on dbade001 and was cut at 15m on e8db144c with tests
+    # still running (xUnit 12:56 elapsed, no hang - the last lines are ordinary skips). The suite grew, the
+    # limit did not; a cut is an absence of evidence, not a red.
     needs: [detect-lane]
     runs-on: windows-2025
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -749,7 +1086,7 @@ jobs:
     # over with XPE_NATIVE_DIR + XPE_NATIVE_DIR_EXCLUSIVE=1 - the app folder holds
     # no xpe_*.dll, so a pass here proves the locator path, not the OS loader.
     # S-05 demands a real semver and fails if the app silently fell back to Mock.
-    needs: [detect-lane, common-build, preprocess-tests, post-build]
+    needs: [detect-lane, common-build, preprocess-tests, post-build, dicom-build]
     runs-on: windows-2025
     # 20 -> 30 (2026-09-30). Measured on main, same job, three consecutive runs:
     # 18 min, 19 min, then 20:14 -- cancelled exactly at the 20-minute limit
@@ -764,9 +1101,18 @@ jobs:
     # 1.5x in a week. GUI-C-164 is dispatched to measure per-scenario duration
     # so the next budget number is derived rather than guessed.
     #
-    # 30 matches the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
-    # restores roughly 50% headroom over the last observed 20 min.
-    timeout-minutes: 30
+    # 30 matched the peer jobs (preprocess-tests, ai-onnx, dotnet-tests) and
+    # restored roughly 50% headroom over the then-observed 20 min.
+    #
+    # Raised to 45 (2026-10-03): at 090532a6 the job took 24.7 min (headroom
+    # already down to ~18%); at e8e14166 the same 148 scenarios summed 1499 s
+    # against 1166 s (+29%) and the job was cancelled at 30 min with every
+    # finished scenario passing. The rise is spread across most scenarios (one
+    # outlier: A3 filtered-list 34 -> 125 s), which reads as runner variance
+    # plus content growth, not a hang. 45 restores ~80% headroom over 24.7 min.
+    # #262: the real-data walkthroughs (W3 builds a 1024 set, W9 ~4 min, W12-W15 five opens each) push this job past 45 min:
+    # run 38523309095 was cancelled at 45 min after 281 cases, none failed. 75 leaves room; if it grows further, split the job.
+    timeout-minutes: 75
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -779,6 +1125,13 @@ jobs:
       - name: Build gui app
         shell: pwsh
         run: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug
+
+      # GUI-C-212 (#249): LegacyPreprocessReadinessScenarios launch the legacy diagnostic app (clients/ImageProcTest) and read its Diagnostics, Calibration and
+      # Evaluation tabs through UIA. This job built only the gui app, so those scenarios would SKIP here ("ImageProcTest.exe was not found") and the unexplained-skip
+      # gate below would fail the job - which is the intended answer to a staging fault, so the app is built here rather than the skip being allow-listed.
+      - name: Build the legacy diagnostic app
+        shell: pwsh
+        run: dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug
 
       # A04/A05/A06 drive the two console runners THROUGH the app and assert it
       # reports their verdict. This job built only the app, so all three landed
@@ -808,6 +1161,26 @@ jobs:
           merge-multiple: true
           path: build/e2e-native-dlls/
 
+      # GUI-C-196 M4 (A19 runs the Deterministic Baseline on the real modules and needs xpe_dicom.dll with the DCMTK/OpenJPEG runtime). Without them A19
+      # SKIPS, and this job's unexplained-skip gate below fails on it. Same merge rule as dotnet-tests (GUI-C-196 M3b): a name already staged is never replaced.
+      - name: Stage dicom DLLs into the same directory (never replace)
+        uses: actions/download-artifact@v6
+        with:
+          name: xpe-ci-dicom-binaries
+          path: build/ci-dicom/
+
+      - name: Merge dicom DLLs (never replace)
+        shell: pwsh
+        run: |
+          $dest = 'build/e2e-native-dlls'
+          $added = @(); $kept = @()
+          Get-ChildItem build/ci-dicom -Recurse -Filter *.dll | Sort-Object FullName | ForEach-Object {
+            $target = Join-Path $dest $_.Name
+            if (Test-Path $target) { $kept += $_.Name } else { Copy-Item $_.FullName $target; $added += $_.Name }
+          }
+          Write-Host ("added {0} dll(s): {1}" -f $added.Count, ($added -join ', '))
+          Write-Host ("kept the staged copy of {0} dll(s): {1}" -f $kept.Count, ($kept -join ', '))
+
       - name: Verify staged DLLs and that the app folder holds none
         shell: pwsh
         run: |
@@ -821,7 +1194,7 @@ jobs:
           # stage's E2E must reach the module and observe its failure path, not
           # pass on "DLL not found". Both ship in xpe-ci-post-binaries already;
           # listing them makes a missing one fail here instead of in silence.
-          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll', 'xpe_ai.dll', 'xpe_ai_worker.exe')) {
+          foreach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_display.dll', 'gsvg.dll', 'xpe_ai.dll', 'xpe_ai_worker.exe', 'xpe_enhance_basic.dll', 'xpe_dicom.dll', 'dcmdata.dll', 'openjp2.dll')) {
             if (-not (Test-Path "$dir/$n")) { Write-Error "missing $n in $dir"; exit 1 }
           }
           $appDir = 'gui/ImageProcTest/bin/Debug/net8.0-windows'
@@ -869,6 +1242,37 @@ jobs:
           } | ConvertTo-Json -Depth 4 | Set-Content "$dir/provenance.json" -Encoding utf8
           Get-Content "$dir/provenance.json"
 
+      # #262 (QA-A-248, user approval 2026-10-14): milestone 3 U2/U8 run on REAL data. The CalData_6 frames and the
+      # first-stage reference image are public assets of release testdata-calib-v1 (SHA256SUMS.txt checked below);
+      # xpe_calib_fixture_gen (in xpe-ci-preprocess-binaries, staged above) builds the calibration set from them.
+      # Without this step the walkthroughs W1/W7/W12-W15 are not even collected and W16 skips as #262.
+      - name: Build the real-data calibration set (QA-A-248, #262)
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $in = Join-Path $env:RUNNER_TEMP 'CalData_6'
+          gh release download testdata-calib-v1 -R $env:GITHUB_REPOSITORY -D $in --clobber
+          if ($LASTEXITCODE -ne 0) { Write-Error 'release testdata-calib-v1 download failed'; exit 1 }
+          foreach ($line in Get-Content (Join-Path $in 'SHA256SUMS.txt')) {
+            $hash, $name = $line -split '\s+\*?', 2
+            $got = (Get-FileHash (Join-Path $in $name) -Algorithm SHA256).Hash.ToLower()
+            if ($got -ne $hash) { Write-Error "$name sha256 $got, expected $hash"; exit 1 }
+          }
+          $gen = Join-Path $PWD 'build/e2e-native-dlls/xpe_calib_fixture_gen.exe'
+          if (-not (Test-Path $gen)) { Write-Error "missing $gen (expected in xpe-ci-preprocess-binaries)"; exit 1 }
+          $out = Join-Path $env:RUNNER_TEMP 'calib-real'
+          # --expiry-ms 4102444800000 = 2100-01-01: a fixed far date keeps the files byte-identical between runs; without it the
+          # module raises XPE_WARN_NO_EXPIRY x3, which calib-real-v2 (what the walkthroughs were written against) does not.
+          & $gen --out $out --caldata $in --expiry-ms 4102444800000
+          if ($LASTEXITCODE -ne 0) { Write-Error "xpe_calib_fixture_gen exited $LASTEXITCODE"; exit 1 }
+          Get-ChildItem $out | Select-Object Name, Length
+          "XPE_C231_NATIVE_DIR=$(Join-Path $PWD 'build/e2e-native-dlls')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_CALIB_DIR=$out" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW=$(Join-Path $PWD 'gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW_SIZE=3072x3072" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_BASELINE_F32=$(Join-Path $in 'wrist_lat_3072x3072_corrected_v2_f32le.raw')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Run FlaUI E2E smoke (Native)
         shell: pwsh
         env:
@@ -879,12 +1283,35 @@ jobs:
           # deliberately NOT given an allow-list entry for these: an input-gated skip here
           # means the opt-in failed, and that should stay red.
           XPE_E2E_ALLOW_GLOBAL_INPUT: "1"
+        # GUI-C-235c: `Category=Measurement` marks env-gated measurement probes (e.g.
+        # LegacyStartupResponsivenessProbe), not regression tests. Collected here they end
+        # NotExecuted and trip the unexplained-skip gate below. Only those probes carry the
+        # trait (checked with --list-tests); tagging a regression test with it hides it.
+        # #268: two runs (38523309095, 38530320078) stopped right after W12 with an ImageProcTest left running
+        # until the job limit. --blame-hang-timeout ends a test that runs past 10 minutes (longest observed
+        # test: 40 s) and names it in the log, so a hang fails one test instead of cancelling the job.
         run: >
           dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj
           -c Debug
+          --filter "Category!=Measurement"
           --logger "trx;LogFileName=e2e-smoke-native.trx"
           --logger "console;verbosity=detailed"
           --results-directory build/e2e-native-results
+          --blame-hang-timeout 10m
+          --blame-hang-dump-type none
+
+      # GUI-C-218: a test that failed while launching an app could leave that app running, and an app started with
+      # UseShellExecute=false inherits this step's output pipe - dotnet test then waits on the pipe until the job limit.
+      # The test-side leak is fixed (LaunchOrSkip is exception-safe); this step is the job-side backstop, and it
+      # reports what it had to kill so a leak is visible rather than silently cleaned up.
+      - name: Kill leftover app processes (backstop, reports what it found)
+        if: always()
+        shell: pwsh
+        run: |
+          $left = @(Get-Process -Name 'ImageProcTest*', 'xpe_ai_worker' -ErrorAction SilentlyContinue)
+          if ($left.Count -eq 0) { Write-Host 'no leftover app processes'; exit 0 }
+          foreach ($p in $left) { Write-Host ("::warning::leftover process {0} (pid {1}) after the E2E step - a test did not close it" -f $p.ProcessName, $p.Id) }
+          $left | Stop-Process -Force -ErrorAction SilentlyContinue
 
       # GUI-C-37: when the XCal generator is absent the Native W-02 scenario SKIPs rather
       # than failing (so an unmeasured run is not reported as "measured fine"). The
@@ -940,6 +1367,7 @@ jobs:
           # deliberate act that shows up in the run summary.
           $allowed = @{
             '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
+            '265' = 'walkthrough W10 needs an old-build DLL folder (XPE_C232B_OLD_NATIVE_DIR); no such DLLs in the repository or CI (GUI-C-239)'
           }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
@@ -995,6 +1423,138 @@ jobs:
           retention-days: 14
           path: build/e2e-native-results/
 
+  clang-tidy:
+    # QA-A-234 (#253): clang-tidy over modules/common and modules/preprocess with each module's .clang-tidy.
+    # A baseline gate: a (check, file) pair with more findings than tools/ci/clang_tidy_baseline_<module>.txt
+    # fails the job. If the runner image has no clang-tidy the script says so and fails -- that first run is how
+    # we learn whether windows-2025 ships it.
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Ensure Ninja is available
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+            choco install ninja -y --no-progress
+          }
+          ninja --version
+
+      - name: Configure MSVC developer environment
+        shell: pwsh
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Use-MsvcDevShell.ps1 -PersistForGitHubActions
+
+      - name: Configure CMake (preprocess builds common too)
+        shell: pwsh
+        run: cmake --preset ci-preprocess
+
+      # The baselines must come from THIS runner's clang-tidy: the first run found 19 findings in common headers
+      # (bugprone-macro-parentheses, performance-enum-size) that the lane's local LLVM 19.1.5 never reports, so the
+      # committed baselines (made locally) disagree with the gate's tool. This step writes what this tool sees into
+      # temporary files and uploads them, so the baselines can be regenerated from the gate's own tool. It never
+      # touches the committed baselines.
+      - name: Write the baselines this runner's clang-tidy would produce (artifact, not compared)
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/clang-tidy-observed | Out-Null
+          foreach ($m in 'common', 'preprocess') {
+            python tools/ci/check_clang_tidy.py $m build/ci-preprocess "build/clang-tidy-observed/clang_tidy_baseline_$m.txt" --write-baseline
+          }
+
+      - name: Upload the observed baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-tidy-observed-baselines
+          path: build/clang-tidy-observed/
+
+      # The baselines are the ones this runner's clang-tidy wrote (artifact above, run at main ac6d0be4), so a NEW
+      # line here is a real new finding, not tool-version skew. When the runner's LLVM changes, regenerate from the
+      # artifact rather than from a local clang-tidy (#256).
+      - name: clang-tidy modules/common against its baseline
+        shell: pwsh
+        run: python tools/ci/check_clang_tidy.py common build/ci-preprocess tools/ci/clang_tidy_baseline_common.txt
+
+      - name: clang-tidy modules/preprocess against its baseline
+        shell: pwsh
+        run: python tools/ci/check_clang_tidy.py preprocess build/ci-preprocess tools/ci/clang_tidy_baseline_preprocess.txt
+
+  cppcheck:
+    name: cppcheck
+    # A GATE since #255. The analysis step below still runs with --error-exitcode=0 (it only writes the XML and refuses
+    # a tool that did not run); the gate step compares each module's findings with tools/ci/cppcheck_baseline_<m>.txt
+    # by identity (id, path, message, flagged line text) and fails on any finding above the baseline. A positive
+    # control (a certain null dereference, analyzed with the same flags) runs first so blind flags cannot pass.
+    # The baselines were written from main d58e992d (run 37187451238): common 0, preprocess 4. cppcheck is not
+    # installed on the lane machines -- regenerate from the `cppcheck-results` artifact with --write-baseline.
+    needs: detect-lane
+    if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
+    runs-on: windows-2025
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install cppcheck
+        shell: pwsh
+        run: |
+          # Always the official package at a known path. The runner image carries another cppcheck on PATH (a winlibs
+          # build, 2nd CI run d13b30d3) whose library files are missing: it printed "Failed to load std.cfg ... Your
+          # Cppcheck installation is broken" and the count step still printed "0 finding(s)" -- a broken tool posing as
+          # a clean result. Use the package's own executable and prove its std.cfg is present before any count.
+          choco install cppcheck -y --no-progress
+          $cpp = 'C:\Program Files\Cppcheck\cppcheck.exe'
+          if (-not (Test-Path $cpp)) { throw "cppcheck not found after install: $cpp" }
+          if (-not (Test-Path 'C:\Program Files\Cppcheck\cfg\std.cfg')) { throw "cppcheck std.cfg is missing next to ${cpp}: the installation cannot analyze" }
+          & $cpp --version
+          if ($LASTEXITCODE -ne 0) { throw "cppcheck --version failed ($LASTEXITCODE)" }
+          Add-Content -Path $env:GITHUB_ENV -Value "CPPCHECK_EXE=$cpp"
+
+      - name: Run cppcheck (writes the XML; the next step gates)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build/cppcheck | Out-Null
+          foreach ($m in 'common', 'preprocess') {
+            & $env:CPPCHECK_EXE --enable=warning,performance,portability --std=c++17 `
+              --inline-suppr --suppress=missingIncludeSystem --error-exitcode=0 --xml `
+              -I modules/common/include -I modules/preprocess/include -I modules/preprocess/src `
+              "modules/$m/src" 2> "build/cppcheck/$m.xml" | Tee-Object -FilePath "build/cppcheck/$m.stdout.txt"
+            $code = $LASTEXITCODE
+            # A count is only a count when the tool ran: non-zero exit, a "broken installation" message, or an XML
+            # file without its <results> root means the analysis did not happen, and 0 would be a lie.
+            $text = (Get-Content -Raw "build/cppcheck/$m.xml") + (Get-Content -Raw "build/cppcheck/$m.stdout.txt")
+            if ($code -ne 0) { throw "cppcheck exited $code on modules/$m" }
+            if ($text -match 'installation is broken|Failed to load') { throw "cppcheck could not load its configuration on modules/$m" }
+            if (-not (Select-String -Path "build/cppcheck/$m.xml" -Pattern '<results' -Quiet)) { throw "cppcheck wrote no <results> for modules/$m" }
+            $n = (Select-String -Path "build/cppcheck/$m.xml" -Pattern '<error ' -AllMatches).Matches.Count
+            Write-Host ("cppcheck modules/{0}: {1} finding(s)" -f $m, $n)
+          }
+
+      - name: cppcheck against the baselines (gate)
+        shell: pwsh
+        run: |
+          $flags = @('--enable=warning,performance,portability', '--std=c++17', '--inline-suppr',
+                     '--suppress=missingIncludeSystem', '--error-exitcode=0', '--xml')
+          python tools/ci/check_cppcheck.py build/cppcheck/common.xml tools/ci/cppcheck_baseline_common.txt --control $env:CPPCHECK_EXE -- @flags
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/ci/check_cppcheck.py build/cppcheck/preprocess.xml tools/ci/cppcheck_baseline_preprocess.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload cppcheck results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cppcheck-results
+          retention-days: 14
+          path: build/cppcheck/
+
   doxygen-headers:
     # QA-A-170: `Documentation Generation` caught a real header-doc regression
     # and stayed red for five runs because it triggers only on push to main --
@@ -1045,7 +1605,9 @@ jobs:
     # test jobs: a single flaky assertion there must not skip the coverage
     # measurement (#120, observed 2026-09-10 — EnduranceTest boundary failure
     # skipped both coverage presets). Test pass/fail stays the test jobs' gate.
-    if: github.event_name == 'workflow_dispatch'
+    # QA-A-234 (#253): the 85% gate runs for every push to main (common + preprocess only, about 16 min, a job of its
+    # own so it delays no other job); all three presets run on the weekly schedule and on manual dispatch.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: windows-2025
     timeout-minutes: 90
     strategy:
@@ -1055,7 +1617,7 @@ jobs:
         # coverage-post  = common + gsvg/enhance_basic/enhance_advanced/display (ci-post scope)
         # coverage-dicom = common + dicom; the only preset that needs vcpkg
         #                  (DCMTK + OpenJPEG have no FetchContent fallback, #124)
-        preset: [coverage, coverage-post, coverage-dicom]
+        preset: ${{ fromJSON(github.event_name == 'push' && '["coverage"]' || '["coverage","coverage-post","coverage-dicom"]') }}
     name: coverage (${{ matrix.preset }})
 
     steps:

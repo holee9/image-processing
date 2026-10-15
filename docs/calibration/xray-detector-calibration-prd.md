@@ -583,9 +583,11 @@ m(t) = x_1 \cdot e^{x_2 \cdot t + x_3}
 |------------|------|----------|----------|
 | REQ-OFF-001 | 시스템은 pixelwise offset correction을 수행해야 한다: I_corr = I_raw - I_dark | Critical | Unit test |
 | REQ-OFF-002 | Dark map은 최소 N=16 프레임 평균으로 생성해야 한다 (factory: N≥100) | Critical | 코드 검토 |
-| REQ-OFF-003 | Factory calibration 시 온도 범위 15~40°C, 간격 5°C 이하로 측정해야 한다 | High | 절차 검토 |
-| REQ-OFF-004 | PREP time 1~30초 범위에서 dark map을 생성해야 한다 (간격: 1초 이하) | High | 절차 검토 |
-| REQ-OFF-005 | Dynamic dark correction은 현재 온도 ±2.5°C 이내의 참조 맵을 사용해야 한다 | High | 자동 테스트 |
+| REQ-OFF-003 | Factory calibration 시 온도 범위 15~40°C, 간격 5°C 이하로 측정해야 한다 | High | 절차 검토<br>**상태: 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** |
+| REQ-OFF-004 | PREP time 1~30초 범위에서 dark map을 생성해야 한다 (간격: 1초 이하) | High | 절차 검토<br>**상태: 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** |
+| REQ-OFF-005 | Dynamic dark correction은 현재 온도 ±2.5°C 이내의 참조 맵을 사용해야 한다 | High | 자동 테스트<br>**상태: 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** |
+
+> **상태 메모 (2026-10-03, `QA-A-233` 결정 11, #245 코멘트)**: REQ-OFF-003~005(온도별 오프셋 맵의 측정·선택·보간과 PREP-time dark map)는 구현되지 않았다. 오프셋 보정은 맵 한 장만 쓰고 `XpeImageMetadata` 에 온도 필드가 없다. 이와 구분해, **온도 보상 자체는 구현돼 있다** — `xpe_temp_compensate`(SPEC-XPE-P1A REQ-P1A-080, 시험 `GoldenTempTest`). 요구는 지우지 않는다.
 | REQ-OFF-006 | Portable detector의 경우 power mode별 별도 dark map을 유지해야 한다 | High | 통합 테스트 |
 | REQ-OFF-007 | Field dark update 시 uniformity check를 수행하고 비정상 시 업데이트를 거부해야 한다 | Critical | 자동 테스트 |
 | REQ-OFF-008 | Dark map 파일은 버전 관리 및 타임스탬프 정보를 포함해야 한다 | Medium | 코드 검토 |

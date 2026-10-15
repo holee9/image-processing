@@ -1,0 +1,27 @@
+ARM rule1-disabled-always-applies (superseded Disabled branch removed): build ok=True
+    ['실패!  - 실패:     1, 통과:    23, 건너뜀:     0, 전체:    24, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.AiStatusRefresherTests.ADisabledAnswer_IsShownFromTheFirstAnswer_EvenWhenARequestArrivesDuringEveryRead [5 ms]
+   restored byte-identical: True
+ARM rule2-active-withdrawn-at-bound (CheckFreshness does nothing): build ok=True
+    ['실패!  - 실패:     1, 통과:    23, 건너뜀:     0, 전체:    24, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.AiStatusRefresherTests.AnActive_NothingRefreshes_IsWithdrawnAtTheBound_AndNotBefore [2 ms]
+   restored byte-identical: True
+ARM rule3-old-generation-disabled-not-applied (Disabled applied before the generation check): build ok=True
+    ['실패!  - 실패:     5, 통과:    19, 건너뜀:     0, 전체:    24, 기간: 31 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.AiStatusRefresherTests.ADisabledAnswer_FromBeforeARestartOrABackendSwap_IsNotShown(backendSwap: True) [10 s]
+     red: Functional.AiStatusRefresherTests.ADisabledAnswer_FromBeforeARestartOrABackendSwap_IsNotShown(backendSwap: False) [10 s]
+     red: Functional.AiStatusRefresherTests.AfterTheBackendIsReplaced_AStaleReadIsDropped_AndTheScreenShowsTheNewBackend [10 s]
+     red: Functional.AiStatusRefresherTests.ARead_ForABackendThatIsNoLongerTheCurrentOne_IsDropped_EvenWithTheSameGeneration [1 ms]
+     red: Functional.AiStatusRefresherTests.ARead_StartedBeforeAReset_OfTheSameBackend_IsDropped_AndTheOneAfterItIsShown [14 ms]
+   restored byte-identical: True
+ARM rule4-overtaken-active-not-shown (192: superseded answers applied): build ok=True
+    ['실패!  - 실패:     3, 통과:    21, 건너뜀:     0, 전체:    24, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.AiStatusRefresherTests.RequestsThatPileUpWhileAReadRuns_BecomeExactlyOneMoreRead [109 ms]
+     red: Functional.AiStatusRefresherTests.AnAnswerOlderThanANewerRequest_IsNeverApplied_OnlyTheNewestIs [180 ms]
+     red: Functional.AiStatusRefresherTests.AnActiveAnswer_ThatANewerRequestHasOvertaken_IsStillNeverShown [< 1 ms]
+   restored byte-identical: True
+ARM rule5-disabled-never-withdrawn (bound withdraws any shown state): build ok=True
+    ['실패!  - 실패:     1, 통과:    23, 건너뜀:     0, 전체:    24, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.AiStatusRefresherTests.ADisabled_IsNeverWithdrawnByTheBound [3 ms]
+   restored byte-identical: True
+AFTER RESTORE: True ['통과!  - 실패:     0, 통과:    24, 건너뜀:     0, 전체:    24, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']

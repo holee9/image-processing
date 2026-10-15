@@ -1,0 +1,28 @@
+## CI run 37095895181 (main 483e8fd2), dotnet-tests job, full-run trx
+counters: total=688 executed=688 passed=688 failed=0 notExecuted=0 (a skipped test shows as outcome NotExecuted on its result and executed < total; see skip_outcome_in_trx.txt)
+Passed   00:00:00.0013193  Safety.DllSearchPathSafetyTests.ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns
+Passed   00:00:00.0001391  Safety.DllSearchPathSafetyTests.ResolvedDllPath_IsUnderBuildTreeOrTestOutput
+Passed   00:00:00.0084947  Safety.DllSearchPathSafetyTests.TheLoadedModule_IsTheResolvedFile
+Passed   00:00:00.0321162  Safety.LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak
+Passed   00:00:00.0061134  Safety.LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated
+Passed   00:00:00.0198421  Safety.LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed
+Passed   00:00:00.1210738  Safety.MockBlockingTests.CompositeXpeBackend_TypeNotLoadedInTestAssemblies
+Passed   00:00:00.0039432  Safety.MockBlockingTests.MockXpeBackend_TypeNotLoadedInTestAssemblies
+Passed   00:00:00.0003504  Safety.MockBlockingTests.TestAssembly_HasNoMockBackendReference
+Passed   00:00:00.2028143  Safety.MockBlockingTests.TheTypeScan_FindsATypeThatIsLoaded
+sum of the 10 test durations: 0.396 s
+
+## LOCAL, filter Category=Safety
+counters: total=10 executed=10 passed=10 failed=0 notExecuted=0 (a skipped test shows as outcome NotExecuted on its result and executed < total; see skip_outcome_in_trx.txt)
+Passed   00:00:00.0032631  Safety.DllSearchPathSafetyTests.ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns
+Passed   00:00:00.0054776  Safety.DllSearchPathSafetyTests.ResolvedDllPath_IsUnderBuildTreeOrTestOutput
+Passed   00:00:00.0075773  Safety.DllSearchPathSafetyTests.TheLoadedModule_IsTheResolvedFile
+Passed   00:00:00.0412350  Safety.LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak
+Passed   00:00:00.0062157  Safety.LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated
+Passed   00:00:00.0134374  Safety.LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed
+Passed   00:00:00.0110554  Safety.MockBlockingTests.CompositeXpeBackend_TypeNotLoadedInTestAssemblies
+Passed   00:00:00.0024819  Safety.MockBlockingTests.MockXpeBackend_TypeNotLoadedInTestAssemblies
+Passed   00:00:00.0003537  Safety.MockBlockingTests.TestAssembly_HasNoMockBackendReference
+Passed   00:00:00.0820271  Safety.MockBlockingTests.TheTypeScan_FindsATypeThatIsLoaded
+sum of the 10 test durations: 0.173 s
+

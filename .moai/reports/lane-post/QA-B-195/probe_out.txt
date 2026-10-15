@@ -1,0 +1,26 @@
+PROBE sizes x2=122 x3=122 bytes
+PROBE bone/original(x2) init=0 bone rc=0 out[0..2]=2.00 2.02 2.04 (input 1.00 1.01 1.02)
+PROBE bone/original(x2) alerts=1 | AI-processed: bone suppression applied (SRS-ALERT-004)
+PROBE bone/file swapped for a DIFFERENT valid model (x3) init=0 bone rc=0 out[0..2]=3.00 3.03 3.06 (input 1.00 1.01 1.02)
+PROBE bone/file swapped for a DIFFERENT valid model (x3) alerts=1 | AI-processed: bone suppression applied (SRS-ALERT-004)
+PROBE bone/flip: the constant 2.0f (00 00 00 40) is at offset 69
+PROBE bone/ONE byte changed in the weights (2.0 -> 3.0) init=0 bone rc=0 out[0..2]=3.00 3.03 3.06 (input 1.00 1.01 1.02)
+PROBE bone/ONE byte changed in the weights (2.0 -> 3.0) alerts=1 | AI-processed: bone suppression applied (SRS-ALERT-004)
+PROBE bone/truncated to half init=0 bone rc=-4 out[0..2]=-777.00 -777.00 -777.00 (input 1.00 1.01 1.02)
+PROBE bone/truncated to half alerts=0
+PROBE bone/64 bytes of garbage appended init=0 bone rc=-4 out[0..2]=-777.00 -777.00 -777.00 (input 1.00 1.01 1.02)
+PROBE bone/64 bytes of garbage appended alerts=0
+PROBE bone/zero-length file init=0 bone rc=-4 out[0..2]=-777.00 -777.00 -777.00 (input 1.00 1.01 1.02)
+PROBE bone/zero-length file alerts=0
+PROBE part/original(a) init=0 bodypart rc=0 label='CHEST' conf=0.600
+PROBE part/original(a) alerts=0
+PROBE part/SIDECAR ONLY replaced (labels HAND x3) init=0 bodypart rc=0 label='HAND' conf=0.600
+PROBE part/SIDECAR ONLY replaced (labels HAND x3) alerts=0
+PROBE part/model file swapped for model b (sidecar of a) init=0 bodypart rc=0 label='SPINE' conf=0.600
+PROBE part/model file swapped for model b (sidecar of a) alerts=0
+PROBE part/sidecar with hash fields that match nothing init=0 bodypart rc=0 label='CHEST' conf=0.600
+PROBE part/sidecar with hash fields that match nothing alerts=0
+PROBE CNG ECDSA_P256 open status=0x00000000
+PROBE CNG "Ed25519" open status=0xc0000225 (0 = available)
+PROBE CNG SHA-256 of 256 MiB: 125 ms
+PROBE CNG ECDSA P-256 verify: status=0x00000000, 0.085 ms each (200 runs)

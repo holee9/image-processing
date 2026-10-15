@@ -14,22 +14,32 @@ public static class XpeBackendFactory
         // path this factory reports is the path that will be loaded. Before GUI-C-32 both were
         // hard-coded to AppContext.BaseDirectory, which made XPE_NATIVE_DIR inert for gui even
         // after a resolver was installed — the factory fell back to Mock before any P/Invoke ran.
+        //
+        // GUI-C-238b (Codex #193): when the search is pinned (XPE_NATIVE_DIR_EXCLUSIVE=1) the path reported for a DLL that was not found is in the PINNED folder, never the application folder: a fallback
+        // to the application folder here would test, and start, a DLL the caller excluded. A pin without a folder has no path at all.
+        var pinnedWithoutFolder = NativeSearchPolicy.ExclusiveWithoutDirectory;
+        var reportFolder = NativeSearchPolicy.ExclusiveDirectory ?? AppContext.BaseDirectory;
         var commonDllPath = XpeCommonLibraryLocator.TryFindDll()
-            ?? Path.Combine(AppContext.BaseDirectory, "xpe_common.dll");
+            ?? Path.Combine(reportFolder, "xpe_common.dll");
         var displayDllPath = NativeModuleLibraryLocator.TryFindDll("xpe_display.dll", "image-processing")
-            ?? Path.Combine(AppContext.BaseDirectory, "xpe_display.dll");
-        var commonDllDetected = File.Exists(commonDllPath);
-        var displayDllDetected = File.Exists(displayDllPath);
+            ?? Path.Combine(reportFolder, "xpe_display.dll");
+        var commonDllDetected = !pinnedWithoutFolder && File.Exists(commonDllPath);
+        var displayDllDetected = !pinnedWithoutFolder && File.Exists(displayDllPath);
         var rawImageLoader = new RawImageLoader();
 
-        if (string.Equals(settings.BackendMode, "Native", StringComparison.OrdinalIgnoreCase) &&
-            commonDllDetected &&
-            displayDllDetected &&
-            RealXpeBackend.CanUseNative(commonDllPath, displayDllPath))
+        string? refusal = null;
+        if (string.Equals(settings.BackendMode, "Native", StringComparison.OrdinalIgnoreCase))
         {
-            return new RealXpeBackend(rawImageLoader, commonDllPath, displayDllPath);
+            // GUI-C-238: the reason is asked for, not guessed from the flags - a DLL that exists can still be the wrong one (an old copy, missing exports).
+            refusal = pinnedWithoutFolder
+                ? "XPE_NATIVE_DIR_EXCLUSIVE=1 pins the native search to one folder, but XPE_NATIVE_DIR does not name it (the application folder is not searched instead)"
+                : RealXpeBackend.WhyNativeUnusable(commonDllPath, displayDllPath);
+            if (refusal is null)
+            {
+                return new RealXpeBackend(rawImageLoader, commonDllPath, displayDllPath);
+            }
         }
 
-        return new MockXpeBackend(rawImageLoader, commonDllPath, commonDllDetected, displayDllPath, displayDllDetected);
+        return new MockXpeBackend(rawImageLoader, commonDllPath, commonDllDetected, displayDllPath, displayDllDetected, refusal);
     }
 }

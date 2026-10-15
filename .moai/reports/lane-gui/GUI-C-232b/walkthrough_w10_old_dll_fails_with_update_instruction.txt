@@ -1,0 +1,36 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing [14 s]
+  표준 출력 메시지:
+    DLL: C:\Users\drake\AppData\Local\Temp\c215_native\xpe_preprocess.dll sha256 a9be9c8c480bcd2c49df13b538357589a1800ea3aa4190328bfdfbc9c9cf63b2 written 2026-10-03 14:04:14
+    dialog: 'Load Raw Image'
+    ok: the image summary appears
+    ok: the chain status changes
+    chain: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=22 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw — preprocess: Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.
+    status bar: chain: preprocess=RequestedNotApplied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+    LOG [09:18:30.491] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [09:18:30.466] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw'.
+    LOG [09:18:30.423] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw') invoked.
+    LOG [09:18:24.277] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [09:18:24.277] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [09:18:24.276] Display version = 1.0.0
+    LOG [09:18:24.276] xpe_display.dll = C:\Users\drake\AppData\Local\Temp\c215_native\xpe_display.dll
+    LOG [09:18:24.276] xpe_common.dll = C:\Users\drake\AppData\Local\Temp\c215_native\xpe_common.dll
+    LOG [09:18:24.276] Requested backend mode = Native
+    LOG [09:18:24.276] RealXpeBackend bootstrap started.
+    LOG [09:18:24.268] --- backend re-initialised ---
+    LOG [09:18:24.266] GUI-S0 initialized.
+    Save Corrected Image enabled: False
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 15.3662 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

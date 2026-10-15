@@ -129,6 +129,10 @@ logs/*
 
 # Certificate files
 *.pem
+# QA-B-195: the AI model-signing TEST keys are committed on purpose. They are not secret and the product never
+# trusts them (the production trust list is separate); only these two files are excepted from the rule above.
+!modules/ai/tests/data/signing/test_key_1.pem
+!modules/ai/tests/data/signing/test_key_2.pem
 *.p12
 *.pfx
 *.jks

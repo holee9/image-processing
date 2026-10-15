@@ -1,10 +1,10 @@
 config alpha1=0.02 tau1=3 alpha2=0.003 tau2=30; raw 1000 in every frame; frames at t=100, t2, t2+1
-stamp of frame 2 (frame 3 = +1 s)  corr f1      corr f2      corr f3     
-same second (dt = 0 -> 1.0 fallback) 1000.000     977.000      959.768     
-1 s later                          1000.000     977.000      959.768     
-5 s later                          1000.000     977.000      970.683     
-600 s later (a patient change)     1000.000     977.000      977.000     
-10^7 s later                       1000.000     977.000      977.000     
+stamp of frame 2 (frame 3 = +1 s)  corr f1      corr f2      corr f3
+same second (dt = 0 -> 1.0 fallback) 1000.000     977.000      959.768
+1 s later                          1000.000     977.000      959.768
+5 s later                          1000.000     977.000      970.683
+600 s later (a patient change)     1000.000     977.000      977.000
+10^7 s later                       1000.000     977.000      977.000
 
 unknown time (acquisitionTime = 0 on every frame): ['1000.000', '977.000', '959.768']
 time going backwards (100, 90, 91):  ['1000.000', '977.000', '959.768']

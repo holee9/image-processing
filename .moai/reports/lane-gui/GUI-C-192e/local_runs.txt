@@ -1,0 +1,2 @@
+통과!  - 실패:     0, 통과:   398, 건너뜀:     1, 전체:   399, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)
+selfcheck exit 0

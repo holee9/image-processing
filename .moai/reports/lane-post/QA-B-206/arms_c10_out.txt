@@ -1,0 +1,28 @@
+=== ARM floor_as_before_timeoutMs_div_1000_no_minimum
+red tests: DicomTimeout.ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred, DicomTimeout.ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred, DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== ARM floor_with_a_minimum_of_one_second
+red tests: DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM round_to_nearest_with_a_minimum_of_one_second
+red tests: DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM ceil_without_the_minimum_equivalent_for_every_timeoutMs_above_0
+red tests: (none)
+RESULT: no test red, as expected for an equivalent mutant (an arm expected NOT to change any result)
+restored byte-identical: True
+=== ARM c_store_only_goes_back_to_floor
+red tests: DicomTimeout.ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred, DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM c_find_only_goes_back_to_floor
+red tests: DicomTimeout.ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM only_the_ACSE_timeout_is_set (observation: does the stall still return in time with only the ACSE timeout?)
+red tests: (none)
+restored byte-identical: True
+=== DONE

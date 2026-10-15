@@ -1,0 +1,5 @@
+# with git on PATH
+d700e74be0
+# git NOT on PATH (PATH = dotnet + System32 only)
+unknown
+exit=0

@@ -1,0 +1,14 @@
+  scenario '1 started Apply vs shutdown': 167 ms
+  scenario '1b started Apply fails after shutdown': 125 ms
+  scenario '2 entry points vs transition': 94 ms
+  scenario '3 stale failing Lane B': 118 ms
+  scenario '3b stale succeeding Lane B': 125 ms
+  scenario '4 older Apply finishes last (main chain, succeeds)': 124 ms
+  scenario '4 older Apply finishes last (main chain, fails)': 118 ms
+  scenario '4 older Apply finishes last (Lane B, succeeds)': 125 ms
+  scenario '4 older Apply finishes last (Lane B, fails)': 125 ms
+  scenario '5 Candidate lane = second AI call, status read after it': 33 ms
+  scenario '5b equal lanes = one AI call per Apply': 28 ms
+  scenario '7 older status read never shown': 63 ms
+Lifetime scenarios passed (12 scenarios).
+GUI-S0 self-check passed.

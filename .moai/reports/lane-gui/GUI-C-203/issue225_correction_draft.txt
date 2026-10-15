@@ -1,0 +1,25 @@
+#225 correction draft (GUI-C-203). Wording only: the issue is the leader's, nothing here is applied.
+Base: dev/gui = main 52a2b2a5. Read from the issue body of 2026-10-01 15:52; comments were not read.
+
+Title: "15 disabled operator menus" -> "3 disabled menus remain (Open DICOM, QA Constancy, GSDF Calibrate)".
+
+Body, replace the classification paragraph with:
+  IsEnabled="False" in MainWindow.xaml: 21 (GUI-C-152) -> 3 now.
+  The three views of the count agree on all three backends (Mock; Native with xpe_ai.dll; Native without it):
+    the app's name list = 3, the app's own menu-tree walk = 3, the XAML parse = 3 (GUI-C-203 axis files).
+  Done: all 15 "possible" rows, plus Deterministic Baseline (row 9), AI Bone Suppression (row 10, formerly Full Pipeline), Troubleshooting (row 21).
+  Left:
+    row 2  Open DICOM       user-deferred. xpe_dicom already exports open/read_image/get_metadata; GUI read path only.
+    row 18 QA Constancy     requirement undecided (no reference images or criteria in the repo; found by file-name search only).
+    row 19 GSDF Calibrate   needs measured luminance input; the module's xpe_gsdf_calibrate exists.
+
+Stale sentences:
+  - "MainWindow.xaml.cs:318-339 counts these as !IsEnabled" -> the line numbers are stale and the method changed: GUI-C-169 made the report's count a three-way equality (name list == tree walk == XAML), asserted by AutomationReportBackendTests.A11.
+  - "row 10 (Full Pipeline, #130)" -> the item is "Run AI Bone Suppression", with its own availability rule (MENU-001 section 8, GUI-C-184/198).
+  - "the 'remaining' list: after #130 row 10; after enhance_basic/dicom row 9 -> row 21" -> all three landed.
+  - "Run Deterministic Baseline" is no longer in the disabled list; it is a conditional command (enabled on the native backend). Do not count it as remaining.
+
+Conditionally disabled, not "remaining": Run Preprocessing (native backend), Run Deterministic Baseline (native backend), Run AI Bone Suppression (AI session, initialized, xpe_ai.dll found), Open Recent (recent-file history).
+
+Still true: the row-4 paragraph (Native mode switching is a command).
+Suggest: close #225 when the three are filed as their own issues (or already tracked), since the "operator disabled menus" ask itself is met.

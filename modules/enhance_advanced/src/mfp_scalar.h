@@ -42,7 +42,11 @@ public:
      * @param config Enhancement configuration
      * @param outData Output buffer (must be pre-allocated to width * height)
      */
-    void reconstruct(const MfpConfig& config, float* outData);
+    /**
+     * @brief Rebuild the image with the enhancement and write it to @p outData.
+     * @return false, with @p outData untouched, when the result would not be finite (QA-B-181g).
+     */
+    bool reconstruct(const MfpConfig& config, float* outData);
 
     /**
      * Get original dimensions

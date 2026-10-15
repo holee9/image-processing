@@ -1,0 +1,18 @@
+U1 a non-identity rescale is not announced: build_ok=True passed=['46'] red(4)=['Issue235Decided_RescaleIsNotAppliedButWarned', 'Tc235_RescaleNonIdentity_J2k_StoredValuesWithWarning', 'Tc235_RescaleNonIdentity_JpegLl_StoredValuesWithWarning', 'Tc235_RescaleNonIdentity_Native_StoredValuesWithWarning']
+U2 slope 0 is not refused: build_ok=True passed=['47'] red(3)=['Tc235_RescaleSlopeZero_J2k_RefusedInvalid', 'Tc235_RescaleSlopeZero_JpegLl_RefusedInvalid', 'Tc235_RescaleSlopeZero_Native_RefusedInvalid']
+U3 unreadable values are not refused: build_ok=True passed=['35'] red(15)=['Tc235_RescaleInterceptNotANumber_J2k_RefusedInvalid', 'Tc235_RescaleInterceptNotANumber_JpegLl_RefusedInvalid', 'Tc235_RescaleInterceptNotANumber_Native_RefusedInvalid', 'Tc235_RescaleSlopeEmpty_J2k_RefusedInvalid', 'Tc235_RescaleSlopeEmpty_JpegLl_RefusedInvalid', 'Tc235_RescaleSlopeEmpty_Native_RefusedInvalid', 'Tc235_RescaleSlopeNotANumber_J2k_RefusedInvalid', 'Tc235_RescaleSlopeNotANumber_JpegLl_RefusedInvalid', 'Tc235_RescaleSlopeNotANumber_Native_RefusedInvalid', 'Tc235_RescaleSlopeNotFinite_J2k_RefusedInvalid', 'Tc235_RescaleSlopeNotFinite_JpegLl_RefusedInvalid', 'Tc235_RescaleSlopeNotFinite_Native_RefusedInvalid', 'Tc235_RescaleSlopeTwoValues_J2k_RefusedInvalid', 'Tc235_RescaleSlopeTwoValues_JpegLl_RefusedInvalid', 'Tc235_RescaleSlopeTwoValues_Native_RefusedInvalid']
+U4 the intercept is never read: build_ok=True passed=['44'] red(6)=['Tc235_RescaleInterceptNotANumber_J2k_RefusedInvalid', 'Tc235_RescaleInterceptNotANumber_JpegLl_RefusedInvalid', 'Tc235_RescaleInterceptNotANumber_Native_RefusedInvalid', 'Tc235_RescaleNonIdentity_J2k_StoredValuesWithWarning', 'Tc235_RescaleNonIdentity_JpegLl_StoredValuesWithWarning', 'Tc235_RescaleNonIdentity_Native_StoredValuesWithWarning']
+U5 MONOCHROME2 is not masked: build_ok=False passed=None red(0)=[]
+U6 the mask alert is never posted: build_ok=True passed=['49'] red(1)=['Tc235_BitsAboveBitsStored_Native_MaskedWithInfoAlert']
+U7 the mask alert is posted even when nothing changed: build_ok=True passed=['49'] red(1)=['Tc235_BitsAboveBitsStored_Native_NothingToMaskPostsNothing']
+U8 an explicit identity (1.0 / 0.0) is announced: build_ok=True passed=['42'] red(8)=['Tc235_BitsAboveBitsStored_Native_MaskedWithInfoAlert', 'Tc235_BitsAboveBitsStored_Native_NothingToMaskPostsNothing', 'Tc235_Monochrome1_J2k_InvertedWithInfoAlert', 'Tc235_Monochrome1_JpegLl_InvertedWithInfoAlert', 'Tc235_Monochrome1_Native_InvertedWithInfoAlert', 'Tc235_RescaleIdentityExplicit_J2k_StoredValuesNoAlert', 'Tc235_RescaleIdentityExplicit_JpegLl_StoredValuesNoAlert', 'Tc235_RescaleIdentityExplicit_Native_StoredValuesNoAlert']
+U9 JPEG 2000 path does not announce the rescale: build_ok=True passed=['49'] red(1)=['Tc235_RescaleNonIdentity_J2k_StoredValuesWithWarning']
+U10 JPEG Lossless path does not announce the rescale: build_ok=True passed=['49'] red(1)=['Tc235_RescaleNonIdentity_JpegLl_StoredValuesWithWarning']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['50'] red=[]
+DONE
+--- U5 rerun (the first weakening did not compile under /WX; rerun after the JpegLl bits-above cell was added) ---
+U5 MONOCHROME2 is not masked (rerun: the first weakening did not compile, /WX unreachable code): build_ok=True passed=['47'] red(4)=['Issue235Decided_BitsAboveBitsStoredAreMaskedForMonochrome2Too', 'Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting', 'Tc235_BitsAboveBitsStored_JpegLl_MaskedWithInfoAlert', 'Tc235_BitsAboveBitsStored_Native_MaskedWithInfoAlert']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['51'] red=[]
+DONE

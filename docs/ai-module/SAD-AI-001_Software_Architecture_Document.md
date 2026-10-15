@@ -264,7 +264,7 @@ public:
     
 private:
     Ort::Session session;
-    float confidence_threshold = 0.70f;
+    float confidence_threshold = 0.6f;
     const char* model_version = "bodypart-mobilenet-v3-20260414";
 };
 ```

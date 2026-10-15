@@ -1,0 +1,150 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = EdgeEnhance*:EnhanceBasicParameterDependency.*:*Exception*:*Nonfinite*
+[==========] Running 52 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 12 tests from EdgeEnhance
+[ RUN      ] EdgeEnhance.NullImage_ReturnsInvalidInput
+[       OK ] EdgeEnhance.NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.NullParams_UsesDefaults_ReturnsOk
+[       OK ] EdgeEnhance.NullParams_UsesDefaults_ReturnsOk (0 ms)
+[ RUN      ] EdgeEnhance.AmountTooLarge_ReturnsInvalidInput
+[       OK ] EdgeEnhance.AmountTooLarge_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.AmountNegative_ReturnsInvalidInput
+[       OK ] EdgeEnhance.AmountNegative_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.RadiusTooSmall_ReturnsInvalidInput
+[       OK ] EdgeEnhance.RadiusTooSmall_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.RadiusTooLarge_ReturnsInvalidInput
+[       OK ] EdgeEnhance.RadiusTooLarge_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.NegativeThreshold_ReturnsInvalidInput
+[       OK ] EdgeEnhance.NegativeThreshold_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.ZeroAmount_ImageUnchanged
+[       OK ] EdgeEnhance.ZeroAmount_ImageUnchanged (0 ms)
+[ RUN      ] EdgeEnhance.OvershootClamp_NeverExceedsBound
+[       OK ] EdgeEnhance.OvershootClamp_NeverExceedsBound (0 ms)
+[ RUN      ] EdgeEnhance.ThresholdGating_FlatRegion_Unchanged
+[       OK ] EdgeEnhance.ThresholdGating_FlatRegion_Unchanged (0 ms)
+[ RUN      ] EdgeEnhance.Performance_3072x3072_Within20ms
+[       OK ] EdgeEnhance.Performance_3072x3072_Within20ms (26 ms)
+[ RUN      ] EdgeEnhance.BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072
+PERFMEASURE REQ-ENH-022/xpe_edge_enhance 3072x3072 min=18962 med=20215 max=20943 us (runs=7)
+[       OK ] EdgeEnhance.BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072 (221 ms)
+[----------] 12 tests from EdgeEnhance (248 ms total)
+
+[----------] 6 tests from EnhanceBasicParameterDependency
+[ RUN      ] EnhanceBasicParameterDependency.LogTransform_NormFactorReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(78):: log_transform normFactor 1000->4000 maxdiff=9479.6
+[       OK ] EnhanceBasicParameterDependency.LogTransform_NormFactorReachesTheOutput (0 ms)
+[ RUN      ] EnhanceBasicParameterDependency.LogInverse_NormFactorReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(91):: log_inverse normFactor 1000->4000 maxdiff=0.00060904
+[       OK ] EnhanceBasicParameterDependency.LogInverse_NormFactorReachesTheOutput (0 ms)
+[ RUN      ] EnhanceBasicParameterDependency.NoiseReduce_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(116):: noise_reduce sigma_space 3->8 maxdiff=25.6799 sigma_range 50->200=39.2399 BILATERAL->NLM=72.0029
+[       OK ] EnhanceBasicParameterDependency.NoiseReduce_EveryParameterReachesTheOutput (80 ms)
+[ RUN      ] EnhanceBasicParameterDependency.NoiseReduce_NlmParametersReachTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(145):: NLM search_window 21->7 maxdiff=2.11829 patch_size 7->3=5.75183 h_param 10->40=91.4111
+[       OK ] EnhanceBasicParameterDependency.NoiseReduce_NlmParametersReachTheOutput (184 ms)
+[ RUN      ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(209):: clahe clip_limit 3->40 maxdiff=65.918 tiles 8x8->2x2=14.6484
+[       OK ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput (2 ms)
+[ RUN      ] EnhanceBasicParameterDependency.EdgeEnhance_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(233):: usm amount 0.5->2 maxdiff=337.711 radius 2->6=53.5662 threshold 10->300=112.57
+[       OK ] EnhanceBasicParameterDependency.EdgeEnhance_EveryParameterReachesTheOutput (0 ms)
+[----------] 6 tests from EnhanceBasicParameterDependency (267 ms total)
+
+[----------] 24 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.BadAllocBecomesOutOfMemory
+[       OK ] ExceptionGuard.BadAllocBecomesOutOfMemory (0 ms)
+[ RUN      ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed
+[       OK ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed
+[       OK ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANormalReturnPassesThroughUnchanged
+[       OK ] ExceptionGuard.ANormalReturnPassesThroughUnchanged (0 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException (4 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+[       OK ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary (0 ms)
+[ RUN      ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax
+[       OK ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax (0 ms)
+[ RUN      ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax
+[       OK ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax (0 ms)
+[ RUN      ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries
+[       OK ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.TileBoundsMatchTheOldFormulaAndPartitionTheAxis
+[       OK ] ExceptionGuard.TileBoundsMatchTheOldFormulaAndPartitionTheAxis (3 ms)
+[ RUN      ] ExceptionGuard.TileBoundsStayInRangeNearIntMax
+[       OK ] ExceptionGuard.TileBoundsStayInRangeNearIntMax (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape (1130 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile
+[       OK ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile (121 ms)
+[ RUN      ] ExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+[       OK ] ExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow (2 ms)
+[ RUN      ] ExceptionGuard.ForRowsNeverPlansMoreBandsThanRows
+[       OK ] ExceptionGuard.ForRowsNeverPlansMoreBandsThanRows (0 ms)
+[ RUN      ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt
+[       OK ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt (0 ms)
+[ RUN      ] ExceptionGuard.BilateralRefusesANaNRangeSigma
+[       OK ] ExceptionGuard.BilateralRefusesANaNRangeSigma (0 ms)
+[ RUN      ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius
+[       OK ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius (2 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[       OK ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+[       OK ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes (0 ms)
+[----------] 24 tests from ExceptionGuard (1266 ms total)
+
+[----------] 6 tests from EdgeEnhanceFormula
+[ RUN      ] EdgeEnhanceFormula.E1_ControlTheDefaultThresholdSharpensAnEdge
+E1 CONTROL: amount 1, radius 2, threshold 10, edge 1000 -> module max |out-in| = 397.918
+[       OK ] EdgeEnhanceFormula.E1_ControlTheDefaultThresholdSharpensAnEdge (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_ThresholdZeroSharpensAnEdge
+E1 THRESHOLD 0: SPEC (reference blur) max |out-in| = 400.263; module max |out-in| = 397.918
+[       OK ] EdgeEnhanceFormula.E1_ThresholdZeroSharpensAnEdge (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays
+E1 CONTRAST    100: bright-side edge pixel moves by SPEC 20.013, module 19.896; dark side SPEC -20.013, module -19.896
+E1 CONTRAST   1000: bright-side edge pixel moves by SPEC 200.131, module 198.959; dark side SPEC -200.131, module -198.959
+E1 RATIO (contrast 1000 / contrast 100) at the bright edge pixel: SPEC 10.00, module 10.00
+[       OK ] EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold
+E1 BOUND: bright-side edge pixel original 10010.0, SPEC 20020.0, module 20020.0, 2*original 20020.0, original+amount*threshold 10060.0
+[       OK ] EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone
+[       OK ] EdgeEnhanceFormula.E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue
+E1 DARK DOT: original 30.0, SPEC 80.0, module 80.0 (2*original 60, original+amount*threshold 80)
+[       OK ] EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue (0 ms)
+[----------] 6 tests from EdgeEnhanceFormula (1 ms total)
+
+[----------] 4 tests from EdgeEnhanceFloor
+[ RUN      ] EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero
+M3 FLOOR: base 0, contrast 4000, amount 5.0: reference min -8005.3, module min 0.0, module negatives 0
+M3 FLOOR: base 30, contrast 4000, amount 5.0: reference min -7975.3, module min 0.0, module negatives 0
+M3 FLOOR: base 0, contrast 4000, amount 0.5: reference min -800.5, module min 0.0, module negatives 0
+M3 FLOOR: base 0, contrast 4000, amount 1.0: reference min -1601.1, module min 0.0, module negatives 0
+[       OK ] EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero (0 ms)
+[ RUN      ] EdgeEnhanceFloor.TheFloorDoesNotChangeAnyPixelThatTheFormulaLeavesAtOrAboveZero
+[       OK ] EdgeEnhanceFloor.TheFloorDoesNotChangeAnyPixelThatTheFormulaLeavesAtOrAboveZero (0 ms)
+[ RUN      ] EdgeEnhanceFloor.TheUpperBoundIsUnchangedByTheFloor
+[       OK ] EdgeEnhanceFloor.TheUpperBoundIsUnchangedByTheFloor (0 ms)
+[ RUN      ] EdgeEnhanceFloor.APixelThatIsNotSharpenedKeepsItsInputValueEvenWhenItIsNegative
+[       OK ] EdgeEnhanceFloor.APixelThatIsNotSharpenedKeepsItsInputValueEvenWhenItIsNegative (0 ms)
+[----------] 4 tests from EdgeEnhanceFloor (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 52 tests from 5 test suites ran. (1784 ms total)
+[  PASSED  ] 52 tests.

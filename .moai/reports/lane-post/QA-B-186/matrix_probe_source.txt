@@ -1,0 +1,73 @@
+
+// ===== QA-B-186 TEMPORARY PROBE (not committed): the five items of #235 x the three compression paths ===============
+// Each cell builds the file with the helpers the real tests use, reads it through the public API, and prints one line
+//   MATRIX|<item>|<path>|rc=<code>|<outcome>|alerts=<n> <severity> "<first alert>"
+// outcome for rc 0: stored / inverted / other (the words compared with the unmodified donor of the same path).
+TEST_F(DicomReaderTest, Probe186_FiveItemsByThreePaths) {
+    const fs::path ll = s_tempDir / "jpegll_for_186.dcm";
+    ASSERT_TRUE(WriteJpegLosslessCopy(s_validDcm, ll));
+    std::vector<uint8_t> codestream;
+    ASSERT_TRUE(ExtractJ2kBitstream(s_j2kDcm, codestream));
+    const std::vector<uint16_t> baseNative = Words(s_validDcm), baseLl = Words(ll), baseJ2k = Words(s_j2kDcm);
+    ASSERT_EQ(65536u, baseNative.size());
+    ASSERT_EQ(baseNative, baseLl) << "the lossless copy reads back the same words";
+    ASSERT_EQ(baseNative, baseJ2k);
+
+    struct Item { const char* name; std::function<void(DcmDataset*, bool)> mutate; };
+    std::vector<uint16_t> three;
+    for (int k = 0; k < 3; ++k) three.insert(three.end(), baseNative.begin(), baseNative.end());
+    const std::vector<Item> items = {
+        {"1_signed(PixelRepresentation=1)", [](DcmDataset* ds, bool) { ds->putAndInsertUint16(DCM_PixelRepresentation, 1); }},
+        {"2_monochrome1", [](DcmDataset* ds, bool) { ds->putAndInsertString(DCM_PhotometricInterpretation, "MONOCHROME1"); }},
+        {"3a_rescale(slope2,intercept-1024)", [](DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "2"); ds->putAndInsertString(DCM_RescaleIntercept, "-1024"); }},
+        {"3b_rescale(slope1,intercept-1024)", [](DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "1"); ds->putAndInsertString(DCM_RescaleIntercept, "-1024"); }},
+        {"3c_rescale(slope0,intercept0)", [](DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "0"); ds->putAndInsertString(DCM_RescaleIntercept, "0"); }},
+        {"3d_rescale(notNumbers)", [](DcmDataset* ds, bool) { ds->putAndInsertString(DCM_RescaleSlope, "abc"); ds->putAndInsertString(DCM_RescaleIntercept, "xyz"); }},
+        {"4_multiframe(NumberOfFrames=3)", [&](DcmDataset* ds, bool native) {
+            ds->putAndInsertString(DCM_NumberOfFrames, "3");
+            if (native) PutWords(ds, three);
+        }},
+        {"5a_rgb(SamplesPerPixel=3,PI=RGB)", [](DcmDataset* ds, bool) {
+            ds->putAndInsertUint16(DCM_SamplesPerPixel, 3);
+            ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB");
+            ds->putAndInsertUint16(DCM_PlanarConfiguration, 0);
+        }},
+        {"5b_rgbLabelOnOnePlane(SamplesPerPixel=1,PI=RGB)", [](DcmDataset* ds, bool) { ds->putAndInsertString(DCM_PhotometricInterpretation, "RGB"); }},
+    };
+    for (const Item& it : items) {
+        struct Run { const char* path; fs::path file; const std::vector<uint16_t>* base; };
+        const std::string tag = std::string("p186_") + std::string(it.name).substr(0, 2);
+        auto mutNative = [&](DcmDataset* ds) { it.mutate(ds, true); };
+        auto mutOther = [&](DcmDataset* ds) { it.mutate(ds, false); };
+        const Run runs[] = {
+            {"native", MakeSameSyntaxVariant(s_validDcm, (tag + "_nat").c_str(), mutNative), &baseNative},
+            {"jpeg_lossless", MakeSameSyntaxVariant(ll, (tag + "_ll").c_str(), mutOther), &baseLl},
+            {"j2k", MakeJ2kVariant(s_j2kDcm, (tag + "_j2k").c_str(), codestream, mutOther), &baseJ2k},
+        };
+        for (const Run& run : runs) {
+            xpe_clear_alerts();
+            const ScopeRead r = ReadScope(run.file);
+            std::string outcome;
+            if (r.read == XPE_OK) {
+                bool stored = r.words == *run.base, inverted = r.words.size() == run.base->size();
+                if (inverted) {
+                    const uint32_t M = BitsMask(r.bitsStored);
+                    for (size_t i = 0; i < r.words.size() && inverted; ++i) inverted = r.words[i] == static_cast<uint16_t>(M - ((*run.base)[i] & M));
+                }
+                outcome = stored ? "OK words==stored" : inverted ? "OK words==inverted" : "OK words==OTHER";
+            } else {
+                outcome = std::string("refused untouched=") + (r.outUntouchedOnFailure ? "yes" : "NO") + " metaAfter=" + std::to_string(r.metaAfter);
+            }
+            std::string alertText = "-";
+            int32_t sev = -1;
+            const int n = xpe_get_pending_alert_count();
+            if (n > 0) {
+                char buf[512] = {0};
+                xpe_get_pending_alert(0, buf, sizeof(buf), &sev);
+                alertText = buf;
+                if (alertText.size() > 110) alertText.resize(110);
+            }
+            std::printf("MATRIX|%s|%s|rc=%d|%s|alerts=%d sev=%d \"%s\"\n", it.name, run.path, static_cast<int>(r.read), outcome.c_str(), n, sev, alertText.c_str());
+        }
+    }
+}

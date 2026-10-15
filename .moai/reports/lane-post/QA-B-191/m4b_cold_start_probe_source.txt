@@ -1,0 +1,30 @@
+
+// TEMPORARY MEASUREMENT (QA-B-191 M4b, NOT committed as a test): the leader asked for the distribution of the
+// FIRST call to a freshly started worker (the 1350 ms outlier seen once in 3 runs in the M4 design). Each round
+// builds a new WorkerSupervisor, so each round starts a new xpe_ai_worker.exe, and times the first
+// BodyPartRecognize call: process start + pipe connect + INIT + model load + resize + inference + reply.
+// Toy model; the numbers say nothing about a real model's load time.
+TEST(WorkerBodyPartColdStartProbe, MeasureFirstCallOfAFreshWorker) {
+    if (IsStub()) GTEST_SKIP() << "needs the full build";
+    const int kRounds = 30;
+    std::vector<double> t;
+    for (int i = 0; i < kRounds; ++i) {
+        WorkerSupervisorConfig c;
+        c.worker_exe = XPE_AI_WORKER_EXE;
+        c.model_dir = Dir("models_bodypart_a");
+        c.timeout_ms = 20000;
+        WorkerSupervisor sup(c);
+        const Pix image = Flat(0.0f);
+        BodyPartReply reply;
+        const auto a = std::chrono::steady_clock::now();
+        const XpeErrorCode rc = sup.BodyPartRecognize(image.w, image.h, image.v.data(), &reply);
+        const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - a).count();
+        EXPECT_EQ(XPE_OK, rc);
+        t.push_back(ms);
+        std::printf("COLD-START round %2d %8.1f ms\n", i, ms);
+    }
+    std::vector<double> s = t;
+    std::sort(s.begin(), s.end());
+    std::printf("COLD-START n=%d min %.1f median %.1f p90 %.1f max %.1f\n", kRounds, s.front(), s[s.size() / 2],
+                s[static_cast<size_t>(s.size() * 0.9)], s.back());
+}

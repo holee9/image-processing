@@ -1,0 +1,24 @@
+  scenario '1 started Apply vs shutdown': 160 ms
+  scenario '1b started Apply fails after shutdown': 90 ms
+  scenario '2 entry points vs transition': 93 ms
+  scenario '3 stale failing Lane B': 124 ms
+  scenario '3b stale succeeding Lane B': 123 ms
+  scenario '4 older Apply finishes last (main chain, succeeds)': 93 ms
+  scenario '4 older Apply finishes last (main chain, fails)': 124 ms
+  scenario '4 older Apply finishes last (Lane B, succeeds)': 122 ms
+  scenario '4 older Apply finishes last (Lane B, fails)': 126 ms
+  scenario '5 Candidate lane = second AI call, status read after it': 33 ms
+  scenario '5b equal lanes = one AI call per Apply': 28 ms
+  scenario '10 HUD shows the applied window': 102 ms
+  scenario '11 report describes the current frame': 95 ms
+  scenario '8 save candidate: an older Apply finishing late': 103 ms
+  scenario '9 failed open keeps the save name and candidate': 31 ms
+  scenario '6 ai-worker-disabled fault': 0 ms
+  scenario '7 older status read never shown': 60 ms
+  scenario '8 Restart AI vs an older Disabled answer': 61 ms
+  scenario '8b session replaced without Reset (epoch)': 62 ms
+  scenario '9 Disabled on screen vs a replaced session': 2543 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[11 report describes the current frame] report summary after B's failure is still A's success: 'MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)'
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run() in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 370
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 123

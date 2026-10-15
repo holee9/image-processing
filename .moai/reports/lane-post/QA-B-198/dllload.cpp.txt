@@ -1,0 +1,11 @@
+#include <windows.h>
+#include <cstdio>
+int main() {
+    const char* names[] = {"kernel32.dll", "advapi32.dll", "user32.dll", "gdi32.dll", "shell32.dll", "setupapi.dll", "dxgi.dll", "dbghelp.dll", "bcrypt.dll", "onnxruntime.dll"};
+    for (const char* n : names) {
+        HMODULE h = LoadLibraryA(n);
+        std::printf("load.%s=%s (error %lu)\n", n, h ? "LOADED" : "FAILED", h ? 0ul : GetLastError());
+        std::fflush(stdout);
+    }
+    return 0;
+}

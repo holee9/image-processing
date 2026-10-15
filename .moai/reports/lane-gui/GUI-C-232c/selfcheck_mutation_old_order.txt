@@ -1,0 +1,23 @@
+  scenario '1 started Apply vs shutdown': 169 ms
+  scenario '1b started Apply fails after shutdown': 91 ms
+  scenario '2 entry points vs transition': 93 ms
+  scenario '3 stale failing Lane B': 122 ms
+  scenario '3b stale succeeding Lane B': 123 ms
+  scenario '4 older Apply finishes last (main chain, succeeds)': 94 ms
+  scenario '4 older Apply finishes last (main chain, fails)': 123 ms
+  scenario '4 older Apply finishes last (Lane B, succeeds)': 118 ms
+  scenario '4 older Apply finishes last (Lane B, fails)': 114 ms
+  scenario '5 Candidate lane = second AI call, status read after it': 33 ms
+  scenario '5b equal lanes = one AI call per Apply': 27 ms
+  scenario '8 save candidate: an older Apply finishing late': 94 ms
+  scenario '9 failed open keeps the save name and candidate': 30 ms
+  scenario '6 ai-worker-disabled fault': 0 ms
+  scenario '7 older status read never shown': 60 ms
+  scenario '8 Restart AI vs an older Disabled answer': 62 ms
+  scenario '8b session replaced without Reset (epoch)': 61 ms
+  scenario '9 Disabled on screen vs a replaced session': 2518 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[9 failed open keeps the save name and candidate] the failed open of B renamed the save name (C:\Users\drake\AppData\Local\Temp\xpe-lifetime-25670f26\bad.raw)
+[9 failed open keeps the save name and candidate] the save name is B's
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run() in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 330
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 123

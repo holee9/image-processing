@@ -30,7 +30,7 @@ public sealed record AlgorithmPreset(string Name, bool PreprocessInChain, string
     /// <summary>The four options the picker offers, in the order it offers them.</summary>
     public static readonly AlgorithmPreset[] All =
     [
-        new("No correction", PreprocessInChain: false, GsvgModes.None),
+        new("No grid correction", PreprocessInChain: false, GsvgModes.None),
         new("Grid suppression", PreprocessInChain: false, GsvgModes.GridSuppression),
         new("Virtual grid", PreprocessInChain: false, GsvgModes.VirtualGrid),
         new("Preprocess + virtual grid", PreprocessInChain: true, GsvgModes.VirtualGrid),
@@ -48,11 +48,15 @@ public sealed record AlgorithmPreset(string Name, bool PreprocessInChain, string
     public static readonly IReadOnlyDictionary<string, string> RenamedFrom =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Baseline v1.0"] = "No correction",
+            ["Baseline v1.0"] = "No grid correction",
+            ["No correction"] = "No grid correction",   // GUI-C-234g: the picker chooses the GRID correction; preprocessing is its own switch and stays on
             ["Production v1.2"] = "Grid suppression",
             ["Candidate v1.4"] = "Virtual grid",
             ["Candidate v1.5-rc"] = "Preprocess + virtual grid",
         };
+
+    /// <summary>The current name of an option stored under an older one (a settings file written before a rename), else the name unchanged.</summary>
+    public static string Canonical(string name) => RenamedFrom.TryGetValue(name, out var current) ? current : name;
 
     /// <summary>
     /// The preset for an option name, or the first one when the name is unknown — an unknown name is a
@@ -73,10 +77,22 @@ public sealed record AlgorithmPreset(string Name, bool PreprocessInChain, string
         return All[0];
     }
 
-    /// <summary>Writes this preset's stages into a settings object.</summary>
+    /// <summary>
+    /// Writes this preset into a settings object: the grid correction, and nothing that switches the preprocessing off (GUI-C-234c, Codex #181 finding 4; GUI-C-234f).
+    /// Preprocessing is on by default and is the operator own switch (the Parameters tab); three of the four presets are defined with it off, and writing that into the main settings made picking
+    /// "Grid suppression" quietly switch the correction off for the whole window. A preset that includes preprocessing ("Preprocess + virtual grid") may switch it ON.
+    ///
+    /// <para><b>The same rule for the Candidate lane copy.</b> GUI-C-234c applied it to the main settings only and left the Candidate lane copy writing the preset whole. The two lanes then disagreed about
+    /// preprocessing for one and the same algorithm name: with equal algorithms the Candidate is the Reference render (preprocessing on), with different ones it was rendered from its own copy (preprocessing off), so
+    /// choosing a Reference algorithm moved the Candidate picture (E2E L-06, PR #260). One rule for both keeps a lane a function of its algorithm name and the shared preprocessing switch.</para>
+    /// </summary>
     public void ApplyTo(AppSettings settings)
     {
-        settings.PreprocessInChain = PreprocessInChain;
+        if (PreprocessInChain)
+        {
+            settings.PreprocessInChain = true;
+        }
+
         settings.GsvgMode = GsvgMode;
     }
 }

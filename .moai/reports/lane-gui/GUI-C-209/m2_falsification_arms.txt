@@ -1,0 +1,147 @@
+# GUI-C-209 M2 falsification arms (each edits ONE thing in NegativeInputPathTests.cs, rebuilds, runs the class, restores byte-identical)
+
+## arm init-empty-config: the 'empty' input is made valid
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "init-empty-con
+restored byte-identical: True
+
+## arm configure-null-or-empty: null and empty made valid
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "configure-null
+restored byte-identical: True
+
+## arm configure-malformed-json: the JSON is made well-formed
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "configure-malf
+restored byte-identical: True
+
+## arm configure-not-an-object: the array is made an object
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "configure-not-
+restored byte-identical: True
+
+## arm param-range-null-argument: NULL made a real string
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "param-range-nu
+restored byte-identical: True
+
+## arm param-range-before-init: the shutdown is removed
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "param-range-be
+restored byte-identical: True
+
+## arm param-range-unknown-body-part: KNEE made CHEST
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "param-range-un
+restored byte-identical: True
+
+## arm alert-null-or-bad-argument: the NULL buffer made a real one
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "alert-null-or-
+restored byte-identical: True
+
+## arm alert-index-out-of-range: the queue is no longer empty
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "alert-index-ou
+restored byte-identical: True
+
+## arm alert-buffer-too-small: the buffer made big enough
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "alert-buffer-t
+restored byte-identical: True
+
+## arm log-level-out-of-range: -1 and 6 made 2
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "log-level-out-
+restored byte-identical: True
+
+## arm log-file-parent-missing: the parent directory exists
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "log-file-paren
+restored byte-identical: True
+
+## arm alloc-null-out-or-zero-size (a): the zero width made 16
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "alloc-null-out
+restored byte-identical: True
+
+## arm alloc-null-out-or-zero-size (b): the NULL out made a real buffer
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "alloc-null-out
+restored byte-identical: True
+
+## arm alloc-over-4096: 4097 made 4096
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "alloc-over-409
+restored byte-identical: True
+
+## arm alloc-unsupported-format: format 99 made UINT8
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "alloc-unsuppor
+restored byte-identical: True
+
+## arm free-null-buffer: the NULL made a real buffer
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "free-null-buff
+restored byte-identical: True
+
+## arm copy-null-or-unallocated: the empty buffers made real ones
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "copy-null-or-u
+restored byte-identical: True
+
+## arm copy-destination-too-small: the destination made big enough
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "copy-destinati
+restored byte-identical: True
+
+## arm exact code: copy-destination-too-small expects INVALID_INPUT instead of BUFFER_TOO_SMALL
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "copy-destinati
+restored byte-identical: True
+
+## arm control: the copy control is also made a bad call (control must be able to fail)
+build ok: True
+exit=1; 1 red of 20
+   RED     EachDistinctCheck...(id: "copy-destinati
+restored byte-identical: True
+
+## arm table: alloc-over-4096 cites the same check as alloc-null-out-or-zero-size
+build ok: True
+exit=1; 1 red of 20
+   RED     EveryRow_CitesACheckThatExistsInTheNativeSource_AndNoCheckIsCountedTwice
+restored byte-identical: True
+
+## arm table: a cited check is not in the native source
+build ok: True
+exit=1; 1 red of 20
+   RED     EveryRow_CitesACheckThatExistsInTheNativeSource_AndNoCheckIsCountedTwice
+restored byte-identical: True
+
+## arm table: a row id is removed from the list
+build ok: True
+exit=1; 1 red of 19
+   RED     EveryRow_CitesACheckThatExistsInTheNativeSource_AndNoCheckIsCountedTwice
+restored byte-identical: True
+
+final rebuild ok: True

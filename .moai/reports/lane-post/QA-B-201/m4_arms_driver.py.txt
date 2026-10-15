@@ -1,0 +1,90 @@
+"""QA-B-201 M4 falsification arms: the pixel-format check at the door of xpe_dicom_write / xpe_dicom_write_j2k.
+Break ONE defence, rebuild ci-dicom, run test_dicom_writer.exe, expect the named tests red, restore byte-identical.
+Run from the repository root: python build/g201_arms_m4.py <out.txt>"""
+import hashlib, re, subprocess, sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g200-dicom-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+DC = 'modules/dicom/src/dicom.cpp'
+T_FLOAT = 'DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade'
+T_KEEP = 'DicomWriterTest.ARefusedFormatLeavesAnExistingDestinationFileUntouched'
+T_PROP = 'DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads'
+T_U8 = 'DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck'
+W = '''    if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
+    if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
+    try {
+        return xpe::dicom::DicomWriter::write('''
+J = '''    if (!image_is_non_empty(img)) return XPE_ERR_INVALID_INPUT;
+    if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;
+    if (!data_size_is_consistent(img)) return XPE_ERR_INVALID_INPUT;
+    try {
+        return xpe::dicom::DicomWriter::writeJ2K('''
+
+ARMS = [
+    ('format_check_removed_from_xpe_dicom_write',
+     [(DC, W, W.replace('    if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;\n', ''))], [T_FLOAT, T_KEEP, T_PROP, T_U8]),
+    ('format_check_removed_from_xpe_dicom_write_j2k',
+     [(DC, J, J.replace('    if (!pixel_format_is_writable(img)) return XPE_ERR_INVALID_INPUT;\n', ''))], [T_FLOAT]),
+    ('only_float32_is_refused_uint8_goes_on',
+     [(DC, 'return img != nullptr && img->format == XPE_PIXEL_UINT16;', 'return img != nullptr && img->format != XPE_PIXEL_FLOAT32;')], [T_U8]),
+    ('only_uint8_is_refused_float32_goes_on',
+     [(DC, 'return img != nullptr && img->format == XPE_PIXEL_UINT16;', 'return img != nullptr && img->format != XPE_PIXEL_UINT8;')],
+     [T_FLOAT, T_KEEP, T_PROP]),
+    ('every_format_is_refused_even_uint16',
+     [(DC, 'return img != nullptr && img->format == XPE_PIXEL_UINT16;', 'return img != nullptr && img->format == XPE_PIXEL_UINT8 + 10;')], [T_PROP]),
+]
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    txt = open(path, encoding='utf-8', errors='replace').read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    files = sorted({e[0] for e in edits})
+    saved = {f: open(f, 'rb').read() for f in files}
+    before = {f: sha(f) for f in files}
+    log('=== ARM ' + name)
+    try:
+        for f in files:
+            txt = saved[f].decode('utf-8')
+            for ff, old, new in edits:
+                if ff == f:
+                    assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+                    txt = txt.replace(old, new)
+            open(f, 'wb').write(txt.encode('utf-8'))
+        sh(BUILD)
+        if 'FAILED:' in open('build/g200-b4.txt', encoding='utf-8', errors='replace').read():
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s ci-dicom test_dicom_writer.exe D:\\workspace-github\\xpe-post\\build\\g201-arm-m4.txt * dicom' % RUN)
+            red = failed('build/g201-arm-m4.txt')
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        for f in files:
+            open(f, 'wb').write(saved[f])
+        log('restored byte-identical: %s' % all(sha(f) == before[f] for f in files))
+log('=== DONE')
+out.close()

@@ -1,0 +1,16 @@
+# GUI-C-202 falsification arms. Each arm restores byte-identical.
+
+## arm 1: the worker is put back into the private copy (C-09 on a module that verifies signatures)
+build ok: True
+[C09 (worker-less copy), module from main's source] exit=0; red: 0
+[C09 (worker-less copy), module from QA-B-195 M4] exit=1; red: 1
+   RED AiWorkerAbsentScenarios.C09_AWorkerThatCannotBeStarted_IsSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves
+restored byte-identical: True
+
+## arm 2: -4 is read as a generic failure again (GUI-C-201 reverted)
+build ok: True
+[C09b, module from QA-B-195 M4 (answers -4)] exit=1; red: 1
+   RED ProcessingChainScenarios.C09b_ANonModelFile_IsReportedAsAModelTheModuleWillNotUse
+restored byte-identical: True
+
+final rebuild ok: True

@@ -1,0 +1,75 @@
+Note: Google Test filter = BoneSuppressNonFinite*:IpcEnvelope*
+[==========] Running 9 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 3 tests from IpcEnvelope
+[ RUN      ] IpcEnvelope.ControlAValidEnvelopeWithNonFinitePixelsIsAModelRefusalNotAProtocolFault
+[       OK ] IpcEnvelope.ControlAValidEnvelopeWithNonFinitePixelsIsAModelRefusalNotAProtocolFault (0 ms)
+[ RUN      ] IpcEnvelope.ControlAValidEnvelopeWithFinitePixelsIsAccepted
+[       OK ] IpcEnvelope.ControlAValidEnvelopeWithFinitePixelsIsAccepted (0 ms)
+[ RUN      ] IpcEnvelope.ABadEnvelopeIsAProtocolFaultWhateverThePixelsAre
+[       OK ] IpcEnvelope.ABadEnvelopeIsAProtocolFaultWhateverThePixelsAre (5 ms)
+[----------] 3 tests from IpcEnvelope (6 ms total)
+
+[----------] 6 tests from BoneSuppressNonFinite
+[ RUN      ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat
+[2026-10-02 13:13:17.597] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 13:13:17.647] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 13:13:17.647] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [error] bone_suppress: the model result contains a non-finite value; output left unchanged
+[2026-10-02 13:13:17.648] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat (51 ms)
+[ RUN      ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat
+[2026-10-02 13:13:17.648] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 13:13:18.493] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:18.494] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat (855 ms)
+[ RUN      ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths
+[2026-10-02 13:13:18.503] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 13:13:18.504] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 13:13:18.504] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 13:13:18.504] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 13:13:18.614] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths (122 ms)
+[ RUN      ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused
+[2026-10-02 13:13:18.626] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2, ep=0, timeout=5000 ms
+[2026-10-02 13:13:18.627] [info] ONNX session created: D:/workspace-github/xpe-post/modules/ai/tests/data/models_x2/bone_suppress.onnx
+[2026-10-02 13:13:18.627] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused (1 ms)
+[ RUN      ] BoneSuppressNonFinite.WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling
+[2026-10-02 13:13:18.627] [info] xpe_ai initialized: model_dir=D:/workspace-github/xpe-post/modules/ai/tests/data/models_missing, ep=0, timeout=5000 ms
+[2026-10-02 13:13:19.453] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 13:13:19.453] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 13:13:19.453] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-02 13:13:19.580] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling (952 ms)
+[ RUN      ] BoneSuppressNonFinite.AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNeverSwitchesTheWorkerOff
+[2026-10-02 13:13:19.580] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_ai_mix_30856, ep=0, timeout=2000 ms
+[2026-10-02 13:13:20.666] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 13:13:20.667] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 13:13:20.799] [warning] bone_suppress: the model result is non-finite, input returned unchanged (not counted as a worker failure)
+[2026-10-02 13:13:23.341] [warning] bone_suppress: worker path failed (-3), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-02 13:13:24.476] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-02 13:13:24.476] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] BoneSuppressNonFinite.AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNeverSwitchesTheWorkerOff (5085 ms)
+[----------] 6 tests from BoneSuppressNonFinite (7069 ms total)
+
+[----------] Global test environment tear-down
+[==========] 9 tests from 2 test suites ran. (7076 ms total)
+[  PASSED  ] 9 tests.

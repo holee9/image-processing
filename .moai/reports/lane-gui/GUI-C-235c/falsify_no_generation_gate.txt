@@ -1,0 +1,20 @@
+run 1: exit=1
+1 start-up report built (timestamp 2026-10-14T01:29:34.1742559+00:00), held, nothing published
+2 verdict on screen: Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.386ms
+3 start-up probe ended: dropped
+4 screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.386ms'; file timestamp 2026-10-14T01:29:34.1742559+00:00 (start-up report 2026-10-14T01:29:34.1742559+00:00), checking=True, passed=False
+run 2: exit=1
+1 start-up report built (timestamp 2026-10-14T01:29:38.2136613+00:00), held, nothing published
+2 verdict on screen: Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.112ms
+3 start-up probe ended: dropped
+4 screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.112ms'; file timestamp 2026-10-14T01:29:38.2136613+00:00 (start-up report 2026-10-14T01:29:38.2136613+00:00), checking=True, passed=False
+run 3: exit=1
+1 start-up report built (timestamp 2026-10-14T01:29:42.3763587+00:00), held, nothing published
+2 verdict on screen: Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.807ms
+3 start-up probe ended: dropped
+4 screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.807ms'; file timestamp 2026-10-14T01:29:42.3763587+00:00 (start-up report 2026-10-14T01:29:42.3763587+00:00), checking=True, passed=False
+run 4: exit=1
+1 start-up report built (timestamp 2026-10-14T01:29:46.4978762+00:00), held, nothing published
+2 verdict on screen: Preprocess smoke: Synthetic oracle pass; pass=True; latency=5.005ms
+3 start-up probe ended: dropped
+4 screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=5.005ms'; file timestamp 2026-10-14T01:29:46.4978762+00:00 (start-up report 2026-10-14T01:29:46.4978762+00:00), checking=True, passed=False

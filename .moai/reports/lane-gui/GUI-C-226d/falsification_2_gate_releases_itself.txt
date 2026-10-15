@@ -1,0 +1,8 @@
+== arm 2: a gate that lets go by itself (HookLimit zero)
+  실패 ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdicts219dTests.AnAskJustBeforeTheJobDecidesItIsOver_GetsAnotherPass [45 ms]
+   the gate 'before the rerun decision' released itself after 0 s: the test did not act in the moment it was written for
+  실패 ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdicts219dTests.AnAskJustAfterTheJobDecidedItIsOver_StartsAJobOfItsOwn [4 ms]
+   the gate 'after the rerun decision' released itself after 0 s: the test did not act in the moment it was written for
+  실패 ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdictsTests.TryGet_DoesNotReadTheFileOnTheCallersThread_EvenWhenTheReadIsSlow [4 ms]
+   the gate 'the worker's file read' released itself after 0 s: the test did not act in the moment it was written for
+     실패: 3

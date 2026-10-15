@@ -1,0 +1,241 @@
+[  SKIPPED ] WorkerPathClassification.BoneSuppressMapsABadAllocToOutOfMemoryAndAnyOtherExceptionToProcessingFailed (0 ms)
+[  SKIPPED ] WorkerPathClassification.BodyPartRecognizeNamesAShortageOfMemoryAsCodeMinusTwoAndAnyOtherExceptionAsCodeMinusThree (0 ms)
+[  SKIPPED ] OnnxSessionRun.RunningADifferentModelChangesTheOutput (0 ms)
+[  SKIPPED ] OnnxSessionRun.OutputIsNotAConstantIndependentOfInput (0 ms)
+[  SKIPPED ] OnnxSessionRun.WrongInputLengthIsInvalidInput (0 ms)
+[  SKIPPED ] OnnxSessionCreate.GarbageFileIsModelLoadFailed (0 ms)
+[  SKIPPED ] OnnxSessionMetadata.InputAndOutputAreReadFromTheModel (0 ms)
+[  SKIPPED ] OnnxSessionBuildMode.AFullBuildIsProvableWhenTheCallerSaysItExpectedOne (0 ms)
+[  SKIPPED ] BoneSuppressAbi.ADifferentModelDirectoryChangesTheOutput (0 ms)
+[  SKIPPED ] BoneSuppressAbi.TheInputImageIsNotModified (0 ms)
+[  SKIPPED ] BoneSuppressAbi.DifferentPixelsGiveDifferentOutput (0 ms)
+[  SKIPPED ] BoneSuppressAbi.MissingModelAndBrokenModelGiveDifferentCodes (0 ms)
+[  SKIPPED ] BoneSuppressAbi.ReInitWithADifferentDirectorySwitchesTheModel (0 ms)
+[  SKIPPED ] BodyPart.ConstantModelGivesItsLabelAndItsProbability (0 ms)
+[  SKIPPED ] BodyPart.ADifferentModelDirectoryChangesTheLabel (0 ms)
+[  SKIPPED ] BodyPart.AConstantModelIgnoresTheImage (0 ms)
+[  SKIPPED ] BodyPart.TheImageChangesTheLabel (0 ms)
+[  SKIPPED ] BodyPart.ATieGoesToTheFirstClassAndAFullScaleProbabilityIsAccepted (0 ms)
+[  SKIPPED ] BodyPart.ANhwcModelGivesTheSameAnswersAsTheNchwOne (0 ms)
+[  SKIPPED ] BodyPart.AnImageOfAnotherSizeIsResizedToTheModelsInputBeforeItIsRun (0 ms)
+[  SKIPPED ] BodyPart.NoModelFileIsTheStubsOutcomeWithOneWarning (0 ms)
+[  SKIPPED ] BodyPart.ABrokenModelFileIsTheStubsOutcomeWithOneWarning (0 ms)
+[  SKIPPED ] BodyPart.MissingLabelsAreTheStubsOutcomeWithOneWarning (0 ms)
+[  SKIPPED ] BodyPart.MoreOutputsThanLabelsAreTheStubsOutcomeWithOneWarning (0 ms)
+[  SKIPPED ] BodyPart.ARankTwoInputIsTheStubsOutcomeWithOneWarning (0 ms)
+[  SKIPPED ] BodyPart.ADynamicInputIsTheStubsOutcomeWithOneWarning (0 ms)
+[  SKIPPED ] BodyPart.WithoutAModelNoImageFormatChangesTheOutcome (0 ms)
+[  SKIPPED ] BodyPart.ANonFiniteModelResultIsRefusedWithTheNonFiniteAlert (0 ms)
+[  SKIPPED ] BodyPart.AProbabilityAboveOneIsRefused (0 ms)
+[  SKIPPED ] BodyPart.ANegativeValueIsRefusedEvenWhenTheLargestIsInRange (0 ms)
+[  SKIPPED ] BodyPart.ANonFloatImageIsUnsupportedWhenAModelIsThere (0 ms)
+[  SKIPPED ] BodyPart.ALabelThatDoesNotFitIsBufferTooSmallAndNeverTruncated (0 ms)
+[  SKIPPED ] BodyPart.WithoutAModelAShortBufferIsStillBufferTooSmall (0 ms)
+[  SKIPPED ] BodyPart.AConfidenceExactlyAtTheThresholdPasses (0 ms)
+[  SKIPPED ] BodyPart.AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack (0 ms)
+[  SKIPPED ] BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning (0 ms)
+[  SKIPPED ] BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows (0 ms)
+[  SKIPPED ] BodyPart.TheThresholdIsTheConfiguredOneNotAConstant (0 ms)
+[  SKIPPED ] BodyPart.AThresholdOfOneAcceptsOnlyAFullScaleConfidence (0 ms)
+[  SKIPPED ] BodyPart.EveryLowConfidenceImageRaisesItsOwnEventButAPassingOneRaisesNone (0 ms)
+[  SKIPPED ] BodyPart.ALowConfidenceIsNotAnUnavailableModelAndDoesNotUseUpItsOneWarning (0 ms)
+[  SKIPPED ] BodyPart.ALowConfidenceFallbackNeedsRoomForUnknownAndStillRaisesTheEvent (0 ms)
+[  SKIPPED ] BodyPart.WithFallbackModeOffALabelThatDoesNotFitIsStillBufferTooSmall (0 ms)
+[  SKIPPED ] BodyPart.ANonNumericThresholdInTheConfigIsIgnoredAndTheDefaultApplies (0 ms)
+[  SKIPPED ] BodyPart.MeasureResizeAndRecognizeLatency (0 ms)
+[  SKIPPED ] WorkerBodyPartAgreement.TheRealWorkerAndTheInProcessPathSayTheSameThingForEveryModelAndImage (0 ms)
+[  SKIPPED ] WorkerBodyPartAgreement.TheWorkerResizesTheImageToTheModelsInputAndTheAnswerFollowsTheImage (0 ms)
+[  SKIPPED ] WorkerBodyPartAgreement.AnUnavailableModelKeepsTheWorkerAndIsNotAFault (0 ms)
+[  SKIPPED ] WorkerBodyPartAgreement.ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslashIsUnavailableInBothPaths (0 ms)
+[  SKIPPED ] WorkerBoneErrorFrame.TheRealWorkersOwnErrorFramesAreAcceptedAndKeepTheWorker (0 ms)
+[  SKIPPED ] BodyPartWorkerPath.ControlTheModelRunsInTheWorkerAndTheAnswerComesBack (38 ms)
+[  SKIPPED ] BodyPartWorkerPath.TheDifferentModelDirectoryChangesTheLabelThroughTheWorkerToo (33 ms)
+[  SKIPPED ] BodyPartWorkerPath.ALowConfidenceFromTheWorkerGetsTheDecisionOfThisProcess (33 ms)
+[  SKIPPED ] BodyPartWorkerPath.WithFallbackModeOffTheLowConfidenceLabelIsReturnedAndTheToggleWorksAtRunTime (24 ms)
+[  SKIPPED ] BodyPartWorkerPath.TheModelsRefusedOutputIsAnAlertAndNeverAWorkerFailure (24 ms)
+[  SKIPPED ] BodyPartWorkerPath.AnUnavailableBodyPartModelIsOneWarningAndNeverCountedAndNeverSwitchesTheWorkerOff (33 ms)
+[  SKIPPED ] BodyPartWorkerPath.WithNoBodyPartModelBoneSuppressionIsNotSkippedByTheBodyPartCalls (36 ms)
+[  SKIPPED ] BodyPartWorkerPath.AnUnavailableAnswerEndsARunOfBoneSuppressionFailures (38 ms)
+[  SKIPPED ] BodyPartWorkerPath.ControlTheFailingModelLoadsAndOnlyFailsWhenItIsRun (30 ms)
+[  SKIPPED ] BodyPartWorkerPath.AModelThatExistsAndFailsToRunIsCountedAndThirdFailureSwitchesTheWorkerOffForBothFunctions (30 ms)
+[  SKIPPED ] BodyPartWorkerPath.BoneSuppressionFailuresSwitchOffBodyPartRecognitionToo (37 ms)
+[  SKIPPED ] BodyPartWorkerPath.ShutdownThenInitRecoversAWorkerSwitchedOffByBodyPartFailures (37 ms)
+[  SKIPPED ] BodyPartWorkerPath.ASilentWorkerIsGivenUpOnAtTheBudgetAndTheNextCallRecoversOnANewWorker (38 ms)
+[  SKIPPED ] BodyPartWorkerPath.ANonFloatImageIsRefusedBeforeTheWorkerIsAskedWhateverTheModel (23 ms)
+[  SKIPPED ] BodyPartWorkerPath.ARefusedLabelIsOneWarningPerSessionOnBothPathsAndNeverAWorkerFailure (27 ms)
+[  SKIPPED ] ModelLoadingTrust.FilesChangedBetweenTheCheckAndTheLoadDoNotReachTheSession (0 ms)
+[  SKIPPED ] ModelLoadingTrust.ASwappedModelFileThatIsGarbageDoesNotBreakAVerifiedLoadEither (0 ms)
+[  SKIPPED ] ModelLoadingTrust.TheSidecarTheCallerReadsIsTheOneThatWasVerified (0 ms)
+[  SKIPPED ] ModelLoadingTrust.ATamperedBodyPartSidecarIsUnavailableOnBothPathsAndNeverAWorkerFailure (0 ms)
+[  SKIPPED ] ModelLoadingTrust.EndToEndTheBoneModelThatRunsIsTheVerifiedOneEvenIfTheFileIsSwappedAfterTheCheck (0 ms)
+[  SKIPPED ] ModelLoadingTrust.EndToEndTheLabelsThatAreReturnedAreTheVerifiedOnesEvenIfTheSidecarIsSwappedAfterTheCheck (0 ms)
+[  SKIPPED ] ModelRefusalBehavior.ARefusedBoneModelRaisesOneErrorAlertPerSessionWithTheReasonAndNothingElse (0 ms)
+[  SKIPPED ] ModelRefusalBehavior.TheAlertNamesTheReasonThatIsTrueForEachWayToBeRefused (0 ms)
+[  SKIPPED ] ModelRefusalBehavior.ARefusedBodyPartModelRaisesOneAlertPerSessionOnBothPaths (0 ms)
+[  SKIPPED ] ModelRefusalBehavior.ARefusalIsCheckedAgainTheMomentAnyOfTheThreeFilesChanges (0 ms)
+[  SKIPPED ] ModelRefusalBehavior.AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff (0 ms)
+[  SKIPPED ] ModelRefusalBehavior.ARefusedBodyPartModelIsCheckedAgainTheMomentItsFilesChange (0 ms)
+[  SKIPPED ] ModelSidecarRefusal.ARefusedBoneSidecarIsMinusFourWithOneErrorAlertPerSessionAndTheReason (0 ms)
+[  SKIPPED ] ModelSidecarRefusal.ARepairedSidecarIsSeenAtOnceInTheSameSession (0 ms)
+[  SKIPPED ] ModelSidecarRefusal.ASidecarRefusalOfBoneSuppressionThroughTheWorkerIsNeverAWorkerFailure (0 ms)
+[  SKIPPED ] ModelSidecarRefusal.ARefusedBodyPartSidecarIsUnknownWithOneErrorAlertOnTheInProcessPath (0 ms)
+[  SKIPPED ] ModelSidecarRefusal.ASecondRefusalOfTheSameRoleInTheSameSessionRaisesNoSecondAlert (0 ms)
+[  SKIPPED ] LabelSidecarOom.LoadingTheModelReportsOutOfMemoryAsTheLoadFailureNotAsBadLabels (0 ms)
+[  SKIPPED ] WorkerExeMissing.ControlTheSameCopyWithTheWorkerBesideItProcessesAnImage (0 ms)
+[  SKIPPED ] WorkerOom.ABoneSessionThatRunsOutOfMemoryInTheWorkerIsOutOfMemoryAndCountsAsAWorkerFailure (0 ms)
+[  SKIPPED ] WorkerOom.ABodyPartSessionThatRunsOutOfMemoryInTheWorkerIsAFailureNotAnUnavailableModel (0 ms)
+[  SKIPPED ] WorkerBoundary.ControlWithNoFaultTheWorkerAnswersBothRequestTypes (0 ms)
+[  SKIPPED ] WorkerBoundary.AShortageOfMemoryWhileReadingTheModelIsAnErrorFrameAndTheWorkerSurvives (0 ms)
+[  SKIPPED ] WorkerBoundary.ABadAllocInsideARequestHandlerIsAnErrorFrameAndTheWorkerSurvives (0 ms)
+[  SKIPPED ] WorkerBoundary.AnyOtherExceptionInsideARequestHandlerIsAProcessingFailureAndTheWorkerSurvives (0 ms)
+[  SKIPPED ] WorkerBoundary.AShortageOfMemoryAtThePayloadAllocationIsAnsweredAndTheNextFrameIsStillInStep (0 ms)
+[  SKIPPED ] WorkerBoundary.ThroughTheCAbiTheShortageIsCountedAsAWorkerFailureAndTheNextSuccessResetsTheCount (0 ms)
+[  SKIPPED ] WorkerBoundary.AShortageOfMemoryWhileReadingTheLabelsIsAnErrorFrameNotAnUnavailableModelAndTheWorkerSurvives (0 ms)
+[  SKIPPED ] WorkerBoundary.ThroughTheCAbiAShortageWhileReadingTheLabelsIsCountedOnceAndTheNextSuccessResetsIt (0 ms)
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted (0 ms)
+[  SKIPPED ] TrustRecheck.ARefusedBoneModelIsReadAndVerifiedAgainOnEveryCall (0 ms)
+[  SKIPPED ] TrustRecheck.ARepairedBoneModelWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce (0 ms)
+[  SKIPPED ] TrustRecheck.ARepairedBodyPartSidecarWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce (0 ms)
+[  SKIPPED ] TrustRecheck.AnInferenceIsNotKeptOutByASlowCardLookup (0 ms)
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheInfoAlert (0 ms)
+[  SKIPPED ] AiProcessedAlert.OneCallRaisesExactlyOneAlert (0 ms)
+[  SKIPPED ] AiProcessedAlert.TwoCallsRaiseTwoAlerts (0 ms)
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo (0 ms)
+[  SKIPPED ] WorkerBoneSuppress.ChangingTheModelChangesTheIpcOutput (0 ms)
+[  SKIPPED ] WorkerBoneSuppress.DifferentPixelsGiveDifferentIpcOutput (0 ms)
+[  SKIPPED ] WorkerBoneSuppress.TheFullBuildIsProvableWhenTheCallerSaysSo (0 ms)
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress (0 ms)
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll (23 ms)
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers (31 ms)
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount (31 ms)
+[  SKIPPED ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked (24 ms)
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker (20 ms)
+[  SKIPPED ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath (21 ms)
+[  SKIPPED ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat (0 ms)
+[  SKIPPED ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat (0 ms)
+[  SKIPPED ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths (0 ms)
+[  SKIPPED ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused (0 ms)
+[  SKIPPED ] BoneSuppressNonFinite.WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling (0 ms)
+[  SKIPPED ] BoneSuppressNonFinite.AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNeverSwitchesTheWorkerOff (0 ms)
+[==========] 554 tests from 71 test suites ran. (90586 ms total)
+[  PASSED  ] 435 tests.
+[  SKIPPED ] 119 tests, listed below:
+[  SKIPPED ] WorkerPathClassification.BoneSuppressMapsABadAllocToOutOfMemoryAndAnyOtherExceptionToProcessingFailed
+[  SKIPPED ] WorkerPathClassification.BodyPartRecognizeNamesAShortageOfMemoryAsCodeMinusTwoAndAnyOtherExceptionAsCodeMinusThree
+[  SKIPPED ] OnnxSessionRun.RunningADifferentModelChangesTheOutput
+[  SKIPPED ] OnnxSessionRun.OutputIsNotAConstantIndependentOfInput
+[  SKIPPED ] OnnxSessionRun.WrongInputLengthIsInvalidInput
+[  SKIPPED ] OnnxSessionCreate.GarbageFileIsModelLoadFailed
+[  SKIPPED ] OnnxSessionMetadata.InputAndOutputAreReadFromTheModel
+[  SKIPPED ] OnnxSessionBuildMode.AFullBuildIsProvableWhenTheCallerSaysItExpectedOne
+[  SKIPPED ] BoneSuppressAbi.ADifferentModelDirectoryChangesTheOutput
+[  SKIPPED ] BoneSuppressAbi.TheInputImageIsNotModified
+[  SKIPPED ] BoneSuppressAbi.DifferentPixelsGiveDifferentOutput
+[  SKIPPED ] BoneSuppressAbi.MissingModelAndBrokenModelGiveDifferentCodes
+[  SKIPPED ] BoneSuppressAbi.ReInitWithADifferentDirectorySwitchesTheModel
+[  SKIPPED ] BodyPart.ConstantModelGivesItsLabelAndItsProbability
+[  SKIPPED ] BodyPart.ADifferentModelDirectoryChangesTheLabel
+[  SKIPPED ] BodyPart.AConstantModelIgnoresTheImage
+[  SKIPPED ] BodyPart.TheImageChangesTheLabel
+[  SKIPPED ] BodyPart.ATieGoesToTheFirstClassAndAFullScaleProbabilityIsAccepted
+[  SKIPPED ] BodyPart.ANhwcModelGivesTheSameAnswersAsTheNchwOne
+[  SKIPPED ] BodyPart.AnImageOfAnotherSizeIsResizedToTheModelsInputBeforeItIsRun
+[  SKIPPED ] BodyPart.NoModelFileIsTheStubsOutcomeWithOneWarning
+[  SKIPPED ] BodyPart.ABrokenModelFileIsTheStubsOutcomeWithOneWarning
+[  SKIPPED ] BodyPart.MissingLabelsAreTheStubsOutcomeWithOneWarning
+[  SKIPPED ] BodyPart.MoreOutputsThanLabelsAreTheStubsOutcomeWithOneWarning
+[  SKIPPED ] BodyPart.ARankTwoInputIsTheStubsOutcomeWithOneWarning
+[  SKIPPED ] BodyPart.ADynamicInputIsTheStubsOutcomeWithOneWarning
+[  SKIPPED ] BodyPart.WithoutAModelNoImageFormatChangesTheOutcome
+[  SKIPPED ] BodyPart.ANonFiniteModelResultIsRefusedWithTheNonFiniteAlert
+[  SKIPPED ] BodyPart.AProbabilityAboveOneIsRefused
+[  SKIPPED ] BodyPart.ANegativeValueIsRefusedEvenWhenTheLargestIsInRange
+[  SKIPPED ] BodyPart.ANonFloatImageIsUnsupportedWhenAModelIsThere
+[  SKIPPED ] BodyPart.ALabelThatDoesNotFitIsBufferTooSmallAndNeverTruncated
+[  SKIPPED ] BodyPart.WithoutAModelAShortBufferIsStillBufferTooSmall
+[  SKIPPED ] BodyPart.AConfidenceExactlyAtTheThresholdPasses
+[  SKIPPED ] BodyPart.AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack
+[  SKIPPED ] BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning
+[  SKIPPED ] BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows
+[  SKIPPED ] BodyPart.TheThresholdIsTheConfiguredOneNotAConstant
+[  SKIPPED ] BodyPart.AThresholdOfOneAcceptsOnlyAFullScaleConfidence
+[  SKIPPED ] BodyPart.EveryLowConfidenceImageRaisesItsOwnEventButAPassingOneRaisesNone
+[  SKIPPED ] BodyPart.ALowConfidenceIsNotAnUnavailableModelAndDoesNotUseUpItsOneWarning
+[  SKIPPED ] BodyPart.ALowConfidenceFallbackNeedsRoomForUnknownAndStillRaisesTheEvent
+[  SKIPPED ] BodyPart.WithFallbackModeOffALabelThatDoesNotFitIsStillBufferTooSmall
+[  SKIPPED ] BodyPart.ANonNumericThresholdInTheConfigIsIgnoredAndTheDefaultApplies
+[  SKIPPED ] BodyPart.MeasureResizeAndRecognizeLatency
+[  SKIPPED ] WorkerBodyPartAgreement.TheRealWorkerAndTheInProcessPathSayTheSameThingForEveryModelAndImage
+[  SKIPPED ] WorkerBodyPartAgreement.TheWorkerResizesTheImageToTheModelsInputAndTheAnswerFollowsTheImage
+[  SKIPPED ] WorkerBodyPartAgreement.AnUnavailableModelKeepsTheWorkerAndIsNotAFault
+[  SKIPPED ] WorkerBodyPartAgreement.ALabelOutsidePrintableAsciiOrWithAQuoteOrBackslashIsUnavailableInBothPaths
+[  SKIPPED ] WorkerBoneErrorFrame.TheRealWorkersOwnErrorFramesAreAcceptedAndKeepTheWorker
+[  SKIPPED ] BodyPartWorkerPath.ControlTheModelRunsInTheWorkerAndTheAnswerComesBack
+[  SKIPPED ] BodyPartWorkerPath.TheDifferentModelDirectoryChangesTheLabelThroughTheWorkerToo
+[  SKIPPED ] BodyPartWorkerPath.ALowConfidenceFromTheWorkerGetsTheDecisionOfThisProcess
+[  SKIPPED ] BodyPartWorkerPath.WithFallbackModeOffTheLowConfidenceLabelIsReturnedAndTheToggleWorksAtRunTime
+[  SKIPPED ] BodyPartWorkerPath.TheModelsRefusedOutputIsAnAlertAndNeverAWorkerFailure
+[  SKIPPED ] BodyPartWorkerPath.AnUnavailableBodyPartModelIsOneWarningAndNeverCountedAndNeverSwitchesTheWorkerOff
+[  SKIPPED ] BodyPartWorkerPath.WithNoBodyPartModelBoneSuppressionIsNotSkippedByTheBodyPartCalls
+[  SKIPPED ] BodyPartWorkerPath.AnUnavailableAnswerEndsARunOfBoneSuppressionFailures
+[  SKIPPED ] BodyPartWorkerPath.ControlTheFailingModelLoadsAndOnlyFailsWhenItIsRun
+[  SKIPPED ] BodyPartWorkerPath.AModelThatExistsAndFailsToRunIsCountedAndThirdFailureSwitchesTheWorkerOffForBothFunctions
+[  SKIPPED ] BodyPartWorkerPath.BoneSuppressionFailuresSwitchOffBodyPartRecognitionToo
+[  SKIPPED ] BodyPartWorkerPath.ShutdownThenInitRecoversAWorkerSwitchedOffByBodyPartFailures
+[  SKIPPED ] BodyPartWorkerPath.ASilentWorkerIsGivenUpOnAtTheBudgetAndTheNextCallRecoversOnANewWorker
+[  SKIPPED ] BodyPartWorkerPath.ANonFloatImageIsRefusedBeforeTheWorkerIsAskedWhateverTheModel
+[  SKIPPED ] BodyPartWorkerPath.ARefusedLabelIsOneWarningPerSessionOnBothPathsAndNeverAWorkerFailure
+[  SKIPPED ] ModelLoadingTrust.FilesChangedBetweenTheCheckAndTheLoadDoNotReachTheSession
+[  SKIPPED ] ModelLoadingTrust.ASwappedModelFileThatIsGarbageDoesNotBreakAVerifiedLoadEither
+[  SKIPPED ] ModelLoadingTrust.TheSidecarTheCallerReadsIsTheOneThatWasVerified
+[  SKIPPED ] ModelLoadingTrust.ATamperedBodyPartSidecarIsUnavailableOnBothPathsAndNeverAWorkerFailure
+[  SKIPPED ] ModelLoadingTrust.EndToEndTheBoneModelThatRunsIsTheVerifiedOneEvenIfTheFileIsSwappedAfterTheCheck
+[  SKIPPED ] ModelLoadingTrust.EndToEndTheLabelsThatAreReturnedAreTheVerifiedOnesEvenIfTheSidecarIsSwappedAfterTheCheck
+[  SKIPPED ] ModelRefusalBehavior.ARefusedBoneModelRaisesOneErrorAlertPerSessionWithTheReasonAndNothingElse
+[  SKIPPED ] ModelRefusalBehavior.TheAlertNamesTheReasonThatIsTrueForEachWayToBeRefused
+[  SKIPPED ] ModelRefusalBehavior.ARefusedBodyPartModelRaisesOneAlertPerSessionOnBothPaths
+[  SKIPPED ] ModelRefusalBehavior.ARefusalIsCheckedAgainTheMomentAnyOfTheThreeFilesChanges
+[  SKIPPED ] ModelRefusalBehavior.AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff
+[  SKIPPED ] ModelRefusalBehavior.ARefusedBodyPartModelIsCheckedAgainTheMomentItsFilesChange
+[  SKIPPED ] ModelSidecarRefusal.ARefusedBoneSidecarIsMinusFourWithOneErrorAlertPerSessionAndTheReason
+[  SKIPPED ] ModelSidecarRefusal.ARepairedSidecarIsSeenAtOnceInTheSameSession
+[  SKIPPED ] ModelSidecarRefusal.ASidecarRefusalOfBoneSuppressionThroughTheWorkerIsNeverAWorkerFailure
+[  SKIPPED ] ModelSidecarRefusal.ARefusedBodyPartSidecarIsUnknownWithOneErrorAlertOnTheInProcessPath
+[  SKIPPED ] ModelSidecarRefusal.ASecondRefusalOfTheSameRoleInTheSameSessionRaisesNoSecondAlert
+[  SKIPPED ] LabelSidecarOom.LoadingTheModelReportsOutOfMemoryAsTheLoadFailureNotAsBadLabels
+[  SKIPPED ] WorkerExeMissing.ControlTheSameCopyWithTheWorkerBesideItProcessesAnImage
+[  SKIPPED ] WorkerOom.ABoneSessionThatRunsOutOfMemoryInTheWorkerIsOutOfMemoryAndCountsAsAWorkerFailure
+[  SKIPPED ] WorkerOom.ABodyPartSessionThatRunsOutOfMemoryInTheWorkerIsAFailureNotAnUnavailableModel
+[  SKIPPED ] WorkerBoundary.ControlWithNoFaultTheWorkerAnswersBothRequestTypes
+[  SKIPPED ] WorkerBoundary.AShortageOfMemoryWhileReadingTheModelIsAnErrorFrameAndTheWorkerSurvives
+[  SKIPPED ] WorkerBoundary.ABadAllocInsideARequestHandlerIsAnErrorFrameAndTheWorkerSurvives
+[  SKIPPED ] WorkerBoundary.AnyOtherExceptionInsideARequestHandlerIsAProcessingFailureAndTheWorkerSurvives
+[  SKIPPED ] WorkerBoundary.AShortageOfMemoryAtThePayloadAllocationIsAnsweredAndTheNextFrameIsStillInStep
+[  SKIPPED ] WorkerBoundary.ThroughTheCAbiTheShortageIsCountedAsAWorkerFailureAndTheNextSuccessResetsTheCount
+[  SKIPPED ] WorkerBoundary.AShortageOfMemoryWhileReadingTheLabelsIsAnErrorFrameNotAnUnavailableModelAndTheWorkerSurvives
+[  SKIPPED ] WorkerBoundary.ThroughTheCAbiAShortageWhileReadingTheLabelsIsCountedOnceAndTheNextSuccessResetsIt
+[  SKIPPED ] WorkerSandbox.TheRealWorkerRecognisesABodyPartWhileRestricted
+[  SKIPPED ] TrustRecheck.ARefusedBoneModelIsReadAndVerifiedAgainOnEveryCall
+[  SKIPPED ] TrustRecheck.ARepairedBoneModelWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce
+[  SKIPPED ] TrustRecheck.ARepairedBodyPartSidecarWithTheSizeAndWriteTimeOfTheRefusedOneIsAcceptedAtOnce
+[  SKIPPED ] TrustRecheck.AnInferenceIsNotKeptOutByASlowCardLookup
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheInfoAlert
+[  SKIPPED ] AiProcessedAlert.OneCallRaisesExactlyOneAlert
+[  SKIPPED ] AiProcessedAlert.TwoCallsRaiseTwoAlerts
+[  SKIPPED ] AiProcessedAlert.DlAppliedRaisesTheAlert_ProvableWhenTheCallerSaysSo
+[  SKIPPED ] WorkerBoneSuppress.ChangingTheModelChangesTheIpcOutput
+[  SKIPPED ] WorkerBoneSuppress.DifferentPixelsGiveDifferentIpcOutput
+[  SKIPPED ] WorkerBoneSuppress.TheFullBuildIsProvableWhenTheCallerSaysSo
+[  SKIPPED ] WorkerSupervisor.AfterARestartTheWorkerStillServesBoneSuppress
+[  SKIPPED ] WorkerPathFixture.OnGivesTheSameAnswerAsInProcessFromAWorkerBesideTheDll
+[  SKIPPED ] WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers
+[  SKIPPED ] WorkerPathFixture.ASuccessResetsTheConsecutiveFailureCount
+[  SKIPPED ] WorkerPathFixture.IntermittentFailuresAlertOnEveryFailureAndAreNeverBlocked
+[  SKIPPED ] WorkerPathFixture.WorkerStateAnswersPromptlyWhileACallIsStuckOnASilentWorker
+[  SKIPPED ] WorkerPathFixture.NoScalingIsAppliedToTheInputOrTheOutputOnEitherPath
+[  SKIPPED ] BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat
+[  SKIPPED ] BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat
+[  SKIPPED ] BoneSuppressNonFinite.OrdinaryPixelsStillGiveExactlyTwiceTheInputInBothPaths
+[  SKIPPED ] BoneSuppressNonFinite.ALargestFiniteResultIsNotRefused
+[  SKIPPED ] BoneSuppressNonFinite.WorkerFaultsStillSwitchTheWorkerOffAtTheCeiling
+[  SKIPPED ] BoneSuppressNonFinite.AValidNonFiniteResponseEndsARunOfWorkerFaultsAndNeverSwitchesTheWorkerOff

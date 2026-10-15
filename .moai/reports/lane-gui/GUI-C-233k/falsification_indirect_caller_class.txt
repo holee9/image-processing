@@ -1,0 +1,4 @@
+[xUnit.net 00:00:01.21]       files call the preprocess module but are not in the sweep: Functional/ZzIndirectCaller.cs
+[xUnit.net 00:00:01.21]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.TheFileList_EqualsTheFilesThatCallTheModule [FAIL]
+[xUnit.net 00:00:01.22]       these files call the preprocess module but are not in PreprocessModuleCollection: Functional/ZzIndirectCaller.cs
+[xUnit.net 00:00:01.22]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleCollectionGuardTests.EveryTestFileThatInitialisesOrRunsThePreprocessModule_IsInThePreprocessModuleCollection [FAIL]

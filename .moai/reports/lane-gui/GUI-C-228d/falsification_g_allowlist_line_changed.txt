@@ -1,0 +1,3 @@
+== arm G: an allow-listed line is renamed (new line unallowed, old entry stale)
+[xUnit.net 00:00:00.36]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    11, 건너뜀:     0, 전체:    12, 기간: 356 ms - ImageProcTest.IntegrationTests.dll (net8.0)

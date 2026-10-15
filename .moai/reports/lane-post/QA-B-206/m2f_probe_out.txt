@@ -1,0 +1,14 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ProbeHtj2k*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DicomValidatorTest
+[ RUN      ] DicomValidatorTest.ProbeHtj2kJpipSyntaxes
+PROBE xfer=56 saved=1 rc=0 report={"errors":[],"valid":true,"warnings":[{"message":"Pixel data by reference (Pixel Data Provider URL) is not supported by this module","tag":"7FE0,0010"}]}
+PROBE xfer=57 saved=1 rc=-13 report={"errors":[{"message":"File cannot be parsed as DICOM: Unsupported compression or encryption","tag":"0008,0000"}],"valid":false,"warnings":[]}
+[       OK ] DicomValidatorTest.ProbeHtj2kJpipSyntaxes (12 ms)
+[----------] 1 test from DicomValidatorTest (20 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (42 ms total)
+[  PASSED  ] 1 test.

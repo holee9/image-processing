@@ -1,0 +1,2 @@
+== arm (b) a line that is only a comment naming the call, added to another .cs (must stay green)
+통과!  - 실패:     0, 통과:    12, 건너뜀:     0, 전체:    12, 기간: 352 ms - ImageProcTest.IntegrationTests.dll (net8.0)

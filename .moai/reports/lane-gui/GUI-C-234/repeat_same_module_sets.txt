@@ -1,0 +1,15 @@
+same module set, repeated runs (is the result run-to-run stable?)
+--- c234_native:
+identical uint16 pixels: 9437184 of 9437184 (100.000000%)
+max |diff| = 0; mean diff = 0.000000
+--- c234b_native:
+identical uint16 pixels: 9175277 of 9437184 (97.224734%)
+max |diff| = 65; mean diff = 1.777848
+NOT byte-identical
+--- c234_native:
+identical uint16 pixels: 9437184 of 9437184 (100.000000%)
+max |diff| = 0; mean diff = 0.000000
+--- c234b_native:
+identical uint16 pixels: 9175277 of 9437184 (97.224734%)
+max |diff| = 65; mean diff = 1.777848
+NOT byte-identical

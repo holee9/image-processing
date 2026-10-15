@@ -233,7 +233,7 @@ graph LR
     subgraph "HAZ-010: AI Confidence Misuse"
         RC10A[SRS-SAFE-010<br/>AI health check + mandatory confidence display]
         RC10B[SRS-SAFE-011<br/>Fallback to Phase1/2 on AI failure]
-        RC10C[OOD threshold<br/>confidence lt 0.70 → UNKNOWN label]
+        RC10C[OOD threshold<br/>confidence lt 0.6 → UNKNOWN label]
     end
 
     subgraph "HAZ-011: Multi-Package Cascade"
@@ -262,9 +262,16 @@ graph LR
 | HAZ-007 | Non-GSDF display warning | Information for safety | SWU-3.3 PresentationLUT | SRS-SAFE-007 |
 | HAZ-008 | AI-processed label + original toggle | Information for safety | SWU-2.11 + SWU-3.3 | SRS-SAFE-008, 009 |
 | HAZ-009 | Processing state indicator + synchronized comparison viewport + source preservation | Protective measure | SWU-3.3 + SWU-5.7 | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 |
-| HAZ-010 | AI worker health check; mandatory confidence score display; OOD threshold (confidence < 0.70 → UNKNOWN); fallback to Phase 1/2 on AI failure | Protective measure + Information for safety | SWU-2.11, SWU-2.12, AI Router | SRS-SAFE-010, SRS-SAFE-011 |
+| HAZ-010 | AI worker health check; mandatory confidence score display; OOD threshold (confidence < 0.6 → UNKNOWN; status: implemented (wiring) — effectiveness unverified, no real model); fallback to Phase 1/2 on AI failure | Protective measure + Information for safety | SWU-2.11, SWU-2.12, AI Router | SRS-SAFE-010, SRS-SAFE-011 |
 | HAZ-011 | Multi-package initialization verification; pipeline hard-stop on partial initialization; GSVG failure → mandatory user alert | Inherent safety + Protective measure | SWU-5.7 PipelineOrchestrator + GSVG API wrapper | SRS-SAFE-012 |
 | HAZ-012 | Persistent AI-processed overlay indicator; 1-click original toggle (same as HAZ-008/009); IFU mandatory orientation training requirement | Information for safety + IFU/Labeling | SWU-3.3 + SWU-5.7 + Labeling | SRS-SAFE-008, SRS-SAFE-009; IFU-TRAIN-001 |
+
+> **HAZ-010 OOD threshold — risk control needs re-evaluation (2026-10-02, `QA-B-191`, #240)** — this control used to
+> state 0.70. The canonical threshold is 0.6, on which SPEC `REQ-AI-012`, `srs_ai.md` and the code
+> (`XPE_AI_DEFAULT_CONFIDENCE_THRESHOLD`) agree, so the value was aligned. The threshold decision is now implemented
+> and tested (`xpe_bodypart_recognize`, `BodyPart.*`), but the control's effectiveness — whether a real model's
+> confidence correlates with misclassification, and what share of misclassifications 0.6 blocks — cannot be measured
+> because no real model exists. This control and the post-mitigation assessment of HAZ-010 need re-evaluation (issue #240).
 
 ---
 

@@ -1,0 +1,17 @@
+QA-B-195 M4 arms: every arm built (build_ok=True), the three sources restored byte-identical after the last one; from build/g195m4-arms-out.txt
+
+F1 the alert is raised on every refused call: build_ok=True red(1)=['AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff']
+F2 the in-process bone refusal raises no alert: build_ok=True red(2)=['ARefusedBoneModelRaisesOneErrorAlertPerSessionWithTheReasonAndNothingElse', 'TheAlertNamesTheReasonThatIsTrueForEachWayToBeRefused']
+F3 the alert is a Warning, not an Error: build_ok=True red(3)=['ARefusedBodyPartModelRaisesOneAlertPerSessionOnBothPaths', 'ARefusedBoneModelRaisesOneErrorAlertPerSessionWithTheReasonAndNothingElse', 'AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff']
+F4 the bone memo is never invalidated by a change of the files: build_ok=True red(1)=['ARefusalIsCheckedAgainTheMomentAnyOfTheThreeFilesChanges']
+F5 the worker path does not take the unavailable branch: build_ok=True red(1)=['AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff']
+F6 the worker path counts a signature refusal: build_ok=True red(1)=['AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff']
+F7 the bridge refuses the unavailable flag in a bone ERROR frame: build_ok=True red(2)=['AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff', 'TheUnavailableFlagIsBelievedForBoneSuppressUnderTheBodyPartRuleAndNothingElseChanged']
+F8 the reason class is always "unknown": build_ok=True red(3)=['ARefusedBodyPartModelRaisesOneAlertPerSessionOnBothPaths', 'ARefusedBoneModelRaisesOneErrorAlertPerSessionWithTheReasonAndNothingElse', 'TheAlertNamesTheReasonThatIsTrueForEachWayToBeRefused']
+F9 the worker does not flag a signature refusal as unavailable: build_ok=True red(1)=['AWorkerSignatureRefusalOfBoneSuppressionIsNotAWorkerFailureAndNeverSwitchesTheWorkerOff']
+F10 the body-part refusal takes the generic Warning path: build_ok=True red(1)=['ARefusedBodyPartModelRaisesOneAlertPerSessionOnBothPaths']
+F11 the stamp ignores the write time: build_ok=True red(2)=['ARefusalIsCheckedAgainTheMomentAnyOfTheThreeFilesChanges', 'ARefusedBodyPartModelIsCheckedAgainTheMomentItsFilesChange']
+F12 the body-part memo is never invalidated by a change of the files: build_ok=True red(1)=['ARefusedBodyPartModelIsCheckedAgainTheMomentItsFilesChange']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['28'] red=[]
+DONE

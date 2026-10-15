@@ -7,7 +7,9 @@ namespace ImageProcTest
 {
     internal static class ModuleReadinessService
     {
-        public static IReadOnlyList<ModuleReadinessSnapshot> Evaluate(BackendHealthResult? commonHealth)
+        /// <param name="commonHealth">The common backend's health.</param>
+        /// <param name="waitForOracle">True (headless callers): wait for the preprocess synthetic oracle. False (the window, GUI-C-219): never wait; the module reads "checking" until the verdict is in.</param>
+        public static IReadOnlyList<ModuleReadinessSnapshot> Evaluate(BackendHealthResult? commonHealth, bool waitForOracle = true)
         {
             var root = FindRepositoryRoot(AppContext.BaseDirectory);
             var display = XpeDisplayVersionProbe.Check();
@@ -22,7 +24,7 @@ namespace ImageProcTest
             {
                 EvaluateCommon(commonHealth),
                 EvaluateDisplay(display) with { ResolvedDllPath = ModuleReadinessReporting.ResolvedPathOrEmpty(display.DllPath) },
-                EvaluatePreprocess(root),
+                EvaluatePreprocess(root, waitForOracle),
                 EvaluateEnhanceBasic(enhanceBasic) with { ResolvedDllPath = ModuleReadinessReporting.ResolvedPathOrEmpty(enhanceBasic.DllPath) },
                 EvaluateDicom(dicom) with { ResolvedDllPath = ModuleReadinessReporting.ResolvedPathOrEmpty(dicom.DllPath) },
                 EvaluateDllPresence("xpe_enhance_advanced", "xpe_enhance_advanced.dll"),
@@ -109,10 +111,22 @@ namespace ImageProcTest
                 DegradedMode: "Display stage remains Off because xpe_display.dll is unavailable.");
         }
 
-        private static ModuleReadinessSnapshot EvaluatePreprocess(string? root)
+        private static ModuleReadinessSnapshot EvaluatePreprocess(string? root, bool waitForOracle)
         {
-            var health = XpePreprocessReadinessProbe.Check();
+            var health = XpePreprocessReadinessProbe.Check(waitForOracle);
             var sourceExists = root is not null && Directory.Exists(Path.Combine(root, "modules", "preprocess", "src"));
+
+            if (health.IsSyntheticOracleChecking)
+            {
+                // GUI-C-219: a third state. Not enabled (an unconfirmed module is blocked, whatever its exports say), and not described as a failure either.
+                return new ModuleReadinessSnapshot(
+                    "xpe_preprocess",
+                    "R2",
+                    "Synthetic oracle checking",
+                    $"version={health.Version}; dll={health.DllPath}; the 16x16 synthetic adapter-chain oracle is running in the background",
+                    "Wait for the synthetic oracle's answer (it replaces this line); preprocess execution stays off until it passes.",
+                    ProcessingEnabled: false);
+            }
 
             if (health.IsExportReady)
             {

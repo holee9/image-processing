@@ -329,28 +329,11 @@ TEST(ExceptionGuard, ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape) {
         EXPECT_TRUE(finite) << c.w << "x" << c.h;
         EXPECT_TRUE(inRange) << c.w << "x" << c.h << ": the output must stay inside the input's value range";
 
-        // Within one tile the mapping is a monotone LUT: a brighter input never gets a darker output.
-        const int tileW = xpe_ceil_div(c.w, c.tw), tileH = xpe_ceil_div(c.h, c.th);
-        bool monotone = true;
-        for (int ty = 0; ty < c.th && monotone; ++ty) {
-            for (int tx = 0; tx < c.tw && monotone; ++tx) {
-                int x0, x1, y0, y1;
-                xpe_tile_bounds(tx, tileW, c.w, x0, x1);
-                xpe_tile_bounds(ty, tileH, c.h, y0, y1);
-                if (x0 >= x1 || y0 >= y1) continue;
-                std::vector<std::pair<float, float>> pairs;
-                for (int y = y0; y < y1; ++y)
-                    for (int x = x0; x < x1; ++x)
-                        pairs.emplace_back(in[static_cast<size_t>(y) * c.w + x], a[static_cast<size_t>(y) * c.w + x]);
-                std::sort(pairs.begin(), pairs.end());
-                for (size_t i = 1; i < pairs.size(); ++i)
-                    if (pairs[i].first > pairs[i - 1].first && pairs[i].second < pairs[i - 1].second) {
-                        monotone = false;
-                        break;
-                    }
-            }
-        }
-        EXPECT_TRUE(monotone) << c.w << "x" << c.h << " tiles " << c.tw << "x" << c.th;
+        // QA-B-207 M2 (E6): this used to assert that, within one tile, a brighter input never gets a darker output. That
+        // held because every pixel was mapped by its OWN tile's table alone. The standard CLAHE blends the tables of the four
+        // surrounding tiles with weights that depend on the pixel's position, so two pixels of one tile are mapped by different
+        // blends and the property no longer follows. What replaces it is stronger: ContrastEnhance.MatchesAnIndependentReference
+        // compares every output pixel with a separate implementation of the definition.
     }
 }
 
@@ -560,13 +543,19 @@ TEST(ExceptionGuard, BilateralRefusesANaNRangeSigma) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, RunBilateral(3.0f, 0.0f).rc);
 }
 
-// Large FINITE values stay legal: the radius is limited to the image-dependent maximum, as it always was.
-// FLT_MAX is the sharp one: 2 * sigma overflows float to infinity before any conversion.
-TEST(ExceptionGuard, BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius) {
-    for (float s : {0.5f, 3.0f, 7.5f, 100.0f, 1e6f, 1e30f, (std::numeric_limits<float>::max)()}) {
+// QA-B-210 E7: large FINITE values were legal ("the radius is limited to the image-dependent maximum"); the user decided they are
+// refused above 7.5, the largest sigma_space whose 2-sigma extent fits the radius cap of 15. FLT_MAX stays the sharp one: 2 * sigma overflows float
+// to infinity before any conversion, so the comparison with the cap must come first -- and it does (INVALID_INPUT, image untouched).
+TEST(ExceptionGuard, BilateralAcceptsSpatialSigmasUpToTheCapAndRefusesLargerFiniteOnes) {
+    for (float s : {0.5f, 3.0f, 7.5f}) {
         const Outcome r = RunBilateral(s, 50.0f);
         EXPECT_EQ(XPE_OK, r.rc) << "sigma_space=" << s;
         EXPECT_TRUE(r.finite) << "sigma_space=" << s << ": the output must stay finite";
+    }
+    for (float s : {std::nextafter(7.5f, 100.0f), 100.0f, 1e6f, 1e30f, (std::numeric_limits<float>::max)()}) {
+        const Outcome r = RunBilateral(s, 50.0f);
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc) << "sigma_space=" << s;
+        EXPECT_TRUE(r.finite) << "sigma_space=" << s << ": the image must stay as it was";
     }
 }
 

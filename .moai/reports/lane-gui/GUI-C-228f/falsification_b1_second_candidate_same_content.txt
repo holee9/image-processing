@@ -1,0 +1,4 @@
+== arm (b1): a copy of the linked source (identical bytes) is placed at <repo>/Diagnostics/XpePreprocessOracleProcess.cs, a shorter tail of the same document
+[xUnit.net 00:00:00.32]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+[xUnit.net 00:00:00.46]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.TheCompiledSourceList_HoldsThisFile_ALinkedAppSource_AGeneratedSource_AndEveryCompileItem [FAIL]
+실패!  - 실패:     2, 통과:    13, 건너뜀:     0, 전체:    15, 기간: 465 ms - ImageProcTest.IntegrationTests.dll (net8.0)

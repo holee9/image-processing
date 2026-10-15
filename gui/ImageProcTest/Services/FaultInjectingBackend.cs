@@ -1,4 +1,5 @@
 // #171 (GUI-C-79): a test fault, armed only from the command line.
+#if XPE_TEST_FAULTS   // GUI-C-193: this type exists only in a test build; a shipped build does not contain it.
 using ImageProcTest.Models;
 
 namespace ImageProcTest.Services;
@@ -22,28 +23,33 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     private readonly int _failAfter;
     private readonly bool _displayFault;
     private readonly bool _aiWorkerDisabled;
+    private readonly int? _aiWorkerSilentAfter;
+    private readonly int? _displayDelayMs;
     private int _calls;
+    private int _statusReads;
 
-    private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled)
+    private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled, int? aiWorkerSilentAfter, int? displayDelayMs)
     {
+        _displayDelayMs = displayDelayMs;
         _inner = inner;
         _displayFault = failAfter is not null;
         _failAfter = failAfter ?? int.MaxValue;
         _aiWorkerDisabled = aiWorkerDisabled;
+        _aiWorkerSilentAfter = aiWorkerSilentAfter;
     }
 
     /// <summary>The last wrapper created in this process, or null when fault injection is off.</summary>
     public static FaultInjectingBackend? Armed { get; private set; }
 
     /// <summary>Returns <paramref name="backend"/> itself unless a fault was requested.</summary>
-    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter, bool aiWorkerDisabled = false)
+    public static IXpeBackend Wrap(IXpeBackend backend, int? failAfter, bool aiWorkerDisabled = false, int? aiWorkerSilentAfter = null, int? displayDelayMs = null)
     {
-        if (failAfter is null && !aiWorkerDisabled)
+        if (failAfter is null && !aiWorkerDisabled && aiWorkerSilentAfter is null && displayDelayMs is null)
         {
             return backend;
         }
 
-        Armed = new FaultInjectingBackend(backend, failAfter, aiWorkerDisabled);
+        Armed = new FaultInjectingBackend(backend, failAfter, aiWorkerDisabled, aiWorkerSilentAfter, displayDelayMs);
         return Armed;
     }
 
@@ -51,12 +57,37 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     public static string Describe() =>
         Armed is null
             ? "faultInjection=off"
+            : Armed._displayDelayMs is not null && !Armed._displayFault && !Armed._aiWorkerDisabled && Armed._aiWorkerSilentAfter is null
+                ? $"faultInjection={AutomationArgs.DisplayDelayFaultPrefix}{Armed._displayDelayMs} calls={Armed._calls}"
             : Armed._displayFault
                 ? $"faultInjection={AutomationArgs.DisplayPipelineFaultPrefix}{Armed._failAfter} calls={Armed._calls}"
                     + (Armed._aiWorkerDisabled ? $" {AutomationArgs.AiWorkerDisabledFault}" : string.Empty)
-                : $"faultInjection={AutomationArgs.AiWorkerDisabledFault} calls={Armed._calls}";
+                : $"faultInjection={(Armed._aiWorkerSilentAfter is 0 ? AutomationArgs.AiWorkerSilentFromStartFault : Armed._aiWorkerSilentAfter is not null ? AutomationArgs.AiWorkerSilentFault : AutomationArgs.AiWorkerDisabledFault)} calls={Armed._calls}";
+
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings)
+    {
+        CountAndMaybeFail();
+        DelayIfArmed();
+        return _inner.ApplyDisplayPipeline(rawFrame, chain, settings);
+    }
 
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    {
+        CountAndMaybeFail();
+        DelayIfArmed();
+        return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
+    }
+
+    /// <summary>GUI-C-245: <c>display-delay:MS</c> - the display pipeline starts MS milliseconds late, so the picture it produces reaches the viewport (and the screen) that much later.</summary>
+    private void DelayIfArmed()
+    {
+        if (_displayDelayMs is > 0)
+        {
+            Thread.Sleep(_displayDelayMs.Value);
+        }
+    }
+
+    private void CountAndMaybeFail()
     {
         var call = Interlocked.Increment(ref _calls);
         if (call > _failAfter)
@@ -65,8 +96,6 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
                 $"FAULT INJECTION: display pipeline call {call} failed on purpose " +
                 $"(--automation-fault {AutomationArgs.DisplayPipelineFaultPrefix}{_failAfter}).");
         }
-
-        return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
     }
 
     public BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);
@@ -82,9 +111,27 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     // GUI-C-185: the wrapper adds no fault of its own to the AI session; it passes the question to the backend it wraps.
     AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() =>
-        _aiWorkerDisabled
+        _aiWorkerSilentAfter is not null ? SilentWorkerStatus(_aiWorkerSilentAfter.Value)
+        : _aiWorkerDisabled
             ? new AiWorkerStatus(AiWorkerState.Disabled, 3, 3)   // the injected fault: the worker is "switched off after 3 of 3"
             : _inner is IAiSessionBackend session ? session.GetAiWorkerStatus() : AiWorkerStatus.Unknown;
+
+    /// <summary>GUI-C-192c: the first <c>answers</c> reads answer "active, 0 of 3" (none for ai-worker-silent:0); every later one waits (a worker that stopped replying) until the process ends.</summary>
+    private AiWorkerStatus SilentWorkerStatus(int answers)
+    {
+        if (Interlocked.Increment(ref _statusReads) <= answers)
+        {
+            return new AiWorkerStatus(AiWorkerState.Active, 0, 3);
+        }
+
+        Thread.Sleep(Timeout.Infinite);
+        return AiWorkerStatus.Unknown;
+    }
+
+    // The wrapper has a session only when the backend it wraps has one (Codex #78 finding 2): a wrapped Mock has none, whatever interface the wrapper carries.
+    bool IAiSessionBackend.HasAiSession => _inner is IAiSessionBackend { HasAiSession: true };
+
+    int IAiSessionBackend.AiSessionEpoch => (_inner as IAiSessionBackend)?.AiSessionEpoch ?? 0;
 
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
         (_inner as IAiSessionBackend)?.RestartAiSession(modelDirectory)
@@ -100,3 +147,4 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     public void Shutdown() => _inner.Shutdown();
 }
+#endif

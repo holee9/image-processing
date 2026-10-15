@@ -1,0 +1,5 @@
+LOCAL, Safety with the native DLLs removed from a copy of the test output: how the trx reports a Skip
+counters: total=10 executed=5 passed=5 notExecuted=0
+Passed 00:00:00.0233340 Safety.LeakEnduranceTests.TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed
+NotExecuted 00:00:00.0006837 Safety.LeakEnduranceTests.InitShutdown_1000Cycles_NoLeak
+NotExecuted 00:00:00.0003837 Safety.LeakEnduranceTests.PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated

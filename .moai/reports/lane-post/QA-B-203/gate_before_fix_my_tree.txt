@@ -1,0 +1,20 @@
+ctest names 18 test binaries, 18 exist on disk
+gsvg_tests.exe                                   exit=0 ran=178  ok  [  PASSED  ] 178 tests.
+test_display_datasize_overread.exe               exit=0 ran=2  ok  [  PASSED  ] 2 tests.
+test_display_gsdf_characterization.exe           exit=0 ran=12  ok  [  PASSED  ] 12 tests.
+test_display_integration.exe                     exit=0 ran=22  ok  [  PASSED  ] 22 tests.
+test_display_logging.exe                         exit=0 ran=4  ok  [  PASSED  ] 4 tests.
+test_display_modality_lut.exe                    exit=0 ran=12  ok  [  PASSED  ] 12 tests.
+test_display_nonfinite_pixels.exe                exit=0 ran=12  ok  [  PASSED  ] 12 tests.
+test_display_parameter_dependency.exe            exit=0 ran=8  ok  [  PASSED  ] 8 tests.
+test_display_presentation_lut.exe                exit=0 ran=20  ok  [  PASSED  ] 20 tests.
+test_display_repro_qa_b_200.exe                  exit=0 ran=0  RAN 0 TESTS (executes nothing)  [  PASSED  ] 0 tests.
+test_display_voi_lut.exe                         exit=0 ran=18  ok  [  PASSED  ] 18 tests.
+test_e2e_post_pipeline.exe                       exit=0 ran=10  ok  [  PASSED  ] 10 tests.
+test_xpe_common.exe                              exit=0 ran=69  ok  [  PASSED  ] 69 tests.
+test_xpe_enhance_advanced.exe                    exit=0 ran=254  ok  [  PASSED  ] 254 tests.
+xpe_ai_oom_tests.exe                             exit=0 ran=13  ok  [  PASSED  ] 6 tests.
+xpe_ai_tests.exe                                 exit=1 ran=559  exit 1  [  FAILED  ] AiModelCardTest.EveryCardAndEveryUnavailableAns
+xpe_common_oom_tests.exe                         exit=0 ran=12  ok  [  PASSED  ] 12 tests.
+xpe_enhance_basic_tests.exe                      exit=0 ran=160  ok  [  PASSED  ] 160 tests.
+binaries that fail the gate: 2

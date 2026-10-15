@@ -1,0 +1,10 @@
+launch.variant=lowil
+launch.target=real xpe_ai_worker.exe
+launch.scratch_label_low=ok
+launch.create_process=OK pid 44516
+launch.assign_to_job=OK
+worker.pipe_path_that_connected=\\.\pipe\xpe_ai_worker_g198_58028
+worker.pipe_connect=OK
+worker.init=OK
+worker.bone_suppress=OK (every pixel doubled by the toy model) rc=0 in 38 ms
+exit=0

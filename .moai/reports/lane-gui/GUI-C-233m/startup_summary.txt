@@ -1,0 +1,6 @@
+bare main  n=5  window handle 562 ms (555-588) | UIA MainWindow 673 ms (662-696) | first status text 722 ms (713-751) | idle CPU/5s 94 ms
+bare integ n=5  window handle 560 ms (551-575) | UIA MainWindow 669 ms (666-680) | first status text 719 ms (718-743) | idle CPU/5s 94 ms
+raw  main  n=5  window handle 560 ms (556-576) | UIA MainWindow 785 ms (781-800) | first status text 844 ms (838-861) | idle CPU/5s 125 ms
+raw  integ n=5  window handle 572 ms (556-579) | UIA MainWindow 774 ms (762-792) | first status text 831 ms (821-854) | idle CPU/5s 125 ms
+uia main  elements 153  FindAll x3 median 601 ms  FindFirst x20 median 720 ms
+uia integ elements 153  FindAll x3 median 567 ms  FindFirst x20 median 731 ms

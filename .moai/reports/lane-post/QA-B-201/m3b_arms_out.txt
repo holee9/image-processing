@@ -1,0 +1,17 @@
+=== ARM floor_removed
+red tests: EdgeEnhanceFloor.APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame, EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero, EdgeEnhanceFloor.TheOutputHasNoNegativeEvenForANegativeInputThatIsNotSharpened, EdgeEnhanceFloor.TheUpperBoundIsUnchangedByTheFloor
+RESULT: FIRED  (expected red: 4, red: 4, not red: [])
+restored byte-identical: True
+=== ARM floor_only_on_the_sharpened_value_as_in_M3
+red tests: EdgeEnhanceFloor.APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame, EdgeEnhanceFloor.TheOutputHasNoNegativeEvenForANegativeInputThatIsNotSharpened
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM floor_to_one
+red tests: EdgeEnhance.Performance_3072x3072_Within20ms, EdgeEnhanceFloor.APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame, EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero, EdgeEnhanceFloor.TheOutputHasNoNegativeEvenForANegativeInputThatIsNotSharpened
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== ARM floor_to_the_original_value
+red tests: EdgeEnhance.Performance_3072x3072_Within20ms, EdgeEnhanceFloor.APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame, EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero, EdgeEnhanceFloor.TheOutputHasNoNegativeEvenForANegativeInputThatIsNotSharpened
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== DONE

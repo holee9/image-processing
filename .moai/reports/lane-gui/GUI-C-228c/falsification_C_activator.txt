@@ -1,0 +1,3 @@
+== arm C again: Activator.CreateInstance(Type.GetType(...))
+[xUnit.net 00:00:00.32]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.TheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    10, 건너뜀:     0, 전체:    11, 기간: 224 ms - ImageProcTest.IntegrationTests.dll (net8.0)

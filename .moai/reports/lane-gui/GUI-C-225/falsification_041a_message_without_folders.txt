@@ -1,0 +1,3 @@
+== arm 041a_message_without_folders (Fixtures/NativeLibraryFixture.cs): s/var searched = string.Join("; ", folders);/var searched = "";/
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.TheLocator_WithNothingToFind_ReportsNotFound_AndNamesTheFoldersItSearched [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 25 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -18,9 +18,9 @@ namespace ImageProcTest.ViewModels
             private set => SetField(ref summaryText, value);
         }
 
-        public IReadOnlyList<ModuleReadinessSnapshot> Refresh(BackendHealthResult? commonHealth)
+        public IReadOnlyList<ModuleReadinessSnapshot> Refresh(BackendHealthResult? commonHealth, bool waitForOracle = true)
         {
-            var modules = ModuleReadinessService.Evaluate(commonHealth);
+            var modules = ModuleReadinessService.Evaluate(commonHealth, waitForOracle);
             Modules.Clear();
             foreach (var module in modules)
             {

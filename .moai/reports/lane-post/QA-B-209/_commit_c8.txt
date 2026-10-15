@@ -1,0 +1,11 @@
+fix(dicom): QA-B-209 C8 MWL C-FIND 질의를 Scheduled Procedure Step Sequence 모양으로 (PS3.4 K.6.1)
+
+Modality·ScheduledStationAETitle·ScheduledProcedureStepStartDate 를 (0040,0100) 시퀀스 한 항목 안에 넣고, 환자 키와 AccessionNumber 는 최상위에 유지(리더 결정). 시작일은 단일 날짜 또는 YYYYMMDD-YYYYMMDD 범위를 그대로 전달. 없는 키는 빈 값(전체 일치).
+
+수정 전 빨강: MockScp 가 받은 질의 데이터셋을 캡처해 단언 — Modality 가 최상위에 있고 시퀀스가 없음을 확인한 뒤 수정. 헤더 문서를 코드와 일치시킴.
+ci-dicom ctest 369/369, doxygen exit 0.
+
+Card: QA-B-209 (C8)
+Refs #251
+
+🗿 MoAI

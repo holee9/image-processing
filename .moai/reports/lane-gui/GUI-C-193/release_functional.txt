@@ -1,0 +1,9 @@
+# Functional tests built and run in the RELEASE configuration (XPE_TEST_FAULTS not defined): the fault tests are not compiled; the shipped-build tests are.
+통과!  - 실패:     0, 통과:   359, 건너뜀:     1, 전체:   360, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+# The shipped-build tests by name:
+  통과 ImageProcTest.IntegrationTests.Functional.AutomationArgsTests.TheFaultSwitch_IsNotRecognised_InAShippedBuild(given: "ai-worker-disabled") [3 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.AutomationArgsTests.TheFaultSwitch_IsNotRecognised_InAShippedBuild(given: "display-pipeline-after:2") [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.AutomationArgsTests.TheFaultSwitch_IsRefusedLikeAnyMadeUpSwitch_InAShippedBuild [< 1 ms]
+
+# Same tests in the DEBUG configuration (control): the shipped-build tests must not exist there.

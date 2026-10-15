@@ -131,7 +131,7 @@ RTM-AI-001은 **양방향 추적성(Bidirectional Traceability)**을 제공합�
 |---------|------|------|
 | TC-AI-130-01 | Top-1 정확도 | ≥ 95% (15개 부위) |
 | TC-AI-130-02 | 레이턴시 | ≤ 300ms |
-| TC-AI-130-03 | OOD 탐지 | confidence < 0.70 → "UNKNOWN" |
+| TC-AI-130-03 | OOD 탐지 | confidence < 0.6 → "UNKNOWN" |
 | TC-AI-130-04 | Sidecar 생성 | JSON 유효성 검사 |
 
 ---

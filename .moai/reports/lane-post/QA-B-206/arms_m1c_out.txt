@@ -1,0 +1,41 @@
+=== ARM fragment_length_narrowed_by_a_plain_cast
+red tests: DicomImageLimits.AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM fragment_limit_one_too_low
+red tests: DicomImageLimits.AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM fragment_limit_accepts_the_undefined_length_marker
+red tests: DicomImageLimits.AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM fragment_output_written_even_when_refused
+red tests: DicomImageLimits.AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM inner_write_format_and_bits_check_removed
+red tests: DicomWriterInner.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedWithoutTheDoor, DicomWriterInner.APixelFormatOtherThanUint16IsRefusedWithoutTheDoor
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM inner_writeJ2K_format_and_bits_check_removed
+red tests: DicomWriterInner.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedWithoutTheDoor, DicomWriterInner.APixelFormatOtherThanUint16IsRefusedWithoutTheDoor
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM inner_write_checks_the_format_only
+red tests: DicomWriterInner.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedWithoutTheDoor
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM inner_write_checks_the_bits_only
+red tests: DicomWriterInner.APixelFormatOtherThanUint16IsRefusedWithoutTheDoor
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM writeJ2K_early_fragment_check_removed_setJ2KPixelData_keeps_its_own
+red tests: (none)
+RESULT: observation only (no expectation set)
+restored byte-identical: True
+=== ARM setJ2KPixelData_check_removed_the_early_check_in_writeJ2K_remains
+red tests: (none)
+RESULT: observation only (no expectation set)
+restored byte-identical: True
+=== DONE

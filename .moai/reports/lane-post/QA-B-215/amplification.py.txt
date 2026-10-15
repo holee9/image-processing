@@ -1,0 +1,13 @@
+# QA-B-215: where do the large downstream differences come from? count pixels by |difference| at each float stage (post vs CI enhance_basic)
+import numpy as np
+D = r'D:/workspace-github/xpe-post/build/m2-scratch/'
+for st in ('noise_bilateral', 'clahe', 'usm'):
+    a = np.fromfile(D + 's215_post_%s.f32' % st, dtype=np.float32).astype(np.float64)
+    b = np.fromfile(D + 's215_ci_enh_%s.f32' % st, dtype=np.float64 if False else np.float32).astype(np.float64)
+    d = np.abs(a - b)
+    print('%-16s' % st, ' '.join('>%g: %d' % (t, int((d > t).sum())) for t in (1e-4, 1e-3, 1e-2, 0.1, 1.0)))
+a = np.fromfile(D + 's215_post_clahe.f32', dtype=np.float32).astype(np.float64).reshape(3072, 3072)
+b = np.fromfile(D + 's215_ci_enh_clahe.f32', dtype=np.float32).astype(np.float64).reshape(3072, 3072)
+big = np.abs(a - b) > 0.1
+ys, xs = np.nonzero(big)
+print('clahe pixels with |diff|>0.1: %d; rows %d..%d cols %d..%d; distinct rows %d distinct cols %d' % (big.sum(), ys.min(), ys.max(), xs.min(), xs.max(), len(set(ys.tolist())), len(set(xs.tolist()))))

@@ -1,0 +1,25 @@
+// QA-B-198b: what CreateNamedPipe answers when the name is already served, with and without FILE_FLAG_FIRST_PIPE_INSTANCE.
+#include <windows.h>
+#include <cstdio>
+
+static HANDLE Make(const char* n, DWORD maxInst, bool first) {
+    return CreateNamedPipeA(n, PIPE_ACCESS_DUPLEX | (first ? FILE_FLAG_FIRST_PIPE_INSTANCE : 0),
+                            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, maxInst, 4096, 4096, 0, nullptr);
+}
+
+int main() {
+    const char* n = "\\\\.\\pipe\\xpe_first_instance_probe";
+    const DWORD squatterMaxes[] = {1, 2, 255};
+    for (DWORD squatterMax : squatterMaxes) {
+        for (int first = 0; first < 2; ++first) {
+            HANDLE squatter = Make(n, squatterMax, false);
+            HANDLE second = Make(n, 1, first != 0);   // the worker: max instances 1
+            std::printf("squatter max=%3lu  worker FIRST_PIPE_INSTANCE=%d  -> worker %s (error %lu)\n", squatterMax, first,
+                        second == INVALID_HANDLE_VALUE ? "FAILED" : "CREATED",
+                        second == INVALID_HANDLE_VALUE ? GetLastError() : 0ul);
+            if (second != INVALID_HANDLE_VALUE) CloseHandle(second);
+            CloseHandle(squatter);
+        }
+    }
+    return 0;
+}

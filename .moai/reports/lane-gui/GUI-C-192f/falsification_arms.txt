@@ -1,0 +1,18 @@
+ARM 1-shown-answer-not-withdrawn-when-the-epoch-moves: build ok=True
+   unit: ['실패!  - 실패:     7, 통과:   400, 건너뜀:     1, 전체:   408, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: False', 'Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: True,', 'Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: False', 'Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: False', 'Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: True,', 'Functional.AiStatusRefresherTests.ADisabledOrActiveAlreadyOnScreen_IsWithdrawn_WhenTheSessionIsReplacedWithNoReset(disabled: True,', 'Functional.AiStatusRefresherTests.ARequest_WithdrawsAnAnswerOfAReplacedSession_BeforeItReads [1 ms]']
+   selfcheck: exit 3762504530; [9 Disabled on screen vs a replaced session] timed out waiting for: the old switched-off mark to be taken back (the timer ticks once a second); [9 Disabled on screen vs a replaced session] after the withdrawal the summary was 'worker=Disabled; failures=3; ceiling=3', expected worker=Unknown; [9 Disabled on screen vs a replaced session] the old switched-off state came back while the new session's reads were failing
+   restored byte-identical: True
+ARM 2-request-does-not-check-the-epoch: build ok=True
+   unit: ['실패!  - 실패:     1, 통과:   406, 건너뜀:     1, 전체:   408, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.ARequest_WithdrawsAnAnswerOfAReplacedSession_BeforeItReads [1 ms]']
+   restored byte-identical: True
+ARM 3-tracker-epoch-published-before-the-state (not one value): build ok=True
+   unit: ['실패!  - 실패:     2, 통과:   405, 건너뜀:     1, 전체:   408, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.AiStatusRefresherTests.TheTrackerSnapshot_KeepsItsInvariant_UnderConcurrentReads [12 ms]', 'Functional.AiStatusRefresherTests.TheTrackerSnapshot_IsOldWhole_OrNewWhole_NeverAMixture [< 1 ms]']
+   restored byte-identical: True
+ARM 4-gate-error-code-changed (a failing Release build that is not XPE0001): build ok=True
+   unit: ['실패!  - 실패:     1, 통과:   406, 건너뜀:     1, 전체:   408, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)'] ['Functional.FaultSeamCompiledOutTests.TheBuildSymbol_IsDefinedOnlyForDebug_AndEveryProjectThatCompilesTheSeamImportsIt [1 ms]']
+   shipped-build script: exit 1; Release build with -p:XpeTestFaults=true failed, but NOT with XPE0001, so the gate is unproven. Output: D:\workspace-gi; + FullyQualifiedErrorId : Release build with -p:XpeTestFaults=true failed, but NOT with XPE0001, so the gate is un
+   restored byte-identical: True
+rebuild: True
+AFTER RESTORE unit: ['통과!  - 실패:     0, 통과:   407, 건너뜀:     1, 전체:   408, 기간: 5 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+AFTER RESTORE selfcheck exit: 0
+release rebuilt clean: True

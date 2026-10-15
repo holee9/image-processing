@@ -1,0 +1,9 @@
+launch.variant=wr2
+launch.target=real xpe_ai_worker.exe
+launch.scratch_grant_to_RESTRICTED_sid=ok
+launch.console=DETACHED_PROCESS (no console)
+launch.create_process=OK pid 11132
+launch.assign_to_job=OK
+worker.pipe_connect=FAILED
+worker.exited_early_with_code=3221225794
+exit=0

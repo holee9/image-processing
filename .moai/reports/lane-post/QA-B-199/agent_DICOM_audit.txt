@@ -1,0 +1,1107 @@
+{
+ "spec": "DICOM",
+ "reqs": [
+  {
+   "id": "REQ-DICOM-001",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomReader.cpp:131",
+   "independence": "valid Part 10 files (module-written, and DCMTK-written JPEG Lossless/Process 14 copies) must open; success/non-NULL is the expected value",
+   "unasserted": "the preamble/DICM-magic/meta-header parsing as separate steps; handle is opaque so nothing about the parse result is inspected beyond later reads",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 121,
+     "name": "OpenValid_ReturnsOkAndNonNullHandle",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_dicom_open(s_validDcm.string().c_str(), &handle));"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 701,
+     "name": "EverySupportedTransferSyntaxActuallyReads",
+     "quote": "ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle))"
+    }
+   ],
+   "note": "Open of a good file succeeds; parsing is delegated to DCMTK loadFile so the behaviour is DCMTK's. The first fixture is the module's own writer output."
+  },
+  {
+   "id": "REQ-DICOM-002",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomReader.cpp:143",
+   "independence": "nonexistent path and empty path are hard-coded negative inputs",
+   "unasserted": "the 'set *outHandle to NULL' half is not discriminated (the test pre-initialises handle to nullptr); 'exists but cannot be opened for reading' (permissions, directory) is untested; classification relies on substring matching of DCMTK error text",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 132,
+     "name": "OpenMissingFile_ReturnsIOFailed",
+     "quote": "xpe_dicom_open(\"/nonexistent/path/file.dcm\", &handle));"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 443,
+     "name": "OpenEmptyPath_ReturnsIoFailed",
+     "quote": "EXPECT_EQ(XPE_ERR_IO_FAILED, xpe_dicom_open(\"\", &handle));"
+    }
+   ],
+   "note": "Return code is asserted against an independent bad input. EXPECT_EQ(nullptr, handle) cannot fail because 'XpeDicomHandle* handle = nullptr;' is set before the call and dicom.cpp sets *outHandle=nullptr before any work. Error mapping is by string-matching DCMTK condition text (DicomReader.cpp:57-76)."
+  },
+  {
+   "id": "REQ-DICOM-003",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomReader.cpp:143 (garbage -> DICOM_INVALID); no preamble/magic check anywhere",
+   "independence": "PNG-header bytes as an independent invalid file",
+   "unasserted": "missing preamble, invalid magic bytes, corrupted meta-information: none has a control; a valid dataset with no preamble/meta opens successfully, contradicting the SPEC wording",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 142,
+     "name": "OpenInvalidDicom_ReturnsDicomInvalid",
+     "quote": "xpe_dicom_open(s_notDicom.string().c_str(), &handle));"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 415,
+     "name": "OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE",
+     "quote": "ASSERT_EQ(XPE_OK, xpe_dicom_open(path.string().c_str(), &handle));"
+    }
+   ],
+   "note": "Only a PNG-signature file is rejected. The module opens a preamble-less dataset (loadFile autodetects) and a test pins that XPE_OK, the opposite of 'missing preamble -> XPE_ERR_DICOM_INVALID'. The header admits this (dicom_api.h:78-81). Defect candidate vs SPEC."
+  },
+  {
+   "id": "REQ-DICOM-004",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomReader.h:50-62 (table) and DicomReader.cpp:166-176",
+   "independence": ".1 and .4.70/.4.57 fixtures encoded by DCMTK's own encoder and compared byte-for-byte with the uncompressed original; .4.90 fixtures by the module's writer and by test-side OpenJPEG",
+   "unasserted": "the table-driven loop iterates the module's own kSupportedTransferSyntaxes, so a list shrunk to 3 entries would pass it (the separate .70/.57 tests mitigate this); .90 coverage in the loop is module-encoder -> module-decoder",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 713,
+     "name": "EverySupportedTransferSyntaxActuallyReads",
+     "quote": "EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 586,
+     "name": "ReadJpegLossless_DecodesPixelExact",
+     "quote": "EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 2129,
+     "name": "ReadJpegLosslessProcess14_DecodesPixelExact",
+     "quote": "ASSERT_EQ(XPE_OK, ecRead)"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 170,
+     "name": "ReadJ2KLossless_Succeeds",
+     "quote": "EXPECT_EQ(256u, img.width);"
+    }
+   ],
+   "note": "All four syntaxes are exercised by a real fixture: .1 via DCMTK saveFile, .70 and .57 via DCMTK DJ encoder (predictor 2 for .57, checked distinct), .90 via module writer plus test-side OpenJPEG codestreams (J2kScope tests)."
+  },
+  {
+   "id": "REQ-DICOM-005",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomReader.cpp:166-176",
+   "independence": "Implicit VR LE file produced by DCMTK saveFile; JPEG Baseline (.50) produced by DCMTK encoder",
+   "unasserted": "the compressed-syntax test GTEST_SKIPs if DCMTK cannot encode .50; unsupported syntaxes in the meta-less path are covered by KnownDivergence tests",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 182,
+     "name": "UnsupportedTS_ReturnsUnsupportedFormat",
+     "quote": "xpe_dicom_open(s_implicitLEDcm.string().c_str(), &handle));"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 2192,
+     "name": "UnsupportedCompressedTS_ReturnsUnsupportedFormat",
+     "quote": "EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, ec)"
+    }
+   ],
+   "note": "Independent negative fixtures; discriminates."
+  },
+  {
+   "id": "REQ-DICOM-006",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomReader.cpp:581-742 (native), :1078 (J2K)",
+   "independence": "J2K: hand-built codestreams (test OpenJPEG, Ramp formula) with attributes set by test; native: dimensions of module-written files",
+   "unasserted": "bitsStored on the uncompressed and JPEG Lossless paths is never asserted against an independent literal (only J2K asserts 8 and 12); bitsAllocated is asserted only as 16",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 195,
+     "name": "ReadImage_PixelDimensionsMatch",
+     "quote": "EXPECT_EQ(16u, img.bitsAllocated);"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 3268,
+     "name": "J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision",
+     "quote": "EXPECT_EQ(12u, r.bitsStored);"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 3252,
+     "name": "J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit",
+     "quote": "EXPECT_EQ(8u, r.bitsStored);"
+    }
+   ],
+   "note": "Width/height/format/bitsAllocated asserted; for J2K bitsStored comes from the codestream (not tag (0028,0101)) which the SPEC wording does not say. Note the J2K 8-bit case returns bitsAllocated 16, not the (0028,0100) value 8."
+  },
+  {
+   "id": "REQ-DICOM-007",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomReader.cpp:701 and :1078 (xpe_alloc_image)",
+   "independence": "dataSize literal 256*256*2",
+   "unasserted": "that the buffer really comes from xpe_alloc_image and is released by xpe_free_image without leaking (no heap check on any successful read)",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 197,
+     "name": "ReadImage_PixelDimensionsMatch",
+     "quote": "EXPECT_EQ(256u * 256u * sizeof(uint16_t), img.dataSize);"
+    }
+   ],
+   "note": "Tests always call xpe_free_image on the result, so a foreign allocator would likely crash, but no test measures ownership; leak tests cover failure paths only."
+  },
+  {
+   "id": "REQ-DICOM-008",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomReader.cpp:581-690 (JPEG-LL) and :1078 (J2K)",
+   "independence": "J2K: pixels from a test-side OpenJPEG encode of a formula; JPEG-LL: DCMTK encoder output compared with the uncompressed file",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 3256,
+     "name": "J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit",
+     "quote": "EXPECT_EQ(0u, differing) << \"every pixel must equal the original 0..255 value\";"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 3270,
+     "name": "J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision",
+     "quote": "ASSERT_EQ(static_cast<uint16_t>(px[i]), r.words[i]) << i;"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 586,
+     "name": "ReadJpegLossless_DecodesPixelExact",
+     "quote": "EXPECT_EQ(0, std::memcmp(expected.data, actual.data, bytes))"
+    }
+   ],
+   "note": "Decompression to raw uint16 is checked against values the codec under test did not produce."
+  },
+  {
+   "id": "REQ-DICOM-009",
+   "verdict": "self_referential",
+   "impl": "modules/dicom/src/DicomReader.cpp:747-845",
+   "independence": "none: the only fixtures are written by the module's own writer, which chooses the tags; the expected values are the writer's input",
+   "unasserted": "tag identity (the module reads (0018,9332) ExposureInmAs, not (0018,1152) Exposure as the SPEC says); Patient ID/Study UID/Series UID/Modality 'stored internally' (not stored, no API); acquisitionTime never asserted; pixel spacing 'first value' not discriminated (writer writes equal row/col)",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 226,
+     "name": "GetMetadata_FieldsPopulated",
+     "quote": "EXPECT_NEAR(2.5f, meta.mAs, 0.001f);"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 95,
+     "name": "WriteMetadata_Preserved",
+     "quote": "EXPECT_NEAR(2.5f, readMeta.mAs, 0.001f);"
+    }
+   ],
+   "note": "No DCMTK-authored file with KVP/Exposure/SID tags is ever read. A writer and reader that agree on the wrong tag pass, which is exactly what happens for mAs (see defect_candidates). Patient/Study/Series/Modality are not read at all."
+  },
+  {
+   "id": "REQ-DICOM-010",
+   "verdict": "constant_only",
+   "impl": "modules/dicom/src/DicomReader.cpp:753-755 (memset 0) and per-field good() guards",
+   "independence": "none",
+   "unasserted": "any absent-tag case: the fixture has every tag present; defaults (empty string/0.0f/0) are never compared",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 241,
+     "name": "GetMetadata_MissingTagsDefault",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_dicom_get_metadata(handle, &meta));"
+    }
+   ],
+   "note": "The test comment says 'even if some tags are absent' but opens the full file; only the return code is checked. Behaviour is plausible from the memset, but no test removes a tag and compares."
+  },
+  {
+   "id": "REQ-DICOM-011",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/dicom.cpp:73-83 (delete handle)",
+   "independence": "CRT heap block count over 1000 cycles (control leak of 64 B/cycle is detected)",
+   "unasserted": "success-path handles (open+read+close of a good file) are not heap-measured; Windows-only (GTEST_SKIP elsewhere); bound is <1 block per 10 cycles and <16 KB",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 252,
+     "name": "CloseValid_NoLeak",
+     "quote": "ASSERT_NO_FATAL_FAILURE(xpe_dicom_close(handle));"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 1269,
+     "name": "FailurePathsDoNotGrowCrtHeap",
+     "quote": "EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))"
+    }
+   ],
+   "note": "CloseValid_NoLeak asserts nothing about leaks (name overstates). The only handle-lifecycle leak measurement is the failing-J2K-read loop, which does open+read+close."
+  },
+  {
+   "id": "REQ-DICOM-012",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/dicom.cpp:73-83",
+   "independence": "survival of delete nullptr",
+   "unasserted": "'no operation' cannot be observed beyond not crashing",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 259,
+     "name": "CloseNull_NoOp",
+     "quote": "ASSERT_NO_FATAL_FAILURE(xpe_dicom_close(nullptr));"
+    }
+   ],
+   "note": "The requirement's observable content is 'no crash'; ASSERT_NO_FATAL_FAILURE does not catch a crash differently from the process dying, but the case would fail the run."
+  },
+  {
+   "id": "REQ-DICOM-013",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomWriter.cpp:36-66, :103-222",
+   "independence": "the written file is read back by the module's own reader and validator; 128-byte lower bound on file size",
+   "unasserted": "SOP Class UID 1.2.840.10008.5.1.4.1.1.1.1 and Transfer Syntax 1.2.840.10008.1.2.1 of the output are never read by an independent reader or compared with a literal; preamble+DICM never inspected",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 53,
+     "name": "WriteBasic_CreatesFile",
+     "quote": "EXPECT_GT(fs::file_size(path), 128u); // must have at least preamble"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 291,
+     "name": "ValidateWriterOutput_IsConformant",
+     "quote": "EXPECT_TRUE(j[\"valid\"].get<bool>()) << report;"
+    }
+   ],
+   "note": "Validator only checks that 0002,0010 is a well-formed UID and the meta SOP class equals the dataset's SOP class, not that either equals the DX-for-Presentation UID. Pixel data and metadata are covered by round trips (module reader)."
+  },
+  {
+   "id": "REQ-DICOM-014",
+   "verdict": "no_test",
+   "impl": "modules/dicom/src/DicomWriter.cpp:110,119,128,224-228",
+   "independence": "none",
+   "unasserted": "uniqueness of SOP Instance UID and Series Instance UID across two writes; UID validity beyond the validator's regex",
+   "tests": [],
+   "note": "No test writes two files and compares UIDs, or checks the UID root. Code calls dcmGenerateUniqueIdentifier(SITE_INSTANCE_UID_ROOT) three times per write (SOP, Study, Series), so plausible; unverified."
+  },
+  {
+   "id": "REQ-DICOM-015",
+   "verdict": "self_referential",
+   "impl": "modules/dicom/src/DicomWriter.cpp:166-215",
+   "independence": "none: values read back with the module's reader that shares the same tag choices",
+   "unasserted": "tag identity for Exposure ((0018,1152) per SPEC, code writes (0018,9332)); (0018,0060),(0018,1110),(0028,0030) tag numbers; (0008,0032) acquisitionTime never asserted; no DCMTK-side read of any of the six tags",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 96,
+     "name": "WriteMetadata_Preserved",
+     "quote": "EXPECT_NEAR(1800.0f, readMeta.SID_mm, 0.01f);"
+    },
+    {
+     "file": "modules/dicom/tests/test_parameter_dependency.cpp",
+     "line": 180,
+     "name": "MetadataFieldsReachTheFile",
+     "quote": "EXPECT_NE(a.meta.mAs, b.meta.mAs)"
+    }
+   ],
+   "note": "The parameter-dependency test only requires the value to differ after a round trip (EXPECT_NE), which any monotone mapping passes. Defect candidates: wrong Exposure tag, seconds-vs-ms acquisition time."
+  },
+  {
+   "id": "REQ-DICOM-016",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomWriter.cpp:146-153",
+   "independence": "PhotometricInterpretation read with DCMTK in Tc109 test; Rows/Columns via a non-square 32x96 round trip; the rest implied by the reader accepting the file",
+   "unasserted": "HighBit, PixelRepresentation, SamplesPerPixel not read by an independent reader (they are only implied because the module's strict reader would refuse a bad file); BitsAllocated/BitsStored other than 16 on native write untested; Rows/Columns are cast to Uint16 without a range check",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_parameter_dependency.cpp",
+     "line": 140,
+     "name": "ImageDimensionsReachTheFile",
+     "quote": "EXPECT_EQ(96u, back.height) << \"the height does not reach the file\";"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 4314,
+     "name": "Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile",
+     "quote": "EXPECT_EQ(\"MONOCHROME2\", std::string(v.c_str()));"
+    }
+   ],
+   "note": "Independent evidence exists only for Photometric Interpretation."
+  },
+  {
+   "id": "REQ-DICOM-017",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomWriter.cpp:59-63",
+   "independence": "unwritable path literal",
+   "unasserted": "xpe_dicom_write_j2k IO failure (DicomWriter.cpp:94-98) has no test; leftover partial file after a failed save is not checked",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 106,
+     "name": "WriteIOError_ReturnsIOFailed",
+     "quote": "xpe_dicom_write(\"/nonexistent/dir/out.dcm\", &m_img, &m_meta));"
+    }
+   ],
+   "note": "Covers write only."
+  },
+  {
+   "id": "REQ-DICOM-018",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/dicom.cpp:107,129",
+   "independence": "NULL literals",
+   "unasserted": "xpe_dicom_write_j2k with meta == NULL (only img == NULL is tested)",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 119,
+     "name": "WriteNullImg_ReturnsInvalidInput",
+     "quote": "xpe_dicom_write(path.string().c_str(), nullptr, &m_meta));"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 125,
+     "name": "WriteNullMeta_ReturnsInvalidInput",
+     "quote": "xpe_dicom_write(path.string().c_str(), &m_img, nullptr));"
+    }
+   ],
+   "note": "Discriminating for xpe_dicom_write."
+  },
+  {
+   "id": "REQ-DICOM-019",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomWriter.cpp:71-101",
+   "independence": "round trip against the input ramp; TS .90 only implied by the reader taking the J2K decode branch",
+   "unasserted": "Transfer Syntax UID of the written file never compared with the literal; 'all other attributes identical to xpe_dicom_write' is not compared (no test diffs the two outputs); OpenJPEG use is implicit",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 133,
+     "name": "WriteJ2KRoundTrip_PixelExact",
+     "quote": "ASSERT_EQ(XPE_OK, xpe_dicom_write_j2k(path.string().c_str(), &m_img, &m_meta));"
+    }
+   ],
+   "note": "The reader only runs the J2K branch when meta TS equals .4.90 (DicomReader.cpp:604), so a successful read of the output does imply that TS; the attribute-identity clause has no test."
+  },
+  {
+   "id": "REQ-DICOM-020",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomWriter.cpp:230-363",
+   "independence": "the original input array (a 0..65535 ramp; a 12-bit ramp) compared word by word with the decoded output; test-side OpenJPEG encoders feed the decoder independently",
+   "unasserted": "decoder is the same OpenJPEG that the encoder uses, so there is no second decoder of the module's own stream; only 256x256 and 64x48 images; no random/noise or saturated-edge data",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 146,
+     "name": "WriteJ2KRoundTrip_PixelExact",
+     "quote": "EXPECT_TRUE(pixelExact) << \"J2K round-trip pixel data mismatch\";"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 3380,
+     "name": "J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack",
+     "quote": "EXPECT_EQ(original, r.words);"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 3235,
+     "name": "J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit",
+     "quote": "EXPECT_EQ(Words(s_validDcm), r.words) << \"lossless: the same pixels as the uncompressed file\";"
+    }
+   ],
+   "note": "Oracle is the caller's input, not the codec's output, so a lossy encoder would fail it. The 256x256 ramp i&0xFFFF is structured (not uniform)."
+  },
+  {
+   "id": "REQ-DICOM-021",
+   "verdict": "no_test",
+   "impl": "modules/dicom/src/DicomWriter.cpp:77-82 and :250-260",
+   "independence": "none",
+   "unasserted": "the encoder-failure path (e.g. pixel exceeding bitsStored -> {} -> XPE_ERR_PROCESSING_FAILED) and that no file results from it",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 172,
+     "name": "WriteJ2KNullImg_ReturnsInvalidInput",
+     "quote": "EXPECT_FALSE(fs::exists(path)) << \"Partial file must not be created on error\";"
+    }
+   ],
+   "note": "The only test asserts absence of a file for a NULL image, which returns XPE_ERR_INVALID_INPUT before any compression. Code ordering (compress first, save last) makes the property plausible; no test forces an encoder error."
+  },
+  {
+   "id": "REQ-DICOM-022",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomWriter.cpp:161-163",
+   "independence": "tags re-read with DCMTK in the test",
+   "unasserted": "write_j2k output; the 'override via metadata path' clause (XpeImageMetadata has no rescale fields, so the clause is vacuous)",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 4308,
+     "name": "Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile",
+     "quote": "Rescale Slope is the writer's default"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 4310,
+     "name": "Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile",
+     "quote": "Rescale Intercept is the writer's default"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 162,
+     "name": "RescaleDefaults_OneAndZero",
+     "quote": "EXPECT_NE(nullptr, std::strstr(report, \"\\\"valid\\\":true\"));"
+    }
+   ],
+   "note": "The named RescaleDefaults test only checks validator valid=true and so proves nothing about rescale; the real assertion is hidden in a Tc109 test in the reader file (DCMTK reads '1' and '0')."
+  },
+  {
+   "id": "REQ-DICOM-023",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomValidator.cpp:49-247",
+   "independence": "files derived with DCMTK from the conformant file, one defect each",
+   "unasserted": "'DX IOD conformance' is a fixed list of tags, not the IOD; only a module-written conformant file is tested for valid=true",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 98,
+     "name": "ValidateConformant_ReturnsValid",
+     "quote": "EXPECT_TRUE(j[\"valid\"].get<bool>());"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 111,
+     "name": "ValidateMissingPatientID_ReportsError",
+     "quote": "EXPECT_FALSE(j[\"valid\"].get<bool>());"
+    }
+   ],
+   "note": "Positive control is the module's own writer output, so the writer and validator agree by construction on what conformant means."
+  },
+  {
+   "id": "REQ-DICOM-024",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomValidator.cpp:24-36 (list), :152-199 (meta), :214-230 (UID)",
+   "independence": "DCMTK-derived negative files",
+   "unasserted": "(1) preamble/magic: no direct check (relies on loadFile + meta->card()==0) and no control with a bad magic; (2) Type 1 'present and non-empty': code checks presence only (:201-211), no empty-value control, only PatientID has an identity-checked control, Patient Name/Modality/Rows/Columns/BitsAllocated/BitsStored/PixelData have none; (3) UID >64 chars has no control (only non-numeric); Study/Series UID invalid has no control; (4) pixel representation consistency: not implemented and not tested",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 114,
+     "name": "ValidateMissingPatientID_ReportsError",
+     "quote": "if (e[\"tag\"] == \"0010,0020\") { foundTag = true; break; }"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 166,
+     "name": "ValidateBadUID_ReportsWarning",
+     "quote": "EXPECT_FALSE(j[\"warnings\"].empty())"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 209,
+     "name": "ValidateStrippedTags_ReportsAllMissing",
+     "quote": "EXPECT_GE(j[\"errors\"].size(), 4u) << report;"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 249,
+     "name": "ValidateDatasetWithoutMetaHeader_ReportsMissingMeta",
+     "quote": "EXPECT_TRUE(mentionsMeta) << \"no error names the meta header: \" << report;"
+    }
+   ],
+   "note": "See notes (a)."
+  },
+  {
+   "id": "REQ-DICOM-025",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomValidator.cpp:136-142, :214-230, :256-281",
+   "independence": "parsed JSON of the report",
+   "unasserted": "the 'message' text is never asserted; warnings are only produced for invalid UIDs and those are ALSO pushed into errors (a non-critical issue is promoted to an error and valid=false); 'warnings' for any other cause cannot occur",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 114,
+     "name": "ValidateMissingPatientID_ReportsError",
+     "quote": "if (e[\"tag\"] == \"0010,0020\") { foundTag = true; break; }"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 99,
+     "name": "ValidateConformant_ReturnsValid",
+     "quote": "EXPECT_TRUE(j[\"errors\"].empty());"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 166,
+     "name": "ValidateBadUID_ReportsWarning",
+     "quote": "EXPECT_FALSE(j[\"warnings\"].empty())"
+    }
+   ],
+   "note": "Structure keys are asserted; GGGG,EEEE format is asserted for one tag."
+  },
+  {
+   "id": "REQ-DICOM-026",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomValidator.cpp:70-89",
+   "independence": "garbage file",
+   "unasserted": "the exact report text: code emits tag \"0008,0000\" and message \"File cannot be parsed as DICOM: <DCMTK text>\", not tag \"\" / \"Not a valid DICOM file\"; warnings array exact content",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 123,
+     "name": "ValidateNotDicom_ReturnsDicomInvalid",
+     "quote": "EXPECT_EQ(XPE_ERR_DICOM_INVALID, xpe_dicom_validate("
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 128,
+     "name": "ValidateNotDicom_ReturnsDicomInvalid",
+     "quote": "EXPECT_FALSE(j[\"errors\"].empty());"
+    }
+   ],
+   "note": "Return code and 'some error' asserted; the SPEC-mandated JSON literal is not matched by the code and not asserted. Defect candidate."
+  },
+  {
+   "id": "REQ-DICOM-027",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomValidator.cpp:43-47, :238-241",
+   "independence": "none for the number itself",
+   "unasserted": "required size equal to the actual report length+1; test only requires it to exceed the buffer (>10 or > sizeof(buf)); that a second call with that size succeeds",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 141,
+     "name": "BufferTooSmall_ReturnsBufferTooSmall",
+     "quote": "EXPECT_GT(required, 10u);"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 510,
+     "name": "OutputBufferTooSmall_StillReportsRequiredSize",
+     "quote": "EXPECT_GT(required, sizeof(buf)) << \"required size must exceed the buffer given\";"
+    }
+   ],
+   "note": "A constant 11 would pass both. The return code is asserted against an independent tiny buffer."
+  },
+  {
+   "id": "REQ-DICOM-028",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/dicom.cpp:155",
+   "independence": "NULL literals",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 149,
+     "name": "NullFilePath_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_dicom_validate(nullptr, buf, sizeof(buf)));"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_validator.cpp",
+     "line": 154,
+     "name": "NullOutBuf_ReturnsInvalidInput",
+     "quote": "s_conformantDcm.string().c_str(), nullptr, 0));"
+    }
+   ],
+   "note": "The NULL-outbuf case also passes length 0, which the module independently rejects (DicomValidator.cpp:57), so it does not isolate the NULL pointer check; dicom.cpp:155 is the NULL check."
+  },
+  {
+   "id": "REQ-DICOM-029",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:35-148",
+   "independence": "a real DCMTK DcmSCP in the test process receives the association and the C-STORE request (storeRequests counter)",
+   "unasserted": "the stored dataset is discarded unseen (mock_scp.hpp: 'delete received'), so what was sent (SOP instance, pixels) and the negotiated transfer syntax are not checked; storeRequests is asserted only in one test",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 120,
+     "name": "CStoreSuccess_ReturnsOK",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_dicom_cstore("
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 281,
+     "name": "CStoreCalledAeInHost_NegotiatesAndStores",
+     "quote": "EXPECT_GT(s_scp.scp().storeRequests.load(), before)"
+    }
+   ],
+   "note": "CStoreSuccess_ReturnsOK alone would also pass a mock that accepts everything and a stub that connected and returned OK only if a real SCP answered; the counter test raises it to 'a C-STORE-RQ arrived'."
+  },
+  {
+   "id": "REQ-DICOM-030",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:81-84, :299-310",
+   "independence": "mock SCP accepts any called AE (setRespondWithCalledAETitle(OFTrue)), and calling AE is only logged",
+   "unasserted": "calling AE 'TESTSCU' arrives at the SCP; default called AE 'ANY-SCP'; the CALLED_AE value of the 'CALLED_AE@host' form (the SCP does not require it, so a SCU that discarded the prefix text would still pass once the host is split)",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 279,
+     "name": "CStoreCalledAeInHost_NegotiatesAndStores",
+     "quote": "(\"XPEMOCKSCP@localhost\"), s_storePort, \"TESTSCU\","
+    }
+   ],
+   "note": "negotiationLog in mock_scp.cpp records the proposed AEs but no test reads it."
+  },
+  {
+   "id": "REQ-DICOM-031",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:86-90",
+   "independence": "connection to a port with no listener",
+   "unasserted": "an association attempt that actually hangs until timeoutMs; the duration is never measured; sub-second timeouts (500) become 0 s via timeoutMs/1000",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 131,
+     "name": "CStoreTimeout_ReturnsNetworkFailed",
+     "quote": "\"localhost\", 19999, \"TESTSCU\","
+    }
+   ],
+   "note": "The test named 'Timeout' tests connection refusal, which fails immediately and does not involve timeoutMs. No SCP that accepts TCP and then stalls exists in the mock."
+  },
+  {
+   "id": "REQ-DICOM-032",
+   "verdict": "no_code",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:136-145 (return NETWORK_FAILED + spdlog::warn only)",
+   "independence": "none",
+   "unasserted": "the WARNING alert with the failure reason string (no xpe_alert_push anywhere in DicomNetworkSCU.cpp); remote rejection / non-success C-STORE status are never exercised",
+   "tests": [],
+   "note": "Return code NETWORK_FAILED is implemented; the alert is not. The mock SCP (handleSTORERequest, default status Success) cannot reject, so DIMSE failure and rejection paths have no test."
+  },
+  {
+   "id": "REQ-DICOM-033",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:141-147",
+   "independence": "a real DCMTK SCP returns status 0x0000",
+   "unasserted": "behaviour for non-success statuses (never produced by the mock)",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 120,
+     "name": "CStoreSuccess_ReturnsOK",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_dicom_cstore("
+    }
+   ],
+   "note": "Positive path only."
+  },
+  {
+   "id": "REQ-DICOM-034",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:153-292",
+   "independence": "mock SCP returns 3 literal worklist entries unless PatientID is a filter",
+   "unasserted": "query keys other than PatientID are not shown to reach the request (the mock matches PatientID only); no Scheduled Procedure Step Sequence is built, so the request is not a real MWL query; C-FIND final status is never inspected by the code",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 147,
+     "name": "CFindResults_ReturnsJsonArray",
+     "quote": "EXPECT_EQ(3u, j.size()) << \"Expected 3 worklist entries for DX modality\";"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 158,
+     "name": "CFindEmpty_ReturnsEmptyArray",
+     "quote": "R\"({\"PatientID\":\"NONEXISTENT_9999\"})\","
+    }
+   ],
+   "note": "The empty-result test discriminates that PatientID reaches the wire (otherwise 3 entries would come back)."
+  },
+  {
+   "id": "REQ-DICOM-035",
+   "verdict": "no_code",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:312-346",
+   "independence": "mock matches on PatientID only",
+   "unasserted": "ScheduledStationAETitle (0040,0001) and ScheduledProcedureStepStartDate (0040,0002) are not implemented (header dicom_api.h:379-384 admits this); AccessionNumber is implemented instead (not in SPEC); Modality is sent at dataset root, not inside (0040,0100); only PatientID filtering is observed by any test",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 314,
+     "name": "CFindQueryWithNameAndAccession_ReturnsJsonArray",
+     "quote": "R\"({\"PatientName\":\"MOCK^WORKLIST\",\"AccessionNumber\":\"ACC-0001\"})\","
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 318,
+     "name": "CFindQueryWithNameAndAccession_ReturnsJsonArray",
+     "quote": "EXPECT_EQ(3u, j.size());"
+    }
+   ],
+   "note": "3 of the 5 SPEC keys have code; the test comment states 'the assertion is that the call succeeds with these keys present, not that they filter'."
+  },
+  {
+   "id": "REQ-DICOM-036",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:257-280",
+   "independence": "mock's literal entry count",
+   "unasserted": "contents of each element: only the array shape and size 3 are asserted; code emits a fixed set of 5 tags (PatientID, PatientName, StudyInstanceUID, AccessionNumber, Modality), not 'the matched DICOM tags'",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 146,
+     "name": "CFindResults_ReturnsJsonArray",
+     "quote": "EXPECT_TRUE(j.is_array());"
+    }
+   ],
+   "note": "No test checks a PatientID/Name value in the output though the mock supplies them (MOCK-0001 etc.)."
+  },
+  {
+   "id": "REQ-DICOM-037",
+   "verdict": "asserted",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:283-289",
+   "independence": "mock returns no entry for an unknown PatientID; literal '[]'",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 160,
+     "name": "CFindEmpty_ReturnsEmptyArray",
+     "quote": "EXPECT_STREQ(\"[]\", outJson);"
+    }
+   ],
+   "note": "Discriminating and independent."
+  },
+  {
+   "id": "REQ-DICOM-038",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:247-255",
+   "independence": "closed port",
+   "unasserted": "a C-FIND that fails after association (non-success final status, DIMSE error) and a real timeout; the code ignores the response status of the final C-FIND-RSP (only cond.bad() is checked)",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 169,
+     "name": "CFindTimeout_ReturnsNetworkFailed",
+     "quote": "\"localhost\", 19998, \"TESTSCU\","
+    }
+   ],
+   "note": "Same weakness as REQ-031: refused connection, not a timeout."
+  },
+  {
+   "id": "REQ-DICOM-039",
+   "verdict": "no_test",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:101,119,197,222 (flag checked at two points only)",
+   "independence": "none",
+   "unasserted": "everything: the only cancel-in-flight test is an unconditional GTEST_SKIP; no cancel alert exists in code; a cancel issued before the call is erased by s_cancelRequested.store(false) at entry",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 179,
+     "name": "CancelCStore_TerminatesOperation",
+     "quote": "GTEST_SKIP() << kCancelRaceUnobservable;"
+    }
+   ],
+   "note": "The skipped test body follows an unconditional skip (dead code). Code returns PROCESSING_FAILED at the two checkpoints, but no alert message with a cancel indicator is ever posted. Defect candidate for the alert half."
+  },
+  {
+   "id": "REQ-DICOM-040",
+   "verdict": "constant_only",
+   "impl": "modules/dicom/src/DicomNetworkSCU.cpp:23,294-297",
+   "independence": "none",
+   "unasserted": "calling cancel from a second thread while an operation runs",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_network_scu.cpp",
+     "line": 200,
+     "name": "CancelNoOp_WhenIdle",
+     "quote": "ASSERT_NO_FATAL_FAILURE(xpe_dicom_cancel());"
+    }
+   ],
+   "note": "std::atomic<bool> is used (so plausibly thread-safe) but the only test calls the void function twice on one thread."
+  },
+  {
+   "id": "REQ-DICOM-041",
+   "verdict": "no_test",
+   "impl": "modules/dicom/src/dicom.cpp (XPE_API) and include/xpe/dicom/dicom_api.h:35-37,433-435",
+   "independence": "none",
+   "unasserted": "export table (10 symbols, undecorated names, calling convention); no dumpbin/PE test in this module",
+   "tests": [],
+   "note": "Header has extern \"C\" and exactly 10 declarations (read by me). XPE_API (xpe_types.h:27-32) carries no explicit __cdecl; x64 MSVC default convention applies. No test."
+  },
+  {
+   "id": "REQ-DICOM-042",
+   "verdict": "no_test",
+   "impl": "modules/dicom/src/dicom.cpp:37-212 (catch(...) per function)",
+   "independence": "none",
+   "unasserted": "any exception injection (no throw, no bad_alloc simulation in modules/dicom/tests)",
+   "tests": [],
+   "note": "All 10 entry points have catch(...) except that the spdlog::debug entry lines sit outside the try blocks, and xpe_dicom_open leaks its new handle if the reader throws (see defect_candidates)."
+  },
+  {
+   "id": "REQ-DICOM-043",
+   "verdict": "no_code",
+   "impl": "modules/dicom/src/dicom.cpp (spdlog::debug at entry only), DicomReader.cpp/Writer/SCU spdlog::warn",
+   "independence": "none",
+   "unasserted": "exit logging at DEBUG; ERROR level for error conditions (most failures use spdlog::warn; only 12 spdlog::error calls exist); logging 'via xpe_common.dll' (modules call spdlog directly, linked PRIVATE)",
+   "tests": [],
+   "note": "No test looks at logs. Implementation differs from wording: entry-only DEBUG, WARN for most errors, own spdlog dependency instead of the xpe_common logging subsystem (xpe_common exports xpe_log_set_level/file; whether dicom's spdlog default logger is the same instance as xpe_common's depends on how spdlog is linked, not verified)."
+  },
+  {
+   "id": "REQ-DICOM-044",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/dicom.cpp:44-47 (leak on throw), DicomReader.cpp, DicomWriter.cpp, DicomNetworkSCU.cpp",
+   "independence": "CRT heap-walk block counts with a 64 B/cycle positive control",
+   "unasserted": "success-path read, J2K write, validator, C-STORE and C-FIND have no leak test; Windows-only (skips elsewhere); thresholds allow <1 leaked block per 10 cycles and 16 KB; 'error paths' covered only for crafted J2K reads and native write success",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_writer.cpp",
+     "line": 265,
+     "name": "ThousandCycles_CrtHeapDoesNotGrow",
+     "quote": "EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 1269,
+     "name": "FailurePathsDoNotGrowCrtHeap",
+     "quote": "EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))"
+    },
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 1286,
+     "name": "FailurePaths_ControlLeakIsCaught",
+     "quote": "EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);"
+    }
+   ],
+   "note": "The control-leak pairing is sound methodology; coverage of the requirement's 'any code path' is narrow."
+  },
+  {
+   "id": "REQ-DICOM-045",
+   "verdict": "partial",
+   "impl": "modules/dicom/src/DicomReader.cpp:48-50 (call_once codec registration), handle-local DcmFileFormat",
+   "independence": "uncompressed original pixels vs 8 threads x 8 rounds of JPEG Lossless reads",
+   "unasserted": "xpe_dicom_get_metadata concurrency; native and J2K reads concurrently; the test's own comment says a pass is not evidence of thread safety",
+   "tests": [
+    {
+     "file": "modules/dicom/tests/test_dicom_reader.cpp",
+     "line": 1045,
+     "name": "ConcurrentOpenOfJpegLossless_NoCorruption",
+     "quote": "EXPECT_EQ(0, mismatches.load())"
+    }
+   ],
+   "note": "Independent oracle, only one syntax and one operation. The header documents an intermittent failure when ONE handle is shared (2 of 7040 reads)."
+  },
+  {
+   "id": "REQ-DICOM-046",
+   "verdict": "no_test",
+   "impl": "none (caller obligation); modules/dicom/src/DicomNetworkSCU.cpp:23 is one process-wide cancel flag",
+   "independence": "none",
+   "unasserted": "no test calls the SCU concurrently",
+   "tests": [],
+   "note": "A constraint on callers. Note s_cancelRequested is shared by all associations and is cleared at the entry of every cstore/cfind (:43,:167), so two concurrent operations erase each other's cancel."
+  }
+ ],
+ "header_promises": [
+  {
+   "where": "modules/dicom/include/xpe/dicom/dicom_api.h:252-253",
+   "quote": "dataSize == 0 means unspecified and is accepted",
+   "actual": "write() hands img->dataSize to putAndInsertUint8Array as the pixel-data length (modules/dicom/src/DicomWriter.cpp:49-53), so dataSize==0 yields XPE_OK with a zero-length PixelData; the reader then rejects the file (DicomReader.cpp:716-720). The test only asserts the return is not INVALID_INPUT (test_dicom_writer.cpp:205-211). Candidate, not executed."
+  },
+  {
+   "where": "modules/dicom/include/xpe/dicom/dicom_api.h:355",
+   "quote": "Connection/operation timeout in milliseconds (0 = no timeout)",
+   "actual": "timeoutMs==0 only skips the setters (DicomNetworkSCU.cpp:86), leaving DCMTK defaults rather than 'no timeout'; timeoutMs is divided by 1000 so 1..999 ms become 0 s (:87-89). Same in cfindMwl :180-184."
+  },
+  {
+   "where": "modules/dicom/include/xpe/dicom/dicom_api.h:277-278",
+   "quote": "Bit-exact round-trip is guaranteed.",
+   "actual": "compressJ2K fails the write (PROCESSING_FAILED) when a pixel exceeds the declared bitsStored (DicomWriter.cpp:250-260), and xpe_dicom_write_j2k does not check img->format, so a FLOAT32 or UINT8 buffer is reinterpreted as uint16 (DicomWriter.cpp:282, dicom.cpp:132-134); a UINT8 buffer would be over-read by w*h bytes."
+  },
+  {
+   "where": "modules/dicom/include/xpe/dicom/dicom_api.h:220",
+   "quote": "@return XPE_ERR_DICOM_INVALID if the file carries no dataset.",
+   "actual": "DicomReader.cpp:753 tests getDataset()==nullptr, but DcmFileFormat::getDataset() returns a non-null object after open succeeded; I found no reachable input. Also NOT_INITIALIZED (DicomReader.cpp:584,750) is returned by code but not documented (unreachable through the API)."
+  },
+  {
+   "where": "modules/dicom/include/xpe/dicom/dicom_api.h:72-76",
+   "quote": "@return XPE_ERR_DICOM_INVALID if the file is not a valid DICOM Part 10 file.",
+   "actual": "Disclosed in the header's own @note (:78-81) as not true for a dataset with no meta header, which opens as Explicit VR LE (DicomReader.cpp:205-262)."
+  },
+  {
+   "where": "modules/dicom/src/DicomNetworkSCU.cpp:316",
+   "quote": "// Add Scheduled Procedure Step Sequence as required by MWL",
+   "actual": "No sequence is added; lines 318-322 insert five top-level universal-match keys only."
+  },
+  {
+   "where": "modules/dicom/src/DicomNetworkSCU.cpp:25-30",
+   "quote": "// Well-known SOP classes for DX storage",
+   "actual": "DX_SOP_CLASS_UIDS is never referenced (grep finds only its definition), and it lists the MWL FIND UID among 'DX storage' classes."
+  },
+  {
+   "where": "modules/dicom/src/DicomNetworkSCU.h:5",
+   "quote": "Wraps DCMTK storescu and wlmscuscu functionality with cancellation support.",
+   "actual": "The implementation uses DcmSCU (scu.h), not the storescu/findscu tools; cancellation is a single flag observed at two checkpoints (DicomNetworkSCU.cpp:101,119,197,222), never during sendSTORERequest/sendFINDRequest."
+  },
+  {
+   "where": "modules/dicom/include/xpe/dicom/dicom_api.h:416-420",
+   "quote": "Signal cancellation to any in-progress C-STORE or C-FIND operation.",
+   "actual": "Operation is observed only before connect and just after association (disclosed in :425-428); a cancel arriving during the transfer or the C-FIND exchange is not seen, and the flag is erased at the entry of every call."
+  },
+  {
+   "where": "modules/dicom/CMakeLists.txt:455-459",
+   "quote": "src/DicomWriter.cpp         # SWU-4.2 REQ-DICOM-012..020",
+   "actual": "Stale requirement ranges (REQ-DICOM-012 is Close; writer is 013..022; validator 023..028; reader 001..012; src/dicom.cpp is described as 'version entry point' though it holds all 10 exports)."
+  },
+  {
+   "where": "modules/dicom/tests/test_dicom_network_scu.cpp:6-8",
+   "quote": "DCMTK storescp/wlmscpfs mock servers are launched on random localhost ports",
+   "actual": "Tests use an in-process DcmSCP subclass (mock_scp.hpp), not storescp/wlmscpfs, and the port is probed free then released (probe_free_port), not random."
+  },
+  {
+   "where": "modules/dicom/src/DicomWriter.cpp:309",
+   "quote": "// Allocate output buffer (estimate: 2x input size is safe upper bound)",
+   "actual": "The buffer is w*h*4+4096 bytes (:310), i.e. 2x the uint16 input size, not 2x of anything stated; harmless but the comment and number disagree on the base."
+  }
+ ],
+ "defect_candidates": [
+  {
+   "spec": "REQ-DICOM-015 / REQ-DICOM-009",
+   "code": "modules/dicom/src/DicomWriter.cpp:181 and modules/dicom/src/DicomReader.cpp:776",
+   "why": "SPEC says Exposure (0018,1152) <-> meta->mAs. Writer writes DCM_ExposureInmAs (0018,9332) and reader reads DCM_ExposureInmAs. A file from another system with (0018,1152) yields mAs = 0, and files written by this module do not carry (0018,1152) for other readers. The round-trip tests share the choice so they pass. Candidate from reading; not executed (I did not verify the DCMTK tag constants by running code; DCM_Exposure is (0018,1152) and DCM_ExposureInmAs is (0018,9332) in the DICOM dictionary)."
+  },
+  {
+   "spec": "REQ-DICOM-009 / REQ-DICOM-015",
+   "code": "modules/dicom/src/DicomWriter.cpp:199-215; modules/dicom/src/DicomReader.cpp:806-840; modules/common/include/xpe/common/xpe_types.h:104,114",
+   "why": "SPEC says acquisitionTime is epoch ms; xpe_types.h and both code paths use epoch seconds (gmtime of the value; _mkgmtime on read). The SPEC and the type header disagree; code follows the header. Also the writer overwrites StudyDate (0008,0020) with the acquisition date (:213) and writes nothing when the value is 0 or the date part is absent. No test asserts acquisitionTime at all."
+  },
+  {
+   "spec": "REQ-DICOM-003",
+   "code": "modules/dicom/src/DicomReader.cpp:131-150, :113-116 (dicom_api.h:78-81)",
+   "why": "A dataset with no 128-byte preamble/DICM magic and no meta header opens successfully (test OpenDatasetWithoutMetaHeader_TreatedAsExplicitLE asserts XPE_OK); the SPEC requires XPE_ERR_DICOM_INVALID for a missing preamble or invalid magic. Candidate; the header discloses it."
+  },
+  {
+   "spec": "REQ-DICOM-026",
+   "code": "modules/dicom/src/DicomValidator.cpp:70-77",
+   "why": "SPEC mandates the report {\"valid\":false,\"errors\":[{\"tag\":\"\",\"message\":\"Not a valid DICOM file\"}],\"warnings\":[]}. Code emits tag \"0008,0000\" and message \"File cannot be parsed as DICOM: <DCMTK text>\". Test checks only that errors is non-empty."
+  },
+  {
+   "spec": "REQ-DICOM-024",
+   "code": "modules/dicom/src/DicomValidator.cpp:201-211 and 24-36",
+   "why": "(a) 'present and non-empty': only element presence is tested, an empty Type 1 value passes; (b) 'Pixel representation consistent with declared format': no code reads PixelRepresentation or compares anything; (c) preamble/magic not checked directly (only meta group card()==0 at :152)."
+  },
+  {
+   "spec": "REQ-DICOM-025",
+   "code": "modules/dicom/src/DicomValidator.cpp:214-226",
+   "why": "An invalid UID is pushed into BOTH warnings and errors and sets valid=false, so 'warnings' (non-critical) never carries an independent issue and the same finding is reported twice."
+  },
+  {
+   "spec": "REQ-DICOM-032 / REQ-DICOM-039",
+   "code": "modules/dicom/src/DicomNetworkSCU.cpp:136-145, 101-103, 119-122 (no xpe_alert_push in the file)",
+   "why": "SPEC requires a WARNING alert with the failure reason on C-STORE failure and a cancel indicator in the alert message on cancel. The SCU only calls spdlog::warn and returns codes; no alert is ever pushed (DicomReader.cpp is the only file that calls xpe_alert_push)."
+  },
+  {
+   "spec": "REQ-DICOM-035 / REQ-DICOM-034",
+   "code": "modules/dicom/src/DicomNetworkSCU.cpp:312-346",
+   "why": "ScheduledStationAETitle and ScheduledProcedureStepStartDate keys are ignored; Modality is inserted at the dataset root although it belongs inside Scheduled Procedure Step Sequence (0040,0100); the comment at :316 says the sequence is added but it is not, so the request is not a standard MWL query and a real worklist SCP would not match on Modality."
+  },
+  {
+   "spec": "REQ-DICOM-038",
+   "code": "modules/dicom/src/DicomNetworkSCU.cpp:247-255",
+   "why": "Only cond.bad() of sendFINDRequest is examined; the final C-FIND-RSP status carried in QRResponse (failure statuses such as 0xA700) is never read, so a failed query that returns a clean DIMSE exchange yields XPE_OK with []."
+  },
+  {
+   "spec": "REQ-DICOM-031",
+   "code": "modules/dicom/src/DicomNetworkSCU.cpp:86-90 and 180-184",
+   "why": "timeoutMs is passed as timeoutMs/1000 seconds to three DCMTK timeouts; values below 1000 ms become 0, and what DCMTK does with 0 is not what the SPEC (association must be established within timeoutMs, else NETWORK_FAILED) describes. No test uses a stalling peer. Candidate."
+  },
+  {
+   "spec": "REQ-DICOM-029",
+   "code": "modules/dicom/src/DicomNetworkSCU.cpp:92-98",
+   "why": "Transfer syntaxes are a fixed proposal (Explicit LE, J2K Lossless, Implicit LE) regardless of the file's own syntax; a JPEG Lossless file (accepted by the reader) is sent with no transcoding and the association may negotiate a syntax that does not match the dataset's encoding. Candidate."
+  },
+  {
+   "spec": "REQ-DICOM-016 / REQ-DICOM-013",
+   "code": "modules/dicom/src/DicomWriter.cpp:148-149; modules/dicom/src/dicom.cpp:105-134",
+   "why": "Rows/Columns are static_cast<Uint16> of 32-bit width/height with no range check; the pixel format is never validated (spec says UINT16), so FLOAT32/UINT8 buffers are written/compressed as uint16 words."
+  },
+  {
+   "spec": "REQ-DICOM-013 (data_size contract)",
+   "code": "modules/dicom/src/DicomWriter.cpp:49-53 with modules/dicom/src/dicom.cpp:108-109",
+   "why": "dataSize==0 is accepted by the guard but write() uses it as the PixelData length: XPE_OK with an empty PixelData element."
+  },
+  {
+   "spec": "REQ-DICOM-044",
+   "code": "modules/dicom/src/dicom.cpp:44-48",
+   "why": "'new XpeDicomHandle' is not freed if reader.open() throws: h is out of scope in catch(...). Low likelihood (open() mostly returns codes) but it is a leak on an error path the SPEC says must free."
+  },
+  {
+   "spec": "REQ-DICOM-009",
+   "code": "modules/dicom/src/DicomReader.cpp:747-845",
+   "why": "Patient ID, Study/Series UID and Modality are said to be 'stored internally ... available via handle'; getMetadata reads none of them and the handle has no accessor in the 10-function API."
+  },
+  {
+   "spec": "REQ-DICOM-043",
+   "code": "modules/dicom/src/dicom.cpp:37-212",
+   "why": "Entry is logged at DEBUG but exit is not; most failures use spdlog::warn rather than ERROR; logging goes through the module's own spdlog, not an xpe_common logging API."
+  }
+ ],
+ "orphan_tests": [
+  {
+   "file": "modules/dicom/tests/test_dicom_reader.cpp",
+   "tests": "Scope_* and J2kScope_* (about 30 tests at lines 3001-3957)",
+   "what": "Refusal matrix of #235/QA-B-182: signed pixels, 8/24/32-bit, multi-frame, RGB, PALETTE COLOR, BitsStored/HighBit rules, codestream-vs-tags contradictions; alerts name the cause. No REQ-DICOM id covers these (REQ-006 says populate UINT16 only)."
+  },
+  {
+   "file": "modules/dicom/tests/test_dicom_reader.cpp",
+   "tests": "Tc109_*, Issue235Decided_*, Tc235_* (lines 3978-4690)",
+   "what": "MONOCHROME1 inversion, Rescale/ModalityLUT warnings, bits-above-BitsStored masking across Native/JPEG-LL/J2K, exact alert texts. Tied to SRS FR-DCM-109 / #235, not to any REQ-DICOM."
+  },
+  {
+   "file": "modules/dicom/tests/test_dicom_reader.cpp",
+   "tests": "KnownDivergence_* and MetaLess* (lines 1757-2750)",
+   "what": "Measurements of the meta-less/TS-less open path and DCMTK codec behaviour; they record current behaviour, not a requirement."
+  },
+  {
+   "file": "modules/dicom/tests/test_dicom_reader.cpp",
+   "tests": "ReadJ2K_*, GarbageBitstream/TruncatedBitstream/EmptyFragment/OffsetTableOnly, FailedReadLeavesOutputUntouched, *Smaller/LargerThanDeclared, ShortPixelData/SurplusPixelData (lines 292-1700)",
+   "what": "Error handling and size-consistency guards (#150, QA-B-47/48/50). Partly relevant to REQ-008/044 but no REQ states them."
+  },
+  {
+   "file": "modules/dicom/tests/test_parameter_dependency.cpp",
+   "tests": "all four",
+   "what": "#156 'does each input reach the file' with EXPECT_NE only; loosely relates to REQ-013/015/016; asserts difference, not value."
+  },
+  {
+   "file": "modules/dicom/tests/heap_growth.h",
+   "tests": "helper",
+   "what": "CRT heap-walk measurement shared by writer/reader leak tests (Windows only)."
+  },
+  {
+   "file": "modules/dicom/tests/test_dicom_writer.cpp",
+   "tests": "DataSizeGuard_*, EmptyImage_*, WriteUint8Format_NotRejectedBySizeGuard, WriteEmptyBodyPart_StillWritesFile",
+   "what": "#123/#142 input-contract guards not in the SPEC; the zero-dataSize cases assert only 'not INVALID_INPUT'."
+  },
+  {
+   "file": "modules/dicom/tests/test_dicom_validator.cpp",
+   "tests": "ValidateMeta*, OutputBuffer*, ValidateNonDxSopClass_RoundTripsAsConformant",
+   "what": "#139/#142 meta-group and buffer-length contracts; REQ-024 lists neither. The non-DX test shows a CT SOP class validates as conformant (not a DX IOD check)."
+  }
+ ],
+ "notes": [
+  "(a) REQ-024 criteria: four. Negative controls: [1] preamble/magic: only a 24-byte garbage file and a dataset-without-meta file (error text must contain 'meta'); no file with a valid dataset but a bad magic. [2] Type 1 present/non-empty: control only for Patient ID (tag identity asserted); ValidateStrippedTags removes four tags and asserts >=4 errors without naming them; no control for Patient Name, Modality, Rows, Columns, BitsAllocated, BitsStored, PixelData; no empty-value control (the code cannot catch one). [3] UID format: one control (SOPInstanceUID 'not.a.valid.uid' -> warnings non-empty); none for >64 characters, none for Study/Series UID. [4] Pixel representation consistency: no code, no test. The only 'passes' file is the module's own writer output, and ValidateNonDxSopClass_RoundTripsAsConformant shows a CT file validates, so 'DX IOD conformance' is not what is checked.",
+  "(b) REQ-004: yes, each of the four is exercised by a fixture (.1 DCMTK saveFile; .70 and .57 DCMTK DJ encoders with .57 predictor forced to 2 and checked distinct from .70; .90 module writer and test-side OpenJPEG codestreams). The loop in EverySupportedTransferSyntaxActuallyReads iterates the code's own table, so on its own it cannot detect a shortened list; dedicated .70 and .57 tests cover that.",
+  "(c) REQ-020: asserted on pixels against the caller's input array (256x256 ramp i&0xFFFF; 64x48 12-bit ramp), full 16-bit range included; decode is the module's OpenJPEG path, no second decoder; no noise/edge-saturation images; bit-exactness for prec<16 relies on the writer refusing out-of-range pixels.",
+  "(d) Mock SCP: a real DCMTK DcmSCP subclass in the test process, listening on a probed loopback port; accepts any called AE (setRespondWithCalledAETitle), three abstract syntaxes (DX Pres, SC, MWL) x three TS; C-FIND answers three hard-coded entries filtered by PatientID only, then Success; C-STORE goes through handleSTORERequest and the received dataset is deleted unseen (status Success). It cannot reject, return failure status, stall, or inspect content. CStoreSuccess_ReturnsOK would pass against an accept-everything SCP (it is one); only CStoreCalledAeInHost checks a C-STORE-RQ was counted. Both 'Timeout' tests connect to a port with no listener, which is refusal, not timeout.",
+  "(e) REQ-044: heap-walk tests exist (writer 1000 write cycles; reader failing-J2K reads), each with a 64 B/cycle control, Windows-only, loose bound; none for success-path read, J2K write, validate, C-STORE, C-FIND. REQ-041: no test of any kind (no export-table/ABI check). REQ-042: no test (no fault injection). REQ-043: no test, and the code only partly matches.",
+  "(f) REQ-039/040: the only cancel-in-flight test is an unconditional GTEST_SKIP (kCancelRaceUnobservable); the remaining cancel test calls xpe_dicom_cancel twice when idle. There is no test with a real in-flight operation and no flag-level test either (no test checks that cancel latches or that a pre-set flag is cleared).",
+  "Known issues not re-reported: #236 (signed pixel representation: reader refuses signed pixels with UNSUPPORTED_FORMAT, dicom_api.h:117), #237 (GSPS), #239 (characters in file paths: loadFile/saveFile take char* paths; no test).",
+  "Fixture weaknesses: the main reader/validator/network fixtures are written by the module's own xpe_dicom_write (so a writer/reader tag disagreement cancels); pixel content is a synthetic ramp or constant (xpe_alloc_image contents in validator/network/param tests are not set at all); no real-world or third-party DICOM file anywhere; several negative tests GTEST_SKIP when DCMTK cannot encode (UnsupportedCompressedTS) or when the mock SCP cannot bind; leak tests skip off Windows; metadata is only round-tripped (never read from a file whose tags were set independently).",
+  "Test-name overstatements: CloseValid_NoLeak asserts no leak behaviour; RescaleDefaults_OneAndZero only checks validator valid=true (the real rescale check lives in Tc109_CurrentBehaviour_*); GetMetadata_MissingTagsDefault opens a file with all tags; CStoreTimeout/CFindTimeout test refusal; CancelCStore_TerminatesOperation is skipped unconditionally.",
+  "Writer behaviour not in SPEC: PatientName/ID fixed 'ANONYMOUS' and a fresh random StudyInstanceUID per file (DicomWriter.cpp:113-120), so two images of one acquisition never share a study."
+ ]
+}

@@ -1,0 +1,8 @@
+launch.variant=wr
+launch.target=probe.exe
+launch.scratch_grant_to_RESTRICTED_sid=ok
+launch.create_process=OK pid 6688
+launch.assign_to_job=OK
+probe.exit_code=3221225794
+launcher.loopback_listener_got_a_connection=NO
+exit=0

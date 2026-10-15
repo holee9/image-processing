@@ -1,0 +1,127 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ReproQaB200Dicom.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from ReproQaB200Dicom
+[ RUN      ] ReproQaB200Dicom.DISABLED_C1_AFileFromAnotherSystemWithExposure1152ReadsAsMas100
+C1 READ: file with (0018,1152) Exposure = IS "100" and no (0018,9332) -> module mAs = 0.000
+D:\workspace-github\xpe-post\modules\dicom\tests\test_repro_qa_b_200.cpp(121): error: The difference between 100.0f and mas is 100, which exceeds 0.01f, where
+100.0f evaluates to 100,
+mas evaluates to 0, and
+0.01f evaluates to 0.0099999997764825821.
+REQ-DICOM-009: (0018,1152) Exposure (mAs) --> outMeta->mAs
+
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C1_AFileFromAnotherSystemWithExposure1152ReadsAsMas100 (40 ms)
+[ RUN      ] ReproQaB200Dicom.DISABLED_C1_AFileTheModuleWritesCarriesExposure1152
+C1 WRITE: module wrote mAs=100 -> (0018,1152) present: 0 value ''; (0018,9332) present: 1 value '100' VR FD
+D:\workspace-github\xpe-post\modules\dicom\tests\test_repro_qa_b_200.cpp(139): error: Value of: has1152
+  Actual: false
+Expected: true
+REQ-DICOM-015 embeds mAs as (0018,1152) Exposure
+
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C1_AFileTheModuleWritesCarriesExposure1152 (11 ms)
+[ RUN      ] ReproQaB200Dicom.DISABLED_C9_ACFindThatTheServerAnswersWithAFailureStatusIsNetworkFailed
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Accepted (Max Send PDV: 16372)
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Refused: OutOfResources)
+I: Received C-FIND Response (Refused: OutOfResources)
+E: DIMSE status is: Refused: OutOfResources
+I: Releasing Association
+I: Received Association Release Request
+C9 OBSERVED: C-FIND answered with status 0xA700 -> rc 0 (Success), outJson '[]'
+D:\workspace-github\xpe-post\modules\dicom\tests\test_repro_qa_b_200.cpp(178): error: Expected equality of these values:
+  -10
+  rc
+    Which is: 0
+REQ-DICOM-038: a C-FIND that fails returns XPE_ERR_NETWORK_FAILED
+
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C9_ACFindThatTheServerAnswersWithAFailureStatusIsNetworkFailed (1543 ms)
+[ RUN      ] ReproQaB200Dicom.DISABLED_C7_AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Accepted (Max Send PDV: 16372)
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Refused: OutOfResources)
+I: Received C-STORE Response (Refused: OutOfResources)
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-03 14:31:55.878] [warning] [DicomNetworkSCU] C-STORE response status: 0xA700
+C7 STORE FAILURE: peer answered 0xA700 -> rc -10 (Network operation failed); alerts posted: 0
+D:\workspace-github\xpe-post\modules\dicom\tests\test_repro_qa_b_200.cpp(199): error: Expected: (xpe_get_pending_alert_count()) >= (1), actual: 0 vs 1
+REQ-DICOM-032: a WARNING alert with the failure reason string
+
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C7_AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason (1559 ms)
+[ RUN      ] ReproQaB200Dicom.DISABLED_C7_ACancelledCStoreIsProcessingFailedWithACancelIndicatorInTheAlert
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+C7 CANCEL: cancel sent 800 ms into a transfer the peer delays by 3000 ms -> call returned after 3017 ms with rc 0 (Success); alerts: 0
+D:\workspace-github\xpe-post\modules\dicom\tests\test_repro_qa_b_200.cpp(227): error: Expected equality of these values:
+  -3
+  rc
+    Which is: 0
+REQ-DICOM-039: the cancelled operation returns XPE_ERR_PROCESSING_FAILED
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_repro_qa_b_200.cpp(228): error: Expected: (ms) < (2000), actual: 3017 vs 2000
+the cancel interrupts the transfer; it does not wait for the peer
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_repro_qa_b_200.cpp(229): error: Expected: (std::string::npos) != (alerts.find("cancel")), actual: 18446744073709551615 vs 18446744073709551615
+REQ-DICOM-039: a cancel indicator in the alert message
+
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C7_ACancelledCStoreIsProcessingFailedWithACancelIndicatorInTheAlert (4563 ms)
+[----------] 5 tests from ReproQaB200Dicom (7718 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (7718 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C1_AFileFromAnotherSystemWithExposure1152ReadsAsMas100
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C1_AFileTheModuleWritesCarriesExposure1152
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C9_ACFindThatTheServerAnswersWithAFailureStatusIsNetworkFailed
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C7_AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason
+[  FAILED  ] ReproQaB200Dicom.DISABLED_C7_ACancelledCStoreIsProcessingFailedWithACancelIndicatorInTheAlert
+
+ 5 FAILED TESTS

@@ -1,0 +1,10 @@
+codex 41 in 0..123: value=41  exact=107.6250  DLL=99.9375
+codex case: max|diff|/range=6.250e-02  DIFFER
+boundaries range 123       rc=0 max|diff|/range=3.601e-04  pixels>1e-5: 525  DIFFER
+boundaries range 4095      rc=0 max|diff|/range=8.844e-08  pixels>1e-5: 0  MATCH
+boundaries range 65535     rc=0 max|diff|/range=8.551e-08  pixels>1e-5: 0  MATCH
+boundaries range 1000      rc=0 max|diff|/range=1.953e-04  pixels>1e-5: 699  DIFFER
+boundaries range 7.3       rc=0 max|diff|/range=8.409e-08  pixels>1e-5: 0  MATCH
+boundaries range 1e-37     rc=0 max|diff|/range=9.573e-08  pixels>1e-5: 0  MATCH
+boundaries range 1.21e-35  rc=0 max|diff|/range=8.643e-08  pixels>1e-5: 0  MATCH
+=== 3 cases differ

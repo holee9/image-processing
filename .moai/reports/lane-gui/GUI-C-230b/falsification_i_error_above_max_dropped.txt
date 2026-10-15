@@ -1,0 +1,8 @@
+== arm (i): the check lets a value above the maximum through
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "100") [FAIL]
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "1e6") [FAIL]
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "50") [FAIL]
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "7.6") [FAIL]
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "8") [FAIL]
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.OutsideTheLimits_ThereIsAMessage_ThatNamesTheValueAndTheBounds(text: "Infinity") [FAIL]
+실패!  - 실패:     6, 통과:    46, 건너뜀:     0, 전체:    52, 기간: 86 ms - ImageProcTest.IntegrationTests.dll (net8.0)

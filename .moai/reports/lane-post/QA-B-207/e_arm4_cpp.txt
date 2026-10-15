@@ -1,0 +1,41 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ClaheBin*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from ClaheBin
+[ RUN      ] ClaheBin.EveryVectorMatchesTheExactRationalBin
+[       OK ] ClaheBin.EveryVectorMatchesTheExactRationalBin (1 ms)
+[ RUN      ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(110): error: Value of: Binner(1.0f, std::ldexp(1.0f, 29), 0).int64_path()
+  Actual: true
+Expected: false
+S = 53: beyond 4095 * 2^52 < 2^64
+
+[  FAILED  ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt (0 ms)
+[ RUN      ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel
+[       OK ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel (0 ms)
+[ RUN      ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference
+[       OK ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference (0 ms)
+[ RUN      ] ClaheBin.TheFilterCertifiesExactlyOutsideItsMargin
+[       OK ] ClaheBin.TheFilterCertifiesExactlyOutsideItsMargin (0 ms)
+[ RUN      ] ClaheBin.PixelsNearOrOnABoundaryGoToTheExactPath
+[       OK ] ClaheBin.PixelsNearOrOnABoundaryGoToTheExactPath (0 ms)
+[ RUN      ] ClaheBin.MeasureTheShareOfPixelsOnTheExactPath
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(235):: uniform decimals 0.0123..4000: image-level fast path not allowed; filter handed 0 of 9437184 pixels to the 320-bit path (0 %)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(235):: decimals 10..4000 with ONE pixel of 0.0123: image-level fast path not allowed; filter handed 0 of 9437184 pixels to the 320-bit path (0 %)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(235):: decimals 0.0123..4000, 30 % of the pixels AT the minimum: image-level fast path not allowed; filter handed 0 of 9437184 pixels to the 320-bit path (0 %)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(235):: decimals -3.7..4000 (negative minimum): image-level fast path not allowed; filter handed 0 of 9437184 pixels to the 320-bit path (0 %)
+[       OK ] ClaheBin.MeasureTheShareOfPixelsOnTheExactPath (161 ms)
+[----------] 7 tests from ClaheBin (172 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (172 ms total)
+[  PASSED  ] 6 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+
+ 1 FAILED TEST

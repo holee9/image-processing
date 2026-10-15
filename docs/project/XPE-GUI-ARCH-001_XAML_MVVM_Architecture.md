@@ -364,8 +364,9 @@ clients/ImageProcTest/
 
 ### 9.2 Headless 자동화 모드
 
-- `ImageProcTest.exe --automation` 플래그로 실행 시 **자동 스크립트 모드** 진입
-- 인자로 YAML 시나리오 파일 지정 가능 (`--scenario smoke.yaml`)
+- `--automation-*` 스위치로 실행하면 **자동화 모드**에 진입한다: `--automation-raw` · `--automation-report` · `--automation-backend` · `--automation-export-render` · `--automation-settings` · `--automation-calib` · `--automation-width` · `--automation-height`
+- 모르는 `--automation-*` 스위치는 종료 코드 2 로 거절된다. 시험용 `--automation-fault` 는 Debug 빌드에만 있다
+- (정정) 이전 문서의 `--automation` 단독 플래그와 YAML 시나리오(`--scenario smoke.yaml`)는 코드에 없다
 - 결과는 `gui-e2e-reports/YYYYMMDD-HHmmss/` 디렉토리에 TRX + 스크린샷 저장
 
 ### 9.3 ViewModel Testability

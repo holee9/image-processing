@@ -1,0 +1,158 @@
+"""QA-B-213b: is the background band after CLAHE the standard algorithm or an implementation defect?
+
+Run: python clahe_band_analysis.py <scratch dir with f_*.f32> <clahe_ref.py.txt of QA-B-207>
+Inputs (written by M2Measure.DISABLED_Variants_P8, 3072 x 3072 float32, log domain 1000*log10(ADU+1)):
+  f_noise_out.f32  the CLAHE input        f_clahe_out.f32  product CLAHE (clip 3.0, 8 x 8)
+  f_clahe_clip1_8x8.f32, f_clahe_clip3_16x16.f32, f_clahe_clip3_4x4.f32  product CLAHE variants on the same input
+  f_usm_out.f32    the chain after USM (only used for the anatomy mask)
+"""
+import sys
+import numpy as np
+
+src, refpath = sys.argv[1], sys.argv[2]
+N = 3072
+NUM_BINS = 4096
+
+
+def load(name):
+    return np.fromfile(f'{src}/{name}', dtype='<f4').reshape(N, N)
+
+
+# --- the independent reference of QA-B-207 (written from Zuiderveld's definition, not from contrast_enhance.cpp)
+text = open(refpath, encoding='utf-8').read()
+i0 = text.index('def bounds')
+i1 = text.index('def structured')
+ns = {'np': np, 'NUM_BINS': NUM_BINS}
+exec(text[i0:i1], ns)
+reference = ns['reference']
+
+A = load('f_noise_out.f32')
+B = load('f_clahe_out.f32')
+U = load('f_usm_out.f32')
+rng = float(A.max() - A.min())
+R = reference(A, 3.0, 8, 8)
+d = np.abs(B.astype(np.float64) - R) / rng
+print('== 1. product CLAHE (clip 3.0, 8x8) vs the independent reference, on the real CLAHE input')
+print('   reference as written in QA-B-207 (bins by float32 truncation):')
+print('   max|diff|/range = %.3e   p99.99 = %.3e   pixels with diff > 1e-3 of range: %d of %d' % (d.max(), np.quantile(d, 0.9999), int((d > 1e-3).sum()), N * N))
+# the same reference with the bin computed in float64 (v-vmin and *4095 are exact in double; one rounded division): the product's
+# binner has been exact since QA-B-207d, so this is the like-for-like comparison.
+old_bins = "scale = np.float32(NUM_BINS - 1) / rng\n    bins = ((a32 - vmin) * scale).astype(np.int64)"
+assert old_bins in text, 'bin lines of the reference changed'
+text64 = text[i0:i1].replace(old_bins, "bins = np.floor((a32.astype(np.float64) - float(vmin)) * (NUM_BINS - 1) / float(rng)).astype(np.int64)")
+ns2 = {'np': np, 'NUM_BINS': NUM_BINS}
+exec(text64, ns2)
+R2 = ns2['reference'](A, 3.0, 8, 8)
+d2 = np.abs(B.astype(np.float64) - R2) / rng
+print('   reference with float64 bins (exact in practice):')
+print('   max|diff|/range = %.3e   p99.99 = %.3e   pixels with diff > 1e-4 of range: %d of %d' % (d2.max(), np.quantile(d2, 0.9999), int((d2 > 1e-4).sum()), N * N))
+
+D = B.astype(np.float64) - A.astype(np.float64)          # what CLAHE added, in log units
+Dr = R - A.astype(np.float64)                             # what the reference adds
+tile = N // 8
+print('\n== 2. where the tile grid is (3072 / 8 = %d px): boundaries at x = %s ; tile centres at x = %s' % (
+    tile, [tile * k for k in range(1, 8)], [tile * k + tile // 2 for k in range(8)]))
+
+# air region: left of the limb. rows 300..2800, columns 0..1250 (the limb's left edge is near column 1300)
+rows = slice(300, 2800)
+cols = slice(0, 1250)
+colD = D[rows, cols].mean(axis=0)
+colA = A[rows, cols].astype(np.float64).mean(axis=0)
+colR = Dr[rows, cols].mean(axis=0)
+print('\n== 3. air strip (rows 300..2800, columns 0..1250): mean of the CLAHE change per tile column (log units)')
+for k in range(0, 4):
+    x0, x1 = k * tile, min((k + 1) * tile, 1250)
+    print('   tile column %d (x %4d..%4d): mean CLAHE change = %8.3f   (CLAHE input there = %9.3f; reference change = %8.3f)' % (
+        k, x0, x1, colD[x0:x1].mean(), colA[x0:x1].mean(), colR[x0:x1].mean()))
+
+
+def smooth(v, w):
+    k = np.ones(w) / w
+    return np.convolve(v, k, mode='same')
+
+
+sm = smooth(colD, 31)
+print('   column profile of the CLAHE change, smoothed over 31 px, sampled every 64 px (x: change):')
+print('   ' + '  '.join('%d:%.1f' % (x, sm[x]) for x in range(32, 1250, 64)))
+ext = [x for x in range(40, 1210) if (sm[x] - sm[x - 1]) * (sm[x + 1] - sm[x]) < 0]
+print('   local extrema of that profile at x = %s' % ext)
+print('   -> distance of each extremum to the nearest tile centre: %s px' % [min(abs(x - (tile * k + tile // 2)) for k in range(8)) for x in ext])
+step = []
+for k in range(1, 4):
+    x = tile * k
+    step.append(D[rows, x:x + 20].mean() - D[rows, x - 20:x].mean())
+print('   step of the CLAHE change across each tile boundary (mean of 20 px right minus 20 px left): %s' % ['%.3f' % s for s in step])
+print('   (blended tiles are continuous, so a step near 0 at the boundary is expected; the band is the slow swing between centres)')
+
+print('\n== 4. band amplitude (peak-to-peak of the CLAHE change after removing its straight-line trend, air strip columns 0..1250)')
+for name in ['f_clahe_out.f32', 'f_clahe_clip1_8x8.f32', 'f_clahe_clip3_16x16.f32', 'f_clahe_clip3_4x4.f32']:
+    C = load(name).astype(np.float64)
+    p = (C - A.astype(np.float64))[rows, cols].mean(axis=0)
+    x = np.arange(p.size)
+    fit = np.polyval(np.polyfit(x, p, 1), x)
+    res = smooth(p - fit, 31)[40:-40]
+    print('   %-28s peak-to-peak = %7.3f log units   (VOI window of the chain is 1366.7 wide -> %.2f%% of it)' % (name, res.max() - res.min(), 100 * (res.max() - res.min()) / 1366.7))
+
+# --- halo next to the limb: distance from the limb edge (Otsu anatomy mask of the USM output), rows 1000..2900
+v = U.ravel()
+lo, hi = float(v.min()), float(v.max())
+h, _ = np.histogram(v, bins=4096, range=(lo, hi))
+w = h.astype(np.float64)
+levels = np.arange(4096)
+tot = w.sum()
+sumAll = (levels * w).sum()
+best, bi, wB, sB = -1, 0, 0.0, 0.0
+for i in range(4096):
+    wB += w[i]
+    if wB == 0:
+        continue
+    wF = tot - wB
+    if wF == 0:
+        break
+    sB += i * w[i]
+    between = wB * wF * (sB / wB - (sumAll - sB) / wF) ** 2
+    if between > best:
+        best, bi = between, i
+thr = lo + (hi - lo) * bi / 4095
+mask = U < thr
+print('\n== 5. halo beside the limb (Otsu threshold %.2f; rows 1000..2900, forearm/hand part where the limb is a vertical column)' % thr)
+Dm = D
+left_edges, right_edges = [], []
+for r in range(1000, 2900, 20):
+    xs = np.nonzero(mask[r])[0]
+    if xs.size > 50:
+        left_edges.append(xs.min())
+        right_edges.append(xs.max())
+le, re_ = int(np.median(left_edges)), int(np.median(right_edges))
+print('   median limb edges: left x=%d right x=%d (width %d px)' % (le, re_, re_ - le))
+for side, edge, sign in [('left (air side)', le, -1), ('right (air side)', re_, +1)]:
+    out = []
+    for a, b in [(10, 50), (50, 100), (100, 200), (200, 400), (400, 800)]:
+        vals = []
+        for r in range(1000, 2900, 20):
+            xs = np.nonzero(mask[r])[0]
+            if xs.size < 50:
+                continue
+            e = xs.min() if sign < 0 else xs.max()
+            x0, x1 = (e - b, e - a) if sign < 0 else (e + a, e + b)
+            if x0 < 0 or x1 > N:
+                continue
+            vals.append(Dm[r, x0:x1].mean())
+        out.append('%d-%dpx: %.2f' % (a, b, np.mean(vals) if vals else float('nan')))
+    print('   %-17s mean CLAHE change vs distance from the limb edge: %s' % (side, '   '.join(out)))
+print('   (positive = CLAHE made it brighter in the log domain; the same measure on the reference:)')
+for side, sign in [('left', -1), ('right', +1)]:
+    out = []
+    for a, b in [(10, 50), (50, 100), (100, 200), (200, 400), (400, 800)]:
+        vals = []
+        for r in range(1000, 2900, 20):
+            xs = np.nonzero(mask[r])[0]
+            if xs.size < 50:
+                continue
+            e = xs.min() if sign < 0 else xs.max()
+            x0, x1 = (e - b, e - a) if sign < 0 else (e + a, e + b)
+            if x0 < 0 or x1 > N:
+                continue
+            vals.append(Dr[r, x0:x1].mean())
+        out.append('%d-%dpx: %.2f' % (a, b, np.mean(vals) if vals else float('nan')))
+    print('   %-17s %s' % (side, '   '.join(out)))

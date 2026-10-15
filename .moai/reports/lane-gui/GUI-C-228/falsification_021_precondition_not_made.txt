@@ -1,0 +1,3 @@
+== arm 021_precondition_not_made: s|        XpeCommonNative.xpe_shutdown();\r\?$|        XpeCommonNative.xpe_init(null);|
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Functional.ImageBufferLifecycleTests.Init_Success_AlertCountIsNonNegative [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 21 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -7,10 +7,10 @@
 
 ---
 spec_id: SPEC-XPE-P1A
-version: 1.2.0
-status: In Progress (SUP-01 complete, M2 pending)
+version: 1.3.0
+status: M2 Complete (SUP-01 + M2 algorithms implemented)
 created: 2026-04-16
-updated: 2026-04-18
+updated: 2026-10-03
 author: manager-spec (MoAI)
 ---
 
@@ -18,6 +18,7 @@ author: manager-spec (MoAI)
 
 | Version | Date       | Author       | Changes |
 |---------|------------|--------------|---------|
+| 1.3.0   | 2026-10-03 | xpe-leader | #245: QA-A-228 정합 대조 반영(D14·B-1~B-6·A-4). frontmatter 상태를 `spec.md` 와 같은 문장으로 맞춤(옛 값 "In Progress (SUP-01 complete, M2 pending)" 은 2026-04-19 M2 완료와 모순). §1.3 파일 구조를 실제 파일 이름으로 정정(계획 이름 24개 중 23개가 존재하지 않음), 작업표에 REQ 열 추가(리더 추정 매핑), M1-2 함수 수 정정, M2-3/M2-4 문구 정정, M4-9·M1-5·M5-6 상태 기록. M3-9 세션 일치는 상태 주석만(구현 예정 — QA-A-229 M3, #245). |
 | 1.2.0   | 2026-04-18 | manager-spec (Pre Lane upgrade) | Align with spec.md v1.2.0. Cross-reference simd-parity-harness.md and benchmark manifest. M2 scope strengthened with Hampel runtime detection recipe. |
 | 1.0.0   | 2026-04-16 | manager-spec | Initial implementation plan |
 
@@ -51,43 +52,37 @@ xpe_preprocess.dll은 xpe_common.dll(Layer 0)에만 의존한다. 다른 Layer 1
 
 ### 1.3 File Structure Plan
 
+> **정정 2026-10-03** (`#245` / `QA-A-228` B-2·D14): 이 블록이 적던 계획 이름 24개 중 실제로 있는 것은 `xpe_calibration.cpp` 하나였다. 아래는 실제 파일 이름이고, 각 줄 끝 주석에 계획 때의 이름을 남겼다. 전체 목록이 아니라 계획 항목에 대응하는 파일만 적는다.
+
 ```
 modules/preprocess/
     CMakeLists.txt                              # 빌드 설정
-    include/xpe/preprocess/
-        xpe_preprocess_api.h                    # API 선언 (18개 함수)
+    include/xpe/
+        preprocess_api.h                        # API 선언 (XPE_API 선언 48개; 계획: preprocess/xpe_preprocess_api.h, "18개 함수")
     src/
-        xpe_preprocess.cpp                      # Lifecycle, utility 구현
-        xpe_offset_correction.cpp               # Offset correction (SWU-1.1)
-        xpe_gain_correction.cpp                 # Gain correction (SWU-1.2)
-        xpe_defect_correction.cpp               # Defect correction (SWU-1.3)
-        xpe_calibration.cpp                     # Calibration file I/O (SUP-01)
-        xpe_readout_validation.cpp              # Readout artifact validation
+        preprocess.cpp                          # Lifecycle, utility 구현 (계획: xpe_preprocess.cpp)
+        offset_correct.cpp                      # Offset correction, AVX2 커널 인라인 (SWU-1.1; 계획: xpe_offset_correction.cpp)
+        gain_correct.cpp                        # Gain correction, AVX2 커널 인라인 (SWU-1.2; 계획: xpe_gain_correction.cpp)
+        defect_correct.cpp                      # Defect correction, AVX2 없음 (SWU-1.3; 계획: xpe_defect_correction.cpp)
+        xpe_calibration.cpp                     # Calibration file I/O (SUP-01) — 계획 이름 그대로 존재
+        readout_validate.cpp                    # Readout artifact validation (계획: xpe_readout_validation.cpp)
         simd/                                   # PLANNED, NOT BUILT — see the M5 note below
             xpe_offset_avx2.cpp                 # never created; kernel lives inline in offset_correct.cpp
             xpe_gain_avx2.cpp                   # never created; kernel lives inline in gain_correct.cpp
-            xpe_defect_avx2.cpp                 # never created; kernel lives inline in defect_correct.cpp
+            xpe_defect_avx2.cpp                 # never created; defect correction has no AVX2 path
             xpe_simd_dispatch.cpp               # never created; the nearest thing, simd_dispatch.cpp, was deleted in QA-A-76
-        detail/
-            xcal_parser.h                       # XCal format parser
-            xcal_parser.cpp                     # XCal format parser impl
-            interpolation.h                     # Interpolation algorithms
-            interpolation.cpp                   # Bilinear/median interpolation
+        xcal_reader.cpp / xcal_validator.cpp / xcal_writer.cpp   # XCal 포맷 (계획: detail/xcal_parser.h/.cpp)
+        helpers.cpp                             # 결함 보간 도우미 (계획: detail/interpolation.h/.cpp)
     tests/
         CMakeLists.txt                          # 테스트 빌드 설정
-        test_offset_correction.cpp              # Offset correction 테스트
-        test_gain_correction.cpp                # Gain correction 테스트
-        test_defect_correction.cpp              # Defect correction 테스트
-        test_calibration.cpp                    # Calibration I/O 테스트
-        test_simd_parity.cpp                    # Scalar vs SIMD 동등성 테스트
-        test_preprocess_integration.cpp         # 파이프라인 통합 테스트
-        test_readout_validation.cpp             # Readout validation 테스트
-        test_data/                              # 테스트 데이터 (synthetic)
-            offset_map_512x512.raw
-            gain_map_512x512.raw
-            defect_map_512x512.raw
-            sample_dark_512x512.raw
-            sample_flat_512x512.raw
+        test_offset_correct.cpp                 # Offset correction 테스트 (계획: test_offset_correction.cpp)
+        test_gain_correct.cpp                   # Gain correction 테스트 (계획: test_gain_correction.cpp)
+        test_defect_correct.cpp                 # Defect correction 테스트 (계획: test_defect_correction.cpp)
+        test_calibration_manager.cpp 외         # Calibration I/O 테스트 — test_calibration_roundtrip.cpp, test_xpe_calib_*.cpp 등 (계획: test_calibration.cpp)
+        test_*_avx2_parity.cpp                  # Scalar vs SIMD 동등성 테스트 (계획: test_simd_parity.cpp — M5 정정 참조)
+        test_integration.cpp                    # 파이프라인 통합 테스트 (계획: test_preprocess_integration.cpp)
+        test_readout_validate.cpp               # Readout validation 테스트 (계획: test_readout_validation.cpp)
+        (test_data/ 없음)                       # 계획한 .raw 고정 데이터는 만들어진 적이 없다 — 시험이 합성 데이터를 직접 만든다 (tests/fixtures/ 는 XCal 생성 도우미 헤더뿐)
 ```
 
 ---
@@ -101,10 +96,10 @@ modules/preprocess/
 | Task | Description                                                | Dependency  |
 |------|------------------------------------------------------------|-------------|
 | M1-1 | `CMakeLists.txt` 작성 (xpe_common 링크, vcpkg 의존성)        | None        |
-| M1-2 | `xpe_preprocess_api.h` 헤더 작성 (14개 함수 선언)            | None        |
+| M1-2 | `include/xpe/preprocess_api.h` 헤더 작성 — 현재 `XPE_API` 선언 48개 *(정정 2026-10-03, `#245` / `QA-A-228`: 옛 문구는 `xpe_preprocess_api.h`, "14개 함수 선언")* | None        |
 | M1-3 | `xpe_preprocess.cpp` lifecycle 구현 (init/shutdown/version) | M1-1, M1-2  |
 | M1-4 | 빌드 통합 테스트 (root CMakeLists.txt 인식 확인)              | M1-3        |
-| M1-5 | `test_preprocess_integration.cpp` 스캐폴딩                   | M1-4        |
+| M1-5 | `test_integration.cpp` 스캐폴딩 — **상태(2026-10-03, `QA-A-228` B-6): 파이프라인 500 ms 성능 시험 `DISABLED_PipelinePerformance3072x3072` 은 꺼져 있다(#245)** | M1-4        |
 
 **산출물**: 빌드 가능한 xpe_preprocess.dll (빈 함수들), C# P/Invoke 로드 가능
 
@@ -112,36 +107,38 @@ modules/preprocess/
 
 **목표**: SIMD 없이 순수 C++로 모든 알고리즘의 기준 구현을 완성
 
-| Task | Description                                                         | Dependency |
-|------|---------------------------------------------------------------------|------------|
-| M2-1 | `xpe_offset_correction.cpp` 구현 (saturating subtraction, floor-at-zero) | M1     |
-| M2-2 | `xpe_gain_correction.cpp` 구현 (per-pixel multiplication, NaN/Inf clamping) | M1 |
-| M2-3 | `xpe_defect_correction.cpp` 구현 (bilinear interpolation, edge-aware) | M1         |
-| M2-4 | `xpe_defect_correction.cpp` nearest/median 모드 추가                | M2-3       |
-| M2-5 | `xpe_defect_detect_runtime()` transient defect detection 구현       | M2-3       |
-| M2-6 | Input validation 및 dimension/format mismatch guard                | M2-1~M2-5  |
+> **REQ 열 추가 2026-10-03** (`#245` / `QA-A-228` B-1): 이전에는 작업 행 38개 중 REQ 를 적은 행이 0개였다. M2·M3·M6 표의 REQ 열은 `QA-A-228` §1 의 **추정 매핑**이다. 파일 이름은 §1.3 의 실제 이름으로 고쳤다.
+
+| Task | REQ | Description                                                         | Dependency |
+|------|-----|---------------------------------------------------------------------|------------|
+| M2-1 | 010 | `offset_correct.cpp` 구현 (floor-at-zero offset subtraction) | M1     |
+| M2-2 | 011 | `gain_correct.cpp` 구현 (per-pixel multiplication, NaN/Inf clamping) | M1 |
+| M2-3 | 012 | `defect_correct.cpp` 구현 — 고립 결함은 유효한 4이웃 평균(없으면 체비셰프 링 r=1..3), 군집은 3×3 중앙값 *(정정 2026-10-03, `QA-A-228` B-4: 옛 문구 "bilinear interpolation, edge-aware")* | M1         |
+| M2-4 | 012 | ~~`xpe_defect_correction.cpp` nearest/median 모드 추가~~ — **삭제 2026-10-03** (`QA-A-228` B-4): 선택 가능한 모드는 없다. 군집만 중앙값을 쓰고, `REQ-P1A-012` 는 호출 단위 설정을 받지 않는다 | M2-3       |
+| M2-5 | 013 | `xpe_defect_detect_runtime()` transient defect detection 구현       | M2-3       |
+| M2-6 | 005·021·022 | Input validation 및 dimension/format mismatch guard                | M2-1~M2-5  |
 
 **알고리즘 참조** (XPE-ALG-001):
 
 - Offset: `I_offset(x,y) = max(I_raw(x,y) - I_dark(x,y), 0)` (research.md line 82)
 - Gain: `G(x,y) = mean(I_flat) / (I_flat(x,y) - I_dark(x,y))` (research.md line 87)
-- Defect: Edge-aware bilinear interpolation (research.md line 91)
+- Defect: ~~Edge-aware bilinear interpolation~~ (research.md line 91) — 실제 구현은 4이웃 평균 + 군집 3×3 중앙값(`spec.md` `REQ-P1A-012`, 정정 2026-10-03 `QA-A-228` B-4)
 
 ### Milestone M3: Calibration Data Management (Priority: High)
 
 **목표**: XCal 포맷 파싱, 무결성 검증, calibration lifecycle 관리
 
-| Task | Description                                                        | Dependency |
-|------|--------------------------------------------------------------------|------------|
-| M3-1 | `xcal_parser.h/cpp` XCal 포맷 헤더 파싱 (magic, version, type)     | M1         |
-| M3-2 | SHA-256 무결성 검증 구현                                           | M3-1       |
-| M3-3 | `xpe_calib_load_offset()` 구현                                     | M3-1, M2-1 |
-| M3-4 | `xpe_calib_load_gain()` 구현                                       | M3-1, M2-2 |
-| M3-5 | `xpe_calib_load_defect_map()` 구현                                 | M3-1, M2-3 |
-| M3-6 | `xpe_calib_generate_offset()` 다중 프레임 평균 구현                  | M2-1       |
-| M3-7 | `xpe_calib_check_expiry()` 만료 확인 구현                           | M3-1       |
-| M3-8 | `xpe_calib_save()` XCal 포맷 저장 구현                              | M3-1       |
-| M3-9 | Session matching 로직 (offset/gain/BPM 동일 session_id 검증)        | M3-3~M3-5  |
+| Task | REQ | Description                                                        | Dependency |
+|------|-----|--------------------------------------------------------------------|------------|
+| M3-1 | — | `xcal_reader.cpp`·`xcal_validator.cpp`·`xcal_writer.cpp` XCal 포맷 헤더 파싱 (magic, version, type) *(계획 이름: `xcal_parser.h/cpp`)* | M1         |
+| M3-2 | — | SHA-256 무결성 검증 구현                                           | M3-1       |
+| M3-3 | 014 | `xpe_calib_load_offset()` 구현                                     | M3-1, M2-1 |
+| M3-4 | 015 | `xpe_calib_load_gain()` 구현                                       | M3-1, M2-2 |
+| M3-5 | 016 | `xpe_calib_load_defect_map()` 구현                                 | M3-1, M2-3 |
+| M3-6 | 017 | `xpe_calib_generate_offset()` 다중 프레임 평균 구현                  | M2-1       |
+| M3-7 | 018 | `xpe_calib_check_expiry()` 만료 확인 구현                           | M3-1       |
+| M3-8 | 019 | `xpe_calib_save()` XCal 포맷 저장 구현                              | M3-1       |
+| M3-9 | 014 | Session matching 로직 (offset/gain/BPM 동일 session_id 검증) — **상태(2026-10-03, `QA-A-228` B-3·D1): 구현 없음, 구현 예정 — QA-A-229 M3, #245** | M3-3~M3-5  |
 
 **XCal 포맷 참조** (research.md line 105-124):
 - Magic: "XCal", fields: version, type(0-5), detector_serial, session_id, timestamps, kVp, mAs, temperature, pixel_format, compression, payload_size, SHA-256 checksums
@@ -160,7 +157,7 @@ modules/preprocess/
 | M4-6 | Synthetic test data 생성 스크립트                                   | M4-1       |
 | M4-7 | SIMD parity 테스트 harness 준비 (scalar 결과를 golden reference로)  | M2         |
 | M4-8 | 1000-cycle 메모리 누수 테스트 (xpe_common 패턴 참조)                | M2         |
-| M4-9 | Coverage 측정 및 85% 달성 검증                                     | M4-1~M4-8  |
+| M4-9 | Coverage 측정 및 85% 달성 검증 — **상태(2026-10-03, `QA-A-228` B-5): 미측정.** preprocess 의 측정값을 찾지 못했다(QA-A-08: 커버리지 타깃 없음) | M4-1~M4-8  |
 
 **테스트 패턴 참조** (research.md line 129-148):
 - Golden reference datasets (synthetic test cases with known outputs)
@@ -196,7 +193,7 @@ modules/preprocess/
 > - **M5-5 는 다른 형태로 달성됐습니다.** 단일 하네스 대신 연산별 파리티 파일 4개이고,
 >   런타임 스위치 없이 **같은 소스에서 컴파일된 인라인 스칼라 기준**과 비교합니다.
 >   케이스 수는 계획과 다릅니다(계획 100입력x4 → 실제 TEST 20개, 전 프레임 비교).
-| M5-6 | Performance benchmark (3072x3072 목표 달성 검증)                    | M5-5       |
+| M5-6 | Performance benchmark (3072x3072 목표 달성 검증) — **상태(2026-10-03, `QA-A-228` B-6): 파이프라인 시험 `DISABLED_PipelinePerformance3072x3072` 꺼짐(#245).** 검출만 절대 400 ms 게이트가 있고 보정 세 함수에는 회귀 게이트가 없다 | M5-5       |
 
 **SIMD 전략 참조** (research.md line 97-102):
 - Saturating subtraction: `_mm256_subs_epu16`
@@ -208,11 +205,11 @@ modules/preprocess/
 
 **목표**: Readout artifact validation, parameter range query
 
-| Task | Description                                                        | Dependency |
-|------|--------------------------------------------------------------------|------------|
-| M6-1 | `xpe_readout_validation.cpp` line noise/dropped column/ADC 검출    | M2         |
-| M6-2 | `xpe_preprocess_get_param_range()` body-part parameter range 구현   | M1         |
-| M6-3 | `test_readout_validation.cpp` 작성                                 | M6-1       |
+| Task | REQ | Description                                                        | Dependency |
+|------|-----|--------------------------------------------------------------------|------------|
+| M6-1 | 041 | `readout_validate.cpp` line noise/dropped column/ADC 검출 — 상태: 선 잡음 미구현(#232) | M2         |
+| M6-2 | 042 | `xpe_preprocess_get_param_range()` body-part parameter range 구현 — 상태: 부위별 한계 미구현(#245) | M1         |
+| M6-3 | 041 | `test_readout_validate.cpp` 작성                                 | M6-1       |
 
 ---
 
@@ -478,4 +475,4 @@ M6 (Readout Validation + Utility) ← 마지막
 
 ---
 
-*Document End - SPEC-XPE-P1A Plan v1.2.0*
+*Document End - SPEC-XPE-P1A Plan v1.3.0*

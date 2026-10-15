@@ -1,0 +1,12 @@
+median over 4 alternating rounds of the per-round median (3072x3072 float32; collimation 1024x1024)
+function                 old ms   new ms    delta     pct
+contrast_enhance          47.20    46.08    -1.12   -2.4%
+log_transform              3.35     5.50    +2.14  +63.8%
+log_inverse                3.17     5.11    +1.94  +61.2%
+modality TABLE            16.81    18.70    +1.89  +11.3%
+modality LINEAR            1.94     3.73    +1.79  +91.8%
+presentation_lut          21.46    23.12    +1.66   +7.7%
+voi LINEAR_EXACT           2.62     4.47    +1.85  +70.6%
+voi SIGMOID               35.35    38.84    +3.49   +9.9%
+detect_collimation        32.39    34.08    +1.69   +5.2%
+output hash identical old vs new, all rounds: yes (8 functions hashed)

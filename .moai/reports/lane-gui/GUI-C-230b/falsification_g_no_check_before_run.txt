@@ -1,0 +1,3 @@
+== arm (g): the pre-run check is taken out of ApplyNativePreview (a value above the limit is cut and run again)
+[xUnit.net 00:00:00.30]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheWindow_ChecksTheBox_BeforeAnythingRuns_AndStopsThere [FAIL]
+실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 98 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -1,0 +1,9 @@
+{
+  "model_id": "bone_toy_x2",
+  "version": "0.0.1",
+  "pccp_scope": "none: toy model for wiring tests",
+  "training_data_hash": "none: not trained",
+  "validation_metrics": {
+    "claims_accuracy": 0
+  }
+}

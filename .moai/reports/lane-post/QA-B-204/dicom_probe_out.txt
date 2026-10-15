@@ -1,0 +1,66 @@
+xpe_dicom_version = 1.0.0
+
+== C2 REQ-DICOM-009/015: acquisitionTime unit (SPEC text: epoch ms; xpe_types.h and the code: epoch SECONDS)
+  write acq=1700000000         -> write rc 0 (OK); date/time strings in the file: ['20231114', '221320.000000']; read back acquisitionTime = 1700000000 (rc 0 (OK))
+  write acq=1700000000000      -> write rc 0 (OK); date/time strings in the file: []; read back acquisitionTime = 0 (rc 0 (OK))
+
+== C3 REQ-DICOM-003: a file without preamble / DICM magic / meta header (SPEC: XPE_ERR_DICOM_INVALID, *outHandle NULL)
+  control: file written by xpe_dicom_write                                   -> 0 (OK)                 handle returned: True
+  no preamble, no DICM, no meta: raw Explicit-LE dataset (PatientName, Rows) -> 0 (OK)                 handle returned: True
+E: DcmElement: Unknown Tag & Data (5858,5858) larger (1048592) than remaining bytes in file
+[2026-10-03 18:51:26.151] [warning] [DicomReader] loadFile failed: I/O suspension or premature end of stream
+  128 zero bytes + "XXXX" instead of DICM + dataset                          -> -13 (DICOM_INVALID)    handle returned: False
+W: DcmMetaInfo: Found Preamble but no Meta Information Header
+W: DcmItem: Length of element (0807,0a09) is odd
+E: DcmElement: Unknown Tag & Data (0807,0a09) larger (235736075) than remaining bytes in file
+[2026-10-03 18:51:26.152] [warning] [DicomReader] loadFile failed: I/O suspension or premature end of stream
+  preamble + DICM + garbage (no meta header)                                 -> -13 (DICOM_INVALID)    handle returned: False
+[2026-10-03 18:51:26.152] [warning] [DicomReader] loadFile failed: End of stream
+  empty file                                                                 -> -13 (DICOM_INVALID)    handle returned: False
+E: DcmElement: Unknown Tag & Data (6874,7369) larger (544434464) than remaining bytes in file
+[2026-10-03 18:51:26.153] [warning] [DicomReader] loadFile failed: I/O suspension or premature end of stream
+  plain text                                                                 -> -13 (DICOM_INVALID)    handle returned: False
+
+== C4 REQ-DICOM-026: the report for a file that cannot be parsed (SPEC: tag "", message "Not a valid DICOM file")
+E: DcmElement: Unknown Tag & Data (6874,7369) larger (544434464) than remaining bytes in file
+  rc -13 (DICOM_INVALID); report: {"errors":[{"message":"File cannot be parsed as DICOM: I/O suspension or premature end of stream","tag":"0008,0000"}],"valid":false,"warnings":[]}
+
+== C5 REQ-DICOM-024: "present and non-empty" for Type 1 tags -- the value of PatientID blanked to spaces, same length
+  the writer puts PatientName at 582 and PatientID at 600 (both "ANONYMOUS", 9 chars + pad)
+  control (as written): rc 0 (OK); {"errors":[],"valid":true,"warnings":[]}
+  PatientID blanked: rc 0 (OK); {"errors":[],"valid":true,"warnings":[]}
+  PatientName blanked: rc 0 (OK); {"errors":[],"valid":true,"warnings":[]}
+
+== C6 REQ-DICOM-025: an invalid UID format -- in warnings AND errors, valid=false
+  patched: [('StudyInstanceUID', '1.2.276.0.7230010.3.1.4.1731515554.8728.1791021086.141', '1.2.276.0.7230010.3.1.4.1731515554.8728.1791021086.14x')]
+  rc 0 (OK)
+  valid=False; errors=[{'message': 'Invalid UID format: 1.2.276.0.7230010.3.1.4.1731515554.8728.1791021086.14x', 'tag': '0020,000D'}]; warnings=[{'message': 'Invalid UID format: 1.2.276.0.7230010.3.1.4.1731515554.8728.1791021086.14x', 'tag': '0020,000D'}]
+
+== C10 REQ-DICOM-031: xpe_dicom_cstore against a peer that accepts the TCP connection and never answers
+  (stalling peer: accept the TCP connection, read nothing, send nothing; each call runs in its own process, hard cap 40 s)
+  timeoutMs    returned after     rc
+  0            30.01 s            -10 (NETWORK_FAILED)
+  300          HUNG (> 40 s)      the call had not returned
+  700          HUNG (> 40 s)      the call had not returned
+  999          HUNG (> 40 s)      the call had not returned
+  1000         1.02 s             -10 (NETWORK_FAILED)
+  1500         1.02 s             -10 (NETWORK_FAILED)
+  2500         2.01 s             -10 (NETWORK_FAILED)
+  300          returned (cap 130 s)  ['RESULT 100.01 -10 (NETWORK_FAILED)']
+  timeoutMs 300, then xpe_dicom_cancel() from another thread after 3 s: RESULT still hung 20 s after xpe_dicom_cancel
+
+== C11 REQ-DICOM-029: the transfer syntaxes proposed by xpe_dicom_cstore, parsed from the A-ASSOCIATE-RQ bytes
+  (file transfer syntax: 1.2.840.10008.1.2.1)
+I: Requesting Association
+[2026-10-03 18:56:04.738] [warning] [DicomNetworkSCU] negotiateAssociation failed: Peer aborted Association (or never connected)
+  a file written by xpe_dicom_write (Explicit LE): cstore rc -10 (NETWORK_FAILED); A-ASSOCIATE-RQ 270 bytes; proposed (in order): ['Explicit VR Little Endian', 'JPEG 2000 Lossless', 'Implicit VR Little Endian']
+  (file transfer syntax: 1.2.840.10008.1.2.4.90)
+I: Requesting Association
+[2026-10-03 18:56:04.745] [warning] [DicomNetworkSCU] negotiateAssociation failed: Peer aborted Association (or never connected)
+  a file written by xpe_dicom_write_j2k (J2K Lossless): cstore rc -10 (NETWORK_FAILED); A-ASSOCIATE-RQ 270 bytes; proposed (in order): ['Explicit VR Little Endian', 'JPEG 2000 Lossless', 'Implicit VR Little Endian']
+
+== C13 REQ-DICOM-013: xpe_dicom_write with dataSize == 0 and a non-NULL data pointer
+  control, dataSize = width*height*2 (128)     -> write rc 0 (OK); PixelData VR OB length 128; open 0 (OK), read_image 0 (OK) -> 8x8 dataSize 128
+  dataSize = 0                                 -> write rc 0 (OK); PixelData VR OB length 0; open 0 (OK), read_image -13 (DICOM_INVALID) -> 8x8 dataSize 0
+  dataSize = 100 (smaller than 128)            -> write rc -1 (INVALID_INPUT)
+exit=0

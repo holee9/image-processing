@@ -1,0 +1,24 @@
+"""QA-B-209 C16: does the dicom module's logger obey xpe_common's xpe_log_set_level / xpe_log_set_file?
+Run: python c16_logger_sharing.py <bin dir> <out>"""
+import ctypes, os, sys, tempfile
+D, OUT = sys.argv[1], open(sys.argv[2], 'w', encoding='utf-8', newline='\n')
+os.add_dll_directory(D)
+os.add_dll_directory(r'D:\workspace-github\image-processing\build\release\vcpkg_installed\x64-windows\bin')  # DCMTK and friends
+C = ctypes.CDLL(os.path.join(D, 'xpe_common.dll')); M = ctypes.CDLL(os.path.join(D, 'xpe_dicom.dll'))
+C.xpe_log_set_level.argtypes = [ctypes.c_int]; C.xpe_log_set_file.argtypes = [ctypes.c_char_p]
+M.xpe_dicom_open.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_void_p)]
+bad = os.path.join(tempfile.gettempdir(), 'c16_not_a_dicom.txt'); open(bad, 'w').write('x' * 500)
+def run(level, tag):
+    f = os.path.join(tempfile.gettempdir(), 'c16_%s.log' % tag)
+    if os.path.exists(f): os.remove(f)
+    rc1 = C.xpe_log_set_file(f.encode()); rc2 = C.xpe_log_set_level(level)
+    h = ctypes.c_void_p()
+    rc = M.xpe_dicom_open(bad.encode(), ctypes.byref(h))
+    C.xpe_log_flush()
+    txt = open(f, encoding='utf-8', errors='replace').read() if os.path.exists(f) else '<no file>'
+    dic = [l for l in txt.splitlines() if 'Dicom' in l]
+    OUT.write('level=%d set_file rc=%s set_level rc=%s dicom_open rc=%s | log file lines: %d, lines mentioning Dicom: %d\n' % (level, rc1, rc2, rc, len(txt.splitlines()) if txt != '<no file>' else -1, len(dic)))
+    for l in dic[:3]: OUT.write('    ' + l[:160] + '\n')
+for lvl, tag in ((0, 'l0'), (3, 'l3'), (6, 'l6')):
+    run(lvl, tag)
+OUT.close()

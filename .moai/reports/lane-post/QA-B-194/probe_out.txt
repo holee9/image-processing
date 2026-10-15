@@ -1,0 +1,38 @@
+PROBE bodypart NaN model=models_bodypart_a rc=-3 label=UNKNOWN conf=0
+PROBE bodypart alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE bodypart NaN model=models_bodypart_dep rc=-3 label=UNKNOWN conf=0
+PROBE bodypart alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE bone NaN rc=-3 out[4]=-777 out[0]=-777
+PROBE bone alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE denoise NaN rc=-3
+PROBE bodypart +Inf model=models_bodypart_a rc=-3 label=UNKNOWN conf=0
+PROBE bodypart alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE bodypart +Inf model=models_bodypart_dep rc=-3 label=UNKNOWN conf=0
+PROBE bodypart alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE bone +Inf rc=-3 out[4]=-777 out[0]=-777
+PROBE bone alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE denoise +Inf rc=-3
+PROBE bodypart -Inf model=models_bodypart_a rc=-3 label=UNKNOWN conf=0
+PROBE bodypart alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE bodypart -Inf model=models_bodypart_dep rc=-3 label=UNKNOWN conf=0
+PROBE bodypart alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE bone -Inf rc=-3 out[4]=-777 out[0]=-777
+PROBE bone alerts=1 | AI model output was non-finite (inf/NaN); this image was not AI-processed
+PROBE denoise -Inf rc=-3
+PROBE denoise uint8 4000x4000 dataSize=1 -> rc=-3 (INVALID_INPUT=-1)
+PROBE denoise garbage metadata (NaN kVp, negative mAs, SID 0, inf pitch, unterminated label) -> rc=-3
+PROBE stitch_images mixed parts, tiny output -> rc=-3
+PROBE init config={bad rc=0 alerts=0
+PROBE init config=[] rc=0 alerts=0
+PROBE init config=5 rc=0 alerts=0
+PROBE init config="x" rc=0 alerts=0
+PROBE init config={"timeout_ms": -1} rc=0 alerts=0
+PROBE init config={"timeout_ms": 10000000000} rc=0 alerts=0
+PROBE init config={"confidence_threshold": -5} rc=0 alerts=0
+PROBE init config={"confidence_threshold": 1e999} rc=0 alerts=0
+PROBE init config={"fallback_mode": 1} rc=0 alerts=1 | ai config key 'fallback_mode' has an unexpected type and was ignored
+PROBE init("") rc=0 then recognize rc=0 label=CHEST conf=0.6 (the model was read from the working directory)
+PROBE second init (other dir, threshold 0.99) rc=0 alerts=0 then recognize label=CHEST rc=0 (still the first session's)
+PROBE model_card id=a"b rc=-9 card={"model_id":"a"b","error":"model_not_loaded","model_version":"N/A","limitations":"Model not found or not loaded in this
+PROBE stitch_estimate_size mixed formats/sizes -> rc=0 w=19 h=8
+PROBE stitch_estimate_size partCount=2 (control) rc=0 w=13 h=8

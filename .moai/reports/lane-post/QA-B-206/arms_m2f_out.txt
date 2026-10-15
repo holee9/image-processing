@@ -1,0 +1,17 @@
+=== ARM the_htj2k_204_uid_dropped_from_the_set
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM the_htj2k_205_uid_dropped_EQUIVALENT_IN_THIS_BUILD
+red tests: (none)
+RESULT: EQUIVALENT-MUTANT PROBE  (nothing expected; red: 0)
+restored byte-identical: True
+=== ARM the_94_uid_dropped_from_the_set
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM the_95_uid_dropped_EQUIVALENT_IN_THIS_BUILD
+red tests: (none)
+RESULT: EQUIVALENT-MUTANT PROBE  (nothing expected; red: 0)
+restored byte-identical: True
+=== DONE

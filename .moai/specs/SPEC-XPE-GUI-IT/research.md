@@ -217,6 +217,8 @@ Headless probe는 **사실상 scaffold 수준 통합 테스트**이나 xUnit 등
 > **R-12 는 실현됐습니다 (2026-09-17, `#175`).** Native 로드 실패 시 조용히 Mock 으로 떨어지는데 상태 표시줄은 `mode=Native` 를 표시했고, 위해 분석 HAZ-GUI-005 의 통제가 코드에 하나도 없었습니다. GUI-C-82·83 으로 통제와 검증이 들어갔습니다.
 >
 > **실측 주석 (2026-09-17).** `CompositeXpeBackend` 는 **코드 어디에도 없습니다**(범위: `gui/`·`clients/`·`modules/` 의 `*.cs`; 대조군 — 같은 검색이 `MockXpeBackend`·`RealXpeBackend`·`XpeBackendFactory` 를 찾음). Real → Mock 폴백은 현재 `gui/ImageProcTest/Services/XpeBackendFactory.cs` 가 합니다.
+>
+> **정정 (2026-10-03, GUI-C-208).** 위 2026-09-17 주석은 틀렸다. `CompositeXpeBackend` 는 `clients/ImageProcTest/Backends/CompositeXpeBackend.cs` 에 있다(2026-04-17 `3cadf4ac` 에서 추가, 레거시 `clients/` 앱 5곳이 사용). 그때 검색이 이 파일을 놓쳤다. 따라서 수용 기준의 `typeof(CompositeXpeBackend)` 리플렉션 단언은 실재하는 타입이 시험 어셈블리에 참조되지 않음을 지키는 의미 있는 단언이다. GUI-C-208 은 그 스캔이 실제로 타입을 보는지 붙잡는 대조 시험을 더했다(#249).
 
 
 ---

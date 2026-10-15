@@ -1,0 +1,105 @@
+"""QA-B-201 M3: is the 16-bit result the same with and without the floor?
+Run twice, once per binary directory, each in its own process (the DLL names are the same):
+    python build/g201_m3_equiv.py save build/ab_A  build/m3_A.npz     # no floor (HEAD)
+    python build/g201_m3_equiv.py save build/ab_B  build/m3_B.npz     # floor
+    python build/g201_m3_equiv.py compare build/m3_A.npz build/m3_B.npz
+The conversion is the one of gui EnhanceBasicStage: round half to even, clamp to 0..65535."""
+import ctypes as C
+import os
+import sys
+
+import numpy as np
+
+mode = sys.argv[1]
+
+
+class Img(C.Structure):
+    _fields_ = [('width', C.c_uint32), ('height', C.c_uint32), ('bitsAllocated', C.c_uint32), ('bitsStored', C.c_uint32),
+                ('format', C.c_int32), ('data', C.c_void_p), ('dataSize', C.c_size_t)]
+
+
+class Usm(C.Structure):
+    _fields_ = [('amount', C.c_float), ('radius', C.c_float), ('threshold', C.c_float)]
+
+
+class Noise(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('sigma_space', C.c_float), ('sigma_range', C.c_float), ('search_window', C.c_int32),
+                ('patch_size', C.c_int32), ('h_param', C.c_float)]
+
+
+class Clahe(C.Structure):
+    _fields_ = [('clip_limit', C.c_float), ('tile_width', C.c_int32), ('tile_height', C.c_int32)]
+
+
+def buf(a):
+    h, w = a.shape
+    return Img(w, h, 32, 32, 1, a.ctypes.data, a.nbytes)
+
+
+def scene(kind, n=128):
+    g = np.random.default_rng(20261003)
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+    base = 800.0 + 2200.0 * x / n
+    if kind == 'anatomy':
+        img = base + np.where((x - 64) ** 2 + (y - 64) ** 2 < 20 ** 2, 9000.0, 0.0)
+    elif kind == 'collimator':
+        img = base + np.where((x - 84) ** 2 + (y - 64) ** 2 < 20 ** 2, 9000.0, 0.0)
+        img[:, :40] = 0.0
+    elif kind == 'skinline':
+        img = np.where(x < n // 2, 60000.0, 1500.0).astype(np.float32)
+    elif kind == 'lowbase':      # a dark base next to a very bright one: the largest undershoot
+        img = np.where(x < n // 2, 30.0, 4000.0).astype(np.float32)
+    else:
+        raise ValueError(kind)
+    img = img + g.normal(0.0, 30.0, img.shape)
+    return np.clip(np.rint(img), 0, 65535).astype(np.float32)
+
+
+def to16(a):
+    return np.clip(np.rint(a), 0, 65535).astype(np.uint16)       # numpy rint = round half to even
+
+
+if mode == 'save':
+    bindir = os.path.abspath(sys.argv[2])
+    os.add_dll_directory(bindir)
+    C.CDLL(os.path.join(bindir, 'xpe_common.dll'))
+    E = C.CDLL(os.path.join(bindir, 'xpe_enhance_basic.dll'))
+    out = {}
+    for kind in ('anatomy', 'collimator', 'skinline', 'lowbase'):
+        for dom in ('log', 'lin', 'neg'):
+            log = dom == 'log'
+            for amount in (0.0, 0.5, 1.0, 2.0, 5.0):
+                for threshold in (0.0, 10.0, 100.0):
+                    a = scene(kind)
+                    if dom == 'neg':
+                        a = (a - 1500.0).astype(np.float32)   # an input with negative pixels
+                    if log:
+                        assert E.xpe_log_transform(C.byref(buf(a)), C.c_float(1000.0)) == 0
+                    assert E.xpe_noise_reduce(C.byref(buf(a)), C.byref(Noise(0, 3.0, 50.0, 21, 7, 10.0))) == 0
+                    assert E.xpe_contrast_enhance(C.byref(buf(a)), C.byref(Clahe(3.0, 8, 8))) == 0
+                    assert E.xpe_edge_enhance(C.byref(buf(a)), C.byref(Usm(amount, 2.0, threshold))) == 0
+                    out['%s|%s|%g|%g' % (kind, dom, amount, threshold)] = a
+    np.savez(sys.argv[3], **out)
+    print('saved', len(out), 'cases')
+else:
+    A = np.load(sys.argv[2])
+    B = np.load(sys.argv[3])
+    keys = sorted(A.files)
+    assert keys == sorted(B.files)
+    total16 = 0
+    rows = []
+    for k in keys:
+        a, b = A[k], B[k]
+        neg_a, neg_b = int((a < 0).sum()), int((b < 0).sum())
+        d16 = int((to16(a) != to16(b)).sum())
+        dfloat = int((a != b).sum())
+        total16 += d16
+        rows.append((k, neg_a, neg_b, dfloat, d16, float(b.min())))
+    print('cases %d; cases where the 16-bit results differ: %d; pixels that differ after the 16-bit conversion, in total: %d'
+          % (len(keys), sum(1 for r in rows if r[4]), total16))
+    print('cases with negative floats without the floor: %d; with the floor: %d (lowest float with the floor: %.3f)'
+          % (sum(1 for r in rows if r[1]), sum(1 for r in rows if r[2]), min(r[5] for r in rows)))
+    print('float pixels changed by the floor, in total: %d' % sum(r[3] for r in rows))
+    print('first rows (case | negatives no floor | negatives floor | float px changed | 16-bit px changed):')
+    for r in [r for r in rows if r[1]][:12]:
+        print('  %-28s %6d %6d %7d %5d' % r[:5])

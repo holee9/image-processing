@@ -1,0 +1,1098 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.E2ETests
+[2026-10-14 20:25:06.325] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:25:06.334] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.334] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.334] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.334] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.341] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.341] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.390] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.390] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.390] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.390] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.393] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.393] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.440] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.440] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.440] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.440] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.442] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.442] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.717] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:25:06.718] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.718] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.718] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.718] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.720] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.720] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.734] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.734] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.734] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.734] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:25:06.735] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:25:06.735] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 120, expectedPixels: 1600) [4 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 144, expectedPixels: 1920) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 96, expectedPixels: 1280) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsConvertedWithTheWindowsDpi(dpi: 192, expectedPixels: 2560) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.AWindowThatStopsWhereTheMinWidthSays_AndStaysThere_HasNoProblem [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.AWindowThatDriftsAwayFromItsMinimum_IsAProblem [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.TheAppsMinWidth_IsReadFromMainWindowXaml_NotCopiedHere [6 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WindowMinimumWidthTests.AWindowThatStopsSomewhereElse_IsAProblem_WhichIsWhatAWideRunOrAWrongDpiLooksLike [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [57 s]
+[2026-10-14 20:26:03.624] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:03.631] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.631] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.631] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.631] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.639] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:03.639] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:03.686] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.686] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.686] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.686] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.688] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:03.688] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:03.732] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.732] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.732] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.732] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:03.734] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:03.734] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:04.039] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:04.039] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.039] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.039] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.039] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.041] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:04.042] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:04.049] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.049] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.049] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.049] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:04.051] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:04.051] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [41 s]
+[2026-10-14 20:26:45.825] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:45.845] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:45.845] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:45.845] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:45.845] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:45.978] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:45.978] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.042] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.042] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.042] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.042] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.044] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.044] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.104] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.104] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.104] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.104] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.105] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.105] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.395] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:46.396] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.396] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.396] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.396] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.397] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.397] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.405] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.406] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.406] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.406] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:46.407] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:46.407] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:48.377] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:48.378] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.378] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.378] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.378] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.379] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:48.379] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:48.389] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.389] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.389] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.389] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:48.391] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:48.391] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:49.688] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:49.689] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.689] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.689] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.689] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.690] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:49.690] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:49.697] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.697] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.697] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.697] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:49.699] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:49.699] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:51.126] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:51.127] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.127] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.127] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.127] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.129] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:51.129] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:51.137] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.137] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.137] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.137] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:51.138] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:51.138] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:52.159] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:52.159] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.159] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.159] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.159] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.161] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:52.161] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:52.169] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.169] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.169] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.169] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:52.170] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:52.170] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:53.510] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:53.511] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.511] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.511] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.511] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.512] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:53.512] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:53.518] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.518] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.518] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.518] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:53.520] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:53.520] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed [9 s]
+[2026-10-14 20:26:55.422] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:55.451] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.451] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.451] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.451] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.571] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.571] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.635] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.635] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.635] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.635] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.637] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.637] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.694] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.694] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.694] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.694] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.695] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.695] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.ALaunchThatFailsAfterTheAppStarted_LeavesNoAppAndNoFaultFileBehind [190 ms]
+[2026-10-14 20:26:55.976] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:26:55.976] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.976] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.976] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.976] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.978] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.978] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.985] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.985] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.985] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.985] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:26:55.986] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:26:55.986] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:01.739] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:01.769] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.770] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.770] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.770] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.895] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:01.895] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:01.966] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.966] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.966] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.966] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:01.968] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:01.968] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:02.027] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.027] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.027] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.027] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.029] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:02.029] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:02.760] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:02.761] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.761] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.761] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.761] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.763] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:02.763] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:02.771] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.771] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.771] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.771] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:02.773] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:02.773] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.559] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:05.560] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.560] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.560] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.560] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.561] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.561] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.570] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.570] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.570] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.570] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.572] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.572] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.829] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:05.829] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.829] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.829] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.829] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.830] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.830] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.834] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.834] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.834] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.834] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:05.836] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:05.836] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [13 s]
+[2026-10-14 20:27:08.532] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:08.540] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.540] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.540] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.540] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.547] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:08.547] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:08.595] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.595] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.595] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.595] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.597] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:08.597] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:08.642] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.642] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.642] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.642] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:08.643] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:08.643] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:12.713] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:12.713] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.713] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.713] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.713] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.715] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:12.715] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:12.726] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.726] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.726] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.726] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:12.728] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:12.728] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:16.730] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:16.731] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.731] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.731] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.731] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.733] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:16.733] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:16.742] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.742] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.742] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.742] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:16.744] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:16.744] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:17.018] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:17.019] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.019] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.019] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.019] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.020] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:17.020] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:17.025] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.025] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.025] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.025] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:17.027] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:17.027] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun [9 s]
+[2026-10-14 20:27:17.990] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:18.020] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.020] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.020] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.020] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.140] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.140] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.206] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.206] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.206] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.206] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.207] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.207] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.264] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.264] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.264] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.264] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.266] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.266] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.552] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:18.552] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.552] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.552] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.552] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.554] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.554] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.562] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.562] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.562] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.562] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:18.563] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:18.563] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:20.500] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:20.501] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.501] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.501] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.501] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.502] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:20.502] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:20.513] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.513] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.513] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.513] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:20.515] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:20.515] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:21.771] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:21.772] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.772] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.772] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.772] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.773] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:21.773] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:21.779] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.779] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.779] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.779] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:21.781] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:21.781] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [5 s]
+[2026-10-14 20:27:23.349] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:23.370] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.370] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.370] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.370] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.478] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.478] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.542] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.542] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.542] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.542] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.544] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.544] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.601] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.601] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.601] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.601] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.603] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.603] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.895] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:23.896] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.896] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.896] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.896] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.897] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.897] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.905] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.905] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.905] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.905] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:23.906] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:23.906] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:26.893] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:26.894] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.894] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.894] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.894] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.895] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:26.895] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:26.907] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.907] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.907] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.907] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:26.908] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:26.908] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:27.222] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:27.222] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.223] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.223] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.223] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.224] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:27.224] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:27.228] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.228] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.228] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.228] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:27.229] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:27.229] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:31.945] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:31.946] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.946] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.946] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.946] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.947] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:31.947] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:31.955] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.955] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.955] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.955] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:31.957] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:31.957] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:32.594] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:32.595] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.595] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.595] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.595] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.596] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:32.596] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:32.601] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.601] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.601] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.601] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:32.602] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:32.602] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns [13 s]
+[2026-10-14 20:27:36.811] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:36.819] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.819] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.819] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.819] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.826] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:36.826] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:36.833] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:36.833] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.833] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.833] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.833] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.835] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:36.835] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:36.876] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.876] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.876] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.876] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.878] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:36.878] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:36.923] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.923] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.923] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.923] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:36.925] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:36.925] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [4 s]
+[2026-10-14 20:27:41.755] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:41.762] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.762] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.762] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.762] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.770] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:41.770] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:41.818] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.818] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.818] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.818] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.820] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:41.820] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:41.866] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.866] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.866] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.866] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:41.868] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:41.868] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:42.705] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:42.705] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.705] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.705] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.705] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.708] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:42.708] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:42.717] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.717] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.717] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.717] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:42.720] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:42.720] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:47.116] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:47.117] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.117] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.117] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.117] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.119] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:47.119] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:47.127] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.127] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.127] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.127] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:47.130] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:47.130] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:50.451] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:50.451] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.451] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.451] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.451] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.453] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:50.453] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:50.461] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.461] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.461] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.461] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:50.463] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:50.463] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady [12 s]
+[2026-10-14 20:27:54.184] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:54.192] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.192] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.192] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.192] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.198] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:54.198] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:54.579] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:54.580] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.580] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.580] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.580] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.582] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:54.582] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:54.589] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.589] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.589] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.589] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.591] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:54.591] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:54.996] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.996] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.996] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.996] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:54.998] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:54.998] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile [2 s]
+[2026-10-14 20:27:56.463] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:56.472] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.472] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.472] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.472] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.478] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.478] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.528] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.528] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.528] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.528] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.530] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.530] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.585] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.585] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.585] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.585] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.586] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.586] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.899] [xpe_stderr] [info] xpe_init: library initialised
+[2026-10-14 20:27:56.900] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.900] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.900] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.900] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.902] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.902] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.910] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.910] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.910] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.910] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-10-14 20:27:56.912] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-14 20:27:56.912] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [5 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 0, threadId: 0, foregroundPid: 0, appPid: 100, expected: False) [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 0, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 100, appPid: 100, expected: True) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 100, appPid: -1, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 100, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 0, threadId: 77, foregroundPid: 100, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 0, foregroundPid: 100, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 4294967295, appPid: -1, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 0, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 0, foregroundPid: 0, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 77, foregroundPid: 200, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 100, appPid: 100, expected: True) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 0, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 0, appPid: 100, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: -1, appPid: -1, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 100, appPid: 0, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TwoProcessIds_AreTheSameKnownProcess_OnlyWhenBothAreKnownAndEqual(processId: 100, appPid: 200, expected: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.AnUnknownForegroundPid_IsNotTakenForTheApplication_InTheReadingsOfAFailedRun [< 1 ms]
+[xUnit.net 00:02:55.55]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation [SKIP]
+[xUnit.net 00:02:55.55]       XPE_C235_RUNS is not set (this is a measurement, not a regression test).
+[xUnit.net 00:02:55.55]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheFlaUiWindowCall_WithASlowStartUpProbe [SKIP]
+[xUnit.net 00:02:55.55]       XPE_C235_DELAYS is not set (this is a measurement, not a regression test).
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheFlaUiWindowCall_WithASlowStartUpProbe [< 1 ms]
+XPE-C56-PROBE hwnd=0x8921CBA pid=14968 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer [4 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A12_Panels_RenderWhatTheSettingsHold [1 m 20 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A19_Baseline_OnNative_PassesTwice_AndTheDicomFileIsValidAndReadsBackIdentical [30 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A15_ASelfCheckThatCannotBeStarted_IsDidNotRun_NotAFailure [20 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A16_TroubleshootingPage_NotGenerated_SaysSoAndHow_AndOpensNothing [27 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [27 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A18_Baseline_OnMock_IsNotRun_NeverAPassOrAFail [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A07_RuntimeLogs_AreWrittenToAFile [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation [27 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A20_Baseline_OnNativeWithoutACalibrationSet_IsNotAttempted_NotAFailure [29 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason [21 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A10_PipelineDiagnostics_KeepsNoMeasurementApartFromZero [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependOnThem [54 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A04_SelfCheck_ActuallyRuns_AndThePassIsReported [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A02_MockRequested_IsStillAPass [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [30 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A21_Baseline_WhoseDicomWriteCannotHappen_FailsTheAutomationReport [30 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A09_EvidenceBundleAndFolder_Answer [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A08_RecentFileHistory_SurvivesTheProcess [54 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [26 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A14_BenchmarkRunner_DescribesTheBuildTree_AndReportsNoVerdictItDidNotGet [26 s]
+XPE-C56-PROBE hwnd=0x4651576 pid=30020 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale [5 s]
+XPE-C56-PROBE hwnd=0x8B4064C pid=42364 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.D_AForegroundCheckThatThrows_SendsNoKey_AndFails [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.C_ADiagnosticReadBeforeTheKeysThatThrows_DoesNotStopTheKeys [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.TheReReadAndTheDescriptionOfWhatIsInFront_AreIsolatedToo [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.ThePassingPath_ReadsNothingElse_AfterTheRecord_ThanTheOneObservation [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.B_ADiagnosticReadThatThrows_DoesNotHideALoss_AndTheMessageStillHasTheRecord [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.A_ADiagnosticReadThatThrows_DoesNotFailARunWhoseCenterIs4321_AndTheRecordIsStillWritten [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.D_AnApplicationNotInFront_SendsNoKey_AndFails [< 1 ms]
+  통과 ImageProcTest.E2ETests.Rendering.LogSelectionHighlightRenderTests.TheTransparentBackgroundSetter_DecidesWhetherASelectedRowLooksDifferent [192 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ClearAlertsObservationScenarios.PressingClearAlerts_TakesTheAlertLinesOffScreen_AndClearLogsStillEmptiesTheLog [4 s]
+XPE-C56-PROBE hwnd=0x160603D2 pid=60512 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ClearAlertsObservationScenarios.PressingClearAlerts_KeepsTheOrdinaryLogLines [3 s]
+XPE-C56-PROBE hwnd=0x96C00C2 pid=60552 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB03_NothingIsWrittenIntoTheEvidenceRoot [3 s]
+XPE-C56-PROBE hwnd=0x2F60230 pid=60616 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB01_ExportAfterAVerdict_ProducesABundleNamingTheBackend [3 s]
+XPE-C56-PROBE hwnd=0x2F70230 pid=36060 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.IB02_InitializeAfterTheDllsAppear_RecordsMockThenNative [6 s]
+XPE-C56-PROBE hwnd=0x2F80230 pid=41072 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x2F90230 pid=26952 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.EB02_TwoRunSets_KeepSeparateEvidence [7 s]
+XPE-C56-PROBE hwnd=0x2FA0230 pid=52996 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.EvidenceBundleScenarios.IB01_InitializeBackend_StartsANewRunSet [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.ARunnerStillRunning_IsSaidAsNotAMissingExecutable_WhichIsTheCaseThatWasMisread [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.NoExecutable_IsSaidAsNoExecutable_AndNeverAsATimeout(status: "Self-check needs the repository; this build is not"···) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.NoExecutable_IsSaidAsNoExecutable_AndNeverAsATimeout(status: "Self-check runner is not built.") [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.ARunnerThatRanAndFailed_IsSaidAsFailed_AndCarriesTheStatus [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: Unexplained, skips: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: NoExecutable, skips: True) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: StillRunning, skips: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: DidNotStart, skips: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.AnExecutableThatCouldNotBeStarted_IsSaidAsSuch [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.TheFourCauses_AreFourDifferentTexts [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.TheSamplesAreTheAppsOwnStatusLines [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.AStatusNoOneRecognises_IsSaidAsUnknown_NotAsAnyOfTheOthers [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.VerdictOrSkip_SkipsOnlyThroughTheRule_AndOtherwiseThrowsTheReason [< 1 ms]
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.FlippedSign_IsTheRenderersDoing_NotTheMetrics [65 ms]
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.MaximumContrast_OnTheReferencePath_ApproachesTheChannelRange [18 ms]
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.NothingChanged_MeasuresNearZero [22 ms]
+  통과 ImageProcTest.E2ETests.Rendering.SeparationMetricFalsificationTests.MisalignedMask_CollapsesTheMeasurement [25 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable [540 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_WritesExactlyOneParsableResultLine_AsARealProcess_WhateverTheHostHasLoaded [334 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.AnEdgeThatMovesByTheToleranceIsTheSamePicture_AndOneBeyondIsNot [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.AScreenThatNeverLeftTheFinalPicture_IsNotSettled [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.AFlickerAfterTheFirstAppearance_MovesTheSettledTimeToTheEnd [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.ThePictureThatReplacesAStaleOne_IsDatedByTheFinalRun_NotByTheFirstEqualCapture [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTests.ASettleTooShortAtTheEnd_IsNotTrusted [< 1 ms]
+XPE-C56-PROBE hwnd=0xEDE03E4 pid=24552 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ClampAlertOnScreenScenarios.TheClampAlert_ReachesTheLog [46 s]
+XPE-C56-PROBE hwnd=0x3020230 pid=54660 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A3_WhenTheFilteredListIsLongerThanTheScreen_TheMovedRowIsAboveIt [41 s]
+XPE-C56-PROBE hwnd=0xEE003E4 pid=2904 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A2_WithTheLogScrolled_IsTheMovedRowStillWhereTheUserCanSeeIt [29 s]
+XPE-C56-PROBE hwnd=0x161603D2 pid=53456 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SelectionVisibilityObservation.A_WhenTheFilterMovesTheSelection_IsThatRowWhereTheUserCanSeeIt [4 s]
+XPE-C56-PROBE hwnd=0x161703D2 pid=18428 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.HiddenSelectionCopyObservation.ClearAlerts_PressedWhileTheFilterIsOn_LeavesThisBehind [5 s]
+XPE-C56-PROBE hwnd=0x3060230 pid=22616 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.HiddenSelectionCopyObservation.PlainCopyWorks_ThenWhatHappensWhenTheSelectedLineIsHidden [19 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.WidthThatGrewByExactlyTheMissingTail_IsTheKeysGoingToAnotherBox [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AnotherProcessInFrontOnlyAtTheReRead_IsUnclassified_EvenThoughTheRestWouldFitAnExplanation [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.KeysNotSent_IsNotSent_EvenWhenTheBoxHoldsTheText [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AForegroundThatChangedAfterTheInputEnded_IsNotReadAsALossDuringTyping [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AWidthThatEndedInTheTailBeforeTheKeys_IsNotTakenForTheKeysGoingThere [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.ABoxThatKeepsGrowing_IsNotAnExplanationEitherWay [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AShortBoxThatStaysShortWithTheFocusElsewhereInTheApp_IsFocusLeftTheBox [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.ForegroundFacts_StateTheProcessesAndClaimNoDestination [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.ABoxThatIsNotAPrefixOfTheText_AndNothingElseFits_IsUnclassified [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.WhenTheAppIsNotInFront_TheRefusalIsAMessage_AndNothingIsSent [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.WhatWasTyped_IsNoCause [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AnotherProcessInFrontAtTheJudgment_IsUnclassified_NotTheKeysGoingThere [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.EveryCause_HasAnExplanation_AndTheFactsNameEveryReading [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheClassWorksWithNoTimingGate [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AWidthThatAlreadyEndedInTheTailBeforeTheKeys_SaysNothing_SoTheAnswerIsUnclassified [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AShortBoxThatStaysShortWithTheFocusStillInIt_IsKeysNotInBoxFocusStayed [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.AFullBoxALaterRead_IsAReadThatCameTooEarly [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheJudgmentLine_CarriesTheStartAndTheCompletion_AndSaysTheVerdictDoesNotDependOnThem [< 1 ms]
+XPE-C56-PROBE hwnd=0x167E06D0 pid=25736 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0xEE803E4 pid=32956 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.DifferenceHeatmap_OfAnImageWithItself_IsOneColour [7 ms]
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.SourceOnlyAndProcessedOnly_RenderTheLayerTheyName [4 ms]
+  통과 ImageProcTest.E2ETests.Rendering.ComparisonRenderObservationTests.DifferenceHeatmap_OfIdenticalInputs_IsBlack [4 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.ReadableWindow_IsKept_AndLeavesNoNote [719 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.UnreadableWindow_IsReplaced_AndTheRunSaysSo [761 ms]
+XPE-C56-PROBE could not run: NullReferenceException
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.ApplicationFixtureConstructionTests.AConstructionThatFailsAfterTheAppStarted_LeavesNoAppRunning [780 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.ObservedScreen_MedianAt3000_Passes_And3001_Fails [5 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.AnythingButFiveOpens_IsRefused [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.TheOrderOfTheOpens_DoesNotMatter [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.WhenTheScreenIsObserved_TheProxyDoesNotDecide [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.TheMedian_NotTheMeanOrTheMax_DecidesIt [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.WithoutAScreen_TheProxyMedian_At1500_Passes_And1501_Fails [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.U8VerdictTests.OneOpenWithoutAValidScreen_SendsTheWholeRunToTheProxyRule [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTargetTests.WithAReference_ALastCaptureThatIsSomethingElse_IsNotSettled [< 1 ms]
+XPE-C56-PROBE hwnd=0x98300C2 pid=52512 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenSettleTargetTests.WithAReference_TheOpenIsDatedByTheReferencePicture [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerNeverConfirmedAtMinimumWidthScenarios.M03_TheNeverConfirmedNotice_IsAbsentAtStart_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+XPE-C56-PROBE hwnd=0x161C03D2 pid=30000 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+XPE-C56-PROBE hwnd=0x30B0230 pid=60672 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0xD9605C0 pid=28536 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NonlinearityBypassedScenarios.TheShippedPath_RunsNoNonlinearityStage_SoNoNoopAlertIsRaised_WhileThePerFrameAlertKeepsArriving [54 s]
+XPE-C56-PROBE hwnd=0x98700C2 pid=52684 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuExitScenarios.X01_FileExit_EndsTheProcessWithExitCodeZero_EvenWithAnUnsavedChange [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01b_ApplyDisplayPipeline_LeavesVoiInputsPopulated [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W02_RunPreprocessing_MatchesTheBackendItRunsOn [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01_RawImageLoaded_ViewportAndStatusReflectIt [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W10_FixtureManager_ReportsWhetherTheFixturePackIsPresent [218 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03_BackendMenu_DrivesTheBackendAndTheAppFollows [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W09_ExportAutomationReport_WritesAReportFileAndNamesIt [233 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W03b_SwitchingBackToNative_RestoresTheNativeBackend [1 s]
+[xUnit.net 00:20:00.94]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V03_PanX_ResetRecentres [SKIP]
+[xUnit.net 00:20:00.94]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V03_PanX_ResetRecentres [2 s]
+[xUnit.net 00:20:03.42]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V07_APan_PutsTheImageWhereItWasAsked [SKIP]
+[xUnit.net 00:20:03.42]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V07_APan_PutsTheImageWhereItWasAsked [2 s]
+[xUnit.net 00:20:05.84]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V02_ZoomScale_ResetDrawsFit [SKIP]
+[xUnit.net 00:20:05.84]       Scrolling the viewport with the mouse wheel sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V02_ZoomScale_ResetDrawsFit [2 s]
+[xUnit.net 00:20:08.24]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V06_AnExplicitZoom_IsTheScaleThatWasDrawn [SKIP]
+[xUnit.net 00:20:08.24]       Scrolling the viewport with the mouse wheel sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V06_AnExplicitZoom_IsTheScaleThatWasDrawn [2 s]
+[xUnit.net 00:20:10.85]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle [SKIP]
+[xUnit.net 00:20:10.85]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V05_SwipePosition_ResetRedrawsTheDividerAtTheMiddle [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V01_OverlayOpacity_IsDrawnWithTheSliderValue [2 s]
+[xUnit.net 00:20:15.62]     ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V04_PanY_ResetRecentres [SKIP]
+[xUnit.net 00:20:15.62]       Moving the mouse sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ViewStateRenderScenarios.V04_PanY_ResetRecentres [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W24_OrdinaryLaunch_HasNoFaultInjection [284 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W25_DetachedViewer_MarksAnUnappliedEditStale [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W21_Hud_NamesTheWindowThatProducedTheImage [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W28_MainViewport_DrewTheImage [127 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W20_MainViewport_ReceivesTheLoadedImage [257 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ViewportTruthScenarios.W22_EditingVoiWithoutApplying_MarksTheImageStale [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U03_AlgorithmPickers_AreUsableAndUnmarked [314 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U01_CalibrationStages_AreDisabledAndMarked [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U05_PendingConnectionMark_IsShown [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U02_LaneBDenoiseK_IsUsableExactlyWhenItReachesPixels [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U04_FocusToggle_IsDisabledAndMarked [103 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L01_BothLanes_DrawTheSameOriginal [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L06_AReferenceAlgorithm_MovesOnlyTheReference [5 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L03_OnlyTheCandidate_GoesStale [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L04_ACandidateAlgorithm_MovesOnlyTheCandidate [5 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L02_ACandidateSetting_MovesOnlyTheCandidate [5 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.TwoLaneWorkbenchScenarios.L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage [9 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02e_ALateJudgmentRead_DoesNotChangeTheVerdict_ButTheRecordShowsTheLateCompletion [3 s]
+[xUnit.net 00:21:22.76]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [SKIP]
+[xUnit.net 00:21:22.76]       R02 (real key presses into a text box, then a real Tab) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 00:21:22.76]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R01_TheViewMenu_OpensWithARealMouseClick [SKIP]
+[xUnit.net 00:21:22.76]       R01 (a real mouse click on the View menu) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02f_TheForegroundCheck_AgreesWithAnIndependentReadOfTheForegroundProcess [1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02_RealKeystrokes_EditTheVoiBox_AndARealTabMovesOn [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R01_TheViewMenu_OpensWithARealMouseClick [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C01_PreprocessStage_ReachesTheDrawnPixelsOrSaysWhyNot [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C07_AGridRatioOutsideTheTable_IsRefused [10 s]
+[2026-10-14 20:46:57.085] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-spell-10688-a95ea87f54414f6199e79cec6124eea5, ep=0, timeout=5000 ms
+[2026-10-14 20:46:57.142] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 20:47:01.200] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:47:01.203] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C04_MissingVirtualGridTable_IsRefusedAndTheImageIsUnchanged [10 s]
+[2026-10-14 20:47:24.842] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 20:47:24.856] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-nomodel-file-10688-58ec809e825d4c1b999f668badbd8957, ep=0, timeout=5000 ms
+[2026-10-14 20:47:24.890] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 20:47:27.810] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:47:27.813] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 20:47:30.591] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:47:30.595] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+[2026-10-14 20:47:33.450] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:47:33.453] [warning] bone_suppress: the worker reports its model unavailable (-4), input returned unchanged (not counted as a worker failure)
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C09b_ANonModelFile_IsReportedAsAModelTheModuleWillNotUse [20 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C02_ChangingTheExposureKvp_DoesNotChangeTheDrawnPixelsToday [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C05_GridCorrectionChoices_AreExclusive [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C08_AiBoneSuppression_WhereTheModuleCannotSucceed_IsRefusedAndTheImageIsTheOriginal [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C06_ChangingTheGridRatio_ChangesTheDrawnPixels [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.BackendDisclosureControlScenarios.E01d_OrdinaryLaunch_DisclosesExactlyTheRequestedBackend [199 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DeterministicBaselineScenarios.B01_TheMenuItem_IsEnabledOnlyWhereTheBackendCanRunIt [123 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.DeterministicBaselineScenarios.B02_Invoking_OnNative_PassesAndLeavesTheScreenSettingsAndChainAlone [5 s]
+[xUnit.net 00:23:38.75]     ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom [SKIP]
+[xUnit.net 00:23:38.75]       W15 (the mouse wheel over the detached viewer) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 00:23:38.75]     ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W16_ChangingTheModeInTheMainWindow_ReachesTheDetachedWindow [SKIP]
+[xUnit.net 00:23:38.75]       W16 (F5/F8 pressed in the main window) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W15_ScrollingTheDetachedViewer_MovesTheMainWindowsZoom [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.DetachedViewerSyncScenarios.W16_ChangingTheModeInTheMainWindow_ReachesTheDetachedWindow [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Overlay", mode: "OverlayOpacity") [489 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Difference", mode: "DifferenceHeatmap") [465 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Swipe", mode: "SwipeVertical") [457 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W11_ComparisonButton_CanBePressedAndTheViewportSurvives(label: "Split", mode: "SplitLocked") [471 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Swipe", mode: "SwipeVertical") [779 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Difference", mode: "DifferenceHeatmap") [773 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Overlay", mode: "OverlayOpacity") [767 ms]
+[xUnit.net 00:23:43.72]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F6", mode: "SplitLocked") [SKIP]
+[xUnit.net 00:23:43.72]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 00:23:43.72]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F5", mode: "SwipeVertical") [SKIP]
+[xUnit.net 00:23:43.72]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 00:23:43.72]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F7", mode: "OverlayOpacity") [SKIP]
+[xUnit.net 00:23:43.72]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+[xUnit.net 00:23:43.72]     ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F8", mode: "DifferenceHeatmap") [SKIP]
+[xUnit.net 00:23:43.73]       W-14 (a bound key gesture) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonModeScenarios.W12_PressingAButton_SelectsThatComparisonMode(label: "Split", mode: "SplitLocked") [769 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F6", mode: "SplitLocked") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F5", mode: "SwipeVertical") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F7", mode: "OverlayOpacity") [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W14_BoundKeyGesture_SelectsThatMode(gesture: "F8", mode: "DifferenceHeatmap") [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareProcessedOnlyMenuItem", mode: "ProcessedOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSplitMenuItem", mode: "SplitLocked") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareDifferenceMenuItem", mode: "DifferenceHeatmap") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareOverlayMenuItem", mode: "OverlayOpacity") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSourceOnlyMenuItem", mode: "SourceOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W13_CompareMenuItem_SelectsThatMode(automationId: "CompareSwipeMenuItem", mode: "SwipeVertical") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonSwipeVertical", mode: "SwipeVertical") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonProcessedOnly", mode: "ProcessedOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonSplitLocked", mode: "SplitLocked") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonDifferenceHeatmap", mode: "DifferenceHeatmap") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonSourceOnly", mode: "SourceOnly") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ComparisonEntryPointScenarios.W27_CompareButton_DrawsThatMode(automationId: "CompareButtonOverlayOpacity", mode: "OverlayOpacity") [1 s]
+[2026-10-14 20:49:09.570] [info] xpe_ai shutdown: worker_pid=0
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuAvailabilityScenarios.E01_TheEntry_IsEnabledExactlyWhereTheAiModuleCanBeReached [480 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuAvailabilityScenarios.E02_AfterShutdown_TheEntryIsDisabled_AndFollowsTheBackendBackUp [1 s]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "identical mid-grey", source: 128, processed: 128) [11 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "opposite extremes (Δ255)", source: 255, processed: 0) [7 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "moderate (Δ64)", source: 96, processed: 160) [7 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.DifferenceHeatmap_DeviatesFromAPerPixelDifference(label: "near-identical (Δ8)", source: 128, processed: 136) [8 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceMagnitudeTests.NoPairDeviates_FromAPerPixelDifference [27 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenIdentityTests.AFinalCapture_ThatIsTheProcessedPreview_AndDiffersFromTheSource_IsEstablished [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenIdentityTests.WhenTheTwoPreviewsLookAlike_NothingCanBeSaidAboutWhichOneIsOnScreen [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenIdentityTests.TheShares_AreTheirBoundaries [< 1 ms]
+XPE-C56-PROBE hwnd=0x162003D2 pid=66128 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenIdentityTests.AFinalCapture_ThatIsTheSourcePreview_IsNotTheProcessedPicture [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.ScreenIdentityTests.ABlankOrCoveredViewport_IsNotTheProcessedPicture [< 1 ms]
+[2026-10-14 20:49:19.579] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-10688-52bbcfa3fcd843bf897eb04781714486, ep=0, timeout=5000 ms
+[2026-10-14 20:49:19.580] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 20:49:22.806] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:49:22.807] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-14 20:49:26.000] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:49:26.001] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-14 20:49:28.366] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 20:49:28.379] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-10688-52bbcfa3fcd843bf897eb04781714486, ep=0, timeout=5000 ms
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerAbsentScenarios.C11a_RestoringTheAiSession_RemovesTheMarkAndTheCount_OfAWorkerThatWasSwitchedOff [23 s]
+[2026-10-14 20:49:44.945] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 20:49:44.956] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-10688-fd4b8cde81b74e7d82c9942ad9906315, ep=0, timeout=5000 ms
+[2026-10-14 20:49:44.957] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 20:49:47.797] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 20:49:51.018] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-10688-fd4b8cde81b74e7d82c9942ad9906315, ep=0, timeout=5000 ms
+[2026-10-14 20:49:51.019] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 20:49:54.506] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 20:49:57.064] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-10688-fd4b8cde81b74e7d82c9942ad9906315, ep=0, timeout=5000 ms
+[2026-10-14 20:49:57.065] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 20:49:57.617] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:49:57.618] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-14 20:50:00.376] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 20:50:03.664] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-restore-10688-fd4b8cde81b74e7d82c9942ad9906315, ep=0, timeout=5000 ms
+[2026-10-14 20:50:03.665] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 20:50:10.375] [info] xpe_ai shutdown: worker_pid=0
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerAbsentScenarios.C11b_RestoringTheAiSession_PutsACountBackToZero_WhenNoMarkWasShown [35 s]
+[2026-10-14 20:50:16.101] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-10688-43deea85e770498ca62fbe44bde61236, ep=0, timeout=5000 ms
+[2026-10-14 20:50:16.102] [warning] bone_suppress: worker path failed (-9), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-14 20:50:20.540] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:50:20.540] [warning] bone_suppress: worker path failed (-9), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-14 20:50:24.992] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-14 20:50:24.993] [warning] bone_suppress: worker path failed (-9), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-14 20:50:27.766] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-14 20:50:27.780] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-10688-43deea85e770498ca62fbe44bde61236, ep=0, timeout=5000 ms
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerAbsentScenarios.C09_AWorkerThatCannotBeStarted_IsSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves [22 s]
+XPE-C56-PROBE hwnd=0x162103D2 pid=32560 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x98F00C2 pid=31400 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.AReadableSettingsFile_SaysNothingAboutIt [752 ms]
+XPE-C56-PROBE hwnd=0x162303D2 pid=15220 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x99100C2 pid=56104 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.ACorruptSettingsFile_IsReportedOnScreen [757 ms]
+XPE-C56-PROBE hwnd=0x162503D2 pid=61720 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x62D080E pid=53172 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.AfterARescue_TheNextLaunchIsQuiet [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.UnreadableSettingsScenarios.ASecondFailure_DoesNotOverwriteTheFirstRescue [1 s]
+XPE-C56-PROBE hwnd=0x99400C2 pid=40156 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.AfterAReInitialise_TheLineIsGone_Measured [3 s]
+XPE-C56-PROBE hwnd=0x162803D2 pid=39288 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.WithReadableSettings_ThereIsNothingToFind [2 s]
+XPE-C56-PROBE hwnd=0x99600C2 pid=43732 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.AfterTheWarningIsGone_ThePathIsStillThereAndCopyable [6 s]
+[xUnit.net 00:25:44.93]     ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.CopyWithNothingSelected_CannotLookLikeItWorked [SKIP]
+[xUnit.net 00:25:44.93]       CopyWithNothingSelected (a mouse press on a disabled button) sends real mouse/keyboard input to whichever window is in front, which on a shared desktop is not the application under test (GUI-C-171). Skipped; set XPE_E2E_ALLOW_GLOBAL_INPUT=1 on a desktop nothing else is using to run it.
+XPE-C56-PROBE hwnd=0x631080E pid=26376 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Workflows.SettingsWarningRecoveryScenarios.CopyWithNothingSelected_CannotLookLikeItWorked [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01b_Fallback_ShowsAPersistentBanner [3 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01a_Fallback_StatusBarNamesTheActualBackend [50 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MockFallbackScenarios.E01c_Fallback_TitlesSayMock [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.EveryRenderedProvenance_LeadsWithTheTrustBoundary [8 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.LaneAndCi_ShareTheFieldsTheReaderDependsOn [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.ReaderAccepts_TheFileCiActuallyWrites [2 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.TheLimit_IsTheConfiguredSeconds_ElseTenMinutes(configured: "-5", expectedSeconds: 600) [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.TheLimit_IsTheConfiguredSeconds_ElseTenMinutes(configured: "90", expectedSeconds: 90) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.TheLimit_IsTheConfiguredSeconds_ElseTenMinutes(configured: "0", expectedSeconds: 600) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.TheLimit_IsTheConfiguredSeconds_ElseTenMinutes(configured: "", expectedSeconds: 600) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.TheLimit_IsTheConfiguredSeconds_ElseTenMinutes(configured: null, expectedSeconds: 600) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.TheLimit_IsTheConfiguredSeconds_ElseTenMinutes(configured: "abc", expectedSeconds: 600) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.AKillThatThrows_DoesNotEscapeTheTimerThread [237 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.DisposedBeforeTheLimit_ItNeverKills [606 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.AppWatchdogTests.AfterTheLimit_ItReportsOnce_AndKillsTheApp_Once [371 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.Control_TheOracleInTheSameProcess_ErasesTheOperatorsCalibration_AndTheScenarioSeesIt [140 ms]
+XPE-C56-PROBE hwnd=0x162B03D2 pid=30800 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCalibration_ByteForByte [274 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AReInitialise_WritesASeparatorAndKeepsWhatWasThere [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.NativeAlertScenarios.AnAlertPushedByANativeModule_IsOnScreen [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R12_StageTiming_ShowsTheValuesTheRenderAlreadyReported [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R11b_StopWithNothingRunning_SaysSoAndDiscardsNothing [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuCommandScenarios.R06_PInvokeSmoke_AnswersFromTheNativeLibraries [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds [14 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Scope and Limitations", expectedFile: "scope.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L06_ChoosingTheReferenceAlgorithm_LeavesThePreprocessingSwitchOn [9 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeGridSuppression") [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeVirtualGrid") [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P02_RepeatedRender_RunsTheStageAgain [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature [25 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot [24 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels [22 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread [54 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [25 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases [11 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P04_TheDrawnHud_NamesTheChain [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees [24 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W2_TheLaunchScriptRoute_NativeAtStart_CalibrationFromTheCommandLine [30 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W11_TheDefaultDisplay_UsesTheAutomaticWindow_AndShowsAirDark [16 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused [30 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens [37 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W12_OneFrame_RunPreprocessingToThePicture_FiveTimes [25 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15b_TheScreenValue_FollowsAnArtificialRenderDelay [1 m]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W9_SuggestedName_Overwrite_AndAWriteFailureKeepsThePreviousFile [19 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed [9 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference [21 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W3_FailureMessages_EachProducedForReal [2 m 1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W0_EveryMenuPathInTheQuickStartExistsInTheApp [14 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W1_TheMenuRoute_NativeBackend_CalibrationPanel_Raw_RunPreprocessing_Compare [29 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_TheRealDataWalkthroughs_HaveTheirData [2 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W6_CalibrationPanel_DefaultsAndEmptyDirectories [13 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W4_SwitchToNative_SaveSettings_Restart_RunPreprocessingIsEnabled [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing [11 s]
+[xUnit.net 00:38:59.41]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing [SKIP]
+[xUnit.net 00:38:59.41]       NOT RUN: W10 needs a native DLL folder that predates xpe_preprocess_pipeline_out (XPE_C232B_OLD_NATIVE_DIR); no such old build is in the repository or in the CI artifacts. Last run by hand on 2026-10-13 (GUI-C-232b report). XPE-SKIP-ALLOWED:265
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W14_TheQuickStartPage_Steps1To4_FollowedInThePagesOrder_OnRealData [17 s]
+XPE-C56-PROBE hwnd=0xF2E03E4 pid=7296 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AlertVisibilityScenarios.AnAlert_IsOnScreenAndTellsItselfApartFromALogLine [4 s]
+XPE-C56-PROBE hwnd=0xA18065C pid=59708 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AlertVisibilityScenarios.WithNothingWrong_NoAlertLineIsThere [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [42 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 32) [22 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 8) [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 64) [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 4) [20 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.PatchSize_ChangesWhatIsResolvable(patch: 16) [20 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 255) [20 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 64) [20 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalChange_SeparatesFromBackground_ByThisMuch(delta: 8) [21 ms]
+XPE-C56-PROBE hwnd=0xA19065C pid=21452 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.SubtleChange_MeasuredAgainstTheRenderersOwnFloor [32 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.GradientBackground_WithALocalChange [21 ms]
+  통과 ImageProcTest.E2ETests.Rendering.DifferenceLocalContrastTests.LocalSeparation_MatchesTheTrueDifference [20 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LogAlertDiscriminabilityObservation.A_AnAppWithNoFrame_ShowsWhatTheReadingPathReturns [3 s]
+XPE-C56-PROBE hwnd=0xA1A065C pid=56528 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LogAlertDiscriminabilityObservation.F_WithNoAlertLeft_TheFilteredListIsEmpty [5 s]
+XPE-C56-PROBE hwnd=0x1C420624 pid=65832 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LogAlertDiscriminabilityObservation.BandC_OneRunMeasuredShortThenLong_ShowsWhetherTheCostGrows [15 s]
+XPE-C56-PROBE hwnd=0x1C430624 pid=61100 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0x1C440624 pid=49312 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0xA1E065C pid=11504 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.PreprocessOffNoticeScenarios.AnEarlierBuildsPreprocessOff_IsOnScreenUntilOkIsInvoked_AndDoesNotComeBack [14 s]
+XPE-C56-PROBE hwnd=0x1C320A58 pid=42024 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P02_OffsetThenGain_PassesTheOffsetOutputToTheGainStage [52 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P05_TheCalibrationIsLoadedIntoTheModule_NotJustWrittenToDisk [20 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P04_TheInputIsNotModified_NeitherTheFileNorThePreviewPixels [21 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P03_AllThreeStages_ChainToTheExpectedImage_AndOnlyTheMarkedPixelDiffersFromTheGainOutput [17 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P01_OffsetOnly_SubtractsTheDarkFrame_PixelByPixel [11 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S03_ToolbarButtons_AreEnabledInMockMode [164 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S04_HelpMenu_OffersOfflineHelpHome [404 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S01_Launch_HasMainWindow [4 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S05_RuntimePanel_ShowsBackendVersion [47 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S02_MenuBar_HasSixGroups [248 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowCalibrationPanelMenuItem", panelId: "CalibrationPathsPanel") [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowDisplaySettingsPanelMenuItem", panelId: "DisplaySettingsPanel") [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowImageSummaryPanelMenuItem") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowAlertsPanelMenuItem") [893 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowMetadataPanelMenuItem") [775 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRuntimePanelMenuItem") [699 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRawSettingsPanelMenuItem") [701 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S09_CalibrationSettings_OpensThePanelItAnnounces [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S10_ResetLayout_RestoresTheState [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S08_LogsToggle_ShowsAndHidesTheLogRegion [2 s]
+XPE-C56-PROBE hwnd=0x1C470624 pid=55340 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [870 ms]
+XPE-C56-PROBE hwnd=0x1C480624 pid=19016 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuWrappedBackendScenarios.L01_TheEntry_FollowsTheWrappedBackend_NotTheWrappersInterface [717 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiMenuLateDllScenarios.L02_ADllThatAppearsOrVanishesWhileTheAppRuns_IsSeenAtTheNextMenuOpening [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderMissingCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderMissingARuntimeDll_AWorkingCopyBesideTheExe_IsNotTaken_MockWithTheReason [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.WorkingDllsBesideTheExe_WhenNothingIsPinned_AreUsed_TheAppStartsOnNative [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderWithADamagedCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.OldDllsBesideTheExe_DoNotWinOverThePinnedFolder_TheAppStartsOnNative [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.ExclusiveWithoutAFolder_WorkingDllsBesideTheExe_AreNotUsed_MockWithTheReason [6 s]
+[xUnit.net 00:41:17.48]   Finished:    ImageProcTest.E2ETests
+데이터 수집기 'Blame' 메시지: 모든 테스트 실행이 완료되었지만, 시퀀스 파일이 생성되지 않습니다..
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.OldDllsBesideTheExe_WhenNotPinned_MockStartsAndTheBannerNamesTheDllAndTheProblem [6 s]
+
+테스트를 실행했습니다.
+총 테스트 수: 357
+     통과: 339
+    건너뜀: 18
+ 총 시간: 41.3013 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
+exit=0

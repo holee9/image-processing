@@ -1,0 +1,25 @@
+=== ARM int_conversion_before_the_clamp_as_before_206
+red tests: ModalityLutClamp.AFirstMappedNearTheEndsOfInt32DoesNotOverflowTheIndexArithmetic, ModalityLutClamp.AnInputAtOrAboveTwoToThe31TakesTheLastEntryAndNotTheFirst
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM above_the_table_takes_the_first_entry
+red tests: ModalityLut.TableMode_BasicLookup, ModalityLut.TableMode_ClampingBounds, ModalityLutClamp.AFirstMappedNearTheEndsOfInt32DoesNotOverflowTheIndexArithmetic, ModalityLutClamp.AnInputAtOrAboveTwoToThe31TakesTheLastEntryAndNotTheFirst, ModalityLutClamp.TheInRangeMappingAndTheBoundariesAreUnchanged
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== ARM below_the_table_takes_the_last_entry
+red tests: ModalityLut.TableMode_BasicLookup, ModalityLut.TableMode_ClampingBounds, ModalityLutClamp.AFirstMappedNearTheEndsOfInt32DoesNotOverflowTheIndexArithmetic, ModalityLutClamp.AnInputAtOrBelowMinusTwoToThe31TakesTheFirstEntry, ModalityLutClamp.TheInRangeMappingAndTheBoundariesAreUnchanged
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== ARM truncate_instead_of_round
+red tests: ModalityLutClamp.TheInRangeMappingAndTheBoundariesAreUnchanged
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM floor_instead_of_round_half_away
+red tests: ModalityLutClamp.TheInRangeMappingAndTheBoundariesAreUnchanged
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM index_arithmetic_back_in_int32_after_the_clamp_of_the_value_only
+red tests: (none)
+RESULT: observation only (no expectation set)
+restored byte-identical: True
+=== DONE

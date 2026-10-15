@@ -1,0 +1,21 @@
+=== ARM format_check_removed_from_xpe_dicom_write
+red tests: DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade, DicomWriterTest.ARefusedFormatLeavesAnExistingDestinationFileUntouched, DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads, DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck
+RESULT: FIRED  (expected red: 4, red: 4, not red: [])
+restored byte-identical: True
+=== ARM format_check_removed_from_xpe_dicom_write_j2k
+red tests: DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade, DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM only_float32_is_refused_uint8_goes_on
+red tests: DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads, DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM only_uint8_is_refused_float32_goes_on
+red tests: DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade, DicomWriterTest.ARefusedFormatLeavesAnExistingDestinationFileUntouched, DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== ARM every_format_is_refused_even_uint16
+red tests: DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted, DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted, DicomWriterTest.EmptyImageContract_ValidImageStillAccepted, DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads, DicomWriterTest.RescaleDefaults_OneAndZero, DicomWriterTest.ThousandCycles_ControlLeakIsCaught, DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow, DicomWriterTest.WriteBasic_CreatesFile, DicomWriterTest.WriteEmptyBodyPart_StillWritesFile, DicomWriterTest.WriteIOError_ReturnsIOFailed, DicomWriterTest.WriteJ2KRoundTrip_PixelExact, DicomWriterTest.WriteMetadata_Preserved, DicomWriterTest.WriteRoundTrip_PixelExact
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

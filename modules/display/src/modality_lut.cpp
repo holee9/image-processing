@@ -15,8 +15,8 @@
 // @MX:ANCHOR: [AUTO] Public API boundary — P/Invoke entry point from C# host
 // @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract
 // @MX:SPEC: SPEC-XPE-P1B-DISP
-extern "C" XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*             img,
-                                                 const XpeModalityLutParams* params) {
+static XpeErrorCode apply_modality_lut_impl(XpeImageBuffer*             img,
+                                            const XpeModalityLutParams* params) {
     // Validate inputs
     if (!img) {
         return XPE_ERR_INVALID_INPUT;
@@ -41,6 +41,18 @@ extern "C" XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*             img,
         // REQ-DISP-001: output[i] = input[i] * slope + intercept
         const float slope     = params->rescaleSlope;
         const float intercept = params->rescaleIntercept;
+        // QA-B-181f (#233): the parameters must be finite (`== 0` above says nothing about NaN or infinity), the
+        // image must be finite, and the result must stay finite. A NaN or infinite pixel, slope or intercept, or a
+        // product that leaves float (slope 1e38), used to go through with rc=0 and reach the next stage as NaN or
+        // +inf. The result is linear, so the largest and smallest pixel bound it. Nothing is written on refusal.
+        if (!xpe_float_is_finite(slope) || !xpe_float_is_finite(intercept)) return XPE_ERR_INVALID_INPUT;
+        {
+            float lo, hi;
+            if (!xpe_scan_finite(px, count, &lo, &hi)) return XPE_ERR_INVALID_INPUT;
+            if (!xpe_float_is_finite(lo * slope + intercept) || !xpe_float_is_finite(hi * slope + intercept)) {
+                return XPE_ERR_INVALID_INPUT;
+            }
+        }
         for (size_t i = 0; i < count; ++i) {
             px[i] = px[i] * slope + intercept;
         }
@@ -58,9 +70,20 @@ extern "C" XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*             img,
         const int32_t   len        = static_cast<int32_t>(params->lutLength);
         const int32_t   firstMapped = params->lutFirstMapped;
 
+        // QA-B-181f (#233): refuse a non-finite pixel before converting it. `xpe_round_to_int` of NaN or an
+        // infinity is undefined behaviour; it used to come out as index 0 or a saturated end, with rc=0.
+        if (!xpe_all_finite(px, count)) return XPE_ERR_INVALID_INPUT;
+
+        // QA-B-206 D2: the clamp is applied BEFORE the value becomes an int. A finite float at or above 2^31 is outside
+        // int32_t, and the cast (`xpe_round_to_int`) is undefined there: on this target it gave INT_MIN, so the largest inputs
+        // took the FIRST table entry instead of the last (QA-B-204: +2^31, 3e9, 1e12 and 3.4e38 all mapped to entry 0 while
+        // the negative side was right). `input - firstMapped` is also an int32_t subtraction that can overflow for a
+        // lutFirstMapped near INT_MIN / INT_MAX. Both are done in double, which holds every float and every int32_t exactly;
+        // the rounding is the same (round half away from zero, as roundf).
+        const double last = static_cast<double>(len - 1);
         for (size_t i = 0; i < count; ++i) {
-            int32_t idx = xpe_round_to_int(px[i]) - firstMapped;
-            idx = xpe_clamp(idx, 0, len - 1);
+            const double d = std::round(static_cast<double>(px[i])) - static_cast<double>(firstMapped);
+            const int32_t idx = d <= 0.0 ? 0 : (d >= last ? len - 1 : static_cast<int32_t>(d));
             px[i] = static_cast<float>(lut[idx]);
         }
     } else {
@@ -68,4 +91,11 @@ extern "C" XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*             img,
     }
 
     return XPE_OK;
+}
+
+// REQ-DISP-031 (QA-B-200 M2a): entry, outcome and error conditions are logged around the function above.
+extern "C" XpeErrorCode xpe_apply_modality_lut(XpeImageBuffer*             img,
+                                                 const XpeModalityLutParams* params) {
+    xpe_display_log_enter("xpe_apply_modality_lut");
+    return xpe_display_log_exit("xpe_apply_modality_lut", apply_modality_lut_impl(img, params));
 }

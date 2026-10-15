@@ -1,0 +1,41 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\workspace-github\xpe-post\build\s217\post\xpe_enhance_basic.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_enhance_basic.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          10 number of functions
+          10 number of names
+
+    ordinal hint RVA      name
+
+          1    0 0000173F xpe_calc_exposure_index = @ILT+1850(xpe_calc_exposure_index)
+          2    1 00001032 xpe_contrast_enhance = @ILT+45(xpe_contrast_enhance)
+          3    2 00001A5F xpe_edge_enhance = @ILT+2650(xpe_edge_enhance)
+          4    3 000011A4 xpe_enhance_basic_get_max_threads = @ILT+415(xpe_enhance_basic_get_max_threads)
+          5    4 000011C2 xpe_enhance_basic_set_max_threads = @ILT+445(xpe_enhance_basic_set_max_threads)
+          6    5 000015DC xpe_enhance_basic_version = @ILT+1495(xpe_enhance_basic_version)
+          7    6 000017BC xpe_log_inverse = @ILT+1975(xpe_log_inverse)
+          8    7 00001825 xpe_log_transform = @ILT+2080(xpe_log_transform)
+          9    8 0000187A xpe_noise_estimate_sigma = @ILT+2165(xpe_noise_estimate_sigma)
+         10    9 00001811 xpe_noise_reduce = @ILT+2060(xpe_noise_reduce)
+
+  Summary
+
+        1000 .00cfg
+        1000 .data
+        2000 .idata
+        3000 .pdata
+        B000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       57000 .text
+        2000 _RDATA

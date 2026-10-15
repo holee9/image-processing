@@ -11,6 +11,8 @@
 > E2E 가 실제로 띄우는 것은 **`gui/ImageProcTest`** 입니다(`ApplicationFixture.cs:584`).
 > 따라서 아래 절차의 `dotnet build clients/ImageProcTest` 로는 **픽스처가 찾는 실행 파일이 생기지
 > 않습니다.** 실행 절차의 기준은 `.github/workflows/ci.yml` 의 `gui-automation` / `gui-e2e-native` 잡입니다.
+> E2E 는 시험 스위치가 들어 있는 **Debug** 빌드를 띄우며, 출하(Release) 빌드에 그 스위치가 없다는 확인은
+> 별도 잡 `gui-shipped-build` 가 합니다.
 >
 > §4.1 표의 `XPE_Main_Window`·`XPE_Menu_*`·`XPE_Toolbar_*` 도 같은 원인입니다. `XPE_` 접두
 > AutomationId 는 **`clients/ImageProcTest` 에만** 있고(38건), E2E 대상인 `gui/ImageProcTest` 에는

@@ -1,0 +1,25 @@
+
+// TEMPORARY MEASUREMENT (QA-B-191 M4 design, NOT committed as a test): how much does moving an image to the
+// worker process cost? xpe_bone_suppress with "use_worker": true sends the image and receives one of the same
+// size, through the real worker process and the toy model dir models_x2 (Y = 2X). A body-part request would send
+// the image and receive a few bytes, so the one-way cost is about HALF of the numbers printed here.
+// The toy model's own work is a multiply per pixel; that is not a claim about any real model.
+TEST(BodyPartIpcProbe, MeasureWorkerRoundTripByImageSize) {
+    if (xpe::ai::OnnxSession::IsStubBuild()) GTEST_SKIP() << "needs the full build";
+    xpe_ai_shutdown();
+    xpe_clear_alerts();
+    ASSERT_EQ(XPE_OK, xpe_ai_init((kData + "/models_x2").c_str(), "{\"use_worker\": true, \"timeout_ms\": 20000}"));
+    std::printf("IPC-PROBE side payload_MB(one way) first_call_ms(starts the worker) min_ms median_ms\n");
+    for (const uint32_t side : {512u, 1024u, 2048u, 3072u}) {
+        const Img in = Flat(1.0f, side, side);
+        Img out = Flat(0.0f, side, side);
+        const auto a = Clock::now();
+        const XpeErrorCode first = xpe_bone_suppress(&in.buf, &out.buf, nullptr);
+        const double firstMs = Ms(a, Clock::now());
+        EXPECT_EQ(XPE_OK, first) << side;
+        const Stats s = Time(7, [&] { EXPECT_EQ(XPE_OK, xpe_bone_suppress(&in.buf, &out.buf, nullptr)); });
+        EXPECT_EQ(2.0f, out.px[0]) << "the worker really answered (Y = 2X)";
+        std::printf("IPC-PROBE %4u %6.1f %9.1f %8.1f %8.1f\n", side, side * side * 4.0 / 1e6, firstMs, s.min, s.median);
+    }
+    xpe_ai_shutdown();
+}

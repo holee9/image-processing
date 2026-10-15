@@ -1,0 +1,85 @@
+"""QA-B-206 M2 E4 falsification arms: xpe_calc_exposure_index and a non-finite pixel. Break ONE defence, rebuild ci-post, run the
+ExposureIndex* tests, expect the named tests red, restore byte-identical.   Run: python build/g206_arms_e4.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g200-post-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+SRC = 'modules/enhance_basic/src/exposure_index.cpp'
+NL = '\n'
+COND = '    if (!sumIsFinite || mean <= 0.0f) {' + NL
+ZERO = '        *outEI = 0.0f;' + NL + '        *outDI = 0.0f;' + NL + '        return XPE_ERR_PROCESSING_FAILED;' + NL
+MASK = '    const bool sumIsFinite = ((sumBits >> 52) & 0x7FFu) != 0x7FFu;' + NL
+T1 = 'ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity'
+T2 = 'ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter'
+T3 = 'ExposureIndexNonFinite.AnInfinityOfEachSignInOneImageIsStillRefused'
+ARMS = [
+    ('back_to_mean_le_0_only_as_before_206', [(COND, '    if (!sumIsFinite && false || mean <= 0.0f) {' + NL)], [T1, T2]),
+    ('finiteness_test_sees_only_plus_infinity',
+     [(MASK, '    const bool sumIsFinite = sumBits != 0x7FF0000000000000ull;' + NL)], None),
+    ('wrong_exponent_mask_detects_nothing', [(MASK, '    const bool sumIsFinite = ((sumBits >> 52) & 0x7FEu) != 0x7FEu;' + NL)], [T1, T2]),
+    ('refused_call_leaves_ei_di_untouched', [(ZERO, '        return XPE_ERR_PROCESSING_FAILED;' + NL)], [T1]),
+    ('refused_call_returns_ok', [(ZERO, '        *outEI = 0.0f;' + NL + '        *outDI = 0.0f;' + NL + '        return XPE_OK;' + NL)], [T1, T2, T3]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    with open(SRC, 'rb') as f:
+        saved = f.read()
+    before = sha(SRC)
+    log('=== ARM ' + name)
+    try:
+        txt = saved.decode('utf-8')
+        for old, new in edits:
+            assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+            txt = txt.replace(old, new)
+        with open(SRC, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g200-b5.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s ci-post xpe_enhance_basic_tests.exe D:\\workspace-github\\xpe-post\\build\\g206-arm.txt ExposureIndex* enhance_basic' % RUN)
+            red = failed('build/g206-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            if must is None:
+                log('RESULT: observation only (no expectation set)')
+            else:
+                hit = [m for m in must if m in red]
+                miss = [m for m in must if m not in hit]
+                log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        with open(SRC, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(SRC) == before))
+log('=== DONE')
+out.close()

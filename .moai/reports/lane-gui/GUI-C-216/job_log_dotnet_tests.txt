@@ -1,0 +1,449 @@
+﻿2026-10-03T04:31:01.2183917Z Current runner version: '2.337.0'
+2026-10-03T04:31:01.2204839Z ##[group]Runner Image Provisioner
+2026-10-03T04:31:01.2205411Z Hosted Compute Agent
+2026-10-03T04:31:01.2205757Z Version: 20260901.588
+2026-10-03T04:31:01.2206104Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-03T04:31:01.2206532Z Build Date: 2026-09-01T19:56:44Z
+2026-10-03T04:31:01.2206921Z Worker ID: {158d622a-06ad-49cd-86cc-660da9e86ccb}
+2026-10-03T04:31:01.2207315Z Azure Region: centralus
+2026-10-03T04:31:01.2207625Z ##[endgroup]
+2026-10-03T04:31:01.2208447Z ##[group]Operating System
+2026-10-03T04:31:01.2208824Z Microsoft Windows Server 2025
+2026-10-03T04:31:01.2209169Z 10.0.26100
+2026-10-03T04:31:01.2209456Z Datacenter
+2026-10-03T04:31:01.2209741Z ##[endgroup]
+2026-10-03T04:31:01.2210046Z ##[group]Runner Image
+2026-10-03T04:31:01.2210369Z Image: windows-2025-vs2026
+2026-10-03T04:31:01.2210700Z Version: 20260925.250.1
+2026-10-03T04:31:01.2211703Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260925.250/images/windows/Windows2025-VS2026-Readme.md
+2026-10-03T04:31:01.2212606Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260925.250
+2026-10-03T04:31:01.2213140Z ##[endgroup]
+2026-10-03T04:31:01.2213809Z ##[group]GITHUB_TOKEN Permissions
+2026-10-03T04:31:01.2215312Z Contents: read
+2026-10-03T04:31:01.2215638Z Metadata: read
+2026-10-03T04:31:01.2215976Z ##[endgroup]
+2026-10-03T04:31:01.2217473Z Secret source: Actions
+2026-10-03T04:31:01.2217987Z Cache mode: write
+2026-10-03T04:31:01.2218371Z Prepare workflow directory
+2026-10-03T04:31:01.2456763Z Prepare all required actions
+2026-10-03T04:31:01.2491240Z Getting action download info
+2026-10-03T04:31:01.4867475Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+2026-10-03T04:31:01.5882054Z Download action repository 'actions/setup-dotnet@v5' (SHA:26b0ec14cb23fa6904739307f278c14f94c95bf1)
+2026-10-03T04:31:01.9616181Z Download action repository 'actions/download-artifact@v6' (SHA:018cc2cf5baa6db3ef3c5f8a56943fffe632ef53)
+2026-10-03T04:31:02.3528971Z Download action repository 'actions/upload-artifact@v6' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-03T04:31:02.6169027Z Complete job name: dotnet-tests
+2026-10-03T04:31:02.7382107Z ##[group]Run actions/checkout@v6
+2026-10-03T04:31:02.7383095Z with:
+2026-10-03T04:31:02.7383549Z   repository: holee9/image-processing
+2026-10-03T04:31:02.7387628Z   token: ***
+2026-10-03T04:31:02.7388039Z   ssh-strict: true
+2026-10-03T04:31:02.7388453Z   ssh-user: git
+2026-10-03T04:31:02.7388883Z   persist-credentials: true
+2026-10-03T04:31:02.7389360Z   clean: true
+2026-10-03T04:31:02.7389795Z   sparse-checkout-cone-mode: true
+2026-10-03T04:31:02.7390308Z   fetch-depth: 1
+2026-10-03T04:31:02.7390729Z   fetch-tags: false
+2026-10-03T04:31:02.7391165Z   show-progress: true
+2026-10-03T04:31:02.7391617Z   lfs: false
+2026-10-03T04:31:02.7392024Z   submodules: false
+2026-10-03T04:31:02.7392466Z   set-safe-directory: true
+2026-10-03T04:31:02.7392991Z   allow-unsafe-pr-checkout: false
+2026-10-03T04:31:02.7393594Z ##[endgroup]
+2026-10-03T04:31:02.8430396Z Syncing repository: holee9/image-processing
+2026-10-03T04:31:02.8433323Z ##[group]Getting Git version info
+2026-10-03T04:31:02.8434495Z Working directory is 'D:\a\image-processing\image-processing'
+2026-10-03T04:31:02.8906841Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-03T04:31:03.2088460Z git version 2.55.0.windows.5
+2026-10-03T04:31:03.2129741Z ##[endgroup]
+2026-10-03T04:31:03.2145490Z Temporarily overriding HOME='D:\a\_temp\4bf281ca-660e-4173-b329-f7bd159489af' before making global git config changes
+2026-10-03T04:31:03.2146854Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-03T04:31:03.2152805Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\image-processing\image-processing
+2026-10-03T04:31:03.2726586Z Deleting the contents of 'D:\a\image-processing\image-processing'
+2026-10-03T04:31:03.2735826Z ##[group]Determining repository object format
+2026-10-03T04:31:03.2738439Z ##[endgroup]
+2026-10-03T04:31:03.2739544Z ##[group]Initializing the repository
+2026-10-03T04:31:03.2751317Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\image-processing\image-processing
+2026-10-03T04:31:03.3703624Z Initialized empty Git repository in D:/a/image-processing/image-processing/.git/
+2026-10-03T04:31:03.3745093Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/holee9/image-processing
+2026-10-03T04:31:03.4257668Z ##[endgroup]
+2026-10-03T04:31:03.4258583Z ##[group]Disabling automatic garbage collection
+2026-10-03T04:31:03.4265339Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-10-03T04:31:03.4497441Z ##[endgroup]
+2026-10-03T04:31:03.4498285Z ##[group]Setting up auth
+2026-10-03T04:31:03.4498992Z Removing SSH command configuration
+2026-10-03T04:31:03.4506957Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-03T04:31:03.4741105Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-03T04:31:04.7085555Z Removing HTTP extra header
+2026-10-03T04:31:04.7093564Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-03T04:31:04.7325192Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-03T04:31:05.1659077Z Removing includeIf entries pointing to credentials config files
+2026-10-03T04:31:05.1669197Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-03T04:31:05.1910144Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-03T04:31:05.6112310Z [command]"C:\Program Files\Git\bin\git.exe" config --file D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-10-03T04:31:05.6363526Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/image-processing/image-processing/.git.path D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:31:05.6600955Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/image-processing/image-processing/.git/worktrees/*.path D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:31:05.6877511Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:31:05.7120677Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:31:05.7372674Z ##[endgroup]
+2026-10-03T04:31:05.7373066Z ##[group]Fetching the repository
+2026-10-03T04:31:05.7384738Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +483e8fd25f99eaa884fac6c7e092718a437f3808:refs/remotes/origin/main
+2026-10-03T04:31:08.6320771Z From https://github.com/holee9/image-processing
+2026-10-03T04:31:08.6321555Z  * [new ref]         483e8fd25f99eaa884fac6c7e092718a437f3808 -> origin/main
+2026-10-03T04:31:08.6371401Z [command]"C:\Program Files\Git\bin\git.exe" branch --list --remote origin/main
+2026-10-03T04:31:08.6652402Z   origin/main
+2026-10-03T04:31:08.6693525Z [command]"C:\Program Files\Git\bin\git.exe" rev-parse refs/remotes/origin/main
+2026-10-03T04:31:08.6901473Z 483e8fd25f99eaa884fac6c7e092718a437f3808
+2026-10-03T04:31:08.6934649Z ##[endgroup]
+2026-10-03T04:31:08.6935114Z ##[group]Determining the checkout info
+2026-10-03T04:31:08.6936180Z ##[endgroup]
+2026-10-03T04:31:08.6943572Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-10-03T04:31:08.7287301Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-10-03T04:31:08.7514617Z ##[group]Checking out the ref
+2026-10-03T04:31:08.7522669Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force -B main refs/remotes/origin/main
+2026-10-03T04:31:10.2642603Z Updating files:  94% (5805/6156)
+2026-10-03T04:31:10.2754455Z Updating files:  95% (5849/6156)
+2026-10-03T04:31:10.2849143Z Updating files:  96% (5910/6156)
+2026-10-03T04:31:10.2978040Z Updating files:  97% (5972/6156)
+2026-10-03T04:31:10.3090255Z Updating files:  98% (6033/6156)
+2026-10-03T04:31:10.3534267Z Updating files:  99% (6095/6156)
+2026-10-03T04:31:10.3534577Z Updating files: 100% (6156/6156)
+2026-10-03T04:31:10.3534789Z Updating files: 100% (6156/6156), done.
+2026-10-03T04:31:10.3696231Z Switched to a new branch 'main'
+2026-10-03T04:31:10.3747182Z branch 'main' set up to track 'origin/main'.
+2026-10-03T04:31:10.3834851Z ##[endgroup]
+2026-10-03T04:31:10.4171159Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-10-03T04:31:10.4378261Z 483e8fd25f99eaa884fac6c7e092718a437f3808
+2026-10-03T04:31:10.4731683Z ##[group]Run actions/setup-dotnet@v5
+2026-10-03T04:31:10.4731872Z with:
+2026-10-03T04:31:10.4731991Z   dotnet-version: 8.0.x
+2026-10-03T04:31:10.4732115Z   cache: false
+2026-10-03T04:31:10.4732218Z ##[endgroup]
+2026-10-03T04:31:10.6462290Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v5\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Runtime dotnet -Channel LTS
+2026-10-03T04:31:11.8084985Z dotnet-install: .NET Core Runtime with version '10.0.12' is already installed.
+2026-10-03T04:31:11.8987899Z [command]"C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo -Sta -NoProfile -NonInteractive -ExecutionPolicy Unrestricted -Command & 'D:\a\_actions\actions\setup-dotnet\v5\externals\install-dotnet.ps1' -SkipNonVersionedFiles -Channel 8.0
+2026-10-03T04:31:12.7254744Z dotnet-install: .NET Core SDK with version '8.0.425' is already installed.
+2026-10-03T04:31:12.8123984Z ##[group]Run actions/download-artifact@v6
+2026-10-03T04:31:12.8124202Z with:
+2026-10-03T04:31:12.8124323Z   name: xpe-ci-common-binaries
+2026-10-03T04:31:12.8124466Z   path: build/ci-common/bin/
+2026-10-03T04:31:12.8124602Z   merge-multiple: false
+2026-10-03T04:31:12.8124732Z   repository: holee9/image-processing
+2026-10-03T04:31:12.8124881Z   run-id: 37095895181
+2026-10-03T04:31:12.8125005Z env:
+2026-10-03T04:31:12.8125116Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:31:12.8125271Z ##[endgroup]
+2026-10-03T04:31:12.9449707Z Downloading single artifact
+2026-10-03T04:31:12.9603483Z (node:3144) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-03T04:31:12.9604185Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-03T04:31:13.1194464Z Preparing to download the following artifacts:
+2026-10-03T04:31:13.1195510Z - xpe-ci-common-binaries (ID: 11264680613, Size: 24702590, Expected Digest: sha256:6fa6eea04e8aa4bc2b5a8ee376a8be17a651d51e12cb28affcc595f6fac62e00)
+2026-10-03T04:31:13.3432920Z Redirecting to blob download url: https://productionresultssa14.blob.core.windows.net/actions-results/df70d298-f5b5-8ffb-b712-5d507eba1374/workflow-job-run-b853fc81-c621-5fbd-8e93-2a148514a38c/artifacts/f9ecd9fe034c7b69a5b1edf25f8def070336861bd8967f9bf97ab516767d311f.zip
+2026-10-03T04:31:13.3433721Z Starting download of artifact to: D:\a\image-processing\image-processing\build\ci-common\bin
+2026-10-03T04:31:13.5167737Z (node:3144) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-10-03T04:31:14.3135093Z SHA256 digest of downloaded artifact is 6fa6eea04e8aa4bc2b5a8ee376a8be17a651d51e12cb28affcc595f6fac62e00
+2026-10-03T04:31:14.3135894Z Artifact download completed successfully.
+2026-10-03T04:31:14.3136817Z Total of 1 artifact(s) downloaded
+2026-10-03T04:31:14.3145242Z Download artifact has finished successfully
+2026-10-03T04:31:14.3424614Z ##[group]Run actions/download-artifact@v6
+2026-10-03T04:31:14.3424841Z with:
+2026-10-03T04:31:14.3424977Z   name: xpe-ci-preprocess-binaries
+2026-10-03T04:31:14.3425141Z   path: build/ci-common/bin/
+2026-10-03T04:31:14.3425294Z   merge-multiple: false
+2026-10-03T04:31:14.3425435Z   repository: holee9/image-processing
+2026-10-03T04:31:14.3425592Z   run-id: 37095895181
+2026-10-03T04:31:14.3425706Z env:
+2026-10-03T04:31:14.3425833Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:31:14.3425988Z ##[endgroup]
+2026-10-03T04:31:14.4714418Z Downloading single artifact
+2026-10-03T04:31:14.4858256Z (node:2004) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-03T04:31:14.4859472Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-03T04:31:14.6509797Z Preparing to download the following artifacts:
+2026-10-03T04:31:14.6510510Z - xpe-ci-preprocess-binaries (ID: 11264473005, Size: 63437326, Expected Digest: sha256:91f0baa78fcaef6c3c064eb4fae047845913e2e4d97268f777fa6bd991f641ad)
+2026-10-03T04:31:14.8320761Z Redirecting to blob download url: https://productionresultssa14.blob.core.windows.net/actions-results/df70d298-f5b5-8ffb-b712-5d507eba1374/workflow-job-run-ff81425b-7942-5f5e-a43a-a519aeb8b564/artifacts/3a3744ed852040db9aa468e74ccb66183075f95fd44468d28dd77bede1ead51f.zip
+2026-10-03T04:31:14.8322014Z Starting download of artifact to: D:\a\image-processing\image-processing\build\ci-common\bin
+2026-10-03T04:31:15.0455175Z (node:2004) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-10-03T04:31:17.4135773Z SHA256 digest of downloaded artifact is 91f0baa78fcaef6c3c064eb4fae047845913e2e4d97268f777fa6bd991f641ad
+2026-10-03T04:31:17.4136396Z Artifact download completed successfully.
+2026-10-03T04:31:17.4137406Z Total of 1 artifact(s) downloaded
+2026-10-03T04:31:17.4144434Z Download artifact has finished successfully
+2026-10-03T04:31:17.4444344Z ##[group]Run actions/download-artifact@v6
+2026-10-03T04:31:17.4444589Z with:
+2026-10-03T04:31:17.4444722Z   name: xpe-ci-post-binaries
+2026-10-03T04:31:17.4444868Z   path: build/ci-common/bin/
+2026-10-03T04:31:17.4445011Z   merge-multiple: false
+2026-10-03T04:31:17.4445155Z   repository: holee9/image-processing
+2026-10-03T04:31:17.4445304Z   run-id: 37095895181
+2026-10-03T04:31:17.4445441Z env:
+2026-10-03T04:31:17.4445557Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:31:17.4445704Z ##[endgroup]
+2026-10-03T04:31:17.5901540Z Downloading single artifact
+2026-10-03T04:31:17.6063958Z (node:3740) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-03T04:31:17.6065068Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-03T04:31:17.7913108Z Preparing to download the following artifacts:
+2026-10-03T04:31:17.7917402Z - xpe-ci-post-binaries (ID: 11264835894, Size: 74057650, Expected Digest: sha256:438e79f20617d791d747d2ef9e99c8defda322f1dd68d0399b5048b6402fc51b)
+2026-10-03T04:31:17.9851616Z Redirecting to blob download url: https://productionresultssa14.blob.core.windows.net/actions-results/df70d298-f5b5-8ffb-b712-5d507eba1374/workflow-job-run-e61083db-4418-5c01-aac5-3198bb679a1c/artifacts/e711a6432108a51363b6ceb33779af8623bcfb6c60d12d9efc77e542524b6d4a.zip
+2026-10-03T04:31:17.9870574Z Starting download of artifact to: D:\a\image-processing\image-processing\build\ci-common\bin
+2026-10-03T04:31:18.1751225Z (node:3740) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-10-03T04:31:20.1627869Z SHA256 digest of downloaded artifact is 438e79f20617d791d747d2ef9e99c8defda322f1dd68d0399b5048b6402fc51b
+2026-10-03T04:31:20.1628296Z Artifact download completed successfully.
+2026-10-03T04:31:20.1628510Z Total of 1 artifact(s) downloaded
+2026-10-03T04:31:20.1635783Z Download artifact has finished successfully
+2026-10-03T04:31:20.1887403Z ##[group]Run actions/download-artifact@v6
+2026-10-03T04:31:20.1887632Z with:
+2026-10-03T04:31:20.1887764Z   name: xpe-ci-dicom-binaries
+2026-10-03T04:31:20.1887926Z   path: build/ci-dicom/
+2026-10-03T04:31:20.1888070Z   merge-multiple: false
+2026-10-03T04:31:20.1888219Z   repository: holee9/image-processing
+2026-10-03T04:31:20.1888478Z   run-id: 37095895181
+2026-10-03T04:31:20.1888620Z env:
+2026-10-03T04:31:20.1888732Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:31:20.1888891Z ##[endgroup]
+2026-10-03T04:31:20.3214751Z Downloading single artifact
+2026-10-03T04:31:20.3367659Z (node:9956) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-03T04:31:20.3368371Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-03T04:31:20.4942028Z Preparing to download the following artifacts:
+2026-10-03T04:31:20.4942634Z - xpe-ci-dicom-binaries (ID: 11264600803, Size: 91216737, Expected Digest: sha256:211f9f147e2dfa264a076433852171110dbd44ce58576c92a606772203fbcf3a)
+2026-10-03T04:31:20.6733374Z Redirecting to blob download url: https://productionresultssa14.blob.core.windows.net/actions-results/df70d298-f5b5-8ffb-b712-5d507eba1374/workflow-job-run-b0695ad5-9964-5560-816b-4ca5dccc7267/artifacts/04fc37150e4147a1cd6562b986ab0e2b6d89bdf178f5201455cd7ab46f6d9ebc.zip
+2026-10-03T04:31:20.6734160Z Starting download of artifact to: D:\a\image-processing\image-processing\build\ci-dicom
+2026-10-03T04:31:20.8780744Z (node:9956) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-10-03T04:31:23.1200449Z SHA256 digest of downloaded artifact is 211f9f147e2dfa264a076433852171110dbd44ce58576c92a606772203fbcf3a
+2026-10-03T04:31:23.1200937Z Artifact download completed successfully.
+2026-10-03T04:31:23.1201125Z Total of 1 artifact(s) downloaded
+2026-10-03T04:31:23.1211659Z Download artifact has finished successfully
+2026-10-03T04:31:23.1473141Z ##[group]Run $dest = 'build/ci-common/bin'
+2026-10-03T04:31:23.1473438Z [36;1m$dest = 'build/ci-common/bin'[0m
+2026-10-03T04:31:23.1473601Z [36;1m$added = @(); $kept = @()[0m
+2026-10-03T04:31:23.1473894Z [36;1mGet-ChildItem build/ci-dicom -Recurse -Filter *.dll | Sort-Object FullName | ForEach-Object {[0m
+2026-10-03T04:31:23.1474227Z [36;1m  $target = Join-Path $dest $_.Name[0m
+2026-10-03T04:31:23.1474524Z [36;1m  if (Test-Path $target) { $kept += $_.Name } else { Copy-Item $_.FullName $target; $added += $_.Name }[0m
+2026-10-03T04:31:23.1474783Z [36;1m}[0m
+2026-10-03T04:31:23.1474979Z [36;1mWrite-Host ("added {0} dll(s): {1}" -f $added.Count, ($added -join ', '))[0m
+2026-10-03T04:31:23.1475309Z [36;1mWrite-Host ("kept the common set's copy of {0} dll(s): {1}" -f $kept.Count, ($kept -join ', '))[0m
+2026-10-03T04:31:23.1836680Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-03T04:31:23.1836920Z env:
+2026-10-03T04:31:23.1837133Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:31:23.1837301Z ##[endgroup]
+2026-10-03T04:31:23.5348317Z added 31 dll(s): dcmdata.dll, dcmimgle.dll, dcmjpeg.dll, dcmnet.dll, ijg12.dll, ijg16.dll, ijg8.dll, oficonv.dll, oflog.dll, ofstd.dll, openjp2.dll, xpe_dicom.dll, cmr.dll, dcmdsig.dll, dcmect.dll, dcmfg.dll, dcmimage.dll, dcmiod.dll, dcmjpls.dll, dcmpmap.dll, dcmpstat.dll, dcmqrdb.dll, dcmrt.dll, dcmseg.dll, dcmsr.dll, dcmtkcharls.dll, dcmtls.dll, dcmtract.dll, dcmwlm.dll, dcmxml.dll, i2d.dll
+2026-10-03T04:31:23.5352087Z kept the common set's copy of 20 dll(s): fmt.dll, gtest_main.dll, gtest.dll, spdlog.dll, xpe_common.dll, dcmdata.dll, dcmimgle.dll, dcmjpeg.dll, dcmnet.dll, gmock_main.dll, gmock.dll, gtest_main.dll, gtest.dll, ijg12.dll, ijg16.dll, ijg8.dll, oficonv.dll, oflog.dll, ofstd.dll, openjp2.dll
+2026-10-03T04:31:23.5881843Z ##[group]Run $missing = @()
+2026-10-03T04:31:23.5882108Z [36;1m$missing = @()[0m
+2026-10-03T04:31:23.5882465Z [36;1mforeach ($n in @('xpe_common.dll', 'xpe_preprocess.dll', 'xpe_enhance_basic.dll', 'xpe_display.dll', 'xpe_dicom.dll', 'dcmdata.dll', 'openjp2.dll')) {[0m
+2026-10-03T04:31:23.5882900Z [36;1m  if (-not (Test-Path "build/ci-common/bin/$n")) { $missing += $n }[0m
+2026-10-03T04:31:23.5883114Z [36;1m}[0m
+2026-10-03T04:31:23.5893299Z [36;1mif ($missing.Count -gt 0) {[0m
+2026-10-03T04:31:23.5893825Z [36;1m  Write-Error "Native DLLs missing from build/ci-common/bin: $($missing -join ', ') - the suite would report 90/90 pass with 0 skipped while verifying nothing"[0m
+2026-10-03T04:31:23.5894208Z [36;1m  exit 1[0m
+2026-10-03T04:31:23.5894369Z [36;1m}[0m
+2026-10-03T04:31:23.5894623Z [36;1mGet-ChildItem build/ci-common/bin/ -Filter *.dll | Select-Object Name, Length[0m
+2026-10-03T04:31:23.5948285Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-03T04:31:23.5948521Z env:
+2026-10-03T04:31:23.5948663Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:31:23.5948827Z ##[endgroup]
+2026-10-03T04:31:23.8734458Z
+2026-10-03T04:31:23.8784024Z [32;1mName                    [0m[32;1m  Length[0m
+2026-10-03T04:31:23.8784501Z [32;1m----                    [0m [32;1m ------[0m
+2026-10-03T04:31:23.8784796Z cmr.dll                   923136
+2026-10-03T04:31:23.8785054Z dcmdata.dll              2479104
+2026-10-03T04:31:23.8785341Z dcmdsig.dll                 9728
+2026-10-03T04:31:23.8785573Z dcmect.dll                167424
+2026-10-03T04:31:23.8785820Z dcmfg.dll                 677888
+2026-10-03T04:31:23.8786191Z dcmimage.dll              570880
+2026-10-03T04:31:23.8786427Z dcmimgle.dll             2217984
+2026-10-03T04:31:23.8786684Z dcmiod.dll                918016
+2026-10-03T04:31:23.8786922Z dcmjpeg.dll               239104
+2026-10-03T04:31:23.8791728Z dcmjpls.dll               122368
+2026-10-03T04:31:23.8792048Z dcmnet.dll               1160192
+2026-10-03T04:31:23.8792343Z dcmpmap.dll               207872
+2026-10-03T04:31:23.8792574Z dcmpstat.dll             1361408
+2026-10-03T04:31:23.8792805Z dcmqrdb.dll               393216
+2026-10-03T04:31:23.8792953Z dcmrt.dll                7005696
+2026-10-03T04:31:23.8793092Z dcmseg.dll                248320
+2026-10-03T04:31:23.8793238Z dcmsr.dll                1018880
+2026-10-03T04:31:23.8793385Z dcmtkcharls.dll           145920
+2026-10-03T04:31:23.8793535Z dcmtls.dll                 94720
+2026-10-03T04:31:23.8793682Z dcmtract.dll              278528
+2026-10-03T04:31:23.8793830Z dcmwlm.dll                268800
+2026-10-03T04:31:23.8793970Z dcmxml.dll                  9728
+2026-10-03T04:31:23.8794120Z fmt.dll                   332800
+2026-10-03T04:31:23.8794273Z gmock_main.dll           1288704
+2026-10-03T04:31:23.8794412Z gmock.dll                1288704
+2026-10-03T04:31:23.8794559Z gsvg.dll                  706048
+2026-10-03T04:31:23.8794708Z gtest_main.dll            170496
+2026-10-03T04:31:23.8794849Z gtest.dll                1119232
+2026-10-03T04:31:23.8795070Z i2d.dll                   250880
+2026-10-03T04:31:23.8795641Z ijg12.dll                 176640
+2026-10-03T04:31:23.8795856Z ijg16.dll                 177664
+2026-10-03T04:31:23.8796225Z ijg8.dll                  176640
+2026-10-03T04:31:23.8796462Z oficonv.dll              4476416
+2026-10-03T04:31:23.8796674Z oflog.dll                 408064
+2026-10-03T04:31:23.8797325Z ofstd.dll                 305664
+2026-10-03T04:31:23.8797545Z openjp2.dll               367616
+2026-10-03T04:31:23.8797771Z spdlog.dll               1190912
+2026-10-03T04:31:23.8798223Z xpe_ai.dll                897536
+2026-10-03T04:31:23.8798473Z xpe_common.dll            249344
+2026-10-03T04:31:23.8798677Z xpe_dicom.dll             910848
+2026-10-03T04:31:23.8798901Z xpe_display.dll            46080
+2026-10-03T04:31:23.8799084Z xpe_enhance_advanced.dll  820224
+2026-10-03T04:31:23.8799268Z xpe_enhance_basic.dll     407040
+2026-10-03T04:31:23.8801956Z xpe_preprocess.dll       1077248
+2026-10-03T04:31:23.8802135Z
+2026-10-03T04:31:23.9291530Z ##[group]Run dotnet test clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj -c Debug --logger "trx;LogFileName=integration-tests.trx" --results-directory build/dotnet-test-results
+2026-10-03T04:31:23.9292720Z [36;1mdotnet test clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj -c Debug --logger "trx;LogFileName=integration-tests.trx" --results-directory build/dotnet-test-results[0m
+2026-10-03T04:31:23.9344207Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-03T04:31:23.9344430Z env:
+2026-10-03T04:31:23.9344563Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:31:23.9344723Z ##[endgroup]
+2026-10-03T04:31:31.2634045Z   Determining projects to restore...
+2026-10-03T04:31:40.9035004Z   Restored D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj (in 8.93 sec).
+2026-10-03T04:31:47.6778751Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\BaselineReviewFixTests.cs(578,9): warning CS8631: The type 'string?' cannot be used as type parameter 'T' in the generic type or method 'Assert.Equal<T>(ReadOnlySpan<T>, T[])'. Nullability of type argument 'string?' doesn't match constraint type 'System.IEquatable<string?>'. [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6785816Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\BaselineReviewFixTests.cs(582,9): warning CS8631: The type 'string?' cannot be used as type parameter 'T' in the generic type or method 'Assert.Equal<T>(ReadOnlySpan<T>, T[])'. Nullability of type argument 'string?' doesn't match constraint type 'System.IEquatable<string?>'. [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6789118Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\P1AReady\GainPolyClampAlertTests.cs(71,13): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6793989Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\TroubleshootingPageServiceTests.cs(85,9): warning xUnit2000: The literal or constant value TroubleshootingPageService.PageRelativePath should be passed as the 'expected' argument in the call to 'Assert.Equal(expected, actual)' in method 'ThePagePath_IsWhereDocfxWritesTheSourceMarkdown' on type 'TroubleshootingPageServiceTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6797605Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\BenchmarkRunnerServiceTests.cs(156,9): warning xUnit2000: The literal or constant value BenchmarkRunnerService.TestPattern should be passed as the 'expected' argument in the call to 'Assert.Equal(expected, actual)' in method 'ThePattern_IsTheOneTheBenchmarkWorkflowStepUses' on type 'BenchmarkRunnerServiceTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6804533Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\DefectMetricGatesTests.cs(39,9): warning xUnit2000: The literal or constant value DefectMetricGates.RecallMinPercent should be passed as the 'expected' argument in the call to 'Assert.Equal(expected, actual)' in method 'RecallLine_IsTheProtocols' on type 'DefectMetricGatesTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6809046Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\DefectMetricGatesTests.cs(47,9): warning xUnit2000: The literal or constant value DefectMetricGates.FprMaxPercent should be passed as the 'expected' argument in the call to 'Assert.Equal(expected, actual)' in method 'FalsePositiveLine_IsTheProtocols_AndStrict' on type 'DefectMetricGatesTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6812176Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\DefectMetricGatesTests.cs(54,9): warning xUnit2000: The literal or constant value DefectMetricGates.GoodPixelDeltaP99MaxAdu should be passed as the 'expected' argument in the call to 'Assert.Equal(expected, actual)' in method 'GoodPixelLine_IsTheProtocols' on type 'DefectMetricGatesTests'. Swap the parameter values. (https://xunit.net/xunit.analyzers/rules/xUnit2000) [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.6814504Z ##[warning]D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\Functional\BaselineExecutionTests.cs(250,9): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\ImageProcTest.IntegrationTests.csproj]
+2026-10-03T04:31:47.7489793Z   ImageProcTest.IntegrationTests -> D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll
+2026-10-03T04:31:47.7606552Z Test run for D:\a\image-processing\image-processing\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll (.NETCoreApp,Version=v8.0)
+2026-10-03T04:31:48.4707806Z A total of 1 test files matched the specified pattern.
+2026-10-03T04:32:02.6683489Z Results File: D:\a\image-processing\image-processing\build\dotnet-test-results\integration-tests.trx
+2026-10-03T04:32:02.6687948Z
+2026-10-03T04:32:02.6719071Z Passed!  - Failed:     0, Passed:   688, Skipped:     0, Total:   688, Duration: 11 s - ImageProcTest.IntegrationTests.dll (net8.0)
+2026-10-03T04:32:03.0532576Z ##[group]Run $ErrorActionPreference = 'Stop'
+2026-10-03T04:32:03.0532875Z [36;1m$ErrorActionPreference = 'Stop'[0m
+2026-10-03T04:32:03.0533156Z [36;1m$proj = 'clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj'[0m
+2026-10-03T04:32:03.0533544Z [36;1m$trxPath = if ($env:AC12_TRX) { $env:AC12_TRX } else { 'build/dotnet-test-results/integration-tests.trx' }[0m
+2026-10-03T04:32:03.0533894Z [36;1m# SPEC-XPE-GUI-IT section 7 limits x1.5 (the SPEC recommends x1.5 headroom on CI).[0m
+2026-10-03T04:32:03.0534281Z [36;1mfunction Limit($name, $spec) { $v = [Environment]::GetEnvironmentVariable($name); if ($v) { [double]$v } else { $spec * 1.5 } }[0m
+2026-10-03T04:32:03.0534756Z [36;1m$smokeLimit  = Limit 'AC12_SMOKE_LIMIT_S'  30[0m
+2026-10-03T04:32:03.0534952Z [36;1m$fullLimit   = Limit 'AC12_FULL_LIMIT_S'   120[0m
+2026-10-03T04:32:03.0535136Z [36;1m$testLimit   = Limit 'AC12_TEST_LIMIT_S'   5[0m
+2026-10-03T04:32:03.0535355Z [36;1m$safetyLimit = Limit 'AC12_SAFETY_LIMIT_S' 90[0m
+2026-10-03T04:32:03.0535585Z [36;1m$minSmoke    = if ($env:AC12_MIN_SMOKE) { [int]$env:AC12_MIN_SMOKE } else { 10 }[0m
+2026-10-03T04:32:03.0535806Z [36;1m$bad = @()[0m
+2026-10-03T04:32:03.0535926Z [36;1m[0m
+2026-10-03T04:32:03.0536167Z [36;1m# Full Functional: the whole run just made by the previous step (trx start..finish), and the slowest single test.[0m
+2026-10-03T04:32:03.0536490Z [36;1m[xml]$doc = Get-Content -LiteralPath $trxPath -Raw[0m
+2026-10-03T04:32:03.0536682Z [36;1m$times = $doc.TestRun.Times[0m
+2026-10-03T04:32:03.0536893Z [36;1m$full = ([datetime]$times.finish - [datetime]$times.start).TotalSeconds[0m
+2026-10-03T04:32:03.0537146Z [36;1m$results = @($doc.TestRun.Results.UnitTestResult)[0m
+2026-10-03T04:32:03.0537591Z [36;1m$slow = $results | ForEach-Object { [pscustomobject]@{ Name = $_.testName; Seconds = [timespan]::Parse($_.duration).TotalSeconds } } | Sort-Object Seconds -Descending | Select-Object -First 1[0m
+2026-10-03T04:32:03.0538190Z [36;1mWrite-Host ("full run: {0:N1} s over {1} result(s) (limit {2:N0} s); slowest test {3:N2} s: {4}" -f $full, $results.Count, $fullLimit, $slow.Seconds, $slow.Name)[0m
+2026-10-03T04:32:03.0538569Z [36;1mif ($results.Count -eq 0) { $bad += 'the trx holds no results' }[0m
+2026-10-03T04:32:03.0538848Z [36;1mif ($full -gt $fullLimit) { $bad += ("full run {0:N1} s > {1:N0} s" -f $full, $fullLimit) }[0m
+2026-10-03T04:32:03.0539211Z [36;1mif ($slow.Seconds -gt $testLimit) { $bad += ("slowest test {0:N2} s > {1:N1} s: {2}" -f $slow.Seconds, $testLimit, $slow.Name) }[0m
+2026-10-03T04:32:03.0539485Z [36;1m[0m
+2026-10-03T04:32:03.0539737Z [36;1m# Smoke and Safety are the categories the SPEC bounds; the trx carries no categories, so each is run on its own, wall-clock[0m
+2026-10-03T04:32:03.0540183Z [36;1m# from process start (what the SPEC says it measures), and a run that selected too few tests is a failure, not a fast pass.[0m
+2026-10-03T04:32:03.0540610Z [36;1mforeach ($c in @(@{ Cat = 'Smoke'; Limit = $smokeLimit; Min = $minSmoke }, @{ Cat = 'Safety'; Limit = $safetyLimit; Min = 1 })) {[0m
+2026-10-03T04:32:03.0540931Z [36;1m  $sw = [System.Diagnostics.Stopwatch]::StartNew()[0m
+2026-10-03T04:32:03.0541229Z [36;1m  $ErrorActionPreference = 'Continue'   # a native command's stderr must not become a terminating error[0m
+2026-10-03T04:32:03.0541595Z [36;1m  $out = dotnet test $proj -c Debug --no-build --filter "Category=$($c.Cat)" 2>&1 | Out-String[0m
+2026-10-03T04:32:03.0541842Z [36;1m  $sw.Stop()[0m
+2026-10-03T04:32:03.0541985Z [36;1m  $ErrorActionPreference = 'Stop'[0m
+2026-10-03T04:32:03.0542409Z [36;1m  # The summary line is 'Passed!  - Failed: 0, Passed: N, Skipped: 0, Total: N, ...' in every locale but with translated words; the four counts are positional (failed, passed, skipped, total).[0m
+2026-10-03T04:32:03.0542909Z [36;1m  $m = [regex]::Match($out, '(?m)^\S+!\s+-\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+),\s+\S+:\s+(\d+)')[0m
+2026-10-03T04:32:03.0544456Z [36;1m  if (-not $m.Success) { $bad += ("Category={0}: no test summary line:`n{1}" -f $c.Cat, $out); continue }[0m
+2026-10-03T04:32:03.0544930Z [36;1m  if ([int]$m.Groups[1].Value -ne 0 -or [int]$m.Groups[3].Value -ne 0) { $bad += ("Category={0}: {1} failed, {2} skipped" -f $c.Cat, $m.Groups[1].Value, $m.Groups[3].Value) }[0m
+2026-10-03T04:32:03.0545287Z [36;1m  $total = [int]$m.Groups[4].Value[0m
+2026-10-03T04:32:03.0545645Z [36;1m  Write-Host ("Category={0}: {1} test(s), {2:N1} s wall-clock (limit {3:N0} s, at least {4} test(s))" -f $c.Cat, $total, $sw.Elapsed.TotalSeconds, $c.Limit, $c.Min)[0m
+2026-10-03T04:32:03.0546102Z [36;1m  if ($total -lt $c.Min) { $bad += ("Category={0} selected {1} test(s), expected at least {2}" -f $c.Cat, $total, $c.Min) }[0m
+2026-10-03T04:32:03.0546915Z [36;1m  if ($sw.Elapsed.TotalSeconds -gt $c.Limit) { $bad += ("Category={0} {1:N1} s > {2:N0} s" -f $c.Cat, $sw.Elapsed.TotalSeconds, $c.Limit) }[0m
+2026-10-03T04:32:03.0547203Z [36;1m}[0m
+2026-10-03T04:32:03.0547314Z [36;1m[0m
+2026-10-03T04:32:03.0547565Z [36;1m# Measure-first (lead, 2026-10-03): the limits above were derived on a local box; the runner's times are not yet known.[0m
+2026-10-03T04:32:03.0547973Z [36;1m# Until the first CI runs have been read and the limits confirmed, an exceeded limit is reported as a warning.[0m
+2026-10-03T04:32:03.0548290Z [36;1m# Set AC12_ENFORCE=1 (job env) to make it fail the job.[0m
+2026-10-03T04:32:03.0548481Z [36;1mif ($bad.Count -gt 0) {[0m
+2026-10-03T04:32:03.0548661Z [36;1m  $msg = "AC-12 time gates exceeded:`n" + ($bad -join "`n")[0m
+2026-10-03T04:32:03.0548978Z [36;1m  if ($env:AC12_ENFORCE -eq '1') { Write-Error $msg; exit 1 } else { Write-Host "::warning::$($msg -replace "`n", ' | ')" }[0m
+2026-10-03T04:32:03.0549250Z [36;1m}[0m
+2026-10-03T04:32:03.0595308Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-03T04:32:03.0595508Z env:
+2026-10-03T04:32:03.0595635Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:32:03.0595795Z ##[endgroup]
+2026-10-03T04:32:03.3925975Z full run: 14.2 s over 688 result(s) (limit 180 s); slowest test 2.68 s: ImageProcTest.IntegrationTests.Functional.BackendTelemetryTests.WritersAndADrainer_OverlappingOnABarrier_LoseNothingRepeatNothingAndNeverDisagreeWithTheirOwnCount
+2026-10-03T04:32:04.7061545Z Category=Smoke: 19 test(s), 1.3 s wall-clock (limit 45 s, at least 10 test(s))
+2026-10-03T04:32:06.0249946Z Category=Safety: 10 test(s), 1.3 s wall-clock (limit 135 s, at least 1 test(s))
+2026-10-03T04:32:06.0818008Z ##[group]Run [xml]$doc = Get-Content -LiteralPath build/dotnet-test-results/integration-tests.trx -Raw
+2026-10-03T04:32:06.0818491Z [36;1m[xml]$doc = Get-Content -LiteralPath build/dotnet-test-results/integration-tests.trx -Raw[0m
+2026-10-03T04:32:06.0818789Z [36;1m$all = @($doc.TestRun.Results.UnitTestResult)[0m
+2026-10-03T04:32:06.0819019Z [36;1mWrite-Host ("trx holds {0} result(s)" -f $all.Count)[0m
+2026-10-03T04:32:06.0819344Z [36;1m$min = @{ 'BaselineDicomNativeTests' = 2; 'EnhanceBasicNativeTests' = 4; 'BaselineDisplayNativeTests' = 2 }[0m
+2026-10-03T04:32:06.0819625Z [36;1m$bad = @()[0m
+2026-10-03T04:32:06.0819760Z [36;1mforeach ($class in $min.Keys) {[0m
+2026-10-03T04:32:06.0819977Z [36;1m  $rows = @($all | Where-Object { $_.testName -like "*.$class.*" })[0m
+2026-10-03T04:32:06.0820223Z [36;1m  $passed = @($rows | Where-Object { $_.outcome -eq 'Passed' })[0m
+2026-10-03T04:32:06.0820651Z [36;1m  Write-Host ("{0}: {1} result(s), {2} passed, {3} not executed" -f $class, $rows.Count, $passed.Count, @($rows | Where-Object { $_.outcome -eq 'NotExecuted' }).Count)[0m
+2026-10-03T04:32:06.0821087Z [36;1m  if ($rows.Count -lt $min[$class] -or $passed.Count -ne $rows.Count) { $bad += $class }[0m
+2026-10-03T04:32:06.0821317Z [36;1m}[0m
+2026-10-03T04:32:06.0821568Z [36;1mif ($bad.Count -gt 0) { Write-Error ("real-module tests skipped or missing: " + ($bad -join ', ')); exit 1 }[0m
+2026-10-03T04:32:06.0871455Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+2026-10-03T04:32:06.0871955Z env:
+2026-10-03T04:32:06.0872153Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:32:06.0872412Z ##[endgroup]
+2026-10-03T04:32:06.3571371Z trx holds 688 result(s)
+2026-10-03T04:32:06.3714237Z EnhanceBasicNativeTests: 4 result(s), 4 passed, 0 not executed
+2026-10-03T04:32:06.3810620Z BaselineDicomNativeTests: 4 result(s), 4 passed, 0 not executed
+2026-10-03T04:32:06.3982328Z BaselineDisplayNativeTests: 2 result(s), 2 passed, 0 not executed
+2026-10-03T04:32:06.4556823Z ##[group]Run actions/upload-artifact@v6
+2026-10-03T04:32:06.4557035Z with:
+2026-10-03T04:32:06.4557170Z   name: xpe-dotnet-test-results
+2026-10-03T04:32:06.4557477Z   if-no-files-found: ignore
+2026-10-03T04:32:06.4557610Z   retention-days: 14
+2026-10-03T04:32:06.4557742Z   path: build/dotnet-test-results/
+2026-10-03T04:32:06.4557893Z   compression-level: 6
+2026-10-03T04:32:06.4558016Z   overwrite: false
+2026-10-03T04:32:06.4558135Z   include-hidden-files: false
+2026-10-03T04:32:06.4558271Z env:
+2026-10-03T04:32:06.4558390Z   DOTNET_ROOT: C:\Program Files\dotnet
+2026-10-03T04:32:06.4558533Z ##[endgroup]
+2026-10-03T04:32:06.5812383Z With the provided path, there will be 1 file uploaded
+2026-10-03T04:32:06.5815336Z Artifact name is valid!
+2026-10-03T04:32:06.5816460Z Root directory input is valid!
+2026-10-03T04:32:06.8395912Z Beginning upload of artifact content to blob storage
+2026-10-03T04:32:07.1373158Z Uploaded bytes 183143
+2026-10-03T04:32:07.1942114Z Finished uploading artifact content to blob storage!
+2026-10-03T04:32:07.1942764Z SHA256 digest of uploaded artifact zip is 4ba5679c9602b5214092b026fbfc9a7c529ff4c1d6fe7cb92a6e72cf542588b6
+2026-10-03T04:32:07.1944317Z Finalizing artifact upload
+2026-10-03T04:32:07.4820138Z Artifact xpe-dotnet-test-results.zip successfully finalized. Artifact ID 11264761556
+2026-10-03T04:32:07.4820872Z Artifact xpe-dotnet-test-results has been successfully uploaded! Final size is 183143 bytes. Artifact ID is 11264761556
+2026-10-03T04:32:07.4828022Z Artifact download URL: https://github.com/holee9/image-processing/actions/runs/37095895181/artifacts/11264761556
+2026-10-03T04:32:07.5077045Z Post job cleanup.
+2026-10-03T04:32:07.6257628Z Post job cleanup.
+2026-10-03T04:32:07.7368119Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-10-03T04:32:07.7559155Z git version 2.55.0.windows.5
+2026-10-03T04:32:07.7623177Z Temporarily overriding HOME='D:\a\_temp\f9883542-dc1d-4ad6-bd36-3958314b66a3' before making global git config changes
+2026-10-03T04:32:07.7623883Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-03T04:32:07.7631362Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\image-processing\image-processing
+2026-10-03T04:32:07.7871812Z Removing SSH command configuration
+2026-10-03T04:32:07.7882155Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-10-03T04:32:07.8104794Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-10-03T04:32:08.2055197Z Removing HTTP extra header
+2026-10-03T04:32:08.2062516Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-03T04:32:08.2261778Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-10-03T04:32:08.6260132Z Removing includeIf entries pointing to credentials config files
+2026-10-03T04:32:08.6268918Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-03T04:32:08.6439031Z includeif.gitdir:D:/a/image-processing/image-processing/.git.path
+2026-10-03T04:32:08.6439612Z includeif.gitdir:D:/a/image-processing/image-processing/.git/worktrees/*.path
+2026-10-03T04:32:08.6439986Z includeif.gitdir:/github/workspace/.git.path
+2026-10-03T04:32:08.6440338Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-03T04:32:08.6470135Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/image-processing/image-processing/.git.path
+2026-10-03T04:32:08.6634545Z D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.6665961Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/image-processing/image-processing/.git.path D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.6864551Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/image-processing/image-processing/.git/worktrees/*.path
+2026-10-03T04:32:08.7031167Z D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.7065717Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/image-processing/image-processing/.git/worktrees/*.path D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.7273285Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-03T04:32:08.7441505Z /github/runner_temp/git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.7471159Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.7673865Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-03T04:32:08.7849413Z /github/runner_temp/git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.7886688Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config
+2026-10-03T04:32:08.8103233Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-10-03T04:32:09.1859026Z Removing credentials config 'D:\a\_temp\git-credentials-c138d0eb-2a4a-4080-a971-47aa70d5e840.config'
+2026-10-03T04:32:09.2014177Z Cleaning up orphan processes
+2026-10-03T04:32:09.2181820Z Terminate orphan process: pid (8100) (VBCSCompiler)
+2026-10-03T04:32:09.2214132Z Terminate orphan process: pid (3468) (conhost)
+2026-10-03T04:32:09.2221184Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/download-artifact@v6. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -1,0 +1,50 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:04.17]     ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData [SKIP]
+  건너뜀 ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData [< 1 ms]
+[xUnit.net 00:00:07.33]     ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [3 s]
+  오류 메시지:
+   1 quoted message(s) on docs/help/content/troubleshooting.md are in no source file under gui/, clients/ImageProcTest/ or modules/ (the text changed, or the page was edited):
+  `Preprocessing skipped: calibration file(s) not found — <paths>. Generate a set with xpe_calib_fixture_gen --out <dir> and point the calibration directories at it.`
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\TroubleshootingDocQuoteTests.cs:line 49
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:09.47]     ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdictsTests.TheImportTable_NamesTheModulesDependencies_AndTheSnapshotFollowsThem [SKIP]
+  건너뜀 ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdictsTests.TheImportTable_NamesTheModulesDependencies_AndTheSnapshotFollowsThem [< 1 ms]
+[xUnit.net 00:00:12.11]     ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests.TheRealBackendAndThePreprocessRunner_UseTheCountingHops [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests.TheRealBackendAndThePreprocessRunner_UseTheCountingHops [1 ms]
+  오류 메시지:
+   Assert.Contains() Failure: Sub-string not found
+String:    "using System.IO;\nusing System.Runtime.Int"···
+Not found: "return BaselineStageAdapters.FromPreproce"···
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.BaselineReviewFixTests.TheRealBackendAndThePreprocessRunner_UseTheCountingHops() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\BaselineReviewFixTests.cs:line 179
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:13.19]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.TheFileList_EqualsTheFilesThatCallTheModule [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.TheFileList_EqualsTheFilesThatCallTheModule [11 ms]
+  오류 메시지:
+   files call the preprocess module but are not in the sweep: Functional/BaselineFingerprintProbe.cs
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.TheFileList_EqualsTheFilesThatCallTheModule() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\PreprocessModuleLeakTests.cs:line 184
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:15.92]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.AFileLinkInsideAnApprovedFolder_ThatPointsOutside_IsRejected [SKIP]
+  건너뜀 ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.AFileLinkInsideAnApprovedFolder_ThatPointsOutside_IsRejected [2 ms]
+[xUnit.net 00:00:22.73]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleCollectionGuardTests.EveryTestFileThatInitialisesOrRunsThePreprocessModule_IsInThePreprocessModuleCollection [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.PreprocessModuleCollectionGuardTests.EveryTestFileThatInitialisesOrRunsThePreprocessModule_IsInThePreprocessModuleCollection [13 ms]
+  오류 메시지:
+   these files call the preprocess module but are not in PreprocessModuleCollection: Functional/BaselineFingerprintProbe.cs
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.PreprocessModuleCollectionGuardTests.EveryTestFileThatInitialisesOrRunsThePreprocessModule_IsInThePreprocessModuleCollection() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\PreprocessModuleCollectionGuardTests.cs:line 39
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+실패!  - 실패:     4, 통과:   950, 건너뜀:     3, 전체:   957, 기간: 28 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

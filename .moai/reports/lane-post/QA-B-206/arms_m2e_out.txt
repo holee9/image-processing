@@ -1,0 +1,21 @@
+=== ARM jpip_pixel_data_rule_never_reported
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM jpip_pixel_data_rule_applied_to_every_syntax
+red tests: DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages, DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty, DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt, DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence, DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes, DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData, DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning, DicomValidatorTest.ValidateConformant_ReturnsValid, DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant, DicomValidatorTest.ValidateWriterOutput_IsConformant
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM jpip_pixel_data_rule_reported_only_when_there_is_no_url
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM exclusion_never_reported
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM jpip_syntax_never_recognised
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

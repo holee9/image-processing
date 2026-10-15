@@ -62,3 +62,20 @@ public static class ComparisonModes
     public static string Normalize(string? mode) =>
         IsKnown(mode) ? mode! : Default;
 }
+
+/// <summary>
+/// The largest zoom the comparison view accepts (16.0 = 1600 %), written ONCE.
+///
+/// <para><b>Why one place (GUI-C-206).</b> The number sat in four places — the Zoom In command, the settings property, the viewport's
+/// <c>ZoomScale</c> setter and its mouse-wheel handler — all from the first commit that had a comparison viewer (977df225b), with no
+/// recorded reason for more than one. GUI-C-204 found it by changing the command's copy: the test stayed green because the setter's copy
+/// still held. Each copy now reads this constant, so the ceiling cannot differ between the ways a zoom is set. Each of those places keeps
+/// its own clamp on purpose: a value can reach the setters from a settings file or a binding, not only from the command.</para>
+///
+/// <para>The FLOORS are not unified here and were not changed: the commands stop at 0.05, the mouse wheel at 0.01, and 0 means "fit".</para>
+/// </summary>
+public static class ComparisonZoomLimits
+{
+    /// <summary>The largest absolute zoom scale: 16.0, shown as 1600 %.</summary>
+    public const double Max = 16.0;
+}

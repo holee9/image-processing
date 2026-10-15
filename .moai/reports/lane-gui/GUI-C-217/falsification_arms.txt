@@ -1,0 +1,40 @@
+# GUI-C-217 falsification arms (each changes ONE thing, rebuilds, runs the tests that guard it, restores byte-identical)
+
+## arm a: the old wording (the model cannot be used; the file is damaged...) is back
+build ok: True
+exit=1; 1 red of 70
+   RED     Functional.AiBoneSuppressionStageTests.AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal
+restored byte-identical: True
+
+## arm b: the 'another call may be loading' cause is dropped
+build ok: True
+exit=1; 1 red of 70
+   RED     Functional.AiBoneSuppressionStageTests.AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal
+restored byte-identical: True
+
+## arm c: the 'try again in a moment' advice is dropped
+build ok: True
+exit=1; 1 red of 70
+   RED     Functional.AiBoneSuppressionStageTests.AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal
+restored byte-identical: True
+
+## arm d: the -4 text loses the failure prefix the E2E reads
+build ok: True
+exit=1; 2 red of 70
+   RED     Functional.AiBoneSuppressionStageTests.TheMessagesOfAModuleAnswer_MatchTheNativeCasePattern
+   RED     Functional.AiBoneSuppressionStageTests.AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal
+restored byte-identical: True
+
+## arm e: the signature cause is asserted again
+build ok: True
+exit=1; 1 red of 70
+   RED     Functional.AiBoneSuppressionStageTests.AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal
+restored byte-identical: True
+
+## arm f: the generic worker-off sentence is added to the -4 text
+build ok: True
+exit=1; 1 red of 70
+   RED     Functional.AiBoneSuppressionStageTests.AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal
+restored byte-identical: True
+
+final rebuilds done

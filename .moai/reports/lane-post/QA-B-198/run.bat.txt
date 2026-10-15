@@ -1,0 +1,5 @@
+@echo off
+rem usage: run.bat <variant> <probe|worker> <outfile>
+cd /d D:\workspace-github\xpe-post\build\g198
+D:\workspace-github\xpe-post\build\g198\launch.exe %1 %2 D:\workspace-github\xpe-post\build\g198\bin D:\workspace-github\xpe-post\modules\ai\tests\data\models_x2 > %3 2>&1
+echo exit=%errorlevel% >> %3

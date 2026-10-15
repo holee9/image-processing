@@ -1,0 +1,160 @@
+"""QA-B-207b E6 (Codex #120): NEW independent reference for the standard CLAHE on NARROW value ranges.
+
+Why a new one: clahe_ref.py (QA-B-207) takes the bin of a pixel from the same float32 expression the C++ used,
+`(v - vmin) * (4095.0f / range)`, which is exactly the expression that becomes +Inf for a range below ~1.2e-35. A reference
+that copies the formula under test cannot see its failure. Here the bin is computed in EXACT rational arithmetic
+(fractions.Fraction) from the float32 values as stored:
+
+    bin = floor( (v - vmin) * 4095 / (vmax - vmin) ),  clamped to [0, 4095]
+
+No float intermediate, so no overflow, no rounding and no tie-breaking by the machine. Everything after the bin (clip, spread,
+cumulative table, bilinear blend over tile centres, mapping back) is float64 and follows the definition (Zuiderveld, GG IV).
+
+Run: python clahe_ref_exact.py <dll dir> [out.txt]
+Exit 0 only if every case matches within 2e-4 of the value range; a case that the DLL refuses (rc != 0) or answers with a
+non-finite pixel is reported as DIFFER.
+"""
+import ctypes
+import os
+import sys
+from fractions import Fraction
+
+import numpy as np
+
+DLLDIR = sys.argv[1]
+OUT = open(sys.argv[2], 'w', encoding='utf-8', newline='\n') if len(sys.argv) > 2 else sys.stdout
+NUM_BINS = 4096
+
+
+def log(s):
+    OUT.write(s + '\n')
+    OUT.flush()
+
+
+class Img(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+class Params(ctypes.Structure):
+    _fields_ = [('clip_limit', ctypes.c_float), ('tile_width', ctypes.c_int32), ('tile_height', ctypes.c_int32)]
+
+
+os.add_dll_directory(DLLDIR)
+dll = ctypes.CDLL(os.path.join(DLLDIR, 'xpe_enhance_basic.dll'))
+dll.xpe_contrast_enhance.argtypes = [ctypes.POINTER(Img), ctypes.POINTER(Params)]
+dll.xpe_contrast_enhance.restype = ctypes.c_int
+
+
+def native(a, clip, tw, th):
+    a = np.ascontiguousarray(a, dtype=np.float32).copy()
+    h, w = a.shape
+    img = Img(w, h, 32, 32, 1, a.ctypes.data, a.nbytes)
+    rc = dll.xpe_contrast_enhance(ctypes.byref(img), ctypes.byref(Params(clip, tw, th)))
+    return rc, a
+
+
+def bounds(t, tile, size):
+    s = min(t * tile, size)
+    return s, min(s + tile, size)
+
+
+def exact_bins(a32):
+    vmin = Fraction(float(a32.min()))
+    rng = Fraction(float(a32.max())) - vmin
+    flat = a32.ravel()
+    bins = np.empty(flat.size, dtype=np.int64)
+    for k, v in enumerate(flat):
+        b = int((Fraction(float(v)) - vmin) * (NUM_BINS - 1) / rng)      # floor: the operand is >= 0
+        bins[k] = min(max(b, 0), NUM_BINS - 1)
+    return bins.reshape(a32.shape)
+
+
+def reference(a, clip, tw, th):
+    h, w = a.shape
+    a32 = a.astype(np.float32)
+    vmin, vmax = float(a32.min()), float(a32.max())
+    rng = vmax - vmin
+    bins = exact_bins(a32)
+    tile_w, tile_h = -(-w // tw), -(-h // th)
+    xs = [(t, *bounds(t, tile_w, w)) for t in range(tw)]
+    ys = [(t, *bounds(t, tile_h, h)) for t in range(th)]
+    xs = [t for t in xs if t[1] < t[2]]
+    ys = [t for t in ys if t[1] < t[2]]
+    luts = np.zeros((len(ys), len(xs), NUM_BINS), dtype=np.float64)
+    for j, (_, y0, y1) in enumerate(ys):
+        for i, (_, x0, x1) in enumerate(xs):
+            hist = np.bincount(bins[y0:y1, x0:x1].ravel(), minlength=NUM_BINS).astype(np.int64)
+            area = (x1 - x0) * (y1 - y0)
+            clipf = float(clip) * area / NUM_BINS
+            clip_count = area if clipf >= area else int(clipf)
+            clip_count = max(1, clip_count)
+            excess = int(np.maximum(hist - clip_count, 0).sum())
+            hist = np.minimum(hist, clip_count)
+            per, rem = divmod(excess, NUM_BINS)
+            hist = hist + per
+            if rem:
+                step = max(NUM_BINS // rem, 1)
+                idx = np.arange(0, NUM_BINS, step)[:rem]
+                hist[idx] += 1
+            luts[j, i] = np.cumsum(hist) / max(1, area)
+    cx = np.array([0.5 * (x0 + x1 - 1) for _, x0, x1 in xs])
+    cy = np.array([0.5 * (y0 + y1 - 1) for _, y0, y1 in ys])
+    fx = np.interp(np.arange(w), cx, np.arange(len(xs)))
+    fy = np.interp(np.arange(h), cy, np.arange(len(ys)))
+    i0 = np.minimum(np.floor(fx).astype(int), len(xs) - 1)
+    i1 = np.minimum(i0 + 1, len(xs) - 1)
+    wx = fx - i0
+    j0 = np.minimum(np.floor(fy).astype(int), len(ys) - 1)
+    j1 = np.minimum(j0 + 1, len(ys) - 1)
+    wy = fy - j0
+    J0, I0 = j0[:, None], i0[None, :]
+    J1, I1 = j1[:, None], i1[None, :]
+    top = luts[J0, I0, bins] * (1 - wx[None, :]) + luts[J0, I1, bins] * wx[None, :]
+    bot = luts[J1, I0, bins] * (1 - wx[None, :]) + luts[J1, I1, bins] * wx[None, :]
+    frac = top * (1 - wy[:, None]) + bot * wy[:, None]
+    return vmin + frac * rng, rng
+
+
+def narrow(vmin, vmax, w, h, seed):
+    """Pixels at the CENTRES of bins (so no pixel sits on a bin edge in any arithmetic), min and max pinned."""
+    r = np.random.default_rng(seed)
+    lo, hi = np.float32(vmin), np.float32(vmax)
+    span = float(hi) - float(lo)
+    m = r.integers(0, NUM_BINS, size=(h, w))
+    m[: h // 2, : w // 3] = r.integers(0, 40, size=(h // 2, w // 3))          # a dark, low-contrast corner
+    a = (np.float64(float(lo)) + span * (m + 0.5) / NUM_BINS).astype(np.float32)
+    a[0, 0], a[0, 1] = lo, hi
+    return a
+
+
+FLT_MIN = float(np.finfo(np.float32).tiny)            # 1.17549435e-38, smallest normal
+FLT_MAX = float(np.finfo(np.float32).max)
+EDGE = 4095.0 / FLT_MAX                               # ~1.2034e-35: the range below which 4095.0f / range overflows
+
+CASES = [
+    ('0 and 1e-37 (range 1e-37, float scale = +Inf)', narrow(0.0, 1e-37, 32, 32, 1), 3.0, 4, 4),
+    ('0 and FLT_MIN (range 1.18e-38)', narrow(0.0, FLT_MIN, 32, 32, 2), 3.0, 4, 4),
+    ('-5e-38 .. +5e-38 (range 1e-37, minimum not 0)', narrow(-5e-38, 5e-38, 32, 32, 3), 3.0, 4, 4),
+    ('range just BELOW where the float scale is finite (%.4e)' % (EDGE * 0.99), narrow(0.0, EDGE * 0.99, 32, 32, 4), 3.0, 4, 4),
+    ('range just ABOVE where the float scale is finite (%.4e)' % (EDGE * 1.01), narrow(0.0, EDGE * 1.01, 32, 32, 5), 3.0, 4, 4),
+    ('0 and 1e-30 (range 1e-30)', narrow(0.0, 1e-30, 33, 29, 6), 2.0, 3, 5),
+    ('0 and 1 (control: an ordinary range)', narrow(0.0, 1.0, 32, 32, 7), 3.0, 4, 4),
+    ('0 and 4095 (control: the QA-B-207 shape)', narrow(0.0, 4095.0, 32, 32, 8), 3.0, 4, 4),
+]
+
+bad = 0
+for name, a, clip, tw, th in CASES:
+    ref, rng = reference(a, clip, tw, th)
+    rc, got = native(a, clip, tw, th)
+    g = got.astype(np.float64)
+    finite = bool(np.isfinite(g).all())
+    d = np.abs(g - ref) / rng if finite else np.array([np.inf])
+    ok = rc == 0 and finite and d.max() < 2e-4
+    bad += 0 if ok else 1
+    log('%-62s rc=%d finite=%s max|diff|/range=%.3e  %s' % (name, rc, finite, d.max(), 'MATCH' if ok else 'DIFFER'))
+log('=== %d of %d cases differ' % (bad, len(CASES)))
+if OUT is not sys.stdout:
+    OUT.close()
+sys.exit(1 if bad else 0)

@@ -1,0 +1,57 @@
+"""QA-B-206 D2: the Modality LUT table mapping against an independent reference (numpy), over in-range and out-of-range inputs.
+Reference: idx = clip(round_half_away(x) - firstMapped, 0, len-1); out = lut[idx]. Run from the repo root."""
+import ctypes as C
+import os
+
+import numpy as np
+
+BIN = os.path.abspath('build/ci-post/bin')
+os.add_dll_directory(BIN)
+D = C.CDLL(os.path.join(BIN, 'xpe_display.dll'))
+D.xpe_apply_modality_lut.restype = C.c_int32
+
+
+class Img(C.Structure):
+    _fields_ = [('width', C.c_uint32), ('height', C.c_uint32), ('bitsAllocated', C.c_uint32), ('bitsStored', C.c_uint32),
+                ('format', C.c_int32), ('data', C.c_void_p), ('dataSize', C.c_size_t)]
+
+
+class ModLut(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('rescaleSlope', C.c_float), ('rescaleIntercept', C.c_float), ('lutData', C.c_void_p),
+                ('lutLength', C.c_uint32), ('lutFirstMapped', C.c_int32), ('lutBitsStored', C.c_uint32)]
+
+
+def half_away(x):
+    return np.sign(x) * np.floor(np.abs(x) + 0.5)
+
+
+rng = np.random.default_rng(206)
+total = 0
+bad = 0
+rows = []
+for length in (2, 16, 4096, 65536):
+    lut = rng.integers(0, 65536, size=length).astype(np.uint16)
+    for first in (0, 7, -100, 30000, -2147483648, 2147483647):
+        parts = [
+            rng.uniform(-200, length + 200, 50000),                         # around the table
+            np.arange(-5, length + 5, 0.5, dtype=np.float64),                # every half value (rounding ties)
+            rng.uniform(-3.4e38, 3.4e38, 2000),                              # the whole float range
+            np.array([2147483520.0, 2147483648.0, -2147483648.0, -2147483904.0, 4294967296.0, 3.4028234e38, -3.4028234e38]),
+            first + rng.uniform(-3, length + 3, 20000),                      # around the table for THIS firstMapped
+        ]
+        x = np.concatenate(parts).astype(np.float32)
+        px = x.copy()
+        img = Img(len(px), 1, 32, 32, 1, px.ctypes.data, px.nbytes)
+        params = ModLut(1, 1.0, 0.0, lut.ctypes.data, length, first, 16)
+        rc = D.xpe_apply_modality_lut(C.byref(img), C.byref(params))
+        d = half_away(x.astype(np.float64)) - float(first)
+        idx = np.clip(d, 0, length - 1).astype(np.int64)
+        ref = lut[idx].astype(np.float32)
+        diff = int((px != ref).sum())
+        total += len(px)
+        bad += diff
+        rows.append((length, first, len(px), rc, diff))
+print('table length | firstMapped | pixels | rc | pixels that differ from the reference')
+for r in rows:
+    print('%12d | %11d | %6d | %d | %d' % r)
+print('TOTAL pixels %d, differ %d' % (total, bad))

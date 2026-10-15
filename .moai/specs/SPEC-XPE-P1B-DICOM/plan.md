@@ -1,8 +1,8 @@
 # SPEC-XPE-P1B-DICOM: Implementation Plan
 
 **SPEC ID**: SPEC-XPE-P1B-DICOM
-**Version**: 1.0.0
-**Date**: 2026-04-16
+**Version**: 1.0.1
+**Date**: 2026-10-03
 **Methodology**: TDD (RED-GREEN-REFACTOR)
 
 ---
@@ -213,6 +213,9 @@ Milestone 4 (Should): SWU-4.4 DicomNetworkSCU
 ## 7. Integration and Cross-Cutting (Task D-12)
 
 **Priority**: High
+**REQ Coverage**: REQ-DICOM-041 through REQ-DICOM-046
+
+> 배정 (2026-10-03, QA-B-199, #251): REQ-DICOM-041~046(041 C 연결·`__cdecl`·blittable, 042 예외 차단, 043 로깅, 044 누수, 045 리더 재진입, 046 호출자의 네트워크 호출 직렬화)은 어느 마일스톤의 REQ Coverage 에도 없어 D-12 에 배정했다. 현재 판정(QA-B-199 `dicom_report.md`): 041·042·046 시험 없음, 043 코드가 요구와 일부만 맞음, 044·045 부분.
 
 1. RED: Write ABI export verification test (`dumpbin /exports` check for 10 functions)
 2. RED: Write integration test: open DICOM -> read image -> write back -> re-open -> verify
@@ -222,8 +225,10 @@ Milestone 4 (Should): SWU-4.4 DicomNetworkSCU
 6. REFACTOR: Final code cleanup, ensure all functions have DEBUG entry/exit logging
 
 **Files**:
-- `modules/dicom/tests/test_dicom_integration.cpp`
-- `modules/dicom/tests/test_dicom_boundary.cpp`
+- `modules/dicom/tests/test_dicom_reader.cpp` (실패 경로 누수, 동시 읽기)
+- `modules/dicom/tests/test_dicom_writer.cpp` (쓰기 누수 주기, 쓰기→읽기 왕복)
+
+> 정정 (2026-10-03, QA-B-199, #251): 계획한 `test_dicom_integration.cpp`·`test_dicom_boundary.cpp` 는 만들어지지 않았다. 실제 시험 파일은 `test_dicom_reader.cpp`, `test_dicom_writer.cpp`, `test_dicom_validator.cpp`, `test_dicom_network_scu.cpp`, `test_parameter_dependency.cpp`(+ `mock_scp.cpp`)다. D-12 상태: **부분(미구현)** — 1단계 ABI export 확인 시험이 없고, 별도의 통합·경계 시험 파일도 없다.
 
 ---
 
@@ -248,8 +253,9 @@ Milestone 4 (Should): SWU-4.4 DicomNetworkSCU
 - `modules/dicom/tests/test_dicom_writer.cpp` -- SWU-4.2 tests (>= 10 cases)
 - `modules/dicom/tests/test_dicom_validator.cpp` -- SWU-4.3 tests (>= 6 cases)
 - `modules/dicom/tests/test_dicom_network.cpp` -- SWU-4.4 tests (>= 8 cases)
-- `modules/dicom/tests/test_dicom_integration.cpp` -- Integration tests (>= 6 cases)
-- `modules/dicom/tests/test_dicom_boundary.cpp` -- Boundary tests (>= 4 cases)
+- ~~`modules/dicom/tests/test_dicom_integration.cpp` -- Integration tests (>= 6 cases)~~ — 만들어지지 않음, 부분(미구현) (QA-B-199, 2026-10-03, #251)
+- ~~`modules/dicom/tests/test_dicom_boundary.cpp` -- Boundary tests (>= 4 cases)~~ — 만들어지지 않음, 부분(미구현) (QA-B-199, 2026-10-03, #251)
+- `modules/dicom/tests/test_parameter_dependency.cpp` -- 매개변수 의존 시험 (계획에 없던 실재 파일)
 - `modules/dicom/tests/testdata/` -- Sample DICOM files for testing
 
 ### Build
@@ -269,4 +275,4 @@ Milestone 4 (Should): SWU-4.4 DicomNetworkSCU
 
 ---
 
-*Document End -- SPEC-XPE-P1B-DICOM plan.md v1.0.0*
+*Document End -- SPEC-XPE-P1B-DICOM plan.md v1.0.1*

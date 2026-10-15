@@ -1,0 +1,3 @@
+== arm 050_guard_does_not_catch (Fixtures/BoundaryGuard.cs): s/catch (SEHException ex)/catch (SEHException ex) when (false)/
+[xUnit.net 00:00:00.22]     ImageProcTest.IntegrationTests.Safety.BoundaryGuardTests.ASehExceptionAtTheBoundary_FailsTheTest_AndLeavesARecordedLineNamingWhereItHappened [FAIL]
+실패!  - 실패:     1, 통과:     1, 건너뜀:     0, 전체:     2, 기간: 28 ms - ImageProcTest.IntegrationTests.dll (net8.0)

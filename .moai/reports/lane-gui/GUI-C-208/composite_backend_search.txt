@@ -1,0 +1,13 @@
+# the search that 7a2de35c's note and GUI-C-207 D4 should have run: files naming CompositeXpeBackend (control: the same search finds MockXpeBackend: 23 files)
+clients/ImageProcTest/App.xaml.cs:36:            IXpeBackend backend = new CompositeXpeBackend(new RealXpeCommonBackend(
+clients/ImageProcTest/Backends/CompositeXpeBackend.cs:5:    internal sealed class CompositeXpeBackend : IXpeBackend
+clients/ImageProcTest/Backends/CompositeXpeBackend.cs:10:        public CompositeXpeBackend(IXpeBackend nativeBackend, I
+clients/ImageProcTest/MainWindow.xaml.cs:27:        private readonly IXpeBackend backend = new CompositeXpeBackend(
+clients/ImageProcTest/Services/Phase1bFixtureE2eService.cs:81:                new CompositeXpeBackend(new RealXpeCommonB
+clients/ImageProcTest/Services/PreprocessFixtureE2eService.cs:67:                new CompositeXpeBackend(new RealXpeComm
+clients/ImageProcTest.IntegrationTests/Safety/MockBlockingTests.cs:8:/// Verifies that MockXpeBackend and CompositeXpeBa
+clients/ImageProcTest.IntegrationTests/Safety/MockBlockingTests.cs:31:    /// REQ-GUI-IT-007: CompositeXpeBackend type m
+clients/ImageProcTest.IntegrationTests/Safety/MockBlockingTests.cs:34:    public void CompositeXpeBackend_TypeNotLoadedI
+clients/ImageProcTest.IntegrationTests/Safety/MockBlockingTests.cs:39:            .FirstOrDefault(t => t.Name == "Compos
+clients/ImageProcTest.IntegrationTests/Safety/MockBlockingTests.cs:60:    /// (D4 as first reported said CompositeXpeBac
+clients/ImageProcTest.IntegrationTests/Safety/MockBlockingTests.cs:61:    /// exists, as clients/ImageProcTest/Backends/

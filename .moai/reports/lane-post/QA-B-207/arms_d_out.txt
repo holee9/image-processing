@@ -1,0 +1,66 @@
+=== ARM d3_check_removed
+red tests: VoiWindowLimits.LinearRefusesAWidthBelowOneAndLeavesTheImageUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d3_width_one_refused_too
+red tests: VoiWindowLimits.LinearAcceptsWidthOneAndGivesTheStandardsThresholdAtCenterMinusHalf
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d3_applied_to_every_mode
+red tests: VoiWindowLimits.LinearExactAndSigmoidStillAcceptAnyPositiveWidthBelowOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d3_limit_at_half_instead_of_one
+red tests: VoiWindowLimits.LinearRefusesAWidthBelowOneAndLeavesTheImageUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d8_check_removed
+red tests: VoiWindowLimits.AnOutputWindowThatIsNotAscendingIsRefusedByAllThreeFunctionsAndLeavesTheImageUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d8_equal_window_allowed
+red tests: VoiWindowLimits.AnOutputWindowThatIsNotAscendingIsRefusedByAllThreeFunctionsAndLeavesTheImageUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d8_not_applied_to_linear
+red tests: VoiWindowLimits.AnOutputWindowThatIsNotAscendingIsRefusedByAllThreeFunctionsAndLeavesTheImageUntouched
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d8_everything_below_one_refused
+red tests: VoiWindowLimits.ATinyButPositiveOutputRangeIsStillAWindow
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d1_check_removed
+RESULT: BUILD FAILED
+restored byte-identical: True
+=== ARM d1_limit_raised_to_0_06
+red tests: GsdfBlackLevel.ABlackLevelOfExactlyFiveHundredthsAndAboveIsAccepted, GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel, PresentationLut.GsdfCalibrate_TwoPointCurveStillWorks_155
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d1_exactly_0_05_refused
+red tests: GsdfBlackLevel.ABlackLevelOfExactlyFiveHundredthsAndAboveIsAccepted, GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel, PresentationLut.GsdfCalibrate_TwoPointCurveStillWorks_155
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d1_only_negative_refused
+RESULT: BUILD FAILED
+restored byte-identical: True
+=== ARM d1_the_last_sample_is_judged_instead
+red tests: GsdfBlackLevel.ABlackLevelBelowFiveHundredthsIsRefusedAndTheOutputIsUntouched, GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d1_the_second_sample_is_judged_too
+red tests: (none)
+RESULT: DID NOT FIRE  (expected red: 1, red: 0, not red: ['GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel'])
+restored byte-identical: True
+=== DONE
+
+--- rerun of the two arms that did not build (kMinBlackLevel unused under warnings-as-errors): the constant is kept referenced ---
+=== ARM d1_check_removed_the_constant_stays_referenced
+red tests: GsdfBlackLevel.ABlackLevelBelowFiveHundredthsIsRefusedAndTheOutputIsUntouched, GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM d1_only_negative_refused
+red tests: GsdfBlackLevel.ABlackLevelBelowFiveHundredthsIsRefusedAndTheOutputIsUntouched, GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

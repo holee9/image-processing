@@ -1,0 +1,22 @@
+=== ARM length_back_to_img_dataSize_as_before_206
+RESULT: BUILD FAILED
+restored byte-identical: True
+=== ARM length_is_dataSize_unless_zero
+red tests: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM one_byte_per_pixel
+red tests: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData, DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads, DicomWriterTest.WriteRoundTrip_PixelExact, DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM three_bytes_per_pixel_reads_past_the_image
+red tests: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData, DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== DONE
+--- arm 1 rerun (the first attempt did not build: unused variable under warnings-as-errors) ---
+=== ARM length_back_to_img_dataSize_as_before_206
+red tests: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData, DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== DONE

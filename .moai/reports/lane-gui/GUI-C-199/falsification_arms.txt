@@ -1,0 +1,32 @@
+# GUI-C-199 falsification arms (layout: build/ci-dicom/bin holds its own xpe_common.dll, as the CI dicom artifact does). Each arm restores byte-identical.
+
+## arm 1: BaselineDicomNativeTests loads xpe_common.dll by its own path again
+build exit=0
+exit=1; red: 2
+   RED Functional.NativeCommonSingleInstanceTests.TheNativeTests_LoadXpeCommonThroughTheSharedLoader_NotByAPathOfTheirOwn
+   RED Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon
+restored byte-identical: True
+
+## arm 2: BaselineDisplayNativeTests loads xpe_common.dll by its own path again
+build exit=0
+exit=1; red: 2
+   RED Functional.NativeCommonSingleInstanceTests.TheNativeTests_LoadXpeCommonThroughTheSharedLoader_NotByAPathOfTheirOwn
+   RED Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon
+restored byte-identical: True
+
+## arm 3: EnhanceBasicNativeTests loads xpe_common.dll by its own path again
+build exit=0
+exit=1; red: 2
+   RED Functional.NativeCommonSingleInstanceTests.TheNativeTests_LoadXpeCommonThroughTheSharedLoader_NotByAPathOfTheirOwn
+   RED Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon
+restored byte-identical: True
+
+## arm 4: the shared loader takes the fallback directory's copy instead of the locator's
+build exit=0
+exit=1; red: 3
+   RED Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon
+   RED P1AReady.GainPolyClampAlertTests.SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint
+   RED P1AReady.GainPolyClampAlertTests.EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint
+restored byte-identical: True
+
+final rebuild exit=0

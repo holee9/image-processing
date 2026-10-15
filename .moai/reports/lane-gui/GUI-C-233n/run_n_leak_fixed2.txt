@@ -1,0 +1,32 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.07]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x4B10EB0 pid=60108 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.LaneDenoiseScenarios.L05_ACandidateDenoiseK_MovesOnlyTheCandidate [11 s]
+  표준 출력 메시지:
+ L-05 same k: A=ee53937b63b3ea2b B=ee53937b63b3ea2b
+ L-05 A: ee53937b63b3ea2b -> ee53937b63b3ea2b
+ L-05 B: ee53937b63b3ea2b -> 2801cf589304b53f
+
+
+[xUnit.net 00:01:12.52]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature [20 s]
+  표준 출력 메시지:
+ P11 drawn hash=a4b5e7c27126dfd7 hud-centre=32768
+ P11 tiles=1024 mean|dtile|=0.000000 max|dtile|=0.000000 worst tile=67 (row 2, col 3)
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 2
+     통과: 2
+ 총 시간: 1.2143 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

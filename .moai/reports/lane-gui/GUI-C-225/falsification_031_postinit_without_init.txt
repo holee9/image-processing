@@ -1,0 +1,3 @@
+== arm 031_postinit_without_init (Lifecycle/LoggingHandlerTests.cs): s/Assert.Equal(XpeCommonNative.XpeErrorCode.OK, XpeCommonNative.xpe_init(null));/\/\/ xpe_init removed/
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Lifecycle.LoggingHandlerTests.LogFlush_PostInit_DoesNotThrow [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 19 ms - ImageProcTest.IntegrationTests.dll (net8.0)

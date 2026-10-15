@@ -1,0 +1,113 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *ClaheBin*:*ContrastEnhance*
+[==========] Running 36 tests from 6 test suites.
+[----------] Global test environment set-up.
+[----------] 18 tests from ContrastEnhance
+[ RUN      ] ContrastEnhance.NullImage_ReturnsInvalidInput
+[       OK ] ContrastEnhance.NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.ValidParams_ReturnsOk
+[       OK ] ContrastEnhance.ValidParams_ReturnsOk (0 ms)
+[ RUN      ] ContrastEnhance.NullParams_UsesDefaults_ReturnsOk
+[       OK ] ContrastEnhance.NullParams_UsesDefaults_ReturnsOk (0 ms)
+[ RUN      ] ContrastEnhance.ClipLimitBelow1_ReturnsInvalidInput
+[       OK ] ContrastEnhance.ClipLimitBelow1_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.TileWidthBelow2_ReturnsInvalidInput
+[       OK ] ContrastEnhance.TileWidthBelow2_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.TileHeightBelow2_ReturnsInvalidInput
+[       OK ] ContrastEnhance.TileHeightBelow2_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.ImageSmallerThanTileGrid_ReturnsInvalidInput
+[       OK ] ContrastEnhance.ImageSmallerThanTileGrid_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.LowContrastRegion_ContrastImproves
+[       OK ] ContrastEnhance.LowContrastRegion_ContrastImproves (2 ms)
+[ RUN      ] ContrastEnhance.ClipLimit_BoundsTheContrastGain
+[       OK ] ContrastEnhance.ClipLimit_BoundsTheContrastGain (10 ms)
+[ RUN      ] ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries
+[       OK ] ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries (0 ms)
+[ RUN      ] ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs
+[       OK ] ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs (0 ms)
+[ RUN      ] ContrastEnhance.MatchesAnIndependentReference
+[       OK ] ContrastEnhance.MatchesAnIndependentReference (18 ms)
+[ RUN      ] ContrastEnhance.NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBroken
+[       OK ] ContrastEnhance.NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBroken (3 ms)
+[ RUN      ] ContrastEnhance.BinOnAnExactBoundary_CodexCase_41In0To123
+[       OK ] ContrastEnhance.BinOnAnExactBoundary_CodexCase_41In0To123 (0 ms)
+[ RUN      ] ContrastEnhance.BinOnEveryBoundary_MatchesTheExactQuotient
+[       OK ] ContrastEnhance.BinOnEveryBoundary_MatchesTheExactQuotient (3 ms)
+[ RUN      ] ContrastEnhance.FlatImage_NoArtifacts
+[       OK ] ContrastEnhance.FlatImage_NoArtifacts (0 ms)
+[ RUN      ] ContrastEnhance.Performance_3072x3072_Within50ms
+[       OK ] ContrastEnhance.Performance_3072x3072_Within50ms (60 ms)
+[ RUN      ] ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072
+PERFMEASURE REQ-ENH-017/xpe_contrast_enhance 3072x3072 min=46428 med=47959 max=50334 us (runs=7)
+PERFMEASURE REQ-ENH-017/xpe_contrast_enhance 3072x3072 integer HU -1024..3071 min=49940 med=53217 max=54695 us (runs=7)
+PERFMEASURE REQ-ENH-017/xpe_contrast_enhance 3072x3072 decimals 0.0123..4000 min=45108 med=46302 max=52763 us (runs=7)
+PERFMEASURE REQ-ENH-017/xpe_contrast_enhance 3072x3072 integer HU -1024..3071 + one pixel 0.001 min=72061 med=73478 max=92805 us (runs=7)
+[       OK ] ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072 (1967 ms)
+[----------] 18 tests from ContrastEnhance (2077 ms total)
+
+[----------] 2 tests from DataSizeGuardTest
+[ RUN      ] DataSizeGuardTest.ContrastEnhance_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.ContrastEnhance_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.ContrastEnhance_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.ContrastEnhance_ZeroDataSize_Accepted (0 ms)
+[----------] 2 tests from DataSizeGuardTest (0 ms total)
+
+[----------] 1 test from EnhanceBasicParameterDependency
+[ RUN      ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(209):: clahe clip_limit 3->40 maxdiff=65.918 tiles 8x8->2x2=2.44141
+[       OK ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput (2 ms)
+[----------] 1 test from EnhanceBasicParameterDependency (2 ms total)
+
+[----------] 5 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+[       OK ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape (242 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile
+[       OK ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile (117 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+[       OK ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes (0 ms)
+[----------] 5 tests from ExceptionGuard (360 ms total)
+
+[----------] 3 tests from NonFinitePixels
+[ RUN      ] NonFinitePixels.ContrastEnhanceRefusesANonFinitePixelAndLeavesTheImageAlone
+[       OK ] NonFinitePixels.ContrastEnhanceRefusesANonFinitePixelAndLeavesTheImageAlone (0 ms)
+[ RUN      ] NonFinitePixels.ContrastEnhanceStillProcessesLargeFinitePixels
+[       OK ] NonFinitePixels.ContrastEnhanceStillProcessesLargeFinitePixels (0 ms)
+[ RUN      ] NonFinitePixels.ContrastEnhanceRefusesFinitePixelsWhoseRangeLeavesFloat
+[       OK ] NonFinitePixels.ContrastEnhanceRefusesFinitePixelsWhoseRangeLeavesFloat (0 ms)
+[----------] 3 tests from NonFinitePixels (0 ms total)
+
+[----------] 7 tests from ClaheBin
+[ RUN      ] ClaheBin.EveryVectorMatchesTheExactRationalBin
+[       OK ] ClaheBin.EveryVectorMatchesTheExactRationalBin (1 ms)
+[ RUN      ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+[       OK ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt (0 ms)
+[ RUN      ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel
+[       OK ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel (0 ms)
+[ RUN      ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference
+[       OK ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference (0 ms)
+[ RUN      ] ClaheBin.TheFilterCertifiesExactlyOutsideItsMargin
+[       OK ] ClaheBin.TheFilterCertifiesExactlyOutsideItsMargin (0 ms)
+[ RUN      ] ClaheBin.PixelsNearOrOnABoundaryGoToTheExactPath
+[       OK ] ClaheBin.PixelsNearOrOnABoundaryGoToTheExactPath (0 ms)
+[ RUN      ] ClaheBin.MeasureTheShareOfPixelsOnTheExactPath
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(239):: uniform decimals 0.0123..4000: image-level fast path not allowed; filter sent 0 of 9437184 pixels to an integer path (64-bit where proven, else 320-bit) (0 %)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(239):: decimals 10..4000 with ONE pixel of 0.0123: image-level fast path not allowed; filter sent 0 of 9437184 pixels to an integer path (64-bit where proven, else 320-bit) (0 %)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(239):: decimals 0.0123..4000, 30 % of the pixels AT the minimum: image-level fast path not allowed; filter sent 0 of 9437184 pixels to an integer path (64-bit where proven, else 320-bit) (0 %)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(239):: decimals -3.7..4000 (negative minimum): image-level fast path not allowed; filter sent 0 of 9437184 pixels to an integer path (64-bit where proven, else 320-bit) (0 %)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_clahe_bin.cpp(239):: integer HU -1024..3071 with ONE pixel of 0.001: image-level fast path not allowed; filter sent 9434870 of 9437184 pixels to an integer path (64-bit where proven, else 320-bit) (99.9755 %)
+[       OK ] ClaheBin.MeasureTheShareOfPixelsOnTheExactPath (244 ms)
+[----------] 7 tests from ClaheBin (246 ms total)
+
+[----------] Global test environment tear-down
+[==========] 36 tests from 6 test suites ran. (2687 ms total)
+[  PASSED  ] 36 tests.

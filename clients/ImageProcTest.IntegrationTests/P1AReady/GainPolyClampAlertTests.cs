@@ -22,6 +22,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// not — a missing tool is "not measured", never "measured and fine".</para>
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class GainPolyClampAlertTests(Xunit.Abstractions.ITestOutputHelper output)
 {
     private const int Width = 64;

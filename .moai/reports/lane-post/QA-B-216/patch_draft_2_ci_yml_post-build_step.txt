@@ -1,0 +1,18 @@
+PATCH DRAFT (not applied) -- .github/workflows/ci.yml, job post-build   (owner: lead)  QA-B-216, Refs #251
+
+Insert directly after the step "Configure MSVC developer environment" of job post-build:
+
+      - name: Toolchain record check
+        shell: pwsh
+        # main push: a toolchain missing from tools/ci/toolchain-record.txt FAILS (the shipped build changed);
+        # pull request / other branches: it only WARNS (a runner-image update must not stop every PR at once).
+        run: pwsh -NoProfile -ExecutionPolicy Bypass -File .\tools\ci\Test-ToolchainRecord.ps1 -Mode ${{ github.ref == 'refs/heads/main' && 'fail' || 'warn' }}
+
+Notes
+  - The step needs VCToolsVersion from the environment that Use-MsvcDevShell.ps1 -PersistForGitHubActions persists (it is in
+    the persisted list: 'VCToolsVersion' appears in that script).
+  - Add a line to the post-build job summary naming the version so that a reader of the run sees it without opening the log:
+        - name: Record toolchain in job summary
+          shell: pwsh
+          run: "\"MSVC tools $env:VCToolsVersion\" | Out-File -Append $env:GITHUB_STEP_SUMMARY"
+  - Not verified on a runner: this draft was only checked against the existing workflow text and the persisted variable list.

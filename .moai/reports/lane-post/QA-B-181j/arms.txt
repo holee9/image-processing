@@ -1,0 +1,18 @@
+R1 envelope check removed: build_ok=True passed=['9'] red=['ABadEnvelopeIsAProtocolFaultWhateverThePixel', 'AGarbageEnvelopeWithNaNPixelsIsAProtocolFaul'] bad_envelope_cases_that_got_through=['duplicate_key', 'empty_json', 'format_missing', 'garbage_json', 'success_false', 'success_missing', 'success_not_a_bool', 'trailing_junk', 'unterminated_object', 'width_missing', 'wrong_format', 'wrong_height', 'wrong_width']
+R2 width not compared: build_ok=False passed=None red=[] bad_envelope_cases_that_got_through=[]
+R3 height not compared: build_ok=False passed=None red=[] bad_envelope_cases_that_got_through=[]
+R4 format not compared: build_ok=True passed=['10'] red=['ABadEnvelopeIsAProtocolFaultWhateverThePixel'] bad_envelope_cases_that_got_through=['wrong_format']
+R5 success not compared: build_ok=True passed=['10'] red=['ABadEnvelopeIsAProtocolFaultWhateverThePixel'] bad_envelope_cases_that_got_through=['success_false', 'success_not_a_bool']
+R6 duplicate keys accepted: build_ok=True passed=['10'] red=['ABadEnvelopeIsAProtocolFaultWhateverThePixel'] bad_envelope_cases_that_got_through=['duplicate_key']
+R7 trailing junk accepted: build_ok=True passed=['10'] red=['ABadEnvelopeIsAProtocolFaultWhateverThePixel'] bad_envelope_cases_that_got_through=['trailing_junk']
+R8 a valid non-finite response no longer ends a run of faults: build_ok=True passed=['10'] red=['AValidNonFiniteResponseEndsARunOfWorkerFault'] bad_envelope_cases_that_got_through=[]
+R9 alert text again asserts worker health: build_ok=True passed=['9'] red=['InProcessRefusesAFiniteInputWhoseResultLeave', 'WorkerPathRefusesAFiniteInputWhoseResultLeav'] bad_envelope_cases_that_got_through=[]
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['11'] red=[]
+DONE
+--- R2/R3 rerun (first build failed: unused parameter under /WX) ---
+R2 width not compared: build_ok=True passed=['10'] red=['ABadEnvelopeIsAProtocolFaultWhateverThePixel'] bad_envelope_cases_that_got_through=['wrong_width']
+R3 height not compared: build_ok=True passed=['10'] red=['ABadEnvelopeIsAProtocolFaultWhateverThePixel'] bad_envelope_cases_that_got_through=['wrong_height']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['11'] red=[]
+DONE

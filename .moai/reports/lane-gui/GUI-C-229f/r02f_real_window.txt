@@ -1,0 +1,11 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.D_AForegroundCheckThatThrows_SendsNoKey_AndFails [11 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.C_ADiagnosticReadBeforeTheKeysThatThrows_DoesNotStopTheKeys [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.TheReReadAndTheDescriptionOfWhatIsInFront_AreIsolatedToo [2 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.ThePassingPath_ReadsNothingElse_AfterTheRecord_ThanTheOneObservation [3 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.B_ADiagnosticReadThatThrows_DoesNotHideALoss_AndTheMessageStillHasTheRecord [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.A_ADiagnosticReadThatThrows_DoesNotFailARunWhoseCenterIs4321_AndTheRecordIsStillWritten [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.D_AnApplicationNotInFront_SendsNoKey_AndFails [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02f_TheForegroundCheck_AgreesWithAnIndependentReadOfTheForegroundProcess [2 ms]
+ R02f: app pid 27404, foreground pid 47456, AppIsForeground=False
+ R02f: 2 ms
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02d_TheLostKeysMessage_IsBuiltFromTheRealWindow_WithoutSendingAKey [3 s]

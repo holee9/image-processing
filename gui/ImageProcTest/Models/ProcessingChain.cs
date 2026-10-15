@@ -3,7 +3,7 @@ namespace ImageProcTest.Models;
 // #180 / #173 (GUI-C-99): the GUI's pixel chain. Contract B from GUI-C-97 — the backend runs an ordered
 // list of stages on the loaded raw frame, keeps the raw frame untouched, and returns what each stage did.
 
-/// <summary>What a requested stage did. The four values keep "asked for" apart from "done" (HAZ-GUI-005).</summary>
+/// <summary>What a requested stage did. The five values keep "asked for" apart from "done" (HAZ-GUI-005), and "could not run, by no fault" apart from "failed" (GUI-C-234b).</summary>
 public enum StageStatus
 {
     /// <summary>The stage was in the list but switched off.</summary>
@@ -17,6 +17,12 @@ public enum StageStatus
 
     /// <summary>The stage was asked for and did not run, or failed; the chain fell back to its input.</summary>
     RequestedNotApplied,
+
+    /// <summary>
+    /// GUI-C-234b: the stage was asked for and was SKIPPED because there was nothing to run it with (no calibration data, a backend that has no such module) - not because it broke. The chain falls
+    /// back to its input exactly as for <see cref="RequestedNotApplied"/>, and the reason is shown ("not run (no calibration data)"), never "failed". The reason text is <c>&lt;short reason&gt;: &lt;detail&gt;</c>.
+    /// </summary>
+    Skipped,
 }
 
 /// <summary>Stage identifiers. Strings, so a list can be written down and compared in reports.</summary>
@@ -30,6 +36,13 @@ public static class StageIds
 
     /// <summary>AI bone suppression (xpe_ai.dll, worker path), after gsvg and before the display pipeline (#225 row 10, GUI-C-184).</summary>
     public const string AiBoneSuppression = "ai_bone_suppress";
+
+    /// <summary>
+    /// Phase-1b basic enhancement as ONE stage (#225 row 9, GUI-C-196): log transform, noise reduction, contrast (CLAHE) and edge enhancement (USM) run
+    /// in float inside the stage and are converted to 16 bits once, at its end (xpe_enhance_basic.dll). Part of the Deterministic Baseline's fixed stage
+    /// list only; the ordinary Apply does not run it.
+    /// </summary>
+    public const string EnhanceBasic = "enhance_basic";
 }
 
 /// <summary>
@@ -64,13 +77,18 @@ public sealed record StageRequest(string StageId, bool Enabled);
 /// stage that was not requested. It is the module's time plus this app's marshalling, and NOT the time
 /// to get the result on screen — the display pipeline and the render follow it.
 /// </param>
-public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason, double ElapsedMs = 0.0);
+/// <param name="NonFiniteCount">NaN/Inf values the stage counted in its float intermediates (#225 row 9, GUI-C-196 M6); 0 when it counted none.</param>
+/// <param name="Floats">GUI-C-234c: the float image <paramref name="Pixels"/> is the rounding of, when the stage ends in one (the enhancement); null otherwise. It belongs to this outcome, so it travels with the run that made it.</param>
+public sealed record StageOutcome(string StageId, StageStatus Status, ushort[]? Pixels, string Reason, double ElapsedMs = 0.0, long NonFiniteCount = 0, float[]? Floats = null);
 
 /// <summary>The chain's result. <see cref="Raw"/> is the loaded frame's array, never written to.</summary>
 public sealed record ChainResult(ushort[] Raw, IReadOnlyList<StageOutcome> Stages)
 {
     /// <summary>What the display pipeline starts from: the last stage that produced pixels, else the raw frame.</summary>
     public ushort[] DisplayInput => Stages.LastOrDefault(s => s.Pixels is not null)?.Pixels ?? Raw;
+
+    /// <summary>GUI-C-234c: the float image behind <see cref="DisplayInput"/> - the one the stage that produced those pixels ended with - or null when that stage has none (or no stage produced pixels). Read from the SAME outcome as the pixels, never from a shared place.</summary>
+    public float[]? DisplayFloats => Stages.LastOrDefault(s => s.Pixels is not null)?.Floats;
 
     /// <summary>True when the display input is the raw frame itself.</summary>
     public bool DisplaysRaw => ReferenceEquals(DisplayInput, Raw);

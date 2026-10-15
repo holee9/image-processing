@@ -1,0 +1,9 @@
+T1 alert text goes back to the 185 wording: build_ok=True passed=['9'] red=['Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath']
+T2 writer copies a Window Center: build_ok=True passed=['9'] red=['Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationSha']
+T3 writer copies a Window Width: build_ok=True passed=['9'] red=['Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationSha']
+T4 writer writes a source-like Rescale slope: build_ok=True passed=['9'] red=['Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationSha']
+T5 writer writes a source-like Rescale intercept: build_ok=True passed=['9'] red=['Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationSha']
+T6 writer writes the INVERSE shape: build_ok=True passed=['9'] red=['Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationSha']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['10'] red=[]
+DONE

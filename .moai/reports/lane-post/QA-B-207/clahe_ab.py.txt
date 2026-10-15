@@ -1,0 +1,184 @@
+"""QA-B-207 M2 (E6): old vs new CLAHE, same inputs, same process.
+
+  - the OLD dll (copy of the shipped build before E6) is first checked against an independent reference of the OLD algorithm
+    (per-tile min/max scale, nearest-tile table, remainder to the first bins) -- so "old" really is the old code
+  - tile-boundary step on smooth ramps, old vs new
+  - AC-04 as the criterion words it ("local contrast ratio increases by >= 20 % in LOW-CONTRAST REGIONS"): a low-contrast region
+    inside an image that also has a wide range, old vs new
+  - speed at 3072x3072 on structured data, old and new ALTERNATED in the same loop (not one block after the other)
+
+Run: python build/g207_clahe_ab.py <old dll dir> <new dll dir> <out.txt>
+"""
+import ctypes
+import os
+import sys
+import time
+import numpy as np
+
+OLD_DIR, NEW_DIR, OUT = sys.argv[1], sys.argv[2], open(sys.argv[3], 'w', encoding='utf-8', newline='\n')
+NUM_BINS = 4096
+
+
+def log(s):
+    OUT.write(s + '\n')
+    OUT.flush()
+
+
+class Img(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+class Params(ctypes.Structure):
+    _fields_ = [('clip_limit', ctypes.c_float), ('tile_width', ctypes.c_int32), ('tile_height', ctypes.c_int32)]
+
+
+def load(d, name):
+    os.add_dll_directory(d)
+    f = ctypes.CDLL(os.path.join(d, name)).xpe_contrast_enhance
+    f.argtypes = [ctypes.POINTER(Img), ctypes.POINTER(Params)]
+    f.restype = ctypes.c_int
+    return f
+
+
+os.add_dll_directory(NEW_DIR)   # the other dependencies (runtime, logging) are only in the full build folder
+old_fn = load(OLD_DIR, 'xpe_enhance_basic_old.dll')
+new_fn = load(NEW_DIR, 'xpe_enhance_basic.dll')
+
+
+def run(fn, a, clip=3.0, tw=8, th=8):
+    a = np.ascontiguousarray(a, dtype=np.float32).copy()
+    h, w = a.shape
+    img = Img(w, h, 32, 32, 1, a.ctypes.data, a.nbytes)
+    rc = fn(ctypes.byref(img), ctypes.byref(Params(clip, tw, th)))
+    return rc, a
+
+
+def bounds(t, tile, size):
+    s = min(t * tile, size)
+    return s, min(s + tile, size)
+
+
+def old_reference(a, clip, tw, th):
+    """The OLD algorithm, written from its description in the removed comments."""
+    h, w = a.shape
+    a32 = a.astype(np.float32)
+    vmin, vmax = a32.min(), a32.max()
+    rng = np.float32(vmax - vmin)
+    if rng <= 0:
+        return a32.astype(np.float64)
+    tile_w, tile_h = -(-w // tw), -(-h // th)
+    out = np.zeros((h, w), dtype=np.float64)
+    for ty in range(th):
+        y0, y1 = bounds(ty, tile_h, h)
+        for tx in range(tw):
+            x0, x1 = bounds(tx, tile_w, w)
+            if x0 >= x1 or y0 >= y1:
+                continue
+            t = a32[y0:y1, x0:x1]
+            tmin, tmax = t.min(), t.max()
+            area = t.size
+            if tmax - tmin <= 0:
+                frac = np.full(t.shape, 0.5)
+            else:
+                scale = np.float32(NUM_BINS - 1) / np.float32(tmax - tmin)
+                bins = np.clip(((t - tmin) * scale).astype(np.int64), 0, NUM_BINS - 1)
+                hist = np.bincount(bins.ravel(), minlength=NUM_BINS).astype(np.int64)
+                clipf = float(clip) * area / NUM_BINS
+                cc = max(1, area if clipf >= area else int(clipf))
+                ex = int(np.maximum(hist - cc, 0).sum())
+                hist = np.minimum(hist, cc)
+                per, rem = divmod(ex, NUM_BINS)
+                hist = hist + per
+                hist[:rem] += 1
+                frac = (np.cumsum(hist) / area)[bins]
+            # nearest tile: every pixel of this rectangle uses this tile only, EXCEPT that the last tile row/column also
+            # takes the pixels beyond its nominal end (min(pos // tile, tiles - 1))
+            ys = slice(y0, h if ty == th - 1 else y1)
+            xs = slice(x0, w if tx == tw - 1 else x1)
+            tt = a32[ys, xs]
+            if tt.size == 0:
+                continue
+            sc = np.float32(NUM_BINS - 1) / np.float32(tmax - tmin) if tmax - tmin > 0 else None
+            if sc is None:
+                out[ys, xs] = float(vmin) + 0.5 * float(rng)
+            else:
+                b = np.clip(((tt - tmin) * sc).astype(np.int64), 0, NUM_BINS - 1)
+                out[ys, xs] = float(vmin) + (np.cumsum(hist) / area)[b] * float(rng)
+    return out
+
+
+def structured(w, h, seed):
+    r = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    img = 800 + 600 * np.sin(xx / 17.0) * np.cos(yy / 23.0) + 40 * r.standard_normal((h, w))
+    img[h // 4: h // 2, w // 4: w // 2] += 1500
+    img[h // 2:, : w // 3] = 300 + 5 * r.standard_normal((h - h // 2, w // 3))
+    return img.astype(np.float32)
+
+
+# 1. is "old" really the old code?
+bad = 0
+for name, a, tw, th in [('structured 101x67 8x8', structured(101, 67, 1), 8, 8), ('structured 256x256 4x4', structured(256, 256, 2), 4, 4),
+                        ('structured 11x11 5x5', structured(11, 11, 3), 5, 5)]:
+    rc, got = run(old_fn, a, 3.0, tw, th)
+    ref = old_reference(a, 3.0, tw, th)
+    d = np.abs(got.astype(np.float64) - ref) / float(a.max() - a.min())
+    ok = d.max() < 2e-4
+    bad += 0 if ok else 1
+    log('old dll vs old-algorithm reference: %-26s max|diff|/range=%.2e  %s' % (name, d.max(), 'IS THE OLD CODE' if ok else 'DIFFERENT'))
+log('=== old dll identity: %s' % ('confirmed' if bad == 0 else 'NOT CONFIRMED (%d)' % bad))
+
+# 2. tile-boundary steps on smooth ramps
+log('')
+for label, a in [('horizontal ramp 256x256 (x*4+100)', np.tile(np.arange(256, dtype=np.float32) * 4 + 100, (256, 1))),
+                 ('diagonal ramp 256x256 ((x+y)*2+100)', np.add.outer(np.arange(256), np.arange(256)).astype(np.float32) * 2 + 100)]:
+    for which, fn in (('old', old_fn), ('new', new_fn)):
+        rc, o = run(fn, a)
+        row = o[100].astype(np.float64)
+        st = np.diff(row)
+        tile = 256 // 8
+        b = np.array([abs(st[k * tile - 1]) for k in range(1, 8)])
+        inside = np.array([abs(s) for k, s in enumerate(st) if (k + 1) % tile != 0])
+        log('%-38s %s: boundary step mean=%.3f  median step elsewhere=%.3f  ratio=%.1f   largest step on row=%.3f' % (
+            label, which, b.mean(), np.median(inside), b.mean() / max(np.median(inside), 1e-9), np.abs(st).max()))
+
+# 3. AC-04 as the criterion words it: a low-contrast REGION in an image that has a wide range
+log('')
+W = H = 256
+r = np.random.default_rng(11)
+a = np.zeros((H, W), np.float32)
+yy, xx = np.mgrid[0:H, 0:W]
+a[:] = 200 + 3000.0 * xx / (W - 1)                     # a wide global gradient
+a[:, : W // 2] += 60 * r.standard_normal((H, W // 2)).astype(np.float32)
+lo = (slice(64, 192), slice(W // 2 + 16, W // 2 + 112))  # a region of the right half...
+a[lo] = 2200 + 6.0 * r.standard_normal((128, 96)).astype(np.float32)   # ...made low-contrast: sigma 6 around one level
+for which, fn in (('old', old_fn), ('new', new_fn)):
+    rc, o = run(fn, a)
+    log('AC-04 low-contrast region inside a wide-range image: %s  stddev before=%.3f after=%.3f ratio=%.3f' % (
+        which, a[lo].std(), o[lo].std(), o[lo].std() / a[lo].std()))
+ramp = (495.0 + 10.0 * (np.add.outer(np.arange(H), np.arange(W)) / float(W + H))).astype(np.float32)
+for which, fn in (('old', old_fn), ('new', new_fn)):
+    rc, o = run(fn, ramp)
+    c = (slice(64, 192), slice(64, 192))
+    log('AC-04 as the test is written today (whole image is the ramp 495..505): %s  ratio=%.3f' % (which, o[c].std() / ramp[c].std()))
+
+# 4. speed, 3072x3072, structured data, alternating
+log('')
+n = 3072
+base = (1.0 + ((np.arange(n * n, dtype=np.uint64) * np.uint64(2654435761)) % np.uint64(4096)).astype(np.float32)).reshape(n, n)
+smooth = structured(n, n, 5)
+for label, data in (('pseudo-random 1..4096 (the benchmark fixture)', base), ('structured (blocks, gradients, noise)', smooth)):
+    t_old, t_new = [], []
+    for _ in range(6):
+        for which, fn, acc in (('old', old_fn, t_old), ('new', new_fn, t_new)):
+            a = data.copy()
+            img = Img(n, n, 32, 32, 1, a.ctypes.data, a.nbytes)
+            t0 = time.perf_counter()
+            rc = fn(ctypes.byref(img), ctypes.byref(Params(3.0, 8, 8)))
+            acc.append((time.perf_counter() - t0) * 1000.0)
+            assert rc == 0
+    log('3072x3072 %-46s old: min %.1f median %.1f ms | new: min %.1f median %.1f ms   (6 alternating rounds; REQ-ENH-017 budget 50 ms)' % (
+        label, min(t_old), float(np.median(t_old)), min(t_new), float(np.median(t_new))))
+OUT.close()

@@ -1,0 +1,105 @@
+===== run 1: ctest -j 8 -R DicomLogging =====
+Test project D:/workspace-github/xpe-post/build/ci-dicom
+    Start 370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+    Start 371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+    Start 372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+    Start 366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit
+    Start 367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine
+    Start 368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome
+    Start 369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly
+1/7 Test #370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall ..............   Passed    2.29 sec
+2/7 Test #372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel ....................................   Passed    0.16 sec
+3/7 Test #366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit .............................   Passed    0.11 sec
+4/7 Test #367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine ....................   Passed    0.09 sec
+5/7 Test #371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel .........................   Passed    0.93 sec
+6/7 Test #368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome ...   Passed    0.05 sec
+7/7 Test #369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly ...................................   Passed    0.06 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   2.35 sec
+run 1 exit=0
+===== run 2: ctest -j 8 -R DicomLogging =====
+Test project D:/workspace-github/xpe-post/build/ci-dicom
+    Start 370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+    Start 371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+    Start 366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit
+    Start 372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+    Start 367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine
+    Start 369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly
+    Start 368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome
+1/7 Test #370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall ..............   Passed    0.08 sec
+2/7 Test #371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel .........................   Passed    0.07 sec
+3/7 Test #366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit .............................   Passed    0.06 sec
+4/7 Test #372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel ....................................   Passed    0.05 sec
+5/7 Test #367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine ....................   Passed    0.04 sec
+6/7 Test #368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome ...   Passed    0.03 sec
+7/7 Test #369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly ...................................   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   0.13 sec
+run 2 exit=0
+===== run 3: ctest -j 8 -R DicomLogging =====
+Test project D:/workspace-github/xpe-post/build/ci-dicom
+    Start 370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+    Start 371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+    Start 366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit
+    Start 372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+    Start 367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine
+    Start 369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly
+    Start 368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome
+1/7 Test #370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall ..............   Passed    0.09 sec
+2/7 Test #371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel .........................   Passed    0.07 sec
+3/7 Test #366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit .............................   Passed    0.06 sec
+4/7 Test #372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel ....................................   Passed    0.05 sec
+5/7 Test #367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine ....................   Passed    0.04 sec
+6/7 Test #368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome ...   Passed    0.03 sec
+7/7 Test #369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly ...................................   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   0.13 sec
+run 3 exit=0
+===== run 4: ctest -j 8 -R DicomLogging =====
+Test project D:/workspace-github/xpe-post/build/ci-dicom
+    Start 370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+    Start 371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+    Start 366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit
+    Start 372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+    Start 367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine
+    Start 369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly
+    Start 368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome
+1/7 Test #370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall ..............   Passed    0.79 sec
+2/7 Test #371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel .........................   Passed    0.78 sec
+3/7 Test #366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit .............................   Passed    0.77 sec
+4/7 Test #367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine ....................   Passed    0.09 sec
+5/7 Test #372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel ....................................   Passed    0.76 sec
+6/7 Test #369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly ...................................   Passed    0.07 sec
+7/7 Test #368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome ...   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   0.83 sec
+run 4 exit=0
+===== run 5: ctest -j 8 -R DicomLogging =====
+Test project D:/workspace-github/xpe-post/build/ci-dicom
+    Start 370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+    Start 371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+    Start 366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit
+    Start 372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+    Start 367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine
+    Start 369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly
+    Start 368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome
+1/7 Test #370: DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall ..............   Passed    0.09 sec
+2/7 Test #371: DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel .........................   Passed    0.08 sec
+3/7 Test #366: DicomLogging.EveryPublicFunctionLogsItsEntryAndExit .............................   Passed    0.06 sec
+4/7 Test #372: DicomLogging.AFailedSaveIsLoggedAtErrorLevel ....................................   Passed    0.05 sec
+5/7 Test #367: DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine ....................   Passed    0.04 sec
+6/7 Test #368: DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome ...   Passed    0.03 sec
+7/7 Test #369: DicomLogging.ASuccessIsLoggedAtDebugLevelOnly ...................................   Passed    0.05 sec
+
+100% tests passed, 0 tests failed out of 7
+
+Total Test time (real) =   0.14 sec
+run 5 exit=0

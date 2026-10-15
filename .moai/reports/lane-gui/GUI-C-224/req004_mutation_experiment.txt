@@ -1,0 +1,13 @@
+GUI-C-224: does the current suite hold REQ-GUI-IT-004 (BodyPart = ByValTStr, SizeConst 64, CharSet Ansi)?
+Method: a throwaway worktree of dev/gui HEAD; ONE edit to clients/ImageProcTest.IntegrationTests/PInvoke/XpeCommonNative.cs (the mirror's XpeImageMetadata), build, run
+  --filter AbiLayoutTests | NativeSignatureParityTests | StructLayoutParityTests   (18 tests), restore (git checkout), worktree removed afterwards.
+
+control (unmodified):                                           18 tests, 18 passed, 0 failed
+mutation 1: SizeConst = 64 -> 63                                RED  AbiLayoutTests.XpeImageMetadata_BodyPart_63CharAscii_RoundTrips
+                                                                RED  NativeSignatureParityTests.EveryDeclaration_SaysWhatTheHeaderSays(copyName: "mirror")
+mutation 2: UnmanagedType.ByValTStr -> LPStr                    RED  AbiLayoutTests.XpeImageMetadata_MarshalSize_Is96Bytes
+                                                                RED  NativeSignatureParityTests.EveryDeclaration_SaysWhatTheHeaderSays(copyName: "mirror")
+mutation 3: struct CharSet.Ansi -> CharSet.Unicode              RED  AbiLayoutTests.XpeImageMetadata_MarshalSize_Is96Bytes
+                                                                RED  NativeSignatureParityTests.EveryDeclaration_SaysWhatTheHeaderSays(copyName: "mirror")
+Reading: all three ways of breaking the declaration are caught, by the header comparison (GUI-C-208 M1) and not only by the self round-trip.
+Limit: the experiment edits the MIRROR (the test project's copy); the app's own copies are compared by the same engine (copyName other than "mirror") but were not mutated here.

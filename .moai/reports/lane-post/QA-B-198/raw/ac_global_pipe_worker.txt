@@ -1,0 +1,10 @@
+launch.variant=ac
+launch.target=real xpe_ai_worker.exe
+launch.sandbox=C:\Users\drake\AppData\Local\Temp\xpe_g198_sandbox_48568 (ACL grant to ALL APPLICATION PACKAGES: bin=ok models=ok)
+launch.appcontainer_sid=S-1-15-2-2257413127-389257795-1181514316-2262165041-2074359170-1561579582-1151829375
+launch.scratch_grant_to_appcontainer_sid=ok
+launch.create_process=OK pid 53576
+launch.assign_to_job=OK
+worker.pipe_connect=FAILED
+worker.exited_early_with_code=1
+exit=0

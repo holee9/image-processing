@@ -1,0 +1,26 @@
+== P01 rerun 1
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [8 s]
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [7 s]
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [7 s]
+     통과: 3
+== P01 rerun 2
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [8 s]
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [7 s]
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [7 s]
+     통과: 3
+== P01 rerun 3
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [8 s]
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [7 s]
+  통과 P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [7 s]
+     통과: 3
+== whole wrist class
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot [7 s]
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels [1 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread [< 1 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [< 1 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag [< 1 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases [< 1 ms]
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P04_TheDrawnHud_NamesTheChain [< 1 ms]
+     통과: 7
+     실패: 7
+ 총 시간: 1.9261 분

@@ -1,0 +1,18 @@
+codex 8x8: value 1  exact=511.8750  DLL=767.8125
+codex 8x8: 56 of 64 pixels differ by > 1e-5 of the range (max 6.250e-02)  DIFFER
+DIFFER trial 1  vmin=5.048709793414476e-29 vmax=811275840.0  rc=0  max|diff|/range=3.906e-03  pixels>1e-5: 3 of 1024
+DIFFER trial 2  vmin=1.3234889800848443e-23 vmax=1.3746119168401e+23  rc=0  max|diff|/range=2.094e-03  pixels>1e-5: 1 of 1024
+DIFFER trial 4  vmin=4.151528869362633e-40 vmax=4.394567966461182  rc=0  max|diff|/range=1.469e-03  pixels>1e-5: 1 of 1024
+DIFFER trial 8  vmin=7.888609052210118e-31 vmax=529361.5625  rc=0  max|diff|/range=3.235e-03  pixels>1e-5: 2 of 1024
+DIFFER trial 19  vmin=6.217897597840651e-40 vmax=9.360042572021484  rc=0  max|diff|/range=3.906e-03  pixels>1e-5: 1 of 1024
+DIFFER trial 35  vmin=2.0962303987527804e-40 vmax=8.405982971191406  rc=0  max|diff|/range=3.605e-03  pixels>1e-5: 3 of 1024
+DIFFER trial 50  vmin=6.462348535570529e-27 vmax=675874944.0  rc=0  max|diff|/range=2.804e-03  pixels>1e-5: 2 of 1024
+DIFFER trial 63  vmin=3.2311742677852644e-27 vmax=29120507412480.0  rc=0  max|diff|/range=3.906e-03  pixels>1e-5: 335 of 1024
+DIFFER trial 65  vmin=6.444431507583401e-41 vmax=6.181563377380371  rc=0  max|diff|/range=5.981e-03  pixels>1e-5: 111 of 1024
+DIFFER trial 70  vmin=6.938893903907228e-18 vmax=14591457.0  rc=0  max|diff|/range=3.906e-03  pixels>1e-5: 3 of 1024
+DIFFER trial 76  vmin=5.591503171302815e-40 vmax=9.342670440673828  rc=0  max|diff|/range=7.324e-03  pixels>1e-5: 289 of 1024
+DIFFER trial 77  vmin=2.710505431213761e-20 vmax=8.0515459691246e+20  rc=0  max|diff|/range=1.720e-03  pixels>1e-5: 1 of 1024
+DIFFER trial 108  vmin=5.421010862427522e-20 vmax=3807050240.0  rc=0  max|diff|/range=3.906e-03  pixels>1e-5: 4 of 1024
+DIFFER trial 110  vmin=7.728875692968172e-40 vmax=8.070756912231445  rc=0  max|diff|/range=3.174e-03  pixels>1e-5: 1 of 1024
+random images: 120 trials, 15 differ
+=== 15 differ in total

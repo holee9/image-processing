@@ -1,0 +1,8 @@
+== 4. Can a float image with negative pixels reach the DICOM writer, and what is in the file?
+   FLOAT32 image holding -500..4000                     write rc=0  file size 17432
+[2026-10-03 16:31:07.708] [warning] [DicomReader] dicom read refused: BitsAllocated 32 (only 16 is supported for uncompressed and JPEG Lossless data)
+                                                        open rc=0 read rc=-7  -> 0x0 bits 0 format 0
+   UINT16 control, clamped by the caller                write rc=0  file size 9240
+                                                        open rc=0 read rc=0  -> 64x64 bits 16 format 0
+   read back == clamped input: True  (first 6 [0, 0, 0, 0, 0, 0])
+   (for comparison a wrapping cast of the first 6 inputs would store [65036, 65037, 65038, 65039, 65040, 65041])

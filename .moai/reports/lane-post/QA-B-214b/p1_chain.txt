@@ -1,0 +1,58 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = M2Measure.DISABLED_Chain_P1_P3_P4_P5_P7
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from M2Measure
+[ RUN      ] M2Measure.DISABLED_Chain_P1_P3_P4_P5_P7
+[2026-10-08 10:26:41.146] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-10-08 10:26:41.151] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+== QA-B-213 chain ==
+  module versions: enhance_basic=1.0.0 display=1.0.0
+  hardware threads=20 enhance_basic max_threads(request)=0
+  input (ADU)            min=78.1053 max=3711.7793 mean=2198.1751 p01=139.7596 p99=2833.7800 nonFinite=0
+== P3 EI/DI ==
+  EI/DI real frame                     bodyPart="HAND" rc=0 (Success) EI=219.817505 DI=3.420623
+  alerts after real frame: 1
+    [0] severity=1 "Exposure deviation: DI=3.42 (outside [-3.0, +3.0] range)"
+  EI/DI real frame                     bodyPart="" rc=0 (Success) EI=219.817505 DI=0.410323
+  alerts after real frame: 0
+  EI/DI real frame                     bodyPart="CHEST" rc=0 (Success) EI=219.817505 DI=0.410323
+  alerts after real frame: 0
+  EI/DI real frame x 0.25              bodyPart="HAND" rc=0 (Success) EI=54.954376 DI=-2.599977
+  alerts after real frame x 0.25: 0
+  EI/DI real frame x 4.00              bodyPart="HAND" rc=0 (Success) EI=879.270020 DI=9.441222
+  alerts after real frame x 4.00: 1
+    [0] severity=1 "Exposure deviation: DI=9.44 (outside [-3.0, +3.0] range)"
+  EI/DI real frame x 0.50              bodyPart="HAND" rc=0 (Success) EI=109.908752 DI=0.410323
+  alerts after real frame x 0.50: 0
+  EI/DI real frame x 2.00              bodyPart="HAND" rc=0 (Success) EI=439.635010 DI=6.430923
+  alerts after real frame x 2.00: 1
+    [0] severity=1 "Exposure deviation: DI=6.43 (outside [-3.0, +3.0] range)"
+== P1 chain ==
+  after log              min=1898.2052 max=3569.6990 mean=3269.1015 p01=2148.4780 p99=3452.5190 nonFinite=0
+  after noise_bilateral  min=1935.3500 max=3556.1650 mean=3269.1015 p01=2148.4895 p99=3452.0901 nonFinite=0
+  after clahe            min=1935.5490 max=3556.1650 mean=3252.9333 p01=2110.2471 p99=3476.4695 nonFinite=0
+  after usm              min=1935.5490 max=3556.1650 mean=3252.9412 p01=2109.7703 p99=3476.4714 nonFinite=0
+  after modality         min=1935.5490 max=3556.1650 mean=3252.9412 p01=2109.7703 p99=3476.4714 nonFinite=0
+  VOI window (xpe_voi_auto_window): mode=1 center=2580.7173 width=1198.6976 -> [1981.3684, 3180.0662] out=[0.0,1.0]; first call 4.28 ms
+  alerts after xpe_voi_auto_window (none expected on this two-class frame): 0
+  after voi              min=0.0000 max=1.0000 mean=0.9264 p01=0.1071 p99=1.0000 nonFinite=0
+== P5 VOI / Presentation ==
+  VOI output range [0.0,1.0]: min=0.000000 max=1.000000 below=0 above=0 nonFinite=0
+  Presentation output uint16: min=0 max=65535 pixels at 0=7920289 pixels at 65535=5708 bitsAllocated=16 dataSize=18874368
+  first-run stage times (ms): log=6.43 noise_bilateral=34.01 clahe=45.83 usm=23.01 modality=4.48 voi=4.47 presentation=24.23 voi_auto_window=4.28
+  arm NaN pixel injected at [0]: rc=-1 (Invalid input parameter) buffer unchanged=1 format still float32=1
+  arm +inf pixel injected at [2]: rc=-1 (Invalid input parameter)
+  arm finite out-of-range injected (-5.0, 7.0), default (inverted) polarity: rc=0 out[0]=65535 (lut[1023]=65535) out[1]=0 (lut[0]=0)
+== P4 USM ==
+  [default amount] amount=0.5 radius=2.0 threshold=10.0 rc=0: changed=124019 (1.31%) bound-violations=0 negative-outputs=0 pixels-at-the-clamp=0 max|out-in|=60.8052 at index 8123780 max(out/in)=1.022352
+  largest-change profile row 2644 cols 1392..1432 (in/out): 2479.4/2479.4 2484.6/2484.6 2488.4/2488.4 2489.6/2489.6 2488.2/2495.1 2483.5/2496.3 2466.8/2484.9 2413.5/2423.3 2338.5/2331.9 2281.2/2266.5 2248.8/2235.7 2230.4/2221.5 2219.4/2219.4 2210.2/2210.2 2204.4/2204.4 2202.2/2202.2 2202.8/2202.8 2204.8/2197.9 2209.0/2190.6 2219.5/2180.9 2252.2/2191.4 2476.1/2476.1 2661.7/2708.6 2720.5/2754.8 2752.2/2771.6 2778.4/2791.2 2789.2/2796.6 2794.9/2794.9 2798.4/2798.4 2799.4/2799.4 2798.6/2798.6 2797.1/2797.1 2794.2/2794.2 2790.9/2790.9 2786.8/2786.8 2782.0/2782.0 2777.1/2777.1 2771.5/2771.5 2764.5/2764.5 2755.2/2755.2 2746.2/2746.2
+  [stress amount (max of range)] amount=5.0 radius=2.0 threshold=10.0 rc=0: changed=124019 (1.31%) bound-violations=0 negative-outputs=0 pixels-at-the-clamp=0 max|out-in|=608.0530 at index 8123780 max(out/in)=1.223516
+  chain-pass default USM max|out-in|=60.8052 (cross-check of the stage-by-stage pass)
+[       OK ] M2Measure.DISABLED_Chain_P1_P3_P4_P5_P7 (1157 ms)
+[----------] 1 test from M2Measure (1157 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1157 ms total)
+[  PASSED  ] 1 test.
+===EXIT=0===

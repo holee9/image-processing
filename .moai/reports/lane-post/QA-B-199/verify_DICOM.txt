@@ -1,0 +1,12 @@
+control: a real quote is accepted: True; a fake quote is rejected: True
+requirements: 46; test quotes checked: 75; impl citations checked: 46; header promises: 12
+FAILED evidence: 5
+  test quote                           0
+  impl line outside the file           2
+  impl is a statement, not file:line   1
+  header promise quote                 2
+   ('REQ-DICOM-041', 'impl modules/dicom/src/dicom.cpp (XPE_API) and include/xpe/dicom/dicom_api.h:35-37,433-435', 'file or line missing', '')
+   ('REQ-DICOM-043', 'impl modules/dicom/src/dicom.cpp (spdlog::debug at entry only), DicomReader.cpp/Writer/SCU spdlog::warn', 'no file:line', '')
+   ('REQ-DICOM-046', 'impl none (caller obligation); modules/dicom/src/DicomNetworkSCU.cpp:23 is one process-wide cancel flag', 'file or line missing', '')
+   ('header_promise', 'modules/dicom/include/xpe/dicom/dicom_api.h:72', 'not found within 2 lines of 72', '@return XPE_ERR_DICOM_INVALID if the file is not a valid DICOM Part 10 file.')
+   ('header_promise', 'modules/dicom/CMakeLists.txt:455', 'not found within 2 lines of 455', 'src/DicomWriter.cpp         # SWU-4.2 REQ-DICOM-012..020')

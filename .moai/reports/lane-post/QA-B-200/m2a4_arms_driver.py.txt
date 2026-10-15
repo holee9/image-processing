@@ -1,0 +1,92 @@
+"""QA-B-200 M2a4 falsification arms (Codex #105): the all-pairs mAs comparison and the 12-byte IS limit on the stored length.
+Break ONE defence, rebuild ci-dicom, run test_dicom_failure_paths.exe, expect the named tests red, restore byte-identical.
+Run from the repository root: python build/g200_arms_m2a4.py <out.txt>"""
+import hashlib, re, subprocess, sys
+
+OUT = sys.argv[1]
+ONLY = sys.argv[2:]
+BUILD = r'D:\workspace-github\xpe-post\build\g200-dicom-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+RDR = 'modules/dicom/src/DicomReader.cpp'
+T_PAIR = 'TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne'
+T_LEN = 'TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored'
+
+PAIRS = '''    for (int i = 0; i < 3; ++i) {
+        for (int j = i + 1; j < 3; ++j) {
+            if (c[i].valid && c[j].valid && std::fabs(c[i].mAs - c[j].mAs) > c[i].tolerance + c[j].tolerance + 1e-9) disagree = true;
+        }
+    }
+'''
+CHOSEN_ONLY = '''    for (const Candidate& k : c) {
+        if (k.valid && std::fabs(k.mAs - chosen->mAs) > k.tolerance + chosen->tolerance + 1e-9) disagree = true;
+    }
+'''
+
+ARMS = [
+    ('pairs_compared_only_against_the_chosen_value_as_before_M2a4', [(RDR, PAIRS, CHOSEN_ONLY)], [T_PAIR]),
+    ('pair_tolerance_ignored',
+     [(RDR, 'std::fabs(c[i].mAs - c[j].mAs) > c[i].tolerance + c[j].tolerance + 1e-9', 'std::fabs(c[i].mAs - c[j].mAs) > 1e-9')],
+     [T_PAIR]),
+    ('pair_tolerance_far_too_wide',
+     [(RDR, 'std::fabs(c[i].mAs - c[j].mAs) > c[i].tolerance + c[j].tolerance + 1e-9', 'std::fabs(c[i].mAs - c[j].mAs) > 1.0e9')],
+     [T_PAIR]),
+    ('stored_length_not_checked_only_the_stripped_text',
+     [(RDR, 'e->getVM() == 1 && e->getLength() <= maxBytes;', 'e->getVM() == 1 && (e->getLength() <= maxBytes || maxBytes != 0);')], [T_LEN]),
+    ('stored_length_limit_off_by_one',
+     [(RDR, 'e->getVM() == 1 && e->getLength() <= maxBytes;', 'e->getVM() == 1 && e->getLength() < maxBytes;')], [T_LEN]),
+]
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    txt = open(path, encoding='utf-8', errors='replace').read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    if ONLY and name not in ONLY:
+        continue
+    files = sorted({e[0] for e in edits})
+    saved = {f: open(f, 'rb').read() for f in files}
+    before = {f: sha(f) for f in files}
+    log('=== ARM ' + name)
+    try:
+        for f in files:
+            txt = saved[f].decode('utf-8')
+            for ff, old, new in edits:
+                if ff == f:
+                    assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+                    txt = txt.replace(old, new)
+            open(f, 'wb').write(txt.encode('utf-8'))
+        sh(BUILD)
+        if 'FAILED:' in open('build/g200-b4.txt', encoding='utf-8', errors='replace').read():
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s ci-dicom test_dicom_failure_paths.exe D:\\workspace-github\\xpe-post\\build\\g200-arm-m2a4.txt * dicom' % RUN)
+            red = failed('build/g200-arm-m2a4.txt')
+            hit = [m for m in must if any(m in f for f in red)]
+            miss = [m for m in must if m not in hit]
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        for f in files:
+            open(f, 'wb').write(saved[f])
+        log('restored byte-identical: %s' % all(sha(f) == before[f] for f in files))
+log('=== DONE')
+out.close()

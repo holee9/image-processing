@@ -1,0 +1,311 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from DicomLogging
+[ RUN      ] DicomLogging.EveryPublicFunctionLogsItsEntryAndExit
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_open: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 118
+xpe_dicom_open: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_read_image: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 281
+xpe_dicom_read_image: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_get_metadata: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 452
+xpe_dicom_get_metadata: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_write: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 626
+xpe_dicom_write: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_write_j2k: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 797
+xpe_dicom_write_j2k: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_validate: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 971
+xpe_dicom_validate: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_cstore: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 1156
+xpe_dicom_cstore: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(123): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_cfind_mwl: no ERROR exit line with rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:28:55.126] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(124): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  log.find(std::string("[debug] [xpe_dicom] ") + c.fn + " exit")
+    Which is: 1330
+xpe_dicom_cfind_mwl: a failed call must not leave a DEBUG exit line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(129): error: Expected: (std::string::npos) != (log.find(std::string("[debug] [xpe_dicom] ") + fn)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_version: no DEBUG entry line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(130): error: Expected: (std::string::npos) != (log.find(std::string("[debug] [xpe_dicom] ") + fn + " exit")), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_version: no DEBUG exit line
+
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsItsEntryAndExit (7 ms)
+[ RUN      ] DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(140): error: Expected equality of these values:
+  1u
+    Which is: 1
+  errors.size()
+    Which is: 0
+[2026-10-04 13:28:55.132] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:28:55.132] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-1
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(141): error: Value of: Lines("[debug] [xpe_dicom] xpe_dicom_open exit").empty()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine (5 ms)
+[ RUN      ] DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(155): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Lines("[error] [xpe_dicom] xpe_dicom_open exit rc=" + std::to_string(rc)).size()
+    Which is: 0
+the outcome of the public call
+
+[  FAILED  ] DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome (8 ms)
+[ RUN      ] DicomLogging.ASuccessIsLoggedAtDebugLevelOnly
+[       OK ] DicomLogging.ASuccessIsLoggedAtDebugLevelOnly (21 ms)
+[ RUN      ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+[       OK ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall (6 ms)
+[ RUN      ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel (4 ms)
+[ RUN      ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel (4 ms)
+[----------] 7 tests from DicomLogging (57 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (58 ms total)
+[  PASSED  ] 4 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsItsEntryAndExit
+[  FAILED  ] DicomLogging.AnEarlyRefusalIsLoggedAtErrorLevelByTheExitLine
+[  FAILED  ] DicomLogging.AnInternalFailureIsLoggedAtErrorLevelTwice_TheCauseAndTheOutcome
+
+ 3 FAILED TESTS

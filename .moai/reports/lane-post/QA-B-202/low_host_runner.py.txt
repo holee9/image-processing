@@ -1,0 +1,68 @@
+"""Run xpe_ai_tests.exe with a given gtest filter as a LOW-integrity process (a host whose level is not 0x2000).
+A stand-in for the CI runner (high, 0x3000): this session is not elevated and cannot start a high-integrity process
+without a UAC prompt. Usage: python build/g202_low_host.py <exe> <filter> <out-file-in-LocalLow>"""
+import ctypes as C
+import ctypes.wintypes as W
+import os
+import sys
+
+exe, flt, outpath = sys.argv[1], sys.argv[2], sys.argv[3]
+adv = C.WinDLL('advapi32', use_last_error=True)
+k32 = C.WinDLL('kernel32', use_last_error=True)
+
+k32.GetCurrentProcess.restype = W.HANDLE
+k32.CreateFileW.restype = W.HANDLE
+k32.CreateFileW.argtypes = [W.LPCWSTR, W.DWORD, W.DWORD, C.c_void_p, W.DWORD, W.DWORD, W.HANDLE]
+adv.OpenProcessToken.argtypes = [W.HANDLE, W.DWORD, C.POINTER(W.HANDLE)]
+adv.DuplicateTokenEx.argtypes = [W.HANDLE, W.DWORD, C.c_void_p, C.c_int, C.c_int, C.POINTER(W.HANDLE)]
+adv.SetTokenInformation.argtypes = [W.HANDLE, C.c_int, C.c_void_p, W.DWORD]
+adv.ConvertStringSidToSidW.argtypes = [W.LPCWSTR, C.POINTER(C.c_void_p)]
+
+
+class SECURITY_ATTRIBUTES(C.Structure):
+    _fields_ = [('nLength', W.DWORD), ('lpSecurityDescriptor', C.c_void_p), ('bInheritHandle', W.BOOL)]
+
+
+class STARTUPINFOW(C.Structure):
+    _fields_ = [('cb', W.DWORD), ('lpReserved', W.LPWSTR), ('lpDesktop', W.LPWSTR), ('lpTitle', W.LPWSTR),
+                ('dwX', W.DWORD), ('dwY', W.DWORD), ('dwXSize', W.DWORD), ('dwYSize', W.DWORD),
+                ('dwXCountChars', W.DWORD), ('dwYCountChars', W.DWORD), ('dwFillAttribute', W.DWORD),
+                ('dwFlags', W.DWORD), ('wShowWindow', W.WORD), ('cbReserved2', W.WORD), ('lpReserved2', C.c_void_p),
+                ('hStdInput', W.HANDLE), ('hStdOutput', W.HANDLE), ('hStdError', W.HANDLE)]
+
+
+class PROCESS_INFORMATION(C.Structure):
+    _fields_ = [('hProcess', W.HANDLE), ('hThread', W.HANDLE), ('dwProcessId', W.DWORD), ('dwThreadId', W.DWORD)]
+
+
+class SID_AND_ATTRIBUTES(C.Structure):
+    _fields_ = [('Sid', C.c_void_p), ('Attributes', W.DWORD)]
+
+
+TOKEN_ASSIGN_PRIMARY, TOKEN_DUPLICATE, TOKEN_QUERY, TOKEN_ADJUST_DEFAULT = 0x1, 0x2, 0x8, 0x80
+tok = W.HANDLE()
+assert adv.OpenProcessToken(k32.GetCurrentProcess(), TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ASSIGN_PRIMARY, C.byref(tok)), C.get_last_error()
+low = W.HANDLE()
+assert adv.DuplicateTokenEx(tok, 0xF01FF, None, 2, 1, C.byref(low)), C.get_last_error()   # MAXIMUM_ALLOWED-ish, impersonation->primary
+sid = C.c_void_p()
+assert adv.ConvertStringSidToSidW('S-1-16-4096', C.byref(sid))
+tml = SID_AND_ATTRIBUTES(sid, 0x20)   # SE_GROUP_INTEGRITY
+assert adv.SetTokenInformation(low, 25, C.byref(tml), C.sizeof(tml) + 16), C.get_last_error()   # TokenIntegrityLevel
+
+sa = SECURITY_ATTRIBUTES(C.sizeof(SECURITY_ATTRIBUTES), None, True)
+out = k32.CreateFileW(outpath, 0x40000000, 3, C.byref(sa), 2, 0x80, None)   # GENERIC_WRITE, create always
+assert out not in (None, W.HANDLE(-1).value), C.get_last_error()
+si = STARTUPINFOW()
+si.cb = C.sizeof(si)
+si.dwFlags = 0x100   # STARTF_USESTDHANDLES
+si.hStdOutput = out
+si.hStdError = out
+si.hStdInput = None
+pi = PROCESS_INFORMATION()
+cmd = C.create_unicode_buffer('"%s" --gtest_filter=%s' % (exe, flt))
+ok = adv.CreateProcessAsUserW(low, None, cmd, None, None, True, 0x08000000, None, os.getcwd(), C.byref(si), C.byref(pi))
+assert ok, ('CreateProcessAsUser failed', C.get_last_error())
+k32.WaitForSingleObject(pi.hProcess, 600000)
+code = W.DWORD()
+k32.GetExitCodeProcess(pi.hProcess, C.byref(code))
+print('exit code', code.value)

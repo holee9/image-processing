@@ -1,0 +1,45 @@
+=== ARM syntax_ignored_url_alone_is_a_provider_under_every_syntax
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM jpip_syntax_never_recognised
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM only_the_deflate_syntax_recognised_the_plain_jpip_uid_dropped
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM only_the_plain_jpip_syntax_recognised_the_deflate_uid_dropped_EQUIVALENT_IN_THIS_BUILD
+red tests: (none)
+RESULT: EQUIVALENT-MUTANT PROBE  (nothing expected; red: 0)
+restored byte-identical: True
+=== ARM exclusion_never_reported
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM exclusion_only_under_a_jpip_syntax
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM exclusion_judged_by_value_not_by_presence
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM empty_url_counts_as_a_provider
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM reference_warning_also_makes_the_file_invalid
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM reference_case_reports_the_error_as_well_as_the_warning
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM reference_case_has_no_warning
+red tests: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

@@ -4,6 +4,7 @@
  * SPEC: SPEC-XPE-P1B-DICOM REQ-DICOM-023..028, AC-05, AC-10, AC-11
  */
 #include <gtest/gtest.h>
+#include "test_pid.h"
 #include "xpe/dicom/dicom_api.h"
 
 // #124 (QA-B-25): the negative-path fixtures below are derived from the
@@ -42,7 +43,7 @@ fs::path DicomValidatorTest::s_notDicom;
 fs::path DicomValidatorTest::s_tempDir;
 
 void DicomValidatorTest::SetUpTestSuite() {
-    s_tempDir = fs::temp_directory_path() / "xpe_dicom_validator_test";
+    s_tempDir = fs::temp_directory_path() / ("xpe_dicom_validator_test" + xpe_test::pid_suffix());
     fs::create_directories(s_tempDir);
 
     XpeImageBuffer img{};
@@ -157,14 +158,19 @@ TEST_F(DicomValidatorTest, NullOutBuf_ReturnsInvalidInput) {
 // ---------------------------------------------------------------------------
 // REQ-DICOM-024: UID format validation
 // ---------------------------------------------------------------------------
-TEST_F(DicomValidatorTest, ValidateBadUID_ReportsWarning) {
+// QA-B-206 C6 renamed this from ValidateBadUID_ReportsWarning: it asserted that a bad UID is a WARNING, but the same
+// problem was also pushed to errors, so one defect read as both a failure and a non-critical issue (REQ-DICOM-025).
+TEST_F(DicomValidatorTest, ValidateBadUID_IsAnErrorAndNotAlsoAWarning) {
     ASSERT_TRUE(fs::exists(s_badUidDcm)) << "bad-UID fixture was not written";
     char report[8192] = {};
     ASSERT_EQ(XPE_OK, xpe_dicom_validate(
         s_badUidDcm.string().c_str(), report, sizeof(report)));
     auto j = json::parse(report);
-    EXPECT_FALSE(j["warnings"].empty())
-        << "expected an Invalid UID format warning, report: " << report;
+    EXPECT_FALSE(j["valid"].get<bool>()) << report;
+    ASSERT_EQ(1u, j["errors"].size()) << "expected exactly the Invalid UID format error, report: " << report;
+    EXPECT_EQ("0008,0018", j["errors"][0]["tag"].get<std::string>()) << report;
+    EXPECT_NE(std::string::npos, j["errors"][0]["message"].get<std::string>().find("Invalid UID format")) << report;
+    EXPECT_TRUE(j["warnings"].empty()) << "was pushed to warnings too, report: " << report;
 }
 
 // ---------------------------------------------------------------------------
@@ -508,4 +514,374 @@ TEST_F(DicomValidatorTest, OutputBufferTooSmall_StillReportsRequiredSize) {
     uint32_t required = 0;
     std::memcpy(&required, buf, sizeof(required));
     EXPECT_GT(required, sizeof(buf)) << "required size must exceed the buffer given";
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 C5: REQ-DICOM-024 "Required Type 1 tags ... present AND non-empty". Each case derives from the conformant file,
+// changing exactly one attribute, so the one tag under test is the only difference.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/** Validates the conformant file with @p change applied to its dataset; returns the parsed report. */
+json ValidateChanged(const fs::path& conformant, const fs::path& out, const std::function<void(DcmDataset*)>& change,
+                     XpeErrorCode* rc) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(conformant.string().c_str()).good());
+    change(ff.getDataset());
+    EXPECT_TRUE(ff.saveFile(out.string().c_str(), EXS_LittleEndianExplicit).good());
+    char report[8192] = {};
+    *rc = xpe_dicom_validate(out.string().c_str(), report, sizeof(report));
+    return json::parse(report);
+}
+
+bool HasErrorFor(const json& j, const char* tag) {
+    for (const auto& e : j["errors"]) {
+        if (e["tag"].get<std::string>() == tag) return true;
+    }
+    return false;
+}
+
+}  // namespace
+
+TEST_F(DicomValidatorTest, ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag) {
+    struct Case {
+        const char* what;
+        const char* tag;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        // Patient's Name and Patient ID are NOT in this list: they are Type 2 (QA-B-206 M2b), see below
+        {"Modality empty", "0008,0060", [](DcmDataset* d) { d->putAndInsertString(DCM_Modality, ""); }},
+        {"StudyInstanceUID empty", "0020,000D", [](DcmDataset* d) { d->putAndInsertString(DCM_StudyInstanceUID, ""); }},
+        {"Rows empty (US without a value)", "0028,0010", [](DcmDataset* d) { d->insertEmptyElement(DCM_Rows); }},
+        {"BitsStored empty (US without a value)", "0028,0101", [](DcmDataset* d) { d->insertEmptyElement(DCM_BitsStored); }},
+        {"PixelData zero length", "7FE0,0010", [](DcmDataset* d) {
+             // insertEmptyElement alone leaves DcmPixelData's existing representation (the full 32768 bytes) in place, so the
+             // element is removed first and a zero-length one is put in its place
+             d->findAndDeleteElement(DCM_PixelData);
+             d->putAndInsertUint8Array(DCM_PixelData, nullptr, 0);
+         }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("c5_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_FALSE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_TRUE(HasErrorFor(j, c.tag)) << c.what << ": no error for " << c.tag << ": " << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty) {
+    // Controls: a short value, a value with surrounding spaces, and a value of a single character are all non-empty.
+    struct Case {
+        const char* what;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        {"PatientID one character", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "X"); }},
+        {"PatientID with surrounding spaces", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "  A1  "); }},
+        {"PatientName with component delimiters only is a value", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, "^"); }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("c5ok_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_TRUE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_TRUE(j["errors"].empty()) << c.what << ": " << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages) {
+    XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+    const json missing = ValidateChanged(s_conformantDcm, s_tempDir / "c5_missing.dcm",
+                                         [](DcmDataset* d) { d->findAndDeleteElement(DCM_StudyInstanceUID); }, &rc);
+    const json empty = ValidateChanged(s_conformantDcm, s_tempDir / "c5_empty.dcm",
+                                       [](DcmDataset* d) { d->putAndInsertString(DCM_StudyInstanceUID, ""); }, &rc);
+    ASSERT_EQ(1u, missing["errors"].size()) << missing.dump();
+    EXPECT_NE(std::string::npos, missing["errors"][0]["message"].get<std::string>().find("Missing"));
+    // QA-B-206 M2c (Codex #113): an empty UID is ONE defect, reported once as "no value"; its format is not judged as well.
+    // M2b had loosened this assertion to allow the second, "Invalid UID format", report.
+    ASSERT_EQ(1u, empty["errors"].size()) << empty.dump();
+    EXPECT_EQ("0020,000D", empty["errors"][0]["tag"].get<std::string>());
+    EXPECT_NE(std::string::npos, empty["errors"][0]["message"].get<std::string>().find("no value")) << empty.dump();
+    EXPECT_EQ(std::string::npos, empty["errors"][0]["message"].get<std::string>().find("Missing")) << empty.dump();
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M2b (Codex #111): Patient's Name (0010,0010) and Patient ID (0010,0020) are Type 2 in the DX IOD (PS3.3 Table C.7-1,
+// included by A.26.3): the attribute must be present, an empty value is allowed. QA-B-206 M2 judged them as Type 1 (REQ-DICOM-024
+// listed them there) and so refused an anonymized file that keeps both elements with no value. Presence is still required.
+// ---------------------------------------------------------------------------
+
+TEST_F(DicomValidatorTest, PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes) {
+    struct Case {
+        const char* what;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        {"PatientID empty", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, ""); }},
+        {"PatientName empty", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, ""); }},
+        {"PatientID only spaces", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientID, "    "); }},
+        {"PatientName only spaces", [](DcmDataset* d) { d->putAndInsertString(DCM_PatientName, "  "); }},
+        {"both empty (an anonymized file)", [](DcmDataset* d) {
+             d->putAndInsertString(DCM_PatientID, "");
+             d->putAndInsertString(DCM_PatientName, "");
+         }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_empty_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_TRUE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_TRUE(j["errors"].empty()) << c.what << ": " << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence) {
+    struct Case {
+        const char* what;
+        const char* tag;
+        std::function<void(DcmDataset*)> change;
+    } cases[] = {
+        {"PatientID absent", "0010,0020", [](DcmDataset* d) { d->findAndDeleteElement(DCM_PatientID); }},
+        {"PatientName absent", "0010,0010", [](DcmDataset* d) { d->findAndDeleteElement(DCM_PatientName); }},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json j = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_absent_" + std::to_string(n++) + ".dcm"), c.change, &rc);
+        EXPECT_EQ(XPE_OK, rc) << c.what;
+        EXPECT_FALSE(j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        ASSERT_TRUE(HasErrorFor(j, c.tag)) << c.what << ": " << j.dump();
+    }
+    // both at once: two errors, one per attribute, and the message names the Type
+    XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+    const json both = ValidateChanged(s_conformantDcm, s_tempDir / "m2b_absent_both.dcm", [](DcmDataset* d) {
+        d->findAndDeleteElement(DCM_PatientID);
+        d->findAndDeleteElement(DCM_PatientName);
+    }, &rc);
+    ASSERT_EQ(2u, both["errors"].size()) << both.dump();
+    for (const auto& e : both["errors"]) {
+        EXPECT_NE(std::string::npos, e["message"].get<std::string>().find("Type 2")) << both.dump();
+    }
+}
+
+// The whole required list, by Type, in one table: what must be present with a value (Type 1), what only present (Type 2).
+TEST_F(DicomValidatorTest, EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt) {
+    struct Row {
+        const char* name;
+        const char* tag;
+        DcmTagKey key;
+        bool type1;   // false: Type 2
+    } rows[] = {
+        {"Patient's Name", "0010,0010", DCM_PatientName, false},
+        {"Patient ID", "0010,0020", DCM_PatientID, false},
+        {"Study Instance UID", "0020,000D", DCM_StudyInstanceUID, true},
+        {"Series Instance UID", "0020,000E", DCM_SeriesInstanceUID, true},
+        {"SOP Instance UID", "0008,0018", DCM_SOPInstanceUID, true},
+        {"Modality", "0008,0060", DCM_Modality, true},
+    };
+    int n = 0;
+    for (const Row& r : rows) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json absent = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_t_abs_" + std::to_string(n) + ".dcm"),
+                                            [&](DcmDataset* d) { d->findAndDeleteElement(r.key); }, &rc);
+        EXPECT_TRUE(HasErrorFor(absent, r.tag)) << r.name << ": an absent attribute is an error for both Types";
+        const json empty = ValidateChanged(s_conformantDcm, s_tempDir / ("m2b_t_emp_" + std::to_string(n) + ".dcm"),
+                                           [&](DcmDataset* d) { d->putAndInsertString(r.key, ""); }, &rc);
+        // judged by the "no value" message and not just by the tag, and by the NUMBER of reports for the tag: before M2c an empty
+        // UID was ALSO reported as an invalid UID format, so an error for the same tag would have hidden a Type 1 attribute
+        // downgraded to Type 2. Now an empty Type 1 value is exactly one report, "no value"; an empty Type 2 value is none.
+        bool noValue = false;
+        int reports = 0;
+        for (const auto& e : empty["errors"]) {
+            if (e["tag"].get<std::string>() != r.tag) continue;
+            ++reports;
+            if (e["message"].get<std::string>().find("no value") != std::string::npos) noValue = true;
+        }
+        EXPECT_EQ(r.type1, noValue) << r.name << ": an empty value is an error only for Type 1: " << empty.dump();
+        EXPECT_EQ(r.type1 ? 1 : 0, reports) << r.name << ": " << empty.dump();
+        if (!r.type1) EXPECT_TRUE(empty["errors"].empty()) << r.name << ": " << empty.dump();
+        ++n;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// QA-B-206 M2c (Codex #113): Pixel Data (7FE0,0010) is Type 1C in the Image Pixel module -- "required if Pixel Data Provider URL
+// (0028,7FE0) is not present". A file that gives its pixels by reference has no Pixel Data and is not wrong for that; this
+// module cannot read pixels by reference, so it says so once, as a warning that leaves `valid` alone. The URL has to carry a
+// value to count as a provider. The cases are the table in the M2d test below.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+int CountMessages(const json& list, const char* tag, const char* text) {
+    int n = 0;
+    for (const auto& e : list) {
+        if (e["tag"].get<std::string>() == tag && e["message"].get<std::string>().find(text) != std::string::npos) ++n;
+    }
+    return n;
+}
+
+}  // namespace
+
+// QA-B-206 M2d (Codex #114): the Provider URL is part of the JPIP Referenced transfer syntaxes alone (1.2.840.10008.1.2.4.94 and
+// .95), and Pixel Data and the URL are mutually exclusive (PS3.5 8.2). What a URL means therefore depends on the transfer syntax
+// the file declares in its meta group, so every case is written UNDER the syntax it names (DCMTK sets the meta group's
+// TransferSyntaxUID from the syntax it is asked to write). The first M2c version of this test treated "both present" as valid
+// and ignored the syntax; this is the table the lead set in QA-B-206.md (M2d).
+namespace {
+
+/** Like ValidateChanged, but the file is written under transfer syntax @p xfer. */
+json ValidateChangedUnder(E_TransferSyntax xfer, const fs::path& conformant, const fs::path& out,
+                          const std::function<void(DcmDataset*)>& change, XpeErrorCode* rc, bool* saved) {
+    DcmFileFormat ff;
+    EXPECT_TRUE(ff.loadFile(conformant.string().c_str()).good());
+    change(ff.getDataset());
+    const OFCondition st = ff.saveFile(out.string().c_str(), xfer);
+    *saved = st.good();
+    if (!st.good()) {
+        ADD_FAILURE() << "DCMTK cannot write this file under that transfer syntax: " << st.text();
+        return json::object();
+    }
+    char report[8192] = {};
+    *rc = xpe_dicom_validate(out.string().c_str(), report, sizeof(report));
+    return json::parse(report);
+}
+
+}  // namespace
+
+TEST_F(DicomValidatorTest, PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData) {
+    const char* kUrl = "http://example.invalid/jpip";
+    struct Case {
+        const char* what;
+        E_TransferSyntax xfer;
+        bool pixelData;   // false: the element is deleted
+        const char* url;  // nullptr: no URL element; "": the element with no value
+        bool valid;
+        int missing;      // "Missing required Type 1 tag" reports for Pixel Data
+        int exclusive;    // "mutually exclusive" reports
+        int jpipPixel;    // "shall not be present under a JPIP Referenced transfer syntax" reports (PS3.5 A.6)
+        int reference;    // "by reference" warnings
+    };
+    const Case cases[] = {
+        {"ordinary file: Pixel Data, no URL", EXS_LittleEndianExplicit, true, nullptr, true, 0, 0, 0, 0},
+        {"JPIP Referenced (.94): URL only", EXS_JPIPReferenced, false, kUrl, true, 0, 0, 0, 1},
+        {"JPIP HTJ2K Referenced (.204): URL only", EXS_JPIPHTJ2KReferenced, false, kUrl, true, 0, 0, 0, 1},
+        {"JPIP HTJ2K Referenced (.204): Pixel Data, no URL (PS3.5 A.11)", EXS_JPIPHTJ2KReferenced, true, nullptr, false, 0, 0, 1, 0},
+        {"JPIP HTJ2K Referenced (.204): neither", EXS_JPIPHTJ2KReferenced, false, nullptr, false, 1, 0, 0, 0},
+        {"JPIP Referenced: Pixel Data and URL breaks both rules", EXS_JPIPReferenced, true, kUrl, false, 0, 1, 1, 0},
+        {"JPIP Referenced: Pixel Data, no URL (PS3.5 A.6)", EXS_JPIPReferenced, true, nullptr, false, 0, 0, 1, 0},
+        {"other syntax: URL only, it replaces nothing", EXS_LittleEndianExplicit, false, kUrl, false, 1, 0, 0, 0},
+        {"other syntax: Pixel Data and URL", EXS_LittleEndianExplicit, true, kUrl, false, 0, 1, 0, 0},
+        {"other syntax: neither", EXS_LittleEndianExplicit, false, nullptr, false, 1, 0, 0, 0},
+        {"JPIP Referenced: neither", EXS_JPIPReferenced, false, nullptr, false, 1, 0, 0, 0},
+        {"JPIP Referenced: an EMPTY URL is not a provider", EXS_JPIPReferenced, false, "", false, 1, 0, 0, 0},
+        {"other syntax: Pixel Data and a URL element with no value (present counts)", EXS_LittleEndianExplicit, true, "", false, 0, 1, 0, 0},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        bool saved = false;
+        const json j = ValidateChangedUnder(
+            c.xfer, s_conformantDcm, s_tempDir / ("m2d_px_" + std::to_string(n++) + ".dcm"),
+            [&](DcmDataset* d) {
+                if (!c.pixelData) d->findAndDeleteElement(DCM_PixelData);
+                if (c.url) d->putAndInsertString(DCM_PixelDataProviderURL, c.url);
+            },
+            &rc, &saved);
+        if (!saved) continue;
+        // a file that parses but does not conform is a report with valid:false and rc OK; DICOM_INVALID is for a file that
+        // cannot be parsed at all
+        EXPECT_EQ(XPE_OK, rc) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.valid, j["valid"].get<bool>()) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.missing, CountMessages(j["errors"], "7FE0,0010", "Missing required Type 1 tag")) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.exclusive, CountMessages(j["errors"], "0028,7FE0", "mutually exclusive")) << c.what << ": " << j.dump();
+        EXPECT_EQ(c.jpipPixel, CountMessages(j["errors"], "7FE0,0010", "shall not be present under a JPIP")) << c.what << ": " << j.dump();
+        EXPECT_EQ(static_cast<size_t>(c.missing + c.exclusive + c.jpipPixel), j["errors"].size()) << c.what << ": no other error: " << j.dump();
+        EXPECT_EQ(c.reference, CountMessages(j["warnings"], "7FE0,0010", "by reference")) << c.what << ": " << j.dump();
+        EXPECT_EQ(static_cast<size_t>(c.reference), j["warnings"].size()) << c.what << ": no other warning: " << j.dump();
+    }
+}
+
+// QA-B-210 #119 (Codex #119, low): the error for Pixel Data under a JPIP Referenced syntax cites the clause of THAT syntax --
+// PS3.5 A.6 for .94 (and .95), A.11 for .204 (and A.12 for .205). It used to say "PS3.5 A.6" for all of them. .95 and .205 cannot be
+// parsed by this DCMTK build (see the KnownDivergence test below), so the table checks .94 and .204; the mapping for the other
+// two is in DicomValidator.cpp and shares the same lookup.
+TEST_F(DicomValidatorTest, JpipPixelDataErrorCitesThePs35ClauseOfTheTransferSyntax) {
+    struct Case {
+        const char* what;
+        E_TransferSyntax xfer;
+        const char* clause;
+    };
+    const Case cases[] = {
+        {"JPIP Referenced (.94)", EXS_JPIPReferenced, "PS3.5 A.6)"},
+        {"JPIP HTJ2K Referenced (.204)", EXS_JPIPHTJ2KReferenced, "PS3.5 A.11)"},
+    };
+    int n = 0;
+    for (const Case& c : cases) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        bool saved = false;
+        const json j = ValidateChangedUnder(c.xfer, s_conformantDcm, s_tempDir / ("p119_clause_" + std::to_string(n++) + ".dcm"),
+                                            [](DcmDataset*) {}, &rc, &saved);
+        if (!saved) continue;
+        std::string message;
+        for (const auto& e : j["errors"]) {
+            const std::string m = e["message"].get<std::string>();
+            if (e["tag"].get<std::string>() == "7FE0,0010" && m.find("shall not be present under a JPIP") != std::string::npos) message = m;
+        }
+        ASSERT_FALSE(message.empty()) << c.what << ": " << j.dump();
+        EXPECT_NE(std::string::npos, message.find(c.clause)) << c.what << ": the message cites the wrong clause: " << message;
+        if (std::string(c.clause) == "PS3.5 A.11)") {
+            EXPECT_EQ(std::string::npos, message.find("A.6")) << c.what << ": A.6 is the clause of .94/.95, not of .204: " << message;
+        }
+    }
+}
+
+// .95 (JPIP Referenced Deflate) and .205 (JPIP HTJ2K Referenced Deflate) belong in the table above exactly like .94 and .204, but
+// this DCMTK build cannot read a file under either: the validator gets "Unsupported compression or encryption" from loadFile and
+// reports the file as unparseable, so nothing about Pixel Data or the URL is ever judged. Recorded as what is observed, not as
+// what is wanted: when the dependency gains deflate support this goes red, and the cases are added to the table (the code
+// already treats .95 and .205 like .94 and .204).
+TEST_F(DicomValidatorTest, KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild) {
+    const E_TransferSyntax xfers[] = {EXS_JPIPReferencedDeflate, EXS_JPIPHTJ2KReferencedDeflate};
+    int n = 0;
+    for (E_TransferSyntax x : xfers) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        bool saved = false;
+        const json j = ValidateChangedUnder(
+            x, s_conformantDcm, s_tempDir / ("m2d_px_deflate_" + std::to_string(n++) + ".dcm"),
+            [](DcmDataset* d) {
+                d->findAndDeleteElement(DCM_PixelData);
+                d->putAndInsertString(DCM_PixelDataProviderURL, "http://example.invalid/jpip");
+            },
+            &rc, &saved);
+        if (!saved) continue;
+        EXPECT_EQ(XPE_ERR_DICOM_INVALID, rc) << j.dump();
+        EXPECT_FALSE(j["valid"].get<bool>()) << j.dump();
+        EXPECT_EQ(1, CountMessages(j["errors"], "0008,0000", "cannot be parsed")) << j.dump();
+    }
+}
+
+TEST_F(DicomValidatorTest, ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell) {
+    const struct { const char* what; const char* tag; DcmTagKey key; } rows[] = {
+        {"Study", "0020,000D", DCM_StudyInstanceUID},
+        {"Series", "0020,000E", DCM_SeriesInstanceUID},
+        {"SOP Instance", "0008,0018", DCM_SOPInstanceUID},
+    };
+    int n = 0;
+    for (const auto& r : rows) {
+        XpeErrorCode rc = XPE_ERR_NOT_INITIALIZED;
+        const json empty = ValidateChanged(s_conformantDcm, s_tempDir / ("m2c_uid_e" + std::to_string(n) + ".dcm"),
+                                           [&](DcmDataset* d) { d->putAndInsertString(r.key, ""); }, &rc);
+        EXPECT_EQ(1, CountMessages(empty["errors"], r.tag, "no value")) << r.what << ": " << empty.dump();
+        EXPECT_EQ(0, CountMessages(empty["errors"], r.tag, "Invalid UID format")) << r.what << ": " << empty.dump();
+        // a UID that HAS a value is still judged for its format: the skip is for the blank one only
+        const json bad = ValidateChanged(s_conformantDcm, s_tempDir / ("m2c_uid_b" + std::to_string(n) + ".dcm"),
+                                         [&](DcmDataset* d) { d->putAndInsertString(r.key, "not.a.uid"); }, &rc);
+        EXPECT_EQ(1, CountMessages(bad["errors"], r.tag, "Invalid UID format")) << r.what << ": " << bad.dump();
+        EXPECT_EQ(0, CountMessages(bad["errors"], r.tag, "no value")) << r.what << ": " << bad.dump();
+        ++n;
+    }
 }

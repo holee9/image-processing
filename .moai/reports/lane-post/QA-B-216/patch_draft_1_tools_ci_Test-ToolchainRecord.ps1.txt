@@ -1,0 +1,36 @@
+PATCH DRAFT (not applied) -- new file tools/ci/Test-ToolchainRecord.ps1   (owner: lead)  QA-B-216, Refs #251
+Compares the MSVC tools version of the current job with tools/ci/toolchain-record.txt.
+
+----- tools/ci/Test-ToolchainRecord.ps1 -----
+param(
+    [ValidateSet('warn', 'fail')][string]$Mode = 'warn'
+)
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$record = Join-Path $PSScriptRoot 'toolchain-record.txt'
+$known  = @(Get-Content $record | Where-Object { $_ -and -not $_.StartsWith('#') } | ForEach-Object { $_.Trim() })
+$current = $env:VCToolsVersion                       # set by Use-MsvcDevShell.ps1 (e.g. 14.51.36231)
+if ([string]::IsNullOrWhiteSpace($current)) { throw 'VCToolsVersion is not set; run Use-MsvcDevShell.ps1 first.' }
+$majorMinor = ($current -split '\.')[0..1] -join '.'  # 14.51
+
+if ($known -contains $majorMinor) {
+    Write-Host "toolchain $current is recorded ($majorMinor)"
+    exit 0
+}
+
+$msg = @"
+MSVC tools $current is not in tools/ci/toolchain-record.txt (recorded: $($known -join ', ')).
+The same enhance_basic source produced different images under different compiler versions (QA-B-215: 14.44 vs 14.51).
+Do now: (1) rebuild the stage-2 reference images with THIS job's DLLs (m2-post-v<N+1>, provenance.txt),
+(2) compare them with the previous reference stage by stage, (3) add the new row to the fingerprint table in
+modules/enhance_basic/tests (QA-B-216 design), (4) add '$majorMinor' to tools/ci/toolchain-record.txt.
+"@
+if ($Mode -eq 'fail') { Write-Error $msg; exit 1 }
+Write-Host "::warning title=New MSVC toolchain::$($msg -replace "`r?`n", ' ')"
+exit 0
+
+----- tools/ci/toolchain-record.txt -----
+# MSVC tools versions (major.minor) for which the stage-2 reference images were verified. One per line.
+14.44
+14.51

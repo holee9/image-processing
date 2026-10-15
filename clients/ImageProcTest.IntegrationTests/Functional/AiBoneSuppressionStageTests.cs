@@ -99,7 +99,7 @@ public sealed class AiBoneSuppressionStageTests
     [InlineData(-6, "NotAttempted")]
     [InlineData(-7, "NotAttempted")]
     [InlineData(-3, "Failed")]
-    [InlineData(-4, "Failed")]
+    [InlineData(-4, "ModelUnavailable")]
     [InlineData(-9, "Failed")]
     public void TheReturnCode_IsClassified(int code, string expected) =>
         Assert.Equal(expected, AiBoneSuppressionStage.Classify(code).ToString());
@@ -408,7 +408,14 @@ public sealed class AiBoneSuppressionStageTests
         Assert.Matches(@"public static AiRestartResult Restart\(string modelDirectory\) =>\s*WithLock\(", runner);
         // The status read takes the same gate and does its work under it. It waits with no limit: the caller is the background
         // read of AiStatusRefresher, never the UI thread (GUI-C-186d).
-        Assert.Matches(@"public static AiWorkerStatus QueryWorkerState\(\) =>\s*WithLock\(", runner);
+        Assert.Matches(@"private static AiWorkerStatus QueryWorkerStateUnderGate\(\) =>\s*WithLock\(", runner);
+        // GUI-C-192e: the GUI's own answer ("not started", a failed start) is given BEFORE the gate, and checked again under it.
+        var query = runner.IndexOf("public static AiWorkerStatus QueryWorkerState()", StringComparison.Ordinal);
+        var own = runner.IndexOf("Tracker.OwnStatus()", query, StringComparison.Ordinal);
+        var underGate = runner.IndexOf("return QueryWorkerStateUnderGate();", query, StringComparison.Ordinal);
+        Assert.True(query >= 0 && own > query && underGate > own, "QueryWorkerState must read the GUI's own status before it takes the gate.");
+        var guarded = runner.IndexOf("if (early is not null)", query, StringComparison.Ordinal);
+        Assert.True(guarded > own && guarded < underGate, "QueryWorkerState must RETURN the GUI's own status when there is one, before the gate (an unconditional or disabled check does not).");
     }
 
     [Fact]
@@ -476,11 +483,12 @@ public sealed class AiBoneSuppressionStageTests
     public void ThePlan_PutsTheAiStageThirdAndOffByDefault()
     {
         var stages = ProcessingChainPlan.BuildStages(new AppSettings());
-        Assert.Equal([StageIds.Preprocess, StageIds.Gsvg, StageIds.AiBoneSuppression], stages.Select(s => s.StageId));
-        Assert.False(stages[2].Enabled);
+        // GUI-C-234: EnhanceBasic (pipeline-spec 6.1, mandatory in release mode) is second, so the AI stage is now FOURTH; it is still off by default.
+        Assert.Equal([StageIds.Preprocess, StageIds.EnhanceBasic, StageIds.Gsvg, StageIds.AiBoneSuppression], stages.Select(s => s.StageId));
+        Assert.False(stages[3].Enabled);
 
         var on = ProcessingChainPlan.BuildStages(new AppSettings { AiBoneSuppressionInChain = true });
-        Assert.True(on[2].Enabled);
+        Assert.True(on[3].Enabled);
     }
 
     [Fact]
@@ -535,5 +543,86 @@ public sealed class AiBoneSuppressionStageTests
         {
             yield return at;
         }
+    }
+
+    /// <summary>GUI-C-192c: the withdrawn state shows a notice, with the bound and what the user can do; Unknown and Active still show nothing.</summary>
+    [Fact]
+    public void AnUnconfirmedStatus_ShowsANotice_ThatNamesTheBoundAndTheWayOut()
+    {
+        var unconfirmed = new AiWorkerStatus(AiWorkerState.Unconfirmed, 0, 0, "15");
+        Assert.True(AiBoneSuppressionStage.ShowsMark(unconfirmed));
+        var text = AiBoneSuppressionStage.BannerFor(unconfirmed);
+        Assert.Contains("status check delayed", text, StringComparison.Ordinal);   // an observation, not a claim that the worker failed (GUI-C-192e)
+        Assert.DoesNotContain("unknown", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("15 s", text, StringComparison.Ordinal);
+        Assert.Contains("Restart AI", text, StringComparison.Ordinal);
+        Assert.Equal("worker=Unconfirmed; bound=15s; since=lastAnswer", AiBoneSuppressionStage.DescribeStatus(unconfirmed));
+
+        Assert.False(AiBoneSuppressionStage.ShowsMark(AiWorkerStatus.Unknown));   // the normal Unknown stays quiet
+        Assert.False(AiBoneSuppressionStage.ShowsMark(new AiWorkerStatus(AiWorkerState.Active, 0, 3)));
+    }
+
+    // ---- GUI-C-201 (approved after GUI-C-200) ----------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// -4 is "the module will not use the model now". The text keeps the failure prefix the E2E reads, names the causes the code can have (GUI-C-217: a load in progress in another call
+    /// answers -4 too) without asserting any one of them, and does NOT carry the generic sentence that consecutive failures switch the worker off: the module decides whether this call
+    /// counts, and the answer differs by cause.
+    /// </summary>
+    [Fact]
+    public void AModelThatTheModuleWillNotUse_IsSaidSo_WithoutAClaimAboutTheWorkersFailureTotal()
+    {
+        var answer = AiBoneSuppressionStage.Interpret(AiBoneSuppressionStage.ConfigInvalid, null);
+
+        Assert.False(answer.Ran);
+        Assert.Null(answer.Pixels);
+        Assert.Contains("AI bone suppression NOT applied (code -4)", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("the module cannot use the model", answer.Message, StringComparison.Ordinal);
+        // all three causes are named, each as a possibility ("may"), and none is asserted
+        Assert.Contains("may be damaged or not a model", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("signature may not have verified", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("another call may still be loading and verifying the model", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("try again in a moment", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("is damaged", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("did not verify", answer.Message, StringComparison.Ordinal);
+        Assert.Contains("original image is shown", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("consecutive failures switch", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("not counted", answer.Message, StringComparison.OrdinalIgnoreCase);   // neither claim: the module decides, by cause
+        // What C-09 and C-08 assert is absent from the other texts too.
+        Assert.DoesNotContain("was not found", answer.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("no model at", answer.Message, StringComparison.Ordinal);
+
+        // The other failure codes keep the generic text.
+        var failed = AiBoneSuppressionStage.Interpret(AiBoneSuppressionStage.ProcessingFailed, null);
+        Assert.Contains("consecutive failures switch the AI worker off", failed.Message, StringComparison.Ordinal);
+    }
+
+    // ---- The init spelling (the module compares the directory text byte for byte) ----------------------------------------------------
+
+    [Fact]
+    public void AnInitForTheSameDirectory_GoesOutWithTheSpellingTheSessionStartedWith()
+    {
+        var tracker = new AiSessionTracker();
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"C:\Models\Bone"));   // nothing running: as requested
+
+        tracker.InitSucceeded(@"C:\Models\Bone");
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"c:\models\bone"));   // the same directory, spelled differently: the first spelling
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"C:\MODELS\BONE"));
+        Assert.Equal(@"C:\Models\Bone", tracker.DirectoryToSend(@"C:\Models\Bone"));
+        Assert.Equal(@"C:\Models\Other", tracker.DirectoryToSend(@"C:\Models\Other")); // another directory: as requested (the caller ends the session first)
+
+        tracker.Stopped();
+        Assert.Equal(@"c:\models\bone", tracker.DirectoryToSend(@"c:\models\bone"));   // the session ended: a new one starts with what was asked
+    }
+
+    [Fact]
+    public void TheSessionIsStarted_AndKept_UnderTheSpellingThatWasSent()
+    {
+        var code = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Services/Native/GuiAiRunner.cs")).Replace("\r\n", "\n");
+        var shutdown = code.IndexOf("if (Tracker.NeedsNewSession(directory))", StringComparison.Ordinal);
+        var pick = code.IndexOf("directory = Tracker.DirectoryToSend(directory);", StringComparison.Ordinal);
+        var init = code.IndexOf("XpeAiNative.xpe_ai_init(directory, config)", StringComparison.Ordinal);
+        Assert.True(shutdown >= 0 && pick > shutdown && init > pick, "the spelling is chosen after a different directory has ended the session and before the module is called");
+        Assert.Contains("Tracker.InitSucceeded(directory)", code, StringComparison.Ordinal);   // the tracker keeps what was SENT
     }
 }

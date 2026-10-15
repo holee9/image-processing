@@ -1,0 +1,5 @@
+docs(report): QA-B-209 C16 보고서와 증거 (로깅: 종료 DEBUG, 실패 ERROR)
+
+Refs #251
+
+🗿 MoAI

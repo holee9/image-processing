@@ -1,0 +1,3 @@
+== arm (a): a forbidden call added to a source LINKED from outside the project folder (clients/ImageProcTest/Diagnostics/XpePreprocessOracleProcess.cs); app file restored afterwards
+[xUnit.net 00:00:00.35]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    13, 건너뜀:     0, 전체:    14, 기간: 456 ms - ImageProcTest.IntegrationTests.dll (net8.0)

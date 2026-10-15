@@ -1,0 +1,6 @@
+== arm (a): the exception handling of a diagnostic read is removed (the exception propagates)
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.A_ADiagnosticReadThatThrows_DoesNotFailARunWhoseCenterIs4321_AndTheRecordIsStillWritten [FAIL]
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.B_ADiagnosticReadThatThrows_DoesNotHideALoss_AndTheMessageStillHasTheRecord [FAIL]
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.C_ADiagnosticReadBeforeTheKeysThatThrows_DoesNotStopTheKeys [FAIL]
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.TheReReadAndTheDescriptionOfWhatIsInFront_AreIsolatedToo [FAIL]
+실패!  - 실패:     4, 통과:    21, 건너뜀:     0, 전체:    25, 기간: 44 ms - ImageProcTest.E2ETests.dll (net8.0)

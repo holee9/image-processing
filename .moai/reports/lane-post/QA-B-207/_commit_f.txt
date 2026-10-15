@@ -1,0 +1,11 @@
+fix(enhance_basic): QA-B-207f Codex #147 — 증명이 기대는 부동소수점 연산을 모두 precise 함수로, 최악 영상 4종을 벤치마크에 추가
+
+1) 5u 오차 증명은 R^ = fl(vmax-vmin) 과 inv = fl(4095/R^) 를 IEEE 단일 반올림으로 센다. 이 계산이 Binner 생성자(= /fp:fast) 안에 있었다. precise_range / precise_inv / precise_inv_low 를 precise 영역의 noinline 함수로 분리하고 filtered_bin / fill_bins_filtered 도 noinline 으로. 컴파일된 목적 파일을 dumpbin 으로 확인: 별도 함수, 생성자에서 실제 call, FMA 0, 증명이 세는 네 연산(sub, mul, floor, sub)만 있음.
+2) BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072 에 최악 영상 3종 측정 추가(정수 HU, 소수 0.0123..4000, 정수 HU + 화소 하나 0.001), 단언 없음.
+
+207e 의 시험·반증은 그대로(ci-post 1451/1451, 실제 DLL 대 Fraction 0 어긋남, 반증 2개 빨강), 속도도 207e 와 같음.
+
+Card: QA-B-207f
+Refs #251
+
+🗿 MoAI

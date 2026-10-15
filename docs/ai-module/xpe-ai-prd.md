@@ -51,11 +51,11 @@
 **성능 목표**:
 - Top-1 정확도 ≥ 95% (≥ 15개 해부학적 부위)
 - 레이턴시: ≤ 300ms (3072×3072 이미지 기준, 포함: 리사이즈 + 추론)
-- OOD(Out-Of-Distribution) 탐지: 최대 신뢰도 < 0.70 → `body_part = "UNKNOWN"` 반환
+- OOD(Out-Of-Distribution) 탐지: 최대 신뢰도 < 0.6(설정 가능, 기본값) → `body_part = "UNKNOWN"` 반환 (정정 2026-10-02, `QA-B-191`: 0.70 → SPEC `REQ-AI-012` 정본 0.6)
 
 **안전 제약**:
 - SWU-2.7 출력은 **JSON sidecar only**. XpeImageMetadata.bodyPart를 직접 변경하지 않음
-- 신뢰도 < 0.70인 경우 자동으로 "UNKNOWN" 반환
+- 신뢰도 < 문턱(기본 0.6)인 경우 자동으로 "UNKNOWN" 반환
 - 모델 버전은 모든 출력에 포함되어야 함 (추적 가능성)
 
 **지원 부위 목록** (최소 15개 범주):
@@ -275,7 +275,7 @@ xpe_ai_worker.exe (샌드박스)
 
 **필수**: 모든 추론 출력에 OOD 감지 메커니즘
 
-- 최대 신뢰도 임계값: 0.70 (SWU-2.7)
+- 최대 신뢰도 임계값: 0.6 기본값, 설정 가능 (SWU-2.7)
 - 신뢰도 점수는 모든 sidecar에 필수 포함
 - OOD 감지 → fallback 또는 "UNKNOWN" 응답
 

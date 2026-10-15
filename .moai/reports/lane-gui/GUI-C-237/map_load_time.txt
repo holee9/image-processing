@@ -1,0 +1,8 @@
+cycle 1: init 2.3 ms, offset 42.4, gain 48.1, defect 12.4, shutdown 2.5; total 107.7 ms; codes 0,0,0,0
+cycle 2: init 0.0 ms, offset 39.2, gain 44.8, defect 11.9, shutdown 3.4; total 99.4 ms; codes 0,0,0,0
+cycle 3: init 0.0 ms, offset 39.1, gain 46.5, defect 12.6, shutdown 2.3; total 100.4 ms; codes 0,0,0,0
+cycle 4: init 0.0 ms, offset 40.0, gain 45.2, defect 11.9, shutdown 3.4; total 100.5 ms; codes 0,0,0,0
+cycle 5: init 0.0 ms, offset 39.3, gain 45.6, defect 12.3, shutdown 2.7; total 99.9 ms; codes 0,0,0,0
+cycle 6: init 0.0 ms, offset 40.8, gain 44.2, defect 11.9, shutdown 2.5; total 99.4 ms; codes 0,0,0,0
+cycle 7: init 0.0 ms, offset 41.1, gain 46.5, defect 13.0, shutdown 2.9; total 103.5 ms; codes 0,0,0,0
+cycle 8: init 0.0 ms, offset 43.1, gain 47.4, defect 12.3, shutdown 2.5; total 105.2 ms; codes 0,0,0,0

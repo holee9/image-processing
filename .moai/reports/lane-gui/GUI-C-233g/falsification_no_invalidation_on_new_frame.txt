@@ -1,0 +1,214 @@
+  scenario '1 started Apply vs shutdown': 131 ms
+  scenario '1b started Apply fails after shutdown': 91 ms
+  scenario '2 entry points vs transition': 91 ms
+  scenario '3 stale failing Lane B': 127 ms
+  scenario '3b stale succeeding Lane B': 137 ms
+  scenario '4 older Apply finishes last (main chain, succeeds)': 92 ms
+  scenario '4 older Apply finishes last (main chain, fails)': 122 ms
+  scenario '4 older Apply finishes last (Lane B, succeeds)': 123 ms
+  scenario '4 older Apply finishes last (Lane B, fails)': 126 ms
+  scenario '5 Candidate lane = second AI call, status read after it': 31 ms
+  scenario '5b equal lanes = one AI call per Apply': 28 ms
+  scenario '10 HUD shows the applied window': 103 ms
+  scenario '11 report describes the current frame': 118 ms
+| event                                        | record | appl. | by     | display version    | windowSource  | cal. | chain  | input   | stale     | actual |
+| start-up (nothing loaded)                    | none   | False | null   | null               | not applied   | null | empty  | not run | -         | Mock |
+| A rendered (Mock)                            | Mock   | True  | Mock   | v0.0.0-mock-display | automatic     | set  | stages | raw     | -         | Mock |
+| setting changed, not re-applied              | Mock   | True  | Mock   | v0.0.0-mock-display | automatic     | set  | stages | raw     | settings  | Mock |
+| same frame re-render, display fails          | Mock   | True  | Mock   | v0.0.0-mock-display | failed        | set  | stages | raw     | failed    | Mock |
+| new frame, display fails                     | Mock   | True  | Mock   | v0.0.0-mock-display | failed        | set  | stages | raw     | failed    | Mock |
+| B rendered (Mock)                            | Mock   | True  | Mock   | v0.0.0-mock-display | automatic     | set  | stages | raw     | -         | Mock |
+| Mock -> Native                               | none   | False | null   | null               | not applied   | null | empty  | not run | backend   | Native |
+| re-render succeeded (Native)                 | Native | True  | Native | native-display-9.9 | automatic     | set  | stages | raw     | -         | Native |
+| Native -> Mock                               | none   | False | null   | null               | not applied   | null | empty  | not run | backend   | Mock |
+| re-initialise (same mode)                    | none   | False | null   | null               | not applied   | null | empty  | not run | backend   | Mock |
+  scenario '13 event x field table': 15288 ms
+  scenario '8 save candidate: an older Apply finishing late': 91 ms
+  scenario '9 failed open keeps the save name and candidate': 31 ms
+  scenario '6 ai-worker-disabled fault': 0 ms
+  scenario '7 older status read never shown': 92 ms
+  scenario '8 Restart AI vs an older Disabled answer': 96 ms
+  scenario '8b session replaced without Reset (epoch)': 101 ms
+  scenario '9 Disabled on screen vs a replaced session': 2534 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[11 report describes the current frame] report still carries a window after B's failure: {
+    "applied": true,
+    "summary": "MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -\u003E Display: Modality(1/0) -\u003E VOI(Linear, C=32768, W=65535) -\u003E GSDF(off)",
+    "version": "v0.0.0-mock-display",
+    "renderedBy": {
+      "backendMode": "Mock",
+      "backendName": "MockXpeBackend",
+      "commonVersion": "v0.0.0-mock",
+      "displayVersion": "v0.0.0-mock-display",
+      "nativeSource": ""
+    },
+    "windowSource": "failed",
+    "mode": "LinearExact",
+    "center": 1234.5,
+    "width": 987,
+    "bodyPart": "Abdomen",
+    "gsdf": false,
+    "requested": {
+      "mode": "Linear",
+      "center": 32768,
+      "width": 65535,
+      "automatic": true,
+      "bodyPart": "Abdomen",
+      "gsdf": false
+    }
+  }
+[11 report describes the current frame] report summary after B's failure is still A's success: 'MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)'
+[11 report describes the current frame] the previous frame's timings survived into frame B: 'work=3 ms; vm=2 ms'
+[11 report describes the current frame] report stages after B's failure are still A's: [
+      {
+        "id": "preprocess",
+        "status": "NotRequested",
+        "reason": "switched off",
+        "elapsedMs": 0
+      },
+      {
+        "id": "gsvg",
+        "status": "NotRequested",
+        "reason": "switched off",
+        "elapsedMs": 0
+      },
+      {
+        "id": "ai_bone_suppress",
+        "status": "NotRequested",
+        "reason": "switched off",
+        "elapsedMs": 0
+      }
+    ]
+[11 report describes the current frame] report displayInput after B's failure is 'raw'
+[11 report describes the current frame] report chain status after B's failure is 'chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw'
+[11 report describes the current frame] B kept A's preprocess/chain diagnostics
+[11 report describes the current frame] B's report carries a calibration summary no render of B produced: Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto
+[11 report describes the current frame] B's report carries calibration/display values no render of B used: {
+    "summary": "Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto",
+    "offset": "Auto",
+    "gain": "Auto",
+    "defect": "Auto",
+    "ghost": "Auto",
+    "temperature": "Auto",
+    "nonlinearity": "Auto",
+    "binning": "Auto",
+    "requested": {
+      "summary": "Offset=Off, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto",
+      "offset": "Off",
+      "gain": "Auto",
+      "defect": "Auto",
+      "ghost": "Auto",
+      "temperature": "Auto",
+      "nonlinearity": "Auto",
+      "binning": "Auto"
+    }
+  }
+[13 event x field table] timed out waiting for: frame B's failed render to be reported
+[13 event x field table] after new frame whose display fails: a render record still stands
+[13 event x field table] after new frame whose display fails: status/timings/summary are still a render's: 'chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw' / 'work=3 ms; vm=2 ms' / 'MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)'
+[13 event x field table] after new frame whose display fails: the HUD window is still a render's
+[13 event x field table] after new frame whose display fails: the report names a producer or says applied: {
+    "applied": true,
+    "summary": "MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -\u003E Display: Modality(1/0) -\u003E VOI(Linear, C=32768, W=65535) -\u003E GSDF(off)",
+    "version": "v0.0.0-mock-display",
+    "renderedBy": {
+      "backendMode": "Mock",
+      "backendName": "MockXpeBackend",
+      "commonVersion": "v0.0.0-mock",
+      "displayVersion": "v0.0.0-mock-display",
+      "nativeSource": ""
+    },
+    "windowSource": "failed",
+    "mode": "LinearExact",
+    "center": 1234.5,
+    "width": 987,
+    "bodyPart": "Abdomen",
+    "gsdf": false,
+    "requested": {
+      "mode": "Linear",
+      "center": 32768,
+      "width": 65535,
+      "automatic": true,
+      "bodyPart": "Abdomen",
+      "gsdf": false
+    }
+  }
+[13 event x field table] after new frame whose display fails: the report's window/bodyPart are still a render's: {
+    "applied": true,
+    "summary": "MOCK CalibrationEval(Offset=Auto/applied, Gain=Auto/applied, Defect=Auto/applied, Ghost=Auto/bypassed, Temp=Auto/bypassed, Nonlinearity=Auto/bypassed, Binning=Auto/bypassed) -\u003E Display: Modality(1/0) -\u003E VOI(Linear, C=32768, W=65535) -\u003E GSDF(off)",
+    "version": "v0.0.0-mock-display",
+    "renderedBy": {
+      "backendMode": "Mock",
+      "backendName": "MockXpeBackend",
+      "commonVersion": "v0.0.0-mock",
+      "displayVersion": "v0.0.0-mock-display",
+      "nativeSource": ""
+    },
+    "windowSource": "failed",
+    "mode": "LinearExact",
+    "center": 1234.5,
+    "width": 987,
+    "bodyPart": "Abdomen",
+    "gsdf": false,
+    "requested": {
+      "mode": "Linear",
+      "center": 32768,
+      "width": 65535,
+      "automatic": true,
+      "bodyPart": "Abdomen",
+      "gsdf": false
+    }
+  }
+[13 event x field table] after new frame whose display fails: the report's calibration is still a render's: {
+    "summary": "Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto",
+    "offset": "Auto",
+    "gain": "Auto",
+    "defect": "Auto",
+    "ghost": "Auto",
+    "temperature": "Auto",
+    "nonlinearity": "Auto",
+    "binning": "Auto",
+    "requested": {
+      "summary": "Offset=Off, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto",
+      "offset": "Off",
+      "gain": "Auto",
+      "defect": "Auto",
+      "ghost": "Auto",
+      "temperature": "Auto",
+      "nonlinearity": "Auto",
+      "binning": "Auto"
+    }
+  }
+[13 event x field table] after new frame whose display fails: the report's chain is still a render's: {
+    "status": "chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw",
+    "pipelineTimings": "work=3 ms; vm=2 ms",
+    "exposureKvp": 70,
+    "pixelPitchMm": 0.14,
+    "gsvgMode": "None",
+    "gsvgGridRatio": 10,
+    "gsvgGridFrequencyPerCm": 60,
+    "preprocessRequested": false,
+    "displayInput": "raw",
+    "stages": [
+      {
+        "id": "preprocess",
+        "status": "NotRequested",
+        "reason": "switched off",
+        "elapsedMs": 0
+      },
+      {
+        "id": "gsvg",
+        "status": "NotRequested",
+        "reason": "switched off",
+        "elapsedMs": 0
+      },
+      {
+        "id": "ai_bone_suppress",
+        "status": "NotRequested",
+        "reason": "switched off",
+        "elapsedMs": 0
+      }
+    ]
+  }
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run() in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 381
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 123

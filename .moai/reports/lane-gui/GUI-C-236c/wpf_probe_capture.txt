@@ -1,0 +1,3 @@
+A plain WPF window (dark red background, yellow text, Topmost, 600x400 at 300,300), created by _wpfprobe.ps1 in this session; pixel (450,450) read through Graphics.CopyFromScreen 3 s after it was shown (the pixel is inside the window):
+pixel inside the probe window: 255,255,255
+Expected: dark red (139,0,0). A read of white means this session cannot capture WPF window content (CopyFromScreen; PrintWindow with PW_RENDERFULLCONTENT returned an all-white client of the app too).

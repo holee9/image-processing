@@ -1,0 +1,19 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+XPE-C56-PROBE hwnd=0x27711010 pid=53004 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds [17 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Scope and Limitations", expectedFile: "scope.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows [2 s]
+
+테스트를 실행했습니다.
+총 테스트 수: 6
+     통과: 6
+ 총 시간: 28.1749 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

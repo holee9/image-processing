@@ -7,7 +7,7 @@ using ImageProcTest.Services.Native;
 
 namespace ImageProcTest.Services;
 
-public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
+public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBackend, ICorrectedImageSource
 {
     private static readonly string[] RequiredCommonExports =
     {
@@ -22,6 +22,8 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         "xpe_apply_voi_lut",
         "xpe_voi_preset_create",
         "xpe_apply_presentation_lut",
+        "xpe_apply_presentation_lut_ex",
+        "xpe_voi_auto_window",
         "xpe_gsdf_calibrate"
     };
 
@@ -29,6 +31,11 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     private readonly string _commonDllPath;
     private readonly string _displayDllPath;
     private readonly BackendTelemetry _telemetry = new();
+
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<ChainResult, CorrectedImage> _candidates = new();
+
+    /// <summary>GUI-C-232b: the corrected float image the given chain run produced (see <see cref="ICorrectedImageSource"/>).</summary>
+    public CorrectedImage? CorrectedFor(ChainResult chain) => _candidates.TryGetValue(chain, out var corrected) ? corrected : null;
     private BackendRuntimeInfo _runtimeInfo = new();
 
     public RealXpeBackend(RawImageLoader rawImageLoader, string commonDllPath, string displayDllPath)
@@ -41,8 +48,15 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     // @MX:ANCHOR: [AUTO] Factory guard: verifies both DLLs have all required exports before routing to RealXpeBackend
     // @MX:REASON: Called by XpeBackendFactory.Create; must remain side-effect-free (loads DLL, checks exports, immediately frees); false → MockXpeBackend
     public static bool CanUseNative(string commonDllPath, string displayDllPath) =>
-        HasExports(commonDllPath, RequiredCommonExports) &&
-        HasExports(displayDllPath, RequiredDisplayExports);
+        WhyNativeUnusable(commonDllPath, displayDllPath) is null;
+
+    /// <summary>
+    /// GUI-C-238: null when both DLLs load and export everything the backend calls; otherwise ONE sentence saying which DLL, at which path (with its size and date: an old copy is recognised by them),
+    /// and what is wrong with it - not found, not loadable, or the first export it lacks. This is what the banner and the log show when Native was requested and Mock was started instead.
+    /// </summary>
+    public static string? WhyNativeUnusable(string commonDllPath, string displayDllPath) =>
+        WhyUnusable("xpe_common.dll", commonDllPath, RequiredCommonExports) ??
+        WhyUnusable("xpe_display.dll", displayDllPath, RequiredDisplayExports);
 
     public BackendRuntimeInfo Initialize(AppSettings settings)
     {
@@ -68,6 +82,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         AddLog($"xpe_common.dll = {_commonDllPath}");
         AddLog($"xpe_display.dll = {_displayDllPath}");
         AddLog($"Display version = {displayVersion}");
+        AuditNativeModules("after initialisation");
 
         _telemetry.AddAlert(new AlertEntry
         {
@@ -93,9 +108,13 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     // @MX:WARN: [AUTO] Allocates native XpeImageBufferNative via xpe_alloc_image; try/finally ensures xpe_free_image on any exception path
     // @MX:REASON: Native memory is not GC-managed; omitting finally causes heap leak in xpe_common.dll; do not restructure without preserving the try/finally guard
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings) =>
-        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, displayInput, settings));
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, displayInput, null, settings));
 
-    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
+    /// <summary>GUI-C-234c: windows the float image of the chain run that made <paramref name="chain"/>'s pixels (when its last stage had one), taken from the run's own result.</summary>
+    public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings) =>
+        InvokeNative(() => ApplyDisplayPipelineCore(rawFrame, chain.DisplayInput, chain.DisplayFloats, settings));
+
+    private LoadedImageFrame ApplyDisplayPipelineCore(LoadedImageFrame rawFrame, ushort[] displayInput, float[]? chainFloats, AppSettings settings)
     {
         if (displayInput is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
@@ -126,10 +145,20 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
                 "xpe_alloc_image");
             allocated = true;
 
-            var floatPixels = new float[count];
-            for (var i = 0; i < count; i++)
+            // GUI-C-234 / 234c: when the chain's last stage was the enhancement, window ITS float image (the module chain's), not the copy rounded to 16 bits. The floats arrive with the run's own result
+            // (ChainResult.DisplayFloats); nothing shared between runs is read, so an overlapping run cannot supply them.
+            float[] floatPixels;
+            if (chainFloats is not null && chainFloats.Length == count)
             {
-                floatPixels[i] = displayInput[i];
+                floatPixels = chainFloats;
+            }
+            else
+            {
+                floatPixels = new float[count];
+                for (var i = 0; i < count; i++)
+                {
+                    floatPixels[i] = displayInput[i];
+                }
             }
 
             Marshal.Copy(floatPixels, 0, image.Data, count);
@@ -155,6 +184,13 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
                 MinOut = 0.0f,
                 MaxOut = 1.0f
             };
+            if (settings.VoiWindowAuto)
+            {
+                // GUI-C-233 (user decision, #251): the default window is the module's anatomy-based one, taken from the float image that reaches the VOI stage (after the modality LUT, the same
+                // values xpe_apply_voi_lut is about to window). A window the user chose (VoiWindowAuto false) is used as given: manual wins.
+                CheckNativeResult(XpeDisplayNative.xpe_voi_auto_window(ref image, ref voi), "xpe_voi_auto_window");
+            }
+
             CheckNativeResult(XpeDisplayNative.xpe_apply_voi_lut(ref image, ref voi), "xpe_apply_voi_lut");
 
             var presentation = XpePresentationLutParamsNative.CreateLinear(settings.GsdfEnabled);
@@ -180,16 +216,23 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
                     "xpe_gsdf_calibrate");
             }
 
-            CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut(ref image, ref presentation), "xpe_apply_presentation_lut");
+            // GUI-C-233: the polarity is stated, not left to the module's default: the shipped display shows bone bright and air dark (user decision, #251; QA-B-214).
+            CheckNativeResult(XpeDisplayNative.xpe_apply_presentation_lut_ex(ref image, ref presentation, XpeDisplayNative.PresentationInverted), "xpe_apply_presentation_lut_ex");
 
             nativeMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
             var processedPixels = CopyNativeUInt16Pixels(image.Data, count);
+            // GUI-C-234 (milestone 3, U4): a test hook, like XPE_GUI_AUTOMATION_RAW_PATH: when this variable names a file, the display stage's final 16-bit pixels are written there (raw little-endian, row-major,
+            // width x height x 2 bytes) so a test can compare them byte for byte with the module chain's output. Nothing else reads it; an unwritable path never disturbs the render.
+            if (Environment.GetEnvironmentVariable("XPE_GUI_AUTOMATION_EXPORT_PROCESSED16") is { Length: > 0 } processed16Path)
+            {
+                try { File.WriteAllBytes(processed16Path, MemoryMarshal.AsBytes(processedPixels.AsSpan()).ToArray()); } catch (IOException) { /* diagnostics only */ } catch (UnauthorizedAccessException) { /* diagnostics only */ }
+            }
             marshalOutMs = phase.Elapsed.TotalMilliseconds; phase.Restart();
 
             var processedPreview = CreatePreview(processedPixels, rawFrame.Width, rawFrame.Height);
             previewMs = phase.Elapsed.TotalMilliseconds;
-            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; preprocess native bridge pending) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({NormalizeVoiMode(settings.VoiLutMode)}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
+            var summary = $"CalibrationEval({BuildCalibrationEvaluationSummary(settings)}; the preprocess result is the chain line) -> Display: Modality({modality.RescaleSlope:0.###}/{modality.RescaleIntercept:0.###}) -> VOI({(settings.VoiWindowAuto ? "auto, LinearExact" : NormalizeVoiMode(settings.VoiLutMode))}, C={voi.Center:0.###}, W={voi.Width:0.###}) -> GSDF({(settings.GsdfEnabled ? "on" : "off")})";
             AddLog(summary);
 
             return new LoadedImageFrame
@@ -204,6 +247,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
                 BitsStored = rawFrame.BitsStored,
                 DisplayPipelineApplied = true,
                 DisplayPipelineSummary = summary,
+                AppliedVoi = new AppliedVoiWindow(settings.VoiWindowAuto ? "LinearExact" : NormalizeVoiMode(settings.VoiLutMode), voi.Center, voi.Width, settings.VoiWindowAuto),
                 DisplayTimings = $"display: marshal-in={marshalInMs:0} ms, native={nativeMs:0} ms, " +
                                  $"marshal-out={marshalOutMs:0} ms, preview={previewMs:0} ms"
             };
@@ -283,18 +327,52 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
     /// </summary>
     public ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
     {
+        var chain = RunChainCore(rawFrame, stages, settings, measureExposureIndex: false);
+        if (!_modulesAuditedAfterChain)
+        {
+            _modulesAuditedAfterChain = true;
+            AuditNativeModules("after the first chain");   // the other modules (preprocess, enhance_basic, dicom ...) load on first use, so they are only in the list now
+        }
+
+        return chain;
+    }
+
+    private bool _modulesAuditedAfterChain;
+
+    /// <summary>GUI-C-238b: where the native modules loaded so far came from (log), and a warning alert for each one that is not from the pinned folder.</summary>
+    private void AuditNativeModules(string stage)
+    {
+        foreach (var line in NativeModuleAudit.Report(stage))
+        {
+            AddLog(line);
+            if (line.Contains("is NOT the pinned folder", StringComparison.Ordinal))
+            {
+                _telemetry.AddAlert(new AlertEntry { Severity = "WARN", Code = "NATIVE_MODULE_OUTSIDE_PINNED_FOLDER", Message = line, Timestamp = DateTimeOffset.Now });
+            }
+        }
+    }
+
+    private ChainResult RunChainCore(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings, bool measureExposureIndex)
+    {
         if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
         {
             throw new InvalidOperationException("The pixel chain requires a loaded UInt16 raw frame.");
         }
 
+        CorrectedImage? candidate = null;
         var result = ProcessingChainRunner.Run(rawFrame.RawPixels, stages, (request, input) => request.StageId switch
         {
-            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.Preprocess => RunPreprocessStage(input, rawFrame.Width, rawFrame.Height, settings, measureExposureIndex, rawFrame.RawPixels, found => candidate = found),
             StageIds.Gsvg => RunGsvgStage(input, rawFrame.Width, rawFrame.Height, settings),
             StageIds.AiBoneSuppression => RunAiStage(input, rawFrame.Width, rawFrame.Height, settings),
+            StageIds.EnhanceBasic => RunEnhanceBasicStage(input, rawFrame.Width, rawFrame.Height, !measureExposureIndex && candidate is not null ? candidate.Floats : null),   // BuildStages puts enhance right after preprocess, so a preprocess that applied is its input
             _ => new StageExecution(false, null, $"Stage '{request.StageId}' is not available in the native backend."),
         });
+
+        if (candidate is not null)
+        {
+            _candidates.Add(result, candidate);   // GUI-C-232b: attached to this run's result; nothing global is replaced
+        }
 
         foreach (var stage in result.Stages)
         {
@@ -304,7 +382,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         return result;
     }
 
-    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings)
+    private StageExecution RunPreprocessStage(ushort[] input, int width, int height, AppSettings settings, bool measureExposureIndex = false, ushort[]? frameKey = null, Action<CorrectedImage?>? candidateSink = null)
     {
         // InvokeNative so the alert drain runs afterwards on every path (GUI-C-24), including the
         // failure paths — a stage that refuses is exactly when the queue holds something to show.
@@ -317,9 +395,16 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
             settings.DefectCalibrationDirectory,
             settings.SelectedBodyPart,
             settings.ExposureKvp,
-            settings.PixelPitchMm));
+            settings.PixelPitchMm,
+            true));   // GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index is measured on every run, not only the Baseline's (measureExposureIndex here means 'Baseline run' and is not passed on)
 
-        return new StageExecution(result.Ran, result.Pixels, result.Summary);
+        // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
+        if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
+        {
+            candidateSink?.Invoke(new CorrectedImage(floats, width, height, frameKey));
+        }
+
+        return BaselineStageAdapters.FromPreprocess(result.Ran, result.Pixels, result.Summary, result.NonFiniteCount, result.Skipped);
     }
 
     /// <summary>
@@ -332,6 +417,38 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         return new StageExecution(result.Ran, result.Pixels, result.Message);
     }
 
+    // ---- #225 row 9 (GUI-C-196 M4): the Deterministic Baseline ------------------------------------------------------------------------
+
+    bool IBaselineBackend.SupportsDeterministicBaseline => true;
+
+    IDicomSession IBaselineBackend.CreateBaselineDicomSession() => new Native.NativeDicomSession();
+
+    BaselineSingleRun IBaselineBackend.RunBaselineOnce(LoadedImageFrame rawFrame, AppSettings settings)
+    {
+        if (rawFrame.RawPixels is null || rawFrame.Width <= 0 || rawFrame.Height <= 0)
+        {
+            throw new InvalidOperationException("The Deterministic Baseline requires a loaded UInt16 raw frame.");
+        }
+
+        // The user's display settings are not read: ForBaseline overrides them with the fixed values (design D7), and the display step below takes no settings at all.
+        var fixedSettings = BaselineParameters.ForBaseline(settings);
+        var chain = RunChainCore(rawFrame, ProcessingChainPlan.BuildBaselineStages(), fixedSettings, measureExposureIndex: true);
+
+        // Display step: BaselineDisplayStage runs it only on a fully applied chain (a refused stage is a failed baseline, D5) and carries the NaN/Inf count of its
+        // float intermediates into the run (M7). InvokeNative so the alert drain runs afterwards.
+        return InvokeNative(() => BaselineDisplayStage.ComposeRun(chain, rawFrame.Width, rawFrame.Height, new Native.NativeBaselineDisplayBackend()));
+    }
+
+    /// <summary>
+    /// #225 row 9 (GUI-C-196 M2): the basic enhancement stage of the Deterministic Baseline. InvokeNative so the alert drain runs afterwards on every path,
+    /// as for the other stages. All of the stage's rules (one float image, one conversion back, all-or-nothing) are in <see cref="EnhanceBasicStage"/>.
+    /// </summary>
+    private StageExecution RunEnhanceBasicStage(ushort[] input, int width, int height, float[]? floatInput = null)
+    {
+        var result = InvokeNative(() => EnhanceBasicStage.Run(input, width, height, new Native.NativeEnhanceBasicBackend(), floatInput));
+        return BaselineStageAdapters.FromEnhance(result);   // GUI-C-234c: the floats ride on the stage's outcome (StageExecution.Floats), not in a field of this backend
+    }
+
     /// <summary>
     /// #225 row 10 (GUI-C-184): AI bone suppression. InvokeNative so the alert drain runs afterwards on every path:
     /// the module raises its own alerts (success Info, failure Warnings, the third failure's "disabled for this
@@ -342,9 +459,13 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         InvokeNative(() => Native.GuiAiRunner.Run(input, width, height, settings.AiModelDirectory));
 
     /// <summary>GUI-C-185: read-only, under the session lock (no time limit: the caller is off the UI thread, GUI-C-186d); no alert drain (the call raises none). Explicit: the types are internal.</summary>
+    bool IAiSessionBackend.HasAiSession => true;
+
     AiWorkerStatus IAiSessionBackend.GetAiWorkerStatus() => Native.GuiAiSession.QueryWorkerState();
 
     /// <summary>GUI-C-185: InvokeNative so any alert the restart raises reaches the list.</summary>
+    int IAiSessionBackend.AiSessionEpoch => Native.GuiAiSession.SessionEpoch;
+
     AiRestartResult IAiSessionBackend.RestartAiSession(string modelDirectory) =>
         InvokeNative(() => Native.GuiAiSession.Restart(modelDirectory));
 
@@ -476,16 +597,25 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
         _telemetry.AddLog($"[{DateTimeOffset.Now:HH:mm:ss.fff}] {message}");
     }
 
-    private static bool HasExports(string dllPath, IEnumerable<string> requiredExports)
+    private static string? WhyUnusable(string dllName, string dllPath, IEnumerable<string> requiredExports)
     {
         if (!File.Exists(dllPath))
         {
-            return false;
+            return $"{dllName} was not found at '{dllPath}'";
         }
 
-        if (!NativeLibrary.TryLoad(dllPath, out var handle))
+        var info = new FileInfo(dllPath);
+        var described = $"{dllName} at '{dllPath}' ({info.Length} bytes, written {info.LastWriteTime:yyyy-MM-dd})";
+        // GUI-C-243: with the search pinned the check loads the DLL the way the app will (its own folder + System32). The default search would let a copy of a dependency in the application folder make a DLL
+        // that cannot work from the pinned folder look loadable here, and the app would then fail later, at the first call, instead of starting on Mock with the reason.
+        IntPtr handle;
+        string? loadError = null;
+        var loaded = NativeSearchPolicy.StopAtInjectedDirectory
+            ? OracleModuleConfinement.TryLoad(dllPath, out handle, out loadError)
+            : NativeLibrary.TryLoad(dllPath, out handle);
+        if (!loaded)
         {
-            return false;
+            return $"{described} could not be loaded{(loadError is null ? string.Empty : $" ({loadError})")}";
         }
 
         try
@@ -494,11 +624,11 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend
             {
                 if (!NativeLibrary.TryGetExport(handle, exportName, out _))
                 {
-                    return false;
+                    return $"{described} does not export {exportName} (an older build than this application expects)";
                 }
             }
 
-            return true;
+            return null;
         }
         finally
         {

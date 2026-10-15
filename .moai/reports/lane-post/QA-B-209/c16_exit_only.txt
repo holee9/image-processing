@@ -1,0 +1,71 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from DicomLogging
+[ RUN      ] DicomLogging.EveryPublicFunctionLogsItsExitWithTheReturnCode
+[       OK ] DicomLogging.EveryPublicFunctionLogsItsExitWithTheReturnCode (6 ms)
+[ RUN      ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+[       OK ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall (5 ms)
+[ RUN      ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(118): error: Expected equality of these values:
+  1u
+    Which is: 1
+  errors.size()
+    Which is: 0
+[2026-10-04 13:06:08.067] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open(C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_not_dicom.txt)
+[2026-10-04 13:06:08.067] [xpe_file] [debug] [DicomReader] open: C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_not_dicom.txt
+[2026-10-04 13:06:08.068] [xpe_file] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 13:06:08.068] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open exit rc=-13
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(119): error: Value of: Lines("[warning] [DicomReader] not a DICOM Part 10 file").empty()
+  Actual: false
+Expected: true
+the same condition must not be logged as a warning
+
+[  FAILED  ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel (15 ms)
+[ RUN      ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(126): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Lines("[error] [DicomNetworkSCU] cstore: file load failed").size()
+    Which is: 0
+[2026-10-04 13:06:08.082] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore(localhost:11112 file=this_file_does_not_exist.dcm)
+[2026-10-04 13:06:08.082] [xpe_file] [debug] [DicomNetworkSCU] cstore -> localhost:11112 file=this_file_does_not_exist.dcm
+[2026-10-04 13:06:08.082] [xpe_file] [warning] [DicomNetworkSCU] cstore: file load failed: No such file or directory
+[2026-10-04 13:06:08.082] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore exit rc=-9
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(127): error: Value of: Lines("[warning] [DicomNetworkSCU]").empty()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel (7 ms)
+[ RUN      ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(146): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Lines("[error] [DicomWriter] saveFile failed").size()
+    Which is: 0
+[2026-10-04 13:06:08.089] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write(C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_no_such_dir\x.dcm)
+[2026-10-04 13:06:08.089] [xpe_file] [debug] [DicomWriter] write: C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_no_such_dir\x.dcm
+[2026-10-04 13:06:08.097] [xpe_file] [warning] [DicomWriter] saveFile failed: 지정된 경로를 찾을 수 없습니다.
+[2026-10-04 13:06:08.097] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write exit rc=-9
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(147): error: Value of: Lines("[warning] [DicomWriter]").empty()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel (20 ms)
+[----------] 5 tests from DicomLogging (54 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (54 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel
+[  FAILED  ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+[  FAILED  ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+
+ 3 FAILED TESTS

@@ -253,17 +253,17 @@
 [XPE][INFO ] xpe_init: library initialised
 [XPE][INFO ] xpe_init: library initialised
 
-entry point              NULL argument  uninitialized  initialized   
-xpe_configure            jsonConfig     -1             -1            
-xpe_get_param_range      bodyPart       -1             -1            
-xpe_get_param_range      paramName      -1             -1            
-xpe_get_param_range      minValue       -1             -1            
-xpe_get_pending_alert    message        -1             -1            
-xpe_get_pending_alert    severity       -1             -1            
-xpe_alloc_image          out            -1             -1            
-xpe_free_image           buffer         -1             -1            
-xpe_copy_image           source         -1             -1            
-xpe_copy_image           target         -1             -1            
+entry point              NULL argument  uninitialized  initialized
+xpe_configure            jsonConfig     -1             -1
+xpe_get_param_range      bodyPart       -1             -1
+xpe_get_param_range      paramName      -1             -1
+xpe_get_param_range      minValue       -1             -1
+xpe_get_pending_alert    message        -1             -1
+xpe_get_pending_alert    severity       -1             -1
+xpe_alloc_image          out            -1             -1
+xpe_free_image           buffer         -1             -1
+xpe_copy_image           source         -1             -1
+xpe_copy_image           target         -1             -1
 (XPE_ERR_INVALID_INPUT = -1, XPE_ERR_NOT_INITIALIZED = -6)
 
 [       OK ] CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState (0 ms)

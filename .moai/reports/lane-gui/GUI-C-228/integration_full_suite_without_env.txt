@@ -1,0 +1,1 @@
+통과!  - 실패:     0, 통과:   864, 건너뜀:     1, 전체:   865, 기간: 23 s - ImageProcTest.IntegrationTests.dll (net8.0)

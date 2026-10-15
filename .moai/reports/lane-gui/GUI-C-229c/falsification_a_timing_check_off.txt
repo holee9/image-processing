@@ -1,0 +1,6 @@
+== arm (a): the timing check never reports (a late read would be judged)
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheJudgmentRead_IsOnTimeOnlyInsideTheWindow(readAtMs: 1001, timingFailure: True) [FAIL]
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheJudgmentRead_IsOnTimeOnlyInsideTheWindow(readAtMs: 1400, timingFailure: True) [FAIL]
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.TheJudgmentRead_IsOnTimeOnlyInsideTheWindow(readAtMs: 589, timingFailure: True) [FAIL]
+[xUnit.net 00:00:03.83]     ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02e_ADelayBeforeTheJudgmentRead_IsATimingFailure_NotAJudgedValue [FAIL]
+실패!  - 실패:     4, 통과:    20, 건너뜀:     0, 전체:    24, 기간: 3 s - ImageProcTest.E2ETests.dll (net8.0)

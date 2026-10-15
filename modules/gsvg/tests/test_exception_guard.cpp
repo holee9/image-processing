@@ -244,3 +244,35 @@ TEST(GsvgExceptionGuard, AVignetteGainMapWithANonFiniteElementIsInvalidInput) {
     EXPECT_EQ(65535u, dst[0]);
     xpe_gsvg_shutdown(h);
 }
+
+// QA-B-181f (#233): the virtual grid works in double, and the last step converts to uint16 with clamp(round(x)). A
+// non-finite value reaches that step from FINITE settings: QA-B-181e measured vg_pyramid_gain 1e308 giving zeros and
+// 65535s in places with rc=0, where clamp() is a no-op for NaN and the cast of NaN is undefined. The call is refused
+// with the config error the other virtual-grid refusals use, and the original image is restored (the existing
+// contract of that path); a bad value is not repaired into a plausible pixel.
+TEST(GsvgExceptionGuard, AVirtualGridWhoseResultIsNotFiniteIsRefusedAndTheOriginalIsRestored) {
+    auto config = [](const std::string& extra) {
+        return std::string("{\"virtual_grid\": true, \"vg_table_path\": \"") + xpe_gsvg_test::Data("virtual_grid_synthetic_table.csv") +
+               "\", \"vg_kvp\": 80, \"vg_grid_ratio\": 10, \"vg_pixel_pitch_mm\": 1.0, \"vg_air_signal\": 60000, \"vg_iterations\": 5" + extra + "}";
+    };
+    const int w = 64, hgt = 64;
+    std::vector<uint16_t> src(static_cast<size_t>(w) * hgt);
+    for (int y = 0; y < hgt; ++y) {
+        for (int x = 0; x < w; ++x) src[static_cast<size_t>(y) * w + x] = static_cast<uint16_t>(30000 + 10 * x + 5 * y);
+    }
+    {
+        void* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_gsvg_init(&h, config("").c_str()));
+        std::vector<uint16_t> out(src.size(), 7);
+        EXPECT_EQ(XPE_OK, xpe_gsvg_process(h, src.data(), src.size(), out.data(), out.size(), w, hgt, nullptr, 0)) << "control";
+        xpe_gsvg_shutdown(h);
+    }
+    for (const char* extra : {", \"vg_pyramid_gain\": 1e308", ", \"vg_pyramid_gain\": 1e308, \"vg_denoise_k\": 1e308"}) {
+        void* h = nullptr;
+        ASSERT_EQ(XPE_OK, xpe_gsvg_init(&h, config(extra).c_str())) << extra;
+        std::vector<uint16_t> out(src.size(), 7);
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_gsvg_process(h, src.data(), src.size(), out.data(), out.size(), w, hgt, nullptr, 0)) << extra;
+        EXPECT_EQ(src, out) << "the original image is restored on a refusal: " << extra;
+        xpe_gsvg_shutdown(h);
+    }
+}

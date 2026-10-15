@@ -1,0 +1,88 @@
+"""QA-B-207d (Codex #143): the REAL DLL (/fp:fast build) against the exact-rational reference, pixel by pixel.
+
+  (a) Codex's 8x8 case: the 4x4 block [2^-100, 4095, 1,1,1,1, 1,1,1,1, 2,3,4,5,6,7] four times, 2x2 tiles, clip 3 (value 1: exact
+      511.875, DLL of 207c 767.8125).
+  (b) random images whose vmin / vmax / pixels come from awkward exponent ranges: tiny positive and negative minima, subnormals,
+      huge maxima, pixels placed on and next to the exact bin boundaries computed with fractions.Fraction.
+Run: python clahe_ref_exact_d.py <dll dir> <path to clahe_ref_exact.py> [out.txt]
+"""
+import sys
+from fractions import Fraction
+
+import numpy as np
+
+exact_path = sys.argv[2]
+sys.argv = [sys.argv[0], sys.argv[1]] + sys.argv[3:]
+src = open(exact_path, encoding='utf-8').read().split('FLT_MIN =')[0]
+ns = {}
+exec(compile(src, exact_path, 'exec'), ns)
+reference, native = ns['reference'], ns['native']
+OUT = open(sys.argv[2], 'w', encoding='utf-8', newline='\n') if len(sys.argv) > 2 else sys.stdout
+
+
+def log(s):
+    OUT.write(s + '\n')
+    OUT.flush()
+
+
+bad = 0
+p = np.float32(2.0 ** -100)
+block = np.array([p, 4095, 1, 1, 1, 1, 1, 1, 1, 1, 2, 3, 4, 5, 6, 7], np.float32).reshape(4, 4)
+codex = np.tile(block, (2, 2))
+ref, rng = reference(codex, 3.0, 2, 2)
+rc, got = native(codex, 3.0, 2, 2)
+log('codex 8x8: value 1  exact=%.4f  DLL=%.4f' % (ref[0, 2], got[0, 2]))
+diff = np.abs(got.astype(np.float64) - ref) / rng
+n_bad = int((diff > 1e-5).sum())
+ok = rc == 0 and n_bad == 0
+bad += 0 if ok else 1
+log('codex 8x8: %d of 64 pixels differ by > 1e-5 of the range (max %.3e)  %s' % (n_bad, diff.max(), 'MATCH' if ok else 'DIFFER'))
+
+rs = np.random.default_rng(20261004)
+
+
+def f32(x):
+    return np.float32(x)
+
+
+def pick_extremes():
+    kind = rs.integers(0, 6)
+    if kind == 0:   # tiny positive minimum, big maximum
+        return f32(2.0 ** -int(rs.integers(20, 140))), f32(2.0 ** int(rs.integers(5, 100)) * rs.uniform(1, 2))
+    if kind == 1:   # tiny negative minimum, moderate maximum
+        return f32(-2.0 ** -int(rs.integers(20, 140))), f32(rs.uniform(1, 5000))
+    if kind == 2:   # normal negative minimum
+        return f32(-rs.uniform(1, 2000)), f32(rs.uniform(1, 5000))
+    if kind == 3:   # subnormal minimum
+        return f32(rs.integers(1, 1 << 20) * 2.0 ** -149), f32(rs.uniform(1e-30, 10))
+    if kind == 4:   # minimum zero
+        return f32(0), f32(10.0 ** rs.uniform(-30, 30))
+    return f32(rs.uniform(0.001, 5)), f32(rs.uniform(10, 5000))   # ordinary positive with a small minimum
+
+
+cases = 0
+for trial in range(120):
+    lo, hi = pick_extremes()
+    if not hi > lo:
+        continue
+    fl, fh = Fraction(float(lo)), Fraction(float(hi))
+    px = [lo, hi]
+    for k in rs.integers(1, 4095, size=300):                       # boundary k: the float just below / at / just above
+        b = np.float32(float(fl + (fh - fl) * int(k) / 4095))
+        px += [np.nextafter(b, np.float32(-np.inf)), b, np.nextafter(b, np.float32(np.inf))]
+    px += [np.float32(float(fl + (fh - fl) * Fraction(float(f)))) for f in rs.random(100)]
+    px = [v for v in px if lo <= v <= hi]
+    while len(px) % 64:
+        px.append(px[int(rs.integers(0, len(px)))])
+    a = np.array(px, np.float32).reshape(-1, 64)
+    ref, rng = reference(a, 1.0, 2, 2)
+    rc, got = native(a, 1.0, 2, 2)
+    diff = np.abs(got.astype(np.float64) - ref) / rng
+    cases += 1
+    if not (rc == 0 and diff.max() < 1e-5):
+        bad += 1
+        log('DIFFER trial %d  vmin=%r vmax=%r  rc=%d  max|diff|/range=%.3e  pixels>1e-5: %d of %d' % (
+            trial, float(lo), float(hi), rc, diff.max(), int((diff > 1e-5).sum()), diff.size))
+log('random images: %d trials, %d differ' % (cases, bad))
+log('=== %d differ in total' % bad)
+sys.exit(1 if bad else 0)

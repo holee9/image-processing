@@ -1,0 +1,106 @@
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\main\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.16]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:00.18]     ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [FAIL]
+[xUnit.net 00:00:00.18]       C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\native\provenance.json is missing. A Native run has to name the binaries it exercised: stage them with clients/ImageProcTest.E2ETests/Staging/Stage-NativeArtifacts.ps1 -RunId <id> -Destination <dir>, which writes this file.
+[xUnit.net 00:00:00.18]         C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\main\clients\ImageProcTest.E2ETests\Scenarios\Smoke\NativeProvenanceTests.cs(47,0): at ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises()
+[xUnit.net 00:00:00.18]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.18]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  실패 ImageProcTest.E2ETests.Scenarios.Smoke.NativeProvenanceTests.NativeRun_NamesTheBinariesItExercises [3 ms]
+  오류 메시지:
+   C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\native\provenance.json is missing. A Native run has to name the binaries it exercised: stage them with clients/ImageProcTest.E2ETests/Staging/Stage-NativeArtifacts.ps1 -RunId <id> -Destination <dir>, which writes this file.
+XPE-C56-PROBE hwnd=0x26940620 pid=57692 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S03_ToolbarButtons_AreEnabledInMockMode [165 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S04_HelpMenu_OffersOfflineHelpHome [495 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S01_Launch_HasMainWindow [3 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S05_RuntimePanel_ShowsBackendVersion [45 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.SmokeScenarios.S02_MenuBar_HasSixGroups [253 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowCalibrationPanelMenuItem", panelId: "CalibrationPathsPanel") [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S07_PanelToggle_ShowsAndHidesItsPanel(toggleId: "ShowDisplaySettingsPanelMenuItem", panelId: "DisplaySettingsPanel") [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowImageSummaryPanelMenuItem") [936 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowAlertsPanelMenuItem") [875 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowMetadataPanelMenuItem") [810 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRuntimePanelMenuItem") [702 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S06_ReplacedPanelToggle_IsNotInTheMenu(automationId: "ShowRawSettingsPanelMenuItem") [685 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S09_CalibrationSettings_OpensThePanelItAnnounces [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S10_ResetLayout_RestoresTheState [3 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.PanelToggleScenarios.S08_LogsToggle_ShowsAndHidesTheLogRegion [2 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.DetachViewerScenarios.S11_DetachComparisonViewer_OpensTheWindow [1 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.ARunnerStillRunning_IsSaidAsNotAMissingExecutable_WhichIsTheCaseThatWasMisread [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.NoExecutable_IsSaidAsNoExecutable_AndNeverAsATimeout(status: "Self-check needs the repository; this build is not"···) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.NoExecutable_IsSaidAsNoExecutable_AndNeverAsATimeout(status: "Self-check runner is not built.") [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.ARunnerThatRanAndFailed_IsSaidAsFailed_AndCarriesTheStatus [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: Unexplained, skips: False) [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: NoExecutable, skips: True) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: StillRunning, skips: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.OnlyAMissingExecutableSkips_EveryOtherGapFails(gap: DidNotStart, skips: False) [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.AnExecutableThatCouldNotBeStarted_IsSaidAsSuch [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.TheFourCauses_AreFourDifferentTexts [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.TheSamplesAreTheAppsOwnStatusLines [32 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.AStatusNoOneRecognises_IsSaidAsUnknown_NotAsAnyOfTheOthers [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.RunnerVerdictWordingTests.VerdictOrSkip_SkipsOnlyThroughTheRule_AndOtherwiseThrowsTheReason [18 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.EveryRenderedProvenance_LeadsWithTheTrustBoundary [20 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.LaneAndCi_ShareTheFieldsTheReaderDependsOn [1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.CiProvenanceCompatibilityTests.ReaderAccepts_TheFileCiActuallyWrites [2 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A12_Panels_RenderWhatTheSettingsHold [32 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A19_Baseline_OnNative_PassesTwice_AndTheDicomFileIsValidAndReadsBackIdentical [13 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A15_ASelfCheckThatCannotBeStarted_IsDidNotRun_NotAFailure [11 s]
+[xUnit.net 00:01:59.32]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A16_TroubleshootingPage_NotGenerated_SaysSoAndHow_AndOpensNothing [SKIP]
+[xUnit.net 00:01:59.32]       The repository root (docs/project/sprint-plan.md) is not above the test binaries, so the sources this scenario compares the app against are not available.
+[xUnit.net 00:01:59.32]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [SKIP]
+[xUnit.net 00:01:59.32]       The repository root (docs/project/sprint-plan.md) is not above the test binaries, so the sources this scenario compares the app against are not available.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A16_TroubleshootingPage_NotGenerated_SaysSoAndHow_AndOpensNothing [< 1 ms]
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A11_ApiReference_ClaimMatchesTheDisk_AndTheCountsAgree [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A18_Baseline_OnMock_IsNotRun_NeverAPassOrAFail [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A07_RuntimeLogs_AreWrittenToAFile [10 s]
+[xUnit.net 00:02:20.76]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation [SKIP]
+[xUnit.net 00:02:20.76]       The repository root (docs/project/sprint-plan.md) is not above the test binaries, so the sources this scenario compares the app against are not available.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A17_TroubleshootingPage_Generated_IsResolved_AndTheLaunchIsSuppressedUnderAutomation [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A20_Baseline_OnNativeWithoutACalibrationSet_IsNotAttempted_NotAFailure [13 s]
+[xUnit.net 00:02:34.15]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason [SKIP]
+[xUnit.net 00:02:34.15]       ImageProcTest.SelfCheck.exe was not built, so its failure cannot be observed.
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A05_AFailingSelfCheck_IsReportedAsAFailure_WithTheReason [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A10_PipelineDiagnostics_KeepsNoMeasurementApartFromZero [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A13_PanelFlags_SurviveTheProcess_AndTheVerdictDoesNotDependOnThem [21 s]
+[xUnit.net 00:03:16.76]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A04_SelfCheck_ActuallyRuns_AndThePassIsReported [SKIP]
+[xUnit.net 00:03:16.76]       NO EXECUTABLE: the app reported no self-check verdict because there is no ImageProcTest.SelfCheck executable to run. This configuration does not build it (the gui-automation CI job builds gui/ImageProcTest only), which is normal. The app's status line said: 'Self-check needs the repository; this build is not running from a checkout.'.
+[xUnit.net 00:03:16.76]       Output:
+[xUnit.net 00:03:16.76]         A04 exit=0 BackendMode=Mock ActualBackendMode=Mock BackendMatchesRequest=True Passed=True
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A04_SelfCheck_ActuallyRuns_AndThePassIsReported [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A02_MockRequested_IsStillAPass [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A03_TheWiredCommands_ReportWhatTheyDid [13 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A21_Baseline_WhoseDicomWriteCannotHappen_FailsTheAutomationReport [14 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A09_EvidenceBundleAndFolder_Answer [10 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A08_RecentFileHistory_SurvivesTheProcess [21 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A01_NativeRequested_FallsBackToMock_IsNotAPass [10 s]
+[xUnit.net 00:04:48.63]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [SKIP]
+[xUnit.net 00:04:48.63]       NO EXECUTABLE: the app reported no GUI E2E verdict because there is no ImageProcTest.E2E executable to run. This configuration does not build it (the gui-automation CI job builds gui/ImageProcTest only), which is normal. The app's status line said: 'GUI E2E needs the repository; this build is not running from a checkout.'.
+[xUnit.net 00:04:48.63]       Output:
+[xUnit.net 00:04:48.63]         A06 exit=0 BackendMode=Mock ActualBackendMode=Mock BackendMatchesRequest=True Passed=True
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [10 s]
+[xUnit.net 00:04:48.63]     ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A14_BenchmarkRunner_DescribesTheBuildTree_AndReportsNoVerdictItDidNotGet [SKIP]
+[xUnit.net 00:04:48.63]       The repository root (docs/project/sprint-plan.md) is not above the test binaries, so the sources this scenario compares the app against are not available.
+XPE-C56-PROBE hwnd=0xE2F0794 pid=50568 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+XPE-C56-PROBE hwnd=0xE300794 pid=30472 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  건너뜀 ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A14_BenchmarkRunner_DescribesTheBuildTree_AndReportsNoVerdictItDidNotGet [< 1 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.ReadableWindow_IsKept_AndLeavesNoNote [648 ms]
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.WindowReacquireTests.UnreadableWindow_IsReplaced_AndTheRunSaysSo [686 ms]
+XPE-C56-PROBE could not run: NullReferenceException
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.ApplicationFixtureConstructionTests.AConstructionThatFailsAfterTheAppStarted_LeavesNoAppRunning [781 ms]
+[xUnit.net 00:05:02.49]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W0_EveryMenuPathInTheQuickStartExistsInTheApp [11 s]
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 58
+     통과: 50
+     실패: 1
+    건너뜀: 7
+ 총 시간: 5.0469 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

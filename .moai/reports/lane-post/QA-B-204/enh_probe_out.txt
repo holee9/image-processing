@@ -1,0 +1,62 @@
+
+== E2 REQ-ENH-017: the CLAHE performance test measures a flat image (the code returns early on a flat image)
+  flat 500.0 (what the test uses)    ms per call (5 runs): ['1.9', '1.9', '2.4', '2.1', '2.1']  median 2.1
+  structured (gradient + noise)      ms per call (5 runs): ['47.1', '47.1', '46.6', '47.7', '49.3']  median 47.1
+  flat image after CLAHE: changed pixels = 0 (the call did no work on it)
+
+== E3 REQ-ENH-CC-002: a non-FLOAT32 image: the SPEC says INVALID_INPUT
+  xpe_log_transform            UINT16 image -> -7 (UNSUPPORTED_FORMAT)
+  xpe_log_inverse              UINT16 image -> -7 (UNSUPPORTED_FORMAT)
+  xpe_noise_reduce             UINT16 image -> -7 (UNSUPPORTED_FORMAT)
+  xpe_noise_estimate_sigma     UINT16 image -> -7 (UNSUPPORTED_FORMAT)
+  xpe_contrast_enhance         UINT16 image -> -7 (UNSUPPORTED_FORMAT)
+  xpe_edge_enhance             UINT16 image -> -7 (UNSUPPORTED_FORMAT)
+  xpe_calc_exposure_index      UINT16 image -> -7 (UNSUPPORTED_FORMAT)
+  xpe_log_transform            NULL img     -> -1 (INVALID_INPUT)
+  xpe_edge_enhance             NULL img     -> -1 (INVALID_INPUT)
+
+== E4 REQ-ENH-030/023: xpe_calc_exposure_index with a non-finite pixel
+  pixel control: finite  rc=0 (OK)                   EI=80.0 DI=-3.979400157928467
+  pixel NaN              rc=-3 (PROCESSING_FAILED)   EI=0.0 DI=0.0
+  pixel +inf             rc=0 (OK)                   EI=inf DI=inf
+  pixel -inf             rc=-3 (PROCESSING_FAILED)   EI=0.0 DI=0.0
+
+== E5 REQ-ENH-CC-004: "no global mutable state": the module has a process-wide thread setting
+  get_max_threads at start: 0
+  set_max_threads(1) -> 0 (OK); get -> 1
+  set_max_threads(3) -> 0 (OK); get -> 3
+  set_max_threads(0) -> 0 (OK); get -> 0
+  noise_reduce + CLAHE output with 1 thread vs 4 threads identical: True
+
+== E6 REQ-ENH-013: CLAHE between tiles (nearest tile vs interpolation): the jump at a tile boundary
+  smooth horizontal ramp, 8x8 tiles of 32 px: mean |step| at the 7 tile boundaries = 2602.4, median |step| elsewhere = 79.96, largest elsewhere = 385.53
+  ratio boundary/typical = 33
+  (the input ramp has a constant step of 10.97 per pixel)
+
+== E7 REQ-ENH-007: the bilateral filter for a large sigma_space (a delta image, sigma_range huge: the spatial kernel alone)
+  sigma_space   2.0 -> rc 0 (OK); farthest pixel reached = 4; effective std of the response = 1.85 (an untruncated Gaussian: 2.00)
+  sigma_space   5.0 -> rc 0 (OK); farthest pixel reached = 10; effective std of the response = 4.50 (an untruncated Gaussian: 5.00)
+  sigma_space   7.5 -> rc 0 (OK); farthest pixel reached = 15; effective std of the response = 6.70 (an untruncated Gaussian: 7.50)
+  sigma_space  10.0 -> rc 0 (OK); farthest pixel reached = 15; effective std of the response = 7.59 (an untruncated Gaussian: 10.00)
+  sigma_space  15.0 -> rc 0 (OK); farthest pixel reached = 15; effective std of the response = 8.32 (an untruncated Gaussian: 15.00)
+  sigma_space  20.0 -> rc 0 (OK); farthest pixel reached = 15; effective std of the response = 8.59 (an untruncated Gaussian: 20.00)
+
+== E8 REQ-ENH-011: xpe_noise_estimate_sigma = 1.4826 * MAD of the central 10% ROI
+  flat 1000 + Gaussian noise sigma 10 (the control)              rc 0 (OK)  estimate 9.96 (true noise sigma 10)
+  smooth gradient 1000..2000 + noise sigma 10                    rc 0 (OK)  estimate 36.77 (true noise sigma 10)
+  a step edge through the centre (800 | 1800) + noise sigma 10   rc 0 (OK)  estimate 60.63 (true noise sigma 10)
+  a bright disc (radius 30) in the centre + noise sigma 10       rc 0 (OK)  estimate 10.90 (true noise sigma 10)
+  (MAD of the pixel values as the SPEC formula reads: the same quantity over the ROI; the SPEC defines no ROI)
+
+== E9 REQ-ENH-014/016: CLAHE with NULL params (defaults 8x8 tiles) on small images
+    8 x   8 image, params NULL -> -1 (INVALID_INPUT)
+   15 x  15 image, params NULL -> -1 (INVALID_INPUT)
+   16 x  16 image, params NULL -> 0 (OK)
+   16 x  15 image, params NULL -> -1 (INVALID_INPUT)
+  100 x   7 image, params NULL -> -1 (INVALID_INPUT)
+  100 x  16 image, params NULL -> 0 (OK)
+  200 x 200 image, params NULL -> 0 (OK)
+  explicit 2x2 tiles on 8x8 / 4x4 / 3x3 images:
+    8 x   8 image, tiles 2x2 -> 0 (OK)
+    4 x   4 image, tiles 2x2 -> 0 (OK)
+    3 x   3 image, tiles 2x2 -> -1 (INVALID_INPUT)

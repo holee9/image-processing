@@ -1,0 +1,39 @@
+=== ARM A: the factory check loads the DLL with the default search (the application folder can supply a missing import)
+  SelfCheck exit=0 []
+  guard tests exit=1 failed: ['TheDllsAModuleImports_AreLoadedWithTheSameRestrictedSearch_WhenPinned']
+  launch-path E2E exit=1 failed: ['PinnedFolderMissingARuntimeDll_AWorkingCopyBesideTheExe_IsNotTaken_MockWithTheReason']
+
+restored byte-identical: True
+
+=== ARM B: the dependency pre-load uses the default search when pinned
+  SelfCheck exit=0 []
+  guard tests exit=1 failed: ['TheDllsAModuleImports_AreLoadedWithTheSameRestrictedSearch_WhenPinned']
+  launch-path E2E exit=0 failed: []
+
+restored byte-identical: True
+
+=== ARM C: the pinned-feature check never throws (a stray module only warns)
+  SelfCheck exit=3762504530 ['[11 pinned native search] a native module loaded from outside the pinned folder did not stop the feature']
+  guard tests exit=0 failed: []
+  launch-path E2E exit=0 failed: []
+
+restored byte-identical: True
+
+=== ARM D: the DICOM export does not check the modules after xpe_dicom_write
+  SelfCheck exit=0 []
+  guard tests exit=1 failed: ['TheDicomExport_FailsOnAModuleOutsideThePinnedFolder_RightAfterTheCallsThatLoadTheModule']
+  launch-path E2E exit=0 failed: []
+
+restored byte-identical: True
+
+=== ARM E: the AI start does not check the modules before xpe_ai_init
+  SelfCheck exit=0 []
+  guard tests exit=1 failed: ['TheAiStart_FailsOnAModuleOrWorkerOutsideThePinnedFolder_BeforeXpeAiInitIsCalled']
+  launch-path E2E exit=0 failed: []
+
+restored byte-identical: True
+
+=== AFTER RESTORE
+  SelfCheck exit=0 []
+  guard tests exit=0 failed: []
+  launch-path E2E exit=0 failed: []

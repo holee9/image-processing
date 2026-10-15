@@ -1,0 +1,3 @@
+extracted=48  preprocess=21  other=27
+names missing from report.md: []
+names in section 3 not in extraction (expected: only stub/scalar words, list below): []

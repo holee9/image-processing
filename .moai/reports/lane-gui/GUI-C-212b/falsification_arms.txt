@@ -1,0 +1,65 @@
+# GUI-C-212b falsification arms (each changes ONE thing, rebuilds, runs the tests that guard it, restores byte-identical)
+
+## arm 1: the host runs the oracle in the app's own process (no child)
+build ok: True
+exit=1; 1 red of 2
+   RED     실패 LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCal
+restored byte-identical: True
+
+## arm 1b: the readiness probe calls the in-process oracle again
+build ok: True
+exit=1; 1 red of 12
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.NoAppCode_RunsTheOracleInTheAppsProcess_ExceptTheWorkerEntry
+restored byte-identical: True
+
+## arm 2: the gain stage's output is a copy of its input
+build ok: True
+exit=1; 5 red of 12
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.ADeletionFailure_IsReportedInTheResult_NotHidden
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.ACleanRun_HasNoCleanupWarning_AndLeavesNothing
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.AStart_ReclaimsItsOwnOldFolders_AndOnlyThose
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.TheWorker_WritesExactlyOneParsableResultLine
+   RED     Diagnostics.PreprocessSyntheticOracleCallTests.TheOracle_AgainstTheStagedDll_Passes_BecauseEveryStageRan
+restored byte-identical: True
+
+## arm 2b: the gain verdict ignores the expected values and the effect (the pre-212b condition)
+build ok: True
+exit=0; 0 red of 12
+restored byte-identical: True
+
+## arm 2c: the synthetic flat field is uniform again
+build ok: True
+exit=1; 5 red of 12
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.ADeletionFailure_IsReportedInTheResult_NotHidden
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.ACleanRun_HasNoCleanupWarning_AndLeavesNothing
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.AStart_ReclaimsItsOwnOldFolders_AndOnlyThose
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.TheWorker_WritesExactlyOneParsableResultLine
+   RED     Diagnostics.PreprocessSyntheticOracleCallTests.TheOracle_AgainstTheStagedDll_Passes_BecauseEveryStageRan
+restored byte-identical: True
+
+## arm 3: a temporary-folder deletion failure is swallowed again
+build ok: True
+exit=1; 1 red of 12
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.ADeletionFailure_IsReportedInTheResult_NotHidden
+restored byte-identical: True
+
+## arm 3b: a start reclaims folders whatever their age
+build ok: True
+exit=1; 2 red of 12
+   RED     Diagnostics.PreprocessSyntheticOracleCallTests.TheOracle_LeavesNoTemporaryFolderBehind
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.AStart_ReclaimsItsOwnOldFolders_AndOnlyThose
+restored byte-identical: True
+
+## arm 3c: a start reclaims any old folder, not only the oracle's own name shape
+build ok: True
+exit=1; 1 red of 12
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.AStart_ReclaimsItsOwnOldFolders_AndOnlyThose
+restored byte-identical: True
+
+## arm 1c: the timeout does not kill the child
+build ok: True
+exit=1; 1 red of 12
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.AChildThatNeverAnswers_IsKilled_AndReportedAsATimeout
+restored byte-identical: True
+
+final rebuilds done

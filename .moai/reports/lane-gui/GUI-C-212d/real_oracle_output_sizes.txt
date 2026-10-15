@@ -1,0 +1,2 @@
+Real oracle child (ImageProcTest.exe --run-preprocess-oracle <xpe_preprocess.dll>), stdin from NUL, output captured as bytes:
+exit=0; stdout bytes=909; stderr bytes=0; stdout lines=1; protocol lines=1; longest stdout line=908 bytes; protocol line=908 bytes (the result JSON)

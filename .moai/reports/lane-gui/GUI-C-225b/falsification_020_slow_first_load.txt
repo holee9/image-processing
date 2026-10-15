@@ -1,0 +1,3 @@
+== arm 020_slow_first_load: s|            LoadDuration = watch.Elapsed;|            System.Threading.Thread.Sleep(6000); LoadDuration = watch.Elapsed;|
+[xUnit.net 00:00:06.26]     ImageProcTest.IntegrationTests.Smoke.DllLoadSmokeTests.TheFirstFixtureCreation_LocatesTheDllWithinFiveSeconds_AndRecordedTheFirstLoadAndCall [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 20 ms - ImageProcTest.IntegrationTests.dll (net8.0)

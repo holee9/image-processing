@@ -1,0 +1,20 @@
+GUI-C-238 반증 (회귀 시험 NativeLaunchPathTests 2건이 결함을 실제로 잡는지)
+방법: 제품 소스 한 줄을 바꿔 앱을 다시 짓고 시험을 돌린 뒤, 원본으로 복원하고 바이트 비교, 다시 빌드. 스크립트가 cp949 콘솔로 출력을 받아 한글이 깨져 있어 아래에 읽은 결과를 옮겨 적었다(원 출력은 _falsify.py 를 다시 돌리면 나온다).
+
+팔 A: NativeSearchPolicy.ExclusiveDirectory 가 항상 null (= 수정 전 동작: 고정된 폴더보다 exe 폴더가 먼저)
+  빌드 exit=0, 시험 exit=1
+  빨강: OldDllsBesideTheExe_DoNotWinOverThePinnedFolder_TheAppStartsOnNative
+        Assert.DoesNotContain() Failure: Sub-string found   (창 제목에 [MOCK] 가 있었다)
+  통과: OldDllsBesideTheExe_WhenNotPinned_... (고정하지 않은 경우는 수정 전에도 Mock 이 맞다)
+  요약 줄: 실패 1, 통과 1, 전체 2
+  복원 바이트 동일: True
+
+팔 B: 배너 문장에서 이유(RuntimeInfo.NativeRefusal)를 뺌
+  빌드 exit=0, 시험 exit=1
+  빨강: OldDllsBesideTheExe_WhenNotPinned_MockStartsAndTheBannerNamesTheDllAndTheProblem
+        Assert.Contains() Failure: Sub-string not found   ("Native was requested but could not be used:" 가 없음)
+  통과: OldDllsBesideTheExe_DoNotWinOverThePinnedFolder_... (이유 문장은 Native 로 뜬 경우와 무관)
+  요약 줄: 실패 1, 통과 1, 전체 2
+  복원 바이트 동일: True
+
+복원 뒤 다시 빌드 exit=0, 시험 exit=0: 실패 0, 통과 2, 전체 2

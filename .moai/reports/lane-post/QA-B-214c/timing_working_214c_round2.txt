@@ -1,0 +1,22 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = M2Measure.DISABLED_AutoWindowPathsTiming_214b
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from M2Measure
+[ RUN      ] M2Measure.DISABLED_AutoWindowPathsTiming_214b
+== auto window paths (3 s each at most), 21 repetitions ==
+  (alerts posted by the 21 calls: 0)
+  real frame, linear ADU (sampled, representative)     window [111.07, 1982.80]  first=8.09 min=7.62 median=7.86 max=11.54 ms
+  (alerts posted by the 21 calls: 0)
+  real frame, log domain (the VOI input of the chain)  window [2045.74, 3279.82]  first=7.95 min=7.61 median=7.89 max=9.70 ms
+  (alerts posted by the 21 calls: 0)
+  3072x3072 not representative (sample + full pass)    window [1004.95, 2905.40]  first=7.99 min=7.60 median=7.92 max=10.01 ms
+  (alerts posted by the 21 calls: 0)
+  1000x1000 (below the 2^20 limit: full histogram)     window [1004.73, 2905.40]  first=0.93 min=0.80 median=0.87 max=1.24 ms
+[       OK ] M2Measure.DISABLED_AutoWindowPathsTiming_214b (1301 ms)
+[----------] 1 test from M2Measure (1301 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1301 ms total)
+[  PASSED  ] 1 test.
+===EXIT=0===

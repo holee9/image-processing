@@ -1,0 +1,28 @@
+control: T-004 names ['REQ-ENH-001', 'REQ-ENH-002', 'REQ-ENH-003', 'REQ-ENH-004', 'REQ-ENH-005', 'REQ-ENH-006']
+== ENH
+  defined                      36
+  defined_lines                36
+  duplicates                   {}
+  tasks                        13
+  in_no_task                   ['REQ-ENH-023a']
+  tasks_named_but_undefined    []
+  in_no_test_text              []
+  tests                        160
+== DISP
+  defined                      36
+  defined_lines                37
+  duplicates                   {'REQ-DISP-029': [403, 439]}
+  tasks                        33
+  in_no_task                   ['REQ-DISP-010a']
+  tasks_named_but_undefined    []
+  in_no_test_text              ['REQ-DISP-010a']
+  tests                        112
+== DICOM
+  defined                      46
+  defined_lines                46
+  duplicates                   {}
+  tasks                        12
+  in_no_task                   ['REQ-DICOM-041', 'REQ-DICOM-042', 'REQ-DICOM-043', 'REQ-DICOM-044', 'REQ-DICOM-045', 'REQ-DICOM-046']
+  tasks_named_but_undefined    []
+  in_no_test_text              ['REQ-DICOM-007', 'REQ-DICOM-014', 'REQ-DICOM-015', 'REQ-DICOM-016', 'REQ-DICOM-019', 'REQ-DICOM-020', 'REQ-DICOM-025', 'REQ-DICOM-027', 'REQ-DICOM-028', 'REQ-DICOM-030', 'REQ-DICOM-031', 'REQ-DICOM-032', 'REQ-DICOM-033', 'REQ-DICOM-034', 'REQ-DICOM-035', 'REQ-DICOM-036', 'REQ-DICOM-037', 'REQ-DICOM-039', 'REQ-DICOM-041', 'REQ-DICOM-042', 'REQ-DICOM-043', 'REQ-DICOM-044', 'REQ-DICOM-045', 'REQ-DICOM-046']
+  tests                        185

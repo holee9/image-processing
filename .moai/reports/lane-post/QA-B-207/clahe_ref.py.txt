@@ -1,0 +1,167 @@
+"""QA-B-207 M2 (E6): independent reference for the standard CLAHE, compared pixel by pixel with the DLL.
+
+The reference is written from the definition (Zuiderveld, Graphics Gems IV), not from contrast_enhance.cpp:
+  - one global scale (global min/max -> NUM_BINS bins)
+  - per tile: histogram, clip at clip*area/NUM_BINS, spread the excess evenly (integer share to every bin, the remainder at a fixed stride over the whole scale),
+    cumulative distribution / area
+  - per pixel: bilinear blend of the four tiles whose centres surround it (np.interp on the centres gives the fractional tile
+    index per axis; border pixels see two tiles, corners one)
+  - map the fraction back to [min, max]
+Differences from the C++ that are NOT expected to matter: float64 arithmetic (C++ blends in float32). Bin assignment uses the same
+float32 scale expression so a value on a bin edge lands in the same bin.
+
+Run: python build/g207_clahe_ref.py <dll dir> [out.txt]
+"""
+import ctypes
+import sys
+import numpy as np
+
+DLLDIR = sys.argv[1]
+OUT = open(sys.argv[2], 'w', encoding='utf-8', newline='\n') if len(sys.argv) > 2 else sys.stdout
+NUM_BINS = 4096
+
+
+def log(s):
+    OUT.write(s + '\n')
+    OUT.flush()
+
+
+class Img(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+class Params(ctypes.Structure):
+    _fields_ = [('clip_limit', ctypes.c_float), ('tile_width', ctypes.c_int32), ('tile_height', ctypes.c_int32)]
+
+
+import os
+os.add_dll_directory(DLLDIR)
+dll = ctypes.CDLL(os.path.join(DLLDIR, 'xpe_enhance_basic.dll'))
+dll.xpe_contrast_enhance.argtypes = [ctypes.POINTER(Img), ctypes.POINTER(Params)]
+dll.xpe_contrast_enhance.restype = ctypes.c_int
+
+
+def native(a, clip, tw, th):
+    a = np.ascontiguousarray(a, dtype=np.float32).copy()
+    h, w = a.shape
+    img = Img(w, h, 32, 32, 1, a.ctypes.data, a.nbytes)
+    rc = dll.xpe_contrast_enhance(ctypes.byref(img), ctypes.byref(Params(clip, tw, th)))
+    return rc, a
+
+
+def bounds(t, tile, size):
+    s = min(t * tile, size)
+    return s, min(s + tile, size)
+
+
+def reference(a, clip, tw, th):
+    h, w = a.shape
+    a32 = a.astype(np.float32)
+    vmin, vmax = a32.min(), a32.max()
+    rng = np.float32(vmax - vmin)
+    if rng <= 0:
+        return a32.astype(np.float64)
+    scale = np.float32(NUM_BINS - 1) / rng
+    bins = ((a32 - vmin) * scale).astype(np.int64)           # truncation toward zero, as the C++ cast
+    bins = np.clip(bins, 0, NUM_BINS - 1)
+    tile_w, tile_h = -(-w // tw), -(-h // th)
+    xs = [(t, *bounds(t, tile_w, w)) for t in range(tw)]
+    ys = [(t, *bounds(t, tile_h, h)) for t in range(th)]
+    xs = [t for t in xs if t[1] < t[2]]
+    ys = [t for t in ys if t[1] < t[2]]
+    luts = np.zeros((len(ys), len(xs), NUM_BINS), dtype=np.float64)
+    for j, (_, y0, y1) in enumerate(ys):
+        for i, (_, x0, x1) in enumerate(xs):
+            hist = np.bincount(bins[y0:y1, x0:x1].ravel(), minlength=NUM_BINS).astype(np.int64)
+            area = (x1 - x0) * (y1 - y0)
+            clipf = float(clip) * area / NUM_BINS
+            clip_count = area if clipf >= area else int(clipf)
+            clip_count = max(1, clip_count)
+            excess = int(np.maximum(hist - clip_count, 0).sum())
+            hist = np.minimum(hist, clip_count)
+            per, rem = divmod(excess, NUM_BINS)
+            hist = hist + per
+            if rem:                                           # the rest at a fixed stride over the whole scale
+                step = max(NUM_BINS // rem, 1)
+                idx = np.arange(0, NUM_BINS, step)[:rem]
+                hist[idx] += 1
+            luts[j, i] = np.cumsum(hist) / max(1, area)
+    cx = np.array([0.5 * (x0 + x1 - 1) for _, x0, x1 in xs])
+    cy = np.array([0.5 * (y0 + y1 - 1) for _, y0, y1 in ys])
+    fx = np.interp(np.arange(w), cx, np.arange(len(xs)))      # fractional tile index per column (clamped at the ends)
+    fy = np.interp(np.arange(h), cy, np.arange(len(ys)))
+    i0 = np.minimum(np.floor(fx).astype(int), len(xs) - 1)
+    i1 = np.minimum(i0 + 1, len(xs) - 1)
+    wx = fx - i0
+    j0 = np.minimum(np.floor(fy).astype(int), len(ys) - 1)
+    j1 = np.minimum(j0 + 1, len(ys) - 1)
+    wy = fy - j0
+    J0, I0 = j0[:, None], i0[None, :]
+    J1, I1 = j1[:, None], i1[None, :]
+    top = luts[J0, I0, bins] * (1 - wx[None, :]) + luts[J0, I1, bins] * wx[None, :]
+    bot = luts[J1, I0, bins] * (1 - wx[None, :]) + luts[J1, I1, bins] * wx[None, :]
+    frac = top * (1 - wy[:, None]) + bot * wy[:, None]
+    return float(vmin) + frac * float(rng)
+
+
+def structured(w, h, seed):
+    r = np.random.default_rng(seed)
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    img = 800 + 600 * np.sin(xx / 17.0) * np.cos(yy / 23.0) + 40 * r.standard_normal((h, w))
+    img[h // 4: h // 2, w // 4: w // 2] += 1500           # a bright block
+    img[h // 2:, : w // 3] = 300 + 5 * r.standard_normal((h - h // 2, w // 3))   # a nearly flat, dark, low-contrast region
+    return img.astype(np.float32)
+
+
+CASES = [
+    ('structured 101x67 tiles 8x8 clip 3', structured(101, 67, 1), 3.0, 8, 8),
+    ('structured 64x64 tiles 4x4 clip 3', structured(64, 64, 2), 3.0, 4, 4),
+    ('structured 17x9 tiles 2x2 clip 3', structured(17, 9, 3), 3.0, 2, 2),
+    ('structured 5x8 tiles 2x4 clip 3', structured(5, 8, 4), 3.0, 2, 4),
+    ('structured 11x11 tiles 5x5 clip 3 (empty edge tile)', structured(11, 11, 5), 3.0, 5, 5),
+    ('structured 256x256 tiles 8x8 clip 1', structured(256, 256, 6), 1.0, 8, 8),
+    ('structured 256x256 tiles 8x8 clip 40', structured(256, 256, 7), 40.0, 8, 8),
+    ('structured 512x384 tiles 3x7 clip 2', structured(512, 384, 8), 2.0, 3, 7),
+    ('structured 3070x2051 tiles 7x9 clip 3', structured(3070, 2051, 9), 3.0, 7, 9),
+    ('ramp 256x256 tiles 8x8 clip 3', np.add.outer(np.arange(256), np.arange(256)).astype(np.float32) * 0.02 + 495, 3.0, 8, 8),
+]
+bad = 0
+for name, a, clip, tw, th in CASES:
+    rc, got = native(a, clip, tw, th)
+    ref = reference(a, clip, tw, th)
+    rng = float(a.max() - a.min())
+    d = np.abs(got.astype(np.float64) - ref) / rng
+    ok = rc == 0 and d.max() < 2e-4
+    bad += 0 if ok else 1
+    log('%-52s rc=%d  max|diff|/range=%.2e  p99.99=%.2e  pixels>1e-3: %d  %s' % (
+        name, rc, d.max(), np.quantile(d, 0.9999), int((d > 1e-3).sum()), 'MATCH' if ok else 'DIFFER'))
+log('=== %d of %d cases differ' % (bad, len(CASES)))
+
+# E6 headline: the step across a tile boundary on a smooth ramp, new code only (the old figure, 33x, is from QA-B-204)
+w = h = 256
+ramp = (np.add.outer(np.arange(h), np.arange(w)).astype(np.float32) * 2.0 + 100)
+rc, out = native(ramp, 3.0, 8, 8)
+row = out[100].astype(np.float64)
+steps = np.diff(row)
+tile = w // 8
+boundary = [steps[k * tile - 1] for k in range(1, 8)]
+inside = [s for k, s in enumerate(steps) if (k + 1) % tile != 0]
+log('ramp step across a tile boundary: mean=%.4f  median step elsewhere=%.4f  ratio(mean boundary / median inside)=%.2f' % (
+    np.mean(boundary), np.median(inside), np.mean(boundary) / np.median(inside)))
+log('largest single step on the row: %.4f (median %.4f, x%.2f)' % (steps.max(), np.median(steps), steps.max() / np.median(steps)))
+
+# AC-04 as written (ramp 495..505, centre stddev must grow by 20 %), on the new code and on the reference
+W = H = 256
+ac = np.zeros((H, W), np.float32)
+for y in range(H):
+    for x in range(W):
+        ac[y, x] = 495.0 + 10.0 * ((x + y) / float(W + H))
+rc, out = native(ac, 3.0, 8, 8)
+refo = reference(ac, 3.0, 8, 8)
+before = ac[64:192, 64:192].std()
+log('AC-04 ramp 495..505: stddev before=%.5f  after(DLL)=%.5f ratio=%.3f   after(reference)=%.5f ratio=%.3f' % (
+    before, out[64:192, 64:192].std(), out[64:192, 64:192].std() / before,
+    refo[64:192, 64:192].std(), refo[64:192, 64:192].std() / before))
+OUT.close() if OUT is not sys.stdout else None

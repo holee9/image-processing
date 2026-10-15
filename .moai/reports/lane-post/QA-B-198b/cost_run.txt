@@ -1,0 +1,50 @@
+Note: Google Test filter = TrustRecheck.DISABLED_*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from TrustRecheck
+[ RUN      ] TrustRecheck.DISABLED_MeasureTheCostOfARefusedCall
+[2026-10-03 13:59:20.831] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704, ep=0, timeout=5000 ms
+[2026-10-03 13:59:20.849] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.849] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.859] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.859] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.861] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.861] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.863] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.863] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.866] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.866] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:20.866] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 13:59:20.929] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704, ep=0, timeout=5000 ms
+[2026-10-03 13:59:21.021] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.023] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.105] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.107] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.189] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.191] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.273] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.275] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.357] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.360] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.360] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 13:59:21.604] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704, ep=0, timeout=5000 ms
+[2026-10-03 13:59:21.953] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:21.961] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:22.291] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:22.299] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:22.628] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:22.636] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:22.975] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:22.983] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:23.314] [error] model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:23.323] [error] bone_suppress: model signature check failed (the signature does not match the model files): C:\Users\drake\AppData\Local\Temp\xpe_recheck_cost_41704/bone_suppress.onnx
+[2026-10-03 13:59:23.323] [info] xpe_ai shutdown: worker_pid=0
+REFUSED-CALL COST: model   1 MiB -> 6.2 ms per call (mean of 5)
+REFUSED-CALL COST: model  64 MiB -> 85.6 ms per call (mean of 5)
+REFUSED-CALL COST: model 256 MiB -> 343.4 ms per call (mean of 5)
+[       OK ] TrustRecheck.DISABLED_MeasureTheCostOfARefusedCall (2538 ms)
+[----------] 1 test from TrustRecheck (2538 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2538 ms total)
+[  PASSED  ] 1 test.

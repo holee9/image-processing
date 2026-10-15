@@ -1,0 +1,8 @@
+control: a real quote is accepted: True; a fake quote is rejected: True
+requirements: 36; test quotes checked: 95; impl citations checked: 36; header promises: 4
+FAILED evidence: 1
+  test quote                           0
+  impl line outside the file           0
+  impl is a statement, not file:line   1
+  header promise quote                 0
+   ('REQ-ENH-CC-005', 'impl n/a (aggregate of the five stages)', 'no file:line', '')

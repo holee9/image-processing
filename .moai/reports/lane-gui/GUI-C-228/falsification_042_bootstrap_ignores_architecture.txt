@@ -1,0 +1,3 @@
+== arm 042_bootstrap_ignores_architecture: s|        if (!VerifyX64Pe(path))|        if (false \&\& !VerifyX64Pe(path))|
+[xUnit.net 00:00:00.24]     ImageProcTest.IntegrationTests.Smoke.ArchitectureMismatchTests.TheFixtureBootstrap_WithAnX86XpeCommon_IsUnavailable_AndItsResolvedPathNamesTheFile [FAIL]
+실패!  - 실패:     1, 통과:     3, 건너뜀:     0, 전체:     4, 기간: 96 ms - ImageProcTest.IntegrationTests.dll (net8.0)

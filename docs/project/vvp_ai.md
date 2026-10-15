@@ -333,9 +333,12 @@ Traced in `docs/project/rtm_ai.md` §4 (REQ-AI-BP-002 rows), §5 (REQ-AI-ST-001 
 
 ### 4.3 SWU-AI-02: Body-Part Recognition
 
-**Purpose**: CNN body-part classification. **Not implemented** — stub.
+**Purpose**: CNN body-part classification. **Wiring implemented, no real model** (2026-10-02, `QA-B-191`, `#130`).
+The stub build is verified against the stub contract (V4.3.1); the full build (`ci-ai` preset) verifies the wiring
+with hand-built toy models (V4.3.2, V4.3.3).
 
-**Requirements Addressed**: REQ-AI-BP-001, REQ-AI-BP-002
+**Requirements Addressed**: REQ-AI-BP-001, REQ-AI-BP-002 (and, for body-part recognition, REQ-AI-002, REQ-AI-003,
+REQ-AI-FB-001 / REQ-AI-012, REQ-AI-FB-002, REQ-AI-092 — see `rtm_ai.md` §4)
 
 #### Verification Method V4.3.1: Stub-Contract Unit Tests (L1)
 
@@ -348,8 +351,32 @@ Traced in `docs/project/rtm_ai.md` §4 (REQ-AI-BP-002 rows), §5 (REQ-AI-ST-001 
 | `AiWorkerIsolationTest.RepeatedFallbackIsConsistent` | repeated calls give the same result |
 | + 5 validation cases (§4.2) | null/short-buffer rejection |
 
-**Not verified**: classification accuracy, confidence calibration, demographic performance,
-inference latency. None of these is measurable in this build (§4.9).
+#### Verification Method V4.3.2: Toy-Model Unit Tests, In-Process Path (L1, full build)
+
+| Group | Cases |
+|---|---|
+| Answer | `BodyPart.ConstantModelGivesItsLabelAndItsProbability`, `BodyPart.ADifferentModelDirectoryChangesTheLabel`, `BodyPart.TheImageChangesTheLabel`, `BodyPart.ATieGoesToTheFirstClassAndAFullScaleProbabilityIsAccepted`, `BodyPart.ANhwcModelGivesTheSameAnswersAsTheNchwOne` |
+| Size | `BodyPart.AnImageOfAnotherSizeIsResizedToTheModelsInputBeforeItIsRun`, `BodyPartResize.ShrinkingAveragesTheArea`, `BodyPartResize.EnlargingInterpolatesAndStaysInsideTheSourceRange`, `BodyPartInputSize.TheShapesTheModuleWillFeed` |
+| No usable answer (fallback) | `BodyPart.NoModelFileIsTheStubsOutcomeWithOneWarning`, `BodyPart.ABrokenModelFileIsTheStubsOutcomeWithOneWarning`, `BodyPart.MissingLabelsAreTheStubsOutcomeWithOneWarning`, `BodyPart.MoreOutputsThanLabelsAreTheStubsOutcomeWithOneWarning`, `BodyPart.ARankTwoInputIsTheStubsOutcomeWithOneWarning`, `BodyPart.ADynamicInputIsTheStubsOutcomeWithOneWarning`, `BodyPart.WithoutAModelNoImageFormatChangesTheOutcome` |
+| Threshold and fallback_mode | `BodyPart.AConfidenceExactlyAtTheThresholdPasses`, `BodyPart.AConfidenceOneFloatBelowTheThresholdIsLowAndFallsBack`, `BodyPart.TheThresholdIsTheConfiguredOneNotAConstant`, `BodyPart.AThresholdOfOneAcceptsOnlyAFullScaleConfidence`, `BodyPart.EveryLowConfidenceImageRaisesItsOwnEventButAPassingOneRaisesNone`, `BodyPart.ALowConfidenceFallbackNeedsRoomForUnknownAndStillRaisesTheEvent`, `BodyPart.WithFallbackModeOffTheLowConfidenceLabelIsReturnedWithAWarning`, `BodyPart.FallbackModeCanBeToggledAtRunTimeAndTheNextCallFollows`, `BodyPart.WithFallbackModeOffALabelThatDoesNotFitIsStillBufferTooSmall`, `BodyPartDecision.TheLowConfidenceTextsAreTheContractedOnes` |
+| Refusal | `BodyPart.ANonFiniteModelResultIsRefusedWithTheNonFiniteAlert`, `BodyPart.AProbabilityAboveOneIsRefused`, `BodyPart.ANegativeValueIsRefusedEvenWhenTheLargestIsInRange`, `BodyPartDecision.AValueJustOutsideTheRangeIsRefusedWhole`, `BodyPartDecision.NonFiniteIsToldApartFromOutOfRangeAndCheckedFirst` |
+
+#### Verification Method V4.3.3: Worker Path (L1, full build)
+
+| Group | Cases |
+|---|---|
+| Strict reply parser (fake worker) | `WorkerBodyPartReply.*` — incl. `WorkerBodyPartReply.EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded`, `WorkerBodyPartReply.EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded`, `WorkerBodyPartReply.ThreeContradictoryFramesInARowAreThreeCountedFailuresNeverAnUnavailableAnswer` |
+| Real worker vs in-process | `WorkerBodyPartAgreement.*` |
+| Budget, shared failure count, switch-off | `BodyPartWorkerPath.*` |
+
+Falsification records: `.moai/reports/lane-post/QA-B-191/m4b_arms_run2_out.txt`, `m4c_arms_out.txt`,
+`m4e_arms_out.txt`, `m4f_arms_out.txt`.
+
+**Not verified**: classification accuracy, confidence calibration, demographic performance, and the inference and
+load latency of a real model. The test models are not classifiers (`modules/ai/tests/data/make_bodypart_models.py`).
+Measured (one PC, toy model; not a claim about a real model): resizing 3072² → 512², minimum of 12 runs 7.10–7.29 ms
+across three runs (`QA-B-191/m3b_report.md`); worker first call (fresh process) median 77–80 ms, with 5 of 60 calls
+at about 670–740 ms, all in the start-and-connect stage (`QA-B-191/m4b_report.md`).
 
 #### RTM Cross-Reference (SWU-AI-02)
 
@@ -455,7 +482,7 @@ REQ-AI-008 — those rows carry `XPE-VVP-AI-001 §4.6`.
 named pipe. The worker builds; the transport is implemented (`modules/ai/src/ai_ipc_bridge.cpp`);
 **no end-to-end round trip is exercised anywhere.**
 
-**Requirements Addressed**: REQ-AI-003 (partial), REQ-AI-001 (thread safety)
+**Requirements Addressed**: REQ-AI-003 (partial); thread safety: 추적 요구 없음 — 헤더 계약만(ai_api.h), 요구 신설 대기 (#210)
 
 #### Verification Method V4.7.1: IPC Bridge Negative Paths (L2) — `test_ai_ipc_bridge.cpp`, 10 cases
 
@@ -528,19 +555,23 @@ This subsection is normative. Nothing below may be represented as verified.
 | Area | Why no evidence exists |
 |---|---|
 | **Inference path (all models)** | Not implemented. Every inference entry point returns `XPE_ERR_PROCESSING_FAILED` before touching a model (§1.2). |
-| **ONNX Runtime integration (REQ-AI-006)** | `XPE_AI_USE_ONNXRUNTIME` is `OFF` in every preset; `modules/ai/src/ai_onnx_session.cpp` is compiled but its runtime path is unreachable in stub mode. No execution provider (CPU/CUDA/TensorRT/DirectML) has been exercised. |
+| **ONNX Runtime integration (REQ-AI-006)** | ~~`XPE_AI_USE_ONNXRUNTIME` is `OFF` in every preset~~ — stale (QA-B-190, 2026-10-02): the `ci-ai` preset sets `XPE_AI_USE_ONNXRUNTIME=ON` / `XPE_AI_STUB_BUILD=OFF`, and only `xpe_bone_suppress` reaches `OnnxSession::Run`. Only the CPU execution provider is registered; CUDA/TensorRT/DirectML have not been exercised, so multi-EP remains unverified. |
 | **Worker round trip (REQ-AI-003)** | No test launches `xpe_ai_worker.exe`; only negative transport paths are covered (§4.7). |
 | **Model signing (REQ-AI-007)** | Not implemented. |
-| **Time-budget enforcement (REQ-AI-092)** | Not implemented; no latency measurement exists. |
+| **Time-budget enforcement (REQ-AI-092) — default path and other entry points** | Partial (QA-B-190, 2026-10-02). Verified only on the opt-in worker path of `xpe_bone_suppress` (`use_worker: true`): budget overrun returns the input unchanged with a non-OK code and exactly one Warning alert (`IpcDeadline.*`, `WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`, `WorkerSupervisor.AStalledWorkerFailsThatCallIsKilledAndTheNextCallStartsAFreshOne`). The default path (worker off, in-process `OnnxSession::Run`) and `xpe_bodypart_recognize` / `xpe_stitch_images` / `xpe_dl_denoise` have **no budget** and are not verified. A cold-start latency case exists (`WorkerSupervisor.MeasureColdStartAgainstTheDefaultBudget`) but was not run in QA-B-190. |
 
 > **정정 2026-09-30 (`#210`)** — 이 문서가 시간 예산 요구를 `REQ-AI-009` 로 인용하고
-> 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md:446`,
-> `SPEC-XPE-P3-AI/spec.md:272`)이고, 대조군으로 같은 정의 패턴이 `092` 를 두 곳에서
+> 있었습니다. **그 번호는 정의된 적이 없습니다** — 정의는 `REQ-AI-092`(`srs_ai.md` 의
+> `#### REQ-AI-092: Time Budget Enforcement`, `SPEC-XPE-P3-AI/spec.md` 의
+> `**REQ-AI-092** (Ubiquitous):`)이고, 대조군으로 같은 정의 패턴이 `092` 를 두 곳에서
 > 찾는 반면 `009` 는 0건입니다.
 >
 > `modules/ai` 쪽 인용은 `QA-B-157` 이 이미 고쳤고(`REQ-AI-009` 리터럴 0건), 이 문서들이
-> 남아 있었습니다. **개명이 코드에서만 반영되고 문서에서 끊긴 형태**이고, 이 저장소가
-> *"인용한 이름은 grep 으로 대조한다"* 로 적어 둔 것입니다.
+> 남아 있었습니다. 정의된 적이 없는 번호가 한 대량 커밋(`dd7c8e05`, 2026-04-28)에서 RTM 행과
+> 코드 세 곳의 주석에 **함께** 들어간 것이고, 이 저장소가
+> *"인용한 이름은 grep 으로 대조한다"* 로 적어 둔 것입니다. (정정 2026-10-02, `QA-B-190`:
+> 처음 이 메모는 "개명이 코드에서만 반영되고 문서에서 끊긴 형태" 라고 적었으나 이력이 그
+> 설명을 뒷받침하지 않습니다 — 개명된 적이 없습니다.)
 >
 > 요구의 내용은 바뀌지 않았습니다 — 번호만 정정했습니다.
 | **Coverage** | `xpe_ai` is in no coverage preset (§3.3.2, issue #124). |
@@ -603,9 +634,13 @@ RTM-AI-001 §12 Deferred Requirements.
 
 ## 7. Performance Validation
 
-**No performance budget is verified for this module.** REQ-AI-092 (time-budget enforcement) is not
-implemented (`docs/project/rtm_ai.md` §12), and a stub that returns before inference cannot produce a
-meaningful latency figure. Any budget in SPEC-XPE-P3-AI applies to the Phase 3 implementation and
+**No performance budget is verified for this module as a whole.** REQ-AI-092 (time-budget
+enforcement) is only partially implemented (`docs/project/rtm_ai.md` §12; QA-B-190, 2026-10-02): the
+budget is enforced and tested on the opt-in worker path of `xpe_bone_suppress` (`IpcDeadline.*`,
+`WorkerPathFixture.ASilentWorkerIsReportedTheInputIsReturnedAndTheNextCallRecovers`), while the
+default in-process path and the three stub entry points have no budget. A cold-start latency case
+exists (`WorkerSupervisor.MeasureColdStartAgainstTheDefaultBudget`) but its figure is not recorded
+here, and a stub that returns before inference cannot produce a meaningful latency figure. Any budget in SPEC-XPE-P3-AI applies to the Phase 3 implementation and
 must be verified by an amended version of this plan at that time.
 
 The timing-budget exclusion regex applied to coverage runs project-wide
@@ -689,7 +724,7 @@ Recorded so that no reader mistakes silence for satisfaction.
 | G-AI-4 | No worker round-trip (positive-path) test for REQ-AI-003 | Phase 3 |
 | G-AI-5 | AddressSanitizer never run against `xpe_ai` | QA-B-21 verdict, 2026-09-10 |
 | G-AI-6 | No case exercises the 64 MB `dataSize` ceiling (`ai.cpp:156`) | §8.1 |
-| G-AI-7 | Model signing (REQ-AI-007) and time budget (REQ-AI-092) not implemented, not tested | RTM-AI-001 §12 |
+| G-AI-7 | Model signing (REQ-AI-007) not implemented, not tested. Time budget (REQ-AI-092) partial — implemented and tested only on the opt-in `xpe_bone_suppress` worker path; default path and other entry points have no budget (QA-B-190) | RTM-AI-001 §12 |
 | G-AI-8 | Confidence-threshold arm of the fallback router unreachable, therefore untested | §4.8 |
 
 ---
@@ -705,7 +740,7 @@ items 3–8 holds today.
 4. ☐ `xpe_ai_tests` executed by CI on every change
 5. ☐ Inference path implemented and algorithm validation (L4) evidence collected
 6. ☐ Worker round-trip integration test (L2 positive path) passing
-7. ☐ Performance budget defined and measured (REQ-AI-092)
+7. ☐ Performance budget defined and measured (REQ-AI-092) — partial: enforced and tested on the opt-in `xpe_bone_suppress` worker path only; default path and other entry points open (QA-B-190)
 8. ☐ Clinical validation evidence per XPE-AI-REG-001
 
 Until items 3–8 are closed, `xpe_ai.dll` is a development artefact and **must not be represented as

@@ -1,0 +1,50 @@
+# GUI-C-212 falsification arms (each edits ONE thing, rebuilds, runs the class that guards it, restores byte-identical)
+
+## arm oracle: the calibration is not loaded (the post-2026-09-10 failure)
+build ok: True
+exit=1; 1 red of 3
+   RED     PreprocessSyntheticOracleCallTests.TheOracle_AgainstTheStagedDll_Passes_BecauseEveryStageRan
+restored byte-identical: True
+
+## arm oracle: the defect map is not loaded
+build ok: True
+exit=1; 1 red of 3
+   RED     PreprocessSyntheticOracleCallTests.TheOracle_AgainstTheStagedDll_Passes_BecauseEveryStageRan
+restored byte-identical: True
+
+## arm oracle: the chain writes one byte of its input
+build ok: True
+exit=1; 1 red of 3
+   RED     PreprocessSyntheticOracleCallTests.TheOracle_AgainstTheStagedDll_Passes_BecauseEveryStageRan
+restored byte-identical: True
+
+## arm oracle: the temporary folder is left behind
+build ok: True
+exit=1; 1 red of 3
+   RED     PreprocessSyntheticOracleCallTests.TheOracle_LeavesNoTemporaryFolderBehind
+restored byte-identical: True
+
+## arm oracle: the defect map marks no pixel (the stage has nothing to correct)
+build ok: True
+exit=1; 1 red of 3
+   RED     PreprocessSyntheticOracleCallTests.TheOracle_AgainstTheStagedDll_Passes_BecauseEveryStageRan
+restored byte-identical: True
+
+## arm oracle: the old call shape - the correction delegate takes two arguments, no metadata
+build ok: True
+exit=0; 0 red of 3
+restored byte-identical: True
+
+## arm evaluation tab asks IsExportReady again (the GUI-C-211 inconsistency)
+build ok: True
+exit=1; 1 red of 2
+   RED     실패 ImageProcTest.E2ETests.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOra
+restored byte-identical: True
+
+## arm readiness helper ignores ProcessingEnabled
+build ok: True
+exit=1; 1 red of 3
+   RED     ModuleReadinessProcessingEnabledTests.AnEnabledModule_IsEnabled_AndADisabledOneIsNot_EvenAtTheSameLevel
+restored byte-identical: True
+
+final rebuilds done

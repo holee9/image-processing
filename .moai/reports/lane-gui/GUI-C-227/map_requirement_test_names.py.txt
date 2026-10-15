@@ -1,0 +1,67 @@
+import re, os, glob, json
+root = r"D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests"
+files = [f for f in glob.glob(root + r"\**\*.cs", recursive=True) if "\\obj\\" not in f and "\\bin\\" not in f]
+where = {}
+for f in files:
+    t = open(f, encoding="utf-8-sig", errors="replace").read()
+    for m in re.finditer(r"\bpublic\s+(?:async\s+)?(?:Task|void)\s+([A-Za-z0-9_]+)\s*\(", t):
+        where.setdefault(m.group(1), []).append(os.path.splitext(os.path.basename(f))[0])
+
+# REQ -> test names (or prefixes ending with '*')
+M = {
+ "001": [],
+ "002": ["XpeImageBuffer_MarshalSize_Is40Bytes", "XpeImageMetadata_MarshalSize_Is96Bytes"],
+ "003": ["XpeImageBuffer_FieldOffsets_MatchNativeLayout"],
+ "004": ["XpeImageMetadata_BodyPart_63CharAscii_RoundTrips", "XpeImageMetadata_BodyPart_FieldOffset_IsZero"],
+ "005": ["XpeVersion_CalledTwice_ReturnsSamePointer", "ErrorString_CalledTwice_ReturnsSamePointer"],
+ "006": ["EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds", "EveryRow_CitesACheckThatExistsInTheNativeSource_AndNoCheckIsCountedTwice"],
+ "007": ["MockXpeBackend_TypeNotLoadedInTestAssemblies", "CompositeXpeBackend_TypeNotLoadedInTestAssemblies", "TestAssembly_HasNoMockBackendReference", "TheTypeScan_FindsATypeThatIsLoaded"],
+ "008": ["ResolvedDllPath_IsUnderBuildTreeOrTestOutput", "TheCandidateCheck_RejectsADecoyOnPath_ASystemFolder_AndAnArbitraryFolder_AndAcceptsACandidate", "TheCandidateList_IsExactlyTheFiveKindsOfFolderTheRequirementNames", "TheCandidateList_IsExactlyTheseFolders_InThisOrder", "AJunctionInsideAnApprovedFolder_ThatPointsOutside_IsRejected_AndOneThatStaysInsideIsAccepted", "AFileLinkInsideAnApprovedFolder_ThatPointsOutside_IsRejected", "TheLoadedModule_IsReallyUnderAnApprovedFolder_WhenItsLinksAreFollowed", "ADecoyEarlierOnPath_IsNotWhatTheLocatorReturns_WhenItIsPlacedBeforeTheLocatorRuns"],
+ "009": ["ErrorString_ForAllDefinedCodes_*", "ErrorString_ForUnknownCode_*"],
+ "010": ["PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated", "TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed"],
+ "020": ["XpeVersion_WhenDllLoaded_ReturnsSemverString", "TheFirstFixtureCreation_LocatesTheDllWithinFiveSeconds_AndRecordedTheFirstLoadAndCall"],
+ "021": ["Init_Success_AlertCountIsNonNegative"],
+ "022": ["Configure_ValidJson_ReturnsOk", "Configure_MalformedJson_ReturnsConfigInvalid"],
+ "023": ["AllocImage_ValidDimensions_*", "FreeImage_AfterAlloc_ReturnsOkAndZeroesData"],
+ "024": ["AllocImage_ZeroDimensions_ReturnsInvalidInput"],
+ "025": ["CopyImage_MatchingDimensions_ReturnsOk", "CopyImage_MismatchedDimensions_ReturnsError"],
+ "026": ["GetParamRange_ChestWindowCenter_ReturnsValidRange"],
+ "027": ["AlertQueue_Empty_CountIsZeroAndFetchReturnsInvalidInput"],
+ "028": ["ClearAlerts_CalledRepeatedly_DoesNotThrow"],
+ "029": ["LogSetLevel_ValidLevels_ReturnsOk", "LogSetLevel_NegativeOne_ReturnsInvalidInput", "LogSetLevel_Six_ReturnsInvalidInput"],
+ "030": ["LogSetFile_WritableTempPath_ReturnsOk", "LogSetFile_NonExistentDirectory_ReturnsIoFailed"],
+ "031": ["LogFlush_PreInit_DoesNotThrow", "LogFlush_PostInit_DoesNotThrow", "LogFlush_PostShutdown_DoesNotThrow"],
+ "040": ["GetParamRange_BeforeInit_ReturnsNotInitialized"],
+ "041": ["TheFixtureBootstrap_WithNoDllInAnyCandidate_DoesNotThrow_IsUnavailable_AndTheSkipReasonNamesEveryFolderSearched", "TheLocator_WithNothingToFind_ReportsNotFound_AndNamesTheFoldersItSearched", "LoadingAMissingDll_RaisesDllNotFoundException_ThatNamesIt"],
+ "042": ["AnImageOfAnotherArchitecture_IsRefusedByTheLoader_WithBadImageFormatException_WhileTheSameBytesAsX64Load", "TheFirstPInvokeCallIntoAnX86Image_RaisesBadImageFormatException", "AnX86XpeCommonInTheNativeDirectory_IsLocated_RejectedByTheGuard_AndNamedInTheDiagnostic"],
+ "043": ["ProcessArchitecture_IsRecordedForDiagnostics"],
+ "050": ["ASehExceptionAtTheBoundary_FailsTheTest_AndLeavesARecordedLineNamingWhereItHappened", "ACallThatReturns_IsPassedThrough_AndAnotherExceptionIsNotTouched", "EveryRegisteredNegativeRow_RunsToCompletion_ThroughTheBoundaryGuard_WithTheHostAlive"],
+ "051": ["InitShutdown_1000Cycles_NoLeak"],
+ "052": ["EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds"],
+ "053": ["XpeVersion_MajorMatchesPinnedVersion"],
+ "060": ["PreprocessVersion_WhenDllStaged_*", "PreprocessInitShutdown_*", "PreprocessDll_WhenStaged_HasAllRequiredExports"],
+ "061": ["CorrectionChain_RunTwice_DeterministicRmseIsZero", "CorrectionChain_Output_HasNoNanOrInf", "CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRestBitIdentical", "CorrectionChain_InputBuffer_Sha256IsPreserved", "Control_Sha256Hex_SeesAOneByteChange"],
+ "062": ["CalibLoadOffset_*", "CalibLoadGain_*", "CalibLoadDefectMap_*"],
+ "063": [], "064": [], "065": [],
+}
+out = {}
+bad = 0
+for req, names in M.items():
+    row = []
+    for n in names:
+        if n.endswith("*"):
+            hits = sorted(k for k in where if k.startswith(n[:-1]))
+            ok = bool(hits)
+            row.append((n, ok, [f"{h}@{','.join(where[h])}" for h in hits[:3]]))
+        else:
+            ok = n in where
+            row.append((n, ok, where.get(n, [])))
+        if not ok:
+            bad += 1
+    out[req] = row
+for req, row in out.items():
+    for n, ok, loc in row:
+        if not ok:
+            print("MISSING", req, n)
+print("requirements:", len(out), "names checked:", sum(len(r) for r in out.values()), "missing:", bad)
+json.dump({k: [(n, ok, loc) for n, ok, loc in v] for k, v in out.items()}, open(os.environ["TEMP"] + r"\req_map.json", "w"), indent=1)

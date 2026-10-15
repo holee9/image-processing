@@ -1,3 +1,12 @@
 # Text tables read by tests are compared byte-wise ("\n[section]\n");
 # keep LF on Windows runners too (main CI red since 6026cb0, #180).
 *.csv text eol=lf
+
+# QA-B-195: the AI test models are signed (modules/ai/tests/data/**/*.sig), and the signature covers the sidecar's
+# exact BYTES. A checkout that rewrote a sidecar's line endings would turn every signature stale, so these are never
+# converted: the sidecars are LF everywhere (like the csv tables above), the models and signatures are binary.
+modules/ai/tests/data/**/*.json text eol=lf
+modules/ai/tests/data/**/*.onnx binary
+modules/ai/tests/data/**/*.sig binary
+modules/ai/tests/data/*.onnx binary
+modules/ai/tests/data/*.sig binary

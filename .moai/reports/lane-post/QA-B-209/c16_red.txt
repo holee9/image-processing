@@ -1,0 +1,198 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from DicomLogging
+[ RUN      ] DicomLogging.EveryPublicFunctionLogsItsExitWithTheReturnCode
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_open: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_read_image: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_get_metadata: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_write: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_write_j2k: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_validate: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_cstore: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(86): error: Expected: (std::string::npos) != (log.find(exit)), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_cfind_mwl: no DEBUG exit line with rc=-1
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:05:28.372] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(89): error: Expected: (std::string::npos) != (log.find("[debug] [xpe_dicom] xpe_dicom_close exit")), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_close
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(90): error: Expected: (std::string::npos) != (log.find("[debug] [xpe_dicom] xpe_dicom_cancel exit")), actual: 18446744073709551615 vs 18446744073709551615
+xpe_dicom_cancel
+
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsItsExitWithTheReturnCode (7 ms)
+[ RUN      ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(101): error: Expected: (std::string::npos) != (first), actual: 18446744073709551615 vs 18446744073709551615
+
+[  FAILED  ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall (6 ms)
+[ RUN      ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(118): error: Expected equality of these values:
+  1u
+    Which is: 1
+  errors.size()
+    Which is: 0
+[2026-10-04 13:05:28.386] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open(C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_not_dicom.txt)
+[2026-10-04 13:05:28.386] [xpe_file] [debug] [DicomReader] open: C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_not_dicom.txt
+[2026-10-04 13:05:28.387] [xpe_file] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(119): error: Value of: Lines("[warning] [DicomReader] not a DICOM Part 10 file").empty()
+  Actual: false
+Expected: true
+the same condition must not be logged as a warning
+
+[  FAILED  ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel (6 ms)
+[ RUN      ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(126): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Lines("[error] [DicomNetworkSCU] cstore: file load failed").size()
+    Which is: 0
+[2026-10-04 13:05:28.392] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore(localhost:11112 file=this_file_does_not_exist.dcm)
+[2026-10-04 13:05:28.392] [xpe_file] [debug] [DicomNetworkSCU] cstore -> localhost:11112 file=this_file_does_not_exist.dcm
+[2026-10-04 13:05:28.392] [xpe_file] [warning] [DicomNetworkSCU] cstore: file load failed: No such file or directory
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(127): error: Value of: Lines("[warning] [DicomNetworkSCU]").empty()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel (4 ms)
+[ RUN      ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(146): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Lines("[error] [DicomWriter] saveFile failed").size()
+    Which is: 0
+[2026-10-04 13:05:28.397] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write(C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_no_such_dir\x.dcm)
+[2026-10-04 13:05:28.397] [xpe_file] [debug] [DicomWriter] write: C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_no_such_dir\x.dcm
+[2026-10-04 13:05:28.405] [xpe_file] [warning] [DicomWriter] saveFile failed: 지정된 경로를 찾을 수 없습니다.
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(147): error: Value of: Lines("[warning] [DicomWriter]").empty()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel (14 ms)
+[----------] 5 tests from DicomLogging (40 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (40 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsItsExitWithTheReturnCode
+[  FAILED  ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+[  FAILED  ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel
+[  FAILED  ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+[  FAILED  ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+
+ 5 FAILED TESTS

@@ -1,0 +1,10 @@
+probe lines: 37
+MISMATCH lines: 0
+display tests: 36 calls, all EQUAL: True
+real-frame chain: 1 calls, all EQUAL: True
+sample lines:
+AW_HIST_SUM sum=262144 count=262144 EQUAL
+AW_HIST_SUM sum=262144 count=262144 EQUAL
+AW_HIST_SUM sum=262144 count=262144 EQUAL
+AW_HIST_SUM sum=9437184 count=9437184 EQUAL
+restored identical: True

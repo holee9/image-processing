@@ -1,0 +1,71 @@
+# GUI-C-192e/192f / GUI-C-193 shipped-build gate (CI job gui-shipped-build). Renamed from the lane draft check_shipped_build.ps1, which .gitignore (*_build.ps1) would have excluded.
+# Run from the repository root. Builds the operator app in Release and fails when the test fault switches are in it, when a Release build
+# can be asked to carry them, or when the shipped exe does not refuse the switches. A Debug build is the positive control: the same scan
+# MUST find the strings there, or the scan proves nothing (an absence check needs a presence check beside it).
+param([string[]]$ArtifactDir = @())   # extra directories holding a published/packaged copy of the app: scanned like the Release output
+$ErrorActionPreference = 'Stop'
+$project = 'gui/ImageProcTest/ImageProcTest.csproj'
+$needles = 'ai-worker-silent', 'ai-worker-disabled', 'display-pipeline-after', 'FAULT INJECTION ARMED', 'FaultInjectingBackend', 'SilentWorkerStatus'
+
+function Build([string]$configuration, [string[]]$extra = @()) {
+    # returns the exit code and keeps the output (the refusal check reads the error code from it)
+    $output = & dotnet build $project -c $configuration --nologo -v q @extra 2>&1 | Out-String
+    $script:LastBuildOutput = $output
+    return $LASTEXITCODE
+}
+
+function Scan([string]$dir) {
+    $found = @()
+    foreach ($name in 'ImageProcTest.dll', 'ImageProcTest.pdb', 'ImageProcTest.xml') {
+        $path = Join-Path $dir $name
+        if (-not (Test-Path $path)) { throw "missing build output: $path" }
+        $latin1 = [Text.Encoding]::GetEncoding(28591).GetString([IO.File]::ReadAllBytes($path))   # one char per byte
+        foreach ($needle in $needles) {
+            $utf16 = ($needle.ToCharArray() -join [string][char]0)                                  # the user-string heap is UTF-16LE
+            if ($latin1.IndexOf($needle, [StringComparison]::Ordinal) -ge 0 -or $latin1.IndexOf($utf16, [StringComparison]::Ordinal) -ge 0) {
+                $found += "${name}:${needle}"
+            }
+        }
+    }
+    return $found
+}
+
+$release = 'gui/ImageProcTest/bin/Release/net8.0-windows'
+$debug = 'gui/ImageProcTest/bin/Debug/net8.0-windows'
+
+# 1. positive control: a Debug build carries the seam, and the scan sees it.
+if ((Build 'Debug') -ne 0) { throw 'Debug build failed' }
+$control = Scan $debug
+if ($control.Count -eq 0) { throw 'CONTROL FAILED: the scan found nothing in a Debug build, so its silence on Release would mean nothing.' }
+Write-Output "control ok: the Debug build carries $($control.Count) seam strings the scan finds"
+
+# 2. the shipped build has none.
+if ((Build 'Release') -ne 0) { throw 'Release build failed' }
+$leaked = Scan $release
+if ($leaked.Count -gt 0) { throw "Release build carries test fault seam strings: $($leaked -join ', ')" }
+Write-Output 'release ok: none of the seam strings are in the Release dll, pdb or xml'
+
+# 3. a Release build cannot be asked to carry them (the props file turns the combination into error XPE0001).
+$refused = Build 'Release' @('-p:XpeTestFaults=true')
+if ($refused -eq 0) { throw 'Release build with -p:XpeTestFaults=true SUCCEEDED; it must be refused (XPE0001).' }
+# A non-zero exit alone is not the gate: the build could fail for another reason (a typo in the switch, a missing SDK) and this check would pass.
+if ($script:LastBuildOutput -notmatch 'XPE0001') { throw "Release build with -p:XpeTestFaults=true failed, but NOT with XPE0001, so the gate is unproven. Output: $script:LastBuildOutput" }
+Write-Output 'gate ok: Release with XpeTestFaults=true is refused with XPE0001'
+if ((Build 'Release') -ne 0) { throw 'Release rebuild failed' }   # restore the Release output the refusal may have left stale
+
+# 4. the shipped exe refuses each switch like any made-up one (exit code 2) and starts nothing.
+$exe = Join-Path $release 'ImageProcTest.exe'
+$report = Join-Path $env:RUNNER_TEMP 'refusal-report.json'
+foreach ($fault in 'ai-worker-disabled', 'ai-worker-silent', 'ai-worker-silent:0', 'display-pipeline-after:2') {
+    $process = Start-Process -FilePath $exe -ArgumentList @('--automation-report', $report, '--automation-fault', $fault) -PassThru -Wait
+    if ($process.ExitCode -ne 2) { throw "the shipped exe did not refuse --automation-fault $fault (exit code $($process.ExitCode), expected 2)" }
+}
+Write-Output 'refusal ok: the shipped exe exits 2 for every test fault switch'
+
+# 5. any published or packaged copy of the app (none exists in this repository today; see the 192f report): the FINAL artifact is scanned, not the build
+#    it came from. `dotnet publish --no-build` does not run the props file's Release guard again, so only this scan covers it.
+foreach ($dir in $ArtifactDir) {
+    $leaked = Scan $dir
+    if ($leaked.Count -gt 0) { throw "artifact $dir carries test fault seam strings: $($leaked -join ', ')" }
+    Write-Output "artifact ok: $dir"
+}

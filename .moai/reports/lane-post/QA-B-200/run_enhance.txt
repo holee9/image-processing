@@ -1,0 +1,41 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ReproQaB200Enhance.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from ReproQaB200Enhance
+[ RUN      ] ReproQaB200Enhance.DISABLED_E1_ControlTheDefaultThresholdSharpensAnEdge
+E1 CONTROL: amount 1, radius 2, threshold 10, edge 1000 -> module max |out-in| = 10.000
+[       OK ] ReproQaB200Enhance.DISABLED_E1_ControlTheDefaultThresholdSharpensAnEdge (0 ms)
+[ RUN      ] ReproQaB200Enhance.DISABLED_E1_ThresholdZeroSharpensAnEdge
+E1 THRESHOLD 0: SPEC (reference blur) max |out-in| = 400.263; module max |out-in| = 0.000
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_repro_qa_b_200.cpp(132): error: Expected: (moduleChange) > (0.1f * specChange), actual: 0 vs 40.0262718
+was: the module changed nothing at threshold 0
+
+[  FAILED  ] ReproQaB200Enhance.DISABLED_E1_ThresholdZeroSharpensAnEdge (0 ms)
+[ RUN      ] ReproQaB200Enhance.DISABLED_E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays
+E1 CONTRAST    100: bright-side edge pixel moves by SPEC 20.013, module 5.000; dark side SPEC -20.013, module -5.000
+E1 CONTRAST   1000: bright-side edge pixel moves by SPEC 200.131, module 5.000; dark side SPEC -200.131, module -5.000
+E1 RATIO (contrast 1000 / contrast 100) at the bright edge pixel: SPEC 10.00, module 1.00
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_repro_qa_b_200.cpp(157): error: The difference between rows[0].module and rows[0].spec is 15.01318359375, which exceeds 0.15f * std::fabs(rows[0].spec), where
+rows[0].module evaluates to 5,
+rows[0].spec evaluates to 20.01318359375, and
+0.15f * std::fabs(rows[0].spec) evaluates to 3.0019776821136475.
+contrast 100
+
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_repro_qa_b_200.cpp(158): error: The difference between rows[1].module and rows[1].spec is 195.13134765625, which exceeds 0.15f * std::fabs(rows[1].spec), where
+rows[1].module evaluates to 5,
+rows[1].spec evaluates to 200.13134765625, and
+0.15f * std::fabs(rows[1].spec) evaluates to 30.019702911376953.
+contrast 1000
+
+[  FAILED  ] ReproQaB200Enhance.DISABLED_E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays (0 ms)
+[----------] 3 tests from ReproQaB200Enhance (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] ReproQaB200Enhance.DISABLED_E1_ThresholdZeroSharpensAnEdge
+[  FAILED  ] ReproQaB200Enhance.DISABLED_E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays
+
+ 2 FAILED TESTS

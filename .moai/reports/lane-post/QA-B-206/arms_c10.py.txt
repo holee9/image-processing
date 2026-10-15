@@ -1,0 +1,141 @@
+"""QA-B-206 M1 C10 falsification arms: the millisecond -> whole second conversion of the network SCU. Break ONE defence,
+rebuild ci-dicom, run the DicomTimeout tests, expect the named tests red, restore byte-identical.
+Run: python build/g206_arms_c10.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g206-build.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g206-run.bat'
+SRC = 'modules/dicom/src/DicomNetworkSCU.cpp'
+NL = '\n'
+
+CEIL = '    const uint64_t seconds = (static_cast<uint64_t>(timeoutMs) + 999u) / 1000u;' + NL
+USE_C = ('    if (timeoutMs > 0) {' + NL +
+         '        scu.setConnectionTimeout(timeoutSeconds(timeoutMs));' + NL +
+         '        scu.setACSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL +
+         '        scu.setDIMSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL)
+CONN = '        scu.setConnectionTimeout(timeoutSeconds(timeoutMs));' + NL
+ACSE = '        scu.setACSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL
+DIMSE = '        scu.setDIMSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL
+T_SMALL = 'DicomTimeout.ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred'
+T_ROUND = 'DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest'
+T_FIND = 'DicomTimeout.ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred'
+
+
+def block(n):
+    return USE_C
+
+
+ARMS = [
+    ('floor_as_before_timeoutMs_div_1000_no_minimum',
+     [(SRC, CEIL, '    const uint64_t seconds = static_cast<uint64_t>(timeoutMs) / 1000u;' + NL),
+      (SRC, '    return static_cast<Sint32>(seconds < 1u ? 1u : seconds);' + NL, '    return static_cast<Sint32>(seconds);' + NL)],
+     [T_SMALL, T_ROUND, T_FIND]),
+    ('floor_with_a_minimum_of_one_second',
+     [(SRC, CEIL, '    const uint64_t seconds = static_cast<uint64_t>(timeoutMs) / 1000u;' + NL)], None),  # replaced below
+    ('round_to_nearest_with_a_minimum_of_one_second',
+     [(SRC, CEIL, '    const uint64_t seconds = (static_cast<uint64_t>(timeoutMs) + 500u) / 1000u;' + NL)], [T_ROUND]),
+    ('ceil_without_the_minimum_equivalent_for_every_timeoutMs_above_0',
+     [(SRC, '    return static_cast<Sint32>(seconds < 1u ? 1u : seconds);' + NL, '    return static_cast<Sint32>(seconds);' + NL)], []),
+    ('c_store_only_goes_back_to_floor',
+     [(SRC, 'timeoutSeconds(timeoutMs));' + NL + '        scu.setACSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL + '        scu.setDIMSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL + '    }' + NL + NL + '    // Add presentation context for the SOP class',
+       'static_cast<Sint32>(timeoutMs / 1000));' + NL + '        scu.setACSETimeout(static_cast<Uint32>(timeoutMs / 1000));' + NL + '        scu.setDIMSETimeout(static_cast<Uint32>(timeoutMs / 1000));' + NL + '    }' + NL + NL + '    // Add presentation context for the SOP class')],
+     [T_SMALL, T_ROUND]),
+    ('c_find_only_goes_back_to_floor',
+     [(SRC, 'timeoutSeconds(timeoutMs));' + NL + '        scu.setACSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL + '        scu.setDIMSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));' + NL + '    }' + NL + NL + '    // Add Modality Worklist presentation context',
+       'static_cast<Sint32>(timeoutMs / 1000));' + NL + '        scu.setACSETimeout(static_cast<Uint32>(timeoutMs / 1000));' + NL + '        scu.setDIMSETimeout(static_cast<Uint32>(timeoutMs / 1000));' + NL + '    }' + NL + NL + '    // Add Modality Worklist presentation context')],
+     [T_FIND]),
+]
+# arm 2: floor with a minimum of 1 -- `seconds` stays the floor, the existing "< 1 -> 1" in the return supplies the minimum
+ARMS[1] = ('floor_with_a_minimum_of_one_second', ARMS[1][1], [T_ROUND])
+
+# arms on which ONE of the three DCMTK setters is removed, to find out which of them the stall actually depends on
+ARMS_SETTERS = [
+    ('only_the_ACSE_timeout_is_set', [(SRC, CONN, ''), (SRC, DIMSE, '')], None),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    files = sorted({e[0] for e in edits})
+    with open(SRC, 'rb') as f:
+        saved = {SRC: f.read()}
+    before = {SRC: sha(SRC)}
+    log('=== ARM ' + name)
+    try:
+        txt = saved[SRC].decode('utf-8')
+        for ff, old, new in edits:
+            n = txt.count(old)
+            assert n >= 1, (name, old[:60], n)
+            txt = txt.replace(old, new)
+        with open(SRC, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g206-build.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s test_dicom_failure_paths.exe DicomTimeout.* D:\\workspace-github\\xpe-post\\build\\g206-arm.txt' % RUN)
+            red = failed('build/g206-arm.txt')
+            must = must if must is not None else []
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            if must:
+                log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+            else:
+                log('RESULT: %s (an arm expected NOT to change any result)' % ('no test red, as expected for an equivalent mutant' if not red else 'RED: ' + ', '.join(sorted(red))))
+    finally:
+        with open(SRC, 'wb') as f:
+            f.write(saved[SRC])
+        log('restored byte-identical: %s' % (sha(SRC) == before[SRC]))
+
+for name, edits, must in ARMS_SETTERS:
+    with open(SRC, 'rb') as f:
+        saved = f.read()
+    before = sha(SRC)
+    log('=== ARM ' + name + ' (observation: does the stall still return in time with only the ACSE timeout?)')
+    try:
+        txt = saved.decode('utf-8')
+        for ff, old, new in edits:
+            assert txt.count(old) == 2, (name, old[:60], txt.count(old))
+            txt = txt.replace(old, new)
+        with open(SRC, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        sh('%s test_dicom_failure_paths.exe DicomTimeout.* D:\\workspace-github\\xpe-post\\build\\g206-arm.txt' % RUN)
+        red = failed('build/g206-arm.txt')
+        log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+    finally:
+        with open(SRC, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(SRC) == before))
+log('=== DONE')
+out.close()

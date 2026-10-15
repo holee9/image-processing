@@ -1,0 +1,3 @@
+== arm 1: a direct assignment to the text box is brought back
+[xUnit.net 00:00:00.21]     ImageProcTest.IntegrationTests.Diagnostics.PreprocessOracleVerdicts219dTests.TheNativePreviewText_HasExactlyOneWriter_AndNothingElseNamesTheTextBox [FAIL]
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 28 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -31,5 +31,15 @@ namespace ImageProcTest
         /// </summary>
         public static string GradeDiscovery(string? resolvedPath, string readyLevel) =>
             Grade(resolvedPath is not null, readyLevel);
+
+        /// <summary>
+        /// The ONE answer to "may this module's stages run?", read by every screen that offers or blocks them (GUI-C-212). The Evaluation tab used to ask a different question for
+        /// preprocess (<c>IsExportReady</c>, which ignores the synthetic oracle) than the Diagnostics and Calibration tabs asked (<c>ProcessingEnabled</c>), so one screen said
+        /// "Preprocess=ready" while another said the same module was blocked (measured on screen in GUI-C-211). A module absent from the list is not enabled.
+        /// </summary>
+        public static bool IsProcessingEnabled(IEnumerable<ModuleReadinessSnapshot> modules, string moduleName) =>
+            modules.Any(module =>
+                string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase) &&
+                module.ProcessingEnabled);
     }
 }

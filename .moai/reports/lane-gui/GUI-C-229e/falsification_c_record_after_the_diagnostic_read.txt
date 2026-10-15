@@ -1,0 +1,4 @@
+== arm (c): the record is written after the diagnostic read instead of before it
+[xUnit.net 00:00:00.22]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.A_ADiagnosticReadThatThrows_DoesNotFailARunWhoseCenterIs4321_AndTheRecordIsStillWritten [FAIL]
+[xUnit.net 00:00:00.22]     ImageProcTest.E2ETests.Scenarios.Workflows.KeystrokeStepTests.ThePassingPath_ReadsNothingElse_AfterTheRecord_ThanTheOneObservation [FAIL]
+실패!  - 실패:     2, 통과:    23, 건너뜀:     0, 전체:    25, 기간: 39 ms - ImageProcTest.E2ETests.dll (net8.0)

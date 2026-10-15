@@ -1,0 +1,84 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 25 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 25 tests from DicomValidatorTest
+[ RUN      ] DicomValidatorTest.ValidateConformant_ReturnsValid
+[       OK ] DicomValidatorTest.ValidateConformant_ReturnsValid (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateMissingPatientID_ReportsError
+[       OK ] DicomValidatorTest.ValidateMissingPatientID_ReportsError (4 ms)
+[ RUN      ] DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid
+W: DcmItem: Length of element (4f4e,2054) is odd
+E: DcmElement: Unknown Tag & Data (4f4e,2054) larger (1229201473) than remaining bytes in file
+[       OK ] DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid (0 ms)
+[ RUN      ] DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall
+[       OK ] DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall (0 ms)
+[ RUN      ] DicomValidatorTest.NullFilePath_ReturnsInvalidInput
+[       OK ] DicomValidatorTest.NullFilePath_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomValidatorTest.NullOutBuf_ReturnsInvalidInput
+[       OK ] DicomValidatorTest.NullOutBuf_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning
+[       OK ] DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning (2 ms)
+[ RUN      ] DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall
+W: DcmItem: Length of element (4f4e,2054) is odd
+E: DcmElement: Unknown Tag & Data (4f4e,2054) larger (1229201473) than remaining bytes in file
+[       OK ] DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall
+[       OK ] DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing
+[       OK ] DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing (7 ms)
+[ RUN      ] DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta
+[       OK ] DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta (5 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency (7 ms)
+[ RUN      ] DicomValidatorTest.ValidateWriterOutput_IsConformant
+[       OK ] DicomValidatorTest.ValidateWriterOutput_IsConformant (7 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency (7 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid (6 ms)
+[ RUN      ] DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant
+[       OK ] DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant (8 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Invalid Element (0008,0016) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass (6 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Invalid Element (0008,0016) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance (7 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Invalid Element (0008,0016) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax (6 ms)
+[ RUN      ] DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput
+[       OK ] DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow
+[       OK ] DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow (0 ms)
+[ RUN      ] DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize
+[       OK ] DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize (0 ms)
+[ RUN      ] DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag
+[       OK ] DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag (68 ms)
+[ RUN      ] DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty
+[       OK ] DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty (16 ms)
+[ RUN      ] DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages
+[       OK ] DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages (10 ms)
+[----------] 25 tests from DicomValidatorTest (179 ms total)
+
+[----------] Global test environment tear-down
+[==========] 25 tests from 1 test suite ran. (201 ms total)
+[  PASSED  ] 25 tests.

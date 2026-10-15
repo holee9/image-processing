@@ -109,11 +109,11 @@ TEST(EnhanceBasicParameterDependency, NoiseReduce_EveryParameterReachesTheOutput
     };
 
     const std::vector<float> base  = run(XPE_NOISE_BILATERAL, 3.0f, 50.0f, 21, 7, 10.0f);
-    const std::vector<float> space = run(XPE_NOISE_BILATERAL, 8.0f, 50.0f, 21, 7, 10.0f);
+    const std::vector<float> space = run(XPE_NOISE_BILATERAL, 7.0f, 50.0f, 21, 7, 10.0f);   // 7, not 8: sigma_space is capped at 7.5 (QA-B-210 E7)
     const std::vector<float> range = run(XPE_NOISE_BILATERAL, 3.0f, 200.0f, 21, 7, 10.0f);
     const std::vector<float> nlm   = run(XPE_NOISE_NLM,       3.0f, 50.0f, 21, 7, 10.0f);
 
-    GTEST_LOG_(INFO) << "noise_reduce sigma_space 3->8 maxdiff=" << MaxDiff(base, space)
+    GTEST_LOG_(INFO) << "noise_reduce sigma_space 3->7 maxdiff=" << MaxDiff(base, space)
                      << " sigma_range 50->200=" << MaxDiff(base, range)
                      << " BILATERAL->NLM=" << MaxDiff(base, nlm);
 

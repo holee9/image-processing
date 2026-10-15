@@ -1,0 +1,48 @@
+SPEC-XPE-GUI-IT correction draft (GUI-C-207). Wording only: .moai/specs and docs are leader-owned, nothing here is applied.
+Base: dev/gui efbc74f8. Evidence for every line: report.md sections in brackets.
+
+== spec.md ==
+
+[HISTORY, v1.1.0 row]  "All 16 AC done" -> "All 15 AC listed; see section 11 for what each one actually asserts".
+[2 Referenced Documents, RTM-GUI-001 row]  "53 REQ -> IEC 62304 trace" -> "36 REQ -> IEC 62304 trace" (REQ-GUI-IT-032..034 are not defined here).
+[8 Quality Requirements]  "15/15 functions ... = 100% surface coverage" is true as a call count (every symbol is called by a test); add: "xpe_shutdown, xpe_clear_alerts and xpe_log_flush return void, so their effect is asserted through REQ-040 and REQ-028, not through a return value."
+[9 Architectural Constraints, last [HARD]]  "tests call the real XpeCommonApi [DllImport] declarations directly - no shim" is NOT what the project does (GUI-C-13: one assembly cannot hold two DllImport resolvers). Replace with the rule that is enforced:
+    "[HARD] The test project's P/Invoke declarations (PInvoke/XpeCommonNative.cs) mirror clients/ImageProcTest/PInvokeWrapper.cs. The DLL name (DllNameParityTests) and the error-code enum (ErrorCodeHeaderParityTests) are compared from source; the function signatures are NOT yet (report.md D8)."
+[10 AC-4]  "All 18 PInvoke Symbols ... (REQ-GUI-IT-020~034)" -> "All 15 PInvoke Symbols ... (REQ-GUI-IT-020~031)".
+[10 AC-5]  Test class name: "UninitializedGuardTests" does not exist; the tests are GetParamRange_BeforeInit_ReturnsNotInitialized, Version_BeforeInit_DoesNotCrash, ErrorString_BeforeInit_DoesNotCrash, LogFlush_BeforeInit_DoesNotCrash in NativeErrorTranslationTests.
+[10 AC-6]  "Enum Parity for All 11 Error Codes" -> "... for all 18 codes the C# enum declares (OK=0 .. INVALID_CALIB_DATA=-17)". The unknown-code case asserts a non-empty string only.
+[10 AC-9]  "> 20 negative scenarios" -> "3 negative-input scenarios (Configure with 64 KB malformed JSON, 1-byte alert buffer, huge Alloc dimensions) and 3 pre-init no-crash scenarios", or add the missing scenarios (report.md D11).
+[10 AC-12]  "CI logs or local dotnet test --filter Category=Smoke": no CI step filters Category=Smoke (report.md section 5). State "not measured by CI" or add the step.
+[10 AC-15 DoD]  plan.md, acceptance.md, tasks.md were never authored; the README "How to run integration tests" section does not exist; MX tags are two (@MX:ANCHOR NativeLibraryFixture, @MX:NOTE on the mirror), not one per [DllImport]. Either do these or strike them from the DoD.
+[11 Implementation Status]  The class table (AbiLayoutTests, DllResolutionTests, LifecycleTests, ConfigureTests, MemoryTests, AlertTests, LoggingTests, LeakEnduranceTests, EnumParityTests; 78 tests) lists 7 classes that do not exist. Replace with the real mapping (this is requirement-matrix.json):
+    REQ-001            ImageProcTest.IntegrationTests.csproj (build property)
+    REQ-002..004       Smoke/AbiLayoutTests
+    REQ-005, 020, 041, 042  Smoke/DllLoadSmokeTests
+    REQ-053            Smoke/VersionPinTests (+ Functional/ErrorCodeMappingTests)
+    REQ-006, 040, 050, 052  ErrorMapping/NativeErrorTranslationTests
+    REQ-007            Safety/MockBlockingTests
+    REQ-008            Safety/DllSearchPathSafetyTests
+    REQ-009            Functional/ErrorCodeMappingTests
+    REQ-010, 051       Safety/LeakEnduranceTests
+    REQ-021, 023..025  Functional/ImageBufferLifecycleTests
+    REQ-022, 026       Functional/MetadataMarshallingTests
+    REQ-027, 028       Lifecycle/AlertCallbackTests
+    REQ-029..031       Lifecycle/LoggingHandlerTests
+    REQ-043            Diagnostics/PlatformDetectionTests
+    REQ-060, 061, 062  P1AReady/PreprocessHandshakeTests, PreprocessCorrectionChainSmokeTests, CalibrationCheckExpirySmokeTests
+    REQ-063, 064, 065  none
+    The "78/78" figures are from 2026-04-18; the project now runs 650 passed / 1 skipped, most of them other SPECs' tests.
+[11 AC traceability table, AC-13]  "READY (P1A pending)" -> "runs: CI stages xpe_preprocess.dll, 9 cases".
+[13.4 Cross-Document Sync Check]  "RTM-GUI-001 section 3: 39 traced" -> "36 defined; RTM rows 032..034 have no definition here".
+[4.4 or a new row in section 4]  Add status per REQ so the table says what is asserted (report.md section 1): implemented 19 (REQ-001 is a build property), partial 14 (004, 006, 007, 008, 009, 010, 020, 031, 041, 042, 043, 050, 052, 061), none 3 (063, 064, 065). Either implement 063..065 or mark them "Withdrawn / not scheduled".
+[REQ-GUI-IT-010]  The wording asks for outstanding GCHandle.Alloc(Pinned) handles to be absent but defines the check as "GetTotalMemory sanity". Say which: weaken the requirement to the sanity bound, or define a handle census.
+[REQ-GUI-IT-043]  "run a diagnostic test ... record the architecture without failing other tests" - the existing PlatformDetectionTests.ProcessArchitecture_IsX64 fails on ARM64; either soften it or note REQ-043 as "recording only".
+
+== progress.md ==
+
+[Timeline]  "Implementation Complete: 2026-04-18 - All AC done, 78/78 tests passing" -> add "(all 15 AC listed; per-AC status in spec.md section 10 / GUI-C-207 report)".
+[Test Results Summary]  "78/78 GREEN" is the 2026-04-18 figure; replace with "see CI dotnet-tests (650 passed, 1 skipped on 2026-10-03, most of them other SPECs)".
+[Test Results, Optional row]  "SKIP (awaiting xpe_preprocess.dll)" -> "RUN: 9 cases (CI stages xpe_preprocess.dll)".
+[Acceptance Criteria table]  "AC-4 18/18 PInvoke symbols" -> "15/15"; remove "AC-16" (there are 15 AC); AC-2/3/6/8/9/11/12/14/15 are PARTIAL (spec.md section 10 draft above), not "PASS".
+[IEC 62304 Class B Traceability]  "All 53 REQ-GUI-IT-* requirements mapped to >= 1 automated test" -> "36 REQ defined; 33 mapped to a test class by requirement-matrix.json; 063..065 have no test".
+[Known Limitations]  "xUnit 2.9.3: Early-return pattern" is out of date: tests use [SkippableFact] + SkipHelper (16 files); the one fixed skip is ErrorCodeMappingTests NOT_IMPLEMENTED (stale: the native maps it).

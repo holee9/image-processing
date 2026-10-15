@@ -17,15 +17,22 @@
 // @MX:ANCHOR: [AUTO] Public API boundary — P/Invoke entry point from C# host
 // @MX:REASON: All callers (xpe_display.dll consumers) depend on this ABI contract; domain transition float32->uint16
 // @MX:SPEC: SPEC-XPE-P1B-DISP
-extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 img,
-                                                     const XpePresentationLutParams* params) {
+static XpeErrorCode apply_presentation_lut_impl(XpeImageBuffer*                 img,
+                                                const XpePresentationLutParams* params,
+                                                XpePresentationPolarity         polarity) {
     if (!img)    return XPE_ERR_INVALID_INPUT;
     if (!params) return XPE_ERR_INVALID_INPUT;
+    // QA-B-214: an unknown polarity is refused before anything is touched.
+    if (polarity != XPE_PRESENTATION_INVERTED && polarity != XPE_PRESENTATION_AS_IS) return XPE_ERR_INVALID_INPUT;
 
     XpeErrorCode fmt_rc = xpe_validate_float32(img);
     if (fmt_rc != XPE_OK) return fmt_rc;
 
     const size_t count = xpe_pixel_count(img);
+
+    // QA-B-181f (#233): a non-finite pixel is refused, before the allocation, so the image is left exactly as it
+    // was. It used to be clamped to the nearest LUT end (NaN to 0, +inf to the top) and reported as success.
+    if (!xpe_all_finite(static_cast<const float*>(img->data), count)) return XPE_ERR_INVALID_INPUT;
 
     // REQ-DISP-024: allocate new uint16 buffer
     size_t new_size = count * sizeof(uint16_t);
@@ -35,7 +42,16 @@ extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*              
     }
 
     const float* src = static_cast<const float*>(img->data);
-    const uint16_t* lut = params->lutData;
+
+    // QA-B-214 (user decision on #251): the polarity is applied here, as the last display step. INVERTED reads the table
+    // backwards, table[i] = lutData[1023 - i] (the DICOM INVERSE shape of the P-Values). The backwards copy is made once, so
+    // the per-pixel loop below is the same for both polarities and costs the same. For a ramp it equals 65535 - ramp
+    // exactly; for a GSDF table it keeps the table's perceptual spacing, which "65535 - lutData[i]" would break.
+    uint16_t table[1024];
+    for (int32_t i = 0; i < 1024; ++i) {
+        table[i] = (polarity == XPE_PRESENTATION_INVERTED) ? params->lutData[1023 - i] : params->lutData[i];
+    }
+    const uint16_t* lut = table;
 
     // REQ-DISP-020: index = clamp(round(input * 1023), 0, 1023)
     // REQ-DISP-021: input clamped to [0.0, 1.0] first
@@ -74,9 +90,9 @@ extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*              
 // @MX:NOTE: [AUTO] DICOM PS3.14 GSDF — Eq 7-2 (j from L) and Eq 7-1 (L from j)
 // @MX:WARN: [AUTO] Numerical precision sensitive — validate with DICOM PS3.14 test vectors
 // @MX:REASON: Coefficients are transcribed from the standard and checked against Table B-1
-extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceValues,
-                                             uint32_t                  count,
-                                             XpePresentationLutParams* outParams) {
+static XpeErrorCode gsdf_calibrate_impl(const float*              luminanceValues,
+                                        uint32_t                  count,
+                                        XpePresentationLutParams* outParams) {
     if (!luminanceValues) return XPE_ERR_INVALID_INPUT;
     if (!outParams)       return XPE_ERR_INVALID_INPUT;
     if (count < 2)        return XPE_ERR_INVALID_INPUT;
@@ -86,6 +102,15 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     for (uint32_t i = 0; i < count; ++i) {
         if (!std::isfinite(luminanceValues[i])) return XPE_ERR_INVALID_INPUT;
     }
+
+    // QA-B-207 D1 (user decision on #251): the black level (the first sample, the lowest luminance of the curve) must be at
+    // least 0.05 cd/m2, the lower end of the range PS3.14 defines the grayscale standard display function on (Equation 7-2 is
+    // specified for L = 0.05 .. 4000 cd/m2, JND index 1 .. 1023). Below it j(L) is an extrapolation of the polynomial
+    // (j(0.01) = -20.8) and the inverse used for the LUT is a fit to j = 1 .. 1023, so a 0.01 black level gave a LUT that
+    // differed from the standard's by up to 1046 counts with rc = OK (QA-B-204). Zero and negative are the same case and were
+    // coerced to 0.01 silently. The first sample is judged AFTER the finite and ordering checks below, and before anything is
+    // written: outParams is untouched on refusal. 0.05 itself is accepted. (The upper end, 4000, is not enforced here.)
+    constexpr float kMinBlackLevel = 0.05f;
 
     // REQ-DISP-026 + REQ-DISP-029 (#155, QA-B-146): the array is the display's
     // characteristic curve, so it must be non-decreasing. Until QA-B-145 the
@@ -138,6 +163,8 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     // A real measurement is not required to know the right answer -- an
     // independently derived control is (QA-B-142 used Table B-1 the same way).
 
+    if (luminanceValues[0] < kMinBlackLevel) return XPE_ERR_INVALID_INPUT;
+
     // Step 1: the ends of the measured curve. The contract says ascending, so
     // these are element 0 and element count-1; a caller that violates it is
     // caught here rather than silently producing an inverted ramp.
@@ -145,7 +172,7 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     float lum_max = luminanceValues[count - 1];
 
     // Protect against invalid luminance values
-    if (lum_min <= 0.0f) lum_min = 0.01f;
+    // QA-B-207 D1: the black level is no longer replaced by 0.01 (see the check at the top of this function).
     if (lum_max <= lum_min) lum_max = lum_min + 1.0f;
 
     // Step 2: compute the JND range -- DICOM PS3.14 Equation 7-2, j(L).
@@ -279,4 +306,27 @@ extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceVa
     outParams->gsdfEnabled = 1;
 
     return XPE_OK;
+}
+
+// REQ-DISP-031 (QA-B-200 M2a): entry, outcome and error conditions are logged around the functions above.
+extern "C" XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                 img,
+                                                     const XpePresentationLutParams* params) {
+    xpe_display_log_enter("xpe_apply_presentation_lut");
+    return xpe_display_log_exit("xpe_apply_presentation_lut",
+                                apply_presentation_lut_impl(img, params, XPE_PRESENTATION_INVERTED));
+}
+
+// QA-B-214: the same stage with the polarity chosen by the caller.
+extern "C" XpeErrorCode xpe_apply_presentation_lut_ex(XpeImageBuffer*                 img,
+                                                        const XpePresentationLutParams* params,
+                                                        XpePresentationPolarity         polarity) {
+    xpe_display_log_enter("xpe_apply_presentation_lut_ex");
+    return xpe_display_log_exit("xpe_apply_presentation_lut_ex", apply_presentation_lut_impl(img, params, polarity));
+}
+
+extern "C" XpeErrorCode xpe_gsdf_calibrate(const float*              luminanceValues,
+                                             uint32_t                  count,
+                                             XpePresentationLutParams* outParams) {
+    xpe_display_log_enter("xpe_gsdf_calibrate");
+    return xpe_display_log_exit("xpe_gsdf_calibrate", gsdf_calibrate_impl(luminanceValues, count, outParams));
 }

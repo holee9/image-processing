@@ -1,0 +1,7 @@
+DRAFT for docs/help/content/troubleshooting.md (lead-owned). Replace the table row that begins
+"| `xpe_preprocess_init failed (<code>).`<br>`Loading <name> calibration failed (<code>).`<br>`xpe_offset_correct failed (<code>).`..."
+(line 48 at the time of writing) with the two rows below. The app no longer calls the stages one by one (GUI-C-232b), so the four per-stage messages no longer exist in the source.
+TroubleshootingDocQuoteTests checks every backticked quote against the source; each quote below is in GuiPreprocessRunner.cs.
+
+| `xpe_preprocess_init failed (<code>).`<br>`Loading <name> calibration failed (<code>).`<br>`xpe_preprocess_pipeline_out failed (<code>).` | That native call returned a non-zero error code. The codes are listed in the appendix. For `xpe_preprocess_pipeline_out failed (-1)` the maps and the raw image may also have different sizes, but the app now refuses such an image when it is opened. | No action is defined; the message itself is the diagnosis. |
+| `Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.` | The native DLLs are older than the app. Nothing was processed and Save Corrected Image stays dimmed. | Update the native DLLs and start the app again. |

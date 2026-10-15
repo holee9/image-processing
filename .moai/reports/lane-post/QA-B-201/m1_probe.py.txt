@@ -1,0 +1,263 @@
+"""QA-B-201 M1 probe: where do negative pixels from xpe_edge_enhance come from, and what do the downstream modules do with them.
+No source is changed: the built DLLs are called through ctypes. Run from the repository root:
+    python build/g201_probe.py enhance     (build/ci-post/bin: xpe_enhance_basic, xpe_display)
+    python build/g201_probe.py dicom       (build/ci-dicom/bin + vcpkg DCMTK DLLs, a separate process)
+"""
+import ctypes as C
+import os
+import sys
+
+import numpy as np
+
+MODE = sys.argv[1] if len(sys.argv) > 1 else 'enhance'
+BIN = os.path.abspath('build/ci-dicom/bin' if MODE == 'dicom' else 'build/ci-post/bin')
+os.add_dll_directory(BIN)
+if MODE == 'dicom':
+    os.add_dll_directory(r'D:\workspace-github\image-processing\build\release\vcpkg_installed\x64-windows\bin')
+COMMON = C.CDLL(os.path.join(BIN, 'xpe_common.dll'))
+
+
+class Img(C.Structure):
+    _fields_ = [('width', C.c_uint32), ('height', C.c_uint32), ('bitsAllocated', C.c_uint32), ('bitsStored', C.c_uint32),
+                ('format', C.c_int32), ('data', C.c_void_p), ('dataSize', C.c_size_t)]
+
+
+class Usm(C.Structure):
+    _fields_ = [('amount', C.c_float), ('radius', C.c_float), ('threshold', C.c_float)]
+
+
+class Noise(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('sigma_space', C.c_float), ('sigma_range', C.c_float), ('search_window', C.c_int32),
+                ('patch_size', C.c_int32), ('h_param', C.c_float)]
+
+
+class Clahe(C.Structure):
+    _fields_ = [('clip_limit', C.c_float), ('tile_width', C.c_int32), ('tile_height', C.c_int32)]
+
+
+class ModLut(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('rescaleSlope', C.c_float), ('rescaleIntercept', C.c_float), ('lutData', C.c_void_p),
+                ('lutLength', C.c_uint32), ('lutFirstMapped', C.c_int32), ('lutBitsStored', C.c_uint32)]
+
+
+class VoiLut(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('center', C.c_float), ('width', C.c_float), ('minOut', C.c_float), ('maxOut', C.c_float)]
+
+
+class Meta(C.Structure):
+    _fields_ = [('bodyPart', C.c_char * 64), ('kVp', C.c_float), ('mAs', C.c_float), ('SID_mm', C.c_float),
+                ('pixelPitch_mm', C.c_float), ('acquisitionTime', C.c_uint64), ('flags', C.c_uint32)]
+
+
+class PresLut(C.Structure):
+    _fields_ = [('lutData', C.c_uint16 * 1024), ('gsdfEnabled', C.c_int32)]
+
+
+def buf(arr):
+    """An XpeImageBuffer over the float32 numpy array (the array stays the owner)."""
+    h, w = arr.shape
+    return Img(w, h, 32, 32, 1, arr.ctypes.data, arr.nbytes)
+
+
+def stats(a):
+    return 'min %10.2f  max %10.2f  negatives %6d (%.2f%%)' % (a.min(), a.max(), int((a < 0).sum()), 100.0 * (a < 0).mean())
+
+
+def rng():
+    return np.random.default_rng(20261003)
+
+
+def scene(kind, n=128):
+    """Raw detector counts as float32 (uint16 values)."""
+    g = rng()
+    y, x = np.mgrid[0:n, 0:n].astype(np.float32)
+    base = 800.0 + 2200.0 * x / n                      # a smooth anatomy-like gradient
+    if kind == 'anatomy':                              # a soft-tissue background with a bright (dense) disc: edge 3000 -> 12000
+        img = base + np.where((x - 64) ** 2 + (y - 64) ** 2 < 20 ** 2, 9000.0, 0.0)
+    elif kind == 'collimator':                         # the same, with a collimated (unexposed) strip of 0 counts on the left
+        img = base + np.where((x - 84) ** 2 + (y - 64) ** 2 < 20 ** 2, 9000.0, 0.0)
+        img[:, :40] = 0.0
+    elif kind == 'skinline':                           # directly exposed air next to tissue: 60000 | 1500
+        img = np.where(x < n // 2, 60000.0, 1500.0).astype(np.float32)
+    else:
+        raise ValueError(kind)
+    img = img + g.normal(0.0, 30.0, img.shape)
+    return np.clip(np.rint(img), 0, 65535).astype(np.float32)
+
+
+def run_edge(L, arr, amount, radius=2.0, threshold=10.0):
+    b = buf(arr)
+    p = Usm(amount, radius, threshold)
+    rc = L.xpe_edge_enhance(C.byref(b), C.byref(p))
+    return rc
+
+
+def pipeline_stats(E, raw, with_log, amount, label):
+    a = raw.copy()
+    rows = [('raw', a.min(), a.max(), int((a < 0).sum()))]
+    if with_log:
+        assert E.xpe_log_transform(C.byref(buf(a)), C.c_float(1000.0)) == 0
+        rows.append(('log', a.min(), a.max(), int((a < 0).sum())))
+    nz = Noise(0, 3.0, 50.0, 21, 7, 10.0)
+    assert E.xpe_noise_reduce(C.byref(buf(a)), C.byref(nz)) == 0
+    rows.append(('noise', a.min(), a.max(), int((a < 0).sum())))
+    cl = Clahe(3.0, 8, 8)
+    assert E.xpe_contrast_enhance(C.byref(buf(a)), C.byref(cl)) == 0
+    rows.append(('clahe', a.min(), a.max(), int((a < 0).sum())))
+    before = a.copy()
+    rc = run_edge(E, a, amount)
+    assert rc == 0, rc
+    rows.append(('usm a=%g' % amount, a.min(), a.max(), int((a < 0).sum())))
+    print('  %-34s' % label + '  '.join('%s[%.0f..%.0f neg%d]' % r for r in rows))
+    return before, a
+
+
+def pipeline_stats_quiet(E, raw, amount):
+    a = raw.copy()
+    assert E.xpe_log_transform(C.byref(buf(a)), C.c_float(1000.0)) == 0
+    assert E.xpe_noise_reduce(C.byref(buf(a)), C.byref(Noise(0, 3.0, 50.0, 21, 7, 10.0))) == 0
+    assert E.xpe_contrast_enhance(C.byref(buf(a)), C.byref(Clahe(3.0, 8, 8))) == 0
+    before = a.copy()
+    assert run_edge(E, a, amount) == 0
+    return before, a
+
+
+def enhance():
+    E = C.CDLL(os.path.join(BIN, 'xpe_enhance_basic.dll'))
+    D = C.CDLL(os.path.join(BIN, 'xpe_display.dll'))
+    for f in (E.xpe_edge_enhance, E.xpe_noise_reduce, E.xpe_contrast_enhance, E.xpe_log_transform, E.xpe_log_inverse,
+              D.xpe_apply_modality_lut, D.xpe_apply_voi_lut, D.xpe_apply_presentation_lut):
+        f.restype = C.c_int32
+
+    print('== 1. Which domain does xpe_edge_enhance run in, and does it make negative pixels there?')
+    print('   (stage order of the shipped pipelines: log -> noise -> CLAHE -> USM; see the report for the code citations)')
+    for kind in ('anatomy', 'collimator', 'skinline'):
+        raw = scene(kind)
+        print(' scene %-10s raw counts %.0f..%.0f' % (kind, raw.min(), raw.max()))
+        for amount in (0.5, 1.0, 2.0, 5.0):
+            pipeline_stats(E, raw, True, amount, 'log domain, amount %g' % amount)
+        for amount in (0.5, 5.0):
+            pipeline_stats(E, raw, False, amount, 'LINEAR domain (no log), amount %g' % amount)
+
+    print()
+    print('== 5. The options for a lower bound, measured on the own output of the module (log domain, threshold 10)')
+    print('   (a) none = the module output as it is; (b) clamp at 0; (c) lower bound min(orig/2, orig - amount*threshold),')
+    print('   the mirror of the SPEC upper bound; (d) leave it and clamp downstream = what gui EnhanceBasicStage does, equal to (b) in 16 bits')
+    for kind in ('anatomy', 'collimator', 'skinline'):
+        raw = scene(kind)
+        for amount in (0.5, 5.0):
+            before, a_out = pipeline_stats_quiet(E, raw, amount)
+            opt_b = np.maximum(a_out, 0.0)
+            lo_c = np.minimum(before / 2.0, before - amount * 10.0)
+            opt_c = np.maximum(a_out, lo_c)
+
+            def u16(x):
+                return np.clip(np.rint(x), 0, 65535)
+            print('   %-10s amount %g  (a) min %9.1f neg %5d | (b) changes %5d px, max %8.1f | (c) min %9.1f neg %5d, changes %5d px, max %8.1f'
+                  '| 16-bit differences (a)->(c): %5d px, (a)->(b): %d px'
+                  % (kind, amount, a_out.min(), int((a_out < 0).sum()), int((opt_b != a_out).sum()), float(np.abs(opt_b - a_out).max()),
+                     opt_c.min(), int((opt_c < 0).sum()), int((opt_c != a_out).sum()), float(np.abs(opt_c - a_out).max()),
+                     int((u16(opt_c) != u16(a_out)).sum()), int((u16(opt_b) != u16(a_out)).sum())))
+    print()
+    print('== 2. What do the other basic stages do with a negative pixel on the way IN?')
+    g = rng()
+    neg = (g.normal(0.0, 200.0, (64, 64))).astype(np.float32)          # about half the pixels negative
+    print('   input %s' % stats(neg))
+    for name, call in (
+            ('xpe_log_transform(1000)', lambda a: E.xpe_log_transform(C.byref(buf(a)), C.c_float(1000.0))),
+            ('xpe_noise_reduce bilateral', lambda a: E.xpe_noise_reduce(C.byref(buf(a)), C.byref(Noise(0, 3.0, 50.0, 21, 7, 10.0)))),
+            ('xpe_contrast_enhance CLAHE', lambda a: E.xpe_contrast_enhance(C.byref(buf(a)), C.byref(Clahe(3.0, 8, 8)))),
+            ('xpe_edge_enhance 0.5/2/10', lambda a: E.xpe_edge_enhance(C.byref(buf(a)), C.byref(Usm(0.5, 2.0, 10.0))))):
+        a = neg.copy()
+        rc = call(a)
+        print('   %-30s rc=%d  %s  nan=%d inf=%d' % (name, rc, stats(a), int(np.isnan(a).sum()), int(np.isinf(a).sum())))
+    nrm = neg.copy()
+    print('   (xpe_log_transform on x <= -1: rc above; first values in -> out)')
+    a = neg.copy()
+    E.xpe_log_transform(C.byref(buf(a)), C.c_float(1000.0))
+    print('   ', [(round(float(neg.flat[i]), 1), round(float(a.flat[i]), 1)) for i in range(4)])
+
+    print()
+    print('== 3. What does the display chain do with negative float pixels? (each stage on a fresh copy)')
+    src = np.linspace(-500.0, 4000.0, 64 * 64, dtype=np.float32).reshape(64, 64)
+    print('   input %s' % stats(src))
+    a = src.copy()
+    mod = ModLut(0, 1.0, 0.0, None, 0, 0, 0)
+    rc = D.xpe_apply_modality_lut(C.byref(buf(a)), C.byref(mod))
+    print('   modality LINEAR slope 1 intercept 0   rc=%d  %s' % (rc, stats(a)))
+    a = src.copy()
+    voi = VoiLut(0, 1500.0, 4500.0, 0.0, 1.0)
+    rc = D.xpe_apply_voi_lut(C.byref(buf(a)), C.byref(voi))
+    print('   VOI LINEAR c1500 w4500 out 0..1       rc=%d  %s   [value where input -500: %.4f]' % (rc, stats(a), a.flat[0]))
+    a = src.copy()
+    voi = VoiLut(0, 1500.0, 4500.0, 0.0, 65535.0)
+    rc = D.xpe_apply_voi_lut(C.byref(buf(a)), C.byref(voi))
+    print('   VOI LINEAR c1500 w4500 out 0..65535   rc=%d  %s   [value where input -500: %.4f]' % (rc, stats(a), a.flat[0]))
+    pres = PresLut()
+    for i in range(1024):
+        pres.lutData[i] = (i * 65535) // 1023
+    # pixels far BELOW the VOI window: are they clamped to minOut or do they wrap?
+    far = np.full((8, 8), -5000.0, dtype=np.float32)
+    a = far.copy()
+    rc = D.xpe_apply_voi_lut(C.byref(buf(a)), C.byref(VoiLut(0, 1500.0, 4500.0, 0.0, 1.0)))
+    print('   VOI LINEAR c1500 w4500 on -5000       rc=%d  output %.4f (minOut 0, maxOut 1)' % (rc, a.flat[0]))
+    pin = np.linspace(-0.5, 1.5, 4096, dtype=np.float32).reshape(64, 64)
+    b = Img()
+    assert COMMON.xpe_alloc_image(C.c_uint32(64), C.c_uint32(64), C.c_int32(1), C.byref(b)) == 0
+    C.memmove(b.data, pin.ctypes.data, pin.nbytes)      # the presentation LUT replaces the buffer: it must be module-owned
+    rc = D.xpe_apply_presentation_lut(C.byref(b), C.byref(pres))
+    if rc == 0:
+        out = np.ctypeslib.as_array(C.cast(b.data, C.POINTER(C.c_uint16)), shape=(64, 64)).copy()
+        print('   presentation LUT on -0.5..1.5         rc=%d  format=%d (0 = UINT16)  out min %d max %d  out at input<0: %s  at input>1: %s'
+              % (rc, b.format, out.min(), out.max(), sorted(set(out[pin < 0].tolist()))[:3], sorted(set(out[pin > 1].tolist()))[:3]))
+    else:
+        print('   presentation LUT on -0.5..1.5         rc=%d' % rc)
+    COMMON.xpe_free_image(C.byref(b))
+
+
+def dicom():
+    Dm = C.CDLL(os.path.join(BIN, 'xpe_dicom.dll'))
+    for f in (Dm.xpe_dicom_write, Dm.xpe_dicom_open, Dm.xpe_dicom_read_image, Dm.xpe_dicom_close):
+        f.restype = C.c_int32
+    print('== 4. Can a float image with negative pixels reach the DICOM writer, and what is in the file?')
+    a = np.linspace(-500.0, 4000.0, 64 * 64, dtype=np.float32).reshape(64, 64)
+    meta = Meta(b'CHEST', 80.0, 5.0, 1000.0, 0.15, 0, 0)
+
+    def roundtrip(label, img_struct, expect_u16=None):
+        out = os.path.abspath('build/g201_probe.dcm')
+        if os.path.exists(out):
+            os.remove(out)
+        rc = Dm.xpe_dicom_write(out.encode(), C.byref(img_struct), C.byref(meta))
+        print('   %-52s write rc=%d  file size %s' % (label, rc, os.path.getsize(out) if os.path.exists(out) else '(none)'))
+        if rc != 0 or not os.path.exists(out):
+            return None
+        h = C.c_void_p()
+        rc = Dm.xpe_dicom_open(out.encode(), C.byref(h))
+        got = Img()
+        rr = Dm.xpe_dicom_read_image(h, C.byref(got)) if rc == 0 else -1
+        print('   %-52s open rc=%d read rc=%d  -> %dx%d bits %d format %d' % ('', rc, rr, got.width, got.height, got.bitsAllocated, got.format))
+        px = None
+        if rr == 0 and got.format == 0:
+            px = np.ctypeslib.as_array(C.cast(got.data, C.POINTER(C.c_uint16)), shape=(got.height, got.width)).copy()
+        if rc == 0:
+            Dm.xpe_dicom_close(h)
+        if rr == 0:
+            COMMON.xpe_free_image(C.byref(got))
+        os.remove(out)
+        return px
+
+    px = roundtrip('FLOAT32 image holding -500..4000', buf(a))
+    if px is not None:
+        print('   read back: first 6 pixels %s  min %d max %d' % (px.flat[:6].tolist(), px.min(), px.max()))
+        print('   as uint16 words of the float bit patterns, first 6: %s' % a.view(np.uint16).flat[:6].tolist())
+        print('   input first 6: %s' % [round(float(v), 1) for v in a.flat[:6]])
+    u = np.clip(np.rint(a), 0, 65535).astype(np.uint16)
+    px2 = roundtrip('UINT16 control, clamped by the caller', Img(64, 64, 16, 16, 0, u.ctypes.data, u.nbytes))
+    if px2 is not None:
+        print('   read back == clamped input: %s  (first 6 %s)' % (bool((px2 == u).all()), px2.flat[:6].tolist()))
+    wrap = np.rint(a).astype(np.int64).astype(np.uint16)       # what a plain C cast of the negative values would store
+    print('   (for comparison a wrapping cast of the first 6 inputs would store %s)' % wrap.flat[:6].tolist())
+
+
+if __name__ == '__main__':
+    enhance() if MODE == 'enhance' else dicom()

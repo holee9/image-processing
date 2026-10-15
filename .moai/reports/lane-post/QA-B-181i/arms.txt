@@ -1,0 +1,9 @@
+Q1 the nonfinite/worker-fault distinction removed (branch never taken): build_ok=True passed=['4'] red=['WorkerPathRefusesAFiniteInputW']
+Q2 bridge never reports the nonfinite flag: build_ok=True passed=['4'] red=['WorkerPathRefusesAFiniteInputW']
+Q3 in-process refusal raises no alert: build_ok=True passed=['4'] red=['InProcessRefusesAFiniteInputWh']
+Q4 worker-path refusal raises no alert: build_ok=True passed=['4'] red=['WorkerPathRefusesAFiniteInputW']
+Q5 worker-path refusal counts toward the ceiling: build_ok=True passed=['4'] red=['WorkerPathRefusesAFiniteInputW']
+Q6 refusal answers INVALID_INPUT again (in-process): build_ok=True passed=['4'] red=['InProcessRefusesAFiniteInputWh']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['5'] red=[]
+DONE

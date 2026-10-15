@@ -1,0 +1,7 @@
+SPEC-XPE-P1B-DICOM plan.md / RTM 수정안 초안 (QA-B-199, 리더 소유 파일 - 초안만)
+
+1. plan.md D-12(225-226줄, 251-252줄)가 만들라고 적은 modules/dicom/tests/test_dicom_integration.cpp, test_dicom_boundary.cpp 는 없다. 실제 시험 파일은 test_dicom_reader.cpp, test_dicom_writer.cpp, test_dicom_validator.cpp, test_dicom_network_scu.cpp, test_parameter_dependency.cpp (+ mock_scp.cpp). D-12 의 산출물 줄을 실제 파일명으로 고치고, 통합·경계 시험이 없다면 "부분(미구현)" 으로 적는다.
+2. REQ-DICOM-041~046 (041 C 연결·__cdecl·blittable, 042 예외 차단, 043 로깅, 044 누수, 045 리더 재진입, 046 호출자가 네트워크 호출을 직렬화) 은 plan.md 의 어느 마일스톤 REQ Coverage 줄에도 없다. D-12 (또는 새 마일스톤)에 배정한다. 현재 판정: 041·042·046 시험 없음, 043 코드 부분, 044·045 부분.
+3. 마일스톤 REQ Coverage 줄(001 through 012 / 013-022 / 023-028 / 029-040)과 CMakeLists.txt:20 의 주석 "REQ-DICOM-012..020" 이 다르다: 쓰기 013..022, 검증기 023..028, 읽기 001..012. 주석을 맞춘다(코드 쪽 수정은 post 카드).
+4. RTM-DICOM-001: TC-101~TC-413, STC-001~STC-008 는 정의 문서가 없다(docs/dicom 에 TDS 없음). 시험 소스에는 TC-109 만 이름으로 나온다(Tc109_*). 제안: 시험 열을 실제 시험 이름으로 바꾸거나 TC id 를 시험 이름 접두사로 채택하는 규칙을 세운다. QA-B-189 가 재계산한 FR-DCM-301~306 ✗ 는 그대로 둔다.
+5. SPEC 문구 정정 후보: REQ-DICOM-009/015 의 Exposure(0018,1152) vs 코드의 ExposureInmAs(0018,9332) 는 결정이 필요하다(SPEC 을 따라 코드 수정할지, SPEC 을 코드에 맞출지). acquisitionTime 단위(epoch ms vs 초)도 같다.

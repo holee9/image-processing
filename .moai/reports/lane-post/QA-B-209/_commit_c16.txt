@@ -1,0 +1,10 @@
+feat(dicom): QA-B-209 C16 공개 함수 종료 DEBUG 로그와 실패 경로 ERROR 로그 (REQ-DICOM-043)
+
+- 공개 함수 10개가 진입 줄에 더해 종료 줄 `[xpe_dicom] <fn> exit rc=<코드>` 를 DEBUG 로 남긴다. 본문은 dicom_*_impl 로 두고 내보내는 함수는 한 줄 래퍼라 모든 return 경로(앞쪽 INVALID_INPUT 포함)가 덮이며 동작은 불변.
+- 에러 코드를 돌려주는 실패 경로의 spdlog::warn 35곳(DicomReader 13, DicomWriter 10, DicomNetworkSCU 12)을 error 로. XPE_ALERT_WARNING 과 짝인 허용 조건 경고 3곳은 유지.
+- 시험 test_dicom_logging 5건: 수정 전 5/5 빨강(종료 줄 없음, warning 으로 기록), 수정 후 통과. ci-dicom 374/374.
+
+Card: QA-B-209 (C16)
+Refs #251
+
+🗿 MoAI

@@ -1,0 +1,572 @@
+﻿started pid=57340 XPE_NATIVE_DIR=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0
+window: 'XPE Image Processing Test'
+tabs: Evaluation, Calibration, Diagnostics, Metrics, Reports, AI module tab, Help
+=== tab Diagnostics: selected=True
+  [Text] id='' name='_File' enabled=True
+  [Text] id='' name='_Backend' enabled=True
+  [Text] id='' name='_View' enabled=True
+  [Text] id='' name='_Pipeline' enabled=True
+  [Text] id='' name='_Tools' enabled=True
+  [Text] id='' name='_Help' enabled=True
+  [Text] id='' name='XPE Image Processing Engine Test' enabled=True
+  [Text] id='VersionText' name='Version: 0.1.0' enabled=True
+  [Text] id='StatusText' name='Status: Native common backend ready. Image-processing modules remain gated.' enabled=True
+  [Text] id='' name='Evaluation' enabled=True
+  [Text] id='' name='Calibration' enabled=True
+  [Text] id='' name='Diagnostics' enabled=True
+  [Text] id='' name='Native Common Health' enabled=True
+  [Button] id='' name='Refresh' enabled=True
+  [Text] id='' name='Refresh' enabled=True
+  [Text] id='' name='Why this screen exists' enabled=True
+  [Text] id='' name='This is an integration safety dashboard, not an image-processing feature screen. It verifies that the GUI can safely load and call xpe_common.dll before preprocess, display, DICOM, GSVG, or AI modules are connected.' enabled=True
+  [Text] id='' name='How to read it' enabled=True
+  [Text] id='' name='Ready means the native common DLL loaded and basic ABI calls succeeded. Unavailable means the GUI is running safely without native common. Entry point mismatch means the DLL and C# P/Invoke contract disagree. Image-processing modules remain gated until their own readiness checks pass.' enabled=True
+  [Text] id='NativePathText' name='DLL: D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_common.dll' enabled=True
+  [Text] id='InitText' name='Init: OK (0)' enabled=True
+  [Text] id='VersionCheckText' name='Version: 0.1.0' enabled=True
+  [Text] id='ParamRangeText' name='Param range: OK min=0, max=1, default=0.5' enabled=True
+  [Text] id='MemoryAbiText' name='Memory ABI: OK buffer=16x16, bytes=512' enabled=True
+  [Text] id='AlertText' name='Alerts: pending=0' enabled=True
+  [Text] id='DisplayHealthText' name='Display health: DLL not found (Unavailable); smoke=Not run' enabled=True
+  [Text] id='DicomHealthText' name='DICOM health: DLL not found; smoke=Not run' enabled=True
+  [Text] id='GsvgHealthText' name='GSVG health: DLL not found (Unavailable)' enabled=True
+  [Text] id='PreprocessHealthText' name='Preprocess health: Export checklist ready (0.1.0); smoke=Synthetic oracle fail; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5' enabled=True
+  [Text] id='PreprocessSmokeText' name='Preprocess smoke: Synthetic oracle fail; pass=False; latency=0.837ms' enabled=True
+  [Text] id='PreprocessParamRangeText' name='Preprocess parameter ranges: 6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5' enabled=True
+  [Text] id='' name='Parameter' enabled=True
+  [Text] id='' name='Status' enabled=True
+  [Text] id='' name='Min' enabled=True
+  [Text] id='' name='Max' enabled=True
+  [Text] id='' name='OK' enabled=True
+  [Text] id='' name='Details' enabled=True
+  [DataItem] id='' name='PreprocessParameterRangeResult { ParamName = integration_time_ms, ErrorCode = OK, MinValue = 1, MaxValue = 10000, Passed = True, Details = xpe_preprocess_get_param_range returned a bounded range. }' enabled=True
+  [Text] id='' name='integration_time_ms' enabled=True
+  [Text] id='' name='OK' enabled=True
+  [Text] id='' name='1' enabled=True
+  [Text] id='' name='10000' enabled=True
+  [Text] id='' name='xpe_preprocess_get_param_range returned a bounded range.' enabled=True
+  [DataItem] id='' name='PreprocessParameterRangeResult { ParamName = temperature_c, ErrorCode = OK, MinValue = -20, MaxValue = 60, Passed = True, Details = xpe_preprocess_get_param_range returned a bounded range. }' enabled=True
+  [Text] id='' name='temperature_c' enabled=True
+  [Text] id='' name='OK' enabled=True
+  [Text] id='' name='-20' enabled=True
+  [Text] id='' name='60' enabled=True
+  [Text] id='' name='xpe_preprocess_get_param_range returned a bounded range.' enabled=True
+  [DataItem] id='' name='PreprocessParameterRangeResult { ParamName = kVp, ErrorCode = OK, MinValue = 40, MaxValue = 150, Passed = True, Details = xpe_preprocess_get_param_range returned a bounded range. }' enabled=True
+  [Text] id='' name='kVp' enabled=True
+  [Text] id='' name='OK' enabled=True
+  [Text] id='' name='40' enabled=True
+  [Text] id='' name='150' enabled=True
+  [Text] id='' name='xpe_preprocess_get_param_range returned a bounded range.' enabled=True
+  [DataItem] id='' name='PreprocessParameterRangeResult { ParamName = mAs, ErrorCode = OK, MinValue = 0.1, MaxValue = 1000, Passed = True, Details = xpe_preprocess_get_param_range returned a bounded range. }' enabled=True
+  [Text] id='' name='mAs' enabled=True
+  [Text] id='' name='OK' enabled=True
+  [Text] id='' name='0.1' enabled=True
+  [Text] id='' name='1000' enabled=True
+  [Text] id='' name='xpe_preprocess_get_param_range returned a bounded range.' enabled=True
+  [DataItem] id='' name='PreprocessParameterRangeResult { ParamName = SID_mm, ErrorCode = OK, MinValue = 1000, MaxValue = 2000, Passed = True, Details = xpe_preprocess_get_param_range returned a bounded range. }' enabled=True
+  [Text] id='' name='SID_mm' enabled=True
+  [Text] id='' name='OK' enabled=True
+  [Text] id='' name='1000' enabled=True
+  [Text] id='' name='2000' enabled=True
+  [Text] id='' name='xpe_preprocess_get_param_range returned a bounded range.' enabled=True
+  [DataItem] id='' name='PreprocessParameterRangeResult { ParamName = pixelPitch_mm, ErrorCode = OK, MinValue = 0.1, MaxValue = 0.5, Passed = True, Details = xpe_preprocess_get_param_range returned a bounded range. }' enabled=True
+  [Text] id='' name='pixelPitch_mm' enabled=True
+  [Text] id='' name='OK' enabled=True
+  [Text] id='' name='0.1' enabled=True
+  [Text] id='' name='0.5' enabled=True
+  [Text] id='' name='xpe_preprocess_get_param_range returned a bounded range.' enabled=True
+  [Text] id='ReportText' name='Readiness report: D:\workspace-github\xpe-gui\clients\ImageProcTest\bin\Debug\net8.0-windows\native-readiness-report.json' enabled=True
+  [Text] id='DetailsText' name='xpe_error_string(INVALID_INPUT): Invalid input parameter' enabled=True
+  [Text] id='' name='Integration policy' enabled=True
+  [Text] id='' name='This screen verifies common, preprocess, enhance, display, DICOM, GSVG, and AI readiness. Missing DLLs or future modules stay Off and are skipped without stopping the available preview adapters.' enabled=True
+  [Text] id='' name='Module Readiness Matrix' enabled=True
+  [Button] id='' name='Refresh Modules' enabled=True
+  [Text] id='' name='Refresh Modules' enabled=True
+  [Text] id='' name='R0 means not ready, R1 means version/binary health only, R2 means export/ABI smoke ready, and R3+ means executable oracle evidence. Processing controls stay disabled unless a module reaches the required gate.' enabled=True
+  [Text] id='' name='Module' enabled=True
+  [Text] id='' name='Level' enabled=True
+  [Text] id='' name='Meaning' enabled=True
+  [Text] id='' name='Req' enabled=True
+  [Text] id='' name='Status' enabled=True
+  [Text] id='' name='Evidence' enabled=True
+  [Text] id='' name='Exec' enabled=True
+  [Text] id='' name='Degraded mode' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = xpe_common, Level = R2, Status = ABI smoke ready, Evidence = version=0.1.0; Memory ABI: OK buffer=16x16, bytes=512, NextAction = Keep as baseline dependency for all later module adapters., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = Processing controls remain disabled., ResolvedDllPath = , LevelRank = 2, LevelDescription = R2 ABI/export smoke, ExecutionState = Off, DegradationReason = Graceful degradation: Processing controls remain disabled. }' enabled=True
+  [Text] id='' name='xpe_common' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 ABI/export smoke' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='ABI smoke ready' enabled=True
+  [Text] id='' name='version=0.1.0; Memory ABI: OK buffer=16x16, bytes=512' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: Processing controls remain disabled.' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = xpe_display, Level = R0, Status = DLL not found, Evidence = xpe_display.dll is not available in known GUI/build output locations., NextAction = Build xpe_display.dll with required display pipeline exports., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = Display stage remains Off because xpe_display.dll is unavailable., ResolvedDllPath = , LevelRank = 0, LevelDescription = R0 Not ready, ExecutionState = Off, DegradationReason = Graceful degradation: Display stage remains Off because xpe_display.dll is unavailable. }' enabled=True
+  [Text] id='' name='xpe_display' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 Not ready' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='DLL not found' enabled=True
+  [Text] id='' name='xpe_display.dll is not available in known GUI/build output locations.' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: Display stage remains Off because xpe_display.dll is unavailable.' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = xpe_preprocess, Level = R2, Status = Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = Processing controls remain disabled., ResolvedDllPath = , LevelRank = 2, LevelDescription = R2 ABI/export smoke, ExecutionState = Off, DegradationReason = Graceful degradation: Processing controls remain disabled. }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 ABI/export smoke' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='Version and export checklist ready' enabled=True
+  [Text] id='' name='version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: Processing controls remain disabled.' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = xpe_enhance_basic, Level = R0, Status = DLL not found, Evidence = xpe_enhance_basic.dll is not available in known GUI/build output locations., NextAction = Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = Processing controls remain disabled., ResolvedDllPath = , LevelRank = 0, LevelDescription = R0 Not ready, ExecutionState = Off, DegradationReason = Graceful degradation: Processing controls remain disabled. }' enabled=True
+  [Text] id='' name='xpe_enhance_basic' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 Not ready' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='DLL not found' enabled=True
+  [Text] id='' name='xpe_enhance_basic.dll is not available in known GUI/build output locations.' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: Processing controls remain disabled.' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = xpe_dicom, Level = R0, Status = DLL not found, Evidence = xpe_dicom.dll is not available in known GUI/build output locations., NextAction = Build xpe_dicom.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = DICOM export remains Off because xpe_dicom.dll is unavailable., ResolvedDllPath = , LevelRank = 0, LevelDescription = R0 Not ready, ExecutionState = Off, DegradationReason = Graceful degradation: DICOM export remains Off because xpe_dicom.dll is unavailable. }' enabled=True
+  [Text] id='' name='xpe_dicom' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 Not ready' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='DLL not found' enabled=True
+  [Text] id='' name='xpe_dicom.dll is not available in known GUI/build output locations.' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: DICOM export remains Off because xpe_dicom.dll is unavailable.' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = xpe_enhance_advanced, Level = R0, Status = DLL absent, Evidence = xpe_enhance_advanced.dll not found in search path, NextAction = Build and place the DLL to enable this module., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = Processing controls remain disabled., ResolvedDllPath = , LevelRank = 0, LevelDescription = R0 Not ready, ExecutionState = Off, DegradationReason = Graceful degradation: Processing controls remain disabled. }' enabled=True
+  [Text] id='' name='xpe_enhance_advanced' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 Not ready' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='DLL absent' enabled=True
+  [Text] id='' name='xpe_enhance_advanced.dll not found in search path' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: Processing controls remain disabled.' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = gsvg, Level = R0, Status = DLL not found, Evidence = gsvg.dll is not available in known GUI/build output locations., NextAction = Complete #61, then add GSVG processing export and GUI adapter smoke checks., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = GSVG is unavailable or planned, so the GUI skips it without blocking Phase 1b execution., ResolvedDllPath = , LevelRank = 0, LevelDescription = R0 Not ready, ExecutionState = Off, DegradationReason = Graceful degradation: GSVG is unavailable or planned, so the GUI skips it without blocking Phase 1b execution. }' enabled=True
+  [Text] id='' name='gsvg' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 Not ready' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='DLL not found' enabled=True
+  [Text] id='' name='gsvg.dll is not available in known GUI/build output locations.' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: GSVG is unavailable or planned, so the GUI skips it without blocking Phase 1b execution.' enabled=True
+  [DataItem] id='' name='ModuleReadinessSnapshot { ModuleName = xpe_ai, Level = R0, Status = DLL absent, Evidence = xpe_ai.dll not found in search path, NextAction = Build xpe_ai.dll and xpe_ai_worker.exe, then add heartbeat/IPC smoke before GUI execution., ProcessingEnabled = False, RequiredLevel = R3, DegradedMode = AI assistive workflow is unavailable, so the GUI leaves AI stages skipped without blocking deterministic Phase 1b execution., ResolvedDllPath = , LevelRank = 0, LevelDescription = R0 Not ready, ExecutionState = Off, DegradationReason = Graceful degradation: AI assistive workflow is unavailable, so the GUI leaves AI stages skipped without blocking deterministic Phase 1b execution. }' enabled=True
+  [Text] id='' name='xpe_ai' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 Not ready' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='DLL absent' enabled=True
+  [Text] id='' name='xpe_ai.dll not found in search path' enabled=True
+  [Text] id='' name='Off' enabled=True
+  [Text] id='' name='Graceful degradation: AI assistive workflow is unavailable, so the GUI leaves AI stages skipped without blocking deterministic Phase 1b execution.' enabled=True
+  [Text] id='ModuleReadinessSummaryText' name='Executable modules=0; levels R0=6, R2=2; Off modules=xpe_display:R0, xpe_preprocess:R2, xpe_enhance_basic:R0, xpe_dicom:R0, xpe_enhance_advanced:R0, gsvg:R0, xpe_ai:R0. Missing DLLs and future modules are skipped by graceful degradation.' enabled=True
+  [Button] id='PART_LineUpButton' name='' enabled=False
+  [Button] id='PageUp' name='' enabled=False
+  [Button] id='PageDown' name='' enabled=False
+  [Button] id='PART_LineDownButton' name='' enabled=False
+  [Text] id='' name='Metrics' enabled=True
+  [Text] id='' name='Reports' enabled=True
+  [Text] id='' name='AI Module' enabled=True
+  [Text] id='' name='Help' enabled=True
+screenshot: C:\Users\drake\AppData\Local\Temp\legacy_native.png
+=== tab Evaluation: selected=True
+  [Text] id='' name='_File' enabled=True
+  [Text] id='' name='_Backend' enabled=True
+  [Text] id='' name='_View' enabled=True
+  [Text] id='' name='_Pipeline' enabled=True
+  [Text] id='' name='_Tools' enabled=True
+  [Text] id='' name='_Help' enabled=True
+  [Text] id='' name='XPE Image Processing Engine Test' enabled=True
+  [Text] id='VersionText' name='Version: 0.1.0' enabled=True
+  [Text] id='StatusText' name='Status: Native common backend ready. Image-processing modules remain gated.' enabled=True
+  [Text] id='' name='Evaluation' enabled=True
+  [Text] id='' name='Evaluation Workbench' enabled=True
+  [Text] id='ActiveContextSummaryText' name='calibration folder not selected; target raw not loaded; chain=BOOT-0 -> (1) -> (2) -> (3)' enabled=True
+  [Text] id='ActiveContextDetailsText' name='Select the acquired calibration folder first. Calibration folder=none; roles=none; raw=none; stage switches=offset:Off, gain:Off, defect:Off; post stages=; advanced stages=; ai stages=; display stages=; dicom stages=; rule status=Chain: BOOT-0 -> (1) -> (2) -> (3); rules hard=3, soft=0, advisory=0; advanced=none; ai=none; execution=blocked.' enabled=True
+  [Button] id='' name='Calibration Setup' enabled=True
+  [Text] id='' name='Calibration Setup' enabled=True
+  [Button] id='WorkflowRunButton' name='Run Chain' enabled=False
+  [Text] id='' name='Run Chain' enabled=False
+  [Button] id='WorkflowCancelButton' name='Cancel' enabled=False
+  [Text] id='' name='Cancel' enabled=False
+  [Button] id='' name='Save Evidence' enabled=True
+  [Text] id='' name='Save Evidence' enabled=True
+  [Text] id='' name='Processing Stages' enabled=True
+  [CheckBox] id='OffsetEnabledCheckBox' name='Pre Offset' enabled=True
+  [Text] id='' name='Pre Offset' enabled=True
+  [CheckBox] id='GainEnabledCheckBox' name='Pre Gain' enabled=True
+  [Text] id='' name='Pre Gain' enabled=True
+  [CheckBox] id='DefectEnabledCheckBox' name='Pre Defect' enabled=True
+  [Text] id='' name='Pre Defect' enabled=True
+  [CheckBox] id='EiEnabledCheckBox' name='Post EI' enabled=False
+  [Text] id='' name='Post EI' enabled=False
+  [CheckBox] id='LogEnabledCheckBox' name='Post Log' enabled=False
+  [Text] id='' name='Post Log' enabled=False
+  [CheckBox] id='NoiseEnabledCheckBox' name='Post Noise' enabled=False
+  [Text] id='' name='Post Noise' enabled=False
+  [CheckBox] id='ContrastEnabledCheckBox' name='Post Contrast' enabled=False
+  [Text] id='' name='Post Contrast' enabled=False
+  [CheckBox] id='EdgeEnabledCheckBox' name='Post Edge' enabled=False
+  [Text] id='' name='Post Edge' enabled=False
+  [Button] id='ApplyNativePreviewButton' name='Run Selected' enabled=False
+  [Text] id='' name='Run Selected' enabled=False
+  [Text] id='' name='Log norm' enabled=True
+  [Text] id='' name='Noise s/r' enabled=True
+  [Text] id='' name='CLAHE clip' enabled=True
+  [Text] id='' name='USM a/r/t' enabled=True
+  [Text] id='' name='Post uses preprocess output when selected, otherwise raw-float input.' enabled=True
+  [Text] id='StageModesInfoText' name='Preprocess=ready; Post basic=blocked. Checked stages execute in the selected order; unchecked stages bypass. Post uses preprocess output when available, otherwise raw-to-float input.' enabled=True
+  [Text] id='NativePreviewText' name='Native preview: load a target raw image to run pre/post algorithms.' enabled=True
+  [Text] id='E2eReportText' name='E2E report: not saved' enabled=True
+  [Text] id='RawPreviewTitleText' name='Raw preview: no file loaded' enabled=True
+  [Text] id='RawPreviewInfoText' name='Use Calibration to select the acquired calibration folder and target raw image, then evaluate the correction result here.' enabled=True
+  [Text] id='RawPreviewHashText' name='SHA-256: not calculated' enabled=True
+  [Text] id='' name='Render Controls' enabled=True
+  [Button] id='XPE_Viewport_ZoomFit_Button' name='Zoom fit' enabled=True
+  [Text] id='' name='Fit' enabled=True
+  [Text] id='ZoomValueText' name='100%' enabled=True
+  [CheckBox] id='ViewerLinkCheckBox' name='Link W/L' enabled=True
+  [Text] id='' name='Link W/L' enabled=True
+  [Text] id='' name='Target' enabled=True
+  [Text] id='' name='Preset' enabled=True
+  [Text] id='' name='LUT' enabled=True
+  [CheckBox] id='ViewerInvertCheckBox' name='Invert' enabled=True
+  [Text] id='' name='Invert' enabled=True
+  [Text] id='' name='Brightness' enabled=True
+  [Button] id='DecreaseLarge' name='' enabled=True
+  [Button] id='IncreaseLarge' name='' enabled=True
+  [Text] id='ViewerWindowCenterText' name='2048' enabled=True
+  [Text] id='' name='Contrast' enabled=True
+  [Button] id='DecreaseLarge' name='' enabled=True
+  [Button] id='IncreaseLarge' name='' enabled=True
+  [Text] id='ViewerWindowWidthText' name='4096' enabled=True
+  [Text] id='OriginalHistogramText' name='Original histogram: empty' enabled=True
+  [Text] id='AfterHistogramText' name='After histogram: empty' enabled=True
+  [Text] id='' name='Original' enabled=True
+  [Text] id='AfterPreviewLabelText' name='After preview' enabled=True
+  [Text] id='ProcessingScaffoldText' name='Load a target raw image before running calibration evaluation.' enabled=True
+  [Text] id='WorkflowBeforeAfterText' name='No run yet. Configure calibration inputs, load a target raw, then run the selected algorithm chain.' enabled=True
+  [Text] id='' name='User Evaluation' enabled=True
+  [Text] id='' name='Evaluator' enabled=True
+  [Text] id='' name='Verdict' enabled=True
+  [Text] id='' name='Pass' enabled=True
+  [Text] id='' name='Needs review' enabled=True
+  [Text] id='' name='Fail' enabled=True
+  [Button] id='' name='Record Evaluation' enabled=True
+  [Text] id='' name='Record Evaluation' enabled=True
+  [Text] id='UserEvaluationStatusText' name='User evaluation: not recorded.' enabled=True
+  [Button] id='PART_LineUpButton' name='' enabled=False
+  [Button] id='PageUp' name='' enabled=False
+  [Button] id='PageDown' name='' enabled=False
+  [Button] id='PART_LineDownButton' name='' enabled=False
+  [Text] id='' name='Calibration' enabled=True
+  [Text] id='' name='Diagnostics' enabled=True
+  [Text] id='' name='Metrics' enabled=True
+  [Text] id='' name='Reports' enabled=True
+  [Text] id='' name='AI Module' enabled=True
+  [Text] id='' name='Help' enabled=True
+=== tab Calibration: selected=True
+  [Text] id='' name='_File' enabled=True
+  [Text] id='' name='_Backend' enabled=True
+  [Text] id='' name='_View' enabled=True
+  [Text] id='' name='_Pipeline' enabled=True
+  [Text] id='' name='_Tools' enabled=True
+  [Text] id='' name='_Help' enabled=True
+  [Text] id='' name='XPE Image Processing Engine Test' enabled=True
+  [Text] id='VersionText' name='Version: 0.1.0' enabled=True
+  [Text] id='StatusText' name='Status: Native common backend ready. Image-processing modules remain gated.' enabled=True
+  [Text] id='' name='Evaluation' enabled=True
+  [Text] id='' name='Calibration' enabled=True
+  [Text] id='' name='Calibration Setup' enabled=True
+  [Text] id='' name='Select the acquired calibration folder and the target raw image. Sample datasets remain internal regression inputs only.' enabled=True
+  [Text] id='' name='Calibration folder' enabled=True
+  [Button] id='WorkflowBrowseCalibrationFolderButton' name='Browse...' enabled=True
+  [Text] id='' name='Browse...' enabled=True
+  [Button] id='WorkflowRefreshCalibrationFolderButton' name='Refresh' enabled=True
+  [Text] id='' name='Refresh' enabled=True
+  [Text] id='' name='Cal files' enabled=True
+  [Text] id='' name='Target raw' enabled=True
+  [Button] id='WorkflowBrowseButton' name='Load Raw...' enabled=True
+  [Text] id='' name='Load Raw...' enabled=True
+  [Text] id='WorkflowCalibrationContextText' name='Calibration context: no folder selected. Use the folder acquired per IAP-CALIB-001; offset/dark and gain/flat are mandatory for product-mode correction.' enabled=True
+  [Text] id='WorkflowAcquisitionGuideText' name='Acquisition guide: Dark/Offset raw is acquired with X-ray OFF; Gain/Flat raw is acquired from flat-field exposure with matching dark; BPM/Defect map is optional for defect correction but required for defect SWU validation.' enabled=True
+  [Text] id='' name='Ordered Algorithm Chain' enabled=True
+  [Text] id='' name='Available algorithms' enabled=True
+  [Text] id='' name='Selected evaluation chain' enabled=True
+  [Text] id='' name='BOOT-0 Calibration manifest load/audit [xpe_preprocess; folder-audit; Runnable]' enabled=True
+  [Text] id='' name='(0.5) Readout artifact validation [xpe_preprocess; adapter-pending; R2 Version and export checklist ready]' enabled=True
+  [Text] id='' name='(0.7) Temperature compensation [xpe_preprocess; adapter-pending; R2 Version and export checklist ready]' enabled=True
+  [Text] id='' name='(1) Offset correction [xpe_preprocess; native-preview; R2 Version and export checklist ready]' enabled=True
+  [Text] id='' name='(1.5) Nonlinearity correction [xpe_preprocess; adapter-pending; R2 Version and export checklist ready]' enabled=True
+  [Text] id='' name='(2) Gain correction [xpe_preprocess; native-preview; R2 Version and export checklist ready]' enabled=True
+  [Text] id='' name='(2.5) Binning correction [xpe_preprocess; adapter-pending; R2 Version and export checklist ready]' enabled=True
+  [Text] id='' name='(3) Defect correction [xpe_preprocess; native-preview; R2 Version and export checklist ready]' enabled=True
+  [Text] id='' name='(3b) Runtime defect detection [xpe_preprocess; adapter-pending; R2 Version and export checklist ready]' enabled=True
+  [Button] id='' name='Add >' enabled=True
+  [Text] id='' name='Add >' enabled=True
+  [Button] id='' name='< Remove' enabled=True
+  [Text] id='' name='< Remove' enabled=True
+  [Button] id='' name='Move up' enabled=True
+  [Text] id='' name='Move up' enabled=True
+  [Button] id='' name='Move down' enabled=True
+  [Text] id='' name='Move down' enabled=True
+  [Text] id='' name='1. BOOT-0 Calibration manifest load/audit' enabled=True
+  [Text] id='' name='2. (1) Offset correction' enabled=True
+  [Text] id='' name='3. (2) Gain correction' enabled=True
+  [Text] id='' name='4. (3) Defect correction' enabled=True
+  [Button] id='' name='Runnable preprocess' enabled=True
+  [Text] id='' name='Runnable preprocess' enabled=True
+  [Button] id='' name='Post basic' enabled=True
+  [Text] id='' name='Post basic' enabled=True
+  [Button] id='' name='Phase 1b E2E' enabled=True
+  [Text] id='' name='Phase 1b E2E' enabled=True
+  [Button] id='' name='Product canonical' enabled=True
+  [Text] id='' name='Product canonical' enabled=True
+  [Button] id='' name='Pre-E2E proof' enabled=True
+  [Text] id='' name='Pre-E2E proof' enabled=True
+  [Button] id='' name='Clear' enabled=True
+  [Text] id='' name='Clear' enabled=True
+  [Text] id='WorkflowAlgorithmStatusText' name='Chain: BOOT-0 -> (1) -> (2) -> (3); rules hard=3, soft=0, advisory=0; advanced=none; ai=none; execution=blocked. Input: select calibration folder.' enabled=True
+  [Text] id='GsvgWorkflowStatusText' name='GSVG UI: Phase 2 C1/C2 rows=4; selected=no; R0 DLL not found; execution=Off; skip=GSVG is unavailable or planned, so the GUI skips it without blocking Phase 1b execution.; next=Complete #61, then add GSVG processing export and GUI adapter smoke checks.' enabled=True
+  [Text] id='AdvancedWorkflowStatusText' name='Advanced UI: Phase 2 C3/C4 rows=4; selected=none; R0 DLL absent; execution=Off; skip=Processing controls remain disabled.; next=Build and place the DLL to enable this module.' enabled=True
+  [Text] id='AiWorkflowStatusText' name='AI UI: Phase 3 C5/C6 rows=5; selected=none; R0 DLL absent; execution=Off; skip=AI assistive workflow is unavailable, so the GUI leaves AI stages skipped without blocking deterministic Phase 1b execution.; next=Build xpe_ai.dll and xpe_ai_worker.exe, then add heartbeat/IPC smoke before GUI execution.' enabled=True
+  [Text] id='' name='Severity' enabled=True
+  [Text] id='' name='Rule' enabled=True
+  [Text] id='' name='Message' enabled=True
+  [Text] id='' name='Evidence' enabled=True
+  [DataItem] id='' name='AlgorithmDependencyFinding { Severity = Hard, RuleId = NATIVE-NOT-READY, Message = (1) Offset correction is selected but the native preprocess adapter is not ready., Evidence = Select the acquired calibration folder with Offset/Dark data, load a target raw, then apply offset correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., SeverityText = Hard }' enabled=True
+  [Text] id='' name='Hard' enabled=True
+  [Text] id='' name='NATIVE-NOT-READY' enabled=True
+  [Text] id='' name='(1) Offset correction is selected but the native preprocess adapter is not ready.' enabled=True
+  [Text] id='' name='Select the acquired calibration folder with Offset/Dark data, load a target raw, then apply offset correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmDependencyFinding { Severity = Hard, RuleId = NATIVE-NOT-READY, Message = (2) Gain correction is selected but the native preprocess adapter is not ready., Evidence = Select the acquired calibration folder with Offset/Dark and Gain/Flat data, load a target raw, then apply the minimum offset+gain chain. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., SeverityText = Hard }' enabled=True
+  [Text] id='' name='Hard' enabled=True
+  [Text] id='' name='NATIVE-NOT-READY' enabled=True
+  [Text] id='' name='(2) Gain correction is selected but the native preprocess adapter is not ready.' enabled=True
+  [Text] id='' name='Select the acquired calibration folder with Offset/Dark and Gain/Flat data, load a target raw, then apply the minimum offset+gain chain. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmDependencyFinding { Severity = Hard, RuleId = NATIVE-NOT-READY, Message = (3) Defect correction is selected but the native preprocess adapter is not ready., Evidence = Select the acquired calibration folder with Offset/Gain/BPM data, load a target raw, then apply offset+gain+defect correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., SeverityText = Hard }' enabled=True
+  [Text] id='' name='Hard' enabled=True
+  [Text] id='' name='NATIVE-NOT-READY' enabled=True
+  [Text] id='' name='(3) Defect correction is selected but the native preprocess adapter is not ready.' enabled=True
+  [Text] id='' name='Select the acquired calibration folder with Offset/Gain/BPM data, load a target raw, then apply offset+gain+defect correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [Text] id='' name='Evaluation Stage Switches' enabled=True
+  [Text] id='' name='Calibration keeps folder, file role audit, target raw, and algorithm chain preparation. Offset/Gain/Defect Apply/Skip switches are in the Evaluation workbench so the reviewer can rerun selected stages while comparing the image.' enabled=True
+  [Text] id='' name='Calibration Validation Matrix' enabled=True
+  [Button] id='' name='Refresh' enabled=True
+  [Text] id='' name='Refresh' enabled=True
+  [Button] id='RunSelectedAlgorithmButton' name='Run Selected' enabled=True
+  [Text] id='' name='Run Selected' enabled=True
+  [Text] id='' name='Module' enabled=True
+  [Text] id='' name='SWU' enabled=True
+  [Text] id='' name='Calibration Unit' enabled=True
+  [Text] id='' name='Req' enabled=True
+  [Text] id='' name='Tests' enabled=True
+  [Text] id='' name='Gate' enabled=True
+  [Text] id='' name='Adapter' enabled=True
+  [Text] id='' name='Level' enabled=True
+  [Text] id='' name='Status' enabled=True
+  [Text] id='' name='Run' enabled=True
+  [Text] id='' name='Next' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.5, AlgorithmName = CalibFileIO and Expiry, RequirementIds = SRS-CALIB-FUNC-001..003, SRS-CALIB-FUNC-009, SRS-CALIB-SAFE-001..005, TestIds = UT-1.5-001..018, IT-CALIB-001..005, PRE-E2E-0, PRE-E2E-5, Gate = PRE-E2E-0/5, Adapter = folder-audit, Level = R2, Status = Runnable, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5; stage=calib-folder, NextAction = Select the acquired calibration folder and verify role assignment, mandatory offset/gain presence, unknown files, SHA-256 evidence, expiry, and mismatch policy., CanRun = True, StageKey = calib-folder }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.5' enabled=True
+  [Text] id='' name='CalibFileIO and Expiry' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-001..003, SRS-CALIB-FUNC-009, SRS-CALIB-SAFE-001..005' enabled=True
+  [Text] id='' name='UT-1.5-001..018, IT-CALIB-001..005, PRE-E2E-0, PRE-E2E-5' enabled=True
+  [Text] id='' name='PRE-E2E-0/5' enabled=True
+  [Text] id='' name='folder-audit' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='Runnable' enabled=True
+  [Text] id='' name='Select the acquired calibration folder and verify role assignment, mandatory offset/gain presence, unknown files, SHA-256 evidence, expiry, and mismatch policy.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.1, AlgorithmName = OffsetCorrector, RequirementIds = SRS-CALIB-FUNC-004, SRS-CALIB-FUNC-016, SRS-CALIB-SAFE-001, TestIds = UT-1.1, UT-1.5-001, PRE-E2E-1, PRE-E2E-2, BP-01, Gate = PRE-E2E-2, Adapter = native-preview, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Select the acquired calibration folder with Offset/Dark data, load a target raw, then apply offset correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey = offset }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.1' enabled=True
+  [Text] id='' name='OffsetCorrector' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-004, SRS-CALIB-FUNC-016, SRS-CALIB-SAFE-001' enabled=True
+  [Text] id='' name='UT-1.1, UT-1.5-001, PRE-E2E-1, PRE-E2E-2, BP-01' enabled=True
+  [Text] id='' name='PRE-E2E-2' enabled=True
+  [Text] id='' name='native-preview' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Select the acquired calibration folder with Offset/Dark data, load a target raw, then apply offset correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.2, AlgorithmName = GainCorrector, RequirementIds = SRS-CALIB-FUNC-005, SRS-CALIB-FUNC-017, SRS-CALIB-FUNC-018, SRS-CALIB-SAFE-002, TestIds = UT-1.2, UT-1.5-002, PRE-E2E-1, PRE-E2E-2, BP-02, BP-03, Gate = PRE-E2E-2, Adapter = native-preview, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Select the acquired calibration folder with Offset/Dark and Gain/Flat data, load a target raw, then apply the minimum offset+gain chain. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey = gain }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.2' enabled=True
+  [Text] id='' name='GainCorrector' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-005, SRS-CALIB-FUNC-017, SRS-CALIB-FUNC-018, SRS-CALIB-SAFE-002' enabled=True
+  [Text] id='' name='UT-1.2, UT-1.5-002, PRE-E2E-1, PRE-E2E-2, BP-02, BP-03' enabled=True
+  [Text] id='' name='PRE-E2E-2' enabled=True
+  [Text] id='' name='native-preview' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Select the acquired calibration folder with Offset/Dark and Gain/Flat data, load a target raw, then apply the minimum offset+gain chain. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.3, AlgorithmName = DefectCorrector, RequirementIds = SRS-CALIB-FUNC-007, SRS-CALIB-FUNC-010, SRS-CALIB-FUNC-019, TestIds = UT-1.3, UT-1.5-003, PRE-E2E-1, PRE-E2E-2, BP-04, Gate = PRE-E2E-2, Adapter = native-preview, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Select the acquired calibration folder with Offset/Gain/BPM data, load a target raw, then apply offset+gain+defect correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey = defect }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.3' enabled=True
+  [Text] id='' name='DefectCorrector' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-007, SRS-CALIB-FUNC-010, SRS-CALIB-FUNC-019' enabled=True
+  [Text] id='' name='UT-1.3, UT-1.5-003, PRE-E2E-1, PRE-E2E-2, BP-04' enabled=True
+  [Text] id='' name='PRE-E2E-2' enabled=True
+  [Text] id='' name='native-preview' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Select the acquired calibration folder with Offset/Gain/BPM data, load a target raw, then apply offset+gain+defect correction. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.11, AlgorithmName = BpmGenerator, RequirementIds = SRS-CALIB-FUNC-022, SRS-CALIB-FUNC-023, SRS-CALIB-FUNC-024, SRS-CALIB-FUNC-025, TestIds = BP-06, BP-07, TDS-CALIB-001 9.4, Gate = R4, Adapter = adapter-pending, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Add BPM generation P/Invoke adapter and multi-frame dark/bright input panel before enabling execution. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey =  }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.11' enabled=True
+  [Text] id='' name='BpmGenerator' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-022, SRS-CALIB-FUNC-023, SRS-CALIB-FUNC-024, SRS-CALIB-FUNC-025' enabled=True
+  [Text] id='' name='BP-06, BP-07, TDS-CALIB-001 9.4' enabled=True
+  [Text] id='' name='R4' enabled=True
+  [Text] id='' name='adapter-pending' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Add BPM generation P/Invoke adapter and multi-frame dark/bright input panel before enabling execution. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.6, AlgorithmName = TempCompensator, RequirementIds = SRS-CALIB-FUNC-008, SRS-CALIB-FUNC-016, TestIds = UT-1.5-005, IT-CALIB-002, BP-01, Gate = R4, Adapter = adapter-pending, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Add detector temperature metadata and dark interpolation evidence before GUI execution. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey =  }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.6' enabled=True
+  [Text] id='' name='TempCompensator' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-008, SRS-CALIB-FUNC-016' enabled=True
+  [Text] id='' name='UT-1.5-005, IT-CALIB-002, BP-01' enabled=True
+  [Text] id='' name='R4' enabled=True
+  [Text] id='' name='adapter-pending' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Add detector temperature metadata and dark interpolation evidence before GUI execution. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.7, AlgorithmName = NonlinearityCorrector, RequirementIds = SRS-CALIB-FUNC-006, TestIds = UT-1.5-004, TDS-CALIB-001 4.6, Gate = R4, Adapter = adapter-pending, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Add LUT/polynomial calibration profile input and monotonicity evidence before enabling execution. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey =  }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.7' enabled=True
+  [Text] id='' name='NonlinearityCorrector' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-006' enabled=True
+  [Text] id='' name='UT-1.5-004, TDS-CALIB-001 4.6' enabled=True
+  [Text] id='' name='R4' enabled=True
+  [Text] id='' name='adapter-pending' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Add LUT/polynomial calibration profile input and monotonicity evidence before enabling execution. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.8, AlgorithmName = BinningCorrector, RequirementIds = SRS-CALIB-FUNC-012, TestIds = UT binning, detector metadata tests, Gate = R4, Adapter = adapter-pending, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Add binning-mode detector metadata and gain scaling evidence. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey =  }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.8' enabled=True
+  [Text] id='' name='BinningCorrector' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-012' enabled=True
+  [Text] id='' name='UT binning, detector metadata tests' enabled=True
+  [Text] id='' name='R4' enabled=True
+  [Text] id='' name='adapter-pending' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Add binning-mode detector metadata and gain scaling evidence. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.9, AlgorithmName = RuntimeDefectDetector, RequirementIds = SRS-CALIB-FUNC-010, SRS-CALIB-FUNC-019, TestIds = IT runtime defect, BP-04 runtime, Gate = R4, Adapter = adapter-pending, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Add 10-frame sequence input and runtime BPM merge evidence. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey =  }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.9' enabled=True
+  [Text] id='' name='RuntimeDefectDetector' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-010, SRS-CALIB-FUNC-019' enabled=True
+  [Text] id='' name='IT runtime defect, BP-04 runtime' enabled=True
+  [Text] id='' name='R4' enabled=True
+  [Text] id='' name='adapter-pending' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Add 10-frame sequence input and runtime BPM merge evidence. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.10, AlgorithmName = SessionManager, RequirementIds = SRS-CALIB-FUNC-011, SRS-CALIB-FUNC-014, SRS-CALIB-NFR-006, TestIds = UT-1.5-013, UT-1.5-014, IT-CALIB-005, Gate = R4, Adapter = adapter-pending, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Add session-id and isolation evidence for multi-frame calibration state. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey =  }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.10' enabled=True
+  [Text] id='' name='SessionManager' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-011, SRS-CALIB-FUNC-014, SRS-CALIB-NFR-006' enabled=True
+  [Text] id='' name='UT-1.5-013, UT-1.5-014, IT-CALIB-005' enabled=True
+  [Text] id='' name='R4' enabled=True
+  [Text] id='' name='adapter-pending' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Add session-id and isolation evidence for multi-frame calibration state. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.4, AlgorithmName = GhostCorrector, RequirementIds = SRS-CALIB-FUNC-013, SRS-CALIB-FUNC-020, TestIds = UT-1.4, PRE-E2E-1, PRE-E2E-2, BP-05, Gate = R4, Adapter = adapter-pending, Level = R2, Status = R2 Version and export checklist ready, Evidence = version=0.1.0; dll=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_preprocess.dll; synthetic=Synthetic oracle fail; native adapter chain uses offset/gain/defect exports; params=6/6 ok; integration_time_ms=1..10000, temperature_c=-20..60, kVp=40..150, mAs=0.1..1000, SID_mm=1000..2000, pixelPitch_mm=0.1..0.5, NextAction = Add lag history fixture sequence, tier selection, bypass reason, and residual metrics. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution., CanRun = False, StageKey =  }' enabled=True
+  [Text] id='' name='xpe_preprocess' enabled=True
+  [Text] id='' name='SWU-1.4' enabled=True
+  [Text] id='' name='GhostCorrector' enabled=True
+  [Text] id='' name='SRS-CALIB-FUNC-013, SRS-CALIB-FUNC-020' enabled=True
+  [Text] id='' name='UT-1.4, PRE-E2E-1, PRE-E2E-2, BP-05' enabled=True
+  [Text] id='' name='R4' enabled=True
+  [Text] id='' name='adapter-pending' enabled=True
+  [Text] id='' name='R2' enabled=True
+  [Text] id='' name='R2 Version and export checklist ready' enabled=True
+  [Text] id='' name='Add lag history fixture sequence, tier selection, bypass reason, and residual metrics. Module gate: Next: fix synthetic oracle gaps, then run fixture E2E before enabling GUI execution.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_enhance_basic, SwuId = SWU-2.10, AlgorithmName = ExposureIndex, RequirementIds = REQ-ENH-023..030, TestIds = EI baseline tests, Gate = R3, Adapter = native-enhance-basic, Level = R0, Status = R0 DLL not found, Evidence = xpe_enhance_basic.dll is not available in known GUI/build output locations., NextAction = Run EI/DI on the active detector-float preview buffer and review EI, DI, and alert evidence. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR., CanRun = False, StageKey = ei-whole }' enabled=True
+  [Text] id='' name='xpe_enhance_basic' enabled=True
+  [Text] id='' name='SWU-2.10' enabled=True
+  [Text] id='' name='ExposureIndex' enabled=True
+  [Text] id='' name='REQ-ENH-023..030' enabled=True
+  [Text] id='' name='EI baseline tests' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='native-enhance-basic' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 DLL not found' enabled=True
+  [Text] id='' name='Run EI/DI on the active detector-float preview buffer and review EI, DI, and alert evidence. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_enhance_basic, SwuId = SWU-2.1, AlgorithmName = LogTransform, RequirementIds = REQ-ENH-001..006, TestIds = TST-100-001, Gate = R3, Adapter = native-enhance-basic, Level = R0, Status = R0 DLL not found, Evidence = xpe_enhance_basic.dll is not available in known GUI/build output locations., NextAction = Run log transform on the active detector-float preview buffer and review output range/histogram changes. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR., CanRun = False, StageKey = log }' enabled=True
+  [Text] id='' name='xpe_enhance_basic' enabled=True
+  [Text] id='' name='SWU-2.1' enabled=True
+  [Text] id='' name='LogTransform' enabled=True
+  [Text] id='' name='REQ-ENH-001..006' enabled=True
+  [Text] id='' name='TST-100-001' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='native-enhance-basic' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 DLL not found' enabled=True
+  [Text] id='' name='Run log transform on the active detector-float preview buffer and review output range/histogram changes. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_enhance_basic, SwuId = SWU-2.2, AlgorithmName = NoiseReduction, RequirementIds = REQ-ENH-007..012, TestIds = TST-200-001, Gate = R3, Adapter = native-enhance-basic, Level = R0, Status = R0 DLL not found, Evidence = xpe_enhance_basic.dll is not available in known GUI/build output locations., NextAction = Run bilateral noise reduction and compare sigma/visual texture before and after. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR., CanRun = False, StageKey = basic-noise }' enabled=True
+  [Text] id='' name='xpe_enhance_basic' enabled=True
+  [Text] id='' name='SWU-2.2' enabled=True
+  [Text] id='' name='NoiseReduction' enabled=True
+  [Text] id='' name='REQ-ENH-007..012' enabled=True
+  [Text] id='' name='TST-200-001' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='native-enhance-basic' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 DLL not found' enabled=True
+  [Text] id='' name='Run bilateral noise reduction and compare sigma/visual texture before and after. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_enhance_basic, SwuId = SWU-2.3, AlgorithmName = ContrastEnhancement, RequirementIds = REQ-ENH-013..017, TestIds = TST-100-003/004, Gate = R3, Adapter = native-enhance-basic, Level = R0, Status = R0 DLL not found, Evidence = xpe_enhance_basic.dll is not available in known GUI/build output locations., NextAction = Run CLAHE contrast enhancement and compare histogram distribution and visual contrast. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR., CanRun = False, StageKey = contrast }' enabled=True
+  [Text] id='' name='xpe_enhance_basic' enabled=True
+  [Text] id='' name='SWU-2.3' enabled=True
+  [Text] id='' name='ContrastEnhancement' enabled=True
+  [Text] id='' name='REQ-ENH-013..017' enabled=True
+  [Text] id='' name='TST-100-003/004' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='native-enhance-basic' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 DLL not found' enabled=True
+  [Text] id='' name='Run CLAHE contrast enhancement and compare histogram distribution and visual contrast. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_enhance_basic, SwuId = SWU-2.4, AlgorithmName = EdgeEnhancement, RequirementIds = REQ-ENH-018..022, TestIds = TST-200-001, Gate = R3, Adapter = native-enhance-basic, Level = R0, Status = R0 DLL not found, Evidence = xpe_enhance_basic.dll is not available in known GUI/build output locations., NextAction = Run USM edge enhancement and inspect edge detail, overshoot, and changed-pixel metrics. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR., CanRun = False, StageKey = edge }' enabled=True
+  [Text] id='' name='xpe_enhance_basic' enabled=True
+  [Text] id='' name='SWU-2.4' enabled=True
+  [Text] id='' name='EdgeEnhancement' enabled=True
+  [Text] id='' name='REQ-ENH-018..022' enabled=True
+  [Text] id='' name='TST-200-001' enabled=True
+  [Text] id='' name='R3' enabled=True
+  [Text] id='' name='native-enhance-basic' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 DLL not found' enabled=True
+  [Text] id='' name='Run USM edge enhancement and inspect edge detail, overshoot, and changed-pixel metrics. Module gate: Build xpe_enhance_basic.dll and make it discoverable through the GUI native search path or XPE_NATIVE_DIR.' enabled=True
+  [DataItem] id='' name='AlgorithmValidationItem { ModuleName = xpe_enhance_advanced, SwuId = SWU-2.5, AlgorithmName = Multiscale / tiered denoise, RequirementIds = FR-100..600, TestIds = test_gaussian_denoise, test_bilateral_filter, test_nlm_denoise, test_wavelet_shrink, test_wire_phantom_mtf, Gate = Phase 2 C3 gate, Adapter = advanced-adapter-pending, Level = R0, Status = R0 DLL absent, Evidence = xpe_enhance_advanced.dll not found in search path, NextAction = Expose the C3 advanced multiscale row and skip reason; enable execution only after xpe_enhance_advanced exports and GUI adapter smoke checks exist. Module gate: Build and place the DLL to enable this module., CanRun = False, StageKey = multiscale }' enabled=True
+  [Text] id='' name='xpe_enhance_advanced' enabled=True
+  [Text] id='' name='SWU-2.5' enabled=True
+  [Text] id='' name='Multiscale / tiered denoise' enabled=True
+  [Text] id='' name='FR-100..600' enabled=True
+  [Text] id='' name='test_gaussian_denoise, test_bilateral_filter, test_nlm_denoise, test_wavelet_shrink, test_wire_phantom_mtf' enabled=True
+  [Text] id='' name='Phase 2 C3 gate' enabled=True
+  [Text] id='' name='advanced-adapter-pending' enabled=True
+  [Text] id='' name='R0' enabled=True
+  [Text] id='' name='R0 DLL absent' enabled=True
+  [Text] id='' name='Expose the C3 advanced multiscale row and skip reason; enable execution only after xpe_enhance_advanced exports and GUI adapter smoke checks exist. Module gate: Build and place the DLL to enable this module.' enabled=True
+  [Text] id='AlgorithmValidationResultText' name='Algorithm validation: 33 SWUs across 7 modules; runnable=1.' enabled=True
+  [Button] id='PART_LineUpButton' name='' enabled=False
+  [Button] id='PageUp' name='' enabled=False
+  [Button] id='PageDown' name='' enabled=False
+  [Button] id='PART_LineDownButton' name='' enabled=False
+  [Text] id='' name='Diagnostics' enabled=True
+  [Text] id='' name='Metrics' enabled=True
+  [Text] id='' name='Reports' enabled=True
+  [Text] id='' name='AI Module' enabled=True
+  [Text] id='' name='Help' enabled=True
+closed
+

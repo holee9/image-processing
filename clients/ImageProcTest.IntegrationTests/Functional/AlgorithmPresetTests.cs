@@ -23,7 +23,7 @@ public sealed class AlgorithmPresetTests
 {
     /// <summary>Each old name resolves to the preset that runs what it always ran.</summary>
     [Theory]
-    [InlineData("Baseline v1.0", "No correction", false, GsvgModes.None)]
+    [InlineData("Baseline v1.0", "No grid correction", false, GsvgModes.None)]
     [InlineData("Production v1.2", "Grid suppression", false, GsvgModes.GridSuppression)]
     [InlineData("Candidate v1.4", "Virtual grid", false, GsvgModes.VirtualGrid)]
     [InlineData("Candidate v1.5-rc", "Preprocess + virtual grid", true, GsvgModes.VirtualGrid)]
@@ -63,6 +63,43 @@ public sealed class AlgorithmPresetTests
         {
             Assert.DoesNotMatch(@"v\d", preset.Name);
         }
+    }
+
+    /// <summary>
+    /// GUI-C-234c (Codex #181 finding 4): the Reference lane choice (<see cref="AlgorithmPreset.ApplyToMain"/>) is the grid correction only. No preset switches the main preprocessing OFF (three of the four
+    /// are defined with it off, for the Candidate lane own copy); the one that includes preprocessing may switch it ON. Control: <see cref="AlgorithmPreset.ApplyTo"/>, the Candidate lane copy, still writes it.
+    /// </summary>
+    [Fact]
+    public void ChoosingAPresetForTheMainChain_ChangesTheGridCorrection_AndNeverSwitchesPreprocessingOff()
+    {
+        foreach (var preset in AlgorithmPreset.All)
+        {
+            var main = new AppSettings { PreprocessInChain = true, GsvgMode = GsvgModes.None };
+            preset.ApplyTo(main);
+            Assert.True(main.PreprocessInChain, $"'{preset.Name}' switched the main preprocessing off.");
+            Assert.Equal(preset.GsvgMode, main.GsvgMode);
+
+            var operatorOff = new AppSettings { PreprocessInChain = false };
+            preset.ApplyTo(operatorOff);
+            Assert.Equal(preset.PreprocessInChain, operatorOff.PreprocessInChain);   // only a preset that includes preprocessing turns it on; none turns it off
+        }
+
+        // GUI-C-234f: the Candidate lane copy follows the same rule (one rule for both lanes) - a lane is a function of its algorithm and the shared preprocessing switch.
+        var candidate = new AppSettings { PreprocessInChain = true };
+        AlgorithmPreset.For("Virtual grid").ApplyTo(candidate);
+        Assert.True(candidate.PreprocessInChain);
+        Assert.Equal(GsvgModes.VirtualGrid, candidate.GsvgMode);
+    }
+
+    /// <summary>GUI-C-234g: "No correction" became "No grid correction"; a stored old name still means the same preset, also in the settings the lanes keep.</summary>
+    [Fact]
+    public void TheOldNoCorrectionName_StillMeansNoGridCorrection()
+    {
+        Assert.Equal("No grid correction", AlgorithmPreset.For("No correction").Name);
+        Assert.Equal("No grid correction", AlgorithmPreset.Canonical("No correction"));
+        Assert.Equal("Virtual grid", AlgorithmPreset.Canonical("Virtual grid"));
+        Assert.Equal("No grid correction", new AppSettings { LaneAAlgorithm = "No correction", LaneBAlgorithm = "Baseline v1.0" }.LaneAAlgorithm);
+        Assert.Equal("No grid correction", new AppSettings { LaneBAlgorithm = "Baseline v1.0" }.LaneBAlgorithm);
     }
 
     /// <summary>A name nobody ever used still falls back rather than throwing.</summary>

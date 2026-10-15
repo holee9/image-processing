@@ -17,10 +17,14 @@
 #include "xpe/common/xpe_memory.h"
 
 #include <spdlog/spdlog.h>
+#include <cmath>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <fstream>
+#include <string>
 #include <mutex>
 #include <vector>
 
@@ -64,7 +68,7 @@ void ensure_jpeg_codecs_registered() {
 // Returns false when no SOF marker is found. A false is NOT a verdict: the
 // caller must not reject on it, because "we could not read the frame header" is
 // a different statement from "the frame is too small".
-bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32_t& outH) {
+bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32_t& outH, uint32_t* outPrecision = nullptr, uint32_t* outComponents = nullptr) {
     if (data == nullptr || len < 4) return false;
     size_t i = 0;
     if (!(data[0] == 0xFF && data[1] == 0xD8)) return false;   // SOI
@@ -86,6 +90,12 @@ bool jpeg_frame_dimensions(const Uint8* data, size_t len, uint32_t& outW, uint32
         if (isSOF) {
             // length(2) precision(1) height(2) width(2)
             if (i + 8 >= len) return false;
+            if (outPrecision != nullptr) *outPrecision = data[i + 4];   // QA-B-182e: sample precision P
+            // Nf, the component count. QA-B-181h: it exists only if the SEGMENT is long enough to hold it (length(2) +
+            // precision(1) + height(2) + width(2) + Nf(1) = 8) and the data reaches it; otherwise it is reported as 0, and
+            // the caller refuses a header whose Nf is anything but exactly 1. 0 is therefore a real answer ("no
+            // component, or no Nf byte"), never a "not read" marker -- it used to be both.
+            if (outComponents != nullptr) *outComponents = (segLen >= 8 && i + 9 < len) ? data[i + 9] : 0;
             outH = (static_cast<uint32_t>(data[i + 5]) << 8) | data[i + 6];
             outW = (static_cast<uint32_t>(data[i + 7]) << 8) | data[i + 8];
             return outW != 0 && outH != 0;
@@ -123,6 +133,24 @@ XpeErrorCode DicomReader::open() {
     ensure_jpeg_codecs_registered();
     spdlog::debug("[DicomReader] open: {}", m_filePath);
 
+    // QA-B-207 C3 (REQ-DICOM-003, user decision on #251): a DICOM Part 10 file has a 128-byte preamble followed by "DICM".
+    // DCMTK's EXS_Unknown load below also accepts a bare dataset with neither, and this reader used to open such a file as
+    // Explicit VR Little Endian. REQ-DICOM-003 says missing preamble or invalid magic is XPE_ERR_DICOM_INVALID, so the
+    // magic is checked here, before DCMTK is asked. A file that cannot be opened at all is not judged here: it falls
+    // through to the load below so a missing file keeps its XPE_ERR_IO_FAILED mapping.
+    {
+        std::ifstream probe(m_filePath, std::ios::binary);
+        if (probe) {
+            char head[132] = {};
+            probe.read(head, sizeof(head));
+            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head + 128, "DICM", 4) != 0) {
+                spdlog::error("[DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by \"DICM\" ({} bytes read)",
+                             static_cast<long long>(probe.gcount()));
+                return XPE_ERR_DICOM_INVALID;
+            }
+        }
+    }
+
     // Load the DICOM file with unknown transfer syntax (auto-detect)
     OFCondition status = m_dcmFile->loadFile(
         m_filePath.c_str(),
@@ -133,7 +161,7 @@ XpeErrorCode DicomReader::open() {
 
     if (status.bad()) {
         OFString errText = status.text();
-        spdlog::warn("[DicomReader] loadFile failed: {}", errText.c_str());
+        spdlog::error("[DicomReader] loadFile failed: {}", errText.c_str());
 
         // If load fails with "no element found" or similar DICOM parse error
         // it might be a non-DICOM file. Check by trying minimal read.
@@ -173,9 +201,21 @@ XpeErrorCode DicomReader::open() {
         // a detected syntax would be available or correct here, so the branch
         // fails closed rather than guessing. It has NO execution test; the
         // decision rests on the reachability measurement alone.
-        spdlog::warn("[DicomReader] no meta-information object; transfer syntax "
+        spdlog::error("[DicomReader] no meta-information object; transfer syntax "
                      "cannot be established -- refusing");
         return XPE_ERR_UNSUPPORTED_FORMAT;
+    }
+
+    // QA-B-207b C3 (Codex #120, user decision on #251: a file without a meta header is refused). The magic check at the top
+    // of open() only proves the first 132 bytes. PS3.10 7.1 then requires the File Meta Information group (0002); DCMTK reads
+    // preamble + "DICM" + a bare dataset without complaint, hands back an EMPTY meta object and detects the syntax from the
+    // dataset, so such a file would reach the TS-less branch below as if it were a Part 10 file that merely lacks
+    // (0002,0010). The two are different files: no group-0002 element at all is XPE_ERR_DICOM_INVALID here; a meta group
+    // that exists but lacks TransferSyntaxUID keeps the #167 policy below.
+    if (meta->card() == 0) {
+        spdlog::error("[DicomReader] preamble and \"DICM\" are followed by no File Meta Information element (group 0002) -- "
+                     "not a Part 10 file (PS3.10 7.1)");
+        return XPE_ERR_DICOM_INVALID;
     }
 
     // Check Transfer Syntax UID from meta-header
@@ -189,7 +229,7 @@ XpeErrorCode DicomReader::open() {
             }
         }
         if (!accepted) {
-            spdlog::warn("[DicomReader] Unsupported Transfer Syntax: {}", tsUID.c_str());
+            spdlog::error("[DicomReader] Unsupported Transfer Syntax: {}", tsUID.c_str());
             return XPE_ERR_UNSUPPORTED_FORMAT;
         }
         m_tsUID = std::string(tsUID.c_str());
@@ -223,7 +263,7 @@ XpeErrorCode DicomReader::open() {
             }
         }
         if (!accepted) {
-            spdlog::warn("[DicomReader] no TransferSyntaxUID in meta; detected "
+            spdlog::error("[DicomReader] no TransferSyntaxUID in meta; detected "
                          "syntax '{}' is not supported -- refusing",
                          detectedUid.empty() ? "(unknown)" : detectedUid);
             return XPE_ERR_UNSUPPORTED_FORMAT;
@@ -245,7 +285,7 @@ XpeErrorCode DicomReader::open() {
             ds->findAndGetElement(DCM_PixelData, pix).good() && pix != nullptr &&
             pix->getLengthField() == DCM_UndefinedLength;
         if (pixelDataEncapsulated && !detectedXfer.usesEncapsulatedFormat()) {
-            spdlog::warn("[DicomReader] no TransferSyntaxUID in meta; PixelData is "
+            spdlog::error("[DicomReader] no TransferSyntaxUID in meta; PixelData is "
                          "encapsulated but the detected syntax '{}' is native -- the "
                          "detection cannot be trusted, refusing", detectedUid);
             return XPE_ERR_UNSUPPORTED_FORMAT;
@@ -290,8 +330,8 @@ XpeErrorCode DicomReader::open() {
 // requires these attributes to be consistent with the codestream, and the codestream's own characteristics are the
 // ones used for decoding. Here only what the dataset alone can say is checked: Bits Allocated is 8 or 16.
 //
-// MONOCHROME1, RescaleSlope/Intercept and bits above BitsStored are NOT judged here: how to report them is a
-// design decision still open in #235, and they keep their current behaviour (stored words, unchanged).
+// Rescale is judged in checkRescale and the bits above BitsStored are masked in maskToBitsStored (QA-B-187).
+// MONOCHROME1 is accepted here and INVERTED after decoding (QA-B-185, normaliseMonochrome1).
 // A refusal is reported twice: to the log, and as an ALERT the operator can read. The return code alone says
 // "malformed" or "unsupported" but not which attribute or which two values disagree (QA-B-182c). The alert wording
 // is a contract with the clients that display alerts: change it only together with them.
@@ -303,7 +343,7 @@ static XpeErrorCode refuse(XpeErrorCode code, const char* fmt, ...) {
     va_end(args);
     char msg[400];
     std::snprintf(msg, sizeof(msg), "dicom read refused: %s", why);
-    spdlog::warn("[DicomReader] {}", msg);
+    spdlog::error("[DicomReader] {}", msg);
     xpe_alert_push(msg, XPE_ALERT_ERROR);
     return code;
 }
@@ -313,7 +353,271 @@ static bool readType1Uint16(DcmDataset* ds, const DcmTagKey& key, Uint16& out) {
     return ds->tagExists(key) && ds->findAndGetUint16(key, out).good();
 }
 
-static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
+// QA-B-185 (#235; leader decision after the QA-B-184 report, requirement FR-DCM-109 of SRS-DICOM-001): the image is
+// returned in MONOCHROME2 sense whatever the file says. PS3.3 C.7.6.3.1.2 defines MONOCHROME1 as "the minimum sample
+// value is intended to be displayed as white" and MONOCHROME2 as "... black", so a MONOCHROME1 sample v becomes the
+// value MONOCHROME2 would have shown the same brightness for. The sample is the low BitsStored bits of the word, so
+// the bits above it are masked off first (they are not part of the sample) and the maximum is 2^BitsStored - 1:
+//     v' = (2^B - 1) - (v & (2^B - 1)).
+// It runs on the CALLER'S buffer after the decode, never on the dataset the handle keeps, so a second read on the same
+// handle gives the same words. Every path ends here: the uncompressed and JPEG Lossless copy and the JPEG 2000 decode
+// all produce one unsigned uint16 plane (signed pixels, PixelRepresentation 1, were refused before any decode -- for
+// them the inversion would be -1 - v, a different formula, and no signed image is returned today). outImg->bitsStored
+// is the sample width the returned words really have (the codestream's precision for JPEG 2000).
+// The Window Center/Width and Rescale values in the FILE refer to the STORED samples (PS3.3 C.11.2: the polarity is
+// applied after the VOI transformation). This API returns neither (the metadata struct has no such field), so no
+// returned value needs adjusting; a caller reading them from the file itself must mirror them -- see dicom_api.h.
+static bool isMonochrome1(DcmDataset* ds) {
+    OFString v;
+    return ds->findAndGetOFString(DCM_PhotometricInterpretation, v).good() && std::string(v.c_str()) == "MONOCHROME1";
+}
+
+static void normaliseMonochrome1(XpeImageBuffer* img) {
+    const uint32_t bits = img->bitsStored;   // 1..16 here: BitsStored <= BitsAllocated 16, JPEG 2000 precision <= 16
+    const uint32_t mask = bits >= 16 ? 0xFFFFu : ((1u << bits) - 1u);
+    uint16_t* px = static_cast<uint16_t*>(img->data);
+    const size_t n = static_cast<size_t>(img->width) * img->height;
+    for (size_t i = 0; i < n; ++i) px[i] = static_cast<uint16_t>(mask - (px[i] & mask));
+    // CROSS-LANE CONTRACT (QA-B-185b): the whole text, including the formula, which is exactly what is computed above
+    // (the stored word is masked to BitsStored first). Change it only together with the clients.
+    char msg[256];
+    std::snprintf(msg, sizeof(msg),
+                  "MONOCHROME1 pixel values were inverted to MONOCHROME2 sense: "
+                  "value = (2^BitsStored - 1) - (stored & (2^BitsStored - 1)), BitsStored %u",
+                  static_cast<unsigned>(bits));
+    spdlog::info("[DicomReader] {}", msg);
+    xpe_alert_push(msg, XPE_ALERT_INFO);
+}
+
+// QA-B-187 (#235; leader decisions after the QA-B-186 matrix): the Modality LUT's Rescale Slope / Intercept are NOT
+// applied -- the returned pixels are the stored values, and applying or reporting the rescale is a separate decision --
+// but they are no longer ignored in silence:
+//   * a Rescale attribute that is present and is not ONE finite number (empty, text, two values, inf/nan), or a Rescale
+//     Slope of 0 (the rescale would send every pixel to the intercept), is a malformed dataset: XPE_ERR_DICOM_INVALID,
+//     before any decode, with an alert that names the attribute and the value;
+//   * a rescale that is not the identity (slope 1 and intercept 0; an absent attribute counts as its identity value)
+//     posts ONE Warning after a successful read: the pixels are stored values and the rescale was not applied.
+// The check runs for every path because it runs before the path-specific decode.
+struct RescaleNote {
+    bool nonIdentity = false;
+    bool lutSequence = false;   // a Modality LUT Sequence (0028,3000) with at least one item
+    std::string slope = "(absent)";
+    std::string intercept = "(absent)";
+};
+
+static std::string trimSpaces(const char* raw) {
+    std::string s(raw);
+    const size_t b = s.find_first_not_of(' ');
+    if (b == std::string::npos) return std::string();
+    return s.substr(b, s.find_last_not_of(' ') - b + 1);
+}
+
+// One decimal string (PS3.5 VR DS: digits, sign, '.', 'E'/'e') that is a finite number. A backslash would be a second value.
+static bool parseDecimalString(const std::string& s, double* out) {
+    if (s.empty() || s.find_first_not_of("0123456789+-.eE") != std::string::npos) return false;
+    char* end = nullptr;
+    const double v = std::strtod(s.c_str(), &end);
+    if (end == s.c_str() || *end != '\0' || !std::isfinite(v)) return false;
+    *out = v;
+    return true;
+}
+
+static XpeErrorCode readRescaleAttribute(DcmDataset* ds, const DcmTagKey& key, const char* label, const char* tag,
+                                         double identityValue, double* out, std::string* text, bool* present) {
+    *out = identityValue;
+    *present = ds->tagExists(key);
+    if (!*present) return XPE_OK;
+    OFString raw;
+    const OFCondition c = ds->findAndGetOFStringArray(key, raw);
+    const std::string s = trimSpaces(raw.c_str());
+    if (c.bad() || !parseDecimalString(s, out)) {
+        return refuse(XPE_ERR_DICOM_INVALID, "%s (%s) \"%s\" is not a single finite number", label, tag, s.c_str());
+    }
+    *text = s;
+    return XPE_OK;
+}
+
+static XpeErrorCode checkRescale(DcmDataset* ds, RescaleNote* note) {
+    double slope = 1.0, intercept = 0.0;
+    bool hasSlope = false, hasIntercept = false;
+    XpeErrorCode rc = readRescaleAttribute(ds, DCM_RescaleSlope, "RescaleSlope", "0028,1053", 1.0, &slope, &note->slope, &hasSlope);
+    if (rc != XPE_OK) return rc;
+    rc = readRescaleAttribute(ds, DCM_RescaleIntercept, "RescaleIntercept", "0028,1052", 0.0, &intercept, &note->intercept, &hasIntercept);
+    if (rc != XPE_OK) return rc;
+    // PS3.3 C.11.1: the Slope / Intercept pair is required together; one without the other is not a Modality LUT.
+    if (hasSlope != hasIntercept) {
+        return refuse(XPE_ERR_DICOM_INVALID, "%s is absent while %s is present: the Modality LUT needs both RescaleSlope and RescaleIntercept (PS3.3 C.11.1)",
+                      hasSlope ? "RescaleIntercept (0028,1052)" : "RescaleSlope (0028,1053)",
+                      hasSlope ? "RescaleSlope (0028,1053)" : "RescaleIntercept (0028,1052)");
+    }
+    DcmSequenceOfItems* lut = nullptr;
+    note->lutSequence = ds->findAndGetSequence(DCM_ModalityLUTSequence, lut).good() && lut != nullptr && lut->card() > 0;
+    if (slope == 0.0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "RescaleSlope (0028,1053) is zero: the rescale would map every pixel to the intercept");
+    }
+    note->nonIdentity = slope != 1.0 || intercept != 0.0;
+    return XPE_OK;
+}
+
+// QA-B-187: the bits above BitsStored are not part of the sample (PS3.5 8.1.1), so every returned word is
+// stored & (2^BitsStored - 1) -- MONOCHROME2 as well as MONOCHROME1 (which was already masked before its inversion).
+// Returns how many words changed. BitsStored 16 masks nothing, so the pass is skipped.
+static size_t maskToBitsStored(XpeImageBuffer* img) {
+    const uint32_t bits = img->bitsStored;   // 1..16 here: BitsStored <= BitsAllocated 16, JPEG 2000 precision <= 16
+    if (bits >= 16) return 0;
+    const uint16_t mask = static_cast<uint16_t>((1u << bits) - 1u);
+    uint16_t* px = static_cast<uint16_t*>(img->data);
+    const size_t n = static_cast<size_t>(img->width) * img->height;
+    size_t changed = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const uint16_t v = static_cast<uint16_t>(px[i] & mask);
+        if (v != px[i]) { px[i] = v; ++changed; }
+    }
+    return changed;
+}
+
+// What every successful read does to the decoded words, in this order, whichever path produced them (QA-B-185/187).
+static void finishRead(XpeImageBuffer* img, bool mono1, const RescaleNote& rescale) {
+    const size_t masked = maskToBitsStored(img);
+    if (masked > 0) {
+        // CROSS-LANE CONTRACT (QA-B-187): the whole text. Posted only when at least one word changed.
+        char msg[200];
+        std::snprintf(msg, sizeof(msg),
+                      "%llu pixel(s) had bits above BitsStored %u set; those bits were masked off: value = stored & (2^BitsStored - 1)",
+                      static_cast<unsigned long long>(masked), static_cast<unsigned>(img->bitsStored));
+        spdlog::info("[DicomReader] {}", msg);
+        xpe_alert_push(msg, XPE_ALERT_INFO);
+    }
+    if (mono1) normaliseMonochrome1(img);
+    if (rescale.lutSequence) {
+        // CROSS-LANE CONTRACT (QA-B-187c): the whole text.
+        const char* msg = "ModalityLUTSequence (0028,3000) is present: returned pixels are stored values; the Modality LUT was not applied";
+        spdlog::warn("[DicomReader] {}", msg);
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    }
+    if (rescale.nonIdentity) {
+        // CROSS-LANE CONTRACT (QA-B-187): the whole text, with the values as the file spells them.
+        char msg[256];
+        std::snprintf(msg, sizeof(msg),
+                      "RescaleSlope %s, RescaleIntercept %s (the identity is 1 and 0): returned pixels are stored values; rescale not applied",
+                      rescale.slope.c_str(), rescale.intercept.c_str());
+        spdlog::warn("[DicomReader] {}", msg);
+        xpe_alert_push(msg, XPE_ALERT_WARNING);
+    }
+}
+
+// IS (Integer String), PS3.5 Table 6.2-1: "a string of characters representing an Integer in base-10 (decimal), shall contain
+// only the characters 0 - 9, with an optional leading "+" or "-". It may be padded with leading and/or trailing spaces.
+// Embedded spaces are not allowed. The integer, n, represented shall be in the range: -2^31 <= n <= (2^31 - 1)"; 12 bytes
+// maximum. The WHOLE value must match -- a prefix that parses ("2500junk", "7.5", "0x10") is not an IS (QA-B-200 M2a3).
+static bool parseIntegerString(const OFString& raw, int64_t* out) {
+    if (raw.size() > 12) return false;
+    size_t b = 0, e = raw.size();
+    while (b < e && raw[b] == ' ') ++b;
+    while (e > b && raw[e - 1] == ' ') --e;
+    if (b == e) return false;
+    bool negative = false;
+    if (raw[b] == '+' || raw[b] == '-') {
+        negative = raw[b] == '-';
+        ++b;
+    }
+    if (b == e) return false;
+    int64_t v = 0;   // at most 12 digits: cannot overflow
+    for (; b < e; ++b) {
+        if (raw[b] < '0' || raw[b] > '9') return false;
+        v = v * 10 + (raw[b] - '0');
+    }
+    if (negative) v = -v;
+    if (v < -2147483648LL || v > 2147483647LL) return false;
+    *out = v;
+    return true;
+}
+
+// mAs (QA-B-200 M2a/M2a2/M2a3, C1). A file can carry the exposure in three attributes; the order of trust, most precise
+// first, and the tolerance within which two of them still agree (a rounded IS cannot be exact):
+//   (0018,1153) Exposure in uAs   IS, microampere-seconds, /1000 -> mAs   rounded to 1 uAs: +-0.0005 mAs
+//   (0018,9332) Exposure in mAs   FD, the exact value                     written with 4 decimals: +-0.0001 mAs
+//   (0018,1152) Exposure          IS, whole mAs                           rounded to 1 mAs: +-0.5 mAs
+// An attribute that is absent, not a valid IS (or an FD that is not finite), or negative is skipped. The first valid one
+// is the mAs. When any two valid ones differ by more than their two tolerances together, the file contradicts itself:
+// the choice is still the first, and ONE WARNING alert names every value as the file spells it and the one used.
+static void readExposure(DcmDataset* ds, XpeImageMetadata* outMeta) {
+    struct Candidate {
+        const char* tag;
+        const char* unit;
+        double mAs;
+        double tolerance;
+        std::string spelled;
+        bool valid;
+    };
+    Candidate c[3] = {{"(0018,1153)", "uAs", 0.0, 0.0005, "", false},
+                      {"(0018,9332)", "mAs", 0.0, 0.0001, "", false},
+                      {"(0018,1152)", "mAs", 0.0, 0.5, "", false}};
+    // All three attributes have VM 1 (PS3.6): DCMTK would hand back the first value of "25\00" as 25, so a value count
+    // other than one is refused here, as an invalid value is. The element's own length (the bytes in the file, padding
+    // included) is checked too, because OFString values come back with their padding already stripped: an IS of 12
+    // spaces and a "1" is 13 bytes (14 padded) and not an IS, but reads as "1" (QA-B-200 M2a4, Codex #105).
+    auto single = [ds](const DcmTagKey& key, Uint32 maxBytes) {
+        DcmElement* e = nullptr;
+        return ds->findAndGetElement(key, e).good() && e && e->getVM() == 1 && e->getLength() <= maxBytes;
+    };
+    OFString text;
+    int64_t whole = 0;
+    if (single(DCM_ExposureInuAs, 12) && ds->findAndGetOFString(DCM_ExposureInuAs, text).good() &&
+        parseIntegerString(text, &whole) && whole >= 0) {
+        c[0].valid = true;
+        c[0].mAs = static_cast<double>(whole) / 1000.0;
+        c[0].spelled = std::to_string(whole);
+    }
+    Float64 exact = 0.0;
+    if (single(DCM_ExposureInmAs, 8) && ds->findAndGetFloat64(DCM_ExposureInmAs, exact).good() && std::isfinite(exact) &&
+        exact >= 0.0) {
+        c[1].valid = true;
+        c[1].mAs = exact;
+        char buf[40];
+        std::snprintf(buf, sizeof(buf), "%.6g", exact);
+        c[1].spelled = buf;
+    }
+    if (single(DCM_Exposure, 12) && ds->findAndGetOFString(DCM_Exposure, text).good() && parseIntegerString(text, &whole) &&
+        whole >= 0) {
+        c[2].valid = true;
+        c[2].mAs = static_cast<double>(whole);
+        c[2].spelled = std::to_string(whole);
+    }
+
+    const Candidate* chosen = nullptr;
+    for (const Candidate& k : c) {
+        if (k.valid) {
+            chosen = &k;
+            break;
+        }
+    }
+    if (!chosen) return;
+    outMeta->mAs = static_cast<float>(chosen->mAs);
+
+    // EVERY pair of valid values is compared, not only each against the chosen one: two values can each be within their
+    // tolerance of the chosen one and still contradict each other (1153 = 2500 uAs, 9332 = 2.4994, 1152 = 3: the chosen 2.5
+    // agrees with both, yet 9332 and 1152 are 0.5006 apart and the two tolerances allow 0.5001; QA-B-200 M2a4).
+    bool disagree = false;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = i + 1; j < 3; ++j) {
+            if (c[i].valid && c[j].valid && std::fabs(c[i].mAs - c[j].mAs) > c[i].tolerance + c[j].tolerance + 1e-9) disagree = true;
+        }
+    }
+    if (!disagree) return;
+    // CROSS-LANE CONTRACT (QA-B-200 M2a3): the whole text.
+    std::string msg = "DICOM exposure attributes disagree:";
+    for (const Candidate& k : c) {
+        if (k.valid) msg += std::string(" ") + k.tag + " = " + k.spelled + " " + k.unit + ";";
+    }
+    char tail[80];
+    std::snprintf(tail, sizeof(tail), " using %s = %.4f mAs", chosen->tag, chosen->mAs);
+    msg += tail;
+    spdlog::warn("[DicomReader] {}", msg);
+    xpe_alert_push(msg.c_str(), XPE_ALERT_WARNING);
+}
+
+static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K, bool isJpegLL) {
     Uint16 samples = 0, pixelRepresentation = 0, bitsAlloc = 0, bitsStored = 0, highBit = 0;
     struct Required { const char* name; DcmTagKey key; Uint16* value; };
     const Required required[] = {
@@ -329,6 +633,20 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
         }
     }
 
+    // QA-B-182f (Codex #54): PhotometricInterpretation (0028,0004) is Type 1 in the Image Pixel Description Macro
+    // (PS3.3 Table C.7-11c) and was never read, so a file without it, or with PALETTE COLOR, came back as a gray
+    // uint16 image. A CS value of odd length is padded with a space and leading and trailing spaces are not
+    // significant (PS3.5 6.2); DCMTK normalises both when it hands the string over (measured: the values " MONOCHROME2"
+    // and "MONOCHROME2 " read as MONOCHROME2 with the reader's own trimming removed), so none is done here.
+    std::string pi;
+    {
+        OFString v;
+        if (ds->findAndGetOFString(DCM_PhotometricInterpretation, v).good()) pi.assign(v.c_str());
+    }
+    if (pi.empty()) {
+        return refuse(XPE_ERR_DICOM_INVALID, "PhotometricInterpretation (0028,0004) is absent, empty or not a string (it is a Type 1 attribute and has no default)");
+    }
+
     long frames = 1;
     if (ds->tagExists(DCM_NumberOfFrames)) {
         Sint32 v = 0;
@@ -342,25 +660,62 @@ static XpeErrorCode checkSupportedImageModule(DcmDataset* ds, bool isJ2K) {
     if (samples != 1) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "SamplesPerPixel %u (only one sample per pixel is supported)", static_cast<unsigned>(samples));
     if (pixelRepresentation != 0) return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "PixelRepresentation %u (only unsigned pixels are supported)", static_cast<unsigned>(pixelRepresentation));
 
+    // QA-B-182f: SamplesPerPixel is 1 here. The buffer this API returns is one gray uint16 plane, so only the two
+    // monochrome values describe it (PS3.3 C.7.6.3.1.2). A value the standard defines for three samples only is a
+    // malformed dataset when SamplesPerPixel is 1; PALETTE COLOR (the value is an index into palette tables), the
+    // retired values and values whose meaning the standard does not define are well formed, or at least not
+    // malformed, and cannot be returned faithfully. MONOCHROME1 is accepted: readImage inverts it (QA-B-185).
+    if (pi != "MONOCHROME1" && pi != "MONOCHROME2") {
+        const bool threeSamplesOnly = pi == "RGB" || pi == "YBR_FULL" || pi == "YBR_FULL_422" || pi == "YBR_PARTIAL_420" ||
+                                      pi == "YBR_ICT" || pi == "YBR_RCT";
+        if (threeSamplesOnly) {
+            return refuse(XPE_ERR_DICOM_INVALID, "PhotometricInterpretation %s with SamplesPerPixel 1 (PS3.3 C.7.6.3.1.2: it may be used only when SamplesPerPixel is 3)", pi.c_str());
+        }
+        return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "PhotometricInterpretation %s (only MONOCHROME1 and MONOCHROME2 are supported)", pi.c_str());
+    }
+
+    // QA-B-182e: the bits attributes are classified against the standard (text quoted in the QA-B-182e report).
+    //   VIOLATION (XPE_ERR_DICOM_INVALID): the dataset breaks a "shall" of PS3.5 8.1.1, which holds for every Pixel
+    //   Data whatever the transfer syntax -- Bits Allocated is 1 or a multiple of 8, Bits Stored is never larger
+    //   than Bits Allocated, High Bit is one less than Bits Stored -- or a value the transfer syntax's own table
+    //   (PS3.5 Table 8.2.1-2 for JPEG Lossless, Table 8.2.4-1 for JPEG 2000) does not list.
+    //   VALID BUT UNSUPPORTED (XPE_ERR_UNSUPPORTED_FORMAT): the dataset is well formed and this reader cannot return
+    //   it (for example 8 or 32 bits allocated in native data).
+    // High Bit = Bits Stored - 1 has been a "shall" since PS3.5 2014c; before that, files with another High Bit were
+    // legal, so an old file can be refused here that its own edition allowed.
+    if (bitsAlloc != 1 && bitsAlloc % 8 != 0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "BitsAllocated %u (PS3.5 8.1.1: it shall be 1 or a multiple of 8)", static_cast<unsigned>(bitsAlloc));
+    }
+    if (bitsStored < 1 || bitsStored > bitsAlloc || highBit != bitsStored - 1) {
+        return refuse(XPE_ERR_DICOM_INVALID, "BitsStored %u with HighBit %u and BitsAllocated %u (PS3.5 8.1.1: HighBit shall be BitsStored - 1, and BitsStored 1..BitsAllocated)",
+                      static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit), static_cast<unsigned>(bitsAlloc));
+    }
+
     if (isJ2K) {
+        const bool inTable = bitsAlloc == 1 || bitsAlloc == 8 || bitsAlloc == 16 || bitsAlloc == 24 || bitsAlloc == 32 || bitsAlloc == 40;
+        if (!inTable) {
+            return refuse(XPE_ERR_DICOM_INVALID, "BitsAllocated %u for JPEG 2000 (PS3.5 Table 8.2.4-1 lists 1, 8, 16, 24, 32 and 40)", static_cast<unsigned>(bitsAlloc));
+        }
+        // QA-B-181g (Codex #57): Table 8.2.4-1 limits BitsStored to 1-38 and HighBit to 0-37 as well, separately from
+        // the allocation. BitsAllocated 40 is listed, so a BitsStored of 39 or 40 under it is a value the table does
+        // not list (a violation), not a well-formed file this reader merely does not return. With HighBit = BitsStored - 1
+        // (checked above) the two limits are one, and this is judged before the "unsupported" test below.
+        if (bitsStored > 38) {
+            return refuse(XPE_ERR_DICOM_INVALID, "BitsStored %u with HighBit %u for JPEG 2000 (PS3.5 Table 8.2.4-1 lists BitsStored 1-38 and HighBit 0-37)",
+                          static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit));
+        }
         if (bitsAlloc != 8 && bitsAlloc != 16) {
             return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u for JPEG 2000 (8 or 16 are supported)", static_cast<unsigned>(bitsAlloc));
         }
-        // QA-B-182d (Codex #51): the codestream carries no HighBit, so this is the only place it can be judged. The
-        // significant bits must be the low ones, as on the other paths; a mismatch is an inconsistent dataset
-        // (the same code the codestream comparison uses), not an unsupported feature.
-        if (bitsStored < 1 || bitsStored > bitsAlloc || highBit != bitsStored - 1) {
-            return refuse(XPE_ERR_DICOM_INVALID, "BitsStored %u with HighBit %u for JPEG 2000 (HighBit must be BitsStored - 1, BitsStored 1..BitsAllocated %u)",
-                          static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit), static_cast<unsigned>(bitsAlloc));
-        }
         return XPE_OK;
+    }
+    if (isJpegLL) {
+        if (bitsAlloc != 8 && bitsAlloc != 16) {
+            return refuse(XPE_ERR_DICOM_INVALID, "BitsAllocated %u for JPEG Lossless (PS3.5 Table 8.2.1-2 lists 8 and 16)", static_cast<unsigned>(bitsAlloc));
+        }
     }
     if (bitsAlloc != 16) {
         return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsAllocated %u (only 16 is supported for uncompressed and JPEG Lossless data)", static_cast<unsigned>(bitsAlloc));
-    }
-    if (bitsStored < 1 || bitsStored > 16 || highBit != bitsStored - 1) {
-        return refuse(XPE_ERR_UNSUPPORTED_FORMAT, "BitsStored %u with HighBit %u (the significant bits must be the low ones: HighBit = BitsStored - 1, BitsStored 1..16)",
-                      static_cast<unsigned>(bitsStored), static_cast<unsigned>(highBit));
     }
     return XPE_OK;
 }
@@ -375,8 +730,14 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
 
     // Read image dimensions
     Uint16 rows = 0, cols = 0, bitsAlloc = 0, bitsStored = 0;
-    if (ds->findAndGetUint16(DCM_Rows, rows).bad() || rows == 0) return XPE_ERR_DICOM_INVALID;
-    if (ds->findAndGetUint16(DCM_Columns, cols).bad() || cols == 0) return XPE_ERR_DICOM_INVALID;
+    // QA-B-182f: Rows and Columns are Type 1 (PS3.3 Table C.7-11c). The code was already DICOM_INVALID; the alert that
+    // names the cause (as for the other Type 1 attributes, QA-B-182c) was missing.
+    if (ds->findAndGetUint16(DCM_Rows, rows).bad() || rows == 0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "Rows (0028,0010) is absent, empty, not a number or zero (it is a Type 1 attribute and has no default)");
+    }
+    if (ds->findAndGetUint16(DCM_Columns, cols).bad() || cols == 0) {
+        return refuse(XPE_ERR_DICOM_INVALID, "Columns (0028,0011) is absent, empty, not a number or zero (it is a Type 1 attribute and has no default)");
+    }
     ds->findAndGetUint16(DCM_BitsAllocated, bitsAlloc);
     ds->findAndGetUint16(DCM_BitsStored, bitsStored);
     // Bits Allocated and Bits Stored are Type 1: checkSupportedImageModule below refuses their absence, so no
@@ -393,13 +754,23 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
 
     // QA-B-182 (#235): refuse what this reader cannot return faithfully, before any decode or allocation.
     {
-        const XpeErrorCode scope = checkSupportedImageModule(ds, isJ2K);
+        const XpeErrorCode scope = checkSupportedImageModule(ds, isJ2K, isJPEGLL);
         if (scope != XPE_OK) return scope;
+    }
+
+    // The scope check has pinned PhotometricInterpretation to MONOCHROME1 or MONOCHROME2.
+    const bool mono1 = isMonochrome1(ds);
+    RescaleNote rescale;
+    {
+        const XpeErrorCode rrc = checkRescale(ds, &rescale);   // QA-B-187: malformed Rescale is refused before any decode
+        if (rrc != XPE_OK) return rrc;
     }
 
     if (isJ2K) {
         // J2K: extract raw bitstream and decode with OpenJPEG
-        return decompressPixelData(m_dcmFile.get(), outImg);
+        const XpeErrorCode drc = decompressPixelData(m_dcmFile.get(), outImg);
+        if (drc == XPE_OK) finishRead(outImg, mono1, rescale);
+        return drc;
     }
 
     if (isJPEGLL) {
@@ -423,15 +794,36 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
                 DcmPixelItem* frag = nullptr;
                 if (encSeq->getItem(frag, 1).good() && frag != nullptr) {
                     Uint8* fragData = nullptr;
-                    uint32_t frameW = 0, frameH = 0;
+                    uint32_t frameW = 0, frameH = 0, framePrecision = 0, frameComponents = 0;
                     if (frag->getUint8Array(fragData).good() && fragData != nullptr &&
                         jpeg_frame_dimensions(fragData, static_cast<size_t>(frag->getLength()),
-                                              frameW, frameH)) {
+                                              frameW, frameH, &framePrecision, &frameComponents)) {
                         if (frameW != cols || frameH != rows) {
                             spdlog::error("[DicomReader] JPEG frame size does not match the "
                                           "declared size: dataset says {}x{}, frame carries {}x{}",
                                           cols, rows, frameW, frameH);
                             return XPE_ERR_DICOM_INVALID;
+                        }
+                        // QA-B-182e: PS3.5 8.2 requires the pixel attributes to be "consistent with the
+                        // characteristics of the compressed data stream", and the sample precision P in the frame
+                        // header is the one bit depth the stream carries. P below Bits Stored cannot hold the
+                        // declared values and P above Bits Allocated does not fit the container: both are refused
+                        // before DCMTK decodes. P above Bits Stored is accepted -- the standard does not say what
+                        // "consistent" means there and refusing would turn away files with a wider P.
+                        // The frame header was read (jpeg_frame_dimensions returned true), so its component count is
+                        // judged: exactly 1, the SamplesPerPixel that checkSupportedImageModule has already pinned.
+                        // QA-B-181h: 0, an absent Nf byte and 2 or more are all refused. A header that could not be read
+                        // at all gives no verdict here; DCMTK then decodes or fails on it. DCMTK does not make this
+                        // comparison itself: a frame header declaring three components under SamplesPerPixel 1 was read
+                        // with rc=0 (QA-B-182e, measured). A JPEG Lossless frame header has no sign flag, so there is
+                        // nothing to compare PixelRepresentation with; it is judged from the dataset alone.
+                        if (frameComponents != 1) {
+                            return refuse(XPE_ERR_DICOM_INVALID, "JPEG Lossless stream carries %u components, the dataset says 1 (SamplesPerPixel)",
+                                          static_cast<unsigned>(frameComponents));
+                        }
+                        if (framePrecision != 0 && (framePrecision < bitsStored || framePrecision > bitsAlloc)) {
+                            return refuse(XPE_ERR_DICOM_INVALID, "JPEG Lossless stream sample precision %u does not fit the dataset (BitsStored %u, BitsAllocated %u)",
+                                          static_cast<unsigned>(framePrecision), static_cast<unsigned>(bitsStored), static_cast<unsigned>(bitsAlloc));
                         }
                     }
                 }
@@ -441,7 +833,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         // JPEG Lossless: use DCMTK's built-in JPEG decoder
         OFCondition repStatus = ds->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
         if (repStatus.bad()) {
-            spdlog::warn("[DicomReader] JPEG-LL chooseRepresentation failed: {}", repStatus.text());
+            spdlog::error("[DicomReader] JPEG-LL chooseRepresentation failed: {}", repStatus.text());
             return XPE_ERR_PROCESSING_FAILED;
         }
         ds->loadAllDataIntoMemory();
@@ -489,6 +881,7 @@ XpeErrorCode DicomReader::readImage(XpeImageBuffer* outImg) {
         return XPE_ERR_DICOM_INVALID;
     }
     std::memcpy(outImg->data, pixData, expectedBytes);
+    finishRead(outImg, mono1, rescale);
 
     return XPE_OK;
 }
@@ -519,13 +912,7 @@ XpeErrorCode DicomReader::getMetadata(XpeImageMetadata* outMeta) {
         }
     }
 
-    // mAs — ExposureInmAs (0018,9332) DS VR
-    {
-        Float64 mAs = 0.0;
-        if (ds->findAndGetFloat64(DCM_ExposureInmAs, mAs).good()) {
-            outMeta->mAs = static_cast<float>(mAs);
-        }
-    }
+    readExposure(ds, outMeta);
 
     // SID — DistanceSourceToDetector (0018,1110) in mm
     {
@@ -701,7 +1088,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     // Setup OpenJPEG decoder
     opj_codec_t* codec = opj_create_decompress(OPJ_CODEC_J2K);
     if (!codec) {
-        spdlog::warn("[DicomReader] opj_create_decompress failed");
+        spdlog::error("[DicomReader] opj_create_decompress failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -726,7 +1113,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     opj_stream_t* stream = opj_stream_create(j2kLen, OPJ_TRUE);
     if (!stream) {
         opj_destroy_codec(codec);
-        spdlog::warn("[DicomReader] opj_stream_create failed");
+        spdlog::error("[DicomReader] opj_stream_create failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -766,7 +1153,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
     if (!ok || !image) {
         opj_stream_destroy(stream);
         opj_destroy_codec(codec);
-        spdlog::warn("[DicomReader] opj_read_header failed");
+        spdlog::error("[DicomReader] opj_read_header failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -792,7 +1179,7 @@ XpeErrorCode DicomReader::decodeJ2KBitstream(const uint8_t* j2kData, size_t j2kL
         opj_image_destroy(image);
         opj_stream_destroy(stream);
         opj_destroy_codec(codec);
-        spdlog::warn("[DicomReader] opj_decode failed");
+        spdlog::error("[DicomReader] opj_decode failed");
         return XPE_ERR_PROCESSING_FAILED;
     }
 

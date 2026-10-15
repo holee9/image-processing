@@ -1,0 +1,6 @@
+G1 bone suppression lets the body-part field through: build_ok=True passed=['40'] crashed=False red(2)=['1', 'WorkerBoneErrorFrame.TheBodyPartFieldIsAFaultInAnyFormBecauseBoneSuppressionHasNoSuchNotion']
+G2 bone suppression takes an unparseable ERROR frame as an answer: build_ok=True passed=['33'] crashed=False red(9)=['8', 'IpcDeadline.AnErrorFrameWithACodeOutsideTheErrorRangeDropsTheConnection', 'IpcDeadline.AnErrorFrameWithANonNumericCodeDropsTheConnection', 'IpcDeadline.AnErrorFrameWithNoCodeDropsTheConnection', 'IpcDeadline.ControlAWorkersOwnErrorFrameKeepsTheConnection', 'WorkerBoneErrorFrame.EveryFrameTheProtocolAllowsIsPassedThroughAndKeepsTheWorker', 'WorkerBoneErrorFrame.EveryFrameTheProtocolForbidsEverywhereIsAFaultForBoneSuppressionToo', 'WorkerBoneErrorFrame.TheBodyPartFieldIsAFaultInAnyFormBecauseBoneSuppressionHasNoSuchNotion', 'WorkerBoneErrorFrame.TheRealWorkersOwnErrorFramesAreAcceptedAndKeepTheWorker']
+G3 the shared parser believes a flag with any code: build_ok=True passed=['39'] crashed=False red(3)=['2', 'WorkerBodyPartReply.EveryErrorFrameTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded', 'WorkerBodyPartReply.ThreeContradictoryFramesInARowAreThreeCountedFailuresNeverAnUnavailableAnswer']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['41'] red=[]
+DONE

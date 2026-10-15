@@ -1,0 +1,36 @@
+# GUI-C-213 census: what the real-source parity tests scan and bind (verbatim test output of Census_OfTheBindings_IsNotEmpty and TheHeaders_AreReadable_AndHoldTheDeclarationsTheyHold)
+   4 static extern  gsvg.dll  (XpeGsvgInterop.cs)
+   4 static extern  xpe_ai.dll  (GuiAiRunner.cs)
+  36 static extern  xpe_common.dll  (XpeDisplayInterop.cs, PInvokeWrapper.cs, XpeCommonNative.cs)
+   6 static extern  xpe_dicom.dll  (XpeDicomInterop.cs)
+   6 static extern  xpe_display.dll  (XpeDisplayInterop.cs)
+   6 static extern  xpe_enhance_basic.dll  (XpeEnhanceBasicInterop.cs, XpeExposureIndexInterop.cs)
+   9 static extern  xpe_preprocess.dll  (XpePreprocessInterop.cs)
+   3 static extern  foreign (Win32)
+   1 exports bound through delegates  gsvg.dll
+   5 exports bound through delegates  xpe_common.dll
+   5 exports bound through delegates  xpe_dicom.dll
+   6 exports bound through delegates  xpe_display.dll
+   7 exports bound through delegates  xpe_enhance_basic.dll
+  14 exports bound through delegates  xpe_preprocess.dll
+   4/11  header functions have a C# binding  modules/ai/include/xpe/ai/ai_api.h  unbound: xpe_ai_get_model_card, xpe_ai_set_fallback_mode, xpe_ai_version, xpe_bodypart_recognize, xpe_dl_denoise, xpe_stitch_estimate_size, xpe_stitch_images
+   8/8   header functions have a C# binding  modules/common/include/xpe/common/xpe_common_api.h
+   5/5   header functions have a C# binding  modules/common/include/xpe/common/xpe_error.h
+   3/3   header functions have a C# binding  modules/common/include/xpe/common/xpe_memory.h
+   7/10  header functions have a C# binding  modules/dicom/include/xpe/dicom/dicom_api.h  unbound: xpe_dicom_cfind_mwl, xpe_dicom_cstore, xpe_dicom_write_j2k
+   6/6   header functions have a C# binding  modules/display/include/xpe/display/display_api.h
+   0/9   header functions have a C# binding  modules/enhance_advanced/include/xpe/enhance_advanced/xpe_enhance_advanced_api.h  unbound: xpe_adv_calc_exposure_index, xpe_detect_collimation, xpe_enhance_advanced_get_max_threads, xpe_enhance_advanced_init, xpe_enhance_advanced_set_max_threads, xpe_enhance_advanced_shutdown, xpe_enhance_advanced_version, xpe_fractional_process, xpe_multiscale_process
+   7/10  header functions have a C# binding  modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h  unbound: xpe_enhance_basic_get_max_threads, xpe_enhance_basic_set_max_threads, xpe_log_inverse
+   4/8   header functions have a C# binding  modules/gsvg/include/xpe/gsvg/gsvg_api.h  unbound: xpe_gsvg_get_max_threads, xpe_gsvg_process, xpe_gsvg_process_masked, xpe_gsvg_set_max_threads
+  14/48  header functions have a C# binding  modules/preprocess/include/xpe/preprocess_api.h  unbound: xpe_binning_correct, xpe_bpm_generate, xpe_calib_cache_clear, xpe_calib_cache_set_max_size, xpe_calib_generate_gain_polynomial, xpe_calib_generate_nonlin_lut, xpe_calib_get_max_points, xpe_calib_get_mode, xpe_calib_get_poly_degree, xpe_calib_get_quality_meta, xpe_calib_load_defect_cached, xpe_calib_load_gain_cached, xpe_calib_load_nonlin_lut, xpe_calib_load_offset_cached, xpe_calib_save, xpe_calib_set_mode, xpe_calib_state_load, xpe_calib_state_release, xpe_calib_unload_nonlin_lut, xpe_defect_detect_runtime, xpe_ghost_correct, xpe_ghost_create, xpe_ghost_destroy, xpe_ghost_reset, xpe_preprocess_is_initialized, xpe_preprocess_pipeline, xpe_preprocess_pipeline_batch, xpe_preprocess_pipeline_ex, xpe_temp_compensate, xpe_validate_readout_artifact, xpe_verify_defect, xpe_verify_gain, xpe_verify_offset, xpe_verify_pipeline
+  66 delegate types, 89 binding sites, 20 struct declarations, 31 enum declarations, 234 files scanned
+  11 functions  modules/ai/include/xpe/ai/ai_api.h
+   8 functions  modules/common/include/xpe/common/xpe_common_api.h
+   5 functions  modules/common/include/xpe/common/xpe_error.h
+   3 functions  modules/common/include/xpe/common/xpe_memory.h
+  10 functions  modules/dicom/include/xpe/dicom/dicom_api.h
+   6 functions  modules/display/include/xpe/display/display_api.h
+   9 functions  modules/enhance_advanced/include/xpe/enhance_advanced/xpe_enhance_advanced_api.h
+  10 functions  modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h
+   8 functions  modules/gsvg/include/xpe/gsvg/gsvg_api.h
+  48 functions  modules/preprocess/include/xpe/preprocess_api.h

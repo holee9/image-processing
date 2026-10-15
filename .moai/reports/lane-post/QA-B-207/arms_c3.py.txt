@@ -1,0 +1,103 @@
+"""QA-B-207 C3 falsification arms: the Part 10 door of xpe_dicom_open. Break ONE defence, rebuild ci-dicom (test_dicom_reader),
+run it, expect the named tests red, restore byte-identical.   Run: python build/g207_arms_c3.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g206-build.bat test_dicom_reader'
+RUN = r'D:\workspace-github\xpe-post\build\g206-run.bat'
+RD = 'modules/dicom/src/DicomReader.cpp'
+NL = '\n'
+T_BARE = 'DicomReaderTest.OpenDatasetWithoutMetaHeader_IsDicomInvalid'
+T_NOT10 = 'DicomReaderTest.AFileThatIsNotPartTenIsDicomInvalidWhateverItContains'
+T_PRE = 'DicomReaderTest.ThePreambleBytesThemselvesAreNotJudgedAndAMissingFileIsStillAnIoError'
+T_ROWS = 'DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure'
+T_ML = 'DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels'
+T_KD = 'DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes'
+
+IF_MAGIC = '            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head + 128, "DICM", 4) != 0) {' + NL
+OPEN_IF = '        if (probe) {' + NL
+RET = '                return XPE_ERR_DICOM_INVALID;' + NL
+BLOCK_START = '        std::ifstream probe(m_filePath, std::ios::binary);' + NL
+
+ARMS = [
+    ('door_removed_the_probe_never_looks_at_the_magic', [(IF_MAGIC, '            if (false && probe.gcount() < 0) {' + NL)],
+     [T_BARE, T_NOT10, T_ROWS, T_ML, T_KD]),
+    ('magic_compared_at_offset_0', [(IF_MAGIC, '            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head, "DICM", 4) != 0) {' + NL)],
+     [T_BARE, T_NOT10, T_ROWS]),
+    ('magic_compared_at_offset_129', [(IF_MAGIC, '            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head + 129, "DICM", 4) != 0) {' + NL)],
+     [T_NOT10, T_PRE]),
+    ('magic_compared_on_three_bytes_only', [(IF_MAGIC, '            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head + 128, "DICM", 3) != 0) {' + NL)],
+     [T_NOT10]),
+    ('magic_compared_case_insensitively', [(IF_MAGIC, '            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || _strnicmp(head + 128, "DICM", 4) != 0) {' + NL)],
+     [T_NOT10]),
+    ('short_file_check_removed_the_buffer_is_zero_filled_so_nothing_else_changes',
+     [(IF_MAGIC, '            if (std::memcmp(head + 128, "DICM", 4) != 0) {' + NL)], None),
+    ('preamble_must_be_all_zero', [(IF_MAGIC, '            if (probe.gcount() < static_cast<std::streamsize>(sizeof(head)) || std::memcmp(head + 128, "DICM", 4) != 0 || head[0] != 0) {' + NL)],
+     [T_PRE]),
+    ('a_file_that_cannot_be_opened_is_judged_invalid_too',
+     [(OPEN_IF + '            char head[132] = {};', '        if (!probe) return XPE_ERR_DICOM_INVALID;' + NL + '        if (probe) {' + NL + '            char head[132] = {};')], [T_PRE]),
+    ('invalid_input_reported_as_io_failed', [(RET, '                return XPE_ERR_IO_FAILED;' + NL)], [T_BARE, T_NOT10]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    with open(RD, 'rb') as f:
+        saved = f.read()
+    before = sha(RD)
+    log('=== ARM ' + name)
+    try:
+        txt = saved.decode('utf-8')
+        for old, new in edits:
+            n = txt.count(old)
+            assert n == 1, (name, old[:70], n)
+            txt = txt.replace(old, new)
+        with open(RD, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g206-build.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s test_dicom_reader.exe * D:\\workspace-github\\xpe-post\\build\\g206-arm.txt' % RUN)
+            red = failed('build/g206-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            if must is None:
+                log('RESULT: observation only (no expectation set)')
+            else:
+                hit = [m for m in must if m in red]
+                miss = [m for m in must if m not in hit]
+                log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        with open(RD, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(RD) == before))
+log('=== DONE')
+out.close()

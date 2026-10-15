@@ -1,0 +1,45 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *Performance*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from ModalityLut
+[ RUN      ] ModalityLut.Performance_3072x3072_Linear
+[       OK ] ModalityLut.Performance_3072x3072_Linear (11 ms)
+[ RUN      ] ModalityLut.BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072
+PERFMEASURE REQ-DISP-008/xpe_apply_modality_lut 3072x3072 min=3770 med=4061 max=4246 us (runs=7)
+[       OK ] ModalityLut.BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072 (79 ms)
+[----------] 2 tests from ModalityLut (91 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (99 ms total)
+[  PASSED  ] 2 tests.
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *Performance*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from VoiLut
+[ RUN      ] VoiLut.Performance_3072x3072
+[       OK ] VoiLut.Performance_3072x3072 (18 ms)
+[ RUN      ] VoiLut.BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072
+PERFMEASURE REQ-DISP-016/xpe_apply_voi_lut 3072x3072 min=10186 med=10537 max=12822 us (runs=7)
+[       OK ] VoiLut.BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072 (136 ms)
+[----------] 2 tests from VoiLut (154 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (154 ms total)
+[  PASSED  ] 2 tests.
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *Performance*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from PresentationLut
+[ RUN      ] PresentationLut.Performance_3072x3072
+[       OK ] PresentationLut.Performance_3072x3072 (29 ms)
+[ RUN      ] PresentationLut.BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072
+PERFMEASURE REQ-DISP-028/xpe_apply_presentation_lut 3072x3072 min=22674 med=23258 max=24828 us (runs=7)
+[       OK ] PresentationLut.BenchmarkFreeze_Performance_REQ_DISP_028_Lut3072 (292 ms)
+[----------] 2 tests from PresentationLut (321 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (322 ms total)
+[  PASSED  ] 2 tests.

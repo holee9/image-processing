@@ -1,0 +1,80 @@
+Note: Google Test filter = *odypart*:*odyPart*
+[==========] Running 16 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from AiAbi
+[ RUN      ] AiAbi.BodypartRecognizeWithoutInitReturnsNotInitialized
+[       OK ] AiAbi.BodypartRecognizeWithoutInitReturnsNotInitialized (0 ms)
+[----------] 1 test from AiAbi (0 ms total)
+
+[----------] 10 tests from AiFallbackTest
+[ RUN      ] AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed
+[2026-10-02 16:28:46.612] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeStubReturnsProcessingFailed (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeSetsConfidenceToZero
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeSetsConfidenceToZero (0 ms)
+[ RUN      ] AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.KnownDivergence_BodypartRecognizeStubSetsUnknownLabel (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeNullImgReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeNullLabelReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeZeroBufLenReturnsInvalidInput (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeNullConfOutIsAcceptable (0 ms)
+[ RUN      ] AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.BodypartRecognizeInvalidBufferReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ShortReturnsInvalid (0 ms)
+[ RUN      ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiFallbackTest.DataSizeGuard_BodypartRecognize_ZeroAccepted (0 ms)
+[----------] 10 tests from AiFallbackTest (0 ms total)
+
+[----------] 2 tests from AiErrorPrecedenceTest
+[ RUN      ] AiErrorPrecedenceTest.BodypartRecognize_NullArgumentOutranksNotInitialized
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[       OK ] AiErrorPrecedenceTest.BodypartRecognize_NullArgumentOutranksNotInitialized (0 ms)
+[ RUN      ] AiErrorPrecedenceTest.BodypartRecognize_ValidArgumentsReachNotInitialized
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[       OK ] AiErrorPrecedenceTest.BodypartRecognize_ValidArgumentsReachNotInitialized (0 ms)
+[----------] 2 tests from AiErrorPrecedenceTest (0 ms total)
+
+[----------] 3 tests from AiWorkerIsolationTest
+[ RUN      ] AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.613] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiWorkerIsolationTest.StubModeBodypartRecognizeFallsBackGracefully (0 ms)
+[ RUN      ] AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe
+[2026-10-02 16:28:46.613] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.614] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiWorkerIsolationTest.ConcurrentBodypartRecognizeIsThreadSafe (0 ms)
+[ RUN      ] AiWorkerIsolationTest.MaxBodypartLengthIsPositive
+[2026-10-02 16:28:46.614] [info] xpe_ai initialized: model_dir=dummy_model_dir, ep=0, timeout=5000 ms
+[2026-10-02 16:28:46.614] [info] xpe_ai shutdown: worker_pid=0
+[       OK ] AiWorkerIsolationTest.MaxBodypartLengthIsPositive (0 ms)
+[----------] 3 tests from AiWorkerIsolationTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 16 tests from 4 test suites ran. (1 ms total)
+[  PASSED  ] 16 tests.

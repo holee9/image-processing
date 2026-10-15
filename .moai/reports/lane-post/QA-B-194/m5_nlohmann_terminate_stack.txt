@@ -1,0 +1,53 @@
+xpe_ai_oom_tests, ci-ai (Debug), first run: xpe_ai_init(dir, config with a typo key) -- the process ends in std::terminate at the 25th allocation.
+Captured by a temporary std::set_terminate handler (DbgHelp stack walk; the handler is NOT in the committed test).
+
+[terminate called]
+  #0 <lambda_99fea5d2fedd43853e38d9c156b542c5>::operator() ... D:\workspace-github\xpe-post\modules\ai\tests\test_ai_oom_injection.cpp:104
+  #1 <lambda_99fea5d2fedd43853e38d9c156b542c5>::<lambda_invoker_c ... D:\workspace-github\xpe-post\modules\ai\tests\test_ai_oom_injection.cpp:123
+  #2 terminate ... ?:0
+  #3 _std_terminate ... ?:0
+  #4 _CxxFrameHandler4 ... ?:0
+  #5 ?
+  #6 ?
+  #7 ?
+  #8 ?
+  #9 _CxxFrameHandler4 ... ?:0
+  #10 __GSHandlerCheck_EH4 ... D:\a\_work\1\s\src\vctools\crt\vcstartup\src\gs\amd64\gshandlereh4.cpp:86
+  #11 _chkstk ... ?:0
+  #12 RtlUnwindEx ... ?:0
+  #13 ?
+  #14 ?
+  #15 ?
+  #16 ?
+  #17 ?
+  #18 _CxxFrameHandler4 ... ?:0
+  #19 _chkstk ... ?:0
+  #20 RtlLocateExtendedFeature ... ?:0
+  #21 RtlRaiseException ... ?:0
+  #22 RaiseException ... ?:0
+  #23 CxxThrowException ... ?:0
+  #24 operator new ... D:\workspace-github\xpe-post\modules\ai\tests\test_ai_oom_injection.cpp:73
+  #25 std::vector<nlohmann::json_abi_v3_11_3::basic_json<std::map, ... C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:1730
+  #26 nlohmann::json_abi_v3_11_3::basic_json<std::map,std::vector, ... D:\workspace-github\xpe-post\build\ci-ai\_deps\nlohmann_json-src\include\nlohmann\json.hpp:580
+  #27 parseConfig ... D:\workspace-github\xpe-post\modules\ai\src\ai.cpp:516
+  #28 xpe_ai_init_impl ... D:\workspace-github\xpe-post\modules\ai\src\ai.cpp:981
+  #29 xpe_ai_init ... D:\workspace-github\xpe-post\modules\ai\src\ai.cpp:934
+  #30 `anonymous namespace'::sweep ... D:\workspace-github\xpe-post\modules\ai\tests\test_ai_oom_injection.cpp:171
+  #31 AiOom_InitFailsCleanlyAtEveryAllocation_Test::TestBody ... D:\workspace-github\xpe-post\modules\ai\tests\test_ai_oom_injection.cpp:265
+
+The frame at nlohmann/json.hpp:580 (json_value::destroy, called from ~basic_json() noexcept):
+
+                // move the top-level items to stack
+                if (t == value_t::array)
+                {
+                    stack.reserve(array->size());
+                    std::move(array->begin(), array->end(), std::back_inserter(stack));
+                }
+                else
+                {
+                    stack.reserve(object->size());
+                    for (auto&& it : *object)
+                    {
+                        stack.push_back(std::move(it.second));
+                    }
+                }

@@ -1,0 +1,83 @@
+# GUI-C-209 M3: the AC-12 time-gate step body (ci_ac12_step.ps1.txt) run locally against a real trx; each limit/threshold lowered in turn must turn it red
+
+## control: defaults (SPEC limits x1.5)
+full run: 11.6 s over 685 result(s) (limit 180 s); slowest test 2.68 s: ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource
+Category=Smoke: 19 test(s), 2.1 s wall-clock (limit 45 s, at least 10 test(s))
+Category=Safety: 10 test(s), 1.3 s wall-clock (limit 135 s, at least 1 test(s))
+exit=0
+
+## arm: Smoke limit 1 s
+full run: 11.6 s over 685 result(s) (limit 180 s); slowest test 2.68 s: ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource
+Category=Smoke: 19 test(s), 1.3 s wall-clock (limit 1 s, at least 10 test(s))
+Category=Safety: 10 test(s), 3.2 s wall-clock (limit 135 s, at least 1 test(s))
+C:\Users\drake\AppData\Local\Temp\ac12_step.ps1 : AC-12 time gates failed:
+Category=Smoke 1.3 s > 1 s
+위치 C:\Users\drake\AppData\Local\Temp\ac12_step.ps1:42 문자:25
++ ... nt -gt 0) { Write-Error ("AC-12 time gates failed:`n" + ($bad -join " ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,ac12_step.ps1
+exit=1
+
+## arm: Safety limit 1 s
+full run: 11.6 s over 685 result(s) (limit 180 s); slowest test 2.68 s: ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource
+Category=Smoke: 19 test(s), 1.8 s wall-clock (limit 45 s, at least 10 test(s))
+Category=Safety: 10 test(s), 2.6 s wall-clock (limit 1 s, at least 1 test(s))
+C:\Users\drake\AppData\Local\Temp\ac12_step.ps1 : AC-12 time gates failed:
+Category=Safety 2.6 s > 1 s
+위치 C:\Users\drake\AppData\Local\Temp\ac12_step.ps1:42 문자:25
++ ... nt -gt 0) { Write-Error ("AC-12 time gates failed:`n" + ($bad -join " ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,ac12_step.ps1
+exit=1
+
+## arm: full-run limit 5 s
+full run: 11.6 s over 685 result(s) (limit 5 s); slowest test 2.68 s: ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource
+Category=Smoke: 19 test(s), 3.5 s wall-clock (limit 45 s, at least 10 test(s))
+Category=Safety: 10 test(s), 2.0 s wall-clock (limit 135 s, at least 1 test(s))
+C:\Users\drake\AppData\Local\Temp\ac12_step.ps1 : AC-12 time gates failed:
+full run 11.6 s > 5 s
+위치 C:\Users\drake\AppData\Local\Temp\ac12_step.ps1:42 문자:25
++ ... nt -gt 0) { Write-Error ("AC-12 time gates failed:`n" + ($bad -join " ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,ac12_step.ps1
+exit=1
+
+## arm: per-test limit 0.5 s
+full run: 11.6 s over 685 result(s) (limit 180 s); slowest test 2.68 s: ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource
+Category=Smoke: 19 test(s), 1.3 s wall-clock (limit 45 s, at least 10 test(s))
+Category=Safety: 10 test(s), 1.3 s wall-clock (limit 135 s, at least 1 test(s))
+C:\Users\drake\AppData\Local\Temp\ac12_step.ps1 : AC-12 time gates failed:
+slowest test 2.68 s > 0.5 s: ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTrou
+bleshootingPage_ExistsInTheSource
+위치 C:\Users\drake\AppData\Local\Temp\ac12_step.ps1:42 문자:25
++ ... nt -gt 0) { Write-Error ("AC-12 time gates failed:`n" + ($bad -join " ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,ac12_step.ps1
+exit=1
+
+## arm: Smoke must select at least 1000 tests
+full run: 11.6 s over 685 result(s) (limit 180 s); slowest test 2.68 s: ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource
+Category=Smoke: 19 test(s), 3.5 s wall-clock (limit 45 s, at least 1000 test(s))
+Category=Safety: 10 test(s), 1.3 s wall-clock (limit 135 s, at least 1 test(s))
+C:\Users\drake\AppData\Local\Temp\ac12_step.ps1 : AC-12 time gates failed:
+Category=Smoke selected 19 test(s), expected at least 1000
+위치 C:\Users\drake\AppData\Local\Temp\ac12_step.ps1:42 문자:25
++ ... nt -gt 0) { Write-Error ("AC-12 time gates failed:`n" + ($bad -join " ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException,ac12_step.ps1
+exit=1
+
+## arm: trx path that does not exist
+Get-Content : 'C:/nonexistent.trx' 경로는 존재하지 않으므로 찾을 수 없습니다.
+위치 C:\Users\drake\AppData\Local\Temp\ac12_step.ps1:14 문자:13
++ [xml]$doc = Get-Content -LiteralPath $trxPath -Raw
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:/nonexistent.trx:String) [Get-Content], ItemNotFoundException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+exit=1
+

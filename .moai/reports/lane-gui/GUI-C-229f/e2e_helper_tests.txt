@@ -1,0 +1,1 @@
+통과!  - 실패:     0, 통과:    47, 건너뜀:     2, 전체:    49, 기간: 12 s - ImageProcTest.E2ETests.dll (net8.0)

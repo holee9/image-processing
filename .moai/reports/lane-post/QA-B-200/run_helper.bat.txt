@@ -1,0 +1,10 @@
+@echo off
+rem usage: g200-run.bat <exe> <abs out> [gtest_filter]
+call "D:\workspace-github\xpe-post\.moai\reports\lane-post\QA-B-120\_env.bat"
+cd /d D:\workspace-github\xpe-post
+if "%3"=="" (
+  %1 --gtest_also_run_disabled_tests > %2 2>&1
+) else (
+  %1 --gtest_also_run_disabled_tests --gtest_filter=%3 > %2 2>&1
+)
+echo ===RUN=%errorlevel%===

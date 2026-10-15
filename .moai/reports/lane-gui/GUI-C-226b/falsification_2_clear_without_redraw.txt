@@ -1,0 +1,9 @@
+== arm 2: clearing the notice does not draw the text again
+[xUnit.net 00:00:13.78]       Assert.DoesNotContain() Failure: Sub-string found
+[xUnit.net 00:00:13.78]         ready again:  Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+[xUnit.net 00:00:13.78]         after refresh:Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+[xUnit.net 00:00:13.78]         after run:    Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns [13 s]
+   Assert.DoesNotContain() Failure: Sub-string found
+ ready again:  Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+ after refresh:Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.

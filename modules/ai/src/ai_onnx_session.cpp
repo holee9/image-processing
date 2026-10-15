@@ -37,6 +37,7 @@
  */
 
 #include "xpe/ai/ai_onnx_session.h"
+#include "ai_model_signer.h"
 #include "xpe/common/xpe_error.h"
 
 #if !ONNX_RUNTIME_STUB_BUILD
@@ -63,10 +64,7 @@
     #define LOG_ERROR(msg) ((void)0)
 #endif
 
-#ifdef XPE_AI_USE_NLOHMANN_JSON
-    #include <nlohmann/json.hpp>
-    using json = nlohmann::json;
-#endif
+#include "ai_model_sidecar.h"   // what a usable sidecar is (QA-B-197)
 
 namespace fs = std::filesystem;
 
@@ -80,6 +78,8 @@ struct OnnxSession::Impl {
     OnnxSessionConfig config;
     ExecutionProvider actual_ep;
     ModelMetadata metadata;
+    std::string sidecar_text;   // QA-B-195: the verified sidecar, kept so callers never read the file again
+    bool has_sidecar{false};
     std::vector<TensorMetadata> inputs;
     std::vector<TensorMetadata> outputs;
     bool is_valid;
@@ -103,6 +103,36 @@ struct OnnxSession::Impl {
 
 namespace {
 
+#ifdef XPE_AI_TEST_HOOKS
+void (*g_afterVerifyHook)(const std::string& modelPath) = nullptr;
+void (*g_beforeSessionHook)() = nullptr;
+void (*g_beforeFileReadHook)() = nullptr;
+void (*g_beforeLabelParseHook)() = nullptr;
+#endif
+
+enum class ReadResult { kOk, kFailed, kTooLarge };
+
+/**
+ * @brief Read a whole file ONCE into memory, refusing one above the verifier's cap (QA-B-195 D8: an implementation
+ *        safety cap, not a requirement). The bytes returned are the bytes that get verified AND the bytes that get used.
+ */
+ReadResult ReadFileBounded(const fs::path& p, std::vector<uint8_t>* out) {
+    std::ifstream f(p, std::ios::binary | std::ios::ate);
+    if (!f) return ReadResult::kFailed;
+    const std::streamoff size = f.tellg();
+    if (size < 0) return ReadResult::kFailed;
+    if (static_cast<unsigned long long>(size) > xpe::ai::kMaxSignedFileBytes) return ReadResult::kTooLarge;
+#ifdef XPE_AI_TEST_HOOKS
+    // TEST-ONLY (QA-B-195b): a hook that throws std::bad_alloc is the shortage of memory at the allocation that holds a
+    // whole model (the largest one this module makes), at exactly the place where a real one happens.
+    if (g_beforeFileReadHook) g_beforeFileReadHook();
+#endif
+    out->assign(static_cast<size_t>(size), 0);
+    f.seekg(0);
+    if (size > 0 && !f.read(reinterpret_cast<char*>(out->data()), size)) return ReadResult::kFailed;
+    return ReadResult::kOk;
+}
+
 /**
  * @brief Check if a file exists
  */
@@ -120,49 +150,6 @@ bool FileExists(const std::string& path) {
     } catch (const std::system_error&) {
         return false;
     }
-}
-
-/**
- * @brief Load JSON metadata from file
- */
-std::optional<ModelMetadata> LoadMetadataFromFile(const fs::path& metadata_path) {
-#ifdef XPE_AI_USE_NLOHMANN_JSON
-    if (!fs::exists(metadata_path)) {
-        return std::nullopt;
-    }
-
-    try {
-        std::ifstream meta_file(metadata_path);
-        json j;
-        meta_file >> j;
-
-        ModelMetadata meta;
-        if (j.contains("model_id")) {
-            meta.model_id = j["model_id"].get<std::string>();
-        }
-        if (j.contains("version")) {
-            meta.version = j["version"].get<std::string>();
-        }
-        if (j.contains("pccp_scope")) {
-            meta.pccp_scope = j["pccp_scope"].get<std::string>();
-        }
-        if (j.contains("training_data_hash")) {
-            meta.training_data_hash = j["training_data_hash"].get<std::string>();
-        }
-        if (j.contains("validation_metrics")) {
-            meta.validation_metrics = j["validation_metrics"].dump();
-        }
-
-        return meta;
-    } catch (const std::exception& e) {
-        LOG_ERROR(std::string("Failed to load metadata: ") + e.what());
-        return std::nullopt;
-    }
-#else
-    // Fallback: simple key-value parsing without JSON library
-    (void)metadata_path;
-    return std::nullopt;
-#endif
 }
 
 /**
@@ -219,19 +206,139 @@ OnnxSession& OnnxSession::operator=(OnnxSession&& other) noexcept {
     return *this;
 }
 
-OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
+#ifdef XPE_AI_TEST_HOOKS
+/** TEST-ONLY: the callback Create() makes right after it verified the files and before it loads them. nullptr clears it. */
+void TestSetAfterVerifyHook(void (*hook)(const std::string& modelPath)) { g_afterVerifyHook = hook; }
+/**
+ * TEST-ONLY (QA-B-194b): the callback Create() makes INSIDE the try block that builds the ONNX Runtime session, right
+ * before it builds it. A hook that throws std::bad_alloc is the out-of-memory of session creation, at exactly the
+ * place where a real one happens, without failing allocations one by one (which the cold body-part path cannot take:
+ * see test_ai_oom_injection.cpp on nlohmann::json). Full builds only; nullptr clears it.
+ */
+void TestSetBeforeSessionHook(void (*hook)()) { g_beforeSessionHook = hook; }
+/**
+ * TEST-ONLY (QA-B-195b): the callback ReadFileBounded makes right before it allocates the buffer for a file (the model,
+ * then its sidecar, then its signature). A hook that throws std::bad_alloc is the shortage of memory there. nullptr clears it.
+ */
+void TestSetBeforeFileReadHook(void (*hook)()) { g_beforeFileReadHook = hook; }
+/**
+ * TEST-ONLY (QA-B-195c): the callback the body-part label reader (ai_bodypart_model.h) makes before it parses the sidecar
+ * and again right before it stores each label. A hook that throws std::bad_alloc is the shortage of memory at the
+ * parse or at one push_back. nullptr clears it.
+ */
+void TestSetBeforeLabelParseHook(void (*hook)()) { g_beforeLabelParseHook = hook; }
+void CallBeforeLabelParseHook() {
+    if (g_beforeLabelParseHook) g_beforeLabelParseHook();
+}
+#endif
+
+OnnxErrorCode ReadVerifiedModelFiles(const std::string& model_path, const std::string& role,
+                                     VerifiedModelFiles* out, std::string* message) {
+    if (!FileExists(model_path)) {
+        *message = "Model file not found: " + model_path;
+        return OnnxErrorCode::kInvalidModelPath;
+    }
+    const fs::path model_fs_path(model_path);
+    fs::path sidecar_path = model_fs_path;
+    sidecar_path.replace_extension(".json");
+    fs::path sig_path = model_fs_path;
+    sig_path.replace_extension(".sig");
+
+    switch (ReadFileBounded(model_fs_path, &out->model)) {
+        case ReadResult::kOk: break;
+        case ReadResult::kTooLarge:
+            *message = std::string("model signature check failed (") + SignatureStatusText(SignatureStatus::kTooLarge) +
+                       "): " + model_path;
+            return OnnxErrorCode::kModelNotTrusted;
+        case ReadResult::kFailed:
+            *message = "Model file could not be read: " + model_path;
+            return OnnxErrorCode::kModelLoadFailed;
+    }
+    std::error_code fs_ec;
+    std::vector<uint8_t> sidecar_bytes;
+    out->has_sidecar = fs::exists(sidecar_path, fs_ec) && !fs_ec;
+    bool sidecar_ok = true;
+    if (out->has_sidecar) sidecar_ok = ReadFileBounded(sidecar_path, &sidecar_bytes) == ReadResult::kOk;
+    std::vector<uint8_t> sig_bytes;
+    const bool has_sig = fs::exists(sig_path, fs_ec) && !fs_ec;
+    bool sig_ok = true;
+    if (has_sig) sig_ok = ReadFileBounded(sig_path, &sig_bytes) == ReadResult::kOk;
+
+    static const uint8_t kZero = 0;   // a valid pointer for an empty (but present) file
+    const std::vector<TrustedKey> keys = TrustedModelKeys();
+    const Bytes model{out->model.empty() ? &kZero : out->model.data(), out->model.size()};
+    const Bytes side{sidecar_bytes.empty() ? &kZero : sidecar_bytes.data(), sidecar_bytes.size()};
+    SignatureStatus st;
+    if (!sidecar_ok || !sig_ok) {
+        st = SignatureStatus::kVerifierError;   // a sidecar or signature that exists but cannot be read: refuse
+    } else {
+        st = VerifyModelSignature(keys.data(), keys.size(), role, model, out->has_sidecar ? &side : nullptr,
+                                  has_sig ? (sig_bytes.empty() ? &kZero : sig_bytes.data()) : nullptr, sig_bytes.size());
+    }
+    if (st != SignatureStatus::kOk) {
+        *message = std::string("model signature check failed (") + SignatureStatusText(st) + "): " + model_path;
+        return OnnxErrorCode::kModelNotTrusted;
+    }
+    out->sidecar_text.assign(reinterpret_cast<const char*>(sidecar_bytes.data()), sidecar_bytes.size());
+    return OnnxErrorCode::kOk;
+}
+
+OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(const OnnxSessionConfig& config) {
+    // QA-B-195b: a shortage of memory ANYWHERE in loading -- the buffer that holds the model, the sidecar, the signature,
+    // the trusted keys, the session -- is kOutOfMemory, never an exception: the worker has no outer catch of its own
+    // beyond the request boundary, and a caller that gets an exception where it expects a code is the bug Codex #88 found.
+    // The message is shorter than the small-string buffer, so setting it does not allocate.
+    try {
+        return CreateUnguarded(config);
+    } catch (const std::bad_alloc&) {
+        OnnxResult<std::unique_ptr<OnnxSession>> r;
+        r.value = nullptr;
+        r.code = OnnxErrorCode::kOutOfMemory;
+        r.message = "out of memory";
+        return r;
+    }
+}
+
+OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::CreateUnguarded(
         const OnnxSessionConfig& config) {
 
     OnnxResult<std::unique_ptr<OnnxSession>> result;
     result.value = nullptr;
 
-    // Validate model path
-    if (!FileExists(config.model_path)) {
-        result.code = OnnxErrorCode::kInvalidModelPath;
-        result.message = "Model file not found: " + config.model_path;
-        LOG_ERROR(result.message);
-        return result;
+    // QA-B-195 M3 (REQ-AI-007 / REQ-AI-091): the model, its sidecar and its signature are read ONCE, verified together,
+    // and the session is built from THOSE bytes. Nothing is loaded from a model that does not verify, in a stub build
+    // too (a stub loads nothing, but the refusal must not depend on the build). A build whose trust list is empty --
+    // the production build until the production key exists (#243) -- refuses every model.
+    VerifiedModelFiles files;
+    {
+        std::string message;
+        const OnnxErrorCode code = ReadVerifiedModelFiles(config.model_path, config.role, &files, &message);
+        if (code != OnnxErrorCode::kOk) {
+            result.code = code;
+            result.message = message;
+            LOG_ERROR(result.message);
+            return result;
+        }
     }
+
+    // QA-B-197 M1 (REQ-AI-008): the signature verified, so the sidecar is the author's. It must also SAY what REQ-AI-008
+    // requires. Judged on the verified bytes, here, so every path that loads a model refuses one without its metadata.
+    ModelSidecar sidecar;
+    {
+        std::string why;
+        if (!ParseModelSidecar(files.has_sidecar ? &files.sidecar_text : nullptr, &sidecar, &why)) {
+            result.code = OnnxErrorCode::kSidecarInvalid;
+            result.message = "model sidecar check failed (" + why + "): " + config.model_path;
+            LOG_ERROR(result.message);
+            return result;
+        }
+    }
+
+#ifdef XPE_AI_TEST_HOOKS
+    // TEST-ONLY (QA-B-195 M3): lets a test change the files on disk between the verification above and the load
+    // below, to show that what was verified is what is used. Not compiled into a delivery build.
+    if (g_afterVerifyHook) g_afterVerifyHook(config.model_path);
+#endif
 
     // Create session instance
     auto session = std::unique_ptr<OnnxSession>(new OnnxSession());
@@ -253,19 +360,15 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
 
     session->pimpl_->actual_ep = actual_ep;
 
-    // Load metadata from JSON file if present
-    fs::path model_path(config.model_path);
-    fs::path metadata_path = model_path;
-    metadata_path.replace_extension(".json");
-
-    auto metadata_opt = LoadMetadataFromFile(metadata_path);
-    if (metadata_opt.has_value()) {
-        session->pimpl_->metadata = std::move(metadata_opt.value());
-        LOG_INFO("Loaded model metadata: " + session->pimpl_->metadata.model_id);
-    } else {
-        // Use default empty metadata
-        session->pimpl_->metadata = ModelMetadata{};
-    }
+    // Metadata comes from the sidecar bytes that were verified, never from a second read of the file.
+    session->pimpl_->sidecar_text = std::move(files.sidecar_text);
+    session->pimpl_->has_sidecar = files.has_sidecar;
+    session->pimpl_->metadata.model_id = sidecar.model_id;
+    session->pimpl_->metadata.version = sidecar.version;
+    session->pimpl_->metadata.pccp_scope = sidecar.pccp_scope;
+    session->pimpl_->metadata.training_data_hash = sidecar.training_data_hash;
+    session->pimpl_->metadata.validation_metrics = sidecar.validation_metrics_json;
+    LOG_INFO("Loaded model metadata: " + session->pimpl_->metadata.model_id);
 
 #if ONNX_RUNTIME_STUB_BUILD
     // Stub mode: Create session without actual ONNX Runtime
@@ -282,6 +385,9 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
     // load must not come back is_valid, because every caller reads that flag
     // as "the model is ready".
     try {
+#ifdef XPE_AI_TEST_HOOKS
+        if (g_beforeSessionHook) g_beforeSessionHook();
+#endif
         session->pimpl_->env.reset(new Ort::Env(
             config.log_level == LogLevel::kVerbose ? ORT_LOGGING_LEVEL_VERBOSE :
             config.log_level == LogLevel::kInfo    ? ORT_LOGGING_LEVEL_INFO :
@@ -301,12 +407,11 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         // Only the CPU EP is registered. GetAvailableExecutionProviders()
         // reports what this build could offer; registering CUDA/DirectML needs
         // their provider DLLs and is out of this card's scope.
-#ifdef _WIN32
-        const std::wstring wide(config.model_path.begin(), config.model_path.end());
-        session->pimpl_->session.reset(new Ort::Session(*session->pimpl_->env, wide.c_str(), opts));
-#else
-        session->pimpl_->session.reset(new Ort::Session(*session->pimpl_->env, config.model_path.c_str(), opts));
-#endif
+        // From the verified bytes in memory, not from the path: the file cannot change between the check and the load
+        // (QA-B-195). The buffer is released as soon as the runtime has parsed it.
+        session->pimpl_->session.reset(
+            new Ort::Session(*session->pimpl_->env, files.model.data(), files.model.size(), opts));
+        std::vector<uint8_t>().swap(files.model);
 
         Ort::AllocatorWithDefaultOptions alloc;
         Ort::Session& s = *session->pimpl_->session;
@@ -340,6 +445,15 @@ OnnxResult<std::unique_ptr<OnnxSession>> OnnxSession::Create(
         result.message = std::string("ONNX Runtime rejected the model: ") + e.what();
         LOG_ERROR(result.message);
         return result;               // result.value stays null
+    } catch (const std::bad_alloc&) {
+        // QA-B-194 M5: a shortage of memory is not "the session could not be created" in the sense of a bad model or
+        // a refused provider, and the C ABI must say so (XPE_ERR_OUT_OF_MEMORY). The sweep found this one: the
+        // generic handler below turned a bad_alloc into kSessionCreationFailed, and xpe_bone_suppress into
+        // XPE_ERR_PROCESSING_FAILED. The message is a literal: building a longer one here could itself throw.
+        session->pimpl_->is_valid = false;
+        result.code = OnnxErrorCode::kOutOfMemory;
+        result.message = "out of memory while creating the session";
+        return result;
     } catch (const std::exception& e) {
         session->pimpl_->is_valid = false;
         result.code = OnnxErrorCode::kSessionCreationFailed;
@@ -443,6 +557,10 @@ bool OnnxSession::IsValid() const {
 
 ExecutionProvider OnnxSession::GetActualExecutionProvider() const {
     return pimpl_ ? pimpl_->actual_ep : ExecutionProvider::kCpu;
+}
+
+const std::string* OnnxSession::VerifiedSidecar() const {
+    return (pimpl_ && pimpl_->has_sidecar) ? &pimpl_->sidecar_text : nullptr;
 }
 
 const ModelMetadata& OnnxSession::GetModelMetadata() const {

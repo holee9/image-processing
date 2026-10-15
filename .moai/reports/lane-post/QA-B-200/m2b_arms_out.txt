@@ -1,0 +1,21 @@
+=== ARM old_clamp_both_sides_by_amount_times_threshold
+red tests: EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold, EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays, EdgeEnhanceFormula.E1_ThresholdZeroSharpensAnEdge
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== ARM bound_without_the_twice_original_term
+red tests: EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold, EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM bound_without_the_amount_threshold_term
+red tests: EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM no_bound_at_all
+red tests: EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue, EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM threshold_gate_removed
+red tests: EdgeEnhanceFormula.E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone, EnhanceBasicParameterDependency.EdgeEnhance_EveryParameterReachesTheOutput
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

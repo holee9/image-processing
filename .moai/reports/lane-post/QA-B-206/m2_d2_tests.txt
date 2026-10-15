@@ -1,0 +1,55 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 18 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 14 tests from ModalityLut
+[ RUN      ] ModalityLut.LinearRescale_BasicValues
+[       OK ] ModalityLut.LinearRescale_BasicValues (0 ms)
+[ RUN      ] ModalityLut.LinearRescale_SlopeAndIntercept
+[       OK ] ModalityLut.LinearRescale_SlopeAndIntercept (0 ms)
+[ RUN      ] ModalityLut.TableMode_BasicLookup
+[       OK ] ModalityLut.TableMode_BasicLookup (0 ms)
+[ RUN      ] ModalityLut.TableMode_LutFirstMappedOffset
+[       OK ] ModalityLut.TableMode_LutFirstMappedOffset (0 ms)
+[ RUN      ] ModalityLut.TableMode_ClampingBounds
+[       OK ] ModalityLut.TableMode_ClampingBounds (0 ms)
+[ RUN      ] ModalityLut.Error_NullImg
+[2026-10-03 19:19:12.345] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[       OK ] ModalityLut.Error_NullImg (0 ms)
+[ RUN      ] ModalityLut.Error_NullParams
+[2026-10-03 19:19:12.345] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[       OK ] ModalityLut.Error_NullParams (0 ms)
+[ RUN      ] ModalityLut.Error_WrongFormat
+[2026-10-03 19:19:12.345] [error] [xpe_display] xpe_apply_modality_lut failed: code -7 (Unsupported pixel format)
+[       OK ] ModalityLut.Error_WrongFormat (0 ms)
+[ RUN      ] ModalityLut.Error_TableNullLutData
+[2026-10-03 19:19:12.345] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[       OK ] ModalityLut.Error_TableNullLutData (0 ms)
+[ RUN      ] ModalityLut.Error_TableZeroLength
+[2026-10-03 19:19:12.345] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[       OK ] ModalityLut.Error_TableZeroLength (0 ms)
+[ RUN      ] ModalityLut.Error_LinearZeroSlope
+[2026-10-03 19:19:12.345] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[       OK ] ModalityLut.Error_LinearZeroSlope (0 ms)
+[ RUN      ] ModalityLut.Performance_3072x3072_Linear
+[       OK ] ModalityLut.Performance_3072x3072_Linear (11 ms)
+[ RUN      ] ModalityLut.EdgeCase_1x1Image
+[       OK ] ModalityLut.EdgeCase_1x1Image (0 ms)
+[ RUN      ] ModalityLut.BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072
+PERFMEASURE REQ-DISP-008/xpe_apply_modality_lut 3072x3072 min=3924 med=4002 max=4676 us (runs=7)
+[       OK ] ModalityLut.BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072 (79 ms)
+[----------] 14 tests from ModalityLut (100 ms total)
+
+[----------] 4 tests from ModalityLutClamp
+[ RUN      ] ModalityLutClamp.AnInputAtOrAboveTwoToThe31TakesTheLastEntryAndNotTheFirst
+[       OK ] ModalityLutClamp.AnInputAtOrAboveTwoToThe31TakesTheLastEntryAndNotTheFirst (0 ms)
+[ RUN      ] ModalityLutClamp.AnInputAtOrBelowMinusTwoToThe31TakesTheFirstEntry
+[       OK ] ModalityLutClamp.AnInputAtOrBelowMinusTwoToThe31TakesTheFirstEntry (0 ms)
+[ RUN      ] ModalityLutClamp.TheInRangeMappingAndTheBoundariesAreUnchanged
+[       OK ] ModalityLutClamp.TheInRangeMappingAndTheBoundariesAreUnchanged (0 ms)
+[ RUN      ] ModalityLutClamp.AFirstMappedNearTheEndsOfInt32DoesNotOverflowTheIndexArithmetic
+[       OK ] ModalityLutClamp.AFirstMappedNearTheEndsOfInt32DoesNotOverflowTheIndexArithmetic (0 ms)
+[----------] 4 tests from ModalityLutClamp (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 18 tests from 2 test suites ran. (100 ms total)
+[  PASSED  ] 18 tests.

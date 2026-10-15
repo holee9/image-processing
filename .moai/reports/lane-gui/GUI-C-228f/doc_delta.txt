@@ -1,0 +1,20 @@
+GUI-C-228f doc_delta -- the 007 row ONLY, as a difference on top of GUI-C-228e/doc_delta.txt (apply 228b, 228c, 228d, 228e, then this). 008, AC-8 and all totals are unchanged
+(구현됨 25 / 구현됨(한계 있음) 8 / 부분 0 / 보류 3 = 36).
+
+What the document may claim: every line of every source compiled into the test assembly (PDB Document list) is scanned, and a source is scanned only if its bytes hash to the PDB's hash for that document. A source that differs from the one the compiler read cannot be scanned in its place, so a build made with a forbidden call and followed by reverting the source does not pass. The cost is availability: the check needs the checkout and machine that built the assembly.
+
+== RTM-GUI-001 row for REQ-GUI-IT-007 (the Test column of the 228e AFTER row)
+
+BEFORE (the AFTER of 228e), the first sentence of the limit and the control list:
+(통제: `TheCompiledSourceList_HoldsThisFile_ALinkedAppSource_AGeneratedSource_AndEveryCompileItem`, `ThePdbReader_FailsWhenThereIsNoPdb`, `ThisFile_IsScannedInFull_AndHoldsNoPattern`, `EveryPattern_MatchesItsControlLines`, `NoLineIsExcluded_ByCommentOrByAnythingElse`)<br>*한계: ... 시험 어셈블리에 실제로 컴파일된 모든 소스(어셈블리 PDB 의 Document 목록 — 직접 쓴 소스, 프로젝트 밖에서 링크한 앱 소스, 생성 소스 포함)의 모든 줄에서 금지한다. 줄 제외는 없고(주석·문자열도 스캔), ...*
+
+AFTER (controls gain `TheHashCheck_AcceptsOnlyAFileWithThePdbHash_AndRefusesEveryOtherCase`; the limit gains the hash sentence and the availability limit):
+(통제: `TheCompiledSourceList_HoldsThisFile_ALinkedAppSource_AGeneratedSource_AndEveryCompileItem`, `TheHashCheck_AcceptsOnlyAFileWithThePdbHash_AndRefusesEveryOtherCase`, `ThePdbReader_FailsWhenThereIsNoPdb`, `ThisFile_IsScannedInFull_AndHoldsNoPattern`, `EveryPattern_MatchesItsControlLines`, `NoLineIsExcluded_ByCommentOrByAnythingElse`)<br>*한계: ... 시험 어셈블리에 실제로 컴파일된 모든 소스(어셈블리 PDB 의 Document 목록 — 직접 쓴 소스, 프로젝트 밖에서 링크한 앱 소스, 생성 소스 포함)의 모든 줄에서 금지한다. 각 문서는 PDB 의 해시와 파일 바이트의 해시가 같을 때만 스캔한다(불일치, 해시 없음, 미지원 알고리즘, 같은 문서의 후보 파일이 둘 이상이면 실패) — 빌드한 소스와 다른 소스로는 통과할 수 없다. 줄 제외는 없고(주석·문자열도 스캔), ... 가용성 한계: DLL·PDB 를 빌드한 체크아웃·기계 밖에서 돌리면 실패한다(PDB 가 가리키는 파일이 없거나 해시가 다르다).*
+
+== SPEC-XPE-GUI-IT §4.6 limit table, row 007
+
+BEFORE (the AFTER of 228e):
+| 007 | 메타데이터 참조 0 은 실행 순서와 무관하게 단언한다. 동적 로드·리플렉션 생성 API 의 사용은 시험 어셈블리에 실제로 컴파일된 모든 소스(PDB 의 Document 목록, 링크·생성 소스 포함)의 모든 줄을 스캔해 금지하고(줄 제외 없음, 오탐은 허용 목록 4줄), 스캔이 못 보는 형태(표에 없는 API, 다른 어셈블리를 거친 호출, 실행 중 코드 생성, 경로로 올리는 네이티브 라이브러리)는 증명하지 않는다 |
+
+AFTER:
+| 007 | 메타데이터 참조 0 은 실행 순서와 무관하게 단언한다. 동적 로드·리플렉션 생성 API 의 사용은 시험 어셈블리에 실제로 컴파일된 모든 소스(PDB 의 Document 목록, 링크·생성 소스 포함)의 모든 줄을 스캔해 금지한다(줄 제외 없음, 오탐은 허용 목록 4줄). 스캔 대상은 PDB 의 해시와 일치하는 파일뿐이라(불일치·후보 복수는 실패) 빌드한 소스와 다른 소스로는 통과할 수 없다. 스캔이 못 보는 형태(표에 없는 API, 다른 어셈블리를 거친 호출, 실행 중 코드 생성, 경로로 올리는 네이티브 라이브러리)는 증명하지 않는다. 가용성 한계: DLL·PDB 를 빌드한 체크아웃·기계 밖에서 돌리면 실패한다 |

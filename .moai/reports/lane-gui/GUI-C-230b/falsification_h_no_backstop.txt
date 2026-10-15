@@ -1,0 +1,3 @@
+== arm (h): the backstop in RunNativeEnhanceBasicPreview is taken out
+[xUnit.net 00:00:00.28]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheCheck_AppliesToTheNoiseStageOnly_AndReadsTheBox_AndTheOtherRunPathsRefuseToo [FAIL]
+실패!  - 실패:     1, 통과:    51, 건너뜀:     0, 전체:    52, 기간: 87 ms - ImageProcTest.IntegrationTests.dll (net8.0)

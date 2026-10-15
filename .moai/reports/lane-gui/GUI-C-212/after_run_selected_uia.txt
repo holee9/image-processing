@@ -1,0 +1,10 @@
+﻿started pid=23848 XPE_NATIVE_DIR=D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0
+window: 'XPE Image Processing Test'
+=== tab Calibration: selected=True
+row found: True
+row: AlgorithmValidationItem { ModuleName = xpe_preprocess, SwuId = SWU-1.1, AlgorithmName = OffsetCorrector, RequirementIds = SRS-CALIB-FUNC-004, SRS-CALIB-FUNC-016, SRS-CALIB-SAFE-001, TestIds = UT-1.1, UT-1.5-001, PRE-E2E-1, PRE-E2E-2, BP-01, Gate = PRE-E2E-2, Adapter = native-preview, Level = R3, Sta
+button enabled: True
+AlgorithmValidationResultText: Calibration validation: load the target raw image first.
+  id=AlgorithmValidationResultText: Calibration validation: load the target raw image first.
+closed
+

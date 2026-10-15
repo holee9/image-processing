@@ -1,0 +1,4 @@
+== arm (a): a forbidden call is added to a LINKED source, the assembly is built, the source is reverted, tests run with --no-build (hash check ON)
+[xUnit.net 00:00:00.42]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+[xUnit.net 00:00:00.57]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.TheCompiledSourceList_HoldsThisFile_ALinkedAppSource_AGeneratedSource_AndEveryCompileItem [FAIL]
+실패!  - 실패:     2, 통과:    13, 건너뜀:     0, 전체:    15, 기간: 450 ms - ImageProcTest.IntegrationTests.dll (net8.0)

@@ -28,15 +28,17 @@ because a sweep is how the previous errors were introduced.
 | Module | Count | Exports |
 |---|---:|---|
 | `xpe_common` | 16 | `xpe_alert_push`, `xpe_alloc_image`, `xpe_clear_alerts`, `xpe_configure`, `xpe_copy_image`, `xpe_error_string`, `xpe_free_image`, `xpe_get_param_range`, `xpe_get_pending_alert`, `xpe_get_pending_alert_count`, `xpe_init`, `xpe_log_flush`, `xpe_log_set_file`, `xpe_log_set_level`, `xpe_shutdown`, `xpe_version` |
-| `xpe_preprocess` | 45 | `xpe_binning_correct`, `xpe_bpm_generate`, `xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`, `xpe_calib_check_expiry`, `xpe_calib_generate_gain`, `xpe_calib_generate_gain_polynomial`, `xpe_calib_generate_offset`, `xpe_calib_get_max_points`, `xpe_calib_get_mode`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_meta`, `xpe_calib_load_defect_cached`, `xpe_calib_load_defect_map`, `xpe_calib_load_gain`, `xpe_calib_load_gain_cached`, `xpe_calib_load_offset`, `xpe_calib_load_offset_cached`, `xpe_calib_save`, `xpe_calib_set_mode`, `xpe_calib_state_load`, `xpe_calib_state_release`, `xpe_crc32`, `xpe_defect_correct`, `xpe_defect_detect_runtime`, `xpe_gain_correct`, `xpe_ghost_correct`, `xpe_ghost_create`, `xpe_ghost_destroy`, `xpe_ghost_reset`, `xpe_nonlinearity_correct`, `xpe_offset_correct`, `xpe_preprocess_get_param_range`, `xpe_preprocess_init`, `xpe_preprocess_pipeline`, `xpe_preprocess_pipeline_batch`, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_shutdown`, `xpe_preprocess_version`, `xpe_temp_compensate`, `xpe_validate_readout_artifact`, `xpe_verify_defect`, `xpe_verify_gain`, `xpe_verify_offset`, `xpe_verify_pipeline` |
-| `xpe_enhance_basic` | 8 | `xpe_calc_exposure_index`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_enhance_basic_version`, `xpe_log_inverse`, `xpe_log_transform`, `xpe_noise_estimate_sigma`, `xpe_noise_reduce` |
-| `xpe_enhance_advanced` | 7 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
-| `xpe_display` | 6 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_preset_create` |
+| `xpe_preprocess` | 49 | `xpe_binning_correct`, `xpe_bpm_generate`, `xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`, `xpe_calib_check_expiry`, `xpe_calib_generate_gain`, `xpe_calib_generate_gain_polynomial`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_generate_offset`, `xpe_calib_get_max_points`, `xpe_calib_get_mode`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_meta`, `xpe_calib_load_defect_cached`, `xpe_calib_load_defect_map`, `xpe_calib_load_gain`, `xpe_calib_load_gain_cached`, `xpe_calib_load_nonlin_lut`, `xpe_calib_load_offset`, `xpe_calib_load_offset_cached`, `xpe_calib_save`, `xpe_calib_set_mode`, `xpe_calib_state_load`, `xpe_calib_state_release`, `xpe_calib_unload_nonlin_lut`, `xpe_defect_correct`, `xpe_defect_detect_runtime`, `xpe_gain_correct`, `xpe_ghost_correct`, `xpe_ghost_create`, `xpe_ghost_destroy`, `xpe_ghost_reset`, `xpe_nonlinearity_correct`, `xpe_offset_correct`, `xpe_preprocess_get_param_range`, `xpe_preprocess_init`, `xpe_preprocess_is_initialized`, `xpe_preprocess_pipeline`, `xpe_preprocess_pipeline_batch`, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_pipeline_out`, `xpe_preprocess_shutdown`, `xpe_preprocess_version`, `xpe_temp_compensate`, `xpe_validate_readout_artifact`, `xpe_verify_defect`, `xpe_verify_gain`, `xpe_verify_offset`, `xpe_verify_pipeline` |
+| `xpe_enhance_basic` | 10 | `xpe_calc_exposure_index`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_enhance_basic_get_max_threads`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_version`, `xpe_log_inverse`, `xpe_log_transform`, `xpe_noise_estimate_sigma`, `xpe_noise_reduce` |
+| `xpe_enhance_advanced` | 9 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_get_max_threads`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_set_max_threads`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
+| `xpe_display` | 8 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_presentation_lut_ex`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_auto_window`, `xpe_voi_preset_create` |
 | `xpe_ai` | 11 | `xpe_ai_get_model_card`, `xpe_ai_init`, `xpe_ai_set_fallback_mode`, `xpe_ai_shutdown`, `xpe_ai_version`, `xpe_ai_worker_state`, `xpe_bodypart_recognize`, `xpe_bone_suppress`, `xpe_dl_denoise`, `xpe_stitch_estimate_size`, `xpe_stitch_images` |
-| `xpe_dicom` | 10 | `xpe_dicom_cancel`, `xpe_dicom_cfind_mwl`, `xpe_dicom_close`, `xpe_dicom_cstore`, `xpe_dicom_get_metadata`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_validate`, `xpe_dicom_write`, `xpe_dicom_write_j2k` |
-| `xpe_gsvg` | 4 | `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_shutdown`, `xpe_gsvg_version` |
+| `xpe_dicom` | 11 | `xpe_dicom_cancel`, `xpe_dicom_cfind_mwl`, `xpe_dicom_close`, `xpe_dicom_cstore`, `xpe_dicom_get_metadata`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_validate`, `xpe_dicom_version`, `xpe_dicom_write`, `xpe_dicom_write_j2k` |
+| `xpe_gsvg` | 8 | `xpe_gsvg_get_max_threads`, `xpe_gsvg_init`, `xpe_gsvg_process`, `xpe_gsvg_process_ex`, `xpe_gsvg_process_masked`, `xpe_gsvg_set_max_threads`, `xpe_gsvg_shutdown`, `xpe_gsvg_version` |
 
-**Cross-module duplicate exports: 0** (re-measured 2026-09-12 after QA-B-55). Every one of the 106 names above belongs to exactly one module. The one collision that existed — `xpe_calc_exposure_index` in both `xpe_enhance_basic` (REQ-ENH-030) and `xpe_enhance_advanced` (REQ-ADV-013), identical signatures, values 500x apart — was resolved by renaming the advanced export to `xpe_adv_calc_exposure_index` (#153).
+**What the counts count.** One name = one `XPE_API` / `GSVG_API` function declared in a public header under `modules/*/include`; 122 in total. A DLL built for testing can export more: the CI test build of `xpe_ai.dll` also exports 6 `xpe_ai_test_set_*` hooks (compiled only with `XPE_AI_TEST_HOOKS` / `XPE_AI_TEST_LOG_CAPTURE`; the delivery preset `release` turns them OFF), and the CI `xpe_preprocess.dll` exports 6 C++-mangled symbols (`read_xcal_file`, `write_xcal_file`, `write_xcal_file_ex`, `validate_xcal_header`, `validate_xcal_session_field`, `xcal_bytes_per_pixel`) because the internal header `modules/preprocess/src/xcal_reader.hpp` marks them `XPE_API`; they are not part of the C ABI. Measured on the CI artifacts: 134 exported names = 122 + 6 + 6.
+
+**Cross-module duplicate exports: 0** (re-measured 2026-09-12 after QA-B-55). Every one of the 122 names above belongs to exactly one module. The one collision that existed — `xpe_calc_exposure_index` in both `xpe_enhance_basic` (REQ-ENH-030) and `xpe_enhance_advanced` (REQ-ADV-013), identical signatures, values 500x apart — was resolved by renaming the advanced export to `xpe_adv_calc_exposure_index` (#153).
 
 **What this table does not say:** whether each function behaves as its requirement demands,
 and whether the parameter lists in the sections below match the headers. The first is what
@@ -216,14 +218,14 @@ typedef int32_t GsvgErrorCode;
 | DLL | Exported Functions | Notes |
 |-----|--------------------|----|
 | xpe_common.dll | 16 | removed 3 AED functions; AED is detector hardware only. 15 public API + `xpe_alert_push` (§5.16; renamed from `xpe_test_inject_alert` in #111, alias removed QA-A-19) |
-| xpe_preprocess.dll | 18 | no change |
-| xpe_enhance_basic.dll | 8 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
-| xpe_enhance_advanced.dll | 7 | `xpe_calc_exposure_index` moved to enhance_basic; count corrected 2026-09-11 (QA-B-39 header audit) |
+| xpe_preprocess.dll | 49 | count corrected 2026-10-12 (QA-B-217, public-header declarations) |
+| xpe_enhance_basic.dll | 10 | includes `xpe_calc_exposure_index` moved from enhance_advanced |
+| xpe_enhance_advanced.dll | 9 | `xpe_calc_exposure_index` moved to enhance_basic; count corrected 2026-09-11 (QA-B-39 header audit) |
 | xpe_ai.dll | 11 | `xpe_ai_worker_state` added 2026-10-01 (QA-B-173, #130); count corrected 2026-09-11 (QA-B-39); stub build unless `XPE_AI_USE_ONNXRUNTIME` — inference entry points return `XPE_ERR_PROCESSING_FAILED` after argument validation |
-| xpe_display.dll | 6 | count corrected 2026-09-11 (QA-B-39) |
-| xpe_dicom.dll | 10 | no change |
-| gsvg.dll | 4 | count corrected 2026-09-11 (QA-B-39) |
-| **Total** | **80** | **-3 from v1.3.0, +1 `xpe_ai_worker_state` (2026-10-01)** |
+| xpe_display.dll | 8 | count corrected 2026-09-11 (QA-B-39) |
+| xpe_dicom.dll | 11 | count corrected 2026-10-12 (QA-B-217) |
+| gsvg.dll | 8 | count corrected 2026-09-11 (QA-B-39) |
+| **Total** | **122** | **public-header declarations (QA-B-217, main e421c1ff); what the counts count: see the paragraph after the section 0 table** |
 
 ---
 
@@ -636,7 +638,7 @@ XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
 **Description**: Loads a flat-field gain calibration map in XCal format from `filepath` into the module-global calibration store, together with its interpolation table for kVp-specific gain. There is no output-buffer parameter; the LRU-cached variant `xpe_calib_load_gain_cached(filePath, gainMapOut)` returns the map to the caller.  
 **SRS**: SRS-CALIB-011  
 **Thread safety**: Reentrant; writes the global calibration store under the module mutex.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CALIBRATION_EXPIRED`, `XPE_ERR_INVALID_CALIB_DATA` (게인 범위 밖 화소가 5% 초과 — §6.21 (1))
 
 ---
 
@@ -835,6 +837,61 @@ XpeErrorCode xpe_verify_gain(const XpeImageBuffer* before_gain, const XpeImageBu
 - 실데이터(cyan_test, 3072², 5준위)에서 끝점 갈래는 48.9% → 0%, 파일 R² 는 −0.035 → +0.252, 화소별 R² < 0 은 33.2% → float 반올림 1화소로 바뀌었다.
 - `calibration_pass`(R² ≥ 0.999)는 이 데이터에서 여전히 0 이다. 게이트와 `XPE_WARN_CALIB_POOR_FIT` 문구는 바꾸지 않았다(#233 별도 기록).
 - 아직 main 에 들어오지 않은 것: 단조 검사를 구간 전체에 대해 해석적으로 하는 것, 비유한 선량 거부(QA-A-210d, 검토 중).
+
+---
+
+### 6.21 2026-10-02 계약 보강 3 (pre 체인 병합 `3a991d7c`, #233)
+
+원문과 근거: `.moai/reports/lane-pre/QA-A-211`·`211b`·`212`·`212c`·`214`·`215`·`216`·`217` 보고서. 요구 문안은 SPEC-XPE-P1A `REQ-P1A-011`·`012`·`013`·`015`·`019`·`032`·`087`·`091` 이 정본이다. 아래 알림 문구는 모두 레인 간 계약이며 **접두사로 매칭**한다.
+
+**(1) 게인 범위 밖 화소의 결함 분류 (QA-A-211·211b).** 적용 가능한 게인 범위는 [0.1, 10.0] 하나다(SRS-CALIB-FUNC-002). 범위 밖(비유한 포함) 화소는 게인 1.0 으로 보정하고 결함으로 분류해 결함 단계로 넘긴다. 분류 비율 상한은 5%(SRS-CALIB-FUNC-003 의 결함 밀도 허용치)다. XCal 형식과 공개 함수 시그니처는 바뀌지 않았고, 분류 목록을 조회하는 함수는 없다.
+
+| 함수 | 범위 밖 화소 | 5% 초과 |
+|---|---|---|
+| `xpe_calib_load_gain`(스칼라 맵) | 맵 값을 1.0 으로 바꿔 적재, 분류 목록을 맵과 함께 저장소에 둔다. **변화**: 이전에는 `XPE_ERR_INVALID_CALIB_DATA` | `XPE_ERR_INVALID_CALIB_DATA`, 저장소 불변 |
+| `xpe_calib_load_gain_cached` 적중 | 적재 때와 같은 분류를 설치 | — |
+| `xpe_calib_generate_gain_polynomial` | 측정 게인이 범위 밖인 화소, 그리고 모든 차수를 시도해도 최소제곱 직선이 범위를 벗어나는 화소를 분류(계수 0, 품질 수치에서 제외) | `XPE_ERR_INVALID_CALIB_DATA`, 품질 기록·파일 없음 |
+| `xpe_gain_correct`(다항식) | 평가값이 범위 밖인 화소에 게인 1.0, 프레임 목록에 추가 | `XPE_ERR_CONFIG_INVALID` |
+| `xpe_defect_correct` | 마스크 = 결함 맵 ∪ 저장소 목록 ∪ 프레임 목록 | 합집합 5% 초과는 경고만, 보정 계속 |
+| 파이프라인 | 비닝(binningMode > 1) + 결함 단계로 전달될 분류 화소 → 거부. 게인 단계를 우회해도 결함 단계가 돌고 저장소 목록이 비어 있지 않으면 거부. 둘 다 우회하면 거부 안 함 | `XPE_ERR_CONFIG_INVALID` |
+
+다항식 파일의 `fit_r_squared` 는 적합한 화소에 대해서만 계산된다. 분류 화소는 들어가지 않고 그 수는 `XpeCalibQualityMeta` 에 기록되지 않는다(생성 때 알림으로 한 번 보고). 그래서 보고된 R² 가 프레임 전체의 R² 보다 좋을 수 있다.
+
+| 접두사 | 심각도 | 언제 / 전체 문구 |
+|---|---|---|
+| `XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT:` | 경고 | 적재·생성: `N of TOTAL pixel(s) (P%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (K in the outermost 64-pixel band; first: I). Limit: 5.0%`. 다항식 적용: `N pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are marked defective (gain 1.0) and listed for the defect correction stage` (QA-A-211b 문구 — 아직 하지 않은 보정을 끝난 것처럼 말하지 않음) |
+| `XPE_WARN_GAIN_PIXELS_OVER_LIMIT:` | 오류 | 상한 초과. 끝이 "the calibration was not loaded / generated / applied" |
+| `XPE_WARN_GAIN_PIXELS_UNCORRECTED:` | 경고 | 파이프라인에서 결함 단계 우회, 또는 `xpe_gain_correct` 단독 호출 |
+| `XPE_WARN_GAIN_PIXELS_WITH_BINNING:` | 오류 | 비닝 + 분류 화소 → 프레임 거부 |
+| `XPE_WARN_DEFECT_UNION_OVER_LIMIT:` | 경고 | 결함 맵 ∪ 분류가 5% 초과 |
+
+**(2) 결함 덩어리 안쪽 채움 (QA-A-211b).** `xpe_defect_correct` 에서 덩어리 화소의 3×3 에 정상 화소가 없으면, 체비쇼프 반경 2~16 가운데 정상 화소가 있는 가장 가까운 고리의 정상 화소 값의 위쪽 중앙값으로 채운다. 반경 16 안에 없으면 입력값을 그대로 두고 프레임당 한 번 알린다. 0 은 쓰지 않는다. **출력 변화**: 이전 빌드는 그 화소를 0 으로 썼다. 결함 맵이 덩어리 안쪽을 만들지 않는 입력(cyan_test 등)의 출력은 같다.
+
+| 접두사 | 심각도 | 전체 문구 |
+|---|---|---|
+| `XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR:` | 경고 | `N masked pixel(s) have no valid pixel within 16 pixels to fill them from and keep their input value` |
+
+**(3) 비유한 입력 — 쓰기 전 거부 (QA-A-214b·215·217).** 아래 네 함수는 NaN 또는 ±무한대 화소가 하나라도 든 프레임을 **아무것도 쓰기 전에** `XPE_ERR_INVALID_INPUT` 으로 거부한다. 기존 인자 검사는 같은 우선순위로 먼저 나온다. 알림은 모두 오류 심각도이고 `<N> pixel(s) of the input frame are NaN or infinite (first: index <I>, x=<X>, y=<Y>); ` 뒤에 함수별 맺음말이 붙는다.
+
+| 함수 | 접두사 | 맺음말 | 이전 동작 |
+|---|---|---|---|
+| `xpe_defect_correct` | `XPE_WARN_DEFECT_INPUT_NOT_FINITE:` | `the frame was not corrected and the output was not written` | 비유한 값이 섞인 출력, `XPE_OK` |
+| `xpe_binning_correct` | `XPE_WARN_BINNING_INPUT_NOT_FINITE:` | `the frame was not binned and the buffer was not changed` | 일부 화소를 나눈 뒤 `XPE_ERR_PROCESSING_FAILED` |
+| `xpe_defect_detect_runtime` | `XPE_WARN_RUNTIME_DETECT_INPUT_NOT_FINITE:` | `no detection was run and the defect map was not written` | 맵을 비우고 씀, NaN 화소는 "정상" |
+| `xpe_ghost_correct` | `XPE_WARN_GHOST_INPUT_NOT_FINITE:` | `the frame was not corrected; the buffer and the handle's history were not changed` | 일부 화소를 쓴 뒤 `XPE_ERR_PROCESSING_FAILED` |
+
+**(4) 고스트 보정의 실패 경로 (QA-A-217).** `xpe_ghost_correct` 가 실패 코드를 돌려주면 `img` 는 호출 전 바이트 그대로이고 핸들 상태도 그대로다. 입구 거부(3) 외의 실패 — 보정값 비유한, 유한 입력에서 새 이력이 비유한(이력 오버플로) — 는 `XPE_ERR_PROCESSING_FAILED` 이며, 핸들의 백업 평면으로 화소를 되돌리고 이력을 커밋하지 않는다. 그다음 정상 프레임은 reset 없이 성공한다. 오버플로 실패에는 알림이 없다. 헤더의 옛 문구("corrected before the failure are not restored")는 더 이상 맞지 않아 고쳤다. 백업 평면 때문에 핸들은 3072² 에서 약 189 MB(이전 151 MB), 프레임당 약 +13~15 ms(한 기계의 측정).
+
+**(5) XCal 목적지 교체 재시도 (QA-A-212b·212c).** 모든 XCal 쓰기(`xpe_calib_save`, 게인·다항식 게인·비선형 LUT·오프셋 생성)는 `<path>.tmp` 에 쓴 뒤 목적지를 교체한다. Windows 에서 교체가 오류 5(`ERROR_ACCESS_DENIED`) 또는 32(`ERROR_SHARING_VIOLATION`)면 1 ms 부터 두 배씩(최대 25 ms) 쉬며 재시도하고, 쉰 시간 합계 100 ms 에서 멈춘다. 그 밖의 오류는 재시도하지 않는다. 재시도 끝에 성공하면 알림이 없다. 끝내 실패하면 `XPE_ERR_IO_FAILED`, 이전 파일은 그대로이고, 임시 파일 삭제를 한 번 시도한 뒤 알림을 올린다(오류). 비 Windows 경로는 바뀌지 않았고 알림도 없다.
+
+```
+XPE_WARN_XCAL_REPLACE_FAILED: could not replace '<path>' with the newly written calibration file: Windows error <E> after <R> retries (<cause>).
+```
+
+- `<cause>`: 5·32 이면 `the destination or the temporary file stayed open in another process, or the destination is read-only or may not be changed`, 그 밖이면 `not a transient condition, so it was not retried`(이때 `<R>` 는 0).
+- 임시 파일을 지웠으면 맺음말: ` The previous file, if any, is unchanged and the temporary file was removed`
+- 못 지웠으면 맺음말: ` The previous file, if any, is unchanged. The temporary file '<path>.tmp' could NOT be removed (Windows error <D>) and was left behind; the next save to this path replaces it once it is free` — 다른 프로세스가 임시 파일을 삭제 공유 없이 열고 있으면 `<D>` 는 32 로 실측. 남은 `.tmp` 는 다음 저장이 덮어쓴다.
+- 확인하지 않은 것(QA-A-212c Gaps): 임시 파일을 아예 열지 못하면 알림 없이 `XPE_ERR_IO_FAILED` 가 된다(코드 읽기로만 확인).
 
 ---
 
@@ -1054,8 +1111,11 @@ XPE_API XpeErrorCode xpe_ai_init(const char* modelDirPath,
 |---|---|---|
 | `execution_provider` | string — `cpu` / `cuda` / `tensorrt` / `directml` / `auto` | selects the inference device |
 | `timeout_ms` | **integer** | IPC timeout |
-| `confidence_threshold` | number | inference confidence floor |
+| `confidence_threshold` | number | confidence floor for `xpe_bodypart_recognize` (default 0.6; a confidence equal to it passes) |
 | `fallback_mode` | boolean | enables fallback |
+| `use_worker` | boolean | routes `xpe_bone_suppress` and `xpe_bodypart_recognize` through the worker process (default false) |
+
+**`use_worker` was missing from this table** until 2026-10-02 (`QA-B-191`), although `ai.cpp` parses it (`state->useWorker`) and §9.8 already described it.
 
 **These four keys were absent from this document until 2026-09-12** — the code read more than the document described, which is the rare direction here (every earlier correction in this file ran the other way). "batch settings" appeared in the sentence this replaces and **no such key is read**.
 
@@ -1087,10 +1147,10 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
                                              float* confidenceOut);
 ```
 
-**Description**: Classifies the anatomical body part in `img` using a CNN classifier. Writes the label (e.g., `"CHEST"`) to `bodyPartOut` and the confidence score [0,1] to `*confidenceOut`.  
+**Description**: Classifies the anatomical body part in `img` using a CNN classifier. Writes the label (e.g., `"CHEST"`) to `bodyPartOut` and the confidence score [0,1] to `*confidenceOut`. Runs `{modelDir}/bodypart.onnx` (labels in `{modelDir}/bodypart.json`; each label shorter than 64 bytes and made only of printable ASCII 0x20–0x7E except `"` and `\`). The model must emit probabilities (no softmax is applied). A confidence below `confidence_threshold` (default 0.6) is a low-confidence event: with `fallback_mode` on (default) the call returns `XPE_ERR_PROCESSING_FAILED`, label `"UNKNOWN"` and the measured confidence; with it off, `XPE_OK` and the label, with a Warning. With no usable answer (no model, unreadable model, bad label sidecar, run failure, non-finite or out-of-range output) the outcome is `XPE_ERR_PROCESSING_FAILED`, `"UNKNOWN"`, 0.0. `use_worker: true` runs the model in `xpe_ai_worker.exe` (time budget `timeout_ms`; failure count shared with `xpe_bone_suppress`). The full contract is the header comment in `ai_api.h`. The tests use toy models; no accuracy is claimed (2026-10-02, `QA-B-191`).  
 **SRS**: SRS-AI-010  
 **Thread safety**: Reentrant (thread-safe inference session per call).  
-**Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`
+**Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`, `XPE_ERR_UNSUPPORTED_FORMAT` (a usable model and an image that is not FLOAT32; with `use_worker` regardless of whether a model exists)
 
 ---
 
@@ -1164,7 +1224,7 @@ XPE_API XpeErrorCode xpe_ai_worker_state(int32_t* stateOut,
                                          uint32_t* ceilingOut);
 ```
 
-**Description**: Read-only query of the bone-suppression worker path for the current session. `*stateOut` is `XPE_AI_WORKER_NOT_USED` (0, `use_worker` off), `XPE_AI_WORKER_ACTIVE` (1) or `XPE_AI_WORKER_DISABLED` (2, switched off after `*ceilingOut` consecutive failures). `consecutiveFailuresOut` and `ceilingOut` may be NULL. The query does not start the worker, raise alerts or change any counter. It does not wait for a call in progress: it reports the state as of the last completed call. Recovery from DISABLED is `xpe_ai_shutdown` then `xpe_ai_init`; this function does not recover.  
+**Description**: Read-only query of the worker path (shared by `xpe_bone_suppress` and `xpe_bodypart_recognize`) for the current session. The consecutive-failure count is one count shared by both functions: the state is the worker's, not one function's (QA-B-191 M4c). `*stateOut` is `XPE_AI_WORKER_NOT_USED` (0, `use_worker` off), `XPE_AI_WORKER_ACTIVE` (1) or `XPE_AI_WORKER_DISABLED` (2, switched off after `*ceilingOut` consecutive failures). `consecutiveFailuresOut` and `ceilingOut` may be NULL. The query does not start the worker, raise alerts or change any counter. It does not wait for a call in progress: it reports the state as of the last completed call. Recovery from DISABLED is `xpe_ai_shutdown` then `xpe_ai_init`; this function does not recover.  
 **SRS**: REQ-AI-092 (consecutive-failure ceiling, `docs/project/REQ-CHANGE-LOG-P3-AI.md`)  
 **Thread safety**: Safe to call concurrently with `xpe_bone_suppress`. **Must not run concurrently with `xpe_ai_init` / `xpe_ai_shutdown`** — the caller serialises those (a UI that polls this state and also offers a recovery button must guard both with one lock).  
 **Error codes**: `XPE_OK`, `XPE_ERR_NOT_INITIALIZED` (before init or after shutdown; outputs untouched), `XPE_ERR_INVALID_INPUT` (`stateOut` NULL)
@@ -1340,180 +1400,191 @@ XPE_API XpeErrorCode xpe_lut_auto_select(const XpeImageMetadata* meta,
 
 ---
 
+### 10.12 Contract additions — display polarity and automatic VOI window (QA-B-214, #251)
+
+Sections 10.1–10.11 above predate the real exports and are stale (see §0). This section documents the real exports
+added by QA-B-214 and the polarity change to `xpe_apply_presentation_lut`. The source is the Doxygen of
+`modules/display/include/xpe/display/display_api.h` (current as of 3846b5ab); where they differ, the header is correct.
+
+#### 10.12.1 `xpe_apply_presentation_lut` — default polarity
+
+```c
+XPE_API XpeErrorCode xpe_apply_presentation_lut(XpeImageBuffer*                  img,
+                                                  const XpePresentationLutParams*  params);
+```
+
+**Polarity (REQ-DISP-038)**: this function shows the high end of the data DARK: it reads the 1024-entry table backwards,
+`output[i] = lutData[1023 - index]`, and is identical to `xpe_apply_presentation_lut_ex(img, params, XPE_PRESENTATION_INVERTED)`
+(§10.12.3). Before QA-B-214 it applied the ascending mapping `output[i] = lutData[index]`; that mapping is now
+`xpe_apply_presentation_lut_ex(.., XPE_PRESENTATION_AS_IS)`.
+
+**Caller responsibility**: the function cannot know which end of the data is the background. Data whose background is
+already the LOW end (a MONOCHROME1 file normalised by `xpe_dicom_read_image`) must be presented with
+`XPE_PRESENTATION_AS_IS`; a caller that has its own invert switch must not stack it on the default. (The MONOCHROME1
+polarity contract is deferred to the DICOM stage.)
+
+**SRS**: SRS-FUNC-023, REQ-DISP-019, REQ-DISP-038
+
+#### 10.12.2 `XpePresentationPolarity`
+
+```c
+typedef enum XpePresentationPolarity {
+    XPE_PRESENTATION_INVERTED = 0, /* output = lutData[1023 - index]: high input shown dark (the default) */
+    XPE_PRESENTATION_AS_IS    = 1  /* output = lutData[index]: high input shown bright (behaviour before QA-B-214) */
+} XpePresentationPolarity;
+```
+
+**Description**: display polarity of the Presentation LUT stage. The pipeline carries "a larger value is brighter"
+(MONOCHROME2 sense) from the reader to the writer and no earlier stage inverts; the polarity is decided here, at the last
+display stage. Reading the table backwards is the DICOM INVERSE shape of PS3.3 C.11.6 applied to the P-Values; for a
+GSDF table it keeps the perceptual linearity, which `65535 - value` would not. Pixel data written to DICOM afterwards is
+MONOCHROME2 with Presentation LUT Shape IDENTITY and already carries the inversion.
+
+#### 10.12.3 `xpe_apply_presentation_lut_ex`
+
+```c
+XPE_API XpeErrorCode xpe_apply_presentation_lut_ex(XpeImageBuffer*                  img,
+                                                     const XpePresentationLutParams*  params,
+                                                     XpePresentationPolarity          polarity);
+```
+
+**Description**: `xpe_apply_presentation_lut` with the polarity chosen by the caller. Identical in every other respect:
+float32 in, uint16 out (converted in place on success), input clamped to [0, 1], `index = round(input * 1023)`,
+non-finite pixels refused, the image untouched on any error.
+
+**SRS**: REQ-DISP-038
+
+**Thread safety**: Thread-safe when called with independent buffers.
+
+**Error codes**: as `xpe_apply_presentation_lut` (`XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_UNSUPPORTED_FORMAT`,
+`XPE_ERR_OUT_OF_MEMORY`), plus `XPE_ERR_INVALID_INPUT` for a `polarity` that is neither enum value (image untouched).
+
+#### 10.12.4 `xpe_voi_auto_window`
+
+```c
+XPE_API XpeErrorCode xpe_voi_auto_window(const XpeImageBuffer* img,
+                                           XpeVoiLutParams*      outParams);
+```
+
+**Description**: chooses a VOI window from the anatomy in the image itself, derived from the values that reach the VOI
+stage whatever their domain (log domain after `xpe_log_transform`, detector DN, ...). EVERY pixel is histogrammed
+(1024 bins between the lowest and the highest value, no sampling); an Otsu split separates the HIGH class (background,
+unattenuated beam) from the low class (anatomy); window low = 0.5 % quantile of the anatomy class, window high = 5 %
+quantile of the background class.
+
+**Output (`XpeVoiLutParams`)**: mode `XPE_VOI_LINEAR_EXACT`, center = (low + high) / 2, width = high - low, minOut 0,
+maxOut 1 — the [0, 1] input range `xpe_apply_presentation_lut` expects.
+
+**Fallback**: if either class holds under 2 % of the pixels or the Otsu separability (between-class variance / total
+variance) is under 0.75, the window is the 1 % .. 99 % quantile range of the whole image (one-bin resolution) and one Info
+alert is posted. A flat image (maximum == minimum) gets center = that value, width 1.0, with the same Info alert.
+
+**Determinism**: the result depends only on the SET of pixel values; the same DLL on the same input is bit-identical.
+Identity between different builds (compiler, optimisation) is not guaranteed; the shipped product is one verified DLL.
+
+**Contract**: the background is the HIGH end of the data; MONOCHROME1-sense data would isolate the wrong class. A
+collimator shadow is counted into the anatomy class.
+
+**SRS**: REQ-DISP-037
+
+**Thread safety**: Thread-safe when called with independent buffers.
+
+**Error codes**: `XPE_OK`; `XPE_ERR_INVALID_INPUT` (NULL `img`/`outParams`/data, empty image, inconsistent `dataSize`,
+non-finite pixel, or a window a float cannot hold — center or width beyond ±FLT_MAX, or width not above zero as a float);
+`XPE_ERR_UNSUPPORTED_FORMAT` (not float32). `outParams` is untouched on any error.
+
+---
+
 ## 11. xpe_dicom.dll
 
-Provides DICOM file I/O, tag manipulation, GSPS annotation, and network services (C-STORE / C-FIND MWL).
+DICOM Part 10 file reading, writing, validation, and the network services C-STORE / C-FIND MWL. The DLL exports exactly 11 functions (10 until 2026-10-03, when `xpe_dicom_version` was added for REQ-P0-033, QA-B-200 M2a): `xpe_dicom_version`, `xpe_dicom_open`, `xpe_dicom_read_image`, `xpe_dicom_get_metadata`, `xpe_dicom_close`, `xpe_dicom_write`, `xpe_dicom_write_j2k`, `xpe_dicom_validate`, `xpe_dicom_cstore`, `xpe_dicom_cfind_mwl`, `xpe_dicom_cancel`. Reading is a session: open a handle, read the image and the metadata from it, close it. There is no one-shot read, no tag-string accessor and no GSPS function.
 
 Dependencies: xpe_common.dll.
 
-### 11.0 `xpe_dicom_read_image` 거부 규칙 (2026-10-02, post 체인 병합 `753cadab`, #235)
+> **Never implemented (removed 2026-10-02, QA-B-189):** earlier revisions of this section documented `xpe_dicom_read`, `xpe_dicom_query_dimensions`, `xpe_dicom_read_tag_string` and `xpe_dicom_set_tag_string`. None of them was ever exported (`git log -S<name> -- modules` returns 0 commits for each), so their sections were removed. `xpe_gsps_create` and `xpe_gsps_apply` were removed for the same reason; see FR-DCM-301~306 status in RTM-DICOM-001 (no implementation or test exists).
 
-> 주의: 아래 11.1 이하의 함수 이름(`xpe_dicom_read` 등)은 실제 수출과 다르다. 실제 수출은 §0 인벤토리와 `modules/dicom/include/xpe/dicom/dicom_api.h` 를 기준으로 한다(`xpe_dicom_open` → `xpe_dicom_read_image` → `xpe_dicom_get_metadata` → `xpe_dicom_close`). 이 절을 고쳐 쓰는 일은 별건으로 남긴다.
+### 11.1 xpe_dicom_open
+
+```c
+XPE_API XpeErrorCode xpe_dicom_open(const char* filePath, XpeDicomHandle** outHandle);
+```
+
+**Description**: Opens and parses a DICOM Part 10 file and returns a handle in `*outHandle` (NULL on error). Judges readability only: a file with no Part 10 meta header still opens (a missing Transfer Syntax UID is read as Explicit VR Little Endian); use `xpe_dicom_validate` to judge Part 10 conformance.  
+**Thread safety**: Different handles may be used from different threads; one handle must not be used by two threads at the same time (`xpe_dicom_read_image`, `xpe_dicom_get_metadata` and `xpe_dicom_close` on one handle are serialised by the caller).  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL argument), `XPE_ERR_IO_FAILED` (file missing or unreadable), `XPE_ERR_DICOM_INVALID` (not a DICOM Part 10 file), `XPE_ERR_UNSUPPORTED_FORMAT` (unsupported Transfer Syntax)
+
+---
+
+### 11.2 xpe_dicom_read_image
+
+```c
+XPE_API XpeErrorCode xpe_dicom_read_image(XpeDicomHandle* handle, XpeImageBuffer* outImg);
+```
+
+**Description**: Extracts the pixel data of an open file into `outImg` (`XPE_PIXEL_UINT16`). The buffer is allocated by the module and owned by the caller (`xpe_free_image`). On any refusal `outImg` is left untouched; every refusal posts one `XPE_ALERT_ERROR` naming the cause. The refusal rules, the MONOCHROME1 inversion, the Rescale and Modality LUT Sequence handling and the bit masking are the rules listed under 11.2.1 below; the exact alert texts are in `dicom_api.h`.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_OUT_OF_MEMORY`, `XPE_ERR_DICOM_INVALID`, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_PROCESSING_FAILED` (decompression failed)
+
+#### 11.2.1 거부 규칙 (2026-10-02, post 체인 병합 `753cadab`, #235)
 
 reader 는 디코드와 할당 **전에** 다음을 검사하고, 거부할 때 출력 버퍼를 건드리지 않는다. 거부마다 원인을 적은 `XPE_ALERT_ERROR` 알림을 남긴다(예: `dicom read refused: JPEG 2000 codestream precision 16 does not match the dataset (BitsStored 12, BitsAllocated 16)`). reader 가 알림을 남기는 것은 이번이 처음이다. 문구는 레인 간 계약이며 전역 큐에 쌓인다.
 
 - **필수 태그**(Image Pixel 모듈 Type 1): SamplesPerPixel, Rows, Columns, BitsAllocated, BitsStored, HighBit, PixelRepresentation 이 없거나 비어 있으면 `XPE_ERR_DICOM_INVALID`(−13). BitsStored·HighBit 부재에 대한 옛 기본값은 없앴다(QA-B-182c).
 - **비트 기술**: 비압축과 JPEG Lossless 는 BitsAllocated 16, BitsStored ≤ 16, HighBit = BitsStored − 1 만 받는다. JPEG 2000 은 BitsStored 1..BitsAllocated, HighBit = BitsStored − 1 이고(QA-B-182d), 디코드 전에 코드스트림의 성분·부호·정밀도·크기를 태그와 대조한다(PS3.5 8.2.4). 출력은 UINT16 / bitsAllocated 16 / bitsStored = 정밀도다(8비트 J2K 포함).
 - **writer**: 선언한 BitsStored 정밀도로 인코딩한다(옛 writer 는 12비트 선언에 16비트 정밀도를 썼다). 선언 범위를 넘는 화소값은 쓰기 실패(`XPE_ERR_PROCESSING_FAILED`)다. 옛 writer 의 BitsStored < 16 J2K 산출물은 새 reader 가 거부한다(#235 알려진 위험).
-- **아직 main 에 들어오지 않은 것**(QA-B-182e·182f·181g·181h, 검토 중): PS3.5 8.1.1 에 따라 비트 기술 위반을 모든 경로에서 `DICOM_INVALID` 로 통일하는 것(지금은 비압축·JPEG LL 이 `UNSUPPORTED_FORMAT`), PhotometricInterpretation 필수 검사와 값 분류, JPEG LL 성분 수(Nf = 1)와 정밀도 대조, J2K 표의 BitsStored ≤ 38 상한. 병합할 때 이 문단을 고쳐 쓴다.
+- **비트 기술 통일 (QA-B-182e·181g, `7deba35b`)**: PS3.5 8.1.1(2014c 부터 압축 여부와 무관)에 따라 HighBit ≠ BitsStored − 1, BitsStored > BitsAllocated, BitsAllocated 가 1 이나 8 의 배수가 아닌 경우는 모든 경로에서 `DICOM_INVALID` 다. 전송 구문 표에 없는 BitsAllocated(JPEG LL 은 8·16, J2K 는 1·8·16·24·32·40)도 `DICOM_INVALID` 이고, J2K 는 표 8.2.4-1 의 BitsStored 1–38 상한도 같다. 표준이 허용하지만 이 API 가 돌려줄 수 없는 값은 `UNSUPPORTED_FORMAT` 이다. 2014c 이전 판으로 기록된 파일은 이제 거부될 수 있다(#235)
+- **JPEG LL 코드스트림 (QA-B-182e·181h)**: SOF 의 성분 수 Nf 는 정확히 1 이어야 한다(바이트가 없거나 0 이거나 2 이상이면 `DICOM_INVALID`). 정밀도 P 는 P < BitsStored 또는 P > BitsAllocated 일 때 거부하고, P > BitsStored 는 받는다(표준이 "consistent" 의 뜻을 정하지 않았다). 모두 디코드 전에 검사한다
+- **PhotometricInterpretation (QA-B-182f)**: 없거나 비어 있으면 `DICOM_INVALID`. MONOCHROME1·MONOCHROME2 는 받는다. PALETTE COLOR·XYB·정의 없는 값·폐기된 값은 `UNSUPPORTED_FORMAT`. RGB·YBR 계열이 SamplesPerPixel = 1 이면 표준 위반이라 `DICOM_INVALID`. **MONOCHROME1 은 읽을 때 `(2^BitsStored − 1) − (값 & (2^BitsStored − 1))` 로 반전해 MONOCHROME2 의미로 돌려주고(FR-DCM-109), 반전한 읽기마다 Info 알림 1건(문구 전체는 `dicom_api.h`)을 낸다.** 부호 있는 화소는 PI 와 무관하게 거부한다. 파일의 Window/Rescale 은 저장된 표본 기준이라 반환값과 함께 쓰려면 `dicom_api.h` 의 거울 공식을 따른다. **보존되는 것은 극성이다: `xpe_dicom_write` 는 원본의 Window·Rescale·Presentation LUT Shape 를 보존하지 않는다(Window 없음, Rescale 1/0, IDENTITY).** 리스케일 처리는 아래 항목을 따른다.
+- **리스케일 (QA-B-187·187c)**: RescaleSlope (0028,1053)·RescaleIntercept (0028,1052) 는 적용하지도 돌려주지도 않는다. 반환 화소는 저장값이다. 둘 다 없으면 항등(1/0)으로 보고 알림이 없다. 항등이 아니면 읽기가 성공한 뒤 Warning 1건(`RescaleSlope <s>, RescaleIntercept <b> (the identity is 1 and 0): returned pixels are stored values; rescale not applied`)을 낸다. 속성이 있는데 하나의 유한한 수로 읽히지 않거나(빈 값·글자·값 두 개·inf·nan) 기울기가 0 이면 `DICOM_INVALID`(디코드 전, 출력 불변)다. 두 속성은 쌍으로 있어야 하므로(PS3.3 C.11.1) 한쪽만 있어도 `XPE_ERR_DICOM_INVALID` 로 거부하고, 알림이 빠진 속성을 밝힌다. Modality LUT Sequence (0028,3000) 에 항목이 있으면 저장값을 그대로 돌려주고 Warning 1건(적용하지 않음)을 낸다. 세 경로(비압축·JPEG Lossless·JPEG 2000) 공통이다.
+- **상위 비트 (#235 (h), QA-B-187)**: BitsStored 위 비트는 표본이 아니므로 MONOCHROME1·2 모두 `stored & (2^BitsStored − 1)` 로 마스크해 돌려준다. 값이 바뀐 워드가 있을 때만 Info 1건(`<N> pixel(s) had bits above BitsStored <B> set; those bits were masked off: value = stored & (2^BitsStored - 1)`)을 내고, 바뀐 것이 없으면 알림이 없다.
 
-### 11.1 xpe_dicom_read
+### 11.3 xpe_dicom_get_metadata
 
 ```c
-XPE_API XpeErrorCode xpe_dicom_read(const char* filePath,
-                                     XpeImageBuffer* imgOut,
-                                     XpeImageMetadata* metaOut);
+XPE_API XpeErrorCode xpe_dicom_get_metadata(XpeDicomHandle* handle, XpeImageMetadata* outMeta);
 ```
 
-**Description**: Reads a DICOM file from `filePath`, decodes the pixel data into `imgOut` (caller pre-allocates or passes zeroed struct for auto-allocation), and fills `metaOut` with key attributes.  
-**SRS**: SRS-DICOM-001, SRS-DICOM-002  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_UNSUPPORTED_FORMAT`, `XPE_ERR_OUT_OF_MEMORY`
+**Description**: Extracts acquisition metadata from an open file. Missing tags are silently defaulted (empty string / 0.0 / 0); absence is never an error, and a caller cannot tell an absent tag from a present empty one.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL argument), `XPE_ERR_DICOM_INVALID` (the file carries no dataset)
 
 ---
 
-### 11.2 xpe_dicom_query_dimensions
+### 11.4 xpe_dicom_close
 
 ```c
-XPE_API XpeErrorCode xpe_dicom_query_dimensions(const char* filePath,
-                                                 uint32_t* widthOut,
-                                                 uint32_t* heightOut,
-                                                 XpePixelFormat* formatOut);
+XPE_API void xpe_dicom_close(XpeDicomHandle* handle);
 ```
 
-**Description**: Reads only the image dimension and format tags from `filePath` without decoding pixel data. Use to pre-allocate the buffer before calling `xpe_dicom_read`.  
-**SRS**: SRS-DICOM-003  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
+**Description**: Closes a session and frees everything it holds. Passing NULL is a no-op. Returns nothing.
 
 ---
 
-### 11.3 xpe_dicom_read_tag_string
-
-```c
-XPE_API XpeErrorCode xpe_dicom_read_tag_string(const char* filePath,
-                                                uint16_t group, uint16_t element,
-                                                char* valueOut, size_t bufLen);
-```
-
-**Description**: Reads a single DICOM tag identified by `(group, element)` from `filePath` and writes its string representation to `valueOut`. Supports VRs: LO, LT, SH, ST, UI, UN, UT.  
-**SRS**: SRS-DICOM-004  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`
-
----
-
-### 11.4 xpe_dicom_write
+### 11.5 xpe_dicom_write
 
 ```c
 XPE_API XpeErrorCode xpe_dicom_write(const char* filePath,
                                       const XpeImageBuffer* img,
-                                      const XpeImageMetadata* meta,
-                                      const char* configJsonOrNull);
+                                      const XpeImageMetadata* meta);
 ```
 
-**Description**: Encodes `img` and `meta` into a DICOM Part 10 file at `filePath`. `configJsonOrNull` may specify transfer syntax (Explicit Little Endian, JPEG 2000 Lossless, etc.).  
-**SRS**: SRS-DICOM-010, SRS-DICOM-011  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_CONFIG_INVALID`
+**Description**: Encodes `img` and `meta` into a DICOM Part 10 file (Explicit VR Little Endian) with a generated SOP Instance UID and a meta group regenerated from the dataset, so the output satisfies `xpe_dicom_validate`. The dataset is built from `img` and `meta` only: nothing is copied from the file the pixels were read from. Photometric Interpretation is always MONOCHROME2, Presentation LUT Shape IDENTITY, Rescale Slope / Intercept 1 / 0, and no Window Center / Width is written. A pixel value outside the declared BitsStored range is a write failure. Only `XPE_PIXEL_UINT16` images are accepted; any other format is refused at entry, before a dataset is built or the file is opened, so nothing is written and no conversion is attempted (QA-B-201 M4, 2026-10-03).  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (NULL pointer, empty image, a format other than `XPE_PIXEL_UINT16`, or `dataSize` inconsistent with the dimensions), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED`
 
 ---
 
-### 11.5 xpe_dicom_write_j2k
+### 11.6 xpe_dicom_write_j2k
 
 ```c
 XPE_API XpeErrorCode xpe_dicom_write_j2k(const char* filePath,
                                            const XpeImageBuffer* img,
-                                           const XpeImageMetadata* meta,
-                                           float compressionRatio);
+                                           const XpeImageMetadata* meta);
 ```
 
-**Description**: Writes a DICOM file with JPEG 2000 compressed pixel data at the specified `compressionRatio` (1.0 = lossless). Convenience wrapper for `xpe_dicom_write` with J2K transfer syntax.  
-**SRS**: SRS-DICOM-012  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED`
+**Description**: Like `xpe_dicom_write`, with Transfer Syntax JPEG 2000 Lossless Only (1.2.840.10008.1.2.4.90); the round trip is bit-exact. The codestream is encoded at the declared BitsStored precision. There is no compression-ratio parameter and no lossy mode. Like `xpe_dicom_write`, only `XPE_PIXEL_UINT16` is accepted and any other format is refused at entry with nothing written.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT` (as for `xpe_dicom_write`), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (J2K compression failed, or a pixel value above the declared range)
 
 ---
 
-### 11.6 xpe_dicom_set_tag_string
-
-```c
-XPE_API XpeErrorCode xpe_dicom_set_tag_string(const char* filePath,
-                                               uint16_t group, uint16_t element,
-                                               const char* value);
-```
-
-**Description**: Updates or inserts a string-valued DICOM tag in an existing file at `filePath`. The file is modified in-place; a backup is not created.  
-**SRS**: SRS-DICOM-005  
-**Thread safety**: Not thread-safe per file path; serialize modifications to the same file.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
-
----
-
-### 11.7 xpe_gsps_create
-
-```c
-XPE_API XpeErrorCode xpe_gsps_create(const char* referencedFilePath,
-                                      const char* annotationJson,
-                                      const char* gspsFilePathOut,
-                                      size_t gspsPathBufLen);
-```
-
-**Description**: Creates a DICOM Grayscale Softcopy Presentation State (GSPS) object referencing `referencedFilePath` and embedding annotations from `annotationJson` (ROI, overlay, measurement). Writes the GSPS file path to `gspsFilePathOut`.  
-**SRS**: SRS-DICOM-020  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_BUFFER_TOO_SMALL`
-
----
-
-### 11.8 xpe_gsps_apply
-
-```c
-XPE_API XpeErrorCode xpe_gsps_apply(const char* gspsFilePath,
-                                     XpeImageBuffer* img,
-                                     const char* configJsonOrNull);
-```
-
-**Description**: Renders the annotations from a GSPS file onto `img` in-place (burns-in overlays). Useful for secondary capture or print output.  
-**SRS**: SRS-DICOM-021  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_PROCESSING_FAILED`
-
----
-
-### 11.9 xpe_dicom_cstore
-
-```c
-XPE_API XpeErrorCode xpe_dicom_cstore(const char* filePath,
-                                       const char* remoteAeTitle,
-                                       const char* remoteHost,
-                                       uint16_t    remotePort,
-                                       const char* localAeTitle);
-```
-
-**Description**: Sends a DICOM file to a remote SCP via C-STORE. Blocks until the SCP returns a status response or a timeout occurs (configurable via `xpe_configure`).  
-**SRS**: SRS-DICOM-030  
-**Thread safety**: Reentrant (each call uses an independent DICOM association).  
-**Error codes**: `XPE_OK`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_IO_FAILED`, `XPE_ERR_INVALID_INPUT`
-
----
-
-### 11.10 xpe_dicom_cfind_mwl
-
-```c
-XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const char* aet,
-                                          const char* queryJson, char* outJson,
-                                          uint32_t outBufLen, uint32_t timeoutMs);
-```
-
-**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array of matching worklist items in `resultsJsonOut`.   **Corrected 2026-09-11 (QA-B-39):** argument order/names above match the header (`dicom_api.h`); the earlier `(queryJson, remoteAeTitle, remoteHost, remotePort, localAeTitle, resultsJsonOut, resultsBufLen)` form never existed. Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137).
-**SRS**: SRS-DICOM-031  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_BUFFER_TOO_SMALL`, `XPE_ERR_PROCESSING_FAILED`
-
----
-
-### 11.11 xpe_dicom_validate
+### 11.7 xpe_dicom_validate
 
 ```c
 XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath, char* outReportJson, uint32_t reportBufLen);
@@ -1529,7 +1600,55 @@ XPE_API XpeErrorCode xpe_dicom_validate(const char* filePath, char* outReportJso
 Each failing condition contributes one entry to the error report, tagged with the group-0002 element it concerns. When a dataset-side tag is itself missing, the missing-Type-1 report covers it and no separate meta mismatch is reported. Files written by `xpe_dicom_write` / `xpe_dicom_write_j2k` satisfy these rules (round-trip verified).  
 **SRS**: SRS-IF-002  
 **Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_IO_FAILED`
+**Error codes**: `XPE_OK` (report produced; check `valid`), `XPE_ERR_INVALID_INPUT` (NULL argument or `reportBufLen` 0), `XPE_ERR_DICOM_INVALID` (file cannot be parsed; a report is still written), `XPE_ERR_BUFFER_TOO_SMALL` (required size written as `uint32_t` in the first 4 bytes; the buffer is not valid JSON). `XPE_ERR_IO_FAILED` is not in the header's return list (corrected 2026-10-02, QA-B-189).
+
+---
+
+### 11.8 xpe_dicom_cstore
+
+```c
+XPE_API XpeErrorCode xpe_dicom_cstore(const char* host,
+                                       uint16_t port,
+                                       const char* aet,
+                                       const char* filePath,
+                                       uint32_t timeoutMs);
+```
+
+**Description**: Sends a DICOM file to a remote Storage SCP via C-STORE. `host` may be `"CALLED_AE@hostname"` to name the called AE title (default `ANY-SCP`); `aet` is the calling AE title; for `timeoutMs` see the timeout note below. Timeout (both network functions, QA-B-206 M1, 2026-10-03): DCMTK takes the connection/ACSE/DIMSE timeouts in whole seconds, so `timeoutMs` is rounded **up** to the next second with a minimum of 1 (300 ms waits about 1 s, 1400 ms about 2 s). `timeoutMs` 0 is **not** an unlimited wait: DCMTK's default applies (about 30 s), and `xpe_dicom_cancel` cannot interrupt a stalled exchange, so a finite timeout is the only defence against a silent peer. If the file's meta group names no SOP Class UID the dataset's is used, then DX For Presentation. Returns `XPE_OK` only for RSP status 0x0000.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED` (connection failure, timeout, rejection, non-success status), `XPE_ERR_IO_FAILED`, `XPE_ERR_PROCESSING_FAILED` (a cancel is latched; see `xpe_dicom_cancel`)
+
+---
+
+### 11.9 xpe_dicom_cfind_mwl
+
+```c
+XPE_API XpeErrorCode xpe_dicom_cfind_mwl(const char* host, uint16_t port, const char* aet,
+                                          const char* queryJson, char* outJson,
+                                          uint32_t outBufLen, uint32_t timeoutMs);
+```
+
+**Description**: Queries a Modality Worklist SCP using C-FIND. `queryJson` encodes the query keys (Patient ID, Accession Number, etc.). Results are returned as a JSON array in `outJson` (`[]` when empty). Supported query keys: `PatientID`, `PatientName`, `Modality`, `AccessionNumber` (unknown keys are ignored — unfiltered worklist). Uses the negotiated presentation context (QA-B-32, #137). `timeoutMs` follows the same rule as `xpe_dicom_cstore` (rounded up to whole seconds, minimum 1; 0 = DCMTK default, about 30 s, not unlimited).  
+**SRS**: SRS-DICOM-031  
+**Thread safety**: Reentrant.  
+**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_NETWORK_FAILED`, `XPE_ERR_PROCESSING_FAILED` (`queryJson` not parseable — judged after the association is negotiated), `XPE_ERR_BUFFER_TOO_SMALL` (nothing is written to `outJson`)
+
+---
+
+### 11.10 xpe_dicom_cancel
+
+```c
+XPE_API void xpe_dicom_cancel(void);
+```
+
+**Description**: Signals cancellation to an in-progress C-STORE or C-FIND. Thread-safe, callable from any thread, a no-op if nothing is running. The cancel flag is cleared on entry to `xpe_dicom_cstore` and `xpe_dicom_cfind_mwl`, so calling it before an operation does not pre-cancel it; it takes effect only when set during a running operation, and is observed before connecting and just after the association is established. A cancelled operation returns `XPE_ERR_PROCESSING_FAILED`.
+
+### 11.11 xpe_dicom_version
+
+```c
+XPE_API const char* xpe_dicom_version(void);
+```
+
+**Description**: Returns the module version as a null-terminated string with process lifetime; never NULL (REQ-P0-033, added 2026-10-03).
 
 ---
 
@@ -1747,10 +1866,8 @@ XPE uses an **explicit-path API pattern**: all file and directory operations req
 | `xpe_calib_load_defect_map` | `filePath` | input calibration | `"C:\\data\\calib\\defect_map.xpe_calib"` |
 | `xpe_calib_save` | `filePath` | output calibration | `"C:\\data\\calib\\offset_generated.xpe_calib"` |
 | `xpe_calib_check_expiry` | `filePath` | input calibration | `"C:\\data\\calib\\offset_2024.xpe_calib"` |
-| `xpe_dicom_read` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
+| `xpe_dicom_open` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
 | `xpe_dicom_write` | `filePath` | output DICOM | `"C:\\processed\\patient_001_xpe.dcm"` |
-| `xpe_dicom_read_tag_string` | `filePath` | input DICOM | `"C:\\clinical\\patient_001.dcm"` |
-| `xpe_dicom_set_tag_string` | `filePath` | input/output DICOM | `"C:\\processed\\patient_001.dcm"` |
 | `xpe_dicom_cstore` | `filePath` | input DICOM | `"C:\\processed\\patient_001.dcm"` |
 | `xpe_dicom_write_j2k` | `filePath` | output DICOM | `"C:\\processed\\lossless.dcm"` |
 | `xpe_ai_init` | `modelDirPath` | input directory | `"C:\\data\\models\\"` |

@@ -1,0 +1,14 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation [1 m 31 s]
+ config: runs=10 copy=True affinity=1 watchMs=8000 logicalCpus=20
+ run | handle ms | first reply ms | longest blocked ms | total blocked ms | FromHandle timeouts | first FromHandle ok at ms | first attempt ok?
+   1 |       464 |            469 |                430 |              430 |                   0 |                       940 | True
+   2 |       506 |            989 |                482 |              482 |                   0 |                      1009 | True
+   3 |       507 |            902 |                395 |              395 |                   0 |                       967 | True
+   4 |       508 |            984 |                476 |              476 |                   0 |                      1086 | True
+   5 |      1237 |           1712 |                474 |              474 |                   0 |                      1821 | True
+   6 |       505 |            975 |                470 |              470 |                   0 |                      1076 | True
+   7 |       502 |            503 |                438 |              438 |                   0 |                       985 | True
+   8 |       500 |            970 |                470 |              470 |                   0 |                      1066 | True
+   9 |       499 |            500 |                468 |              468 |                   0 |                       986 | True
+  10 |       512 |           1002 |                490 |              490 |                   0 |                      1094 | True
+ summary: runs=10 firstFromHandleFailed=0 maxLongestBlockedMs=490 medianLongestBlockedMs=470 medianFirstReplyMs=975 medianHandleMs=506

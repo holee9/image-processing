@@ -1,0 +1,20 @@
+GUI-C-228e doc_delta -- the 007 row ONLY, as a difference on top of GUI-C-228d/doc_delta.txt (apply 228b, 228c, 228d, then this). 008, AC-8 and all totals are unchanged
+(구현됨 25 / 구현됨(한계 있음) 8 / 부분 0 / 보류 3 = 36).
+
+What the document may claim is what the tests detect: metadata references (proven, run-order independent) and the use of dynamic-load / reflection-creation APIs on EVERY line of EVERY source compiled into the test assembly, read from the PDB (linked and generated sources included). No line is classified or skipped; false alarms are an exact allow-list of 4 lines.
+
+== RTM-GUI-001 row for REQ-GUI-IT-007 (the Test column of the 228d AFTER row)
+
+BEFORE (the AFTER of 228d):
+`MockBlockingStaticTests.EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList` + 패턴표·허용 목록·통제 데이터 `Resources/forbidden-reflection-apis.json`(컴파일되지 않음) (통제: `ThisFile_IsScanned_LikeEveryOtherCsFile`, `EveryPattern_MatchesItsControlLines`, `TheCommentRule_SkipsOnlyWholeLineComments_AndNeverHidesACallOnTheSameLine`)<br>*한계: ... 시험 프로젝트의 모든 .cs(검사 파일 자신 포함, 예외 구간 없음)에서 금지하고, 정확한 줄 단위 허용 목록 3개만 둔다 ... 줄 전체가 주석인 줄만 스캔에서 빠지고, 문자열과 줄 끝 주석은 스캔한다(따옴표가 든 주석 줄도 스캔 — 오탐은 허용 목록). 소스 스캔이 못 보는 형태 — 다른 어셈블리를 거친 간접 호출, 코드 생성, 표에 없는 API, 경로로 올리는 네이티브 라이브러리, 따옴표 없이 주석처럼 보이는 여러 줄 문자열의 줄 — 는 증명하지 않는다. ...*
+
+AFTER:
+`MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList` + 패턴표·허용 목록·통제 데이터 `Resources/forbidden-reflection-apis.json`(컴파일되지 않음) (통제: `TheCompiledSourceList_HoldsThisFile_ALinkedAppSource_AGeneratedSource_AndEveryCompileItem`, `ThePdbReader_FailsWhenThereIsNoPdb`, `ThisFile_IsScannedInFull_AndHoldsNoPattern`, `EveryPattern_MatchesItsControlLines`, `NoLineIsExcluded_ByCommentOrByAnythingElse`)<br>*한계: 메타데이터 참조가 0임은 실행 순서와 무관하게 단언한다. 동적 로드·리플렉션 생성 API(`AssemblyLoadContext`, `Assembly.Load*`, `Type.GetType`, 인수가 있는 `.GetType(`, `Activator`, `CreateInstance*`, `ConstructorInfo`·`MethodInfo`·`MethodBase`, `GetConstructor(s)`·`GetMethod(s)`·`GetMember(s)`, `InvokeMember`, `DynamicInvoke`, `CreateDelegate`, `DynamicMethod`, `ILGenerator`, `Expression.Lambda/New/Call/Invoke` 등)의 사용은 인수 모양과 무관하게, 시험 어셈블리에 실제로 컴파일된 모든 소스(어셈블리 PDB 의 Document 목록 — 직접 쓴 소스, 프로젝트 밖에서 링크한 앱 소스, 생성 소스 포함)의 모든 줄에서 금지한다. 줄 제외는 없고(주석·문자열도 스캔), 오탐은 파일 + 줄 전체 일치의 허용 목록 4줄로 처리한다(각 줄에 앱 어셈블리를 올리지 않는 이유를 데이터 파일에 적음). 소스 스캔이 못 보는 형태 — 표에 없는 API, 다른 어셈블리를 거친 호출, 실행 중 생성되는 코드, 경로로 올리는 네이티브 라이브러리 — 는 증명하지 않는다. "Mock 폴백은 시험 실패로 본다"는 시험이 폴백 경로를 갖지 않음(통합 시험은 P/Invoke 미러를 직접 부름)으로 충족된다*
+
+== SPEC-XPE-GUI-IT §4.6 limit table, row 007
+
+BEFORE (the AFTER of 228d):
+| 007 | 메타데이터 참조 0 은 실행 순서와 무관하게 단언한다. 동적 로드·리플렉션 생성 API 의 사용은 시험 프로젝트의 모든 .cs 를 예외 없이 스캔해 금지하고(줄 전체가 주석인 줄만 제외, 문자열·줄 끝 주석은 스캔, 오탐은 허용 목록 3줄), 스캔이 못 보는 형태(다른 어셈블리를 거친 간접 호출, 코드 생성, 표에 없는 API, 경로로 올리는 네이티브 라이브러리)는 증명하지 않는다 |
+
+AFTER:
+| 007 | 메타데이터 참조 0 은 실행 순서와 무관하게 단언한다. 동적 로드·리플렉션 생성 API 의 사용은 시험 어셈블리에 실제로 컴파일된 모든 소스(PDB 의 Document 목록, 링크·생성 소스 포함)의 모든 줄을 스캔해 금지하고(줄 제외 없음, 오탐은 허용 목록 4줄), 스캔이 못 보는 형태(표에 없는 API, 다른 어셈블리를 거친 호출, 실행 중 코드 생성, 경로로 올리는 네이티브 라이브러리)는 증명하지 않는다 |

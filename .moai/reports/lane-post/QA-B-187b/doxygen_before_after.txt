@@ -1,0 +1,17 @@
+# doxygen 1.12.0 (same version as the CI job: ssciwr/doxygen-install version 1.12.0), run exactly as the job does:
+#   git clone --depth 1 https://github.com/jothepro/doxygen-awesome-css.git docs/help/doxygen/doxygen-awesome; mkdir -p docs/help/generated/doxygen; (cd docs/help/doxygen && doxygen Doxyfile)
+# binary: https://www.doxygen.nl/files/doxygen-1.12.0.windows.x64.bin.zip  sha256 07f1c92cbbb32816689c725539c0951f92c6371d3d7f66dfa3192cbe88dd3138 (downloaded into build/tools, not installed, not committed)
+
+== BEFORE (HEAD 9fc47dd9): exit=1
+Generating code for file modules/common/include/xpe/common/xpe_error.h.D:/workspace-github/xpe-post/modules/dicom/include/xpe/dicom/dicom_api.h:200: error: end of comment block while expecting command </b>
+Generating docs for compound xpe::ai::TensorMetamodules/dicom/include/xpe/dicom/dicom_api.h:200: error: end of comment block while expecting command </b>
+
+== AFTER (this commit): exit=0, lines matching (warning|error): 0
+dicom_api.h was parsed in the run: 5 log lines mention it
+tail:
+type lookup cache used 588/65536 hits=2501 misses=591
+symbol lookup cache used 765/65536 hits=7629 misses=765
+finished...
+
+== tools/docs/check_header_docs.py:
+-- 20 headers, 0 declarations skipped as unparseable, 0 findings

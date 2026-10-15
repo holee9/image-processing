@@ -1,0 +1,101 @@
+"""QA-B-199: machine-check an audit result (agent_<SPEC>.json) against the files it cites.
+
+Run from the repository root:  python .moai/reports/lane-post/QA-B-199/verify_script.txt <json> <module>
+For every test the audit cites: the file exists, and the quoted text is found on the cited line or within 2 lines of it.
+For every "impl" file:line: the file exists and the line number is inside the file.
+For every header_promises quote: found in the cited file within 2 lines (after whitespace normalisation).
+A finding whose evidence fails is listed; the audit's verdict for it is then NOT used.
+The control: a deliberately wrong quote is checked and must be rejected.
+"""
+import json, os, re, sys
+
+path, module = sys.argv[1], sys.argv[2]
+data = json.load(open(path, encoding='utf-8'))
+ROOT = os.getcwd()
+
+
+def resolve(f):
+    f = f.replace('\\', '/')
+    for base in ('', 'modules/%s/tests/' % module, 'modules/%s/src/' % module, 'modules/%s/include/xpe/%s/' % (module, module),
+                 'modules/%s/' % module):
+        p = os.path.join(ROOT, base + f)
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def norm(s):
+    return re.sub(r'\s+', ' ', s).strip()
+
+
+def lines_of(p, cache={}):
+    if p not in cache:
+        cache[p] = open(p, encoding='utf-8', errors='replace').read().split('\n')
+    return cache[p]
+
+
+def quote_ok(f, line, quote):
+    p = resolve(f)
+    if not p or not quote:
+        return False, 'file not found' if not p else 'empty quote'
+    L = lines_of(p)
+    lo, hi = max(1, int(line) - 2), min(len(L), int(line) + 2)
+    window = norm(' '.join(re.sub(r'^\s*(?:/\*+|\*+/?|//+)\s?', '', x) for x in L[lo - 1:hi]))
+    q = norm(re.sub(r'(?m)^\s*(?:/\*+|\*+/?|//+)\s?', '', quote))
+    return (q in window), 'not found within 2 lines of %s' % line
+
+
+# control
+ctl_file = None
+for r in data.get('reqs', []):
+    for t in r.get('tests', []):
+        if resolve(t['file']):
+            ctl_file = t
+            break
+    if ctl_file:
+        break
+ok_real, _ = quote_ok(ctl_file['file'], ctl_file['line'], ctl_file['quote'])
+ok_fake, _ = quote_ok(ctl_file['file'], ctl_file['line'], 'THIS TEXT IS NOT IN ANY FILE 9f3a1c')
+print('control: a real quote is accepted: %s; a fake quote is rejected: %s' % (ok_real, not ok_fake))
+
+bad, n_quotes, n_impl = [], 0, 0
+for r in data.get('reqs', []):
+    for t in r.get('tests', []):
+        n_quotes += 1
+        ok, why = quote_ok(t['file'], t['line'], t['quote'])
+        if not ok:
+            bad.append((r['id'], 'test %s:%s' % (t['file'], t['line']), why, (t.get('quote') or '')[:80]))
+    impl = r.get('impl')
+    if impl:
+        n_impl += 1
+        m = re.match(r'(.+?):(\d+)', impl)
+        if not m:
+            bad.append((r['id'], 'impl %s' % impl, 'no file:line', ''))
+        else:
+            p = resolve(m.group(1))
+            if not p or int(m.group(2)) > len(lines_of(p)):
+                bad.append((r['id'], 'impl %s' % impl, 'file or line missing', ''))
+nh = 0
+for h in data.get('header_promises', []):
+    nh += 1
+    f = h.get('file') or h.get('where') or ''
+    ln = h.get('line')
+    q = h.get('quote') or h.get('sentence') or ''
+    m = re.match(r'(.+?):(\d+)', str(h.get('where', '')))
+    if m:
+        f, ln = m.group(1), m.group(2)
+    if f and ln and q:
+        ok, why = quote_ok(f, ln, q)
+        if not ok:
+            bad.append(('header_promise', '%s:%s' % (f, ln), why, q[:80]))
+print('requirements: %d; test quotes checked: %d; impl citations checked: %d; header promises: %d'
+      % (len(data.get('reqs', [])), n_quotes, n_impl, nh))
+print('FAILED evidence: %d' % len(bad))
+cats = {'test quote': [b for b in bad if b[1].startswith('test ')],
+        'impl line outside the file': [b for b in bad if b[1].startswith('impl') and b[2] == 'file or line missing'],
+        'impl is a statement, not file:line': [b for b in bad if b[1].startswith('impl') and b[2] == 'no file:line'],
+        'header promise quote': [b for b in bad if b[0] == 'header_promise']}
+for k, v in cats.items():
+    print('  %-36s %d' % (k, len(v)))
+for b in bad:
+    print('  ', b)

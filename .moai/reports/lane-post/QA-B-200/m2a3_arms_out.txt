@@ -1,0 +1,41 @@
+=== ARM mismatch_never_alerts
+red tests: DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM tolerance_ignored_so_rounding_alerts
+red tests: DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM tolerance_too_wide_so_conflicts_pass
+red tests: DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM is_accepts_a_valid_prefix
+red tests: DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed, DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix, DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM is_range_not_checked
+red tests: DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM is_length_not_checked
+red tests: DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM is_padding_not_trimmed
+red tests: (none)
+RESULT: DID NOT FIRE  (expected red: 1, red: 0, not red: ['AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix'])
+restored byte-identical: True
+=== ARM multi_valued_attribute_accepted
+red tests: DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM version_returns_empty
+red tests: DicomModuleVersion.TheModuleExportsAVersionStringLikeTheOtherModules
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM version_not_semver
+red tests: DicomModuleVersion.TheModuleExportsAVersionStringLikeTheOtherModules
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

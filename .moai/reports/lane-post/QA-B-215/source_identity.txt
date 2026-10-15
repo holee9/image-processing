@@ -1,0 +1,9 @@
+enhance_basic source tree at CI commit 39f9727a vs this branch HEAD:
+a641739943ee1df29231ca59faf773740ad4c5ac
+a641739943ee1df29231ca59faf773740ad4c5ac
+git diff --stat 39f9727a HEAD -- modules/enhance_basic (empty = identical):
+[end]
+
+control for the empty diff (a directory that DOES differ):
+ modules/common/src/xpe_logging.cpp            | 13 +++----------
+ 4 files changed, 3 insertions(+), 25 deletions(-)

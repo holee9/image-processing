@@ -1,0 +1,26 @@
+== W15 arm 1: Thread.Sleep(500) in RealXpeBackend.LoadRawImage (reading the file)
+   build rc=0
+   open-to-picture #1: 1747 ms = read 834 + prepare 26 + chain-and-display 633 [preprocess=247 ms, enhance_basic=254 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 252
+   open-to-picture #2: 1675 ms = read 808 + prepare 2 + chain-and-display 627 [preprocess=251 ms, enhance_basic=268 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 238
+   open-to-picture #3: 1674 ms = read 809 + prepare 2 + chain-and-display 615 [preprocess=247 ms, enhance_basic=261 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 248
+   open-to-picture #4: 1671 ms = read 808 + prepare 1 + chain-and-display 621 [preprocess=261 ms, enhance_basic=251 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 241
+   open-to-picture #5: 1732 ms = read 837 + prepare 2 + chain-and-display 645 [preprocess=278 ms, enhance_basic=245 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 248
+   totals (ms): 1747, 1675, 1674, 1671, 1732; median 1675 ms (limit 3000 ms, PERF-P1-001; this machine, an upper-bound estimate for CI)
+   restored gui/ImageProcTest/Services/RealXpeBackend.cs: True
+== W15 arm 2: Thread.Sleep(500) in ImageComparisonViewport.OnRender (rendering)
+   build rc=0
+   open-to-picture #1: 2756 ms = read 332 + prepare 27 + chain-and-display 627 [preprocess=237 ms, enhance_basic=259 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 1768
+   open-to-picture #2: 2708 ms = read 306 + prepare 2 + chain-and-display 628 [preprocess=240 ms, enhance_basic=250 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 1772
+   open-to-picture #3: 2693 ms = read 303 + prepare 1 + chain-and-display 623 [preprocess=227 ms, enhance_basic=245 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 1765
+   open-to-picture #4: 2688 ms = read 306 + prepare 1 + chain-and-display 585 [preprocess=223 ms, enhance_basic=233 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 1795
+   open-to-picture #5: 2636 ms = read 303 + prepare 1 + chain-and-display 584 [preprocess=229 ms, enhance_basic=226 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 1747
+   totals (ms): 2756, 2708, 2693, 2688, 2636; median 2693 ms (limit 3000 ms, PERF-P1-001; this machine, an upper-bound estimate for CI)
+   restored gui/ImageProcTest/Controls/ImageComparisonViewport.cs: True
+   rebuild after restore rc=0
+== W14 arm: the chain status says Done instead of Applied in the app AND on the page (they agree with each other)
+   build rc=0
+   page occurrences changed: 1
+   W14: Failed; timed out (180 s) waiting for: opening the image already ran the preprocessing, as the page says
+   restored the packaged page: True
+   restored gui/ImageProcTest/Models/ProcessingChain.cs: True
+   rebuild after restore rc=0

@@ -1,0 +1,79 @@
+# GUI-C-208 M1 falsification arms: each edits ONE declaration in a C# copy, rebuilds the test project, runs the three EveryDeclaration cases, restores byte-identical.
+
+## arm mirror: xpe_configure's string is marshalled as LPWStr
+build ok: True
+   green (copyName: "gui")
+   RED   (copyName: "mirror")
+      xpe_configure: parameter 1 'configJson' (header 'jsonConfig'): marshals as UnmanagedType.LPWStr, the header's const char* is an ANSI string (LPStr)
+   green (copyName: "app")
+restored byte-identical: True
+
+## arm mirror: xpe_clear_alerts becomes StdCall
+build ok: True
+   green (copyName: "gui")
+   RED   (copyName: "mirror")
+      xpe_clear_alerts: calling convention is StdCall, the header's functions are cdecl (no __stdcall)
+   green (copyName: "app")
+restored byte-identical: True
+
+## arm mirror: XPE_PIXEL_UINT8 is 3 instead of 2
+build ok: True
+   green (copyName: "gui")
+   RED   (copyName: "mirror")
+      enum XpePixelFormat: has value(s) 3 the header's XpePixelFormat does not
+      enum XpePixelFormat: lacks value(s) 2 the header's XpePixelFormat has
+   green (copyName: "app")
+restored byte-identical: True
+
+## arm mirror: XpeImageBuffer.BitsStored is int instead of uint
+build ok: False
+restored byte-identical: True
+
+## arm mirror: xpe_get_pending_alert's index is uint instead of int (the argument-type arm the card names)
+build ok: False
+restored byte-identical: True
+
+## arm app wrapper: xpe_alloc_image's height is int instead of uint
+build ok: True
+   green (copyName: "gui")
+   green (copyName: "mirror")
+   RED   (copyName: "app")
+      xpe_alloc_image: parameter 2 'height' (header 'height'): is int (i32), the header has uint32_t (u32)
+restored byte-identical: True
+
+## arm app wrapper: xpe_log_flush renamed (header-only AND copy-only)
+build ok: True
+   green (copyName: "gui")
+   green (copyName: "mirror")
+   RED   (copyName: "app")
+      xpe_log_flush_renamed is declared here but the header has no such function
+      xpe_log_flush is in the header but this copy does not bind it (and it is not in the allow-list)
+restored byte-identical: True
+
+## arm gui copy: xpe_get_pending_alert's severity is out uint
+build ok: True
+   RED   (copyName: "gui")
+      xpe_get_pending_alert: parameter 4 'severity' (header 'severity'): points to uint (u32), the header points to int32_t* (i32)
+   green (copyName: "mirror")
+   green (copyName: "app")
+restored byte-identical: True
+
+## arm gui copy: XpeImageBufferNative.DataSize is ulong instead of UIntPtr
+build ok: True
+   RED   (copyName: "gui")
+      struct XpeImageBufferNative field 7 'DataSize': is ulong (u64), the header has size_t (usize)
+   green (copyName: "mirror")
+   green (copyName: "app")
+restored byte-identical: True
+
+final rebuild ok: True
+
+## arm mirror: xpe_get_param_range's minValue is out double instead of out float (a pointer-to-scalar width arm that compiles)
+build ok: True
+   green (copyName: "gui")
+   RED   (copyName: "mirror")
+      xpe_get_param_range: parameter 3 'minValue' (header 'minVal'): unknown C# type 'double'
+   green (copyName: "app")
+restored byte-identical: True
+
+final rebuild ok: True

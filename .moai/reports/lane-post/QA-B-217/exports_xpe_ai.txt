@@ -1,0 +1,48 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\workspace-github\xpe-post\build\s217\post\xpe_ai.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_ai.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          17 number of functions
+          17 number of names
+
+    ordinal hint RVA      name
+
+          1    0 000056AA xpe_ai_get_model_card = @ILT+18085(xpe_ai_get_model_card)
+          2    1 00005943 xpe_ai_init = @ILT+18750(xpe_ai_init)
+          3    2 00003C29 xpe_ai_set_fallback_mode = @ILT+11300(xpe_ai_set_fallback_mode)
+          4    3 000014AB xpe_ai_shutdown = @ILT+1190(xpe_ai_shutdown)
+          5    4 000049E4 xpe_ai_test_set_after_verify_hook = @ILT+14815(xpe_ai_test_set_after_verify_hook)
+          6    5 0000431D xpe_ai_test_set_before_file_read_hook = @ILT+13080(xpe_ai_test_set_before_file_read_hook)
+          7    6 00002F90 xpe_ai_test_set_before_state_delete_hook = @ILT+8075(xpe_ai_test_set_before_state_delete_hook)
+          8    7 0000458E xpe_ai_test_set_log_capture = @ILT+13705(xpe_ai_test_set_log_capture)
+          9    8 00004A2A xpe_ai_test_set_mutex_held_hook = @ILT+14885(xpe_ai_test_set_mutex_held_hook)
+         10    9 0000308A xpe_ai_test_set_worker_path_hook = @ILT+8325(xpe_ai_test_set_worker_path_hook)
+         11    A 0000330F xpe_ai_version = @ILT+8970(xpe_ai_version)
+         12    B 00004133 xpe_ai_worker_state = @ILT+12590(xpe_ai_worker_state)
+         13    C 000027AC xpe_bodypart_recognize = @ILT+6055(xpe_bodypart_recognize)
+         14    D 00002AD6 xpe_bone_suppress = @ILT+6865(xpe_bone_suppress)
+         15    E 0000120D xpe_dl_denoise = @ILT+520(xpe_dl_denoise)
+         16    F 0000337D xpe_stitch_estimate_size = @ILT+9080(xpe_stitch_estimate_size)
+         17   10 00003805 xpe_stitch_images = @ILT+10240(xpe_stitch_images)
+
+  Summary
+
+        1000 .00cfg
+        2000 .data
+        5000 .idata
+        9000 .pdata
+       21000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       EF000 .text
+        1000 .tls

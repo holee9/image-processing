@@ -1,0 +1,198 @@
+# QA-B-189 part 2: recount the rows of RTM-DICOM-001 with a script and set them beside the totals the document states.
+# Run from the repo root:  PYTHONIOENCODING=utf-8 python <this file> > rtm_recount_out.txt
+# (the file is kept as .txt because .gitignore excludes .py under .moai/reports)
+import re
+import sys
+
+P = 'docs/dicom/RTM-DICOM-001_Requirements_Traceability_Matrix.md'
+lines = open(P, encoding='utf-8').read().split('\n')
+
+# ---- 1. split into tables; a table = consecutive '|' lines; its first line is the header unless it is a continuation
+tables = []
+cur = None
+sec = None
+for i, ln in enumerate(lines, 1):
+    if ln.startswith('#'):
+        sec = ln.lstrip('#').strip()
+    if ln.startswith('|'):
+        cells = [c.strip().replace('**', '') for c in ln.strip().strip('|').split('|')]
+        if cur is None:
+            cur = {'sec': sec, 'start': i, 'header': cells, 'rows': [], 'sep': False}
+            tables.append(cur)
+            if re.match(r'\**(FR|SR)-DCM-', cells[0]):   # a continuation of a split table: its first line is data
+                cur['rows'].append((i, cells))
+                cur['header'] = ['SRS ID (Safety)']
+                cur['sep'] = True
+        elif all(re.fullmatch(r':?-+:?', c) for c in cells if c) and not cur['sep']:
+            cur['sep'] = True
+        else:
+            cur['rows'].append((i, cells))
+    else:
+        cur = None
+
+ID_RE = re.compile(r'\b(FR-DCM-\d+|SR-DCM-\d+)\b')
+RANGE_RE = re.compile(r'FR-DCM-(\d+)~(\d+)')
+
+
+def idx(t, name):
+    for k, h in enumerate(t['header']):
+        if name in h:
+            return k
+    return None
+
+
+def by_start(n):
+    return [t for t in tables if t['start'] == n][0]
+
+
+def tick(cells):
+    return cells[-1] if cells else ''
+
+
+out = []
+
+
+def say(s=''):
+    out.append(s)
+
+
+# ---- 2. every table's rows, every row classified (FR / SR / other) --------------------------------------------------
+say('== A. Every table: data rows, classified by the SRS ID column (no row left unclassified)')
+say('%-6s %-44s %5s %4s %4s %5s %6s  %s' % ('line', 'section', 'rows', 'FR', 'SR', 'other', 'ticked', 'unique-IDs'))
+classified = {}
+for t in tables:
+    k = None
+    for cand in ('SRS ID', 'SRS ID (Safety)'):
+        k = idx(t, cand)
+        if k is not None:
+            break
+    fr = sr = oth = tk = 0
+    ids = []
+    for lno, c in t['rows']:
+        cell = c[k] if (k is not None and k < len(c)) else ''
+        m = ID_RE.search(cell) or RANGE_RE.search(cell)
+        if m and cell.startswith('FR-DCM'):
+            fr += 1
+            cls = 'FR'
+        elif m and cell.startswith('SR-DCM'):
+            sr += 1
+            cls = 'SR'
+        else:
+            oth += 1
+            cls = 'other'
+        classified[(t['start'], lno)] = cls
+        if tick(c).startswith('✓'):
+            tk += 1
+        ids.append(cell)
+    t['fr'], t['sr'], t['oth'], t['tk'] = fr, sr, oth, tk
+    t['ids'] = ids
+    say('L%-5d %-44s %5d %4d %4d %5d %6d  %d' % (t['start'], (t['sec'] or '')[:44], len(t['rows']), fr, sr, oth, tk, len(set(ids))))
+say('rows without a tick in the last column:')
+for t in tables:
+    for lno, c in t['rows']:
+        if t['fr'] + t['sr'] and not tick(c).startswith('✓') and (ID_RE.search(c[0]) or RANGE_RE.search(c[0]) or len(c) > 3 and ID_RE.search(c[2])):
+            say('  L%d %s' % (lno, [x[:30] for x in c]))
+n_rows = sum(len(t['rows']) for t in tables)
+n_class = len(classified)
+say('control: rows %d, classified %d, unclassified %d' % (n_rows, n_class, n_rows - n_class))
+assert n_rows == n_class, 'a row escaped classification'
+
+# ---- 3. the totals the document states -------------------------------------------------------------------------------
+say()
+say('== B. Stated coverage lines ("**커버리지**: a/b") against the row count of the table just above them')
+stated = []
+for i, ln in enumerate(lines, 1):
+    m = re.match(r'\*\*커버리지\*\*: (\d+)/(\d+)', ln)
+    if m:
+        above = [t for t in tables if t['start'] < i][-1]
+        stated.append((i, int(m.group(1)), int(m.group(2)), above))
+say('%-6s %-9s %-34s %s' % ('line', 'stated', 'table above (start line, section)', 'rows | FR | SR  -> verdict'))
+for i, a, b, t in stated:
+    rows = len(t['rows'])
+    ok = (a == b == rows)
+    say('L%-5d %d/%-6d L%d %-30s %d | %d | %d  -> %s' % (i, a, b, t['start'], (t['sec'] or '')[:30], rows, t['fr'], t['sr'],
+                                                          'match' if ok else 'MISMATCH (rows %d)' % rows))
+
+# ---- 4. SRS universe: unique requirement IDs, taken from the PRD->SRS tables ----------------------------------------
+say()
+say('== C. Requirement universe from section 2 (PRD -> SRS)')
+sec2 = [t for t in tables if (t['sec'] or '').startswith('2.')]
+universe = {}
+for t in sec2:
+    k = idx(t, 'SRS ID')
+    for lno, c in t['rows']:
+        universe.setdefault(c[k], []).append(lno)
+fr_u = sorted(x for x in universe if x.startswith('FR-DCM'))
+sr_u = sorted(x for x in universe if x.startswith('SR-DCM'))
+dup = {k: v for k, v in universe.items() if len(v) > 1}
+say('FR IDs in section 2: %d unique (%d rows); SR IDs in section 2: %d; duplicated IDs: %s' %
+    (len(fr_u), sum(len(universe[x]) for x in fr_u), len(sr_u), dup or 'none'))
+swu_of = {'1': 'SWU-4.1', '2': 'SWU-4.2', '3': 'SWU-4.3', '4': 'SWU-4.4'}
+per_swu = {}
+for x in fr_u:
+    per_swu.setdefault(swu_of[x.split('-')[2][0]], []).append(x)
+say('FR per SWU by section-2 table: ' + ', '.join('%s=%d' % (k, len(v)) for k, v in sorted(per_swu.items())))
+for t in sec2:
+    say('  L%d %s: %d rows, FR %d, SR %d, other %d' % (t['start'], t['sec'][:40], len(t['rows']), t['fr'], t['sr'], t['oth']))
+
+# ---- 5. 3.1 ranges expanded against the universe -------------------------------------------------------------------
+say()
+say('== D. Section 3.1 ranges against the universe')
+t31 = [t for t in tables if (t['sec'] or '').startswith('3.1')][0]
+cov = set()
+for lno, c in t31['rows']:
+    m = RANGE_RE.search(c[0])
+    lo, hi = int(m.group(1)), int(m.group(2))
+    inside = [x for x in fr_u if lo <= int(x.split('-')[2]) <= hi]
+    cov.update(inside)
+    say('  L%d %s: %d IDs of the universe fall in %d..%d (range spans %d numbers)' % (lno, c[0], len(inside), lo, hi, hi - lo + 1))
+say('  universe FR %d, covered by the ranges %d, uncovered %s' % (len(fr_u), len(cov), sorted(set(fr_u) - cov) or 'none'))
+
+# ---- 6. safety requirement IDs through SAD / SHA / Test --------------------------------------------------------------
+say()
+say('== E. Safety requirement IDs')
+sr32 = sorted(set(x.split()[0] for t in tables if (t['sec'] or '').startswith('3.2') for x in t['ids']))
+sr41 = [x for t in tables if (t['sec'] or '').startswith('4.1') for x in t['ids']]
+sr52 = [x for t in tables if (t['sec'] or '').startswith('5.2') for x in t['ids']]
+say('3.2 (SAD)  : %d rows, %d unique IDs' % (len([1 for t in tables if (t['sec'] or '').startswith('3.2') for _ in t['ids']]), len(sr32)))
+say('4.1 (SHA)  : %d rows, %d unique IDs %s; missing from SHA table: %s' % (len(sr41), len(set(sr41)), sorted(set(sr41)), sorted(set(sr32) - set(sr41)) or 'none'))
+say('5.2 (Test) : %d rows over %d tables (the table is split by a blockquote), %d unique IDs; missing: %s' %
+    (len(sr52), len([t for t in tables if (t['sec'] or '').startswith('5.2')]), len(set(sr52)), sorted(set(sr32) - set(sr52)) or 'none'))
+
+# ---- 7. 5.1 test table against the universe ---------------------------------------------------------------------------
+say()
+say('== F. Section 5.1 (FR -> Test) against the universe')
+t51 = [t for t in tables if (t['sec'] or '').startswith('5.1')][0]
+ids51 = [c[0] for _, c in t51['rows']]
+say('rows %d, unique FR IDs %d, universe FR %d, FR without a test row: %s, test rows for an ID outside the universe: %s' %
+    (len(ids51), len(set(ids51)), len(fr_u), sorted(set(fr_u) - set(ids51)) or 'none', sorted(set(ids51) - set(fr_u)) or 'none'))
+tcs = [c[2] for _, c in t51['rows']]
+say('Test Case IDs: %d unique of %d; duplicated: %s' % (len(set(tcs)), len(tcs), sorted(x for x in set(tcs) if tcs.count(x) > 1) or 'none'))
+
+# ---- 8. what the totals should read --------------------------------------------------------------------------------
+say()
+say('== G. Totals as the document states them, beside the recount (the count of record is the unique-ID count)')
+fr_total = len(fr_u)
+sr_total = len(sr32)
+swu_fr = {k: len(v) for k, v in per_swu.items()}
+rows = [
+    ('2.1 coverage line', '21/21', '%d/%d' % (len(by_start(51)['rows']), len(by_start(51)['rows']))),
+    ('2.2 coverage line', '17/17', '%d/%d' % ((len([t for t in sec2 if t['sec'].startswith('2.2')][0]['rows']),) * 2)),
+    ('6.1 PRD->SRS', '56', str(fr_total)),
+    ('6.1 SRS->SAD', '56', '%d FR covered by 3.1 ranges' % len(cov)),
+    ('6.1 SRS->SHA', '8', '%d unique SR in 4.1' % len(set(sr41))),
+    ('6.1 SRS->Test', '67', '%d FR + %d SR = %d' % (len(set(ids51)), len(set(sr52)), len(set(ids51)) + len(set(sr52)))),
+    ('5.1 coverage line', '59/59', '%d/%d' % (len(ids51), len(ids51))),
+    ('6.2 SWU-4.1 FR', '20', str(swu_fr.get('SWU-4.1'))),
+    ('6.2 SWU-4.2 FR', '17', str(swu_fr.get('SWU-4.2'))),
+    ('6.2 SWU-4.3 FR', '6', str(swu_fr.get('SWU-4.3'))),
+    ('6.2 SWU-4.4 FR', '13', str(swu_fr.get('SWU-4.4'))),
+    ('6.2 FR total', '56', str(sum(swu_fr.values()))),
+    ('6.2 SR total', '16', '%d unique SR (the document gives no per-SWU SR mapping to recount)' % sr_total),
+    ('6.3 Traced', '72', 'FR %d + SR %d = %d' % (fr_total, sr_total, fr_total + sr_total)),
+]
+say('%-22s %-10s %s' % ('item', 'stated', 'recount'))
+for a, b, c in rows:
+    say('%-22s %-10s %s' % (a, b, c))
+
+sys.stdout.write('\n'.join(out) + '\n')

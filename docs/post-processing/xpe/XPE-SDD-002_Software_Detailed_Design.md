@@ -727,42 +727,56 @@ Key difference from MFP:
 
 #### DLL API
 
+> **정정 2026-10-02 (`QA-B-191`, `#130`)** — 이 절의 이전 설계(함수 이름 `xpe_recognize_bodypart`, 224×224 입력,
+> [0, 1] 정규화, 문턱 0.95, 모듈 안의 DICOM 태그 (0018,0015) fallback)는 구현과 달라 아래로 바꿨다. 문턱은
+> SPEC `REQ-AI-012`·`srs_ai.md` REQ-AI-FB-001·코드가 일치하는 0.6 을 따른다. 시험은 장난감 모델로 **배선**만
+> 증명하며, 실제 부위 인식 모델·정확도(`SRS-FUNC-016`)·지연은 측정되지 않았다.
+
 ```cpp
-// xpe_ai.dll export (proxy to xpe_ai_worker.exe)
-XPE_API XpeErrorCode xpe_recognize_bodypart(
-    const XpeImageBuffer* input,
-    char*                 bodyPartOut,    // buffer >= 64 chars
-    size_t                bodyPartLen,
-    float*                confidence);
+// xpe_ai.dll export (opt-in: use_worker 일 때 xpe_ai_worker.exe 에서 추론)
+XPE_API XpeErrorCode xpe_bodypart_recognize(
+    const XpeImageBuffer* img,
+    char*                 bodyPartOut,    // 권장 >= 64 bytes
+    size_t                bufLen,
+    float*                confidenceOut);
 ```
 
 #### Pseudocode
 
 ```
-1. Resize input to 224x224 (MobileNet-v3 input size)
-2. Normalize to [0, 1] range
-3. Run ONNX inference via xpe_ai_worker.exe (IPC)
-4. Argmax over 15+ categories
-5. IF confidence >= 0.95:
-     bodyPartOut = predicted_category
-   ELSE:
-     bodyPartOut = DICOM tag (0018,0015) fallback
+1. 모델: {modelDir}/bodypart.onnx + 라벨 사이드카 {modelDir}/bodypart.json
+   (라벨은 64 바이트 미만, 인쇄 가능한 ASCII 0x20-0x7E 중 " 와 \ 제외)
+2. 모델이 선언한 입력 크기로 맞춘다 — [1,1,H,W] 또는 [1,H,W,1], 1 <= H,W <= 4096
+   (줄일 때 면적 평균, 키울 때 선형 보간, 같은 크기면 그대로)
+3. 강도 정규화는 하지 않는다 — 호출자가 모델이 학습한 스케일로 화소를 준다. FLOAT32 만 받는다
+4. ONNX 추론 (기본: 프로세스 안, use_worker: true 이면 워커 프로세스)
+5. 출력 판정: 유한 -> 모든 값이 [0, 1] -> 최대 클래스 (동점이면 첫 클래스). 소프트맥스는 모델 몫
+6. IF confidence >= confidence_threshold (기본 0.6, 설정 가능):
+     OK + 라벨 + confidence
+   ELSE (저신뢰 이벤트: Warning 1건):
+     fallback_mode 켬(기본): PROCESSING_FAILED + "UNKNOWN" + 측정된 confidence
+     fallback_mode 끔:       OK + 최상위 라벨 + confidence
+7. 쓸 수 있는 답이 없으면(모델 없음·적재 불가·사이드카 문제·실행 실패·비유한·범위 밖)
+     PROCESSING_FAILED + "UNKNOWN" + 0.0
+   DICOM 태그 등 결정론적 부위 조회는 이 모듈이 아니라 호출자가 한다
 
-IPC Protocol:
-  Main process → worker: shared memory image + config JSON
-  Worker → main: result JSON { "bodyPart": "CHEST", "confidence": 0.97 }
-  Timeout: 5s → fallback to DICOM tag
-  Worker crash: restart + use DICOM tag
+워커 프로토콜 (use_worker):
+  호스트 -> 워커: 이진 요청 (원본 영상, 크기 조정은 워커가)
+  워커 -> 호스트: 엄격한 JSON 응답 { "outcome": ok | non_finite | out_of_range, "body_part", "confidence" }
+  문턱·fallback_mode 판정은 호스트가 한다
+  시간 예산(timeout_ms, 기본 5 s) 초과·워커 종료·잘못된 응답·실행 실패: 실패 1회로 세고 UNKNOWN,
+  연속 3회면 세션 동안 워커 중단 (뼈 억제와 카운트 공유, REQ-AI-092)
 ```
 
 #### Edge Case
 
 | Case | Input | Action | Rationale |
 |------|-------|--------|-----------|
-| Low confidence (<0.95) | ambiguous | Use DICOM tag fallback | SRS-FUNC-016 |
-| Worker timeout | >5s | Use DICOM tag + WARNING | Degradation |
-| Worker crash | process died | Restart worker + DICOM tag | (추적 ID 미정 — `SRS-SAFE-008` 은 AI-processed 라벨 요구라 오추적, #130) |
-| No DICOM tag | missing | Use "UNKNOWN" + default preset | Safety |
+| Low confidence (< 문턱, 기본 0.6) | ambiguous | Warning 1건, fallback_mode 켬이면 `UNKNOWN`·PROCESSING_FAILED 반환 → 호출자가 결정론적 조회 | REQ-AI-012 (`srs_ai.md` REQ-AI-FB-001·FB-002) |
+| 모델 없음·사용 불가 | 파일·사이드카 문제 | `UNKNOWN`·0.0·PROCESSING_FAILED, 세션당 Warning 1건 | REQ-AI-002 |
+| Worker timeout | > timeout_ms | 실패 1회 + Warning, `UNKNOWN` 반환 | REQ-AI-092 |
+| Worker crash | process died | 실패 1회 + Warning, 다음 호출은 새 워커, 연속 3회면 중단 | REQ-AI-092 (추적 ID 미정 — `SRS-SAFE-008` 은 AI-processed 라벨 요구라 오추적, #130) |
+| FLOAT32 아닌 영상 | 다른 형식 | `XPE_ERR_UNSUPPORTED_FORMAT` (use_worker 에서는 모델 유무와 무관) | ai_api.h |
 
 ---
 
@@ -916,6 +930,12 @@ Fallback:
 > 그 둘로 바꿨습니다. 알림 정책(실패마다 Warning, 연속 3회에 세션 동안 워커 중단)은
 > `docs/project/REQ-CHANGE-LOG-P3-AI.md` 1~4행.
 >
+> **보충 2026-10-02 (`#233` / `QA-B-181i`·`181j`, Codex #67)** — 위의 "실패마다 Warning, 연속 3회에 세션 동안
+> 워커 중단"에서 *실패*는 워커·전송 장애와 입력과 무관한 모델 오류를 말한다. 유효한 성공 응답(`success:true`,
+> 요청과 같은 폭·높이, `float32`)에 비유한 화소가 담긴 경우는 실패로 세지 않는다. 이 경우 연속 횟수를 0 으로
+> 되돌리고, 출력은 입력 복사, 반환은 `PROCESSING_FAILED`, 알림은 따로 낸다. 봉투가 유효하지 않으면 프로토콜
+> 장애로 세고 연결을 끊는다. 근거는 `docs/project/REQ-CHANGE-LOG-P3-AI.md` 6행.
+>
 > **열린 항목**: `XPE-SRS-001` 의 시스템 알림 표(`SRS-ALERT-001~007`)에는 AI 처리 실패 행이
 > 없습니다. 새 행을 넣는 것은 요구 신설이라 사용자 승인 대상이며 아직 하지 않았습니다.
 > 같은 문서 §3.x 체형 분류기 Edge Case 표의 `Worker crash` 행도 같은 오추적이어서
@@ -1034,16 +1054,14 @@ W/L range check (SRS-SAFE-006, HAZ-006):
 
 ### 4.3 SWU-3.3: PresentationLUT
 
-**설계 목적**: GSDF P-Value 변환. Trace: SRS-FUNC-022, SRS-FUNC-023
+**설계 목적**: GSDF P-Value 변환. Trace: SRS-FUNC-022
 
 #### DLL API
 
 ```cpp
 XPE_API XpeErrorCode xpe_apply_presentation_lut(
-    const XpeImageBuffer* input,
-    XpeImageBuffer*       output,
-    int32_t               photometricInterpretation,  // 0=MONO1, 1=MONO2
-    int32_t               gsdfEnabled);
+    XpeImageBuffer*                 img,
+    const XpePresentationLutParams* params);   // lutData[1024], gsdfEnabled
 ```
 
 #### Pseudocode
@@ -1053,8 +1071,6 @@ DICOM PS3.14 GSDF:
   1. Convert input to Luminance (cd/m2) using display calibration
   2. Apply GSDF curve: P-Value = f(Luminance)
      - GSDF ensures perceptually linear JND spacing
-  3. IF photometricInterpretation == MONOCHROME1:
-       output = maxVal - pValue   // invert for white=low density
 
 GSDF compliance check (SRS-SAFE-007, HAZ-007):
   IF NOT gsdfEnabled:
@@ -1068,12 +1084,14 @@ Comparison viewport support (SRS-FUNC-024, SRS-SAFE-009, SRS-SAFE-013, HAZ-009):
   Toggle/switch latency: < 100ms for mode changes without pipeline reprocessing
 ```
 
+**극성 처리**: 극성은 `xpe_dicom_read_image` 가 읽을 때 정규화한다(FR-DCM-109). 이 단계는 항상 MONOCHROME2 의미의 입력을 받는다. 표시 극성은 Presentation LUT 단계가 정한다(SRS-FUNC-023, REQ-DISP-038). 읽기 정규화가 보존하는 것은 극성이다. `xpe_dicom_write` 는 원본 파일의 Window Center/Width, Rescale, Presentation LUT Shape 를 보존하지 않고(Window 없음, Rescale 1/0, IDENTITY) 소스 파일에서 아무것도 복사하지 않으므로, 원본에 비항등 VOI 나 Rescale 이 있었다면 읽기→쓰기 뒤 밝기·대비가 달라질 수 있다.
+
 #### Edge Case
 
 | Case | Input | Action | Rationale |
 |------|-------|--------|-----------|
 | Non-GSDF display | gsdfEnabled=0 | Linear LUT + WARNING | SRS-SAFE-007 |
-| MONOCHROME1 | inversion needed | Invert output | SRS-FUNC-023 |
+| MONOCHROME1 | 이 단계 전에 리더가 반전해 MONOCHROME2 의미가 됨(뼈가 높은 값) | Presentation LUT 는 `XPE_PRESENTATION_AS_IS` 로 호출한다(기본 극성을 쓰면 두 번 뒤집힌다). 원본의 Window·Rescale 은 쓰기에서 보존되지 않는다 | SRS-FUNC-023 |
 | Toggle / compare request | switch comparison mode | < 100ms switch without source overwrite | SRS-SAFE-009, SRS-SAFE-013, SRS-FUNC-024 |
 
 ---

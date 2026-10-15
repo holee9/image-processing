@@ -1,0 +1,38 @@
+== claim: the bridge itself makes no alert call (alert lives in ai.cpp)
+xpe_alert_push in ai_ipc_bridge.cpp: 0   (control: in ai.cpp: 5)
+== claim: the supervisor creates the bridge with the configured budget
+245:    bridge_ = xpe_ai_ipc_bridge_create(pipe, config_.timeout_ms);
+== claim: ai.cpp hands timeout_ms to the supervisor config and parses it
+268:    if (cfg.contains("timeout_ms") && cfg["timeout_ms"].is_number_integer()) {
+269:        state->timeoutMs = static_cast<uint32_t>(cfg["timeout_ms"].get<int>());
+422:            cfg.timeout_ms = state->timeoutMs != 0 ? state->timeoutMs : XPE_AI_DEFAULT_TIMEOUT_MS;
+== claim: default is 5 s
+modules/ai/include/xpe/ai/ai_worker_protocol.h:59:#define XPE_AI_DEFAULT_TIMEOUT_MS  5000
+== claim: one Warning per failed worker call citing REQ-AI-002 and REQ-AI-092
+979:                          "AI worker failed (code %d, failure %u of %u) and is disabled for this "
+985:                          "AI worker failed (code %d, failure %u of %u): the input image is returned "
+980:                          "session: input images are returned unchanged (REQ-AI-002, REQ-AI-092)",
+986:                          "unchanged (REQ-AI-002, REQ-AI-092)",
+== claim: use_worker defaults to false
+122:    bool useWorker{false};
+== claim: in-process path has no time limit (timeout/budget/deadline words in the ONNX session files)
+count: modules/ai/src/ai_onnx_session.cpp:0 modules/ai/include/xpe/ai/ai_onnx_session.h:0    (control: same words in ai_ipc_bridge.cpp: 54)
+== claim: bodypart / stitch / denoise are stubs
+706:    // --- Stub implementation ---
+763:    // --- Stub implementation ---
+1104:    // --- Stub implementation ---
+== claim: REQ-AI-021 names the strategies (definition line)
+223:**REQ-AI-021** (Ubiquitous): Supported SSL training strategies: Noise2Noise (N2N), Noise2Self (N2S), Neighbor2Neighbor, Noise2Sim (similarity-based).
+== claim: REQ-AI-092 / REQ-AI-002 / REQ-AI-012 definitions exist
+197:**REQ-AI-002** (Ubiquitous): All AI inference shall have a deterministic fallback path
+217:**REQ-AI-012** (Event-driven): When AI inference confidence is below threshold (config
+291:**REQ-AI-092** (Ubiquitous): AI inference shall enforce time budget (configurable, def
+== claim: the number REQ-AI-009 literal is absent from modules/ai
+files with the literal: 0   (control: files with REQ-AI-092: 10)
+== claim: first appearance of the mis-number is dd7c8e05
+dd7c8e05 2026-04-28
+== claim: nothing reads confidence_threshold
+modules/ai/src/ai.cpp:93:    float confidenceThreshold{XPE_AI_DEFAULT_CONFIDENCE_THRESHOLD};
+modules/ai/src/ai.cpp:273:        state->confidenceThreshold = cfg["confidence_threshold"].get<float>();
+== claim: bodypart is a stub in this build too (macro not referenced in ai.cpp)
+XPE_AI_USE_ONNXRUNTIME in ai.cpp: 0

@@ -1,0 +1,187 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 11 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from DicomExposureTag
+[ RUN      ] DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue
+[       OK ] DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue (20 ms)
+[ RUN      ] DicomExposureTag.WhenBothAreInTheFileTheExactValueOf9332IsUsed
+[       OK ] DicomExposureTag.WhenBothAreInTheFileTheExactValueOf9332IsUsed (12 ms)
+[ RUN      ] DicomExposureTag.TheModuleWritesBothAttributesWithTheValuesTheRulesGive
+[       OK ] DicomExposureTag.TheModuleWritesBothAttributesWithTheValuesTheRulesGive (37 ms)
+[ RUN      ] DicomExposureTag.ANonNumericOrNegative1152IsNotAMasValue
+[       OK ] DicomExposureTag.ANonNumericOrNegative1152IsNotAMasValue (26 ms)
+[----------] 4 tests from DicomExposureTag (104 ms total)
+
+[----------] 7 tests from DicomFailurePaths
+[ RUN      ] DicomFailurePaths.ACFindAnsweredWithAFailureStatusIsNetworkFailedForEveryStatusOfTheFailureRange
+I: Requesting Association
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Refused: OutOfResources)
+I: Received C-FIND Response (Refused: OutOfResources)
+E: DIMSE status is: Refused: OutOfResources
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-03 15:34:55.831] [warning] [DicomNetworkSCU] cfindMwl: query did not complete: the peer ended the query with status 0xA700
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Error: DataSetDoesNotMatchSOPClass)
+I: Received C-FIND Response (Error: DataSetDoesNotMatchSOPClass)
+E: DIMSE status is: Error: DataSetDoesNotMatchSOPClass
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-03 15:34:55.832] [warning] [DicomNetworkSCU] cfindMwl: query did not complete: the peer ended the query with status 0xA900
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Failed: UnableToProcess)
+I: Received C-FIND Response (Failed: UnableToProcess)
+E: DIMSE status is: Failed: UnableToProcess
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-03 15:34:55.833] [warning] [DicomNetworkSCU] cfindMwl: query did not complete: the peer ended the query with status 0xC001
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Cancel: MatchingTerminatedDueToCancelRequest)
+I: Received C-FIND Response (Cancel: MatchingTerminatedDueToCancelRequest)
+E: DIMSE status is: Cancel: MatchingTerminatedDueToCancelRequest
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-03 15:34:55.834] [warning] [DicomNetworkSCU] cfindMwl: query did not complete: the peer ended the query with status 0xFE00
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Accepted (Max Send PDV: 16372)
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomFailurePaths.ACFindAnsweredWithAFailureStatusIsNetworkFailedForEveryStatusOfTheFailureRange (1541 ms)
+[ RUN      ] DicomFailurePaths.AQueryWithNoMatchIsStillAnEmptyListAndOk
+I: Requesting Association
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomFailurePaths.AQueryWithNoMatchIsStillAnEmptyListAndOk (533 ms)
+[ RUN      ] DicomFailurePaths.AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Accepted (Max Send PDV: 16372)
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Refused: OutOfResources)
+I: Received C-STORE Response (Refused: OutOfResources)
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-03 15:34:57.919] [warning] [DicomNetworkSCU] C-STORE response status: 0xA700
+[       OK ] DicomFailurePaths.AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason (1555 ms)
+[ RUN      ] DicomFailurePaths.ACStoreToAPortNobodyServesPostsAWarningWithTheReason
+I: Requesting Association
+[2026-10-03 15:34:58.968] [warning] [DicomNetworkSCU] negotiateAssociation failed: TCP Initialization Error: 작업을 완료했습니다. (Timeout)
+[       OK ] DicomFailurePaths.ACStoreToAPortNobodyServesPostsAWarningWithTheReason (17 ms)
+[ RUN      ] DicomFailurePaths.ACancelDuringATransferIsReportedAsACancelAndNeverAsSuccess
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomFailurePaths.ACancelDuringATransferIsReportedAsACancelAndNeverAsSuccess (3557 ms)
+[ RUN      ] DicomFailurePaths.ACancelDuringAQueryIsReportedAsACancel
+I: Requesting Association
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomFailurePaths.ACancelDuringAQueryIsReportedAsACancel (3538 ms)
+[ RUN      ] DicomFailurePaths.ACancelThatArrivesWhileNothingRunsIsForgottenByTheNextCall
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Accepted (Max Send PDV: 16372)
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomFailurePaths.ACancelThatArrivesWhileNothingRunsIsForgottenByTheNextCall (1042 ms)
+[----------] 7 tests from DicomFailurePaths (11788 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 2 test suites ran. (11892 ms total)
+[  PASSED  ] 11 tests.

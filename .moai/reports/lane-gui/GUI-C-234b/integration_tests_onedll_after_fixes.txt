@@ -1,0 +1,75 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.38]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.AFileLinkInsideAnApprovedFolder_ThatPointsOutside_IsRejected [SKIP]
+  건너뜀 ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.AFileLinkInsideAnApprovedFolder_ThatPointsOutside_IsRejected [2 ms]
+[xUnit.net 00:00:20.42]     ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource [2 s]
+  오류 메시지:
+   1 quoted message(s) on docs/help/content/troubleshooting.md are in no source file under gui/, clients/ImageProcTest/ or modules/ (the text changed, or the page was edited):
+  `preprocess=Skipped`
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.TroubleshootingDocQuoteTests.EveryQuoteOnTheTroubleshootingPage_ExistsInTheSource() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\TroubleshootingDocQuoteTests.cs:line 49
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:20.86]     ImageProcTest.IntegrationTests.Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon [22 ms]
+  오류 메시지:
+   a module is loaded from two paths: xpe_common.dll at C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\main386\onedll\xpe_common.dll and D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\xpe_common.dll ; spdlog.dll at C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\main386\onedll\spdlog.dll and D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\spdlog.dll. Usual cause (GUI-C-233b): copies of xpe_common/xpe_preprocess/spdlog/fmt left in the test output folder by a build WITHOUT XPE_NATIVE_DIR, next to a run WITH it. The build now removes them when XPE_NATIVE_DIR is set; rebuild with the variable set.
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.NativeCommonSingleInstanceTests.AfterEveryNativeTestClassHasLoadedItsModules_TheProcessHoldsOneXpeCommon() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\NativeCommonSingleInstanceTests.cs:line 67
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:21.39]     ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests.SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint [FAIL]
+[xUnit.net 00:00:21.96]     ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests.EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint [FAIL]
+  실패 ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests.SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint [285 ms]
+  오류 메시지:
+   The probe run produced no clamp alert, so the range is unknown. Alerts seen: 0.
+  스택 추적:
+     at ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests.SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\P1AReady\GainPolyClampAlertTests.cs:line 113
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ generator exit 0: offset.xcal  4abb7555a6d83fec6f76baed992e30795c9c65d4d80e58acf81e1014d583efd0
+ gain.xcal    1134214e792b76ce7cbcfbd19f62657b9129b027edeacd969e48991539ccd57a
+ defect.xcal  ed042434394f944d29842c557a64ae2a4404531d6c5f37d708e34f07cf760ef0  (1272 defect pixels)
+ gain_poly.xcal a94f3c62b4e75facf30586d124b23a939e703b7d29d96d7da87d08a0fbcee0e0  (degree<=2, 4 dose levels)
+ manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe-c129-e78d7009d3514bfcbdc23b721b8ffde8\manifest.json
+ produced: defect.xcal, gain_poly.xcal, gain.xcal, offset.xcal
+ xpe_gain_correct -> OK
+ probe alerts: 0
+
+
+  실패 ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests.EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint [267 ms]
+  오류 메시지:
+   No clamp alert was pushed. Alerts seen: 0. Either no pixel fell outside the fitted range, or the alert is not reaching the queue (#194).
+  스택 추적:
+     at ImageProcTest.IntegrationTests.P1AReady.GainPolyClampAlertTests.EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\P1AReady\GainPolyClampAlertTests.cs:line 67
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ generator exit 0: offset.xcal  4abb7555a6d83fec6f76baed992e30795c9c65d4d80e58acf81e1014d583efd0
+ gain.xcal    1134214e792b76ce7cbcfbd19f62657b9129b027edeacd969e48991539ccd57a
+ defect.xcal  ed042434394f944d29842c557a64ae2a4404531d6c5f37d708e34f07cf760ef0  (1272 defect pixels)
+ gain_poly.xcal d2e29fe3631039a253a1dc114d10e175311ffc5b83c09f8d5ed2bd87b69e1868  (degree<=2, 4 dose levels)
+ manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe-c129-9677bfdf3e72446c8ebfd07dc1eae69a\manifest.json
+ produced: defect.xcal, gain_poly.xcal, gain.xcal, offset.xcal
+ xpe_gain_correct -> OK
+
+
+[xUnit.net 00:00:22.15]     ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData [SKIP]
+  건너뜀 ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData [< 1 ms]
+[xUnit.net 00:00:23.49]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.EveryTestMethodThatTouchesTheModule_LeavesItUninitialised_AndPassesInsideTheSweep [FAIL]
+  실패 ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.EveryTestMethodThatTouchesTheModule_LeavesItUninitialised_AndPassesInsideTheSweep [1 s]
+  오류 메시지:
+   these tests failed when run by the sweep: GainPolyClampAlertTests.EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint: TrueException: No clamp alert was pushed. Alerts seen: 0. Either no pixel fell outside the fitted range, or the alert is not reaching the queue (#194). | GainPolyClampAlertTests.SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint: TrueException: The probe run produced no clamp alert, so the range is unknown. Alerts seen: 0.
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.PreprocessModuleLeakTests.EveryTestMethodThatTouchesTheModule_LeavesItUninitialised_AndPassesInsideTheSweep() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\PreprocessModuleLeakTests.cs:line 149
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+실패!  - 실패:     5, 통과:   950, 건너뜀:     2, 전체:   957, 기간: 23 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

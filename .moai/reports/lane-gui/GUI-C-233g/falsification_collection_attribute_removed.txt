@@ -1,0 +1,2 @@
+[xUnit.net 00:00:00.22]     ImageProcTest.IntegrationTests.Functional.PreprocessModuleCollectionGuardTests.EveryTestFileThatInitialisesOrRunsThePreprocessModule_IsInThePreprocessModuleCollection [FAIL]
+실패!  - 실패:     1, 통과:     1, 건너뜀:     0, 전체:     2, 기간: 39 ms - ImageProcTest.IntegrationTests.dll (net8.0)

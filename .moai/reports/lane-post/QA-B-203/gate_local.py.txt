@@ -1,0 +1,47 @@
+"""The CI gate "Run post test binaries as one process each (#162)", run locally.
+For each test executable that ctest registers in <build dir>, run it with the CI filter and read how many tests it ran: a run
+of 0 tests is a failure ("a run that executes nothing is not a pass"). Same parsing as the workflow step.
+Usage: python build/g203_gate.py <build dir, e.g. build/ci-post> <out file> [extra env PATH entry]"""
+import json
+import os
+import re
+import subprocess
+import sys
+
+build_dir = os.path.abspath(sys.argv[1])
+out = open(sys.argv[2], 'w', encoding='utf-8', newline='\n')
+extra = sys.argv[3] if len(sys.argv) > 3 else ''
+if extra:
+    os.environ['PATH'] = extra + os.pathsep + os.environ['PATH']
+
+reg = json.loads(subprocess.run(['ctest', '--test-dir', build_dir, '--build-config', 'RelWithDebInfo', '--show-only=json-v1'],
+                                capture_output=True, text=True).stdout)
+paths = sorted({t['command'][0] for t in reg['tests']})
+exes = [p for p in paths if os.path.exists(p)]
+out.write('ctest names %d test binaries, %d exist on disk\n' % (len(paths), len(exes)))
+missing = [p for p in paths if not os.path.exists(p)]
+for p in missing:
+    out.write('MISSING on disk: %s\n' % p)
+FILTER = '--gtest_filter=-*Performance*:*Within*ms*'
+bad = 0
+for exe in exes:
+    r = subprocess.run([exe, FILTER], capture_output=True, text=True, errors='replace', cwd=os.path.dirname(exe))
+    text = (r.stdout or '') + (r.stderr or '')
+    lines = text.split('\n')
+    summary = ' | '.join(l.strip() for l in lines if re.match(r'^\[\s*(PASSED|FAILED)\s*\]', l))
+    ranm = next((re.match(r'^\[=+\]\s+(\d+) tests?', l) for l in lines if re.match(r'^\[=+\]\s+(\d+) tests? from .* ran', l)), None)
+    ran = int(ranm.group(1)) if ranm else -1
+    status = 'ok'
+    if not summary:
+        status = 'NO SUMMARY'
+        bad += 1
+    elif ran <= 0:
+        status = 'RAN %d TESTS (executes nothing)' % ran
+        bad += 1
+    elif r.returncode != 0:
+        status = 'exit %d' % r.returncode
+        bad += 1
+    out.write('%-48s exit=%d ran=%d  %s  %s\n' % (os.path.basename(exe), r.returncode, ran, status, summary[:60]))
+out.write('binaries that fail the gate: %d\n' % bad)
+out.close()
+print('binaries that fail the gate:', bad)

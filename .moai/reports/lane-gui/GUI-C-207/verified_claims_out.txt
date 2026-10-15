@@ -1,0 +1,40 @@
+PARSER: test methods found = 489 | control (real) XpeVersion_CalledTwice_ReturnsSamePointer found = True | control (invented) found = False
+REQ rows: 36 | verdict counts: {'구현됨': 19, '부분': 14, '없음': 3}
+cited test names that do NOT exist as test methods: none
+
+REQ-001 | 구현됨(시험 아님) | -
+REQ-002 | 구현됨 | XpeImageBuffer_MarshalSize_Is40Bytes [AbiLayoutTests]; XpeImageMetadata_MarshalSize_Is96Bytes [AbiLayoutTests]
+REQ-003 | 구현됨 | XpeImageBuffer_FieldOffsets_MatchNativeLayout [AbiLayoutTests]
+REQ-004 | 부분 | XpeImageMetadata_BodyPart_63CharAscii_RoundTrips [AbiLayoutTests]; XpeImageMetadata_BodyPart_FieldOffset_IsZero [AbiLayoutTests]
+REQ-005 | 구현됨 | XpeVersion_CalledTwice_ReturnsSamePointer [DllLoadSmokeTests]; ErrorString_CalledTwice_ReturnsSamePointer [ErrorCodeMappingTests]
+REQ-006 | 부분 | Configure_VeryLongMalformedJson_DoesNotThrowManagedException [NativeErrorTranslationTests]; GetPendingAlert_TinyBuffer_ReturnsErrorCodeNotException [NativeErrorTranslationTests]; AllocImage_HugeDimensions_ReturnsErrorNotException [NativeErrorTranslationTests]
+REQ-007 | 부분 | MockXpeBackend_TypeNotLoadedInTestAssemblies [MockBlockingTests]; CompositeXpeBackend_TypeNotLoadedInTestAssemblies [MockBlockingTests]; TestAssembly_HasNoMockBackendReference [MockBlockingTests]
+REQ-008 | 부분 | ResolvedDllPath_IsUnderBuildTreeOrTestOutput [DllSearchPathSafetyTests]; DllImportResolver_WinsOverSystemPath_WhenEnvVarOrAppContextHasDll [DllSearchPathSafetyTests]
+REQ-009 | 부분 | ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback [ErrorCodeMappingTests]; ErrorString_ForUnknownCode_ReturnsFallbackNonNull [ErrorCodeMappingTests]
+REQ-010 | 부분 | AfterTests_NoOutstandingPinnedHandles [LeakEnduranceTests]
+REQ-020 | 부분 | XpeVersion_WhenDllLoaded_ReturnsSemverString [DllLoadSmokeTests]
+REQ-021 | 구현됨 | Init_Success_AlertCountIsNonNegative [ImageBufferLifecycleTests]
+REQ-022 | 구현됨 | Configure_ValidJson_ReturnsOk [MetadataMarshallingTests]; Configure_MalformedJson_ReturnsConfigInvalid [MetadataMarshallingTests]
+REQ-023 | 구현됨 | AllocImage_ValidDimensions_ReturnsOkAndNonZeroData [ImageBufferLifecycleTests]; FreeImage_AfterAlloc_ReturnsOkAndZeroesData [ImageBufferLifecycleTests]
+REQ-024 | 구현됨 | AllocImage_ZeroDimensions_ReturnsInvalidInput [ImageBufferLifecycleTests]
+REQ-025 | 구현됨 | CopyImage_MatchingDimensions_ReturnsOk [ImageBufferLifecycleTests]; CopyImage_MismatchedDimensions_ReturnsError [ImageBufferLifecycleTests]
+REQ-026 | 구현됨 | GetParamRange_ChestWindowCenter_ReturnsValidRange [MetadataMarshallingTests]
+REQ-027 | 구현됨 | AlertQueue_Empty_CountIsZeroAndFetchReturnsInvalidInput [AlertCallbackTests]
+REQ-028 | 구현됨 | ClearAlerts_CalledRepeatedly_DoesNotThrow [AlertCallbackTests]
+REQ-029 | 구현됨 | LogSetLevel_ValidLevels_ReturnsOk [LoggingHandlerTests]; LogSetLevel_NegativeOne_ReturnsInvalidInput [LoggingHandlerTests]; LogSetLevel_Six_ReturnsInvalidInput [LoggingHandlerTests]
+REQ-030 | 구현됨 | LogSetFile_WritableTempPath_ReturnsOk [LoggingHandlerTests]; LogSetFile_NonExistentDirectory_ReturnsIoFailed [LoggingHandlerTests]
+REQ-031 | 부분 | LogFlush_PreInit_DoesNotThrow [LoggingHandlerTests]; LogFlush_PostShutdown_DoesNotThrow [LoggingHandlerTests]; LogFlush_BeforeInit_DoesNotCrash [NativeErrorTranslationTests]
+REQ-040 | 구현됨 | GetParamRange_BeforeInit_ReturnsNotInitialized [NativeErrorTranslationTests]
+REQ-041 | 부분 | WhenDllAbsent_FixtureReportsUnavailable_NotCrash [DllLoadSmokeTests]
+REQ-042 | 부분 | ArchitectureMismatch_SurfacesResolvedPathInMessage [DllLoadSmokeTests]; ResolvedDll_IsX64Architecture [DllLoadSmokeTests]
+REQ-043 | 부분 | ProcessArchitecture_IsRecordedForDiagnostics [DllLoadSmokeTests]; ProcessArchitecture_IsX64 [PlatformDetectionTests]
+REQ-050 | 부분 | Version_BeforeInit_DoesNotCrash [NativeErrorTranslationTests]; ErrorString_BeforeInit_DoesNotCrash [NativeErrorTranslationTests]; LogFlush_BeforeInit_DoesNotCrash [NativeErrorTranslationTests]; Configure_VeryLongMalformedJson_DoesNotThrowManagedException [NativeErrorTranslationTests]
+REQ-051 | 구현됨 | InitShutdown_1000Cycles_NoLeak [LeakEnduranceTests]
+REQ-052 | 부분 | Configure_VeryLongMalformedJson_DoesNotThrowManagedException [NativeErrorTranslationTests]; AllocImage_HugeDimensions_ReturnsErrorNotException [NativeErrorTranslationTests]
+REQ-053 | 구현됨 | XpeVersion_MajorMatchesPinnedVersion [VersionPinTests]
+REQ-060 | 구현됨 | PreprocessVersion_WhenDllStaged_ReturnsNonEmptyString [PreprocessHandshakeTests]; PreprocessInitShutdown_WhenDllStaged_LifecycleSucceeds [PreprocessHandshakeTests]; PreprocessDll_WhenStaged_HasAllRequiredExports [PreprocessHandshakeTests]
+REQ-061 | 부분 | CorrectionChain_RunTwice_DeterministicRmseIsZero [PreprocessCorrectionChainSmokeTests]; CorrectionChain_Output_HasNoNanOrInf [PreprocessCorrectionChainSmokeTests]; CorrectionChain_WithoutCalibration_ReturnsCalibNotLoaded [PreprocessCorrectionChainSmokeTests]
+REQ-062 | 구현됨 | CalibLoadOffset_NonExistentPath_ReturnsIoFailed [CalibrationCheckExpirySmokeTests]; CalibLoadGain_NonExistentPath_ReturnsIoFailed [CalibrationCheckExpirySmokeTests]; CalibLoadDefectMap_NonExistentPath_ReturnsIoFailed [CalibrationCheckExpirySmokeTests]
+REQ-063 | 없음 | -
+REQ-064 | 없음 | -
+REQ-065 | 없음 | -

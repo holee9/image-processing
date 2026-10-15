@@ -1,0 +1,118 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = ExposureIndex*
+[==========] Running 23 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 15 tests from ExposureIndex
+[ RUN      ] ExposureIndex.NullImg_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullImg_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.NullMeta_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullMeta_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.NullOutEI_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullOutEI_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.NullOutDI_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullOutDI_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.EmptyImage_WidthZero_ReturnsInvalidInput
+[       OK ] ExposureIndex.EmptyImage_WidthZero_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.EmptyImage_HeightZero_ReturnsInvalidInput
+[       OK ] ExposureIndex.EmptyImage_HeightZero_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.ZeroMeanImage_ReturnsProcessingFailed
+[       OK ] ExposureIndex.ZeroMeanImage_ReturnsProcessingFailed (0 ms)
+[ RUN      ] ExposureIndex.KnownPhantom_EI_MatchesReference
+[       OK ] ExposureIndex.KnownPhantom_EI_MatchesReference (0 ms)
+[ RUN      ] ExposureIndex.KnownPhantom_DI_MatchesReference
+[       OK ] ExposureIndex.KnownPhantom_DI_MatchesReference (0 ms)
+[ RUN      ] ExposureIndex.DIOutOfRange_PostsAlert
+[       OK ] ExposureIndex.DIOutOfRange_PostsAlert (0 ms)
+[ RUN      ] ExposureIndex.DIInRange_NoAlert
+[       OK ] ExposureIndex.DIInRange_NoAlert (0 ms)
+[ RUN      ] ExposureIndex.UnknownBodyPart_UsesDefault
+[       OK ] ExposureIndex.UnknownBodyPart_UsesDefault (0 ms)
+[ RUN      ] ExposureIndex.ROISubBuffer_ComputesOnSubRegion
+[       OK ] ExposureIndex.ROISubBuffer_ComputesOnSubRegion (0 ms)
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+PERFBUDGET BP08_ei_calc_512 median=15 min=15 max=17 us (runs=5)
+[       OK ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline (0 ms)
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+PERFBUDGET BP09_di_calc_512 median=15 min=15 max=17 us (runs=5)
+[       OK ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline (0 ms)
+[----------] 15 tests from ExposureIndex (1 ms total)
+
+[----------] 5 tests from ExposureIndexContractTest
+[ RUN      ] ExposureIndexContractTest.Stage2_EiIsIndependentOfTheTarget_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(87):: CHEST EI=100 DI=-3.0103
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(88):: SKULL EI=100 DI=-5.0515
+[       OK ] ExposureIndexContractTest.Stage2_EiIsIndependentOfTheTarget_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_DiSeparatesBodyPartsByTheTableRatio_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(110):: same exposure, DI by body part: CHEST=-2.09715 SKULL=-4.13835 HAND=0.913152
+[       OK ] ExposureIndexContractTest.Stage2_DiSeparatesBodyPartsByTheTableRatio_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_DiSpreadsAcrossEveryBodyPart_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(163):: #154 body-part sweep, one axis, same 64x64 image (fill 1234):
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   CHEST  EI=123.4  DI=-2.09715  DI bits identical to CHEST
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   HAND  EI=123.4  DI=0.913152  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   FOOT  EI=123.4  DI=0.913152  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   ABDOMEN  EI=123.4  DI=-3.06625  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   PELVIS  EI=123.4  DI=-3.06625  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   SPINE  EI=123.4  DI=-3.85806  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   SKULL  EI=123.4  DI=-4.13835  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   NOT_A_BODY_PART  EI=123.4  DI=-2.09715  DI bits identical to CHEST
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   (empty)  EI=123.4  DI=-2.09715  DI bits identical to CHEST
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(182)::   EI spans 123.4..123.4 (x1), DI spread = 5.0515 dB, entries differing from CHEST: 6 of 9
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(204)::   control -- same body part, exposure x2: DI -2.09715 -> 0.913152
+[       OK ] ExposureIndexContractTest.Stage2_DiSpreadsAcrossEveryBodyPart_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_TheAlertThresholdSeparatesBodyParts_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(230)::   HAND  EI=600  DI=7.78151  alerts=1
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(230)::   CHEST  EI=600  DI=4.77121  alerts=1
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(230)::   SKULL  EI=600  DI=2.73001  alerts=0
+[       OK ] ExposureIndexContractTest.Stage2_TheAlertThresholdSeparatesBodyParts_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_EveryTableEntryReachesDi_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(267):: #154 G2 -- DI offset from CHEST vs the table ratio:
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   CHEST (EIT 200)  measured 0  expected 0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   HAND (EIT 100)  measured 3.0103  expected 3.0103
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   FOOT (EIT 100)  measured 3.0103  expected 3.0103
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   ABDOMEN (EIT 250)  measured -0.9691  expected -0.9691
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   PELVIS (EIT 250)  measured -0.9691  expected -0.9691
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   SPINE (EIT 300)  measured -1.76091  expected -1.76091
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   SKULL (EIT 320)  measured -2.0412  expected -2.0412
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(286)::   exposure x2: -2.09715 -> 0.913152 (delta 3.0103)
+[       OK ] ExposureIndexContractTest.Stage2_EveryTableEntryReachesDi_154 (0 ms)
+[----------] 5 tests from ExposureIndexContractTest (1 ms total)
+
+[----------] 3 tests from ExposureIndexNonFinite
+[ RUN      ] ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity
+[       OK ] ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity (0 ms)
+[ RUN      ] ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter
+[       OK ] ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter (0 ms)
+[ RUN      ] ExposureIndexNonFinite.AnInfinityOfEachSignInOneImageIsStillRefused
+[       OK ] ExposureIndexNonFinite.AnInfinityOfEachSignInOneImageIsStillRefused (0 ms)
+[----------] 3 tests from ExposureIndexNonFinite (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 3 test suites ran. (2 ms total)
+[  PASSED  ] 23 tests.

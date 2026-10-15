@@ -1,0 +1,17 @@
+Scope_SignedPixelsAreUnsupportedNotReinterpreted => a0db88d6 fix(dicom): readImage 가 지원 범위 밖 영상을 화소 복사 전에 거부 (QA-B-182, #235 의
+Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage => d691296e feat(dicom): MONOCHROME1 을 읽을 때 반전해 항상 MONOCHROME2 의미로 돌려준다 (QA-B-185
+J2kScope_ACodestreamThatContradictsTheTagsIsRefused => adf21476 fix(dicom): 필수 태그 부재·비-J2K 16비트 한정·J2K 코드스트림 검증 (QA-B-182b, Cod
+Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned => b69d22df fix(dicom): 필수 PhotometricInterpretation 을 읽고 값을 분류, Rows/Columns 거부에 알림,
+Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath => d691296e feat(dicom): MONOCHROME1 을 읽을 때 반전해 항상 MONOCHROME2 의미로 돌려준다 (QA-B-185
+Pinned_Issue235AwaitsDesignDecision_RescaleIsNotAppliedNorReported => a0db88d6 fix(dicom): readImage 가 지원 범위 밖 영상을 화소 복사 전에 거부 (QA-B-182, #235 의
+Scope_MultiFrameIsUnsupportedNotTheFirstFrame => a0db88d6 fix(dicom): readImage 가 지원 범위 밖 영상을 화소 복사 전에 거부 (QA-B-182, #235 의
+Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted => a0db88d6 fix(dicom): readImage 가 지원 범위 밖 영상을 화소 복사 전에 거부 (QA-B-182, #235 의
+Scope_AbsentNumberOfFramesIsASingleFrame => adf21476 fix(dicom): 필수 태그 부재·비-J2K 16비트 한정·J2K 코드스트림 검증 (QA-B-182b, Cod
+SurplusPixelData_IsIgnoredAndReadSucceeds => 6c9356b4 fix(dicom): 잘린 PixelData 를 성공으로 보고하지 않는다
+Scope_RgbIsUnsupportedNotByteSoup => a0db88d6 fix(dicom): readImage 가 지원 범위 밖 영상을 화소 복사 전에 거부 (QA-B-182, #235 의
+Scope_ARefusalPostsAnAlertThatNamesTheCause => e0827103 fix(dicom): BitsStored·HighBit 필수화, 거부 이유 알림, 옛 writer 산출물 거부 고정 (
+Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile => 5ee4a336 fix(dicom): 읽기→쓰기가 보존하는 것은 극성뿐임을 헤더·시험에 명시, Info 알
+PixelRepresentation %u (only unsigned => e0827103 fix(dicom): BitsStored·HighBit 필수화, 거부 이유 알림, 옛 writer 산출물 거부 고정 (
+only single-frame images => e0827103 fix(dicom): BitsStored·HighBit 필수화, 거부 이유 알림, 옛 writer 산출물 거부 고정 (
+only one sample per pixel => e0827103 fix(dicom): BitsStored·HighBit 필수화, 거부 이유 알림, 옛 writer 산출물 거부 고정 (
+normaliseMonochrome1 => d691296e feat(dicom): MONOCHROME1 을 읽을 때 반전해 항상 MONOCHROME2 의미로 돌려준다 (QA-B-185

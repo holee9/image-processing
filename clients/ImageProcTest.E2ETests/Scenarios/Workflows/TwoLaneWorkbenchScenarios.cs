@@ -236,6 +236,70 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
         Thread.Sleep(150);
     }
 
+    /// <summary>
+    /// L-07 (GUI-C-233j, Codex #178): after the backend is replaced the lanes hold no applied image, and the screen says so. ImageComparisonViewport draws the SOURCE in place of a missing
+    /// processed image; for a lane that would look like an applied result. So each lane's viewport is collapsed (absent from the automation tree) and an "No applied image" text stands in its
+    /// place; the main viewport keeps its RAW fallback and stays. Applying again brings the lanes back and the placeholders go.
+    /// </summary>
+    [SkippableFact]
+    public void L07_AfterTheBackendIsReplaced_TheLanesSayTheyHoldNoAppliedImage()
+    {
+        Measure("L-07", window =>
+        {
+            MakeLanesIdentical(window);
+            ApplyDisplayPipeline(window);
+            var drawn = ReadLane(window, "A");
+            var shownWhileDrawn = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAEmptyText"));
+            Assert.True(shownWhileDrawn is null || shownWhileDrawn.IsOffscreen, "The placeholder is shown while the lane is drawn.");
+
+            // GUI-C-233k: while the lanes are drawn their tags name an algorithm; the HUD's Calib line says what the chain ran, not how many modes are configured ("7/7").
+            // GUI-C-234f: preprocessing is ON by default since GUI-C-234b, so what the HUD says depends on the chain: it ran ("3 stages"), was skipped for want of calibration data / the module ("not run"), or failed.
+            string TextOf(string id) => window.FindFirstDescendant(cf => cf.ByAutomationId(id))?.Name ?? "(not in the tree)";
+            output.WriteLine($"L-07 before: tagA='{TextOf("LaneATag")}' tagB='{TextOf("LaneBTag")}' calib='{TextOf("HudCalibStages")}'");
+            Assert.DoesNotContain("—", TextOf("LaneATag"));
+            var chainText = TextOf("ChainStatusText");
+            var preprocess = System.Text.RegularExpressions.Regex.Match(chainText, @"preprocess=(\w+)").Groups[1].Value;
+            Assert.NotEqual("NotRequested", preprocess);   // the default settings request preprocessing (U3)
+            var expectedHud = preprocess switch
+            {
+                "Applied" or "AppliedNoChange" => "3 stages (offset · gain · defect)",
+                "Skipped" => "not run",
+                "RequestedNotApplied" => "failed",
+                _ => "(unknown chain status: " + chainText + ")",
+            };
+            Assert.Contains(expectedHud, TextOf("HudCalibStages"));
+
+            UiaMenu.Open(window, "BackendMenu");
+            Thread.Sleep(350);
+            var init = window.FindFirstDescendant(cf => cf.ByAutomationId("InitializeBackendMenuItem"));
+            Assert.True(init is not null, "Initialize Backend was not found in the Backend menu.");
+            init!.AsMenuItem().Invoke();
+            Thread.Sleep(1500);
+
+            foreach (var lane in new[] { "A", "B" })
+            {
+                var viewport = window.FindFirstDescendant(cf => cf.ByAutomationId($"Lane{lane}Viewport"));
+                var empty = window.FindFirstDescendant(cf => cf.ByAutomationId($"Lane{lane}EmptyText"));
+                output.WriteLine($"L-07 lane {lane}: viewport in tree={viewport is not null}, placeholder='{empty?.Name}' offscreen={empty?.IsOffscreen}");
+                Assert.True(viewport is null || viewport.IsOffscreen, $"Lane {lane} still has a drawn viewport after the backend was replaced (it would show the source as if it were a result).");
+                Assert.True(empty is not null && !empty.IsOffscreen && empty.Name == "No applied image", $"Lane {lane} does not say it holds no applied image.");
+            }
+
+            output.WriteLine($"L-07 after: tagA='{TextOf("LaneATag")}' tagB='{TextOf("LaneBTag")}' calib='{TextOf("HudCalibStages")}'");
+            Assert.Contains("—", TextOf("LaneATag"));
+            Assert.Contains("—", TextOf("LaneBTag"));
+            Assert.Contains("—", TextOf("HudCalibStages"));   // no render stands: the Calib line claims nothing
+            Assert.NotNull(window.FindFirstDescendant(cf => cf.ByAutomationId("WorkbenchViewport")));   // the main viewport (RAW fallback) is untouched
+            Assert.Contains("backend was replaced", StaleIndicator(window) ?? string.Empty);
+
+            ApplyDisplayPipeline(window);
+            var again = ReadLane(window, "A");
+            output.WriteLine($"L-07 lane A before {drawn} / after re-apply {again}");
+            var emptyAfter = window.FindFirstDescendant(cf => cf.ByAutomationId("LaneAEmptyText"));
+            Assert.True(emptyAfter is null || emptyAfter.IsOffscreen, "The placeholder is still shown although the lane was drawn again.");
+        });
+    }
+
     private void MeasureNative(string scenario, Action<Window> body)
     {
         Skip.If(app.BackendMode != "Native",
@@ -295,5 +359,5 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
     }
 
     /// <summary>The option both lanes are put on when a case needs them to agree.</summary>
-    internal const string BaselineAlgorithm = "No correction";
+    internal const string BaselineAlgorithm = "No grid correction";
 }

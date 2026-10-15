@@ -1,0 +1,8 @@
+injected probe delay ms | run | outcome | GetMainWindow ms | UI thread unanswered (longest ms)
+0 |   1 | ok |              465 | 0
+0 |   2 | ok |              958 | 0
+3000 |   1 | ok |              536 | 52
+3000 |   2 | ok |              461 | 49
+6000 |   1 | ok |              469 | 68
+6000 |   2 | ok |              454 | 50
+summary: GetMainWindow failed 0/6

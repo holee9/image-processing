@@ -242,7 +242,8 @@ TEST(GsdfCharacterization, Stage2_LuminanceSweepMovesTheCurve_155) {
         { "1 decade    10..100",     {10.0f, 30.0f, 100.0f} },
         { "3 decades   1..500",      {1.0f, 10.0f, 50.0f, 200.0f, 500.0f} },
         { "4 decades   0.5..5000",   {0.5f, 5.0f, 50.0f, 500.0f, 5000.0f} },
-        { "6 decades   0.01..10000", {0.01f, 1.0f, 100.0f, 10000.0f} },
+        // QA-B-207 D1: was "6 decades 0.01..10000"; a black level below 0.05 cd/m2 is refused now (see GsdfBlackLevel.*)
+        { "5 decades   0.05..10000", {0.05f, 1.0f, 100.0f, 10000.0f} },
         { "dim pair    0.05..0.5",   {0.05f, 0.2f, 0.5f} },
     };
 
@@ -610,7 +611,7 @@ TEST(GsdfCharacterization, Stage2_LutIsNoLongerTheStraightRamp_155) {
     const std::vector<Case> cases = {
         { "1..500",       {1.0f, 10.0f, 50.0f, 200.0f, 500.0f} },
         { "80..120",      {80.0f, 100.0f, 120.0f} },
-        { "0.01..10000",  {0.01f, 1.0f, 100.0f, 10000.0f} },
+        { "0.05..10000",  {0.05f, 1.0f, 100.0f, 10000.0f} },   // QA-B-207 D1: was 0.01..10000
         { "0.05..4000",   {0.05f, 4000.0f} },
     };
 

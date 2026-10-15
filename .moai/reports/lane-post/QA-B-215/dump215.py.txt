@@ -1,0 +1,53 @@
+"""QA-B-215: run the stage dump with different DLL sets. usage: dump215.py <set> [threads]
+sets: post (all local ci-post), ci_enh (CI enhance_basic only), ci_all4 (CI fmt+spdlog+common+enhance_basic), ci_common3 (CI fmt+spdlog+common)"""
+import os, shutil, subprocess, sys
+
+ROOT = r'D:/workspace-github/xpe-post'
+BIN = ROOT + '/build/ci-post/bin'
+CI = r'D:/workspace-github/xpe-data/ci-dlls-39f9727a'
+SCR = ROOT + '/build/s215'
+OUT = ROOT + '/.moai/reports/lane-post/QA-B-215/'
+SETS = {
+    'post': [],
+    'ci_enh': ['xpe_enhance_basic.dll'],
+    'ci_all4': ['fmt.dll', 'spdlog.dll', 'xpe_common.dll', 'xpe_enhance_basic.dll'],
+    'ci_common3': ['fmt.dll', 'spdlog.dll', 'xpe_common.dll'],
+}
+
+
+def prepare(name, extra_dir=None):
+    d = '%s/run_%s' % (SCR, name)
+    shutil.rmtree(d, ignore_errors=True)
+    os.makedirs(d)
+    for f in os.listdir(BIN):
+        if f.endswith(('.dll', '.exe')):
+            shutil.copy2('%s/%s' % (BIN, f), d)
+    for f in SETS.get(name, []):
+        shutil.copy2('%s/%s' % (extra_dir or CI, f), d)
+    if name.startswith('v_'):
+        shutil.copy2('%s/v_%s/xpe_enhance_basic.dll' % (SCR, name[2:]), d)
+    return d
+
+
+def run(name, threads='', tag=None, d=None):
+    d = d or prepare(name)
+    tag = tag or name
+    env = open(ROOT + '/.moai/reports/lane-post/QA-B-120/_env.bat').read()
+    bat = ('@echo off\r\ncall "%s/.moai/reports/lane-post/QA-B-120/_env.bat"\r\ncd /d %s\r\n' % (ROOT, d.replace('/', '\\')) +
+           'set XPE_M2_IN=D:\\workspace-github\\xpe-data\\m1-baseline-v2\\wrist_lat_3072x3072_corrected_v2_f32le.raw\r\n'
+           'set XPE_M2_OUT=%s\\build\\m2-scratch\r\nset XPE_M2_TAG=%s\r\nset XPE_M2_THREADS=%s\r\n' % (ROOT.replace('/', '\\'), tag, threads) +
+           '"%%CD%%\\test_e2e_post_pipeline.exe" --gtest_also_run_disabled_tests --gtest_filter=M2Measure.DISABLED_StageDump_215 > %s 2>&1\r\n' % ((OUT + 'dump_%s.txt' % tag).replace('/', '\\')) +
+           'echo ===EXIT=%errorlevel%=== >> ' + (OUT + 'dump_%s.txt' % tag).replace('/', '\\') + '\r\n')
+    bp = SCR + '/_run_%s.bat' % tag
+    open(bp, 'w').write(bat)
+    subprocess.run('cmd.exe /c "%s"' % bp.replace('/', '\\'), shell=True)
+    t = open(OUT + 'dump_%s.txt' % tag, encoding='utf-8', errors='replace').read()
+    print('--', tag, 'threads=' + (threads or 'auto'))
+    print('\n'.join(l for l in t.splitlines() if 'fnv1a64' in l or 'VOI auto' in l or 'EXIT' in l or 'max_threads' in l or 'FAILED' in l or 'rror' in l))
+
+
+if __name__ == '__main__':
+    os.makedirs(ROOT + '/build/m2-scratch', exist_ok=True)
+    name = sys.argv[1]
+    thr = sys.argv[2] if len(sys.argv) > 2 else ''
+    run(name, thr, tag=name + ('_t' + thr if thr else ''))

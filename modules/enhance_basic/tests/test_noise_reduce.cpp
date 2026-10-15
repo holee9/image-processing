@@ -14,7 +14,9 @@
 #include <cstring>
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <random>
+#include <vector>
 #include "perf_measure.h"
 
 namespace {
@@ -158,6 +160,43 @@ TEST(NoiseReduce, BilateralFilter_ZeroSigmaSpace_ReturnsInvalidInput) {
     params.sigma_range = 50.0f;
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, &params));
     free_img(img);
+}
+
+// QA-B-210 E7 / E7b (#251, user decision): the spatial kernel covers 2 sigma with its radius capped at 15, so 15 / 2 = 7.5 is the
+// largest sigma_space whose 2-sigma extent fits. Above it the radius is clamped below 2 sigma (the weights still follow the requested
+// sigma, but the kernel is cut off before 2 sigma -- not the shape the parameter asks for). Above the cap the call is refused and the
+// buffer is left untouched; the cap itself is accepted.
+TEST(NoiseReduce, BilateralFilter_SigmaSpaceAboveTheCap_ReturnsInvalidInputAndLeavesTheBufferUntouched) {
+    const float cap = 7.5f;   // header: 0 < sigma_space <= 7.5 (= radius cap 15 / 2)
+    for (float sigma : {std::nextafter(cap, 100.0f), 8.0f, 100.0f, 1e6f, (std::numeric_limits<float>::max)()}) {
+        auto img = make_f32(64, 64, 0.0f);
+        float* px = static_cast<float*>(img.data);
+        for (int i = 0; i < 64 * 64; ++i) px[i] = static_cast<float>((i * 37) % 251);
+        const std::vector<float> before(px, px + 64 * 64);
+        XpeNoiseReduceParams params{};
+        params.mode = XPE_NOISE_BILATERAL;
+        params.sigma_space = sigma;
+        params.sigma_range = 50.0f;
+        EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, &params)) << "sigma_space=" << sigma;
+        EXPECT_EQ(0, std::memcmp(before.data(), px, before.size() * sizeof(float))) << "sigma_space=" << sigma << ": buffer changed";
+        free_img(img);
+    }
+}
+
+TEST(NoiseReduce, BilateralFilter_SigmaSpaceAtTheCap_IsAcceptedAndProcessesTheImage) {
+    for (float sigma : {0.1f, 3.0f, 7.4999995f, 7.5f}) {
+        auto img = make_f32(64, 64, 0.0f);
+        float* px = static_cast<float*>(img.data);
+        for (int i = 0; i < 64 * 64; ++i) px[i] = static_cast<float>((i * 37) % 251);
+        const std::vector<float> before(px, px + 64 * 64);
+        XpeNoiseReduceParams params{};
+        params.mode = XPE_NOISE_BILATERAL;
+        params.sigma_space = sigma;
+        params.sigma_range = 50.0f;
+        EXPECT_EQ(XPE_OK, xpe_noise_reduce(&img, &params)) << "sigma_space=" << sigma;
+        EXPECT_NE(0, std::memcmp(before.data(), px, before.size() * sizeof(float))) << "sigma_space=" << sigma << ": nothing was filtered";
+        free_img(img);
+    }
 }
 
 // REQ-ENH-008: NLM with valid small image returns XPE_OK

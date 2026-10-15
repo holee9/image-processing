@@ -1,0 +1,52 @@
+Quotes copied from the pages named below, fetched 2026-10-02 (DICOM PS3.3 "2026d - Information Object Definitions").
+Method: the page HTML was fetched, tags stripped, whitespace collapsed; the text between the quotation marks is verbatim.
+
+[1] https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html  (C.7.6.3.1.2 Photometric Interpretation)
+  "MONOCHROME1 Pixel data represent a single monochrome image plane. The minimum sample value is intended to be displayed
+   as white after any VOI gray scale transformations have been performed. See PS3.4. This Value may be used only when
+   Samples per Pixel (0028,0002) has a Value of 1. May be used for pixel data in a Native (uncompressed) or Encapsulated
+   (compressed) format; see Section 8.2 in PS3.5."
+  "MONOCHROME2 Pixel data represent a single monochrome image plane. The minimum sample value is intended to be displayed
+   as black after any VOI gray scale transformations have been performed. See PS3.4. This Value may be used only when
+   Samples per Pixel (0028,0002) has a Value of 1. ..."
+
+[2] https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.11.6.html  (C.11.6 Softcopy Presentation LUT Module)
+  "Presentation LUT Shape (2050,0020) 1C Specifies predefined Presentation LUT transformation. ... Enumerated Values:
+   IDENTITY no further translation necessary, input values are P-Values; INVERSE output values after inversion are P-Values"
+  "When the Presentation LUT is specified as Presentation LUT Shape, then the input range is implicitly specified to be the
+   output range of the preceding transformation (VOI LUT, or if the VOI LUT is identity or absent, the Modality LUT, or if
+   the Modality LUT and VOI LUT are identity or absent, the stored pixel values)."
+  "A Value of INVERSE shall mean the same as a Value of IDENTITY, except that the minimum output value shall convey the
+   meaning of the maximum available luminance, and the maximum value shall convey the minimum available luminance."
+
+[3] https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.11.2.html  (C.11.2 VOI LUT Module)
+  "The Window Center (0028,1050), Window Width (0028,1051) and VOI LUT Function (0028,1056) shall be used only for Images
+   with Photometric Interpretation (0028,0004) Values of MONOCHROME1 and MONOCHROME2."
+
+[4] https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.8.11.3.html  (C.8.11.3 DX Image Module)
+  "Photometric Interpretation (0028,0004) 1 Specifies the intended interpretation of the pixel data. Enumerated Values:
+   MONOCHROME1 MONOCHROME2"
+  "Presentation LUT Shape (2050,0020) 1 Specifies an identity transformation for the Presentation LUT, other than to account
+   for the Value of Photometric Interpretation (0028,0004), such that the output of all grayscale transformations defined
+   in the IOD containing this Module are defined to be P-Values. Enumerated Values: IDENTITY output is in P-Values - shall
+   be used if Photometric Interpretation (0028,0004) is MONOCHROME2. INVERSE output after inversion is in P-Values - shall
+   be used if Photometric Interpretation (0028,0004) is MONOCHROME1."
+  "Pixel Intensity Relationship Sign (0028,1041) 1 The sign of the relationship between the pixel sample values stored in
+   Pixel Data (7FE0,0010) and the X-Ray beam intensity."   (independent of Photometric Interpretation)
+
+[5] https://dicom.nema.org/medical/dicom/current/output/chtml/part04/sect_N.2.html  (PS3.4 N.2)
+  "If the Modality LUT and VOI LUT do not have a negative slope, one can achieve the effect of inversion of the polarity of
+   an image by choosing Presentation LUT Shape of IDENTITY or INVERSE that displays the minimum pixel value as white rather
+   than black in the case of a Photometric Interpretation of MONOCHROME2, or black rather than white in the case of a
+   Photometric Interpretation of MONOCHROME1."
+  "Values of MONOCHROME1 and MONOCHROME2 for Photometric Interpretation (0028,0004) in the Referenced Image SOP Instance
+   shall be ignored, since their effect is defined by the application of the grayscale presentation state transformations."
+
+Vendor evidence (a real device family that emits MONOCHROME1):
+[6] Carestream DRX-Evolution DICOM Conformance Statement v5.7, 86 pages (fetched as PDF, text extracted with pypdf)
+  https://www.carestream.com/en/us/-/media/publicsite/resources/radiography-and-health-it/regulatory-information/dicom-statements/image-capture/cr-systems/pdf/drx-evolution-v5_7.pdf?la=en
+  p.25 (DX Image): "Photometric Interpretation (0028,0004) 1 MONOCHROME1 MONOCHROME2 (If the image space configured on the
+   destination is set to density, MONOCHROME1 is set. If the image space configured on the destination is p-values or
+   luminance, MONOCHROME2 is set. See section 5.1.3 for more information."   (same sentence on pp.15, 24, 36)
+  p.71: "Density Pixel data is linearly related to optical film density. With a photometric interpretation of MONOCHROME1,
+   a value of 0 represents minimum density and a value of 4095 represents maximum density"   (Bits Stored 12 on p.25)

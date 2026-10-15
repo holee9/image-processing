@@ -1,0 +1,6 @@
+squatter max=  1  worker FIRST_PIPE_INSTANCE=0  -> worker FAILED (error 231)
+squatter max=  1  worker FIRST_PIPE_INSTANCE=1  -> worker FAILED (error 231)
+squatter max=  2  worker FIRST_PIPE_INSTANCE=0  -> worker CREATED (error 0)
+squatter max=  2  worker FIRST_PIPE_INSTANCE=1  -> worker FAILED (error 5)
+squatter max=255  worker FIRST_PIPE_INSTANCE=0  -> worker CREATED (error 0)
+squatter max=255  worker FIRST_PIPE_INSTANCE=1  -> worker FAILED (error 5)

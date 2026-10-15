@@ -1,0 +1,3 @@
+== arm (d): an E7 marker with no readable bound no longer makes the check red (a blind pass)
+[xUnit.net 00:00:00.26]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.ADisagreement_OrABlindRead_IsRed(why: "E7 marker, no bound anywhere", headerText: "    float              sigma
+실패!  - 실패:     1, 통과:    30, 건너뜀:     0, 전체:    31, 기간: 77 ms - ImageProcTest.IntegrationTests.dll (net8.0)

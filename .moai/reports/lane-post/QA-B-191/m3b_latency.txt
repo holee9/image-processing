@@ -1,0 +1,32 @@
+== run 1
+BP-LATENCY runs=12 (min and median of 12), RelWithDebInfo, single thread
+BP-LATENCY resize only, target 512x512 (the PRD's input size), no model: side min_ms median_ms
+BP-LATENCY resize 1024     1.72     1.77
+BP-LATENCY resize 3072     7.16     7.39
+BP-LATENCY whole call through the C ABI with the TOY model (4x4 input, NOT a real model): side min_ms median_ms
+BP-LATENCY recognize 1024     0.47     0.48
+BP-LATENCY recognize 3072     4.52     4.61
+BP-LATENCY the toy model's own inference at 4x4, for scale (image already 4x4): min 0.005 ms median 0.005 ms
+[  PASSED  ] 1 test.
+== run -2
+BP-LATENCY runs=12 (min and median of 12), RelWithDebInfo, single thread
+BP-LATENCY resize only, target 512x512 (the PRD's input size), no model: side min_ms median_ms
+BP-LATENCY resize 1024     1.80     1.85
+BP-LATENCY resize 3072     7.29     7.61
+BP-LATENCY whole call through the C ABI with the TOY model (4x4 input, NOT a real model): side min_ms median_ms
+BP-LATENCY recognize 1024     0.47     0.48
+BP-LATENCY recognize 3072     4.55     4.66
+BP-LATENCY the toy model's own inference at 4x4, for scale (image already 4x4): min 0.005 ms median 0.005 ms
+[  PASSED  ] 1 test.
+== run -3
+BP-LATENCY runs=12 (min and median of 12), RelWithDebInfo, single thread
+BP-LATENCY resize only, target 512x512 (the PRD's input size), no model: side min_ms median_ms
+BP-LATENCY resize 1024     1.75     1.81
+BP-LATENCY resize 3072     7.10     7.53
+BP-LATENCY whole call through the C ABI with the TOY model (4x4 input, NOT a real model): side min_ms median_ms
+BP-LATENCY recognize 1024     0.46     0.47
+BP-LATENCY recognize 3072     4.40     4.53
+BP-LATENCY the toy model's own inference at 4x4, for scale (image already 4x4): min 0.006 ms median 0.007 ms
+[  PASSED  ] 1 test.
+
+machine: 12th Gen Intel(R) Core(TM) i7-12700; CPU load 28% at the first run (other sessions share this machine); build RelWithDebInfo (ci-ai)

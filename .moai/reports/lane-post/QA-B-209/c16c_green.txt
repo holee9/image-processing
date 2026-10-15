@@ -1,0 +1,23 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from DicomLogging
+[ RUN      ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails
+[       OK ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails (12 ms)
+[ RUN      ] DicomLogging.AnEarlyRefusalLogsDebugEntryDebugExitAndOneErrorResult
+[       OK ] DicomLogging.AnEarlyRefusalLogsDebugEntryDebugExitAndOneErrorResult (5 ms)
+[ RUN      ] DicomLogging.AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult
+[       OK ] DicomLogging.AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult (6 ms)
+[ RUN      ] DicomLogging.ASuccessLogsDebugLinesOnly
+[       OK ] DicomLogging.ASuccessLogsDebugLinesOnly (23 ms)
+[ RUN      ] DicomLogging.TheDebugExitFollowsTheEntryAndIsWrittenOncePerCall
+[       OK ] DicomLogging.TheDebugExitFollowsTheEntryAndIsWrittenOncePerCall (6 ms)
+[ RUN      ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel (9 ms)
+[ RUN      ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel (10 ms)
+[----------] 7 tests from DicomLogging (75 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (75 ms total)
+[  PASSED  ] 7 tests.

@@ -1,0 +1,23 @@
+control: a real quote is accepted: True; a fake quote is rejected: True
+requirements: 37; test quotes checked: 91; impl citations checked: 37; header promises: 6
+FAILED evidence: 16
+  test quote                           0
+  impl line outside the file           13
+  impl is a statement, not file:line   3
+  header promise quote                 0
+   ('REQ-DISP-004', 'impl modules/display/src/display_helpers.cpp:114-116', 'file or line missing', '')
+   ('REQ-DISP-009', 'impl modules/display/src/voi_lut.cpp:229-243', 'file or line missing', '')
+   ('REQ-DISP-010', 'impl modules/display/src/voi_lut.cpp:245-253', 'file or line missing', '')
+   ('REQ-DISP-010a', 'impl modules/display/src/voi_lut.cpp:196-243', 'file or line missing', '')
+   ('REQ-DISP-011', 'impl modules/display/src/voi_lut.cpp:254-261', 'file or line missing', '')
+   ('REQ-DISP-012', 'impl modules/display/src/voi_lut.cpp:235-240,250,258', 'file or line missing', '')
+   ('REQ-DISP-014', 'impl modules/display/src/display_helpers.cpp:114-116', 'file or line missing', '')
+   ('REQ-DISP-015', 'impl modules/display/src/voi_lut.cpp:171', 'file or line missing', '')
+   ('REQ-DISP-016', 'impl modules/display/src/voi_lut.cpp:226-243', 'file or line missing', '')
+   ('REQ-DISP-017', 'impl modules/display/src/voi_lut.cpp:282-292', 'file or line missing', '')
+   ('REQ-DISP-018', 'impl modules/display/src/voi_lut.cpp:274,293-295', 'file or line missing', '')
+   ('REQ-DISP-023', 'impl modules/display/src/display_helpers.cpp:114-116', 'file or line missing', '')
+   ('REQ-DISP-030', 'impl none (no try/catch in modules/display/src; code uses malloc, no new/vector/throwing calls)', 'no file:line', '')
+   ('REQ-DISP-031', 'impl none: grep for spdlog/xpe_log/log in modules/display/src returns no logging call (CMakeLists.txt links spdlog PRIVATE but unused)', 'no file:line', '')
+   ('REQ-DISP-032', 'impl no global/static mutable state in modules/display/src (reentrant by construction)', 'no file:line', '')
+   ('REQ-DISP-035', 'impl no size-dependent code; memory only in presentation_lut.cpp:36', 'file or line missing', '')

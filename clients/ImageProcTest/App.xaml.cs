@@ -14,6 +14,13 @@ namespace ImageProcTest
                 return;
             }
 
+            var oracleMode = Array.FindIndex(e.Args, a => a.Equals(XpePreprocessOracleProcess.ModeArgument, StringComparison.OrdinalIgnoreCase));
+            if (oracleMode >= 0)
+            {
+                RunPreprocessOracleWorker(e.Args, oracleMode);
+                return;
+            }
+
             if (e.Args.Contains("--run-preprocess-fixture-e2e", StringComparer.OrdinalIgnoreCase))
             {
                 RunPreprocessFixtureE2e(e.Args);
@@ -25,6 +32,10 @@ namespace ImageProcTest
                 RunPhase1bFixtureE2e(e.Args);
                 return;
             }
+
+            // GUI-C-219d (Codex #116): the interactive path is the only one with a UI thread to protect (the headless modes above run their work on this same thread on purpose). The guard belongs to the
+            // application, not to a window: it is in place before any window exists and stays after the last one closes, so code that runs on the dispatcher thread with no window is covered too.
+            OracleThreadGuard.OnUiThread = () => Dispatcher.CheckAccess();
 
             var window = new MainWindow();
             MainWindow = window;
@@ -51,6 +62,15 @@ namespace ImageProcTest
             {
                 backend.Shutdown();
             }
+        }
+
+        // GUI-C-212b: the synthetic oracle runs here, in a child process of the app, so that its module shutdown and synthetic calibration never touch the app's own module state.
+        private void RunPreprocessOracleWorker(string[] args, int modeIndex)
+        {
+            var dllPath = modeIndex + 1 < args.Length ? args[modeIndex + 1] : string.Empty;
+            XpePreprocessOracleProcess.RunWorker(dllPath, XpePreprocessOracleProcess.CreateWorkerWriter());
+            Environment.ExitCode = 0;
+            Shutdown(0);
         }
 
         private void RunPreprocessFixtureE2e(string[] args)

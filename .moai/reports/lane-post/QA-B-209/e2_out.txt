@@ -1,0 +1,4 @@
+xpe_edge_enhance (USM 0.5/2.0/10)      flat: median 19.9 ms (pixels changed: 0) | random: median 19.4 ms   ratio flat/random=1.02
+xpe_log_transform (norm 1000)          flat: median 5.6 ms (pixels changed: 9437184) | random: median 6.0 ms   ratio flat/random=0.93
+xpe_log_inverse (norm 1000)            flat: median 5.4 ms (pixels changed: 9437184) | random: median 5.0 ms   ratio flat/random=1.07
+xpe_noise_reduce (bilateral 3.0/50)    flat: median 38.2 ms (pixels changed: 0) | random: median 41.9 ms   ratio flat/random=0.91

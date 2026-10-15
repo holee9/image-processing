@@ -1,0 +1,6 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.RealInputScenarios.R02e_ALateJudgmentRead_DoesNotChangeTheVerdict_ButTheRecordShowsTheLateCompletion [3 s]
+ R02e no delay:        judgment read: started +613 ms, completed +616 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times)
+ R02e delay before:    judgment read: started +1415 ms, completed +1416 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times)
+ R02e delay inside:    judgment read: started +606 ms, completed +1123 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times)
+ R02e: 3847 ms
+ R02d message: Real key presses typed '4321' but the center box held '32768' 600 ms after the last key (application pid 27000). judgment read: started +608 ms, completed +609 ms after the last key (nominal wait 600 ms; the verdict does not depend on these times). FACTS (observed): before the keys: center '32768', width '65535', keyboard focus 'Popup Window' (pid 47456), foreground pid 47456; 600 ms after (judgment re

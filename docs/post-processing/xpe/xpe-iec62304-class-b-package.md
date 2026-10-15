@@ -311,7 +311,7 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 | SRS-FUNC-020 | 시스템은 DICOM Modality LUT (Rescale Slope/Intercept)를 적용해야 한다 | (a) | Must | — |
 | SRS-FUNC-021 | 시스템은 VOI LUT (LINEAR, LINEAR_EXACT, SIGMOID)를 지원해야 한다 | (a) | Must | SRS-SAFE-006 |
 | SRS-FUNC-022 | 시스템은 DICOM PS3.14 GSDF에 따른 Presentation LUT를 적용해야 한다 | (a) | Must | SRS-SAFE-007 |
-| SRS-FUNC-023 | 시스템은 Photometric Interpretation MONOCHROME1/MONOCHROME2를 올바르게 처리해야 한다 | (a) | Must | — |
+| SRS-FUNC-023 | 시스템은 Photometric Interpretation MONOCHROME1/MONOCHROME2를 올바르게 처리해야 한다. 해석: MONOCHROME1 은 `xpe_dicom_read_image` 가 읽을 때 `(2^BitsStored − 1) − (값 & (2^BitsStored − 1))` 로 정규화하여 MONOCHROME2 의미로 돌려준다(SRS-DICOM-001 FR-DCM-109). 이후 파이프라인은 항상 MONOCHROME2 의미의 화소를 받으며 표시 단계는 극성을 바꾸지 않는다. 읽기 정규화가 보존하는 것은 극성이다. `xpe_dicom_write` 는 원본 파일의 Window Center/Width, Rescale, Presentation LUT Shape 를 보존하지 않고(Window 없음, Rescale 1/0, IDENTITY) 소스 파일에서 아무것도 복사하지 않으므로, 원본에 비항등 VOI 나 Rescale 이 있었다면 읽기→쓰기 뒤 밝기·대비가 달라질 수 있다. | (a) | Must | — |
 
 ### 3.4 DICOM I/O
 

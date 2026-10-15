@@ -1,0 +1,19 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from DicomLogging
+[ RUN      ] DicomLogging.EveryPublicFunctionLogsItsExitWithTheReturnCode
+[       OK ] DicomLogging.EveryPublicFunctionLogsItsExitWithTheReturnCode (6 ms)
+[ RUN      ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall
+[       OK ] DicomLogging.TheExitLineFollowsTheEntryLineAndIsWrittenOncePerCall (5 ms)
+[ RUN      ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel
+[       OK ] DicomLogging.ARefusedFileIsLoggedAtErrorLevel (5 ms)
+[ RUN      ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel (4 ms)
+[ RUN      ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel (12 ms)
+[----------] 5 tests from DicomLogging (42 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (42 ms total)
+[  PASSED  ] 5 tests.

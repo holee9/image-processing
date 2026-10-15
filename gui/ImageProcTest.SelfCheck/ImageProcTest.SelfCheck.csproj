@@ -9,6 +9,9 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <!-- GUI-C-193: XPE_TEST_FAULTS (test fault switches) is defined for Debug only. -->
+  <Import Project="..\XpeTestFaults.props" />
+
   <ItemGroup>
     <ProjectReference Include="..\ImageProcTest\ImageProcTest.csproj" />
   </ItemGroup>

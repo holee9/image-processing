@@ -12,6 +12,9 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <!-- GUI-C-193: XPE_TEST_FAULTS (test fault switches) is defined for Debug only. -->
+  <Import Project="..\..\gui\XpeTestFaults.props" />
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -34,6 +37,7 @@
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources\expected-versions.json" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources\requirement-matrix.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\forbidden-reflection-apis.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--
@@ -74,6 +78,7 @@
       along. Without them the single-source claim would be tested against a copy.
     -->
     <Compile Include="..\..\gui\ImageProcTest\Models\ComparisonModes.cs" Link="Comparison\Linked\ComparisonModes.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BuildIdentity.cs" Link="Comparison\Linked\BuildIdentity.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\CalibrationStageMode.cs" Link="Comparison\Linked\CalibrationStageMode.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\AppSettings.cs" Link="Comparison\Linked\AppSettings.cs" />
     <Compile Include="..\..\gui\ImageProcTest\ViewModels\ObservableObject.cs" Link="Comparison\Linked\ObservableObject.cs" />
@@ -87,16 +92,61 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\TroubleshootingPageService.cs" Link="TroubleshootingPage\Linked\TroubleshootingPageService.cs" />
     <!-- #225 row 10 (GUI-C-184): the AI stage's reading of the module's answer, native-call-free so the tests run it. -->
     <Compile Include="..\..\gui\ImageProcTest\Services\AiBoneSuppressionStage.cs" Link="AiBoneSuppression\Linked\AiBoneSuppressionStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\AiBoneSuppressionAvailability.cs" Link="AiBoneSuppression\Linked\AiBoneSuppressionAvailability.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BackendLifecycle.cs" Link="AiBoneSuppression\Linked\BackendLifecycle.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BackendTelemetry.cs" Link="AiBoneSuppression\Linked\BackendTelemetry.cs" />
     <!-- #218 side finding (GUI-C-182): the defect metric pass lines, dependency-free, checked against the canonical protocol's text. -->
     <Compile Include="..\ImageProcTest\Services\DefectMetricGates.cs" Link="DefectMetricGates\Linked\DefectMetricGates.cs" />
     <Compile Include="..\ImageProcTest\Services\DefectMetricRows.cs" Link="DefectMetricGates\Linked\DefectMetricRows.cs" />
+    <Compile Include="..\ImageProcTest\Services\EnhanceBasicInputLimits.cs" Link="EnhanceInputLimits\Linked\EnhanceBasicInputLimits.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BenchmarkRunnerService.cs" Link="BenchmarkRunner\Linked\BenchmarkRunnerService.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\RunnerProcess.cs" Link="BenchmarkRunner\Linked\RunnerProcess.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\ProcessingChain.cs" Link="Chain\Linked\ProcessingChain.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainRunner.cs" Link="Chain\Linked\ProcessingChainRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\AtomicFile.cs" Link="Chain\Linked\AtomicFile.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\RawSizeRules.cs" Link="Chain\Linked\RawSizeRules.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\ProcessingChainPlan.cs" Link="Chain\Linked\ProcessingChainPlan.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDeterminism.cs" Link="Chain\Linked\BaselineDeterminism.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineParameters.cs" Link="Chain\Linked\BaselineParameters.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineRunner.cs" Link="Chain\Linked\BaselineRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\EnhanceBasicStage.cs" Link="Chain\Linked\EnhanceBasicStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDicomExport.cs" Link="Chain\Linked\BaselineDicomExport.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineExecution.cs" Link="Chain\Linked\BaselineExecution.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineAutomationRule.cs" Link="Chain\Linked\BaselineAutomationRule.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineStageAdapters.cs" Link="Chain\Linked\BaselineStageAdapters.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\BaselineDisplayStage.cs" Link="Chain\Linked\BaselineDisplayStage.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiBaselineDisplayNative.cs" Link="Chain\Linked\GuiBaselineDisplayNative.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDicomInterop.cs" Link="Chain\Linked\XpeDicomInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiDicomNative.cs" Link="Chain\Linked\GuiDicomNative.cs" />
+    <!-- GUI-C-243: GuiDicomNative checks the loaded modules (pinned search) through NativeModuleAudit -->
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\NativeModuleAudit.cs" Link="Chain\Linked\NativeModuleAudit.cs" />
+    <!-- GUI-C-245: NativeModuleAudit.PreflightModule loads a module through the app's resolver (Resolve is called directly; no DllImport resolver is installed on this assembly) -->
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiNativeLibraryResolver.cs" Link="Chain\Linked\GuiNativeLibraryResolver.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDisplayInterop.cs" Link="Chain\Linked\XpeDisplayInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiPreprocessRunner.cs" Link="Chain\Linked\GuiPreprocessRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Models\PreprocessRunResult.cs" Link="Chain\Linked\PreprocessRunResult.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Models\XpeBodyPartEnum.cs" Link="Chain\Linked\XpeBodyPartEnum.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeExposureIndexInterop.cs" Link="Chain\Linked\XpeExposureIndexInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeEnhanceBasicInterop.cs" Link="Chain\Linked\XpeEnhanceBasicInterop.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiEnhanceNative.cs" Link="Chain\Linked\GuiEnhanceNative.cs" />
+    <!--
+      GUI-C-212 (#249): the legacy app's runtime smoke of xpe_preprocess.dll, called by a test. It went stale for months because nothing ran it. The records are in their own file
+      (they were inside NativeReadinessProbe.cs, which drags in every other probe); PInvokeWrapper.cs is linked for the buffer/metadata types and enums only: the oracle calls the DLL
+      through delegates, so XpeCommonApi's static constructor (which installs a second DllImport resolver) is never run in this assembly.
+    -->
+    <Compile Include="..\ImageProcTest\PInvokeWrapper.cs" Link="OracleCall\Linked\PInvokeWrapper.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\NativeDependencyLoader.cs" Link="OracleCall\Linked\NativeDependencyLoader.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessSyntheticOracleResult.cs" Link="OracleCall\Linked\PreprocessSyntheticOracleResult.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessSyntheticOracle.cs" Link="OracleCall\Linked\XpePreprocessSyntheticOracle.cs" />
+    <!-- GUI-C-212b: the child-process host of the oracle (timeout, kill, one JSON result line). It touches no WPF type. -->
+    <Compile Include="..\ImageProcTest\Diagnostics\XpePreprocessOracleProcess.cs" Link="OracleCall\Linked\XpePreprocessOracleProcess.cs" />
+    <!-- GUI-C-219: the shared, background-produced verdict the window asks for instead of running the oracle itself. -->
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessOracleVerdicts.cs" Link="OracleCall\Linked\PreprocessOracleVerdicts.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\PreprocessOracleSnapshot.cs" Link="OracleCall\Linked\PreprocessOracleSnapshot.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\OracleThreadGuard.cs" Link="OracleCall\Linked\OracleThreadGuard.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\OracleModuleConfinement.cs" Link="OracleCall\Linked\OracleModuleConfinement.cs" />
+    <Compile Include="..\ImageProcTest\Diagnostics\ProcessingContentGate.cs" Link="OracleCall\Linked\ProcessingContentGate.cs" />
   </ItemGroup>
 
   <!--
@@ -139,10 +189,20 @@
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\Debug\fmt.dll" />
       <_XpeDllCandidates Include="$(MSBuildThisFileDirectory)..\..\build\default\bin\fmt.dll" />
     </ItemGroup>
+    <!--
+      GUI-C-233b (Codex #171 finding 3): with XPE_NATIVE_DIR set, that folder is the ONE place the modules come from (the locator treats it as exclusive). Copies left in the output folder by an earlier
+      build without it are the app directory the locator offers BEFORE the exclusive cut, so some tests loaded xpe_common/xpe_preprocess from here and others from XPE_NATIVE_DIR: two instances in one
+      process (NativeCommonSingleInstanceTests, intermittent by test order). So: when XPE_NATIVE_DIR is set, nothing is copied and the stale copies are removed; without it, the staging below is unchanged.
+    -->
+    <ItemGroup Condition="'$(XPE_NATIVE_DIR)' != ''">
+      <_XpeStaleStaged Include="$(OutputPath)xpe_common.dll;$(OutputPath)xpe_preprocess.dll;$(OutputPath)spdlog.dll;$(OutputPath)fmt.dll" />
+    </ItemGroup>
+    <!-- GUI-C-233c: no ContinueOnError - a stale copy that cannot be removed (locked by a running test host, say) is an ERROR: leaving it would bring the two-path load back silently. -->
+    <Delete Files="@(_XpeStaleStaged)" Condition="'$(XPE_NATIVE_DIR)' != ''" />
     <Copy
       SourceFiles="@(_XpeDllCandidates)"
       DestinationFolder="$(OutputPath)"
-      Condition="Exists('%(Identity)')"
+      Condition="Exists('%(Identity)') And '$(XPE_NATIVE_DIR)' == ''"
       SkipUnchangedFiles="true"
       ContinueOnError="true" />
   </Target>

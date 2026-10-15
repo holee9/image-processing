@@ -1,0 +1,13 @@
+run  1: exit=0 seconds=1.9
+run  2: exit=0 seconds=2.0
+run  3: exit=0 seconds=1.9
+run  4: exit=0 seconds=1.9
+run  5: exit=0 seconds=1.9
+run  6: exit=0 seconds=1.9
+run  7: exit=0 seconds=2.0
+run  8: exit=0 seconds=1.9
+run  9: exit=0 seconds=1.9
+run 10: exit=0 seconds=1.9
+run 11: exit=0 seconds=1.9
+run 12: exit=0 seconds=1.9
+RESULT runs=12 failures=0 min=1.9s max=2.0s mean=1.9s

@@ -1,0 +1,11 @@
+# GUI-C-201 final tree
+## Functional + whole IntegrationTests, default env
+PASS!  - FAIL:     0, PASS:   640, SKIP:     1, total:   641, 기간: 11 s - ImageProcTest.IntegrationTests.dll (net8.0)
+## E2E Mock: AutomationReport + ProcessingChain + AiMenu*
+PASS!  - FAIL:     0, PASS:    25, SKIP:    11, total:    36, 기간: 9 m 6 s - ImageProcTest.E2ETests.dll (net8.0)
+## E2E Native, a freshly built xpe_ai.dll (current main source, exports xpe_ai_worker_state) + xpe_ai_worker.exe: C08 C09 C10 + AiMenu*
+PASS!  - FAIL:     0, PASS:     7, SKIP:     0, total:     7, 기간: 57 s - ImageProcTest.E2ETests.dll (net8.0)
+## shell E2E runner
+GUI-S0 E2E passed.
+## SelfCheck
+Lifetime scenarios passed (16 scenarios).

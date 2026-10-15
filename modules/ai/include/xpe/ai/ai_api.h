@@ -27,6 +27,129 @@
  * a stub build is not. Per-function notes below mark which returns are
  * currently unreachable.
  *
+ * INPUT VALIDATION (REQ-AI-090, QA-B-194 M1). Every function that takes an image judges it at the entrance, before
+ * the module lock, the model or the worker is touched, and a refusal leaves every output the caller gave
+ * UNTOUCHED (no label, no confidence, no pixels):
+ *   - the size: width and height are at least 1, the declared image is at most 64 MB (4096 x 4096 x 4 bytes) in
+ *     whatever format, and a non-zero dataSize holds the declared image. Every format is bounded by its own pixel
+ *     size (UINT8 1 byte, UINT16 2, FLOAT32 4); a format value that is none of the three is not an image. A
+ *     refusal is XPE_ERR_INVALID_INPUT.
+ *   - the pixels: a FLOAT32 image that holds NaN or infinity is refused with XPE_ERR_INVALID_INPUT and ONE
+ *     XPE_ALERT_ERROR that names the count and the first pixel and says the INPUT is at fault: the tag, then
+ *     "N pixel(s) of the input frame are NaN or infinite (first: index I, x=X, y=Y); " and what the call did not do.
+ *     The tags are XPE_WARN_BONE_SUPPRESS_INPUT_NOT_FINITE, XPE_WARN_BODYPART_INPUT_NOT_FINITE,
+ *     XPE_WARN_DL_DENOISE_INPUT_NOT_FINITE and XPE_WARN_STITCH_INPUT_NOT_FINITE (each followed by a colon; the
+ *     stitch text says "input part P" instead of "the input frame"). Integer formats cannot hold either, and
+ *     xpe_stitch_estimate_size reads no pixels, so neither is scanned. No value RANGE is checked: the input scale
+ *     is the caller's, as for the model (see PIXEL SCALE AND SIZE at xpe_bodypart_recognize).
+ *   A non-finite RESULT of a model is a different fault and keeps its own code (XPE_ERR_PROCESSING_FAILED) and
+ *   alert text ("AI model output was non-finite ..."): the input was fine and the model's output was not. These
+ *   texts are a contract with the clients that display alerts.
+ *
+ * OUT OF MEMORY (QA-B-194 M5). No exception crosses an exported function: an allocation failure inside the
+ * module is XPE_ERR_OUT_OF_MEMORY and leaves the module as it was (nothing leaked, nothing half-initialised, the
+ * module lock released). Swept by failing every allocation of one call in turn: xpe_ai_init, xpe_ai_get_model_card,
+ * xpe_bone_suppress and xpe_bodypart_recognize on a loaded model. THREE THINGS ARE NOT COVERED, and the first is
+ * not coverable from inside the module: (1) the JSON library (nlohmann 3.11.3) frees a non-empty parsed document
+ * with an allocation inside a noexcept destructor, so if memory runs out at that instant the process terminates --
+ * in xpe_ai_init given a config that has keys; a model's sidecar and the body-part label file are read with an
+ * event parser that builds no document (QA-B-197 M1, QA-B-195c), so they are not among them, and a shortage of memory
+ * while the labels are read is XPE_ERR_OUT_OF_MEMORY like any other load, never "the model is unavailable";
+ * (2) allocations made by ONNX Runtime's own allocator and (3) by xpe_common (the
+ * alert queue) are not failed by the sweeps.
+ * A shortage of memory while the ONNX Runtime session of a model is created (QA-B-194b) is XPE_ERR_OUT_OF_MEMORY
+ * on every path that loads a model, and never "the model is unavailable": xpe_bone_suppress and the first
+ * xpe_bodypart_recognize call return it in process (no alert, no label written, nothing remembered: the next call
+ * tries again); a worker answers it with the same code. On the worker path it is counted toward switching the worker off
+ * like any other failure of that path (only a signature refusal is exempt), and xpe_bodypart_recognize still returns
+ * its documented fallback signal there (UNKNOWN, XPE_ERR_PROCESSING_FAILED) while the alert names code -2. This is
+ * proved by throwing std::bad_alloc at the place where the session is built (a test hook), not by an allocation
+ * sweep, which the cold body-part path cannot take for the reason in (1).
+ *
+ * JSON PARSER: nlohmann_json is a REQUIRED dependency of the module and of the worker; there is no second parser, so
+ * the warnings promised above for broken config JSON and out-of-range values hold in every build. A configuration
+ * without nlohmann_json stops at CMake configure.
+ *
+ * WORKER PRIVILEGES (QA-B-198 M2, REQ-AI-093, #250). REQ-AI-093 says the inference process runs with minimum privilege
+ * -- no network, no file write except a sidecar scratch -- and it is PARTLY met:
+ *   - MET: the worker (`"use_worker": true`) is started with the host's token lowered to LOW integrity, so it cannot write a
+ *     file or a registry key, and in a job that allows it no child process. It writes nothing today, so there is no scratch
+ *     location: none is writable for it. The pipe it serves is open to the user that runs it and to SYSTEM, and to no one
+ *     else (it used to give Everyone and Anonymous read access).
+ *   - THE PIPE'S OTHER END IS CHECKED (QA-B-198b). The pipe name carries 128 random bits and the worker creates it as the
+ *     FIRST instance of that name. The worker accepts only a client whose process id is the host's (given to it at start) and
+ *     the host accepts only a server whose process id is the worker it started, before it sends anything; the host connects
+ *     at the anonymous impersonation level, so a process that serves the pipe in the worker's place cannot act as the host.
+ *     A worker turns away at most 16 other clients, then exits.
+ *     NOT CLOSED: a process of the SAME user can still debug the host or the worker, and can make a start fail by
+ *     connecting to the worker's pipe before the host does more than 16 times (a denial of service, not a takeover).
+ *   - NOT MET: THE NETWORK. A low-integrity process can still open sockets; "no network" needs an AppContainer, which needs
+ *     access rights granted on the install folders by the installer, and is deferred (#250). Do not read this module as
+ *     network-isolated.
+ *   - If the restricted token cannot be built the worker is not started at all (never started with the full token); that is
+ *     a failure of the worker path like any other. A test build (XPE_AI_TEST_HOOKS) can start the worker unrestricted with
+ *     XPE_AI_TEST_WORKER_UNRESTRICTED=1; a delivery build has no such switch.
+ *
+ * MODEL LOADS DO NOT HOLD THE MODULE LOCK (QA-B-198c). The in-process paths of xpe_bone_suppress and
+ * xpe_bodypart_recognize read and verify a model without the module lock, so a large model -- or a refused one, which is
+ * read and verified again on every call -- does not keep other calls out while it is read (256 MiB: 343 ms). After the read
+ * the lock is taken again and the result is used only if the module still points at the directory that was read. A call for
+ * a role whose model is being read by another thread RIGHT NOW does not wait for it: it answers as if the model were
+ * unavailable at once (xpe_bone_suppress: XPE_ERR_CONFIG_INVALID; xpe_bodypart_recognize: UNKNOWN), raises no alert and
+ * remembers nothing, so the next call tries again. This can happen to a good model when two threads make the first call for
+ * the same role at the same moment.
+ *
+ * MODEL SIGNING (QA-B-195, REQ-AI-007 / REQ-AI-091). Every model the module loads is verified FIRST. For a model
+ * `<dir>/<name>.onnx` (name = bone_suppress or bodypart) the loader reads the model, its sidecar `<name>.json` (when
+ * there is one) and a detached signature `<name>.sig` ONCE, checks them together under a trusted key and the role the
+ * model is loaded for, and builds the session from exactly those bytes -- nothing is loaded from a model that does not
+ * verify, and a file changed after the check cannot reach the session. The signature is ECDSA P-256 over SHA-256 of a
+ * message that holds the role, the model and the sidecar (or the fact that there is none); changing any of them, or
+ * putting a model where another job's model is expected, fails the check. The in-process loaders and the worker use
+ * the same code.
+ *
+ * THE TRUST LIST IS EMPTY IN A PRODUCTION BUILD, and a build with no trusted key refuses EVERY model, a validly signed
+ * one included. That is the intended state while no real model exists: the production signing key is chosen when the
+ * real models arrive (#243, required before shipping). A build compiled with XPE_AI_TEST_HOOKS additionally trusts
+ * the keys named by the environment variable XPE_AI_TEST_TRUSTED_KEYS (test keys, never a production key); a delivery
+ * build (-DXPE_AI_TEST_HOOKS=OFF) contains no such code.
+ *
+ * A refusal behaves like any other "no usable model": xpe_bone_suppress returns XPE_ERR_CONFIG_INVALID (the output is
+ * not written), xpe_bodypart_recognize writes UNKNOWN and returns XPE_ERR_PROCESSING_FAILED. In addition the session
+ * raises ONE XPE_ALERT_ERROR per role, the first time that role's model is refused:
+ * "AI [bone suppression|body-part recognition] is unavailable: its model failed signature verification ([reason]) and
+ * nothing was loaded (REQ-AI-007, REQ-AI-091)", where [reason] is one of: no signature file, the signature file is
+ * malformed, the signature format is not supported, the signing key is not trusted, the signature does not match the
+ * model files, a model file is too large to verify, the verifier could not run. (Cross-lane contract: clients may match
+ * this text.) A refused model is not retried while its files are unchanged, and is checked again as soon as the model,
+ * its sidecar or its signature file changes. A refusal never counts as a failure of the worker process
+ * (xpe_ai_worker_state is unaffected, and a refused model cannot switch the worker off). One path differs: the
+ * worker's body-part answer cannot say WHY its model is unavailable, so that path raises its existing single "AI
+ * body-part recognition is unavailable" Warning instead of the Error above.
+ *
+ * MODEL SIDECAR (QA-B-197, REQ-AI-008). The sidecar `<name>.json` is part of what the signature covers, and a model is
+ * refused unless its sidecar -- read only AFTER the signature verified, from the verified bytes -- says what REQ-AI-008
+ * requires. Required: `model_id` (1 to 64 letters, digits, '.', '_', '-'), `version` (semantic version 2.0.0:
+ * MAJOR.MINOR.PATCH[-pre][+build]), `pccp_scope` (non-empty string), `training_data_hash` (non-empty string) and
+ * `validation_metrics` (a non-empty JSON object). Optional, and carried into the model card as they are (REQ-AI-010):
+ * `intended_use`, `training_data_summary`, `limitations` (strings), `demographic_performance` (a JSON object),
+ * `published_date` (a calendar date YYYY-MM-DD). A key of that list with the wrong type is a refusal. Other keys
+ * (`labels` of a body-part model, `note`) are not judged by this check. A model with no sidecar file at all is refused.
+ * A refusal behaves like a refused signature -- XPE_ERR_CONFIG_INVALID / UNKNOWN, nothing loaded, never a failure of the
+ * worker, verified again on every call (nothing about a refusal is remembered) -- and raises ONE XPE_ALERT_ERROR per role per session (the same once-flag as
+ * a signature refusal): "AI [bone suppression|body-part recognition] is unavailable: its model sidecar failed the
+ * metadata check ([reason]) and nothing was loaded (REQ-AI-008)", where [reason] names the field (for example "the
+ * required field pccp_scope is missing"). When the refusal came from a worker the module cannot tell which check
+ * refused, and the alert says so: "AI bone suppression is unavailable: the AI worker refused its model (the signature
+ * check or the sidecar check failed, see the worker log) and nothing was loaded (REQ-AI-007, REQ-AI-008, REQ-AI-091)".
+ * (Cross-lane contract: clients may match these texts.) Duplicate keys in the sidecar are not detected. The sidecar is at most
+ * 1 MiB (an implementation safety cap, not a requirement).
+ *
+ * WHAT THIS DOES NOT GUARD AGAINST: the trusted public keys are inside xpe_ai.dll and xpe_ai_worker.exe, so an
+ * attacker who can replace THOSE can replace the keys. The check shows that the model files were not changed; the
+ * protection of the executables (Authenticode, the install directory's permissions) is outside this module. A
+ * validly signed OLDER model is accepted: there is no rollback protection.
+ *
  * @ingroup xpe_ai
  */
 #ifndef XPE_AI_API_H
@@ -81,9 +204,10 @@ XPE_API const char* xpe_ai_version(void);
  * batch settings, and confidence thresholds. Pass NULL for defaults (CPU EP,
  * 5 s timeout, 0.6 confidence threshold).
  *
- * The boolean key "use_worker" (default false) routes xpe_bone_suppress through
- * the worker process (xpe_ai_worker.exe, found in the directory of xpe_ai.dll
- * and nowhere else). When that path fails -- the time budget ("timeout_ms") is
+ * The boolean key "use_worker" (default false) routes xpe_bone_suppress AND xpe_bodypart_recognize
+ * through the worker process (xpe_ai_worker.exe, found in the directory of xpe_ai.dll
+ * and nowhere else); both share ONE worker, ONE failure count and ONE switch-off, with one exception
+ * for body-part recognition (see xpe_bodypart_recognize, "WORKER PATH"). When that path fails -- the time budget ("timeout_ms") is
  * exceeded, the worker dies or goes silent, or it answers wrongly -- the call
  * copies the INPUT image to the output unchanged, raises one Warning alert and
  * returns a non-OK code; it does not re-run the inference in this process
@@ -102,12 +226,20 @@ XPE_API const char* xpe_ai_version(void);
  * state. The alert cites REQ-AI-002 and REQ-AI-092; the SRS table has no row for
  * the failure itself.
  *
- * EVERY non-OK result of the worker path counts toward the 3, including an error
- * reply that a healthy worker sends on purpose because the model refused the
- * request (a missing or unloadable model, an input length it rejects). A model
- * that refuses three times in a row means AI is unusable for the session, so a
- * healthy worker is switched off too; xpe_ai_shutdown() followed by
- * xpe_ai_init() recovers it.
+ * The 3 count CONSECUTIVE worker and transport faults. A non-OK result of the
+ * worker path counts, including an error reply that a worker sends on purpose
+ * because the model refused the request (a missing or unloadable model, an input
+ * length it rejects): a model that refuses three times in a row means AI is
+ * unusable for the session, so that worker is switched off too;
+ * xpe_ai_shutdown() followed by xpe_ai_init() recovers it. ONE result is not a
+ * fault: a reply with a VALID success envelope (success true, the request's
+ * width and height, float32) whose pixels are non-finite -- the model could not
+ * give a result for this image. It is refused (see xpe_bone_suppress), raises
+ * its own alert and, like any valid response, ENDS a run of faults; it never
+ * counts, however many come in a row. A reply with a broken envelope (missing or
+ * unparseable JSON, success not true, another size or format) is a protocol
+ * fault and counts. There is no per-session total. A valid envelope does not
+ * prove the worker healthy -- it only keeps a broken one from passing as an answer.
  *
  * Every image the module accepts, up to 4096 x 4096 float32 (64 MiB), travels in one
  * worker message; the worker path has no size limit of its own, and the contract
@@ -119,18 +251,33 @@ XPE_API const char* xpe_ai_version(void);
  * REQ-AI-006: ONNX Runtime 1.20+ integration.
  *
  * Calling this again while already initialised is not an error: the call is
- * ignored and XPE_OK is returned (ai.cpp:272-275).
+ * ignored and XPE_OK is returned. When the second call asked for a DIFFERENT
+ * model directory or config (not byte-identical text), it raises one Warning
+ * alert saying the new settings did not take effect and xpe_ai_shutdown must
+ * come first (QA-B-194 M4, REQ-AI-090); an identical second call is silent.
  *
- * @param modelDirPath      Directory containing signed .onnx model files.
- *                          Must not be NULL. In the stub build the path is
- *                          recorded but never opened, so a non-existent
- *                          directory does NOT fail here.
+ * @param modelDirPath      Directory containing signed .onnx model files (see MODEL SIGNING:
+ *                          an unsigned or altered model is refused when it is loaded, not here).
+ *                          Must not be NULL or empty (an empty path used to be
+ *                          accepted and then resolved against the working
+ *                          directory). In the stub build the path is recorded
+ *                          but never opened, so a non-existent directory does
+ *                          NOT fail here.
  * @param configJsonOrNull  UTF-8 JSON configuration, or NULL for defaults.
- *                          Malformed JSON is logged and ignored -- defaults are
- *                          used and the call still succeeds (ai.cpp parseConfig).
+ *                          A config that cannot be used raises a Warning alert
+ *                          and the defaults apply -- the call still succeeds,
+ *                          the #145 line: malformed JSON, valid JSON that is not
+ *                          an object, and an integer @c timeout_ms outside
+ *                          0 to 2147483647 (a negative one used to become a
+ *                          49-day deadline). A key this module does not read,
+ *                          or reads with the wrong type, is also named (#145).
  * @return XPE_OK on success, and also when already initialised.
- * @return XPE_ERR_INVALID_INPUT if modelDirPath is NULL.
- * @return XPE_ERR_OUT_OF_MEMORY if module state cannot be allocated.
+ * @return XPE_ERR_INVALID_INPUT if modelDirPath is NULL or empty.
+ * @return XPE_ERR_OUT_OF_MEMORY if module state cannot be allocated; on this
+ *         and every other failure the module stays exactly as it was (not
+ *         initialised, nothing leaked) and no exception crosses this function.
+ * @return XPE_ERR_PROCESSING_FAILED if an unexpected exception ends the call
+ *         (rolled back the same way).
  * @return XPE_ERR_IO_FAILED -- documented for the ONNX build, where the worker
  *         process is launched. Not reachable in the stub build.
  * @return XPE_ERR_CONFIG_INVALID -- documented for the ONNX build. NOT returned
@@ -186,6 +333,91 @@ XPE_API void xpe_ai_shutdown(void);
  *             XPE_ERR_PROCESSING_FAILED. Caller should use deterministic
  *             body-part lookup as fallback.
  *
+ * WHAT THIS IS AND IS NOT (QA-B-191, #130). In the ONNX build the call runs a model; in a stub build it never does.
+ * The tests use hand-written toy models that prove the WIRING (a model's output becomes the label and the
+ * confidence; a different model or image gives a different answer). NOTHING is known about how well any real model
+ * recognises a body part, how accurate it is or how fast it runs: the SRS requirement SRS-AI-010 ("classify … using a CNN classifier") is not met.
+ *
+ * MODEL AND LABELS. The model is read from `{modelDir}/bodypart.onnx` and its class labels from the sidecar
+ * `{modelDir}/bodypart.json`, a JSON object with a non-empty `"labels"` array of non-empty strings (each shorter
+ * than 64 bytes, each made only of printable ASCII 0x20-0x7E except the double quote and the backslash: the worker's reply has no
+ * escapes or encoding, so both paths refuse any other label as an unusable sidecar); `{modelDir}` is the path
+ * given to xpe_ai_init. The labels are returned exactly as the sidecar
+ * spells them: the module neither changes their case nor checks them against any vocabulary, so a caller that
+ * hands the label to another function (for example xpe_get_param_range, which accepts only a fixed list of
+ * names) maps it itself. The model must have ONE float32 input of a fixed single-channel image, `[1,1,H,W]` or
+ * `[1,H,W,1]` with 1 <= H, W <= 4096, and ONE float32 output with one value per label. The model emits
+ * PROBABILITIES: the module applies no softmax and refuses an output with a non-finite value or a value outside
+ * [0, 1]. The confidence is the largest value; on a tie the first class wins.
+ * The session is created on the first call that needs it, owned by the module and never visible to the caller.
+ *
+ * PIXEL SCALE AND SIZE. The image is resized to the size the model declares (area average when shrinking, linear
+ * interpolation when enlarging; an image of that size is passed on unchanged). The module does NOT normalise
+ * intensity: the caller supplies pixels in the scale the model was trained for, as for xpe_bone_suppress.
+ * Only XPE_PIXEL_FLOAT32 is accepted once a model is usable; another format is XPE_ERR_UNSUPPORTED_FORMAT.
+ *
+ * WHEN THERE IS NO USABLE ANSWER the outcome is the stub's, whatever the cause: XPE_ERR_PROCESSING_FAILED, the
+ * label "UNKNOWN" and confidence 0.0. The causes are: no model file, a model that cannot be loaded, a missing or
+ * invalid label sidecar, an output size different from the label count, an input shape the module will not feed, a
+ * failed run, a non-finite output, an output outside [0, 1]. Without a usable model the image format is not judged
+ * (the stub never did). Alerts: the first such call of a session posts ONE XPE_ALERT_WARNING for a model that is
+ * unusable -- "AI body-part recognition is unavailable ({reason}): UNKNOWN is returned; use the deterministic
+ * body-part lookup (REQ-AI-002)", {reason} naming the cause -- and later calls of that session post nothing
+ * (a missing model repeats on every call and would fill the alert queue); xpe_ai_init starts a new session. A
+ * non-finite output posts the non-finite alert of xpe_bone_suppress ("AI model output was non-finite (inf/NaN);
+ * this image was not AI-processed"); an output outside [0, 1] posts ONE XPE_ALERT_WARNING per call: "AI body-part
+ * model output is not a probability vector (a value outside [0, 1]); this image was not AI-classified". These
+ * texts are a contract with the clients that display alerts. A successful call posts no alert.
+ *
+ * THRESHOLD AND THE LOW-CONFIDENCE EVENT (REQ-AI-012, QA-B-191 M3). With a usable result, a confidence BELOW the
+ * threshold (`"confidence_threshold"` in the xpe_ai_init config, default 0.6; a confidence EQUAL to it passes) is a
+ * low-confidence event: ONE XPE_ALERT_WARNING per image, and
+ *   - fallback_mode on (the default; `"fallback_mode"` in the config or xpe_ai_set_fallback_mode): returns
+ *     XPE_ERR_PROCESSING_FAILED, the label "UNKNOWN" and the confidence that was MEASURED (not 0.0), so the caller
+ *     can tell this fallback from a failure; the alert reads "AI body-part confidence {c} is below the threshold
+ *     {t} (REQ-AI-012): UNKNOWN is returned; use the deterministic body-part lookup";
+ *   - fallback_mode off: returns XPE_OK, the model's most probable label and its confidence anyway, and the alert
+ *     reads "AI body-part confidence {c} is below the threshold {t} (REQ-AI-012): the label {LABEL} is returned
+ *     because fallback_mode is off; an exposure parameter chosen from it may be wrong".
+ * {c} and {t} are each the SHORTEST text that reads back as the same float (0.6f is "0.6", the next float up is
+ * "0.6000001"). The event is posted before any label is written, so it does not depend on the caller's buffer: a
+ * buffer too short for the label is still XPE_ERR_BUFFER_TOO_SMALL, with the Warning posted and the confidence 0.0.
+ * A low confidence is not a failure of the model: it posts none of the "unavailable" alerts above and is not
+ * counted by any failure counter. The threshold is used as configured, without a range check: 0.0 lets every
+ * confidence pass, a value above 1.0 makes every result a low-confidence event.
+ *
+ * WORKER PATH (`"use_worker": true` at xpe_ai_init, QA-B-191 M4c). The model then runs in xpe_ai_worker.exe and
+ * this process keeps the DECISION: the worker says what the model said, and the threshold, fallback_mode and
+ * their alerts above are applied here, so the same answer gets the same decision on either path. Everything the
+ * "WHEN THERE IS NO USABLE ANSWER" paragraph says holds, with these additions:
+ *   - Time budget (REQ-AI-092): the call waits at most `"timeout_ms"` (default 5000) for the worker, start-up
+ *     included. A worker that does not answer in time, dies, or sends a reply the protocol forbids is a FAILURE:
+ *     the call returns XPE_ERR_PROCESSING_FAILED with "UNKNOWN" and confidence 0.0, ends that worker, and the
+ *     next call starts a new one. The inference is never re-run in this process (REQ-AI-003).
+ *   - One failure count, shared with xpe_bone_suppress and published by xpe_ai_worker_state(): after 3
+ *     CONSECUTIVE failures of either function the worker is switched off for the session, for BOTH functions
+ *     (a switched-off worker is not tried: UNKNOWN at once, no alert, no process). A success resets the count.
+ *     Each failure posts ONE XPE_ALERT_WARNING: "AI worker failed (code {n}, failure {k} of 3): body-part
+ *     recognition returns UNKNOWN; use the deterministic body-part lookup (REQ-AI-002, REQ-AI-092)"; the third
+ *     reads "AI worker failed (code {n}, failure 3 of 3) during {cause} and is disabled for this session:
+ *     body-part recognition returns UNKNOWN, bone suppression returns the input image unchanged (REQ-AI-002,
+ *     REQ-AI-092)", where {cause} is "body-part recognition" or "bone suppression" -- the function whose failure
+ *     was the third; the same text is posted whichever of the two it is, because both are switched off. The count is in XPE_AI_WORKER_* terms, see
+ *     xpe_ai_worker_state().
+ *   - What is NOT a failure and resets the count, because the worker answered correctly: a model output that
+ *     is non-finite or outside [0, 1] (the same two alerts as in-process), a low confidence, and "the model
+ *     cannot be used" (no file, unreadable, unusable sidecar or shape, wrong output size) -- that last one is
+ *     the "unavailable" Warning, once per session, with {reason} "the AI worker has no usable body-part model".
+ *     A body-part model that is missing therefore never switches off bone suppression. A model that EXISTS and
+ *     fails to run IS a failure and counts.
+ *   - One difference from the in-process path, on purpose: a non-XPE_PIXEL_FLOAT32 image is refused with
+ *     XPE_ERR_UNSUPPORTED_FORMAT before the worker is asked, whether or not a model exists (this process does
+ *     not know whether the worker has one); in-process, a missing model gives UNKNOWN for every format.
+ *   - The first call of a session starts the worker, which takes time the in-process path does not spend: about
+ *     65-110 ms measured with the toy models, with a slow tail of roughly 650-700 ms in about one start in ten
+ *     (QA-B-191/m4b_report.md). The time of a real model's load is not known.
+ * These texts are a contract with the clients that display alerts.
+ *
  * @param img            Input image. Must not be NULL; zero dimensions, a NULL
  *                       data pointer, a dataSize above 64 MB, or a non-zero
  *                       dataSize smaller than the declared dimensions (#123)
@@ -193,9 +425,12 @@ XPE_API void xpe_ai_shutdown(void);
  * @param bodyPartOut    Caller-allocated buffer for the label string.
  *                       Must not be NULL.
  * @param bufLen         Size of @p bodyPartOut in bytes. Recommended >= 64.
- * @param confidenceOut  Output: confidence score [0, 1]. May be NULL. On the
- *                       stub path it is set to 0.0 before returning.
+ * @param confidenceOut  Output: confidence score [0, 1]. May be NULL. 0.0 on every
+ *                       outcome that has no result (the stub, and every failure
+ *                       listed above); on XPE_OK the largest model output.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
+ * @return XPE_ERR_UNSUPPORTED_FORMAT if a usable model exists and the image is
+ *         not XPE_PIXEL_FLOAT32. Nothing is written to @p bodyPartOut.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
  * @return XPE_ERR_INVALID_INPUT if img or bodyPartOut is NULL, the image
  *         buffer is invalid, or bufLen is 0 -- a zero-length output buffer is a
@@ -216,6 +451,17 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
                                              float* confidenceOut);
 
 /**
+ * Most parts xpe_stitch_images / xpe_stitch_estimate_size accept in one call (QA-B-194 M2, REQ-AI-090).
+ *
+ * THIS IS AN IMPLEMENTATION SAFETY CAP, NOT A CLINICAL REQUIREMENT. No requirement, SPEC or design document gives a
+ * maximum number of stitch parts (searched: SRS, SPEC, PRD; the only bound anywhere is the 4096 clamp on the output
+ * size). The cap exists because the functions read @c parts[i] for every i below partCount, and a count the array
+ * cannot hold made them read memory the caller never gave. 16 is far above any count a detector produces; when the
+ * product states a real value, change this one constant.
+ */
+#define XPE_AI_MAX_STITCH_PARTS 16u
+
+/**
  * @brief Stitches overlapping partial images into a single wide-field image.
  *
  * Uses AI-based feature matching for alignment. @p stitchedOut must be
@@ -226,14 +472,20 @@ XPE_API XpeErrorCode xpe_bodypart_recognize(const XpeImageBuffer* img,
  *
  * @param parts          Array of partial images. Must not be NULL. Every
  *                       element is validated, not just the first.
- * @param partCount      Number of images in @p parts. Must be >= 2.
+ * @param partCount      Number of images in @p parts. Must be >= 2 and at most
+ *                       XPE_AI_MAX_STITCH_PARTS (an implementation safety cap).
  * @param stitchedOut    Pre-allocated output buffer. Must not be NULL, and must
  *                       carry a non-NULL data pointer and a non-zero dataSize.
  * @param configJsonOrNull  Optional stitch configuration (overlap estimate,
  *                          blend mode). NULL for defaults. Currently ignored.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
- * @return XPE_ERR_INVALID_INPUT if parts or stitchedOut is NULL, partCount < 2,
- *         any element of @p parts is an invalid image buffer, or stitchedOut
+ * @return XPE_ERR_INVALID_INPUT if parts or stitchedOut is NULL, partCount < 2 or
+ *         above XPE_AI_MAX_STITCH_PARTS (judged before any element is read),
+ *         any element of @p parts is an invalid image buffer, the parts do not all
+ *         have the SAME pixel format (the parts of one stitch are one kind of
+ *         image; a size rule between parts is not defined yet and is not
+ *         checked), a FLOAT32 part holds NaN or infinity (see INPUT VALIDATION
+ *         in the file description), or stitchedOut
  *         has a NULL data pointer or a dataSize of 0 (#142 -- a missing output
  *         argument, the same answer xpe_bone_suppress gives).
  * @return XPE_ERR_BUFFER_TOO_SMALL if the output buffer is real but cannot hold
@@ -262,14 +514,17 @@ XPE_API XpeErrorCode xpe_stitch_images(const XpeImageBuffer* parts,
  *
  * @param parts          Array of partial images. Must not be NULL. Every
  *                       element is validated.
- * @param partCount      Number of images. Must be >= 2.
+ * @param partCount      Number of images. Must be >= 2 and at most
+ *                       XPE_AI_MAX_STITCH_PARTS (an implementation safety cap).
  * @param widthOut       Output: estimated width in pixels, clamped to 4096.
  *                       Must not be NULL.
  * @param heightOut      Output: estimated height in pixels, clamped to 4096.
  *                       Must not be NULL.
  * @return XPE_OK on success.
- * @return XPE_ERR_INVALID_INPUT if any parameter is NULL, partCount < 2, or any
- *         element of @p parts is an invalid image buffer.
+ * @return XPE_ERR_INVALID_INPUT if any parameter is NULL, partCount < 2 or above
+ *         XPE_AI_MAX_STITCH_PARTS (judged before any element is read), any
+ *         element of @p parts is an invalid image buffer, or the parts do not
+ *         all have the same pixel format. The outputs are left untouched.
  * @return XPE_ERR_PROCESSING_FAILED -- documented for the ONNX build. NOT
  *         returned by the current implementation for any input.
  *
@@ -334,9 +589,20 @@ XPE_API XpeErrorCode xpe_stitch_estimate_size(const XpeImageBuffer* parts,
  * @return XPE_ERR_CONFIG_INVALID if that file exists but is not a loadable
  *         model. Distinct from IO_FAILED on purpose: "install the model" and
  *         "the model you installed is broken" need different actions.
- * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, or the model
- *         returns a different number of values than the image has pixels. In a
- *         stub build this is the unconditional outcome once validation passes.
+ * @return XPE_ERR_PROCESSING_FAILED if inference itself fails, the model
+ *         returns a different number of values than the image has pixels, or
+ *         the result contains a non-finite value (+/-inf, NaN) -- a finite input
+ *         can overflow, e.g. a x2 model on a pixel above FLT_MAX / 2 (QA-B-181h,
+ *         181i). The input was valid, so this is not INVALID_INPUT. The whole
+ *         result is judged before it is copied; in-process, @p softTissueOut is
+ *         left as the caller passed it. One Warning alert names the cause. With
+ *         "use_worker" the same code is returned and @p softTissueOut holds the
+ *         input, but this refusal is NOT a worker failure: it neither counts
+ *         toward the ceiling below nor alerts as one, and it ends a run of worker
+ *         faults. Its alert, on both paths, reads exactly "AI model output was
+ *         non-finite (inf/NaN); this image was not AI-processed" and says nothing
+ *         of the worker (its state is xpe_ai_worker_state()'s). In a stub build
+ *         PROCESSING_FAILED is the unconditional outcome once validation passes.
  *
  * With "use_worker" set at xpe_ai_init, a failure of the worker path returns
  * the worker's or the transport's error code (never XPE_OK), raises one Warning
@@ -366,13 +632,22 @@ XPE_API XpeErrorCode xpe_bone_suppress(const XpeImageBuffer* img,
  *
  * @param img              Image to denoise (modified in-place). Must not be NULL.
  * @param meta             Acquisition metadata for model selection. Must not be
- *                         NULL. Its contents are not inspected in a stub build.
+ *                         NULL. Judged at the entrance in every build (REQ-AI-090,
+ *                         QA-B-194 M3): bodyPart is a NUL-terminated string within
+ *                         its 64 bytes; kVp, mAs, SID_mm and pixelPitch_mm are
+ *                         finite and not negative (0 means "unknown", as everywhere
+ *                         in the metadata). acquisitionTime and flags are not
+ *                         judged, and no clinical range is imposed: finite and
+ *                         non-negative is the whole contract.
  * @param configJsonOrNull Optional configuration (model variant, strength).
  *                         Currently ignored.
  * @return XPE_OK on success -- ONNX build only; not reachable in a stub build.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
- * @return XPE_ERR_INVALID_INPUT if img or meta is NULL, or the image buffer is
- *         invalid.
+ * @return XPE_ERR_INVALID_INPUT if img or meta is NULL, the image buffer is
+ *         invalid, the metadata breaks the rules above (judged before the pixels
+ *         are scanned, with no alert), or a FLOAT32 image holds NaN or infinity
+ *         (see INPUT VALIDATION in the file description). The image is not
+ *         modified.
  * @return XPE_ERR_PROCESSING_FAILED if inference fails. In a stub build this is
  *         the unconditional outcome once validation passes; the image is left
  *         unmodified.
@@ -387,41 +662,76 @@ XPE_API XpeErrorCode xpe_dl_denoise(XpeImageBuffer* img,
                                      const char* configJsonOrNull);
 
 /**
- * @brief Retrieves the Model Card for a loaded AI model.
+ * @brief Retrieves the Model Card of an AI model of the model directory.
  *
  * Returns JSON conforming to schemas/model-card.schema.json containing:
- * intended_use, training_data_summary, demographic_performance, limitations,
- * model_version, pccp_status, published_date.
+ * model_id, model_version, intended_use, training_data_summary,
+ * demographic_performance, limitations, pccp_status, published_date,
+ * pccp_scope, training_data_hash, validation_metrics.
  *
  * REQ-AI-010: Model Card transparency API.
  * REQ-AI-011: JSON schema conformance.
  * REQ-AI-008: Model metadata (model_id, version, pccp_scope, etc.).
  *
- * In a stub build the card is a placeholder: model_version is "0.1.0-stub" and
- * the limitations field states that ONNX Runtime is not linked. The loaded-model
- * list is fixed at init time (bodypart_cnn_v1, stitch_feature_match_v1,
- * bone_suppress_unet_v1, dl_denoise_ssl_v1); no directory is scanned.
+ * WHERE THE CARD COMES FROM (QA-B-197 M2). Only from the sidecar of a model that
+ * passed the checks a load applies: the model's signature (MODEL SIGNING above),
+ * and then the sidecar's required fields (MODEL SIDECAR above). The module looks
+ * at the two model files of the model directory (bone_suppress.onnx and
+ * bodypart.onnx, with their .json and .sig) and answers for the one whose sidecar
+ * says model_id == @p modelId. No value of the card is a constant of this module:
+ *  - model_id, model_version (the sidecar's "version"), pccp_scope,
+ *    training_data_hash and validation_metrics are the sidecar's;
+ *  - intended_use, training_data_summary, demographic_performance, limitations
+ *    and published_date are the sidecar's when it has them, and JSON null when it
+ *    does not -- they are never filled in with a default or a guess;
+ *  - pccp_status is "not_evaluated": no authorized PCCP exists in the module to
+ *    compare pccp_scope with, so it does not claim "within_boundary".
+ * A model that is not in the directory, whose signature does not verify, or whose
+ * sidecar is missing or invalid has no card: the answer is the "unavailable"
+ * document below and XPE_ERR_CONFIG_INVALID (-4, the same code a signature
+ * refusal gives elsewhere). The model and its sidecar are read and verified on
+ * EVERY call -- nothing is remembered between calls -- so a model replaced while
+ * the module runs is seen on the next call, and one that no longer verifies has
+ * no card, whatever its size and write time say. The cost is one read and one
+ * signature check of each model file the lookup has to visit (a lookup that
+ * finds the bone-suppression model visits only that one); it is measured in the
+ * QA-B-195d report. Before QA-B-197 the card was a table of four fixed model ids, answered
+ * whether or not a model existed, with "0.1.0-stub" as the version.
  *
  * On every path that reaches the copy step, @p buf receives a null-terminated
- * JSON document -- including the not-found path, which writes a card carrying
- * "error":"model_not_loaded" and then returns XPE_ERR_IO_FAILED. A caller must
- * therefore check the return code rather than the presence of output.
+ * JSON document -- including the unavailable path, which writes
+ * {"model_id":...,"error":"model_unavailable","reason":...} and then returns
+ * XPE_ERR_CONFIG_INVALID. A caller must therefore check the return code rather
+ * than the presence of output.
  *
- * @param modelId    Model identifier string (e.g., "bone_suppress_v1").
- *                    Must not be NULL.
+ * @param modelId    Model identifier string (e.g., "bone_suppress_unet_v1").
+ *                    Must not be NULL, and is 1 to 64 characters of letters,
+ *                    digits, '.', '_' and '-' (REQ-AI-090, QA-B-194 M3): the
+ *                    identifier is copied into the answer's JSON, so a quote or a
+ *                    backslash in it used to make the card invalid JSON.
  * @param buf        Caller-allocated buffer for JSON output. Must not be NULL.
  * @param bufSize    Size of @p buf in bytes. Recommended >= 4096.
- * @return XPE_OK if the model is known and the card fits.
- * @return XPE_ERR_INVALID_INPUT if modelId or buf is NULL, or bufSize is 0
- *         (#142).
+ * @return XPE_OK if a verified model has this model_id and the card fits.
+ * @return XPE_ERR_INVALID_INPUT if modelId or buf is NULL, bufSize is 0
+ *         (#142), or modelId is not an identifier as described above (checked
+ *         once the module is initialised and bufSize is known; @p buf is not
+ *         written). A well-formed identifier that no verified model has is not
+ *         invalid: it gets the "model_unavailable" answer and
+ *         XPE_ERR_CONFIG_INVALID.
  * @return XPE_ERR_BUFFER_TOO_SMALL if the card does not fit; @p buf still holds
  *         the truncated JSON in that case.
  * @return XPE_ERR_NOT_INITIALIZED if xpe_ai_init not called.
- * @return XPE_ERR_IO_FAILED if model is not found or not loaded.
+ * @return XPE_ERR_CONFIG_INVALID if no verified model has this model_id (it was
+ *         XPE_ERR_IO_FAILED until QA-B-197).
+ * @return XPE_ERR_OUT_OF_MEMORY if memory ran out while reading or building the
+ *         card (the module is as it was before the call).
  *
  * Lifecycle: the label below does NOT cover concurrency with xpe_ai_init / xpe_ai_shutdown -- see the
  * LIFECYCLE CONTRACT at xpe_ai_shutdown().
- * Thread safety: Thread-safe (read-only model metadata).
+ * Thread safety: Thread-safe against other calls of the module. The model files are read and verified WITHOUT the module
+ * lock (a large model takes a measurable time, and the lock is the one inference takes): the lock is held only to copy the
+ * model directory and, after the read, to confirm the module still points at it. Concurrent calls with xpe_ai_init /
+ * xpe_ai_shutdown are NOT allowed (LIFECYCLE CONTRACT at xpe_ai_shutdown()).
  */
 XPE_API XpeErrorCode xpe_ai_get_model_card(const char* modelId,
                                              char* buf, size_t bufSize);
@@ -497,6 +807,9 @@ XPE_API XpeErrorCode xpe_ai_set_fallback_mode(int32_t enable);
  * the worker process and raising the alert. While the third failure is still in
  * progress it therefore keeps reporting the previous completed call (active, 2),
  * not DISABLED.
+ *
+ * The count is shared by xpe_bone_suppress and xpe_bodypart_recognize (QA-B-191 M4c): the state is the
+ * worker's, not one function's.
  *
  * Thread safety: Thread-safe and lock-free against running calls to
  * xpe_bone_suppress and the other inference functions. It MUST NOT run

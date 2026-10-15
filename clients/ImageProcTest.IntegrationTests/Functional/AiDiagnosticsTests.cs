@@ -21,11 +21,11 @@ public sealed class AiDiagnosticsTests
         var runner = Source("gui/ImageProcTest/Services/Native/GuiAiRunner.cs");
         var init = runner.IndexOf("public static int InitCore(string directory) =>", StringComparison.Ordinal);
         Assert.True(init >= 0, "InitCore was not found.");
-        var body = runner[init..Math.Min(runner.Length, init + 2500)];
+        var body = runner[init..Math.Min(runner.Length, init + 3500)];
 
         var probe = body.IndexOf("var probeCode = XpeAiNative.xpe_ai_worker_state(", StringComparison.Ordinal);
         var call = body.IndexOf("code = XpeAiNative.xpe_ai_init(directory, config);", StringComparison.Ordinal);
-        var record = body.IndexOf("_initDiagnostics = $\"init#{++_initCount} dir='{directory}' config={config} {probe} -> code={code}\";", StringComparison.Ordinal);
+        var record = body.IndexOf("_initDiagnostics = $\"init#{++_initCount} dir='{directory}' config={config} {probe} {workerDescription} -> code={code}\";", StringComparison.Ordinal);
         Assert.True(probe >= 0 && call > probe && record > call,
             "The probe must run BEFORE the init call (an earlier init is what the probe is for), and the call is recorded after it.");
 
@@ -38,7 +38,7 @@ public sealed class AiDiagnosticsTests
     public void TheStatusRead_CarriesTheRawAnswersOfTheModule_NotOnlyTheGuisReadingOfThem()
     {
         var runner = Source("gui/ImageProcTest/Services/Native/GuiAiRunner.cs");
-        var query = runner.IndexOf("public static AiWorkerStatus QueryWorkerState() =>", StringComparison.Ordinal);
+        var query = runner.IndexOf("private static AiWorkerStatus QueryWorkerStateUnderGate() =>", StringComparison.Ordinal);
         Assert.True(query >= 0, "QueryWorkerState was not found.");
         var body = runner[query..Math.Min(runner.Length, query + 1500)];
 
@@ -54,7 +54,8 @@ public sealed class AiDiagnosticsTests
         Assert.DoesNotContain("Text=\"{Binding AiWorkerDiagnostics}\"", xaml, StringComparison.Ordinal);   // not a visible element
 
         var viewModel = Source("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs");
-        Assert.Contains("public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;", viewModel, StringComparison.Ordinal);
+        Assert.Contains("public string AiWorkerDiagnostics =>", viewModel, StringComparison.Ordinal);
+        Assert.Contains(": _aiWorkerStatus.Diagnostics ?? string.Empty;", viewModel, StringComparison.Ordinal);   // without an AI session: the status's own diagnostics, as before (GUI-C-192d)
         Assert.Contains("OnPropertyChanged(nameof(AiWorkerDiagnostics));", viewModel, StringComparison.Ordinal);
     }
 
@@ -83,7 +84,7 @@ public sealed class AiDiagnosticsTests
     public void C09_StillAssertsTheMarkTheCountsAndTheRestart_AndNoAssertionReadsTheDiagnostics()
     {
         var source = Source("clients/ImageProcTest.E2ETests/Scenarios/Workflows/ProcessingChainScenarios.cs");
-        var start = source.IndexOf("public void C09_AWorkerSwitchedOffByRepeatedFailures_ShowsAMark_ThatRestartRemoves()", StringComparison.Ordinal);
+        var start = source.IndexOf("internal static void RunWorkerSwitchedOffScenario(Window window, ITestOutputHelper output)", StringComparison.Ordinal);
         var end = source.IndexOf("private static FlaUI.Core.AutomationElements.AutomationElement? AiBanner(", start, StringComparison.Ordinal);
         Assert.True(start >= 0 && end > start, "C-09 was not found.");
         var c09 = source[start..end];
@@ -92,7 +93,10 @@ public sealed class AiDiagnosticsTests
         Assert.Contains("Assert.Equal(numbers.Groups[2].Value, numbers.Groups[1].Value);", c09, StringComparison.Ordinal);
         Assert.Contains("Assert.Matches(@\"worker=Disabled; failures=(\\d+); ceiling=\\1$\", before);", c09, StringComparison.Ordinal);
         Assert.Contains("Assert.Matches(@\"^worker=Active; failures=0; ceiling=\\d+$\", after);", c09, StringComparison.Ordinal);
-        Assert.Contains("Skip.If(app.BackendMode != \"Native\"", c09, StringComparison.Ordinal);   // the one skip is the Mock's, as before
+        // GUI-C-202: C-09 runs on an app whose native directory has no worker (AiWorkerAbsentScenarios); its skips are the Mock's (no native directory with the module and its worker).
+        var absent = Source("clients/ImageProcTest.E2ETests/Scenarios/Workflows/AiWorkerAbsentScenarios.cs");
+        Assert.Contains("Skip.If(!app.Prepared, app.PrepareNote);", absent, StringComparison.Ordinal);
+        Assert.Contains("ProcessingChainScenarios.RunWorkerSwitchedOffScenario(window, output);", absent, StringComparison.Ordinal);
 
         // The diagnostics are read into variables and printed; no Assert line mentions them.
         var assertLines = c09.Split('\n').Where(line => line.Contains("Assert.", StringComparison.Ordinal)).ToList();

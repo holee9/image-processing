@@ -1,0 +1,283 @@
+// QA-B-198 capability probe. Run by launch.exe under each restriction variant; prints key=value lines to stdout.
+// usage: probe.exe <loopback_port> <model_dir> <scratch_dir>
+// Everything it creates it deletes. It never connects anywhere but 127.0.0.1:<loopback_port> (the launcher's listener).
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <aclapi.h>
+#include <sddl.h>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <vector>
+
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "advapi32.lib")
+
+static void Out(const char* k, const std::string& v) { std::printf("%s=%s\n", k, v.c_str()); }
+static std::string Num(unsigned long v) { return std::to_string(v); }
+
+static std::string SidText(PSID sid) {
+    LPSTR s = nullptr;
+    std::string r = "?";
+    if (ConvertSidToStringSidA(sid, &s)) { r = s; LocalFree(s); }
+    return r;
+}
+
+static void Token() {
+    HANDLE t = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &t)) { Out("token", "OpenProcessToken failed " + Num(GetLastError())); return; }
+    DWORD n = 0;
+    { // user
+        GetTokenInformation(t, TokenUser, nullptr, 0, &n);
+        std::vector<char> b(n);
+        if (GetTokenInformation(t, TokenUser, b.data(), n, &n)) Out("token.user", SidText(reinterpret_cast<TOKEN_USER*>(b.data())->User.Sid));
+    }
+    { TOKEN_ELEVATION e{}; DWORD r = 0; if (GetTokenInformation(t, TokenElevation, &e, sizeof(e), &r)) Out("token.elevated", Num(e.TokenIsElevated)); }
+    { TOKEN_ELEVATION_TYPE e{}; DWORD r = 0; if (GetTokenInformation(t, TokenElevationType, &e, sizeof(e), &r)) Out("token.elevation_type(1=default,2=full,3=limited)", Num(e)); }
+    { DWORD ac = 0, r = 0; if (GetTokenInformation(t, TokenIsAppContainer, &ac, sizeof(ac), &r)) Out("token.is_appcontainer", Num(ac)); }
+    Out("token.is_restricted", Num(IsTokenRestricted(t) ? 1 : 0));
+    { // integrity
+        n = 0;
+        GetTokenInformation(t, TokenIntegrityLevel, nullptr, 0, &n);
+        std::vector<char> b(n);
+        if (GetTokenInformation(t, TokenIntegrityLevel, b.data(), n, &n)) {
+            PSID sid = reinterpret_cast<TOKEN_MANDATORY_LABEL*>(b.data())->Label.Sid;
+            const DWORD rid = *GetSidSubAuthority(sid, *GetSidSubAuthorityCount(sid) - 1);
+            char buf[32]; std::snprintf(buf, sizeof(buf), "0x%04lX", rid);
+            Out("token.integrity_rid(0x1000=low,0x2000=medium,0x3000=high)", buf);
+        }
+    }
+    { // privileges
+        n = 0;
+        GetTokenInformation(t, TokenPrivileges, nullptr, 0, &n);
+        std::vector<char> b(n);
+        if (GetTokenInformation(t, TokenPrivileges, b.data(), n, &n)) {
+            auto* p = reinterpret_cast<TOKEN_PRIVILEGES*>(b.data());
+            std::string en, dis;
+            for (DWORD i = 0; i < p->PrivilegeCount; ++i) {
+                char name[128]; DWORD len = sizeof(name);
+                LookupPrivilegeNameA(nullptr, &p->Privileges[i].Luid, name, &len);
+                ((p->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED) ? en : dis) += std::string(name) + " ";
+            }
+            Out("token.privileges_present", Num(p->PrivilegeCount));
+            Out("token.privileges_enabled", en.empty() ? "(none)" : en);
+        }
+    }
+    { // groups
+        n = 0;
+        GetTokenInformation(t, TokenGroups, nullptr, 0, &n);
+        std::vector<char> b(n);
+        if (GetTokenInformation(t, TokenGroups, b.data(), n, &n)) {
+            auto* g = reinterpret_cast<TOKEN_GROUPS*>(b.data());
+            DWORD denyOnly = 0, enabled = 0;
+            bool admins = false, adminsEnabled = false;
+            for (DWORD i = 0; i < g->GroupCount; ++i) {
+                const DWORD a = g->Groups[i].Attributes;
+                if (a & SE_GROUP_USE_FOR_DENY_ONLY) ++denyOnly;
+                if (a & SE_GROUP_ENABLED) ++enabled;
+                if (SidText(g->Groups[i].Sid) == "S-1-5-32-544") { admins = true; adminsEnabled = (a & SE_GROUP_ENABLED) && !(a & SE_GROUP_USE_FOR_DENY_ONLY); }
+            }
+            Out("token.groups", Num(g->GroupCount) + " (enabled " + Num(enabled) + ", deny-only " + Num(denyOnly) + ")");
+            Out("token.administrators_group", admins ? (adminsEnabled ? "present, ENABLED" : "present, disabled or deny-only") : "absent");
+        }
+    }
+    { // restricting sids
+        n = 0;
+        GetTokenInformation(t, TokenRestrictedSids, nullptr, 0, &n);
+        std::vector<char> b(n);
+        if (n && GetTokenInformation(t, TokenRestrictedSids, b.data(), n, &n)) {
+            auto* g = reinterpret_cast<TOKEN_GROUPS*>(b.data());
+            std::string s;
+            for (DWORD i = 0; i < g->GroupCount; ++i) s += SidText(g->Groups[i].Sid) + " ";
+            Out("token.restricting_sids", g->GroupCount ? s : "(none)");
+        }
+    }
+    { // write-restricted?
+        DWORD flags = 0, r = 0;
+        if (GetTokenInformation(t, TokenSandBoxInert, &flags, sizeof(flags), &r)) Out("token.sandbox_inert", Num(flags));
+    }
+    CloseHandle(t);
+}
+
+static void Job() {
+    BOOL in = FALSE;
+    IsProcessInJob(GetCurrentProcess(), nullptr, &in);
+    Out("job.in_job", Num(in ? 1 : 0));
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION info{};
+    if (QueryInformationJobObject(nullptr, JobObjectExtendedLimitInformation, &info, sizeof(info), nullptr)) {
+        char b[64]; std::snprintf(b, sizeof(b), "0x%08lX", info.BasicLimitInformation.LimitFlags);
+        Out("job.limit_flags", b);
+        Out("job.active_process_limit", info.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_ACTIVE_PROCESS ? Num(info.BasicLimitInformation.ActiveProcessLimit) : "(none)");
+    }
+    JOBOBJECT_BASIC_UI_RESTRICTIONS ui{};
+    if (QueryInformationJobObject(nullptr, JobObjectBasicUIRestrictions, &ui, sizeof(ui), nullptr)) {
+        char b[64]; std::snprintf(b, sizeof(b), "0x%08lX", ui.UIRestrictionsClass);
+        Out("job.ui_restrictions", b);
+    }
+}
+
+static std::string TryWriteFile(const std::wstring& dir) {
+    if (dir.empty()) return "skipped (no path)";
+    std::wstring p = dir;
+    if (p.back() != L'\\') p += L'\\';
+    p += L"xpe_g198_probe_" + std::to_wstring(GetCurrentProcessId()) + L".tmp";
+    HANDLE h = CreateFileW(p.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
+    if (h == INVALID_HANDLE_VALUE) return "DENIED/FAILED error " + Num(GetLastError());
+    DWORD w = 0;
+    const BOOL ok = WriteFile(h, "x", 1, &w, nullptr);
+    CloseHandle(h);
+    return ok ? "WRITTEN" : "created but write failed " + Num(GetLastError());
+}
+
+static std::wstring Wide(const char* s) {
+    if (!s || !*s) return L"";
+    const int n = MultiByteToWideChar(CP_ACP, 0, s, -1, nullptr, 0);
+    std::wstring w(n, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, s, -1, w.data(), n);
+    w.resize(n - 1);
+    return w;
+}
+
+static std::wstring Env(const wchar_t* name) {
+    wchar_t b[1024];
+    const DWORD n = GetEnvironmentVariableW(name, b, 1024);
+    return (n > 0 && n < 1024) ? std::wstring(b, n) : L"";
+}
+
+static void Files(const char* modelDir, const char* scratch) {
+    wchar_t cwd[1024] = L"";
+    GetCurrentDirectoryW(1024, cwd);
+    wchar_t exe[1024] = L"";
+    GetModuleFileNameW(nullptr, exe, 1024);
+    std::wstring exeDir = exe;
+    exeDir = exeDir.substr(0, exeDir.find_last_of(L'\\'));
+    const std::wstring profile = Env(L"USERPROFILE");
+    struct Spot { const char* name; std::wstring dir; };
+    const Spot spots[] = {
+        {"cwd", cwd},
+        {"exe_dir", exeDir},
+        {"model_dir", Wide(modelDir)},
+        {"scratch_dir", Wide(scratch)},
+        {"temp", Env(L"TEMP")},
+        {"user_profile", profile},
+        {"user_documents", profile.empty() ? L"" : profile + L"\\Documents"},
+        {"programdata", L"C:\\ProgramData"},
+        {"windows_temp", L"C:\\Windows\\Temp"},
+        {"system_drive_root", L"C:\\"},
+    };
+    for (const Spot& s : spots) Out((std::string("write.") + s.name).c_str(), TryWriteFile(s.dir));
+    // reads
+    HANDLE h = CreateFileW(L"C:\\Windows\\win.ini", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+    Out("read.C:\\Windows\\win.ini", h == INVALID_HANDLE_VALUE ? "DENIED/FAILED error " + Num(GetLastError()) : "READ OK");
+    if (h != INVALID_HANDLE_VALUE) CloseHandle(h);
+    if (!profile.empty()) {
+        WIN32_FIND_DATAW fd;
+        HANDLE f = FindFirstFileW((profile + L"\\Documents\\*").c_str(), &fd);
+        Out("read.list_user_documents", f == INVALID_HANDLE_VALUE ? "DENIED/FAILED error " + Num(GetLastError()) : "LISTED");
+        if (f != INVALID_HANDLE_VALUE) FindClose(f);
+    }
+    // registry write (a side channel for "no write")
+    HKEY k = nullptr;
+    const LONG rr = RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\xpe_g198_probe", 0, nullptr, 0, KEY_WRITE, nullptr, &k, nullptr);
+    Out("write.registry_hkcu", rr == ERROR_SUCCESS ? "WRITTEN" : "DENIED/FAILED error " + Num(static_cast<unsigned long>(rr)));
+    if (rr == ERROR_SUCCESS) { RegCloseKey(k); RegDeleteKeyA(HKEY_CURRENT_USER, "Software\\xpe_g198_probe"); }
+}
+
+static void Network(int port) {
+    WSADATA wd;
+    const int ws = WSAStartup(MAKEWORD(2, 2), &wd);
+    Out("net.wsastartup", Num(static_cast<unsigned long>(ws)));
+    SOCKET tcp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    Out("net.tcp_socket", tcp == INVALID_SOCKET ? "FAILED wsa error " + Num(WSAGetLastError()) : "CREATED");
+    SOCKET udp = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    Out("net.udp_socket", udp == INVALID_SOCKET ? "FAILED wsa error " + Num(WSAGetLastError()) : "CREATED");
+    if (tcp != INVALID_SOCKET && port > 0) {
+        sockaddr_in a{};
+        a.sin_family = AF_INET;
+        a.sin_port = htons(static_cast<u_short>(port));
+        inet_pton(AF_INET, "127.0.0.1", &a.sin_addr);
+        u_long nb = 1;
+        ioctlsocket(tcp, FIONBIO, &nb);
+        int rc = connect(tcp, reinterpret_cast<sockaddr*>(&a), sizeof(a));
+        int err = rc == 0 ? 0 : WSAGetLastError();
+        if (rc != 0 && err == WSAEWOULDBLOCK) {
+            fd_set w, e;
+            FD_ZERO(&w); FD_ZERO(&e); FD_SET(tcp, &w); FD_SET(tcp, &e);
+            timeval tv{3, 0};
+            const int s = select(0, nullptr, &w, &e, &tv);
+            if (s > 0 && FD_ISSET(tcp, &w)) { rc = 0; err = 0; }
+            else {
+                int soerr = 0; int len = sizeof(soerr);
+                getsockopt(tcp, SOL_SOCKET, SO_ERROR, reinterpret_cast<char*>(&soerr), &len);
+                err = soerr ? soerr : (s == 0 ? WSAETIMEDOUT : WSAECONNREFUSED);
+            }
+        }
+        Out("net.tcp_connect_loopback", rc == 0 ? "CONNECTED" : "FAILED wsa error " + Num(static_cast<unsigned long>(err)));
+        if (rc == 0) { const char m[] = "hi"; send(tcp, m, 2, 0); }
+    }
+    // bind+listen on loopback (a server socket)
+    SOCKET srv = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (srv != INVALID_SOCKET) {
+        sockaddr_in a{};
+        a.sin_family = AF_INET;
+        a.sin_port = 0;
+        inet_pton(AF_INET, "127.0.0.1", &a.sin_addr);
+        const int b = bind(srv, reinterpret_cast<sockaddr*>(&a), sizeof(a));
+        const int l = b == 0 ? listen(srv, 1) : -1;
+        Out("net.bind_listen_loopback", (b == 0 && l == 0) ? "OK" : "FAILED wsa error " + Num(WSAGetLastError()));
+        closesocket(srv);
+    }
+    if (tcp != INVALID_SOCKET) closesocket(tcp);
+    if (udp != INVALID_SOCKET) closesocket(udp);
+}
+
+static void Spawn() {
+    STARTUPINFOW si{}; si.cb = sizeof(si);
+    PROCESS_INFORMATION pi{};
+    wchar_t cmd[] = L"C:\\Windows\\System32\\cmd.exe /c exit 7";
+    if (!CreateProcessW(nullptr, cmd, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
+        Out("spawn.child_process", "FAILED error " + Num(GetLastError()));
+        return;
+    }
+    WaitForSingleObject(pi.hProcess, 5000);
+    DWORD code = 0;
+    GetExitCodeProcess(pi.hProcess, &code);
+    Out("spawn.child_process", "STARTED (exit " + Num(code) + ")");
+    CloseHandle(pi.hProcess); CloseHandle(pi.hThread);
+}
+
+static void Pipe() {
+    const std::string name = "\\\\.\\pipe\\xpe_g198_probe_" + std::to_string(GetCurrentProcessId());
+    // exactly how the worker creates its pipe: default security
+    HANDLE p = CreateNamedPipeA(name.c_str(), PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 65536, 65536, 5000, nullptr);
+    if (p == INVALID_HANDLE_VALUE) { Out("pipe.create_default_security", "FAILED error " + Num(GetLastError())); return; }
+    Out("pipe.create_default_security", "CREATED");
+    PSECURITY_DESCRIPTOR sd = nullptr;
+    PACL dacl = nullptr;
+    if (GetSecurityInfo(p, SE_KERNEL_OBJECT, DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION, nullptr, nullptr, &dacl, nullptr, &sd) == ERROR_SUCCESS) {
+        LPSTR s = nullptr;
+        if (ConvertSecurityDescriptorToStringSecurityDescriptorA(sd, SDDL_REVISION_1, OWNER_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION | LABEL_SECURITY_INFORMATION, &s, nullptr)) {
+            Out("pipe.sddl", s);
+            LocalFree(s);
+        }
+        LocalFree(sd);
+    }
+    CloseHandle(p);
+}
+
+int main(int argc, char** argv) {
+    const int port = argc > 1 ? std::atoi(argv[1]) : 0;
+    const char* modelDir = argc > 2 ? argv[2] : "";
+    const char* scratch = argc > 3 ? argv[3] : "";
+    Out("probe.pid", Num(GetCurrentProcessId()));
+    Token();
+    Job();
+    Files(modelDir, scratch);
+    Network(port);
+    Spawn();
+    Pipe();
+    std::fflush(stdout);
+    return 0;
+}

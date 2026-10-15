@@ -1,0 +1,101 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 26 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 20 tests from VoiLut
+[ RUN      ] VoiLut.Linear_CenterWindow
+[       OK ] VoiLut.Linear_CenterWindow (0 ms)
+[ RUN      ] VoiLut.Linear_ClampMin
+[       OK ] VoiLut.Linear_ClampMin (0 ms)
+[ RUN      ] VoiLut.Linear_ClampMax
+[       OK ] VoiLut.Linear_ClampMax (0 ms)
+[ RUN      ] VoiLut.LinearExact_CenterValue
+[       OK ] VoiLut.LinearExact_CenterValue (0 ms)
+[ RUN      ] VoiLut.Sigmoid_CenterValue
+[       OK ] VoiLut.Sigmoid_CenterValue (0 ms)
+[ RUN      ] VoiLut.Sigmoid_OutputClampedToRange
+[       OK ] VoiLut.Sigmoid_OutputClampedToRange (0 ms)
+[ RUN      ] VoiLut.Error_NullImg
+[2026-10-03 20:19:52.149] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[       OK ] VoiLut.Error_NullImg (0 ms)
+[ RUN      ] VoiLut.Error_NullParams
+[2026-10-03 20:19:52.149] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[       OK ] VoiLut.Error_NullParams (0 ms)
+[ RUN      ] VoiLut.Error_WrongFormat
+[2026-10-03 20:19:52.149] [error] [xpe_display] xpe_apply_voi_lut failed: code -7 (Unsupported pixel format)
+[       OK ] VoiLut.Error_WrongFormat (0 ms)
+[ RUN      ] VoiLut.Error_ZeroWidth
+[2026-10-03 20:19:52.149] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[       OK ] VoiLut.Error_ZeroWidth (0 ms)
+[ RUN      ] VoiLut.Error_NegativeWidth
+[2026-10-03 20:19:52.149] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[       OK ] VoiLut.Error_NegativeWidth (0 ms)
+[ RUN      ] VoiLut.Preset_Bone
+[       OK ] VoiLut.Preset_Bone (0 ms)
+[ RUN      ] VoiLut.Preset_Lung
+[       OK ] VoiLut.Preset_Lung (0 ms)
+[ RUN      ] VoiLut.Preset_Abdomen
+[       OK ] VoiLut.Preset_Abdomen (0 ms)
+[ RUN      ] VoiLut.Preset_Head
+[       OK ] VoiLut.Preset_Head (0 ms)
+[ RUN      ] VoiLut.Preset_InvalidBodyPart
+[2026-10-03 20:19:52.149] [error] [xpe_display] xpe_voi_preset_create failed: code -1 (Invalid input parameter)
+[       OK ] VoiLut.Preset_InvalidBodyPart (0 ms)
+[ RUN      ] VoiLut.Preset_NullParams
+[2026-10-03 20:19:52.149] [error] [xpe_display] xpe_voi_preset_create failed: code -1 (Invalid input parameter)
+[       OK ] VoiLut.Preset_NullParams (0 ms)
+[ RUN      ] VoiLut.Preset_DnRampIsNotCrushed
+
+[  INFO ] D:\workspace-github\xpe-post\modules\display\tests\test_voi_lut.cpp(340):: BONE c=32768 w=65535 | distinct 8-bit levels=256 | largest level share=0.00392151
+
+[  INFO ] D:\workspace-github\xpe-post\modules\display\tests\test_voi_lut.cpp(340):: LUNG c=32768 w=65535 | distinct 8-bit levels=256 | largest level share=0.00392151
+
+[  INFO ] D:\workspace-github\xpe-post\modules\display\tests\test_voi_lut.cpp(340):: ABDOMEN c=32768 w=65535 | distinct 8-bit levels=256 | largest level share=0.00392151
+
+[  INFO ] D:\workspace-github\xpe-post\modules\display\tests\test_voi_lut.cpp(340):: HEAD c=32768 w=65535 | distinct 8-bit levels=256 | largest level share=0.00392151
+[       OK ] VoiLut.Preset_DnRampIsNotCrushed (1 ms)
+[ RUN      ] VoiLut.Performance_3072x3072
+[       OK ] VoiLut.Performance_3072x3072 (18 ms)
+[ RUN      ] VoiLut.BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072
+PERFMEASURE REQ-DISP-016/xpe_apply_voi_lut 3072x3072 min=10623 med=10725 max=12904 us (runs=7)
+[       OK ] VoiLut.BenchmarkFreeze_Performance_REQ_DISP_016_Linear3072 (139 ms)
+[----------] 20 tests from VoiLut (159 ms total)
+
+[----------] 6 tests from VoiWindowLimits
+[ RUN      ] VoiWindowLimits.LinearRefusesAWidthBelowOneAndLeavesTheImageUntouched
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[       OK ] VoiWindowLimits.LinearRefusesAWidthBelowOneAndLeavesTheImageUntouched (0 ms)
+[ RUN      ] VoiWindowLimits.LinearAcceptsWidthOneAndGivesTheStandardsThresholdAtCenterMinusHalf
+[       OK ] VoiWindowLimits.LinearAcceptsWidthOneAndGivesTheStandardsThresholdAtCenterMinusHalf (0 ms)
+[ RUN      ] VoiWindowLimits.LinearJustAboveOneIsTheRampOfTheStandard
+[       OK ] VoiWindowLimits.LinearJustAboveOneIsTheRampOfTheStandard (0 ms)
+[ RUN      ] VoiWindowLimits.LinearExactAndSigmoidStillAcceptAnyPositiveWidthBelowOne
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[       OK ] VoiWindowLimits.LinearExactAndSigmoidStillAcceptAnyPositiveWidthBelowOne (0 ms)
+[ RUN      ] VoiWindowLimits.AnOutputWindowThatIsNotAscendingIsRefusedByAllThreeFunctionsAndLeavesTheImageUntouched
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-10-03 20:19:52.308] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[       OK ] VoiWindowLimits.AnOutputWindowThatIsNotAscendingIsRefusedByAllThreeFunctionsAndLeavesTheImageUntouched (0 ms)
+[ RUN      ] VoiWindowLimits.ATinyButPositiveOutputRangeIsStillAWindow
+[       OK ] VoiWindowLimits.ATinyButPositiveOutputRangeIsStillAWindow (0 ms)
+[----------] 6 tests from VoiWindowLimits (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 26 tests from 2 test suites ran. (160 ms total)
+[  PASSED  ] 26 tests.

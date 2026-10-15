@@ -1,0 +1,6 @@
+== arm (e1): the data file's pattern list emptied (still valid JSON)
+[xUnit.net 00:00:00.38]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.NoLineIsExcluded_ByCommentOrByAnythingElse [FAIL]
+[xUnit.net 00:00:00.39]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EverySourceCompiledIntoTheTestAssembly_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+[xUnit.net 00:00:00.41]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.ThisFile_IsScannedInFull_AndHoldsNoPattern [FAIL]
+[xUnit.net 00:00:00.59]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryPattern_MatchesItsControlLines [FAIL]
+실패!  - 실패:     4, 통과:    10, 건너뜀:     0, 전체:    14, 기간: 385 ms - ImageProcTest.IntegrationTests.dll (net8.0)

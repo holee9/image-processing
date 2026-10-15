@@ -1,0 +1,124 @@
+"""QA-B-206 M2 falsification arms: validator (C5 empty Type 1 value, C6 UID error) and xpe_dicom_open ownership (C14, with an
+injected throw). Break ONE defence, rebuild ci-dicom, run the named test executable, expect the named tests red, restore
+byte-identical.   Run: python build/g206_arms_m2dicom.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g206-build.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g206-run.bat'
+VAL = 'modules/dicom/src/DicomValidator.cpp'
+DC = 'modules/dicom/src/dicom.cpp'
+RD = 'modules/dicom/src/DicomReader.cpp'
+NL = '\n'
+T_EMPTY = 'DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag'
+T_PRES = 'DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty'
+T_MSG = 'DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages'
+T_UID = 'DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning'
+T_OPEN = 'DicomWriterTest.ThousandOpenCycles_CrtHeapDoesNotGrowWhetherOrNotOpenSucceeds'
+
+LEN = '        bool hasValue = elem->getLength(ds->getOriginalXfer(), EET_ExplicitLength) != 0;' + NL
+PAD = "                    if (text[k] != ' ' && text[k] != '\\0') { allPadding = false; break; }" + NL
+HAS = '                hasValue = !allPadding;' + NL
+WARN = '                result.valid = false;' + NL + '                errors.push_back(errEntry);' + NL
+OPEN_NEW = '        auto h = std::make_unique<XpeDicomHandle>(filePath);' + NL
+OPEN_CALL = '        XpeErrorCode rc = h->reader.open();' + NL
+OPEN_RET = '        if (rc != XPE_OK) return rc;' + NL
+OPEN_OUT = '        *outHandle = h.release();' + NL
+THROW = '    ensure_jpeg_codecs_registered();' + NL
+RAW_HEAD = ('        auto* h = new XpeDicomHandle(filePath);' + NL +
+            '        XpeErrorCode rc = h->reader.open();' + NL +
+            '        if (rc != XPE_OK) { delete h; return rc; }' + NL +
+            '        *outHandle = h;' + NL)
+SMART_BLOCK = OPEN_NEW + OPEN_CALL + OPEN_RET + OPEN_OUT
+INJECT = ('    if (!m_filePath.empty()) throw std::bad_alloc();   // injected for the QA-B-206 C14 arm' + NL)
+
+ARMS = [
+    # name, edits, target, exe, must
+    ('c5_empty_check_removed_entirely', [(VAL, LEN, '        bool hasValue = true;' + NL), (VAL, HAS, '                hasValue = true;' + NL)],
+     'test_dicom_validator', 'test_dicom_validator.exe', [T_EMPTY, T_MSG]),
+    ('c5_only_the_length_is_judged_padding_ignored', [(VAL, HAS, '                hasValue = true;' + NL)],
+     'test_dicom_validator', 'test_dicom_validator.exe', [T_EMPTY]),
+    ('c5_only_the_padding_is_judged_length_ignored', [(VAL, LEN, '        bool hasValue = true;' + NL)],
+     'test_dicom_validator', 'test_dicom_validator.exe', [T_EMPTY]),
+    ('c5_caret_treated_as_padding_too', [(VAL, PAD, "                    if (text[k] != ' ' && text[k] != '\\0' && text[k] != '^') { allPadding = false; break; }" + NL)],
+     'test_dicom_validator', 'test_dicom_validator.exe', [T_PRES]),
+    ('c6_bad_uid_pushed_to_warnings_again',
+     [(VAL, '                errors.push_back(errEntry);' + NL + '            }' + NL + '        }' + NL + '    };',
+       '                errors.push_back(errEntry);' + NL + '                warnings.push_back(errEntry);' + NL + '            }' + NL + '        }' + NL + '    };')],
+     'test_dicom_validator', 'test_dicom_validator.exe', [T_UID]),
+    ('c6_bad_uid_does_not_clear_valid', [(VAL, '                result.valid = false;' + NL + '                errors.push_back(errEntry);', '                errors.push_back(errEntry);')],
+     'test_dicom_validator', 'test_dicom_validator.exe', [T_UID]),
+    ('c14_throw_injected_into_open_with_the_unique_ptr', [(RD, THROW, INJECT + THROW)],
+     'test_dicom_writer', 'test_dicom_writer.exe', None),
+    ('c14_throw_injected_into_open_and_the_raw_new_back', [(RD, THROW, INJECT + THROW), (DC, SMART_BLOCK, RAW_HEAD)],
+     'test_dicom_writer', 'test_dicom_writer.exe', [T_OPEN]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, target, exe, must in ARMS:
+    files = sorted({e[0] for e in edits})
+    saved = {}
+    for p in files:
+        with open(p, 'rb') as f:
+            saved[p] = f.read()
+    before = {p: sha(p) for p in files}
+    log('=== ARM ' + name)
+    try:
+        for p in files:
+            txt = saved[p].decode('utf-8')
+            for ff, old, new in edits:
+                if ff == p:
+                    n = txt.count(old)
+                    assert n == 1, (name, old[:70], n)
+                    txt = txt.replace(old, new)
+            with open(p, 'wb') as f:
+                f.write(txt.encode('utf-8'))
+        sh(BUILD + ' ' + target)
+        with open('build/g206-build.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s %s * D:\\workspace-github\\xpe-post\\build\\g206-arm.txt' % (RUN, exe))
+            red = failed('build/g206-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            if must is None:
+                log('RESULT: observation only (no expectation set)')
+            else:
+                hit = [m for m in must if m in red]
+                miss = [m for m in must if m not in hit]
+                log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        for p in files:
+            with open(p, 'wb') as f:
+                f.write(saved[p])
+        log('restored byte-identical: %s' % all(sha(p) == before[p] for p in files))
+log('=== DONE')
+out.close()

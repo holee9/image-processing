@@ -1,0 +1,94 @@
+"""QA-B-206 M2b falsification arms: the validator's Type 1 / Type 2 split. Break ONE defence, rebuild ci-dicom
+(test_dicom_validator), run it, expect the named tests red, restore byte-identical.
+Run: python build/g207_arms_m2b.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g206-build.bat test_dicom_validator'
+RUN = r'D:\workspace-github\xpe-post\build\g206-run.bat'
+VAL = 'modules/dicom/src/DicomValidator.cpp'
+NL = '\n'
+T_TYPE2_EMPTY = 'DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes'
+T_TYPE2_ABSENT = 'DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence'
+T_TABLE = 'DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt'
+T_T1 = 'DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag'
+T_MSG = 'DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages'
+
+SKIP = '        if (!req.needsValue) continue;' + NL
+ROW_PN = '    { DCM_PatientName,      "0010,0010", false },   // Type 2' + NL
+ROW_PID = '    { DCM_PatientID,        "0010,0020", false },   // Type 2' + NL
+ROW_STUDY = '    { DCM_StudyInstanceUID, "0020,000D", true  },' + NL
+ROW_MOD = '    { DCM_Modality,         "0008,0060", true  },' + NL
+MSG2 = '            errEntry["message"] = std::string(req.needsValue ? "Missing required Type 1 tag: " : "Missing required Type 2 tag: ") + req.tag;' + NL
+ABSENT_BLOCK = ('        if (findStatus.bad() || !elem) {' + NL + '            result.valid = false;' + NL)
+
+ARMS = [
+    ('type2_skip_removed_patient_name_and_id_judged_by_value_again', [(VAL, SKIP, '')], [T_TYPE2_EMPTY, T_TABLE]),
+    ('patient_name_judged_as_type1_again', [(VAL, ROW_PN, ROW_PN.replace('false', 'true '))], [T_TYPE2_EMPTY, T_TABLE]),
+    ('patient_id_judged_as_type1_again', [(VAL, ROW_PID, ROW_PID.replace('false', 'true '))], [T_TYPE2_EMPTY, T_TABLE]),
+    ('study_uid_judged_as_type2_by_mistake', [(VAL, ROW_STUDY, ROW_STUDY.replace('true ', 'false'))], [T_TABLE]),
+    ('modality_judged_as_type2_by_mistake', [(VAL, ROW_MOD, ROW_MOD.replace('true ', 'false'))], [T_TABLE]),
+    ('type2_presence_not_required_the_absent_element_passes',
+     [(VAL, ABSENT_BLOCK, '        if ((findStatus.bad() || !elem) && !req.needsValue) continue;' + NL + ABSENT_BLOCK)], [T_TYPE2_ABSENT, T_TABLE]),
+    ('type2_missing_message_says_type_1', [(VAL, MSG2, '            errEntry["message"] = std::string("Missing required Type 1 tag: ") + req.tag;' + NL)], [T_TYPE2_ABSENT]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    with open(VAL, 'rb') as f:
+        saved = f.read()
+    before = sha(VAL)
+    log('=== ARM ' + name)
+    try:
+        txt = saved.decode('utf-8')
+        for ff, old, new in edits:
+            n = txt.count(old)
+            assert n == 1, (name, old[:70], n)
+            txt = txt.replace(old, new)
+        with open(VAL, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g206-build.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s test_dicom_validator.exe * D:\\workspace-github\\xpe-post\\build\\g207-arm.txt' % RUN)
+            red = failed('build/g207-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        with open(VAL, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(VAL) == before))
+log('=== DONE')
+out.close()

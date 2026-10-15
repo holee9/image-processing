@@ -1,0 +1,4 @@
+﻿# The CI 'Run automation (hidden window, Mock backend)' step (ci.yml:668-684), against each configuration. Same arguments, same checks.
+
+Release  exit=0 BackendMode=Mock source=arg Passed=True
+Debug    exit=0 BackendMode=Mock source=arg Passed=True

@@ -1,0 +1,46 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *PreambleAndMagicWithoutAnyGroup0002*:*AFileThatIsNotPartTen*:*ThePreambleBytes*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from DicomReaderTest
+[ RUN      ] DicomReaderTest.AFileThatIsNotPartTenIsDicomInvalidWhateverItContains
+[2026-10-04 11:34:33.788] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.793] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.798] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.807] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.813] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.820] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.826] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.833] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.839] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 11:34:33.840] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (131 bytes read)
+[2026-10-04 11:34:33.840] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (0 bytes read)
+[2026-10-04 11:34:33.845] [warning] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[       OK ] DicomReaderTest.AFileThatIsNotPartTenIsDicomInvalidWhateverItContains (64 ms)
+[ RUN      ] DicomReaderTest.PreambleAndMagicWithoutAnyGroup0002ElementIsDicomInvalid
+W: DcmMetaInfo: Found Preamble but no Meta Information Header
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(4848): error: Expected equality of these values:
+  -13
+  OpenBytes(s_tempDir / "c3b_no_group2.dcm", noMeta, &h)
+    Which is: 0
+preamble + DICM + a bare dataset is not Part 10 (PS3.10 7.1: the File Meta Information is required)
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_reader.cpp(4850): error: Expected equality of these values:
+  nullptr
+    Which is: NULL
+  h
+    Which is: 000002AE51155DE0
+
+[  FAILED  ] DicomReaderTest.PreambleAndMagicWithoutAnyGroup0002ElementIsDicomInvalid (21 ms)
+[ RUN      ] DicomReaderTest.ThePreambleBytesThemselvesAreNotJudgedAndAMissingFileIsStillAnIoError
+[2026-10-04 11:34:33.875] [warning] [DicomReader] loadFile failed: No such file or directory
+[       OK ] DicomReaderTest.ThePreambleBytesThemselvesAreNotJudgedAndAMissingFileIsStillAnIoError (7 ms)
+[----------] 3 tests from DicomReaderTest (93 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (118 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomReaderTest.PreambleAndMagicWithoutAnyGroup0002ElementIsDicomInvalid
+
+ 1 FAILED TEST

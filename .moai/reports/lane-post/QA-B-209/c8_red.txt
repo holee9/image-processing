@@ -1,0 +1,144 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *CFind*
+[==========] Running 10 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 10 tests from DicomNetworkTest
+[ RUN      ] DicomNetworkTest.CFindResults_ReturnsJsonArray
+I: Requesting Association
+I: Association Received dev-work:  ->
+I: Refusing Association (bad application context)
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomNetworkTest.CFindResults_ReturnsJsonArray (10 ms)
+[ RUN      ] DicomNetworkTest.CFindEmpty_ReturnsEmptyArray
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomNetworkTest.CFindEmpty_ReturnsEmptyArray (1 ms)
+[ RUN      ] DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed
+I: Requesting Association
+[2026-10-04 12:15:53.000] [warning] [DicomNetworkSCU] cfindMwl negotiateAssociation failed: TCP Initialization Error: 작업을 완료했습니다. (Timeout)
+[       OK ] DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed (1013 ms)
+[ RUN      ] DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput
+[       OK ] DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+[2026-10-04 12:15:53.001] [warning] [DicomNetworkSCU] buildFindRequest: JSON parse error: [json.exception.parse_error.101] parse error at line 1, column 3: syntax error while parsing object key - invalid literal; last read: '{no'; expected string literal
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed (1 ms)
+[ RUN      ] DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Accepted (Max Send PDV: 16372)
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray (1 ms)
+[ RUN      ] DicomNetworkTest.CFindQueryShape_SchedulingKeysAreInsideTheScheduledProcedureStepSequence
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(339): error: Value of: q.tagExists(DcmTagKey(0x0008, 0x0060))
+  Actual: true
+Expected: false
+Modality is a Scheduled Procedure Step attribute: not a top-level key
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(342): error: Value of: q.findAndGetSequenceItem(DcmTagKey(0x0040, 0x0100), sps, 0).good()
+  Actual: false
+Expected: true
+no Scheduled Procedure Step Sequence (0040,0100) in the C-FIND identifier
+
+[  FAILED  ] DicomNetworkTest.CFindQueryShape_SchedulingKeysAreInsideTheScheduledProcedureStepSequence (1 ms)
+[ RUN      ] DicomNetworkTest.CFindQueryShape_AbsentSchedulingKeysAreUniversalMatchInsideTheItem
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(362): error: Value of: q.tagExists(DcmTagKey(0x0008, 0x0060))
+  Actual: true
+Expected: false
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(364): error: Value of: q.findAndGetSequenceItem(DcmTagKey(0x0040, 0x0100), sps, 0).good()
+  Actual: false
+Expected: true
+
+[  FAILED  ] DicomNetworkTest.CFindQueryShape_AbsentSchedulingKeysAreUniversalMatchInsideTheItem (1 ms)
+[ RUN      ] DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall (1 ms)
+[ RUN      ] DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput
+[       OK ] DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput (0 ms)
+[----------] 10 tests from DicomNetworkTest (1032 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 1 test suite ran. (2573 ms total)
+[  PASSED  ] 8 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] DicomNetworkTest.CFindQueryShape_SchedulingKeysAreInsideTheScheduledProcedureStepSequence
+[  FAILED  ] DicomNetworkTest.CFindQueryShape_AbsentSchedulingKeysAreUniversalMatchInsideTheItem
+
+ 2 FAILED TESTS

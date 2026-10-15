@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -57,11 +58,34 @@ namespace ImageProcTest
             InitializeComponent();
             SelectedAlgorithmChainListBox.ItemsSource = selectedAlgorithmChain;
             ModuleReadinessGrid.ItemsSource = moduleReadinessViewModel.Modules;
+            // GUI-C-219: the synthetic oracle runs off this thread; when its verdict arrives the window refreshes once, here.
+            PreprocessOracleVerdicts.Completed += OnPreprocessOracleVerdict;
+            PreprocessOracleVerdicts.Changed += OnPreprocessOracleVerdict;   // a stored verdict was found to be for other bytes: show "checking" again, then the new answer arrives as Completed
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private void OnPreprocessOracleVerdict(string dllPath)
         {
-            RefreshNativeHealth();
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                if (isClosingWindow) return;
+                RefreshNativeHealth();
+            }));
+        }
+
+        private bool isClosingWindow;
+
+        /// <summary>
+        /// GUI-C-235: the start-up native probing no longer runs on the UI thread. It used to (RefreshNativeHealth(), synchronously, here): xpe_init, the memory ABI smoke, the display/DICOM/GSVG/preprocess
+        /// probes (each loads a module and calls into it) and the readiness report file - about 0.4 s of a fast desktop's start-up, 78 ms of it the common backend and 284 ms the probes (measured,
+        /// .moai/reports/lane-gui/GUI-C-235/startup_trace_copy1.txt), and longer on a slower machine or for freshly copied DLLs. The window handle exists before that work starts, UI Automation answers from the
+        /// UI thread, and FlaUI's call has a 2 s budget: on CI it ran out ("UIA Timeout" from Application.GetMainWindow, before the scenario began; R05/R06/R08 across three runs of the same tree). A window that
+        /// cannot answer for that long while it starts is a frozen window for a person too. The probing now runs on the thread pool and its results are applied here; what the window shows meanwhile is stated
+        /// (status "Checking native common backend...", the oracle line already says "checking in the background").
+        /// </summary>
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            await RefreshNativeHealthOffTheUiThreadAsync();
+            if (isClosingWindow) return;
             LoadFixtureCases();
             RefreshModuleReadiness();
             UpdateEvaluationDashboards();
@@ -108,13 +132,13 @@ namespace ImageProcTest
 
         private void MenuRefreshNativeDiagnostics_Click(object sender, RoutedEventArgs e)
         {
-            RefreshNativeHealth();
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void MenuRunSmokeTest_Click(object sender, RoutedEventArgs e)
         {
             SelectTab("Diagnostics");
-            RefreshNativeHealth();
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void MenuShowEvaluation_Click(object sender, RoutedEventArgs e)
@@ -269,7 +293,79 @@ namespace ImageProcTest
             }
         }
 
-        private void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// GUI-C-219d: every command that can run the native preprocess DLL asks this first (the three click handlers below). The screen's "ready" is display only; this is the check against the files as
+        /// they are now. When it says no, nothing runs and the verification has already been started again, so the window moves to "checking" by itself.
+        /// </summary>
+        private async Task<bool> ConfirmProcessingContentAsync()
+        {
+            if (await ProcessingContentGate.ConfirmAsync(lastPreprocessHealth?.DllPath))
+            {
+                SetProcessingRefused(false);   // the command goes ahead: whatever was said about the last refusal is over, and the text is drawn again now
+                return true;
+            }
+
+            SetProcessingRefused(true);
+            SetStatus("Preprocess DLLs changed: checking again", Brushes.Goldenrod);
+            return false;
+        }
+
+        // GUI-C-226b (Codex #122): the preview text has ONE writer, SetNativePreviewText. It keeps the latest ordinary message and, in front of it, the standing notice about the last refused command; every
+        // path that used to assign the text box (stage changes, bypass, run results, readiness refresh, failures) goes through it, so nothing can overwrite the notice and nothing can bring back an
+        // old one. A source scan (PreprocessOracleVerdicts219dTests) holds the number of direct assignments to the text box at exactly one, inside RenderNativePreviewText.
+        private const string ProcessingRefusedPrefix = "the preprocess DLLs changed since they were checked, so nothing was run.";
+
+        private string nativePreviewMessage = string.Empty;
+        private bool processingRefused;
+
+        /// <summary>Whether the last processing command was refused because the DLLs had changed. It says only THAT; what the notice says about it comes from the current state, see <see cref="ProcessingNoticeText"/>.</summary>
+        private void SetProcessingRefused(bool refused)
+        {
+            processingRefused = refused;
+            RenderNativePreviewText();
+        }
+
+        /// <summary>
+        /// GUI-C-226d (Codex #123): the notice is DERIVED from the current verification state each time the text is drawn, not stored as a string that something has to remember to update. The three
+        /// states of the check the refusal started: still running, passed, or finished and NOT passed. A DLL changed again after "ready now" shows up here at the next draw (the refresh that
+        /// follows a verdict or a Refresh Modules), because the state it reads is the current one.
+        /// </summary>
+        private string ProcessingNoticeText()
+        {
+            var health = lastPreprocessHealth;
+            if (health is null || health.IsSyntheticOracleChecking)
+            {
+                return ProcessingRefusedPrefix + " They are checked again automatically; press the command again once module readiness says ready.";
+            }
+
+            if (IsNativePreviewReady())
+            {
+                return ProcessingRefusedPrefix + " They were checked again and are ready now; press the command again.";
+            }
+
+            return ProcessingRefusedPrefix + $" They were checked again and that check has FINISHED without passing ({health.SyntheticOracle.Status}); the command stays blocked until the preprocess DLLs pass.";
+        }
+
+        private void SetNativePreviewText(string text)
+        {
+            nativePreviewMessage = text;
+            RenderNativePreviewText();
+        }
+
+        private void RenderNativePreviewText() =>
+            NativePreviewText.Text = processingRefused ? "Native preview: " + ProcessingNoticeText() + " " + nativePreviewMessage : nativePreviewMessage;
+
+        private async void WorkflowRunButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmProcessingContentAsync())
+            {
+                return;
+            }
+
+            RunWorkflow();
+        }
+
+        private void RunWorkflow()
         {
             if (currentAlgorithmChainPlan.Steps.Count == 0)
             {
@@ -306,7 +402,7 @@ namespace ImageProcTest
 
         private void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
-            RefreshNativeHealth();
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void RefreshFixturesButton_Click(object sender, RoutedEventArgs e)
@@ -316,7 +412,9 @@ namespace ImageProcTest
 
         private void RefreshModulesButton_Click(object sender, RoutedEventArgs e)
         {
-            RefreshModuleReadiness();
+            // the user's refresh: the synthetic oracle is asked again (every other refresh reuses its verdict). Through the FULL refresh (GUI-C-219b, Codex #109): this used to refresh only the module
+            // matrix, so the Diagnostics smoke line and the Calibration findings kept reading the previous health (the old "pass=True") while the matrix said "checking".
+            RefreshNativeHealth(recheckOracle: true);
         }
 
         private void RefreshAlgorithmsButton_Click(object sender, RoutedEventArgs e)
@@ -407,7 +505,17 @@ namespace ImageProcTest
                 $"Selected {item.SwuId} {item.AlgorithmName}; status={item.Status}; run={item.CanRun}; next={item.NextAction}";
         }
 
-        private void RunSelectedAlgorithmValidationButton_Click(object sender, RoutedEventArgs e)
+        private async void RunSelectedAlgorithmValidationButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmProcessingContentAsync())
+            {
+                return;
+            }
+
+            RunSelectedAlgorithmValidation();
+        }
+
+        private void RunSelectedAlgorithmValidation()
         {
             if (AlgorithmValidationGrid.SelectedItem is not AlgorithmValidationItem item)
             {
@@ -966,10 +1074,99 @@ namespace ImageProcTest
             }
         }
 
-        private void RefreshNativeHealth()
+        /// <summary>What the native probing found: the common backend's health and either the readiness report or why there is none. Nothing here touches the UI.</summary>
+        private sealed record NativeProbe(BackendHealthResult Result, NativeReadinessReportWriteResult? Report, Exception? ReportError);
+
+        /// <summary>The probing itself (no UI access, so it can run on any thread). It builds the report and does NOT write it: publishing is ApplyNativeProbe's, on the UI thread, after the generation check.</summary>
+        private NativeProbe ProbeNative()
+        {
+            var result = backend.CheckHealth();
+            try
+            {
+                return new NativeProbe(result, NativeReadinessProbe.BuildReport(result, waitForOracle: false), null);
+            }
+            catch (Exception ex)
+            {
+                return new NativeProbe(result, null, ex);
+            }
+        }
+
+        /// <summary>The start-up refresh: the probing on the pool, the results applied on the UI thread.</summary>
+        private async System.Threading.Tasks.Task RefreshNativeHealthOffTheUiThreadAsync()
         {
             SetStatus("Checking native common backend...", Brushes.Goldenrod);
-            var result = backend.CheckHealth();
+            PreprocessSmokeText.Text = "Preprocess smoke: checking in the background";
+            var generation = nativeHealthGeneration;
+            var probe = await System.Threading.Tasks.Task.Run(() =>
+            {
+                var built = ProbeNative();
+#if DEBUG
+                // Test hooks (GUI-C-235/235b/235c), compiled into Debug builds only - a shipped (Release) build has no such code - and read only here, in the start-up path (never on a refresh, so they can never
+                // block the UI thread). XPE_STARTUP_PROBE_BARRIER_DIR: an explicit barrier instead of a timing guess - the finished start-up probe writes "built" (the report's timestamp) into the directory and
+                // waits there for a "release" file (at most 60 s), so a scenario can do whatever it needs while the probe is held and let it go when it chooses; "done" (dropped / applied) is written after.
+                var barrierDir = Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_BARRIER_DIR");
+                if (!string.IsNullOrEmpty(barrierDir) && built.Report?.ReportJson is { } builtJson)
+                {
+                    using (var parsed = System.Text.Json.JsonDocument.Parse(builtJson))
+                    {
+                        BarrierSignal(barrierDir, "built", parsed.RootElement.GetProperty("timestampUtc").GetString() ?? string.Empty);
+                    }
+
+                    var waited = System.Diagnostics.Stopwatch.StartNew();
+                    while (!System.IO.File.Exists(System.IO.Path.Combine(barrierDir, "release")) && waited.Elapsed < TimeSpan.FromSeconds(60))
+                    {
+                        System.Threading.Thread.Sleep(20);
+                    }
+                }
+
+                // XPE_STARTUP_PROBE_DELAY_MS: holds the finished probe back for N ms (what a slow machine does) - used by the responsiveness measurements.
+                if (int.TryParse(Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_DELAY_MS"), out var delayMs) && delayMs > 0)
+                {
+                    System.Threading.Thread.Sleep(delayMs);
+                }
+#endif
+                return built;
+            });
+            // A refresh that ran on this thread while the probing was away (the oracle's verdict arriving, a button) is newer than this probe: applying this one would put its older "checking" back.
+            var overtaken = isClosingWindow || nativeHealthGeneration != generation;
+#if DEBUG
+            if (Environment.GetEnvironmentVariable("XPE_STARTUP_PROBE_BARRIER_DIR") is { Length: > 0 } doneDir)
+            {
+                BarrierSignal(doneDir, "done", overtaken ? "dropped" : "applied");   // GUI-C-235c: the end of the start-up probe, said explicitly
+            }
+#endif
+            if (overtaken) return;
+            ApplyNativeProbe(probe);
+        }
+
+#if DEBUG
+        private static void BarrierSignal(string directory, string name, string content)
+        {
+            // GUI-C-235d: published atomically - written and closed under a temporary name, then moved to the final one - so a reader that sees the final name sees all of its content.
+            System.IO.Directory.CreateDirectory(directory);
+            var temporary = System.IO.Path.Combine(directory, name + ".tmp");
+            System.IO.File.WriteAllText(temporary, content);
+            System.IO.File.Move(temporary, System.IO.Path.Combine(directory, name), overwrite: true);
+        }
+#endif
+
+        private void RefreshNativeHealth(bool recheckOracle = false)
+        {
+            if (recheckOracle)
+            {
+                PreprocessOracleVerdicts.Invalidate();
+            }
+
+            SetStatus("Checking native common backend...", Brushes.Goldenrod);
+            ApplyNativeProbe(ProbeNative());
+        }
+
+        private int nativeHealthGeneration;
+
+        private void ApplyNativeProbe(NativeProbe probe)
+        {
+            nativeHealthGeneration++;
+            var result = probe.Result;
             lastBackendHealth = result;
             VersionText.Text = $"Version: {result.Version}";
             NativePathText.Text = $"DLL: {result.DllPath}";
@@ -985,17 +1182,22 @@ namespace ImageProcTest
 
             try
             {
-                var report = NativeReadinessProbe.WriteReport(result);
+                if (probe.ReportError is not null) throw probe.ReportError;
+                var report = probe.Report!;
+                // GUI-C-235b (Codex #186): the file is published HERE, with the screen, on the UI thread and only for a result that passed the generation check - the file and the window always show the same probe.
+                NativeReadinessProbe.PublishReport(report);
                 lastReadinessReportPath = report.ReportPath;
                 lastPreprocessHealth = report.PreprocessHealth;
                 DisplayHealthText.Text = $"Display health: {report.DisplaySummary}";
                 DicomHealthText.Text = $"DICOM health: {report.DicomSummary}";
                 GsvgHealthText.Text = $"GSVG health: {report.GsvgSummary}";
                 PreprocessHealthText.Text = $"Preprocess health: {report.PreprocessSummary}";
-                PreprocessSmokeText.Text =
-                    $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
-                    $"pass={report.PreprocessHealth.SyntheticOracle.Passed}; " +
-                    $"latency={report.PreprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}ms";
+                // GUI-C-219: while the oracle runs in the background there is no pass/fail to print; the line says so (and carries no "pass=" until there is one)
+                PreprocessSmokeText.Text = report.PreprocessHealth.IsSyntheticOracleChecking
+                    ? "Preprocess smoke: checking in the background"
+                    : $"Preprocess smoke: {report.PreprocessHealth.SyntheticOracle.Status}; " +
+                      $"pass={report.PreprocessHealth.SyntheticOracle.Passed}; " +
+                      $"latency={report.PreprocessHealth.SyntheticOracle.TotalLatencyMs:0.###}ms";
                 PreprocessParamRangeText.Text =
                     $"Preprocess parameter ranges: {NativeReadinessProbe.FormatPreprocessParameterRanges(report.PreprocessHealth.ParameterRanges)}";
                 PreprocessParamRangeGrid.ItemsSource = report.PreprocessHealth.ParameterRanges;
@@ -1021,6 +1223,9 @@ namespace ImageProcTest
 
         private void Window_Closed(object? sender, System.EventArgs e)
         {
+            isClosingWindow = true;
+            PreprocessOracleVerdicts.Completed -= OnPreprocessOracleVerdict;
+            PreprocessOracleVerdicts.Changed -= OnPreprocessOracleVerdict;
             backend.Shutdown();
         }
 
@@ -1075,23 +1280,42 @@ namespace ImageProcTest
                 lastEnhanceBasicPreviewResult = null;
                 lastPresentationExportResult = null;
                 EvaluationViewer.ClearRawPreview($"Raw preview failed: {ex.Message}");
-                NativePreviewText.Text = "Native preview: unavailable";
+                SetNativePreviewText("Native preview: unavailable");
                 UpdateNativePreviewControls();
                 UpdateWorkflowRunState();
                 UpdateEvaluationDashboards();
             }
         }
 
-        private void ApplyNativePreviewButton_Click(object sender, RoutedEventArgs e)
+        private async void ApplyNativePreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmProcessingContentAsync())
+            {
+                return;
+            }
+
+            ApplyNativePreview();
+        }
+
+        private void ApplyNativePreview()
         {
             if (currentPreview is null)
             {
-                NativePreviewText.Text = "Native preview: load a raw file first.";
+                SetNativePreviewText("Native preview: load a raw file first.");
                 return;
             }
 
             var preprocessSelection = GetPreprocessSelection();
             var enhanceSelection = GetEnhanceBasicSelection();
+            var inputError = GetEnhanceBasicInputError(enhanceSelection);
+            if (inputError is not null)
+            {
+                // GUI-C-230b: refuse before anything runs, so the image and the results stay exactly as they were.
+                SetNativePreviewText("Native preview: " + inputError);
+                SetStatus("Input out of range", Brushes.OrangeRed);
+                return;
+            }
+
             if (!preprocessSelection.HasAnyStage && !enhanceSelection.HasAnyStage)
             {
                 ApplyBypassPreview("All pre/post stages are unchecked.");
@@ -1101,19 +1325,19 @@ namespace ImageProcTest
 
             if (preprocessSelection.HasAnyStage && !IsNativePreviewReady())
             {
-                NativePreviewText.Text = "Native preview: xpe_preprocess.dll export readiness is not available.";
+                SetNativePreviewText("Native preview: xpe_preprocess.dll export readiness is not available.");
                 return;
             }
 
             if (enhanceSelection.HasAnyStage && !IsEnhanceBasicPreviewReady())
             {
-                NativePreviewText.Text = "Native preview: xpe_enhance_basic.dll ABI smoke readiness is not available.";
+                SetNativePreviewText("Native preview: xpe_enhance_basic.dll ABI smoke readiness is not available.");
                 return;
             }
 
             if (preprocessSelection.HasAnyStage && currentCalibrationContext is not FixtureCaseInfo)
             {
-                NativePreviewText.Text = "Native preview: select the acquired calibration folder before running preprocess stages.";
+                SetNativePreviewText("Native preview: select the acquired calibration folder before running preprocess stages.");
                 return;
             }
 
@@ -1130,7 +1354,7 @@ namespace ImageProcTest
                 lastEnhanceBasicPreviewResult = null;
                 lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
-                NativePreviewText.Text = $"Native preview failed: {ex.Message}";
+                SetNativePreviewText($"Native preview failed: {ex.Message}");
                 SetStatus("Native pre/post preview failed", Brushes.OrangeRed);
                 UpdateEvaluationDashboards();
             }
@@ -1153,7 +1377,7 @@ namespace ImageProcTest
             var enhanceSelection = GetEnhanceBasicSelection();
             if (preprocessSelection.HasAnyStage || enhanceSelection.HasAnyStage)
             {
-                NativePreviewText.Text = "Native preview: stage selection changed. Run Selected to apply the checked pre/post stages.";
+                SetNativePreviewText("Native preview: stage selection changed. Run Selected to apply the checked pre/post stages.");
                 WorkflowBeforeAfterText.Text = "Stage switches changed. Viewer is reset to bypass output until the selected stages are run.";
             }
             else
@@ -1174,7 +1398,7 @@ namespace ImageProcTest
                 lastEnhanceBasicPreviewResult = null;
                 lastPresentationExportResult = null;
                 EvaluationViewer.ClearNativePreview();
-                NativePreviewText.Text = $"Bypass preview: {reason} Load a target raw image to view the bypass output.";
+                SetNativePreviewText($"Bypass preview: {reason} Load a target raw image to view the bypass output.");
                 WorkflowBeforeAfterText.Text = "Bypass preview: no target raw image is loaded.";
                 return;
             }
@@ -1184,9 +1408,9 @@ namespace ImageProcTest
             lastEnhanceBasicPreviewResult = null;
             lastPresentationExportResult = null;
             EvaluationViewer.SetBypassPreview(bypass, reason);
-            NativePreviewText.Text =
+            SetNativePreviewText(
                 $"Bypass preview: {reason} output buffer is copied from input; changed={bypass.Metrics.ChangedPixels}/{bypass.Metrics.PixelCount}; " +
-                $"nanInf={bypass.Metrics.NaNInfCount}.";
+                $"nanInf={bypass.Metrics.NaNInfCount}.");
             WorkflowBeforeAfterText.Text =
                 "Stage switches: all Off. No correction stage executed; viewer shows Original vs bypass output.";
         }
@@ -1213,11 +1437,11 @@ namespace ImageProcTest
             lastEnhanceBasicPreviewResult = null;
             lastPresentationExportResult = null;
             EvaluationViewer.SetNativePreview(result, selectedCase.CalibrationDirectoryPath);
-            NativePreviewText.Text =
+            SetNativePreviewText(
                 $"Native preview: loads={FormatCalibrationSummary(result.CalibrationLoads)}; " +
                 $"stages={FormatStageSummary(result.Stages)}; " +
                 $"metrics={FormatMetricSummary(result.Metrics)}; " +
-                $"latency={result.TotalLatencyMs:0.###}ms; output={result.OutputMin:0.###}..{result.OutputMax:0.###}";
+                $"latency={result.TotalLatencyMs:0.###}ms; output={result.OutputMin:0.###}..{result.OutputMax:0.###}");
             SetStatus($"{statusLabel} complete", Brushes.ForestGreen);
             UpdateEvaluationDashboards();
             return result;
@@ -1360,8 +1584,8 @@ namespace ImageProcTest
                 AddReportArtifact("DICOM", result.DicomValidation.DicomPath);
             }
 
-            NativePreviewText.Text =
-                $"Native presentation/export: {result.Summary}; latency={result.TotalLatencyMs:0.###}ms; artifacts={result.ArtifactDirectory}";
+            SetNativePreviewText(
+                $"Native presentation/export: {result.Summary}; latency={result.TotalLatencyMs:0.###}ms; artifacts={result.ArtifactDirectory}");
             SetStatus("Presentation/export complete", Brushes.ForestGreen);
             UpdateEvaluationDashboards();
             return result;
@@ -1417,6 +1641,11 @@ namespace ImageProcTest
                 throw new InvalidOperationException("Load a raw preview before running native post-processing.");
             }
 
+            if (GetEnhanceBasicInputError(selection) is { } inputError)
+            {
+                throw new InvalidOperationException(inputError);   // backstop for the callers that do not check first (algorithm validation, chain)
+            }
+
             SetStatus($"Running {statusLabel} post stages...", Brushes.Goldenrod);
             var result = NativeEnhanceBasicPreviewService.Run(
                 currentPreview,
@@ -1433,12 +1662,12 @@ namespace ImageProcTest
                 "Post after",
                 $"Post basic applied from {Path.GetFileName(result.DllPath)}; input={result.InputSource}; " +
                 $"latency={result.TotalLatencyMs:0.###}ms; EI={FormatNullable(result.ExposureIndex)}, DI={FormatNullable(result.DeviationIndex)}.");
-            NativePreviewText.Text =
+            SetNativePreviewText(
                 $"Native preview: post stages={FormatStageSummary(result.Stages)}; " +
                 $"metrics={FormatMetricSummary(result.Metrics)}; latency={result.TotalLatencyMs:0.###}ms; " +
                 $"output={result.OutputMin:0.###}..{result.OutputMax:0.###}; input={result.InputSource}; " +
                 $"EI={FormatNullable(result.ExposureIndex)}, DI={FormatNullable(result.DeviationIndex)}; " +
-                $"sigma={FormatNullable(result.SigmaBefore)}->{FormatNullable(result.SigmaAfter)}";
+                $"sigma={FormatNullable(result.SigmaBefore)}->{FormatNullable(result.SigmaAfter)}");
             SetStatus($"{statusLabel} complete", Brushes.ForestGreen);
             UpdateEvaluationDashboards();
             return result;
@@ -1573,7 +1802,7 @@ namespace ImageProcTest
 
         private void RefreshModuleReadiness()
         {
-            currentModuleReadiness = moduleReadinessViewModel.Refresh(lastBackendHealth);
+            currentModuleReadiness = moduleReadinessViewModel.Refresh(lastBackendHealth, waitForOracle: false);
             ModuleReadinessSummaryText.Text = moduleReadinessViewModel.SummaryText;
             RefreshAlgorithmValidation();
             UpdateNativePreviewControls();
@@ -1664,7 +1893,8 @@ namespace ImageProcTest
         private void UpdateAlgorithmChainPlan()
         {
             currentAlgorithmChainPlan = AlgorithmChainCatalogService.BuildPlan(
-                selectedAlgorithmChain.Select(step => step.Node).ToArray());
+                selectedAlgorithmChain.Select(step => step.Node).ToArray(),
+                preprocessChecking: lastPreprocessHealth?.IsSyntheticOracleChecking == true);
             WorkflowRuleFindingsGrid.ItemsSource = currentAlgorithmChainPlan.Findings;
 
             var inputState = currentCalibrationContext is null
@@ -2134,10 +2364,12 @@ namespace ImageProcTest
 
             if (!preprocessReady && !enhanceReady)
             {
-                StageModesInfoText.Text = "Native pre/post exports are not ready, so algorithm execution switches stay disabled.";
-                NativePreviewText.Text = lastPreprocessHealth is null
+                StageModesInfoText.Text = lastPreprocessHealth?.IsSyntheticOracleChecking == true
+                    ? "Native preprocess is being checked in the background, so algorithm execution switches stay disabled until it answers."
+                    : "Native pre/post exports are not ready, so algorithm execution switches stay disabled.";
+                SetNativePreviewText(lastPreprocessHealth is null
                     ? "Native preview: readiness has not been checked."
-                    : $"Native preview: unavailable (pre={lastPreprocessHealth.Status}; exportsReady={lastPreprocessHealth.IsExportReady}; synthetic={lastPreprocessHealth.SyntheticOracle.Status}).";
+                    : $"Native preview: unavailable (pre={lastPreprocessHealth.Status}; exportsReady={lastPreprocessHealth.IsExportReady}; synthetic={lastPreprocessHealth.SyntheticOracle.Status}).");
                 return;
             }
 
@@ -2146,22 +2378,22 @@ namespace ImageProcTest
                 "Checked stages execute in the selected order; unchecked stages bypass. Post uses preprocess output when available, otherwise raw-to-float input.";
             if (lastNativePreviewResult is null && lastEnhanceBasicPreviewResult is null)
             {
-                NativePreviewText.Text = currentPreview is null
+                SetNativePreviewText(currentPreview is null
                     ? "Native preview: load a target raw image to run pre/post algorithms."
-                    : "Native preview: ready. Check pre/post stages to apply, or leave all unchecked for bypass output.";
+                    : "Native preview: ready. Check pre/post stages to apply, or leave all unchecked for bypass output.");
             }
+
+            RenderNativePreviewText();   // the notice follows the readiness that was just evaluated, whether or not the message above changed
         }
 
         private bool IsNativePreviewReady()
         {
-            return lastPreprocessHealth?.IsExportReady == true;
+            return ModuleReadinessGrading.IsProcessingEnabled(currentModuleReadiness, "xpe_preprocess");
         }
 
         private bool IsEnhanceBasicPreviewReady()
         {
-            return currentModuleReadiness.Any(module =>
-                string.Equals(module.ModuleName, "xpe_enhance_basic", StringComparison.OrdinalIgnoreCase) &&
-                module.ProcessingEnabled);
+            return ModuleReadinessGrading.IsProcessingEnabled(currentModuleReadiness, "xpe_enhance_basic");
         }
 
         private bool IsModuleReadinessAtLeast(string moduleName, int requiredRank)
@@ -2197,11 +2429,14 @@ namespace ImageProcTest
                 EdgeEnabledCheckBox?.IsChecked == true);
         }
 
+        private string? GetEnhanceBasicInputError(EnhanceBasicStageSelection selection) =>
+            selection.Noise ? EnhanceBasicInputLimits.SigmaSpaceError(NoiseSigmaSpaceTextBox?.Text) : null;
+
         private EnhanceBasicStageParameters GetEnhanceBasicParameters()
         {
             var defaults = EnhanceBasicStageParameters.Default;
             var noise = defaults.Noise;
-            noise.SigmaSpace = ReadFloat(NoiseSigmaSpaceTextBox, defaults.Noise.SigmaSpace, min: 0.1f, max: 100f);
+            noise.SigmaSpace = ReadFloat(NoiseSigmaSpaceTextBox, defaults.Noise.SigmaSpace, min: EnhanceBasicInputLimits.SigmaSpaceMin, max: EnhanceBasicInputLimits.SigmaSpaceMax);
             noise.SigmaRange = ReadFloat(NoiseSigmaRangeTextBox, defaults.Noise.SigmaRange, min: 0.1f, max: 100_000f);
 
             var contrast = defaults.Contrast;
@@ -2315,7 +2550,7 @@ namespace ImageProcTest
                 $"rmse={metrics.Rmse:0.###}, " +
                 $"maxAbsDelta={metrics.MaxAbsoluteDelta:0.###}, " +
                 $"changed={metrics.ChangedPixels}/{metrics.PixelCount} ({metrics.ChangedPixelRatio:P2}), " +
-                $"inputPreserved={metrics.InputPreserved}, nanInf={metrics.NaNInfCount}";
+                $"outputWithinHalfUnitOfInput(within 0.5 of input)={metrics.OutputWithinHalfUnitOfInput}, nanInf={metrics.NaNInfCount}";
         }
 
         private static string FormatNullable(float? value)
@@ -2330,13 +2565,7 @@ namespace ImageProcTest
 
         private static float ReadFloat(TextBox? textBox, float fallback, float min, float max)
         {
-            if (textBox is null ||
-                !float.TryParse(textBox.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
-            {
-                return fallback;
-            }
-
-            return Math.Clamp(value, min, max);
+            return textBox is null ? fallback : EnhanceBasicInputLimits.ParseClamped(textBox.Text, fallback, min, max);
         }
 
         private void SetStatus(string message, Brush brush)

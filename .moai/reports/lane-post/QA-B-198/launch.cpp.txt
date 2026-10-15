@@ -1,0 +1,427 @@
+// QA-B-198 launcher: starts probe.exe or the REAL xpe_ai_worker.exe the way ai_worker_supervisor.cpp StartLocked does
+// (CreateProcess suspended + kill-on-close job + resume), under one restriction variant, and reports what happened.
+// usage: launch.exe <variant> <probe|worker> <dir-with-exes> <model_dir>
+//   variants: base | job | restricted | wr | wr2 | lowil | ac | aclocal | aclocaljob
+//     wr = write-restricted token, restricting SID RESTRICTED only; wr2 = + the logon SID
+//     ac = AppContainer, the worker creates its pipe as it does today; aclocal = the worker creates \\.\pipe\LOCAL\<name>
+//     (the container's own namespace) and the host connects to the container-namespace path; aclocaljob = aclocal + hardened job
+// Test-only experiment code; nothing here ships. Built from build/g198 with the product's ai_ipc_bridge.cpp.
+#define WIN32_LEAN_AND_MEAN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#include <aclapi.h>
+#include <sddl.h>
+#include <userenv.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdint>
+#include <chrono>
+#include <filesystem>
+#include <string>
+#include <vector>
+
+#include "ai_ipc_bridge.h"
+
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "userenv.lib")
+
+extern "C" {
+XpeAiIpcBridge* xpe_ai_ipc_bridge_create(const char* pipe_name, uint32_t timeout_ms);
+XpeErrorCode    xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge);
+XpeErrorCode    xpe_ai_ipc_bridge_send(XpeAiIpcBridge* bridge, const XpeAiMessageHeader* header,
+                                       const void* payload, uint32_t payload_size);
+XpeErrorCode    xpe_ai_ipc_bridge_receive(XpeAiIpcBridge* bridge, XpeAiMessageHeader* header,
+                                          void* payload, uint32_t payload_capacity, uint32_t* payload_size);
+XpeErrorCode    xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge, uint32_t width, uint32_t height,
+                                                const float* pixels_in, float* pixels_out);
+XpeErrorCode    xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, uint32_t height,
+                                           const float* pixels_in, XpeAiBodyPartReply* reply_out);
+void            xpe_ai_ipc_bridge_destroy(XpeAiIpcBridge* bridge);
+}
+
+namespace fs = std::filesystem;
+
+namespace {
+
+#include "signer_vectors.inc"   // kKey1Xy: the public half of the committed TEST key
+
+void Say(const std::string& k, const std::string& v) { std::printf("%s=%s\n", k.c_str(), v.c_str()); std::fflush(stdout); }
+std::string Num(unsigned long v) { return std::to_string(v); }
+
+void SetTestTrust() {
+    std::string hex;
+    char two[3];
+    for (const uint8_t b : kKey1Xy) { std::snprintf(two, sizeof(two), "%02x", static_cast<unsigned>(b)); hex += two; }
+    SetEnvironmentVariableA("XPE_AI_TEST_TRUSTED_KEYS", hex.c_str());
+}
+
+/** Grant @p sidText the rights in @p mask on @p path (keeps the existing DACL), inheriting into children. */
+bool Grant(const std::wstring& path, const wchar_t* sidText, DWORD mask) {
+    PSID sid = nullptr;
+    if (!ConvertStringSidToSidW(sidText, &sid)) return false;
+    PACL oldDacl = nullptr;
+    PSECURITY_DESCRIPTOR sd = nullptr;
+    if (GetNamedSecurityInfoW(path.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, &oldDacl, nullptr, &sd) != ERROR_SUCCESS) {
+        LocalFree(sid);
+        return false;
+    }
+    EXPLICIT_ACCESSW ea{};
+    ea.grfAccessPermissions = mask;
+    ea.grfAccessMode = GRANT_ACCESS;
+    ea.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+    ea.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+    ea.Trustee.TrusteeType = TRUSTEE_IS_UNKNOWN;
+    ea.Trustee.ptstrName = reinterpret_cast<LPWSTR>(sid);
+    PACL newDacl = nullptr;
+    bool ok = SetEntriesInAclW(1, &ea, oldDacl, &newDacl) == ERROR_SUCCESS &&
+              SetNamedSecurityInfoW(const_cast<LPWSTR>(path.c_str()), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, newDacl, nullptr) == ERROR_SUCCESS;
+    if (newDacl) LocalFree(newDacl);
+    LocalFree(sd);
+    LocalFree(sid);
+    return ok;
+}
+
+HANDLE OwnToken() {
+    HANDLE t = nullptr;
+    OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &t);
+    return t;
+}
+
+/** The logon SID of this session (the group the window station and desktop grant access to). */
+PSID LogonSid(HANDLE tok) {
+    DWORD n = 0;
+    GetTokenInformation(tok, TokenGroups, nullptr, 0, &n);
+    std::vector<char> b(n);
+    if (!GetTokenInformation(tok, TokenGroups, b.data(), n, &n)) return nullptr;
+    auto* g = reinterpret_cast<TOKEN_GROUPS*>(b.data());
+    for (DWORD i = 0; i < g->GroupCount; ++i) {
+        if ((g->Groups[i].Attributes & SE_GROUP_LOGON_ID) == SE_GROUP_LOGON_ID) {
+            const DWORD len = GetLengthSid(g->Groups[i].Sid);
+            PSID copy = LocalAlloc(LPTR, len);
+            CopySid(len, copy, g->Groups[i].Sid);
+            return copy;
+        }
+    }
+    return nullptr;
+}
+
+HANDLE MakeRestrictedToken(bool writeRestricted, bool withLogonSid = false) {
+    HANDLE own = OwnToken();
+    HANDLE out = nullptr;
+    PSID restricted = nullptr;
+    ConvertStringSidToSidA("S-1-5-12", &restricted);   // the RESTRICTED code SID
+    PSID logon = withLogonSid ? LogonSid(own) : nullptr;
+    SID_AND_ATTRIBUTES rs[8]{};
+    rs[0].Sid = restricted;
+    DWORD nrs = 1;
+    if (logon) { rs[1].Sid = logon; nrs = 2; }
+    // G198_RSIDS="S-1-1-0,S-1-5-11": extra restricting SIDs (experiment knob: which set lets CNG initialise yet still denies writes)
+    if (const char* extra = std::getenv("G198_RSIDS")) {
+        std::string list = extra;
+        size_t pos = 0;
+        while (pos < list.size() && nrs < 8) {
+            size_t comma = list.find(',', pos);
+            std::string one = list.substr(pos, comma == std::string::npos ? std::string::npos : comma - pos);
+            if (!one.empty()) { PSID x = nullptr; if (ConvertStringSidToSidA(one.c_str(), &x)) rs[nrs++].Sid = x; }
+            if (comma == std::string::npos) break;
+            pos = comma + 1;
+        }
+    }
+    DWORD flags = DISABLE_MAX_PRIVILEGE | LUA_TOKEN;
+    if (writeRestricted) flags |= WRITE_RESTRICTED;
+    const BOOL ok = CreateRestrictedToken(own, flags, 0, nullptr, 0, nullptr, writeRestricted ? nrs : 0, writeRestricted ? rs : nullptr, &out);
+    if (logon) LocalFree(logon);
+    if (!ok) Say("launch.token_error", "CreateRestrictedToken " + Num(GetLastError()));
+    LocalFree(restricted);
+    CloseHandle(own);
+    return ok ? out : nullptr;
+}
+
+HANDLE MakeLowIntegrityToken() {
+    HANDLE own = OwnToken();
+    HANDLE dup = nullptr;
+    if (!DuplicateTokenEx(own, MAXIMUM_ALLOWED, nullptr, SecurityImpersonation, TokenPrimary, &dup)) {
+        Say("launch.token_error", "DuplicateTokenEx " + Num(GetLastError()));
+        CloseHandle(own);
+        return nullptr;
+    }
+    CloseHandle(own);
+    PSID low = nullptr;
+    ConvertStringSidToSidA("S-1-16-4096", &low);
+    TOKEN_MANDATORY_LABEL tml{};
+    tml.Label.Attributes = SE_GROUP_INTEGRITY;
+    tml.Label.Sid = low;
+    const BOOL ok = SetTokenInformation(dup, TokenIntegrityLevel, &tml, sizeof(tml) + GetLengthSid(low));
+    if (!ok) Say("launch.token_error", "SetTokenInformation(integrity) " + Num(GetLastError()));
+    LocalFree(low);
+    if (!ok) { CloseHandle(dup); return nullptr; }
+    return dup;
+}
+
+struct Spawned {
+    PROCESS_INFORMATION pi{};
+    bool ok = false;
+};
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    if (argc < 5) { std::printf("usage: launch <variant> <probe|worker> <exe_dir> <model_dir>\n"); return 2; }
+    const std::string variant = argv[1];
+    const bool worker = std::string(argv[2]) == "worker";
+    const bool isAc = variant == "ac" || variant == "aclocal" || variant == "aclocaljob";
+    const bool pipeLocal = variant == "aclocal" || variant == "aclocaljob";
+    const bool hardJob = variant == "job" || variant == "aclocaljob";
+    fs::path exeDir = argv[3];
+    fs::path modelDir = argv[4];
+    Say("launch.variant", variant);
+    Say("launch.target", worker ? "real xpe_ai_worker.exe" : "probe.exe");
+
+    // --- the AppContainer variant works on a sandbox COPY (we never change the ACLs of the repository) ---
+    fs::path sandbox;
+    PSID acSid = nullptr;
+    const std::wstring acName = L"xpe_g198_container";
+    if (isAc) {
+        sandbox = fs::temp_directory_path() / ("xpe_g198_sandbox_" + std::to_string(GetCurrentProcessId()));
+        fs::remove_all(sandbox);
+        fs::create_directories(sandbox / "bin");
+        fs::create_directories(sandbox / "models");
+        for (const auto& e : fs::directory_iterator(exeDir)) {
+            const std::string n = e.path().filename().string();
+            if (n == "xpe_ai_worker.exe" || n == "probe.exe" || n == "onnxruntime.dll" || n == "spdlog.dll" || n == "fmt.dll" ||
+                n == "xpe_common.dll" || n == "xpe_ai.dll") {
+                fs::copy_file(e.path(), sandbox / "bin" / e.path().filename());
+            }
+        }
+        for (const auto& e : fs::directory_iterator(modelDir)) fs::copy_file(e.path(), sandbox / "models" / e.path().filename());
+        // ALL APPLICATION PACKAGES (S-1-15-2-1): read + execute. Program Files grants it by default; a temp directory does not.
+        // G198_NOGRANT=1 (bin|models|both): leave that directory as the user's own ACL has it, like a developer checkout or a CI workspace
+        const char* ng = std::getenv("G198_NOGRANT");
+        const std::string skip = ng ? ng : "";
+        const bool g1 = (skip == "bin" || skip == "both") ? false : Grant((sandbox / "bin").wstring(), L"S-1-15-2-1", GENERIC_READ | GENERIC_EXECUTE);
+        const bool g2 = (skip == "models" || skip == "both") ? false : Grant((sandbox / "models").wstring(), L"S-1-15-2-1", GENERIC_READ);
+        Say("launch.sandbox", sandbox.string() + " (ACL grant to ALL APPLICATION PACKAGES: bin=" + (g1 ? "ok" : "FAILED") + " models=" + (g2 ? "ok" : "FAILED") + ")");
+        exeDir = sandbox / "bin";
+        modelDir = sandbox / "models";
+        DeleteAppContainerProfile(acName.c_str());
+        const HRESULT hr = CreateAppContainerProfile(acName.c_str(), acName.c_str(), L"QA-B-198 experiment", nullptr, 0, &acSid);
+        if (FAILED(hr)) { Say("launch.error", "CreateAppContainerProfile hr=" + Num(static_cast<unsigned long>(hr))); return 3; }
+        LPSTR s = nullptr; ConvertSidToStringSidA(acSid, &s); Say("launch.appcontainer_sid", s); LocalFree(s);
+    }
+
+    // scratch directory ("sidecar scratch"): where a write SHOULD be allowed
+    fs::path scratch = fs::temp_directory_path() / ("xpe_g198_scratch_" + std::to_string(GetCurrentProcessId()));
+    fs::remove_all(scratch);
+    fs::create_directories(scratch);
+    if (variant == "wr" || variant == "wr2") Say("launch.scratch_grant_to_RESTRICTED_sid", Grant(scratch.wstring(), L"S-1-5-12", GENERIC_ALL | FILE_ALL_ACCESS) ? "ok" : "FAILED");
+    if (isAc) Say("launch.scratch_grant_to_appcontainer_sid", [&] {
+        LPWSTR sw = nullptr; ConvertSidToStringSidW(acSid, &sw);
+        const bool ok = Grant(scratch.wstring(), sw, GENERIC_ALL | FILE_ALL_ACCESS);
+        LocalFree(sw);
+        return ok ? "ok" : "FAILED"; }());
+
+    if (variant == "lowil") {   // a low-integrity process may write only where the object is labelled low
+        PSECURITY_DESCRIPTOR lsd = nullptr;
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(L"S:(ML;OICI;NW;;;LW)", SDDL_REVISION_1, &lsd, nullptr);
+        BOOL present = FALSE, deflt = FALSE;
+        PACL sacl = nullptr;
+        GetSecurityDescriptorSacl(lsd, &present, &sacl, &deflt);
+        const DWORD r = SetNamedSecurityInfoW(const_cast<LPWSTR>(scratch.wstring().c_str()), SE_FILE_OBJECT, LABEL_SECURITY_INFORMATION, nullptr, nullptr, nullptr, sacl);
+        Say("launch.scratch_label_low", r == ERROR_SUCCESS ? "ok" : "FAILED " + Num(r));
+        LocalFree(lsd);
+    }
+
+    // --- loopback listener the probe tries to connect to ---
+    WSADATA wd; WSAStartup(MAKEWORD(2, 2), &wd);
+    SOCKET lis = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sockaddr_in la{}; la.sin_family = AF_INET; la.sin_port = 0; inet_pton(AF_INET, "127.0.0.1", &la.sin_addr);
+    bind(lis, reinterpret_cast<sockaddr*>(&la), sizeof(la));
+    listen(lis, 4);
+    int len = sizeof(la); getsockname(lis, reinterpret_cast<sockaddr*>(&la), &len);
+    const int port = ntohs(la.sin_port);
+
+    // --- the job: exactly the supervisor's, or hardened ---
+    HANDLE job = CreateJobObjectA(nullptr, nullptr);
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION info{};
+    info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if (hardJob) {
+        info.BasicLimitInformation.LimitFlags |= JOB_OBJECT_LIMIT_ACTIVE_PROCESS | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION;
+        info.BasicLimitInformation.ActiveProcessLimit = 1;
+    }
+    SetInformationJobObject(job, JobObjectExtendedLimitInformation, &info, sizeof(info));
+    if (hardJob) {
+        JOBOBJECT_BASIC_UI_RESTRICTIONS ui{};
+        ui.UIRestrictionsClass = JOB_OBJECT_UILIMIT_DESKTOP | JOB_OBJECT_UILIMIT_DISPLAYSETTINGS | JOB_OBJECT_UILIMIT_EXITWINDOWS |
+                                 JOB_OBJECT_UILIMIT_GLOBALATOMS | JOB_OBJECT_UILIMIT_HANDLES | JOB_OBJECT_UILIMIT_READCLIPBOARD |
+                                 JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS | JOB_OBJECT_UILIMIT_WRITECLIPBOARD;
+        SetInformationJobObject(job, JobObjectBasicUIRestrictions, &ui, sizeof(ui));
+    }
+
+    // --- command line ---
+    char pipe[160];
+    std::snprintf(pipe, sizeof(pipe), pipeLocal ? "\\\\.\\pipe\\LOCAL\\xpe_ai_worker_g198_%lu" : "\\\\.\\pipe\\xpe_ai_worker_g198_%lu", GetCurrentProcessId());
+    const std::string exe = (exeDir / (worker ? "xpe_ai_worker.exe" : "probe.exe")).string();
+    std::string cmd = "\"" + exe + "\" " + (worker ? std::string(pipe)
+                                                   : std::to_string(port) + " \"" + modelDir.string() + "\" \"" + scratch.string() + "\"");
+    if (worker) SetTestTrust();
+
+    // --- stdout capture for the probe (the worker is started without handles, like the supervisor) ---
+    HANDLE rd = nullptr, wr = nullptr;
+    SECURITY_ATTRIBUTES sa{sizeof(sa), nullptr, TRUE};
+    if (!worker) CreatePipe(&rd, &wr, &sa, 0), SetHandleInformation(rd, HANDLE_FLAG_INHERIT, 0);
+
+    // --- attribute list ---
+    STARTUPINFOEXA si{};
+    si.StartupInfo.cb = sizeof(si);
+    SIZE_T sz = 0;
+    InitializeProcThreadAttributeList(nullptr, 3, 0, &sz);
+    std::vector<char> alBuf(sz);
+    si.lpAttributeList = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(alBuf.data());
+    InitializeProcThreadAttributeList(si.lpAttributeList, 3, 0, &sz);
+    SECURITY_CAPABILITIES caps{};
+    DWORD64 childPolicy = PROCESS_CREATION_CHILD_PROCESS_RESTRICTED;
+    HANDLE inheritList[1] = {wr};
+    bool useAttrs = false;
+    if (!worker) {
+        si.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+        si.StartupInfo.hStdOutput = wr;
+        si.StartupInfo.hStdError = wr;
+        si.StartupInfo.hStdInput = nullptr;
+        UpdateProcThreadAttribute(si.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST, inheritList, sizeof(inheritList), nullptr, nullptr);
+        useAttrs = true;
+    }
+    if (isAc) {
+        caps.AppContainerSid = acSid;
+        caps.Capabilities = nullptr;
+        caps.CapabilityCount = 0;
+        UpdateProcThreadAttribute(si.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES, &caps, sizeof(caps), nullptr, nullptr);
+        useAttrs = true;
+    }
+    if (hardJob) {
+        UpdateProcThreadAttribute(si.lpAttributeList, 0, PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY, &childPolicy, sizeof(childPolicy), nullptr, nullptr);
+        useAttrs = true;
+    }
+
+    HANDLE token = nullptr;
+    if (variant == "restricted") token = MakeRestrictedToken(false);
+    if (variant == "wr") token = MakeRestrictedToken(true);
+    if (variant == "wr2") token = MakeRestrictedToken(true, true);
+    if (variant == "lowil") token = MakeLowIntegrityToken();
+    if ((variant == "restricted" || variant == "wr" || variant == "wr2" || variant == "lowil") && !token) return 4;
+
+    PROCESS_INFORMATION pi{};
+    // G198_DETACHED=1: no console at all (DETACHED_PROCESS) instead of the supervisor's CREATE_NO_WINDOW, to tell a token
+    // failure from a console-attach failure under a write-restricted token.
+    const bool detached = std::getenv("G198_DETACHED") != nullptr;
+    DWORD flags = (detached ? DETACHED_PROCESS : CREATE_NO_WINDOW) | CREATE_SUSPENDED | (useAttrs ? EXTENDED_STARTUPINFO_PRESENT : 0);
+    if (detached) Say("launch.console", "DETACHED_PROCESS (no console)");
+    const BOOL inherit = (!worker) ? TRUE : FALSE;
+    BOOL created;
+    if (token) {
+        created = CreateProcessAsUserA(token, nullptr, cmd.data(), nullptr, nullptr, inherit, flags, nullptr, nullptr,
+                                       reinterpret_cast<LPSTARTUPINFOA>(&si), &pi);
+    } else {
+        created = CreateProcessA(nullptr, cmd.data(), nullptr, nullptr, inherit, flags, nullptr, nullptr,
+                                 reinterpret_cast<LPSTARTUPINFOA>(&si), &pi);
+    }
+    if (!created) {
+        Say("launch.create_process", "FAILED error " + Num(GetLastError()));
+        return 5;
+    }
+    Say("launch.create_process", "OK pid " + Num(pi.dwProcessId));
+    const BOOL assigned = AssignProcessToJobObject(job, pi.hProcess);
+    Say("launch.assign_to_job", assigned ? "OK" : "FAILED error " + Num(GetLastError()));
+    ResumeThread(pi.hThread);
+    CloseHandle(pi.hThread);
+    if (wr) CloseHandle(wr);
+
+    if (!worker) {
+        std::string outText;
+        char buf[4096]; DWORD n;
+        while (ReadFile(rd, buf, sizeof(buf), &n, nullptr) && n) outText.append(buf, n);
+        WaitForSingleObject(pi.hProcess, 20000);
+        DWORD code = 0; GetExitCodeProcess(pi.hProcess, &code);
+        std::printf("%s", outText.c_str());
+        Say("probe.exit_code", Num(code));
+        fd_set r; FD_ZERO(&r); FD_SET(lis, &r); timeval tv{0, 200000};
+        const bool got = select(0, &r, nullptr, nullptr, &tv) > 0;
+        Say("launcher.loopback_listener_got_a_connection", got ? "YES" : "NO");
+    } else {
+        // the REAL worker: INIT, then one bone-suppress request, through the product's own bridge code
+        std::vector<std::string> candidates;
+        if (pipeLocal) {
+            DWORD sess = 0; ProcessIdToSessionId(GetCurrentProcessId(), &sess);
+            LPSTR acs = nullptr; ConvertSidToStringSidA(acSid, &acs);
+            const std::string leaf = std::string("xpe_ai_worker_g198_") + std::to_string(GetCurrentProcessId());
+            candidates.push_back("\\\\.\\pipe\\Sessions\\" + std::to_string(sess) + "\\AppContainerNamedObjects\\" + acs + "\\" + leaf);
+            candidates.push_back(std::string("\\\\.\\pipe\\AppContainerNamedObjects\\") + acs + "\\" + leaf);
+            candidates.push_back(pipe);   // the name the worker was given, as the host would use it today
+            LocalFree(acs);
+        } else {
+            candidates.push_back(pipe);
+        }
+        XpeAiIpcBridge* b = nullptr;
+        bool connected = false;
+        const ULONGLONG deadline = GetTickCount64() + 20000;
+        while (!connected && GetTickCount64() < deadline && WaitForSingleObject(pi.hProcess, 0) != WAIT_OBJECT_0) {
+            for (const std::string& c : candidates) {
+                if (b) xpe_ai_ipc_bridge_destroy(b);
+                b = xpe_ai_ipc_bridge_create(c.c_str(), 20000);
+                if (xpe_ai_ipc_bridge_connect(b) == XPE_OK) { connected = true; Say("worker.pipe_path_that_connected", c); break; }
+            }
+            if (!connected) Sleep(50);
+        }
+        Say("worker.pipe_connect", connected ? "OK" : "FAILED");
+        if (WaitForSingleObject(pi.hProcess, 0) == WAIT_OBJECT_0) {
+            DWORD code = 0; GetExitCodeProcess(pi.hProcess, &code);
+            Say("worker.exited_early_with_code", Num(code));
+        }
+        if (connected) {
+            std::string body = "{\"model_dir\":\"";
+            for (const char c : modelDir.string()) { if (c == '\\' || c == '"') body += '\\'; body += c; }
+            body += "\"}";
+            XpeAiMessageHeader h{};
+            h.magic = XPE_AI_MSG_MAGIC;
+            h.version = (static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MAJOR) << 16) | static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MINOR);
+            h.messageType = XPE_AI_MSG_INIT;
+            h.requestId = 1;
+            h.payloadSize = static_cast<uint32_t>(body.size());
+            XpeAiMessageHeader rep{};
+            char rb[512]; uint32_t got = 0;
+            XpeErrorCode rc = xpe_ai_ipc_bridge_send(b, &h, body.data(), static_cast<uint32_t>(body.size()));
+            if (rc == XPE_OK) rc = xpe_ai_ipc_bridge_receive(b, &rep, rb, sizeof(rb), &got);
+            Say("worker.init", rc == XPE_OK && rep.messageType == XPE_AI_MSG_INIT_RESPONSE ? "OK" : "FAILED rc=" + Num(static_cast<unsigned long>(rc)));
+            if (const char* op = std::getenv("G198_OP"); op && std::string(op) == "bodypart") {   // a body-part request instead of bone suppression
+                std::vector<float> px(16, 0.0f);
+                XpeAiBodyPartReply reply{};
+                rc = xpe_ai_ipc_bridge_bodypart(b, 4, 4, px.data(), &reply);
+                Say("worker.bodypart", std::string(rc == XPE_OK ? "OK label=" : "FAILED rc=") + (rc == XPE_OK ? std::string(reply.label) : std::to_string(static_cast<int>(rc))));
+                xpe_ai_ipc_bridge_destroy(b);
+                CloseHandle(job);
+                WaitForSingleObject(pi.hProcess, 5000);
+                CloseHandle(pi.hProcess);
+                return 0;
+            }
+            std::vector<float> in(9, 1.0f), out(9, -777.0f);
+            const auto t0 = std::chrono::steady_clock::now();
+            rc = xpe_ai_ipc_bridge_bone_suppress(b, 3, 3, in.data(), out.data());
+            const double ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+            bool twice = true;
+            for (const float v : out) twice = twice && v == 2.0f;
+            Say("worker.bone_suppress", std::string(rc == XPE_OK && twice ? "OK (every pixel doubled by the toy model)" : "FAILED") + " rc=" + std::to_string(static_cast<int>(rc)) +
+                                         " in " + std::to_string(static_cast<int>(ms)) + " ms");
+        }
+        xpe_ai_ipc_bridge_destroy(b);
+    }
+    CloseHandle(job);   // kill-on-close: ends the worker/probe if still there
+    WaitForSingleObject(pi.hProcess, 5000);
+    CloseHandle(pi.hProcess);
+    closesocket(lis);
+    std::error_code ec;
+    fs::remove_all(scratch, ec);
+    if (!sandbox.empty()) fs::remove_all(sandbox, ec);
+    if (acSid) { DeleteAppContainerProfile(acName.c_str()); FreeSid(acSid); }
+    return 0;
+}

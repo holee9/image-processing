@@ -19,6 +19,7 @@ set(XPE_DISPLAY_SOURCES
     src/display_helpers.cpp   # shared: format validation
     src/modality_lut.cpp      # SWU-3.1 REQ-DISP-001..008
     src/voi_lut.cpp           # SWU-3.2 REQ-DISP-009..018
+    src/voi_auto_window.cpp   # SWU-3.2 anatomy-based automatic window (QA-B-214)
     src/presentation_lut.cpp  # SWU-3.3 REQ-DISP-019..028
 )
 
@@ -107,6 +108,48 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    # --- QA-B-200 M1 (#251): reproductions of the QA-B-199 candidates; every test is DISABLED_ (built, never run by ctest) ---
+    add_executable(test_display_repro_qa_b_200
+        tests/test_repro_qa_b_200.cpp
+    )
+    target_include_directories(test_display_repro_qa_b_200 PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_repro_qa_b_200 PRIVATE
+        xpe_display
+        spdlog::spdlog
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_repro_qa_b_200 PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_repro_qa_b_200 PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_repro_qa_b_200)
+    gtest_discover_tests(test_display_repro_qa_b_200
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # --- QA-B-200 M2a (#251): REQ-DISP-031 logging through xpe_common's logger ---
+    add_executable(test_display_logging
+        tests/test_display_logging.cpp
+    )
+    target_include_directories(test_display_logging PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_logging PRIVATE
+        xpe_display
+        spdlog::spdlog
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_logging PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_logging PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_logging)
+    gtest_discover_tests(test_display_logging
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     # --- test_voi_lut (SWU-3.2: REQ-DISP-009..018) ---
     add_executable(test_display_voi_lut
         tests/test_voi_lut.cpp
@@ -124,6 +167,26 @@ if(_XPE_BUILD_TESTS)
     endif()
     xpe_target_warnings_as_errors(test_display_voi_lut)
     gtest_discover_tests(test_display_voi_lut
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # --- test_voi_auto_window (SWU-3.2: anatomy-based automatic window, QA-B-214) ---
+    add_executable(test_display_voi_auto_window
+        tests/test_voi_auto_window.cpp
+    )
+    target_include_directories(test_display_voi_auto_window PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_voi_auto_window PRIVATE
+        xpe_display
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_voi_auto_window PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_voi_auto_window PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_voi_auto_window)
+    gtest_discover_tests(test_display_voi_auto_window
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
@@ -214,7 +277,28 @@ if(_XPE_BUILD_TESTS)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
-    # --- test_display_integration (REQ-DISP-029..035) ---
+    # QA-B-181f (#233): a non-finite pixel is refused, not accepted as success; the finite request whose result
+    # would not be finite is refused too.
+    add_executable(test_display_nonfinite_pixels
+        tests/test_nonfinite_pixels.cpp
+    )
+    target_include_directories(test_display_nonfinite_pixels PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_display_nonfinite_pixels PRIVATE
+        xpe_display
+        GTest::gtest_main
+    )
+    target_compile_features(test_display_nonfinite_pixels PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_display_nonfinite_pixels PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_display_nonfinite_pixels)
+    gtest_discover_tests(test_display_nonfinite_pixels
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # --- test_display_integration (REQ-DISP-030..036) ---
     add_executable(test_display_integration
         tests/test_display_integration.cpp
     )

@@ -1,0 +1,18 @@
+DRAFT (not applied) -- QA-B-215. Requirement wording for enhance_basic output determinism. The lead decides where it goes (candidates: REQ-ENH-001 area or a new REQ-ENH id; the NFR section of the SRS).
+
+Proposed requirement:
+
+  REQ-ENH-DET-<n>  Determinism of the enhance_basic stages
+  (a) For one xpe_enhance_basic binary, the same input image and the same parameters SHALL produce a bit-identical output of every stage ((5) log, (6) bilateral, (7) CLAHE, (8) USM), run after run and for every value of xpe_enhance_basic_set_max_threads (automatic, 1, N).
+  (b) Bit-identity between two binaries built from the same source with a different compiler, compiler version or floating-point option is NOT required and SHALL NOT be assumed. Measured (QA-B-215): MSVC 14.29 and 14.44 agree bit for bit; MSVC 14.51 differs in 56.9 % of the bilateral output pixels (at most 7 ulp), 0.065 % of the final 16-bit pixels (at most 384 of 65535).
+  (c) Every reference image used to judge image quality or to compare an application rendering with a module rendering SHALL be labelled with the binary that produced it (compiler version and sha256 of xpe_enhance_basic.dll). A bit-for-bit comparison SHALL use the same binary on both sides.
+  (d) The shipped binary SHALL record the compiler version it was built with in its build record, so that (c) can be satisfied from the delivery bundle.
+
+Limits / notes:
+  - (a) was observed for the post-local binary (threads 1/4/20/auto) and the CI binary (threads 1/4/auto), two runs each.
+  - (b) names what is measured; it does not claim the 14.51 result is the more accurate one. /fp:precise gives a third result.
+  - The CI toolset is chosen by `vswhere -latest` (tools/ci/Use-MsvcDevShell.ps1), so (b) can change without a source change when the runner image changes. Pinning the toolset or re-making the reference images per release is a CI/process decision for the lead.
+
+Wording-patch table rows to add (file, find, replace) -- proposal:
+  (1) pipeline-spec / SRS enhance_basic section: add (a)-(d) above as a new requirement block.
+  (2) m2-post-v2 reference images' README / manifest: add "produced by xpe_enhance_basic.dll built with MSVC 14.44.35207, sha256 <value>" and, if the lead decides to re-make them from the CI binary, the CI values.

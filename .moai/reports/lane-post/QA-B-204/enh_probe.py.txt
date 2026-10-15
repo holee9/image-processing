@@ -1,0 +1,205 @@
+"""QA-B-204 ENH: reproduction probes for the QA-B-199 candidates E2..E9, through the built DLLs (build/ci-post/bin) with ctypes.
+No source is changed. Run from the repository root: python build/g204_enh.py"""
+import ctypes as C
+import os
+import statistics
+import time
+
+import numpy as np
+
+BIN = os.path.abspath('build/ci-post/bin')
+os.add_dll_directory(BIN)
+C.CDLL(os.path.join(BIN, 'xpe_common.dll'))
+E = C.CDLL(os.path.join(BIN, 'xpe_enhance_basic.dll'))
+for f in ('xpe_edge_enhance', 'xpe_noise_reduce', 'xpe_contrast_enhance', 'xpe_log_transform', 'xpe_log_inverse',
+          'xpe_noise_estimate_sigma', 'xpe_calc_exposure_index', 'xpe_enhance_basic_set_max_threads'):
+    getattr(E, f).restype = C.c_int32
+E.xpe_enhance_basic_get_max_threads.restype = C.c_int32
+
+
+class Img(C.Structure):
+    _fields_ = [('width', C.c_uint32), ('height', C.c_uint32), ('bitsAllocated', C.c_uint32), ('bitsStored', C.c_uint32),
+                ('format', C.c_int32), ('data', C.c_void_p), ('dataSize', C.c_size_t)]
+
+
+class Noise(C.Structure):
+    _fields_ = [('mode', C.c_int32), ('sigma_space', C.c_float), ('sigma_range', C.c_float), ('search_window', C.c_int32),
+                ('patch_size', C.c_int32), ('h_param', C.c_float)]
+
+
+class Clahe(C.Structure):
+    _fields_ = [('clip_limit', C.c_float), ('tile_width', C.c_int32), ('tile_height', C.c_int32)]
+
+
+class Usm(C.Structure):
+    _fields_ = [('amount', C.c_float), ('radius', C.c_float), ('threshold', C.c_float)]
+
+
+class Meta(C.Structure):
+    _fields_ = [('bodyPart', C.c_char * 64), ('kVp', C.c_float), ('mAs', C.c_float), ('SID_mm', C.c_float),
+                ('pixelPitch_mm', C.c_float), ('acquisitionTime', C.c_uint64), ('flags', C.c_uint32)]
+
+
+def fbuf(a):
+    h, w = a.shape
+    return Img(w, h, 32, 32, 1, a.ctypes.data, a.nbytes)
+
+
+RC = {0: 'OK', -1: 'INVALID_INPUT', -2: 'OUT_OF_MEMORY', -3: 'PROCESSING_FAILED', -7: 'UNSUPPORTED_FORMAT', -9: 'IO_FAILED'}
+
+
+def rcname(rc):
+    return '%d (%s)' % (rc, RC.get(rc, '?'))
+
+
+def section(t):
+    print()
+    print('== ' + t)
+
+
+# ------------------------------------------------------------------------------------------------------ E2
+section('E2 REQ-ENH-017: the CLAHE performance test measures a flat image (the code returns early on a flat image)')
+n = 3072
+flat = np.full((n, n), 500.0, np.float32)
+rng = np.random.default_rng(1)
+structured = (500.0 + 2000.0 * np.add.outer(np.linspace(0, 1, n), np.linspace(0, 1, n)) + rng.normal(0, 50, (n, n))).astype(np.float32)
+p = Clahe(3.0, 8, 8)
+
+
+def time_clahe(src, runs=5):
+    out = []
+    for _ in range(runs):
+        a = src.copy()
+        t = time.perf_counter()
+        rc = E.xpe_contrast_enhance(C.byref(fbuf(a)), C.byref(p))
+        out.append((time.perf_counter() - t) * 1000.0)
+        assert rc == 0
+    return out
+
+
+for name, src in (('flat 500.0 (what the test uses)', flat), ('structured (gradient + noise)', structured)):
+    t = time_clahe(src)
+    print('  %-34s ms per call (5 runs): %s  median %.1f' % (name, ['%.1f' % x for x in t], statistics.median(t)))
+a = flat.copy()
+E.xpe_contrast_enhance(C.byref(fbuf(a)), C.byref(p))
+print('  flat image after CLAHE: changed pixels = %d (the call did no work on it)' % int((a != flat).sum()))
+
+# ------------------------------------------------------------------------------------------------------ E3
+section('E3 REQ-ENH-CC-002: a non-FLOAT32 image: the SPEC says INVALID_INPUT')
+u16 = np.zeros((64, 64), np.uint16)
+bu = Img(64, 64, 16, 16, 0, u16.ctypes.data, u16.nbytes)
+meta = Meta(b'CHEST', 80.0, 5.0, 1000.0, 0.15, 0, 0)
+fl = C.c_float()
+fl2 = C.c_float()
+calls = [
+    ('xpe_log_transform', lambda b: E.xpe_log_transform(C.byref(b), C.c_float(1000.0))),
+    ('xpe_log_inverse', lambda b: E.xpe_log_inverse(C.byref(b), C.c_float(1000.0))),
+    ('xpe_noise_reduce', lambda b: E.xpe_noise_reduce(C.byref(b), C.byref(Noise(0, 3.0, 50.0, 21, 7, 10.0)))),
+    ('xpe_noise_estimate_sigma', lambda b: E.xpe_noise_estimate_sigma(C.byref(b), C.byref(fl))),
+    ('xpe_contrast_enhance', lambda b: E.xpe_contrast_enhance(C.byref(b), C.byref(Clahe(3.0, 8, 8)))),
+    ('xpe_edge_enhance', lambda b: E.xpe_edge_enhance(C.byref(b), C.byref(Usm(0.5, 2.0, 10.0)))),
+    ('xpe_calc_exposure_index', lambda b: E.xpe_calc_exposure_index(C.byref(b), C.byref(meta), C.byref(fl), C.byref(fl2))),
+]
+for name, call in calls:
+    print('  %-28s UINT16 image -> %s' % (name, rcname(call(bu))))
+# the NULL image case (the other half of the requirement), for the control
+print('  %-28s NULL img     -> %s' % ('xpe_log_transform', rcname(E.xpe_log_transform(None, C.c_float(1000.0)))))
+print('  %-28s NULL img     -> %s' % ('xpe_edge_enhance', rcname(E.xpe_edge_enhance(None, C.byref(Usm(0.5, 2.0, 10.0))))))
+
+# ------------------------------------------------------------------------------------------------------ E4
+section('E4 REQ-ENH-030/023: xpe_calc_exposure_index with a non-finite pixel')
+base = np.full((64, 64), 800.0, np.float32)
+for label, value in (('control: finite', 800.0), ('NaN', float('nan')), ('+inf', float('inf')), ('-inf', float('-inf'))):
+    a = base.copy()
+    a[10, 10] = value
+    ei, di = C.c_float(-7.0), C.c_float(-7.0)
+    rc = E.xpe_calc_exposure_index(C.byref(fbuf(a)), C.byref(meta), C.byref(ei), C.byref(di))
+    print('  pixel %-16s rc=%-24s EI=%s DI=%s' % (label, rcname(rc), ei.value, di.value))
+
+# ------------------------------------------------------------------------------------------------------ E5
+section('E5 REQ-ENH-CC-004: "no global mutable state": the module has a process-wide thread setting')
+print('  get_max_threads at start: %d' % E.xpe_enhance_basic_get_max_threads())
+for v in (1, 3, 0):
+    rc = E.xpe_enhance_basic_set_max_threads(v)
+    print('  set_max_threads(%d) -> %s; get -> %d' % (v, rcname(rc), E.xpe_enhance_basic_get_max_threads()))
+# does the setting change the OUTPUT? (it would make the global state an observable input)
+src = (500.0 + 2000.0 * np.add.outer(np.linspace(0, 1, 512), np.linspace(0, 1, 512)) + rng.normal(0, 50, (512, 512))).astype(np.float32)
+outs = {}
+for v in (1, 4):
+    E.xpe_enhance_basic_set_max_threads(v)
+    a = src.copy()
+    assert E.xpe_noise_reduce(C.byref(fbuf(a)), C.byref(Noise(0, 3.0, 50.0, 21, 7, 10.0))) == 0
+    assert E.xpe_contrast_enhance(C.byref(fbuf(a)), C.byref(Clahe(3.0, 8, 8))) == 0
+    outs[v] = a
+E.xpe_enhance_basic_set_max_threads(0)
+print('  noise_reduce + CLAHE output with 1 thread vs 4 threads identical: %s' % bool((outs[1] == outs[4]).all()))
+
+# ------------------------------------------------------------------------------------------------------ E6
+section('E6 REQ-ENH-013: CLAHE between tiles (nearest tile vs interpolation): the jump at a tile boundary')
+w = 256
+ramp = np.tile(np.linspace(100.0, 3000.0, w, dtype=np.float32), (256, 1)) + rng.normal(0, 5, (256, w)).astype(np.float32)
+a = ramp.copy()
+assert E.xpe_contrast_enhance(C.byref(fbuf(a)), C.byref(Clahe(3.0, 8, 8))) == 0
+row = a[128]
+d = np.abs(np.diff(row))
+tilew = w // 8
+boundary = [d[k * tilew - 1] for k in range(1, 8)]
+interior = np.delete(d, [k * tilew - 1 for k in range(1, 8)])
+print('  smooth horizontal ramp, 8x8 tiles of %d px: mean |step| at the 7 tile boundaries = %.1f, median |step| elsewhere = %.2f, '
+      'largest elsewhere = %.2f' % (tilew, float(np.mean(boundary)), float(np.median(interior)), float(interior.max())))
+print('  ratio boundary/typical = %.0f' % (float(np.mean(boundary)) / max(float(np.median(interior)), 1e-9)))
+print('  (the input ramp has a constant step of %.2f per pixel)' % float(np.median(np.abs(np.diff(ramp[128])))))
+
+# ------------------------------------------------------------------------------------------------------ E7
+section('E7 REQ-ENH-007: the bilateral filter for a large sigma_space (a delta image, sigma_range huge: the spatial kernel alone)')
+for sigma in (2.0, 5.0, 7.5, 10.0, 15.0, 20.0):
+    k = 41 + 2 * int(sigma * 4)
+    img = np.zeros((k, k), np.float32)
+    c = k // 2
+    img[c, c] = 1000.0
+    a = img.copy()
+    rc = E.xpe_noise_reduce(C.byref(fbuf(a)), C.byref(Noise(0, sigma, 1.0e9, 21, 7, 10.0)))
+    prof = a[c].astype(np.float64)
+    nz = np.nonzero(prof > 0)[0]
+    radius = int(max(abs(nz - c))) if len(nz) else -1
+    xs = np.arange(k) - c
+    wts = prof / prof.sum() if prof.sum() > 0 else prof
+    std = float(np.sqrt((wts * xs ** 2).sum()))
+    ideal = float(np.sqrt(((np.exp(-0.5 * (xs / sigma) ** 2)) / np.exp(-0.5 * (xs / sigma) ** 2).sum() * xs ** 2).sum()))
+    print('  sigma_space %5.1f -> rc %s; farthest pixel reached = %d; effective std of the response = %.2f (an untruncated Gaussian: %.2f)'
+          % (sigma, rcname(rc), radius, std, ideal))
+
+# ------------------------------------------------------------------------------------------------------ E8
+section('E8 REQ-ENH-011: xpe_noise_estimate_sigma = 1.4826 * MAD of the central 10% ROI')
+
+def est(arr):
+    s = C.c_float()
+    keep = np.ascontiguousarray(arr, dtype=np.float32).copy()   # the buffer must outlive the call
+    rc = E.xpe_noise_estimate_sigma(C.byref(fbuf(keep)), C.byref(s))
+    return rc, s.value
+
+n2 = 512
+yy, xx = np.mgrid[0:n2, 0:n2].astype(np.float32)
+noise = rng.normal(0, 10.0, (n2, n2)).astype(np.float32)
+cases = [
+    ('flat 1000 + Gaussian noise sigma 10 (the control)', 1000.0 + noise),
+    ('smooth gradient 1000..2000 + noise sigma 10', 1000.0 + 1000.0 * xx / n2 + noise),
+    ('a step edge through the centre (800 | 1800) + noise sigma 10', np.where(xx < n2 / 2, 800.0, 1800.0).astype(np.float32) + noise),
+    ('a bright disc (radius 30) in the centre + noise sigma 10', 1000.0 + 800.0 * (((xx - n2 / 2) ** 2 + (yy - n2 / 2) ** 2) < 900) + noise),
+]
+for label, arr in cases:
+    rc, s = est(arr)
+    print('  %-62s rc %s  estimate %.2f (true noise sigma 10)' % (label, rcname(rc), s))
+print('  (MAD of the pixel values as the SPEC formula reads: the same quantity over the ROI; the SPEC defines no ROI)')
+
+# ------------------------------------------------------------------------------------------------------ E9
+section('E9 REQ-ENH-014/016: CLAHE with NULL params (defaults 8x8 tiles) on small images')
+for (w, h) in ((8, 8), (15, 15), (16, 16), (16, 15), (100, 7), (100, 16), (200, 200)):
+    a = np.full((h, w), 100.0, np.float32) + rng.normal(0, 5, (h, w)).astype(np.float32)
+    rc = E.xpe_contrast_enhance(C.byref(fbuf(a)), None)
+    print('  %3d x %3d image, params NULL -> %s' % (w, h, rcname(rc)))
+print('  explicit 2x2 tiles on 8x8 / 4x4 / 3x3 images:')
+for (w, h) in ((8, 8), (4, 4), (3, 3)):
+    a = np.full((h, w), 100.0, np.float32) + rng.normal(0, 5, (h, w)).astype(np.float32)
+    rc = E.xpe_contrast_enhance(C.byref(fbuf(a)), C.byref(Clahe(3.0, 2, 2)))
+    print('  %3d x %3d image, tiles 2x2 -> %s' % (w, h, rcname(rc)))

@@ -1,0 +1,10 @@
+?precise_range@          separate function,    4 instructions | fma=0  div=0  mul=0  sub=1  floor/round=0  rcp=0
+?precise_inv@            separate function,    3 instructions | fma=0  div=1  mul=0  sub=0  floor/round=0  rcp=0
+?precise_inv_low@        separate function,    4 instructions | fma=0  div=1  mul=1  sub=0  floor/round=0  rcp=0
+?fill_bins_filtered@     separate function,   80 instructions | fma=0  div=0  mul=1  sub=2  floor/round=1  rcp=0
+?filtered_bin@           no separate function body in the object (inlined or not emitted)
+?fill_bins@Binner        separate function,  117 instructions | fma=0  div=0  mul=15  sub=5  floor/round=0  rcp=0
+?int64_bin@              separate function,   39 instructions | fma=0  div=0  mul=1  sub=0  floor/round=0  rcp=0
+?fast_bin@               no separate function body in the object (inlined or not emitted)
+call sites of the precise functions in the object: 5 (every one is a real call, none inlined)
+FMA instructions in the whole object: 22  (locations: ?exact_bin@Binner@xpe_clahe@@QEBAHM@Z (public: int, ?u320_to_double@xpe_clahe@@YANAEBUU320@1@@Z (doubl, ?xpe_contrast_enhance_impl@@YAHPEAUXpeImageBuffer@)

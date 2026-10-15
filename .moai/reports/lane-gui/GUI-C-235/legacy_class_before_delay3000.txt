@@ -1,0 +1,57 @@
+king_ThenAllThreeSayReady() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 113
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.UIAutomationClient.CUIAutomation8Class.ElementFromHandle(IntPtr hwnd)
+   at FlaUI.UIA3.UIA3Automation.<>c__DisplayClass37_0.<FromHandle>b__0()
+   at FlaUI.Core.Tools.Com.Call[T](Func`1 nativeAction)
+[xUnit.net 00:00:29.26]       System.TimeoutException : UIA Timeout
+[xUnit.net 00:00:29.26]       ---- System.Runtime.InteropServices.COMException : Operation timed out. (0x80131505)
+[xUnit.net 00:00:29.26]       Stack Trace:
+[xUnit.net 00:00:29.26]            at FlaUI.Core.Tools.Com.Call[T](Func`1 nativeAction)
+[xUnit.net 00:00:29.26]            at FlaUI.UIA3.UIA3Automation.FromHandle(IntPtr hwnd)
+[xUnit.net 00:00:29.26]            at FlaUI.Core.Application.GetMainWindow(AutomationBase automation, Nullable`1 waitTimeout)
+[xUnit.net 00:00:29.26]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(479,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment)
+[xUnit.net 00:00:29.26]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(28,0): at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses()
+[xUnit.net 00:00:29.26]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:29.26]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:29.26]         ----- Inner Stack Trace -----
+[xUnit.net 00:00:29.26]            at Interop.UIAutomationClient.CUIAutomation8Class.ElementFromHandle(IntPtr hwnd)
+[xUnit.net 00:00:29.26]            at FlaUI.UIA3.UIA3Automation.<>c__DisplayClass37_0.<FromHandle>b__0()
+[xUnit.net 00:00:29.26]            at FlaUI.Core.Tools.Com.Call[T](Func`1 nativeAction)
+[xUnit.net 00:00:29.26]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [2 s]
+  오류 메시지:
+   System.TimeoutException : UIA Timeout
+---- System.Runtime.InteropServices.COMException : Operation timed out. (0x80131505)
+  스택 추적:
+     at FlaUI.Core.Tools.Com.Call[T](Func`1 nativeAction)
+   at FlaUI.UIA3.UIA3Automation.FromHandle(IntPtr hwnd)
+   at FlaUI.Core.Application.GetMainWindow(AutomationBase automation, Nullable`1 waitTimeout)
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.LegacyApp.LaunchOrSkip(Boolean breakTemp, Nullable`1 windowTimeout, IReadOnlyDictionary`2 extraEnvironment) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 479
+   at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs:line 28
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+----- Inner Stack Trace -----
+   at Interop.UIAutomationClient.CUIAutomation8Class.ElementFromHandle(IntPtr hwnd)
+   at FlaUI.UIA3.UIA3Automation.<>c__DisplayClass37_0.<FromHandle>b__0()
+   at FlaUI.Core.Tools.Com.Call[T](Func`1 nativeAction)
+
+총 테스트 수: 22
+     통과: 10
+     실패: 10
+    건너뜀: 2
+ 총 시간: 30.1589 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
+[xUnit.net 00:00:03.56]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [FAIL]
+[xUnit.net 00:00:06.06]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [FAIL]
+[xUnit.net 00:00:09.72]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed [FAIL]
+[xUnit.net 00:00:12.86]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [FAIL]
+[xUnit.net 00:00:15.34]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun [FAIL]
+[xUnit.net 00:00:18.80]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [FAIL]
+[xUnit.net 00:00:21.76]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns [FAIL]
+[xUnit.net 00:00:24.27]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [FAIL]
+[xUnit.net 00:00:26.77]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady [FAIL]
+[xUnit.net 00:00:29.26]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [FAIL]
+테스트 실행이 실패했습니다.

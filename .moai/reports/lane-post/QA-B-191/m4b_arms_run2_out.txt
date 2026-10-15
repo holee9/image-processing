@@ -1,0 +1,5 @@
+W3 the unavailable flag is read from anywhere in the frame: build_ok=True passed=['13'] crashed=False red(2)=['1', 'WorkerBodyPartReply.TheFlagCountsOnlyBeforeTheFreeTextMessage']
+W7 the bridge accepts a refusal that carries a label: build_ok=True passed=['13'] crashed=False red(2)=['1', 'WorkerBodyPartReply.EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['14'] red=[]
+DONE

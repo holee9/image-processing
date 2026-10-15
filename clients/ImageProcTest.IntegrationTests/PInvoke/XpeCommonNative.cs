@@ -20,6 +20,7 @@ public static class XpeCommonNative
     {
         UInt16 = 0,
         Float32 = 1,
+        UInt8 = 2,   // XPE_PIXEL_UINT8: the header has it; the mirror lacked it until GUI-C-208 M1's signature parity found it
     }
 
     public enum XpeErrorCode : int

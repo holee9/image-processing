@@ -1,0 +1,3 @@
+== arm (d) a string holding two slashes, then the call on the same line
+[xUnit.net 00:00:00.44]     ImageProcTest.IntegrationTests.Safety.MockBlockingStaticTests.EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList [FAIL]
+실패!  - 실패:     1, 통과:    11, 건너뜀:     0, 전체:    12, 기간: 336 ms - ImageProcTest.IntegrationTests.dll (net8.0)

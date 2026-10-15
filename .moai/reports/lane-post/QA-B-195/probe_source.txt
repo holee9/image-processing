@@ -1,0 +1,118 @@
+
+// TEMPORARY MEASUREMENT (QA-B-195 design, NOT committed as a test): what does the module do today when the model
+// file or its sidecar is not the one that was shipped? Appended to test_ai_input_validation.cpp (it has the fixture
+// helpers), run, then removed with a byte-identical restore. Nothing asserts; every line starts with "PROBE".
+#include <bcrypt.h>
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#pragma comment(lib, "bcrypt.lib")
+
+namespace {
+namespace fs = std::filesystem;
+
+std::string ReadAll(const fs::path& p) {
+    std::ifstream f(p, std::ios::binary);
+    return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+}
+void WriteAll(const fs::path& p, const std::string& s) {
+    std::ofstream f(p, std::ios::binary | std::ios::trunc);
+    f.write(s.data(), static_cast<std::streamsize>(s.size()));
+}
+fs::path Fresh(const char* name, const char* from) {
+    const fs::path d = fs::path(kData) / ".." / "probe195" / name;
+    std::error_code ec;
+    fs::remove_all(d, ec);
+    fs::create_directories(d);
+    for (const auto& e : fs::directory_iterator(fs::path(kData) / from)) fs::copy_file(e.path(), d / e.path().filename());
+    return d;
+}
+void PrintAlertsP(const char* tag) {
+    const auto a = Alerts(nullptr);
+    std::printf("PROBE %s alerts=%zu", tag, a.size());
+    for (const std::string& t : a) std::printf(" | %.100s", t.c_str());
+    std::printf("\n");
+}
+void BoneProbe(const char* tag, const fs::path& dir) {
+    xpe_ai_shutdown(); xpe_clear_alerts();
+    const XpeErrorCode irc = xpe_ai_init(dir.string().c_str(), nullptr);
+    xpe_clear_alerts();
+    Img in(3, 3, 1.0f), out(3, 3, 0.0f);
+    std::fill(out.v.begin(), out.v.end(), -777.0f);
+    const XpeImageBuffer ib = in.Buffer(); XpeImageBuffer ob = out.Buffer();
+    const XpeErrorCode rc = xpe_bone_suppress(&ib, &ob, nullptr);
+    std::printf("PROBE %s init=%d bone rc=%d out[0..2]=%.2f %.2f %.2f (input 1.00 1.01 1.02)\n", tag, irc, rc, out.v[0], out.v[1], out.v[2]);
+    PrintAlertsP(tag);
+    xpe_ai_shutdown(); xpe_clear_alerts();
+}
+void PartProbe(const char* tag, const fs::path& dir) {
+    xpe_ai_shutdown(); xpe_clear_alerts();
+    const XpeErrorCode irc = xpe_ai_init(dir.string().c_str(), nullptr);
+    xpe_clear_alerts();
+    Img in(4, 4, 0.0f);
+    char label[64];
+    std::memset(label, 'x', sizeof(label));
+    float conf = -1.0f;
+    const XpeImageBuffer ib = in.Buffer();
+    const XpeErrorCode rc = xpe_bodypart_recognize(&ib, label, sizeof(label), &conf);
+    std::printf("PROBE %s init=%d bodypart rc=%d label='%.20s' conf=%.3f\n", tag, irc, rc, label, conf);
+    PrintAlertsP(tag);
+    xpe_ai_shutdown(); xpe_clear_alerts();
+}
+}  // namespace
+
+TEST(Probe195, ModelIntegrityToday) {
+    const fs::path x2 = fs::path(kData) / "models_x2" / "bone_suppress.onnx";
+    const fs::path x3 = fs::path(kData) / "models_x3" / "bone_suppress.onnx";
+    std::printf("PROBE sizes x2=%zu x3=%zu bytes\n", ReadAll(x2).size(), ReadAll(x3).size());
+    BoneProbe("bone/original(x2)", fs::path(kData) / "models_x2");
+
+    { const fs::path d = Fresh("bone_swap", "models_x2"); WriteAll(d / "bone_suppress.onnx", ReadAll(x3)); BoneProbe("bone/file swapped for a DIFFERENT valid model (x3)", d); }
+    {
+        const fs::path d = Fresh("bone_flip", "models_x2");
+        std::string b = ReadAll(d / "bone_suppress.onnx");
+        const std::string two("\x00\x00\x00\x40", 4);
+        const size_t at = b.find(two);
+        std::printf("PROBE bone/flip: the constant 2.0f (00 00 00 40) is at offset %lld\n", at == std::string::npos ? (long long)-1 : (long long)at);
+        if (at != std::string::npos) { b[at + 2] = '\x40'; WriteAll(d / "bone_suppress.onnx", b); }
+        BoneProbe("bone/ONE byte changed in the weights (2.0 -> 3.0)", d);
+    }
+    { const fs::path d = Fresh("bone_trunc", "models_x2"); std::string b = ReadAll(d / "bone_suppress.onnx"); b.resize(b.size() / 2); WriteAll(d / "bone_suppress.onnx", b); BoneProbe("bone/truncated to half", d); }
+    { const fs::path d = Fresh("bone_trail", "models_x2"); std::string b = ReadAll(d / "bone_suppress.onnx"); b += std::string(64, 'Z'); WriteAll(d / "bone_suppress.onnx", b); BoneProbe("bone/64 bytes of garbage appended", d); }
+    { const fs::path d = Fresh("bone_empty", "models_x2"); WriteAll(d / "bone_suppress.onnx", ""); BoneProbe("bone/zero-length file", d); }
+
+    PartProbe("part/original(a)", fs::path(kData) / "models_bodypart_a");
+    { const fs::path d = Fresh("part_labels", "models_bodypart_a"); WriteAll(d / "bodypart.json", "{\"labels\": [\"HAND\", \"HAND\", \"HAND\"]}"); PartProbe("part/SIDECAR ONLY replaced (labels HAND x3)", d); }
+    { const fs::path d = Fresh("part_swap", "models_bodypart_a"); WriteAll(d / "bodypart.onnx", ReadAll(fs::path(kData) / "models_bodypart_b" / "bodypart.onnx")); PartProbe("part/model file swapped for model b (sidecar of a)", d); }
+    { const fs::path d = Fresh("part_hash", "models_bodypart_a"); WriteAll(d / "bodypart.json", "{\"labels\": [\"CHEST\", \"ABDOMEN\", \"SPINE\"], \"training_data_hash\": \"sha256:0000\", \"model_sha256\": \"deadbeef\"}"); PartProbe("part/sidecar with hash fields that match nothing", d); }
+
+    // What the platform offers (Windows CNG), and what it costs.
+    BCRYPT_ALG_HANDLE h = nullptr;
+    std::printf("PROBE CNG ECDSA_P256 open status=0x%08lx\n", (unsigned long)BCryptOpenAlgorithmProvider(&h, BCRYPT_ECDSA_P256_ALGORITHM, nullptr, 0));
+    BCRYPT_ALG_HANDLE h2 = nullptr;
+    std::printf("PROBE CNG \"Ed25519\" open status=0x%08lx (0 = available)\n", (unsigned long)BCryptOpenAlgorithmProvider(&h2, L"Ed25519", nullptr, 0));
+    BCRYPT_ALG_HANDLE hs = nullptr;
+    BCryptOpenAlgorithmProvider(&hs, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
+    std::vector<unsigned char> big(256u * 1024u * 1024u, 0x5A);
+    UCHAR digest[32];
+    const auto t0 = std::chrono::steady_clock::now();
+    BCryptHash(hs, nullptr, 0, big.data(), static_cast<ULONG>(big.size()), digest, 32);
+    const auto t1 = std::chrono::steady_clock::now();
+    std::printf("PROBE CNG SHA-256 of 256 MiB: %.0f ms\n", std::chrono::duration<double, std::milli>(t1 - t0).count());
+    if (h) {
+        BCRYPT_KEY_HANDLE key = nullptr;
+        BCryptGenerateKeyPair(h, &key, 256, 0);
+        BCryptFinalizeKeyPair(key, 0);
+        UCHAR sig[64];
+        ULONG got = 0;
+        BCryptSignHash(key, nullptr, digest, 32, sig, 64, &got, 0);
+        const auto v0 = std::chrono::steady_clock::now();
+        NTSTATUS vs = 0;
+        for (int i = 0; i < 200; ++i) vs = BCryptVerifySignature(key, nullptr, digest, 32, sig, got, 0);
+        const auto v1 = std::chrono::steady_clock::now();
+        std::printf("PROBE CNG ECDSA P-256 verify: status=0x%08lx, %.3f ms each (200 runs)\n", (unsigned long)vs, std::chrono::duration<double, std::milli>(v1 - v0).count() / 200.0);
+        BCryptDestroyKey(key);
+    }
+    std::error_code ec;
+    fs::remove_all(fs::path(kData) / ".." / "probe195", ec);
+}

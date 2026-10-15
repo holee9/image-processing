@@ -1,0 +1,3 @@
+== arm (b): the condition 'GetWindowThreadProcessId answered (thread id != 0)' is removed
+[xUnit.net 00:00:01.19]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessIdentityTests.TheForegroundIsTheApplication_OnlyWhenEveryValueIsKnownAndTheyAreEqual(handle: 4660, threadId: 0, foregroundPid: 100, appPid: 100, expecte
+실패!  - 실패:     1, 통과:    18, 건너뜀:     0, 전체:    19, 기간: 83 ms - ImageProcTest.E2ETests.dll (net8.0)

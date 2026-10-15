@@ -1,0 +1,10 @@
+W1 the worker forks the tie rule (last class wins): build_ok=True passed=['13'] crashed=False red(2)=['1', 'WorkerBodyPartAgreement.TheRealWorkerAndTheInProcessPathSayTheSameThingForEveryModelAndImage']
+W2 the bridge accepts a label of 64 bytes: build_ok=True passed=['13'] crashed=False red(2)=['1', 'WorkerBodyPartReply.EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded']
+W3 the unavailable flag is read from anywhere in the frame: build_ok=False passed=None crashed=False red(0)=[]
+W4 the loader accepts a label with a quote: build_ok=True passed=['13'] crashed=False red(2)=['1', 'WorkerBodyPartAgreement.ALabelWithAQuoteIsUnavailableInBothPaths']
+W5 the bridge accepts a confidence above 1: build_ok=True passed=['13'] crashed=False red(2)=['1', 'WorkerBodyPartReply.EveryReplyTheProtocolForbidsIsAProtocolFaultAndTheWorkerIsDiscarded']
+W6 the worker does not mark an unusable model as unavailable: build_ok=True passed=['11'] crashed=False red(4)=['3', 'WorkerBodyPartAgreement.ALabelWithAQuoteIsUnavailableInBothPaths', 'WorkerBodyPartAgreement.AnUnavailableModelKeepsTheWorkerAndIsNotAFault', 'WorkerBodyPartAgreement.TheRealWorkerAndTheInProcessPathSayTheSameThingForEveryModelAndImage']
+W7 the bridge accepts a refusal that carries a label: build_ok=False passed=None crashed=False red(0)=[]
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['14'] red=[]
+DONE

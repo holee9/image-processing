@@ -1,0 +1,10 @@
+test(dicom): QA-B-211 dicom 시험 스위트의 병렬 실행 충돌 제거 — 스크래치 폴더에 프로세스 ID (#257)
+
+gtest_discover_tests 는 시험마다 별도 프로세스를 만들고 각자 SetUpTestSuite/TearDownTestSuite 에서 고정 이름 폴더를 만들고 remove_all 해서, ctest -j 에서 서로의 파일을 지웠다(측정: -j 8 에서 106/102건 실패, remove_all 오류 58건). reader, network, validator, writer, writer_inner, param_dependency 의 폴더 이름에 PID 를 붙인다(test_pid.h). 포트는 이미 0 바인딩이라 불변. RUN_SERIAL/RESOURCE_LOCK 불사용, 제품 코드 불변.
+
+고친 뒤: ctest -j 8 x5 모두 380/380, 직렬 380/380.
+
+Card: QA-B-211
+Refs #257
+
+🗿 MoAI

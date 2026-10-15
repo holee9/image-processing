@@ -20,6 +20,7 @@ namespace ImageProcTest.IntegrationTests.P1AReady;
 /// passing through — that is a finding, not a pass.</para>
 /// </summary>
 [Trait("Category", "P1AReady")]
+[Collection(ImageProcTest.IntegrationTests.Fixtures.PreprocessModuleCollection.Name)]
 public sealed class NonlinearityStageWiringTests
 {
     private const int Width = 16;
@@ -164,23 +165,18 @@ public sealed class NonlinearityStageWiringTests
     /// identity case above measures — so the ordering has to be read from the source.</para>
     /// </summary>
     [Fact]
-    public void TheGuiRunnerCallsTheStage_BetweenOffsetAndGain()
+    public void TheGuiRunnerReachesTheStages_ThroughThePipelineFunction_NotByCallingThemItself()
     {
+        // GUI-C-232b (leader decision): this used to pin the app's own call order offset -> nonlinearity -> gain. The shipped path is now xpe_preprocess_pipeline_out alone (SRS-CALIB-SAFE-004), which runs
+        // the stages in the module's order itself (pipeline.cpp: Stage 2 offset, Stage 3 nonlinearity, Stage 4 gain), so the order is no longer the app's to get right. What is pinned instead is that the app
+        // does not call the stages by hand again (a second, app-owned order that could drift from the module's, and that wrote its input in place) and that it does call the pipeline function.
         var source = File.ReadAllText(RunnerSource());
 
-        var offset = source.IndexOf("xpe_offset_correct(ref input", StringComparison.Ordinal);
-        var nonlinearity = source.IndexOf("xpe_nonlinearity_correct(ref offsetOut", StringComparison.Ordinal);
-        var gain = source.IndexOf("xpe_gain_correct(ref offsetOut", StringComparison.Ordinal);
-
-        Assert.True(offset >= 0, "GuiPreprocessRunner no longer calls xpe_offset_correct.");
-        Assert.True(nonlinearity >= 0,
-            "GuiPreprocessRunner does not call xpe_nonlinearity_correct, so the gui skips the module's " +
-            "Stage 3 and what it draws is not what the pipeline produces (#198).");
-        Assert.True(gain >= 0, "GuiPreprocessRunner no longer calls xpe_gain_correct.");
-
-        Assert.True(offset < nonlinearity && nonlinearity < gain,
-            "The nonlinearity stage is not between offset and gain. The module's pipeline runs Stage 2 " +
-            "offset, Stage 3 nonlinearity, Stage 4 gain in that order (pipeline.cpp:142/158/184).");
+        Assert.Contains("xpe_preprocess_pipeline_out(ref input, ref output, ref metadata", source);
+        foreach (var byHand in new[] { "xpe_offset_correct(", "xpe_nonlinearity_correct(", "xpe_gain_correct(", "xpe_defect_correct(" })
+        {
+            Assert.DoesNotContain(byHand, source);
+        }
     }
 
     private static string RunnerSource()

@@ -1,0 +1,3 @@
+PROBE scan 1024x1024 (4.2 MB): min of 15 = 0.082 ms, ok=1, NaN-at-the-end found=1
+PROBE scan 3072x3072 (37.7 MB): min of 15 = 1.443 ms, ok=1, NaN-at-the-end found=1
+PROBE scan 4096x4096 (67.1 MB): min of 15 = 2.902 ms, ok=1, NaN-at-the-end found=1

@@ -1,0 +1,29 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = EdgeEnhanceFormula.*
+[==========] Running 6 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 6 tests from EdgeEnhanceFormula
+[ RUN      ] EdgeEnhanceFormula.E1_ControlTheDefaultThresholdSharpensAnEdge
+E1 CONTROL: amount 1, radius 2, threshold 10, edge 1000 -> module max |out-in| = 397.918
+[       OK ] EdgeEnhanceFormula.E1_ControlTheDefaultThresholdSharpensAnEdge (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_ThresholdZeroSharpensAnEdge
+E1 THRESHOLD 0: SPEC (reference blur) max |out-in| = 400.263; module max |out-in| = 397.918
+[       OK ] EdgeEnhanceFormula.E1_ThresholdZeroSharpensAnEdge (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays
+E1 CONTRAST    100: bright-side edge pixel moves by SPEC 20.013, module 19.896; dark side SPEC -20.013, module -19.896
+E1 CONTRAST   1000: bright-side edge pixel moves by SPEC 200.131, module 198.959; dark side SPEC -200.131, module -198.959
+E1 RATIO (contrast 1000 / contrast 100) at the bright edge pixel: SPEC 10.00, module 10.00
+[       OK ] EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold
+E1 BOUND: bright-side edge pixel original 10010.0, SPEC 20020.0, module 20020.0, 2*original 20020.0, original+amount*threshold 10060.0
+[       OK ] EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone
+[       OK ] EdgeEnhanceFormula.E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue
+E1 DARK DOT: original 30.0, SPEC 80.0, module 80.0 (2*original 60, original+amount*threshold 80)
+[       OK ] EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue (0 ms)
+[----------] 6 tests from EdgeEnhanceFormula (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 6 tests from 1 test suite ran. (1 ms total)
+[  PASSED  ] 6 tests.

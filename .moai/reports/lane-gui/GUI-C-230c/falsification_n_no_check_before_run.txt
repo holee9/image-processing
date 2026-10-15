@@ -1,0 +1,10 @@
+== arm (n): the 230b pre-run check is taken out (a value above the limit is cut to 7.5 and run again, as in GUI-C-230)
+app rebuilt: True
+[xUnit.net 00:00:15.03]       Expected: "Native preview: Noise sigma_space must be"···
+[xUnit.net 00:00:15.03]       Actual:   "Native preview failed: Noise sigma_space "···
+  오류 메시지:
+   Assert.Equal() Failure: Strings differ
+Expected: "Native preview: Noise sigma_space must be"···
+Actual:   "Native preview failed: Noise sigma_space "···
+ typed '8': preview='Native preview failed: Noise sigma_space must be between 0.1 and 7.5 (got 8). Nothing was run; change the value and run again.' status='Status: Native pre/post preview failed'
+[xUnit.net 00:00:15.03]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [FAIL]

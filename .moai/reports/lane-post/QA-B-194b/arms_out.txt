@@ -1,0 +1,12 @@
+G1 the body-part loader does not name an out-of-memory session: red(1)=['AiOom.ABodyPartSessionThatRunsOutOfMemoryIsOutOfMemoryNotAnUnavailableModel'] ok=9
+G2 the in-process body-part path does not return OUT_OF_MEMORY: red(1)=['AiOom.ABodyPartSessionThatRunsOutOfMemoryIsOutOfMemoryNotAnUnavailableModel'] ok=9
+G3 the worker answers a bone out-of-memory with PROCESSING_FAILED again: red(1)=['WorkerOom.ABoneSessionThatRunsOutOfMemoryInTheWorkerIsOutOfMemoryAndCountsAsAWorkerFailure'] ok=1
+G4 the worker answers a body-part out-of-memory as an unavailable model again: red(1)=['WorkerOom.ABodyPartSessionThatRunsOutOfMemoryInTheWorkerIsAFailureNotAnUnavailableModel'] ok=1
+RESTORED_BYTE_IDENTICAL=True
+CONTROL oom exe: red=[] ok=10
+CONTROL WorkerOom: red=[] ok=2
+DONE
+
+H1 nlohmann_json is not available (the check names a target that does not exist), cmake --preset ci-ai:
+  mutated configure: exit 1, message: xpe_ai: nlohmann_json::nlohmann_json is required (the root CMakeLists.txt finds it or fetches it); Configuring incomplete, errors occurred!
+  restored (byte-identical CMakeLists.txt) configure: exit 0

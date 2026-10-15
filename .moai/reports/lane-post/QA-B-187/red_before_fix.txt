@@ -1,0 +1,27 @@
+[  FAILED  ] 24 tests, listed below:
+[  FAILED  ] DicomReaderTest.Issue235Decided_BitsAboveBitsStoredAreMaskedForMonochrome2Too
+[  FAILED  ] DicomReaderTest.Issue235Decided_RescaleIsNotAppliedButWarned
+[  FAILED  ] DicomReaderTest.Tc235_BitsAboveBitsStored_Native_MaskedWithInfoAlert
+[  FAILED  ] DicomReaderTest.Tc235_RescaleInterceptNotANumber_J2k_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleInterceptNotANumber_JpegLl_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleInterceptNotANumber_Native_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleNonIdentity_J2k_StoredValuesWithWarning
+[  FAILED  ] DicomReaderTest.Tc235_RescaleNonIdentity_JpegLl_StoredValuesWithWarning
+[  FAILED  ] DicomReaderTest.Tc235_RescaleNonIdentity_Native_StoredValuesWithWarning
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeEmpty_J2k_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeEmpty_JpegLl_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeEmpty_Native_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeNotANumber_J2k_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeNotANumber_JpegLl_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeNotANumber_Native_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeNotFinite_J2k_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeNotFinite_JpegLl_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeNotFinite_Native_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeTwoValues_J2k_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeTwoValues_JpegLl_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeTwoValues_Native_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeZero_J2k_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeZero_JpegLl_RefusedInvalid
+[  FAILED  ] DicomReaderTest.Tc235_RescaleSlopeZero_Native_RefusedInvalid
+[  PASSED  ] 20 tests.
+20

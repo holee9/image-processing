@@ -1,0 +1,97 @@
+# GUI-C-206 falsification arms (Mock backend; E2E Z01 + A01, and the integration tests). Each arm edits the app source, rebuilds, runs, restores byte-identical.
+
+## arm Z-a: the ceiling constant itself becomes 160.0 (all four sites follow it)
+build ok: True
+E2E exit=1
+   RED   kflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+   green sts.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows
+integration exit=1
+   green : "1.0.0+unknown", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green .0+d700e74be0", configuration: "Debug", revision: "d700e74be0", expectedConfiguration: "Debug")
+   green rmational: "1.0.0+abc", configuration: "  ", revision: "abc", expectedConfiguration: "unknown")
+   green onal: "1.0.0+abc", configuration: "Release", revision: "abc", expectedConfiguration: "Release")
+   green nformational: null, configuration: null, revision: "unknown", expectedConfiguration: "unknown")
+   green mational: "1.0.0", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green ational: "1.0.0+", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   RED   IntegrationTests.Functional.BuildIdentityAndZoomLimitTests.TheZoomCeiling_Is16_AndIsWrittenOnce
+   green ZoomLimitTests.TheCsproj_StampsTheRevisionAndTheConfiguration_AndAnAbsentGitDoesNotFailTheBuild
+   green .Functional.BuildIdentityAndZoomLimitTests.TheRunningAssembly_HasAStampedIdentity_OrSaysUnknown
+restored byte-identical: True
+
+## arm Z-b: the Zoom In command goes back to its own literal 160.0
+build ok: True
+E2E exit=0
+   green kflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+   green sts.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows
+integration exit=1
+   green : "1.0.0+unknown", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green .0+d700e74be0", configuration: "Debug", revision: "d700e74be0", expectedConfiguration: "Debug")
+   green rmational: "1.0.0+abc", configuration: "  ", revision: "abc", expectedConfiguration: "unknown")
+   green onal: "1.0.0+abc", configuration: "Release", revision: "abc", expectedConfiguration: "Release")
+   green nformational: null, configuration: null, revision: "unknown", expectedConfiguration: "unknown")
+   green mational: "1.0.0", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green ational: "1.0.0+", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   RED   IntegrationTests.Functional.BuildIdentityAndZoomLimitTests.TheZoomCeiling_Is16_AndIsWrittenOnce
+   green ZoomLimitTests.TheCsproj_StampsTheRevisionAndTheConfiguration_AndAnAbsentGitDoesNotFailTheBuild
+   green .Functional.BuildIdentityAndZoomLimitTests.TheRunningAssembly_HasAStampedIdentity_OrSaysUnknown
+      [xUnit.net 00:00:00.21]       gui/ImageProcTest/ViewModels/MainWindowViewModel.cs no longer reads ComparisonZoomLimits.Max: expected 'Math.Min(ComparisonZoomLimits.Max, current * 1.25)'.
+      gui/ImageProcTest/ViewModels/MainWindowViewModel.cs no longer reads ComparisonZoomLimits.Max: expected 'Math.Min(ComparisonZoomLimits.Max, current * 1.25)'.
+restored byte-identical: True
+
+## arm Z-c: the settings setter goes back to its own literal 160.0
+build ok: True
+E2E exit=0
+   green kflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+   green sts.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows
+integration exit=1
+   green : "1.0.0+unknown", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green .0+d700e74be0", configuration: "Debug", revision: "d700e74be0", expectedConfiguration: "Debug")
+   green rmational: "1.0.0+abc", configuration: "  ", revision: "abc", expectedConfiguration: "unknown")
+   green onal: "1.0.0+abc", configuration: "Release", revision: "abc", expectedConfiguration: "Release")
+   green nformational: null, configuration: null, revision: "unknown", expectedConfiguration: "unknown")
+   green mational: "1.0.0", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green ational: "1.0.0+", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   RED   IntegrationTests.Functional.BuildIdentityAndZoomLimitTests.TheZoomCeiling_Is16_AndIsWrittenOnce
+   green ZoomLimitTests.TheCsproj_StampsTheRevisionAndTheConfiguration_AndAnAbsentGitDoesNotFailTheBuild
+   green .Functional.BuildIdentityAndZoomLimitTests.TheRunningAssembly_HasAStampedIdentity_OrSaysUnknown
+      [xUnit.net 00:00:00.23]       gui/ImageProcTest/Models/AppSettings.cs no longer reads ComparisonZoomLimits.Max: expected 'Math.Clamp(value, 0.0, ComparisonZoomLimits.Max)'.
+      gui/ImageProcTest/Models/AppSettings.cs no longer reads ComparisonZoomLimits.Max: expected 'Math.Clamp(value, 0.0, ComparisonZoomLimits.Max)'.
+restored byte-identical: True
+
+## arm A-a: the About dialog drops its Build line
+build ok: True
+E2E exit=1
+   green kflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+   RED   sts.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows
+integration exit=1
+   green : "1.0.0+unknown", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green .0+d700e74be0", configuration: "Debug", revision: "d700e74be0", expectedConfiguration: "Debug")
+   green rmational: "1.0.0+abc", configuration: "  ", revision: "abc", expectedConfiguration: "unknown")
+   green onal: "1.0.0+abc", configuration: "Release", revision: "abc", expectedConfiguration: "Release")
+   green nformational: null, configuration: null, revision: "unknown", expectedConfiguration: "unknown")
+   green mational: "1.0.0", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green ational: "1.0.0+", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green IntegrationTests.Functional.BuildIdentityAndZoomLimitTests.TheZoomCeiling_Is16_AndIsWrittenOnce
+   RED   ZoomLimitTests.TheCsproj_StampsTheRevisionAndTheConfiguration_AndAnAbsentGitDoesNotFailTheBuild
+   green .Functional.BuildIdentityAndZoomLimitTests.TheRunningAssembly_HasAStampedIdentity_OrSaysUnknown
+restored byte-identical: True
+
+## arm A-b: the build stamp is broken (git is asked for a revision that does not exist, so the stamp falls back to unknown)
+build ok: True
+E2E exit=1
+   green kflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds
+   RED   sts.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows
+integration exit=1
+   green : "1.0.0+unknown", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green .0+d700e74be0", configuration: "Debug", revision: "d700e74be0", expectedConfiguration: "Debug")
+   green rmational: "1.0.0+abc", configuration: "  ", revision: "abc", expectedConfiguration: "unknown")
+   green onal: "1.0.0+abc", configuration: "Release", revision: "abc", expectedConfiguration: "Release")
+   green nformational: null, configuration: null, revision: "unknown", expectedConfiguration: "unknown")
+   green mational: "1.0.0", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green ational: "1.0.0+", configuration: "Debug", revision: "unknown", expectedConfiguration: "Debug")
+   green IntegrationTests.Functional.BuildIdentityAndZoomLimitTests.TheZoomCeiling_Is16_AndIsWrittenOnce
+   RED   ZoomLimitTests.TheCsproj_StampsTheRevisionAndTheConfiguration_AndAnAbsentGitDoesNotFailTheBuild
+   green .Functional.BuildIdentityAndZoomLimitTests.TheRunningAssembly_HasAStampedIdentity_OrSaysUnknown
+restored byte-identical: True
+
+final rebuild ok: True

@@ -16,18 +16,25 @@ namespace ImageProcTest
 
         public static IEnumerable<string> GetDllCandidates()
         {
+            // GUI-C-238 (#128): a search pinned to one directory looks THERE and nowhere else - the application directory included. It used to look at the application
+            // directory first and stop only after the pinned one, so an old copy of the DLL beside the exe won over the folder the caller named.
+            if (NativeSearchPolicy.ExclusiveWithoutDirectory)
+            {
+                yield break;   // GUI-C-238b: pinned to a folder that is not named: no candidate at all
+            }
+
+            if (NativeSearchPolicy.ExclusiveDirectory is { } onlyDirectory)
+            {
+                yield return Path.Combine(onlyDirectory, DllName);
+                yield break;
+            }
+
             yield return Path.Combine(AppContext.BaseDirectory, DllName);
 
             var envDir = NativeSearchPolicy.InjectedDirectory;
             if (envDir is not null)
             {
                 yield return Path.Combine(envDir, DllName);
-
-                // #128: stop here when the caller pinned the search to one directory.
-                if (NativeSearchPolicy.StopAtInjectedDirectory)
-                {
-                    yield break;
-                }
             }
 
             // #129: build directories and sibling checkouts are opt-in. A DLL found there has no

@@ -18,29 +18,46 @@ public partial class MainWindow : System.Windows.Window
     /// <summary>Where this run's settings are read from and written to. #136: not the shipped file under automation.</summary>
     private readonly string _settingsFilePath;
 
+    // Codex #78 finding 3 (GUI-C-198): the AI entry's availability includes a file that may appear or vanish while the app runs; it is read again each time the menu opens.
+    private void PipelineMenu_SubmenuOpened(object sender, System.Windows.RoutedEventArgs e) =>
+        (DataContext as MainWindowViewModel)?.RefreshAiBoneSuppressionAvailability();
+
     public MainWindow()
     {
         InitializeComponent();
 
         var (settings, settingsService, preservedSettingsPath, preservedIsFromEarlier) = CreateSettings();
         _settingsFilePath = settingsService.FilePath;
-        // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given.
+#if XPE_TEST_FAULTS
+        // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given. Test builds only (GUI-C-193).
         var failAfter = App.AutomationDisplayPipelineFailAfter;
         var aiWorkerDisabled = App.AutomationAiWorkerDisabled;
+        var aiWorkerSilentAfter = App.AutomationAiWorkerSilentAfter;
+        var displayDelayMs = App.AutomationDisplayDelayMs;
         var viewModel = new MainWindowViewModel(
             settings,
             settingsService,
-            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled),
+            s => FaultInjectingBackend.Wrap(XpeBackendFactory.Create(s), failAfter, aiWorkerDisabled, aiWorkerSilentAfter, displayDelayMs),
             preservedSettingsPath,
             preservedIsFromEarlier);
+#else
+        var viewModel = new MainWindowViewModel(
+            settings,
+            settingsService,
+            XpeBackendFactory.Create,
+            preservedSettingsPath,
+            preservedIsFromEarlier);
+#endif
         DataContext = viewModel;
 
+#if XPE_TEST_FAULTS
         if (FaultInjectingBackend.Armed is not null)
         {
             // Loud on purpose: a window carrying an injected fault must not look like a normal one.
             // The title is bound to WindowTitle, which adds the marker once this is announced.
             viewModel.AnnounceFaultInjection();
         }
+#endif
 
         Loaded += OnLoaded;
 
@@ -308,9 +325,9 @@ public partial class MainWindow : System.Windows.Window
             report.ChainStatus = viewModel.ChainStatus;
             report.ChainStages = viewModel.LastChain?.Stages.Select(s => $"{s.StageId}={s.Status} {s.ElapsedMs:0}ms").ToList() ?? new();
             report.DisplayPipelineSummary = viewModel.DisplayPipelineSummary;
-            report.CalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
-            report.OffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
-            report.DefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
+            report.RequestedCalibrationEvaluationSummary = viewModel.CalibrationEvaluationSummary;
+            report.RequestedOffsetCorrectionMode = viewModel.Settings.OffsetCorrectionMode;
+            report.RequestedDefectCorrectionMode = viewModel.Settings.DefectCorrectionMode;
             // #225 rows 7 and 8 (GUI-C-170): the persisted flags, as they stood when the run started.
             // Reported, never part of the verdict below.
             report.DisplayPanelVisible = viewModel.Settings.ShowDisplayPanel;
@@ -408,7 +425,8 @@ public partial class MainWindow : System.Windows.Window
                     // RunPreprocessingMenuItem is no longer a placeholder (#141, GUI-C-36): it is
                     // enabled on the native backend, so counting it as a disabled future command
                     // would make this report claim the opposite of what the app now does.
-                    RunDeterministicBaselineMenuItem,
+                    // RunDeterministicBaselineMenuItem is a command now (#225 row 9, GUI-C-196 M4): enabled on the native backend, disabled on Mock with a command
+                    // still bound, so it left this list exactly as RunPreprocessingMenuItem did.
                     StopProcessingMenuItem,
                     StageTimingMenuItem,
                     RunSelfCheckMenuItem,
@@ -585,6 +603,56 @@ public partial class MainWindow : System.Windows.Window
             report.EvidenceFolderLaunchSuppressed = viewModel.EvidenceFolderLaunchSuppressed;
 
 
+            // #225 row 9 (GUI-C-196 M4): the Deterministic Baseline, through the MENU a user has, LAST among the measurements: it takes seconds on the native
+            // backend and sets the status line, the alerts and the log, none of which the steps above may see changed. NotRun (menu disabled, as on Mock) is
+            // recorded as NotRun, never as a pass or a fail.
+            report.BaselineMenuEnabled = RunDeterministicBaselineMenuItem.IsEnabled;
+            var baselineNotAttempted = string.Empty;
+            var baselineAttempted = false;
+            if (report.BaselineMenuEnabled && !report.PreprocessRan)
+            {
+                // Without a calibration set the preprocess stage cannot run, and the baseline would FAIL for that reason in every automation run that has none.
+                // A failure that means "no calibration was given" is not the baseline's verdict: it is recorded as not attempted, with why.
+                baselineNotAttempted = " (not attempted in this automation run: preprocessing did not run, so no calibration set was given)";
+            }
+            else if (report.BaselineMenuEnabled)
+            {
+                ClickMenuItem(RunDeterministicBaselineMenuItem);
+                baselineAttempted = true;
+                // Ends on a result, on the command's own failure line (it threw: no result will come), or after 60 s.
+                for (var waited = 0;
+                     waited < 600 && viewModel.LastBaselineResult is null && !viewModel.BaselineStatusText.StartsWith("Deterministic Baseline FAIL", StringComparison.Ordinal);
+                     waited++)
+                {
+                    await Task.Delay(100);
+                }
+            }
+
+            var baseline = viewModel.LastBaselineResult;
+            report.BaselineStatusText = viewModel.BaselineStatusText + baselineNotAttempted;
+            // #225 row 9 (GUI-C-196 M5): the status comes from the rule that the verdict below also uses. A baseline that was tried and left no result is a Fail.
+            report.BaselineStatus = BaselineAutomationRule.StatusOf(baselineAttempted, baseline);
+            if (baselineAttempted && baseline is null && !report.BaselineStatusText.StartsWith("Deterministic Baseline FAIL", StringComparison.Ordinal))
+            {
+                report.BaselineStatusText = $"Deterministic Baseline FAIL: no result within 60 s (status line: '{viewModel.BaselineStatusText}')";
+            }
+
+            if (baseline is not null)
+            {
+                report.BaselineRan = true;
+                report.BaselineBitIdentical = baseline.Verdict.BitIdentical;
+                report.BaselineFirstDifference = baseline.Verdict.Difference is { Identical: false } d
+                    ? $"pixel {d.FirstIndex}, {d.DifferentCount} differ, max {d.MaxAbsDifference}"
+                    : string.Empty;
+                report.BaselineOutputSha256 = baseline.Verdict.OutputSha256;
+                report.BaselineStageTimes = baseline.StageTimes;
+                report.BaselineTotalMs = Math.Round(baseline.TotalMs, 1);
+                report.BaselineDicomValid = baseline.DicomValid;
+                report.BaselineDicomRoundTripIdentical = baseline.DicomRoundTripIdentical;
+                report.BaselineExposureIndex = baseline.ExposureIndex;
+                report.BaselineEvidenceFolder = baseline.EvidenceFolder;
+            }
+
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);
             var menuCommandReportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
@@ -657,8 +725,8 @@ public partial class MainWindow : System.Windows.Window
                 report.ActiveImageSummary.StartsWith("RAW ", StringComparison.Ordinal) &&
                 report.LastRawDirPersisted &&
                 report.DisplayPipelineApplied &&
-                report.CalibrationEvaluationSummary.Contains("Offset=Off", StringComparison.Ordinal) &&
-                report.CalibrationEvaluationSummary.Contains("Defect=On", StringComparison.Ordinal) &&
+                report.RequestedCalibrationEvaluationSummary.Contains("Offset=Off", StringComparison.Ordinal) &&
+                report.RequestedCalibrationEvaluationSummary.Contains("Defect=On", StringComparison.Ordinal) &&
                 report.CalibrationEvaluationEvidenceExported &&
                 // GUI-C-170: "report.DisplayPanelVisible &&" stood here (since the panel flag was constantly
                 // true). It is not a verdict term. Whether a panel is showing is the operator's layout
@@ -692,7 +760,9 @@ public partial class MainWindow : System.Windows.Window
                 report.MenuCommandReportCreated &&
                 report.LogCountAfterClear == 0 &&
                 report.AlertCountAfterClear == 0 &&
-                report.RuntimeStateAfterShutdown == "Shutdown";
+                report.RuntimeStateAfterShutdown == "Shutdown" &&
+                // #225 row 9 (GUI-C-196 M5, the leader's ruling): a baseline that FAILED fails the report; NotRun leaves it alone. See BaselineAutomationRule.
+                BaselineAutomationRule.AllowsAutomationPass(report.BaselineStatus);
         }
         catch (Exception ex)
         {
@@ -797,7 +867,7 @@ public partial class MainWindow : System.Windows.Window
     private void AboutBuildInfoMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         System.Windows.MessageBox.Show(
-            $"ImageProcTest GUI-S0{Environment.NewLine}Backend: {(DataContext as MainWindowViewModel)?.RuntimeInfo.Version ?? "unknown"}{Environment.NewLine}Help bundle: packaged offline HTML",
+            $"ImageProcTest GUI-S0{Environment.NewLine}{Services.BuildIdentity.Current.Describe()}{Environment.NewLine}Backend: {(DataContext as MainWindowViewModel)?.RuntimeInfo.Version ?? "unknown"}{Environment.NewLine}Help bundle: packaged offline HTML",
             "About ImageProcTest",
             System.Windows.MessageBoxButton.OK,
             System.Windows.MessageBoxImage.Information);

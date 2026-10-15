@@ -1,0 +1,9 @@
+# git apply --check, both patches, fresh index from current HEAD (d9addef7), in order (blank context lines written without the single space, as the lint requires; git apply accepts them)
+1. m3b/dotnet_tests_dicom.patch.txt: check OK
+2. m4/gui_e2e_native_dicom.patch.txt: check OK (after 1)
+# each alone against the working tree
+m3b alone OK
+m4 alone OK
+# hunks
+.moai/reports/lane-gui/GUI-C-196/m3b/dotnet_tests_dicom.patch.txt:3
+.moai/reports/lane-gui/GUI-C-196/m4/gui_e2e_native_dicom.patch.txt:3

@@ -1,0 +1,12 @@
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeGridSuppression", mode: "GridSuppression") [9 s]
+   Assert.Equal() Failure: Strings differ
+Expected: "fac4bbd1e7eae4c5"
+Actual:   "b6a600f877b5f0fc"
+     at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(String radioId, String mode) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs:line 192
+ C03 GridSuppression off: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=29 ms, enhance_basic=31 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain' hash=fac4bbd1e7eae4c5
+ C03 GridSuppression native: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=AppliedNoChange, ai_bone_suppress=NotRequested; times: preprocess=27 ms, enhance_basic=33 ms, gsvg=15 ms, ai_bone_suppress=0 ms; display input=chain' hash=b6a600f877b5f0fc
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.C03_GsvgStage_ReachesTheDrawnPixelsOrSaysWhyNot(radioId: "GsvgModeVirtualGrid", mode: "VirtualGrid") [8 s]
+ C03 VirtualGrid off: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=25 ms, enhance_basic=26 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain' hash=fac4bbd1e7eae4c5
+ C03 VirtualGrid native: chain='chain: preprocess=Applied, enhance_basic=Applied, gsvg=Applied, ai_bone_suppress=NotRequested; times: preprocess=25 ms, enhance_basic=25 ms, gsvg=65 ms, ai_bone_suppress=0 ms; display input=chain' hash=6967623d96d2debf
+     통과: 1
+     실패: 1

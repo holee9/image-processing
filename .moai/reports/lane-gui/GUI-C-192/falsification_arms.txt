@@ -1,0 +1,23 @@
+ARM the-superseded-answer-is-applied-again (the GUI-C-192 rule removed): built=True
+   selfcheck: exit=3762504530 [7 older status read never shown] timed out waiting for: the newest status to be shown [7 older status read never shown] the screen showed 1 change(s) [worker=Active; failures=0; ceiling=3]; expected exactly the newest answer, never the older one
+   functional: ['실패!  - 실패:     2, 통과:    25, 건너뜀:     0, 전체:    27, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: AiStatusRefresherTests.RequestsThatPileUpWhileAReadRuns_BecomeExactlyOneMoreRead [107 ms]
+     red: AiStatusRefresherTests.AnAnswerOlderThanANewerRequest_IsNeverApplied_OnlyTheNewestIs [153 ms]
+   restored byte-identical: True
+ARM the-request-number-is-not-raised-by-a-new-request: built=True
+   selfcheck: exit=3762504530 [7 older status read never shown] timed out waiting for: the newest status to be shown [7 older status read never shown] the screen showed 1 change(s) [worker=Active; failures=0; ceiling=3]; expected exactly the newest answer, never the older one
+   functional: ['실패!  - 실패:     2, 통과:    25, 건너뜀:     0, 전체:    27, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: AiStatusRefresherTests.RequestsThatPileUpWhileAReadRuns_BecomeExactlyOneMoreRead [107 ms]
+     red: AiStatusRefresherTests.AnAnswerOlderThanANewerRequest_IsNeverApplied_OnlyTheNewestIs [160 ms]
+   restored byte-identical: True
+ARM c09-restores-the-width-last-again: built=True
+   selfcheck: exit=0
+   functional: ['통과!  - 실패:     0, 통과:    27, 건너뜀:     0, 전체:    27, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+   restored byte-identical: True
+ARM the-announcement-describes-the-display-fault-unconditionally: built=True
+   selfcheck: exit=0
+   functional: ['실패!  - 실패:     1, 통과:    26, 건너뜀:     0, 전체:    27, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: FaultAnnouncementTests.TheDisplayFaultSentence_IsOnlyWrittenWhenTheDisplayFaultIsArmed [3 ms]
+   restored byte-identical: True
+AFTER RESTORE: True 0 ['통과!  - 실패:     0, 통과:    27, 건너뜀:     0, 전체:    27, 기간: 1 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+sources: 1498f137c39c 95aec300171b 3ad61e725195

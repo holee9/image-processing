@@ -1,0 +1,46 @@
+"""QA-B-210 E7: below the cap the bilateral output must be BYTE-IDENTICAL before and after the change.
+Runs the same images and sigmas through the DLL built before the cap (<old dir>) and after it (<new dir>), in two processes.
+Run: python e7_output_unchanged.py <dll dir> <out.npy>        then compare the two .npy files with the `compare` mode:
+     python e7_output_unchanged.py compare <old.npy> <new.npy>
+"""
+import ctypes
+import os
+import sys
+
+import numpy as np
+
+if sys.argv[1] == 'compare':
+    a, b = np.load(sys.argv[2]), np.load(sys.argv[3])
+    same = bool((a.view(np.uint32) == b.view(np.uint32)).all())
+    print('outputs shape', a.shape, 'byte-identical:', same, ' differing floats:', int((a.view(np.uint32) != b.view(np.uint32)).sum()))
+    sys.exit(0 if same else 1)
+
+D = sys.argv[1]
+os.add_dll_directory(D)
+dll = ctypes.CDLL(os.path.join(D, 'xpe_enhance_basic.dll'))
+
+
+class Img(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32),
+                ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int), ('data', ctypes.c_void_p),
+                ('dataSize', ctypes.c_size_t)]
+
+
+class P(ctypes.Structure):
+    _fields_ = [('mode', ctypes.c_int), ('sigma_space', ctypes.c_float), ('sigma_range', ctypes.c_float),
+                ('search_window', ctypes.c_int32), ('patch_size', ctypes.c_int32), ('h_param', ctypes.c_float)]
+
+
+dll.xpe_noise_reduce.argtypes = [ctypes.POINTER(Img), ctypes.POINTER(P)]
+rs = np.random.default_rng(210)
+outs = []
+for (w, h) in ((64, 64), (101, 67), (31, 40), (257, 129)):
+    base = (1000 + 400 * rs.standard_normal((h, w))).astype(np.float32)
+    for sigma in (0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 7.0, 7.4999995, 7.5):
+        a = base.copy()
+        img = Img(w, h, 32, 32, 1, a.ctypes.data, a.nbytes)
+        rc = dll.xpe_noise_reduce(ctypes.byref(img), ctypes.byref(P(0, sigma, 50.0, 21, 7, 10.0)))
+        assert rc == 0, (w, h, sigma, rc)
+        outs.append(a.ravel())
+np.save(sys.argv[2], np.concatenate(outs))
+print('saved', sum(o.size for o in outs), 'floats for', len(outs), 'runs')

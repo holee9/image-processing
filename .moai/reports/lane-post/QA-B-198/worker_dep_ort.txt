@@ -1,0 +1,44 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file bin\onnxruntime.dll
+
+File Type: DLL
+
+  Image has the following dependencies:
+
+    KERNEL32.dll
+    ADVAPI32.dll
+    MSVCP140.dll
+    MSVCP140_1.dll
+    api-ms-win-core-path-l1-1-0.dll
+    dbghelp.dll
+    SETUPAPI.dll
+    dxgi.dll
+    VCRUNTIME140_1.dll
+    VCRUNTIME140.dll
+    api-ms-win-crt-heap-l1-1-0.dll
+    api-ms-win-crt-runtime-l1-1-0.dll
+    api-ms-win-crt-math-l1-1-0.dll
+    api-ms-win-crt-stdio-l1-1-0.dll
+    api-ms-win-crt-convert-l1-1-0.dll
+    api-ms-win-crt-string-l1-1-0.dll
+    api-ms-win-crt-locale-l1-1-0.dll
+    api-ms-win-crt-time-l1-1-0.dll
+    api-ms-win-crt-filesystem-l1-1-0.dll
+
+  Image has the following delay load dependencies:
+
+    SHELL32.dll
+
+  Summary
+
+       5F000 .data
+        1000 .didat
+       5F000 .pdata
+      27E000 .rdata
+        E000 .reloc
+        1000 .rsrc
+      C6F000 .text
+        1000 _RDATA

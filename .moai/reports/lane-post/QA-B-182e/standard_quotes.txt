@@ -1,0 +1,37 @@
+QA-B-182e: text of the DICOM Standard read for this card. Edition: the pages' own header says "DICOM PS3.5 2026d" /
+"DICOM PS3.3 2026d" (the "current" edition when fetched, 2026-10-01 / 02). Quotes are verbatim from an HTML-to-text
+conversion of the page; punctuation inside table cells was flattened by that conversion.
+
+[1] PS3.5 8.1.1 Pixel Data Encoding of Related Data Elements -- applies to every Pixel Data, native or encapsulated
+    URL: https://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_8.html   (section 8.1.1 is on this page;
+    the per-section URL sect_8.1.1.html returned HTTP 404)
+
+    "Bits Stored (0028,0101) shall never be larger than Bits Allocated (0028,0100)."
+    "Bits Allocated (0028,0100) shall either be 1, or a multiple of 8. High Bit (0028,0102) shall be one less than Bits Stored (0028,0101)."
+    Note 3: "Formerly, High Bit (0028,0102) was not restricted to be one less than Bits Stored (0028,0101) in this Part, or in the general case, though almost all Information Object Definitions in PS3.3 imposed such a restriction. See PS3.5 2014c."
+    "Additional restrictions that are placed on acceptable Values for Bits Allocated (0028,0100), Bits Stored (0028,0101), and High Bit (0028,0102) for Pixel Data (7FE0,0010) are specified in the Information Object Definitions in PS3.3."
+
+[2] PS3.5 8.2 Native or Encapsulated Format Encoding -- JPEG (including JPEG Lossless)
+    URL: https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_8.2.html
+
+    "The use of the DICOM Encapsulated Format to support JPEG Compressed Pixel Data requires that the Data Elements that are related to the Pixel Data encoding (e.g., Photometric Interpretation, Samples per Pixel, Planar Configuration, Bits Allocated, Bits Stored, High Bit, Pixel Representation, Rows, Columns, etc.) shall contain Values that are consistent with the characteristics of the compressed data stream."
+    Table 8.2.1-2 (JPEG Lossless, Non-Hierarchical 1.2.840.10008.1.2.4.57 and SV1 .4.70), MONOCHROME1 / MONOCHROME2 row:
+      Samples per Pixel 1 | Planar Configuration absent | Pixel Representation 0 or 1 | Bits Allocated 8 or 16 | Bits Stored 1-16 | High Bit 0-15
+    "The Pixel Data characteristics included in the JPEG Interchange Format shall be used to decode the compressed data stream."
+
+[3] PS3.5 8.2.4 JPEG 2000 Image Compression
+    URL: https://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_8.2.4.html
+
+    "The use of the DICOM Encapsulated Format to support JPEG 2000 Compressed Pixel Data requires that the Data Elements that are related to the Pixel Data encoding (e.g., Photometric Interpretation, Samples per Pixel, Planar Configuration, Bits Allocated, Bits Stored, High Bit, Pixel Representation, Rows, Columns, etc.) shall contain Values that are consistent with the characteristics of the compressed data stream. The Pixel Data characteristics included in the JPEG 2000 bit stream shall be used to decode the compressed data stream."
+    Table 8.2.4-1 (JPEG 2000 Lossless Only .4.90 / JPEG 2000 .4.91), MONOCHROME1 / MONOCHROME2 row:
+      Samples per Pixel 1 | Planar Configuration absent | Pixel Representation 0 or 1 | Bits Allocated 1, 8, 16, 24, 32 or 40 | Bits Stored 1-38 | High Bit 0-37
+
+[4] PS3.3 C.7.6.3 Image Pixel Module (fetched, URL: https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.3.html)
+    The attribute definitions of Bits Stored and High Bit are not repeated there in a form my searches surfaced; the
+    page refers to PS3.5 for them. NOT quoted from PS3.3: see the report's Gaps.
+
+[5] Side finding, PS3.5 8.1 (same chapter_8.html): "For Pixel Data Values encoded in OF and OD, any value that is permitted
+    by [IEEE 754] may be used, including NaN, Positive Infinity and Negative Infinity." and the Note: "Floating point
+    binary32 and binary64 Pixel Data values are not arbitrarily constrained to finite numbers, since it may be important
+    for the application to signal that the result of a calculation that produced a pixel is an infinite value or not a number."
+    (Float Pixel Data (7FE0,0008) is a different attribute from the Pixel Data this reader returns; noted for QA-B-181f.)

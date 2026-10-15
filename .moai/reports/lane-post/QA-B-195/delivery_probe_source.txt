@@ -1,0 +1,21 @@
+// TEMPORARY MEASUREMENT (QA-B-195 M3, not committed): does a build WITHOUT XPE_AI_TEST_HOOKS trust anything,
+// even when XPE_AI_TEST_TRUSTED_KEYS names a valid key? Compiled twice, with and without /DXPE_AI_TEST_HOOKS=1.
+#include <windows.h>
+
+#include <cstdio>
+#include <string>
+
+#include "ai_model_signer.h"
+
+int main() {
+    const std::string key(128, 'a');   // 64 bytes of 0xAA: well-formed hex, not necessarily a curve point (the id is all that is computed)
+    SetEnvironmentVariableA("XPE_AI_TEST_TRUSTED_KEYS", key.c_str());
+#ifdef XPE_AI_TEST_HOOKS
+    std::printf("build: XPE_AI_TEST_HOOKS defined\n");
+#else
+    std::printf("build: XPE_AI_TEST_HOOKS NOT defined (a delivery build)\n");
+#endif
+    std::printf("TrustedModelKeys().size() with XPE_AI_TEST_TRUSTED_KEYS set to a well-formed 128-hex entry: %zu\n",
+                xpe::ai::TrustedModelKeys().size());
+    return 0;
+}

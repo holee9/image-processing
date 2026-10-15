@@ -1,0 +1,28 @@
+"""Alternating A/B timing of xpe_edge_enhance 3072x3072 (QA-B-201 M3): A = build/ab_A (no floor), B = build/ab_B (floor).
+The binaries are already built and copied. Same test, interleaved runs, order flipped every round."""
+import re
+import subprocess
+
+RUNS = 40
+BAT = r'D:\workspace-github\xpe-post\build\g201-abrun.bat'
+log = open('build/g201-ab-out.txt', 'w', encoding='utf-8', newline='\n')
+
+
+def w(s):
+    log.write(s + '\n')
+    log.flush()
+
+
+res = {'A': [], 'B': []}
+for i in range(RUNS):
+    for tag in (('A', 'B') if i % 2 == 0 else ('B', 'A')):
+        r = subprocess.run(['cmd', '/c', BAT, tag], capture_output=True, text=True, timeout=600)
+        passed = '[  PASSED  ]' in r.stdout
+        m = re.search(r'took (\d+)ms', r.stdout)
+        res[tag].append((passed, int(m.group(1)) if m else None))
+for tag, label in (('A', 'A (no floor)'), ('B', 'B (floor)')):
+    ok = sum(1 for p, _ in res[tag] if p)
+    fails = sorted(ms for p, ms in res[tag] if not p and ms is not None)
+    w('%s: passed %d of %d; the failing runs took %s ms' % (label, ok, RUNS, fails))
+w('=== DONE')
+log.close()

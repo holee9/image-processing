@@ -1,0 +1,565 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 189 tests from 21 test suites.
+[----------] Global test environment set-up.
+[----------] 16 tests from LogTransform
+[ RUN      ] LogTransform.ForwardTransform_SinglePixel_CorrectFormula
+[       OK ] LogTransform.ForwardTransform_SinglePixel_CorrectFormula (0 ms)
+[ RUN      ] LogTransform.NegativePixel_ClampedToZero
+[       OK ] LogTransform.NegativePixel_ClampedToZero (0 ms)
+[ RUN      ] LogTransform.ZeroPixel_ProducesZero
+[       OK ] LogTransform.ZeroPixel_ProducesZero (0 ms)
+[ RUN      ] LogTransform.ZeroNormFactor_ReturnsInvalidInput
+[       OK ] LogTransform.ZeroNormFactor_ReturnsInvalidInput (0 ms)
+[ RUN      ] LogTransform.NegativeNormFactor_ReturnsInvalidInput
+[       OK ] LogTransform.NegativeNormFactor_ReturnsInvalidInput (0 ms)
+[ RUN      ] LogTransform.NullImage_ReturnsInvalidInput
+[       OK ] LogTransform.NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] LogTransform.InverseTransform_SinglePixel_CorrectFormula
+[       OK ] LogTransform.InverseTransform_SinglePixel_CorrectFormula (0 ms)
+[ RUN      ] LogTransform.InverseZeroNormFactor_ReturnsInvalidInput
+[       OK ] LogTransform.InverseZeroNormFactor_ReturnsInvalidInput (0 ms)
+[ RUN      ] LogTransform.InverseNegativeNormFactor_ReturnsInvalidInput
+[       OK ] LogTransform.InverseNegativeNormFactor_ReturnsInvalidInput (0 ms)
+[ RUN      ] LogTransform.InverseNullImage_ReturnsInvalidInput
+[       OK ] LogTransform.InverseNullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] LogTransform.RoundTrip_RestoresWithin1e4RelativeError
+[       OK ] LogTransform.RoundTrip_RestoresWithin1e4RelativeError (0 ms)
+[ RUN      ] LogTransform.Performance_3072x3072_Within15ms
+[       OK ] LogTransform.Performance_3072x3072_Within15ms (13 ms)
+[ RUN      ] LogTransform.InversePerformance_3072x3072_Within15ms
+[       OK ] LogTransform.InversePerformance_3072x3072_Within15ms (12 ms)
+[ RUN      ] LogTransform.MultiplePixels_AllTransformedCorrectly
+[       OK ] LogTransform.MultiplePixels_AllTransformedCorrectly (0 ms)
+[ RUN      ] LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogTransform3072
+PERFMEASURE REQ-ENH-006/xpe_log_transform 3072x3072 min=4927 med=4955 max=6900 us (runs=7)
+[       OK ] LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogTransform3072 (93 ms)
+[ RUN      ] LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogInverse3072
+PERFMEASURE REQ-ENH-006/xpe_log_inverse 3072x3072 min=5177 med=5610 max=6717 us (runs=7)
+[       OK ] LogTransform.BenchmarkFreeze_Performance_REQ_ENH_006_LogInverse3072 (92 ms)
+[----------] 16 tests from LogTransform (212 ms total)
+
+[----------] 14 tests from NoiseReduce
+[ RUN      ] NoiseReduce.NullParams_ReturnsInvalidInput
+[       OK ] NoiseReduce.NullParams_ReturnsInvalidInput (0 ms)
+[ RUN      ] NoiseReduce.NullImage_ReturnsInvalidInput
+[       OK ] NoiseReduce.NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] NoiseReduce.BilateralFilter_FlatImage_NoChange
+[       OK ] NoiseReduce.BilateralFilter_FlatImage_NoChange (1 ms)
+[ RUN      ] NoiseReduce.BilateralFilter_NoisyImage_SNRImproves
+[       OK ] NoiseReduce.BilateralFilter_NoisyImage_SNRImproves (1 ms)
+[ RUN      ] NoiseReduce.BilateralFilter_NegativeSigmaSpace_ReturnsInvalidInput
+[       OK ] NoiseReduce.BilateralFilter_NegativeSigmaSpace_ReturnsInvalidInput (0 ms)
+[ RUN      ] NoiseReduce.BilateralFilter_NegativeSigmaRange_ReturnsInvalidInput
+[       OK ] NoiseReduce.BilateralFilter_NegativeSigmaRange_ReturnsInvalidInput (0 ms)
+[ RUN      ] NoiseReduce.BilateralFilter_ZeroSigmaSpace_ReturnsInvalidInput
+[       OK ] NoiseReduce.BilateralFilter_ZeroSigmaSpace_ReturnsInvalidInput (0 ms)
+[ RUN      ] NoiseReduce.NLM_ValidSmallImage_ReturnsOk
+[       OK ] NoiseReduce.NLM_ValidSmallImage_ReturnsOk (68 ms)
+[ RUN      ] NoiseReduce.NLM_EvenWindowSize_HandledGracefully
+[       OK ] NoiseReduce.NLM_EvenWindowSize_HandledGracefully (0 ms)
+[ RUN      ] NoiseReduce.SigmaEstimation_KnownNoise
+[       OK ] NoiseReduce.SigmaEstimation_KnownNoise (0 ms)
+[ RUN      ] NoiseReduce.SigmaEstimation_NullOutput_ReturnsInvalidInput
+[       OK ] NoiseReduce.SigmaEstimation_NullOutput_ReturnsInvalidInput (0 ms)
+[ RUN      ] NoiseReduce.SigmaEstimation_NullImage_ReturnsInvalidInput
+[       OK ] NoiseReduce.SigmaEstimation_NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] NoiseReduce.Performance_Bilateral_Small_Within100ms
+[       OK ] NoiseReduce.Performance_Bilateral_Small_Within100ms (2 ms)
+[ RUN      ] NoiseReduce.BenchmarkFreeze_Performance_REQ_ENH_012_Bilateral3072
+PERFMEASURE REQ-ENH-012/bilateral 3072x3072 min=42282 med=46320 max=50283 us (runs=7)
+[       OK ] NoiseReduce.BenchmarkFreeze_Performance_REQ_ENH_012_Bilateral3072 (415 ms)
+[----------] 14 tests from NoiseReduce (489 ms total)
+
+[----------] 2 tests from EnhanceBasicThreads
+[ RUN      ] EnhanceBasicThreads.BilateralIsBitIdenticalForEveryThreadCount
+[       OK ] EnhanceBasicThreads.BilateralIsBitIdenticalForEveryThreadCount (32 ms)
+[ RUN      ] EnhanceBasicThreads.SetterStoresTheRequestAndRejectsNothing
+[       OK ] EnhanceBasicThreads.SetterStoresTheRequestAndRejectsNothing (0 ms)
+[----------] 2 tests from EnhanceBasicThreads (32 ms total)
+
+[----------] 18 tests from ContrastEnhance
+[ RUN      ] ContrastEnhance.NullImage_ReturnsInvalidInput
+[       OK ] ContrastEnhance.NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.ValidParams_ReturnsOk
+[       OK ] ContrastEnhance.ValidParams_ReturnsOk (0 ms)
+[ RUN      ] ContrastEnhance.NullParams_UsesDefaults_ReturnsOk
+[       OK ] ContrastEnhance.NullParams_UsesDefaults_ReturnsOk (0 ms)
+[ RUN      ] ContrastEnhance.ClipLimitBelow1_ReturnsInvalidInput
+[       OK ] ContrastEnhance.ClipLimitBelow1_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.TileWidthBelow2_ReturnsInvalidInput
+[       OK ] ContrastEnhance.TileWidthBelow2_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.TileHeightBelow2_ReturnsInvalidInput
+[       OK ] ContrastEnhance.TileHeightBelow2_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.ImageSmallerThanTileGrid_ReturnsInvalidInput
+[       OK ] ContrastEnhance.ImageSmallerThanTileGrid_ReturnsInvalidInput (0 ms)
+[ RUN      ] ContrastEnhance.LowContrastRegion_ContrastImproves
+[       OK ] ContrastEnhance.LowContrastRegion_ContrastImproves (2 ms)
+[ RUN      ] ContrastEnhance.ClipLimit_BoundsTheContrastGain
+[       OK ] ContrastEnhance.ClipLimit_BoundsTheContrastGain (9 ms)
+[ RUN      ] ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries
+[       OK ] ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries (0 ms)
+[ RUN      ] ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs
+[       OK ] ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs (0 ms)
+[ RUN      ] ContrastEnhance.MatchesAnIndependentReference
+[       OK ] ContrastEnhance.MatchesAnIndependentReference (17 ms)
+[ RUN      ] ContrastEnhance.NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBroken
+[       OK ] ContrastEnhance.NarrowFiniteRange_MatchesTheReferenceAndIsNotTreatedAsBroken (3 ms)
+[ RUN      ] ContrastEnhance.BinOnAnExactBoundary_CodexCase_41In0To123
+[       OK ] ContrastEnhance.BinOnAnExactBoundary_CodexCase_41In0To123 (0 ms)
+[ RUN      ] ContrastEnhance.BinOnEveryBoundary_MatchesTheExactQuotient
+[       OK ] ContrastEnhance.BinOnEveryBoundary_MatchesTheExactQuotient (3 ms)
+[ RUN      ] ContrastEnhance.FlatImage_NoArtifacts
+[       OK ] ContrastEnhance.FlatImage_NoArtifacts (0 ms)
+[ RUN      ] ContrastEnhance.Performance_3072x3072_Within50ms
+[       OK ] ContrastEnhance.Performance_3072x3072_Within50ms (59 ms)
+[ RUN      ] ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072
+PERFMEASURE REQ-ENH-017/xpe_contrast_enhance 3072x3072 min=46638 med=47823 max=53502 us (runs=7)
+[       OK ] ContrastEnhance.BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072 (436 ms)
+[----------] 18 tests from ContrastEnhance (534 ms total)
+
+[----------] 12 tests from EdgeEnhance
+[ RUN      ] EdgeEnhance.NullImage_ReturnsInvalidInput
+[       OK ] EdgeEnhance.NullImage_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.NullParams_UsesDefaults_ReturnsOk
+[       OK ] EdgeEnhance.NullParams_UsesDefaults_ReturnsOk (0 ms)
+[ RUN      ] EdgeEnhance.AmountTooLarge_ReturnsInvalidInput
+[       OK ] EdgeEnhance.AmountTooLarge_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.AmountNegative_ReturnsInvalidInput
+[       OK ] EdgeEnhance.AmountNegative_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.RadiusTooSmall_ReturnsInvalidInput
+[       OK ] EdgeEnhance.RadiusTooSmall_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.RadiusTooLarge_ReturnsInvalidInput
+[       OK ] EdgeEnhance.RadiusTooLarge_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.NegativeThreshold_ReturnsInvalidInput
+[       OK ] EdgeEnhance.NegativeThreshold_ReturnsInvalidInput (0 ms)
+[ RUN      ] EdgeEnhance.ZeroAmount_FiniteNonNegativeImageIsUnchanged
+[       OK ] EdgeEnhance.ZeroAmount_FiniteNonNegativeImageIsUnchanged (0 ms)
+[ RUN      ] EdgeEnhance.OvershootClamp_NeverExceedsBound
+[       OK ] EdgeEnhance.OvershootClamp_NeverExceedsBound (0 ms)
+[ RUN      ] EdgeEnhance.ThresholdGating_FlatRegion_Unchanged
+[       OK ] EdgeEnhance.ThresholdGating_FlatRegion_Unchanged (0 ms)
+[ RUN      ] EdgeEnhance.Performance_3072x3072_Within20ms
+[       OK ] EdgeEnhance.Performance_3072x3072_Within20ms (27 ms)
+[ RUN      ] EdgeEnhance.BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072
+PERFMEASURE REQ-ENH-022/xpe_edge_enhance 3072x3072 min=18416 med=18982 max=21637 us (runs=7)
+[       OK ] EdgeEnhance.BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072 (213 ms)
+[----------] 12 tests from EdgeEnhance (241 ms total)
+
+[----------] 15 tests from ExposureIndex
+[ RUN      ] ExposureIndex.NullImg_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullImg_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.NullMeta_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullMeta_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.NullOutEI_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullOutEI_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.NullOutDI_ReturnsInvalidInput
+[       OK ] ExposureIndex.NullOutDI_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.EmptyImage_WidthZero_ReturnsInvalidInput
+[       OK ] ExposureIndex.EmptyImage_WidthZero_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.EmptyImage_HeightZero_ReturnsInvalidInput
+[       OK ] ExposureIndex.EmptyImage_HeightZero_ReturnsInvalidInput (0 ms)
+[ RUN      ] ExposureIndex.ZeroMeanImage_ReturnsProcessingFailed
+[       OK ] ExposureIndex.ZeroMeanImage_ReturnsProcessingFailed (0 ms)
+[ RUN      ] ExposureIndex.KnownPhantom_EI_MatchesReference
+[       OK ] ExposureIndex.KnownPhantom_EI_MatchesReference (0 ms)
+[ RUN      ] ExposureIndex.KnownPhantom_DI_MatchesReference
+[       OK ] ExposureIndex.KnownPhantom_DI_MatchesReference (0 ms)
+[ RUN      ] ExposureIndex.DIOutOfRange_PostsAlert
+[       OK ] ExposureIndex.DIOutOfRange_PostsAlert (0 ms)
+[ RUN      ] ExposureIndex.DIInRange_NoAlert
+[       OK ] ExposureIndex.DIInRange_NoAlert (0 ms)
+[ RUN      ] ExposureIndex.UnknownBodyPart_UsesDefault
+[       OK ] ExposureIndex.UnknownBodyPart_UsesDefault (0 ms)
+[ RUN      ] ExposureIndex.ROISubBuffer_ComputesOnSubRegion
+[       OK ] ExposureIndex.ROISubBuffer_ComputesOnSubRegion (0 ms)
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline
+PERFBUDGET BP08_ei_calc_512 median=14 min=14 max=20 us (runs=5)
+[       OK ] ExposureIndex.BenchmarkFreeze_BP08_EICalcTimeBaseline (0 ms)
+[ RUN      ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline
+PERFBUDGET BP09_di_calc_512 median=15 min=14 max=16 us (runs=5)
+[       OK ] ExposureIndex.BenchmarkFreeze_BP09_DICalcTimeBaseline (0 ms)
+[----------] 15 tests from ExposureIndex (0 ms total)
+
+[----------] 8 tests from EnhanceIntegration
+[ RUN      ] EnhanceIntegration.AllFunctions_NullImg_ReturnInvalidInput
+[       OK ] EnhanceIntegration.AllFunctions_NullImg_ReturnInvalidInput (0 ms)
+[ RUN      ] EnhanceIntegration.FullPipeline_3072x3072_Within200ms
+[       OK ] EnhanceIntegration.FullPipeline_3072x3072_Within200ms (74 ms)
+[ RUN      ] EnhanceIntegration.StructSizes_PInvokeCompatible
+[       OK ] EnhanceIntegration.StructSizes_PInvokeCompatible (0 ms)
+[ RUN      ] EnhanceIntegration.ThreadSafety_ConcurrentBilateral
+[       OK ] EnhanceIntegration.ThreadSafety_ConcurrentBilateral (1 ms)
+[ RUN      ] EnhanceIntegration.NoHeapLeak_1000Iterations
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_enhance_integration.cpp(239):: heap growth 0 bytes / 0 blocks over 1000 cycles, working set 0 bytes (not asserted)
+[       OK ] EnhanceIntegration.NoHeapLeak_1000Iterations (2 ms)
+[ RUN      ] EnhanceIntegration.NoHeapLeak_1000Iterations_AllocatingPaths
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_enhance_integration.cpp(291):: heap growth 0 bytes / 0 blocks over 1000 cycles, working set 253952 bytes (not asserted)
+[       OK ] EnhanceIntegration.NoHeapLeak_1000Iterations_AllocatingPaths (221 ms)
+[ RUN      ] EnhanceIntegration.NoHeapLeak_AllocatingPaths_ControlLeakIsCaught
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_enhance_integration.cpp(306):: control 64 B/cycle: heap growth 64000 bytes / 1000 blocks over 1000 cycles, working set 270336 bytes (not asserted)
+[       OK ] EnhanceIntegration.NoHeapLeak_AllocatingPaths_ControlLeakIsCaught (189 ms)
+[ RUN      ] EnhanceIntegration.Version_ReturnsNonNull
+[       OK ] EnhanceIntegration.Version_ReturnsNonNull (0 ms)
+[----------] 8 tests from EnhanceIntegration (490 ms total)
+
+[----------] 5 tests from Enh01LogNoise
+[ RUN      ] Enh01LogNoise.Log_Roundtrip_512_PSNR_Above_60dB
+[       OK ] Enh01LogNoise.Log_Roundtrip_512_PSNR_Above_60dB (1 ms)
+[ RUN      ] Enh01LogNoise.NoiseSigma_Gaussian10_EstimateWithin10Percent
+[       OK ] Enh01LogNoise.NoiseSigma_Gaussian10_EstimateWithin10Percent (2 ms)
+[ RUN      ] Enh01LogNoise.Bilateral_OnNoisyImage_SNRImprovement_Above_6dB
+[       OK ] Enh01LogNoise.Bilateral_OnNoisyImage_SNRImprovement_Above_6dB (1 ms)
+[ RUN      ] Enh01LogNoise.Log_AllZero_ReturnsZeroImage_NotCrash
+[       OK ] Enh01LogNoise.Log_AllZero_ReturnsZeroImage_NotCrash (1 ms)
+[ RUN      ] Enh01LogNoise.NLM_Mode_Runs_And_OutputDiffersFromBilateral
+[       OK ] Enh01LogNoise.NLM_Mode_Runs_And_OutputDiffersFromBilateral (2 ms)
+[----------] 5 tests from Enh01LogNoise (9 ms total)
+
+[----------] 15 tests from DataSizeGuardTest
+[ RUN      ] DataSizeGuardTest.LogTransform_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.LogTransform_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.LogInverse_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.LogInverse_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.NoiseReduce_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.NoiseReduce_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.NoiseEstimateSigma_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.NoiseEstimateSigma_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.ContrastEnhance_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.ContrastEnhance_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.EdgeEnhance_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.EdgeEnhance_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.CalcExposureIndex_ShortDataSize_ReturnsInvalidInput
+[       OK ] DataSizeGuardTest.CalcExposureIndex_ShortDataSize_ReturnsInvalidInput (0 ms)
+[ RUN      ] DataSizeGuardTest.LogTransform_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.LogTransform_ZeroDataSize_Accepted (0 ms)
+[ RUN      ] DataSizeGuardTest.LogInverse_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.LogInverse_ZeroDataSize_Accepted (0 ms)
+[ RUN      ] DataSizeGuardTest.NoiseReduce_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.NoiseReduce_ZeroDataSize_Accepted (0 ms)
+[ RUN      ] DataSizeGuardTest.NoiseEstimateSigma_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.NoiseEstimateSigma_ZeroDataSize_Accepted (0 ms)
+[ RUN      ] DataSizeGuardTest.ContrastEnhance_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.ContrastEnhance_ZeroDataSize_Accepted (0 ms)
+[ RUN      ] DataSizeGuardTest.EdgeEnhance_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.EdgeEnhance_ZeroDataSize_Accepted (0 ms)
+[ RUN      ] DataSizeGuardTest.CalcExposureIndex_ZeroDataSize_Accepted
+[       OK ] DataSizeGuardTest.CalcExposureIndex_ZeroDataSize_Accepted (0 ms)
+[ RUN      ] DataSizeGuardTest.LogTransform_OversizedDataSize_Accepted
+[       OK ] DataSizeGuardTest.LogTransform_OversizedDataSize_Accepted (0 ms)
+[----------] 15 tests from DataSizeGuardTest (0 ms total)
+
+[----------] 2 tests from DataSizeGuardAsanProbe
+[ RUN      ] DataSizeGuardAsanProbe.LogTransform_TrulyShortBuffer_RejectedBeforeRead
+[       OK ] DataSizeGuardAsanProbe.LogTransform_TrulyShortBuffer_RejectedBeforeRead (0 ms)
+[ RUN      ] DataSizeGuardAsanProbe.NoiseEstimateSigma_TrulyShortBuffer_RejectedBeforeRead
+[       OK ] DataSizeGuardAsanProbe.NoiseEstimateSigma_TrulyShortBuffer_RejectedBeforeRead (0 ms)
+[----------] 2 tests from DataSizeGuardAsanProbe (0 ms total)
+
+[----------] 1 test from EnhanceBasicDataSizeProbe
+[ RUN      ] EnhanceBasicDataSizeProbe.ShortDataSizeIsRejectedWithoutOverreading
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(185):: xpe_log_transform CONTROL dataSize=16384B rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(196):: xpe_log_transform declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(185):: xpe_log_inverse CONTROL dataSize=16384B rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(196):: xpe_log_inverse declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(185):: xpe_noise_reduce CONTROL dataSize=16384B rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(196):: xpe_noise_reduce declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(185):: xpe_noise_estimate_sigma CONTROL dataSize=16384B rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(196):: xpe_noise_estimate_sigma declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(185):: xpe_contrast_enhance CONTROL dataSize=16384B rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(196):: xpe_contrast_enhance declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(185):: xpe_edge_enhance CONTROL dataSize=16384B rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(196):: xpe_edge_enhance declared=16384B dataSize=8192B rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(185):: xpe_calc_exposure_index CONTROL dataSize=16384B rc=-3 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_datasize_overread.cpp(196):: xpe_calc_exposure_index declared=16384B dataSize=8192B rc=-1 overread=no
+[       OK ] EnhanceBasicDataSizeProbe.ShortDataSizeIsRejectedWithoutOverreading (0 ms)
+[----------] 1 test from EnhanceBasicDataSizeProbe (0 ms total)
+
+[----------] 5 tests from ExposureIndexContractTest
+[ RUN      ] ExposureIndexContractTest.Stage2_EiIsIndependentOfTheTarget_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(87):: CHEST EI=100 DI=-3.0103
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(88):: SKULL EI=100 DI=-5.0515
+[       OK ] ExposureIndexContractTest.Stage2_EiIsIndependentOfTheTarget_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_DiSeparatesBodyPartsByTheTableRatio_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(110):: same exposure, DI by body part: CHEST=-2.09715 SKULL=-4.13835 HAND=0.913152
+[       OK ] ExposureIndexContractTest.Stage2_DiSeparatesBodyPartsByTheTableRatio_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_DiSpreadsAcrossEveryBodyPart_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(163):: #154 body-part sweep, one axis, same 64x64 image (fill 1234):
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   CHEST  EI=123.4  DI=-2.09715  DI bits identical to CHEST
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   HAND  EI=123.4  DI=0.913152  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   FOOT  EI=123.4  DI=0.913152  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   ABDOMEN  EI=123.4  DI=-3.06625  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   PELVIS  EI=123.4  DI=-3.06625  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   SPINE  EI=123.4  DI=-3.85806  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   SKULL  EI=123.4  DI=-4.13835  DI bits differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   NOT_A_BODY_PART  EI=123.4  DI=-2.09715  DI bits identical to CHEST
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(177)::   (empty)  EI=123.4  DI=-2.09715  DI bits identical to CHEST
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(182)::   EI spans 123.4..123.4 (x1), DI spread = 5.0515 dB, entries differing from CHEST: 6 of 9
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(204)::   control -- same body part, exposure x2: DI -2.09715 -> 0.913152
+[       OK ] ExposureIndexContractTest.Stage2_DiSpreadsAcrossEveryBodyPart_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_TheAlertThresholdSeparatesBodyParts_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(230)::   HAND  EI=600  DI=7.78151  alerts=1
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(230)::   CHEST  EI=600  DI=4.77121  alerts=1
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(230)::   SKULL  EI=600  DI=2.73001  alerts=0
+[       OK ] ExposureIndexContractTest.Stage2_TheAlertThresholdSeparatesBodyParts_154 (0 ms)
+[ RUN      ] ExposureIndexContractTest.Stage2_EveryTableEntryReachesDi_154
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(267):: #154 G2 -- DI offset from CHEST vs the table ratio:
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   CHEST (EIT 200)  measured 0  expected 0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   HAND (EIT 100)  measured 3.0103  expected 3.0103
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   FOOT (EIT 100)  measured 3.0103  expected 3.0103
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   ABDOMEN (EIT 250)  measured -0.9691  expected -0.9691
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   PELVIS (EIT 250)  measured -0.9691  expected -0.9691
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   SPINE (EIT 300)  measured -1.76091  expected -1.76091
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(274)::   SKULL (EIT 320)  measured -2.0412  expected -2.0412
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_exposure_index_contract.cpp(286)::   exposure x2: -2.09715 -> 0.913152 (delta 3.0103)
+[       OK ] ExposureIndexContractTest.Stage2_EveryTableEntryReachesDi_154 (0 ms)
+[----------] 5 tests from ExposureIndexContractTest (1 ms total)
+
+[----------] 3 tests from ExposureIndexNonFinite
+[ RUN      ] ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity
+[       OK ] ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity (0 ms)
+[ RUN      ] ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter
+[       OK ] ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter (0 ms)
+[ RUN      ] ExposureIndexNonFinite.AnInfinityOfEachSignInOneImageIsStillRefused
+[       OK ] ExposureIndexNonFinite.AnInfinityOfEachSignInOneImageIsStillRefused (0 ms)
+[----------] 3 tests from ExposureIndexNonFinite (0 ms total)
+
+[----------] 6 tests from EnhanceBasicParameterDependency
+[ RUN      ] EnhanceBasicParameterDependency.LogTransform_NormFactorReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(78):: log_transform normFactor 1000->4000 maxdiff=9479.6
+[       OK ] EnhanceBasicParameterDependency.LogTransform_NormFactorReachesTheOutput (0 ms)
+[ RUN      ] EnhanceBasicParameterDependency.LogInverse_NormFactorReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(91):: log_inverse normFactor 1000->4000 maxdiff=0.00060904
+[       OK ] EnhanceBasicParameterDependency.LogInverse_NormFactorReachesTheOutput (0 ms)
+[ RUN      ] EnhanceBasicParameterDependency.NoiseReduce_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(116):: noise_reduce sigma_space 3->8 maxdiff=25.6799 sigma_range 50->200=39.2399 BILATERAL->NLM=72.0029
+[       OK ] EnhanceBasicParameterDependency.NoiseReduce_EveryParameterReachesTheOutput (78 ms)
+[ RUN      ] EnhanceBasicParameterDependency.NoiseReduce_NlmParametersReachTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(145):: NLM search_window 21->7 maxdiff=2.11829 patch_size 7->3=5.75183 h_param 10->40=91.4111
+[       OK ] EnhanceBasicParameterDependency.NoiseReduce_NlmParametersReachTheOutput (196 ms)
+[ RUN      ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(209):: clahe clip_limit 3->40 maxdiff=65.918 tiles 8x8->2x2=2.44141
+[       OK ] EnhanceBasicParameterDependency.ContrastEnhance_EveryParameterReachesTheOutput (3 ms)
+[ RUN      ] EnhanceBasicParameterDependency.EdgeEnhance_EveryParameterReachesTheOutput
+
+[  INFO ] D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_parameter_dependency.cpp(233):: usm amount 0.5->2 maxdiff=337.711 radius 2->6=53.5662 threshold 10->300=112.57
+[       OK ] EnhanceBasicParameterDependency.EdgeEnhance_EveryParameterReachesTheOutput (0 ms)
+[----------] 6 tests from EnhanceBasicParameterDependency (279 ms total)
+
+[----------] 4 tests from EnhanceBasicEmptyImageContract
+[ RUN      ] EnhanceBasicEmptyImageContract.ZeroWidthIsInvalidInputEverywhere
+[       OK ] EnhanceBasicEmptyImageContract.ZeroWidthIsInvalidInputEverywhere (0 ms)
+[ RUN      ] EnhanceBasicEmptyImageContract.ZeroHeightIsInvalidInputEverywhere
+[       OK ] EnhanceBasicEmptyImageContract.ZeroHeightIsInvalidInputEverywhere (0 ms)
+[ RUN      ] EnhanceBasicEmptyImageContract.NullDataIsInvalidInputEverywhere
+[       OK ] EnhanceBasicEmptyImageContract.NullDataIsInvalidInputEverywhere (0 ms)
+[ RUN      ] EnhanceBasicEmptyImageContract.ValidImageStillAccepted
+[       OK ] EnhanceBasicEmptyImageContract.ValidImageStillAccepted (0 ms)
+[----------] 4 tests from EnhanceBasicEmptyImageContract (0 ms total)
+
+[----------] 24 tests from ExceptionGuard
+[ RUN      ] ExceptionGuard.BadAllocBecomesOutOfMemory
+[       OK ] ExceptionGuard.BadAllocBecomesOutOfMemory (0 ms)
+[ RUN      ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed
+[       OK ] ExceptionGuard.LengthErrorAndAnyStdExceptionBecomeProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed
+[       OK ] ExceptionGuard.ANonStdExceptionBecomesProcessingFailed (0 ms)
+[ RUN      ] ExceptionGuard.ANormalReturnPassesThroughUnchanged
+[       OK ] ExceptionGuard.ANormalReturnPassesThroughUnchanged (0 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.NoiseReduceNlmWithAnImpossibleDeclaredSizeIsOutOfMemoryNotAnException (4 ms)
+[ RUN      ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.NoiseReduceBilateralWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput
+[       OK ] ExceptionGuard.EdgeEnhanceWithAWidthAboveIntMaxIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException
+[       OK ] ExceptionGuard.EdgeEnhanceWithAnImpossibleRowBufferIsOutOfMemoryNotAnException (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput
+[       OK ] ExceptionGuard.ContrastEnhanceWithATileCountThatOverflowsIntIsInvalidInput (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsWindowBoundary (0 ms)
+[ RUN      ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax
+[       OK ] ExceptionGuard.EveryEntryPointRejectsADimensionAboveIntMax (0 ms)
+[ RUN      ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax
+[       OK ] ExceptionGuard.CeilDivMatchesTheWideReferenceNearIntMax (0 ms)
+[ RUN      ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries
+[       OK ] ExceptionGuard.CeilDivIsExactAtTheOrdinaryBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.TileBoundsMatchTheOldFormulaAndPartitionTheAxis
+[       OK ] ExceptionGuard.TileBoundsMatchTheOldFormulaAndPartitionTheAxis (3 ms)
+[ RUN      ] ExceptionGuard.TileBoundsStayInRangeNearIntMax
+[       OK ] ExceptionGuard.TileBoundsStayInRangeNearIntMax (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape
+[       OK ] ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape (254 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile
+[       OK ] ExceptionGuard.ContrastEnhanceNeverReadsPastThePixelsForAnEmptyEdgeTile (164 ms)
+[ RUN      ] ExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+[       OK ] ExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow (3 ms)
+[ RUN      ] ExceptionGuard.ForRowsNeverPlansMoreBandsThanRows
+[       OK ] ExceptionGuard.ForRowsNeverPlansMoreBandsThanRows (0 ms)
+[ RUN      ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt
+[       OK ] ExceptionGuard.BilateralRefusesANonFiniteSpatialSigmaBeforeConvertingIt (0 ms)
+[ RUN      ] ExceptionGuard.BilateralRefusesANaNRangeSigma
+[       OK ] ExceptionGuard.BilateralRefusesANaNRangeSigma (0 ms)
+[ RUN      ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius
+[       OK ] ExceptionGuard.BilateralStillAcceptsLargeFiniteSpatialSigmasAndLimitsTheRadius (2 ms)
+[ RUN      ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries
+[       OK ] ExceptionGuard.EdgeEnhanceRefusesNaNParametersAndKeepsItsRangeBoundaries (0 ms)
+[ RUN      ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes
+[       OK ] ExceptionGuard.ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes (0 ms)
+[----------] 24 tests from ExceptionGuard (434 ms total)
+
+[----------] 20 tests from NonFinitePixels
+[ RUN      ] NonFinitePixels.ContrastEnhanceRefusesANonFinitePixelAndLeavesTheImageAlone
+[       OK ] NonFinitePixels.ContrastEnhanceRefusesANonFinitePixelAndLeavesTheImageAlone (0 ms)
+[ RUN      ] NonFinitePixels.ContrastEnhanceStillProcessesLargeFinitePixels
+[       OK ] NonFinitePixels.ContrastEnhanceStillProcessesLargeFinitePixels (0 ms)
+[ RUN      ] NonFinitePixels.ContrastEnhanceRefusesFinitePixelsWhoseRangeLeavesFloat
+[       OK ] NonFinitePixels.ContrastEnhanceRefusesFinitePixelsWhoseRangeLeavesFloat (0 ms)
+[ RUN      ] NonFinitePixels.LogInverseRefusesANonFinitePixel
+[       OK ] NonFinitePixels.LogInverseRefusesANonFinitePixel (0 ms)
+[ RUN      ] NonFinitePixels.LogInverseRefusesANonFiniteNormFactor
+[       OK ] NonFinitePixels.LogInverseRefusesANonFiniteNormFactor (0 ms)
+[ RUN      ] NonFinitePixels.LogInverseRefusesAFinitePixelWhoseResultWouldNotBeFinite
+[       OK ] NonFinitePixels.LogInverseRefusesAFinitePixelWhoseResultWouldNotBeFinite (0 ms)
+[ RUN      ] NonFinitePixels.LogInverseStillConvertsAnOrdinaryImage
+[       OK ] NonFinitePixels.LogInverseStillConvertsAnOrdinaryImage (0 ms)
+[ RUN      ] NonFinitePixels.TheFinitePixelThatBecameInfinityNowStopsAtTheFirstStage
+[       OK ] NonFinitePixels.TheFinitePixelThatBecameInfinityNowStopsAtTheFirstStage (0 ms)
+[ RUN      ] NonFinitePixels.LogTransformRefusesANonFinitePixel
+[       OK ] NonFinitePixels.LogTransformRefusesANonFinitePixel (0 ms)
+[ RUN      ] NonFinitePixels.LogTransformRefusesANonFiniteNormFactor
+[       OK ] NonFinitePixels.LogTransformRefusesANonFiniteNormFactor (0 ms)
+[ RUN      ] NonFinitePixels.LogTransformRefusesAFiniteRequestWhoseResultWouldNotBeFinite
+[       OK ] NonFinitePixels.LogTransformRefusesAFiniteRequestWhoseResultWouldNotBeFinite (0 ms)
+[ RUN      ] NonFinitePixels.LogTransformStillConvertsAnOrdinaryImage
+[       OK ] NonFinitePixels.LogTransformStillConvertsAnOrdinaryImage (0 ms)
+[ RUN      ] NonFinitePixels.NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndParameters
+[       OK ] NonFinitePixels.NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndParameters (31 ms)
+[ RUN      ] NonFinitePixels.BilateralRefusesAnImageWhoseWeightedSumWouldLeaveFloat
+[       OK ] NonFinitePixels.BilateralRefusesAnImageWhoseWeightedSumWouldLeaveFloat (0 ms)
+[ RUN      ] NonFinitePixels.BilateralRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes
+[       OK ] NonFinitePixels.BilateralRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes (0 ms)
+[ RUN      ] NonFinitePixels.NlmRefusesAnImageWhoseWeightedSumWouldLeaveFloat
+[       OK ] NonFinitePixels.NlmRefusesAnImageWhoseWeightedSumWouldLeaveFloat (0 ms)
+[ RUN      ] NonFinitePixels.NlmRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes
+[       OK ] NonFinitePixels.NlmRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes (0 ms)
+[ RUN      ] NonFinitePixels.EdgeEnhanceRefusesImagesWhoseBlurOrSharpenTermsWouldLeaveFloat
+[       OK ] NonFinitePixels.EdgeEnhanceRefusesImagesWhoseBlurOrSharpenTermsWouldLeaveFloat (0 ms)
+[ RUN      ] NonFinitePixels.EdgeEnhanceRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes
+[       OK ] NonFinitePixels.EdgeEnhanceRefusesANonFinitePixelAndStillProcessesLargeFiniteOnes (0 ms)
+[ RUN      ] NonFinitePixels.NlmRefusesANonFiniteHParam
+[       OK ] NonFinitePixels.NlmRefusesANonFiniteHParam (0 ms)
+[----------] 20 tests from NonFinitePixels (32 ms total)
+
+[----------] 6 tests from EdgeEnhanceFormula
+[ RUN      ] EdgeEnhanceFormula.E1_ControlTheDefaultThresholdSharpensAnEdge
+E1 CONTROL: amount 1, radius 2, threshold 10, edge 1000 -> module max |out-in| = 397.918
+[       OK ] EdgeEnhanceFormula.E1_ControlTheDefaultThresholdSharpensAnEdge (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_ThresholdZeroSharpensAnEdge
+E1 THRESHOLD 0: SPEC (reference blur) max |out-in| = 400.263; module max |out-in| = 397.918
+[       OK ] EdgeEnhanceFormula.E1_ThresholdZeroSharpensAnEdge (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays
+E1 CONTRAST    100: bright-side edge pixel moves by SPEC 20.013, module 19.896; dark side SPEC -20.013, module -19.896
+E1 CONTRAST   1000: bright-side edge pixel moves by SPEC 200.131, module 198.959; dark side SPEC -200.131, module -198.959
+E1 RATIO (contrast 1000 / contrast 100) at the bright edge pixel: SPEC 10.00, module 10.00
+[       OK ] EdgeEnhanceFormula.E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold
+E1 BOUND: bright-side edge pixel original 10010.0, SPEC 20020.0, module 20020.0, 2*original 20020.0, original+amount*threshold 10060.0
+[       OK ] EdgeEnhanceFormula.E1_TheOvershootIsBoundedByTwiceTheOriginalAndNotByAmountTimesThreshold (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone
+[       OK ] EdgeEnhanceFormula.E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone (0 ms)
+[ RUN      ] EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue
+E1 DARK DOT: original 30.0, SPEC 80.0, module 80.0 (2*original 60, original+amount*threshold 80)
+[       OK ] EdgeEnhanceFormula.E1_ADarkPixelMayOvershootByAmountTimesThresholdWhenThatIsAboveTwiceItsValue (0 ms)
+[----------] 6 tests from EdgeEnhanceFormula (0 ms total)
+
+[----------] 5 tests from EdgeEnhanceFloor
+[ RUN      ] EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero
+M3 FLOOR: base 0, contrast 4000, amount 5.0: reference min -8005.3, module min 0.0, module negatives 0
+M3 FLOOR: base 30, contrast 4000, amount 5.0: reference min -7975.3, module min 0.0, module negatives 0
+M3 FLOOR: base 0, contrast 4000, amount 0.5: reference min -800.5, module min 0.0, module negatives 0
+M3 FLOOR: base 0, contrast 4000, amount 1.0: reference min -1601.1, module min 0.0, module negatives 0
+[       OK ] EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero (0 ms)
+[ RUN      ] EdgeEnhanceFloor.TheFloorDoesNotChangeAnyPixelThatTheFormulaLeavesAtOrAboveZero
+[       OK ] EdgeEnhanceFloor.TheFloorDoesNotChangeAnyPixelThatTheFormulaLeavesAtOrAboveZero (0 ms)
+[ RUN      ] EdgeEnhanceFloor.TheUpperBoundIsUnchangedByTheFloor
+[       OK ] EdgeEnhanceFloor.TheUpperBoundIsUnchangedByTheFloor (0 ms)
+[ RUN      ] EdgeEnhanceFloor.TheOutputHasNoNegativeEvenForANegativeInputThatIsNotSharpened
+[       OK ] EdgeEnhanceFloor.TheOutputHasNoNegativeEvenForANegativeInputThatIsNotSharpened (0 ms)
+[ RUN      ] EdgeEnhanceFloor.APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame
+[       OK ] EdgeEnhanceFloor.APositivePixelThatIsNotSharpenedIsStillReturnedAsItCame (0 ms)
+[----------] 5 tests from EdgeEnhanceFloor (0 ms total)
+
+[----------] 4 tests from EdgeEnhanceZeroAmount
+[ RUN      ] EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched
+[       OK ] EdgeEnhanceZeroAmount.ANegativePixelIsReturnedAsZeroAndTheRestIsUntouched (0 ms)
+[ RUN      ] EdgeEnhanceZeroAmount.ANonFinitePixelIsRefusedWithTheSameCodeAsForEveryOtherAmount
+[       OK ] EdgeEnhanceZeroAmount.ANonFinitePixelIsRefusedWithTheSameCodeAsForEveryOtherAmount (0 ms)
+[ RUN      ] EdgeEnhanceZeroAmount.AFiniteNonNegativeImageIsStillReturnedByteForByte
+[       OK ] EdgeEnhanceZeroAmount.AFiniteNonNegativeImageIsStillReturnedByteForByte (0 ms)
+[ RUN      ] EdgeEnhanceZeroAmount.ANonFloat32ImageIsRefusedWhateverTheAmount
+[       OK ] EdgeEnhanceZeroAmount.ANonFloat32ImageIsRefusedWhateverTheAmount (0 ms)
+[----------] 4 tests from EdgeEnhanceZeroAmount (0 ms total)
+
+[----------] 4 tests from ClaheBin
+[ RUN      ] ClaheBin.EveryVectorMatchesTheExactRationalBin
+[       OK ] ClaheBin.EveryVectorMatchesTheExactRationalBin (1 ms)
+[ RUN      ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt
+[       OK ] ClaheBin.TheFastPathEndsExactlyWhereTheDerivationEndsIt (0 ms)
+[ RUN      ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel
+[       OK ] ClaheBin.MinLsbExpReadsTheLowestNonzeroPixel (0 ms)
+[ RUN      ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference
+[       OK ] ClaheBin.CodexEightByEight_EveryPixelMatchesTheExactReference (0 ms)
+[----------] 4 tests from ClaheBin (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 189 tests from 21 test suites ran. (2764 ms total)
+[  PASSED  ] 189 tests.

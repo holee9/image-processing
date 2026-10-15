@@ -1,0 +1,13 @@
+[leaderexe] pid 30640 windows: 1
+[leaderexe] title: [MOCK] ImageProcTest GUI-S0
+[leaderexe]   MOCK BACKEND ? Native was requested but could not be used. Images and results are synthetic; not for clinical judgement.
+[leaderexe]   Backend
+[leaderexe]   _Backend
+[leaderexe]   Backend initialized: v0.0.0-mock
+[leaderexe]   Backend initialized: v0.0.0-mock
+[leaderexe]   mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display
+[leaderexe]   mode=Mock (requested Native)  |  common=v0.0.0-mock  |  display=v0.0.0-mock-display
+[leaderexe]   Initialize Backend
+[leaderexe]   Initialize Backend
+[leaderexe]   Shutdown Backend
+[leaderexe]   Shutdown Backend

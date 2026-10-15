@@ -1,0 +1,26 @@
+<Project>
+  <!--
+    GUI-C-193 (user decision, 2026-10-02): the two test fault switches (the automation-fault switch with the value ai-worker-disabled,
+    and the one with display-pipeline-after:N) exist only in test builds. They are compiled in when XPE_TEST_FAULTS is defined, which
+    is when XpeTestFaults is true, which is by default the Debug configuration only. A Release (shipped) build has no parser branch,
+    no FaultInjectingBackend and no title marker for them, and refuses the switch like any other unrecognised automation switch.
+    Every CI job and every test builds Debug (dotnet build -c Debug; the E2E fixtures launch bin/Debug), so none of them needs a
+    change. To get a test configuration of something else: pass /p:XpeTestFaults=true. To check a shipped one: build -c Release.
+  -->
+  <PropertyGroup>
+    <XpeTestFaults Condition="'$(XpeTestFaults)' == '' and '$(Configuration)' == 'Debug'">true</XpeTestFaults>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(XpeTestFaults)' == 'true'">
+    <DefineConstants>$(DefineConstants);XPE_TEST_FAULTS</DefineConstants>
+  </PropertyGroup>
+
+  <!--
+    GUI-C-192e (Codex #62): the property can be given on the command line, and then it defines the symbol in a Release build too. A shipped
+    configuration must not be able to carry the test switches, whoever passes what, so that combination is an ERROR before anything is compiled.
+  -->
+  <Target Name="XpeTestFaultsRefusedInRelease" BeforeTargets="CoreCompile"
+          Condition="'$(XpeTestFaults)' == 'true' And '$(Configuration)' == 'Release'">
+    <Error Code="XPE0001"
+           Text="XpeTestFaults=true is not allowed in the Release configuration: a shipped build must not contain the test fault switches (GUI-C-193). Build Debug for a test build, or drop -p:XpeTestFaults=true." />
+  </Target>
+</Project>

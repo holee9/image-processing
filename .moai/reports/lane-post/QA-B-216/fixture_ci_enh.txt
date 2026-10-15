@@ -1,0 +1,29 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = M2Measure.DISABLED_FingerprintFixture_216
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from M2Measure
+[ RUN      ] M2Measure.DISABLED_FingerprintFixture_216
+== QA-B-216 fixture fingerprints, 512x512, enhance_basic=1.0.0 ==
+  fixture 0 input        fnv1a64=7d4815d1cc6c05db
+  fixture 0 log             fnv1a64=bafbd04274e462e6
+  fixture 0 noise_bilateral fnv1a64=60d17bf52b2f74bf
+  fixture 0 clahe           fnv1a64=6bed6a3163211eac
+  fixture 0 usm             fnv1a64=4c636ff5df8d9c0d
+  fixture 1 input        fnv1a64=b810d3ebbf084737
+  fixture 1 log             fnv1a64=8c16690f36aa0e39
+  fixture 1 noise_bilateral fnv1a64=4e8c215920ba8c8c
+  fixture 1 clahe           fnv1a64=e96ed3e93e74303e
+  fixture 1 usm             fnv1a64=79faa88b46d695f0
+  fixture 2 input        fnv1a64=20f60d3def112924
+  fixture 2 log             fnv1a64=e3ea95a9fba19014
+  fixture 2 noise_bilateral fnv1a64=23c642d118ddba50
+  fixture 2 clahe           fnv1a64=7105799d397335a9
+  fixture 2 usm             fnv1a64=2cee469258dd7f2e
+[       OK ] M2Measure.DISABLED_FingerprintFixture_216 (30 ms)
+[----------] 1 test from M2Measure (30 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (30 ms total)
+[  PASSED  ] 1 test.
+===EXIT=0===

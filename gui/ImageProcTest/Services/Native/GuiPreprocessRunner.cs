@@ -23,6 +23,12 @@ internal static class GuiPreprocessRunner
 {
     private const int XpeOk = 0;
 
+    /// <summary>
+    /// GUI-C-233k: the calibration stages <c>xpe_preprocess_pipeline_out</c> runs, in order. The HUD's "Calib:" line and the result text both read this, so what the screen says ran and what the
+    /// call is are one list. (The settings also hold ghost / temperature / nonlinearity / binning modes; this call does not run them.)
+    /// </summary>
+    internal static readonly string[] ExecutedStages = ["offset", "gain", "defect"];
+
     /// <summary>Calibration file names the generator writes.</summary>
     private const string OffsetFile = "offset.xcal";
     private const string GainFile = "gain.xcal";
@@ -41,7 +47,8 @@ internal static class GuiPreprocessRunner
         string defectDirectory,
         string bodyPart,
         float kVp,
-        float pixelPitchMm)
+        float pixelPitchMm,
+        bool measureExposureIndex = false)
     {
         var offset = Path.Combine(offsetDirectory, OffsetFile);
         var gain = Path.Combine(gainDirectory, GainFile);
@@ -50,12 +57,14 @@ internal static class GuiPreprocessRunner
         var missing = new[] { offset, gain, defect }.Where(p => !File.Exists(p)).ToArray();
         if (missing.Length > 0)
         {
+            // GUI-C-234b: a skip with a reason (<short>: <detail>), not a failure - the HUD says "not run (no calibration data)".
             return new PreprocessRunResult(
                 false,
-                $"Preprocessing skipped: calibration file(s) not found — {string.Join(", ", missing)}. " +
+                $"no calibration data: calibration file(s) not found — {string.Join(", ", missing)}. " +
                 "Generate a set with xpe_calib_fixture_gen --out <dir> and point the calibration " +
                 "directories at it.",
-                null);
+                null,
+                Skipped: true);
         }
 
         var initCode = XpePreprocessNative.xpe_preprocess_init(null);
@@ -80,7 +89,16 @@ internal static class GuiPreprocessRunner
                 }
             }
 
-            return RunStages(rawPixels, width, height, bodyPart, kVp, pixelPitchMm);
+            // GUI-C-232b (SRS-CALIB-SAFE-004, leader decision): the operator app has ONE preprocess path, xpe_preprocess_pipeline_out, which never writes the input frame. A DLL without that
+            // export is a FAILURE with an instruction, not a reason to run the older in-place stage calls.
+            try
+            {
+                return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return new PreprocessRunResult(false, "Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.", null);
+            }
         }
         finally
         {
@@ -89,30 +107,28 @@ internal static class GuiPreprocessRunner
     }
 
     /// <summary>
-    /// offset (UInt16→UInt16) → gain (UInt16→Float32) → defect (Float32→Float32).
-    ///
-    /// The formats are the header's, not a guess: each stage declares its input and output format
-    /// (preprocess_api.h), and allocating the wrong one is a silent wrong answer rather than an error.
+    /// The configuration the app passes to the pipeline: the product path of the first stage, as the module's own measurements use it (modules/preprocess/tests/test_zz_a241_measure.cpp, cfgFinal).
+    /// Temperature compensation, nonlinearity and binning are bypassed because the app has no temperature, no linearity table and no binning setting to give them; ghost is off because no ghost handle is given.
     /// </summary>
-    private static PreprocessRunResult RunStages(ushort[] rawPixels, int width, int height, string bodyPart,
-        float kVp, float pixelPitchMm)
+    internal const string PipelineConfigJson = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+
+    /// <summary>
+    /// The calibration maps are already loaded by <see cref="Run"/>. The input frame goes in read-only and the corrected float32 frame comes out in a separate buffer
+    /// (<c>xpe_preprocess_pipeline_out</c>): the raw image the user opened is never written (SRS-CALIB-SAFE-004).
+    /// </summary>
+    private static PreprocessRunResult RunPipelineOut(ushort[] rawPixels, int width, int height, string bodyPart,
+        float kVp, float pixelPitchMm, bool measureExposureIndex)
     {
-        // kVp and the pixel pitch are the user's settings (AppSettings.ExposureKvp / PixelPitchMm, GUI-C-99
-        // and GUI-C-100); both were literals here. mAs and SID are still fixed.
         var metadata = XpeImageMetadataNative.Create(bodyPart, kVp: kVp, mAs: 2.0f, sidMm: 1000.0f, pixelPitchMm: pixelPitchMm);
 
         var input = default(XpeImageBufferNative);
-        var offsetOut = default(XpeImageBufferNative);
-        var gainOut = default(XpeImageBufferNative);
-        var defectOut = default(XpeImageBufferNative);
+        var output = default(XpeImageBufferNative);
         var allocated = new List<Action>();
 
         try
         {
             if (!TryAlloc(width, height, XpePixelFormatNative.UInt16, out input, allocated, out var reason) ||
-                !TryAlloc(width, height, XpePixelFormatNative.UInt16, out offsetOut, allocated, out reason) ||
-                !TryAlloc(width, height, XpePixelFormatNative.Float32, out gainOut, allocated, out reason) ||
-                !TryAlloc(width, height, XpePixelFormatNative.Float32, out defectOut, allocated, out reason))
+                !TryAlloc(width, height, XpePixelFormatNative.Float32, out output, allocated, out reason))
             {
                 return new PreprocessRunResult(false, reason, null);
             }
@@ -122,46 +138,21 @@ internal static class GuiPreprocessRunner
             Buffer.BlockCopy(rawPixels, 0, signed, 0, count * sizeof(ushort));
             Marshal.Copy(signed, 0, input.Data, count);
 
-            var offsetCode = XpePreprocessNative.xpe_offset_correct(ref input, ref offsetOut, ref metadata);
-            if (offsetCode != XpeOk)
+            var code = XpePreprocessNative.xpe_preprocess_pipeline_out(ref input, ref output, ref metadata, IntPtr.Zero, IntPtr.Zero, PipelineConfigJson);
+            if (code != XpeOk)
             {
-                return new PreprocessRunResult(false, $"xpe_offset_correct failed ({offsetCode}).", null);
+                return new PreprocessRunResult(false, $"xpe_preprocess_pipeline_out failed ({code}).", null);
             }
 
-            // Stage 3 (PRE-08), between offset and gain — the order the module's own pipeline uses
-            // (pipeline.cpp: Stage 2 offset at :142, Stage 3 nonlinearity at :158, Stage 4 gain at :184),
-            // read from the source rather than taken on report (#198, GUI-C-128).
-            //
-            // Until now the gui ran offset -> gain -> defect and skipped this stage entirely, so what it
-            // drew was not what the module's pipeline produces. That is the reason it is wired, not the
-            // alert the stage pushes — the alert is a side effect of the stage finally running.
-            //
-            // Null config: the gui has no detector profile to pass, and the module treats that as "no
-            // panel.linear declared". With no LUT loaded the stage returns XPE_OK and leaves the frame
-            // byte-identical (nonlinearity_correct.cpp:95), which is why adding it changes no pixels
-            // today. No new gui switch: the module decides what the stage does.
-            var nonlinearityCode = XpePreprocessNative.xpe_nonlinearity_correct(ref offsetOut, null);
-            if (nonlinearityCode != XpeOk)
-            {
-                return new PreprocessRunResult(false, $"xpe_nonlinearity_correct failed ({nonlinearityCode}).", null);
-            }
-
-            var gainCode = XpePreprocessNative.xpe_gain_correct(ref offsetOut, ref gainOut, ref metadata);
-            if (gainCode != XpeOk)
-            {
-                return new PreprocessRunResult(false, $"xpe_gain_correct failed ({gainCode}).", null);
-            }
-
-            var defectCode = XpePreprocessNative.xpe_defect_correct(ref gainOut, ref defectOut, ref metadata);
-            if (defectCode != XpeOk)
-            {
-                return new PreprocessRunResult(false, $"xpe_defect_correct failed ({defectCode}).", null);
-            }
-
+            var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref output, ref metadata) : string.Empty;
+            var floats = ReadFloats(output.Data, count);
+            var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats);   // the gain stage's intermediate is internal to the pipeline: only the final image is counted
             return new PreprocessRunResult(
                 true,
-                $"Preprocess: offset -> nonlinearity -> gain -> defect on {width}x{height} ({bodyPart}).",
-                ReadFloatsAsUInt16(defectOut.Data, count));
+                $"Preprocess: xpe_preprocess_pipeline_out ({string.Join(" -> ", ExecutedStages)}, input kept) on {width}x{height} ({bodyPart}).{exposure}",
+                ScaleToUInt16(floats),
+                nonFinite,
+                floats);
         }
         finally
         {
@@ -169,6 +160,27 @@ internal static class GuiPreprocessRunner
             {
                 allocated[i]();
             }
+        }
+    }
+
+    /// <summary>
+    /// EI and DI of the corrected float image, as text for the stage's summary. A MEASUREMENT, never a pass criterion: the module's S0 reference (1000) has not
+    /// been checked against the gui's gain scale, so the value is labelled "uncalibrated EI" (the leader's wording: 보정 안 된 EI). A failure to measure is
+    /// said, not hidden, and does not fail the stage.
+    /// </summary>
+    private static string MeasureUncalibratedExposureIndex(ref XpeImageBufferNative image, ref XpeImageMetadataNative metadata)
+    {
+        const string Label = " uncalibrated EI (보정 안 된 EI)";
+        try
+        {
+            var code = XpeExposureIndexNative.xpe_calc_exposure_index(ref image, ref metadata, out var ei, out var di);
+            return code == XpeOk
+                ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Label} = {ei:0.##}, DI = {di:0.##} (measured, not a pass criterion; S0 reference not verified against the gui gain scale).")
+                : $"{Label} not measured: xpe_calc_exposure_index returned {code}.";
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException)
+        {
+            return $"{Label} not measured: {ex.Message}";
         }
     }
 
@@ -194,15 +206,21 @@ internal static class GuiPreprocessRunner
         return true;
     }
 
-    /// <summary>
-    /// Float32 output scaled back into UInt16 for the preview. The scale is display-only — the
-    /// corrected values themselves stay in the native buffer's domain.
-    /// </summary>
-    private static ushort[] ReadFloatsAsUInt16(IntPtr source, int count)
+    private static float[] ReadFloats(IntPtr source, int count)
     {
         var floats = new float[count];
         Marshal.Copy(source, floats, 0, count);
+        return floats;
+    }
 
+    /// <summary>
+    /// Float32 output scaled back into UInt16 for the preview. The scale is display-only — the
+    /// corrected values themselves stay in the native buffer's domain. Counting happens before this (the caller): the
+    /// conversion cannot represent NaN or an infinity, so afterwards they look like ordinary pixels.
+    /// </summary>
+    private static ushort[] ScaleToUInt16(float[] floats)
+    {
+        var count = floats.Length;
         var max = 0.0f;
         for (var i = 0; i < count; i++)
         {

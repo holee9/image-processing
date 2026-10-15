@@ -1,0 +1,739 @@
+Test project D:/workspace-github/xpe-post/build/ci-dicom
+        Start   1: XpeCommonTest.InitReturnsOk
+  1/367 Test   #1: XpeCommonTest.InitReturnsOk .................................................................................   Passed    0.04 sec
+        Start   2: XpeCommonTest.InitWithEmptyConfigReturnsInvalid
+  2/367 Test   #2: XpeCommonTest.InitWithEmptyConfigReturnsInvalid .............................................................   Passed    0.02 sec
+        Start   3: XpeCommonTest.ShutdownWithoutInitIsNoOp
+  3/367 Test   #3: XpeCommonTest.ShutdownWithoutInitIsNoOp .....................................................................   Passed    0.02 sec
+        Start   4: XpeCommonTest.VersionReturnsValidString
+  4/367 Test   #4: XpeCommonTest.VersionReturnsValidString .....................................................................   Passed    0.01 sec
+        Start   5: XpeCommonTest.ConfigureWithNullReturnsInvalid
+  5/367 Test   #5: XpeCommonTest.ConfigureWithNullReturnsInvalid ...............................................................   Passed    0.01 sec
+        Start   6: XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid
+  6/367 Test   #6: XpeCommonTest.ConfigureWithInvalidJsonReturnsInvalid ........................................................   Passed    0.01 sec
+        Start   7: XpeCommonTest.ConfigureWithValidJsonSucceeds
+  7/367 Test   #7: XpeCommonTest.ConfigureWithValidJsonSucceeds ................................................................   Passed    0.01 sec
+        Start   8: XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid
+  8/367 Test   #8: XpeCommonTest.GetParamRangeWithNullPtrReturnsInvalid ........................................................   Passed    0.01 sec
+        Start   9: XpeCommonTest.GetParamRangeReturnsValidValues
+  9/367 Test   #9: XpeCommonTest.GetParamRangeReturnsValidValues ...............................................................   Passed    0.01 sec
+        Start  10: XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults
+ 10/367 Test  #10: XpeCommonTest.GetParamRangeForUnknownParamReturnsDefaults ...................................................   Passed    0.02 sec
+        Start  11: XpeCommonTest.ErrorStringReturnsNonNullForAllCodes
+ 11/367 Test  #11: XpeCommonTest.ErrorStringReturnsNonNullForAllCodes ..........................................................   Passed    0.01 sec
+        Start  12: XpeCommonTest.GetPendingAlertCountInitiallyZero
+ 12/367 Test  #12: XpeCommonTest.GetPendingAlertCountInitiallyZero .............................................................   Passed    0.01 sec
+        Start  13: XpeCommonTest.InjectedAlertAppearsInQueue
+ 13/367 Test  #13: XpeCommonTest.InjectedAlertAppearsInQueue ...................................................................   Passed    0.01 sec
+        Start  14: XpeCommonTest.GetPendingAlertRetrievesMessage
+ 14/367 Test  #14: XpeCommonTest.GetPendingAlertRetrievesMessage ...............................................................   Passed    0.67 sec
+        Start  15: XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid
+ 15/367 Test  #15: XpeCommonTest.GetPendingAlertWithNullPtrReturnsInvalid ......................................................   Passed    0.02 sec
+        Start  16: XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall
+ 16/367 Test  #16: XpeCommonTest.GetPendingAlertWithSmallBufferReturnsBufferTooSmall ...........................................   Passed    0.02 sec
+        Start  17: XpeCommonTest.ClearAlertsEmptiesQueue
+ 17/367 Test  #17: XpeCommonTest.ClearAlertsEmptiesQueue .......................................................................   Passed    0.02 sec
+        Start  18: XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid
+ 18/367 Test  #18: XpeCommonTest.LogSetLevelWithInvalidValueReturnsInvalid .....................................................   Passed    0.01 sec
+        Start  19: XpeCommonTest.LogSetLevelAcceptsValidRange
+ 19/367 Test  #19: XpeCommonTest.LogSetLevelAcceptsValidRange ..................................................................   Passed    0.01 sec
+        Start  20: XpeCommonTest.LogSetFileReopensSink
+ 20/367 Test  #20: XpeCommonTest.LogSetFileReopensSink .........................................................................   Passed    0.02 sec
+        Start  21: XpeCommonTest.ShutdownReleasesLogFileSink
+ 21/367 Test  #21: XpeCommonTest.ShutdownReleasesLogFileSink ...................................................................   Passed    0.66 sec
+        Start  22: XpeCommonTest.LogFlushAfterShutdownDoesNotCrash
+ 22/367 Test  #22: XpeCommonTest.LogFlushAfterShutdownDoesNotCrash .............................................................   Passed    0.02 sec
+        Start  23: XpeCommonTest.AllocImageWithNullPtrReturnsInvalid
+ 23/367 Test  #23: XpeCommonTest.AllocImageWithNullPtrReturnsInvalid ...........................................................   Passed    0.02 sec
+        Start  24: XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid
+ 24/367 Test  #24: XpeCommonTest.AllocImageWithZeroDimensionsReturnsInvalid ....................................................   Passed    0.02 sec
+        Start  25: XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid
+ 25/367 Test  #25: XpeCommonTest.AllocImageWithLargeDimensionsReturnsInvalid ...................................................   Passed    0.01 sec
+        Start  26: XpeCommonTest.AllocImageSucceedsForValidInput
+ 26/367 Test  #26: XpeCommonTest.AllocImageSucceedsForValidInput ...............................................................   Passed    0.02 sec
+        Start  27: XpeCommonTest.AllocImageForFloat32Format
+ 27/367 Test  #27: XpeCommonTest.AllocImageForFloat32Format ....................................................................   Passed    0.02 sec
+        Start  28: XpeCommonTest.AllocImageForUint8Format
+ 28/367 Test  #28: XpeCommonTest.AllocImageForUint8Format ......................................................................   Passed    0.64 sec
+        Start  29: XpeCommonTest.FreeImageWithNullPtrReturnsInvalid
+ 29/367 Test  #29: XpeCommonTest.FreeImageWithNullPtrReturnsInvalid ............................................................   Passed    0.02 sec
+        Start  30: XpeCommonTest.FreeImageReleasesMemory
+ 30/367 Test  #30: XpeCommonTest.FreeImageReleasesMemory .......................................................................   Passed    0.02 sec
+        Start  31: XpeCommonTest.CopyImageWithNullPtrReturnsInvalid
+ 31/367 Test  #31: XpeCommonTest.CopyImageWithNullPtrReturnsInvalid ............................................................   Passed    0.71 sec
+        Start  32: XpeCommonTest.CopyImageSucceeds
+ 32/367 Test  #32: XpeCommonTest.CopyImageSucceeds .............................................................................   Passed    0.02 sec
+        Start  33: XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall
+ 33/367 Test  #33: XpeCommonTest.CopyImageWithSmallBufferReturnsBufferTooSmall .................................................   Passed    0.02 sec
+        Start  34: XpeCommonTest.InitDoubleInitReturnsOk
+ 34/367 Test  #34: XpeCommonTest.InitDoubleInitReturnsOk .......................................................................   Passed    0.72 sec
+        Start  35: XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit
+ 35/367 Test  #35: XpeCommonTest.ShutdownReturnsNotInitializedWhenNotInit ......................................................   Passed    0.02 sec
+        Start  36: XpeCommonTest.InitShutdownCycleRepeated
+ 36/367 Test  #36: XpeCommonTest.InitShutdownCycleRepeated .....................................................................   Passed    0.02 sec
+        Start  37: XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid
+ 37/367 Test  #37: XpeCommonTest.ConfigureWithEmptyStringReturnsInvalid ........................................................   Passed    0.02 sec
+        Start  38: XpeCommonTest.ConfigureWithPartialJsonReturnsOk
+ 38/367 Test  #38: XpeCommonTest.ConfigureWithPartialJsonReturnsOk .............................................................   Passed    0.02 sec
+        Start  39: XpeCommonTest.ConfigureAfterReinitSucceeds
+ 39/367 Test  #39: XpeCommonTest.ConfigureAfterReinitSucceeds ..................................................................   Passed    0.80 sec
+        Start  40: XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid
+ 40/367 Test  #40: XpeCommonTest.ConfigureWithMalformedJsonBodyReturnsInvalid ..................................................   Passed    0.02 sec
+        Start  41: XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative
+ 41/367 Test  #41: XpeCommonTest.ConfigureWithVeryLongMalformedJsonReturnsNegative .............................................   Passed    0.02 sec
+        Start  42: XpeCommonTest.VersionFormatSemanticVersioning
+ 42/367 Test  #42: XpeCommonTest.VersionFormatSemanticVersioning ...............................................................   Passed    0.01 sec
+        Start  43: XpeCommonTest.LogSetLevelEachLevel
+ 43/367 Test  #43: XpeCommonTest.LogSetLevelEachLevel ..........................................................................   Passed    0.01 sec
+        Start  44: XpeCommonTest.LogSetFileWithInvalidPathReturnsError
+ 44/367 Test  #44: XpeCommonTest.LogSetFileWithInvalidPathReturnsError .........................................................   Passed    0.01 sec
+        Start  45: XpeCommonTest.LogFlushDoesNotCrash
+ 45/367 Test  #45: XpeCommonTest.LogFlushDoesNotCrash ..........................................................................   Passed    0.01 sec
+        Start  46: XpeCommonTest.AllocImageZeroInitializesMemory
+ 46/367 Test  #46: XpeCommonTest.AllocImageZeroInitializesMemory ...............................................................   Passed    0.74 sec
+        Start  47: XpeCommonTest.AllocImageUint16Format
+ 47/367 Test  #47: XpeCommonTest.AllocImageUint16Format ........................................................................   Passed    0.02 sec
+        Start  48: XpeCommonTest.FreeImageNullDataDoesNotCrash
+ 48/367 Test  #48: XpeCommonTest.FreeImageNullDataDoesNotCrash .................................................................   Passed    0.01 sec
+        Start  49: XpeCommonTest.CopyImageWithNullDataReturnsInvalid
+ 49/367 Test  #49: XpeCommonTest.CopyImageWithNullDataReturnsInvalid ...........................................................   Passed    0.12 sec
+        Start  50: XpeCommonTest.GetParamRangeForDifferentBodyParts
+ 50/367 Test  #50: XpeCommonTest.GetParamRangeForDifferentBodyParts ............................................................   Passed    0.02 sec
+        Start  51: XpeCommonTest.ErrorStringForUnknownErrorCode
+ 51/367 Test  #51: XpeCommonTest.ErrorStringForUnknownErrorCode ................................................................   Passed    0.02 sec
+        Start  52: XpeCommonTest.GetPendingAlertWithIndexOutOfBounds
+ 52/367 Test  #52: XpeCommonTest.GetPendingAlertWithIndexOutOfBounds ...........................................................   Passed    0.02 sec
+        Start  53: XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash
+ 53/367 Test  #53: XpeCommonTest.ClearAlertsWhenEmptyDoesNotCrash ..............................................................   Passed    0.73 sec
+        Start  54: XpeCommonTest.AlertQueueFifoOrder
+ 54/367 Test  #54: XpeCommonTest.AlertQueueFifoOrder ...........................................................................   Passed    0.02 sec
+        Start  55: XpeCommonTest.ConcurrentInitShutdownDoesNotCrash
+ 55/367 Test  #55: XpeCommonTest.ConcurrentInitShutdownDoesNotCrash ............................................................   Passed    0.16 sec
+        Start  56: XpeCommonTest.ConcurrentAlertQueueAccess
+ 56/367 Test  #56: XpeCommonTest.ConcurrentAlertQueueAccess ....................................................................   Passed    0.69 sec
+        Start  57: XpeCommonTest.MemoryLeakTestThousandCycles
+ 57/367 Test  #57: XpeCommonTest.MemoryLeakTestThousandCycles ..................................................................   Passed    0.02 sec
+        Start  58: XpeCommonTest.HeaderDeclaresSixteenExportedFunctions
+ 58/367 Test  #58: XpeCommonTest.HeaderDeclaresSixteenExportedFunctions ........................................................   Passed    0.74 sec
+        Start  59: XpeCommonTest.ErrorStringForInvalidInputHasExactText
+ 59/367 Test  #59: XpeCommonTest.ErrorStringForInvalidInputHasExactText ........................................................   Passed    0.85 sec
+        Start  60: XpeCommonTest.CopyImageReproducesEveryByte
+ 60/367 Test  #60: XpeCommonTest.CopyImageReproducesEveryByte ..................................................................   Passed    0.02 sec
+        Start  61: AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself
+ 61/367 Test  #61: AlertQueueOverflowTest.WarningEvictsOldestInfoNotItself .....................................................   Passed    0.02 sec
+        Start  62: AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError
+ 62/367 Test  #62: AlertQueueOverflowTest.WithoutInfoEvictsOldestWarningAndKeepsError ..........................................   Passed    0.71 sec
+        Start  63: AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace
+ 63/367 Test  #63: AlertQueueOverflowTest.LossAlertIsSingleAndUpdatedInPlace ...................................................   Passed    0.02 sec
+        Start  64: AlertQueueOverflowTest.LossAlertIsNeverEvicted
+ 64/367 Test  #64: AlertQueueOverflowTest.LossAlertIsNeverEvicted ..............................................................   Passed    0.01 sec
+        Start  65: AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter
+ 65/367 Test  #65: AlertQueueOverflowTest.ClearAlertsResetsTheDropCounter ......................................................   Passed    0.73 sec
+        Start  66: AlertQueueOverflowTest.NoLossAlertWithoutOverflow
+ 66/367 Test  #66: AlertQueueOverflowTest.NoLossAlertWithoutOverflow ...........................................................   Passed    0.01 sec
+        Start  67: XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists
+ 67/367 Test  #67: XpeErrorSafetyViolationTest.SafetyViolationErrorCodeExists ..................................................   Passed    0.01 sec
+        Start  68: XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped
+ 68/367 Test  #68: XpeErrorSafetyViolationTest.SafetyViolationErrorStringMapped ................................................   Passed    0.80 sec
+        Start  69: CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState
+ 69/367 Test  #69: CommonErrorPrecedenceTest.NullRequiredPointerWinsOverInitializationState ....................................   Passed    0.72 sec
+        Start  70: CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary
+ 70/367 Test  #70: CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary ...............................................   Passed    1.44 sec
+        Start  71: CommonOom.APushIntoAFullQueueAccountsForEveryAlert
+ 71/367 Test  #71: CommonOom.APushIntoAFullQueueAccountsForEveryAlert ..........................................................   Passed    0.02 sec
+        Start  72: CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert
+ 72/367 Test  #72: CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert ......................................................   Passed    0.02 sec
+        Start  73: CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert
+ 73/367 Test  #73: CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert ....................................   Passed    0.02 sec
+        Start  74: CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized
+ 74/367 Test  #74: CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized ......................................................   Passed    0.02 sec
+        Start  75: CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone
+ 75/367 Test  #75: CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone .................................   Passed    0.02 sec
+        Start  76: CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+ 76/367 Test  #76: CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration ................................   Passed    0.02 sec
+        Start  77: CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+ 77/367 Test  #77: CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure .............................................   Passed    0.02 sec
+        Start  78: CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile
+ 78/367 Test  #78: CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile ....................................   Passed    0.04 sec
+        Start  79: CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger
+ 79/367 Test  #79: CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger .........................................   Passed    0.02 sec
+        Start  80: CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger
+ 80/367 Test  #80: CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger .................................................   Passed    0.10 sec
+        Start  81: CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere
+ 81/367 Test  #81: CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere ................................................   Passed    0.08 sec
+        Start  82: LoggingContract.CaptureSeesALineWrittenToStderr
+ 82/367 Test  #82: LoggingContract.CaptureSeesALineWrittenToStderr .............................................................   Passed    0.05 sec
+        Start  83: LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot
+ 83/367 Test  #83: LoggingContract.AfterInitInfoReachesStderrButTraceAndDebugDoNot .............................................   Passed    0.03 sec
+        Start  84: LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp
+ 84/367 Test  #84: LoggingContract.ANamedFileWithoutALevelRecordsFromInfoUp ....................................................   Passed    0.13 sec
+        Start  85: LoggingContract.ALevelChosenByTheCallerOpensTraceAgain
+ 85/367 Test  #85: LoggingContract.ALevelChosenByTheCallerOpensTraceAgain ......................................................   Passed    0.02 sec
+        Start  86: LoggingContract.NullRevertsFromAFileToStderr
+ 86/367 Test  #86: LoggingContract.NullRevertsFromAFileToStderr ................................................................   Passed    0.02 sec
+        Start  87: LoggingContract.NullKeepsTheChosenLevel
+ 87/367 Test  #87: LoggingContract.NullKeepsTheChosenLevel .....................................................................   Passed    0.02 sec
+        Start  88: LoggingContract.LevelFiveIsOffOnStderr
+ 88/367 Test  #88: LoggingContract.LevelFiveIsOffOnStderr ......................................................................   Passed    0.02 sec
+        Start  89: LoggingContract.LevelFiveIsOffInAFile
+ 89/367 Test  #89: LoggingContract.LevelFiveIsOffInAFile .......................................................................   Passed    0.01 sec
+        Start  90: LoggingContract.LevelFourStillRecordsErrorAndCritical
+ 90/367 Test  #90: LoggingContract.LevelFourStillRecordsErrorAndCritical .......................................................   Passed    0.02 sec
+        Start  91: LoggingContract.ASecondInitRestoresTheStderrDefault
+ 91/367 Test  #91: LoggingContract.ASecondInitRestoresTheStderrDefault .........................................................   Passed    0.02 sec
+        Start  92: LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit
+ 92/367 Test  #92: LoggingContractFresh.ALevelNeverChosenIsInfoEvenBeforeInit ..................................................   Passed    0.02 sec
+        Start  93: LoggingContractInit.OffMeansNoBytesEvenFromTheLibrarysOwnInitLine
+ 93/367 Test  #93: LoggingContractInit.OffMeansNoBytesEvenFromTheLibrarysOwnInitLine ...........................................   Passed    0.01 sec
+        Start  94: LoggingContractInit.TheInitLineIsWrittenAtInfoToStderr
+ 94/367 Test  #94: LoggingContractInit.TheInitLineIsWrittenAtInfoToStderr ......................................................   Passed    0.02 sec
+        Start  95: LoggingContractInit.TheInitLineGoesToTheLogFileTheCallerChose
+ 95/367 Test  #95: LoggingContractInit.TheInitLineGoesToTheLogFileTheCallerChose ...............................................   Passed    0.02 sec
+        Start  96: LoggingContractInit.ALevelAboveInfoSilencesTheInitLine
+ 96/367 Test  #96: LoggingContractInit.ALevelAboveInfoSilencesTheInitLine ......................................................   Passed    0.01 sec
+        Start  97: DicomParameterDependency.RoundTripReproducesTheInput
+ 97/367 Test  #97: DicomParameterDependency.RoundTripReproducesTheInput ........................................................   Passed    0.07 sec
+        Start  98: DicomParameterDependency.PixelDataReachesTheFile
+ 98/367 Test  #98: DicomParameterDependency.PixelDataReachesTheFile ............................................................   Passed    0.04 sec
+        Start  99: DicomParameterDependency.ImageDimensionsReachTheFile
+ 99/367 Test  #99: DicomParameterDependency.ImageDimensionsReachTheFile ........................................................   Passed    0.03 sec
+        Start 100: DicomParameterDependency.MetadataFieldsReachTheFile
+100/367 Test #100: DicomParameterDependency.MetadataFieldsReachTheFile .........................................................   Passed    0.04 sec
+        Start 101: DicomReaderTest.OpenValid_ReturnsOkAndNonNullHandle
+101/367 Test #101: DicomReaderTest.OpenValid_ReturnsOkAndNonNullHandle .........................................................   Passed    0.14 sec
+        Start 102: DicomReaderTest.OpenMissingFile_ReturnsIOFailed
+102/367 Test #102: DicomReaderTest.OpenMissingFile_ReturnsIOFailed .............................................................   Passed    0.04 sec
+        Start 103: DicomReaderTest.OpenInvalidDicom_ReturnsDicomInvalid
+103/367 Test #103: DicomReaderTest.OpenInvalidDicom_ReturnsDicomInvalid ........................................................   Passed    0.04 sec
+        Start 104: DicomReaderTest.ReadExplicitLE_Succeeds
+104/367 Test #104: DicomReaderTest.ReadExplicitLE_Succeeds .....................................................................   Passed    0.04 sec
+        Start 105: DicomReaderTest.ReadJ2KLossless_Succeeds
+105/367 Test #105: DicomReaderTest.ReadJ2KLossless_Succeeds ....................................................................   Passed    0.05 sec
+        Start 106: DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat
+106/367 Test #106: DicomReaderTest.UnsupportedTS_ReturnsUnsupportedFormat ......................................................   Passed    0.05 sec
+        Start 107: DicomReaderTest.ReadImage_PixelDimensionsMatch
+107/367 Test #107: DicomReaderTest.ReadImage_PixelDimensionsMatch ..............................................................   Passed    0.04 sec
+        Start 108: DicomReaderTest.ReadJ2KDecompress_ProducesUint16
+108/367 Test #108: DicomReaderTest.ReadJ2KDecompress_ProducesUint16 ............................................................   Passed    0.15 sec
+        Start 109: DicomReaderTest.GetMetadata_FieldsPopulated
+109/367 Test #109: DicomReaderTest.GetMetadata_FieldsPopulated .................................................................   Passed    0.04 sec
+        Start 110: DicomReaderTest.GetMetadata_MissingTagsDefault
+110/367 Test #110: DicomReaderTest.GetMetadata_MissingTagsDefault ..............................................................   Passed    0.04 sec
+        Start 111: DicomReaderTest.CloseValid_NoLeak
+111/367 Test #111: DicomReaderTest.CloseValid_NoLeak ...........................................................................   Passed    0.04 sec
+        Start 112: DicomReaderTest.CloseNull_NoOp
+112/367 Test #112: DicomReaderTest.CloseNull_NoOp ..............................................................................   Passed    0.04 sec
+        Start 113: DicomReaderTest.NullFilePath_ReturnsInvalidInput
+113/367 Test #113: DicomReaderTest.NullFilePath_ReturnsInvalidInput ............................................................   Passed    0.04 sec
+        Start 114: DicomReaderTest.NullOutHandle_ReturnsInvalidInput
+114/367 Test #114: DicomReaderTest.NullOutHandle_ReturnsInvalidInput ...........................................................   Passed    0.72 sec
+        Start 115: DicomReaderTest.ReadImageNullHandle_ReturnsInvalidInput
+115/367 Test #115: DicomReaderTest.ReadImageNullHandle_ReturnsInvalidInput .....................................................   Passed    0.04 sec
+        Start 116: DicomReaderTest.GetMetadataNullHandle_ReturnsInvalidInput
+116/367 Test #116: DicomReaderTest.GetMetadataNullHandle_ReturnsInvalidInput ...................................................   Passed    0.05 sec
+        Start 117: DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid
+117/367 Test #117: DicomReaderTest.ReadJ2K_NoPixelData_ReturnsDicomInvalid .....................................................   Passed    0.15 sec
+        Start 118: DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed
+118/367 Test #118: DicomReaderTest.ReadJ2K_CorruptHeader_ReturnsProcessingFailed ...............................................   Passed    0.05 sec
+        Start 119: DicomReaderTest.ReadJ2K_CorruptBody_ReturnsProcessingFailed
+119/367 Test #119: DicomReaderTest.ReadJ2K_CorruptBody_ReturnsProcessingFailed .................................................   Passed    0.05 sec
+        Start 120: DicomReaderTest.OpenDatasetWithoutMetaHeader_IsDicomInvalid
+120/367 Test #120: DicomReaderTest.OpenDatasetWithoutMetaHeader_IsDicomInvalid .................................................   Passed    0.04 sec
+        Start 121: DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid
+121/367 Test #121: DicomReaderTest.ReadImage_NoPixelData_ReturnsDicomInvalid ...................................................   Passed    0.04 sec
+        Start 122: DicomReaderTest.OpenEmptyPath_ReturnsIoFailed
+122/367 Test #122: DicomReaderTest.OpenEmptyPath_ReturnsIoFailed ...............................................................   Passed    0.04 sec
+        Start 123: DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput
+123/367 Test #123: DicomReaderTest.ReadImageNullOutput_ReturnsInvalidInput .....................................................   Passed    0.04 sec
+        Start 124: DicomReaderTest.GetMetadataNullOutput_ReturnsInvalidInput
+124/367 Test #124: DicomReaderTest.GetMetadataNullOutput_ReturnsInvalidInput ...................................................   Passed    0.04 sec
+        Start 125: DicomReaderTest.OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid
+125/367 Test #125: DicomReaderTest.OpenJpegLosslessLabelledNativeData_ReturnsDicomInvalid ......................................   Passed    0.05 sec
+        Start 126: DicomReaderTest.ReadJpegLossless_DecodesPixelExact
+126/367 Test #126: DicomReaderTest.ReadJpegLossless_DecodesPixelExact ..........................................................   Passed    0.05 sec
+        Start 127: DicomReaderTest.EverySupportedTransferSyntaxActuallyReads
+127/367 Test #127: DicomReaderTest.EverySupportedTransferSyntaxActuallyReads ...................................................   Passed    0.08 sec
+        Start 128: DicomReaderTest.ReadJpegLosslessSV1_Predictor1PixelExact
+128/367 Test #128: DicomReaderTest.ReadJpegLosslessSV1_Predictor1PixelExact ....................................................   Passed    0.05 sec
+        Start 129: DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument
+129/367 Test #129: DicomReaderTest.KnownDivergence_Sv1EncoderIgnoresPredictorArgument ..........................................   Passed    0.09 sec
+        Start 130: DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption
+130/367 Test #130: DicomReaderTest.ConcurrentOpenOfJpegLossless_NoCorruption ...................................................   Passed    0.06 sec
+        Start 131: DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen
+131/367 Test #131: DicomReaderTest.J2kLabelledNativePixels_RejectedAtOpen ......................................................   Passed    0.04 sec
+        Start 132: DicomReaderTest.ShortPixelData_ReturnsDicomInvalid
+132/367 Test #132: DicomReaderTest.ShortPixelData_ReturnsDicomInvalid ..........................................................   Passed    0.14 sec
+        Start 133: DicomReaderTest.SurplusPixelData_IsIgnoredAndReadSucceeds
+133/367 Test #133: DicomReaderTest.SurplusPixelData_IsIgnoredAndReadSucceeds ...................................................   Passed    0.04 sec
+        Start 134: DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid
+134/367 Test #134: DicomReaderTest.J2kCodestreamSmallerThanDeclared_ReturnsDicomInvalid ........................................   Passed    0.05 sec
+        Start 135: DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid
+135/367 Test #135: DicomReaderTest.JpegLosslessFrameSmallerThanDeclared_ReturnsDicomInvalid ....................................   Passed    0.06 sec
+        Start 136: DicomReaderTest.CompressedMatchedSize_StillReadsNormally
+136/367 Test #136: DicomReaderTest.CompressedMatchedSize_StillReadsNormally ....................................................   Passed    0.07 sec
+        Start 137: DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid
+137/367 Test #137: DicomReaderTest.J2kCodestreamLargerThanDeclared_ReturnsDicomInvalid .........................................   Passed    0.06 sec
+        Start 138: DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid
+138/367 Test #138: DicomReaderTest.JpegLosslessFrameLargerThanDeclared_ReturnsDicomInvalid .....................................   Passed    0.06 sec
+        Start 139: DicomReaderTest.KnownDivergence_MislabelledJpegLosslessIsDecodedAnyway
+139/367 Test #139: DicomReaderTest.KnownDivergence_MislabelledJpegLosslessIsDecodedAnyway ......................................   Passed    0.05 sec
+        Start 140: DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured
+140/367 Test #140: DicomReaderTest.KnownDivergence_DcmtkCodecSupportFor57IsMeasured ............................................   Passed    0.04 sec
+        Start 141: DicomReaderTest.Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured
+141/367 Test #141: DicomReaderTest.Genuine57IsAcceptedAndDcmtkDecodeSupportIsMeasured ..........................................   Passed    0.04 sec
+        Start 142: DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels
+142/367 Test #142: DicomReaderTest.MetaLessEncapsulatedFilesProduceNoPixels ....................................................   Passed    0.05 sec
+        Start 143: DicomReaderTest.ReadJpegLosslessProcess14_DecodesPixelExact
+143/367 Test #143: DicomReaderTest.ReadJpegLosslessProcess14_DecodesPixelExact .................................................   Passed    0.06 sec
+        Start 144: DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat
+144/367 Test #144: DicomReaderTest.UnsupportedCompressedTS_ReturnsUnsupportedFormat ............................................   Passed    0.05 sec
+        Start 145: DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels
+145/367 Test #145: DicomReaderTest.MetaLessNativeUnsupportedSyntaxesProduceNoPixels ............................................   Passed    0.07 sec
+        Start 146: DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes
+146/367 Test #146: DicomReaderTest.KnownDivergence_MetaLessPathLeaksNativeUnsupportedSyntaxes ..................................   Passed    0.06 sec
+        Start 147: DicomReaderTest.KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured
+147/367 Test #147: DicomReaderTest.KnownDivergence_WhatBlocksTheMetaLessPathIsMeasured .........................................   Passed    0.04 sec
+        Start 148: DicomReaderTest.KnownDivergence_MetaLessBranchAndDetectedSyntaxAreMeasured
+148/367 Test #148: DicomReaderTest.KnownDivergence_MetaLessBranchAndDetectedSyntaxAreMeasured ..................................   Passed    0.07 sec
+        Start 149: DicomReaderTest.KnownDivergence_EncapsulationSignalsAndMetaNullReachability
+149/367 Test #149: DicomReaderTest.KnownDivergence_EncapsulationSignalsAndMetaNullReachability .................................   Passed    0.09 sec
+        Start 150: DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure
+150/367 Test #150: DicomReaderTest.TsLessPathIsDecidedByChecksNotByStructure ...................................................   Passed    0.11 sec
+        Start 151: DicomReaderTest.KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured
+151/367 Test #151: DicomReaderTest.KnownDivergence_JpegLosslessPredictorInBitstreamIsMeasured ..................................   Passed    0.14 sec
+        Start 152: DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct
+152/367 Test #152: DicomReaderTest.ReadJpegLosslessProcess14AllPredictors_PixelExactAndDistinct ................................   Passed    0.11 sec
+        Start 153: DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads
+153/367 Test #153: DicomReaderTest.Scope_OrdinaryUnsignedSingleFrame16BitStillReads ............................................   Passed    0.05 sec
+        Start 154: DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed
+154/367 Test #154: DicomReaderTest.Scope_AbsentOrEmptyRequiredAttributesAreMalformed ...........................................   Passed    0.09 sec
+        Start 155: DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame
+155/367 Test #155: DicomReaderTest.Scope_AbsentNumberOfFramesIsASingleFrame ....................................................   Passed    0.68 sec
+        Start 156: DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData
+156/367 Test #156: DicomReaderTest.Scope_OnlySixteenBitAllocationIsReadFromNativePixelData .....................................   Passed    0.08 sec
+        Start 157: DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord
+157/367 Test #157: DicomReaderTest.Scope_BitsStoredAndHighBitMustDescribeLowBitsOfA16BitWord ...................................   Passed    0.11 sec
+        Start 158: DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit
+158/367 Test #158: DicomReaderTest.J2kScope_OwnSixteenBitFileReadsAndIsDescribedAsSixteenBit ...................................   Passed    0.05 sec
+        Start 159: DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit
+159/367 Test #159: DicomReaderTest.J2kScope_EightBitUnsignedSingleComponentIsReadAndDescribedAsSixteenBit ......................   Passed    0.06 sec
+        Start 160: DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision
+160/367 Test #160: DicomReaderTest.J2kScope_TwelveBitInASixteenBitWordKeepsItsPrecision ........................................   Passed    0.06 sec
+        Start 161: DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused
+161/367 Test #161: DicomReaderTest.J2kScope_ACodestreamThatContradictsTheTagsIsRefused .........................................   Passed    0.13 sec
+        Start 162: DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix
+162/367 Test #162: DicomReaderTest.J2kScope_TheTagsAloneRejectWhatNoCodestreamCouldFix .........................................   Passed    0.08 sec
+        Start 163: DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne
+163/367 Test #163: DicomReaderTest.J2kScope_HighBitMustBeBitsStoredMinusOne ....................................................   Passed    0.16 sec
+        Start 164: DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack
+164/367 Test #164: DicomReaderTest.J2kScope_AnImageWrittenWithTwelveBitsStoredIsReadBack .......................................   Passed    0.05 sec
+        Start 165: DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath
+165/367 Test #165: DicomReaderTest.Scope_AbsentOrEmptyBitsStoredAndHighBitAreMalformedOnEveryPath ..............................   Passed    0.13 sec
+        Start 166: DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay
+166/367 Test #166: DicomReaderTest.Scope_BitsAttributesAreViolationOrUnsupportedAsThePixelDataEncodingRulesSay .................   Passed    0.18 sec
+        Start 167: DicomReaderTest.Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding
+167/367 Test #167: DicomReaderTest.Scope_JpegLosslessPrecisionIsComparedWithBitsStoredBeforeDecoding ...........................   Passed    0.18 sec
+        Start 168: DicomReaderTest.Scope_JpegLosslessComponentCountIsComparedWithSamplesPerPixelBeforeDecoding
+168/367 Test #168: DicomReaderTest.Scope_JpegLosslessComponentCountIsComparedWithSamplesPerPixelBeforeDecoding .................   Passed    0.17 sec
+        Start 169: DicomReaderTest.Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned
+169/367 Test #169: DicomReaderTest.Scope_PhotometricInterpretationIsRequiredAndOnlyAMonochromePlaneIsReturned ..................   Passed    0.15 sec
+        Start 170: DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsInverted
+170/367 Test #170: DicomReaderTest.Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochrome1IsInverted .................   Passed    0.06 sec
+        Start 171: DicomReaderTest.Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath
+171/367 Test #171: DicomReaderTest.Scope_AbsentOrZeroRowsAndColumnsAreRefusedWithAnAlertOnEveryPath ............................   Passed    0.07 sec
+        Start 172: DicomReaderTest.Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent
+172/367 Test #172: DicomReaderTest.Scope_JpegLosslessComponentCountMustBeExactlyOneAndPresent ..................................   Passed    0.73 sec
+        Start 173: DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause
+173/367 Test #173: DicomReaderTest.Scope_ARefusalPostsAnAlertThatNamesTheCause .................................................   Passed    0.05 sec
+        Start 174: DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy
+174/367 Test #174: DicomReaderTest.J2kScope_AFileFromTheOldWriterIsRefusedAndTheAlertSaysWhy ...................................   Passed    0.05 sec
+        Start 175: DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame
+175/367 Test #175: DicomReaderTest.Scope_MultiFrameIsUnsupportedNotTheFirstFrame ...............................................   Passed    0.05 sec
+        Start 176: DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup
+176/367 Test #176: DicomReaderTest.Scope_RgbIsUnsupportedNotByteSoup ...........................................................   Passed    0.05 sec
+        Start 177: DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted
+177/367 Test #177: DicomReaderTest.Scope_SignedPixelsAreUnsupportedNotReinterpreted ............................................   Passed    0.16 sec
+        Start 178: DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile
+178/367 Test #178: DicomReaderTest.Scope_EightBitIsUnsupportedNotACorruptFile ..................................................   Passed    0.04 sec
+        Start 179: DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted
+179/367 Test #179: DicomReaderTest.Scope_PresentButUnreadableAttributesAreMalformedNotDefaulted ................................   Passed    0.07 sec
+        Start 180: DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain
+180/367 Test #180: DicomReaderTest.Scope_ARefusedHandleRefusesTheSameWayAgain ..................................................   Passed    0.04 sec
+        Start 181: DicomReaderTest.Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense
+181/367 Test #181: DicomReaderTest.Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense .....................................   Passed    0.04 sec
+        Start 182: DicomReaderTest.Issue235Decided_RescaleIsNotAppliedButWarned
+182/367 Test #182: DicomReaderTest.Issue235Decided_RescaleIsNotAppliedButWarned ................................................   Passed    0.05 sec
+        Start 183: DicomReaderTest.Issue235Decided_BitsAboveBitsStoredAreMaskedForMonochrome2Too
+183/367 Test #183: DicomReaderTest.Issue235Decided_BitsAboveBitsStoredAreMaskedForMonochrome2Too ...............................   Passed    0.04 sec
+        Start 184: DicomReaderTest.Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath
+184/367 Test #184: DicomReaderTest.Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath ........................   Passed    0.10 sec
+        Start 185: DicomReaderTest.Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting
+185/367 Test #185: DicomReaderTest.Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting ................................   Passed    0.05 sec
+        Start 186: DicomReaderTest.Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords
+186/367 Test #186: DicomReaderTest.Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords ..................................   Passed    0.08 sec
+        Start 187: DicomReaderTest.Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage
+187/367 Test #187: DicomReaderTest.Tc109_Monochrome1WithSignedPixelsIsRefusedLikeEverySignedImage ..............................   Passed    0.04 sec
+        Start 188: DicomReaderTest.Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity
+188/367 Test #188: DicomReaderTest.Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity ......................................   Passed    0.06 sec
+        Start 189: DicomReaderTest.Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile
+189/367 Test #189: DicomReaderTest.Tc109_CurrentBehaviour_WriteDoesNotCarryWindowRescaleOrPresentationShapeFromTheSourceFile ...   Passed    0.05 sec
+        Start 190: DicomReaderTest.Tc235_Signed_Native_RefusedUnsupported
+190/367 Test #190: DicomReaderTest.Tc235_Signed_Native_RefusedUnsupported ......................................................   Passed    0.06 sec
+        Start 191: DicomReaderTest.Tc235_Signed_JpegLl_RefusedUnsupported
+191/367 Test #191: DicomReaderTest.Tc235_Signed_JpegLl_RefusedUnsupported ......................................................   Passed    0.06 sec
+        Start 192: DicomReaderTest.Tc235_Signed_J2k_RefusedUnsupported
+192/367 Test #192: DicomReaderTest.Tc235_Signed_J2k_RefusedUnsupported .........................................................   Passed    0.15 sec
+        Start 193: DicomReaderTest.Tc235_Monochrome1_Native_InvertedWithInfoAlert
+193/367 Test #193: DicomReaderTest.Tc235_Monochrome1_Native_InvertedWithInfoAlert ..............................................   Passed    0.07 sec
+        Start 194: DicomReaderTest.Tc235_Monochrome1_JpegLl_InvertedWithInfoAlert
+194/367 Test #194: DicomReaderTest.Tc235_Monochrome1_JpegLl_InvertedWithInfoAlert ..............................................   Passed    0.06 sec
+        Start 195: DicomReaderTest.Tc235_Monochrome1_J2k_InvertedWithInfoAlert
+195/367 Test #195: DicomReaderTest.Tc235_Monochrome1_J2k_InvertedWithInfoAlert .................................................   Passed    0.82 sec
+        Start 196: DicomReaderTest.Tc235_RescaleNonIdentity_Native_StoredValuesWithWarning
+196/367 Test #196: DicomReaderTest.Tc235_RescaleNonIdentity_Native_StoredValuesWithWarning .....................................   Passed    0.06 sec
+        Start 197: DicomReaderTest.Tc235_RescaleNonIdentity_JpegLl_StoredValuesWithWarning
+197/367 Test #197: DicomReaderTest.Tc235_RescaleNonIdentity_JpegLl_StoredValuesWithWarning .....................................   Passed    0.17 sec
+        Start 198: DicomReaderTest.Tc235_RescaleNonIdentity_J2k_StoredValuesWithWarning
+198/367 Test #198: DicomReaderTest.Tc235_RescaleNonIdentity_J2k_StoredValuesWithWarning ........................................   Passed    0.06 sec
+        Start 199: DicomReaderTest.Tc235_RescaleIdentityExplicit_Native_StoredValuesNoAlert
+199/367 Test #199: DicomReaderTest.Tc235_RescaleIdentityExplicit_Native_StoredValuesNoAlert ....................................   Passed    0.06 sec
+        Start 200: DicomReaderTest.Tc235_RescaleIdentityExplicit_JpegLl_StoredValuesNoAlert
+200/367 Test #200: DicomReaderTest.Tc235_RescaleIdentityExplicit_JpegLl_StoredValuesNoAlert ....................................   Passed    0.06 sec
+        Start 201: DicomReaderTest.Tc235_RescaleIdentityExplicit_J2k_StoredValuesNoAlert
+201/367 Test #201: DicomReaderTest.Tc235_RescaleIdentityExplicit_J2k_StoredValuesNoAlert .......................................   Passed    0.06 sec
+        Start 202: DicomReaderTest.Tc235_RescaleSlopeZero_Native_RefusedInvalid
+202/367 Test #202: DicomReaderTest.Tc235_RescaleSlopeZero_Native_RefusedInvalid ................................................   Passed    0.05 sec
+        Start 203: DicomReaderTest.Tc235_RescaleSlopeZero_JpegLl_RefusedInvalid
+203/367 Test #203: DicomReaderTest.Tc235_RescaleSlopeZero_JpegLl_RefusedInvalid ................................................   Passed    0.06 sec
+        Start 204: DicomReaderTest.Tc235_RescaleSlopeZero_J2k_RefusedInvalid
+204/367 Test #204: DicomReaderTest.Tc235_RescaleSlopeZero_J2k_RefusedInvalid ...................................................   Passed    0.06 sec
+        Start 205: DicomReaderTest.Tc235_RescaleSlopeNotANumber_Native_RefusedInvalid
+205/367 Test #205: DicomReaderTest.Tc235_RescaleSlopeNotANumber_Native_RefusedInvalid ..........................................   Passed    0.06 sec
+        Start 206: DicomReaderTest.Tc235_RescaleSlopeNotANumber_JpegLl_RefusedInvalid
+206/367 Test #206: DicomReaderTest.Tc235_RescaleSlopeNotANumber_JpegLl_RefusedInvalid ..........................................   Passed    0.06 sec
+        Start 207: DicomReaderTest.Tc235_RescaleSlopeNotANumber_J2k_RefusedInvalid
+207/367 Test #207: DicomReaderTest.Tc235_RescaleSlopeNotANumber_J2k_RefusedInvalid .............................................   Passed    0.05 sec
+        Start 208: DicomReaderTest.Tc235_RescaleInterceptNotANumber_Native_RefusedInvalid
+208/367 Test #208: DicomReaderTest.Tc235_RescaleInterceptNotANumber_Native_RefusedInvalid ......................................   Passed    0.05 sec
+        Start 209: DicomReaderTest.Tc235_RescaleInterceptNotANumber_JpegLl_RefusedInvalid
+209/367 Test #209: DicomReaderTest.Tc235_RescaleInterceptNotANumber_JpegLl_RefusedInvalid ......................................   Passed    0.06 sec
+        Start 210: DicomReaderTest.Tc235_RescaleInterceptNotANumber_J2k_RefusedInvalid
+210/367 Test #210: DicomReaderTest.Tc235_RescaleInterceptNotANumber_J2k_RefusedInvalid .........................................   Passed    0.06 sec
+        Start 211: DicomReaderTest.Tc235_RescaleSlopeEmpty_Native_RefusedInvalid
+211/367 Test #211: DicomReaderTest.Tc235_RescaleSlopeEmpty_Native_RefusedInvalid ...............................................   Passed    0.06 sec
+        Start 212: DicomReaderTest.Tc235_RescaleSlopeEmpty_JpegLl_RefusedInvalid
+212/367 Test #212: DicomReaderTest.Tc235_RescaleSlopeEmpty_JpegLl_RefusedInvalid ...............................................   Passed    0.05 sec
+        Start 213: DicomReaderTest.Tc235_RescaleSlopeEmpty_J2k_RefusedInvalid
+213/367 Test #213: DicomReaderTest.Tc235_RescaleSlopeEmpty_J2k_RefusedInvalid ..................................................   Passed    0.06 sec
+        Start 214: DicomReaderTest.Tc235_RescaleSlopeNotFinite_Native_RefusedInvalid
+214/367 Test #214: DicomReaderTest.Tc235_RescaleSlopeNotFinite_Native_RefusedInvalid ...........................................   Passed    0.06 sec
+        Start 215: DicomReaderTest.Tc235_RescaleSlopeNotFinite_JpegLl_RefusedInvalid
+215/367 Test #215: DicomReaderTest.Tc235_RescaleSlopeNotFinite_JpegLl_RefusedInvalid ...........................................   Passed    0.06 sec
+        Start 216: DicomReaderTest.Tc235_RescaleSlopeNotFinite_J2k_RefusedInvalid
+216/367 Test #216: DicomReaderTest.Tc235_RescaleSlopeNotFinite_J2k_RefusedInvalid ..............................................   Passed    0.07 sec
+        Start 217: DicomReaderTest.Tc235_RescaleSlopeTwoValues_Native_RefusedInvalid
+217/367 Test #217: DicomReaderTest.Tc235_RescaleSlopeTwoValues_Native_RefusedInvalid ...........................................   Passed    0.06 sec
+        Start 218: DicomReaderTest.Tc235_RescaleSlopeTwoValues_JpegLl_RefusedInvalid
+218/367 Test #218: DicomReaderTest.Tc235_RescaleSlopeTwoValues_JpegLl_RefusedInvalid ...........................................   Passed    0.06 sec
+        Start 219: DicomReaderTest.Tc235_RescaleSlopeTwoValues_J2k_RefusedInvalid
+219/367 Test #219: DicomReaderTest.Tc235_RescaleSlopeTwoValues_J2k_RefusedInvalid ..............................................   Passed    0.07 sec
+        Start 220: DicomReaderTest.Tc235_RescaleSlopeOnly_Native_RefusedInvalid
+220/367 Test #220: DicomReaderTest.Tc235_RescaleSlopeOnly_Native_RefusedInvalid ................................................   Passed    0.06 sec
+        Start 221: DicomReaderTest.Tc235_RescaleSlopeOnly_JpegLl_RefusedInvalid
+221/367 Test #221: DicomReaderTest.Tc235_RescaleSlopeOnly_JpegLl_RefusedInvalid ................................................   Passed    0.06 sec
+        Start 222: DicomReaderTest.Tc235_RescaleSlopeOnly_J2k_RefusedInvalid
+222/367 Test #222: DicomReaderTest.Tc235_RescaleSlopeOnly_J2k_RefusedInvalid ...................................................   Passed    0.06 sec
+        Start 223: DicomReaderTest.Tc235_RescaleInterceptOnly_Native_RefusedInvalid
+223/367 Test #223: DicomReaderTest.Tc235_RescaleInterceptOnly_Native_RefusedInvalid ............................................   Passed    0.06 sec
+        Start 224: DicomReaderTest.Tc235_RescaleInterceptOnly_JpegLl_RefusedInvalid
+224/367 Test #224: DicomReaderTest.Tc235_RescaleInterceptOnly_JpegLl_RefusedInvalid ............................................   Passed    0.06 sec
+        Start 225: DicomReaderTest.Tc235_RescaleInterceptOnly_J2k_RefusedInvalid
+225/367 Test #225: DicomReaderTest.Tc235_RescaleInterceptOnly_J2k_RefusedInvalid ...............................................   Passed    0.78 sec
+        Start 226: DicomReaderTest.Tc235_RescaleInterceptTwoValues_Native_RefusedInvalid
+226/367 Test #226: DicomReaderTest.Tc235_RescaleInterceptTwoValues_Native_RefusedInvalid .......................................   Passed    0.06 sec
+        Start 227: DicomReaderTest.Tc235_RescaleBothAbsent_Native_IdentityNoAlert
+227/367 Test #227: DicomReaderTest.Tc235_RescaleBothAbsent_Native_IdentityNoAlert ..............................................   Passed    0.07 sec
+        Start 228: DicomReaderTest.Tc235_RescaleBothAbsent_JpegLl_IdentityNoAlert
+228/367 Test #228: DicomReaderTest.Tc235_RescaleBothAbsent_JpegLl_IdentityNoAlert ..............................................   Passed    0.07 sec
+        Start 229: DicomReaderTest.Tc235_RescaleBothAbsent_J2k_IdentityNoAlert
+229/367 Test #229: DicomReaderTest.Tc235_RescaleBothAbsent_J2k_IdentityNoAlert .................................................   Passed    0.07 sec
+        Start 230: DicomReaderTest.Tc235_ModalityLutSequence_Native_StoredValuesWithWarning
+230/367 Test #230: DicomReaderTest.Tc235_ModalityLutSequence_Native_StoredValuesWithWarning ....................................   Passed    0.06 sec
+        Start 231: DicomReaderTest.Tc235_ModalityLutSequence_JpegLl_StoredValuesWithWarning
+231/367 Test #231: DicomReaderTest.Tc235_ModalityLutSequence_JpegLl_StoredValuesWithWarning ....................................   Passed    0.06 sec
+        Start 232: DicomReaderTest.Tc235_ModalityLutSequence_J2k_StoredValuesWithWarning
+232/367 Test #232: DicomReaderTest.Tc235_ModalityLutSequence_J2k_StoredValuesWithWarning .......................................   Passed    0.71 sec
+        Start 233: DicomReaderTest.Tc235_RescaleDsExponent_Native_Accepted
+233/367 Test #233: DicomReaderTest.Tc235_RescaleDsExponent_Native_Accepted .....................................................   Passed    0.06 sec
+        Start 234: DicomReaderTest.Tc235_RescaleDsPlusSign_Native_Accepted
+234/367 Test #234: DicomReaderTest.Tc235_RescaleDsPlusSign_Native_Accepted .....................................................   Passed    0.07 sec
+        Start 235: DicomReaderTest.Tc235_RescaleDsPadded_Native_Accepted
+235/367 Test #235: DicomReaderTest.Tc235_RescaleDsPadded_Native_Accepted .......................................................   Passed    0.70 sec
+        Start 236: DicomReaderTest.Tc235_RescaleDsDecimal_Native_AcceptedWithWarning
+236/367 Test #236: DicomReaderTest.Tc235_RescaleDsDecimal_Native_AcceptedWithWarning ...........................................   Passed    0.07 sec
+        Start 237: DicomReaderTest.Tc235_MultiFrame_Native_RefusedUnsupported
+237/367 Test #237: DicomReaderTest.Tc235_MultiFrame_Native_RefusedUnsupported ..................................................   Passed    0.06 sec
+        Start 238: DicomReaderTest.Tc235_MultiFrame_JpegLl_RefusedUnsupported
+238/367 Test #238: DicomReaderTest.Tc235_MultiFrame_JpegLl_RefusedUnsupported ..................................................   Passed    0.06 sec
+        Start 239: DicomReaderTest.Tc235_MultiFrame_J2k_RefusedUnsupported
+239/367 Test #239: DicomReaderTest.Tc235_MultiFrame_J2k_RefusedUnsupported .....................................................   Passed    0.06 sec
+        Start 240: DicomReaderTest.Tc235_Rgb_Native_RefusedUnsupported
+240/367 Test #240: DicomReaderTest.Tc235_Rgb_Native_RefusedUnsupported .........................................................   Passed    0.05 sec
+        Start 241: DicomReaderTest.Tc235_Rgb_JpegLl_RefusedUnsupported
+241/367 Test #241: DicomReaderTest.Tc235_Rgb_JpegLl_RefusedUnsupported .........................................................   Passed    0.78 sec
+        Start 242: DicomReaderTest.Tc235_Rgb_J2k_RefusedUnsupported
+242/367 Test #242: DicomReaderTest.Tc235_Rgb_J2k_RefusedUnsupported ............................................................   Passed    0.06 sec
+        Start 243: DicomReaderTest.Tc235_RgbLabelOnOnePlane_Native_RefusedInvalid
+243/367 Test #243: DicomReaderTest.Tc235_RgbLabelOnOnePlane_Native_RefusedInvalid ..............................................   Passed    0.06 sec
+        Start 244: DicomReaderTest.Tc235_RgbLabelOnOnePlane_JpegLl_RefusedInvalid
+244/367 Test #244: DicomReaderTest.Tc235_RgbLabelOnOnePlane_JpegLl_RefusedInvalid ..............................................   Passed    0.06 sec
+        Start 245: DicomReaderTest.Tc235_RgbLabelOnOnePlane_J2k_RefusedInvalid
+245/367 Test #245: DicomReaderTest.Tc235_RgbLabelOnOnePlane_J2k_RefusedInvalid .................................................   Passed    0.07 sec
+        Start 246: DicomReaderTest.Tc235_BitsAboveBitsStored_Native_MaskedWithInfoAlert
+246/367 Test #246: DicomReaderTest.Tc235_BitsAboveBitsStored_Native_MaskedWithInfoAlert ........................................   Passed    0.06 sec
+        Start 247: DicomReaderTest.Tc235_BitsAboveBitsStored_Native_NothingToMaskPostsNothing
+247/367 Test #247: DicomReaderTest.Tc235_BitsAboveBitsStored_Native_NothingToMaskPostsNothing ..................................   Passed    0.05 sec
+        Start 248: DicomReaderTest.Tc235_BitsAboveBitsStored_JpegLl_MaskedWithInfoAlert
+248/367 Test #248: DicomReaderTest.Tc235_BitsAboveBitsStored_JpegLl_MaskedWithInfoAlert ........................................   Passed    0.06 sec
+        Start 249: DicomReaderTest.AFileThatIsNotPartTenIsDicomInvalidWhateverItContains
+249/367 Test #249: DicomReaderTest.AFileThatIsNotPartTenIsDicomInvalidWhateverItContains .......................................   Passed    0.09 sec
+        Start 250: DicomReaderTest.PreambleAndMagicWithoutAnyGroup0002ElementIsDicomInvalid
+250/367 Test #250: DicomReaderTest.PreambleAndMagicWithoutAnyGroup0002ElementIsDicomInvalid ....................................   Passed    0.06 sec
+        Start 251: DicomReaderTest.ThePreambleBytesThemselvesAreNotJudgedAndAMissingFileIsStillAnIoError
+251/367 Test #251: DicomReaderTest.ThePreambleBytesThemselvesAreNotJudgedAndAMissingFileIsStillAnIoError .......................   Passed    0.76 sec
+        Start 252: DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed
+252/367 Test #252: DicomJ2kFailureTest.GarbageBitstream_ReturnsProcessingFailed ................................................   Passed    0.05 sec
+        Start 253: DicomJ2kFailureTest.TruncatedBitstream_ReturnsProcessingFailed
+253/367 Test #253: DicomJ2kFailureTest.TruncatedBitstream_ReturnsProcessingFailed ..............................................   Passed    0.16 sec
+        Start 254: DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid
+254/367 Test #254: DicomJ2kFailureTest.EmptyFragment_ReturnsDicomInvalid .......................................................   Passed    0.58 sec
+        Start 255: DicomJ2kFailureTest.OffsetTableOnly_ReturnsDicomInvalid
+255/367 Test #255: DicomJ2kFailureTest.OffsetTableOnly_ReturnsDicomInvalid .....................................................   Passed    0.06 sec
+        Start 256: DicomJ2kFailureTest.FailurePathsDoNotGrowCrtHeap
+256/367 Test #256: DicomJ2kFailureTest.FailurePathsDoNotGrowCrtHeap ............................................................   Passed    1.25 sec
+        Start 257: DicomJ2kFailureTest.FailurePaths_ControlLeakIsCaught
+257/367 Test #257: DicomJ2kFailureTest.FailurePaths_ControlLeakIsCaught ........................................................   Passed    1.18 sec
+        Start 258: DicomJ2kFailureTest.FailedReadLeavesOutputUntouched
+258/367 Test #258: DicomJ2kFailureTest.FailedReadLeavesOutputUntouched .........................................................   Passed    1.92 sec
+        Start 259: DicomWriterTest.WriteBasic_CreatesFile
+259/367 Test #259: DicomWriterTest.WriteBasic_CreatesFile ......................................................................   Passed    0.08 sec
+        Start 260: DicomWriterTest.WriteRoundTrip_PixelExact
+260/367 Test #260: DicomWriterTest.WriteRoundTrip_PixelExact ...................................................................   Passed    0.04 sec
+        Start 261: DicomWriterTest.WriteMetadata_Preserved
+261/367 Test #261: DicomWriterTest.WriteMetadata_Preserved .....................................................................   Passed    0.04 sec
+        Start 262: DicomWriterTest.WriteIOError_ReturnsIOFailed
+262/367 Test #262: DicomWriterTest.WriteIOError_ReturnsIOFailed ................................................................   Passed    0.03 sec
+        Start 263: DicomWriterTest.WriteNullPath_ReturnsInvalidInput
+263/367 Test #263: DicomWriterTest.WriteNullPath_ReturnsInvalidInput ...........................................................   Passed    0.02 sec
+        Start 264: DicomWriterTest.WriteNullImg_ReturnsInvalidInput
+264/367 Test #264: DicomWriterTest.WriteNullImg_ReturnsInvalidInput ............................................................   Passed    0.02 sec
+        Start 265: DicomWriterTest.WriteNullMeta_ReturnsInvalidInput
+265/367 Test #265: DicomWriterTest.WriteNullMeta_ReturnsInvalidInput ...........................................................   Passed    0.02 sec
+        Start 266: DicomWriterTest.WriteJ2KRoundTrip_PixelExact
+266/367 Test #266: DicomWriterTest.WriteJ2KRoundTrip_PixelExact ................................................................   Passed    0.05 sec
+        Start 267: DicomWriterTest.RescaleDefaults_OneAndZero
+267/367 Test #267: DicomWriterTest.RescaleDefaults_OneAndZero ..................................................................   Passed    0.06 sec
+        Start 268: DicomWriterTest.WriteJ2KNullImg_ReturnsInvalidInput
+268/367 Test #268: DicomWriterTest.WriteJ2KNullImg_ReturnsInvalidInput .........................................................   Passed    0.03 sec
+        Start 269: DicomWriterTest.DataSizeGuard_Write_ShortDataSize_ReturnsInvalidInput
+269/367 Test #269: DicomWriterTest.DataSizeGuard_Write_ShortDataSize_ReturnsInvalidInput .......................................   Passed    0.03 sec
+        Start 270: DicomWriterTest.DataSizeGuard_WriteJ2K_ShortDataSize_ReturnsInvalidInput
+270/367 Test #270: DicomWriterTest.DataSizeGuard_WriteJ2K_ShortDataSize_ReturnsInvalidInput ....................................   Passed    0.03 sec
+        Start 271: DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted
+271/367 Test #271: DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted ...................................................   Passed    0.04 sec
+        Start 272: DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted
+272/367 Test #272: DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted ................................................   Passed    0.04 sec
+        Start 273: DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow
+273/367 Test #273: DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow ...........................................................   Passed    1.47 sec
+        Start 274: DicomWriterTest.ThousandCycles_ControlLeakIsCaught
+274/367 Test #274: DicomWriterTest.ThousandCycles_ControlLeakIsCaught ..........................................................   Passed    1.37 sec
+        Start 275: DicomWriterTest.WriteEmptyBodyPart_StillWritesFile
+275/367 Test #275: DicomWriterTest.WriteEmptyBodyPart_StillWritesFile ..........................................................   Passed    0.03 sec
+        Start 276: DicomWriterTest.WriteJ2KNullPixelData_ReturnsInvalidInput
+276/367 Test #276: DicomWriterTest.WriteJ2KNullPixelData_ReturnsInvalidInput ...................................................   Passed    0.02 sec
+        Start 277: DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck
+277/367 Test #277: DicomWriterTest.WriteUint8Format_IsRefusedAtTheDoorByTheFormatCheck .........................................   Passed    0.02 sec
+        Start 278: DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade
+278/367 Test #278: DicomWriterTest.AFloat32ImageIsRefusedByBothWritersAndNoFileIsMade ..........................................   Passed    0.02 sec
+        Start 279: DicomWriterTest.ARefusedFormatLeavesAnExistingDestinationFileUntouched
+279/367 Test #279: DicomWriterTest.ARefusedFormatLeavesAnExistingDestinationFileUntouched ......................................   Passed    0.03 sec
+        Start 280: DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads
+280/367 Test #280: DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads ...........................................   Passed    0.04 sec
+        Start 281: DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput
+281/367 Test #281: DicomWriterTest.EmptyImage_ZeroWidth_ReturnsInvalidInput ....................................................   Passed    0.13 sec
+        Start 282: DicomWriterTest.EmptyImage_ZeroHeight_ReturnsInvalidInput
+282/367 Test #282: DicomWriterTest.EmptyImage_ZeroHeight_ReturnsInvalidInput ...................................................   Passed    0.02 sec
+        Start 283: DicomWriterTest.EmptyImage_NullData_ReturnsInvalidInput
+283/367 Test #283: DicomWriterTest.EmptyImage_NullData_ReturnsInvalidInput .....................................................   Passed    0.02 sec
+        Start 284: DicomWriterTest.EmptyImageContract_ValidImageStillAccepted
+284/367 Test #284: DicomWriterTest.EmptyImageContract_ValidImageStillAccepted ..................................................   Passed    0.04 sec
+        Start 285: DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly
+285/367 Test #285: DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly ...................................   Passed    0.80 sec
+        Start 286: DicomWriterTest.ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo
+286/367 Test #286: DicomWriterTest.ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo ...........................................   Passed    0.05 sec
+        Start 287: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData
+287/367 Test #287: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData ..............................   Passed    0.04 sec
+        Start 288: DicomWriterTest.ADataSizeOfOneByteLessThanTheImageIsStillRefusedAndNoFileIsMade
+288/367 Test #288: DicomWriterTest.ADataSizeOfOneByteLessThanTheImageIsStillRefusedAndNoFileIsMade .............................   Passed    0.02 sec
+        Start 289: DicomWriterTest.AnImageTheFileCannotDescribeIsRefusedBeforeAnyFileExistsByBothWriters
+289/367 Test #289: DicomWriterTest.AnImageTheFileCannotDescribeIsRefusedBeforeAnyFileExistsByBothWriters .......................   Passed    0.02 sec
+        Start 290: DicomWriterTest.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade
+290/367 Test #290: DicomWriterTest.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade ...........   Passed    0.02 sec
+        Start 291: DicomWriterTest.EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack
+291/367 Test #291: DicomWriterTest.EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack ........................................   Passed    0.15 sec
+        Start 292: DicomWriterTest.ThousandOpenCycles_CrtHeapDoesNotGrowWhetherOrNotOpenSucceeds
+292/367 Test #292: DicomWriterTest.ThousandOpenCycles_CrtHeapDoesNotGrowWhetherOrNotOpenSucceeds ...............................   Passed    0.24 sec
+        Start 293: DicomImageLimits.TheLengthIsComputedIn64BitsAndTheBoundaryIsWhereTheElementEnds
+293/367 Test #293: DicomImageLimits.TheLengthIsComputedIn64BitsAndTheBoundaryIsWhereTheElementEnds .............................   Passed    0.13 sec
+        Start 294: DicomImageLimits.AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps
+294/367 Test #294: DicomImageLimits.AJ2kFragmentLengthIsNarrowedOnlyWhenItFitsAndNeverWraps ....................................   Passed    0.03 sec
+        Start 295: DicomImageLimits.TheWritableFormatIsUint16AndNothingElse
+295/367 Test #295: DicomImageLimits.TheWritableFormatIsUint16AndNothingElse ....................................................   Passed    0.02 sec
+        Start 296: DicomValidatorTest.ValidateConformant_ReturnsValid
+296/367 Test #296: DicomValidatorTest.ValidateConformant_ReturnsValid ..........................................................   Passed    0.07 sec
+        Start 297: DicomValidatorTest.ValidateMissingPatientID_ReportsError
+297/367 Test #297: DicomValidatorTest.ValidateMissingPatientID_ReportsError ....................................................   Passed    0.04 sec
+        Start 298: DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid
+298/367 Test #298: DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid .....................................................   Passed    0.04 sec
+        Start 299: DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall
+299/367 Test #299: DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall .....................................................   Passed    0.04 sec
+        Start 300: DicomValidatorTest.NullFilePath_ReturnsInvalidInput
+300/367 Test #300: DicomValidatorTest.NullFilePath_ReturnsInvalidInput .........................................................   Passed    0.04 sec
+        Start 301: DicomValidatorTest.NullOutBuf_ReturnsInvalidInput
+301/367 Test #301: DicomValidatorTest.NullOutBuf_ReturnsInvalidInput ...........................................................   Passed    0.04 sec
+        Start 302: DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning
+302/367 Test #302: DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning ...............................................   Passed    0.05 sec
+        Start 303: DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall
+303/367 Test #303: DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall .......................................   Passed    0.04 sec
+        Start 304: DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall
+304/367 Test #304: DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall .....................................   Passed    0.04 sec
+        Start 305: DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing
+305/367 Test #305: DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing ...................................................   Passed    0.04 sec
+        Start 306: DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta
+306/367 Test #306: DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta ......................................   Passed    0.04 sec
+        Start 307: DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency
+307/367 Test #307: DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency ........................................   Passed    0.05 sec
+        Start 308: DicomValidatorTest.ValidateWriterOutput_IsConformant
+308/367 Test #308: DicomValidatorTest.ValidateWriterOutput_IsConformant ........................................................   Passed    0.04 sec
+        Start 309: DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency
+309/367 Test #309: DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency .....................................   Passed    0.04 sec
+        Start 310: DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid
+310/367 Test #310: DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid ....................................   Passed    0.05 sec
+        Start 311: DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant
+311/367 Test #311: DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant .............................................   Passed    0.04 sec
+        Start 312: DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass
+312/367 Test #312: DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass .....................................   Passed    0.04 sec
+        Start 313: DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance
+313/367 Test #313: DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance ...............................   Passed    0.04 sec
+        Start 314: DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax
+314/367 Test #314: DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax ............................   Passed    0.04 sec
+        Start 315: DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput
+315/367 Test #315: DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput ...............................................   Passed    0.04 sec
+        Start 316: DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow
+316/367 Test #316: DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow ........................................   Passed    0.05 sec
+        Start 317: DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize
+317/367 Test #317: DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize ............................................   Passed    0.79 sec
+        Start 318: DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag
+318/367 Test #318: DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag ..............................   Passed    0.08 sec
+        Start 319: DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty
+319/367 Test #319: DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty ...............................   Passed    0.05 sec
+        Start 320: DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages
+320/367 Test #320: DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages .................................   Passed    0.05 sec
+        Start 321: DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes
+321/367 Test #321: DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes .........................   Passed    0.07 sec
+        Start 322: DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence
+322/367 Test #322: DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence ...........   Passed    0.06 sec
+        Start 323: DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt
+323/367 Test #323: DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt ................................   Passed    0.11 sec
+        Start 324: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+324/367 Test #324: DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData ......................   Passed    0.14 sec
+        Start 325: DicomValidatorTest.KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild
+325/367 Test #325: DicomValidatorTest.KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild ..............   Passed    0.05 sec
+        Start 326: DicomValidatorTest.ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell
+326/367 Test #326: DicomValidatorTest.ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell ............................   Passed    0.08 sec
+        Start 327: DicomNetworkTest.CStoreSuccess_ReturnsOK
+327/367 Test #327: DicomNetworkTest.CStoreSuccess_ReturnsOK ....................................................................   Passed    1.65 sec
+        Start 328: DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed
+328/367 Test #328: DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed .........................................................   Passed    2.57 sec
+        Start 329: DicomNetworkTest.CFindResults_ReturnsJsonArray
+329/367 Test #329: DicomNetworkTest.CFindResults_ReturnsJsonArray ..............................................................   Passed    1.88 sec
+        Start 330: DicomNetworkTest.CFindEmpty_ReturnsEmptyArray
+330/367 Test #330: DicomNetworkTest.CFindEmpty_ReturnsEmptyArray ...............................................................   Passed    0.58 sec
+        Start 331: DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed
+331/367 Test #331: DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed ..........................................................   Passed    2.55 sec
+        Start 332: DicomNetworkTest.CancelCStore_TerminatesOperation
+332/367 Test #332: DicomNetworkTest.CancelCStore_TerminatesOperation ...........................................................   Passed    3.08 sec
+        Start 333: DicomNetworkTest.CancelNoOp_WhenIdle
+333/367 Test #333: DicomNetworkTest.CancelNoOp_WhenIdle ........................................................................   Passed    0.57 sec
+        Start 334: DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput
+334/367 Test #334: DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput .........................................................   Passed    1.04 sec
+        Start 335: DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput
+335/367 Test #335: DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput .....................................................   Passed    0.56 sec
+        Start 336: DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed
+336/367 Test #336: DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed .........................................................   Passed    1.58 sec
+        Start 337: DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed
+337/367 Test #337: DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed ..........................................................   Passed    0.57 sec
+        Start 338: DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault
+338/367 Test #338: DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault ..............................................   Passed    2.57 sec
+        Start 339: DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores
+339/367 Test #339: DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores ...................................................   Passed    1.67 sec
+        Start 340: DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed
+340/367 Test #340: DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed ............................   Passed    1.58 sec
+        Start 341: DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray
+341/367 Test #341: DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray ............................................   Passed    2.19 sec
+        Start 342: DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall
+342/367 Test #342: DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall ...............................................   Passed    1.56 sec
+        Start 343: DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput
+343/367 Test #343: DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput ...............................................   Passed    0.57 sec
+        Start 344: DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue
+344/367 Test #344: DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue .................................   Passed    0.08 sec
+        Start 345: DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+345/367 Test #345: DicomExposureTag.TheReadOrderIs1153Then9332Then1152 .........................................................   Passed    0.05 sec
+        Start 346: DicomExposureTag.AFileThatOnlyHas9332StillReadsAsThatValue
+346/367 Test #346: DicomExposureTag.AFileThatOnlyHas9332StillReadsAsThatValue ..................................................   Passed    0.04 sec
+        Start 347: DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332
+347/367 Test #347: DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332 ..................................   Passed    0.10 sec
+        Start 348: DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed
+348/367 Test #348: DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed .................................   Passed    0.08 sec
+        Start 349: DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix
+349/367 Test #349: DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix ..........................   Passed    0.34 sec
+        Start 350: DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne
+350/367 Test #350: DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne .......   Passed    0.10 sec
+        Start 351: DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne
+351/367 Test #351: DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne .............   Passed    0.07 sec
+        Start 352: DicomExposureTag.TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored
+352/367 Test #352: DicomExposureTag.TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored ............................   Passed    0.07 sec
+        Start 353: DicomModuleVersion.TheModuleExportsAVersionStringLikeTheOtherModules
+353/367 Test #353: DicomModuleVersion.TheModuleExportsAVersionStringLikeTheOtherModules ........................................   Passed    0.02 sec
+        Start 354: DicomFailurePaths.ACFindAnsweredWithAFailureStatusIsNetworkFailedForEveryStatusOfTheFailureRange
+354/367 Test #354: DicomFailurePaths.ACFindAnsweredWithAFailureStatusIsNetworkFailedForEveryStatusOfTheFailureRange ............   Passed    1.57 sec
+        Start 355: DicomFailurePaths.AQueryWithNoMatchIsStillAnEmptyListAndOk
+355/367 Test #355: DicomFailurePaths.AQueryWithNoMatchIsStillAnEmptyListAndOk ..................................................   Passed    0.56 sec
+        Start 356: DicomFailurePaths.AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason
+356/367 Test #356: DicomFailurePaths.AFailedCStoreIsNetworkFailedAndPostsAWarningWithTheReason .................................   Passed    1.56 sec
+        Start 357: DicomFailurePaths.ACStoreToAPortNobodyServesPostsAWarningWithTheReason
+357/367 Test #357: DicomFailurePaths.ACStoreToAPortNobodyServesPostsAWarningWithTheReason ......................................   Passed    1.05 sec
+        Start 358: DicomFailurePaths.ACancelDuringATransferIsReportedAsACancelAndNeverAsSuccess
+358/367 Test #358: DicomFailurePaths.ACancelDuringATransferIsReportedAsACancelAndNeverAsSuccess ................................   Passed    3.59 sec
+        Start 359: DicomFailurePaths.ACancelDuringAQueryIsReportedAsACancel
+359/367 Test #359: DicomFailurePaths.ACancelDuringAQueryIsReportedAsACancel ....................................................   Passed    3.56 sec
+        Start 360: DicomFailurePaths.ACancelThatArrivesWhileNothingRunsIsForgottenByTheNextCall
+360/367 Test #360: DicomFailurePaths.ACancelThatArrivesWhileNothingRunsIsForgottenByTheNextCall ................................   Passed    1.59 sec
+        Start 361: DicomTimeout.ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred
+361/367 Test #361: DicomTimeout.ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred ............................   Passed    2.06 sec
+        Start 362: DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest
+362/367 Test #362: DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest .......................................   Passed    3.32 sec
+        Start 363: DicomTimeout.ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred
+363/367 Test #363: DicomTimeout.ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred .............................   Passed    1.04 sec
+        Start 364: DicomWriterInner.TheControlImageIsWrittenByBothInnerWriters
+364/367 Test #364: DicomWriterInner.TheControlImageIsWrittenByBothInnerWriters .................................................   Passed    0.07 sec
+        Start 365: DicomWriterInner.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedWithoutTheDoor
+365/367 Test #365: DicomWriterInner.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedWithoutTheDoor ........................   Passed    0.02 sec
+        Start 366: DicomWriterInner.APixelFormatOtherThanUint16IsRefusedWithoutTheDoor
+366/367 Test #366: DicomWriterInner.APixelFormatOtherThanUint16IsRefusedWithoutTheDoor .........................................   Passed    0.02 sec
+        Start 367: DicomWriterInner.AnImageNoFileCanDescribeIsRefusedWithoutTheDoorAndTheTinyBufferIsNotRead
+367/367 Test #367: DicomWriterInner.AnImageNoFileCanDescribeIsRefusedWithoutTheDoorAndTheTinyBufferIsNotRead ...................   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 367
+
+Total Test time (real) =  91.87 sec

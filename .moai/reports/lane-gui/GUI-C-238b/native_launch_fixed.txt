@@ -1,0 +1,52 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderMissingCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason [6 s]
+  표준 출력 메시지:
+ title: '[MOCK] ImageProcTest GUI-S0'
+ banner: MOCK BACKEND — Native was requested but could not be used: xpe_common.dll was not found at 'C:\Users\drake\AppData\Local\Temp\xpe_c238_5c70fd0a15b14656b5d226a351b9c35b\pinned\xpe_common.dll'. Images and results are synthetic; not for clinical judgement.
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.WorkingDllsBesideTheExe_WhenNothingIsPinned_AreUsed_TheAppStartsOnNative [6 s]
+  표준 출력 메시지:
+ backend line: mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=app
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.PinnedFolderWithADamagedCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason [6 s]
+  표준 출력 메시지:
+ title: '[MOCK] ImageProcTest GUI-S0'
+ banner: MOCK BACKEND — Native was requested but could not be used: xpe_common.dll at 'C:\Users\drake\AppData\Local\Temp\xpe_c238_b41b3b4a81884f39823777b8f6fa872f\pinned\xpe_common.dll' (6 bytes, written 2026-10-14) could not be loaded. Images and results are synthetic; not for clinical judgement.
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.OldDllsBesideTheExe_DoNotWinOverThePinnedFolder_TheAppStartsOnNative [6 s]
+  표준 출력 메시지:
+ title: 'ImageProcTest GUI-S0'
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.ExclusiveWithoutAFolder_WorkingDllsBesideTheExe_AreNotUsed_MockWithTheReason [6 s]
+  표준 출력 메시지:
+ title: '[MOCK] ImageProcTest GUI-S0'
+ banner: MOCK BACKEND — Native was requested but could not be used: XPE_NATIVE_DIR_EXCLUSIVE=1 pins the native search to one folder, but XPE_NATIVE_DIR does not name it (the application folder is not searched instead). Images and results are synthetic; not for clinical judgement.
+
+
+[xUnit.net 00:00:38.12]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Smoke.NativeLaunchPathTests.OldDllsBesideTheExe_WhenNotPinned_MockStartsAndTheBannerNamesTheDllAndTheProblem [6 s]
+  표준 출력 메시지:
+ title: '[MOCK] ImageProcTest GUI-S0'
+ banner: MOCK BACKEND — Native was requested but could not be used: xpe_common.dll at 'C:\Users\drake\AppData\Local\Temp\xpe_c238_64416a079023459d829603f79a94f133\app\xpe_common.dll' (1143808 bytes, written 2026-10-14) could not be loaded. Images and results are synthetic; not for clinical judgement.
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 6
+     통과: 6
+ 총 시간: 38.4495 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

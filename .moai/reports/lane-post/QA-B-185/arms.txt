@@ -1,0 +1,11 @@
+S1 the inversion loop never runs: build_ok=True passed=['4'] red=['Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense', 'Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochro', 'Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEve', 'Tc109_Monochrome1PlusInverse_RoundTripKeepsHowTheImageDisplays', 'Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting']
+S2 no mask before inverting: build_ok=True passed=['8'] red=['Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting']
+S3 JPEG 2000 path not inverted: build_ok=True passed=['8'] red=['Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEve']
+S4 JPEG Lossless path not inverted: build_ok=True passed=['8'] red=['Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEve']
+S5 uncompressed path not inverted: build_ok=True passed=['4'] red=['Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense', 'Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochro', 'Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEve', 'Tc109_Monochrome1PlusInverse_RoundTripKeepsHowTheImageDisplays', 'Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting']
+S6 inversion made on the handle's own dataset buffer: build_ok=True passed=['8'] red=['Tc109_Monochrome1_ReadingTwiceOnOneHandleGivesTheSameWords']
+S7 no alert: build_ok=True passed=['7'] red=['Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochro', 'Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEve']
+S8 MONOCHROME2 inverted too: build_ok=True passed=['3'] red=['Issue235Decided_Monochrome1IsInvertedToMonochrome2Sense', 'Pinned_Issue235AwaitsDesignDecision_BitsAboveBitsStoredAreNotM', 'Scope_PhotometricInterpretationRefusalsNameTheValueAndMonochro', 'Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEve', 'Tc109_Monochrome1PlusInverse_RoundTripKeepsHowTheImageDisplays', 'Tc109_Monochrome1_MasksTheBitsAboveBitsStoredBeforeInverting']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['9'] red=[]
+DONE

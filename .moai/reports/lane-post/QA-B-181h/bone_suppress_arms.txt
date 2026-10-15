@@ -1,0 +1,10 @@
+P4 both checks removed (= before the fix): build_ok=True passed=['2'] red=['BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat', 'BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['4'] red=[]
+DONE
+P1 in-process check removed: build_ok=True passed=['3'] red=['BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat']
+P2 bridge check removed: build_ok=True passed=['3'] red=['BoneSuppressNonFinite.WorkerPathRefusesAFiniteInputWhoseResultLeavesFloat']
+P3 scan stops at first element: build_ok=True passed=['3'] red=['BoneSuppressNonFinite.InProcessRefusesAFiniteInputWhoseResultLeavesFloat']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['4'] red=[]
+DONE

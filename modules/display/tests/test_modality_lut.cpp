@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <chrono>
 #include "perf_measure.h"
 
@@ -286,4 +287,64 @@ TEST(ModalityLut, BenchmarkFreeze_Performance_REQ_DISP_008_Linear3072) {
         if (!std::isfinite(out[i])) { ADD_FAILURE() << "non-finite output at " << i; break; }
     }
     std::free(img.data);
+}
+
+// =============================================================================
+// QA-B-206 D2: REQ-DISP-002 "clamping out-of-range inputs to the nearest boundary entry" holds for EVERY finite input.
+// A finite float >= 2^31 is outside int32_t and used to land on the FIRST entry (QA-B-204: +2^31, 3e9, 1e12 and 3.4e38).
+// =============================================================================
+
+namespace {
+
+/** The table 1000, 2000, ..., 16000 (16 entries) applied to one pixel; returns the output. */
+float MapOne(float input, int32_t firstMapped = 0) {
+    uint16_t lut[16];
+    for (int i = 0; i < 16; ++i) lut[i] = static_cast<uint16_t>((i + 1) * 1000);
+    XpeImageBuffer img = make_float32_image(1, 1, input);
+    XpeModalityLutParams params{};
+    params.mode           = XPE_MODALITY_LUT_TABLE;
+    params.lutData        = lut;
+    params.lutLength      = 16;
+    params.lutFirstMapped = firstMapped;
+    const XpeErrorCode rc = xpe_apply_modality_lut(&img, &params);
+    const float out = pixels(img)[0];
+    free_image(img);
+    EXPECT_EQ(XPE_OK, rc) << "input " << input;
+    return out;
+}
+
+}  // namespace
+
+TEST(ModalityLutClamp, AnInputAtOrAboveTwoToThe31TakesTheLastEntryAndNotTheFirst) {
+    for (const float v : {2147483520.0f /* the largest float below 2^31 */, 2147483648.0f /* 2^31 */, 2147483904.0f,
+                          3.0e9f, 4294967296.0f, 1.0e12f, 3.4e38f, std::numeric_limits<float>::max()}) {
+        EXPECT_FLOAT_EQ(16000.0f, MapOne(v)) << "input " << v << " (was 1000, the first entry, for 2^31 and above)";
+    }
+}
+
+TEST(ModalityLutClamp, AnInputAtOrBelowMinusTwoToThe31TakesTheFirstEntry) {
+    for (const float v : {-2147483520.0f, -2147483648.0f, -2147483904.0f, -3.0e9f, -1.0e12f, -3.4e38f,
+                          std::numeric_limits<float>::lowest()}) {
+        EXPECT_FLOAT_EQ(1000.0f, MapOne(v)) << "input " << v;
+    }
+}
+
+TEST(ModalityLutClamp, TheInRangeMappingAndTheBoundariesAreUnchanged) {
+    EXPECT_FLOAT_EQ(1000.0f, MapOne(-0.4f));    // rounds to 0
+    EXPECT_FLOAT_EQ(1000.0f, MapOne(0.0f));
+    EXPECT_FLOAT_EQ(2000.0f, MapOne(0.5f));     // half rounds away from zero: 1
+    EXPECT_FLOAT_EQ(8000.0f, MapOne(7.0f));
+    EXPECT_FLOAT_EQ(16000.0f, MapOne(14.6f));   // rounds to 15, the last entry
+    EXPECT_FLOAT_EQ(16000.0f, MapOne(15.0f));
+    EXPECT_FLOAT_EQ(16000.0f, MapOne(15.4f));
+    EXPECT_FLOAT_EQ(16000.0f, MapOne(16.0f));
+    EXPECT_FLOAT_EQ(9000.0f, MapOne(108.0f, 100));    // firstMapped 100: input 108 is index 8
+}
+
+TEST(ModalityLutClamp, AFirstMappedNearTheEndsOfInt32DoesNotOverflowTheIndexArithmetic) {
+    // input - firstMapped as an int32_t overflows for these; the answer is still the nearest boundary entry.
+    EXPECT_FLOAT_EQ(16000.0f, MapOne(0.0f, std::numeric_limits<int32_t>::min()));   // 0 - INT_MIN = 2^31: far above the table
+    EXPECT_FLOAT_EQ(16000.0f, MapOne(5.0f, std::numeric_limits<int32_t>::min()));
+    EXPECT_FLOAT_EQ(1000.0f, MapOne(0.0f, std::numeric_limits<int32_t>::max()));    // 0 - INT_MAX: far below the table
+    EXPECT_FLOAT_EQ(1000.0f, MapOne(-5.0f, std::numeric_limits<int32_t>::max()));
 }

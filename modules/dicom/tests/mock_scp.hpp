@@ -28,6 +28,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <chrono>
 #include <string>
 #include <thread>
@@ -53,6 +54,24 @@ public:
     /// Requests answered; readable by tests as a liveness check.
     std::atomic<int> findRequests{0};
     std::atomic<int> storeRequests{0};
+
+    /// QA-B-200 M1: a non-zero DIMSE status the SCP answers the NEXT C-FIND / C-STORE with, instead of success. Zero (the
+    /// default) keeps the behaviour every earlier test relies on. Set and cleared by the test that wants a failing peer.
+    std::atomic<unsigned> forcedFindStatus{0};
+    std::atomic<unsigned> forcedStoreStatus{0};
+    /// QA-B-200 M1: milliseconds the SCP waits after an association is up and a C-STORE request arrived, before it reads the
+    /// data and answers -- a peer that is slow in the middle of a transfer, for a cancel test. Zero = no wait.
+    std::atomic<unsigned> storeDelayMs{0};
+    /// QA-B-200 M2a: the same wait before a C-FIND is answered (a query that is slow, for a cancel test).
+    std::atomic<unsigned> findDelayMs{0};
+
+    /// QA-B-209 C8: a copy of the identifier (query dataset) of the LAST C-FIND this SCP received, so a test can assert the
+    /// SHAPE of the query the SCU built (the reply is canned and does not depend on it). Written by the listener thread
+    /// before it answers, so a test that has seen the SCU's call return may read it.
+    DcmDataset lastFindQuery() {
+        const std::lock_guard<std::mutex> lock(m_queryMutex);
+        return m_lastFindQuery;
+    }
 
     /**
      * @brief Ask the listen loop to exit.
@@ -92,6 +111,7 @@ protected:
         if (incomingMsg != nullptr && incomingMsg->CommandField == DIMSE_C_FIND_RQ) {
             ++findRequests;
             T_DIMSE_C_FindRQ& req = incomingMsg->msg.CFindRQ;
+            if (findDelayMs.load() != 0) std::this_thread::sleep_for(std::chrono::milliseconds(findDelayMs.load()));
 
             // Drain the query identifiers; the SCU always sends one.
             // receiveDIMSEDataset wants a mutable context id, so copy it out.
@@ -100,6 +120,10 @@ protected:
             OFCondition rc = receiveDIMSEDataset(&presID, &query);
             const std::unique_ptr<DcmDataset> queryOwned(query);
             DcmDataset* const queryCopy = queryOwned.get();
+            if (queryCopy != nullptr) {
+                const std::lock_guard<std::mutex> lock(m_queryMutex);
+                m_lastFindQuery = *queryCopy;
+            }
             if (rc.bad()) {
                 return rc;
             }
@@ -118,6 +142,11 @@ protected:
                 patientIdRequested && (queryPatientId == "MOCK-0001" ||
                                        queryPatientId == "MOCK-0002" ||
                                        queryPatientId == "MOCK-0003");
+
+            if (forcedFindStatus.load() != 0) {
+                return sendFINDResponse(presID, req.MessageID, req.AffectedSOPClassUID, nullptr,
+                                        static_cast<Uint16>(forcedFindStatus.load()));
+            }
 
             if (!patientIdRequested || patientIdOnWorklist) {
                 static const char* const kIds[]   = {"MOCK-0001", "MOCK-0002", "MOCK-0003"};
@@ -150,7 +179,15 @@ protected:
         if (incomingMsg != nullptr && incomingMsg->CommandField == DIMSE_C_STORE_RQ) {
             ++storeRequests;
             T_DIMSE_C_StoreRQ& req = incomingMsg->msg.CStoreRQ;
+            if (storeDelayMs.load() != 0) std::this_thread::sleep_for(std::chrono::milliseconds(storeDelayMs.load()));
             DcmDataset* received = nullptr;
+            if (forcedStoreStatus.load() != 0) {
+                const OFCondition got = receiveSTORERequest(req, presInfo.presentationContextID, received);
+                delete received;
+                if (got.bad()) return got;
+                return sendSTOREResponse(presInfo.presentationContextID, req,
+                                         static_cast<Uint16>(forcedStoreStatus.load()));
+            }
             const OFCondition rc =
                 handleSTORERequest(req, presInfo.presentationContextID, received);
             delete received;   // the object itself is not inspected by these tests
@@ -169,6 +206,8 @@ private:
     }
 
     std::atomic<bool> m_stopRequested{false};
+    std::mutex        m_queryMutex;
+    DcmDataset        m_lastFindQuery;
 };
 
 /**

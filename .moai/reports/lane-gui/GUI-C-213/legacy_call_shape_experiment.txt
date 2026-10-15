@@ -1,0 +1,8 @@
+# Scratch console (outside the repository), run against the staged xpe_preprocess.dll; program text: legacy_call_shape_experiment_program.cs.txt
+init=0
+genoff=0 loadoff=0
+gengain=0 loadgain=0
+A legacy 2-arg offset: rc=0; image[0..3]=1000,1001,1002,1003 (input 1000..); offsetMap[0..3]=900,901,902,903 (was zeros)
+B header 3-arg offset: rc=0; image[0..3]=1000,1001,1002,1003; output[0..3]=900,901,902,903
+A2 legacy 2-arg gain: rc=0; image[0..3]=1000,1001,1002,1003; gainMap[0..3]=1000,1001,1002,1003 (a float32 map array, was zeros) ; CallGain then Marshal.Copy's 1024 bytes from the image buffer, which holds 512
+A3 legacy defect (output = the UInt8 map buffer): rc=-8 (OK=0, -7=UNSUPPORTED_FORMAT, -8=BUFFER_TOO_SMALL, -16=CALIB_NOT_LOADED)

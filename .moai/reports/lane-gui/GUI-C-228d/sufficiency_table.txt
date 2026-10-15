@@ -1,0 +1,203 @@
+GUI-C-228 -- 'implemented' requirements (33): is the assertion SUFFICIENT? Each citation below was resolved by script (file, method, and the regular expression of the asserting line must all exist: the script fails otherwise).
+Columns: requirement | core condition of the requirement text | asserting lines (file:line (method)) | independent expectation? | verdict | note
+Independent = the expected value comes from the requirement text or from a source other than the code under test; an expectation built by calling the code under test again is not.
+
+REQ-GUI-IT-002 | Marshal.SizeOf XpeImageBuffer == 40, XpeImageMetadata == 96
+REQ-GUI-IT-001 | xUnit, net8.0, PlatformTarget x64, Nullable enable (a build property, not a test) | ImageProcTest.IntegrationTests.csproj:4, :6, :8, :20 | independent: yes (the file is the evidence) | verdict: 충분 (시험이 아니라 빌드 속성)
+
+    AbiLayoutTests.cs:20 (XpeImageBuffer_MarshalSize_Is40Bytes)
+    AbiLayoutTests.cs:28 (XpeImageMetadata_MarshalSize_Is96Bytes)
+    independent: 예: 요구의 리터럴 40·96
+    verdict: 충분
+
+REQ-GUI-IT-003 | 모든 필드 오프셋 0,4,8,12,16,24,32
+    AbiLayoutTests.cs:46 (XpeImageBuffer_FieldOffsets_MatchNativeLayout)
+    independent: 예: 요구의 리터럴 7개
+    verdict: 충분
+
+REQ-GUI-IT-004 | BodyPart 가 ByValTStr·SizeConst 64·CharSet.Ansi 로 선언되고 63자 ASCII 가 왕복
+    AbiLayoutTests.cs:99 (XpeImageMetadata_BodyPart_IsDeclaredAsByValTStr64_AndTheStructIsAnsi)
+    AbiLayoutTests.cs:68 (XpeImageMetadata_BodyPart_63CharAscii_RoundTrips)
+    independent: 예: 선언은 요구의 값, 63은 리터럴
+    verdict: 충분(GUI-C-228 보강) -- 선언 직접 단언은 이 카드가 추가(그전에는 왕복·크기·헤더 대조의 효과로만 보임). 변이 3종 모두 새 시험이 빨강
+
+REQ-GUI-IT-005 | xpe_version·xpe_error_string 이 호출마다 같은 포인터
+    DllLoadSmokeTests.cs:226 (XpeVersion_CalledTwice_ReturnsSamePointer)
+    ErrorCodeMappingTests.cs:82 (ErrorString_CalledTwice_ReturnsSamePointer)
+    independent: 예
+    verdict: 충분 -- "해제하지 않는다"는 부재라 시험이 단언할 수 없다(시험이 해제하지 않음은 소스에서 보임)
+
+REQ-GUI-IT-006 | 모든 오류 경로가 예외 없이 정확한 XpeErrorCode 로
+    NegativeInputPathTests.cs:179 (EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds)
+    NegativeInputPathTests.cs:178 (EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds)
+    independent: 예: 행마다 코드를 적고 네이티브 소스의 검사 문장을 인용(별도 시험이 소스에서 실재를 확인)
+    verdict: 충분
+
+REQ-GUI-IT-007 | Mock 백엔드가 시험 프로세스에 없고, 시험 어셈블리 메타데이터가 앱의 비실제 백엔드 타입을 정의·참조하지 않음(실행 순서와 무관)
+    MockBlockingStaticTests.cs:84 (TheTestAssemblyMetadata_NamesNoMockBackendType_AndReferencesNoAppAssembly)
+    MockBlockingStaticTests.cs:96 (TheDerivedBackendSet_ContainsTheAppsMockBackends_AndNoRealOne)
+    MockBlockingStaticTests.cs:114 (TheMetadataReader_FindsDefinedReferencedAndGenericArgumentTypes)
+    MockBlockingStaticTests.cs:265 (EveryCsFileOfTheTestProject_UsesNoDynamicLoadOrReflectionCreationApi_ExceptTheExactAllowList)
+    MockBlockingTests.cs:27 (MockXpeBackend_TypeNotLoadedInTestAssemblies)
+    MockBlockingTests.cs:71 (TheTypeScan_FindsATypeThatIsLoaded)
+    independent: 예: 집합은 앱 소스에서 읽고(IXpeBackend 구현체 중 Real* 제외), 통제 셋(집합 내용·정의/참조/제네릭 인수 읽기·문자열 경로 패턴)이 짝을 이룸
+    verdict: 충분(GUI-C-228b·c·d 보강, 한계) -- Codex #125: 이전 시험은 실행 시점에 로드된 타입만 봐서 뒤에 도는 시험의 Mock 호출을 못 봤다. 이제 컴파일된 시험 어셈블리의 TypeDef·TypeRef·ExportedType·AssemblyRef 를 읽어 0 을 단언한다(실행 순서와 무관). Codex #126·#127: 동적 로드·리플렉션 생성 API 는 인수 모양과 무관하게 시험 프로젝트의 모든 .cs 에서 금지한다. 패턴표·허용 목록(3줄)·통제는 컴파일되지 않는 Resources/forbidden-reflection-apis.json 에 있고 예외 구간은 없다(이 시험 파일 자신도 스캔). 줄 전체가 주석인 줄만 스캔에서 빠지고 문자열·줄 끝 주석은 스캔한다(오탐은 허용 목록). 소스 스캔이 못 보는 것: 다른 어셈블리를 거친 간접 호출, 코드 생성, 표에 없는 API, 경로로 올리는 네이티브 라이브러리, 따옴표 없는 주석 모양의 여러 줄 문자열 줄. '폴백을 시험 실패로 본다'는 시험이 폴백 경로를 갖지 않음으로 충족된다(통합 시험은 P/Invoke 미러를 직접 부름)
+
+REQ-GUI-IT-008 | 해석된 DLL 경로가 후보 폴더 아래(링크를 따라간 실제 위치), 후보 목록이 요구의 다섯 종류·순서·개수
+    DllSearchPathSafetyTests.cs:44 (ResolvedDllPath_IsUnderBuildTreeOrTestOutput)
+    DllSearchPathSafetyTests.cs:63 (TheLoadedModule_IsReallyUnderAnApprovedFolder_WhenItsLinksAreFollowed)
+    DllSearchPathSafetyTests.cs:90 (TheCandidateList_IsExactlyTheseFolders_InThisOrder)
+    DllSearchPathSafetyTests.cs:204 (TheCandidateCheck_RejectsADecoyOnPath_ASystemFolder_AndAnArbitraryFolder_AndAcceptsACandidate)
+    independent: 예: 후보 9개를 시험에 글자 그대로 적음
+    verdict: 충분(한계) -- 한계(좁힘): 링크 권한이 없으면 파일 링크 시험이 건너뜀(비관리자 셸 로컬 1건; CI 러너에서는 돌았음 — 리더 보고, 병합 CI 863 통과·건너뜀 0). 실제 로드된 모듈(Process.Modules)이 후보 폴더 아래임은 TheLoadedModule_… 가 단언. 실행하지 않은 변형: 로더가 디코이를 피하는 경로의 직접 입증, 후보 폴더 밖 심볼릭 대상의 다른 형식
+
+REQ-GUI-IT-009 | 열거된 모든 오류 코드의 xpe_error_string 이 비지 않고 폴백이 아님
+    ErrorCodeMappingTests.cs:56 (ErrorString_ForAllDefinedCodes_IsNonNullAndNotFallback)
+    independent: 예: 코드 목록은 열거형 자체, 폴백은 DLL 에서 읽음(문구를 적어 두지 않음)
+    verdict: 충분 -- 열거형과 헤더의 일치는 ErrorCodeHeaderParityTests 가 따로 지킴
+
+REQ-GUI-IT-010 | 시험 뒤 고정 핸들이 시작 시점보다 늘지 않음
+    LeakEnduranceTests.cs:95 (PinnedObjects_AtThisPoint_AreNoMoreThanWhenTheFixtureWasCreated)
+    LeakEnduranceTests.cs:116 (TheInstrument_CountsAPinnedHandle_AndStopsCountingItOnceFreed)
+    independent: 예: 런타임의 고정 객체 수 + 계측 자체의 통제 시험
+    verdict: 충분(한계) -- 시작 시점 대비 상대 비교, xUnit 이 정한 시점에 돎
+
+REQ-GUI-IT-020 | 로케이터가 5초 안, xpe_version 이 semver
+    DllLoadSmokeTests.cs:57 (TheFirstFixtureCreation_LocatesTheDllWithinFiveSeconds_AndRecordedTheFirstLoadAndCall)
+    DllLoadSmokeTests.cs:40 (XpeVersion_WhenDllLoaded_ReturnsSemverString)
+    independent: 예: 5초와 정규식은 요구의 리터럴
+    verdict: 충분(한계) -- 전용 프로세스가 아니라 고정물의 첫 생성 자체 기록
+
+REQ-GUI-IT-021 | xpe_init(null) 이 OK, 이어서 알림 수 >= 0 (사전 상태: 초기화 없음)
+    ImageBufferLifecycleTests.cs:154 (Init_Success_AlertCountIsNonNegative)
+    ImageBufferLifecycleTests.cs:157 (Init_Success_AlertCountIsNonNegative)
+    ImageBufferLifecycleTests.cs:160 (Init_Success_AlertCountIsNonNegative)
+    independent: 예
+    verdict: 충분(GUI-C-228 보강) -- "이전에 init 없음" 전제를 시험이 직접 만들고 확인하도록 보강(이전에는 다른 시험이 남긴 상태에 의존)
+
+REQ-GUI-IT-022 | 유효 JSON → OK, 깨진 JSON → CONFIG_INVALID
+    MetadataMarshallingTests.cs:33 (Configure_ValidJson_ReturnsOk)
+    MetadataMarshallingTests.cs:45 (Configure_MalformedJson_ReturnsConfigInvalid)
+    independent: 예: 입력은 요구의 예시와 같은 형태
+    verdict: 충분
+
+REQ-GUI-IT-023 | alloc(16,16,UInt16): OK·Data≠0·DataSize 512, free: OK·Data 0
+    ImageBufferLifecycleTests.cs:48 (AllocImage_ValidDimensions_ReturnsOkAndNonZeroData)
+    ImageBufferLifecycleTests.cs:67 (FreeImage_AfterAlloc_ReturnsOkAndZeroesData)
+    independent: 예: 512 리터럴
+    verdict: 충분
+
+REQ-GUI-IT-024 | alloc(0,0) → INVALID_INPUT, Data 를 바꾸지 않음
+    ImageBufferLifecycleTests.cs:81 (AllocImage_ZeroDimensions_ReturnsInvalidInput)
+    ImageBufferLifecycleTests.cs:83 (AllocImage_ZeroDimensions_ReturnsInvalidInput)
+    independent: 예
+    verdict: 충분 -- out 인자라 사전 값(센티널)이 없어 "바꾸지 않음"은 Data 가 0 인지로만 본다(네이티브는 검증 실패 시 out 을 건드리지 않음 — xpe_memory.cpp)
+
+REQ-GUI-IT-025 | 같은 크기 복사 → OK, 크기 불일치 → TOO_SMALL 또는 INVALID_INPUT
+    ImageBufferLifecycleTests.cs:103 (CopyImage_MatchingDimensions_ReturnsOk)
+    ImageBufferLifecycleTests.cs:132 (CopyImage_MismatchedDimensions_ReturnsError)
+    independent: 예
+    verdict: 충분(해석 차이 있음) -- 불일치 쪽은 dst 가 더 작은 경우(32x32→16x16)만. dst 가 더 큰 경우는 네이티브가 OK 를 돌려주고(`dst->dataSize < src->dataSize` 만 검사) 요구 문구의 "dst 크기가 다르면 오류"와 갈린다 — 아래 목록 B1
+
+REQ-GUI-IT-026 | CHEST window_center: OK, min <= dflt <= max
+    MetadataMarshallingTests.cs:58 (GetParamRange_ChestWindowCenter_ReturnsValidRange)
+    MetadataMarshallingTests.cs:59 (GetParamRange_ChestWindowCenter_ReturnsValidRange)
+    independent: 예
+    verdict: 충분
+
+REQ-GUI-IT-027 | 빈 큐: 개수 0, index 0 조회 → INVALID_INPUT
+    AlertCallbackTests.cs:36 (AlertQueue_Empty_CountIsZeroAndFetchReturnsInvalidInput)
+    AlertCallbackTests.cs:40 (AlertQueue_Empty_CountIsZeroAndFetchReturnsInvalidInput)
+    independent: 예
+    verdict: 충분
+
+REQ-GUI-IT-028 | clear_alerts 3회 이상 예외 없음, 개수 0
+    AlertCallbackTests.cs:57 (ClearAlerts_CalledRepeatedly_DoesNotThrow)
+    AlertCallbackTests.cs:58 (ClearAlerts_CalledRepeatedly_DoesNotThrow)
+    independent: 예
+    verdict: 충분
+
+REQ-GUI-IT-029 | 로그 수준 0~5 OK, -1·6 INVALID_INPUT
+    LoggingHandlerTests.cs:66 (LogSetLevel_ValidLevels_ReturnsOk)
+    LoggingHandlerTests.cs:77 (LogSetLevel_NegativeOne_ReturnsInvalidInput)
+    LoggingHandlerTests.cs:88 (LogSetLevel_Six_ReturnsInvalidInput)
+    independent: 예
+    verdict: 충분
+
+REQ-GUI-IT-030 | 쓰기 가능한 경로 OK, 없는 폴더 IO_FAILED
+    LoggingHandlerTests.cs:102 (LogSetFile_WritableTempPath_ReturnsOk)
+    LoggingHandlerTests.cs:114 (LogSetFile_NonExistentDirectory_ReturnsIoFailed)
+    independent: 예
+    verdict: 충분
+
+REQ-GUI-IT-031 | log_flush 가 초기화 전·후·종료 후에 예외 없음 (각 시험이 자기 상태를 먼저 확인)
+    LoggingHandlerTests.cs:35 (LogFlush_PreInit_DoesNotThrow)
+    LoggingHandlerTests.cs:47 (LogFlush_PostInit_DoesNotThrow)
+    LoggingHandlerTests.cs:126 (LogFlush_PostShutdown_DoesNotThrow)
+    independent: 예: 상태 확인은 다른 호출(param_range)로
+    verdict: 충분
+
+REQ-GUI-IT-040 | 초기화 전·종료 후 get_param_range → NOT_INITIALIZED
+    NativeErrorTranslationTests.cs:37 (GetParamRange_BeforeInit_ReturnsNotInitialized)
+    independent: 예
+    verdict: 충분 -- "한 번도 init 하지 않은" 프로세스 상태는 시험 순서상 만들 수 없어 종료 후 상태로 본다(요구가 둘 다 허용)
+
+REQ-GUI-IT-041 | DLL 없음: 고정물은 던지지 않고 탐색 폴더 전부를 말하는 건너뜀 사유, 직접 로드는 이름을 담은 DllNotFoundException
+    DllLoadSmokeTests.cs:83 (TheFixtureBootstrap_WithNoDllInAnyCandidate_DoesNotThrow_IsUnavailable_AndTheSkipReasonNamesEveryFolderSearched)
+    DllLoadSmokeTests.cs:87 (TheFixtureBootstrap_WithNoDllInAnyCandidate_DoesNotThrow_IsUnavailable_AndTheSkipReasonNamesEveryFolderSearched)
+    DllLoadSmokeTests.cs:150 (LoadingAMissingDll_RaisesDllNotFoundException_ThatNamesIt)
+    independent: 예: 탐색 폴더 목록은 입력에서 계산, 이름은 리터럴
+    verdict: 충분 -- 예외 메시지는 런타임 소유(문구 변화는 이름 포함만 단언)
+
+REQ-GUI-IT-042 | x86 DLL 이면 첫 P/Invoke 가 BadImageFormatException, 실패에 DLL 경로
+    ArchitectureMismatchTests.cs:127 (TheFirstPInvokeCallIntoAnX86Image_RaisesBadImageFormatException)
+    ArchitectureMismatchTests.cs:69 (TheFixtureBootstrap_WithAnX86XpeCommon_IsUnavailable_AndItsResolvedPathNamesTheFile)
+    ArchitectureMismatchTests.cs:101 (AnImageOfAnotherArchitecture_IsRefusedByTheLoader_WithBadImageFormatException_WhileTheSameBytesAsX64Load)
+    independent: 예: 같은 x64 DLL 의 Machine 필드만 바꾼 사본 + 변경 없는 대조
+    verdict: 충분(GUI-C-228 보강, 한계) -- 고정물이 진단을 합치는 부분(IsAvailable=false, ResolvedPath 가 경로를 말함)은 이 카드가 추가. 한계: 진짜 x86 빌드 DLL 아님, 방향은 x64 호스트에 x86 DLL 하나뿐("vice versa" 없음)
+
+REQ-GUI-IT-043 | x64 가 아니어도 아키텍처를 기록하는 진단 시험
+    PlatformDetectionTests.cs:36 (ProcessArchitecture_IsRecordedForDiagnostics)
+    independent: 예: 파일에 쓴 뒤 읽어 확인
+    verdict: 충분(한계) -- ARM64 분기는 실행해 보지 못함
+
+REQ-GUI-IT-050 | 호스트가 살아 끝까지 돎, SEHException 은 기록되고 그 시험을 실패시킴
+    BoundaryGuardTests.cs:23 (ASehExceptionAtTheBoundary_FailsTheTest_AndLeavesARecordedLineNamingWhereItHappened)
+    NegativeInputPathTests.cs:207 (EveryRegisteredNegativeRow_RunsToCompletion_ThroughTheBoundaryGuard_WithTheHostAlive)
+    independent: 예: 등록 수는 이론 데이터의 id 수, 실행 수는 순회 횟수
+    verdict: 충분(한계) -- AccessViolation 은 .NET 이 못 잡아 호스트 종료로만 드러남(요구 문구가 그렇게 바뀜)
+
+REQ-GUI-IT-051 | 1000회 init/shutdown 뒤 작업 집합 증가 < 20 MiB
+    LeakEnduranceTests.cs:79 (InitShutdown_1000Cycles_NoLeak)
+    independent: 예: 20 MiB 리터럴(+GC 5 MiB·고정 객체)
+    verdict: 충분(해석 차이 있음) -- 환경 변수 XPE_GUI_IT_LEAK_LIMIT_MIB 는 20 MiB 작업 집합 한도가 아니라 GC 한도(기본 5 MiB)를 조정한다 — 요구는 "게이트 한도를 조정 가능" — 아래 목록 B2. init 결과로 OK 외에 NOT_INITIALIZED 도 허용하나 네이티브는 그것을 돌려주지 않는다(소스 확인)
+
+REQ-GUI-IT-052 | ABI 호출에서 번역 안 된 예외 없음, 부정 시험마다 기대 코드 문서화
+    NegativeInputPathTests.cs:179 (EachDistinctCheck_ReturnsItsExactCode_AndItsValidControlSucceeds)
+    independent: 예: "이것 또는 저것" 없이 정확한 코드
+    verdict: 충분(한계) -- 그 예외들을 실제로 일으키는 입력이 없음(공통 모듈 공개 함수에서 만들어지지 않음)
+
+REQ-GUI-IT-053 | xpe_version 이 semver 이고 주 버전이 고정 파일의 값과 같음
+    VersionPinTests.cs:47 (XpeVersion_MajorMatchesPinnedVersion)
+    independent: 예: 고정 값은 expected-versions.json
+    verdict: 충분 -- 전체 정규식은 020 시험이 단언. SPEC 문장의 파일 경로(`tests/…/expected-versions.json`)는 실제 `clients/…/Resources/` 와 다름(문서) — 목록 B5
+
+REQ-GUI-IT-060 | preprocess 수명주기(init/shutdown/version)를 동적 export 로, DLL 없으면 건너뜀
+    PreprocessHandshakeTests.cs:64 (PreprocessInitShutdown_WhenDllStaged_LifecycleSucceeds)
+    PreprocessHandshakeTests.cs:39 (PreprocessVersion_WhenDllStaged_ReturnsNonEmptyString)
+    independent: 예
+    verdict: 충분(해석 차이 있음) -- 건너뜀 사유 문구가 요구("Skipped: preprocess DLL not staged")와 다름: "Skipped: xpe_preprocess.dll not staged — …" — 목록 B4
+
+REQ-GUI-IT-061 | 16x16 합성 offset→gain→defect 체인: 입력 SHA-256 보존·NaN/Inf 0·두 번 실행 RMSE 0
+    PreprocessCorrectionChainSmokeTests.cs:195 (CorrectionChain_InputBuffer_Sha256IsPreserved)
+    PreprocessCorrectionChainSmokeTests.cs:141 (CorrectionChain_Output_HasNoNanOrInf)
+    PreprocessCorrectionChainSmokeTests.cs:120 (CorrectionChain_RunTwice_DeterministicRmseIsZero)
+    independent: 예: 입력 해시는 시험이 따로 계산, RMSE 기대값 0.0 리터럴
+    verdict: 충분
+
+REQ-GUI-IT-062 | xpe_calib_load_offset(없는 경로) → IO_FAILED (offset·gain·defect_map 셋 다)
+    CalibrationCheckExpirySmokeTests.cs:61 (RunCalibLoadTest)
+    independent: 예
+    verdict: 충분 -- SPEC 문장의 시그니처 `(nonexistentPath, outBuffer)` 와 달리 실제 export 는 경로 하나만 받는다(문서) — 목록 B6
+
+Requirements read: 33 (001 by the project file + 32 by their tests); verdicts: 충분 32, 001 충분

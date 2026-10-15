@@ -1,0 +1,21 @@
+=== ARM floor_removed
+red tests: EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero, EdgeEnhanceFloor.TheUpperBoundIsUnchangedByTheFloor
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM floor_to_the_original_value
+red tests: EdgeEnhance.Performance_3072x3072_Within20ms, EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM floor_to_one
+red tests: EdgeEnhance.Performance_3072x3072_Within20ms, EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM floor_also_rewrites_pixels_that_are_not_sharpened
+red tests: EdgeEnhanceFloor.APixelThatIsNotSharpenedKeepsItsInputValueEvenWhenItIsNegative
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM floor_below_zero_not_applied_to_small_undershoot
+red tests: EdgeEnhanceFloor.ASharpenedPixelBesideADarkRegionIsNeverBelowZero, EdgeEnhanceFloor.TheUpperBoundIsUnchangedByTheFloor
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

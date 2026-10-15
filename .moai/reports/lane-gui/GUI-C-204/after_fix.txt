@@ -1,0 +1,29 @@
+# GUI-C-204 final tree, new scenarios
+## Mock
+  통과 MenuExitScenarios.X01_FileExit_EndsTheProcessWithExitCodeZero_EvenWithAnUnsavedChange [1 s]
+ X-01 exit code: 0
+  통과 MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds [18 s]
+  통과 MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Scope and Limitations", expectedFile: "scope.html") [1 s]
+ H-01 OpenScopeHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\scope.html
+  통과 MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+ H-01 OpenQuickStartHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\quick-start.html
+  통과 MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+ H-01 OpenCurrentWorkflowHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\quick-start.html
+  통과 MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning [2 s]
+ D-01 status: Display DLL not detected; mock display pipeline remains active.
+  통과 MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows [2 s]
+ A-01 dialog text: ImageProcTest GUI-S0 | Backend: v0.0.0-mock | Help bundle: packaged offline HTML
+## Native (module dir: main-source stub build with xpe_ai.dll + worker)
+  통과 MenuExitScenarios.X01_FileExit_EndsTheProcessWithExitCodeZero_EvenWithAnUnsavedChange [1 s]
+ X-01 exit code: 0
+  통과 MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds [18 s]
+  통과 MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Scope and Limitations", expectedFile: "scope.html") [1 s]
+ H-01 OpenScopeHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\scope.html
+  통과 MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+ H-01 OpenQuickStartHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\quick-start.html
+  통과 MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+ H-01 OpenCurrentWorkflowHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\quick-start.html
+  통과 MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning [2 s]
+ D-01 status: Display DLL detected at 'C:\Users\drake\AppData\Local\Temp\c201_native\xpe_display.dll' (1.0.0).
+  통과 MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows [1 s]
+ A-01 dialog text: ImageProcTest GUI-S0 | Backend: xpe_display 1.0.0 | Help bundle: packaged offline HTML

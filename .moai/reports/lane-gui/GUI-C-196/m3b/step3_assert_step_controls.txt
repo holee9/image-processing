@@ -1,0 +1,19 @@
+shell: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.EXE
+--- run: exit 0
+    trx holds 41 result(s)
+    EnhanceBasicNativeTests: 4 result(s), 4 passed, 0 not executed
+    BaselineDicomNativeTests: 2 result(s), 2 passed, 0 not executed
+--- skip: exit 1
+    trx holds 41 result(s)
+    EnhanceBasicNativeTests: 4 result(s), 4 passed, 0 not executed
+    BaselineDicomNativeTests: 2 result(s), 0 passed, 2 not executed
+    C:\Users\drake\AppData\Local\Temp\m3b_assert\skip\step.ps1 : real-module tests skipped or missing: BaselineDicomNativeT
+    ests
+        + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+--- empty: exit 1
+    trx holds 1 result(s)
+    EnhanceBasicNativeTests: 0 result(s), 0 passed, 0 not executed
+    BaselineDicomNativeTests: 0 result(s), 0 passed, 0 not executed
+    C:\Users\drake\AppData\Local\Temp\m3b_assert\empty\step.ps1 : real-module tests skipped or missing: EnhanceBasicNativeT
+    ests, BaselineDicomNativeTests
+        + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException

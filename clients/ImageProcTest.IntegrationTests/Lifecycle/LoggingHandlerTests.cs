@@ -20,6 +20,11 @@ public sealed class LoggingHandlerTests : IDisposable
         _fixture = fixture;
     }
 
+    // GUI-C-225 (REQ-GUI-IT-031): the three states the requirement names (pre-init, post-init, post-shutdown) are all here, and each test first PROVES it is in the state its name says.
+    // Without that, a test whose xpe_init call was deleted (or whose state was left over from another test) would still pass and still be called "post-init".
+    private static bool IsInitialized() =>
+        XpeCommonNative.xpe_get_param_range("CHEST", "gamma", out _, out _, out _) != XpeCommonNative.XpeErrorCode.NOT_INITIALIZED;
+
     /// <summary>REQ-GUI-IT-031: xpe_log_flush pre-init must not throw managed exception.</summary>
     [SkippableFact]
     public void LogFlush_PreInit_DoesNotThrow()
@@ -27,6 +32,19 @@ public sealed class LoggingHandlerTests : IDisposable
         SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
 
         // Intentionally called without xpe_init
+        Assert.False(IsInitialized(), "the pre-init state was not reached: the module is initialised");
+        var ex = Record.Exception(() => XpeCommonNative.xpe_log_flush());
+        Assert.Null(ex);
+    }
+
+    /// <summary>REQ-GUI-IT-031: xpe_log_flush post-init (the state the other two tests are told apart from) must not throw managed exception.</summary>
+    [SkippableFact]
+    public void LogFlush_PostInit_DoesNotThrow()
+    {
+        SkipHelper.SkipIf(!_fixture.IsAvailable, _fixture.SkipReason);
+
+        Assert.Equal(XpeCommonNative.XpeErrorCode.OK, XpeCommonNative.xpe_init(null));
+        Assert.True(IsInitialized(), "the post-init state was not reached: the module is not initialised");
         var ex = Record.Exception(() => XpeCommonNative.xpe_log_flush());
         Assert.Null(ex);
     }
@@ -105,6 +123,7 @@ public sealed class LoggingHandlerTests : IDisposable
         XpeCommonNative.xpe_init(null);
         XpeCommonNative.xpe_shutdown();
 
+        Assert.False(IsInitialized(), "the post-shutdown state was not reached: the module is still initialised");
         var ex = Record.Exception(() => XpeCommonNative.xpe_log_flush());
         Assert.Null(ex);
     }

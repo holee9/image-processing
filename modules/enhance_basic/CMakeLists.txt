@@ -116,6 +116,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_parameter_dependency.cpp    # #155 (QA-B-58) does each parameter reach the output
         tests/test_empty_image_contract.cpp  # #142 D1 empty-image contract (QA-B-40)
         tests/test_exception_guard.cpp  # QA-B-181: no exception leaves noise_reduce / contrast_enhance / edge_enhance
+        tests/test_nonfinite_pixels.cpp # QA-B-181f: no non-finite pixel made from finite input, none accepted as success
+        tests/test_edge_enhance_formula.cpp   # QA-B-200 M2b (#251): REQ-ENH-018/021 against an independent reference
+        tests/test_clahe_bin.cpp        # QA-B-207d (#251): the CLAHE bin is the exact rational floor, fast path only where proven
     )
 
     add_executable(xpe_enhance_basic_tests

@@ -273,7 +273,7 @@ XPE_AI_WORKER_ALIVE    (worker heartbeat, 1Hz)
 ### 5.1 OOD 탐지 (필수)
 
 모든 추론에 신뢰도(confidence) 점수:
-- SWU-2.7: confidence ≥ 0.70
+- SWU-2.7: confidence ≥ 0.6
 - SWU-2.8-AI: confidence ≥ 0.65
 - SWU-2.11: confidence ≥ 0.80
 - 미달 → "UNKNOWN" 또는 fallback
@@ -353,7 +353,7 @@ int xpe_ai_get_last_error();
 
 | 위험 | 심각도 | 발생가능성 | 위험도 | 통제 |
 |-----|--------|---------|--------|------|
-| 신체 부위 오분류 | M | L | MOD | confidence ≥ 0.70 |
+| 신체 부위 오분류 | M | L | MOD | confidence ≥ 0.6 |
 | 파생 이미지 오용 | H | L | MOD | 별도 SOP + metadata |
 | ROI 거짓 음수 | H | L | MOD | shrink-only |
 | 워커 크래시 | H | L | MOD | 격리 + 재시작 |

@@ -68,3 +68,20 @@ code {
   border-radius: 4px;
   padding: 2px 6px;
 }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+th {
+  color: #ffffff;
+}
+
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px;
+  border-bottom: 1px solid #2a3a4b;
+}

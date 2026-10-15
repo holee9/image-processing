@@ -1,0 +1,25 @@
+QA-B-198 capability matrix (generated from raw/*_probe.txt; one column per restriction variant)
+
+key                                     base                      job                       restricted                wr3                       lowil                     ac                        acjob
+token.integrity_rid (low/medium)        0x2000                    0x2000                    0x2000                    0x2000                    0x1000                    0x1000                    0x1000
+token.is_restricted                     0                         0                         0                         1                         0                         0                         0
+token.is_appcontainer                   0                         0                         0                         0                         0                         1                         1
+token.privileges_present                5                         5                         1                         1                         5                         2                         2
+job.active_process_limit                (none)                    1                         (none)                    (none)                    (none)                    (none)                    1
+write.scratch_dir                       WRITTEN                   WRITTEN                   WRITTEN                   WRITTEN                   WRITTEN                   WRITTEN                   WRITTEN
+write.temp                              WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     WRITTEN                   WRITTEN
+write.cwd                               WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+write.model_dir                         WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+write.user_profile                      WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+write.user_documents                    WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+write.programdata                       WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+write.windows_temp                      WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+write.system_drive_root                 DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+write.registry_hkcu                     WRITTEN                   WRITTEN                   WRITTEN                   DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5     DENIED/FAILED error 5
+read.list_user_documents                LISTED                    LISTED                    LISTED                    LISTED                    LISTED                    DENIED/FAILED error 5     DENIED/FAILED error 5
+net.tcp_socket                          CREATED                   CREATED                   CREATED                   CREATED                   CREATED                   CREATED                   CREATED
+net.udp_socket                          CREATED                   CREATED                   CREATED                   CREATED                   CREATED                   CREATED                   CREATED
+net.tcp_connect_loopback                CONNECTED                 CONNECTED                 CONNECTED                 CONNECTED                 CONNECTED                 FAILED wsa error 10060    FAILED wsa error 10060
+net.bind_listen_loopback                OK                        OK                        OK                        OK                        OK                        OK                        OK
+spawn.child_process                     STARTED (exit 7)          FAILED error 1816         STARTED (exit 7)          STARTED (exit 3221225794  STARTED (exit 7)          STARTED (exit 7)          FAILED error 1816
+launcher.loopback_listener_got_a_conne  YES                       YES                       YES                       YES                       YES                       NO                        NO

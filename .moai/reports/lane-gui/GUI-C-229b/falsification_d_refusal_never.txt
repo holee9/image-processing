@@ -1,0 +1,3 @@
+== arm (d): the refusal never refuses (a key would be sent to whatever is in front)
+[xUnit.net 00:00:00.20]     ImageProcTest.E2ETests.Scenarios.Workflows.KeyLossDiagnosisTests.WhenTheAppIsNotInFront_TheRefusalIsAMessage_AndNothingIsSent [FAIL]
+실패!  - 실패:     1, 통과:    13, 건너뜀:     0, 전체:    14, 기간: 37 ms - ImageProcTest.E2ETests.dll (net8.0)

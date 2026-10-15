@@ -56,7 +56,7 @@ typedef enum XpeNoiseReduceMode {
  */
 typedef struct XpeNoiseReduceParams {
     XpeNoiseReduceMode mode;           /**< Bilateral or NLM */
-    float              sigma_space;    /**< Bilateral: spatial sigma (default 3.0) */
+    float              sigma_space;    /**< Bilateral: spatial sigma, 0 < s <= 7.5 (default 3.0) */
     float              sigma_range;    /**< Bilateral: range sigma (default 50.0) */
     int32_t            search_window;  /**< NLM: search window size, must be odd positive (default 21) */
     int32_t            patch_size;     /**< NLM: patch size, must be odd positive (default 7) */
@@ -168,7 +168,9 @@ XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if params is NULL, the image
  *         is invalid, mode is neither BILATERAL nor NLM, or the mode's own
  *         parameters are out of range (bilateral: sigma_space/sigma_range <= 0, NaN or
- *         infinite -- QA-B-181d;
+ *         infinite -- QA-B-181d; sigma_space above 7.5 -- QA-B-210: 7.5 is the
+ *         largest value whose 2-sigma extent fits the kernel radius cap of 15;
+ *         a larger one would be cut off before 2 sigma, so it is refused;
  *         NLM: search_window/patch_size not odd-positive, h_param <= 0);
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32. (REQ-ENH-010)
  */
@@ -198,6 +200,26 @@ XPE_API XpeErrorCode xpe_noise_estimate_sigma(const XpeImageBuffer* img, float* 
  * If params is NULL, defaults are used (clip_limit=3.0, tile_width=8,
  * tile_height=8). (REQ-ENH-014)
  *
+ * This is the standard CLAHE (QA-B-207 M2): one intensity scale for the whole
+ * image (4096 bins between its minimum and maximum); per tile, a histogram
+ * clipped at clip_limit * tile_area / 4096 pixels per bin (at least 1) with the
+ * excess spread evenly over the scale, turned into a cumulative table; and per
+ * pixel, a bilinear blend of the tables of the up to four tiles whose centres
+ * surround it, so there is no step at a tile border. The result is mapped back
+ * onto the image's own [minimum, maximum]: equalization redistributes values
+ * inside that range, it does not widen it, so an image that is already evenly
+ * spread over its range comes out about as it went in. With a tile area below
+ * 4096 / clip_limit pixels every clip_limit up to that bound clips alike (the
+ * per-bin cap bottoms out at 1).
+ *
+ * Numeric boundary (QA-B-207b): the scale and the bin of a pixel are computed in
+ * double, so any positive range is processed, down to a single denormal step
+ * (1.4e-45) -- 4095 / 1.4e-45 = 2.9e48 is far below DBL_MAX. Only an image whose
+ * minimum equals its maximum is "flat". (A float scale 4095.0f / range overflows
+ * below a range of 4095 / FLT_MAX = 1.2034e-35, which is the bound this replaces.)
+ * The other end is unchanged: a range that overflows float (max - min > FLT_MAX,
+ * e.g. -3e38 and +3e38) is XPE_ERR_INVALID_INPUT (QA-B-181f).
+ *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
  *               rejected (#142); a flat image (no value range) is accepted and
  *               returns XPE_OK unchanged.
@@ -218,17 +240,22 @@ XPE_API XpeErrorCode xpe_contrast_enhance(XpeImageBuffer* img, const XpeClahePar
  * @brief Apply Unsharp Masking edge enhancement to a float32 image in-place.
  *
  * output[i] = input[i] + amount * (input[i] - blur[i]) where |diff| >= threshold.
- * Overshoot is clamped per REQ-ENH-021.
+ * Overshoot is clamped per REQ-ENH-021 to max(original * 2, original + amount * threshold),
+ * and no output pixel is below 0 (QA-B-201 M3/M3b): the undershoot beside a dark region is cut at 0.
+ * A pixel that is not sharpened keeps its input value, except that a negative input is returned as 0.
  * If params is NULL, defaults are used (amount=0.5, radius=2.0, threshold=10.0). (REQ-ENH-019)
  *
  * @param img    Float32 image buffer (modified in-place). A zero-sized image is
- *               rejected (#142); amount == 0.0 is accepted and returns XPE_OK
- *               without modifying the buffer.
+ *               rejected (#142). amount == 0.0 builds no blur; a negative pixel
+ *               is returned as 0 and a non-finite pixel is refused, as for every
+ *               other amount (QA-B-205), and a finite image with no negative pixel
+ *               is returned unchanged.
  * @param params USM parameters, or NULL for defaults.
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if amount is outside
  *         [0.0, 5.0] or NaN, radius outside [0.5, 10.0] or NaN, threshold < 0.0 or NaN
  *         (QA-B-181d; +infinity is a valid threshold), or the image
- *         is invalid; XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
+ *         is invalid or holds a non-finite pixel (for every amount, 0 included);
+ *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32.
  *         (REQ-ENH-020)
  */
 XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* params);
@@ -254,8 +281,10 @@ XPE_API XpeErrorCode xpe_edge_enhance(XpeImageBuffer* img, const XpeUsmParams* p
  * @return XPE_OK on success; XPE_ERR_INVALID_INPUT if any pointer is NULL, the
  *         image is zero-sized, or the buffer is invalid;
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32;
- *         XPE_ERR_PROCESSING_FAILED if the mean pixel value is <= 0, in which
- *         case *outEI and *outDI are set to 0.0. (REQ-ENH-030)
+ *         XPE_ERR_PROCESSING_FAILED if the mean pixel value is <= 0 or the
+ *         image holds a non-finite pixel (+inf, -inf, NaN: all three give the
+ *         same answer, QA-B-206), in which case *outEI and *outDI are set to
+ *         0.0. (REQ-ENH-030)
  */
 XPE_API XpeErrorCode xpe_calc_exposure_index(const XpeImageBuffer* img,
                                               const XpeImageMetadata* meta,

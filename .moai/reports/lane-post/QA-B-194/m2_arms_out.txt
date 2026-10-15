@@ -1,0 +1,12 @@
+QA-B-194 M2 arms: every arm built (build_ok=True), ai.cpp restored byte-identical after the last one; from the per-arm gtest outputs build/g194m2-arm_<tag>.txt
+
+K1 no upper bound on the count (estimate): red(1)=['AiInputValidation.SixteenPartsAreAcceptedAndSeventeenAreRefusedByBothStitchFunctions']
+K2 no upper bound on the count (stitch): red(1)=['AiInputValidation.SixteenPartsAreAcceptedAndSeventeenAreRefusedByBothStitchFunctions']
+K3 the cap is off by one (17 accepted by stitch): red(1)=['AiInputValidation.SixteenPartsAreAcceptedAndSeventeenAreRefusedByBothStitchFunctions']
+K4 the format of the parts is not compared: red(1)=['AiInputValidation.ThePartsOfOneStitchHaveOnePixelFormat']
+K5 the last part is not compared: red(1)=['AiInputValidation.ThePartsOfOneStitchHaveOnePixelFormat']
+K6 a size rule is invented (parts must be as wide as the first): red(1)=['AiInputValidation.NoSizeRuleBetweenPartsIsInventedBecauseTheAlgorithmDoesNotExistYet']
+
+CONTROL (file restored): passed=93 red=[]
+
+NOT discriminating: AWildPartCountIsRefusedWithoutReadingTheArray stayed green in K1/K2 (count cap removed): the loop then reads parts[i] past a 2-element array and the garbage happens to fail validation, so the answer is INVALID_INPUT by accident (undefined behaviour). The 17-parts test is the one that discriminates.

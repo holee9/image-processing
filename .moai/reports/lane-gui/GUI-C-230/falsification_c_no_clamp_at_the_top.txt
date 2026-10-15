@@ -1,0 +1,8 @@
+== arm (c): the parser no longer cuts to the maximum
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheBoxText_BecomesTheValueTheStageUses_CutToTheLimits(text: "100", expected: 7.5) [FAIL]
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheBoxText_BecomesTheValueTheStageUses_CutToTheLimits(text: "1e6", expected: 7.5) [FAIL]
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheBoxText_BecomesTheValueTheStageUses_CutToTheLimits(text: "50", expected: 7.5) [FAIL]
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheBoxText_BecomesTheValueTheStageUses_CutToTheLimits(text: "8", expected: 7.5) [FAIL]
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheBoxText_BecomesTheValueTheStageUses_CutToTheLimits(text: "7.6", expected: 7.5) [FAIL]
+[xUnit.net 00:00:00.27]     ImageProcTest.IntegrationTests.Functional.EnhanceBasicInputLimitsTests.TheBoxText_BecomesTheValueTheStageUses_CutToTheLimits(text: "Infinity", expected: 7.5) [FAIL]
+실패!  - 실패:     6, 통과:    25, 건너뜀:     0, 전체:    31, 기간: 110 ms - ImageProcTest.IntegrationTests.dll (net8.0)

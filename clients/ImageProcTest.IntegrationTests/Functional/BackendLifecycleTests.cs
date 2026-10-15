@@ -223,13 +223,13 @@ public sealed class BackendLifecycleTests
     {
         var source = Source("gui/ImageProcTest/ViewModels/MainWindowViewModel.cs");
 
-        Assert.Contains("await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket);", source, StringComparison.Ordinal);
+        Assert.Contains("await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket, committed.Id);", source, StringComparison.Ordinal);
         Assert.Contains("await Task.Run(() => RenderLane(backend, sourceFrame, candidate))", source, StringComparison.Ordinal);
         Assert.Equal(1, CountOf(source, "RenderLane(backend, sourceFrame, candidate)"));          // no second, synchronous call
         Assert.DoesNotContain("RenderLane(sourceFrame, candidate)", source, StringComparison.Ordinal);
         Assert.Contains("private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend,", source, StringComparison.Ordinal);
         // The result is applied only if the backend is still the one it was made for and nothing is shutting down.
-        var apply = source.IndexOf("LaneBImage = candidateImage;", StringComparison.Ordinal);
+        var apply = source.IndexOf("UpdateRender(renderId, r => r with { LaneB = candidateImage });", StringComparison.Ordinal);
         var drop = source.LastIndexOf("if (!IsCurrent(ticket))", apply, StringComparison.Ordinal);
         Assert.True(apply >= 0 && drop >= 0 && apply - drop < 300, "The lane result must be checked against its ticket right before it is applied.");
     }
@@ -356,11 +356,14 @@ public sealed class BackendLifecycleTests
     {
         ["_backend"] = ("the field", null),
         ["MainWindowViewModel"] = ("construction", null),
-        ["AiStatus"] = ("status read through AiStatusRefresher (its own generation and identity check)", null),
+        ["AiWorkerDiagnostics"] = ("reads only the TYPE of the backend (is it an AI session) to decide whether to append the refresher's measurements; it neither calls it nor keeps it (GUI-C-192d)", null),
+        ["CreateAiStatusRefresher"] = ("status read through AiStatusRefresher (its own generation and identity check)", null),
         ["TakeTicket"] = ("lifetime helper", null),
         ["TakeRequestTicket"] = ("lifetime helper (an Apply's ticket also carries a request number)", null),
         ["IsCurrent"] = ("lifetime helper", null),
         ["CanRunPreprocessing"] = ("read-only property (changes nothing, starts nothing)", null),
+        ["CanRunDeterministicBaseline"] = ("read-only property (changes nothing, starts nothing)", null),
+        ["AiBoneSuppressionAvailability"] = ("read-only property (changes nothing, starts nothing)", null),
         ["BeginShutdown"] = ("lifecycle (starts the transition)", null),
         ["FinishShutdown"] = ("lifecycle (ends the transition)", null),
         ["ShutdownBackendBlocking"] = ("lifecycle (the window could not wait)", null),
@@ -370,6 +373,7 @@ public sealed class BackendLifecycleTests
         ["ApplyBodyPartPreset"] = ("entry point, refuses", "VOI preset"),
         ["ApplyDisplayPipelineAsync"] = ("entry point, refuses and takes a ticket", "Display pipeline"),
         ["RestartAiSession"] = ("entry point, refuses and takes a ticket", "Restart AI"),
+        ["RunDeterministicBaselineAsync"] = ("entry point, refuses and takes a lifetime ticket (no request number)", "Deterministic Baseline"),
     };
 
     // Not in the table because it takes no backend of its own: RenderLanesAsync receives the Apply's ticket and asks it (checked below).
@@ -422,7 +426,7 @@ public sealed class BackendLifecycleTests
         }
 
         // Work that outlives a UI turn asks its ticket after every await and in its failure path.
-        foreach (var (name, minimum) in new[] { ("ApplyDisplayPipelineAsync", 3), ("RenderLanesAsync", 3), ("RestartAiSession", 2) })
+        foreach (var (name, minimum) in new[] { ("ApplyDisplayPipelineAsync", 3), ("RenderLanesAsync", 3), ("RestartAiSession", 2), ("RunDeterministicBaselineAsync", 2) })
         {
             var at = DeclarationOf(source, name);
             var next = source.IndexOf("\n    private ", at + 10, StringComparison.Ordinal);

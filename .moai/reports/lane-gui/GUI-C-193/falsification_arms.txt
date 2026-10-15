@@ -1,0 +1,21 @@
+ARM the-symbol-is-defined-for-every-configuration (props: Debug condition removed): debug build ok=True
+   tests: ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 99 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: FaultSeamCompiledOutTests.TheBuildSymbol_IsDefinedOnlyForDebug_AndEveryProjectThatCompilesTheSeamImportsIt [1 ms]
+    Release build compiled; strings found in the shipped dll: ['ai-worker-disabled', 'display-pipeline-after', 'FAULT INJECTION ARMED', 'FaultInjectingBackend']
+   restored byte-identical: True
+ARM a-use-of-the-seam-leaks-outside-the-guard (MainWindow: the guard around the announcement removed): debug build ok=True
+   tests: ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 104 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: FaultSeamCompiledOutTests.EveryUseOfTheFaultSeam_InTheApp_IsInsideTheTestBuildGuard [31 ms]
+    Release build FAILED to compile: ["D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\MainWindow.xaml.cs(47,13): error CS0103: 'FaultInjectingBackend' 이름이 현재 컨텍스트에 없습니다. [D:\\workspace-github", "D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\MainWindow.xaml.cs(51,23): error CS1061: 'MainWindowViewModel'에는 'AnnounceFaultInjection'에 대한 정의가 포함되어 있"]
+   restored byte-identical: True
+ARM the-fault-file-is-compiled-again-outside-a-test-build (Compile Remove dropped): debug build ok=True
+   tests: ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 101 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: FaultSeamCompiledOutTests.TheFaultFile_IsGuardedAsAWhole_AndNotCompiledOutsideATestBuild [2 ms]
+   restored byte-identical: True
+ARM the-shipped-build-counterpart-tests-are-gone (AutomationArgsTests: the #else branch renamed): debug build ok=True
+   tests: ['실패!  - 실패:     1, 통과:    32, 건너뜀:     0, 전체:    33, 기간: 100 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: FaultSeamCompiledOutTests.TheFaultSwitchTests_AreGuarded_AndTheShippedBuildCounterpartsExist [1 ms]
+   restored byte-identical: True
+AFTER RESTORE: True ['통과!  - 실패:     0, 통과:    33, 건너뜀:     0, 전체:    33, 기간: 85 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+release now: Release build compiled; strings found in the shipped dll: none
+sources: 96bc9c0f5635 08a847fb7eb9 2e033b81b835 ed2a11d889bd

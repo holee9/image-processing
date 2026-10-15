@@ -1,0 +1,5 @@
+exit=1
+The native module pushed an alert and nothing reached the screen after the log had been emptied (#198 ②).
+before: 33 lines, 0 after clearing
+after: 20 lines
+native alert line: (none)

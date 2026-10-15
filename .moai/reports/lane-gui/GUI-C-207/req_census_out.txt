@@ -1,0 +1,85 @@
+PARSER: spec heading definitions = 36 | control REQ-GUI-IT-029 parsed = True | control (nonexistent) REQ-GUI-IT-999 parsed = False
+DEFINED: 001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 020, 021, 022, 023, 024, 025, 026, 027, 028, 029, 030, 031, 040, 041, 042, 043, 050, 051, 052, 053, 060, 061, 062, 063, 064, 065
+spec mentions REQ ids (any context): 36 | mentioned but not defined by a heading: []
+PARSER: RTM rows = 39 | control REQ-GUI-IT-029 row present = True
+RTM ids not defined in the spec: ['REQ-GUI-IT-032', 'REQ-GUI-IT-033', 'REQ-GUI-IT-034']
+spec-defined ids with no RTM row: []
+requirement-matrix.json mappings = 33 | ids not defined in the spec: [] | spec ids missing from the json: ['REQ-GUI-IT-063', 'REQ-GUI-IT-064', 'REQ-GUI-IT-065']
+test .cs files: 82 | classes declared: 87 | control: class AbiLayoutTests declared = True
+
+== RTM / json test classes: do they exist? (class declared in a test source)
+REQ-GUI-IT-001 | RTM test: (build gate) | RTM class exists: [] | RTM method exists: [] | json: Smoke/AbiLayoutTests | json file exists: True
+REQ-GUI-IT-002 | RTM test: `AbiLayoutTests.SizeOfXpeImageBuffer` | RTM class exists: [('AbiLayoutTests', True)] | RTM method exists: [('AbiLayoutTests.SizeOfXpeImageBuffer', False)] | json: Smoke/AbiLayoutTests | json file exists: True
+REQ-GUI-IT-003 | RTM test: `AbiLayoutTests.FieldOffsets` | RTM class exists: [('AbiLayoutTests', True)] | RTM method exists: [('AbiLayoutTests.FieldOffsets', False)] | json: Smoke/AbiLayoutTests | json file exists: True
+REQ-GUI-IT-004 | RTM test: `AbiLayoutTests.BodyPartRoundtrip` | RTM class exists: [('AbiLayoutTests', True)] | RTM method exists: [('AbiLayoutTests.BodyPartRoundtrip', False)] | json: Smoke/AbiLayoutTests | json file exists: True
+REQ-GUI-IT-005 | RTM test: `VersionTests.StaticPointer` | RTM class exists: [('VersionTests', False)] | RTM method exists: [('VersionTests.StaticPointer', False)] | json: Smoke/DllLoadSmokeTests | json file exists: True
+REQ-GUI-IT-006 | RTM test: `NoManagedExceptionTests.*` | RTM class exists: [('NoManagedExceptionTests', False)] | RTM method exists: [] | json: ErrorMapping/NativeErrorTranslationTests | json file exists: True
+REQ-GUI-IT-007 | RTM test: `MockExclusionTests.NoReference` | RTM class exists: [('MockExclusionTests', False)] | RTM method exists: [('MockExclusionTests.NoReference', False)] | json: Safety/MockBlockingTests | json file exists: True
+REQ-GUI-IT-008 | RTM test: `DllResolutionTests.PathInBuild` | RTM class exists: [('DllResolutionTests', False)] | RTM method exists: [('DllResolutionTests.PathInBuild', False)] | json: Safety/DllSearchPathSafetyTests | json file exists: True
+REQ-GUI-IT-009 | RTM test: `EnumParityTests.ErrorStringParity` | RTM class exists: [('EnumParityTests', False)] | RTM method exists: [('EnumParityTests.ErrorStringParity', False)] | json: Functional/ErrorCodeMappingTests | json file exists: True
+REQ-GUI-IT-010 | RTM test: `LeakEnduranceTests.GcHandle` | RTM class exists: [('LeakEnduranceTests', True)] | RTM method exists: [('LeakEnduranceTests.GcHandle', False)] | json: Safety/LeakEnduranceTests | json file exists: True
+REQ-GUI-IT-020 | RTM test: `LibraryLoadTests` | RTM class exists: [('LibraryLoadTests', False)] | RTM method exists: [] | json: Smoke/DllLoadSmokeTests | json file exists: True
+REQ-GUI-IT-021 | RTM test: `LifecycleTests.Init_*` | RTM class exists: [('LifecycleTests', False)] | RTM method exists: [('LifecycleTests.Init_*', False)] | json: Functional/ImageBufferLifecycleTests | json file exists: True
+REQ-GUI-IT-022 | RTM test: `ConfigureTests.*` | RTM class exists: [('ConfigureTests', False)] | RTM method exists: [] | json: Functional/MetadataMarshallingTests | json file exists: True
+REQ-GUI-IT-023 | RTM test: `MemoryTests.Alloc/Free_*` | RTM class exists: [('MemoryTests', False)] | RTM method exists: [('MemoryTests.Alloc', False)] | json: Functional/ImageBufferLifecycleTests | json file exists: True
+REQ-GUI-IT-024 | RTM test: `MemoryTests.Alloc_InvalidFormat` | RTM class exists: [('MemoryTests', False)] | RTM method exists: [('MemoryTests.Alloc_InvalidFormat', False)] | json: Functional/ImageBufferLifecycleTests | json file exists: True
+REQ-GUI-IT-025 | RTM test: `MemoryTests.Copy_*` | RTM class exists: [('MemoryTests', False)] | RTM method exists: [('MemoryTests.Copy_*', False)] | json: Functional/ImageBufferLifecycleTests | json file exists: True
+REQ-GUI-IT-026 | RTM test: `ParamRangeTests.*` | RTM class exists: [('ParamRangeTests', False)] | RTM method exists: [] | json: Functional/MetadataMarshallingTests | json file exists: True
+REQ-GUI-IT-027 | RTM test: `AlertTests.Count/Fetch_*` | RTM class exists: [('AlertTests', False)] | RTM method exists: [('AlertTests.Count', False)] | json: Lifecycle/AlertCallbackTests | json file exists: True
+REQ-GUI-IT-028 | RTM test: `AlertTests.Clear_*` | RTM class exists: [('AlertTests', False)] | RTM method exists: [('AlertTests.Clear_*', False)] | json: Lifecycle/AlertCallbackTests | json file exists: True
+REQ-GUI-IT-029 | RTM test: `LoggingTests.SetLevel_*` | RTM class exists: [('LoggingTests', False)] | RTM method exists: [('LoggingTests.SetLevel_*', False)] | json: Lifecycle/LoggingHandlerTests | json file exists: True
+REQ-GUI-IT-030 | RTM test: `LoggingTests.SetFile_*` | RTM class exists: [('LoggingTests', False)] | RTM method exists: [('LoggingTests.SetFile_*', False)] | json: Lifecycle/LoggingHandlerTests | json file exists: True
+REQ-GUI-IT-031 | RTM test: `LoggingTests.Flush_*` | RTM class exists: [('LoggingTests', False)] | RTM method exists: [('LoggingTests.Flush_*', False)] | json: Lifecycle/LoggingHandlerTests | json file exists: True
+REQ-GUI-IT-040 | RTM test: `UninitializedGuardTests.*` | RTM class exists: [('UninitializedGuardTests', False)] | RTM method exists: [] | json: ErrorMapping/NativeErrorTranslationTests | json file exists: True
+REQ-GUI-IT-041 | RTM test: `DllResolutionTests.Missing_*` | RTM class exists: [('DllResolutionTests', False)] | RTM method exists: [('DllResolutionTests.Missing_*', False)] | json: Smoke/DllLoadSmokeTests | json file exists: True
+REQ-GUI-IT-042 | RTM test: `DllResolutionTests.ArchMismatch` | RTM class exists: [('DllResolutionTests', False)] | RTM method exists: [('DllResolutionTests.ArchMismatch', False)] | json: Smoke/DllLoadSmokeTests | json file exists: True
+REQ-GUI-IT-043 | RTM test: `DllResolutionTests.Arm64_Diag` | RTM class exists: [('DllResolutionTests', False)] | RTM method exists: [('DllResolutionTests.Arm64_Diag', False)] | json: Diagnostics/PlatformDetectionTests | json file exists: True
+REQ-GUI-IT-050 | RTM test: `NoManagedExceptionTests.*` (20+ scenarios) | RTM class exists: [('NoManagedExceptionTests', False)] | RTM method exists: [] | json: ErrorMapping/NativeErrorTranslationTests | json file exists: True
+REQ-GUI-IT-051 | RTM test: `LeakEnduranceTests.InitShutdown_1000` | RTM class exists: [('LeakEnduranceTests', True)] | RTM method exists: [('LeakEnduranceTests.InitShutdown_1000', False)] | json: Safety/LeakEnduranceTests | json file exists: True
+REQ-GUI-IT-052 | RTM test: `NoManagedExceptionTests.*` | RTM class exists: [('NoManagedExceptionTests', False)] | RTM method exists: [] | json: ErrorMapping/NativeErrorTranslationTests | json file exists: True
+REQ-GUI-IT-053 | RTM test: `EnumParityTests.VersionPin` | RTM class exists: [('EnumParityTests', False)] | RTM method exists: [('EnumParityTests.VersionPin', False)] | json: Functional/ErrorCodeMappingTests | json file exists: True
+REQ-GUI-IT-060 | RTM test: `PreprocessOptionalTests` | RTM class exists: [('PreprocessOptionalTests', False)] | RTM method exists: [] | json: P1AReady/PreprocessHandshakeTests | json file exists: True
+REQ-GUI-IT-061 | RTM test: `SyntheticAdapterChainTests` | RTM class exists: [('SyntheticAdapterChainTests', False)] | RTM method exists: [] | json: P1AReady/PreprocessHandshakeTests | json file exists: True
+REQ-GUI-IT-062 | RTM test: `CalibLoadOptionalTests` | RTM class exists: [('CalibLoadOptionalTests', False)] | RTM method exists: [] | json: P1AReady/CalibrationCheckExpirySmokeTests | json file exists: True
+REQ-GUI-IT-063 | RTM test: ETW-tagged tests | RTM class exists: [] | RTM method exists: [] | json: (none) | json file exists: False
+REQ-GUI-IT-064 | RTM test: CI runner | RTM class exists: [] | RTM method exists: [] | json: (none) | json file exists: False
+REQ-GUI-IT-065 | RTM test: CI runner | RTM class exists: [] | RTM method exists: [] | json: (none) | json file exists: False
+
+== name census: test sources that cite each REQ id
+REQ-GUI-IT-001 cited by NO test source
+REQ-GUI-IT-002 cited by ['Functional/StructLayoutParityTests.cs', 'Smoke/AbiLayoutTests.cs']
+REQ-GUI-IT-003 cited by ['Functional/StructLayoutParityTests.cs', 'Smoke/AbiLayoutTests.cs']
+REQ-GUI-IT-004 cited by ['Functional/StructLayoutParityTests.cs', 'Smoke/AbiLayoutTests.cs']
+REQ-GUI-IT-005 cited by ['Functional/ErrorCodeMappingTests.cs', 'Smoke/DllLoadSmokeTests.cs']
+REQ-GUI-IT-006 cited by ['ErrorMapping/NativeErrorTranslationTests.cs']
+REQ-GUI-IT-007 cited by ['Safety/MockBlockingTests.cs']
+REQ-GUI-IT-008 cited by ['Safety/DllSearchPathSafetyTests.cs']
+REQ-GUI-IT-009 cited by ['Functional/ErrorCodeMappingTests.cs']
+REQ-GUI-IT-010 cited by ['Safety/LeakEnduranceTests.cs']
+REQ-GUI-IT-020 cited by ['Smoke/DllLoadSmokeTests.cs']
+REQ-GUI-IT-021 cited by ['Functional/ImageBufferLifecycleTests.cs']
+REQ-GUI-IT-022 cited by ['Functional/MetadataMarshallingTests.cs']
+REQ-GUI-IT-023 cited by ['Functional/ImageBufferLifecycleTests.cs']
+REQ-GUI-IT-024 cited by ['Functional/ImageBufferLifecycleTests.cs']
+REQ-GUI-IT-025 cited by ['Functional/ImageBufferLifecycleTests.cs']
+REQ-GUI-IT-026 cited by ['Functional/MetadataMarshallingTests.cs']
+REQ-GUI-IT-027 cited by ['Lifecycle/AlertCallbackTests.cs']
+REQ-GUI-IT-028 cited by ['Lifecycle/AlertCallbackTests.cs']
+REQ-GUI-IT-029 cited by ['Lifecycle/LoggingHandlerTests.cs']
+REQ-GUI-IT-030 cited by ['Lifecycle/LoggingHandlerTests.cs']
+REQ-GUI-IT-031 cited by ['Lifecycle/LoggingHandlerTests.cs']
+REQ-GUI-IT-040 cited by ['ErrorMapping/NativeErrorTranslationTests.cs']
+REQ-GUI-IT-041 cited by ['Smoke/DllLoadSmokeTests.cs']
+REQ-GUI-IT-042 cited by ['Smoke/DllLoadSmokeTests.cs']
+REQ-GUI-IT-043 cited by ['Diagnostics/PlatformDetectionTests.cs', 'Smoke/DllLoadSmokeTests.cs']
+REQ-GUI-IT-050 cited by ['ErrorMapping/NativeErrorTranslationTests.cs']
+REQ-GUI-IT-051 cited by ['Safety/LeakEnduranceTests.cs']
+REQ-GUI-IT-052 cited by ['ErrorMapping/NativeErrorTranslationTests.cs']
+REQ-GUI-IT-053 cited by ['Functional/ErrorCodeMappingTests.cs', 'Smoke/VersionPinTests.cs']
+REQ-GUI-IT-060 cited by ['P1AReady/PreprocessHandshakeTests.cs']
+REQ-GUI-IT-061 cited by ['P1AReady/PreprocessCorrectionChainSmokeTests.cs']
+REQ-GUI-IT-062 cited by ['P1AReady/CalibrationCheckExpirySmokeTests.cs']
+REQ-GUI-IT-063 cited by NO test source
+REQ-GUI-IT-064 cited by NO test source
+REQ-GUI-IT-065 cited by NO test source
+ids cited in tests but not defined: []

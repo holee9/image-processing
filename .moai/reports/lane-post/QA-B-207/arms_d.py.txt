@@ -1,0 +1,110 @@
+"""QA-B-207 M1 falsification arms for D3 / D8 (VOI window limits) and D1 (GSDF black level). Break ONE defence, rebuild ci-post,
+run the named display test executable, expect the named tests red, restore byte-identical.
+Run: python build/g207_arms_d.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g200-post-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+VOI = 'modules/display/src/voi_lut.cpp'
+PRES = 'modules/display/src/presentation_lut.cpp'
+NL = '\n'
+D3 = '    if (params->mode == XPE_VOI_LINEAR && params->width < 1.0f) return XPE_ERR_INVALID_INPUT;' + NL
+D8 = '    if (!(params->minOut < params->maxOut)) return XPE_ERR_INVALID_INPUT;' + NL
+D1 = '    if (luminanceValues[0] < kMinBlackLevel) return XPE_ERR_INVALID_INPUT;' + NL
+KMIN = '    constexpr float kMinBlackLevel = 0.05f;' + NL
+
+TV = 'test_display_voi_lut.exe'
+TP = 'test_display_presentation_lut.exe'
+T_L1 = 'VoiWindowLimits.LinearRefusesAWidthBelowOneAndLeavesTheImageUntouched'
+T_W1 = 'VoiWindowLimits.LinearAcceptsWidthOneAndGivesTheStandardsThresholdAtCenterMinusHalf'
+T_W2 = 'VoiWindowLimits.LinearJustAboveOneIsTheRampOfTheStandard'
+T_OTH = 'VoiWindowLimits.LinearExactAndSigmoidStillAcceptAnyPositiveWidthBelowOne'
+T_D8 = 'VoiWindowLimits.AnOutputWindowThatIsNotAscendingIsRefusedByAllThreeFunctionsAndLeavesTheImageUntouched'
+T_TINY = 'VoiWindowLimits.ATinyButPositiveOutputRangeIsStillAWindow'
+T_G1 = 'GsdfBlackLevel.ABlackLevelBelowFiveHundredthsIsRefusedAndTheOutputIsUntouched'
+T_G2 = 'GsdfBlackLevel.ABlackLevelOfExactlyFiveHundredthsAndAboveIsAccepted'
+T_G3 = 'GsdfBlackLevel.OnlyTheFirstSampleIsTheBlackLevel'
+
+ARMS = [
+    ('d3_check_removed', [(VOI, D3, '')], TV, [T_L1]),
+    ('d3_width_one_refused_too', [(VOI, D3, D3.replace('< 1.0f', '<= 1.0f'))], TV, [T_W1]),
+    ('d3_applied_to_every_mode', [(VOI, D3, '    if (params->width < 1.0f) return XPE_ERR_INVALID_INPUT;' + NL)], TV, [T_OTH]),
+    ('d3_limit_at_half_instead_of_one', [(VOI, D3, D3.replace('< 1.0f', '< 0.5f'))], TV, [T_L1]),
+    ('d8_check_removed', [(VOI, D8, '')], TV, [T_D8]),
+    ('d8_equal_window_allowed', [(VOI, D8, '    if (params->minOut > params->maxOut) return XPE_ERR_INVALID_INPUT;' + NL)], TV, [T_D8]),
+    ('d8_not_applied_to_linear', [(VOI, D8, '    if (params->mode != XPE_VOI_LINEAR && !(params->minOut < params->maxOut)) return XPE_ERR_INVALID_INPUT;' + NL)], TV, [T_D8]),
+    ('d8_everything_below_one_refused', [(VOI, D8, '    if (!(params->minOut < params->maxOut) || params->maxOut - params->minOut < 1.0f) return XPE_ERR_INVALID_INPUT;' + NL)], TV, [T_TINY]),
+    ('d1_check_removed', [(PRES, D1, '')], TP, [T_G1]),
+    ('d1_limit_raised_to_0_06', [(PRES, KMIN, KMIN.replace('0.05f', '0.06f'))], TP, [T_G2]),
+    ('d1_exactly_0_05_refused', [(PRES, D1, D1.replace('< kMinBlackLevel', '<= kMinBlackLevel'))], TP, [T_G2]),
+    ('d1_only_negative_refused', [(PRES, D1, '    if (luminanceValues[0] < 0.0f) return XPE_ERR_INVALID_INPUT;' + NL)], TP, [T_G1]),
+    ('d1_the_last_sample_is_judged_instead', [(PRES, D1, '    if (luminanceValues[count - 1] < kMinBlackLevel) return XPE_ERR_INVALID_INPUT;' + NL)], TP, [T_G1]),
+    ('d1_the_second_sample_is_judged_too', [(PRES, D1, '    if (luminanceValues[0] < kMinBlackLevel || luminanceValues[1] < kMinBlackLevel) return XPE_ERR_INVALID_INPUT;' + NL)], TP, [T_G3]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, exe, must in ARMS:
+    files = sorted({e[0] for e in edits})
+    saved = {}
+    for p in files:
+        with open(p, 'rb') as f:
+            saved[p] = f.read()
+    before = {p: sha(p) for p in files}
+    log('=== ARM ' + name)
+    try:
+        for p in files:
+            txt = saved[p].decode('utf-8')
+            for ff, old, new in edits:
+                if ff == p:
+                    n = txt.count(old)
+                    assert n == 1, (name, old[:70], n)
+                    txt = txt.replace(old, new)
+            with open(p, 'wb') as f:
+                f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g200-b5.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s ci-post %s D:\\workspace-github\\xpe-post\\build\\g207-arm.txt * display' % (RUN, exe))
+            red = failed('build/g207-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        for p in files:
+            with open(p, 'wb') as f:
+                f.write(saved[p])
+        log('restored byte-identical: %s' % all(sha(p) == before[p] for p in files))
+log('=== DONE')
+out.close()

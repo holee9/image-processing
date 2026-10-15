@@ -40,6 +40,7 @@
 #include <vector>
 
 #include "xpe/ai/ai_worker_protocol.h"
+#include "ai_bodypart_decision.h"
 #include "xpe/common/xpe_error.h"
 
 struct XpeAiIpcBridge;
@@ -60,6 +61,12 @@ struct WorkerExitInfo {
     uint32_t pid = 0;
     uint32_t exit_code = 0;
 };
+
+/**
+ * A fresh pipe name for a worker: process id, a serial and 128 random bits (QA-B-198b). Empty when the system random
+ * generator failed, in which case no worker is started. Exposed so a test can check that two names never repeat.
+ */
+std::string NewWorkerPipeName();
 
 /** Exit code the supervisor gives a worker it terminates. */
 constexpr uint32_t kSupervisorKillExitCode = 0x4B494C4Cu;  // "KILL"
@@ -86,6 +93,23 @@ public:
     /** Bone suppression through the worker; see ai_worker_protocol.h for the wire layout. */
     XpeErrorCode BoneSuppress(uint32_t width, uint32_t height, const float* pixels_in,
                               float* pixels_out);
+
+    /**
+     * Body-part recognition through the worker (QA-B-191 M4b). XPE_OK means the worker gave a valid reply and
+     * *reply holds it (a refusal of the model's output is a valid reply). Any other code is the worker's own
+     * error code or a transport fault, exactly as the bridge reported it; LastModelUnavailable() says whether
+     * the worker meant "the model cannot be used".
+     */
+    XpeErrorCode BodyPartRecognize(uint32_t width, uint32_t height, const float* pixels_in,
+                                   xpe::ai::BodyPartReply* reply);
+
+    /** True when the most recent BodyPartRecognize call got an error frame saying the MODEL cannot be used (not a
+     *  worker or transport fault: the worker answered, and is healthy). */
+    bool LastModelUnavailable() const;
+
+    /** True when the most recent BoneSuppress call was refused because the worker's well-formed reply held a
+     *  non-finite pixel -- a refusal of that image, not a worker or transport fault. */
+    bool LastResultWasNonFinite() const;
 
     /** Ask the worker to shut down; kill it if it does not exit within the budget. */
     void Stop();
@@ -124,6 +148,8 @@ private:
     bool shutdown_requested_ = false;
     /** A kill was attempted but the worker's end was not confirmed: do not start another. */
     bool pending_kill_ = false;
+    bool last_result_nonfinite_ = false;   // see LastResultWasNonFinite(); guarded by mtx_
+    bool last_model_unavailable_ = false;  // see LastModelUnavailable(); guarded by mtx_
     WorkerExitInfo last_exit_;
     std::vector<uint32_t> started_pids_;
 };

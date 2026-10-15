@@ -1,0 +1,167 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W2_TheLaunchScriptRoute_NativeAtStart_CalibrationFromTheCommandLine [31 s]
+  표준 출력 메시지:
+ STEP 1 launched with --automation-backend Native --automation-calib <dir> --automation-width/height
+    == start: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  Grid suppression
+       + All
+       + B  Grid suppression
+       + Backend initialized: xpe_display 1.0.0
+       + Body Part
+       + C  —  · W  —
+       + Calib:  7/7 stages
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261007-171616-90c712
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Metrics
+       + Metrics populated after pipeline run.
+       + No raw image loaded.
+       + Overlay
+       + Parameters
+       + Processed
+       + Quantitative Quality
+       + Queued
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI 폭
+       + VOI:  not applied
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + chain: not run
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=c215_native
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+       + 미적용
+       + 오래됨
+ STEP 2 View > Calibration Paths Panel: the three directories are already set
+    ok: the panel appears
+    == panel open: title='ImageProcTest GUI-S0'
+       + Browse...
+       + C:\Users\drake\AppData\Local\Temp\c231_sets\ok1024
+       + Calibration paths
+       + Defect
+       + Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.
+       + Gain
+       + Offset
+ STEP 3 File > Open Raw...
+    dialog: 'Load Raw Image'
+    ok: an image summary appears
+    == raw loaded, before Run Preprocessing: title='ImageProcTest GUI-S0'
+       + C  32768  · W  65535
+       + RAW 1024x1024, min=0, max=63426, bytes=2097152 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+       + VOI:  Linear
+       + chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(...
+       + chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw
+       - Backend initialized: xpe_display 1.0.0
+       - C  —  · W  —
+       - No raw image loaded.
+       - VOI:  not applied
+       - chain: not run
+       - 오래됨
+    chain line before the run: chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw
+ STEP 4 Pipeline > Run Preprocessing (Phase 1a)
+    ok: the chain status changes
+    == after Run Preprocessing: title='ImageProcTest GUI-S0'
+       + chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+       + chain: preprocess=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=51 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+       - chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the prep...
+       - chain: preprocess=NotRequested, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=raw
+ STEP 5 View > Logs Panel, then the Analysis panel's Log tab: what the run wrote
+    Logs Panel checked before: False
+       LOG [17:16:27.816] Chain ai_bone_suppress: NotRequested — switched off
+       LOG [17:16:27.816] Chain gsvg: NotRequested — switched off
+       LOG [17:16:27.816] Chain preprocess: Applied — Preprocess: offset -> nonlinearity -> gain -> defect on 1024x1024 (Abdomen). (this xpe_preprocess.dll has no xpe_preprocess_pipeline_out: the older stage-by-stage path ran; update the DLLs)
+       LOG [17:16:27.815] ALERT WARN NATIVE_ALERT: nonlinearity correction did nothing: no LUT is loaded and panel.linear is not "false", so the frame passed through unchanged; load a LUT with xpe_calib_load_nonlin_lut() if this panel needs correcting (issue #196)
+       LOG [17:16:27.814] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+       LOG [17:16:27.800] ai_bone_suppress: NotRequested — switched off
+       LOG [17:16:27.800] gsvg: NotRequested — switched off
+       LOG [17:16:27.800] preprocess: Applied — Preprocess: offset -> nonlinearity -> gain -> defect on 1024x1024 (Abdomen). (this xpe_preprocess.dll has no xpe_preprocess_pipeline_out: the older stage-by-stage path ran; update the DLLs)
+       LOG [17:16:27.799] Drained 1 native alert(s) from the xpe_common queue.
+       LOG [17:16:27.748] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+       LOG [17:16:24.470] Chain ai_bone_suppress: NotRequested — switched off
+       LOG [17:16:24.470] Chain gsvg: NotRequested — switched off
+       LOG [17:16:24.470] Chain preprocess: NotRequested — switched off
+       LOG [17:16:24.448] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(Linear, C=32768, W=65535) -> GSDF(off)
+       LOG [17:16:24.431] ai_bone_suppress: NotRequested — switched off
+       LOG [17:16:24.431] gsvg: NotRequested — switched off
+       LOG [17:16:24.431] preprocess: NotRequested — switched off
+       LOG [17:16:24.421] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+       LOG [17:16:24.395] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw'.
+       LOG [17:16:24.354] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0\raw\synthetic_1024x1024.raw') invoked.
+       LOG [17:16:16.188] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+       LOG [17:16:16.188] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+       LOG [17:16:16.187] Display version = 1.0.0
+       LOG [17:16:16.187] xpe_display.dll = C:\Users\drake\AppData\Local\Temp\c215_native\xpe_display.dll
+       LOG [17:16:16.187] xpe_common.dll = C:\Users\drake\AppData\Local\Temp\c215_native\xpe_common.dll
+       LOG [17:16:16.187] Requested backend mode = Native
+       LOG [17:16:16.187] RealXpeBackend bootstrap started.
+       LOG [17:16:16.180] --- backend re-initialised ---
+       LOG [17:16:16.177] GUI-S0 initialized.
+ STEP 6 View > Compare Mode: Difference, Processed Only, Source Only
+    CompareDifferenceMenuItem: checked=True
+    CompareProcessedOnlyMenuItem: checked=True
+    CompareSourceOnlyMenuItem: checked=True
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 31.6321 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

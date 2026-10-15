@@ -1,0 +1,48 @@
+# GUI-C-210 falsification arms (each edits ONE thing in PreprocessCorrectionChainSmokeTests.cs, rebuilds, runs the class, restores byte-identical)
+
+## arm the defect map is not loaded (the stage answers CALIB_NOT_LOADED)
+build ok: True
+exit=1; 4 red of 6
+   RED     CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRest
+   RED     CorrectionChain_InputBuffer_Sha256IsPreserved
+   RED     CorrectionChain_RunTwice_DeterministicRmseIsZero
+   RED     CorrectionChain_Output_HasNoNanOrInf
+restored byte-identical: True
+
+## arm the defect stage has no effect (its output is the gain output)
+build ok: True
+exit=1; 1 red of 6
+   RED     CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRest
+restored byte-identical: True
+
+## arm the map marks the pixel next to each hot pixel instead
+build ok: True
+exit=1; 1 red of 6
+   RED     CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRest
+restored byte-identical: True
+
+## arm the chain writes one byte of its input
+build ok: True
+exit=1; 1 red of 6
+   RED     CorrectionChain_InputBuffer_Sha256IsPreserved
+restored byte-identical: True
+
+## arm the hash cannot change (constant)
+build ok: True
+exit=1; 1 red of 6
+   RED     Control_Sha256Hex_SeesAOneByteChange
+restored byte-identical: True
+
+## arm the input has no hot value at the marked pixels
+build ok: True
+exit=1; 1 red of 6
+   RED     CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRest
+restored byte-identical: True
+
+## arm the map marks one more pixel than the test expects
+build ok: True
+exit=1; 1 red of 6
+   RED     CorrectionChain_DefectStage_CorrectsExactlyTheMarkedPixels_AndLeavesTheRest
+restored byte-identical: True
+
+final rebuild ok: True

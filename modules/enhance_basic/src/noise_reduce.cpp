@@ -10,6 +10,7 @@ int XpeThreadRequest();
 #include <vector>
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 
 namespace {
 
@@ -174,6 +175,36 @@ static void bilateral_band(int yBegin, int yEnd, const float* src, float* px, in
 
 }
 
+// QA-B-181g (Codex #57): the largest |pixel| of the image, or false when a pixel is not finite. The filters below work
+// in place and accumulate in float, so a refusal has to come before the first write; this is the one pass that decides
+// it. A weighted average is bounded by the largest input (so the exact result is always representable), but the float
+// sums on the way to it are bounded only by (sum of weights) * (largest input): on an image at +-FLT_MAX they leave
+// float, and the call used to answer rc=0 with a non-finite image (QA-B-181f's "measured, none" had tried only small
+// sigma values). Zeroing is not an option and neither is a second code path in double (it would change the bits of
+// every ordinary image); the call is refused when the sums COULD leave float, with a 1% margin for rounding.
+static bool image_peak(const float* px, uint64_t n, double* peak)
+{
+    float lo, hi;
+    if (!xpe_scan_finite(px, n, &lo, &hi)) return false;
+    *peak = std::max(std::fabs(static_cast<double>(lo)), std::fabs(static_cast<double>(hi)));
+    return true;
+}
+
+static bool sums_may_leave_float(double peak, double sumOfWeightsBound)
+{
+    return peak * sumOfWeightsBound * 1.01 > static_cast<double>((std::numeric_limits<float>::max)());
+}
+
+// QA-B-210 E7 / E7b (#251, user decision): the spatial kernel covers 2 sigma, and its radius is capped at kMaxBilateralRadius.
+// sigma_space <= 15 / 2 = 7.5 (exact in float) is the largest value whose whole 2-sigma extent fits inside the radius cap:
+// ceil(2 * 7.5) = 15. Above it the radius is clamped to 15, which is LESS than 2 sigma: the spatial weights exp(-0.5 d^2 / sigma^2)
+// still follow the requested sigma (at d = 10, sigma 7.5 gives 0.411 and sigma 8 gives 0.458), but the kernel is cut off before
+// 2 sigma, so the filter is not the Gaussian shape the parameter asks for. Such a value used to be accepted; it is now
+// XPE_ERR_INVALID_INPUT. (A very small image limits the radius further, to min(w, h) / 2 - 1; that is the kernel not fitting the image,
+// not the parameter, and stays.)
+static constexpr int   kMaxBilateralRadius = 15;
+static constexpr float kMaxSigmaSpace      = 0.5f * static_cast<float>(kMaxBilateralRadius);   // 7.5
+
 static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, float sigma_range)
 {
     int w = static_cast<int>(img->width);
@@ -187,7 +218,7 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
     // limiting afterwards made an out-of-range float -> int conversion (undefined behaviour) of any large sigma;
     // 2 * sigma also overflows float for sigma above FLT_MAX / 2. sigma_space is finite here (checked by the
     // caller), and a sigma of at least maxRad / 2 reaches the limit anyway: ceil(2 * sigma) >= maxRad.
-    int maxRad = std::min(15, std::min(w, h) / 2 - 1);
+    int maxRad = std::min(kMaxBilateralRadius, std::min(w, h) / 2 - 1);
     if (maxRad < 1) maxRad = 1;
     const float radiusF = sigma_space >= 0.5f * static_cast<float>(maxRad)
                               ? static_cast<float>(maxRad)
@@ -195,6 +226,15 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
     int radius = static_cast<int>(radiusF);   // 0 .. maxRad, an exact small integer
     if (radius < 1) radius = 1;
     int ksize = 2 * radius + 1;
+
+    // QA-B-181g: every spatial weight is at most 1, so the weights of one pass sum to at most ksize.
+    {
+        double peak = 0.0;
+        if (!image_peak(px, static_cast<uint64_t>(w) * static_cast<uint64_t>(h), &peak) ||
+            sums_may_leave_float(peak, static_cast<double>(ksize))) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+    }
 
     float ss2_inv            = 1.0f / (sigma_space * sigma_space);
     float minus_half_sr2_inv = -0.5f / (sigma_range * sigma_range);
@@ -238,9 +278,22 @@ static XpeErrorCode apply_nlm(XpeImageBuffer* img,
 
     int half_search = search_window / 2;
     int half_patch = patch_size / 2;
+
     float h2_inv = 1.0f / (h_param * h_param);
 
     std::vector<float> output(n);
+
+    // The check stays BEHIND this allocation: a declared size no machine can hold must still fail here (QA-B-181),
+    // before any pixel is read.
+    // QA-B-181g: every weight is at most 1, so the weights of one pixel sum to at most the number of taps.
+    {
+        double peak = 0.0;
+        if (!image_peak(px, n, &peak) ||
+            sums_may_leave_float(peak, static_cast<double>(search_window) * static_cast<double>(search_window))) {
+            return XPE_ERR_INVALID_INPUT;
+        }
+    }
+
 
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
@@ -324,8 +377,10 @@ extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, cons
         // the build's floating-point mode (measured: /fp:precise lets NaN through, the /fp:fast this module is built
         // with rejects it), so NaN and +infinity were accepted or refused by accident and +infinity reached an int
         // conversion. Finiteness is its own explicit test.
+        // QA-B-210 E7: and not above the largest sigma_space whose 2-sigma extent fits the radius cap (7.5). Judged here, before the image is touched.
         if (!std::isfinite(params->sigma_space) || !std::isfinite(params->sigma_range) ||
-            params->sigma_space <= 0.0f || params->sigma_range <= 0.0f) {
+            params->sigma_space <= 0.0f || params->sigma_range <= 0.0f ||
+            params->sigma_space > kMaxSigmaSpace) {
             return XPE_ERR_INVALID_INPUT;
         }
         return apply_bilateral(img, params->sigma_space, params->sigma_range);
@@ -338,7 +393,9 @@ extern "C++" static XpeErrorCode xpe_noise_reduce_impl(XpeImageBuffer* img, cons
         if (params->patch_size < 1 || (params->patch_size % 2) == 0) {
             return XPE_ERR_INVALID_INPUT;
         }
-        if (params->h_param <= 0.0f) {
+        // QA-B-181g: and finite, by a bit test -- `h_param <= 0` is false for +inf in every mode and for NaN under
+        // /fp:precise (QA-B-181e), and +inf made h2_inv 0, so every weight came out as exp(-dist2 * 0).
+        if (!xpe_float_is_finite(params->h_param) || params->h_param <= 0.0f) {
             return XPE_ERR_INVALID_INPUT;
         }
         return apply_nlm(img, params->search_window, params->patch_size, params->h_param);

@@ -185,6 +185,7 @@ if(_XPE_BUILD_TESTS)
     )
     target_include_directories(test_dicom_writer PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src   # DicomImageLimits.h (header-inline predicates, QA-B-206 M1b)
     )
     target_link_libraries(test_dicom_writer PRIVATE
         xpe_dicom
@@ -274,6 +275,95 @@ if(_XPE_BUILD_TESTS)
     endif()
     xpe_target_warnings_as_errors(test_dicom_network_scu)
     gtest_discover_tests(test_dicom_network_scu
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # --- QA-B-200 M2a (#251): the SCU failure and cancel paths and the mAs tag (found by QA-B-199) ---
+    add_executable(test_dicom_failure_paths
+        tests/test_dicom_failure_paths.cpp
+        tests/mock_scp.cpp
+    )
+    target_include_directories(test_dicom_failure_paths PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_dicom_failure_paths PRIVATE
+        xpe_dicom
+        GTest::gtest_main
+    )
+    if(dcmtk_FOUND)
+        target_link_libraries(test_dicom_failure_paths PRIVATE DCMTK::DCMTK)
+    else()
+        if(DCMTK_INCLUDE_DIRS)
+            target_include_directories(test_dicom_failure_paths PRIVATE ${DCMTK_INCLUDE_DIRS})
+        endif()
+        if(DCMTK_LIBRARIES)
+            target_link_libraries(test_dicom_failure_paths PRIVATE ${DCMTK_LIBRARIES})
+        endif()
+    endif()
+    if(WIN32)
+        target_link_libraries(test_dicom_failure_paths PRIVATE ws2_32)
+    endif()
+    target_compile_features(test_dicom_failure_paths PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_dicom_failure_paths PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_dicom_failure_paths)
+    gtest_discover_tests(test_dicom_failure_paths
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # --- QA-B-209 C16 (#251): REQ-DICOM-043 -- DEBUG entry/exit lines and ERROR level for failures, read from the xpe_common log file ---
+    add_executable(test_dicom_logging
+        tests/test_dicom_logging.cpp
+    )
+    target_include_directories(test_dicom_logging PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+    target_link_libraries(test_dicom_logging PRIVATE
+        xpe_dicom
+        GTest::gtest_main
+    )
+    target_compile_features(test_dicom_logging PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_dicom_logging PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_dicom_logging)
+    gtest_discover_tests(test_dicom_logging
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    # --- QA-B-206 M1c (Codex #110): the INNER writer (DicomWriter::write / writeJ2K) called directly, without the public door.
+    # DicomWriter is not exported from the DLL, so its source is compiled into this executable.
+    add_executable(test_dicom_writer_inner
+        tests/test_dicom_writer_inner.cpp
+        src/DicomWriter.cpp
+    )
+    target_include_directories(test_dicom_writer_inner PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    target_link_libraries(test_dicom_writer_inner PRIVATE
+        xpe_common
+        spdlog::spdlog
+        openjp2
+        GTest::gtest_main
+    )
+    if(dcmtk_FOUND)
+        target_link_libraries(test_dicom_writer_inner PRIVATE DCMTK::DCMTK)
+    else()
+        if(DCMTK_INCLUDE_DIRS)
+            target_include_directories(test_dicom_writer_inner PRIVATE ${DCMTK_INCLUDE_DIRS})
+        endif()
+        if(DCMTK_LIBRARIES)
+            target_link_libraries(test_dicom_writer_inner PRIVATE ${DCMTK_LIBRARIES})
+        endif()
+    endif()
+    target_compile_features(test_dicom_writer_inner PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(test_dicom_writer_inner PRIVATE /W4)
+    endif()
+    xpe_target_warnings_as_errors(test_dicom_writer_inner)
+    gtest_discover_tests(test_dicom_writer_inner
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endif()

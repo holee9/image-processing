@@ -1,0 +1,106 @@
+"""QA-B-207 M2 (E6) falsification arms for the standard CLAHE. Break ONE defence in contrast_enhance.cpp, rebuild the post
+modules, run the enhance_basic tests, expect the named tests red, restore byte-identical.
+Do not touch the source tree while this runs.
+Run: python build/g207_arms_e6.py <out.txt> [arm name]"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+ONLY = sys.argv[2] if len(sys.argv) > 2 else None
+BUILD = r'D:\workspace-github\xpe-post\build\g200-post-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat ci-post xpe_enhance_basic_tests.exe D:\workspace-github\xpe-post\build\g207-arm.txt * enhance_basic'
+SRC = 'modules/enhance_basic/src/contrast_enhance.cpp'
+T_REF = 'ContrastEnhance.MatchesAnIndependentReference'
+T_STEP = 'ContrastEnhance.SmoothRamp_HasNoStepAtTileBoundaries'
+T_UNI = 'ContrastEnhance.AlreadyEvenlySpreadImage_IsLeftNearlyAsItIs'
+T_CLIP = 'ContrastEnhance.ClipLimit_BoundsTheContrastGain'
+T_RANGE = 'ExceptionGuard.ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape'
+
+ARMS = [
+    ('nearest_tile_no_interpolation',
+     [('            const float frac = top + wy * (bot - top);',
+       '            const float frac = (top + wy * (bot - top)) * 0.0f + lutRow0[i0 + b];')], [T_REF, T_STEP]),
+    ('weight_between_two_centres_inverted',
+     [('            a.weight[static_cast<size_t>(p)] = (fp - c0) / (c1 - c0);',
+       '            a.weight[static_cast<size_t>(p)] = 1.0f - (fp - c0) / (c1 - c0);')], [T_REF, T_STEP]),
+    ('tile_centre_on_the_pixel_edge_convention',
+     [('a.centre.push_back(0.5f * static_cast<float>(s + e - 1));', 'a.centre.push_back(0.5f * static_cast<float>(s + e));')], [T_REF]),
+    ('remainder_given_to_the_first_bins_the_old_bias',
+     [('i += stride, --remainder)', 'i += (stride - stride + 1), --remainder)')], [T_REF, T_UNI]),
+    ('clip_never_applied',
+     [('    if (clip_count < 1) clip_count = 1;', '    clip_count = tile_area;')], [T_REF, T_CLIP]),
+    ('clip_count_not_floored_at_one',
+     [('    if (clip_count < 1) clip_count = 1;', '')], [T_REF]),
+    ('output_not_mapped_back_to_the_global_range',
+     [('            out[x] = val_min + frac * val_range;', '            out[x] = frac * val_range + 0.0f * val_min;')], [T_REF]),   # first listed T_RANGE too: a guess, that test only checks the value range
+    ('border_pixels_extrapolate_instead_of_clamping_to_the_first_centre',
+     [('        if (fp <= a.centre[0]) {', '        if (fp < -1.0f) {')], [T_REF]),
+    ('empty_tile_given_a_centre_and_a_table',
+     [('        if (s >= e) continue;   // a tile past the edge is empty and has no centre (ceil-division can leave one)', '')], [T_REF]),
+    ('vertical_blend_uses_the_same_row_of_tables_twice',
+     [('        const float* lutRow1 = luts.data() + j1 * nx * static_cast<size_t>(NUM_BINS);',
+       '        const float* lutRow1 = luts.data() + (j1 - j1 + j0) * nx * static_cast<size_t>(NUM_BINS);')], [T_REF]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3400)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, 'rb') as f:
+        raw = f.read()
+    try:
+        txt = raw.decode('utf-8')
+    except UnicodeDecodeError:
+        txt = raw.decode('cp949', errors='replace')
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    if ONLY and name != ONLY:
+        continue
+    with open(SRC, 'rb') as f:
+        saved = f.read()
+    before = sha(SRC)
+    log('=== ARM ' + name)
+    try:
+        txt = saved.decode('utf-8')
+        for old, new in edits:
+            n = txt.count(old)
+            assert n == 1, (name, old[:70], n)
+            txt = txt.replace(old, new)
+        with open(SRC, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        built = '===POST-BUILD=0===' in sh(BUILD)
+        if not built:
+            log('RESULT: BUILD FAILED (not measured)')
+        else:
+            sh(RUN)
+            red = failed('build/g207-arm.txt')
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        with open(SRC, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(SRC) == before))
+log('=== DONE')
+out.close()

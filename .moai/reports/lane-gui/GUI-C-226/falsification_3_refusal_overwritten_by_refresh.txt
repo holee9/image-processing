@@ -1,0 +1,4 @@
+== arm: the refusal is a plain assignment again (a later refresh overwrites it)
+[xUnit.net 00:00:25.86]         changed: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.' -> 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.'; preview text 'Native preview: load a target raw image to run pre/post algorithms.'
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [25 s]
+ changed: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.' -> 'Algorithm validation: 33 SWUs across 7 modules; runnable=12.'; preview text 'Native preview: load a target raw image to run pre/post algorithms.'

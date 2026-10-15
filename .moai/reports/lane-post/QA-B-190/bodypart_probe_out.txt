@@ -1,0 +1,15 @@
+[2026-10-02 16:12:26.947] [info] xpe_ai initialized: model_dir=., ep=0, timeout=5000 ms
+[2026-10-02 16:12:26.947] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:12:26.947] [info] xpe_ai initialized: model_dir=., ep=0, timeout=5000 ms
+[2026-10-02 16:12:26.947] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:12:26.947] [info] xpe_ai initialized: model_dir=., ep=0, timeout=5000 ms
+[2026-10-02 16:12:26.947] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-02 16:12:26.947] [info] xpe_ai initialized: model_dir=., ep=0, timeout=5000 ms
+[2026-10-02 16:12:26.947] [info] xpe_ai shutdown: worker_pid=0
+build under test: build/ci-ai/bin/xpe_ai.dll (XPE_AI_USE_ONNXRUNTIME=ON)
+config                             init_rc  rc     label        confidence
+{"confidence_threshold": 0.0}      0        -3     UNKNOWN      0.0
+{"confidence_threshold": 0.6}      0        -3     UNKNOWN      0.0
+{"confidence_threshold": 1.0}      0        -3     UNKNOWN      0.0
+{"confidence_threshold": 0.6, "fallback_mode": false} 0        -3     UNKNOWN      0.0
+control: init with a config of a different shape still returns rc 0 and the call is reached (init_rc 0 above)

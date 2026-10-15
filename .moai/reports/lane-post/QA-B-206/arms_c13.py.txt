@@ -1,0 +1,81 @@
+"""QA-B-206 M1 C13 falsification arms: where the uncompressed PixelData length comes from. Break ONE defence, rebuild
+ci-dicom, run test_dicom_writer, expect the named tests red, restore byte-identical.
+Run: python build/g206_arms_c13.py <out.txt>"""
+import hashlib
+import re
+import subprocess
+import sys
+
+OUT = sys.argv[1]
+BUILD = r'D:\workspace-github\xpe-post\build\g206-build.bat test_dicom_writer'
+RUN = r'D:\workspace-github\xpe-post\build\g206-run.bat'
+SRC = 'modules/dicom/src/DicomWriter.cpp'
+NL = '\n'
+LEN = '                                     static_cast<unsigned long>(sizeof(uint16_t));' + NL
+CALL = '        pixelBytes' + NL
+T_ZERO = 'DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly'
+T_SURP = 'DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData'
+ARMS = [
+    ('length_back_to_img_dataSize_as_before_206',
+     [(CALL, '        static_cast<unsigned long>(img->dataSize)' + NL)], [T_ZERO, T_SURP]),
+    ('length_is_dataSize_unless_zero',
+     [(CALL, '        img->dataSize ? static_cast<unsigned long>(img->dataSize) : pixelBytes' + NL)], [T_SURP]),
+    ('one_byte_per_pixel', [(LEN, '                                     static_cast<unsigned long>(1);' + NL)], [T_ZERO, T_SURP]),
+    ('three_bytes_per_pixel_reads_past_the_image', [(LEN, '                                     static_cast<unsigned long>(3);' + NL)], [T_ZERO, T_SURP]),
+]
+
+
+def sha(p):
+    with open(p, 'rb') as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    with open(path, encoding='utf-8', errors='replace') as f:
+        txt = f.read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    with open(SRC, 'rb') as f:
+        saved = f.read()
+    before = sha(SRC)
+    log('=== ARM ' + name)
+    try:
+        txt = saved.decode('utf-8')
+        for old, new in edits:
+            assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+            txt = txt.replace(old, new)
+        with open(SRC, 'wb') as f:
+            f.write(txt.encode('utf-8'))
+        sh(BUILD)
+        with open('build/g206-build.txt', encoding='utf-8', errors='replace') as f:
+            built = 'FAILED:' not in f.read()
+        if not built:
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s test_dicom_writer.exe * D:\\workspace-github\\xpe-post\\build\\g206-arm.txt' % RUN)
+            red = failed('build/g206-arm.txt')
+            hit = [m for m in must if m in red]
+            miss = [m for m in must if m not in hit]
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss else 'DID NOT FIRE', len(must), len(hit), miss))
+    finally:
+        with open(SRC, 'wb') as f:
+            f.write(saved)
+        log('restored byte-identical: %s' % (sha(SRC) == before))
+log('=== DONE')
+out.close()

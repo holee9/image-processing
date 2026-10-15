@@ -1,0 +1,31 @@
+DRAFT 2 of 3 (QA-B-214, Refs #251) -- revision of REQ-DISP-017 (body-part presets) and its relation to the automatic window.
+
+CURRENT TEXT (spec.md, revised 2026-09-17):
+  "WHEN `xpe_voi_preset_create` is called with a valid `XpeBodyPart`, the system SHALL populate the `params` struct with window
+   center/width values in the detector DN domain of the raw input as it reaches VOI (modality LUT identity: slope 1, intercept 0).
+   Until per-body-part DN values are derived from real detector data (#151), every body part SHALL use the full 16-bit window:
+   center=32768, width=65535."
+
+PROPOSED TEXT:
+  REQ-DISP-017 (revised): WHEN `xpe_voi_preset_create` is called with a valid `XpeBodyPart`, the system SHALL populate the
+  `params` struct with a window for that body part, expressed in the domain of the values that reach the VOI stage -- that is,
+  in the domain the pipeline of the caller has produced (the log domain of REQ-ENH-001 when xpe_log_transform has run, detector DN
+  when it has not), NOT necessarily detector DN. Until per-body-part windows are derived from real data, every body part SHALL use
+  center=32768, width=65535, mode LINEAR, minOut 0.0, maxOut 255.0.
+
+  REQ-DISP-017a (new, relation to the automatic window): The body-part preset is NOT the default window. The default window of
+  the pipeline is the one `xpe_voi_auto_window` returns (REQ-DISP-0NN-B). A preset is for a caller that chooses a fixed window;
+  it is meaningful only where its numbers are in the domain of the values that reach VOI, and its output range (0..255) is not the
+  [0, 1] input range of `xpe_apply_presentation_lut`: a caller that feeds a preset to the Presentation LUT SHALL set minOut and maxOut
+  to 0 and 1 first.
+
+WHY (measured, QA-B-213b/214, `p8_variants.txt`):
+  - on the stage-2 chain output (log domain, anatomy 1981 .. 3180) the preset window (32768 +- 32768) puts the anatomy into 833 of 65535
+    output levels (1.3 %); after xpe_log_inverse (so the window really is in DN) into 577 (0.9 %);
+  - the preset maxOut = 255 passed to the Presentation LUT makes the whole image one value (every pixel clamps to 1.0);
+  - pipeline-spec.md puts the log transform (stage 5) before VOI (stage 15) and has no inverse-log stage, so "detector DN domain
+    as it reaches VOI" is not what reaches VOI. Either this domain wording changes (proposed above) or an inverse-log stage is added
+    to the pipeline -- the lead decides which; the proposal keeps the pipeline as it is.
+  - `#151`, cited by the current text as the work that derives per-body-part DN values, has the title "[blocked] ... detector defaults
+    (#148) and DICOM dimension guard (#150)" when read with `gh issue view 151`: the citation should be checked.
+  - the preset enum has BONE / LUNG / ABDOMEN / HEAD only; EI uses a body-part STRING ("HAND", "CHEST", ...): two vocabularies.

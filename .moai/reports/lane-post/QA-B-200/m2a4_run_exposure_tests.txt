@@ -1,0 +1,40 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomExposureTag.*:DicomModuleVersion.*
+[==========] Running 10 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 9 tests from DicomExposureTag
+[ RUN      ] DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue
+[       OK ] DicomExposureTag.AFileFromAnotherSystemWithOnlyExposure1152ReadsAsThatValue (23 ms)
+[ RUN      ] DicomExposureTag.TheReadOrderIs1153Then9332Then1152
+[2026-10-03 17:26:59.859] [warning] [DicomReader] DICOM exposure attributes disagree: (0018,1153) = 2500 uAs; (0018,9332) = 888 mAs; (0018,1152) = 999 mAs; using (0018,1153) = 2.5000 mAs
+[2026-10-03 17:26:59.875] [warning] [DicomReader] DICOM exposure attributes disagree: (0018,9332) = 888 mAs; (0018,1152) = 999 mAs; using (0018,9332) = 888.0000 mAs
+[       OK ] DicomExposureTag.TheReadOrderIs1153Then9332Then1152 (37 ms)
+[ RUN      ] DicomExposureTag.AFileThatOnlyHas9332StillReadsAsThatValue
+[       OK ] DicomExposureTag.AFileThatOnlyHas9332StillReadsAsThatValue (16 ms)
+[ RUN      ] DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332
+[       OK ] DicomExposureTag.TheModuleWritesExposure1152AndExposureInMicroAsAndNot9332 (68 ms)
+[ RUN      ] DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed
+[       OK ] DicomExposureTag.ANonNumericOrNegativeAttributeIsSkippedAndTheNextOneIsUsed (38 ms)
+[ RUN      ] DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix
+[       OK ] DicomExposureTag.AnIntegerStringMustMatchTheGrammarCompletelyAndNotJustByItsPrefix (277 ms)
+[ RUN      ] DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne
+[2026-10-03 17:27:00.316] [warning] [DicomReader] DICOM exposure attributes disagree: (0018,1153) = 2500 uAs; (0018,9332) = 2.5 mAs; (0018,1152) = 999 mAs; using (0018,1153) = 2.5000 mAs
+[2026-10-03 17:27:00.325] [warning] [DicomReader] DICOM exposure attributes disagree: (0018,9332) = 12.5 mAs; (0018,1152) = 80 mAs; using (0018,9332) = 12.5000 mAs
+[       OK ] DicomExposureTag.ThreeExposureAttributesThatAgreeWithinTheirRoundingPostNoAlertAndThatDisagreePostOne (57 ms)
+[ RUN      ] DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne
+[2026-10-03 17:27:00.354] [warning] [DicomReader] DICOM exposure attributes disagree: (0018,1153) = 2500 uAs; (0018,9332) = 2.4994 mAs; (0018,1152) = 3 mAs; using (0018,1153) = 2.5000 mAs
+[2026-10-03 17:27:00.370] [warning] [DicomReader] DICOM exposure attributes disagree: (0018,1153) = 3000 uAs; (0018,9332) = 2.4 mAs; (0018,1152) = 3 mAs; using (0018,1153) = 3.0000 mAs
+[       OK ] DicomExposureTag.TwoValuesThatContradictEachOtherPostTheAlertEvenWhenEachAgreesWithTheChosenOne (26 ms)
+[ RUN      ] DicomExposureTag.TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored
+[2026-10-03 17:27:00.417] [warning] [DicomReader] DICOM exposure attributes disagree: (0018,1153) = 2500 uAs; (0018,1152) = 7 mAs; using (0018,1153) = 2.5000 mAs
+[       OK ] DicomExposureTag.TheTwelveByteLimitOfAnIntegerStringIsMeasuredOnTheValueAsStored (46 ms)
+[----------] 9 tests from DicomExposureTag (593 ms total)
+
+[----------] 1 test from DicomModuleVersion
+[ RUN      ] DicomModuleVersion.TheModuleExportsAVersionStringLikeTheOtherModules
+[       OK ] DicomModuleVersion.TheModuleExportsAVersionStringLikeTheOtherModules (0 ms)
+[----------] 1 test from DicomModuleVersion (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 10 tests from 2 test suites ran. (593 ms total)
+[  PASSED  ] 10 tests.

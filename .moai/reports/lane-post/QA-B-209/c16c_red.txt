@@ -1,0 +1,597 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from DicomLogging
+[ RUN      ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_open: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_open: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_read_image: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_read_image: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_get_metadata: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_get_metadata: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_write: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_write: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_write_j2k: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_write_j2k: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_validate: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_validate: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_cstore: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_cstore: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(151): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(c.fn)
+    Which is: 0
+xpe_dicom_cfind_mwl: exactly one DEBUG entry line
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(152): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits(c.fn, c.rc)
+    Which is: 0
+xpe_dicom_cfind_mwl: exactly one DEBUG exit line with rc=-1 (also for a failure)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_read_image
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_read_image exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_get_metadata
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_get_metadata exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_write_j2k((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_write_j2k exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_validate((null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cstore((null):0 file=(null))
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.424] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cfind_mwl((null):0)
+[2026-10-04 13:51:55.424] [xpe_file] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_close exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [DicomNetworkSCU] cancel requested
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_cancel exit
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version
+[2026-10-04 13:51:55.425] [xpe_file] [debug] [xpe_dicom] xpe_dicom_version exit
+
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(158): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(fn)
+    Which is: 0
+xpe_dicom_close: exactly one DEBUG entry line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(158): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(fn)
+    Which is: 0
+xpe_dicom_cancel: exactly one DEBUG entry line
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(158): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries(fn)
+    Which is: 0
+xpe_dicom_version: exactly one DEBUG entry line
+
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails (11 ms)
+[ RUN      ] DicomLogging.AnEarlyRefusalLogsDebugEntryDebugExitAndOneErrorResult
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(170): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries("xpe_dicom_open")
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(171): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits("xpe_dicom_open", rc)
+    Which is: 0
+
+[  FAILED  ] DicomLogging.AnEarlyRefusalLogsDebugEntryDebugExitAndOneErrorResult (5 ms)
+[ RUN      ] DicomLogging.AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(187): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries("xpe_dicom_open")
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(188): error: Expected equality of these values:
+  1u
+    Which is: 1
+  DebugExits("xpe_dicom_open", rc)
+    Which is: 0
+[2026-10-04 13:51:55.440] [xpe_file] [debug] [xpe_dicom] xpe_dicom_open(C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_56620_AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult.dcm)
+[2026-10-04 13:51:55.440] [xpe_file] [debug] [DicomReader] open: C:\Users\drake\AppData\Local\Temp\xpe_dicom_logging_56620_AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult.dcm
+[2026-10-04 13:51:55.441] [xpe_file] [error] [DicomReader] not a DICOM Part 10 file: no 128-byte preamble followed by "DICM" (132 bytes read)
+[2026-10-04 13:51:55.441] [xpe_file] [error] [xpe_dicom] xpe_dicom_open exit rc=-13 (Invalid or malformed DICOM file)
+
+
+[  FAILED  ] DicomLogging.AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult (7 ms)
+[ RUN      ] DicomLogging.ASuccessLogsDebugLinesOnly
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(202): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries("xpe_dicom_write")
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(204): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries("xpe_dicom_open")
+    Which is: 0
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(206): error: Expected equality of these values:
+  1u
+    Which is: 1
+  Entries("xpe_dicom_close")
+    Which is: 0
+
+[  FAILED  ] DicomLogging.ASuccessLogsDebugLinesOnly (20 ms)
+[ RUN      ] DicomLogging.TheDebugExitFollowsTheEntryAndIsWrittenOncePerCall
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_logging.cpp(221): error: Expected: (entryAt) < (lines.size()), actual: 2 vs 2
+
+[  FAILED  ] DicomLogging.TheDebugExitFollowsTheEntryAndIsWrittenOncePerCall (6 ms)
+[ RUN      ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AnUnreadableFileToSendIsLoggedAtErrorLevel (6 ms)
+[ RUN      ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel
+[       OK ] DicomLogging.AFailedSaveIsLoggedAtErrorLevel (6 ms)
+[----------] 7 tests from DicomLogging (63 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (63 ms total)
+[  PASSED  ] 2 tests.
+[  FAILED  ] 5 tests, listed below:
+[  FAILED  ] DicomLogging.EveryPublicFunctionLogsEntryDebugExitAndAnErrorLineWhenItFails
+[  FAILED  ] DicomLogging.AnEarlyRefusalLogsDebugEntryDebugExitAndOneErrorResult
+[  FAILED  ] DicomLogging.AnInternalFailureLogsTheCauseTheDebugExitAndTheErrorResult
+[  FAILED  ] DicomLogging.ASuccessLogsDebugLinesOnly
+[  FAILED  ] DicomLogging.TheDebugExitFollowsTheEntryAndIsWrittenOncePerCall
+
+ 5 FAILED TESTS

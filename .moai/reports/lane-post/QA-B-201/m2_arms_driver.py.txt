@@ -1,0 +1,70 @@
+"""QA-B-201 M2 arms: the model-card tests must read the REPOSITORY-ROOT schemas/, not a copy.
+Each arm changes the ROOT file (the test source is not touched; the test binary is NOT rebuilt: the path is baked in, the
+content is read at run time), runs the schema tests, expects red tests, and restores the root file byte-identical.
+Run from the repository root: python build/g201_arms_m2.py <out.txt>"""
+import hashlib, os, re, subprocess, sys
+
+OUT = sys.argv[1]
+RUN = r'D:\workspace-github\xpe-post\build\g201-ai-run-only.bat'
+CARD = 'schemas/model-card.schema.json'
+SIDE = 'schemas/model-sidecar.schema.json'
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def run():
+    subprocess.run(['cmd', '/c', RUN], capture_output=True, text=True, timeout=1200)
+    txt = open('build/g201-ai-arm.txt', encoding='utf-8', errors='replace').read()
+    red = sorted(set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M)))
+    msgs = [l.strip() for l in txt.splitlines() if 'not found under' in l][:2]
+    return red, msgs
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+good_card = open(CARD, 'rb').read()
+good_side = open(SIDE, 'rb').read()
+before = (sha(CARD), sha(SIDE))
+try:
+    log('=== CONTROL: the root files as they are')
+    red, _ = run()
+    log('red tests: %s' % (red or '(none)'))
+
+    os.remove(CARD)
+    log('=== ARM root model-card.schema.json removed')
+    red, msgs = run()
+    log('red tests: %s' % red)
+    log('messages: %s' % msgs)
+    open(CARD, 'wb').write(good_card)
+
+    os.remove(SIDE)
+    log('=== ARM root model-sidecar.schema.json removed')
+    red, msgs = run()
+    log('red tests: %s' % red)
+    log('messages: %s' % msgs)
+    open(SIDE, 'wb').write(good_side)
+
+    open(CARD, 'wb').write(b'{"type":"object"}')
+    log('=== ARM root model-card.schema.json replaced by a schema that accepts any object')
+    red, _ = run()
+    log('red tests: %s' % red)
+    open(CARD, 'wb').write(good_card)
+
+    open(SIDE, 'wb').write(b'{"type":"object"}')
+    log('=== ARM root model-sidecar.schema.json replaced by a schema that accepts any object')
+    red, _ = run()
+    log('red tests: %s' % red)
+finally:
+    open(CARD, 'wb').write(good_card)
+    open(SIDE, 'wb').write(good_side)
+    log('restored byte-identical: %s' % ((sha(CARD), sha(SIDE)) == before))
+log('=== DONE')
+out.close()

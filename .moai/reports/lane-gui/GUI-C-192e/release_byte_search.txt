@@ -1,0 +1,6 @@
+Release ImageProcTest.dll none
+Release ImageProcTest.pdb none
+Release ImageProcTest.xml none
+Debug ImageProcTest.dll ['ai-worker-silent', 'ai-worker-disabled', 'FaultInjectingBackend', '--automation-fault', 'SilentWorkerStatus', 'display-pipeline-after']
+Debug ImageProcTest.pdb ['FaultInjectingBackend']
+Debug ImageProcTest.xml ['ai-worker-silent', 'ai-worker-disabled', 'FaultInjectingBackend', '--automation-fault', 'SilentWorkerStatus', 'display-pipeline-after']

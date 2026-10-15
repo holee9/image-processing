@@ -9,10 +9,10 @@
 
 ---
 id: SPEC-XPE-P1A
-version: 1.3.2
+version: 1.3.6
 status: M2 Complete (SUP-01 + M2 algorithms implemented)
 created: 2026-04-16
-updated: 2026-10-02
+updated: 2026-10-03
 author: manager-spec (MoAI)
 priority: High
 issue_number: 16
@@ -24,6 +24,10 @@ development_mode: TDD
 
 | Version | Date       | Author  | Changes                  |
 |---------|------------|---------|--------------------------|
+| 1.3.6   | 2026-10-03 | xpe-leader | #245 사용자 결정(코멘트, 근거 표 `QA-A-233`) 반영: REQ-P1A-018·013 에 시그니처를 코드에 맞춘 정정의 승인 기록과 실제 선언 인용(결정 8·9). REQ-P1A-015 kVp 보간 표(결정 10), PRE-02 의 온도별 오프셋 맵·PREP 모델(결정 11), REQ-P1A-042 부위별 한계(결정 13)에 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 표시. 온도 보상 자체(`xpe_temp_compensate`, REQ-P1A-080)는 구현됨을 구분해 적음. 요구 삭제 없음. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`. |
+| 1.3.5   | 2026-10-03 | xpe-leader | #245: QA-A-228 정합 대조(`dev/preprocess` `f5b314ea`) 반영. 문구가 시험으로 고정된 코드와 어긋난 요구를 코드에 맞춰 고침 — REQ-P1A-003·004·005·010·011·013·016a·018·019·087·088·091·096·100·103, §4.6 표의 결함 보간 AVX2 행. §8 구현 상태 표 교체(010~013 은 2026-04-19 구현, "대기" 삭제) 및 작업에 걸리지 않던 REQ 18개 행 추가. 코드 결정이 남은 항목은 요구를 그대로 두고 상태 주석만 달았다 — REQ-P1A-014 세션 일치(QA-A-229 M3), 015 kVp 보간, 020 대상 범위, 041/042, 086 `isValid`. 요구 삭제 없음. |
+| 1.3.4   | 2026-10-03 | xpe-leader | #216: REQ-P1A-107~111 added from QA-A-223 drafts D1~D4 — `xpe_nonlinearity_correct` (107), `xpe_calib_generate_nonlin_lut` (108), `xpe_calib_load_nonlin_lut` (109), `xpe_calib_unload_nonlin_lut` (110, derived from code — no SRS text), `xpe_bpm_generate` (111). Leader decision: nonlinearity public functions are in this SPEC's scope; §1.3 PRE-08 annotated. Only behaviour the SRS describes or the header states was transcribed; every error condition was checked against `modules/preprocess/src` (D1 no-op condition and D4 merge rule corrected to the code). |
+| 1.3.3   | 2026-10-02 | xpe-leader | #233: gain-out-of-range classification added to REQ-P1A-011/015 (QA-A-211·211b), defect-stage union mask, cluster fill rule and non-finite entry rejection added to REQ-P1A-012 (QA-A-211b·214b), non-finite entry rejection added to REQ-P1A-013 (QA-A-215) and REQ-P1A-087 (QA-A-217), REQ-P1A-091 last sentence revised to the QA-A-216 §5 text, ghost failure behaviour recorded under REQ-P1A-032 (QA-A-217), XCal replace retry recorded under REQ-P1A-019 (QA-A-212b·212c). No new requirement number. Pre chain merge `3a991d7c`. |
 | 1.3.2   | 2026-10-02 | xpe-leader | #216: REQ-P1A-102~106 added (cached offset/gain/defect loaders, `xpe_preprocess_pipeline_ex` on the loaded calibration, version string) from QA-A-198 final text; §4.3c open-items note updated (`_ex` now described). Pre chain merge `af21f669`. |
 | 1.3.1   | 2026-09-10 | manager-docs (lead) | #117: converged the SPEC on the implemented global-calibration design (SPEC-XPE-P1A M2, commit e9b8ed4). REQ-P1A-010~012 restated with the `(input, output, metadata)` signatures reading the module-global calibration store; REQ-P1A-014~016 restated as single-path loaders that populate that store; REQ-P1A-016a added (`xpe_calib_state_load` contract); REQ-P1A-020 narrowed to "module not initialized"; REQ-P1A-020a added for `XPE_ERR_CALIB_NOT_LOADED`; REQ-P1A-003 annotated (loaders write the store, processing calls only read it). |
 | 1.3.0   | 2026-04-19 | manager-ddd (MoAI Team Mode) | M2 (REQ-P1A-010~013) implementation complete. Offset correction (AVX2 bit-identical), Gain correction (Reciprocal + FMA, 1 ULP parity), Defect correction (Bilinear + cluster fallback), Runtime detection (Hampel 5-sigma). 657 lines added across 7 files. Integration tests added. MX tags applied. |
@@ -44,6 +48,7 @@ xpe_preprocess.dll의 핵심 전처리 알고리즘 3종(SWU-1.1 Offset Correcti
 ### 1.2 In Scope
 
 - **PRE-02**: Offset/Dark Correction (SWU-1.1) -- 온도 보간, PREP-time 모델, saturating subtraction
+  - **상태: 온도별 오프셋 맵 선택·보간과 PREP-time dark map 모델 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** (`QA-A-233` 결정 11). 오프셋 보정은 맵 한 장만 쓰고 `XpeImageMetadata` 에 온도 필드가 없다. 구분: **온도 보상 자체는 구현됐다** — `xpe_temp_compensate`(REQ-P1A-080, `GoldenTempTest`)가 암전류 지수 모형으로 값을 보정한다. 미구현은 온도로 색인한 오프셋 맵(PRD REQ-OFF-003~005)과 PREP 모델뿐이다.
 - **PRE-03**: Gain/Flat-Field Correction (SWU-1.2) -- UINT16/FLOAT32 포맷 변환, reciprocal gain map, NaN/Inf validation
 - **PRE-06**: Defective Pixel Correction (SWU-1.3 baseline) -- Edge-aware bilinear interpolation, static BPM + runtime detection
 - **SUP-01**: Calibration Parameter Management -- XCal 포맷 로딩, SHA-256 무결성 검증, session matching, 만료 확인
@@ -53,7 +58,7 @@ xpe_preprocess.dll의 핵심 전처리 알고리즘 3종(SWU-1.1 Offset Correcti
 
 - **PRE-04/PRE-05**: Ghost/Lag Correction (SWU-1.4) -- 별도 SPEC으로 분리 (상태유지 handle 기반 아키텍처)
 - **PRE-07**: Temperature Compensation (SWU-1.6) -- 별도 SPEC, MCU 이관 가능 구조 필요
-- **PRE-08**: Nonlinearity Correction -- 별도 SPEC
+- **PRE-08**: Nonlinearity Correction -- 별도 SPEC *(2026-10-03 정정: 그 SPEC 은 만들어지지 않았고, 수출된 공개 함수의 요구는 이 SPEC 의 REQ-P1A-107~110 에 있다 — 리더 결정, #216, QA-A-223. §5.6 참조)*
 - **PRE-09**: Pixel Binning Correction -- 별도 SPEC, 형광투시/CBCT 전용
 - **PRE-06 ML/ViT AE**: 고급 defect correction -- Phase 2 Differentiator
 - GPU offload (CUDA/OpenCL) -- Phase 3 최적화 단계
@@ -114,7 +119,9 @@ The preprocess module **shall** export all functions with `extern "C"` linkage, 
 
 #### REQ-P1A-003: Thread Safety
 
-All processing functions **shall** be reentrant with independent caller-supplied buffers. No global mutable state shall be modified during processing calls.
+All processing functions **shall** be reentrant with independent caller-supplied buffers. No global mutable state other than the module alert queue shall be modified during processing calls.
+
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-2): 옛 문장은 *"No global mutable state shall be modified during processing calls."* 였다. 처리 함수는 알림 큐에 쓰므로(예: `XPE_WARN_DEFECT_UNION_OVER_LIMIT:`, `XPE_WARN_GAIN_PIXELS_UNCORRECTED:`) 예외를 문장에 적었다. 게인·검출·파이프라인의 동시 실행 시험은 아직 없다(`QA-A-228` §4).
 
 - **SRS**: SRS-THREAD-001
 - **Traceability**: All SWUs
@@ -122,15 +129,18 @@ All processing functions **shall** be reentrant with independent caller-supplied
 
 #### REQ-P1A-004: Error Code Consistency
 
-All exported functions **shall** return `XpeErrorCode` (`int32_t`) values from the defined error code set (XPE_OK through XPE_ERR_NETWORK_FAILED). No function shall return undocumented error codes.
+Every exported function that reports a status **shall** return `XpeErrorCode` (`int32_t`), drawn from XPE_OK through XPE_ERR_INVALID_CALIB_DATA. No function shall return undocumented error codes.
+
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-1): 옛 문장은 *"All exported functions shall return `XpeErrorCode` ... (XPE_OK through XPE_ERR_NETWORK_FAILED)"* 였다. 헤더에는 `const char*`·`void`·`bool`·`XpeCalibrationMode`·`uint32_t` 를 반환하는 함수가 있고, 코드는 -16·-17 도 반환한다. **이 요구를 단언하는 시험은 없다**(`QA-A-228` §4 — 48개 중 유일한 "단언 없음"). 내보내기 열거와 반환값 집합 소속을 단언하는 시험이 필요하다.
 
 - **SRS**: SRS-ERR-001
 - **Traceability**: All SWUs
 
 #### REQ-P1A-005: Input Validation
 
-Every exported function **shall** validate all pointer parameters for non-NULL and all dimension parameters for non-zero before accessing any data. Invalid inputs shall return `XPE_ERR_INVALID_INPUT` without modifying output parameters.
+Every exported function **shall** validate all pointer parameters for non-NULL and all dimension parameters for non-zero before accessing any data. Invalid inputs shall return `XPE_ERR_INVALID_INPUT` without modifying output parameters. Two pointer parameters are exempt by design: `xpe_preprocess_init(NULL)` initializes with the default configuration and returns `XPE_OK`, and the `metadata` argument of `xpe_defect_detect_runtime` may be NULL.
 
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-3): 옛 문장은 예외 없이 *"all pointer parameters"* 였다. 위 두 예외는 시험(`NullMetadataIsAccepted`, `init(NULL)` 경로)이 `XPE_OK` 로 고정한다. 0 치수 시험은 일부 함수에만 있고 "출력 불변" 단언은 드물다(`QA-A-228` §4).
 - **SRS**: SRS-SAFE-001
 - **Traceability**: All SWUs
 
@@ -142,7 +152,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 - **SRS**: SRS-CALIB-001
 - **Traceability**: PRE-02, SWU-1.1
-- **Algorithm**: `I_offset(x,y) = max(I_raw(x,y) - I_dark(x,y), 0)`  (saturating unsigned subtraction; `_mm256_subs_epu16` for AVX2)
+- **Algorithm**: `I_offset(x,y) = max(I_raw(x,y) - I_dark(x,y), 0)`, computed in float — the AVX2 path widens to float (`_mm256_cvtepi32_ps`), subtracts (`_mm256_sub_ps`), clamps at zero and rounds half up (`+0.5`) before narrowing; the test `RoundsHalfUpAfterFloatOffsetSubtraction` pins this. *(정정 2026-10-03, `#245` / `QA-A-228` C-16: 옛 줄은 `_mm256_subs_epu16` 정수 포화 뺄셈이라 적었으나 출하 경로는 float 경로다.)*
 - **Performance**: < 55ms for 3072x3072 UINT16 frame (scalar); < 15ms (AVX2)
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.1):
   - Residual dark mean: < 2 ADU (sigma < 3 ADU) across 15-40 C operating range
@@ -162,8 +172,15 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Flat-field residual: sigma/mean < 0.5% over 90% FOV
   - Scalar vs AVX2 parity: FLOAT32 tolerance 1 ULP (FMA rounding order difference documented in simd-parity-harness.md)
   - No NaN / Inf in output (REQ-P1A-033 must-pass cross-check)
-  - UINT16 output: no overflow/wraparound at pixel = 65535
+  - ~~UINT16 output: no overflow/wraparound at pixel = 65535~~ — **삭제 2026-10-03** (`#245` / `QA-A-228` C-17): 이 REQ 는 FLOAT32 결과만 쓴다고 정하므로 UINT16 출력 조건은 모순이었다.
 - **Research References**: Park & Sharp PMID 25795048 (2016); Wang 2013 Duo-SID heel effect; ACPSEM PMC11408574 (2024); Intel Intrinsics Guide (AVX2 FMA semantics)
+- **게인 범위 밖 화소의 분류** (추가 2026-10-02, `#233` / `QA-A-211`·`211b` — 문안은 `QA-A-211` 보고서 "요구사항 문안" 절의 REQ-P1A-011 보강안 그대로): A pixel whose gain value (scalar) or evaluated polynomial value is outside [0.1, 10.0] **shall** be corrected with gain 1.0 and reported to the defect correction stage of the same pipeline run. `xpe_gain_correct` **shall** return `XPE_ERR_CONFIG_INVALID` for a polynomial gain only when more than 5% of the frame's pixels evaluate outside the range. When binning is enabled and any pixel is classified, the pipeline **shall** return `XPE_ERR_CONFIG_INVALID`.
+  - 범위 상수는 `XPE_GAIN_APPLIED_MIN` / `XPE_GAIN_APPLIED_MAX` = 0.1 / 10(SRS-CALIB-FUNC-002)이고, 상한 비율은 `XPE_GAIN_DEFECT_MAX_FRACTION` = 0.05(SRS-CALIB-FUNC-003 의 결함 밀도 허용치)다. 스칼라 적재(`REQ-P1A-015`), 다항식 생성, 적용기가 같은 값을 쓴다. 비유한 게인도 범위 밖으로 센다.
+  - 다항식 생성(`xpe_calib_generate_gain_polynomial`): 측정 게인이 범위 밖인 화소는 적합 전에 분류해 계수 0 으로 두고 품질 수치에서 뺀다. 모든 차수를 시도하고도 최소제곱 직선이 범위를 벗어나는 화소도 분류한다. 허용 오차를 넘는 적합은 분류가 아니라 이전처럼 거부한다. 분류가 5% 를 넘으면 `XPE_ERR_INVALID_CALIB_DATA` 이고 품질 기록과 파일을 남기지 않는다.
+  - 다항식 적용: 프레임마다 범위 밖 화소 수를 알림 `XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT:` 로 알린다(전체 문구: `N pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are marked defective (gain 1.0) and listed for the defect correction stage`). 5% 초과면 `XPE_WARN_GAIN_PIXELS_OVER_LIMIT:`(오류) 와 함께 `XPE_ERR_CONFIG_INVALID`. 파이프라인 밖에서 `xpe_gain_correct` 를 단독으로 부르면 결함 단계가 따르지 않으므로 `XPE_WARN_GAIN_PIXELS_UNCORRECTED:` 경고가 난다.
+  - 비닝 거부(`XPE_WARN_GAIN_PIXELS_WITH_BINNING:`, 오류): 게인 단계가 돌 때 분류 화소가 있으면 거부한다. 게인 단계를 우회해도(`bypassGain`) 결함 단계가 돌고 적재 때의 분류 목록이 비어 있지 않으면 같은 알림과 함께 거부한다(`QA-A-211b`). 게인·결함 둘 다 우회하면 목록을 읽는 단계가 없어 거부하지 않는다. 이유: 비닝이 분류 화소의 보정 안 된 값을 결함 보정보다 먼저 이웃에 섞는다.
+  - **R² 의 한계** (`QA-A-211b` 문안 그대로): The fit_r_squared a polynomial file records is computed over the pixels that were fitted; the pixels classified defective by the gain calibration are not part of it and their number is not recorded in `XpeCalibQualityMeta` (it is reported once, in the `XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT` alert at generation), so a reported R² can be better than the R² of the whole frame.
+  - **Verification**: Test (`test_gain_defect_classify.cpp`, `test_gain_poly_classify.cpp`, `test_defect_fill_interior.cpp` 의 게인 우회 비닝 시험)
 
 #### REQ-P1A-012: Defect Correction Execution
 
@@ -175,6 +192,12 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   - Isolated single-pixel defect: unweighted mean of the valid 4-neighborhood (N/S/E/W); if all four are defective, nearest valid pixels in Chebyshev rings r=1..3 (`helpers.cpp:18-53`). Corrected 2026-09-10 (#125): the earlier "weighted by inverse gradient magnitude" clause described no implemented weighting
   - 2+ adjacent defects (cluster, 4-connectivity): median of valid pixels in the 3×3 neighborhood, centre and other defects excluded (`defect_correct.cpp:72-103`)
   - Edge/corner defects: use only in-bounds neighbors (no out-of-bounds memory access, REQ-P1A-005)
+  - **덩어리 안쪽 채움** (추가 2026-10-02, `#233` / `QA-A-211b`): 덩어리 화소의 3×3 에 정상 화소가 하나도 없으면, 그 화소에서 체비쇼프 거리 2~16 의 고리 가운데 정상 화소가 있는 **가장 가까운 고리**의 정상 화소 값의 중앙값으로 채운다(짝수 개면 위쪽 중앙값, `values[size/2]`). 반경 16(`kFillMaxRadius`) 안에 정상 화소가 없으면 입력값을 그대로 두고 프레임당 한 번 `XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR:`(경고) 를 올린다 — **0 은 어떤 경로로도 쓰지 않는다**. 이전에는 이 화소들을 `0.0f` 로 채웠다(CalData_6 `BPMap.map` 에서 마스크 화소의 66.7%). 읽는 것은 마스크가 아닌 화소뿐이라 아래 제자리 계약은 그대로다. 단독 결함 경로(4-이웃, 반경 1~3 고리)는 바뀌지 않았다. 반경 16 은 CalData_6 에서 잰 최대 거리 10 에 여유를 둔 값이라 보장이 아니라 정책이다
+- **입력 마스크** (추가 2026-10-02, `#233` / `QA-A-211` — 문안은 `QA-A-211` 보고서의 REQ-P1A-012 보강안 그대로): The defect correction input mask **shall** be the union of the loaded defect map and the pixels classified defective by the gain stage. With the defect stage bypassed, classified pixels carry the uncorrected value and the pipeline **shall** warn (`XPE_WARN_GAIN_PIXELS_UNCORRECTED`).
+  - 합집합은 결함 맵 ∪ 적재 때 분류 목록(`REQ-P1A-015`) ∪ 다항식 적용의 프레임 목록(`REQ-P1A-011`)이다. 목록이 비면 이전 경로 그대로다.
+  - 합집합이 프레임의 5% 를 넘으면 프레임당 한 번 `XPE_WARN_DEFECT_UNION_OVER_LIMIT:`(경고) 를 올리고 보정은 계속한다(SRS-CALIB-FUNC-003 보강안: "A frame whose defect map together with the pixels classified defective by the gain calibration exceeds 5% shall raise a warning and still be corrected."). 새 거부 경로는 없다.
+- **비유한 입력 거부** (추가 2026-10-02, `#233` / `QA-A-214b`): **If** any pixel of the input frame is NaN or infinite (masked pixels included), the module **shall** return `XPE_ERR_INVALID_INPUT` before writing any pixel. 출력 버퍼는 바이트 그대로이고, 제자리 호출이면 입력도 그대로다. 알림(오류) `XPE_WARN_DEFECT_INPUT_NOT_FINITE:` 가 개수와 첫 화소 위치를 알린다. 이 검사는 기존 인자 검사(널·형식·크기·겹침·초기화·맵 차원) 뒤, 쓰기 앞에 있다 — 기존 오류가 같은 우선순위로 먼저 나온다. 유한 프레임의 출력은 바뀌지 않았다(9개 프레임 해시 일치, `QA-A-214b`). **Verification**: Test (`test_defect_input_finite.cpp`)
+- **Verification (덩어리 채움·입력 마스크)**: Test (`test_defect_fill_interior.cpp`, `test_gain_defect_classify.cpp`)
 - **Buffer aliasing contract** (신설 2026-09-27, `#209` / QA-A-146): `input->data` 와 `output->data` 는 **완전히 같거나 완전히 분리**돼야 합니다.
   - `input->data == output->data` (in-place) — **허용**. 결과는 분리 버퍼 호출과 **비트 단위로 동일**합니다
   - 두 범위가 겹치지 않음 — 허용 (통상 경로)
@@ -264,7 +287,10 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-013: Runtime Defect Detection
 
-**When** `xpe_defect_detect_runtime(img, defectMapOut, configJsonOrNull)` is called, the module **shall** analyze the input image to identify transient defect pixels and write a boolean defect map to `defectMapOut`.
+**When** `xpe_defect_detect_runtime(image, metadata, defect_map_output)` is called, the module **shall** analyze the input image to identify transient defect pixels and write a boolean defect map to `defect_map_output`.
+
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-15): 옛 시그니처 `(img, defectMapOut, configJsonOrNull)` 은 헤더(`preprocess_api.h` 의 `xpe_defect_detect_runtime`)와 달랐다. 이 진입점은 설정 JSON 을 받지 않으므로 아래 Algorithm 의 `hampel_threshold` 단계를 삭제했다. 아래 본문의 `defectMapOut` 은 `defect_map_output` 으로 읽는다.
+- **승인 기록 (2026-10-03, `QA-A-233` 결정 9, 사용자 결정 #245 코멘트)**: 문구를 코드 시그니처에 맞추는 쪽(b)으로 확정. 실제 선언(`modules/preprocess/include/xpe/preprocess_api.h`): `XPE_API XpeErrorCode xpe_defect_detect_runtime(const XpeImageBuffer* image, const XpeImageMetadata* metadata, XpeImageBuffer* defect_map_output);` — 설정 인자는 없고 임계는 프레임 통계(Hampel 5-sigma)에서 나오며 `metadata` 는 읽지 않는다(QA-A-232 M2 시험). 변경 기록: `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
 
 - **SRS**: SRS-CALIB-005
 - **Traceability**: PRE-06, SWU-1.3
@@ -273,7 +299,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
   2. Compute local MAD (median absolute deviation): `MAD(x,y) = median(|neighbor - m|)`
   3. Modified z-score: `z = 0.6745 * (p(x,y) - m(x,y)) / MAD(x,y)` (0.6745 is the scale factor for Gaussian equivalence)
   4. `defectMapOut[x,y] = 1` if `|z| > lambda` (default `lambda = 5.0`), else 0
-  5. `lambda` is configurable via `configJsonOrNull` key `"hampel_threshold"` (range 3.0 to 10.0, default 5.0)
+  5. ~~`lambda` is configurable via `configJsonOrNull` key `"hampel_threshold"` (range 3.0 to 10.0, default 5.0)~~ — **삭제 2026-10-03** (`#245` / `QA-A-228` C-15): 이 진입점은 설정을 받지 않고, 코드에 `hampel_threshold` 가 0건이다.
 - **Rationale**: Median + MAD is robust to clustered outliers (unlike mean + stddev which gets corrupted when defects cluster). 0.6745 scale factor makes z comparable to standard Gaussian z-score.
 - **Pixel Accuracy** (research.md v2.0.0 Section 8.3):
   - True-positive rate (TPR) on injected **10-sigma** transients: >= 99.9%
@@ -286,6 +312,10 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
       **TPR@5-sigma = 0.5088**. No sigma-estimation improvement can reach 0.999 there.
     - Informative, same measurement, shipping algorithm: TPR **0.5536** @5-sigma,
       **0.71** @6-sigma, **0.96** @8-sigma, **0.9865** @10-sigma.
+    - **Scope of the 0.9865 figure (정정 2026-10-03, `#245` / `QA-A-228` C-15):** 0.9865 is the
+      TPR on **striped (structured) frames**. On uniform frames the shipping algorithm measures
+      TPR **1.000000** @10-sigma (`test_runtime_detection_rates.cpp:317-329`). The shortfall below
+      is therefore a striped-frame shortfall, and the test fixes it as a known shortfall.
     - **The shipping algorithm does NOT meet the amended requirement either** (0.9865 < 0.999).
       Corrected 2026-09-29 by `QA-A-162`. The 0.9990 quoted when this amendment was first
       written came from `#143`'s issue body, which predates `QA-A-43`'s global sigma floor.
@@ -560,11 +590,13 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 >
 > **3. This optimisation is not protected against its own deletion.** Remove the tail run and the map is unchanged, the guard page does not fire, and the gate cannot see the 2.7% difference against an 8% sample spread. Instrumenting the product code with a scalar-pixel counter was considered and **declined**: it would either sit in a hot path or live only in a Debug build that CI never compiles (the same dead end as the assertion in QA-A-64). The gap is recorded rather than papered over — a performance change whose only evidence is a number below the noise floor has no mechanical guard, and saying so is more useful than a guard that does not guard.
 - **Research References**: Pearson 2002 (Hampel identifier classic); Schirrmacher et al. 2024 (FixPix detection stage); Jeon et al. PMC7930811 (2021 CNN for clustered defects — out of scope for REQ-P1A-013 runtime path)
+- **비유한 입력 거부** (추가 2026-10-02, `#233` / `QA-A-215`): **If** any pixel of `img` is NaN or infinite, the module **shall** return `XPE_ERR_INVALID_INPUT` without running the detection and without writing `defectMapOut`. 알림(오류) `XPE_WARN_RUNTIME_DETECT_INPUT_NOT_FINITE:` 가 개수와 첫 화소 위치를 알린다. 검사 위치는 버퍼 검증 뒤, 파라미터 구성·맵 쓰기 앞이다(`XPE_ERR_BUFFER_TOO_SMALL` 등이 먼저 나온다). 이전에는 맵을 먼저 비우고 썼고, NaN 화소 하나는 모든 비교가 거짓이라 플래그 0("정상")으로 나갔다. 유한 프레임의 결과는 바뀌지 않았다(`QA-A-215` 11개 조합 해시 일치). **Verification**: Test (`test_nonfinite_inputs.cpp`)
 
 #### REQ-P1A-014: Calibration File Loading (Offset)
 
 **When** `xpe_calib_load_offset(filepath)` is called with a valid XCal file path, the module **shall** parse the XCal header, validate SHA-256 integrity, check session matching and expiry, and load the offset map data into the module-global calibration store (SWU-1.5 `LoadedCalibration`) under `g_calib_mutex`. The function takes no output-buffer parameter; the loaded map is consumed by `xpe_offset_correct` and by the pipeline entry points. The LRU-cached variant `xpe_calib_load_offset_cached(filePath, offsetMapOut)` is the form that returns a map to the caller.
 
+- **상태 (2026-10-03, `#245` / `QA-A-228` D1): 세션 일치 검사 — 구현 예정 (QA-A-229 M3, #245).** 요구 문장은 그대로 둔다. 현재 코드는 `session_id` 를 저장·복사만 하고 비교하는 곳이 없으며(비교 0건, 대조군 8건), 공개 헤더는 `XPE_ERR_CONFIG_INVALID if session mismatch` 를 약속한다. 이를 시험하던 `LoadOffset_SessionMismatch` 는 빌드에서 빠진 파일에 있고 단언이 항상 참이었다.
 - **SRS**: SRS-CALIB-010
 - **Traceability**: SUP-01
 
@@ -572,6 +604,12 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 **When** `xpe_calib_load_gain(filepath)` is called with a valid XCal file path, the module **shall** parse, validate, and load the gain map data (with its kVp interpolation table) into the module-global calibration store under `g_calib_mutex`. No output-buffer parameter; the caller-returning form is `xpe_calib_load_gain_cached(filePath, gainMapOut)`.
 
+- **게인 범위 밖 화소** (추가 2026-10-02, `#233` / `QA-A-211`·`211b` — 원문은 `QA-A-211` 보고서의 SRS-CALIB-FUNC-002 보강안): A pixel of a scalar gain map whose gain is outside [0.1, 10.0] (a failed pixel, or the low-sensitivity edge band of some detectors) **shall not** cause the load to fail: it **shall** be classified as defective, gain 1.0 **shall** be applied, and the defect correction stage **shall** treat it as part of the defect map (`REQ-P1A-012`). The number of classified pixels **shall** be reported through the alert queue. A classified fraction above 5% **shall** trigger `XPE_ERR_INVALID_CALIB_DATA`.
+  - 분류 알림(경고) 전체 문구는 `QA-A-211b` 가 고친 것이다 — 아직 하지 않은 보정을 끝난 것처럼 말하지 않는다: `XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: N of TOTAL pixel(s) (P%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (K in the outermost 64-pixel band; first: I). Limit: 5.0%`
+  - 상한 초과 알림(오류): `XPE_WARN_GAIN_PIXELS_OVER_LIMIT:` 로 시작하고 "the calibration was not loaded" 로 끝난다. 이때 저장소는 바뀌지 않는다.
+  - 분류 목록은 맵과 함께 저장소에 들어가고 맵과 함께 교체된다. 캐시 적중(`REQ-P1A-103`)은 항목에 보관한 같은 목록을 설치한다.
+  - **변화**: 이전에 범위 밖 화소 때문에 `XPE_ERR_INVALID_CALIB_DATA` 를 돌려주던 파일이, 범위 밖 비율이 5% 이하이면 이제 적재된다.
+- **상태 (2026-10-03, `#245` / `QA-A-228` D4·C-7): kVp 보간 표 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** (`QA-A-233` 결정 10). 요구 문장은 그대로 둔다. 코드에 kVp 보간 표가 없고(검색 0건), 헤더(`preprocess_api.h`)의 "multi-SID interpolation" 문구도 같은 상태다. 구현 여부는 보간 표를 담을 XCal 형식이 정해진 뒤 기능별로 따로 정한다.
 - **SRS**: SRS-CALIB-011
 - **Traceability**: SUP-01
 
@@ -584,8 +622,9 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-016a: Calibration State Load Contract
 
-**When** `xpe_calib_state_load(state, calibPath)` is called with a non-NULL zero-initialized `state` and a valid directory path, the module **shall** compose `offset.xcal`, `gain.xcal` and `defect.xcal` under `calibPath`, delegate to the three single-path loaders — so that the maps land in the **module-global calibration store, not in the caller's struct** — and set only the three `offsetLoaded` / `gainLoaded` / `defectLoaded` flags on `XpeCalibrationState`. The `offsetMap` / `gainMap` / `defectMap` buffer fields of the struct **are not required to be filled**, and callers **shall not** read them as loaded data. A missing file leaves the corresponding flag `false` and the call still returns `XPE_OK`; a NULL `state` or `calibPath` returns `XPE_ERR_INVALID_INPUT`. Correspondingly, `xpe_preprocess_pipeline_ex(img, meta, calibState, ...)` **shall** take offset and gain from the global store and consult `calibState` only for a defect map, accepting `NULL` for `calibState`.
+**When** `xpe_calib_state_load(state, calibPath)` is called with a non-NULL zero-initialized `state` and a valid directory path, the module **shall** compose `offset.xcal`, `gain.xcal` and `defect.xcal` under `calibPath`, delegate to the three single-path loaders — so that the maps land in the **module-global calibration store, not in the caller's struct** — and set only the three `offsetLoaded` / `gainLoaded` / `defectLoaded` flags on `XpeCalibrationState`. The `offsetMap` / `gainMap` / `defectMap` buffer fields of the struct **are not required to be filled**, and callers **shall not** read them as loaded data. A missing file leaves the corresponding flag `false` and the call still returns `XPE_OK`; a NULL `state` or `calibPath` returns `XPE_ERR_INVALID_INPUT`. Correspondingly, `xpe_preprocess_pipeline_ex(img, meta, calibState, ...)` **shall** take all calibration maps from the global store and **shall not** read `calibState` (the argument is kept for source compatibility), accepting `NULL` for `calibState` — as stated in REQ-P1A-105.
 
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-6): 옛 마지막 문장은 *"take offset and gain from the global store and consult `calibState` only for a defect map"* 였다. 이는 REQ-P1A-105("`calibState` 를 읽지 않는다")와 모순됐고, 코드는 105 쪽이다(`pipeline.cpp` 의 `(void)calibState`).
 - **SRS**: SRS-CALIB-010, SRS-CALIB-011, SRS-CALIB-012
 - **Traceability**: SUP-01, SWU-1.5, SWU-1.11
 
@@ -598,15 +637,23 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-018: Calibration Expiry Check
 
-**When** `xpe_calib_check_expiry(filePath, expiryEpochMsOut)` is called, the module **shall** read the embedded expiry timestamp and return `XPE_ERR_CALIBRATION_EXPIRED` if the timestamp is in the past.
+**When** `xpe_calib_check_expiry(filepath, is_expired, remaining_days)` is called, the module **shall** read the embedded expiry timestamp, report through `is_expired` and `remaining_days` (an expiry equal to now counts as expired), and return `XPE_OK`. `XPE_ERR_CALIBRATION_EXPIRED` is returned by the loaders, not by this function.
 
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-4·D2): 옛 문장은 시그니처 `(filePath, expiryEpochMsOut)` 과 *"return `XPE_ERR_CALIBRATION_EXPIRED` if the timestamp is in the past"* 였다. 코드(`xpe_calib_check_expiry.cpp`)는 `(filepath, bool*, int32_t*)` 이고 만료 시에도 `XPE_OK` 이며, 시험 `CheckExpiryTest.*` 가 `is_expired`·`remaining_days` 를 단언해 그 동작을 고정한다.
+- **승인 기록 (2026-10-03, `QA-A-233` 결정 8, 사용자 결정 #245 코멘트)**: 문구를 코드에 맞추는 쪽(b)으로 확정. 실제 선언(`modules/preprocess/include/xpe/preprocess_api.h`): `XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath, bool* is_expired, int32_t* remaining_days);` — 만료돼도 `XPE_OK` 를 돌려주고 `*is_expired = true` 로 알린다. C# 호출처 세 곳(`XpePreprocessReadinessProbe.cs`, `NativePreprocessPreviewService.cs`, `XpePreprocessNative.cs`)이 이 모양에 의존한다. 변경 기록: `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.
+- **주의**: 만료 경계가 함수마다 다르다 — `check_expiry` 는 `remaining_ms <= 0` 을 만료로, XCal 읽기(`xcal_reader`)는 `now > expiry` 를 만료로 본다. 경계 시각에서 두 판정이 갈린다.
 - **SRS**: SRS-CALIB-030, SRS-SAFE-010
 - **Traceability**: SUP-01
 
 #### REQ-P1A-019: Calibration Save
 
-**When** `xpe_calib_save(filePath, calibType, expiryEpochMs)` is called, the module **shall** write the calibration map of `calibType` (`"offset"` / `"gain"` / `"defect"`) currently held in the global calibration store (decision #117) to `filePath` in XCal format with SHA-256 integrity and the embedded expiry timestamp `expiryEpochMs` (Unix ms; `0` = never expires). `XPE_ERR_CALIB_NOT_LOADED` if that map is not loaded. *(Decision #132, 2026-09-10: the third parameter restores the expiry embedding lost when the signature moved to the global-store form; the implementation before this decision always wrote 0.)*
+**When** `xpe_calib_save(filePath, calibType, expiryEpochMs)` is called, the module **shall** write the calibration map of `calibType` (`"offset"` / `"gain"` / `"defect"`) currently held in the global calibration store (decision #117) to `filePath` in XCal format with SHA-256 integrity and the embedded expiry timestamp `expiryEpochMs` (Unix ms; `0` = never expires). `XPE_ERR_INVALID_INPUT` if that map is not loaded. *(정정 2026-10-03, `#245` / `QA-A-228` C-5·D3: 옛 문장은 `XPE_ERR_CALIB_NOT_LOADED` 였으나 코드(`xpe_calib_save.cpp` 의 offset·gain·defect 세 갈래)는 `XPE_ERR_INVALID_INPUT` 을 돌려준다. 이를 시험하는 `SaveOffset_WhenNotLoaded_ReturnsInvalidInput` 은 현재 `GTEST_SKIP` 이라 이 코드는 시험으로 고정돼 있지 않고, gain·defect 의 만료 기록 시험도 없다. 헤더 주석은 `XPE_ERR_NOT_INITIALIZED` 도 적는다.)* *(Decision #132, 2026-09-10: the third parameter restores the expiry embedding lost when the signature moved to the global-store form; the implementation before this decision always wrote 0.)*
 
+- **XCal 파일 교체** (추가 2026-10-02, `#233` / `QA-A-212b`·`212c`): XCal 쓰기는 `<path>.tmp` 에 쓴 뒤 목적지를 교체한다. 이 교체는 저장(`xpe_calib_save`)뿐 아니라 게인·다항식 게인·비선형 LUT·오프셋 생성이 모두 지나는 한 경로다.
+  - Windows 에서 교체가 `ERROR_ACCESS_DENIED`(5) 또는 `ERROR_SHARING_VIOLATION`(32)로 실패하면 다시 시도한다. 쉬는 시간은 1 ms 에서 두 배씩 늘려 25 ms 에서 멈추고, 쉰 시간의 합이 100 ms(`kReplaceRetryBudgetMs`)에 닿으면 그만둔다. 그 밖의 오류는 재시도하지 않는다. 비 Windows 경로는 바뀌지 않았다.
+  - 재시도 끝에 성공하면 알림이 없다. 끝내 실패하면 `XPE_ERR_IO_FAILED` 를 돌려주고 이전 파일은 그대로 두며, 임시 파일 삭제를 한 번 시도한 뒤 결과에 따라 `XPE_WARN_XCAL_REPLACE_FAILED:`(오류) 알림의 맺음말이 갈린다. 지워졌으면 "the temporary file was removed", 못 지웠으면 남은 `.tmp` 경로와 삭제의 Windows 오류를 알리고 "removed" 라고 하지 않는다(다른 프로세스가 임시 파일을 삭제 공유 없이 열고 있으면 32 로 실측). 남은 `.tmp` 는 다음 저장이 덮어쓴다.
+  - 알림 전체 문구는 `api-spec.md` §6.21 에 있다.
+  - **Verification**: Test (`test_xcal_replace_retry.cpp`, Windows 전용). "5·32 가 아닌 오류는 즉시 실패" 는 시험이 만들 수 있는 실패가 5·32 뿐이라 시험으로 가두지 못한다(`QA-A-212b` 보고서의 Gaps).
 - **SRS**: SRS-CALIB-021
 - **Traceability**: SUP-01
 
@@ -616,6 +663,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 **While** the module is not initialized (`xpe_preprocess_init()` not called or after `xpe_preprocess_shutdown()`), all processing functions **shall** return `XPE_ERR_NOT_INITIALIZED` without modifying any output parameters. `XPE_ERR_NOT_INITIALIZED` means exactly that — the module was never initialized or has been shut down. It **shall not** be used to report loaded-calibration state.
 
+- **상태 (2026-10-03, `#245` / `QA-A-228` C-18): 대상 범위 — 설계 결정 대기 (#245).** 요구 문장은 그대로 둔다. 현재 온도·고스트·비닝 함수는 초기화 없이 `XPE_OK` 를 돌려주고 시험이 그것을 기대한다. 대상을 offset·gain·defect 보정과 파이프라인으로 좁힐지, 나머지 함수에도 가드를 넣을지는 #245 에서 정한다.
 - **SRS**: SRS-INIT-003
 - **Traceability**: All SWUs
 
@@ -689,21 +737,25 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 **If** `xpe_ghost_correct`, `xpe_ghost_reset`, or `xpe_ghost_destroy` receives a handle that was never created or has been destroyed, the module **shall** return `XPE_ERR_INVALID_INPUT` (and `xpe_ghost_destroy` **shall** return without effect) rather than dereference it.
 
 - **측정된 계약**: `GhostCorrectorHandle::isValid(handle)` 가 **세 지점 모두**에서 호출됩니다 — `:202`·`:249`·`:262` (정의 `xpe_preprocess_internal.h:65`)
+- **상태 (2026-10-03, `#245` / `QA-A-228` C-14·D5): "역참조하지 않고" — 설계 결정 대기 (#245).** 요구 문장은 그대로 둔다. `isValid` 는 핸들의 `magic` 을 읽으므로 **파괴된 비-NULL 포인터에서는 역참조가 일어난다**(미정의 동작). NULL 만 보호한다고 문구를 바꿀지, 핸들 레지스트리를 둘지는 #245 에서 정한다. 파괴된/쓰레기 비-NULL 핸들 시험은 없고, `Boundary.GhostUseAfterDestroyReturnsError` 는 이름과 달리 `reset(nullptr)` 만 시험한다.
 - **조사 기록**: 리더가 `magic` 을 `grep` 했을 때 `:264`(쓰기) 하나만 보여 *"쓰기만 되고 읽히지 않는다 = use-after-free"* 로 갈 뻔했습니다. 읽는 쪽은 헤더의 `isValid` 안에 있었습니다. **한 파일 grep 으로 부재를 단정하면 없는 결함을 만듭니다**
 - **Verification**: Test
 
 #### REQ-P1A-087: Ghost Correction Execution
 
-**When** `xpe_ghost_correct(handle, img, meta)` is called with a valid handle and a **FLOAT32** buffer, the module **shall** subtract the lag contribution estimated from the handle's frame history, in place.
+**When** `xpe_ghost_correct(handle, img, meta)` is called with a valid handle whose four correction parameters (`alpha1`, `tau1`, `alpha2`, `tau2`) are all set and a **FLOAT32** buffer, the module **shall** subtract the lag contribution estimated from the handle's frame history, in place. **When** the handle is not calibrated, the module **shall**, after the format check, return `XPE_OK` without modifying any pixel.
+
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-9·D7): 옛 문장은 미보정 핸들을 구별하지 않았다. `QA-A-226` 이후 미보정 핸들은 형식 검사 뒤 화소를 건드리지 않고 통과한다(`ghost_correct.cpp`). 이 갱신은 그때 SPEC 에 반영되지 않았다.
 
 - **측정된 계약** (`:209`): **FLOAT32 전용** — `REQ-P1A-080`(온도, UINT16)과 형식이 다릅니다. 파이프라인 단계 순서상 게인 보정 이후이기 때문입니다
-- **Verification**: Test
+- **비유한 입력 거부** (추가 2026-10-02, `#233` / `QA-A-216`·`217`): **If** any pixel of `img` is NaN or infinite, the module **shall** return `XPE_ERR_INVALID_INPUT` before writing any pixel, leaving the buffer and the handle's history and exposure state unchanged. 알림(오류) `XPE_WARN_GHOST_INPUT_NOT_FINITE:` 가 개수와 첫 화소 위치를 알린다. 검사는 핸들·크기·형식 검사 뒤에 있어, NULL 핸들·잘못된 형식은 알림 없이 먼저 `XPE_ERR_INVALID_INPUT` 이다. 이전 동작은 `XPE_ERR_PROCESSING_FAILED` 에 출력 일부를 쓴 채였다(`REQ-P1A-032` 위반, `QA-A-216` 실측). 어느 요구도 "평균에서 비유한을 건너뛴다" 를 정하지 않았다(`QA-A-216` §1 검색). 실패 경로 전체의 출력·이력 계약은 `REQ-P1A-032` 아래에 있다
+- **Verification**: Test (`test_ghost_input_finite.cpp`)
 
 #### REQ-P1A-088: Ghost Corrector Reset
 
 **When** `xpe_ghost_reset(handle)` is called with a valid handle, the module **shall** clear the accumulated frame history and the exposure state, so that the next `xpe_ghost_correct` behaves as if the handle had just been created.
 
-- **측정된 계약** (`ghost_correct.cpp` `xpe_ghost_reset`): `hist1`·`hist2` 를 `0.0f` 로 채우고, `lastAcqTimeSec = 0.0` · `lastFrameMean = 0.0f` · `exposureWeight = 1.0` 로 되돌립니다. **이력 두 개만이 아니라 노출 상태 셋도 함께** 초기화합니다
+- **측정된 계약** (`ghost_correct.cpp` `xpe_ghost_reset`): `hist1`·`hist2` 를 `0.0f` 로 채운다. 시각은 쓰지 않는다 — tau 는 프레임 단위다. *(정정 2026-10-03, `#245` / `QA-A-228` C-10·D7: 옛 문장은 `lastAcqTimeSec = 0.0` · `lastFrameMean = 0.0f` · `exposureWeight = 1.0` 도 되돌린다고 적었으나 `lastAcqTimeSec` 필드는 `QA-A-226b` 에서 삭제됐다. 남은 노출 상태 필드를 초기화한다는 단언 시험은 없다(`QA-A-228` §4).)*
 - **왜 별도 요구인가**: `REQ-P1A-086`(핸들 유효성 가드)이 `reset` 을 **이름으로 부르지만** *"이력을 비운다"* 는 말하지 않습니다. 유효성과 의미론은 다른 계약이고, `086` 에 끼워 넣으면 그 요구가 두 가지를 말하게 됩니다
 - **`#211` 경위**: 옛 `REQ-P1A-034` 를 인용하던 4곳이 실제로는 **이 동작**을 서술하고 있었습니다(옛 `032` 의 내용 — 번호가 밀린 채). 레인(`QA-A-150`)이 *"`096` 으로 옮기면 정반대가 된다"* 며 옮기지 않고 보고했고, 그 판단이 이 요구를 만들었습니다
 - **Verification**: Test (`test_ghost_correct.cpp`)
@@ -717,10 +769,12 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-091: Binning Mode Guard
 
-**While** `binningMode == 1`, the module **shall** return `XPE_OK` without modifying the image. **If** `binningMode` is not `1`, `2`, or `4`, it **shall** return `XPE_ERR_CONFIG_INVALID`. **If** any pixel is non-finite during normalization, it **shall** return `XPE_ERR_PROCESSING_FAILED`.
+**While** `binningMode == 1`, the module **shall** return `XPE_OK` without modifying the image. **If** `binningMode` is not `1`, `2`, or `4`, it **shall** return `XPE_ERR_CONFIG_INVALID`. If any pixel of the input is non-finite, it shall return XPE_ERR_INVALID_INPUT before writing any pixel, leaving an `XPE_WARN_BINNING_INPUT_NOT_FINITE:` alert.
 
-- **측정된 계약** (`:25`, `:30-31`, `:39`): 세 갈래 모두 실재합니다
-- **Verification**: Test
+- **정정 확인 2026-10-03** (`#245` / `QA-A-228` C-12·D6): 대조 때 이 요구의 비유한 갈래가 `XPE_ERR_PROCESSING_FAILED` 로 남아 있다고 보고됐으나, 본문은 1.3.3(`#233`)에서 이미 `XPE_ERR_INVALID_INPUT` 으로 고쳐져 있었다. 알림 문구만 요구 문장에 더했다(`binning_correct.cpp`).
+- **측정된 계약**: 세 갈래 모두 실재합니다 — `binningMode == 1` 은 무동작, 1·2·4 밖은 `XPE_ERR_CONFIG_INVALID`, 그 뒤 `binning_correct.cpp` 의 사전 검사(`xpe_find_nonfinite`)가 쓰기 전에 거부하고 알림(오류) `XPE_WARN_BINNING_INPUT_NOT_FINITE:` 를 올립니다. 버퍼는 바이트 그대로입니다
+- **개정 2026-10-02** (`#233` / `QA-A-216` §5 항목 2 문안 그대로): 옛 마지막 문장은 *"If any pixel is non-finite during normalization, it shall return `XPE_ERR_PROCESSING_FAILED`"* 였습니다. `QA-A-215`(`76085cd7`)가 코드를 입력 검사 + `XPE_ERR_INVALID_INPUT`, 쓰기 전 거부로 바꿨고(이전에는 앞쪽 화소를 이미 나눈 채 `-3`), SPEC 이 코드와 어긋나 있었습니다. 유한 입력에 1/4·1/16 을 곱해 비유한이 나올 수는 없어, 입력 검사가 옛 사후 검사와 같은 프레임을 거릅니다(`QA-A-215` §1)
+- **Verification**: Test (`test_nonfinite_inputs.cpp`)
 
 > **이 절의 미검증**
 >
@@ -746,8 +800,9 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-096: Pipeline Stage Flags
 
-**While** a stage completes successfully, the pipeline **shall** set that stage's bit in `XpeImageMetadata.flags`: `READOUT_VALIDATED` · `TEMP_COMPENSATED` · `OFFSET_CORRECTED` · `NONLINEARITY_CORRECTED` · `GAIN_CORRECTED` · `BINNING_CORRECTED` · `DEFECT_CORRECTED` · `GHOST_CORRECTED`.
+**While** a stage completes successfully, the pipeline **shall** set that stage's bit in `XpeImageMetadata.flags`: `READOUT_VALIDATED` · `TEMP_COMPENSATED` · `OFFSET_CORRECTED` · `NONLINEARITY_CORRECTED` · `GAIN_CORRECTED` · `BINNING_CORRECTED` · `DEFECT_CORRECTED` · `GHOST_CORRECTED`. The ghost stage's flag **shall** be set only when the handle is calibrated, and the binning stage's flag only when `binningMode > 1`.
 
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-11·D7): 옛 문장은 단계가 성공하면 언제나 플래그를 켠다고 읽혔다. 미보정 고스트 핸들(`QA-A-226`)과 `binningMode == 1` 은 단계가 성공해도 플래그를 켜지 않는다(`pipeline.cpp` 의 비닝·고스트 단계).
 - **측정된 계약**: 플래그 설정은 **파이프라인만** 합니다. 개별 보정 함수를 직접 부르면 설정되지 않습니다 — `REQ-P1A-082` 가 온도에 대해 같은 것을 말합니다
 - 비선형만 조건이 하나 더 있습니다 — `meta && applied` (`:181`). 적용되지 않으면 플래그가 서지 않습니다
 - **Verification**: Test
@@ -778,7 +833,9 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 
 #### REQ-P1A-100: Pipeline Data Domain Transition
 
-**When** the pipeline runs, stages before gain correction **shall** operate on `UINT16` and stages from gain correction onward **shall** operate on `FLOAT32`; the transition **shall** occur inside the gain stage.
+**When** the pipeline runs, stages before gain correction **shall** operate on `UINT16` and stages from gain correction onward **shall** operate on `FLOAT32`; the transition **shall** occur inside the gain stage. **When** the gain stage is bypassed and a later float stage runs, the pipeline **shall** perform the `UINT16 → FLOAT32` conversion itself, outside the gain stage.
+
+- **정정 2026-10-03** (`#245` / `QA-A-228` C-13): 옛 문장은 전이가 언제나 게인 단계 안에서 일어난다고 적었다. 게인 우회 시에는 파이프라인이 게인 단계 밖에서 변환한다(`pipeline.cpp` 의 게인 우회 갈래). 중간 영역을 관측하는 시험은 없고, 96 구성 시험은 Windows 전용이다(`QA-A-228` §4).
 
 - **측정된 계약** (`pipeline.cpp:194`·`:199`): *"This performs UINT16 → FLOAT32 domain transition"* — stage 4(gain) 에서 전이하고, 이후 stage 5·6·7 이 모두 `XPE_PIXEL_FLOAT32`(`:219`·`:262`·`:286`)
 - **옛 `REQ-P1A-043` 과의 차이**: 옛 문구는 *"stage 2(gain correction)"* 라 적었습니다. **단계 번호 체계가 달라졌을 뿐** 전이가 게인에서 일어난다는 내용은 같습니다 — 번호가 아니라 **함수 이름**으로 다시 썼습니다
@@ -833,7 +890,7 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **계약**:
   - 반환 버퍼(스칼라 맵): `XPE_PIXEL_FLOAT32`, `bitsAllocated = bitsStored = 32`, `dataSize = width × height × 4`. 소유권·유효 범위·오류 코드·한계·캐시 규칙은 REQ-P1A-102 와 같다.
   - 평범한 게인 로더는 던질 수 있는 일(설정 JSON 복사·품질 메타 해석·용량 범위 해석)을 **커밋 앞에서 모두** 끝내고 커밋은 던지지 않는다. 할당 실패는 `XPE_ERR_OUT_OF_MEMORY` 이고 그 경우 저장소는 바뀌지 않는다. 다항식 파일의 경고 알림은 커밋 뒤라서 알림을 올리다 실패해도 적재는 성공으로 남는다(경고만 유실).
-  - 적중의 설치는 평범한 게인 로더와 같이 스칼라 맵을 올리고 다항식 계수·적합 범위를 지운다(둘은 택일이다). 게인 값 범위 [0.1, 10.0] 검사는 적재 때 한 번 일어나고 캐시에는 그 검사를 통과한 맵만 들어간다.
+  - 적중의 설치는 평범한 게인 로더와 같이 스칼라 맵을 올리고 다항식 계수·적합 범위를 지운다(둘은 택일이다). 게인 값이 [0.1, 10.0] 밖인 화소는 적재 때 결함으로 분류되어 이득 1.0 으로 대체되고, 그 비율이 `XPE_GAIN_DEFECT_MAX_FRACTION` 을 넘으면 `XPE_ERR_INVALID_CALIB_DATA` 로 거부된다(`REQ-P1A-015`). 캐시 엔트리는 분류 결과(`gainDefects`)를 맵과 함께 가진다. *(정정 2026-10-03, `#245` / `QA-A-228` C-8·D10: 옛 문장은 "범위 검사를 통과한 맵만 캐시에 들어간다" 였으나 `#233` 이후 범위 밖 화소는 거부가 아니라 분류된다(`xpe_calib_load_gain.cpp`).)*
   - 다항식 파일은 캐시하지 않으므로 호출마다 파일을 다시 읽고 검사하며(만료·무결성 포함), 호출자는 반환 버퍼가 아니라 `xpe_gain_correct` 로 다항식을 쓴다. 적재 뒤 저장소에 스칼라 맵도 다항식도 없으면 `XPE_ERR_NOT_INITIALIZED`.
 - **SRS**: SRS-CALIB-NFR-003-CACHE. 캐시된 적재 계약 자체는 SRS 에 없다.
 - **Traceability**: SUP-01
@@ -878,6 +935,77 @@ Every exported function **shall** validate all pointer parameters for non-NULL a
 - **Traceability**: 없음 (진단용 수출; `XPE-GUI-NATIVE-INT-READINESS-001` 의 `R1` 행이 사용처)
 - **Verification**: Test (`test_preprocess_version.cpp` — 비-NULL·비어 있지 않음, 호출마다 같은 주소·같은 내용, 초기화 전·후·shutdown 후 같은 주소·같은 내용, 값의 모양 `숫자.숫자.숫자`; 값 자체는 고정하지 않음)
 
+> **REQ-P1A-107~111 추가 (2026-10-03, #216, QA-A-223)**: 비선형 보정 공개 함수 넷과 `xpe_bpm_generate` 는 이 모듈이 수출하고 파이프라인이 단계로 실행하므로 이 SPEC 의 범위다 (리더 결정 2026-10-03 — §1.3 의 PRE-08 "별도 SPEC" 은 §5.6 의 표와 같은 사정으로 더 이상 유효하지 않다). 문안 원본은 `dev/preprocess` 의 `.moai/reports/lane-pre/QA-A-223/report.md` §2.3 초안 D1~D4 이고, **SRS 가 서술하거나 헤더가 적은 동작만** 옮겼다. 오류 조건은 초안이 헤더에서 옮긴 것이라, 하나하나 `modules/preprocess/src` 의 코드에서 확인한 것만 적었다 (확인 위치는 각 요구의 계약 항목).
+
+#### REQ-P1A-107: Nonlinearity Correction
+
+**When** `xpe_nonlinearity_correct(img, configJsonOrNull)` is called with a non-NULL UINT16 `img`, the module **shall** read the detector profile keys from `configJsonOrNull` and: leave the frame unchanged and return `XPE_OK` when `panel.linear` is `true`; otherwise, when `panel.nonlinearity_mode` is `"POLY"` (or `"AUTO"` with `panel.target_platform` `"MCU"` or `"FPGA"`), linearize the frame with the polynomial of SRS-CALIB-FUNC-006-EXT 6b from `panel.nonlin_poly_c0`..`c4`, and fall back to the LUT path when the polynomial is rejected; on the LUT path, when a nonlinearity LUT is loaded, replace every pixel with `LUT[I_raw]` (6a); when no LUT is loaded and `panel.linear` is `false`, return `XPE_ERR_CALIB_NOT_LOADED` with an error alert and the frame unchanged; and when no LUT is loaded and `panel.linear` is not `false`, leave the frame unchanged, post a warning alert and return `XPE_OK`.
+
+- **계약**:
+  - `img` 가 NULL 이거나 UINT16 이 아니면 `XPE_ERR_INVALID_INPUT` (`nonlinearity_correct.cpp` `xpe_nonlinearity_apply`, `xpe_nonlinearity_apply_doc` 첫 두 검사).
+  - 설정 텍스트는 판정 전에 한 번 해석한다. 하나의 JSON 객체가 아니거나, 비었거나(공백뿐 포함), 최상위 키를 두 번 주면 `XPE_ERR_CONFIG_INVALID` 이고 프레임은 그대로다. NULL 은 "설정 없음" 이라 오류가 아니다 (`helpers.cpp` `xpe_config_parse`·`parse_text`).
+  - 다항식 거부 = 계수 다섯이 모두 0(없음과 구별하지 않음), 비유한 계수, `[0, panel.adc_max]`(기본 65535) 의 정수 입력에서 비단조. 거부되면 경고(비유한 계수는 오류) 알림을 올리고 LUT 경로로 넘어간다. 다항식 결과는 [0, 65535] 로 자른다 (`xpe_nonlinearity_apply_polynomial`).
+  - LUT 가 4096 항목이면 그보다 큰 원시값은 마지막 항목으로 읽는다(범위 밖을 읽지 않는다).
+  - LUT 경로와 `XPE_ERR_CALIB_NOT_LOADED` 의 우선순위: 적재된 LUT 가 먼저다 — LUT 가 있으면 `panel.linear` 가 `false` 여도 적용된다. `XPE_ERR_CALIB_NOT_LOADED` 는 LUT 가 없을 때만 나온다.
+  - 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED` 이며 둘 다 첫 화소를 쓰기 전이다 (`xpe_nonlinearity_correct` 의 예외 경계).
+- **요구에 쓰지 않은 것**: 초안 D1 의 "LUT 도 계수도 없으면 무동작" 은 코드와 맞지 않아 옮기지 않았다 — 계수는 `panel.nonlinearity_mode` 가 다항식을 고를 때만 읽고, 무동작 알림 경로는 "LUT 없음 + `panel.linear` 가 `false` 아님" 이다. `panel.nonlinearity_mode` 의 알 수 없는 값은 거부하지 않고 LUT 경로로 간다 (코드 주석의 결정) — 이 동작은 요구로 고정하지 않았다.
+- **SRS**: SRS-CALIB-FUNC-006, SRS-CALIB-FUNC-006-EXT 6a·6b·6c (방법 선택). 무동작 + 알림 + `XPE_OK` 는 SRS 에 없고 헤더가 "No requirement states this sentence" 라고 적은 동작이다 — 이 요구가 처음으로 적는다.
+- **Traceability**: PRE-08
+- **Verification**: Test (`test_nonlin_lut_apply.cpp`, `test_nonlin_poly_apply.cpp`, `test_nonlin_noop_report.cpp`, `test_nonlin_no_mode_rejection.cpp`, `test_config_strict_parse.cpp`)
+
+#### REQ-P1A-108: Nonlinearity LUT Generation
+
+**When** `xpe_calib_generate_nonlin_lut(flat_frames, dose_levels, num_levels, dark_reference, lut_entries, output_path, metadata_json)` is called, the module **shall** build the LUT by the procedure of SRS-CALIB-FUNC-006-EXT 6a as corrected for #186 (mean signal per dose level after optional dark subtraction, ideal line `S_ideal = G_nominal × D` fitted through the origin, `LUT[0] = 0`, monotone cubic interpolation between the measured knots, **no** upper identity knot, the last measured interval's slope continued above the highest measured level) and write it as an `XCAL_TYPE_NONLIN_LUT` file whose configuration block records the generation conditions, including `xcal_nonlin_extension_start` (the first extrapolated entry).
+
+- **계약** (`xpe_calib_generate_nonlin_lut.cpp` `generate_nonlin_lut_impl`):
+  - `XPE_ERR_INVALID_INPUT`: `flat_frames`·`dose_levels`·`output_path` 중 NULL; `num_levels < 10`; `lut_entries` 가 4096·65536 이 아님; 선량이 유한한 양수가 아니거나 엄격히 증가하지 않음; 평탄 프레임이 UINT16 이 아니거나 비었거나 `dataSize` 가 모자람, 또는 `dark_reference` 가 크기·형식(UINT16/FLOAT32)이 맞지 않음; 검출기 메타데이터가 512바이트 설정 블록에 들어가지 않음.
+  - `XPE_ERR_INVALID_CALIB_DATA`: 측정 평균 신호가 엄격히 증가하지 않음; 첫 측정값 ≤ 0; 최고 측정값 ≥ `lut_entries − 1`; `G_nominal` 이 유한한 양수가 아님; 표가 비유한 값을 내거나 비단조.
+  - `XPE_ERR_IO_FAILED`: 파일 쓰기 실패 (`xcal_writer.cpp` `write_xcal_file_ex`).
+  - 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED`. 출력 파일은 마지막에 쓴다.
+  - 표의 값은 uint16 으로 포화한다 — 연장 구간이 65535 에 닿으면 이웃 항목이 같아질 수 있고(단조성 `≤` 가 허용), 뒤집히지는 않는다.
+- **요구에 쓰지 않은 것**: SRS 6a 의 "5%~95% ADC full scale 에 걸친 선량" 과 "보간 오차 ≤ 0.3%(측정 구간 안)" 은 이 함수가 검사하지 않는다 — 생성 절차를 수행하는 쪽의 조건으로 남는다.
+- **SRS**: SRS-CALIB-FUNC-006-EXT 6a (2026-09-18 정정 포함). 입력 형식·출력 파일 형식·오류 코드는 SRS 에 없고 코드에서 옮겼다.
+- **Traceability**: PRE-08, SUP-01 (XCal 쓰기 경로는 REQ-P1A-019 와 같다)
+- **Verification**: Test (`test_nonlin_lut_generate.cpp`)
+
+#### REQ-P1A-109: Nonlinearity LUT Loader
+
+**When** `xpe_calib_load_nonlin_lut(filepath)` is called, the module **shall** read and verify the XCal file as the other calibration loaders do, check the table's content, and on success make that table the active nonlinearity LUT in the module-global calibration store, used by REQ-P1A-107 and the pipeline's nonlinearity stage.
+
+- **계약** (`xpe_calib_load_nonlin_lut.cpp`):
+  - `filepath` 가 NULL 이면 `XPE_ERR_INVALID_INPUT`.
+  - 파일 읽기의 판정은 `read_xcal_file` 의 것이다 (`xcal_reader.cpp`): 열기·읽기 실패 `XPE_ERR_IO_FAILED`; 설정 블록이 하나의 JSON 객체가 아니거나 최상위 키를 두 번 줌, 헤더 검증 실패, XCal 타입이 `XCAL_TYPE_NONLIN_LUT` 가 아님, SHA-256 불일치는 `XPE_ERR_CONFIG_INVALID`; 만료된 파일은 `XPE_ERR_CALIBRATION_EXPIRED`.
+  - 내용 판정: 페이로드 길이가 홀수면 `XPE_ERR_CONFIG_INVALID`; 항목 수가 4096·65536 이 아니면, 표가 비감소가 아니면(`LUT[i] > LUT[i+1]`), 기록된 `xcal_nonlin_extension_start` 가 [0, 항목 수] 밖이면 `XPE_ERR_INVALID_CALIB_DATA`. 키가 없으면 0(표 전체가 측정 구간)으로 읽는다.
+  - 모든 검사는 저장소를 바꾸기 전이다 — 실패한 적재는 이전에 적재된 LUT 를 그대로 둔다. 커밋은 `g_calib_mutex` 아래서 한다.
+  - 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED`.
+- **SRS**: SRS-CALIB-FUNC-006-EXT 6a (LUT 크기, 단조성 검사와 그 오류 코드), SRS-CALIB-FUNC-006 ("교정 프로파일에 저장"). 파일을 활성 교정으로 만든다는 계약과 확장 경계 검사는 SRS 에 없고 코드에서 옮겼다.
+- **Traceability**: PRE-08, SUP-01
+- **Verification**: Test (`test_nonlin_lut_apply.cpp`)
+
+#### REQ-P1A-110: Nonlinearity LUT Unload
+
+The module **shall** provide `xpe_calib_unload_nonlin_lut()`, which removes the active nonlinearity LUT from the module-global calibration store (under `g_calib_mutex`), so that a host switching detector profiles can return the module to "no nonlinearity LUT loaded" without restarting the process; after the call REQ-P1A-107 behaves as when no LUT has been loaded. *(Derived from code — QA-A-223: no SRS text describes this function; the sentence states what `xpe_calib_load_nonlin_lut.cpp` `xpe_calib_unload_nonlin_lut` does.)*
+
+- **계약**: 반환값이 없고(`void`) 실패 경로가 없다. LUT 와 함께 항목 수·확장 경계·타임스탬프를 0 으로 되돌린다. LUT 가 없을 때 불러도 같은 결과다.
+- **SRS**: 해당 SRS 요구 없음 (SRS-CALIB-FUNC-038 은 수명 함수로 `xpe_calib_state_release` 만 묶는다).
+- **Traceability**: PRE-08
+- **Verification**: 간접 — `test_nonlin_lut_apply.cpp` 의 픽스처가 SetUp·TearDown 에서 불러 "LUT 없음" 사례의 전제를 만든다. 이 함수의 효과를 직접 단언하는 시험은 확인하지 않았다 (미검증)
+
+#### REQ-P1A-111: Bad Pixel Map Generation
+
+**When** `xpe_bpm_generate(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out)` is called, the module **shall** average the dark frames and the bright frames separately; flag a pixel as dark-defective when its dark mean deviates from the local median by more than `λ × 1.4826 × MAD` over a window of at least 32×32 (SRS-CALIB-FUNC-022, RMM, default λ = 8.0); flag it as bright-defective when its bright mean deviates from the local window mean by more than `tolerance × window mean` over a window of at least 128×128 with tolerance in 5–9% (SRS-CALIB-FUNC-023, default 7%); and write a UINT8 map with 0 = good, 1 = dark-defective only, 2 = bright-defective only, 3 = both. Windows that cross the image border **shall** be filled by reflection. *(The four-value merge and the reflection are not in the SRS — derived from code, QA-A-223.)*
+
+- **계약** (`xpe_defect_gen.cpp` `bpm_generate_impl`, `validate_bpm_config`, `compute_frame_mean`):
+  - `cfg` 가 NULL 이면 기본값(λ 8.0, 다크 창 32, 허용도 0.07, 밝은 창 128, 최소 프레임 다크 5·밝은 10).
+  - `XPE_ERR_INVALID_INPUT`: 다크·밝은 프레임 배열 NULL 또는 개수 0; `bpm_out` 또는 그 `data` 가 NULL; `cfg` 의 λ ≤ 0, 다크 창 < 32, 허용도가 [0.05, 0.09] 밖, 밝은 창 < 128, 최소 프레임 수 0; 프레임 수가 최소 프레임 수보다 적음; 프레임 크기 불일치(밝은 프레임은 다크 프레임 크기와도); 프레임이 UINT16 이 아님.
+  - `bpm_out` 이 UINT8 이 아니면 `XPE_ERR_UNSUPPORTED_FORMAT`; 크기가 프레임과 다르거나 `dataSize < width × height` 면 `XPE_ERR_BUFFER_TOO_SMALL`.
+  - `bpm_out` 은 마지막 문장에서만 쓴다 — 실패한 호출은 출력을 건드리지 않는다. 할당 실패는 `XPE_ERR_OUT_OF_MEMORY`, 다른 예외는 `XPE_ERR_PROCESSING_FAILED`.
+  - 창의 실제 한 변은 `2 × ⌊창 크기 / 2⌋ + 1` 이다 — 짝수 창 크기 32 는 33×33 으로 돈다 (`extract_window_reflect`). 측정한 사실이 아니라 코드에서 읽은 것이다.
+- **요구에 쓰지 않은 것**: 초안 D4 는 병합을 "화소별로 큰 값" 으로 적었는데 코드는 그렇지 않다(1 과 2 의 큰 값은 2 이지만 코드는 3 을 쓴다) — 코드가 하는 범주 병합으로 적었다. 헤더와 RTM 이 병합·반사에 붙인 "FUNC-024"·"FUNC-025" 는 SRS 에서 다른 요구(게인 프레임 수 등급, BPM 보정 뒤 `LineArtifactScore`)다 — 이 요구는 그 둘을 인용하지 않는다 (헤더 라벨 정정은 pre 레인 `QA-A-224`).
+- **SRS**: SRS-CALIB-FUNC-022, SRS-CALIB-FUNC-023. 병합 규칙·반사 패딩·최소 프레임 수·출력 규약은 SRS 에 없다.
+- **Traceability**: PRE-06 (정적 BPM 생성), SUP-01
+- **Verification**: Test (`test_defect_gen.cpp`)
+
 > **이 절의 미검증**
 >
 > - `xpe_preprocess_pipeline_ex` 는 `REQ-P1A-105` 로 서술했습니다(2026-10-02). `_batch` 는 아직 어떤 요구도 부르지 않습니다
@@ -908,6 +1036,14 @@ The module **shall not** leave output buffers in a partially initialized state o
 
 - **IEC 62304**: Class B requirement
 - **Traceability**: All SWUs
+- **비유한 입력 — 쓰기 전 거부** (기록 2026-10-02, `#233`): 결함 보정(`REQ-P1A-012`, `QA-A-214b`), 비닝(`REQ-P1A-091`, `QA-A-215`), 런타임 결함 검출(`REQ-P1A-013`, `QA-A-215`), 고스트(`REQ-P1A-087`, `QA-A-217`)는 비유한 화소가 든 프레임을 아무것도 쓰기 전에 `XPE_ERR_INVALID_INPUT` 으로 거부합니다 — 출력은 바뀌지 않습니다. 비닝과 고스트는 이전에 화소 일부를 쓴 뒤 `XPE_ERR_PROCESSING_FAILED` 를 돌려줘 이 요구를 어기고 있었습니다
+- **고스트 보정의 실패 경로** (추가 2026-10-02, `#233` / `QA-A-217`): `xpe_ghost_correct` 가 실패 코드를 돌려주는 **모든 경로에서** `img` 는 호출 전 바이트 그대로이고, 핸들의 이력·시각·노출 상태는 바뀌지 않습니다.
+  - 입구의 비유한 거부는 쓰기 전입니다(`REQ-P1A-087`).
+  - 남는 실패 경로 — 보정값이 비유한, 또는 유한 입력에서 새 이력(`next1`/`next2`)이 비유한(이력 오버플로) — 는 화소를 쓰는 도중에 판정되므로, 핸들의 `backup` 평면에 프레임 입력을 보관했다가 실패하면 되돌립니다(쓴 뒤 복원). 두 경우 모두 `XPE_ERR_PROCESSING_FAILED` 이고, **이력은 커밋되지 않습니다**. 이전에는 오버플로한 이력이 커밋되어 이후 프레임이 reset 전까지 전부 실패했습니다(`QA-A-216` §4 실측).
+  - 오버플로로 실패한 다음의 정상 프레임은 reset 없이 성공하고, 같은 이력을 쌓았으나 실패를 겪지 않은 대조 핸들과 비트 단위로 같습니다(`QA-A-217` 시험은 다음 프레임을 0 프레임으로 둔다 — 극단 프레임이 성공한 뒤에는 이력이 정당하게 커서 평범한 프레임이 대조 핸들에서도 넘칠 수 있기 때문).
+  - 오버플로 실패에는 알림을 붙이지 않았습니다(`QA-A-217`).
+  - 대가: 복원용 백업 때문에 3072² 프레임당 약 +13~15 ms, 핸들 메모리 약 151 → 189 MB(`QA-A-217` 측정, 한 기계의 값).
+  - **Verification**: Test (`test_ghost_input_finite.cpp`)
 
 #### REQ-P1A-033: No NaN/Inf in Output
 
@@ -928,6 +1064,7 @@ The module **shall** use AVX2 intrinsics for performance-critical operations (of
 
 > **What survives is the parity contract, not the dispatch.** Sections AC-SIMD-001~004 asked for scalar/AVX2 parity, and that **intent is met** by QA-A-72/A-73: each AVX2 kernel is compared against an inline scalar reference compiled from the same source, with no runtime switch to select between them. The mechanism differs from the one planned here and the **case counts differ too** (the harness asked for 300 cases x 3 shapes; the shipped parity tests compare one frame each) — recorded as two separate facts rather than collapsed into "done".
 
+- **상태 (2026-10-03, `#245` / `QA-A-228` C-19): 부분 구현.** AVX2 경로는 offset 뺄셈·gain 곱셈·런타임 검출에만 있다. **결함 보간에는 AVX2 가 없다**(`defect_correct.cpp` 의 `_mm256` 0건, `CMakeLists.txt` 의 AVX2 소스 목록). 그래서 §4.6 표의 결함 보간 행을 지웠다. "intrinsics 를 쓴다" 자체를 단언하는 시험은 없다.
 - **SRS**: SRS-PERF-001
 - **Traceability**: SWU-1.1, SWU-1.2, SWU-1.3
 - **Detailed protocol**: `simd-parity-harness.md` describes the planned harness, including the dispatch override. The override is **retired** (above); the parity protocol is superseded by the inline-scalar-reference comparison in `test_offset_correct_avx2_parity.cpp` and its gain counterpart.
@@ -938,6 +1075,7 @@ The module **shall** use AVX2 intrinsics for performance-critical operations (of
 
 > **2026-10-01 (#232, 사용자 승인) — 선 잡음 검출은 미구현.** 구현은 빈 열과 행 평균 > 0.9 × 65535 만 검사하며, `has_nonuniform_gain` 플래그는 이름과 달리 **밝은 행** 검사 결과다(`QA-A-184` 실측: 선 잡음 σ300~1500 합성 프레임에서 0, 선 잡음 없는 밝은 프레임(62000)에서 1). 공개 필드 이름은 호환성을 위해 유지한다. 선 잡음 검출은 실검출기 데이터로 기준을 정할 수 있을 때 별도 카드로 구현한다.
 
+- **상태 (2026-10-03, `#245` / `QA-A-228` D9): 선 잡음 검출 미구현 — 기존 #232 그대로.** 요구 문장은 그대로 둔다. 포화 패턴 검사도 행 평균만 본다.
 - **SRS**: SRS-PERF-001
 - **Traceability**: PRE-01
 
@@ -945,6 +1083,7 @@ The module **shall** use AVX2 intrinsics for performance-critical operations (of
 
 **Where** the caller requests valid parameter ranges, the module **shall** return body-part-specific parameter limits via `xpe_preprocess_get_param_range()`.
 
+- **상태 (2026-10-03, `#245` / `QA-A-228` D9·C-20): 부위별 한계 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** (`QA-A-233` 결정 13). 요구 문장은 그대로 둔다. 현재 선언은 `XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name, float* min_value, float* max_value);` 로 부위 인자가 없고, 부위와 무관한 고정 6개 표다(`preprocess.cpp`). 시험은 범위의 순서만 확인하고 한계 값은 단언하지 않는다. 부위별 한계 값의 출처(어느 문서가 값을 정하는가)와 공용 `xpe_get_param_range(bodyPart, paramName, …)` 와의 관계가 정해진 뒤 구현 여부를 따로 정한다.
 - **SRS**: SRS-SAFE-002, SRS-SAFE-005
 - **Traceability**: SUP-01
 
@@ -963,10 +1102,11 @@ The scalar path is the reference implementation, and the parity rules below stil
 | Operation | Scalar Path | AVX2 Path | Parity Rule |
 |-----------|-------------|-----------|-------------|
 | Offset subtraction (UINT16) | `max(a - b, 0)` via branch | `_mm256_subs_epu16` | **Bit-identical** |
-| Defect interpolation (UINT16 bilinear) | pure-C bilinear | AVX2 gather + weighted average | **Bit-identical** (integer arithmetic only) |
 | Gain correction (FLOAT32 reciprocal) | `a * (1.0f / b)` | `_mm256_mul_ps` | **1 ULP tolerance** (FLOAT32) |
 | Gain correction (FLOAT32 polynomial) | Horner method scalar | `_mm256_fmadd_ps` chain | **1 ULP tolerance** (FMA rounding) |
 | Runtime detection (MAD, UINT16) | sort-9 + median | AVX2 sorting network | **Bit-identical** (integer median) |
+
+> **정정 2026-10-03** (`#245` / `QA-A-228` C-19): 이 표에 있던 *"Defect interpolation (UINT16 bilinear) — AVX2 gather + weighted average — Bit-identical"* 행을 지웠다. 결함 보정은 FLOAT32 전용이고(`REQ-P1A-012`), 보간 경로에 AVX2 가 없다. 아래 Fallback policy 의 `force_scalar` 설정·`XPE_FORCE_SCALAR` 환경 변수는 `REQ-P1A-040` 의 2026-09-16 정정대로 존재한 적이 없는 장치이며, 이 절의 옛 기록으로만 남긴다.
 
 Fallback policy:
 - Runtime CPUID detection determines dispatch (see `simd-parity-harness.md` Section 2)
@@ -1113,19 +1253,26 @@ Verification:
 
 ### Phase 1 SUP-01 (Calibration Management) — Completed 2026-04-18
 
+> **상태 열 정정 2026-10-03** (`#245` / `QA-A-228` §1·§4): "Implemented" 는 요구 문장 전체가 구현·시험됐다는 뜻이 아니다. 아래 상태 열은 문장 중 구현이 없거나 시험이 단언하지 않는 부분을 적는다. 판정 기준은 `QA-A-228` 보고서(`dev/preprocess` 의 `.moai/reports/lane-pre/QA-A-228/report.md`)의 "구현됨 = 시험이 그 문구를 독립된 기대값으로 단언한다".
+
 | Requirement | Status | Implementation Files |
 |-------------|--------|----------------------|
-| REQ-P1A-014 | Implemented | modules/preprocess/src/xpe_calib_load_offset.cpp |
-| REQ-P1A-015 | Implemented | modules/preprocess/src/xpe_calib_load_gain.cpp |
-| REQ-P1A-016 | Implemented | modules/preprocess/src/xpe_calib_load_defect_map.cpp |
-| REQ-P1A-017 | Implemented | modules/preprocess/src/xpe_calib_generate_offset.cpp |
-| REQ-P1A-018 | Implemented | modules/preprocess/src/xpe_calib_check_expiry.cpp |
-| REQ-P1A-019 | Implemented | modules/preprocess/src/xpe_calib_save.cpp |
-| REQ-P1A-102 | Implemented | modules/preprocess/src/calibration_cache.cpp |
-| REQ-P1A-103 | Implemented | modules/preprocess/src/calibration_cache.cpp, modules/preprocess/src/xpe_calib_load_gain.cpp |
-| REQ-P1A-104 | Implemented | modules/preprocess/src/calibration_cache.cpp |
-| REQ-P1A-105 | Implemented | modules/preprocess/src/pipeline.cpp |
+| REQ-P1A-014 | Implemented, session matching NOT implemented (구현 예정 — QA-A-229 M3, #245); mutex 하 커밋 단언 없음 | modules/preprocess/src/xpe_calib_load_offset.cpp |
+| REQ-P1A-015 | Implemented, kVp interpolation table 미구현(요구 유지) — 사용자 결정 2026-10-03, #245; mutex 하 커밋 단언 없음 | modules/preprocess/src/xpe_calib_load_gain.cpp |
+| REQ-P1A-016 | Implemented — mutex 하 커밋 단언 없음 | modules/preprocess/src/xpe_calib_load_defect_map.cpp |
+| REQ-P1A-017 | Implemented — winsor 등은 내부 shim 으로만 단언 | modules/preprocess/src/xpe_calib_generate_offset.cpp |
+| REQ-P1A-018 | Implemented — REQ 문구를 코드에 맞춰 정정(2026-10-03, 사용자 승인 #245 — QA-A-233 결정 8) | modules/preprocess/src/xpe_calib_check_expiry.cpp |
+| REQ-P1A-019 | Implemented — 오류 코드 문구를 코드에 맞춰 정정(2026-10-03); 해당 시험 `GTEST_SKIP` | modules/preprocess/src/xpe_calib_save.cpp |
+| REQ-P1A-102 | Implemented (partial verification) — LRU 순서·기본 용량·엔트리 삭제 등 단언 약함 | modules/preprocess/src/calibration_cache.cpp |
+| REQ-P1A-103 | Implemented (partial verification) — 다항식 경로 단언 약함 | modules/preprocess/src/calibration_cache.cpp, modules/preprocess/src/xpe_calib_load_gain.cpp |
+| REQ-P1A-104 | Implemented (partial verification) — 반환 버퍼 필드 리터럴 단언 없음 | modules/preprocess/src/calibration_cache.cpp |
+| REQ-P1A-105 | Implemented (partial verification) — "파일·`calibState` 를 읽지 않음" 시험 없음 | modules/preprocess/src/pipeline.cpp |
 | REQ-P1A-106 | Implemented | modules/preprocess/src/preprocess.cpp |
+| REQ-P1A-107 | Implemented | modules/preprocess/src/nonlinearity_correct.cpp |
+| REQ-P1A-108 | Implemented | modules/preprocess/src/xpe_calib_generate_nonlin_lut.cpp |
+| REQ-P1A-109 | Implemented | modules/preprocess/src/xpe_calib_load_nonlin_lut.cpp |
+| REQ-P1A-110 | Implemented | modules/preprocess/src/xpe_calib_load_nonlin_lut.cpp |
+| REQ-P1A-111 | Implemented | modules/preprocess/src/xpe_defect_gen.cpp |
 
 ### Core Validators & Utilities
 
@@ -1157,17 +1304,46 @@ Verification:
 | REQ-P1A-020 ~ 022 | Existing | Guards: uninitialized, dimension/format mismatch |
 | REQ-P1A-030 ~ 033 | Existing | Unwanted behaviors: exception safety, memory leaks, NaN/Inf validation |
 
-### Pending Features (Next Sprint — Priority High)
+### M2 Algorithms and Optional Requirements — Status (정정 2026-10-03, `#245` / `QA-A-228` A-1)
 
-| Requirement | Target SPEC | Notes |
-|-------------|----------|-------|
-| REQ-P1A-010 | SPEC-XPE-P1A M2 | Offset correction scalar + AVX2 dispatch; parity bit-identical |
-| REQ-P1A-011 | SPEC-XPE-P1A M2 | Gain correction reciprocal-map + FMA path; parity 1 ULP |
-| REQ-P1A-012 | SPEC-XPE-P1A M2 | Defect correction (bilinear + cluster fallback); 99%+ recall target |
-| REQ-P1A-013 | SPEC-XPE-P1A M2 | Runtime detection (Hampel 5-sigma); TPR >= 99.9%, FPR < 0.001% |
-| REQ-P1A-040 | SPEC-XPE-P1A M5 | SIMD dispatch + parity harness per simd-parity-harness.md |
-| REQ-P1A-041 | SPEC-XPE-P1A M6 | Readout artifact validation (Priority Low) |
-| REQ-P1A-042 | SPEC-XPE-P1A M6 | Parameter range query (Priority Medium) |
+> 이 자리에 있던 "Pending Features (Next Sprint — Priority High)" 표는 REQ-P1A-010~013 을 "M2 대기" 로 적었으나, 넷은 2026-04-19 에 구현됐다(HISTORY 1.3.0, frontmatter "M2 Complete"). 표를 아래로 바꿨다.
+
+| Requirement | Status | 시험이 단언하지 않는 문장 (QA-A-228) |
+|---|---|---|
+| REQ-P1A-010 | Implemented (partial verification) | 성능 55/15 ms, 잔차 2 ADU |
+| REQ-P1A-011 | Implemented (partial verification) | 성능, flat-field 잔차 |
+| REQ-P1A-012 | Implemented (partial verification) | 성능 21 ms 게이트, 그래디언트 억제, 50% 규칙 |
+| REQ-P1A-013 | Implemented (partial verification) | 줄무늬 프레임 TPR 0.9865(미달 고정), 성능 1.3배 |
+| REQ-P1A-040 | Partially implemented | AVX2 는 offset·gain·검출만. 결함 보간 AVX2 없음 |
+| REQ-P1A-041 | Partially implemented | 선 잡음 없음(#232) |
+| REQ-P1A-042 | Partially implemented | 부위별 한계 — 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+
+### Requirements Previously Unlisted in This Section (추가 2026-10-03, `#245` / `QA-A-228` A-3)
+
+> 아래 18개는 2026-09-28(`#211`) 이후 신설됐으나 이 절·`plan.md` 작업표·`progress.md` 어디에도 걸려 있지 않았다. 판정은 `QA-A-228` §4 를 옮긴 것이고, 근거 시험 이름은 그 보고서가 적은 것만 옮겼다(적지 않은 행은 보고서 §4 참조). 095~101 은 보고서가 `PipelineStageTest.*`·`PipelineStageValueTest.*`·`PipelineComboTest.*` 세 묶음으로만 적었으므로, 행별로 나눈 묶음 이름은 리더의 추정이다.
+
+| Requirement | Status | 근거 시험 / 단언하지 않는 문장 |
+|---|---|---|
+| REQ-P1A-016a | Partial | `PipelineExTest.*` — 일부 파일만 있을 때 플래그 독립성 |
+| REQ-P1A-020a | Partial | `NullRequiredPointerWinsOverInitializationState` — 출력 불변 |
+| REQ-P1A-080 | Partial | 37 °C 기대값이 시험 안의 공식 복사(자기 비교); UINT16 전용 거부·65535 클램프 |
+| REQ-P1A-081 | Partial | NaN → 25 °C 는 `XPE_OK` 만 확인; 이미지 불변 |
+| REQ-P1A-082 | Implemented | `test_pipeline_stages.cpp` |
+| REQ-P1A-085 | Partial | 생성 OOM 시험 없음 |
+| REQ-P1A-086 | Partial — "역참조하지 않고" 설계 결정 대기(#245) | `Boundary.GhostUseAfterDestroyReturnsError`(실제로는 `reset(nullptr)` 만 시험) |
+| REQ-P1A-087 | Partial — 문구 정정(2026-10-03) | `test_ghost_input_finite.cpp` |
+| REQ-P1A-088 | Partial — 문구 정정(2026-10-03) | `test_ghost_correct.cpp` — 노출 상태 초기화 단언 없음 |
+| REQ-P1A-090 | Implemented | `QA-A-228` §4 |
+| REQ-P1A-091 | Partial | `test_nonfinite_inputs.cpp` — 음수 모드 |
+| REQ-P1A-095 | Partial | `PipelineStageTest.*` — 8단계 중 인접 2쌍만 고정 |
+| REQ-P1A-096 | Partial — 문구 정정(2026-10-03) | `PipelineStageTest.*` |
+| REQ-P1A-097 | Partial | `PipelineComboTest.*` — 플래그 미설정 단언 8단계 중 3단계 |
+| REQ-P1A-098 | Implemented | `PipelineStageTest.*` |
+| REQ-P1A-099 | Implemented (결과로) | `PipelineStageValueTest.*` |
+| REQ-P1A-100 | Partial — 문구 정정(2026-10-03) | `PipelineStageValueTest.*` — 중간 영역 미관측, 96 구성 시험 Windows 전용 |
+| REQ-P1A-101 | Partial | `PipelineStageTest.*` — "이후 단계도 돌리지 않음" |
+
+> **정의 없는 번호 `REQ-P1A-066`** (`QA-A-228` D13·C-21): `test_req_p1a_066.cpp` 와 `quality-report.md` 가 이 번호("4 error path unit tests")를 쓰지만 이 SPEC 에는 그 정의가 없다. 이 SPEC 은 번호를 신설하지 않았다. 시험 쪽 번호를 정의된 요구(`030`·`031`·`005` 등)로 옮기는 일은 시험 파일 소유 레인의 몫이다(#245).
 
 ### Benchmark Pack Freeze (Pre Lane)
 
@@ -1180,4 +1356,4 @@ Manifest BP-01 through BP-05 must be frozen (SHA-256 dataset hashes, tolerance v
 
 ---
 
-*Document End - SPEC-XPE-P1A v1.2.0*
+*Document End - SPEC-XPE-P1A v1.3.6*

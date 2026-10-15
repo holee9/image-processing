@@ -1,0 +1,51 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0xA6D1814 pid=7560 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[2026-10-03 11:01:28.788] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-zz-29508-9573b980920244beb29e887610bc1081, ep=0, timeout=5000 ms
+[2026-10-03 11:01:28.837] [warning] bone_suppress: worker path failed (-3), input returned unchanged (1 of 3 consecutive failures)
+[2026-10-03 11:01:31.465] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 11:01:31.470] [warning] bone_suppress: worker path failed (-3), input returned unchanged (2 of 3 consecutive failures)
+[2026-10-03 11:01:33.885] [warning] xpe_ai_init called while already initialized -- ignoring
+[2026-10-03 11:01:33.889] [warning] bone_suppress: worker path failed (-3), input returned unchanged (3 of 3 consecutive failures)
+[2026-10-03 11:01:42.836] [info] xpe_ai shutdown: worker_pid=0
+[2026-10-03 11:01:42.836] [info] xpe_ai initialized: model_dir=C:\Users\drake\AppData\Local\Temp\xpe-ai-e2e-29508-036741a170634c5db77595211a632e56, ep=0, timeout=5000 ms
+[xUnit.net 00:01:10.99]     ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.Zz_C_AMarkLeftOnScreen_ThenTheOldC09Body_NoRestore [FAIL]
+[xUnit.net 00:01:10.99]       Assert.Null() Failure: Value is not null
+[xUnit.net 00:01:10.99]       Expected: null
+[xUnit.net 00:01:10.99]       Actual:   AutomationId:AiWorkerBanner, Name:AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted., ControlType:텍스트, FrameworkId:WPF
+[xUnit.net 00:01:10.99]       Stack Trace:
+[xUnit.net 00:01:10.99]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs(507,0): at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.RunWorkerSwitchedOffScenario(Window window, ITestOutputHelper output)
+[xUnit.net 00:01:10.99]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs(847,0): at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.Zz_C_AMarkLeftOnScreen_ThenTheOldC09Body_NoRestore()
+[xUnit.net 00:01:10.99]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:01:10.99]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:01:11.00]       Output:
+[xUnit.net 00:01:11.00]         Zz leaves: AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.
+[xUnit.net 00:01:11.00]         C09 window width before: 1560; at the minimum: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+[xUnit.net 00:01:11.04]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.Zz_C_AMarkLeftOnScreen_ThenTheOldC09Body_NoRestore [23 s]
+  오류 메시지:
+   Assert.Null() Failure: Value is not null
+Expected: null
+Actual:   AutomationId:AiWorkerBanner, Name:AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted., ControlType:텍스트, FrameworkId:WPF
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.RunWorkerSwitchedOffScenario(Window window, ITestOutputHelper output) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs:line 507
+   at ImageProcTest.E2ETests.Scenarios.Workflows.ProcessingChainScenarios.Zz_C_AMarkLeftOnScreen_ThenTheOldC09Body_NoRestore() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs:line 847
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ Zz leaves: AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.
+ C09 window width before: 1560; at the minimum: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 1.1899 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

@@ -1,0 +1,4 @@
+synthetic control: id=TST-100-002 text='// covers TST-100-002 here' found=True
+synthetic control: id=TDS-001 text='Tds001_Foo' found=True
+synthetic control: id=TC-101 text='TEST(X, Tc101_Foo)' found=True
+synthetic control: id=TST-100-002 text='nothing relevant' found=False

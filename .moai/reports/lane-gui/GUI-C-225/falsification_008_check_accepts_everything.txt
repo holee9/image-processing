@@ -1,0 +1,3 @@
+== arm 008_check_accepts_everything (Fixtures/NativeLibraryFixture.cs): s/            if (full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;/            return true;/
+[xUnit.net 00:00:00.24]     ImageProcTest.IntegrationTests.Safety.DllSearchPathSafetyTests.TheCandidateCheck_RejectsADecoyOnPath_ASystemFolder_AndAnArbitraryFolder_AndAcceptsACandidate [FAIL]
+실패!  - 실패:     1, 통과:     4, 건너뜀:     0, 전체:     5, 기간: 45 ms - ImageProcTest.IntegrationTests.dll (net8.0)

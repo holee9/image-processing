@@ -1,0 +1,1045 @@
+{
+ "spec": "ENH",
+ "reqs": [
+  {
+   "id": "REQ-ENH-001",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/log_transform.cpp:41",
+   "independence": "hand-chosen pixel values with the reference taken from std::log10 of a literal (101, 100); not a call into the module",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "ForwardTransform_SinglePixel_CorrectFormula",
+     "quote": "EXPECT_NEAR(1000.0f * std::log10(101.0f), px[0], 1e-3f);",
+     "line": 48
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "MultiplePixels_AllTransformedCorrectly",
+     "quote": "EXPECT_NEAR(std::log10(100.0f), px[2], 1e-5f);",
+     "line": 177
+    }
+   ],
+   "note": "Both a normFactor of 1000 and 1 are covered with independently written expectations. \"In-place on every pixel\" is shown only by a 4-pixel and 1-pixel image; the round-trip tests are self-referential."
+  },
+  {
+   "id": "REQ-ENH-002",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/log_transform.cpp:40",
+   "independence": "literal 0 (log10(0+1)=0)",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "NegativePixel_ClampedToZero",
+     "quote": "EXPECT_FLOAT_EQ(0.0f, px[0]);",
+     "line": 57
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "ZeroPixel_ProducesZero",
+     "quote": "EXPECT_FLOAT_EQ(0.0f, px[0]);",
+     "line": 66
+    }
+   ],
+   "note": "Single -5 pixel at normFactor 1; adequate to discriminate clamp from no clamp (log10(-4) would be NaN)."
+  },
+  {
+   "id": "REQ-ENH-003",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/log_transform.cpp:18",
+   "independence": "literal return code",
+   "unasserted": "\"without modifying the image\" is not asserted by the requirement tests (images are not compared after the call); only the non-finite refusal tests in test_nonfinite_pixels.cpp compare bytes",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "ZeroNormFactor_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_log_transform(&img, 0.0f));",
+     "line": 73
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "NegativeNormFactor_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_log_transform(&img, -1.0f));",
+     "line": 80
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_nonfinite_pixels.cpp",
+     "name": "LogTransformRefusesANonFiniteNormFactor",
+     "quote": "EXPECT_TRUE(SameBytes(before, px)) << \"normFactor = \" << nf;",
+     "line": 169
+    }
+   ],
+   "note": "Return code for 0 and -1 is asserted; byte-preservation is asserted only for NaN/inf normFactor (a different branch of the same check)."
+  },
+  {
+   "id": "REQ-ENH-004",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/log_transform.cpp:76-78",
+   "independence": "literal pow(10,2)-1 = 99",
+   "unasserted": "the division input/normFactor is not asserted against an independent value: the only value test uses normFactor 1.0 (division is a no-op); other normFactor values appear only in round trips (self-referential) and in test_parameter_dependency (output merely moves)",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "InverseTransform_SinglePixel_CorrectFormula",
+     "quote": "EXPECT_NEAR(std::pow(10.0f, 2.0f) - 1.0f, px[0], 1e-3f);",
+     "line": 94
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_parameter_dependency.cpp",
+     "name": "LogInverse_NormFactorReachesTheOutput",
+     "quote": "EXPECT_GT(d, kMeaningful) << \"normFactor does not reach the output\";",
+     "line": 92
+    }
+   ],
+   "note": "A code path that ignored normFactor in the inverse would pass the single value test; only the round trip (inverse of own forward) and a \"moves\" test cover it."
+  },
+  {
+   "id": "REQ-ENH-005",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/log_transform.cpp:54",
+   "independence": "literal return code",
+   "unasserted": "\"without modifying the image\" not asserted for 0/negative normFactor",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "InverseZeroNormFactor_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_log_inverse(&img, 0.0f));",
+     "line": 101
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "InverseNegativeNormFactor_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_log_inverse(&img, -1.0f));",
+     "line": 108
+    }
+   ],
+   "note": "Same shape as REQ-ENH-003."
+  },
+  {
+   "id": "REQ-ENH-006",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/log_transform.cpp:39-42",
+   "independence": "numeric budget 15 ms from the SPEC",
+   "unasserted": "CI enforcement: ci.yml:318 runs ctest with -E \"Performance|Within[0-9]+ms|...\" so these Within15ms tests do not run in CI; one timed sample, no median; constant input 1000.0",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "Performance_3072x3072_Within15ms",
+     "quote": "EXPECT_LE(ms, 15) << \"xpe_log_transform took \" << ms << \"ms, budget is 15ms\";",
+     "line": 148
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "InversePerformance_3072x3072_Within15ms",
+     "quote": "EXPECT_LE(ms, 15) << \"xpe_log_inverse took \" << ms << \"ms, budget is 15ms\";",
+     "line": 159
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_log_transform.cpp",
+     "name": "BenchmarkFreeze_Performance_REQ_ENH_006_LogTransform3072",
+     "quote": "perf_measure::Measure(\"REQ-ENH-006/xpe_log_transform\", \"3072x3072\", reset,",
+     "line": 198
+    }
+   ],
+   "note": "Budget is asserted at the right size and runs in a plain local ctest (gtest_discover_tests, no env gate); the varied-data benchmark is measure-only (perf_measure.h asserts nothing about time)."
+  },
+  {
+   "id": "REQ-ENH-007",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/noise_reduce.cpp:198-256",
+   "independence": "SNR computed against a known clean synthetic signal in the test",
+   "unasserted": "that the filter is a bilateral filter (edge preserving, range weighting) rather than any low-pass; no test compares against a reference bilateral or checks an edge survives; separable approximation (not 2D) is not discriminated",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_enh01_log_noise.cpp",
+     "name": "Bilateral_OnNoisyImage_SNRImprovement_Above_6dB",
+     "quote": "EXPECT_GT(gain_db, 6.0) << \"SNR before=\" << snr_before",
+     "line": 208
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "BilateralFilter_NoisyImage_SNRImproves",
+     "quote": "EXPECT_GE(snr_after - snr_before, 3.0f)",
+     "line": 123
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_parameter_dependency.cpp",
+     "name": "NoiseReduce_EveryParameterReachesTheOutput",
+     "quote": "EXPECT_GT(MaxDiff(base, space), kMeaningful) << \"sigma_space does not reach the output\";",
+     "line": 120
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_parameter_dependency.cpp",
+     "name": "NoiseReduce_EveryParameterReachesTheOutput",
+     "quote": "EXPECT_GT(MaxDiff(base, range), kMeaningful) << \"sigma_range does not reach the output\";",
+     "line": 121
+    }
+   ],
+   "note": "Weak oracle: a plain Gaussian blur also passes the >6 dB and >3 dB gates on smooth signals. Parameter-reach tests only show the output changes by >1e-4."
+  },
+  {
+   "id": "REQ-ENH-008",
+   "verdict": "constant_only",
+   "impl": "modules/enhance_basic/src/noise_reduce.cpp:261-335",
+   "independence": "none",
+   "unasserted": "NLM output never compared to an expected value; no denoising-quality assertion (no SNR test for NLM); the algorithm identity (patch distance / weights) is untested",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "NLM_ValidSmallImage_ReturnsOk",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_noise_reduce(&img, &params));",
+     "line": 171
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_enh01_log_noise.cpp",
+     "name": "NLM_Mode_Runs_And_OutputDiffersFromBilateral",
+     "quote": "EXPECT_GT(diff_count, 0u)",
+     "line": 305
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_parameter_dependency.cpp",
+     "name": "NoiseReduce_NlmParametersReachTheOutput",
+     "quote": "EXPECT_GT(MaxDiff(base, window), kMeaningful) << \"search_window does not reach the output\";",
+     "line": 149
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_parameter_dependency.cpp",
+     "name": "NoiseReduce_NlmParametersReachTheOutput",
+     "quote": "EXPECT_GT(MaxDiff(base, hParam), kMeaningful) << \"h_param does not reach the output\";",
+     "line": 151
+    }
+   ],
+   "note": "Return code on a flat 500 image, \"differs from bilateral\", and \"each parameter changes the output\" are the only checks. Parameters reaching the output is a real but weak property; correctness of NLM is not asserted."
+  },
+  {
+   "id": "REQ-ENH-009",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/noise_reduce.cpp:358",
+   "independence": "literal return code",
+   "unasserted": "\"without modifying the image\" (image not compared after the call)",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "NullParams_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, nullptr));",
+     "line": 58
+    }
+   ],
+   "note": "Return code asserted on a flat image so a modification would also be invisible."
+  },
+  {
+   "id": "REQ-ENH-010",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/noise_reduce.cpp:370-373",
+   "independence": "literal return codes",
+   "unasserted": "sigma_range == 0 (non-positive includes zero) is not tested; only sigma_space 0 and both negatives",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "BilateralFilter_NegativeSigmaSpace_ReturnsInvalidInput",
+     "quote": "params.sigma_space = -1.0f;",
+     "line": 135
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "BilateralFilter_NegativeSigmaRange_ReturnsInvalidInput",
+     "quote": "params.sigma_range = -1.0f;",
+     "line": 147
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "BilateralFilter_ZeroSigmaSpace_ReturnsInvalidInput",
+     "quote": "params.sigma_space = 0.0f;",
+     "line": 157
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exception_guard.cpp",
+     "name": "BilateralRefusesANaNRangeSigma",
+     "quote": "TEST(ExceptionGuard, BilateralRefusesANaNRangeSigma)",
+     "line": 553
+    }
+   ],
+   "note": "Three of four non-positive combinations asserted (each test then EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_reduce(&img, &params)))."
+  },
+  {
+   "id": "REQ-ENH-011",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/noise_reduce.cpp:397-451",
+   "independence": "noise generated by std::mt19937 + normal_distribution with known sigma (10, 25), i.e. a value from the generator, not from the code",
+   "unasserted": "the constant 1.4826 and the MAD definition are pinned only to +/-10% (9..11) and +/-20% (20..30); a plain std-dev estimate or constant 1.4/1.6 would pass; the ROI choice (center 10% of min side) is not asserted; even-count median handling untested",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_enh01_log_noise.cpp",
+     "name": "NoiseSigma_Gaussian10_EstimateWithin10Percent",
+     "quote": "EXPECT_GE(est_sigma, 9.0f)",
+     "line": 147
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_enh01_log_noise.cpp",
+     "name": "NoiseSigma_Gaussian10_EstimateWithin10Percent",
+     "quote": "EXPECT_LE(est_sigma, 11.0f)",
+     "line": 148
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "SigmaEstimation_KnownNoise",
+     "quote": "EXPECT_GE(outSigma, 20.0f) << \"Estimated sigma too low: \" << outSigma;",
+     "line": 205
+    }
+   ],
+   "note": "Independent in origin (true generator sigma) but loose. No test uses a non-Gaussian input where MAD and std differ, which is what would pin the formula."
+  },
+  {
+   "id": "REQ-ENH-012",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/noise_reduce.cpp:245-255",
+   "independence": "numeric budget 100 ms from the SPEC",
+   "unasserted": "the budget is asserted only at 512x512 on a flat image; at the SPEC size 3072x3072 only a measure-only benchmark (no assertion) plus the 200 ms pipeline test; NLM not measured; SPEC table says single thread but tests run with automatic threads (up to 4); not run in CI (ci.yml:318 -E Performance|Within..ms)",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "Performance_Bilateral_Small_Within100ms",
+     "quote": "EXPECT_LE(ms, 100) << \"Bilateral 512x512 took \" << ms << \"ms, budget 100ms\";",
+     "line": 235
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_noise_reduce.cpp",
+     "name": "BenchmarkFreeze_Performance_REQ_ENH_012_Bilateral3072",
+     "quote": "perf_measure::Measure(\"REQ-ENH-012/bilateral\", \"3072x3072\", reset,",
+     "line": 262
+    }
+   ],
+   "note": "The 100 ms assertion is 36x looser than the requirement (512^2 vs 3072^2 pixels) and its test name admits \"Small\"."
+  },
+  {
+   "id": "REQ-ENH-013",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/contrast_enhance.cpp:138-249",
+   "independence": "properties of CLAHE (stretch, range, per-tile monotonicity) derived without a reference implementation",
+   "unasserted": "CLAHE output values are never compared with a reference (no hand-computed equalization of a tiny tile); clip_limit redistribution correctness untested; code uses nearest-tile assignment, no bilinear interpolation, which no test notices",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "LowContrastRegion_ContrastImproves",
+     "quote": "EXPECT_GE(stddev_after, stddev_before * 1.2f)",
+     "line": 167
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exception_guard.cpp",
+     "name": "ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape",
+     "quote": "EXPECT_TRUE(inRange)",
+     "line": 330
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exception_guard.cpp",
+     "name": "ContrastEnhanceKeepsItsImagePropertiesOnEveryTileShape",
+     "quote": "EXPECT_TRUE(monotone)",
+     "line": 353
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_parameter_dependency.cpp",
+     "name": "ContrastEnhance_EveryParameterReachesTheOutput",
+     "quote": "EXPECT_GT(MaxDiff(base, clip), kMeaningful) << \"clip_limit does not reach the output\";",
+     "line": 212
+    }
+   ],
+   "note": "Weak but real oracles: any contrast stretch gives >=1.2x std on a 495..505 ramp. The properties test (in-range, monotone within a tile, bit determinism) is independent of the implementation."
+  },
+  {
+   "id": "REQ-ENH-014",
+   "verdict": "constant_only",
+   "impl": "modules/enhance_basic/src/contrast_enhance.cpp:141-146",
+   "independence": "none",
+   "unasserted": "the default values clip_limit=3.0, tile 8x8 are not asserted: the only NULL-params calls use a flat image (returns at contrast_enhance.cpp:195 before tiles are used) or only check \"not INVALID_INPUT\"",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "NullParams_UsesDefaults_ReturnsOk",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_contrast_enhance(&img, nullptr));",
+     "line": 79
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_empty_image_contract.cpp",
+     "name": "ValidImageStillAccepted",
+     "quote": "EXPECT_NE(XPE_ERR_INVALID_INPUT, ep.fn(&img))",
+     "line": 148
+    }
+   ],
+   "note": "Passing NULL on a flat 64x64 image returns XPE_OK whatever the defaults are. A 15-pixel-wide image with NULL params (must be INVALID if tile_width=8) would pin the default; absent."
+  },
+  {
+   "id": "REQ-ENH-015",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/contrast_enhance.cpp:150",
+   "independence": "literal return code (0.5 < 1.0)",
+   "unasserted": "boundary clip_limit == 1.0 accepted; not-modified",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "ClipLimitBelow1_ReturnsInvalidInput",
+     "quote": "params.clip_limit = 0.5f;",
+     "line": 87
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exception_guard.cpp",
+     "name": "ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes",
+     "quote": "TEST(ExceptionGuard, ContrastEnhanceRefusesANonFiniteClipLimitAndAcceptsLargeFiniteOnes)",
+     "line": 591
+    }
+   ],
+   "note": "One invalid value (0.5) (then EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_contrast_enhance(&img, &params))) while valid values (3.0) are accepted elsewhere; discriminating enough but exact boundary untested."
+  },
+  {
+   "id": "REQ-ENH-016",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/contrast_enhance.cpp:153",
+   "independence": "literal return codes",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "TileWidthBelow2_ReturnsInvalidInput",
+     "quote": "params.tile_width = 1;",
+     "line": 99
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "TileHeightBelow2_ReturnsInvalidInput",
+     "quote": "params.tile_height = 1;",
+     "line": 111
+    }
+   ],
+   "note": "Both axes asserted with value 1. Code adds an extra rejection (image smaller than 2x tile grid, contrast_enhance.cpp:165) that the SPEC wording does not list; that one is also asserted (ImageSmallerThanTileGrid_ReturnsInvalidInput)."
+  },
+  {
+   "id": "REQ-ENH-017",
+   "verdict": "constant_only",
+   "impl": "modules/enhance_basic/src/contrast_enhance.cpp:195",
+   "independence": "numeric budget 50 ms",
+   "unasserted": "the budget test runs on a FLAT 500.0 image, which xpe_contrast_enhance answers at contrast_enhance.cpp:195 (val_range <= 0 -> return XPE_OK) before building any tile LUT; the real 3072x3072 workload is measured only by a measure-only benchmark with no assertion",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "Performance_3072x3072_Within50ms",
+     "quote": "EXPECT_LE(ms, 50) << \"CLAHE 3072x3072 took \" << ms << \"ms, budget 50ms\";",
+     "line": 204
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "Performance_3072x3072_Within50ms",
+     "quote": "auto img = make_f32(3072, 3072, 500.0f);",
+     "line": 194
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_contrast_enhance.cpp",
+     "name": "BenchmarkFreeze_Performance_REQ_ENH_017_Clahe3072",
+     "quote": "perf_measure::Measure(\"REQ-ENH-017/xpe_contrast_enhance\", \"3072x3072\", reset,",
+     "line": 228
+    }
+   ],
+   "note": "The only assertion of the 50 ms budget measures the flat-image shortcut. Not in CI either."
+  },
+  {
+   "id": "REQ-ENH-018",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/edge_enhance.cpp:204-216",
+   "independence": "none for the formula; zero/flat cases are trivially independent",
+   "unasserted": "the formula output[i] = input + amount*(input - blur) is never compared to an expected value; the \"only where |diff| >= threshold\" branch is checked only on a perfectly flat image (diff 0) and by \"threshold changes the output\"",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "ThresholdGating_FlatRegion_Unchanged",
+     "quote": "EXPECT_NEAR(500.0f, px[i], 0.1f) << \"flat pixel \" << i << \" changed by USM\";",
+     "line": 185
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "ZeroAmount_ImageUnchanged",
+     "quote": "EXPECT_FLOAT_EQ(orig[i], px[i]) << \"pixel \" << i << \" changed with amount=0\";",
+     "line": 134
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_parameter_dependency.cpp",
+     "name": "EdgeEnhance_EveryParameterReachesTheOutput",
+     "quote": "EXPECT_GT(MaxDiff(base, amount), kMeaningful) << \"amount does not reach the output\";",
+     "line": 237
+    }
+   ],
+   "note": "No test would notice the code replacing amount*diff by a constant step (see defect candidate on the clamp at edge_enhance.cpp:164/211-214)."
+  },
+  {
+   "id": "REQ-ENH-019",
+   "verdict": "constant_only",
+   "impl": "modules/enhance_basic/src/edge_enhance.cpp:71-76",
+   "independence": "none",
+   "unasserted": "defaults amount=0.5, radius=2.0, threshold=10.0 not asserted: NULL params call is on a flat 500 image and only checks XPE_OK",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "NullParams_UsesDefaults_ReturnsOk",
+     "quote": "EXPECT_EQ(XPE_OK, xpe_edge_enhance(&img, nullptr));",
+     "line": 56
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_empty_image_contract.cpp",
+     "name": "ValidImageStillAccepted",
+     "quote": "EXPECT_NE(XPE_ERR_INVALID_INPUT, ep.fn(&img))",
+     "line": 148
+    }
+   ],
+   "note": "A structured image run with NULL vs explicit {0.5,2,10} compared bitwise would pin the defaults; absent."
+  },
+  {
+   "id": "REQ-ENH-020",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/edge_enhance.cpp:83-85",
+   "independence": "literal return codes",
+   "unasserted": "exact boundary values (0.0, 5.0, 0.5, 10.0 accepted) not asserted",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "AmountTooLarge_ReturnsInvalidInput",
+     "quote": "params.amount = 6.0f;",
+     "line": 64
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "AmountNegative_ReturnsInvalidInput",
+     "quote": "params.amount = -0.1f;",
+     "line": 75
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "RadiusTooSmall_ReturnsInvalidInput",
+     "quote": "params.radius = 0.1f;",
+     "line": 87
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "NegativeThreshold_ReturnsInvalidInput",
+     "quote": "params.threshold = -1.0f;",
+     "line": 110
+    }
+   ],
+   "note": "All five out-of-range arms covered (amount low/high, radius low/high, threshold negative); each test ends with EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_edge_enhance(&img, &params))."
+  },
+  {
+   "id": "REQ-ENH-021",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/edge_enhance.cpp:164,211-214",
+   "independence": "bound formula written in the test from the SPEC text",
+   "unasserted": "only the upper bound is asserted and it is looser than what the code enforces; the code clamps to orig +/- amount*threshold (both sides), not to max(orig*2, orig+amount*threshold); no lower bound; a 1-row image only; no test shows the clamp is ever active",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "OvershootClamp_NeverExceedsBound",
+     "quote": "float bound = std::max(orig[i] * 2.0f, orig[i] + params.amount * params.threshold);",
+     "line": 162
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "OvershootClamp_NeverExceedsBound",
+     "quote": "EXPECT_LE(px[i], bound + 0.01f)",
+     "line": 163
+    }
+   ],
+   "note": "The assertion passes for a no-op as well as for the implementation. See defect candidates: the implemented clamp differs from the SPEC wording and makes the sharpening a fixed +/- amount*threshold step."
+  },
+  {
+   "id": "REQ-ENH-022",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/edge_enhance.cpp:179-229",
+   "independence": "numeric budget 20 ms",
+   "unasserted": "one timed sample on a constant 500.0 image (real work is done, no flat shortcut); not run in CI (ci.yml:318 excludes Within..ms; ci.yml:377 comment records a 28 ms failure on a runner)",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "Performance_3072x3072_Within20ms",
+     "quote": "EXPECT_LE(ms, 20) << \"USM 3072x3072 took \" << ms << \"ms, budget 20ms\";",
+     "line": 202
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_edge_enhance.cpp",
+     "name": "BenchmarkFreeze_Performance_REQ_ENH_022_Usm3072",
+     "quote": "perf_measure::Measure(\"REQ-ENH-022/xpe_edge_enhance\", \"3072x3072\", reset,",
+     "line": 226
+    }
+   ],
+   "note": "Budget asserted at the right size, local only."
+  },
+  {
+   "id": "REQ-ENH-023",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:130-132",
+   "independence": "test-side formula K_CAL*(mean/S0) and a literal EI of 100 at fill 1000; the constants K_cal=100 and S0=1000 are copied from the code (\"Must match the EIT table in exposure_index.cpp\")",
+   "unasserted": "\"mean_pixel_value\" is never exercised on a non-uniform image: every EI fixture is a uniform fill, so mean vs median vs first pixel are indistinguishable; S0 value has no source outside the code",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "KnownPhantom_EI_MatchesReference",
+     "quote": "EXPECT_NEAR(expected_EI, outEI, expected_EI * 0.001f)",
+     "line": 168
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_EiIsIndependentOfTheTarget_154",
+     "quote": "EXPECT_FLOAT_EQ(chest.ei, skull.ei)",
+     "line": 89
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_EiIsIndependentOfTheTarget_154",
+     "quote": "EXPECT_FLOAT_EQ(100.0f, chest.ei);",
+     "line": 93
+    }
+   ],
+   "note": "EIT-independence of EI is asserted well (CHEST vs SKULL equal, literal 100). Mean computation is untested on structured data."
+  },
+  {
+   "id": "REQ-ENH-023a",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:130",
+   "independence": "literal 100.0f at fill == S0 (1000)",
+   "unasserted": "the \"SHALL NOT claim IEC-conformant absolute magnitude\" clause is a documentation obligation, not testable behaviour here",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_EiIsIndependentOfTheTarget_154",
+     "quote": "EXPECT_FLOAT_EQ(100.0f, chest.ei);",
+     "line": 93
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_EiIsIndependentOfTheTarget_154",
+     "quote": "EXPECT_FLOAT_EQ(100.0f, skull.ei);",
+     "line": 94
+    }
+   ],
+   "note": "EI=100 at the reference signal pins both K_cal=100 and S0=1000 together."
+  },
+  {
+   "id": "REQ-ENH-024",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:136",
+   "independence": "separate reference expression written in the test with literal EIT (200) and K_cal; plus differences derived from table ratios",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_DiSeparatesBodyPartsByTheTableRatio_154",
+     "quote": "EXPECT_NEAR(10.0f * std::log10(100.0f * (1234.0f / 1000.0f) / 200.0f),",
+     "line": 123
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_EveryTableEntryReachesDi_154",
+     "quote": "EXPECT_NEAR(10.0f * std::log10(2.0f), brighter.di - ref.di, 1e-4f)",
+     "line": 287
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "KnownPhantom_DI_MatchesReference",
+     "quote": "EXPECT_NEAR(expected_DI, outDI, 0.001f)",
+     "line": 183
+    }
+   ],
+   "note": "Strongest-asserted requirement of the module: dose axis (+3.01 dB per doubling) and table axis are both checked against hand expressions. Fixtures are uniform images."
+  },
+  {
+   "id": "REQ-ENH-025",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:24-56,100",
+   "independence": "literal table values copied from the code (the SPEC lists no EIT values, so no independent source exists); ratios derived by 10*log10(EIT_b/EIT_a)",
+   "unasserted": "case-insensitive matching (the code uppercases both sides) is never exercised: no lowercase/mixed-case body part in any test; table values themselves are mirrored, so a wrong value in both code and tests is undetected",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_EveryTableEntryReachesDi_154",
+     "quote": "{\"SKULL\",   320.0f},",
+     "line": 259
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_EveryTableEntryReachesDi_154",
+     "quote": "const float expected = 10.0f * std::log10(entries[0].eit / e.eit);",
+     "line": 272
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "UnknownBodyPart_UsesDefault",
+     "quote": "EXPECT_NEAR(ExpectedDI(mean, EIT_DEFAULT), outDI, 0.001f)",
+     "line": 248
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_DiSpreadsAcrossEveryBodyPart_154",
+     "quote": "\"\",                  // empty   -> default 200",
+     "line": 155
+    }
+   ],
+   "note": "All seven entries, unknown and empty bodyPart are asserted. Matching rule beyond exact upper-case spelling is not."
+  },
+  {
+   "id": "REQ-ENH-026",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:142-147",
+   "independence": "literal threshold 3 dB and a mean chosen to exceed it",
+   "unasserted": "the DI < -3 side never asserts an alert (KnownPhantom tests give DI=-6.02 and post an alert nobody checks); exact boundary +/-3.0 untested; alert message text not checked",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "DIOutOfRange_PostsAlert",
+     "quote": "EXPECT_GT(xpe_get_pending_alert_count(), 0) << \"Expected WARNING alert for DI=\" << outDI;",
+     "line": 205
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "DIOutOfRange_PostsAlert",
+     "quote": "EXPECT_EQ(XPE_ALERT_WARNING, severity);",
+     "line": 212
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "DIInRange_NoAlert",
+     "quote": "EXPECT_EQ(0, xpe_get_pending_alert_count()) << \"No alert expected for DI=\" << outDI;",
+     "line": 230
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index_contract.cpp",
+     "name": "Stage2_TheAlertThresholdSeparatesBodyParts_154",
+     "quote": "EXPECT_EQ(2, alerted)",
+     "line": 236
+    }
+   ],
+   "note": "Positive side, severity and the no-alert side are asserted; negative-DI alert is not."
+  },
+  {
+   "id": "REQ-ENH-027",
+   "verdict": "asserted",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:70-72",
+   "independence": "literal return codes",
+   "unasserted": "",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "NullImg_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calc_exposure_index(nullptr, &meta, &outEI, &outDI));",
+     "line": 86
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "NullMeta_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calc_exposure_index(&img, nullptr, &outEI, &outDI));",
+     "line": 93
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "NullOutEI_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calc_exposure_index(&img, &meta, nullptr, &outDI));",
+     "line": 102
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "NullOutDI_ReturnsInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calc_exposure_index(&img, &meta, &outEI, nullptr));",
+     "line": 111
+    }
+   ],
+   "note": "All four NULL arguments covered."
+  },
+  {
+   "id": "REQ-ENH-028",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:75-77",
+   "independence": "literal return codes",
+   "unasserted": "\"without computing EI/DI\": outEI/outDI initialised to -1 in the tests but never compared after the call",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "EmptyImage_WidthZero_ReturnsInvalidInput",
+     "quote": "img.width = 0;",
+     "line": 118
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "EmptyImage_HeightZero_ReturnsInvalidInput",
+     "quote": "img.height = 0;",
+     "line": 135
+    }
+   ],
+   "note": "Both axes asserted for the return code (EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calc_exposure_index(&img, &meta, &outEI, &outDI)))."
+  },
+  {
+   "id": "REQ-ENH-029",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:82-90",
+   "independence": "test-side K_cal*(750/1000)",
+   "unasserted": "the only \"ROI sub-buffer\" case is a freshly allocated uniform 100x100 image, indistinguishable from a whole image of that size; no non-uniform ROI, no crop out of a larger buffer; the API has no stride so a sub-buffer must be contiguous (not stated in header)",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "ROISubBuffer_ComputesOnSubRegion",
+     "quote": "EXPECT_NEAR(expected_EI, outEI, expected_EI * 0.001f)",
+     "line": 264
+    }
+   ],
+   "note": "The requirement is satisfied by construction for any w*h contiguous buffer; the test would pass for a function that read the whole image."
+  },
+  {
+   "id": "REQ-ENH-030",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/exposure_index.cpp:93-97",
+   "independence": "literal 0.0 outputs and return code",
+   "unasserted": "negative mean (\"zero or negative\") is never tested; only an all-zero image",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "ZeroMeanImage_ReturnsProcessingFailed",
+     "quote": "EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, xpe_calc_exposure_index(&img, &meta, &outEI, &outDI));",
+     "line": 152
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "ZeroMeanImage_ReturnsProcessingFailed",
+     "quote": "EXPECT_FLOAT_EQ(0.0f, outEI);",
+     "line": 153
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_exposure_index.cpp",
+     "name": "ZeroMeanImage_ReturnsProcessingFailed",
+     "quote": "EXPECT_FLOAT_EQ(0.0f, outDI);",
+     "line": 154
+    }
+   ],
+   "note": "Outputs were preset to -1, so the zeroing is discriminating for the tested case."
+  },
+  {
+   "id": "REQ-ENH-CC-001",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h:33",
+   "independence": "struct-size bounds written in the test",
+   "unasserted": "__cdecl is not asserted; \"7 API functions\" (the header says 8 and the DLL exports 10) not asserted; blittable parameter types and field offsets not asserted; struct sizes only bounded (24..32, 12..16)",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "StructSizes_PInvokeCompatible",
+     "quote": "EXPECT_LE(sizeof(XpeNoiseReduceParams), 32u)",
+     "line": 140
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "Version_ReturnsNonNull",
+     "quote": "ASSERT_NE(nullptr, ver);",
+     "line": 314
+    }
+   ],
+   "note": "Linking the test exe against the DLL through the extern \"C\" header and calling all seven functions is the implicit evidence of C linkage; no test inspects exports (dumpbin) or offsets. C# P/Invoke tests live outside this module."
+  },
+  {
+   "id": "REQ-ENH-CC-002",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_internal.h:96,109",
+   "independence": "literal return codes",
+   "unasserted": "the second condition \"format != XPE_PIXEL_FLOAT32 -> XPE_ERR_INVALID_INPUT\" is not tested at all (no test passes a non-FLOAT32 image) and the code answers XPE_ERR_UNSUPPORTED_FORMAT, not INVALID_INPUT",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "AllFunctions_NullImg_ReturnInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calc_exposure_index(nullptr, &meta, &outEI, &outDI));",
+     "line": 89
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "AllFunctions_NullImg_ReturnInvalidInput",
+     "quote": "EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_noise_estimate_sigma(nullptr, &sigma));",
+     "line": 69
+    }
+   ],
+   "note": "NULL img asserted for all seven; format half is untested and the implementation deviates from the SPEC wording."
+  },
+  {
+   "id": "REQ-ENH-CC-003",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/log_transform.cpp:39-42 (in place); noise_reduce.cpp:106-108,250; contrast_enhance.cpp:209,230",
+   "independence": "CRT heap block/byte counts after N cycles, with a positive control that injects 64 B/cycle",
+   "unasserted": "the heap tests run xpe_log_transform and the bilateral/CLAHE/USM triple on a FLAT 64x64 image: CLAHE returns at the flat check before allocating tiles, so its allocations are never counted; NLM, log_inverse, noise_estimate_sigma, EI not in any heap test; skipped on non-Windows",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "NoHeapLeak_1000Iterations_AllocatingPaths",
+     "quote": "EXPECT_LT(g.heap.blocks, heap_growth::MaxBlocks(g.cycles))",
+     "line": 292
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "NoHeapLeak_AllocatingPaths_ControlLeakIsCaught",
+     "quote": "EXPECT_GE(g.heap.blocks, g.cycles * 9 / 10);",
+     "line": 307
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "NoHeapLeak_1000Iterations",
+     "quote": "EXPECT_LT(g.heap.bytes, heap_growth::kMaxBytes)",
+     "line": 242
+    }
+   ],
+   "note": "The measurement has a working positive control, which is good; its coverage of the allocating functions is incomplete because of the flat fixture."
+  },
+  {
+   "id": "REQ-ENH-CC-004",
+   "verdict": "partial",
+   "impl": "modules/enhance_basic/src/enhance_basic.cpp:11 (g_maxThreads)",
+   "independence": "a serial run of the same code is the reference (not independent)",
+   "unasserted": "only xpe_noise_reduce (bilateral) is exercised concurrently, with 2 threads on 128x128; the other six functions are untested for concurrency; the module HAS a global mutable (atomic) g_maxThreads, which the wording \"No global mutable state is permitted\" forbids",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "ThreadSafety_ConcurrentBilateral",
+     "quote": "EXPECT_FLOAT_EQ(ref_px[i], px1[i]) << \"Thread 1 diverged at pixel \" << i;",
+     "line": 205
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_thread_determinism.cpp",
+     "name": "BilateralIsBitIdenticalForEveryThreadCount",
+     "quote": "EXPECT_EQ(std::memcmp(got.data(), one.data(), one.size() * sizeof(float)), 0)",
+     "line": 62
+    }
+   ],
+   "note": "Race detection by comparison with own serial output; legitimate for the property but narrow, and the global setter added by #179 contradicts the SPEC sentence."
+  },
+  {
+   "id": "REQ-ENH-CC-005",
+   "verdict": "partial",
+   "impl": "n/a (aggregate of the five stages)",
+   "independence": "numeric budget 200 ms",
+   "unasserted": "run on a constant 500.0 image (after log+bilateral the image may still be flat, in which case the CLAHE stage takes the flat shortcut); single sample; not run in CI (name matches Within[0-9]+ms excluded at ci.yml:318); the pipeline order differs from the wording (EI first)",
+   "tests": [
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "FullPipeline_3072x3072_Within200ms",
+     "quote": "EXPECT_LE(ms, 200) << \"Full pipeline took \" << ms << \"ms, budget 200ms\";",
+     "line": 128
+    },
+    {
+     "file": "modules/enhance_basic/tests/test_enhance_integration.cpp",
+     "name": "FullPipeline_3072x3072_Within200ms",
+     "quote": "auto img = make_f32(3072, 3072, 500.0f);",
+     "line": 94
+    }
+   ],
+   "note": "Budget asserted at the right size locally; the input is the weakest possible workload."
+  }
+ ],
+ "header_promises": [
+  {
+   "where": "modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h:243",
+   "quote": "EI = EIT * (mean_pixel_value / S0_reference)",
+   "actual": "exposure_index.cpp:132 computes EI = K_CAL_DEFAULT * (mean / S0_REFERENCE); EIT does not enter EI (REQ-ENH-023 as corrected by #154). The header still carries the pre-#154 formula the SPEC calls an error."
+  },
+  {
+   "where": "modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h:8",
+   "quote": "Provides 8 exported C API functions",
+   "actual": "the header declares 10 XPE_API functions (version, set_max_threads, get_max_threads, log_transform, log_inverse, noise_reduce, noise_estimate_sigma, contrast_enhance, edge_enhance, calc_exposure_index); the SPEC (REQ-ENH-CC-001) says 7."
+  },
+  {
+   "where": "modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h:99",
+   "quote": "Set how many threads the per-pixel passes of this module may use.",
+   "actual": "only the bilateral filter reads the setting (noise_reduce.cpp:245,251); log, inverse, NLM, CLAHE, USM and EI never call ResolveThreads/ForRows, so the setting has no effect on them. The \"OUTPUT IS IDENTICAL for any thread count\" test covers bilateral only."
+  },
+  {
+   "where": "modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_api.h:136",
+   "quote": "@return XPE_OK on success; XPE_ERR_INVALID_INPUT if normFactor <= 0, img or",
+   "actual": "log_transform.cpp:35-37 and 71-73 also return XPE_ERR_INVALID_INPUT (and write nothing) for a non-finite pixel, a non-finite normFactor, or a request whose result would overflow float (e.g. pixel > ~38 at normFactor 1 in the inverse); not documented. The same omission holds for noise_reduce.cpp:223-226,281-284 and edge_enhance.cpp:148-150 (peak-based refusals)."
+  }
+ ],
+ "defect_candidates": [
+  {
+   "spec": "REQ-ENH-021 / REQ-ENH-018",
+   "code": "modules/enhance_basic/src/edge_enhance.cpp:164,211-215",
+   "why": "CANDIDATE (reading only, not executed). max_add = amount*threshold and the clamp is orig +/- max_add on both sides. Pixels are processed only when |diff| >= threshold, so amount*|diff| >= amount*threshold = max_add and the clamp is always the binding term: every gated pixel becomes orig +/- amount*threshold, never orig + amount*diff. threshold = 0 (valid per REQ-ENH-020) gives max_add 0 and USM becomes a no-op for any amount. SPEC REQ-ENH-021 says the clamp is max(orig*2.0, orig + amount*threshold), an upper bound only. The weak test (upper bound only) cannot see this."
+  },
+  {
+   "spec": "REQ-ENH-CC-002",
+   "code": "modules/enhance_basic/include/xpe/enhance_basic/enhance_basic_internal.h:109",
+   "why": "CANDIDATE. SPEC: image with format != FLOAT32 -> XPE_ERR_INVALID_INPUT. Code: XPE_ERR_UNSUPPORTED_FORMAT (header documents this too). No test checks the format branch."
+  },
+  {
+   "spec": "REQ-ENH-013",
+   "code": "modules/enhance_basic/src/contrast_enhance.cpp:61,113,222-245",
+   "why": "CANDIDATE. Classic CLAHE interpolates LUTs between tiles; this code uses nearest-tile assignment (comment at :222-229 states it is deliberate), so tile-boundary discontinuities appear. A flat tile maps every pixel to 0.5 of the GLOBAL range (val_min + 0.5*val_range), so a uniform region of an image with high dynamic range is moved to mid-scale regardless of its own value. No test uses a mixed flat/structured image."
+  },
+  {
+   "spec": "REQ-ENH-011",
+   "code": "modules/enhance_basic/src/noise_reduce.cpp:410-448",
+   "why": "CANDIDATE (low). Sigma is taken from a centre ROI of 10% of min(w,h) and the median uses the upper middle element for even counts; the SPEC says MAD(pixel_values) \"on a uniform ROI\" (line 182) without defining the ROI. A centre ROI of anatomy is not uniform, which inflates MAD. For tiny images roi_side collapses to 1 and sigma is 0."
+  },
+  {
+   "spec": "REQ-ENH-030 / REQ-ENH-023",
+   "code": "modules/enhance_basic/src/exposure_index.cpp:87-97",
+   "why": "CANDIDATE. No finite check on pixels: a NaN pixel gives mean NaN, `mean <= 0.0f` is false for NaN under /fp:precise (the same hazard the module documents at noise_reduce.cpp:366-369), so EI/DI would be NaN with XPE_OK; an inf pixel gives EI/DI inf and an alert. Every other entry point refuses non-finite input (xpe_scan_finite); EI is the exception and no test covers it."
+  },
+  {
+   "spec": "REQ-ENH-CC-004",
+   "code": "modules/enhance_basic/src/enhance_basic.cpp:11",
+   "why": "CANDIDATE. SPEC: \"No global mutable state is permitted\"; the module has a process-wide std::atomic<int> g_maxThreads with a public setter (#179). Also xpe_alert_push in xpe_common keeps a global queue."
+  },
+  {
+   "spec": "REQ-ENH-007",
+   "code": "modules/enhance_basic/src/noise_reduce.cpp:17-19,211-218",
+   "why": "CANDIDATE (low). The filter is a separable horizontal-then-vertical approximation (not a 2D bilateral), truncated at 2 sigma and capped at radius 15 and at min(w,h)/2-1, so sigma_space above ~7.5 is not honoured as specified (\"with the specified sigma_space\")."
+  },
+  {
+   "spec": "REQ-ENH-016 / REQ-ENH-014",
+   "code": "modules/enhance_basic/src/contrast_enhance.cpp:165-168",
+   "why": "CANDIDATE (spec gap, low). Code additionally rejects images smaller than 2x tile grid; with params == NULL the defaults (8x8) make any image narrower than 16 px INVALID_INPUT although REQ-ENH-014 says NULL means use defaults. Documented in the header, absent from the SPEC."
+  }
+ ],
+ "orphan_tests": [
+  {
+   "file": "test_datasize_guard.cpp",
+   "what": "#123 dataSize consistency: short buffer rejected, zero accepted, oversize accepted (not an ENH requirement)"
+  },
+  {
+   "file": "test_datasize_overread.cpp",
+   "what": "short dataSize rejected without reading past the buffer (guard-page probe)"
+  },
+  {
+   "file": "test_exception_guard.cpp",
+   "what": "QA-B-181 hardening: exceptions to error codes, int-overflow tile maths, ceil_div/tile_bounds helper properties, NaN parameters; also holds the only CLAHE property test cited under REQ-ENH-013"
+  },
+  {
+   "file": "test_nonfinite_pixels.cpp",
+   "what": "QA-B-181f/g refusal of non-finite pixels and float-overflow requests, input left untouched (extra behaviour beyond the SPEC)"
+  },
+  {
+   "file": "test_empty_image_contract.cpp",
+   "what": "#142 zero-width/height/NULL data across all seven entry points; supports REQ-ENH-028 and CC-002 partially"
+  },
+  {
+   "file": "test_thread_determinism.cpp",
+   "what": "#179 bilateral bit-identical for 1..8 threads and setter semantics (set_max_threads is outside the SPEC)"
+  },
+  {
+   "file": "test_parameter_dependency.cpp",
+   "what": "#155 each parameter changes the output by >1e-4 (cited under 007/008/013/018 as a weak oracle)"
+  },
+  {
+   "file": "heap_growth.h / perf_budget.h / perf_measure.h",
+   "what": "helpers, no tests"
+  }
+ ],
+ "notes": [
+  "Perf budgets: ENH-006/012/017/022 and CC-005 tests have \"Performance\" or \"Within<N>ms\" in their names; ci.yml:318 runs ctest -E \"Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance\" and ci.yml:380 uses --gtest_filter=-*Performance*:*Within*ms*, so none of these budgets is enforced in CI. Locally they run in a plain ctest (gtest_discover_tests at CMakeLists.txt:148, no env gate). They are single-sample wall-clock checks (std::chrono::high_resolution_clock), unlike perf_budget.h which takes a median of 5; the EI BP08/BP09 tests (25 ms at 512x512, not in the SPEC) do use perf_budget.h and are gates via benchmark-regression.yml:68.",
+  "ENH-017 is asserted only against a FLAT 500.0 image, which hits the early return at contrast_enhance.cpp:195; ENH-014/019 NULL-params tests, the full-pipeline test and the allocating-path heap test also use flat 500.0 images, so CLAHE does no tile work in them.",
+  "ENH-012 is asserted at 512x512 (flat), not 3072x3072; the 3072 benchmark is measure-only (perf_measure.h Measure asserts nothing about time).",
+  "All EI/DI fixtures are uniform fills, so the mean computation, ROI semantics and rounding of a real image are untested; test constants S0=1000, K_cal=100 and the EIT table are copies of the code constants (test_exposure_index.cpp line 23 says \"Must match the EIT table in exposure_index.cpp\"), the SPEC lists no EIT or S0 values.",
+  "NLM_EvenWindowSize_HandledGracefully accepts either XPE_OK or XPE_ERR_INVALID_INPUT (test_noise_reduce.cpp:185): a tautology for the two possible outcomes; the code always returns INVALID_INPUT (noise_reduce.cpp:378).",
+  "Tolerance looseness: sigma estimate +/-10% and +/-20%; SNR gains 3 and 6 dB; CLAHE contrast 1.2x; flat-image checks +/-1.0 on 500 (test_noise_reduce.cpp:85). None of these separates a correct filter from a plain blur or contrast stretch.",
+  "The round-trip tests (RoundTrip_RestoresWithin1e4RelativeError, Log_Roundtrip_512_PSNR_Above_60dB, AC-01) compare forward-then-inverse of the same module and are self-referential; they were not counted as evidence for REQ-ENH-001/004.",
+  "No test passes a non-FLOAT32 image, so the UNSUPPORTED_FORMAT branch (enhance_basic_internal.h:109) is untested although the header documents it. NoHeapLeak tests self-skip on non-Windows (GTEST_SKIP) - they run on the Windows CI runner.",
+  "KnownPhantom_EI/DI use mean 500 which gives DI=-6.02 (outside +/-3): an alert is pushed that no test checks. Alert-count tests call xpe_clear_alerts first, so ordering is handled.",
+  "Ids cited in file headers and comments (e.g. test_enh01_log_noise.cpp cites REQ-ENH-007 and 011) were not used as evidence; only assertions were."
+ ]
+}

@@ -1,0 +1,12 @@
+== grep: the old claim (a sigma_space above 7.5 behaved like 7.5 / the old effect is kept) in gui-owned paths + lane-gui reports
+-- control (must be >0): the new correct sentence is found
+clients/ImageProcTest.IntegrationTests/Functional/EnhanceBasicInputLimitsTests.cs:2
+clients/ImageProcTest/Services/EnhanceBasicInputLimits.cs:1
+-- old-claim patterns (empty = none):
+clients/ImageProcTest.IntegrationTests/Functional/EnhanceBasicInputLimitsTests.cs:153:        Assert.DoesNotContain("behave like 7.5", comment);
+clients/ImageProcTest.IntegrationTests/Functional/EnhanceBasicInputLimitsTests.cs:154:        Assert.DoesNotContain("keeps what such an input did", comment);
+clients/ImageProcTest/Services/EnhanceBasicInputLimits.cs:15:    /// <para><b>What a larger value used to do.</b> Not "the same as 7.5": above 7.5 only the radius stays at 15, while the weight <c>exp(-0.5 d^2 / sigma^2)</c> keeps
+-- radius-cap / sigma_space claims elsewhere in gui-owned code comments (for review):
+clients/ImageProcTest/Services/EnhanceBasicInputLimits.cs:9:    /// <para><b>SigmaSpaceMax.</b> The bilateral filter's spatial sigma is limited to 7.5: the module truncates the kernel at 2 sigma and c
+clients/ImageProcTest/Services/EnhanceBasicInputLimits.cs:10:    /// so 7.5 is the largest sigma whose 2-sigma range still fits whole inside the radius cap (REQ-ENH-007/020, user decision 2026-10-03 a
+(end)

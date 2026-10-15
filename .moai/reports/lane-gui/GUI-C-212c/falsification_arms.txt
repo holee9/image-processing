@@ -1,0 +1,168 @@
+# GUI-C-212c falsification arms (each changes ONE thing, rebuilds, runs the tests that guard it, restores byte-identical)
+
+## arm 1a: the parent ignores the child's exit code
+build ok: True
+exit=1; 2 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ACrashAfterAGoodLine_IsAFailure_BecauseTheExitCodeIsNotZero
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ARealChildThatPrintsAGoodLine_ButExitsWithOne_IsAFailure
+restored byte-identical: True
+
+## arm 1b: more than one result line is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.TwoResultLines_AreAmbiguous_AndFail
+restored byte-identical: True
+
+## arm 1c: missing required fields are not checked
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.AResultThatSaysOnlyPassedTrue_IsInvalid_BecauseRequiredFieldsAreMissi
+restored byte-identical: True
+
+## arm 1d: the success invariants are not checked
+build ok: True
+exit=1; 17 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 0)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 15)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 5)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 7)
+restored byte-identical: True
+
+## arm 1e: Passed without Executed is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 0)
+restored byte-identical: True
+
+## arm 1f: a Passed result with another status is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 1)
+restored byte-identical: True
+
+## arm 1g: stages in another order or a missing stage are accepted
+build ok: True
+exit=1; 3 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 5)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 4)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 6)
+restored byte-identical: True
+
+## arm 1h: a stage with an error code is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 3)
+restored byte-identical: True
+
+## arm 1i: a stage that did not pass is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 2)
+restored byte-identical: True
+
+## arm 1j: a non-finite stage measurement is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 16)
+restored byte-identical: True
+
+## arm 1k: an input that was not preserved is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 7)
+restored byte-identical: True
+
+## arm 1l: a changed input hash is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 8)
+restored byte-identical: True
+
+## arm 1m: a missing output hash is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 10)
+restored byte-identical: True
+
+## arm 1n: non-finite output values are accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 11)
+restored byte-identical: True
+
+## arm 1o: runs that differ are accepted
+build ok: True
+exit=1; 2 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 13)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 12)
+restored byte-identical: True
+
+## arm 1p: an output with no range is accepted
+build ok: True
+exit=1; 2 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 15)
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.ASelfContradictoryPass_IsInvalid(index: 14)
+restored byte-identical: True
+
+## arm 2a: the child is not assigned to the job
+build ok: True
+exit=1; 1 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.TheHostsChild_IsInAKillOnCloseJob_SoClosingItEndsTheChildAtOnce
+restored byte-identical: True
+
+## arm 2b: the job is not kill-on-close
+build ok: True
+exit=1; 2 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.TheHostsChild_IsInAKillOnCloseJob_SoClosingItEndsTheChildAtOnce
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.AChildInTheJob_DiesWhenTheJobHandleCloses_AndOneNotInTheJobDoesNot
+restored byte-identical: True
+
+## arm 2c: killing the child does nothing
+build ok: True
+exit=1; 2 red of 89
+   RED     Diagnostics.PreprocessSyntheticOracleProtocolTests.AHookThatThrows_StillEndsTheChild_AndSaysSo
+   RED     Diagnostics.PreprocessSyntheticOracleProcessTests.AChildThatNeverAnswers_IsKilled_AndReportedAsATimeout
+restored byte-identical: True
+
+## arm 3a: CharSet.Auto is accepted for a const char*
+build ok: True
+exit=1; 1 red of 89
+   RED     Functional.ModuleSignatureParityControlTests.Control_AConstCharPointerBoundWithCharSetAuto_IsReported_ButAnsiWithoutMars
+restored byte-identical: True
+
+## arm 3b: by-value arrays are not checked at all
+build ok: True
+exit=1; 7 red of 89
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+restored byte-identical: True
+
+## arm 3c: the array element kind is not compared
+build ok: True
+exit=1; 2 red of 89
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+restored byte-identical: True
+
+## arm 3d: the array element count is not compared
+build ok: True
+exit=1; 2 red of 89
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+restored byte-identical: True
+
+## arm 3e: the array marshalling shape is not compared
+build ok: True
+exit=1; 1 red of 89
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+restored byte-identical: True
+
+## arm 3f: ByValTStr on a non-char array is accepted
+build ok: True
+exit=1; 1 red of 89
+   RED     Functional.ModuleSignatureParityControlTests.Control_AByValueArray_IsComparedByShapeElementKindAndCount_NotByTotalSizeAl
+restored byte-identical: True
+
+final rebuilds done

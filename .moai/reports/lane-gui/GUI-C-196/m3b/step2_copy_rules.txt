@@ -1,0 +1,33 @@
+=== RULE A-no-clobber  (43 dlls)
+    fmt.dll sha \9fa66b34b5b size 332800
+    spdlog.dll sha \7ac2b3005c0 size 1190912
+    xpe_common.dll sha \c31ce66dae8 size 245248
+    gtest.dll sha \2bda9d07637 size 1119232
+  통과 ImageProcTest.IntegrationTests.Functional.BaselineDicomNativeTests.TheExport_OnTheRealModule_IsValid_AndTheReadBackIsBitIdentical [36 ms]
+ SUMMARY: write ok; validator: valid; read back 128x96: pixels identical; metadata agrees (body part, kVp, pixel pitch)
+  통과 ImageProcTest.IntegrationTests.Functional.BaselineDicomNativeTests.TheSameImageWrittenTwice_GivesTheSameFileBytes_OrTheDifferenceIsNamed [19 ms]
+  -- Functional (whole):
+통과!  - 실패:     0, 통과:   475, 건너뜀:     1, 전체:   476, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)
+=== RULE B-overwrite-all  (43 dlls)
+    fmt.dll sha \e30b4389e7e size 121344
+    spdlog.dll sha \4dbb13a6e52 size 290304
+    xpe_common.dll sha \df1f3d4c6ca size 243712
+    gtest.dll sha \1dc207d4c75 size 454656
+[xUnit.net 00:00:00.18]       the staged DLLs could not be loaded: Unable to load DLL 'C:\Users\drake\AppData\Local\Temp\m3b\B-overwrite-all\xpe_dicom.dll' or one of its dependencies: 지정된 프로시저를 찾을 수 없습니다. (0x8007007F)
+[xUnit.net 00:00:00.19]       the staged DLLs could not be loaded: Unable to load DLL 'C:\Users\drake\AppData\Local\Temp\m3b\B-overwrite-all\xpe_dicom.dll' or one of its dependencies: 지정된 프로시저를 찾을 수 없습니다. (0x8007007F)
+  건너뜀 ImageProcTest.IntegrationTests.Functional.BaselineDicomNativeTests.TheExport_OnTheRealModule_IsValid_AndTheReadBackIsBitIdentical [16 ms]
+   the staged DLLs could not be loaded: Unable to load DLL 'C:\Users\drake\AppData\Local\Temp\m3b\B-overwrite-all\xpe_dicom.dll' or one of its dependencies: 지정된 프로시저를 찾을 수 없습니다. (0x8007007F)
+  건너뜀 ImageProcTest.IntegrationTests.Functional.BaselineDicomNativeTests.TheSameImageWrittenTwice_GivesTheSameFileBytes_OrTheDifferenceIsNamed [2 ms]
+   the staged DLLs could not be loaded: Unable to load DLL 'C:\Users\drake\AppData\Local\Temp\m3b\B-overwrite-all\xpe_dicom.dll' or one of its dependencies: 지정된 프로시저를 찾을 수 없습니다. (0x8007007F)
+  -- Functional (whole):
+통과!  - 실패:     0, 통과:   473, 건너뜀:     3, 전체:   476, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)
+=== RULE C-overwrite-dicom-only  (43 dlls)
+    fmt.dll sha \20e0c06d72b size 326144
+    spdlog.dll sha \beeb34f2456 size 1102336
+    xpe_common.dll sha \df1f3d4c6ca size 243712
+    gtest.dll sha \ee4a66d59a3 size 1037824
+  통과 ImageProcTest.IntegrationTests.Functional.BaselineDicomNativeTests.TheExport_OnTheRealModule_IsValid_AndTheReadBackIsBitIdentical [40 ms]
+ SUMMARY: write ok; validator: valid; read back 128x96: pixels identical; metadata agrees (body part, kVp, pixel pitch)
+  통과 ImageProcTest.IntegrationTests.Functional.BaselineDicomNativeTests.TheSameImageWrittenTwice_GivesTheSameFileBytes_OrTheDifferenceIsNamed [18 ms]
+  -- Functional (whole):
+통과!  - 실패:     0, 통과:   475, 건너뜀:     1, 전체:   476, 기간: 6 s - ImageProcTest.IntegrationTests.dll (net8.0)

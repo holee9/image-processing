@@ -8,7 +8,9 @@
  *   to avoid port conflicts in CI environments.
  */
 #include <gtest/gtest.h>
+#include "test_pid.h"
 #include "xpe/dicom/dicom_api.h"
+#include "xpe/common/xpe_error.h"
 #include "xpe/common/xpe_memory.h"
 #include <filesystem>
 #include <thread>
@@ -58,17 +60,15 @@ xpe_test::MockScpRunner DicomNetworkTest::s_scp;
 //    it. C-STORE over the same listener negotiates and completes, so the
 //    listener itself works -- the gap is specific to MWL negotiation.
 //
-//  * Cancel: the case assumes a transfer slow enough for a cancel issued 100 ms
-//    later to interrupt it. Against this loopback SCP the C-STORE finishes in
-//    about a millisecond, so the cancel always arrives after completion and the
-//    call returns XPE_OK. Asserting PROCESSING_FAILED here would be asserting a
-//    race, not a behaviour.
-static const char* const kCancelRaceUnobservable =
-    "C-STORE against the in-process SCP completes in ~1 ms, so a cancel issued "
-    "afterwards cannot interrupt it -- see QA-B-29 report";
+//  * Cancel (QA-B-200 M2a): against this loopback SCP a C-STORE finishes in about
+//    a millisecond, so a cancel issued 100 ms later always arrives after
+//    completion. The mock peer can now be told to wait (MockScp::storeDelayMs),
+//    which makes the transfer slow enough for the cancel to arrive during it --
+//    CancelCStore_TerminatesOperation uses that, and test_dicom_failure_paths.cpp
+//    holds the alert text and the cancel of a query.
 
 void DicomNetworkTest::SetUpTestSuite() {
-    s_tempDir = fs::temp_directory_path() / "xpe_dicom_network_test";
+    s_tempDir = fs::temp_directory_path() / ("xpe_dicom_network_test" + xpe_test::pid_suffix());
     fs::create_directories(s_tempDir);
 
     // Create test DICOM file
@@ -176,11 +176,10 @@ TEST_F(DicomNetworkTest, CFindTimeout_ReturnsNetworkFailed) {
 // ---------------------------------------------------------------------------
 TEST_F(DicomNetworkTest, CancelCStore_TerminatesOperation) {
     if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
-    GTEST_SKIP() << kCancelRaceUnobservable;
 
+    s_scp.scp().storeDelayMs = 1500;   // a peer that is slow in the middle of the transfer
     XpeErrorCode result = XPE_OK;
     std::thread storeThread([&]() {
-        // Send a large file to a slow server
         result = xpe_dicom_cstore("localhost", s_storePort, "TESTSCU",
                                    s_testDcm.string().c_str(), 10000);
     });
@@ -188,6 +187,8 @@ TEST_F(DicomNetworkTest, CancelCStore_TerminatesOperation) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     xpe_dicom_cancel();
     storeThread.join();
+    s_scp.scp().storeDelayMs = 0;
+    xpe_clear_alerts();
 
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, result)
         << "Cancelled C-STORE must return PROCESSING_FAILED";
@@ -316,6 +317,58 @@ TEST_F(DicomNetworkTest, CFindQueryWithNameAndAccession_ReturnsJsonArray) {
     auto j = json::parse(outJson);
     EXPECT_TRUE(j.is_array());
     EXPECT_EQ(3u, j.size());
+}
+
+// QA-B-209 C8 (#251): the SHAPE of the query. PS3.4 K.6.1 (Modality Worklist Information Model): the scheduling keys --
+// Modality (0008,0060), Scheduled Station AE Title (0040,0001), Scheduled Procedure Step Start Date (0040,0002) -- live
+// INSIDE the Scheduled Procedure Step Sequence (0040,0100), one item; the patient keys and Accession Number are top level.
+// The mock answers with a canned worklist whatever it is asked, so the captured identifier is what proves the shape.
+TEST_F(DicomNetworkTest, CFindQueryShape_SchedulingKeysAreInsideTheScheduledProcedureStepSequence) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    char outJson[4096] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_cfind_mwl(
+        "localhost", s_findPort, "TESTSCU",
+        R"({"PatientID":"MOCK-0001","AccessionNumber":"ACC-0001","Modality":"DX","ScheduledStationAETitle":"STATION1","ScheduledProcedureStepStartDate":"20260101-20261231"})",
+        outJson, sizeof(outJson), 5000));
+    DcmDataset q = s_scp.scp().lastFindQuery();
+
+    OFString v;
+    EXPECT_TRUE(q.findAndGetOFString(DCM_PatientID, v).good());
+    EXPECT_EQ("MOCK-0001", std::string(v.c_str()));
+    EXPECT_TRUE(q.findAndGetOFString(DCM_AccessionNumber, v).good());
+    EXPECT_EQ("ACC-0001", std::string(v.c_str())) << "AccessionNumber stays a top-level key (leader decision on #251)";
+    EXPECT_FALSE(q.tagExists(DCM_Modality)) << "Modality is a Scheduled Procedure Step attribute: not a top-level key";
+
+    DcmItem* sps = nullptr;
+    ASSERT_TRUE(q.findAndGetSequenceItem(DCM_ScheduledProcedureStepSequence, sps, 0).good())
+        << "no Scheduled Procedure Step Sequence (0040,0100) in the C-FIND identifier";
+    ASSERT_NE(nullptr, sps);
+    DcmSequenceOfItems* seq = nullptr;
+    ASSERT_TRUE(q.findAndGetElement(DCM_ScheduledProcedureStepSequence, reinterpret_cast<DcmElement*&>(seq)).good());
+    EXPECT_EQ(1u, seq->card()) << "exactly one sequence item";
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_Modality, v).good());
+    EXPECT_EQ("DX", std::string(v.c_str()));
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_ScheduledStationAETitle, v).good());
+    EXPECT_EQ("STATION1", std::string(v.c_str()));
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_ScheduledProcedureStepStartDate, v).good());
+    EXPECT_EQ("20260101-20261231", std::string(v.c_str())) << "a DICOM date RANGE is passed as given";
+}
+
+// Keys the caller does not give are universal-match (empty) keys, inside the sequence item for the scheduling ones.
+TEST_F(DicomNetworkTest, CFindQueryShape_AbsentSchedulingKeysAreUniversalMatchInsideTheItem) {
+    if (!s_serverAvailable) GTEST_SKIP() << "mock SCP unavailable: " << s_scpStartError;
+    char outJson[4096] = {};
+    ASSERT_EQ(XPE_OK, xpe_dicom_cfind_mwl("localhost", s_findPort, "TESTSCU", "{}", outJson, sizeof(outJson), 5000));
+    DcmDataset q = s_scp.scp().lastFindQuery();
+    EXPECT_FALSE(q.tagExists(DCM_Modality));
+    DcmItem* sps = nullptr;
+    ASSERT_TRUE(q.findAndGetSequenceItem(DCM_ScheduledProcedureStepSequence, sps, 0).good());
+    ASSERT_NE(nullptr, sps);
+    OFString v;
+    EXPECT_TRUE(sps->tagExists(DCM_Modality));
+    EXPECT_TRUE(sps->tagExists(DCM_ScheduledStationAETitle));
+    EXPECT_TRUE(sps->tagExists(DCM_ScheduledProcedureStepStartDate));
+    EXPECT_TRUE(sps->findAndGetOFString(DCM_Modality, v).good() ? v.empty() : true);
 }
 
 // The serialized worklist does not fit the caller's buffer

@@ -60,7 +60,7 @@ XPE 소프트웨어 시스템의 기능, 성능, 인터페이스 및 안전 요�
 | SRS-FUNC-020 | 시스템은 DICOM Modality LUT(Rescale Slope/Intercept)를 적용해야 한다. DICOM tag (0028,1053)/(0028,1052) 준수. | Must | — |
 | SRS-FUNC-021 | 시스템은 VOI LUT (LINEAR, LINEAR_EXACT, SIGMOID)를 지원해야 한다. Body-part별 ≥20 preset 사전정의. 실시간 W/L drag(≤16ms). | Must | HAZ-006 |
 | SRS-FUNC-022 | 시스템은 DICOM PS3.14 GSDF에 따른 Presentation LUT를 적용해야 한다. P-Value 출력. | Must | HAZ-007 |
-| SRS-FUNC-023 | 시스템은 Photometric Interpretation MONOCHROME1/MONOCHROME2를 올바르게 처리해야 한다. | Must | — |
+| SRS-FUNC-023 | 시스템은 Photometric Interpretation MONOCHROME1/MONOCHROME2를 올바르게 처리해야 한다. 해석: MONOCHROME1 은 `xpe_dicom_read_image` 가 읽을 때 `(2^BitsStored − 1) − (값 & (2^BitsStored − 1))` 로 정규화하여 MONOCHROME2 의미로 돌려준다(SRS-DICOM-001 FR-DCM-109). 이후 파이프라인은 항상 MONOCHROME2 의미(값이 클수록 밝다)의 화소를 받고, 표시 이전의 어느 단계도 값의 의미를 바꾸지 않는다. 표시 극성은 마지막 표시 단계인 Presentation LUT 가 정한다(REQ-DISP-038): 기본(`xpe_apply_presentation_lut`)은 LUT 를 거꾸로 읽어 입력의 높은 쪽을 어둡게 보인다. 검출기 선형 신호는 선량에 비례해 배경(공기)이 높은 값이므로 이렇게 하면 뼈가 희고 공기가 검다. 배경이 이미 낮은 값인 데이터 — 즉 MONOCHROME1 파일을 읽을 때 정규화한 데이터 — 와 호출자가 따로 반전하는 경우에는 호출자가 `xpe_apply_presentation_lut_ex(..., XPE_PRESENTATION_AS_IS)` 를 써서 두 번 뒤집지 않는다. `xpe_dicom_write` 는 이 반전이 이미 반영된 화소를 MONOCHROME2 + Presentation LUT Shape IDENTITY 로 쓴다. 읽기 정규화가 보존하는 것은 극성이다. `xpe_dicom_write` 는 원본 파일의 Window Center/Width, Rescale, Presentation LUT Shape 를 보존하지 않고(Window 없음, Rescale 1/0, IDENTITY) 소스 파일에서 아무것도 복사하지 않으므로, 원본에 비항등 VOI 나 Rescale 이 있었다면 읽기→쓰기 뒤 밝기·대비가 달라질 수 있다. | Must | — |
 | SRS-FUNC-024 | 시스템 GUI는 원본/처리 영상을 하나의 동기화된 비교 viewport에서 표시해야 하며 swipe, split, overlay, difference, source-only, processed-only 모드를 제공해야 한다. | Must | HAZ-009 |
 
 ### 3.4 DICOM I/O

@@ -1,0 +1,55 @@
+ARM 1-the-chain-runner-drops-a-stages-count: build ok=True
+    ['실패!  - 실패:     2, 통과:    80, 건너뜀:     0, 전체:    82, 기간: 291 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.TheChainRunner_CarriesAStagesCount_ToTheChainResult_EvenForARefusedStage [1 ms]
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInThePreprocessFloatImage_FailsTheBaseline_EvenWhenTheStageApplied [2 ms]
+   restored byte-identical: True
+ARM 2-the-enhance-adapter-drops-the-count: build ok=True
+    ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 276 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheEnhanceStage_ThroughTheRealStageAdapterAndRunner_FailsTheBaseline_WithTheCount_InTheEvidenceFile
+   restored byte-identical: True
+ARM 3-the-preprocess-adapter-drops-the-count: build ok=True
+    ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 289 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInThePreprocessFloatImage_FailsTheBaseline_EvenWhenTheStageApplied [2 ms]
+   restored byte-identical: True
+ARM 4-the-verdict-ignores-the-chains-counts: build ok=True
+    ['실패!  - 실패:     2, 통과:    80, 건너뜀:     0, 전체:    82, 기간: 304 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInTheEnhanceStage_ThroughTheRealStageAdapterAndRunner_FailsTheBaseline_WithTheCount_InTheEvidenceFile
+     red: Functional.BaselineReviewFixTests.ANonFiniteValueInThePreprocessFloatImage_FailsTheBaseline_EvenWhenTheStageApplied [3 ms]
+   restored byte-identical: True
+ARM 5-the-real-backend-bypasses-the-enhance-adapter: build ok=True
+    ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 289 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.TheRealBackendAndThePreprocessRunner_UseTheCountingHops [1 ms]
+   restored byte-identical: True
+ARM 6-the-preprocess-runner-does-not-count: build ok=True
+    ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 291 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.TheRealBackendAndThePreprocessRunner_UseTheCountingHops [9 ms]
+   restored byte-identical: True
+ARM 7-a-failed-evidence-write-no-longer-fails-the-baseline: build ok=True
+    ['통과!  - 실패:     0, 통과:    82, 건너뜀:     0, 전체:    82, 기간: 263 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+   restored byte-identical: True
+ARM 8-the-partial-file-is-never-removed: build ok=True
+    ['실패!  - 실패:     4, 통과:    78, 건너뜀:     0, 전체:    82, 기간: 256 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.AnInvalidDicomFile_LeavesNothingUnderTheFinalNameOrThePartialName [2 ms]
+     red: Functional.BaselineReviewFixTests.WhenOnlyTheEvidenceFileCannotBeWritten_TheBaselineFails_AndLeavesNoDicomFile [1 ms]
+     red: Functional.BaselineReviewFixTests.WhileTheFinalNameIsBlocked_TheBaselineFails_AndLeavesNoPartialFile [2 ms]
+     red: Functional.BaselineReviewFixTests.AFailureToRemoveThePartialFile_IsRecordedInTheResult_NotSwallowed [1 ms]
+   restored byte-identical: True
+ARM 9-a-passing-export-is-never-given-its-final-name: build ok=True
+    ['실패!  - 실패:     2, 통과:    80, 건너뜀:     0, 전체:    82, 기간: 286 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.APassingBaseline_HasTheFinalFileOnly_AndTheEvidenceSaysItIsThere [3 ms]
+     red: Functional.BaselineReviewFixTests.WhileTheFinalNameIsBlocked_TheBaselineFails_AndLeavesNoPartialFile [3 ms]
+   restored byte-identical: True
+ARM 10-a-failed-rename-is-ignored: build ok=True
+    ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 288 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.WhileTheFinalNameIsBlocked_TheBaselineFails_AndLeavesNoPartialFile [3 ms]
+   restored byte-identical: True
+ARM 11-a-failed-cleanup-is-swallowed: build ok=True
+    ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 303 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.AFailureToRemoveThePartialFile_IsRecordedInTheResult_NotSwallowed [1 ms]
+   restored byte-identical: True
+AFTER RESTORE Functional: ['통과!  - 실패:     0, 통과:   509, 건너뜀:     5, 전체:   514, 기간: 7 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+ARM 7b-evidence-write-failures-ignored-on-BOTH-writes: build ok=True
+    ['실패!  - 실패:     1, 통과:    81, 건너뜀:     0, 전체:    82, 기간: 267 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineReviewFixTests.WhenOnlyTheEvidenceFileCannotBeWritten_TheBaselineFails_AndLeavesNoDicomFile [2 ms]
+   restored byte-identical: True
+AFTER RESTORE Functional: ['통과!  - 실패:     0, 통과:   509, 건너뜀:     5, 전체:   514, 기간: 7 s - ImageProcTest.IntegrationTests.dll (net8.0)']

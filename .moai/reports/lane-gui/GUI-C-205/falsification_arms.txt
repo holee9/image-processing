@@ -1,0 +1,28 @@
+# GUI-C-205 falsification arms (Native, module built from main's source). Each arm edits the test source, rebuilds, runs C10 and C11, restores byte-identical.
+
+## arm 1: the Restart AI press is removed from the restore (the mark stays)
+build ok: True
+exit=1
+      [xUnit.net 00:01:15.52]       C11: the worker-off mark is still shown 10 s after Restart AI.
+   RED   ProcessingChainScenarios.C11_RestoringTheAiSession_RemovesTheMarkAndTheCount_ThatAScenarioLeftOnTheSharedApp
+      C11: the worker-off mark is still shown 10 s after Restart AI.
+   green ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling
+restored byte-identical: True
+
+## arm 2: the counted-failures branch is switched off (the count stays)
+build ok: True
+exit=1
+   green ProcessingChainScenarios.C11_RestoringTheAiSession_RemovesTheMarkAndTheCount_ThatAScenarioLeftOnTheSharedApp
+      [xUnit.net 00:01:29.09]       C10: the counted failures are still there after the clean-up: 'worker=Active; failures=2; ceiling=3'
+   RED   ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling
+      C10: the counted failures are still there after the clean-up: 'worker=Active; failures=2; ceiling=3'
+restored byte-identical: True
+
+## arm 3: C10 no longer calls the restore (a mark left on screen cannot be made by C10 here: it lands on 2 of 3 locally)
+build ok: True
+exit=0
+   green ProcessingChainScenarios.C11_RestoringTheAiSession_RemovesTheMarkAndTheCount_ThatAScenarioLeftOnTheSharedApp
+   green ProcessingChainScenarios.C10_TheModelDirectoryTypedAgainInAnotherCase_IsSentToTheModuleWithTheFirstSpelling
+restored byte-identical: True
+
+final rebuild ok: True

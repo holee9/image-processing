@@ -1,0 +1,89 @@
+"""QA-B-200 M2b falsification arms for xpe_edge_enhance: break ONE defence, rebuild ci-post, run the enhance_basic tests,
+expect the named tests red, restore byte-identical. Run from the repository root: python build/g200_arms_enh_run.py <out.txt> [arm...]"""
+import hashlib, re, subprocess, sys
+
+OUT = sys.argv[1]
+ONLY = sys.argv[2:]
+BUILD = r'D:\workspace-github\xpe-post\build\g200-post-full.bat'
+RUN = r'D:\workspace-github\xpe-post\build\g200-run2.bat'
+ED = 'modules/enhance_basic/src/edge_enhance.cpp'
+NL = '\n'
+HI = '            const float hi = std::max(orig * 2.0f, orig + max_add);' + NL + '            if (sharpened > hi) sharpened = hi;' + NL
+GATE = 'row[x] = (abs_diff >= threshold) ? sharpened : orig;'
+T_ZERO = 'E1_ThresholdZeroSharpensAnEdge'
+T_CONTRAST = 'E1_TheSharpeningFollowsTheEdgeContrastAsTheFormulaSays'
+T_BOUND = 'E1_TheOvershootIsBoundedByTwiceTheOriginal'
+T_DARK = 'E1_ADarkPixelMayOvershootByAmountTimesThreshold'
+T_BELOW = 'E1_APixelWhoseDifferenceIsBelowTheThresholdIsLeftAlone'
+
+ARMS = [
+    ('old_clamp_both_sides_by_amount_times_threshold',
+     [(ED, HI, '            const float hi = orig + max_add;' + NL + '            const float lo = orig - max_add;' + NL +
+       '            if (sharpened > hi) sharpened = hi;' + NL + '            if (sharpened < lo) sharpened = lo;' + NL)],
+     [T_ZERO, T_CONTRAST, T_BOUND]),
+    ('bound_without_the_twice_original_term',
+     [(ED, 'const float hi = std::max(orig * 2.0f, orig + max_add);', 'const float hi = orig + max_add;')],
+     [T_CONTRAST, T_BOUND]),
+    ('bound_without_the_amount_threshold_term',
+     [(ED, 'const float hi = std::max(orig * 2.0f, orig + max_add);', 'const float hi = orig * 2.0f + 0.0f * max_add;')],
+     [T_DARK]),
+    ('no_bound_at_all',
+     [(ED, '            if (sharpened > hi) sharpened = hi;' + NL + '            row[x]', '            (void)hi;' + NL + '            row[x]')],
+     [T_BOUND]),
+    ('threshold_gate_removed', [(ED, GATE, 'row[x] = (abs_diff >= 0.0f) ? sharpened : orig;')], [T_BELOW]),
+]
+
+
+def sha(p):
+    return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+
+
+def sh(cmd):
+    r = subprocess.run(['cmd', '/c', cmd], capture_output=True, text=True, timeout=3000)
+    return (r.stdout or '') + (r.stderr or '')
+
+
+def failed(path):
+    txt = open(path, encoding='utf-8', errors='replace').read()
+    return set(re.findall(r'^\[  FAILED  \] (\S+?)(?: \(|$)', txt, re.M))
+
+
+out = open(OUT, 'w', encoding='utf-8', newline='\n')
+
+
+def log(s):
+    out.write(s + '\n')
+    out.flush()
+
+
+for name, edits, must in ARMS:
+    if ONLY and name not in ONLY:
+        continue
+    files = sorted({e[0] for e in edits})
+    saved = {f: open(f, 'rb').read() for f in files}
+    before = {f: sha(f) for f in files}
+    log('=== ARM ' + name)
+    try:
+        for f in files:
+            txt = saved[f].decode('utf-8')
+            for ff, old, new in edits:
+                if ff == f:
+                    assert txt.count(old) == 1, (name, old[:60], txt.count(old))
+                    txt = txt.replace(old, new)
+            open(f, 'wb').write(txt.encode('utf-8'))
+        sh(BUILD)
+        if 'FAILED:' in open('build/g200-b5.txt', encoding='utf-8', errors='replace').read():
+            log('RESULT: BUILD FAILED')
+        else:
+            sh('%s ci-post xpe_enhance_basic_tests.exe D:\\workspace-github\\xpe-post\\build\\g200-arm-enh.txt * enhance_basic' % RUN)
+            red = failed('build/g200-arm-enh.txt')
+            hit = [m for m in must if any(m in f for f in red)]
+            miss = [m for m in must if m not in hit]
+            log('red tests: ' + (', '.join(sorted(red)) if red else '(none)'))
+            log('RESULT: %s  (expected red: %d, red: %d, not red: %s)' % ('FIRED' if not miss and must else ('NOT COVERED (no test is expected to notice)' if not must else 'DID NOT FIRE'), len(must), len(hit), miss))
+    finally:
+        for f in files:
+            open(f, 'wb').write(saved[f])
+        log('restored byte-identical: %s' % all(sha(f) == before[f] for f in files))
+log('=== DONE')
+out.close()

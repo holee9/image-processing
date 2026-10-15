@@ -1,0 +1,4 @@
+221/232 Test #221: DicomNetworkTest.CancelCStore_TerminatesOperation .............................................***Skipped   0.57 sec
+100% tests passed, 0 tests failed out of 232
+Total Test time (real) =  46.23 sec
+	221 - DicomNetworkTest.CancelCStore_TerminatesOperation (Skipped)

@@ -1,0 +1,12 @@
+fix(dicom): QA-B-209b Codex #149 — 11번째 함수 version 로그, 비OK 종료는 ERROR, 로그 파일은 PID·시험 이름별
+
+1) xpe_dicom_version 도 DEBUG 진입·종료 줄(로그가 실패해도 반환값·ABI 불변). 공개 export 11개 전부.
+2) 종료 줄은 rc != OK 이면 ERROR `exit rc=<N> (<에러 문자열>)`, 성공은 DEBUG. 조기 INVALID_INPUT 도 ERROR 로 보임. 안쪽 상세 ERROR 와 겹치면 두 줄(원인 + 공개 호출의 결과)을 허용 — 래퍼가 모든 오류 반환을 덮는 유일한 곳.
+3) test_dicom_logging 의 로그/스크래치 파일 이름에 PID 와 시험 이름: ctest -j 에서 서로 지우지 않음.
+
+시험 7건: 11개 함수, 세 대표 경우(조기 거부 / 내부 실패 / 성공)의 로그 수준 단언. 옛 코드에서 3건 빨강, 수정 후 7/7, ctest -j 8 -R DicomLogging x5 통과, ci-dicom 직렬 376/376.
+
+Card: QA-B-209b
+Refs #251
+
+🗿 MoAI

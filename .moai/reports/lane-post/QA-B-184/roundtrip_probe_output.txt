@@ -1,0 +1,10 @@
+write A rc = 0
+A attrs (PI, Presentation LUT Shape) = ([b'MONOCHROME2'], [b'IDENTITY'])
+B attrs (PI, Presentation LUT Shape) = ([b'MONOCHROME1'], [b'INVERSE'])
+read A rc=0 alerts=0  read B rc=0 meta rc=0 alerts=0
+words of B == words of A (no inversion): True | first/last of B: 0 4095
+metadata struct of B == metadata struct of A (nothing tells the caller about the polarity): True
+write C rc = 0
+C attrs (PI, Presentation LUT Shape) = ([b'MONOCHROME2'], [b'IDENTITY'])
+words of C == words of B: True
+=> C carries the SAME words as B under the OPPOSITE polarity label: a viewer shows C inverted relative to B.

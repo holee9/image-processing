@@ -1,0 +1,38 @@
+Microsoft (R) COFF/PE Dumper Version 14.44.35228.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\workspace-github\xpe-post\build\s217\post\xpe_display.dll
+
+File Type: DLL
+
+  Section contains the following exports for xpe_display.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+           8 number of functions
+           8 number of names
+
+    ordinal hint RVA      name
+
+          1    0 000010BE xpe_apply_modality_lut = @ILT+185(xpe_apply_modality_lut)
+          2    1 0000154B xpe_apply_presentation_lut = @ILT+1350(xpe_apply_presentation_lut)
+          3    2 00001488 xpe_apply_presentation_lut_ex = @ILT+1155(xpe_apply_presentation_lut_ex)
+          4    3 0000121C xpe_apply_voi_lut = @ILT+535(xpe_apply_voi_lut)
+          5    4 00001037 xpe_display_version = @ILT+50(xpe_display_version)
+          6    5 00001591 xpe_gsdf_calibrate = @ILT+1420(xpe_gsdf_calibrate)
+          7    6 000015AF xpe_voi_auto_window = @ILT+1450(xpe_voi_auto_window)
+          8    7 00001438 xpe_voi_preset_create = @ILT+1075(xpe_voi_preset_create)
+
+  Summary
+
+        1000 .00cfg
+        1000 .data
+        2000 .idata
+        1000 .pdata
+        4000 .rdata
+        1000 .reloc
+        1000 .rsrc
+        D000 .text

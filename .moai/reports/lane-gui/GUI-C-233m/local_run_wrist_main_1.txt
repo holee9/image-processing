@@ -1,0 +1,56 @@
+C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\main\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.28]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.42]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.44]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x3CC0D20 pid=60012 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeGridSuppression") [8 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P06_WhatTheModuleDid_PerMode(radioId: "GsvgModeVirtualGrid") [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P02_RepeatedRender_RunsTheStageAgain [9 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeNone") [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeGridSuppression") [7 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P01_TheStageFitsInsideTheRender_OnTheWristSlice(radioId: "GsvgModeVirtualGrid") [7 s]
+[xUnit.net 00:01:41.55]       THE PIXELS MOVED BEYOND THE TOLERANCE — likely a breakage, not a rounding shift. mean|dtile|=57.974571 (<= 0.010), max|dtile|=136.504883 (<= 0.300), worst tile 993. This is the magnitude question that P10_ThePreviewChange_KeptTheDrawnPixels cannot answer: its hash goes red on any change at all, while this threshold was derived from a legitimate correction, so exceed
+[xUnit.net 00:01:41.55]         C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\main\clients\ImageProcTest.E2ETests\Scenarios\Workflows\GsvgWristSliceScenarios.cs(806,0): at ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature()
+[xUnit.net 00:01:41.55]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:01:41.55]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:01:41.55]       Output:
+[xUnit.net 00:01:41.55]         P11 tiles=1024 mean|dtile|=57.974571 max|dtile|=136.504883 worst tile=993 (row 31, col 1)
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P11_ThePreviewRender_StillCarriesTheRecordedTileSignature [15 s]
+  오류 메시지:
+   THE PIXELS MOVED BEYOND THE TOLERANCE — likely a breakage, not a rounding shift. mean|dtile|=57.974571 (<= 0.010), max|dtile|=136.504883 (<= 0.300), worst tile 993. This is the magnitude question that P10_ThePreviewChange_KeptTheDrawnPixels cannot answer: its hash goes red on any change at all, while this threshold was derived from a legitimate correction, so exceeding it means the change is
+  표준 출력 메시지:
+ P11 tiles=1024 mean|dtile|=57.974571 max|dtile|=136.504883 worst tile=993 (row 31, col 1)
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P09_PyramidGain_ChangesTheDrawnPixels_LevelsAloneDoNot [20 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P03_AssumedDefaults_ReachTheDrawnPixels [18 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P08_TheAppsOwnStageTime_StaysWithinItsMeasuredSpread [47 s]
+[xUnit.net 00:03:23.50]       SOMETHING CHANGED the drawn pixels — this test does not say whether that is a defect. Drawn hash a4b5e7c27126dfd7, recorded f2a5640e9bd1a7fc. A hash is bit-exact, so a one-count rounding shift reads the same here as a broken render (measured: the #156 VOI placement correction moved every LINEAR pixel by at most 0.0039 of a count and changed this hash completely). WH
+[xUnit.net 00:03:23.50]         C:\Users\drake\AppData\Local\Temp\claude\D--workspace-github-xpe-gui\a336fd5a-dd76-4e0c-b047-c2a7ee584ec1\scratchpad\m233\main\clients\ImageProcTest.E2ETests\Scenarios\Workflows\GsvgWristSliceScenarios.cs(634,0): at ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels()
+[xUnit.net 00:03:23.50]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:03:23.50]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:03:23.50]       Output:
+[xUnit.net 00:03:23.50]         P10 hash=a4b5e7c27126dfd7 mean=168.804
+  실패 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P10_ThePreviewChange_KeptTheDrawnPixels [16 s]
+  오류 메시지:
+   SOMETHING CHANGED the drawn pixels — this test does not say whether that is a defect. Drawn hash a4b5e7c27126dfd7, recorded f2a5640e9bd1a7fc. A hash is bit-exact, so a one-count rounding shift reads the same here as a broken render (measured: the #156 VOI placement correction moved every LINEAR pixel by at most 0.0039 of a count and changed this hash completely). WHAT TO DO: find the change t
+  표준 출력 메시지:
+ P10 hash=a4b5e7c27126dfd7 mean=168.804
+
+
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P05_TheExportedReport_CarriesTheChainAndTheVignetteFlag [6 s]
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P07_TheTimeToADrawnFrame_SplitsIntoPhases [8 s]
+[xUnit.net 00:03:44.23]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.GsvgWristSliceScenarios.P04_TheDrawnHud_NamesTheChain [5 s]
+
+총 테스트 수: 14
+     통과: 12
+     실패: 2
+ 총 시간: 3.7462 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

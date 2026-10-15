@@ -110,10 +110,12 @@ namespace ImageProcTest.PInvokeWrappers
             ref XpeVoiLutParams parameters,
             XpeBodyPart bodyPart);
 
+        /// <summary>GUI-C-233: xpe_apply_presentation_lut_ex, the presentation stage with the polarity stated (0 = INVERTED, 1 = AS_IS; QA-B-214).</summary>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        internal delegate XpeCommonApi.XpeErrorCode ApplyPresentationLutDelegate(
+        internal delegate XpeCommonApi.XpeErrorCode ApplyPresentationLutExDelegate(
             ref XpeCommonApi.XpeImageBuffer image,
-            ref XpePresentationLutParams parameters);
+            ref XpePresentationLutParams parameters,
+            int polarity);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate XpeCommonApi.XpeErrorCode GsdfCalibrateDelegate(

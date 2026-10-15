@@ -4,6 +4,7 @@
  * SPEC: SPEC-XPE-P1B-DICOM REQ-DICOM-013..022
  */
 #include "DicomWriter.h"
+#include "DicomImageLimits.h"
 
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmdata/dcfilefo.h>
@@ -14,6 +15,7 @@
 
 #include <spdlog/spdlog.h>
 #include <vector>
+#include <cmath>
 #include <cstring>
 #include <ctime>
 #include <filesystem>
@@ -38,6 +40,11 @@ XpeErrorCode DicomWriter::write(const char* filePath,
                                  const XpeImageMetadata* meta) {
     spdlog::debug("[DicomWriter] write: {}", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    // QA-B-206 M1c (Codex #110): the inner writer applies the same format and descriptor predicates as the public door, so
+    // a caller that reaches it without the door cannot write a file whose descriptor contradicts its 16-bit words.
+    if (!image_format_is_writable(img->format) || !image_bits_are_writable(img->bitsAllocated, img->bitsStored)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
 
     DcmFileFormat dcmff;
     DcmDataset* ds = dcmff.getDataset();
@@ -45,20 +52,33 @@ XpeErrorCode DicomWriter::write(const char* filePath,
     XpeErrorCode rc = populateDataset(ds, img, meta);
     if (rc != XPE_OK) return rc;
 
-    // Set uncompressed pixel data
+    // Set uncompressed pixel data.
+    //
+    // QA-B-206 C13: the length is width * height * 2 -- what the dimensions say -- and NOT img->dataSize. api-spec
+    // "XpeImageBuffer.dataSize on input" (#123): dataSize == 0 is *unspecified* and the entry point trusts the
+    // dimensions; a larger dataSize is accepted (a caller's buffer may be bigger than the image). Taking the length from
+    // dataSize wrote a PixelData of length 0 for dataSize == 0 (a file xpe_dicom_read_image refused, reported XPE_OK) and
+    // wrote the caller's surplus bytes into PixelData when dataSize was larger. The public entry points have already
+    // refused a dataSize below this size and every format but UINT16 (two bytes per pixel).
+    //
+    // QA-B-206 M1b (Codex #108): the length is computed in 64 bits and narrowed only after image_size_is_representable. The
+    // first version multiplied `unsigned long`s, which are 32 bits on Windows: 65535 x 32769 x 2 = 4,295,032,830 wrapped to
+    // 65,534 and a file with a PixelData far shorter than its Rows x Columns was written.
+    if (!image_size_is_representable(img->width, img->height)) return XPE_ERR_INVALID_INPUT;
+    const unsigned long pixelBytes = static_cast<unsigned long>(pixel_data_bytes(img->width, img->height));
     OFCondition status = ds->putAndInsertUint8Array(
         DCM_PixelData,
         static_cast<const Uint8*>(img->data),
-        static_cast<unsigned long>(img->dataSize)
+        pixelBytes
     );
     if (status.bad()) {
-        spdlog::warn("[DicomWriter] putAndInsertUint8Array failed: {}", status.text());
+        spdlog::error("[DicomWriter] putAndInsertUint8Array failed: {}", status.text());
         return XPE_ERR_PROCESSING_FAILED;
     }
 
     status = dcmff.saveFile(filePath, EXS_LittleEndianExplicit);
     if (status.bad()) {
-        spdlog::warn("[DicomWriter] saveFile failed: {}", status.text());
+        spdlog::error("[DicomWriter] saveFile failed: {}", status.text());
         return XPE_ERR_IO_FAILED;
     }
 
@@ -73,11 +93,22 @@ XpeErrorCode DicomWriter::writeJ2K(const char* filePath,
                                     const XpeImageMetadata* meta) {
     spdlog::debug("[DicomWriter] writeJ2K: {}", filePath ? filePath : "(null)");
     if (!filePath || !img || !meta) return XPE_ERR_INVALID_INPUT;
+    if (!image_format_is_writable(img->format) || !image_bits_are_writable(img->bitsAllocated, img->bitsStored)) {
+        return XPE_ERR_INVALID_INPUT;   // QA-B-206 M1c
+    }
+    if (!image_size_is_representable(img->width, img->height)) return XPE_ERR_INVALID_INPUT;   // QA-B-206 M1b
 
     // Compress pixel data with OpenJPEG J2K Lossless
     std::vector<uint8_t> j2kData = compressJ2K(img);
     if (j2kData.empty()) {
-        spdlog::warn("[DicomWriter] J2K compression failed");
+        spdlog::error("[DicomWriter] J2K compression failed");
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+    // QA-B-206 M1c (Codex #110): the compressed length is only known now, and nothing bounds it by the raw size. It is
+    // checked against the fragment limit before the dataset is built and before any file exists. The fault is in what the
+    // compressor produced, not in the caller's input, so the code is PROCESSING_FAILED, as for a compression failure.
+    if (!narrow_fragment_length(j2kData.size(), nullptr)) {
+        spdlog::error("[DicomWriter] J2K bitstream of {} bytes does not fit one fragment", j2kData.size());
         return XPE_ERR_PROCESSING_FAILED;
     }
 
@@ -93,7 +124,7 @@ XpeErrorCode DicomWriter::writeJ2K(const char* filePath,
 
     OFCondition status = dcmff.saveFile(filePath, EXS_JPEG2000LosslessOnly);
     if (status.bad()) {
-        spdlog::warn("[DicomWriter] saveFile(J2K) failed: {}", status.text());
+        spdlog::error("[DicomWriter] saveFile(J2K) failed: {}", status.text());
         return XPE_ERR_IO_FAILED;
     }
 
@@ -176,9 +207,28 @@ XpeErrorCode DicomWriter::populateDataset(void* dcmDataset,
     }
 
     if (meta->mAs > 0.0f) {
+        // QA-B-200 M2a/M2a2 (C1): REQ-DICOM-009/015 name (0018,1152) Exposure for mAs, the attribute another system writes
+        // and reads for it. Two attributes of the DX image IOD's X-Ray Acquisition Dose module (PS3.3 Table C.8-33, both
+        // Type 3, both VR IS) are written:
+        //   (0018,1152) Exposure         "The exposure expressed in mAs": an integer, so ROUNDED to the nearest mAs, halves
+        //                                up (2.5 -> 3, 0.4 -> 0); left out above 2^31 - 1
+        //   (0018,1153) Exposure in uAs  the same value in microampere-seconds, an integer: mAs * 1000 rounded the same way
+        //                                (2.5 mAs -> 2500), so it keeps three decimals of the mAs; left out above 2^31 - 1
+        // (0018,9332) Exposure in mAs (FD) is NOT written: the module lists no such attribute, so a strict IOD check would
+        // flag it (QA-B-200 M2a2). The ranges: (0018,1153) holds up to about 2.1 million mAs, (0018,1152) up to 2^31 - 1 mAs;
+        // a mAs beyond that is not a detector exposure, and when neither fits the file carries no mAs.
+        const double mAs = static_cast<double>(meta->mAs);
         char buf[32];
-        std::snprintf(buf, sizeof(buf), "%.4f", static_cast<double>(meta->mAs));
-        ds->putAndInsertString(DCM_ExposureInmAs, buf);  // DS VR, stores decimal mAs
+        const double wholeMas = std::floor(mAs + 0.5);
+        if (wholeMas <= 2147483647.0) {
+            std::snprintf(buf, sizeof(buf), "%.0f", wholeMas);
+            ds->putAndInsertString(DCM_Exposure, buf);
+        }
+        const double microAs = std::floor(mAs * 1000.0 + 0.5);
+        if (microAs <= 2147483647.0) {
+            std::snprintf(buf, sizeof(buf), "%.0f", microAs);
+            ds->putAndInsertString(DCM_ExposureInuAs, buf);
+        }
     }
 
     if (meta->SID_mm > 0.0f) {
@@ -253,7 +303,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
         const size_t count = static_cast<size_t>(img->width) * img->height;
         for (size_t i = 0; i < count; ++i) {
             if (check[i] >> prec) {
-                spdlog::warn("[DicomWriter] pixel {} = {} does not fit the declared {} bits stored", i, check[i], prec);
+                spdlog::error("[DicomWriter] pixel {} = {} does not fit the declared {} bits stored", i, check[i], prec);
                 return {};
             }
         }
@@ -269,7 +319,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
 
     opj_image_t* opjImg = opj_image_create(1, &cmptparm, OPJ_CLRSPC_GRAY);
     if (!opjImg) {
-        spdlog::warn("[DicomWriter] opj_image_create failed");
+        spdlog::error("[DicomWriter] opj_image_create failed");
         return {};
     }
 
@@ -290,7 +340,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
     opj_codec_t* codec = opj_create_compress(OPJ_CODEC_J2K);
     if (!codec) {
         opj_image_destroy(opjImg);
-        spdlog::warn("[DicomWriter] opj_create_compress failed");
+        spdlog::error("[DicomWriter] opj_create_compress failed");
         return {};
     }
 
@@ -302,7 +352,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
     if (!opj_setup_encoder(codec, &params, opjImg)) {
         opj_destroy_codec(codec);
         opj_image_destroy(opjImg);
-        spdlog::warn("[DicomWriter] opj_setup_encoder failed");
+        spdlog::error("[DicomWriter] opj_setup_encoder failed");
         return {};
     }
 
@@ -354,7 +404,7 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
     opj_image_destroy(opjImg);
 
     if (!ok || writtenBytes == 0) {
-        spdlog::warn("[DicomWriter] J2K encode failed");
+        spdlog::error("[DicomWriter] J2K encode failed");
         return {};
     }
 
@@ -364,6 +414,11 @@ std::vector<uint8_t> DicomWriter::compressJ2K(const XpeImageBuffer* img) {
 
 XpeErrorCode DicomWriter::setJ2KPixelData(DcmDataset* ds, const std::vector<uint8_t>& j2kData) {
     if (!ds || j2kData.empty()) return XPE_ERR_INVALID_INPUT;
+
+    // QA-B-206 M1c (Codex #110): the length is narrowed to 32 bits ONLY through narrow_fragment_length, which refuses a
+    // bitstream longer than 0xFFFFFFFE. `static_cast<Uint32>(j2kData.size())` used to wrap silently.
+    uint32_t fragmentLength = 0;
+    if (!narrow_fragment_length(j2kData.size(), &fragmentLength)) return XPE_ERR_PROCESSING_FAILED;
 
     // Create a pixel sequence for encapsulated J2K data
     DcmPixelSequence* seq = new DcmPixelSequence(DcmTag(DCM_PixelData, EVR_OB));
@@ -376,7 +431,7 @@ XpeErrorCode DicomWriter::setJ2KPixelData(DcmDataset* ds, const std::vector<uint
     DcmPixelItem* fragment = new DcmPixelItem(DcmTag(DCM_Item, EVR_OB));
     OFCondition rc = fragment->putUint8Array(
         j2kData.data(),
-        static_cast<Uint32>(j2kData.size())
+        fragmentLength
     );
     if (rc.bad()) {
         delete fragment;

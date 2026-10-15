@@ -1,0 +1,10 @@
+  통과 ImageProcTest.IntegrationTests.Functional.BaselineFingerprintProbe.PrintTheStageHashesOfTheBaselineChainOnRealData [764 ms]
+--
+ LogNormFactor = 13606.41
+ input sha256 = c823233f2196a217f4512bfec47e62a17f003cc894ef7947e1f40dd0b59a3d70
+ preprocess sha256 = 2ab3c65cea9c731ad97af3dd478c30564a3fe338ccfebc2d36df2fa2b3312c75
+ preprocess summary = Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+ enhance sha256 = 703a9751fc4026d0ffe32e92e9bfaac68d62e0c7aea65528e76e74565a245cc2
+ enhance summary = enhance_basic: log ok 25 ms; noise(bilateral 3/50) ok 81 ms; contrast(clahe 3 8x8) ok 65 ms; edge(usm 0.5/2/10) ok 42 ms; to 16 bit: round-half-even, clamped below 0 above 56
+ display sha256 = 557718e1a2a39a3c1f73c48db518fa44c9f7f873cb82344eb60431ad78371683 (nonfinite 0)
+ display min/max = 0/22934

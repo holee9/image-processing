@@ -1,0 +1,10 @@
+X1 the unavailable exemption is gone (every unavailable answer counts): build_ok=True passed=['11'] crashed=False red(4)=['3', 'BodyPartWorkerPath.AnUnavailableAnswerEndsARunOfBoneSuppressionFailures', 'BodyPartWorkerPath.AnUnavailableBodyPartModelIsOneWarningAndNeverCountedAndNeverSwitchesTheWorkerOff', 'BodyPartWorkerPath.WithNoBodyPartModelBoneSuppressionIsNotSkippedByTheBodyPartCalls']
+X2 an unavailable answer does not reset the run of failures: build_ok=True passed=['13'] crashed=False red(2)=['1', 'BodyPartWorkerPath.AnUnavailableAnswerEndsARunOfBoneSuppressionFailures']
+X3 a refused (non-finite) output counts as a worker failure: build_ok=True passed=['13'] crashed=False red(2)=['1', 'BodyPartWorkerPath.TheModelsRefusedOutputIsAnAlertAndNeverAWorkerFailure']
+X4 the worker path bypasses the threshold decision: build_ok=True passed=['12'] crashed=False red(3)=['2', 'BodyPartWorkerPath.ALowConfidenceFromTheWorkerGetsTheDecisionOfThisProcess', 'BodyPartWorkerPath.WithFallbackModeOffTheLowConfidenceLabelIsReturnedAndTheToggleWorksAtRunTime']
+X5 one word of the disabled alert differs: build_ok=True passed=['13'] crashed=False red(2)=['1', 'BodyPartWorkerPath.AModelThatExistsAndFailsToRunIsCountedAndThirdFailureSwitchesTheWorkerOffForBothFunctions']
+X6 the format is judged after the worker, not before: build_ok=True passed=['13'] crashed=False red(2)=['1', 'BodyPartWorkerPath.ANonFloatImageIsRefusedBeforeTheWorkerIsAskedWhateverTheModel']
+X7 a switched-off worker is tried again: build_ok=True passed=['12'] crashed=False red(3)=['2', 'BodyPartWorkerPath.AModelThatExistsAndFailsToRunIsCountedAndThirdFailureSwitchesTheWorkerOffForBothFunctions', 'BodyPartWorkerPath.BoneSuppressionFailuresSwitchOffBodyPartRecognitionToo']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['14'] red=[]
+DONE

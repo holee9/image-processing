@@ -1,0 +1,41 @@
+=== ARM bits_door_removed_from_both_public_writers
+red tests: DicomWriterTest.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM bits_allocated_8_also_accepted
+red tests: DicomWriterTest.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM bits_stored_0_accepted
+red tests: DicomWriterTest.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM bits_stored_up_to_32_accepted
+red tests: DicomWriterTest.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM bits_allocated_0_means_16_again
+red tests: DicomWriterTest.ADescriptorThatContradictsTheSixteenBitWordsIsRefusedByBothWritersAndNoFileIsMade
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM bits_only_one_to_fifteen_accepted
+red tests: DicomWriterTest.ASurplusBeyondTheImageInALargerBufferIsNotWrittenIntoPixelData, DicomWriterTest.DataSizeGuard_WriteJ2K_ZeroDataSize_Accepted, DicomWriterTest.DataSizeGuard_Write_ZeroDataSize_Accepted, DicomWriterTest.EmptyImageContract_ValidImageStillAccepted, DicomWriterTest.EveryBitsStoredFromOneToSixteenIsWrittenAndReadsBack, DicomWriterTest.EveryImageTheWriterAcceptsIsAnImageTheReaderReads, DicomWriterTest.RescaleDefaults_OneAndZero, DicomWriterTest.ThousandCycles_ControlLeakIsCaught, DicomWriterTest.ThousandCycles_CrtHeapDoesNotGrow, DicomWriterTest.WriteBasic_CreatesFile, DicomWriterTest.WriteEmptyBodyPart_StillWritesFile, DicomWriterTest.WriteIOError_ReturnsIOFailed, DicomWriterTest.WriteJ2KRoundTrip_PixelExact, DicomWriterTest.WriteMetadata_Preserved, DicomWriterTest.WriteRoundTrip_PixelExact, DicomWriterTest.ZeroDataSizeWritesTheWholeImageAndTheFileReadsBackExactly, DicomWriterTest.ZeroDataSizeWritesTheWholeImageForTheJ2kWriterToo
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM product_back_in_32_bits
+red tests: DicomImageLimits.TheLengthIsComputedIn64BitsAndTheBoundaryIsWhereTheElementEnds, DicomWriterTest.AnImageTheFileCannotDescribeIsRefusedBeforeAnyFileExistsByBothWriters
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM rows_columns_limit_removed
+red tests: DicomImageLimits.TheLengthIsComputedIn64BitsAndTheBoundaryIsWhereTheElementEnds, DicomWriterTest.AnImageTheFileCannotDescribeIsRefusedBeforeAnyFileExistsByBothWriters
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM size_door_removed_from_the_public_writers_only_the_inner_checks_remain
+red tests: (none)
+RESULT: observation only (no expectation set)
+restored byte-identical: True
+=== ARM size_door_and_the_inner_write_check_removed_j2k_inner_check_remains
+red tests: DicomWriterTest.AnImageTheFileCannotDescribeIsRefusedBeforeAnyFileExistsByBothWriters
+RESULT: observation only (no expectation set)
+restored byte-identical: True
+=== DONE

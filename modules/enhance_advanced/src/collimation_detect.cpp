@@ -86,6 +86,14 @@ XPE_API XpeErrorCode xpe_detect_collimation(
         return XPE_ERR_INVALID_INPUT;
     }
 
+    // QA-B-181f (#233): one pass over the input before any work. A +infinite pixel became an infinite edge
+    // magnitude, one huge Hough vote and a detected box that was the whole image, with rc=0 (QA-B-181e); NaN went
+    // through a float->int conversion that is undefined. Refused, outputs untouched; a bad pixel is not repaired.
+    if (!xpe::enhance_advanced::all_finite(static_cast<const float*>(img->data),
+                                           static_cast<uint64_t>(img->width) * img->height)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+
     try {
         // Parse config via internal.h parser
         float confidenceStrictness;

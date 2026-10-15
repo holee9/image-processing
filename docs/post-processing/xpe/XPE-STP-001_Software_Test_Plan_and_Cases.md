@@ -212,9 +212,9 @@ ST-PERF-{SEQ:3d}           Performance test (e.g., ST-PERF-001)
 |---|---|---|---|---|---|
 | UT-3.3-001 | GSDF enabled | calibrated input | P-Value output | delta JND <= 1% | SRS-FUNC-022 |
 | UT-3.3-002 | GSDF disabled | uncalibrated | linear LUT + WARNING | - | SRS-SAFE-007 |
-| UT-3.3-003 | MONOCHROME1 | inversion needed | inverted output | 0 | SRS-FUNC-023 |
+| UT-3.3-003 | (이동됨) MONOCHROME1 극성 | — | UT-4.1-005 로 이동: 극성은 표시 단계가 아니라 DICOM 리더가 읽을 때 정규화한다 (FR-DCM-109) | - | — |
 | UT-3.3-004 | GSDF warning check | non-GSDF display | SRS-ALERT-003 emitted | - | SRS-SAFE-007 |
-| UT-3.3-005 | MONOCHROME2 | no inversion | direct output | 0 | SRS-FUNC-023 |
+| UT-3.3-005 | (이동됨) MONOCHROME2 극성 | — | UT-4.1-006 으로 이동 (FR-DCM-109) | - | — |
 | UT-3.3-006 | Round-trip | apply then reverse | original restored | +-1 gray | SRS-FUNC-022 |
 | UT-3.3-007 | AI label display | AI-processed flag set | "AI-processed" visible | - | SRS-SAFE-008 |
 | UT-3.3-008 | Toggle timing | switch original/processed | < 100ms | - | SRS-SAFE-009 |
@@ -227,6 +227,9 @@ ST-PERF-{SEQ:3d}           Performance test (e.g., ST-PERF-001)
 | UT-4.1-002 | Non-DX SOP | CR image | XPE_ERR_UNSUPPORTED_FORMAT | - | SRS-FUNC-030 |
 | UT-4.1-003 | Corrupt pixel data | truncated file | XPE_ERR_IO_FAILED | - | Error handling |
 | UT-4.1-004 | J2K decompression | J2K Lossless | pixel-exact decode | 0 | SRS-FUNC-032 |
+| UT-4.1-005 | MONOCHROME1 읽기 반전 (구 UT-3.3-003) | MONOCHROME1 파일 | `(2^BitsStored − 1) − (값 & (2^BitsStored − 1))` 로 반전해 MONOCHROME2 의미로 반환. 시험: `Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath` 의 MONOCHROME1 항목 | 0 | SRS-FUNC-023 |
+| UT-4.1-006 | MONOCHROME2 읽기 유지 (구 UT-3.3-005) | MONOCHROME2 파일 | 저장값 그대로 반환. 시험: `Tc109_FrDcm109_Monochrome1IsInvertedAndMonochrome2IsKept_OnEveryPath` 의 MONOCHROME2 항목 | 0 | SRS-FUNC-023 |
+| UT-4.1-007 | MONOCHROME1 왕복 극성 | MONOCHROME1 읽기 → 쓰기 → 읽기 | 극성만 보존. 시험: `Tc109_Monochrome1PlusInverse_RoundTripKeepsThePolarity`. 표시 보존(밝기·대비)은 요구하지 않는다 — `xpe_dicom_write` 는 원본의 Window·Rescale·Presentation LUT Shape 를 보존하지 않는다(Window 없음, Rescale 1/0, IDENTITY) | 0 | SRS-FUNC-023 |
 | UT-4.2-001 | DX write (ExplicitVRLE) | valid image | conformant DICOM | DVTk pass | SRS-FUNC-030 |
 | UT-4.2-002 | DX write (J2K Lossless) | valid image | conformant DICOM | DVTk pass | SRS-FUNC-032 |
 | UT-4.2-003 | Type 1 tag completeness | write output | all Type 1 present | - | SRS-FUNC-030 |

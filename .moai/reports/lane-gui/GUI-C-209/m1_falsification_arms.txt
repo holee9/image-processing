@@ -1,0 +1,35 @@
+# GUI-C-209 M1 falsification arms (each edits ONE thing, rebuilds, runs the named test, restores byte-identical)
+
+## arm the 'i386' image is not changed (Machine left as x64): the loader must NOT refuse it, so the test must go red
+build ok: True
+exit=1; {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Smoke.ArchitectureMismatchTests.AnImageOfAnotherArchitecture_IsRefusedByTheLoader_WithBadImageFormatException_WhileTheSa
+restored byte-identical: True
+
+## arm the P/Invoke decoy is the unchanged x64 DLL
+build ok: True
+exit=1; {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Smoke.ArchitectureMismatchTests.TheFirstPInvokeCallIntoAnX86Image_RaisesBadImageFormatException
+restored byte-identical: True
+
+## arm the guard accepts i386 (machine constant changed)
+build ok: True
+exit=1; {'RED': 2, 'green': 1, 'SKIPPED': 0}
+   green   Smoke.ArchitectureMismatchTests.TheFirstPInvokeCallIntoAnX86Image_RaisesBadImageFormatException
+   RED     Smoke.ArchitectureMismatchTests.AnX86XpeCommonInTheNativeDirectory_IsLocated_RejectedByTheGuard_AndNamedInTheDiagnostic
+   RED     Smoke.ArchitectureMismatchTests.AnImageOfAnotherArchitecture_IsRefusedByTheLoader_WithBadImageFormatException_WhileTheSa
+restored byte-identical: True
+
+## arm the fixture's diagnostic no longer names the file
+build ok: True
+exit=1; {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Smoke.ArchitectureMismatchTests.AnX86XpeCommonInTheNativeDirectory_IsLocated_RejectedByTheGuard_AndNamedInTheDiagnostic
+restored byte-identical: True
+
+## arm the locator ignores XPE_NATIVE_DIR
+build ok: True
+exit=1; {'RED': 1, 'green': 0, 'SKIPPED': 0}
+   RED     Smoke.ArchitectureMismatchTests.AnX86XpeCommonInTheNativeDirectory_IsLocated_RejectedByTheGuard_AndNamedInTheDiagnostic
+restored byte-identical: True
+
+final rebuild ok: True

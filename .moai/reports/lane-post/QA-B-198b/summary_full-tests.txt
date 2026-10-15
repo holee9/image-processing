@@ -1,0 +1,13 @@
+[  SKIPPED ] OnnxSessionRun.StubBuildRefusesToRunAndDoesNotEcho (0 ms)
+[  SKIPPED ] BoneSuppressAbi.StubBuildFailsAndLeavesTheOutputAlone (0 ms)
+[  SKIPPED ] AiProcessedAlert.DlNotAppliedInAStubBuildRaisesNothing (0 ms)
+[  SKIPPED ] WorkerBoneSuppress.ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone (0 ms)
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged (40 ms)
+[==========] 554 tests from 71 test suites ran. (193989 ms total)
+[  PASSED  ] 549 tests.
+[  SKIPPED ] 5 tests, listed below:
+[  SKIPPED ] OnnxSessionRun.StubBuildRefusesToRunAndDoesNotEcho
+[  SKIPPED ] BoneSuppressAbi.StubBuildFailsAndLeavesTheOutputAlone
+[  SKIPPED ] AiProcessedAlert.DlNotAppliedInAStubBuildRaisesNothing
+[  SKIPPED ] WorkerBoneSuppress.ANonInferringBuildAnswersWithAnErrorAndLeavesTheOutputAlone
+[  SKIPPED ] WorkerPathFixture.InAStubBuildTheWorkersErrorIsReportedAndTheInputIsReturnedUnchanged

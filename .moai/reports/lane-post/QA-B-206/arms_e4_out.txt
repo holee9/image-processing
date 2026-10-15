@@ -1,0 +1,21 @@
+=== ARM back_to_mean_le_0_only_as_before_206
+red tests: ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity, ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter
+RESULT: FIRED  (expected red: 2, red: 2, not red: [])
+restored byte-identical: True
+=== ARM finiteness_test_sees_only_plus_infinity
+red tests: (none)
+RESULT: observation only (no expectation set)
+restored byte-identical: True
+=== ARM wrong_exponent_mask_detects_nothing
+red tests: (none)
+RESULT: DID NOT FIRE  (expected red: 2, red: 0, not red: ['ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity', 'ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter'])
+restored byte-identical: True
+=== ARM refused_call_leaves_ei_di_untouched
+red tests: ExposureIndex.ZeroMeanImage_ReturnsProcessingFailed, ExposureIndexNonFinite.AnInfinityOfEachSignInOneImageIsStillRefused, ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity, ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== ARM refused_call_returns_ok
+red tests: ExposureIndex.ZeroMeanImage_ReturnsProcessingFailed, ExposureIndexNonFinite.AnInfinityOfEachSignInOneImageIsStillRefused, ExposureIndexNonFinite.EveryNonFinitePixelGivesTheSameAnswerAsNaNAndMinusInfinity, ExposureIndexNonFinite.ThePositionOfTheNonFinitePixelDoesNotMatter
+RESULT: FIRED  (expected red: 3, red: 3, not red: [])
+restored byte-identical: True
+=== DONE

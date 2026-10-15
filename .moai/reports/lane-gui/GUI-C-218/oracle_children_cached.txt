@@ -1,0 +1,6 @@
+## D (cached): C:\Users\drake\AppData\Local\Temp\c218_exp\clients\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.exe
+run  children_seen  child_lifetimes_ms                 first_child_at_ms  last_child_gone_ms  total_child_time_ms  window_responsive_at_ms
+  1              1  223                                              603                 822                  223
+  2              1  222                                             1072                1290                  222
+  3              1  202                                              609                 807                  202
+mean total child time 216 ms, max 223 ms over 3 launches

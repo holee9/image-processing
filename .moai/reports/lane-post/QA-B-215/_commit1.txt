@@ -1,0 +1,9 @@
+test(e2e): QA-B-215 enhance_basic 단계별 덤프 하니스 (DISABLED_StageDump_215)
+
+로그·양방향·CLAHE·USM 네 단계의 float32 영상과 FNV-1a 해시를 찍고, 표시 쪽(모달리티, 자동 창, VOI, 표현)을 거친
+최종 uint16 해시를 찍는다. 같은 시험 실행 파일에 DLL 폴더만 바꿔 두 빌드를 바이트 단위로 대조하는 데 쓴다.
+XPE_M2_TAG, XPE_M2_THREADS 환경 변수로 이름·스레드 수를 지정한다. 제품 코드는 바꾸지 않았다.
+
+Refs #251
+
+🗿 MoAI

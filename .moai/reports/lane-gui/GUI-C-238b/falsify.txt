@@ -1,0 +1,27 @@
+=== ARM A: the factory reports (and so tests) the application folder when the pinned DLL is missing (the old fallback path)
+build exit=0; SelfCheck exit=0
+  SelfCheck scenario 11 failures: none
+  E2E exit=1; failed tests: ['PinnedFolderMissingCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason']
+
+restored byte-identical: True
+
+=== ARM B: the resolver hands a failed pinned load to the default loader (returns Zero instead of throwing)
+build exit=0; SelfCheck exit=3762504530
+  SelfCheck scenario 11 failures: ['[11 pinned native search] xpe_ai.dll was loaded although the search was pinned to an empty folder: the default search (application folder) was used', '[11 pinned native search] xpe_ai.dll was loaded although EXCLUSIVE=1 names no folder']
+  E2E exit=0; failed tests: none
+
+restored byte-identical: True
+
+=== ARM C: a pin without a folder is not recognised (falls back to the default search)
+build exit=0; SelfCheck exit=3762504530
+  SelfCheck scenario 11 failures: ['[11 pinned native search] xpe_ai.dll was loaded although EXCLUSIVE=1 names no folder']
+  E2E exit=1; failed tests: ['ExclusiveWithoutAFolder_WorkingDllsBesideTheExe_AreNotUsed_MockWithTheReason']
+
+restored byte-identical: True
+
+rebuild exit=0/0; SelfCheck after restore exit=0; E2E after restore exit=0: 통과!  - 실패:     0, 통과:     6, 건너뜀:     0, 전체:     6, 기간: 38 s - ImageProcTest.E2ETests.dll (net8.0)
+
+=== ARM D: the locators are not pinned to the folder (ExclusiveDirectory returns null: the 238 fix reverted)
+E2E exit=1; failed tests: ['OldDllsBesideTheExe_DoNotWinOverThePinnedFolder_TheAppStartsOnNative', 'PinnedFolderMissingCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason', 'PinnedFolderWithADamagedCommon_WorkingDllsBesideTheExe_DoNotRescueIt_MockWithTheReason']
+
+restored byte-identical: True

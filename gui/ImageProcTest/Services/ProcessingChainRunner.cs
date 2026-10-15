@@ -13,7 +13,10 @@ public delegate StageExecution StageExecutor(StageRequest request, ushort[] inpu
 /// <param name="Ran">False when the stage refused or could not run.</param>
 /// <param name="Pixels">The stage's output when it ran.</param>
 /// <param name="Message">The stage's summary, or why it did not run.</param>
-public sealed record StageExecution(bool Ran, ushort[]? Pixels, string Message);
+/// <param name="NonFiniteCount">NaN/Inf values the stage saw in a float intermediate (0 when it measured none). Carried to the chain result even when the stage refused.</param>
+/// <param name="Floats">GUI-C-234c: the float image <paramref name="Pixels"/> was rounded from, when the stage has one (the enhancement). The runner attaches it to the stage's outcome so the display stage reads it from the SAME run, not from a backend-wide cache.</param>
+/// <param name="Skipped">GUI-C-234b: with <paramref name="Ran"/> false, true when the stage had nothing to run with (no calibration data, no such module in this backend) rather than failing. Reported as <see cref="StageStatus.Skipped"/>.</param>
+public sealed record StageExecution(bool Ran, ushort[]? Pixels, string Message, long NonFiniteCount = 0, bool Skipped = false, float[]? Floats = null);
 
 /// <summary>
 /// Runs an ordered stage list over a raw frame (GUI-C-99, contract B of GUI-C-97).
@@ -65,21 +68,29 @@ public static class ProcessingChainRunner
 
             if (!execution.Ran || execution.Pixels is null)
             {
-                outcomes.Add(new StageOutcome(request.StageId, StageStatus.RequestedNotApplied, null, execution.Message, elapsedMs));
+                outcomes.Add(new StageOutcome(request.StageId, execution.Skipped && !execution.Ran ? StageStatus.Skipped : StageStatus.RequestedNotApplied, null, execution.Message, elapsedMs, execution.NonFiniteCount));
                 continue;
             }
 
             if (execution.Pixels.Length != current.Length)
             {
                 outcomes.Add(new StageOutcome(request.StageId, StageStatus.RequestedNotApplied, null,
-                    $"{request.StageId} returned {execution.Pixels.Length} pixels for an input of {current.Length}.", elapsedMs));
+                    $"{request.StageId} returned {execution.Pixels.Length} pixels for an input of {current.Length}.", elapsedMs, execution.NonFiniteCount));
                 continue;
             }
 
             // A stage may hand back the very copy it was given; keep a buffer nobody else holds.
             var output = ReferenceEquals(execution.Pixels, input) ? input : (ushort[])execution.Pixels.Clone();
             var status = output.AsSpan().SequenceEqual(current) ? StageStatus.AppliedNoChange : StageStatus.Applied;
-            outcomes.Add(new StageOutcome(request.StageId, status, output, execution.Message, elapsedMs));
+            var floats = execution.Floats is { } given && given.Length == output.Length ? given : null;   // only a float image of the pixels' own length belongs to them
+            if (floats is null && status == StageStatus.AppliedNoChange)
+            {
+                // GUI-C-234f: a stage whose output equals its input changed nothing, so the image - and the float image it was rounded from - is still the previous one. Dropping the floats here made a
+                // grid-suppression pass that changed no pixel draw a different picture from the same chain without the stage (E2E C-03, PR #260).
+                floats = outcomes.LastOrDefault(o => o.Pixels is not null)?.Floats;
+            }
+
+            outcomes.Add(new StageOutcome(request.StageId, status, output, execution.Message, elapsedMs, execution.NonFiniteCount, floats));
             current = output;
         }
 

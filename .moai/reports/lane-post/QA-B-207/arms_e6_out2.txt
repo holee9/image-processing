@@ -1,0 +1,5 @@
+=== ARM output_not_mapped_back_to_the_global_range
+red tests: ContrastEnhance.MatchesAnIndependentReference
+RESULT: FIRED  (expected red: 1, red: 1, not red: [])
+restored byte-identical: True
+=== DONE

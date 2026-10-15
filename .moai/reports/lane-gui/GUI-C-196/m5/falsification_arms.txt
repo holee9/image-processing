@@ -1,0 +1,50 @@
+ARM 1-a-failed-baseline-reads-as-Pass: build ok=True
+    ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 129 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineAutomationRuleTests.AResultThatPassed_IsPass_AndAResultThatFailed_IsFail [1 ms]
+   restored byte-identical: True
+ARM 2-tried-with-no-result-reads-as-NotRun: build ok=True
+    ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 140 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineAutomationRuleTests.TriedWithNoResult_IsFail_NotNotRun [1 ms]
+   restored byte-identical: True
+ARM 3-the-verdict-ignores-the-baseline: build ok=True
+    ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 142 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineAutomationRuleTests.TheReportVerdict_UsesTheRule_AndTheStatusComesFromIt [1 ms]
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 1 m 8 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Smoke.AutomationReportBackendTests.A21_Baseline_WhoseDicomWriteCannotHappen_FailsTheAutomationReport [1 m 8 s]
+   restored byte-identical: True
+ARM 4-the-wait-does-not-end-on-the-failure-line: build ok=True
+    ['실패!  - 실패:     1, 통과:    24, 건너뜀:     0, 전체:    25, 기간: 135 ms - ImageProcTest.IntegrationTests.dll (net8.0)']
+     red: Functional.BaselineAutomationRuleTests.TheReportVerdict_UsesTheRule_AndTheStatusComesFromIt [1 ms]
+   restored byte-identical: True
+ARM 5-a-failed-DICOM-export-does-not-fail-the-command (A21): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 1 m 6 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Smoke.AutomationReportBackendTests.A21_Baseline_WhoseDicomWriteCannotHappen_FailsTheAutomationReport [1 m 6 s]
+   restored byte-identical: True
+ARM 6-the-command-writes-a-setting (FlaUI B02): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 5 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Workflows.DeterministicBaselineScenarios.B02_Invoking_OnNative_PassesAndLeavesTheScreenSettingsAndChainAlone [5 s]
+   restored byte-identical: True
+ARM 7-the-command-replaces-the-drawn-image (FlaUI B02): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 4 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Workflows.DeterministicBaselineScenarios.B02_Invoking_OnNative_PassesAndLeavesTheScreenSettingsAndChainAlone [4 s]
+   restored byte-identical: True
+ARM 8-the-command-takes-over-the-chain-status (FlaUI B02): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 4 s - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Workflows.DeterministicBaselineScenarios.B02_Invoking_OnNative_PassesAndLeavesTheScreenSettingsAndChainAlone [4 s]
+   restored byte-identical: True
+ARM 9-the-menu-item-is-always-enabled (FlaUI B01 on Mock): build ok=True
+    ['실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 438 ms - ImageProcTest.E2ETests.dll (net8.0)']
+     red: Scenarios.Workflows.DeterministicBaselineScenarios.B01_TheMenuItem_IsEnabledOnlyWhereTheBackendCanRunIt [430 ms]
+   restored byte-identical: True
+AFTER RESTORE Functional: ['통과!  - 실패:     0, 통과:   500, 건너뜀:     1, 전체:   501, 기간: 7 s - ImageProcTest.IntegrationTests.dll (net8.0)']
+AFTER RESTORE E2E B01(Mock)+A21(Native): ['통과!  - 실패:     0, 통과:     2, 건너뜀:     0, 전체:     2, 기간: 1 m 8 s - ImageProcTest.E2ETests.dll (net8.0)']
+AFTER RESTORE E2E B01+B02 (Native): ['통과!  - 실패:     0, 통과:     2, 건너뜀:     0, 전체:     2, 기간: 6 s - ImageProcTest.E2ETests.dll (net8.0)']
+ARM 6-the-command-writes-a-setting: build ok=True
+     why: Assert.Equal() Failure: Values differ | Expected: False | Actual:   True
+   restored byte-identical: True
+ARM 7-the-command-replaces-the-drawn-image: build ok=True
+     why: Assert.Equal() Failure: Strings differ | ↓ (pos 0) | Expected: "9e58cd6029598dfa"
+   restored byte-identical: True
+ARM 8-the-command-takes-over-the-chain-status: build ok=True
+     why: Assert.Equal() Failure: Strings differ | ↓ (pos 0) | Expected: "chain: preprocess=NotRequested, gsvg=NotR"···
+   restored byte-identical: True

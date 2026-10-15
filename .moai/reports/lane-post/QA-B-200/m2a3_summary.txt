@@ -1,0 +1,5 @@
+ci-dicom ctest:
+100% tests passed, 0 tests failed out of 317
+doxygen warnings: 0 (grep -c warning)
+check_header_docs.py: 20 headers, 0 findings
+check_req_citations.py: only REQ-DISP-036 (resolves when the branch carries main's SPEC-XPE-P1B-DISP/spec.md; unchanged from M2a2)

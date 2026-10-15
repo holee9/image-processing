@@ -1,0 +1,6 @@
+H1 the binary-bit check is gone: build_ok=True passed=['42'] crashed=False red(3)=['2', 'WorkerErrorFrameFlags.AnErrorFrameIsJsonOnlySoTheBinaryBitIsAFaultForBothRequestTypes', 'WorkerErrorFrameFlags.TheBinaryBitCombinedWithReservedBitsIsStillAFault']
+H2 the reserved bits are refused too: build_ok=True passed=['43'] crashed=False red(2)=['1', 'WorkerErrorFrameFlags.TheReservedBitsAreNotRefusedOnAnErrorFrame']
+H3 only bone suppression checks the bit: build_ok=True passed=['42'] crashed=False red(3)=['2', 'WorkerErrorFrameFlags.AnErrorFrameIsJsonOnlySoTheBinaryBitIsAFaultForBothRequestTypes', 'WorkerErrorFrameFlags.TheBinaryBitCombinedWithReservedBitsIsStillAFault']
+RESTORED_BYTE_IDENTICAL=True
+CONTROL: build_ok=True passed=['44'] red=[]
+DONE

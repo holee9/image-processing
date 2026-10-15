@@ -1,0 +1,31 @@
+# GUI-C-199 reproduction of the CI failure signature (dotnet-tests, 70aac662): GainPolyClampAlertTests, 2 of 3 red, "Alerts seen: 0"
+
+CI facts read from the failing job (run 37069887544, job dotnet-tests 111051364749, `gh run view --log`):
+  - "Merge dicom DLLs into the common set (never replace)": added 31 dll(s) (dcmdata.dll ... xpe_dicom.dll), kept the common set's copy of 20 dll(s), among them xpe_common.dll
+    -> the dicom artifact carries its OWN xpe_common.dll (build/ci-dicom/..), which the merge step correctly leaves out of build/ci-common/bin.
+  - Failed 2, Passed 633, Skipped 1: GainPolyClampAlertTests.SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint and
+    GainPolyClampAlertTests.EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint.
+
+Mechanism (the test's own comment already names it): the alert queue lives in xpe_common.dll; Windows treats the same file name at two paths as two modules. If a module copy at
+path A is already in the process when xpe_preprocess is loaded, xpe_preprocess binds to A by name, and the test that reads the queue through the copy at path B sees nothing.
+The 196 series added three native test classes (BaselineDicomNativeTests, BaselineDisplayNativeTests, EnhanceBasicNativeTests) that LOADED xpe_common.dll BY FULL PATH from the
+directory that holds their module. BaselineDicomNativeTests searches build/ci-dicom/bin FIRST (the artifact's own xpe_common), the other two build/ci-common/bin; the test output
+directory (where every other test takes its copy) is neither.
+
+Reproduction on this machine (build/ci-dicom/bin made to look like the CI artifact: its own xpe_common.dll + xpe_dicom.dll + vcpkg runtime):
+  1. control, GainPolyClampAlertTests alone, nothing loaded first ........................................ 3 passed
+  2. the same, with a TEMPORARY static constructor that first loads build/ci-dicom/bin/xpe_common.dll by full path (= "a native test ran first"):
+       SomePixelsOutsideTheRange_RaiseThePartialVariant_WithoutTheHint   FAIL  "The probe run produced no clamp alert, so the range is unknown. Alerts seen: 0."
+       EveryPixelOutsideTheRange_RaisesTheAllVariant_CarryingTheMisloadHint FAIL "No clamp alert was pushed. Alerts seen: 0. ..."
+       -> 2 failed, 1 passed: the CI signature, reproduced. (The temporary edit was reverted; sha256 of the file checked identical to the original.)
+  3. with the 196 native tests as they were (before the fix), filter BaselineDicomNativeTests|GainPolyClampAlertTests in this order, the first falsification arm of the fix
+     (the dicom class loads xpe_common.dll by its own path again) turned the two gain tests red with the same messages: "Alerts seen: 0".
+
+Why the earlier local runs did not show it: build/ci-dicom did not exist here, so the native tests skipped; and with a filter the gain tests happened to run FIRST. The order of
+test classes is not something this repo controls (xunit.runner.json: no parallelism, no ordering), so the failure depends on which class loads first.
+
+Why the baseline CI run before 196 was green: no test loaded a path-copy of xpe_common.dll before the gain test.
+
+How we know this is the cause and not a symptom: removing only the early path load (control 1) and adding only the early path load (repro 2) flips the two tests, with everything else
+identical. What this does NOT show is CI's own load order: the CI log (failure-only verbosity) does not list passing tests, so which of the three classes loaded the copy first
+in CI is inferred, not read.

@@ -1,0 +1,12 @@
+[leaderdlls] pid 27116 windows: 1
+[leaderdlls] title: ImageProcTest GUI-S0
+[leaderdlls]   Backend
+[leaderdlls]   _Backend
+[leaderdlls]   Backend initialized: xpe_display 1.0.0
+[leaderdlls]   Backend initialized: xpe_display 1.0.0
+[leaderdlls]   mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=e2e-native-dlls
+[leaderdlls]   mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=e2e-native-dlls
+[leaderdlls]   Initialize Backend
+[leaderdlls]   Initialize Backend
+[leaderdlls]   Shutdown Backend
+[leaderdlls]   Shutdown Backend

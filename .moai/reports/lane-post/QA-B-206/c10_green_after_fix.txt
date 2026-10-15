@@ -1,0 +1,26 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = DicomTimeout.*
+[==========] Running 3 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 3 tests from DicomTimeout
+[ RUN      ] DicomTimeout.ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred
+I: Requesting Association
+[2026-10-03 19:05:37.083] [warning] [DicomNetworkSCU] negotiateAssociation failed: DUL network read timeout
+I: Requesting Association
+[2026-10-03 19:05:38.094] [warning] [DicomNetworkSCU] negotiateAssociation failed: DUL network read timeout
+[       OK ] DicomTimeout.ACStoreWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred (2040 ms)
+[ RUN      ] DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest
+I: Requesting Association
+[2026-10-03 19:05:39.104] [warning] [DicomNetworkSCU] negotiateAssociation failed: DUL network read timeout
+I: Requesting Association
+[2026-10-03 19:05:41.107] [warning] [DicomNetworkSCU] negotiateAssociation failed: DUL network read timeout
+[       OK ] DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest (3013 ms)
+[ RUN      ] DicomTimeout.ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred
+I: Requesting Association
+[2026-10-03 19:05:42.119] [warning] [DicomNetworkSCU] cfindMwl negotiateAssociation failed: DUL network read timeout
+[       OK ] DicomTimeout.ACFindWithASubSecondTimeoutGivesUpAfterOneSecondAndNotAfterHundred (1010 ms)
+[----------] 3 tests from DicomTimeout (6064 ms total)
+
+[----------] Global test environment tear-down
+[==========] 3 tests from 1 test suite ran. (6064 ms total)
+[  PASSED  ] 3 tests.

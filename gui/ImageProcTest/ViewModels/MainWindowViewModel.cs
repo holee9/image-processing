@@ -10,6 +10,7 @@ using ImageProcTest.Services;
 using ImageProcTest.Services.Native;
 using DataBinding = System.Windows.Data.Binding;
 using Win32OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using Win32SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using FormsDialogResult = System.Windows.Forms.DialogResult;
 using FormsFolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
 
@@ -23,13 +24,15 @@ public sealed class MainWindowViewModel : ObservableObject
     private string _statusText = "Ready";
     private string _activeImageSummary = "No raw image loaded.";
     private string _metadataText = "GUI-S0 accepts raw binary frames only. Real DICOM remains owned by xpe_dicom.dll in Phase 1b.";
-    private string _displayPipelineSummary = "Display pipeline has not run.";
     private System.Windows.Media.ImageSource? _sourceImage;
     private System.Windows.Media.ImageSource? _processedImage;
-    private float? _renderedVoiCenter;
-    private float? _renderedVoiWidth;
-    private string? _renderedVoiMode;
-    private AppSettings? _renderedInputs;
+    // GUI-C-233g: the ONE record of the render that is on screen (null = none). Everything that describes "the drawn image" (window, chain, summary, timings, calibration modes, the backend that
+    // produced it) is derived from it and from nothing else, so no event can leave one of them behind. It is replaced as a whole by SetRender and dropped by InvalidateRender.
+    private RenderRecord? _render;
+    private LoadedImageFrame? _sourceFrame;   // the frame as the backend loaded it: what is shown when no render stands
+    private const string NoDisplaySummary = "Display pipeline has not run.";
+    private const string NoChainStatus = "chain: not run";
+    private AppSettings? RenderedInputs => _render?.Inputs;
     private string? _previewStaleReason;
     private BackendRuntimeInfo _runtimeInfo = new();
     private LoadedImageFrame? _activeImageFrame;
@@ -56,8 +59,6 @@ public sealed class MainWindowViewModel : ObservableObject
     private bool _showAlertsPanel = true;
 
     // Slice 2 — workbench VM-only backing fields
-    private System.Windows.Media.ImageSource? _laneAImage;
-    private System.Windows.Media.ImageSource? _laneBImage;
     private string _activeStudyId = string.Empty;
     private RunSetState _runSet = new();
     private Verdict? _activeVerdict;
@@ -132,6 +133,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // #161: one list, in Models. This array used to be a third copy of the mode vocabulary.
         CompareModeOptions = ComparisonModes.All;
         Settings.PropertyChanged += OnSettingsPropertyChanged;
+        AcknowledgePreprocessOffNoticeCommand = new RelayCommand(AcknowledgePreprocessOffNotice);
 
         InitializeBackendCommand = new RelayCommand(InitializeBackend);
         SetBackendModeCommand = new RelayCommand<string>(SetBackendMode);
@@ -155,7 +157,14 @@ public sealed class MainWindowViewModel : ObservableObject
         ApplyDisplayPipelineCommand = new RelayCommand(() => _ = ApplyDisplayPipelineAsync());
         ApplyBodyPartPresetCommand = new RelayCommand(ApplyBodyPartPreset);
         RunPreprocessingCommand = new RelayCommand(RunPreprocessing);
-        RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression);
+        UseAutomaticWindowCommand = new RelayCommand(() =>
+        {
+            Settings.VoiWindowAuto = true;
+            Log("Automatic window on.");
+            _ = ApplyDisplayPipelineAsync();
+        });
+        RunAiBoneSuppressionCommand = new RelayCommand(RunAiBoneSuppression, () => AiBoneSuppressionAvailability.CanRun);
+        RunDeterministicBaselineCommand = new RelayCommand(() => _ = RunDeterministicBaselineAsync());
         RestartAiSessionCommand = new RelayCommand(RestartAiSession);
         ZoomFitCommand = new RelayCommand(ZoomFit);
         ZoomActualCommand = new RelayCommand(ZoomActual);
@@ -186,6 +195,8 @@ public sealed class MainWindowViewModel : ObservableObject
         ToggleFocusModeCommand = new RelayCommand(() => FocusMode = !FocusMode);
         ToggleRoiCommand = new RelayCommand(() => RoiActive = !RoiActive);
         ExportEvidenceBundleCommand = new RelayCommand(ExportEvidenceBundle);
+        SaveCorrectedFloatCommand = new RelayCommand(SaveCorrectedFloat, () => CanSaveCorrected);
+        SaveCorrectedPngCommand = new RelayCommand(SaveCorrectedPng, () => CanSaveCorrected);
         SwitchAnalysisTabCommand = new RelayCommand<string>(tab => { if (!string.IsNullOrWhiteSpace(tab)) AnalysisTab = tab; });
         ResetLaneBOverridesCommand = new RelayCommand(ResetLaneBOverrides);
 
@@ -203,6 +214,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // Same ordering reason as the line above (and it no longer depends on the clear, which
         // GUI-C-126 replaced with a separator).
         ReportUnreadableSettings(preservedSettingsPath, preservedSettingsIsFromAnEarlierFailure);
+        ReportPreprocessOffFromEarlierSettings();
     }
 
     /// <summary>
@@ -238,6 +250,57 @@ public sealed class MainWindowViewModel : ObservableObject
         // RaiseAlert already wrote the line; saying it twice would put the same sentence in the log
         // twice, once with the ALERT marker and once without (#198 ①, GUI-C-125).
         StatusText = message;
+    }
+
+    /// <summary>
+    /// GUI-C-234c/234d (Codex #181 finding 1, #182 findings 1-2): the settings file was written by an earlier build with preprocessing off, which may only be the old default. The value is kept and the
+    /// operator is told - with an alert (it stays in the list, and clearing the list does not acknowledge it), a status line and a notice with an OK button (<see cref="PreprocessOffNotice"/>) that stays until
+    /// it is acknowledged. Nothing here writes the file: the notice counts as seen only when the operator says so (<see cref="AcknowledgePreprocessOffNotice"/>), so quitting before that brings it back at
+    /// the next start.
+    /// </summary>
+    private void ReportPreprocessOffFromEarlierSettings()
+    {
+        if (PreprocessOffNotice is not { } message)
+        {
+            return;
+        }
+
+        RaiseAlert(new AlertEntry
+        {
+            Severity = "WARN",
+            Code = "PREPROCESS_OFF_FROM_EARLIER_SETTINGS",
+            Message = message,
+            Timestamp = DateTimeOffset.Now
+        });
+        StatusText = message;
+    }
+
+    /// <summary>The notice text while it stands: stored unacknowledged and preprocessing really is off. Null otherwise.</summary>
+    public string? PreprocessOffNotice =>
+        Settings.PreprocessOffNoticeUnacknowledged && !Settings.PreprocessInChain
+            ? "Preprocessing is off because of a setting stored by an earlier version. The default is now on (offset, gain and defect correction run when calibration data is loaded). " +
+              "Turn on \"Preprocess (offset → gain → defect)\" in the Parameters tab (or Run Preprocessing) to use it, or press OK to keep it off."
+            : null;
+
+    public bool HasPreprocessOffNotice => PreprocessOffNotice is not null;
+
+    public RelayCommand AcknowledgePreprocessOffNoticeCommand { get; private set; } = null!;
+
+    /// <summary>The operator acknowledged the notice: stored as acknowledged. Preprocessing stays as it is; the render still says "not run" in the HUD.</summary>
+    private void AcknowledgePreprocessOffNotice()
+    {
+        Settings.PreprocessOffNoticeUnacknowledged = false;
+        try
+        {
+            _settingsService.Save(Settings);
+        }
+        catch (Exception exception)
+        {
+            Log($"Could not store that the notice was acknowledged: {exception.Message}");
+        }
+
+        OnPropertyChanged(nameof(PreprocessOffNotice));
+        OnPropertyChanged(nameof(HasPreprocessOffNotice));
     }
 
     public AppSettings Settings { get; }
@@ -504,13 +567,16 @@ public sealed class MainWindowViewModel : ObservableObject
 
     public RelayCommand ApplyDisplayPipelineCommand { get; }
 
+    /// <summary>GUI-C-233: Pipeline &gt; Use Automatic Window: goes back to the module's anatomy-based window after a window was chosen by hand.</summary>
+    public RelayCommand UseAutomaticWindowCommand { get; }
+
     public RelayCommand ApplyBodyPartPresetCommand { get; }
 
     /// <summary>#141: true when the last chain run applied the preprocess stage (Applied or AppliedNoChange).</summary>
-    public bool PreprocessRan { get; private set; }
+    public bool PreprocessRan => _render?.PreprocessRan ?? false;
 
     /// <summary>#141: the preprocess stage's message from the last chain run that requested it.</summary>
-    public string PreprocessStages { get; private set; } = string.Empty;
+    public string PreprocessStages => _render?.PreprocessStages ?? string.Empty;
 
     /// <summary>
     /// #141 / #180 (GUI-C-99): switches the preprocess stage on in the pixel chain and renders again.
@@ -525,11 +591,51 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand RunAiBoneSuppressionCommand { get; }
 
     /// <summary>
+    /// #225 (GUI-C-198, MENU-001 section 8): whether the entry is usable now. Read live (a file-exists check, no native call), so it never answers from a stale state;
+    /// <see cref="RefreshAiBoneSuppressionAvailability"/> tells the menu when to ask again.
+    /// </summary>
+    public AiBoneSuppressionAvailability AiBoneSuppressionAvailability =>
+        AiBoneSuppressionAvailability.Evaluate(
+            backendHasAiSession: _backend is IAiSessionBackend { HasAiSession: true },
+            backendInitialized: string.Equals(RuntimeInfo.State, "Initialized", StringComparison.Ordinal),
+            backendTransitioning: Lifecycle.IsTransitioning,
+            moduleDllPresent: AiModuleDllPresent());
+
+    /// <summary>The entry's tooltip: what it does, and while it is disabled, why.</summary>
+    public string AiBoneSuppressionMenuToolTip
+    {
+        get
+        {
+            var availability = AiBoneSuppressionAvailability;
+            return availability.CanRun ? AiBoneSuppressionToolTipBase : $"{AiBoneSuppressionToolTipBase} Disabled now: {availability.Reason}";
+        }
+    }
+
+    private const string AiBoneSuppressionToolTipBase =
+        "Runs AI bone suppression (xpe_bone_suppress, worker process) on the loaded frame after the other stages. Needs the native backend and xpe_ai.dll with a model in the AI model directory. " +
+        "If the module fails, the original image is shown and the status line says so; a build without an inference runtime always fails. Other AI and premium modules are not wired to this item.";
+
+    // The same search the loader runs (injected directory, then the application directory, then the opt-in developer fallbacks), so "found here" and "loaded later" agree.
+    private static bool AiModuleDllPresent() =>
+        NativeModuleLibraryLocator.GetDllCandidates("xpe_ai.dll", "image-processing").Any(File.Exists);
+
+    /// <summary>
+    /// Asks the menu to read the availability again. Called when the backend's state moves AND when the Pipeline menu is opened (Codex #78 finding 3): the DLL's presence
+    /// is a fact about the disk that nothing here watches, so a file that appeared or went away while the app ran is seen at the next opening, not never.
+    /// </summary>
+    public void RefreshAiBoneSuppressionAvailability()
+    {
+        OnPropertyChanged(nameof(AiBoneSuppressionAvailability));
+        OnPropertyChanged(nameof(AiBoneSuppressionMenuToolTip));
+        RunAiBoneSuppressionCommand.RaiseCanExecuteChanged();
+    }
+
+    /// <summary>
     /// "AI-processed: bone suppression" when the last chain's AI stage was Applied (the module returned 0 AND the
     /// pixels changed); empty otherwise. Never set for a stage that was refused or failed, nor for one that returned 0
     /// with an unchanged image.
     /// </summary>
-    public string AiProcessedLabel { get; private set; } = string.Empty;
+    public string AiProcessedLabel => _render?.AiLabel ?? string.Empty;
 
     private AiWorkerStatus _aiWorkerStatus = AiWorkerStatus.Unknown;
 
@@ -557,7 +663,10 @@ public sealed class MainWindowViewModel : ObservableObject
     /// of each read), for the automation tree's item status on the AI checkbox. Empty without a native session. It is not shown to the
     /// operator (GUI-C-189).
     /// </summary>
-    public string AiWorkerDiagnostics => _aiWorkerStatus.Diagnostics ?? string.Empty;
+    public string AiWorkerDiagnostics =>
+        _backend is IAiSessionBackend && _aiStatusRefresher is { } refresher
+            ? string.Join(" | ", new[] { _aiWorkerStatus.Diagnostics, refresher.Measurements }.Where(part => !string.IsNullOrEmpty(part)))   // GUI-C-192d
+            : _aiWorkerStatus.Diagnostics ?? string.Empty;
 
     /// <summary>GUI-C-185: shutdown then init under the one lock; the mark goes when the module reports a new session.</summary>
     public RelayCommand RestartAiSessionCommand { get; }
@@ -573,8 +682,34 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private readonly System.Windows.Threading.Dispatcher _uiDispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
 
-    private AiStatusRefresher AiStatus => _aiStatusRefresher ??=
-        new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi);
+    private AiStatusRefresher AiStatus => _aiStatusRefresher ??= CreateAiStatusRefresher();
+
+    private System.Windows.Threading.DispatcherTimer? _aiFreshnessTimer;
+
+    private AiStatusRefresher CreateAiStatusRefresher()
+    {
+        var refresher = new AiStatusRefresher(() => _backend, ReadAiWorkerStatus, ApplyAiWorkerStatus, work => Task.Run(work), PostToUi,
+            sessionEpoch: () => (_backend as IAiSessionBackend)?.AiSessionEpoch ?? 0);   // GUI-C-192e
+        // GUI-C-192b: an "Active" nothing has refreshed for the freshness bound is withdrawn; the check is cheap, so it runs every second.
+        // GUI-C-192e: it runs when the UI thread is scheduled (Background priority), so the 15 s is a bound on the ANSWER'S age, not a promise about
+        // when the notice reaches the screen: a UI thread that stalls delays the notice by as long as it stalls. The measurements line carries the
+        // longest gap between two checks (maxUiGapMs), which is that stall.
+        var measured = 0;
+        _aiFreshnessTimer = new System.Windows.Threading.DispatcherTimer(
+            TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background,
+            (_, _) =>
+            {
+                refresher.CheckFreshness();
+                if (refresher.MeasurementsVersion != measured)
+                {
+                    measured = refresher.MeasurementsVersion;
+                    OnPropertyChanged(nameof(AiWorkerDiagnostics));   // GUI-C-192d: the native CI log reads the measurements from there
+                }
+            },
+            _uiDispatcher);
+        _aiFreshnessTimer.Start();
+        return refresher;
+    }
 
     /// <summary>Runs on a background thread, for the backend that was current when the read was requested.</summary>
     private static AiWorkerStatus? ReadAiWorkerStatus(object? backend) =>
@@ -592,7 +727,11 @@ public sealed class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>The application is closing: no status read, started or running, may update the screen after this.</summary>
-    public void StopAiStatusUpdates() => AiStatus.Stop();
+    public void StopAiStatusUpdates()
+    {
+        _aiFreshnessTimer?.Stop();
+        AiStatus.Stop();
+    }
 
     private void ApplyAiWorkerStatus(AiWorkerStatus status)
     {
@@ -625,6 +764,10 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         var ticket = TakeTicket();
+        // GUI-C-192e (Codex #62): the session is being replaced from NOW. Raise the generation and show Unknown before anything is awaited, so a
+        // status read that was started under the old session (a "switched off" answer above all) cannot be applied to the new one. The restart
+        // used to leave the generation alone, and the same backend with the same generation made the old answer look current.
+        AiStatus.Reset();
         try
         {
             var directory = Settings.AiModelDirectory;
@@ -654,52 +797,49 @@ public sealed class MainWindowViewModel : ObservableObject
         RefreshAiWorkerStatus();
     }
 
-    private ChainResult? _lastChain;
-    private float _renderedLaneBWidth;
-    private string _renderedLaneBAlgorithm = string.Empty;
-    private double _renderedLaneBDenoiseK = 2.0;
-    private string _pipelineTimings = string.Empty;
-    private string _chainStatus = "chain: not run";
 
     /// <summary>The pixel chain of the processed image on screen (#180, GUI-C-99), or null before the first render.</summary>
-    public ChainResult? LastChain
-    {
-        get => _lastChain;
-        private set
-        {
-            if (!SetProperty(ref _lastChain, value)) return;
-            // #225 row 13 (GUI-C-168): the panel's "no measurement yet" line is derived from this, so
-            // without this raise the first chain leaves the panel still saying nothing has run.
-            OnPropertyChanged(nameof(HasPipelineDiagnostics));
-        }
-    }
+    public ChainResult? LastChain => _render?.Chain;
+
+    /// <summary>GUI-C-233g: the record of the render on screen, or null when none stands (new frame not yet rendered, backend replaced, ...).</summary>
+    public RenderRecord? CurrentRender => _render;
 
     /// <summary>
     /// Status bar summary of <see cref="LastChain"/>: each stage and its status, and whether the display started
     /// from the raw frame. A requested stage that did not apply says so here (HAZ-GUI-005).
     /// </summary>
-    public string ChainStatus
-    {
-        get => _chainStatus;
-        private set => SetProperty(ref _chainStatus, value);
-    }
+    public string ChainStatus => _render?.ChainStatus ?? NoChainStatus;
 
     /// <summary>
     /// Where the time of the last apply went (#180, GUI-C-103): the background work, this view model's own
     /// share, and the display pipeline's four phases. It does NOT include the render — nothing on this side
     /// can observe when the frame reached the screen, so that share is measured from outside.
     /// </summary>
-    public string PipelineTimings
-    {
-        get => _pipelineTimings;
-        private set => SetProperty(ref _pipelineTimings, value);
-    }
+    public string PipelineTimings => _render?.Timings ?? string.Empty;
 
     /// <summary>
     /// #141: whether the menu entry is usable. False on Mock, which has no preprocess module —
     /// the entry stays visible with a tooltip rather than disappearing, so the reason is on screen.
     /// </summary>
     public bool CanRunPreprocessing => _backend.SupportsPreprocessing;
+
+    /// <summary>
+    /// #225 row 9 (GUI-C-196 M4): whether the Deterministic Baseline can run on this backend. False on Mock, which has none of its modules; the menu entry stays
+    /// visible and says why in its tooltip.
+    /// </summary>
+    public bool CanRunDeterministicBaseline => _backend is IBaselineBackend { SupportsDeterministicBaseline: true };
+
+    /// <summary>The Phase 1b baseline: the fixed chain and display twice on the loaded image, a bit comparison, a DICOM write and read-back. Changes no setting and no image on screen.</summary>
+    public RelayCommand RunDeterministicBaselineCommand { get; }
+
+    /// <summary>The last baseline command's complete result, or null before the first one finished.</summary>
+    public BaselineExecutionResult? LastBaselineResult { get; private set; }
+
+    /// <summary>One line: "not run", the pass line, or the failure with its reason.</summary>
+    public string BaselineStatusText { get; private set; } = "Deterministic Baseline: not run";
+
+    private bool _baselineRunning;
+    private int _baselineRunCount;
 
     public RelayCommand ZoomFitCommand { get; }
 
@@ -757,6 +897,88 @@ public sealed class MainWindowViewModel : ObservableObject
     public RelayCommand ToggleFocusModeCommand { get; }
     public RelayCommand ToggleRoiCommand { get; }
     public RelayCommand ExportEvidenceBundleCommand { get; }
+
+    /// <summary>GUI-C-232: File > Save Corrected Image (float32 .raw...).</summary>
+    private string? ActiveImageSourcePath { get; set; }
+
+    public RelayCommand SaveCorrectedFloatCommand { get; }
+
+    /// <summary>GUI-C-232: File > Save Corrected Image (16-bit PNG...).</summary>
+    public RelayCommand SaveCorrectedPngCommand { get; }
+
+    /// <summary>
+    /// The corrected image of the frame that is open, or null: only a Run Preprocessing that Applied on THIS frame counts (a later load is a different frame, so an old result is never saved under it).
+    /// </summary>
+    private CorrectedImage? _committedCorrected;
+
+    private CorrectedImage? CurrentCorrected =>
+        _committedCorrected is { } corrected && ActiveImageFrame?.RawPixels is { } raw && ReferenceEquals(corrected.RawKey, raw) ? corrected : null;
+
+    /// <summary>True when Save Corrected Image has something to save.</summary>
+    public bool CanSaveCorrected => CurrentCorrected is not null;
+
+    private void RefreshCorrectedAvailability()
+    {
+        OnPropertyChanged(nameof(CanSaveCorrected));
+        SaveCorrectedFloatCommand.RaiseCanExecuteChanged();
+        SaveCorrectedPngCommand.RaiseCanExecuteChanged();
+    }
+
+    /// <summary>The dialog's suggested name: the raw file's name, its size unless the name already says it, and what the file is (<c>wrist_lat_3072x3072_corrected_f32le.raw</c>).</summary>
+    internal static string DefaultCorrectedFileName(string? sourcePath, int width, int height, string suffix, string extension)
+    {
+        var stem = string.IsNullOrEmpty(sourcePath) ? "image" : Path.GetFileNameWithoutExtension(sourcePath);
+        var size = $"{width}x{height}";
+        return (stem.Contains(size, StringComparison.Ordinal) ? stem : $"{stem}_{size}") + $"_{suffix}.{extension}";
+    }
+
+    private void SaveCorrectedFloat() => SaveCorrected("float32 raw", "raw", "Raw float32 (*.raw)|*.raw", (path, c) => CorrectedImageWriter.WriteFloat32(path, c.Floats), "corrected_f32le");
+
+    private void SaveCorrectedPng() => SaveCorrected("16-bit PNG", "png", "PNG image (*.png)|*.png", (path, c) => CorrectedImageWriter.WritePng16(path, c.Floats, c.Width, c.Height), "corrected_16bit");
+
+    private void SaveCorrected(string what, string extension, string filter, Func<string, CorrectedImage, SavedFile> write, string suffix)
+    {
+        var corrected = CurrentCorrected;
+        if (corrected is null)
+        {
+            StatusText = "Nothing to save: run Pipeline > Run Preprocessing (Phase 1a) on the open image first.";
+            Log(StatusText);
+            return;
+        }
+
+        try
+        {
+            var source = ActiveImageSourcePath;
+            var dialog = new Win32SaveFileDialog
+            {
+                Title = $"Save Corrected Image ({what})",
+                Filter = filter,
+                DefaultExt = extension,
+                AddExtension = true,
+                OverwritePrompt = true,
+                FileName = DefaultCorrectedFileName(source, corrected.Width, corrected.Height, suffix, extension),
+            };
+            // GUI-C-232b: start in the folder the successfully opened image came from, never in whatever folder the last dialog happened to use
+            if (!string.IsNullOrEmpty(source) && Path.GetDirectoryName(source) is { Length: > 0 } sourceFolder && Directory.Exists(sourceFolder))
+            {
+                dialog.InitialDirectory = sourceFolder;
+            }
+            if (dialog.ShowDialog() != true)
+            {
+                return;
+            }
+
+            var saved = write(dialog.FileName, corrected);
+            StatusText = $"Saved corrected image ({what}): {saved.Path} — {saved.Bytes} bytes, sha256 {saved.Sha256}";
+            Log(StatusText);
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Save failed: {ex.Message}";
+            Log(StatusText);
+            RaiseAlert(new AlertEntry { Severity = "ERROR", Code = "SAVE_CORRECTED_FAILED", Message = ex.Message, Timestamp = DateTimeOffset.Now });
+        }
+    }
     public RelayCommand<string> SwitchAnalysisTabCommand { get; }
     public RelayCommand ResetLaneBOverridesCommand { get; }
 
@@ -778,32 +1000,76 @@ public sealed class MainWindowViewModel : ObservableObject
         private set => SetProperty(ref _metadataText, value);
     }
 
-    public string DisplayPipelineSummary
-    {
-        get => _displayPipelineSummary;
-        private set => SetProperty(ref _displayPipelineSummary, value);
-    }
+    public string DisplayPipelineSummary => _render?.DisplaySummary ?? NoDisplaySummary;
 
-    public string CalibrationEvaluationSummary =>
-        $"Offset={Settings.OffsetCorrectionMode}, Gain={Settings.GainCorrectionMode}, Defect={Settings.DefectCorrectionMode}, " +
-        $"Ghost={Settings.GhostCorrectionMode}, Temp={Settings.TemperatureCompensationMode}, " +
-        $"Nonlinearity={Settings.NonlinearityCorrectionMode}, Binning={Settings.BinningCorrectionMode}";
+    /// <summary>The calibration modes the settings ASK for now (the panel and the window title read this).</summary>
+    public string CalibrationEvaluationSummary => FormatCalibrationModes(Settings);
 
+    // GUI-C-233e (Codex #175): one formatter for both readings, so the report's `summary` (what a render USED) and `requested.summary` (what is asked for now) cannot differ in wording.
+    private static string FormatCalibrationModes(AppSettings s) =>
+        $"Offset={s.OffsetCorrectionMode}, Gain={s.GainCorrectionMode}, Defect={s.DefectCorrectionMode}, " +
+        $"Ghost={s.GhostCorrectionMode}, Temp={s.TemperatureCompensationMode}, " +
+        $"Nonlinearity={s.NonlinearityCorrectionMode}, Binning={s.BinningCorrectionMode}";
+
+    /// <summary>
+    /// GUI-C-233k (Codex #179): the HUD's "Calib:" line says what the render's chain ACTUALLY RAN, taken from the preprocess stage's own outcome - not from how many calibration modes the settings
+    /// hold (that counted 7/7 on a render where preprocessing never ran: the default <c>PreprocessInChain</c> is off). "—" while no render stands; "not run" when the stage was not requested;
+    /// "failed" when it was requested and did not apply; otherwise the stages the call runs (<see cref="GuiPreprocessRunner.ExecutedStages"/>). GUI-C-234b: a stage that was asked for and SKIPPED
+    /// (no calibration data, a backend without the module) is "not run (&lt;short reason&gt;)", never "failed". The configured modes are in the report under <c>calibrationEvaluation</c>, labelled as configured.
+    /// </summary>
     public string CalibStageCountDisplay
     {
         get
         {
-            string[] modes =
-            [
-                Settings.OffsetCorrectionMode, Settings.GainCorrectionMode,
-                Settings.DefectCorrectionMode, Settings.GhostCorrectionMode,
-                Settings.TemperatureCompensationMode, Settings.NonlinearityCorrectionMode,
-                Settings.BinningCorrectionMode
-            ];
-            var enabled = modes.Count(m => !string.Equals(m, "Off", StringComparison.OrdinalIgnoreCase));
-            return $"{enabled}/7 stages";
+            if (_render is not { } rendered)
+            {
+                return "—";
+            }
+
+            var preprocess = rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+            return preprocess?.Status switch
+            {
+                StageStatus.Applied or StageStatus.AppliedNoChange => $"{GuiPreprocessRunner.ExecutedStages.Length} stages ({string.Join(" · ", GuiPreprocessRunner.ExecutedStages)})",
+                StageStatus.RequestedNotApplied => "failed",
+                StageStatus.Skipped => $"not run ({ShortReasonOf(preprocess.Reason)})",
+                _ => "not run",
+            };
         }
     }
+
+    /// <summary>GUI-C-234b: the part of a skip reason before the first colon ("no calibration data: offset.xcal ... not found" gives "no calibration data").</summary>
+    private static string ShortReasonOf(string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return "skipped";
+        }
+
+        var colon = reason.IndexOf(':', StringComparison.Ordinal);
+        return (colon > 0 ? reason[..colon] : reason).Trim();
+    }
+
+    /// <summary>
+    /// GUI-C-234c (Codex #181 finding 3): the warning that belongs to the render on screen - preprocessing was asked for (it is on by default) but skipped for want of calibration data, on the NATIVE backend, so the
+    /// picture is not corrected. Read from the render record, so it stays while that image is shown (a later alert, status line or other action does not replace it) and goes with the record. Null otherwise;
+    /// the Mock backend, which has no module, gets an INFO alert and no banner.
+    /// </summary>
+    public string? RenderedPreprocessWarning =>
+        _render is { Backend.Mode: "Native" } rendered
+        && rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess) is { Status: StageStatus.Skipped } skipped
+            ? $"NOT CORRECTED - preprocessing is on but was skipped ({ShortReasonOf(skipped.Reason)}). Load calibration data and apply again."
+            : null;
+
+    public bool HasRenderedPreprocessWarning => RenderedPreprocessWarning is not null;
+
+    /// <summary>The preprocess stage's status in the render on screen, or null when no render stands / the chain has no such stage.</summary>
+    private StageStatus? RenderedPreprocessStatus => _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Status;
+
+    /// <summary>GUI-C-233j/k: the algorithm the Reference lane on screen was drawn with (from the render record); null while that lane holds no picture (no render, or the lane work failed) - the screen then shows "—". The selector in the algorithm bar edits the REQUESTED one (<see cref="LaneAAlgorithm"/>).</summary>
+    public string? RenderedLaneAAlgorithm => _render is { LaneA: not null } rendered ? rendered.Inputs.LaneAAlgorithm : null;
+
+    /// <summary>GUI-C-233j/k: the algorithm the Candidate lane on screen was drawn with (from the render record); null while that lane holds no picture.</summary>
+    public string? RenderedLaneBAlgorithm => _render is { LaneB: not null } rendered ? rendered.Inputs.LaneBAlgorithm : null;
 
     public string ComparisonStatus =>
         $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
@@ -825,31 +1091,224 @@ public sealed class MainWindowViewModel : ObservableObject
     // current settings. The HUD next to the image used to read Settings, so after a VOI edit it showed
     // a window the image was never rendered with (GUI-C-77). Null means the processed image was not
     // produced by the display pipeline (a fresh load, or a preprocessing preview).
-    public float? RenderedVoiCenter
+    public float? RenderedVoiCenter => _render?.Voi.Center;
+
+    public float? RenderedVoiWidth => _render?.Voi.Width;
+
+    public string? RenderedVoiMode => _render?.Voi.Mode;
+
+    /// <summary>
+    /// GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index of the last chain run, in words. The value is the preprocess stage's own sentence (the module's EI/DI of the corrected image, labelled
+    /// "uncalibrated" because K_cal and S0 are not calibrated: a measurement, not a pass criterion); when no value could be made, the reason (a stage that did not run, a module refusal).
+    /// </summary>
+    public string ExposureIndexText => _render is null ? NoExposureIndex : ExposureIndexOf(_render.Chain);
+
+    private const string NoExposureIndex = "Exposure index: not measured yet.";
+
+    private static string ExposureIndexOf(ChainResult chain)
     {
-        get => _renderedVoiCenter;
-        private set => SetProperty(ref _renderedVoiCenter, value);
+        var preprocess = chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+        if (preprocess is null || preprocess.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange))
+        {
+            // GUI-C-234b: the same reason the HUD gives ("not run (no calibration data)"), so the two lines cannot disagree about why there is no value.
+            var why = preprocess?.Status switch
+            {
+                StageStatus.Skipped => $": {ShortReasonOf(preprocess.Reason)}",
+                StageStatus.RequestedNotApplied => ": it failed",
+                StageStatus.NotRequested => ": it is switched off",
+                _ => string.Empty,
+            };
+            return $"Exposure index: not measured (preprocessing did not run{why}).";
+        }
+
+        const string Marker = "uncalibrated EI";
+        var at = preprocess.Reason?.IndexOf(Marker, StringComparison.Ordinal) ?? -1;
+        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + preprocess.Reason![at..].Trim();
     }
 
-    public float? RenderedVoiWidth
-    {
-        get => _renderedVoiWidth;
-        private set => SetProperty(ref _renderedVoiWidth, value);
-    }
+    /// <summary>GUI-C-233c: whether the window of the render on screen was the automatic one (true), one chosen by hand (false), or unknown / no render yet (null).</summary>
+    public bool? RenderedVoiAutomatic => _render?.Voi.Automatic;
 
-    public string? RenderedVoiMode
+    /// <summary>
+    /// GUI-C-233g: THE place a render becomes the one on screen, and the only place it stops being (with <see cref="InvalidateRender"/>, which calls it with null). Every property derived
+    /// from the record is raised here, so a reader can never see half of an old render and half of a new one.
+    /// </summary>
+    private void SetRender(RenderRecord? record)
     {
-        get => _renderedVoiMode;
-        private set => SetProperty(ref _renderedVoiMode, value);
-    }
+        _render = record;
+        foreach (var name in RenderDerivedProperties)
+        {
+            OnPropertyChanged(name);
+        }
 
-    private void SetRenderedVoi(AppSettings? inputs)
-    {
-        _renderedInputs = inputs;
-        RenderedVoiCenter = inputs?.VoiWindowCenter;
-        RenderedVoiWidth = inputs?.VoiWindowWidth;
-        RenderedVoiMode = inputs?.VoiLutMode;
         RefreshParametersStale();
+    }
+
+    private long _renderSequence;
+
+    // GUI-C-236b / 236c (U8, PERF-P1-001): "open -> the second WPF composition tick after the processed picture was handed to the viewport". The start is the moment the open begins reading the file (after
+    // any file dialog has answered); the end is the second CompositionTarget.Rendering tick after the hand-over (the first tick can still be the frame that was already being built). THIS IS A PROXY,
+    // not the moment the picture is on the screen: Rendering is raised BEFORE the frame is rendered. The independent observation of the screen is made from outside, by the E2E (W15, GUI-C-236c).
+    // The first display pipeline that completes after an open consumes the start.
+    private long _openStartedAt;
+    private long _openReadEndedAt;
+    private int _openGeneration;
+    private int _frameTimingSequence;
+    private string _frameTimingText = string.Empty;
+    private CancellationTokenSource _frameTimingLifetime = new();
+
+    /// <summary>How a wait for composition ticks ended.</summary>
+    internal enum CompositionWait
+    {
+        Ticked,
+        TimedOut,
+        Cancelled,
+    }
+
+    /// <summary>How many waits for composition ticks hold a subscription to <c>CompositionTarget.Rendering</c> right now. Must be 0 when nothing is waiting: the subscription is released on every way out (ticked, timed out, cancelled).</summary>
+    internal static int ActiveCompositionSubscriptions;
+
+    /// <summary>Replaces the wait for composition ticks (the SelfCheck runner has no window, so no tick ever comes). Null: the real one.</summary>
+    internal Func<int, TimeSpan, CancellationToken, Task<CompositionWait>>? CompositionTicksOverride { get; set; }
+
+    /// <summary>The longest the wait for the second tick is allowed to take (a minimised window raises none).</summary>
+    internal TimeSpan FrameTimingLimit { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>One line, written when the second composition tick after an open's processed picture has passed: <c>open-to-2nd-tick (proxy) #n: T ms = read a + prepare b + chain-and-display c [stage times] + ui d + render e</c>. Empty until the first one.</summary>
+    public string FrameTimingText
+    {
+        get => _frameTimingText;
+        private set => SetProperty(ref _frameTimingText, value);
+    }
+
+    private static double Milliseconds(long from, long to) => (to - from) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+
+    /// <summary>
+    /// GUI-C-236c: waits for <paramref name="ticks"/> composition ticks, for at most <paramref name="limit"/>, or until <paramref name="cancel"/>. The subscription to <c>CompositionTarget.Rendering</c> is taken
+    /// and released HERE and nowhere else, and it is released in a <c>finally</c>: whichever way the wait ends, no handler is left behind (a static event keeps every handler - and the closure it holds - alive).
+    /// WPF can raise <c>Rendering</c> more than once for one frame; a frame is told by its <c>RenderingTime</c>, so one frame counts once.
+    /// </summary>
+    internal static async Task<CompositionWait> WaitForCompositionTicksAsync(int ticks, TimeSpan limit, CancellationToken cancel)
+    {
+        var done = new TaskCompletionSource<CompositionWait>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var seen = 0;
+        TimeSpan? lastFrame = null;
+        EventHandler handler = (_, e) =>
+        {
+            var frame = (e as System.Windows.Media.RenderingEventArgs)?.RenderingTime;
+            if (frame is not null && frame == lastFrame)
+            {
+                return;
+            }
+
+            lastFrame = frame;
+            if (++seen >= ticks)
+            {
+                done.TrySetResult(CompositionWait.Ticked);
+            }
+        };
+
+        using var timeout = new CancellationTokenSource(limit);
+        using var onTimeout = timeout.Token.Register(() => done.TrySetResult(CompositionWait.TimedOut));
+        using var onCancel = cancel.Register(() => done.TrySetResult(CompositionWait.Cancelled));
+        try
+        {
+            Interlocked.Increment(ref ActiveCompositionSubscriptions);
+            System.Windows.Media.CompositionTarget.Rendering += handler;
+            return await done.Task;
+        }
+        finally
+        {
+            System.Windows.Media.CompositionTarget.Rendering -= handler;
+            Interlocked.Decrement(ref ActiveCompositionSubscriptions);
+        }
+    }
+
+    /// <summary>Called when the backend is going away (the window is closing): a wait still running ends as cancelled and writes nothing.</summary>
+    private void CancelFrameTiming()
+    {
+        var old = Interlocked.Exchange(ref _frameTimingLifetime, new CancellationTokenSource());
+        old.Cancel();
+    }
+
+    /// <summary>
+    /// Waits for the second composition tick after <paramref name="shown"/> was handed to the viewport and writes the line - unless, when the wait ends, it no longer describes what is on screen: a newer
+    /// open began (<paramref name="generation"/> is no longer the current one) or another picture replaced <paramref name="shown"/>. A wait that ran out its limit is written AND marked as timed out
+    /// (in the line and in the log); a wait cancelled because the window is closing writes nothing.
+    /// </summary>
+    private async Task PublishFrameTimingAsync(int generation, System.Windows.Media.ImageSource shown, long openStartedAt, long readEndedAt, long applyStartedAt, long workEndedAt, long shownAt, string stageTimes)
+    {
+        try
+        {
+            if (CompositionTicksOverride is null && System.Windows.Application.Current is null)
+            {
+                return;
+            }
+
+            var wait = await (CompositionTicksOverride ?? WaitForCompositionTicksAsync)(2, FrameTimingLimit, _frameTimingLifetime.Token);
+            var renderedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (wait == CompositionWait.Cancelled)
+            {
+                Log($"Frame timing of open #{generation} not written: the window is closing.");
+                return;
+            }
+
+            if (generation != _openGeneration || !ReferenceEquals(ProcessedImage, shown))
+            {
+                Log($"Frame timing of open #{generation} dropped: {(generation != _openGeneration ? $"open #{_openGeneration} began meanwhile" : "another picture replaced it")}.");
+                return;
+            }
+
+            var text = $"open-to-2nd-tick (proxy) #{++_frameTimingSequence}: {Milliseconds(openStartedAt, renderedAt):0} ms = read {Milliseconds(openStartedAt, readEndedAt):0} + prepare {Milliseconds(readEndedAt, applyStartedAt):0}"
+                       + $" + chain-and-display {Milliseconds(applyStartedAt, workEndedAt):0} [{stageTimes.Replace("times: ", string.Empty)}] + ui {Milliseconds(workEndedAt, shownAt):0} + render {Milliseconds(shownAt, renderedAt):0}"
+                       + (wait == CompositionWait.TimedOut ? $" (TIMED OUT: no second composition tick within {FrameTimingLimit.TotalSeconds:0.#} s; the render figure is a lower bound)" : string.Empty);
+            FrameTimingText = text;
+            Log(text);
+        }
+        catch (Exception ex)
+        {
+            Log($"Frame timing not written: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// GUI-C-233h: adds what becomes known AFTER the commit (the lane pictures, the timings) to the record it belongs to - and only if that render is still the one on screen. Matching is by
+    /// <see cref="RenderRecord.Id"/>, not by object: every update makes a new record, so an object comparison would drop the second update.
+    /// </summary>
+    private void UpdateRender(long id, Func<RenderRecord, RenderRecord> change)
+    {
+        if (_render is { } current && current.Id == id)
+        {
+            SetRender(change(current));
+        }
+    }
+
+    private static readonly string[] RenderDerivedProperties =
+    [
+        nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
+        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
+        nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
+        nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel), nameof(RenderedPreprocessWarning), nameof(HasRenderedPreprocessWarning),
+    ];
+
+    /// <summary>
+    /// GUI-C-233g: the ONE invalidation. The render on screen no longer stands - a new frame was accepted, or the backend that produced it was replaced - so the record goes, the save
+    /// candidate that belonged to it goes, and the viewport shows the source frame (or nothing, before any load) with the stated reason. Nothing else clears render state.
+    /// </summary>
+    private void InvalidateRender(string? staleReason)
+    {
+        SetRender(null);
+        _committedCorrected = null;
+        PreviewStaleReason = staleReason;
+        if (_sourceFrame is { } source)
+        {
+            ActiveImageFrame = source;
+            ProcessedImage = source.ProcessedPreview ?? source.Preview;
+            ActiveImageSummary = source.Summary;
+            MetadataText = source.MetadataText;   // GUI-C-233j: the processed frame's metadata text goes with the render, like the summary
+        }
+
+        RefreshCorrectedAvailability();
     }
 
     // #171 ① / ③ (GUI-C-79): why the processed image no longer matches what the operator asked for, or
@@ -864,6 +1323,9 @@ public sealed class MainWindowViewModel : ObservableObject
     /// attempt. It stays up (nothing better exists to show) and is marked until a render succeeds or a new
     /// image is loaded; a later parameter edit does not replace this reason.
     /// </summary>
+    public const string StaleBackendReplaced =
+        "STALE — the backend was replaced; the image shown is the unprocessed source. Apply the display pipeline again.";
+
     public const string StalePipelineFailed =
         "STALE — the display pipeline failed; the image shown is from before the failed attempt.";
 
@@ -882,20 +1344,35 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool IsPreviewStale => PreviewStaleReason is not null;
 
     /// <summary>
-    /// #171 (GUI-C-79): <c>faultInjection=off</c> unless the app was started with
-    /// <c>--automation-fault</c>. Exposed as the main window's automation status so the E2E suite can
-    /// check that an ordinary launch carries no fault, not just assume it.
+    /// The fault-injection status the main window publishes for automation: <c>faultInjection=off</c> on an ordinary launch. Exposed so
+    /// the E2E suite can check that an ordinary launch carries no fault, not just assume it. (#171, GUI-C-79; what can arm it exists in
+    /// test builds only, GUI-C-193. This comment is compiled into the documentation file of every build, so it names no switch.)
     /// </summary>
+#if XPE_TEST_FAULTS
+    // #171: in a test build the status is armed by the command-line fault switch (see AutomationArgs).
     public string FaultInjectionStatus => FaultInjectingBackend.Describe();
+#else
+    // GUI-C-193: a shipped build has no fault injection to describe. The status stays the one an unarmed test build reports, so the
+    // automation contract ("faultInjection=off" on an ordinary launch) is the same in both.
+    public string FaultInjectionStatus => "faultInjection=off";
+#endif
 
+#if XPE_TEST_FAULTS
     /// <summary>Called once at start-up when a fault was armed — the log says so first.</summary>
     public void AnnounceFaultInjection()
     {
-        Log($"FAULT INJECTION ARMED: {FaultInjectionStatus}. Display pipeline calls past the limit throw on purpose.");
+        // GUI-C-192: says what is armed. The text used to describe the display fault only, which is wrong for an app armed with
+        // ai-worker-disabled alone (GUI-C-191b added it): no display call throws there.
+        var armed = FaultInjectionStatus;
+        Log($"FAULT INJECTION ARMED: {armed}."
+            + (armed.Contains(AutomationArgs.DisplayPipelineFaultPrefix, StringComparison.Ordinal) ? " Display pipeline calls past the limit throw on purpose." : string.Empty)
+            + (armed.Contains(AutomationArgs.AiWorkerDisabledFault, StringComparison.Ordinal) ? " The AI worker status read answers 'switched off, 3 of 3' whatever the module says." : string.Empty)
+            + (armed.Contains(AutomationArgs.AiWorkerSilentFault, StringComparison.Ordinal) ? " The AI worker status read stops answering after the answers the fault allows (one, or none with :0)." : string.Empty));
         _faultInjectionAnnounced = true;
         OnPropertyChanged(nameof(FaultInjectionStatus));
         OnPropertyChanged(nameof(WindowTitle));
     }
+#endif
 
     /// <summary>
     /// ① — the image is stale when a setting the display pipeline reads differs from the snapshot that
@@ -903,7 +1380,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     private void RefreshParametersStale()
     {
-        var differs = _renderedInputs is not null && DisplayInputsDiffer(_renderedInputs, Settings);
+        var differs = RenderedInputs is not null && DisplayInputsDiffer(RenderedInputs, Settings);
 
         if (differs && PreviewStaleReason is null)
         {
@@ -918,9 +1395,11 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>The settings either backend's ApplyDisplayPipeline reads (Mock and Real, GUI-C-79).</summary>
     private static bool DisplayInputsDiffer(AppSettings a, AppSettings b) =>
         ChainInputsDiffer(a, b)
-        || a.VoiWindowCenter != b.VoiWindowCenter
+        || a.VoiWindowAuto != b.VoiWindowAuto   // GUI-C-233b: automatic <-> chosen by hand changes the image
+        // the hand-chosen numbers only matter while the window is NOT automatic (the automatic window ignores them)
+        || (!b.VoiWindowAuto && (a.VoiWindowCenter != b.VoiWindowCenter
         || a.VoiWindowWidth != b.VoiWindowWidth
-        || !string.Equals(a.VoiLutMode, b.VoiLutMode, StringComparison.Ordinal)
+        || !string.Equals(a.VoiLutMode, b.VoiLutMode, StringComparison.Ordinal)))
         || a.ModalityRescaleSlope != b.ModalityRescaleSlope
         || a.ModalityRescaleIntercept != b.ModalityRescaleIntercept
         || a.GsdfEnabled != b.GsdfEnabled
@@ -965,6 +1444,7 @@ public sealed class MainWindowViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(RuntimeVersionSummary));
                 RaiseBackendIdentityChanged();
+                RefreshAiBoneSuppressionAvailability();
             }
         }
     }
@@ -976,7 +1456,9 @@ public sealed class MainWindowViewModel : ObservableObject
     // positively the native backend counts as Mock: an unknown backend is warned about, not trusted.
     public const string BaseWindowTitle = "ImageProcTest GUI-S0";
 
+#if XPE_TEST_FAULTS
     private bool _faultInjectionAnnounced;
+#endif
 
     public bool IsMockBackend => !string.Equals(RuntimeInfo.BackendName, "RealXpeBackend", StringComparison.Ordinal);
 
@@ -989,13 +1471,16 @@ public sealed class MainWindowViewModel : ObservableObject
     /// <summary>HAZ-GUI-005 (1): the text of the banner that cannot be dismissed while Mock is active.</summary>
     public string MockBackendWarning =>
         RequestedBackendMismatch is { } requested
-            ? $"MOCK BACKEND — {requested} was requested but could not be used. Images and results are synthetic; not for clinical judgement."
+            ? $"MOCK BACKEND — {requested} was requested but could not be used{(RuntimeInfo.NativeRefusal.Length > 0 ? ": " + RuntimeInfo.NativeRefusal : string.Empty)}. Images and results are synthetic; not for clinical judgement."
             : "MOCK BACKEND — images and results are synthetic; not for clinical judgement.";
 
     /// <summary>HAZ-GUI-005 (2): <c>[MOCK]</c> in the title while Mock is active.</summary>
     public string WindowTitle =>
         (IsMockBackend ? "[MOCK] " : string.Empty) + BaseWindowTitle
-        + (_faultInjectionAnnounced ? " — FAULT INJECTION ARMED" : string.Empty);
+#if XPE_TEST_FAULTS
+        + (_faultInjectionAnnounced ? " — FAULT INJECTION ARMED" : string.Empty)
+#endif
+        ;
 
     private void RaiseBackendIdentityChanged()
     {
@@ -1118,7 +1603,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             if (Settings.LaneAAlgorithm == value) return;
             Settings.LaneAAlgorithm = value;
-            AlgorithmPreset.For(value).ApplyTo(Settings);
+            AlgorithmPreset.For(value).ApplyTo(Settings);   // GUI-C-234c: the grid correction only; the preprocessing switch is not the preset's to turn off
             OnPropertyChanged();
         }
     }
@@ -1191,17 +1676,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public bool LaneBDenoiseKUnapplied => !LaneBDenoiseKApplies;
 
     // Slice 2 — VM-only properties
-    public System.Windows.Media.ImageSource? LaneAImage
-    {
-        get => _laneAImage;
-        private set => SetProperty(ref _laneAImage, value);
-    }
+    // GUI-C-233h: the comparison lanes are part of the render record (they were the one piece of the drawn image outside it): they go with it, and they come from the backend that made the render.
+    public System.Windows.Media.ImageSource? LaneAImage => _render?.LaneA;
 
-    public System.Windows.Media.ImageSource? LaneBImage
-    {
-        get => _laneBImage;
-        private set => SetProperty(ref _laneBImage, value);
-    }
+    public System.Windows.Media.ImageSource? LaneBImage => _render?.LaneB;
 
     public string ActiveStudyId
     {
@@ -1260,10 +1738,12 @@ public sealed class MainWindowViewModel : ObservableObject
         var started = Lifecycle.Begin(() => backend.Shutdown(), error => FinishShutdown(backend, error));
         if (started)
         {
+            CancelFrameTiming();   // GUI-C-236c: a timing still waiting for its tick belongs to a picture that is going away
             AiStatus.Reset(); // the status shown belongs to a session that is ending; the read after the shutdown says what is left
             StatusText = "Backend shutting down...";
             Log("Backend shutdown requested.");
             OnPropertyChanged(nameof(IsBackendTransitioning));
+            RefreshAiBoneSuppressionAvailability();
         }
         else
         {
@@ -1279,6 +1759,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void FinishShutdown(IXpeBackend backend, Exception? error)
     {
         OnPropertyChanged(nameof(IsBackendTransitioning));
+        RefreshAiBoneSuppressionAvailability();
         if (ReferenceEquals(backend, _backend))
         {
             RuntimeInfo = _backend.GetRuntimeInfo();
@@ -1860,7 +2341,18 @@ public sealed class MainWindowViewModel : ObservableObject
                 (_backend as IDisposable)?.Dispose();
                 _backend = _backendFactory(Settings);
             }
+
+            // GUI-C-233g (Codex #176): the picture on screen was produced by the backend that was just disposed. Chosen over "keep it with its old origin": it is dropped and the source frame is shown,
+            // marked stale, until the NEW backend renders (a picture and a record naming a backend that no longer exists would be the thing the record exists to prevent). Nothing to drop at start-up.
+            if (_render is not null || _sourceFrame is not null)
+            {
+                InvalidateRender(_sourceFrame is not null ? StaleBackendReplaced : null);
+            }
+
             RuntimeInfo = _backend.Initialize(Settings);
+            OnPropertyChanged(nameof(CanRunDeterministicBaseline));
+            OnPropertyChanged(nameof(CanRunPreprocessing));   // GUI-C-232 (A): it follows the backend, so it is raised when the backend is replaced
+            RefreshCorrectedAvailability();
             DrainBackendTelemetry();
 
             // #178 (GUI-C-89): every successful initialisation starts a new run set. The actual backend can
@@ -2126,27 +2618,52 @@ public sealed class MainWindowViewModel : ObservableObject
                 display = Settings.ShowDisplayPanel,
                 logs = ShowLogsPanel
             },
+            exposureIndex = ExposureIndexText,   // GUI-C-234
             displayPipeline = new
             {
-                applied = ActiveImageFrame?.DisplayPipelineApplied ?? false,
+                // GUI-C-233g: every applied value below is read from the render record (null / false while none stands); the CURRENT runtime is the top-level backend / actualBackendMode / mockBackend,
+                // and what is asked for now is `requested`. `renderedBy` names the backend that PRODUCED the picture, which after a backend switch can differ from both.
+                applied = _render is not null,
                 summary = DisplayPipelineSummary,
-                version = RuntimeInfo.DisplayVersion,
-                mode = Settings.VoiLutMode,
-                center = Settings.VoiWindowCenter,
-                width = Settings.VoiWindowWidth,
-                bodyPart = Settings.SelectedBodyPart,
-                gsdf = Settings.GsdfEnabled
+                version = _render?.Backend.DisplayVersion,
+                renderedBy = _render is null ? null : new { backendMode = _render.Backend.Mode, backendName = _render.Backend.BackendName, commonVersion = _render.Backend.CommonVersion, displayVersion = _render.Backend.DisplayVersion, nativeSource = _render.Backend.NativeSource },
+                // GUI-C-233c: the window the displayed render USED (automatic windows included), never the settings' numbers; null while nothing was rendered for this frame.
+                windowSource = PreviewStaleReason == StalePipelineFailed ? "failed" : RenderedVoiMode is null ? "not applied" : RenderedVoiAutomatic == true ? "automatic" : "manual",
+                mode = RenderedVoiMode,
+                center = RenderedVoiCenter,
+                width = RenderedVoiWidth,
+                // GUI-C-233d: what the displayed render USED (null while nothing was rendered for this frame); what is asked for NOW is in `requested`
+                bodyPart = RenderedInputs?.SelectedBodyPart,
+                gsdf = RenderedInputs?.GsdfEnabled,
+                requested = new { mode = Settings.VoiLutMode, center = Settings.VoiWindowCenter, width = Settings.VoiWindowWidth, automatic = Settings.VoiWindowAuto, bodyPart = Settings.SelectedBodyPart, gsdf = Settings.GsdfEnabled }
             },
             calibrationEvaluation = new
             {
-                summary = CalibrationEvaluationSummary,
-                offset = Settings.OffsetCorrectionMode,
-                gain = Settings.GainCorrectionMode,
-                defect = Settings.DefectCorrectionMode,
-                ghost = Settings.GhostCorrectionMode,
-                temperature = Settings.TemperatureCompensationMode,
-                nonlinearity = Settings.NonlinearityCorrectionMode,
-                binning = Settings.BinningCorrectionMode
+                // GUI-C-233k: the modes and the summary below are what was CONFIGURED for the render. What actually ran is `executed` (the preprocess stage runs offset, gain and defect; the other four
+                // modes are not connected to that call), and it is what the HUD's "Calib:" line shows.
+                // GUI-C-234b: `reason` is the preprocess stage's own reason (why it was skipped or failed, or its summary when it ran); null with no render.
+                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages =RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
+                // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
+                summary = RenderedInputs is null ? null : FormatCalibrationModes(RenderedInputs),
+                // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
+                offset = RenderedInputs?.OffsetCorrectionMode,
+                gain = RenderedInputs?.GainCorrectionMode,
+                defect = RenderedInputs?.DefectCorrectionMode,
+                ghost = RenderedInputs?.GhostCorrectionMode,
+                temperature = RenderedInputs?.TemperatureCompensationMode,
+                nonlinearity = RenderedInputs?.NonlinearityCorrectionMode,
+                binning = RenderedInputs?.BinningCorrectionMode,
+                requested = new
+                {
+                    summary = CalibrationEvaluationSummary,
+                    offset = Settings.OffsetCorrectionMode,
+                    gain = Settings.GainCorrectionMode,
+                    defect = Settings.DefectCorrectionMode,
+                    ghost = Settings.GhostCorrectionMode,
+                    temperature = Settings.TemperatureCompensationMode,
+                    nonlinearity = Settings.NonlinearityCorrectionMode,
+                    binning = Settings.BinningCorrectionMode
+                }
             },
             processingChain = DescribeChain(),
             comparison = new
@@ -2263,14 +2780,19 @@ public sealed class MainWindowViewModel : ObservableObject
         }
 
         Settings.LastRawDirectory = Path.GetDirectoryName(path) ?? string.Empty;
+        _openGeneration++;   // GUI-C-236c: a timing that began before this open must not be written after it
+        _openStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();   // GUI-C-236b (U8): the open starts reading
         var loadedFrame = _backend.LoadRawImage(path, Settings);
+        _openReadEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+        ActiveImageSourcePath = path;   // GUI-C-232b: only after the load SUCCEEDED, so a failed open never renames the image that is still open
         DrainBackendTelemetry();
 
+        // GUI-C-233g: a new frame ends whatever render stood (one call; the record and everything derived from it go with it)
+        _sourceFrame = loadedFrame;
         SourceImage = loadedFrame.Preview;
-        ProcessedImage = loadedFrame.ProcessedPreview ?? loadedFrame.Preview;
-        PreviewStaleReason = null;   // a new image replaces whatever was stale
-        SetRenderedVoi(null);        // not a display-pipeline render yet
+        InvalidateRender(staleReason: null);
         ActiveImageFrame = loadedFrame;
+        RefreshCorrectedAvailability();
         ResetComparisonView();
         ActiveImageSummary = loadedFrame.Summary;
         MetadataText = loadedFrame.MetadataText;
@@ -2306,6 +2828,13 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
+        // GUI-C-236b (U8): the first display pipeline after an open is the one whose picture ends the timed span
+        var timedOpenStartedAt = _openStartedAt;
+        var timedReadEndedAt = _openReadEndedAt;
+        var timedGeneration = _openGeneration;
+        _openStartedAt = 0;
+        var applyStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+
         CancellationTokenSource? cancellationMarker = null;
         StatusText = "Applying display pipeline...";
         Log($"Display pipeline requested: mode={Settings.VoiLutMode}, bodyPart={Settings.SelectedBodyPart}, center={Settings.VoiWindowCenter}, width={Settings.VoiWindowWidth}, GSDF={Settings.GsdfEnabled}, calibrationEval=[{CalibrationEvaluationSummary}].");
@@ -2335,9 +2864,10 @@ public sealed class MainWindowViewModel : ObservableObject
             var (chain, processedFrame) = await Task.Run(() =>
             {
                 var chainResult = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(inputs), inputs);
-                return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult.DisplayInput, inputs));
+                return (chainResult, backend.ApplyDisplayPipeline(sourceFrame, chainResult, inputs));
             });
             var workMs = work.Elapsed.TotalMilliseconds;
+            var workEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
             // GUI-C-186f: a shutdown or a replacement may have started while the chain waited (for the AI gate, for instance). Its
             // result belongs to a backend that is going away: nothing on screen changes, and no Lane B work is scheduled.
@@ -2361,19 +2891,41 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             DrainBackendTelemetry();
-            ReportChain(chain);
+            var renderBackend = RenderBackend.From(backend.GetRuntimeInfo());
+            var chainReport = ReportChain(chain, renderBackend.Mode == "Native");
 
+            // GUI-C-232b: the save candidate is committed together with the render and only from THIS (current, not cancelled) result; a run that applied no preprocess clears it.
+            _committedCorrected = (backend as ICorrectedImageSource)?.CorrectedFor(chain);
             ActiveImageFrame = processedFrame;
+            RefreshCorrectedAvailability();
             ProcessedImage = processedFrame.ProcessedPreview ?? processedFrame.Preview;
+            if (timedOpenStartedAt != 0)
+            {
+                // GUI-C-236b (U8): the picture is handed to the viewport; the end of the timed span is two composition ticks later (not awaited here: nothing below waits for it)
+                _ = PublishFrameTimingAsync(timedGeneration, ProcessedImage!, timedOpenStartedAt, timedReadEndedAt, applyStartedAt, workEndedAt, System.Diagnostics.Stopwatch.GetTimestamp(), chain.Timings);
+            }
+
             PreviewStaleReason = null;   // #171 ③: this render is current; ① is re-evaluated just below
-            SetRenderedVoi(inputs);
+            // GUI-C-233g: the commit. One record, made from this render's own inputs, chain, window, summary and the backend that ran it (asked from the ticket's backend, not from whatever is current later).
+            var committed = new RenderRecord(
+                inputs,
+                renderBackend,
+                RenderedVoi.From(inputs, processedFrame.AppliedVoi),
+                chain,
+                chainReport.Status,
+                chainReport.AiLabel,
+                chainReport.PreprocessRan,
+                chainReport.PreprocessStages,
+                processedFrame.DisplayPipelineSummary,
+                Timings: string.Empty,
+                Id: ++_renderSequence);
+            SetRender(committed);
             MetadataText = processedFrame.MetadataText;
-            DisplayPipelineSummary = processedFrame.DisplayPipelineSummary;
             ActiveImageSummary = processedFrame.DisplayPipelineApplied
                 ? $"{processedFrame.Summary} | {processedFrame.DisplayPipelineSummary}"
                 : processedFrame.Summary;
-            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary}";
-            await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket);
+            StatusText = $"{chain.Summary} | {processedFrame.DisplayPipelineSummary} | {ExposureIndexText}";
+            await RenderLanesAsync(sourceFrame, inputs, ProcessedImage, ticket, committed.Id);
             if (!IsCurrent(ticket))
             {
                 return; // the lanes' wait outlived the backend: the timing line below would describe a render that was dropped
@@ -2385,12 +2937,15 @@ public sealed class MainWindowViewModel : ObservableObject
             // Apply whose lanes made no AI call costs one more read of a state that did not change.
             RefreshAiWorkerStatus();
 
-            PipelineTimings = string.Join("; ", new[]
+            // The timings exist only after the lanes finished; they are added to THIS render's record, and only if it is still the one on screen (a newer render or an invalidation wins).
+            var timings = string.Join("; ", new[]
             {
                 $"work={workMs:0} ms",
                 $"vm={total.Elapsed.TotalMilliseconds - workMs:0} ms",
                 processedFrame.DisplayTimings,
             }.Where(part => !string.IsNullOrWhiteSpace(part)));
+            UpdateRender(committed.Id, r => r with { Timings = timings });
+
             OnPropertyChanged(nameof(FaultInjectionStatus));
         }
         catch (Exception ex)
@@ -2477,9 +3032,131 @@ public sealed class MainWindowViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// #225 row 9 (GUI-C-196 M4): the Deterministic Baseline. Unlike Run Preprocessing it changes NO setting and does not touch the image on screen or the stage
+    /// timing the last render left: the baseline is its own measurement with fixed parameters (design D3, D7), and its result is the status line, the log, one
+    /// alert and the evidence folder. Takes a lifetime ticket but not a request number, so it neither supersedes nor is superseded by an Apply.
+    /// </summary>
+    internal async Task RunDeterministicBaselineAsync()
+    {
+        if (RefusedWhileTransitioning("Deterministic Baseline"))
+        {
+            return;
+        }
+
+        var ticket = TakeTicket();
+        if (ticket.Backend is not IBaselineBackend { SupportsDeterministicBaseline: true } backend)
+        {
+            FinishBaselineWithoutRun("Deterministic Baseline requires the native backend (preprocess, enhance_basic, display and dicom modules).", "BASELINE_NEEDS_NATIVE");
+            return;
+        }
+
+        if (_baselineRunning)
+        {
+            StatusText = "Deterministic Baseline is already running.";
+            Log(StatusText);
+            return;
+        }
+
+        if (ActiveImageFrame is not { RawPixels: not null } frame)
+        {
+            FinishBaselineWithoutRun("Deterministic Baseline requires a loaded raw image.", "BASELINE_NO_IMAGE");
+            return;
+        }
+
+        _baselineRunning = true;
+        StatusText = "Running Deterministic Baseline (two runs)...";
+        Log(StatusText);
+        try
+        {
+            var inputs = Settings.Snapshot();
+            var runId = string.IsNullOrWhiteSpace(RunSet.RunId) ? "adhoc-" + DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) : RunSet.RunId;
+            var folder = Path.Combine(AppContext.BaseDirectory, "evidence", runId, $"baseline-{++_baselineRunCount}");
+            var metadata = new BaselineDicomMetadata(inputs.SelectedBodyPart, inputs.ExposureKvp, inputs.PixelPitchMm);
+
+            var result = await Task.Run(() => BaselineExecution.Run(
+                frame.RawPixels!,
+                frame.Width,
+                frame.Height,
+                () => backend.RunBaselineOnce(frame, inputs),
+                backend.CreateBaselineDicomSession(),
+                metadata,
+                folder));
+
+            if (!IsCurrent(ticket))
+            {
+                Log($"Deterministic Baseline result dropped: {WhyStale(ticket)}");
+                return;
+            }
+
+            DrainBackendTelemetry();
+            LastBaselineResult = result;
+            BaselineStatusText = result.Status;
+            StatusText = result.Status + (result.EvidenceWriteProblem is null ? string.Empty : $" (evidence not written: {result.EvidenceWriteProblem})");
+            Log(StatusText);
+            Log($"Baseline times: {result.StageTimes}; total {result.TotalMs:0} ms against the {BaselineExecution.BudgetMs} ms budget (measured, not asserted).");
+            Log($"Baseline hashes: input {result.Verdict.InputSha256Before[..12]}, output {result.Verdict.OutputSha256?[..12] ?? "none"}, stage run 1 [{string.Join(", ", result.Verdict.StageHashesRun1.Select(h => h[..Math.Min(12, h.Length)]))}].");
+            if (result.ExposureIndex.Length > 0)
+            {
+                Log($"Baseline {result.ExposureIndex}");
+            }
+
+            Log($"Baseline evidence: {result.EvidenceFolder}");
+            RaiseAlert(new AlertEntry
+            {
+                Severity = result.Passed ? "INFO" : "ERROR",
+                Code = result.Passed ? "BASELINE_PASS" : "BASELINE_FAILED",
+                Message = result.Status,
+                Timestamp = DateTimeOffset.Now
+            });
+            OnPropertyChanged(nameof(LastBaselineResult));
+            OnPropertyChanged(nameof(BaselineStatusText));
+        }
+        catch (Exception ex)
+        {
+            if (!IsCurrent(ticket))
+            {
+                Log($"Deterministic Baseline of a backend that is no longer current failed ({ex.Message}); dropped.");
+                return;
+            }
+
+            BaselineStatusText = $"Deterministic Baseline FAIL: {ex.Message}";
+            StatusText = BaselineStatusText;
+            Log(StatusText);
+            RaiseAlert(new AlertEntry
+            {
+                Severity = "ERROR",
+                Code = "BASELINE_FAILED",
+                Message = ex.Message,
+                Timestamp = DateTimeOffset.Now
+            });
+            OnPropertyChanged(nameof(BaselineStatusText));
+        }
+        finally
+        {
+            _baselineRunning = false;
+        }
+    }
+
+    private void FinishBaselineWithoutRun(string message, string code)
+    {
+        StatusText = message;
+        BaselineStatusText = message;
+        Log(message);
+        RaiseAlert(new AlertEntry { Severity = "WARN", Code = code, Message = message, Timestamp = DateTimeOffset.Now });
+        OnPropertyChanged(nameof(BaselineStatusText));
+    }
+
     /// <summary>#225 row 10 (GUI-C-184): AI bone suppression is a stage of the pixel chain; the menu entry switches it on and renders again.</summary>
     private async void RunAiBoneSuppression()
     {
+        if (!AiBoneSuppressionAvailability.CanRun)
+        {
+            StatusText = $"AI bone suppression is not available: {AiBoneSuppressionAvailability.Reason}";
+            Log(StatusText);
+            return;
+        }
+
         if (ActiveImageFrame is null)
         {
             StatusText = "Load a raw image before running AI bone suppression.";
@@ -2504,33 +3181,58 @@ public sealed class MainWindowViewModel : ObservableObject
     /// report reads, a log line per stage, and an alert for every requested stage that did not apply. A
     /// refusal is an expected state (no calibration, Mock backend), so it is a WARN, not an exception.
     /// </summary>
-    private void ReportChain(ChainResult chain)
+    /// <summary>What <see cref="ReportChain"/> derives from a chain for the render record.</summary>
+    private readonly record struct ChainReport(string Status, string AiLabel, bool PreprocessRan, string PreprocessStages);
+
+    private ChainReport ReportChain(ChainResult chain, bool native)
     {
-        LastChain = chain;
         // The reason of a stage that did not apply belongs on screen: "RequestedNotApplied" alone sends
         // the operator to the log to find out why (#180, GUI-C-101).
         var refused = chain.Stages
-            .Where(st => st.Status == StageStatus.RequestedNotApplied)
+            .Where(st => st.Status is StageStatus.RequestedNotApplied or StageStatus.Skipped)
             .Select(st => $"{st.StageId}: {st.Reason}")
             .ToArray();
         // #225 row 10 (GUI-C-184): the label is derived from the stage's STATUS, which the chain derives from the module's
         // return code and a pixel comparison. It is not read from an alert or from a message, and a refused, failed or
         // unchanged AI stage never gets it.
-        AiProcessedLabel = AiBoneSuppressionStage.LabelFor(chain);
-        OnPropertyChanged(nameof(AiProcessedLabel));
+        var aiLabel = AiBoneSuppressionStage.LabelFor(chain);
         RefreshAiWorkerStatus();
-        ChainStatus = $"{chain.Summary}; {chain.Timings}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
-            + (AiProcessedLabel.Length == 0 ? string.Empty : $" — {AiProcessedLabel}")
+        var status = $"{chain.Summary}; {chain.Timings}; display input={(chain.DisplaysRaw ? "raw" : "chain")}"
+            + (aiLabel.Length == 0 ? string.Empty : $" — {aiLabel}")
             + (refused.Length == 0 ? string.Empty : " — " + string.Join(" | ", refused));
 
+        var preprocessRan = false;
+        var preprocessStages = string.Empty;
         foreach (var stage in chain.Stages)
         {
             Log($"Chain {stage.StageId}: {stage.Status} — {stage.Reason}");
 
             if (stage.StageId == StageIds.Preprocess && stage.Status != StageStatus.NotRequested)
             {
-                PreprocessRan = stage.Status is StageStatus.Applied or StageStatus.AppliedNoChange;
-                PreprocessStages = stage.Reason;
+                preprocessRan = stage.Status is StageStatus.Applied or StageStatus.AppliedNoChange;
+                preprocessStages = stage.Reason;
+            }
+
+            if (stage.Status == StageStatus.Skipped)
+            {
+                // GUI-C-234c (Codex #181 finding 3): preprocessing is on by default, so an image shown without it is not a neutral outcome. Native: the operator asked for the correction (default) and the
+                // image is UNCORRECTED - a WARN, and the render record keeps the warning (RenderedPreprocessWarning) for as long as that image is on screen. Mock has no preprocessing module at all: INFO,
+                // different wording, no banner.
+                RaiseAlert(native
+                    ? new AlertEntry
+                    {
+                        Severity = "WARN",
+                        Code = "PREPROCESS_SKIPPED_NO_CALIBRATION",
+                        Message = $"Preprocessing is on but was skipped: {stage.Reason} The image is shown WITHOUT offset/gain/defect correction.",
+                        Timestamp = DateTimeOffset.Now,
+                    }
+                    : new AlertEntry
+                    {
+                        Severity = "INFO",
+                        Code = "PREPROCESS_UNAVAILABLE_IN_MOCK",
+                        Message = $"Preprocessing was not run: {stage.Reason}",
+                        Timestamp = DateTimeOffset.Now,
+                    });
             }
 
             if (stage.Status == StageStatus.RequestedNotApplied)
@@ -2544,6 +3246,8 @@ public sealed class MainWindowViewModel : ObservableObject
                 });
             }
         }
+
+        return new ChainReport(status, aiLabel, preprocessRan, preprocessStages);
     }
 
     // @MX:WARN: [AUTO] async void; same crash risk as LoadImage; inner try/catch is the only safety net
@@ -2607,7 +3311,7 @@ public sealed class MainWindowViewModel : ObservableObject
     private void ZoomIn()
     {
         var current = Settings.ComparisonZoomScale <= 0.0 ? 1.0 : Settings.ComparisonZoomScale;
-        Settings.ComparisonZoomScale = Math.Min(16.0, current * 1.25);
+        Settings.ComparisonZoomScale = Math.Min(ComparisonZoomLimits.Max, current * 1.25);
         RefreshComparisonStatus("Comparison viewport zoomed in.");
     }
 
@@ -2859,6 +3563,25 @@ public sealed class MainWindowViewModel : ObservableObject
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         RefreshParametersStale();   // #171 ①
+
+        // GUI-C-234d: switching preprocessing on is the answer to the notice; the notice goes with it (and does not return if it is switched off again by hand).
+        if (e.PropertyName == nameof(AppSettings.PreprocessInChain) && Settings.PreprocessInChain && Settings.PreprocessOffNoticeUnacknowledged)
+        {
+            Settings.PreprocessOffNoticeUnacknowledged = false;
+        }
+
+        if (e.PropertyName is nameof(AppSettings.PreprocessInChain) or nameof(AppSettings.PreprocessOffNoticeUnacknowledged))
+        {
+            OnPropertyChanged(nameof(PreprocessOffNotice));
+            OnPropertyChanged(nameof(HasPreprocessOffNotice));
+        }
+
+        // GUI-C-233: a window the user chooses wins over the automatic one. Only this handler turns the automatic window off, so loading a settings file (which sets these values) never does.
+        if (e.PropertyName is nameof(AppSettings.VoiWindowCenter) or nameof(AppSettings.VoiWindowWidth) or nameof(AppSettings.VoiLutMode) && Settings.VoiWindowAuto)
+        {
+            Settings.VoiWindowAuto = false;
+            Log("Automatic window off: a window was chosen by hand (Pipeline > Use Automatic Window turns it back on).");
+        }
 
         // #173 (GUI-C-113): only the Candidate can go stale — the Reference never reads this value,
         // so an edit to it cannot make the Reference wrong.
@@ -3319,7 +4042,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// and must draw identical pixels. That is the control case: if they differ there, the lanes are
     /// not drawing the same original.</para>
     /// </summary>
-    private async Task RenderLanesAsync(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference, BackendTicket ticket)
+    private async Task RenderLanesAsync(LoadedImageFrame sourceFrame, AppSettings inputs, System.Windows.Media.ImageSource? reference, BackendTicket ticket, long renderId)
     {
         // GUI-C-186e: the Candidate's chain (which can include the AI stage, and so the AI session gate) runs in the background like the
         // main render's does. It used to run here, on the UI thread, after the await above: measured 3028 ms of UI-dispatcher
@@ -3339,7 +4062,7 @@ public sealed class MainWindowViewModel : ObservableObject
             // The Reference IS what the main viewport just drew — same original, same settings. Running
             // the pipeline again for it would be a second computation of a result already in hand, and
             // it would not be the same claim either: two runs of one setting can only agree.
-            LaneAImage = reference;
+            UpdateRender(renderId, r => r with { LaneA = reference });
 
             // With no override the Candidate is the Reference, so nothing is run for it either. That
             // keeps an ordinary apply at exactly one pipeline call — measured: adding a second and third
@@ -3356,6 +4079,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 if (inputs.LaneBVoiWindowWidth > 0.0f)
                 {
                     candidate.VoiWindowWidth = inputs.LaneBVoiWindowWidth;
+                    candidate.VoiWindowAuto = false;   // GUI-C-233: an explicit Candidate width is a window chosen by hand
                 }
 
                 // The Candidate's own vg_denoise_k. Copied like the width above, so GuiGsvgRunner reads
@@ -3369,17 +4093,12 @@ public sealed class MainWindowViewModel : ObservableObject
                     return;
                 }
 
-                LaneBImage = candidateImage;
+                UpdateRender(renderId, r => r with { LaneB = candidateImage });
             }
             else
             {
-                LaneBImage = reference;
+                UpdateRender(renderId, r => r with { LaneB = reference });
             }
-
-            _renderedLaneBWidth = inputs.LaneBVoiWindowWidth;
-            _renderedLaneBAlgorithm = inputs.LaneBAlgorithm;
-            _renderedLaneBDenoiseK = inputs.LaneBGsvgDenoiseK;
-            OnPropertyChanged(nameof(LaneBIsStale));
         }
         catch (Exception ex)
         {
@@ -3391,15 +4110,14 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             Log($"Lane rendering failed: {ex.Message}");
-            LaneAImage = null;
-            LaneBImage = null;
+            UpdateRender(renderId, r => r with { LaneA = null, LaneB = null });
         }
     }
 
     private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
     {
         var chain = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
-        var frame = backend.ApplyDisplayPipeline(sourceFrame, chain.DisplayInput, settings);
+        var frame = backend.ApplyDisplayPipeline(sourceFrame, chain, settings);
         return frame.ProcessedPreview ?? frame.Preview;
     }
 
@@ -3409,21 +4127,22 @@ public sealed class MainWindowViewModel : ObservableObject
     /// edit to it cannot make the Reference wrong.
     /// </summary>
     public bool LaneBIsStale =>
-        Math.Abs(Settings.LaneBVoiWindowWidth - _renderedLaneBWidth) > 0.0001f
-        || !string.Equals(Settings.LaneBAlgorithm, _renderedLaneBAlgorithm, StringComparison.Ordinal)
-        || Math.Abs(Settings.LaneBGsvgDenoiseK - _renderedLaneBDenoiseK) > 0.0001;
+        _render is { } rendered
+        && (Math.Abs(Settings.LaneBVoiWindowWidth - rendered.Inputs.LaneBVoiWindowWidth) > 0.0001f
+            || !string.Equals(Settings.LaneBAlgorithm, rendered.Inputs.LaneBAlgorithm, StringComparison.Ordinal)
+            || Math.Abs(Settings.LaneBGsvgDenoiseK - rendered.Inputs.LaneBGsvgDenoiseK) > 0.0001);
 
     /// <summary>The chain of the image on screen, for the reports (#180, GUI-C-99).</summary>
     public object DescribeChain() => new
     {
         status = ChainStatus,
         pipelineTimings = PipelineTimings,
-        exposureKvp = _renderedInputs?.ExposureKvp,
-        pixelPitchMm = _renderedInputs?.PixelPitchMm,
-        gsvgMode = _renderedInputs?.GsvgMode,
-        gsvgGridRatio = _renderedInputs?.GsvgGridRatio,
-        gsvgGridFrequencyPerCm = _renderedInputs?.GsvgGridFrequencyPerCm,
-        preprocessRequested = _renderedInputs?.PreprocessInChain,
+        exposureKvp = RenderedInputs?.ExposureKvp,
+        pixelPitchMm = RenderedInputs?.PixelPitchMm,
+        gsvgMode = RenderedInputs?.GsvgMode,
+        gsvgGridRatio = RenderedInputs?.GsvgGridRatio,
+        gsvgGridFrequencyPerCm = RenderedInputs?.GsvgGridFrequencyPerCm,
+        preprocessRequested = RenderedInputs?.PreprocessInChain,
         displayInput = LastChain is null ? "not run" : LastChain.DisplaysRaw ? "raw" : "chain",
         stages = LastChain?.Stages.Select(s => new { id = s.StageId, status = s.Status.ToString(), reason = s.Reason, elapsedMs = s.ElapsedMs }).ToArray()
             ?? Array.Empty<object>(),

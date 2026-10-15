@@ -52,7 +52,7 @@ GTEST_DEF = re.compile(r"TEST(?:_F|_P)?\(\s*([A-Za-z0-9_]+)\s*,\s*([A-Za-z0-9_]+
 # xUnit: a [Fact]/[Theory] method inside a class. Collected coarsely — the class
 # is the suite, the method the test — which is all a citation ever names.
 CS_CLASS = re.compile(r"\b(?:public|internal)\s+(?:sealed\s+|static\s+|partial\s+)*class\s+([A-Za-z0-9_]+)")
-CS_TEST = re.compile(r"\[(?:Fact|Theory)[^\]]*\][\s\S]{0,400}?\b(?:public|private|internal)\s+(?:async\s+)?(?:void|Task(?:<[^>]+>)?)\s+([A-Za-z0-9_]+)\s*\(")
+CS_TEST = re.compile(r"\[(?:Skippable)?(?:Fact|Theory)[^\]]*\][\s\S]{0,400}?\b(?:public|private|internal)\s+(?:async\s+)?(?:void|Task(?:<[^>]+>)?)\s+([A-Za-z0-9_]+)\s*\(")
 
 ELLIPSIS_CITE = re.compile(r"`…([A-Za-z0-9_]+)`")
 DOTTED_CITE = re.compile(r"`([A-Za-z][A-Za-z0-9_]*)\.([A-Za-z][A-Za-z0-9_]*)`")

@@ -1,0 +1,7 @@
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerUnconfirmedAtMinimumWidthScenarios.M02_TheUnconfirmedNotice_IsAbsentWhileTheWorkerIsActive_ThenAppears_AndIsInTheTreeAtTheMinimumWidth [15 s]
+ M02 no notice 5.4 s after launch
+ M02 notice after 14.7 s: 'AI worker status unknown: it has not been confirmed for over 15 s. AI results may not be applied and images may be returned unchanged. Use Restart AI if this stays.'
+ M02 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True
+  통과 ImageProcTest.E2ETests.Scenarios.Workflows.AiWorkerMarkAtMinimumWidthScenarios.M01_TheMark_IsInTheAutomationTree_AtTheLaunchWidth_AndAtTheMinimumWidth [871 ms]
+ M01 launch width 1560: banner 'AI worker switched off for this session after 3 of 3 failures in a row: images are returned unchanged until it is restarted.'
+ M01 minimum width: MinWidth 1280 DIP at 96 dpi = 1280 px expected; the window shrank to 1280 px; width after the check 1280 px; CanResize=True

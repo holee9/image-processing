@@ -1,0 +1,70 @@
+### CalibStageCountDisplay
+      7 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      6 gui/ImageProcTest.E2E/Program.cs
+      1 gui/ImageProcTest/Views/ViewportShell.xaml
+### HudCalibStages
+      4 clients/ImageProcTest.E2ETests/Scenarios/Workflows/TwoLaneWorkbenchScenarios.cs
+      1 gui/ImageProcTest/Views/ViewportShell.xaml
+### RenderedLaneAAlgorithm|RenderedLaneBAlgorithm
+      7 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      3 clients/ImageProcTest.IntegrationTests/Functional/SettingsProcessingConnectionTests.cs
+      2 gui/ImageProcTest/Views/ViewportShell.xaml
+### LaneATag|LaneBTag
+      5 clients/ImageProcTest.E2ETests/Scenarios/Workflows/TwoLaneWorkbenchScenarios.cs
+      2 gui/ImageProcTest/Views/ViewportShell.xaml
+### LaneAEmptyText|LaneBEmptyText|LaneBStaleText
+      3 gui/ImageProcTest/Views/ViewportShell.xaml
+      2 clients/ImageProcTest.E2ETests/Scenarios/Workflows/TwoLaneWorkbenchScenarios.cs
+### LaneAImage|LaneBImage
+     26 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      7 gui/ImageProcTest/Views/ViewportShell.xaml
+      3 docs/design/README.md
+      2 clients/ImageProcTest.E2ETests/Scenarios/Workflows/TwoLaneWorkbenchScenarios.cs
+      1 docs/design/IMPLEMENTATION_GUIDE.md
+### RequestedCalibrationEvaluationSummary|RequestedOffsetCorrectionMode|RequestedDefectCorrectionMode
+      5 gui/ImageProcTest/MainWindow.xaml.cs
+      3 gui/ImageProcTest/Models/GuiAutomationReport.cs
+      2 tools/e2e/Invoke-ImageProcTestGuiRealE2E.ps1
+      2 clients/ImageProcTest.IntegrationTests/Functional/BaselineReviewFixTests.cs
+      1 gui/ImageProcTest/README.md
+### renderedBy
+      3 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+### calibrationEvaluation
+      7 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      1 gui/ImageProcTest/MainWindow.xaml.cs
+      1 docs/design/reference/MainWindowViewModel.cs
+### displayPipeline
+      6 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      4 docs/design/reference/MainWindowViewModel.cs
+      3 gui/ImageProcTest/Services/AutomationArgs.cs
+### processingChain
+      5 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      3 clients/ImageProcTest.E2ETests/Scenarios/Workflows/GsvgWristSliceScenarios.cs
+### CurrentRender|RenderRecord
+     24 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      3 gui/ImageProcTest.E2E/Program.cs
+### StaleBackendReplaced|backend was replaced
+      4 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      2 clients/ImageProcTest.E2ETests/Scenarios/Workflows/TwoLaneWorkbenchScenarios.cs
+### ExecutedStages
+      2 gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs
+      1 gui/ImageProcTest.E2E/Program.cs
+### backendVersionMock|backendVersionNative|initialAlertCount|expectedTelemetry|ExpectedTelemetry
+      7 gui/ImageProcTest/Models/GuiFixtureManifest.cs
+      5 gui/ImageProcTest/fixtures/gui-s0/fixture-manifest.json
+      4 tools/e2e/Invoke-ImageProcTestGuiRealE2E.ps1
+      3 gui/ImageProcTest.SelfCheck/Program.cs
+### PreprocessRan|PreprocessStages|ChainStatus|PipelineTimings|HasPipelineDiagnostics|DisplayPipelineSummary
+     14 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+     11 clients/ImageProcTest.E2ETests/Scenarios/Operator/QuickStartWalkthroughScenarios.cs
+      8 gui/ImageProcTest/MainWindow.xaml.cs
+      6 gui/ImageProcTest/Controls/ImageComparisonViewport.cs
+      5 docs/project/XPE-GUI-DISP-INT-001_Display_Integration_Guide.md
+      5 docs/design/reference/MainWindowViewModel.cs
+      4 gui/ImageProcTest/Models/GuiAutomationReport.cs
+      3 gui/ImageProcTest.E2E/Program.cs
+### RenderedVoi|HudVoiWindow
+      8 gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+      4 gui/ImageProcTest/Views/ViewportShell.xaml
+      4 gui/ImageProcTest/Views/DisplaySettingsPanel.xaml
+      2 clients/ImageProcTest.E2ETests/Scenarios/Workflows/WorkbenchObservation.cs

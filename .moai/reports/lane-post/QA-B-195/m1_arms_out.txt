@@ -1,0 +1,21 @@
+QA-B-195 M1 arms: every arm built (build_ok=True) after the A8 re-run, ai_model_signer.cpp restored byte-identical; from build/g195m1-arm_<tag>.txt
+
+A1 the domain prefix is not hashed: red(6)=['ALargeModelAndOneAcrossTheHashingChunkBoundaryVerify', 'ASignatureVerifiesOnlyUnderTheKeyThatMadeItAndOnlyWhenThatKeyIsTrusted', 'AnySingleChangedByteOfTheModelIsRefused', 'EverySignatureMadeByTheIndependentImplementationVerifies', 'NoSidecarAndAnEmptySidecarAndASidecarAreThreeDifferentThings', 'TheBoundaryBetweenModelAndSidecarIsPartOfWhatIsSigned']
+A2 the role is not hashed: red(6)=['ALargeModelAndOneAcrossTheHashingChunkBoundaryVerify', 'ASignatureVerifiesOnlyUnderTheKeyThatMadeItAndOnlyWhenThatKeyIsTrusted', 'AnySingleChangedByteOfTheModelIsRefused', 'EverySignatureMadeByTheIndependentImplementationVerifies', 'NoSidecarAndAnEmptySidecarAndASidecarAreThreeDifferentThings', 'TheBoundaryBetweenModelAndSidecarIsPartOfWhatIsSigned']
+A3 the role length is not hashed: red(6)=['ALargeModelAndOneAcrossTheHashingChunkBoundaryVerify', 'ASignatureVerifiesOnlyUnderTheKeyThatMadeItAndOnlyWhenThatKeyIsTrusted', 'AnySingleChangedByteOfTheModelIsRefused', 'EverySignatureMadeByTheIndependentImplementationVerifies', 'NoSidecarAndAnEmptySidecarAndASidecarAreThreeDifferentThings', 'TheBoundaryBetweenModelAndSidecarIsPartOfWhatIsSigned']
+A4 the model length is not hashed: red(6)=['ALargeModelAndOneAcrossTheHashingChunkBoundaryVerify', 'ASignatureVerifiesOnlyUnderTheKeyThatMadeItAndOnlyWhenThatKeyIsTrusted', 'AnySingleChangedByteOfTheModelIsRefused', 'EverySignatureMadeByTheIndependentImplementationVerifies', 'NoSidecarAndAnEmptySidecarAndASidecarAreThreeDifferentThings', 'TheBoundaryBetweenModelAndSidecarIsPartOfWhatIsSigned']
+A5 a missing sidecar and an empty one hash the same: red(2)=['EverySignatureMadeByTheIndependentImplementationVerifies', 'NoSidecarAndAnEmptySidecarAndASidecarAreThreeDifferentThings']
+A6 the sidecar bytes are not hashed: red(4)=['ASignatureVerifiesOnlyUnderTheKeyThatMadeItAndOnlyWhenThatKeyIsTrusted', 'AnySingleChangedByteOfTheModelIsRefused', 'EverySignatureMadeByTheIndependentImplementationVerifies', 'TheBoundaryBetweenModelAndSidecarIsPartOfWhatIsSigned']
+A7 the sidecar length is not hashed: red(5)=['ASignatureVerifiesOnlyUnderTheKeyThatMadeItAndOnlyWhenThatKeyIsTrusted', 'AnySingleChangedByteOfTheModelIsRefused', 'EverySignatureMadeByTheIndependentImplementationVerifies', 'NoSidecarAndAnEmptySidecarAndASidecarAreThreeDifferentThings', 'TheBoundaryBetweenModelAndSidecarIsPartOfWhatIsSigned']
+A8 the key id is not looked up (the first key is used) [re-run: first form did not compile]: red(3)=['ASignatureVerifiesOnlyUnderTheKeyThatMadeItAndOnlyWhenThatKeyIsTrusted', 'AnySingleChangedByteOfTheSignatureItselfIsRefusedWithTheRightReason', 'EverySignatureMadeByTheIndependentImplementationVerifies']
+A9 the version is not checked: red(1)=['AnySingleChangedByteOfTheSignatureItselfIsRefusedWithTheRightReason']
+B1 the algorithm is not checked: red(1)=['AnySingleChangedByteOfTheSignatureItselfIsRefusedWithTheRightReason']
+B2 a longer signature file is accepted: red(1)=['ASignatureFileOfAnyOtherSizeIsMalformedAndAMissingOneIsSaidToBeMissing']
+B3 the magic is not checked: red(1)=['AnySingleChangedByteOfTheSignatureItselfIsRefusedWithTheRightReason']
+B4 a bad signature is reported as ok: red(8)=['ALargeModelAndOneAcrossTheHashingChunkBoundaryVerify', 'AModelThatIsShorterOrLongerByOneByteIsRefused', 'AnySingleChangedByteOfTheModelIsRefused', 'AnySingleChangedByteOfTheSidecarIsRefused', 'AnySingleChangedByteOfTheSignatureItselfIsRefusedWithTheRightReason', 'NoSidecarAndAnEmptySidecarAndASidecarAreThreeDifferentThings', 'TheBoundaryBetweenModelAndSidecarIsPartOfWhatIsSigned', 'TheRoleIsPartOfWhatIsSigned']
+B5 the second hashing chunk repeats a byte: red(2)=['ALargeModelAndOneAcrossTheHashingChunkBoundaryVerify', 'EverySignatureMadeByTheIndependentImplementationVerifies']
+B6 the size cap is far too large: red(1)=['AFileAboveTheSafetyCapIsRefusedBeforeAnythingIsRead']
+B7 a malformed key in the list is reported as a bad signature: red(1)=['AMalformedKeyInTheTrustedListIsARefusalNotASkip']
+B8 a hashing failure is read as a pass (NOT RED: no way to make CNG hashing fail in a test): red(0)=[]
+
+CONTROL (file restored): passed=15 red=[]

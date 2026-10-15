@@ -1,0 +1,22 @@
+SPEC-XPE-P1B-ENH/tasks.md 수정안 초안 (QA-B-199, 리더 소유 파일 - 이 파일은 초안이며 tasks.md 는 바꾸지 않았다)
+
+현재: 13행 모두 status=pending. enhance_basic 은 main 에 있고 시험 160개가 돈다. 제안: status 열을 아래 값으로 바꾸고, 부분인 행은 근거를 보고서 enh_report.md 로 가리킨다.
+
+행 | 현재 | 제안 | 요구별 판정
+T-001 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | CC-001=partial
+T-002 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | CC-001=partial
+T-003 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 023=partial, 024=asserted, 025=asserted, 026=partial, 027=asserted, 028=partial, 029=partial, 030=partial
+T-004 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 001=asserted, 002=asserted, 003=partial, 004=partial, 005=partial, 006=partial
+T-005 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 007=partial, 008=constant_only, 009=partial, 010=partial, 011=partial, 012=partial
+T-006 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 013=partial, 014=constant_only, 015=asserted, 016=asserted, 017=constant_only
+T-007 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 018=partial, 019=constant_only, 020=asserted, 021=partial, 022=partial
+T-008 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 001=asserted, 002=asserted, 003=partial, 004=partial, 005=partial, 006=partial
+T-009 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 007=partial, 008=constant_only, 009=partial, 010=partial, 011=partial, 012=partial
+T-010 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 013=partial, 014=constant_only, 015=asserted, 016=asserted, 017=constant_only
+T-011 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 018=partial, 019=constant_only, 020=asserted, 021=partial, 022=partial
+T-012 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | 023=partial, 024=asserted, 025=asserted, 026=partial, 027=asserted, 028=partial, 029=partial, 030=partial
+T-013 | pending | completed-partial (QA-B-199: 일부 요구 미단언) | CC-001=partial, CC-002=partial, CC-003=partial, CC-004=partial, CC-005=partial
+
+추가: REQ-ENH-023a 를 T-003/T-012 의 요구 열에 넣는다(어떤 작업에도 없음).
+T-001 설명 "7 API decls" 와 헤더의 10개 선언이 다르다: SPEC REQ-ENH-CC-001 을 10으로 고치거나 헤더를 7로 줄일지 리더 결정.
+enhance_basic_api.h:243 의 EI 식과 :8 의 함수 수는 코드 쪽 문서 수정 사항(post 가 별도 카드로 수정 가능).

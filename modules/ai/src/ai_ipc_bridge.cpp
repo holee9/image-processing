@@ -12,37 +12,45 @@
  *   written anywhere in this repo: the citation checker greps for it and
  *   cannot tell a citation from a historical note, so spelling it out here
  *   ADDED an orphan (4 -> 5) instead of removing one.
- *   That number is not defined in SPEC-XPE-P3-AI at all -- 0 definitions among
- *   its 46, while every other REQ-AI number this module cites has exactly one.
+ *   That number is not defined in SPEC-XPE-P3-AI at all (0 definitions among
+ *   its 46) and never was: it first appears in the bulk commit dd7c8e05
+ *   (2026-04-28), in code and in the RTM at once, so it was a mis-numbering
+ *   and not a renaming (QA-B-190).
  *
- *   REQ-AI-092 is the right requirement for this subject, but this file
- *   implements only PART of it. The requirement reads: "AI inference shall
- *   enforce time budget (configurable, default 5s); exceeding budget triggers
- *   fallback and alert."
- *     configurable  YES -- "timeout_ms" is parsed in ai.cpp
- *     default 5s    YES -- XPE_AI_DEFAULT_TIMEOUT_MS is 5000
- *     fallback      YES -- a timeout here returns XPE_ERR_PROCESSING_FAILED
- *     alert         NO  -- this file makes no alert call (count: 0), while
- *                          xpe_common's alert API exists and is used elsewhere
- *   And the budget does not run in a shipped build at all: nothing outside
- *   this file calls xpe_ai_ipc_bridge_create (callers in src/: 0), ai.cpp
- *   never references the bridge, and the timeout it parses into
- *   state->timeoutMs is only logged, never passed here. The inference entry
- *   points return the stub before any IPC (#130).
- *
- *   The number is corrected because it pointed at nothing. Do not read the
- *   corrected citation as "REQ-AI-092 is satisfied".
+ *   The requirement reads: "AI inference shall enforce time budget
+ *   (configurable, default 5s); exceeding budget triggers fallback and alert."
+ *   Where each part lives today (QA-B-171, QA-B-181):
+ *     configurable  "timeout_ms" is parsed in ai.cpp (xpe_ai_init) and passed
+ *                   to the WorkerSupervisor, which gives it to this bridge as
+ *                   the budget of one whole exchange
+ *     default 5s    XPE_AI_DEFAULT_TIMEOUT_MS is 5000
+ *     fallback      a timeout here is a non-OK result; ai.cpp's worker path
+ *                   (xpe_bone_suppress with "use_worker": true) then returns
+ *                   the INPUT unchanged with that code
+ *     alert         NOT in this file (it makes no alert call): ai.cpp raises
+ *                   one XPE_ALERT_WARNING per failed worker call, citing
+ *                   REQ-AI-002 and REQ-AI-092
+ *   What is still NOT covered: the budget exists only on that opt-in worker
+ *   path. xpe_bone_suppress without "use_worker" (the default) runs
+ *   OnnxSession::Run in-process with no time limit, and xpe_bodypart_recognize,
+ *   xpe_stitch_images and xpe_dl_denoise are stubs with nothing to budget.
+ *   So read the corrected citation as "REQ-AI-092 is satisfied for the
+ *   opt-in worker path of xpe_bone_suppress", not for AI inference as a whole.
  *
  * @ingroup xpe_ai
  */
 
 #include "ai_ipc_bridge.h"
+#include "ai_finite.h"
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 // ============================================================================
@@ -155,29 +163,172 @@ void DropConnection(XpeAiIpcBridge* bridge) {
 }
 
 /**
- * Read `"error_code":<integer>` from a worker's ERROR frame. Accepts only a plain integer in
- * [-99, -1]: the XPE_ERR_* codes are -1 .. -17 today, and the margin keeps a future code from being
- * mistaken for garbage. Anything else (missing key, a string, 0, a positive, trailing junk in the
- * number, out of range) is rejected.
+ * Parse @p json as ONE flat object (strict: string keys; values are strings (escapes only when @p allow_escapes), true, false, null,
+ * non-negative integers and -- only when @p allow_real -- real numbers; no nesting, no duplicate keys, nothing
+ * after the closing brace) into @p kv. A string value is stored with a leading '"'; every other value as its raw
+ * text. Returns false on any deviation.
  */
-bool ParseErrorCode(const std::string& body, int* out) {
-    static const char kKey[] = "\"error_code\":";
-    const size_t at = body.find(kKey);
-    if (at == std::string::npos) return false;
-    const char* p = body.c_str() + at + sizeof(kKey) - 1;
-    while (*p == ' ') ++p;
-    if (*p != '-') return false;   // every error code is negative
-    ++p;
-    if (*p < '0' || *p > '9') return false;
-    long value = 0;
-    for (; *p >= '0' && *p <= '9'; ++p) {
-        value = value * 10 + (*p - '0');
-        if (value > 99) return false;
+bool ParseFlatObject(const char* json, size_t n, bool allow_real, bool allow_escapes,
+                     std::map<std::string, std::string>* out) {
+    size_t i = 0;
+    auto ws = [&] { while (i < n && (json[i] == ' ' || json[i] == '\t' || json[i] == '\r' || json[i] == '\n')) ++i; };
+    auto str = [&](std::string* out) {
+        if (i >= n || json[i] != '"') return false;
+        ++i;
+        const size_t start = i;
+        std::string text;
+        while (i < n && json[i] != '"') {
+            if (static_cast<unsigned char>(json[i]) < 0x20) return false;
+            if (json[i] == '\\') {
+                // An ERROR frame's free text may hold an escaped quote or backslash -- the only two escapes the
+                // worker writes (JsonEscape). Nothing else is an escape in this protocol.
+                if (!allow_escapes || i + 1 >= n || (json[i + 1] != '"' && json[i + 1] != '\\')) return false;
+                text += json[i + 1];
+                i += 2;
+                continue;
+            }
+            text += json[i];
+            ++i;
+        }
+        if (i >= n) return false;
+        (void)start;
+        out->assign(text);
+        ++i;
+        return true;
+    };
+    ws();
+    if (i >= n || json[i] != '{') return false;
+    ++i;
+    std::map<std::string, std::string>& kv = *out;
+    ws();
+    if (i < n && json[i] == '}') {
+        ++i;
+    } else {
+        for (;;) {
+            ws();
+            std::string key;
+            if (!str(&key)) return false;
+            ws();
+            if (i >= n || json[i] != ':') return false;
+            ++i;
+            ws();
+            std::string val;
+            if (i < n && json[i] == '"') {
+                std::string s;
+                if (!str(&s)) return false;
+                val = "\"" + s;
+            } else if (allow_real && i < n && ((json[i] >= '0' && json[i] <= '9') || json[i] == '-')) {
+                // A real number: the characters a number can hold; its value is judged by the caller (strtod).
+                const size_t start = i;
+                while (i < n && ((json[i] >= '0' && json[i] <= '9') || json[i] == '.' || json[i] == 'e' ||
+                                 json[i] == 'E' || json[i] == '+' || json[i] == '-')) ++i;
+                if (i - start > 32) return false;
+                val.assign(json + start, i - start);
+            } else if (i < n && json[i] >= '0' && json[i] <= '9') {
+                const size_t start = i;
+                while (i < n && json[i] >= '0' && json[i] <= '9') ++i;
+                if (i - start > 10) return false;
+                val.assign(json + start, i - start);
+            } else if (n - i >= 4 && std::memcmp(json + i, "true", 4) == 0) {
+                val = "true"; i += 4;
+            } else if (n - i >= 5 && std::memcmp(json + i, "false", 5) == 0) {
+                val = "false"; i += 5;
+            } else if (n - i >= 4 && std::memcmp(json + i, "null", 4) == 0) {
+                val = "null"; i += 4;
+            } else {
+                return false;
+            }
+            if (!kv.emplace(key, val).second) return false;   // duplicate key
+            ws();
+            if (i < n && json[i] == ',') { ++i; continue; }
+            if (i < n && json[i] == '}') { ++i; break; }
+            return false;
+        }
     }
-    if (value < 1) return false;
-    while (*p == ' ') ++p;
-    if (*p != ',' && *p != '}' && *p != '\0') return false;   // "-9.5", "-9abc": not an integer
-    *out = static_cast<int>(-value);
+    ws();
+    if (i != n) return false;   // trailing junk
+    return true;
+}
+
+/**
+ * Parse a worker's ERROR frame (QA-B-193; first written for body-part recognition in QA-B-191 M4f, Codex #77).
+ * ONE function for every request type, so the bridge has one rule for what an ERROR frame is and a field added to
+ * it later is judged in one place:
+ *   - one flat JSON object, no duplicate key, nothing after it (an escaped quote and an escaped backslash are
+ *     allowed in the text; no other escape);
+ *   - "error_code" is required and is an integer from -1 to -99 (the XPE_ERR_* codes are -1 .. -17 today; the
+ *     margin keeps a future code from being taken for garbage); "-0", a leading zero, a decimal and an exponent
+ *     are not integers here;
+ *   - "error_message", if present, is a string;
+ *   - "model_unavailable" is a field of requests that load a model (body-part and, since QA-B-195 D6, bone
+ *     suppression). @p allow_model_unavailable says whether this request type has it: where it does, it is true or false, and true is believed ONLY with
+ *     XPE_ERR_IO_FAILED (no model file) or XPE_ERR_CONFIG_INVALID (the rest of the ways a model cannot be
+ *     loaded or configured). Where it does not (no caller passes false today), its presence in any form is a
+ *     fault: the frame says something this request has no word for, so nothing in it can be trusted.
+ * Keys it does not know are ignored, as in a success reply.
+ * Both request types call it with the frame's HEADER too: the one place that decides whether an ERROR frame is
+ * acceptable also decides the binary-payload bit (QA-B-193b), so neither request can skip it.
+ * Returns false for a frame that deviates or contradicts itself; the caller drops the connection.
+ */
+bool ParseWorkerErrorFrame(const XpeAiMessageHeader& header, const char* json, size_t n,
+                           bool allow_model_unavailable, int* code_out, bool* unavailable_out) {
+    // QA-B-193b (Codex #79): XPE_AI_MSG_ERROR is a JSON-ONLY frame (ai_worker_protocol.h). The binary-payload bit
+    // belongs to replies that carry pixels; on an ERROR frame it says the worker is not following the protocol, so
+    // the frame is refused whatever its JSON says -- before the JSON is looked at, so a perfectly formed
+    // {"model_unavailable":true} cannot be believed from a frame that is already wrong. The reserved bits
+    // (0x2, 0x4, 0x8; QA-B-192) are NOT refused: nothing reads them and no receiver rejects unknown bits.
+    if ((header.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) != 0) return false;
+    std::map<std::string, std::string> kv;
+    if (!ParseFlatObject(json, n, /*allow_real=*/true, /*allow_escapes=*/true, &kv)) return false;
+    auto ec = kv.find("error_code");
+    if (ec == kv.end()) return false;
+    const std::string& e = ec->second;
+    // "-" then 1 or 2 digits, no leading zero: -1 .. -99
+    if (e.size() < 2 || e.size() > 3 || e[0] != '-' || e[1] < '1' || e[1] > '9' ||
+        (e.size() == 3 && (e[2] < '0' || e[2] > '9'))) {
+        return false;
+    }
+    const int code = -std::atoi(e.c_str() + 1);
+    auto em = kv.find("error_message");
+    if (em != kv.end() && (em->second.empty() || em->second[0] != '"')) return false;
+    bool unavailable = false;
+    auto mu = kv.find("model_unavailable");
+    if (mu != kv.end()) {
+        if (!allow_model_unavailable) return false;
+        if (mu->second != "true" && mu->second != "false") return false;
+        unavailable = mu->second == "true";
+    }
+    if (unavailable && code != XPE_ERR_IO_FAILED && code != XPE_ERR_CONFIG_INVALID) return false;
+    *code_out = code;
+    *unavailable_out = unavailable;
+    return true;
+}
+
+/**
+ * QA-B-181j (Codex #65): is @p json a valid success envelope for a request of @p width x @p height?
+ *
+ * The worker's reply JSON is one flat object: {"success":true,"width":W,"height":H,"format":"float32"}.
+ * This is a strict parser for exactly that shape -- an object of string keys whose values are strings,
+ * non-negative integers, true, false or null; no nesting, no duplicate keys, nothing after the closing
+ * brace -- followed by the semantic checks: success is the boolean true, width and height equal the request,
+ * format is "float32". Anything else is false. (Keys the worker may add later are accepted if they are
+ * well formed; the four named ones are required.)
+ *
+ * WHAT THIS DOES NOT PROVE: that the worker is healthy. A well-formed envelope on a reply whose pixels
+ * are garbage is still a garbage reply that happens to be well formed; the check only stops a reply with a
+ * BROKEN envelope from being taken for an answer.
+ */
+bool ValidSuccessEnvelope(const char* json, size_t n, uint32_t width, uint32_t height) {
+    std::map<std::string, std::string> kv;
+    if (!ParseFlatObject(json, n, /*allow_real=*/false, /*allow_escapes=*/false, &kv)) return false;
+    auto it = kv.find("success");
+    if (it == kv.end() || it->second != "true") return false;
+    it = kv.find("width");
+    if (it == kv.end() || it->second != std::to_string(width)) return false;
+    it = kv.find("height");
+    if (it == kv.end() || it->second != std::to_string(height)) return false;
+    it = kv.find("format");
+    if (it == kv.end() || it->second != "\"float32") return false;
     return true;
 }
 
@@ -244,7 +395,9 @@ XpeErrorCode xpe_ai_ipc_bridge_connect(XpeAiIpcBridge* bridge) {
             0,                            // No sharing
             NULL,                         // Default security attributes
             OPEN_EXISTING,                // Opens existing pipe
-            FILE_FLAG_OVERLAPPED,         // Use overlapped I/O for async operations
+            // QA-B-198b: ANONYMOUS impersonation level -- a process that serves this pipe in place of the worker cannot
+            // act with the host's identity (the default level lets a pipe server impersonate its client).
+            FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_ANONYMOUS,
             NULL                          // Default template
         );
 
@@ -439,6 +592,8 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     if (!bridge || !pixels_in || !pixels_out || width == 0 || height == 0) {
         return XPE_ERR_INVALID_INPUT;
     }
+    bridge->last_result_nonfinite = false;
+    bridge->last_model_unavailable = false;
     const uint64_t count = static_cast<uint64_t>(width) * height;
     // 4 (length prefix) + metadata + pixels must fit one protocol payload.
     if (count > (XPE_AI_MAX_PAYLOAD_SIZE - 512u) / sizeof(float)) {
@@ -501,17 +656,21 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
     }
 
     if (rh.messageType == XPE_AI_MSG_ERROR) {
-        // The worker's own code, verbatim -- but only a code that parses as a number in the range
-        // the XPE_ERR_* codes occupy. An ERROR frame with no code, a code that is not a number,
-        // zero (success) or a value outside that range is a worker speaking garbage: the answer is
-        // a failure of unknown kind (never a success) and the connection is dropped, because
-        // nothing else this worker says can be trusted either (Codex audit #11).
-        const std::string body(reinterpret_cast<const char*>(reply.data()), rh.payloadSize);
+        // The worker's own code, verbatim -- but only from an ERROR frame that parses as the protocol says
+        // (ParseWorkerErrorFrame). A frame that deviates is a worker speaking garbage: the answer is a failure of
+        // unknown kind (never a success) and the connection is dropped, because nothing else this worker says
+        // can be trusted either (Codex audit #11). QA-B-195 D6 changed the rule QA-B-193 set here: bone suppression
+        // now has "the model cannot be used" too (signature refused, no model file), so "model_unavailable" is
+        // accepted in its ERROR frame under the SAME condition as for body-part requests (true only with -4 or -9;
+        // a contradiction or another code is still a protocol fault, decided in ParseWorkerErrorFrame).
         int code = 0;
-        if (!ParseErrorCode(body, &code)) {
+        bool unavailable = false;
+        if (!ParseWorkerErrorFrame(rh, reinterpret_cast<const char*>(reply.data()), rh.payloadSize,
+                                   /*allow_model_unavailable=*/true, &code, &unavailable)) {
             DropConnection(bridge);
             return XPE_ERR_PROCESSING_FAILED;
         }
+        bridge->last_model_unavailable = unavailable;
         return static_cast<XpeErrorCode>(code);
     }
 
@@ -527,7 +686,177 @@ XpeErrorCode xpe_ai_ipc_bridge_bone_suppress(XpeAiIpcBridge* bridge,
         DropConnection(bridge);   // pixel count does not match what was sent
         return XPE_ERR_IO_FAILED;
     }
-    std::memcpy(pixels_out, reply.data() + sizeof(uint32_t) + reply_json, pixel_bytes);
+    // QA-B-181j: the envelope is judged BEFORE the pixels. A reply whose JSON is missing, unparseable, not
+    // a success, or about another size or format is a protocol fault -- the connection is dropped and the
+    // call is XPE_ERR_IO_FAILED, which the product counts -- whatever its pixels hold. Only a valid success
+    // envelope can reach the non-finite classification below, so garbage cannot borrow its exemption.
+    if (!ValidSuccessEnvelope(reinterpret_cast<const char*>(reply.data()) + sizeof(uint32_t), reply_json,
+                              width, height)) {
+        DropConnection(bridge);
+        return XPE_ERR_IO_FAILED;
+    }
+    // QA-B-181h: the bridge, not the worker, is where a non-finite result is refused. The worker is a
+    // separate process whose reply this side cannot vouch for, and this check also holds for any worker
+    // that answers success with such pixels (a model without the check, a fake one). The judgment comes
+    // BEFORE the copy, so a refusal leaves pixels_out untouched. The connection stays up: the frame was
+    // well formed, the pixels are what the model computed.
+    const uint8_t* reply_pixels = reply.data() + sizeof(uint32_t) + reply_json;
+    // The answer is XPE_ERR_PROCESSING_FAILED (the request was valid and finite; the model could not give a
+    // result), and last_result_nonfinite tells the caller this is NOT a worker or transport fault (QA-B-181i,
+    // Codex #63): the worker answered correctly, so it must not count toward the failure ceiling.
+    if (!xpe::ai::AllFinite(reply_pixels, count)) {
+        bridge->last_result_nonfinite = true;
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+    std::memcpy(pixels_out, reply_pixels, pixel_bytes);
+    return XPE_OK;
+}
+
+// QA-B-191 M4b (#130): the client half of XPE_AI_MSG_BODYPART_RECOGNIZE.
+//
+// Same shape as xpe_ai_ipc_bridge_bone_suppress -- one request, one reply, one time budget (REQ-AI-092) for the
+// whole exchange -- but the reply is JSON only (a label, a confidence, or a refusal), and it is judged as strictly
+// as the bone-suppress envelope: a reply the protocol does not allow is a protocol fault, the connection is
+// dropped and the call is XPE_ERR_IO_FAILED, which the product counts as a worker failure.
+//
+// What a VALID reply can be (ai_worker_protocol.h):
+//   {"success":true,"outcome":"ok","body_part":"CHEST","confidence":0.75}   label 1..63 bytes, confidence finite in [0,1]
+//   {"success":true,"outcome":"non_finite"}  /  {"success":true,"outcome":"out_of_range"}   no label, no confidence
+// "ok" without a usable label or confidence, a refusal WITH a label or confidence, an unknown outcome and
+// success other than true are all invalid.
+XpeErrorCode xpe_ai_ipc_bridge_bodypart(XpeAiIpcBridge* bridge, uint32_t width, uint32_t height,
+                                        const float* pixels_in, XpeAiBodyPartReply* reply_out) {
+    if (!bridge || !pixels_in || !reply_out || width == 0 || height == 0) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    bridge->last_model_unavailable = false;
+    *reply_out = XpeAiBodyPartReply{};
+    const uint64_t count = static_cast<uint64_t>(width) * height;
+    if (count > (XPE_AI_MAX_PAYLOAD_SIZE - 512u) / sizeof(float)) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    const size_t pixel_bytes = static_cast<size_t>(count) * sizeof(float);
+
+    char json[96];
+    const int json_len = std::snprintf(
+        json, sizeof(json), "{\"width\":%u,\"height\":%u,\"format\":\"float32\"}",
+        static_cast<unsigned>(width), static_cast<unsigned>(height));
+    if (json_len <= 0 || static_cast<size_t>(json_len) >= sizeof(json)) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
+
+    std::vector<uint8_t> payload(sizeof(uint32_t) + static_cast<size_t>(json_len) + pixel_bytes);
+    const uint32_t json_size = static_cast<uint32_t>(json_len);
+    std::memcpy(payload.data(), &json_size, sizeof(json_size));
+    std::memcpy(payload.data() + sizeof(json_size), json, json_size);
+    std::memcpy(payload.data() + sizeof(json_size) + json_size, pixels_in, pixel_bytes);
+
+    static std::atomic<uint32_t> next_request_id{1};
+    XpeAiMessageHeader header{};
+    header.magic = XPE_AI_MSG_MAGIC;
+    header.version = (static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MAJOR) << 16) |
+                     static_cast<uint32_t>(XPE_AI_PROTOCOL_VERSION_MINOR);
+    header.messageType = XPE_AI_MSG_BODYPART_RECOGNIZE;
+    header.requestId = next_request_id.fetch_add(1);
+    header.payloadSize = static_cast<uint32_t>(payload.size());
+    header.flags = XPE_AI_FLAG_HAS_BINARY_PAYLOAD;
+    header.timestamp = static_cast<uint64_t>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count());
+
+    const ULONGLONG deadline = DeadlineFor(bridge);
+    XpeErrorCode rc = SendUntil(bridge, &header, payload.data(),
+                                static_cast<uint32_t>(payload.size()), deadline);
+    if (rc != XPE_OK) {
+        return rc;
+    }
+
+    // A reply is a few hundred bytes at most (the longest label is 63 bytes). A larger one makes receive()
+    // report BUFFER_TOO_SMALL after consuming the header, which leaves the stream unusable and is not retried.
+    uint8_t reply[1024];
+    XpeAiMessageHeader rh{};
+    uint32_t received = 0;
+    rc = ReceiveUntil(bridge, &rh, reply, static_cast<uint32_t>(sizeof(reply)), &received, deadline);
+    if (rc != XPE_OK) {
+        return rc;
+    }
+    if (rh.requestId != header.requestId) {
+        DropConnection(bridge);   // someone else's answer: the stream is out of step
+        return XPE_ERR_IO_FAILED;
+    }
+
+    std::map<std::string, std::string> kv;
+    auto bad = [&]() {
+        DropConnection(bridge);
+        return XPE_ERR_IO_FAILED;
+    };
+
+    if (rh.messageType == XPE_AI_MSG_ERROR) {
+        // QA-B-191 M4f (Codex #77): an ERROR frame is judged as strictly as a success reply, because one of its
+        // fields -- "model_unavailable" -- changes what the host counts. It was found as a substring, so a frame
+        // that contradicted itself ({"error_code":-3,"model_unavailable":true,...}) was believed and a run of real
+        // faults could be reset to zero without ever reaching the ceiling. The rules are ParseWorkerErrorFrame's,
+        // the same function bone suppression uses (QA-B-193). A frame that deviates is a protocol fault:
+        // connection dropped, the call counts as a worker failure.
+        int code = 0;
+        bool unavailable = false;
+        if (!ParseWorkerErrorFrame(rh, reinterpret_cast<const char*>(reply), rh.payloadSize,
+                                   /*allow_model_unavailable=*/true, &code, &unavailable)) {
+            return bad();
+        }
+        bridge->last_model_unavailable = unavailable;
+        return static_cast<XpeErrorCode>(code);
+    }
+
+    if (rh.messageType != XPE_AI_MSG_BODYPART_RECOGNIZE_RESP ||
+        (rh.flags & XPE_AI_FLAG_HAS_BINARY_PAYLOAD) != 0) {
+        DropConnection(bridge);   // not the reply this request can get
+        return XPE_ERR_IO_FAILED;
+    }
+
+    if (!ParseFlatObject(reinterpret_cast<const char*>(reply), rh.payloadSize, /*allow_real=*/true,
+                         /*allow_escapes=*/false, &kv)) {
+        return bad();
+    }
+    auto success = kv.find("success");
+    if (success == kv.end() || success->second != "true") return bad();
+    auto outcome = kv.find("outcome");
+    if (outcome == kv.end() || outcome->second.empty() || outcome->second[0] != '"') return bad();
+    const std::string kind = outcome->second.substr(1);
+    const bool has_label = kv.count("body_part") != 0;
+    const bool has_conf = kv.count("confidence") != 0;
+
+    XpeAiBodyPartReply parsed;
+    if (kind == "ok") {
+        if (!has_label || !has_conf) return bad();
+        const std::string& label = kv["body_part"];
+        if (label.empty() || label[0] != '"') return bad();
+        const std::string text = label.substr(1);
+        if (text.empty() || text.size() >= XPE_AI_MAX_BODYPART_LEN) return bad();
+        // The same range the label sidecar is held to (ai_bodypart_model.h): printable ASCII 0x20-0x7E. A quote or a
+        // backslash cannot reach this point (the parser ends a string at a quote and has no escapes here); a control
+        // character cannot either, but DEL and bytes above 0x7F can, and a worker that sends one is not following
+        // the protocol.
+        for (const char ch : text) {
+            const unsigned char u = static_cast<unsigned char>(ch);
+            if (u < 0x20 || u > 0x7E) return bad();
+        }
+        const std::string& conf = kv["confidence"];
+        if (conf.empty() || conf[0] == '"' || conf == "true" || conf == "false" || conf == "null") return bad();
+        char* end = nullptr;
+        const float c = std::strtof(conf.c_str(), &end);   // the float the worker printed, read back exactly
+        if (end == conf.c_str() || *end != '\0' || !std::isfinite(c) || c < 0.0f || c > 1.0f) return bad();
+        parsed.judgement = xpe::ai::BodyPartJudgement::kOk;
+        std::memcpy(parsed.label, text.c_str(), text.size() + 1);
+        parsed.confidence = c;
+    } else if (kind == "non_finite" || kind == "out_of_range") {
+        if (has_label || has_conf) return bad();   // a refusal carries no answer
+        parsed.judgement = kind == "non_finite" ? xpe::ai::BodyPartJudgement::kNonFinite
+                                                : xpe::ai::BodyPartJudgement::kOutOfRange;
+    } else {
+        return bad();
+    }
+    *reply_out = parsed;
     return XPE_OK;
 }
 
