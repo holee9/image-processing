@@ -1,0 +1,3 @@
+start 2026-10-17 03:39:49  V1_half_b
+xpe_bpm_generate: 3 darks, 9 brights, 202042 defect pixels -> D:/workspace-github/xpe-data/bpm-eval-252g/v1_half_b.u8
+exit 0 wall seconds 417

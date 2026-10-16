@@ -1,0 +1,3 @@
+rho 2.5  detection probability 0.035
+rho 3.0  detection probability 0.103
+rho 4.0  detection probability 0.317
