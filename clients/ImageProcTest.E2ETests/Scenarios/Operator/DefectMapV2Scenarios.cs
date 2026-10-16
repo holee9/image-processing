@@ -30,12 +30,15 @@ public sealed class DefectMapV2Scenarios(ITestOutputHelper output)
     public void D2_AnUnsupportedVersionNumber_IsRefusedWithItsReason() => Run(Damage.UnsupportedVersion, "XPE_ERR_XCAL_VERSION");
 
     [SkippableFact]
-    public void D3_ALineRecordOutsideTheFrame_IsRefusedWithItsReason() => Run(Damage.LineOutOfRange, "outside the frame");
+    public void D3_ALineRecordOutsideTheFrame_IsRefusedWithItsReason() => Run(Damage.LineOutOfRange, "XPE_ERR_XCAL_EXTENSION", "outside the frame");
 
     [SkippableFact]
-    public void D4_Control_TheSameLineRecordInsideTheFrame_IsAccepted() => Run(Damage.ControlLineInRange, null);
+    public void D4_Control_TheSameLineRecordInsideTheFrame_IsAccepted() => Run(Damage.ControlLineInRange);
 
-    private void Run(Damage damage, string? reasonToken)
+    /// <summary>The chain line says this when the module refused the calibration (the state the refusal tests wait for and assert).</summary>
+    private const string RefusedState = "preprocess=RequestedNotApplied";
+
+    private void Run(Damage damage, params string[] reasonTokens)
     {
         var native = Env("XPE_C231_NATIVE_DIR");
         var set = Env("XPE_C249_SET");
@@ -60,8 +63,17 @@ public sealed class DefectMapV2Scenarios(ITestOutputHelper output)
         app.Menu("FileMenu");
         app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw!, confirmId: "1");
         app.WaitFor(() => app.AnyTextContains($"RAW {Side}x{Side}"), "the image summary appears", 90);
-        if (reasonToken is null) app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
-        Thread.Sleep(reasonToken is null ? 3000 : 12000);
+        var accepted = reasonTokens.Length == 0;
+        if (accepted)
+        {
+            app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
+            Thread.Sleep(3000);
+        }
+        else
+        {
+            // Wait for the refusal itself (a UIA read of the chain line, up to 60 s), not for a fixed time.
+            app.WaitFor(() => app.Read("ChainStatusText").Contains(RefusedState, StringComparison.Ordinal), "the chain line says " + RefusedState, 60);
+        }
 
         var chain = app.Read("ChainStatusText");
         var hud = app.Read("HudCalibStages");
@@ -77,17 +89,19 @@ public sealed class DefectMapV2Scenarios(ITestOutputHelper output)
         foreach (var line in log.Take(40)) output.WriteLine("   LOG " + line);
 
         var everything = string.Join("\n", new[] { chain, hud, status }.Concat(log));
-        if (reasonToken is null)
+        if (accepted)
         {
             Assert.Contains("preprocess=Applied", chain, StringComparison.Ordinal);
             var serious = log.Where(l => l.Contains("ALERT ", StringComparison.Ordinal) && !l.Contains("ALERT INFO", StringComparison.Ordinal) && !l.Contains("Exposure deviation:", StringComparison.Ordinal)).ToList();
             Assert.True(serious.Count == 0, "the control raised alert(s): " + string.Join(" || ", serious));
             return;
         }
+        Assert.Contains(RefusedState, chain, StringComparison.Ordinal);
         Assert.DoesNotContain("preprocess=Applied", chain, StringComparison.Ordinal);
         Assert.True(log.Any(l => l.Contains("ALERT ERROR", StringComparison.Ordinal)) || everything.Contains("fail", StringComparison.OrdinalIgnoreCase),
             "the refusal is not visible as an error (no ALERT ERROR line and no 'fail' on the screen)");
-        Assert.True(everything.Contains(reasonToken, StringComparison.Ordinal), $"the reason '{reasonToken}' is not visible anywhere on the screen or in the log");
+        foreach (var token in reasonTokens)
+            Assert.True(everything.Contains(token, StringComparison.Ordinal), $"the reason '{token}' is not visible anywhere on the screen or in the log");
     }
 
     /// <summary>The damaged copy of a version-2 defect file. Layout: header 152 bytes, config JSON, payload; the payload is run-length coded ((value u8, count u32) runs) and holds the defect plane,
