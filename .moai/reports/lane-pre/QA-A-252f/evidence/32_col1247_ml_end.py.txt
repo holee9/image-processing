@@ -1,0 +1,85 @@
+"""QA-A-252f: re-implementation (numpy, region x 1228..1266, y 1500..2900 of the QA-A-252e planted set) of the stretch search of rowStretches (xpe_bpm_v2.cpp) for
+column 1247 and the two causes that were reported (response, linearity), to find out which cause carries the stretch beyond the end of the planted item (y 2554).
+Approximations (stated, not hidden): the dose groups are found by sorting the frames by their mean net signal and cutting 3,3,6,3,3; the local reference is the median over
+the 17 columns centred on the column, the local scale is the robust sigma (MAD x 1.4826) of e over the 38 columns of the region in 64-row blocks; the null width and the
+threshold are taken from the detector report of the run (QA-A-252e/evidence/67_lines_planted.json.txt: response column 2.057, linearity column 1.719)."""
+import numpy as np
+W = 3072
+I = 'D:/workspace-github/xpe-data/bpm-eval-252e/inj_c/frames/'
+Y0, Y1, X0, X1 = 1500, 2900, 1228, 1267
+def rd(n): return np.fromfile(I + n, dtype='<u2').reshape(W, W)[Y0:Y1, X0:X1].astype(np.float64)
+D = np.mean([rd('Dark_%02d.raw' % k) for k in (8, 9, 10, 11, 12, 13, 14)], axis=0)
+ids = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]
+net = {k: rd('Bright_%02d.raw' % k) - D for k in ids}
+sig = {k: float(net[k].mean()) for k in ids}
+order = sorted(ids, key=lambda k: sig[k])
+cuts = [3, 3, 6, 3, 3]
+groups, p = [], 0
+for c in cuts:
+    groups.append(order[p:p + c]); p += c
+print('group signals:', [round(np.mean([sig[k] for k in g]), 0) for g in groups])
+G = len(groups)
+Sx = Sxx = 0.0
+Sn = np.zeros_like(D); Sxn = np.zeros_like(D); Snn = np.zeros_like(D)
+for g in groups:
+    sg = float(np.mean([sig[k] for k in g]))
+    ng = np.mean([net[k] for k in g], axis=0)
+    Sx += sg; Sxx += sg * sg; Sn += ng; Sxn += sg * ng; Snn += ng * ng
+dg = G * Sxx - Sx * Sx
+a = (G * Sxn - Sx * Sn) / dg
+b = (Sn - a * Sx) / G
+sse = np.maximum(0.0, Snn - a * Sxn - b * Sn)
+flat = Sn / Sx
+rel = np.log(sse / (G - 2) + 1e-9) - 2.0 * np.log(np.maximum(np.abs(a), 1e-3))
+ITEM = (1787, 2555)          # planted item 67, rows [a, b)
+col = 1247 - X0
+def stretch(f, kind, kappa, lam, L=64, win=17):
+    h, w = f.shape                          # rows = y, columns = x ; the line is the column `col`: work on its profile
+    half = win // 2
+    ref = np.array([np.median(f[y, max(0, col - half):col + half + 1]) for y in range(h)])
+    e = (f[:, col] / ref - 1.0) if kind == 'response' else (f[:, col] - ref)
+    # local scale: robust sigma of e over the neighbouring columns in 64-row blocks
+    E = np.empty((h, w))
+    for x in range(w):
+        r = np.array([np.median(f[y, max(0, x - half):x + half + 1]) for y in range(h)])
+        E[:, x] = (f[:, x] / r - 1.0) if kind == 'response' else (f[:, x] - r)
+    sc = np.empty(h)
+    for y0 in range(0, h, 64):
+        blk = np.delete(E[y0:y0 + 64], col, axis=1)
+        sc[y0:y0 + 64] = max(1e-9, 1.4826 * np.median(np.abs(blk - np.median(blk))))
+    sign = -1.0 if kind == 'response' else 1.0     # the response item is LOW (0.3): the signed direction of the finding
+    zt = np.clip(sign * e / sc, -3, 3)
+    cs = np.concatenate([[0], np.cumsum(zt)])
+    nw = h - L + 1
+    zw = (cs[L:L + nw] - cs[:nw]) / np.sqrt(L) / kappa
+    hit = np.nonzero(zw > lam)[0]
+    if len(hit) == 0: return None
+    # the coarse stretch that contains the item
+    runs, s = [], hit[0]
+    for i in range(1, len(hit)):
+        if hit[i] != hit[i - 1] + 1: runs.append((s, hit[i - 1])); s = hit[i]
+    runs.append((s, hit[-1]))
+    out = []
+    for r0, r1 in runs:
+        A, B = r0, r1 + L
+        lo2, hi2 = max(0, A - L), min(h, B + L)
+        c0, c1 = (A + L // 2, B - L // 2) if B - A >= 2 * L else (A, B)
+        m = zt[c0:c1].mean()
+        best, cur, st0, bA, bB = -1e300, 0.0, lo2, lo2, lo2
+        for t in range(lo2, hi2):
+            v = zt[t] - 0.5 * m
+            if cur <= 0.0: cur, st0 = v, t
+            else: cur += v
+            if cur > best: best, bA, bB = cur, st0, t + 1
+        out.append(((A + Y0, B + Y0), (bA + Y0, bB + Y0), round(float(m), 3)))
+    return out, zt
+for kind, kappa in (('response', 2.057), ('linearity', 1.719)):
+    f = flat if kind == 'response' else rel
+    lam = 4.5 if kind == 'response' else 4.34
+    res = stretch(f, kind, kappa, lam)
+    print('%-9s' % kind, 'item rows', ITEM[0] + 0, '..', ITEM[1] - 1)
+    if res is None: print('   no coarse stretch'); continue
+    for coarse, refined, m in res[0]:
+        print('   coarse [%d, %d)  refined [%d, %d)  core mean z %.3f' % (coarse + refined + (m,)))
+    zt = res[1]
+    print('   mean z by 25-row block around the end (rows %d..): ' % (ITEM[1] - 75), [round(float(zt[y - Y0:y - Y0 + 25].mean()), 2) for y in range(ITEM[1] - 75, ITEM[1] + 100, 25)])

@@ -81,6 +81,7 @@ struct Plant {
     bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
     bool strongShading{false};
     bool respPixels{false};       // QA-A-252d: single pixels with a response of 0.40, 0.50, 0.60, 0.75, 1.45, 1.60 (row 220)
+    bool oneGroupNoisyPixel{false};   // QA-A-252f: a pixel (the place of brightNoisyPixel) with extra noise sd 400 in the frames of the FIRST dose group only
     bool respRowPixels{false};    // QA-A-252f: a row of gain 1.2 (row 100) and a row of gain 0.8 (row 150), each with one pixel of nominal response 0.46 and 0.50 (x 60)
     double   burstAmp{14.0};      // QA-A-253e: amplitude of the single-frame bursts / the noise of the some-frames stretches (see kLn*One, kLn*Frames)
     uint32_t frameMask{0};        // QA-A-253e: the frames (bit = frame index in acquisition order, dark or bright) that carry the noise of kLnDarkNoisyFrames / kLnBrightNoisyFrames
@@ -112,6 +113,8 @@ constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;
 // QA-A-252d: response rows (0.3 and 1.7 are defects, 0.6 is weak) and the response pixels
 constexpr int kLnLowRowY = 70, kLnHighRowY = 190, kLnWeakRowY = 50, kRespY = 220;
 constexpr int kGainRowHi = 100, kGainRowLo = 150, kRowPixX = 60;   // QA-A-252f
+constexpr uint32_t kLnGainLossRow = 4194304;   // QA-A-252f: a row whose WHOLE bright value (signal and noise) is scaled by 0.3, like a loss of conversion gain
+constexpr int kLnGainLossRowY = 130;
 constexpr int kRespX[6] = {30, 40, 50, 60, 70, 80};
 constexpr double kRespR[6] = {0.40, 0.50, 0.60, 0.75, 1.45, 1.60};
 constexpr int kStagFrom[3] = {96, 120, 140}, kStagTo[3] = {192, 216, 236};
@@ -193,6 +196,8 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
             }
             double v = d + (bright ? sig + 0.5 * std::sqrt(std::max(sig, 1.0)) * rng.next() : 0.0) + noiseSd * rng.next();
             if (bright && plant.brightNoisyPixel && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 150.0 * pixelRng.next();
+            if (bright && plant.oneGroupNoisyPixel && brightIdx >= 0 && brightIdx < 3 && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 400.0 * pixelRng.next();
+            if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);
             if (firstDark && x >= 20 && x < 24 && y >= 20 && y < 24) v += 200.0;   // a transient only in the first frame
             fr[i] = static_cast<uint16_t>(std::min(65535.0, std::max(0.0, std::floor(v + 0.5))));
         }
@@ -529,10 +534,16 @@ TEST(BpmV2LinesTest, ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranc
         EXPECT_NE(0u, low->causes & XPE_BPM_LINE_CAUSE_SLOPE) << "the slope proxy has its own cause bit";
     }
     EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHighRowY)) << "response 1.7: found";
-    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) << "response 0.5: inside 45 %..150 %, normal";
+    // QA-A-252f: 0.5 is normal on the RESPONSE axis. In this fixture the noise variance follows the signal (an efficiency loss), so the row is also 1 / 0.5 = 2.0 to 2.1 times the
+    // neighbours' variance after gain correction: at the limit of the noise cost (P2), found or not with the draw. Whatever the draw, it carries no response cause.
+    if (const XpeBpmLine* half = lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) {
+        EXPECT_EQ(0u, half->causes & (XPE_BPM_LINE_CAUSE_RESPONSE | XPE_BPM_LINE_CAUSE_SLOPE)) << "response 0.5: inside 45 %..150 %";
+        EXPECT_NE(0u, half->causes & XPE_BPM_LINE_CAUSE_NOISE) << "found by the noise cost";
+    }
     EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnWeakRowY)) << "response 0.6: weak, counted only";
     EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnGainY)) << "response 1.2: a band that gain correction removes";
-    EXPECT_EQ(2u, r.rep.lines);
+    EXPECT_GE(r.rep.lines, 2u);
+    EXPECT_LE(r.rep.lines, 3u) << "the rows at 0.3 and 1.7, and the 0.5 row at the limit of the noise cost";
     EXPECT_GE(r.rep.weak_response_stretches, 2u) << "the rows at 0.5 and 0.6 are weak responses";
     EXPECT_EQ(0u, bands.rep.lines) << "the fixed offset band and the 0.8 gain band are not defects";
 }
@@ -869,6 +880,23 @@ TEST(BpmV2Test, TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsThe
     EXPECT_EQ(2u, r.rep.weak_response_pixels) << "0.50 and 0.60 are from 45 % up to 70 %: weak, counted, not flagged";
 }
 
+TEST(BpmV2LinesTest, TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot) {
+    // QA-A-252f (P2): after gain correction the variance of a row whose signal is scaled by 0.3 (the noise variance of the fixture follows the signal) is 3.3 times its neighbours':
+    // a noise-cost defect. A row whose whole value is scaled by 0.3 is corrected back to the original noise: it is a response defect and nothing else.
+    Frames f = makeFrames(49, kDoses, 3, 7, onlyLines(kLnLowRow | kLnGainLossRow));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const XpeBpmLine* eff = lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY);
+    const XpeBpmLine* gain = lineAt(r, XPE_BPM_LINE_ROW, kLnGainLossRowY);
+    ASSERT_NE(nullptr, eff) << "response 0.3 by efficiency loss";
+    ASSERT_NE(nullptr, gain) << "response 0.3 by gain loss";
+    EXPECT_NE(0u, eff->causes & XPE_BPM_LINE_CAUSE_RESPONSE);
+    EXPECT_NE(0u, eff->causes & XPE_BPM_LINE_CAUSE_NOISE) << "the gain-corrected variance is 3.3 times the neighbours'";
+    EXPECT_NE(0u, gain->causes & XPE_BPM_LINE_CAUSE_RESPONSE);
+    EXPECT_EQ(0u, gain->causes & XPE_BPM_LINE_CAUSE_NOISE) << "the gain loss scales signal and noise together: corrected, the noise is the original";
+}
+
 TEST(BpmV2LinesTest, AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups) {
     // eight dose groups make the linearity statistic sharp enough for the shift of log(sse) by a gain band (x1.35: +0.6) to stand out when it is not made relative
     const std::vector<double> doses8 = {1000.0, 2000.0, 3000.0, 4500.0, 6000.0, 9000.0, 13000.0, 18000.0};
@@ -918,6 +946,26 @@ TEST(BpmV2Test, TheResponseThresholdsAreExactAndTheInequalitiesAreFixed) {
     const bool expected[6] = {true, false, false, false, false, true};
     for (int q = 0; q < 6; ++q)
         EXPECT_EQ(expected[q], (r.feat[static_cast<size_t>(30) * kW + static_cast<size_t>(20 + 10 * q)] & XPE_BPM_V2_FEATURE_FLAT) != 0) << "response " << ratios[q];
+}
+
+TEST(BpmV2Test, ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect) {
+    // the position must persist (P2): a pixel with a large variance in one of four dose groups is a transient, not a defect of the place
+    Plant one{};
+    one.stripes = false;
+    one.defects = false;
+    one.oneGroupNoisyPixel = true;
+    Frames f = makeFrames(50, kDoses, 3, 7, one);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0, r.feat[static_cast<size_t>(kBrightNoisyY) * kW + kBrightNoisyX] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) << "noise in the first dose group only";
+    Plant all{};
+    all.stripes = false;
+    all.defects = false;
+    all.brightNoisyPixel = true;
+    Frames g = makeFrames(50, kDoses, 3, 7, all);
+    const Result q = detect(g, nullptr);
+    ASSERT_EQ(XPE_OK, q.rc);
+    EXPECT_NE(0, q.feat[static_cast<size_t>(kBrightNoisyY) * kW + kBrightNoisyX] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) << "the same pixel noisy in every dose group";
 }
 
 TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {

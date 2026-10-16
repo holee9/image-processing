@@ -34,6 +34,7 @@ constexpr double kMadToSigma = 1.4826;
 constexpr double kResponseLow = 0.45;       // SRS FUNC-022 (provisional, user decision): a response below 45 % of the local median is a defect
 constexpr double kResponseHigh = 1.5;       // ... above 150 %
 constexpr double kWeakResponseHigh = 0.7;   // 45 % up to 70 %: weak, counted only
+constexpr double kNoiseCostLimit = 2.0;     // SRS FUNC-022 (leader decision, synthesis P2): a gain-corrected variance of twice the local expectation (3.01 dB) is a defect
 constexpr double kRatioSlack = 1e-6;        // the ratio is a quotient of floats (about 6e-8 resolution): a response of exactly 0.45 or 1.5 is normal, whatever the rounding
 constexpr double kScaleFloor = 1e-6;
 constexpr double kReferenceFloor = 1e-9;
@@ -734,13 +735,44 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
             if (grp.size() >= 3) job->brightValid += static_cast<uint32_t>(grp.size());
     }
 
+    // ---- the gain correction of the noise-cost judgement (QA-A-252f, P2): the measured response of every pixel, the relative response of the offset-corrected bright frames against
+    // its local median (the quantity of the response rule), squared and inverted. It is a measurement, not the model 1 / r: the variance of a pixel is divided by the square of what
+    // the pixel actually passes on. The response is bounded to 0.2 .. 3 (a pixel below 0.45 is a response defect whatever its noise).
+    std::vector<float> corrGain(n, 1.0f);
+    {
+        std::vector<float>  flat(n, 0.0f), tmpP(n), bgP(n);
+        std::vector<double> accP(n);
+        double              sxPre = 0.0;
+        for (uint32_t g = 0; g < G; ++g) {
+            std::fill(accP.begin(), accP.end(), 0.0);
+            double sg = 0.0;
+            for (uint32_t k : groups[g]) {
+                const uint16_t* p = px(bright_frames[k]);
+                for (size_t i = 0; i < n; ++i) accP[i] += p[i];
+                sg += signal[k];
+            }
+            const double mgd = static_cast<double>(groups[g].size());
+            sxPre += sg / mgd;
+            for (size_t i = 0; i < n; ++i) flat[i] += static_cast<float>(accP[i] / mgd - static_cast<double>(D[i]));
+        }
+        for (size_t i = 0; i < n; ++i) flat[i] = static_cast<float>(static_cast<double>(flat[i]) / sxPre);
+        separableMedian(flat.data(), tmpP.data(), bgP.data(), w, h, static_cast<int>(st.window));
+        for (size_t i = 0; i < n; ++i) {
+            const double b = static_cast<double>(bgP[i]);
+            const double r = std::fabs(b) > 1e-12 ? static_cast<double>(flat[i]) / b : 1.0;
+            const double rc = std::min(3.0, std::max(0.2, r));
+            corrGain[i] = static_cast<float>(1.0 / (rc * rc));
+        }
+    }
+
     // ---- per-pixel least-squares sums over the groups: n_g = a * S_g + b
     std::vector<double> Sn(n, 0.0), Sxn(n, 0.0), Snn(n, 0.0);
     double Sx = 0.0, Sxx = 0.0;
     std::vector<double> groupSignal(G, 0.0);
     // bright-frame temporal noise inside the dose groups (QA-A-252b, F2b): per group the variance of the frames about the group mean (the row and column means of every frame
     // taken out, as for the dark frames), relative to its own local median; the groups are pooled as a sum of chi-square variables
-    std::vector<float> noiseSum, refSum;
+    std::vector<float>   noiseSum, refSum;
+    std::vector<uint8_t> persistHits;   // in how many dose groups the gain-corrected variance of the pixel reaches the limit (P2: the position must persist)
     uint32_t           nuBright = 0, noiseGroups = 0;
     std::vector<std::vector<double>> brmK(num_bright), bcmK(num_bright);   // per bright frame: the row and column means taken out (line persistence)
     std::vector<double>              groupNom(groups.size(), 0.0);          // per dose group: the nominal temporal variance
@@ -771,6 +803,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 if (noiseSum.empty()) {
                     noiseSum.assign(n, 0.0f);
                     refSum.assign(n, 0.0f);
+                    persistHits.assign(n, 0);
                     vg.resize(n);
                     vgTmp.resize(n);
                     vgBg.resize(n);
@@ -835,8 +868,10 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 nomSample.reserve(n / 16 + 1);
                 for (size_t i = 0; i < n; ++i) {
                     const double ref = std::max(static_cast<double>(vgBg[i]) / mnu, kReferenceFloor);
-                    noiseSum[i] += static_cast<float>((mg - 1) * (static_cast<double>(vg[i]) / ref));
+                    const double ratioG = static_cast<double>(vg[i]) * static_cast<double>(corrGain[i]) / ref;   // gain-corrected variance against its local expectation (P2)
+                    noiseSum[i] += static_cast<float>((mg - 1) * ratioG);
                     refSum[i] += static_cast<float>(ref);
+                    if (ratioG >= kNoiseCostLimit) ++persistHits[i];
                     if (i % 16 == 0) nomSample.push_back(static_cast<float>(ref));
                 }
                 groupNom[g] = static_cast<double>(medianOf(nomSample.data(), nomSample.size()));
@@ -943,7 +978,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         std::vector<float> sample;
         sample.reserve(n / 16 + 1);
         for (size_t i = 0; i < n; ++i) {
-            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > threshold[5]) {
+            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > threshold[5] && 2u * persistHits[i] >= noiseGroups) {
                 flags[i] = static_cast<uint8_t>(flags[i] | XPE_BPM_V2_FEATURE_BRIGHT_NOISE);
                 ++counts[5];
             }
@@ -980,7 +1015,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                             for (uint32_t j = 0; j < mg; ++j) {
                                 const uint32_t k = groups[g][j];
                                 const double   e = static_cast<double>(vals[j]) - md - brmK[k][static_cast<size_t>(y)] - bcmK[k][static_cast<size_t>(x)];
-                                stat[j][static_cast<size_t>(d + half)] += std::min(e * e, cap);
+                                stat[j][static_cast<size_t>(d + half)] += std::min(e * e * static_cast<double>(corrGain[i]), cap);
                             }
                         }
                     }

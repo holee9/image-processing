@@ -1928,7 +1928,9 @@ typedef struct {
 #define XPE_BPM_V2_FEATURE_DOSE_SLOPE  0x04u /**< Slope of the response over the dose groups */
 #define XPE_BPM_V2_FEATURE_DOSE_LINEAR 0x08u /**< Residual of the straight-line fit over the dose groups (log of its variance, upper side) */
 #define XPE_BPM_V2_FEATURE_FLAT        0x10u /**< Local deviation of the relative flat-field response */
-#define XPE_BPM_V2_FEATURE_BRIGHT_NOISE 0x20u /**< Temporal noise of the bright frames inside the dose groups against its local median (QA-A-252b) */
+#define XPE_BPM_V2_FEATURE_BRIGHT_NOISE 0x20u /**< Temporal noise of the bright frames inside the dose groups, gain-corrected (the variance divided by the square of the measured response of the pixel), against its
+                                                    *   local median: a defect when the pooled statistic exceeds the false-alarm threshold AND the corrected variance reaches twice the local expectation in
+                                                    *   at least half of the dose groups (QA-A-252b; the gain correction and the persistence are QA-A-252f, the noise cost of SRS FUNC-022) */
 
 /** Number of detection features reported by XpeBpmReportV2. */
 #define XPE_BPM_V2_FEATURE_COUNT 6
