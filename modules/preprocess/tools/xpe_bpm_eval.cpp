@@ -12,6 +12,10 @@
  *       DIR/truth.tsv (what the scorer reads), DIR/truth.json (spec, options, input hashes) and DIR/truth_ids.u16 (item number per pixel, 65535 = shared).
  *       --dark: generation dark frames (the pixel dark level D is their mean). --bright: bright generation frames. --eval: bright evaluation frames.
  *       --exclude-mask: a map (raw uint8/uint16, or a defect.xcal) whose defects, and 3 pixels around them, stay free of planted defects.
+ *       Response items (QA-A-252d, SRS FUNC-022): a response r below 0.45 is a defect, 0.45..1.5 is normal (class control; 0.45 itself is normal). Two models:
+ *       gain_loss (signal and noise both x r, like dead and slope) and efficiency_loss (r times the detected quanta: the signal x r and the quantum noise variance x r),
+ *       levels 0.3, 0.45, 0.7 for pixels and lines. dead at 0.5 and slope 0.75..1.25 are normal now. The quantum gain kappa (noise variance per signal unit) is
+ *       estimated from the generation bright frames and written to truth.json.
  *   xpe_bpm_eval score --truth DIR --map F [--clean-map F] [--half-a F --half-b F] [--area MASK.u8] [--out metrics.json]
  *       --area: the imaging-area mask (1 inside, 0 outside, as written by map-v2 --area): flags outside it are not counted in any map.
  *       Detection rate per kind and level, false alarms, control false detections, split-half Jaccard.
@@ -59,6 +63,8 @@ namespace {
 
 constexpr uint16_t kSharedId = 65535;
 constexpr double   kNonlinearRef = 30000.0;   // signal at which the nonlinearity term c is defined (spec 2.1)
+constexpr double kResponseDefectBelow = 0.45;   // SRS FUNC-022 (provisional, user decision 2026-10-16): a response below 45 % of the local median is a defect
+constexpr double kResponseDefectAbove = 1.5;    // ... or above 150 %
 
 // ------------------------------------------------------------------------------------------------------------- arguments
 struct Args {
@@ -209,6 +215,11 @@ std::string fmtLevel(double v) {
     return b;
 }
 
+/** The class of an item that changes the response to r: a defect class below 45 % (or above 150 %), control inside (0.45 itself is inside). */
+std::string responseClass(const char* defectClass, double r) {
+    return (r < kResponseDefectBelow - 1e-9 || r > kResponseDefectAbove + 1e-9) ? defectClass : "control";
+}
+
 std::string groupKey(const Item& it) { return it.cls + "/" + it.kind + "/" + it.shape + "/" + fmtLevel(it.level); }
 
 /** Calls @p fn(index) for every pixel of the item once (a pixel covered by two rectangles of one item is visited once). */
@@ -334,9 +345,14 @@ bool placeItems(const Options& o, const std::vector<uint8_t>& exclD, std::vector
     for (const auto& m : lineModels)
         for (double lv : m.second)
             for (const char* sh : shapes6)
-                if (!addLine("line", m.first, lv, sh)) return false;
+                if (!addLine(std::string(m.first) == "dead" ? responseClass("line", 1.0 - lv) : "line", m.first, lv, sh)) return false;
     for (const auto& cr : std::vector<std::pair<const char*, double>>{{"dead", 1.0}, {"nonlinear", 0.4}, {"noisy", 4.0}})
         if (!addLine("line", cr.first, cr.second, "cross")) return false;
+    // QA-A-252d: response lines of the two models, at the response r (the level is r itself)
+    for (const char* kind : {"gain_loss", "efficiency_loss"})
+        for (double r : {0.3, 0.45, 0.7})
+            for (const char* sh : shapes6)
+                if (!addLine(responseClass("line", r), kind, r, sh)) return false;
     const std::pair<const char*, std::vector<double>> controls[3] = {{"fixed_band", {100.0, 30.0}}, {"gain_band", {0.8, 1.2}}, {"varying_band", {20.0, 8.0}}};
     for (const auto& c : controls)
         for (double lv : c.second)
@@ -384,14 +400,84 @@ bool placeItems(const Options& o, const std::vector<uint8_t>& exclD, std::vector
     for (int size : {2, 3, 4, 8})
         for (double a : {1.0, 0.5})
             for (int n = 0; n < o.blocksPerLevel; ++n)
-                if (!placeSmall("block", "dead", a, "block" + std::to_string(size), size)) return false;
-    const std::pair<const char*, std::vector<double>> pix[5] = {
-        {"dead", {1.0, 0.5}}, {"hot", {200.0, 100.0, 50.0, 25.0}}, {"noisy", {4.0, 2.0, 1.0}}, {"slope", {0.75, 0.9, 1.1, 1.25}}, {"nonlinear", {0.4, 0.2}}};
-    for (const auto& p : pix)
-        for (double lv : p.second)
+                if (!placeSmall(responseClass("block", 1.0 - a), "dead", a, "block" + std::to_string(size), size)) return false;
+    const std::pair<const char*, std::vector<double>> pix[7] = {
+        {"dead", {1.0, 0.5}}, {"hot", {200.0, 100.0, 50.0, 25.0}}, {"noisy", {4.0, 2.0, 1.0}}, {"slope", {0.75, 0.9, 1.1, 1.25}}, {"nonlinear", {0.4, 0.2}},
+        {"gain_loss", {0.3, 0.45, 0.7}}, {"efficiency_loss", {0.3, 0.45, 0.7}}};
+    for (const auto& p : pix) {
+        const std::string kind = p.first;
+        for (double lv : p.second) {
+            // response items are judged by their response: dead has the response 1 - level, slope and the loss models have the level itself
+            const std::string cls = kind == "dead" ? responseClass("pixel", 1.0 - lv) : (kind == "slope" || kind == "gain_loss" || kind == "efficiency_loss") ? responseClass("pixel", lv) : "pixel";
             for (int n = 0; n < o.pixelsPerLevel; ++n)
-                if (!placeSmall("pixel", p.first, lv, "pixel", 1)) return false;
+                if (!placeSmall(cls, kind, lv, "pixel", 1)) return false;
+        }
+    }
     return true;
+}
+
+/**
+ * The quantum gain kappa (variance per signal unit, in pixel values) from the generation bright frames: frames of nearly the same signal form a group; per pixel the variance
+ * about the group mean (the row mean of every frame taken out, the frames scaled to the group mean) divided by the net signal; the median over pixels and groups.
+ * Returns 0 when no group holds two frames.
+ */
+double estimateQuantumGain(const std::vector<std::string>& brightFiles, size_t n, uint32_t w, uint32_t h, const std::vector<double>& D) {
+    std::vector<std::vector<uint16_t>> fr(brightFiles.size());
+    std::vector<double>                sig(brightFiles.size(), 0.0);
+    const uint32_t x0 = w / 10, x1 = w - w / 10, y0 = h / 10, y1 = h - h / 10;
+    for (size_t k = 0; k < brightFiles.size(); ++k) {
+        if (!readRaw16(brightFiles[k], n, &fr[k])) return 0.0;
+        double acc = 0.0;
+        for (uint32_t y = y0; y < y1; y += 3)
+            for (uint32_t x = x0; x < x1; x += 3) acc += fr[k][static_cast<size_t>(y) * w + x] - D[static_cast<size_t>(y) * w + x];
+        sig[k] = acc / (static_cast<double>((y1 - y0 + 2) / 3) * static_cast<double>((x1 - x0 + 2) / 3));
+    }
+    std::vector<size_t> order(brightFiles.size());
+    for (size_t k = 0; k < order.size(); ++k) order[k] = k;
+    std::sort(order.begin(), order.end(), [&](size_t a, size_t b) { return sig[a] < sig[b]; });
+    std::vector<std::vector<size_t>> groups;
+    for (size_t t = 0; t < order.size(); ++t) {
+        if (t == 0 || !(sig[order[t]] > 0.0) || sig[order[t]] / sig[order[t - 1]] > 1.25) groups.emplace_back();
+        groups.back().push_back(order[t]);
+    }
+    std::vector<float> ratios;
+    for (const auto& g : groups) {
+        if (g.size() < 2 || !(sig[g[0]] > 100.0)) continue;
+        double gm = 0.0;
+        for (size_t k : g) gm += sig[k];
+        gm /= static_cast<double>(g.size());
+        std::vector<std::vector<double>> rowMean(g.size(), std::vector<double>(h, 0.0));
+        std::vector<std::vector<double>> mean(g.size());
+        for (size_t j = 0; j < g.size(); ++j) {
+            const double scale = gm / sig[g[j]];
+            for (uint32_t y = 0; y < h; ++y) {
+                double acc = 0.0;
+                for (uint32_t x = 0; x < w; ++x) acc += (fr[g[j]][static_cast<size_t>(y) * w + x] - D[static_cast<size_t>(y) * w + x]) * scale;
+                rowMean[j][y] = acc / w;
+            }
+        }
+        for (uint32_t y = y0; y < y1; y += 7)
+            for (uint32_t x = x0; x < x1; x += 7) {
+                const size_t i = static_cast<size_t>(y) * w + x;
+                std::vector<double> v(g.size());
+                double              m = 0.0;
+                for (size_t j = 0; j < g.size(); ++j) {
+                    v[j] = (fr[g[j]][i] - D[i]) * (gm / sig[g[j]]) - rowMean[j][y];
+                    m += v[j];
+                }
+                m /= static_cast<double>(g.size());
+                double var = 0.0;
+                for (double e : v) var += (e - m) * (e - m);
+                var /= static_cast<double>(g.size() - 1);
+                double net = 0.0;
+                for (size_t j = 0; j < g.size(); ++j) net += (fr[g[j]][i] - D[i]) * (gm / sig[g[j]]);
+                net /= static_cast<double>(g.size());
+                if (net > 100.0) ratios.push_back(static_cast<float>(var / net));
+            }
+    }
+    if (ratios.empty()) return 0.0;
+    std::nth_element(ratios.begin(), ratios.begin() + static_cast<std::ptrdiff_t>(ratios.size() / 2), ratios.end());
+    return ratios[ratios.size() / 2];
 }
 
 int cmdInject(const Args& a) {
@@ -450,6 +536,9 @@ int cmdInject(const Args& a) {
     const double sigmaT = var[n / 2];
     var.clear();
     var.shrink_to_fit();
+    double kappa = estimateQuantumGain(brightFiles, n, o.w, o.h, D);
+    const bool kappaMeasured = kappa > 0.0;
+    if (!kappaMeasured) kappa = 0.25;   // no dose group of two frames among the generation frames: the typical value of the cyan_test panel
 
     // positions
     std::vector<uint8_t> excl(n, 0);
@@ -493,8 +582,12 @@ int cmdInject(const Args& a) {
                     v += it.level;
                 } else if (it.kind == "noisy") {
                     if (it.cls == "line" || it.cls == "pixel") v += it.level * sigmaT * unit(rng);
-                } else if (it.kind == "slope" || it.kind == "gain_band") {
+                } else if (it.kind == "slope" || it.kind == "gain_band" || it.kind == "gain_loss") {
                     if (bright) v = d + it.level * nn;
+                } else if (it.kind == "efficiency_loss") {
+                    // r times the detected quanta: the signal x r and the quantum noise variance x r. The frame already holds the quantum noise of all its quanta (variance kappa * nn),
+                    // so after x r it has r^2 * kappa * nn; the thinning adds kappa * r * (1 - r) * nn (binomial thinning of the quanta, Gaussian approximation)
+                    if (bright) v = d + it.level * nn + std::sqrt(kappa * it.level * (1.0 - it.level) * std::max(nn, 0.0)) * unit(rng);
                 } else if (it.kind == "nonlinear") {
                     if (bright) v = d + nn * (1.0 - it.level * nn / kNonlinearRef);
                 } else if (it.kind == "varying_band") {
@@ -534,10 +627,11 @@ int cmdInject(const Args& a) {
     {
         std::map<std::string, int> perClass;
         for (const Item& it : items) ++perClass[it.cls];
-        char sb[64];
+        char sb[64], kb[64];
         std::snprintf(sb, sizeof sb, "%.6f", sigmaT);
-        std::string j = "{\n  \"tool\": \"xpe_bpm_eval\",\n  \"spec_version\": 1,\n  \"seed\": " + std::to_string(o.seed) + ",\n  \"width\": " + std::to_string(o.w) +
-                        ",\n  \"height\": " + std::to_string(o.h) + ",\n  \"sigma_t\": " + sb + ",\n  \"options\": {\"pixels_per_level\": " + std::to_string(o.pixelsPerLevel) +
+        std::snprintf(kb, sizeof kb, "%.6f", kappa);
+        std::string j = "{\n  \"tool\": \"xpe_bpm_eval\",\n  \"spec_version\": 2,\n  \"seed\": " + std::to_string(o.seed) + ",\n  \"width\": " + std::to_string(o.w) +
+                        ",\n  \"height\": " + std::to_string(o.h) + ",\n  \"sigma_t\": " + sb + ",\n  \"quantum_gain\": " + kb + ",\n  \"quantum_gain_measured\": " + (kappaMeasured ? "true" : "false") + ",\n  \"options\": {\"pixels_per_level\": " + std::to_string(o.pixelsPerLevel) +
                         ", \"blocks_per_level\": " + std::to_string(o.blocksPerLevel) + ", \"margin\": " + std::to_string(o.margin) + ", \"line_gap\": " + std::to_string(o.lineGap) +
                         ", \"exclusion_halo\": " + std::to_string(o.exclHalo) + "},\n  \"items\": {";
         size_t c = 0;
@@ -553,8 +647,8 @@ int cmdInject(const Args& a) {
         j += "  ]\n}\n";
         if (!writeBytes((fs::path(out) / "truth.json").string(), j.data(), j.size())) return 3;
     }
-    std::printf("planted %zu items (%zu pixels with an item) in %zu dark, %zu bright and %zu evaluation frames; sigma_t %.4f; truth in %s\n", items.size(),
-                static_cast<size_t>(std::count_if(ids.begin(), ids.end(), [](uint16_t v) { return v != 0; })), darkFiles.size(), brightFiles.size(), evalFiles.size(), sigmaT, out.c_str());
+    std::printf("planted %zu items (%zu pixels with an item) in %zu dark, %zu bright and %zu evaluation frames; sigma_t %.4f; quantum gain %.4f (%s); truth in %s\n", items.size(),
+                static_cast<size_t>(std::count_if(ids.begin(), ids.end(), [](uint16_t v) { return v != 0; })), darkFiles.size(), brightFiles.size(), evalFiles.size(), sigmaT, kappa, kappaMeasured ? "measured" : "default", out.c_str());
     return 0;
 }
 
@@ -689,6 +783,11 @@ int cmdScore(const Args& a) {
     std::map<std::string, size_t> gIndex;
     int controlItems = 0, controlFalse = 0;
     std::string controlRows;
+    struct CtrlGroup {
+        int    items{0}, falseHits{0};
+        double fracSum{0}, cleanSum{0};
+    };
+    std::map<std::string, CtrlGroup> ctrlGroups;   // pixel and block controls (hundreds of items): one row per kind and level
     for (const Item& it : t.items) {
         const size_t tot = total[static_cast<size_t>(it.id)];
         const double frac = tot ? static_cast<double>(flagged[static_cast<size_t>(it.id)]) / static_cast<double>(tot) : 0.0;
@@ -697,6 +796,14 @@ int cmdScore(const Args& a) {
             const bool hit = frac >= 0.5;
             controlFalse += hit ? 1 : 0;
             const double fc = tot ? static_cast<double>(flaggedClean[static_cast<size_t>(it.id)]) / static_cast<double>(tot) : 0.0;
+            if (it.shape == "pixel" || it.shape.compare(0, 5, "block") == 0) {
+                CtrlGroup& cg = ctrlGroups[groupKey(it)];
+                ++cg.items;
+                cg.falseHits += hit ? 1 : 0;
+                cg.fracSum += frac;
+                cg.cleanSum += fc;
+                continue;
+            }
             char b[200];
             std::snprintf(b, sizeof b, "  %-14s %-9s level %-5s flagged %6zu of %6zu = %.4f   clean map %.4f   %s\n", it.kind.c_str(), it.shape.c_str(), fmtLevel(it.level).c_str(),
                           flagged[static_cast<size_t>(it.id)], tot, frac, fc, hit ? "FALSE DETECTION" : "ok");
@@ -742,6 +849,12 @@ int cmdScore(const Args& a) {
     if (haveClean)
         std::printf("  clean map (no planting): flagged %zu; outside the true defects: %zu\n  NEW false alarms (flagged here, not in the clean map, outside the true defects): %zu = %.3f per million pixels\n"
                     "    of which on control bands: %zu\n", nClean, nOutClean, nNew, 1e6 * static_cast<double>(nNew) / static_cast<double>(n), nNewControl);
+    for (const auto& kv : ctrlGroups) {
+        char b[260];
+        std::snprintf(b, sizeof b, "  %-34s %5d items  false detections %5d  mean flagged fraction %.4f   clean map %.4f\n", kv.first.c_str(), kv.second.items, kv.second.falseHits,
+                      kv.second.fracSum / kv.second.items, kv.second.cleanSum / kv.second.items);
+        controlRows += b;
+    }
     std::printf("== control bands (%d items; false detection = at least half of the band flagged)\n%s  false detections: %d of %d\n", controlItems, controlRows.c_str(), controlFalse,
                 controlItems);
 
@@ -780,9 +893,18 @@ int cmdScore(const Args& a) {
         char tail[700];
         std::snprintf(tail, sizeof tail,
                       "  ],\n  \"flagged\": %zu,\n  \"outside_truth\": %zu,\n  \"clean_flagged\": %zu,\n  \"clean_outside_truth\": %zu,\n  \"new_false_alarms\": %zu,\n  \"new_false_alarms_in_controls\": %zu,\n  \"control_items\": %d,\n"
-                      "  \"control_false_detections\": %d,\n  \"jaccard_all\": %.6f,\n  \"jaccard_inside_truth\": %.6f,\n  \"jaccard_outside_truth\": %.6f\n}\n",
+                      "  \"control_false_detections\": %d,\n  \"jaccard_all\": %.6f,\n  \"jaccard_inside_truth\": %.6f,\n  \"jaccard_outside_truth\": %.6f",
                       nFlag, nOut, nClean, nOutClean, nNew, nNewControl, controlItems, controlFalse, jAll, jIn, jOut);
         j += tail;
+        j += ",\n  \"control_groups\": [\n";   // pixel and block controls summed per kind and level (the line controls are in the console table)
+        size_t cgn = 0;
+        for (const auto& kv : ctrlGroups) {
+            char b[300];
+            std::snprintf(b, sizeof b, "    {\"group\": \"%s\", \"items\": %d, \"false_detections\": %d, \"mean_flagged_fraction\": %.6f}%s\n", kv.first.c_str(), kv.second.items, kv.second.falseHits,
+                          kv.second.fracSum / kv.second.items, ++cgn < ctrlGroups.size() ? "," : "");
+            j += b;
+        }
+        j += "  ]\n}\n";
         if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;
     }
     return 0;

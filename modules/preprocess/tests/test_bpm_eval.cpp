@@ -198,6 +198,11 @@ TEST_F(BpmEvalTest, InjectIsDeterministicAndDependsOnTheSeed) {
     EXPECT_NE(readBytes(a / "truth.tsv"), readBytes(c / "truth.tsv")) << "another seed must plant elsewhere";
 }
 
+namespace {
+bool isSmall(const Item& it) { return it.shape == "pixel" || it.shape.compare(0, 5, "block") == 0; }
+bool isLineType(const Item& it) { return (it.cls == "line" || it.cls == "control") && !isSmall(it); }
+}  // namespace
+
 TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
     makeFrames(5, 3, 2);
     // an exclusion map: a block of the frame is declared defective already (large enough that a placement which ignored it would almost surely land in it)
@@ -212,19 +217,29 @@ TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
 
     std::map<std::string, int> perClass;
     for (const Item& it : items) ++perClass[it.cls];
-    EXPECT_EQ(39, perClass["line"]);       // 6 model levels x 6 shapes + 3 crossings
-    EXPECT_EQ(12, perClass["control"]);    // 3 kinds x 2 levels x 2 directions
-    EXPECT_EQ(16, perClass["block"]);      // 4 sizes x 2 levels x 2
-    EXPECT_EQ(45, perClass["pixel"]);      // 15 levels x 3
+    // QA-A-252d: a response below 45 % is a defect, 0.45 and above is normal (class control)
+    EXPECT_EQ(45, perClass["line"]);       // dead 1.0, nonlinear x2, noisy x2 at 6 shapes = 30 + gain_loss and efficiency_loss at 0.3 = 12, + 3 crossings
+    EXPECT_EQ(8, perClass["block"]);       // dead 1.0: 4 sizes x 2
+    EXPECT_EQ(36, perClass["pixel"]);      // 12 levels x 3 (dead 1, hot x4, noisy x3, nonlinear x2, gain_loss 0.3, efficiency_loss 0.3)
+    int controlLines = 0, controlBlocks = 0, controlPixels = 0;
+    for (const Item& it : items) {
+        if (it.cls != "control") continue;
+        if (it.shape == "pixel") ++controlPixels;
+        else if (isSmall(it)) ++controlBlocks;
+        else ++controlLines;
+    }
+    EXPECT_EQ(42, controlLines);           // 12 bands (3 kinds x 2 levels x 2 directions) + dead 0.5 and the two loss models at 0.45 and 0.7: 5 x 6 shapes = 30
+    EXPECT_EQ(8, controlBlocks);           // dead 0.5: 4 sizes x 2
+    EXPECT_EQ(27, controlPixels);          // 9 levels x 3 (dead 0.5, slope x4, gain_loss and efficiency_loss at 0.45 and 0.7)
     std::map<std::string, int> pixelKinds;
     for (const Item& it : items) if (it.cls == "pixel") ++pixelKinds[it.kind + "/" + std::to_string(it.level)];
-    EXPECT_EQ(15u, pixelKinds.size());
+    EXPECT_EQ(12u, pixelKinds.size());
     for (const auto& kv : pixelKinds) EXPECT_EQ(3, kv.second) << kv.first;
 
     // placement rules
     std::vector<std::pair<int, int>> lineRowIntervals, lineColIntervals;   // inclusive, one per line rectangle
     for (const Item& it : items) {
-        if (it.cls != "line" && it.cls != "control") continue;
+        if (!isLineType(it)) continue;
         for (const Rect& q : it.rects) {
             if (q.w > q.h) lineRowIntervals.push_back({q.y, q.y + q.h - 1});
             else lineColIntervals.push_back({q.x, q.x + q.w - 1});
@@ -242,7 +257,7 @@ TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
     for (const Item& it : items) {
         for (const Rect& q : it.rects) {
             // the margin binds the line numbers of a line and, when the line is partial, where its segment lies; a full line spans the frame by design
-            const bool line = it.cls == "line" || it.cls == "control";
+            const bool line = isLineType(it);
             const bool fullAcross = line && q.w == static_cast<int>(kW), fullDown = line && q.h == static_cast<int>(kH);
             if (!fullAcross) { EXPECT_GE(q.x, 16) << it.id; EXPECT_LE(q.x + q.w, static_cast<int>(kW) - 16) << it.id; }
             if (!fullDown) { EXPECT_GE(q.y, 16) << it.id; EXPECT_LE(q.y + q.h, static_cast<int>(kH) - 16) << it.id; }
@@ -250,7 +265,7 @@ TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
             const bool overlaps = q.x < 520 + 3 && q.x + q.w > 280 - 3 && q.y < 520 + 3 && q.y + q.h > 280 - 3;
             EXPECT_FALSE(overlaps) << "item " << it.id << " " << it.kind << " " << it.shape << " touches the exclusion zone";
         }
-        if (it.cls == "pixel" || it.cls == "block") {
+        if (isSmall(it)) {
             const Rect q = it.rects[0];
             for (const auto& r : lineRowIntervals) EXPECT_FALSE(q.y <= r.second + 3 && q.y + q.h - 1 >= r.first - 3) << "item " << it.id << " is within 3 pixels of a line row";
             for (const auto& c : lineColIntervals) EXPECT_FALSE(q.x <= c.second + 3 && q.x + q.w - 1 >= c.first - 3) << "item " << it.id << " is within 3 pixels of a line column";
@@ -266,7 +281,7 @@ TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
         int crossings = 0;
         for (size_t a = 0; a < items.size(); ++a)
             for (size_t b = a + 1; b < items.size(); ++b) {
-                if (items[a].cls == "pixel" || items[a].cls == "block" || items[b].cls == "pixel" || items[b].cls == "block") continue;
+                if (isSmall(items[a]) || isSmall(items[b])) continue;
                 for (const Rect& p : items[a].rects)
                     for (const Rect& q : items[b].rects) {
                         const Rect row = p.w > p.h ? p : q, col = p.w > p.h ? q : p;
@@ -317,7 +332,7 @@ TEST_F(BpmEvalTest, InjectActsAsTheSpecSays) {
     for (size_t k = 0; k < d0.size(); ++k) EXPECT_EQ(d0[k][id], d1[k][id]) << "dead leaves the dark frames alone";
     for (size_t k = 0; k < b0.size(); ++k) EXPECT_NEAR(D[id], b1[k][id], 1.0) << "a fully dead pixel shows its dark level in bright frames";
 
-    const Item* slope = findItem("pixel", "slope", "pixel", 1.25);
+    const Item* slope = findItem("control", "slope", "pixel", 1.25);
     ASSERT_NE(nullptr, slope);
     const size_t is = idx(slope->rects[0]);
     for (size_t k = 0; k < b0.size(); ++k) EXPECT_NEAR(D[is] + 1.25 * (b0[k][is] - D[is]), b1[k][is], 1.0);
@@ -366,6 +381,84 @@ TEST_F(BpmEvalTest, InjectActsAsTheSpecSays) {
     for (size_t i = 0; i < kN; ++i)
         if (ids[i] == 0) { ++outside; changed += (b0[0][i] != b1[0][i]); }
     EXPECT_EQ(0u, changed) << "of " << outside << " pixels outside every item";
+}
+
+// ---------------------------------------------------------------- QA-A-252d: response items
+TEST_F(BpmEvalTest, ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn) {
+    makeFrames(5, 3, 2);
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    const std::vector<Item> items = parseTruth(out / "truth.tsv");
+    auto classOf = [&](const char* kind, const char* shape, double level) -> std::string {
+        for (const Item& it : items)
+            if (it.kind == kind && it.shape == shape && std::fabs(it.level - level) < 1e-9) return it.cls;
+        return "missing";
+    };
+    for (const char* kind : {"gain_loss", "efficiency_loss"}) {
+        EXPECT_EQ("pixel", classOf(kind, "pixel", 0.3)) << kind;
+        EXPECT_EQ("control", classOf(kind, "pixel", 0.45)) << kind << ": exactly 45 % is not below 45 %";
+        EXPECT_EQ("control", classOf(kind, "pixel", 0.7)) << kind;
+        EXPECT_EQ("line", classOf(kind, "row_full", 0.3)) << kind;
+        EXPECT_EQ("control", classOf(kind, "col_partial", 0.45)) << kind;
+        EXPECT_EQ("control", classOf(kind, "row_pair", 0.7)) << kind;
+    }
+    EXPECT_EQ("line", classOf("dead", "row_full", 1.0));
+    EXPECT_EQ("control", classOf("dead", "row_full", 0.5)) << "a response of 0.5 is normal now";
+    EXPECT_EQ("control", classOf("dead", "pixel", 0.5));
+    EXPECT_EQ("control", classOf("dead", "block4", 0.5));
+    EXPECT_EQ("block", classOf("dead", "block4", 1.0));
+    for (double lv : {0.75, 0.9, 1.1, 1.25}) EXPECT_EQ("control", classOf("slope", "pixel", lv)) << lv;
+    EXPECT_EQ("pixel", classOf("nonlinear", "pixel", 0.4)) << "nonlinearity is judged by the linearity feature, not by a response ratio";
+}
+
+TEST_F(BpmEvalTest, EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot) {
+    makeFrames(5, 3, 2);
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    const std::vector<Item> items = parseTruth(out / "truth.tsv");
+    const std::string json = text(out / "truth.json");
+    const size_t kp = json.find("\"quantum_gain\": ");
+    ASSERT_NE(std::string::npos, kp) << json;
+    const double kappa = std::atof(json.c_str() + kp + 16);
+    EXPECT_GT(kappa, 0.0);
+    EXPECT_NE(std::string::npos, json.find("\"quantum_gain_measured\": true")) << "three bright frames of one dose are in the generation set";
+    std::vector<std::vector<uint16_t>> d0, b0, b1;
+    for (const auto& f : darks) d0.push_back(readFrame(f));
+    for (const auto& f : brights) { b0.push_back(readFrame(f)); b1.push_back(readFrame(out / "frames" / fs::path(f).filename())); }
+    std::vector<double> D(kN, 0.0);
+    for (const auto& f : d0) for (size_t i = 0; i < kN; ++i) D[i] += f[i];
+    for (double& v : D) v /= static_cast<double>(d0.size());
+    const std::vector<uint8_t> raw = readBytes(out / "truth_ids.u16");
+    std::vector<uint16_t> ids(kN);
+    std::memcpy(ids.data(), raw.data(), raw.size());
+    auto residual = [&](const char* kind, double r, double* meanNet) {
+        const Item* row = nullptr;
+        for (const Item& it : items) if (it.kind == kind && it.shape == "row_full" && std::fabs(it.level - r) < 1e-9) row = &it;
+        EXPECT_NE(nullptr, row) << kind;
+        double s1 = 0, s2 = 0, sn = 0;
+        size_t cnt = 0;
+        if (row) {
+            const int y = row->rects[0].y;
+            for (size_t k = 0; k < b0.size(); ++k)
+                for (int x = 0; x < static_cast<int>(kW); ++x) {
+                    const size_t i = static_cast<size_t>(y) * kW + static_cast<size_t>(x);
+                    if (ids[i] != static_cast<uint16_t>(row->id)) continue;   // a crossing line is not ours alone
+                    const double n = b0[k][i] - D[i];
+                    const double e = static_cast<double>(b1[k][i]) - (D[i] + r * n);
+                    s1 += e; s2 += e * e; sn += n; ++cnt;
+                }
+        }
+        EXPECT_GT(cnt, 500u);
+        *meanNet = cnt ? sn / static_cast<double>(cnt) : 0.0;
+        return cnt ? s2 / static_cast<double>(cnt) - (s1 / static_cast<double>(cnt)) * (s1 / static_cast<double>(cnt)) : 0.0;
+    };
+    double netGain = 0, netEff = 0;
+    const double varGain = residual("gain_loss", 0.3, &netGain);
+    const double varEff = residual("efficiency_loss", 0.3, &netEff);
+    EXPECT_LT(varGain, 0.5) << "gain loss is deterministic (the rounding of the pixel value only)";
+    const double predicted = kappa * 0.3 * 0.7 * netEff;
+    EXPECT_GT(varEff, 0.7 * predicted) << "efficiency loss adds kappa * r * (1 - r) * signal of noise variance";
+    EXPECT_LT(varEff, 1.3 * predicted);
 }
 
 // ---------------------------------------------------------------- scoring
@@ -557,8 +650,13 @@ TEST_F(BpmEvalTest, ScoreCountsControlHitsFalseAlarmsAndHalfAgreement) {
     const fs::path empty = mapOf(t, "empty.u8", [](const Item&) { return false; });
     ASSERT_EQ(0, score(t, ctrl, " --clean-map \"" + empty.string() + "\" --half-a \"" + ctrl.string() + "\" --half-b \"" + empty.string() + "\" --out \"" + (root / "m.json").string() + "\"", root / "s.txt"));
     const std::string j = text(root / "m.json");
-    EXPECT_NE(std::string::npos, j.find("\"control_items\": 12")) << j;
-    EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 12")) << j;
+    int nControl = 0;
+    for (const Item& it : parseTruth(t / "truth.tsv")) nControl += it.cls == "control" ? 1 : 0;
+    EXPECT_EQ(77, nControl);
+    EXPECT_NE(std::string::npos, j.find("\"control_items\": 77")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 77")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"control_groups\"")) << "the pixel and block controls are summed per kind and level";
+    EXPECT_NE(std::string::npos, j.find("\"group\": \"control/efficiency_loss/pixel/0.45\", \"items\": 3, \"false_detections\": 3")) << j;
     EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": " + std::to_string(expectNew) + ",")) << "the flagged control bands and the stray pixel, not the pixel beside a true defect: " << j;
     EXPECT_NE(std::string::npos, j.find("\"new_false_alarms_in_controls\": " + std::to_string(expectInControls) + ",")) << j;
     EXPECT_NE(std::string::npos, j.find("\"jaccard_all\": 0.000000")) << "a map against an empty map agrees on nothing: " << j;
