@@ -1,0 +1,512 @@
+/**
+ * @file test_bpm_eval.cpp
+ * @brief Tests of the defect-map evaluation tool xpe_bpm_eval (QA-A-251, #273).
+ *
+ * The tool runs as a subprocess on small synthetic frames. The injection spec and the scoring definitions it implements are fixed in
+ * .moai/reports/lane-pre/QA-A-251/evidence/30_method_fixed_before_measurement.md.
+ */
+
+#include <gtest/gtest.h>
+
+#include "xpe_bpm_eval_path.h"      // generated: XPE_BPM_EVAL_EXE
+#include "xpe_fixture_gen_path.h"   // generated: XPE_FIXTURE_GEN_EXE
+
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace fs = std::filesystem;
+
+namespace {
+
+constexpr uint32_t kW = 1024, kH = 1024;
+constexpr size_t   kN = static_cast<size_t>(kW) * kH;
+
+int runCmd(const std::string& exe, const std::string& args) {
+    std::string cmd = "\"" + exe + "\" " + args;
+#ifdef _WIN32
+    cmd = "\"" + cmd + "\"";   // cmd.exe strips the outer pair of quotes
+#endif
+    return std::system(cmd.c_str());
+}
+
+std::vector<uint8_t> readBytes(const fs::path& p) {
+    std::ifstream f(p, std::ios::binary);
+    return std::vector<uint8_t>((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+}
+
+void writeBytes(const fs::path& p, const void* d, size_t n) {
+    std::ofstream f(p, std::ios::binary | std::ios::trunc);
+    f.write(static_cast<const char*>(d), static_cast<std::streamsize>(n));
+}
+
+std::vector<uint16_t> readFrame(const fs::path& p) {
+    const std::vector<uint8_t> b = readBytes(p);
+    std::vector<uint16_t> v(b.size() / 2);
+    if (!v.empty()) std::memcpy(v.data(), b.data(), v.size() * 2);
+    return v;
+}
+
+uint32_t nextNoise(uint32_t& s) {
+    s = s * 1664525u + 1013904223u;
+    return s >> 8;
+}
+
+std::string text(const fs::path& p) {
+    const std::vector<uint8_t> b = readBytes(p);
+    return std::string(b.begin(), b.end());
+}
+
+struct Rect {
+    int x, y, w, h;
+};
+
+struct Item {
+    int                id;
+    std::string        cls, kind, shape;
+    double             level;
+    std::vector<Rect>  rects;
+};
+
+std::vector<Item> parseTruth(const fs::path& tsv) {
+    std::vector<Item> items;
+    std::ifstream f(tsv);
+    std::string line;
+    while (std::getline(f, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::vector<std::string> c;
+        std::stringstream ss(line);
+        std::string cell;
+        while (std::getline(ss, cell, '\t')) c.push_back(cell);
+        if (c.size() < 6 || !std::isdigit(static_cast<unsigned char>(c[0][0]))) continue;
+        Item it;
+        it.id = std::atoi(c[0].c_str());
+        it.cls = c[1];
+        it.kind = c[2];
+        it.shape = c[3];
+        it.level = std::atof(c[4].c_str());
+        std::stringstream rs(c[5]);
+        std::string r;
+        while (std::getline(rs, r, ';')) {
+            Rect q{};
+            std::stringstream qs(r);
+            std::string v;
+            int part = 0;
+            int vals[4] = {0, 0, 0, 0};
+            while (std::getline(qs, v, ',') && part < 4) vals[part++] = std::atoi(v.c_str());
+            q = Rect{vals[0], vals[1], vals[2], vals[3]};
+            it.rects.push_back(q);
+        }
+        items.push_back(it);
+    }
+    return items;
+}
+
+class BpmEvalTest : public ::testing::Test {
+protected:
+    fs::path root;
+    std::vector<std::string> darks, brights, evals;
+
+    void SetUp() override {
+        root = fs::temp_directory_path() / ("xpe_bpmeval_" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                                                std::chrono::system_clock::now().time_since_epoch()).count()) + "_" +
+                                            ::testing::UnitTest::GetInstance()->current_test_info()->name());
+        fs::create_directories(root / "in");
+    }
+    void TearDown() override {
+        std::error_code ec;
+        fs::remove_all(root, ec);
+    }
+
+    // frames: dark = pedestal + a fixed pattern + noise; bright = dark + a ramp signal + noise
+    void makeFrames(size_t nDark, size_t nBright, size_t nEval) {
+        uint32_t state = 777u;
+        auto frame = [&](bool bright, const std::string& name) {
+            std::vector<uint16_t> f(kN);
+            for (uint32_t y = 0; y < kH; ++y)
+                for (uint32_t x = 0; x < kW; ++x) {
+                    double v = 3000.0 + ((x * 7 + y * 13) % 11) + (nextNoise(state) % 9);
+                    if (bright) v += 6000.0 * (0.9 + 0.2 * x / (kW - 1)) + (nextNoise(state) % 31);
+                    f[static_cast<size_t>(y) * kW + x] = static_cast<uint16_t>(v);
+                }
+            const fs::path p = root / "in" / name;
+            writeBytes(p, f.data(), f.size() * 2);
+            return p.string();
+        };
+        for (size_t k = 0; k < nDark; ++k) darks.push_back(frame(false, "Dark_" + std::to_string(k) + ".raw"));
+        for (size_t k = 0; k < nBright; ++k) brights.push_back(frame(true, "Bright_" + std::to_string(k) + ".raw"));
+        for (size_t k = 0; k < nEval; ++k) evals.push_back(frame(true, "Eval_" + std::to_string(k) + ".raw"));
+    }
+
+    std::string small() const { return " --width 1024 --height 1024 --margin 16 --line-gap 12 --pixels-per-level 3 --blocks-per-level 2"; }
+
+    std::string files(const char* opt, const std::vector<std::string>& v) const {
+        std::string a;
+        for (const auto& f : v) a += std::string(" --") + opt + " \"" + f + "\"";
+        return a;
+    }
+
+    int inject(const fs::path& out, const std::string& extra = "") {
+        return runCmd(XPE_BPM_EVAL_EXE, "inject --out \"" + out.string() + "\"" + small() + files("dark", darks) + files("bright", brights) + files("eval", evals) + extra + " > \"" +
+                                            (root / "inject.log").string() + "\" 2>&1");
+    }
+
+    // a map file (uint8) from the truth ids: flagged where pred(item) holds for the pixel's item (shared pixels are flagged when pred holds for any item that covers them)
+    template <class P>
+    fs::path mapOf(const fs::path& truth, const std::string& name, P pred) {
+        const std::vector<Item> items = parseTruth(truth / "truth.tsv");
+        std::vector<uint8_t> m(kN, 0);
+        for (const Item& it : items) {
+            if (!pred(it)) continue;
+            for (const Rect& q : it.rects)
+                for (int y = q.y; y < q.y + q.h; ++y)
+                    for (int x = q.x; x < q.x + q.w; ++x) m[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] = 1;
+        }
+        const fs::path p = root / name;
+        writeBytes(p, m.data(), m.size());
+        return p;
+    }
+
+    int score(const fs::path& truth, const fs::path& map, const std::string& extra, const fs::path& stdoutFile) {
+        return runCmd(XPE_BPM_EVAL_EXE, "score --truth \"" + truth.string() + "\" --map \"" + map.string() + "\"" + extra + " > \"" + stdoutFile.string() + "\" 2>&1");
+    }
+};
+
+// ---------------------------------------------------------------- injection
+TEST_F(BpmEvalTest, InjectIsDeterministicAndDependsOnTheSeed) {
+    makeFrames(5, 3, 2);
+    const fs::path a = root / "a", b = root / "b", c = root / "c";
+    ASSERT_EQ(0, inject(a));
+    ASSERT_EQ(0, inject(b));
+    ASSERT_EQ(0, inject(c, " --seed 252"));
+    EXPECT_EQ(readBytes(a / "truth.tsv"), readBytes(b / "truth.tsv"));
+    EXPECT_EQ(readBytes(a / "truth_ids.u16"), readBytes(b / "truth_ids.u16"));
+    for (const auto& f : darks) EXPECT_EQ(readBytes(a / "frames" / fs::path(f).filename()), readBytes(b / "frames" / fs::path(f).filename())) << f;
+    for (const auto& f : brights) EXPECT_EQ(readBytes(a / "frames" / fs::path(f).filename()), readBytes(b / "frames" / fs::path(f).filename())) << f;
+    EXPECT_NE(readBytes(a / "truth.tsv"), readBytes(c / "truth.tsv")) << "another seed must plant elsewhere";
+}
+
+TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
+    makeFrames(5, 3, 2);
+    // an exclusion map: a block of the frame is declared defective already (large enough that a placement which ignored it would almost surely land in it)
+    std::vector<uint8_t> excl(kN, 0);
+    for (int y = 280; y < 520; ++y)
+        for (int x = 280; x < 520; ++x) excl[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] = 1;
+    const fs::path ex = root / "excl.u8";
+    writeBytes(ex, excl.data(), excl.size());
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out, " --exclude-mask \"" + ex.string() + "\""));
+    const std::vector<Item> items = parseTruth(out / "truth.tsv");
+
+    std::map<std::string, int> perClass;
+    for (const Item& it : items) ++perClass[it.cls];
+    EXPECT_EQ(39, perClass["line"]);       // 6 model levels x 6 shapes + 3 crossings
+    EXPECT_EQ(12, perClass["control"]);    // 3 kinds x 2 levels x 2 directions
+    EXPECT_EQ(16, perClass["block"]);      // 4 sizes x 2 levels x 2
+    EXPECT_EQ(45, perClass["pixel"]);      // 15 levels x 3
+    std::map<std::string, int> pixelKinds;
+    for (const Item& it : items) if (it.cls == "pixel") ++pixelKinds[it.kind + "/" + std::to_string(it.level)];
+    EXPECT_EQ(15u, pixelKinds.size());
+    for (const auto& kv : pixelKinds) EXPECT_EQ(3, kv.second) << kv.first;
+
+    // placement rules
+    std::vector<std::pair<int, int>> lineRowIntervals, lineColIntervals;   // inclusive, one per line rectangle
+    for (const Item& it : items) {
+        if (it.cls != "line" && it.cls != "control") continue;
+        for (const Rect& q : it.rects) {
+            if (q.w > q.h) lineRowIntervals.push_back({q.y, q.y + q.h - 1});
+            else lineColIntervals.push_back({q.x, q.x + q.w - 1});
+        }
+    }
+    auto gapsOk = [](std::vector<std::pair<int, int>> v, int gap) {
+        std::sort(v.begin(), v.end());
+        for (size_t i = 1; i < v.size(); ++i)
+            if (v[i].first - v[i - 1].second <= gap) return false;
+        return true;
+    };
+    EXPECT_TRUE(gapsOk(lineRowIntervals, 12));
+    EXPECT_TRUE(gapsOk(lineColIntervals, 12));
+    std::vector<Rect> small;
+    for (const Item& it : items) {
+        for (const Rect& q : it.rects) {
+            // the margin binds the line numbers of a line and, when the line is partial, where its segment lies; a full line spans the frame by design
+            const bool line = it.cls == "line" || it.cls == "control";
+            const bool fullAcross = line && q.w == static_cast<int>(kW), fullDown = line && q.h == static_cast<int>(kH);
+            if (!fullAcross) { EXPECT_GE(q.x, 16) << it.id; EXPECT_LE(q.x + q.w, static_cast<int>(kW) - 16) << it.id; }
+            if (!fullDown) { EXPECT_GE(q.y, 16) << it.id; EXPECT_LE(q.y + q.h, static_cast<int>(kH) - 16) << it.id; }
+            // nothing overlaps the exclusion block widened by 3
+            const bool overlaps = q.x < 520 + 3 && q.x + q.w > 280 - 3 && q.y < 520 + 3 && q.y + q.h > 280 - 3;
+            EXPECT_FALSE(overlaps) << "item " << it.id << " " << it.kind << " " << it.shape << " touches the exclusion zone";
+        }
+        if (it.cls == "pixel" || it.cls == "block") {
+            const Rect q = it.rects[0];
+            for (const auto& r : lineRowIntervals) EXPECT_FALSE(q.y <= r.second + 3 && q.y + q.h - 1 >= r.first - 3) << "item " << it.id << " is within 3 pixels of a line row";
+            for (const auto& c : lineColIntervals) EXPECT_FALSE(q.x <= c.second + 3 && q.x + q.w - 1 >= c.first - 3) << "item " << it.id << " is within 3 pixels of a line column";
+            small.push_back(q);
+        }
+    }
+    // where two lines cross, the item number map says "shared" (65535), so neither line claims the pixel
+    {
+        std::vector<uint16_t> ids(kN);
+        const std::vector<uint8_t> raw = readBytes(out / "truth_ids.u16");
+        ASSERT_EQ(kN * 2, raw.size());
+        std::memcpy(ids.data(), raw.data(), raw.size());
+        int crossings = 0;
+        for (size_t a = 0; a < items.size(); ++a)
+            for (size_t b = a + 1; b < items.size(); ++b) {
+                if (items[a].cls == "pixel" || items[a].cls == "block" || items[b].cls == "pixel" || items[b].cls == "block") continue;
+                for (const Rect& p : items[a].rects)
+                    for (const Rect& q : items[b].rects) {
+                        const Rect row = p.w > p.h ? p : q, col = p.w > p.h ? q : p;
+                        if (!(p.w > p.h) == !(q.w > q.h)) continue;                                  // two rows or two columns never meet
+                        const int x = col.x, y = row.y;
+                        if (x < row.x || x >= row.x + row.w || y < col.y || y >= col.y + col.h) continue;   // a partial line that stops short
+                        EXPECT_EQ(65535, ids[static_cast<size_t>(y) * kW + static_cast<size_t>(x)]) << "items " << items[a].id << " and " << items[b].id;
+                        ++crossings;
+                    }
+            }
+        EXPECT_GT(crossings, 0);
+    }
+    for (size_t i = 0; i < small.size(); ++i)
+        for (size_t j = i + 1; j < small.size(); ++j) {
+            const Rect &p = small[i], &q = small[j];
+            const int dx = std::max(q.x - (p.x + p.w), p.x - (q.x + q.w)), dy = std::max(q.y - (p.y + p.h), p.y - (q.y + q.h));
+            EXPECT_GE(std::max(dx, dy), 8) << "small items " << i << " and " << j << " are closer than 8 pixels";
+        }
+}
+
+TEST_F(BpmEvalTest, InjectActsAsTheSpecSays) {
+    makeFrames(6, 3, 1);
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    const std::vector<Item> items = parseTruth(out / "truth.tsv");
+    std::vector<std::vector<uint16_t>> d0, b0, d1, b1;
+    for (const auto& f : darks) { d0.push_back(readFrame(f)); d1.push_back(readFrame(out / "frames" / fs::path(f).filename())); }
+    for (const auto& f : brights) { b0.push_back(readFrame(f)); b1.push_back(readFrame(out / "frames" / fs::path(f).filename())); }
+    std::vector<double> D(kN, 0.0);
+    for (const auto& f : d0) for (size_t i = 0; i < kN; ++i) D[i] += f[i];
+    for (double& v : D) v /= static_cast<double>(d0.size());
+
+    auto findItem = [&](const std::string& cls, const std::string& kind, const std::string& shape, double level) -> const Item* {
+        for (const Item& it : items) if (it.cls == cls && it.kind == kind && it.shape == shape && std::fabs(it.level - level) < 1e-9) return &it;
+        return nullptr;
+    };
+    auto idx = [](const Rect& q) { return static_cast<size_t>(q.y) * kW + static_cast<size_t>(q.x); };
+
+    const Item* hot = findItem("pixel", "hot", "pixel", 200);
+    ASSERT_NE(nullptr, hot);
+    const size_t ih = idx(hot->rects[0]);
+    for (size_t k = 0; k < d0.size(); ++k) EXPECT_EQ(d0[k][ih] + 200, d1[k][ih]) << "hot adds 200 to every dark frame";
+    for (size_t k = 0; k < b0.size(); ++k) EXPECT_EQ(b0[k][ih] + 200, b1[k][ih]) << "and to every bright frame";
+
+    const Item* dead = findItem("pixel", "dead", "pixel", 1.0);
+    ASSERT_NE(nullptr, dead);
+    const size_t id = idx(dead->rects[0]);
+    for (size_t k = 0; k < d0.size(); ++k) EXPECT_EQ(d0[k][id], d1[k][id]) << "dead leaves the dark frames alone";
+    for (size_t k = 0; k < b0.size(); ++k) EXPECT_NEAR(D[id], b1[k][id], 1.0) << "a fully dead pixel shows its dark level in bright frames";
+
+    const Item* slope = findItem("pixel", "slope", "pixel", 1.25);
+    ASSERT_NE(nullptr, slope);
+    const size_t is = idx(slope->rects[0]);
+    for (size_t k = 0; k < b0.size(); ++k) EXPECT_NEAR(D[is] + 1.25 * (b0[k][is] - D[is]), b1[k][is], 1.0);
+    for (size_t k = 0; k < d0.size(); ++k) EXPECT_EQ(d0[k][is], d1[k][is]);
+
+    const Item* nl = findItem("pixel", "nonlinear", "pixel", 0.4);
+    ASSERT_NE(nullptr, nl);
+    const size_t in = idx(nl->rects[0]);
+    for (size_t k = 0; k < b0.size(); ++k) {
+        const double n = b0[k][in] - D[in];
+        EXPECT_NEAR(D[in] + n * (1.0 - 0.4 * n / 30000.0), b1[k][in], 1.0);
+    }
+
+    const Item* noisy = findItem("pixel", "noisy", "pixel", 4);
+    ASSERT_NE(nullptr, noisy);
+    const size_t inz = idx(noisy->rects[0]);
+    double var = 0;
+    for (size_t k = 0; k < d0.size(); ++k) { const double e = static_cast<double>(d1[k][inz]) - d0[k][inz]; var += e * e; }
+    EXPECT_GT(var, 0.0) << "noise is added";
+
+    const Item* fixedBand = findItem("control", "fixed_band", "row_full", 100);
+    ASSERT_NE(nullptr, fixedBand);
+    const Rect fb = fixedBand->rects[0];
+    for (int x : {40, 400, 900})
+        for (size_t k = 0; k < d0.size(); ++k) {
+            const size_t i = static_cast<size_t>(fb.y) * kW + static_cast<size_t>(x);
+            // a column line may cross the row: only pixels owned by this item alone are compared
+            EXPECT_TRUE(d1[k][i] == d0[k][i] + 100 || d1[k][i] != d0[k][i]) << "fixed band changes the dark frames";
+        }
+
+    const Item* gainBand = findItem("control", "gain_band", "col_full", 0.8);
+    ASSERT_NE(nullptr, gainBand);
+    const Rect gb = gainBand->rects[0];
+    const size_t ig = static_cast<size_t>(500) * kW + static_cast<size_t>(gb.x);   // row 500: far from lines? only compared when the pixel is untouched by another item
+    std::vector<uint16_t> ids(kN);
+    {
+        const std::vector<uint8_t> raw = readBytes(out / "truth_ids.u16");
+        std::memcpy(ids.data(), raw.data(), raw.size());
+    }
+    if (ids[ig] == static_cast<uint16_t>(gainBand->id)) {
+        for (size_t k = 0; k < b0.size(); ++k) EXPECT_NEAR(D[ig] + 0.8 * (b0[k][ig] - D[ig]), b1[k][ig], 1.0);
+        for (size_t k = 0; k < d0.size(); ++k) EXPECT_EQ(d0[k][ig], d1[k][ig]) << "a gain band leaves the dark frames alone";
+    }
+    // pixels outside every item are not touched
+    size_t changed = 0, outside = 0;
+    for (size_t i = 0; i < kN; ++i)
+        if (ids[i] == 0) { ++outside; changed += (b0[0][i] != b1[0][i]); }
+    EXPECT_EQ(0u, changed) << "of " << outside << " pixels outside every item";
+}
+
+// ---------------------------------------------------------------- scoring
+TEST_F(BpmEvalTest, ScoreSeparatesAPerfectMapFromAnEmptyOne) {
+    makeFrames(5, 3, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    const fs::path perfect = mapOf(t, "perfect.u8", [](const Item& it) { return it.cls != "control"; });
+    const fs::path empty = mapOf(t, "empty.u8", [](const Item&) { return false; });
+    ASSERT_EQ(0, score(t, perfect, " --clean-map \"" + empty.string() + "\" --half-a \"" + perfect.string() + "\" --half-b \"" + perfect.string() + "\" --out \"" + (root / "m1.json").string() + "\"", root / "s1.txt"));
+    const std::string j1 = text(root / "m1.json");
+    EXPECT_NE(std::string::npos, j1.find("\"control_false_detections\": 0")) << j1;
+    EXPECT_NE(std::string::npos, j1.find("\"new_false_alarms\": 0")) << j1;
+    EXPECT_NE(std::string::npos, j1.find("\"jaccard_all\": 1.000000")) << j1;
+    const std::string s1 = text(root / "s1.txt");
+    EXPECT_EQ(std::string::npos, s1.find("FALSE DETECTION")) << s1;
+    // every detection group is fully detected
+    for (size_t pos = j1.find("\"items\": "); pos != std::string::npos && pos < j1.find("\"flagged\""); pos = j1.find("\"items\": ", pos + 1)) {
+        const int items = std::atoi(j1.c_str() + pos + 9);
+        const size_t dpos = j1.find("\"detected\": ", pos);
+        ASSERT_NE(std::string::npos, dpos);
+        EXPECT_EQ(items, std::atoi(j1.c_str() + dpos + 12));
+    }
+
+    ASSERT_EQ(0, score(t, empty, " --out \"" + (root / "m2.json").string() + "\"", root / "s2.txt"));
+    const std::string j2 = text(root / "m2.json");
+    EXPECT_EQ(std::string::npos, j2.find("\"detected\": 1")) << "an empty map detects nothing";
+    EXPECT_EQ(std::string::npos, j2.find("\"detected\": 2")) << j2;
+    EXPECT_NE(std::string::npos, j2.find("\"control_false_detections\": 0"));
+}
+
+TEST_F(BpmEvalTest, ScoreCountsControlHitsFalseAlarmsAndHalfAgreement) {
+    makeFrames(5, 3, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    // a map that flags only the control bands plus one stray pixel far from every item
+    std::vector<uint8_t> ids8 = readBytes(t / "truth_ids.u16");
+    std::vector<uint16_t> ids(kN);
+    std::memcpy(ids.data(), ids8.data(), ids8.size());
+    size_t stray = kN;
+    for (size_t i = kN / 2; i < kN && stray == kN; ++i) {
+        const int x = static_cast<int>(i % kW), y = static_cast<int>(i / kW);
+        if (x < 100 || x > 900 || y < 100 || y > 900) continue;
+        bool free = true;
+        for (int dy = -4; dy <= 4 && free; ++dy)
+            for (int dx = -4; dx <= 4 && free; ++dx) free = ids[static_cast<size_t>(y + dy) * kW + static_cast<size_t>(x + dx)] == 0;
+        if (free) stray = i;
+    }
+    ASSERT_NE(kN, stray);
+    fs::path ctrl = mapOf(t, "ctrl.u8", [](const Item& it) { return it.cls == "control"; });
+    std::vector<uint8_t> m = readBytes(ctrl);
+    m[stray] = 1;
+    {   // a pixel two places beside a planted pixel is inside the widened truth: not a false alarm
+        const std::vector<Item> items = parseTruth(t / "truth.tsv");
+        const Item* px = nullptr;
+        for (const Item& it : items) if (it.cls == "pixel") { px = &it; break; }
+        ASSERT_NE(nullptr, px);
+        const size_t beside = static_cast<size_t>(px->rects[0].y) * kW + static_cast<size_t>(px->rects[0].x + 2);
+        ASSERT_EQ(0, ids[beside]);
+        m[beside] = 1;
+    }
+    writeBytes(ctrl, m.data(), m.size());
+    const fs::path empty = mapOf(t, "empty.u8", [](const Item&) { return false; });
+    ASSERT_EQ(0, score(t, ctrl, " --clean-map \"" + empty.string() + "\" --half-a \"" + ctrl.string() + "\" --half-b \"" + empty.string() + "\" --out \"" + (root / "m.json").string() + "\"", root / "s.txt"));
+    const std::string j = text(root / "m.json");
+    EXPECT_NE(std::string::npos, j.find("\"control_items\": 12")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 12")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": 1,")) << "exactly the stray pixel is a new false alarm: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"jaccard_all\": 0.000000")) << "a map against an empty map agrees on nothing: " << j;
+}
+
+TEST_F(BpmEvalTest, ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged) {
+    makeFrames(5, 3, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    const std::vector<Item> items = parseTruth(t / "truth.tsv");
+    // 60 % of one full dead line is flagged, 40 % of another: the first is detected, the second is not (the bound is 50 % of the pixels the line owns alone,
+    // so the margins are wide enough that the few pixels shared with crossing lines cannot change the verdict)
+    const Item *rowFull = nullptr, *colFull = nullptr;
+    for (const Item& it : items)
+        if (it.cls == "line" && it.kind == "dead" && it.level == 1.0) {
+            if (it.shape == "row_full") rowFull = &it;
+            if (it.shape == "col_full") colFull = &it;
+        }
+    ASSERT_TRUE(rowFull && colFull);
+    std::vector<uint8_t> m(kN, 0);
+    const Rect r = rowFull->rects[0], c = colFull->rects[0];
+    for (int x = 0; x < static_cast<int>(kW) * 60 / 100; ++x) m[static_cast<size_t>(r.y) * kW + static_cast<size_t>(x)] = 1;   // 60 % of the row line
+    for (int y = 0; y < static_cast<int>(kH) * 40 / 100; ++y) m[static_cast<size_t>(y) * kW + static_cast<size_t>(c.x)] = 1;   // 40 % of the column line
+    const fs::path mp = root / "half.u8";
+    writeBytes(mp, m.data(), m.size());
+    ASSERT_EQ(0, score(t, mp, " --out \"" + (root / "m.json").string() + "\"", root / "s.txt"));
+    const std::string j = text(root / "m.json");
+    auto detectedOf = [&](const std::string& group) {
+        const size_t p = j.find("\"group\": \"" + group + "\"");
+        if (p == std::string::npos) return -1;
+        const size_t d = j.find("\"detected\": ", p);
+        return std::atoi(j.c_str() + d + 12);
+    };
+    EXPECT_EQ(1, detectedOf("line/dead/row_full/1")) << j;
+    EXPECT_EQ(0, detectedOf("line/dead/col_full/1")) << j;
+}
+
+// ---------------------------------------------------------------- the whole chain on a small panel
+TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
+    makeFrames(7, 12, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    auto set = [&](const fs::path& framesDir, const fs::path& out, const char* tag) {
+        std::string args = "--out \"" + out.string() + "\" --width 1024 --height 1024 --expiry-ms 4102444800000";
+        for (const auto& f : darks) args += " --dark \"" + (framesDir / fs::path(f).filename()).string() + "\"";
+        for (size_t k = 0; k < 10; ++k) args += " --bright \"" + (framesDir / fs::path(brights[k]).filename()).string() + "\"";
+        args += " > \"" + (root / (std::string(tag) + ".log")).string() + "\" 2>&1";
+        return runCmd(XPE_FIXTURE_GEN_EXE, args);
+    };
+    ASSERT_EQ(0, set(root / "in", root / "clean_set", "cs"));
+    ASSERT_EQ(0, set(t / "frames", root / "inj_set", "is"));
+    const std::string cmd = "correct --truth \"" + t.string() + "\" --clean-set \"" + (root / "clean_set").string() + "\" --inj-set \"" + (root / "inj_set").string() + "\" --clean-eval \"" +
+                            evals[0] + "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --out \"" + (root / "c.json").string() + "\" > \"" +
+                            (root / "c.txt").string() + "\" 2>&1";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, cmd)) << text(root / "c.txt");
+    const std::string out = text(root / "c.txt"), j = text(root / "c.json");
+    EXPECT_NE(std::string::npos, out.find("correction error")) << out;
+    EXPECT_NE(std::string::npos, out.find("line index D_n")) << out;
+    EXPECT_NE(std::string::npos, j.find("\"parts_over_3_sigma\"")) << j;
+    EXPECT_NE(std::string::npos, j.find("pixel/dead/pixel/1")) << "the correction error is reported per kind and level: " << j;
+
+    // the line index has the right sign and size: a fixed band of 100 pixel values is invisible (defect correction off) when the offset map came from the planted
+    // frames (it absorbed the band) and stands out when the map came from clean frames; the clean frame itself shows nothing. With the defect correction on, the
+    // planted-frames map flags the absorbed band as defective and the interpolation changes it: that residue is what the corrected column of the table measures
+    auto ratioOf = [](const std::string& json, const std::string& group, const char* key) {
+        const size_t g = json.find("\"group\": \"" + group + "\"", json.find("\"line_index\""));
+        if (g == std::string::npos) return std::nan("");
+        const size_t k = json.find(std::string("\"") + key + "\": ", g);
+        return std::atof(json.c_str() + k + std::strlen(key) + 4);
+    };
+    EXPECT_LT(std::fabs(ratioOf(j, "control/fixed_band/row_full/100", "ratio_no_fix")), 3.0) << j;
+    const std::string cmd2 = "correct --truth \"" + t.string() + "\" --clean-set \"" + (root / "clean_set").string() + "\" --inj-set \"" + (root / "clean_set").string() + "\" --clean-eval \"" +
+                             evals[0] + "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --out \"" + (root / "c2.json").string() + "\" > \"" +
+                             (root / "c2.txt").string() + "\" 2>&1";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, cmd2)) << text(root / "c2.txt");
+    const std::string j2 = text(root / "c2.json");
+    EXPECT_GT(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_no_fix"), 20.0) << "a band the offset map does not know stands out, with the right sign: " << j2;
+    EXPECT_LT(std::fabs(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_clean")), 3.0) << "the clean frame shows no band: " << j2;
+}
+
+}  // namespace

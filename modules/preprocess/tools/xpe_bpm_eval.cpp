@@ -1,0 +1,1019 @@
+/**
+ * @file xpe_bpm_eval.cpp
+ * @brief Defect-map evaluation tool (QA-A-251, #273): plants defects whose positions are known, scores a defect map against them.
+ *
+ * There is no ground-truth defect map (AAPM TG-150 4.3.8), so a map is judged by how well it finds defects that were planted. The method (injection spec,
+ * scoring definitions) is fixed in .moai/reports/lane-pre/QA-A-251/evidence/30_method_fixed_before_measurement.md and was committed before this tool.
+ * The tool knows nothing about how a map was made: it takes a map (defect code per pixel, 0 = good) and judges it.
+ *
+ *   xpe_bpm_eval inject --out DIR --dark F... --bright F... [--eval F...] [--exclude-mask F]... [--seed 251] [--width 3072] [--height 3072]
+ *                       [--pixels-per-level 64] [--blocks-per-level 16] [--margin 32] [--line-gap 24]
+ *       Plants the defects of the spec in every given frame (the same places in all of them) and writes DIR/frames/<name> (the planted frames),
+ *       DIR/truth.tsv (what the scorer reads), DIR/truth.json (spec, options, input hashes) and DIR/truth_ids.u16 (item number per pixel, 65535 = shared).
+ *       --dark: generation dark frames (the pixel dark level D is their mean). --bright: bright generation frames. --eval: bright evaluation frames.
+ *       --exclude-mask: a map (raw uint8/uint16, or a defect.xcal) whose defects, and 3 pixels around them, stay free of planted defects.
+ *   xpe_bpm_eval score --truth DIR --map F [--clean-map F] [--half-a F --half-b F] [--out metrics.json]
+ *       Detection rate per kind and level, false alarms, control false detections, split-half Jaccard.
+ *   xpe_bpm_eval correct --truth DIR --clean-set DIR --inj-set DIR --clean-eval F... --inj-eval F... [--out metrics.json]
+ *       Correction error against local noise and the line index D_n (TG-150 4.3.9) on evaluation frames, through the application's final pipeline.
+ *   xpe_bpm_eval map-v1 --out MASK.u8 --dark F... --bright F... [--min-dark N] [--min-bright N] [--width W] [--height H]
+ *       The module's xpe_bpm_generate with default settings (only the minimum frame counts can be lowered), the mask written as raw uint8.
+ *
+ * Exit codes: 0 ok, 2 usage, 3 input unreadable or wrong size, 4 module error, 5 placement impossible (frame too small for the spec).
+ */
+
+#include "xpe/preprocess_api.h"
+#include "xpe/common/xpe_types.h"
+#include "xpe/common/xpe_error.h"
+#include "xpe_sha256.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <random>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace fs = std::filesystem;
+
+namespace {
+
+constexpr uint16_t kSharedId = 65535;
+constexpr double   kNonlinearRef = 30000.0;   // signal at which the nonlinearity term c is defined (spec 2.1)
+
+// ------------------------------------------------------------------------------------------------------------- arguments
+struct Args {
+    std::string                                      cmd;
+    std::map<std::string, std::vector<std::string>> opt;
+    bool has(const std::string& k) const { return opt.count(k) != 0; }
+    std::string str(const std::string& k, const std::string& def = "") const {
+        auto it = opt.find(k);
+        return it == opt.end() || it->second.empty() ? def : it->second.back();
+    }
+    long long num(const std::string& k, long long def) const {
+        auto it = opt.find(k);
+        return it == opt.end() || it->second.empty() ? def : std::strtoll(it->second.back().c_str(), nullptr, 10);
+    }
+    std::vector<std::string> list(const std::string& k) const {
+        auto it = opt.find(k);
+        return it == opt.end() ? std::vector<std::string>() : it->second;
+    }
+};
+
+bool parseArgs(int argc, char** argv, Args* a) {
+    if (argc < 2) return false;
+    a->cmd = argv[1];
+    for (int i = 2; i < argc; ++i) {
+        const std::string k = argv[i];
+        if (k.size() < 3 || k[0] != '-' || k[1] != '-' || i + 1 >= argc) {
+            std::fprintf(stderr, "bad argument: %s\n", k.c_str());
+            return false;
+        }
+        a->opt[k.substr(2)].push_back(argv[++i]);
+    }
+    return true;
+}
+
+void usage() {
+    std::fprintf(stderr,
+                 "usage: xpe_bpm_eval inject|score|correct|map-v1 ...   (see the header of tools/xpe_bpm_eval.cpp)\n");
+}
+
+// ------------------------------------------------------------------------------------------------------------- files
+bool readRaw16(const std::string& path, size_t count, std::vector<uint16_t>* out) {
+    std::error_code ec;
+    const auto size = fs::file_size(path, ec);
+    if (ec || size != count * sizeof(uint16_t)) {
+        std::fprintf(stderr, "%s: %s (expected %zu bytes)\n", path.c_str(), ec ? "cannot open" : "wrong size", count * sizeof(uint16_t));
+        return false;
+    }
+    out->resize(count);
+    std::ifstream f(path, std::ios::binary);
+    f.read(reinterpret_cast<char*>(out->data()), static_cast<std::streamsize>(count * sizeof(uint16_t)));
+    return static_cast<bool>(f);
+}
+
+bool writeBytes(const std::string& path, const void* data, size_t bytes) {
+    std::ofstream f(path, std::ios::binary | std::ios::trunc);
+    f.write(static_cast<const char*>(data), static_cast<std::streamsize>(bytes));
+    f.flush();
+    return static_cast<bool>(f);
+}
+
+bool readAllBytes(const std::string& path, std::vector<uint8_t>* out) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f) return false;
+    out->assign(std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>());
+    return true;
+}
+
+std::string sha256Hex(const std::string& path) {
+    std::vector<uint8_t> bytes;
+    if (!readAllBytes(path, &bytes)) return {};
+    const auto digest = compute_sha256(bytes.data(), bytes.size());
+    static const char* hex = "0123456789abcdef";
+    std::string out;
+    for (uint8_t b : digest) {
+        out.push_back(hex[b >> 4]);
+        out.push_back(hex[b & 0x0F]);
+    }
+    return out;
+}
+
+/** A defect map as flags (1 = defective): raw uint8 (N bytes), raw uint16 (2N bytes), or a defect.xcal (payload = the last N bytes). */
+bool readMap(const std::string& path, size_t n, std::vector<uint8_t>* flags) {
+    std::vector<uint8_t> bytes;
+    if (!readAllBytes(path, &bytes)) {
+        std::fprintf(stderr, "%s: cannot open\n", path.c_str());
+        return false;
+    }
+    flags->assign(n, 0);
+    const bool xcal = path.size() > 5 && path.compare(path.size() - 5, 5, ".xcal") == 0;
+    if (xcal) {
+        if (bytes.size() < n || bytes.size() - n > 1024) {
+            std::fprintf(stderr, "%s: not a defect.xcal for %zu pixels\n", path.c_str(), n);
+            return false;
+        }
+        const uint8_t* p = bytes.data() + (bytes.size() - n);
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = p[i] != 0 ? 1 : 0;
+    } else if (bytes.size() == n) {
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = bytes[i] != 0 ? 1 : 0;
+    } else if (bytes.size() == 2 * n) {
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[2 * i] | bytes[2 * i + 1]) != 0 ? 1 : 0;
+    } else {
+        std::fprintf(stderr, "%s: %zu bytes; expected %zu (uint8), %zu (uint16) or a defect.xcal\n", path.c_str(), bytes.size(), n, 2 * n);
+        return false;
+    }
+    return true;
+}
+
+std::string baseName(const std::string& path) { return fs::path(path).filename().string(); }
+
+// ------------------------------------------------------------------------------------------------------------- random
+uint64_t splitmix(uint64_t x) {
+    x += 0x9E3779B97F4A7C15ull;
+    x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ull;
+    x = (x ^ (x >> 27)) * 0x94D049BB133111EBull;
+    return x ^ (x >> 31);
+}
+
+uint64_t fnv1a(const std::string& s) {
+    uint64_t h = 1469598103934665603ull;
+    for (unsigned char c : s) {
+        h ^= c;
+        h *= 1099511628211ull;
+    }
+    return h;
+}
+
+// ------------------------------------------------------------------------------------------------------------- items
+struct Rect {
+    int x, y, w, h;
+};
+
+struct Item {
+    int               id{0};
+    std::string       cls;     // pixel, block, line, control
+    std::string       kind;    // dead, hot, noisy, slope, nonlinear, fixed_band, gain_band, varying_band
+    std::string       shape;   // pixel, block<k>, row_full, col_full, row_partial, col_partial, row_pair, col_pair, cross
+    double            level{0};
+    std::vector<Rect> rects;
+};
+
+struct Options {
+    uint32_t w{3072}, h{3072};
+    uint64_t seed{251};
+    int      pixelsPerLevel{64}, blocksPerLevel{16}, margin{32}, lineGap{24}, exclHalo{3};
+};
+
+std::string fmtLevel(double v) {
+    char b[32];
+    std::snprintf(b, sizeof b, "%g", v);
+    return b;
+}
+
+std::string groupKey(const Item& it) { return it.cls + "/" + it.kind + "/" + it.shape + "/" + fmtLevel(it.level); }
+
+/** Calls @p fn(index) for every pixel of the item once (a pixel covered by two rectangles of one item is visited once). */
+template <class F>
+void forItemPixels(const Item& it, uint32_t w, F fn) {
+    for (size_t r = 0; r < it.rects.size(); ++r) {
+        const Rect& q = it.rects[r];
+        for (int y = q.y; y < q.y + q.h; ++y) {
+            for (int x = q.x; x < q.x + q.w; ++x) {
+                bool earlier = false;
+                for (size_t e = 0; e < r && !earlier; ++e) {
+                    const Rect& p = it.rects[e];
+                    earlier = x >= p.x && x < p.x + p.w && y >= p.y && y < p.y + p.h;
+                }
+                if (!earlier) fn(static_cast<size_t>(y) * w + static_cast<size_t>(x));
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------------------------------------------------- inject
+struct Interval {
+    int a, b;   // inclusive
+};
+
+bool gapOk(const std::vector<Interval>& occ, int a, int b, int gap) {
+    for (const Interval& o : occ)
+        if (a <= o.b + gap && b >= o.a - gap) return false;
+    return true;
+}
+
+std::vector<uint8_t> dilate(const std::vector<uint8_t>& m, uint32_t w, uint32_t h, int r) {
+    std::vector<uint8_t> tmp(m.size(), 0), out(m.size(), 0);
+    for (uint32_t y = 0; y < h; ++y) {
+        for (uint32_t x = 0; x < w; ++x) {
+            if (!m[static_cast<size_t>(y) * w + x]) continue;
+            const int x0 = std::max<int>(0, static_cast<int>(x) - r), x1 = std::min<int>(static_cast<int>(w) - 1, static_cast<int>(x) + r);
+            for (int xx = x0; xx <= x1; ++xx) tmp[static_cast<size_t>(y) * w + static_cast<size_t>(xx)] = 1;
+        }
+    }
+    for (uint32_t y = 0; y < h; ++y) {
+        for (uint32_t x = 0; x < w; ++x) {
+            if (!tmp[static_cast<size_t>(y) * w + x]) continue;
+            const int y0 = std::max<int>(0, static_cast<int>(y) - r), y1 = std::min<int>(static_cast<int>(h) - 1, static_cast<int>(y) + r);
+            for (int yy = y0; yy <= y1; ++yy) out[static_cast<size_t>(yy) * w + x] = 1;
+        }
+    }
+    return out;
+}
+
+bool rectFree(const std::vector<uint8_t>& excl, uint32_t w, const Rect& q) {
+    for (int y = q.y; y < q.y + q.h; ++y)
+        for (int x = q.x; x < q.x + q.w; ++x)
+            if (excl[static_cast<size_t>(y) * w + static_cast<size_t>(x)]) return false;
+    return true;
+}
+
+/** Spec 2.5: builds the item list. Returns false when the frame is too small for the spec. */
+bool placeItems(const Options& o, const std::vector<uint8_t>& exclD, std::vector<Item>* items) {
+    const int W = static_cast<int>(o.w), H = static_cast<int>(o.h);
+    std::mt19937_64 rng(splitmix(o.seed));
+    auto uni = [&](int lo, int hi) { return lo + static_cast<int>(rng() % static_cast<uint64_t>(hi - lo + 1)); };   // inclusive
+
+    std::vector<Interval> rowOcc, colOcc;
+    std::vector<uint8_t>  rowHas(static_cast<size_t>(H), 0), colHas(static_cast<size_t>(W), 0);
+    for (int y = 0; y < H; ++y)
+        for (int x = 0; x < W; ++x)
+            if (exclD[static_cast<size_t>(y) * o.w + static_cast<size_t>(x)]) { rowHas[static_cast<size_t>(y)] = 1; colHas[static_cast<size_t>(x)] = 1; }
+
+    const int partialRow = W / 4, partialCol = H / 4;
+    auto pickLine = [&](bool row, int k, bool full, Rect* out) -> bool {
+        std::vector<Interval>& occ = row ? rowOcc : colOcc;
+        const std::vector<uint8_t>& has = row ? rowHas : colHas;
+        const int span = row ? H : W, along = row ? W : H, partial = row ? partialRow : partialCol;
+        for (int attempt = 0; attempt < 40000; ++attempt) {
+            const int i = uni(o.margin, span - o.margin - k);
+            if (!gapOk(occ, i, i + k - 1, o.lineGap)) continue;
+            Rect q{};
+            if (full) {
+                bool free = true;
+                for (int t = 0; t < k && free; ++t) free = !has[static_cast<size_t>(i + t)];
+                if (!free) continue;
+                q = row ? Rect{0, i, along, k} : Rect{i, 0, k, along};
+            } else {
+                const int s = uni(o.margin, along - o.margin - partial);
+                q = row ? Rect{s, i, partial, k} : Rect{i, s, k, partial};
+                if (!rectFree(exclD, o.w, q)) continue;
+            }
+            occ.push_back({i, i + k - 1});
+            *out = q;
+            return true;
+        }
+        return false;
+    };
+
+    int nextId = 1;
+    auto addLine = [&](const std::string& cls, const std::string& kind, double level, const std::string& shape) -> bool {
+        Item it;
+        it.id = nextId;
+        it.cls = cls;
+        it.kind = kind;
+        it.level = level;
+        it.shape = shape;
+        Rect q{};
+        if (shape == "cross") {
+            Rect r{}, c{};
+            if (!pickLine(true, 1, true, &r) || !pickLine(false, 1, true, &c)) return false;
+            it.rects = {r, c};
+        } else {
+            const bool row = shape.compare(0, 3, "row") == 0;
+            const bool full = shape.find("full") != std::string::npos;
+            const int  k = shape.find("pair") != std::string::npos ? 2 : 1;
+            if (!pickLine(row, k, full, &q)) return false;
+            it.rects = {q};
+        }
+        items->push_back(it);
+        ++nextId;
+        return true;
+    };
+
+    const char* const shapes6[6] = {"row_full", "col_full", "row_partial", "col_partial", "row_pair", "col_pair"};
+    const std::pair<const char*, std::vector<double>> lineModels[3] = {{"dead", {1.0, 0.5}}, {"nonlinear", {0.4, 0.2}}, {"noisy", {4.0, 2.0}}};
+    for (const auto& m : lineModels)
+        for (double lv : m.second)
+            for (const char* sh : shapes6)
+                if (!addLine("line", m.first, lv, sh)) return false;
+    for (const auto& cr : std::vector<std::pair<const char*, double>>{{"dead", 1.0}, {"nonlinear", 0.4}, {"noisy", 4.0}})
+        if (!addLine("line", cr.first, cr.second, "cross")) return false;
+    const std::pair<const char*, std::vector<double>> controls[3] = {{"fixed_band", {100.0, 30.0}}, {"gain_band", {0.8, 1.2}}, {"varying_band", {20.0, 8.0}}};
+    for (const auto& c : controls)
+        for (double lv : c.second)
+            for (const char* sh : {"row_full", "col_full"})
+                if (!addLine("control", c.first, lv, sh)) return false;
+
+    // pixel and block defects keep 4 pixels away from every line's row and column numbers (full extent) and 8 from each other
+    std::vector<uint8_t> rowBlock(static_cast<size_t>(H), 0), colBlock(static_cast<size_t>(W), 0);
+    // a row-type rectangle blocks only its row numbers, a column-type one only its column numbers (a partial line too, over the full extent)
+    for (const Item& it : *items) {
+        for (const Rect& q : it.rects) {
+            const bool rowType = q.w > q.h;
+            if (rowType)
+                for (int y = std::max(0, q.y - 3); y <= std::min(H - 1, q.y + q.h + 2); ++y) rowBlock[static_cast<size_t>(y)] = 1;
+            else
+                for (int x = std::max(0, q.x - 3); x <= std::min(W - 1, q.x + q.w + 2); ++x) colBlock[static_cast<size_t>(x)] = 1;
+        }
+    }
+    std::vector<Rect> placed;
+    auto placeSmall = [&](const std::string& cls, const std::string& kind, double level, const std::string& shape, int s) -> bool {
+        for (int attempt = 0; attempt < 200000; ++attempt) {
+            const Rect q{uni(o.margin, W - o.margin - s), uni(o.margin, H - o.margin - s), s, s};
+            bool ok = true;
+            for (int y = q.y; y < q.y + s && ok; ++y) ok = !rowBlock[static_cast<size_t>(y)];
+            for (int x = q.x; x < q.x + s && ok; ++x) ok = !colBlock[static_cast<size_t>(x)];
+            if (!ok || !rectFree(exclD, o.w, q)) continue;
+            for (const Rect& p : placed) {
+                const int dx = std::max(q.x - (p.x + p.w), p.x - (q.x + q.w)), dy = std::max(q.y - (p.y + p.h), p.y - (q.y + q.h));
+                if (std::max(dx, dy) < 8) { ok = false; break; }
+            }
+            if (!ok) continue;
+            Item it;
+            it.id = nextId++;
+            it.cls = cls;
+            it.kind = kind;
+            it.level = level;
+            it.shape = shape;
+            it.rects = {q};
+            items->push_back(it);
+            placed.push_back(q);
+            return true;
+        }
+        return false;
+    };
+    for (int size : {2, 3, 4, 8})
+        for (double a : {1.0, 0.5})
+            for (int n = 0; n < o.blocksPerLevel; ++n)
+                if (!placeSmall("block", "dead", a, "block" + std::to_string(size), size)) return false;
+    const std::pair<const char*, std::vector<double>> pix[5] = {
+        {"dead", {1.0, 0.5}}, {"hot", {200.0, 100.0, 50.0, 25.0}}, {"noisy", {4.0, 2.0, 1.0}}, {"slope", {0.75, 0.9, 1.1, 1.25}}, {"nonlinear", {0.4, 0.2}}};
+    for (const auto& p : pix)
+        for (double lv : p.second)
+            for (int n = 0; n < o.pixelsPerLevel; ++n)
+                if (!placeSmall("pixel", p.first, lv, "pixel", 1)) return false;
+    return true;
+}
+
+int cmdInject(const Args& a) {
+    Options o;
+    o.w = static_cast<uint32_t>(a.num("width", 3072));
+    o.h = static_cast<uint32_t>(a.num("height", 3072));
+    o.seed = static_cast<uint64_t>(a.num("seed", 251));
+    o.pixelsPerLevel = static_cast<int>(a.num("pixels-per-level", 64));
+    o.blocksPerLevel = static_cast<int>(a.num("blocks-per-level", 16));
+    o.margin = static_cast<int>(a.num("margin", 32));
+    o.lineGap = static_cast<int>(a.num("line-gap", 24));
+    const std::string out = a.str("out");
+    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright"), evalFiles = a.list("eval");
+    if (out.empty() || darkFiles.size() < 3 || o.w < 64 || o.h < 64) {
+        std::fprintf(stderr, "inject needs --out, at least 3 --dark frames and a frame of at least 64 x 64\n");
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(o.w) * o.h;
+
+    // the pixel dark level D and the temporal noise sigma_t, from the generation darks as they are before anything is planted
+    std::vector<double> D(n, 0.0);
+    std::vector<std::vector<uint16_t>> darks(darkFiles.size());
+    for (size_t k = 0; k < darkFiles.size(); ++k) {
+        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
+        for (size_t i = 0; i < n; ++i) D[i] += darks[k][i];
+    }
+    for (size_t i = 0; i < n; ++i) D[i] /= static_cast<double>(darks.size());
+    std::vector<float> var(n, 0.0f);
+    {
+        std::vector<double> rowMean(o.h);
+        for (size_t k = 0; k < darks.size(); ++k) {
+            for (uint32_t y = 0; y < o.h; ++y) {
+                double s = 0;
+                for (uint32_t x = 0; x < o.w; ++x) s += darks[k][static_cast<size_t>(y) * o.w + x] - D[static_cast<size_t>(y) * o.w + x];
+                rowMean[y] = s / static_cast<double>(o.w);
+            }
+            for (uint32_t y = 0; y < o.h; ++y)
+                for (uint32_t x = 0; x < o.w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * o.w + x;
+                    const double e = darks[k][i] - D[i] - rowMean[y];
+                    var[i] += static_cast<float>(e * e);
+                }
+        }
+    }
+    for (size_t i = 0; i < n; ++i) var[i] = std::sqrt(var[i] / static_cast<float>(darks.size() - 1));
+    std::nth_element(var.begin(), var.begin() + static_cast<std::ptrdiff_t>(n / 2), var.end());
+    const double sigmaT = var[n / 2];
+    var.clear();
+    var.shrink_to_fit();
+
+    // positions
+    std::vector<uint8_t> excl(n, 0);
+    std::vector<std::string> exclFiles = a.list("exclude-mask");
+    for (const std::string& f : exclFiles) {
+        std::vector<uint8_t> m;
+        if (!readMap(f, n, &m)) return 3;
+        for (size_t i = 0; i < n; ++i) excl[i] = static_cast<uint8_t>(excl[i] | m[i]);
+    }
+    const std::vector<uint8_t> exclD = dilate(excl, o.w, o.h, o.exclHalo);
+    std::vector<Item> items;
+    if (!placeItems(o, exclD, &items)) {
+        std::fprintf(stderr, "the spec does not fit a %u x %u frame with these options (margin %d, line gap %d)\n", o.w, o.h, o.margin, o.lineGap);
+        return 5;
+    }
+
+    // item number per pixel (65535 where items overlap)
+    std::vector<uint8_t>  cover(n, 0);
+    std::vector<uint16_t> ids(n, 0);
+    for (const Item& it : items) forItemPixels(it, o.w, [&](size_t i) { if (cover[i] < 255) ++cover[i]; });
+    for (const Item& it : items)
+        forItemPixels(it, o.w, [&](size_t i) { ids[i] = cover[i] > 1 ? kSharedId : static_cast<uint16_t>(it.id); });
+
+    std::error_code ec;
+    fs::create_directories(fs::path(out) / "frames", ec);
+    auto plant = [&](const std::string& file, bool bright) -> bool {
+        std::vector<uint16_t> frame;
+        if (!readRaw16(file, n, &frame)) return false;
+        std::mt19937_64 rng(splitmix(o.seed ^ fnv1a(baseName(file))));
+        std::normal_distribution<double> unit(0.0, 1.0);
+        std::vector<double> common(items.size() + 1, 0.0);   // the per-frame value of each varying band
+        for (const Item& it : items)
+            if (it.kind == "varying_band") common[static_cast<size_t>(it.id)] = it.level * unit(rng);
+        for (const Item& it : items) {
+            forItemPixels(it, o.w, [&](size_t i) {
+                double v = frame[i];
+                const double d = D[i], nn = v - d;
+                if (it.kind == "dead") {
+                    if (bright) v = d + (1.0 - it.level) * nn;
+                } else if (it.kind == "hot" || it.kind == "fixed_band") {
+                    v += it.level;
+                } else if (it.kind == "noisy") {
+                    if (it.cls == "line" || it.cls == "pixel") v += it.level * sigmaT * unit(rng);
+                } else if (it.kind == "slope" || it.kind == "gain_band") {
+                    if (bright) v = d + it.level * nn;
+                } else if (it.kind == "nonlinear") {
+                    if (bright) v = d + nn * (1.0 - it.level * nn / kNonlinearRef);
+                } else if (it.kind == "varying_band") {
+                    v += common[static_cast<size_t>(it.id)];
+                }
+                v = std::floor(v + 0.5);
+                frame[i] = static_cast<uint16_t>(std::min(65535.0, std::max(0.0, v)));
+            });
+        }
+        return writeBytes((fs::path(out) / "frames" / baseName(file)).string(), frame.data(), frame.size() * sizeof(uint16_t));
+    };
+    for (const std::string& f : darkFiles)
+        if (!plant(f, false)) return 3;
+    for (const std::string& f : brightFiles)
+        if (!plant(f, true)) return 3;
+    for (const std::string& f : evalFiles)
+        if (!plant(f, true)) return 3;
+
+    // truth
+    {
+        std::string t = "#xpe_bpm_eval truth 1\nwidth\t" + std::to_string(o.w) + "\nheight\t" + std::to_string(o.h) + "\nseed\t" + std::to_string(o.seed) + "\n";
+        char sb[64];
+        std::snprintf(sb, sizeof sb, "sigma_t\t%.6f\n", sigmaT);
+        t += sb;
+        t += "items\t" + std::to_string(items.size()) + "\n";
+        for (const Item& it : items) {
+            t += std::to_string(it.id) + "\t" + it.cls + "\t" + it.kind + "\t" + it.shape + "\t" + fmtLevel(it.level) + "\t";
+            for (size_t r = 0; r < it.rects.size(); ++r) {
+                const Rect& q = it.rects[r];
+                t += std::to_string(q.x) + "," + std::to_string(q.y) + "," + std::to_string(q.w) + "," + std::to_string(q.h) + (r + 1 < it.rects.size() ? ";" : "");
+            }
+            t += "\n";
+        }
+        if (!writeBytes((fs::path(out) / "truth.tsv").string(), t.data(), t.size())) return 3;
+    }
+    if (!writeBytes((fs::path(out) / "truth_ids.u16").string(), ids.data(), ids.size() * sizeof(uint16_t))) return 3;
+    {
+        std::map<std::string, int> perClass;
+        for (const Item& it : items) ++perClass[it.cls];
+        char sb[64];
+        std::snprintf(sb, sizeof sb, "%.6f", sigmaT);
+        std::string j = "{\n  \"tool\": \"xpe_bpm_eval\",\n  \"spec_version\": 1,\n  \"seed\": " + std::to_string(o.seed) + ",\n  \"width\": " + std::to_string(o.w) +
+                        ",\n  \"height\": " + std::to_string(o.h) + ",\n  \"sigma_t\": " + sb + ",\n  \"options\": {\"pixels_per_level\": " + std::to_string(o.pixelsPerLevel) +
+                        ", \"blocks_per_level\": " + std::to_string(o.blocksPerLevel) + ", \"margin\": " + std::to_string(o.margin) + ", \"line_gap\": " + std::to_string(o.lineGap) +
+                        ", \"exclusion_halo\": " + std::to_string(o.exclHalo) + "},\n  \"items\": {";
+        size_t c = 0;
+        for (const auto& kv : perClass) j += "\"" + kv.first + "\": " + std::to_string(kv.second) + (++c < perClass.size() ? ", " : "");
+        j += "},\n  \"inputs\": [\n";
+        std::vector<std::pair<std::string, std::string>> in;
+        for (const std::string& f : darkFiles) in.push_back({"dark", f});
+        for (const std::string& f : brightFiles) in.push_back({"bright", f});
+        for (const std::string& f : evalFiles) in.push_back({"eval", f});
+        for (const std::string& f : exclFiles) in.push_back({"exclude_mask", f});
+        for (size_t i = 0; i < in.size(); ++i)
+            j += "    {\"role\": \"" + in[i].first + "\", \"file\": \"" + baseName(in[i].second) + "\", \"sha256\": \"" + sha256Hex(in[i].second) + "\"}" + (i + 1 < in.size() ? ",\n" : "\n");
+        j += "  ]\n}\n";
+        if (!writeBytes((fs::path(out) / "truth.json").string(), j.data(), j.size())) return 3;
+    }
+    std::printf("planted %zu items (%zu pixels with an item) in %zu dark, %zu bright and %zu evaluation frames; sigma_t %.4f; truth in %s\n", items.size(),
+                static_cast<size_t>(std::count_if(ids.begin(), ids.end(), [](uint16_t v) { return v != 0; })), darkFiles.size(), brightFiles.size(), evalFiles.size(), sigmaT, out.c_str());
+    return 0;
+}
+
+// ------------------------------------------------------------------------------------------------------------- truth reading
+struct Truth {
+    uint32_t          w{0}, h{0};
+    double            sigmaT{0};
+    std::vector<Item> items;
+    std::vector<uint16_t> ids;
+    std::vector<uint8_t>  truthAny;   // any item at the pixel (shared included)
+};
+
+bool loadTruth(const std::string& dir, Truth* t) {
+    std::ifstream f((fs::path(dir) / "truth.tsv").string());
+    if (!f) {
+        std::fprintf(stderr, "%s: no truth.tsv\n", dir.c_str());
+        return false;
+    }
+    std::string line;
+    size_t expect = 0;
+    while (std::getline(f, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.empty() || line[0] == '#') continue;
+        std::vector<std::string> c;
+        size_t s = 0;
+        for (size_t p = 0; p <= line.size(); ++p)
+            if (p == line.size() || line[p] == '\t') { c.push_back(line.substr(s, p - s)); s = p + 1; }
+        if (c[0] == "width") t->w = static_cast<uint32_t>(std::strtoul(c[1].c_str(), nullptr, 10));
+        else if (c[0] == "height") t->h = static_cast<uint32_t>(std::strtoul(c[1].c_str(), nullptr, 10));
+        else if (c[0] == "sigma_t") t->sigmaT = std::strtod(c[1].c_str(), nullptr);
+        else if (c[0] == "items") expect = static_cast<size_t>(std::strtoull(c[1].c_str(), nullptr, 10));
+        else if (c[0] == "seed") continue;
+        else if (c.size() >= 6) {
+            Item it;
+            it.id = std::atoi(c[0].c_str());
+            it.cls = c[1];
+            it.kind = c[2];
+            it.shape = c[3];
+            it.level = std::strtod(c[4].c_str(), nullptr);
+            size_t b = 0;
+            const std::string& r = c[5];
+            while (b < r.size()) {
+                size_t e = r.find(';', b);
+                if (e == std::string::npos) e = r.size();
+                int v[4] = {0, 0, 0, 0};
+                size_t from = b;
+                for (int part = 0; part < 4; ++part) {
+                    size_t comma = r.find(',', from);
+                    if (comma == std::string::npos || comma > e) comma = e;
+                    if (comma <= from && part < 3) return false;
+                    v[part] = std::atoi(r.substr(from, comma - from).c_str());
+                    from = comma + 1;
+                }
+                it.rects.push_back(Rect{v[0], v[1], v[2], v[3]});
+                b = e + 1;
+            }
+            t->items.push_back(it);
+        }
+    }
+    if (t->w == 0 || t->h == 0 || t->items.size() != expect) {
+        std::fprintf(stderr, "%s: truth.tsv is incomplete\n", dir.c_str());
+        return false;
+    }
+    const size_t n = static_cast<size_t>(t->w) * t->h;
+    std::vector<uint8_t> bytes;
+    if (!readAllBytes((fs::path(dir) / "truth_ids.u16").string(), &bytes) || bytes.size() != 2 * n) {
+        std::fprintf(stderr, "%s: truth_ids.u16 missing or wrong size\n", dir.c_str());
+        return false;
+    }
+    t->ids.resize(n);
+    std::memcpy(t->ids.data(), bytes.data(), 2 * n);
+    t->truthAny.assign(n, 0);
+    for (size_t i = 0; i < n; ++i) t->truthAny[i] = t->ids[i] != 0 ? 1 : 0;
+    return true;
+}
+
+// ------------------------------------------------------------------------------------------------------------- score
+struct GroupStat {
+    std::string key;
+    int         items{0}, detected{0}, allFlagged{0};
+    double      recallSum{0};
+};
+
+double medianOf(std::vector<double> v) {
+    if (v.empty()) return 0.0;
+    std::nth_element(v.begin(), v.begin() + static_cast<std::ptrdiff_t>(v.size() / 2), v.end());
+    return v[v.size() / 2];
+}
+
+double percentileOf(std::vector<double> v, double q) {
+    if (v.empty()) return 0.0;
+    const size_t k = std::min(v.size() - 1, static_cast<size_t>(q * static_cast<double>(v.size() - 1) + 0.5));
+    std::nth_element(v.begin(), v.begin() + static_cast<std::ptrdiff_t>(k), v.end());
+    return v[k];
+}
+
+int cmdScore(const Args& a) {
+    Truth t;
+    if (!a.has("truth") || !a.has("map") || !loadTruth(a.str("truth"), &t)) {
+        usage();
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(t.w) * t.h;
+    std::vector<uint8_t> map, clean;
+    if (!readMap(a.str("map"), n, &map)) return 3;
+    const bool haveClean = a.has("clean-map");
+    if (haveClean && !readMap(a.str("clean-map"), n, &clean)) return 3;
+
+    // exclusive pixel counts and flagged counts per item
+    std::vector<size_t> total(t.items.size() + 2, 0), flagged(t.items.size() + 2, 0), flaggedClean(t.items.size() + 2, 0);
+    for (size_t i = 0; i < n; ++i) {
+        const uint16_t id = t.ids[i];
+        if (id == 0 || id == kSharedId) continue;
+        ++total[id];
+        if (map[i]) ++flagged[id];
+        if (haveClean && clean[i]) ++flaggedClean[id];
+    }
+    std::vector<GroupStat> groups;
+    std::map<std::string, size_t> gIndex;
+    int controlItems = 0, controlFalse = 0;
+    std::string controlRows;
+    for (const Item& it : t.items) {
+        const size_t tot = total[static_cast<size_t>(it.id)];
+        const double frac = tot ? static_cast<double>(flagged[static_cast<size_t>(it.id)]) / static_cast<double>(tot) : 0.0;
+        if (it.cls == "control") {
+            ++controlItems;
+            const bool hit = frac >= 0.5;
+            controlFalse += hit ? 1 : 0;
+            const double fc = tot ? static_cast<double>(flaggedClean[static_cast<size_t>(it.id)]) / static_cast<double>(tot) : 0.0;
+            char b[200];
+            std::snprintf(b, sizeof b, "  %-14s %-9s level %-5s flagged %6zu of %6zu = %.4f   clean map %.4f   %s\n", it.kind.c_str(), it.shape.c_str(), fmtLevel(it.level).c_str(),
+                          flagged[static_cast<size_t>(it.id)], tot, frac, fc, hit ? "FALSE DETECTION" : "ok");
+            controlRows += b;
+            continue;
+        }
+        const std::string key = groupKey(it);
+        if (!gIndex.count(key)) { gIndex[key] = groups.size(); groups.push_back({key}); }
+        GroupStat& g = groups[gIndex[key]];
+        ++g.items;
+        g.recallSum += frac;
+        if (frac >= 0.5) ++g.detected;
+        if (tot && flagged[static_cast<size_t>(it.id)] == tot) ++g.allFlagged;
+    }
+
+    std::printf("== detection (map %s)\n", a.str("map").c_str());
+    std::printf("  %-34s %6s %9s %9s %12s %14s\n", "class/kind/shape/level", "items", "detected", "rate", "all pixels", "mean recall");
+    for (const GroupStat& g : groups)
+        std::printf("  %-34s %6d %9d %9.4f %12d %14.4f\n", g.key.c_str(), g.items, g.detected, g.items ? static_cast<double>(g.detected) / g.items : 0.0, g.allFlagged,
+                    g.items ? g.recallSum / g.items : 0.0);
+
+    // false alarms: outside the truth widened by 2 pixels
+    const std::vector<uint8_t> wide = dilate(t.truthAny, t.w, t.h, 2);
+    size_t nOut = 0, nOutClean = 0, nNew = 0, nFlag = 0, nClean = 0;
+    for (size_t i = 0; i < n; ++i) {
+        nFlag += map[i];
+        if (haveClean) nClean += clean[i];
+        if (wide[i]) continue;
+        nOut += map[i];
+        if (haveClean) {
+            nOutClean += clean[i];
+            if (map[i] && !clean[i]) ++nNew;
+        }
+    }
+    std::printf("== false alarms\n  flagged pixels in the map: %zu; outside the truth (widened by 2): %zu\n", nFlag, nOut);
+    if (haveClean)
+        std::printf("  clean map (no planting): flagged %zu; outside the truth: %zu\n  NEW false alarms (flagged here, not in the clean map, outside the truth): %zu = %.3f per million pixels\n", nClean, nOutClean, nNew,
+                    1e6 * static_cast<double>(nNew) / static_cast<double>(n));
+    std::printf("== control bands (%d items; false detection = at least half of the band flagged)\n%s  false detections: %d of %d\n", controlItems, controlRows.c_str(), controlFalse,
+                controlItems);
+
+    double jAll = -1, jIn = -1, jOut = -1;
+    if (a.has("half-a") && a.has("half-b")) {
+        std::vector<uint8_t> ha, hb;
+        if (!readMap(a.str("half-a"), n, &ha) || !readMap(a.str("half-b"), n, &hb)) return 3;
+        size_t iAll = 0, uAll = 0, iIn = 0, uIn = 0, iOut = 0, uOut = 0, cA = 0, cB = 0;
+        for (size_t i = 0; i < n; ++i) {
+            cA += ha[i];
+            cB += hb[i];
+            const bool both = ha[i] && hb[i], either = ha[i] || hb[i];
+            iAll += both;
+            uAll += either;
+            if (t.truthAny[i]) { iIn += both; uIn += either; }
+            else { iOut += both; uOut += either; }
+        }
+        auto ratio = [](size_t i, size_t u) { return u ? static_cast<double>(i) / static_cast<double>(u) : 1.0; };
+        jAll = ratio(iAll, uAll);
+        jIn = ratio(iIn, uIn);
+        jOut = ratio(iOut, uOut);
+        std::printf("== split-half agreement (Jaccard)\n  half A flags %zu, half B flags %zu\n  all pixels %.4f (%zu / %zu); inside the truth %.4f (%zu / %zu); outside the truth %.4f (%zu / %zu)\n", cA, cB, jAll,
+                    iAll, uAll, jIn, iIn, uIn, jOut, iOut, uOut);
+    }
+
+    if (a.has("out")) {
+        std::string j = "{\n  \"map\": \"" + baseName(a.str("map")) + "\",\n  \"detection\": [\n";
+        for (size_t i = 0; i < groups.size(); ++i) {
+            char b[300];
+            std::snprintf(b, sizeof b, "    {\"group\": \"%s\", \"items\": %d, \"detected\": %d, \"all_pixels_flagged\": %d, \"mean_recall\": %.6f}%s\n", groups[i].key.c_str(), groups[i].items,
+                          groups[i].detected, groups[i].allFlagged, groups[i].items ? groups[i].recallSum / groups[i].items : 0.0, i + 1 < groups.size() ? "," : "");
+            j += b;
+        }
+        char tail[600];
+        std::snprintf(tail, sizeof tail,
+                      "  ],\n  \"flagged\": %zu,\n  \"outside_truth\": %zu,\n  \"clean_flagged\": %zu,\n  \"clean_outside_truth\": %zu,\n  \"new_false_alarms\": %zu,\n  \"control_items\": %d,\n"
+                      "  \"control_false_detections\": %d,\n  \"jaccard_all\": %.6f,\n  \"jaccard_inside_truth\": %.6f,\n  \"jaccard_outside_truth\": %.6f\n}\n",
+                      nFlag, nOut, nClean, nOutClean, nNew, controlItems, controlFalse, jAll, jIn, jOut);
+        j += tail;
+        if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;
+    }
+    return 0;
+}
+
+// ------------------------------------------------------------------------------------------------------------- module access
+XpeImageBuffer bufU16(std::vector<uint16_t>& v, uint32_t w, uint32_t h) {
+    XpeImageBuffer b{};
+    b.data = v.data();
+    b.width = w;
+    b.height = h;
+    b.bitsAllocated = 16;
+    b.bitsStored = 16;
+    b.format = XPE_PIXEL_UINT16;
+    b.dataSize = v.size() * sizeof(uint16_t);
+    return b;
+}
+
+int cmdMapV1(const Args& a) {
+    const uint32_t w = static_cast<uint32_t>(a.num("width", 3072)), h = static_cast<uint32_t>(a.num("height", 3072));
+    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright");
+    if (!a.has("out") || darkFiles.empty() || brightFiles.empty()) {
+        usage();
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<std::vector<uint16_t>> darks(darkFiles.size()), brights(brightFiles.size());
+    for (size_t k = 0; k < darks.size(); ++k)
+        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
+    for (size_t k = 0; k < brights.size(); ++k)
+        if (!readRaw16(brightFiles[k], n, &brights[k])) return 3;
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : darks) db.push_back(bufU16(v, w, h));
+    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
+    XpeBpmConfig cfg{};
+    cfg.lambda_dark = 8.0f;
+    cfg.mask_size_dark = 32u;
+    cfg.tolerance_pct = 0.07f;
+    cfg.mask_size_bright = 128u;
+    cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
+    cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 10));
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    std::vector<uint8_t> mask(n, 0);
+    XpeImageBuffer mb{};
+    mb.data = mask.data();
+    mb.width = w;
+    mb.height = h;
+    mb.bitsAllocated = 8;
+    mb.bitsStored = 8;
+    mb.format = XPE_PIXEL_UINT8;
+    mb.dataSize = mask.size();
+    const XpeErrorCode rc = xpe_bpm_generate(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &mb);
+    xpe_preprocess_shutdown();
+    if (rc != XPE_OK) {
+        std::fprintf(stderr, "xpe_bpm_generate failed (%d)\n", static_cast<int>(rc));
+        return 4;
+    }
+    size_t count = 0;
+    for (uint8_t m : mask) count += m != 0;
+    if (!writeBytes(a.str("out"), mask.data(), mask.size())) return 3;
+    std::printf("xpe_bpm_generate: %zu darks, %zu brights, %zu defect pixels -> %s\n", darks.size(), brights.size(), count, a.str("out").c_str());
+    return 0;
+}
+
+// ------------------------------------------------------------------------------------------------------------- correct
+const char* const kCfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+const char* const kCfgNoDefect = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+
+bool loadSet(const std::string& dir) {
+    xpe_clear_alerts();
+    return xpe_calib_load_offset((fs::path(dir) / "offset.xcal").string().c_str()) == XPE_OK && xpe_calib_load_gain((fs::path(dir) / "gain.xcal").string().c_str()) == XPE_OK &&
+           xpe_calib_load_defect_map((fs::path(dir) / "defect.xcal").string().c_str()) == XPE_OK;
+}
+
+bool runPipeline(const std::string& frame, uint32_t w, uint32_t h, const char* cfg, std::vector<float>* out) {
+    std::vector<uint16_t> raw;
+    if (!readRaw16(frame, static_cast<size_t>(w) * h, &raw)) return false;
+    out->assign(raw.size(), 0.0f);
+    const XpeImageBuffer in = bufU16(raw, w, h);
+    XpeImageBuffer ob{};
+    ob.data = out->data();
+    ob.width = w;
+    ob.height = h;
+    ob.bitsAllocated = 32;
+    ob.bitsStored = 32;
+    ob.format = XPE_PIXEL_FLOAT32;
+    ob.dataSize = out->size() * sizeof(float);
+    XpeImageMetadata meta{};
+    const XpeErrorCode rc = xpe_preprocess_pipeline_out(&in, &ob, &meta, nullptr, nullptr, cfg);
+    xpe_clear_alerts();
+    if (rc != XPE_OK) {
+        std::fprintf(stderr, "pipeline failed on %s (%d)\n", frame.c_str(), static_cast<int>(rc));
+        return false;
+    }
+    return true;
+}
+
+/** The line index D_n (TG-150 4.3.9, method A) of a row- or column-type rectangle, and the uncorrelated-noise prediction. Returns false at the frame edge. */
+bool lineIndex(const std::vector<float>& s, uint32_t w, uint32_t h, const Rect& q, double* dn, double* sigmaPred) {
+    const bool row = q.w > q.h;
+    const int  k = row ? q.h : q.w, len = row ? q.w : q.h;
+    const int  beforeIdx = (row ? q.y : q.x) - 1, afterIdx = (row ? q.y : q.x) + k;
+    if (beforeIdx < 0 || afterIdx >= static_cast<int>(row ? h : w) || len < 8) return false;
+    auto at = [&](int line, int pos) {
+        return row ? static_cast<double>(s[static_cast<size_t>(line) * w + static_cast<size_t>(pos)]) : static_cast<double>(s[static_cast<size_t>(pos) * w + static_cast<size_t>(line)]);
+    };
+    const int p0 = row ? q.x : q.y;
+    double pItem = 0, pBefore = 0, pAfter = 0;
+    for (int p = p0; p < p0 + len; ++p) {
+        for (int t = 0; t < k; ++t) pItem += at((row ? q.y : q.x) + t, p);
+        pBefore += at(beforeIdx, p);
+        pAfter += at(afterIdx, p);
+    }
+    pItem /= static_cast<double>(k) * len;
+    pBefore /= len;
+    pAfter /= len;
+    *dn = pItem - 0.5 * (pBefore + pAfter);
+    std::vector<double> res;
+    res.reserve(static_cast<size_t>(len));
+    for (int p = p0 + 1; p < p0 + len - 1; ++p) res.push_back(at(beforeIdx, p) - 0.5 * (at(beforeIdx, p - 1) + at(beforeIdx, p + 1)));
+    const double med = medianOf(res);
+    std::vector<double> dev;
+    dev.reserve(res.size());
+    for (double r : res) dev.push_back(std::fabs(r - med));
+    const double sigmaPix = 1.4826 * medianOf(dev) / std::sqrt(1.5);
+    *sigmaPred = sigmaPix * std::sqrt(1.0 / (static_cast<double>(k) * len) + 0.5 / len);
+    return true;
+}
+
+struct ZStat {
+    std::vector<double> zI, zU;
+    size_t nonfinite{0};
+};
+
+int cmdCorrect(const Args& a) {
+    Truth t;
+    const std::vector<std::string> cleanEval = a.list("clean-eval"), injEval = a.list("inj-eval");
+    if (!a.has("truth") || !a.has("clean-set") || !a.has("inj-set") || cleanEval.empty() || cleanEval.size() != injEval.size() || !loadTruth(a.str("truth"), &t)) {
+        usage();
+        return 2;
+    }
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    std::string json = "{\n  \"frames\": [\n";
+    for (size_t f = 0; f < cleanEval.size(); ++f) {
+        std::vector<float> C, I, U;
+        if (!loadSet(a.str("clean-set")) || !runPipeline(cleanEval[f], t.w, t.h, kCfgFinal, &C)) return 4;
+        if (!loadSet(a.str("inj-set")) || !runPipeline(injEval[f], t.w, t.h, kCfgFinal, &I) || !runPipeline(injEval[f], t.w, t.h, kCfgNoDefect, &U)) return 4;
+        std::printf("== evaluation frame %s (clean) / %s (planted)\n", baseName(cleanEval[f]).c_str(), baseName(injEval[f]).c_str());
+
+        // correction error against local noise
+        std::map<std::string, ZStat> zs;
+        std::vector<std::string> order;
+        std::vector<const Item*> byId(t.items.size() + 2, nullptr);
+        for (const Item& it : t.items) byId[static_cast<size_t>(it.id)] = &it;
+        auto sigmaLoc = [&](int x, int y) {
+            double s1 = 0, s2 = 0;
+            int m = 0;
+            for (int yy = std::max(0, y - 5); yy <= std::min(static_cast<int>(t.h) - 1, y + 5); ++yy)
+                for (int xx = std::max(0, x - 5); xx <= std::min(static_cast<int>(t.w) - 1, x + 5); ++xx) {
+                    const double v = C[static_cast<size_t>(yy) * t.w + static_cast<size_t>(xx)];
+                    s1 += v;
+                    s2 += v * v;
+                    ++m;
+                }
+            const double mean = s1 / m;
+            return std::sqrt(std::max(0.0, s2 / m - mean * mean));
+        };
+        for (size_t i = 0; i < C.size(); ++i) {
+            const uint16_t id = t.ids[i];
+            if (id == 0 || id == kSharedId) continue;
+            const Item* it = byId[id];
+            if (!it || it->cls == "control") continue;
+            const std::string key = groupKey(*it);
+            if (!zs.count(key)) order.push_back(key);
+            ZStat& z = zs[key];
+            const int x = static_cast<int>(i % t.w), y = static_cast<int>(i / t.w);
+            const double sl = sigmaLoc(x, y);
+            const double ei = (static_cast<double>(I[i]) - C[i]) / sl, eu = (static_cast<double>(U[i]) - C[i]) / sl;
+            if (!std::isfinite(ei) || !std::isfinite(eu)) { ++z.nonfinite; continue; }
+            z.zI.push_back(std::fabs(ei));
+            z.zU.push_back(std::fabs(eu));
+        }
+        std::printf("  correction error |planted - clean| / local sigma (11 x 11 window of the clean output)\n  %-34s %9s %12s %12s %12s %12s %9s\n", "class/kind/shape/level", "pixels", "median", "p95",
+                    "median(no fix)", "p95(no fix)", "non-finite");
+        json += "    {\"clean\": \"" + baseName(cleanEval[f]) + "\", \"planted\": \"" + baseName(injEval[f]) + "\", \"correction_error\": [\n";
+        for (size_t g = 0; g < order.size(); ++g) {
+            const ZStat& z = zs[order[g]];
+            std::printf("  %-34s %9zu %12.3f %12.3f %12.3f %12.3f %9zu\n", order[g].c_str(), z.zI.size(), medianOf(z.zI), percentileOf(z.zI, 0.95), medianOf(z.zU), percentileOf(z.zU, 0.95), z.nonfinite);
+            char b[300];
+            std::snprintf(b, sizeof b, "      {\"group\": \"%s\", \"pixels\": %zu, \"median_z\": %.6f, \"p95_z\": %.6f, \"median_z_uncorrected\": %.6f, \"p95_z_uncorrected\": %.6f}%s\n",
+                          order[g].c_str(), z.zI.size(), medianOf(z.zI), percentileOf(z.zI, 0.95), medianOf(z.zU), percentileOf(z.zU, 0.95), g + 1 < order.size() ? "," : "");
+            json += b;
+        }
+        json += "    ],\n    \"line_index\": [\n";
+
+        // D_n per line item
+        std::printf("  line index D_n / predicted sigma (|ratio| > 3 = a line remains)  [corrected | no defect fix | clean output]\n  %-4s %-34s %-6s %10s %10s %10s\n", "id", "class/kind/shape/level", "part",
+                    "corrected", "no fix", "clean");
+        int remainI = 0, remainU = 0, remainC = 0, lines = 0;
+        bool firstJson = true;
+        for (const Item& it : t.items) {
+            if (it.cls != "line" && it.cls != "control") continue;
+            for (size_t r = 0; r < it.rects.size(); ++r) {
+                double di, pi, du, pu, dc, pc;
+                if (!lineIndex(I, t.w, t.h, it.rects[r], &di, &pi) || !lineIndex(U, t.w, t.h, it.rects[r], &du, &pu) || !lineIndex(C, t.w, t.h, it.rects[r], &dc, &pc)) continue;
+                const double ri = di / pi, ru = du / pu, rc = dc / pc;
+                ++lines;
+                remainI += std::fabs(ri) > 3.0;
+                remainU += std::fabs(ru) > 3.0;
+                remainC += std::fabs(rc) > 3.0;
+                std::printf("  %-4d %-34s %-6zu %10.2f %10.2f %10.2f\n", it.id, groupKey(it).c_str(), r, ri, ru, rc);
+                char b[300];
+                std::snprintf(b, sizeof b, "%s      {\"id\": %d, \"group\": \"%s\", \"part\": %zu, \"ratio_corrected\": %.4f, \"ratio_no_fix\": %.4f, \"ratio_clean\": %.4f}", firstJson ? "" : ",\n", it.id,
+                              groupKey(it).c_str(), r, ri, ru, rc);
+                json += b;
+                firstJson = false;
+            }
+        }
+        std::printf("  parts with |ratio| > 3: corrected %d, no fix %d, clean %d (of %d)\n", remainI, remainU, remainC, lines);
+        json += "\n    ],\n";
+
+        // rows and columns outside every item
+        std::vector<uint8_t> rowSkip(t.h, 0), colSkip(t.w, 0);
+        for (const Item& it : t.items)
+            for (const Rect& q : it.rects) {
+                if (it.cls != "line" && it.cls != "control") continue;
+                if (q.w > q.h) for (int y = std::max(0, q.y - 3); y <= std::min(static_cast<int>(t.h) - 1, q.y + q.h + 2); ++y) rowSkip[static_cast<size_t>(y)] = 1;
+                else for (int x = std::max(0, q.x - 3); x <= std::min(static_cast<int>(t.w) - 1, q.x + q.w + 2); ++x) colSkip[static_cast<size_t>(x)] = 1;
+            }
+        size_t rowsI = 0, rowsC = 0, colsI = 0, colsC = 0, rowsN = 0, colsN = 0;
+        for (int y = 1; y + 1 < static_cast<int>(t.h); ++y) {
+            if (rowSkip[static_cast<size_t>(y)]) continue;
+            double d, p;
+            ++rowsN;
+            if (lineIndex(I, t.w, t.h, Rect{0, y, static_cast<int>(t.w), 1}, &d, &p) && std::fabs(d) > 3.0 * p) ++rowsI;
+            if (lineIndex(C, t.w, t.h, Rect{0, y, static_cast<int>(t.w), 1}, &d, &p) && std::fabs(d) > 3.0 * p) ++rowsC;
+        }
+        for (int x = 1; x + 1 < static_cast<int>(t.w); ++x) {
+            if (colSkip[static_cast<size_t>(x)]) continue;
+            double d, p;
+            ++colsN;
+            if (lineIndex(I, t.w, t.h, Rect{x, 0, 1, static_cast<int>(t.h)}, &d, &p) && std::fabs(d) > 3.0 * p) ++colsI;
+            if (lineIndex(C, t.w, t.h, Rect{x, 0, 1, static_cast<int>(t.h)}, &d, &p) && std::fabs(d) > 3.0 * p) ++colsC;
+        }
+        std::printf("  rows outside every line item: %zu checked, |D_n| > 3 sigma: corrected %zu, clean %zu; columns: %zu checked, corrected %zu, clean %zu\n", rowsN, rowsI, rowsC, colsN,
+                    colsI, colsC);
+        char b[400];
+        std::snprintf(b, sizeof b,
+                      "    \"parts_over_3_sigma\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d, \"parts\": %d},\n    \"other_rows\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu},\n"
+                      "    \"other_columns\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu}}%s\n",
+                      remainI, remainU, remainC, lines, rowsN, rowsI, rowsC, colsN, colsI, colsC, f + 1 < cleanEval.size() ? "," : "");
+        json += b;
+    }
+    json += "  ]\n}\n";
+    xpe_preprocess_shutdown();
+    if (a.has("out") && !writeBytes(a.str("out"), json.data(), json.size())) return 3;
+    return 0;
+}
+
+}  // namespace
+
+int main(int argc, char** argv) {
+    Args a;
+    if (!parseArgs(argc, argv, &a)) {
+        usage();
+        return 2;
+    }
+    if (a.cmd == "inject") return cmdInject(a);
+    if (a.cmd == "score") return cmdScore(a);
+    if (a.cmd == "correct") return cmdCorrect(a);
+    if (a.cmd == "map-v1") return cmdMapV1(a);
+    usage();
+    return 2;
+}

@@ -1,0 +1,90 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+TOOL = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-251/evidence/22_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FAST = 'BpmEvalTest.*-BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex'
+SLOW = 'BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests(filt):
+    r = subprocess.run([EXE, '--gtest_filter=' + filt], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+original = open(TOOL, 'rb').read()
+h0 = hashlib.sha256(original).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-251 mutation check of the evaluation tool. Source hash at the start: ' + h0)
+say('Short names: determ=InjectIsDeterministic placement=InjectFollowsTheSpecCountsAndPlacementRules acts=InjectActsAsTheSpecSays perfect=ScoreSeparatesAPerfectMapFromAnEmptyOne')
+say('  counts=ScoreCountsControlHitsFalseAlarmsAndHalfAgreement half=ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged correct=CorrectRunsOnTwoSetsAndReportsTheLineIndex')
+say('PREDICTIONS (written before any run):')
+say('  Q1 darks planted as if bright (plant(f, true))            -> red: acts only')
+say('  Q2 the exclusion map ignored                              -> red: placement only')
+say('  Q3 a line is detected when ANY pixel is flagged           -> red: half only')
+say('  Q4 a control band never counts as a false detection       -> red: counts only')
+say('  Q5 no 2-pixel widening of the truth for false alarms      -> red: counts only')
+say('  Q6 Jaccard intersection counted as the union              -> red: counts only')
+say('  Q7 dead acts with the level instead of 1 - level          -> red: acts only')
+say('  Q8 crossing pixels marked with the last item, not shared  -> red: placement only')
+say('  Q9 the dark level D not divided by the frame count        -> red: acts only')
+say('  Q10 D_n with the opposite sign                            -> red: correct only')
+say('  Q11 predicted sigma of D_n scaled by 100                  -> red: correct only')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('Q1', b'if (!plant(f, false)) return 3;', b'if (!plant(f, true)) return 3;', FAST),
+    ('Q2', b'const std::vector<uint8_t> exclD = dilate(excl, o.w, o.h, o.exclHalo);', b'const std::vector<uint8_t> exclD(n, 0);', FAST),
+    ('Q3', b'if (frac >= 0.5) ++g.detected;', b'if (frac > 0.0) ++g.detected;', FAST),
+    ('Q4', b'const bool hit = frac >= 0.5;', b'const bool hit = frac >= 1.5;', FAST),
+    ('Q5', b'dilate(t.truthAny, t.w, t.h, 2)', b'dilate(t.truthAny, t.w, t.h, 0)', FAST),
+    ('Q6', b'iAll += both;', b'iAll += either;', FAST),
+    ('Q7', b'v = d + (1.0 - it.level) * nn;', b'v = d + it.level * nn;', FAST),
+    ('Q8', b'ids[i] = cover[i] > 1 ? kSharedId : static_cast<uint16_t>(it.id);', b'ids[i] = static_cast<uint16_t>(it.id);', FAST),
+    ('Q9', b'D[i] /= static_cast<double>(darks.size());', b'D[i] /= 1.0;', FAST),
+    ('Q10', b'*dn = pItem - 0.5 * (pBefore + pAfter);', b'*dn = 0.5 * (pBefore + pAfter) - pItem;', SLOW),
+    ('Q11', b'*sigmaPred = sigmaPix * std::sqrt(1.0 / (static_cast<double>(k) * len) + 0.5 / len);', b'*sigmaPred = 100.0 * sigmaPix * std::sqrt(1.0 / (static_cast<double>(k) * len) + 0.5 / len);', SLOW),
+]
+try:
+    say('--- step 0: unmutated')
+    b = build()
+    say('build: ' + b)
+    rc, ok, bad = run_tests('BpmEvalTest.*')
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, old, new, filt in mutants:
+        assert original.count(old) == 1, (name, original.count(old))
+        say('--- ' + name)
+        open(TOOL, 'wb').write(original.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests(filt)
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(TOOL, 'wb').write(original)
+        os.utime(TOOL, None)
+        time.sleep(1)
+finally:
+    open(TOOL, 'wb').write(original)
+    os.utime(TOOL, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(TOOL, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests('BpmEvalTest.*')
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
