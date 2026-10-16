@@ -1,0 +1,87 @@
+== quantum gain (truth.json)
+  quantum_gain           0.347514
+  quantum_gain_se        0.001683
+  readout_variance       61.8234
+  readout_variance_se    10.7639
+  quantum_gain_measured  True
+  quantum_gain_source    regression of the group variance on the group signal over 5 dose groups (median variance corrected for the frame-count bias)
+  sigma_t                2.914369
+  group signal    3007.9 frames 3 dof 2 pixels 123904 variance   1108.016 kappa_group 0.3478
+  group signal    6222.0 frames 3 dof 2 pixels 123904 variance   2213.291 kappa_group 0.3458
+  group signal    9744.1 frames 6 dof 5 pixels 123904 variance   3452.500 kappa_group 0.3480
+  group signal   19397.8 frames 3 dof 2 pixels 123904 variance   6861.163 kappa_group 0.3505
+  group signal   30938.0 frames 3 dof 2 pixels 123904 variance  10732.659 kappa_group 0.3449
+
+== noise verdicts of the response items (measured on Bright_29, Bright_30)
+kind             level  shape    items  defect  normal undetermined   median cost [median lo, median hi]
+gain_loss        0.3    line         6       0       6            0   1.041 [0.958, 1.135]
+gain_loss        0.3    pixel       64       0       4           60   0.381 [0.075, 392.751]
+gain_loss        0.4    line         6       0       6            0   0.991 [0.890, 1.106]
+gain_loss        0.4    pixel       64       0       4           60   0.362 [0.071, 372.666]
+gain_loss        0.44   line         6       0       6            0   0.993 [0.906, 1.160]
+gain_loss        0.44   pixel       64       0       4           60   0.518 [0.102, 533.209]
+gain_loss        0.46   line         6       0       6            0   0.996 [0.901, 1.134]
+gain_loss        0.46   pixel       64       1       5           58   0.520 [0.102, 535.362]
+gain_loss        0.6    line         6       0       6            0   1.025 [0.926, 1.131]
+gain_loss        0.6    pixel       64       0       1           63   0.428 [0.084, 441.319]
+gain_loss        0.7    line         6       0       6            0   0.972 [0.907, 1.097]
+gain_loss        0.7    pixel       64       0       2           62   0.491 [0.097, 506.202]
+efficiency_loss  0.3    line         6       6       0            0   3.553 [3.326, 3.801]
+efficiency_loss  0.3    pixel       64       9       1           54   1.202 [0.237, 1238.724]
+efficiency_loss  0.4    line         6       6       0            0   2.575 [2.346, 2.837]
+efficiency_loss  0.4    pixel       64       2       2           60   1.233 [0.243, 1270.624]
+efficiency_loss  0.44   line         6       6       0            0   2.283 [2.104, 2.483]
+efficiency_loss  0.44   pixel       64       4       1           59   1.487 [0.292, 1531.722]
+efficiency_loss  0.46   line         6       3       0            3   2.338 [2.185, 2.527]
+efficiency_loss  0.46   pixel       64       1       6           57   0.748 [0.147, 770.940]
+efficiency_loss  0.6    line         6       0       4            2   1.814 [1.697, 1.962]
+efficiency_loss  0.6    pixel       64       0       3           61   0.426 [0.084, 439.005]
+efficiency_loss  0.7    line         6       0       6            0   1.452 [1.363, 1.611]
+efficiency_loss  0.7    pixel       64       1       1           62   0.800 [0.157, 824.245]
+
+== cause bits of the response lines (2nd generation, lines list); R response 1, L linearity 2, N noise 4, S slope 8; counts out of the 6 shapes of a level
+kind             level   found    R    L    N    S   combinations
+gain_loss        0.3      6/6     6    0    0    6   RS RS RS RS RS RS
+gain_loss        0.4      6/6     6    0    0    6   RS RS RS RS RS RS
+gain_loss        0.44     6/6     6    0    0    6   RS RS RS RS RS RS
+gain_loss        0.46     0/6     0    0    0    0   - - - - - -
+gain_loss        0.6      0/6     0    0    0    0   - - - - - -
+gain_loss        0.7      0/6     0    0    0    0   - - - - - -
+efficiency_loss  0.3      6/6     6    6    6    6   RLNS RLNS RLNS RLNS RLNS RLNS
+efficiency_loss  0.4      6/6     6    6    6    6   RLNS RLNS RLNS RLNS RLNS RLNS
+efficiency_loss  0.44     6/6     6    6    5    6   RLNS RLNS RLNS RLNS RLS RLNS
+efficiency_loss  0.46     4/6     0    4    4    0   LN LN - - LN LN
+efficiency_loss  0.6      0/6     0    0    0    0   - - - - - -
+efficiency_loss  0.7      0/6     0    0    0    0   - - - - - -
+
+== end errors of the partial lines (768 long) of every kind: start error = item start - group start, end error = group end - item end
+items 44, found 44, not found 0
+start error: median 0, max 7; end error: median 0, max 5; |error| >= 20: 0
+
+== pixel items: feature bits at the pixel (0x10 flat field, 0x20 bright noise, 0x08 linearity, 0x04 slope), items out of 64 per level
+kind             level  items   flat  noise    lin  slope      any
+gain_loss        0.3       64     64      0      0      0       64
+gain_loss        0.4       64     64      0      0      0       64
+gain_loss        0.44      64     64      0      0      0       64
+gain_loss        0.46      64      0      0      0      0        0
+gain_loss        0.6       64      0      0      0      0        0
+gain_loss        0.7       64      0      0      0      0        0
+efficiency_loss  0.3       64     64     15      0      0       64
+efficiency_loss  0.4       64     64      2      0      0       64
+efficiency_loss  0.44      64     64      0      0      0       64
+efficiency_loss  0.46      64      0      2      0      0        2
+efficiency_loss  0.6       64      0      0      0      0        0
+efficiency_loss  0.7       64      0      0      0      0        0
+  pixels with flat 0x10          83281
+  pixels with bright noise 0x20  4600
+  pixels with linearity 0x08     9206
+  pixels with dark noise 0x02    15344
+  pixels with dark mean 0x01     2580
+  clean image: flat 0, bright noise 4, linearity 1
+
+== scores
+Traceback (most recent call last):
+  File "D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-252h\evidence\55_analyze.py.txt", line 146, in <module>
+    d = json.load(open(EV + f, encoding='utf-8'))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/63_score_v1.json.txt'

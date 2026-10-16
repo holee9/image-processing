@@ -1,0 +1,158 @@
+"""QA-A-252g: the tables of the report, from the outputs of 72_measure_all.sh.txt (written before the measurement; nothing here changes a method).
+Prints: quantum gain, noise verdicts, cause bits of the response lines, pixel feature bits of the response pixels, end errors of the partial lines, the scores."""
+import json
+import os
+from collections import defaultdict
+
+W = 3072
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-252h/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/'
+TRUTH = IN + 'inj_d/truth.tsv'
+
+
+def items():
+    res = []
+    for l in open(TRUTH, encoding='utf-8'):
+        p = l.rstrip('\n').split('\t')
+        if len(p) >= 6 and p[0].isdigit():
+            rects = [tuple(map(int, r.split(','))) for r in p[5].split(';')]
+            res.append({'id': int(p[0]), 'cls': p[1], 'kind': p[2], 'shape': p[3], 'level': p[4], 'rects': rects})
+    return res
+
+
+IT = items()
+RESP = [i for i in IT if i['kind'] in ('gain_loss', 'efficiency_loss')]
+LVL = ['0.3', '0.4', '0.44', '0.46', '0.6', '0.7']
+
+# ------------------------------------------------------------------------------------------------ quantum gain
+j = json.load(open(IN + 'inj_d/truth.json', encoding='utf-8'))
+print('== quantum gain (truth.json)')
+for k in ('quantum_gain', 'quantum_gain_se', 'readout_variance', 'readout_variance_se', 'quantum_gain_measured', 'quantum_gain_source', 'sigma_t'):
+    print('  %-22s %s' % (k, j.get(k)))
+for g in j.get('quantum_gain_groups', []):
+    print('  group signal %9.1f frames %d dof %.0f pixels %.0f variance %10.3f kappa_group %.4f' % (g['signal'], g['frames'], g['dof'], g['pixels'], g['variance'], g['kappa_group']))
+
+# ------------------------------------------------------------------------------------------------ noise verdicts
+nt = {}
+for l in list(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252g/evidence/62_noise_truth.tsv.txt', encoding='utf-8'))[1:]:
+    c = l.rstrip('\n').split('\t')
+    nt[int(c[0])] = {'kind': c[1], 'shape': c[2], 'level': c[3], 'pixels': int(c[4]), 'cost': float(c[6]), 'lo': float(c[7]), 'hi': float(c[8]), 'label': c[9]}
+print('\n== noise verdicts of the response items (measured on Bright_29, Bright_30)')
+print('%-16s %-6s %-6s %7s %7s %7s %12s   %s' % ('kind', 'level', 'shape', 'items', 'defect', 'normal', 'undetermined', 'median cost [median lo, median hi]'))
+for kind in ('gain_loss', 'efficiency_loss'):
+    for lv in LVL:
+        for typ in ('line', 'pixel'):
+            sel = [nt[i['id']] for i in RESP if i['kind'] == kind and i['level'] == lv and (i['shape'] == 'pixel') == (typ == 'pixel') and i['id'] in nt]
+            if not sel:
+                continue
+            cs = sorted(s['cost'] for s in sel)
+            los = sorted(s['lo'] for s in sel)
+            his = sorted(s['hi'] for s in sel)
+            m = len(sel) // 2
+            print('%-16s %-6s %-6s %7d %7d %7d %12d   %.3f [%.3f, %.3f]' % (kind, lv, typ, len(sel), sum(s['label'] == 'defect' for s in sel), sum(s['label'] == 'normal' for s in sel),
+                                                                        sum(s['label'] == 'undetermined' for s in sel), cs[m], los[m], his[m]))
+
+# ------------------------------------------------------------------------------------------------ cause bits of the lines
+groups = []
+for l in list(open(EV + '68_lines_planted.tsv.txt', encoding='utf-8'))[1:]:
+    p = l.rstrip('\n').split('\t')
+    groups.append({'ori': p[0], 'idx': int(p[1]), 'width': int(p[2]), 'a': int(p[3]), 'b': int(p[4]), 'causes': int(p[5])})
+
+
+def match(it):
+    x, y, w, h = it['rects'][0]
+    ori = 'row' if w > h else 'column'
+    idx, wd = (y, h) if ori == 'row' else (x, w)
+    a, ln = (x, w) if ori == 'row' else (y, h)
+    b = a + ln
+    best = None
+    for g in groups:
+        if g['ori'] != ori or g['idx'] > idx + wd or g['idx'] + g['width'] - 1 < idx - 1:
+            continue
+        ov = min(g['b'], b) - max(g['a'], a)
+        if ov >= 0.5 * ln and (best is None or ov > best[0]):
+            best = (ov, g)
+    return (best[1] if best else None), a, b
+
+
+print('\n== cause bits of the response lines (2nd generation, lines list); R response 1, L linearity 2, N noise 4, S slope 8; counts out of the 6 shapes of a level')
+print('%-16s %-6s %6s %4s %4s %4s %4s   %s' % ('kind', 'level', 'found', 'R', 'L', 'N', 'S', 'combinations'))
+LINES = [i for i in RESP if i['shape'] != 'pixel']
+for kind in ('gain_loss', 'efficiency_loss'):
+    for lv in LVL:
+        sel = [i for i in LINES if i['kind'] == kind and i['level'] == lv]
+        found, bits, combo = 0, [0, 0, 0, 0], []
+        for it in sel:
+            g, a, b = match(it)
+            if g is None:
+                combo.append('-')
+                continue
+            found += 1
+            for k, m in enumerate((1, 2, 4, 8)):
+                bits[k] += 1 if g['causes'] & m else 0
+            combo.append(''.join(c for c, m in zip('RLNS', (1, 2, 4, 8)) if g['causes'] & m) or '0')
+        print('%-16s %-6s %3d/%-2d %4d %4d %4d %4d   %s' % (kind, lv, found, len(sel), bits[0], bits[1], bits[2], bits[3], ' '.join(combo)))
+
+# ------------------------------------------------------------------------------------------------ end errors
+print('\n== end errors of the partial lines (768 long) of every kind: start error = item start - group start, end error = group end - item end')
+errs = []
+for it in IT:
+    if it['cls'] == 'control' or not it['rects']:
+        continue
+    x, y, w, h = it['rects'][0]
+    if max(w, h) != 768 or min(w, h) > 2:
+        continue
+    g, a, b = match(it)
+    if g is None:
+        errs.append((it['id'], it['kind'], it['shape'], it['level'], None, None))
+    else:
+        errs.append((it['id'], it['kind'], it['shape'], it['level'], a - g['a'], g['b'] - b))
+ok = [e for e in errs if e[4] is not None]
+print('items %d, found %d, not found %d' % (len(errs), len(ok), len(errs) - len(ok)))
+big = [e for e in ok if abs(e[4]) >= 20 or abs(e[5]) >= 20]
+print('start error: median %s, max %s; end error: median %s, max %s; |error| >= 20: %d' % (sorted(e[4] for e in ok)[len(ok) // 2], max(e[4] for e in ok), sorted(e[5] for e in ok)[len(ok) // 2], max(e[5] for e in ok), len(big)))
+for e in big:
+    print('   ', e)
+
+# ------------------------------------------------------------------------------------------------ pixel feature bits of the response pixels
+feat = open(OUT + 'v2g_planted_features.u8', 'rb').read()
+print('\n== pixel items: feature bits at the pixel (0x10 flat field, 0x20 bright noise, 0x08 linearity, 0x04 slope), items out of 64 per level')
+print('%-16s %-6s %5s %6s %6s %6s %6s %8s' % ('kind', 'level', 'items', 'flat', 'noise', 'lin', 'slope', 'any'))
+for kind in ('gain_loss', 'efficiency_loss'):
+    for lv in LVL:
+        sel = [i for i in RESP if i['kind'] == kind and i['level'] == lv and i['shape'] == 'pixel']
+        cnt = defaultdict(int)
+        for it in sel:
+            x, y, w, h = it['rects'][0]
+            b = feat[y * W + x]
+            for name, m in (('flat', 0x10), ('noise', 0x20), ('lin', 0x08), ('slope', 0x04)):
+                cnt[name] += 1 if b & m else 0
+            cnt['any'] += 1 if b else 0
+        print('%-16s %-6s %5d %6d %6d %6d %6d %8d' % (kind, lv, len(sel), cnt['flat'], cnt['noise'], cnt['lin'], cnt['slope'], cnt['any']))
+tot = defaultdict(int)
+for b in feat:
+    pass
+import collections
+c = collections.Counter(feat)
+for name, m in (('flat 0x10', 0x10), ('bright noise 0x20', 0x20), ('linearity 0x08', 0x08), ('dark noise 0x02', 0x02), ('dark mean 0x01', 0x01)):
+    print('  pixels with %-18s %d' % (name, sum(v for k, v in c.items() if k & m)))
+cf = collections.Counter(open(OUT + 'v2g_clean_features.u8', 'rb').read())
+print('  clean image: flat %d, bright noise %d, linearity %d' % (sum(v for k, v in cf.items() if k & 0x10), sum(v for k, v in cf.items() if k & 0x20), sum(v for k, v in cf.items() if k & 0x08)))
+
+# ------------------------------------------------------------------------------------------------ scores
+print('\n== scores')
+for tag, f in (('1st generation, two axes', '63_score_v1.json.txt'), ('2nd generation, two axes', '69_score_v2.json.txt'), ('2nd generation, response axis only', '70_score_v2_response_axis.json.txt')):
+    d = json.load(open(EV + f, encoding='utf-8'))
+    keys = ['flagged', 'outside_truth', 'clean_flagged', 'new_false_alarms', 'new_false_alarms_in_controls', 'control_items', 'control_false_detections', 'undetermined_items', 'noise_axis_promoted_to_defect',
+            'jaccard_all', 'jaccard_inside_truth']
+    print(' -', tag, {k: d.get(k) for k in keys if k in d})
+d2 = json.load(open(EV + '69_score_v2.json.txt', encoding='utf-8'))
+print('  response items, 2nd generation, two axes (items, detected):')
+for g in d2['detection']:
+    if 'gain_loss' in g['group'] or 'efficiency_loss' in g['group']:
+        print('    %-46s %3d %3d  recall %.3f' % (g['group'], g['items'], g['detected'], g['mean_recall']))
+print('  undetermined groups (items, at least half flagged):')
+for g in d2.get('undetermined_groups', []):
+    print('    %-46s %3d %3d  mean flagged %.3f' % (g['group'], g['items'], g['at_least_half_flagged'], g['mean_flagged_fraction']))
+print('  control groups with false detections (two axes):', [(g['group'], g['false_detections']) for g in d2['control_groups'] if g['false_detections']])
