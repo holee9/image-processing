@@ -1,0 +1,18 @@
+{
+  "detector": "xpe_bpm_generate_v2",
+  "target_false_alarms": 1,
+  "skip_first_dark": 0,
+  "pixels": 9437184,
+  "dark_frames_used": 7,
+  "bright_frames_used": 18,
+  "dose_groups": 5,
+  "groups": [{"signal": 2863.81, "frames": 3}, {"signal": 5928.17, "frames": 3}, {"signal": 9283.42, "frames": 6}, {"signal": 18482.21, "frames": 3}, {"signal": 29485.05, "frames": 3}],
+  "features": [
+    {"name": "dark_mean", "active": 1, "degrees_of_freedom": 0, "threshold": 5.3162, "scale_median": 2.75381, "flagged": 2675},
+    {"name": "dark_noise", "active": 1, "degrees_of_freedom": 6, "threshold": 7.2018, "scale_median": 9.5119, "flagged": 112},
+    {"name": "dose_slope", "active": 1, "degrees_of_freedom": 0, "threshold": 5.3162, "scale_median": 0.00308243, "flagged": 7668},
+    {"name": "dose_linearity", "active": 1, "degrees_of_freedom": 0, "threshold": 5.1886, "scale_median": 1.0027, "flagged": 1},
+    {"name": "flat_field", "active": 1, "degrees_of_freedom": 0, "threshold": 5.3162, "scale_median": 0.00255398, "flagged": 8890}
+  ],
+  "flagged_union": 11686
+}
