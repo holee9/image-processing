@@ -2198,7 +2198,7 @@ XPE_API uint32_t xpe_calib_get_poly_degree(void);
 /** What makes a line defective (bits of XpeBpmLine::causes). */
 #define XPE_BPM_LINE_CAUSE_RESPONSE  0x01u /**< The response of the line differs from its neighbours by more than the noise tolerance can take (gain correction would add more noise than allowed) */
 #define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line */
-#define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance */
+#define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance, in most of the dark frames (a line that is large in a few frames only is noise that moves, not a defect) */
 
 /** Bits of XpeBpmLine::flags. */
 #define XPE_BPM_LINE_FULL    0x01u /**< The defective stretch covers (nearly) the whole length of the line */
@@ -2223,6 +2223,7 @@ typedef struct {
     uint32_t causes;       /**< XPE_BPM_LINE_CAUSE_* bits */
     uint32_t flags;        /**< XPE_BPM_LINE_* flag bits */
     float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
+    float    persistence;  /**< Fraction of the dark frames in which the stretch is large (noise cause found in the dark frames); -1 when it was not tested */
 } XpeBpmLine;
 
 /** What xpe_bpm_find_lines found. */
@@ -2251,6 +2252,9 @@ typedef struct {
  * of an uncorrelated sum; the width of the same statistic over all rows and columns (its empirical null) scales the threshold; the threshold follows from the
  * target number of false stretches. A stretch is kept only when it is also large enough to matter (see the XPE_BPM_LINE_CAUSE_* bits): a response within the noise
  * tolerance of the neighbours is a band that offset and gain correction removes and is not reported.
+ *
+ * The noise cause is judged frame by frame: the stretch must be large in more than half of the dark frames. Noise that moves from line to line between frames
+ * is never a defect of a place and is not reported. (Stretches found in the bright frames are not tested per frame.)
  *
  * Adjacent defective lines are grouped: two lines are a double line, three or more set panel_reject (not a correction task). A row and a column group that
  * cross are marked.

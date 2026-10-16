@@ -932,10 +932,10 @@ int cmdLines(const Args& a) {
     }
     if (!writeBytes(a.str("out"), mask.data(), mask.size())) return 3;
     lines.resize(std::min<size_t>(rep.lines, lines.size()));
-    std::string tsv = "orientation\tindex\twidth\tstart\tend\tcauses\tflags\tstrength\n";
+    std::string tsv = "orientation\tindex\twidth\tstart\tend\tcauses\tflags\tstrength\tpersistence\n";
     for (const XpeBpmLine& l : lines) {
         char b[160];
-        std::snprintf(b, sizeof b, "%s\t%u\t%u\t%u\t%u\t%u\t%u\t%.2f\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength));
+        std::snprintf(b, sizeof b, "%s\t%u\t%u\t%u\t%u\t%u\t%u\t%.2f\t%.2f\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength), static_cast<double>(l.persistence));
         tsv += b;
     }
     if (a.has("tsv") && !writeBytes(a.str("tsv"), tsv.data(), tsv.size())) return 3;
@@ -951,7 +951,7 @@ int cmdLines(const Args& a) {
     std::printf("xpe_bpm_find_lines: %u groups (%u rows, %u columns; %u full, %u partial, %u double, %u crossings), widest %u, panel reject %u\n", rep.lines, rep.row_groups, rep.column_groups, rep.full_lines,
                 rep.partial_lines, rep.double_lines, rep.crossings, rep.max_adjacent, rep.panel_reject);
     for (const XpeBpmLine& l : lines)
-        std::printf("  %s %u width %u [%u, %u) causes %u flags %u z %.1f\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength));
+        std::printf("  %s %u width %u [%u, %u) causes %u flags %u z %.1f persistence %.2f\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength), static_cast<double>(l.persistence));
     return rep.panel_reject ? 20 : 0;   // 20: three adjacent lines or more, the panel is rejected (the outputs are written all the same)
 }
 

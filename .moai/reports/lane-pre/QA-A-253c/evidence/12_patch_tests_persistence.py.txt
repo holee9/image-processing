@@ -1,0 +1,39 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:90])
+    s = s.replace(old, new)
+
+
+sub('''kLnNoisyRow = 64, kLnGainRow = 128;''', '''kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256;''')
+sub('''kLnNoisyY = 30, kLnGainY = 150;''', '''kLnNoisyY = 30, kLnGainY = 150;
+// QA-A-253c: noise that moves. In dark frame k the stretch [96, 192) of row kBurstY0 + k gets an offset of +-14 (a different row in every frame)
+constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;''')
+sub('''auto put = [&](double net, bool bright, bool firstDark) {''', '''auto put = [&](double net, bool bright, bool firstDark, int darkIdx) {''')
+sub('''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;''', '''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnMovingBurst) && darkIdx >= 0 && y == kBurstY0 + darkIdx && x >= kBurstFrom && x < kBurstTo) d += (darkIdx % 2 ? -14.0 : 14.0);''')
+sub('''f.dark.push_back(put(0.0, false, transientFirstDark && k == 0));''', '''f.dark.push_back(put(0.0, false, transientFirstDark && k == 0, k));''')
+sub('''f.bright.push_back(put(d, true, false));''', '''f.bright.push_back(put(d, true, false, -1));''')
+sub('''    ASSERT_NE(nullptr, l);
+    EXPECT_NE(0u, l->causes & XPE_BPM_LINE_CAUSE_NOISE);''', '''    ASSERT_NE(nullptr, l);
+    EXPECT_NE(0u, l->causes & XPE_BPM_LINE_CAUSE_NOISE);
+    EXPECT_GE(l->persistence, 0.8f) << "a row that is noisy at its place is large in (nearly) every dark frame";''')
+marker = 'TEST(BpmV2LinesTest, ASingleDeadPixelOrASmallBlockIsNotALine) {'
+new = '''TEST(BpmV2LinesTest, NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace) {
+    // a stretch of 96 pixels gets an offset of +-14 in one dark frame, a different row each time: large in the aggregate over the frames, large in one frame only
+    Frames f = makeFrames(29, kDoses, 3, 7, onlyLines(kLnMovingBurst));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines) << "persistence: the same stretch has to be large in more than half of the dark frames";
+}
+
+'''
+sub(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('tests patched')

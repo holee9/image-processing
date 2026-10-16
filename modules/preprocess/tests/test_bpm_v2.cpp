@@ -96,8 +96,10 @@ constexpr int kBrightNoisyX = 120, kBrightNoisyY = 200;   // extra temporal nois
 constexpr int kDarkRow = 60, kDarkFrom = 96;   // the raised segment: kPartLen pixels, +300 in every frame
 constexpr int kVarCol = 70;                  // a column whose offset is a new random value in every frame (sd 60)
 // line defects of the QA-A-253 tests (256 x 256 frames)
-constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128;
+constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256;
 constexpr int kLnDeadRowY = 120, kLnDeadColX = 60, kLnHalfRowY = 80, kLnPartialRowY = 40, kLnPartialFrom = 96, kLnPartialTo = 192, kLnPairY = 170, kLnTripleY = 200, kLnNoisyY = 30, kLnGainY = 150;
+// QA-A-253c: noise that moves. In dark frame k the stretch [96, 192) of row kBurstY0 + k gets an offset of +-14 (a different row in every frame)
+constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;
 
 Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPerDose, int nDark, Plant plant, bool transientFirstDark = false) {
     Normal rng(seed);
@@ -111,7 +113,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
     Frames f;
     Normal pixelRng(seed + 7);   // used only for the bright-noise pixel
     Normal frameRng(seed + 99);   // separate from the pixel noise, so the planted extras do not change any other value
-    auto put = [&](double net, bool bright, bool firstDark) {
+    auto put = [&](double net, bool bright, bool firstDark, int darkIdx) {
         std::vector<uint16_t> fr(kN);
         const double columnOffset = plant.varyingColumn ? 60.0 * frameRng.next() : 0.0;
         for (size_t i = 0; i < kN; ++i) {
@@ -131,6 +133,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                 if ((plant.lines & kLnTripleRows) && y >= kLnTripleY && y < kLnTripleY + 3) sig = 0.0;
                 if ((plant.lines & kLnNoisyRow) && y == kLnNoisyY) noiseSd = 9.0;
                 if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnMovingBurst) && darkIdx >= 0 && y == kBurstY0 + darkIdx && x >= kBurstFrom && x < kBurstTo) d += (darkIdx % 2 ? -14.0 : 14.0);
             }
             if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
             if (plant.strongShading) sig *= (0.8 + 0.4 * x / (kW - 1)) * (0.8 + 0.4 * y / (kH - 1));
@@ -156,10 +159,10 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
         }
         return fr;
     };
-    for (int k = 0; k < nDark; ++k) f.dark.push_back(put(0.0, false, transientFirstDark && k == 0));
+    for (int k = 0; k < nDark; ++k) f.dark.push_back(put(0.0, false, transientFirstDark && k == 0, k));
     for (double d : doses)
         for (int k = 0; k < framesPerDose; ++k) {
-            f.bright.push_back(put(d, true, false));
+            f.bright.push_back(put(d, true, false, -1));
             f.signal.push_back(d);
         }
     return f;
@@ -529,7 +532,17 @@ TEST(BpmV2LinesTest, ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine) {
     const XpeBpmLine* l = lineAt(noisy, XPE_BPM_LINE_ROW, kLnNoisyY);
     ASSERT_NE(nullptr, l);
     EXPECT_NE(0u, l->causes & XPE_BPM_LINE_CAUSE_NOISE);
+    EXPECT_GE(l->persistence, 0.8f) << "a row that is noisy at its place is large in (nearly) every dark frame";
     EXPECT_EQ(0u, clean.rep.lines) << "clean frames: no line (the false-alarm target is one stretch over the whole frame)";
+}
+
+TEST(BpmV2LinesTest, NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace) {
+    // a stretch of 96 pixels gets an offset of +-14 in one dark frame, a different row each time: large in the aggregate over the frames, large in one frame only
+    Frames f = makeFrames(29, kDoses, 3, 7, onlyLines(kLnMovingBurst));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines) << "persistence: the same stretch has to be large in more than half of the dark frames";
 }
 
 TEST(BpmV2LinesTest, ASingleDeadPixelOrASmallBlockIsNotALine) {

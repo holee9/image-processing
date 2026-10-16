@@ -1,0 +1,110 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    p = base + rel
+    s = open(p, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:90])
+        s = s.replace(old, new)
+    open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('include/xpe/preprocess_api.h', [
+    ('''#define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance */''',
+     '''#define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance, in most of the dark frames (a line that is large in a few frames only is noise that moves, not a defect) */'''),
+    ('''    float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
+} XpeBpmLine;''', '''    float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
+    float    persistence;  /**< Fraction of the dark frames in which the stretch is large (noise cause found in the dark frames); -1 when it was not tested */
+} XpeBpmLine;'''),
+    (''' * Adjacent defective lines are grouped:''', ''' * The noise cause is judged frame by frame: the stretch must be large in more than half of the dark frames. Noise that moves from line to line between frames
+ * is never a defect of a place and is not reported. (Stretches found in the bright frames are not tested per frame.)
+ *
+ * Adjacent defective lines are grouped:'''),
+])
+
+edit('src/xpe_bpm_v2.cpp', [
+    ('#include <cstring>\n#include <limits>', '#include <cstring>\n#include <functional>\n#include <limits>'),
+    ('''    uint32_t cause;
+    float    z;
+};
+
+struct LineJob {''', '''    uint32_t cause;
+    float    z;
+    float    persist{-1.0f};   // fraction of the dark frames in which the stretch is large; -1 = not tested
+};
+
+struct LineJob {'''),
+    ('''    bool             linesOnly{false};
+    std::vector<Seg> segs;''', '''    bool             linesOnly{false};
+    // set while the dark-frame noise feature is analysed: the fraction of the dark frames in which the stretch (orientation, line, [a, b)) is large
+    std::function<float(int, int, int, int)> persistence;
+    std::vector<Seg> segs;'''),
+    ('''            if (cause == 0) continue;
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax)});''', '''            if (cause == 0) continue;
+            float persist = -1.0f;
+            if (cause == XPE_BPM_LINE_CAUSE_NOISE && job->persistence) {
+                persist = job->persistence(orient, y, a, b);
+                if (!(persist > 0.5f)) continue;   // large in half of the frames or fewer: noise that moves, not a defect of a place
+            }
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax), persist});'''),
+    # groups keep the largest persistence
+    ('''                lines.back().z = std::max(lines.back().z, s.z);''', '''                lines.back().z = std::max(lines.back().z, s.z);
+                lines.back().persist = std::max(lines.back().persist, s.persist);'''),
+    ('''    uint32_t causes, flags;
+    float    z;
+};''', '''    uint32_t causes, flags;
+    float    z;
+    float    persist;
+};'''),
+    ('''            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z};''', '''            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z, lines[i].persist};'''),
+    ('''                g.z = std::max(g.z, lines[j].z);''', '''                g.z = std::max(g.z, lines[j].z);
+                g.persist = std::max(g.persist, lines[j].persist);'''),
+    ('''            o.strength = g.z;''', '''            o.strength = g.z;
+            o.persistence = g.persist;'''),
+    # row and column means of every dark frame are kept (small vectors)
+    ('''        std::vector<double> rowMean(static_cast<size_t>(h)), colMean(static_cast<size_t>(w));''', '''        std::vector<double> rowMean(static_cast<size_t>(h)), colMean(static_cast<size_t>(w));
+        rowMeanK.resize(nd);
+        colMeanK.resize(nd);'''),
+    ('''            for (int x = 0; x < w; ++x) colMean[static_cast<size_t>(x)] /= h;''', '''            for (int x = 0; x < w; ++x) colMean[static_cast<size_t>(x)] /= h;
+            rowMeanK[k - first] = rowMean;
+            colMeanK[k - first] = colMean;'''),
+    ('''    std::vector<float> D(n), s2(n, 0.0f);''', '''    std::vector<float> D(n), s2(n, 0.0f);
+    std::vector<std::vector<double>> rowMeanK, colMeanK;   // per dark frame: the row means and the column means taken out (line persistence)'''),
+    ('''        for (size_t i = 0; i < n; ++i) t[i] = static_cast<float>(static_cast<double>(wk.feat[i]) / std::max(static_cast<double>(wk.bg[i]) / mnu, kReferenceFloor));
+        analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+    }''', '''        for (size_t i = 0; i < n; ++i) t[i] = static_cast<float>(static_cast<double>(wk.feat[i]) / std::max(static_cast<double>(wk.bg[i]) / mnu, kReferenceFloor));
+        // persistence: per dark frame, the mean of the squared residual over the stretch (each pixel at most 16 times its local variance) against the median of the same
+        // pixels in the neighbouring lines; the frame counts when the ratio reaches the tolerance. Returns the share of the dark frames that count.
+        job->persistence = [&](int orient, int idx, int a, int b) -> float {
+            const int half = static_cast<int>(st.window) / 2;
+            const int lines = orient == 0 ? h : w;
+            int       hits = 0;
+            for (uint32_t k = 0; k < nd; ++k) {
+                const uint16_t* p = px(dark_frames[first + k]);
+                auto lineStat = [&](int line) {
+                    double acc = 0.0;
+                    for (int t2 = a; t2 < b; ++t2) {
+                        const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
+                        const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                        const double e = static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMeanK[k][static_cast<size_t>(y)] - colMeanK[k][static_cast<size_t>(x)];
+                        acc += std::min(e * e, 16.0 * static_cast<double>(wk.bg[i]));
+                    }
+                    return acc;
+                };
+                const double       sf = lineStat(idx);
+                std::vector<float> nb;
+                for (int d = -half; d <= half; ++d)
+                    if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(lineStat(idx + d)));
+                const double sr = nb.empty() ? sf : static_cast<double>(medianOf(nb.data(), nb.size()));
+                if (sr > 0.0 && sf / sr >= job->tol) ++hits;
+            }
+            return static_cast<float>(hits) / static_cast<float>(nd);
+        };
+        analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+        job->persistence = nullptr;
+    }'''),
+])
+print('patched')

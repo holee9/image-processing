@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <limits>
 #include <new>
 #include <vector>
@@ -299,6 +300,7 @@ struct Seg {
     int      a, b;     // [a, b) along the line
     uint32_t cause;
     float    z;
+    float    persist{-1.0f};   // fraction of the dark frames in which the stretch is large; -1 = not tested
 };
 
 struct LineJob {
@@ -306,6 +308,8 @@ struct LineJob {
     int              minSeg{64};
     double           tol{1.9952623149688795};   // 3 dB as a power ratio
     bool             linesOnly{false};
+    // set while the dark-frame noise feature is analysed: the fraction of the dark frames in which the stretch (orientation, line, [a, b)) is large
+    std::function<float(int, int, int, int)> persistence;
     std::vector<Seg> segs;
     float            nullWidth[6]{1, 1, 1, 1, 1, 1};
 };
@@ -418,7 +422,12 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
                 cause = XPE_BPM_LINE_CAUSE_LINEARITY;
             }
             if (cause == 0) continue;
-            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax)});
+            float persist = -1.0f;
+            if (cause == XPE_BPM_LINE_CAUSE_NOISE && job->persistence) {
+                persist = job->persistence(orient, y, a, b);
+                if (!(persist > 0.5f)) continue;   // large in half of the frames or fewer: noise that moves, not a defect of a place
+            }
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax), persist});
         }
     }
 }
@@ -436,6 +445,7 @@ struct Group {
     int      orient, idx, width, a, b;
     uint32_t causes, flags;
     float    z;
+    float    persist;
 };
 
 /** Merges the stretches of one line, then groups adjacent lines whose stretches overlap by half. */
@@ -453,6 +463,7 @@ std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
                 lines.back().b = std::max(lines.back().b, s.b);
                 lines.back().cause |= s.cause;
                 lines.back().z = std::max(lines.back().z, s.z);
+                lines.back().persist = std::max(lines.back().persist, s.persist);
             } else {
                 lines.push_back(s);
             }
@@ -461,7 +472,7 @@ std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
         std::vector<bool> used(lines.size(), false);
         for (size_t i = 0; i < lines.size(); ++i) {
             if (used[i]) continue;
-            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z};
+            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z, lines[i].persist};
             used[i] = true;
             int last = lines[i].idx;
             for (size_t j = i + 1; j < lines.size(); ++j) {
@@ -473,6 +484,7 @@ std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
                 g.b = std::max(g.b, lines[j].b);
                 g.causes |= lines[j].cause;
                 g.z = std::max(g.z, lines[j].z);
+                g.persist = std::max(g.persist, lines[j].persist);
                 ++g.width;
                 last = lines[j].idx;
                 used[j] = true;
@@ -540,6 +552,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
 
     // ---- dark mean D and the temporal variance s2 (frame and row components removed per frame)
     std::vector<float> D(n), s2(n, 0.0f);
+    std::vector<std::vector<double>> rowMeanK, colMeanK;   // per dark frame: the row means and the column means taken out (line persistence)
     {
         std::vector<uint32_t> sum(n, 0u);
         for (uint32_t k = first; k < num_dark; ++k) {
@@ -548,6 +561,8 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         }
         for (size_t i = 0; i < n; ++i) D[i] = static_cast<float>(sum[i]) / static_cast<float>(nd);
         std::vector<double> rowMean(static_cast<size_t>(h)), colMean(static_cast<size_t>(w));
+        rowMeanK.resize(nd);
+        colMeanK.resize(nd);
         for (uint32_t k = first; k < num_dark; ++k) {
             const uint16_t* p = px(dark_frames[k]);
             for (int y = 0; y < h; ++y) {
@@ -566,6 +581,8 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                     colMean[static_cast<size_t>(x)] += static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMean[static_cast<size_t>(y)];
                 }
             for (int x = 0; x < w; ++x) colMean[static_cast<size_t>(x)] /= h;
+            rowMeanK[k - first] = rowMean;
+            colMeanK[k - first] = colMean;
             for (int y = 0; y < h; ++y)
                 for (int x = 0; x < w; ++x) {
                     const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
@@ -703,7 +720,35 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         const double       mnu = varianceMedian(nu[1]);
         std::vector<float> t(n);
         for (size_t i = 0; i < n; ++i) t[i] = static_cast<float>(static_cast<double>(wk.feat[i]) / std::max(static_cast<double>(wk.bg[i]) / mnu, kReferenceFloor));
+        // persistence: per dark frame, the mean of the squared residual over the stretch (each pixel at most 16 times its local variance) against the median of the same
+        // pixels in the neighbouring lines; the frame counts when the ratio reaches the tolerance. Returns the share of the dark frames that count.
+        job->persistence = [&](int orient, int idx, int a, int b) -> float {
+            const int half = static_cast<int>(st.window) / 2;
+            const int lines = orient == 0 ? h : w;
+            int       hits = 0;
+            for (uint32_t k = 0; k < nd; ++k) {
+                const uint16_t* p = px(dark_frames[first + k]);
+                auto lineStat = [&](int line) {
+                    double acc = 0.0;
+                    for (int t2 = a; t2 < b; ++t2) {
+                        const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
+                        const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                        const double e = static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMeanK[k][static_cast<size_t>(y)] - colMeanK[k][static_cast<size_t>(x)];
+                        acc += std::min(e * e, 16.0 * static_cast<double>(wk.bg[i]));
+                    }
+                    return acc;
+                };
+                const double       sf = lineStat(idx);
+                std::vector<float> nb;
+                for (int d = -half; d <= half; ++d)
+                    if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(lineStat(idx + d)));
+                const double sr = nb.empty() ? sf : static_cast<double>(medianOf(nb.data(), nb.size()));
+                if (sr > 0.0 && sf / sr >= job->tol) ++hits;
+            }
+            return static_cast<float>(hits) / static_cast<float>(nd);
+        };
         analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+        job->persistence = nullptr;
     }
 
     // F3a slope and F3b linearity
@@ -987,6 +1032,7 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_fr
             o.causes = g.causes;
             o.flags = g.flags;
             o.strength = g.z;
+            o.persistence = g.persist;
             ++written;
         } else if (lines_out) {
             rep.truncated = 1;
