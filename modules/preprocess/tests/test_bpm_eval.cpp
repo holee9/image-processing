@@ -397,6 +397,30 @@ TEST_F(BpmEvalTest, ScoreSeparatesAPerfectMapFromAnEmptyOne) {
     EXPECT_NE(std::string::npos, j2.find("\"control_false_detections\": 0"));
 }
 
+TEST_F(BpmEvalTest, MapV2TakesMarginsAndWritesTheOutOfAreaCodeThere) {
+    makeFrames(6, 8, 0);
+    auto run = [&](const std::string& margins, const fs::path& out) {
+        std::string args = "map-v2 --out \"" + out.string() + "\" --width 1024 --height 1024 --min-bright 2" + (margins.empty() ? "" : " --margins " + margins);
+        args += files("dark", darks) + files("bright", brights) + " > \"" + (root / "mv2.log").string() + "\" 2>&1";
+        return runCmd(XPE_BPM_EVAL_EXE, args);
+    };
+    const fs::path out = root / "mv2.u8";
+    ASSERT_EQ(0, run("6,2,1,1", out)) << text(root / "mv2.log");
+    const std::vector<uint8_t> m = readBytes(out);
+    ASSERT_EQ(kN, m.size());
+    for (size_t y = 0; y < kH; ++y)
+        for (size_t x = 0; x < kW; ++x) {
+            const bool margin = x < 6 || y < 2 || x >= kW - 1 || y >= kH - 1;
+            ASSERT_EQ(margin, m[y * kW + x] == XPE_BPM_V2_OUT_OF_AREA) << "(" << x << "," << y << ")";
+        }
+    EXPECT_EQ(2, run("1,2,3", root / "bad1.u8")) << "three numbers are not a margin specification";
+    EXPECT_EQ(2, run("6,2,1,1,5", root / "bad2.u8"));
+    EXPECT_EQ(2, run("6,2,1,x", root / "bad3.u8"));
+    EXPECT_EQ(0, run("", root / "none.u8")) << text(root / "mv2.log");
+    const std::vector<uint8_t> n0 = readBytes(root / "none.u8");
+    EXPECT_EQ(0, std::count(n0.begin(), n0.end(), static_cast<uint8_t>(XPE_BPM_V2_OUT_OF_AREA))) << "no margins, no out-of-area code";
+}
+
 TEST_F(BpmEvalTest, ScoreTreatsTheOutOfAreaCodeAsNotAFlag) {
     makeFrames(5, 3, 2);
     const fs::path t = root / "t";

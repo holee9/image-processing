@@ -845,7 +845,8 @@ int cmdMapV2(const Args& a) {
     if (a.has("margins")) {   // L,T,R,B: columns / rows at the edges that are outside the imaging area
         unsigned    v[4] = {0, 0, 0, 0};
         int         got = 0;
-        const char* c = a.str("margins").c_str();
+        const std::string spec = a.str("margins");
+        const char*       c = spec.c_str();
         while (got < 4) {
             char* end = nullptr;
             const unsigned long x = std::strtoul(c, &end, 10);
