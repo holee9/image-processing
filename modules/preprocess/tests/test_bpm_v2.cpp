@@ -80,6 +80,7 @@ struct Plant {
     bool darkPartial{false};    // a steep dark-level gradient along the rows and a raised segment in the middle of one row (every frame): only the dark-mean feature sees it
     bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
     bool strongShading{false};
+    bool respPixels{false};       // QA-A-252d: single pixels with a response of 0.40, 0.50, 0.60, 0.75, 1.45, 1.60 (row 220)
     double   burstAmp{14.0};      // QA-A-253e: amplitude of the single-frame bursts / the noise of the some-frames stretches (see kLn*One, kLn*Frames)
     uint32_t frameMask{0};        // QA-A-253e: the frames (bit = frame index in acquisition order, dark or bright) that carry the noise of kLnDarkNoisyFrames / kLnBrightNoisyFrames
     uint32_t lines{0};            // QA-A-253: kLn* bits, whole rows and columns that are defective  // +-20 % gain shading along both directions (a heel-effect-like flat field): a line component taken from a partly defective line moves by many noise widths
@@ -99,7 +100,7 @@ constexpr int kDarkRow = 60, kDarkFrom = 96;   // the raised segment: kPartLen p
 constexpr int kVarCol = 70;                  // a column whose offset is a new random value in every frame (sd 60)
 // line defects of the QA-A-253 tests (256 x 256 frames)
 constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256, kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048,
-                 kLnDarkBurstOne = 4096, kLnDarkNoisyFrames = 8192, kLnBrightBurstOne = 16384, kLnBrightNoisyFrames = 32768, kLnStagger2 = 65536, kLnStagger3 = 131072;
+                 kLnLowRow = 262144, kLnHighRow = 524288, kLnWeakRow = 1048576, kLnDarkBurstOne = 4096, kLnDarkNoisyFrames = 8192, kLnBrightBurstOne = 16384, kLnBrightNoisyFrames = 32768, kLnStagger2 = 65536, kLnStagger3 = 131072;
 constexpr int kLnDeadRowY = 120, kLnDeadColX = 60, kLnHalfRowY = 80, kLnPartialRowY = 40, kLnPartialFrom = 96, kLnPartialTo = 192, kLnPairY = 170, kLnTripleY = 200, kLnNoisyY = 30, kLnGainY = 150;
 // QA-A-253c: noise that moves. In dark frame k the stretch [96, 192) of row kBurstY0 + k gets an offset of +-14 (a different row in every frame)
 constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;
@@ -107,6 +108,10 @@ constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;
 constexpr int kLnGainColX = 180, kLnBrightNoisyY = 60, kBrightBurstY0 = 100;
 // QA-A-253e: a burst in one frame only (row 140), noise in some frames only (row 160), adjacent dead rows whose ends differ (rows 210..212)
 constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;
+// QA-A-252d: response rows (0.3 and 1.7 are defects, 0.6 is weak) and the response pixels
+constexpr int kLnLowRowY = 70, kLnHighRowY = 190, kLnWeakRowY = 50, kRespY = 220;
+constexpr int kRespX[6] = {30, 40, 50, 60, 70, 80};
+constexpr double kRespR[6] = {0.40, 0.50, 0.60, 0.75, 1.45, 1.60};
 constexpr int kStagFrom[3] = {96, 120, 140}, kStagTo[3] = {192, 216, 236};
 
 Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPerDose, int nDark, Plant plant, bool transientFirstDark = false) {
@@ -141,6 +146,9 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                 if ((plant.lines & kLnTripleRows) && y >= kLnTripleY && y < kLnTripleY + 3) sig = 0.0;
                 if ((plant.lines & kLnNoisyRow) && y == kLnNoisyY) noiseSd = 9.0;
                 if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnLowRow) && y == kLnLowRowY) sig *= 0.3;
+                if ((plant.lines & kLnHighRow) && y == kLnHighRowY) sig *= 1.7;
+                if ((plant.lines & kLnWeakRow) && y == kLnWeakRowY) sig *= 0.6;
                 if ((plant.lines & kLnDarkBurstOne) && darkIdx == 3 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp;
                 if ((plant.lines & kLnDarkNoisyFrames) && darkIdx >= 0 && ((plant.frameMask >> darkIdx) & 1u) && y == kSomeFramesY && x >= kBurstFrom && x < kBurstTo) noiseSd = plant.burstAmp;
                 if ((plant.lines & kLnBrightBurstOne) && bright && brightIdx == 1 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp * 0.5 * std::sqrt(std::max(sig, 1.0));
@@ -155,6 +163,9 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                     d += (brightIdx % 3 == 0 ? 3.0 : -3.0) * std::sqrt(std::max(sig, 1.0));   // +-6 quantum sd in two frames of a dose group (the group mean stays), a different row for every group
                 if ((plant.lines & kLnMovingBurst) && darkIdx >= 0 && y == kBurstY0 + darkIdx && x >= kBurstFrom && x < kBurstTo) d += (darkIdx % 2 ? -14.0 : 14.0);
             }
+            if (plant.respPixels && y == kRespY)
+                for (int q = 0; q < 6; ++q)
+                    if (x == kRespX[q]) sig *= kRespR[q];
             if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
             if (plant.strongShading) sig *= (0.8 + 0.4 * x / (kW - 1)) * (0.8 + 0.4 * y / (kH - 1));
             if (plant.varyingColumn && x == kVarCol) d += columnOffset;
@@ -232,8 +243,9 @@ TEST(BpmV2Test, FlagsEachPlantedDefectWithTheFeatureThatSeesIt) {
     // dead and slope: the response features -> code 1
     EXPECT_NE(0, r.feat[at(kDeadX, kDeadY)] & XPE_BPM_V2_FEATURE_FLAT);
     EXPECT_EQ(1, r.map[at(kDeadX, kDeadY)]);
-    EXPECT_NE(0, r.feat[at(kSlopeX, kSlopeY)] & (XPE_BPM_V2_FEATURE_FLAT | XPE_BPM_V2_FEATURE_DOSE_SLOPE));
-    EXPECT_EQ(1, r.map[at(kSlopeX, kSlopeY)]);
+    // a response of 1.10 is inside 45 %..150 % of the local median: not a defect (SRS FUNC-022), and the slope feature no longer flags pixels
+    EXPECT_EQ(0, r.feat[at(kSlopeX, kSlopeY)] & (XPE_BPM_V2_FEATURE_FLAT | XPE_BPM_V2_FEATURE_DOSE_SLOPE));
+    EXPECT_EQ(0, r.map[at(kSlopeX, kSlopeY)]);
     // noisy: only the dark temporal noise sees it -> code 2
     EXPECT_NE(0, r.feat[at(kNoisyX, kNoisyY)] & XPE_BPM_V2_FEATURE_DARK_NOISE);
     EXPECT_EQ(2, r.map[at(kNoisyX, kNoisyY)]);
@@ -494,16 +506,20 @@ TEST(BpmV2LinesTest, AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross) {
 }
 
 TEST(BpmV2LinesTest, ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot) {
-    // row 80: response 0.5 (correction doubles the noise: 6 dB, a defect); row 150: response 1.2 and column 220: response 0.8 (1.6 dB and 1.9 dB: bands that gain correction removes)
-    Frames f = makeFrames(22, kDoses, 3, 7, onlyLines(kLnHalfRow | kLnGainRow));
+    // QA-A-252d: a response below 45 % or above 150 % is a defect; 0.5 (row 80), 0.6 (row 50), 1.2 (row 150) and the 0.8 column are not; 0.3 (row 70) and 1.7 (row 190) are
+    Frames f = makeFrames(22, kDoses, 3, 7, onlyLines(kLnHalfRow | kLnGainRow | kLnLowRow | kLnHighRow | kLnWeakRow));
     Frames g = makeFrames(22, kDoses, 3, 7, Plant{true, false});   // the fixed row band of +60 and the gain column band of 0.8
     const XpeBpmLineConfig lc = shortWindows();
     const LinesResult r = findLines(f, nullptr, &lc), bands = findLines(g, nullptr, &lc);
     ASSERT_EQ(XPE_OK, r.rc);
     ASSERT_EQ(XPE_OK, bands.rc);
-    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) << "response 0.5: found";
+    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY)) << "response 0.3: found";
+    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHighRowY)) << "response 1.7: found";
+    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) << "response 0.5: inside 45 %..150 %, normal";
+    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnWeakRowY)) << "response 0.6: weak, counted only";
     EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnGainY)) << "response 1.2: a band that gain correction removes";
-    EXPECT_EQ(1u, r.rep.lines);
+    EXPECT_EQ(2u, r.rep.lines);
+    EXPECT_GE(r.rep.weak_response_stretches, 2u) << "the rows at 0.5 and 0.6 are weak responses";
     EXPECT_EQ(0u, bands.rep.lines) << "the fixed offset band and the 0.8 gain band are not defects";
 }
 
@@ -793,6 +809,32 @@ TEST(BpmV2LinesTest, BlobsGroupNeighbouringDefectivePixelsWithTheirSize) {
     EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_bpm_blobs(&b, out, 8, &count));
 }
 
+TEST(BpmV2Test, TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes) {
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    p.respPixels = true;
+    Frames f = makeFrames(46, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    for (int q = 0; q < 6; ++q) {
+        const bool defect = kRespR[q] < 0.45 || kRespR[q] > 1.5;
+        const bool flagged = (r.feat[static_cast<size_t>(kRespY) * kW + kRespX[q]] & XPE_BPM_V2_FEATURE_FLAT) != 0;
+        EXPECT_EQ(defect, flagged) << "response " << kRespR[q];
+    }
+    EXPECT_EQ(2u, r.rep.weak_response_pixels) << "0.50 and 0.60 are from 45 % up to 70 %: weak, counted, not flagged";
+}
+
+TEST(BpmV2LinesTest, AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups) {
+    // eight dose groups make the linearity statistic sharp enough for the shift of log(sse) by a gain band (x1.35: +0.6) to stand out when it is not made relative
+    const std::vector<double> doses8 = {1000.0, 2000.0, 3000.0, 4500.0, 6000.0, 9000.0, 13000.0, 18000.0};
+    Frames f = makeFrames(47, doses8, 3, 7, onlyLines(kLnGainCol));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines);
+}
+
 TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {
     Frames f = makeFrames(3, kDoses, 3, 7, Plant{false, false});
     XpeBpmConfigV2 one{}, hundred{};
@@ -801,7 +843,10 @@ TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {
     ASSERT_EQ(XPE_OK, a.rc);
     ASSERT_EQ(XPE_OK, b.rc);
     ASSERT_EQ(static_cast<uint32_t>(kN), a.rep.pixels);
-    for (int k : {0, 2, 4}) {   // the z features: erfc(lambda / sqrt 2) * N is the target
+    EXPECT_FLOAT_EQ(0.45f, a.rep.threshold[4]) << "the response rule: 45 % of the local median, whatever the false-alarm target";
+    EXPECT_FLOAT_EQ(0.45f, a.rep.response_ratio_low);
+    EXPECT_FLOAT_EQ(1.5f, a.rep.response_ratio_high);
+    for (int k : {0}) {   // the z feature (the dark mean): erfc(lambda / sqrt 2) * N is the target
         EXPECT_NEAR(1.0, std::erfc(static_cast<double>(a.rep.threshold[k]) / std::sqrt(2.0)) * static_cast<double>(kN), 0.002) << k;
         EXPECT_NEAR(100.0, std::erfc(static_cast<double>(b.rep.threshold[k]) / std::sqrt(2.0)) * static_cast<double>(kN), 0.2) << k;
         EXPECT_GT(a.rep.threshold[k], b.rep.threshold[k]);
@@ -879,7 +924,7 @@ TEST(BpmV2Test, TheLinearityFeatureNeedsThreeDoseGroups) {
     const Result r = detect(f, nullptr);
     ASSERT_EQ(XPE_OK, r.rc);
     EXPECT_EQ(2u, r.rep.dose_groups);
-    EXPECT_EQ(1u, r.rep.feature_active[2]);
+    EXPECT_EQ(0u, r.rep.feature_active[2]) << "the slope feature is retired as a pixel feature (it stays a line feature)";
     EXPECT_EQ(0u, r.rep.feature_active[3]);
     Frames one = makeFrames(7, {6000.0}, 8, 7, Plant{false, false});
     const Result o = detect(one, nullptr);

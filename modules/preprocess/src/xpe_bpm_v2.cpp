@@ -31,6 +31,9 @@
 namespace {
 
 constexpr double kMadToSigma = 1.4826;
+constexpr double kResponseLow = 0.45;       // SRS FUNC-022 (provisional, user decision): a response below 45 % of the local median is a defect
+constexpr double kResponseHigh = 1.5;       // ... above 150 %
+constexpr double kWeakResponseHigh = 0.7;   // 45 % up to 70 %: weak, counted only
 constexpr double kScaleFloor = 1e-6;
 constexpr double kReferenceFloor = 1e-9;
 
@@ -259,6 +262,30 @@ struct Work {
     std::vector<float> feat, tmp, bg;
 };
 
+/**
+ * The response ratio rule (QA-A-252d, SRS FUNC-022): the row and column factors are taken out, the local median is the background, and a pixel whose feature is below
+ * @p lo or above @p hi times the background is defective. @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
+ */
+float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {
+    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), true);
+    separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
+    std::vector<float> sample;
+    sample.reserve(wk.n / 16 + 1);
+    for (size_t i = 0; i < wk.n; ++i) {
+        const double bg = static_cast<double>(wk.bg[i]);
+        if (!(std::fabs(bg) > 1e-12)) continue;
+        const double ratio = static_cast<double>(wk.feat[i]) / bg;
+        if (i % 16 == 0) sample.push_back(static_cast<float>(ratio));
+        if (ratio < lo || ratio > hi) {
+            (*flags)[i] = static_cast<uint8_t>((*flags)[i] | bit);
+            ++*count;
+        } else if (ratio < weakHi) {
+            ++*weak;
+        }
+    }
+    return sample.empty() ? 0.0f : medianOf(sample.data(), sample.size());
+}
+
 /** Robust z feature: subtracts rows and columns, estimates background and scale, flags |z| > lambda (z > lambda when @p upperOnly). Returns the median local scale. */
 float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
     removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), multiplicative);
@@ -311,6 +338,8 @@ struct Seg {
 };
 
 struct LineJob {
+    bool             countWeak{false};   // count the weak-response stretches of the response feature being analysed
+    uint32_t         weak{0};
     double           fa{1.0};
     int              minSeg{64};
     double           tol{1.9952623149688795};   // 3 dB as a power ratio
@@ -366,7 +395,7 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
     job->nullWidth[nullSlot] = static_cast<float>(kappa);
     const double tests = std::max(1.0, static_cast<double>(h) * static_cast<double>(w) / static_cast<double>(L));
     const double lambda = zThreshold(job->fa / tests);
-    const double lo = 1.0 / std::sqrt(job->tol), hi = std::sqrt(job->tol);
+    const double lo = kResponseLow, hi = kResponseHigh;
     for (int y = 0; y < h; ++y) {
         const float* zr = zw.data() + static_cast<size_t>(y) * static_cast<size_t>(nw);
         const float* er = e.data() + static_cast<size_t>(y) * static_cast<size_t>(w);
@@ -446,6 +475,7 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             if (kind == kKindResponse) {
                 const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
                 if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;
+                else if (job->countWeak && g < kWeakResponseHigh) ++job->weak;
             } else if (kind == kKindNoise) {
                 const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
                 if (g >= job->tol) cause = XPE_BPM_LINE_CAUSE_NOISE;
@@ -858,12 +888,12 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
 
     // F3a slope and F3b linearity
     if (G >= 2) {
-        active[2] = 1;
+        // The slope feature is retired as a pixel feature (QA-A-252d): a response is judged by the ratio rule on the flat-field response (F4). It stays as a line feature.
         const double dgx = static_cast<double>(G) * Sxx - Sx * Sx;
-        for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
-        threshold[2] = lambdaTwoSided;
-        if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
-        if (!(job && job->linesOnly)) scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);
+        if (job) {
+            for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
+            analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        }
         if (G >= 3) {
             // The noise of the group means differs from group to group (shot noise grows with the dose, the groups hold different numbers of frames),
             // so the residual of the unweighted fit is not chi-square distributed; the log of the residual variance is judged by the robust z machinery instead.
@@ -955,9 +985,14 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
 
     // F4 relative flat-field response
     for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>(Sn[i] / Sx);
-    threshold[4] = lambdaTwoSided;
-    if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
-    if (!(job && job->linesOnly)) scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);
+    threshold[4] = static_cast<float>(kResponseLow);
+    if (job) {
+        job->countWeak = true;   // the weak-response stretches are counted on this feature only (the slope feature sees the same lines)
+        analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        job->countWeak = false;
+    }
+    uint32_t weakResponse = 0;
+    if (!(job && job->linesOnly)) scaleMed[4] = flagResponseRatio(wk, st, kResponseLow, kResponseHigh, kWeakResponseHigh, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4], &weakResponse);
 
     // ---- output
     uint8_t* out = static_cast<uint8_t*>(bpm_out->data);
@@ -983,6 +1018,9 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
             report->flagged[f] = counts[f];
         }
         report->flagged_union = unionCount;
+        report->weak_response_pixels = weakResponse;
+        report->response_ratio_low = static_cast<float>(kResponseLow);
+        report->response_ratio_high = static_cast<float>(kResponseHigh);
         for (uint32_t g = 0; g < G; ++g) {
             report->group_signal[g] = static_cast<float>(groupSignal[g]);
             report->group_frames[g] = static_cast<uint32_t>(groups[g].size());
@@ -1168,6 +1206,7 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_fr
     rep.pixels = static_cast<uint32_t>(static_cast<size_t>(vw) * static_cast<size_t>(vh));
     for (int k = 0; k < 6; ++k) rep.null_width[k] = job.nullWidth[k];
     rep.lines = static_cast<uint32_t>(groups.size());
+    rep.weak_response_stretches = job.weak;
     uint32_t written = 0;
     for (const Group& g : groups) {
         if (g.orient == 0) ++rep.row_groups;

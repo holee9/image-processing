@@ -1064,9 +1064,9 @@ int cmdLines(const Args& a) {
     char j[900];
     std::snprintf(j, sizeof j,
                   "{\n  \"groups\": %u, \"row_groups\": %u, \"column_groups\": %u, \"full\": %u, \"partial\": %u, \"double\": %u, \"crossings\": %u,\n"
-                  "  \"max_adjacent\": %u, \"panel_reject\": %u, \"truncated\": %u, \"line_pixels\": %u, \"pixels\": %u,\n"
+                  "  \"max_adjacent\": %u, \"panel_reject\": %u, \"truncated\": %u, \"line_pixels\": %u, \"pixels\": %u, \"weak_response_stretches\": %u,\n"
                   "  \"null_width\": [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n}\n",
-                  rep.lines, rep.row_groups, rep.column_groups, rep.full_lines, rep.partial_lines, rep.double_lines, rep.crossings, rep.max_adjacent, rep.panel_reject, rep.truncated, rep.line_pixels, rep.pixels,
+                  rep.lines, rep.row_groups, rep.column_groups, rep.full_lines, rep.partial_lines, rep.double_lines, rep.crossings, rep.max_adjacent, rep.panel_reject, rep.truncated, rep.line_pixels, rep.pixels, rep.weak_response_stretches,
                   static_cast<double>(rep.null_width[0]), static_cast<double>(rep.null_width[1]), static_cast<double>(rep.null_width[2]), static_cast<double>(rep.null_width[3]),
                   static_cast<double>(rep.null_width[4]), static_cast<double>(rep.null_width[5]));
     if (a.has("report") && !writeBytes(a.str("report"), j, std::strlen(j))) return 3;
@@ -1199,7 +1199,8 @@ int cmdMapV2(const Args& a) {
                       f + 1 < XPE_BPM_V2_FEATURE_COUNT ? "," : "");
         j += b;
     }
-    j += "  ],\n  \"flagged_union\": " + std::to_string(rep.flagged_union) + "\n}\n";
+    j += "  ],\n  \"flagged_union\": " + std::to_string(rep.flagged_union) + ",\n  \"weak_response_pixels\": " + std::to_string(rep.weak_response_pixels) + ",\n  \"response_ratio_low\": " +
+         fmtLevel(static_cast<double>(rep.response_ratio_low)) + ",\n  \"response_ratio_high\": " + fmtLevel(static_cast<double>(rep.response_ratio_high)) + "\n}\n";
     if (a.has("report") && !writeBytes(a.str("report"), j.data(), j.size())) return 3;
     std::printf("xpe_bpm_generate_v2: %u darks used, %u brights in %u dose groups, %u defect pixels (union of the features) -> %s\n", rep.dark_frames_used, rep.bright_frames_used,
                 rep.dose_groups, rep.flagged_union, a.str("out").c_str());

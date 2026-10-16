@@ -1954,6 +1954,9 @@ typedef struct {
     uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */
     uint32_t out_of_area_pixels;                              /**< Pixels outside the imaging area (the margins of the configuration); not in `pixels` */
     float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */
+    uint32_t weak_response_pixels;                            /**< Pixels whose response is from 45 % up to 70 % of the local median: not defects (SRS FUNC-022), counted for the record only */
+    float    response_ratio_low;                              /**< The response rule: a pixel is defective below this fraction of the local median response (0.45) */
+    float    response_ratio_high;                             /**< ... or above this fraction (1.5) */
     uint32_t group_frames[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Frames in each dose group */
 } XpeBpmReportV2;
 
@@ -1964,7 +1967,9 @@ typedef struct {
  * on its own, with the union flagged: (1) the local deviation of the dark mean, (2) the temporal
  * noise of the dark frames, (3) the slope and the straight-line residual of the response over dose
  * groups, (4) the local deviation of the relative flat-field response. Deviations are robust
- * (median and median absolute deviation). The row and column components of each feature image are
+ * (median and median absolute deviation), except the response of a pixel (QA-A-252d, SRS FUNC-022): that is judged by a RATIO rule, not by a z score. The response is the
+ * relative flat-field response (offset-corrected bright frames, summed over the dose groups) divided by its local median after the row and column factors are taken
+ * out; below 45 % or above 150 % is a defect, 45 % up to 70 % is a weak response that is only counted (report weak_response_pixels). The slope feature no longer flags pixels. The row and column components of each feature image are
  * subtracted before the local statistics, so stripes that offset and gain correction remove do
  * not spread into pixel defects (and full-length line defects are not reported here either; line
  * detection is a separate step). Thresholds are not fixed constants: each follows from the
@@ -2238,6 +2243,7 @@ typedef struct {
     uint32_t max_adjacent;        /**< Widest group */
     uint32_t panel_reject;        /**< 1 when some group is three adjacent lines or more */
     uint32_t truncated;           /**< 1 when more groups were found than max_lines */
+    uint32_t weak_response_stretches; /**< Stretches (rows and columns, counted once per orientation) whose response is from 45 % up to 70 % of their neighbours: not defects, counted for the record only */
     uint32_t line_pixels;         /**< Pixels covered by the groups */
     uint32_t pixels;              /**< Pixels inside the imaging area */
     float    null_width[6];       /**< Empirical width (robust sd) of the window statistic of each stretch test, in units of the uncorrelated-noise prediction: rows then columns of the three tests */
