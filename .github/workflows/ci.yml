@@ -167,7 +167,10 @@ jobs:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
     runs-on: windows-2025
-    timeout-minutes: 30
+    # 30 -> 45 (2026-10-17, #273): build 5 min + ctest 6.4 min + four ordered runs of ~5.4 min each
+    # (default + 3 shuffle seeds, #176) measured 33 min on run 38968908232 after the BPM v2 tests
+    # (681 -> 1,178). Keeping all three shuffle seeds is the point; the budget grows instead.
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
