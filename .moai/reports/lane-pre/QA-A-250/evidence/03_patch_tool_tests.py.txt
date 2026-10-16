@@ -1,0 +1,283 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_calib_fixture_gen.cpp'
+raw = open(p, 'rb').read()
+assert b'\r\n' not in raw and b'\0' not in raw
+s = raw.decode('utf-8')
+
+new_tests = r'''
+// ---------------------------------------------------------------- QA-A-250: --dark / --bright (any number of real frames)
+// Small stand-in frames (256 x 256, the size the older tests use): offset-uncorrected, a pedestal under every frame, a smooth sensitivity ramp in the
+// bright ones, one hot pixel in every dark frame, one dead and one hot pixel in every bright frame.
+struct FrameSet {
+    std::vector<std::string> darks, brights;
+};
+
+uint32_t nextNoise(uint32_t& state) {
+    state = state * 1664525u + 1013904223u;
+    return state >> 8;
+}
+
+void writeU16(const fs::path& path, const std::vector<uint16_t>& v) { writeBytes(path, v.data(), v.size() * sizeof(uint16_t)); }
+
+FrameSet writeFrameSet(const fs::path& dir, size_t darkCount, size_t brightCount) {
+    fs::create_directories(dir);
+    FrameSet set;
+    uint32_t state = 12345u;
+    const size_t n = static_cast<size_t>(kW) * kH;
+    for (size_t k = 0; k < darkCount; ++k) {
+        std::vector<uint16_t> f(n);
+        for (uint32_t y = 0; y < kH; ++y)
+            for (uint32_t x = 0; x < kW; ++x) f[y * kW + x] = static_cast<uint16_t>(1000 + ((x * 7 + y * 13) % 11) + (nextNoise(state) % 7));
+        f[40 * kW + 40] = 30000;   // hot in every dark frame
+        const fs::path path = dir / ("dark_" + std::to_string(k) + ".raw");
+        writeU16(path, f);
+        set.darks.push_back(path.string());
+    }
+    for (size_t k = 0; k < brightCount; ++k) {
+        std::vector<uint16_t> f(n);
+        for (uint32_t y = 0; y < kH; ++y)
+            for (uint32_t x = 0; x < kW; ++x)
+                f[y * kW + x] = static_cast<uint16_t>(1000 + 20000.0 * (0.9 + 0.2 * x / (kW - 1)) + (nextNoise(state) % 41));
+        f[100 * kW + 100] = 0;       // dead in every bright frame
+        f[50 * kW + 200] = 60000;    // hot in every bright frame
+        const fs::path path = dir / ("bright_" + std::to_string(k) + ".raw");
+        writeU16(path, f);
+        set.brights.push_back(path.string());
+    }
+    return set;
+}
+
+std::string framesArgs(const FrameSet& set) {
+    std::string a = " --width " + std::to_string(kW) + " --height " + std::to_string(kH) + " --expiry-ms " + std::to_string(kFarExpiryMs);
+    for (const auto& d : set.darks) a += " --dark \"" + d + "\"";
+    for (const auto& b : set.brights) a += " --bright \"" + b + "\"";
+    return a;
+}
+
+/** Runs the tool in frames mode into @p out, capturing stderr in <root>/<tag>.err; returns the exit code. */
+int runFrames(const fs::path& root, const fs::path& out, const std::string& args, const std::string& tag, std::string* err = nullptr) {
+    const fs::path errFile = root / (tag + ".err");
+    const int rc = runTool("--out \"" + out.string() + "\"" + args + " 2> \"" + errFile.string() + "\"");
+    if (err) *err = asText(readAll(errFile));
+    return rc;
+}
+
+bool hasNoMaps(const fs::path& out) {
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"})
+        if (fs::exists(out / name)) return false;
+    return true;
+}
+
+// What the mode promises: the three files from the given frames, byte-identical between runs, the manifest naming every input with its hash and mean, a
+// defect map that finds the planted pixels, and a set the module loads.
+TEST_F(CalibFixtureGenTest, FramesModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    ASSERT_EQ(0, runFrames(root, a, framesArgs(set), "a"));
+    ASSERT_EQ(0, runFrames(root, b, framesArgs(set), "b"));
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"}) {
+        const std::vector<char> lhs = readAll(a / name);
+        ASSERT_FALSE(lhs.empty()) << name << " is empty";
+        EXPECT_TRUE(lhs == readAll(b / name)) << name << " differs between two runs on the same frames";
+    }
+    const std::string manifest = asText(readAll(a / "manifest.json"));
+    EXPECT_NE(std::string::npos, manifest.find("\"mode\": \"frames\""));
+    EXPECT_NE(std::string::npos, manifest.find("\"frames\": {\"dark\": 6, \"bright\": 12}"));
+    size_t sha = 0, mean = 0;
+    for (size_t pos = manifest.find("\"sha256\""); pos != std::string::npos; pos = manifest.find("\"sha256\"", pos + 1)) ++sha;
+    for (size_t pos = manifest.find("\"mean\""); pos != std::string::npos; pos = manifest.find("\"mean\"", pos + 1)) ++mean;
+    EXPECT_EQ(18u, sha) << "every input needs its hash in the manifest";
+    EXPECT_EQ(18u, mean) << "every input needs its mean in the manifest";
+    EXPECT_NE(std::string::npos, manifest.find("\"gain_dark_reference\": \"mean\""));
+
+    // The generated defect map finds what was planted: a hot pixel in every dark, a dead and a hot pixel in every bright.
+    const std::vector<char> defect = readAll(a / "defect.xcal");
+    const size_t n = static_cast<size_t>(kW) * kH;
+    ASSERT_GT(defect.size(), n);
+    const char* mask = defect.data() + (defect.size() - n);
+    EXPECT_NE(0, mask[40 * kW + 40]) << "hot pixel of the dark frames";
+    EXPECT_NE(0, mask[100 * kW + 100]) << "dead pixel of the bright frames";
+    EXPECT_NE(0, mask[50 * kW + 200]) << "hot pixel of the bright frames";
+
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_offset((a / "offset.xcal").string().c_str()));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_gain((a / "gain.xcal").string().c_str()));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map((a / "defect.xcal").string().c_str()));
+    xpe_preprocess_shutdown();
+}
+
+// A list file gives the same set as repeating the option; its paths may be relative to the list.
+TEST_F(CalibFixtureGenTest, FramesModeListFilesGiveTheSameBytesAsRepeatedOptions) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    {
+        std::ofstream d(root / "in" / "darks.txt"), b(root / "in" / "brights.txt");
+        d << "# darks, relative to this file\n\n";
+        for (const auto& p : set.darks) d << fs::path(p).filename().string() << "\r\n";
+        for (const auto& p : set.brights) b << p << "\n";   // absolute
+    }
+    const fs::path viaOptions = caseDir("opt"), viaLists = caseDir("lst");
+    ASSERT_EQ(0, runFrames(root, viaOptions, framesArgs(set), "opt"));
+    const std::string listArgs = " --width " + std::to_string(kW) + " --height " + std::to_string(kH) + " --expiry-ms " + std::to_string(kFarExpiryMs) + " --dark-list \"" +
+                                 (root / "in" / "darks.txt").string() + "\" --bright-list \"" + (root / "in" / "brights.txt").string() + "\"";
+    ASSERT_EQ(0, runFrames(root, viaLists, listArgs, "lst"));
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"}) EXPECT_TRUE(readAll(viaOptions / name) == readAll(viaLists / name)) << name;
+}
+
+// The dark reference of the gain stage is a choice: the mean of the darks (default), nothing, or one file. Nothing and the default give different maps
+// (the pedestal is in the bright frames); a missing reference file is refused.
+TEST_F(CalibFixtureGenTest, FramesModeGainDarkReferenceIsAChoice) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path byDefault = caseDir("default"), none = caseDir("none"), file = caseDir("file"), missing = caseDir("missing");
+    ASSERT_EQ(0, runFrames(root, byDefault, framesArgs(set), "default"));
+    ASSERT_EQ(0, runFrames(root, none, framesArgs(set) + " --gain-dark-ref none", "none"));
+    ASSERT_EQ(0, runFrames(root, file, framesArgs(set) + " --gain-dark-ref \"" + set.darks[0] + "\"", "file"));
+    EXPECT_FALSE(readAll(byDefault / "gain.xcal") == readAll(none / "gain.xcal")) << "with and without the pedestal subtracted the gain maps cannot be equal";
+    EXPECT_TRUE(readAll(byDefault / "offset.xcal") == readAll(none / "offset.xcal")) << "the offset map does not depend on the gain reference";
+    EXPECT_NE(std::string::npos, asText(readAll(none / "manifest.json")).find("\"gain_dark_reference\": \"none\""));
+    EXPECT_NE(std::string::npos, asText(readAll(file / "manifest.json")).find("\"role\": \"gain_dark_reference\""));
+    std::string err;
+    EXPECT_NE(0, runFrames(root, missing, framesArgs(set) + " --gain-dark-ref \"" + (root / "no_such_dark.raw").string() + "\"", "missing", &err));
+    EXPECT_NE(std::string::npos, err.find("cannot open")) << err;
+    EXPECT_TRUE(hasNoMaps(missing));
+}
+
+// Someone else's defect map is compared and reported, never used: the three files are byte-identical with and without it. uint8 and uint16 forms agree.
+TEST_F(CalibFixtureGenTest, FramesModeReportsAgreementWithAReferenceMapAndDoesNotUseIt) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const size_t n = static_cast<size_t>(kW) * kH;
+    std::vector<uint8_t> ref8(n, 0u);
+    ref8[40 * kW + 40] = 127u;
+    ref8[100 * kW + 100] = 255u;
+    ref8[50 * kW + 200] = 255u;
+    ref8[10 * kW + 10] = 127u;   // a pixel the generator has no reason to flag
+    std::vector<uint16_t> ref16(n);
+    for (size_t i = 0; i < n; ++i) ref16[i] = ref8[i];
+    writeBytes(root / "ref8.raw", ref8.data(), n);
+    writeU16(root / "ref16.raw", ref16);
+    const fs::path plain = caseDir("plain"), with8 = caseDir("with8"), with16 = caseDir("with16");
+    ASSERT_EQ(0, runFrames(root, plain, framesArgs(set), "plain"));
+    ASSERT_EQ(0, runFrames(root, with8, framesArgs(set) + " --compare-bpm \"" + (root / "ref8.raw").string() + "\"", "with8"));
+    ASSERT_EQ(0, runFrames(root, with16, framesArgs(set) + " --compare-bpm \"" + (root / "ref16.raw").string() + "\"", "with16"));
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"}) {
+        EXPECT_TRUE(readAll(plain / name) == readAll(with8 / name)) << name << ": the reference map must not change the set";
+        EXPECT_TRUE(readAll(plain / name) == readAll(with16 / name)) << name;
+    }
+    const std::string m8 = asText(readAll(with8 / "manifest.json")), m16 = asText(readAll(with16 / "manifest.json"));
+    EXPECT_EQ(std::string::npos, asText(readAll(plain / "manifest.json")).find("bpm_comparison"));
+    EXPECT_NE(std::string::npos, m8.find("\"bpm_comparison\""));
+    EXPECT_NE(std::string::npos, m8.find("\"reference\": 4,")) << m8;
+    auto field = [](const std::string& m, const char* key) {
+        const size_t at = m.find(std::string("\"") + key + "\": ");
+        return at == std::string::npos ? std::string() : m.substr(at, m.find_first_of(",\n", at) - at);
+    };
+    for (const char* key : {"generated", "reference", "both", "recall", "precision", "false_positive_rate"})
+        EXPECT_EQ(field(m8, key), field(m16, key)) << key << ": uint8 and uint16 forms of the same map must agree";
+    // recall = both / reference, written with 6 decimals
+    const size_t both = std::stoul(field(m8, "both").substr(field(m8, "both").find(": ") + 2));
+    char expected[64];
+    std::snprintf(expected, sizeof expected, "\"recall\": %.6f", static_cast<double>(both) / 4.0);
+    EXPECT_EQ(std::string(expected), field(m8, "recall"));
+    EXPECT_GE(both, 3u) << "the three planted pixels are in the reference map and in the generated one";
+}
+
+// Each refusal ends the run before anything is written, and says why.
+TEST_F(CalibFixtureGenTest, FramesModeRefusesTooFewDarkFrames) {
+    const FrameSet set = writeFrameSet(root / "in", 4, 12);
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(10, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("too few dark frames: 4")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesTooFewBrightFramesForTheGainMap) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 4);
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(10, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("too few bright frames: 4")) << err;
+    EXPECT_NE(std::string::npos, err.find("gain map")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesTooFewBrightFramesForTheDefectMap) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 7);   // enough for the gain map (5), not for the defect map (10)
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(10, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("too few bright frames: 7")) << err;
+    EXPECT_NE(std::string::npos, err.find("defect map")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesAFrameThatIsNotWidthTimesHeight) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    {
+        std::ofstream f(set.brights[3], std::ios::binary | std::ios::app);
+        f.put('\0');
+        f.put('\0');   // two bytes too long: one pixel more
+    }
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(9, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("expected")) << err;
+    EXPECT_NE(std::string::npos, err.find("bright_3.raw")) << "the message names the file: " << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesASaturatedFrame) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    {
+        std::vector<uint16_t> f(static_cast<size_t>(kW) * kH);
+        std::ifstream in(set.darks[2], std::ios::binary);
+        in.read(reinterpret_cast<char*>(f.data()), static_cast<std::streamsize>(f.size() * 2));
+        in.close();
+        for (size_t i = 0; i < f.size() / 20; ++i) f[i] = 65535u;   // 5 % of the pixels
+        writeU16(set.darks[2], f);
+    }
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(11, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("65535")) << err;
+    EXPECT_NE(std::string::npos, err.find("dark_2.raw")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesAMissingFrame) {
+    FrameSet set = writeFrameSet(root / "in", 6, 12);
+    fs::remove(set.brights[5]);
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(9, runFrames(root, out, framesArgs(set), "x", &err));
+    EXPECT_NE(std::string::npos, err.find("cannot open")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesAReferenceMapOfTheWrongSize) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    std::vector<uint8_t> ref(1000, 0u);
+    writeBytes(root / "ref.raw", ref.data(), ref.size());
+    const fs::path out = caseDir("out");
+    std::string err;
+    EXPECT_EQ(9, runFrames(root, out, framesArgs(set) + " --compare-bpm \"" + (root / "ref.raw").string() + "\"", "x", &err));
+    EXPECT_NE(std::string::npos, err.find("expected")) << err;
+    EXPECT_TRUE(hasNoMaps(out));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeCannotBeCombinedWithCalDataOrAGainPolynomial) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    std::string err;
+    EXPECT_NE(0, runFrames(root, a, framesArgs(set) + " --caldata \"" + (root / "in").string() + "\"", "a", &err));
+    EXPECT_NE(std::string::npos, err.find("--caldata")) << err;
+    EXPECT_NE(0, runFrames(root, b, framesArgs(set) + " --gain-poly", "b", &err));
+    EXPECT_NE(std::string::npos, err.find("--gain-poly")) << err;
+    EXPECT_TRUE(hasNoMaps(a));
+    EXPECT_TRUE(hasNoMaps(b));
+}
+
+}  // namespace
+'''
+assert s.count('\n}  // namespace\n') == 1
+s = s.replace('\n}  // namespace\n', new_tests, 1)
+open(p, 'wb').write(s.encode('utf-8'))
+print('patched')

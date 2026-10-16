@@ -1,0 +1,27 @@
+QA-A-250b mutation check of the dose rule and the defect-map frame list. Source hash at the start: 0c71427bba85ba97
+PREDICTIONS (written before any run):
+  X1 dose limit 1.25 -> 100            -> RefusesGainFramesOfMoreThanOneDose and JudgesTheDoseAfterSubtractingTheOffset red (both expect exit 12)
+  X2 the dose check result ignored     -> the same two red
+  X3 dose taken from the RAW mean (offset not subtracted) -> only JudgesTheDoseAfterSubtractingTheOffset red (raw ratio 1.23 < 1.25; the 1.6 case is refused either way)
+  X4 --bpm-bright frames ignored (separateBpm = false) -> TakesTheDefectMapFromItsOwn... and RefusesTooFewDefectMapFramesEvenWhen... red
+  every other FramesMode test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 18 passed, failed: []
+--- X1
+build: BUILD_EXIT=0
+tests exit 1: 15 passed, FAILED: ['FramesModeAcceptsGainFramesWithinTheDoseLimit', 'FramesModeJudgesTheDoseAfterSubtractingTheOffset', 'FramesModeRefusesGainFramesOfMoreThanOneDose']
+--- X2
+build: BUILD_EXIT=0
+tests exit 1: 16 passed, FAILED: ['FramesModeJudgesTheDoseAfterSubtractingTheOffset', 'FramesModeRefusesGainFramesOfMoreThanOneDose']
+--- X3
+build: BUILD_EXIT=0
+tests exit 1: 17 passed, FAILED: ['FramesModeJudgesTheDoseAfterSubtractingTheOffset']
+--- X4
+build: BUILD_EXIT=0
+tests exit 1: 16 passed, FAILED: ['FramesModeRefusesTooFewDefectMapFramesEvenWhenTheGainFramesAreEnough', 'FramesModeTakesTheDefectMapFromItsOwnBrightFramesAndAllowsDoseMixingThere']
+--- restored: touch + rebuild
+source hash now: 0c71427bba85ba97 (start: 0c71427bba85ba97)
+build: BUILD_EXIT=0
+tests exit 0: 18 passed, failed: []
+X1 note: AcceptsGainFramesWithinTheDoseLimit also went red under X1 (not predicted): it asserts the manifest limit text 1.25, which X1 changes to 100.00. Legitimate reaction, prediction incomplete.

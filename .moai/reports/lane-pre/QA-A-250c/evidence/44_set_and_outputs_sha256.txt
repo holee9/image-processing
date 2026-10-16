@@ -1,0 +1,11 @@
+== generated set (not committed): D:/workspace-github/xpe-data/calib-cyan-v3
+offset.xcal     37748888 B  sha256 f1b0f088ccc68eb123113633980edbea31d158695ebe18b787e53a166ae2d476
+gain.xcal       37748888 B  sha256 e5037865e6ed182b34d4c9b606ab97f4313b4ea71194d891e9d900945f0de537
+defect.xcal      9437336 B  sha256 1ad69d8c1224f8e2871ecff0f91ee5b889bd2b4c1592eee34abdbba1031ee7a6
+manifest.json       7029 B  sha256 f5eee58945ebda54334ee6598ad0c6824e8094636cec33e83b7adac4c5822a04
+== corrected phantom frames (float32 little-endian, 3072x3072, not committed): D:/workspace-github/xpe-data/calib-cyan-v3/phantoms
+phantom_0_ours_f32le.raw            37748736 B  sha256 a10d77415c526ebaccda4b62ea0ba62e5594a6bb02f48322da9895ecb87ceb0d
+phantom_1_ours_f32le.raw            37748736 B  sha256 b8e9afde89ea3eec55f60e50d13e8fea5a56269a7e203460283a27ce1a784a0e
+phantom_2_ours_f32le.raw            37748736 B  sha256 6a68f75f79f1df2694a598b6f23b0faa5747e469b3251b7c52d60148e471fb13
+phantom_3_ours_f32le.raw            37748736 B  sha256 3071f62fed14c5582e2240017fa3ab88d82c49b3dfa77cf46849f4c7ca7f1f58
+phantom_4_ours_f32le.raw            37748736 B  sha256 a50860ff02b7108feef9478d9a4966eb2319efe588fa91e4db0d1a8cfcd026fe

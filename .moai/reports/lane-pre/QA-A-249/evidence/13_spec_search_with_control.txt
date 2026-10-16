@@ -1,0 +1,8 @@
+$ git grep -n -I -i -E "Phase 10|Verification Metrics|xpe_verify|verify_gain|overall_pass" HEAD -- .moai/specs/SPEC-XPE-P1A
+hit lines: 0
+$ (same on origin/main)
+hit lines: 0
+$ control, same command shape, known text: REQ-P1A-011 (the gain range the verify comment cites)
+hit lines: 27
+$ files of b6c19b8a under .moai/specs or docs/
+count: 0

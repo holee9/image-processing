@@ -1,0 +1,100 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_calib_fixture_gen.cpp'
+raw = open(p, 'rb').read()
+assert b'\r\n' not in raw and b'\0' not in raw
+s = raw.decode('utf-8')
+
+# the QA-A-250c test of the move-aside commit goes; QA-A-250d replaces the design (no overwrite, one directory rename)
+start = s.index('// The set is all or nothing. Each stage is made to fail in turn:')
+end = s.index('\n}  // namespace\n')
+
+new_tests = r'''// ---------------------------------------------------------------- QA-A-250d: no overwrite, a work directory of the run's own, one rename
+// --out must not exist or be an EMPTY directory (an empty one is accepted and is replaced by the finished set). A non-empty --out is refused with exit 14
+// before anything is read or written. The set is made in <out>.building-<pid>-<ms> and published by one directory rename.
+bool hasOwnWorkDir(const fs::path& root) {   // a work directory of the form *.building-<pid>-<ms>
+    for (const auto& e : fs::recursive_directory_iterator(root))
+        if (e.is_directory() && e.path().filename().string().find(".building-") != std::string::npos) return true;
+    return false;
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeRefusesANonEmptyOutAndLeavesItUntouched) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path out = root / "taken";
+    ASSERT_EQ(0, runFrames(root, out, framesArgs(set), "first"));
+    std::vector<std::vector<char>> before;
+    for (const char* n : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"}) before.push_back(readAll(out / n));
+    const FrameSet other = writeFrameSet(root / "other", 6, 12, {1.0}, 3000);   // other maps: a run that wrote would change the bytes
+    std::string err;
+    EXPECT_EQ(14, runFrames(root, out, framesArgs(other), "again", &err));
+    EXPECT_NE(std::string::npos, err.find("is not empty")) << err;
+    size_t i = 0;
+    for (const char* n : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"}) EXPECT_TRUE(before[i++] == readAll(out / n)) << n << " changed";
+    EXPECT_FALSE(hasWorkDirLeftover(root));
+
+    // not only a finished set: any file in --out makes it non-empty
+    const fs::path stray = caseDir("stray");
+    writeBytes(stray / "notes.txt", "x", 1);
+    EXPECT_EQ(14, runFrames(root, stray, framesArgs(set), "stray"));
+    EXPECT_TRUE(fs::exists(stray / "notes.txt"));
+    EXPECT_TRUE(hasNoMaps(stray));
+}
+
+TEST_F(CalibFixtureGenTest, FramesModeAcceptsAnEmptyOutDirectory) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path out = caseDir("empty");   // exists, empty
+    ASSERT_EQ(0, runFrames(root, out, framesArgs(set), "x"));
+    for (const char* n : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"}) EXPECT_TRUE(fs::exists(out / n)) << n;
+    EXPECT_FALSE(hasWorkDirLeftover(root));
+}
+
+// Each stage is made to fail in turn (the seam XPE_FIXTURE_GEN_FAIL): --out is not created, nor its parents, and the run's own work directory is gone.
+// The publish stage is the one rename; its failure is a failure (exit 8), not a success. An empty --out that was there is still there.
+TEST_F(CalibFixtureGenTest, FramesModeFailureInAnyStageLeavesNothingBehind) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    struct Stage { const char* name; int code; };
+    for (const Stage& st : {Stage{"gain", 6}, Stage{"bpm", 7}, Stage{"manifest", 8}, Stage{"commit", 8}}) {
+        const fs::path fresh = root / (std::string("fresh_") + st.name) / "out";
+        {
+            ScopedEnv fail("XPE_FIXTURE_GEN_FAIL", st.name);
+            EXPECT_EQ(st.code, runFrames(root, fresh, framesArgs(set), std::string("f_") + st.name)) << st.name;
+        }
+        EXPECT_FALSE(fs::exists(fresh)) << st.name << ": --out was created";
+        EXPECT_FALSE(fs::exists(fresh.parent_path())) << st.name << ": a parent directory was left";
+
+        const fs::path empty = caseDir((std::string("empty_") + st.name).c_str());
+        {
+            ScopedEnv fail("XPE_FIXTURE_GEN_FAIL", st.name);
+            EXPECT_EQ(st.code, runFrames(root, empty, framesArgs(set), std::string("e_") + st.name)) << st.name;
+        }
+        EXPECT_TRUE(fs::is_directory(empty)) << st.name << ": the empty --out is gone";
+        EXPECT_TRUE(fs::is_empty(empty)) << st.name << ": the empty --out is not empty any more";
+    }
+    EXPECT_FALSE(hasOwnWorkDir(root));
+}
+
+// A work directory of another run (a killed one, or one on the same --out right now) is not this run's to touch, whatever its name: an old-style fixed
+// name, a name with another pid, and the run's own pattern with a foreign suffix.
+TEST_F(CalibFixtureGenTest, FramesModeDoesNotTouchAnotherRunsWorkDirectory) {
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    const fs::path out = root / "out";
+    std::vector<fs::path> foreign;
+    for (const char* name : {"out.building", "out.building-1-2", "out.building-99999-0"}) {
+        const fs::path d = root / name;
+        fs::create_directories(d);
+        writeBytes(d / "old_offset.xcal", "precious", 8);
+        foreign.push_back(d);
+    }
+    ASSERT_EQ(0, runFrames(root, out, framesArgs(set), "ok"));
+    {
+        ScopedEnv fail("XPE_FIXTURE_GEN_FAIL", "gain");
+        EXPECT_EQ(6, runFrames(root, root / "out2", framesArgs(set), "fail"));
+    }
+    for (const fs::path& d : foreign) {
+        ASSERT_TRUE(fs::exists(d / "old_offset.xcal")) << d << " was removed";
+        EXPECT_EQ(std::string("precious"), asText(readAll(d / "old_offset.xcal")));
+    }
+    EXPECT_TRUE(fs::exists(out / "offset.xcal"));
+}
+'''
+s = s[:start] + new_tests.lstrip('\n') + s[end:]
+open(p, 'wb').write(s.encode('utf-8'))
+print('patched')

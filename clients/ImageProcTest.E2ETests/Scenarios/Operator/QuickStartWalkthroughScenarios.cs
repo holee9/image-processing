@@ -464,6 +464,69 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// GUI-C-247 (milestone 1, B14): a calibration set built from real frames is used by the app. The folder is given as the calibration folder, one real phantom frame is opened, and the chain that ran
+    /// must say preprocess=Applied with the stages offset, gain and defect, with no ALERT line in the log (a warning or an error) and no failure on the status line. The same scenario is run against another set
+    /// (the control) by changing only <c>XPE_C247_CALIB</c>. UI Automation only; the window picture is a screen copy of the window's rectangle (no input is sent).
+    /// Needs <c>XPE_C231_NATIVE_DIR</c>, <c>XPE_C247_CALIB</c> (the calibration folder) and <c>XPE_C247_RAW</c> (the raw frame), all three set; there are no default paths because the real-frame set is not in the repository.
+    /// If any is unset the scenario is skipped with a reason (it is not hidden and does not pass). If they are set but the folder or file does not exist, it fails. Optional <c>XPE_C247_PICTURE</c> (where to write the PNG).
+    /// </summary>
+    [SkippableFact]
+    public void W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings()
+    {
+        var native = Env("XPE_C231_NATIVE_DIR");
+        var calib = Env("XPE_C247_CALIB");
+        var raw = Env("XPE_C247_RAW");
+        Skip.If(string.IsNullOrEmpty(native), "XPE_C231_NATIVE_DIR not set - the Native E2E folder is required");
+        Skip.If(string.IsNullOrEmpty(calib) || string.IsNullOrEmpty(raw), "XPE_C247_CALIB/XPE_C247_RAW not set - the real-frame set is not in the repository. "
+            + "Last run by hand on 2026-10-15 against calib-cyan-v3 (GUI-C-247 report). XPE-SKIP-ALLOWED:272");
+        native = native!; calib = calib!; raw = raw!;
+        Assert.True(Directory.Exists(calib), "the calibration folder does not exist: " + calib);
+        Assert.True(File.Exists(raw), "the raw frame does not exist: " + raw);
+        foreach (var name in new[] { "offset.xcal", "gain.xcal", "defect.xcal" }) Assert.True(File.Exists(Path.Combine(calib, name)), $"{name} is missing in {calib}");
+        output.WriteLine($"   calibration folder: {calib}");
+        output.WriteLine($"   raw frame: {raw} ({new FileInfo(raw).Length} bytes)");
+
+        using var app = GuiApp.Launch(output, native, extraArguments:
+            ["--automation-backend", "Native", "--automation-calib", calib, "--automation-width", "3072", "--automation-height", "3072"]);
+        app.Menu("FileMenu");
+        app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
+        app.WaitFor(() => app.AnyTextContains("RAW 3072x3072"), "the image summary appears", 90);
+        app.WaitFor(() => app.Read("ChainStatusText").Contains("preprocess=Applied", StringComparison.Ordinal), "preprocess=Applied", 180);
+        Thread.Sleep(3000);
+
+        var chain = app.Read("ChainStatusText");
+        var hud = app.Read("HudCalibStages");
+        var status = app.Read("StatusBarText");
+        app.Menu("ViewMenu");
+        if (!app.IsToggled("ShowLogsPanelMenuItem")) app.InvokeMenuItem("ShowLogsPanelMenuItem");
+        app.ClickButtonByName("Log");
+        Thread.Sleep(1000);
+        var log = app.ListItems("LogListBox");
+        var alerts = log.Where(l => l.Contains("ALERT ", StringComparison.Ordinal)).ToList();
+        var stageLines = log.Where(l => l.Contains("Preprocess:", StringComparison.Ordinal)).ToList();
+        output.WriteLine($"   chain: {chain}");
+        output.WriteLine($"   HUD: '{hud}'");
+        output.WriteLine($"   status: {status}");
+        foreach (var line in stageLines) output.WriteLine("   STAGES " + line);
+        output.WriteLine($"   log lines: {log.Count}; ALERT lines: {alerts.Count}");
+        foreach (var line in alerts) output.WriteLine("   ALERT " + line);
+        foreach (var line in log.Where(l => !l.Contains("ALERT ", StringComparison.Ordinal)).Take(30)) output.WriteLine("   LOG " + line);
+
+        var picture = Env("XPE_C247_PICTURE");
+        if (picture is not null) output.WriteLine("   picture: " + app.SaveWindowPicture(picture));
+
+        Assert.Contains("3 stages (offset · gain · defect)", hud, StringComparison.Ordinal);
+        Assert.NotEmpty(stageLines);
+        Assert.Matches(@"offset.*gain.*defect", stageLines[0]);
+        Assert.DoesNotContain("failed", chain, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("failed", status, StringComparison.OrdinalIgnoreCase);
+        // The card asks for no calibration-stage warning or error. INFO lines are not warnings. One WARN is named and allowed because it is about the EXPOSURE of the frame, not about a calibration stage:
+        // "Exposure deviation: DI=... (outside [-3.0, +3.0] range)" comes from the exposure index of the processed frame. It is printed above and stays in the report.
+        var serious = alerts.Where(a => !a.Contains("ALERT INFO", StringComparison.Ordinal) && !a.Contains("Exposure deviation:", StringComparison.Ordinal)).ToList();
+        Assert.True(serious.Count == 0, $"the run raised {serious.Count} warning/error alert(s) other than the exposure deviation: " + string.Join(" || ", serious.Select(a => a.Length > 200 ? a[..200] : a)));
+    }
+
+    /// <summary>
     /// GUI-C-234 (milestone 3, U8, PERF-P1-001 &lt;= 3000 ms): one frame from "Run Preprocessing" to the finished picture, five times, on real data, measured on the machine the test runs on. The wall time includes the
     /// UIA polling of this test (a few ten ms); the app's own per-stage times are printed next to it from the chain line. This machine's median is evidence for THIS machine only; the milestone asks for the CI
     /// median. Needs the same variables as W7.
@@ -1388,6 +1451,45 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         }
 
         public string Title => _window.Title;
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetWindowRect(IntPtr window, out WindowRectangle rectangle);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WindowRectangle
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        /// <summary>GUI-C-247: a copy of the main window's rectangle off the screen (PrintWindow returns white for this WPF window, see ScreenPoller). Sends no input. Returns the path and whether the picture has any variation.</summary>
+        public string SaveWindowPicture(string path)
+        {
+            GetWindowRect(WindowHandle, out var r);
+            using var bitmap = new System.Drawing.Bitmap(r.Right - r.Left, r.Bottom - r.Top, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var graphics = System.Drawing.Graphics.FromImage(bitmap))
+            {
+                graphics.CopyFromScreen(r.Left, r.Top, 0, 0, bitmap.Size);
+            }
+
+            // only the inside of the window counts (the title bar and the frame always differ from the content)
+            var first = bitmap.GetPixel(40, 80);
+            var varied = false;
+            for (var y = 80; y < bitmap.Height - 20 && !varied; y += 17)
+            {
+                for (var x = 40; x < bitmap.Width - 20; x += 17)
+                {
+                    if (bitmap.GetPixel(x, y) != first) { varied = true; break; }
+                }
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            return $"{path} {bitmap.Width}x{bitmap.Height} {(varied ? "inside has variation" : "inside is UNIFORM (blank: the screen copy cannot read this window's content here)")}";
+        }
 
         /// <summary>GUI-C-236c: the native handle of the main window (for reading its picture).</summary>
         public IntPtr WindowHandle => _window.Properties.NativeWindowHandle.Value;

@@ -1,0 +1,5 @@
+the QA-A-250 call (8 darks, 18 bright frames of five doses) with the dose rule in place:
+exit 12 after 5 s
+bright frames for the gain map span more than one dose: offset-subtracted frame means from 2746.6 (<cyan_test>/calfiles/Bright_17.raw) to 29486.8 (<cyan_test>/calfiles/Bright_34.raw), ratio 10.736, limit 1.25. The gain generator averages its frames and assumes one dose; give frames of one dose with --bright (frames of several doses may go to the defect map with --bpm-bright)
+stdout lines: 0
+xcal files written: 0

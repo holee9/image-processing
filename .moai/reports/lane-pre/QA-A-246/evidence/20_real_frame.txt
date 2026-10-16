@@ -1,0 +1,5 @@
+dll f24a6124c00299038a6bdbb71785bec7139c52288d0b3edfb89fa4499269b9f0
+[a246] real frame: pipeline_out median 50.77 ms (min 47.62 max 54.15) | pipeline_out_ex with diag median 58.97 ms (min 54.03 max 61.66) | difference of medians 8.20 ms
+[a246] output of pipeline_out vs reference v2: byte-identical | output of pipeline_out_ex (diag) vs reference v2: byte-identical
+[a246] diagnostics: validMask 0x3 pixelCount 9437184 gainStageNonFinite 0 finalNonFinite 0
+[       OK ] A241Measure.DISABLED_A246_RealFrameDiagnostics (1602 ms)

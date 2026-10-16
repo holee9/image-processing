@@ -1,0 +1,22 @@
+== image-processing  branch main  HEAD 1b128f7d
+$ git grep -n -I -i "xpe_verify\|overall_pass\|VerifyGain\|VerifyPipeline" -- . :!modules :!.moai :!docs   (hit lines, then which files)
+      1 .agents/skills/agency/SKILL.md
+      1 .claude/skills/agency/SKILL.md
+      5 tools/ci/clang_tidy_baseline_preprocess.txt
+$ git grep -n -I -i -E "XpeCalibrationMetrics|snr_improvement_db|gain_coverage" -- gui clients tools
+      1 tools/ci/clang_tidy_baseline_preprocess.txt
+control (same command shape, known caller): xpe_preprocess_pipeline_out in gui clients:
+clients/ImageProcTest.E2ETests/Scenarios/Operator/QuickStartWalkthroughScenarios.cs:2
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/NonlinearityBypassedScenarios.cs:1
+clients/ImageProcTest.IntegrationTests/Functional/BaselineReviewFixTests.cs:12
+== xpe-gui  branch dev/gui  HEAD 29de1cee
+$ git grep -n -I -i "xpe_verify\|overall_pass\|VerifyGain\|VerifyPipeline" -- . :!modules :!.moai :!docs   (hit lines, then which files)
+      1 .agents/skills/agency/SKILL.md
+      1 .claude/skills/agency/SKILL.md
+      5 tools/ci/clang_tidy_baseline_preprocess.txt
+$ git grep -n -I -i -E "XpeCalibrationMetrics|snr_improvement_db|gain_coverage" -- gui clients tools
+      1 tools/ci/clang_tidy_baseline_preprocess.txt
+control (same command shape, known caller): xpe_preprocess_pipeline_out in gui clients:
+clients/ImageProcTest.E2ETests/Scenarios/Operator/QuickStartWalkthroughScenarios.cs:4
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/NonlinearityBypassedScenarios.cs:1
+clients/ImageProcTest.IntegrationTests/Functional/BaselineReviewFixTests.cs:12

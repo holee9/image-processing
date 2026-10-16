@@ -1,0 +1,45 @@
+QA-A-250c mutation check of the dose signal, the duplicate rule and the atomic set. Source hash at the start: a79fe5c2912c9708
+Short names: none=DoseCheckUsesTheGeneratorsSignalWhenThereIsNoDarkReference ext=DoseCheckUsesTheExternalDarkReference clip=DoseCheckFloorsEachPixelAtZero
+  nosig=RefusesFramesWithNoSignalAfterTheReference bound=DoseLimitBoundaryForEachReferenceKind net=JudgesTheDoseAfterSubtractingTheOffset (QA-A-250b)
+  dup=RefusesTheSameFileTwiceInOneRole content=RefusesTwoFilesWithTheSameContent refuse=RefusalsLeaveNoOutputDirectory fail=FailureInAnyStageLeavesNoPartialSet
+PREDICTIONS (written before any run):
+  M1 the reference is ignored in the gain signal       -> red: none, ext, clip, nosig, net
+  M2 the floor at zero removed                         -> red: clip only
+  M3 path-duplicate rule removed                       -> red: dup only (the content rule still refuses, with a different message)
+  M4 content-duplicate rule removed                    -> red: content only (the path rule catches the dup test cases)
+  M5 commit failure does not remove the placed files   -> red: fail only
+  M6 --out created before the checks again             -> red: ext, nosig, dup, content, refuse, fail
+  M7 commit failure loses the set-aside old files      -> red: fail only
+  M8 dose check called with no reference               -> red: none, ext, clip, nosig, net (same as M1)
+  every other FramesMode test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 27 passed, failed: []
+--- M1
+build: BUILD_EXIT=0
+tests exit 1: 22 passed, FAILED: ['FramesModeDoseCheckFloorsEachPixelAtZeroLikeTheGenerator', 'FramesModeDoseCheckUsesTheExternalDarkReferenceOfTheGenerator', 'FramesModeDoseCheckUsesTheGeneratorsSignalWhenThereIsNoDarkReference', 'FramesModeJudgesTheDoseAfterSubtractingTheOffset', 'FramesModeRefusesFramesWithNoSignalAfterTheReferenceAndLeavesNothing']
+--- M2
+build: BUILD_EXIT=0
+tests exit 0: 27 passed, FAILED: []
+--- M3
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['FramesModeRefusesTheSameFileTwiceInOneRole']
+--- M4
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['FramesModeRefusesTwoFilesWithTheSameContentInOneRole']
+--- M5
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['FramesModeFailureInAnyStageLeavesNoPartialSetAndKeepsAnExistingOne']
+--- M6
+build: BUILD_EXIT=0
+tests exit 1: 21 passed, FAILED: ['FramesModeDoseCheckUsesTheExternalDarkReferenceOfTheGenerator', 'FramesModeFailureInAnyStageLeavesNoPartialSetAndKeepsAnExistingOne', 'FramesModeRefusalsLeaveNoOutputDirectory', 'FramesModeRefusesFramesWithNoSignalAfterTheReferenceAndLeavesNothing', 'FramesModeRefusesTheSameFileTwiceInOneRole', 'FramesModeRefusesTwoFilesWithTheSameContentInOneRole']
+--- M7
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['FramesModeFailureInAnyStageLeavesNoPartialSetAndKeepsAnExistingOne']
+--- M8
+build: BUILD_EXIT=0
+tests exit 1: 22 passed, FAILED: ['FramesModeDoseCheckFloorsEachPixelAtZeroLikeTheGenerator', 'FramesModeDoseCheckUsesTheExternalDarkReferenceOfTheGenerator', 'FramesModeDoseCheckUsesTheGeneratorsSignalWhenThereIsNoDarkReference', 'FramesModeJudgesTheDoseAfterSubtractingTheOffset', 'FramesModeRefusesFramesWithNoSignalAfterTheReferenceAndLeavesNothing']
+--- restored: touch + rebuild
+source hash now: a79fe5c2912c9708 (start: a79fe5c2912c9708)
+build: BUILD_EXIT=0
+tests exit 0: 27 passed, failed: []

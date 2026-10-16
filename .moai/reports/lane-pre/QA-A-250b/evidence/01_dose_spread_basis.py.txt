@@ -1,0 +1,43 @@
+import re
+SRC = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-250/evidence/10_data_inspection.txt'
+OUT = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-250b/evidence/10_dose_spread_basis.txt'
+means = {}
+for l in open(SRC, encoding='utf-8'):
+    m = re.match(r'\s+(Dark|Bright)_(\d+)\s+mean\s+([\d.]+)', l)
+    if m:
+        means[(m.group(1), int(m.group(2)))] = float(m.group(3))
+darks = [means[('Dark', k)] for k in range(7, 15)]
+offset_level = sum(darks) / len(darks)
+lines = []
+def emit(t=''):
+    lines.append(t); print(t)
+emit('Source: frame means of QA-A-250/evidence/10_data_inspection.txt (3 decimals). Offset level = mean of the eight generation darks Dark_07..14 = %.3f ADU.' % offset_level)
+emit('net = frame mean - offset level. Frames sorted by net; ratio = this net / the previous net in the sorted order.')
+net = sorted(((means[('Bright', k)] - offset_level, k) for k in range(17, 37)))
+emit('  net_ADU   frame      ratio_to_previous')
+prev = None
+adj = []
+for v, k in net:
+    r = (v / prev) if prev else None
+    if r: adj.append((r, k))
+    emit('  %8.1f  Bright_%d  %s' % (v, k, ('%.4f' % r) if r else '-'))
+    prev = v
+within = sorted(a for a, _ in adj if a < 1.3)
+between = sorted(a for a, _ in adj if a >= 1.3)
+emit()
+emit('adjacent ratios below 1.3 (steps inside a dose level): largest %.4f (next largest %.4f), count %d' % (within[-1], within[-2], len(within)))
+emit('adjacent ratios at or above 1.3 (steps between dose levels): smallest %.4f, largest %.4f, count %d' % (between[0], between[-1], len(between)))
+emit('There is no adjacent ratio between %.4f and %.4f.' % (within[-1], between[0]))
+# max/min over any run of consecutive sorted frames that stays inside one level
+emit()
+emit('max/min of the net mean over frames that belong to the same level, by the gap above:')
+groups = [[net[0]]]
+for (v, k), (pv, pk) in zip(net[1:], net[:-1]):
+    if v / pv >= 1.3: groups.append([])
+    groups[-1].append((v, k))
+for g in groups:
+    emit('  frames %s: %d frames, net %.1f .. %.1f, max/min %.4f' % ('Bright_' + ','.join(str(k) for _, k in sorted(g, key=lambda x: x[1])), len(g), g[0][0], g[-1][0], g[-1][0] / g[0][0]))
+worst_within = max(g[-1][0] / g[0][0] for g in groups)
+emit()
+emit('largest max/min inside one level: %.4f; smallest step between two levels: %.4f; geometric mean of the two: %.4f' % (worst_within, between[0], (worst_within * between[0]) ** 0.5))
+open(OUT, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
