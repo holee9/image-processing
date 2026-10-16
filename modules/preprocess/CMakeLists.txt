@@ -32,6 +32,7 @@ set(XPE_PREPROCESS_SOURCES
     src/rle_codec.cpp            # RLE compression for defect maps
     src/xpe_calib_check_expiry.cpp  # REQ-P1A-018 XCal v1 header-only expiry check (3-arg API)
     src/xpe_defect_gen.cpp       # SWU-1.11 BPM Generation (FUNC-022~025)
+    src/xpe_bpm_v2.cpp           # SRS-CALIB-FUNC-022 v1.4: second-generation pixel defect detection (QA-A-252, #273)
     src/xpe_calib_mode.cpp       # SWU-1.12 Calibration Mode Selection (FUNC-031~033)
     # XCal v1 calibration API (T-006..T-009)
     src/xpe_calibration.cpp         # global g_calib + g_calib_mutex definitions
@@ -495,6 +496,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_fixture_gen.cpp
         # QA-A-251 (#273): defect-map evaluation tool (runs xpe_bpm_eval as a subprocess)
         tests/test_bpm_eval.cpp
+        # QA-A-252 (#273): second-generation pixel defect detection
+        tests/test_bpm_v2.cpp
         # QA-A-37 (#140): XCAL_TYPE_GAIN_POLY read path
         tests/test_calib_gain_poly_load.cpp
         # QA-A-38 (#138 #97): XPE-ALG-001 9.8.2.1 N_min static-defect marking

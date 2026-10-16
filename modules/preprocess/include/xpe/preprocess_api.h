@@ -1893,6 +1893,100 @@ XPE_API XpeErrorCode xpe_bpm_generate(
     const XpeBpmConfig* cfg,
     XpeImageBuffer* bpm_out);
 
+/**
+ * @brief Second-generation defective-pixel detection configuration (QA-A-252, #273)
+ *
+ * Zero-initialised fields take the defaults below, so a caller may pass a zeroed struct (or NULL) to
+ * get the defaults. Validation limits are given per field.
+ */
+typedef struct {
+    float    target_false_alarms; /**< Expected false alarms per feature over the whole frame (default 1.0; range (0, 1000]) */
+    uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65) */
+    uint32_t sigma_block;         /**< Side of the blocks of the local scale estimate in pixels (default 64; range 16..512) */
+    uint32_t skip_first_dark;     /**< 1 = the first dark frame (before the detector settles) is not used; 0 = use it. Zero-initialised means 0 */
+    uint32_t min_frames_dark;     /**< Minimum dark frames after skipping (default 5; at least 3) */
+    uint32_t min_frames_bright;   /**< Minimum bright frames (default 6; at least 2) */
+    float    dose_group_ratio;    /**< Sorted bright-frame signals whose ratio exceeds this start a new dose group (default 1.25; at least 1.01) */
+    uint32_t reserved;            /**< Must be zero */
+} XpeBpmConfigV2;
+
+/** Feature bits of the optional per-pixel feature output of xpe_bpm_generate_v2. */
+#define XPE_BPM_V2_FEATURE_DARK_MEAN   0x01u /**< Local deviation of the dark mean */
+#define XPE_BPM_V2_FEATURE_DARK_NOISE  0x02u /**< Temporal noise of the dark frames against its local median */
+#define XPE_BPM_V2_FEATURE_DOSE_SLOPE  0x04u /**< Slope of the response over the dose groups */
+#define XPE_BPM_V2_FEATURE_DOSE_LINEAR 0x08u /**< Residual of the straight-line fit over the dose groups (log of its variance, upper side) */
+#define XPE_BPM_V2_FEATURE_FLAT        0x10u /**< Local deviation of the relative flat-field response */
+
+/** Number of detection features reported by XpeBpmReportV2. */
+#define XPE_BPM_V2_FEATURE_COUNT 5
+
+/** Largest number of dose groups xpe_bpm_generate_v2 accepts. */
+#define XPE_BPM_V2_MAX_DOSE_GROUPS 8
+
+/**
+ * @brief What xpe_bpm_generate_v2 decided and why (thresholds and the numbers they came from)
+ *
+ * Feature order in the arrays: dark mean, dark noise, dose slope, dose linearity, flat field
+ * (the bit order of the XPE_BPM_V2_FEATURE_* values).
+ */
+typedef struct {
+    uint32_t pixels;                                          /**< Pixels per frame (the N of the false-alarm target) */
+    uint32_t dark_frames_used;                                /**< Dark frames used after skipping */
+    uint32_t bright_frames_used;                              /**< Bright frames used */
+    uint32_t dose_groups;                                     /**< Dose groups found */
+    uint32_t feature_active[XPE_BPM_V2_FEATURE_COUNT];        /**< 1 when the feature ran (the linearity feature needs three dose groups) */
+    uint32_t degrees_of_freedom[XPE_BPM_V2_FEATURE_COUNT];    /**< Degrees of freedom of the variance-ratio feature (dark noise), 0 for the others */
+    float    threshold[XPE_BPM_V2_FEATURE_COUNT];             /**< Threshold: |z| for the z features, z (upper side only) for the linearity feature, variance ratio for dark noise */
+    float    scale_median[XPE_BPM_V2_FEATURE_COUNT];          /**< Median over the frame of the local scale (z features) or of the local reference (dark noise) */
+    uint32_t flagged[XPE_BPM_V2_FEATURE_COUNT];               /**< Pixels each feature flagged */
+    uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */
+    float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */
+    uint32_t group_frames[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Frames in each dose group */
+} XpeBpmReportV2;
+
+/**
+ * @brief Second-generation defective-pixel detection (SRS-CALIB-FUNC-022, QA-A-252)
+ *
+ * Replaces the single fixed threshold of xpe_bpm_generate by several per-pixel features, each judged
+ * on its own, with the union flagged: (1) the local deviation of the dark mean, (2) the temporal
+ * noise of the dark frames, (3) the slope and the straight-line residual of the response over dose
+ * groups, (4) the local deviation of the relative flat-field response. Deviations are robust
+ * (median and median absolute deviation). The row and column components of each feature image are
+ * subtracted before the local statistics, so stripes that offset and gain correction remove do
+ * not spread into pixel defects (and full-length line defects are not reported here either; line
+ * detection is a separate step). Thresholds are not fixed constants: each follows from the
+ * target number of false alarms per feature over the frame, and the report returns them.
+ *
+ * Bright frames may be of several doses; they are grouped by signal (see XpeBpmConfigV2).
+ *
+ * @param dark_frames Dark frames (UINT16, offset-uncorrected), all of one size
+ * @param num_dark Number of dark frames, before the optional skipping of the first
+ * @param bright_frames Bright frames (UINT16, offset-uncorrected), the size of the dark frames
+ * @param num_bright Number of bright frames
+ * @param cfg Configuration (NULL = defaults)
+ * @param bpm_out Output map (UINT8, size of the frames): 0 good, 1 flagged by a bright-frame
+ *        feature only, 2 by a dark-frame feature only, 3 by both
+ * @param feature_out Optional output (UINT8, size of the frames): the XPE_BPM_V2_FEATURE_* bits
+ *        of the features that flagged each pixel; NULL to skip
+ * @param report Optional output: thresholds and counts; NULL to skip
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT on NULL pointers, too few frames, a bright frame without signal,
+ *                               frames of different sizes, an invalid configuration, or more
+ *                               dose groups than XPE_BPM_V2_MAX_DOSE_GROUPS
+ *         XPE_ERR_UNSUPPORTED_FORMAT if an input is not UINT16 or an output is not UINT8
+ *         XPE_ERR_BUFFER_TOO_SMALL if an output buffer is smaller than the frames
+ *         XPE_ERR_OUT_OF_MEMORY if working memory cannot be allocated
+ */
+XPE_API XpeErrorCode xpe_bpm_generate_v2(
+    const XpeImageBuffer* dark_frames,
+    uint32_t num_dark,
+    const XpeImageBuffer* bright_frames,
+    uint32_t num_bright,
+    const XpeBpmConfigV2* cfg,
+    XpeImageBuffer* bpm_out,
+    XpeImageBuffer* feature_out,
+    XpeBpmReportV2* report);
+
 #ifdef __cplusplus
 }
 #endif
