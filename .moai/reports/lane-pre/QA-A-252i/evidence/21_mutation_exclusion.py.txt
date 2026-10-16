@@ -1,0 +1,14 @@
+V2 = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TITLE = 'QA-A-252i mutation check of the reference exclusion (src/xpe_bpm_v2.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252i/evidence/22_mutation_exclusion_log.txt'
+FILT = 'BpmV2*'
+PRED = [
+    '  X1 the line mask is not used (design run: 5 flagged without the exclusion, 0 with it) -> red: TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector only',
+    '  X2 the masked median reads the excluded pixels too (the exclusion test is inverted: only excluded pixels are used) -> red: the same test only',
+    '  every other test stays green in each mutant',
+]
+MUTANTS = [
+    ('X1', V2, b'return runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, area_out, report, nullptr, lineMask.empty() ? nullptr : lineMask.data());', b'return runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, area_out, report, nullptr, nullptr);'),
+    ('X2', V2, b'if (!excl[i]) buf[cnt++] = in[i];', b'if (excl[i]) buf[cnt++] = in[i];'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252i/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

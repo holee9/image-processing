@@ -115,6 +115,8 @@ constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;
 // QA-A-252d: response rows (0.3 and 1.7 are defects, 0.6 is weak) and the response pixels
 constexpr int kLnLowRowY = 70, kLnHighRowY = 190, kLnWeakRowY = 50, kRespY = 220;
 constexpr int kGainRowHi = 100, kGainRowLo = 150, kRowPixX = 60;   // QA-A-252f
+constexpr uint32_t kLnGainLossBand = 8388608;   // QA-A-252i: five adjacent rows whose whole bright value is scaled by 0.3
+constexpr int kBandY0 = 100, kBandRows = 21;   // rows 100,102,..,120 are lines of width 1
 constexpr uint32_t kLnGainLossRow = 4194304;   // QA-A-252f: a row whose WHOLE bright value (signal and noise) is scaled by 0.3, like a loss of conversion gain
 constexpr int kLnGainLossRowY = 130;
 constexpr int kRespX[6] = {30, 40, 50, 60, 70, 80};
@@ -202,6 +204,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
             if (bright && plant.brightNoisyPixel && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 150.0 * pixelRng.next();
             if (bright && plant.oneGroupNoisyPixel && brightIdx >= 0 && brightIdx < 3 && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 400.0 * pixelRng.next();
             if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);
+            if (bright && (plant.lines & kLnGainLossBand) && y >= kBandY0 && y < kBandY0 + kBandRows && (y - kBandY0) % 2 == 0) v = d + 0.3 * (v - d);
             if (bright && plant.gridPixels && x >= 29 && x <= 227 && y >= 29 && y <= 227 && (x - 29) % 18 == 0 && (y - 29) % 18 == 0) v = d + (v - d) / 3.0;
             if (firstDark && x >= 20 && x < 24 && y >= 20 && y < 24) v += 200.0;   // a transient only in the first frame
             fr[i] = static_cast<uint16_t>(std::min(65535.0, std::max(0.0, std::floor(v + 0.5))));
@@ -988,6 +991,34 @@ TEST(BpmV2Test, AFrameWhoseMedianNetSignalIsNotPositiveIsRefused) {
             if (i % 5 == 0 && (i / 5) % 10 < 6) fr[i] = 0;   // 60 % of the sampled pixels read zero, the other pixels keep their value: the mean stays positive
     const Result r = detect(f, nullptr);
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc);
+}
+
+TEST(BpmV2Test, TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector) {
+    // QA-A-252i: rows 100..104 have a gain loss (their variance is 0.09 of their neighbours'). With the window of 9 the local expectation of a row next to the band is the median of nine rows of which up to
+    // five are band rows: without the exclusion it collapses to the band's variance and the ordinary rows around are flagged as noise defects. The detector's own line mask is kept out of it.
+    Frames f = makeFrames(55, kDoses, 3, 7, onlyLines(kLnGainLossBand));
+    XpeBpmConfigV2 cfg{};
+    cfg.window = 17;
+    const Result r = detect(f, &cfg);
+    ASSERT_EQ(XPE_OK, r.rc);
+    // the band is a line of the detector (the mask the exclusion uses)
+    std::vector<uint8_t> mask(kN, 0);
+    XpeImageBuffer       mb = outBuf(mask);
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : f.dark) db.push_back(buf(v));
+    for (auto& v : f.bright) bb.push_back(buf(v));
+    ASSERT_EQ(XPE_OK, xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, nullptr, &mb, nullptr, 0, nullptr, 0, nullptr));
+    int inBand = 0;
+    for (int y = kBandY0; y < kBandY0 + kBandRows; y += 2)
+        for (uint32_t x = 20; x < kW - 20; ++x) inBand += mask[static_cast<size_t>(y) * kW + x] != 0;
+    EXPECT_GT(inBand, 11 * 150) << "the planted lines are in the line mask (pixels: " << inBand << ")";
+    int around = 0, aroundRows = 0;
+    for (int y = kBandY0 + 1; y < kBandY0 + kBandRows; y += 2) {
+        ++aroundRows;
+        for (uint32_t x = 20; x < kW - 20; ++x) around += (r.feat[static_cast<size_t>(y) * kW + x] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) != 0;
+    }
+    EXPECT_EQ(10, aroundRows);
+    EXPECT_EQ(0, around) << "the ordinary rows between the lines are no noise defects (design run on this fixture: 5 of 2160 flagged without the exclusion, 0 with it; flagged now: " << around << " of " << aroundRows * (kW - 40) << ")";
 }
 
 TEST(BpmV2Test, AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation) {

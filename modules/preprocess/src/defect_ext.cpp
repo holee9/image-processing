@@ -44,10 +44,23 @@ float getf(const uint8_t* p) {
 }
 
 std::string fmt(const char* f, unsigned long long a = 0, unsigned long long b = 0, unsigned long long c = 0, unsigned long long d = 0) {
-    char buf[320];
-    std::snprintf(buf, sizeof buf, f, a, b, c, d);
-    buf[sizeof buf - 1] = 0;
-    return buf;
+    // each %llu / %llx takes the next value; written with literal formats so that no format string is passed on as data
+    const unsigned long long v[4] = {a, b, c, d};
+    std::string              out;
+    int                      k = 0;
+    for (const char* p = f; *p != 0; ++p) {
+        if (p[0] == '%' && p[1] == 'l' && p[2] == 'l' && (p[3] == 'u' || p[3] == 'x') && k < 4) {
+            char t[32];
+            if (p[3] == 'u') std::snprintf(t, sizeof t, "%llu", v[k]);
+            else std::snprintf(t, sizeof t, "%llx", v[k]);
+            ++k;
+            out += t;
+            p += 3;
+        } else {
+            out += *p;
+        }
+    }
+    return out;
 }
 
 /** One line record against the geometry. @p candidate: an unconfirmed candidate (reason != 0, no segments). */

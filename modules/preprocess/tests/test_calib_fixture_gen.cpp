@@ -756,6 +756,41 @@ TEST_F(CalibFixtureGenTest, FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLin
     xpe_preprocess_shutdown();
 }
 
+// QA-A-252i (the gap G1 of QA-A-254): a weak row defect -- row 120 has about three times the noise variance of its neighbours from x = 10 to 245 -- that the pixel checks do not flag one by one but the line detection finds as a stretch.
+// The defect plane of the file must hold the stretch (the line mask is merged into it); without the merge the plane has no flagged pixel on the stretch and a reader that corrects from the plane misses it.
+constexpr uint32_t kExtraNoise = 61;   // uniform 0..60 on top of the 0..40 of the frames: a variance about 3.1 times the neighbours'
+TEST_F(CalibFixtureGenTest, FramesModeBpmV2PaintsAStretchOnlyTheLineDetectionFound) {
+    const FrameSet set = writeFrameSet(root / "in", 8, 6);                   // one dose: the gain map
+    const FrameSet more = writeFrameSet(root / "more", 0, 6, {1.6, 2.2});    // other doses, for the defect map only
+    std::vector<std::string> all = set.brights;
+    all.insert(all.end(), more.brights.begin(), more.brights.end());
+    uint32_t extra = 777u;
+    for (const auto& b : all) {
+        std::vector<char> raw = readAll(b);
+        auto* px = reinterpret_cast<uint16_t*>(raw.data());
+        for (uint32_t x = 10; x < 246; ++x) px[120 * kW + x] = static_cast<uint16_t>(px[120 * kW + x] + nextNoise(extra) % kExtraNoise);   // more noise on one stretch of one row
+        std::ofstream(b, std::ios::binary | std::ios::trunc).write(raw.data(), static_cast<std::streamsize>(raw.size()));
+    }
+    const fs::path a = caseDir("w");
+    std::string    args = framesArgs(set) + " --bpm-v2 --bpm-margins 3,2,1,1";
+    for (const auto& f : all) args += " --bpm-bright \"" + f + "\"";
+    std::string err;
+    ASSERT_EQ(0, runFrames(root, a, args, "w", &err)) << err;
+    DefectXcal d;
+    ASSERT_EQ(XPE_OK, read_defect_xcal((a / "defect.xcal").string().c_str(), false, &d));
+    size_t recorded = 0, painted = 0;
+    for (const DefectExtLine& L : d.ext.lines)
+        if (L.orientation == XPE_BPM_LINE_ROW && L.index <= 120 && L.index + L.width > 120)
+            for (const DefectExtSegment& g : L.segments)
+                if (g.line == 120)
+                    for (uint32_t x = g.start; x < g.end; ++x) {
+                        ++recorded;
+                        painted += d.map[120 * kW + x] != 0;
+                    }
+    EXPECT_GT(recorded, 150u) << "the weak row is a recorded stretch (lines: " << d.ext.lines.size() << ")";
+    EXPECT_EQ(recorded, painted) << "every pixel of the recorded stretch is painted in the defect plane";
+}
+
 TEST_F(CalibFixtureGenTest, TheBpmV2OptionsBelongToTheFramesModeAndTakeFourMargins) {
     std::string err;
     EXPECT_NE(0, runFrames(root, caseDir("o"), " --bpm-v2", "o", &err));

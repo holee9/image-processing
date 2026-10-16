@@ -2199,8 +2199,9 @@ XPE_API uint32_t xpe_calib_get_poly_degree(void);
 
 /* ---- Line and blob detection (SRS-CALIB-FUNC-023, QA-A-253, #273) ------------------------------------------------------------------------------------------ */
 
-/** Orientation of a line defect. */
+/** Orientation of a line defect: a row (the line runs along x). */
 #define XPE_BPM_LINE_ROW    0u
+/** Orientation of a line defect: a column (the line runs along y). */
 #define XPE_BPM_LINE_COLUMN 1u
 
 /** What makes a line defective (bits of XpeBpmLine::causes). */
@@ -2313,8 +2314,11 @@ XPE_API XpeErrorCode xpe_bpm_find_lines(
 
 /** One blob: a connected group of defective pixels (8-neighbourhood). */
 typedef struct {
-    uint32_t x0, y0, x1, y1;  /**< Bounding box, x1 and y1 inclusive */
-    uint32_t size;            /**< Number of pixels */
+    uint32_t x0;    /**< Bounding box: left column (inclusive) */
+    uint32_t y0;    /**< Bounding box: top row (inclusive) */
+    uint32_t x1;    /**< Bounding box: right column (inclusive) */
+    uint32_t y1;    /**< Bounding box: bottom row (inclusive) */
+    uint32_t size;  /**< Number of pixels */
 } XpeBpmBlob;
 
 /**
