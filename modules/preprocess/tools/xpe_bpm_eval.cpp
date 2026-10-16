@@ -30,7 +30,8 @@
  *       One scale per frame from about 10^6 pixels: the per-pixel degrees of freedom stay frames - 1. --raw-frames 1 switches the scaling off (the labels of QA-A-252f).
  *       Interval: the degrees of freedom of an item are the smaller of pixels x nu and the effective ones from blocks of 64 consecutive pixels (variance of the block means); the labels
  *       are PROVISIONAL (status column) until the spatial correlation is checked against an independent replicate.
- *   xpe_bpm_eval defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F]
+ *   xpe_bpm_eval defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F] [--v1-out F]
+ *   xpe_bpm_eval correct-time --set DIR --frame F --width W --height H [--repeat N]
  *       What a defect.xcal of format version 1 or 2 holds, and the layers written out (QA-A-254).
  *   xpe_bpm_eval score --truth DIR --map F [--noise-truth FILE] [--overlap composite] [--overlap-truth FILE] [--overlap-out FILE]
  *   xpe_bpm_eval chain --truth DIR --items a+b+c [--dark D] [--signal S]
@@ -63,9 +64,12 @@
 #include "xpe_sha256.hpp"
 #include "xpe_bpm_eval_stats.hpp"
 #include "defect_ext.hpp"
+#include "xcal_writer.hpp"
+#include "xpe/preprocess/xcal_format.h"
 #include "xpe/common/xpe_common_api.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -2030,6 +2034,22 @@ int cmdDefectXcal(const Args& a) {
                 d.ext.candidates.size());
     if (a.has("map-out") && !writeBytes(a.str("map-out"), d.map.data(), d.map.size())) return 3;
     if (a.has("area-out") && d.has_area && !writeBytes(a.str("area-out"), d.area.data(), d.area.size())) return 3;
+    if (a.has("v1-out")) {
+        // QA-A-255: the same defect plane as a version-1 file (no area, no lines, no blobs), so that the first and the second edition of the correction can be run on one map
+        XCalFileHeader hdr{};
+        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+        hdr.version      = XCAL_VERSION;
+        hdr.type         = static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT8_MASK);
+        hdr.width        = d.width;
+        hdr.height       = d.height;
+        hdr.payload_len  = static_cast<uint64_t>(d.map.size());
+        std::remove(a.str("v1-out").c_str());
+        if (write_xcal_file(a.str("v1-out").c_str(), hdr, nullptr, 0, d.map.data(), hdr.payload_len) != XPE_OK) {
+            std::fprintf(stderr, "defect-xcal: cannot write %s\n", a.str("v1-out").c_str());
+            return 3;
+        }
+    }
     if (a.has("lines-out")) {
         std::string tsv = "kind\torientation\tindex\twidth\tstart\tend\tcauses\tflags\treason\tcorrection\tstrength\tpersistence\tstretches\n";
         auto row = [&](const char* kind, const DefectExtLine& L) {
@@ -2044,6 +2064,60 @@ int cmdDefectXcal(const Args& a) {
         for (const DefectExtLine& L : d.ext.candidates) row("candidate", L);
         if (!writeBytes(a.str("lines-out"), tsv.data(), tsv.size())) return 3;
     }
+    return 0;
+}
+
+/**
+ * correct-time --set DIR --frame F --width W --height H [--repeat N] (QA-A-255): the time of the defect correction alone (xpe_defect_correct_ex) on one frame, N runs (default 9), after one
+ * warm-up run. The frame is read as unsigned 16 bit and converted to float; the output is never read back. Prints the median, the smallest and the largest run in milliseconds and the report of
+ * the last run.
+ */
+int cmdCorrectTime(const Args& a) {
+    if (!a.has("set") || !a.has("frame") || !a.has("width") || !a.has("height")) {
+        usage();
+        return 2;
+    }
+    const uint32_t w = static_cast<uint32_t>(a.num("width", 0)), h = static_cast<uint32_t>(a.num("height", 0));
+    const int      repeat = static_cast<int>(a.num("repeat", 9));
+    std::vector<uint16_t> raw;
+    if (w == 0 || h == 0 || repeat < 1 || !readRaw16(a.str("frame"), static_cast<size_t>(w) * h, &raw)) return 3;
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    const fs::path dir(a.str("set"));
+    xpe_clear_alerts();
+    if (xpe_calib_load_defect_map((dir / "defect.xcal").string().c_str()) != XPE_OK) {
+        std::fprintf(stderr, "correct-time: cannot load %s\n", (dir / "defect.xcal").string().c_str());
+        return 4;
+    }
+    std::vector<float> in(raw.begin(), raw.end()), out(raw.size());
+    auto buf = [&](std::vector<float>& v) {
+        XpeImageBuffer b{};
+        b.data = v.data();
+        b.width = w;
+        b.height = h;
+        b.bitsAllocated = 32;
+        b.bitsStored = 32;
+        b.format = XPE_PIXEL_FLOAT32;
+        b.dataSize = v.size() * sizeof(float);
+        return b;
+    };
+    XpeImageBuffer           bi = buf(in), bo = buf(out);
+    XpeImageMetadata         meta{};
+    XpeDefectCorrectionReport rep{};
+    rep.size = sizeof rep;
+    std::vector<double> ms;
+    for (int r = -1; r < repeat; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        if (xpe_defect_correct_ex(&bi, &bo, &meta, &rep, nullptr) != XPE_OK) return 5;
+        const auto t1 = std::chrono::steady_clock::now();
+        if (r >= 0) ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+    }
+    xpe_clear_alerts();
+    std::sort(ms.begin(), ms.end());
+    std::printf("correct-time %u x %u, %d runs: median %.2f ms, min %.2f ms, max %.2f ms\n"
+                "  layers_used %u, isolated %u, blob %u, line %u (groups %u, one-sided %u), low_confidence %u px in %u regions, unfilled %u, out_of_area %u\n",
+                w, h, repeat, ms[ms.size() / 2], ms.front(), ms.back(), rep.layers_used, rep.isolated_pixels, rep.blob_pixels, rep.line_pixels, rep.line_groups, rep.one_sided_line_pixels,
+                rep.low_confidence_pixels, rep.low_confidence_regions, rep.unfilled_pixels, rep.out_of_area_pixels);
+    xpe_preprocess_shutdown();
     return 0;
 }
 
@@ -2409,6 +2483,7 @@ int main(int argc, char** argv) {
     if (a.cmd == "blobs") return cmdBlobs(a);
     if (a.cmd == "chain") return cmdChain(a);
     if (a.cmd == "defect-xcal") return cmdDefectXcal(a);
+    if (a.cmd == "correct-time") return cmdCorrectTime(a);
     usage();
     return 2;
 }

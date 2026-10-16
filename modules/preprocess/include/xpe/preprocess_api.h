@@ -402,6 +402,45 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
                                         const XpeImageMetadata* metadata);
 
+/**
+ * @brief What the defect stage did to a frame (QA-A-255, SRS-CALIB-FUNC-039).
+ *
+ * Filled by xpe_defect_correct_ex(). The counts of a frame corrected with a version-1 map are all zero except
+ * `isolated_pixels` and `blob_pixels` (a version-1 map carries no line records, so the first-edition rules decide
+ * which of the two a pixel is); `layers_used` tells which edition ran.
+ */
+typedef struct {
+    uint32_t size;                     /**< sizeof(XpeDefectCorrectionReport), set by the function */
+    uint32_t layers_used;              /**< 1 when the layers of a version-2 defect file (lines, imaging area) drove the correction, else 0 */
+    uint32_t isolated_pixels;          /**< single defective pixels, corrected from their four neighbours (SRS-CALIB-FUNC-007) */
+    uint32_t blob_pixels;              /**< pixels of blobs of two or more, filled from the outside inward */
+    uint32_t line_pixels;              /**< pixels of recorded line stretches, interpolated across the line */
+    uint32_t line_groups;              /**< line groups (one or more adjacent lines) that were corrected */
+    uint32_t one_sided_line_pixels;    /**< line pixels that had a valid neighbour on one side only and were copied from it */
+    uint32_t low_confidence_pixels;    /**< pixels filled with low confidence: lines of a group of three or more, blobs without an adjacent valid pixel */
+    uint32_t low_confidence_regions;   /**< line groups and blobs that hold low-confidence pixels */
+    uint32_t unfilled_pixels;          /**< defective pixels with no valid pixel within 16 pixels: they keep their input value */
+    uint32_t out_of_area_pixels;       /**< pixels outside the imaging area: not used as a source and left as they were */
+} XpeDefectCorrectionReport;
+
+/**
+ * @brief xpe_defect_correct() with a report of what was done (QA-A-255).
+ *
+ * The same correction as xpe_defect_correct(). @p report and @p low_confidence_out are optional (NULL = not wanted).
+ *
+ * @param input Input image buffer (gain-corrected, FLOAT32)
+ * @param output Output image buffer (defect-corrected, FLOAT32)
+ * @param metadata Image metadata; must be non-NULL
+ * @param report Receives the counts (may be NULL)
+ * @param low_confidence_out A UINT8 buffer of the input's width and height that receives 1 where a pixel was filled with low confidence and 0 elsewhere (may be NULL)
+ * @return The codes of xpe_defect_correct(), and XPE_ERR_BUFFER_TOO_SMALL / XPE_ERR_UNSUPPORTED_FORMAT when @p low_confidence_out does not fit
+ */
+XPE_API XpeErrorCode xpe_defect_correct_ex(const XpeImageBuffer* input,
+                                           XpeImageBuffer* output,
+                                           const XpeImageMetadata* metadata,
+                                           XpeDefectCorrectionReport* report,
+                                           XpeImageBuffer* low_confidence_out);
+
 /* =============================================================================
  * Phase 4: Calibration Management (REQ-P1A-017~019, AC-CAL-004~005)
  * ============================================================================ */

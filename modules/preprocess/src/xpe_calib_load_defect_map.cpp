@@ -62,12 +62,13 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
             size_t expected = static_cast<size_t>(hdr.width) * hdr.height;
             if (hdr.version == XCAL_VERSION_DEFECT_EXT) {
                 // QA-A-254: a version-2 file. Plane 1 (imaging area) and the extension block are checked here -- a damaged one refuses the file with its reason -- and the defect
-                // plane is installed exactly like a version-1 map. The runtime store keeps the map only; the other layers are read with read_defect_xcal.
+                // plane is installed exactly like a version-1 map. QA-A-255: the other layers (imaging area, lines, blobs) are kept too (StagedDefect::layers).
                 DefectXcal parts;
                 const XpeErrorCode src = defect_v2_split(hdr, payload, &parts);
                 if (src != XPE_OK) return src;
                 staged.map.reset(new uint8_t[expected]);
                 std::memcpy(staged.map.get(), parts.map.data(), expected);
+                staged.layers = make_defect_layers(parts);   // QA-A-255: kept, the correction uses them
             } else {
                 if (payload.size() != expected) {
                     return XPE_ERR_CONFIG_INVALID;
@@ -128,6 +129,7 @@ void xpe_calib_after_defect_commit(const StagedDefect& staged) noexcept {
 
 void xpe_calib_commit_defect_locked(StagedDefect& staged) noexcept {
     g_calib.defect_map       = std::move(staged.map);
+    g_calib.defect_layers    = std::move(staged.layers);   // null for a version-1 file: loading one after a version-2 file clears the layers
     g_calib.defect_width     = staged.width;
     g_calib.defect_height    = staged.height;
     g_calib.defect_expiry_ms = staged.expiryMs;

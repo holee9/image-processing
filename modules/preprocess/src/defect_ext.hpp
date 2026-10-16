@@ -34,6 +34,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -92,6 +93,21 @@ struct DefectXcal {
     bool                 has_ext{false};
     std::string          config_json;    ///< the config block as stored
 };
+
+/**
+ * What the correction needs of a version-2 file, immutable and shared (QA-A-255): the imaging area (empty = every pixel is inside), the confirmed lines with their individual stretches and the
+ * blob marks. The runtime store, the frame's snapshot and the cache entry hold the same object; a version-1 file has none.
+ */
+struct DefectLayers {
+    uint32_t                   width{0}, height{0};
+    std::vector<uint8_t>       area;      ///< width x height bytes, 1 inside the imaging area; empty when the file has no area layer
+    size_t                     outside{0};   ///< pixels with area == 0
+    std::vector<DefectExtLine> lines;
+    std::vector<DefectExtBlob> blobs;
+};
+
+/** The layers of a file read with read_defect_xcal / defect_v2_split; null for a version-1 file. */
+XPE_API std::shared_ptr<const DefectLayers> make_defect_layers(const DefectXcal& parts);
 
 /** What a writer is given. `map` and `area` are width x height bytes; `ext` may be null (then the extension block is empty). */
 struct DefectXcalWrite {

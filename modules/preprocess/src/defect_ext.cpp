@@ -191,6 +191,20 @@ bool defect_ext_encode(const DefectExt& ext, uint32_t width, uint32_t height, st
     return true;
 }
 
+std::shared_ptr<const DefectLayers> make_defect_layers(const DefectXcal& parts) {
+    if (parts.format_version < XCAL_VERSION_DEFECT_EXT) return nullptr;
+    auto d = std::make_shared<DefectLayers>();
+    d->width = parts.width;
+    d->height = parts.height;
+    if (parts.has_area) {
+        d->area = parts.area;
+        d->outside = static_cast<size_t>(std::count(d->area.begin(), d->area.end(), static_cast<uint8_t>(0)));
+    }
+    d->lines = parts.ext.lines;
+    d->blobs = parts.ext.blobs;
+    return d;
+}
+
 // NOLINTBEGIN(bugprone-easily-swappable-parameters): size is the length of the extension block in bytes and width and height are the frame size that bounds the records; the one call site passes (payload.data() + 2 * px, extLen, hdr.width, hdr.height)
 bool defect_ext_decode(const uint8_t* data, size_t size, uint32_t width, uint32_t height, DefectExt* out, std::string* reason) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
@@ -298,6 +312,9 @@ XpeErrorCode defect_v2_split(const XCalFileHeader& hdr, const std::vector<uint8_
             }
             hasExt = true;
         }
+        out->format_version = hdr.version;   // QA-A-255: make_defect_layers reads these
+        out->width = hdr.width;
+        out->height = hdr.height;
         out->map.assign(payload.begin(), payload.begin() + static_cast<std::ptrdiff_t>(px));
         out->area.assign(area, area + px);
         out->has_area = true;

@@ -343,6 +343,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_xcal_writer.cpp
         tests/test_xcal_validator.cpp
         tests/test_defect_xcal_v2.cpp        # QA-A-254: XCal defect file version 2
+        tests/test_defect_correct_v2.cpp     # QA-A-255: defect correction, second edition (lines, blobs, imaging area)
         tests/test_xpe_sha256.cpp
         # QA-A-106 (#179): CNG/PicoSHA2 digest parity
         tests/test_sha256_backend_parity.cpp
