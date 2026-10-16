@@ -1,0 +1,18 @@
+imaging area 3065 x 3069 = 9406485 pixels, lambda 5.3156
+clean    dark_mean flagged   2273 (detector 2273) | flat_field flagged   1366 (detector 1366)
+planted  dark_mean flagged   2574 (detector 2574) | flat_field flagged  39612 (detector 39612)
+
+new false alarms of measurement B: 12; control band 3; carried by a planted line row/column 1; everything else 8
+#    x,y        class                  feature       z clean  z planted
+1    2498,261   everything else        flat_field     -5.314     -5.323
+2    2944,295   everything else        flat_field     -5.307     -5.317
+3    1568,455   everything else        flat_field     -5.297     -5.512
+4    704,579    control band           bright_noise (not ported) (not ported)
+5    836,579    control band           bright_noise (not ported) (not ported)
+6    2185,901   everything else        dark_mean      -5.251     -5.345
+7    1453,1023  everything else        dark_mean      -5.316     -5.316
+8    454,1095   everything else        dark_mean      -5.283     -5.332
+9    807,1595   control band           bright_noise (not ported) (not ported)
+10   835,1742   everything else        dark_mean      -5.163     -5.323
+11   926,2178   line row/column        bright_noise (not ported) (not ported)
+12   1153,2761  everything else        flat_field     -5.279     -5.337
