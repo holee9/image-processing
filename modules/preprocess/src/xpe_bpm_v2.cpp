@@ -390,11 +390,23 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             x = x2 + 1;
             if (b - a < L) continue;
             // magnitude: a stretch that offset and gain correction removes is no defect
-            double sf = 0.0, sr = 0.0;
-            for (int k = a; k < b; ++k) {
-                sf += static_cast<double>(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
-                sr += static_cast<double>(ref[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
-            }
+            auto segSum = [&](int yy) {
+                double t = 0.0;
+                for (int k = a; k < b; ++k) {
+                    const size_t i = static_cast<size_t>(yy) * static_cast<size_t>(w) + static_cast<size_t>(k);
+                    double       v = static_cast<double>(f[i]);
+                    // a variance ratio has a heavy tail (single defective pixels): each pixel counts at most twice the tolerance, so that a few of them cannot make a line
+                    if (kind == kKindNoise) v = std::min(v, 2.0 * job->tol * std::max(static_cast<double>(ref[i]), 0.0));
+                    t += v;
+                }
+                return t;
+            };
+            const double sf = segSum(y);
+            std::vector<float> nbSums;   // the neighbouring rows, the same pixels: mean against mean (a median of single pixels is biased low for skewed features)
+            const int half = static_cast<int>(st.window) / 2;
+            for (int dy = -half; dy <= half; ++dy)
+                if (dy != 0 && y + dy >= 0 && y + dy < h) nbSums.push_back(static_cast<float>(segSum(y + dy)));
+            const double sr = nbSums.empty() ? sf : static_cast<double>(medianOf(nbSums.data(), nbSums.size()));
             uint32_t cause = 0;
             if (kind == kKindResponse) {
                 const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
