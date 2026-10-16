@@ -79,7 +79,8 @@ struct Plant {
     bool yGradient{false};      // the gain also changes along the columns (vertical shading), so a multiplicative column band leaves a trace
     bool darkPartial{false};    // a steep dark-level gradient along the rows and a raised segment in the middle of one row (every frame): only the dark-mean feature sees it
     bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
-    bool strongShading{false};  // +-20 % gain shading along both directions (a heel-effect-like flat field): a line component taken from a partly defective line moves by many noise widths
+    bool strongShading{false};
+    uint32_t lines{0};            // QA-A-253: kLn* bits, whole rows and columns that are defective  // +-20 % gain shading along both directions (a heel-effect-like flat field): a line component taken from a partly defective line moves by many noise widths
 };
 
 constexpr int kHotX = 40, kHotY = 50;        // +80 pixel values in every frame
@@ -93,7 +94,10 @@ constexpr int kPartLen = 64;
 constexpr int kPartRowFrom = 96;             // the row segments sit in the middle of the row: the median of a row with a gradient moves most when the missing part is not at an end
 constexpr int kBrightNoisyX = 120, kBrightNoisyY = 200;   // extra temporal noise sd 150 in every bright frame
 constexpr int kDarkRow = 60, kDarkFrom = 96;   // the raised segment: kPartLen pixels, +300 in every frame
-constexpr int kVarCol = 70;                  // a column offset that is a new random value in every frame (sd 15)
+constexpr int kVarCol = 70;                  // a column whose offset is a new random value in every frame (sd 60)
+// line defects of the QA-A-253 tests (256 x 256 frames)
+constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128;
+constexpr int kLnDeadRowY = 120, kLnDeadColX = 60, kLnHalfRowY = 80, kLnPartialRowY = 40, kLnPartialFrom = 96, kLnPartialTo = 192, kLnPairY = 170, kLnTripleY = 200, kLnNoisyY = 30, kLnGainY = 150;
 
 Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPerDose, int nDark, Plant plant, bool transientFirstDark = false) {
     Normal rng(seed);
@@ -113,9 +117,20 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
         for (size_t i = 0; i < kN; ++i) {
             const int x = static_cast<int>(i % kW), y = static_cast<int>(i / kW);
             double d = D0[i], sig = net * G[i];
+            double noiseSd = 3.0;
             if (plant.darkPartial) {
                 d += 0.3 * x;
                 if (y == kDarkRow && x >= kDarkFrom && x < kDarkFrom + kPartLen) d += 300.0;
+            }
+            if (plant.lines) {
+                if ((plant.lines & kLnDeadRow) && y == kLnDeadRowY) sig = 0.0;
+                if ((plant.lines & kLnDeadCol) && x == kLnDeadColX) sig = 0.0;
+                if ((plant.lines & kLnHalfRow) && y == kLnHalfRowY) sig *= 0.5;
+                if ((plant.lines & kLnPartialRow) && y == kLnPartialRowY && x >= kLnPartialFrom && x < kLnPartialTo) sig = 0.0;
+                if ((plant.lines & kLnPairRows) && (y == kLnPairY || y == kLnPairY + 1)) sig = 0.0;
+                if ((plant.lines & kLnTripleRows) && y >= kLnTripleY && y < kLnTripleY + 3) sig = 0.0;
+                if ((plant.lines & kLnNoisyRow) && y == kLnNoisyY) noiseSd = 9.0;
+                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
             }
             if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
             if (plant.strongShading) sig *= (0.8 + 0.4 * x / (kW - 1)) * (0.8 + 0.4 * y / (kH - 1));
@@ -124,7 +139,6 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                 if ((y == kPartRow || y == kPartRowPair || y == kPartRowPair + 1) && x >= kPartRowFrom && x < kPartRowFrom + kPartLen) sig = 0.0;
                 if (x == kPartCol && y < kPartLen) sig = 0.0;
             }
-            double noiseSd = 3.0;
             if (plant.defects) {
                 if (atPlant(x, y, kHotX, kHotY)) d += 80.0;
                 if (atPlant(x, y, kDeadX, kDeadY)) sig = 0.0;
@@ -382,6 +396,218 @@ TEST(BpmV2Test, WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAre
     wide.margin_left = kW / 2;
     wide.margin_right = kW / 2 - 8;   // 8 columns left: fewer than the 16 the detector needs
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(f, &wide).rc);
+}
+
+// ---------------------------------------------------------------- QA-A-253: line defects (SRS FUNC-023) and blobs
+namespace {
+
+struct LinesResult {
+    XpeErrorCode               rc;
+    std::vector<XpeBpmLine>    lines;
+    std::vector<uint8_t>       mask;
+    XpeBpmLineReport           rep;
+};
+
+LinesResult findLines(Frames& f, const XpeBpmConfigV2* cfg, const XpeBpmLineConfig* lcfg) {
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : f.dark) db.push_back(buf(v));
+    for (auto& v : f.bright) bb.push_back(buf(v));
+    LinesResult r{};
+    r.mask.assign(kN, 77);
+    r.lines.assign(64, XpeBpmLine{});
+    XpeImageBuffer mb = outBuf(r.mask);
+    EXPECT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    r.rc = xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), cfg, lcfg, &mb, r.lines.data(), 64, &r.rep);
+    xpe_clear_alerts();
+    xpe_preprocess_shutdown();
+    r.lines.resize(std::min<size_t>(r.rep.lines, 64));
+    return r;
+}
+
+XpeBpmLineConfig shortWindows() {
+    XpeBpmLineConfig c{};
+    c.min_segment = 32;   // the test frames are 256 pixels wide
+    return c;
+}
+
+Plant onlyLines(uint32_t bits) {
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    p.lines = bits;
+    return p;
+}
+
+const XpeBpmLine* lineAt(const LinesResult& r, uint32_t orientation, uint32_t index) {
+    for (const XpeBpmLine& l : r.lines)
+        if (l.orientation == orientation && l.index <= index && index < l.index + l.width) return &l;
+    return nullptr;
+}
+
+}  // namespace
+
+TEST(BpmV2LinesTest, AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross) {
+    Frames f = makeFrames(21, kDoses, 3, 7, onlyLines(kLnDeadRow | kLnDeadCol));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    ASSERT_EQ(2u, r.rep.lines) << "one row and one column, nothing else";
+    const XpeBpmLine* row = lineAt(r, XPE_BPM_LINE_ROW, kLnDeadRowY);
+    const XpeBpmLine* col = lineAt(r, XPE_BPM_LINE_COLUMN, kLnDeadColX);
+    ASSERT_NE(nullptr, row);
+    ASSERT_NE(nullptr, col);
+    EXPECT_EQ(static_cast<uint32_t>(kLnDeadRowY), row->index);
+    EXPECT_EQ(1u, row->width);
+    EXPECT_NE(0u, row->flags & XPE_BPM_LINE_FULL);
+    EXPECT_NE(0u, row->causes & XPE_BPM_LINE_CAUSE_RESPONSE);
+    EXPECT_NE(0u, col->flags & XPE_BPM_LINE_FULL);
+    EXPECT_NE(0u, row->flags & XPE_BPM_LINE_CROSSES) << "the dead column crosses the dead row";
+    EXPECT_NE(0u, col->flags & XPE_BPM_LINE_CROSSES);
+    EXPECT_EQ(1, r.mask[static_cast<size_t>(kLnDeadRowY) * kW + 5]);
+    EXPECT_EQ(1, r.mask[static_cast<size_t>(5) * kW + kLnDeadColX]);
+    EXPECT_EQ(0, r.mask[static_cast<size_t>(5) * kW + 5]);
+    EXPECT_EQ(0u, r.rep.panel_reject);
+    EXPECT_EQ(1u, r.rep.crossings);
+}
+
+TEST(BpmV2LinesTest, ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot) {
+    // row 80: response 0.5 (correction doubles the noise: 6 dB, a defect); row 150: response 1.2 and column 220: response 0.8 (1.6 dB and 1.9 dB: bands that gain correction removes)
+    Frames f = makeFrames(22, kDoses, 3, 7, onlyLines(kLnHalfRow | kLnGainRow));
+    Frames g = makeFrames(22, kDoses, 3, 7, Plant{true, false});   // the fixed row band of +60 and the gain column band of 0.8
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc), bands = findLines(g, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    ASSERT_EQ(XPE_OK, bands.rc);
+    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) << "response 0.5: found";
+    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnGainY)) << "response 1.2: a band that gain correction removes";
+    EXPECT_EQ(1u, r.rep.lines);
+    EXPECT_EQ(0u, bands.rep.lines) << "the fixed offset band and the 0.8 gain band are not defects";
+}
+
+TEST(BpmV2LinesTest, APartialLineIsFoundWithItsStartAndEnd) {
+    Frames f = makeFrames(23, kDoses, 3, 7, onlyLines(kLnPartialRow));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    ASSERT_EQ(1u, r.rep.lines);
+    const XpeBpmLine& l = r.lines[0];
+    EXPECT_EQ(XPE_BPM_LINE_ROW, l.orientation);
+    EXPECT_EQ(static_cast<uint32_t>(kLnPartialRowY), l.index);
+    EXPECT_EQ(0u, l.flags & XPE_BPM_LINE_FULL);
+    EXPECT_NEAR(kLnPartialFrom, static_cast<double>(l.start), 8.0);
+    EXPECT_NEAR(kLnPartialTo, static_cast<double>(l.end), 8.0);
+    EXPECT_EQ(1u, r.rep.partial_lines);
+    EXPECT_EQ(0u, r.rep.full_lines);
+}
+
+TEST(BpmV2LinesTest, TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection) {
+    Frames f = makeFrames(24, kDoses, 3, 7, onlyLines(kLnPairRows));
+    Frames g = makeFrames(24, kDoses, 3, 7, onlyLines(kLnTripleRows));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult two = findLines(f, nullptr, &lc), three = findLines(g, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, two.rc);
+    ASSERT_EQ(XPE_OK, three.rc);
+    ASSERT_EQ(1u, two.rep.lines);
+    EXPECT_EQ(2u, two.lines[0].width);
+    EXPECT_EQ(static_cast<uint32_t>(kLnPairY), two.lines[0].index);
+    EXPECT_EQ(1u, two.rep.double_lines);
+    EXPECT_EQ(0u, two.rep.panel_reject) << "two adjacent lines are a correction task (the line-direction interpolation handles them)";
+    ASSERT_EQ(1u, three.rep.lines);
+    EXPECT_EQ(3u, three.lines[0].width);
+    EXPECT_EQ(1u, three.rep.panel_reject) << "three adjacent lines: the panel is rejected, not corrected";
+    EXPECT_NE(0u, three.lines[0].flags & XPE_BPM_LINE_REJECT);
+    EXPECT_EQ(3u, three.rep.max_adjacent);
+}
+
+TEST(BpmV2LinesTest, ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine) {
+    Frames f = makeFrames(25, kDoses, 3, 7, onlyLines(kLnNoisyRow));
+    Frames c = makeFrames(25, kDoses, 3, 7, onlyLines(0));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult noisy = findLines(f, nullptr, &lc), clean = findLines(c, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, noisy.rc);
+    ASSERT_EQ(XPE_OK, clean.rc);
+    const XpeBpmLine* l = lineAt(noisy, XPE_BPM_LINE_ROW, kLnNoisyY);
+    ASSERT_NE(nullptr, l);
+    EXPECT_NE(0u, l->causes & XPE_BPM_LINE_CAUSE_NOISE);
+    EXPECT_EQ(0u, clean.rep.lines) << "clean frames: no line (the false-alarm target is one stretch over the whole frame)";
+}
+
+TEST(BpmV2LinesTest, ASingleDeadPixelOrASmallBlockIsNotALine) {
+    Frames f = makeFrames(26, kDoses, 3, 7, Plant{false, true});   // a hot, a dead, a slope and a noisy pixel
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines) << "pixels are the pixel detector's job; a stretch needs min_segment pixels in a row";
+}
+
+TEST(BpmV2LinesTest, LinesInsideTheMarginsAreNotCounted) {
+    Frames f = makeFrames(27, kDoses, 3, 7, onlyLines(kLnDeadRow));
+    XpeBpmConfigV2 cfg{};
+    cfg.margin_top = kLnDeadRowY - 2;   // the dead row is the third line outside the area counted from the margin's inner edge... it lies inside: the first control
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult inside = findLines(f, &cfg, &lc);
+    ASSERT_EQ(XPE_OK, inside.rc);
+    ASSERT_EQ(1u, inside.rep.lines) << "inside the imaging area";
+    EXPECT_EQ(static_cast<uint32_t>(kLnDeadRowY), inside.lines[0].index) << "frame coordinates, not coordinates of the cut area";
+    cfg.margin_top = kLnDeadRowY + 5;   // now the dead row is in the margin
+    const LinesResult outside = findLines(f, &cfg, &lc);
+    ASSERT_EQ(XPE_OK, outside.rc);
+    EXPECT_EQ(0u, outside.rep.lines) << "a row in the margin takes no part";
+    EXPECT_EQ(0, outside.mask[static_cast<size_t>(kLnDeadRowY) * kW + 5]);
+}
+
+TEST(BpmV2LinesTest, ConfigurationAndBuffersAreChecked) {
+    Frames f = makeFrames(28, kDoses, 3, 7, onlyLines(0));
+    XpeBpmLineConfig bad{};
+    bad.reserved = 1;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, findLines(f, nullptr, &bad).rc);
+    bad = XpeBpmLineConfig{};
+    bad.min_segment = 8;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, findLines(f, nullptr, &bad).rc);
+    bad = XpeBpmLineConfig{};
+    bad.noise_tolerance_db = 30.0f;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, findLines(f, nullptr, &bad).rc);
+    bad = XpeBpmLineConfig{};
+    bad.target_false_alarms = 5000.0f;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, findLines(f, nullptr, &bad).rc);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bpm_find_lines(nullptr, 7, nullptr, 12, nullptr, nullptr, nullptr, nullptr, 0, nullptr));
+}
+
+TEST(BpmV2LinesTest, BlobsGroupNeighbouringDefectivePixelsWithTheirSize) {
+    std::vector<uint8_t> m(64 * 64, 0);
+    auto set = [&](int x, int y) { m[static_cast<size_t>(y) * 64 + static_cast<size_t>(x)] = 3; };
+    set(5, 5);                                                         // a single pixel
+    set(20, 20); set(21, 20); set(20, 21); set(21, 21);                // 2 x 2
+    set(40, 40); set(41, 41); set(42, 42);                             // a diagonal: 8-neighbourhood joins it
+    set(10, 50); set(10, 51); set(10, 52); set(11, 52); set(12, 52);   // an L of five
+    XpeImageBuffer b{};
+    b.data = m.data();
+    b.width = 64;
+    b.height = 64;
+    b.format = XPE_PIXEL_UINT8;
+    b.dataSize = m.size();
+    uint32_t count = 0;
+    XpeBpmBlob out[8] = {};
+    ASSERT_EQ(XPE_OK, xpe_bpm_blobs(&b, out, 8, &count));
+    ASSERT_EQ(4u, count);
+    EXPECT_EQ(5u, out[0].size) << "largest first";
+    EXPECT_EQ(10u, out[0].x0);
+    EXPECT_EQ(12u, out[0].x1);
+    EXPECT_EQ(50u, out[0].y0);
+    EXPECT_EQ(52u, out[0].y1);
+    EXPECT_EQ(4u, out[1].size);
+    EXPECT_EQ(3u, out[2].size);
+    EXPECT_EQ(1u, out[3].size);
+    // counting without an array, a small array, bad input
+    uint32_t only = 0;
+    ASSERT_EQ(XPE_OK, xpe_bpm_blobs(&b, nullptr, 0, &only));
+    EXPECT_EQ(4u, only);
+    XpeBpmBlob two[2] = {};
+    ASSERT_EQ(XPE_OK, xpe_bpm_blobs(&b, two, 2, &only));
+    EXPECT_EQ(4u, only) << "the count is the number found, not the number stored";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bpm_blobs(nullptr, out, 8, &count));
+    b.format = XPE_PIXEL_UINT16;
+    EXPECT_EQ(XPE_ERR_UNSUPPORTED_FORMAT, xpe_bpm_blobs(&b, out, 8, &count));
 }
 
 TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {

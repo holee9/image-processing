@@ -2189,6 +2189,113 @@ XPE_API uint32_t xpe_calib_get_max_points(void);
  */
 XPE_API uint32_t xpe_calib_get_poly_degree(void);
 
+/* ---- Line and blob detection (SRS-CALIB-FUNC-023, QA-A-253, #273) ------------------------------------------------------------------------------------------ */
+
+/** Orientation of a line defect. */
+#define XPE_BPM_LINE_ROW    0u
+#define XPE_BPM_LINE_COLUMN 1u
+
+/** What makes a line defective (bits of XpeBpmLine::causes). */
+#define XPE_BPM_LINE_CAUSE_RESPONSE  0x01u /**< The response of the line differs from its neighbours by more than the noise tolerance can take (gain correction would add more noise than allowed) */
+#define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line */
+#define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance */
+
+/** Bits of XpeBpmLine::flags. */
+#define XPE_BPM_LINE_FULL    0x01u /**< The defective stretch covers (nearly) the whole length of the line */
+#define XPE_BPM_LINE_CROSSES 0x02u /**< A line of the other orientation crosses this stretch */
+#define XPE_BPM_LINE_REJECT  0x04u /**< Three or more adjacent lines: not a correction task but a panel rejection condition */
+
+/** Line detection configuration. Zero-initialised fields take the defaults. */
+typedef struct {
+    float    target_false_alarms;  /**< Expected false line stretches over the whole frame (default 1; range (0, 1000]) */
+    uint32_t min_segment;          /**< Shortest stretch along a line, in pixels (default 64; range 16..1024) */
+    float    noise_tolerance_db;   /**< A line is defective only when correcting it would raise the noise by more than this (default 3 dB = a power ratio of 2; range (0, 20]) */
+    uint32_t reserved;             /**< Must be zero */
+} XpeBpmLineConfig;
+
+/** One group of adjacent defective lines of the same orientation. */
+typedef struct {
+    uint32_t orientation;  /**< XPE_BPM_LINE_ROW or XPE_BPM_LINE_COLUMN */
+    uint32_t index;        /**< Row (or column) number of the first line of the group, frame coordinates */
+    uint32_t width;        /**< Number of adjacent lines in the group: 1, 2, or 3 and more */
+    uint32_t start;        /**< First pixel of the defective stretch along the line, frame coordinates */
+    uint32_t end;          /**< One past the last pixel of the stretch */
+    uint32_t causes;       /**< XPE_BPM_LINE_CAUSE_* bits */
+    uint32_t flags;        /**< XPE_BPM_LINE_* flag bits */
+    float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
+} XpeBpmLine;
+
+/** What xpe_bpm_find_lines found. */
+typedef struct {
+    uint32_t lines;               /**< Groups found (rows and columns) */
+    uint32_t row_groups;          /**< ... of which rows */
+    uint32_t column_groups;       /**< ... of which columns */
+    uint32_t full_lines;          /**< Groups that cover the whole line */
+    uint32_t partial_lines;       /**< Groups that cover a part of the line */
+    uint32_t double_lines;        /**< Groups of exactly two adjacent lines */
+    uint32_t crossings;           /**< Pairs of a row and a column group that cross */
+    uint32_t max_adjacent;        /**< Widest group */
+    uint32_t panel_reject;        /**< 1 when some group is three adjacent lines or more */
+    uint32_t truncated;           /**< 1 when more groups were found than max_lines */
+    uint32_t line_pixels;         /**< Pixels covered by the groups */
+    uint32_t pixels;              /**< Pixels inside the imaging area */
+    float    null_width[6];       /**< Empirical width (robust sd) of the window statistic of each stretch test, in units of the uncorrelated-noise prediction: rows then columns of the three tests */
+} XpeBpmLineReport;
+
+/**
+ * @brief Line defect detection (SRS-CALIB-FUNC-023, QA-A-253)
+ *
+ * Finds defective rows and columns on the same frames and with the same configuration as xpe_bpm_generate_v2 (raw dark list, first dark skipped by default,
+ * margins). The images of the per-pixel features are examined BEFORE their row and column components are removed (the pixel detector removes whole lines by design):
+ * for every row the difference between the row and the median of its neighbouring rows is summed over windows of min_segment pixels and compared with the noise
+ * of an uncorrelated sum; the width of the same statistic over all rows and columns (its empirical null) scales the threshold; the threshold follows from the
+ * target number of false stretches. A stretch is kept only when it is also large enough to matter (see the XPE_BPM_LINE_CAUSE_* bits): a response within the noise
+ * tolerance of the neighbours is a band that offset and gain correction removes and is not reported.
+ *
+ * Adjacent defective lines are grouped: two lines are a double line, three or more set panel_reject (not a correction task). A row and a column group that
+ * cross are marked.
+ *
+ * @param dark_frames Dark frames (UINT16), raw acquisition list
+ * @param num_dark Number of dark frames
+ * @param bright_frames Bright frames (UINT16)
+ * @param num_bright Number of bright frames
+ * @param cfg Pixel detector configuration (skip, margins, window, block, minimum frames); NULL = defaults
+ * @param lcfg Line configuration; NULL = defaults
+ * @param line_mask_out Optional output (UINT8, size of the frames): 1 on the pixels of the reported stretches, 0 elsewhere (also outside the imaging area); NULL to skip
+ * @param lines_out Optional array for the groups; NULL to skip
+ * @param max_lines Capacity of lines_out
+ * @param report Optional output
+ * @return XPE_OK on success; the errors of xpe_bpm_generate_v2 for invalid input
+ */
+XPE_API XpeErrorCode xpe_bpm_find_lines(
+    const XpeImageBuffer* dark_frames,
+    uint32_t num_dark,
+    const XpeImageBuffer* bright_frames,
+    uint32_t num_bright,
+    const XpeBpmConfigV2* cfg,
+    const XpeBpmLineConfig* lcfg,
+    XpeImageBuffer* line_mask_out,
+    XpeBpmLine* lines_out,
+    uint32_t max_lines,
+    XpeBpmLineReport* report);
+
+/** One blob: a connected group of defective pixels (8-neighbourhood). */
+typedef struct {
+    uint32_t x0, y0, x1, y1;  /**< Bounding box, x1 and y1 inclusive */
+    uint32_t size;            /**< Number of pixels */
+} XpeBpmBlob;
+
+/**
+ * @brief Groups the defective pixels of a map into blobs with their size (SRS-CALIB-FUNC-023)
+ *
+ * @param map Defect map (UINT8, 0 good, anything else defective)
+ * @param blobs_out Optional array for the blobs, largest first; NULL to only count
+ * @param max_blobs Capacity of blobs_out
+ * @param blob_count Optional output: the number of blobs found (can exceed max_blobs)
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT for a NULL map; XPE_ERR_UNSUPPORTED_FORMAT if the map is not UINT8
+ */
+XPE_API XpeErrorCode xpe_bpm_blobs(const XpeImageBuffer* map, XpeBpmBlob* blobs_out, uint32_t max_blobs, uint32_t* blob_count);
+
 #ifdef __cplusplus
 }
 #endif

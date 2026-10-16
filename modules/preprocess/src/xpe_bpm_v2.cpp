@@ -290,11 +290,207 @@ float flagVarianceRatio(Work& wk, const Settings& st, uint32_t nu, double tau, u
     return med;
 }
 
+// ---------------------------------------------------------------------------------------------------------------------------------------- lines (QA-A-253)
+enum LineKind { kKindResponse = 0, kKindLinearity = 1, kKindNoise = 2 };
+
+struct Seg {
+    int      orient;   // 0 row, 1 column
+    int      idx;      // the row or column
+    int      a, b;     // [a, b) along the line
+    uint32_t cause;
+    float    z;
+};
+
+struct LineJob {
+    double           fa{1.0};
+    int              minSeg{64};
+    double           tol{1.9952623149688795};   // 3 dB as a power ratio
+    bool             linesOnly{false};
+    std::vector<Seg> segs;
+    float            nullWidth[6]{1, 1, 1, 1, 1, 1};
+};
+
+void transposeImage(const float* in, float* out, int w, int h) {
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) out[static_cast<size_t>(x) * static_cast<size_t>(h) + static_cast<size_t>(y)] = in[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+}
+
+/**
+ * Stretches along the rows of f (w x h). e is the difference to the median of the neighbouring rows at the same column (for the response kind the ratio minus one);
+ * the window statistic is the sum over min_segment pixels of e / local scale, each term cut at +-3 so that a single outlier (a dead pixel, a hot pixel) cannot make a
+ * stretch, divided by the square root of the window length: the uncorrelated-noise prediction. Its robust width over all windows (the empirical null) rescales it.
+ */
+void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job, int kind, int orient, int nullSlot, std::vector<Seg>* out) {
+    const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
+    const int    L = std::min(job->minSeg, w);
+    if (L < 8) return;
+    std::vector<float> ref(n), e(n);
+    slidingMedian(f, ref.data(), w, h, static_cast<int>(st.window), true);
+    for (size_t i = 0; i < n; ++i) {
+        if (kind == kKindResponse) e[i] = std::fabs(ref[i]) > 1e-30f ? f[i] / ref[i] - 1.0f : 0.0f;
+        else e[i] = f[i] - ref[i];
+    }
+    std::vector<float> sig;
+    int                nbx = 0, nby = 0;
+    blockScale(e.data(), w, h, static_cast<int>(st.block), &sig, &nbx, &nby);
+    const int nw = w - L + 1;
+    std::vector<float> zw(static_cast<size_t>(h) * static_cast<size_t>(nw));
+    std::vector<double> cs(static_cast<size_t>(w) + 1);
+    for (int y = 0; y < h; ++y) {
+        cs[0] = 0.0;
+        for (int x = 0; x < w; ++x) {
+            const double s = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), x, y)), 1e-9);
+            double       t = static_cast<double>(e[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]) / s;
+            t = std::min(3.0, std::max(-3.0, t));
+            cs[static_cast<size_t>(x) + 1] = cs[static_cast<size_t>(x)] + t;
+        }
+        for (int x = 0; x < nw; ++x) zw[static_cast<size_t>(y) * static_cast<size_t>(nw) + static_cast<size_t>(x)] = static_cast<float>((cs[static_cast<size_t>(x + L)] - cs[static_cast<size_t>(x)]) / std::sqrt(static_cast<double>(L)));
+    }
+    // the empirical null: robust width of the window statistic over all rows and windows
+    std::vector<float> sample;
+    sample.reserve(zw.size() / 8 + 1);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < nw; x += 8) sample.push_back(std::fabs(zw[static_cast<size_t>(y) * static_cast<size_t>(nw) + static_cast<size_t>(x)]));
+    const double kappa = std::max(1.0, static_cast<double>(kMadToSigma) * static_cast<double>(medianOf(sample.data(), sample.size())));
+    job->nullWidth[nullSlot] = static_cast<float>(kappa);
+    const double tests = std::max(1.0, static_cast<double>(h) * static_cast<double>(w) / static_cast<double>(L));
+    const double lambda = zThreshold(job->fa / tests);
+    const double lo = 1.0 / std::sqrt(job->tol), hi = std::sqrt(job->tol);
+    for (int y = 0; y < h; ++y) {
+        const float* zr = zw.data() + static_cast<size_t>(y) * static_cast<size_t>(nw);
+        const float* er = e.data() + static_cast<size_t>(y) * static_cast<size_t>(w);
+        int          x = 0;
+        while (x < nw) {
+            const double z = static_cast<double>(zr[x]) / kappa;
+            const bool   upperOnly = kind != kKindResponse;
+            const int    sign = z > lambda ? 1 : ((!upperOnly && z < -lambda) ? -1 : 0);
+            if (sign == 0) {
+                ++x;
+                continue;
+            }
+            int    x2 = x;
+            double zmax = std::fabs(z);
+            while (x2 + 1 < nw) {
+                const double z2 = static_cast<double>(zr[x2 + 1]) / kappa;
+                if (!(sign > 0 ? z2 > lambda : z2 < -lambda)) break;
+                ++x2;
+                zmax = std::max(zmax, std::fabs(z2));
+            }
+            int a = x, b = x2 + L;
+            // trim the ends: a stretch ends where eight pixels in a row no longer reach half of its mean
+            auto meanOf = [&](int p, int q) {
+                double s = 0.0;
+                for (int k = p; k < q; ++k) s += static_cast<double>(er[k]);
+                return s / std::max(1, q - p);
+            };
+            const double m = meanOf(a, b);
+            auto holds = [&](int p, int q) { return sign * meanOf(p, q) >= 0.5 * sign * m && sign * m > 0.0; };
+            while (b - a > L && !holds(a, std::min(b, a + 8))) ++a;
+            while (b - a > L && !holds(std::max(a, b - 8), b)) --b;
+            x = x2 + 1;
+            if (b - a < L) continue;
+            // magnitude: a stretch that offset and gain correction removes is no defect
+            double sf = 0.0, sr = 0.0;
+            for (int k = a; k < b; ++k) {
+                sf += static_cast<double>(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
+                sr += static_cast<double>(ref[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
+            }
+            uint32_t cause = 0;
+            if (kind == kKindResponse) {
+                const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
+                if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;
+            } else if (kind == kKindNoise) {
+                const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
+                if (g >= job->tol) cause = XPE_BPM_LINE_CAUSE_NOISE;
+            } else {
+                cause = XPE_BPM_LINE_CAUSE_LINEARITY;
+            }
+            if (cause == 0) continue;
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax)});
+        }
+    }
+}
+
+/** Examines one feature image along its rows and its columns. */
+void analyzeFeature(const float* f, int w, int h, const Settings& st, LineJob* job, int kind) {
+    const int slot = kind * 2;
+    rowStretches(f, w, h, st, job, kind, 0, slot, &job->segs);
+    std::vector<float> t(static_cast<size_t>(w) * static_cast<size_t>(h));
+    transposeImage(f, t.data(), w, h);
+    rowStretches(t.data(), h, w, st, job, kind, 1, slot + 1, &job->segs);
+}
+
+struct Group {
+    int      orient, idx, width, a, b;
+    uint32_t causes, flags;
+    float    z;
+};
+
+/** Merges the stretches of one line, then groups adjacent lines whose stretches overlap by half. */
+std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
+    std::vector<Group> groups;
+    for (int orient = 0; orient < 2; ++orient) {
+        std::vector<Seg> mine;
+        for (const Seg& s : segs)
+            if (s.orient == orient) mine.push_back(s);
+        std::sort(mine.begin(), mine.end(), [](const Seg& p, const Seg& q) { return p.idx != q.idx ? p.idx < q.idx : p.a < q.a; });
+        // one stretch per overlapping set on a line
+        std::vector<Seg> lines;
+        for (const Seg& s : mine) {
+            if (!lines.empty() && lines.back().idx == s.idx && s.a <= lines.back().b) {
+                lines.back().b = std::max(lines.back().b, s.b);
+                lines.back().cause |= s.cause;
+                lines.back().z = std::max(lines.back().z, s.z);
+            } else {
+                lines.push_back(s);
+            }
+        }
+        // adjacent lines with overlapping stretches form a group
+        std::vector<bool> used(lines.size(), false);
+        for (size_t i = 0; i < lines.size(); ++i) {
+            if (used[i]) continue;
+            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z};
+            used[i] = true;
+            int last = lines[i].idx;
+            for (size_t j = i + 1; j < lines.size(); ++j) {
+                if (used[j] || lines[j].idx != last + 1) continue;
+                const int ov = std::min(g.b, lines[j].b) - std::max(g.a, lines[j].a);
+                const int shorter = std::min(g.b - g.a, lines[j].b - lines[j].a);
+                if (ov * 2 < shorter) continue;
+                g.a = std::min(g.a, lines[j].a);
+                g.b = std::max(g.b, lines[j].b);
+                g.causes |= lines[j].cause;
+                g.z = std::max(g.z, lines[j].z);
+                ++g.width;
+                last = lines[j].idx;
+                used[j] = true;
+            }
+            const int length = orient == 0 ? w : h;
+            if ((g.b - g.a) * 100 >= length * 95) g.flags |= XPE_BPM_LINE_FULL;
+            if (g.width >= 3) g.flags |= XPE_BPM_LINE_REJECT;
+            groups.push_back(g);
+        }
+    }
+    // crossings
+    for (Group& r : groups) {
+        if (r.orient != 0) continue;
+        for (Group& c : groups) {
+            if (c.orient != 1) continue;
+            const bool hit = c.idx + c.width > r.a && c.idx < r.b && r.idx + r.width > c.a && r.idx < c.b;
+            if (hit) {
+                r.flags |= XPE_BPM_LINE_CROSSES;
+                c.flags |= XPE_BPM_LINE_CROSSES;
+            }
+        }
+    }
+    return groups;
+}
+
 }  // namespace
 
 /** The detection on frames that hold the imaging area only (no margins). */
-XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
-                            const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {
+static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report, LineJob* job) try {
     if (!dark_frames || !bright_frames || !bpm_out) return XPE_ERR_INVALID_INPUT;
     Settings st{};
     if (const XpeErrorCode rc = resolve(cfg, &st)) return rc;
@@ -484,13 +680,19 @@ XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark
     // F1 dark mean
     std::copy(D.begin(), D.end(), wk.feat.begin());
     threshold[0] = lambdaTwoSided;
-    scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);
+    if (!(job && job->linesOnly)) scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);
 
     // F2 dark temporal noise
     nu[1] = nd - 1;
     threshold[1] = varianceThreshold(nu[1], p);
     std::copy(s2.begin(), s2.end(), wk.feat.begin());
     scaleMed[1] = flagVarianceRatio(wk, st, nu[1], threshold[1], XPE_BPM_V2_FEATURE_DARK_NOISE, &flags, &counts[1]);
+    if (job) {   // lines: the variance ratio of the dark frames against its local median, before any component is removed
+        const double       mnu = varianceMedian(nu[1]);
+        std::vector<float> t(n);
+        for (size_t i = 0; i < n; ++i) t[i] = static_cast<float>(static_cast<double>(wk.feat[i]) / std::max(static_cast<double>(wk.bg[i]) / mnu, kReferenceFloor));
+        analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+    }
 
     // F3a slope and F3b linearity
     if (G >= 2) {
@@ -498,7 +700,8 @@ XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark
         const double dgx = static_cast<double>(G) * Sxx - Sx * Sx;
         for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
         threshold[2] = lambdaTwoSided;
-        scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);
+        if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        if (!(job && job->linesOnly)) scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);
         if (G >= 3) {
             // The noise of the group means differs from group to group (shot noise grows with the dose, the groups hold different numbers of frames),
             // so the residual of the unweighted fit is not chi-square distributed; the log of the residual variance is judged by the robust z machinery instead.
@@ -510,7 +713,8 @@ XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark
                 const double sse = std::max(0.0, Snn[i] - a * Sxn[i] - b * Sn[i]);
                 wk.feat[i] = static_cast<float>(std::log(sse / static_cast<double>(G - 2) + 1e-9));
             }
-            scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);
+            if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindLinearity);
+            if (!(job && job->linesOnly)) scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);
         }
     }
 
@@ -529,12 +733,18 @@ XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark
             if (i % 16 == 0) sample.push_back(refSum[i] / static_cast<float>(noiseGroups));
         }
         scaleMed[5] = medianOf(sample.data(), sample.size());
+        if (job) {   // lines: the pooled variance ratio of the bright frames
+            std::vector<float> t(n);
+            for (size_t i = 0; i < n; ++i) t[i] = noiseSum[i] / static_cast<float>(nuBright);
+            analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+        }
     }
 
     // F4 relative flat-field response
     for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>(Sn[i] / Sx);
     threshold[4] = lambdaTwoSided;
-    scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);
+    if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+    if (!(job && job->linesOnly)) scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);
 
     // ---- output
     uint8_t* out = static_cast<uint8_t*>(bpm_out->data);
@@ -573,12 +783,12 @@ XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark
 }
 
 /**
- * The public entry. Pixels in the margins (outside the imaging area) are cut away before anything is computed, so no statistic of the detection sees them, and are
- * written as XPE_BPM_V2_OUT_OF_AREA into the map afterwards.
+ * The entry with margins. Pixels in the margins (outside the imaging area) are cut away before anything is computed, so no statistic of the detection sees them;
+ * outside the area the map and the feature bits are 0 and area_out tells. A line job (QA-A-253) collects the stretches with their coordinates shifted back.
  */
-extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
-                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out,
-                                                    XpeBpmReportV2* report) try {
+static XpeErrorCode runWithMargins(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out, XpeBpmReportV2* report,
+                                   LineJob* job) try {
     const uint32_t ml = cfg ? cfg->margin_left : 0u, mt = cfg ? cfg->margin_top : 0u, mr = cfg ? cfg->margin_right : 0u, mb = cfg ? cfg->margin_bottom : 0u;
     if (ml == 0 && mt == 0 && mr == 0 && mb == 0) {
         if (area_out && bpm_out) {
@@ -586,7 +796,7 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
             if (area_out->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
             if (area_out->width != bpm_out->width || area_out->height != bpm_out->height || area_out->dataSize < static_cast<size_t>(bpm_out->width) * bpm_out->height) return XPE_ERR_BUFFER_TOO_SMALL;
         }
-        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report);
+        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report, job);
         if (rc == XPE_OK) {
             if (report) report->out_of_area_pixels = 0;
             if (area_out) std::memset(area_out->data, 1, static_cast<size_t>(bpm_out->width) * bpm_out->height);
@@ -662,8 +872,16 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
         outFeat = outMap;
         outFeat.data = cfeat.data();
     }
-    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report);
+    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report, job);
     if (rc != XPE_OK) return rc;
+    if (job)
+        for (Seg& sg : job->segs) {   // back to frame coordinates
+            const int along = sg.orient == 0 ? static_cast<int>(ml) : static_cast<int>(mt);
+            const int across = sg.orient == 0 ? static_cast<int>(mt) : static_cast<int>(ml);
+            sg.idx += across;
+            sg.a += along;
+            sg.b += along;
+        }
     uint8_t* mapDst = static_cast<uint8_t*>(bpm_out->data);
     std::memset(mapDst, 0, n);   // outside the imaging area the map is 0 (good): the defect codes keep their meaning, the area has its own output
     for (uint32_t y = 0; y < ch; ++y) std::memcpy(mapDst + static_cast<size_t>(y + mt) * width + ml, cmap.data() + static_cast<size_t>(y) * cw, cw);
@@ -678,6 +896,156 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
         for (uint32_t y = 0; y < ch; ++y) std::memset(areaDst + static_cast<size_t>(y + mt) * width + ml, 1, cw);
     }
     if (report) report->out_of_area_pixels = static_cast<uint32_t>(n - cn);
+    return XPE_OK;
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out,
+                                                    XpeBpmReportV2* report) try {
+    return runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, area_out, report, nullptr);
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                   const XpeBpmConfigV2* cfg, const XpeBpmLineConfig* lcfg, XpeImageBuffer* line_mask_out, XpeBpmLine* lines_out,
+                                                   uint32_t max_lines, XpeBpmLineReport* report) try {
+    if (!dark_frames || !bright_frames || num_dark == 0 || num_bright == 0) return XPE_ERR_INVALID_INPUT;
+    LineJob job;
+    job.linesOnly = true;
+    if (lcfg) {
+        if (lcfg->reserved != 0) return XPE_ERR_INVALID_INPUT;
+        if (lcfg->target_false_alarms != 0.0f) job.fa = lcfg->target_false_alarms;
+        if (lcfg->min_segment != 0) job.minSeg = static_cast<int>(lcfg->min_segment);
+        if (lcfg->noise_tolerance_db != 0.0f) job.tol = std::pow(10.0, static_cast<double>(lcfg->noise_tolerance_db) / 10.0);
+        if (!(lcfg->noise_tolerance_db >= 0.0f && lcfg->noise_tolerance_db <= 20.0f)) return XPE_ERR_INVALID_INPUT;
+    }
+    if (!(job.fa > 0.0 && job.fa <= 1000.0) || job.minSeg < 16 || job.minSeg > 1024) return XPE_ERR_INVALID_INPUT;
+    const uint32_t width = dark_frames[0].width, height = dark_frames[0].height;
+    const size_t   n = static_cast<size_t>(width) * height;
+    if (line_mask_out) {
+        if (!line_mask_out->data) return XPE_ERR_INVALID_INPUT;
+        if (line_mask_out->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+        if (line_mask_out->width != width || line_mask_out->height != height || line_mask_out->dataSize < n) return XPE_ERR_BUFFER_TOO_SMALL;
+    }
+    std::vector<uint8_t> scratchMap(n, 0), area(n, 0);
+    XpeImageBuffer       mb{}, ab{};
+    mb.data = scratchMap.data();
+    mb.width = width;
+    mb.height = height;
+    mb.bitsAllocated = 8;
+    mb.bitsStored = 8;
+    mb.format = XPE_PIXEL_UINT8;
+    mb.dataSize = n;
+    ab = mb;
+    ab.data = area.data();
+    const XpeErrorCode rc = runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, &mb, nullptr, &ab, nullptr, &job);
+    if (rc != XPE_OK) return rc;
+    const uint32_t ml = cfg ? cfg->margin_left : 0u, mt = cfg ? cfg->margin_top : 0u, mr = cfg ? cfg->margin_right : 0u, mbm = cfg ? cfg->margin_bottom : 0u;
+    const int      vw = static_cast<int>(width - ml - mr), vh = static_cast<int>(height - mt - mbm);
+    const std::vector<Group> groups = groupSegments(job.segs, vw, vh);
+    if (line_mask_out) std::memset(line_mask_out->data, 0, n);
+    XpeBpmLineReport rep{};
+    rep.pixels = static_cast<uint32_t>(static_cast<size_t>(vw) * static_cast<size_t>(vh));
+    for (int k = 0; k < 6; ++k) rep.null_width[k] = job.nullWidth[k];
+    rep.lines = static_cast<uint32_t>(groups.size());
+    uint32_t written = 0;
+    for (const Group& g : groups) {
+        if (g.orient == 0) ++rep.row_groups;
+        else ++rep.column_groups;
+        if (g.flags & XPE_BPM_LINE_FULL) ++rep.full_lines;
+        else ++rep.partial_lines;
+        if (g.width == 2) ++rep.double_lines;
+        rep.max_adjacent = std::max(rep.max_adjacent, static_cast<uint32_t>(g.width));
+        if (g.flags & XPE_BPM_LINE_REJECT) rep.panel_reject = 1;
+        rep.line_pixels += static_cast<uint32_t>((g.b - g.a) * g.width);
+        if (lines_out && written < max_lines) {
+            XpeBpmLine& o = lines_out[written];
+            o.orientation = static_cast<uint32_t>(g.orient);
+            o.index = static_cast<uint32_t>(g.idx);
+            o.width = static_cast<uint32_t>(g.width);
+            o.start = static_cast<uint32_t>(g.a);
+            o.end = static_cast<uint32_t>(g.b);
+            o.causes = g.causes;
+            o.flags = g.flags;
+            o.strength = g.z;
+            ++written;
+        } else if (lines_out) {
+            rep.truncated = 1;
+        }
+        if (line_mask_out) {
+            uint8_t* m = static_cast<uint8_t*>(line_mask_out->data);
+            for (int k = 0; k < g.width; ++k)
+                for (int t = g.a; t < g.b; ++t) {
+                    const size_t x = g.orient == 0 ? static_cast<size_t>(t) : static_cast<size_t>(g.idx + k);
+                    const size_t y = g.orient == 0 ? static_cast<size_t>(g.idx + k) : static_cast<size_t>(t);
+                    if (x < width && y < height) m[y * width + x] = 1;
+                }
+        }
+    }
+    // crossings are pairs of a row group and a column group whose stretches meet
+    for (const Group& r : groups) {
+        if (r.orient != 0) continue;
+        for (const Group& c : groups)
+            if (c.orient == 1 && c.idx + c.width > r.a && c.idx < r.b && r.idx + r.width > c.a && r.idx < c.b) ++rep.crossings;
+    }
+    // a pixel counted twice by a crossing is counted once in the mask; the report keeps the sum of the stretches
+    if (report) *report = rep;
+    return XPE_OK;
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_bpm_blobs(const XpeImageBuffer* map, XpeBpmBlob* blobs_out, uint32_t max_blobs, uint32_t* blob_count) try {
+    if (blob_count) *blob_count = 0;
+    if (!map || !map->data) return XPE_ERR_INVALID_INPUT;
+    if (map->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+    const int    w = static_cast<int>(map->width), h = static_cast<int>(map->height);
+    const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
+    if (w < 1 || h < 1 || (map->dataSize != 0 && map->dataSize < n)) return XPE_ERR_INVALID_INPUT;
+    const uint8_t*       m = static_cast<const uint8_t*>(map->data);
+    std::vector<uint8_t> seen(n, 0);
+    std::vector<XpeBpmBlob> blobs;
+    std::vector<size_t>  stack;
+    for (size_t start = 0; start < n; ++start) {
+        if (m[start] == 0 || seen[start]) continue;
+        XpeBpmBlob b{static_cast<uint32_t>(w), static_cast<uint32_t>(h), 0, 0, 0};
+        stack.assign(1, start);
+        seen[start] = 1;
+        while (!stack.empty()) {
+            const size_t i = stack.back();
+            stack.pop_back();
+            const int x = static_cast<int>(i % static_cast<size_t>(w)), y = static_cast<int>(i / static_cast<size_t>(w));
+            ++b.size;
+            b.x0 = std::min(b.x0, static_cast<uint32_t>(x));
+            b.x1 = std::max(b.x1, static_cast<uint32_t>(x));
+            b.y0 = std::min(b.y0, static_cast<uint32_t>(y));
+            b.y1 = std::max(b.y1, static_cast<uint32_t>(y));
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const int xx = x + dx, yy = y + dy;
+                    if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                    const size_t j = static_cast<size_t>(yy) * static_cast<size_t>(w) + static_cast<size_t>(xx);
+                    if (m[j] != 0 && !seen[j]) {
+                        seen[j] = 1;
+                        stack.push_back(j);
+                    }
+                }
+        }
+        blobs.push_back(b);
+    }
+    std::stable_sort(blobs.begin(), blobs.end(), [](const XpeBpmBlob& p, const XpeBpmBlob& q) { return p.size > q.size; });
+    if (blob_count) *blob_count = static_cast<uint32_t>(blobs.size());
+    if (blobs_out)
+        for (uint32_t k = 0; k < max_blobs && k < blobs.size(); ++k) blobs_out[k] = blobs[k];
     return XPE_OK;
 } catch (const std::bad_alloc&) {
     return XPE_ERR_OUT_OF_MEMORY;

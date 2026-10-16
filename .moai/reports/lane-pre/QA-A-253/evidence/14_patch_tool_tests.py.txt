@@ -1,0 +1,51 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+t = s.replace('\r\n', '\n')
+marker = 'TEST_F(BpmEvalTest, ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect) {'
+assert t.count(marker) == 1
+new = '''TEST_F(BpmEvalTest, MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize) {
+    std::vector<uint8_t> a(kN, 0), b(kN, 0);
+    for (size_t x = 100; x < 104; ++x) a[200 * kW + x] = 1;   // a row of four in A
+    b[200 * kW + 103] = 2;                                    // overlaps the last pixel of A: A's value stays
+    b[500 * kW + 500] = 3;                                    // a single pixel only in B
+    writeBytes(root / "ma.u8", a.data(), a.size());
+    writeBytes(root / "mb.u8", b.data(), b.size());
+    const int rc = runCmd(XPE_BPM_EVAL_EXE, "merge --in \\"" + (root / "ma.u8").string() + "\\" --in \\"" + (root / "mb.u8").string() + "\\" --out \\"" + (root / "mc.u8").string() + "\\" > \\"" + (root / "mg.log").string() + "\\" 2>&1");
+    ASSERT_EQ(0, rc) << text(root / "mg.log");
+    const std::vector<uint8_t> c = readBytes(root / "mc.u8");
+    ASSERT_EQ(kN, c.size());
+    EXPECT_EQ(1, c[200 * kW + 103]) << "the first non-zero value wins";
+    EXPECT_EQ(3, c[500 * kW + 500]);
+    EXPECT_EQ(0, c[10]);
+    EXPECT_EQ(2, runCmd(XPE_BPM_EVAL_EXE, "merge --in \\"" + (root / "ma.u8").string() + "\\" --out \\"" + (root / "x.u8").string() + "\\" > \\"" + (root / "mg2.log").string() + "\\" 2>&1")) << "one input is not a merge";
+    // blobs: the row of four and the single pixel
+    const int rb = runCmd(XPE_BPM_EVAL_EXE, "blobs --map \\"" + (root / "mc.u8").string() + "\\" --width 1024 --height 1024 --out \\"" + (root / "blobs.tsv").string() + "\\" > \\"" + (root / "bl.log").string() + "\\" 2>&1");
+    ASSERT_EQ(0, rb) << text(root / "bl.log");
+    EXPECT_NE(std::string::npos, text(root / "bl.log").find("blobs: 2 (single pixels 1, 2-3 pixels 0, 4-15 pixels 1, 16 and more 0)")) << text(root / "bl.log");
+    EXPECT_NE(std::string::npos, text(root / "blobs.tsv").find("100\\t200\\t103\\t200\\t4")) << text(root / "blobs.tsv");
+}
+
+TEST_F(BpmEvalTest, LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArguments) {
+    makeFrames(6, 8, 0);
+    auto run = [&](const std::string& extra, const fs::path& out) {
+        std::string args = "lines --out \\"" + out.string() + "\\" --tsv \\"" + (root / "ln.tsv").string() + "\\" --report \\"" + (root / "ln.json").string() + "\\" --width 1024 --height 1024 --min-bright 2 --min-segment 32" + extra;
+        args += files("dark", darks) + files("bright", brights) + " > \\"" + (root / "ln.log").string() + "\\" 2>&1";
+        return runCmd(XPE_BPM_EVAL_EXE, args);
+    };
+    const int rc = run(" --margins 6,2,1,1", root / "ln.u8");
+    EXPECT_TRUE(rc == 0 || rc == 20) << "0, or 20 when three adjacent lines are found: " << rc << " " << text(root / "ln.log");
+    EXPECT_EQ(kN, readBytes(root / "ln.u8").size());
+    const std::string j = text(root / "ln.json");
+    EXPECT_NE(std::string::npos, j.find("\\"panel_reject\\": ")) << j;
+    EXPECT_NE(std::string::npos, j.find("\\"pixels\\": 1")) << "the imaging area: " << j;
+    EXPECT_NE(std::string::npos, text(root / "ln.tsv").find("orientation\\tindex\\twidth")) << text(root / "ln.tsv");
+    EXPECT_EQ(2, run(" --margins 6,2,1", root / "bad.u8")) << "three numbers are not a margin specification";
+    EXPECT_EQ(rc == 20 ? 20 : 0, run(" --margins 6,2,1,1 --tolerance-db 3", root / "ln2.u8")) << "the tolerance option is accepted";
+    EXPECT_EQ(4, run(" --tolerance-db 30", root / "bad2.u8")) << "a tolerance beyond 20 dB is refused by the library";
+}
+
+'''
+t = t.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(t.replace('\n', '\r\n') if crlf else t)
+print('patched')

@@ -1,0 +1,224 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+p = base + 'src/xpe_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# ---- core: signature and the line hooks
+sub('''XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                            const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {''',
+    '''static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report, LineJob* job) try {''')
+sub('''    scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);''',
+    '''    if (!(job && job->linesOnly)) scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);''')
+sub('''    scaleMed[1] = flagVarianceRatio(wk, st, nu[1], threshold[1], XPE_BPM_V2_FEATURE_DARK_NOISE, &flags, &counts[1]);''',
+    '''    scaleMed[1] = flagVarianceRatio(wk, st, nu[1], threshold[1], XPE_BPM_V2_FEATURE_DARK_NOISE, &flags, &counts[1]);
+    if (job) {   // lines: the variance ratio of the dark frames against its local median, before any component is removed
+        const double       mnu = varianceMedian(nu[1]);
+        std::vector<float> t(n);
+        for (size_t i = 0; i < n; ++i) t[i] = static_cast<float>(static_cast<double>(wk.feat[i]) / std::max(static_cast<double>(wk.bg[i]) / mnu, kReferenceFloor));
+        analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+    }''')
+sub('''        scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);''',
+    '''        if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        if (!(job && job->linesOnly)) scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);''')
+sub('''            scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);''',
+    '''            if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindLinearity);
+            if (!(job && job->linesOnly)) scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);''')
+sub('''        scaleMed[5] = medianOf(sample.data(), sample.size());
+    }''', '''        scaleMed[5] = medianOf(sample.data(), sample.size());
+        if (job) {   // lines: the pooled variance ratio of the bright frames
+            std::vector<float> t(n);
+            for (size_t i = 0; i < n; ++i) t[i] = noiseSum[i] / static_cast<float>(nuBright);
+            analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+        }
+    }''')
+sub('''    scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);''',
+    '''    if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+    if (!(job && job->linesOnly)) scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);''')
+
+# ---- the entry with margins becomes a static function that also carries a line job
+sub('''/**
+ * The public entry. Pixels in the margins (outside the imaging area) are cut away before anything is computed, so no statistic of the detection sees them, and are
+ * written as XPE_BPM_V2_OUT_OF_AREA into the map afterwards.
+ */
+extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out,
+                                                    XpeBpmReportV2* report) try {''', '''/**
+ * The entry with margins. Pixels in the margins (outside the imaging area) are cut away before anything is computed, so no statistic of the detection sees them;
+ * outside the area the map and the feature bits are 0 and area_out tells. A line job (QA-A-253) collects the stretches with their coordinates shifted back.
+ */
+static XpeErrorCode runWithMargins(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out, XpeBpmReportV2* report,
+                                   LineJob* job) try {''')
+sub('''        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report);''',
+    '''        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report, job);''')
+sub('''    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report);
+    if (rc != XPE_OK) return rc;''', '''    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report, job);
+    if (rc != XPE_OK) return rc;
+    if (job)
+        for (Seg& sg : job->segs) {   // back to frame coordinates
+            const int along = sg.orient == 0 ? static_cast<int>(ml) : static_cast<int>(mt);
+            const int across = sg.orient == 0 ? static_cast<int>(mt) : static_cast<int>(ml);
+            sg.idx += across;
+            sg.a += along;
+            sg.b += along;
+        }''')
+
+# ---- the public functions, appended
+s = s.rstrip() + '\n'
+s += '''
+extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out,
+                                                    XpeBpmReportV2* report) try {
+    return runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, area_out, report, nullptr);
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                   const XpeBpmConfigV2* cfg, const XpeBpmLineConfig* lcfg, XpeImageBuffer* line_mask_out, XpeBpmLine* lines_out,
+                                                   uint32_t max_lines, XpeBpmLineReport* report) try {
+    if (!dark_frames || !bright_frames || num_dark == 0 || num_bright == 0) return XPE_ERR_INVALID_INPUT;
+    LineJob job;
+    job.linesOnly = true;
+    if (lcfg) {
+        if (lcfg->reserved != 0) return XPE_ERR_INVALID_INPUT;
+        if (lcfg->target_false_alarms != 0.0f) job.fa = lcfg->target_false_alarms;
+        if (lcfg->min_segment != 0) job.minSeg = static_cast<int>(lcfg->min_segment);
+        if (lcfg->noise_tolerance_db != 0.0f) job.tol = std::pow(10.0, static_cast<double>(lcfg->noise_tolerance_db) / 10.0);
+        if (!(lcfg->noise_tolerance_db >= 0.0f && lcfg->noise_tolerance_db <= 20.0f)) return XPE_ERR_INVALID_INPUT;
+    }
+    if (!(job.fa > 0.0 && job.fa <= 1000.0) || job.minSeg < 16 || job.minSeg > 1024) return XPE_ERR_INVALID_INPUT;
+    const uint32_t width = dark_frames[0].width, height = dark_frames[0].height;
+    const size_t   n = static_cast<size_t>(width) * height;
+    if (line_mask_out) {
+        if (!line_mask_out->data) return XPE_ERR_INVALID_INPUT;
+        if (line_mask_out->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+        if (line_mask_out->width != width || line_mask_out->height != height || line_mask_out->dataSize < n) return XPE_ERR_BUFFER_TOO_SMALL;
+    }
+    std::vector<uint8_t> scratchMap(n, 0), area(n, 0);
+    XpeImageBuffer       mb{}, ab{};
+    mb.data = scratchMap.data();
+    mb.width = width;
+    mb.height = height;
+    mb.bitsAllocated = 8;
+    mb.bitsStored = 8;
+    mb.format = XPE_PIXEL_UINT8;
+    mb.dataSize = n;
+    ab = mb;
+    ab.data = area.data();
+    const XpeErrorCode rc = runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, &mb, nullptr, &ab, nullptr, &job);
+    if (rc != XPE_OK) return rc;
+    const uint32_t ml = cfg ? cfg->margin_left : 0u, mt = cfg ? cfg->margin_top : 0u, mr = cfg ? cfg->margin_right : 0u, mbm = cfg ? cfg->margin_bottom : 0u;
+    const int      vw = static_cast<int>(width - ml - mr), vh = static_cast<int>(height - mt - mbm);
+    const std::vector<Group> groups = groupSegments(job.segs, vw, vh);
+    if (line_mask_out) std::memset(line_mask_out->data, 0, n);
+    XpeBpmLineReport rep{};
+    rep.pixels = static_cast<uint32_t>(static_cast<size_t>(vw) * static_cast<size_t>(vh));
+    for (int k = 0; k < 6; ++k) rep.null_width[k] = job.nullWidth[k];
+    rep.lines = static_cast<uint32_t>(groups.size());
+    uint32_t written = 0;
+    for (const Group& g : groups) {
+        if (g.orient == 0) ++rep.row_groups;
+        else ++rep.column_groups;
+        if (g.flags & XPE_BPM_LINE_FULL) ++rep.full_lines;
+        else ++rep.partial_lines;
+        if (g.width == 2) ++rep.double_lines;
+        if (g.flags & XPE_BPM_LINE_CROSSES) ++rep.crossings;
+        rep.max_adjacent = std::max(rep.max_adjacent, static_cast<uint32_t>(g.width));
+        if (g.flags & XPE_BPM_LINE_REJECT) rep.panel_reject = 1;
+        rep.line_pixels += static_cast<uint32_t>((g.b - g.a) * g.width);
+        if (lines_out && written < max_lines) {
+            XpeBpmLine& o = lines_out[written];
+            o.orientation = static_cast<uint32_t>(g.orient);
+            o.index = static_cast<uint32_t>(g.idx);
+            o.width = static_cast<uint32_t>(g.width);
+            o.start = static_cast<uint32_t>(g.a);
+            o.end = static_cast<uint32_t>(g.b);
+            o.causes = g.causes;
+            o.flags = g.flags;
+            o.strength = g.z;
+            ++written;
+        } else if (lines_out) {
+            rep.truncated = 1;
+        }
+        if (line_mask_out) {
+            uint8_t* m = static_cast<uint8_t*>(line_mask_out->data);
+            for (int k = 0; k < g.width; ++k)
+                for (int t = g.a; t < g.b; ++t) {
+                    const size_t x = g.orient == 0 ? static_cast<size_t>(t) : static_cast<size_t>(g.idx + k);
+                    const size_t y = g.orient == 0 ? static_cast<size_t>(g.idx + k) : static_cast<size_t>(t);
+                    if (x < width && y < height) m[y * width + x] = 1;
+                }
+        }
+    }
+    // a pixel counted twice by a crossing is counted once in the mask; the report keeps the sum of the stretches
+    if (report) *report = rep;
+    return XPE_OK;
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_bpm_blobs(const XpeImageBuffer* map, XpeBpmBlob* blobs_out, uint32_t max_blobs, uint32_t* blob_count) try {
+    if (blob_count) *blob_count = 0;
+    if (!map || !map->data) return XPE_ERR_INVALID_INPUT;
+    if (map->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+    const int    w = static_cast<int>(map->width), h = static_cast<int>(map->height);
+    const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
+    if (w < 1 || h < 1 || (map->dataSize != 0 && map->dataSize < n)) return XPE_ERR_INVALID_INPUT;
+    const uint8_t*       m = static_cast<const uint8_t*>(map->data);
+    std::vector<uint8_t> seen(n, 0);
+    std::vector<XpeBpmBlob> blobs;
+    std::vector<size_t>  stack;
+    for (size_t start = 0; start < n; ++start) {
+        if (m[start] == 0 || seen[start]) continue;
+        XpeBpmBlob b{static_cast<uint32_t>(w), static_cast<uint32_t>(h), 0, 0, 0};
+        stack.assign(1, start);
+        seen[start] = 1;
+        while (!stack.empty()) {
+            const size_t i = stack.back();
+            stack.pop_back();
+            const int x = static_cast<int>(i % static_cast<size_t>(w)), y = static_cast<int>(i / static_cast<size_t>(w));
+            ++b.size;
+            b.x0 = std::min(b.x0, static_cast<uint32_t>(x));
+            b.x1 = std::max(b.x1, static_cast<uint32_t>(x));
+            b.y0 = std::min(b.y0, static_cast<uint32_t>(y));
+            b.y1 = std::max(b.y1, static_cast<uint32_t>(y));
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx) {
+                    const int xx = x + dx, yy = y + dy;
+                    if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                    const size_t j = static_cast<size_t>(yy) * static_cast<size_t>(w) + static_cast<size_t>(xx);
+                    if (m[j] != 0 && !seen[j]) {
+                        seen[j] = 1;
+                        stack.push_back(j);
+                    }
+                }
+        }
+        blobs.push_back(b);
+    }
+    std::stable_sort(blobs.begin(), blobs.end(), [](const XpeBpmBlob& p, const XpeBpmBlob& q) { return p.size > q.size; });
+    if (blob_count) *blob_count = static_cast<uint32_t>(blobs.size());
+    if (blobs_out)
+        for (uint32_t k = 0; k < max_blobs && k < blobs.size(); ++k) blobs_out[k] = blobs[k];
+    return XPE_OK;
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+'''
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('part 2 patched')
