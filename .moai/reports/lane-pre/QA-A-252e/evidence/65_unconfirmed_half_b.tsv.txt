@@ -1,0 +1,1 @@
+orientation	index	start	end	causes	strength	reason
