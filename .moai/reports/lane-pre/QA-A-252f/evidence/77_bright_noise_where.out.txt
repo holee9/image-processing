@@ -1,0 +1,36 @@
+total with the bit 14637
+  line/efficiency_loss                     line                            9629
+  line/gain_loss                           line                            1700
+  control/efficiency_loss                  line                            1616
+  block/dead                               block                           1049
+  shared by two items                                                       259
+  pixel/efficiency_loss                    pixel                            136
+  control/gain_loss                        line                              67
+  control/dead                             block                             38
+  pixel/gain_loss                          pixel                             37
+  control/efficiency_loss                  pixel                             32
+  pixel/dead                               pixel                             26
+  control/dead                             line                              21
+  line/dead                                line                              13
+  control/gain_loss                        pixel                              6
+  outside every item                       far from every item                6
+  control/dead                             pixel                              2
+response-model items by level:
+  control/efficiency_loss            line   0.46     1488
+  control/efficiency_loss            line   0.6       122
+  control/efficiency_loss            line   0.7         6
+  control/efficiency_loss            pixel  0.46       32
+  control/gain_loss                  line   0.46       67
+  control/gain_loss                  pixel  0.46        6
+  line/efficiency_loss               line   0.3      5631
+  line/efficiency_loss               line   0.4      2569
+  line/efficiency_loss               line   0.44     1429
+  line/gain_loss                     line   0.3      1300
+  line/gain_loss                     line   0.4       258
+  line/gain_loss                     line   0.44      142
+  pixel/efficiency_loss              pixel  0.3        57
+  pixel/efficiency_loss              pixel  0.4        48
+  pixel/efficiency_loss              pixel  0.44       31
+  pixel/gain_loss                    pixel  0.3        23
+  pixel/gain_loss                    pixel  0.4        10
+  pixel/gain_loss                    pixel  0.44        4
