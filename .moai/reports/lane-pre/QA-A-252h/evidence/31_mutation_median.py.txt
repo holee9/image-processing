@@ -1,0 +1,17 @@
+V2 = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TOOL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+TITLE = 'QA-A-252h mutation check of the median dose (src/xpe_bpm_v2.cpp) and of the noise-cost dose validation (tools/xpe_bpm_eval.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/32_mutation_median_log.txt'
+FILT = 'BpmV2*:BpmEval*:-BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex'
+PRED = [
+    '  M1 the detector dose is the MEAN of the sample instead of the median      -> red: AFrameWhoseMedianNetSignalIsNotPositiveIsRefused only (the mean of that input is positive, so it is accepted)',
+    '  M2 the detector accepts a non-positive dose (check removed)                -> red: AFrameWhoseMedianNetSignalIsNotPositiveIsRefused only',
+    '  T3 the noise-cost check keeps only the finiteness of the dose              -> red: NoiseCostRefusesVerificationFramesWhoseMedianNetSignalIsNotPositive only',
+    '  every other test stays green in each mutant. NOT covered by a test (stated as a gap): the empty-sample check of noise-cost (no unplanted interior pixel), because no fixture image is small enough.',
+]
+MUTANTS = [
+    ('M1', V2, b'dose[k] = static_cast<double>(smp[smp.size() / 2]);', b'{ double am = 0.0; for (float vv : smp) am += vv; dose[k] = am / static_cast<double>(smp.size()); }'),
+    ('M2', V2, b'if (!(dose[k] > 0.0)) return XPE_ERR_INVALID_INPUT;', b'if (dose[k] != dose[k]) return XPE_ERR_INVALID_INPUT;'),
+    ('T3', TOOL, b'if (!(dose[k] > 0.0) || !std::isfinite(dose[k])) {', b'if (!std::isfinite(dose[k])) {'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/30_mutation_common.py.txt', encoding='utf-8').read())

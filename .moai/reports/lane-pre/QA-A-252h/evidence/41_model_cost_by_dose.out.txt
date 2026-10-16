@@ -1,0 +1,6 @@
+r=0.30 model 3.20 3.27 3.29 3.31 3.32 | observed 3.93 3.82 3.75 3.82 3.89 | observed - model +0.73 +0.55 +0.46 +0.51 +0.57 | mean ratio observed / model 1.172
+r=0.40 model 2.42 2.46 2.47 2.49 2.49 | observed 2.77 2.69 2.69 2.71 2.77 | observed - model +0.35 +0.23 +0.22 +0.22 +0.28 | mean ratio observed / model 1.106
+r=0.44 model 2.20 2.24 2.25 2.26 2.27 | observed 2.40 2.43 2.35 2.36 2.38 | observed - model +0.20 +0.19 +0.10 +0.10 +0.11 | mean ratio observed / model 1.063
+r=0.46 model 2.11 2.14 2.15 2.16 2.17 | observed 2.49 2.47 2.39 2.44 2.49 | observed - model +0.38 +0.33 +0.24 +0.28 +0.32 | mean ratio observed / model 1.144
+r=0.60 model 1.63 1.65 1.65 1.66 1.66 | observed 1.88 1.89 1.86 1.88 1.88 | observed - model +0.25 +0.24 +0.21 +0.22 +0.22 | mean ratio observed / model 1.137
+r=0.70 model 1.40 1.42 1.42 1.42 1.43 | observed 1.51 1.48 1.50 1.53 1.55 | observed - model +0.11 +0.06 +0.08 +0.11 +0.12 | mean ratio observed / model 1.067

@@ -977,6 +977,19 @@ TEST(BpmV2Test, TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGr
 
 #define GOLDEN_FLAGGED 1, 1, 0, 0, 1, 1
 #define GOLDEN_UNION 4
+TEST(BpmV2Test, AFrameWhoseMedianNetSignalIsNotPositiveIsRefused) {
+    // QA-A-252h: a mean can be positive while most pixels read at or below the dark level (a majority of stuck-low pixels); the dose is then not defined. The detector refuses the input.
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    Frames f = makeFrames(54, kDoses, 3, 7, p);
+    for (auto& fr : f.bright)
+        for (size_t i = 0; i < fr.size(); ++i)
+            if (i % 5 == 0 && (i / 5) % 10 < 6) fr[i] = 0;   // 60 % of the sampled pixels read zero, the other pixels keep their value: the mean stays positive
+    const Result r = detect(f, nullptr);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc);
+}
+
 TEST(BpmV2Test, AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation) {
     // regression control (QA-A-252g): the frames of every group have the same dose, so the scales are 1 (to the noise of the frame means) and nothing may change. The numbers are the
     // counts of the detector of QA-A-252f (the exposure normalisation switched off) on the same input.

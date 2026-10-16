@@ -1144,8 +1144,16 @@ int cmdNoiseCost(const Args& a) {
                     const size_t i = static_cast<size_t>(y) * w + x;
                     if (!occ[i]) sample.push_back(net[k][i]);
                 }
+            if (sample.empty()) {   // QA-A-252h: checked before nth_element and before the scale divides by the dose
+                std::fprintf(stderr, "noise-cost: no unplanted interior pixel to estimate the dose of verification frame %zu from\n", k);
+                return 3;
+            }
             std::nth_element(sample.begin(), sample.begin() + static_cast<std::ptrdiff_t>(sample.size() / 2), sample.end());
             dose[k] = static_cast<double>(sample[sample.size() / 2]);
+            if (!(dose[k] > 0.0) || !std::isfinite(dose[k])) {
+                std::fprintf(stderr, "noise-cost: the median net signal of verification frame %zu is %g (not positive): the dose is not defined\n", k, dose[k]);
+                return 3;
+            }
         }
         double ref = 0.0;
         for (double v : dose) ref += v / static_cast<double>(dose.size());

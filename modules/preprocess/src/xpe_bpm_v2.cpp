@@ -716,6 +716,20 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         signal[k] = acc / static_cast<double>(n) - darkMeanAll;
         if (!(signal[k] > 0.0)) return XPE_ERR_INVALID_INPUT;
     }
+    // the exposure scale of the noise-cost statistic uses a dose that defective pixels cannot pull: the median of the net signal over every fifth pixel (QA-A-252h)
+    std::vector<double> dose(num_bright);
+    {
+        std::vector<float> smp;
+        smp.reserve(n / 5 + 1);
+        for (uint32_t k = 0; k < num_bright; ++k) {
+            const uint16_t* p = px(bright_frames[k]);
+            smp.clear();
+            for (size_t i = 0; i < n; i += 5) smp.push_back(static_cast<float>(p[i]) - D[i]);
+            std::nth_element(smp.begin(), smp.begin() + static_cast<std::ptrdiff_t>(smp.size() / 2), smp.end());
+            dose[k] = static_cast<double>(smp[smp.size() / 2]);
+            if (!(dose[k] > 0.0)) return XPE_ERR_INVALID_INPUT;
+        }
+    }
     std::vector<uint32_t> order(num_bright);
     for (uint32_t k = 0; k < num_bright; ++k) order[k] = k;
     std::stable_sort(order.begin(), order.end(), [&](uint32_t a, uint32_t b) { return signal[a] < signal[b]; });
@@ -789,7 +803,10 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 sg += signal[k];
             }
             sg /= static_cast<double>(groups[g].size());
-            for (uint32_t k : groups[g]) frameScale[k] = sg / signal[k];
+            double dg = 0.0;
+            for (uint32_t k : groups[g]) dg += dose[k];
+            dg /= static_cast<double>(groups[g].size());
+            for (uint32_t k : groups[g]) frameScale[k] = dg / dose[k];
             groupSignal[g] = sg;
             Sx += sg;
             Sxx += sg * sg;

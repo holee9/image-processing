@@ -687,6 +687,24 @@ TEST_F(BpmEvalQuantumTest, NoiseCostTakesTheExposureOutOfTheVerificationFramesAn
     EXPECT_GT(pixRaw, 10.0 * pixNorm) << "the scaling removes it (a chi-square draw of one pixel stays below that: " << pixNorm << ")";
 }
 
+TEST_F(BpmEvalQuantumTest, NoiseCostRefusesVerificationFramesWhoseMedianNetSignalIsNotPositive) {
+    // QA-A-252h: the dose of a verification frame is the median of its net signal; a frame at or below the dark level has no dose, and the scale would divide by it
+    makeQuantumFrames();
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    std::string args = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / "nc_bad.tsv").string() + "\"";
+    for (const auto& f : darks) args += " --dark \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+    for (const auto& f : evals) {
+        const fs::path p = out / "frames" / fs::path(f).filename();
+        std::vector<char> zeros(static_cast<size_t>(fs::file_size(p)), 0);
+        std::ofstream(p, std::ios::binary | std::ios::trunc).write(zeros.data(), static_cast<std::streamsize>(zeros.size()));
+        args += " --verify \"" + p.string() + "\"";
+    }
+    EXPECT_NE(0, runCmd(XPE_BPM_EVAL_EXE, args + " > \"" + (root / "nc_bad.log").string() + "\" 2>&1")) << "all-zero verification frames have no dose";
+    EXPECT_NE(std::string::npos, text(root / "nc_bad.log").find("not positive")) << text(root / "nc_bad.log");
+    EXPECT_FALSE(fs::exists(root / "nc_bad.tsv")) << "no truth file is written for a dose that is not defined";
+}
+
 TEST_F(BpmEvalTest, TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection) {
     makeFrames(5, 3, 2);
     const fs::path t = root / "t";
