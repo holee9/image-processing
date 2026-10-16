@@ -1,0 +1,61 @@
+"""QA-A-252f step 2f: (1) the variance-signal curve of noise-cost has 12 bins and uses every pixel (every second pixel on a large frame): the first version had 32 bins of 976 pixels on a
+1024 x 1024 test frame (7.5 % error per bin, items scattered by 10 %); (2) the standard error of the readout variance is written with the fit; (3) the tests."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new, count=1):
+    global s
+    assert s.count(old) == count, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''    for (uint32_t y = 32; y + 32 < h; y += 4)
+        for (uint32_t x = 32; x + 32 < w; x += 4) {''',
+    '''    const uint32_t stride = n > 4000000 ? 2 : 1;
+    for (uint32_t y = 32; y + 32 < h; y += stride)
+        for (uint32_t x = 32; x + 32 < w; x += stride) {''')
+sub('''    const size_t nBins = 32;''', '''    const size_t nBins = 12;''')
+sub('''    double      kappa{0.25}, se{0}, v0{0};''', '''    double      kappa{0.25}, se{0}, v0{0}, v0Se{0};''')
+sub('''\\"readout_variance\\": %.4f,\\n  \\"quantum_gain_measured\\"''', '''\\"readout_variance\\": %.4f,\\n  \\"readout_variance_se\\": %.4f,\\n  \\"quantum_gain_measured\\"''')
+sub('''q.kappa, q.se, q.v0, q.measured ? "true" : "false", q.source.c_str());''', '''q.kappa, q.se, q.v0, q.v0Se, q.measured ? "true" : "false", q.source.c_str());''')
+sub('''        res.v0 = f.v0;
+        res.measured = true;''', '''        res.v0 = f.v0;
+        res.v0Se = f.v0Se;
+        res.measured = true;''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+sub('''    const double kappa = number(json, "quantum_gain"), se = number(json, "quantum_gain_se"), v0 = number(json, "readout_variance");
+    EXPECT_NEAR(kKappa, kappa, 0.018) << "within 6 %: the median of the sample variances of three frames is 0.69 of the variance and would give 0.21 without the correction. " << json;
+    EXPECT_NEAR(kV0, v0, 4.0) << json;
+    EXPECT_GT(se, 0.0) << json;
+    EXPECT_LT(se, 0.03) << json;''',
+    '''    const double kappa = number(json, "quantum_gain"), se = number(json, "quantum_gain_se"), v0 = number(json, "readout_variance"), v0Se = number(json, "readout_variance_se");
+    EXPECT_NEAR(kKappa, kappa, 0.018) << "within 6 %: the median of the sample variances of three frames is 0.69 of the variance and would give 0.21 without the correction. " << json;
+    EXPECT_GT(se, 0.0) << json;
+    EXPECT_LT(se, 0.03) << json;
+    EXPECT_LT(std::fabs(kappa - kKappa), 4.0 * se) << "the reported standard error describes the error: " << json;
+    EXPECT_GT(v0Se, 0.0) << json;
+    EXPECT_LT(std::fabs(v0 - kV0), 4.0 * v0Se) << "the intercept is poorly determined by three doses; its reported error must cover the deviation: " << json;''')
+sub('''    std::map<std::string, std::vector<std::string>> byKey;   // kind/shape/level -> label, cost''',
+    '''    std::map<std::string, std::vector<std::string>> byKey;   // kind/shape/level -> label, cost (the last item of the key)
+    std::map<std::string, std::vector<std::string>> labels;  // kind/shape/level -> the labels of all its items''')
+sub('''        byKey[c[1] + "/" + c[2] + "/" + c[3]] = {c[9], c[6], c[7], c[8]};''',
+    '''        byKey[c[1] + "/" + c[2] + "/" + c[3]] = {c[9], c[6], c[7], c[8]};
+        labels[c[1] + "/" + c[2] + "/" + c[3]].push_back(c[9]);''')
+sub('''    EXPECT_NEAR(1.66, cost("efficiency_loss/row_full/0.6"), 0.3);
+    EXPECT_EQ("normal", byKey["efficiency_loss/row_full/0.6"][0]);
+    EXPECT_EQ("undetermined", byKey["efficiency_loss/pixel/0.3"][0]) << "three pixels with one degree of freedom each cannot show a cost of 3.3";
+    EXPECT_EQ("undetermined", byKey["efficiency_loss/pixel/0.6"][0]);''',
+    '''    EXPECT_NEAR(1.66, cost("efficiency_loss/row_full/0.6"), 0.3);
+    EXPECT_NE("defect", byKey["efficiency_loss/row_full/0.6"][0]) << "a cost of 1.66 is below the limit";
+    for (const char* key : {"efficiency_loss/pixel/0.6", "gain_loss/pixel/0.7", "efficiency_loss/pixel/0.3"})
+        for (const std::string& l : labels[key]) EXPECT_NE("normal", l) << key << ": one pixel with one degree of freedom cannot show that its cost is below 2 (it is undetermined, or defect when its single estimate is above 10)";''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('curve, v0 se and tests patched')

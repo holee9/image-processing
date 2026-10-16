@@ -39,6 +39,9 @@ try:
     rc, ok, bad = run_tests()
     say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
     for name, path, old, new in MUTANTS:
+        for p in paths:   # every file back to the original first: with two files a mutant must not inherit the previous one (the first run of QA-A-252f did, and was discarded)
+            open(p, 'wb').write(orig[p])
+            os.utime(p, None)
         cur = orig[path]
         assert cur.count(old) == 1, (name, cur.count(old))
         say('--- ' + name)
