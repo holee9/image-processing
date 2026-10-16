@@ -2218,12 +2218,12 @@ typedef struct {
     uint32_t orientation;  /**< XPE_BPM_LINE_ROW or XPE_BPM_LINE_COLUMN */
     uint32_t index;        /**< Row (or column) number of the first line of the group, frame coordinates */
     uint32_t width;        /**< Number of adjacent lines in the group: 1, 2, or 3 and more */
-    uint32_t start;        /**< First pixel of the defective stretch along the line, frame coordinates */
-    uint32_t end;          /**< One past the last pixel of the stretch */
+    uint32_t start;        /**< First pixel of the defective stretch along the line, frame coordinates. For a group of adjacent lines: the smallest start of its member stretches (bounding range, metadata only) */
+    uint32_t end;          /**< One past the last pixel of the stretch (for a group: the largest end of its members). The line mask paints the union of the individual stretches, not this range */
     uint32_t causes;       /**< XPE_BPM_LINE_CAUSE_* bits */
     uint32_t flags;        /**< XPE_BPM_LINE_* flag bits */
     float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
-    float    persistence;  /**< Fraction of the dark frames in which the stretch is large (noise cause found in the dark frames); -1 when it was not tested */
+    float    persistence;  /**< Fraction of the frames in which the stretch is large, judged against the temporal median of the frames (noise cause); for a group of adjacent lines the largest of its member stretches. -1 when it was not tested (bright frames: fewer than three frames in all) */
 } XpeBpmLine;
 
 /** What xpe_bpm_find_lines found. */
@@ -2253,7 +2253,8 @@ typedef struct {
  * target number of false stretches. A stretch is kept only when it is also large enough to matter (see the XPE_BPM_LINE_CAUSE_* bits): a response within the noise
  * tolerance of the neighbours is a band that offset and gain correction removes and is not reported.
  *
- * The noise cause is judged frame by frame: the stretch must be large in more than half of the dark frames. Noise that moves from line to line between frames
+ * The noise cause is judged frame by frame, against the temporal MEDIAN of the frames (a burst in one frame cannot move it): the stretch must be large in more than half of the
+ * frames (the dark frames; for stretches found in the bright frames the frames of all dose groups pooled; a group of two has no median, its reference is its mean, and the pair that carries a burst counts as two frames of all). Noise that moves from line to line between frames
  * is never a defect of a place and is not reported. (Stretches found in the bright frames are not tested per frame.)
  *
  * Adjacent defective lines are grouped: two lines are a double line, three or more set panel_reject (not a correction task). A row and a column group that

@@ -1,0 +1,131 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''    uint32_t lines{0};            // QA-A-253: kLn* bits''', '''    double   burstAmp{14.0};      // QA-A-253e: amplitude of the single-frame bursts / the noise of the some-frames stretches (see kLn*One, kLn*Frames)
+    uint32_t frameMask{0};        // QA-A-253e: the frames (bit = frame index in acquisition order, dark or bright) that carry the noise of kLnDarkNoisyFrames / kLnBrightNoisyFrames
+    uint32_t lines{0};            // QA-A-253: kLn* bits''')
+sub('''kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048;''', '''kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048,
+                 kLnDarkBurstOne = 4096, kLnDarkNoisyFrames = 8192, kLnBrightBurstOne = 16384, kLnBrightNoisyFrames = 32768, kLnStagger2 = 65536, kLnStagger3 = 131072;''')
+sub('''constexpr int kLnGainColX = 180, kLnBrightNoisyY = 60, kBrightBurstY0 = 100;''', '''constexpr int kLnGainColX = 180, kLnBrightNoisyY = 60, kBrightBurstY0 = 100;
+// QA-A-253e: a burst in one frame only (row 140), noise in some frames only (row 160), adjacent dead rows whose ends differ (rows 210..212)
+constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;
+constexpr int kStagFrom[3] = {96, 120, 140}, kStagTo[3] = {192, 216, 236};''')
+sub('''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;''', '''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnDarkBurstOne) && darkIdx == 3 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp;
+                if ((plant.lines & kLnDarkNoisyFrames) && darkIdx >= 0 && ((plant.frameMask >> darkIdx) & 1u) && y == kSomeFramesY && x >= kBurstFrom && x < kBurstTo) noiseSd = plant.burstAmp;
+                if ((plant.lines & kLnBrightBurstOne) && bright && brightIdx == 1 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp * 0.5 * std::sqrt(std::max(sig, 1.0));
+                if ((plant.lines & kLnBrightNoisyFrames) && bright && brightIdx >= 0 && ((plant.frameMask >> brightIdx) & 1u) && y == kSomeFramesY && x >= kBurstFrom && x < kBurstTo) noiseSd = plant.burstAmp;
+                for (int r = 0; r < 3; ++r) {
+                    const bool on = (r < 2 && (plant.lines & kLnStagger2)) || (plant.lines & kLnStagger3);
+                    if (on && y == kStagY + r && x >= kStagFrom[r] && x < kStagTo[r]) sig = 0.0;
+                }''')
+
+marker = 'TEST(BpmV2LinesTest, ASingleDeadPixelOrASmallBlockIsNotALine) {'
+new = r'''// ---------------------------------------------------------------- QA-A-253e: persistence against a robust reference, and the mask
+namespace {
+Plant lonePlant(uint32_t bits, double amp, uint32_t mask = 0) {
+    Plant p = onlyLines(bits);
+    p.burstAmp = amp;
+    p.frameMask = mask;
+    return p;
+}
+const XpeBpmLine* noiseGroupAt(const LinesResult& r, uint32_t index) {
+    for (const XpeBpmLine& l : r.lines)
+        if (l.orientation == XPE_BPM_LINE_ROW && (l.causes & XPE_BPM_LINE_CAUSE_NOISE) && l.index <= index && index < l.index + l.width) return &l;
+    return nullptr;
+}
+}  // namespace
+
+TEST(BpmV2LinesTest, ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames) {
+    // a burst of +40 and +100 in one dark frame: the mean of the stretch moves with it, so against the MEAN every other frame looks large in the opposite direction
+    for (int rawDark : {4, 8})        // 3 and 7 frames after the first is skipped
+        for (double amp : {40.0, 100.0}) {
+            Frames f = makeFrames(40, kDoses, 3, rawDark, lonePlant(kLnDarkBurstOne, amp));
+            XpeBpmConfigV2 cfg{};
+            cfg.min_frames_dark = 3;
+            const XpeBpmLineConfig lc = shortWindows();
+            const LinesResult r = findLines(f, &cfg, &lc);
+            ASSERT_EQ(XPE_OK, r.rc) << rawDark << " " << amp;
+            EXPECT_EQ(nullptr, noiseGroupAt(r, kSingleY)) << "raw dark frames " << rawDark << ", burst " << amp << ": one frame is not persistence";
+        }
+}
+
+TEST(BpmV2LinesTest, NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot) {
+    const XpeBpmLineConfig lc = shortWindows();
+    // seven used frames (raw 8, the first skipped: raw indices 1..7); the stretch is noisy (sd 20) in frames 2,3,4,5 = 4 of 7 (a majority) or in 2,3 = 2 of 7
+    Frames most = makeFrames(41, kDoses, 3, 8, lonePlant(kLnDarkNoisyFrames, 20.0, (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5)));
+    Frames few = makeFrames(41, kDoses, 3, 8, lonePlant(kLnDarkNoisyFrames, 20.0, (1u << 2) | (1u << 3)));
+    const LinesResult a = findLines(most, nullptr, &lc), b = findLines(few, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, a.rc);
+    ASSERT_EQ(XPE_OK, b.rc);
+    const XpeBpmLine* l = noiseGroupAt(a, kSomeFramesY);
+    ASSERT_NE(nullptr, l) << "4 of 7 frames";
+    EXPECT_GT(l->persistence, 0.5f);
+    EXPECT_EQ(nullptr, noiseGroupAt(b, kSomeFramesY)) << "2 of 7 frames";
+}
+
+TEST(BpmV2LinesTest, ABurstInOneBrightFrameIsNoNoiseDefectInGroupsOfTwoAndOfThree) {
+    // the burst also shifts the dose-group mean and can look like a local nonlinearity (cause linearity); the noise cause must not report it
+    for (int perDose : {2, 3})
+        for (double amp : {8.0, 20.0}) {
+            Frames f = makeFrames(42, kDoses, perDose, 7, lonePlant(kLnBrightBurstOne, amp));
+            const XpeBpmLineConfig lc = shortWindows();
+            const LinesResult r = findLines(f, nullptr, &lc);
+            ASSERT_EQ(XPE_OK, r.rc);
+            EXPECT_EQ(nullptr, noiseGroupAt(r, kSingleY)) << perDose << " frames per dose, burst of " << amp << " quantum sd";
+        }
+}
+
+TEST(BpmV2LinesTest, NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot) {
+    const XpeBpmLineConfig lc = shortWindows();
+    uint32_t seven = 0, four = 0;
+    for (int j = 0; j < 7; ++j) seven |= 1u << j;
+    for (int j = 0; j < 4; ++j) four |= 1u << j;
+    Frames most = makeFrames(43, kDoses, 3, 7, lonePlant(kLnBrightNoisyFrames, 90.0, seven));   // 7 of 12 bright frames
+    Frames few = makeFrames(43, kDoses, 3, 7, lonePlant(kLnBrightNoisyFrames, 90.0, four));     // 4 of 12
+    const LinesResult a = findLines(most, nullptr, &lc), b = findLines(few, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, a.rc);
+    ASSERT_EQ(XPE_OK, b.rc);
+    const XpeBpmLine* l = noiseGroupAt(a, kSomeFramesY);
+    ASSERT_NE(nullptr, l) << "7 of 12 frames";
+    EXPECT_GT(l->persistence, 0.5f);
+    EXPECT_EQ(nullptr, noiseGroupAt(b, kSomeFramesY)) << "4 of 12 frames";
+}
+
+TEST(BpmV2LinesTest, TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup) {
+    const XpeBpmLineConfig lc = shortWindows();
+    for (int rows : {2, 3}) {
+        Frames f = makeFrames(44, kDoses, 3, 7, onlyLines(rows == 2 ? kLnStagger2 : kLnStagger3));
+        const LinesResult r = findLines(f, nullptr, &lc);
+        ASSERT_EQ(XPE_OK, r.rc);
+        ASSERT_EQ(1u, r.rep.lines) << rows << " adjacent rows with different ends are one group";
+        EXPECT_EQ(static_cast<uint32_t>(rows), r.lines[0].width);
+        size_t painted = 0, expected = 0;
+        for (int y = 0; y < static_cast<int>(kH); ++y)
+            for (int x = 0; x < static_cast<int>(kW); ++x) {
+                const bool inside = y >= kStagY && y < kStagY + rows && x >= kStagFrom[y - kStagY] && x < kStagTo[y - kStagY];
+                const uint8_t m = r.mask[static_cast<size_t>(y) * kW + x];
+                if (inside) { ++expected; EXPECT_EQ(1, m) << x << "," << y; }
+                else EXPECT_EQ(0, m) << "a pixel outside every stretch is painted: " << x << "," << y;
+                painted += m;
+                if (testing::Test::HasFailure() && painted > 4000) return;
+            }
+        EXPECT_EQ(expected, painted);
+        EXPECT_EQ(static_cast<uint32_t>(expected), r.rep.line_pixels) << "the report counts the stretches too, not the box";
+    }
+}
+
+'''
+assert s.count(marker) == 1
+s = s.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('tests patched')

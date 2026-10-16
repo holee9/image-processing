@@ -146,6 +146,13 @@ float medianOf(float* a, size_t n) {
     return a[n / 2];
 }
 
+/** Median of a few values (the frames of one pixel): the middle one, the mean of the two middle ones for an even count (so that a pair gives its mean). */
+float temporalMedian(std::vector<float>* v) {
+    std::sort(v->begin(), v->end());
+    const size_t m = v->size();
+    return (m & 1u) ? (*v)[m / 2] : 0.5f * ((*v)[m / 2 - 1] + (*v)[m / 2]);
+}
+
 /** Separable median filter: window x 1 along the rows, then 1 x window along the columns; reflected borders. */
 void separableMedian(const float* in, float* tmp, float* out, int w, int h, int win) {
     const int r = win / 2;
@@ -449,7 +456,9 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             float persist = -1.0f;
             if (cause == XPE_BPM_LINE_CAUSE_NOISE && job->persistence) {
                 persist = job->persistence(orient, y, a, b);
-                if (!(persist > 0.5f)) continue;   // large in half of the frames or fewer: noise that moves, not a defect of a place
+                // large in half of the frames or fewer: noise that moves, not a defect of a place. A negative value says the test was not possible (fewer than three frames
+                // to judge by): the stretch is kept and reported with persistence -1
+                if (persist >= 0.0f && !(persist > 0.5f)) continue;
             }
             out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax), persist});
         }
@@ -466,10 +475,14 @@ void analyzeFeature(const float* f, int w, int h, const Settings& st, LineJob* j
 }
 
 struct Group {
-    int      orient, idx, width, a, b;
+    int      orient, idx, width, a, b;   // a, b: the bounding range along the lines of the members (metadata only)
     uint32_t causes, flags;
     float    z;
-    float    persist;
+    float    persist;                    // the largest persistence of the member stretches
+    struct Member {
+        int idx, a, b;
+    };
+    std::vector<Member> members;         // the individual stretches: what is painted, counted and crossed
 };
 
 /** Merges the stretches of one line, then groups adjacent lines whose stretches overlap by half. */
@@ -496,7 +509,8 @@ std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
         std::vector<bool> used(lines.size(), false);
         for (size_t i = 0; i < lines.size(); ++i) {
             if (used[i]) continue;
-            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z, lines[i].persist};
+            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z, lines[i].persist, {}};
+            g.members.push_back({lines[i].idx, lines[i].a, lines[i].b});
             used[i] = true;
             int last = lines[i].idx;
             for (size_t j = i + 1; j < lines.size(); ++j) {
@@ -509,12 +523,15 @@ std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
                 g.causes |= lines[j].cause;
                 g.z = std::max(g.z, lines[j].z);
                 g.persist = std::max(g.persist, lines[j].persist);
+                g.members.push_back({lines[j].idx, lines[j].a, lines[j].b});
                 ++g.width;
                 last = lines[j].idx;
                 used[j] = true;
             }
             const int length = orient == 0 ? w : h;
-            if ((g.b - g.a) * 100 >= length * 95) g.flags |= XPE_BPM_LINE_FULL;
+            bool full = true;   // full when every member covers the line
+            for (const Group::Member& m : g.members) full = full && (m.b - m.a) * 100 >= length * 95;
+            if (full) g.flags |= XPE_BPM_LINE_FULL;
             if (g.width >= 3) g.flags |= XPE_BPM_LINE_REJECT;
             groups.push_back(g);
         }
@@ -524,7 +541,9 @@ std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
         if (r.orient != 0) continue;
         for (Group& c : groups) {
             if (c.orient != 1) continue;
-            const bool hit = c.idx + c.width > r.a && c.idx < r.b && r.idx + r.width > c.a && r.idx < c.b;
+            bool hit = false;   // a row stretch and a column stretch meet when the column lies inside the row stretch and the row inside the column stretch
+            for (const Group::Member& rm : r.members)
+                for (const Group::Member& cm : c.members) hit = hit || (cm.idx >= rm.a && cm.idx < rm.b && rm.idx >= cm.a && rm.idx < cm.b);
             if (hit) {
                 r.flags |= XPE_BPM_LINE_CROSSES;
                 c.flags |= XPE_BPM_LINE_CROSSES;
@@ -577,6 +596,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
     // ---- dark mean D and the temporal variance s2 (frame and row components removed per frame)
     std::vector<float> D(n), s2(n, 0.0f);
     std::vector<std::vector<double>> rowMeanK, colMeanK;   // per dark frame: the row means and the column means taken out (line persistence)
+    std::vector<float>               darkMed;              // line persistence: the temporal median of the dark frames, which a burst in one frame cannot move
     {
         std::vector<uint32_t> sum(n, 0u);
         for (uint32_t k = first; k < num_dark; ++k) {
@@ -615,6 +635,34 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 }
         }
         for (size_t i = 0; i < n; ++i) s2[i] /= static_cast<float>(nd - 1);
+    }
+    if (job) {
+        // The persistence of a stretch is judged against the temporal MEDIAN of the dark frames, not their mean: a burst in one frame moves the mean of the stretch and so makes
+        // every other frame look large in the opposite direction (one frame in seven would read as seven in seven). The row and column means taken out of every frame are
+        // taken against the same median image.
+        darkMed.resize(n);
+        std::vector<float> vals(nd);
+        for (size_t i = 0; i < n; ++i) {
+            for (uint32_t k = 0; k < nd; ++k) vals[k] = static_cast<float>(px(dark_frames[first + k])[i]);
+            darkMed[i] = temporalMedian(&vals);
+        }
+        for (uint32_t k = 0; k < nd; ++k) {
+            const uint16_t*     p = px(dark_frames[first + k]);
+            std::vector<double> rm(static_cast<size_t>(h), 0.0), cm(static_cast<size_t>(w), 0.0);
+            for (int y = 0; y < h; ++y) {
+                double acc = 0.0;
+                for (int x = 0; x < w; ++x) acc += static_cast<double>(p[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]) - static_cast<double>(darkMed[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]);
+                rm[static_cast<size_t>(y)] = acc / w;
+            }
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                    cm[static_cast<size_t>(x)] += static_cast<double>(p[i]) - static_cast<double>(darkMed[i]) - rm[static_cast<size_t>(y)];
+                }
+            for (int x = 0; x < w; ++x) cm[static_cast<size_t>(x)] /= h;
+            rowMeanK[k] = rm;
+            colMeanK[k] = cm;
+        }
     }
     double darkMeanAll = 0.0;
     for (size_t i = 0; i < n; ++i) darkMeanAll += D[i];
@@ -710,6 +758,31 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                         }
                 }
                 for (size_t i = 0; i < n; ++i) vg[i] /= static_cast<float>(mg - 1);
+                if (job && mg >= 2) {
+                    // line persistence: the row and column means of every frame against the temporal median of the group (the mean for a pair)
+                    std::vector<float> gmed(n), vals(mg);
+                    for (size_t i = 0; i < n; ++i) {
+                        for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                        gmed[i] = temporalMedian(&vals);
+                    }
+                    for (uint32_t k : groups[g]) {
+                        const uint16_t*     pk = px(bright_frames[k]);
+                        std::vector<double> rm2(static_cast<size_t>(height), 0.0), cm2(static_cast<size_t>(width), 0.0);
+                        for (uint32_t y = 0; y < height; ++y) {
+                            double acc2 = 0.0;
+                            for (uint32_t x = 0; x < width; ++x) acc2 += static_cast<double>(pk[static_cast<size_t>(y) * width + x]) - static_cast<double>(gmed[static_cast<size_t>(y) * width + x]);
+                            rm2[y] = acc2 / width;
+                        }
+                        for (uint32_t y = 0; y < height; ++y)
+                            for (uint32_t x = 0; x < width; ++x) {
+                                const size_t i = static_cast<size_t>(y) * width + x;
+                                cm2[x] += static_cast<double>(pk[i]) - static_cast<double>(gmed[i]) - rm2[y];
+                            }
+                        for (uint32_t x = 0; x < width; ++x) cm2[x] /= height;
+                        brmK[k] = rm2;
+                        bcmK[k] = cm2;
+                    }
+                }
                 separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
                 const double mnu = varianceMedian(mg - 1);
                 std::vector<float> nomSample;
@@ -765,7 +838,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                     for (int t2 = a; t2 < b; ++t2) {
                         const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
                         const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
-                        const double e = static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMeanK[k][static_cast<size_t>(y)] - colMeanK[k][static_cast<size_t>(x)];
+                        const double e = static_cast<double>(p[i]) - static_cast<double>(darkMed[i]) - rowMeanK[k][static_cast<size_t>(y)] - colMeanK[k][static_cast<size_t>(x)];
                         acc += std::min(e * e, 16.0 * static_cast<double>(wk.bg[i]));
                     }
                     return acc;
@@ -840,33 +913,40 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 int       frames = 0, hits = 0;
                 for (size_t g = 0; g < groups.size(); ++g) {
                     const uint32_t mg = static_cast<uint32_t>(groups[g].size());
-                    if (mg < 2) continue;
+                    if (mg < 2) continue;   // a lone frame has no group to be judged against
+                    // a pair has no median (its reference is its mean, so both frames read as large when one carries a burst): the judgement pools the frames of all groups, and the
+                    // pair that carries a burst is then 2 frames of all of them
                     const double cap = 16.0 * groupNom[g];
-                    for (uint32_t k : groups[g]) {
-                        const uint16_t* pk = px(bright_frames[k]);
-                        auto lineStat = [&](int line) {
-                            double acc = 0.0;
-                            for (int t2 = a; t2 < b; ++t2) {
-                                const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
-                                const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
-                                double       gm = 0.0;
-                                for (uint32_t j : groups[g]) gm += static_cast<double>(px(bright_frames[j])[i]);
-                                gm /= static_cast<double>(mg);
-                                const double e = static_cast<double>(pk[i]) - gm - brmK[k][static_cast<size_t>(y)] - bcmK[k][static_cast<size_t>(x)];
-                                acc += std::min(e * e, cap);
+                    // squared residual about the temporal median of the group, summed over the stretch, for the line and its neighbours, every frame at once
+                    std::vector<std::vector<double>> stat(mg, std::vector<double>(static_cast<size_t>(2 * half + 1), 0.0));
+                    std::vector<float>               vals(mg);
+                    for (int d = -half; d <= half; ++d) {
+                        const int line = idx + d;
+                        if (line < 0 || line >= lines) continue;
+                        for (int t2 = a; t2 < b; ++t2) {
+                            const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
+                            const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                            for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                            std::vector<float> srt(vals);
+                            const double       md = static_cast<double>(temporalMedian(&srt));
+                            for (uint32_t j = 0; j < mg; ++j) {
+                                const uint32_t k = groups[g][j];
+                                const double   e = static_cast<double>(vals[j]) - md - brmK[k][static_cast<size_t>(y)] - bcmK[k][static_cast<size_t>(x)];
+                                stat[j][static_cast<size_t>(d + half)] += std::min(e * e, cap);
                             }
-                            return acc;
-                        };
-                        const double       sf = lineStat(idx);
+                        }
+                    }
+                    for (uint32_t j = 0; j < mg; ++j) {
+                        const double       sf = stat[j][static_cast<size_t>(half)];
                         std::vector<float> nb;
                         for (int d = -half; d <= half; ++d)
-                            if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(lineStat(idx + d)));
+                            if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(stat[j][static_cast<size_t>(d + half)]));
                         const double sr = nb.empty() ? sf : static_cast<double>(medianOf(nb.data(), nb.size()));
                         ++frames;
                         if (sr > 0.0 && sf / sr >= job->tol) ++hits;
                     }
                 }
-                return frames > 0 ? static_cast<float>(hits) / static_cast<float>(frames) : -1.0f;
+                return frames >= 3 ? static_cast<float>(hits) / static_cast<float>(frames) : -1.0f;   // fewer than three frames cannot show a majority
             };
             analyzeFeature(t.data(), w, h, st, job, kKindNoise);
             job->persistence = nullptr;
@@ -1097,7 +1177,7 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_fr
         if (g.width == 2) ++rep.double_lines;
         rep.max_adjacent = std::max(rep.max_adjacent, static_cast<uint32_t>(g.width));
         if (g.flags & XPE_BPM_LINE_REJECT) rep.panel_reject = 1;
-        rep.line_pixels += static_cast<uint32_t>((g.b - g.a) * g.width);
+        for (const Group::Member& m : g.members) rep.line_pixels += static_cast<uint32_t>(m.b - m.a);
         if (lines_out && written < max_lines) {
             XpeBpmLine& o = lines_out[written];
             o.orientation = static_cast<uint32_t>(g.orient);
@@ -1115,10 +1195,10 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_fr
         }
         if (line_mask_out) {
             uint8_t* m = static_cast<uint8_t*>(line_mask_out->data);
-            for (int k = 0; k < g.width; ++k)
-                for (int t = g.a; t < g.b; ++t) {
-                    const size_t x = g.orient == 0 ? static_cast<size_t>(t) : static_cast<size_t>(g.idx + k);
-                    const size_t y = g.orient == 0 ? static_cast<size_t>(g.idx + k) : static_cast<size_t>(t);
+            for (const Group::Member& mem : g.members)   // the union of the detected stretches, not the bounding box of the group
+                for (int t = mem.a; t < mem.b; ++t) {
+                    const size_t x = g.orient == 0 ? static_cast<size_t>(t) : static_cast<size_t>(mem.idx);
+                    const size_t y = g.orient == 0 ? static_cast<size_t>(mem.idx) : static_cast<size_t>(t);
                     if (x < width && y < height) m[y * width + x] = 1;
                 }
         }
@@ -1127,7 +1207,12 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_fr
     for (const Group& r : groups) {
         if (r.orient != 0) continue;
         for (const Group& c : groups)
-            if (c.orient == 1 && c.idx + c.width > r.a && c.idx < r.b && r.idx + r.width > c.a && r.idx < c.b) ++rep.crossings;
+            if (c.orient == 1) {
+                bool hit = false;
+                for (const Group::Member& rm : r.members)
+                    for (const Group::Member& cm : c.members) hit = hit || (cm.idx >= rm.a && cm.idx < rm.b && rm.idx >= cm.a && rm.idx < cm.b);
+                if (hit) ++rep.crossings;
+            }
     }
     // a pixel counted twice by a crossing is counted once in the mask; the report keeps the sum of the stretches
     if (report) *report = rep;

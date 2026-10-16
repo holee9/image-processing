@@ -80,6 +80,8 @@ struct Plant {
     bool darkPartial{false};    // a steep dark-level gradient along the rows and a raised segment in the middle of one row (every frame): only the dark-mean feature sees it
     bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
     bool strongShading{false};
+    double   burstAmp{14.0};      // QA-A-253e: amplitude of the single-frame bursts / the noise of the some-frames stretches (see kLn*One, kLn*Frames)
+    uint32_t frameMask{0};        // QA-A-253e: the frames (bit = frame index in acquisition order, dark or bright) that carry the noise of kLnDarkNoisyFrames / kLnBrightNoisyFrames
     uint32_t lines{0};            // QA-A-253: kLn* bits, whole rows and columns that are defective  // +-20 % gain shading along both directions (a heel-effect-like flat field): a line component taken from a partly defective line moves by many noise widths
 };
 
@@ -96,12 +98,16 @@ constexpr int kBrightNoisyX = 120, kBrightNoisyY = 200;   // extra temporal nois
 constexpr int kDarkRow = 60, kDarkFrom = 96;   // the raised segment: kPartLen pixels, +300 in every frame
 constexpr int kVarCol = 70;                  // a column whose offset is a new random value in every frame (sd 60)
 // line defects of the QA-A-253 tests (256 x 256 frames)
-constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256, kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048;
+constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256, kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048,
+                 kLnDarkBurstOne = 4096, kLnDarkNoisyFrames = 8192, kLnBrightBurstOne = 16384, kLnBrightNoisyFrames = 32768, kLnStagger2 = 65536, kLnStagger3 = 131072;
 constexpr int kLnDeadRowY = 120, kLnDeadColX = 60, kLnHalfRowY = 80, kLnPartialRowY = 40, kLnPartialFrom = 96, kLnPartialTo = 192, kLnPairY = 170, kLnTripleY = 200, kLnNoisyY = 30, kLnGainY = 150;
 // QA-A-253c: noise that moves. In dark frame k the stretch [96, 192) of row kBurstY0 + k gets an offset of +-14 (a different row in every frame)
 constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;
 // QA-A-253d: (the bright burst hits one row of a dose group in two of its three frames, with opposite signs, so that the dose response is untouched) a column with response 1.35 (a band that gain correction removes; 1.2 in the evaluation, the larger factor makes the shift of the feature show on 256 rows), a row that is noisy in every bright frame, and a burst that moves from row to row between the bright frames
 constexpr int kLnGainColX = 180, kLnBrightNoisyY = 60, kBrightBurstY0 = 100;
+// QA-A-253e: a burst in one frame only (row 140), noise in some frames only (row 160), adjacent dead rows whose ends differ (rows 210..212)
+constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;
+constexpr int kStagFrom[3] = {96, 120, 140}, kStagTo[3] = {192, 216, 236};
 
 Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPerDose, int nDark, Plant plant, bool transientFirstDark = false) {
     Normal rng(seed);
@@ -135,6 +141,14 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                 if ((plant.lines & kLnTripleRows) && y >= kLnTripleY && y < kLnTripleY + 3) sig = 0.0;
                 if ((plant.lines & kLnNoisyRow) && y == kLnNoisyY) noiseSd = 9.0;
                 if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnDarkBurstOne) && darkIdx == 3 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp;
+                if ((plant.lines & kLnDarkNoisyFrames) && darkIdx >= 0 && ((plant.frameMask >> darkIdx) & 1u) && y == kSomeFramesY && x >= kBurstFrom && x < kBurstTo) noiseSd = plant.burstAmp;
+                if ((plant.lines & kLnBrightBurstOne) && bright && brightIdx == 1 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp * 0.5 * std::sqrt(std::max(sig, 1.0));
+                if ((plant.lines & kLnBrightNoisyFrames) && bright && brightIdx >= 0 && ((plant.frameMask >> brightIdx) & 1u) && y == kSomeFramesY && x >= kBurstFrom && x < kBurstTo) noiseSd = plant.burstAmp;
+                for (int r = 0; r < 3; ++r) {
+                    const bool on = (r < 2 && (plant.lines & kLnStagger2)) || (plant.lines & kLnStagger3);
+                    if (on && y == kStagY + r && x >= kStagFrom[r] && x < kStagTo[r]) sig = 0.0;
+                }
                 if ((plant.lines & kLnGainCol) && x == kLnGainColX) sig *= 1.35;
                 if ((plant.lines & kLnBrightNoisyRow) && bright && y == kLnBrightNoisyY) noiseSd = 90.0;
                 if ((plant.lines & kLnBrightBurst) && bright && brightIdx >= 0 && brightIdx % 3 != 2 && y == kBrightBurstY0 + brightIdx / 3 && x >= kBurstFrom && x < kBurstTo)
@@ -577,6 +591,128 @@ TEST(BpmV2LinesTest, NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPl
     const LinesResult r = findLines(f, nullptr, &lc);
     ASSERT_EQ(XPE_OK, r.rc);
     EXPECT_EQ(0u, r.rep.lines) << (r.lines.empty() ? std::string() : "first group: orientation " + std::to_string(r.lines[0].orientation) + " index " + std::to_string(r.lines[0].index) + " causes " + std::to_string(r.lines[0].causes) + " persistence " + std::to_string(r.lines[0].persistence));
+}
+
+// ---------------------------------------------------------------- QA-A-253e: persistence against a robust reference, and the mask
+namespace {
+Plant lonePlant(uint32_t bits, double amp, uint32_t mask = 0) {
+    Plant p = onlyLines(bits);
+    p.burstAmp = amp;
+    p.frameMask = mask;
+    return p;
+}
+const XpeBpmLine* noiseGroupAt(const LinesResult& r, uint32_t index) {
+    for (const XpeBpmLine& l : r.lines)
+        if (l.orientation == XPE_BPM_LINE_ROW && (l.causes & XPE_BPM_LINE_CAUSE_NOISE) && l.index <= index && index < l.index + l.width) return &l;
+    return nullptr;
+}
+}  // namespace
+
+TEST(BpmV2LinesTest, ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames) {
+    // a burst of +40 and +100 in one dark frame: the mean of the stretch moves with it, so against the MEAN every other frame looks large in the opposite direction
+    for (int rawDark : {4, 8})        // 3 and 7 frames after the first is skipped
+        for (double amp : {40.0, 100.0}) {
+            Frames f = makeFrames(40, kDoses, 3, rawDark, lonePlant(kLnDarkBurstOne, amp));
+            XpeBpmConfigV2 cfg{};
+            cfg.min_frames_dark = 3;
+            const XpeBpmLineConfig lc = shortWindows();
+            const LinesResult r = findLines(f, &cfg, &lc);
+            ASSERT_EQ(XPE_OK, r.rc) << rawDark << " " << amp;
+            EXPECT_EQ(nullptr, noiseGroupAt(r, kSingleY)) << "raw dark frames " << rawDark << ", burst " << amp << ": one frame is not persistence";
+        }
+}
+
+TEST(BpmV2LinesTest, NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot) {
+    const XpeBpmLineConfig lc = shortWindows();
+    // seven used frames (raw 8, the first skipped: raw indices 1..7); the stretch is noisy (sd 20) in frames 2,3,4,5 = 4 of 7 (a majority) or in 2,3 = 2 of 7
+    Frames most = makeFrames(41, kDoses, 3, 8, lonePlant(kLnDarkNoisyFrames, 20.0, (1u << 2) | (1u << 3) | (1u << 4) | (1u << 5)));
+    Frames few = makeFrames(41, kDoses, 3, 8, lonePlant(kLnDarkNoisyFrames, 20.0, (1u << 2) | (1u << 3)));
+    const LinesResult a = findLines(most, nullptr, &lc), b = findLines(few, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, a.rc);
+    ASSERT_EQ(XPE_OK, b.rc);
+    const XpeBpmLine* l = noiseGroupAt(a, kSomeFramesY);
+    ASSERT_NE(nullptr, l) << "4 of 7 frames";
+    EXPECT_GT(l->persistence, 0.5f);
+    EXPECT_EQ(nullptr, noiseGroupAt(b, kSomeFramesY)) << "2 of 7 frames";
+}
+
+TEST(BpmV2LinesTest, ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup) {
+    // the burst also shifts the dose-group mean and can look like a local nonlinearity (cause linearity); the noise cause must not report it.
+    // A single dose group of 3 or 5 frames (the mean of the group moves with the burst; the median does not), and four groups of two frames (a pair has no median: the judgement
+    // pools the frames of all groups, so the pair that carries the burst is 2 of 8)
+    struct Case { std::vector<double> doses; int perDose; };
+    for (const Case& c : {Case{{9000.0}, 3}, Case{{9000.0}, 5}, Case{kDoses, 2}})
+        for (double amp : {8.0, 20.0}) {
+            Frames f = makeFrames(42, c.doses, c.perDose, 7, lonePlant(kLnBrightBurstOne, amp));
+            XpeBpmConfigV2 cfg{};
+            cfg.min_frames_bright = 2;
+            const XpeBpmLineConfig lc = shortWindows();
+            const LinesResult r = findLines(f, &cfg, &lc);
+            ASSERT_EQ(XPE_OK, r.rc);
+            EXPECT_EQ(nullptr, noiseGroupAt(r, kSingleY)) << c.doses.size() << " dose(s), " << c.perDose << " frames per dose, burst of " << amp << " quantum sd";
+        }
+}
+
+TEST(BpmV2LinesTest, NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot) {
+    const XpeBpmLineConfig lc = shortWindows();
+    uint32_t four = 0, two = 0;
+    for (int j = 0; j < 4; ++j) four |= 1u << j;
+    for (int j = 0; j < 2; ++j) two |= 1u << j;
+    XpeBpmConfigV2 cfg{};
+    cfg.min_frames_bright = 2;
+    // one dose group of 7 frames: noise in 4 of them (a majority) or in 2
+    Frames most = makeFrames(43, {9000.0}, 7, 7, lonePlant(kLnBrightNoisyFrames, 90.0, four));
+    Frames few = makeFrames(43, {9000.0}, 7, 7, lonePlant(kLnBrightNoisyFrames, 90.0, two));
+    const LinesResult a = findLines(most, &cfg, &lc), b = findLines(few, &cfg, &lc);
+    ASSERT_EQ(XPE_OK, a.rc);
+    ASSERT_EQ(XPE_OK, b.rc);
+    const XpeBpmLine* l = noiseGroupAt(a, kSomeFramesY);
+    ASSERT_NE(nullptr, l) << "4 of 7 frames";
+    EXPECT_GT(l->persistence, 0.5f);
+    EXPECT_EQ(nullptr, noiseGroupAt(b, kSomeFramesY)) << "2 of 7 frames";
+}
+
+TEST(BpmV2LinesTest, ANoisyRowThatCannotBeJudgedFrameByFrameIsKeptAndSaysSo) {
+    // two bright frames in all: no majority is possible, the stretch found in the bright frames is kept with persistence -1 ("not tested")
+    Frames f = makeFrames(45, {9000.0}, 2, 7, lonePlant(kLnBrightNoisyFrames, 400.0, 3u));   // noise sd 400 in both frames: with one degree of freedom only a huge one stands out
+    XpeBpmConfigV2 cfg{};
+    cfg.min_frames_bright = 2;
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, &cfg, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const XpeBpmLine* l = noiseGroupAt(r, kSomeFramesY);
+    ASSERT_NE(nullptr, l);
+    EXPECT_FLOAT_EQ(-1.0f, l->persistence);
+}
+
+TEST(BpmV2LinesTest, TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup) {
+    const XpeBpmLineConfig lc = shortWindows();
+    for (int rows : {2, 3}) {
+        Frames f = makeFrames(44, kDoses, 3, 7, onlyLines(rows == 2 ? kLnStagger2 : kLnStagger3));
+        const LinesResult r = findLines(f, nullptr, &lc);
+        ASSERT_EQ(XPE_OK, r.rc);
+        ASSERT_EQ(1u, r.rep.lines) << rows << " adjacent rows with different ends are one group";
+        EXPECT_EQ(static_cast<uint32_t>(rows), r.lines[0].width);
+        // the ends are change-point estimates (a pixel or two off); what matters is that a stretch is not widened to the bounding box of the group (which would paint 24 to 44
+        // more pixels per row here)
+        constexpr int tol = 3;
+        size_t painted = 0, expected = 0;
+        for (int y = 0; y < static_cast<int>(kH); ++y)
+            for (int x = 0; x < static_cast<int>(kW); ++x) {
+                const int  rr = y - kStagY;
+                const bool inRow = rr >= 0 && rr < rows;
+                const bool inside = inRow && x >= kStagFrom[rr] && x < kStagTo[rr];
+                const bool wellInside = inRow && x >= kStagFrom[rr] + tol && x < kStagTo[rr] - tol;
+                const bool nearIt = inRow && x >= kStagFrom[rr] - tol && x < kStagTo[rr] + tol;
+                const uint8_t m = r.mask[static_cast<size_t>(y) * kW + x];
+                expected += inside ? 1 : 0;
+                if (wellInside) EXPECT_EQ(1, m) << x << "," << y;
+                if (!nearIt) EXPECT_EQ(0, m) << "a pixel outside every stretch is painted: " << x << "," << y;
+                painted += m;
+            }
+        EXPECT_NEAR(static_cast<double>(expected), static_cast<double>(painted), 2.0 * tol * rows) << "the mask is the union of the stretches";
+        EXPECT_EQ(static_cast<uint32_t>(painted), r.rep.line_pixels) << "the report counts the stretches too, not the box";
+    }
 }
 
 TEST(BpmV2LinesTest, ASingleDeadPixelOrASmallBlockIsNotALine) {
