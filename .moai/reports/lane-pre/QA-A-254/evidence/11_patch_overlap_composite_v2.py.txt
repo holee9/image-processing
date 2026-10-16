@@ -1,0 +1,205 @@
+"""QA-A-254 step 0a, second version (Codex #216 / leader 04:37): the composite truth of the overlapped pixels is written against the branches the scoring really has.
+Facts of the code (xpe_bpm_eval.cpp): an overlapped pixel carries kSharedId (65535) in truth_ids.u16, so it leaves the denominator of every item (total[]); it stays in truthAny, and in truthReal /
+the undetermined zone through the items that cover it; the false-alarm zone is truthReal widened by 2 plus the undetermined zone.
+The composite (score --overlap composite):
+ - EVERY pixel covered by two or more items is classified by ONE rule (no choice by what the detector painted):
+   defect when a covering item is a defect by itself (class not control / undetermined: its response or its measured noise verdict), or when the response of the pixel, simulated through the items
+   in the order the injection applied them, is below 0.45 or above 1.5; undetermined when a covering item is undetermined and no defect applies; normal otherwise.
+ - The response of the pixel is NOT a product of levels in general: the injection applies the items in list order to the frame value, rounding to an integer and clipping to 0..65535 after each,
+   dark frames get the additive items only. The tool reproduces that chain without noise on a nominal pixel (dark 1000, net bright signal 10000) and reads net(bright) / 10000. Two multiplicative items
+   (gain_loss, efficiency_loss, slope, gain_band) give the product; an additive item (hot, fixed_band) added before a multiplicative one leaves a residual (1 - r) x offset; dead gives 0; nonlinear
+   uses the net the chain has reached; the noise terms (noisy, the thinning noise of efficiency_loss, varying_band) are left to the noise axis.
+ - A report of every distinct overlap (the set of covering items): area, nominal response, the class before (existing rule) and after (composite), pixels flagged by the map (--overlap-out FILE),
+   the change of class (before -> after), and the performance on the crossings alone (defect recall, flagged normal pixels)."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:100])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+s = open(base + 'tools/xpe_bpm_eval.cpp', encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+a = s.index('/** What the composite truth made of the pixels')
+b = s.index('// ------------------------------------------------------------------------------------------------------------- score\nstruct GroupStat {')
+new_func = r'''/** One distinct overlap: the set of items that cover a pixel (up to three) with what the composite truth made of it. */
+struct OverlapGroup {
+    int      ids[3]{0, 0, 0};
+    size_t   pixels{0};
+    double   response{1.0};           // the nominal response through the injection chain
+    uint8_t  before{0}, after{0};     // 1 normal, 2 defect, 3 undetermined: the class by the earlier rule and by the composite rule
+    size_t   flagged{0};
+    size_t   firstPixel{0};
+};
+
+struct OverlapReport {
+    size_t pixels{0}, defect{0}, undetermined{0}, normal{0}, promotedByResponse{0};
+    size_t beforeDefect{0}, beforeUndetermined{0}, beforeNormal{0};
+    size_t transition[4][4]{};        // [before][after]
+    std::vector<OverlapGroup> groups;
+};
+
+/**
+ * The response a pixel covered by @p chain (the items in injection order) shows: the injection applies each item to the frame value, rounds to an integer and clips to 0..65535; dark frames
+ * receive the additive items only. Reproduced here without noise on a nominal pixel (dark level 1000, bright net signal 10000); read as net(bright) / 10000.
+ */
+double chainResponse(const std::vector<const Item*>& chain) {
+    const double d = 1000.0, s = 10000.0;
+    double       vb = d + s, vd = d;
+    auto fix = [](double v) { return std::min(65535.0, std::max(0.0, std::floor(v + 0.5))); };
+    for (const Item* it : chain) {
+        const std::string& k = it->kind;
+        if (k == "dead") {
+            vb = d + (1.0 - it->level) * (vb - d);
+        } else if (k == "hot" || k == "fixed_band") {
+            vb += it->level;
+            vd += it->level;
+        } else if (k == "slope" || k == "gain_band" || k == "gain_loss" || k == "efficiency_loss") {
+            vb = d + it->level * (vb - d);
+        } else if (k == "nonlinear") {
+            const double nn = vb - d;
+            vb = d + nn * (1.0 - it->level * nn / kNonlinearRef);
+        }   // noisy, varying_band: noise terms, left to the noise axis
+        vb = fix(vb);
+        vd = fix(vd);
+    }
+    return (vb - vd) / s;
+}
+
+/**
+ * Composite truth of the overlapped pixels (QA-A-254, the decision on QA-A-252h, rewritten against the real branches after Codex #216): see the header of the patch that made it. `overlapClass`
+ * receives per pixel 0 (not overlapped), 1 normal, 2 defect, 3 undetermined; `overlapGroup` the index of the distinct overlap in rep->groups (valid where the class is not 0). The truth masks
+ * are updated: a composite defect is a true defect (truthReal), an undetermined pixel joins the undetermined zone.
+ */
+void applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vector<uint8_t>* overlapClass, std::vector<uint32_t>* overlapGroup, OverlapReport* rep) {
+    const size_t n = static_cast<size_t>(t->w) * t->h;
+    std::vector<uint8_t>   count(n, 0), anyDefect(n, 0), anyUndet(n, 0);
+    std::vector<uint16_t>  c1(n, 0), c2(n, 0), c3(n, 0);
+    for (const Item& it : t->items) {
+        forItemPixels(it, t->w, [&](size_t i) {
+            if (count[i] == 0) c1[i] = static_cast<uint16_t>(it.id);
+            else if (count[i] == 1) c2[i] = static_cast<uint16_t>(it.id);
+            else if (count[i] == 2) c3[i] = static_cast<uint16_t>(it.id);
+            if (count[i] < 255) ++count[i];
+            if (it.cls == "undetermined") anyUndet[i] = 1;
+            else if (it.cls != "control") anyDefect[i] = 1;
+        });
+    }
+    std::map<int, const Item*> byId;
+    for (const Item& it : t->items) byId[it.id] = &it;
+    overlapClass->assign(n, 0);
+    overlapGroup->assign(n, 0);
+    *rep = OverlapReport{};
+    std::map<uint64_t, uint32_t> index;
+    for (size_t i = 0; i < n; ++i) {
+        if (count[i] < 2) continue;
+        const uint64_t key = (static_cast<uint64_t>(c1[i]) << 32) | (static_cast<uint64_t>(c2[i]) << 16) | c3[i];
+        auto f = index.find(key);
+        if (f == index.end()) {
+            OverlapGroup g;
+            g.ids[0] = c1[i];
+            g.ids[1] = c2[i];
+            g.ids[2] = c3[i];
+            std::vector<const Item*> chain;
+            for (int k = 0; k < 3 && g.ids[k] != 0; ++k) chain.push_back(byId[g.ids[k]]);
+            g.response = chainResponse(chain);
+            g.firstPixel = i;
+            const bool byResponse = g.response < kResponseDefectBelow - kRatioSlack || g.response > kResponseDefectAbove + kRatioSlack;
+            g.before = anyDefect[i] ? 2 : (anyUndet[i] ? 3 : 1);
+            g.after = (anyDefect[i] || byResponse) ? 2 : (anyUndet[i] ? 3 : 1);
+            f = index.emplace(key, static_cast<uint32_t>(rep->groups.size())).first;
+            rep->groups.push_back(g);
+        }
+        OverlapGroup& g = rep->groups[f->second];
+        ++g.pixels;
+        (*overlapGroup)[i] = f->second;
+        (*overlapClass)[i] = g.after;
+        ++rep->pixels;
+        ++rep->transition[g.before][g.after];
+        if (g.before == 2) ++rep->beforeDefect; else if (g.before == 3) ++rep->beforeUndetermined; else ++rep->beforeNormal;
+        if (g.after == 2) {
+            ++rep->defect;
+            if (g.before != 2) {
+                ++rep->promotedByResponse;
+                t->truthReal[i] = 1;
+            }
+        } else if (g.after == 3) {
+            ++rep->undetermined;
+            (*undetMask)[i] = 1;
+        } else {
+            ++rep->normal;
+        }
+    }
+}
+
+'''
+s = s[:a] + new_func + s[b:]
+
+# the score command: the call and the report
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''    std::vector<uint8_t> overlapClass;
+    OverlapReport        overlap;
+    const bool           compositeOverlap = a.str("overlap") == "composite";
+    if (compositeOverlap) applyOverlapComposite(&t, &undetMask, &overlapClass, &overlap);''',
+    '''    std::vector<uint8_t>  overlapClass;
+    std::vector<uint32_t> overlapGroup;
+    OverlapReport         overlap;
+    const bool            compositeOverlap = a.str("overlap") == "composite";
+    if (compositeOverlap) applyOverlapComposite(&t, &undetMask, &overlapClass, &overlapGroup, &overlap);''')
+a2 = s.index('    size_t ovFlag[4] = {0, 0, 0, 0}, ovNew[4] = {0, 0, 0, 0};')
+b2 = s.index('    if (haveClean)\n        std::printf("  clean map (no planting): flagged')
+s = s[:a2] + r'''    size_t ovFlag[4] = {0, 0, 0, 0}, ovNew[4] = {0, 0, 0, 0}, ovFlagBefore[4] = {0, 0, 0, 0};
+    if (compositeOverlap) {
+        for (size_t i = 0; i < n; ++i)
+            if (overlapClass[i] != 0 && map[i]) {
+                ++ovFlag[overlapClass[i]];
+                ++overlap.groups[overlapGroup[i]].flagged;
+                if (haveClean && !clean[i]) ++ovNew[overlapClass[i]];
+            }
+        for (const OverlapGroup& g : overlap.groups) ovFlagBefore[g.before] += g.flagged;
+        std::printf("== overlapped pixels (covered by two or more planted items: %zu distinct overlaps; ONE rule for every one of them)\n"
+                    "  rule: defect when a covering item is a defect by itself, or when the response through the injection chain is outside 0.45 .. 1.5; undetermined when a covering item is; else normal\n"
+                    "  pixels %zu: defect %zu (of them %zu only by the response through the chain), undetermined %zu, normal %zu\n"
+                    "  class by the earlier rule (before): defect %zu, undetermined %zu, normal %zu; change of class (before -> after): normal->defect %zu, undetermined->defect %zu, other %zu\n"
+                    "  performance on the crossings alone: flagged in defect %zu of %zu (recall %.4f), in undetermined %zu of %zu, in normal %zu of %zu (false alarms %.4f; new against the clean map: %zu)\n"
+                    "  by the earlier rule the same flags would read: in defect %zu, in undetermined %zu, in normal %zu\n",
+                    overlap.groups.size(), overlap.pixels, overlap.defect, overlap.promotedByResponse, overlap.undetermined, overlap.normal, overlap.beforeDefect, overlap.beforeUndetermined,
+                    overlap.beforeNormal, overlap.transition[1][2], overlap.transition[3][2], overlap.pixels - overlap.transition[1][2] - overlap.transition[3][2] - overlap.transition[2][2] - overlap.transition[3][3] - overlap.transition[1][1],
+                    ovFlag[2], overlap.defect, overlap.defect ? static_cast<double>(ovFlag[2]) / static_cast<double>(overlap.defect) : 0.0, ovFlag[3], overlap.undetermined, ovFlag[1], overlap.normal,
+                    overlap.normal ? static_cast<double>(ovFlag[1]) / static_cast<double>(overlap.normal) : 0.0, ovNew[1], ovFlagBefore[2], ovFlagBefore[3], ovFlagBefore[1]);
+        if (a.has("overlap-out")) {
+            std::string tsv = "item1\titem2\titem3\tkinds\tpixels\tresponse\tbefore\tafter\tflagged\tfirst_pixel_x\tfirst_pixel_y\n";
+            static const char* const cn[4] = {"-", "normal", "defect", "undetermined"};
+            for (const OverlapGroup& g : overlap.groups) {
+                std::string kinds;
+                for (int k = 0; k < 3 && g.ids[k] != 0; ++k)
+                    for (const Item& it : t.items)
+                        if (it.id == g.ids[k]) kinds += (k ? " + " : "") + it.cls + "/" + it.kind + "/" + it.shape + "/" + fmtLevel(it.level);
+                char b[640];
+                std::snprintf(b, sizeof b, "%d\t%d\t%d\t%s\t%zu\t%.4f\t%s\t%s\t%zu\t%zu\t%zu\n", g.ids[0], g.ids[1], g.ids[2], kinds.c_str(), g.pixels, g.response, cn[g.before], cn[g.after], g.flagged,
+                              g.firstPixel % t.w, g.firstPixel / t.w);
+                tsv += b;
+            }
+            if (!writeBytes(a.str("overlap-out"), tsv.data(), tsv.size())) return 3;
+        }
+    }
+''' + s[b2:]
+sub('''                          ",\\n  \\"overlap_pixels\\": %zu,\\n  \\"overlap_defect\\": %zu,\\n  \\"overlap_defect_by_product\\": %zu,\\n  \\"overlap_undetermined\\": %zu,\\n  \\"overlap_normal\\": %zu,\\n"''',
+    '''                          ",\\n  \\"overlap_pixels\\": %zu,\\n  \\"overlap_defect\\": %zu,\\n  \\"overlap_defect_by_response\\": %zu,\\n  \\"overlap_undetermined\\": %zu,\\n  \\"overlap_normal\\": %zu,\\n"''')
+sub('overlap.pixels, overlap.defect, overlap.promotedByProduct, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);\n            j += ob;',
+    'overlap.pixels, overlap.defect, overlap.promotedByResponse, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);\n            j += ob;')
+sub(' [--overlap composite]', ' [--overlap composite] [--overlap-out FILE]')
+open(base + 'tools/xpe_bpm_eval.cpp', 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('overlap composite v2 patched')

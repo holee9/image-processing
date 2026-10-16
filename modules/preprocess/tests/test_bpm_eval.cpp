@@ -705,6 +705,86 @@ TEST_F(BpmEvalQuantumTest, NoiseCostRefusesVerificationFramesWhoseMedianNetSigna
     EXPECT_FALSE(fs::exists(root / "nc_bad.tsv")) << "no truth file is written for a dose that is not defined";
 }
 
+TEST_F(BpmEvalTest, OverlapCompositeScoresEveryOverlapByOneRuleThroughTheInjectionChain) {
+    // a 40 x 40 truth made by hand: 9 items; the 4 rows cross the 3 columns (12 overlaps) plus a hot pixel over item 1 and an undetermined pixel over item 3: 14 overlapped pixels
+    struct It { int id; const char* cls; const char* kind; const char* shape; const char* level; int x, y, w, h; };
+    const std::vector<It> items = {
+        {1, "control", "gain_loss", "row_full", "0.7", 0, 10, 40, 1},      {2, "control", "efficiency_loss", "col_full", "0.6", 15, 0, 1, 40},   // A: 0.7 x 0.6 = 0.42
+        {3, "control", "gain_loss", "row_full", "0.9", 0, 25, 40, 1},      {4, "control", "gain_band", "col_full", "0.8", 30, 0, 1, 40},         // B: 0.9 x 0.8 = 0.72
+        {5, "control", "dead", "row_full", "0.5", 0, 33, 40, 1},           {6, "control", "gain_loss", "col_full", "0.8", 5, 0, 1, 40},          // C: dead 0.5 x gain 0.8 = 0.40
+        {7, "pixel", "hot", "pixel", "100", 20, 10, 1, 1},                                                                                     // D: over item 1 at (20,10)
+        {8, "undetermined", "efficiency_loss", "pixel", "0.6", 35, 25, 1, 1},                                                                  // E: over item 3 at (35,25)
+        {9, "control", "fixed_band", "row_full", "30", 0, 2, 40, 1}};
+    const int W = 40, H = 40;
+    std::string tsv = "#xpe_bpm_eval truth 1\nwidth\t40\nheight\t40\nseed\t1\nsigma_t\t3.000000\nitems\t" + std::to_string(items.size()) + "\n";
+    std::vector<uint16_t> ids(static_cast<size_t>(W) * H, 0);
+    std::vector<int>      cover(ids.size(), 0);
+    for (const It& it : items) {
+        tsv += std::to_string(it.id) + "\t" + it.cls + "\t" + it.kind + "\t" + it.shape + "\t" + it.level + "\t" + std::to_string(it.x) + "," + std::to_string(it.y) + "," + std::to_string(it.w) + "," + std::to_string(it.h) + "\n";
+        for (int y = it.y; y < it.y + it.h; ++y)
+            for (int x = it.x; x < it.x + it.w; ++x) ++cover[static_cast<size_t>(y * W + x)];
+    }
+    for (const It& it : items)
+        for (int y = it.y; y < it.y + it.h; ++y)
+            for (int x = it.x; x < it.x + it.w; ++x) ids[static_cast<size_t>(y * W + x)] = cover[static_cast<size_t>(y * W + x)] > 1 ? 65535 : static_cast<uint16_t>(it.id);
+    const fs::path t = root / "tc";
+    fs::create_directories(t);
+    writeBytes(t / "truth.tsv", tsv.data(), tsv.size());
+    writeBytes(t / "truth_ids.u16", ids.data(), ids.size() * 2);
+    std::vector<uint8_t> map(ids.size(), 0);
+    map[10 * W + 15] = 1;   // A
+    map[25 * W + 30] = 1;   // B
+    const fs::path m = root / "tc_map.u8";
+    writeBytes(m, map.data(), map.size());
+    ASSERT_EQ(0, score(t, m, " --out \"" + (root / "tc_base.json").string() + "\"", root / "tc_base.txt"));
+    EXPECT_EQ(std::string::npos, text(root / "tc_base.json").find("overlap_pixels")) << "without --overlap nothing of the composite is reported";
+    ASSERT_EQ(0, score(t, m, " --overlap composite --overlap-out \"" + (root / "tc_overlaps.tsv").string() + "\" --out \"" + (root / "tc.json").string() + "\"", root / "tc.txt"));
+    const std::string j = text(root / "tc.json"), console = text(root / "tc.txt"), list = text(root / "tc_overlaps.tsv");
+    // responses through the chain: row 10 (gain 0.7) x columns 0.6 / 0.8 / 0.8 = 0.42 (defect) / 0.56 / 0.56; row 25 (gain 0.9) x 0.6 / 0.8 / 0.8 = 0.54 / 0.72 / 0.72; row 33 (dead 0.5) x 0.6 / 0.8 / 0.8 =
+    // 0.30 / 0.40 / 0.40 (three defects); row 2 (fixed band 30, additive) x the columns = the column response (normal); the hot pixel over row 10 is a defect by itself, the undetermined one stays undetermined
+    EXPECT_NE(std::string::npos, j.find("\"overlap_pixels\": 14")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_defect\": 5")) << "0.42, three dead crossings, the hot pixel: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_defect_by_response\": 4")) << "all but the hot pixel are defects only by the response through the chain: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_undetermined\": 1")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_flagged_in_defect\": 1")) << "the map flags A: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_flagged_in_normal\": 1")) << "the map flags B, which is normal by the composite rule: " << j;
+    EXPECT_NE(std::string::npos, console.find("distinct overlaps")) << console;
+    EXPECT_NE(std::string::npos, list.find("0.4200")) << "A in the list: " << list;
+    EXPECT_NE(std::string::npos, list.find("0.4000")) << "dead 0.5 x gain 0.8 in the list: " << list;
+    EXPECT_NE(std::string::npos, list.find("0.3000")) << "dead 0.5 x efficiency 0.6 in the list: " << list;
+    EXPECT_NE(std::string::npos, list.find("0.7200")) << "B in the list: " << list;
+    EXPECT_NE(std::string::npos, console.find("normal->defect 4")) << "four pixels change from normal to defect: " << console;
+}
+
+TEST_F(BpmEvalQuantumTest, NoiseCostRefusesAnEmptyDoseSampleAndANonPositiveMedianEachWithItsOwnReason) {
+    // QA-A-254 (Codex #216): the two refusals are tested apart. (1) --sample-margin larger than half the image leaves no unplanted interior pixel: refused before nth_element, the message says "no unplanted";
+    // (2) frames at zero: the median net signal is not positive, the message says "not positive". Neither writes a truth file.
+    makeQuantumFrames();
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    auto args = [&](const std::string& name, const std::string& extra) {
+        std::string a = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / name).string() + "\"" + extra;
+        for (const auto& f : darks) a += " --dark \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+        for (const auto& f : evals) a += " --verify \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+        return a;
+    };
+    EXPECT_NE(0, runCmd(XPE_BPM_EVAL_EXE, args("nc_empty.tsv", " --sample-margin 100000") + " > \"" + (root / "nc_empty.log").string() + "\" 2>&1"));
+    const std::string logEmpty = text(root / "nc_empty.log");
+    EXPECT_NE(std::string::npos, logEmpty.find("no unplanted interior pixel")) << logEmpty;
+    EXPECT_EQ(std::string::npos, logEmpty.find("not positive")) << "a different refusal: " << logEmpty;
+    EXPECT_FALSE(fs::exists(root / "nc_empty.tsv"));
+    for (const auto& f : evals) {
+        const fs::path p = out / "frames" / fs::path(f).filename();
+        std::vector<char> zeros(static_cast<size_t>(fs::file_size(p)), 0);
+        std::ofstream(p, std::ios::binary | std::ios::trunc).write(zeros.data(), static_cast<std::streamsize>(zeros.size()));
+    }
+    EXPECT_NE(0, runCmd(XPE_BPM_EVAL_EXE, args("nc_zero.tsv", "") + " > \"" + (root / "nc_zero.log").string() + "\" 2>&1"));
+    const std::string logZero = text(root / "nc_zero.log");
+    EXPECT_NE(std::string::npos, logZero.find("not positive")) << logZero;
+    EXPECT_EQ(std::string::npos, logZero.find("no unplanted")) << logZero;
+    EXPECT_FALSE(fs::exists(root / "nc_zero.tsv"));
+}
+
 TEST_F(BpmEvalTest, TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection) {
     makeFrames(5, 3, 2);
     const fs::path t = root / "t";
