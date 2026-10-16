@@ -116,6 +116,34 @@ std::vector<Item> parseTruth(const fs::path& tsv) {
     return items;
 }
 
+// QA-A-252j: a truth made by hand (items given as id, class, kind, shape, level, x, y, w, h); the shared marker 65535 where two or more items cover a pixel
+struct HandItem {
+    int         id;
+    const char* cls;
+    const char* kind;
+    const char* shape;
+    const char* level;
+    int         x, y, w, h;
+};
+
+void writeHandTruth(const fs::path& dir, const std::vector<HandItem>& items, int W, int H) {
+    std::string tsv = "#xpe_bpm_eval truth 1\nwidth\t" + std::to_string(W) + "\nheight\t" + std::to_string(H) + "\nseed\t1\nsigma_t\t3.000000\nitems\t" + std::to_string(items.size()) + "\n";
+    std::vector<uint16_t> ids(static_cast<size_t>(W) * H, 0);
+    std::vector<int>      cover(ids.size(), 0);
+    for (const HandItem& it : items) {
+        tsv += std::to_string(it.id) + "\t" + it.cls + "\t" + it.kind + "\t" + it.shape + "\t" + it.level + "\t" + std::to_string(it.x) + "," + std::to_string(it.y) + "," + std::to_string(it.w) + "," +
+               std::to_string(it.h) + "\n";
+        for (int y = it.y; y < it.y + it.h; ++y)
+            for (int x = it.x; x < it.x + it.w; ++x) ++cover[static_cast<size_t>(y * W + x)];
+    }
+    for (const HandItem& it : items)
+        for (int y = it.y; y < it.y + it.h; ++y)
+            for (int x = it.x; x < it.x + it.w; ++x) ids[static_cast<size_t>(y * W + x)] = cover[static_cast<size_t>(y * W + x)] > 1 ? 65535 : static_cast<uint16_t>(it.id);
+    fs::create_directories(dir);
+    writeBytes(dir / "truth.tsv", tsv.data(), tsv.size());
+    writeBytes(dir / "truth_ids.u16", ids.data(), ids.size() * 2);
+}
+
 class BpmEvalTest : public ::testing::Test {
 protected:
     fs::path root;
@@ -153,7 +181,7 @@ protected:
     }
 
     // QA-A-252i: the same kind of frames at a size of the caller's choice (the tests that only check arguments, counts and masks need no 1024 x 1024 frames: a map run takes seconds there)
-    void makeFramesSized(uint32_t w, uint32_t h, size_t nDark, size_t nBright) {
+    void makeFramesSized(uint32_t w, uint32_t h, size_t nDark, size_t nBright, size_t nEval = 0) {
         uint32_t state = 777u;
         auto frame = [&](bool bright, const std::string& name) {
             std::vector<uint16_t> f(static_cast<size_t>(w) * h);
@@ -169,6 +197,7 @@ protected:
         };
         for (size_t k = 0; k < nDark; ++k) darks.push_back(frame(false, "Dark_" + std::to_string(k) + ".raw"));
         for (size_t k = 0; k < nBright; ++k) brights.push_back(frame(true, "Bright_" + std::to_string(k) + ".raw"));
+        for (size_t k = 0; k < nEval; ++k) evals.push_back(frame(true, "Eval_" + std::to_string(k) + ".raw"));
     }
 
     std::string small() const { return " --width 1024 --height 1024 --margin 16 --line-gap 5 --pixels-per-level 3 --blocks-per-level 2"; }
@@ -618,10 +647,41 @@ TEST_F(BpmEvalQuantumTest, NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAre
     makeQuantumFrames();
     const fs::path out = root / "t";
     ASSERT_EQ(0, inject(out));
-    std::string args = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / "nc.tsv").string() + "\"";
+    std::string args = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / "nc.tsv").string() + "\" --overlap-out \"" + (root / "nc_overlaps.tsv").string() + "\"";
     for (const auto& f : darks) args += " --dark \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
     for (const auto& f : evals) args += " --verify \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
     ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, args + " > \"" + (root / "nc.log").string() + "\" 2>&1")) << text(root / "nc.log");
+    {   // QA-A-252j: the overlapped pixels are measured too; their pixel counts add up to the pixels the truth marks as shared (65535)
+        const std::vector<uint8_t> raw = readBytes(out / "truth_ids.u16");
+        size_t shared = 0;
+        for (size_t i = 0; i + 1 < raw.size(); i += 2) shared += (raw[i] == 0xFF && raw[i + 1] == 0xFF) ? 1 : 0;
+        std::ifstream ov(root / "nc_overlaps.tsv");
+        std::string   l;
+        std::getline(ov, l);
+        EXPECT_EQ("items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow", l);
+        size_t groupPixels = 0, groupRows = 0, pooledRows = 0;
+        while (std::getline(ov, l)) {
+            std::vector<std::string> c;
+            std::stringstream        ss(l);
+            std::string              cell;
+            while (std::getline(ss, cell, '\t')) c.push_back(cell);
+            ASSERT_EQ(13u, c.size()) << l;
+            if (c[12] == "group") {
+                ++groupRows;
+                groupPixels += static_cast<size_t>(std::atoi(c[2].c_str()));
+                EXPECT_NE(std::string::npos, c[0].find('+')) << "a group is named by the items that cover it: " << l;
+                EXPECT_LE(std::atoi(c[3].c_str()), std::atoi(c[2].c_str())) << "pixels used cannot exceed the pixels of the group: " << l;
+            } else {
+                ++pooledRows;
+                EXPECT_EQ("*", c[0]);
+            }
+        }
+        EXPECT_GT(shared, 0u) << "the fixture has crossings";
+        EXPECT_EQ(shared, groupPixels) << "every shared pixel is in exactly one group";
+        EXPECT_GT(groupRows, 0u);
+        EXPECT_GT(pooledRows, 0u);
+        EXPECT_NE(std::string::npos, text(root / "nc.log").find("overlapped pixels, measured")) << text(root / "nc.log");
+    }
     std::map<std::string, std::vector<std::string>> byKey;   // kind/shape/level -> label, cost (the last item of the key)
     std::map<std::string, std::vector<std::string>> labels;  // kind/shape/level -> the labels of all its items
     std::ifstream f(root / "nc.tsv");
@@ -809,6 +869,74 @@ TEST_F(BpmEvalTest, OverlapCompositeScoresEveryOverlapByOneRuleThroughTheInjecti
     EXPECT_NE(std::string::npos, list.find("0.3000")) << "dead 0.5 x efficiency 0.6 in the list: " << list;
     EXPECT_NE(std::string::npos, list.find("0.7200")) << "B in the list: " << list;
     EXPECT_NE(std::string::npos, console.find("normal->defect 4")) << "four pixels change from normal to defect: " << console;
+}
+
+TEST_F(BpmEvalTest, OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement) {
+    // QA-A-252j: the same truth as above; five groups are measured, the others are not. The measurement decides: a group the noise cost calls a defect is a defect although the nominal chain says 0.56;
+    // a measured response of 0.50 is normal although the nominal chain says 0.42; a clipped chain is undetermined although its response would be a defect; a group missing from the file is undetermined,
+    // except where a covering item is a defect by itself.
+    const std::vector<HandItem> items = {
+        {1, "control", "gain_loss", "row_full", "0.7", 0, 10, 40, 1},      {2, "control", "efficiency_loss", "col_full", "0.6", 15, 0, 1, 40},
+        {3, "control", "gain_loss", "row_full", "0.9", 0, 25, 40, 1},      {4, "control", "gain_band", "col_full", "0.8", 30, 0, 1, 40},
+        {5, "control", "dead", "row_full", "0.5", 0, 33, 40, 1},           {6, "control", "gain_loss", "col_full", "0.8", 5, 0, 1, 40},
+        {7, "pixel", "hot", "pixel", "100", 20, 10, 1, 1},                 {8, "undetermined", "efficiency_loss", "pixel", "0.6", 35, 25, 1, 1},
+        {9, "control", "fixed_band", "row_full", "30", 0, 2, 40, 1}};
+    const int     W = 40;
+    const fs::path t = root / "tm";
+    writeHandTruth(t, items, W, 40);
+    std::vector<uint8_t> map(static_cast<size_t>(W) * 40, 0);
+    map[10 * W + 15] = 1;   // the crossing of items 1 and 2
+    map[25 * W + 30] = 1;   // the crossing of items 3 and 4
+    const fs::path m = root / "tm_map.u8";
+    writeBytes(m, map.data(), map.size());
+    const std::string header = "items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\n";
+    auto row = [](const char* key, const char* label, double response, int clipped) {
+        char b[300];
+        std::snprintf(b, sizeof b, "%s\tk\t1\t1\t1\t1.0000\t0.1\t10.0\t%s\t%.4f\t%d\t-\tgroup\n", key, label, response, clipped);
+        return std::string(b);
+    };
+    const std::string measured = header + row("1+2", "normal", 0.50, 0) + row("1+4", "defect", 0.56, 0) + row("1+6", "undetermined", 0.56, 0) + row("3+4", "normal", 0.72, 0) + row("5+6", "normal", 0.40, 1) +
+                                 "*\tpooled\t2\t2\t2\t1.0\t0.1\t10\tnormal\t-\t0\t-\tpooled\n";
+    writeBytes(root / "tm_overlaps_in.tsv", measured.data(), measured.size());
+    ASSERT_EQ(0, score(t, m, " --overlap composite --overlap-truth \"" + (root / "tm_overlaps_in.tsv").string() + "\" --overlap-out \"" + (root / "tm_list.tsv").string() + "\" --out \"" +
+                              (root / "tm.json").string() + "\"", root / "tm.txt"));
+    const std::string j = text(root / "tm.json"), console = text(root / "tm.txt"), list = text(root / "tm_list.tsv");
+    EXPECT_NE(std::string::npos, j.find("\"overlap_pixels\": 14")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_defect\": 2")) << "1+4 by the noise label, 1+7 by the hot pixel itself: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_normal\": 2")) << "1+2 (measured 0.50) and 3+4: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_undetermined\": 10")) << "1+6 (noise undetermined), 5+6 (clipped), 3+8 and seven unmeasured crossings: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_noise_defect_pixels\": 1")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_noise_undetermined_pixels\": 1")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_unmeasured_pixels\": 9")) << "seven crossings, 1+7 and 3+8 are not in the file: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_clipped_pixels\": 1")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_flagged_in_normal\": 2")) << "the map flags 1+2 and 3+4, both normal by the measurement: " << j;
+    EXPECT_NE(std::string::npos, console.find("measured (")) << console;
+    EXPECT_NE(std::string::npos, list.find("1+2\t")) << "the list names the items of a group as a+b: " << list;
+    EXPECT_NE(std::string::npos, list.find("0.5000")) << "the measured response, not the nominal 0.4200, is in the list: " << list;
+    EXPECT_EQ(std::string::npos, list.find("0.4200")) << list;
+}
+
+TEST_F(BpmEvalTest, OverlapOfFourItemsRunsThroughTheChainAndNineAreRefused) {
+    // QA-A-252j: the earlier code looked at three items and ignored the others without a word. Four gain losses of 0.8 at one pixel are 0.4096 (a defect) -- three of them would be 0.512 (normal).
+    std::vector<HandItem> items = {{1, "control", "gain_loss", "row_full", "0.8", 0, 5, 20, 1},   {2, "control", "gain_loss", "col_full", "0.8", 8, 0, 1, 20},
+                                   {3, "control", "gain_loss", "pixel", "0.8", 8, 5, 1, 1},       {4, "control", "gain_loss", "pixel", "0.8", 8, 5, 1, 1}};
+    const fs::path t = root / "t4";
+    writeHandTruth(t, items, 20, 20);
+    std::vector<uint8_t> map(400, 0);
+    const fs::path       m = root / "t4_map.u8";
+    writeBytes(m, map.data(), map.size());
+    ASSERT_EQ(0, score(t, m, " --overlap composite --out \"" + (root / "t4.json").string() + "\"", root / "t4.txt")) << text(root / "t4.txt");
+    const std::string j = text(root / "t4.json");
+    EXPECT_NE(std::string::npos, j.find("\"overlap_pixels\": 1")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_defect\": 1")) << "four factors of 0.8 give 0.4096, below 0.45: the fourth item is not ignored: " << j;
+    for (int k = 5; k <= 9; ++k) items.push_back({k, "control", "gain_loss", "pixel", "0.99", 8, 5, 1, 1});
+    const fs::path t9 = root / "t9";
+    writeHandTruth(t9, items, 20, 20);
+    EXPECT_NE(0, score(t9, m, " --overlap composite --out \"" + (root / "t9.json").string() + "\"", root / "t9.txt"));
+    const std::string refusal = text(root / "t9.txt");
+    EXPECT_NE(std::string::npos, refusal.find("covered by 9 items")) << refusal;
+    EXPECT_NE(std::string::npos, refusal.find("at most 8")) << refusal;
+    EXPECT_FALSE(fs::exists(root / "t9.json")) << "a refused scoring writes no result";
 }
 
 TEST_F(BpmEvalQuantumTest, NoiseCostRefusesAnEmptyDoseSampleAndANonPositiveMedianEachWithItsOwnReason) {
@@ -1109,6 +1237,34 @@ TEST_F(BpmEvalTest, ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged) {
 }
 
 // ---------------------------------------------------------------- the whole chain on a small panel
+TEST_F(BpmEvalTest, CorrectRunsOnSetsMadeWithTheFirstGenerationMapOfASmallInput) {
+    // QA-A-252j (item 6 of Codex #219): since QA-A-252i the large correct test (1024 x 1024) builds its sets with the second-generation map, because the first-generation map takes about 40 s there. This
+    // test keeps the link first-generation generator -> sets -> correct alive on a small fixed input (512 x 512, the smallest frame the planted layout fits; only the planted set carries the first-generation map). What it does NOT cover is the first-generation map at the large scale: that needs a
+    // run of its own (a verification at scale), it is not run in this suite.
+    makeFramesSized(512, 512, 7, 10, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, "inject --out \"" + t.string() + "\" --width 512 --height 512 --margin 4 --line-gap 2 --pixels-per-level 1 --blocks-per-level 1" + files("dark", darks) +
+                                              files("bright", brights) + files("eval", evals) + " > \"" + (root / "inject.log").string() + "\" 2>&1"))
+        << text(root / "inject.log");
+    auto set = [&](const fs::path& framesDir, const fs::path& out, const char* tag, const char* extra) {
+        std::string args = "--out \"" + out.string() + "\" --width 512 --height 512 --expiry-ms 4102444800000" + extra;
+        for (const auto& f : darks) args += " --dark \"" + (framesDir / fs::path(f).filename()).string() + "\"";
+        for (const auto& f : brights) args += " --bright \"" + (framesDir / fs::path(f).filename()).string() + "\"";
+        args += " > \"" + (root / (std::string(tag) + ".log")).string() + "\" 2>&1";
+        return runCmd(XPE_FIXTURE_GEN_EXE, args);
+    };
+    // the planted set carries the first-generation map (no --bpm-v2: the link under test); the clean set takes the quick second-generation map (about 1.5 s against about 10 s here)
+    ASSERT_EQ(0, set(root / "in", root / "clean_set", "cs", " --bpm-v2")) << text(root / "cs.log");
+    ASSERT_EQ(0, set(t / "frames", root / "inj_set", "is", "")) << text(root / "is.log");
+    const std::string cmd = "correct --truth \"" + t.string() + "\" --clean-set \"" + (root / "clean_set").string() + "\" --inj-set \"" + (root / "inj_set").string() + "\" --clean-eval \"" + evals[0] +
+                            "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --out \"" + (root / "c.json").string() + "\" > \"" + (root / "c.txt").string() + "\" 2>&1";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, cmd)) << text(root / "c.txt");
+    const std::string out = text(root / "c.txt"), j = text(root / "c.json");
+    EXPECT_NE(std::string::npos, out.find("correction error")) << out;
+    EXPECT_NE(std::string::npos, out.find("line index D_n")) << out;
+    EXPECT_NE(std::string::npos, j.find("\"parts_over_3_sigma\"")) << j;
+}
+
 TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     makeFrames(7, 12, 2);
     const fs::path t = root / "t";

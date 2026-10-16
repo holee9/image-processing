@@ -1,0 +1,21 @@
+EVAL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+TARGET = 'xpe_bpm_eval'
+TITLE = 'QA-A-252j mutation check of the measured overlap truth (tools/xpe_bpm_eval.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252j/evidence/22_mutation_eval_tool_log.txt'
+FILT = 'BpmEvalTest.Overlap*:BpmEvalQuantumTest.NoiseCostIsMeasured*'
+PRED = [
+    '  M1 the noise label of a measured group is ignored        -> red: OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement only (1+4 would stay normal)',
+    '  M2 a clipped chain is read as a response                  -> red: the same test only (5+6 would be a defect)',
+    '  M3 an unmeasured group falls back to the nominal response -> red: the same test only (defect 4, not 2)',
+    '  M4 the limit of 8 items is raised to 80                   -> red: OverlapOfFourItemsRunsThroughTheChainAndNineAreRefused only',
+    '  M5 noise-cost does not count the pixels of a group        -> red: NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined only',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('M1', EVAL, b'byNoise = m->second.label == "defect";', b'byNoise = false;'),
+    ('M2', EVAL, b'const bool byResponse = !g.unmeasured && !g.clipped && (', b'const bool byResponse = !g.unmeasured && ('),
+    ('M3', EVAL, b'const bool byResponse = !g.unmeasured && !g.clipped && (', b'const bool byResponse = !g.clipped && ('),
+    ('M4', EVAL, b'constexpr size_t kMaxOverlapItems = 8;', b'constexpr size_t kMaxOverlapItems = 80;'),
+    ('M5', EVAL, b'            ++ac.px;\n', b'            ac.px += 0;\n'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252j/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

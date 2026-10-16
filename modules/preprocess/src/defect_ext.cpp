@@ -191,7 +191,7 @@ bool defect_ext_encode(const DefectExt& ext, uint32_t width, uint32_t height, st
     return true;
 }
 
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): width before height, as everywhere in the format; one call site
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): size is the length of the extension block in bytes and width and height are the frame size that bounds the records; the one call site passes (payload.data() + 2 * px, extLen, hdr.width, hdr.height)
 bool defect_ext_decode(const uint8_t* data, size_t size, uint32_t width, uint32_t height, DefectExt* out, std::string* reason) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     auto fail = [&](const std::string& m) {

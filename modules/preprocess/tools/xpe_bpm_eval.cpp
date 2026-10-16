@@ -32,7 +32,8 @@
  *       are PROVISIONAL (status column) until the spatial correlation is checked against an independent replicate.
  *   xpe_bpm_eval defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F]
  *       What a defect.xcal of format version 1 or 2 holds, and the layers written out (QA-A-254).
- *   xpe_bpm_eval score --truth DIR --map F [--noise-truth FILE] [--overlap composite] [--overlap-out FILE]
+ *   xpe_bpm_eval score --truth DIR --map F [--noise-truth FILE] [--overlap composite] [--overlap-truth FILE] [--overlap-out FILE]
+ *       --overlap-truth (QA-A-252j): the overlapped pixels are classified from the MEASUREMENT of noise-cost --overlap-out (noise label, chain response with the real offset and dose, clipping)
  *       --noise-truth: the file of noise-cost. An item is a defect when either axis says so; normal when both say so; undetermined (counted as neither a hit nor a false alarm,
  *       only its number is reported) when the response axis says normal and the noise verdict is undetermined. [--clean-map F] [--half-a F --half-b F] [--area MASK.u8] [--out metrics.json]
  *       --area: the imaging-area mask (1 inside, 0 outside, as written by map-v2 --area): flags outside it are not counted in any map.
@@ -853,6 +854,45 @@ bool loadNoiseTruth(const std::string& path, std::map<int, NoiseRecord>* out) {
     return true;
 }
 
+/** A measured overlap (the rows of noise-cost --overlap-out): label of the noise cost, the chain response with the real offset and dose, clipping. */
+struct OverlapMeasure {
+    std::string label;
+    double      cost{0}, response{1.0};
+    bool        clipped{false};
+};
+
+/** The rows of noise-cost --overlap-out that describe one distinct overlap: items (a+b+c), ..., label, response_model, clipped. The pooled rows (items '*') are for the report only. */
+bool loadOverlapMeasure(const std::string& path, std::map<std::string, OverlapMeasure>* out) {
+    std::ifstream f(path);
+    if (!f) {
+        std::fprintf(stderr, "%s: cannot read the overlap measurement\n", path.c_str());
+        return false;
+    }
+    std::string line;
+    bool        first = true;
+    while (std::getline(f, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.empty()) continue;
+        if (first) {
+            first = false;
+            continue;
+        }
+        std::vector<std::string> c;
+        size_t s0 = 0;
+        for (size_t q = 0; q <= line.size(); ++q)
+            if (q == line.size() || line[q] == '\t') { c.push_back(line.substr(s0, q - s0)); s0 = q + 1; }
+        if (c.size() < 13) return false;
+        if (c[0] == "*") continue;
+        OverlapMeasure m;
+        m.cost = std::strtod(c[5].c_str(), nullptr);
+        m.label = c[8];
+        m.response = std::strtod(c[9].c_str(), nullptr);
+        m.clipped = c[10] == "1";
+        (*out)[c[0]] = m;
+    }
+    return true;
+}
+
 std::string defectClassOfShape(const std::string& shape) { return shape == "pixel" ? "pixel" : (shape.compare(0, 5, "block") == 0 ? "block" : "line"); }
 
 /**
@@ -888,31 +928,69 @@ void applyNoiseAxis(Truth* t, const std::map<int, NoiseRecord>& noise, int* prom
     }
 }
 
-/** One distinct overlap: the set of items that cover a pixel (up to three) with what the composite truth made of it. */
+/** One distinct overlap: the set of items that cover a pixel (in injection order, at most kMaxOverlapItems) with what the composite truth made of it. */
+constexpr size_t kMaxOverlapItems = 8;
+
 struct OverlapGroup {
-    int      ids[3]{0, 0, 0};
+    std::vector<int> ids;
     size_t   pixels{0};
-    double   response{1.0};           // the nominal response through the injection chain
+    double   response{1.0};           // the response through the injection chain (the nominal pixel, or the measured one with --overlap-truth)
     uint8_t  before{0}, after{0};     // 1 normal, 2 defect, 3 undetermined: the class by the earlier rule and by the composite rule
     size_t   flagged{0};
     size_t   firstPixel{0};
+    bool     noiseDefect{false}, noiseUndetermined{false}, unmeasured{false}, clipped{false};
 };
+
+std::string overlapKey(const std::vector<int>& ids) {
+    std::string k;
+    for (size_t j = 0; j < ids.size(); ++j) k += (j ? "+" : "") + std::to_string(ids[j]);
+    return k;
+}
 
 struct OverlapReport {
     size_t pixels{0}, defect{0}, undetermined{0}, normal{0}, promotedByResponse{0};
     size_t beforeDefect{0}, beforeUndetermined{0}, beforeNormal{0};
+    size_t noiseDefectPx{0}, noiseUndetPx{0}, unmeasuredPx{0}, clippedPx{0};
     size_t transition[4][4]{};        // [before][after]
     std::vector<OverlapGroup> groups;
 };
 
 /**
- * The response a pixel covered by @p chain (the items in injection order) shows: the injection applies each item to the frame value, rounds to an integer and clips to 0..65535; dark frames
- * receive the additive items only. Reproduced here without noise on a nominal pixel (dark level 1000, bright net signal 10000); read as net(bright) / 10000.
+ * The items that cover each pixel covered twice or more, in the order of the item list (the injection order). Refuses (returns false, sets @p err) a pixel covered by more than kMaxOverlapItems.
  */
-double chainResponse(const std::vector<const Item*>& chain) {
-    const double d = 1000.0, s = 10000.0;
-    double       vb = d + s, vd = d;
-    auto fix = [](double v) { return std::min(65535.0, std::max(0.0, std::floor(v + 0.5))); };
+bool collectOverlaps(const Truth& t, std::map<size_t, std::vector<int>>* multi, std::string* err) {
+    const size_t           n = static_cast<size_t>(t.w) * t.h;
+    std::vector<uint8_t>   count(n, 0);
+    for (const Item& it : t.items)
+        forItemPixels(it, t.w, [&](size_t i) {
+            if (count[i] < 255) ++count[i];
+        });
+    for (const Item& it : t.items)
+        forItemPixels(it, t.w, [&](size_t i) {
+            if (count[i] >= 2) (*multi)[i].push_back(it.id);
+        });
+    for (const auto& kv : *multi)
+        if (kv.second.size() > kMaxOverlapItems) {
+            if (err) *err = "pixel (" + std::to_string(kv.first % t.w) + "," + std::to_string(kv.first / t.w) + ") is covered by " + std::to_string(kv.second.size()) + " items; at most " +
+                            std::to_string(kMaxOverlapItems) + " are handled";
+            return false;
+        }
+    return true;
+}
+
+/**
+ * The response a pixel covered by @p chain (the items in injection order) shows: the injection applies each item to the frame value, rounds to an integer and clips to 0..65535; dark frames
+ * receive the additive items only. Computed without noise from the dark level @p d and the net bright signal @p s (the nominal pixel: 1000 and 10000; the measured one: the pixel's own dark
+ * level and the local net signal of the verification frames). @p clipped is set when a value left 0..65535 before it was clipped; the response is read as net(bright) / s.
+ */
+double chainResponseAt(const std::vector<const Item*>& chain, double d, double s, bool* clipped) {
+    double vb = d + s, vd = d;
+    if (clipped) *clipped = false;
+    auto fix = [&](double v) {
+        const double r = std::floor(v + 0.5);
+        if (clipped && (r < 0.0 || r > 65535.0)) *clipped = true;
+        return std::min(65535.0, std::max(0.0, r));
+    };
     for (const Item* it : chain) {
         const std::string& k = it->kind;
         if (k == "dead") {
@@ -932,51 +1010,73 @@ double chainResponse(const std::vector<const Item*>& chain) {
     return (vb - vd) / s;
 }
 
+double chainResponse(const std::vector<const Item*>& chain) { return chainResponseAt(chain, 1000.0, 10000.0, nullptr); }
+
 /**
  * Composite truth of the overlapped pixels (QA-A-254, the decision on QA-A-252h, rewritten against the real branches after Codex #216): see the header of the patch that made it. `overlapClass`
  * receives per pixel 0 (not overlapped), 1 normal, 2 defect, 3 undetermined; `overlapGroup` the index of the distinct overlap in rep->groups (valid where the class is not 0). The truth masks
  * are updated: a composite defect is a true defect (truthReal), an undetermined pixel joins the undetermined zone.
  */
-void applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vector<uint8_t>* overlapClass, std::vector<uint32_t>* overlapGroup, OverlapReport* rep) {
+bool applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vector<uint8_t>* overlapClass, std::vector<uint32_t>* overlapGroup, OverlapReport* rep,
+                           const std::map<std::string, OverlapMeasure>* measured = nullptr) {
     const size_t n = static_cast<size_t>(t->w) * t->h;
-    std::vector<uint8_t>   count(n, 0), anyDefect(n, 0), anyUndet(n, 0);
-    std::vector<uint16_t>  c1(n, 0), c2(n, 0), c3(n, 0);
-    for (const Item& it : t->items) {
-        forItemPixels(it, t->w, [&](size_t i) {
-            if (count[i] == 0) c1[i] = static_cast<uint16_t>(it.id);
-            else if (count[i] == 1) c2[i] = static_cast<uint16_t>(it.id);
-            else if (count[i] == 2) c3[i] = static_cast<uint16_t>(it.id);
-            if (count[i] < 255) ++count[i];
-            if (it.cls == "undetermined") anyUndet[i] = 1;
-            else if (it.cls != "control") anyDefect[i] = 1;
-        });
+    std::map<size_t, std::vector<int>> multi;
+    std::string                        err;
+    if (!collectOverlaps(*t, &multi, &err)) {
+        std::fprintf(stderr, "overlap composite: %s\n", err.c_str());
+        return false;
     }
     std::map<int, const Item*> byId;
     for (const Item& it : t->items) byId[it.id] = &it;
     overlapClass->assign(n, 0);
     overlapGroup->assign(n, 0);
     *rep = OverlapReport{};
-    std::map<uint64_t, uint32_t> index;
-    for (size_t i = 0; i < n; ++i) {
-        if (count[i] < 2) continue;
-        const uint64_t key = (static_cast<uint64_t>(c1[i]) << 32) | (static_cast<uint64_t>(c2[i]) << 16) | c3[i];
+    std::map<std::string, uint32_t> index;
+    for (const auto& kv : multi) {
+        const size_t i = kv.first;
+        const std::vector<int>& ids = kv.second;
+        const std::string key = overlapKey(ids);
         auto f = index.find(key);
         if (f == index.end()) {
             OverlapGroup g;
-            g.ids[0] = c1[i];
-            g.ids[1] = c2[i];
-            g.ids[2] = c3[i];
+            g.ids = ids;
+            bool anyDefect = false, anyUndet = false;
             std::vector<const Item*> chain;
-            for (int k = 0; k < 3 && g.ids[k] != 0; ++k) chain.push_back(byId[g.ids[k]]);
-            g.response = chainResponse(chain);
+            for (int id : ids) {
+                const Item* it = byId[id];
+                chain.push_back(it);
+                if (it->cls == "undetermined") anyUndet = true;
+                else if (it->cls != "control") anyDefect = true;
+            }
             g.firstPixel = i;
-            const bool byResponse = g.response < kResponseDefectBelow - kRatioSlack || g.response > kResponseDefectAbove + kRatioSlack;
-            g.before = anyDefect[i] ? 2 : (anyUndet[i] ? 3 : 1);
-            g.after = (anyDefect[i] || byResponse) ? 2 : (anyUndet[i] ? 3 : 1);
+            bool byNoise = false, noiseUndet = false;
+            if (measured) {
+                const auto m = measured->find(key);
+                if (m == measured->end()) {
+                    g.unmeasured = true;
+                    g.response = chainResponse(chain);
+                } else {
+                    g.response = m->second.response;
+                    g.clipped = m->second.clipped;
+                    byNoise = m->second.label == "defect";
+                    noiseUndet = m->second.label == "undetermined";
+                    g.noiseDefect = byNoise;
+                    g.noiseUndetermined = noiseUndet;
+                }
+            } else {
+                g.response = chainResponse(chain);
+            }
+            const bool byResponse = !g.unmeasured && !g.clipped && (g.response < kResponseDefectBelow - kRatioSlack || g.response > kResponseDefectAbove + kRatioSlack);
+            g.before = anyDefect ? 2 : (anyUndet ? 3 : 1);
+            g.after = (anyDefect || byResponse || byNoise) ? 2 : ((anyUndet || g.clipped || noiseUndet || g.unmeasured) ? 3 : 1);
             f = index.emplace(key, static_cast<uint32_t>(rep->groups.size())).first;
             rep->groups.push_back(g);
         }
         OverlapGroup& g = rep->groups[f->second];
+        if (g.noiseDefect) ++rep->noiseDefectPx;
+        if (g.noiseUndetermined) ++rep->noiseUndetPx;
+        if (g.unmeasured) ++rep->unmeasuredPx;
+        if (g.clipped) ++rep->clippedPx;
         ++g.pixels;
         (*overlapGroup)[i] = f->second;
         (*overlapClass)[i] = g.after;
@@ -996,6 +1096,7 @@ void applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vecto
             ++rep->normal;
         }
     }
+    return true;
 }
 
 // ------------------------------------------------------------------------------------------------------------- score
@@ -1029,7 +1130,10 @@ int cmdScore(const Args& a) {
     std::vector<uint32_t> overlapGroup;
     OverlapReport         overlap;
     const bool            compositeOverlap = a.str("overlap") == "composite";
-    if (compositeOverlap) applyOverlapComposite(&t, &undetMask, &overlapClass, &overlapGroup, &overlap);
+    std::map<std::string, OverlapMeasure> overlapMeasured;
+    const bool                            haveOverlapTruth = compositeOverlap && a.has("overlap-truth");
+    if (haveOverlapTruth && !loadOverlapMeasure(a.str("overlap-truth"), &overlapMeasured)) return 3;
+    if (compositeOverlap && !applyOverlapComposite(&t, &undetMask, &overlapClass, &overlapGroup, &overlap, haveOverlapTruth ? &overlapMeasured : nullptr)) return 3;
     std::vector<uint8_t> map, clean;
     if (!readMap(a.str("map"), n, &map)) return 3;
     const bool haveClean = a.has("clean-map");
@@ -1158,16 +1262,19 @@ int cmdScore(const Args& a) {
                     overlap.beforeNormal, overlap.transition[1][2], overlap.transition[3][2], overlap.pixels - overlap.transition[1][2] - overlap.transition[3][2] - overlap.transition[2][2] - overlap.transition[3][3] - overlap.transition[1][1],
                     ovFlag[2], overlap.defect, overlap.defect ? static_cast<double>(ovFlag[2]) / static_cast<double>(overlap.defect) : 0.0, ovFlag[3], overlap.undetermined, ovFlag[1], overlap.normal,
                     overlap.normal ? static_cast<double>(ovFlag[1]) / static_cast<double>(overlap.normal) : 0.0, ovNew[1], ovFlagBefore[2], ovFlagBefore[3], ovFlagBefore[1]);
+        if (haveOverlapTruth)
+            std::printf("  measured (%s, %zu groups read): pixels whose noise label is defect %zu, undetermined %zu; not in the measurement %zu; chain outside 0..65535 %zu\n", a.str("overlap-truth").c_str(),
+                        overlapMeasured.size(), overlap.noiseDefectPx, overlap.noiseUndetPx, overlap.unmeasuredPx, overlap.clippedPx);
         if (a.has("overlap-out")) {
-            std::string tsv = "item1\titem2\titem3\tkinds\tpixels\tresponse\tbefore\tafter\tflagged\tfirst_pixel_x\tfirst_pixel_y\n";
+            std::string tsv = "items\tkinds\tpixels\tresponse\tbefore\tafter\tflagged\tfirst_pixel_x\tfirst_pixel_y\n";
             static const char* const cn[4] = {"-", "normal", "defect", "undetermined"};
             for (const OverlapGroup& g : overlap.groups) {
                 std::string kinds;
-                for (int k = 0; k < 3 && g.ids[k] != 0; ++k)
+                for (size_t k = 0; k < g.ids.size(); ++k)
                     for (const Item& it : t.items)
                         if (it.id == g.ids[k]) kinds += (k ? " + " : "") + it.cls + "/" + it.kind + "/" + it.shape + "/" + fmtLevel(it.level);
-                char b[640];
-                std::snprintf(b, sizeof b, "%d\t%d\t%d\t%s\t%zu\t%.4f\t%s\t%s\t%zu\t%zu\t%zu\n", g.ids[0], g.ids[1], g.ids[2], kinds.c_str(), g.pixels, g.response, cn[g.before], cn[g.after], g.flagged,
+                char b[1200];
+                std::snprintf(b, sizeof b, "%s\t%s\t%zu\t%.4f\t%s\t%s\t%zu\t%zu\t%zu\n", overlapKey(g.ids).c_str(), kinds.c_str(), g.pixels, g.response, cn[g.before], cn[g.after], g.flagged,
                               g.firstPixel % t.w, g.firstPixel / t.w);
                 tsv += b;
             }
@@ -1255,6 +1362,12 @@ int cmdScore(const Args& a) {
                           "  \"overlap_flagged_in_defect\": %zu,\n  \"overlap_flagged_in_undetermined\": %zu,\n  \"overlap_flagged_in_normal\": %zu,\n  \"overlap_new_false_alarms\": %zu",
                           overlap.pixels, overlap.defect, overlap.promotedByResponse, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);
             j += ob;
+            if (haveOverlapTruth) {
+                char mb[300];
+                std::snprintf(mb, sizeof mb, ",\n  \"overlap_noise_defect_pixels\": %zu,\n  \"overlap_noise_undetermined_pixels\": %zu,\n  \"overlap_unmeasured_pixels\": %zu,\n  \"overlap_clipped_pixels\": %zu",
+                              overlap.noiseDefectPx, overlap.noiseUndetPx, overlap.unmeasuredPx, overlap.clippedPx);
+                j += mb;
+            }
         }
         j += "\n}\n";
         if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;
@@ -1452,6 +1565,126 @@ int cmdNoiseCost(const Args& a) {
         else if (std::string(label) == "defect") ++sm.defect;
         else ++sm.normal;
         if (npx) sm.costs.push_back(v.cost);
+    }
+    if (a.has("overlap-out")) {   // QA-A-252j: the overlapped pixels, measured as the items are (they are NOT left out as shared)
+        std::map<size_t, std::vector<int>> multi;
+        std::string                        err;
+        if (!collectOverlaps(t, &multi, &err)) {
+            std::fprintf(stderr, "noise-cost: %s\n", err.c_str());
+            return 3;
+        }
+        std::map<int, const Item*> byId;
+        for (const Item& it : t.items) byId[it.id] = &it;
+        struct Acc {
+            std::vector<int> ids;
+            size_t           px{0}, used{0}, nResp{0};
+            double           sumC{0}, sumR{0};
+            bool             clipped{false};
+        };
+        std::map<std::string, Acc> groups;
+        for (const auto& kv : multi) {
+            const size_t i = kv.first;
+            Acc&         ac = groups[overlapKey(kv.second)];
+            ac.ids = kv.second;
+            ++ac.px;
+            const int          x = static_cast<int>(i % w), y = static_cast<int>(i / w);
+            std::vector<float> vm;
+            vm.reserve(ring.size());
+            for (const auto& o : ring) {
+                const int xx = x + o.first, yy = y + o.second;
+                if (xx < 0 || yy < 0 || xx >= static_cast<int>(w) || yy >= static_cast<int>(h)) continue;
+                const size_t j = static_cast<size_t>(yy) * w + static_cast<size_t>(xx);
+                if (!occ[j]) vm.push_back(mean[j]);
+            }
+            if (vm.size() < 60) continue;
+            std::nth_element(vm.begin(), vm.begin() + static_cast<std::ptrdiff_t>(vm.size() / 2), vm.end());
+            const double localMean = static_cast<double>(vm[vm.size() / 2]);
+            if (!(localMean > 100.0)) continue;
+            std::vector<const Item*> chain;
+            for (int id : kv.second) chain.push_back(byId[id]);
+            bool clip = false;
+            ac.sumR += chainResponseAt(chain, D[i], localMean, &clip);   // the REAL dark level of the pixel and the REAL local net signal of the verification frames
+            ++ac.nResp;
+            ac.clipped = ac.clipped || clip;
+            const double g = static_cast<double>(mean[i]) / localMean;
+            const double expect = expectation(localMean);
+            if (!(g > 0.05) || !(expect > 0.0)) continue;
+            ac.sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;
+            ++ac.used;
+        }
+        auto labelOf = [](const xpe_bpm_eval::NoiseVerdict& v, size_t used) {
+            return !used ? "undetermined" : (v.label == xpe_bpm_eval::NoiseLabel::Defect ? "defect" : (v.label == xpe_bpm_eval::NoiseLabel::Normal ? "normal" : "undetermined"));
+        };
+        auto idealOf = [&](const std::vector<int>& ids, char* buf, size_t cap) {   // the ideal-model noise cost: 1 / (product of the efficiencies); the gain factors do not change it
+            double prod = 1.0;
+            for (int id : ids) {
+                const Item* it = byId[id];
+                if (it->kind == "efficiency_loss") prod *= it->level;
+                else if (it->kind != "gain_loss") { std::snprintf(buf, cap, "-"); return; }
+            }
+            std::snprintf(buf, cap, "%.4f", 1.0 / prod);
+        };
+        auto kindsOf = [&](const std::vector<int>& ids, bool withShape) {
+            std::string s;
+            for (size_t k = 0; k < ids.size(); ++k) {
+                const Item* it = byId[ids[k]];
+                s += (k ? " + " : "") + it->kind + (withShape ? "/" + it->shape : std::string()) + "@" + fmtLevel(it->level);
+            }
+            return s;
+        };
+        std::string ovOut = "items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\n";
+        struct Pool {
+            std::vector<int> ids;
+            size_t           groups{0}, px{0}, used{0};
+            double           sumC{0};
+        };
+        std::map<std::string, Pool> pools;
+        size_t                      nDef = 0, nNor = 0, nUnd = 0, nClip = 0, nPx = 0;
+        for (const auto& kv : groups) {
+            const Acc&                 ac = kv.second;
+            const double               cost = ac.used ? ac.sumC / static_cast<double>(ac.used) : 0.0;
+            xpe_bpm_eval::NoiseVerdict v;
+            if (ac.used) v = xpe_bpm_eval::classifyNoiseCost(cost, nu * static_cast<double>(ac.used), expectSe, limit);
+            const char* label = labelOf(v, ac.used);
+            char        ideal[32];
+            idealOf(ac.ids, ideal, sizeof ideal);
+            char b[700];
+            std::snprintf(b, sizeof b, "%s\t%s\t%zu\t%zu\t%.0f\t%.4f\t%.4f\t%.4f\t%s\t%.4f\t%d\t%s\tgroup\n", kv.first.c_str(), kindsOf(ac.ids, true).c_str(), ac.px, ac.used, nu * static_cast<double>(ac.used), v.cost,
+                          v.lo, v.hi, label, ac.nResp ? ac.sumR / static_cast<double>(ac.nResp) : chainResponse([&] { std::vector<const Item*> c; for (int id : ac.ids) c.push_back(byId[id]); return c; }()),
+                          ac.clipped ? 1 : 0, ideal);
+            ovOut += b;
+            nPx += ac.px;
+            nClip += ac.clipped ? 1 : 0;
+            if (std::string(label) == "defect") ++nDef; else if (std::string(label) == "normal") ++nNor; else ++nUnd;
+            std::vector<std::string> parts;
+            for (int id : ac.ids) parts.push_back(byId[id]->kind + "@" + fmtLevel(byId[id]->level));
+            std::sort(parts.begin(), parts.end());
+            std::string pk;
+            for (size_t k = 0; k < parts.size(); ++k) pk += (k ? " + " : "") + parts[k];
+            Pool& pl = pools[pk];
+            pl.ids = ac.ids;
+            ++pl.groups;
+            pl.px += ac.px;
+            pl.used += ac.used;
+            pl.sumC += ac.sumC;
+        }
+        std::printf("== overlapped pixels, measured (%zu distinct overlaps, %zu pixels): defect %zu, normal %zu, undetermined %zu groups; %zu groups leave 0..65535 in the chain\n", groups.size(), nPx, nDef, nNor, nUnd,
+                    nClip);
+        std::printf("  %-52s %6s %7s %7s %9s %9s\n", "pooled by kinds and levels", "groups", "pixels", "used", "cost", "ideal");
+        for (const auto& kv : pools) {
+            const Pool&                pl = kv.second;
+            const double               cost = pl.used ? pl.sumC / static_cast<double>(pl.used) : 0.0;
+            xpe_bpm_eval::NoiseVerdict v;
+            if (pl.used) v = xpe_bpm_eval::classifyNoiseCost(cost, nu * static_cast<double>(pl.used), expectSe, limit);
+            char ideal[32];
+            idealOf(pl.ids, ideal, sizeof ideal);
+            char b[700];
+            std::snprintf(b, sizeof b, "*\t%s\t%zu\t%zu\t%.0f\t%.4f\t%.4f\t%.4f\t%s\t-\t0\t%s\tpooled\n", kv.first.c_str(), pl.px, pl.used, nu * static_cast<double>(pl.used), v.cost, v.lo, v.hi, labelOf(v, pl.used), ideal);
+            ovOut += b;
+            if (pl.groups >= 3 && kv.first.find("dead") == std::string::npos)
+                std::printf("  %-52s %6zu %7zu %7zu %9.3f %9s  %s\n", kv.first.c_str(), pl.groups, pl.px, pl.used, v.cost, ideal, labelOf(v, pl.used));
+        }
+        if (!writeBytes(a.str("overlap-out"), ovOut.data(), ovOut.size())) return 3;
     }
     if (!writeBytes(a.str("out"), out.data(), out.size())) return 3;
     std::printf("== the labels are PROVISIONAL (effective degrees of freedom from blocks of 64 pixels; the spatial correlation is not yet checked against an independent replicate)\n");

@@ -17,6 +17,7 @@
  */
 
 #include "xpe/preprocess_api.h"
+#include "xpe_bpm_v2_internal.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -114,7 +115,7 @@ double gammaQ(double a, double x) {
 }
 
 /** tau with P(chi-square_nu / nu > tau) = p. */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): nu is the degrees of freedom of a variance ratio and p the tail probability the threshold must keep; the two call sites pass (nu[k], p) and (nuBright, p)
 double varianceThreshold(uint32_t nu, double p) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     const double a = 0.5 * nu;
@@ -161,7 +162,7 @@ float temporalMedian(std::vector<float>* v) {
 }
 
 /** Separable median filter: window x 1 along the rows, then 1 x window along the columns; reflected borders. */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): in is read only, tmp is the scratch of the horizontal pass and out receives the result; w and h are the image size, win the window; the six call sites pass (wk.feat or a local plane, tmp, out, w, h, window)
 void separableMedian(const float* in, float* tmp, float* out, int w, int h, int win) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     const int r = win / 2;
@@ -190,7 +191,7 @@ void separableMedian(const float* in, float* tmp, float* out, int w, int h, int 
  * `excl` is 1 for an excluded pixel. A row window with no admissible pixel gives no value (NaN) to the second pass; a pixel whose second pass finds no value takes `plain`, the plain
  * separable median of the same image. Reflected borders as in separableMedian.
  */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): same roles as separableMedian, plus plain (the fallback value of a pixel whose whole window is excluded) and excl (1 = left out); the one call site passes (vg, vgTmp, vgBg, plainRef, refExclude, w, h, window)
 void separableMedianExcluding(const float* in, float* tmp, float* out, const float* plain, const uint8_t* excl, int w, int h, int win) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     const int r = win / 2;
@@ -231,7 +232,7 @@ void separableMedianExcluding(const float* in, float* tmp, float* out, const flo
 }
 
 /** Median of @p win values along the columns (alongY) or along the rows, reflected borders. */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): in is read and out written; w and h are the image size, win the window and alongY the direction; the callers pass (f, tmp, w, h, win, true) and (f, tmp, w, h, win, false)
 void slidingMedian(const float* in, float* out, int w, int h, int win, bool alongY) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     const int r = win / 2;
@@ -299,7 +300,7 @@ float blockScale(const float* r, int w, int h, int block, std::vector<float>* si
 }
 
 /** Bilinear value of the block scales at pixel (x, y). */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): nbx and nby are the size of the block grid, block the edge of a block in pixels and x and y the pixel; the three call sites pass (sig, nbx, nby, block, x, y)
 inline float scaleAt(const std::vector<float>& sig, int nbx, int nby, int block, int x, int y) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     const float fx = std::min(std::max((static_cast<float>(x) + 0.5f) / static_cast<float>(block) - 0.5f, 0.0f), static_cast<float>(nbx - 1));
@@ -324,7 +325,7 @@ struct Work {
  * not a true two-dimensional median of the window. A pixel whose feature is below @p lo or above @p hi times the background (to within kRatioSlack) is defective.
  * @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
  */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): lo, hi and weakHi are the lower limit, the upper limit and the upper limit of the weak band of the response, in ascending order, passed as the named constants kResponseLow, kResponseHigh, kWeakResponseHigh; count and weak are two output counters (flagged pixels, weak-response stretches)
 float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
@@ -367,7 +368,7 @@ float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, b
 }
 
 /** Variance-ratio feature: V against its local median divided by the median of chi-square_nu / nu; flags the ratio above tau. */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): nu is the degrees of freedom and tau the threshold ratio of the variance check; the one call site passes (nu[1], threshold[1]) from two arrays of the same index
 float flagVarianceRatio(Work& wk, const Settings& st, uint32_t nu, double tau, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
@@ -424,7 +425,7 @@ void transposeImage(const float* in, float* out, int w, int h) {
  * the window statistic is the sum over min_segment pixels of e / local scale, each term cut at +-3 so that a single outlier (a dead pixel, a hot pixel) cannot make a
  * stretch, divided by the square root of the window length: the uncorrelated-noise prediction. Its robust width over all windows (the empirical null) rescales it.
  */
-// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): w and h are the plane size; kind (LineKind), orient (0 row, 1 column) and nullSlot (the slot of the empirical null) are three small codes; the two call sites pass the plane as (w, h) with orient 0 and the transposed plane as (h, w) with orient 1, each with its own slot
 void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job, int kind, int orient, int nullSlot, std::vector<Seg>* out) {
 // NOLINTEND(bugprone-easily-swappable-parameters)
     const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
@@ -652,6 +653,11 @@ std::vector<Group> groupSegments(const std::vector<Seg>& segs, int w, int h) {
 }
 
 }  // namespace
+
+namespace xpe_bpm_v2_internal {
+void median_plain(const MedianPlanes& m) { separableMedian(m.in, m.tmp, m.out, m.w, m.h, m.win); }
+void median_excluding(const MedianPlanes& m) { separableMedianExcluding(m.in, m.tmp, m.out, m.plain, m.excl, m.w, m.h, m.win); }
+}  // namespace xpe_bpm_v2_internal
 
 /** The detection on frames that hold the imaging area only (no margins). */
 static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
@@ -1006,7 +1012,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         for (size_t i = 0; i < n; ++i) t[i] = static_cast<float>(static_cast<double>(wk.feat[i]) / std::max(static_cast<double>(wk.bg[i]) / mnu, kReferenceFloor));
         // persistence: per dark frame, the mean of the squared residual over the stretch (each pixel at most 16 times its local variance) against the median of the same
         // pixels in the neighbouring lines; the frame counts when the ratio reaches the tolerance. Returns the share of the dark frames that count.
-        job->persistence = [&](int orient, int idx, int a, int b) -> float {   // NOLINT(bugprone-easily-swappable-parameters): a lambda local to this function, called at one site
+        job->persistence = [&](int orient, int idx, int a, int b) -> float {   // NOLINT(bugprone-easily-swappable-parameters): orient is 0 (row) or 1 (column), idx the line, [a, b) the stretch; a lambda local to this function, called at one site as persistence(orient, y, a, b)
             const int half = static_cast<int>(st.window) / 2;
             const int lines = orient == 0 ? h : w;
             int       hits = 0;
@@ -1088,7 +1094,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
             for (size_t i = 0; i < n; ++i) t[i] = noiseSum[i] / static_cast<float>(nuBright);
             // persistence over the bright frames: per frame the squared residual about its dose-group mean (row and column means out, each pixel at most 16 times the nominal
             // variance of the group), averaged over the stretch, against the median of the same pixels in the neighbouring lines; the share of frames that reach the tolerance
-            job->persistence = [&](int orient, int idx, int a, int b) -> float {   // NOLINT(bugprone-easily-swappable-parameters): a lambda local to this function, called at one site
+            job->persistence = [&](int orient, int idx, int a, int b) -> float {   // NOLINT(bugprone-easily-swappable-parameters): orient is 0 (row) or 1 (column), idx the line, [a, b) the stretch; a lambda local to this function, called at one site as persistence(orient, y, a, b)
                 const int half = static_cast<int>(st.window) / 2;
                 const int lines = orient == 0 ? h : w;
                 int       frames = 0, hits = 0;

@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include "xpe_bpm_v2_internal.hpp"
 #include "xpe/preprocess_api.h"
 
 #include <algorithm>
@@ -993,9 +994,63 @@ TEST(BpmV2Test, AFrameWhoseMedianNetSignalIsNotPositiveIsRefused) {
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, r.rc);
 }
 
+namespace {
+std::vector<float> plain_dummy(const std::vector<float>& in) { return std::vector<float>(in.size(), 0.0f); }   // the plain median does not read `plain`
+// QA-A-252j: runs one of the two local medians on a w x h plane
+std::vector<float> runMedian(bool excluding, const std::vector<float>& in, const std::vector<uint8_t>& excl, const std::vector<float>& plain, int w, int h, int win) {
+    std::vector<float>             tmp(in.size()), out(in.size());
+    xpe_bpm_v2_internal::MedianPlanes m{in.data(), tmp.data(), out.data(), plain.data(), excl.data(), w, h, win};
+    if (excluding) xpe_bpm_v2_internal::median_excluding(m);
+    else xpe_bpm_v2_internal::median_plain(m);
+    return out;
+}
+}  // namespace
+
+TEST(BpmV2Test, TheExcludingMedianIsTheOrdinaryMedianWhenNothingIsExcluded) {
+    // the path of a frame without lines: no pixel is left out and the result must be the bits of the ordinary median
+    const int w = 41, h = 37, win = 9;
+    std::vector<float> in(static_cast<size_t>(w) * h);
+    uint32_t state = 91u;
+    for (float& v : in) {
+        state = state * 1664525u + 1013904223u;
+        v = static_cast<float>((state >> 8) % 1000u) * 0.37f;
+    }
+    const std::vector<uint8_t> none(in.size(), 0);
+    const std::vector<float>   plain = runMedian(false, in, none, plain_dummy(in), w, h, win);
+    const std::vector<float>   excluding = runMedian(true, in, none, plain, w, h, win);
+    ASSERT_EQ(plain.size(), excluding.size());
+    EXPECT_EQ(0, std::memcmp(plain.data(), excluding.data(), plain.size() * sizeof(float))) << "nothing excluded: bit-identical";
+}
+
+TEST(BpmV2Test, AWindowWithNoAdmissiblePixelTakesTheOrdinaryMedianAndExcludedPixelsLeaveTheWindow) {
+    const int w = 41, h = 37, win = 7;
+    std::vector<float> in(static_cast<size_t>(w) * h, 1.0f);
+    std::vector<uint8_t> excl(in.size(), 0);
+    // an excluded block of 13 x 13 pixels holding 1000: the 7 x 7 window of the pixels well inside it has no admissible pixel
+    for (int y = 10; y < 23; ++y)
+        for (int x = 10; x < 23; ++x) {
+            in[static_cast<size_t>(y) * w + x] = 1000.0f;
+            excl[static_cast<size_t>(y) * w + x] = 1;
+        }
+    const std::vector<float> plain = runMedian(false, in, excl, plain_dummy(in), w, h, win);
+    const std::vector<float> out = runMedian(true, in, excl, plain, w, h, win);
+    const size_t centre = 16u * w + 16u;
+    EXPECT_EQ(1000.0f, plain[centre]);
+    EXPECT_EQ(plain[centre], out[centre]) << "no admissible pixel in the window: the ordinary median";
+    // far from the block nothing changes
+    const size_t far = 3u * w + 3u;
+    EXPECT_EQ(plain[far], out[far]);
+    // at the edge of the block (still excluded) 4 of the 7 columns of the window are excluded: the ordinary median is 1000, the median of the admissible pixels is 1
+    const size_t edge = 16u * w + 9u + 1u;   // x = 10 is the first excluded column; its window x = 7..13 holds 4 excluded columns
+    EXPECT_EQ(1000.0f, plain[16u * w + 10u]) << "the ordinary median sees the excluded majority";
+    EXPECT_EQ(1.0f, out[16u * w + 10u]) << "the excluding median does not";
+    (void)edge;
+}
+
 TEST(BpmV2Test, TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector) {
-    // QA-A-252i: rows 100..104 have a gain loss (their variance is 0.09 of their neighbours'). With the window of 9 the local expectation of a row next to the band is the median of nine rows of which up to
-    // five are band rows: without the exclusion it collapses to the band's variance and the ordinary rows around are flagged as noise defects. The detector's own line mask is kept out of it.
+    // QA-A-252i: rows 100, 102, .. 120 (eleven lines of width 1) have a gain loss: their variance is 0.09 of their neighbours'. With the window of 17 the local expectation of a row between two lines is the
+    // median over seventeen rows of which nine are lines: without the exclusion it falls toward the lines' variance and ordinary rows are flagged as noise defects (5 of 2160 pixels on this fixture). The
+    // detector's own line mask is kept out of the expectation (0 of 2160). A thick band of lines is no use here: the detector does not take it for lines (432 pixels of a band of twelve rows).
     Frames f = makeFrames(55, kDoses, 3, 7, onlyLines(kLnGainLossBand));
     XpeBpmConfigV2 cfg{};
     cfg.window = 17;
