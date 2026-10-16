@@ -34,6 +34,7 @@ constexpr double kMadToSigma = 1.4826;
 constexpr double kResponseLow = 0.45;       // SRS FUNC-022 (provisional, user decision): a response below 45 % of the local median is a defect
 constexpr double kResponseHigh = 1.5;       // ... above 150 %
 constexpr double kWeakResponseHigh = 0.7;   // 45 % up to 70 %: weak, counted only
+constexpr double kRatioSlack = 1e-6;        // the ratio is a quotient of floats (about 6e-8 resolution): a response of exactly 0.45 or 1.5 is normal, whatever the rounding
 constexpr double kScaleFloor = 1e-6;
 constexpr double kReferenceFloor = 1e-9;
 
@@ -263,11 +264,13 @@ struct Work {
 };
 
 /**
- * The response ratio rule (QA-A-252d, SRS FUNC-022): the row and column factors are taken out, the local median is the background, and a pixel whose feature is below
- * @p lo or above @p hi times the background is defective. @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
+ * The response ratio rule (SRS FUNC-022; QA-A-252d, corrected in QA-A-252f): the feature is the relative response of the OFFSET-CORRECTED bright frames (summed over the
+ * dose groups), and the background is its local median as it is: no row or column factor is taken out first (that normalisation belongs to the other features only).
+ * The local median is the separable one of the other features: the median over @c window pixels along x, then the median of those over @c window pixels along y; it is
+ * not a true two-dimensional median of the window. A pixel whose feature is below @p lo or above @p hi times the background (to within kRatioSlack) is defective.
+ * @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
  */
 float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {
-    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), true);
     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
     std::vector<float> sample;
     sample.reserve(wk.n / 16 + 1);
@@ -276,7 +279,7 @@ float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, doub
         if (!(std::fabs(bg) > 1e-12)) continue;
         const double ratio = static_cast<double>(wk.feat[i]) / bg;
         if (i % 16 == 0) sample.push_back(static_cast<float>(ratio));
-        if (ratio < lo || ratio > hi) {
+        if (ratio < lo - kRatioSlack || ratio > hi + kRatioSlack) {
             (*flags)[i] = static_cast<uint8_t>((*flags)[i] | bit);
             ++*count;
         } else if (ratio < weakHi) {
@@ -341,6 +344,7 @@ struct Seg {
 struct LineJob {
     uint32_t         darkRaw{0}, darkValid{0}, brightRaw{0}, brightValid{0};   // the frames of the persistence judgement
     bool             countWeak{false};   // count the weak-response stretches of the response feature being analysed
+    uint32_t         responseCause{XPE_BPM_LINE_CAUSE_RESPONSE};   // the cause a response stretch gets: RESPONSE for the offset-corrected image, SLOPE for the slope proxy
     uint32_t         weak{0};
     double           fa{1.0};
     int              minSeg{64};
@@ -476,7 +480,7 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             uint32_t cause = 0;
             if (kind == kKindResponse) {
                 const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
-                if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;
+                if (g < lo - kRatioSlack || g > hi + kRatioSlack) cause = job->responseCause;
                 else if (job->countWeak && g < kWeakResponseHigh) ++job->weak;
             } else if (kind == kKindNoise) {
                 const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
@@ -904,7 +908,9 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         const double dgx = static_cast<double>(G) * Sxx - Sx * Sx;
         if (job) {
             for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
+            job->responseCause = XPE_BPM_LINE_CAUSE_SLOPE;   // the slope is a proxy of the response (it is the regression slope, not the ratio of the offset-corrected image): its own cause
             analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+            job->responseCause = XPE_BPM_LINE_CAUSE_RESPONSE;
         }
         if (G >= 3) {
             // The noise of the group means differs from group to group (shot noise grows with the dose, the groups hold different numbers of frames),

@@ -81,6 +81,7 @@ struct Plant {
     bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
     bool strongShading{false};
     bool respPixels{false};       // QA-A-252d: single pixels with a response of 0.40, 0.50, 0.60, 0.75, 1.45, 1.60 (row 220)
+    bool respRowPixels{false};    // QA-A-252f: a row of gain 1.2 (row 100) and a row of gain 0.8 (row 150), each with one pixel of nominal response 0.46 and 0.50 (x 60)
     double   burstAmp{14.0};      // QA-A-253e: amplitude of the single-frame bursts / the noise of the some-frames stretches (see kLn*One, kLn*Frames)
     uint32_t frameMask{0};        // QA-A-253e: the frames (bit = frame index in acquisition order, dark or bright) that carry the noise of kLnDarkNoisyFrames / kLnBrightNoisyFrames
     uint32_t lines{0};            // QA-A-253: kLn* bits, whole rows and columns that are defective  // +-20 % gain shading along both directions (a heel-effect-like flat field): a line component taken from a partly defective line moves by many noise widths
@@ -110,6 +111,7 @@ constexpr int kLnGainColX = 180, kLnBrightNoisyY = 60, kBrightBurstY0 = 100;
 constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;
 // QA-A-252d: response rows (0.3 and 1.7 are defects, 0.6 is weak) and the response pixels
 constexpr int kLnLowRowY = 70, kLnHighRowY = 190, kLnWeakRowY = 50, kRespY = 220;
+constexpr int kGainRowHi = 100, kGainRowLo = 150, kRowPixX = 60;   // QA-A-252f
 constexpr int kRespX[6] = {30, 40, 50, 60, 70, 80};
 constexpr double kRespR[6] = {0.40, 0.50, 0.60, 0.75, 1.45, 1.60};
 constexpr int kStagFrom[3] = {96, 120, 140}, kStagTo[3] = {192, 216, 236};
@@ -168,6 +170,10 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
             if (plant.respPixels && y == kRespY)
                 for (int q = 0; q < 6; ++q)
                     if (x == kRespX[q]) sig *= kRespR[q];
+            if (plant.respRowPixels) {
+                if (y == kGainRowHi) sig *= x == kRowPixX ? 1.2 * 0.46 : 1.2;
+                if (y == kGainRowLo) sig *= x == kRowPixX ? 0.8 * 0.50 : 0.8;
+            }
             if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
             if (plant.strongShading) sig *= (0.8 + 0.4 * x / (kW - 1)) * (0.8 + 0.4 * y / (kH - 1));
             if (plant.varyingColumn && x == kVarCol) d += columnOffset;
@@ -518,6 +524,10 @@ TEST(BpmV2LinesTest, ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranc
     ASSERT_EQ(XPE_OK, r.rc);
     ASSERT_EQ(XPE_OK, bands.rc);
     EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY)) << "response 0.3: found";
+    if (const XpeBpmLine* low = lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY)) {   // QA-A-252f: the response of the offset-corrected image and the slope proxy are recorded apart
+        EXPECT_NE(0u, low->causes & XPE_BPM_LINE_CAUSE_RESPONSE) << "the ratio of the offset-corrected image";
+        EXPECT_NE(0u, low->causes & XPE_BPM_LINE_CAUSE_SLOPE) << "the slope proxy has its own cause bit";
+    }
     EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHighRowY)) << "response 1.7: found";
     EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) << "response 0.5: inside 45 %..150 %, normal";
     EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnWeakRowY)) << "response 0.6: weak, counted only";
@@ -867,6 +877,47 @@ TEST(BpmV2LinesTest, AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups
     const LinesResult r = findLines(f, nullptr, &lc);
     ASSERT_EQ(XPE_OK, r.rc);
     EXPECT_EQ(0u, r.rep.lines);
+}
+
+TEST(BpmV2Test, TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage) {
+    // QA-A-252f (Codex #213 finding 1): the row factor is not taken out before the judgement. A pixel of nominal 0.46 on a row of gain 1.2 reads 0.55 of its surroundings
+    // (normal); a pixel of nominal 0.50 on a row of gain 0.8 reads 0.40 of its surroundings (a defect), although it is 0.50 of its own row.
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    p.respRowPixels = true;
+    Frames f = makeFrames(48, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0, r.feat[static_cast<size_t>(kGainRowHi) * kW + kRowPixX] & XPE_BPM_V2_FEATURE_FLAT) << "0.46 on a row of gain 1.2: 0.55 of the local median";
+    EXPECT_NE(0, r.feat[static_cast<size_t>(kGainRowLo) * kW + kRowPixX] & XPE_BPM_V2_FEATURE_FLAT) << "0.50 on a row of gain 0.8: 0.40 of the local median";
+}
+
+TEST(BpmV2Test, TheResponseThresholdsAreExactAndTheInequalitiesAreFixed) {
+    // noise-free frames of integer pixel values: the offset-corrected response of every pixel is its planted ratio to within the float resolution. Exactly 0.45 and 1.5 are
+    // normal (the rule is "below 45 %" and "above 150 %"); 0.4499 and 1.5001 are defects
+    Frames f;
+    const std::vector<double> nets = {10000.0, 20000.0};
+    const double              ratios[6] = {0.4499, 0.45, 0.50, 1.4999, 1.5, 1.5001};
+    auto make = [&](double net, bool bright) {
+        std::vector<uint16_t> fr(kN, 1000);
+        if (bright)
+            for (size_t i = 0; i < kN; ++i) fr[i] = static_cast<uint16_t>(1000 + net);
+        if (bright)
+            for (int q = 0; q < 6; ++q) fr[static_cast<size_t>(30) * kW + static_cast<size_t>(20 + 10 * q)] = static_cast<uint16_t>(1000 + std::floor(net * ratios[q] + 0.5));
+        return fr;
+    };
+    for (int k = 0; k < 7; ++k) f.dark.push_back(make(0.0, false));
+    for (double net : nets)
+        for (int k = 0; k < 3; ++k) {
+            f.bright.push_back(make(net, true));
+            f.signal.push_back(net);
+        }
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const bool expected[6] = {true, false, false, false, false, true};
+    for (int q = 0; q < 6; ++q)
+        EXPECT_EQ(expected[q], (r.feat[static_cast<size_t>(30) * kW + static_cast<size_t>(20 + 10 * q)] & XPE_BPM_V2_FEATURE_FLAT) != 0) << "response " << ratios[q];
 }
 
 TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {

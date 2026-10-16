@@ -1901,7 +1901,8 @@ XPE_API XpeErrorCode xpe_bpm_generate(
  */
 typedef struct {
     float    target_false_alarms; /**< Expected false alarms per feature over the whole frame (default 1.0; range (0, 1000]) */
-    uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65) */
+    uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65). The local median is separable: the median along x
+                                       *   over this many pixels, then the median of those along y (it is not a two-dimensional median of the window) */
     uint32_t sigma_block;         /**< Side of the blocks of the local scale estimate in pixels (default 64; range 16..512) */
     uint32_t skip_first_dark;     /**< The dark list is the RAW acquisition list: its first frame (taken before the detector settles) is not used.
                                        *   XPE_BPM_V2_SKIP_DEFAULT (0, also a NULL configuration) and XPE_BPM_V2_SKIP_FIRST (1): skip it.
@@ -2203,6 +2204,7 @@ XPE_API uint32_t xpe_calib_get_poly_degree(void);
 /** What makes a line defective (bits of XpeBpmLine::causes). */
 #define XPE_BPM_LINE_CAUSE_RESPONSE  0x01u /**< The response of the line differs from its neighbours by more than the noise tolerance can take (gain correction would add more noise than allowed) */
 #define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line */
+#define XPE_BPM_LINE_CAUSE_SLOPE     0x08u /**< The regression slope over the doses (a proxy of the response) differs from its neighbours by the same measure; recorded apart from RESPONSE, which is the ratio of the offset-corrected image (QA-A-252f) */
 #define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance, in most of the dark frames (a line that is large in a few frames only is noise that moves, not a defect) */
 
 /** Why a stretch is only a candidate (XpeBpmLine::reason of the unconfirmed list). */
