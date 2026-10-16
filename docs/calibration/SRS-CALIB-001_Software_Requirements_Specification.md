@@ -1,9 +1,9 @@
 # Software Requirements Specification - XPE Preprocessing Calibration Module
 
-**Document ID:** SRS-CALIB-001 v1.3  
+**Document ID:** SRS-CALIB-001 v1.4  
 **IEC 62304 Clause:** 5.2 (Software Requirements Specification)  
 **Safety Classification:** Class B  
-**Date:** 2026-10-03 (v1.2: 2026-04-24)  
+**Date:** 2026-10-16 (v1.3: 2026-10-03, v1.2: 2026-04-24)  
 **Revision v1.3 (2026-10-03, #245 사용자 결정 / `QA-A-233` 결정 11·12·14):** 구현이 없는 FUNC-011·014·015·021·028·029·030 의 검증 칸에 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 표시. 요구 문장은 바꾸지 않았다. 변경 기록 `docs/project/REQ-CHANGE-LOG-2026-10-03-WORDING.md`.  
 **Revision v1.4 (2026-10-16, 사용자 지시 "결함 화소 맵은 최신 기술 리서치로 개선"):** FUNC-022·023 개정(특성별 합집합 검출, 데이터로 정한 임계값, 라인·덩어리 결함), FUNC-025 의 Blue 문구 삭제, FUNC-039 신설(라인 기록·방향 보간). 근거와 원문 대조: `.moai/state/research/bpm-advanced-research.md`, `verify-bpm-claims.md`.  
 **Author:** XPE Calibration Development Team  
@@ -509,4 +509,4 @@ Scope: `feat/preprocessing`, Issues #68, #69, #70.
 
 ---
 
-*SRS-CALIB-001 v1.3 — End of Document*
+*SRS-CALIB-001 v1.4 — End of Document*

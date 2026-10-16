@@ -1,11 +1,12 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.5  
+**Document ID:** RTM-CALIB-001 v1.6  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
-**Date:** 2026-10-03 (v1.3: 2026-04-24)  
+**Date:** 2026-10-16 (v1.5: 2026-10-03, v1.3: 2026-04-24)  
 **Revision v1.4 (2026-10-03, `#245` / `QA-A-228`):** §3 시험 사례 ID 가 시험 소스에 없다는 주석, §4 추적 집계를 "문서상 사례"와 "실제 시험"으로 분리, 구현 없이 추적 완료로 집계되던 FUNC 7개(011·014·015·021·028·029·030)의 실제 상태 표 추가, §5.1 FUNC-034 근거 시험 보강  
 **Revision v1.5 (2026-10-03, #245 사용자 결정 / `QA-A-233` 결정 12·14):** 구현 없는 FUNC 7개 표의 비고를 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 로 통일, FUNC-014 를 △ → ✗(링 버퍼 없음)  
+**Revision v1.6 (2026-10-16, SRS-CALIB-001 v1.4 연동, `#273`):** FUNC-022·023 을 결함 화소 맵 2판 개정 문구로 바꾸고 FUNC-039(라인 기록·방향 보간)를 신설. 세 요구 모두 "구현·검증 대기"이며 시험 사례는 미정(BPM v2)이다.  
 
 **Trace Source:** XPE-SRS-001, XPE-SAD-001 (Architecture), SHA-CALIB-001 (Hazards)  
 **Test Input Source:** TDS-CALIB-001 (테스트 데이터셋 명세서) — 모든 테스트 케이스의 입력 데이터 규격 정의  
