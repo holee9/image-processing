@@ -1,0 +1,6 @@
+offset.xcal  f1b0f088ccc68eb123113633980edbea31d158695ebe18b787e53a166ae2d476
+gain.xcal    e5037865e6ed182b34d4c9b606ab97f4313b4ea71194d891e9d900945f0de537
+defect.xcal  151b81ffb542e6cc9a817d6948cb4042cce39430318cfd40344a5d198de98cc6  (2353 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/cal-254\manifest.json
+exit 0 wall seconds 97
+finished
