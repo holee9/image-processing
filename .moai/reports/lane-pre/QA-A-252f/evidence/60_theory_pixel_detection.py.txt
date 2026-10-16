@@ -64,7 +64,11 @@ def run(GROUPS, label, trials=2_000_000):
     print('=== ' + label)
     print('rho = true gain-corrected variance ratio; efficiency loss r gives about 1 / r (the readout part lowers it a little)')
     print('%-34s %8s | %12s %12s %12s' % ('case', 'rho', 'pooled only', 'persist only', 'both (P2)'))
-    cases = [('normal pixel / gain loss (any r)', 1.0), ('efficiency loss r = 0.7', 1 / 0.7), ('efficiency loss r = 0.6', 1 / 0.6), ('efficiency loss r = 0.5 (the limit)', 2.0),
+    # the model value 1 / r overstates the efficiency-loss cost: the variance-signal curve measured on the verification frames of the QA-A-252e injection (smoke test of noise-cost) rises
+    # faster than kappa x signal (a frame-to-frame exposure fluctuation adds a term proportional to the signal squared), V_native = 3,870 at the dose of the verification frames, so
+    # rho = 1 + kappa x mu x (1 - r) / (r x V_native) with kappa = 0.32, mu = 9,987:
+    cases = [('MEASURED-CURVE r = 0.7', 1.34), ('MEASURED-CURVE r = 0.6', 1.55), ('MEASURED-CURVE r = 0.46', 1.97), ('MEASURED-CURVE r = 0.44', 2.05), ('MEASURED-CURVE r = 0.4', 2.24),
+             ('MEASURED-CURVE r = 0.3', 2.93), ('normal pixel / gain loss (any r)', 1.0), ('efficiency loss r = 0.7', 1 / 0.7), ('efficiency loss r = 0.6', 1 / 0.6), ('efficiency loss r = 0.5 (the limit)', 2.0),
              ('efficiency loss r = 0.46', 1 / 0.46), ('efficiency loss r = 0.44', 1 / 0.44), ('efficiency loss r = 0.4', 2.5), ('efficiency loss r = 0.3', 1 / 0.3), ('ratio 4', 4.0), ('ratio 8', 8.0)]
     for name, rho in cases:
         chi = np.stack([rng.chisquare(nu, trials) / nu for nu in nus], axis=1) * rho
