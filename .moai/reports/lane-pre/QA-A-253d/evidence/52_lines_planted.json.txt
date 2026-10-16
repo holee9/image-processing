@@ -1,0 +1,5 @@
+{
+  "groups": 42, "row_groups": 21, "column_groups": 21, "full": 18, "partial": 24, "double": 12, "crossings": 153,
+  "max_adjacent": 2, "panel_reject": 0, "truncated": 0, "line_pixels": 82883, "pixels": 9406485,
+  "null_width": [3.302, 2.048, 1.446, 1.452, 1.663, 1.682]
+}

@@ -2,8 +2,8 @@ planted items with a rectangle within x 780..835, y 1990..2120:
    (19, 'line', 'nonlinear', 'row_full', '0.2') (0, 2102, 3072, 1)
    (47, 'control', 'gain_band', 'col_full', '1.2') (807, 0, 1, 3072)
    (1081, 'pixel', 'nonlinear', 'pixel', '0.2') (783, 2054, 1, 1)
-pixel map, planted: flagged pixels in column 807, y 2000..2099: 0 
-pixel map, clean: flagged pixels in column 807, y 2000..2099: 0 
+pixel map, planted: flagged pixels in column 807, y 2000..2099: 0
+pixel map, clean: flagged pixels in column 807, y 2000..2099: 0
 line mask, planted: flagged pixels in column 807, y 2000..2099: 65 (np.int64(2020), np.int64(2084))
 neighbouring columns 800..814, number of pixels of the pixel map (planted) inside y 2020..2085: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 mean signal (bright frames, dark removed) of column 807 over y 2020..2085 against columns 797..817 (excluding 807):
