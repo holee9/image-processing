@@ -296,6 +296,92 @@ TEST(BpmV2Test, AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn) {
     EXPECT_LE(flaggedInColumn(r, kGainCol, 0, static_cast<int>(kH)), 2u) << "a column band of response 0.8 is not a defect: " << describe(r.rep);
 }
 
+// ---------------------------------------------------------------- QA-A-252b: lines outside the imaging area (shielded or dummy), a fact given by the user (#273)
+namespace {
+
+constexpr uint32_t kML = 6, kMT = 2, kMR = 1, kMB = 1;   // left columns 0..5, top rows 0..1, last column, last row (the margins of the cyan_test panel)
+
+bool inMargin(uint32_t x, uint32_t y) { return x < kML || y < kMT || x >= kW - kMR || y >= kH - kMB; }
+
+// Fills the margins of every frame with values that have nothing to do with the imaging area (different in every frame and pixel).
+void scrambleMargins(Frames* f) {
+    uint64_t h = 88172645463325252ull;
+    auto fill = [&](std::vector<uint16_t>& fr) {
+        for (uint32_t y = 0; y < kH; ++y)
+            for (uint32_t x = 0; x < kW; ++x)
+                if (inMargin(x, y)) {
+                    h ^= h << 13; h ^= h >> 7; h ^= h << 17;
+                    fr[static_cast<size_t>(y) * kW + x] = static_cast<uint16_t>(h % 40000u);
+                }
+    };
+    for (auto& v : f->dark) fill(v);
+    for (auto& v : f->bright) fill(v);
+}
+
+XpeBpmConfigV2 marginConfig() {
+    XpeBpmConfigV2 c{};
+    c.margin_left = kML;
+    c.margin_top = kMT;
+    c.margin_right = kMR;
+    c.margin_bottom = kMB;
+    return c;
+}
+
+}  // namespace
+
+TEST(BpmV2Test, WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins) {
+    Frames f = makeFrames(10, kDoses, 3, 7, Plant{false, false});
+    Frames g = makeFrames(10, kDoses, 3, 7, Plant{false, false});
+    scrambleMargins(&g);
+    const Result clean = detect(f, nullptr), wildUndeclared = detect(g, nullptr);
+    ASSERT_EQ(XPE_OK, clean.rc);
+    ASSERT_EQ(XPE_OK, wildUndeclared.rc);
+    EXPECT_GT(wildUndeclared.rep.flagged_union, clean.rep.flagged_union + 100u) << "without the declaration the wild lines flag themselves and their neighbours: " << describe(wildUndeclared.rep);
+}
+
+TEST(BpmV2Test, MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatistic) {
+    const XpeBpmConfigV2 cfg = marginConfig();
+    Frames f = makeFrames(10, kDoses, 3, 7, Plant{false, false});
+    Frames g = makeFrames(10, kDoses, 3, 7, Plant{false, false});
+    scrambleMargins(&g);
+    const Result ref = detect(f, &cfg), wild = detect(g, &cfg);
+    ASSERT_EQ(XPE_OK, ref.rc);
+    ASSERT_EQ(XPE_OK, wild.rc);
+    for (uint32_t y = 0; y < kH; ++y)
+        for (uint32_t x = 0; x < kW; ++x) {
+            const size_t i = static_cast<size_t>(y) * kW + x;
+            if (inMargin(x, y)) {
+                ASSERT_EQ(XPE_BPM_V2_OUT_OF_AREA, wild.map[i]) << "(" << x << "," << y << ")";
+                ASSERT_EQ(0, wild.feat[i]);
+            } else {
+                ASSERT_LE(wild.map[i], 3) << "(" << x << "," << y << "): a defect code or good, never the out-of-area code";
+            }
+        }
+    // nothing of the margins reaches the detection: the map inside is the same bit for bit whatever the margins hold
+    EXPECT_EQ(ref.map, wild.map);
+    EXPECT_EQ(ref.feat, wild.feat);
+    const uint32_t inside = (kW - kML - kMR) * (kH - kMT - kMB);
+    EXPECT_EQ(inside, wild.rep.pixels) << "N of the false-alarm target is the imaging area";
+    EXPECT_EQ(static_cast<uint32_t>(kN) - inside, wild.rep.out_of_area_pixels);
+    // the thresholds follow from the imaging area: erfc(lambda / sqrt 2) * N_inside = target
+    EXPECT_NEAR(1.0, std::erfc(static_cast<double>(wild.rep.threshold[0]) / std::sqrt(2.0)) * static_cast<double>(inside), 0.002);
+}
+
+TEST(BpmV2Test, NoMarginsMeansNoOutOfAreaCodeAndMarginsThatLeaveNoAreaAreRefused) {
+    Frames f = makeFrames(10, kDoses, 3, 7, Plant{false, true});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.out_of_area_pixels);
+    EXPECT_EQ(std::count(r.map.begin(), r.map.end(), static_cast<uint8_t>(XPE_BPM_V2_OUT_OF_AREA)), 0);
+    XpeBpmConfigV2 big{};
+    big.margin_left = kW;   // nothing left
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(f, &big).rc);
+    XpeBpmConfigV2 wide{};
+    wide.margin_left = kW / 2;
+    wide.margin_right = kW / 2 - 8;   // 8 columns left: fewer than the 16 the detector needs
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(f, &wide).rc);
+}
+
 TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {
     Frames f = makeFrames(3, kDoses, 3, 7, Plant{false, false});
     XpeBpmConfigV2 one{}, hundred{};

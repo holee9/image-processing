@@ -1,0 +1,11 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+b = open(p, 'rb').read()
+bs = bytes([92])
+nul_fix_old = b"*c != '" + bytes([0]) + b"')"
+assert b.count(nul_fix_old) == 1, b.count(nul_fix_old)
+b = b.replace(nul_fix_old, b"*c != '" + bs + b"0')")
+broken = b'(four numbers)' + bytes([10]) + b'");'
+assert b.count(broken) == 1, b.count(broken)
+b = b.replace(broken, b'(four numbers)' + bs + b'n");')
+open(p, 'wb').write(b)
+print('fixed')

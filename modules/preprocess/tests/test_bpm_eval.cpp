@@ -11,6 +11,7 @@
 #include "xpe_bpm_eval_path.h"      // generated: XPE_BPM_EVAL_EXE
 #include "xpe_bpm_eval_stats.hpp"      // the numeric parts of the tool (QA-A-251b)
 #include "xpe_fixture_gen_path.h"   // generated: XPE_FIXTURE_GEN_EXE
+#include "xpe/preprocess_api.h"      // XPE_BPM_V2_OUT_OF_AREA
 
 #include <algorithm>
 #include <chrono>
@@ -394,6 +395,29 @@ TEST_F(BpmEvalTest, ScoreSeparatesAPerfectMapFromAnEmptyOne) {
     EXPECT_EQ(std::string::npos, j2.find("\"detected\": 1")) << "an empty map detects nothing";
     EXPECT_EQ(std::string::npos, j2.find("\"detected\": 2")) << j2;
     EXPECT_NE(std::string::npos, j2.find("\"control_false_detections\": 0"));
+}
+
+TEST_F(BpmEvalTest, ScoreTreatsTheOutOfAreaCodeAsNotAFlag) {
+    makeFrames(5, 3, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    // a map that holds nothing but the out-of-area code (4) in six columns and two rows at the edges: those pixels are outside the imaging area, not defects
+    std::vector<uint8_t> m(kN, 0);
+    for (size_t y = 0; y < kH; ++y)
+        for (size_t x = 0; x < kW; ++x)
+            if (x < 6 || y < 2) m[y * kW + x] = XPE_BPM_V2_OUT_OF_AREA;
+    const fs::path oa = root / "oa.u8";
+    writeBytes(oa, m.data(), m.size());
+    const fs::path empty = mapOf(t, "empty_oa.u8", [](const Item&) { return false; });
+    ASSERT_EQ(0, score(t, oa, " --clean-map \"" + empty.string() + "\" --out \"" + (root / "oa.json").string() + "\"", root / "oa.txt"));
+    const std::string j = text(root / "oa.json");
+    EXPECT_NE(std::string::npos, j.find("\"flagged\": 0,")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": 0,")) << j;
+    // a defect code in the same places would count: the control for the line above
+    for (auto& v : m) if (v == XPE_BPM_V2_OUT_OF_AREA) v = 2;
+    writeBytes(oa, m.data(), m.size());
+    ASSERT_EQ(0, score(t, oa, " --clean-map \"" + empty.string() + "\" --out \"" + (root / "oa2.json").string() + "\"", root / "oa2.txt"));
+    EXPECT_EQ(std::string::npos, text(root / "oa2.json").find("\"flagged\": 0,"));
 }
 
 TEST_F(BpmEvalTest, ScoreCountsControlHitsFalseAlarmsAndHalfAgreement) {

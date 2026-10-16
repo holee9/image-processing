@@ -148,7 +148,8 @@ bool readMap(const std::string& path, size_t n, std::vector<uint8_t>* flags) {
         const uint8_t* p = bytes.data() + (bytes.size() - n);
         for (size_t i = 0; i < n; ++i) (*flags)[i] = p[i] != 0 ? 1 : 0;
     } else if (bytes.size() == n) {
-        for (size_t i = 0; i < n; ++i) (*flags)[i] = bytes[i] != 0 ? 1 : 0;
+        // 8-bit map: 0 = good, 1..3 = defect, XPE_BPM_V2_OUT_OF_AREA (4) = outside the imaging area, which is not a defect
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[i] != 0 && bytes[i] != XPE_BPM_V2_OUT_OF_AREA) ? 1 : 0;
     } else if (bytes.size() == 2 * n) {
         for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[2 * i] | bytes[2 * i + 1]) != 0 ? 1 : 0;
     } else {
@@ -841,6 +842,29 @@ int cmdMapV2(const Args& a) {
     cfg.skip_first_dark = static_cast<uint32_t>(a.num("skip-first-dark", 0));
     cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
     cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
+    if (a.has("margins")) {   // L,T,R,B: columns / rows at the edges that are outside the imaging area
+        unsigned    v[4] = {0, 0, 0, 0};
+        int         got = 0;
+        const char* c = a.str("margins").c_str();
+        while (got < 4) {
+            char* end = nullptr;
+            const unsigned long x = std::strtoul(c, &end, 10);
+            if (end == c) break;
+            v[got++] = static_cast<unsigned>(x);
+            c = end;
+            if (*c == ',' && got < 4) ++c;
+            else break;
+        }
+        if (got != 4 || *c != '\0') {
+            std::fprintf(stderr, "--margins takes L,T,R,B (four numbers)\n");
+            return 2;
+        }
+        const unsigned ml = v[0], mt = v[1], mr = v[2], mb = v[3];
+        cfg.margin_left = ml;
+        cfg.margin_top = mt;
+        cfg.margin_right = mr;
+        cfg.margin_bottom = mb;
+    }
     if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
     std::vector<uint8_t> mask(n, 0), feat(n, 0);
     auto outBuf = [&](std::vector<uint8_t>& v) {
@@ -867,7 +891,8 @@ int cmdMapV2(const Args& a) {
     static const char* const names[XPE_BPM_V2_FEATURE_COUNT] = {"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field", "bright_noise"};
     std::string j = "{\n  \"detector\": \"xpe_bpm_generate_v2\",\n  \"target_false_alarms\": " + fmtLevel(static_cast<double>(cfg.target_false_alarms)) + ",\n  \"skip_first_dark\": " +
                     std::to_string(cfg.skip_first_dark) + ",\n  \"pixels\": " + std::to_string(rep.pixels) + ",\n  \"dark_frames_used\": " + std::to_string(rep.dark_frames_used) +
-                    ",\n  \"bright_frames_used\": " + std::to_string(rep.bright_frames_used) + ",\n  \"dose_groups\": " + std::to_string(rep.dose_groups) + ",\n  \"groups\": [";
+                    ",\n  \"out_of_area_pixels\": " + std::to_string(rep.out_of_area_pixels) + ",\n  \"margins\": [" + std::to_string(cfg.margin_left) + ", " + std::to_string(cfg.margin_top) + ", " +
+                    std::to_string(cfg.margin_right) + ", " + std::to_string(cfg.margin_bottom) + "],\n  \"bright_frames_used\": " + std::to_string(rep.bright_frames_used) + ",\n  \"dose_groups\": " + std::to_string(rep.dose_groups) + ",\n  \"groups\": [";
     for (uint32_t g = 0; g < rep.dose_groups; ++g) {
         char b[96];
         std::snprintf(b, sizeof b, "%s{\"signal\": %.2f, \"frames\": %u}", g ? ", " : "", static_cast<double>(rep.group_signal[g]), rep.group_frames[g]);

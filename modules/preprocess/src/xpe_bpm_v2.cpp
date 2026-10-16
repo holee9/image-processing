@@ -291,8 +291,9 @@ float flagVarianceRatio(Work& wk, const Settings& st, uint32_t nu, double tau, u
 
 }  // namespace
 
-extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
-                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {
+/** The detection on frames that hold the imaging area only (no margins). */
+XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                            const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {
     if (!dark_frames || !bright_frames || !bpm_out) return XPE_ERR_INVALID_INPUT;
     Settings st{};
     if (const XpeErrorCode rc = resolve(cfg, &st)) return rc;
@@ -563,6 +564,103 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
             report->group_frames[g] = static_cast<uint32_t>(groups[g].size());
         }
     }
+    return XPE_OK;
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+
+/**
+ * The public entry. Pixels in the margins (outside the imaging area) are cut away before anything is computed, so no statistic of the detection sees them, and are
+ * written as XPE_BPM_V2_OUT_OF_AREA into the map afterwards.
+ */
+extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {
+    const uint32_t ml = cfg ? cfg->margin_left : 0u, mt = cfg ? cfg->margin_top : 0u, mr = cfg ? cfg->margin_right : 0u, mb = cfg ? cfg->margin_bottom : 0u;
+    if (ml == 0 && mt == 0 && mr == 0 && mb == 0) {
+        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report);
+        if (rc == XPE_OK && report) report->out_of_area_pixels = 0;
+        return rc;
+    }
+    if (!dark_frames || !bright_frames || !bpm_out || num_dark == 0 || num_bright == 0) return XPE_ERR_INVALID_INPUT;
+    const uint32_t width = dark_frames[0].width, height = dark_frames[0].height;
+    if (width < 16 || height < 16 || ml > width || mr > width || mt > height || mb > height) return XPE_ERR_INVALID_INPUT;
+    if (width - ml < mr + 16 || height - mt < mb + 16) return XPE_ERR_INVALID_INPUT;
+    const uint32_t cw = width - ml - mr, ch = height - mt - mb;
+    const size_t   n = static_cast<size_t>(width) * height, cn = static_cast<size_t>(cw) * ch;
+    auto check = [&](const XpeImageBuffer& b) -> XpeErrorCode {
+        if (!b.data) return XPE_ERR_INVALID_INPUT;
+        if (b.width != width || b.height != height) return XPE_ERR_INVALID_INPUT;
+        if (b.format != XPE_PIXEL_UINT16) return XPE_ERR_UNSUPPORTED_FORMAT;
+        if (b.dataSize != 0 && b.dataSize < n * sizeof(uint16_t)) return XPE_ERR_INVALID_INPUT;
+        return XPE_OK;
+    };
+    for (uint32_t k = 0; k < num_dark; ++k)
+        if (const XpeErrorCode rc = check(dark_frames[k])) return rc;
+    for (uint32_t k = 0; k < num_bright; ++k)
+        if (const XpeErrorCode rc = check(bright_frames[k])) return rc;
+    auto checkOut = [&](const XpeImageBuffer* b) -> XpeErrorCode {
+        if (!b->data) return XPE_ERR_INVALID_INPUT;
+        if (b->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+        if (b->width != width || b->height != height || b->dataSize < n) return XPE_ERR_BUFFER_TOO_SMALL;
+        return XPE_OK;
+    };
+    if (const XpeErrorCode rc = checkOut(bpm_out)) return rc;
+    if (feature_out)
+        if (const XpeErrorCode rc = checkOut(feature_out)) return rc;
+
+    auto crop = [&](const XpeImageBuffer& src, std::vector<uint16_t>* dst) {
+        dst->resize(cn);
+        const uint16_t* p = static_cast<const uint16_t*>(src.data);
+        for (uint32_t y = 0; y < ch; ++y)
+            std::memcpy(dst->data() + static_cast<size_t>(y) * cw, p + static_cast<size_t>(y + mt) * width + ml, static_cast<size_t>(cw) * sizeof(uint16_t));
+    };
+    auto cutBuf = [&](std::vector<uint16_t>& v) {
+        XpeImageBuffer b{};
+        b.data = v.data();
+        b.width = cw;
+        b.height = ch;
+        b.bitsAllocated = 16;
+        b.bitsStored = 16;
+        b.format = XPE_PIXEL_UINT16;
+        b.dataSize = v.size() * sizeof(uint16_t);
+        return b;
+    };
+    std::vector<std::vector<uint16_t>> cd(num_dark), cb(num_bright);
+    std::vector<XpeImageBuffer>        cdb(num_dark), cbb(num_bright);
+    for (uint32_t k = 0; k < num_dark; ++k) {
+        crop(dark_frames[k], &cd[k]);
+        cdb[k] = cutBuf(cd[k]);
+    }
+    for (uint32_t k = 0; k < num_bright; ++k) {
+        crop(bright_frames[k], &cb[k]);
+        cbb[k] = cutBuf(cb[k]);
+    }
+    std::vector<uint8_t> cmap(cn, 0), cfeat(feature_out ? cn : 0, 0);
+    XpeImageBuffer       outMap{}, outFeat{};
+    outMap.data = cmap.data();
+    outMap.width = cw;
+    outMap.height = ch;
+    outMap.bitsAllocated = 8;
+    outMap.bitsStored = 8;
+    outMap.format = XPE_PIXEL_UINT8;
+    outMap.dataSize = cmap.size();
+    if (feature_out) {
+        outFeat = outMap;
+        outFeat.data = cfeat.data();
+    }
+    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report);
+    if (rc != XPE_OK) return rc;
+    uint8_t* mapDst = static_cast<uint8_t*>(bpm_out->data);
+    std::memset(mapDst, static_cast<int>(XPE_BPM_V2_OUT_OF_AREA), n);
+    for (uint32_t y = 0; y < ch; ++y) std::memcpy(mapDst + static_cast<size_t>(y + mt) * width + ml, cmap.data() + static_cast<size_t>(y) * cw, cw);
+    if (feature_out) {
+        uint8_t* featDst = static_cast<uint8_t*>(feature_out->data);
+        std::memset(featDst, 0, n);
+        for (uint32_t y = 0; y < ch; ++y) std::memcpy(featDst + static_cast<size_t>(y + mt) * width + ml, cfeat.data() + static_cast<size_t>(y) * cw, cw);
+    }
+    if (report) report->out_of_area_pixels = static_cast<uint32_t>(n - cn);
     return XPE_OK;
 } catch (const std::bad_alloc&) {
     return XPE_ERR_OUT_OF_MEMORY;

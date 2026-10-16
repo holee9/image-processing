@@ -1907,8 +1907,18 @@ typedef struct {
     uint32_t min_frames_dark;     /**< Minimum dark frames after skipping (default 5; at least 3) */
     uint32_t min_frames_bright;   /**< Minimum bright frames (default 6; at least 2) */
     float    dose_group_ratio;    /**< Sorted bright-frame signals whose ratio exceeds this start a new dose group (default 1.25; at least 1.01) */
+    uint32_t margin_left;         /**< Columns at the left edge that are outside the imaging area (shielded or dummy); default 0 = none (QA-A-252b) */
+    uint32_t margin_top;          /**< Rows at the top edge outside the imaging area; default 0 */
+    uint32_t margin_right;        /**< Columns at the right edge outside the imaging area; default 0 */
+    uint32_t margin_bottom;       /**< Rows at the bottom edge outside the imaging area; default 0 */
     uint32_t reserved;            /**< Must be zero */
 } XpeBpmConfigV2;
+
+/**
+ * Map code of a pixel outside the imaging area (see XpeBpmConfigV2 margins). Defect codes are 1..3. These pixels take no part in the decision or in any local
+ * statistic (row and column components, background, scale, thresholds, frame means); consumers that read the map as "non-zero = defect" must treat this code as good.
+ */
+#define XPE_BPM_V2_OUT_OF_AREA 4u
 
 /** Feature bits of the optional per-pixel feature output of xpe_bpm_generate_v2. */
 #define XPE_BPM_V2_FEATURE_DARK_MEAN   0x01u /**< Local deviation of the dark mean */
@@ -1931,7 +1941,7 @@ typedef struct {
  * (the bit order of the XPE_BPM_V2_FEATURE_* values).
  */
 typedef struct {
-    uint32_t pixels;                                          /**< Pixels per frame (the N of the false-alarm target) */
+    uint32_t pixels;                                          /**< Pixels per frame inside the imaging area (the N of the false-alarm target) */
     uint32_t dark_frames_used;                                /**< Dark frames used after skipping */
     uint32_t bright_frames_used;                              /**< Bright frames used */
     uint32_t dose_groups;                                     /**< Dose groups found */
@@ -1941,6 +1951,7 @@ typedef struct {
     float    scale_median[XPE_BPM_V2_FEATURE_COUNT];          /**< Median over the frame of the local scale (z features) or of the local reference (noise features) */
     uint32_t flagged[XPE_BPM_V2_FEATURE_COUNT];               /**< Pixels each feature flagged */
     uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */
+    uint32_t out_of_area_pixels;                              /**< Pixels outside the imaging area (the margins of the configuration); not in `pixels` */
     float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */
     uint32_t group_frames[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Frames in each dose group */
 } XpeBpmReportV2;
