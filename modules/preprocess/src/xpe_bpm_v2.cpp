@@ -114,7 +114,9 @@ double gammaQ(double a, double x) {
 }
 
 /** tau with P(chi-square_nu / nu > tau) = p. */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 double varianceThreshold(uint32_t nu, double p) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     const double a = 0.5 * nu;
     double lo = 1.0, hi = 1e6;
     for (int it = 0; it < 300; ++it) {
@@ -159,7 +161,9 @@ float temporalMedian(std::vector<float>* v) {
 }
 
 /** Separable median filter: window x 1 along the rows, then 1 x window along the columns; reflected borders. */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 void separableMedian(const float* in, float* tmp, float* out, int w, int h, int win) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     const int r = win / 2;
     float buf[65];
     for (int y = 0; y < h; ++y) {
@@ -186,7 +190,9 @@ void separableMedian(const float* in, float* tmp, float* out, int w, int h, int 
  * `excl` is 1 for an excluded pixel. A row window with no admissible pixel gives no value (NaN) to the second pass; a pixel whose second pass finds no value takes `plain`, the plain
  * separable median of the same image. Reflected borders as in separableMedian.
  */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 void separableMedianExcluding(const float* in, float* tmp, float* out, const float* plain, const uint8_t* excl, int w, int h, int win) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     const int r = win / 2;
     float     buf[65];
     const float nan = std::numeric_limits<float>::quiet_NaN();
@@ -225,7 +231,9 @@ void separableMedianExcluding(const float* in, float* tmp, float* out, const flo
 }
 
 /** Median of @p win values along the columns (alongY) or along the rows, reflected borders. */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 void slidingMedian(const float* in, float* out, int w, int h, int win, bool alongY) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     const int r = win / 2;
     float buf[65];
     for (int y = 0; y < h; ++y)
@@ -291,7 +299,9 @@ float blockScale(const float* r, int w, int h, int block, std::vector<float>* si
 }
 
 /** Bilinear value of the block scales at pixel (x, y). */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 inline float scaleAt(const std::vector<float>& sig, int nbx, int nby, int block, int x, int y) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     const float fx = std::min(std::max((static_cast<float>(x) + 0.5f) / static_cast<float>(block) - 0.5f, 0.0f), static_cast<float>(nbx - 1));
     const float fy = std::min(std::max((static_cast<float>(y) + 0.5f) / static_cast<float>(block) - 0.5f, 0.0f), static_cast<float>(nby - 1));
     const int x0 = static_cast<int>(fx), y0 = static_cast<int>(fy);
@@ -314,7 +324,9 @@ struct Work {
  * not a true two-dimensional median of the window. A pixel whose feature is below @p lo or above @p hi times the background (to within kRatioSlack) is defective.
  * @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
  */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
     std::vector<float> sample;
     sample.reserve(wk.n / 16 + 1);
@@ -355,7 +367,9 @@ float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, b
 }
 
 /** Variance-ratio feature: V against its local median divided by the median of chi-square_nu / nu; flags the ratio above tau. */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 float flagVarianceRatio(Work& wk, const Settings& st, uint32_t nu, double tau, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
     const double mnu = varianceMedian(nu);
     std::vector<float> sample;
@@ -373,7 +387,7 @@ float flagVarianceRatio(Work& wk, const Settings& st, uint32_t nu, double tau, u
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------- lines (QA-A-253)
-enum LineKind { kKindResponse = 0, kKindLinearity = 1, kKindNoise = 2 };
+enum LineKind : std::uint8_t { kKindResponse = 0, kKindLinearity = 1, kKindNoise = 2 };
 
 struct Seg {
     int      orient;   // 0 row, 1 column
@@ -410,7 +424,9 @@ void transposeImage(const float* in, float* out, int w, int h) {
  * the window statistic is the sum over min_segment pixels of e / local scale, each term cut at +-3 so that a single outlier (a dead pixel, a hot pixel) cannot make a
  * stretch, divided by the square root of the window length: the uncorrelated-noise prediction. Its robust width over all windows (the empirical null) rescales it.
  */
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)
 void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job, int kind, int orient, int nullSlot, std::vector<Seg>* out) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
     const int    L = std::min(job->minSeg, w);
     if (L < 8) return;
@@ -434,7 +450,7 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             t = std::min(3.0, std::max(-3.0, t));
             cs[static_cast<size_t>(x) + 1] = cs[static_cast<size_t>(x)] + t;
         }
-        for (int x = 0; x < nw; ++x) zw[static_cast<size_t>(y) * static_cast<size_t>(nw) + static_cast<size_t>(x)] = static_cast<float>((cs[static_cast<size_t>(x + L)] - cs[static_cast<size_t>(x)]) / std::sqrt(static_cast<double>(L)));
+        for (int x = 0; x < nw; ++x) zw[static_cast<size_t>(y) * static_cast<size_t>(nw) + static_cast<size_t>(x)] = static_cast<float>((cs[static_cast<size_t>(x) + static_cast<size_t>(L)] - cs[static_cast<size_t>(x)]) / std::sqrt(static_cast<double>(L)));
     }
     // the empirical null: robust width of the window statistic over all rows and windows
     std::vector<float> sample;
@@ -990,7 +1006,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         for (size_t i = 0; i < n; ++i) t[i] = static_cast<float>(static_cast<double>(wk.feat[i]) / std::max(static_cast<double>(wk.bg[i]) / mnu, kReferenceFloor));
         // persistence: per dark frame, the mean of the squared residual over the stretch (each pixel at most 16 times its local variance) against the median of the same
         // pixels in the neighbouring lines; the frame counts when the ratio reaches the tolerance. Returns the share of the dark frames that count.
-        job->persistence = [&](int orient, int idx, int a, int b) -> float {
+        job->persistence = [&](int orient, int idx, int a, int b) -> float {   // NOLINT(bugprone-easily-swappable-parameters): a lambda local to this function, called at one site
             const int half = static_cast<int>(st.window) / 2;
             const int lines = orient == 0 ? h : w;
             int       hits = 0;
@@ -1072,7 +1088,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
             for (size_t i = 0; i < n; ++i) t[i] = noiseSum[i] / static_cast<float>(nuBright);
             // persistence over the bright frames: per frame the squared residual about its dose-group mean (row and column means out, each pixel at most 16 times the nominal
             // variance of the group), averaged over the stretch, against the median of the same pixels in the neighbouring lines; the share of frames that reach the tolerance
-            job->persistence = [&](int orient, int idx, int a, int b) -> float {
+            job->persistence = [&](int orient, int idx, int a, int b) -> float {   // NOLINT(bugprone-easily-swappable-parameters): a lambda local to this function, called at one site
                 const int half = static_cast<int>(st.window) / 2;
                 const int lines = orient == 0 ? h : w;
                 int       frames = 0, hits = 0;
@@ -1097,7 +1113,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                             for (uint32_t j = 0; j < mg; ++j) {
                                 const uint32_t k = groups[g][j];
                                 const double   e = static_cast<double>(vals[j]) - md - brmK[k][static_cast<size_t>(y)] - bcmK[k][static_cast<size_t>(x)];
-                                stat[j][static_cast<size_t>(d + half)] += std::min(e * e * static_cast<double>(corrGain[i]), cap);
+                                stat[j][static_cast<size_t>(d) + static_cast<size_t>(half)] += std::min(e * e * static_cast<double>(corrGain[i]), cap);
                             }
                         }
                     }
@@ -1105,7 +1121,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                         const double       sf = stat[j][static_cast<size_t>(half)];
                         std::vector<float> nb;
                         for (int d = -half; d <= half; ++d)
-                            if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(stat[j][static_cast<size_t>(d + half)]));
+                            if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(stat[j][static_cast<size_t>(d) + static_cast<size_t>(half)]));
                         const double sr = nb.empty() ? sf : static_cast<double>(medianOf(nb.data(), nb.size()));
                         ++frames;
                         if (sr > 0.0 && sf / sr >= job->tol) ++hits;
@@ -1185,7 +1201,7 @@ static XpeErrorCode runWithMargins(const XpeImageBuffer* dark_frames, uint32_t n
         const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report, job, refExclude);
         if (rc == XPE_OK) {
             if (report) report->out_of_area_pixels = 0;
-            if (area_out) std::memset(area_out->data, 1, static_cast<size_t>(bpm_out->width) * bpm_out->height);
+            if (area_out && bpm_out) std::memset(area_out->data, 1, static_cast<size_t>(bpm_out->width) * bpm_out->height);
         }
         return rc;
     }

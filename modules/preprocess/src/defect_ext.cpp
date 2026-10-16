@@ -191,7 +191,9 @@ bool defect_ext_encode(const DefectExt& ext, uint32_t width, uint32_t height, st
     return true;
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): width before height, as everywhere in the format; one call site
 bool defect_ext_decode(const uint8_t* data, size_t size, uint32_t width, uint32_t height, DefectExt* out, std::string* reason) {
+// NOLINTEND(bugprone-easily-swappable-parameters)
     auto fail = [&](const std::string& m) {
         if (reason) *reason = m;
         return false;

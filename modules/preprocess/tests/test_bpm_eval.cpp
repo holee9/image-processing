@@ -152,6 +152,25 @@ protected:
         for (size_t k = 0; k < nEval; ++k) evals.push_back(frame(true, "Eval_" + std::to_string(k) + ".raw"));
     }
 
+    // QA-A-252i: the same kind of frames at a size of the caller's choice (the tests that only check arguments, counts and masks need no 1024 x 1024 frames: a map run takes seconds there)
+    void makeFramesSized(uint32_t w, uint32_t h, size_t nDark, size_t nBright) {
+        uint32_t state = 777u;
+        auto frame = [&](bool bright, const std::string& name) {
+            std::vector<uint16_t> f(static_cast<size_t>(w) * h);
+            for (uint32_t y = 0; y < h; ++y)
+                for (uint32_t x = 0; x < w; ++x) {
+                    double v = 3000.0 + ((x * 7 + y * 13) % 11) + (nextNoise(state) % 9);
+                    if (bright) v += 6000.0 * (0.9 + 0.2 * x / (w - 1)) + (nextNoise(state) % 31);
+                    f[static_cast<size_t>(y) * w + x] = static_cast<uint16_t>(v);
+                }
+            const fs::path p = root / "in" / name;
+            writeBytes(p, f.data(), f.size() * 2);
+            return p.string();
+        };
+        for (size_t k = 0; k < nDark; ++k) darks.push_back(frame(false, "Dark_" + std::to_string(k) + ".raw"));
+        for (size_t k = 0; k < nBright; ++k) brights.push_back(frame(true, "Bright_" + std::to_string(k) + ".raw"));
+    }
+
     std::string small() const { return " --width 1024 --height 1024 --margin 16 --line-gap 5 --pixels-per-level 3 --blocks-per-level 2"; }
 
     std::string files(const char* opt, const std::vector<std::string>& v) const {
@@ -885,9 +904,10 @@ TEST_F(BpmEvalTest, ScoreSeparatesAPerfectMapFromAnEmptyOne) {
 }
 
 TEST_F(BpmEvalTest, MapV2TakesMarginsAndWritesTheAreaMask) {
-    makeFrames(6, 8, 0);
+    constexpr size_t W = 128, H = 128, N = W * H;   // QA-A-252i: small frames, the masks are what is checked
+    makeFramesSized(W, H, 6, 8);
     auto run = [&](const std::string& margins, const fs::path& out, const fs::path& area) {
-        std::string args = "map-v2 --out \"" + out.string() + "\" --area \"" + area.string() + "\" --width 1024 --height 1024 --min-bright 2 --skip-first-dark 0" +
+        std::string args = "map-v2 --out \"" + out.string() + "\" --area \"" + area.string() + "\" --width 128 --height 128 --min-bright 2 --skip-first-dark 0" +
                            (margins.empty() ? "" : " --margins " + margins);
         args += files("dark", darks) + files("bright", brights) + " > \"" + (root / "mv2.log").string() + "\" 2>&1";
         return runCmd(XPE_BPM_EVAL_EXE, args);
@@ -895,26 +915,26 @@ TEST_F(BpmEvalTest, MapV2TakesMarginsAndWritesTheAreaMask) {
     const fs::path out = root / "mv2.u8", area = root / "mv2_area.u8";
     ASSERT_EQ(0, run("6,2,1,1", out, area)) << text(root / "mv2.log");
     const std::vector<uint8_t> m = readBytes(out), a = readBytes(area);
-    ASSERT_EQ(kN, m.size());
-    ASSERT_EQ(kN, a.size());
-    for (size_t y = 0; y < kH; ++y)
-        for (size_t x = 0; x < kW; ++x) {
-            const bool margin = x < 6 || y < 2 || x >= kW - 1 || y >= kH - 1;
-            ASSERT_EQ(margin ? 0 : 1, a[y * kW + x]) << "(" << x << "," << y << ")";
-            if (margin) ASSERT_EQ(0, m[y * kW + x]) << "outside the area the map is good: (" << x << "," << y << ")";
+    ASSERT_EQ(N, m.size());
+    ASSERT_EQ(N, a.size());
+    for (size_t y = 0; y < H; ++y)
+        for (size_t x = 0; x < W; ++x) {
+            const bool margin = x < 6 || y < 2 || x >= W - 1 || y >= H - 1;
+            ASSERT_EQ(margin ? 0 : 1, a[y * W + x]) << "(" << x << "," << y << ")";
+            if (margin) ASSERT_EQ(0, m[y * W + x]) << "outside the area the map is good: (" << x << "," << y << ")";
         }
     EXPECT_EQ(2, run("1,2,3", root / "bad1.u8", root / "bad1_area.u8")) << "three numbers are not a margin specification";
     EXPECT_EQ(2, run("6,2,1,1,5", root / "bad2.u8", root / "bad2_area.u8"));
     EXPECT_EQ(2, run("6,2,1,x", root / "bad3.u8", root / "bad3_area.u8"));
     EXPECT_EQ(0, run("", root / "none.u8", root / "none_area.u8")) << text(root / "mv2.log");
     const std::vector<uint8_t> n0 = readBytes(root / "none_area.u8");
-    EXPECT_EQ(static_cast<ptrdiff_t>(kN), std::count(n0.begin(), n0.end(), static_cast<uint8_t>(1))) << "no margins: the whole frame is the area";
+    EXPECT_EQ(static_cast<ptrdiff_t>(N), std::count(n0.begin(), n0.end(), static_cast<uint8_t>(1))) << "no margins: the whole frame is the area";
 }
 
 TEST_F(BpmEvalTest, MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot) {
-    makeFrames(6, 8, 0);
+    makeFramesSized(128, 128, 6, 8);   // QA-A-252i: only the number of frames used is checked
     auto used = [&](const std::string& skipArg) {
-        std::string args = "map-v2 --out \"" + (root / "sk.u8").string() + "\" --report \"" + (root / "sk.json").string() + "\" --width 1024 --height 1024 --min-bright 2 --min-dark 3" + skipArg;
+        std::string args = "map-v2 --out \"" + (root / "sk.u8").string() + "\" --report \"" + (root / "sk.json").string() + "\" --width 128 --height 128 --min-bright 2 --min-dark 3" + skipArg;
         args += files("dark", darks) + files("bright", brights) + " > \"" + (root / "sk.log").string() + "\" 2>&1";
         EXPECT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, args)) << text(root / "sk.log");
         const std::string j = text(root / "sk.json");
@@ -1094,7 +1114,8 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     const fs::path t = root / "t";
     ASSERT_EQ(0, inject(t));
     auto set = [&](const fs::path& framesDir, const fs::path& out, const char* tag) {
-        std::string args = "--out \"" + out.string() + "\" --width 1024 --height 1024 --expiry-ms 4102444800000";
+        // QA-A-252i: --bpm-v2 (about 8 s on 1024 x 1024 frames; the first-generation map of the default takes about 40 s, three times in this test)
+        std::string args = "--out \"" + out.string() + "\" --width 1024 --height 1024 --expiry-ms 4102444800000 --bpm-v2";
         for (const auto& f : darks) args += " --dark \"" + (framesDir / fs::path(f).filename()).string() + "\"";
         for (size_t k = 0; k < 10; ++k) args += " --bright \"" + (framesDir / fs::path(brights[k]).filename()).string() + "\"";
         args += " > \"" + (root / (std::string(tag) + ".log")).string() + "\" 2>&1";
@@ -1158,7 +1179,7 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
         writeBytes(pth, f.data(), f.size() * 2);
         cb.push_back(pth.string());
     }
-    std::string cargs = "--out \"" + (root / "const_set").string() + "\" --width 1024 --height 1024 --expiry-ms 4102444800000";
+    std::string cargs = "--out \"" + (root / "const_set").string() + "\" --width 1024 --height 1024 --expiry-ms 4102444800000 --bpm-v2";
     for (const auto& d : cd) cargs += " --dark \"" + d + "\"";
     for (const auto& b : cb) cargs += " --bright \"" + b + "\"";
     cargs += " > \"" + (root / "cs.log").string() + "\" 2>&1";

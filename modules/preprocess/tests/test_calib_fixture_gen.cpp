@@ -48,15 +48,16 @@ namespace {
 
 constexpr uint32_t kW = 256;
 constexpr uint32_t kH = 256;
+constexpr uint32_t kSynthSize = 128;   // frame size of the synthetic mode (runGenerator)
 
 /** Runs the generator into @p dir and returns its exit code. */
-int runGenerator(const fs::path& dir, unsigned seed, uint64_t expiryMs) {
+int runGenerator(const fs::path& dir, unsigned seed, uint64_t expiryMs, uint32_t size = kSynthSize) {
     std::string cmd;
     cmd += "\"";
     cmd += XPE_FIXTURE_GEN_EXE;
     cmd += "\" --out \"" + dir.string() + "\"";
-    cmd += " --width " + std::to_string(kW);
-    cmd += " --height " + std::to_string(kH);
+    cmd += " --width " + std::to_string(size);   // QA-A-252i: the synthetic mode needs no large frames; the first-generation defect map costs about 2.4 s per 65,536 pixels
+    cmd += " --height " + std::to_string(size);
     cmd += " --seed " + std::to_string(seed);
     cmd += " --expiry-ms " + std::to_string(expiryMs);
 #ifdef _WIN32
@@ -167,7 +168,7 @@ TEST_F(CalibFixtureGenTest, DifferentSeedChangesOffsetAndGain) {
 // expects as its calibPath, and one frame runs through it end to end.
 TEST_F(CalibFixtureGenTest, GeneratedSetDrivesThePipeline) {
     const fs::path d = caseDir("pipe");
-    ASSERT_EQ(0, runGenerator(d, 0, 0));
+    ASSERT_EQ(0, runGenerator(d, 0, 0, kW));
 
     ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
 
