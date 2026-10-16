@@ -1916,9 +1916,10 @@ typedef struct {
 #define XPE_BPM_V2_FEATURE_DOSE_SLOPE  0x04u /**< Slope of the response over the dose groups */
 #define XPE_BPM_V2_FEATURE_DOSE_LINEAR 0x08u /**< Residual of the straight-line fit over the dose groups (log of its variance, upper side) */
 #define XPE_BPM_V2_FEATURE_FLAT        0x10u /**< Local deviation of the relative flat-field response */
+#define XPE_BPM_V2_FEATURE_BRIGHT_NOISE 0x20u /**< Temporal noise of the bright frames inside the dose groups against its local median (QA-A-252b) */
 
 /** Number of detection features reported by XpeBpmReportV2. */
-#define XPE_BPM_V2_FEATURE_COUNT 5
+#define XPE_BPM_V2_FEATURE_COUNT 6
 
 /** Largest number of dose groups xpe_bpm_generate_v2 accepts. */
 #define XPE_BPM_V2_MAX_DOSE_GROUPS 8
@@ -1926,7 +1927,7 @@ typedef struct {
 /**
  * @brief What xpe_bpm_generate_v2 decided and why (thresholds and the numbers they came from)
  *
- * Feature order in the arrays: dark mean, dark noise, dose slope, dose linearity, flat field
+ * Feature order in the arrays: dark mean, dark noise, dose slope, dose linearity, flat field, bright noise
  * (the bit order of the XPE_BPM_V2_FEATURE_* values).
  */
 typedef struct {
@@ -1935,9 +1936,9 @@ typedef struct {
     uint32_t bright_frames_used;                              /**< Bright frames used */
     uint32_t dose_groups;                                     /**< Dose groups found */
     uint32_t feature_active[XPE_BPM_V2_FEATURE_COUNT];        /**< 1 when the feature ran (the linearity feature needs three dose groups) */
-    uint32_t degrees_of_freedom[XPE_BPM_V2_FEATURE_COUNT];    /**< Degrees of freedom of the variance-ratio feature (dark noise), 0 for the others */
-    float    threshold[XPE_BPM_V2_FEATURE_COUNT];             /**< Threshold: |z| for the z features, z (upper side only) for the linearity feature, variance ratio for dark noise */
-    float    scale_median[XPE_BPM_V2_FEATURE_COUNT];          /**< Median over the frame of the local scale (z features) or of the local reference (dark noise) */
+    uint32_t degrees_of_freedom[XPE_BPM_V2_FEATURE_COUNT];    /**< Degrees of freedom of the variance-ratio features (dark noise, bright noise), 0 for the others */
+    float    threshold[XPE_BPM_V2_FEATURE_COUNT];             /**< Threshold: |z| for the z features, z (upper side only) for the linearity feature, variance ratio for the noise features */
+    float    scale_median[XPE_BPM_V2_FEATURE_COUNT];          /**< Median over the frame of the local scale (z features) or of the local reference (noise features) */
     uint32_t flagged[XPE_BPM_V2_FEATURE_COUNT];               /**< Pixels each feature flagged */
     uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */
     float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */

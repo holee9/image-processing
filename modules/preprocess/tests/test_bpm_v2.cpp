@@ -73,6 +73,12 @@ XpeImageBuffer outBuf(std::vector<uint8_t>& v) {
 struct Plant {
     bool stripes{true};
     bool defects{true};
+    // QA-A-252b: what the first measurement of the detector showed it cannot take (#273)
+    bool partialLines{false};   // a quarter of a row / of a column, and of a two-row line, without response in the bright frames
+    bool varyingColumn{false};  // a column whose offset changes from frame to frame
+    bool yGradient{false};      // the gain also changes along the columns (vertical shading), so a multiplicative column band leaves a trace
+    bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
+    bool strongShading{false};  // +-20 % gain shading along both directions (a heel-effect-like flat field): a line component taken from a partly defective line moves by many noise widths
 };
 
 constexpr int kHotX = 40, kHotY = 50;        // +80 pixel values in every frame
@@ -81,6 +87,11 @@ constexpr int kSlopeX = 150, kSlopeY = 120;  // response 1.10
 constexpr int kNoisyX = 200, kNoisyY = 30;   // temporal noise sd 30 instead of 3
 constexpr int kBandRow = 180;                // fixed +60 in every frame (a row band)
 constexpr int kGainCol = 220;                // response 0.8 in the bright frames (a column band)
+constexpr int kPartRow = 100, kPartRowPair = 140, kPartCol = 30;   // partial lines: a quarter of the length (64 of 256), from the frame start
+constexpr int kPartLen = 64;
+constexpr int kPartRowFrom = 96;             // the row segments sit in the middle of the row: the median of a row with a gradient moves most when the missing part is not at an end
+constexpr int kBrightNoisyX = 120, kBrightNoisyY = 200;   // extra temporal noise sd 150 in every bright frame
+constexpr int kVarCol = 70;                  // a column offset that is a new random value in every frame (sd 15)
 
 Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPerDose, int nDark, Plant plant, bool transientFirstDark = false) {
     Normal rng(seed);
@@ -92,11 +103,21 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
     }
     auto atPlant = [&](int x, int y, int px, int py) { return x == px && y == py; };
     Frames f;
+    Normal pixelRng(seed + 7);   // used only for the bright-noise pixel
+    Normal frameRng(seed + 99);   // separate from the pixel noise, so the planted extras do not change any other value
     auto put = [&](double net, bool bright, bool firstDark) {
         std::vector<uint16_t> fr(kN);
+        const double columnOffset = plant.varyingColumn ? 15.0 * frameRng.next() : 0.0;
         for (size_t i = 0; i < kN; ++i) {
             const int x = static_cast<int>(i % kW), y = static_cast<int>(i / kW);
             double d = D0[i], sig = net * G[i];
+            if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
+            if (plant.strongShading) sig *= (0.8 + 0.4 * x / (kW - 1)) * (0.8 + 0.4 * y / (kH - 1));
+            if (plant.varyingColumn && x == kVarCol) d += columnOffset;
+            if (plant.partialLines) {
+                if ((y == kPartRow || y == kPartRowPair || y == kPartRowPair + 1) && x >= kPartRowFrom && x < kPartRowFrom + kPartLen) sig = 0.0;
+                if (x == kPartCol && y < kPartLen) sig = 0.0;
+            }
             double noiseSd = 3.0;
             if (plant.defects) {
                 if (atPlant(x, y, kHotX, kHotY)) d += 80.0;
@@ -109,6 +130,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                 if (x == kGainCol) sig *= 0.8;
             }
             double v = d + (bright ? sig + 0.5 * std::sqrt(std::max(sig, 1.0)) * rng.next() : 0.0) + noiseSd * rng.next();
+            if (bright && plant.brightNoisyPixel && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 150.0 * pixelRng.next();
             if (firstDark && x >= 20 && x < 24 && y >= 20 && y < 24) v += 200.0;   // a transient only in the first frame
             fr[i] = static_cast<uint16_t>(std::min(65535.0, std::max(0.0, std::floor(v + 0.5))));
         }
@@ -148,7 +170,7 @@ const std::vector<double> kDoses = {2000.0, 4500.0, 9000.0, 18000.0};
 
 // The per-feature counts and thresholds, for the failure messages.
 std::string describe(const XpeBpmReportV2& r) {
-    static const char* const names[XPE_BPM_V2_FEATURE_COUNT] = {"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field"};
+    static const char* const names[XPE_BPM_V2_FEATURE_COUNT] = {"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field", "bright_noise"};
     std::string s = "union " + std::to_string(r.flagged_union);
     for (int k = 0; k < XPE_BPM_V2_FEATURE_COUNT; ++k)
         s += std::string("; ") + names[k] + " flagged " + std::to_string(r.flagged[k]) + " threshold " + std::to_string(r.threshold[k]) + " scale " + std::to_string(r.scale_median[k]);
@@ -191,6 +213,63 @@ TEST(BpmV2Test, StripesThatOffsetAndGainRemoveAreNotDefects) {
     const Result control = detect(c, nullptr);
     ASSERT_EQ(XPE_OK, control.rc);
     EXPECT_LE(r.rep.flagged_union, control.rep.flagged_union + 2u) << "with stripes: " << describe(r.rep) << " | control: " << describe(control.rep);
+}
+
+
+// ---------------------------------------------------------------- QA-A-252b: the three failures of the first measurement (#273), on synthetic frames
+// The shading of the synthetic gain is 10 % along the rows, like a real flat field; a row component taken as the median of the row itself is then moved by
+// a defect that covers a part of the row.
+size_t flaggedInRow(const Result& r, int y, int xFrom, int xTo) {
+    size_t n = 0;
+    for (int x = xFrom; x < xTo; ++x) n += r.map[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] != 0;
+    return n;
+}
+size_t flaggedInColumn(const Result& r, int x, int yFrom, int yTo) {
+    size_t n = 0;
+    for (int y = yFrom; y < yTo; ++y) n += r.map[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] != 0;
+    return n;
+}
+
+TEST(BpmV2Test, APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap) {
+    Frames f = makeFrames(5, kDoses, 3, 7, Plant{false, false, true, false, false, false, true});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    for (int y : {kPartRow, kPartRowPair, kPartRowPair + 1}) {
+        EXPECT_GE(flaggedInRow(r, y, kPartRowFrom, kPartRowFrom + kPartLen), static_cast<size_t>(kPartLen) * 9 / 10) << "the defective part of row " << y << " is found";
+        EXPECT_LE(flaggedInRow(r, y, 0, kPartRowFrom - 8) + flaggedInRow(r, y, kPartRowFrom + kPartLen + 8, static_cast<int>(kW)), 2u)
+            << "the rest of row " << y << " is not defective: " << describe(r.rep);
+    }
+    EXPECT_GE(flaggedInColumn(r, kPartCol, 0, kPartLen), static_cast<size_t>(kPartLen) * 9 / 10);
+    EXPECT_LE(flaggedInColumn(r, kPartCol, kPartLen + 8, static_cast<int>(kH)), 2u) << "the rest of column " << kPartCol << " is not defective: " << describe(r.rep);
+}
+
+TEST(BpmV2Test, NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature) {
+    Frames f = makeFrames(8, kDoses, 3, 7, Plant{false, false, false, false, false, true, false});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    ASSERT_EQ(1u, r.rep.feature_active[5]) << "the bright-noise feature runs when a dose group holds two frames or more";
+    EXPECT_EQ(static_cast<uint32_t>(4 * 2), r.rep.degrees_of_freedom[5]) << "pooled degrees of freedom: four groups of three frames, two each";
+    const size_t at = static_cast<size_t>(kBrightNoisyY) * kW + static_cast<size_t>(kBrightNoisyX);
+    EXPECT_NE(0, r.feat[at] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) << describe(r.rep);
+    EXPECT_EQ(0, r.feat[at] & XPE_BPM_V2_FEATURE_DARK_NOISE) << "the dark frames of this pixel are quiet";
+    EXPECT_EQ(1, r.map[at]) << "a bright-frame feature gives code 1";
+    EXPECT_LE(r.rep.flagged[5], 1u + 6u) << "about the target of 1, plus the pixel itself: " << describe(r.rep);
+}
+
+TEST(BpmV2Test, AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect) {
+    Frames f = makeFrames(6, kDoses, 3, 7, Plant{false, false, false, true, false});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    size_t noise = 0;
+    for (uint32_t y = 0; y < kH; ++y) noise += (r.feat[static_cast<size_t>(y) * kW + kVarCol] & XPE_BPM_V2_FEATURE_DARK_NOISE) != 0;
+    EXPECT_LE(noise, 2u) << "a shared offset of the column is not temporal noise of its pixels: " << describe(r.rep);
+}
+
+TEST(BpmV2Test, AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn) {
+    Frames f = makeFrames(7, kDoses, 3, 7, Plant{true, false, false, false, false, false, true});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_LE(flaggedInColumn(r, kGainCol, 0, static_cast<int>(kH)), 2u) << "a column band of response 0.8 is not a defect: " << describe(r.rep);
 }
 
 TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {

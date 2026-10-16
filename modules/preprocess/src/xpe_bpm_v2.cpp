@@ -167,19 +167,51 @@ void separableMedian(const float* in, float* tmp, float* out, int w, int h, int 
     }
 }
 
-/** Subtracts the median of every row, then the median of every column of the result. */
-void removeRowColumn(float* f, int w, int h) {
+/** Median of @p win values along the columns (alongY) or along the rows, reflected borders. */
+void slidingMedian(const float* in, float* out, int w, int h, int win, bool alongY) {
+    const int r = win / 2;
+    float buf[65];
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            if (alongY) {
+                for (int k = -r; k <= r; ++k) buf[k + r] = in[static_cast<size_t>(reflect(y + k, h)) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+            } else {
+                for (int k = -r; k <= r; ++k) buf[k + r] = in[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(reflect(x + k, w))];
+            }
+            std::nth_element(buf, buf + r, buf + win);
+            out[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)] = buf[r];
+        }
+}
+
+/**
+ * Removes the row component, then the column component (QA-A-252b). The component of a row is the median over the row of the difference between the row and the
+ * median of the neighbouring rows at the same column, so a gradient along the row cancels and a defect that covers a part of the row moves the median by no more than
+ * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. With @p multiplicative the
+ * component is a factor (the median of the ratio) instead of an offset. Constant over the whole line: removed. Not constant along the line: left for the later steps.
+ */
+void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplicative) {
     std::vector<float> line(static_cast<size_t>(std::max(w, h)));
+    auto component = [&](float v, float ref) -> float { return multiplicative ? (std::fabs(ref) > 1e-30f ? v / ref : 1.0f) : v - ref; };
+    auto apply = [&](float& v, float c) {
+        if (multiplicative) {
+            if (std::fabs(c) > 1e-30f) v /= c;
+        } else {
+            v -= c;
+        }
+    };
+    slidingMedian(f, tmp, w, h, win, true);
     for (int y = 0; y < h; ++y) {
         float* row = f + static_cast<size_t>(y) * static_cast<size_t>(w);
-        std::copy(row, row + w, line.begin());
-        const float m = medianOf(line.data(), static_cast<size_t>(w));
-        for (int x = 0; x < w; ++x) row[x] -= m;
+        const float* ref = tmp + static_cast<size_t>(y) * static_cast<size_t>(w);
+        for (int x = 0; x < w; ++x) line[static_cast<size_t>(x)] = component(row[x], ref[x]);
+        const float c = medianOf(line.data(), static_cast<size_t>(w));
+        for (int x = 0; x < w; ++x) apply(row[x], c);
     }
+    slidingMedian(f, tmp, w, h, win, false);
     for (int x = 0; x < w; ++x) {
-        for (int y = 0; y < h; ++y) line[static_cast<size_t>(y)] = f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)];
-        const float m = medianOf(line.data(), static_cast<size_t>(h));
-        for (int y = 0; y < h; ++y) f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)] -= m;
+        for (int y = 0; y < h; ++y) line[static_cast<size_t>(y)] = component(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)], tmp[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]);
+        const float c = medianOf(line.data(), static_cast<size_t>(h));
+        for (int y = 0; y < h; ++y) apply(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)], c);
     }
 }
 
@@ -219,8 +251,8 @@ struct Work {
 };
 
 /** Robust z feature: subtracts rows and columns, estimates background and scale, flags |z| > lambda (z > lambda when @p upperOnly). Returns the median local scale. */
-float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
-    removeRowColumn(wk.feat.data(), wk.w, wk.h);
+float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
+    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), multiplicative);
     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
     for (size_t i = 0; i < wk.n; ++i) wk.feat[i] -= wk.bg[i];   // residual
     std::vector<float> sig;
@@ -305,7 +337,7 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
             for (size_t i = 0; i < n; ++i) sum[i] += p[i];
         }
         for (size_t i = 0; i < n; ++i) D[i] = static_cast<float>(sum[i]) / static_cast<float>(nd);
-        std::vector<double> rowMean(static_cast<size_t>(h));
+        std::vector<double> rowMean(static_cast<size_t>(h)), colMean(static_cast<size_t>(w));
         for (uint32_t k = first; k < num_dark; ++k) {
             const uint16_t* p = px(dark_frames[k]);
             for (int y = 0; y < h; ++y) {
@@ -316,10 +348,18 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
                 }
                 rowMean[static_cast<size_t>(y)] = acc / w;
             }
+            // the column component of this frame: what is left of the column means after the row means are taken out (a shared offset of a column that changes from frame to frame)
+            std::fill(colMean.begin(), colMean.end(), 0.0);
             for (int y = 0; y < h; ++y)
                 for (int x = 0; x < w; ++x) {
                     const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
-                    const double e = static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMean[static_cast<size_t>(y)];
+                    colMean[static_cast<size_t>(x)] += static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMean[static_cast<size_t>(y)];
+                }
+            for (int x = 0; x < w; ++x) colMean[static_cast<size_t>(x)] /= h;
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                    const double e = static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMean[static_cast<size_t>(y)] - colMean[static_cast<size_t>(x)];
                     s2[i] += static_cast<float>(e * e);
                 }
         }
@@ -353,8 +393,13 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
     std::vector<double> Sn(n, 0.0), Sxn(n, 0.0), Snn(n, 0.0);
     double Sx = 0.0, Sxx = 0.0;
     std::vector<double> groupSignal(G, 0.0);
+    // bright-frame temporal noise inside the dose groups (QA-A-252b, F2b): per group the variance of the frames about the group mean (the row and column means of every frame
+    // taken out, as for the dark frames), relative to its own local median; the groups are pooled as a sum of chi-square variables
+    std::vector<float> noiseSum, refSum;
+    uint32_t           nuBright = 0, noiseGroups = 0;
     {
         std::vector<float> acc(n);
+        std::vector<float> vg, vgTmp, vgBg;
         for (uint32_t g = 0; g < G; ++g) {
             std::fill(acc.begin(), acc.end(), 0.0f);
             double sg = 0.0;
@@ -374,24 +419,70 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
                 Sxn[i] += sg * ng;
                 Snn[i] += ng * ng;
             }
+            const uint32_t mg = static_cast<uint32_t>(groups[g].size());
+            if (mg >= 2) {
+                if (noiseSum.empty()) {
+                    noiseSum.assign(n, 0.0f);
+                    refSum.assign(n, 0.0f);
+                    vg.resize(n);
+                    vgTmp.resize(n);
+                    vgBg.resize(n);
+                }
+                std::fill(vg.begin(), vg.end(), 0.0f);
+                std::vector<double> rm(static_cast<size_t>(height)), cm(static_cast<size_t>(width));
+                for (uint32_t k : groups[g]) {
+                    const uint16_t* p = px(bright_frames[k]);
+                    for (uint32_t y = 0; y < height; ++y) {
+                        double a = 0.0;
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            a += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv);
+                        }
+                        rm[y] = a / width;
+                    }
+                    std::fill(cm.begin(), cm.end(), 0.0);
+                    for (uint32_t y = 0; y < height; ++y)
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            cm[x] += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y];
+                        }
+                    for (uint32_t x = 0; x < width; ++x) cm[x] /= height;
+                    for (uint32_t y = 0; y < height; ++y)
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            const double e = static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y] - cm[x];
+                            vg[i] += static_cast<float>(e * e);
+                        }
+                }
+                for (size_t i = 0; i < n; ++i) vg[i] /= static_cast<float>(mg - 1);
+                separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
+                const double mnu = varianceMedian(mg - 1);
+                for (size_t i = 0; i < n; ++i) {
+                    const double ref = std::max(static_cast<double>(vgBg[i]) / mnu, kReferenceFloor);
+                    noiseSum[i] += static_cast<float>((mg - 1) * (static_cast<double>(vg[i]) / ref));
+                    refSum[i] += static_cast<float>(ref);
+                }
+                nuBright += mg - 1;
+                ++noiseGroups;
+            }
         }
     }
 
     if (report) std::memset(report, 0, sizeof(*report));
     std::vector<uint8_t> flags(n, 0);
     Work wk{w, h, n, std::vector<float>(n), std::vector<float>(n), std::vector<float>(n)};
-    uint32_t counts[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
-    float    scaleMed[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
-    double   threshold[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
-    uint32_t nu[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
-    uint32_t active[XPE_BPM_V2_FEATURE_COUNT] = {1, 1, 0, 0, 1};
+    uint32_t counts[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    float    scaleMed[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    double   threshold[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    uint32_t nu[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    uint32_t active[XPE_BPM_V2_FEATURE_COUNT] = {1, 1, 0, 0, 1, 0};
     const double p = st.falseAlarms / static_cast<double>(n);
     const double lambdaTwoSided = zThreshold(p);
 
     // F1 dark mean
     std::copy(D.begin(), D.end(), wk.feat.begin());
     threshold[0] = lambdaTwoSided;
-    scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);
+    scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);
 
     // F2 dark temporal noise
     nu[1] = nd - 1;
@@ -405,7 +496,7 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
         const double dgx = static_cast<double>(G) * Sxx - Sx * Sx;
         for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
         threshold[2] = lambdaTwoSided;
-        scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);
+        scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);
         if (G >= 3) {
             // The noise of the group means differs from group to group (shot noise grows with the dose, the groups hold different numbers of frames),
             // so the residual of the unweighted fit is not chi-square distributed; the log of the residual variance is judged by the robust z machinery instead.
@@ -417,19 +508,36 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
                 const double sse = std::max(0.0, Snn[i] - a * Sxn[i] - b * Sn[i]);
                 wk.feat[i] = static_cast<float>(std::log(sse / static_cast<double>(G - 2) + 1e-9));
             }
-            scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);
+            scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);
         }
+    }
+
+    // F2b bright temporal noise inside the dose groups (needs a group of two frames or more)
+    if (nuBright > 0) {
+        active[5] = 1;
+        nu[5] = nuBright;
+        threshold[5] = varianceThreshold(nuBright, p);
+        std::vector<float> sample;
+        sample.reserve(n / 16 + 1);
+        for (size_t i = 0; i < n; ++i) {
+            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > threshold[5]) {
+                flags[i] = static_cast<uint8_t>(flags[i] | XPE_BPM_V2_FEATURE_BRIGHT_NOISE);
+                ++counts[5];
+            }
+            if (i % 16 == 0) sample.push_back(refSum[i] / static_cast<float>(noiseGroups));
+        }
+        scaleMed[5] = medianOf(sample.data(), sample.size());
     }
 
     // F4 relative flat-field response
     for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>(Sn[i] / Sx);
     threshold[4] = lambdaTwoSided;
-    scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);
+    scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);
 
     // ---- output
     uint8_t* out = static_cast<uint8_t*>(bpm_out->data);
     uint32_t unionCount = 0;
-    const uint8_t brightBits = XPE_BPM_V2_FEATURE_DOSE_SLOPE | XPE_BPM_V2_FEATURE_DOSE_LINEAR | XPE_BPM_V2_FEATURE_FLAT;
+    const uint8_t brightBits = XPE_BPM_V2_FEATURE_DOSE_SLOPE | XPE_BPM_V2_FEATURE_DOSE_LINEAR | XPE_BPM_V2_FEATURE_FLAT | XPE_BPM_V2_FEATURE_BRIGHT_NOISE;
     const uint8_t darkBits = XPE_BPM_V2_FEATURE_DARK_MEAN | XPE_BPM_V2_FEATURE_DARK_NOISE;
     for (size_t i = 0; i < n; ++i) {
         const uint8_t f = flags[i];
