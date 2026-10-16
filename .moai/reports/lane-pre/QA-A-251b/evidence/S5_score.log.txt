@@ -1,0 +1,88 @@
+start 2026-10-16 18:20:11  S5_score
+== detection (map D:/workspace-github/xpe-data/bpm-eval-251/inj_set/defect.xcal)
+  class/kind/shape/level              items  detected      rate   all pixels    mean recall
+  line/dead/row_full/1                    1         1    1.0000            1         1.0000
+  line/dead/col_full/1                    1         1    1.0000            1         1.0000
+  line/dead/row_partial/1                 1         1    1.0000            1         1.0000
+  line/dead/col_partial/1                 1         1    1.0000            1         1.0000
+  line/dead/row_pair/1                    1         1    1.0000            1         1.0000
+  line/dead/col_pair/1                    1         1    1.0000            1         1.0000
+  line/dead/row_full/0.5                  1         1    1.0000            1         1.0000
+  line/dead/col_full/0.5                  1         1    1.0000            1         1.0000
+  line/dead/row_partial/0.5               1         1    1.0000            1         1.0000
+  line/dead/col_partial/0.5               1         1    1.0000            1         1.0000
+  line/dead/row_pair/0.5                  1         1    1.0000            1         1.0000
+  line/dead/col_pair/0.5                  1         1    1.0000            1         1.0000
+  line/nonlinear/row_full/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/col_full/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/row_partial/0.4          1         1    1.0000            1         1.0000
+  line/nonlinear/col_partial/0.4          1         1    1.0000            1         1.0000
+  line/nonlinear/row_pair/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/col_pair/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/row_full/0.2             1         0    0.0000            0         0.0852
+  line/nonlinear/col_full/0.2             1         1    1.0000            0         0.5400
+  line/nonlinear/row_partial/0.2          1         0    0.0000            0         0.0380
+  line/nonlinear/col_partial/0.2          1         1    1.0000            1         1.0000
+  line/nonlinear/row_pair/0.2             1         1    1.0000            0         0.6948
+  line/nonlinear/col_pair/0.2             1         0    0.0000            0         0.1752
+  line/noisy/row_full/4                   1         0    0.0000            0         0.0000
+  line/noisy/col_full/4                   1         0    0.0000            0         0.0000
+  line/noisy/row_partial/4                1         0    0.0000            0         0.0000
+  line/noisy/col_partial/4                1         0    0.0000            0         0.0000
+  line/noisy/row_pair/4                   1         0    0.0000            0         0.0000
+  line/noisy/col_pair/4                   1         0    0.0000            0         0.0000
+  line/noisy/row_full/2                   1         0    0.0000            0         0.0000
+  line/noisy/col_full/2                   1         0    0.0000            0         0.0000
+  line/noisy/row_partial/2                1         0    0.0000            0         0.0000
+  line/noisy/col_partial/2                1         0    0.0000            0         0.0000
+  line/noisy/row_pair/2                   1         0    0.0000            0         0.0000
+  line/noisy/col_pair/2                   1         0    0.0000            0         0.0000
+  line/dead/cross/1                       1         1    1.0000            1         1.0000
+  line/nonlinear/cross/0.4                1         1    1.0000            1         1.0000
+  line/noisy/cross/4                      1         0    0.0000            0         0.0000
+  block/dead/block2/1                    16        16    1.0000           16         1.0000
+  block/dead/block2/0.5                  16        16    1.0000           16         1.0000
+  block/dead/block3/1                    16        16    1.0000           16         1.0000
+  block/dead/block3/0.5                  16        16    1.0000           16         1.0000
+  block/dead/block4/1                    16        16    1.0000           16         1.0000
+  block/dead/block4/0.5                  16        16    1.0000           16         1.0000
+  block/dead/block8/1                    16        16    1.0000           16         1.0000
+  block/dead/block8/0.5                  16        16    1.0000           16         1.0000
+  pixel/dead/pixel/1                     64        64    1.0000           64         1.0000
+  pixel/dead/pixel/0.5                   64        64    1.0000           64         1.0000
+  pixel/hot/pixel/200                    64        63    0.9844           63         0.9844
+  pixel/hot/pixel/100                    64        61    0.9531           61         0.9531
+  pixel/hot/pixel/50                     64        35    0.5469           35         0.5469
+  pixel/hot/pixel/25                     64         2    0.0312            2         0.0312
+  pixel/noisy/pixel/4                    64         0    0.0000            0         0.0000
+  pixel/noisy/pixel/2                    64         0    0.0000            0         0.0000
+  pixel/noisy/pixel/1                    64         0    0.0000            0         0.0000
+  pixel/slope/pixel/0.75                 64        64    1.0000           64         1.0000
+  pixel/slope/pixel/0.9                  64         0    0.0000            0         0.0000
+  pixel/slope/pixel/1.1                  64         0    0.0000            0         0.0000
+  pixel/slope/pixel/1.25                 64        64    1.0000           64         1.0000
+  pixel/nonlinear/pixel/0.4              64        64    1.0000           64         1.0000
+  pixel/nonlinear/pixel/0.2              64        15    0.2344           15         0.2344
+== false alarms
+  flagged pixels in the map: 70213; outside the true defects (widened by 2): 17881
+  clean map (no planting): flagged 133; outside the true defects: 133
+  NEW false alarms (flagged here, not in the clean map, outside the true defects): 17749 = 1880.752 per million pixels
+    of which on control bands: 17726
+== control bands (12 items; false detection = at least half of the band flagged)
+  fixed_band     row_full  level 100   flagged   2695 of   3051 = 0.8833   clean map 0.0000   FALSE DETECTION
+  fixed_band     col_full  level 100   flagged   3051 of   3054 = 0.9990   clean map 0.0000   FALSE DETECTION
+  fixed_band     row_full  level 30    flagged     81 of   3054 = 0.0265   clean map 0.0000   ok
+  fixed_band     col_full  level 30    flagged      0 of   3054 = 0.0000   clean map 0.0000   ok
+  gain_band      row_full  level 0.8   flagged   3050 of   3050 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_band      col_full  level 0.8   flagged   3050 of   3050 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_band      row_full  level 1.2   flagged   3047 of   3049 = 0.9993   clean map 0.0000   FALSE DETECTION
+  gain_band      col_full  level 1.2   flagged   3054 of   3054 = 1.0000   clean map 0.0000   FALSE DETECTION
+  varying_band   row_full  level 20    flagged      1 of   3055 = 0.0003   clean map 0.0000   ok
+  varying_band   col_full  level 20    flagged      0 of   3053 = 0.0000   clean map 0.0000   ok
+  varying_band   row_full  level 8     flagged      0 of   3053 = 0.0000   clean map 0.0000   ok
+  varying_band   col_full  level 8     flagged      0 of   3048 = 0.0000   clean map 0.0000   ok
+  false detections: 6 of 12
+== split-half agreement (Jaccard)
+  half A flags 66492, half B flags 74858
+  all pixels 0.8870 (66443 / 74907); inside the truth 0.8871 (66321 / 74765); outside the truth 0.8592 (122 / 142)
+exit 0 wall seconds 0
