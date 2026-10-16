@@ -1,0 +1,29 @@
+Q5 area mask: 9437184 bytes, 30699 zeros, 9406485 ones, values [0, 1]
+   v2d_clean_area.u8 identical to the planted run mask: True
+   v2d_half_a_area.u8 identical to the planted run mask: True
+   v2d_half_b_area.u8 identical to the planted run mask: True
+
+Q1/Q2 clean    map inside the area identical to measurement B: True (differing pixels 0); outside: v2d values [0], v2c values [4]
+Q1/Q2 planted  map inside the area identical to measurement B: True (differing pixels 0); outside: v2d values [0], v2c values [4]
+Q1/Q2 half_a   map inside the area identical to measurement B: True (differing pixels 0); outside: v2d values [0], v2c values [4]
+Q1/Q2 half_b   map inside the area identical to measurement B: True (differing pixels 0); outside: v2d values [0], v2c values [4]
+      clean    feature bits identical (whole frame): True
+      planted  feature bits identical (whole frame): True
+
+Q4 41_report_clean.json     pixels 9406485 (B: 9406485), out_of_area_pixels 30699 (B: 30699), dark_frames_used 7 (B: 7), bright_frames_used 18 (B: 18), dose_groups 5 (B: 5)
+      features identical to B (name, threshold, flagged): True
+Q4 42_report_planted.json   pixels 9406485 (B: 9406485), out_of_area_pixels 30699 (B: 30699), dark_frames_used 7 (B: 7), bright_frames_used 18 (B: 18), dose_groups 5 (B: 5)
+      features identical to B (name, threshold, flagged): True
+
+Q3 flagged                        v2d 61342        B 61342        same
+Q3 outside_truth                  v2d 3545         B 3545         same
+Q3 clean_flagged                  v2d 3721         B 3721         same
+Q3 clean_outside_truth            v2d 3590         B 3590         same
+Q3 new_false_alarms               v2d 12           B 12           same
+Q3 new_false_alarms_in_controls   v2d 3            B 3            same
+Q3 control_items                  v2d 12           B 12           same
+Q3 control_false_detections       v2d 0            B 0            same
+Q3 jaccard_all                    v2d 0.783391     B 0.783391     same
+Q3 jaccard_inside_truth           v2d 0.795293     B 0.795293     same
+Q3 jaccard_outside_truth          v2d 0.593337     B 0.593337     same
+Q3 detection groups that differ from B: 0 of 62 []

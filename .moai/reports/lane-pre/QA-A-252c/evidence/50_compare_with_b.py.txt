@@ -1,0 +1,42 @@
+"""QA-A-252c: the re-measurement (v2d) against measurement B of QA-A-252b (v2c), and the other checks of the predictions Q1-Q5. Reads existing artifacts only."""
+import json
+import numpy as np
+
+D = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252c/evidence/'
+EB = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252b/evidence/'
+W = H = 3072
+
+
+def u8(name):
+    return np.fromfile(D + name, dtype=np.uint8)
+
+
+area = u8('v2d_planted_area.u8')
+print('Q5 area mask: %d bytes, %d zeros, %d ones, values %s' % (area.size, (area == 0).sum(), (area == 1).sum(), sorted(set(area.tolist()))))
+for nm in ('v2d_clean_area.u8', 'v2d_half_a_area.u8', 'v2d_half_b_area.u8'):
+    print('   %s identical to the planted run mask: %s' % (nm, bool((u8(nm) == area).all())))
+inside = area == 1
+print()
+for name in ('clean', 'planted', 'half_a', 'half_b'):
+    d = u8('v2d_%s.u8' % name); c = u8('v2c_%s.u8' % name)
+    same_in = bool((d[inside] == c[inside]).all())
+    diff_in = int((d[inside] != c[inside]).sum())
+    out_d = set(d[~inside].tolist()); out_c = set(c[~inside].tolist())
+    print('Q1/Q2 %-8s map inside the area identical to measurement B: %s (differing pixels %d); outside: v2d values %s, v2c values %s' % (name, same_in, diff_in, sorted(out_d), sorted(out_c)))
+for name in ('clean', 'planted'):
+    d = u8('v2d_%s_features.u8' % name); c = u8('v2c_%s_features.u8' % name)
+    print('      %-8s feature bits identical (whole frame): %s' % (name, bool((d == c).all())))
+print()
+for nm, cmp_nm in (('41_report_clean.json', '141_report_clean.json'), ('42_report_planted.json', '142_report_planted.json')):
+    a = json.load(open(EV + nm, encoding='utf-8')); b = json.load(open(EB + cmp_nm, encoding='utf-8'))
+    keys = ['pixels', 'out_of_area_pixels', 'dark_frames_used', 'bright_frames_used', 'dose_groups']
+    print('Q4 %-24s ' % nm + ', '.join('%s %s (B: %s)' % (k, a.get(k), b.get(k)) for k in keys))
+    print('      features identical to B (name, threshold, flagged): %s' % ([(f['name'], f['threshold'], f['flagged']) for f in a['features']] == [(f['name'], f['threshold'], f['flagged']) for f in b['features']]))
+print()
+sa = json.load(open(EV + '43_metrics_score.json', encoding='utf-8')); sb = json.load(open(EB + '143_metrics_score.json', encoding='utf-8'))
+for k in ('flagged', 'outside_truth', 'clean_flagged', 'clean_outside_truth', 'new_false_alarms', 'new_false_alarms_in_controls', 'control_items', 'control_false_detections', 'jaccard_all', 'jaccard_inside_truth', 'jaccard_outside_truth'):
+    print('Q3 %-30s v2d %-12s B %-12s %s' % (k, sa[k], sb[k], 'same' if sa[k] == sb[k] else 'DIFFERENT'))
+da = {d['group']: d for d in sa['detection']}; db = {d['group']: d for d in sb['detection']}
+diff = [g for g in da if (da[g]['detected'], da[g]['mean_recall']) != (db[g]['detected'], db[g]['mean_recall'])]
+print('Q3 detection groups that differ from B: %d of %d %s' % (len(diff), len(da), diff[:5]))
