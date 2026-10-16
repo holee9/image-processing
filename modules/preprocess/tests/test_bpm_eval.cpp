@@ -212,15 +212,15 @@ TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
     const fs::path ex = root / "excl.u8";
     writeBytes(ex, excl.data(), excl.size());
     const fs::path out = root / "t";
-    ASSERT_EQ(0, inject(out, " --exclude-mask \"" + ex.string() + "\""));
+    ASSERT_EQ(0, inject(out, " --exclude-mask \"" + ex.string() + "\" --line-gap 8"));   // the small frame holds the 24 added response lines only with a smaller gap
     const std::vector<Item> items = parseTruth(out / "truth.tsv");
 
     std::map<std::string, int> perClass;
     for (const Item& it : items) ++perClass[it.cls];
     // QA-A-252d: a response below 45 % is a defect, 0.45 and above is normal (class control)
-    EXPECT_EQ(45, perClass["line"]);       // dead 1.0, nonlinear x2, noisy x2 at 6 shapes = 30 + gain_loss and efficiency_loss at 0.3 = 12, + 3 crossings
+    EXPECT_EQ(57, perClass["line"]);       // dead 1.0, nonlinear x2, noisy x2 at 6 shapes = 30 + gain_loss and efficiency_loss at 0.3 and 0.44 = 24, + 3 crossings
     EXPECT_EQ(8, perClass["block"]);       // dead 1.0: 4 sizes x 2
-    EXPECT_EQ(36, perClass["pixel"]);      // 12 levels x 3 (dead 1, hot x4, noisy x3, nonlinear x2, gain_loss 0.3, efficiency_loss 0.3)
+    EXPECT_EQ(42, perClass["pixel"]);      // 14 levels x 3 (dead 1, hot x4, noisy x3, nonlinear x2, gain_loss and efficiency_loss at 0.3 and 0.44)
     int controlLines = 0, controlBlocks = 0, controlPixels = 0;
     for (const Item& it : items) {
         if (it.cls != "control") continue;
@@ -228,12 +228,12 @@ TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
         else if (isSmall(it)) ++controlBlocks;
         else ++controlLines;
     }
-    EXPECT_EQ(42, controlLines);           // 12 bands (3 kinds x 2 levels x 2 directions) + dead 0.5 and the two loss models at 0.45 and 0.7: 5 x 6 shapes = 30
+    EXPECT_EQ(42, controlLines);           // 12 bands (3 kinds x 2 levels x 2 directions) + dead 0.5 and the two loss models at 0.46 and 0.7: 5 x 6 shapes = 30
     EXPECT_EQ(8, controlBlocks);           // dead 0.5: 4 sizes x 2
-    EXPECT_EQ(27, controlPixels);          // 9 levels x 3 (dead 0.5, slope x4, gain_loss and efficiency_loss at 0.45 and 0.7)
+    EXPECT_EQ(27, controlPixels);          // 9 levels x 3 (dead 0.5, slope x4, gain_loss and efficiency_loss at 0.46 and 0.7)
     std::map<std::string, int> pixelKinds;
     for (const Item& it : items) if (it.cls == "pixel") ++pixelKinds[it.kind + "/" + std::to_string(it.level)];
-    EXPECT_EQ(12u, pixelKinds.size());
+    EXPECT_EQ(14u, pixelKinds.size());
     for (const auto& kv : pixelKinds) EXPECT_EQ(3, kv.second) << kv.first;
 
     // placement rules
@@ -251,8 +251,8 @@ TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {
             if (v[i].first - v[i - 1].second <= gap) return false;
         return true;
     };
-    EXPECT_TRUE(gapsOk(lineRowIntervals, 12));
-    EXPECT_TRUE(gapsOk(lineColIntervals, 12));
+    EXPECT_TRUE(gapsOk(lineRowIntervals, 8));
+    EXPECT_TRUE(gapsOk(lineColIntervals, 8));
     std::vector<Rect> small;
     for (const Item& it : items) {
         for (const Rect& q : it.rects) {
@@ -396,10 +396,13 @@ TEST_F(BpmEvalTest, ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentO
     };
     for (const char* kind : {"gain_loss", "efficiency_loss"}) {
         EXPECT_EQ("pixel", classOf(kind, "pixel", 0.3)) << kind;
-        EXPECT_EQ("control", classOf(kind, "pixel", 0.45)) << kind << ": exactly 45 % is not below 45 %";
+        EXPECT_EQ("pixel", classOf(kind, "pixel", 0.44)) << kind << ": 44 % is below 45 %";
+        EXPECT_EQ("control", classOf(kind, "pixel", 0.46)) << kind << ": 46 % is not";
+        EXPECT_EQ("missing", classOf(kind, "pixel", 0.45)) << kind << ": the exact boundary is not planted (a response estimate has a noise of about 0.0007)";
         EXPECT_EQ("control", classOf(kind, "pixel", 0.7)) << kind;
         EXPECT_EQ("line", classOf(kind, "row_full", 0.3)) << kind;
-        EXPECT_EQ("control", classOf(kind, "col_partial", 0.45)) << kind;
+        EXPECT_EQ("line", classOf(kind, "row_full", 0.44)) << kind;
+        EXPECT_EQ("control", classOf(kind, "col_partial", 0.46)) << kind;
         EXPECT_EQ("control", classOf(kind, "row_pair", 0.7)) << kind;
     }
     EXPECT_EQ("line", classOf("dead", "row_full", 1.0));
@@ -656,7 +659,7 @@ TEST_F(BpmEvalTest, ScoreCountsControlHitsFalseAlarmsAndHalfAgreement) {
     EXPECT_NE(std::string::npos, j.find("\"control_items\": 77")) << j;
     EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 77")) << j;
     EXPECT_NE(std::string::npos, j.find("\"control_groups\"")) << "the pixel and block controls are summed per kind and level";
-    EXPECT_NE(std::string::npos, j.find("\"group\": \"control/efficiency_loss/pixel/0.45\", \"items\": 3, \"false_detections\": 3")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"group\": \"control/efficiency_loss/pixel/0.46\", \"items\": 3, \"false_detections\": 3")) << j;
     EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": " + std::to_string(expectNew) + ",")) << "the flagged control bands and the stray pixel, not the pixel beside a true defect: " << j;
     EXPECT_NE(std::string::npos, j.find("\"new_false_alarms_in_controls\": " + std::to_string(expectInControls) + ",")) << j;
     EXPECT_NE(std::string::npos, j.find("\"jaccard_all\": 0.000000")) << "a map against an empty map agrees on nothing: " << j;

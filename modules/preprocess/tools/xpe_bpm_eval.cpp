@@ -14,7 +14,8 @@
  *       --exclude-mask: a map (raw uint8/uint16, or a defect.xcal) whose defects, and 3 pixels around them, stay free of planted defects.
  *       Response items (QA-A-252d, SRS FUNC-022): a response r below 0.45 is a defect, 0.45..1.5 is normal (class control; 0.45 itself is normal). Two models:
  *       gain_loss (signal and noise both x r, like dead and slope) and efficiency_loss (r times the detected quanta: the signal x r and the quantum noise variance x r),
- *       levels 0.3, 0.45, 0.7 for pixels and lines. dead at 0.5 and slope 0.75..1.25 are normal now. The quantum gain kappa (noise variance per signal unit) is
+ *       levels 0.3, 0.44, 0.46, 0.7 for pixels and lines (QA-A-252e: the exact boundary 0.45 is not planted: a response estimate has a noise of about 0.0007, so an item
+ *       exactly at the threshold is decided by chance; 0.44 and 0.46 are 14 noise widths away on either side). dead at 0.5 and slope 0.75..1.25 are normal now. The quantum gain kappa (noise variance per signal unit) is
  *       estimated from the generation bright frames and written to truth.json.
  *   xpe_bpm_eval score --truth DIR --map F [--clean-map F] [--half-a F --half-b F] [--area MASK.u8] [--out metrics.json]
  *       --area: the imaging-area mask (1 inside, 0 outside, as written by map-v2 --area): flags outside it are not counted in any map.
@@ -350,7 +351,7 @@ bool placeItems(const Options& o, const std::vector<uint8_t>& exclD, std::vector
         if (!addLine("line", cr.first, cr.second, "cross")) return false;
     // QA-A-252d: response lines of the two models, at the response r (the level is r itself)
     for (const char* kind : {"gain_loss", "efficiency_loss"})
-        for (double r : {0.3, 0.45, 0.7})
+        for (double r : {0.3, 0.44, 0.46, 0.7})
             for (const char* sh : shapes6)
                 if (!addLine(responseClass("line", r), kind, r, sh)) return false;
     const std::pair<const char*, std::vector<double>> controls[3] = {{"fixed_band", {100.0, 30.0}}, {"gain_band", {0.8, 1.2}}, {"varying_band", {20.0, 8.0}}};
@@ -403,7 +404,7 @@ bool placeItems(const Options& o, const std::vector<uint8_t>& exclD, std::vector
                 if (!placeSmall(responseClass("block", 1.0 - a), "dead", a, "block" + std::to_string(size), size)) return false;
     const std::pair<const char*, std::vector<double>> pix[7] = {
         {"dead", {1.0, 0.5}}, {"hot", {200.0, 100.0, 50.0, 25.0}}, {"noisy", {4.0, 2.0, 1.0}}, {"slope", {0.75, 0.9, 1.1, 1.25}}, {"nonlinear", {0.4, 0.2}},
-        {"gain_loss", {0.3, 0.45, 0.7}}, {"efficiency_loss", {0.3, 0.45, 0.7}}};
+        {"gain_loss", {0.3, 0.44, 0.46, 0.7}}, {"efficiency_loss", {0.3, 0.44, 0.46, 0.7}}};
     for (const auto& p : pix) {
         const std::string kind = p.first;
         for (double lv : p.second) {
