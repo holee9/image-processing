@@ -1,0 +1,15 @@
+QA-A-250 predictions, written after the method (30_method_fixed_before_measurement.md) and before the generation and evaluation ran.
+Basis: the per-frame means of 10_data_inspection.txt. Confidence is stated; none of these is a result.
+
+ O1 offset map mean (Dark_07..14) = 11012.12 ADU (the mean of the eight per-frame means; Dark_07 is 92 ADU low).
+    Expected DarkBias of the held-out darks: Dark_15 (mean 11026.33) +14.2 ADU, Dark_16 (mean 11020.61) +8.5 ADU. Both above the 5 ADU line: the first clause FAILS on both. Confidence high (arithmetic).
+ O2 DarkReduction_dB >= 10 on both: expected to HOLD, because std(R) of a raw dark frame is dominated by the fixed pattern and the stuck/hot pixels (frame maxima are 17-18 thousand
+    against a level of 11 thousand), which the map removes. Confidence moderate (about 75 %). If O2 holds, the offset verdict is PASS through the second clause although the bias line fails.
+ G1 FlatResidualPct of Bright_35 and Bright_36: no confident prediction. I lean to a PASS (<= 1.0 %) at about 55 %: 18 frames averaged, signal about 40000 ADU. Against it: the 18 frames are five
+    dose levels (3+3+8+3+1 frames) although the generator documents one dose level, and the highest dose (34..36) is represented by one frame in the map.
+ D1 defect map: the generated count is larger than the maker's 250 (BPM.raw has 247 pixels at 127 and 3 at 255). I expect a generated count between 500 and 50000, and a recall of the
+    maker's pixels of at least 0.5. Low confidence (about 50 %).
+ P1 phantoms: correlation between our output and *_result.raw above 0.98 on all five (both are offset- and gain-corrected versions of the same raw frame), with a mean level that differs by
+    several percent (the earlier ratio of _result to original minus MasterDark was 1.02 to 1.06 for four of the five). Moderate confidence.
+ Known before measuring: the verdict of the offset part depends on which two darks are held out (the transient of Dark_07 moves the map mean by about 11.5 ADU). The split is the one
+    fixed in 30_method_fixed_before_measurement.md; other splits are not run.

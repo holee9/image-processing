@@ -1,0 +1,24 @@
+.moai/project/api-spec.md:1328:variance) is under 0.75, the window is the 1 % .. 99 % quantile range of the whole image (one-bin resolution) and one Info
+.moai/specs/SPEC-XPE-IMPROVE-001/acceptance.md:64:- Correction recall on BPM defects ≥ 99%
+.moai/specs/SPEC-XPE-P1A/research.md:218:- Defect-pixel correction rate (recall): >= 99% for isolated defects in BPM
+.moai/specs/SPEC-XPE-P1A/spec.md:257:> | 결함 0 (조기 반환) | 6.23 | 6.16 | 0.99 |
+.moai/specs/SPEC-XPE-P1A/spec.md:283:  - Correction recall on BPM-marked defects: >= 99% (no defect left uncorrected)
+.moai/specs/SPEC-XPE-P1B-DISP/spec.md:387:(e) IF either class holds under 2 % of the pixels, OR the Otsu separability (between-class variance / total variance) is under 0.75, THEN the window SHALL be
+docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md:1190:| **비선형성 R² < 0.99** | 신호 수준 범위 너무 좁음 | 10~90% 포화 범위로 확장 |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:686:- 모든 artefact 감지율 > 99%
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1314:| **합격 기준** | CES ≥ 85, 다항식 R² > 0.99, 임상 PSNR > 40 dB |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1395:| **cyan_test** | SRS-CALIB-FUNC-005 (CalSet 다항식) | 5개 선량에서 R² > 0.99 |
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1450:  ├─ R² > 0.99 ✓
+docs/calibration/xray-detector-calibration-prd.md:1989:| Defect Correction | UT-DEF-001 | Hot pixel 검출 (λ=8) | TPR > 99%, FPR < 0.1% |
+docs/enhance-basic/IAP-ENHANCE-BASIC-001_Image_Acquisition_Protocol.md:30:- 선형성: R² > 0.99
+docs/ghost-correction/README.md:149:        ├─ 즉시 수집 (99%)
+docs/ghost-correction/TDS-GHOST-001_Test_Dataset_Specification.md:126:| **지수 피팅 R²** | > 0.99 | PASS |
+docs/ghost-correction/TDS-GHOST-001_Test_Dataset_Specification.md:509:이미지: 신호 수준 > 99% 포화
+docs/ghost-correction/TDS-GHOST-001_Test_Dataset_Specification.md:782:    └─ RMSE < 1%, R² > 0.99
+docs/post-processing/gsvg/TDS-GSVG-001_Test_Dataset_Specification.md:644:| MTF-001 | 1.0 (low) | > 99% |
+docs/post-processing/xpe/VVP-P1B-001.md:163:| display | GSDF JND linearity | r² ≥ 0.99 | 1024-entry LUT regression |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:2262:| 모델 R² (측정 대 예측) | ≥ 0.99 | 교정 flood 이미지 대비 모델 예측값 |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:7169:| **검증 방법** | 인위적 이상치 주입 후 제거율 ≥ 99%; min_frames 강제 단위 테스트 |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:12428:| Sigma-Clipping Calibration | SRS-CAL-001b | SWU-9.8 | Outlier removal ≥99%, min_frames test |
+docs/project/XPE-PostProcess-DeepResearch.json:4:    "text": "ARCHIVAL NOTE: This JSON is a raw research-agent transcript for traceability only. It is non-normative and must not override the canonical
+docs/project/api-spec.md:1479:variance) is under 0.75, the window is the 1 % .. 99 % quantile range of the whole image (one-bin resolution) and one Info

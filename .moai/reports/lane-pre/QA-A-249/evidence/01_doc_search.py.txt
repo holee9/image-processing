@@ -1,0 +1,47 @@
+import subprocess
+
+ROOT = 'D:/workspace-github/xpe-pre'
+OUT = ROOT + '/.moai/reports/lane-pre/QA-A-249/evidence/20_doc_search.txt'
+TREES = ['HEAD', 'origin/main']
+PATHS = ['docs', '.moai/specs', '.moai/project']
+
+# (label, kind, ERE, what it looks for)
+PATTERNS = [
+    ('P1 3 dB', 'value', r'\b3(\.0)? ?dB\b', 'PRNU_IMPROVE_MIN_DB = 3.0'),
+    ('P2 0.99', 'value', r'0\.99\b', 'GAIN_COVERAGE_MIN = 0.99'),
+    ('P3 99 %', 'value', r'\b99 ?%', 'GAIN_COVERAGE_MIN as a percent'),
+    ('P4 2 dB', 'value', r'\b2(\.0)? ?dB\b', 'SNR_IMPROVE_MIN_DB = 2.0'),
+    ('C1 PRNU', 'concept', r'PRNU', 'the gain-correction metric'),
+    ('C2 gain coverage', 'concept', r'gain[ _-]?coverage|coverage of (the )?gain|valid gain', 'GAIN_COVERAGE_MIN'),
+    ('C3 SNR improvement', 'concept', r'SNR[ _]?improve|improvement[ _]?(in|of)? ?SNR|snr_improvement', 'SNR_IMPROVE_MIN_DB'),
+    ('C4 IEC 62220', 'concept', r'62220', 'the DQE/noise standard family named in the card'),
+    # controls: constants whose basis IS known to exist (SRS-CALIB-FUNC-016/017); the same search shape must find them
+    ('K1 5 ADU (control)', 'control', r'\b5 ?ADU\b', 'DARK_BIAS_MAX, SRS-CALIB-FUNC-016'),
+    ('K2 FlatResidualPct <= 1.0 (control)', 'control', r'FlatResidualPct *(<=|<|=) *1(\.0)?', 'FLAT_RESIDUAL_MAX_PCT, SRS-CALIB-FUNC-017'),
+    ('K3 10 dB (control)', 'control', r'\b10 ?dB\b', 'DARK_REDUCTION_MIN_DB, SRS-CALIB-FUNC-016'),
+]
+
+lines = []
+
+
+def emit(t=''):
+    lines.append(t)
+    print(t)
+
+
+emit('Search scope: git grep -n -I -i -E <pattern> <tree> -- ' + ' '.join(PATHS))
+emit('Trees: ' + ', '.join(TREES) + ' (HEAD = dev/preprocess 5c94d377; origin/main fetched 2026-10-14, 474 commits ahead of the merge base)')
+emit('docs/quality-eval/ is INCLUDED here (the in-source comment excludes it as a requirement source; it is listed separately below).')
+emit()
+for label, kind, pat, what in PATTERNS:
+    emit('### ' + label + '  [' + kind + ']  looks for: ' + what)
+    emit('    command: git grep -n -I -i -E "' + pat + '" <tree> -- ' + ' '.join(PATHS))
+    for tree in TREES:
+        r = subprocess.run(['git', 'grep', '-n', '-I', '-i', '-E', pat, tree, '--'] + PATHS, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+        hits = [l for l in r.stdout.splitlines() if l.strip()]
+        files = sorted({l.split(':', 2)[1] if tree == 'HEAD' else l.split(':', 3)[1] for l in hits})
+        quality = [l for l in hits if 'quality-eval' in l]
+        emit('    %-11s %4d hit line(s) in %3d file(s); %d of them under docs/quality-eval/' % (tree, len(hits), len(files), len(quality)))
+    emit()
+
+open(OUT, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')

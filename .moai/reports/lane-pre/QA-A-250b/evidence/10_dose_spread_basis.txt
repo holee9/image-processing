@@ -1,0 +1,36 @@
+Source: frame means of QA-A-250/evidence/10_data_inspection.txt (3 decimals). Offset level = mean of the eight generation darks Dark_07..14 = 11012.120 ADU.
+net = frame mean - offset level. Frames sorted by net; ratio = this net / the previous net in the sorted order.
+  net_ADU   frame      ratio_to_previous
+    2746.6  Bright_17  -
+    2938.1  Bright_18  1.0697
+    2942.3  Bright_19  1.0014
+    5932.0  Bright_20  2.0161
+    5940.6  Bright_22  1.0014
+    5947.4  Bright_21  1.0012
+    9273.8  Bright_30  1.5593
+    9285.6  Bright_26  1.0013
+    9285.7  Bright_27  1.0000
+    9286.9  Bright_28  1.0001
+    9287.1  Bright_29  1.0000
+    9292.8  Bright_24  1.0006
+    9295.4  Bright_23  1.0003
+    9325.3  Bright_25  1.0032
+   18423.1  Bright_31  1.9756
+   18527.9  Bright_32  1.0057
+   18531.2  Bright_33  1.0002
+   29484.2  Bright_35  1.5911
+   29486.8  Bright_34  1.0001
+   29519.7  Bright_36  1.0011
+
+adjacent ratios below 1.3 (steps inside a dose level): largest 1.0697 (next largest 1.0057), count 15
+adjacent ratios at or above 1.3 (steps between dose levels): smallest 1.5593, largest 2.0161, count 4
+There is no adjacent ratio between 1.0697 and 1.5593.
+
+max/min of the net mean over frames that belong to the same level, by the gap above:
+  frames Bright_17,18,19: 3 frames, net 2746.6 .. 2942.3, max/min 1.0712
+  frames Bright_20,21,22: 3 frames, net 5932.0 .. 5947.4, max/min 1.0026
+  frames Bright_23,24,25,26,27,28,29,30: 8 frames, net 9273.8 .. 9325.3, max/min 1.0056
+  frames Bright_31,32,33: 3 frames, net 18423.1 .. 18531.2, max/min 1.0059
+  frames Bright_34,35,36: 3 frames, net 29484.2 .. 29519.7, max/min 1.0012
+
+largest max/min inside one level: 1.0712; smallest step between two levels: 1.5593; geometric mean of the two: 1.2924

@@ -1,0 +1,30 @@
+QA-A-248 mutation check of the --caldata tests. Source hash at the start: 2cc55a3713734c6f
+PREDICTIONS (written before any run):
+  M1 defect mask zeroed after counting   -> CalDataModeBuildsTheSet... red (defect.xcal no longer carries BPMap.map)
+  M2 size check loosened (!= to <)       -> CalDataModeRefuses... red (the one-byte-too-long dark frame is accepted)
+  M3 default size 3072 -> 1024           -> CalDataModeRefuses... red (the message says expected 2097152, not 18874368)
+  M4 --gain-poly refusal disabled        -> CalDataModeCannotBeCombined... red
+  M5 caldata manifest keys leak to synthetic runs -> TheSyntheticManifestCarriesNoCalDataKeys red
+  every other test stays green in each mutant
+--- step 0: unmutated source
+build: BUILD_EXIT=0 | tool exe sha256 3f28caf4f77a2e4d
+tests exit 0: 9 passed, failed: []
+--- M1
+build: BUILD_EXIT=0 | tool exe sha256 0bd9686cc68ca232
+tests exit 1: 8 passed, FAILED: ['CalibFixtureGenTest.CalDataModeBuildsTheSetFromTheGivenFramesAndIsByteIdenticalBetweenRuns']
+--- M2
+build: BUILD_EXIT=0 | tool exe sha256 120e17c0e78b71a0
+tests exit 1: 8 passed, FAILED: ['CalibFixtureGenTest.CalDataModeRefusesAMissingOrWronglySizedInputAndWritesNoMap']
+--- M3
+build: BUILD_EXIT=0 | tool exe sha256 aa83a4ba6d29463f
+tests exit 1: 8 passed, FAILED: ['CalibFixtureGenTest.CalDataModeRefusesAMissingOrWronglySizedInputAndWritesNoMap']
+--- M4
+build: BUILD_EXIT=0 | tool exe sha256 af55c7ca3fee060e
+tests exit 1: 8 passed, FAILED: ['CalibFixtureGenTest.CalDataModeCannotBeCombinedWithAGainPolynomial']
+--- M5
+build: BUILD_EXIT=0 | tool exe sha256 0d941a93aed16bd7
+tests exit 1: 8 passed, FAILED: ['CalibFixtureGenTest.TheSyntheticManifestCarriesNoCalDataKeys']
+--- restored: touch + rebuild
+source hash now: 2cc55a3713734c6f (start: 2cc55a3713734c6f)
+build: BUILD_EXIT=0 | tool exe sha256 59534e279c5215a9
+tests exit 0: 9 passed, failed: []

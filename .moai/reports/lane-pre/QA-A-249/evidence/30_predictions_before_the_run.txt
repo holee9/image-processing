@@ -1,0 +1,19 @@
+QA-A-249 predictions, written before the harness ran (2026-10-14).
+Basis: QA-A-241 B6 measured FlatResidualPct 0.844 % on real flat 6 with these maps; the gain map has 44053 of 9437184 pixels (0.467 %) outside [0.1, 10].
+ G1 xpe_verify_gain, flats 4-6 (in the sample): improve_dB far above 3.0 (the gate is not what decides); gain_coverage >= 0.99.
+ G2 same flats, semantics NORMALIZED: overall_pass false, because prnu_after (about 0.8 %) is above the 0.5 % flat limit; UNKNOWN (1.0 %) true.
+ G3 held-out flats 1-3: improve_dB still above 3.0, prnu_after larger than the in-sample flats; the verdict decided by the flat limit, not the 3.0 line.
+ G4 "without the two provisional gates" gives the same verdict as the full verdict on every flat (the provisional gates bind nowhere on these data).
+ P1 xpe_verify_pipeline on the wrist frame: improve_dB below 2.0, possibly negative, so overall_pass false. Reason: the pipeline subtracts the offset pedestal (about 2500 ADU) and
+    the verdict compares CV = std/mean of the RAW frame (pedestal included in the mean) with CV of the FINAL frame (pedestal gone), so the CV rises.
+ P2 same for the dark+flat frames: improve_dB below 2.0 for most of them.
+
+RESULT OF THE FIRST RUN vs the predictions above (written after the run, 31_real_data_verify_values.txt):
+ G1 WRONG on prnu_after: 6.5-7.8 % on flats 4-6, not about 0.8 %. improve_dB 4.0-4.3 (above 3.0) and coverage 1.000000 were right.
+ G2 right in outcome (NORMALIZED false), wrong in cause: UNKNOWN is false as well, for the same reason (prnu_after far above 1.0 %).
+ G3 partly: held-out flats 1-2 at 3.3 / 3.6 dB (above 3.0, small margin), flat 3 at -1.2 dB (below). Not "all above 3.0".
+ G4 right: the verdict with the two provisional gates removed equals the real verdict on all six flats (all false).
+ P1 right: wrist -5.574 dB, overall_pass false.   P2 partly: dark+flat 3 (0.081) fails, 1/2/4/5/6 pass (3.1 / 6.6 / 10.7 / 16.0 / 21.5).
+HYPOTHESIS for the G1 miss, tested next (not yet known): the 44053 out-of-range gain pixels are counted as "valid" by xpe_verify_gain (finite and > 0) and the gain stage
+leaves them uncorrected, so they carry the residual that B6 (which masked them out) did not see. Prediction: with those pixels set invalid in the gain map handed to
+xpe_verify_gain, prnu_after drops to about 0.8 % on flat 6, improve_dB rises well above 4, coverage falls to about 0.9953 (still >= 0.99).

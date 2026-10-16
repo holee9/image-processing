@@ -1,0 +1,22 @@
+date: 2026-10-14 21:42  HEAD 5c94d377
+xpe_preprocess.dll sha256 c2524c57d80f3c9cb7ad72195355c11e855ba40c53132bf7f26154858fb94d32  (local ci-preprocess build, not a CI download)
+maps: D:/workspace-github/xpe-data/calib-real-v2 offset 0f888eb695805770 gain 004056fd2a3fb89a defect ff9df014b3b66898
+[a249] gain map of calib-real-v2: finite and > 0 (what xpe_verify_gain calls valid): 9437183 of 9437184 = 1.000000 | inside the product range [0.1, 10.0]: 9393131 = 0.995332
+[a249] xpe_verify_gain, calib-real-v2 gain map, flat k = bright0k.raw as the 'before gain' frame
+[a249]  k  sample    mean   prnu_before%  prnu_after%  coverage   improve_dB | gates: prnu_improved  coverage>=0.99  improve>=3.0  flat<=0.5/1.0 | verdict NORMALIZED  UNKNOWN | without the two provisional gates: NORMALIZED  UNKNOWN
+[a249]  1  held out  2883.2      11.5004      7.8464  1.000000      3.321 |              1               1            1             0 |                 0        0 |                             0        0
+[a249]  2  held out  5014.6      11.1195      7.3419  1.000000      3.606 |              1               1            1             0 |                 0        0 |                             0        0
+[a249]  3  held out   350.6      16.7214     19.2244  1.000000     -1.212 |              0               1            0             0 |                 0        0 |                             0        0
+[a249]  4  in         867.4      11.1281      7.0196  1.000000      4.002 |              1               1            1             0 |                 0        0 |                             0        0
+[a249]  5  in        1395.7      10.8801      6.7301  1.000000      4.172 |              1               1            1             0 |                 0        0 |                             0        0
+[a249]  6  in        2196.2      10.7309      6.5407  1.000000      4.300 |              1               1            1             0 |                 0        0 |                             0        0
+[a249] xpe_verify_pipeline, final = xpe_preprocess_pipeline_out (the app's configuration)
+[a249]  frame        raw_mean  final_mean  improve_dB | >=2.0  >=3.0 | overall_pass
+[a249]  wrist          4705.5      2198.2     -5.574 |    0      0 | 0
+[a249]  dark+flat 1    5386.3      2886.5      3.079 |    1      1 | 1
+[a249]  dark+flat 2    7517.7      5018.8      6.629 |    1      1 | 1
+[a249]  dark+flat 3    2853.7       350.4      0.081 |    0      0 | 0
+[a249]  dark+flat 4    3370.5       867.4     10.696 |    1      1 | 1
+[a249]  dark+flat 5    3898.9      1395.7     16.047 |    1      1 | 1
+[a249]  dark+flat 6    4699.4      2196.3     21.481 |    1      1 | 1
+[       OK ] A241Measure.DISABLED_A249_VerifyThresholdsOnRealData (9611 ms)

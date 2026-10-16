@@ -1,6 +1,3 @@
 4355.921875
 
 29584 D:\workspace-github\image-processing\gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.exe
-
-
-

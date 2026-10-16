@@ -1,0 +1,17 @@
+QA-A-250c predictions, written after the method (30_method_fixed_before_measurement.md) and before the generation and evaluation ran.
+Basis: the QA-A-250 and QA-A-250b results. Confidence is stated; none of these is a result.
+
+ S1 SEPARATION: the sha-256 of Dark_15, Dark_16, Bright_29, Bright_30 appears in 0 generation inputs; each of the 7 control frames appears exactly once. Confidence high:
+    the tool's argument list does not name them; the assertion exists to make a wrong list visible, not because I expect one.
+ O1 Offset verdict PASS through DarkReduction_dB, as in QA-A-250 (same eight generation darks, same held-out frames, same code): Dark_15 and Dark_16 DarkReduction about 21.7 and
+    21.8 dB; DarkBias about +14.3 and +8.6 ADU, so the 5 ADU condition alone would fail (the verdict rests on the OR). Confidence about 90 %.
+ G1 offset.xcal and gain.xcal of v3 are byte-identical to v2 (same dark frames, same six gain frames, same default reference, no randomness). defect.xcal is DIFFERENT from v2
+    (v2 used Bright_17..34, v3 uses Bright_17..28 and 31..36). Confidence about 90 % for the first two, 95 % for the third.
+ G2 Gain verdict PASS with FlatResidualPct of Bright_29 and Bright_30 equal to the QA-A-250b values (0.6420 and 0.6429 %) up to 4 decimals, because the gain map is the same
+    file and the final output differs from v2 only through the defect map (a handful of pixels). Confidence about 85 %. A difference in the 4th decimal would not surprise me.
+ D1 Defect count differs from v2's 133. I do not predict the direction. Recall against the maker's BPM stays in 0.35..0.42 (v1 0.388, v2 0.388). Low confidence (about 55 %).
+ M1 Manifest: frames {"dark": 8, "bright": 6, "bpm_bright": 18}; roles dark 8, bright_and_bpm_bright 6, bpm_bright 12; gain_dose_ratio about 1.0043 (as v2) with basis text
+    "mean over pixels of max(0, bright - gain dark reference); reference: mean". The signal differs from the old offset-subtracted mean only by the per-pixel floor, which clips
+    almost nothing at 9.3k signal over a 11k offset: ratio within 0.0005 of 1.0043. Confidence moderate.
+ P1 Phantoms: as in QA-A-250b (correlation at least 0.99997 on unclipped pixels, median ours/result 0.9307..0.9311). Moderate confidence.
+ T1 Generation time about 6-7 minutes (the defect-map stage is the same size as in v2: 8 darks and 18 bright frames).

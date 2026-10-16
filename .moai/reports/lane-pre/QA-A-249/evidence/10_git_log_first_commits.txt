@@ -1,0 +1,29 @@
+== git log -S"PRNU_IMPROVE_MIN_DB" --all --reverse (whole repository, all refs)
+b6c19b8a 2026-04-26 drake.lee | feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+4bcad451 2026-09-28 drake.lee | docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA-A-152)
+0814afbb 2026-09-28 drake.lee | fix(preprocess): 결함 밀도 게이트의 단위 오류를 고친다 (QA-A-153)
+fa3da63b 2026-09-28 drake.lee | feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+1d32bf27 2026-10-03 drake.lee | docs(report): #216·#218 마감 대조 — #218 제목의 두 주장(FUNC-017 게이트·FUNC-019 recall/FPR)은 코드·시험·main CI �
+c59263db 2026-10-03 drake.lee | docs(report): #242 문턱 셋은 도입 커밋 1개(b6c19b8a)·근거 없음, 두 문턱(3.0/2.0)은 같은 양에 걸려 있고 xpe_verif
+bfa683ab 2026-10-03 drake.lee | fix(preprocess): xpe_verify_gain 이 보정 후 잔차가 정확히 0 인 완벽한 보정을 불합격시키던 결함 수정(개선량 0
+== git log -S"GAIN_COVERAGE_MIN" --all --reverse (whole repository, all refs)
+b6c19b8a 2026-04-26 drake.lee | feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+4bcad451 2026-09-28 drake.lee | docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA-A-152)
+0814afbb 2026-09-28 drake.lee | fix(preprocess): 결함 밀도 게이트의 단위 오류를 고친다 (QA-A-153)
+fa3da63b 2026-09-28 drake.lee | feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+1d32bf27 2026-10-03 drake.lee | docs(report): #216·#218 마감 대조 — #218 제목의 두 주장(FUNC-017 게이트·FUNC-019 recall/FPR)은 코드·시험·main CI �
+c59263db 2026-10-03 drake.lee | docs(report): #242 문턱 셋은 도입 커밋 1개(b6c19b8a)·근거 없음, 두 문턱(3.0/2.0)은 같은 양에 걸려 있고 xpe_verif
+bfa683ab 2026-10-03 drake.lee | fix(preprocess): xpe_verify_gain 이 보정 후 잔차가 정확히 0 인 완벽한 보정을 불합격시키던 결함 수정(개선량 0
+== git log -S"SNR_IMPROVE_MIN_DB" --all --reverse (whole repository, all refs)
+b6c19b8a 2026-04-26 drake.lee | feat(calibration): 7건 결함 수정 + FUNC-026/022~025/검증메트릭 구현
+4bcad451 2026-09-28 drake.lee | docs(preprocess): verify 문턱 출처를 기록하고 034 인용을 088 로 옮긴다 (QA-A-152)
+0814afbb 2026-09-28 drake.lee | fix(preprocess): 결함 밀도 게이트의 단위 오류를 고친다 (QA-A-153)
+fa3da63b 2026-09-28 drake.lee | feat(preprocess): FUNC-017 의 FlatResidualPct 게이트를 단다 (QA-A-154)
+edc53cbc 2026-09-28 drake.lee | fix(preprocess): verify 지표를 정본의 산술평균으로 맞춘다 (QA-A-156)
+986bbce8 2026-10-01 drake.lee | test(preprocess): #218 오늘 상태 확인 — FUNC-017 해소 확인, FUNC-019 지표 대조표, pipeline SNR 정본 부재 (QA-A-187)
+bc51ab45 2026-10-01 drake.lee | test(preprocess): FUNC-019 합성 BPM 오라클 시험 상시화 + pipeline SNR 판정 근거 주석 (QA-A-188)
+1d32bf27 2026-10-03 drake.lee | docs(report): #216·#218 마감 대조 — #218 제목의 두 주장(FUNC-017 게이트·FUNC-019 recall/FPR)은 코드·시험·main CI �
+c59263db 2026-10-03 drake.lee | docs(report): #242 문턱 셋은 도입 커밋 1개(b6c19b8a)·근거 없음, 두 문턱(3.0/2.0)은 같은 양에 걸려 있고 xpe_verif
+bfa683ab 2026-10-03 drake.lee | fix(preprocess): xpe_verify_gain 이 보정 후 잔차가 정확히 0 인 완벽한 보정을 불합격시키던 결함 수정(개선량 0
+
+== the literal values before they were named: -G on the verdict lines, oldest first

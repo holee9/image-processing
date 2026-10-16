@@ -1,0 +1,56 @@
+# QA-A-248 (#262) - DRAFT for the leader, NOT applied. ci.yml is leader-owned.
+# Variant A: the calibration set is built from the REAL CalData_6 frames (same payload bytes as xpe-data/calib-real-v2, measured).
+#
+# PRECONDITION this draft does not solve: dark.raw, bright04.raw, bright05.raw, bright06.raw and BPMap.map (about 85 MB: the five files the mode reads) are
+# gitignored (.gitignore: tests/test_data/**/*.raw, **/*.map) and are not on the runner. How they get to ${{ env.XPE_CALDATA_DIR }}
+# (cache, artifact, release asset, ...) is the leader's decision; the step below only checks that they are there.
+#
+# Where it goes: gui-e2e-native, after "Stage native DLLs into a locator-only directory" (+ the dicom merge), so that
+# build/e2e-native-dlls holds xpe_calib_fixture_gen.exe next to xpe_preprocess.dll / xpe_common.dll it loads.
+# That the exe is inside the xpe-ci-preprocess-binaries artifact is NOT observed in a CI run: the artifact path is build/ci-preprocess/bin/
+# and the exe is built into that folder locally. The first run's log settles it (the step fails with "missing ..." if not).
+
+      - name: Build the real-data calibration set (QA-A-248, #262)
+        shell: pwsh
+        env:
+          XPE_CALDATA_DIR: ${{ runner.temp }}/CalData_6      # filled by whatever supplies the raw frames
+        run: |
+          $gen = Join-Path $PWD 'build/e2e-native-dlls/xpe_calib_fixture_gen.exe'
+          if (-not (Test-Path $gen)) { Write-Error "missing $gen"; exit 1 }
+          foreach ($n in 'dark.raw', 'bright04.raw', 'bright05.raw', 'bright06.raw', 'BPMap.map') {
+            if (-not (Test-Path (Join-Path $env:XPE_CALDATA_DIR $n))) { Write-Error "missing input $n in $env:XPE_CALDATA_DIR"; exit 1 }
+          }
+          $out = Join-Path $env:RUNNER_TEMP 'calib-real'
+          # --expiry-ms 4102444800000 = 2100-01-01: without it the files carry expiry 0 and the module raises XPE_WARN_NO_EXPIRY x3 (calib-real-v2 raises none).
+          # A fixed far date keeps the files byte-identical between runs and is not a time bomb (QA-A-244 class) the way "now + 1 year" would be.
+          & $gen --out $out --caldata $env:XPE_CALDATA_DIR --expiry-ms 4102444800000
+          if ($LASTEXITCODE -ne 0) { Write-Error "xpe_calib_fixture_gen exited $LASTEXITCODE"; exit 1 }
+
+          # Guard: the files must be the ones measured (payload bytes equal to calib-real-v2, QA-A-248 report section 3; hashes are for --expiry-ms 4102444800000).
+          # A legitimate change to the product generators changes these hashes: update them with the commit that changes the maths.
+          # UNVERIFIED RISK: the hashes were reproduced only on the development machine (two runs, identical). Whether the runner's CPU and
+          # compiler produce the same last float bits (the offset/gain maps are float32 averages) is not observed. If the first CI run fails
+          # this guard while the inputs are right, compare the payloads (not the hashes) before concluding anything, or drop the guard.
+          $want = @{
+            'offset.xcal' = 'dcc760504aa5f5dbdbf52437cf52b19dc431209a4d1004337e9f2e514add392f'
+            'gain.xcal'   = '46a390af48a0b145ce097dce6f96a210a3e33159ae4683b23752ded8ed794456'
+            'defect.xcal' = 'f00b1622ad105d52460563949f13fb892acaacc1ccf31ab458cef39f46e8ce14'
+          }
+          foreach ($n in $want.Keys) {
+            $got = (Get-FileHash (Join-Path $out $n) -Algorithm SHA256).Hash.ToLower()
+            if ($got -ne $want[$n]) { Write-Error "$n sha256 $got, expected $($want[$n])"; exit 1 }
+          }
+
+          # The four variables the real-data walkthroughs (W1, W7, W12-W15, W16) read; the raw frame is tracked in the repository.
+          "XPE_C231_NATIVE_DIR=$(Join-Path $PWD 'build/e2e-native-dlls')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_CALIB_DIR=$out" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW=$(Join-Path $PWD 'gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "XPE_C231_RAW_SIZE=3072x3072" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+# Then, in the "Assert no unexplained skipped Native E2E cases" step: remove '262' from the allow-list table (the closing condition of #262).
+# Not solved by this draft: W14 compares the image the app saves with the first-stage reference image byte for byte
+# (QuickStartWalkthroughScenarios.cs on dev/gui, around lines 965-972): XPE_C231_BASELINE_F32, or
+# m1-baseline-v2/wrist_lat_3072x3072_corrected_v2_f32le.raw beside the calibration folder's parent. That 37.7 MB file is not in the repository
+# either. The set this step builds reproduces that reference byte for byte through the module (report section 3), so the file could be
+# supplied the same way as the raw frames - or produced in CI by the module, which makes the comparison circular for the module and still
+# checks the app (the leader's call).

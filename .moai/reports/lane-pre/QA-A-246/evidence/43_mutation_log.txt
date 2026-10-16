@@ -1,0 +1,68 @@
+== 0. the fixed tree
+git HEAD: 611ae88b (working tree: QA-A-246 uncommitted); pipeline.cpp sha256 (first 16): af3ac15a25d359c3
+build command: build237.bat xpe_preprocess_clock_tests (= cmake --build --preset ci-preprocess --target xpe_preprocess_clock_tests)
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (fixed): 93a42790a8cf67d563c38f06c0e215f1e6e53e70a38fde027144c2803444dcb4
+[       OK ] A246Diagnostics.AFailedCallLeavesValidMaskZeroAndTheCountsZero (12 ms)
+[       OK ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt (12 ms)
+[       OK ] A246Diagnostics.ATooSmallStructIsRefusedAndNothingIsWritten (9 ms)
+[       OK ] A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages (9 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither (9 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeTheOutputAndACleanFrameCountsZero (9 ms)
+[       OK ] A246Diagnostics.WithANullDiagPointerTheOutputIsByteIdenticalToPipelineOut (7 ms)
+[       OK ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (7 ms)
+
+== 1. mutant A: the gain stage's count is not taken (stays 0)
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (mutant A): 126902e210bd7bb66751fe4d6ef85196fcc8e43911139bef729a662b003c2df8
+[       OK ] A246Diagnostics.AFailedCallLeavesValidMaskZeroAndTheCountsZero (7 ms)
+[       OK ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt (7 ms)
+[       OK ] A246Diagnostics.ATooSmallStructIsRefusedAndNothingIsWritten (6 ms)
+[       OK ] A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages (6 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeTheOutputAndACleanFrameCountsZero (8 ms)
+[       OK ] A246Diagnostics.WithANullDiagPointerTheOutputIsByteIdenticalToPipelineOut (8 ms)
+[  FAILED  ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither
+[  FAILED  ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither (7 ms)
+[  FAILED  ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities
+[  FAILED  ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (8 ms)
+
+== 2. mutant B: the count misses infinities (NaN only)
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (mutant B): b4064efa304ed22d3e105d046329825e4384c16916fcf3c9b0cf5dc13f793a18
+[       OK ] A246Diagnostics.AFailedCallLeavesValidMaskZeroAndTheCountsZero (7 ms)
+[       OK ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt (9 ms)
+[       OK ] A246Diagnostics.ATooSmallStructIsRefusedAndNothingIsWritten (10 ms)
+[       OK ] A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages (9 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeTheOutputAndACleanFrameCountsZero (11 ms)
+[       OK ] A246Diagnostics.WithANullDiagPointerTheOutputIsByteIdenticalToPipelineOut (10 ms)
+[  FAILED  ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither
+[  FAILED  ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither (9 ms)
+[  FAILED  ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities
+[  FAILED  ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (8 ms)
+
+== 3. mutant C: the caller's struct is filled before the call has succeeded (a failed call keeps its counts)
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (mutant C): 5409b8f608e2cd6ac6ad898abd2f5646cf9ee7f72214ea317b4ee57d209195df
+[       OK ] A246Diagnostics.AFailedCallLeavesValidMaskZeroAndTheCountsZero (12 ms)
+[       OK ] A246Diagnostics.ATooSmallStructIsRefusedAndNothingIsWritten (7 ms)
+[       OK ] A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages (11 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither (6 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeTheOutputAndACleanFrameCountsZero (8 ms)
+[       OK ] A246Diagnostics.WithANullDiagPointerTheOutputIsByteIdenticalToPipelineOut (18 ms)
+[       OK ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (8 ms)
+[  FAILED  ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt
+[  FAILED  ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt (8 ms)
+
+== 4. restore, touch, rebuild
+restored pipeline.cpp sha256 (first 16): af3ac15a25d359c3
+BUILD_EXIT=0
+xpe_preprocess_clock_tests.exe sha256 (restored): 37c6183067a1788c5df393939d16759574d7ad1d25eb3160d96c24a2f7d3f6c3
+[       OK ] A246Diagnostics.AFailedCallLeavesValidMaskZeroAndTheCountsZero (8 ms)
+[       OK ] A246Diagnostics.ANonFinitePixelFromTheGainStageStopsTheFrameAtTheDefectStageWhetherOrNotTheMapMarksIt (11 ms)
+[       OK ] A246Diagnostics.ATooSmallStructIsRefusedAndNothingIsWritten (10 ms)
+[       OK ] A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages (10 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither (6 ms)
+[       OK ] A246Diagnostics.CountingDoesNotChangeTheOutputAndACleanFrameCountsZero (8 ms)
+[       OK ] A246Diagnostics.WithANullDiagPointerTheOutputIsByteIdenticalToPipelineOut (9 ms)
+[       OK ] A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (8 ms)
+(executable bytes differ between builds of the same source: timestamp and debug id; identity is the source hash plus the test results.)

@@ -1,0 +1,8 @@
+QA-A-250d predictions, written before the generation ran.
+
+ H1 offset.xcal, gain.xcal, defect.xcal of the new folder are byte-identical to v3 (sha256 f1b0f088..2d476, e5037865..0de537, 1ad69d8c..ee7a6): the generation logic is untouched.
+    Confidence about 95 %.
+ H2 manifest.json is byte-identical to v3 as well (sha256 f5eee589..2a04): it holds no output path and no time. Confidence about 85 %.
+ H3 The run prints the same bpm comparison line as v3 (generated 134, reference 250, both 97). Confidence about 95 %.
+ H4 After the run the folder holds exactly offset.xcal, gain.xcal, defect.xcal, manifest.json; no *.building* directory is left beside it. Confidence high.
+ H5 Wall time about 6-7 minutes (416 s for v3). Moderate.

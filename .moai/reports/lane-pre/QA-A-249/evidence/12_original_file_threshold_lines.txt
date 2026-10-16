@@ -1,0 +1,51 @@
+== xpe_verify_metrics.cpp as introduced in b6c19b8a: lines that mention a threshold
+9: * IEC 62304 Class B
+27:    constexpr double DARK_BIAS_MAX       = 5.0;     // ADU — corrected dark should be near zero
+28:    constexpr double DSNU_MAX_PCT        = 1.0;     // % — dark non-uniformity should be small
+31:    constexpr double PRNU_IMPROVE_MIN_DB = 3.0;     // dB — gain correction should improve PRNU
+32:    constexpr double GAIN_COVERAGE_MIN   = 0.99;    // 99% of gain values must be valid
+35:    constexpr double DEFECT_DENSITY_MAX  = 0.05;    // 5% max defect density
+38:    constexpr double SNR_IMPROVE_MIN_DB  = 2.0;     // minimum SNR improvement
+50:            return (sorted[n/2 - 1] + sorted[n/2]) / 2.0;
+147: * REQ-P1A-XXX: Offset correction verification
+219:    metrics->overall_pass = (metrics->dark_bias < DARK_BIAS_MAX) &&
+220:                            (metrics->dsnu < DSNU_MAX_PCT);
+230: * REQ-P1A-XXX: Gain correction verification
+325:    bool coverage_ok = (metrics->gain_coverage >= GAIN_COVERAGE_MIN);
+326:    bool snr_improved = (metrics->snr_improvement_db >= PRNU_IMPROVE_MIN_DB);
+338: * REQ-P1A-XXX: Defect correction verification
+413:    metrics->overall_pass = (metrics->defect_density < DEFECT_DENSITY_MAX);
+423: * REQ-P1A-XXX: Pipeline verification
+501:    metrics->overall_pass = (metrics->snr_improvement_db >= SNR_IMPROVE_MIN_DB);
+
+== the same file's header comment and the gain verdict as introduced
+/**
+ * @file xpe_verify_metrics.cpp
+ * @brief XPE Calibration Verification Metrics API
+ *
+ * Computes quantitative quality metrics after each calibration correction step,
+ * enabling automated pass/fail determination for offset, gain, and defect correction.
+ *
+ * SPEC: SPEC-XPE-P1A (Phase 10: Verification Metrics)
+ * IEC 62304 Class B
+ */
+
+#include "xpe/preprocess_api.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
+
+#include <cmath>
+#include <algorithm>
+#include <numeric>
+#include <vector>
+
+/* =============================================================================
+ * Pass/Fail Thresholds (configurable defaults)
+ * ============================================================================ */
+
+namespace {
+
+    // Offset correction thresholds
+    constexpr double DARK_BIAS_MAX       = 5.0;     // ADU — corrected dark should be near zero
+    constexpr double DSNU_MAX_PCT        = 1.0;     // % — dark non-uniformity should be small
+
+    // Gain correction thresholds

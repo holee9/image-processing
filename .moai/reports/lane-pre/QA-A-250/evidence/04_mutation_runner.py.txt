@@ -1,0 +1,74 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+TOOL = ROOT + 'modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-250/evidence/22_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILTER = 'CalibFixtureGenTest.FramesMode*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILTER], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+original = open(TOOL, 'rb').read()
+h0 = hashlib.sha256(original).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-250 mutation check of the frames-mode tests. Source hash at the start: ' + h0)
+say('PREDICTIONS (written before any run):')
+say('  M1 dark floor 5 -> 3                      -> FramesModeRefusesTooFewDarkFrames red')
+say('  M2 gain floor 5 -> 3                      -> FramesModeRefusesTooFewBrightFramesForTheGainMap red')
+say('  M3 defect-map floor 10 -> 6               -> FramesModeRefusesTooFewBrightFramesForTheDefectMap red')
+say('  M4 saturated share limit 0.001 -> 0.5     -> FramesModeRefusesASaturatedFrame red')
+say('  M5 size check != to < (accepts a longer file) -> FramesModeRefusesAFrameThatIsNotWidthTimesHeight red')
+say('  M6 default gain dark reference mean -> none -> FramesModeGainDarkReferenceIsAChoice red (default would equal none)')
+say('  M7 list file: "#" lines no longer skipped -> FramesModeListFilesGiveTheSameBytesAsRepeatedOptions red')
+say('  every other FramesMode test stays green in each mutant')
+
+mutants = [
+    ('M1', b'kMinDarkFrames       = 5;', b'kMinDarkFrames       = 3;'),
+    ('M2', b'kMinGainFrames       = 5;', b'kMinGainFrames       = 3;'),
+    ('M3', b'kMinBrightForBpm     = 10;', b'kMinBrightForBpm     = 6;'),
+    ('M4', b'kSaturatedShareLimit = 0.001;', b'kSaturatedShareLimit = 0.5;'),
+    ('M5', b'size < 0 || static_cast<size_t>(size) != bytes', b'size < 0 || static_cast<size_t>(size) < bytes'),
+    ('M6', b'if (opt.gainDarkRef == "mean") {', b'if (opt.gainDarkRef == "mean" && pixelCount == 0) {'),
+    ('M7', b"line[0] == '#') continue;", b"line[0] == '~') continue;"),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, old, new in mutants:
+        assert original.count(old) == 1, (name, original.count(old))
+        say('--- ' + name)
+        open(TOOL, 'wb').write(original.replace(old, new))
+        say('build: ' + build())
+        rc, ok, bad = run_tests()
+        say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(TOOL, 'wb').write(original)
+        os.utime(TOOL, None)
+        time.sleep(1)
+finally:
+    open(TOOL, 'wb').write(original)
+    os.utime(TOOL, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(TOOL, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

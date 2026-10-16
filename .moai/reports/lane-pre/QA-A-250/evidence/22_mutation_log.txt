@@ -1,0 +1,38 @@
+QA-A-250 mutation check of the frames-mode tests. Source hash at the start: 339d508317b8a193
+PREDICTIONS (written before any run):
+  M1 dark floor 5 -> 3                      -> FramesModeRefusesTooFewDarkFrames red
+  M2 gain floor 5 -> 3                      -> FramesModeRefusesTooFewBrightFramesForTheGainMap red
+  M3 defect-map floor 10 -> 6               -> FramesModeRefusesTooFewBrightFramesForTheDefectMap red
+  M4 saturated share limit 0.001 -> 0.5     -> FramesModeRefusesASaturatedFrame red
+  M5 size check != to < (accepts a longer file) -> FramesModeRefusesAFrameThatIsNotWidthTimesHeight red
+  M6 default gain dark reference mean -> none -> FramesModeGainDarkReferenceIsAChoice red (default would equal none)
+  M7 list file: "#" lines no longer skipped -> FramesModeListFilesGiveTheSameBytesAsRepeatedOptions red
+  every other FramesMode test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 12 passed, failed: []
+--- M1
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['FramesModeRefusesTooFewDarkFrames']
+--- M2
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['FramesModeRefusesTooFewBrightFramesForTheGainMap']
+--- M3
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['FramesModeRefusesTooFewBrightFramesForTheDefectMap']
+--- M4
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['FramesModeRefusesASaturatedFrame']
+--- M5
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['FramesModeRefusesAFrameThatIsNotWidthTimesHeight']
+--- M6
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['FramesModeGainDarkReferenceIsAChoice']
+--- M7
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['FramesModeListFilesGiveTheSameBytesAsRepeatedOptions']
+--- restored: touch + rebuild
+source hash now: 339d508317b8a193 (start: 339d508317b8a193)
+build: BUILD_EXIT=0
+tests exit 0: 12 passed, failed: []

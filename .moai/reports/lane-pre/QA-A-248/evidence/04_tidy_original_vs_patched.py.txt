@@ -1,0 +1,20 @@
+import subprocess, hashlib, os
+BS = chr(92)
+T = 'modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+S = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/'
+E = '.moai/reports/lane-pre/QA-A-248/evidence/'
+patched = open(T, 'rb').read()
+h = hashlib.sha256(patched).hexdigest()[:16]
+open(S + 'fixture_gen_patched.bak', 'wb').write(patched)
+orig = subprocess.run(['git', 'show', 'HEAD:' + T], capture_output=True).stdout
+assert b'\r' not in orig                      # git hands back the LF-normalised blob
+orig = orig.replace(b'\n', b'\r\n')           # the working copy is CRLF
+assert orig.count(b'\r\n') > 500
+try:
+    open(T, 'wb').write(orig)
+    subprocess.run(['cmd.exe', '/c', (S + 'tidy_tool248.bat').replace('/', BS)], capture_output=True)
+    os.replace(E + '42_tidy_tool_patched.txt', E + '42_tidy_tool_original.txt')
+finally:
+    open(T, 'wb').write(patched)
+    os.utime(T, None)
+print('restored hash equal:', hashlib.sha256(open(T, 'rb').read()).hexdigest()[:16] == h)

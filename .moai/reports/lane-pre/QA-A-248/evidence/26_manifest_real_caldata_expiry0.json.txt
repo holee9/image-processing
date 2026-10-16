@@ -1,0 +1,21 @@
+{
+  "generator": "xpe_calib_fixture_gen",
+  "seed": 0,
+  "width": 3072,
+  "height": 3072,
+  "expiry_epoch_ms": 0,
+  "defect_pixels": 23505,
+  "source": "caldata",
+  "inputs": {
+    "dark.raw": "2ece967e7b379ec8bc1d54cdabd3c4740a08c8a643d0cb3e6ad4702b12f7621b",
+    "bright04.raw": "5fd9392f467c6e6de28d846a4c1d5e75b005d71641be75ca104125c0ae215cb6",
+    "bright05.raw": "2fc44324ab68c3003de9a6c7ad95c47e8c19653b7a4c3724ac17333f45c23552",
+    "bright06.raw": "6938260f1372859cfb584d3c658cff25576e3d8772f10cc4f0cdcd0e33ccc136",
+    "BPMap.map": "5122aa6e27282b5ca675a8f43c48049d3dc3cf0c37fc9b11b88ad8a81f85b2d0"
+  },
+  "files": {
+    "offset.xcal": "1ef0998caed228b1a79eaf1d660824d687c643077361c82f5f58a01af776e581",
+    "gain.xcal": "5ef9ba730d7f1278dc5e1d8f9d5495bae841baea88b6577e89cd192e75596d20",
+    "defect.xcal": "74cdf3a30c966c865fc7d153d49a40fc3415b2b5604491d0867cc3a90ddf9c74"
+  }
+}

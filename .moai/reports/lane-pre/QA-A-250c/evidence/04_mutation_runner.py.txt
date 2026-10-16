@@ -1,0 +1,83 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+TOOL = ROOT + 'modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-250c/evidence/22_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILTER = 'CalibFixtureGenTest.FramesMode*:CalibFixtureGenTest.TheBpm*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILTER], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+original = open(TOOL, 'rb').read()
+h0 = hashlib.sha256(original).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-250c mutation check of the dose signal, the duplicate rule and the atomic set. Source hash at the start: ' + h0)
+say('Short names: none=DoseCheckUsesTheGeneratorsSignalWhenThereIsNoDarkReference ext=DoseCheckUsesTheExternalDarkReference clip=DoseCheckFloorsEachPixelAtZero')
+say('  nosig=RefusesFramesWithNoSignalAfterTheReference bound=DoseLimitBoundaryForEachReferenceKind net=JudgesTheDoseAfterSubtractingTheOffset (QA-A-250b)')
+say('  dup=RefusesTheSameFileTwiceInOneRole content=RefusesTwoFilesWithTheSameContent refuse=RefusalsLeaveNoOutputDirectory fail=FailureInAnyStageLeavesNoPartialSet')
+say('PREDICTIONS (written before any run):')
+say('  M1 the reference is ignored in the gain signal       -> red: none, ext, clip, nosig, net')
+say('  M2 the floor at zero removed                         -> red: clip only')
+say('  M3 path-duplicate rule removed                       -> red: dup only (the content rule still refuses, with a different message)')
+say('  M4 content-duplicate rule removed                    -> red: content only (the path rule catches the dup test cases)')
+say('  M5 commit failure does not remove the placed files   -> red: fail only')
+say('  M6 --out created before the checks again             -> red: ext, nosig, dup, content, refuse, fail')
+say('  M7 commit failure loses the set-aside old files      -> red: fail only')
+say('  M8 dose check called with no reference               -> red: none, ext, clip, nosig, net (same as M1)')
+say('  every other FramesMode test stays green in each mutant')
+
+mutants = [
+    ('M1', b'(ref.empty() ? 0.0 : static_cast<double>(ref[i]))', b'(ref.empty() ? 0.0 : 0.0 * static_cast<double>(ref[i]))'),
+    ('M2', b'if (corrected > 0.0) sum += corrected;', b'sum += corrected;'),
+    ('M3', b'const bool same = fs::path(paths[i]).lexically_normal() == fs::path(paths[j]).lexically_normal() || fs::equivalent(paths[i], paths[j], ec);', b'const bool same = paths[i].empty() && !ec;'),
+    ('M4', b'if (frames[i]->sha == frames[j]->sha) {', b'if (frames[i]->sha.empty()) {'),
+    ('M5', b'for (const std::string& n : placed) fs::remove(out / n, ec);', b''),
+    ('M6', b'if (!opt.framesMode) {   // the frames path', b'if (opt.width > 0) {   // the frames path'),
+    ('M7', b'fs::rename(out / n, work / ("old_" + n), ec);', b'fs::remove(out / n, ec);'),
+    ('M8', b'checkSingleDose(brights, refPixels, refLabel, &doseRatio)', b'checkSingleDose(brights, std::vector<uint16_t>(), refLabel, &doseRatio)'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, old, new in mutants:
+        assert original.count(old) == 1, (name, original.count(old))
+        say('--- ' + name)
+        open(TOOL, 'wb').write(original.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(TOOL, 'wb').write(original)
+        os.utime(TOOL, None)
+        time.sleep(1)
+finally:
+    open(TOOL, 'wb').write(original)
+    os.utime(TOOL, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(TOOL, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

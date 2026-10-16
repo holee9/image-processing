@@ -1,0 +1,13 @@
+{
+  "generator": "xpe_calib_fixture_gen",
+  "seed": 0,
+  "width": 3072,
+  "height": 3072,
+  "expiry_epoch_ms": 4102444800000,
+  "defect_pixels": 4,
+  "files": {
+    "offset.xcal": "b3118648ff400fc785912eab595653c03457431373d2b67e0abc6d18d39fea65",
+    "gain.xcal": "163376523ce29af1b5cb17f1e4007e4ad824195295c6d301d6f1768451ddc29f",
+    "defect.xcal": "9c0eeefe36e863e126d9a2fbfebe49161117a947dae77e13458bed969c7f2cd6"
+  }
+}

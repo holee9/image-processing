@@ -72,7 +72,7 @@ D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-wind
        + Queued
        + ROI
        + RUN-SET
-       + Record result for 
+       + Record result for
        + Run on all queued
        + Run-set
        + STUDY
@@ -422,7 +422,7 @@ Actual:   True
        + Queued
        + ROI
        + RUN-SET
-       + Record result for 
+       + Record result for
        + Run on all queued
        + Run-set
        + STUDY
@@ -643,7 +643,7 @@ Actual:   True
        + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
        + ROI
        + RUN-SET
-       + Record result for 
+       + Record result for
        + Run on all queued
        + Run-set
        + STUDY

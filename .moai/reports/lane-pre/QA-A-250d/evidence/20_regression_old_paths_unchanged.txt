@@ -1,0 +1,8 @@
+synthetic default (expect offset c58057f1.. gain 0328f715.. defect 6c692f90..):
+offset.xcal  c58057f1f2efe180b767ab4764b5641321ce79520f3d7b45da3f04f61d49ee4c
+gain.xcal    0328f715d3ce89373dd4d014d0a86dc5c1591f25c3776f35158f75e25f5a7acd
+defect.xcal  6c692f90dd2e1e6ad7eef1376b57b4246b0d520562c90b8b646f8f25faeae379  (4 defect pixels)
+--caldata, expiry 4102444800000 (expect offset dcc76050.. gain 46a390af.. defect f00b1622..):
+offset.xcal  dcc760504aa5f5dbdbf52437cf52b19dc431209a4d1004337e9f2e514add392f
+gain.xcal    46a390af48a0b145ce097dce6f96a210a3e33159ae4683b23752ded8ed794456
+defect.xcal  f00b1622ad105d52460563949f13fb892acaacc1ccf31ab458cef39f46e8ce14  (23505 defect pixels)

@@ -478,6 +478,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_verify_gain_semantics.cpp # QA-A-192 (#220) xpe_verify_gain gain-semantics argument: 0.5% known / 1.0% unknown
         tests/test_calib_cache_global_store.cpp # QA-A-193 (#216) cached loaders: global store on a hit, shutdown empties the cache
         tests/test_calib_cache_same_verdict.cpp # QA-A-196 a cache hit reaches the same verdict as a miss
+        tests/test_a246_stage_diagnostics.cpp   # QA-A-246 pipeline_out_ex per-stage non-finite counts (its hook tests run in xpe_preprocess_clock_tests)
         tests/test_preprocess_version.cpp # QA-A-199 xpe_preprocess_version contract (REQ-P1A-106 draft)
         tests/test_config_strict_parse.cpp # QA-A-202 (#233) a malformed config number is CONFIG_INVALID, not an exception
         tests/test_correct_map_sharing.cpp # QA-A-202 (#233) offset/defect correction read a shared map outside the lock
@@ -604,6 +605,7 @@ if(_XPE_BUILD_TESTS)
     add_executable(xpe_preprocess_clock_tests
         tests/test_a241_safety.cpp
         tests/test_calib_cache_same_verdict.cpp   # its two expiry tests run only here (injected clock)
+        tests/test_a246_stage_diagnostics.cpp     # QA-A-246: the tests that poison the gain stage's output run only here (test hook)
         ${XPE_PREPROCESS_SOURCES}
     )
     target_include_directories(xpe_preprocess_clock_tests

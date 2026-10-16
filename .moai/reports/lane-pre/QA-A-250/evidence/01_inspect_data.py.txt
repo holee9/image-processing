@@ -1,0 +1,118 @@
+import glob
+import hashlib
+import os
+
+import numpy as np
+
+ROOT = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/'
+OUT = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-250/evidence/10_data_inspection.txt'
+N = 3072 * 3072
+lines = []
+
+
+def emit(t=''):
+    lines.append(t)
+    print(t)
+
+
+def load16(path):
+    b = np.fromfile(path, dtype='<u2')
+    return b
+
+
+def sha(path):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def stats(a):
+    a = a.astype(np.float64) if a.dtype != np.float64 else a
+    q = np.percentile(a, [0.1, 50, 99.9])
+    return a.mean(), q[0], q[1], q[2], a.min(), a.max()
+
+
+emit('Input inspection, QA-A-250. numpy %s. Files read as little-endian uint16, %d pixels (3072 x 3072) unless said otherwise.' % (np.__version__, N))
+emit('Folder: ' + ROOT)
+emit()
+emit('## calfiles: size of every file')
+sizes = {}
+for p in sorted(glob.glob(ROOT + 'calfiles/*')):
+    sizes.setdefault(os.path.getsize(p), []).append(os.path.basename(p))
+for s, names in sizes.items():
+    emit('  %d bytes: %d file(s): %s' % (s, len(names), ', '.join(names[:6]) + (' ...' if len(names) > 6 else '')))
+emit()
+emit('## dark frames (Dark_07 .. Dark_16): mean, p0.1, p50, p99.9, min, max, share at 65535, share at 0, sha256')
+dark = {}
+for k in range(7, 17):
+    p = ROOT + 'calfiles/Dark_%02d.raw' % k
+    a = load16(p)
+    assert a.size == N, (p, a.size)
+    dark[k] = a
+    m, p01, p50, p999, mn, mx = stats(a)
+    emit('  Dark_%02d  mean %9.3f  p0.1 %8.1f  p50 %8.1f  p99.9 %8.1f  min %6d  max %6d  at65535 %.6f  at0 %.6f  %s' % (k, m, p01, p50, p999, mn, mx, (a == 65535).mean(), (a == 0).mean(), sha(p)[:16]))
+emit()
+emit('## bright frames (Bright_17 .. Bright_36)')
+bright = {}
+for k in range(17, 37):
+    p = ROOT + 'calfiles/Bright_%02d.raw' % k
+    a = load16(p)
+    assert a.size == N, (p, a.size)
+    bright[k] = a
+    m, p01, p50, p999, mn, mx = stats(a)
+    emit('  Bright_%02d mean %9.3f  p0.1 %8.1f  p50 %8.1f  p99.9 %8.1f  min %6d  max %6d  at65535 %.6f  at0 %.6f  %s' % (k, m, p01, p50, p999, mn, mx, (a == 65535).mean(), (a == 0).mean(), sha(p)[:16]))
+emit()
+dm = np.mean([dark[k].astype(np.float64) for k in dark], axis=0)
+bm = np.mean([bright[k].astype(np.float64) for k in bright], axis=0)
+emit('## are the bright frames offset-corrected? (compare with the dark level)')
+emit('  mean of all dark frames: %.3f ADU; its p0.1 / p99.9: %.1f / %.1f' % (dm.mean(), np.percentile(dm, 0.1), np.percentile(dm, 99.9)))
+emit('  mean of all bright frames: %.3f ADU; bright p0.1 over the mean frame: %.1f; fraction of pixels of the bright MEAN frame below the dark mean: %.6f' % (bm.mean(), np.percentile(bm, 0.1), (bm < dm.mean()).mean()))
+emit('  bright mean frame minus dark mean frame: mean %.3f ADU' % (bm - dm).mean())
+emit('  frame-to-frame drift of the bright series (mean of each frame): first %.3f, last %.3f, max-min %.3f ADU' % (bright[17].mean(), bright[36].mean(), max(b.mean() for b in bright.values()) - min(b.mean() for b in bright.values())))
+emit('  drift of the dark series (mean of each frame): first %.3f, last %.3f, max-min %.3f ADU' % (dark[7].mean(), dark[16].mean(), max(b.mean() for b in dark.values()) - min(b.mean() for b in dark.values())))
+emit()
+emit('## MasterDark.raw against the mean of Dark_07..16')
+md = load16(ROOT + 'MasterDark.raw')
+emit('  MasterDark: %d values, mean %.3f; maximum |MasterDark - mean(Dark_07..16)| = %.3f ADU; identical when rounded: %s' % (md.size, md.mean(), np.abs(md.astype(np.float64) - dm).max(), bool((np.rint(dm).astype(np.int64) == md).all())))
+emit()
+emit('## BPM.raw (equipment maker defect map): values')
+bp = load16(ROOT + 'calfiles/BPM.raw')
+u, c = np.unique(bp, return_counts=True)
+emit('  %d pixels read as uint16; distinct values (up to 10): %s; counts: %s' % (bp.size, u[:10].tolist(), c[:10].tolist()))
+bp8 = np.fromfile(ROOT + 'calfiles/BPM.raw', dtype='u1')
+u8, c8 = np.unique(bp8, return_counts=True)
+emit('  the same bytes read as uint8: distinct values (up to 10): %s; counts: %s' % (u8[:10].tolist(), c8[:10].tolist()))
+emit('  sha256 %s' % sha(ROOT + 'calfiles/BPM.raw'))
+emit()
+emit('## other calfiles that are not dark/bright series')
+for p in sorted(glob.glob(ROOT + 'calfiles/*')):
+    n = os.path.basename(p)
+    if n.startswith(('Dark_', 'Bright_')) and '-' not in n:
+        continue
+    if n == 'BPM.raw':
+        continue
+    a = load16(p)
+    emit('  %-24s %d values as uint16: mean %.3f min %d max %d' % (n, a.size, a.mean(), a.min(), a.max()))
+emit()
+emit('## phantom frames and the _result files')
+for p in sorted(glob.glob(ROOT + '*.raw')):
+    n = os.path.basename(p)
+    a = load16(p)
+    emit('  %-70s %9d bytes  mean %.3f  min %d  max %d  sha256 %s' % (n, os.path.getsize(p), a.mean(), a.min(), a.max(), sha(p)[:16]))
+emit()
+emit('## relation of each _result to its original (original - MasterDark is the plain offset correction)')
+for p in sorted(glob.glob(ROOT + '*_result.raw')):
+    orig_path = p.replace('_result.raw', '.raw')
+    n = os.path.basename(orig_path)
+    r = load16(p).astype(np.float64)
+    o = load16(orig_path).astype(np.float64)
+    om = o - md.astype(np.float64)
+    emit('  %s' % n)
+    emit('     result mean %.3f | original mean %.3f | original-MasterDark mean %.3f | identical to original: %s' % (r.mean(), o.mean(), om.mean(), bool((r == o).all())))
+    emit('     result - (original - MasterDark): mean %.3f, std %.3f, max |.| %.1f; share exactly equal: %.6f' % ((r - om).mean(), (r - om).std(), np.abs(r - om).max(), (r == om).mean()))
+    sel = om > 100
+    ratio = r[sel] / om[sel]
+    emit('     ratio result / (original - MasterDark) over pixels with original-MasterDark > 100 (%d pixels): median %.5f, p5 %.5f, p95 %.5f' % (sel.sum(), np.median(ratio), np.percentile(ratio, 5), np.percentile(ratio, 95)))
+open(OUT, 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')

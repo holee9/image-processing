@@ -1,0 +1,77 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+TOOL = ROOT + 'modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-250d/evidence/22_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILTER = 'CalibFixtureGenTest.FramesMode*:CalibFixtureGenTest.TheBpm*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILTER], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+original = open(TOOL, 'rb').read()
+h0 = hashlib.sha256(original).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-250d mutation check of the publish design (no overwrite, own work directory, one rename). Source hash at the start: ' + h0)
+say('Short names: nonempty=RefusesANonEmptyOutAndLeavesItUntouched empty=AcceptsAnEmptyOutDirectory fail=FailureInAnyStageLeavesNothingBehind foreign=DoesNotTouchAnotherRunsWorkDirectory')
+say('PREDICTIONS (written before any run):')
+say('  N1 the early refusal of a non-empty --out removed        -> red: nonempty only (the publish step then fails with exit 8, not 14)')
+say('  N2 the work directory name made fixed (out.building-1-2) -> red: foreign only (the name collides with a directory of another run: exit 3)')
+say('  N3 a failed publish reported as success (seam)           -> red: fail only')
+say('  N4 the work directory not removed on failure             -> red: fail only')
+say('  N5 an empty --out is not removed before the rename       -> red: empty only (Windows: a rename onto an existing directory fails)')
+say('  N6 the empty --out not put back after a failed publish   -> red: fail only')
+say('  every other FramesMode test stays green in each mutant')
+
+mutants = [
+    ('N1', b'if (!fs::is_empty(out, ec)) {', b'if (ec.value() == -777) {'),
+    ('N2', b'".building-" + std::to_string(XPE_GETPID()) + "-" + std::to_string(ms)', b'".building-" + std::to_string(1 + 0 * XPE_GETPID()) + "-" + std::to_string(2 + 0 * ms)'),
+    ('N3', b'if (forcedFailure("commit")) ec = std::make_error_code(std::errc::io_error);', b'if (forcedFailure("commit")) ec.clear();'),
+    ('N4', b'if (created) fs::remove_all(path, ec);', b'if (created) (void)ec;'),
+    ('N5', b'fs::remove(out, ec);   // removes an empty directory only', b'(void)ec;   // removes an empty directory only'),
+    ('N6', b'if (wasEmptyDir) fs::create_directory(out, ec);', b'if (wasEmptyDir && ec.value() == -777) fs::create_directory(out, ec);'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, old, new in mutants:
+        assert original.count(old) == 1, (name, original.count(old))
+        say('--- ' + name)
+        open(TOOL, 'wb').write(original.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(TOOL, 'wb').write(original)
+        os.utime(TOOL, None)
+        time.sleep(1)
+finally:
+    open(TOOL, 'wb').write(original)
+    os.utime(TOOL, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(TOOL, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

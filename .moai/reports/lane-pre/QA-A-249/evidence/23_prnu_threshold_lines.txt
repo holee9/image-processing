@@ -1,0 +1,15 @@
+docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md:213:| **SRS-CALIB-FUNC-029** | System shall support calibration drift detection via `xpe_calib_check_drift()`. When invoked with a new set o
+docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md:1496:    "PRNU_CV": 0.035,                 // < 5% 합격
+docs/calibration/XPE-GUI-CALIB-001_Calibration_Verification_Test_GUI_Spec.md:653:| 4 | Apply Calibration | FlatResidualPct ≤ 1.0%; PRNU_CV ≤ 0.01 (분수 — `#218` 정정) |
+docs/calibration/XPE-GUI-CALIB-001_Calibration_Verification_Test_GUI_Spec.md:655:| **Gate** | FlatResidualPct ≤ 1.0% (= PRNU_CV ≤ 0.01 — 같은 조건입니다, 배율만 다릅니다) | **PASS** |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:4397:$$\text{TriggerRecal} = \left(\dot{D} > \theta_D\right) \lor \left(\Delta_{\text{PRNU}} > \theta_{\text{PRNU}}\right) \lo
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:4476:        prnu_cv = float(np.std(net) / np.mean(net) * 100) if len(net) > 0 else 0.0
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:4515:        if current.prnu_delta_pct > self.thresholds.prnu_delta_pct:
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:4516:            reasons.append(f"prnu_delta={current.prnu_delta_pct:.3f}% > {self.thresholds.prnu_delta_pct}%")
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:4599:            (alert.prnu_delta_pct        > k_prnu_thresh_)    ||
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:9614:| ΔT = 5°C 적용 | 균일성 PRNU CV < 0.5% |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:9615:| ΔT = 10°C 적용 | 균일성 PRNU CV < 1.0% |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:9961:| T1: 균일성 | PRNU CV ≤ 10% | §12.1 |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:12414:| Heel Effect | SRS-FUNC-002b | SWU-1.5 | PRNU CV < 0.8% (Phase 2) |
+docs/post-processing/xpe/XPE-ALG-001_Unified_Algorithm_Development_Specification.md:12445:| Temperature-Compensated Gain (GAP-AT) | SRS-FUNC-002d | SWU-1.12 | ΔT=5/10°C simulated; PRNU CV < 0.5%/1.0% |
+docs/post-processing/xpe/XPE-VVP-001_Verification_Validation_Plan.md:171:| SWU-1.12 | Temperature-Compensated Gain | §3.12 | PRNU CV < 0.5% (ΔT=5°C); CV < 1.0% (ΔT=10°C) |
