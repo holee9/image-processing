@@ -1372,6 +1372,7 @@ jobs:
             '170' = 'window re-acquisition PropertyNotSupportedException, ~7% per launch (UIA code 30011, not an issue number)'
             '265' = 'walkthrough W10 needs an old-build DLL folder (XPE_C232B_OLD_NATIVE_DIR); no such DLLs in the repository or CI (GUI-C-239)'
             '272' = 'walkthrough W16 needs the cyan_test real-frame calibration set (XPE_C247_CALIB/XPE_C247_RAW); not in the repository or CI (GUI-C-247b)'
+            '273' = 'DefectMapV2 D1-D4 need the version-2 defect map set (XPE_C249_SET, cal-254 from cyan_test) and its CI-built DLLs; not in the repository or CI (GUI-C-249, run by hand 2026-10-17)'
           }
           $trx = Get-ChildItem build/e2e-native-results -Filter *.trx -Recurse | Select-Object -First 1
           if (-not $trx) { Write-Error 'no trx produced'; exit 1 }
