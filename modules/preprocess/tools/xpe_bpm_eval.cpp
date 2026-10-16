@@ -872,7 +872,7 @@ bool parseMargins(const Args& a, XpeBpmConfigV2* cfgOut) {
         cfg.margin_top = mt;
         cfg.margin_right = mr;
         cfg.margin_bottom = mb;
-    
+
     return true;
 }
 
