@@ -30,6 +30,8 @@
  *       One scale per frame from about 10^6 pixels: the per-pixel degrees of freedom stay frames - 1. --raw-frames 1 switches the scaling off (the labels of QA-A-252f).
  *       Interval: the degrees of freedom of an item are the smaller of pixels x nu and the effective ones from blocks of 64 consecutive pixels (variance of the block means); the labels
  *       are PROVISIONAL (status column) until the spatial correlation is checked against an independent replicate.
+ *   xpe_bpm_eval defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F]
+ *       What a defect.xcal of format version 1 or 2 holds, and the layers written out (QA-A-254).
  *   xpe_bpm_eval score --truth DIR --map F [--noise-truth FILE] [--overlap composite] [--overlap-out FILE]
  *       --noise-truth: the file of noise-cost. An item is a defect when either axis says so; normal when both say so; undetermined (counted as neither a hit nor a false alarm,
  *       only its number is reported) when the response axis says normal and the noise verdict is undetermined. [--clean-map F] [--half-a F --half-b F] [--area MASK.u8] [--out metrics.json]
@@ -57,6 +59,8 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe_sha256.hpp"
 #include "xpe_bpm_eval_stats.hpp"
+#include "defect_ext.hpp"
+#include "xpe/common/xpe_common_api.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1666,6 +1670,56 @@ int cmdMerge(const Args& a) {
     return writeBytes(a.str("out"), out.data(), out.size()) ? 0 : 3;
 }
 
+/**
+ * defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F] (QA-A-254): what a defect.xcal of format version 1 or 2 holds. --map-out and --area-out write the planes (width x height
+ * bytes); --lines-out writes a TSV of the line records and the unconfirmed candidates with their individual stretches.
+ */
+int cmdDefectXcal(const Args& a) {
+    if (!a.has("in")) {
+        usage();
+        return 2;
+    }
+    DefectXcal d;
+    xpe_clear_alerts();
+    const XpeErrorCode rc = read_defect_xcal(a.str("in").c_str(), false, &d);
+    if (rc != XPE_OK) {
+        std::printf("refused: error code %d\n", static_cast<int>(rc));
+        const int32_t n = xpe_get_pending_alert_count();
+        for (int32_t i = 0; i < n; ++i) {
+            char    msg[1024] = {0};
+            int32_t sev = 0;
+            if (xpe_get_pending_alert(i, msg, sizeof msg, &sev) == XPE_OK) std::printf("  alert: %s\n", msg);
+        }
+        xpe_clear_alerts();
+        return 3;
+    }
+    size_t flagged = 0, outside = 0;
+    for (uint8_t v : d.map) flagged += v != 0;
+    for (uint8_t v : d.area) outside += v == 0;
+    size_t segments = 0;
+    for (const DefectExtLine& L : d.ext.lines) segments += L.segments.size();
+    std::printf("defect.xcal: format version %u, %u x %u, session \"%s\"\n  defect plane: %zu pixels flagged\n  imaging area: %s%zu pixels outside\n  line groups: %zu (%zu stretches), blobs: %zu, unconfirmed candidates: %zu\n",
+                d.format_version, d.width, d.height, d.session_id.c_str(), flagged, d.has_area ? "" : "none (version 1: every pixel inside); ", outside, d.ext.lines.size(), segments, d.ext.blobs.size(),
+                d.ext.candidates.size());
+    if (a.has("map-out") && !writeBytes(a.str("map-out"), d.map.data(), d.map.size())) return 3;
+    if (a.has("area-out") && d.has_area && !writeBytes(a.str("area-out"), d.area.data(), d.area.size())) return 3;
+    if (a.has("lines-out")) {
+        std::string tsv = "kind\torientation\tindex\twidth\tstart\tend\tcauses\tflags\treason\tcorrection\tstrength\tpersistence\tstretches\n";
+        auto row = [&](const char* kind, const DefectExtLine& L) {
+            std::string st;
+            for (const DefectExtSegment& g : L.segments) st += (st.empty() ? "" : ";") + std::to_string(g.line) + ":" + std::to_string(g.start) + "-" + std::to_string(g.end);
+            char b[320];
+            std::snprintf(b, sizeof b, "%s\t%s\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%.2f\t%.2f\t", kind, L.orientation == 0 ? "row" : "column", L.index, L.width, L.start, L.end, L.causes, L.flags, L.reason, L.correction,
+                          static_cast<double>(L.strength), static_cast<double>(L.persistence));
+            tsv += b + st + "\n";
+        };
+        for (const DefectExtLine& L : d.ext.lines) row("line", L);
+        for (const DefectExtLine& L : d.ext.candidates) row("candidate", L);
+        if (!writeBytes(a.str("lines-out"), tsv.data(), tsv.size())) return 3;
+    }
+    return 0;
+}
+
 /** blobs --map F [--width W --height H] [--out blobs.tsv]: the blobs of a map with their size. */
 int cmdBlobs(const Args& a) {
     const uint32_t w = static_cast<uint32_t>(a.num("width", 3072)), h = static_cast<uint32_t>(a.num("height", 3072));
@@ -1994,6 +2048,7 @@ int main(int argc, char** argv) {
     if (a.cmd == "lines") return cmdLines(a);
     if (a.cmd == "merge") return cmdMerge(a);
     if (a.cmd == "blobs") return cmdBlobs(a);
+    if (a.cmd == "defect-xcal") return cmdDefectXcal(a);
     usage();
     return 2;
 }

@@ -30,6 +30,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include "xpe_fixture_gen_path.h"  // generated: XPE_FIXTURE_GEN_EXE
+#include "defect_ext.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -693,6 +694,76 @@ TEST_F(CalibFixtureGenTest, FramesModeTakesTheDefectMapFromItsOwnBrightFramesAnd
     ASSERT_GT(defect.size(), n);
     const char* mask = defect.data() + (defect.size() - n);
     EXPECT_NE(0, mask[100 * kW + 100]) << "the dead pixel of the bright frames is found from the defect map's own frames";
+}
+
+// QA-A-254: --bpm-v2 writes defect.xcal as format version 2 from the second-generation chain: the pixel map with the line mask merged in, the imaging area of --bpm-margins, the line records
+// with their individual stretches, a blob mark per group of defective pixels, the unconfirmed candidates apart; the manifest names it and states its limits.
+TEST_F(CalibFixtureGenTest, FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLinesAndTheBlobs) {
+    const FrameSet set = writeFrameSet(root / "in", 8, 6);                   // one dose: the gain map
+    const FrameSet more = writeFrameSet(root / "more", 0, 6, {1.6, 2.2});    // other doses, for the defect map only
+    // a double row defect in every bright frame: the response of rows 120 and 121 is 30 % (a defect: below 45 %), over x = 10..119 and x = 60..245
+    std::vector<std::string> all = set.brights;
+    all.insert(all.end(), more.brights.begin(), more.brights.end());
+    for (const auto& b : all) {
+        std::vector<char> raw = readAll(b);
+        auto* px = reinterpret_cast<uint16_t*>(raw.data());
+        for (uint32_t x = 10; x < 120; ++x) px[120 * kW + x] = static_cast<uint16_t>(1000 + (px[120 * kW + x] - 1000) * 0.30);   // two adjacent rows with different stretches:
+        for (uint32_t x = 60; x < 246; ++x) px[121 * kW + x] = static_cast<uint16_t>(1000 + (px[121 * kW + x] - 1000) * 0.30);   // one group of width 2, two individual stretches
+        std::ofstream(b, std::ios::binary | std::ios::trunc).write(raw.data(), static_cast<std::streamsize>(raw.size()));
+    }
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    std::string args = framesArgs(set) + " --bpm-v2 --bpm-margins 3,2,1,1";
+    for (const auto& f : all) args += " --bpm-bright \"" + f + "\"";
+    std::string err;
+    ASSERT_EQ(0, runFrames(root, a, args, "a", &err)) << err;
+    ASSERT_EQ(0, runFrames(root, b, args, "b"));
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"})
+        EXPECT_TRUE(readAll(a / name) == readAll(b / name)) << name << " differs between two runs on the same frames";
+    DefectXcal d;
+    ASSERT_EQ(XPE_OK, read_defect_xcal((a / "defect.xcal").string().c_str(), false, &d));
+    EXPECT_EQ(2u, d.format_version);
+    ASSERT_TRUE(d.has_area);
+    size_t outside = 0;
+    for (uint8_t v : d.area) outside += v == 0;
+    EXPECT_EQ(static_cast<size_t>(3) * kH + static_cast<size_t>(1) * kH + static_cast<size_t>(2 + 1) * (kW - 4) , outside) << "margins 3,2,1,1: three columns left, one right, two rows top, one bottom";
+    EXPECT_EQ(0, d.area[100 * kW + 1]) << "inside the left margin";
+    EXPECT_EQ(1, d.area[100 * kW + 3]) << "just inside the area";
+    EXPECT_NE(0, d.map[100 * kW + 100]) << "the dead pixel of the bright frames";
+    bool rowFound = false;
+    for (const DefectExtLine& L : d.ext.lines) {
+        if (L.orientation == XPE_BPM_LINE_ROW && L.index <= 121 && L.index + L.width > 120) {
+            rowFound = true;
+            EXPECT_FALSE(L.segments.empty());
+            for (const DefectExtSegment& g : L.segments) {
+                EXPECT_GE(g.start, L.start);
+                EXPECT_LE(g.end, L.end);
+                for (uint32_t x = g.start; x < g.end; ++x) EXPECT_NE(0, d.map[static_cast<size_t>(g.line) * kW + x]) << "a recorded stretch is painted in the defect plane";
+            }
+        }
+    }
+    EXPECT_TRUE(rowFound) << "the planted row defect is a line record (lines: " << d.ext.lines.size() << ")";
+    EXPECT_EQ(0, d.map[120 * kW + 200]) << "row 120 is good there: the record's bounding range must not be painted as one stretch";
+    EXPECT_FALSE(d.ext.blobs.empty());
+    const std::string manifest = asText(readAll(a / "manifest.json"));
+    EXPECT_NE(std::string::npos, manifest.find("\"defect_format\"")) << manifest;
+    EXPECT_NE(std::string::npos, manifest.find("\"xcal_version\": 2"));
+    EXPECT_NE(std::string::npos, manifest.find("\"margins_ltrb\": [3, 2, 1, 1]"));
+    EXPECT_NE(std::string::npos, manifest.find("not evidence for a line pixel")) << "the limit of the pixel bit near a line is stated";
+    EXPECT_NE(std::string::npos, manifest.find("diagnostic appendix"));
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map((a / "defect.xcal").string().c_str())) << "the runtime loader takes the version-2 file";
+    xpe_clear_alerts();
+    xpe_preprocess_shutdown();
+}
+
+TEST_F(CalibFixtureGenTest, TheBpmV2OptionsBelongToTheFramesModeAndTakeFourMargins) {
+    std::string err;
+    EXPECT_NE(0, runFrames(root, caseDir("o"), " --bpm-v2", "o", &err));
+    EXPECT_NE(std::string::npos, err.find("--bpm-v2")) << err;
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    EXPECT_NE(0, runFrames(root, caseDir("m"), framesArgs(set) + " --bpm-v2 --bpm-margins 1,2,3", "m", &err));
+    EXPECT_NE(std::string::npos, err.find("L,T,R,B")) << err;
+    EXPECT_TRUE(hasNoMaps(caseDir("m")));
 }
 
 TEST_F(CalibFixtureGenTest, FramesModeRefusesTooFewDefectMapFramesEvenWhenTheGainFramesAreEnough) {

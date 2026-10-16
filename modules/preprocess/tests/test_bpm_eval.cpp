@@ -7,6 +7,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "defect_ext.hpp"
 
 #include "xpe_bpm_eval_path.h"      // generated: XPE_BPM_EVAL_EXE
 #include "xpe_bpm_eval_stats.hpp"      // the numeric parts of the tool (QA-A-251b)
@@ -515,6 +516,41 @@ TEST(BpmEvalStatsTest, TheNoiseVerdictFollowsTheIntervalAgainstTheLimit) {
 
 // Gaussian frames with a known quantum gain and readout variance: dark = pedestal + N(0, 9), bright = dark + signal + N(0, v0 + kappa * signal); three doses of three frames and
 // two evaluation frames at the middle dose
+TEST_F(BpmEvalTest, DefectXcalCommandReadsBothVersionsAndSaysWhyItRefuses) {
+    // QA-A-254: a version-2 file made by the writer, the command's summary and the planes it writes out; a damaged file is refused with the alert text in the output
+    const uint32_t W = 64, H = 48;
+    std::vector<uint8_t> map(static_cast<size_t>(W) * H, 0), area(map.size(), 1);
+    map[5 * W + 5] = 1;
+    map[6 * W + 7] = 2;
+    for (uint32_t x = 0; x < W; ++x) area[x] = 0;   // the top row is outside
+    DefectExt ext;
+    DefectExtLine L;
+    L.orientation = 0; L.index = 20; L.width = 1; L.start = 8; L.end = 40; L.causes = 1; L.correction = XPE_DEFECT_LINE_CORRECT_INTERPOLATE; L.strength = 4.0f;
+    L.segments = {{20, 8, 40}};
+    ext.lines = {L};
+    ext.blobs = {{5, 5, 5, 5, 1}};
+    DefectXcalWrite w;
+    w.width = W; w.height = H; w.map = map.data(); w.area = area.data(); w.ext = &ext; w.session_id = "t";
+    const fs::path f = root / "d2.xcal";
+    ASSERT_EQ(XPE_OK, write_defect_xcal(f.string().c_str(), w));
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, "defect-xcal --in \"" + f.string() + "\" --map-out \"" + (root / "m.u8").string() + "\" --area-out \"" + (root / "a.u8").string() + "\" --lines-out \"" +
+                                                (root / "l.tsv").string() + "\" > \"" + (root / "d.txt").string() + "\" 2>&1"));
+    const std::string out = text(root / "d.txt"), lines = text(root / "l.tsv");
+    EXPECT_NE(std::string::npos, out.find("format version 2, 64 x 48")) << out;
+    EXPECT_NE(std::string::npos, out.find("defect plane: 2 pixels flagged")) << out;
+    EXPECT_NE(std::string::npos, out.find("imaging area: 64 pixels outside")) << out;
+    EXPECT_NE(std::string::npos, out.find("line groups: 1 (1 stretches), blobs: 1, unconfirmed candidates: 0")) << out;
+    EXPECT_EQ(map, readBytes(root / "m.u8"));
+    EXPECT_EQ(area, readBytes(root / "a.u8"));
+    EXPECT_NE(std::string::npos, lines.find("line\trow\t20\t1\t8\t40")) << lines;
+    EXPECT_NE(std::string::npos, lines.find("20:8-40")) << lines;
+    std::vector<uint8_t> b = readBytes(f);
+    b[4] = 9;   // an unsupported version number
+    writeBytes(root / "bad.xcal", b.data(), b.size());
+    EXPECT_EQ(3, runCmd(XPE_BPM_EVAL_EXE, "defect-xcal --in \"" + (root / "bad.xcal").string() + "\" > \"" + (root / "bad.txt").string() + "\" 2>&1"));
+    EXPECT_NE(std::string::npos, text(root / "bad.txt").find("alert: XPE_ERR_XCAL_VERSION: file version 9")) << text(root / "bad.txt");
+}
+
 class BpmEvalQuantumTest : public BpmEvalTest {
 protected:
     static constexpr double kKappa = 0.30, kV0 = 9.0;
