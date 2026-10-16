@@ -1035,7 +1035,7 @@ int cmdLines(const Args& a) {
     lc.noise_tolerance_db = static_cast<float>(std::strtod(a.str("tolerance-db", "0").c_str(), nullptr));
     const size_t           n = static_cast<size_t>(w) * h;
     std::vector<uint8_t>   mask(n, 0);
-    std::vector<XpeBpmLine> lines(4096);
+    std::vector<XpeBpmLine> lines(4096), unconfirmed(4096);
     XpeImageBuffer         mb{};
     mb.data = mask.data();
     mb.width = w;
@@ -1046,7 +1046,7 @@ int cmdLines(const Args& a) {
     mb.dataSize = mask.size();
     XpeBpmLineReport rep{};
     if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
-    const XpeErrorCode rc = xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &lc, &mb, lines.data(), static_cast<uint32_t>(lines.size()), &rep);
+    const XpeErrorCode rc = xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &lc, &mb, lines.data(), static_cast<uint32_t>(lines.size()), unconfirmed.data(), static_cast<uint32_t>(unconfirmed.size()), &rep);
     xpe_preprocess_shutdown();
     if (rc != XPE_OK) {
         std::fprintf(stderr, "xpe_bpm_find_lines failed (%d)\n", static_cast<int>(rc));
@@ -1054,6 +1054,16 @@ int cmdLines(const Args& a) {
     }
     if (!writeBytes(a.str("out"), mask.data(), mask.size())) return 3;
     lines.resize(std::min<size_t>(rep.lines, lines.size()));
+    unconfirmed.resize(std::min<size_t>(rep.unconfirmed, unconfirmed.size()));
+    if (a.has("unconfirmed")) {   // the candidates whose persistence could not be judged: place and reason, never in the mask
+        std::string ut = "orientation\tindex\tstart\tend\tcauses\tstrength\treason\n";
+        for (const XpeBpmLine& l : unconfirmed) {
+            char b[160];
+            std::snprintf(b, sizeof b, "%s\t%u\t%u\t%u\t%u\t%.2f\t%u\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.start, l.end, l.causes, static_cast<double>(l.strength), l.reason);
+            ut += b;
+        }
+        if (!writeBytes(a.str("unconfirmed"), ut.data(), ut.size())) return 3;
+    }
     std::string tsv = "orientation\tindex\twidth\tstart\tend\tcauses\tflags\tstrength\tpersistence\n";
     for (const XpeBpmLine& l : lines) {
         char b[160];
@@ -1061,15 +1071,19 @@ int cmdLines(const Args& a) {
         tsv += b;
     }
     if (a.has("tsv") && !writeBytes(a.str("tsv"), tsv.data(), tsv.size())) return 3;
-    char j[900];
+    char j[1600];
     std::snprintf(j, sizeof j,
                   "{\n  \"groups\": %u, \"row_groups\": %u, \"column_groups\": %u, \"full\": %u, \"partial\": %u, \"double\": %u, \"crossings\": %u,\n"
                   "  \"max_adjacent\": %u, \"panel_reject\": %u, \"truncated\": %u, \"line_pixels\": %u, \"pixels\": %u, \"weak_response_stretches\": %u,\n"
+                  "  \"unconfirmed\": %u, \"dark_frames_raw\": %u, \"dark_frames_valid\": %u, \"bright_frames_raw\": %u, \"bright_frames_valid\": %u,\n"
                   "  \"null_width\": [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\n}\n",
                   rep.lines, rep.row_groups, rep.column_groups, rep.full_lines, rep.partial_lines, rep.double_lines, rep.crossings, rep.max_adjacent, rep.panel_reject, rep.truncated, rep.line_pixels, rep.pixels, rep.weak_response_stretches,
+                  rep.unconfirmed, rep.dark_frames_raw, rep.dark_frames_valid, rep.bright_frames_raw, rep.bright_frames_valid,
                   static_cast<double>(rep.null_width[0]), static_cast<double>(rep.null_width[1]), static_cast<double>(rep.null_width[2]), static_cast<double>(rep.null_width[3]),
                   static_cast<double>(rep.null_width[4]), static_cast<double>(rep.null_width[5]));
     if (a.has("report") && !writeBytes(a.str("report"), j, std::strlen(j))) return 3;
+    std::printf("xpe_bpm_find_lines: %u unconfirmed candidates (persistence not judged); persistence frames: dark %u of %u raw, bright %u of %u raw\n", rep.unconfirmed, rep.dark_frames_valid, rep.dark_frames_raw,
+                rep.bright_frames_valid, rep.bright_frames_raw);
     std::printf("xpe_bpm_find_lines: %u groups (%u rows, %u columns; %u full, %u partial, %u double, %u crossings), widest %u, panel reject %u\n", rep.lines, rep.row_groups, rep.column_groups, rep.full_lines,
                 rep.partial_lines, rep.double_lines, rep.crossings, rep.max_adjacent, rep.panel_reject);
     for (const XpeBpmLine& l : lines)

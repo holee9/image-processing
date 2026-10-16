@@ -1,0 +1,26 @@
+QA-A-253f mutation check of the pair rule and the unconfirmed list (src/xpe_bpm_v2.cpp). Source hash at the start: 2d80b4621804dde1
+PREDICTIONS (written before any run):
+  Y1 pairs count in the persistence again (mg < 2 instead of mg < 3)                        -> red: ABurstInOneFramePerPair... (and the cannot-be-judged test: valid frames 2, not 0)
+  Y2 unconfirmed candidates are painted again (they join the confirmed segments)             -> red: ANoisyRowThatCannotBeJudged... (mask not 0) and maybe ABurstInOneFramePerPair...
+  Y3 an unjudgeable candidate is dropped without a list entry                               -> red: ANoisyRowThatCannotBeJudged... only
+  Y4 the report counts pairs among the valid bright frames                                   -> red: ANoisyRowThatCannotBeJudged... and ABurstInOneFramePerPair... (valid frames 0 expected)
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 21 passed, failed: []
+--- Y1
+build: BUILD_EXIT=0
+tests exit 1: 20 passed, FAILED: ['ABurstInOneFramePerPairIsNoPersistenceEvidence']
+--- Y2
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup', 'ABurstInOneFramePerPairIsNoPersistenceEvidence', 'ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted']
+--- Y3
+build: BUILD_EXIT=0
+tests exit 1: 20 passed, FAILED: ['ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted']
+--- Y4
+build: BUILD_EXIT=0
+tests exit 1: 19 passed, FAILED: ['ABurstInOneFramePerPairIsNoPersistenceEvidence', 'ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted']
+--- restored: touch + rebuild
+source hash now: 2d80b4621804dde1 (start: 2d80b4621804dde1)
+build: BUILD_EXIT=0
+tests exit 0: 21 passed, failed: []

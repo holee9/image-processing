@@ -100,7 +100,7 @@ constexpr int kDarkRow = 60, kDarkFrom = 96;   // the raised segment: kPartLen p
 constexpr int kVarCol = 70;                  // a column whose offset is a new random value in every frame (sd 60)
 // line defects of the QA-A-253 tests (256 x 256 frames)
 constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256, kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048,
-                 kLnLowRow = 262144, kLnHighRow = 524288, kLnWeakRow = 1048576, kLnDarkBurstOne = 4096, kLnDarkNoisyFrames = 8192, kLnBrightBurstOne = 16384, kLnBrightNoisyFrames = 32768, kLnStagger2 = 65536, kLnStagger3 = 131072;
+                 kLnBrightBurstMask = 2097152, kLnLowRow = 262144, kLnHighRow = 524288, kLnWeakRow = 1048576, kLnDarkBurstOne = 4096, kLnDarkNoisyFrames = 8192, kLnBrightBurstOne = 16384, kLnBrightNoisyFrames = 32768, kLnStagger2 = 65536, kLnStagger3 = 131072;
 constexpr int kLnDeadRowY = 120, kLnDeadColX = 60, kLnHalfRowY = 80, kLnPartialRowY = 40, kLnPartialFrom = 96, kLnPartialTo = 192, kLnPairY = 170, kLnTripleY = 200, kLnNoisyY = 30, kLnGainY = 150;
 // QA-A-253c: noise that moves. In dark frame k the stretch [96, 192) of row kBurstY0 + k gets an offset of +-14 (a different row in every frame)
 constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;
@@ -152,6 +152,8 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                 if ((plant.lines & kLnDarkBurstOne) && darkIdx == 3 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp;
                 if ((plant.lines & kLnDarkNoisyFrames) && darkIdx >= 0 && ((plant.frameMask >> darkIdx) & 1u) && y == kSomeFramesY && x >= kBurstFrom && x < kBurstTo) noiseSd = plant.burstAmp;
                 if ((plant.lines & kLnBrightBurstOne) && bright && brightIdx == 1 && y == kSingleY && x >= kBurstFrom && x < kBurstTo) d += plant.burstAmp * 0.5 * std::sqrt(std::max(sig, 1.0));
+                if ((plant.lines & kLnBrightBurstMask) && bright && brightIdx >= 0 && ((plant.frameMask >> brightIdx) & 1u) && y == kSingleY && x >= kBurstFrom && x < kBurstTo)
+                    d += plant.burstAmp * 0.5 * std::sqrt(std::max(sig, 1.0));
                 if ((plant.lines & kLnBrightNoisyFrames) && bright && brightIdx >= 0 && ((plant.frameMask >> brightIdx) & 1u) && y == kSomeFramesY && x >= kBurstFrom && x < kBurstTo) noiseSd = plant.burstAmp;
                 for (int r = 0; r < 3; ++r) {
                     const bool on = (r < 2 && (plant.lines & kLnStagger2)) || (plant.lines & kLnStagger3);
@@ -438,7 +440,7 @@ namespace {
 
 struct LinesResult {
     XpeErrorCode               rc;
-    std::vector<XpeBpmLine>    lines;
+    std::vector<XpeBpmLine>    lines, unconfirmed;
     std::vector<uint8_t>       mask;
     XpeBpmLineReport           rep;
 };
@@ -450,12 +452,14 @@ LinesResult findLines(Frames& f, const XpeBpmConfigV2* cfg, const XpeBpmLineConf
     LinesResult r{};
     r.mask.assign(kN, 77);
     r.lines.assign(64, XpeBpmLine{});
+    r.unconfirmed.assign(64, XpeBpmLine{});
     XpeImageBuffer mb = outBuf(r.mask);
     EXPECT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
-    r.rc = xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), cfg, lcfg, &mb, r.lines.data(), 64, &r.rep);
+    r.rc = xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), cfg, lcfg, &mb, r.lines.data(), 64, r.unconfirmed.data(), 64, &r.rep);
     xpe_clear_alerts();
     xpe_preprocess_shutdown();
     r.lines.resize(std::min<size_t>(r.rep.lines, 64));
+    r.unconfirmed.resize(std::min<size_t>(r.rep.unconfirmed, 64));
     return r;
 }
 
@@ -688,17 +692,47 @@ TEST(BpmV2LinesTest, NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot) {
     EXPECT_EQ(nullptr, noiseGroupAt(b, kSomeFramesY)) << "2 of 7 frames";
 }
 
-TEST(BpmV2LinesTest, ANoisyRowThatCannotBeJudgedFrameByFrameIsKeptAndSaysSo) {
-    // two bright frames in all: no majority is possible, the stretch found in the bright frames is kept with persistence -1 ("not tested")
-    Frames f = makeFrames(45, {9000.0}, 2, 7, lonePlant(kLnBrightNoisyFrames, 400.0, 3u));   // noise sd 400 in both frames: with one degree of freedom only a huge one stands out
+TEST(BpmV2LinesTest, ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted) {
+    // two bright frames in all: no majority is possible; the stretch found in the bright frames is an unconfirmed candidate, not a defect
+    Frames f = makeFrames(45, {9000.0}, 2, 7, lonePlant(kLnBrightNoisyFrames, 400.0, 3u));
     XpeBpmConfigV2 cfg{};
     cfg.min_frames_bright = 2;
     const XpeBpmLineConfig lc = shortWindows();
     const LinesResult r = findLines(f, &cfg, &lc);
     ASSERT_EQ(XPE_OK, r.rc);
-    const XpeBpmLine* l = noiseGroupAt(r, kSomeFramesY);
-    ASSERT_NE(nullptr, l);
-    EXPECT_FLOAT_EQ(-1.0f, l->persistence);
+    EXPECT_EQ(nullptr, noiseGroupAt(r, kSomeFramesY)) << "not confirmed";
+    ASSERT_GE(r.rep.unconfirmed, 1u);
+    const XpeBpmLine* u = nullptr;
+    for (const XpeBpmLine& l : r.unconfirmed)
+        if (l.orientation == XPE_BPM_LINE_ROW && l.index == static_cast<uint32_t>(kSomeFramesY)) u = &l;
+    ASSERT_NE(nullptr, u) << "it is on the list of unconfirmed candidates, with its place";
+    EXPECT_EQ(XPE_BPM_LINE_REASON_TOO_FEW_FRAMES, u->reason);
+    EXPECT_FLOAT_EQ(-1.0f, u->persistence);
+    for (uint32_t x = u->start; x < u->end; ++x) EXPECT_EQ(0, r.mask[static_cast<size_t>(kSomeFramesY) * kW + x]) << "an unconfirmed candidate is never painted: x " << x;
+    EXPECT_EQ(2u, r.rep.bright_frames_raw);
+    EXPECT_EQ(0u, r.rep.bright_frames_valid) << "a pair is not persistence evidence";
+    EXPECT_EQ(7u, r.rep.dark_frames_raw);
+    EXPECT_EQ(6u, r.rep.dark_frames_valid) << "the first dark frame is skipped";
+}
+
+TEST(BpmV2LinesTest, ABurstInOneFramePerPairIsNoPersistenceEvidence) {
+    // Codex #211: [100,0] [100,0] and [100,0] [100,0] [0,0]. A pair cannot tell which of its frames is odd: its frames count neither for nor against persistence
+    for (const std::vector<double>& doses : {std::vector<double>{2000.0, 4500.0}, std::vector<double>{2000.0, 4500.0, 9000.0}}) {
+        Frames f = makeFrames(48, doses, 2, 7, lonePlant(kLnBrightBurstMask, 20.0, 5u));   // frames 0 and 2: the first frame of the first and of the second pair
+        XpeBpmConfigV2 cfg{};
+        cfg.min_frames_bright = 2;
+        const XpeBpmLineConfig lc = shortWindows();
+        const LinesResult r = findLines(f, &cfg, &lc);
+        ASSERT_EQ(XPE_OK, r.rc);
+        EXPECT_EQ(nullptr, noiseGroupAt(r, kSingleY)) << doses.size() << " pairs: not confirmed";
+        // with three dose groups the burst also shifts a group mean and can look like a local nonlinearity (cause linearity, a known limit that persistence does not judge);
+        // with two there is no linearity feature, so nothing at all may be painted
+        if (doses.size() == 2)
+            for (uint32_t x = static_cast<uint32_t>(kBurstFrom); x < static_cast<uint32_t>(kBurstTo); ++x)
+                EXPECT_EQ(0, r.mask[static_cast<size_t>(kSingleY) * kW + x]) << "nothing painted at x " << x;
+        EXPECT_EQ(0u, r.rep.bright_frames_valid);
+        EXPECT_EQ(static_cast<uint32_t>(doses.size() * 2), r.rep.bright_frames_raw);
+    }
 }
 
 TEST(BpmV2LinesTest, TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup) {
@@ -769,7 +803,7 @@ TEST(BpmV2LinesTest, ConfigurationAndBuffersAreChecked) {
     bad = XpeBpmLineConfig{};
     bad.target_false_alarms = 5000.0f;
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, findLines(f, nullptr, &bad).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bpm_find_lines(nullptr, 7, nullptr, 12, nullptr, nullptr, nullptr, nullptr, 0, nullptr));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_bpm_find_lines(nullptr, 7, nullptr, 12, nullptr, nullptr, nullptr, nullptr, 0, nullptr, 0, nullptr));
 }
 
 TEST(BpmV2LinesTest, BlobsGroupNeighbouringDefectivePixelsWithTheirSize) {

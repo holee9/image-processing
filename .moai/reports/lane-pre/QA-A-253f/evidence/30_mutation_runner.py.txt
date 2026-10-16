@@ -1,0 +1,76 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+V2 = ROOT + 'modules/preprocess/src/xpe_bpm_v2.cpp'
+EV = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-253f/evidence/21_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILT = 'BpmV2LinesTest.*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+orig = {V2: open(V2, 'rb').read(), EV: open(EV, 'rb').read()}
+h0 = hashlib.sha256(orig[V2] + orig[EV]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-253f mutation check of the pair rule and the unconfirmed list (src/xpe_bpm_v2.cpp). Source hash at the start: ' + h0)
+say('PREDICTIONS (written before any run):')
+say('  Y1 pairs count in the persistence again (mg < 2 instead of mg < 3)                        -> red: ABurstInOneFramePerPair... (and the cannot-be-judged test: valid frames 2, not 0)')
+say('  Y2 unconfirmed candidates are painted again (they join the confirmed segments)             -> red: ANoisyRowThatCannotBeJudged... (mask not 0) and maybe ABurstInOneFramePerPair...')
+say('  Y3 an unjudgeable candidate is dropped without a list entry                               -> red: ANoisyRowThatCannotBeJudged... only')
+say('  Y4 the report counts pairs among the valid bright frames                                   -> red: ANoisyRowThatCannotBeJudged... and ABurstInOneFramePerPair... (valid frames 0 expected)')
+say('  every other test stays green in each mutant')
+
+CRLF = bytes([10])
+mutants = [
+    ('Y1', V2, b'                    if (mg < 3) continue;', b'                    if (mg < 2) continue;'),
+    ('Y2', V2, b'for (const Seg& sg : job.segs) (sg.unconfirmed ? pendingSegs : confirmedSegs).push_back(sg);', b'for (const Seg& sg : job.segs) confirmedSegs.push_back(sg);'),
+    ('Y3', V2, b'if (persist < 0.0f) unconfirmed = true;', b'if (persist < 0.0f) continue;'),
+    ('Y4', V2, b'if (grp.size() >= 3) job->brightValid', b'if (grp.size() >= 2) job->brightValid'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new in mutants:
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(path, 'wb').write(cur)
+        os.utime(path, None)
+        time.sleep(1)
+finally:
+    for path, data in orig.items():
+        open(path, 'wb').write(data)
+        os.utime(path, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(V2, 'rb').read() + open(EV, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

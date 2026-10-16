@@ -334,10 +334,12 @@ struct Seg {
     int      a, b;     // [a, b) along the line
     uint32_t cause;
     float    z;
-    float    persist{-1.0f};   // fraction of the dark frames in which the stretch is large; -1 = not tested
+    float    persist{-1.0f};   // fraction of the frames in which the stretch is large; -1 = not tested
+    bool     unconfirmed{false};   // the persistence could not be judged: a candidate, not a defect
 };
 
 struct LineJob {
+    uint32_t         darkRaw{0}, darkValid{0}, brightRaw{0}, brightValid{0};   // the frames of the persistence judgement
     bool             countWeak{false};   // count the weak-response stretches of the response feature being analysed
     uint32_t         weak{0};
     double           fa{1.0};
@@ -484,13 +486,15 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             }
             if (cause == 0) continue;
             float persist = -1.0f;
+            bool  unconfirmed = false;
             if (cause == XPE_BPM_LINE_CAUSE_NOISE && job->persistence) {
                 persist = job->persistence(orient, y, a, b);
                 // large in half of the frames or fewer: noise that moves, not a defect of a place. A negative value says the test was not possible (fewer than three frames
-                // to judge by): the stretch is kept and reported with persistence -1
-                if (persist >= 0.0f && !(persist > 0.5f)) continue;
+                // to judge by): the stretch is an unconfirmed candidate, listed apart and never painted
+                if (persist < 0.0f) unconfirmed = true;
+                else if (!(persist > 0.5f)) continue;
             }
-            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax), persist});
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax), persist, unconfirmed});
         }
     }
 }
@@ -717,6 +721,14 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
     }
     const uint32_t G = static_cast<uint32_t>(groups.size());
     if (G > XPE_BPM_V2_MAX_DOSE_GROUPS) return XPE_ERR_INVALID_INPUT;
+    if (job) {   // lines: the frames of the persistence judgement (reported)
+        job->darkRaw = num_dark;
+        job->darkValid = nd;
+        job->brightRaw = num_bright;
+        job->brightValid = 0;
+        for (const auto& grp : groups)
+            if (grp.size() >= 3) job->brightValid += static_cast<uint32_t>(grp.size());
+    }
 
     // ---- per-pixel least-squares sums over the groups: n_g = a * S_g + b
     std::vector<double> Sn(n, 0.0), Sxn(n, 0.0), Snn(n, 0.0);
@@ -788,8 +800,8 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                         }
                 }
                 for (size_t i = 0; i < n; ++i) vg[i] /= static_cast<float>(mg - 1);
-                if (job && mg >= 2) {
-                    // line persistence: the row and column means of every frame against the temporal median of the group (the mean for a pair)
+                if (job && mg >= 3) {
+                    // line persistence: the row and column means of every frame against the temporal median of the group (groups of three or more only)
                     std::vector<float> gmed(n), vals(mg);
                     for (size_t i = 0; i < n; ++i) {
                         for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
@@ -943,9 +955,9 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 int       frames = 0, hits = 0;
                 for (size_t g = 0; g < groups.size(); ++g) {
                     const uint32_t mg = static_cast<uint32_t>(groups[g].size());
-                    if (mg < 2) continue;   // a lone frame has no group to be judged against
-                    // a pair has no median (its reference is its mean, so both frames read as large when one carries a burst): the judgement pools the frames of all groups, and the
-                    // pair that carries a burst is then 2 frames of all of them
+                    // A pair has no median (its reference is its mean, so both frames read as large when one carries a burst) and cannot tell which frame is odd: the frames of
+                    // groups of fewer than three count neither in the numerator nor in the denominator (QA-A-253f)
+                    if (mg < 3) continue;
                     const double cap = 16.0 * groupNom[g];
                     // squared residual about the temporal median of the group, summed over the stretch, for the line and its neighbours, every frame at once
                     std::vector<std::vector<double>> stat(mg, std::vector<double>(static_cast<size_t>(2 * half + 1), 0.0));
@@ -1166,7 +1178,7 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
 
 extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
                                                    const XpeBpmConfigV2* cfg, const XpeBpmLineConfig* lcfg, XpeImageBuffer* line_mask_out, XpeBpmLine* lines_out,
-                                                   uint32_t max_lines, XpeBpmLineReport* report) try {
+                                                   uint32_t max_lines, XpeBpmLine* unconfirmed_out, uint32_t max_unconfirmed, XpeBpmLineReport* report) try {
     if (!dark_frames || !bright_frames || num_dark == 0 || num_bright == 0) return XPE_ERR_INVALID_INPUT;
     LineJob job;
     job.linesOnly = true;
@@ -1200,13 +1212,45 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_find_lines(const XpeImageBuffer* dark_fr
     if (rc != XPE_OK) return rc;
     const uint32_t ml = cfg ? cfg->margin_left : 0u, mt = cfg ? cfg->margin_top : 0u, mr = cfg ? cfg->margin_right : 0u, mbm = cfg ? cfg->margin_bottom : 0u;
     const int      vw = static_cast<int>(width - ml - mr), vh = static_cast<int>(height - mt - mbm);
-    const std::vector<Group> groups = groupSegments(job.segs, vw, vh);
+    // confirmed stretches become groups; the candidates whose persistence could not be judged are kept apart (never painted)
+    std::vector<Seg> confirmedSegs, pendingSegs;
+    for (const Seg& sg : job.segs) (sg.unconfirmed ? pendingSegs : confirmedSegs).push_back(sg);
+    const std::vector<Group> groups = groupSegments(confirmedSegs, vw, vh);
+    std::sort(pendingSegs.begin(), pendingSegs.end(), [](const Seg& p, const Seg& q) { return p.orient != q.orient ? p.orient < q.orient : (p.idx != q.idx ? p.idx < q.idx : p.a < q.a); });
+    std::vector<Seg> pending;
+    for (const Seg& sg : pendingSegs) {
+        if (!pending.empty() && pending.back().orient == sg.orient && pending.back().idx == sg.idx && sg.a <= pending.back().b) {
+            pending.back().b = std::max(pending.back().b, sg.b);
+            pending.back().z = std::max(pending.back().z, sg.z);
+        } else {
+            pending.push_back(sg);
+        }
+    }
     if (line_mask_out) std::memset(line_mask_out->data, 0, n);
     XpeBpmLineReport rep{};
     rep.pixels = static_cast<uint32_t>(static_cast<size_t>(vw) * static_cast<size_t>(vh));
     for (int k = 0; k < 6; ++k) rep.null_width[k] = job.nullWidth[k];
     rep.lines = static_cast<uint32_t>(groups.size());
     rep.weak_response_stretches = job.weak;
+    rep.unconfirmed = static_cast<uint32_t>(pending.size());
+    rep.dark_frames_raw = job.darkRaw;
+    rep.dark_frames_valid = job.darkValid;
+    rep.bright_frames_raw = job.brightRaw;
+    rep.bright_frames_valid = job.brightValid;
+    if (unconfirmed_out)
+        for (size_t k = 0; k < pending.size() && k < max_unconfirmed; ++k) {
+            XpeBpmLine& o = unconfirmed_out[k];
+            o = XpeBpmLine{};
+            o.orientation = static_cast<uint32_t>(pending[k].orient);
+            o.index = static_cast<uint32_t>(pending[k].idx);
+            o.width = 1;
+            o.start = static_cast<uint32_t>(pending[k].a);
+            o.end = static_cast<uint32_t>(pending[k].b);
+            o.causes = pending[k].cause;
+            o.strength = pending[k].z;
+            o.reason = XPE_BPM_LINE_REASON_TOO_FEW_FRAMES;
+            o.persistence = -1.0f;
+        }
     uint32_t written = 0;
     for (const Group& g : groups) {
         if (g.orient == 0) ++rep.row_groups;

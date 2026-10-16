@@ -2205,6 +2205,10 @@ XPE_API uint32_t xpe_calib_get_poly_degree(void);
 #define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line */
 #define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance, in most of the dark frames (a line that is large in a few frames only is noise that moves, not a defect) */
 
+/** Why a stretch is only a candidate (XpeBpmLine::reason of the unconfirmed list). */
+#define XPE_BPM_LINE_REASON_NONE           0u /**< A confirmed group */
+#define XPE_BPM_LINE_REASON_TOO_FEW_FRAMES 1u /**< The persistence could not be judged: fewer than three frames that can be judged (bright frames of dose groups of three or more) */
+
 /** Bits of XpeBpmLine::flags. */
 #define XPE_BPM_LINE_FULL    0x01u /**< The defective stretch covers (nearly) the whole length of the line */
 #define XPE_BPM_LINE_CROSSES 0x02u /**< A line of the other orientation crosses this stretch */
@@ -2228,6 +2232,7 @@ typedef struct {
     uint32_t causes;       /**< XPE_BPM_LINE_CAUSE_* bits */
     uint32_t flags;        /**< XPE_BPM_LINE_* flag bits */
     float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
+    uint32_t reason;       /**< XPE_BPM_LINE_REASON_NONE for a confirmed group, the reason for an unconfirmed candidate */
     float    persistence;  /**< Fraction of the frames in which the stretch is large, judged against the temporal median of the frames (noise cause); for a group of adjacent lines the largest of its member stretches. -1 when it was not tested (bright frames: fewer than three frames in all) */
 } XpeBpmLine;
 
@@ -2243,6 +2248,11 @@ typedef struct {
     uint32_t max_adjacent;        /**< Widest group */
     uint32_t panel_reject;        /**< 1 when some group is three adjacent lines or more */
     uint32_t truncated;           /**< 1 when more groups were found than max_lines */
+    uint32_t unconfirmed;         /**< Candidates whose persistence could not be judged: they are NOT in the mask and not in the groups, they are listed apart (unconfirmed_out) */
+    uint32_t dark_frames_raw;     /**< Dark frames in the raw list */
+    uint32_t dark_frames_valid;   /**< Dark frames used for the persistence of the stretches found in the dark frames (after the first is skipped) */
+    uint32_t bright_frames_raw;   /**< Bright frames in the list */
+    uint32_t bright_frames_valid; /**< Bright frames used for the persistence of the stretches found in the bright frames: those of the dose groups of three or more (a pair cannot tell which of its two frames is odd) */
     uint32_t weak_response_stretches; /**< Stretches (rows and columns, counted once per orientation) whose response is from 45 % up to 70 % of their neighbours: not defects, counted for the record only */
     uint32_t line_pixels;         /**< Pixels covered by the groups */
     uint32_t pixels;              /**< Pixels inside the imaging area */
@@ -2260,7 +2270,10 @@ typedef struct {
  * tolerance of the neighbours is a band that offset and gain correction removes and is not reported.
  *
  * The noise cause is judged frame by frame, against the temporal MEDIAN of the frames (a burst in one frame cannot move it): the stretch must be large in more than half of the
- * frames (the dark frames; for stretches found in the bright frames the frames of all dose groups pooled; a group of two has no median, its reference is its mean, and the pair that carries a burst counts as two frames of all). Noise that moves from line to line between frames
+ * frames (the dark frames; for stretches found in the bright frames the frames of the dose groups of THREE OR MORE: a pair has no median and cannot tell which of its two
+ * frames is odd, so its frames count neither in the numerator nor in the denominator). A stretch whose persistence cannot be judged (fewer than three frames that can be
+ * judged) is not confirmed: it is not painted into the mask and not counted among the groups, it is listed apart (unconfirmed_out) with its place and the reason. The report
+ * says how many raw frames there were and how many were used for the persistence. Noise that moves from line to line between frames
  * is never a defect of a place and is not reported. (Stretches found in the bright frames are not tested per frame.)
  *
  * Adjacent defective lines are grouped: two lines are a double line, three or more set panel_reject (not a correction task). A row and a column group that
@@ -2275,6 +2288,8 @@ typedef struct {
  * @param line_mask_out Optional output (UINT8, size of the frames): 1 on the pixels of the reported stretches, 0 elsewhere (also outside the imaging area); NULL to skip
  * @param lines_out Optional array for the groups; NULL to skip
  * @param max_lines Capacity of lines_out
+ * @param unconfirmed_out Optional array for the unconfirmed candidates (width 1, reason XPE_BPM_LINE_REASON_*, persistence -1); NULL to skip
+ * @param max_unconfirmed Capacity of unconfirmed_out
  * @param report Optional output
  * @return XPE_OK on success; the errors of xpe_bpm_generate_v2 for invalid input
  */
@@ -2288,6 +2303,8 @@ XPE_API XpeErrorCode xpe_bpm_find_lines(
     XpeImageBuffer* line_mask_out,
     XpeBpmLine* lines_out,
     uint32_t max_lines,
+    XpeBpmLine* unconfirmed_out,
+    uint32_t max_unconfirmed,
     XpeBpmLineReport* report);
 
 /** One blob: a connected group of defective pixels (8-neighbourhood). */
