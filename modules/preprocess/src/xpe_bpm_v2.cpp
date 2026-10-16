@@ -774,11 +774,12 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
     std::vector<float>   noiseSum, refSum;
     std::vector<uint8_t> persistHits;   // in how many dose groups the gain-corrected variance of the pixel reaches the limit (P2: the position must persist)
     uint32_t           nuBright = 0, noiseGroups = 0;
+    std::vector<double> frameScale(num_bright, 1.0);   // f_k = mean signal of the group / signal of frame k (QA-A-252g: the exposure variation is not a pixel noise)
     std::vector<std::vector<double>> brmK(num_bright), bcmK(num_bright);   // per bright frame: the row and column means taken out (line persistence)
     std::vector<double>              groupNom(groups.size(), 0.0);          // per dose group: the nominal temporal variance
     {
         std::vector<float> acc(n);
-        std::vector<float> vg, vgTmp, vgBg;
+        std::vector<float> vg, vgTmp, vgBg, gmean;   // gmean: the group mean of the frames scaled to the mean dose of the group
         for (uint32_t g = 0; g < G; ++g) {
             std::fill(acc.begin(), acc.end(), 0.0f);
             double sg = 0.0;
@@ -788,6 +789,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 sg += signal[k];
             }
             sg /= static_cast<double>(groups[g].size());
+            for (uint32_t k : groups[g]) frameScale[k] = sg / signal[k];
             groupSignal[g] = sg;
             Sx += sg;
             Sxx += sg * sg;
@@ -807,16 +809,24 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                     vg.resize(n);
                     vgTmp.resize(n);
                     vgBg.resize(n);
+                    gmean.resize(n);
                 }
                 std::fill(vg.begin(), vg.end(), 0.0f);
+                std::fill(gmean.begin(), gmean.end(), 0.0f);
+                for (uint32_t k : groups[g]) {
+                    const uint16_t* p = px(bright_frames[k]);
+                    const double    fk = frameScale[k] / static_cast<double>(mg);
+                    for (size_t i = 0; i < n; ++i) gmean[i] += static_cast<float>(fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])));
+                }
                 std::vector<double> rm(static_cast<size_t>(height)), cm(static_cast<size_t>(width));
                 for (uint32_t k : groups[g]) {
                     const uint16_t* p = px(bright_frames[k]);
+                    const double    fk = frameScale[k];
                     for (uint32_t y = 0; y < height; ++y) {
                         double a = 0.0;
                         for (uint32_t x = 0; x < width; ++x) {
                             const size_t i = static_cast<size_t>(y) * width + x;
-                            a += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv);
+                            a += fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]);
                         }
                         rm[y] = a / width;
                     }
@@ -824,7 +834,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                     for (uint32_t y = 0; y < height; ++y)
                         for (uint32_t x = 0; x < width; ++x) {
                             const size_t i = static_cast<size_t>(y) * width + x;
-                            cm[x] += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y];
+                            cm[x] += fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]) - rm[y];
                         }
                     for (uint32_t x = 0; x < width; ++x) cm[x] /= height;
                     brmK[k] = rm;
@@ -832,7 +842,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                     for (uint32_t y = 0; y < height; ++y)
                         for (uint32_t x = 0; x < width; ++x) {
                             const size_t i = static_cast<size_t>(y) * width + x;
-                            const double e = static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y] - cm[x];
+                            const double e = fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]) - rm[y] - cm[x];
                             vg[i] += static_cast<float>(e * e);
                         }
                 }
@@ -841,7 +851,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                     // line persistence: the row and column means of every frame against the temporal median of the group (groups of three or more only)
                     std::vector<float> gmed(n), vals(mg);
                     for (size_t i = 0; i < n; ++i) {
-                        for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                        for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(frameScale[groups[g][j]] * (static_cast<double>(px(bright_frames[groups[g][j]])[i]) - static_cast<double>(D[i])));
                         gmed[i] = temporalMedian(&vals);
                     }
                     for (uint32_t k : groups[g]) {
@@ -849,13 +859,16 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                         std::vector<double> rm2(static_cast<size_t>(height), 0.0), cm2(static_cast<size_t>(width), 0.0);
                         for (uint32_t y = 0; y < height; ++y) {
                             double acc2 = 0.0;
-                            for (uint32_t x = 0; x < width; ++x) acc2 += static_cast<double>(pk[static_cast<size_t>(y) * width + x]) - static_cast<double>(gmed[static_cast<size_t>(y) * width + x]);
+                            for (uint32_t x = 0; x < width; ++x) {
+                                const size_t ii = static_cast<size_t>(y) * width + x;
+                                acc2 += frameScale[k] * (static_cast<double>(pk[ii]) - static_cast<double>(D[ii])) - static_cast<double>(gmed[ii]);
+                            }
                             rm2[y] = acc2 / width;
                         }
                         for (uint32_t y = 0; y < height; ++y)
                             for (uint32_t x = 0; x < width; ++x) {
                                 const size_t i = static_cast<size_t>(y) * width + x;
-                                cm2[x] += static_cast<double>(pk[i]) - static_cast<double>(gmed[i]) - rm2[y];
+                                cm2[x] += frameScale[k] * (static_cast<double>(pk[i]) - static_cast<double>(D[i])) - static_cast<double>(gmed[i]) - rm2[y];
                             }
                         for (uint32_t x = 0; x < width; ++x) cm2[x] /= height;
                         brmK[k] = rm2;
@@ -1009,7 +1022,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                         for (int t2 = a; t2 < b; ++t2) {
                             const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
                             const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
-                            for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                            for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(frameScale[groups[g][j]] * (static_cast<double>(px(bright_frames[groups[g][j]])[i]) - static_cast<double>(D[i])));
                             std::vector<float> srt(vals);
                             const double       md = static_cast<double>(temporalMedian(&srt));
                             for (uint32_t j = 0; j < mg; ++j) {

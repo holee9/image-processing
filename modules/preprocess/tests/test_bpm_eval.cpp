@@ -518,6 +518,7 @@ TEST(BpmEvalStatsTest, TheNoiseVerdictFollowsTheIntervalAgainstTheLimit) {
 class BpmEvalQuantumTest : public BpmEvalTest {
 protected:
     static constexpr double kKappa = 0.30, kV0 = 9.0;
+    double evalSpread{0.0};   // the two evaluation frames differ in dose by -evalSpread and +evalSpread (QA-A-252g)
     void makeQuantumFrames() {
         std::mt19937_64                    rng(2517);
         std::normal_distribution<double>   unit(0.0, 1.0);
@@ -533,7 +534,7 @@ protected:
         int b = 0;
         for (double signal : {3000.0, 9000.0, 20000.0})
             for (int k = 0; k < 3; ++k) brights.push_back(frame(signal, "Bright_" + std::to_string(b++) + ".raw"));
-        for (int k = 0; k < 2; ++k) evals.push_back(frame(9000.0, "Eval_" + std::to_string(k) + ".raw"));
+        for (int k = 0; k < 2; ++k) evals.push_back(frame(9000.0 * (1.0 + (k ? evalSpread : -evalSpread)), "Eval_" + std::to_string(k) + ".raw"));
     }
     static double number(const std::string& json, const char* key) {
         const size_t p = json.find(std::string("\"") + key + "\": ");
@@ -576,7 +577,8 @@ TEST_F(BpmEvalQuantumTest, NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAre
         std::stringstream ss(line);
         std::string cell;
         while (std::getline(ss, cell, '\t')) c.push_back(cell);
-        ASSERT_EQ(10u, c.size()) << line;
+        ASSERT_EQ(13u, c.size()) << line;
+        EXPECT_EQ("provisional", c[12]) << "the labels of the noise truth are provisional";
         byKey[c[1] + "/" + c[2] + "/" + c[3]] = {c[9], c[6], c[7], c[8]};
         labels[c[1] + "/" + c[2] + "/" + c[3]].push_back(c[9]);
     }
@@ -601,6 +603,88 @@ TEST_F(BpmEvalQuantumTest, NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAre
     }
     ASSERT_GT(pixelItems, 30);
     EXPECT_GE(pixelUndetermined, pixelItems * 8 / 10) << pixelUndetermined << " of " << pixelItems << " pixel items are undetermined";
+}
+
+TEST(BpmEvalStatsTest, TheEffectiveDegreesOfFreedomFallWhenThePixelsAreCorrelated) {
+    using namespace xpe_bpm_eval;
+    std::mt19937_64 rng(11);
+    std::normal_distribution<double> unit(0.0, 1.0);
+    const size_t n = 4096;
+    std::vector<double> iid(n), smooth(n);
+    for (size_t i = 0; i < n; ++i) {
+        const double z = unit(rng);
+        iid[i] = z * z;   // variance ratios of one degree of freedom
+    }
+    // the same ratios, each value repeated over 16 neighbours: the mean of the item then has a 16 times larger variance than independent pixels would give
+    for (size_t i = 0; i < n; ++i) smooth[i] = iid[i / 16 * 16];
+    const BlockDof a = blockEffectiveDof(iid, 64), b = blockEffectiveDof(smooth, 64);
+    EXPECT_NEAR(1.0, a.mean, 0.1);
+    EXPECT_LT(std::fabs(a.lag1), 0.1) << "independent pixels";
+    EXPECT_GT(a.dofEff, 0.5 * static_cast<double>(n)) << "independent pixels: about one degree of freedom per pixel (" << a.dofEff << ")";
+    EXPECT_GT(b.lag1, 0.8) << "runs of 16 identical values correlate neighbours (15/16)";
+    EXPECT_LT(b.dofEff, 0.3 * static_cast<double>(n)) << "correlated pixels: far fewer than one degree of freedom per pixel (" << b.dofEff << ")";
+    EXPECT_EQ(0.0, blockEffectiveDof(std::vector<double>(100, 1.0), 64).dofEff) << "fewer than four blocks: not determinable";
+}
+
+TEST_F(BpmEvalQuantumTest, NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves) {
+    // the two verification frames differ in dose by 6 %. A pixel that keeps 0.3 of the value keeps 0.3 of that difference while the row and column means carry all of it: without the
+    // exposure taken out the cost of a gain-loss line reads in the hundreds. With it, a gain loss costs 1 and an efficiency loss 3.3.
+    evalSpread = 0.03;
+    makeQuantumFrames();
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    auto run = [&](const char* extra, const char* name) {
+        std::string args = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / name).string() + "\"" + extra;
+        for (const auto& f : darks) args += " --dark \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+        for (const auto& f : evals) args += " --verify \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+        return runCmd(XPE_BPM_EVAL_EXE, args + " > \"" + (root / (std::string(name) + ".log")).string() + "\" 2>&1");
+    };
+    ASSERT_EQ(0, run("", "nc.tsv")) << text(root / "nc.tsv.log");
+    ASSERT_EQ(0, run(" --raw-frames 1", "nc_raw.tsv")) << text(root / "nc_raw.tsv.log");
+    auto costOf = [&](const char* file, const char* kind, const char* level, std::string* label, const char* shape = "row_full") {
+        std::ifstream f(root / file);
+        std::string line;
+        std::getline(f, line);
+        while (std::getline(f, line)) {
+            std::vector<std::string> c;
+            std::stringstream ss(line);
+            std::string cell;
+            while (std::getline(ss, cell, '\t')) c.push_back(cell);
+            if (c.size() >= 13 && c[1] == kind && c[2] == shape && c[3] == level) {
+                if (label) *label = c[9];
+                return std::atof(c[6].c_str());
+            }
+        }
+        return -1.0;
+    };
+    std::string labelGain, labelEff;
+    const double gain = costOf("nc.tsv", "gain_loss", "0.3", &labelGain), eff = costOf("nc.tsv", "efficiency_loss", "0.3", &labelEff);
+    // a single pixel item: the row and column means do not carry the exposure difference of a whole line away, so only the scaling can remove it
+    const double pixNorm = costOf("nc.tsv", "gain_loss", "0.3", nullptr, "pixel"), pixRaw = costOf("nc_raw.tsv", "gain_loss", "0.3", nullptr, "pixel");
+    EXPECT_NEAR(1.0, gain, 0.2) << "a gain loss costs 1 once the exposure is out";
+    EXPECT_EQ("normal", labelGain);
+    EXPECT_NEAR(3.33, eff, 0.5);
+    EXPECT_EQ("defect", labelEff);
+    {   // the interval uses the effective degrees of freedom of blocks: never more than pixels x nu, and below it for at least one item whose pixels are not exactly independent
+        std::ifstream f(root / "nc.tsv");
+        std::string   line;
+        std::getline(f, line);
+        int fewer = 0, more = 0;
+        while (std::getline(f, line)) {
+            std::vector<std::string> c;
+            std::stringstream        ss(line);
+            std::string              cell;
+            while (std::getline(ss, cell, '	')) c.push_back(cell);
+            if (c.size() < 13) continue;
+            const double used = std::atof(c[5].c_str()), indep = std::atof(c[10].c_str());
+            fewer += used < indep;
+            more += used > indep;
+        }
+        EXPECT_EQ(0, more) << "the degrees of freedom of the interval never exceed pixels x nu";
+        EXPECT_GE(fewer, 1) << "at least one item has fewer effective than independent degrees of freedom";
+    }
+    EXPECT_GT(pixRaw, 20.0) << "without the scaling the exposure difference of the two frames reads as a noise of the pixel";
+    EXPECT_GT(pixRaw, 10.0 * pixNorm) << "the scaling removes it (a chi-square draw of one pixel stays below that: " << pixNorm << ")";
 }
 
 TEST_F(BpmEvalTest, TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection) {

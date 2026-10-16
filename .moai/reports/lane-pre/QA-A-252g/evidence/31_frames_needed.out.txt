@@ -1,0 +1,20 @@
+== Table 1: the local expectation taken as exact
+  dose groups G | rho | frames per dose for 80 % (probability, tau) | frames per dose for 95 % | total frames (80 % / 95 %)
+  G = 5 | 2.5 | 18 (0.812, 2.01)       | 41 (0.951, 1.61)       | 90 / 205
+  G = 5 | 3.0 | 11 (0.813, 2.40)       | 17 (0.959, 2.05)       | 55 / 85
+  G = 5 | 4.0 | 7 (0.835, 2.95)        | 10 (0.969, 2.50)       | 35 / 50
+  G = 3 | 2.5 | 27 (0.808, 2.06)       | 60 (0.951, 1.65)       | 81 / 180
+  G = 3 | 3.0 | 17 (0.804, 2.44)       | 25 (0.954, 2.12)       | 51 / 75
+  G = 3 | 4.0 | 11 (0.842, 2.95)       | 15 (0.961, 2.57)       | 33 / 45
+
+== Table 2: with the error of the local expectation (median of 289 variances)
+  dose groups G | rho | frames per dose for 80 % (probability, tau) | frames per dose for 95 % | total frames (80 % / 95 %)
+  G = 5 | 2.5 | 18 (0.810, 2.01)       | 42 (0.952, 1.60)       | 90 / 210
+  G = 5 | 3.0 | 11 (0.811, 2.40)       | 17 (0.958, 2.05)       | 55 / 85
+  G = 5 | 4.0 | 7 (0.833, 2.95)        | 10 (0.967, 2.50)       | 35 / 50
+  G = 3 | 2.5 | 27 (0.807, 2.06)       | >60                    | 81 / -
+  G = 3 | 3.0 | 17 (0.802, 2.44)       | 25 (0.953, 2.12)       | 51 / 75
+  G = 3 | 4.0 | 11 (0.840, 2.95)       | 15 (0.960, 2.57)       | 33 / 45
+
+false-alarm rate of the current threshold: pooled threshold tau at p = 1 / 9,406,485 per pixel (one per image), and the persistence rule; for normal pixels the joint rate is below 1e-7
+detection probability for the frames of the QA-A-252f measurement (3,3,6,3,3) at rho = 2.5 / 3 / 4: pooled + persistence = 0.036 / 0.167 / 0.316 (61_theory_pixel_detection.out.txt, 1 / r rows)

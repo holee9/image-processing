@@ -244,6 +244,42 @@ inline double medianRelativeSe(double nu, double n) {
     return 1.0 / (2.0 * std::sqrt(n) * f * m);
 }
 
+/** The mean of the per-pixel variance ratios of an item, the lag-1 autocorrelation along its pixels and the effective degrees of freedom of the mean from blocks of consecutive pixels (0 = not determinable). */
+struct BlockDof {
+    double mean{0}, lag1{0}, dofEff{0};
+    size_t blocks{0};
+};
+
+inline BlockDof blockEffectiveDof(const std::vector<double>& c, size_t block) {
+    BlockDof r;
+    const size_t n = c.size();
+    if (n == 0 || block == 0) return r;
+    double s = 0.0;
+    for (double v : c) s += v;
+    r.mean = s / static_cast<double>(n);
+    double num = 0.0, den = 0.0;
+    for (size_t i = 0; i < n; ++i) den += (c[i] - r.mean) * (c[i] - r.mean);
+    for (size_t i = 0; i + 1 < n; ++i) num += (c[i] - r.mean) * (c[i + 1] - r.mean);
+    r.lag1 = den > 0.0 ? num / den : 0.0;
+    const size_t nb = n / block;
+    r.blocks = nb;
+    if (nb < 4) return r;
+    std::vector<double> bm(nb, 0.0);
+    for (size_t j = 0; j < nb; ++j) {
+        for (size_t i = j * block; i < (j + 1) * block; ++i) bm[j] += c[i];
+        bm[j] /= static_cast<double>(block);
+    }
+    double mb = 0.0;
+    for (double v : bm) mb += v;
+    mb /= static_cast<double>(nb);
+    double vb = 0.0;
+    for (double v : bm) vb += (v - mb) * (v - mb);
+    vb /= static_cast<double>(nb - 1);
+    const double se2 = vb / static_cast<double>(nb);
+    r.dofEff = se2 > 0.0 ? 2.0 * mb * mb / se2 : 0.0;
+    return r;
+}
+
 /** The verdict on the noise cost of an item (the variance after gain correction against the local expectation; 2 is the SRS limit). */
 enum class NoiseLabel { Defect, Normal, Undetermined };
 

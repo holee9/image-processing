@@ -81,6 +81,8 @@ struct Plant {
     bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
     bool strongShading{false};
     bool respPixels{false};       // QA-A-252d: single pixels with a response of 0.40, 0.50, 0.60, 0.75, 1.45, 1.60 (row 220)
+    bool doseSpread{false};       // QA-A-252g: the three frames of every dose group differ in dose by -6 %, 0 and +6 % (an exposure variation common to all pixels)
+    bool gridPixels{false};       // QA-A-252g: 144 efficiency-loss pixels (response 1/3, x and y = 20 + 18 k) and 144 gain-loss pixels (the value x 1/3, x and y = 29 + 18 k)
     bool oneGroupNoisyPixel{false};   // QA-A-252f: a pixel (the place of brightNoisyPixel) with extra noise sd 400 in the frames of the FIRST dose group only
     bool respRowPixels{false};    // QA-A-252f: a row of gain 1.2 (row 100) and a row of gain 0.8 (row 150), each with one pixel of nominal response 0.46 and 0.50 (x 60)
     double   burstAmp{14.0};      // QA-A-253e: amplitude of the single-frame bursts / the noise of the some-frames stretches (see kLn*One, kLn*Frames)
@@ -132,6 +134,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
     Normal pixelRng(seed + 7);   // used only for the bright-noise pixel
     Normal frameRng(seed + 99);   // separate from the pixel noise, so the planted extras do not change any other value
     auto put = [&](double net, bool bright, bool firstDark, int darkIdx, int brightIdx) {
+        if (plant.doseSpread && bright && brightIdx >= 0) net *= 1.0 + 0.06 * (static_cast<double>(brightIdx % 3) - 1.0);
         std::vector<uint16_t> fr(kN);
         const double columnOffset = plant.varyingColumn ? 60.0 * frameRng.next() : 0.0;
         for (size_t i = 0; i < kN; ++i) {
@@ -173,6 +176,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
             if (plant.respPixels && y == kRespY)
                 for (int q = 0; q < 6; ++q)
                     if (x == kRespX[q]) sig *= kRespR[q];
+            if (plant.gridPixels && x >= 20 && x <= 218 && y >= 20 && y <= 218 && (x - 20) % 18 == 0 && (y - 20) % 18 == 0) sig /= 3.0;
             if (plant.respRowPixels) {
                 if (y == kGainRowHi) sig *= x == kRowPixX ? 1.2 * 0.46 : 1.2;
                 if (y == kGainRowLo) sig *= x == kRowPixX ? 0.8 * 0.50 : 0.8;
@@ -198,6 +202,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
             if (bright && plant.brightNoisyPixel && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 150.0 * pixelRng.next();
             if (bright && plant.oneGroupNoisyPixel && brightIdx >= 0 && brightIdx < 3 && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 400.0 * pixelRng.next();
             if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);
+            if (bright && plant.gridPixels && x >= 29 && x <= 227 && y >= 29 && y <= 227 && (x - 29) % 18 == 0 && (y - 29) % 18 == 0) v = d + (v - d) / 3.0;
             if (firstDark && x >= 20 && x < 24 && y >= 20 && y < 24) v += 200.0;   // a transient only in the first frame
             fr[i] = static_cast<uint16_t>(std::min(65535.0, std::max(0.0, std::floor(v + 0.5))));
         }
@@ -946,6 +951,44 @@ TEST(BpmV2Test, TheResponseThresholdsAreExactAndTheInequalitiesAreFixed) {
     const bool expected[6] = {true, false, false, false, false, true};
     for (int q = 0; q < 6; ++q)
         EXPECT_EQ(expected[q], (r.feat[static_cast<size_t>(30) * kW + static_cast<size_t>(20 + 10 * q)] & XPE_BPM_V2_FEATURE_FLAT) != 0) << "response " << ratios[q];
+}
+
+TEST(BpmV2Test, TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup) {
+    // QA-A-252g: the dose of the frames of a group differs by 6 %. That variation is common to all pixels, it is no temporal noise of a pixel. A pixel of response 1/3 keeps 1/3 of it
+    // while the row and column means taken out carry all of it, and the gain correction multiplies the rest by 9: without taking the exposure out, every gain-loss pixel is flagged.
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    p.gridPixels = true;
+    p.doseSpread = true;
+    Frames f = makeFrames(51, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    int eff = 0, gain = 0;
+    for (int b = 0; b < 12; ++b)
+        for (int a = 0; a < 12; ++a) {
+            eff += (r.feat[static_cast<size_t>(20 + 18 * b) * kW + static_cast<size_t>(20 + 18 * a)] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) != 0;
+            gain += (r.feat[static_cast<size_t>(29 + 18 * b) * kW + static_cast<size_t>(29 + 18 * a)] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) != 0;
+        }
+    EXPECT_EQ(0, gain) << "gain-loss pixels (gain-corrected noise cost 1) are not noise defects";
+    EXPECT_GE(eff, 10) << "efficiency-loss pixels of cost 3 are found at the theoretical rate 0.152 per pixel (21.8 of 144, sd 4.3)";
+    EXPECT_LE(eff, 40);
+}
+
+#define GOLDEN_FLAGGED 1, 1, 0, 0, 1, 1
+#define GOLDEN_UNION 4
+TEST(BpmV2Test, AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation) {
+    // regression control (QA-A-252g): the frames of every group have the same dose, so the scales are 1 (to the noise of the frame means) and nothing may change. The numbers are the
+    // counts of the detector of QA-A-252f (the exposure normalisation switched off) on the same input.
+    Plant p{};
+    p.brightNoisyPixel = true;
+    Frames f = makeFrames(52, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const uint32_t golden[XPE_BPM_V2_FEATURE_COUNT] = {GOLDEN_FLAGGED};
+    for (int k = 0; k < XPE_BPM_V2_FEATURE_COUNT; ++k) EXPECT_EQ(golden[k], r.rep.flagged[k]) << "feature " << k << " " << describe(r.rep);
+    EXPECT_EQ(static_cast<uint32_t>(GOLDEN_UNION), r.rep.flagged_union) << describe(r.rep);
+    EXPECT_NE(0, r.feat[static_cast<size_t>(kBrightNoisyY) * kW + kBrightNoisyX] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE);
 }
 
 TEST(BpmV2Test, ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect) {
