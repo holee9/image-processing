@@ -658,15 +658,20 @@ TEST_F(BpmEvalQuantumTest, NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAre
         std::ifstream ov(root / "nc_overlaps.tsv");
         std::string   l;
         std::getline(ov, l);
-        EXPECT_EQ("items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow", l);
+        EXPECT_EQ("items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\tresponse_used\tresponse_valid\tresponse_unused\tcost_unused\tresponse_nominal_diag", l);
         size_t groupPixels = 0, groupRows = 0, pooledRows = 0;
         while (std::getline(ov, l)) {
             std::vector<std::string> c;
             std::stringstream        ss(l);
             std::string              cell;
             while (std::getline(ss, cell, '\t')) c.push_back(cell);
-            ASSERT_EQ(13u, c.size()) << l;
+            ASSERT_EQ(18u, c.size()) << l;
             if (c[12] == "group") {
+                // QA-A-255 (Codex #221 0-7): response_valid is the fact that a response was computed on at least one pixel; the unused reasons are written exactly when something was not used
+                EXPECT_EQ(std::atoi(c[13].c_str()) > 0 ? "1" : "0", c[14]) << l;
+                EXPECT_EQ(c[14] == "1" ? "-" : "no pixel", c[14] == "1" ? c[15] : c[15].substr(0, 8)) << l;
+                EXPECT_EQ(std::atoi(c[3].c_str()) > 0 ? "-" : "no pixel", std::atoi(c[3].c_str()) > 0 ? c[16] : c[16].substr(0, 8)) << l;
+                EXPECT_LE(std::atoi(c[13].c_str()), std::atoi(c[2].c_str())) << "the chain cannot be computed on more pixels than the group has: " << l;
                 ++groupRows;
                 groupPixels += static_cast<size_t>(std::atoi(c[2].c_str()));
                 EXPECT_NE(std::string::npos, c[0].find('+')) << "a group is named by the items that cover it: " << l;
@@ -835,17 +840,19 @@ struct OverlapRow {
     double      response;
     int         clipped;
     int         used;
+    int         responseValid = 1;   // QA-A-255: the response_valid column
 };
 
 // the file noise-cost --overlap-out writes, reduced to what the scorer reads
 std::string overlapFile(const std::vector<OverlapRow>& rows) {
-    std::string out = "items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\n";
+    std::string out = "items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\tresponse_used\tresponse_valid\tresponse_unused\tcost_unused\tresponse_nominal_diag\n";
     for (const OverlapRow& r : rows) {
-        char b[300];
-        std::snprintf(b, sizeof b, "%s\tk\t1\t%d\t1\t1.0000\t0.1\t10.0\t%s\t%.4f\t%d\t-\tgroup\n", r.key, r.used, r.label, r.response, r.clipped);
+        char b[400];
+        std::snprintf(b, sizeof b, "%s\tk\t1\t%d\t1\t1.0000\t0.1\t10.0\t%s\t%.4f\t%d\t-\tgroup\t%d\t%d\t%s\t-\t0.0000\n", r.key, r.used, r.label, r.response, r.clipped, r.responseValid ? 1 : 0,
+                      r.responseValid ? 1 : 0, r.responseValid ? "-" : "no pixel with a local signal above 100");
         out += b;
     }
-    return out + "*\tpooled\t2\t2\t2\t1.0\t0.1\t10\tnormal\t-\t0\t-\tpooled\n";
+    return out + "*\tpooled\t2\t2\t2\t1.0\t0.1\t10\tnormal\t-\t0\t-\tpooled\t0\t0\t-\t-\t0\n";
 }
 }  // namespace
 
@@ -897,6 +904,8 @@ TEST_F(BpmEvalTest, OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain) {
     EXPECT_NE(std::string::npos, j.find("\"overlap_defect\": 1")) << "the pixel under the hot item only: " << j;
     EXPECT_NE(std::string::npos, j.find("\"overlap_normal\": 0")) << "nothing is normal on the strength of a nominal response: " << j;
     EXPECT_NE(std::string::npos, j.find("\"overlap_undetermined\": 13")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_truth_real_pixels\": 1")) << "the true-defect mask at the overlaps is the final class: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_undetermined_zone_pixels\": 13")) << j;
     EXPECT_NE(std::string::npos, list.find("no overlap measurement given")) << "the reason the response is not used: " << list;
     EXPECT_NE(std::string::npos, list.find("response_valid")) << list;
     EXPECT_NE(std::string::npos, console.find("no valid measured response")) << console;
@@ -927,6 +936,8 @@ TEST_F(BpmEvalTest, OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement
     EXPECT_NE(std::string::npos, j.find("\"overlap_clipped_pixels\": 1")) << j;
     EXPECT_NE(std::string::npos, j.find("\"overlap_flagged_in_normal\": 2")) << "the map flags 1+2 and 3+4, both normal by the measurement: " << j;
     EXPECT_NE(std::string::npos, j.find("\"overlap_defect_not_inherited\": 1")) << "1+4 is defect now and was normal by the inheriting rule: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_truth_real_pixels\": 2")) << "the masks equal the final counts: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_undetermined_zone_pixels\": 10")) << j;
     EXPECT_NE(std::string::npos, console.find("measurement: ")) << console;
     EXPECT_NE(std::string::npos, list.find("1+2\t")) << "the list names the items of a group as a+b: " << list;
     EXPECT_NE(std::string::npos, list.find("0.5000")) << "the measured response, not the nominal 0.4200, is in the list: " << list;
@@ -998,9 +1009,55 @@ TEST_F(BpmEvalTest, OverlapCombinationTable) {
     EXPECT_NE(std::string::npos, j.find("\"overlap_defect\": 6")) << j;
     EXPECT_NE(std::string::npos, j.find("\"overlap_normal\": 3")) << j;
     EXPECT_NE(std::string::npos, j.find("\"overlap_undetermined\": 9")) << j;
+    // Codex #221: the masks are ASSIGNED from the final class. Row item 1 is a defect by its single verdict (all its pixels are in the true-defect mask) and row item 2 is undetermined (all its pixels are in
+    // the undetermined zone); the overlaps under them that are normal or undetermined by their own record must not stay in those masks.
+    EXPECT_NE(std::string::npos, j.find("\"overlap_truth_real_pixels\": 6")) << "only the six defect overlaps: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"overlap_undetermined_zone_pixels\": 9")) << "only the nine undetermined overlaps: " << j;
     // the inheriting rule is only a diagnostic: it would have read defect 6, undetermined 6, normal 6 from the single verdicts of the row items
     EXPECT_NE(std::string::npos, console.find("INHERITING rule (diagnostic): defect 6, undetermined 6, normal 6")) << console;
     EXPECT_NE(std::string::npos, j.find("\"overlap_defect_not_inherited\": 4")) << "the defects under the undetermined and the normal row item: " << j;
+}
+
+TEST_F(BpmEvalTest, OverlapResponseValidColumnDecidesAndAnOldFormatFileIsRefused) {
+    // QA-A-255 (Codex #221 0-7): "the row exists" is not "the response is valid". A row with response_valid = 0 carries a value (0.20, which would be a defect) that must not be used: the overlap is
+    // undetermined and the list says why; a valid row with the same value is a defect. A file without the new columns is refused.
+    const fs::path t = root / "tv";
+    writeHandTruth(t, kNineItems, 40, 40);
+    std::vector<uint8_t> map(1600, 0);
+    const fs::path       m = root / "tv_map.u8";
+    writeBytes(m, map.data(), map.size());
+    const std::string file = overlapFile({{"1+2", "normal", 0.20, 0, 1, 0}, {"1+4", "normal", 0.20, 0, 1, 1}});
+    writeBytes(root / "tv_overlaps.tsv", file.data(), file.size());
+    ASSERT_EQ(0, score(t, m, " --overlap composite --overlap-truth \"" + (root / "tv_overlaps.tsv").string() + "\" --overlap-out \"" + (root / "tv_list.tsv").string() + "\" --out \"" +
+                              (root / "tv.json").string() + "\"", root / "tv.txt")) << text(root / "tv.txt");
+    const std::string list = text(root / "tv_list.tsv");
+    std::map<std::string, std::vector<std::string>> rowOf;
+    {
+        std::stringstream ss(list);
+        std::string       line;
+        std::getline(ss, line);
+        while (std::getline(ss, line)) {
+            std::vector<std::string> c;
+            std::stringstream        ls(line);
+            std::string              cell;
+            while (std::getline(ls, cell, '\t')) c.push_back(cell);
+            ASSERT_GE(c.size(), 15u) << line;
+            rowOf[c[0]] = c;
+        }
+    }
+    ASSERT_TRUE(rowOf.count("1+2"));
+    ASSERT_TRUE(rowOf.count("1+4"));
+    EXPECT_EQ("0", rowOf["1+2"][4]) << "response_valid of the row whose measurement holds no response";
+    EXPECT_EQ("undetermined", rowOf["1+2"][11]) << "0.20 is not used when the response is not valid";
+    EXPECT_NE(std::string::npos, rowOf["1+2"][6].find("no pixel with a local signal")) << "the reason is carried from the measurement: " << rowOf["1+2"][6];
+    EXPECT_EQ("1", rowOf["1+4"][4]);
+    EXPECT_EQ("defect", rowOf["1+4"][11]) << "the same value, valid: below 0.45";
+    // an old-format file (13 columns)
+    std::string old = "items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\n1+2\tk\t1\t1\t1\t1.0\t0.1\t10\tnormal\t0.5\t0\t-\tgroup\n";
+    writeBytes(root / "tv_old.tsv", old.data(), old.size());
+    EXPECT_NE(0, score(t, m, " --overlap composite --overlap-truth \"" + (root / "tv_old.tsv").string() + "\" --out \"" + (root / "tv_old.json").string() + "\"", root / "tv_old.txt"));
+    EXPECT_NE(std::string::npos, text(root / "tv_old.txt").find("lacks response_valid")) << text(root / "tv_old.txt");
+    EXPECT_FALSE(fs::exists(root / "tv_old.json"));
 }
 
 TEST_F(BpmEvalTest, OverlapOfFourItemsRunsThroughTheChainAndNineAreRefused) {

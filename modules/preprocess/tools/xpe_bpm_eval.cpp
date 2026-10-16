@@ -866,6 +866,10 @@ struct OverlapMeasure {
     double      cost{0}, response{1.0};
     bool        clipped{false};
     size_t      used{0};   // QA-A-255: the pixels the noise label was decided on
+    size_t      responseUsed{0};      // the pixels the chain response was computed on
+    bool        responseValid{false}; // a measured response exists (responseUsed > 0)
+    std::string responseUnused;       // why not, when it does not
+    std::string costUnused;           // why the noise cost was not used, when used == 0
 };
 
 /** The rows of noise-cost --overlap-out that describe one distinct overlap: items (a+b+c), ..., label, response_model, clipped. The pooled rows (items '*') are for the report only. */
@@ -888,9 +892,16 @@ bool loadOverlapMeasure(const std::string& path, std::map<std::string, OverlapMe
         size_t s0 = 0;
         for (size_t q = 0; q <= line.size(); ++q)
             if (q == line.size() || line[q] == '\t') { c.push_back(line.substr(s0, q - s0)); s0 = q + 1; }
-        if (c.size() < 13) return false;
+        if (c.size() < 18) {
+            std::fprintf(stderr, "%s: the overlap measurement has %zu columns; it lacks response_valid and the unused reasons (noise-cost of QA-A-255 writes 18): regenerate it\n", path.c_str(), c.size());
+            return false;
+        }
         if (c[0] == "*") continue;
         OverlapMeasure m;
+        m.responseUsed = static_cast<size_t>(std::strtoull(c[13].c_str(), nullptr, 10));
+        m.responseValid = c[14] == "1";
+        m.responseUnused = c[15];
+        m.costUnused = c[16];
         m.cost = std::strtod(c[5].c_str(), nullptr);
         m.used = static_cast<size_t>(std::strtoull(c[3].c_str(), nullptr, 10));
         m.label = c[8];
@@ -1117,7 +1128,9 @@ bool applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vecto
                 g.response.value = m->response;
                 g.response.source = "measured chain (real dark level, local signal of the verification frames)";
                 g.clipped = m->clipped;
-                if (m->clipped) {
+                if (!m->responseValid) {
+                    g.response.unused = m->responseUnused.empty() || m->responseUnused == "-" ? "the measurement holds no valid response" : m->responseUnused;
+                } else if (m->clipped) {
                     g.response.unused = "the chain leaves 0..65535";
                 } else {
                     g.response.valid = true;
@@ -1149,15 +1162,14 @@ bool applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vecto
         ++rep->pixels;
         ++rep->transition[g.inherited][g.after];
         if (g.inherited == 2) ++rep->inheritedDefect; else if (g.inherited == 3) ++rep->inheritedUndetermined; else ++rep->inheritedNormal;
+        // the masks at an overlap are the FINAL class, assigned (not added to what the covering items left there: a defect item's pixels were all set in truthReal, an undetermined item's in undetMask)
+        t->truthReal[i] = g.after == kVerdictDefect ? 1 : 0;
+        (*undetMask)[i] = g.after == kVerdictUndetermined ? 1 : 0;
         if (g.after == kVerdictDefect) {
             ++rep->defect;
-            if (g.inherited != 2) {
-                ++rep->notInherited;
-                t->truthReal[i] = 1;
-            }
+            if (g.inherited != 2) ++rep->notInherited;
         } else if (g.after == kVerdictUndetermined) {
             ++rep->undetermined;
-            (*undetMask)[i] = 1;
         } else {
             ++rep->normal;
         }
@@ -1310,6 +1322,7 @@ int cmdScore(const Args& a) {
     }
     std::printf("== false alarms\n  flagged pixels in the map: %zu; outside the true defects (widened by 2): %zu\n", nFlag, nOut);
     size_t ovFlag[4] = {0, 0, 0, 0}, ovNew[4] = {0, 0, 0, 0}, ovFlagBefore[4] = {0, 0, 0, 0};
+    size_t ovTruthReal = 0, ovUndetZone = 0;
     if (compositeOverlap) {
         for (size_t i = 0; i < n; ++i)
             if (overlapClass[i] != 0 && map[i]) {
@@ -1318,6 +1331,11 @@ int cmdScore(const Args& a) {
                 if (haveClean && !clean[i]) ++ovNew[overlapClass[i]];
             }
         for (const OverlapGroup& g : overlap.groups) ovFlagBefore[g.inherited] += g.flagged;
+        for (size_t i = 0; i < n; ++i)
+            if (overlapClass[i] != 0) {
+                ovTruthReal += t.truthReal[i];
+                ovUndetZone += undetMask[i];
+            }
         std::printf("== overlapped pixels (covered by two or more planted items: %zu distinct overlaps; ONE rule for every one of them)\n"
                     "  rule (one function for items and overlaps): defect when a valid response (the overlap's own measured chain, or a hot/noisy/nonlinear item by injection) or a valid noise label says defect; undetermined when no axis says defect and the response is not valid or the noise label is not a decision; else normal. The classes of the covering items are NOT inherited\n"
                     "  pixels %zu: defect %zu (of them %zu not defect by the inheriting rule), undetermined %zu, normal %zu\n"
@@ -1328,6 +1346,7 @@ int cmdScore(const Args& a) {
                     overlap.inheritedNormal, overlap.transition[1][2], overlap.transition[3][2], overlap.pixels - overlap.transition[1][2] - overlap.transition[3][2] - overlap.transition[2][2] - overlap.transition[3][3] - overlap.transition[1][1],
                     ovFlag[2], overlap.defect, overlap.defect ? static_cast<double>(ovFlag[2]) / static_cast<double>(overlap.defect) : 0.0, ovFlag[3], overlap.undetermined, ovFlag[1], overlap.normal,
                     overlap.normal ? static_cast<double>(ovFlag[1]) / static_cast<double>(overlap.normal) : 0.0, ovNew[1], ovFlagBefore[2], ovFlagBefore[3], ovFlagBefore[1]);
+        std::printf("  masks at the overlaps (assigned from the final class): true-defect mask %zu pixels, undetermined zone %zu pixels\n", ovTruthReal, ovUndetZone);
         std::printf("  response: %zu pixels have no valid measured response (not measured %zu, chain outside 0..65535 %zu; these are not judged by the nominal chain); %zu pixels are defect by the injection class of a hot/noisy/nonlinear item\n"
                     "  noise: pixels whose overlap noise label is defect %zu, not a decision (undetermined or missing) %zu%s\n",
                     overlap.unmeasuredPx + overlap.clippedPx, overlap.unmeasuredPx, overlap.clippedPx, overlap.intrinsicPx, overlap.noiseDefectPx, overlap.noiseUndetPx,
@@ -1430,6 +1449,11 @@ int cmdScore(const Args& a) {
                           "  \"overlap_flagged_in_defect\": %zu,\n  \"overlap_flagged_in_undetermined\": %zu,\n  \"overlap_flagged_in_normal\": %zu,\n  \"overlap_new_false_alarms\": %zu",
                           overlap.pixels, overlap.defect, overlap.notInherited, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);
             j += ob;
+            {
+                char tb[200];
+                std::snprintf(tb, sizeof tb, ",\n  \"overlap_truth_real_pixels\": %zu,\n  \"overlap_undetermined_zone_pixels\": %zu", ovTruthReal, ovUndetZone);
+                j += tb;
+            }
             if (haveOverlapTruth) {
                 char mb[300];
                 std::snprintf(mb, sizeof mb, ",\n  \"overlap_noise_defect_pixels\": %zu,\n  \"overlap_noise_undetermined_pixels\": %zu,\n  \"overlap_unmeasured_pixels\": %zu,\n  \"overlap_clipped_pixels\": %zu",
@@ -1700,7 +1724,7 @@ int cmdNoiseCost(const Args& a) {
             }
             return s;
         };
-        std::string ovOut = "items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\n";
+        std::string ovOut = "items\tkinds\tpixels\tused\tdof\tcost\tlo\thi\tlabel\tresponse_model\tclipped\tideal_cost\trow\tresponse_used\tresponse_valid\tresponse_unused\tcost_unused\tresponse_nominal_diag\n";
         struct Pool {
             std::vector<int> ids;
             size_t           groups{0}, px{0}, used{0};
@@ -1716,10 +1740,12 @@ int cmdNoiseCost(const Args& a) {
             const char* label = labelOf(v, ac.used);
             char        ideal[32];
             idealOf(ac.ids, ideal, sizeof ideal);
-            char b[700];
-            std::snprintf(b, sizeof b, "%s\t%s\t%zu\t%zu\t%.0f\t%.4f\t%.4f\t%.4f\t%s\t%.4f\t%d\t%s\tgroup\n", kv.first.c_str(), kindsOf(ac.ids, true).c_str(), ac.px, ac.used, nu * static_cast<double>(ac.used), v.cost,
-                          v.lo, v.hi, label, ac.nResp ? ac.sumR / static_cast<double>(ac.nResp) : chainResponse([&] { std::vector<const Item*> c; for (int id : ac.ids) c.push_back(byId[id]); return c; }()),
-                          ac.clipped ? 1 : 0, ideal);
+            const double nominal = chainResponse([&] { std::vector<const Item*> c; for (int id : ac.ids) c.push_back(byId[id]); return c; }());
+            const bool   respValid = ac.nResp > 0;
+            char b[900];
+            std::snprintf(b, sizeof b, "%s\t%s\t%zu\t%zu\t%.0f\t%.4f\t%.4f\t%.4f\t%s\t%.4f\t%d\t%s\tgroup\t%zu\t%d\t%s\t%s\t%.4f\n", kv.first.c_str(), kindsOf(ac.ids, true).c_str(), ac.px, ac.used,
+                          nu * static_cast<double>(ac.used), v.cost, v.lo, v.hi, label, respValid ? ac.sumR / static_cast<double>(ac.nResp) : 0.0, ac.clipped ? 1 : 0, ideal, ac.nResp, respValid ? 1 : 0,
+                          respValid ? "-" : "no pixel with a local signal above 100 and 60 reference pixels", ac.used ? "-" : "no pixel with a valid cost (local signal, response above 0.05, expectation)", nominal);
             ovOut += b;
             nPx += ac.px;
             nClip += ac.clipped ? 1 : 0;
@@ -1746,8 +1772,8 @@ int cmdNoiseCost(const Args& a) {
             if (pl.used) v = xpe_bpm_eval::classifyNoiseCost(cost, nu * static_cast<double>(pl.used), expectSe, limit);
             char ideal[32];
             idealOf(pl.ids, ideal, sizeof ideal);
-            char b[700];
-            std::snprintf(b, sizeof b, "*\t%s\t%zu\t%zu\t%.0f\t%.4f\t%.4f\t%.4f\t%s\t-\t0\t%s\tpooled\n", kv.first.c_str(), pl.px, pl.used, nu * static_cast<double>(pl.used), v.cost, v.lo, v.hi, labelOf(v, pl.used), ideal);
+            char b[900];
+            std::snprintf(b, sizeof b, "*\t%s\t%zu\t%zu\t%.0f\t%.4f\t%.4f\t%.4f\t%s\t-\t0\t%s\tpooled\t0\t0\t-\t-\t0\n", kv.first.c_str(), pl.px, pl.used, nu * static_cast<double>(pl.used), v.cost, v.lo, v.hi, labelOf(v, pl.used), ideal);
             ovOut += b;
             if (pl.groups >= 3 && kv.first.find("dead") == std::string::npos)
                 std::printf("  %-52s %6zu %7zu %7zu %9.3f %9s  %s\n", kv.first.c_str(), pl.groups, pl.px, pl.used, v.cost, ideal, labelOf(v, pl.used));
