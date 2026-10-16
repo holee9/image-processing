@@ -1,11 +1,12 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.5  
+**Document ID:** RTM-CALIB-001 v1.6  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
-**Date:** 2026-10-03 (v1.3: 2026-04-24)  
+**Date:** 2026-10-16 (v1.5: 2026-10-03, v1.3: 2026-04-24)  
 **Revision v1.4 (2026-10-03, `#245` / `QA-A-228`):** §3 시험 사례 ID 가 시험 소스에 없다는 주석, §4 추적 집계를 "문서상 사례"와 "실제 시험"으로 분리, 구현 없이 추적 완료로 집계되던 FUNC 7개(011·014·015·021·028·029·030)의 실제 상태 표 추가, §5.1 FUNC-034 근거 시험 보강  
 **Revision v1.5 (2026-10-03, #245 사용자 결정 / `QA-A-233` 결정 12·14):** 구현 없는 FUNC 7개 표의 비고를 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 로 통일, FUNC-014 를 △ → ✗(링 버퍼 없음)  
+**Revision v1.6 (2026-10-16, SRS-CALIB-001 v1.4 연동, `#273`):** FUNC-022·023 을 결함 화소 맵 2판 개정 문구로 바꾸고 FUNC-039(라인 기록·방향 보간)를 신설. 세 요구 모두 "구현·검증 대기"이며 시험 사례는 미정(BPM v2)이다.  
 
 **Trace Source:** XPE-SRS-001, XPE-SAD-001 (Architecture), SHA-CALIB-001 (Hazards)  
 **Test Input Source:** TDS-CALIB-001 (테스트 데이터셋 명세서) — 모든 테스트 케이스의 입력 데이터 규격 정의  
@@ -264,7 +265,7 @@ Does every SRS requirement have a corresponding design section?
 | SRS-CALIB-FUNC-011..017 | Storage & updates | 3.1.5c | ✓ Designed |
 | SRS-CALIB-SAFE-001..005 | Error handling | 3.1.5d | ✓ Designed |
 | SRS-CALIB-PERF-001..003 | Performance budgets | 3.1.5e | ✓ Designed |
-| SRS-CALIB-FUNC-022..025 | BPM generation algorithm | SAD §3.4 | ✓ Designed (2026-04-19) |
+| SRS-CALIB-FUNC-022..025 | BPM generation algorithm | SAD §3.4 | ✓ Designed (2026-04-19) — **이전 판 기록**: FUNC-022·023 은 2026-10-16 SRS v1.4 개정(2판)으로 문구가 바뀌었다. 2판 요구는 위 추적 표의 FUNC-022·023·039 행을 본다. FUNC-024·025 는 이번 개정 대상이 아니다 |
 | SRS-CALIB-FUNC-026..027, 031..033 | Gain generation, mode selection, optimization, metadata | SAD §3.5 | ✓ Designed (2026-04-24 v1.2) |
 
 ---
@@ -284,7 +285,7 @@ Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preproces
 | SRS-CALIB-FUNC-019 / REQ-P1A-012 | `xpe_defect_correct` | Defect AVX2 parity tests; ctest 341/341 passed. FUNC-019 의 합성 BPM 오라클(재현율 100%, FPR < 0.001%)은 시험 쪽 `test_defect_oracle.cpp` 로 구현돼 있다 | Updated (2026-10-03, #216: `xpe_verify_defect` 를 이 행에서 뺐다 — 아래 행) |
 | SRS 서술 없음 — #216 | `xpe_verify_defect` | 하는 일: FLOAT32 보정 영상과 UINT8 결함 맵에서 결함 화소 수, 결함 밀도(%), 결함 화소와 이웃 평균의 평균 절대 오차를 계산하고, 결함 밀도 < 5% 이면 `overall_pass` 를 참으로 둔다 (`xpe_verify_metrics.cpp` `xpe_verify_defect`). 옛 매핑 FUNC-019 는 이 함수가 하지 않는 일(DefectRecall·DefectFPR 등 오라클 지표)을 서술한다. 5% 는 SRS-CALIB-FUNC-003 의 BPM 적재 허용치 구절에서 온 값이고(코드 주석), 측정 가능 여부 구분은 SRS-CALIB-FUNC-036 이 모든 `xpe_verify_*` 에 요구한다 — 둘 다 이 함수 자체를 서술하는 요구는 아니다 (`QA-A-223`) | Corrected 2026-10-03 |
 | SRS 서술 없음 — #216 | `xpe_verify_pipeline` | 하는 일: UINT16 원시 영상과 FLOAT32 최종 영상에서 각각 중앙값 중심·RMS 퍼짐으로 SNR(`20·log10(mean/std)`)을 구해 그 차이를 `snr_improvement_db` 에 담고, ≥ 2.0 dB 이면 `overall_pass` 를 참으로 둔다 (`xpe_verify_metrics.cpp` `verify_pipeline_impl`). 옛 매핑 FUNC-015(E2E 보고서 스키마 `xpe-pre-e2e-report-v1` 발행)와 FUNC-021(보정 효과 점수 CES)은 이 함수가 하지 않는 일이다 — 스키마 이름은 `modules/`·`clients/`·`gui/`·`tools/` 에 0건, `CES` 는 `modules/` 의 주석 한 줄뿐이다(대조: 같은 검색이 SRS 원문에서 둘 다 찾음). 옛 `REQ-P1A-041..047` 은 개번호 전 파이프라인 단계 요구로 지금의 `REQ-P1A-095..101` 이며, 이 함수를 서술하지 않는다. 2.0 dB 문턱도 근거 없음(#218·#242) (`QA-A-223`) | Corrected 2026-10-03 |
-| SRS-CALIB-FUNC-022..025 | `xpe_bpm_generate` | BPM generation tests; ctest 341/341 passed | Updated |
+| SRS-CALIB-FUNC-022..025 | `xpe_bpm_generate` | BPM generation tests; ctest 341/341 passed | Updated — **이전 판(1판) 기록**: 이 시험 결과는 2026-10-16 SRS v1.4 개정 이전의 1판 구현에 대한 것이다. FUNC-022·023 의 2판은 구현·검증 대기이며(위 추적 표 FUNC-022·023·039 행), 2판 측정은 QA-A-252 에서 B16 기준 불합격(#273) |
 | SRS-CALIB-FUNC-034 | `xpe_calib_generate_offset` file-writing path plus shared multi-method generation helper | `test_calib_generate_offset_multi.cpp`(내부 shim 호출); 공개 API 경유 단언은 `test_calib_generate_offset_config.cpp` (보강 2026-10-03, `#245` / `QA-A-228`); ctest 341/341 passed | Added |
 | SRS-CALIB-FUNC-006 / FUNC-006-EXT | `xpe_nonlinearity_correct`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_load_nonlin_lut`, `xpe_calib_unload_nonlin_lut` | 매핑 추가 `#216`, 2026-09-29 — **요구는 있었고 이름이 안 달려 있었습니다.** `api_requirement_census.py` 가 이 넷을 "요구 없음" 으로 세던 이유입니다(도구는 `REQ-P1A` 만 스캔하고, `SRS-CALIB-001` 은 능력으로 기술해 함수명을 쓰지 않습니다). `SRS-CALIB-001:376` 의 언급은 요구 문단이 아니라 §5.3 C ABI 서명 목록입니다 | Added |
 | SRS-CALIB-NFR-003-CACHE | `CalibrationLRUCache` mutex-protected list/index access | Code review plus preprocessing ctest 341/341 passed | Added |
