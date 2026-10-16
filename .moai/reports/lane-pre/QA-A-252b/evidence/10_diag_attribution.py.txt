@@ -1,0 +1,150 @@
+"""QA-A-252b diagnostic 1: attribution of the new false alarms (32,764) and of the clean-image flags (11,686).
+Reads only existing artifacts (maps, feature maps, truth). Generates nothing but this text output."""
+import numpy as np, sys
+
+D = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+W = H = 3072
+FEAT = ['dark_mean', 'dark_noise', 'dose_slope', 'dose_linearity', 'flat_field']
+
+
+def u8(name):
+    return np.fromfile(D + name, dtype=np.uint8).reshape(H, W)
+
+
+mp, mc = u8('v2_planted.u8'), u8('v2_clean.u8')
+fp, fc = u8('v2_planted_features.u8'), u8('v2_clean_features.u8')
+ids = np.fromfile(D + 'inj_b/truth_ids.u16', dtype=np.uint16).reshape(H, W)
+items = {}
+for line in open(D + 'inj_b/truth.tsv', encoding='utf-8'):
+    p = line.rstrip('\n').split('\t')
+    if len(p) == 6 and p[0].isdigit():
+        items[int(p[0])] = (p[1], p[2], p[3], p[4], [tuple(int(v) for v in p[5].split(','))] if ',' in p[5] and ';' not in p[5] else [tuple(int(v) for v in r.split(',')) for r in p[5].split(';')])
+print('items', len(items))
+SH = 65535
+
+# truth masks
+real = np.zeros((H, W), bool)
+cls_of = {}
+for i, (c, k, s, lv, rects) in items.items():
+    for (x, y, w, h) in rects:
+        if c != 'control':
+            real[y:y + h, x:x + w] = True
+
+
+def dilate(m, r):
+    out = m.copy()
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            if dy == 0 and dx == 0:
+                continue
+            ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
+            xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+            out[yd, xd] |= m[ys, xs]
+    return out
+
+
+wide = dilate(real, 2)
+flag_p, flag_c = mp != 0, mc != 0
+new = flag_p & ~flag_c & ~wide
+print('new false alarms (planted flagged, clean not, outside real defects widened 2):', int(new.sum()), '| clean flagged', int(flag_c.sum()), '| planted flagged', int(flag_p.sum()))
+print('check: new on control bands (exclusive id of a control item):', int(sum(new[ids == i].sum() for i, v in items.items() if v[0] == 'control')))
+
+# distance to the nearest planted item (Chebyshev) by iterative dilation of every item class
+from collections import defaultdict
+classes = {'pixel': np.zeros((H, W), bool), 'block': np.zeros((H, W), bool), 'line': np.zeros((H, W), bool), 'control': np.zeros((H, W), bool)}
+for i, (c, k, s, lv, rects) in items.items():
+    for (x, y, w, h) in rects:
+        classes[c][y:y + h, x:x + w] = True
+anyitem = real | classes['control']
+# nearest distance by growing rings up to 10 on the union of ALL items (including control)
+dist = np.full((H, W), 99, np.int16)
+cur = anyitem.copy()
+dist[cur] = 0
+for d in range(1, 11):
+    nxt = dilate(cur, 1)
+    dist[nxt & ~cur] = d
+    cur = nxt
+buckets = [('0-2', 0, 2), ('3-5', 3, 5), ('6-10', 6, 10), ('>10', 11, 99)]
+print('\n== new false alarms by Chebyshev distance to the nearest planted item (any item incl. control bands)')
+for name, lo, hi in buckets:
+    print(' %-5s %7d' % (name, int((new & (dist >= lo) & (dist <= hi)).sum())))
+
+# nearest class: grow each class mask
+print('\n== new false alarms by the class of the nearest item (distance <= 10), and > 10')
+near_cls = np.full((H, W), '', dtype='U7')
+best = np.full((H, W), 99, np.int16)
+for cname, m in classes.items():
+    cur = m.copy()
+    dd = np.full((H, W), 99, np.int16)
+    dd[cur] = 0
+    for d in range(1, 11):
+        nxt = dilate(cur, 1)
+        dd[nxt & ~cur] = d
+        cur = nxt
+    upd = dd < best
+    near_cls[upd] = cname
+    best[upd] = dd[upd]
+for cname in classes:
+    print(' %-8s %7d' % (cname, int((new & (near_cls == cname) & (best <= 10)).sum())))
+print(' %-8s %7d' % ('>10', int((new & (best > 10)).sum())))
+
+# which feature
+print('\n== features of the new false alarms (bit per pixel; a pixel can have several)')
+for b, n in enumerate(FEAT):
+    bit = 1 << b
+    print(' %-15s %7d' % (n, int((new & ((fp & bit) != 0)).sum())))
+print(' features of ALL flags in the clean image:')
+for b, n in enumerate(FEAT):
+    print(' %-15s %7d' % (n, int(((fc & (1 << b)) != 0).sum())))
+
+# control bands: which band, which feature (non-shared pixels)
+print('\n== new false alarms on control bands, per band item and feature')
+for i, (c, k, s, lv, rects) in items.items():
+    if c != 'control':
+        continue
+    m = new & (ids == i)
+    if m.sum() == 0:
+        continue
+    per = ', '.join('%s %d' % (n, int((m & ((fp & (1 << b)) != 0)).sum())) for b, n in enumerate(FEAT))
+    tot = int((ids == i).sum())
+    print(' item %d %s/%s level %s rects %s: new %d of %d own pixels | %s' % (i, k, s, lv, rects[:1], int(m.sum()), tot, per))
+
+# spatial structure of the clean flags
+print('\n== spatial structure of the clean-image flags (%d)' % flag_c.sum())
+rows = flag_c.sum(1); cols = flag_c.sum(0)
+print(' rows with >= 20 flags: %d (flags in them: %d); columns with >= 20 flags: %d (flags in them: %d)' % ((rows >= 20).sum(), rows[rows >= 20].sum(), (cols >= 20).sum(), cols[cols >= 20].sum()))
+# isolated vs clusters (8-neighbourhood count)
+nb = np.zeros((H, W), np.int16)
+fcm = flag_c.astype(np.int16)
+for dy in (-1, 0, 1):
+    for dx in (-1, 0, 1):
+        if dy == 0 and dx == 0:
+            continue
+        ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
+        xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+        nb[yd, xd] += fcm[ys, xs]
+iso = flag_c & (nb == 0)
+print(' isolated (no flagged neighbour): %d; with 1-2 neighbours: %d; with 3+ neighbours: %d' % (int(iso.sum()), int((flag_c & (nb >= 1) & (nb <= 2)).sum()), int((flag_c & (nb >= 3)).sum())))
+# panel edge: distance to border
+yy, xx = np.indices((H, W))
+edge = np.minimum(np.minimum(yy, H - 1 - yy), np.minimum(xx, W - 1 - xx))
+for lo, hi in ((0, 7), (8, 63), (64, 255), (256, 9999)):
+    area = ((edge >= lo) & (edge <= hi)).sum()
+    n = int((flag_c & (edge >= lo) & (edge <= hi)).sum())
+    print(' border distance %d-%d: %d flags in %d pixels (%.3f per thousand)' % (lo, hi, n, area, 1000.0 * n / area))
+# the 8 columns / 8 rows readout-like periodicity: flags by column index mod 128 (readout channel boundaries are unknown; list the strongest columns)
+top = np.argsort(cols)[::-1][:10]
+print(' strongest columns:', [(int(c), int(cols[c])) for c in top])
+topr = np.argsort(rows)[::-1][:10]
+print(' strongest rows:', [(int(r), int(rows[r])) for r in topr])
+
+# overlaps with other maps (diagnostic only)
+bpm = np.fromfile('D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/BPM.raw', dtype=np.uint8)
+print('\n== overlap with other maps (diagnostic only, not a ground truth)')
+print(' BPM.raw size', bpm.size)
+if bpm.size == H * W:
+    b = bpm.reshape(H, W) != 0
+    print(' company map flagged: %d; clean v2 flags inside it: %d' % (int(b.sum()), int((flag_c & b).sum())))
+else:
+    print(' BPM.raw is not 8-bit 3072x3072; skipped')
+sys.stdout.flush()
