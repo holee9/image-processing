@@ -96,10 +96,12 @@ constexpr int kBrightNoisyX = 120, kBrightNoisyY = 200;   // extra temporal nois
 constexpr int kDarkRow = 60, kDarkFrom = 96;   // the raised segment: kPartLen pixels, +300 in every frame
 constexpr int kVarCol = 70;                  // a column whose offset is a new random value in every frame (sd 60)
 // line defects of the QA-A-253 tests (256 x 256 frames)
-constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256;
+constexpr uint32_t kLnDeadRow = 1, kLnDeadCol = 2, kLnHalfRow = 4, kLnPartialRow = 8, kLnPairRows = 16, kLnTripleRows = 32, kLnNoisyRow = 64, kLnGainRow = 128, kLnMovingBurst = 256, kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048;
 constexpr int kLnDeadRowY = 120, kLnDeadColX = 60, kLnHalfRowY = 80, kLnPartialRowY = 40, kLnPartialFrom = 96, kLnPartialTo = 192, kLnPairY = 170, kLnTripleY = 200, kLnNoisyY = 30, kLnGainY = 150;
 // QA-A-253c: noise that moves. In dark frame k the stretch [96, 192) of row kBurstY0 + k gets an offset of +-14 (a different row in every frame)
 constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;
+// QA-A-253d: (the bright burst hits one row of a dose group in two of its three frames, with opposite signs, so that the dose response is untouched) a column with response 1.35 (a band that gain correction removes; 1.2 in the evaluation, the larger factor makes the shift of the feature show on 256 rows), a row that is noisy in every bright frame, and a burst that moves from row to row between the bright frames
+constexpr int kLnGainColX = 180, kLnBrightNoisyY = 60, kBrightBurstY0 = 100;
 
 Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPerDose, int nDark, Plant plant, bool transientFirstDark = false) {
     Normal rng(seed);
@@ -113,7 +115,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
     Frames f;
     Normal pixelRng(seed + 7);   // used only for the bright-noise pixel
     Normal frameRng(seed + 99);   // separate from the pixel noise, so the planted extras do not change any other value
-    auto put = [&](double net, bool bright, bool firstDark, int darkIdx) {
+    auto put = [&](double net, bool bright, bool firstDark, int darkIdx, int brightIdx) {
         std::vector<uint16_t> fr(kN);
         const double columnOffset = plant.varyingColumn ? 60.0 * frameRng.next() : 0.0;
         for (size_t i = 0; i < kN; ++i) {
@@ -133,6 +135,10 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
                 if ((plant.lines & kLnTripleRows) && y >= kLnTripleY && y < kLnTripleY + 3) sig = 0.0;
                 if ((plant.lines & kLnNoisyRow) && y == kLnNoisyY) noiseSd = 9.0;
                 if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnGainCol) && x == kLnGainColX) sig *= 1.35;
+                if ((plant.lines & kLnBrightNoisyRow) && bright && y == kLnBrightNoisyY) noiseSd = 90.0;
+                if ((plant.lines & kLnBrightBurst) && bright && brightIdx >= 0 && brightIdx % 3 != 2 && y == kBrightBurstY0 + brightIdx / 3 && x >= kBurstFrom && x < kBurstTo)
+                    d += (brightIdx % 3 == 0 ? 3.0 : -3.0) * std::sqrt(std::max(sig, 1.0));   // +-6 quantum sd in two frames of a dose group (the group mean stays), a different row for every group
                 if ((plant.lines & kLnMovingBurst) && darkIdx >= 0 && y == kBurstY0 + darkIdx && x >= kBurstFrom && x < kBurstTo) d += (darkIdx % 2 ? -14.0 : 14.0);
             }
             if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
@@ -159,10 +165,10 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
         }
         return fr;
     };
-    for (int k = 0; k < nDark; ++k) f.dark.push_back(put(0.0, false, transientFirstDark && k == 0, k));
+    for (int k = 0; k < nDark; ++k) f.dark.push_back(put(0.0, false, transientFirstDark && k == 0, k, -1));
     for (double d : doses)
         for (int k = 0; k < framesPerDose; ++k) {
-            f.bright.push_back(put(d, true, false, -1));
+            f.bright.push_back(put(d, true, false, -1, static_cast<int>(f.bright.size())));
             f.signal.push_back(d);
         }
     return f;
@@ -497,8 +503,8 @@ TEST(BpmV2LinesTest, APartialLineIsFoundWithItsStartAndEnd) {
     EXPECT_EQ(XPE_BPM_LINE_ROW, l.orientation);
     EXPECT_EQ(static_cast<uint32_t>(kLnPartialRowY), l.index);
     EXPECT_EQ(0u, l.flags & XPE_BPM_LINE_FULL);
-    EXPECT_NEAR(kLnPartialFrom, static_cast<double>(l.start), 8.0);
-    EXPECT_NEAR(kLnPartialTo, static_cast<double>(l.end), 8.0);
+    EXPECT_NEAR(kLnPartialFrom, static_cast<double>(l.start), 2.0) << "the start is the change point, not the edge of a coarse window";
+    EXPECT_NEAR(kLnPartialTo, static_cast<double>(l.end), 2.0);
     EXPECT_EQ(1u, r.rep.partial_lines);
     EXPECT_EQ(0u, r.rep.full_lines);
 }
@@ -543,6 +549,34 @@ TEST(BpmV2LinesTest, NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace) {
     const LinesResult r = findLines(f, nullptr, &lc);
     ASSERT_EQ(XPE_OK, r.rc);
     EXPECT_EQ(0u, r.rep.lines) << "persistence: the same stretch has to be large in more than half of the dark frames";
+}
+
+TEST(BpmV2LinesTest, AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect) {
+    // the linearity feature is log(sse); sse grows with the square of the response, so the column stands 0.37 above its neighbours in that feature unless it is made relative
+    Frames f = makeFrames(30, kDoses, 3, 7, onlyLines(kLnGainCol));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines);
+}
+
+TEST(BpmV2LinesTest, ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence) {
+    Frames f = makeFrames(31, kDoses, 3, 7, onlyLines(kLnBrightNoisyRow));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const XpeBpmLine* l = lineAt(r, XPE_BPM_LINE_ROW, kLnBrightNoisyY);
+    ASSERT_NE(nullptr, l);
+    EXPECT_NE(0u, l->causes & XPE_BPM_LINE_CAUSE_NOISE);
+    EXPECT_GE(l->persistence, 0.8f);
+}
+
+TEST(BpmV2LinesTest, NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace) {
+    Frames f = makeFrames(32, kDoses, 3, 7, onlyLines(kLnBrightBurst));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines) << (r.lines.empty() ? std::string() : "first group: orientation " + std::to_string(r.lines[0].orientation) + " index " + std::to_string(r.lines[0].index) + " causes " + std::to_string(r.lines[0].causes) + " persistence " + std::to_string(r.lines[0].persistence));
 }
 
 TEST(BpmV2LinesTest, ASingleDeadPixelOrASmallBlockIsNotALine) {

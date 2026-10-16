@@ -381,17 +381,41 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
                 zmax = std::max(zmax, std::fabs(z2));
             }
             int a = x, b = x2 + L;
-            // trim the ends: a stretch ends where eight pixels in a row no longer reach half of its mean
-            auto meanOf = [&](int p, int q) {
-                double s = 0.0;
-                for (int k = p; k < q; ++k) s += static_cast<double>(er[k]);
-                return s / std::max(1, q - p);
-            };
-            const double m = meanOf(a, b);
-            auto holds = [&](int p, int q) { return sign * meanOf(p, q) >= 0.5 * sign * m && sign * m > 0.0; };
-            while (b - a > L && !holds(a, std::min(b, a + 8))) ++a;
-            while (b - a > L && !holds(std::max(a, b - 8), b)) --b;
             x = x2 + 1;
+            // The ends: the windows give a coarse stretch (a window that only touches the stretch can still reach the threshold, so the coarse ends lie outside by up to a
+            // window). The ends are the change points of the maximum-likelihood fit of one elevated stretch: with m the mean level of the stretch (taken from its core), the
+            // stretch is the maximum-sum run of (z - m/2) in the cut z terms, searched within one window length beyond the coarse ends.
+            {
+                const int lo2 = std::max(0, a - L), hi2 = std::min(w, b + L);
+                std::vector<double> zt(static_cast<size_t>(hi2 - lo2));
+                for (int t = lo2; t < hi2; ++t) {
+                    const double sc = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), t, y)), 1e-9);
+                    zt[static_cast<size_t>(t - lo2)] = std::min(3.0, std::max(-3.0, sign * static_cast<double>(er[t]) / sc));
+                }
+                const int c0 = (b - a >= 2 * L) ? a + L / 2 : a, c1 = (b - a >= 2 * L) ? b - L / 2 : b;
+                double    m = 0.0;
+                for (int t = c0; t < c1; ++t) m += zt[static_cast<size_t>(t - lo2)];
+                m /= std::max(1, c1 - c0);
+                if (!(m > 0.0)) continue;
+                double best = -1e300, cur = 0.0;
+                int    curStart = lo2, bestA = lo2, bestB = lo2;
+                for (int t = lo2; t < hi2; ++t) {
+                    const double v = zt[static_cast<size_t>(t - lo2)] - 0.5 * m;
+                    if (cur <= 0.0) {
+                        cur = v;
+                        curStart = t;
+                    } else {
+                        cur += v;
+                    }
+                    if (cur > best) {
+                        best = cur;
+                        bestA = curStart;
+                        bestB = t + 1;
+                    }
+                }
+                a = bestA;
+                b = bestB;
+            }
             if (b - a < L) continue;
             // magnitude: a stretch that offset and gain correction removes is no defect
             auto segSum = [&](int yy) {
@@ -624,6 +648,8 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
     // taken out, as for the dark frames), relative to its own local median; the groups are pooled as a sum of chi-square variables
     std::vector<float> noiseSum, refSum;
     uint32_t           nuBright = 0, noiseGroups = 0;
+    std::vector<std::vector<double>> brmK(num_bright), bcmK(num_bright);   // per bright frame: the row and column means taken out (line persistence)
+    std::vector<double>              groupNom(groups.size(), 0.0);          // per dose group: the nominal temporal variance
     {
         std::vector<float> acc(n);
         std::vector<float> vg, vgTmp, vgBg;
@@ -674,6 +700,8 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                             cm[x] += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y];
                         }
                     for (uint32_t x = 0; x < width; ++x) cm[x] /= height;
+                    brmK[k] = rm;
+                    bcmK[k] = cm;
                     for (uint32_t y = 0; y < height; ++y)
                         for (uint32_t x = 0; x < width; ++x) {
                             const size_t i = static_cast<size_t>(y) * width + x;
@@ -684,11 +712,15 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 for (size_t i = 0; i < n; ++i) vg[i] /= static_cast<float>(mg - 1);
                 separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
                 const double mnu = varianceMedian(mg - 1);
+                std::vector<float> nomSample;
+                nomSample.reserve(n / 16 + 1);
                 for (size_t i = 0; i < n; ++i) {
                     const double ref = std::max(static_cast<double>(vgBg[i]) / mnu, kReferenceFloor);
                     noiseSum[i] += static_cast<float>((mg - 1) * (static_cast<double>(vg[i]) / ref));
                     refSum[i] += static_cast<float>(ref);
+                    if (i % 16 == 0) nomSample.push_back(static_cast<float>(ref));
                 }
+                groupNom[g] = static_cast<double>(medianOf(nomSample.data(), nomSample.size()));
                 nuBright += mg - 1;
                 ++noiseGroups;
             }
@@ -770,7 +802,14 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 const double sse = std::max(0.0, Snn[i] - a * Sxn[i] - b * Sn[i]);
                 wk.feat[i] = static_cast<float>(std::log(sse / static_cast<double>(G - 2) + 1e-9));
             }
-            if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindLinearity);
+            if (job) {   // lines: relative linearity. sse grows with the square of the response, so a gain band (removed by gain correction) would stand out: divide it out
+                std::vector<float> rel(n);
+                for (size_t i = 0; i < n; ++i) {
+                    const double a = (static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx;
+                    rel[i] = static_cast<float>(static_cast<double>(wk.feat[i]) - 2.0 * std::log(std::max(std::fabs(a), 1e-3)));
+                }
+                analyzeFeature(rel.data(), w, h, st, job, kKindLinearity);
+            }
             if (!(job && job->linesOnly)) scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);
         }
     }
@@ -793,7 +832,44 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
         if (job) {   // lines: the pooled variance ratio of the bright frames
             std::vector<float> t(n);
             for (size_t i = 0; i < n; ++i) t[i] = noiseSum[i] / static_cast<float>(nuBright);
+            // persistence over the bright frames: per frame the squared residual about its dose-group mean (row and column means out, each pixel at most 16 times the nominal
+            // variance of the group), averaged over the stretch, against the median of the same pixels in the neighbouring lines; the share of frames that reach the tolerance
+            job->persistence = [&](int orient, int idx, int a, int b) -> float {
+                const int half = static_cast<int>(st.window) / 2;
+                const int lines = orient == 0 ? h : w;
+                int       frames = 0, hits = 0;
+                for (size_t g = 0; g < groups.size(); ++g) {
+                    const uint32_t mg = static_cast<uint32_t>(groups[g].size());
+                    if (mg < 2) continue;
+                    const double cap = 16.0 * groupNom[g];
+                    for (uint32_t k : groups[g]) {
+                        const uint16_t* pk = px(bright_frames[k]);
+                        auto lineStat = [&](int line) {
+                            double acc = 0.0;
+                            for (int t2 = a; t2 < b; ++t2) {
+                                const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
+                                const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                                double       gm = 0.0;
+                                for (uint32_t j : groups[g]) gm += static_cast<double>(px(bright_frames[j])[i]);
+                                gm /= static_cast<double>(mg);
+                                const double e = static_cast<double>(pk[i]) - gm - brmK[k][static_cast<size_t>(y)] - bcmK[k][static_cast<size_t>(x)];
+                                acc += std::min(e * e, cap);
+                            }
+                            return acc;
+                        };
+                        const double       sf = lineStat(idx);
+                        std::vector<float> nb;
+                        for (int d = -half; d <= half; ++d)
+                            if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(lineStat(idx + d)));
+                        const double sr = nb.empty() ? sf : static_cast<double>(medianOf(nb.data(), nb.size()));
+                        ++frames;
+                        if (sr > 0.0 && sf / sr >= job->tol) ++hits;
+                    }
+                }
+                return frames > 0 ? static_cast<float>(hits) / static_cast<float>(frames) : -1.0f;
+            };
             analyzeFeature(t.data(), w, h, st, job, kKindNoise);
+            job->persistence = nullptr;
         }
     }
 
