@@ -11,7 +11,7 @@
 #include "xpe_bpm_eval_path.h"      // generated: XPE_BPM_EVAL_EXE
 #include "xpe_bpm_eval_stats.hpp"      // the numeric parts of the tool (QA-A-251b)
 #include "xpe_fixture_gen_path.h"   // generated: XPE_FIXTURE_GEN_EXE
-#include "xpe/preprocess_api.h"      // XPE_BPM_V2_OUT_OF_AREA
+#include "xpe/preprocess_api.h"      // the defect codes of the first generation
 
 #include <algorithm>
 #include <chrono>
@@ -397,50 +397,72 @@ TEST_F(BpmEvalTest, ScoreSeparatesAPerfectMapFromAnEmptyOne) {
     EXPECT_NE(std::string::npos, j2.find("\"control_false_detections\": 0"));
 }
 
-TEST_F(BpmEvalTest, MapV2TakesMarginsAndWritesTheOutOfAreaCodeThere) {
+TEST_F(BpmEvalTest, MapV2TakesMarginsAndWritesTheAreaMask) {
     makeFrames(6, 8, 0);
-    auto run = [&](const std::string& margins, const fs::path& out) {
-        std::string args = "map-v2 --out \"" + out.string() + "\" --width 1024 --height 1024 --min-bright 2" + (margins.empty() ? "" : " --margins " + margins);
+    auto run = [&](const std::string& margins, const fs::path& out, const fs::path& area) {
+        std::string args = "map-v2 --out \"" + out.string() + "\" --area \"" + area.string() + "\" --width 1024 --height 1024 --min-bright 2 --skip-first-dark 0" +
+                           (margins.empty() ? "" : " --margins " + margins);
         args += files("dark", darks) + files("bright", brights) + " > \"" + (root / "mv2.log").string() + "\" 2>&1";
         return runCmd(XPE_BPM_EVAL_EXE, args);
     };
-    const fs::path out = root / "mv2.u8";
-    ASSERT_EQ(0, run("6,2,1,1", out)) << text(root / "mv2.log");
-    const std::vector<uint8_t> m = readBytes(out);
+    const fs::path out = root / "mv2.u8", area = root / "mv2_area.u8";
+    ASSERT_EQ(0, run("6,2,1,1", out, area)) << text(root / "mv2.log");
+    const std::vector<uint8_t> m = readBytes(out), a = readBytes(area);
     ASSERT_EQ(kN, m.size());
+    ASSERT_EQ(kN, a.size());
     for (size_t y = 0; y < kH; ++y)
         for (size_t x = 0; x < kW; ++x) {
             const bool margin = x < 6 || y < 2 || x >= kW - 1 || y >= kH - 1;
-            ASSERT_EQ(margin, m[y * kW + x] == XPE_BPM_V2_OUT_OF_AREA) << "(" << x << "," << y << ")";
+            ASSERT_EQ(margin ? 0 : 1, a[y * kW + x]) << "(" << x << "," << y << ")";
+            if (margin) ASSERT_EQ(0, m[y * kW + x]) << "outside the area the map is good: (" << x << "," << y << ")";
         }
-    EXPECT_EQ(2, run("1,2,3", root / "bad1.u8")) << "three numbers are not a margin specification";
-    EXPECT_EQ(2, run("6,2,1,1,5", root / "bad2.u8"));
-    EXPECT_EQ(2, run("6,2,1,x", root / "bad3.u8"));
-    EXPECT_EQ(0, run("", root / "none.u8")) << text(root / "mv2.log");
-    const std::vector<uint8_t> n0 = readBytes(root / "none.u8");
-    EXPECT_EQ(0, std::count(n0.begin(), n0.end(), static_cast<uint8_t>(XPE_BPM_V2_OUT_OF_AREA))) << "no margins, no out-of-area code";
+    EXPECT_EQ(2, run("1,2,3", root / "bad1.u8", root / "bad1_area.u8")) << "three numbers are not a margin specification";
+    EXPECT_EQ(2, run("6,2,1,1,5", root / "bad2.u8", root / "bad2_area.u8"));
+    EXPECT_EQ(2, run("6,2,1,x", root / "bad3.u8", root / "bad3_area.u8"));
+    EXPECT_EQ(0, run("", root / "none.u8", root / "none_area.u8")) << text(root / "mv2.log");
+    const std::vector<uint8_t> n0 = readBytes(root / "none_area.u8");
+    EXPECT_EQ(static_cast<ptrdiff_t>(kN), std::count(n0.begin(), n0.end(), static_cast<uint8_t>(1))) << "no margins: the whole frame is the area";
 }
 
-TEST_F(BpmEvalTest, ScoreTreatsTheOutOfAreaCodeAsNotAFlag) {
+TEST_F(BpmEvalTest, MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot) {
+    makeFrames(6, 8, 0);
+    auto used = [&](const std::string& skipArg) {
+        std::string args = "map-v2 --out \"" + (root / "sk.u8").string() + "\" --report \"" + (root / "sk.json").string() + "\" --width 1024 --height 1024 --min-bright 2 --min-dark 3" + skipArg;
+        args += files("dark", darks) + files("bright", brights) + " > \"" + (root / "sk.log").string() + "\" 2>&1";
+        EXPECT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, args)) << text(root / "sk.log");
+        const std::string j = text(root / "sk.json");
+        const size_t pos = j.find("\"dark_frames_used\": ");
+        return pos == std::string::npos ? -1 : std::atoi(j.c_str() + pos + 20);
+    };
+    EXPECT_EQ(5, used("")) << "six raw frames, no argument: the first is skipped";
+    EXPECT_EQ(5, used(" --skip-first-dark 1"));
+    EXPECT_EQ(6, used(" --skip-first-dark 0")) << "an explicit 0 says the list was trimmed already";
+}
+
+TEST_F(BpmEvalTest, ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect) {
     makeFrames(5, 3, 2);
     const fs::path t = root / "t";
     ASSERT_EQ(0, inject(t));
-    // a map that holds nothing but the out-of-area code (4) in six columns and two rows at the edges: those pixels are outside the imaging area, not defects
-    std::vector<uint8_t> m(kN, 0);
+    // flags in six columns and two rows at the edges; the area mask says those pixels are outside the imaging area
+    std::vector<uint8_t> m(kN, 0), area(kN, 1);
     for (size_t y = 0; y < kH; ++y)
         for (size_t x = 0; x < kW; ++x)
-            if (x < 6 || y < 2) m[y * kW + x] = XPE_BPM_V2_OUT_OF_AREA;
-    const fs::path oa = root / "oa.u8";
-    writeBytes(oa, m.data(), m.size());
+            if (x < 6 || y < 2) {
+                m[y * kW + x] = 4;   // 4 is the noisy defect code of the first generation: a plain map keeps that meaning
+                area[y * kW + x] = 0;
+            }
+    const fs::path flagged = root / "oa.u8", mask = root / "oa_area.u8";
+    writeBytes(flagged, m.data(), m.size());
+    writeBytes(mask, area.data(), area.size());
     const fs::path empty = mapOf(t, "empty_oa.u8", [](const Item&) { return false; });
-    ASSERT_EQ(0, score(t, oa, " --clean-map \"" + empty.string() + "\" --out \"" + (root / "oa.json").string() + "\"", root / "oa.txt"));
+    const std::string common = " --clean-map \"" + flagged.string() + "\"";   // the clean map holds the same flags: they must not count there either
+    ASSERT_EQ(0, score(t, flagged, common + " --area \"" + mask.string() + "\" --out \"" + (root / "oa.json").string() + "\"", root / "oa.txt"));
     const std::string j = text(root / "oa.json");
-    EXPECT_NE(std::string::npos, j.find("\"flagged\": 0,")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"flagged\": 0,")) << "with the area mask the flags outside it are not counted: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"clean_flagged\": 0,")) << "nor in the clean map: " << j;
     EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": 0,")) << j;
-    // a defect code in the same places would count: the control for the line above
-    for (auto& v : m) if (v == XPE_BPM_V2_OUT_OF_AREA) v = 2;
-    writeBytes(oa, m.data(), m.size());
-    ASSERT_EQ(0, score(t, oa, " --clean-map \"" + empty.string() + "\" --out \"" + (root / "oa2.json").string() + "\"", root / "oa2.txt"));
+    // the control: without the mask the same map is full of defects (code 4 counts as a defect)
+    ASSERT_EQ(0, score(t, flagged, common + " --out \"" + (root / "oa2.json").string() + "\"", root / "oa2.txt"));
     EXPECT_EQ(std::string::npos, text(root / "oa2.json").find("\"flagged\": 0,"));
 }
 

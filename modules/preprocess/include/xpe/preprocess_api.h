@@ -1903,7 +1903,9 @@ typedef struct {
     float    target_false_alarms; /**< Expected false alarms per feature over the whole frame (default 1.0; range (0, 1000]) */
     uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65) */
     uint32_t sigma_block;         /**< Side of the blocks of the local scale estimate in pixels (default 64; range 16..512) */
-    uint32_t skip_first_dark;     /**< 1 = the first dark frame (before the detector settles) is not used; 0 = use it. Zero-initialised means 0 */
+    uint32_t skip_first_dark;     /**< The dark list is the RAW acquisition list: its first frame (taken before the detector settles) is not used.
+                                       *   XPE_BPM_V2_SKIP_DEFAULT (0, also a NULL configuration) and XPE_BPM_V2_SKIP_FIRST (1): skip it.
+                                       *   XPE_BPM_V2_SKIP_NONE (2): the list was already trimmed, use every frame. Anything else is refused */
     uint32_t min_frames_dark;     /**< Minimum dark frames after skipping (default 5; at least 3) */
     uint32_t min_frames_bright;   /**< Minimum bright frames (default 6; at least 2) */
     float    dose_group_ratio;    /**< Sorted bright-frame signals whose ratio exceeds this start a new dose group (default 1.25; at least 1.01) */
@@ -1914,11 +1916,10 @@ typedef struct {
     uint32_t reserved;            /**< Must be zero */
 } XpeBpmConfigV2;
 
-/**
- * Map code of a pixel outside the imaging area (see XpeBpmConfigV2 margins). Defect codes are 1..3. These pixels take no part in the decision or in any local
- * statistic (row and column components, background, scale, thresholds, frame means); consumers that read the map as "non-zero = defect" must treat this code as good.
- */
-#define XPE_BPM_V2_OUT_OF_AREA 4u
+/** Values of XpeBpmConfigV2::skip_first_dark. */
+#define XPE_BPM_V2_SKIP_DEFAULT 0u /**< Default: the first dark frame of the raw list is skipped */
+#define XPE_BPM_V2_SKIP_FIRST   1u /**< The first dark frame is skipped (same as the default) */
+#define XPE_BPM_V2_SKIP_NONE    2u /**< The list is already trimmed: every dark frame is used */
 
 /** Feature bits of the optional per-pixel feature output of xpe_bpm_generate_v2. */
 #define XPE_BPM_V2_FEATURE_DARK_MEAN   0x01u /**< Local deviation of the dark mean */
@@ -1971,8 +1972,18 @@ typedef struct {
  *
  * Bright frames may be of several doses; they are grouped by signal (see XpeBpmConfigV2).
  *
+ * Input contract: the dark frames are the raw acquisition list. The first one is skipped by default (see XpeBpmConfigV2::skip_first_dark;
+ * pass XPE_BPM_V2_SKIP_NONE for a list that was trimmed already), so a list of five frames leaves four and is refused by the default minimum of five.
+ *
+ * False alarms: the threshold of each feature is set for a target of expected false alarms PER FEATURE (default 1). The union over the features is expected to hold
+ * about as many by chance as there are features that ran (up to six); the report states the counts per feature.
+ *
+ * Imaging area: pixels in the margins of the configuration are outside the imaging area (shielded or dummy). They take no part in the decision or in any local statistic
+ * (frame means, row and column components, background, scale, the N of the false-alarm target). In bpm_out and feature_out they are 0, exactly like a good pixel,
+ * so the map keeps the meaning of the defect codes (0 good, 1..3 and above as in xpe_bpm_generate); the pixels outside the area are told by area_out.
+ *
  * @param dark_frames Dark frames (UINT16, offset-uncorrected), all of one size
- * @param num_dark Number of dark frames, before the optional skipping of the first
+ * @param num_dark Number of dark frames in the raw list, before the skipping of the first
  * @param bright_frames Bright frames (UINT16, offset-uncorrected), the size of the dark frames
  * @param num_bright Number of bright frames
  * @param cfg Configuration (NULL = defaults)
@@ -1980,6 +1991,7 @@ typedef struct {
  *        feature only, 2 by a dark-frame feature only, 3 by both
  * @param feature_out Optional output (UINT8, size of the frames): the XPE_BPM_V2_FEATURE_* bits
  *        of the features that flagged each pixel; NULL to skip
+ * @param area_out Optional output (UINT8, size of the frames): 1 for a pixel inside the imaging area, 0 outside (see the margins of the configuration); NULL to skip
  * @param report Optional output: thresholds and counts; NULL to skip
  * @return XPE_OK on success
  *         XPE_ERR_INVALID_INPUT on NULL pointers, too few frames, a bright frame without signal,
@@ -1997,6 +2009,7 @@ XPE_API XpeErrorCode xpe_bpm_generate_v2(
     const XpeBpmConfigV2* cfg,
     XpeImageBuffer* bpm_out,
     XpeImageBuffer* feature_out,
+    XpeImageBuffer* area_out,
     XpeBpmReportV2* report);
 
 #ifdef __cplusplus

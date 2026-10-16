@@ -153,7 +153,7 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
 
 struct Result {
     XpeErrorCode          rc;
-    std::vector<uint8_t>  map, feat;
+    std::vector<uint8_t>  map, feat, area;
     XpeBpmReportV2        rep;
 };
 
@@ -164,9 +164,10 @@ Result detect(Frames& f, const XpeBpmConfigV2* cfg) {
     Result r{};
     r.map.assign(kN, 0);
     r.feat.assign(kN, 0);
-    XpeImageBuffer mb = outBuf(r.map), fb = outBuf(r.feat);
+    r.area.assign(kN, 77);   // an impossible value: the detector must write every pixel
+    XpeImageBuffer mb = outBuf(r.map), fb = outBuf(r.feat), ab = outBuf(r.area);
     EXPECT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
-    r.rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), cfg, &mb, &fb, &r.rep);
+    r.rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), cfg, &mb, &fb, &ab, &r.rep);
     xpe_clear_alerts();
     xpe_preprocess_shutdown();
     return r;
@@ -339,7 +340,7 @@ TEST(BpmV2Test, WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreD
     EXPECT_GT(wildUndeclared.rep.flagged_union, clean.rep.flagged_union + 100u) << "without the declaration the wild lines flag themselves and their neighbours: " << describe(wildUndeclared.rep);
 }
 
-TEST(BpmV2Test, MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatistic) {
+TEST(BpmV2Test, MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic) {
     const XpeBpmConfigV2 cfg = marginConfig();
     Frames f = makeFrames(10, kDoses, 3, 7, Plant{false, false});
     Frames g = makeFrames(10, kDoses, 3, 7, Plant{false, false});
@@ -350,11 +351,12 @@ TEST(BpmV2Test, MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatisti
     for (uint32_t y = 0; y < kH; ++y)
         for (uint32_t x = 0; x < kW; ++x) {
             const size_t i = static_cast<size_t>(y) * kW + x;
+            ASSERT_EQ(inMargin(x, y) ? 0 : 1, wild.area[i]) << "(" << x << "," << y << "): the area mask is 1 inside and 0 outside";
             if (inMargin(x, y)) {
-                ASSERT_EQ(XPE_BPM_V2_OUT_OF_AREA, wild.map[i]) << "(" << x << "," << y << ")";
+                ASSERT_EQ(0, wild.map[i]) << "(" << x << "," << y << "): outside the area the map is good (0), the defect codes keep their meaning";
                 ASSERT_EQ(0, wild.feat[i]);
             } else {
-                ASSERT_LE(wild.map[i], 3) << "(" << x << "," << y << "): a defect code or good, never the out-of-area code";
+                ASSERT_LE(wild.map[i], 3) << "(" << x << "," << y << ")";
             }
         }
     // nothing of the margins reaches the detection: the map inside is the same bit for bit whatever the margins hold
@@ -367,12 +369,12 @@ TEST(BpmV2Test, MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatisti
     EXPECT_NEAR(1.0, std::erfc(static_cast<double>(wild.rep.threshold[0]) / std::sqrt(2.0)) * static_cast<double>(inside), 0.002);
 }
 
-TEST(BpmV2Test, NoMarginsMeansNoOutOfAreaCodeAndMarginsThatLeaveNoAreaAreRefused) {
+TEST(BpmV2Test, WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused) {
     Frames f = makeFrames(10, kDoses, 3, 7, Plant{false, true});
     const Result r = detect(f, nullptr);
     ASSERT_EQ(XPE_OK, r.rc);
     EXPECT_EQ(0u, r.rep.out_of_area_pixels);
-    EXPECT_EQ(std::count(r.map.begin(), r.map.end(), static_cast<uint8_t>(XPE_BPM_V2_OUT_OF_AREA)), 0);
+    EXPECT_EQ(static_cast<ptrdiff_t>(kN), std::count(r.area.begin(), r.area.end(), static_cast<uint8_t>(1))) << "no margins: every pixel is inside";
     XpeBpmConfigV2 big{};
     big.margin_left = kW;   // nothing left
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(f, &big).rc);
@@ -415,7 +417,7 @@ TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {
         EXPECT_NEAR(1.0, tail(static_cast<double>(a.rep.threshold[k])) * static_cast<double>(kN), 0.02) << k;
         EXPECT_NEAR(100.0, tail(static_cast<double>(b.rep.threshold[k])) * static_cast<double>(kN), 2.0) << k;
     }
-    EXPECT_EQ(7u, a.rep.degrees_of_freedom[1] + 1u) << "dark noise: 7 frames, 6 degrees of freedom";
+    EXPECT_EQ(6u, a.rep.degrees_of_freedom[1] + 1u) << "dark noise: 7 raw frames, the first skipped by default: 6 used, 5 degrees of freedom";
     EXPECT_EQ(0u, a.rep.degrees_of_freedom[3]) << "the linearity feature is a z feature, not a variance ratio";
     // with the stricter target there are at least as many flags
     EXPECT_GE(b.rep.flagged_union, a.rep.flagged_union);
@@ -424,7 +426,8 @@ TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {
 TEST(BpmV2Test, TheFirstDarkFrameIsSkippedOnRequest) {
     Frames f = makeFrames(4, kDoses, 3, 8, Plant{false, false}, true);   // a transient of +200 in the first dark frame only
     XpeBpmConfigV2 keep{}, skip{};
-    skip.skip_first_dark = 1;
+    keep.skip_first_dark = XPE_BPM_V2_SKIP_NONE;   // use every frame of the list
+    skip.skip_first_dark = XPE_BPM_V2_SKIP_FIRST;
     const Result withFirst = detect(f, &keep), without = detect(f, &skip);
     ASSERT_EQ(XPE_OK, withFirst.rc);
     ASSERT_EQ(XPE_OK, without.rc);
@@ -477,6 +480,27 @@ TEST(BpmV2Test, TheLinearityFeatureNeedsThreeDoseGroups) {
     EXPECT_EQ(1u, o.rep.feature_active[4]) << "the flat-field feature still runs with one dose";
 }
 
+// QA-A-252c: the input is the raw acquisition list and its first dark frame is skipped unless the caller says it was trimmed already (SRS FUNC-022, method 2.1).
+TEST(BpmV2Test, TheFirstDarkFrameOfTheRawListIsSkippedByDefault) {
+    Frames f = makeFrames(11, kDoses, 3, 5, Plant{false, false});
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(f, nullptr).rc) << "five raw dark frames leave four after the skip: fewer than the minimum of five";
+    const XpeBpmConfigV2 zeroed{};
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(f, &zeroed).rc) << "a zero-initialised configuration takes the same default";
+    XpeBpmConfigV2 first{};
+    first.skip_first_dark = XPE_BPM_V2_SKIP_FIRST;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(f, &first).rc);
+    XpeBpmConfigV2 none{};
+    none.skip_first_dark = XPE_BPM_V2_SKIP_NONE;
+    const Result r = detect(f, &none);
+    ASSERT_EQ(XPE_OK, r.rc) << "a list that was trimmed already uses all five";
+    EXPECT_EQ(5u, r.rep.dark_frames_used);
+    Frames g = makeFrames(11, kDoses, 3, 7, Plant{false, false});
+    EXPECT_EQ(6u, detect(g, nullptr).rep.dark_frames_used) << "seven raw frames, the first skipped";
+    XpeBpmConfigV2 bad{};
+    bad.skip_first_dark = 3;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, detect(g, &bad).rc) << "only 0, 1 and 2 are values of skip_first_dark";
+}
+
 TEST(BpmV2Test, RefusesInputsItCannotJudge) {
     Frames f = makeFrames(8, kDoses, 3, 7, Plant{false, false});
     std::vector<XpeImageBuffer> db, bb;
@@ -486,7 +510,7 @@ TEST(BpmV2Test, RefusesInputsItCannotJudge) {
     XpeImageBuffer mb = outBuf(map);
     ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
     auto run = [&](const XpeImageBuffer* d, uint32_t nd, const XpeImageBuffer* b, uint32_t nb, const XpeBpmConfigV2* c, XpeImageBuffer* o) {
-        return xpe_bpm_generate_v2(d, nd, b, nb, c, o, nullptr, nullptr);
+        return xpe_bpm_generate_v2(d, nd, b, nb, c, o, nullptr, nullptr, nullptr);
     };
     EXPECT_EQ(XPE_OK, run(db.data(), 7, bb.data(), 12, nullptr, &mb));
     EXPECT_EQ(XPE_ERR_INVALID_INPUT, run(nullptr, 7, bb.data(), 12, nullptr, &mb));

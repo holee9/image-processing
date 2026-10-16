@@ -12,11 +12,12 @@
  *       DIR/truth.tsv (what the scorer reads), DIR/truth.json (spec, options, input hashes) and DIR/truth_ids.u16 (item number per pixel, 65535 = shared).
  *       --dark: generation dark frames (the pixel dark level D is their mean). --bright: bright generation frames. --eval: bright evaluation frames.
  *       --exclude-mask: a map (raw uint8/uint16, or a defect.xcal) whose defects, and 3 pixels around them, stay free of planted defects.
- *   xpe_bpm_eval score --truth DIR --map F [--clean-map F] [--half-a F --half-b F] [--out metrics.json]
+ *   xpe_bpm_eval score --truth DIR --map F [--clean-map F] [--half-a F --half-b F] [--area MASK.u8] [--out metrics.json]
+ *       --area: the imaging-area mask (1 inside, 0 outside, as written by map-v2 --area): flags outside it are not counted in any map.
  *       Detection rate per kind and level, false alarms, control false detections, split-half Jaccard.
  *   xpe_bpm_eval correct --truth DIR --clean-set DIR --inj-set DIR --clean-eval F... --inj-eval F... [--out metrics.json]
  *       Correction error against local noise and the line index D_n (TG-150 4.3.9) on evaluation frames, through the application's final pipeline.
- *   xpe_bpm_eval map-v2 --out MASK.u8 [--features F.u8] [--report R.json] --dark F... --bright F... [--skip-first-dark 0|1] [--target-fa 1] [--min-dark N] [--min-bright N]
+ *   xpe_bpm_eval map-v2 --out MASK.u8 [--features F.u8] [--report R.json] --dark F... --bright F... [--skip-first-dark 0|1] [--margins L,T,R,B] [--area OUT.u8] [--target-fa 1] [--min-dark N] [--min-bright N]
  *       The second-generation detector xpe_bpm_generate_v2 (QA-A-252): the map, the per-pixel feature bits and a JSON report of the thresholds.
  *   xpe_bpm_eval map-v1 --out MASK.u8 --dark F... --bright F... [--min-dark N] [--min-bright N] [--width W] [--height H]
  *       The module's xpe_bpm_generate with default settings (only the minimum frame counts can be lowered), the mask written as raw uint8.
@@ -148,8 +149,7 @@ bool readMap(const std::string& path, size_t n, std::vector<uint8_t>* flags) {
         const uint8_t* p = bytes.data() + (bytes.size() - n);
         for (size_t i = 0; i < n; ++i) (*flags)[i] = p[i] != 0 ? 1 : 0;
     } else if (bytes.size() == n) {
-        // 8-bit map: 0 = good, 1..3 = defect, XPE_BPM_V2_OUT_OF_AREA (4) = outside the imaging area, which is not a defect
-        for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[i] != 0 && bytes[i] != XPE_BPM_V2_OUT_OF_AREA) ? 1 : 0;
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = bytes[i] != 0 ? 1 : 0;
     } else if (bytes.size() == 2 * n) {
         for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[2 * i] | bytes[2 * i + 1]) != 0 ? 1 : 0;
     } else {
@@ -651,6 +651,23 @@ int cmdScore(const Args& a) {
     if (!readMap(a.str("map"), n, &map)) return 3;
     const bool haveClean = a.has("clean-map");
     if (haveClean && !readMap(a.str("clean-map"), n, &clean)) return 3;
+    std::vector<uint8_t> area;
+    size_t               outOfArea = 0;
+    if (a.has("area")) {
+        if (!readAllBytes(a.str("area"), &area) || area.size() != n) {
+            std::fprintf(stderr, "%s: not an imaging-area mask of %zu pixels\n", a.str("area").c_str(), n);
+            return 3;
+        }
+        for (size_t i = 0; i < n; ++i) outOfArea += area[i] == 0;
+    }
+    auto applyArea = [&](std::vector<uint8_t>* m) {
+        if (area.empty()) return;
+        for (size_t i = 0; i < n; ++i)
+            if (area[i] == 0) (*m)[i] = 0;
+    };
+    applyArea(&map);
+    if (haveClean) applyArea(&clean);
+    if (!area.empty()) std::printf("imaging area mask: %zu pixels outside; flags there are not counted\n", outOfArea);
 
     // exclusive pixel counts and flagged counts per item
     std::vector<size_t> total(t.items.size() + 2, 0), flagged(t.items.size() + 2, 0), flaggedClean(t.items.size() + 2, 0);
@@ -725,6 +742,8 @@ int cmdScore(const Args& a) {
     if (a.has("half-a") && a.has("half-b")) {
         std::vector<uint8_t> ha, hb;
         if (!readMap(a.str("half-a"), n, &ha) || !readMap(a.str("half-b"), n, &hb)) return 3;
+        applyArea(&ha);
+        applyArea(&hb);
         size_t iAll = 0, uAll = 0, iIn = 0, uIn = 0, iOut = 0, uOut = 0, cA = 0, cB = 0;
         for (size_t i = 0; i < n; ++i) {
             cA += ha[i];
@@ -839,7 +858,8 @@ int cmdMapV2(const Args& a) {
     for (auto& v : brights) bb.push_back(bufU16(v, w, h));
     XpeBpmConfigV2 cfg{};
     cfg.target_false_alarms = static_cast<float>(std::strtod(a.str("target-fa", "1").c_str(), nullptr));
-    cfg.skip_first_dark = static_cast<uint32_t>(a.num("skip-first-dark", 0));
+    // the list is the raw acquisition list and the first dark frame is skipped by default; an explicit 0 says the list was trimmed already
+    cfg.skip_first_dark = a.has("skip-first-dark") ? (a.num("skip-first-dark", 1) != 0 ? XPE_BPM_V2_SKIP_FIRST : XPE_BPM_V2_SKIP_NONE) : XPE_BPM_V2_SKIP_DEFAULT;
     cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
     cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
     if (a.has("margins")) {   // L,T,R,B: columns / rows at the edges that are outside the imaging area
@@ -867,7 +887,7 @@ int cmdMapV2(const Args& a) {
         cfg.margin_bottom = mb;
     }
     if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
-    std::vector<uint8_t> mask(n, 0), feat(n, 0);
+    std::vector<uint8_t> mask(n, 0), feat(n, 0), area(n, 0);
     auto outBuf = [&](std::vector<uint8_t>& v) {
         XpeImageBuffer b{};
         b.data = v.data();
@@ -879,9 +899,9 @@ int cmdMapV2(const Args& a) {
         b.dataSize = v.size();
         return b;
     };
-    XpeImageBuffer mb = outBuf(mask), fb = outBuf(feat);
+    XpeImageBuffer mb = outBuf(mask), fb = outBuf(feat), ab = outBuf(area);
     XpeBpmReportV2 rep{};
-    const XpeErrorCode rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &mb, &fb, &rep);
+    const XpeErrorCode rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &mb, &fb, &ab, &rep);
     xpe_preprocess_shutdown();
     if (rc != XPE_OK) {
         std::fprintf(stderr, "xpe_bpm_generate_v2 failed (%d)\n", static_cast<int>(rc));
@@ -889,6 +909,7 @@ int cmdMapV2(const Args& a) {
     }
     if (!writeBytes(a.str("out"), mask.data(), mask.size())) return 3;
     if (a.has("features") && !writeBytes(a.str("features"), feat.data(), feat.size())) return 3;
+    if (a.has("area") && !writeBytes(a.str("area"), area.data(), area.size())) return 3;
     static const char* const names[XPE_BPM_V2_FEATURE_COUNT] = {"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field", "bright_noise"};
     std::string j = "{\n  \"detector\": \"xpe_bpm_generate_v2\",\n  \"target_false_alarms\": " + fmtLevel(static_cast<double>(cfg.target_false_alarms)) + ",\n  \"skip_first_dark\": " +
                     std::to_string(cfg.skip_first_dark) + ",\n  \"pixels\": " + std::to_string(rep.pixels) + ",\n  \"dark_frames_used\": " + std::to_string(rep.dark_frames_used) +

@@ -43,7 +43,7 @@ XpeErrorCode resolve(const XpeBpmConfigV2* in, Settings* s) noexcept {
     s->falseAlarms = 1.0;
     s->window = 17;
     s->block = 64;
-    s->skip = 0;
+    s->skip = 1;   // the dark list is the raw acquisition list: its first frame is skipped unless the caller says it was trimmed already
     s->minDark = 5;
     s->minBright = 6;
     s->ratio = 1.25;
@@ -52,7 +52,8 @@ XpeErrorCode resolve(const XpeBpmConfigV2* in, Settings* s) noexcept {
     if (in->target_false_alarms != 0.0f) s->falseAlarms = in->target_false_alarms;
     if (in->window != 0) s->window = in->window;
     if (in->sigma_block != 0) s->block = in->sigma_block;
-    s->skip = in->skip_first_dark != 0 ? 1u : 0u;
+    if (in->skip_first_dark > XPE_BPM_V2_SKIP_NONE) return XPE_ERR_INVALID_INPUT;
+    s->skip = in->skip_first_dark == XPE_BPM_V2_SKIP_NONE ? 0u : 1u;
     if (in->min_frames_dark != 0) s->minDark = in->min_frames_dark;
     if (in->min_frames_bright != 0) s->minBright = in->min_frames_bright;
     if (in->dose_group_ratio != 0.0f) s->ratio = in->dose_group_ratio;
@@ -576,11 +577,20 @@ XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark
  * written as XPE_BPM_V2_OUT_OF_AREA into the map afterwards.
  */
 extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
-                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out,
+                                                    XpeBpmReportV2* report) try {
     const uint32_t ml = cfg ? cfg->margin_left : 0u, mt = cfg ? cfg->margin_top : 0u, mr = cfg ? cfg->margin_right : 0u, mb = cfg ? cfg->margin_bottom : 0u;
     if (ml == 0 && mt == 0 && mr == 0 && mb == 0) {
+        if (area_out && bpm_out) {
+            if (!area_out->data) return XPE_ERR_INVALID_INPUT;
+            if (area_out->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+            if (area_out->width != bpm_out->width || area_out->height != bpm_out->height || area_out->dataSize < static_cast<size_t>(bpm_out->width) * bpm_out->height) return XPE_ERR_BUFFER_TOO_SMALL;
+        }
         const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report);
-        if (rc == XPE_OK && report) report->out_of_area_pixels = 0;
+        if (rc == XPE_OK) {
+            if (report) report->out_of_area_pixels = 0;
+            if (area_out) std::memset(area_out->data, 1, static_cast<size_t>(bpm_out->width) * bpm_out->height);
+        }
         return rc;
     }
     if (!dark_frames || !bright_frames || !bpm_out || num_dark == 0 || num_bright == 0) return XPE_ERR_INVALID_INPUT;
@@ -609,6 +619,8 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
     if (const XpeErrorCode rc = checkOut(bpm_out)) return rc;
     if (feature_out)
         if (const XpeErrorCode rc = checkOut(feature_out)) return rc;
+    if (area_out)
+        if (const XpeErrorCode rc = checkOut(area_out)) return rc;
 
     auto crop = [&](const XpeImageBuffer& src, std::vector<uint16_t>* dst) {
         dst->resize(cn);
@@ -653,12 +665,17 @@ extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_f
     const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report);
     if (rc != XPE_OK) return rc;
     uint8_t* mapDst = static_cast<uint8_t*>(bpm_out->data);
-    std::memset(mapDst, static_cast<int>(XPE_BPM_V2_OUT_OF_AREA), n);
+    std::memset(mapDst, 0, n);   // outside the imaging area the map is 0 (good): the defect codes keep their meaning, the area has its own output
     for (uint32_t y = 0; y < ch; ++y) std::memcpy(mapDst + static_cast<size_t>(y + mt) * width + ml, cmap.data() + static_cast<size_t>(y) * cw, cw);
     if (feature_out) {
         uint8_t* featDst = static_cast<uint8_t*>(feature_out->data);
         std::memset(featDst, 0, n);
         for (uint32_t y = 0; y < ch; ++y) std::memcpy(featDst + static_cast<size_t>(y + mt) * width + ml, cfeat.data() + static_cast<size_t>(y) * cw, cw);
+    }
+    if (area_out) {
+        uint8_t* areaDst = static_cast<uint8_t*>(area_out->data);
+        std::memset(areaDst, 0, n);
+        for (uint32_t y = 0; y < ch; ++y) std::memset(areaDst + static_cast<size_t>(y + mt) * width + ml, 1, cw);
     }
     if (report) report->out_of_area_pixels = static_cast<uint32_t>(n - cn);
     return XPE_OK;
