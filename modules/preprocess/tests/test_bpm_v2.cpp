@@ -77,6 +77,7 @@ struct Plant {
     bool partialLines{false};   // a quarter of a row / of a column, and of a two-row line, without response in the bright frames
     bool varyingColumn{false};  // a column whose offset changes from frame to frame
     bool yGradient{false};      // the gain also changes along the columns (vertical shading), so a multiplicative column band leaves a trace
+    bool darkPartial{false};    // a steep dark-level gradient along the rows and a raised segment in the middle of one row (every frame): only the dark-mean feature sees it
     bool brightNoisyPixel{false};   // a pixel whose temporal noise is large in the bright frames only (the dark frames cannot show it)
     bool strongShading{false};  // +-20 % gain shading along both directions (a heel-effect-like flat field): a line component taken from a partly defective line moves by many noise widths
 };
@@ -91,6 +92,7 @@ constexpr int kPartRow = 100, kPartRowPair = 140, kPartCol = 30;   // partial li
 constexpr int kPartLen = 64;
 constexpr int kPartRowFrom = 96;             // the row segments sit in the middle of the row: the median of a row with a gradient moves most when the missing part is not at an end
 constexpr int kBrightNoisyX = 120, kBrightNoisyY = 200;   // extra temporal noise sd 150 in every bright frame
+constexpr int kDarkRow = 60, kDarkFrom = 96;   // the raised segment: kPartLen pixels, +300 in every frame
 constexpr int kVarCol = 70;                  // a column offset that is a new random value in every frame (sd 15)
 
 Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPerDose, int nDark, Plant plant, bool transientFirstDark = false) {
@@ -107,10 +109,14 @@ Frames makeFrames(uint64_t seed, const std::vector<double>& doses, int framesPer
     Normal frameRng(seed + 99);   // separate from the pixel noise, so the planted extras do not change any other value
     auto put = [&](double net, bool bright, bool firstDark) {
         std::vector<uint16_t> fr(kN);
-        const double columnOffset = plant.varyingColumn ? 15.0 * frameRng.next() : 0.0;
+        const double columnOffset = plant.varyingColumn ? 60.0 * frameRng.next() : 0.0;
         for (size_t i = 0; i < kN; ++i) {
             const int x = static_cast<int>(i % kW), y = static_cast<int>(i / kW);
             double d = D0[i], sig = net * G[i];
+            if (plant.darkPartial) {
+                d += 0.3 * x;
+                if (y == kDarkRow && x >= kDarkFrom && x < kDarkFrom + kPartLen) d += 300.0;
+            }
             if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
             if (plant.strongShading) sig *= (0.8 + 0.4 * x / (kW - 1)) * (0.8 + 0.4 * y / (kH - 1));
             if (plant.varyingColumn && x == kVarCol) d += columnOffset;
@@ -231,7 +237,7 @@ size_t flaggedInColumn(const Result& r, int x, int yFrom, int yTo) {
 }
 
 TEST(BpmV2Test, APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap) {
-    Frames f = makeFrames(5, kDoses, 3, 7, Plant{false, false, true, false, false, false, true});
+    Frames f = makeFrames(5, kDoses, 3, 7, Plant{false, false, true, false, false, false, false, true});
     const Result r = detect(f, nullptr);
     ASSERT_EQ(XPE_OK, r.rc);
     for (int y : {kPartRow, kPartRowPair, kPartRowPair + 1}) {
@@ -244,7 +250,7 @@ TEST(BpmV2Test, APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap) {
 }
 
 TEST(BpmV2Test, NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature) {
-    Frames f = makeFrames(8, kDoses, 3, 7, Plant{false, false, false, false, false, true, false});
+    Frames f = makeFrames(8, kDoses, 3, 7, Plant{false, false, false, false, false, false, true, false});
     const Result r = detect(f, nullptr);
     ASSERT_EQ(XPE_OK, r.rc);
     ASSERT_EQ(1u, r.rep.feature_active[5]) << "the bright-noise feature runs when a dose group holds two frames or more";
@@ -256,17 +262,35 @@ TEST(BpmV2Test, NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature) {
     EXPECT_LE(r.rep.flagged[5], 1u + 6u) << "about the target of 1, plus the pixel itself: " << describe(r.rep);
 }
 
+TEST(BpmV2Test, ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature) {
+    Frames f = makeFrames(9, kDoses, 3, 7, Plant{false, false, false, false, false, true, false, false});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    size_t segment = 0, rest = 0;
+    for (int x = 0; x < static_cast<int>(kW); ++x) {
+        const bool hit = (r.feat[static_cast<size_t>(kDarkRow) * kW + static_cast<size_t>(x)] & XPE_BPM_V2_FEATURE_DARK_MEAN) != 0;
+        if (x >= kDarkFrom && x < kDarkFrom + kPartLen) segment += hit;
+        else if (x < kDarkFrom - 8 || x >= kDarkFrom + kPartLen + 8) rest += hit;
+    }
+    EXPECT_GE(segment, static_cast<size_t>(kPartLen) * 9 / 10) << "the raised segment is found: " << describe(r.rep);
+    EXPECT_LE(rest, 2u) << "the rest of the row is not defective (a steep gradient along the row, a quarter of the row raised): " << describe(r.rep);
+}
+
 TEST(BpmV2Test, AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect) {
     Frames f = makeFrames(6, kDoses, 3, 7, Plant{false, false, false, true, false});
     const Result r = detect(f, nullptr);
     ASSERT_EQ(XPE_OK, r.rc);
-    size_t noise = 0;
-    for (uint32_t y = 0; y < kH; ++y) noise += (r.feat[static_cast<size_t>(y) * kW + kVarCol] & XPE_BPM_V2_FEATURE_DARK_NOISE) != 0;
+    size_t noise = 0, brightNoise = 0;
+    for (uint32_t y = 0; y < kH; ++y) {
+        noise += (r.feat[static_cast<size_t>(y) * kW + kVarCol] & XPE_BPM_V2_FEATURE_DARK_NOISE) != 0;
+        brightNoise += (r.feat[static_cast<size_t>(y) * kW + kVarCol] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) != 0;
+    }
     EXPECT_LE(noise, 2u) << "a shared offset of the column is not temporal noise of its pixels: " << describe(r.rep);
+    EXPECT_LE(brightNoise, 2u) << "nor is it in the bright frames (the offset is in every frame): " << describe(r.rep);
 }
 
 TEST(BpmV2Test, AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn) {
-    Frames f = makeFrames(7, kDoses, 3, 7, Plant{true, false, false, false, false, false, true});
+    Frames f = makeFrames(7, kDoses, 3, 7, Plant{true, false, false, false, false, false, false, true});
     const Result r = detect(f, nullptr);
     ASSERT_EQ(XPE_OK, r.rc);
     EXPECT_LE(flaggedInColumn(r, kGainCol, 0, static_cast<int>(kH)), 2u) << "a column band of response 0.8 is not a defect: " << describe(r.rep);
