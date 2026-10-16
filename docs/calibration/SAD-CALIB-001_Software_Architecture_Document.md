@@ -205,6 +205,8 @@ Central orchestrator for calibration data loading, validation, and lifecycle man
 
 ### 3.3 BpmGenerator (SWU-1.11)  <!-- 2026-04-19 추가: FUNC-022~025 구현 단위 -->
 
+> **2026-10-16:** SRS v1.4 에서 FUNC-022·023 이 개정되고 FUNC-039 가 신설됐다(결함 화소 맵 2판). 아래 3.3.2·3.3.3 은 이전 판(Blue 방식) 설계이며, 2판 설계는 BPM v2 카드에서 이 절을 갱신한다.
+
 **Responsibility:** Factory-calibration Bad Pixel Map generation from dark and flat-field frame stacks.
 
 SWU-1.11 is called during **factory calibration only** (not per-frame). It produces the static BPM consumed by SWU-1.3 DefectCorrector at runtime.
