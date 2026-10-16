@@ -26,6 +26,7 @@
 #include "xpe/common/xpe_types.h"
 #include "xpe/common/xpe_error.h"
 #include "xpe_sha256.hpp"
+#include "xpe_bpm_eval_stats.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -175,9 +176,7 @@ uint64_t fnv1a(const std::string& s) {
 }
 
 // ------------------------------------------------------------------------------------------------------------- items
-struct Rect {
-    int x, y, w, h;
-};
+using xpe_bpm_eval::Rect;
 
 struct Item {
     int               id{0};
@@ -400,6 +399,15 @@ int cmdInject(const Args& a) {
         std::fprintf(stderr, "inject needs --out, at least 3 --dark frames and a frame of at least 64 x 64\n");
         return 2;
     }
+    {
+        std::set<std::string> names;
+        for (const std::vector<std::string>* group : {&darkFiles, &brightFiles, &evalFiles})
+            for (const std::string& f : *group)
+                if (!names.insert(baseName(f)).second) {
+                    std::fprintf(stderr, "two inputs have the file name %s: the planted frames are written under that name, one would overwrite the other\n", baseName(f).c_str());
+                    return 2;
+                }
+    }
     const size_t n = static_cast<size_t>(o.w) * o.h;
 
     // the pixel dark level D and the temporal noise sigma_t, from the generation darks as they are before anything is planted
@@ -547,6 +555,7 @@ struct Truth {
     std::vector<Item> items;
     std::vector<uint16_t> ids;
     std::vector<uint8_t>  truthAny;   // any item at the pixel (shared included)
+    std::vector<uint8_t>  truthReal;  // a planted TRUE defect at the pixel (control bands are not defects)
 };
 
 bool loadTruth(const std::string& dir, Truth* t) {
@@ -610,6 +619,11 @@ bool loadTruth(const std::string& dir, Truth* t) {
     std::memcpy(t->ids.data(), bytes.data(), 2 * n);
     t->truthAny.assign(n, 0);
     for (size_t i = 0; i < n; ++i) t->truthAny[i] = t->ids[i] != 0 ? 1 : 0;
+    t->truthReal.assign(n, 0);
+    for (const Item& it : t->items) {
+        if (it.cls == "control") continue;
+        forItemPixels(it, t->w, [&](size_t i) { t->truthReal[i] = 1; });
+    }
     return true;
 }
 
@@ -620,18 +634,8 @@ struct GroupStat {
     double      recallSum{0};
 };
 
-double medianOf(std::vector<double> v) {
-    if (v.empty()) return 0.0;
-    std::nth_element(v.begin(), v.begin() + static_cast<std::ptrdiff_t>(v.size() / 2), v.end());
-    return v[v.size() / 2];
-}
-
-double percentileOf(std::vector<double> v, double q) {
-    if (v.empty()) return 0.0;
-    const size_t k = std::min(v.size() - 1, static_cast<size_t>(q * static_cast<double>(v.size() - 1) + 0.5));
-    std::nth_element(v.begin(), v.begin() + static_cast<std::ptrdiff_t>(k), v.end());
-    return v[k];
-}
+using xpe_bpm_eval::medianOf;
+using xpe_bpm_eval::percentileOf;
 
 int cmdScore(const Args& a) {
     Truth t;
@@ -687,9 +691,12 @@ int cmdScore(const Args& a) {
         std::printf("  %-34s %6d %9d %9.4f %12d %14.4f\n", g.key.c_str(), g.items, g.detected, g.items ? static_cast<double>(g.detected) / g.items : 0.0, g.allFlagged,
                     g.items ? g.recallSum / g.items : 0.0);
 
-    // false alarms: outside the truth widened by 2 pixels
-    const std::vector<uint8_t> wide = dilate(t.truthAny, t.w, t.h, 2);
-    size_t nOut = 0, nOutClean = 0, nNew = 0, nFlag = 0, nClean = 0;
+    // false alarms (QA-A-251b): the zone left out is the planted TRUE defects widened by 2 pixels. The control bands are not defects: a flag on a band that the
+    // clean map did not have is a new false alarm, however much of the band is flagged.
+    const std::vector<uint8_t> wide = dilate(t.truthReal, t.w, t.h, 2);
+    std::vector<uint8_t> controlId(t.items.size() + 2, 0);
+    for (const Item& it : t.items) controlId[static_cast<size_t>(it.id)] = it.cls == "control" ? 1 : 0;
+    size_t nOut = 0, nOutClean = 0, nNew = 0, nNewControl = 0, nFlag = 0, nClean = 0;
     for (size_t i = 0; i < n; ++i) {
         nFlag += map[i];
         if (haveClean) nClean += clean[i];
@@ -697,13 +704,17 @@ int cmdScore(const Args& a) {
         nOut += map[i];
         if (haveClean) {
             nOutClean += clean[i];
-            if (map[i] && !clean[i]) ++nNew;
+            if (map[i] && !clean[i]) {
+                ++nNew;
+                const uint16_t id = t.ids[i];
+                if (id != 0 && id != kSharedId && controlId[id]) ++nNewControl;
+            }
         }
     }
-    std::printf("== false alarms\n  flagged pixels in the map: %zu; outside the truth (widened by 2): %zu\n", nFlag, nOut);
+    std::printf("== false alarms\n  flagged pixels in the map: %zu; outside the true defects (widened by 2): %zu\n", nFlag, nOut);
     if (haveClean)
-        std::printf("  clean map (no planting): flagged %zu; outside the truth: %zu\n  NEW false alarms (flagged here, not in the clean map, outside the truth): %zu = %.3f per million pixels\n", nClean, nOutClean, nNew,
-                    1e6 * static_cast<double>(nNew) / static_cast<double>(n));
+        std::printf("  clean map (no planting): flagged %zu; outside the true defects: %zu\n  NEW false alarms (flagged here, not in the clean map, outside the true defects): %zu = %.3f per million pixels\n"
+                    "    of which on control bands: %zu\n", nClean, nOutClean, nNew, 1e6 * static_cast<double>(nNew) / static_cast<double>(n), nNewControl);
     std::printf("== control bands (%d items; false detection = at least half of the band flagged)\n%s  false detections: %d of %d\n", controlItems, controlRows.c_str(), controlFalse,
                 controlItems);
 
@@ -737,11 +748,11 @@ int cmdScore(const Args& a) {
                           groups[i].detected, groups[i].allFlagged, groups[i].items ? groups[i].recallSum / groups[i].items : 0.0, i + 1 < groups.size() ? "," : "");
             j += b;
         }
-        char tail[600];
+        char tail[700];
         std::snprintf(tail, sizeof tail,
-                      "  ],\n  \"flagged\": %zu,\n  \"outside_truth\": %zu,\n  \"clean_flagged\": %zu,\n  \"clean_outside_truth\": %zu,\n  \"new_false_alarms\": %zu,\n  \"control_items\": %d,\n"
+                      "  ],\n  \"flagged\": %zu,\n  \"outside_truth\": %zu,\n  \"clean_flagged\": %zu,\n  \"clean_outside_truth\": %zu,\n  \"new_false_alarms\": %zu,\n  \"new_false_alarms_in_controls\": %zu,\n  \"control_items\": %d,\n"
                       "  \"control_false_detections\": %d,\n  \"jaccard_all\": %.6f,\n  \"jaccard_inside_truth\": %.6f,\n  \"jaccard_outside_truth\": %.6f\n}\n",
-                      nFlag, nOut, nClean, nOutClean, nNew, controlItems, controlFalse, jAll, jIn, jOut);
+                      nFlag, nOut, nClean, nOutClean, nNew, nNewControl, controlItems, controlFalse, jAll, jIn, jOut);
         j += tail;
         if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;
     }
@@ -840,41 +851,38 @@ bool runPipeline(const std::string& frame, uint32_t w, uint32_t h, const char* c
     return true;
 }
 
-/** The line index D_n (TG-150 4.3.9, method A) of a row- or column-type rectangle, and the uncorrelated-noise prediction. Returns false at the frame edge. */
-bool lineIndex(const std::vector<float>& s, uint32_t w, uint32_t h, const Rect& q, double* dn, double* sigmaPred) {
-    const bool row = q.w > q.h;
-    const int  k = row ? q.h : q.w, len = row ? q.w : q.h;
-    const int  beforeIdx = (row ? q.y : q.x) - 1, afterIdx = (row ? q.y : q.x) + k;
-    if (beforeIdx < 0 || afterIdx >= static_cast<int>(row ? h : w) || len < 8) return false;
-    auto at = [&](int line, int pos) {
-        return row ? static_cast<double>(s[static_cast<size_t>(line) * w + static_cast<size_t>(pos)]) : static_cast<double>(s[static_cast<size_t>(pos) * w + static_cast<size_t>(line)]);
-    };
-    const int p0 = row ? q.x : q.y;
-    double pItem = 0, pBefore = 0, pAfter = 0;
-    for (int p = p0; p < p0 + len; ++p) {
-        for (int t = 0; t < k; ++t) pItem += at((row ? q.y : q.x) + t, p);
-        pBefore += at(beforeIdx, p);
-        pAfter += at(afterIdx, p);
-    }
-    pItem /= static_cast<double>(k) * len;
-    pBefore /= len;
-    pAfter /= len;
-    *dn = pItem - 0.5 * (pBefore + pAfter);
-    std::vector<double> res;
-    res.reserve(static_cast<size_t>(len));
-    for (int p = p0 + 1; p < p0 + len - 1; ++p) res.push_back(at(beforeIdx, p) - 0.5 * (at(beforeIdx, p - 1) + at(beforeIdx, p + 1)));
-    const double med = medianOf(res);
-    std::vector<double> dev;
-    dev.reserve(res.size());
-    for (double r : res) dev.push_back(std::fabs(r - med));
-    const double sigmaPix = 1.4826 * medianOf(dev) / std::sqrt(1.5);
-    *sigmaPred = sigmaPix * std::sqrt(1.0 / (static_cast<double>(k) * len) + 0.5 / len);
-    return true;
+using xpe_bpm_eval::LineIndex;
+using xpe_bpm_eval::ZSide;
+using xpe_bpm_eval::ZStatus;
+
+/** A number for the JSON file, or the string "uncomputable" when it is not finite (the file never holds nan or inf). */
+std::string jnum(double v, const char* fmt) {
+    if (!std::isfinite(v)) return "\"uncomputable\"";
+    char b[64];
+    std::snprintf(b, sizeof b, fmt, v);
+    return b;
 }
 
-struct ZStat {
-    std::vector<double> zI, zU;
-    size_t nonfinite{0};
+std::string ratioText(const LineIndex& l, bool mad) {
+    const bool ok = mad ? l.madComputable : l.computable;
+    if (!ok) return "uncomputable";
+    char b[32];
+    std::snprintf(b, sizeof b, "%.2f", mad ? l.ratioMad : l.ratio);
+    return b;
+}
+
+std::string sideJson(const ZSide& z, const char* indent) {
+    char b[400];
+    std::snprintf(b, sizeof b, "{\"valid\": %zu, \"invalid\": {\"zero_sigma_equal\": %zu, \"zero_sigma_error\": %zu, \"nonfinite\": %zu}, \"median_z\": %s, \"p95_z\": %s}", z.valid(),
+                  z.zeroSigmaEqual, z.zeroSigmaError, z.nonFinite, z.computable() ? jnum(z.median(), "%.6f").c_str() : "\"uncomputable\"",
+                  z.computable() ? jnum(z.p95(), "%.6f").c_str() : "\"uncomputable\"");
+    (void)indent;
+    return b;
+}
+
+struct ZGroup {
+    ZSide  corrected, uncorrected;
+    size_t pixels{0};
 };
 
 int cmdCorrect(const Args& a) {
@@ -893,7 +901,7 @@ int cmdCorrect(const Args& a) {
         std::printf("== evaluation frame %s (clean) / %s (planted)\n", baseName(cleanEval[f]).c_str(), baseName(injEval[f]).c_str());
 
         // correction error against local noise
-        std::map<std::string, ZStat> zs;
+        std::map<std::string, ZGroup> zs;
         std::vector<std::string> order;
         std::vector<const Item*> byId(t.items.size() + 2, nullptr);
         for (const Item& it : t.items) byId[static_cast<size_t>(it.id)] = &it;
@@ -917,51 +925,56 @@ int cmdCorrect(const Args& a) {
             if (!it || it->cls == "control") continue;
             const std::string key = groupKey(*it);
             if (!zs.count(key)) order.push_back(key);
-            ZStat& z = zs[key];
+            ZGroup& z = zs[key];
+            ++z.pixels;
             const int x = static_cast<int>(i % t.w), y = static_cast<int>(i / t.w);
             const double sl = sigmaLoc(x, y);
-            const double ei = (static_cast<double>(I[i]) - C[i]) / sl, eu = (static_cast<double>(U[i]) - C[i]) / sl;
-            if (!std::isfinite(ei) || !std::isfinite(eu)) { ++z.nonfinite; continue; }
-            z.zI.push_back(std::fabs(ei));
-            z.zU.push_back(std::fabs(eu));
+            double zi = 0, zu = 0;
+            const ZStatus si = xpe_bpm_eval::classifyZ(I[i], C[i], sl, &zi), su = xpe_bpm_eval::classifyZ(U[i], C[i], sl, &zu);
+            z.corrected.add(si, zi);
+            z.uncorrected.add(su, zu);
         }
-        std::printf("  correction error |planted - clean| / local sigma (11 x 11 window of the clean output)\n  %-34s %9s %12s %12s %12s %12s %9s\n", "class/kind/shape/level", "pixels", "median", "p95",
-                    "median(no fix)", "p95(no fix)", "non-finite");
+        std::printf("  correction error |planted - clean| / local sigma (11 x 11 window of the clean output); invalid = sigma zero or a value not finite, never counted as 0\n"
+                    "  %-34s %9s %8s %12s %12s | %8s %12s %12s\n", "class/kind/shape/level", "pixels", "valid", "median", "p95", "valid", "median(no fix)", "p95(no fix)");
         json += "    {\"clean\": \"" + baseName(cleanEval[f]) + "\", \"planted\": \"" + baseName(injEval[f]) + "\", \"correction_error\": [\n";
         for (size_t g = 0; g < order.size(); ++g) {
-            const ZStat& z = zs[order[g]];
-            std::printf("  %-34s %9zu %12.3f %12.3f %12.3f %12.3f %9zu\n", order[g].c_str(), z.zI.size(), medianOf(z.zI), percentileOf(z.zI, 0.95), medianOf(z.zU), percentileOf(z.zU, 0.95), z.nonfinite);
-            char b[300];
-            std::snprintf(b, sizeof b, "      {\"group\": \"%s\", \"pixels\": %zu, \"median_z\": %.6f, \"p95_z\": %.6f, \"median_z_uncorrected\": %.6f, \"p95_z_uncorrected\": %.6f}%s\n",
-                          order[g].c_str(), z.zI.size(), medianOf(z.zI), percentileOf(z.zI, 0.95), medianOf(z.zU), percentileOf(z.zU, 0.95), g + 1 < order.size() ? "," : "");
-            json += b;
+            const ZGroup& z = zs[order[g]];
+            auto med = [](const ZSide& s, bool p95) { char b[32]; if (!s.computable()) return std::string("uncomputable"); std::snprintf(b, sizeof b, "%.3f", p95 ? s.p95() : s.median()); return std::string(b); };
+            std::printf("  %-34s %9zu %8zu %12s %12s | %8zu %12s %12s   invalid: corrected %zu, no fix %zu\n", order[g].c_str(), z.pixels, z.corrected.valid(), med(z.corrected, false).c_str(),
+                        med(z.corrected, true).c_str(), z.uncorrected.valid(), med(z.uncorrected, false).c_str(), med(z.uncorrected, true).c_str(), z.corrected.invalid(), z.uncorrected.invalid());
+            json += "      {\"group\": \"" + order[g] + "\", \"pixels\": " + std::to_string(z.pixels) + ", \"corrected\": " + sideJson(z.corrected, "") + ", \"uncorrected\": " + sideJson(z.uncorrected, "") +
+                    "}" + (g + 1 < order.size() ? ",\n" : "\n");
         }
         json += "    ],\n    \"line_index\": [\n";
 
         // D_n per line item
-        std::printf("  line index D_n / predicted sigma (|ratio| > 3 = a line remains)  [corrected | no defect fix | clean output]\n  %-4s %-34s %-6s %10s %10s %10s\n", "id", "class/kind/shape/level", "part",
-                    "corrected", "no fix", "clean");
-        int remainI = 0, remainU = 0, remainC = 0, lines = 0;
+        std::printf("  line index D_n / predicted sigma (|ratio| > 3 = a line remains; sigma from the standard deviation as defined; the MAD-based ratio is auxiliary)\n"
+                    "  %-4s %-34s %-6s %12s %12s %12s | %12s\n", "id", "class/kind/shape/level", "part", "corrected", "no fix", "clean", "corrected(mad)");
+        int over[3] = {0, 0, 0}, unc[3] = {0, 0, 0}, parts = 0, skipped = 0;
         bool firstJson = true;
         for (const Item& it : t.items) {
             if (it.cls != "line" && it.cls != "control") continue;
             for (size_t r = 0; r < it.rects.size(); ++r) {
-                double di, pi, du, pu, dc, pc;
-                if (!lineIndex(I, t.w, t.h, it.rects[r], &di, &pi) || !lineIndex(U, t.w, t.h, it.rects[r], &du, &pu) || !lineIndex(C, t.w, t.h, it.rects[r], &dc, &pc)) continue;
-                const double ri = di / pi, ru = du / pu, rc = dc / pc;
-                ++lines;
-                remainI += std::fabs(ri) > 3.0;
-                remainU += std::fabs(ru) > 3.0;
-                remainC += std::fabs(rc) > 3.0;
-                std::printf("  %-4d %-34s %-6zu %10.2f %10.2f %10.2f\n", it.id, groupKey(it).c_str(), r, ri, ru, rc);
-                char b[300];
-                std::snprintf(b, sizeof b, "%s      {\"id\": %d, \"group\": \"%s\", \"part\": %zu, \"ratio_corrected\": %.4f, \"ratio_no_fix\": %.4f, \"ratio_clean\": %.4f}", firstJson ? "" : ",\n", it.id,
-                              groupKey(it).c_str(), r, ri, ru, rc);
-                json += b;
+                const LineIndex li = xpe_bpm_eval::lineIndex(I.data(), t.w, t.h, it.rects[r]), lu = xpe_bpm_eval::lineIndex(U.data(), t.w, t.h, it.rects[r]),
+                                lc = xpe_bpm_eval::lineIndex(C.data(), t.w, t.h, it.rects[r]);
+                if (li.skipped || lu.skipped || lc.skipped) { ++skipped; continue; }
+                ++parts;
+                const LineIndex* ls[3] = {&li, &lu, &lc};
+                for (int k = 0; k < 3; ++k) {
+                    if (!ls[k]->computable) ++unc[k];
+                    else if (std::fabs(ls[k]->ratio) > 3.0) ++over[k];
+                }
+                std::printf("  %-4d %-34s %-6zu %12s %12s %12s | %12s\n", it.id, groupKey(it).c_str(), r, ratioText(li, false).c_str(), ratioText(lu, false).c_str(), ratioText(lc, false).c_str(),
+                            ratioText(li, true).c_str());
+                json += std::string(firstJson ? "" : ",\n") + "      {\"id\": " + std::to_string(it.id) + ", \"group\": \"" + groupKey(it) + "\", \"part\": " + std::to_string(r) +
+                        ", \"ratio_corrected\": " + (li.computable ? jnum(li.ratio, "%.4f") : "\"uncomputable\"") + ", \"ratio_no_fix\": " + (lu.computable ? jnum(lu.ratio, "%.4f") : "\"uncomputable\"") +
+                        ", \"ratio_clean\": " + (lc.computable ? jnum(lc.ratio, "%.4f") : "\"uncomputable\"") + ", \"ratio_corrected_mad\": " + (li.madComputable ? jnum(li.ratioMad, "%.4f") : "\"uncomputable\"") +
+                        ", \"ratio_no_fix_mad\": " + (lu.madComputable ? jnum(lu.ratioMad, "%.4f") : "\"uncomputable\"") + ", \"ratio_clean_mad\": " + (lc.madComputable ? jnum(lc.ratioMad, "%.4f") : "\"uncomputable\"") + "}";
                 firstJson = false;
             }
         }
-        std::printf("  parts with |ratio| > 3: corrected %d, no fix %d, clean %d (of %d)\n", remainI, remainU, remainC, lines);
+        std::printf("  parts with |ratio| > 3: corrected %d, no fix %d, clean %d (of %d; uncomputable: corrected %d, no fix %d, clean %d; skipped at the frame edge %d)\n", over[0], over[1], over[2], parts,
+                    unc[0], unc[1], unc[2], skipped);
         json += "\n    ],\n";
 
         // rows and columns outside every item
@@ -972,28 +985,35 @@ int cmdCorrect(const Args& a) {
                 if (q.w > q.h) for (int y = std::max(0, q.y - 3); y <= std::min(static_cast<int>(t.h) - 1, q.y + q.h + 2); ++y) rowSkip[static_cast<size_t>(y)] = 1;
                 else for (int x = std::max(0, q.x - 3); x <= std::min(static_cast<int>(t.w) - 1, q.x + q.w + 2); ++x) colSkip[static_cast<size_t>(x)] = 1;
             }
-        size_t rowsI = 0, rowsC = 0, colsI = 0, colsC = 0, rowsN = 0, colsN = 0;
+        size_t rowsI = 0, rowsC = 0, colsI = 0, colsC = 0, rowsN = 0, colsN = 0, rowsUncI = 0, rowsUncC = 0, colsUncI = 0, colsUncC = 0;
+        auto count = [&](const std::vector<float>& img, const Rect& q, size_t* over3, size_t* uncomputable) {
+            const LineIndex l = xpe_bpm_eval::lineIndex(img.data(), t.w, t.h, q);
+            if (l.skipped) return;
+            if (!l.computable) ++*uncomputable;
+            else if (std::fabs(l.dn) > 3.0 * l.sigmaPred) ++*over3;
+        };
         for (int y = 1; y + 1 < static_cast<int>(t.h); ++y) {
             if (rowSkip[static_cast<size_t>(y)]) continue;
-            double d, p;
             ++rowsN;
-            if (lineIndex(I, t.w, t.h, Rect{0, y, static_cast<int>(t.w), 1}, &d, &p) && std::fabs(d) > 3.0 * p) ++rowsI;
-            if (lineIndex(C, t.w, t.h, Rect{0, y, static_cast<int>(t.w), 1}, &d, &p) && std::fabs(d) > 3.0 * p) ++rowsC;
+            count(I, Rect{0, y, static_cast<int>(t.w), 1}, &rowsI, &rowsUncI);
+            count(C, Rect{0, y, static_cast<int>(t.w), 1}, &rowsC, &rowsUncC);
         }
         for (int x = 1; x + 1 < static_cast<int>(t.w); ++x) {
             if (colSkip[static_cast<size_t>(x)]) continue;
-            double d, p;
             ++colsN;
-            if (lineIndex(I, t.w, t.h, Rect{x, 0, 1, static_cast<int>(t.h)}, &d, &p) && std::fabs(d) > 3.0 * p) ++colsI;
-            if (lineIndex(C, t.w, t.h, Rect{x, 0, 1, static_cast<int>(t.h)}, &d, &p) && std::fabs(d) > 3.0 * p) ++colsC;
+            count(I, Rect{x, 0, 1, static_cast<int>(t.h)}, &colsI, &colsUncI);
+            count(C, Rect{x, 0, 1, static_cast<int>(t.h)}, &colsC, &colsUncC);
         }
-        std::printf("  rows outside every line item: %zu checked, |D_n| > 3 sigma: corrected %zu, clean %zu; columns: %zu checked, corrected %zu, clean %zu\n", rowsN, rowsI, rowsC, colsN,
-                    colsI, colsC);
-        char b[400];
+        std::printf("  rows outside every line item: %zu checked, |D_n| > 3 sigma: corrected %zu, clean %zu (uncomputable %zu, %zu); columns: %zu checked, corrected %zu, clean %zu (uncomputable %zu, %zu)\n",
+                    rowsN, rowsI, rowsC, rowsUncI, rowsUncC, colsN, colsI, colsC, colsUncI, colsUncC);
+        char b[900];
         std::snprintf(b, sizeof b,
-                      "    \"parts_over_3_sigma\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d, \"parts\": %d},\n    \"other_rows\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu},\n"
-                      "    \"other_columns\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu}}%s\n",
-                      remainI, remainU, remainC, lines, rowsN, rowsI, rowsC, colsN, colsI, colsC, f + 1 < cleanEval.size() ? "," : "");
+                      "    \"parts_over_3_sigma\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d, \"parts\": %d},\n"
+                      "    \"parts_uncomputable\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d, \"skipped_at_the_edge\": %d},\n"
+                      "    \"other_rows\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu, \"uncomputable_corrected\": %zu, \"uncomputable_clean\": %zu},\n"
+                      "    \"other_columns\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu, \"uncomputable_corrected\": %zu, \"uncomputable_clean\": %zu}}%s\n",
+                      over[0], over[1], over[2], parts, unc[0], unc[1], unc[2], skipped, rowsN, rowsI, rowsC, rowsUncI, rowsUncC, colsN, colsI, colsC, colsUncI, colsUncC,
+                      f + 1 < cleanEval.size() ? "," : "");
         json += b;
     }
     json += "  ]\n}\n";

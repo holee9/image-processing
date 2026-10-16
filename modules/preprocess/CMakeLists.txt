@@ -554,6 +554,7 @@ if(_XPE_BUILD_TESTS)
     target_include_directories(xpe_preprocess_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
                 ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/tools   # xpe_bpm_eval_stats.hpp (QA-A-251b)
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
     )
 

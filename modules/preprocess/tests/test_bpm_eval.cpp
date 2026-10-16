@@ -9,10 +9,12 @@
 #include <gtest/gtest.h>
 
 #include "xpe_bpm_eval_path.h"      // generated: XPE_BPM_EVAL_EXE
+#include "xpe_bpm_eval_stats.hpp"      // the numeric parts of the tool (QA-A-251b)
 #include "xpe_fixture_gen_path.h"   // generated: XPE_FIXTURE_GEN_EXE
 
 #include <algorithm>
 #include <chrono>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -425,12 +427,29 @@ TEST_F(BpmEvalTest, ScoreCountsControlHitsFalseAlarmsAndHalfAgreement) {
         m[beside] = 1;
     }
     writeBytes(ctrl, m.data(), m.size());
+    // expected new false alarms, counted here from the truth (QA-A-251b: the control bands are not part of the zone left out): flagged pixels outside the true
+    // defects widened by 2; those that lie on a control band by themselves are the "in controls" share
+    std::vector<uint8_t> nearReal(kN, 0);
+    for (const Item& it : parseTruth(t / "truth.tsv")) {
+        if (it.cls == "control") continue;
+        for (const Rect& q : it.rects)
+            for (int y = std::max(0, q.y - 2); y < std::min(static_cast<int>(kH), q.y + q.h + 2); ++y)
+                for (int x = std::max(0, q.x - 2); x < std::min(static_cast<int>(kW), q.x + q.w + 2); ++x) nearReal[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] = 1;
+    }
+    size_t expectNew = 0, expectInControls = 0;
+    for (size_t i = 0; i < kN; ++i) {
+        if (!m[i] || nearReal[i]) continue;
+        ++expectNew;
+        expectInControls += (ids[i] != 0 && ids[i] != 65535);
+    }
+    ASSERT_GT(expectInControls, 1000u) << "the control bands are flagged: thousands of pixels";
     const fs::path empty = mapOf(t, "empty.u8", [](const Item&) { return false; });
     ASSERT_EQ(0, score(t, ctrl, " --clean-map \"" + empty.string() + "\" --half-a \"" + ctrl.string() + "\" --half-b \"" + empty.string() + "\" --out \"" + (root / "m.json").string() + "\"", root / "s.txt"));
     const std::string j = text(root / "m.json");
     EXPECT_NE(std::string::npos, j.find("\"control_items\": 12")) << j;
     EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 12")) << j;
-    EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": 1,")) << "exactly the stray pixel is a new false alarm: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": " + std::to_string(expectNew) + ",")) << "the flagged control bands and the stray pixel, not the pixel beside a true defect: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"new_false_alarms_in_controls\": " + std::to_string(expectInControls) + ",")) << j;
     EXPECT_NE(std::string::npos, j.find("\"jaccard_all\": 0.000000")) << "a map against an empty map agrees on nothing: " << j;
 }
 
@@ -505,8 +524,276 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
                              (root / "c2.txt").string() + "\" 2>&1";
     ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, cmd2)) << text(root / "c2.txt");
     const std::string j2 = text(root / "c2.json");
-    EXPECT_GT(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_no_fix"), 20.0) << "a band the offset map does not know stands out, with the right sign: " << j2;
+    EXPECT_GT(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_no_fix"), 5.0) << "a band the offset map does not know stands out (standard-deviation denominator, QA-A-251b), with the right sign: " << j2;
     EXPECT_LT(std::fabs(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_clean")), 3.0) << "the clean frame shows no band: " << j2;
+
+    // no nan or inf ever reaches the JSON
+    auto lower = [](std::string x) {
+        for (char& ch : x) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        return x;
+    };
+    for (const std::string* js : {&j, &j2}) {
+        EXPECT_EQ(std::string::npos, lower(*js).find("nan")) << *js;
+        EXPECT_EQ(std::string::npos, lower(*js).find("inf")) << *js;
+    }
+
+    // Codex #204 finding 1 end to end: a clean output without any noise (a set made of constant frames, a constant clean frame) leaves the local sigma at zero.
+    // The groups must come out "uncomputable" with their invalid samples counted, not as a median of 0, and the line index of the clean output likewise.
+    fs::create_directories(root / "constant");
+    std::vector<std::string> cd, cb;
+    for (int k = 0; k < 6; ++k) {
+        std::vector<uint16_t> f(kN, static_cast<uint16_t>(3000 + k));   // constant, but each frame its own value (identical frames are refused)
+        const fs::path pth = root / "constant" / ("d" + std::to_string(k) + ".raw");
+        writeBytes(pth, f.data(), f.size() * 2);
+        cd.push_back(pth.string());
+    }
+    for (int k = 0; k < 10; ++k) {
+        std::vector<uint16_t> f(kN, static_cast<uint16_t>(9000 + k));
+        const fs::path pth = root / "constant" / ("b" + std::to_string(k) + ".raw");
+        writeBytes(pth, f.data(), f.size() * 2);
+        cb.push_back(pth.string());
+    }
+    std::string cargs = "--out \"" + (root / "const_set").string() + "\" --width 1024 --height 1024 --expiry-ms 4102444800000";
+    for (const auto& d : cd) cargs += " --dark \"" + d + "\"";
+    for (const auto& b : cb) cargs += " --bright \"" + b + "\"";
+    cargs += " > \"" + (root / "cs.log").string() + "\" 2>&1";
+    ASSERT_EQ(0, runCmd(XPE_FIXTURE_GEN_EXE, cargs)) << text(root / "cs.log");
+    std::vector<uint16_t> flat(kN, 5000);
+    writeBytes(root / "constant" / "clean_eval.raw", flat.data(), flat.size() * 2);
+    const std::string cmd3 = "correct --truth \"" + t.string() + "\" --clean-set \"" + (root / "const_set").string() + "\" --inj-set \"" + (root / "inj_set").string() + "\" --clean-eval \"" +
+                             (root / "constant" / "clean_eval.raw").string() + "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --out \"" +
+                             (root / "c3.json").string() + "\" > \"" + (root / "c3.txt").string() + "\" 2>&1";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, cmd3)) << text(root / "c3.txt");
+    const std::string j3 = text(root / "c3.json");
+    EXPECT_NE(std::string::npos, j3.find("\"median_z\": \"uncomputable\"")) << j3.substr(0, 1500);
+    EXPECT_NE(std::string::npos, j3.find("\"valid\": 0,")) << "no valid sample in the groups";
+    EXPECT_NE(std::string::npos, j3.find("\"zero_sigma_error\": ")) << "the invalid samples are counted with their reason";
+    EXPECT_EQ(std::string::npos, j3.find("\"median_z\": 0")) << "never a median of 0 for a group that cannot be computed";
+    EXPECT_NE(std::string::npos, j3.find("\"ratio_clean\": \"uncomputable\"")) << "the line index of a noiseless clean output cannot be computed";
+    EXPECT_EQ(std::string::npos, j3.find("\"ratio_clean\": 0")) << "and is not 0";
+    EXPECT_EQ(std::string::npos, lower(j3).find("nan"));
+    EXPECT_EQ(std::string::npos, lower(j3).find("inf"));
+    const size_t pu = j3.find("\"parts_uncomputable\": {\"corrected\": ");
+    ASSERT_NE(std::string::npos, pu);
+    EXPECT_NE(std::string::npos, j3.find("\"clean\": ", pu));
+    EXPECT_GT(std::atoi(j3.c_str() + j3.find("\"clean\": ", pu) + 9), 0) << "uncomputable parts are counted, not dropped: " << j3.substr(pu, 200);
+}
+
+
+// ---------------------------------------------------------------- QA-A-251b: the numeric parts of the tool, called directly (Codex #204)
+// Definitions: .moai/reports/lane-pre/QA-A-251b/evidence/30_method_fixed_before_the_fix.md section 1.
+TEST(BpmEvalStatsTest, MedianAndPercentileFollowTheDefinition) {
+    std::vector<double> v;
+    for (int i = 100; i >= 0; --i) v.push_back(i);   // 101 values, unsorted
+    EXPECT_EQ(50.0, xpe_bpm_eval::medianOf(v));
+    EXPECT_EQ(95.0, xpe_bpm_eval::percentileOf(v, 0.95));
+    std::vector<double> ten;
+    for (int i = 9; i >= 0; --i) ten.push_back(i);
+    EXPECT_EQ(5.0, xpe_bpm_eval::medianOf(ten)) << "v[floor(m / 2)]";
+    EXPECT_EQ(9.0, xpe_bpm_eval::percentileOf(ten, 0.95)) << "floor(0.95 * 9 + 0.5) = 9: the +0.5 matters";
+    EXPECT_EQ(0.0, xpe_bpm_eval::percentileOf(ten, 0.0));
+    EXPECT_EQ(9.0, xpe_bpm_eval::percentileOf(ten, 1.0));
+    EXPECT_EQ(7.0, xpe_bpm_eval::medianOf({7.0}));
+    EXPECT_EQ(7.0, xpe_bpm_eval::percentileOf({7.0}, 0.95));
+}
+
+TEST(BpmEvalStatsTest, ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero) {
+    using xpe_bpm_eval::ZStatus;
+    double z = -1.0;
+    EXPECT_EQ(ZStatus::Valid, xpe_bpm_eval::classifyZ(120.0, 100.0, 4.0, &z));
+    EXPECT_DOUBLE_EQ(5.0, z);
+    EXPECT_EQ(ZStatus::ZeroSigmaError, xpe_bpm_eval::classifyZ(120.0, 100.0, 0.0, &z)) << "a real error against a noise of zero: x / 0";
+    EXPECT_EQ(ZStatus::ZeroSigmaEqual, xpe_bpm_eval::classifyZ(100.0, 100.0, 0.0, &z)) << "0 / 0";
+    EXPECT_EQ(ZStatus::NonFinite, xpe_bpm_eval::classifyZ(std::nan(""), 100.0, 4.0, &z));
+    EXPECT_EQ(ZStatus::NonFinite, xpe_bpm_eval::classifyZ(120.0, 100.0, std::nan(""), &z));
+    EXPECT_EQ(ZStatus::NonFinite, xpe_bpm_eval::classifyZ(HUGE_VAL, 100.0, 4.0, &z));
+    EXPECT_DOUBLE_EQ(5.0, z) << "an invalid sample leaves the output alone";
+}
+
+TEST(BpmEvalStatsTest, AGroupWithoutAValidSampleIsUncomputableNotZero) {
+    using xpe_bpm_eval::ZSide;
+    using xpe_bpm_eval::ZStatus;
+    ZSide corrected, uncorrected;
+    for (int i = 0; i <= 100; ++i) {
+        corrected.add(ZStatus::Valid, i);
+        uncorrected.add(ZStatus::ZeroSigmaError, 0.0);   // every sample of the uncorrected side is invalid
+    }
+    corrected.add(ZStatus::NonFinite, 0.0);   // an invalid corrected sample does not remove the valid ones, nor touch the other side
+    ASSERT_TRUE(corrected.computable());
+    EXPECT_EQ(101u, corrected.valid());
+    EXPECT_EQ(1u, corrected.invalid());
+    EXPECT_EQ(1u, corrected.nonFinite);
+    EXPECT_EQ(50.0, corrected.median());
+    EXPECT_EQ(95.0, corrected.p95());
+    EXPECT_FALSE(uncorrected.computable());
+    EXPECT_EQ(0u, uncorrected.valid());
+    EXPECT_EQ(101u, uncorrected.invalid());
+    EXPECT_EQ(101u, uncorrected.zeroSigmaError);
+    EXPECT_EQ(0u, uncorrected.zeroSigmaEqual);
+}
+
+namespace {
+
+// A row-type (or column-type) test image: the line before the item carries a * (-1)^p, the item's lines are the constant c, the line after is 0, everything else 0.
+std::vector<float> lineImage(bool rowType, uint32_t w, uint32_t h, int first, int k, int p0, int len, double a, double c) {
+    std::vector<float> img(static_cast<size_t>(w) * h, 0.0f);
+    auto set = [&](int line, int pos, double v) {
+        if (rowType) img[static_cast<size_t>(line) * w + static_cast<size_t>(pos)] = static_cast<float>(v);
+        else img[static_cast<size_t>(pos) * w + static_cast<size_t>(line)] = static_cast<float>(v);
+    };
+    for (int p = 0; p < (rowType ? static_cast<int>(w) : static_cast<int>(h)); ++p) set(first - 1, p, a * ((p % 2) ? -1.0 : 1.0));
+    for (int t = 0; t < k; ++t)
+        for (int p = p0; p < p0 + len; ++p) set(first + t, p, c);
+    return img;
+}
+
+// The expected ratio from the definition, written out independently of the header: residuals of the alternating line are +-2a (m = len - 2 of them, m even,
+// mean 0), their sample standard deviation is 2a sqrt(m / (m - 1)).
+double expectedRatio(int k, int len, double a, double c, double* sigmaPix) {
+    const double m = len - 2;
+    const double sd = 2.0 * a * std::sqrt(m / (m - 1.0));
+    *sigmaPix = sd / std::sqrt(1.5);
+    const double pred = *sigmaPix * std::sqrt(1.0 / (k * static_cast<double>(len)) + 1.0 / (2.0 * len));
+    return c / pred;
+}
+
+}  // namespace
+
+TEST(BpmEvalStatsTest, LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns) {
+    const double a = 3.0, c = 7.0;
+    struct Case { bool row; int k; int len; };
+    for (const Case& cs : {Case{true, 1, 200}, Case{true, 2, 200}, Case{false, 1, 200}, Case{false, 2, 200}, Case{true, 1, 100}}) {
+        const uint32_t w = cs.row ? 300u : 40u, h = cs.row ? 40u : 300u;
+        const std::vector<float> img = lineImage(cs.row, w, h, 10, cs.k, 10, cs.len, a, c);
+        const xpe_bpm_eval::Rect q = cs.row ? xpe_bpm_eval::Rect{10, 10, cs.len, cs.k} : xpe_bpm_eval::Rect{10, 10, cs.k, cs.len};
+        const xpe_bpm_eval::LineIndex li = xpe_bpm_eval::lineIndex(img.data(), w, h, q);
+        ASSERT_FALSE(li.skipped);
+        ASSERT_TRUE(li.computable);
+        double sigmaPix = 0;
+        const double want = expectedRatio(cs.k, cs.len, a, c, &sigmaPix);
+        EXPECT_NEAR(c, li.dn, 1e-9) << (cs.row ? "row " : "column ") << cs.k << " line(s)";
+        EXPECT_NEAR(sigmaPix, li.sigmaPix, 1e-9 * sigmaPix);
+        EXPECT_NEAR(want, li.ratio, 1e-9 * want) << (cs.row ? "row " : "column ") << cs.k << " line(s), length " << cs.len;
+        EXPECT_NE(li.sigmaPix, li.sigmaPixMad) << "the standard deviation decides, not the MAD";
+    }
+}
+
+TEST(BpmEvalStatsTest, TheMadBasedValueIsAuxiliaryAndMayBeUncomputableWhileTheDefinedOneIsNot) {
+    // the line before the item is zero except a spike: three residuals are not zero, the MAD is zero, the standard deviation is not
+    std::vector<float> img = lineImage(true, 300, 40, 10, 1, 10, 200, 0.0, 5.0);
+    img[static_cast<size_t>(9) * 300 + 100] = 1000.0f;
+    const xpe_bpm_eval::LineIndex li = xpe_bpm_eval::lineIndex(img.data(), 300, 40, xpe_bpm_eval::Rect{10, 10, 200, 1});
+    ASSERT_FALSE(li.skipped);
+    EXPECT_TRUE(li.computable) << "the defined (standard deviation) denominator is finite and positive";
+    EXPECT_GT(li.sigmaPred, 0.0);
+    EXPECT_FALSE(li.madComputable) << "the MAD of this line is zero: the auxiliary ratio cannot be computed";
+}
+
+TEST(BpmEvalStatsTest, ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped) {
+    // a constant line before the item: sigma = 0, and D = 5 is a real difference against no noise at all (x / 0), not a number
+    const std::vector<float> img = lineImage(true, 300, 40, 10, 1, 10, 200, 0.0, 5.0);
+    const xpe_bpm_eval::LineIndex li = xpe_bpm_eval::lineIndex(img.data(), 300, 40, xpe_bpm_eval::Rect{10, 10, 200, 1});
+    EXPECT_FALSE(li.skipped);
+    EXPECT_FALSE(li.computable);
+    EXPECT_FALSE(li.madComputable);
+    // and 0 / 0: the same, D = 0
+    const std::vector<float> flat = lineImage(true, 300, 40, 10, 1, 10, 200, 0.0, 0.0);
+    EXPECT_FALSE(xpe_bpm_eval::lineIndex(flat.data(), 300, 40, xpe_bpm_eval::Rect{10, 10, 200, 1}).computable);
+    // a value that is not finite
+    std::vector<float> bad = lineImage(true, 300, 40, 10, 1, 10, 200, 3.0, 5.0);
+    bad[static_cast<size_t>(10) * 300 + 50] = std::nanf("");
+    EXPECT_FALSE(xpe_bpm_eval::lineIndex(bad.data(), 300, 40, xpe_bpm_eval::Rect{10, 10, 200, 1}).computable);
+    // at the frame edge there is no line before the item
+    EXPECT_TRUE(xpe_bpm_eval::lineIndex(img.data(), 300, 40, xpe_bpm_eval::Rect{10, 0, 200, 1}).skipped);
+}
+
+namespace {
+
+std::vector<size_t> exclusivePixels(const fs::path& truth, int itemId) {
+    const std::vector<uint8_t> raw = readBytes(truth / "truth_ids.u16");
+    std::vector<uint16_t> ids(kN);
+    std::memcpy(ids.data(), raw.data(), raw.size());
+    std::vector<size_t> out;
+    for (size_t i = 0; i < kN; ++i)
+        if (ids[i] == itemId) out.push_back(i);
+    return out;
+}
+
+}  // namespace
+
+TEST_F(BpmEvalTest, ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow) {
+    makeFrames(5, 3, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    const std::vector<Item> items = parseTruth(t / "truth.tsv");
+    const Item* pick = nullptr;
+    std::vector<size_t> own;
+    for (const Item& it : items) {
+        if (it.cls != "line" || it.kind != "dead" || it.shape.find("partial") == std::string::npos) continue;
+        own = exclusivePixels(t, it.id);
+        if (own.size() >= 100 && own.size() % 2 == 0) { pick = &it; break; }
+    }
+    ASSERT_NE(nullptr, pick) << "no partial dead line with an even number of own pixels";
+    const std::string group = pick->cls + "/" + pick->kind + "/" + pick->shape + "/" + (pick->level == 1.0 ? "1" : "0.5");
+    auto detectedWith = [&](size_t flagged, const char* name) {
+        std::vector<uint8_t> m(kN, 0);
+        for (size_t i = 0; i < flagged; ++i) m[own[i]] = 1;
+        const fs::path mp = root / name;
+        writeBytes(mp, m.data(), m.size());
+        EXPECT_EQ(0, score(t, mp, " --out \"" + (root / (std::string(name) + ".json")).string() + "\"", root / (std::string(name) + ".txt")));
+        const std::string j = text(root / (std::string(name) + ".json"));
+        const size_t p = j.find("\"group\": \"" + group + "\"");
+        EXPECT_NE(std::string::npos, p) << group;
+        return std::atoi(j.c_str() + j.find("\"detected\": ", p) + 12);
+    };
+    EXPECT_EQ(1, detectedWith(own.size() / 2, "exact")) << group << ": exactly half of " << own.size() << " is detected";
+    EXPECT_EQ(0, detectedWith(own.size() / 2 - 1, "below")) << group << ": one pixel fewer is not";
+}
+
+TEST_F(BpmEvalTest, FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf) {
+    makeFrames(5, 3, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    const std::vector<Item> items = parseTruth(t / "truth.tsv");
+    const Item* band = nullptr;
+    for (const Item& it : items)
+        if (it.cls == "control" && it.kind == "fixed_band" && it.shape == "row_full" && it.level == 100.0) band = &it;
+    ASSERT_NE(nullptr, band);
+    const std::vector<size_t> own = exclusivePixels(t, band->id);
+    ASSERT_GT(own.size(), 500u);
+    // pixels of the band at least 3 away from every true defect (the widened true defects are left out of the false alarms by definition)
+    std::vector<uint8_t> nearReal(kN, 0);
+    for (const Item& it : items) {
+        if (it.cls == "control") continue;
+        for (const Rect& q : it.rects)
+            for (int y = std::max(0, q.y - 2); y < std::min(static_cast<int>(kH), q.y + q.h + 2); ++y)
+                for (int x = std::max(0, q.x - 2); x < std::min(static_cast<int>(kW), q.x + q.w + 2); ++x) nearReal[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] = 1;
+    }
+    std::vector<size_t> usable;
+    for (size_t i : own) if (!nearReal[i]) usable.push_back(i);
+    const size_t flagged = own.size() * 40 / 100;   // 40 %, under the half that makes a band a false detection
+    ASSERT_GE(usable.size(), flagged);
+    std::vector<uint8_t> m(kN, 0), none(kN, 0);
+    for (size_t i = 0; i < flagged; ++i) m[usable[i]] = 1;
+    writeBytes(root / "part.u8", m.data(), m.size());
+    writeBytes(root / "none.u8", none.data(), none.size());
+    ASSERT_EQ(0, score(t, root / "part.u8", " --clean-map \"" + (root / "none.u8").string() + "\" --out \"" + (root / "m.json").string() + "\"", root / "s.txt"));
+    const std::string j = text(root / "m.json");
+    EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 0")) << "40 % of a band is under the half that makes a false detection: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"new_false_alarms\": " + std::to_string(flagged) + ",")) << "but every flagged pixel of the band is a new false alarm: " << j;
+    EXPECT_NE(std::string::npos, j.find("\"new_false_alarms_in_controls\": " + std::to_string(flagged) + ",")) << j;
+}
+
+TEST_F(BpmEvalTest, InjectRefusesTwoInputsWithTheSameFileName) {
+    makeFrames(5, 3, 2);
+    fs::create_directories(root / "other");
+    fs::copy_file(darks[0], root / "other" / fs::path(darks[0]).filename());
+    const fs::path out = root / "t";
+    const int rc = runCmd(XPE_BPM_EVAL_EXE, "inject --out \"" + out.string() + "\"" + small() + files("dark", darks) + files("dark", {(root / "other" / fs::path(darks[0]).filename()).string()}) +
+                                                files("bright", brights) + " > \"" + (root / "i.log").string() + "\" 2>&1");
+    EXPECT_EQ(2, rc);
+    EXPECT_FALSE(fs::exists(out / "truth.tsv"));
+    EXPECT_NE(std::string::npos, text(root / "i.log").find("file name")) << text(root / "i.log");
 }
 
 }  // namespace
