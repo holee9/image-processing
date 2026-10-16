@@ -50,6 +50,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xcal_reader.cpp
     src/xcal_writer.cpp
     src/xcal_validator.cpp
+    src/defect_ext.cpp              # QA-A-254: XCal defect file version 2 (imaging-area plane, line / blob extension)
     src/xpe_sha256_backend.cpp      # QA-A-106 (#179): CNG/PicoSHA2 SHA-256 backend
     # SWU-1.12: Verification Metrics API (PRE-11)
     src/xpe_verify_metrics.cpp  # Quality assessment metrics for calibration verification
@@ -341,6 +342,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_xcal_reader.cpp
         tests/test_xcal_writer.cpp
         tests/test_xcal_validator.cpp
+        tests/test_defect_xcal_v2.cpp        # QA-A-254: XCal defect file version 2
         tests/test_xpe_sha256.cpp
         # QA-A-106 (#179): CNG/PicoSHA2 digest parity
         tests/test_sha256_backend_parity.cpp
@@ -550,6 +552,7 @@ if(_XPE_BUILD_TESTS)
         src/xcal_reader.cpp
         src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
         src/xcal_validator.cpp
+        src/defect_ext.cpp            # QA-A-254: not exported from the DLL, like the reader and the writer it uses
         src/helpers.cpp               # xpe_interpolate_pixel is not exported from the DLL (QA-A-172)
         src/calib_expiry_check.cpp    # not exported from the DLL: the tests call it with the clock at the boundary (QA-A-241)
     )

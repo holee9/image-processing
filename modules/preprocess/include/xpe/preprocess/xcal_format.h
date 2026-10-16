@@ -73,7 +73,11 @@ typedef enum XCalPixelFormat {
 
 /** @brief XCal v1 file magic identifier ("XCAL", 4 bytes, no NUL terminator). */
 #define XCAL_MAGIC "XCAL"
-/** @brief XCal file format version number (= 1). */
+/** @brief XCal file format version number (= 1).
+ *
+ * Version 2 (QA-A-254, SRS-CALIB-FUNC-039) exists for XCAL_TYPE_DEFECT files only: the payload is the defect plane, then an imaging-area plane of the same size (1 inside, 0 outside),
+ * then an extension block (line records, blob marks, unconfirmed candidates); the config block carries "defect_ext_len". Every other type, and every file written before, is version 1 and is
+ * read as before. A reader built before version 2 refuses a version-2 file at the version check. Layout and checks: src/defect_ext.hpp. */
 #define XCAL_VERSION 1u
 
 /** @brief Maximum allowed image dimension per axis in pixels (prevents runaway allocation). */

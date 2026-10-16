@@ -1,0 +1,20 @@
+EXT = 'D:/workspace-github/xpe-pre/modules/preprocess/src/defect_ext.cpp'
+VAL = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xcal_validator.cpp'
+TITLE = 'QA-A-254 mutation check of the XCal defect file version 2 (src/defect_ext.cpp, src/xcal_validator.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-254/evidence/53_mutation_format_F4_log.txt'
+FILT = 'DefectV2Test.*:XCalValidatorTest.*:XCalReaderTest.*'
+PRED = [
+    '  (F1..F3, F5, F6 of the first run are in 51_mutation_format_log.txt; F4 was GREEN there: the OFFSET test only counted one alert. The test now reads the alert text.)',
+    '  F1 the segment range checks of a line record are removed            -> red: ASegmentOutsideItsLineIsRefused only',
+    '  F2 the declared extension length is not compared with the payload   -> red: TheDeclaredExtensionLengthMustMatchThePayload only',
+    '  F3 the imaging-area plane is not checked for values other than 0, 1 -> red: TheImagingAreaPlaneHoldsZeroAndOneOnly only',
+    '  F4 the validator accepts version 2 for every type                   -> red: XCalValidatorTest.BadVersion_ReturnsConfigInvalid only',
+    '  F5 the length pre-check of a file never reports a short file        -> red: ATruncatedFileIsRefusedAndTheAlertSaysItEndsEarly only',
+    '  F6 the extension encoder does not validate the geometry             -> red: ASegmentOutsideItsLineIsRefused and TheWriterRefusesARecordOutsideTheGeometryAndWritesNothing',
+    '  every other test stays green in each mutant',
+]
+MUTANTS = [
+    ('F4', VAL, b'const bool defectV2 = header.version == 2u && header.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT);', b'const bool defectV2 = header.version == 2u;'),
+    ('F4', VAL, b'const bool defectV2 = header.version == 2u && header.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT);', b'const bool defectV2 = header.version == 2u;'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-254/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

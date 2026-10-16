@@ -13,6 +13,7 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xcal_reader.hpp"
+#include "defect_ext.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -26,6 +27,7 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
             return XPE_ERR_INVALID_INPUT;
         }
 
+        if (!xcal_file_length_ok(filepath)) return XPE_ERR_IO_FAILED;   // QA-A-254: a truncated file says so (reason alert); same code as before
         // Read and validate XCal v1 file (SHA-256 + magic + type + expiry).
         // Defect BPM is a safety-critical calibration artifact, so it follows
         // the same expiry policy as offset/gain maps.
@@ -58,11 +60,21 @@ XpeErrorCode xpe_calib_stage_defect(const char* filepath, StagedDefect* out) noe
         if (!sink.filled) {
             // A compressed file: the decompressed bytes are in `payload`, copied into the map as before.
             size_t expected = static_cast<size_t>(hdr.width) * hdr.height;
-            if (payload.size() != expected) {
-                return XPE_ERR_CONFIG_INVALID;
+            if (hdr.version == XCAL_VERSION_DEFECT_EXT) {
+                // QA-A-254: a version-2 file. Plane 1 (imaging area) and the extension block are checked here -- a damaged one refuses the file with its reason -- and the defect
+                // plane is installed exactly like a version-1 map. The runtime store keeps the map only; the other layers are read with read_defect_xcal.
+                DefectXcal parts;
+                const XpeErrorCode src = defect_v2_split(hdr, payload, &parts);
+                if (src != XPE_OK) return src;
+                staged.map.reset(new uint8_t[expected]);
+                std::memcpy(staged.map.get(), parts.map.data(), expected);
+            } else {
+                if (payload.size() != expected) {
+                    return XPE_ERR_CONFIG_INVALID;
+                }
+                staged.map.reset(new uint8_t[expected]);
+                std::memcpy(staged.map.get(), payload.data(), payload.size());
             }
-            staged.map.reset(new uint8_t[expected]);
-            std::memcpy(staged.map.get(), payload.data(), payload.size());
         }
         staged.width    = hdr.width;
         staged.height   = hdr.height;
