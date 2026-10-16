@@ -1,0 +1,7 @@
+M1_clean exit 0
+M2_planted exit 0
+M3a_half_a exit 0
+M3b_half_b exit 0
+M4_score exit 0
+done
+finished

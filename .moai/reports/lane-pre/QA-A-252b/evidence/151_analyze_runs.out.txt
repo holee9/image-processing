@@ -1,0 +1,49 @@
+====================================================================================================
+v2 (252 first)
+ clean-image flags: 11686 (border <8 px: 8045; interior: 3641)
+  of which inside the six+two+one+one excluded lines: 7852; in the 8-pixel border but not excluded: 193
+  remaining slightly raised lines (flags in the clean image): row2 119, row3 50, row3070 17, col6 1, col7 3, col3070 6
+ out-of-area pixels: planted 0, clean 0
+ new false alarms: 32764 = control bands 5658 (fixed 23, gain 2139, varying 3496) + rows/columns carrying a planted line 27010 + within 10 px of a pixel/block 1 + everything else 95; of the total on the border (<8 px) 292
+  interior new false alarms: 32472
+ Jaccard all                    0.8222 (80635 / 98067)
+ Jaccard inside planted items   0.7546 (45043 / 59693)
+ Jaccard outside                0.9275 (35592 / 38374)
+  disagreement inside items, largest: line/noisy xor 9021 (union 11969); control/varying_band xor 3089 (union 3117); line/nonlinear xor 1648 (union 18004); line/dead xor 401 (union 20438)
+====================================================================================================
+v2b (A: no margins)
+ clean-image flags: 11751 (border <8 px: 8361; interior: 3390)
+  of which inside the six+two+one+one excluded lines: 8079; in the 8-pixel border but not excluded: 282
+  remaining slightly raised lines (flags in the clean image): row2 178, row3 53, row3070 41, col6 1, col7 3, col3070 5
+ out-of-area pixels: planted 0, clean 0
+ new false alarms: 26 = control bands 3 (fixed 0, gain 3, varying 0) + rows/columns carrying a planted line 1 + within 10 px of a pixel/block 0 + everything else 22; of the total on the border (<8 px) 15
+  interior new false alarms: 11
+ Jaccard all                    0.7957 (51245 / 64403)
+ Jaccard inside planted items   0.7951 (42391 / 53312)
+ Jaccard outside                0.7983 (8854 / 11091)
+  disagreement inside items, largest: line/noisy xor 9036 (union 11874); line/nonlinear xor 1789 (union 15981); pixel/noisy xor 32 (union 46); control/varying_band xor 8 (union 16)
+====================================================================================================
+v2c (B: margins 6,2,1,1)
+ clean-image flags: 3721 (border <8 px: 315; interior: 3406)
+  of which inside the six+two+one+one excluded lines: 0; in the 8-pixel border but not excluded: 315
+  remaining slightly raised lines (flags in the clean image): row2 183, row3 58, row3070 47, col6 6, col7 3, col3070 4
+ out-of-area pixels: planted 30699, clean 30699
+ new false alarms: 12 = control bands 3 (fixed 0, gain 3, varying 0) + rows/columns carrying a planted line 1 + within 10 px of a pixel/block 0 + everything else 8; of the total on the border (<8 px) 0
+  interior new false alarms: 12
+ Jaccard all                    0.7834 (44289 / 56535)
+ Jaccard inside planted items   0.7953 (42312 / 53203)
+ Jaccard outside                0.5933 (1977 / 3332)
+  disagreement inside items, largest: line/noisy xor 9024 (union 11857); line/nonlinear xor 1773 (union 15928); pixel/noisy xor 32 (union 46); control/varying_band xor 7 (union 8)
+====================================================================================================
+../../QA-A-252/evidence/72_metrics_score.json.txt | flagged 104262 new_fa 32764 in_controls 5658 control_false 1 / 12 jaccard 0.8222 0.7546 0.9275
+   recall: dead/pixel/1 1.000, hot/pixel/200 1.000, hot/pixel/100 1.000, hot/pixel/50 1.000, hot/pixel/25 1.000, slope/pixel/0.9 1.000, slope/pixel/1.1 1.000, slope/pixel/0.75 1.000, slope/pixel/1.25 1.000, nonlinear/pixel/0.2 1.000, nonlinear/pixel/0.4 1.000, noisy/pixel/4 0.781, noisy/pixel/2 0.172, noisy/pixel/1 0.000
+   blocks detected 128 / 128
+   lines detected (items): dead 12/13, nonlinear 11/13, noisy 7/13
+112_metrics_score.json | flagged 69412 new_fa 26 in_controls 3 control_false 0 / 12 jaccard 0.7957 0.7951 0.7983
+   recall: dead/pixel/1 1.000, hot/pixel/200 1.000, hot/pixel/100 1.000, hot/pixel/50 1.000, hot/pixel/25 1.000, slope/pixel/0.9 1.000, slope/pixel/1.1 1.000, slope/pixel/0.75 1.000, slope/pixel/1.25 1.000, nonlinear/pixel/0.2 1.000, nonlinear/pixel/0.4 1.000, noisy/pixel/4 0.781, noisy/pixel/2 0.172, noisy/pixel/1 0.000
+   blocks detected 128 / 128
+   lines detected (items): dead 11/13, nonlinear 10/13, noisy 7/13
+143_metrics_score.json | flagged 61342 new_fa 12 in_controls 3 control_false 0 / 12 jaccard 0.7834 0.7953 0.5933
+   recall: dead/pixel/1 1.000, hot/pixel/200 1.000, hot/pixel/100 1.000, hot/pixel/50 1.000, hot/pixel/25 1.000, slope/pixel/0.9 1.000, slope/pixel/1.1 1.000, slope/pixel/0.75 1.000, slope/pixel/1.25 1.000, nonlinear/pixel/0.2 1.000, nonlinear/pixel/0.4 1.000, noisy/pixel/4 0.781, noisy/pixel/2 0.172, noisy/pixel/1 0.000
+   blocks detected 128 / 128
+   lines detected (items): dead 11/13, nonlinear 10/13, noisy 7/13
