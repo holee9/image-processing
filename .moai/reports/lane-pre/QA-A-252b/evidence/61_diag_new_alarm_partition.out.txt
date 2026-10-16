@@ -1,0 +1,31 @@
+new false alarms (same definition as the score): 32764
+ cause (disjoint)                                     pixels |  dark_mean dark_noise dose_slope dose_linearity flat_field
+ 1 on a control band                                    5658 |          0       3492       1693          0       2166
+ 2 in a row/column carrying a planted line item        27010 |          1          0      26290          0      27000
+ 3 within 10 px of a planted pixel/block item              1 |          1          0          0          0          0
+ 4 everything else                                        95 |         28          6          9          0         58
+ sum                                                   32764  (check: equals total True)
+
+ group 2 split: in rows carrying a partial/pair line: 26902; in columns: 108; pixels in both a line row and a line column are counted once, in rows
+ by partial/pair line item (pixels outside the item, in its row/column):
+   nonlinear/row_pair/0.4               4513
+   dead/row_pair/1                      4506
+   nonlinear/row_pair/0.2               4483
+   dead/row_pair/0.5                    4406
+   nonlinear/row_partial/0.4            2259
+   dead/row_partial/0.5                 2251
+   dead/row_partial/1                   2249
+   nonlinear/row_partial/0.2            2235
+   nonlinear/col_pair/0.4                 90
+   dead/col_pair/0.5                      45
+   noisy/col_pair/4                       22
+   dead/col_pair/1                        21
+   noisy/col_pair/2                       12
+   dead/col_partial/1                      9
+   nonlinear/col_partial/0.4               9
+   noisy/col_partial/2                     9
+
+ group 1 split by control kind:
+   fixed_band         23
+   gain_band        2139
+   varying_band     3496

@@ -1,0 +1,18 @@
+loading frames
+dose groups 5 [3, 3, 6, 3, 3]
+lambda 5.316187754346224
+dark_mean   flagged   3004 (detector, planted run: 3004)  median local scale 2.7526
+dose_slope  flagged  78402 (detector, planted run: 78403)  median local scale 0.0031363
+flat_field  flagged  80243 (detector, planted run: 80245)  median local scale 0.0026023
+
+== new false alarms: 32764 total; border (<8): 292; interior: 32472
+ dose_slope  new  27992 | |z| in the CLEAN run percentiles 5/25/50/75/95: [0.05 0.3  0.66 1.13 1.95] | share with clean |z| in [4, 5.32): 0.000 ; below 4: 1.000 | planted |z| median 11.31
+    interior new 27767; block scale at them (planted / clean median): 0.00317805 / 0
+ flat_field  new  29224 | |z| in the CLEAN run percentiles 5/25/50/75/95: [0.06 0.32 0.69 1.18 2.05] | share with clean |z| in [4, 5.32): 0.002 ; below 4: 0.998 | planted |z| median 13.73
+    interior new 28949; block scale at them (planted / clean median): 0.00262464 / 0
+ dark_mean   new     30 | |z| in the CLEAN run percentiles 5/25/50/75/95: [5.19 5.26 5.28 5.29 5.3 ] | share with clean |z| in [4, 5.32): 1.000 ; below 4: 0.000 | planted |z| median 5.35
+    interior new 30; block scale at them (planted / clean median): 2.74497 / 0
+ dark_mean   pixels with |z|>lambda in both: 2619, only clean: 60, only planted (any distance, incl. items): 385
+ dose_slope  pixels with |z|>lambda in both: 7566, only clean: 104, only planted (any distance, incl. items): 70836
+ flat_field  pixels with |z|>lambda in both: 8750, only clean: 141, only planted (any distance, incl. items): 71493
+finished
