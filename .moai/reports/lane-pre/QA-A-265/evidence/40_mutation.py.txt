@@ -1,0 +1,26 @@
+HPP = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval_stats.hpp'
+EVAL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+SRC = HPP
+TITLE = 'QA-A-265 mutation check (the imaging-area contract of the line index: lineIndexInArea and the correct command).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-265/evidence/41_mutation_log.txt'
+FILT = 'BpmEvalStatsTest.*Area*:BpmEvalStatsTest.WithTheWhole*:BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex'
+PRED = [
+    '  M1 the extent is not cut to the area (lo = p0, hi = p0 + len)                  -> red: TheAreaContractMeasuresADeadRow... (status Full instead of Clipped, ratio -20 or worse), ...SameForAColumn..., ...SaysWhy... (Clipped expected)',
+    '  M2 the reference lines (before / after) are not checked against the area       -> red: TheAreaContractSaysWhyAPartIsNotMeasured (ReferenceOutside expected), WithTheWholeFrame... (edge part measured)',
+    '  M3 the across range of a row part is taken from the columns (axes swapped)      -> red: the row / column tests and SaysWhy',
+    '  M4 the minimum extent of 8 pixels is not asked                                  -> red: TheAreaContractSaysWhyAPartIsNotMeasured (7 pixels must be TooShort)',
+    '  M5 the part itself outside the area is not checked                              -> red: TheAreaContractSaysWhyAPartIsNotMeasured (ItemOutside expected)',
+    '  M6 the correct command ignores the left margin when it builds the area          -> red: CorrectRunsOnTwoSetsAndReportsTheLineIndex ("area": [8, 8, 1016, 1016])',
+    '  M7 the correct command carries on after a bad --margins                         -> red: CorrectRunsOnTwoSetsAndReportsTheLineIndex (exit code 2 expected)',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('M1', HPP, b'const int lo = std::max(p0, alongLo), hi = std::min(p0 + len, alongHi);', b'const int lo = p0, hi = p0 + len;'),
+    ('M2', HPP, b'if (first - 1 < acrossLo || first + k >= acrossHi) {', b'if (false) {'),
+    ('M3', HPP, b'acrossLo = row ? area.y0 : area.x0', b'acrossLo = row ? area.x0 : area.y0'),
+    ('M4', HPP, b'if (hi - lo < kMinAreaExtent) {', b'if (hi - lo < 1) {'),
+    ('M5', HPP, b'if (first < acrossLo || first + k > acrossHi) {', b'if (false) {'),
+    ('M6', EVAL, b'const xpe_bpm_eval::Area area{static_cast<int>(marginCfg.margin_left), ', b'const xpe_bpm_eval::Area area{0, '),
+    ('M7', EVAL, b'if (a.has("margins") && !parseMargins(a, &marginCfg)) return 2;\n    const xpe_bpm_eval::Area area', b'if (a.has("margins")) parseMargins(a, &marginCfg);\n    const xpe_bpm_eval::Area area'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

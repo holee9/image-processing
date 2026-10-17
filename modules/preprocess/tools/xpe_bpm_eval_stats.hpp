@@ -140,6 +140,70 @@ inline LineIndex lineIndex(const float* s, uint32_t w, uint32_t h, const Rect& q
     return r;
 }
 
+// ------------------------------------------------------------------------------------------------------------- imaging-area contract of the line index (QA-A-265, Codex #234 R234-1)
+
+/** The imaging area: columns [x0, x1), rows [y0, y1). A frame without margins has the whole frame as its area. */
+struct Area {
+    int x0, y0, x1, y1;
+};
+
+/** Why a line part could (not) be measured inside the imaging area. */
+enum class AreaStatus {
+    Full,              ///< the whole rectangle lies inside the area
+    Clipped,           ///< the lines are inside, the reference lines are inside, the extent was cut to the area (still at least kMinAreaExtent long)
+    ItemOutside,       ///< a line of the part itself lies outside the area (across the line)
+    ReferenceOutside,  ///< the line before or the line after the part lies outside the area
+    TooShort,          ///< less than kMinAreaExtent pixels of the extent are inside the area
+    OutsideArea        ///< none of the extent is inside the area
+};
+
+constexpr int kMinAreaExtent = 8;   ///< the same minimum extent the plain line index asks for
+
+/** The line index of a part under the area contract: where it was measured, from which rectangle, and why not when it was not. */
+struct AreaLineIndex {
+    AreaStatus status{AreaStatus::OutsideArea};
+    Rect       used{0, 0, 0, 0};   ///< the rectangle the index was computed on (the part cut to the area)
+    LineIndex  li;                 ///< valid only when measured()
+    bool       measured() const { return status == AreaStatus::Full || status == AreaStatus::Clipped; }
+};
+
+/**
+ * The line index D_n of a row- or column-type rectangle, measured only where everything it reads lies inside the imaging area: the lines of the part, the line before and the line after
+ * (the references of D_n), and the extent of the part cut to the area, which is also the support of the standard-deviation estimate (the residuals of the front reference line use the same
+ * positions and their neighbours). A part whose extent leaves the area is measured on the part of its extent inside the area (status Clipped) when at least kMinAreaExtent pixels remain.
+ * Anything else is not measured and says why. Nothing here changes lineIndex: a part wholly inside the area gives bit for bit the value lineIndex gives.
+ */
+inline AreaLineIndex lineIndexInArea(const float* s, uint32_t w, uint32_t h, const Rect& q, const Area& area) {
+    AreaLineIndex r;
+    const bool row = q.w > q.h;
+    const int  k = row ? q.h : q.w;
+    const int  first = row ? q.y : q.x;
+    const int  acrossLo = row ? area.y0 : area.x0, acrossHi = row ? area.y1 : area.x1;       // across the lines
+    const int  alongLo = row ? area.x0 : area.y0, alongHi = row ? area.x1 : area.y1;         // along the lines
+    const int  p0 = row ? q.x : q.y, len = row ? q.w : q.h;
+    if (first < acrossLo || first + k > acrossHi) {
+        r.status = AreaStatus::ItemOutside;
+        return r;
+    }
+    if (first - 1 < acrossLo || first + k >= acrossHi) {
+        r.status = AreaStatus::ReferenceOutside;
+        return r;
+    }
+    const int lo = std::max(p0, alongLo), hi = std::min(p0 + len, alongHi);
+    if (hi <= lo) {
+        r.status = AreaStatus::OutsideArea;
+        return r;
+    }
+    if (hi - lo < kMinAreaExtent) {
+        r.status = AreaStatus::TooShort;
+        return r;
+    }
+    r.used = row ? Rect{lo, q.y, hi - lo, q.h} : Rect{q.x, lo, q.w, hi - lo};
+    r.status = (lo == p0 && hi == p0 + len) ? AreaStatus::Full : AreaStatus::Clipped;
+    r.li = lineIndex(s, w, h, r.used);
+    return r;
+}
+
 // ------------------------------------------------------------------------------------------------------------- chi-square, quantum gain, noise cost (QA-A-252f)
 
 /** Regularised lower incomplete gamma function P(a, x): the chi-square distribution function is P(nu / 2, x / 2). */
