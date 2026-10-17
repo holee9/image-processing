@@ -739,7 +739,9 @@ TEST_F(BpmEvalQuantumTest, TheOverlappedPixelNoiseCostDividesTheGainFactorOutAnd
             rows.push_back(r);
         }
     }
-    // (1) gain-only groups: the ideal cost is exactly 1. The mean cost over their pixels is the quantity the g * g division decides: about 1 with it, far above with a gain factor of 0.3 .. 0.7 left in.
+    // (1) gain-only groups: the ideal cost is exactly 1. The mean cost over their pixels is the quantity the g * g division decides: about 1 with it. Without the division the cost is c' = s2 / expect = g * g * c, which is SMALLER
+    // than c for g < 1 (a gain loss has g between 0.3 and 0.7 and more than one of them multiplies), so the mean falls BELOW the lower bound; the upper bound does not catch that mutant. The bounds 0.7 .. 1.5 and 0.8 .. 1.7 are
+    // regression tolerances for this fixed seed (the observed values are 1.0707 and 1.254), not statistically derived confidence intervals, and they do not promise to detect the defect on another input or seed.
     double gainCost = 0.0;
     size_t gainUsed = 0, gainGroups = 0, gainDefect = 0;
     // (2) every group whose ideal cost is defined: the pixel-weighted ratio of the measured to the ideal cost
@@ -760,11 +762,11 @@ TEST_F(BpmEvalQuantumTest, TheOverlappedPixelNoiseCostDividesTheGainFactorOutAnd
     ASSERT_GT(gainUsed, 60u) << "the fixture has gain-only overlaps with measured pixels";
     ASSERT_GT(idealUsed, 300u);
     const double gainMean = gainCost / static_cast<double>(gainUsed), ratio = sumCost / sumIdeal;
-    EXPECT_GT(gainMean, 0.7) << "gain-only overlaps: " << gainGroups << " groups, " << gainUsed << " pixels";
-    EXPECT_LT(gainMean, 1.5) << "a gain loss does not add noise cost; with g * g left out the mean cost is several times larger";
+    EXPECT_GT(gainMean, 0.7) << "gain-only overlaps: " << gainGroups << " groups, " << gainUsed << " pixels; without the division by g * g each cost is multiplied by g * g < 1 and the mean falls below this bound";
+    EXPECT_LT(gainMean, 1.5) << "a gain loss does not add noise cost: a mean above the fixed-seed tolerance would mean a cost too large (for example a multiplication where a division is meant)";
     EXPECT_EQ(0u, gainDefect) << "no gain-only overlap is a noise defect";
-    EXPECT_GT(ratio, 0.8) << "measured over ideal, pixel weighted, all groups with an ideal cost";
-    EXPECT_LT(ratio, 1.7) << "measured over ideal, pixel weighted, all groups with an ideal cost";
+    EXPECT_GT(ratio, 0.8) << "measured over ideal, pixel weighted, all groups with an ideal cost (fixed-seed regression tolerance)";
+    EXPECT_LT(ratio, 1.7) << "measured over ideal, pixel weighted, all groups with an ideal cost (fixed-seed regression tolerance)";
     // (3) the label of every group with a measured pixel follows its interval and the limit 2 (defect: lo >= 2, normal: hi < 2, else undetermined); rows within 0.001 of the limit are not judged (4-decimal output)
     size_t judged = 0;
     for (const Row& r : rows) {
@@ -1543,7 +1545,7 @@ TEST_F(BpmEvalTest, LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArg
     EXPECT_NE(std::string::npos, j.find("\"pixels\": 1")) << "the imaging area: " << j;
     EXPECT_NE(std::string::npos, text(root / "ln.tsv").find("orientation\tindex\twidth")) << text(root / "ln.tsv");
     EXPECT_EQ(2, run(" --margins 6,2,1", root / "bad.u8")) << "three numbers are not a margin specification";
-    EXPECT_EQ(2, run(" --margins 4294967296,2,1,1", root / "bad3.u8")) << "a margin that wraps in 32 bits is refused (QA-A-267)";
+    EXPECT_EQ(2, run(" --margins 4294967296,2,1,1", root / "bad3.u8")) << "a margin above 32 bits is refused; the old parser let strtoul saturate it to 4294967295, which became x = -1 as a signed int (QA-A-267)";
     EXPECT_EQ(2, run(" --margins -1,2,1,1", root / "bad4.u8")) << "a signed margin is refused";
     EXPECT_EQ(2, run(" --margins 600,0,600,0", root / "bad5.u8")) << "margins larger than the frame are refused";
     EXPECT_EQ(rc == 20 ? 20 : 0, run(" --margins 6,2,1,1 --tolerance-db 3", root / "ln2.u8")) << "the tolerance option is accepted";
@@ -1770,7 +1772,7 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     EXPECT_LE(intAfter(jm8, "area_contract", "measured"), intAfter(jm8, "area_contract", "parts")) << jm8;
     EXPECT_EQ(2, correctWith("1,2,3", "mbad")) << "four numbers are required";
     EXPECT_EQ(2, correctWith("600,0,600,0", "mnone")) << "margins that leave no imaging area stop the tool";
-    // QA-A-267 (Codex #236 R236-2): the grammar is unsigned decimal numbers and nothing else, and the margins must fit the frame; each of these used to be accepted, wrapped, or read as something else
+    // QA-A-267 (Codex #236 R236-2): the grammar is unsigned decimal numbers and nothing else, and the margins must fit the frame; each of these used to be accepted (leading blank, sign), saturated by strtoul to 4294967295 (out of range), or read as something else
     for (const char* bad : {"4294967296,2,1,1", "-1,2,1,1", "+6,2,1,1", " 6,2,1,1", "6 ,2,1,1", "6,2,1,1,3", "6,,1,1", "0x10,2,1,1", "6.5,2,1,1", "99999999999,2,1,1", "4294967295,2,1,1",
                             "1024,0,0,0", "0,1024,0,0", "512,0,512,0", "0,512,0,512", "6,2,1,", ",6,2,1"}) {
         EXPECT_EQ(2, correctWith(bad, "mgrammar")) << "'" << bad << "' must be refused";

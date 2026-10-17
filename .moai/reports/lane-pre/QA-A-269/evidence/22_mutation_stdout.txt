@@ -1,0 +1,19 @@
+QA-A-269 mutation check (the ROI states of the new and the old function). Source hash at the start: 1c1160925d1ba935
+PREDICTIONS (written before any run):
+  P1 the new function compares the 1 % by rounding down (roi >= n / 100) like the old one -> RED: TheOutputFiguresAreTheOldFunctionsOnlyWhereBothMeasure... (n = 201, 301, 10001 would be measured) and AnEmptyOrTooSmallRoi...
+  P2 the two-pixel minimum removed (n = 100, roi = 1 would be measured)                    -> RED: the same two tests
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 19 passed, failed: []
+--- P1
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.2 s, dll 1.5 s after the mutant)
+tests exit 1: 17 passed, FAILED: ['AnEmptyOrTooSmallRoiIsUnmeasuredAndNeverZeroFilledAsMeasured', 'TheOutputFiguresAreTheOldFunctionsOnlyWhereBothMeasureAndTheStatesDifferWhereTheRoiRulesDo']
+--- P2
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.2 s, dll 1.5 s after the mutant)
+tests exit 1: 17 passed, FAILED: ['AnEmptyOrTooSmallRoiIsUnmeasuredAndNeverZeroFilledAsMeasured', 'TheOutputFiguresAreTheOldFunctionsOnlyWhereBothMeasureAndTheStatesDifferWhereTheRoiRulesDo']
+--- restored: touch + rebuild
+source hash now: 1c1160925d1ba935 (start: 1c1160925d1ba935)
+build: BUILD_EXIT=0

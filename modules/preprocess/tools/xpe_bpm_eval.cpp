@@ -1915,7 +1915,7 @@ int cmdMapV1(const Args& a) {
 
 /**
  * --margins L,T,R,B: columns / rows at the edges that are outside the imaging area. Four unsigned decimal numbers separated by commas and nothing else (no sign, no blank, no empty field, no
- * hexadecimal or octal, at most the range of the stored 32-bit field), checked BEFORE anything is converted to a signed int (QA-A-267, Codex #236 R236-2: 4294967296 used to wrap to 0 and put x = -1 into the area):
+ * hexadecimal or octal, at most the range of the stored 32-bit field), checked BEFORE anything is converted to a signed int (QA-A-267, Codex #236 R236-2: strtoul had saturated 4294967296 to 4294967295 without an error check, and as a signed int that is x = -1, outside the frame):
  * each margin and each opposite pair must also be smaller than the frame (L, R and L + R below the width, T, B and T + B below the height). Anything else: a message and false (the commands exit 2).
  * parseMargins is shared by map-v2, lines and correct, so all three refuse the same inputs.
  */
