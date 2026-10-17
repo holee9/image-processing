@@ -1773,11 +1773,22 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             }
 
             var confirm = dialog.FindFirstDescendant(cf => cf.ByAutomationId(confirmId).And(cf.ByControlType(ControlType.Button)));
-            Assert.True(confirm is not null, $"the dialog's confirm button (id {confirmId}) was not found");
-            var handle = confirm!.Properties.NativeWindowHandle.ValueOrDefault;
-            Assert.True(handle != IntPtr.Zero, "the confirm button has no window handle");
+            if (confirm is null)
+            {
+                // GUI-C-250: say what the dialog looked like when its confirm button was missing (a refusal with no picture of the dialog cannot be told apart from a dialog that changed)
+                foreach (var d in dialog.FindAllDescendants().Take(120))
+                {
+                    _output.WriteLine($"      DLG {Safe(() => d.ControlType.ToString())} id='{Safe(() => d.AutomationId)}' name='{Safe(() => d.Name)}' class='{Safe(() => d.ClassName)}'");
+                }
+            }
+
             var dialogHandle = dialog.Properties.NativeWindowHandle.ValueOrDefault;
             Assert.True(dialogHandle != IntPtr.Zero, "the dialog has no window handle");
+            // GUI-C-250: on this machine the open dialog later listed its "Open" button as a split button without id 1 (measured: W16 passed at 16:2x and failed at the same step minutes later, with no code
+            // change). The dialog still owns a child window with the control id, so the button's own window is asked for by id and pressed with the same posted BM_CLICK.
+            var handle = confirm is not null ? confirm.Properties.NativeWindowHandle.ValueOrDefault : GetDlgItem(dialogHandle, int.Parse(confirmId));
+            if (confirm is null) _output.WriteLine($"   dialog: UI Automation lists no button with id {confirmId}; using the dialog's own child window with that id (0x{handle.ToInt64():X})");
+            Assert.True(handle != IntPtr.Zero, $"the dialog's confirm button (id {confirmId}) was not found, neither through UI Automation nor as a child window");
             beforeConfirm?.Invoke();
             // GUI-C-244 (#268): POSTED, not sent. A sent BM_CLICK returns only when the button's handler has, and the handler of a save dialog that is about to replace an existing file shows the "replace?" message box:
             // this thread then waits for a box that only this thread answers (the wait that stopped W9 for the whole job time; the watchdog's kill is what freed it in the trace).

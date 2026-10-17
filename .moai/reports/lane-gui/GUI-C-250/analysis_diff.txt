@@ -1,0 +1,29 @@
+[v1] defect.xcal version=1  defect plane nonzero=134  area plane=no
+[v1] |output - plain| on non-mask pixels: median 0.00000 p90 0.0039 p99 0.0039 p99.9 0.004 max 0.004
+[v1] output vs plain (tolerance 0.05 pixel-value units) floor(raw-offset+0.5)/gain: equal 9437050, replaced/different 134
+[v1] replaced pixels inside the defect mask: 134; replaced pixels NOT in the mask: 0; mask pixels left equal to plain: 0
+[v1] output stats: min 1111.520 max 39475.469 mean 31438.617; nonfinite 0
+[v1] offset: min 10755.62 max 17836.50; gain: min 0.6995 max 1.1338 mean 1.0000
+[v2] defect.xcal version=2  defect plane nonzero=2209  area plane=yes
+[v2] area==0 (outside) pixels=30699  area==1 pixels=9406485  area values=[0, 1]
+[v2] |output - plain| on non-mask pixels: median 0.00000 p90 0.0039 p99 0.0039 p99.9 0.004 max 0.004
+[v2] output vs plain (tolerance 0.05 pixel-value units) floor(raw-offset+0.5)/gain: equal 9434975, replaced/different 2209
+[v2] replaced pixels inside the defect mask: 2209; replaced pixels NOT in the mask: 0; mask pixels left equal to plain: 0
+[v2] output stats: min 1100.518 max 39464.758 mean 31427.045; nonfinite 0
+[v2] offset: min 10769.14 max 17843.71; gain: min 0.6991 max 1.1340 mean 1.0000
+[v2-v1] pixels with any difference: 9437168 of 9437184; |d|>0.5: 9432297; |d|>5: 9256598; |d|>50: 1262; max |d| 574.57
+[v2-v1] mean diff -11.5702 median -11.7588 p1 -17.359 p99 -3.984
+[offset v2-v1] mean 11.8418 min -51.964 max 16.714; [gain v2/v1] mean 0.999994 min 0.99922 max 1.00779
+[plain v2-v1] (offset/gain files only, no defect step) mean -11.5703 p1 -17.352 p99 -3.996 max|.| 265.44
+defect masks: v1 134, v2 2209, both 23, only v1 111, only v2 2186; positions differing 2297
+diff on union of masks: pixels 2320; |d|>0.5 there 2309; outside the union: |d|>0.5 9429988, |d|>5 9254379
+[defect-step effect] (v2-v1) - (plain v2 - plain v1): |.|>0.5 at 2307 pixels; inside union 2307; outside union 0; max 558.83
+imaging area (rows 2..3070, columns 6..3070): inside 9406485, outside 30699
+area plane in the v2 file equals the margins 6,2,1,1 rectangle: True
+[v1] OUTSIDE the imaging area: pixels 30699; equal to plain floor(raw-offset+0.5)/gain 30591; replaced 108; defect-mask pixels outside the area 108
+[v1] output shape (3072, 3072) (not cropped)
+[v2] OUTSIDE the imaging area: pixels 30699; equal to plain floor(raw-offset+0.5)/gain 30699; replaced 0; defect-mask pixels outside the area 0
+[v2] output shape (3072, 3072) (not cropped)
+[v2-v1] outside area: pixels with any difference 30699; |d|>0.5 30240; max |d| there 381.152; mean d there -6.9252
+[v2-v1] inside area: mean d -11.5854
+[v2-v1] |d|>5 pixels: 9256598; rows 0..3071, columns 0..3071; in the edge band outside the area: 22942

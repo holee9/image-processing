@@ -1,0 +1,327 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.34]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.55]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.56]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:01:28.25]     ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved [FAIL]
+[xUnit.net 00:01:28.25]       timed out (60 s) waiting for: the float file is saved
+[xUnit.net 00:01:28.25]       Stack Trace:
+[xUnit.net 00:01:28.25]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(1668,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds)
+[xUnit.net 00:01:28.25]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\RealTestScenarios.cs(71,0): at ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved()
+[xUnit.net 00:01:28.25]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:01:28.25]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:01:28.25]       Output:
+[xUnit.net 00:01:28.25]            dialog: 'Load Raw Image'
+[xUnit.net 00:01:28.25]            native (+3 ms): dialog 0x30058 open; app windows: 0x30290 Auto-Suggest Dropdown (hidden), 0x130862 Auto-Suggest Dropdown (hidden), 0x8D06EC tooltips_class32 (hidden), 0x9002BE tooltips_class32 (hidden), 0x404BE tooltips_class32 (hidden), 0x30370 tooltips_class32 (hidden), 0x120826 ComboLBox (hidden), 0x1507FC tooltips_class32 (hidden), 0xC205C4 _SearchEditBoxFakeWindow (hidden), 0x160726 tooltips_class32 (hidden), 0x2DB05AA tooltips_class32 (hidden), 0x2D03DC tooltips_class32 (hidden), 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0x4013C ComboLBox (hidden), 0x4036E ComboLBox (hidden), 0x3005C WorkerW (hidden), 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+[xUnit.net 00:01:28.25]            native (+210 ms): dialog 0x30058 gone; app windows: 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+[xUnit.net 00:01:28.25]            ok: the image summary appears
+[xUnit.net 00:01:28.25]            ok: preprocess=Applied
+[xUnit.net 00:01:28.25]            chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+[xUnit.net 00:01:28.25]            HUD: 'Calib:  3 stages (offset · gain · defect)'
+[xUnit.net 00:01:28.25]            status: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off) | Exposure index: uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:01:28.25]            log lines: 26; ALERT lines: 2
+[xUnit.net 00:01:28.25]            LOG [16:19:19.841] open-to-2nd-tick (proxy) #1: 1253 ms = read 313 + prepare 29 + chain-and-display 660 [preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 249
+[xUnit.net 00:01:28.25]            LOG [16:19:19.592] Chain ai_bone_suppress: NotRequested — switched off
+[xUnit.net 00:01:28.25]            LOG [16:19:19.592] Chain gsvg: NotRequested — switched off
+[xUnit.net 00:01:28.25]            LOG [16:19:19.592] Chain enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+[xUnit.net 00:01:28.25]            LOG [16:19:19.592] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:01:28.25]            LOG [16:19:19.590] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=10.99 (outside [-3.0, +3.0] range)
+[xUnit.net 00:01:28.25]            LOG [16:19:19.589] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off)
+[xUnit.net 00:01:28.25]            LOG [16:19:19.473] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+[xUnit.net 00:01:28.25]            LOG [16:19:19.454] ai_bone_suppress: NotRequested — switched off
+[xUnit.net 00:01:28.25]            LOG [16:19:19.454] gsvg: NotRequested — switched off
+[xUnit.net 00:01:28.25]            LOG [16:19:19.454] enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+[xUnit.net 00:01:28.25]            LOG [16:19:19.454] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:01:28.25]            LOG [16:19:19.194] Drained 1 native alert(s) from the xpe_common queue.
+[xUnit.net 00:01:28.25]            LOG [16:19:18.930] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+[xUnit.net 00:01:28.25]            LOG [16:19:18.903] Loaded raw image 'D:\workspace-github\xpe-data\gui-250-out\v2\input.raw'.
+[xUnit.net 00:01:28.25]            LOG [16:19:18.588] LoadRawImage('D:\workspace-github\xpe-data\gui-250-out\v2\input.raw') invoked.
+[xUnit.net 00:01:28.25]            LOG [16:19:12.149] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+[xUnit.net 00:01:28.25]            LOG [16:19:12.149] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+[xUnit.net 00:01:28.25]            LOG [16:19:12.148] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+[xUnit.net 00:01:28.25]            LOG [16:19:12.141] Display version = 1.0.0
+[xUnit.net 00:01:28.25]            LOG [16:19:12.141] xpe_display.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_display.dll
+[xUnit.net 00:01:28.25]            LOG [16:19:12.141] xpe_common.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_common.dll
+[xUnit.net 00:01:28.25]            LOG [16:19:12.141] Requested backend mode = Native
+[xUnit.net 00:01:28.25]            LOG [16:19:12.141] RealXpeBackend bootstrap started.
+[xUnit.net 00:01:28.25]            LOG [16:19:12.133] --- backend re-initialised ---
+[xUnit.net 00:01:28.25]            LOG [16:19:12.130] GUI-S0 initialized.
+[xUnit.net 00:01:28.25]            picture source_only: D:\workspace-github\xpe-data\gui-250-out\v2\screen_source_only.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+[xUnit.net 00:01:28.25]            picture processed_only: D:\workspace-github\xpe-data\gui-250-out\v2\screen_processed_only.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+[xUnit.net 00:01:28.25]            picture difference: D:\workspace-github\xpe-data\gui-250-out\v2\screen_difference.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+[xUnit.net 00:01:28.25]            dialog: 'Save Corrected Image (float32 raw)'
+[xUnit.net 00:01:28.25]            native (+0 ms): dialog 0x7E03CE open; app windows: 0x70090E Auto-Suggest Dropdown (hidden), 0x50054 tooltips_class32 (hidden), 0x160826 tooltips_class32 (hidden), 0x1D7070E Auto-Suggest Dropdown (hidden), 0x1E07DC tooltips_class32 (hidden), 0x40448 tooltips_class32 (hidden), 0x150862 ComboLBox (hidden), 0x78068A tooltips_class32 (hidden), 0x460680 _SearchEditBoxFakeWindow (hidden), 0x40372 tooltips_class32 (hidden), 0x30494 tooltips_class32 (hidden), 0x50056 tooltips_class32 (hidden), 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0x3F08C4 ComboLBox (hidden), 0x6F03CC ComboLBox (hidden), 0xCD03D8 WorkerW (hidden), 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+[xUnit.net 00:01:28.25]            native (+209 ms): dialog 0x7E03CE gone; app windows: 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+[xUnit.net 00:01:28.25]            == TIMEOUT waiting for: the float file is saved: title='ImageProcTest GUI-S0'
+[xUnit.net 00:01:28.25]               + +
+[xUnit.net 00:01:28.25]               + -
+[xUnit.net 00:01:28.25]               + 0
+[xUnit.net 00:01:28.25]               + 0  /  0
+[xUnit.net 00:01:28.25]               + 0 defer
+[xUnit.net 00:01:28.25]               + 0 fail
+[xUnit.net 00:01:28.25]               + 0 pass
+[xUnit.net 00:01:28.25]               + 0 studies loaded
+[xUnit.net 00:01:28.25]               + 1:1
+[xUnit.net 00:01:28.25]               + ?
+[xUnit.net 00:01:28.25]               + Alerts only
+[xUnit.net 00:01:28.25]               + All
+[xUnit.net 00:01:28.25]               + Application Log
+[xUnit.net 00:01:28.25]               + Body Part
+[xUnit.net 00:01:28.25]               + C  3665  · W  1133
+[xUnit.net 00:01:28.25]               + Calib:  3 stages (offset · gain · defect)
+[xUnit.net 00:01:28.25]               + Clear
+[xUnit.net 00:01:28.25]               + Clear Alerts
+[xUnit.net 00:01:28.25]               + Clear Logs
+[xUnit.net 00:01:28.25]               + Copy
+[xUnit.net 00:01:28.25]               + Difference
+[xUnit.net 00:01:28.25]               + Done
+[xUnit.net 00:01:28.25]               + Export bundle
+[xUnit.net 00:01:28.25]               + FIXTURE SET
+[xUnit.net 00:01:28.25]               + Fit
+[xUnit.net 00:01:28.25]               + Focus
+[xUnit.net 00:01:28.25]               + Histogram
+[xUnit.net 00:01:28.25]               + ImageProcTest GUI ·  Run #20261017-161912-8e736c
+[xUnit.net 00:01:28.25]               + Initialize Backend
+[xUnit.net 00:01:28.25]               + LANE A — REFERENCE
+[xUnit.net 00:01:28.25]               + LANE B — CANDIDATE
+[xUnit.net 00:01:28.25]               + Load Raw Image
+[xUnit.net 00:01:28.25]               + Log
+[xUnit.net 00:01:28.25]               + Metrics
+[xUnit.net 00:01:28.25]               + Overlay
+[xUnit.net 00:01:28.25]               + Parameters
+[xUnit.net 00:01:28.25]               + Processed
+[xUnit.net 00:01:28.25]               + Queued
+[xUnit.net 00:01:28.25]               + RAW 3072x3072, min=12314, max=55172, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off)
+[xUnit.net 00:01:28.25]               + ROI
+[xUnit.net 00:01:28.25]               + RUN-SET
+[xUnit.net 00:01:28.25]               + Record result for
+[xUnit.net 00:01:28.25]               + Run on all queued
+[xUnit.net 00:01:28.25]               + Run-set
+[xUnit.net 00:01:28.25]               + STUDY
+[xUnit.net 00:01:28.25]               + Save & Next →
+[xUnit.net 00:01:28.25]               + Save Settings
+[xUnit.net 00:01:28.25]               + Saved corrected image (float32 raw): D:\workspace-github\xpe-data\gui-250-out\v2\input_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 2f018e86f64c61c46880a33b31cb46a0b174e30a42469112c862c6c248268bfa
+[xUnit.net 00:01:28.25]               + Shutdown Backend
+[xUnit.net 00:01:28.25]               + Source
+[xUnit.net 00:01:28.25]               + Split
+[xUnit.net 00:01:28.25]               + Study queue
+[xUnit.net 00:01:28.25]               + Swipe
+[xUnit.net 00:01:28.25]               + VERDICT
+[xUnit.net 00:01:28.25]               + VOI 폭
+[xUnit.net 00:01:28.25]               + VOI:  LinearExact
+[xUnit.net 00:01:28.25]               + WINDOW
+[xUnit.net 00:01:28.25]               + X
+[xUnit.net 00:01:28.25]               + XPE Evaluation Workbench
+[xUnit.net 00:01:28.25]               + [16:19:12.130] GUI-S0 initialized.
+[xUnit.net 00:01:28.25]               + [16:19:12.133] --- backend re-initialised ---
+[xUnit.net 00:01:28.25]               + [16:19:12.141] Display version = 1.0.0
+[xUnit.net 00:01:28.25]               + [16:19:12.141] RealXpeBackend bootstrap started.
+[xUnit.net 00:01:28.25]               + [16:19:12.141] Requested backend mode = Native
+[xUnit.net 00:01:28.25]               + [16:19:12.141] xpe_common.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_common.dll
+[xUnit.net 00:01:28.25]               + [16:19:12.141] xpe_display.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_display.dll
+[xUnit.net 00:01:28.25]               + [16:19:12.148] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+[xUnit.net 00:01:28.25]               + [16:19:12.149] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+[xUnit.net 00:01:28.25]               + [16:19:12.149] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+[xUnit.net 00:01:28.25]               + [16:19:18.588] LoadRawImage('D:\workspace-github\xpe-data\gui-250-out\v2\input.raw') invoked.
+[xUnit.net 00:01:28.25]               + [16:19:18.903] Loaded raw image 'D:\workspace-github\xpe-data\gui-250-out\v2\input.raw'.
+[xUnit.net 00:01:28.25]               + [16:19:18.930] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+[xUnit.net 00:01:28.25]               + [16:19:19.194] Drained 1 native alert(s) from the xpe_common queue.
+[xUnit.net 00:01:28.25]               + [16:19:19.454] ai_bone_suppress: NotRequested — switched off
+[xUnit.net 00:01:28.25]               + [16:19:19.454] enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+[xUnit.net 00:01:28.25]               + [16:19:19.454] gsvg: NotRequested — switched off
+[xUnit.net 00:01:28.25]               + [16:19:19.454] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:01:28.25]               + [16:19:19.473] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+[xUnit.net 00:01:28.25]               + [16:19:19.589] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off)
+[xUnit.net 00:01:28.25]               + [16:19:19.590] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=10.99 (outside [-3.0, +3.0] range)
+[xUnit.net 00:01:28.25]               + [16:19:19.592] Chain ai_bone_suppress: NotRequested — switched off
+[xUnit.net 00:01:28.25]               + [16:19:19.592] Chain enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+[xUnit.net 00:01:28.25]               + [16:19:19.592] Chain gsvg: NotRequested — switched off
+[xUnit.net 00:01:28.25]               + [16:19:19.592] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:01:28.25]               + [16:19:19.841] open-to-2nd-tick (proxy) #1: 1253 ms = read 313 + prepare 29 + chain-and-display 660 [preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 249
+[xUnit.net 00:01:28.25]               + [16:19:38.331] Saved corrected image (float32 raw): D:\workspace-github\xpe-data\gui-250-out\v2\input_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 2f018e86f64c61c46880a33b31cb46a0b174e30a42469112c862c6c248268bfa
+[xUnit.net 00:01:28.25]               + _Backend
+[xUnit.net 00:01:28.25]               + _File
+[xUnit.net 00:01:28.25]               + _Help
+[xUnit.net 00:01:28.25]               + _Pipeline
+[xUnit.net 00:01:28.25]               + _Tools
+[xUnit.net 00:01:28.25]               + _View
+[xUnit.net 00:01:28.25]               + chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+[xUnit.net 00:01:28.25]               + fit
+[xUnit.net 00:01:28.25]               + gui-s0/golden-26.manifest
+[xUnit.net 00:01:28.25]               + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=gui-250-dlls
+[xUnit.net 00:01:28.25]               + open-to-2nd-tick (proxy) #1: 1253 ms = read 313 + prepare 29 + chain-and-display 660 [preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 249
+[xUnit.net 00:01:28.25]               + ⌕
+[xUnit.net 00:01:28.25]               + ⏸ Defer
+[xUnit.net 00:01:28.25]               + ⚙
+[xUnit.net 00:01:28.25]               + ✓ Pass
+[xUnit.net 00:01:28.25]               + ✗ Fail
+[xUnit.net 00:01:28.25]               + 미적용
+[xUnit.net 00:01:28.26]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved [1 m 27 s]
+  오류 메시지:
+   timed out (60 s) waiting for: the float file is saved
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1668
+   at ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\RealTestScenarios.cs:line 71
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+    native (+3 ms): dialog 0x30058 open; app windows: 0x30290 Auto-Suggest Dropdown (hidden), 0x130862 Auto-Suggest Dropdown (hidden), 0x8D06EC tooltips_class32 (hidden), 0x9002BE tooltips_class32 (hidden), 0x404BE tooltips_class32 (hidden), 0x30370 tooltips_class32 (hidden), 0x120826 ComboLBox (hidden), 0x1507FC tooltips_class32 (hidden), 0xC205C4 _SearchEditBoxFakeWindow (hidden), 0x160726 tooltips_class32 (hidden), 0x2DB05AA tooltips_class32 (hidden), 0x2D03DC tooltips_class32 (hidden), 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0x4013C ComboLBox (hidden), 0x4036E ComboLBox (hidden), 0x3005C WorkerW (hidden), 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+    native (+210 ms): dialog 0x30058 gone; app windows: 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    ok: preprocess=Applied
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    HUD: 'Calib:  3 stages (offset · gain · defect)'
+    status: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off) | Exposure index: uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    log lines: 26; ALERT lines: 2
+    LOG [16:19:19.841] open-to-2nd-tick (proxy) #1: 1253 ms = read 313 + prepare 29 + chain-and-display 660 [preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 249
+    LOG [16:19:19.592] Chain ai_bone_suppress: NotRequested — switched off
+    LOG [16:19:19.592] Chain gsvg: NotRequested — switched off
+    LOG [16:19:19.592] Chain enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [16:19:19.592] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [16:19:19.590] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=10.99 (outside [-3.0, +3.0] range)
+    LOG [16:19:19.589] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off)
+    LOG [16:19:19.473] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+    LOG [16:19:19.454] ai_bone_suppress: NotRequested — switched off
+    LOG [16:19:19.454] gsvg: NotRequested — switched off
+    LOG [16:19:19.454] enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [16:19:19.454] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [16:19:19.194] Drained 1 native alert(s) from the xpe_common queue.
+    LOG [16:19:18.930] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [16:19:18.903] Loaded raw image 'D:\workspace-github\xpe-data\gui-250-out\v2\input.raw'.
+    LOG [16:19:18.588] LoadRawImage('D:\workspace-github\xpe-data\gui-250-out\v2\input.raw') invoked.
+    LOG [16:19:12.149] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [16:19:12.149] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [16:19:12.148] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+    LOG [16:19:12.141] Display version = 1.0.0
+    LOG [16:19:12.141] xpe_display.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_display.dll
+    LOG [16:19:12.141] xpe_common.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_common.dll
+    LOG [16:19:12.141] Requested backend mode = Native
+    LOG [16:19:12.141] RealXpeBackend bootstrap started.
+    LOG [16:19:12.133] --- backend re-initialised ---
+    LOG [16:19:12.130] GUI-S0 initialized.
+    picture source_only: D:\workspace-github\xpe-data\gui-250-out\v2\screen_source_only.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+    picture processed_only: D:\workspace-github\xpe-data\gui-250-out\v2\screen_processed_only.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+    picture difference: D:\workspace-github\xpe-data\gui-250-out\v2\screen_difference.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+    dialog: 'Save Corrected Image (float32 raw)'
+    native (+0 ms): dialog 0x7E03CE open; app windows: 0x70090E Auto-Suggest Dropdown (hidden), 0x50054 tooltips_class32 (hidden), 0x160826 tooltips_class32 (hidden), 0x1D7070E Auto-Suggest Dropdown (hidden), 0x1E07DC tooltips_class32 (hidden), 0x40448 tooltips_class32 (hidden), 0x150862 ComboLBox (hidden), 0x78068A tooltips_class32 (hidden), 0x460680 _SearchEditBoxFakeWindow (hidden), 0x40372 tooltips_class32 (hidden), 0x30494 tooltips_class32 (hidden), 0x50056 tooltips_class32 (hidden), 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0x3F08C4 ComboLBox (hidden), 0x6F03CC ComboLBox (hidden), 0xCD03D8 WorkerW (hidden), 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+    native (+209 ms): dialog 0x7E03CE gone; app windows: 0x500C4 HwndWrapper[ImageProcTest;;8696e8ff-2235-496c-a6c9-8a9b2a681ccd, 0xA019E TabletPenServiceHelperClass (hidden), 0x600CA HwndWrapper[ImageProcTest;;cb1e03fc-6cb8-4288-97ed-8d831e5602ba (hidden), 0x37066A HwndWrapper[ImageProcTest;;9bf42ba8-e2a0-4ef4-b6fc-3c0ea0ca4be1 (hidden), 0xE0604 HwndWrapper[ImageProcTest;;2d5defb3-2785-44b7-a698-42b252b00bb9 (hidden), 0xA00C8 HwndWrapper[ImageProcTest;;f0bac0aa-93d3-4532-a51d-60a2911eda7d (hidden), 0x4035C CiceroUIWndFrame (hidden), 0x400C6 MSCTFIME UI (hidden), 0x2000D2 IME (hidden), 0x500DE IME (hidden), 0x401A2 CiceroUIWndFrame (hidden)
+    == TIMEOUT waiting for: the float file is saved: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + Alerts only
+       + All
+       + Application Log
+       + Body Part
+       + C  3665  · W  1133
+       + Calib:  3 stages (offset · gain · defect)
+       + Clear
+       + Clear Alerts
+       + Clear Logs
+       + Copy
+       + Difference
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261017-161912-8e736c
+       + Initialize Backend
+       + LANE A — REFERENCE
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + Metrics
+       + Overlay
+       + Parameters
+       + Processed
+       + Queued
+       + RAW 3072x3072, min=12314, max=55172, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off)
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Saved corrected image (float32 raw): D:\workspace-github\xpe-data\gui-250-out\v2\input_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 2f018e86f64c61c46880a33b31cb46a0b174e30a42469112c862c6c248268bfa
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI 폭
+       + VOI:  LinearExact
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + [16:19:12.130] GUI-S0 initialized.
+       + [16:19:12.133] --- backend re-initialised ---
+       + [16:19:12.141] Display version = 1.0.0
+       + [16:19:12.141] RealXpeBackend bootstrap started.
+       + [16:19:12.141] Requested backend mode = Native
+       + [16:19:12.141] xpe_common.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_common.dll
+       + [16:19:12.141] xpe_display.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_display.dll
+       + [16:19:12.148] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+       + [16:19:12.149] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+       + [16:19:12.149] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+       + [16:19:18.588] LoadRawImage('D:\workspace-github\xpe-data\gui-250-out\v2\input.raw') invoked.
+       + [16:19:18.903] Loaded raw image 'D:\workspace-github\xpe-data\gui-250-out\v2\input.raw'.
+       + [16:19:18.930] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+       + [16:19:19.194] Drained 1 native alert(s) from the xpe_common queue.
+       + [16:19:19.454] ai_bone_suppress: NotRequested — switched off
+       + [16:19:19.454] enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+       + [16:19:19.454] gsvg: NotRequested — switched off
+       + [16:19:19.454] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       + [16:19:19.473] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+       + [16:19:19.589] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3665.499, W=1133.181) -> GSDF(off)
+       + [16:19:19.590] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=10.99 (outside [-3.0, +3.0] range)
+       + [16:19:19.592] Chain ai_bone_suppress: NotRequested — switched off
+       + [16:19:19.592] Chain enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 54 ms; contrast(clahe 3 8x8) ok 70 ms; edge(usm 0.5/2/10) ok 44 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+       + [16:19:19.592] Chain gsvg: NotRequested — switched off
+       + [16:19:19.592] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       + [16:19:19.841] open-to-2nd-tick (proxy) #1: 1253 ms = read 313 + prepare 29 + chain-and-display 660 [preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 249
+       + [16:19:38.331] Saved corrected image (float32 raw): D:\workspace-github\xpe-data\gui-250-out\v2\input_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 2f018e86f64c61c46880a33b31cb46a0b174e30a42469112c862c6c248268bfa
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=gui-250-dlls
+       + open-to-2nd-tick (proxy) #1: 1253 ms = read 313 + prepare 29 + chain-and-display 660 [preprocess=250 ms, enhance_basic=252 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 249
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+       + 미적용
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 1.4916 분
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
