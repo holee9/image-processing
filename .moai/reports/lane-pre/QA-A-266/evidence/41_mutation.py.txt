@@ -1,0 +1,34 @@
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_verify_metrics.cpp'
+TITLE = 'QA-A-266 mutation check (xpe_verify_offset_signed and the file variant).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-266/evidence/42_mutation_log.txt'
+FILT = 'VerifyOffsetSigned*'
+PRED = [
+    '  M1 the signed ROI residual is clamped at 0 before it is averaged                 -> red: ItSeesTheNegativeBiasThatTheUint16OutputHides (-4 expected, 0 read), ItMatchesTheReferenceOnAMixedFrame, TheClampRate... no',
+    '  M2 the ROI output value is not rounded (c instead of c + 0.5f)                   -> red: ItMatchesTheReferenceOnAMixedFrame (outMean), TheOutputFiguresEqualTheOldFunction... (bit for bit), T-D keeps green only if integers: the integer residuals are exact, so T-D stays GREEN',
+    '  M3 zeroOutputRatePct counts x <= 0 instead of the rounded zeros                  -> red: TheClampRateCountsNegativeResidualsAndTheZeroOutputRateCountsRoundedZeros (x = 0.25 expects 100, 0 read), the continuity test (zero count of the corrected image)',
+    '  M4 clampRatePct counts x <= 0 instead of x < 0                                   -> red: TheClampRate... (x = 0 expects 0 %, 100 read)',
+    '  M5 the ROI test is raw <= threshold instead of raw < threshold                   -> red: ARawFrameWithoutVariationOrWithoutAnROI... (the tied frame selects 90 %), ThePercentileFromTheHistogram... (roiPixels)',
+    '  M6 validMask groups are not cleared for a short structSize                       -> red: TheStructSizeRuleWritesNothingPastTheCallersStructAndKeepsGroupsWhole',
+    '  M7 a non-finite map value is accepted                                            -> red: EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays (INVALID_CALIB_DATA expected)',
+    '  M8 the map hash covers one float too few                                         -> red: TheMapIdentityIsTheSha256OfItsFloatBytesAndItsSize, TheFileVariantEqualsTheBufferVariant... no: both variants share the code, so only the first test is red',
+    '  M9 the file variant checks the expiry                                            -> red: TheFileVariantEqualsTheBufferVariantAndDoesNotCheckExpiry (the file has an expiry in the past)',
+    '  M10 an error clears the whole struct instead of the 32-byte head                 -> red: EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays (tail_untouched)',
+    '  M11 the ROI minimum of 1 % is not asked                                          -> red: ARawFrameWithoutVariationOrWithoutAnROI... (the tied frame has 0 ROI pixels and the ROI bits must be clear)',
+    '  M12 the variation test needs a range of more than 50 % instead of 1 %            -> red: nearly every test that needs the ROI bits (the varied raw has a range of about 4 %)',
+    '  every test of the filter that does not depend on the mutated line stays green in each mutant',
+]
+MUTANTS = [
+    ('M1', SRC, b'sx.push_back(static_cast<double>(x));', b'sx.push_back(static_cast<double>(std::max(x, 0.0f)));'),
+    ('M2', SRC, b'so.push_back(static_cast<double>(static_cast<uint16_t>(c + 0.5f)));', b'so.push_back(static_cast<double>(static_cast<uint16_t>(c)));'),
+    ('M3', SRC, b'if (static_cast<uint16_t>(x + 0.5f) == 0) ++zero_out;', b'if (x <= 0.0f) ++zero_out;'),
+    ('M4', SRC, b'if (x < 0.0f) ++below_zero;', b'if (x <= 0.0f) ++below_zero;'),
+    ('M5', SRC, b'if (raw[i] < threshold) {', b'if (raw[i] <= threshold) {'),
+    ('M6', SRC, b'if (take < g.end) w.validMask &= ~g.bit;', b'if (take < g.end && take > 1000u) w.validMask &= ~g.bit;'),
+    ('M7', SRC, b'if (!std::isfinite(map[i])) return quality_failure(quality, XPE_ERR_INVALID_CALIB_DATA);', b'if (n == 0 && !std::isfinite(map[i])) return quality_failure(quality, XPE_ERR_INVALID_CALIB_DATA);'),
+    ('M8', SRC, b'sha.update(reinterpret_cast<const uint8_t*>(map), n * sizeof(float));', b'sha.update(reinterpret_cast<const uint8_t*>(map), (n - 1) * sizeof(float));'),
+    ('M9', SRC, b'/*check_expiry=*/false, /*expected_type=*/XCAL_TYPE_OFFSET', b'/*check_expiry=*/true, /*expected_type=*/XCAL_TYPE_OFFSET'),
+    ('M10', SRC, b'std::memset(out, 0, kQualityHeadSize);', b'std::memset(out, 0, sizeof(XpeOffsetQuality));'),
+    ('M11', SRC, b'if (sx.size() >= roi_min) {', b'if (sx.size() >= roi_min || roi_min < 1000000000u) {'),
+    ('M12', SRC, b'(raw_range / raw_mean_val > 0.01)', b'(raw_range / raw_mean_val > 0.5)'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-266/evidence/40_mutation_runner.py.txt', encoding='utf-8').read())
