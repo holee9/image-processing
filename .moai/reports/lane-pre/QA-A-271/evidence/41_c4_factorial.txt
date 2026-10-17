@@ -1,0 +1,41 @@
+oracle mask 138688 pixels, 72 oracle line groups; v1 map 198342 pixels, v2 map 149343 pixels
+frame 29 done
+frame 30 done
+Z0 (control): original R2/C_v2 against R1/C_v1: cells 178, second edition larger 118 (expect 178 and 118)
+original difference over the 118 cells: median +0.1595
+
+== telescoping decomposition of the original difference over the 118 cells (path: reference, then map, then algorithm)
+  terms: median E_ref +0.0000   E_map +0.0002   E_alg +0.1701   sum(check against the difference) max |sum - difference| = 0.00e+00
+  share of the median original difference: E_ref 0.00   E_map 0.00   E_alg 1.07
+  by item kind (cells, median of the original difference, E_ref, E_map, E_alg):
+    dead              13  +0.1820  +0.0000  +0.0027  +0.1780
+    efficiency_loss   30  +0.1730  +0.0000  +0.0000  +0.1731
+    gain_loss         33  +0.1718  +0.0000  +0.0003  +0.1712
+    hot                2  +0.0628  +0.0000  +0.0628  +0.0000
+    noisy             16  +0.0197  +0.0000  -0.1466  +0.1742
+    nonlinear         24  +0.1183  +0.0000  +0.0000  +0.1684
+
+== the oracle experiments (all 178 cells, then the 138 line-class cells)
+  all 178 cells
+    ref C_v1  alg effect (oracle mask) median +0.1530 larger-in-121 | alg effect (v2 map) +0.1529 larger-in-122 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+    ref C_v2  alg effect (oracle mask) median +0.1529 larger-in-120 | alg effect (v2 map) +0.1529 larger-in-121 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+    ref Cc    alg effect (oracle mask) median +0.1530 larger-in-121 | alg effect (v2 map) +0.1529 larger-in-122 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+    ref Cp    alg effect (oracle mask) median +0.0003 larger-in- 98 | alg effect (v2 map) +0.0003 larger-in- 97 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+  138 line cells
+    ref C_v1  alg effect (oracle mask) median +0.1682 larger-in-118 | alg effect (v2 map) +0.1683 larger-in-119 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+    ref C_v2  alg effect (oracle mask) median +0.1688 larger-in-117 | alg effect (v2 map) +0.1684 larger-in-118 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+    ref Cc    alg effect (oracle mask) median +0.1682 larger-in-118 | alg effect (v2 map) +0.1683 larger-in-119 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+    ref Cp    alg effect (oracle mask) median +0.0021 larger-in- 96 | alg effect (v2 map) +0.0021 larger-in- 96 | map effect v1->v2 +0.0000 | v1->oracle +0.0000
+
+== by kind, line cells, reference C_v2 and Cp: algorithm effect at the oracle mask (R5 - R4), median [cells]
+    dead             [14]  C_v2 +0.1761   Cp +0.0435    map effect v1->oracle (C_v2) +0.0005
+    efficiency_loss  [36]  C_v2 +0.1656   Cp +0.0022    map effect v1->oracle (C_v2) +0.0002
+    gain_loss        [36]  C_v2 +0.1631   Cp +0.0021    map effect v1->oracle (C_v2) +0.0001
+    noisy            [26]  C_v2 +0.1716   Cp -0.0337    map effect v1->oracle (C_v2) -0.1680
+    nonlinear        [26]  C_v2 +0.1688   Cp +0.0300    map effect v1->oracle (C_v2) -0.0003
+
+== level of z: median over the 138 line cells for each run and reference
+    ref C_v1  R1 1.493  R2 1.585  R3 1.439  R4 1.436  R5 1.585
+    ref C_v2  R1 1.493  R2 1.585  R3 1.439  R4 1.436  R5 1.586
+    ref Cc    R1 1.493  R2 1.585  R3 1.439  R4 1.436  R5 1.585
+    ref Cp    R1 3.192  R2 3.240  R3 3.192  R4 3.190  R5 3.239

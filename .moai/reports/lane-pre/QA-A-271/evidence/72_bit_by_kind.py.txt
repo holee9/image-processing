@@ -1,0 +1,30 @@
+"""QA-A-271 §3.3 complement: which truth item kinds carry the bright-noise bit (0x20) of the second-edition feature map, with the share in both halves. Descriptive. Usage: python -X utf8 72_bit_by_kind.py.txt > 73_bit_by_kind.txt"""
+import numpy as np
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+S = 3072
+items = {}
+for line in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = (c[1], c[2], c[3], c[4], [tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+feat = np.fromfile(O60 + 'v2_full_features.u8', dtype=np.uint8).reshape(S, S)
+ha = np.fromfile(O60 + 'v2_half_a.u8', dtype=np.uint8).reshape(S, S) != 0
+hb = np.fromfile(O60 + 'v2_half_b.u8', dtype=np.uint8).reshape(S, S) != 0
+print('%-22s %9s %12s %10s %12s' % ('class/kind', 'pixels', 'bit on', 'share', 'both halves'))
+agg = {}
+for k, (cls, kind, shape, level, rects) in items.items():
+    m = np.zeros((S, S), dtype=bool)
+    for (x, y, w, h) in rects:
+        m[y:y + h, x:x + w] = True
+    m &= ids == k
+    a = agg.setdefault(cls + '/' + kind, [0, 0, 0])
+    a[0] += int(m.sum())
+    b = m & ((feat & 0x20) != 0)
+    a[1] += int(b.sum())
+    a[2] += int((b & ha & hb).sum())
+for key, (n, b, bh) in sorted(agg.items()):
+    if b:
+        print('%-22s %9d %12d %10.4f %12d' % (key, n, b, b / n, bh))
+print('kinds with the bit on no pixel: ' + ', '.join(key for key, (n, b, bh) in sorted(agg.items()) if not b))

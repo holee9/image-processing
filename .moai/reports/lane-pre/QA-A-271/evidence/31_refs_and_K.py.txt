@@ -1,0 +1,45 @@
+"""QA-A-271 stage 1: the references Cc (clean set, defect correction off) and Cp (clean frame through the PLANTED set's offset and gain, defect correction off) for frames 29 and 30; control K2 (Cp equals the planted U at every pixel the
+injection did not touch); control K1 (the file writer: the original maps rewritten by this script's writer give the library's original corrected output). Writes arrays to D:/workspace-github/xpe-data/bpm-eval-271/.
+Usage: python -X utf8 31_refs_and_K.py.txt > 32_refs_and_K.txt"""
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-271/evidence/30_lib.py.txt', encoding='utf-8').read()
+exec(compile(src, '30_lib', 'exec'), globals())
+
+for f in (29, 30):
+    load_set(O60 + 'clean_set_v2')
+    np.save(O71 + 'Cc_%d.npy' % f, pipeline(CAL + 'Bright_%d.raw' % f, CFG_NODEFECT))
+    load_set(O60 + 'inj_set_v2')
+    np.save(O71 + 'Cp_%d.npy' % f, pipeline(CAL + 'Bright_%d.raw' % f, CFG_NODEFECT))
+print('references written')
+touched = np.zeros((S, S), dtype=bool)
+for k, it in items.items():
+    for (x, y, w, h) in it['rects']:
+        touched[y:y + h, x:x + w] = True
+for f in (29, 30):
+    U = np.load(O70 + 'U_v2_%d.npy' % f)
+    Cp = np.load(O71 + 'Cp_%d.npy' % f)
+    eq = np.array_equal(U[~touched], Cp[~touched])
+    print('K2 frame %d: planted U equals Cp at all %d pixels outside every truth item: %s; truth-item pixels where U != Cp: %d of %d' % (f, int((~touched).sum()), eq, int(((U != Cp) & touched).sum()), int(touched.sum())))
+
+# K1: the writer
+mp1 = np.fromfile(O60 + 'inj_v1_setmap.u8', dtype=np.uint8).reshape(S, S)
+mp2 = np.fromfile(O60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S)
+area2 = np.fromfile(O60 + 'inj_v2_area.u8', dtype=np.uint8).reshape(S, S)
+write_defect(O71 + 'k1_v1.xcal', S, S, mp1)
+write_defect(O71 + 'k1_v2.xcal', S, S, mp2, area2, read_lines_tsv())
+for f in (29, 30):
+    U1 = np.load(O70 + 'U_v1_%d.npy' % f)
+    # (a) the pipeline output with the original set equals correct_ex on U when the original file is loaded
+    load_defect(O60 + 'inj_set_v1/defect.xcal')
+    o_orig1, r1 = correct_ex(U1)
+    I1 = np.load(O70 + 'I_v1_%d.npy' % f)
+    print('K1 frame %d: library correct_ex(U) with the ORIGINAL v1 file equals the pipeline output I_v1: %s' % (f, np.array_equal(o_orig1, I1)))
+    load_defect(O71 + 'k1_v1.xcal')
+    o_new1, _ = correct_ex(U1)
+    print('K1 frame %d: with the REWRITTEN v1 file (writer of this script) equals the original output: %s' % (f, np.array_equal(o_new1, o_orig1)))
+    load_defect(O60 + 'inj_set_v2/defect.xcal')
+    o_orig2, r2 = correct_ex(U1)
+    I2 = np.load(O70 + 'I_v2_%d.npy' % f)
+    print('K1 frame %d: ORIGINAL v2 file equals I_v2: %s' % (f, np.array_equal(o_orig2, I2)))
+    load_defect(O71 + 'k1_v2.xcal')
+    o_new2, r2n = correct_ex(U1)
+    print('K1 frame %d: REWRITTEN v2 file (map, area, line records from the tsv, no blob marks) equals the original output: %s; layers_used %d line_pixels %d (original %d)' % (f, np.array_equal(o_new2, o_orig2), r2n.layers_used, r2n.line_pixels, r2.line_pixels))
