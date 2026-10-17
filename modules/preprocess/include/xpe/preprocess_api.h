@@ -1703,6 +1703,84 @@ XPE_API XpeErrorCode xpe_verify_offset(
     const XpeImageMetadata* metadata,
     XpeCalibrationMetrics* metrics);
 
+/** @name Signed offset quality (QA-A-266, Codex #232 R232-2 / #233 R233-4, R233-5)
+ *  xpe_verify_offset() reads the UINT16 image the offset stage wrote: after the 0 floor and the rounding. A negative DarkBias cannot show
+ *  there (a Dark_16 whose signed bias is -4.05 reads +0.19). xpe_verify_offset_signed() takes the raw dark and the offset map itself and measures the
+ *  residual before the clamp. It keeps no state: nothing is read from the loaded calibration set and xpe_preprocess_init() is not needed.
+ *  @{ */
+#define XPE_OFFSETQ_ROI_SIGNED     0x01u   /**< darkBiasSigned, dsnuSigned measured */
+#define XPE_OFFSETQ_DARK_REDUCTION 0x02u   /**< darkReductionDb measured */
+#define XPE_OFFSETQ_ROI_OUTPUT     0x04u   /**< darkBiasOutput, dsnuOutput measured */
+#define XPE_OFFSETQ_CLAMP_RATE     0x08u   /**< clampRatePct, zeroOutputRatePct measured (whole frame: valid whenever the inputs are) */
+#define XPE_OFFSETQ_MAP_IDENT      0x10u   /**< mapSha256 filled in */
+
+/**
+ * @brief Result of xpe_verify_offset_signed(). 120 bytes, 8-byte aligned.
+ *
+ * Caller sets structSize = sizeof(XpeOffsetQuality) as it compiled it (at least 32). The library writes only the fields that lie completely inside
+ * structSize, and sets a validMask bit only when every field of that group does; a larger structSize from a newer caller is accepted (the first 120
+ * bytes are written, writtenSize says so). New fields are only ever appended. A field whose bit is clear holds 0 and must not be read as a measurement.
+ *
+ * Stage of every value (never mix them as if they were one population):
+ *   Signed fields   : residual x = float(raw) - map, BEFORE the 0 floor and the rounding; ROI = the darkest decile of the raw frame (raw < percentile10, at least 1 %).
+ *   Output fields   : the UINT16 value o = (uint16)(clamp(x, 0, 65535) + 0.5f) that xpe_offset_correct writes, over the SAME ROI. darkBiasOutput and dsnuOutput equal
+ *                     dark_bias and dsnu_adu of xpe_verify_offset() on that corrected image, bit for bit.
+ *   clampRatePct    : 100 * count(x < 0) / N over the whole frame, before the floor (x == 0 is not counted).
+ *   zeroOutputRatePct: 100 * count(o == 0) / N over the whole frame, after the rounding (x < 0.5): a different quantity from clampRatePct.
+ * darkBiasOutput >= darkBiasSigned does NOT hold in general (a ROI residual of +0.2 everywhere rounds to 0). What always holds: mean(max(x,0)) >= darkBiasSigned and
+ * |darkBiasOutput - mean(max(x,0))| <= 0.5.
+ */
+typedef struct XpeOffsetQuality {
+    uint32_t structSize;          /**< [in]  sizeof(XpeOffsetQuality) as the caller compiled it; at least 32 */
+    uint32_t writtenSize;         /**< [out] bytes written: min(structSize, sizeof(XpeOffsetQuality)); 0 on any failure */
+    uint32_t validMask;           /**< [out] XPE_OFFSETQ_* groups measured AND completely inside structSize */
+    uint32_t roiPixels;           /**< [out] pixels the dark ROI selected (0 on failure) */
+    uint64_t pixelCount;          /**< [out] width * height (0 on failure) */
+    uint32_t mapWidth;            /**< [out] width of the offset map the measurement used (0 on failure) */
+    uint32_t mapHeight;           /**< [out] height of the offset map (0 on failure) */
+    uint8_t  mapSha256[32];       /**< [out] SHA-256 of the map's float32 bytes; valid when XPE_OFFSETQ_MAP_IDENT is set */
+    double   darkBiasSigned;      /**< [out] ROI_SIGNED:     mean(x), pixel values */
+    double   dsnuSigned;          /**< [out] ROI_SIGNED:     sample standard deviation of x */
+    double   darkReductionDb;     /**< [out] DARK_REDUCTION: 20 log10(std(raw ROI) / max(std(x ROI), 1e-9)) */
+    double   clampRatePct;        /**< [out] CLAMP_RATE:     percent of the frame with x < 0 */
+    double   zeroOutputRatePct;   /**< [out] CLAMP_RATE:     percent of the frame whose UINT16 output is 0 */
+    double   darkBiasOutput;      /**< [out] ROI_OUTPUT:     mean(o) */
+    double   dsnuOutput;          /**< [out] ROI_OUTPUT:     sample standard deviation of o */
+} XpeOffsetQuality;
+
+/**
+ * @brief Signed quality of an offset map against one raw dark frame (stateless)
+ *
+ * @param raw_image UINT16 raw dark frame
+ * @param offset_map FLOAT32 offset map of the same width and height (the map itself, not a loaded set)
+ * @param quality [in/out] structSize set by the caller (at least 32); filled as described at XpeOffsetQuality
+ * @return XPE_OK (a ROI that cannot be formed, or a raw frame without variation, is XPE_OK with the ROI groups' bits clear)
+ *         XPE_ERR_INVALID_INPUT for NULL pointers, structSize < 32, an empty or overflowing size, a short dataSize or a map of another size
+ *         XPE_ERR_UNSUPPORTED_FORMAT if raw_image is not UINT16 or offset_map is not FLOAT32
+ *         XPE_ERR_INVALID_CALIB_DATA if the map holds a value that is not finite
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED
+ *         On any error with structSize >= 32 the 32-byte head of @p quality is zeroed; for NULL or structSize < 32 nothing is written.
+ */
+XPE_API XpeErrorCode xpe_verify_offset_signed(
+    const XpeImageBuffer* raw_image,
+    const XpeImageBuffer* offset_map,
+    XpeOffsetQuality* quality);
+
+/**
+ * @brief xpe_verify_offset_signed() with the offset map read from an XCal OFFSET file
+ *
+ * The file is validated by the module's reader (magic, type, SHA-256). Its expiry is NOT checked: this measures a stored map, it does not apply it.
+ * mapSha256 is the SHA-256 of the map's float32 payload bytes (not the file header's hash over config and payload).
+ *
+ * @return the results of xpe_verify_offset_signed(), plus the reader's errors for the file (XPE_ERR_IO_FAILED, XPE_ERR_CONFIG_INVALID, ...);
+ *         XPE_ERR_INVALID_INPUT if offset_xcal_path is NULL
+ */
+XPE_API XpeErrorCode xpe_verify_offset_signed_file(
+    const XpeImageBuffer* raw_image,
+    const char* offset_xcal_path,
+    XpeOffsetQuality* quality);
+/** @} */
+
 /**
  * @brief Verify gain correction quality
  *

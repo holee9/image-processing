@@ -454,6 +454,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_verify_metrics.cpp
         # QA-A-32 (#120): verify_* edge paths (format/fallback/median branches)
         tests/test_verify_metrics_edges.cpp
+        # QA-A-266: the signed offset quality (stateless; the clamp-before bias that xpe_verify_offset cannot see)
+        tests/test_verify_offset_signed.cpp
         # SWU-1.12: Calibration Mode Selection tests (FUNC-031~033)
         tests/test_calib_mode.cpp
         # QA-A-101 (#169): FUNC-031 (3)(4)(5)(8) mode caps and AUTO selection
