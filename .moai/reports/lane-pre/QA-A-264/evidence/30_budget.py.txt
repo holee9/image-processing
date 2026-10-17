@@ -1,0 +1,441 @@
+"""QA-A-264: the variance budget of FlatResidualPct (and of the corrected dark) by component, with the TG-150 (eq. 34-37) and EMVA 1288 4.0 (eq. 31-39) comparisons.
+Method, predictions and the classification rules: 10_method_predictions.md.txt (committed before this script was run on the real data).
+Modes: --selftest   synthetic controls with known components; asserts the expected values (run first)
+       --real       the real frames (Bright_17~36 through the shipped library, Dark_07~16 minus the offset map) -> tables on stdout
+Usage: PYTHONIOENCODING=utf-8 python 30_budget.py.txt --selftest > 31_selftest_result.txt ; ... --real > 32_budget_result.txt"""
+import sys
+import numpy as np
+
+EV3 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-263/evidence/'
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+SETD = 'D:/workspace-github/xpe-data/bpm-eval-260/clean_set_v1/'
+M60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+BLK = 64
+K_OUT = 6.0   # outlier threshold in robust sigmas (method section 2)
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+# ---------------------------------------------------------------------------------------------------- decomposition
+def _blockmean(a):
+    h, w = a.shape
+    return a.reshape(h // BLK, BLK, w // BLK, BLK).mean(axis=(1, 3))
+
+
+def _subblock(a, m):
+    h, w = a.shape
+    return (a.reshape(h // BLK, BLK, w // BLK, BLK) - m[:, None, :, None]).reshape(h, w)
+
+
+def decompose(y, mapmask, order='A'):
+    """y: 2-D float array. Returns energies in variance units (sum of squares / N) and the component vectors. The mean of y is removed first (not a component).
+    order A: rows -> columns -> 64 x 64 blocks -> pixels ; order B: blocks -> rows -> columns -> pixels. Pixels: defect set (map | robust outlier) and the rest (white)."""
+    y = y - y.mean()
+    n = y.size
+    if order == 'A':
+        a = y.mean(axis=1)
+        y1 = y - a[:, None]
+        b = y1.mean(axis=0)
+        y2 = y1 - b[None, :]
+        m = _blockmean(y2)
+        e = _subblock(y2, m)
+    else:
+        m = _blockmean(y)
+        y1 = _subblock(y, m)
+        a = y1.mean(axis=1)
+        y2 = y1 - a[:, None]
+        b = y2.mean(axis=0)
+        e = y2 - b[None, :]
+    sig = 1.4826 * np.median(np.abs(e - np.median(e)))
+    outl = np.abs(e) > K_OUT * sig
+    dset = mapmask | outl
+    out = dict(V_tot=float((y * y).mean()), V_R=float((a * a).mean()), V_C=float((b * b).mean()), V_L=float((m * m).mean()),
+               V_D=float((e[dset] ** 2).sum() / n), V_W=float((e[~dset] ** 2).sum() / n), a=a, b=b, m=m, e=e.astype(np.float32), dset=dset,
+               n_map=int(mapmask.sum()), n_out_extra=int((outl & ~mapmask).sum()), n_def=int(dset.sum()), sigma_rob=float(sig))
+    out['V_sum'] = out['V_R'] + out['V_C'] + out['V_L'] + out['V_D'] + out['V_W']
+    return out
+
+
+def group_moving(dec):
+    """dec: list of decompositions of the frames of one group (same dose). Returns per frame the moving energies M_x = n/(n-1) * ||c_k - mean||^2 / N for R, C, L and white (pixels outside the union defect set)."""
+    n = len(dec)
+    out = [dict() for _ in range(n)]
+    for key, nm, scale in (('a', 'M_R', None), ('b', 'M_C', None), ('m', 'M_L', None)):
+        vecs = np.array([d[key] for d in dec])
+        mean = vecs.mean(axis=0)
+        for k in range(n):
+            out[k][nm] = float(n / (n - 1.0) * ((vecs[k] - mean) ** 2).mean())
+    du = np.zeros_like(dec[0]['dset'])
+    for d in dec:
+        du |= d['dset']
+    N = dec[0]['e'].size
+    es = [d['e'][~du].astype(np.float64) for d in dec]
+    mean = np.mean(es, axis=0)
+    for k in range(n):
+        out[k]['M_W'] = float(n / (n - 1.0) * ((es[k] - mean) ** 2).sum() / N)
+    return out
+
+
+def emva(var_total, col_means, row_means, sigma2, L, M, N):
+    """EMVA 1288 4.0 eq. (36)-(39): returns (s2_row, s2_col, s2_pixel). var_total = s2_y of the (averaged) image (already corrected by eq. 31 if wanted)."""
+    mu = col_means.mean()
+    s2_cav = ((col_means - mu) ** 2).mean() - sigma2 / (L * M)
+    s2_rav = ((row_means - mu) ** 2).mean() - sigma2 / (L * N)
+    d = M * N - M - N
+    s2_col = (M * (N - 1) / d) * s2_cav - (N / d) * (var_total - s2_rav)
+    s2_row = (N * (M - 1) / d) * s2_rav - (M / d) * (var_total - s2_cav)
+    s2_pix = (M * N / d) * (var_total - s2_cav - s2_rav)
+    return s2_row, s2_col, s2_pix
+
+
+def tg150(img):
+    """TG-150 eq. (34)-(37) and the D_n of eq. (35) for an image: SD_row, SD_col, N_IR (eq. 26 over 64 x 64 ROIs), predictions, ratios, max |D_n|/sigma_D, count above 3."""
+    h, w = img.shape
+    Prow = img.mean(axis=1)
+    Pcol = img.mean(axis=0)
+    sd_row, sd_col = float(Prow.std(ddof=1)), float(Pcol.std(ddof=1))
+    blocks = img.reshape(h // BLK, BLK, w // BLK, BLK).transpose(0, 2, 1, 3).reshape(-1, BLK * BLK)
+    sd_roi = blocks.std(axis=1, ddof=1)
+    n_ir = float(np.sqrt((sd_roi ** 2).mean()))
+    pr_row, pr_col = n_ir / np.sqrt(w), n_ir / np.sqrt(h)
+    Dr = Prow[1:-1] - 0.5 * (Prow[:-2] + Prow[2:])
+    Dc = Pcol[1:-1] - 0.5 * (Pcol[:-2] + Pcol[2:])
+    sgd_r, sgd_c = np.sqrt(1.5) * pr_row, np.sqrt(1.5) * pr_col
+    return dict(sd_row=sd_row, sd_col=sd_col, n_ir=n_ir, pred_row=pr_row, pred_col=pr_col, r_row=sd_row / pr_row, r_col=sd_col / pr_col,
+                dr_max=float(np.abs(Dr).max() / sgd_r), dc_max=float(np.abs(Dc).max() / sgd_c), dr_n3=int((np.abs(Dr) > 3 * sgd_r).sum()), dc_n3=int((np.abs(Dc) > 3 * sgd_c).sum()))
+
+
+# ---------------------------------------------------------------------------------------------------- synthetic controls
+def synth(size=768, n=4, seed=1, fr=0.0, mr=0.0, fc=0.0, mc=0.0, lf_fixed=0.0, lf_move=0.0, ndef=0, defval=0.0, white_t=0.0, white_f=0.0):
+    rng = np.random.default_rng(seed)
+    xs = np.arange(size)
+    pat1 = np.sin(2 * np.pi * xs / (size / 2))[:, None] * np.sin(2 * np.pi * xs / (size / 2))[None, :]
+    pat2 = np.cos(2 * np.pi * xs / (size / 3))[:, None] * np.sin(2 * np.pi * xs / (size / 3))[None, :]
+    frow, fcol = rng.normal(0, 1, size), rng.normal(0, 1, size)
+    fpix = rng.normal(0, 1, (size, size))
+    dpos = (rng.integers(0, size, ndef), rng.integers(0, size, ndef))
+    mapmask = np.zeros((size, size), dtype=bool)
+    mapmask[dpos] = True
+    frames = []
+    for k in range(n):
+        y = np.zeros((size, size))
+        y += (fr * frow)[:, None] + (fc * fcol)[None, :] + lf_fixed * pat1 + white_f * fpix
+        y += (mr * rng.normal(0, 1, size))[:, None] + (mc * rng.normal(0, 1, size))[None, :] + lf_move * rng.normal() * pat2 + white_t * rng.normal(0, 1, (size, size))
+        y[dpos] += defval
+        frames.append(y)
+    return frames, mapmask
+
+
+def run_group(frames, mapmask, order):
+    dec = [decompose(f, mapmask, order) for f in frames]
+    mv = group_moving(dec)
+    res = []
+    for d, m in zip(dec, mv):
+        r = dict(d)
+        r.update(m)
+        r['F_R'] = d['V_R'] - m['M_R']
+        r['F_C'] = d['V_C'] - m['M_C']
+        r['F_L'] = d['V_L'] - m['M_L']
+        r['F_W'] = d['V_W'] - m['M_W']
+        res.append(r)
+    return res
+
+
+def mean_of(res, key):
+    return float(np.mean([r[key] for r in res]))
+
+
+def selftest():
+    fails = []
+
+    def check(name, cond, info):
+        say('  %-68s %s  %s' % (name, 'OK  ' if cond else 'FAIL', info))
+        if not cond:
+            fails.append(name)
+
+    for order in ('A', 'B'):
+        say('=' * 110)
+        say('SELFTEST order %s' % order)
+        # A 64 x 64 block mean keeps only the part of a pattern that is smooth over a block: a sinusoid of wavelength lam keeps the amplitude fraction sin(pi b / lam) / (pi b / lam) per axis, so the energy
+        # fraction (pi b / lam)-sinc to the fourth power for the product of two sinusoids; the rest of its energy is at the pixel scale and lands in the white terms. The expectation of the low-frequency
+        # controls below is that analytic fraction (written from the pattern, not from the output).
+        def keep(lam):
+            x = np.pi * BLK / lam
+            return float((np.sin(x) / x) ** 4)
+        for label, kw, key, other_small, nfr, expect in (
+                ('moving rows only', dict(mr=0.003), 'M_R', ('F_R', 'M_C', 'F_C', 'M_L', 'F_L'), 4, 1.0),
+                ('fixed rows only', dict(fr=0.002), 'F_R', ('M_R', 'M_C', 'F_C', 'M_L', 'F_L'), 4, 1.0),
+                ('moving columns only', dict(mc=0.003), 'M_C', ('F_C', 'M_R', 'F_R', 'M_L', 'F_L'), 4, 1.0),
+                ('fixed columns only', dict(fc=0.002), 'F_C', ('M_C', 'M_R', 'F_R', 'M_L', 'F_L'), 4, 1.0),
+                ('fixed low-frequency pattern only (wavelength 384)', dict(lf_fixed=0.003), 'F_L', ('M_L', 'M_R', 'F_R', 'M_C', 'F_C'), 4, keep(384.0)),
+                ('moving low-frequency pattern only (wavelength 256, 12 frames)', dict(lf_move=0.003), 'M_L', ('F_L', 'M_R', 'F_R', 'M_C', 'F_C'), 12, keep(256.0))):
+            fr, mm = synth(**kw, n=nfr, seed=11)
+            res = run_group(fr, mm, order)
+            tot = mean_of(res, 'V_tot')
+            share = mean_of(res, key) / tot
+            others = {k: mean_of(res, k) / tot for k in other_small}
+            # the moving / fixed split of a pattern whose only freedom is one random amplitude per frame has the sampling error of a variance estimated from 12 draws (about 40 %): for that control the
+            # moving and fixed shares are asserted together (they must add up to the analytic fraction) and the fixed share must stay within 0.08 of zero
+            share_eff = share + others['F_L'] if key == 'M_L' else share
+            ok = abs(share_eff - expect) <= (0.12 if expect == 1.0 else 0.03) and all(abs(v) <= 0.08 for v in others.values()) and all(abs(r['V_sum'] - r['V_tot']) < 1e-12 * max(r['V_tot'], 1e-30) for r in res)
+            check(label, ok, '%s share %.3f (expected %.3f), others %s, sum exact' % (key, share, expect, ' '.join('%s %+.3f' % kv for kv in others.items())))
+        fr, mm = synth(ndef=40, defval=0.05, seed=12)
+        res = run_group(fr, mm, order)
+        sh = mean_of(res, 'V_D') / mean_of(res, 'V_tot')
+        check('defect pixels only (in the map)', sh >= 0.97, 'defect share %.4f, defect pixels %d' % (sh, res[0]['n_def']))
+        fr, mm = synth(ndef=40, defval=0.15, white_t=0.008, seed=13)
+        res = run_group(fr, np.zeros_like(mm), order)
+        ev = 40 * 0.15 ** 2 / 768 ** 2
+        check('defects NOT in the map, on white noise: found as robust outliers (about 19 sigma)', abs(mean_of(res, 'V_D') / ev - 1) < 0.15 and 38 <= res[0]['n_out_extra'] <= 60,
+              'defect energy %.3e vs %.3e, outliers outside the map %d (40 injected)' % (mean_of(res, 'V_D'), ev, res[0]['n_out_extra']))
+        fr, mm = synth(white_t=0.008, seed=14)
+        res = run_group(fr, mm, order)
+        tot = mean_of(res, 'V_tot')
+        check('temporal white noise only: white moving share', mean_of(res, 'M_W') / tot >= 0.97 and abs(mean_of(res, 'M_W') / (0.008 ** 2) - 1) < 0.05, 'M_W/total %.4f, M_W/sigma^2 %.3f' % (mean_of(res, 'M_W') / tot, mean_of(res, 'M_W') / 0.008 ** 2))
+        small = (mean_of(res, 'M_R') + mean_of(res, 'F_R') + mean_of(res, 'M_C') + mean_of(res, 'F_C') + mean_of(res, 'M_L') + mean_of(res, 'F_L')) / tot
+        check('NEGATIVE control: white only -> rows+columns+low frequency below 2 %', abs(small) < 0.02, 'sum of the six line/low-frequency terms %.4f of total' % small)
+        fr, mm = synth(white_f=0.003, seed=15)
+        res = run_group(fr, mm, order)
+        tot = mean_of(res, 'V_tot')
+        check('fixed pixel pattern only: white fixed share', mean_of(res, 'F_W') / tot >= 0.95, 'F_W/total %.4f' % (mean_of(res, 'F_W') / tot))
+        # the mixed case of the method: each component against its injected value (white leakage into the line means added)
+        s = dict(fr=0.0020, mr=0.0030, fc=0.0015, mc=0.0010, lf_fixed=0.002, lf_move=0.0008, ndef=40, defval=0.05, white_t=0.008, white_f=0.003)
+        fr, mm = synth(**s, seed=16)
+        res = run_group(fr, mm, order)
+        W = 768
+        leak_t, leak_f = s['white_t'] ** 2 / W, s['white_f'] ** 2 / W
+        exp = dict(M_R=s['mr'] ** 2 + leak_t, F_R=s['fr'] ** 2 + leak_f, M_C=s['mc'] ** 2 + leak_t, F_C=s['fc'] ** 2 + leak_f)
+        for kname, ev in exp.items():
+            got = mean_of(res, kname)
+            check('mixed case %s (expected %.3e incl. white leakage)' % (kname, ev), abs(got / ev - 1) < 0.2, 'got %.3e (%+.1f %%)' % (got, 100 * (got / ev - 1)))
+        check('mixed case M_W within 10 % of the injected temporal white variance', abs(mean_of(res, 'M_W') / s['white_t'] ** 2 - 1) < 0.10, 'M_W %.3e vs %.3e' % (mean_of(res, 'M_W'), s['white_t'] ** 2))
+        check('mixed case: defect energy within 20 % of 40 * 0.05^2 / N', abs(mean_of(res, 'V_D') / (40 * 0.05 ** 2 / 768 ** 2) - 1) < 0.35, 'V_D %.3e vs %.3e (%d pixels in the defect set)' % (mean_of(res, 'V_D'), 40 * 0.05 ** 2 / 768 ** 2, res[0]['n_def']))
+        check('mixed case: components add up to the total in every frame', all(abs(r['V_sum'] - r['V_tot']) < 1e-12 * r['V_tot'] for r in res), 'max |sum - total| / total %.1e' % max(abs(r['V_sum'] - r['V_tot']) / r['V_tot'] for r in res))
+    # the standard formulas on a known image
+    say('=' * 110)
+    say('SELFTEST standard formulas')
+    rng = np.random.default_rng(5)
+    size = 768
+    img = rng.normal(0, 1.0, (size, size))
+    t = tg150(img)
+    check('TG-150 eq.(37): uncorrelated noise gives SD_row / prediction = 1 (+-10 %)', abs(t['r_row'] - 1) < 0.1 and abs(t['r_col'] - 1) < 0.1, 'ratios %.3f %.3f' % (t['r_row'], t['r_col']))
+    rowpat = rng.normal(0, 0.2, size)
+    t2 = tg150(img + rowpat[:, None])
+    check('TG-150: a row pattern of sigma 0.2 on white sigma 1 gives SD_row / prediction near sqrt(1 + 0.2^2 * 768) = 5.6', abs(t2['r_row'] / np.sqrt(1 + 0.04 * size) - 1) < 0.15 and abs(t2['r_col'] - 1) < 0.1, 'row ratio %.2f (expected %.2f), column ratio %.3f' % (t2['r_row'], np.sqrt(1 + 0.04 * size), t2['r_col']))
+    # EMVA eq. (39): rows, columns, pixels of an image with known spatial variances (L = 1, temporal variance 0)
+    s_row, s_col, s_pix = 0.3, 0.2, 1.0
+    im = rng.normal(0, s_pix, (size, size)) + rng.normal(0, s_row, size)[:, None] + rng.normal(0, s_col, size)[None, :]
+    r, c, p = emva(im.var(), im.mean(axis=0), im.mean(axis=1), 0.0, 1, size, size)
+    check('EMVA eq.(39) recovers the injected row / column / pixel spatial variances (+-25 %, +-5 % for pixels)', abs(r / s_row ** 2 - 1) < 0.25 and abs(c / s_col ** 2 - 1) < 0.25 and abs(p / s_pix ** 2 - 1) < 0.05,
+          'row %.3f (%.3f), column %.3f (%.3f), pixel %.3f (%.3f); sum %.4f vs total %.4f' % (r, s_row ** 2, c, s_col ** 2, p, s_pix ** 2, r + c + p, im.var()))
+    say('=' * 110)
+    say('SELFTEST RESULT: %s' % ('all controls give the designed values' if not fails else 'FAILED: %s' % fails))
+    assert not fails, fails
+
+
+# ---------------------------------------------------------------------------------------------------- real data
+FLAT_GROUPS = [('A', [17, 18, 19]), ('B', [20, 21, 22]), ('C', [23, 24, 25, 26, 27, 28]), ('C-eval', [29, 30]), ('D', [31, 32, 33]), ('E', [34, 35, 36])]
+
+
+def analyse_group(images, names, S_counts, official, mapmask, label, units_note=''):
+    """images: list of 2-D arrays (relative for flats, counts for darks). Returns a dict with per-frame decompositions (orders A and B), moving/fixed split, TG-150, EMVA and the group average."""
+    n = len(images)
+    N = images[0].size
+    h, w = images[0].shape
+    decA = [decompose(y, mapmask, 'A') for y in images]
+    decB = [decompose(y, mapmask, 'B') for y in images]
+    mvA, mvB = group_moving(decA), group_moving(decB)
+    s1 = np.zeros(images[0].shape)
+    s2 = np.zeros(images[0].shape)
+    for y in images:
+        s1 += y
+        s2 += y * y
+    sigma2 = float(((s2 - s1 * s1 / n) / (n - 1)).mean()) if n > 1 else float('nan')   # EMVA eq. (57): mean over the pixels of the temporal variance
+    yavg = s1 / n
+    del s1, s2
+    tg = [tg150(y) for y in images]
+    tg_avg = tg150(yavg)
+    emva_single = []
+    for y in images:
+        emva_single.append(emva(float(y.var()), y.mean(axis=0), y.mean(axis=1), sigma2, 1, h, w))
+    avg_var = float(yavg.var()) - sigma2 / n                                      # eq. (31)
+    emva_avg = emva(avg_var, yavg.mean(axis=0), yavg.mean(axis=1), sigma2, n, h, w)
+    avgdec = decompose(yavg, mapmask, 'A')
+    return dict(label=label, names=names, S=S_counts, official=official, decA=decA, decB=decB, mvA=mvA, mvB=mvB, sigma2=sigma2, tg=tg, tg_avg=tg_avg, emva_single=emva_single, emva_avg=emva_avg, avgdec=avgdec,
+                avg_var=avg_var, N=N)
+
+
+def real():
+    exec(open(EV3 + '20_dll.py.txt', encoding='utf-8').read(), globals())
+    S = 3072
+    n = S * S
+    init()
+    load_set(SETD + 'offset.xcal', SETD + 'gain.xcal')
+    Omap = read_payload(SETD + 'offset.xcal', n).reshape(S, S).astype(np.float64)
+    Gmap = read_payload(SETD + 'gain.xcal', n).reshape(S, S)
+    mapmask = (np.fromfile(M60 + 'clean_v1_setmap.u8', dtype=np.uint8).reshape(S, S) != 0) | (np.fromfile(M60 + 'clean_v2_setmap.u8', dtype=np.uint8).reshape(S, S) != 0)
+    say('defect map pixels (first-edition clean set | second-edition clean plane): %d' % mapmask.sum())
+    out = dict(flat={}, dark={})
+    for gname, ids in FLAT_GROUPS:
+        images, S_counts, official = [], [], []
+        for k in ids:
+            raw = np.fromfile(CAL + 'Bright_%d.raw' % k, dtype='<u2').reshape(S, S)
+            c16 = offset_correct(raw)
+            Y = gain_correct(c16)
+            Yd = Y.astype(np.float64)
+            meanY = float(Yd.mean())
+            off = float(Yd.std(ddof=1) / meanY * 100)
+            if k == 17:
+                mt = verify_gain(c16, Y, Gmap)
+                assert abs(off - mt.prnu_after) < 1e-9, (off, mt.prnu_after)
+                say('check: Bright_17 official FlatResidualPct from the library %.9f, from this code %.9f' % (mt.prnu_after, off))
+            images.append(Yd / meanY - 1.0)
+            S_counts.append(meanY)
+            official.append(off)
+        out['flat'][gname] = analyse_group(images, ids, S_counts, official, mapmask, gname)
+        del images
+        say('flat group %s done' % gname)
+    # darks: corrected = raw - offset map (signed, float, no clamp). Group for the moving/fixed split: Dark_08..16 (the first dark Dark_07 is analysed apart against the same group mean)
+    darks = {}
+    for k in range(7, 17):
+        darks[k] = np.fromfile(CAL + 'Dark_%02d.raw' % k, dtype='<u2').reshape(S, S).astype(np.float64) - Omap
+    grp = list(range(8, 17))
+    out['dark']['08-16'] = analyse_group([darks[k] for k in grp], grp, [0.0] * len(grp), [float(darks[k].std(ddof=1)) for k in grp], mapmask, 'dark 08-16')
+    out['dark']['07'] = analyse_group([darks[7], darks[8]], [7, 8], [0.0, 0.0], [float(darks[7].std(ddof=1)), float(darks[8].std(ddof=1))], mapmask, 'dark 07 (with 08 as the partner; the moving numbers of this pair are not used)')
+    out['dark_mean'] = {k: float(v.mean()) for k, v in darks.items()}
+    say('dark group done')
+    return out
+
+
+def pct(v, t):
+    return 100.0 * v / t
+
+
+def print_report(out):
+    say('=' * 150)
+    say('TABLE 1 -- variance budget of FlatResidualPct per frame (shares in % of the total variance = official FlatResidualPct^2), order A: rows -> columns -> 64 x 64 blocks -> pixels.')
+    say('  moving = frame-to-frame within the same-dose group (n/(n-1) unbiased estimate); fixed = total - moving (slightly negative values are estimation noise). * = the frames that made the gain map (their fixed parts are suppressed).')
+    say('  frame      official%  |  row mov   row fix | col mov   col fix | low-freq mov   fix |  defects (map / extra outliers)  | white temporal | white fixed |  SUM  | total vs library')
+    for gname, g in out['flat'].items():
+        for i, k in enumerate(g['names']):
+            d, m = g['decA'][i], g['mvA'][i]
+            T = d['V_tot']
+            fR, fC, fL, fW = d['V_R'] - m['M_R'], d['V_C'] - m['M_C'], d['V_L'] - m['M_L'], d['V_W'] - m['M_W']
+            parts = [m['M_R'], fR, m['M_C'], fC, m['M_L'], fL, d['V_D'], m['M_W'], fW]
+            chk = d['V_tot'] * g['N'] / (g['N'] - 1.0) / (g['official'][i] / 100.0) ** 2 - 1.0
+            say('  Bright_%d%s %8.4f  | %7.2f %8.2f | %7.2f %8.2f | %7.2f %8.2f | %7.2f   (%6d / %5d)          | %9.2f      | %7.2f     | %6.2f | %+.1e' %
+                (k, '*' if gname == 'C' else ' ', g['official'][i], pct(parts[0], T), pct(parts[1], T), pct(parts[2], T), pct(parts[3], T), pct(parts[4], T), pct(parts[5], T), pct(parts[6], T),
+                 d['n_map'], d['n_out_extra'], pct(parts[7], T), pct(parts[8], T), pct(sum(parts), T), chk))
+    say('  (the group A rows with the first frame Bright_17 included in the group mean; the sensitivity variant without it follows)')
+    ga = out['flat']['A']
+    pair = [1, 2]
+    for key, nm in (('a', 'row'), ('b', 'col'), ('m', 'low-freq')):
+        vec = np.array([ga['decA'][i][key] for i in pair])
+        mv = float(((vec[0] - vec[1]) ** 2).mean() / 2.0)
+        say('  variant, moving %s energy estimated from Bright_18 and Bright_19 only: %.3e (vs the three-frame estimate %.3e mean of frames)' % (nm, mv, float(np.mean([m['M_' + {'a': 'R', 'b': 'C', 'm': 'L'}[key]] for m in ga['mvA']]))))
+    say('=' * 150)
+    say('TABLE 2 -- order B (blocks -> rows -> columns -> pixels) against order A: share of the total variance in % (row = row component V_R, col, low-freq, defect, white as TOTAL of moving+fixed)')
+    say('  frame        row A / B     col A / B     low-freq A / B   defects A / B   white A / B   (the largest A-B difference of a frame in percentage points)')
+    worst = 0.0
+    for gname, g in out['flat'].items():
+        for i, k in enumerate(g['names']):
+            a, b = g['decA'][i], g['decB'][i]
+            T = a['V_tot']
+            pa = [pct(a[x], T) for x in ('V_R', 'V_C', 'V_L', 'V_D', 'V_W')]
+            pb = [pct(b[x], b['V_tot']) for x in ('V_R', 'V_C', 'V_L', 'V_D', 'V_W')]
+            dmax = max(abs(x - y) for x, y in zip(pa, pb))
+            worst = max(worst, dmax)
+            say('  Bright_%d  %6.2f / %6.2f  %6.2f / %6.2f  %6.2f / %6.2f   %6.2f / %6.2f   %6.2f / %6.2f   %.2f' % ((k,) + tuple(v for pair_ in zip(pa, pb) for v in pair_) + (dmax,)))
+    say('  largest A-B difference over all flat frames and components: %.2f percentage points' % worst)
+    say('=' * 150)
+    say('TABLE 3 -- amplitudes in pixel values (counts): the moving row / column amplitude sigma = sqrt(moving energy) x the frame mean signal S (flat) or directly (dark). A readout origin predicts a constant; a dose origin predicts proportionality to S.')
+    say('  group   n   mean signal S   moving row sigma [counts]   moving col sigma [counts]   white temporal sigma [counts]')
+    rows = []
+    for gname, g in out['flat'].items():
+        mR = np.mean([m['M_R'] for m in g['mvA']])
+        mC = np.mean([m['M_C'] for m in g['mvA']])
+        mW = np.mean([m['M_W'] for m in g['mvA']])
+        S = float(np.mean(g['S']))
+        say('  %-7s %d   %10.0f      %10.3f                  %10.3f                  %10.3f' % (gname, len(g['names']), S, np.sqrt(mR) * S, np.sqrt(mC) * S, np.sqrt(mW) * S))
+        if gname != 'C-eval':
+            rows.append((S, mR * S * S, mC * S * S, mW * S * S))
+    gd = out['dark']['08-16']
+    dR = np.mean([m['M_R'] for m in gd['mvA']])
+    dC = np.mean([m['M_C'] for m in gd['mvA']])
+    dW = np.mean([m['M_W'] for m in gd['mvA']])
+    say('  dark    9   %10.0f      %10.3f                  %10.3f                  %10.3f   (Dark_08~16, offset-corrected, no X-ray)' % (0, np.sqrt(dR), np.sqrt(dC), np.sqrt(dW)))
+    arr = np.array(rows)
+    S_arr = arr[:, 0]
+    for nm, col in (('moving row', 1), ('moving column', 2)):
+        A_ = np.vstack([np.ones(len(S_arr)), S_arr ** 2]).T
+        (a_, b_), *_ = np.linalg.lstsq(A_, arr[:, col], rcond=None)
+        say('  least-squares fit of the %s variance [counts^2] = a + b S^2 over the five flat doses: a = %.4f (dark: %.4f), b = %.3e; b S^2 at the highest dose = %.4f' % (nm, a_, dR if col == 1 else dC, b_, b_ * S_arr.max() ** 2))
+    A_ = np.vstack([np.ones(len(S_arr)), S_arr]).T
+    (v0, kap), *_ = np.linalg.lstsq(A_, arr[:, 3], rcond=None)
+    say('  white temporal variance [counts^2] = v0 + kappa S (Poisson plus readout): v0 = %.3f (dark white: %.3f), kappa = %.4f; residuals per dose %s' % (v0, dW, kap, ' '.join('%+.2f' % v for v in (arr[:, 3] - A_ @ np.array([v0, kap])))))
+    say('=' * 150)
+    say('TABLE 4 -- the budget of the corrected dark (offset map subtracted, signed, no clamp), units: counts^2. Mean (DarkBias, signed) removed. Frames Dark_08~14 made the offset map (their fixed parts are suppressed: in-sample); Dark_15, 16 are out of sample; Dark_07 is the first dark.')
+    say('  frame      std [counts]  | row mov    row fix | col mov    col fix | low-freq mov   fix |   defects   | white temporal | white fixed |  SUM   | share of the total in % for the same columns')
+    for i, k in enumerate(gd['names']):
+        d, m = gd['decA'][i], gd['mvA'][i]
+        T = d['V_tot']
+        fR, fC, fL, fW = d['V_R'] - m['M_R'], d['V_C'] - m['M_C'], d['V_L'] - m['M_L'], d['V_W'] - m['M_W']
+        parts = [m['M_R'], fR, m['M_C'], fC, m['M_L'], fL, d['V_D'], m['M_W'], fW]
+        say('  Dark_%02d%s %9.3f   | %7.3f %8.3f | %7.3f %8.3f | %7.3f %8.3f | %9.3f   | %9.3f      | %8.3f    | %7.3f | %s' %
+            (k, '*' if 8 <= k <= 14 else ' ', gd['official'][i], parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7], parts[8], sum(parts), ' '.join('%5.2f' % pct(p, T) for p in parts)))
+    d7 = out['dark']['07']
+    d, m = d7['decA'][0], None
+    gmean_a = np.mean([x['a'] for x in gd['decA']], axis=0)
+    gmean_b = np.mean([x['b'] for x in gd['decA']], axis=0)
+    say('  Dark_07 (first dark): total variance %.3f counts^2; row component %.3f, column component %.3f, moving-row energy against the Dark_08~16 mean row profile %.3f (columns %.3f); signed mean (DarkBias) %+.3f' %
+        (d['V_tot'], d['V_R'], d['V_C'], float(((d['a'] - gmean_a) ** 2).mean()), float(((d['b'] - gmean_b) ** 2).mean()), out['dark_mean'][7]))
+    say('  the signed frame means (DarkBias) per dark: ' + ' '.join('%d: %+.3f' % (k, v) for k, v in sorted(out['dark_mean'].items())))
+    say('=' * 150)
+    say('TABLE 5 -- TG-150 section 4.3.9 method A (eq. 34-37) per frame: SD_row, SD_col and the uncorrelated-noise prediction N_IR / sqrt(N) with N_IR from eq. (26) over 64 x 64 ROIs; D_n of eq. (35): the largest |D_n| in units of its predicted sigma (1.2247 x the profile prediction) and the number of rows / columns above 3 sigma.')
+    say('  frame      units      SD_row   pred_row  ratio  | SD_col   pred_col  ratio  | N_IR     | max|D_row|/sigma  n>3 | max|D_col|/sigma  n>3')
+    for gname, g in out['flat'].items():
+        for i, k in enumerate(g['names']):
+            t = g['tg'][i]
+            say('  Bright_%d%s  relative %.3e %.3e %6.2f | %.3e %.3e %6.2f | %.3e | %10.1f  %5d | %10.1f  %5d' % (k, '*' if gname == 'C' else ' ', t['sd_row'], t['pred_row'], t['r_row'], t['sd_col'], t['pred_col'], t['r_col'], t['n_ir'], t['dr_max'], t['dr_n3'], t['dc_max'], t['dc_n3']))
+        t = g['tg_avg']
+        say('  group %s average image (n=%d): SD_row/pred %.2f, SD_col/pred %.2f (the prediction uses the single-pixel noise of the average image)' % (gname, len(g['names']), t['r_row'], t['r_col']))
+    for i, k in enumerate(gd['names'] + [7]):
+        t = gd['tg'][i] if k != 7 else d7['tg'][0]
+        say('  Dark_%02d%s  counts   %.3e %.3e %6.2f | %.3e %.3e %6.2f | %.3e | %10.1f  %5d | %10.1f  %5d' % (k, '*' if 8 <= k <= 14 else ' ', t['sd_row'], t['pred_row'], t['r_row'], t['sd_col'], t['pred_col'], t['r_col'], t['n_ir'], t['dr_max'], t['dr_n3'], t['dc_max'], t['dc_n3']))
+    say('=' * 150)
+    say('TABLE 6 -- EMVA 1288 4.0 eq. (31)-(39) against this decomposition. s2 values as shares of the (corrected) total spatial variance in %. sigma2_y = mean temporal variance over the pixels of the group (eq. 57).')
+    say('  EMVA pixel = this decomposition\'s low-frequency + defect + white (EMVA 4.0 has no low-frequency term). Rows: EMVA row, column, pixel | this decomposition R, C, L+D+W | difference in percentage points')
+    for gname, g in out['flat'].items():
+        n_ = len(g['names'])
+        e = g['emva_avg']
+        a = g['avgdec']
+        Tm = g['avg_var']
+        corr_total = a['V_tot'] - g['sigma2'] / n_
+        say('  group %-6s average of L=%d: sigma2_y %.3e, total spatial variance after eq. (31) %.3e (before %.3e)' % (gname, n_, g['sigma2'], corr_total, a['V_tot']))
+        say('      EMVA   row %7.2f  col %7.2f  pixel %7.2f  (sum %.2f) | decomposition R %7.2f  C %7.2f  L+D+W %7.2f | diff %+.2f  %+.2f  %+.2f' %
+            (pct(e[0], Tm), pct(e[1], Tm), pct(e[2], Tm), pct(sum(e), Tm), pct(a['V_R'], Tm), pct(a['V_C'], Tm), pct(a['V_L'] + a['V_D'] + a['V_W'], Tm),
+             pct(e[0], Tm) - pct(a['V_R'], Tm), pct(e[1], Tm) - pct(a['V_C'], Tm), pct(e[2], Tm) - pct(a['V_L'] + a['V_D'] + a['V_W'], Tm)))
+        for i, k in enumerate(g['names']):
+            d = g['decA'][i]
+            e1 = g['emva_single'][i]
+            say('      single frame Bright_%d (L=1): EMVA row %7.2f  col %7.2f  pixel %7.2f | decomposition R %7.2f  C %7.2f  L+D+W %7.2f (shares of the single-frame total)' %
+                (k, pct(e1[0], d['V_tot']), pct(e1[1], d['V_tot']), pct(e1[2], d['V_tot']), pct(d['V_R'], d['V_tot']), pct(d['V_C'], d['V_tot']), pct(d['V_L'] + d['V_D'] + d['V_W'], d['V_tot'])))
+    e = gd['emva_avg']
+    a = gd['avgdec']
+    say('  dark group Dark_08~16 average (L=9): sigma2_y %.3f counts^2; EMVA row %.4f col %.4f pixel %.4f counts^2 | decomposition R %.4f C %.4f L+D+W %.4f' % (gd['sigma2'], e[0], e[1], e[2], a['V_R'], a['V_C'], a['V_L'] + a['V_D'] + a['V_W']))
+    for i, k in enumerate(gd['names']):
+        e1 = gd['emva_single'][i]
+        d = gd['decA'][i]
+        say('      Dark_%02d (L=1): EMVA row %.4f col %.4f pixel %.4f counts^2 | decomposition R %.4f C %.4f L+D+W %.4f' % (k, e1[0], e1[1], e1[2], d['V_R'], d['V_C'], d['V_L'] + d['V_D'] + d['V_W']))
+
+
+if __name__ == '__main__':
+    if '--selftest' in sys.argv:
+        selftest()
+    elif '--real' in sys.argv:
+        out = real()
+        print_report(out)
+    else:
+        print(__doc__)
