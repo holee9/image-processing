@@ -1,0 +1,16 @@
+"""QA-A-272: control for the local clang-tidy gate. The gate is run with the PRE-FIX xpe_verify_metrics.cpp (HEAD) in place; it must report the rounding findings CI reported (bugprone-incorrect-roundings in that file, above its baseline of 0).
+The fixed file is restored afterwards and the restore is verified by hash. Usage: python -X utf8 50_tidy_control.py.txt > 51_tidy_control.txt"""
+import hashlib, subprocess
+SRC = 'modules/preprocess/src/xpe_verify_metrics.cpp'
+fixed = open(SRC, 'rb').read()
+h0 = hashlib.sha256(fixed).hexdigest()[:16]
+old = subprocess.run(['git', 'show', 'HEAD:' + SRC], capture_output=True).stdout
+try:
+    open(SRC, 'wb').write(old)
+    subprocess.run(['cmd.exe', '/c', 'C:/Users/drake/AppData/Local/Temp/tidy272.bat'.replace('/', chr(92))], capture_output=True, timeout=3000)
+    import shutil
+    shutil.move('.moai/reports/lane-pre/QA-A-272/evidence/31_tidy_gate_preprocess.txt', '.moai/reports/lane-pre/QA-A-272/evidence/52_tidy_gate_prefix_source.txt')
+    shutil.copy('.moai/reports/lane-pre/QA-A-272/evidence/31_tidy_gate_preprocess.fixed.txt', '.moai/reports/lane-pre/QA-A-272/evidence/31_tidy_gate_preprocess.txt')
+finally:
+    open(SRC, 'wb').write(fixed)
+    print('source hash before %s after %s -> %s' % (h0, hashlib.sha256(open(SRC, 'rb').read()).hexdigest()[:16], 'restored' if hashlib.sha256(open(SRC, 'rb').read()).hexdigest()[:16] == h0 else 'NOT RESTORED'))

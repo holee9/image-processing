@@ -1007,10 +1007,18 @@ void publish_quality(XpeOffsetQuality* out, const XpeOffsetQuality& local) noexc
 
 /** The error result: the 32-byte head zeroed (structSize kept), nothing past it touched. Caller checked structSize >= 32. */
 XpeErrorCode quality_failure(XpeOffsetQuality* out, XpeErrorCode rc) noexcept {
-    const uint32_t cap = out->structSize;
-    std::memset(out, 0, kQualityHeadSize);
-    out->structSize = cap;
+    // QA-A-272: a value-initialised local copied over the head (the head holds integers only: structSize, writtenSize, validMask, roiPixels, pixelCount, mapWidth, mapHeight), not a memset on a struct with float members
+    XpeOffsetQuality zero{};
+    zero.structSize = out->structSize;
+    std::memcpy(out, &zero, kQualityHeadSize);
     return rc;
+}
+
+/** The UINT16 output of the offset stage for one pixel: the shipped rule itself (xpe_offset_apply_scalar_reference, the comparand of the AVX2 kernel's parity test), so the value is the one xpe_verify_offset's corrected frame holds. QA-A-272 */
+uint16_t offset_output_u16(uint16_t raw, float map) noexcept {
+    uint16_t out = 0;
+    xpe_offset_apply_scalar_reference(&raw, &map, &out, 1);
+    return out;
 }
 
 XpeErrorCode verify_offset_signed_impl(const XpeImageBuffer* raw_image, const XpeImageBuffer* offset_map, XpeOffsetQuality* quality) {
@@ -1054,11 +1062,9 @@ XpeErrorCode verify_offset_signed_impl(const XpeImageBuffer* raw_image, const Xp
     // whole-frame clamp counts: before the floor (x < 0) and after the rounding (o == 0)
     size_t below_zero = 0, zero_out = 0;
     for (size_t i = 0; i < n; ++i) {
-        float x = static_cast<float>(raw[i]) - map[i];
+        const float x = static_cast<float>(raw[i]) - map[i];
         if (x < 0.0f) ++below_zero;
-        if (x < 0.0f) x = 0.0f;
-        if (x > 65535.0f) x = 65535.0f;
-        if (static_cast<uint16_t>(x + 0.5f) == 0) ++zero_out;
+        if (offset_output_u16(raw[i], map[i]) == 0) ++zero_out;
     }
     r.clampRatePct = 100.0 * static_cast<double>(below_zero) / static_cast<double>(n);
     r.zeroOutputRatePct = 100.0 * static_cast<double>(zero_out) / static_cast<double>(n);
@@ -1089,10 +1095,7 @@ XpeErrorCode verify_offset_signed_impl(const XpeImageBuffer* raw_image, const Xp
             if (raw[i] < threshold) {
                 float x = static_cast<float>(raw[i]) - map[i];
                 sx.push_back(static_cast<double>(x));
-                float c = x;
-                if (c < 0.0f) c = 0.0f;
-                if (c > 65535.0f) c = 65535.0f;
-                so.push_back(static_cast<double>(static_cast<uint16_t>(c + 0.5f)));
+                so.push_back(static_cast<double>(offset_output_u16(raw[i], map[i])));
                 sr.push_back(static_cast<double>(raw[i]));
             }
         }

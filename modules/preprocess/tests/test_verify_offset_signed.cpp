@@ -29,6 +29,7 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xpe/preprocess_api.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
 
 namespace fs = std::filesystem;
 
@@ -554,6 +555,48 @@ TEST(VerifyOffsetSigned, AResidualAbove65535SaturatesTheOutputAndTheRelationsNam
     EXPECT_LE(std::fabs(q.darkBiasOutput - ms), 0.5) << "always: |output - m_s| <= 0.5";
     EXPECT_GT(std::fabs(q.darkBiasOutput - m0), 0.5) << "|output - m_0| <= 0.5 needs x <= 65535: here it is 100";
     EXPECT_LT(q.darkBiasOutput, q.darkBiasSigned) << "and integer residuals do not give output >= signed when they exceed 65535";
+}
+
+TEST(VerifyOffsetSigned, TheUint16OutputRoundsHalfUpAndClampsLikeTheShippedStageAtTheBoundaries) {
+    // QA-A-272: the output value is the shipped offset stage's own rule (xpe_offset_apply_scalar_reference, the comparand of the AVX2 kernel), not a second copy of its arithmetic.
+    // Residuals chosen so that raw - map is exact in float32 (at most 8 fractional bits): half up (0.5 -> 1, 1.5 -> 2, 2.5 -> 3), just below a half stays down, negatives clamp to 0, 65535 and above saturate.
+    struct Case { float x; uint16_t out; };
+    const Case cases[] = {{0.49609375f, 0}, {0.5f, 1}, {0.50390625f, 1}, {1.5f, 2}, {2.5f, 3}, {-0.5f, 0}, {-100.0f, 0}, {0.0f, 0}, {65534.5f, 65535}, {65534.99609375f, 65535}, {65535.0f, 65535},
+                          {65535.5f, 65535}, {70000.0f, 65535}};
+    for (const Case& c : cases) {
+        std::vector<uint16_t> raw = variedRaw();
+        std::vector<float> map(raw.size());
+        for (size_t i = 0; i < raw.size(); ++i) map[i] = static_cast<float>(raw[i]) - c.x;
+        for (size_t i = 0; i < raw.size(); ++i) ASSERT_EQ(c.x, static_cast<float>(raw[i]) - map[i]) << "the test's residual must be exact: x = " << c.x;
+        uint16_t shipped = 0;
+        xpe_offset_apply_scalar_reference(&raw[0], &map[0], &shipped, 1);
+        EXPECT_EQ(c.out, shipped) << "the table disagrees with the shipped rule at x = " << c.x;
+        const XpeOffsetQuality q = measure(raw, map);
+        ASSERT_NE(0u, q.validMask & XPE_OFFSETQ_ROI_OUTPUT) << "x = " << c.x;
+        EXPECT_EQ(static_cast<double>(c.out), q.darkBiasOutput) << "x = " << c.x;
+        EXPECT_EQ(0.0, q.dsnuOutput) << "x = " << c.x;
+        EXPECT_EQ(c.out == 0 ? 100.0 : 0.0, q.zeroOutputRatePct) << "x = " << c.x;
+        EXPECT_EQ(c.x < 0.0f ? 100.0 : 0.0, q.clampRatePct) << "x = " << c.x;
+    }
+    // The float32 addition is part of the rule: 0.5 - 2^-25 plus 0.5 is 1 - 2^-25 in exact arithmetic, a tie in float32 that rounds to 1.0, so the shipped stage gives 1 where a round-to-nearest of x gives 0.
+    // raw 0 with map = -x makes that x exact (a raw of 0 is a legal dark value). 5 zeros are the darkest 5 % of 100 pixels, the ROI.
+    {
+        const float x = std::nextafter(0.5f, 0.0f);
+        std::vector<uint16_t> raw(100, 1000);
+        for (size_t i = 0; i < 5; ++i) raw[i] = 0;
+        std::vector<float> map(raw.size());
+        for (size_t i = 0; i < raw.size(); ++i) map[i] = static_cast<float>(raw[i]) - ((i < 5) ? x : 0.0f);
+        uint16_t shipped = 7;
+        xpe_offset_apply_scalar_reference(&raw[0], &map[0], &shipped, 1);
+        ASSERT_EQ(1, shipped) << "the premise: the shipped stage rounds this residual up";
+        XpeImageBuffer r = bufU16(raw, 100, 1), m = bufF32(map, 100, 1);
+        XpeOffsetQuality q = fresh();
+        ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &q));
+        ASSERT_NE(0u, q.validMask & XPE_OFFSETQ_ROI_OUTPUT);
+        EXPECT_EQ(5u, q.roiPixels);
+        EXPECT_EQ(1.0, q.darkBiasOutput) << "the output rounding must be the shipped stage's, not a round-to-nearest of x";
+        EXPECT_NEAR(static_cast<double>(x), q.darkBiasSigned, 1e-12);
+    }
 }
 
 TEST(VerifyOffsetSigned, EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays) {

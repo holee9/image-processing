@@ -1785,6 +1785,9 @@ XPE_API XpeErrorCode xpe_verify_offset_signed(
  * The file is validated by the module's reader (magic, type, SHA-256). Its expiry is NOT checked: this measures a stored map, it does not apply it.
  * mapSha256 is the SHA-256 of the map's float32 payload bytes (not the file header's hash over config and payload).
  *
+ * @param raw_image UINT16 raw dark frame (as for xpe_verify_offset_signed)
+ * @param offset_xcal_path Path of the XCal OFFSET file holding the map; NULL is refused (XPE_ERR_INVALID_INPUT)
+ * @param quality [in/out] the result record; its structSize says how much of it the caller can hold (as for xpe_verify_offset_signed)
  * @return the results of xpe_verify_offset_signed(), plus the reader's errors for the file (XPE_ERR_IO_FAILED, XPE_ERR_CONFIG_INVALID, ...);
  *         XPE_ERR_INVALID_INPUT if offset_xcal_path is NULL (the output rule of xpe_verify_offset_signed applies: the head of a usable @p quality is zeroed)
  */
