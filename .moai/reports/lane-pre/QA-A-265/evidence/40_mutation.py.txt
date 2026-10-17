@@ -15,7 +15,7 @@ PRED = [
     '  every other test of the filter stays green in each mutant',
 ]
 MUTANTS = [
-    ('M1', HPP, b'const int lo = std::max(p0, alongLo), hi = std::min(p0 + len, alongHi);', b'const int lo = p0, hi = p0 + len;'),
+    ('M1', HPP, b'const int lo = std::max(p0, alongLo), hi = std::min(p0 + len, alongHi);', b'const int lo = std::max(p0, alongLo) * 0 + p0, hi = std::min(p0 + len, alongHi) * 0 + p0 + len;'),
     ('M2', HPP, b'if (first - 1 < acrossLo || first + k >= acrossHi) {', b'if (false) {'),
     ('M3', HPP, b'acrossLo = row ? area.y0 : area.x0', b'acrossLo = row ? area.x0 : area.y0'),
     ('M4', HPP, b'if (hi - lo < kMinAreaExtent) {', b'if (hi - lo < 1) {'),
@@ -23,4 +23,4 @@ MUTANTS = [
     ('M6', EVAL, b'const xpe_bpm_eval::Area area{static_cast<int>(marginCfg.margin_left), ', b'const xpe_bpm_eval::Area area{0, '),
     ('M7', EVAL, b'if (a.has("margins") && !parseMargins(a, &marginCfg)) return 2;\n    const xpe_bpm_eval::Area area', b'if (a.has("margins")) parseMargins(a, &marginCfg);\n    const xpe_bpm_eval::Area area'),
 ]
-exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-265/evidence/42_runner_with_touch.py.txt', encoding='utf-8').read())
