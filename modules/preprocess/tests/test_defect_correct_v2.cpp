@@ -80,6 +80,7 @@ struct LineSpec {
     uint32_t index;
     uint32_t width;
     uint32_t start, end;    // along the line, end exclusive; the same stretch on every line of the group
+    int      reject = 0;    // 1 = the correction method of the group is REJECT whatever its width
 };
 
 class DefectCorrectV2Test : public ::testing::Test {
@@ -120,7 +121,7 @@ protected:
             r.start = l.start;
             r.end = l.end;
             r.causes = 1u;
-            r.correction = l.width >= 3u ? XPE_DEFECT_LINE_CORRECT_REJECT : XPE_DEFECT_LINE_CORRECT_INTERPOLATE;
+            r.correction = (l.width >= 3u || l.reject) ? XPE_DEFECT_LINE_CORRECT_REJECT : XPE_DEFECT_LINE_CORRECT_INTERPOLATE;
             for (uint32_t k = 0; k < l.width; ++k) r.segments.push_back({l.index + k, l.start, l.end});
             ext.lines.push_back(r);
         }
@@ -509,6 +510,17 @@ TEST_F(LowConfidenceTest, AGroupThatStraddlesTheEdgeOfTheImagingAreaMarksOnlyIts
     expectConsistent(rep, low, {33, 1});   // x = 20..30 on three rows
     for (uint32_t y = 40; y < 43; ++y)
         for (uint32_t x = 10; x < 20; ++x) ASSERT_EQ(0, low[y * W + x]) << "outside the imaging area nothing is marked: " << x << "," << y;
+}
+
+TEST_F(LowConfidenceTest, ASingleLineWhoseCorrectionMethodIsRejectIsLowToo) {
+    // the low state also follows the method recorded for the group, not only its width
+    std::vector<uint8_t> m(static_cast<size_t>(W) * H, 0);
+    for (uint32_t x = 10; x < 81; ++x) m[40 * W + x] = 1;
+    loadV2(m, {}, {{0, 40, 1, 10, 81, 1}});
+    XpeDefectCorrectionReport rep{};
+    std::vector<uint8_t>      low;
+    correct(rampFrame(), &rep, &low);
+    expectConsistent(rep, low, {71, 1});
 }
 
 TEST_F(LowConfidenceTest, AVersionOneMapReportsNoCountsBeyondTheContract) {
