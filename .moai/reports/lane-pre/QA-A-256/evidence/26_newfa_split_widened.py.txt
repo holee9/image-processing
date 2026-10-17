@@ -1,3 +1,4 @@
+# [폐기 표시, QA-A-257: 이 분해는 도구의 최종 정답·제외 규칙과 합이 맞지 않는다(2판 10,125 대 도구 1,115). 정확한 분해는 QA-A-257/evidence/21_diag_line_false_alarms.txt 를 쓴다. 판정 근거로 쓰지 않는다.]
 """QA-A-256 second version of the new-false-alarm split (diagnosis, not a score). The first version (22_newfa_split.py.txt, output 51_newfa_split.txt) did not leave out the 2-pixel margin the evaluation tool
 leaves around true-defect and undetermined items, so its totals did not match the tool's. This version leaves out the pixels within 2 of any NON-control item (the tool leaves out only the true-defect and
 undetermined items, which this script cannot tell apart from normal ones item by item, so the zone here is a superset) and reports what remains, by place and by characteristic. The tool's count stays the score.

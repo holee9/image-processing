@@ -1,3 +1,4 @@
+# [폐기 표시, QA-A-257: 이 분해는 도구의 최종 정답·제외 규칙과 합이 맞지 않는다(2판 10,125 대 도구 1,115). 정확한 분해는 QA-A-257/evidence/21_diag_line_false_alarms.txt 를 쓴다. 판정 근거로 쓰지 않는다.]
 """QA-A-256 row "새 오경보": a diagnostic split by characteristic. Not a score: the score is new_false_alarms of the evaluation tool (41_/43_score_*.json.txt).
 New flagged pixel = flagged in the planted-input map and not flagged in the clean-input map. It is placed by WHERE it lies (background / a control item / a planted item) and, for the second edition, by
 WHICH detector flagged it (feature bits of xpe_bpm_generate_v2 and the line mask). The tool's count excludes the pixels of true-defect and undetermined items; this script cannot reproduce that
