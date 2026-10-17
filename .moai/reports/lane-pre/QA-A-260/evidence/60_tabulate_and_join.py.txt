@@ -1,0 +1,45 @@
+"""QA-A-260 item 2: (1) the B16 row table of this measurement, made by the unchanged tabulation script of QA-A-256 pointed at this measurement's files; (2) the same rows with the QA-A-256 values
+beside them (1st/2nd edition, 256 and 260). Reads only files the measurements wrote.
+Usage: PYTHONIOENCODING=utf-8 python 60_tabulate_and_join.py.txt"""
+import io
+import contextlib
+
+EV6 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+code = open(EV6 + '21_tabulate.py.txt', encoding='utf-8').read()
+code = code.replace("EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'", "EV = '" + EV8 + "'")
+code = code.replace("OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'", "OUT = 'D:/workspace-github/xpe-data/bpm-eval-260/'")
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    exec(compile(code, '21_tabulate_pointed_at_260', 'exec'), {'__name__': '__main__'})
+table260 = buf.getvalue()
+open(EV8 + '50_b16_table_260.md.txt', 'w', encoding='utf-8', newline='\n').write(table260)
+print('wrote 50_b16_table_260.md.txt (%d lines)' % table260.count('\n'))
+
+
+def rows(text):
+    out = {}
+    order = []
+    for line in text.splitlines():
+        if not line.startswith('|') or line.startswith('|---') or line.startswith('| 행'):
+            continue
+        c = [x.strip() for x in line.strip().strip('|').split(' | ')]
+        out[c[0]] = c
+        order.append(c[0])
+    return out, order
+
+
+t256 = open(EV6 + '50_b16_table.md.txt', encoding='utf-8').read()
+r6, order = rows(t256)
+r8, order8 = rows(table260)
+lines = ['| 행 | 1판 (256) | 1판 (260) | 2판 (256) | 2판 (260) | 합격 기준 | 판정 (256 → 260) |', '|---|---|---|---|---|---|---|']
+for k in order8:
+    a = r6.get(k)
+    b = r8[k]
+    if a is None:
+        lines.append('| %s | (256 에 없음) | %s | (256 에 없음) | %s | %s | → %s |' % (k, b[1], b[2], b[3], b[4]))
+        continue
+    lines.append('| %s | %s | %s | %s | %s | %s | %s → %s |' % (k, a[1], b[1], a[2], b[2], b[3], a[4], b[4]))
+open(EV8 + '51_b16_table_side_by_side.md.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
+print('wrote 51_b16_table_side_by_side.md.txt (%d rows)' % (len(lines) - 2))
+print('rows in 256 table not in 260: %s' % [k for k in order if k not in r8])

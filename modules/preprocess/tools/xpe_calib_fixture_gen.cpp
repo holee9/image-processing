@@ -1089,7 +1089,7 @@ int runFramesMode(const Options& opt) {
         }
         for (uint32_t b = 0; b < blobsListed; ++b) ext.blobs.push_back({blobs[b].x0, blobs[b].y0, blobs[b].x1, blobs[b].y1, blobs[b].size});
         std::string members = "\"method\":\"bpm_v2+lines\",\"margins_ltrb\":[" + std::to_string(opt.bpmMargin[0]) + "," + std::to_string(opt.bpmMargin[1]) + "," + std::to_string(opt.bpmMargin[2]) + "," +
-                              std::to_string(opt.bpmMargin[3]) + "],\"skip_first_dark\":false,\"first_dark_excluded_by\":\"generator\",\"line_pixel_bit_note\":\"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is "
+                              std::to_string(opt.bpmMargin[3]) + "],\"skip_first_dark\":false,\"first_dark_excluded_by\":\"" + std::string(firstExcluded ? "generator" : "none") + "\",\"line_pixel_bit_note\":\"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is "
                               "contaminated by the line); do not cite it as the evidence for a line pixel\",\"candidates_are\":\"diagnostic appendix, not part of the defect layer\"";
         DefectXcalWrite job;
         job.width = opt.width;
@@ -1109,7 +1109,7 @@ int runFramesMode(const Options& opt) {
             return 7;
         }
         v2Info = "  \"defect_format\": {\n    \"xcal_version\": 2,\n    \"method\": \"xpe_bpm_generate_v2 + xpe_bpm_find_lines (line mask merged into the pixel map), blobs by xpe_bpm_blobs\",\n"
-                 "    \"skip_first_dark\": false,\n    \"first_dark_excluded_by\": \"generator (once, before every stage)\",\n    \"margins_ltrb\": [" + std::to_string(opt.bpmMargin[0]) + ", " + std::to_string(opt.bpmMargin[1]) + ", " + std::to_string(opt.bpmMargin[2]) + ", " +
+                 "    \"skip_first_dark\": false,\n    \"first_dark_excluded_by\": \"" + std::string(firstExcluded ? "generator (once, before every stage)" : "none (--keep-first-dark: the list is used as given)") + "\",\n    \"margins_ltrb\": [" + std::to_string(opt.bpmMargin[0]) + ", " + std::to_string(opt.bpmMargin[1]) + ", " + std::to_string(opt.bpmMargin[2]) + ", " +
                  std::to_string(opt.bpmMargin[3]) + "],\n    \"dark_frames_used\": " + std::to_string(rep2.dark_frames_used) + ",\n    \"pixels_outside_imaging_area\": " + std::to_string(outside) + ",\n    \"line_groups\": " + std::to_string(ext.lines.size()) +
                  ",\n    \"line_pixels\": " + std::to_string(lrep.line_pixels) + ",\n    \"panel_reject\": " + std::to_string(lrep.panel_reject) + ",\n    \"blobs\": " + std::to_string(blobCount) +
                  ",\n    \"blobs_listed\": " + std::to_string(blobsListed) + ",\n    \"unconfirmed_candidates\": " + std::to_string(ext.candidates.size()) +
@@ -1156,8 +1156,11 @@ int runFramesMode(const Options& opt) {
                   "\", \"mean\": " + fixed(all[i]->mean, 3) + "}" + (i + 1 < all.size() ? ",\n" : "\n");
     }
     // QA-A-259: the dark list as given and as used, in one place, with the one list every stage reads.
-    std::string darkPolicy = "  \"dark_policy\": {\n    \"first_dark_excluded\": " + std::string(firstExcluded ? "true" : "false") + ",\n    \"one_list_for_all_stages\": true,\n    \"stages\": "
-                             "[\"offset\", \"gain_dark_reference\", \"defect_map\"],\n    \"given\": [\n";
+    const bool        gainRefIsMean = opt.gainDarkRef == "mean";
+    const std::string gainRefText = gainRefIsMean ? "the mean of the used darks (same list)" : (refIsFile ? "the file " + jsonText(refLabel) + " (not from the dark list)" : "none (no dark reference is subtracted)");
+    std::string       darkPolicy = "  \"dark_policy\": {\n    \"first_dark_excluded\": " + std::string(firstExcluded ? "true" : "false") + ",\n    \"one_list_for_all_stages\": " + (gainRefIsMean ? "true" : "false") +
+                             ",\n    \"stages_on_the_used_list\": " + (gainRefIsMean ? "[\"offset\", \"gain_dark_reference\", \"defect_map\"]" : "[\"offset\", \"defect_map\"]") +
+                             ",\n    \"gain_dark_reference\": \"" + gainRefText + "\",\n    \"given\": [\n";
     for (size_t i = 0; i < givenDarkPaths.size(); ++i) {
         darkPolicy += "      {\"path\": \"" + jsonText(fs::path(givenDarkPaths[i]).generic_string()) + "\", \"sha256\": \"" + givenDarkShas[i] + "\"}" + (i + 1 < givenDarkPaths.size() ? ",\n" : "\n");
     }

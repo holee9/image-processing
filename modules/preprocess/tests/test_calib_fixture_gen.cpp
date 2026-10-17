@@ -1116,8 +1116,19 @@ TEST_F(CalibFixtureGenTest, FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameL
         std::string       err;
         ASSERT_EQ(0, runFrames(root, byDefault, framesArgs(seven, false) + extra, tag + "d", &err)) << err;
         ASSERT_EQ(0, runFrames(root, byHand, framesArgs(six, true) + extra, tag + "h", &err)) << err;
-        for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"})
+        for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"}) {
+            if (v2 && std::string(name) == "defect.xcal") continue;   // the file of the second edition names who excluded the first frame ("generator" against "none"): its content is compared below
             EXPECT_TRUE(sameFile(byDefault, byHand, name)) << tag << ": " << name << " of the default differs from the run on the list without its first frame";
+        }
+        if (v2) {
+            DefectXcal x, y;
+            ASSERT_EQ(XPE_OK, read_defect_xcal((byDefault / "defect.xcal").string().c_str(), false, &x));
+            ASSERT_EQ(XPE_OK, read_defect_xcal((byHand / "defect.xcal").string().c_str(), false, &y));
+            EXPECT_TRUE(x.map == y.map) << "the defect plane of the default differs from the run on the list without its first frame";
+            EXPECT_TRUE(x.area == y.area);
+            EXPECT_EQ(x.ext.lines.size(), y.ext.lines.size());
+            EXPECT_EQ(x.ext.blobs.size(), y.ext.blobs.size());
+        }
         if (v2) {
             const std::string manifest = asText(readAll(byDefault / "manifest.json"));
             EXPECT_NE(std::string::npos, manifest.find("\"dark_frames_used\": 6")) << "the second-generation chain must use the 6 frames of the used list, not drop another one\n" << manifest;
@@ -1177,6 +1188,43 @@ TEST_F(CalibFixtureGenTest, OneDarkFrameIsRefusedBecauseTheFirstIsExcluded) {
     EXPECT_EQ(10, runFrames(root, root / "out_five", framesArgs(five, false), "five", &err));
     EXPECT_NE(std::string::npos, err.find("too few dark frames: 4 usable (5 given")) << err;
     EXPECT_EQ(0, runFrames(root, root / "out_five_kept", framesArgs(five, true), "fivek", &err)) << err;
+}
+
+// QA-A-260 (Codex #229): the metadata says what really happened. With --keep-first-dark nobody excluded the first frame; the one-list statement holds
+// for a gain reference that is the mean of the used darks, not for none or a file.
+TEST_F(CalibFixtureGenTest, TheMetadataNamesWhoExcludedTheFirstDark) {
+    const FrameSet seven = writeSetWithOddFirstDark(root / "in", 7);
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    const std::string extra = " --bpm-v2 --bpm-margins 3,2,1,1";
+    ASSERT_EQ(0, runFrames(root, a, framesArgs(seven, false) + extra, "a"));
+    ASSERT_EQ(0, runFrames(root, b, framesArgs(seven, true) + extra, "b"));
+    const std::string ma = asText(readAll(a / "manifest.json")), mb = asText(readAll(b / "manifest.json"));
+    EXPECT_NE(std::string::npos, ma.find("\"first_dark_excluded_by\": \"generator")) << ma;
+    EXPECT_NE(std::string::npos, mb.find("\"first_dark_excluded_by\": \"none")) << mb;
+    EXPECT_EQ(std::string::npos, mb.find("\"first_dark_excluded_by\": \"generator")) << "the kept list was not excluded by anybody";
+    // the same statement is inside the defect file (extension members)
+    const std::string da = asText(readAll(a / "defect.xcal")), db = asText(readAll(b / "defect.xcal"));
+    EXPECT_NE(std::string::npos, da.find("\"first_dark_excluded_by\":\"generator\""));
+    EXPECT_NE(std::string::npos, db.find("\"first_dark_excluded_by\":\"none\""));
+    EXPECT_EQ(std::string::npos, db.find("\"first_dark_excluded_by\":\"generator\""));
+}
+
+TEST_F(CalibFixtureGenTest, TheOneListStatementIsLimitedToAMeanGainReference) {
+    const FrameSet seven = writeSetWithOddFirstDark(root / "in", 7);
+    const fs::path mean = caseDir("mean"), none = caseDir("none"), file = caseDir("file");
+    ASSERT_EQ(0, runFrames(root, mean, framesArgs(seven, false), "m"));
+    ASSERT_EQ(0, runFrames(root, none, framesArgs(seven, false) + " --gain-dark-ref none", "n"));
+    ASSERT_EQ(0, runFrames(root, file, framesArgs(seven, false) + " --gain-dark-ref \"" + seven.darks[1] + "\"", "f"));
+    const std::string mm = asText(readAll(mean / "manifest.json")), mn = asText(readAll(none / "manifest.json")), mf = asText(readAll(file / "manifest.json"));
+    EXPECT_NE(std::string::npos, mm.find("\"one_list_for_all_stages\": true"));
+    EXPECT_NE(std::string::npos, mm.find("\"stages_on_the_used_list\": [\"offset\", \"gain_dark_reference\", \"defect_map\"]"));
+    EXPECT_NE(std::string::npos, mm.find("\"gain_dark_reference\": \"the mean of the used darks"));
+    for (const std::string* m : {&mn, &mf}) {
+        EXPECT_NE(std::string::npos, m->find("\"one_list_for_all_stages\": false")) << *m;
+        EXPECT_NE(std::string::npos, m->find("\"stages_on_the_used_list\": [\"offset\", \"defect_map\"]"));
+    }
+    EXPECT_NE(std::string::npos, mn.find("\"gain_dark_reference\": \"none (no dark reference"));
+    EXPECT_NE(std::string::npos, mf.find("\"gain_dark_reference\": \"the file "));
 }
 
 }  // namespace

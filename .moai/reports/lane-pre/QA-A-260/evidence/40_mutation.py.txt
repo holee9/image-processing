@@ -1,0 +1,31 @@
+GEN = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+EVAL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+SRC = EVAL
+TITLE = 'QA-A-260 mutation check (tools/xpe_bpm_eval.cpp: one exclusion of the first dark; tools/xpe_calib_fixture_gen.cpp: honest metadata).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/41_mutation_log.txt'
+FILT = 'CalibFixtureGenTest.*:BpmEvalTest.TheTwo*:BpmEvalTest.MapV2*'
+PRED = [
+    '  E1 map-v1 gets the first dark back (the old behaviour of the first edition)             -> red: TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList (xpe_bpm_generate: 5 darks)',
+    '  E2 lines asks the library to skip one more dark (double exclusion in the line detector)  -> red: TheTwo... (dark 5 of 5 raw becomes 4 of 4)',
+    '  E3 map-v2 asks the library to skip one more dark                                         -> red: TheTwo... (5 darks used becomes 4) and MapV2SkipsTheFirstDarkFrame...',
+    '  E4 --keep-first-dark is ignored                                                          -> red: TheTwo... (kept section)',
+    '  E5 the older --skip-first-dark 0 is no longer read as "trimmed already"                  -> red: TheTwo... (lines with --skip-first-dark 0) and MapV2SkipsTheFirstDarkFrame...',
+    '  E6 one-frame refusal removed (the message names the first dark frame)                    -> red: TheTwo... (message check)',
+    '  G1 defect file says "generator" also when the first dark was kept                        -> red: TheMetadataNamesWhoExcludedTheFirstDark (defect.xcal members)',
+    '  G2 manifest defect_format says "generator" also when the first dark was kept             -> red: TheMetadataNamesWhoExcludedTheFirstDark (manifest)',
+    '  G3 the one-list statement is also true for --gain-dark-ref none                          -> red: TheOneListStatementIsLimitedToAMeanGainReference',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('E1', EVAL, b'    printDarkList("map-v1", ds);\n',
+     b'    printDarkList("map-v1", ds);\n    if (ds.excluded) {\n        std::vector<uint16_t> back;\n        if (readRaw16(ds.given[0], n, &back)) darks.insert(darks.begin(), back);\n    }\n'),
+    ('E2', EVAL, b'    XpeBpmConfigV2 cfg{};\n    cfg.skip_first_dark = XPE_BPM_V2_SKIP_NONE;', b'    XpeBpmConfigV2 cfg{};\n    cfg.skip_first_dark = XPE_BPM_V2_SKIP_FIRST;'),
+    ('E3', EVAL, b'(--keep-first-dark or --skip-first-dark 0: the list was trimmed already)\n    cfg.skip_first_dark = XPE_BPM_V2_SKIP_NONE;', b'(--keep-first-dark or --skip-first-dark 0: the list was trimmed already)\n    cfg.skip_first_dark = XPE_BPM_V2_SKIP_FIRST;'),
+    ('E4', EVAL, b'const bool keep = a.has("keep-first-dark") ||', b'const bool keep = a.has("keep-first-dark-x") ||'),
+    ('E5', EVAL, b'(a.has("skip-first-dark") && a.num("skip-first-dark", 1) == 0);', b'(a.has("skip-first-dark-x") && a.num("skip-first-dark", 1) == 0);'),
+    ('E6', EVAL, b'out->excluded && out->given.size() < 2', b'out->excluded && out->given.size() < 1'),
+    ('G1', GEN, b'std::string(firstExcluded ? "generator" : "none")', b'std::string(opt.bpmV2 ? "generator" : "none")'),
+    ('G2', GEN, b'std::string(firstExcluded ? "generator (once, before every stage)"', b'std::string((opt.bpmV2 || firstExcluded) ? "generator (once, before every stage)"'),
+    ('G3', GEN, b'const bool        gainRefIsMean = opt.gainDarkRef == "mean";', b'const bool        gainRefIsMean = opt.gainDarkRef == "mean" || opt.gainDarkRef == "none";'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

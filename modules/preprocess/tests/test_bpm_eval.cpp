@@ -1278,6 +1278,68 @@ TEST_F(BpmEvalTest, MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot) {
     EXPECT_EQ(6, used(" --skip-first-dark 0")) << "an explicit 0 says the list was trimmed already";
 }
 
+// QA-A-260: the first dark frame leaves the list ONCE, at the entry of the tool, and map-v1, map-v2 and lines receive the same list. Before, map-v2 and lines
+// dropped the first frame of the raw list and map-v1 used the list as given, so the two editions could be judged on different darks.
+namespace {
+/** The lines "dark_list_used: ..." and "dark_used[i]: ..." a detector command prints, with the command name taken out so that two commands can be compared. */
+std::string darkListLines(const std::string& log) {
+    std::string out;
+    size_t      pos = 0;
+    while (pos < log.size()) {
+        size_t end = log.find('\n', pos);
+        if (end == std::string::npos) end = log.size();
+        std::string line = log.substr(pos, end - pos);
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        if (line.rfind("dark_list_used:", 0) == 0) {
+            const size_t c = line.find("command=");
+            const size_t sp = line.find(' ', c);
+            line.erase(c, sp - c + 1);
+            out += line + "\n";
+        } else if (line.rfind("dark_used[", 0) == 0) {
+            out += line + "\n";
+        }
+        pos = end + 1;
+    }
+    return out;
+}
+}  // namespace
+
+TEST_F(BpmEvalTest, TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList) {
+    makeFramesSized(128, 128, 6, 8);
+    auto run = [&](const std::string& cmd, const std::string& extra, const std::string& tag) {
+        std::string args = cmd + " --out \"" + (root / (tag + ".u8")).string() + "\" --width 128 --height 128 --min-bright 2 --min-dark 3" + extra;
+        args += files("dark", darks) + files("bright", brights) + " > \"" + (root / (tag + ".log")).string() + "\" 2>&1";
+        const int rc = runCmd(XPE_BPM_EVAL_EXE, args);
+        EXPECT_TRUE(rc == 0 || rc == 20) << cmd << " " << rc << "\n" << text(root / (tag + ".log"));
+        return darkListLines(text(root / (tag + ".log")));
+    };
+    // the default: six frames given, the first excluded once, five used, by all three commands, the same paths in the same order with the same hashes
+    const std::string v1 = run("map-v1", "", "d1"), v2 = run("map-v2", "", "d2"), ln = run("lines", "", "d3");
+    EXPECT_NE(std::string::npos, v1.find("given=6 used=5 first_excluded=1")) << v1;
+    EXPECT_EQ(v1, v2) << "the first and the second edition must receive the same dark list";
+    EXPECT_EQ(v1, ln) << "the line detector must receive the same dark list";
+    EXPECT_EQ(5u, static_cast<size_t>(std::count(v1.begin(), v1.end(), '\n')) - 1u) << "one summary line and five frames";
+    EXPECT_EQ(std::string::npos, v1.find(fs::path(darks[0]).generic_string())) << "the first given frame must not be among the used ones";
+    EXPECT_NE(std::string::npos, v1.find(fs::path(darks[1]).generic_string()));
+    // what the detectors of the library really received (not only what the tool says it passed): five frames each, no second exclusion inside the library
+    EXPECT_NE(std::string::npos, text(root / "d1.log").find("xpe_bpm_generate: 5 darks,")) << text(root / "d1.log");
+    EXPECT_NE(std::string::npos, text(root / "d2.log").find("5 darks used")) << text(root / "d2.log");
+    EXPECT_NE(std::string::npos, text(root / "d3.log").find("dark 5 of 5 raw")) << text(root / "d3.log");
+    // kept: the same on all three, six frames, first_excluded=0 (--keep-first-dark, and the older --skip-first-dark 0 meaning the same)
+    const std::string k1 = run("map-v1", " --keep-first-dark", "k1"), k2 = run("map-v2", " --keep-first-dark", "k2"), k3 = run("lines", " --skip-first-dark 0", "k3");
+    EXPECT_NE(std::string::npos, k1.find("given=6 used=6 first_excluded=0")) << k1;
+    EXPECT_EQ(k1, k2);
+    EXPECT_EQ(k1, k3);
+    EXPECT_NE(v1, k1) << "keeping the first frame changes the list";
+    // one frame is refused by every command: nothing would be left
+    for (const char* cmd : {"map-v1", "map-v2", "lines"}) {
+        std::string args = std::string(cmd) + " --out \"" + (root / "one.u8").string() + "\" --width 128 --height 128 --min-bright 2 --min-dark 3 --dark \"" + darks[0] + "\"" + files("bright", brights) +
+                           " > \"" + (root / "one.log").string() + "\" 2>&1";
+        EXPECT_EQ(2, runCmd(XPE_BPM_EVAL_EXE, args)) << cmd;
+        EXPECT_NE(std::string::npos, text(root / "one.log").find("first dark frame")) << cmd << "\n" << text(root / "one.log");
+    }
+}
+
 TEST_F(BpmEvalTest, MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize) {
     std::vector<uint8_t> a(kN, 0), b(kN, 0);
     for (size_t x = 100; x < 104; ++x) a[200 * kW + x] = 1;   // a row of four in A
