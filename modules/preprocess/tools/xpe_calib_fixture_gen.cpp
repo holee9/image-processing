@@ -158,6 +158,7 @@ struct Options {
     std::vector<std::string> bpmBrightFiles;   // QA-A-250b: bright frames of the defect map when they differ from the gain frames
     std::string              bpmBrightList;
     bool                     framesMode{false};
+    bool                     keepFirstDark{false};    // QA-A-259: --keep-first-dark; default = the first dark frame of the list is excluded once, for every stage
     bool                     bpmV2{false};            // QA-A-254: defect.xcal from the second-generation chain, written as format version 2
     uint32_t                 bpmMargin[4]{0, 0, 0, 0}; // left, top, right, bottom: rows and columns outside the imaging area (--bpm-v2)
 };
@@ -171,7 +172,7 @@ void printUsage() {
         "                             [--dark F]... [--bright F]... [--dark-list L] [--bright-list L]\n"
         "                             [--gain-dark-ref mean|none|F] [--compare-bpm F]\n"
         "                             [--bpm-bright F]... [--bpm-bright-list L]\n"
-        "                             [--bpm-v2] [--bpm-margins L,T,R,B]\n"
+        "                             [--bpm-v2] [--bpm-margins L,T,R,B] [--keep-first-dark]\n"
         "\n"
         "Writes offset.xcal, gain.xcal, defect.xcal and manifest.json into <dir>.\n"
         "The same arguments always produce byte-identical files.\n"
@@ -184,13 +185,17 @@ void printUsage() {
         "                  (width/height default to 3072; not with --gain-poly)\n"
         "  --dark/--bright F  one real frame per option (repeat), or --dark-list/--bright-list L\n"
         "                  (a text file, one path per line). At least 5 dark and 10 bright frames.\n"
+        "  --keep-first-dark  QA-A-259: give the WHOLE dark list including the first frame (stored and marked at the\n"
+        "                  acquisition); by default this tool excludes the first frame ONCE and the same remaining list\n"
+        "                  feeds the offset map, the gain dark reference and the defect map (both editions). The\n"
+        "                  option keeps the list as given. manifest.json lists the given and the used frames.\n"
         "  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file\n"
         "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n"
         "  --bpm-bright F   bright frames of the defect map only (several doses allowed); the\n"
         "                  --bright frames of the gain map must be ONE dose (max/min <= 1.25)\n"
         "  --bpm-v2        (QA-A-254) defect.xcal from the second-generation chain: pixel map, lines,\n"
         "                  blobs and the imaging area, written as XCal format version 2 with the line /\n"
-        "                  blob extension (SRS FUNC-039). The first dark frame is skipped (raw list).\n"
+        "                  blob extension (SRS FUNC-039). The first dark frame is excluded by this tool, once (see --keep-first-dark).\n"
         "  --bpm-margins   L,T,R,B  columns / rows outside the imaging area for --bpm-v2 (default 0,0,0,0)\n");
 }
 
@@ -233,6 +238,8 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             else if (arg == "--bpm-bright") opt->bpmBrightFiles.push_back(v);
             else if (arg == "--bpm-bright-list") opt->bpmBrightList = v;
             else opt->compareBpm = v;
+        } else if (arg == "--keep-first-dark") {
+            opt->keepFirstDark = true;
         } else if (arg == "--bpm-v2") {
             opt->bpmV2 = true;
         } else if (arg == "--bpm-margins") {
@@ -281,8 +288,8 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             return false;
         }
         if (!opt->sizeGiven) opt->width = opt->height = 3072u;
-    } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean" || !opt->bpmBrightFiles.empty() || !opt->bpmBrightList.empty() || opt->bpmV2) {
-        std::fprintf(stderr, "--gain-dark-ref, --compare-bpm, --bpm-bright and --bpm-v2 belong to the --dark/--bright mode\n");
+    } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean" || !opt->bpmBrightFiles.empty() || !opt->bpmBrightList.empty() || opt->bpmV2 || opt->keepFirstDark) {
+        std::fprintf(stderr, "--gain-dark-ref, --compare-bpm, --bpm-bright, --bpm-v2 and --keep-first-dark belong to the --dark/--bright mode\n");
         return false;
     }
     if (!opt->calDir.empty()) {
@@ -789,8 +796,17 @@ int runFramesMode(const Options& opt) {
     }
 
     // Counts first: it costs nothing and needs no file.
-    if (darkPaths.size() < kMinDarkFrames) {
-        std::fprintf(stderr, "too few dark frames: %zu given, at least %zu are needed (offset map, gain dark reference and defect map)\n", darkPaths.size(), kMinDarkFrames);
+    if (!opt.keepFirstDark && darkPaths.size() < 2) {
+        std::fprintf(stderr,
+                     "too few dark frames: %zu given. The first dark frame is excluded (the detector has not settled), so at least 2 are needed to leave one; give the whole list including the first "
+                     "frame, or --keep-first-dark to use the list as given\n",
+                     darkPaths.size());
+        return 10;
+    }
+    const size_t usableDarks = darkPaths.size() - (opt.keepFirstDark ? 0u : 1u);
+    if (usableDarks < kMinDarkFrames) {
+        std::fprintf(stderr, "too few dark frames: %zu usable (%zu given%s), at least %zu are needed (offset map, gain dark reference and defect map)\n", usableDarks, darkPaths.size(),
+                     opt.keepFirstDark ? "" : ", the first excluded", kMinDarkFrames);
         return 10;
     }
     if (brightPaths.size() < kMinGainFrames) {
@@ -845,6 +861,18 @@ int runFramesMode(const Options& opt) {
         if (separateBpm) {
             if (const int rc = rejectContentDuplicates(k, "bpm_bright")) return rc;
         }
+    }
+
+    // QA-A-259: the ONE place the first dark frame leaves the list. Every stage below (offset, gain dark reference, defect map of either edition) reads `darks`, the used list.
+    InputFrame firstDark;
+    const std::vector<std::string> givenDarkPaths = darkPaths;
+    std::vector<std::string> givenDarkShas;
+    for (const auto& d : darks) givenDarkShas.push_back(d.sha);
+    const bool firstExcluded = !opt.keepFirstDark;
+    if (firstExcluded) {
+        firstDark = std::move(darks.front());
+        firstDark.role = "dark_excluded_first";
+        darks.erase(darks.begin());
     }
 
     // The dark reference of the gain stage (read before the dose check: the check uses the same reference as the generator).
@@ -958,6 +986,7 @@ int runFramesMode(const Options& opt) {
         // ---- QA-A-254: the second-generation chain -> format version 2
         std::vector<XpeImageBuffer> darkBufs = u16Buffers(darks, opt.width, opt.height), brightBufs = u16BuffersOf(bpmFrames, opt.width, opt.height);
         XpeBpmConfigV2 c2{};
+        c2.skip_first_dark = XPE_BPM_V2_SKIP_NONE;   // QA-A-259: the list was trimmed by this tool; the library must not drop another frame
         c2.margin_left = opt.bpmMargin[0];
         c2.margin_top = opt.bpmMargin[1];
         c2.margin_right = opt.bpmMargin[2];
@@ -1060,7 +1089,7 @@ int runFramesMode(const Options& opt) {
         }
         for (uint32_t b = 0; b < blobsListed; ++b) ext.blobs.push_back({blobs[b].x0, blobs[b].y0, blobs[b].x1, blobs[b].y1, blobs[b].size});
         std::string members = "\"method\":\"bpm_v2+lines\",\"margins_ltrb\":[" + std::to_string(opt.bpmMargin[0]) + "," + std::to_string(opt.bpmMargin[1]) + "," + std::to_string(opt.bpmMargin[2]) + "," +
-                              std::to_string(opt.bpmMargin[3]) + "],\"skip_first_dark\":true,\"line_pixel_bit_note\":\"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is "
+                              std::to_string(opt.bpmMargin[3]) + "],\"skip_first_dark\":false,\"first_dark_excluded_by\":\"generator\",\"line_pixel_bit_note\":\"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is "
                               "contaminated by the line); do not cite it as the evidence for a line pixel\",\"candidates_are\":\"diagnostic appendix, not part of the defect layer\"";
         DefectXcalWrite job;
         job.width = opt.width;
@@ -1080,8 +1109,8 @@ int runFramesMode(const Options& opt) {
             return 7;
         }
         v2Info = "  \"defect_format\": {\n    \"xcal_version\": 2,\n    \"method\": \"xpe_bpm_generate_v2 + xpe_bpm_find_lines (line mask merged into the pixel map), blobs by xpe_bpm_blobs\",\n"
-                 "    \"skip_first_dark\": true,\n    \"margins_ltrb\": [" + std::to_string(opt.bpmMargin[0]) + ", " + std::to_string(opt.bpmMargin[1]) + ", " + std::to_string(opt.bpmMargin[2]) + ", " +
-                 std::to_string(opt.bpmMargin[3]) + "],\n    \"pixels_outside_imaging_area\": " + std::to_string(outside) + ",\n    \"line_groups\": " + std::to_string(ext.lines.size()) +
+                 "    \"skip_first_dark\": false,\n    \"first_dark_excluded_by\": \"generator (once, before every stage)\",\n    \"margins_ltrb\": [" + std::to_string(opt.bpmMargin[0]) + ", " + std::to_string(opt.bpmMargin[1]) + ", " + std::to_string(opt.bpmMargin[2]) + ", " +
+                 std::to_string(opt.bpmMargin[3]) + "],\n    \"dark_frames_used\": " + std::to_string(rep2.dark_frames_used) + ",\n    \"pixels_outside_imaging_area\": " + std::to_string(outside) + ",\n    \"line_groups\": " + std::to_string(ext.lines.size()) +
                  ",\n    \"line_pixels\": " + std::to_string(lrep.line_pixels) + ",\n    \"panel_reject\": " + std::to_string(lrep.panel_reject) + ",\n    \"blobs\": " + std::to_string(blobCount) +
                  ",\n    \"blobs_listed\": " + std::to_string(blobsListed) + ",\n    \"unconfirmed_candidates\": " + std::to_string(ext.candidates.size()) +
                  ",\n    \"limits\": \"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is contaminated by the line): it is not evidence for a line pixel; segment ends at a crossing "
@@ -1117,6 +1146,7 @@ int runFramesMode(const Options& opt) {
     const std::string offsetSha = sha256Hex(offsetPath), gainSha = sha256Hex(gainPath), defectSha = sha256Hex(defectPath);
     std::string inputs;
     std::vector<const InputFrame*> all;
+    if (firstExcluded) all.push_back(&firstDark);
     for (const auto& d : darks) all.push_back(&d);
     for (const auto& b : brights) all.push_back(&b);
     for (const auto& b : bpmOnly) all.push_back(&b);
@@ -1125,6 +1155,17 @@ int runFramesMode(const Options& opt) {
         inputs += "    {\"role\": \"" + all[i]->role + "\", \"path\": \"" + jsonText(fs::path(all[i]->path).generic_string()) + "\", \"sha256\": \"" + all[i]->sha +
                   "\", \"mean\": " + fixed(all[i]->mean, 3) + "}" + (i + 1 < all.size() ? ",\n" : "\n");
     }
+    // QA-A-259: the dark list as given and as used, in one place, with the one list every stage reads.
+    std::string darkPolicy = "  \"dark_policy\": {\n    \"first_dark_excluded\": " + std::string(firstExcluded ? "true" : "false") + ",\n    \"one_list_for_all_stages\": true,\n    \"stages\": "
+                             "[\"offset\", \"gain_dark_reference\", \"defect_map\"],\n    \"given\": [\n";
+    for (size_t i = 0; i < givenDarkPaths.size(); ++i) {
+        darkPolicy += "      {\"path\": \"" + jsonText(fs::path(givenDarkPaths[i]).generic_string()) + "\", \"sha256\": \"" + givenDarkShas[i] + "\"}" + (i + 1 < givenDarkPaths.size() ? ",\n" : "\n");
+    }
+    darkPolicy += "    ],\n    \"used\": [\n";
+    for (size_t i = 0; i < darks.size(); ++i) {
+        darkPolicy += "      {\"path\": \"" + jsonText(fs::path(darks[i].path).generic_string()) + "\", \"sha256\": \"" + darks[i].sha + "\"}" + (i + 1 < darks.size() ? ",\n" : "\n");
+    }
+    darkPolicy += "    ]\n  },\n";
     std::ofstream manifest((work / "manifest.json").string(), std::ios::binary);
     if (!manifest || forcedFailure("manifest")) {
         std::fprintf(stderr, "writing manifest.json failed\n");
@@ -1138,7 +1179,7 @@ int runFramesMode(const Options& opt) {
              << ", \"min_frames_bright\": " << cfg.min_frames_bright << "},\n    \"saturated_share_limit\": " << fixed(kSaturatedShareLimit, 4) << ",\n    \"gain_dose_ratio\": " << fixed(doseRatio, 4)
              << ",\n    \"gain_dose_ratio_limit\": " << fixed(kGainDoseRatioLimit, 2)
              << ",\n    \"gain_dose_basis\": \"mean over pixels of max(0, bright - gain dark reference); reference: " << jsonText(refLabel) << "\"\n  },\n  \"inputs\": [\n"
-             << inputs << "  ],\n  \"defect_pixels\": " << defectCount << ",\n"
+             << inputs << "  ],\n" << darkPolicy << "  \"defect_pixels\": " << defectCount << ",\n"
              << v2Info << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
              << "\"\n  }\n}\n";
     manifest.close();
