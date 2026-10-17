@@ -219,6 +219,113 @@ public sealed class OffsetQualityTests(ITestOutputHelper output)
         Assert.Equal(RawInputKind.Unconfirmed, default(RawInputKind));
     }
 
+    // ---- GUI-C-253c (Codex #241 R241-2): the base row says where "dark" comes from and what really happened
+
+    [Fact]
+    public void TheBaseRow_OfAMeasurement_NamesTheUserAsTheSourceOfTheDarkClaim()
+    {
+        var basis = RowOf(OffsetQualityRows.Build(OffsetQualityOutcome.FromModule(0, Full())), OffsetQualityRows.BasisMetric);
+        Assert.Equal("입력 종류: 다크 프레임(사용자 선택, 취득 메타데이터로 확인하지 않음)", basis.Value);
+        Assert.StartsWith("측정 조건:", basis.Gate, StringComparison.Ordinal);
+        Assert.Equal("INFO", basis.Status);
+    }
+
+    [Theory]
+    [InlineData(0)]   // unconfirmed
+    [InlineData(2)]   // flat
+    [InlineData(3)]   // clinical
+    public void TheBaseRow_OfAnUnmeasuredRun_SaysItWasNotMeasured_AndWhy_NeverThatItWasADark(int kindValue)
+    {
+        var refusal = OffsetQualityPlan.WhyNotCalled((RawInputKind)kindValue, 3072, 3072, 3072, 3072)!;
+        var basis = RowOf(OffsetQualityRows.Build(refusal), OffsetQualityRows.BasisMetric);
+        Assert.Equal("미측정 — " + refusal.NotMeasuredReason, basis.Value);
+        Assert.Equal("N/A", basis.Status);
+        Assert.StartsWith("측정 조건:", basis.Gate, StringComparison.Ordinal);   // what a measurement needs, not a statement that it was met
+        Assert.DoesNotContain("사용자 선택, 취득 메타데이터로 확인하지 않음", basis.Value, StringComparison.Ordinal);
+    }
+
+    // ---- GUI-C-253c (Codex #241 R241-3): changing the kind invalidates the measured rows of the run on screen, and only those
+
+    private static readonly DetectorMetricRow[] FourExisting =
+    [
+        new("DarkBias", "0.19 ADU", "<= 5 ADU", "PASS"),
+        new("DSNU_ADU", "2.1 ADU", "<= 20 ADU", "PASS"),
+        new("DarkReduction_dB", "21.7 dB", ">= 10 dB", "PASS"),
+        new("ClampRate", "83.1 %", "<= 1%", "REVIEW"),
+    ];
+
+    private static IReadOnlyList<DetectorMetricRow> RunRows(OffsetQualityOutcome outcome) => OffsetQualityRows.Append(FourExisting, outcome);
+
+    private static IEnumerable<DetectorMetricRow> MeasuredOf(IReadOnlyList<DetectorMetricRow> rows) => rows.Where(OffsetQualityRows.IsMeasuredRow);
+
+    private static void AssertInvalidated(IReadOnlyList<DetectorMetricRow> rows, string expectedReasonStart)
+    {
+        Assert.Equal(FourExisting, rows.Take(4).ToArray());   // the four existing rows: values, limits, verdicts, order
+        Assert.DoesNotContain(rows.Skip(4), r => r.Status == "REPORTED");
+        Assert.All(MeasuredOf(rows).Where(r => r.Metric != OffsetQualityRows.BasisMetric), r => { Assert.Equal("N/A", r.Status); Assert.Equal(OffsetQualityRows.NotMeasuredText, r.Value); Assert.StartsWith(expectedReasonStart, r.Gate, StringComparison.Ordinal); });
+        Assert.StartsWith("미측정 — " + expectedReasonStart, RowOf(rows, OffsetQualityRows.BasisMetric).Value, StringComparison.Ordinal);
+        var text = string.Join("\n", rows.Skip(4).Select(r => r.Value + " " + r.Gate));
+        Assert.DoesNotContain("-4.0542", text, StringComparison.Ordinal);   // no old number comes back
+        Assert.DoesNotContain("0.1875", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, "다크 프레임 미확인")]
+    [InlineData(2, "다크 프레임이 아님(입력 종류: 밝은 영상(평탄))")]
+    [InlineData(3, "다크 프레임이 아님(입력 종류: 임상·기타 영상)")]
+    public void AfterADarkRun_ChoosingAnotherKind_InvalidatesTheMeasuredRows_WithThatKindsReason(int kindValue, string reasonStart)
+    {
+        var onScreen = RunRows(OffsetQualityOutcome.FromModule(0, Full()));
+        Assert.Contains(onScreen, r => r.Status == "REPORTED");   // control: there were measured numbers to invalidate
+        var after = OffsetQualityRows.Invalidate(onScreen, (RawInputKind)kindValue);
+        AssertInvalidated(after, reasonStart);
+    }
+
+    [Fact]
+    public void AfterAnUnconfirmedRun_ChoosingDark_SaysARerunIsNeeded_AndMeasuresNothing()
+    {
+        var onScreen = RunRows(OffsetQualityPlan.WhyNotCalled(RawInputKind.Unconfirmed, 3072, 3072, 3072, 3072)!);
+        var after = OffsetQualityRows.Invalidate(onScreen, RawInputKind.Dark);
+        AssertInvalidated(after, "입력 종류 변경 — 다시 실행 필요");
+    }
+
+    [Fact]
+    public void ChoosingDarkAgain_DoesNotBringTheOldNumbersBack_ItNeedsANewRun()
+    {
+        var measured = RunRows(OffsetQualityOutcome.FromModule(0, Full()));
+        var clinical = OffsetQualityRows.Invalidate(measured, RawInputKind.Clinical);
+        var darkAgain = OffsetQualityRows.Invalidate(clinical, RawInputKind.Dark);
+        AssertInvalidated(darkAgain, "입력 종류 변경 — 다시 실행 필요");
+        Assert.Equal(measured.Count, darkAgain.Count);
+    }
+
+    [Fact]
+    public void AfterARunThatFoundNoOriginalSizeMap_ChoosingDark_StaysUnmeasured()
+    {
+        var onScreen = RunRows(OffsetQualityPlan.WhyNotCalled(RawInputKind.Dark, 5000, 5000, 2500, 2500)!);
+        Assert.Contains("원본 크기(5000x5000)", RowOf(onScreen, "DarkBias 부호").Gate, StringComparison.Ordinal);
+        AssertInvalidated(OffsetQualityRows.Invalidate(onScreen, RawInputKind.Dark), "입력 종류 변경 — 다시 실행 필요");
+    }
+
+    [Fact]
+    public void WhenNoMeasuredRowIsOnScreen_NothingChanges_NotEvenTheListInstance()
+    {
+        // the offset stage did not run (or nothing ran yet): the existing rows alone; choosing a kind must leave them as they are
+        IReadOnlyList<DetectorMetricRow> onlyExisting = FourExisting;
+        Assert.Same(onlyExisting, OffsetQualityRows.Invalidate(onlyExisting, RawInputKind.Dark));
+        Assert.Same(onlyExisting, OffsetQualityRows.Invalidate(onlyExisting, RawInputKind.Clinical));
+        Assert.Same(onlyExisting, OffsetQualityRows.Invalidate(onlyExisting, RawInputKind.Unconfirmed));
+    }
+
+    [Fact]
+    public void EveryMeasuredRowTheBuilderMakes_IsRecognisedAsMeasured_AndNoExistingRowIs()
+    {
+        var built = OffsetQualityRows.Build(OffsetQualityOutcome.FromModule(0, Full()));
+        Assert.All(built, r => Assert.True(OffsetQualityRows.IsMeasuredRow(r), r.Metric));
+        Assert.All(FourExisting, r => Assert.False(OffsetQualityRows.IsMeasuredRow(r), r.Metric));
+        Assert.All(OffsetQualityRows.Build(OffsetQualityOutcome.NotMeasured("x")), r => Assert.True(OffsetQualityRows.IsMeasuredRow(r), r.Metric));
+    }
+
     // ---- the real module on a real dark frame (needs the DLL of dev/preprocess 026ea384 and the files; skipped with a reason otherwise)
 
     /// <summary>

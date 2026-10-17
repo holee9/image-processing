@@ -861,7 +861,8 @@
                                       AutomationProperties.AutomationId="RawInputKindComboBox"
                                       AutomationProperties.Name="Input kind of the opened raw image"
                                       Width="200"
-                                      SelectedIndex="0">
+                                      SelectedIndex="0"
+                                      SelectionChanged="RawInputKindComboBox_SelectionChanged">
                                 <ComboBoxItem Content="미확인"/>
                                 <ComboBoxItem Content="다크 프레임"/>
                                 <ComboBoxItem Content="밝은 영상(평탄)"/>
@@ -873,6 +874,7 @@
                         <DataGrid x:Name="DarkMetricsGrid"
                                   AutomationProperties.AutomationId="DarkMetricsGrid"
                                   AutomationProperties.Name="Detector-domain dark metrics"
+                                  VirtualizingPanel.IsVirtualizing="False"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"

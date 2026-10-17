@@ -2145,6 +2145,27 @@ namespace ImageProcTest
             }
         }
 
+        /// <summary>
+        /// GUI-C-253c (Codex #241 R241-3): choosing another input kind invalidates the measured rows of the run that is on screen, and nothing else: the picture, the four existing dark rows with their verdicts
+        /// and the rest of the result stay, and no native call is made (the user runs the preview again). Choosing "다크 프레임" again does not bring the old numbers back.
+        /// </summary>
+        private void RawInputKindComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lastNativePreviewResult is not { } result)
+            {
+                return;
+            }
+
+            var rows = OffsetQualityRows.Invalidate(result.DetectorMetrics.DarkMetrics, SelectedRawInputKind());
+            if (ReferenceEquals(rows, result.DetectorMetrics.DarkMetrics))
+            {
+                return;
+            }
+
+            lastNativePreviewResult = result with { DetectorMetrics = result.DetectorMetrics with { DarkMetrics = rows } };
+            DarkMetricsGrid.ItemsSource = rows;
+        }
+
         /// <summary>GUI-C-253b: what the user said the opened raw image is (default "미확인"); the dark quality rows are measured only for a confirmed dark.</summary>
         private RawInputKind SelectedRawInputKind() => RawInputKindComboBox.SelectedIndex switch
         {

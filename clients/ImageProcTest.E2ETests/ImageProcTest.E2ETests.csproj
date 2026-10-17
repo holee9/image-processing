@@ -78,6 +78,8 @@
     <Compile Include="..\ImageProcTest\Models\RawFileDescriptor.cs" Link="LegacyPreview\Linked\RawFileDescriptor.cs" />
     <Compile Include="..\ImageProcTest\Services\MetricsComputationService.cs" Link="LegacyPreview\Linked\MetricsComputationService.cs" />
     <Compile Include="..\ImageProcTest\Services\DefectMetricRows.cs" Link="LegacyPreview\Linked\DefectMetricRows.cs" />
+    <Compile Include="..\ImageProcTest\Services\OffsetQualityRows.cs" Link="LegacyPreview\Linked\OffsetQualityRows.cs" />
+    <Compile Include="..\ImageProcTest\Services\OffsetQualityNative.cs" Link="LegacyPreview\Linked\OffsetQualityNative.cs" />
     <Compile Include="..\ImageProcTest\Services\DefectMetricGates.cs" Link="LegacyPreview\Linked\DefectMetricGates.cs" />
     <Compile Include="..\ImageProcTest\Services\RawPreviewService.cs" Link="LegacyPreview\Linked\RawPreviewService.cs" />
     <Compile Include="..\ImageProcTest\DetectorDefaults.cs" Link="LegacyPreview\Linked\DetectorDefaults.cs" />

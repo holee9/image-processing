@@ -115,6 +115,40 @@ namespace ImageProcTest
 
         private const string Population = "측정값 · 판정 없음";
 
+        /// <summary>The text of every measured row while the input kind was changed after the run: the old numbers belong to the old kind and are not shown again, not even when "다크 프레임" is chosen again.</summary>
+        internal const string KindChangedReason = "입력 종류 변경 — 다시 실행 필요";
+
+        private const string MetricSigned = "DarkBias 부호 있음", MetricSignedDsnu = "DSNU 부호 있음", MetricReduction = "DarkReduction 부호 있음", MetricOutput = "DarkBias 출력", MetricOutputDsnu = "DSNU 출력",
+            MetricClamp = "ClampRate x<0 원본 전체", MetricZero = "출력 0 비율 원본 전체", MetricMap = "Offset 맵 SHA-256(payload)", MetricHelp = "도움말";
+
+        private static readonly HashSet<string> MeasuredMetrics = new(StringComparer.Ordinal)
+        {
+            BasisMetric, MetricSigned, MetricSignedDsnu, MetricReduction, MetricOutput, MetricOutputDsnu, MetricClamp, MetricZero, MetricMap, MetricHelp,
+        };
+
+        /// <summary>True for the rows this class adds (and only those): the four existing dark rows and their verdicts are never among them.</summary>
+        public static bool IsMeasuredRow(DetectorMetricRow row) => MeasuredMetrics.Contains(row.Metric);
+
+        /// <summary>
+        /// GUI-C-253c (Codex #241 R241-3): the user changed the input kind while a run's rows are on screen. ONLY the measured rows change: they now say why nothing is measured for the NEW kind
+        /// ("입력 종류 변경 — 다시 실행 필요" for a dark, since measuring needs a new run; the kind's own reason for any other). The existing rows are returned untouched, in order. No module call happens
+        /// here. When the list holds no measured row (the offset stage did not run, or no run yet) the same list is returned.
+        /// </summary>
+        public static IReadOnlyList<DetectorMetricRow> Invalidate(IReadOnlyList<DetectorMetricRow> rows, RawInputKind newKind)
+        {
+            var existing = new List<DetectorMetricRow>();
+            foreach (var row in rows)
+            {
+                if (!IsMeasuredRow(row)) existing.Add(row);
+            }
+
+            if (existing.Count == rows.Count) return rows;
+            var outcome = newKind == RawInputKind.Dark
+                ? OffsetQualityOutcome.NotMeasured(KindChangedReason)
+                : OffsetQualityPlan.WhyNotCalled(newKind, 0, 0, null, null)!;
+            return Append(existing, outcome);
+        }
+
         /// <summary>The existing rows exactly as they were, then the measured rows: nothing of the existing rows (value, limit, status) is read, changed or reordered.</summary>
         public static IReadOnlyList<DetectorMetricRow> Append(IReadOnlyList<DetectorMetricRow> existing, OffsetQualityOutcome outcome)
         {
@@ -126,12 +160,20 @@ namespace ImageProcTest
         public static IReadOnlyList<DetectorMetricRow> Build(OffsetQualityOutcome outcome)
         {
             var q = outcome.Quality;
+            // GUI-C-253c (Codex #241 R241-2): the base row states what actually happened. A measurement says where the "dark" comes from: the USER's choice, not acquisition metadata. When nothing was
+            // measured it says so and why; "측정 조건" describes what a measurement needs, which is not the same as having it.
+            const string OldRows = "위 DarkBias·DSNU_ADU·DarkReduction_dB·ClampRate 는 미리보기 기준이라 모집단과 단계가 다르다. 한계는 그 칸에만 적용된다";
             var rows = new List<DetectorMetricRow>
             {
-                new(BasisMetric,
-                    "다크 프레임으로 확인된 원본 크기 원시 영상 + 같은 크기 offset 맵",
-                    "위 DarkBias·DSNU_ADU·DarkReduction_dB·ClampRate 는 미리보기 기준이라 모집단과 단계가 다르다. 한계는 그 칸에만 적용된다",
-                    "INFO"),
+                outcome.Measured
+                    ? new(BasisMetric,
+                        "입력 종류: 다크 프레임(사용자 선택, 취득 메타데이터로 확인하지 않음)",
+                        "측정 조건: 원본 크기 원시 영상 + 같은 크기 offset 맵 · " + OldRows,
+                        "INFO")
+                    : new(BasisMetric,
+                        "미측정 — " + outcome.NotMeasuredReason,
+                        "측정 조건: 사용자가 다크 프레임으로 선택한 원본 크기 원시 영상 + 같은 크기 offset 맵(충족하지 않으면 측정하지 않음) · " + OldRows,
+                        "N/A"),
             };
 
             string Why(uint bit) => outcome.Measured
@@ -145,19 +187,19 @@ namespace ImageProcTest
                         : new DetectorMetricRow(metric, NotMeasuredText, "모듈이 유한하지 않은 값을 돌려줌", "N/A")
                     : new DetectorMetricRow(metric, NotMeasuredText, Why(bit), "N/A");
 
-            rows.Add(Row("DarkBias 부호 있음", OffsetQualityBits.RoiSigned, q.DarkBiasSigned, "화소값", "offset 을 뺀 뒤 0 바닥 전 · 원시의 어두운 10분위"));
-            rows.Add(Row("DSNU 부호 있음", OffsetQualityBits.RoiSigned, q.DsnuSigned, "화소값", "offset 을 뺀 뒤 0 바닥 전 · 원시의 어두운 10분위"));
-            rows.Add(Row("DarkReduction 부호 있음", OffsetQualityBits.DarkReduction, q.DarkReductionDb, "dB", "원시 대비 offset 뺀 뒤 · 원시의 어두운 10분위"));
-            rows.Add(Row("DarkBias 출력", OffsetQualityBits.RoiOutput, q.DarkBiasOutput, "화소값", "0 바닥과 반올림 뒤 UINT16 출력 · 같은 어두운 10분위"));
-            rows.Add(Row("DSNU 출력", OffsetQualityBits.RoiOutput, q.DsnuOutput, "화소값", "0 바닥과 반올림 뒤 UINT16 출력 · 같은 어두운 10분위"));
-            rows.Add(Row("ClampRate x<0 원본 전체", OffsetQualityBits.ClampRate, q.ClampRatePct, "%", "0 바닥 전에 음수인 화소 비율 · 프레임 전체"));
-            rows.Add(Row("출력 0 비율 원본 전체", OffsetQualityBits.ClampRate, q.ZeroOutputRatePct, "%", "반올림 뒤 출력이 0 인 화소 비율 · 프레임 전체(위 ClampRate 와 다른 양)"));
+            rows.Add(Row(MetricSigned, OffsetQualityBits.RoiSigned, q.DarkBiasSigned, "화소값", "offset 을 뺀 뒤 0 바닥 전 · 원시의 어두운 10분위"));
+            rows.Add(Row(MetricSignedDsnu, OffsetQualityBits.RoiSigned, q.DsnuSigned, "화소값", "offset 을 뺀 뒤 0 바닥 전 · 원시의 어두운 10분위"));
+            rows.Add(Row(MetricReduction, OffsetQualityBits.DarkReduction, q.DarkReductionDb, "dB", "원시 대비 offset 뺀 뒤 · 원시의 어두운 10분위"));
+            rows.Add(Row(MetricOutput, OffsetQualityBits.RoiOutput, q.DarkBiasOutput, "화소값", "0 바닥과 반올림 뒤 UINT16 출력 · 같은 어두운 10분위"));
+            rows.Add(Row(MetricOutputDsnu, OffsetQualityBits.RoiOutput, q.DsnuOutput, "화소값", "0 바닥과 반올림 뒤 UINT16 출력 · 같은 어두운 10분위"));
+            rows.Add(Row(MetricClamp, OffsetQualityBits.ClampRate, q.ClampRatePct, "%", "0 바닥 전에 음수인 화소 비율 · 프레임 전체"));
+            rows.Add(Row(MetricZero, OffsetQualityBits.ClampRate, q.ZeroOutputRatePct, "%", "반올림 뒤 출력이 0 인 화소 비율 · 프레임 전체(위 ClampRate 와 다른 양)"));
 
             rows.Add(outcome.Measured && (q.ValidMask & OffsetQualityBits.MapIdent) != 0 && q.MapSha256 is { Length: 32 }
-                ? new DetectorMetricRow("Offset 맵 SHA-256(payload)", ShortHash(q.MapSha256), $"{Population} · 맵 payload(float32 바이트열) 기준이라 .xcal 헤더의 해시와 다르다 · 만료를 검사하지 않으므로 적용 가능한 맵이라는 뜻이 아니다", "REPORTED")
-                : new DetectorMetricRow("Offset 맵 SHA-256(payload)", NotMeasuredText, Why(OffsetQualityBits.MapIdent), "N/A"));
+                ? new DetectorMetricRow(MetricMap, ShortHash(q.MapSha256), $"{Population} · 맵 payload(float32 바이트열) 기준이라 .xcal 헤더의 해시와 다르다 · 만료를 검사하지 않으므로 적용 가능한 맵이라는 뜻이 아니다", "REPORTED")
+                : new DetectorMetricRow(MetricMap, NotMeasuredText, Why(OffsetQualityBits.MapIdent), "N/A"));
 
-            if (SignChangesHelp.Length > 0) rows.Add(new DetectorMetricRow("도움말", SignChangesHelp, Population, "INFO"));
+            if (SignChangesHelp.Length > 0) rows.Add(new DetectorMetricRow(MetricHelp, SignChangesHelp, Population, "INFO"));
             return rows;
         }
 
