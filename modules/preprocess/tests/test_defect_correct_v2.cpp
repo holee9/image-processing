@@ -441,4 +441,94 @@ TEST_F(DefectCorrectV2Test, TheLowConfidenceBufferIsCheckedLikeAnyOutput) {
     EXPECT_EQ(XPE_OK, xpe_defect_correct_ex(&a, &b, &meta, nullptr, nullptr));
 }
 
+// QA-A-255b (Codex #223): the low-confidence state of a pixel belongs to its group, not to the way it was corrected. The per-pixel mask, the report count and the warning must agree.
+struct LowCheck {
+    uint32_t pixels;
+    uint32_t regions;
+};
+
+class LowConfidenceTest : public DefectCorrectV2Test {
+protected:
+    void expectConsistent(const XpeDefectCorrectionReport& rep, const std::vector<uint8_t>& low, const LowCheck& want) {
+        const uint32_t inMask = static_cast<uint32_t>(std::count(low.begin(), low.end(), static_cast<uint8_t>(1)));
+        EXPECT_EQ(want.pixels, inMask) << "the pixels marked in the mask";
+        EXPECT_EQ(want.pixels, rep.low_confidence_pixels) << "the report counts the same pixels";
+        EXPECT_EQ(want.regions, rep.low_confidence_regions);
+        const std::string expectText = "XPE_WARN_DEFECT_LOW_CONFIDENCE: " + std::to_string(want.pixels) + " pixel(s) in " + std::to_string(want.regions) + " region(s)";
+        char              msg[512] = {0};
+        int32_t           sev = 0;
+        bool              found = false;
+        for (int32_t i = 0; i < xpe_get_pending_alert_count(); ++i)
+            if (xpe_get_pending_alert(i, msg, sizeof msg, &sev) == XPE_OK && std::string(msg).find(expectText) != std::string::npos) found = true;
+        EXPECT_EQ(want.pixels > 0, found) << "one warning that carries the same two numbers, and none when nothing is low";
+    }
+};
+
+TEST_F(LowConfidenceTest, ARowGroupOfThreeCrossedByAFullColumnKeepsEveryPixelLow) {
+    // Codex #223 input: 213 pixels in the row group, three of them (x = 40) in the column line too. The row stage cannot interpolate those three (the column is masked above and below beyond its reach)
+    // and used to skip them without the mark: 210 of 213.
+    std::vector<uint8_t> m(static_cast<size_t>(W) * H, 0);
+    for (uint32_t y = 20; y < 23; ++y)
+        for (uint32_t x = 10; x < 81; ++x) m[y * W + x] = 1;
+    for (uint32_t y = 0; y < H; ++y) m[y * W + 40] = 1;
+    loadV2(m, {}, {{0, 20, 3, 10, 81}, {1, 40, 1, 0, H}});
+    XpeDefectCorrectionReport rep{};
+    std::vector<uint8_t>      low;
+    correct(rampFrame(), &rep, &low);
+    expectConsistent(rep, low, {213, 1});
+    for (uint32_t y = 20; y < 23; ++y)
+        for (uint32_t x = 10; x < 81; ++x) ASSERT_EQ(1, low[y * W + x]) << x << "," << y;
+    EXPECT_EQ(0, low[10 * W + 40]) << "the one-line column outside the row group is not low";
+}
+
+TEST_F(LowConfidenceTest, APixelTheOtherDirectionCorrectedFirstKeepsTheMarkOfItsGroup) {
+    // a one-line row (handled first) crosses a column group of three whose reach is short: the row stage interpolates the three crossing pixels, and the column stage then skips them as done
+    std::vector<uint8_t> m(static_cast<size_t>(W) * H, 0);
+    for (uint32_t x = 10; x < 81; ++x) m[40 * W + x] = 1;
+    for (uint32_t y = 35; y < 45; ++y)
+        for (uint32_t x = 40; x < 43; ++x) m[y * W + x] = 1;
+    loadV2(m, {}, {{0, 40, 1, 10, 81}, {1, 40, 3, 35, 45}});
+    XpeDefectCorrectionReport rep{};
+    std::vector<uint8_t>      low;
+    correct(rampFrame(), &rep, &low);
+    expectConsistent(rep, low, {30, 1});
+    for (uint32_t y = 35; y < 45; ++y)
+        for (uint32_t x = 40; x < 43; ++x) ASSERT_EQ(1, low[y * W + x]) << x << "," << y;
+}
+
+TEST_F(LowConfidenceTest, AGroupThatStraddlesTheEdgeOfTheImagingAreaMarksOnlyItsPixelsInsideIt) {
+    std::vector<uint8_t> area(static_cast<size_t>(W) * H, 1), m(static_cast<size_t>(W) * H, 0);
+    for (uint32_t y = 0; y < H; ++y)
+        for (uint32_t x = 0; x < 20; ++x) area[y * W + x] = 0;
+    for (uint32_t y = 40; y < 43; ++y)
+        for (uint32_t x = 10; x < 31; ++x) m[y * W + x] = 1;
+    loadV2(m, area, {{0, 40, 3, 10, 31}});
+    XpeDefectCorrectionReport rep{};
+    std::vector<uint8_t>      low;
+    correct(rampFrame(), &rep, &low);
+    expectConsistent(rep, low, {33, 1});   // x = 20..30 on three rows
+    for (uint32_t y = 40; y < 43; ++y)
+        for (uint32_t x = 10; x < 20; ++x) ASSERT_EQ(0, low[y * W + x]) << "outside the imaging area nothing is marked: " << x << "," << y;
+}
+
+TEST_F(LowConfidenceTest, AVersionOneMapReportsNoCountsBeyondTheContract) {
+    // the contract in the header: for a version-1 file only size is set (layers_used and out_of_area_pixels are 0), every other count is 0, and the first edition's bytes are unchanged
+    loadV1(goldenMap());
+    XpeDefectCorrectionReport rep{};
+    std::vector<uint8_t>      low;
+    const std::vector<float>  out = correct(texturedFrame(), &rep, &low);
+    EXPECT_EQ(0xfa3a2284911ddbe8ull, fnv1a(out.data(), out.size() * sizeof(float)));
+    EXPECT_EQ(sizeof(XpeDefectCorrectionReport), rep.size);
+    EXPECT_EQ(0u, rep.layers_used);
+    EXPECT_EQ(0u, rep.isolated_pixels);
+    EXPECT_EQ(0u, rep.blob_pixels);
+    EXPECT_EQ(0u, rep.line_pixels);
+    EXPECT_EQ(0u, rep.line_groups);
+    EXPECT_EQ(0u, rep.one_sided_line_pixels);
+    EXPECT_EQ(0u, rep.low_confidence_pixels);
+    EXPECT_EQ(0u, rep.low_confidence_regions);
+    EXPECT_EQ(0u, rep.unfilled_pixels);
+    EXPECT_EQ(0u, rep.out_of_area_pixels);
+}
+
 }  // namespace

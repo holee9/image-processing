@@ -445,6 +445,27 @@ void markLow(LayerPass& c, size_t idx)
     }
 }
 
+// QA-A-255b (Codex #223): a pixel of a line group of three or more lines, or of a group whose correction is REJECT, is low confidence by what it IS, not by how it was corrected. The state is set here, for
+// every pixel of every such group, before any correction path runs, so a pixel the line stage skips (no valid pixel across it) or that another stage takes first keeps it.
+void markLowGroups(LayerPass& c)
+{
+    for (const DefectExtLine& L : c.layers->lines) {
+        if (!((L.width >= 3u) || (L.correction == XPE_DEFECT_LINE_CORRECT_REJECT))) continue;
+        const bool rowLine = (L.orientation == 0);
+        bool       any = false;
+        for (const DefectExtSegment& sg : L.segments)
+            for (uint32_t p = sg.start; p < sg.end; ++p) {
+                const uint32_t x = rowLine ? p : sg.line, y = rowLine ? sg.line : p;
+                if (x >= c.grid.width || y >= c.grid.height) continue;
+                const size_t idx = static_cast<size_t>(y) * c.grid.width + x;
+                if (!c.ms->test(idx) || !inArea(*c.layers, idx)) continue;
+                markLow(c, idx);
+                any = true;
+            }
+        if (any) ++c.rep->low_confidence_regions;
+    }
+}
+
 void correctLines(LayerPass& c)
 {
     const uint32_t W = c.grid.width;
@@ -452,9 +473,8 @@ void correctLines(LayerPass& c)
         const bool rowLine = (orientation == 0);   // a row line is crossed along y
         for (const DefectExtLine& L : c.layers->lines) {
             if (L.orientation != orientation || L.segments.empty()) continue;
-            const bool lowGroup = (L.width >= 3u) || (L.correction == XPE_DEFECT_LINE_CORRECT_REJECT);
             const int  first = static_cast<int>(L.index), last = static_cast<int>(L.index + L.width) - 1;
-            bool       any = false, anyLow = false;
+            bool       any = false;
             for (const DefectExtSegment& sg : L.segments) {
                 for (uint32_t p = sg.start; p < sg.end; ++p) {
                     const uint32_t x = rowLine ? p : sg.line, y = rowLine ? sg.line : p;
@@ -479,14 +499,9 @@ void correctLines(LayerPass& c)
                     (*c.visited)[slot] = true;
                     ++c.rep->line_pixels;
                     any = true;
-                    if (lowGroup) {
-                        markLow(c, idx);
-                        anyLow = true;
-                    }
                 }
             }
             if (any) ++c.rep->line_groups;
-            if (anyLow) ++c.rep->low_confidence_regions;
         }
     }
 }
@@ -868,6 +883,7 @@ XpeErrorCode xpe_defect_correct_in(
         std::vector<uint8_t>&     lowPlane = low_confidence ? *low_confidence : lowLocal;
         if (lowPlane.empty()) lowPlane.assign(n, 0);
         LayerPass pass{source, dst, &maskSet, layers, Grid{W, H}, &visitedL, &cstate, &fdL, &scratch, report ? report : &localReport, &lowPlane};
+        markLowGroups(pass);
         correctLines(pass);
         correctBlobs(pass);
         if (!low_confidence) lowLocal.clear();

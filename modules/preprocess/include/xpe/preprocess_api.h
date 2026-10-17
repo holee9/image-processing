@@ -410,7 +410,7 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
  * which of the two a pixel is); `layers_used` tells which edition ran.
  */
 typedef struct {
-    uint32_t size;                     /**< sizeof(XpeDefectCorrectionReport), set by the function */
+    uint32_t size;                     /**< sizeof(XpeDefectCorrectionReport), set by the function. All counts below, except layers_used and out_of_area_pixels, are filled only when layers_used is 1: the correction of a version-1 defect file does not count its pixels and leaves them 0 */
     uint32_t layers_used;              /**< 1 when the layers of a version-2 defect file (lines, imaging area) drove the correction, else 0 */
     uint32_t isolated_pixels;          /**< single defective pixels, corrected from their four neighbours (SRS-CALIB-FUNC-007) */
     uint32_t blob_pixels;              /**< pixels of blobs of two or more, filled from the outside inward */
