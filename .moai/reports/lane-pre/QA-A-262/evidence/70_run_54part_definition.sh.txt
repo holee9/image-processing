@@ -1,0 +1,23 @@
+#!/bin/bash
+# QA-A-262 item 2 (54-part definition): the second edition on the QA-A-251 injection (line items 39 + control items 12 = 54 line parts), to check whether the excess-part rate differs between the two definitions
+# (QA-A-260's 142 parts come from the QA-A-252f injection, which holds more control items). A comparability check, not a replacement of the 260 table. The clean side is QA-A-260's second-edition clean set
+# (same clean acquisition frames, same list, same margins). Generator and `correct` are the product tools of QA-A-260, unchanged. One generator run.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+I251=D:/workspace-github/xpe-data/bpm-eval-251/inj
+INJ=$I251/frames
+O60=D:/workspace-github/xpe-data/bpm-eval-260
+O62=D:/workspace-github/xpe-data/bpm-eval-262
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-262/evidence
+EXE=$BIN/xpe_bpm_eval.exe
+GEN=$BIN/xpe_calib_fixture_gen.exe
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+GN="23 24 25 26 27 28"; BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+lst() { local flag=$1 dir=$2 pre=$3; shift 3; for k in "$@"; do printf -- "--%s\n%s/%s_%s.raw\n" "$flag" "$dir" "$pre" "$k"; done; }
+COMMON=(--width 3072 --height 3072 --expiry-ms 4102444800000)
+V2=(--bpm-v2 --bpm-margins 6,2,1,1)
+mapfile -t A < <(lst dark "$CAL" Dark 07; lst dark "$INJ" Dark 08 09 10 11 12 13 14; lst bright "$INJ" Bright $GN; lst bpm-bright "$INJ" Bright $BR)
+run M1_gen_251_v2 "$GEN" --out "$O62/inj251_set_v2" "${COMMON[@]}" "${A[@]}" "${V2[@]}" || exit 1
+run M2_correct_251_v2 "$EXE" correct --truth "$I251" --clean-set "$O60/clean_set_v2" --inj-set "$O62/inj251_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/72_correct_251_v2.json.txt" || exit 1
