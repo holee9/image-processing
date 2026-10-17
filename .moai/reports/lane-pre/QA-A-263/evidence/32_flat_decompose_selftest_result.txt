@@ -1,0 +1,2 @@
+selftest: P_t = 1.0001 % (put in 1.0000), single-frame fixed part 0.4996 % (put in 0.5000), shape of the fixed variance: rows 0.36 (put in 0.36) local 0.64 (put in 0.64)
+selftest result: PASS

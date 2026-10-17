@@ -1,0 +1,111 @@
+"""QA-A-263: a thin ctypes caller of the shipped xpe_preprocess.dll (the same calls as the library's own tests and Codex #232 used), so that the diagnosis can compare numpy with the library.
+Used by the other scripts through exec(open(...).read()). One process holds one calibration set; load a different set in a different process.
+Layouts: XpeImageBuffer (pack 8, 40 bytes), XpeImageMetadata (96 bytes), XpeCalibrationMetrics (offsets from the static_asserts of src/xpe_verify_metrics.cpp)."""
+import ctypes
+import os
+import numpy as np
+
+BIN = 'D:/workspace-github/xpe-pre/build/ci-preprocess/bin/'
+os.add_dll_directory(BIN)
+LIB = ctypes.CDLL(BIN + 'xpe_preprocess.dll')
+PX_U16, PX_F32 = 0, 1
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32), ('bitsStored', ctypes.c_uint32),
+                ('format', ctypes.c_int32), ('data', ctypes.c_void_p), ('dataSize', ctypes.c_size_t)]
+
+
+class Meta(ctypes.Structure):
+    _fields_ = [('raw', ctypes.c_char * 96)]
+
+
+class Metrics(ctypes.Structure):
+    _fields_ = [('dark_bias', ctypes.c_double), ('dsnu', ctypes.c_double), ('residual_noise', ctypes.c_double), ('prnu_before', ctypes.c_double), ('prnu_after', ctypes.c_double),
+                ('flatness_pct', ctypes.c_double), ('gain_coverage', ctypes.c_double), ('invalid_gain_count', ctypes.c_uint32), ('defect_count', ctypes.c_uint32),
+                ('defect_density', ctypes.c_double), ('correction_error', ctypes.c_double), ('snr_improvement_db', ctypes.c_double), ('overall_pass', ctypes.c_bool),
+                ('dark_reduction_db', ctypes.c_double), ('dsnu_adu', ctypes.c_double), ('measured_mask', ctypes.c_uint32)]
+
+
+assert ctypes.sizeof(Buf) == 40 and ctypes.sizeof(Meta) == 96
+assert Metrics.dark_bias.offset == 0 and Metrics.prnu_after.offset == 32 and Metrics.overall_pass.offset == 88, 'metrics layout'
+
+for name, argt in (('xpe_preprocess_init', [ctypes.c_char_p]), ('xpe_calib_load_offset', [ctypes.c_char_p]), ('xpe_calib_load_gain', [ctypes.c_char_p]), ('xpe_calib_load_defect_map', [ctypes.c_char_p]),
+                   ('xpe_offset_correct', [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta)]),
+                   ('xpe_gain_correct', [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta)]),
+                   ('xpe_verify_offset', [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta), ctypes.POINTER(Metrics)]),
+                   ('xpe_verify_gain', [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.c_int32, ctypes.POINTER(Metrics)])):
+    f = getattr(LIB, name)
+    f.argtypes = argt
+    f.restype = ctypes.c_int32
+
+
+def buf_of(a):
+    """A numpy array (uint16 or float32, C-contiguous, 2-D) as an XpeImageBuffer that points into it."""
+    a = np.ascontiguousarray(a)
+    h, w = a.shape
+    b = Buf()
+    b.width, b.height = w, h
+    b.bitsAllocated = 16 if a.dtype == np.uint16 else 32
+    b.bitsStored = b.bitsAllocated
+    b.format = PX_U16 if a.dtype == np.uint16 else PX_F32
+    b.data = a.ctypes.data
+    b.dataSize = a.nbytes
+    return b, a
+
+
+def init():
+    assert LIB.xpe_preprocess_init(None) == 0
+
+
+def load_set(offset_path=None, gain_path=None, defect_path=None):
+    if offset_path:
+        assert LIB.xpe_calib_load_offset(offset_path.encode()) == 0
+    if gain_path:
+        assert LIB.xpe_calib_load_gain(gain_path.encode()) == 0
+    if defect_path:
+        assert LIB.xpe_calib_load_defect_map(defect_path.encode()) == 0
+
+
+def offset_correct(raw):
+    ib, ia = buf_of(raw)
+    out = np.zeros(raw.shape, dtype=np.uint16)
+    ob, oa = buf_of(out)
+    m = Meta()
+    rc = LIB.xpe_offset_correct(ctypes.byref(ib), ctypes.byref(ob), ctypes.byref(m))
+    assert rc == 0, rc
+    return out
+
+
+def gain_correct(u16):
+    ib, ia = buf_of(u16)
+    out = np.zeros(u16.shape, dtype=np.float32)
+    ob, oa = buf_of(out)
+    m = Meta()
+    rc = LIB.xpe_gain_correct(ctypes.byref(ib), ctypes.byref(ob), ctypes.byref(m))
+    assert rc == 0, rc
+    return out
+
+
+def verify_gain(before_u16, after_f32, gain_f32, semantics=1):
+    bb, ba = buf_of(before_u16)
+    ab, aa = buf_of(after_f32)
+    gb, ga = buf_of(gain_f32)
+    mt = Metrics()
+    rc = LIB.xpe_verify_gain(ctypes.byref(bb), ctypes.byref(ab), ctypes.byref(gb), semantics, ctypes.byref(mt))
+    assert rc == 0, rc
+    return mt
+
+
+def verify_offset(raw_u16, corrected_u16):
+    rb, ra = buf_of(raw_u16)
+    cb, ca = buf_of(corrected_u16)
+    m = Meta()
+    mt = Metrics()
+    rc = LIB.xpe_verify_offset(ctypes.byref(rb), ctypes.byref(cb), ctypes.byref(m), ctypes.byref(mt))
+    assert rc == 0, rc
+    return mt
+
+
+def read_payload(path, n, dtype='<f4'):
+    return np.frombuffer(open(path, 'rb').read()[-n * np.dtype(dtype).itemsize:], dtype=dtype).copy()
