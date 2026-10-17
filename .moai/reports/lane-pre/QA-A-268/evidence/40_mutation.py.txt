@@ -1,0 +1,42 @@
+"""QA-A-268 mutation check of the two test additions (overlapped-pixel noise cost, non-zero area-contract counts). Reuses the runner of QA-A-267 (10_revalidate.py.txt): consumers touched, objects and executables proved newer and
+different from the baseline by sha256, baseline failure stops the run, restore verified. Only the mutant list, the old sets, the predictions and the log path are replaced; step P is skipped.
+Usage: PYTHONIOENCODING=utf-8 python -X utf8 40_mutation.py.txt"""
+SRC = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-267/evidence/10_revalidate.py.txt'
+src = open(SRC, encoding='utf-8').read()
+a = src.index('# the failing sets the old runs logged')
+b = src.index('paths = [CPP, HPP, TESTCPP]')
+new_region = '''OVL = ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']
+C3 = ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+ORIG = {'O1': OVL, 'O2': OVL, 'O3': OVL, 'O4': OVL, 'O5': OVL, 'O6': OVL, 'O7': C3, 'O8': C3, 'O9': C3}
+GREEN_EXPECTED = ()
+PRED = [
+    '  O1 the overlapped-pixel cost without the division by g squared (the survivor of QA-A-267)      -> RED: only TheOverlappedPixelNoiseCostDividesTheGainFactorOut... (gain-only mean cost far above 1.5)',
+    '  O2 the cost multiplies by g squared instead of dividing                                        -> RED: the same test (gain-only mean cost below 0.7)',
+    '  O3 the cost without the division by the local expectation                                     -> RED: the same test',
+    '  O4 the pooled cost sum is half of the groups sum                                              -> RED: the same test (part 4: pooled = sum of its groups)',
+    '  O5 the pooled used-pixel count takes the group pixel count instead of the used count         -> RED: the same test (part 4)',
+    '  O6 the group label is decided with a limit three times as high                                -> RED: the same test (part 3: the label follows the interval and the limit 2)',
+    '  O7 the uncomputable lines of the area contract are not counted                                -> RED: only CorrectRunsOnTwoSetsAndReportsTheLineIndex (constant clean image: all lines uncomputable)',
+    '  O8 the clean image counts its uncomputable lines in the planted image counter                 -> RED: only CorrectRunsOnTwoSetsAndReportsTheLineIndex (the images are counted apart)',
+    '  O9 the uncomputable parts of the clean image are not counted                                  -> RED: only CorrectRunsOnTwoSetsAndReportsTheLineIndex',
+    '  Q  the baseline (54 tests) is green and the restore comes back to the same source hash and a green run.',
+]
+MUT = [
+    ('O1', 'QA-A-267 B6 second site', CPP, 'tool', b'ac.sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;', b'ac.sumC += static_cast<double>(s2[i]) / expect;'),
+    ('O2', 'g squared multiplies', CPP, 'tool', b'ac.sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;', b'ac.sumC += (static_cast<double>(s2[i]) * (g * g)) / expect;'),
+    ('O3', 'no expectation', CPP, 'tool', b'ac.sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;', b'ac.sumC += (static_cast<double>(s2[i]) / (g * g)) / 1.0;'),
+    ('O4', 'pooled sum halved', CPP, 'tool', b'pl.sumC += ac.sumC;', b'pl.sumC += 0.5 * ac.sumC;'),
+    ('O5', 'pooled used = pixels', CPP, 'tool', b'pl.used += ac.used;', b'pl.used += ac.px;'),
+    ('O6', 'group limit x 3', CPP, 'tool', b'if (ac.used) v = xpe_bpm_eval::classifyNoiseCost(cost, nu * static_cast<double>(ac.used), expectSe, limit);', b'if (ac.used) v = xpe_bpm_eval::classifyNoiseCost(cost, nu * static_cast<double>(ac.used), expectSe, limit * 3.0);'),
+    ('O7', 'lines uncomputable not counted', CPP, 'tool', b'if (!l.li.computable) ++*uncomputable;', b'if (!l.li.computable && l.li.dn > 1e300) ++*uncomputable;'),
+    ('O8', 'clean counted as planted', CPP, 'tool', b'areaCount(C, Rect{area.x0, y, area.x1 - area.x0, 1}, &aRowsC, &aRowsUncC);', b'areaCount(C, Rect{area.x0, y, area.x1 - area.x0, 1}, &aRowsC, &aRowsUncI);'),
+    ('O9', 'parts of the clean image not counted', CPP, 'tool', b'if (!as[k]->li.computable) {', b'if (!as[k]->li.computable && k != 2) {'),
+]
+'''
+src = src[:a] + new_region + src[b:]
+pa = src.index("    say('--- step P")
+pb = src.index('    for mid, label, path, cons, old, new in MUT:')
+src = src[:pa] + src[pb:]
+src = src.replace('11_revalidate_log.txt', '41_mutation_log.txt').replace('QA-A-267/evidence/', 'QA-A-268/evidence/').replace("mid == 'B8'", 'mid in GREEN_EXPECTED').replace("mid != 'B8'", 'mid not in GREEN_EXPECTED')
+src = src.replace("QA-A-267 R236-4 re-validation of the evaluation-tool mutation checks.", "QA-A-268 mutation check of the overlapped-cost and non-zero-count tests.")
+exec(compile(src, 'mutation268', 'exec'))
