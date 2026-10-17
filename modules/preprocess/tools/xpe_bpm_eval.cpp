@@ -177,23 +177,35 @@ std::string sha256Hex(const std::string& path) {
     return out;
 }
 
-/** A defect map as flags (1 = defective): raw uint8 (N bytes), raw uint16 (2N bytes), or a defect.xcal (payload = the last N bytes). */
+/**
+ * A defect map as flags (1 = defective): raw uint8 (N bytes), raw uint16 (2N bytes), or a defect.xcal of either format version. QA-A-261 (Codex #230 R230-2): a defect.xcal is read by the
+ * module's own reader (read_defect_xcal), so a version-2 file with its imaging area and line/blob extension gives its defect plane; the earlier "last N bytes" guess only fitted version 1.
+ */
 bool readMap(const std::string& path, size_t n, std::vector<uint8_t>* flags) {
     std::vector<uint8_t> bytes;
+    flags->assign(n, 0);
+    const bool xcal = path.size() > 5 && path.compare(path.size() - 5, 5, ".xcal") == 0;
+    if (xcal) {
+        DefectXcal d;
+        xpe_clear_alerts();
+        const XpeErrorCode rc = read_defect_xcal(path.c_str(), false, &d);
+        xpe_clear_alerts();
+        if (rc != XPE_OK) {
+            std::fprintf(stderr, "%s: not a readable defect.xcal (error code %d)\n", path.c_str(), static_cast<int>(rc));
+            return false;
+        }
+        if (d.map.size() != n) {
+            std::fprintf(stderr, "%s: the defect.xcal holds %zu pixels, expected %zu\n", path.c_str(), d.map.size(), n);
+            return false;
+        }
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = d.map[i] != 0 ? 1 : 0;
+        return true;
+    }
     if (!readAllBytes(path, &bytes)) {
         std::fprintf(stderr, "%s: cannot open\n", path.c_str());
         return false;
     }
-    flags->assign(n, 0);
-    const bool xcal = path.size() > 5 && path.compare(path.size() - 5, 5, ".xcal") == 0;
-    if (xcal) {
-        if (bytes.size() < n || bytes.size() - n > 1024) {
-            std::fprintf(stderr, "%s: not a defect.xcal for %zu pixels\n", path.c_str(), n);
-            return false;
-        }
-        const uint8_t* p = bytes.data() + (bytes.size() - n);
-        for (size_t i = 0; i < n; ++i) (*flags)[i] = p[i] != 0 ? 1 : 0;
-    } else if (bytes.size() == n) {
+    if (bytes.size() == n) {
         for (size_t i = 0; i < n; ++i) (*flags)[i] = bytes[i] != 0 ? 1 : 0;
     } else if (bytes.size() == 2 * n) {
         for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[2 * i] | bytes[2 * i + 1]) != 0 ? 1 : 0;

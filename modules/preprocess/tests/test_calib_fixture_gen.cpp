@@ -1126,8 +1126,18 @@ TEST_F(CalibFixtureGenTest, FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameL
             ASSERT_EQ(XPE_OK, read_defect_xcal((byHand / "defect.xcal").string().c_str(), false, &y));
             EXPECT_TRUE(x.map == y.map) << "the defect plane of the default differs from the run on the list without its first frame";
             EXPECT_TRUE(x.area == y.area);
-            EXPECT_EQ(x.ext.lines.size(), y.ext.lines.size());
-            EXPECT_EQ(x.ext.blobs.size(), y.ext.blobs.size());
+            ASSERT_EQ(x.ext.lines.size(), y.ext.lines.size());
+            for (size_t i = 0; i < x.ext.lines.size(); ++i) {   // QA-A-261 (Codex #230): every field of every line group, not only their number
+                const DefectExtLine &p = x.ext.lines[i], &q = y.ext.lines[i];
+                EXPECT_TRUE(p.orientation == q.orientation && p.index == q.index && p.width == q.width && p.start == q.start && p.end == q.end && p.causes == q.causes && p.flags == q.flags &&
+                            p.reason == q.reason && p.strength == q.strength && p.persistence == q.persistence && p.correction == q.correction && p.segments.size() == q.segments.size())
+                    << "line group " << i;
+            }
+            ASSERT_EQ(x.ext.blobs.size(), y.ext.blobs.size());
+            for (size_t i = 0; i < x.ext.blobs.size(); ++i)
+                EXPECT_TRUE(x.ext.blobs[i].x0 == y.ext.blobs[i].x0 && x.ext.blobs[i].y0 == y.ext.blobs[i].y0 && x.ext.blobs[i].x1 == y.ext.blobs[i].x1 && x.ext.blobs[i].y1 == y.ext.blobs[i].y1 &&
+                            x.ext.blobs[i].size == y.ext.blobs[i].size)
+                    << "blob " << i;
         }
         if (v2) {
             const std::string manifest = asText(readAll(byDefault / "manifest.json"));

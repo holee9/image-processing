@@ -1207,6 +1207,60 @@ TEST_F(BpmEvalTest, TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeithe
 }
 
 // ---------------------------------------------------------------- scoring
+// QA-A-261 (Codex #230 R230-2): "score --map" reads a defect.xcal of format version 2 (imaging area and line/blob extension) through the module's own reader; the points that matter are that
+// the file gives the same score as its defect plane given as a raw map, that a file of another size and a damaged file are refused.
+TEST_F(BpmEvalTest, ScoreReadsAVersionTwoDefectFileAsItsDefectPlane) {
+    makeFrames(5, 3, 2);
+    const fs::path t = root / "t";
+    ASSERT_EQ(0, inject(t));
+    const fs::path perfect = mapOf(t, "perfect.u8", [](const Item& it) { return it.cls != "control"; });
+    const std::vector<uint8_t> plane = readBytes(perfect);
+    ASSERT_EQ(kN, plane.size());
+    std::vector<uint8_t> area(kN, 1);
+    for (uint32_t x = 0; x < kW; ++x) area[x] = 0;   // the top row is outside the imaging area (the plane flags nothing there)
+    DefectExt ext;
+    DefectExtLine L;
+    L.orientation = 0; L.index = 20; L.width = 1; L.start = 8; L.end = 400; L.causes = 1; L.correction = XPE_DEFECT_LINE_CORRECT_INTERPOLATE; L.strength = 4.0f;
+    for (uint32_t k = 0; k < 40; ++k) L.segments.push_back({20, 8 + k * 9, 8 + k * 9 + 5});   // a long extension, well over the 1024 bytes the older reading allowed
+    ext.lines = {L};
+    ext.blobs = {{5, 5, 5, 5, 1}};
+    DefectXcalWrite w;
+    w.width = kW; w.height = kH; w.map = plane.data(); w.area = area.data(); w.ext = &ext; w.session_id = "t";
+    const fs::path xcal = root / "perfect.xcal";
+    ASSERT_EQ(XPE_OK, write_defect_xcal(xcal.string().c_str(), w));
+    { const size_t sz = readBytes(xcal).size(); ASSERT_TRUE(sz < kN || sz > kN + 1024u) << "the file must not fit the old tail-of-the-file reading (it is stored compressed): " << sz; }
+
+    const std::string common = " --clean-map \"" + perfect.string() + "\" --half-a \"" + perfect.string() + "\" --half-b \"" + perfect.string() + "\"";
+    ASSERT_EQ(0, score(t, perfect, common + " --out \"" + (root / "raw.json").string() + "\"", root / "raw.txt")) << text(root / "raw.txt");
+    ASSERT_EQ(0, score(t, xcal, common + " --out \"" + (root / "xcal.json").string() + "\"", root / "xcal.txt")) << text(root / "xcal.txt");
+    // the score names the map file it read in its first member; everything after that must be equal
+    auto afterMapName = [&](const char* file) {
+        const std::string j = text(root / file);
+        const size_t      e = j.find('\n', j.find("\"map\""));
+        return e == std::string::npos ? j : j.substr(e);
+    };
+    EXPECT_EQ(afterMapName("raw.json"), afterMapName("xcal.json")) << "a defect file and its defect plane must give the same score";
+    EXPECT_NE(std::string::npos, text(root / "xcal.json").find("\"flagged\": ")) << text(root / "xcal.json");
+    // the clean map and the halves may be defect files too
+    const std::string asFiles = " --clean-map \"" + xcal.string() + "\" --half-a \"" + xcal.string() + "\" --half-b \"" + xcal.string() + "\"";
+    ASSERT_EQ(0, score(t, xcal, asFiles + " --out \"" + (root / "xcal2.json").string() + "\"", root / "xcal2.txt")) << text(root / "xcal2.txt");
+    EXPECT_EQ(afterMapName("raw.json"), afterMapName("xcal2.json"));
+
+    // a file made for another size is refused, and so is a damaged one (each with a message naming the defect file)
+    std::vector<uint8_t> smallMap(64 * 48, 0);
+    DefectXcalWrite sw;
+    sw.width = 64; sw.height = 48; sw.map = smallMap.data(); sw.session_id = "t";
+    const fs::path wrongSize = root / "small.xcal";
+    ASSERT_EQ(XPE_OK, write_defect_xcal(wrongSize.string().c_str(), sw));
+    EXPECT_EQ(3, score(t, wrongSize, " --out \"" + (root / "ws.json").string() + "\"", root / "ws.txt"));
+    EXPECT_NE(std::string::npos, text(root / "ws.txt").find("defect.xcal holds")) << text(root / "ws.txt");
+    std::vector<uint8_t> bad = readBytes(xcal);
+    bad[4] = 9;   // an unsupported version number
+    writeBytes(root / "bad.xcal", bad.data(), bad.size());
+    EXPECT_EQ(3, score(t, root / "bad.xcal", " --out \"" + (root / "bd.json").string() + "\"", root / "bd.txt"));
+    EXPECT_NE(std::string::npos, text(root / "bd.txt").find("not a readable defect.xcal")) << text(root / "bd.txt");
+}
+
 TEST_F(BpmEvalTest, ScoreSeparatesAPerfectMapFromAnEmptyOne) {
     makeFrames(5, 3, 2);
     const fs::path t = root / "t";

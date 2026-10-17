@@ -1,0 +1,234 @@
+Note: Google Test filter = BpmEvalTest.ScoreReads*:CalibFixtureGenTest.FirstDark*:*DefectCorrect*:*Correction*:*DefectLine*:*Blob*
+[==========] Running 72 tests from 20 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from NonlinApplyTest
+[ RUN      ] NonlinApplyTest.TheCorrectionRunsAfterOffsetAndBeforeGain
+[       OK ] NonlinApplyTest.TheCorrectionRunsAfterOffsetAndBeforeGain (14 ms)
+[----------] 1 test from NonlinApplyTest (14 ms total)
+
+[----------] 1 test from NonlinPolyTest
+[ RUN      ] NonlinPolyTest.PolynomialCorrectionMeetsTheZeroPointThreePercentResidual
+[       OK ] NonlinPolyTest.PolynomialCorrectionMeetsTheZeroPointThreePercentResidual (0 ms)
+[----------] 1 test from NonlinPolyTest (0 ms total)
+
+[----------] 1 test from GainCorrectTest
+[ RUN      ] GainCorrectTest.AppliesGainCorrection
+[       OK ] GainCorrectTest.AppliesGainCorrection (9 ms)
+[----------] 1 test from GainCorrectTest (9 ms total)
+
+[----------] 15 tests from DefectCorrectTest
+[ RUN      ] DefectCorrectTest.InPlaceMatchesOutOfPlace
+[       OK ] DefectCorrectTest.InPlaceMatchesOutOfPlace (1 ms)
+[ RUN      ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot
+[       OK ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot (5 ms)
+[ RUN      ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused
+[       OK ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused (1 ms)
+[ RUN      ] DefectCorrectTest.NoDefectsLeavesImageUnchanged
+[       OK ] DefectCorrectTest.NoDefectsLeavesImageUnchanged (1 ms)
+[ RUN      ] DefectCorrectTest.SingleDefectPixelIsReplaced
+[       OK ] DefectCorrectTest.SingleDefectPixelIsReplaced (1 ms)
+[ RUN      ] DefectCorrectTest.NullInputReturnsError
+[       OK ] DefectCorrectTest.NullInputReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.NullOutputReturnsError
+[       OK ] DefectCorrectTest.NullOutputReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DimensionMismatchReturnsError
+[       OK ] DefectCorrectTest.DimensionMismatchReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded
+[       OK ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded (0 ms)
+[ RUN      ] DefectCorrectTest.DefectClusterUsesMedianFilter
+[       OK ] DefectCorrectTest.DefectClusterUsesMedianFilter (1 ms)
+[ RUN      ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors
+[       OK ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors (5 ms)
+[ RUN      ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects
+[       OK ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects (1 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullImgReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullImgReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullOutReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullOutReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects
+[       OK ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects (0 ms)
+[----------] 15 tests from DefectCorrectTest (20 ms total)
+
+[----------] 1 test from GhostCorrectTest
+[ RUN      ] GhostCorrectTest.RepeatedFramesApplyHistoryCorrection
+[       OK ] GhostCorrectTest.RepeatedFramesApplyHistoryCorrection (0 ms)
+[----------] 1 test from GhostCorrectTest (0 ms total)
+
+[----------] 1 test from GhostTierTest
+[ RUN      ] GhostTierTest.Alpha1OverrideChangesTheCorrection
+[       OK ] GhostTierTest.Alpha1OverrideChangesTheCorrection (0 ms)
+[----------] 1 test from GhostTierTest (0 ms total)
+
+[----------] 1 test from Boundary
+[ RUN      ] Boundary.DefectCorrect1x1NoDefect
+[       OK ] Boundary.DefectCorrect1x1NoDefect (0 ms)
+[----------] 1 test from Boundary (0 ms total)
+
+[----------] 14 tests from DefectCorrectV2Test
+[ RUN      ] DefectCorrectV2Test.AVersionOneMapGivesTheBytesOfTheCodeBeforeQAA255
+[       OK ] DefectCorrectV2Test.AVersionOneMapGivesTheBytesOfTheCodeBeforeQAA255 (1 ms)
+[ RUN      ] DefectCorrectV2Test.AVersionOneMapReportsNoLayersAndNoLowConfidence
+[       OK ] DefectCorrectV2Test.AVersionOneMapReportsNoLayersAndNoLowConfidence (1 ms)
+[ RUN      ] DefectCorrectV2Test.AVersionTwoMapOfIsolatedPixelsGivesTheBytesOfTheVersionOneMap
+[       OK ] DefectCorrectV2Test.AVersionTwoMapOfIsolatedPixelsGivesTheBytesOfTheVersionOneMap (2 ms)
+[ RUN      ] DefectCorrectV2Test.ARowLineIsInterpolatedFromTheLinesAboveAndBelow
+[       OK ] DefectCorrectV2Test.ARowLineIsInterpolatedFromTheLinesAboveAndBelow (2 ms)
+[ RUN      ] DefectCorrectV2Test.ATwoLineGroupIsBridgedFromItsTwoOuterNeighbours
+[       OK ] DefectCorrectV2Test.ATwoLineGroupIsBridgedFromItsTwoOuterNeighbours (1 ms)
+[ RUN      ] DefectCorrectV2Test.AColumnLineIsInterpolatedFromTheLinesAtItsSides
+[       OK ] DefectCorrectV2Test.AColumnLineIsInterpolatedFromTheLinesAtItsSides (1 ms)
+[ RUN      ] DefectCorrectV2Test.AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence
+[       OK ] DefectCorrectV2Test.AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence (1 ms)
+[ RUN      ] DefectCorrectV2Test.ABlobIsFilledFromTheOutsideInAndNothingStaysUnfilled
+[       OK ] DefectCorrectV2Test.ABlobIsFilledFromTheOutsideInAndNothingStaysUnfilled (1 ms)
+[ RUN      ] DefectCorrectV2Test.TheImagingAreaIsNoSourceAndItsPixelsAreLeftAsTheyWere
+[       OK ] DefectCorrectV2Test.TheImagingAreaIsNoSourceAndItsPixelsAreLeftAsTheyWere (1 ms)
+[ RUN      ] DefectCorrectV2Test.ABlobEnclosedByTheOutsideOfTheAreaTakesTheRingFillAndIsMarked
+[       OK ] DefectCorrectV2Test.ABlobEnclosedByTheOutsideOfTheAreaTakesTheRingFillAndIsMarked (2 ms)
+[ RUN      ] DefectCorrectV2Test.ABlobWithNoValidPixelWithinSixteenKeepsItsValueAndIsMarked
+[       OK ] DefectCorrectV2Test.ABlobWithNoValidPixelWithinSixteenKeepsItsValueAndIsMarked (1 ms)
+[ RUN      ] DefectCorrectV2Test.InPlaceMatchesOutOfPlaceForAVersionTwoMap
+[       OK ] DefectCorrectV2Test.InPlaceMatchesOutOfPlaceForAVersionTwoMap (1 ms)
+[ RUN      ] DefectCorrectV2Test.TheCachedLoaderKeepsTheLayersAndALaterVersionOneFileClearsThem
+[       OK ] DefectCorrectV2Test.TheCachedLoaderKeepsTheLayersAndALaterVersionOneFileClearsThem (2 ms)
+[ RUN      ] DefectCorrectV2Test.TheLowConfidenceBufferIsCheckedLikeAnyOutput
+[       OK ] DefectCorrectV2Test.TheLowConfidenceBufferIsCheckedLikeAnyOutput (1 ms)
+[----------] 14 tests from DefectCorrectV2Test (22 ms total)
+
+[----------] 1 test from LowConfidenceTest
+[ RUN      ] LowConfidenceTest.ASingleLineWhoseCorrectionMethodIsRejectIsLowToo
+[       OK ] LowConfidenceTest.ASingleLineWhoseCorrectionMethodIsRejectIsLowToo (2 ms)
+[----------] 1 test from LowConfidenceTest (2 ms total)
+
+[----------] 18 tests from PreprocessCorrectionTest
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_BasicSubtraction
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_BasicSubtraction (2 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_FloorAtZeroClamping
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_FloorAtZeroClamping (2 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_NullBuffers
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_NullBuffers (0 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_NullMetadata
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_NullMetadata (2 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_FormatMismatch
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_FormatMismatch (4 ms)
+[ RUN      ] PreprocessCorrectionTest.OffsetCorrect_MetadataDoesNotChangeTheCorrection
+[       OK ] PreprocessCorrectionTest.OffsetCorrect_MetadataDoesNotChangeTheCorrection (6 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_UINT16ToFLOAT32Conversion
+[       OK ] PreprocessCorrectionTest.GainCorrect_UINT16ToFLOAT32Conversion (3 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.GainCorrect_DimensionMismatch (1 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_NullBuffers
+[       OK ] PreprocessCorrectionTest.GainCorrect_NullBuffers (0 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_FormatMismatch
+[       OK ] PreprocessCorrectionTest.GainCorrect_FormatMismatch (4 ms)
+[ RUN      ] PreprocessCorrectionTest.GainCorrect_NoNaNInfInOutput
+[       OK ] PreprocessCorrectionTest.GainCorrect_NoNaNInfInOutput (6 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_BasicInterpolation
+[       OK ] PreprocessCorrectionTest.DefectCorrect_BasicInterpolation (3 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch
+[       OK ] PreprocessCorrectionTest.DefectCorrect_DimensionMismatch (2 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_NullBuffers
+[       OK ] PreprocessCorrectionTest.DefectCorrect_NullBuffers (0 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_FormatMismatch
+[       OK ] PreprocessCorrectionTest.DefectCorrect_FormatMismatch (2 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_ClusterDefectHandling
+[       OK ] PreprocessCorrectionTest.DefectCorrect_ClusterDefectHandling (3 ms)
+[ RUN      ] PreprocessCorrectionTest.DefectCorrect_EdgeDefectHandling
+[       OK ] PreprocessCorrectionTest.DefectCorrect_EdgeDefectHandling (3 ms)
+[----------] 18 tests from PreprocessCorrectionTest (50 ms total)
+
+[----------] 2 tests from DefectCorrectDeterminismTest
+[ RUN      ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical
+[       OK ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical (10 ms)
+[ RUN      ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride
+[       OK ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride (8 ms)
+[----------] 2 tests from DefectCorrectDeterminismTest (18 ms total)
+
+[----------] 2 tests from VerifyMetricsTest
+[ RUN      ] VerifyMetricsTest.VerifyOffset_PerfectCorrection
+[       OK ] VerifyMetricsTest.VerifyOffset_PerfectCorrection (0 ms)
+[ RUN      ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses
+[       OK ] VerifyMetricsTest.VerifyGain_PerfectCorrectionPasses (0 ms)
+[----------] 2 tests from VerifyMetricsTest (0 ms total)
+
+[----------] 2 tests from PipelineStageValueTest
+[ RUN      ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear
+[       OK ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear (3 ms)
+[ RUN      ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput
+[       OK ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput (3 ms)
+[----------] 2 tests from PipelineStageValueTest (6 ms total)
+
+[----------] 1 test from GainPolyNotAppliedTest
+[ RUN      ] GainPolyNotAppliedTest.KvpAndSidDoNotChangeTheCorrection
+[       OK ] GainPolyNotAppliedTest.KvpAndSidDoNotChangeTheCorrection (7 ms)
+[----------] 1 test from GainPolyNotAppliedTest (7 ms total)
+
+[----------] 1 test from MetadataNotReadTest
+[ RUN      ] MetadataNotReadTest.DefectCorrectOutputIsTheSameForAnyMetadata
+[       OK ] MetadataNotReadTest.DefectCorrectOutputIsTheSameForAnyMetadata (4 ms)
+[----------] 1 test from MetadataNotReadTest (4 ms total)
+
+[----------] 2 tests from CalibFixtureGenTest
+[ RUN      ] CalibFixtureGenTest.FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLinesAndTheBlobs
+offset.xcal  f28330d82a3452f9cd90b8d8163755b8b2f0bdb1b5b45ad4738632ad7eb96cd9
+gain.xcal    05196ff322edd19142bb5739c24ecd924b045829beae7a612b1ce771ede6d4b4
+defect.xcal  8c3b6ae8c9b2bfffe12e123f070356107eb1d673b5c293ad702aa0a221c6eee7  (301 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792232208258_FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLinesAndTheBlobs\a\manifest.json
+offset.xcal  f28330d82a3452f9cd90b8d8163755b8b2f0bdb1b5b45ad4738632ad7eb96cd9
+gain.xcal    05196ff322edd19142bb5739c24ecd924b045829beae7a612b1ce771ede6d4b4
+defect.xcal  8c3b6ae8c9b2bfffe12e123f070356107eb1d673b5c293ad702aa0a221c6eee7  (301 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792232208258_FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLinesAndTheBlobs\b\manifest.json
+[       OK ] CalibFixtureGenTest.FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLinesAndTheBlobs (1552 ms)
+[ RUN      ] CalibFixtureGenTest.FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList
+offset.xcal  3c6a60862af7286fedd1cb50c109541af3fd4e9b9778777b8c454afd2cae3f37
+gain.xcal    04c4931ad84ad3411c1dabe7e2a36a31d88d5a168aaee51274e3e18a4b195190
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792232209810_FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList\v1_default\manifest.json
+offset.xcal  3c6a60862af7286fedd1cb50c109541af3fd4e9b9778777b8c454afd2cae3f37
+gain.xcal    04c4931ad84ad3411c1dabe7e2a36a31d88d5a168aaee51274e3e18a4b195190
+defect.xcal  74a92e344dc0b3e1442d458d87da2646e12acba0daca1feea2c0fddd146c75e5  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792232209810_FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList\v1_hand\manifest.json
+offset.xcal  3c6a60862af7286fedd1cb50c109541af3fd4e9b9778777b8c454afd2cae3f37
+gain.xcal    04c4931ad84ad3411c1dabe7e2a36a31d88d5a168aaee51274e3e18a4b195190
+defect.xcal  59d889774af4115e1c53bb1bb7e31f0fe9774affb23f045c4e4903db751f1f21  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792232209810_FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList\v2_default\manifest.json
+offset.xcal  3c6a60862af7286fedd1cb50c109541af3fd4e9b9778777b8c454afd2cae3f37
+gain.xcal    04c4931ad84ad3411c1dabe7e2a36a31d88d5a168aaee51274e3e18a4b195190
+defect.xcal  6c7a3d053ed8ca91b3fa240715c2a141a4bb6de0d48757cea9f4fe13c9b9f13b  (3 defect pixels)
+manifest.json written to C:\Users\drake\AppData\Local\Temp\xpe_fixgen_1792232209810_FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList\v2_hand\manifest.json
+[       OK ] CalibFixtureGenTest.FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (5517 ms)
+[----------] 2 tests from CalibFixtureGenTest (7069 ms total)
+
+[----------] 2 tests from BpmEvalTest
+[ RUN      ] BpmEvalTest.ScoreReadsAVersionTwoDefectFileAsItsDefectPlane
+[       OK ] BpmEvalTest.ScoreReadsAVersionTwoDefectFileAsItsDefectPlane (724 ms)
+[ RUN      ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize
+[       OK ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize (162 ms)
+[----------] 2 tests from BpmEvalTest (887 ms total)
+
+[----------] 3 tests from BpmV2LinesTest
+[ RUN      ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot
+[       OK ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot (703 ms)
+[ RUN      ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect
+[       OK ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect (436 ms)
+[ RUN      ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize
+[       OK ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize (0 ms)
+[----------] 3 tests from BpmV2LinesTest (1140 ms total)
+
+[----------] 1 test from CacheGlobalStore
+[ RUN      ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse
+[       OK ] CacheGlobalStore.AfterShutdownAndInitACachedLoadLeavesAMapTheCorrectionCanUse (15 ms)
+[----------] 1 test from CacheGlobalStore (15 ms total)
+
+[----------] 2 tests from CorrectMapSharing
+[ RUN      ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.OffsetCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1527 ms)
+[ RUN      ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther
+[       OK ] CorrectMapSharing.DefectCorrectionDuringAReloadIsWhollyOneMapOrTheOther (1526 ms)
+[----------] 2 tests from CorrectMapSharing (3054 ms total)
+
+[----------] Global test environment tear-down
+[==========] 72 tests from 20 test suites ran. (12326 ms total)
+[  PASSED  ] 72 tests.

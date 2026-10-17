@@ -424,9 +424,21 @@ struct AcrossHit {
     bool  ok;
 };
 
-// The nearest valid pixel from `start` going `dir` (-1 / +1) along y (alongY) or x, at the fixed other coordinate.
-AcrossHit findAcross(const LayerPass& c, bool alongY, uint32_t fixedCoord, int start, int dir)
+// Where findAcross looks: along y (alongY) or x, at the fixed other coordinate, from `start` going `dir` (-1 / +1). A struct, so that the two
+// integers and the flag/coordinate pair cannot be swapped at a call site.
+struct AcrossRay {
+    bool     alongY;
+    uint32_t fixedCoord;
+    int      start;
+    int      dir;
+};
+
+// The nearest valid pixel along the ray.
+AcrossHit findAcross(const LayerPass& c, const AcrossRay& ray)
 {
+    const bool alongY = ray.alongY;
+    const uint32_t fixedCoord = ray.fixedCoord;
+    const int start = ray.start, dir = ray.dir;
     const int limit = static_cast<int>(alongY ? c.grid.height : c.grid.width);
     for (int k = 0; k < kLineReach; ++k) {
         const int pos = start + dir * k;
@@ -484,8 +496,8 @@ void correctLines(LayerPass& c)
                     const size_t slot = c.ms->slot(idx);
                     if ((*c.visited)[slot]) continue;
                     const uint32_t fixedCoord = rowLine ? x : y;
-                    const AcrossHit a = findAcross(c, rowLine, fixedCoord, first - 1, -1);
-                    const AcrossHit b = findAcross(c, rowLine, fixedCoord, last + 1, +1);
+                    const AcrossHit a = findAcross(c, AcrossRay{rowLine, fixedCoord, first - 1, -1});
+                    const AcrossHit b = findAcross(c, AcrossRay{rowLine, fixedCoord, last + 1, +1});
                     if (!a.ok && !b.ok) continue;   // no valid pixel across: the blob stage fills it from what is around
                     float v;
                     if (a.ok && b.ok) {
@@ -506,10 +518,11 @@ void correctLines(LayerPass& c)
     }
 }
 
-// The median of the usable neighbours of (x, y): valid pixels, and pixels of this blob that are already filled.
-bool peelValue(LayerPass& c, uint32_t x, uint32_t y, float* out)
+// The median of the usable neighbours of the pixel `idx` (row-major index): valid pixels, and pixels of this blob that are already filled.
+bool peelValue(LayerPass& c, uint32_t idx, float* out)
 {
     const uint32_t W = c.grid.width, H = c.grid.height;
+    const uint32_t x = idx % W, y = idx / W;
     float          vals[8];
     int            count = 0;
     for (int dy = -1; dy <= 1; ++dy)
@@ -535,13 +548,13 @@ void fillBlob(LayerPass& c, const std::vector<uint32_t>& cluster)
     std::vector<float>    values;
     float                 probe;
     for (uint32_t idx : cluster)
-        if (peelValue(c, idx % W, idx / W, &probe)) {
+        if (peelValue(c, idx, &probe)) {
             frontier.push_back(idx);
             (*c.cstate)[c.ms->slot(idx)] = 2;
         }
     while (!frontier.empty()) {
         values.assign(frontier.size(), 0.0f);
-        for (size_t k = 0; k < frontier.size(); ++k) peelValue(c, frontier[k] % W, frontier[k] / W, &values[k]);   // from the state before this layer
+        for (size_t k = 0; k < frontier.size(); ++k) peelValue(c, frontier[k], &values[k]);   // from the state before this layer
         for (size_t k = 0; k < frontier.size(); ++k) {
             c.dst[frontier[k]] = values[k];
             (*c.cstate)[c.ms->slot(frontier[k])] = 3;
