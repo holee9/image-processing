@@ -228,7 +228,7 @@ namespace ImageProcTest
                         checkExpiry,
                         module);
 
-                    return RunChain(
+                    var chain = RunChain(
                         preview,
                         selection,
                         fixtureCase,
@@ -240,6 +240,7 @@ namespace ImageProcTest
                         offsetCorrect,
                         gainCorrect,
                         defectCorrect);
+                    return AttachOffsetQuality(chain, handle, preview, preparedCalibration.Requests);
                 }
                 finally
                 {
@@ -250,6 +251,52 @@ namespace ImageProcTest
             {
                 NativeLibrary.Free(handle);
             }
+        }
+
+        /// <summary>
+        /// GUI-C-253 (#273): below the existing dark rows, the module's signed offset quality of the ORIGINAL-size raw frame against an original-size offset map. The existing rows, their limits and their pass column are
+        /// not touched: they stay preview-basis. When there is no original-size map (the maps this window writes are preview-size) nothing is called and the rows say "측정 안 됨" with that reason; a module that
+        /// lacks the function, a refusal and a failed read are reasons too. Nothing is added when the offset stage did not run (the existing rows already say so).
+        /// </summary>
+        private static NativePreprocessPreviewResult AttachOffsetQuality(
+            NativePreprocessPreviewResult chain,
+            IntPtr module,
+            RawPreviewResult preview,
+            IReadOnlyList<CalibrationRequest> requests)
+        {
+            if (!chain.Stages.Any(stage => stage.Stage == "offset" && stage.Executed))
+            {
+                return chain;
+            }
+
+            OffsetQualityOutcome outcome;
+            try
+            {
+                var request = requests.FirstOrDefault(r => r.Stage == "offset");
+                if (request is null)
+                {
+                    outcome = OffsetQualityOutcome.NotMeasured("offset 맵 요청이 없음");
+                }
+                else if (request.Width != preview.Width || request.Height != preview.Height)
+                {
+                    outcome = OffsetQualityOutcome.NotMeasured(
+                        $"원본 크기({preview.Width}x{preview.Height}) offset 맵이 없음: 이 화면의 맵은 미리보기 크기({request.Width}x{request.Height}). 위 칸은 미리보기 기준");
+                }
+                else
+                {
+                    var raw = OffsetQualityNative.ReadRaw(preview.FilePath, preview.Width, preview.Height, out var problem);
+                    outcome = raw is null
+                        ? OffsetQualityOutcome.NotMeasured(problem!)
+                        : OffsetQualityNative.MeasureWithFile(module, raw, preview.Width, preview.Height, request.XCalPath);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or MarshalDirectiveException or OverflowException)
+            {
+                outcome = OffsetQualityOutcome.NotMeasured($"측정 중 {ex.GetType().Name}: {ex.Message}");
+            }
+
+            var rows = OffsetQualityRows.Append(chain.DetectorMetrics.DarkMetrics, outcome);
+            return chain with { DetectorMetrics = chain.DetectorMetrics with { DarkMetrics = rows } };
         }
 
         public static NativePreprocessPreviewResult CreateBypass(
