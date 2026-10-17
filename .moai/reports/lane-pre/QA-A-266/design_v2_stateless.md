@@ -1,4 +1,4 @@
-[2026-10-17 20:50 KST] QA-A-266 설계 v2 — 무상태 `xpe_verify_offset_signed` (리더 결정 20:44 반영; `design_signed_offset_quality.md` 를 이 한 쪽이 고친다)
+[2026-10-17 20:46 KST] QA-A-266 설계 v2 — 무상태 `xpe_verify_offset_signed` (리더 결정 20:44 반영; `design_signed_offset_quality.md` 를 이 한 쪽이 고친다)
 
 **바뀐 것**: 세대 번호, `XpeStageDiagnostics` 40바이트 판, 오류 코드 −18 은 채택하지 않는다. 함수는 **원시 다크와 offset 맵 자체를 인수로** 받고 아무 전역 상태도 읽지 않는다(`xpe_preprocess_init` 불필요, 스레드 안전). 호출자가 맵을 직접 넘기므로 "같은 맵"은 계약상 자명하다. 맵의 SHA-256·크기를 결과에 되돌려 기록한다.
 **바뀌지 않은 것**: UINT16 출력과 0 클램프, 기존 `xpe_verify_offset`·`XpeCalibrationMetrics` 불변, 지표별 클램프 전/후 표(§5), ROI 규칙(원시의 어두운 10분위, 엄격한 `<`, 최소 1 %), 측정 비트, 부등식 시험 조건과 반례 +0.2, 반증 실행기 touch 규칙.
