@@ -290,7 +290,10 @@ def analyze(D, F, gain_ids, ref_ids, used_dark_ids, unused_dark_ids, offset7, ga
     say('-' * 110)
     say('(d) flatness after offset and gain, per dose group (frames not used for the gain map, plus the same-dose evaluation frames)')
     groups = {}
+    gain_mean_signal = float(np.mean([F[k][valid].mean() for k in gain_ids]))
     for k in sorted(F):
+        if k in gain_ids:
+            continue   # the frames that made the gain map are not an evaluation of it (the first real run had them in the group of their own dose; corrected here, see the report)
         key = int(round(float(F[k][valid].mean()) / 1500.0))   # dose groups are 1500+ apart; frames of one dose are within ~1 %
         groups.setdefault(key, []).append(k)
     # gain group = the dose of the gain frames
@@ -319,8 +322,8 @@ def analyze(D, F, gain_ids, ref_ids, used_dark_ids, unused_dark_ids, offset7, ga
         st_glob = float(np.sqrt(max(glob ** 2 - noise_group ** 2, 0.0))) if n_g > 1 else float('nan')
         st_loc = float(np.sqrt(max(loc ** 2 - noise_group ** 2, 0.0))) if n_g > 1 else float('nan')
         meanF = float(np.mean([F[k][valid].mean() for k in ids]))
-        tag = 'GAIN DOSE' if any(k in gain_ids for k in ids) else ''
-        say('    dose group of mean signal %8.0f (%s) frames %s %s' % (meanF, tag, ids, '(gain frames: %s)' % [k for k in ids if k in gain_ids] if tag else ''))
+        tag = 'GAIN DOSE (evaluation frames only)' if abs(meanF - gain_mean_signal) < 0.02 * gain_mean_signal else ''
+        say('    dose group of mean signal %8.0f (%s) frames %s' % (meanF, tag, ids))
         say('        group average: global std/mean %.4f %%, local (31x31 high-pass) %.4f %%, temporal noise of the average %.4f %% -> structured global %.4f %%, local %.4f %%' % (100 * glob, 100 * loc, 100 * noise_group, 100 * st_glob, 100 * st_loc))
         res_d.append((meanF, ids, st_glob, st_loc, bool(tag), n_g))
     graded = [r for r in res_d if r[5] > 1 and not np.isnan(r[2])]
