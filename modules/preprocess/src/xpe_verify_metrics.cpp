@@ -978,18 +978,29 @@ namespace {
 
 constexpr uint32_t kQualityHeadSize = 32u;
 
-/** Writes `local` into the caller's struct: only what lies completely inside the caller's structSize, and a group bit only when its whole group did. */
+/**
+ * Writes `local` into the caller's struct (QA-A-266b, Codex #237 R237-2). What is written ends at a FIELD boundary: the largest of 32 (the head), 64 (mapSha256), 72, 80, ... 120 that is not
+ * beyond the caller's structSize; a field is never written in part. A group (validMask bit) is valid only if all of its fields lie inside what is written; for every other group the bit is
+ * cleared and the bytes of that group that lie inside what is written are 0, so a field whose bit is clear never holds a measurement. writtenSize is what was written.
+ */
 void publish_quality(XpeOffsetQuality* out, const XpeOffsetQuality& local) noexcept {
-    const uint32_t cap = out->structSize;
-    const uint32_t take = cap < static_cast<uint32_t>(sizeof(XpeOffsetQuality)) ? cap : static_cast<uint32_t>(sizeof(XpeOffsetQuality));
-    XpeOffsetQuality w = local;
-    // end offset of the last field of each group
-    struct Group { uint32_t bit; uint32_t end; };
-    const Group groups[] = {{XPE_OFFSETQ_MAP_IDENT, 64u}, {XPE_OFFSETQ_ROI_SIGNED, 80u}, {XPE_OFFSETQ_DARK_REDUCTION, 88u}, {XPE_OFFSETQ_CLAMP_RATE, 104u}, {XPE_OFFSETQ_ROI_OUTPUT, 120u}};
-    for (const Group& g : groups) {
-        if (take < g.end) w.validMask &= ~g.bit;
+    const uint32_t cap = out->structSize;   // at least 32: the caller checked
+    static const uint32_t kBounds[] = {32u, 64u, 72u, 80u, 88u, 96u, 104u, 112u, 120u};
+    uint32_t take = 32u;
+    for (const uint32_t bound : kBounds) {
+        if (bound <= cap) take = bound;
     }
-    w.structSize = cap;          // the caller's value stays as it was
+    XpeOffsetQuality w = local;
+    struct Group { uint32_t bit; uint32_t begin; uint32_t end; };
+    const Group groups[] = {{XPE_OFFSETQ_MAP_IDENT, 32u, 64u}, {XPE_OFFSETQ_ROI_SIGNED, 64u, 80u}, {XPE_OFFSETQ_DARK_REDUCTION, 80u, 88u}, {XPE_OFFSETQ_CLAMP_RATE, 88u, 104u},
+                            {XPE_OFFSETQ_ROI_OUTPUT, 104u, 120u}};
+    for (const Group& g : groups) {
+        if (take < g.end) {
+            w.validMask &= ~g.bit;
+            std::memset(reinterpret_cast<uint8_t*>(&w) + g.begin, 0, g.end - g.begin);
+        }
+    }
+    w.structSize = cap;   // the caller's value stays as it was
     w.writtenSize = take;
     std::memcpy(out, &w, take);
 }
@@ -1003,8 +1014,9 @@ XpeErrorCode quality_failure(XpeOffsetQuality* out, XpeErrorCode rc) noexcept {
 }
 
 XpeErrorCode verify_offset_signed_impl(const XpeImageBuffer* raw_image, const XpeImageBuffer* offset_map, XpeOffsetQuality* quality) {
-    if (!raw_image || !offset_map || !quality) return XPE_ERR_INVALID_INPUT;
-    if (quality->structSize < kQualityHeadSize) return XPE_ERR_INVALID_INPUT;
+    if (!quality) return XPE_ERR_INVALID_INPUT;
+    if (quality->structSize < kQualityHeadSize) return XPE_ERR_INVALID_INPUT;   // nothing is written to a struct that cannot hold the head
+    if (!raw_image || !offset_map) return quality_failure(quality, XPE_ERR_INVALID_INPUT);   // QA-A-266b: a usable quality is cleared on EVERY error, so an earlier result cannot be mistaken for this call's
 
     size_t n = 0, nmap = 0;
     if (!raw_image->data || !offset_map->data || raw_image->width == 0 || raw_image->height == 0 ||
@@ -1085,20 +1097,30 @@ XpeErrorCode verify_offset_signed_impl(const XpeImageBuffer* raw_image, const Xp
             }
         }
         r.roiPixels = static_cast<uint32_t>(sx.size());
-        const size_t roi_min = static_cast<size_t>(static_cast<double>(n) * 0.01);
-        if (sx.size() >= roi_min) {
+        // QA-A-266b (Codex #237 R237-1): SRS-CALIB-FUNC-035's 1 % is compared as an integer (roi * 100 >= n, no rounding down), and a sample standard deviation needs two samples; an empty or too small ROI is
+        // unmeasured, never zero-filled and marked measured. (xpe_verify_offset rounds the 1 % down, so for a frame under 100 pixels or a ROI just under 1 % the two functions can differ; the full-size frames agree.)
+        const bool roi_ok = sx.size() >= 2u && sx.size() * 100u >= n;
+        if (roi_ok) {
             const double mean_x = compute_mean(sx);
             const double std_x = compute_std(sx, mean_x);
-            r.darkBiasSigned = mean_x;
-            r.dsnuSigned = std_x;
             const double mean_r = compute_mean(sr);
             const double std_r = compute_std(sr, mean_r);
-            constexpr double kEps = 1e-9;   // the epsilon of xpe_verify_offset
-            r.darkReductionDb = 20.0 * std::log10(std_r / std::max(std_x, kEps));
             const double mean_o = compute_mean(so);
-            r.darkBiasOutput = mean_o;
-            r.dsnuOutput = compute_std(so, mean_o);
-            r.validMask |= XPE_OFFSETQ_ROI_SIGNED | XPE_OFFSETQ_DARK_REDUCTION | XPE_OFFSETQ_ROI_OUTPUT;
+            const double std_o = compute_std(so, mean_o);
+            if (std::isfinite(mean_x) && std::isfinite(std_x) && std::isfinite(mean_o) && std::isfinite(std_o)) {
+                r.darkBiasSigned = mean_x;
+                r.dsnuSigned = std_x;
+                r.darkBiasOutput = mean_o;
+                r.dsnuOutput = std_o;
+                r.validMask |= XPE_OFFSETQ_ROI_SIGNED | XPE_OFFSETQ_ROI_OUTPUT;
+                // the reduction is a ratio of two standard deviations: it is a number only if the raw ROI has a spread (a constant raw ROI has none) and the result is finite
+                constexpr double kEps = 1e-9;   // the epsilon of xpe_verify_offset
+                const double db = 20.0 * std::log10(std_r / std::max(std_x, kEps));
+                if (std_r > 0.0 && std::isfinite(db)) {
+                    r.darkReductionDb = db;
+                    r.validMask |= XPE_OFFSETQ_DARK_REDUCTION;
+                }
+            }
         }
     }
     publish_quality(quality, r);
@@ -1129,8 +1151,9 @@ XPE_API XpeErrorCode xpe_verify_offset_signed_file(
     XpeOffsetQuality* quality)
 {
     try {
-        if (!raw_image || !offset_xcal_path || !quality) return XPE_ERR_INVALID_INPUT;
+        if (!quality) return XPE_ERR_INVALID_INPUT;
         if (quality->structSize < kQualityHeadSize) return XPE_ERR_INVALID_INPUT;
+        if (!raw_image || !offset_xcal_path) return quality_failure(quality, XPE_ERR_INVALID_INPUT);
         XCalFileHeader hdr;
         std::vector<uint8_t> config_json, payload;
         const XpeErrorCode rc = read_xcal_file(offset_xcal_path, hdr, config_json, payload, /*check_expiry=*/false, /*expected_type=*/XCAL_TYPE_OFFSET);

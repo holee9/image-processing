@@ -266,14 +266,14 @@ TEST(VerifyOffsetSigned, TheSignedAndTheOutputBiasObeyOnlyTheRelationsThatHold) 
     size_t cnt = 0;
     for (size_t i = 0; i < kN; ++i) {
         if (raw[i] < thr) {
-            mc += std::max(static_cast<double>(static_cast<float>(raw[i]) - map[i]), 0.0);
+            mc += std::min(std::max(static_cast<double>(static_cast<float>(raw[i]) - map[i]), 0.0), 65535.0);   // m_s: with the saturation (here nothing saturates)
             ++cnt;
         }
     }
     mc /= static_cast<double>(cnt);
     const XpeOffsetQuality q = measure(raw, map);
-    EXPECT_GE(mc, q.darkBiasSigned - 1e-12) << "T-A: the floor can only raise the mean (Jensen)";
-    EXPECT_LE(std::fabs(q.darkBiasOutput - mc), 0.5) << "T-B: the rounding moves a pixel by at most 0.5";
+    EXPECT_GE(mc, q.darkBiasSigned - 1e-12) << "T-A: the floor can only raise the mean (m_0 >= signed; here m_s = m_0 because no residual exceeds 65535)";
+    EXPECT_LE(std::fabs(q.darkBiasOutput - mc), 0.5) << "T-B: |output - m_s| <= 0.5 (the rounding moves a pixel by at most 0.5, after the saturation)";
 }
 
 TEST(VerifyOffsetSigned, TheOutputBiasCanBeBelowTheSignedBiasARoiResidualOfPointTwoRoundsToZero) {
@@ -287,7 +287,7 @@ TEST(VerifyOffsetSigned, TheOutputBiasCanBeBelowTheSignedBiasARoiResidualOfPoint
 }
 
 TEST(VerifyOffsetSigned, WithIntegerResidualsTheOutputBiasIsTheClampOnlyMeanAndAtLeastTheSignedBias) {
-    // T-D: integer residuals -3 .. +5 -> floor(x + 0.5) = x for x >= 0, so the rounding adds nothing and the relation holds
+    // T-D: integer residuals -3 .. +5 (all <= 65535) -> floor(x + 0.5) = x for x >= 0, so the rounding adds nothing and the relation holds; above 65535 it does not (see the saturation test)
     std::vector<uint16_t> raw = variedRaw();
     std::vector<float> want(kN);
     for (size_t i = 0; i < kN; ++i) want[i] = static_cast<float>(static_cast<int>(i % 9) - 3);
@@ -357,33 +357,164 @@ TEST(VerifyOffsetSigned, TheMapIdentityIsTheSha256OfItsFloatBytesAndItsSize) {
     EXPECT_NE(0, std::memcmp(q.mapSha256, q2.mapSha256, 32));
 }
 
-TEST(VerifyOffsetSigned, TheStructSizeRuleWritesNothingPastTheCallersStructAndKeepsGroupsWhole) {
+TEST(VerifyOffsetSigned, TheStructSizeRuleWritesOnlyCompleteFieldsAndZeroesTheGroupsItCannotHold) {
+    // QA-A-266b (Codex #237 R237-2): what is written ends at a field boundary; a group whose fields do not all fit is invalid and its bytes inside what was written are 0
     std::vector<uint16_t> raw = variedRaw();
     std::vector<float> map = mapFor(raw, constantResidual(kN, 2.0f));
     XpeImageBuffer r = bufU16(raw), m = bufF32(map);
     XpeOffsetQuality full = fresh();
     ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &full));
-    struct Case { uint32_t size; uint32_t groups; };
-    for (const Case& c : {Case{32, 0u}, Case{63, 0u}, Case{64, XPE_OFFSETQ_MAP_IDENT}, Case{79, XPE_OFFSETQ_MAP_IDENT}, Case{80, XPE_OFFSETQ_MAP_IDENT | XPE_OFFSETQ_ROI_SIGNED},
-                          Case{88, XPE_OFFSETQ_MAP_IDENT | XPE_OFFSETQ_ROI_SIGNED | XPE_OFFSETQ_DARK_REDUCTION},
-                          Case{103, XPE_OFFSETQ_MAP_IDENT | XPE_OFFSETQ_ROI_SIGNED | XPE_OFFSETQ_DARK_REDUCTION},
-                          Case{104, XPE_OFFSETQ_MAP_IDENT | XPE_OFFSETQ_ROI_SIGNED | XPE_OFFSETQ_DARK_REDUCTION | XPE_OFFSETQ_CLAMP_RATE}, Case{119, 0x1Bu}, Case{120, kAllGroups}, Case{200, kAllGroups}}) {
+    ASSERT_EQ(kAllGroups, full.validMask);
+    struct Group { uint32_t bit, begin, end; };
+    const Group groups[] = {{XPE_OFFSETQ_MAP_IDENT, 32, 64}, {XPE_OFFSETQ_ROI_SIGNED, 64, 80}, {XPE_OFFSETQ_DARK_REDUCTION, 80, 88}, {XPE_OFFSETQ_CLAMP_RATE, 88, 104}, {XPE_OFFSETQ_ROI_OUTPUT, 104, 120}};
+    struct Case { uint32_t size; uint32_t take; };
+    for (const Case& c : {Case{32, 32}, Case{33, 32}, Case{63, 32}, Case{64, 64}, Case{65, 64}, Case{71, 64}, Case{72, 72}, Case{79, 72}, Case{80, 80}, Case{87, 80}, Case{88, 88}, Case{95, 88},
+                          Case{96, 96}, Case{103, 96}, Case{104, 104}, Case{111, 104}, Case{112, 112}, Case{119, 112}, Case{120, 120}, Case{121, 120}, Case{200, 120}}) {
         std::vector<uint8_t> buf(300, 0xCD);
         auto* q = reinterpret_cast<XpeOffsetQuality*>(buf.data());
         q->structSize = c.size;
         ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, q)) << "size " << c.size;
-        const uint32_t take = std::min<uint32_t>(c.size, 120u);
-        EXPECT_EQ(take, q->writtenSize) << "size " << c.size;
-        EXPECT_EQ(c.groups, q->validMask) << "size " << c.size;
-        for (size_t i = take; i < buf.size(); ++i) {
-            ASSERT_EQ(0xCD, buf[i]) << "size " << c.size << ": byte " << i << " past the caller's struct was written";
+        EXPECT_EQ(c.take, q->writtenSize) << "size " << c.size;
+        uint32_t want = 0;
+        for (const Group& g : groups) {
+            if (g.end <= c.take) want |= g.bit;
         }
-        // the bytes inside are the full call's, apart from the three header words that depend on the size
-        std::vector<uint8_t> a(reinterpret_cast<const uint8_t*>(&full), reinterpret_cast<const uint8_t*>(&full) + take);
-        for (uint32_t i = 12; i < take; ++i) {
-            ASSERT_EQ(a[i], buf[i]) << "size " << c.size << ": byte " << i;
+        EXPECT_EQ(want, q->validMask) << "size " << c.size;
+        // nothing past what was written is touched, including the bytes between that boundary and the caller's structSize
+        for (size_t i = c.take; i < buf.size(); ++i) {
+            ASSERT_EQ(0xCD, buf[i]) << "size " << c.size << ": byte " << i << " past the written part was touched";
+        }
+        // inside: the head words that do not depend on the size and every complete group are the full call's; a group that did not fit is 0 (never half a double, never a stale 2.0)
+        std::vector<uint8_t> expect(reinterpret_cast<const uint8_t*>(&full), reinterpret_cast<const uint8_t*>(&full) + sizeof full);
+        for (const Group& g : groups) {
+            if (g.end > c.take) std::memset(expect.data() + g.begin, 0, g.end - g.begin);
+        }
+        for (uint32_t i = 12; i < c.take; ++i) {
+            ASSERT_EQ(expect[i], buf[i]) << "size " << c.size << ": byte " << i;
         }
     }
+    // the case of the review: structSize 72 holds the whole of darkBiasSigned but not the group ROI_SIGNED; the field must read 0, not 2
+    std::vector<uint8_t> buf(300, 0xCD);
+    auto* q = reinterpret_cast<XpeOffsetQuality*>(buf.data());
+    q->structSize = 72;
+    ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, q));
+    EXPECT_EQ(XPE_OFFSETQ_MAP_IDENT, q->validMask);
+    EXPECT_EQ(0.0, q->darkBiasSigned) << "a field whose group bit is clear holds 0";
+}
+
+TEST(VerifyOffsetSigned, AnEmptyOrTooSmallRoiIsUnmeasuredAndNeverZeroFilledAsMeasured) {
+    // QA-A-266b (Codex #237 R237-1). Frames of one row of n pixels; raw is 100 where the ROI is wanted and 200 elsewhere, so the ROI is exactly the pixels at 100 (the darkest decile is raw < sorted[floor(0.1 n)]).
+    auto allFinite = [](const XpeOffsetQuality& q) {
+        for (double v : {q.darkBiasSigned, q.dsnuSigned, q.darkReductionDb, q.clampRatePct, q.zeroOutputRatePct, q.darkBiasOutput, q.dsnuOutput}) {
+            if (!std::isfinite(v)) return false;
+        }
+        return true;
+    };
+    auto run = [&](size_t n, size_t roiCount, float mapOffset, bool distinctRoi) {
+        std::vector<uint16_t> raw(n, 200);
+        for (size_t i = 0; i < roiCount; ++i) raw[i] = static_cast<uint16_t>(100 + (distinctRoi ? i : 0));
+        std::vector<float> map(n);
+        for (size_t i = 0; i < n; ++i) map[i] = static_cast<float>(raw[i]) + mapOffset;
+        XpeImageBuffer r = bufU16(raw, static_cast<uint32_t>(n), 1), mp = bufF32(map, static_cast<uint32_t>(n), 1);
+        XpeOffsetQuality q = fresh();
+        EXPECT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &mp, &q)) << "n " << n;
+        EXPECT_TRUE(allFinite(q)) << "n " << n << ": no field is ever inf or nan";
+        return q;
+    };
+    const uint32_t kWhole = XPE_OFFSETQ_CLAMP_RATE | XPE_OFFSETQ_MAP_IDENT;
+    // an empty ROI: n = 2, 9, 10, 99 with only the last pixel different
+    for (const size_t n : {size_t{2}, size_t{9}, size_t{10}, size_t{99}}) {
+        std::vector<uint16_t> raw(n, 100);
+        raw[n - 1] = 200;
+        std::vector<float> map(n);
+        for (size_t i = 0; i < n; ++i) map[i] = static_cast<float>(raw[i]);
+        XpeImageBuffer r = bufU16(raw, static_cast<uint32_t>(n), 1), mp = bufF32(map, static_cast<uint32_t>(n), 1);
+        XpeOffsetQuality q = fresh();
+        ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &mp, &q)) << "n " << n;
+        EXPECT_EQ(0u, q.roiPixels) << "n " << n;
+        EXPECT_EQ(kWhole, q.validMask) << "n " << n << ": an empty ROI is not measured";
+        EXPECT_EQ(0.0, q.darkReductionDb) << "n " << n;
+        EXPECT_TRUE(allFinite(q)) << "n " << n << ": the dB was -inf";
+    }
+    // a ROI of one pixel is too small for a sample standard deviation, also when it is 1 % or more of the frame
+    XpeOffsetQuality q = run(100, 1, 4.0f, false);
+    EXPECT_EQ(1u, q.roiPixels);
+    EXPECT_EQ(kWhole, q.validMask) << "1 pixel: unmeasured";
+    // a ROI of 1 pixel in 101 is also under 1 %
+    q = run(101, 1, 4.0f, false);
+    EXPECT_EQ(kWhole, q.validMask);
+    // 10 equal pixels in 100: measured (10 % of the frame), but a constant raw ROI has no spread to reduce: the bias and DSNU are valid, the dB is not
+    q = run(100, 10, 4.0f, false);
+    EXPECT_EQ(10u, q.roiPixels);
+    EXPECT_EQ(XPE_OFFSETQ_ROI_SIGNED | XPE_OFFSETQ_ROI_OUTPUT | kWhole, q.validMask) << "no DARK_REDUCTION without a spread in the raw ROI";
+    EXPECT_NEAR(-4.0, q.darkBiasSigned, 1e-9);
+    EXPECT_EQ(0.0, q.dsnuSigned);
+    EXPECT_EQ(0.0, q.darkReductionDb);
+    // the 1 % edge by an integer comparison: 2 of 200 is exactly 1 %, 2 of 201 is under it; 3 of 300 and 3 of 301
+    q = run(200, 2, 4.0f, true);
+    EXPECT_EQ(2u, q.roiPixels);
+    EXPECT_EQ(kAllGroups, q.validMask) << "2 of 200 = exactly 1 %, with a spread";
+    q = run(201, 2, 4.0f, true);
+    EXPECT_EQ(2u, q.roiPixels);
+    EXPECT_EQ(kWhole, q.validMask) << "2 of 201 is under 1 %";
+    q = run(300, 3, 4.0f, true);
+    EXPECT_EQ(kAllGroups, q.validMask) << "3 of 300";
+    q = run(301, 3, 4.0f, true);
+    EXPECT_EQ(kWhole, q.validMask) << "3 of 301 is under 1 %";
+}
+
+TEST(VerifyOffsetSigned, ANullArgumentClearsAnEarlierResultLikeEveryOtherError) {
+    // QA-A-266b (Codex #237 R237-3)
+    std::vector<uint16_t> raw = variedRaw();
+    std::vector<float> map = mapFor(raw, constantResidual(kN, 2.0f));
+    XpeImageBuffer r = bufU16(raw), m = bufF32(map);
+    auto headCleared = [](const XpeOffsetQuality& q) { return q.writtenSize == 0 && q.validMask == 0 && q.roiPixels == 0 && q.pixelCount == 0 && q.mapWidth == 0 && q.mapHeight == 0; };
+    XpeOffsetQuality q = fresh();
+    ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &q));
+    ASSERT_EQ(kAllGroups, q.validMask);
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_offset_signed(nullptr, &m, &q));
+    EXPECT_TRUE(headCleared(q)) << "NULL raw";
+    EXPECT_EQ(sizeof(XpeOffsetQuality), q.structSize) << "the caller's structSize is kept";
+    q = fresh();
+    ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &q));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_offset_signed(&r, nullptr, &q));
+    EXPECT_TRUE(headCleared(q)) << "NULL map";
+    q = fresh();
+    ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &q));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_offset_signed_file(&r, nullptr, &q));
+    EXPECT_TRUE(headCleared(q)) << "NULL path";
+    q = fresh();
+    ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &q));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_offset_signed_file(nullptr, "x.xcal", &q));
+    EXPECT_TRUE(headCleared(q)) << "NULL raw, file variant";
+    // a NULL quality writes nowhere; a struct that cannot hold the head is not written
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_offset_signed(&r, &m, nullptr));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_offset_signed_file(&r, "x.xcal", nullptr));
+    q = fresh();
+    ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &q));
+    q.structSize = 31;
+    XpeOffsetQuality before = q;
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_verify_offset_signed(nullptr, &m, &q));
+    EXPECT_EQ(0, std::memcmp(&before, &q, sizeof q)) << "structSize 31: nothing is written";
+}
+
+TEST(VerifyOffsetSigned, AResidualAbove65535SaturatesTheOutputAndTheRelationsNameTheirCondition) {
+    // QA-A-266b (Codex #237 R237-4): the UINT16 output saturates at 65535. raw 100..199, map = raw - 65635, so every residual is 65635.
+    std::vector<uint16_t> raw(100);
+    for (size_t i = 0; i < raw.size(); ++i) raw[i] = static_cast<uint16_t>(100 + i);
+    std::vector<float> map(raw.size());
+    for (size_t i = 0; i < raw.size(); ++i) map[i] = static_cast<float>(raw[i]) - 65635.0f;
+    XpeImageBuffer r = bufU16(raw, 100, 1), m = bufF32(map, 100, 1);
+    XpeOffsetQuality q = fresh();
+    ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &m, &q));
+    ASSERT_NE(0u, q.validMask & XPE_OFFSETQ_ROI_SIGNED);
+    const double m0 = 65635.0, ms = 65535.0;   // mean(max(x,0)) and mean(min(max(x,0),65535)) over the ROI
+    EXPECT_NEAR(65635.0, q.darkBiasSigned, 1e-6);
+    EXPECT_NEAR(65535.0, q.darkBiasOutput, 1e-6);
+    EXPECT_GE(m0, q.darkBiasSigned - 1e-6) << "always: m_0 >= signed";
+    EXPECT_LE(std::fabs(q.darkBiasOutput - ms), 0.5) << "always: |output - m_s| <= 0.5";
+    EXPECT_GT(std::fabs(q.darkBiasOutput - m0), 0.5) << "|output - m_0| <= 0.5 needs x <= 65535: here it is 100";
+    EXPECT_LT(q.darkBiasOutput, q.darkBiasSigned) << "and integer residuals do not give output >= signed when they exceed 65535";
 }
 
 TEST(VerifyOffsetSigned, EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays) {
