@@ -24,7 +24,7 @@
 | 실제 창 시험 K1 | `dotnet test clients/ImageProcTest.E2ETests --filter LegacyInputKindScenarios` (`run_k1_uia_restored.txt`, 사본 `run_k1_uia.txt`) | 통과 1 |
 | 반증 | 핸들러의 `DarkMetricsGrid.ItemsSource = rows;` 한 줄을 비활성화 (`run_k1_falsified_grid_not_updated.txt`) | K1 실패(Assert.Contains: 무효화 행 없음). 원복 후 재빌드, 위 통과 재확인 |
 
-K1 시험 흐름(UI Automation, 전역 키보드·마우스 입력 없음; 대화상자는 값 패턴 + 해당 창으로의 BM_CLICK):
+K1 시험 흐름(입력 방식: UI Automation 기반 + 파일·폴더 대화상자의 확인 버튼 HWND 에 PostMessage(BM_CLICK) 를 보낸다. 대화상자 경로 입력은 값 패턴. 전역 키보드·마우스 입력은 없다):
 1. 1024x1024 원시 영상과 `calibration/cdark.raw` 를 열고 Offset 단계를 켠 뒤 "Run Selected". 입력 종류는 기본 `미확인` → 측정 행 모두 `N/A`, 기준 행 `미측정 — 다크 프레임 미확인 …`, 기존 4행 존재.
 2. 실행하지 않고 `다크 프레임` 선택 → 측정 행이 `입력 종류 변경 — 다시 실행 필요`. 기존 4행 동일, 산출물 폴더 수 불변(미리보기가 돌지 않음), 미리보기 문구 불변.
 3. "Run Selected" 다시 → 서비스가 `다크 프레임` 을 받아 측정: 기준 행 `입력 종류: 다크 프레임(사용자 선택, …)`, 측정 행 7개 이상이 `REPORTED`. 산출물 폴더 +1.
