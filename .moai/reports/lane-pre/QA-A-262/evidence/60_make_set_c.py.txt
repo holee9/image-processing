@@ -1,0 +1,24 @@
+"""QA-A-262 item 3: arm C. The second-edition planted set with its defect plane written as a FIRST-edition defect file (version 1: one byte per pixel, no line segments, no blocks, no imaging area), so that the product's
+correction sees the second-edition MAP through the first-edition correction PATH. offset.xcal and gain.xcal are the second-edition planted set's own (byte copies); defect.xcal = the header of the first-edition planted
+set's defect.xcal (version 1) with the payload replaced by the plane of the second-edition planted set (inj_v2_setmap.u8: the plane `defect-xcal --map-out` wrote from the second-edition file) and the SHA-256 at header
+offset 120 recomputed over config || payload (config length 0 in this file: file size = 152 + 9437184).
+Usage: python 60_make_set_c.py.txt"""
+import hashlib
+import os
+import shutil
+
+M60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-262/inj_set_v2c/'
+os.makedirs(OUT, exist_ok=True)
+for f in ('offset.xcal', 'gain.xcal'):
+    shutil.copyfile(M60 + 'inj_set_v2/' + f, OUT + f)
+v1 = open(M60 + 'inj_set_v1/defect.xcal', 'rb').read()
+plane = open(M60 + 'inj_v2_setmap.u8', 'rb').read()
+n = 3072 * 3072
+assert len(plane) == n and len(v1) == 152 + n
+hdr = bytearray(v1[:152])
+assert bytes(hdr[:4]) == b'XCAL' and hdr[4] == 1
+hdr[120:152] = hashlib.sha256(plane).digest()
+open(OUT + 'defect.xcal', 'wb').write(bytes(hdr) + plane)
+vals = sorted(set(plane))
+print('wrote', OUT, 'plane values', vals[:12], 'flagged pixels', sum(1 for _ in plane if _ != 0) if False else n - plane.count(0))
