@@ -1,0 +1,25 @@
+detector line records: 76 (orientation row: 38, column: 38)
+detected column lines at indices: [58, 162, 260, 319, 350, 480, 520, 555, 630, 675, 701, 735, 807, 926, 981, 1123, 1148, 1192, 1219, 1283, 1320, 1561, 1595, 1651, 1681, 1707, 1758, 1813, 1843, 1902, 2111, 2227, 2328, 2389, 2510, 2738, 2811, 2872]
+truth line/control column items span 873 columns
+==============================================================================================================
+evaluation frame Bright_29.raw
+  column 2895: inside the imaging area columns [6, 3070]: yes (neighbour 2896 is inside)
+      distance to the nearest DETECTED COLUMN line (oriented records): 23 columns; to the nearest truth line/control column item: 5 columns
+      pixels of the column changed by the defect correction: 17 (columns x-1, x, x+1: [np.int64(16), np.int64(17), np.int64(17)]); on the defect plane in the column: 17; line-mask pixels in the column: 16
+      changed pixel rows: [96, 319, 579, 914, 1042, 1165, 1311, 1469, 1703, 1734, 1967, 2102, 2131, 2161, 2191, 2306, 2798] ...
+      neighbour column 2894: plane pixels 16, changed pixels 16
+      neighbour column 2896: plane pixels 17, changed pixels 17
+==============================================================================================================
+evaluation frame Bright_30.raw
+  column 2895: inside the imaging area columns [6, 3070]: yes (neighbour 2896 is inside)
+      distance to the nearest DETECTED COLUMN line (oriented records): 23 columns; to the nearest truth line/control column item: 5 columns
+      pixels of the column changed by the defect correction: 17 (columns x-1, x, x+1: [np.int64(16), np.int64(17), np.int64(17)]); on the defect plane in the column: 17; line-mask pixels in the column: 16
+      changed pixel rows: [96, 319, 579, 914, 1042, 1165, 1311, 1469, 1703, 1734, 1967, 2102, 2131, 2161, 2191, 2306, 2798] ...
+      neighbour column 2894: plane pixels 16, changed pixels 16
+      neighbour column 2896: plane pixels 17, changed pixels 17
+  column 3070: inside the imaging area columns [6, 3070]: yes (neighbour 3071 is a margin column)
+      distance to the nearest DETECTED COLUMN line (oriented records): 198 columns; to the nearest truth line/control column item: 31 columns
+      pixels of the column changed by the defect correction: 17 (columns x-1, x, x+1: [np.int64(14), np.int64(17), np.int64(0)]); on the defect plane in the column: 17; line-mask pixels in the column: 14
+      changed pixel rows: [96, 579, 799, 914, 1093, 1157, 1165, 1311, 1469, 1703, 1734, 1967, 2102, 2131, 2161, 2306, 2798] ...
+      neighbour column 3069: plane pixels 14, changed pixels 14
+      neighbour column 3071: plane pixels 0, changed pixels 0
