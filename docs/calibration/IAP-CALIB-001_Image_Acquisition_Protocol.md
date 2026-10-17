@@ -48,7 +48,7 @@
 
 도구: `xpe_calib_fixture_gen.exe`. 병합된 `main` 의 CI 산출물 `xpe-ci-preprocess-binaries` 에 들어 있고, `tools/Get-CiNativeDlls.ps1` 이 내려받는다. 이 스크립트는 **`main` 에서 성공한 push 실행**의 산출물만 받는다(병합 전 브랜치의 산출물은 받지 않는다). 그리고 `-Dest` 폴더를 비우므로 **개인 폴더**를 지정한다.
 
-원시 프레임(`Dark_*`, `Bright_*`)은 저장소에 없다(`tests/test_data/cyan_test/` 에는 `README.md`·`fixture.json` 만 있다). 보관 위치는 **미확인**이며, 확인되면 이 줄에 적는다.
+원시 프레임(`Dark_*`, `Bright_*`)은 git 으로 추적하지 않는다(`.gitignore` 의 `tests/test_data/**/*.raw`). 로컬 위치는 `tests/test_data/cyan_test/calfiles/` 이고, 데이터셋 설명(검출기, 수집일 2026-04-02, 파일 구성)은 추적되는 `tests/test_data/cyan_test/README.md` 에 있다. 새 작업 환경에는 이 폴더를 따로 복사해야 한다.
 
 ```powershell
 xpe_calib_fixture_gen.exe --out <보정 폴더> --expiry-ms <만료 Unix ms> `
