@@ -498,6 +498,45 @@ TEST(VerifyOffsetSigned, ANullArgumentClearsAnEarlierResultLikeEveryOtherError) 
     EXPECT_EQ(0, std::memcmp(&before, &q, sizeof q)) << "structSize 31: nothing is written";
 }
 
+TEST(VerifyOffsetSigned, TheOutputFiguresAreTheOldFunctionsOnlyWhereBothMeasureAndTheStatesDifferWhereTheRoiRulesDo) {
+    // QA-A-269 (Codex #239 R239-2). Frames of one row of n pixels, raw 100 on the first `roi` pixels and 200 elsewhere, map = raw - 2: every residual and every UINT16 output is 2. The ROI is the 100-valued pixels.
+    // xpe_verify_offset() needs roi >= floor(n / 100); xpe_verify_offset_signed() needs roi * 100 >= n and roi >= 2. Where they differ the states differ, and the unmeasured field's 0 is not a value to compare.
+    struct Case { size_t n, roi; bool newMeasures, oldMeasures; };
+    for (const Case& c : {Case{100, 1, false, true},        // 1 pixel: the new function needs two for a standard deviation; the old one has floor(1) = 1
+                          Case{201, 2, false, true},        // 2 of 201 is under 1 %; the old one has floor(2.01) = 2
+                          Case{301, 3, false, true},        // 3 of 301
+                          Case{10001, 100, false, true},    // 100 of 10001 = 0.9999 %; the same difference at 3072 x 3072 happens with 94,371 of 9,437,184 (observed by Codex, not repeated here: 75 MB)
+                          Case{200, 2, true, true},         // exactly 1 % and two pixels: both measure, and the figures are the same bit for bit
+                          Case{300, 3, true, true},
+                          Case{1000, 50, true, true}}) {
+        std::vector<uint16_t> raw(c.n, 200);
+        for (size_t i = 0; i < c.roi; ++i) raw[i] = 100;
+        std::vector<float> map(c.n);
+        for (size_t i = 0; i < c.n; ++i) map[i] = static_cast<float>(raw[i]) - 2.0f;
+        std::vector<uint16_t> corrected(c.n, 2);
+        XpeImageBuffer r = bufU16(raw, static_cast<uint32_t>(c.n), 1), mp = bufF32(map, static_cast<uint32_t>(c.n), 1), cb = bufU16(corrected, static_cast<uint32_t>(c.n), 1);
+        XpeOffsetQuality q = fresh();
+        ASSERT_EQ(XPE_OK, xpe_verify_offset_signed(&r, &mp, &q)) << "n " << c.n;
+        XpeCalibrationMetrics old{};
+        ASSERT_EQ(XPE_OK, xpe_verify_offset(&r, &cb, nullptr, &old)) << "n " << c.n;
+        EXPECT_EQ(c.roi, static_cast<size_t>(q.roiPixels)) << "n " << c.n;
+        const bool newMeasured = (q.validMask & XPE_OFFSETQ_ROI_OUTPUT) != 0u;
+        const bool oldMeasured = (old.measured_mask & XPE_METRIC_DARK_BIAS) != 0u;
+        EXPECT_EQ(c.newMeasures, newMeasured) << "n " << c.n << " roi " << c.roi << ": the new function's state";
+        EXPECT_EQ(c.oldMeasures, oldMeasured) << "n " << c.n << " roi " << c.roi << ": the old function's state";
+        if (newMeasured && oldMeasured) {
+            EXPECT_EQ(old.dark_bias, q.darkBiasOutput) << "both measure: bit for bit, n " << c.n;
+            EXPECT_EQ(old.dsnu_adu, q.dsnuOutput) << "n " << c.n;
+        }
+        if (!newMeasured) {
+            EXPECT_EQ(0.0, q.darkBiasOutput) << "an unmeasured field holds 0, which is not a value (n " << c.n << ")";
+        }
+        if (oldMeasured && !newMeasured) {
+            EXPECT_EQ(2.0, old.dark_bias) << "the old function really measured 2 here: comparing the new 0 to it would read as a defect, so only the states are compared";
+        }
+    }
+}
+
 TEST(VerifyOffsetSigned, AResidualAbove65535SaturatesTheOutputAndTheRelationsNameTheirCondition) {
     // QA-A-266b (Codex #237 R237-4): the UINT16 output saturates at 65535. raw 100..199, map = raw - 65635, so every residual is 65635.
     std::vector<uint16_t> raw(100);

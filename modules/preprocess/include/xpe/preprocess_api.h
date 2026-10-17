@@ -1710,7 +1710,7 @@ XPE_API XpeErrorCode xpe_verify_offset(
  *  @{ */
 #define XPE_OFFSETQ_ROI_SIGNED     0x01u   /**< darkBiasSigned, dsnuSigned measured: the dark ROI has at least 2 pixels and at least 1 % of the frame (integer comparison, roi * 100 >= pixels) */
 #define XPE_OFFSETQ_DARK_REDUCTION 0x02u   /**< darkReductionDb measured: as ROI_SIGNED, and the raw ROI has a spread (std > 0) and the result is finite */
-#define XPE_OFFSETQ_ROI_OUTPUT     0x04u   /**< darkBiasOutput, dsnuOutput measured: as ROI_SIGNED */
+#define XPE_OFFSETQ_ROI_OUTPUT     0x04u   /**< darkBiasOutput, dsnuOutput measured: as ROI_SIGNED. Equal to xpe_verify_offset()'s dark_bias / dsnu_adu only when that function measured too (see XpeOffsetQuality) */
 #define XPE_OFFSETQ_CLAMP_RATE     0x08u   /**< clampRatePct, zeroOutputRatePct measured (whole frame: valid whenever the inputs are) */
 #define XPE_OFFSETQ_MAP_IDENT      0x10u   /**< mapSha256 filled in */
 
@@ -1727,8 +1727,12 @@ XPE_API XpeErrorCode xpe_verify_offset(
  *
  * Stage of every value (never mix them as if they were one population):
  *   Signed fields   : residual x = float(raw) - map, BEFORE the 0 floor and the rounding; ROI = the darkest decile of the raw frame (raw < percentile10, at least 1 %).
- *   Output fields   : the UINT16 value o = (uint16)(clamp(x, 0, 65535) + 0.5f) that xpe_offset_correct writes, over the SAME ROI. darkBiasOutput and dsnuOutput equal
- *                     dark_bias and dsnu_adu of xpe_verify_offset() on that corrected image, bit for bit.
+ *   Output fields   : the UINT16 value o = (uint16)(clamp(x, 0, 65535) + 0.5f) that xpe_offset_correct writes, over the SAME ROI. When BOTH functions measure the dark ROI (this function: the
+ *                     XPE_OFFSETQ_ROI_OUTPUT bit is set; xpe_verify_offset(): XPE_METRIC_DARK_BIAS is set in measured_mask), darkBiasOutput and dsnuOutput equal dark_bias and dsnu_adu of
+ *                     xpe_verify_offset() on that corrected image, bit for bit. The two functions do NOT always agree on whether the ROI is measurable (QA-A-269, Codex #239 R239-2): this one needs
+ *                     roi * 100 >= pixels (an integer comparison) and at least 2 pixels, xpe_verify_offset() needs roi >= floor(pixels / 100) and no second pixel. For a frame whose size is not a
+ *                     multiple of 100 and a ROI of exactly floor(pixels / 100) pixels (this happens at 3072 x 3072: 94,371 of 9,437,184), xpe_verify_offset() measures and this function does not. When one
+ *                     of them does not measure, compare the STATES (the bits), never the 0 that the unmeasured field holds. The known sizes are not a guarantee: the nine real darks of QA-A-266 agreed.
  *   clampRatePct    : 100 * count(x < 0) / N over the whole frame, before the floor (x == 0 is not counted).
  *   zeroOutputRatePct: 100 * count(o == 0) / N over the whole frame, after the rounding (x < 0.5): a different quantity from clampRatePct.
  * Relations between the two stages (QA-A-266b, Codex #237 R237-4). With m_0 = mean(max(x,0)) and m_s = mean(min(max(x,0),65535)) over the ROI:
