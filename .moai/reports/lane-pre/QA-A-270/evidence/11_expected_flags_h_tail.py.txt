@@ -1,0 +1,39 @@
+"""QA-A-270 item 1, hypothesis H-tail, the EXPECTED number of pixels the bright-noise rule flags in a normal control band if the band pixels are ordinary chi-square samples at the band's MEASURED noise cost (P2).
+The rule (xpe_bpm_v2.cpp, F2b): dose groups of 3, 3, 6, 3, 3 frames (nu_g = 2, 2, 5, 2, 2; nuBright = 13); per group ratio_g = c * chi2(nu_g) / nu_g (c = the band's cost against the neighbours' variance);
+noiseSum = sum nu_g * ratio_g = c * chi2(13); flag iff noiseSum / 13 > T (T = 4.4833, the tool's printed threshold) AND 2 * hits >= 5, hits = number of groups with ratio_g >= 2.0 (kNoiseCostLimit).
+The cost of each band is the P2 value in the QA-A-260 report (cost, lower and upper bound of the 95 % interval). Seeded Monte Carlo, 4,000,000 draws per cost. Reads no data.
+Usage: python -X utf8 11_expected_flags_h_tail.py.txt > 12_expected_flags_h_tail.txt"""
+import numpy as np
+
+rng = np.random.default_rng(270)
+NU = np.array([2, 2, 5, 2, 2])
+T = 4.4833
+LIMIT = 2.0
+BANDS = [  # item, kind/shape/level, pixels, cost, lo, hi (QA-A-260 report, section 4)
+    (101, 'efficiency_loss/col_full/0.6', 3044, 1.785, 1.674, 1.907),
+    (100, 'efficiency_loss/row_full/0.6', 3023, 1.814, 1.697, 1.941),
+    (104, 'efficiency_loss/row_pair/0.6', 1512, 1.803, 1.662, 1.962),
+    (103, 'efficiency_loss/col_partial/0.6', 754, 1.550, 1.313, 1.855),
+    (110, 'efficiency_loss/row_pair/0.7', 1516, 1.351, 1.242, 1.473),
+    (106, 'efficiency_loss/row_full/0.7', 3024, 1.452, 1.363, 1.550),
+]
+
+
+def p_flag(c, n=4_000_000):
+    chi = np.stack([rng.chisquare(nu, n) for nu in NU], axis=1)
+    ratio = c * chi / NU
+    ssum = c * chi.sum(axis=1)
+    hits = (ratio >= LIMIT).sum(axis=1)
+    return float(np.mean((ssum / NU.sum() > T) & (2 * hits >= len(NU))))
+
+
+print('threshold %.4f, groups nu %s, limit %.1f, 4,000,000 draws per cost' % (T, NU.tolist(), LIMIT))
+print('%-5s %-32s %7s | %-9s %-9s %-9s | expected flagged at cost: %-9s %-9s %-9s' % ('item', 'band', 'pixels', 'cost', 'lo', 'hi', 'cost', 'lo', 'hi'))
+tot = [0.0, 0.0, 0.0]
+for item, name, n, c, lo, hi in BANDS:
+    ps = [p_flag(x) for x in (c, lo, hi)]
+    for k in range(3):
+        tot[k] += ps[k] * n
+    print('%-5d %-32s %7d | %-9.3f %-9.3f %-9.3f | %-26s %9.2f %9.2f %9.2f' % (item, name, n, c, lo, hi, '', ps[0] * n, ps[1] * n, ps[2] * n))
+print('sum of the six bands: expected flagged %.2f (at the cost), %.2f (lower bound), %.2f (upper bound)' % tuple(tot))
+print('control: a cost of 1.0 (the design case, the band is like its neighbours): expected per 3000 pixels %.4f' % (p_flag(1.0) * 3000))
