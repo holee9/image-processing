@@ -1,0 +1,80 @@
+"""QA-A-256 row "새 오경보": a diagnostic split by characteristic. Not a score: the score is new_false_alarms of the evaluation tool (41_/43_score_*.json.txt).
+New flagged pixel = flagged in the planted-input map and not flagged in the clean-input map. It is placed by WHERE it lies (background / a control item / a planted item) and, for the second edition, by
+WHICH detector flagged it (feature bits of xpe_bpm_generate_v2 and the line mask). The tool's count excludes the pixels of true-defect and undetermined items; this script cannot reproduce that
+exclusion item by item, so the places "planted item" is listed separately and the sum background + control is compared with the tool's count (the difference is printed, not hidden).
+Usage: python 22_newfa_split.py.txt > 51_newfa_split.txt"""
+import json
+
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+N = 3072 * 3072
+
+
+def rd(p):
+    return open(p, 'rb').read()
+
+
+ids = rd(TR + 'truth_ids.u16')
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = c[1]   # id -> class
+kind = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        kind[int(c[0])] = c[2]
+
+
+def place(i):
+    v = ids[2 * i] | (ids[2 * i + 1] << 8)
+    if v == 0:
+        return 'background'
+    if v == 0xFFFF:
+        return 'overlap of items'
+    return 'control item' if items.get(v) == 'control' else 'planted item (%s)' % items.get(v, '?')
+
+
+def split(planted, clean, features=None, lines=None, label=''):
+    p, c = rd(planted), rd(clean)
+    f = rd(features) if features else None
+    l = rd(lines) if lines else None
+    cnt = {}
+    for i in range(N):
+        if p[i] and not c[i]:
+            pl = place(i)
+            if pl.startswith('planted item'):
+                pl = 'planted item'
+            if f is None:
+                ch = 'v1 detector'
+            else:
+                bits = f[i]
+                names = []
+                if l is not None and l[i]:
+                    names.append('line')
+                if bits & 0x01: names.append('dark mean')
+                if bits & 0x02: names.append('dark noise')
+                if bits & 0x20: names.append('bright noise')
+                if bits & (0x04 | 0x08): names.append('response (dose slope/linearity)')
+                if bits & 0x10: names.append('flat response')
+                ch = '+'.join(names) if names else '(merged line pixel or none)'
+            cnt[(pl, ch)] = cnt.get((pl, ch), 0) + 1
+    print('### ' + label)
+    tot = {}
+    for (pl, ch), n in sorted(cnt.items()):
+        print('- %-18s %-40s %d' % (pl, ch, n))
+        tot[pl] = tot.get(pl, 0) + n
+    print('- 장소별 합계: ' + ', '.join('%s %d' % kv for kv in sorted(tot.items())))
+    return tot
+
+
+s1 = json.load(open(EV + '41_score_v1.json.txt', encoding='utf-8'))
+s2 = json.load(open(EV + '43_score_v2.json.txt', encoding='utf-8'))
+t1 = split(OUT + 'inj_v1_setmap.u8', OUT + 'clean_v1_setmap.u8', label='1판 (특성 비트 없음: 한 검출기)')
+t2 = split(OUT + 'inj_v2_setmap.u8', OUT + 'clean_v2_setmap.u8', OUT + 'v2_full_features.u8', OUT + 'v2_full_lines.u8', label='2판 (특성 비트·줄 마스크)')
+for e, s, t in ((1, s1, t1), (2, s2, t2)):
+    mine = t.get('background', 0) + t.get('control item', 0)
+    print('%d판: 도구의 새 오경보 %d (대조군 위 %d). 이 분해의 배경 + 대조군 합 %d; 도구에서 빠지는 진실·판정 불가 항목과 겹침 위 화소는 따로 있다 (분해에서 항목 위 %d, 겹침 위 %d)' % (
+        e, s['new_false_alarms'], s['new_false_alarms_in_controls'], mine, t.get('planted item', 0), t.get('overlap of items', 0)))
