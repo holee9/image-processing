@@ -8,11 +8,13 @@ foreach ($k in '09','10','11','12','13','14') { $args += @('--dark', "$inj\Dark_
 foreach ($k in 17,18,19,20,21,22,23,24,25,26,27,28,31,32,33,34,35,36) { $args += @('--bright', "$inj\Bright_$k.raw") }
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $p = Start-Process -FilePath $exe -ArgumentList $args -PassThru -NoNewWindow -RedirectStandardOutput 'D:\workspace-github\xpe-data\bpm-eval-258\mem_lines.stdout.txt'
+$null = $p.Handle   # keep the handle so ExitCode is readable after exit (the first run printed an empty exit code)
 $peak = 0
 while (-not $p.HasExited) {
     $p.Refresh()
     if ($p.PeakWorkingSet64 -gt $peak) { $peak = $p.PeakWorkingSet64 }
     Start-Sleep -Milliseconds 100
 }
+$p.WaitForExit()
 $sw.Stop()
-"exit code $($p.ExitCode); wall seconds $([math]::Round($sw.Elapsed.TotalSeconds,1)); peak working set MB $([math]::Round($peak / 1MB,0))"
+"exit code $($p.ExitCode); wall seconds $([math]::Round($sw.Elapsed.TotalSeconds,1)); peak working set MiB $([math]::Round($peak / 1MB,0)) (= $([math]::Round($peak / 1000000,0)) MB)"

@@ -1,0 +1,9 @@
+given ['Dark_07.raw', 'Dark_08.raw', 'Dark_09.raw', 'Dark_10.raw', 'Dark_11.raw', 'Dark_12.raw', 'Dark_13.raw', 'Dark_14.raw']
+used  ['Dark_08.raw', 'Dark_09.raw', 'Dark_10.raw', 'Dark_11.raw', 'Dark_12.raw', 'Dark_13.raw', 'Dark_14.raw']
+first_dark_excluded True one_list_for_all_stages True stages ['offset', 'gain_dark_reference', 'defect_map']
+frames {'dark': 7, 'bright': 6, 'bpm_bright': 18} v2 dark_frames_used 7 skip_first_dark False
+excluded input role: [('dark_excluded_first', 'Dark_07.raw')]
+files now  {'offset.xcal': '5569bacf', 'gain.xcal': 'a7ddadbd', 'defect.xcal': '4579e06b'}
+files IAP1.5 {'offset.xcal': '5569bacf', 'gain.xcal': 'a7ddadbd', 'defect.xcal': '3b6fe9ba'}
+old frames dark 7 old v2 skip True
+used sha == old set dark sha: True
