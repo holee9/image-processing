@@ -1436,7 +1436,10 @@ jobs:
     needs: detect-lane
     if: needs.detect-lane.outputs.is_main == 'true' || needs.detect-lane.outputs.lane != 'unknown'
     runs-on: windows-2025
-    timeout-minutes: 30
+    # 30 -> 50 (2026-10-17, #273): the job runs clang-tidy over preprocess twice (observed baselines ~15 min, then
+    # the baseline comparison ~14 min). Run 38973197107 took exactly 30 min and runs 38986997422/38992249313 were
+    # cancelled at the limit mid-comparison after the BPM v2 sources grew. The checks are unchanged; only the budget.
+    timeout-minutes: 50
 
     steps:
       - name: Checkout
