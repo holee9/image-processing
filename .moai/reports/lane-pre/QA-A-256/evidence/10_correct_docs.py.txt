@@ -1,0 +1,55 @@
+"""QA-A-256 step 0 (Codex #224 non-blocking advice): the struct comment, the 255 report and the 255b report wording. Comment and prose only; no behaviour change."""
+base = 'D:/workspace-github/xpe-pre/'
+
+
+def edit(path, pairs, expect_each=1):
+    s = open(base + path, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == expect_each, (path, s.count(old), old[:80])
+        s = s.replace(old, new)
+    open(base + path, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+# 1. the struct comment: one statement for version 1
+edit('modules/preprocess/include/xpe/preprocess_api.h', [(
+    ''' * Filled by xpe_defect_correct_ex(). The counts of a frame corrected with a version-1 map are all zero except
+ * `isolated_pixels` and `blob_pixels` (a version-1 map carries no line records, so the first-edition rules decide
+ * which of the two a pixel is); `layers_used` tells which edition ran.''',
+    ''' * Filled by xpe_defect_correct_ex(). For a frame corrected with a version-1 map only `size` is filled: every count is 0
+ * (the first edition does not count its pixels), and `layers_used` = 0 tells that the first edition ran. A version-2 map
+ * sets `layers_used` = 1 and fills the counts.''')])
+
+# 2. the 255 report
+R = '.moai/reports/lane-pre/QA-A-255/report.md'
+edit(R, [
+    ('줄 항목 69개 중 59개에서 높고, 항목 중앙값의 중앙값이 1.439(판 1) → 1.582(판 2).',
+     '줄 항목 69개 중 첫 프레임에서 60개, 둘째 프레임에서 59개가 판 2 쪽이 같거나 더 크고(엄격히 더 큰 항목은 59개와 57개), 항목 중앙값의 중앙값이 1.439(판 1) → 1.582(판 2)(첫 프레임).'),
+    ('| Q1 줄 항목 중앙 z: 판 2 < 판 1 | 1.582 > 1.439 (59 / 69 항목에서 높음) | **틀림** |',
+     '| Q1 줄 항목 중앙 z: 판 2 < 판 1 | 1.582 > 1.439 (첫 프레임: 판 2 가 같거나 큰 항목 60 / 69, 엄격히 큰 항목 59; 둘째 프레임: 59 / 69, 57) | **틀림** |'),
+    ('시간은 한도 안이며, 판 1 파일은 이전과 비트 동일하다. 줄 화소의 화소별 잡음은 오히려 늘었다.',
+     '시간은 관측 조건에서 한도 안이며, 판 1 파일은 이전과 비트 동일하다. 줄 화소에서는 국소 공간 표준편차로 정규화한 절대 오차 z 가 오히려 커졌다.'),
+    ('보정 시간은 보정 단계만의 로컬 관측값이다(전체 파이프라인·CI 기계 아님, 실제 세트에는 줄이 없어 줄 보정 최악 시간은 주입 세트로만 관측).',
+     '보정 시간은 보정 단계만의 로컬 관측값이다(전체 파이프라인·CI 기계 아님, 실제 세트에는 줄이 없어 줄이 있는 경우의 시간은 줄이 있는 주입 세트의 관측 시간뿐).'),
+    ('줄을 선형 보간하면 화소별 잡음이 늘어 정밀한 노이즈 지표(예: 줄 위치의 잡음 비교)에 영향이 있을 수 있다.',
+     '줄을 선형 보간하면 국소 공간 표준편차로 정규화한 절대 오차 z 가 늘어 정밀한 노이즈 지표(예: 줄 위치의 잡음 비교)에 영향이 있을 수 있다.'),
+    ('**실제 세트에는 줄 그룹이 0개라, 줄 보정이 일으키는 최악 시간은 주입 세트로만 관측됐다.**',
+     '**실제 세트에는 줄 그룹이 0개라, 줄이 있는 경우의 시간은 줄이 있는 주입 세트의 관측 시간뿐이다.**'),
+])
+s = open(base + R, encoding='utf-8', newline='').read()
+# the 255 report's item 3 also says "화소마다의 잡음": rewrite to what was measured
+old = '화소마다의 잡음은 판 2 가 크고, 대신 줄 전체에 남는 치우침이 없다(D_n 이 그 증거).'
+assert s.count(old) == 1
+s = s.replace(old, '정규화한 절대 오차 z 는 판 2 가 크고, 대신 줄 전체에 남는 치우침이 없다(D_n 이 그 증거). 화소별 잡음을 따로 잰 것은 아니다.')
+open(base + R, 'w', encoding='utf-8', newline='').write(s)
+
+# 3. the 255b report
+R2 = '.moai/reports/lane-pre/QA-A-255b/report.md'
+edit(R2, [
+    ('이 수치는 원래 보고서와 같았고 틀린 곳은 위 문장 하나와 시간 표현이었다.',
+     '줄 항목 중 판 2 의 중앙 z 가 판 1 보다 큰 항목 수는 원래 보고서가 "59 / 69"로 한 번만 적었는데, 프레임별로는 첫 프레임 엄격히 큰 59(같은 값 포함 60), 둘째 프레임 57(같은 값 포함 59)이다(QA-A-256 에서 정정). 나머지 수치는 원래 보고서와 같았고 틀린 곳은 위 문장 하나와 시간 표현이었다.'),
+    ('줄 보정 최악 시간은 주입 세트로만 관측됐다.',
+     '줄이 있는 경우의 시간은 줄이 있는 주입 세트의 관측 시간뿐이다.'),
+])
+print('docs corrected')

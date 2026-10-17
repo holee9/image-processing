@@ -405,9 +405,9 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
 /**
  * @brief What the defect stage did to a frame (QA-A-255, SRS-CALIB-FUNC-039).
  *
- * Filled by xpe_defect_correct_ex(). The counts of a frame corrected with a version-1 map are all zero except
- * `isolated_pixels` and `blob_pixels` (a version-1 map carries no line records, so the first-edition rules decide
- * which of the two a pixel is); `layers_used` tells which edition ran.
+ * Filled by xpe_defect_correct_ex(). For a frame corrected with a version-1 map only `size` is filled: every count is 0
+ * (the first edition does not count its pixels), and `layers_used` = 0 tells that the first edition ran. A version-2 map
+ * sets `layers_used` = 1 and fills the counts.
  */
 typedef struct {
     uint32_t size;                     /**< sizeof(XpeDefectCorrectionReport), set by the function. All counts below, except layers_used and out_of_area_pixels, are filled only when layers_used is 1: the correction of a version-1 defect file does not count its pixels and leaves them 0 */
