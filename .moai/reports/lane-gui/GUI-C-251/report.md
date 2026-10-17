@@ -34,3 +34,11 @@
 | 1. `git merge main` | GUI-C-251 (404cb491) |
 | 2. 초안 적용과 관찰 대조, 차이 기록 | GUI-C-251 (§1) |
 | 3. 도움말 단언 시험 정렬·실행 | GUI-C-251 (§2) |
+
+## 4. 영어판 연장 (리더 요청 16:43)
+
+`gui/ImageProcTest/help/quick-start.html` 에 한국어판과 같은 정정을 같은 내용으로 적용했다: DLL 목록에 `xpe_enhance_basic.dll`, "약 300 MB"(풀면 약 730 MB)와 main 성공 push 실행만 받는다는 설명·`build\e2e-native-dlls` 가 비워진다는 주의, IAP-CALIB-001 1부 안내와 CalData_6/cyan_test 가 다른 입력이라는 설명, 노출 지수 실제 문구, 세 경고의 출처와 `Exposure deviation` 알림 설명, 저장 이름 규칙과 두 예시. 문서 경로는 평문이다.
+
+- `QuickStartCitationTests`: 3개 통과(`run_citation_en_after.txt`).
+- 반증: 영어판 노출 지수 예시의 `uncalibrated` 를 `uncalibratxd` 로 바꾸자 빨강(`run_citation_en_mutated.txt`), 되돌렸고 파일이 백업과 바이트 동일.
+- 한국어판과의 대응은 두 파일의 diff 가 같은 여섯 군데(5줄 변경씩)임을 확인했다. 영어판 문구의 번역 품질은 검토하지 않았다.
