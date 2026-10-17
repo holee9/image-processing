@@ -1,0 +1,31 @@
+### 1판 (한 검출기)
+- 새로 켜진 화소(깨끗한 맵에 없음), 비제어 항목 ±2 화소 밖: 89684 (배경 0, 대조군 항목 위 89684, 겹침 위 0)
+1판 도구의 새 오경보 77047 (대조군 위 77038)
+### 2판
+- 새로 켜진 화소(깨끗한 맵에 없음), 비제어 항목 ±2 화소 밖: 10125 (배경 27, 대조군 항목 위 10098, 겹침 위 0)
+- background  (any)                              27
+- background  bright noise                       1
+- background  dark mean                          7
+- background  dark noise                         0
+- background  flat response                      0
+- background  line mask                          19
+- background  line mask only                     19
+- background  response (dose slope/linearity)    0
+- control     (any)                              10098
+- control     bright noise                       294
+- control     dark mean                          0
+- control     dark noise                         0
+- control     flat response                      0
+- control     line mask                          10037
+- control     line mask only                     9804
+- control     response (dose slope/linearity)    0
+- overlap     (any)                              0
+- overlap     bright noise                       0
+- overlap     dark mean                          0
+- overlap     dark noise                         0
+- overlap     flat response                      0
+- overlap     line mask                          0
+- overlap     line mask only                     0
+- overlap     response (dose slope/linearity)    0
+- (한 화소가 여러 특성이면 각 줄에 모두 센다. "line mask only"는 줄 마스크만 켜진 화소)
+2판 도구의 새 오경보 1115 (대조군 위 1090)

@@ -1,0 +1,78 @@
+"""QA-A-256 second version of the new-false-alarm split (diagnosis, not a score). The first version (22_newfa_split.py.txt, output 51_newfa_split.txt) did not leave out the 2-pixel margin the evaluation tool
+leaves around true-defect and undetermined items, so its totals did not match the tool's. This version leaves out the pixels within 2 of any NON-control item (the tool leaves out only the true-defect and
+undetermined items, which this script cannot tell apart from normal ones item by item, so the zone here is a superset) and reports what remains, by place and by characteristic. The tool's count stays the score.
+Usage: PYTHONIOENCODING=utf-8 python 26_newfa_split_widened.py.txt > 52_newfa_split_widened.txt"""
+import json
+import numpy as np
+
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+W = H = 3072
+
+ids = np.fromfile(TR + 'truth_ids.u16', dtype='<u2').reshape(H, W)
+cls = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        cls[int(c[0])] = c[1]
+ctrl_ids = np.array([i for i, k in cls.items() if k == 'control'], dtype=np.int64)
+is_item = (ids != 0)
+is_ctrl = np.isin(ids, ctrl_ids) & (ids != 0xFFFF)
+is_noncontrol = is_item & ~is_ctrl
+
+
+def dilate(m, r):
+    out = m.copy()
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            if dy == 0 and dx == 0:
+                continue
+            sh = np.zeros_like(m)
+            ys, yd = (slice(max(dy, 0), H + min(dy, 0)), slice(max(-dy, 0), H + min(-dy, 0)))
+            xs, xd = (slice(max(dx, 0), W + min(dx, 0)), slice(max(-dx, 0), W + min(-dx, 0)))
+            sh[yd, xd] = m[ys, xs]
+            out |= sh
+    return out
+
+
+zone = dilate(is_noncontrol, 2)
+
+
+def ld(p):
+    return np.fromfile(p, dtype=np.uint8).reshape(H, W)
+
+
+def split(planted, clean, features=None, lines=None, label='', area=None):
+    p, c = ld(planted) != 0, ld(clean) != 0
+    if area:
+        a = ld(area) != 0   # the tool counts no flag outside the imaging area in any map
+        p, c = p & a, c & a
+    new = p & ~c & ~zone
+    place = np.where(ids[new] == 0, 0, 1)   # 0 background, 1 control item (a shared pixel is inside the zone through its non-control items or is control-only)
+    print('### ' + label)
+    print('- 새로 켜진 화소(깨끗한 맵에 없음), 비제어 항목 ±2 화소 밖: %d (배경 %d, 대조군 항목 위 %d, 겹침 위 %d)' % (new.sum(), int((ids[new] == 0).sum()), int(np.isin(ids[new], ctrl_ids).sum()), int((ids[new] == 0xFFFF).sum())))
+    if features is None:
+        return
+    f = ld(features)[new]
+    l = ld(lines)[new] != 0
+    where = np.where(ids[new] == 0, 'background', np.where(ids[new] == 0xFFFF, 'overlap', 'control'))
+    cnt = {}
+    for place_ in ('background', 'control', 'overlap'):
+        sel = where == place_
+        for name, mask in (('line mask', l), ('dark mean', (f & 0x01) != 0), ('dark noise', (f & 0x02) != 0), ('bright noise', (f & 0x20) != 0), ('response (dose slope/linearity)', (f & 0x0c) != 0), ('flat response', (f & 0x10) != 0)):
+            cnt[(place_, name)] = int((sel & mask).sum())
+        cnt[(place_, '(any)')] = int(sel.sum())
+        only_line = sel & l & ((f & 0x3f) == 0)
+        cnt[(place_, 'line mask only')] = int(only_line.sum())
+    for k, v in sorted(cnt.items()):
+        print('- %-11s %-34s %d' % (k[0], k[1], v))
+    print('- (한 화소가 여러 특성이면 각 줄에 모두 센다. "line mask only"는 줄 마스크만 켜진 화소)')
+
+
+s1 = json.load(open(EV + '41_score_v1.json.txt', encoding='utf-8'))
+s2 = json.load(open(EV + '43_score_v2.json.txt', encoding='utf-8'))
+split(OUT + 'inj_v1_setmap.u8', OUT + 'clean_v1_setmap.u8', label='1판 (한 검출기)')
+print('1판 도구의 새 오경보 %d (대조군 위 %d)' % (s1['new_false_alarms'], s1['new_false_alarms_in_controls']))
+split(OUT + 'inj_v2_setmap.u8', OUT + 'clean_v2_setmap.u8', OUT + 'v2_full_features.u8', OUT + 'v2_full_lines.u8', label='2판', area=OUT + 'inj_v2_area.u8')
+print('2판 도구의 새 오경보 %d (대조군 위 %d)' % (s2['new_false_alarms'], s2['new_false_alarms_in_controls']))

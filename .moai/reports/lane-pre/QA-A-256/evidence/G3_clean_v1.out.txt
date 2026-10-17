@@ -1,0 +1,4 @@
+offset.xcal  5569bacf66fb25f10b9137ebf3f466e9ce8d94857c90dc4a7340df362c290c39
+gain.xcal    a7ddadbd5b69a350c44c638fd8887096ca4cb448eda322e5d8976575c7520d22
+defect.xcal  bc3186b1247519e4ad3b5f01f360fb843f70f910e7c6fa3580430b4dead5757e  (133 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/bpm-eval-256/clean_set_v1\manifest.json
