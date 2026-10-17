@@ -301,10 +301,12 @@ def real():
     darks = {}
     for k in range(7, 17):
         darks[k] = np.fromfile(CAL + 'Dark_%02d.raw' % k, dtype='<u2').reshape(S, S).astype(np.float64) - Omap
+    out['dark_mean'] = {k: float(v.mean()) for k, v in darks.items()}
+    for k in darks:
+        darks[k] -= out['dark_mean'][k]    # the frame level (DarkBias, it alternates between two values) is not a spatial component and would inflate the EMVA temporal variance (eq. 57)
     grp = list(range(8, 17))
     out['dark']['08-16'] = analyse_group([darks[k] for k in grp], grp, [0.0] * len(grp), [float(darks[k].std(ddof=1)) for k in grp], mapmask, 'dark 08-16')
     out['dark']['07'] = analyse_group([darks[7], darks[8]], [7, 8], [0.0, 0.0], [float(darks[7].std(ddof=1)), float(darks[8].std(ddof=1))], mapmask, 'dark 07 (with 08 as the partner; the moving numbers of this pair are not used)')
-    out['dark_mean'] = {k: float(v.mean()) for k, v in darks.items()}
     say('dark group done')
     return out
 
@@ -353,14 +355,18 @@ def print_report(out):
     say('TABLE 3 -- amplitudes in pixel values (counts): the moving row / column amplitude sigma = sqrt(moving energy) x the frame mean signal S (flat) or directly (dark). A readout origin predicts a constant; a dose origin predicts proportionality to S.')
     say('  group   n   mean signal S   moving row sigma [counts]   moving col sigma [counts]   white temporal sigma [counts]')
     rows = []
+    rows_net = []
     for gname, g in out['flat'].items():
         mR = np.mean([m['M_R'] for m in g['mvA']])
         mC = np.mean([m['M_C'] for m in g['mvA']])
         mW = np.mean([m['M_W'] for m in g['mvA']])
         S = float(np.mean(g['S']))
-        say('  %-7s %d   %10.0f      %10.3f                  %10.3f                  %10.3f' % (gname, len(g['names']), S, np.sqrt(mR) * S, np.sqrt(mC) * S, np.sqrt(mW) * S))
+        W_ = 3072.0
+        netR, netC = max(mR - mW / W_, 0.0), max(mC - mW / W_, 0.0)    # the temporal white noise leaks into every row / column mean with variance sigma^2 / 3072
+        say('  %-7s %d   %10.0f      %10.3f                  %10.3f                  %10.3f   (leak-corrected: row %.3f, column %.3f)' % (gname, len(g['names']), S, np.sqrt(mR) * S, np.sqrt(mC) * S, np.sqrt(mW) * S, np.sqrt(netR) * S, np.sqrt(netC) * S))
         if gname != 'C-eval':
             rows.append((S, mR * S * S, mC * S * S, mW * S * S))
+            rows_net.append((S, netR * S * S, netC * S * S))
     gd = out['dark']['08-16']
     dR = np.mean([m['M_R'] for m in gd['mvA']])
     dC = np.mean([m['M_C'] for m in gd['mvA']])
@@ -372,6 +378,12 @@ def print_report(out):
         A_ = np.vstack([np.ones(len(S_arr)), S_arr ** 2]).T
         (a_, b_), *_ = np.linalg.lstsq(A_, arr[:, col], rcond=None)
         say('  least-squares fit of the %s variance [counts^2] = a + b S^2 over the five flat doses: a = %.4f (dark: %.4f), b = %.3e; b S^2 at the highest dose = %.4f' % (nm, a_, dR if col == 1 else dC, b_, b_ * S_arr.max() ** 2))
+    # POST-HOC (not in the method): the same fit on the leak-corrected amplitudes without group A, whose moving estimate is contaminated by the first flat Bright_17
+    net = np.array(rows_net)[1:]
+    for nm, col in (('moving row', 1), ('moving column', 2)):
+        A2 = np.vstack([np.ones(len(net)), net[:, 0] ** 2]).T
+        (a2, b2), *_ = np.linalg.lstsq(A2, net[:, col], rcond=None)
+        say('  post hoc, leak-corrected, groups B..E: %s variance [counts^2] = a + b S^2: a = %.3f (dark %.3f), b = %.3e; amplitude per dose %s' % (nm, a2, dR if col == 1 else dC, b2, ' '.join('%.2f' % np.sqrt(v) for v in net[:, col])))
     A_ = np.vstack([np.ones(len(S_arr)), S_arr]).T
     (v0, kap), *_ = np.linalg.lstsq(A_, arr[:, 3], rcond=None)
     say('  white temporal variance [counts^2] = v0 + kappa S (Poisson plus readout): v0 = %.3f (dark white: %.3f), kappa = %.4f; residuals per dose %s' % (v0, dW, kap, ' '.join('%+.2f' % v for v in (arr[:, 3] - A_ @ np.array([v0, kap])))))
@@ -414,9 +426,13 @@ def print_report(out):
         Tm = g['avg_var']
         corr_total = a['V_tot'] - g['sigma2'] / n_
         say('  group %-6s average of L=%d: sigma2_y %.3e, total spatial variance after eq. (31) %.3e (before %.3e)' % (gname, n_, g['sigma2'], corr_total, a['V_tot']))
-        say('      EMVA   row %7.2f  col %7.2f  pixel %7.2f  (sum %.2f) | decomposition R %7.2f  C %7.2f  L+D+W %7.2f | diff %+.2f  %+.2f  %+.2f' %
-            (pct(e[0], Tm), pct(e[1], Tm), pct(e[2], Tm), pct(sum(e), Tm), pct(a['V_R'], Tm), pct(a['V_C'], Tm), pct(a['V_L'] + a['V_D'] + a['V_W'], Tm),
-             pct(e[0], Tm) - pct(a['V_R'], Tm), pct(e[1], Tm) - pct(a['V_C'], Tm), pct(e[2], Tm) - pct(a['V_L'] + a['V_D'] + a['V_W'], Tm)))
+        # like for like: EMVA subtracts the temporal leakage (sigma2/(L M) from the means, sigma2/L from the total); the decomposition of the average image does not, so its row, column and pixel terms are shown
+        # raw and with the same leakage taken off (row, column: sigma2/(L*3072); pixel: sigma2/L - the two leaks). Absolute variances.
+        leak_line = g['sigma2'] / (n_ * 3072.0)
+        pix_dec = a['V_L'] + a['V_D'] + a['V_W']
+        say('      EMVA   row %.3e  col %.3e  pixel %.3e  (sum %.3e = corrected total) | decomposition raw R %.3e  C %.3e  L+D+W %.3e | leak-corrected R %.3e  C %.3e  L+D+W %.3e | EMVA - leak-corrected: %+.2e %+.2e %+.2e%s' %
+            (e[0], e[1], e[2], sum(e), a['V_R'], a['V_C'], pix_dec, a['V_R'] - leak_line, a['V_C'] - leak_line, pix_dec - g['sigma2'] / n_ + 2 * leak_line,
+             e[0] - (a['V_R'] - leak_line), e[1] - (a['V_C'] - leak_line), e[2] - (pix_dec - g['sigma2'] / n_ + 2 * leak_line), '   [IN-SAMPLE: the average image of the frames that made the map; not a result]' if gname == 'C' else ''))
         for i, k in enumerate(g['names']):
             d = g['decA'][i]
             e1 = g['emva_single'][i]
