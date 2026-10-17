@@ -61,6 +61,7 @@ internal static class ModuleSignatureParity
         foreach (var (name, raw) in headers)
         {
             var text = StripComments(raw);
+            var macros = ParseIntegerMacros(text);
             foreach (Match pm in Regex.Matches(text, @"#\s*pragma\s+pack\s*\(\s*(?:push\s*,\s*)?(?<n>\d+)\s*\)"))
             {
                 // Natural alignment capped at 8 is what this checker models, and what C# does by default on x64; pack(8) changes nothing for members of 8 bytes or less.
@@ -70,7 +71,7 @@ internal static class ModuleSignatureParity
             foreach (Match m in Regex.Matches(text, @"typedef\s+(?<kind>struct|enum)\s*(?<tag>\w*)\s*\{(?<body>.*?)\}\s*(?<name>\w+)\s*;", RegexOptions.Singleline))
             {
                 if (m.Groups["kind"].Value == "enum") model.Enums[m.Groups["name"].Value] = ParseEnum(m.Groups["name"].Value, m.Groups["body"].Value, model, name);
-                else model.Structs[m.Groups["name"].Value] = ParseStruct(m.Groups["name"].Value, m.Groups["body"].Value, model, name);
+                else model.Structs[m.Groups["name"].Value] = ParseStruct(m.Groups["name"].Value, m.Groups["body"].Value, model, name, macros);
             }
 
             foreach (Match m in Regex.Matches(text, @"typedef\s+struct\s+(?<tag>\w+)\s+(?<name>\w+)\s*;")) model.Handles.Add(m.Groups["name"].Value);
@@ -147,7 +148,25 @@ internal static class ModuleSignatureParity
         return long.TryParse(expr, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
     }
 
-    private static NStruct ParseStruct(string name, string body, NativeModel model, string header)
+    /// <summary>
+    /// GUI-C-252: the <c>#define NAME &lt;decimal integer&gt;</c> lines of one header (comments already stripped), name to every distinct value it was given. A struct's array length may be such a name
+    /// (<c>float features[XPE_BPM_V2_FEATURE_COUNT];</c>), which is legitimate C. Only a plain decimal integer is taken: a hex literal, an expression (<c>A * 2</c>), another name, a function-like
+    /// macro or a definition continued with a backslash is NOT recorded, so a length that names one stays "not a number" instead of being guessed.
+    /// </summary>
+    internal static Dictionary<string, SortedSet<long>> ParseIntegerMacros(string text)
+    {
+        var macros = new Dictionary<string, SortedSet<long>>(StringComparer.Ordinal);
+        foreach (Match m in Regex.Matches(text, @"^[ \t]*#[ \t]*define[ \t]+(?<n>\w+)[ \t]+(?<v>\d+)[ \t]*\r?$", RegexOptions.Multiline))
+        {
+            if (!long.TryParse(m.Groups["v"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var value)) continue;
+            if (!macros.TryGetValue(m.Groups["n"].Value, out var values)) macros[m.Groups["n"].Value] = values = [];
+            values.Add(value);
+        }
+
+        return macros;
+    }
+
+    private static NStruct ParseStruct(string name, string body, NativeModel model, string header, Dictionary<string, SortedSet<long>>? macros = null)
     {
         var fields = new List<NField>();
         foreach (var raw in body.Split(';'))
@@ -157,7 +176,23 @@ internal static class ModuleSignatureParity
             var fm = Regex.Match(item, @"^(?<type>.+?)\s*(?<name>\w+)\s*(?:\[\s*(?<n>\w+)\s*\])?$");
             if (!fm.Success) { model.Problems.Add($"{header}: struct {name}: unparseable field '{item}'"); continue; }
             var array = 0;
-            if (fm.Groups["n"].Success && !int.TryParse(fm.Groups["n"].Value, out array)) { model.Problems.Add($"{header}: struct {name}: array length '{fm.Groups["n"].Value}' is not a number"); }
+            if (fm.Groups["n"].Success && !int.TryParse(fm.Groups["n"].Value, out array))
+            {
+                var length = fm.Groups["n"].Value;
+                if (macros is not null && macros.TryGetValue(length, out var values))
+                {
+                    // GUI-C-252: a name defined in this header as a decimal integer. Two different values (an #ifdef branch, a redefinition) cannot be told apart here, so that is a finding, not a guess;
+                    // a value that is 0 or does not fit an int would turn the field into a scalar or a negative size without a word, so those are findings too.
+                    if (values.Count > 1) model.Problems.Add($"{header}: struct {name}: array length '{length}' has more than one value in this header ({string.Join(", ", values)})");
+                    else if (values.Min < 1 || values.Min > int.MaxValue) model.Problems.Add($"{header}: struct {name}: array length '{length}' is {values.Min}, not a size from 1 to {int.MaxValue}");
+                    else array = (int)values.Min;
+                }
+                else
+                {
+                    model.Problems.Add($"{header}: struct {name}: array length '{length}' is not a number");
+                }
+            }
+
             fields.Add(new NField(ParseNType(fm.Groups["type"].Value), fm.Groups["name"].Value, array));
         }
 
