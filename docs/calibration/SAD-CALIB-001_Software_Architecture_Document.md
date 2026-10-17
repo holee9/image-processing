@@ -205,7 +205,14 @@ Central orchestrator for calibration data loading, validation, and lifecycle man
 
 ### 3.3 BpmGenerator (SWU-1.11)  <!-- 2026-04-19 추가: FUNC-022~025 구현 단위 -->
 
-> **2026-10-16:** SRS v1.4 에서 FUNC-022·023 이 개정되고 FUNC-039 가 신설됐다(결함 화소 맵 2판). 아래 3.3.2·3.3.3 은 이전 판(Blue 방식) 설계이며, 2판 설계는 BPM v2 카드에서 이 절을 갱신한다.
+> **2026-10-16:** SRS v1.4 에서 FUNC-022·023 이 개정되고 FUNC-039 가 신설됐다(결함 화소 맵 2판). 아래 3.3.2·3.3.3 은 이전 판(Blue 방식) 설계다. 2판은 **구현 통합, 검증 일부 수행, B16 미달** 상태이며(합격 9·불합격 6·미실시 1, QA-A-260), 설계 요약은 다음과 같다. 상세 초안은 pre 레인의 `QA-A-254/SAD_3.3_defect_xcal_v2_draft.txt` 이다.
+>
+> - **진입점**: `xpe_bpm_generate_v2`(특성별 합집합 검출, 촬영 영역 평면), `xpe_bpm_find_lines`(행·열 줄 기록), `xpe_bpm_blobs`(덩어리 표시). 생성 도구는 `xpe_calib_fixture_gen --bpm-v2 [--bpm-margins L,T,R,B]` 로 명시했을 때만 2판을 만든다.
+> - **`defect.xcal` 판 2**: 헤더 `version` 1 또는 2. 판 2 는 결함 평면과 촬영 영역 평면 뒤에 확장 블록(`XDEX`)을 둔다. 블록 안에 줄 기록(원인 비트: 응답·직선성·잡음·기울기)과 덩어리 표시, 미결정 후보 목록이 들어간다. 옛 읽기기는 판 2 를 `XPE_ERR_CONFIG_INVALID` 로 거부한다.
+> - **거부 사유**: `XPE_ERR_XCAL_VERSION`, `XPE_ERR_XCAL_TRUNCATED`, `XPE_ERR_XCAL_LAYOUT`, `XPE_ERR_XCAL_AREA`, `XPE_ERR_XCAL_EXTENSION` 가 각각 알림 한 건을 낸다.
+> - **적재 한계**: 적재기는 판 1 처럼 결함 평면(평면 0)만 설치한다. 촬영 영역 평면 기반 보간과 영역 밖 화소 보정은 구현하지 않았다.
+> - **첫 다크 규칙**: 다크 목록에는 전체 목록(첫 장 포함)을 넣고 생성 도구가 첫 장을 한 번만 뺀다. 남은 같은 목록을 offset·게인 다크 참조(`mean`)·결함 맵(1판·2판)에 똑같이 쓴다. `--keep-first-dark` 는 목록 전체를 쓴다. 한 장뿐이면 종료 코드 10 으로 거부한다. 근거는 `manifest.json` 의 `dark_policy`(`given`·`used`·`first_dark_excluded`·`one_list_for_all_stages`)로 남는다.
+> - **알려진 한계**: 줄 마스크 합침 단계와 교차한 줄의 구간 끝 처리를 현재 시험이 구별하지 못한다(QA-A-254 §6). 줄 기록 경로는 실세트에 줄이 없어 합성 프레임 시험(`DefectV2Test` 15건)만 지난다.
 
 **Responsibility:** Factory-calibration Bad Pixel Map generation from dark and flat-field frame stacks.
 
