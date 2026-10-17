@@ -85,14 +85,15 @@ struct LineIndex {
 };
 
 /**
- * The line index D_n (AAPM TG-150 4.3.9, method A) of a row-type (w > h) or column-type rectangle of the image @p s (w x h), with the prediction for
+ * The line index D_n (AAPM TG-150 4.3.9, method A) of a rectangle whose orientation (@p row: the lines run along x) is given by the caller; lineIndex() below derives it from the shape.
+ * The imaging-area contract needs this form: a part cut to the area can change its shape, but never its orientation (QA-A-267, Codex #236 R236-1).
+ * The description that follows is that of the row-type (w > h) or column-type rectangle of the image @p s (w x h), with the prediction for
  * uncorrelated noise. P is the mean along the rectangle's extent; D = P_item - (P_before + P_after) / 2 with the lines just before and just after the
  * rectangle; the item profile averages its k lines. sigmaPix is the sample standard deviation of d_i = S_i - (S_{i-1} + S_{i+1}) / 2 along the line
  * before, divided by sqrt 1.5; the prediction is sigmaPix * sqrt(1 / (k L) + 1 / (2 L)) with L the extent (k = 1: sigmaPix * sqrt 1.5 / sqrt L).
  */
-inline LineIndex lineIndex(const float* s, uint32_t w, uint32_t h, const Rect& q) {
+inline LineIndex lineIndexOriented(const float* s, uint32_t w, uint32_t h, const Rect& q, bool row) {
     LineIndex r;
-    const bool row = q.w > q.h;
     const int  k = row ? q.h : q.w, len = row ? q.w : q.h;
     const int  first = row ? q.y : q.x;
     const int  beforeIdx = first - 1, afterIdx = first + k;
@@ -140,6 +141,11 @@ inline LineIndex lineIndex(const float* s, uint32_t w, uint32_t h, const Rect& q
     return r;
 }
 
+/** The line index with the orientation the rectangle has as given: a row-type rectangle is wider than it is high. Same as lineIndexOriented(.., q.w > q.h). */
+inline LineIndex lineIndex(const float* s, uint32_t w, uint32_t h, const Rect& q) {
+    return lineIndexOriented(s, w, h, q, q.w > q.h);
+}
+
 // ------------------------------------------------------------------------------------------------------------- imaging-area contract of the line index (QA-A-265, Codex #234 R234-1)
 
 /** The imaging area: columns [x0, x1), rows [y0, y1). A frame without margins has the whole frame as its area. */
@@ -154,6 +160,7 @@ enum class AreaStatus {
     ItemOutside,       ///< a line of the part itself lies outside the area (across the line)
     ReferenceOutside,  ///< the line before or the line after the part lies outside the area
     TooShort,          ///< less than kMinAreaExtent pixels of the extent are inside the area
+    LengthBelowThickness,  ///< the extent cut to the area is shorter than the part is thick: not a line any more (QA-A-267); never measured by turning the part into the other orientation
     OutsideArea        ///< none of the extent is inside the area
 };
 
@@ -198,9 +205,13 @@ inline AreaLineIndex lineIndexInArea(const float* s, uint32_t w, uint32_t h, con
         r.status = AreaStatus::TooShort;
         return r;
     }
+    if (hi - lo < k) {
+        r.status = AreaStatus::LengthBelowThickness;
+        return r;
+    }
     r.used = row ? Rect{lo, q.y, hi - lo, q.h} : Rect{q.x, lo, q.w, hi - lo};
     r.status = (lo == p0 && hi == p0 + len) ? AreaStatus::Full : AreaStatus::Clipped;
-    r.li = lineIndex(s, w, h, r.used);
+    r.li = lineIndexOriented(s, w, h, r.used, row);   // the orientation of the part as given, not of the cut rectangle (Codex #236 R236-1)
     return r;
 }
 

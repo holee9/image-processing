@@ -1431,6 +1431,9 @@ TEST_F(BpmEvalTest, LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArg
     EXPECT_NE(std::string::npos, j.find("\"pixels\": 1")) << "the imaging area: " << j;
     EXPECT_NE(std::string::npos, text(root / "ln.tsv").find("orientation\tindex\twidth")) << text(root / "ln.tsv");
     EXPECT_EQ(2, run(" --margins 6,2,1", root / "bad.u8")) << "three numbers are not a margin specification";
+    EXPECT_EQ(2, run(" --margins 4294967296,2,1,1", root / "bad3.u8")) << "a margin that wraps in 32 bits is refused (QA-A-267)";
+    EXPECT_EQ(2, run(" --margins -1,2,1,1", root / "bad4.u8")) << "a signed margin is refused";
+    EXPECT_EQ(2, run(" --margins 600,0,600,0", root / "bad5.u8")) << "margins larger than the frame are refused";
     EXPECT_EQ(rc == 20 ? 20 : 0, run(" --margins 6,2,1,1 --tolerance-db 3", root / "ln2.u8")) << "the tolerance option is accepted";
     EXPECT_EQ(4, run(" --tolerance-db 30", root / "bad2.u8")) << "a tolerance beyond 20 dB is refused by the library";
 }
@@ -1638,7 +1641,7 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     };
     auto correctWith = [&](const char* margins, const char* tag) {
         const std::string c = "correct --truth \"" + t.string() + "\" --clean-set \"" + (root / "clean_set").string() + "\" --inj-set \"" + (root / "inj_set").string() + "\" --clean-eval \"" + evals[0] +
-                              "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --margins " + margins + " --out \"" + (root / (std::string(tag) + ".json")).string() +
+                              "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --margins \"" + margins + "\" --out \"" + (root / (std::string(tag) + ".json")).string() +
                               "\" > \"" + (root / (std::string(tag) + ".txt")).string() + "\" 2>&1";
         return runCmd(XPE_BPM_EVAL_EXE, c);
     };
@@ -1655,6 +1658,25 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     EXPECT_LE(intAfter(jm8, "area_contract", "measured"), intAfter(jm8, "area_contract", "parts")) << jm8;
     EXPECT_EQ(2, correctWith("1,2,3", "mbad")) << "four numbers are required";
     EXPECT_EQ(2, correctWith("600,0,600,0", "mnone")) << "margins that leave no imaging area stop the tool";
+    // QA-A-267 (Codex #236 R236-2): the grammar is unsigned decimal numbers and nothing else, and the margins must fit the frame; each of these used to be accepted, wrapped, or read as something else
+    for (const char* bad : {"4294967296,2,1,1", "-1,2,1,1", "+6,2,1,1", " 6,2,1,1", "6 ,2,1,1", "6,2,1,1,3", "6,,1,1", "0x10,2,1,1", "6.5,2,1,1", "99999999999,2,1,1", "4294967295,2,1,1",
+                            "1024,0,0,0", "0,1024,0,0", "512,0,512,0", "0,512,0,512", "6,2,1,", ",6,2,1"}) {
+        EXPECT_EQ(2, correctWith(bad, "mgrammar")) << "'" << bad << "' must be refused";
+    }
+    EXPECT_EQ(0, correctWith("0000006,2,1,1", "mzeros")) << "leading zeros are decimal numbers";
+    EXPECT_EQ(2, correctWith("510,0,510,0", "mtiny")) << "valid margins that leave an area under 24 pixels still stop the tool";
+    {
+        // R236-3: the counts say how many parts the geometry allows and how many of those are valid per image
+        const std::string jv = text(root / "m8.json");
+        const int meas = intAfter(jv, "area_contract", "geometry_measurable");
+        ASSERT_GE(meas, 0) << jv;
+        EXPECT_EQ(meas, intAfter(jv, "area_contract", "measured"));
+        for (const char* img : {"corrected", "no_fix", "clean"}) {
+            EXPECT_EQ(meas - intAfter(jv, "parts_uncomputable", img), intAfter(jv, "parts_valid", img)) << img << ": " << jv;
+        }
+        EXPECT_NE(std::string::npos, jv.find("\"extent_below_thickness\": ")) << jv;
+        EXPECT_NE(std::string::npos, jv.find("\"uncomputable_corrected\": ")) << "rows and columns are counted per image: " << jv;
+    }
 
     // no nan or inf ever reaches the JSON
     auto lower = [](std::string x) {
@@ -1912,6 +1934,85 @@ TEST(BpmEvalStatsTest, TheAreaContractSaysWhyAPartIsNotMeasured) {
     EXPECT_EQ(S::OutsideArea, status({10, 20, 40, 1}, xpe_bpm_eval::Area{100, 2, 299, 39})) << "no pixel of the extent is inside";
     // a part that cannot be measured has no value that could be mistaken for a measurement
     EXPECT_FALSE(xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, {10, 2, 200, 1}, area).measured());
+}
+
+// ------------------------------------------------------------------------------------------------------------- QA-A-267 (Codex #236 R236-1): cutting a part to the area never turns it into the other orientation
+
+namespace {
+
+std::vector<float> transposed(const std::vector<float>& img, uint32_t w, uint32_t h) {
+    std::vector<float> t(img.size());
+    for (uint32_t y = 0; y < h; ++y)
+        for (uint32_t x = 0; x < w; ++x) t[static_cast<size_t>(x) * h + y] = img[static_cast<size_t>(y) * w + x];
+    return t;
+}
+
+}  // namespace
+
+TEST(BpmEvalStatsTest, ACutThatLeavesTheRowShorterThanItIsThickIsNotMeasuredInsteadOfBeingReadAsAColumn) {
+    // the reproduction of Codex #236: 300 x 40, area {6, 2, 106, 39}, part {0, 20, 14, 10} (a row 14 long and 10 thick); the cut leaves 8 pixels, and a rectangle 8 wide and 10 high used to be read as a column
+    const std::vector<float> img = noisyFlat(300, 40);
+    using S = xpe_bpm_eval::AreaStatus;
+    const xpe_bpm_eval::AreaLineIndex a = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, {0, 20, 14, 10}, xpe_bpm_eval::Area{6, 2, 106, 39});
+    EXPECT_EQ(S::LengthBelowThickness, a.status);
+    EXPECT_FALSE(a.measured());
+    // the same part as a column, in the transposed image and the transposed area: the same verdict (rows and columns are symmetric)
+    const std::vector<float> t = transposed(img, 300, 40);
+    const xpe_bpm_eval::AreaLineIndex b = xpe_bpm_eval::lineIndexInArea(t.data(), 40, 300, {20, 0, 10, 14}, xpe_bpm_eval::Area{2, 6, 39, 106});
+    EXPECT_EQ(S::LengthBelowThickness, b.status);
+    // a cut that is longer than the part is thick still measures
+    EXPECT_EQ(S::Clipped, xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, {0, 20, 14, 10}, xpe_bpm_eval::Area{4, 2, 106, 39}).status) << "10 pixels left = the thickness: a (square) row part";
+}
+
+TEST(BpmEvalStatsTest, ACutLengthEqualToTheThicknessIsMeasuredAsTheOrientationThePartHad) {
+    const std::vector<float> img = noisyFlat(300, 40);
+    const xpe_bpm_eval::Rect q{0, 20, 30, 10};                    // a row 30 long, 10 thick
+    const xpe_bpm_eval::Area area{20, 2, 299, 39};                // cut to x = 20..29: 10 long, as thick as it is long
+    const xpe_bpm_eval::AreaLineIndex a = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, a.status);
+    EXPECT_EQ(10, a.used.w);
+    EXPECT_EQ(10, a.used.h);
+    const xpe_bpm_eval::LineIndex asRow = xpe_bpm_eval::lineIndexOriented(img.data(), 300, 40, a.used, true);
+    const xpe_bpm_eval::LineIndex asColumn = xpe_bpm_eval::lineIndexOriented(img.data(), 300, 40, a.used, false);
+    EXPECT_EQ(asRow.dn, a.li.dn) << "the part was a row";
+    EXPECT_EQ(asRow.ratio, a.li.ratio);
+    EXPECT_NE(asColumn.dn, a.li.dn) << "a square rectangle read by shape would have been a column: the two orientations must differ on this image";
+    // the same part as a column in the transposed world gives the same numbers
+    const std::vector<float> t = transposed(img, 300, 40);
+    const xpe_bpm_eval::AreaLineIndex c = xpe_bpm_eval::lineIndexInArea(t.data(), 40, 300, {20, 0, 10, 30}, xpe_bpm_eval::Area{2, 20, 39, 299});
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, c.status);
+    EXPECT_EQ(a.li.dn, c.li.dn);
+    EXPECT_EQ(a.li.ratio, c.li.ratio);
+    // and the plain index of a rectangle that is not square is unchanged by the new overload
+    EXPECT_EQ(xpe_bpm_eval::lineIndexOriented(img.data(), 300, 40, q, true).dn, xpe_bpm_eval::lineIndex(img.data(), 300, 40, q).dn);
+}
+
+TEST(BpmEvalStatsTest, ChangingPixelsOutsideTheAreaNeverChangesAMeasuredPart) {
+    std::vector<float> img = noisyFlat(300, 40);
+    const xpe_bpm_eval::Area area{6, 2, 299, 39};
+    const xpe_bpm_eval::Rect q{0, 20, 100, 3};
+    const xpe_bpm_eval::AreaLineIndex before = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, before.status);
+    for (uint32_t y = 0; y < 40; ++y)
+        for (uint32_t x = 0; x < 300; ++x)
+            if (x < 6 || x >= 299 || y < 2 || y >= 39) img[static_cast<size_t>(y) * 300 + x] = 12345.0f;
+    const xpe_bpm_eval::AreaLineIndex after = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, after.status);
+    EXPECT_EQ(before.li.dn, after.li.dn);
+    EXPECT_EQ(before.li.ratio, after.li.ratio);
+}
+
+TEST(BpmEvalStatsTest, AMeasuredPartCanStillBeUncomputableAndTheContractSaysSo) {
+    // R236-3: measurable by geometry is not valid by arithmetic. A constant image has no noise to predict D_n from.
+    const std::vector<float> flat(300 * 40, 100.0f);
+    const xpe_bpm_eval::AreaLineIndex a = xpe_bpm_eval::lineIndexInArea(flat.data(), 300, 40, {10, 20, 200, 1}, xpe_bpm_eval::Area{0, 0, 300, 40});
+    EXPECT_TRUE(a.measured());
+    EXPECT_FALSE(a.li.computable) << "constant input: the predicted standard deviation is 0";
+    std::vector<float> bad(300 * 40, 100.0f);
+    for (size_t i = 0; i < bad.size(); i += 7) bad[i] = std::numeric_limits<float>::quiet_NaN();
+    const xpe_bpm_eval::AreaLineIndex n = xpe_bpm_eval::lineIndexInArea(bad.data(), 300, 40, {10, 20, 200, 1}, xpe_bpm_eval::Area{0, 0, 300, 40});
+    EXPECT_TRUE(n.measured());
+    EXPECT_FALSE(n.li.computable) << "non-finite input";
 }
 
 TEST(BpmEvalStatsTest, WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures) {
