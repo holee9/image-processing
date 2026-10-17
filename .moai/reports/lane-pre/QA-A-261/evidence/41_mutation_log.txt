@@ -1,0 +1,17 @@
+QA-A-261 item 0 mutation check (tools/xpe_bpm_eval.cpp readMap: a defect.xcal is read by the module reader). Source hash at the start: ca045593a8acc83c
+PREDICTIONS (written before any run):
+  R1 a .xcal path is treated as a raw map again (the xcal branch is skipped)   -> red: ScoreReadsAVersionTwoDefectFileAsItsDefectPlane (the compressed v2 file is not N or 2N bytes)
+  R2 the reader error is ignored (rc check removed)                           -> red: ScoreReadsAVersionTwoDefectFileAsItsDefectPlane (a damaged file must name "not a readable defect.xcal")
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 7 passed, failed: []
+--- R1
+build: BUILD_EXIT=0
+tests exit 1: 6 passed, FAILED: ['ScoreReadsAVersionTwoDefectFileAsItsDefectPlane']
+--- R2
+build: BUILD_EXIT=0
+tests exit 1: 6 passed, FAILED: ['ScoreReadsAVersionTwoDefectFileAsItsDefectPlane']
+--- restored: touch + rebuild
+source hash now: ca045593a8acc83c (start: ca045593a8acc83c)
+build: BUILD_EXIT=0
