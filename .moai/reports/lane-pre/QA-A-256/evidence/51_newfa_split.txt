@@ -1,0 +1,42 @@
+[폐기 표시, QA-A-257: 이 분해는 도구의 최종 정답·제외 규칙과 합이 맞지 않는다(2판 10,125 대 도구 1,115). 정확한 분해는 QA-A-257/evidence/21_diag_line_false_alarms.txt 를 쓴다. 판정 근거로 쓰지 않는다.]
+### 1판 (특성 비트 없음: 한 검출기)
+- control item       v1 detector                              94214
+- overlap of items   v1 detector                              1606
+- planted item       v1 detector                              102390
+- 장소별 합계: control item 94214, overlap of items 1606, planted item 102390
+### 2판 (특성 비트·줄 마스크)
+- background         bright noise                             4
+- background         dark mean                                8
+- background         line                                     54
+- control item       bright noise                             65
+- control item       line                                     10227
+- control item       line+bright noise                        239
+- overlap of items   bright noise+flat response               8
+- overlap of items   flat response                            114
+- overlap of items   line                                     240
+- overlap of items   line+bright noise+flat response          80
+- overlap of items   line+bright noise+response (dose slope/linearity)+flat response 1
+- overlap of items   line+dark noise                          101
+- overlap of items   line+dark noise+bright noise+flat response 1
+- overlap of items   line+dark noise+flat response            51
+- overlap of items   line+dark noise+response (dose slope/linearity) 5
+- overlap of items   line+dark noise+response (dose slope/linearity)+flat response 5
+- overlap of items   line+flat response                       806
+- overlap of items   line+response (dose slope/linearity)     51
+- overlap of items   line+response (dose slope/linearity)+flat response 56
+- planted item       bright noise+flat response               17
+- planted item       dark mean                                256
+- planted item       dark noise                               45
+- planted item       flat response                            1918
+- planted item       line                                     32195
+- planted item       line+bright noise+flat response          2734
+- planted item       line+dark mean                           24
+- planted item       line+dark mean+dark noise                65
+- planted item       line+dark noise                          13215
+- planted item       line+flat response                       77472
+- planted item       line+response (dose slope/linearity)     8956
+- planted item       line+response (dose slope/linearity)+flat response 1
+- planted item       response (dose slope/linearity)          128
+- 장소별 합계: background 66, control item 10531, overlap of items 1519, planted item 137026
+1판: 도구의 새 오경보 77047 (대조군 위 77038). 이 분해의 배경 + 대조군 합 94214; 도구에서 빠지는 진실·판정 불가 항목과 겹침 위 화소는 따로 있다 (분해에서 항목 위 102390, 겹침 위 1606)
+2판: 도구의 새 오경보 1115 (대조군 위 1090). 이 분해의 배경 + 대조군 합 10597; 도구에서 빠지는 진실·판정 불가 항목과 겹침 위 화소는 따로 있다 (분해에서 항목 위 137026, 겹침 위 1519)

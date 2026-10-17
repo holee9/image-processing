@@ -1,0 +1,71 @@
+groups (frames per group): [3, 3, 6, 3, 3]
+response rc: median 0.99999
+pixels covered by 0 / 1 / 2 / 3 items: [9185341, 250150, 1693, 0]
+
+(b) flag rate of line-item pixels by the number of items covering them (interior)
+  gain_loss        covered by 1 item(s): pixels   63359 flagged     0 rate 0.00000   median measured response 0.444
+  gain_loss        covered by 2 item(s): pixels     750 flagged    42 rate 0.05600   median measured response 0.299
+  gain_loss        covered by 3 item(s): pixels       0 flagged     0 rate 0.00000   median measured response nan
+  efficiency_loss  covered by 1 item(s): pixels   63373 flagged  4414 rate 0.06965   median measured response 0.455
+  efficiency_loss  covered by 2 item(s): pixels     744 flagged   118 rate 0.15860   median measured response 0.299
+  efficiency_loss  covered by 3 item(s): pixels       0 flagged     0 rate 0.00000   median measured response nan
+
+(c) covering items of the flagged gain-loss line pixels
+  x  103 y 2161  measured response 0.200  T 5.53  covered by 2: line/gain_loss/row_full/0.3; control/efficiency_loss/col_pair/0.6
+  x  135 y 2524  measured response 0.421  T 4.64  covered by 2: control/gain_loss/row_full/0.6; control/efficiency_loss/col_full/0.7
+  x  435 y 1469  measured response 0.202  T 4.70  covered by 2: control/gain_loss/col_full/0.46; line/efficiency_loss/row_full/0.44
+  x  435 y 2798  measured response 0.212  T 5.19  covered by 2: control/gain_loss/col_full/0.46; control/efficiency_loss/row_full/0.46
+  x  435 y 3025  measured response 0.202  T 5.29  covered by 2: control/gain_loss/col_full/0.46; line/efficiency_loss/row_partial/0.44
+  x  480 y 1497  measured response 0.200  T 4.53  covered by 2: line/gain_loss/row_partial/0.3; line/efficiency_loss/col_partial/0.4
+  x  480 y 1703  measured response 0.200  T 6.38  covered by 2: line/gain_loss/row_full/0.44; line/efficiency_loss/col_partial/0.4
+  x  555 y  914  measured response 0.200  T 4.66  covered by 2: line/gain_loss/col_pair/0.4; line/efficiency_loss/row_full/0.4
+  x  701 y  420  measured response 0.321  T 5.84  covered by 2: control/gain_loss/row_full/0.7; control/efficiency_loss/col_full/0.46
+  x  735 y 2857  measured response 0.200  T 4.87  covered by 2: line/gain_loss/col_full/0.3; control/efficiency_loss/row_partial/0.6
+  x  735 y 3025  measured response 0.200  T 5.41  covered by 2: line/gain_loss/col_full/0.3; line/efficiency_loss/row_partial/0.44
+  x  807 y 2798  measured response 0.200  T 7.43  covered by 2: line/gain_loss/col_full/0.4; control/efficiency_loss/row_full/0.46
+  x  807 y 2857  measured response 0.240  T 9.52  covered by 2: line/gain_loss/col_full/0.4; control/efficiency_loss/row_partial/0.6
+  x  981 y 2359  measured response 0.241  T 5.23  covered by 2: line/gain_loss/col_partial/0.4; control/efficiency_loss/row_full/0.6
+  x 1192 y  540  measured response 0.308  T 5.04  covered by 2: control/gain_loss/row_pair/0.7; line/efficiency_loss/col_full/0.44
+  x 1192 y 1655  measured response 0.200  T 4.61  covered by 2: line/gain_loss/row_pair/0.4; line/efficiency_loss/col_full/0.44
+  x 1192 y 1703  measured response 0.200  T 5.62  covered by 2: line/gain_loss/row_full/0.44; line/efficiency_loss/col_full/0.44
+  x 1501 y  710  measured response 0.275  T 5.78  covered by 2: control/gain_loss/col_pair/0.6; control/efficiency_loss/row_partial/0.46
+  x 1502 y  710  measured response 0.276  T 4.51  covered by 2: control/gain_loss/col_pair/0.6; control/efficiency_loss/row_partial/0.46
+  x 1681 y 1703  measured response 0.200  T 4.67  covered by 2: line/gain_loss/row_full/0.44; line/efficiency_loss/col_pair/0.44
+  x 1682 y 1703  measured response 0.200  T 4.70  covered by 2: line/gain_loss/row_full/0.44; line/efficiency_loss/col_pair/0.44
+  x 1733 y  189  measured response 0.263  T 6.54  covered by 2: line/gain_loss/row_pair/0.44; control/efficiency_loss/col_partial/0.6
+  x 1733 y  190  measured response 0.264  T 5.54  covered by 2: line/gain_loss/row_pair/0.44; control/efficiency_loss/col_partial/0.6
+  x 2111 y 2552  measured response 0.200  T 6.89  covered by 2: line/gain_loss/col_full/0.44; line/efficiency_loss/row_pair/0.4
+  x 2293 y  319  measured response 0.281  T 4.83  covered by 2: control/gain_loss/col_partial/0.7; line/efficiency_loss/row_partial/0.4
+  x 2427 y 2306  measured response 0.209  T 6.05  covered by 2: control/gain_loss/col_full/0.7; line/efficiency_loss/row_full/0.3
+  x 2510 y 2760  measured response 0.240  T 7.21  covered by 2: control/gain_loss/row_pair/0.6; line/efficiency_loss/col_full/0.4
+  x 2645 y  319  measured response 0.240  T 4.57  covered by 2: control/gain_loss/col_full/0.6; line/efficiency_loss/row_partial/0.4
+  x 2645 y 2306  measured response 0.200  T 6.26  covered by 2: control/gain_loss/col_full/0.6; line/efficiency_loss/row_full/0.3
+  x 2738 y  420  measured response 0.210  T 4.72  covered by 2: control/gain_loss/row_full/0.7; line/efficiency_loss/col_full/0.3
+  x 2738 y  740  measured response 0.200  T 4.67  covered by 2: control/gain_loss/row_full/0.46; line/efficiency_loss/col_full/0.3
+  x 2738 y 2524  measured response 0.200  T 7.45  covered by 2: control/gain_loss/row_full/0.6; line/efficiency_loss/col_full/0.3
+  x 2738 y 2759  measured response 0.200  T 4.58  covered by 2: control/gain_loss/row_pair/0.6; line/efficiency_loss/col_full/0.3
+  x 2738 y 2760  measured response 0.200  T 8.49  covered by 2: control/gain_loss/row_pair/0.6; line/efficiency_loss/col_full/0.3
+  x 2872 y 2759  measured response 0.200  T 4.49  covered by 2: control/gain_loss/row_pair/0.6; line/efficiency_loss/col_pair/0.3
+  x 2872 y 2760  measured response 0.200  T 10.13  covered by 2: control/gain_loss/row_pair/0.6; line/efficiency_loss/col_pair/0.3
+  x 2873 y 2524  measured response 0.200  T 6.08  covered by 2: control/gain_loss/row_full/0.6; line/efficiency_loss/col_pair/0.3
+  x 2873 y 2760  measured response 0.200  T 6.14  covered by 2: control/gain_loss/row_pair/0.6; line/efficiency_loss/col_pair/0.3
+  x 2915 y 2306  measured response 0.200  T 9.86  covered by 2: control/gain_loss/col_pair/0.46; line/efficiency_loss/row_full/0.3
+  x 2915 y 2359  measured response 0.277  T 4.93  covered by 2: control/gain_loss/col_pair/0.46; control/efficiency_loss/row_full/0.6
+  x 2916 y 1885  measured response 0.321  T 4.96  covered by 2: control/gain_loss/col_pair/0.46; control/efficiency_loss/row_full/0.7
+  x 2916 y 2306  measured response 0.200  T 5.58  covered by 2: control/gain_loss/col_pair/0.46; line/efficiency_loss/row_full/0.3
+  flagged gain-loss line pixels 42, by number of covering items: {2: 42}
+
+(d) efficiency-loss lines: statistic against the measured cost (truth path costs 3.55 / 2.58 / 2.28 / 2.34 / 1.81 / 1.45)
+  r=0.3 pixels  10568  flagged rate 0.2785 (theory 0.2140)  T mean 3.819 sd 1.590 (theory at cost 3.55: mean 3.55 sd 1.39)  mean ratio per group 3.93 3.82 3.75 3.82 3.89
+        rate implied by chi-square groups with the observed group means: 0.2776
+  r=0.4 pixels  10553  flagged rate 0.0657 (theory 0.0438)  T mean 2.718 sd 1.100 (theory at cost 2.58: mean 2.58 sd 1.01)  mean ratio per group 2.77 2.69 2.69 2.71 2.77
+        rate implied by chi-square groups with the observed group means: 0.0604
+  r=0.44 pixels  10556  flagged rate 0.0326 (theory 0.0181)  T mean 2.377 sd 0.985 (theory at cost 2.28: mean 2.28 sd 0.89)  mean ratio per group 2.40 2.43 2.35 2.36 2.38
+        rate implied by chi-square groups with the observed group means: 0.0249
+  r=0.46 pixels  10582  flagged rate 0.0369 (theory 0.0221)  T mean 2.439 sd 1.013 (theory at cost 2.34: mean 2.34 sd 0.92)  mean ratio per group 2.49 2.47 2.39 2.44 2.49
+        rate implied by chi-square groups with the observed group means: 0.0301
+  r=0.6 pixels  10555  flagged rate 0.0039 (theory 0.0021)  T mean 1.873 sd 0.753 (theory at cost 1.81: mean 1.81 sd 0.71)  mean ratio per group 1.88 1.89 1.86 1.88 1.88
+        rate implied by chi-square groups with the observed group means: 0.0029
+  r=0.7 pixels  10559  flagged rate 0.0002 (theory 0.0001)  T mean 1.509 sd 0.600 (theory at cost 1.45: mean 1.45 sd 0.57)  mean ratio per group 1.51 1.48 1.50 1.53 1.55
+        rate implied by chi-square groups with the observed group means: 0.0002
+finished

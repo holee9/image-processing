@@ -1,0 +1,59 @@
+== (5) the evaluation tool's numbers: QA-A-256 (old statistic) against this regression (new statistic)
+  flagged                        151324  ->  149191
+  new_false_alarms               1115  ->  47
+  new_false_alarms_in_controls   1090  ->  31
+  control_false_detections       0  ->  0
+  control_items                  448  ->  448
+  jaccard_all                    0.945697  ->  0.950022
+  jaccard_inside_truth           0.95636  ->  0.963022
+  undetermined_items             368  ->  368
+  overlap_defect                 1486  ->  1486
+  overlap_undetermined           191  ->  191
+  overlap_normal                 13  ->  13
+  detection groups whose detected count changed: 0
+== (2)(4) line groups by recorded cause bits (QA-A-256 set lines against this regression)
+  linearity                           25 ->  14
+  linearity+noise                      4 ->   0
+  noise                               14 ->  18
+  response+linearity+noise+slope      17 ->   0
+  response+linearity+slope             1 ->   0
+  response+noise+slope                 0 ->  17
+  response+slope                      26 ->  27
+  total groups 87 -> 76
+== (3) the nonlinear line items: share of the item covered by a group with the LINEARITY bit
+  item  shape        level  coverage(old statistic)  coverage(new statistic)  cause bits seen on the item (new)
+    13  row_full     0.4     0.998                    0.998                   ['linearity']
+    14  col_full     0.4     0.999                    0.999                   ['linearity']
+    15  row_partial  0.4     1.000                    1.000                   ['linearity']
+    16  col_partial  0.4     1.000                    1.000                   ['linearity']
+    17  row_pair     0.4     1.000                    1.000                   ['linearity']
+    18  col_pair     0.4     1.000                    1.000                   ['linearity']
+    19  row_full     0.2     0.998                    0.998                   ['linearity']
+    20  col_full     0.2     0.999                    0.999                   ['linearity']
+    21  row_partial  0.2     1.000                    1.000                   ['linearity']
+    22  col_partial  0.2     1.000                    1.000                   ['linearity']
+    23  row_pair     0.2     1.000                    1.000                   ['linearity']
+    24  col_pair     0.2     1.000                    1.000                   ['linearity']
+    38  cross        0.4     0.998                    0.998                   ['linearity']
+  nonlinear items 13; covered >= 0.95 by the old statistic: 13; by the new: 13; minimum coverage new: 0.998
+== (1) the new false alarms of the evaluation tool's rule, reproduced and split (the script of QA-A-257 on this measurement's files)
+shared pixels 1690, groups without a final class 0
+== reproduction of the tool's counts
+  items promoted to defect by noise 6 (tool: 6), made undetermined 368 (tool: 368)
+  new false alarms 47 (tool 47); on normal control items 31 (tool 31); background 16
+  reproduced exactly
+== partition of the 47 new false alarms (each pixel once)
+  bright noise                       control item  31
+  line mask                          background    8
+  dark mean                          background    7
+  bright noise                       background    1
+== line mask only: 8 pixels (0 on control items, 8 on background)
+  by control item group (kind/shape/level): pixels, items with such a pixel / items in the group, line groups that carried them
+== line groups carrying line-mask-only pixels on control items: cause bits of the group, width, strength
+== those control items: noise label of the measured item (normal / undetermined / not measured)
+== line mask only on background (no item): by line group
+  group   1 row 189 width 2 causes response+slope             strength   8.34  pixels 2
+  group  39 column 162 width 2 causes noise                      strength   9.84  pixels 1
+  group  43 column 480 width 1 causes response+noise+slope       strength  13.53  pixels 3
+  group  64 column 1758 width 2 causes linearity                  strength  16.09  pixels 1
+  group  67 column 1902 width 1 causes noise                      strength  10.45  pixels 1

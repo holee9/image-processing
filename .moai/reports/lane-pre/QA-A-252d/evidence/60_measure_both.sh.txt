@@ -1,0 +1,58 @@
+#!/bin/bash
+# QA-A-252d: the new injection (response models, 45 % rule labels), then the first generation (S3..S5 as in QA-A-251b) and the second generation (map-v2 + lines + merge + score as in
+# QA-A-253f), each ONCE. Same seed 251, same cyan_test inputs, same exclusion masks as QA-A-251b.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+OLD=D:/workspace-github/xpe-data/bpm-eval-251
+OUT=D:/workspace-github/xpe-data/bpm-eval-252d
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-252d/evidence
+mkdir -p "$OUT"
+run() { local name=$1; shift; local s=$(date +%s); echo "start $(date '+%Y-%m-%d %H:%M:%S')  $name" > "$EVD/$name.log"; "$@" >> "$EVD/$name.log" 2>&1; local rc=$?; echo "exit $rc wall seconds $(( $(date +%s) - s ))" >> "$EVD/$name.log"; echo "$name exit $rc"; return $rc; }
+args() { local flag=$1; shift; for f in "$@"; do printf -- "--%s\n%s\n" "$flag" "$f"; done; }
+BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+DK="08 09 10 11 12 13 14"
+DKRAW="07 08 09 10 11 12 13 14"
+GN="23 24 25 26 27 28"
+mk() { local dir=$1 pre=$2; shift 2; local list=("$@"); local out=(); for k in "${list[@]}"; do out+=("$dir/${pre}_$k.raw"); done; printf '%s\n' "${out[@]}"; }
+
+# S2 the new injection (the clean set of QA-A-251 is the exclusion source and the clean map of the first generation)
+mapfile -t D_GEN < <(mk "$CAL" Dark $DK); mapfile -t B_GEN < <(mk "$CAL" Bright $BR)
+mapfile -t DG < <(args dark "${D_GEN[@]}"); mapfile -t BG < <(args bright "${B_GEN[@]}")
+EA=(--eval "$CAL/Bright_29.raw" --eval "$CAL/Bright_30.raw")
+run S2_inject "$BIN/xpe_bpm_eval.exe" inject --out "$OUT/inj_c" --seed 251 --exclude-mask "$CAL/BPM.raw" --exclude-mask "$OLD/clean_set/defect.xcal" "${DG[@]}" "${BG[@]}" "${EA[@]}" || exit 1
+INJ=$OUT/inj_c/frames
+mapfile -t D_INJ < <(mk "$INJ" Dark $DK); mapfile -t B_INJ < <(mk "$INJ" Bright $BR); mapfile -t G_INJ < <(mk "$INJ" Bright $GN)
+mapfile -t DI < <(args dark "${D_INJ[@]}"); mapfile -t BI < <(args bright "${B_INJ[@]}")
+HA=(); for k in 08 10 12 14; do HA+=(--dark "$INJ/Dark_$k.raw"); done
+HB=(); for k in 09 11 13; do HB+=(--dark "$INJ/Dark_$k.raw"); done
+BE=(); for k in 17 19 21 23 25 27 31 33 35; do BE+=(--bright "$INJ/Bright_$k.raw"); done
+BO=(); for k in 18 20 22 24 26 28 32 34 36; do BO+=(--bright "$INJ/Bright_$k.raw"); done
+
+# ---- first generation (once)
+DI1=(); for f in "${D_INJ[@]}"; do DI1+=(--dark "$f"); done
+GI1=(); for f in "${G_INJ[@]}"; do GI1+=(--bright "$f"); done
+BI1=(); for f in "${B_INJ[@]}"; do BI1+=(--bpm-bright "$f"); done
+run V1_set "$BIN/xpe_calib_fixture_gen.exe" --out "$OUT/inj_set" --expiry-ms 4102444800000 "${DI1[@]}" "${GI1[@]}" "${BI1[@]}" || exit 1
+run V1_half_a "$BIN/xpe_bpm_eval.exe" map-v1 --out "$OUT/v1_half_a.u8" --min-dark 3 --min-bright 9 "${HA[@]}" "${BE[@]}" || exit 1
+run V1_half_b "$BIN/xpe_bpm_eval.exe" map-v1 --out "$OUT/v1_half_b.u8" --min-dark 3 --min-bright 9 "${HB[@]}" "${BO[@]}" || exit 1
+run V1_score "$BIN/xpe_bpm_eval.exe" score --truth "$OUT/inj_c" --map "$OUT/inj_set/defect.xcal" --clean-map "$OLD/clean_set/defect.xcal" --half-a "$OUT/v1_half_a.u8" --half-b "$OUT/v1_half_b.u8" --out "$EVD/61_score_v1.json.txt" || exit 1
+
+# ---- second generation (once)
+mapfile -t D_CLEAN < <(mk "$CAL" Dark $DKRAW)
+mapfile -t DA < <(args dark "${D_CLEAN[@]}"); mapfile -t BA < <(args bright "${B_GEN[@]}")
+M="--margins 6,2,1,1"
+run V2_clean "$BIN/xpe_bpm_eval.exe" map-v2 $M --area "$OUT/v2g_clean_area.u8" --out "$OUT/v2g_clean.u8" --features "$OUT/v2g_clean_features.u8" --report "$EVD/62_report_clean.json.txt" "${DA[@]}" "${BA[@]}" || exit 1
+run V2_planted "$BIN/xpe_bpm_eval.exe" map-v2 $M --skip-first-dark 0 --area "$OUT/v2g_planted_area.u8" --out "$OUT/v2g_planted.u8" --features "$OUT/v2g_planted_features.u8" --report "$EVD/63_report_planted.json.txt" "${DI[@]}" "${BI[@]}" || exit 1
+run V2_half_a "$BIN/xpe_bpm_eval.exe" map-v2 $M --skip-first-dark 0 --area "$OUT/v2g_half_a_area.u8" --out "$OUT/v2g_half_a.u8" --min-dark 3 --min-bright 9 "${HA[@]}" "${BE[@]}" || exit 1
+run V2_half_b "$BIN/xpe_bpm_eval.exe" map-v2 $M --skip-first-dark 0 --area "$OUT/v2g_half_b_area.u8" --out "$OUT/v2g_half_b.u8" --min-dark 3 --min-bright 9 "${HB[@]}" "${BO[@]}" || exit 1
+run L1_clean "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/65_unconfirmed_clean.tsv.txt" --out "$OUT/v3g_clean_lines.u8" --tsv "$EVD/66_lines_clean.tsv.txt" --report "$EVD/66_lines_clean.json.txt" "${DA[@]}" "${BA[@]}"
+run L2_planted "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/65_unconfirmed_planted.tsv.txt" --skip-first-dark 0 --out "$OUT/v3g_planted_lines.u8" --tsv "$EVD/67_lines_planted.tsv.txt" --report "$EVD/67_lines_planted.json.txt" "${DI[@]}" "${BI[@]}"
+run L3a "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/65_unconfirmed_half_a.tsv.txt" --skip-first-dark 0 --min-dark 3 --min-bright 9 --out "$OUT/v3g_half_a_lines.u8" "${HA[@]}" "${BE[@]}"
+run L3b "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/65_unconfirmed_half_b.tsv.txt" --skip-first-dark 0 --min-dark 3 --min-bright 9 --out "$OUT/v3g_half_b_lines.u8" "${HB[@]}" "${BO[@]}"
+for n in clean planted half_a half_b; do
+  "$BIN/xpe_bpm_eval.exe" merge --in "$OUT/v2g_$n.u8" --in "$OUT/v3g_${n}_lines.u8" --out "$OUT/v3g_$n.u8" || exit 1
+done
+run V2_score "$BIN/xpe_bpm_eval.exe" score --truth "$OUT/inj_c" --map "$OUT/v3g_planted.u8" --clean-map "$OUT/v3g_clean.u8" --half-a "$OUT/v3g_half_a.u8" --half-b "$OUT/v3g_half_b.u8" --area "$OUT/v2g_planted_area.u8" --out "$EVD/64_score_v2.json.txt" || exit 1
+echo done

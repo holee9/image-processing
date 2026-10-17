@@ -1,0 +1,24 @@
+#!/bin/bash
+# QA-A-252j: the overlapped pixels are MEASURED (noise-cost --overlap-out: noise label, chain response with the real dark level and the real local signal) and the maps of QA-A-252g
+# (1st generation) and QA-A-252h (2nd generation, the maps scored in QA-A-254) are scored AGAIN with that truth. Nothing is detected again. Run once. Same inputs as QA-A-252g / QA-A-254.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+OLD=D:/workspace-github/xpe-data/bpm-eval-251
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+G1=D:/workspace-github/xpe-data/bpm-eval-252g
+G2=D:/workspace-github/xpe-data/bpm-eval-252h
+INJ=$IN/inj_d/frames
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-252j/evidence
+NT=$ROOT/.moai/reports/lane-pre/QA-A-252g/evidence/62_noise_truth.tsv.txt
+run() { local name=$1; shift; "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc"; return $rc; }
+DK="08 09 10 11 12 13 14"
+NC=(); for k in $DK; do NC+=(--dark "$INJ/Dark_$k.raw"); done
+# the same call as QA-A-252g's N1_noise_cost, plus --overlap-out (the item truth it writes must be the one of QA-A-252g, byte for byte)
+run N1_noise_cost_overlaps "$BIN/xpe_bpm_eval.exe" noise-cost --truth "$IN/inj_d" "${NC[@]}" --verify "$INJ/Bright_29.raw" --verify "$INJ/Bright_30.raw" --out "$EVD/60_noise_truth_recomputed.tsv.txt" --overlap-out "$EVD/61_overlaps_measured.tsv.txt" || exit 1
+cmp "$EVD/60_noise_truth_recomputed.tsv.txt" "$NT" && echo "item truth identical to 252g"
+S1=(score --truth "$IN/inj_d" --noise-truth "$NT" --map "$G1/inj_set/defect.xcal" --clean-map "$OLD/clean_set/defect.xcal" --half-a "$G1/v1_half_a.u8" --half-b "$G1/v1_half_b.u8")
+S2=(score --truth "$IN/inj_d" --noise-truth "$NT" --map "$G2/v3g_planted.u8" --clean-map "$G2/v3g_clean.u8" --half-a "$G2/v3g_half_a.u8" --half-b "$G2/v3g_half_b.u8" --area "$G2/v2g_planted_area.u8")
+run S1_measured "$BIN/xpe_bpm_eval.exe" "${S1[@]}" --overlap composite --overlap-truth "$EVD/61_overlaps_measured.tsv.txt" --overlap-out "$EVD/62_gen1_overlaps.tsv.txt" --out "$EVD/63_gen1_measured.json.txt" || exit 1
+run S2_measured "$BIN/xpe_bpm_eval.exe" "${S2[@]}" --overlap composite --overlap-truth "$EVD/61_overlaps_measured.tsv.txt" --overlap-out "$EVD/64_gen2_overlaps.tsv.txt" --out "$EVD/65_gen2_measured.json.txt" || exit 1
+echo done

@@ -1,0 +1,8 @@
+start 2026-10-16 18:31:11  M3b_half_b
+xpe_bpm_generate_v2: 3 darks used, 9 brights in 5 dose groups, 90556 defect pixels (union of the features) -> D:/workspace-github/xpe-data/bpm-eval-251/v2_half_b.u8
+  dark_mean       active 1  threshold 5.3162  local scale median 2.9652  flagged 2610
+  dark_noise      active 1  threshold 16.0602  local scale median 9.53397  flagged 8874
+  dose_slope      active 1  threshold 5.3162  local scale median 0.00357969  flagged 74120
+  dose_linearity  active 1  threshold 5.1886  local scale median 1.04804  flagged 4685
+  flat_field      active 1  threshold 5.3162  local scale median 0.00291638  flagged 76916
+exit 0 wall seconds 18

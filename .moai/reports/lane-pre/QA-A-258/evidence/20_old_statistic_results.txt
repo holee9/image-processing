@@ -1,0 +1,49 @@
+Note: Google Test filter = BpmLinesLof*
+[==========] Running 5 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from BpmLinesLofOracleTest
+[ RUN      ] BpmLinesLofOracleTest.TheExpectedMisfitOfAStraightLineIsZeroForAnyNoiseAndTheCurveGivesTheNumbersOfTheDefinition
+[       OK ] BpmLinesLofOracleTest.TheExpectedMisfitOfAStraightLineIsZeroForAnyNoiseAndTheCurveGivesTheNumbersOfTheDefinition (0 ms)
+[----------] 1 test from BpmLinesLofOracleTest (0 ms total)
+
+[----------] 1 test from BpmLinesLofNegativeTest
+[ RUN      ] BpmLinesLofNegativeTest.AStraightResponseWithMoreNoiseOrADifferentGainOrOffsetDoesNotMakeALinearityDefect
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_lines_lof.cpp(299): error: Expected: (r.runsWithFalseLinearity) <= (1), actual: 14 vs 1
+false LINEARITY on a straight-line response in 20 images: eff0.6 5, eff0.44 8, gain 0, offset 0, hetero 4 [design A seed 0 col=efficiency 0.44] [design A seed 1 row=efficiency 0.6 col=efficiency 0.44] [design A seed 0 row=efficiency 0.44] [design A seed 1 row=efficiency 0.44] [design A seed 0 col=heteroscedastic] [design A seed 1 col=heteroscedastic] [design A seed 0 col=efficiency 0.6] [design A seed 1 row=heteroscedastic col=efficiency 0.6] [design B seed 0 row=efficiency 0.6 col=efficiency 0.44] [design B seed 1 col=efficiency 0.44] [design B seed 0 row=efficiency 0.44] [design B seed 1 row=efficiency 0.44] [design B seed 0 col=efficiency 0.6] [design B seed 1 row=heteroscedastic]
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_lines_lof.cpp(301): error: Expected: (r.linearityGroups) <= (r.runs), actual: 24 vs 20
+LINEARITY groups anywhere (target: at most one per image)
+
+[  FAILED  ] BpmLinesLofNegativeTest.AStraightResponseWithMoreNoiseOrADifferentGainOrOffsetDoesNotMakeALinearityDefect (6886 ms)
+[ DISABLED ] BpmLinesLofNegativeTest.DISABLED_FullBudgetOfOneHundredImages
+[----------] 1 test from BpmLinesLofNegativeTest (6886 ms total)
+
+[----------] 1 test from BpmLinesLofPositiveTest
+[ RUN      ] BpmLinesLofPositiveTest.ACurvedResponseIsALinearityDefectWhateverTheNoiseAndTheShape
+[       OK ] BpmLinesLofPositiveTest.ACurvedResponseIsALinearityDefectWhateverTheNoiseAndTheShape (11685 ms)
+[ DISABLED ] BpmLinesLofPositiveTest.DISABLED_FullPowerOfOneHundredTwentyImages
+[----------] 1 test from BpmLinesLofPositiveTest (11685 ms total)
+
+[----------] 2 tests from BpmLinesLofSeparationTest
+[ RUN      ] BpmLinesLofSeparationTest.ALinearLineWithHighNoiseIsANoiseDefectAndANonlinearLineWithLowNoiseIsALinearityDefect
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_lines_lof.cpp(352): error: Expected equality of these values:
+  0
+  noisyLinearLinearity
+    Which is: 4
+linear + high noise: no LINEARITY cause
+
+[  FAILED  ] BpmLinesLofSeparationTest.ALinearLineWithHighNoiseIsANoiseDefectAndANonlinearLineWithLowNoiseIsALinearityDefect (3249 ms)
+[ RUN      ] BpmLinesLofSeparationTest.AnotherAxisKeepsItsMeaning
+[       OK ] BpmLinesLofSeparationTest.AnotherAxisKeepsItsMeaning (3321 ms)
+[----------] 2 tests from BpmLinesLofSeparationTest (6571 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 4 test suites ran. (25142 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] BpmLinesLofNegativeTest.AStraightResponseWithMoreNoiseOrADifferentGainOrOffsetDoesNotMakeALinearityDefect
+[  FAILED  ] BpmLinesLofSeparationTest.ALinearLineWithHighNoiseIsANoiseDefectAndANonlinearLineWithLowNoiseIsALinearityDefect
+
+ 2 FAILED TESTS
+  YOU HAVE 2 DISABLED TESTS
+

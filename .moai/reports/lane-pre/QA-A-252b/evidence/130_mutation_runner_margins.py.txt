@@ -1,0 +1,81 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+V2 = ROOT + 'modules/preprocess/src/xpe_bpm_v2.cpp'
+EV = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-252b/evidence/131_mutation_log_margins.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILT = 'BpmV2Test.*:BpmEvalTest.ScoreTreats*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+orig = {V2: open(V2, 'rb').read(), EV: open(EV, 'rb').read()}
+h0 = hashlib.sha256(orig[V2] + orig[EV]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-252b mutation check of the out-of-area margins (detector wrapper and the score tool). Source hash (detector + tool) at the start: ' + h0)
+say('Tests: Marked=MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatistic Wild=WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins')
+say('  NoMargins=NoMarginsMeansNoOutOfAreaCodeAndMarginsThatLeaveNoAreaAreRefused Score4=ScoreTreatsTheOutOfAreaCodeAsNotAFlag')
+say('PREDICTIONS (written before any run):')
+say('  X1 the out-of-area code written as 0                         -> red: Marked only')
+say('  X2 the crop starts one column too far to the right            -> red: Marked (reads past the row end into the next row, whose first columns are wild)')
+say('  X3 out_of_area_pixels reported as all pixels                  -> red: Marked only')
+say('  X4 the score tool counts code 4 as a flag                     -> red: Score4 only')
+say('  X5 margins larger than the area are not refused (check removed) -> red: NoMargins only')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('X1', V2, b'std::memset(mapDst, static_cast<int>(XPE_BPM_V2_OUT_OF_AREA), n);', b'std::memset(mapDst, 0, n);'),
+    ('X2', V2, b'cmap.data() + static_cast<size_t>(y) * cw, cw);', b'cmap.data() + static_cast<size_t>(y) * cw, cw);'),
+    ('X3', V2, b'report->out_of_area_pixels = static_cast<uint32_t>(n - cn);', b'report->out_of_area_pixels = static_cast<uint32_t>(n);'),
+    ('X4', EV, b'(bytes[i] != 0 && bytes[i] != XPE_BPM_V2_OUT_OF_AREA) ? 1 : 0;', b'(bytes[i] != 0) ? 1 : 0;'),
+    ('X5', V2, b'if (width - ml < mr + 16 || height - mt < mb + 16) return XPE_ERR_INVALID_INPUT;', b''),
+]
+# X2 mutates the crop source offset instead (the line above is replaced here so the table reads clearly)
+mutants[1] = ('X2', V2, b'p + static_cast<size_t>(y + mt) * width + ml, static_cast<size_t>(cw) * sizeof(uint16_t));', b'p + static_cast<size_t>(y + mt) * width + ml + 1, static_cast<size_t>(cw) * sizeof(uint16_t));')
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new in mutants:
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(path, 'wb').write(cur)
+        os.utime(path, None)
+        time.sleep(1)
+finally:
+    for path, data in orig.items():
+        open(path, 'wb').write(data)
+        os.utime(path, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(V2, 'rb').read() + open(EV, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

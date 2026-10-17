@@ -1,0 +1,25 @@
+QA-A-252f mutation check of the response judgement (src/xpe_bpm_v2.cpp). Source hash at the start: 9375bd6df30806e7
+PREDICTIONS (written before any run):
+  R1 the row and column factors are taken out before the judgement again      -> red: TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage only (0.50 on the gain-0.8 row would read 0.50)
+  R2 the slack removed from the lower bound (ratio < lo)                      -> red: TheResponseThresholdsAreExactAndTheInequalitiesAreFixed only (float(0.45) is below 0.45)
+  R3 the upper bound flags exactly 1.5 (>= instead of >)                      -> red: TheResponseThresholdsAreExactAndTheInequalitiesAreFixed only
+  R4 the slope pass records its cause as RESPONSE (no SLOPE bit)              -> red: the lines test that checks both bits only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 41 passed, failed: []
+--- R1
+build: BUILD_EXIT=0
+tests exit 1: 40 passed, FAILED: ['TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage']
+--- R2
+build: BUILD_EXIT=0
+tests exit 1: 40 passed, FAILED: ['TheResponseThresholdsAreExactAndTheInequalitiesAreFixed']
+--- R3
+build: BUILD_EXIT=0
+tests exit 1: 40 passed, FAILED: ['TheResponseThresholdsAreExactAndTheInequalitiesAreFixed']
+--- R4
+build: BUILD_EXIT=0
+tests exit 1: 40 passed, FAILED: ['ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot']
+--- restored: touch + rebuild
+source hash now: 9375bd6df30806e7 (start: 9375bd6df30806e7)
+build: BUILD_EXIT=0

@@ -1,0 +1,119 @@
+"""QA-A-258 measurement 1: the analysis of the development regression, fixed before the run.
+Outputs: (1) the new false alarms of the new statistic reproduced with the evaluation tool's rule and split by cause and by item (the script of QA-A-257, 20_diag_line_false_alarms.py.txt, run on the
+files of this measurement); (2) the line groups by recorded cause bits and the item under them; (3) for every nonlinear line item the share of its length covered by a group with the LINEARITY bit and the
+cause bits; (4) the counts of the groups of the other causes against QA-A-256 (they must not change); (5) the tool's own numbers next to QA-A-256's.
+Usage: PYTHONIOENCODING=utf-8 python 60_analyze_dev_regression.py.txt > 61_dev_regression_analysis.txt"""
+import json
+import numpy as np
+
+EV6 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+EV7 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-257/evidence/'
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-258/evidence/'
+OUT8 = 'D:/workspace-github/xpe-data/bpm-eval-258/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+CAUSE = {0x01: 'response', 0x02: 'linearity', 0x04: 'noise', 0x08: 'slope'}
+
+print('== (5) the evaluation tool\'s numbers: QA-A-256 (old statistic) against this regression (new statistic)')
+a = json.load(open(EV6 + '43_score_v2.json.txt', encoding='utf-8'))
+b = json.load(open(EV8 + '54_score_v2.json.txt', encoding='utf-8'))
+for k in ('flagged', 'new_false_alarms', 'new_false_alarms_in_controls', 'control_false_detections', 'control_items', 'jaccard_all', 'jaccard_inside_truth', 'undetermined_items', 'overlap_defect', 'overlap_undetermined', 'overlap_normal'):
+    print('  %-30s %s  ->  %s' % (k, a.get(k), b.get(k)))
+da = {d['group']: d for d in a['detection']}
+db = {d['group']: d for d in b['detection']}
+changed = [(g, da[g]['detected'], db[g]['detected'], da[g]['items']) for g in da if g in db and da[g]['detected'] != db[g]['detected']]
+print('  detection groups whose detected count changed: %d' % len(changed))
+for g, x, y, n in changed:
+    print('    %-44s %d -> %d of %d' % (g, x, y, n))
+
+print('== (2)(4) line groups by recorded cause bits (QA-A-256 set lines against this regression)')
+
+
+def groups(path):
+    out = []
+    for i, line in enumerate(open(path, encoding='utf-8')):
+        if i == 0:
+            continue
+        c = line.rstrip('\n').split('\t')
+        if c[0] != 'line':
+            continue
+        st = []
+        for s in c[12].split(';'):
+            p, q = s.split(':')
+            lo, hi = q.split('-')
+            st.append((int(p), int(lo), int(hi)))
+        out.append(dict(orient=c[1], index=int(c[2]), width=int(c[3]), causes=int(c[6]), strength=float(c[10]), stretches=st))
+    return out
+
+
+g6 = groups(EV7 + '10_lines_v2.tsv.txt')
+g8 = groups(EV8 + '51_lines_v2.tsv.txt')
+
+
+def histo(gs):
+    h = {}
+    for g in gs:
+        k = '+'.join(v for bit, v in CAUSE.items() if g['causes'] & bit) or '(none)'
+        h[k] = h.get(k, 0) + 1
+    return h
+
+
+h6, h8 = histo(g6), histo(g8)
+for k in sorted(set(h6) | set(h8)):
+    print('  %-34s %3d -> %3d' % (k, h6.get(k, 0), h8.get(k, 0)))
+print('  total groups %d -> %d' % (len(g6), len(g8)))
+
+print('== (3) the nonlinear line items: share of the item covered by a group with the LINEARITY bit')
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        rects = [tuple(int(x) for x in r.split(',')) for r in c[5].split(';')]
+        items[int(c[0])] = (c[1], c[2], c[3], c[4], rects)
+
+
+def coverage(gs, item):
+    cl, kind, shape, level, rects = item
+    cov = 0
+    tot = 0
+    bits = set()
+    for (x, y, w, h) in rects:
+        tot += w * h
+        m = np.zeros((h, w), dtype=bool)
+        for g in gs:
+            for (ln, lo, hi) in g['stretches']:
+                if g['orient'] == 'row' and y <= ln < y + h:
+                    a0, a1 = max(lo, x), min(hi, x + w)
+                    if a1 > a0:
+                        m[ln - y, a0 - x:a1 - x] = True
+                        bits.add(g['causes'])
+                elif g['orient'] == 'column' and x <= ln < x + w:
+                    a0, a1 = max(lo, y), min(hi, y + h)
+                    if a1 > a0:
+                        m[a0 - y:a1 - y, ln - x] = True
+                        bits.add(g['causes'])
+        cov += int(m.sum())
+    return cov / tot if tot else 0.0, bits
+
+
+def lin_only(gs):
+    return [g for g in gs if g['causes'] & 0x02]
+
+
+rows = []
+for k, it in sorted(items.items()):
+    if it[0] == 'line' and it[1] == 'nonlinear':
+        c6, b6 = coverage(lin_only(g6), it)
+        c8, b8 = coverage(lin_only(g8), it)
+        rows.append((k, it[2], it[3], c6, c8, b8))
+print('  item  shape        level  coverage(old statistic)  coverage(new statistic)  cause bits seen on the item (new)')
+for k, shape, level, c6, c8, b8 in rows:
+    print('  %4d  %-12s %-5s  %6.3f                   %6.3f                   %s' % (k, shape, level, c6, c8, sorted('+'.join(v for bit, v in CAUSE.items() if x & bit) for x in b8)))
+print('  nonlinear items %d; covered >= 0.95 by the old statistic: %d; by the new: %d; minimum coverage new: %.3f' % (len(rows), sum(1 for r in rows if r[3] >= 0.95), sum(1 for r in rows if r[4] >= 0.95), min(r[4] for r in rows)))
+
+print('== (1) the new false alarms of the evaluation tool\'s rule, reproduced and split (the script of QA-A-257 on this measurement\'s files)')
+code = open(EV7 + '20_diag_line_false_alarms.py.txt', encoding='utf-8').read()
+code = code.replace("OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'", "OUT = '" + OUT8 + "'")
+code = code.replace("EV + '42_overlaps_v2.tsv.txt'", "EV8 + '53_overlaps_v2.tsv.txt'")
+code = code.replace("EV + '43_score_v2.json.txt'", "EV8 + '54_score_v2.json.txt'")
+code = code.replace("EV7 + '10_lines_v2.tsv.txt'", "EV8 + '51_lines_v2.tsv.txt'")
+exec(compile(code, '20_diag_line_false_alarms', 'exec'), {'EV8': EV8, '__name__': '__main__'})

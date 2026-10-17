@@ -1,0 +1,19 @@
+EVAL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+TARGET = 'xpe_bpm_eval'
+TITLE = 'QA-A-255 step 0 mutation check of the truth record (tools/xpe_bpm_eval.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/22_mutation_truth_record_log.txt'
+FILT = 'BpmEvalTest.Overlap*:BpmEvalTest.Chain*'
+PRED = [
+    '  Z1 the noise label defect is ignored by finalVerdict       -> red: OverlapCombinationTable and OverlapTruthFileDecides... (not others)',
+    '  Z2 an invalid response is not undetermined (never checked)  -> red: OverlapCombinationTable, OverlapWithoutAMeasurement..., OverlapTruthFileDecides...',
+    '  Z3 an overlap inherits the defect class of its covering items -> red: OverlapCombinationTable (the rows with a single verdict defect) and maybe OverlapTruthFileDecides...',
+    '  Z5 the hot/noisy/nonlinear injection class is not applied   -> red: OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain and OverlapTruthFileDecides...',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('Z1', EVAL, b'(n.applicable && n.valid && n.label == "defect")) return kVerdictDefect;', b'false && (n.applicable && n.valid && n.label == "defect")) return kVerdictDefect;'),
+    ('Z2', EVAL, b'if (!r.valid || (n.applicable &&', b'if (r.value < -1e300 || (n.applicable &&'),
+    ('Z3', EVAL, b'g.after = finalVerdict(g.response, g.noise);', b'if (g.inherited == 2) { g.response.valid = true; g.response.defect = true; }\n            g.after = finalVerdict(g.response, g.noise);'),
+    ('Z5', EVAL, b'if (g.intrinsic) {   // hot, noisy', b'if (g.intrinsic && g.pixels > 1000000) {   // hot, noisy'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

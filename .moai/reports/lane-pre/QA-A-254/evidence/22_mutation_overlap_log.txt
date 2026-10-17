@@ -1,0 +1,25 @@
+QA-A-254 mutation check of the composite overlap truth and of the noise-cost sample refusals (tools/xpe_bpm_eval.cpp). Source hash at the start: d2726ecb686990d4
+PREDICTIONS (written before any run):
+  O1 the dead item does not change the chain response                  -> red: OverlapCompositeScoresEveryOverlapByOneRuleThroughTheInjectionChain only (the three dead crossings turn normal)
+  O2 the response rule never makes a pixel a defect                      -> red: OverlapComposite... only
+  O3 an undetermined overlap is read as normal                           -> red: OverlapComposite... only
+  O4 the dose-sample refusal reads "not positive" for the empty case too -> red: NoiseCostRefusesAnEmptyDoseSampleAndANonPositiveMedianEachWithItsOwnReason only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 79 passed, failed: []
+--- O1
+build: BUILD_EXIT=0
+tests exit 1: 78 passed, FAILED: ['OverlapCompositeScoresEveryOverlapByOneRuleThroughTheInjectionChain']
+--- O2
+build: BUILD_EXIT=0
+tests exit 1: 78 passed, FAILED: ['OverlapCompositeScoresEveryOverlapByOneRuleThroughTheInjectionChain']
+--- O3
+build: BUILD_EXIT=0
+tests exit 1: 78 passed, FAILED: ['OverlapCompositeScoresEveryOverlapByOneRuleThroughTheInjectionChain']
+--- O4
+build: BUILD_EXIT=0
+tests exit 1: 78 passed, FAILED: ['NoiseCostRefusesAnEmptyDoseSampleAndANonPositiveMedianEachWithItsOwnReason']
+--- restored: touch + rebuild
+source hash now: d2726ecb686990d4 (start: d2726ecb686990d4)
+build: BUILD_EXIT=0

@@ -1,0 +1,66 @@
+"""QA-A-252j, the items 5 and 7 of Codex #219: the NOLINT reason of every signature names the real role of its adjacent parameters; the comment of the 252i test describes the fixture it has
+(eleven lines of width 1 on every other row, window 17), not the first design (a band of five, window 9)."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:110])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+GENERIC = '// NOLINTBEGIN(bugprone-easily-swappable-parameters): internal numeric helper, every call site names its arguments in the order of the signature (width before height, lower before upper bound, source before destination)'
+NL = 'bugprone-easily-swappable-parameters'
+
+
+def reason(sig, text):
+    return (GENERIC + '\n' + sig, '// NOLINTBEGIN(%s): %s\n%s' % (NL, text, sig))
+
+
+edit('src/xpe_bpm_v2.cpp', [
+    reason('double varianceThreshold(uint32_t nu, double p) {',
+           'nu is the degrees of freedom of a variance ratio and p the tail probability the threshold must keep; the two call sites pass (nu[k], p) and (nuBright, p)'),
+    reason('void separableMedian(const float* in, float* tmp, float* out, int w, int h, int win) {',
+           'in is read only, tmp is the scratch of the horizontal pass and out receives the result; w and h are the image size, win the window; the six call sites pass (wk.feat or a local plane, tmp, out, w, h, window)'),
+    reason('void separableMedianExcluding(const float* in, float* tmp, float* out, const float* plain, const uint8_t* excl, int w, int h, int win) {',
+           'same roles as separableMedian, plus plain (the fallback value of a pixel whose whole window is excluded) and excl (1 = left out); the one call site passes (vg, vgTmp, vgBg, plainRef, refExclude, w, h, window)'),
+    reason('void slidingMedian(const float* in, float* out, int w, int h, int win, bool alongY) {',
+           'in is read and out written; w and h are the image size, win the window and alongY the direction; the callers pass (f, tmp, w, h, win, true) and (f, tmp, w, h, win, false)'),
+    reason('inline float scaleAt(const std::vector<float>& sig, int nbx, int nby, int block, int x, int y) {',
+           'nbx and nby are the size of the block grid, block the edge of a block in pixels and x and y the pixel; the three call sites pass (sig, nbx, nby, block, x, y)'),
+    reason('float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {',
+           'lo, hi and weakHi are the lower limit, the upper limit and the upper limit of the weak band of the response, in ascending order, passed as the named constants kResponseLow, kResponseHigh, kWeakResponseHigh; count and weak are two output counters (flagged pixels, weak-response stretches)'),
+    reason('float flagVarianceRatio(Work& wk, const Settings& st, uint32_t nu, double tau, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {',
+           'nu is the degrees of freedom and tau the threshold ratio of the variance check; the one call site passes (nu[1], threshold[1]) from two arrays of the same index'),
+    reason('void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job, int kind, int orient, int nullSlot, std::vector<Seg>* out) {',
+           'w and h are the plane size; kind (LineKind), orient (0 row, 1 column) and nullSlot (the slot of the empirical null) are three small codes; the two call sites pass the plane as (w, h) with orient 0 and the transposed plane as (h, w) with orient 1, each with its own slot'),
+])
+# the persistence lambdas carry their reason on their own line
+edit('src/xpe_bpm_v2.cpp', [])
+
+s = open(base + 'src/xpe_bpm_v2.cpp', encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+old = '// NOLINT(bugprone-easily-swappable-parameters): a lambda local to this function, called at one site'
+new = '// NOLINT(bugprone-easily-swappable-parameters): orient is 0 (row) or 1 (column), idx the line, [a, b) the stretch; a lambda local to this function, called at one site as persistence(orient, y, a, b)'
+assert s.count(old) == 2, s.count(old)
+s = s.replace(old, new)
+open(base + 'src/xpe_bpm_v2.cpp', 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+edit('src/defect_ext.cpp', [
+    ('// NOLINTBEGIN(bugprone-easily-swappable-parameters): width before height, as everywhere in the format; one call site',
+     '// NOLINTBEGIN(bugprone-easily-swappable-parameters): size is the length of the extension block in bytes and width and height are the frame size that bounds the records; the one call site passes (payload.data() + 2 * px, extLen, hdr.width, hdr.height)'),
+])
+
+edit('tests/test_bpm_v2.cpp', [
+    ('''    // QA-A-252i: rows 100..104 have a gain loss (their variance is 0.09 of their neighbours'). With the window of 9 the local expectation of a row next to the band is the median of nine rows of which up to
+    // five are band rows: without the exclusion it collapses to the band's variance and the ordinary rows around are flagged as noise defects. The detector's own line mask is kept out of it.''',
+     '''    // QA-A-252i: rows 100, 102, .. 120 (eleven lines of width 1) have a gain loss: their variance is 0.09 of their neighbours'. With the window of 17 the local expectation of a row between two lines is the
+    // median over seventeen rows of which nine are lines: without the exclusion it falls toward the lines' variance and ordinary rows are flagged as noise defects (5 of 2160 pixels on this fixture). The
+    // detector's own line mask is kept out of the expectation (0 of 2160). A thick band of lines is no use here: the detector does not take it for lines (432 pixels of a band of twelve rows).'''),
+])
+print('items 5 and 7 patched')

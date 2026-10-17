@@ -1,0 +1,78 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+V2 = ROOT + 'modules/preprocess/src/xpe_bpm_v2.cpp'
+EV = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-252d/evidence/21_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILT = 'BpmEval*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r1 = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_bpm_eval'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    l1 = (r1.stdout.strip().splitlines() or ['?'])[-1]
+    l2 = (r.stdout.strip().splitlines() or ['?'])[-1]
+    return 'BUILD_EXIT=0' if l1 == 'BUILD_EXIT=0' and l2 == 'BUILD_EXIT=0' else l1 + ' / ' + l2
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+orig = {V2: open(V2, 'rb').read(), EV: open(EV, 'rb').read()}
+h0 = hashlib.sha256(orig[V2] + orig[EV]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-252d mutation check of the response items of the injector (tools/xpe_bpm_eval.cpp). Source hash at the start: ' + h0)
+say('PREDICTIONS (written before any run):')
+say('  T1 the boundary: 0.45 is a defect (<= instead of <)                       -> red: ResponseItemsAreDefectsBelow45Percent... and the item-count test (InjectFollowsTheSpecCounts...), nothing else')
+say('  T2 efficiency loss without the added quantum noise term                    -> red: EfficiencyLossScalesTheQuantumNoise... only')
+say('  T3 gain loss is not applied to the bright frames                           -> red: EfficiencyLoss... (its gain residual is large) only')
+say('  T4 the quantum gain is not measured (always the default 0.25)              -> red: EfficiencyLoss... (the measured flag and the prediction) only')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('T1', EV, b'r < kResponseDefectBelow - 1e-9', b'r <= kResponseDefectBelow'),
+    ('T2', EV, b'+ std::sqrt(kappa * it.level * (1.0 - it.level) * std::max(nn, 0.0)) * unit(rng);', b'+ 0.0 * unit(rng) * (kappa + nn);'),
+    ('T3', EV, b'it.kind == "gain_band" || it.kind == "gain_loss") {', b'it.kind == "gain_band") {'),
+    ('T4', EV, b'const bool kappaMeasured = kappa > 0.0;', b'const bool kappaMeasured = false; kappa = 0.0;'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new in mutants:
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(path, 'wb').write(cur)
+        os.utime(path, None)
+        time.sleep(1)
+finally:
+    for path, data in orig.items():
+        open(path, 'wb').write(data)
+        os.utime(path, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(V2, 'rb').read() + open(EV, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

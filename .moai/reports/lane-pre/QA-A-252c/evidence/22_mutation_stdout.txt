@@ -1,0 +1,44 @@
+QA-A-252c mutation check of the area mask, the skip default and the tool options. Source hash (detector + tool) at the start: 4a9bcfc7215886db
+Tests: Default=TheFirstDarkFrameOfTheRawListIsSkippedByDefault Margins=MarginsAreToldByTheAreaMask... NoMargins=WithoutMarginsTheWholeFrameIsTheAreaAnd... OnRequest=TheFirstDarkFrameIsSkippedOnRequest
+  Thresholds=ThresholdsFollowFromTheTargetNumberOfFalseAlarms MapV2Area=MapV2TakesMarginsAndWritesTheAreaMask MapV2Skip=MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot ScoreArea=ScoreWithAnAreaMask...
+PREDICTIONS (written before any run):
+  Y1 default skip back to 0 (all dark frames used)                -> red: Default, Thresholds, MapV2Skip; OnRequest stays green (it names both policies)
+  Y2 SKIP_NONE treated like a skip                                 -> red: Default, OnRequest, MapV2Skip
+  Y3 skip_first_dark = 3 accepted                                  -> red: Default only
+  Y4 area mask 1 inside written as 0                               -> red: Margins and MapV2Area
+  Y5 no margins: the area output is not written                    -> red: NoMargins only
+  Y6 tool: an explicit --skip-first-dark 0 maps to SKIP_FIRST      -> red: MapV2Skip only
+  Y7 score: the area mask is not applied to the clean map          -> red: ScoreArea only
+  Y8 score: the area mask is not applied at all                    -> red: ScoreArea only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 20 passed, failed: []
+--- Y1
+build: BUILD_EXIT=0
+tests exit 1: 19 passed, FAILED: ['TheFirstDarkFrameOfTheRawListIsSkippedByDefault']
+--- Y2
+build: BUILD_EXIT=0
+tests exit 1: 17 passed, FAILED: ['MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot', 'TheFirstDarkFrameIsSkippedOnRequest', 'TheFirstDarkFrameOfTheRawListIsSkippedByDefault']
+--- Y3
+build: BUILD_EXIT=0
+tests exit 1: 19 passed, FAILED: ['TheFirstDarkFrameOfTheRawListIsSkippedByDefault']
+--- Y4
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['MapV2TakesMarginsAndWritesTheAreaMask', 'MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic']
+--- Y5
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['MapV2TakesMarginsAndWritesTheAreaMask', 'WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused']
+--- Y6
+build: BUILD_EXIT=0
+tests exit 1: 19 passed, FAILED: ['MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot']
+--- Y7
+build: BUILD_EXIT=0
+tests exit 1: 19 passed, FAILED: ['ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect']
+--- Y8
+build: BUILD_EXIT=0
+tests exit 1: 19 passed, FAILED: ['ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect']
+--- restored: touch + rebuild
+source hash now: 4a9bcfc7215886db (start: 4a9bcfc7215886db)
+build: BUILD_EXIT=0
+tests exit 0: 20 passed, failed: []

@@ -1,0 +1,15 @@
+QA-A-252g mutation check of the exposure normalisation (src/xpe_bpm_v2.cpp). Source hash at the start: 59870a0340f1130a
+PREDICTIONS (written before any run):
+  (E3 of the first run, the group mean formed without the scale, was GREEN: an equivalent mutant, not a test gap - the scales are S_mean / S_k, so the unscaled mean of the frames equals the
+   scaled mean to first order. Recorded in 42_mutation_exposure_log.txt. This run: E3prime)
+  E3prime the row means of the frames are taken from the UNSCALED values          -> red: TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup only (the scaled values keep the dose difference)
+  every other test stays green
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 44 passed, failed: []
+--- E3prime
+build: BUILD_EXIT=0
+tests exit 1: 43 passed, FAILED: ['TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup']
+--- restored: touch + rebuild
+source hash now: 59870a0340f1130a (start: 59870a0340f1130a)
+build: BUILD_EXIT=0

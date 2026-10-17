@@ -1,0 +1,20 @@
+#!/bin/bash
+# QA-A-256: continuation of 20_measure_b16.sh.txt after S2_score_v2 stopped (exit 3): `score --map` reads a version-1 defect plane and refused the version-2 defect.xcal ("not a defect.xcal for N pixels").
+# Nothing before S2 is repeated. The second edition is scored from the defect planes exported by `defect-xcal --map-out` (inj_v2_setmap.u8, clean_v2_setmap.u8; the same planes, byte for byte, as in the sets).
+# No code changed. The steps S2, C1, C2 run once each here.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+OUT=D:/workspace-github/xpe-data/bpm-eval-256
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-256/evidence
+EXE=$BIN/xpe_bpm_eval.exe
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+NT=$EVD/30_noise_truth.tsv.txt
+OV=$EVD/31_overlaps_measured.tsv.txt
+run S2_score_v2 "$EXE" score --truth "$IN/inj_d" --noise-truth "$NT" --map "$OUT/inj_v2_setmap.u8" --clean-map "$OUT/clean_v2_setmap.u8" --half-a "$OUT/v2_half_a.u8" --half-b "$OUT/v2_half_b.u8" --area "$OUT/inj_v2_area.u8" --overlap composite --overlap-truth "$OV" --overlap-out "$EVD/42_overlaps_v2.tsv.txt" --out "$EVD/43_score_v2.json.txt" || exit 1
+run C1_correct_v1 "$EXE" correct --truth "$IN/inj_d" --clean-set "$OUT/clean_set_v1" --inj-set "$OUT/inj_set_v1" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/44_correct_v1.json.txt" || exit 1
+run C2_correct_v2 "$EXE" correct --truth "$IN/inj_d" --clean-set "$OUT/clean_set_v2" --inj-set "$OUT/inj_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/45_correct_v2.json.txt" || exit 1
+echo done

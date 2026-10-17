@@ -1,0 +1,4 @@
+S2_score_v2 exit 0 seconds 0
+C1_correct_v1 exit 0 seconds 2
+C2_correct_v2 exit 0 seconds 2
+done

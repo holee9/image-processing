@@ -1,0 +1,17 @@
+#!/bin/bash
+# QA-A-256 item 5 (diagnosis only, not a verdict): the second-generation detector on the CLEAN cyan_test frames once more with its feature bits and line mask, so that the pixels that differ from the company map
+# (calfiles/BPM.raw) can be split by characteristic. The six dark frames 09..14 with the skip switched off equal what the fixture generator used (first of 08..14 skipped); the merged map is compared with the set's map.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+EXE=$ROOT/build/ci-preprocess/bin/xpe_bpm_eval.exe
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+OUT=D:/workspace-github/xpe-data/bpm-eval-256
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-256/evidence
+M="--margins 6,2,1,1"
+DP=(); for k in 09 10 11 12 13 14; do DP+=(--dark "$CAL/Dark_$k.raw"); done
+BP=(); for k in 17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36; do BP+=(--bright "$CAL/Bright_$k.raw"); done
+"$EXE" map-v2 $M --skip-first-dark 0 --area "$OUT/clean_full_area.u8" --out "$OUT/clean_full_pix.u8" --features "$OUT/clean_full_features.u8" "${DP[@]}" "${BP[@]}" > "$EVD/60_clean_features.out.txt" 2>&1 || exit 1
+"$EXE" lines $M --skip-first-dark 0 --out "$OUT/clean_full_lines.u8" "${DP[@]}" "${BP[@]}" > "$EVD/61_clean_lines.out.txt" 2>&1
+"$EXE" merge --in "$OUT/clean_full_pix.u8" --in "$OUT/clean_full_lines.u8" --out "$OUT/clean_full_map.u8" || exit 1
+if cmp -s "$OUT/clean_full_map.u8" "$OUT/clean_v2_setmap.u8"; then echo "clean feature run identical to the set map"; else echo "clean feature run DIFFERS from the set map"; fi
+echo done

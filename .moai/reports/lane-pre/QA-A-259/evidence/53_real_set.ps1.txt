@@ -1,0 +1,13 @@
+# QA-A-259 real-set run (once): the whole raw dark list Dark_07..14 (first frame included), default rule. Peak working set via polling PeakWorkingSet64 (MiB).
+$exe = 'D:\workspace-github\xpe-pre\build\ci-preprocess\bin\xpe_calib_fixture_gen.exe'
+$ev = 'D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-259\evidence'
+$out = 'D:\workspace-github\xpe-data\bpm-eval-259\set_default'
+$a = @('--out', $out, '--expiry-ms', '4102444800000', '--dark-list', "$ev\50_darks.txt", '--bright-list', "$ev\51_gain_brights.txt", '--bpm-bright-list', "$ev\52_bpm_brights.txt", '--bpm-v2', '--bpm-margins', '6,2,1,1')
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$p = Start-Process -FilePath $exe -ArgumentList $a -PassThru -NoNewWindow -RedirectStandardOutput "$ev\54_real_set_stdout.txt" -RedirectStandardError "$ev\54_real_set_stderr.txt"
+$null = $p.Handle
+$peak = 0
+while (-not $p.HasExited) { $p.Refresh(); if ($p.PeakWorkingSet64 -gt $peak) { $peak = $p.PeakWorkingSet64 }; Start-Sleep -Milliseconds 100 }
+$p.WaitForExit()
+$sw.Stop()
+"exit code $($p.ExitCode); wall seconds $([math]::Round($sw.Elapsed.TotalSeconds,1)); peak working set MiB $([math]::Round($peak / 1MB,0)); dark list 8, gain bright 6, defect-map bright 18; resolution 3072 x 3072"

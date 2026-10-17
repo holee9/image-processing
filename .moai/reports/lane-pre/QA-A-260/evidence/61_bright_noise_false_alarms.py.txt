@@ -1,0 +1,84 @@
+"""QA-A-260 item 3: the new false alarms of the second edition that sit on normal control items and are switched on by the BRIGHT_NOISE pixel feature -- which item, which group, why the item is normal in the truth.
+Diagnosis only (reads files); the reproduction of the evaluation tool's rule is the one of QA-A-257 (20_diag_line_false_alarms.py.txt), pointed at this measurement's files and checked against the tool's counts first.
+Usage: PYTHONIOENCODING=utf-8 python 61_bright_noise_false_alarms.py.txt > 62_bright_noise_false_alarms.txt"""
+import numpy as np
+
+EV7 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-257/evidence/'
+EV6 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+code = open(EV7 + '20_diag_line_false_alarms.py.txt', encoding='utf-8').read()
+head = code[:code.index('# ---- causes of the flagged pixels')]
+head = head.replace("OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'", "OUT = 'D:/workspace-github/xpe-data/bpm-eval-260/'")
+head = head.replace("EV + '42_overlaps_v2.tsv.txt'", "EV8 + '42_overlaps_v2.tsv.txt'")
+head = head.replace("EV + '43_score_v2.json.txt'", "EV8 + '43_score_v2.json.txt'")
+g = {'EV8': EV8, '__name__': '__main__'}
+exec(compile(head, '20_diag_pointed_at_260', 'exec'), g)
+if int(g['new'].sum()) != g['sc']['new_false_alarms'] or int(g['in_control'].sum()) != g['sc']['new_false_alarms_in_controls']:
+    raise SystemExit('not reproduced')
+new, in_control, ids, items, cls, noise, S = g['new'], g['in_control'], g['ids'], g['items'], g['cls'], g['noise'], g['S']
+OUT = g['OUT']
+ld = g['ld']
+feat = ld(OUT + 'v2_full_features.u8')
+lines = ld(OUT + 'v2_full_lines.u8') != 0
+NAMES = {0x01: 'dark mean', 0x02: 'dark noise', 0x04: 'dose slope', 0x08: 'dose linearity', 0x10: 'flat response', 0x20: 'bright noise'}
+
+print('== partition of the %d new false alarms by the characteristics that flag them (each pixel once; a pixel with several bits is listed under their combination)' % new.sum())
+tab = {}
+for y, x in zip(*np.nonzero(new)):
+    n = [v for b, v in NAMES.items() if feat[y, x] & b]
+    if lines[y, x]:
+        n.insert(0, 'line mask')
+    place = 'control item' if in_control[y, x] else 'background'
+    key = ('+'.join(n) if n else '(none)', place)
+    tab[key] = tab.get(key, 0) + 1
+for (c, p), n in sorted(tab.items(), key=lambda t: -t[1]):
+    print('  %-40s %-13s %d' % (c, p, n))
+
+bn = new & ((feat & 0x20) != 0)
+print('== new false alarms with the BRIGHT_NOISE bit: %d (on control items %d, on background %d)' % (bn.sum(), (bn & in_control).sum(), (bn & ~in_control).sum()))
+ys, xs = np.nonzero(bn & in_control)
+by_item = {}
+for y, x in zip(ys, xs):
+    by_item.setdefault(int(ids[y, x]), []).append((y, x))
+print('== items carrying them: %d' % len(by_item))
+print('  item  class     kind/shape/level               pixels flagged / item pixels   other bits on the flagged pixels             noise truth: pixels dof cost [lo, hi] label')
+NOISE_ROWS = open(EV6 + '30_noise_truth.tsv.txt', encoding='utf-8').read().splitlines()
+group_tot = {}
+for k, it in items.items():
+    if cls[k] == 'control':
+        key = '%s/%s/%s' % (it['kind'], it['shape'], it['level'])
+        group_tot[key] = group_tot.get(key, 0) + 1
+group_hit = {}
+for k, pix in sorted(by_item.items(), key=lambda t: -len(t[1])):
+    it = items[k]
+    npx = int((ids == k).sum())
+    other = {}
+    for (y, x) in pix:
+        for b, v in NAMES.items():
+            if b != 0x20 and feat[y, x] & b:
+                other[v] = other.get(v, 0) + 1
+    nz = noise.get(k)
+    row = open(EV6 + '30_noise_truth.tsv.txt', encoding='utf-8').read().splitlines()
+    nt = [r.split('\t') for r in row[1:] if r.split('\t')[0] == str(k)]
+    ntxt = 'no noise record' if not nt else 'pixels %s dof %s cost %s [%s, %s] %s' % (nt[0][4], nt[0][5], nt[0][6], nt[0][7], nt[0][8], nt[0][9])
+    key = '%s/%s/%s' % (it['kind'], it['shape'], it['level'])
+    group_hit[key] = group_hit.get(key, 0) + 1
+    print('  %4d  %-9s %-30s %5d / %-7d                %-42s %s' % (k, cls[k], key, len(pix), npx, ','.join('%s %d' % kv for kv in other.items()) or '(none)', ntxt))
+print('== by group of the control items: items with at least one such pixel / items in the group')
+for key in sorted(group_tot):
+    if key in group_hit:
+        print('  %-34s %d / %d' % (key, group_hit[key], group_tot[key]))
+print('== the noise truth of ALL control items (label normal), for comparison with the items above')
+costs = []
+for r in open(EV6 + '30_noise_truth.tsv.txt', encoding='utf-8').read().splitlines()[1:]:
+    c = r.split('\t')
+    k = int(c[0])
+    if k in cls and cls[k] == 'control' and c[9] == 'normal':
+        costs.append((float(c[6]), float(c[7]), float(c[8]), k))
+costs.sort()
+a = np.array([x[0] for x in costs])
+hi = np.array([x[2] for x in costs])
+print('  normal control items with a noise record: %d; cost min %.3f median %.3f max %.3f; upper bound hi min %.3f median %.3f max %.3f' % (len(costs), a.min(), np.median(a), a.max(), hi.min(), np.median(hi), hi.max()))
+aff = [x for x in costs if x[3] in by_item]
+print('  of them the %d items above: cost min %.3f max %.3f; hi min %.3f max %.3f' % (len(aff), min(x[0] for x in aff) if aff else 0, max(x[0] for x in aff) if aff else 0, min(x[2] for x in aff) if aff else 0, max(x[2] for x in aff) if aff else 0))
+print('  normal control items with hi >= 2 (the interval touches the defect line): %d' % int((hi >= 2.0).sum()))

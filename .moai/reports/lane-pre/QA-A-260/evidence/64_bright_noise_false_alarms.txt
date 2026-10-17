@@ -1,0 +1,30 @@
+shared pixels 1690, groups without a final class 0
+== reproduction of the tool's counts
+  items promoted to defect by noise 6 (tool: 6), made undetermined 368 (tool: 368)
+  new false alarms 48 (tool 48); on normal control items 31 (tool 31); background 17
+  reproduced exactly
+== partition of the 48 new false alarms by the characteristics that flag them (each pixel once; a pixel with several bits is listed under their combination)
+  bright noise                             control item  31
+  line mask                                background    8
+  dark mean                                background    8
+  bright noise                             background    1
+== new false alarms with the BRIGHT_NOISE bit: 32 (on control items 31, on background 1)
+== items carrying them: 6
+  item  class     kind/shape/level               pixels flagged / item pixels   other bits on the flagged pixels             noise truth: pixels dof cost [lo, hi] label
+   101  control   efficiency_loss/col_full/0.6      14 / 3044                   (none)                                     pixels 3044 dof 2660 cost 1.7853 [1.6735, 1.9073] normal
+   100  control   efficiency_loss/row_full/0.6      10 / 3023                   (none)                                     pixels 3023 dof 2479 cost 1.8136 [1.6969, 1.9414] normal
+   104  control   efficiency_loss/row_pair/0.6       3 / 1512                   (none)                                     pixels 1512 dof 1512 cost 1.8033 [1.6620, 1.9618] normal
+   103  control   efficiency_loss/col_partial/0.6     2 / 754                    (none)                                     pixels 754 dof 297 cost 1.5500 [1.3126, 1.8545] normal
+   110  control   efficiency_loss/row_pair/0.7       1 / 1516                   (none)                                     pixels 1516 dof 1423 cost 1.3508 [1.2423, 1.4729] normal
+   106  control   efficiency_loss/row_full/0.7       1 / 3024                   (none)                                     pixels 3024 dof 2777 cost 1.4523 [1.3629, 1.5497] normal
+== by group of the control items: items with at least one such pixel / items in the group
+  efficiency_loss/col_full/0.6       1 / 1
+  efficiency_loss/col_partial/0.6    1 / 1
+  efficiency_loss/row_full/0.6       1 / 1
+  efficiency_loss/row_full/0.7       1 / 1
+  efficiency_loss/row_pair/0.6       1 / 1
+  efficiency_loss/row_pair/0.7       1 / 1
+== the noise truth of ALL control items (label normal), for comparison with the items above
+  normal control items with a noise record: 46; cost min 0.000 median 0.949 max 1.814; upper bound hi min 0.002 median 1.102 max 1.962
+  of them the 6 items above: cost min 1.351 max 1.814; hi min 1.473 max 1.962
+  normal control items with hi >= 2 (the interval touches the defect line): 0

@@ -1,0 +1,31 @@
+#!/bin/bash
+# QA-A-255 1~7: second edition of the defect correction against the first, one run of each step (predictions: 80_method_predictions_correction.md.txt).
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-255/evidence
+IN=D:/workspace-github/xpe-data/bpm-eval-252f/inj_d
+INJ=$IN/frames
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+CLEAN=D:/workspace-github/xpe-data/bpm-eval-251/clean_set
+OUT=D:/workspace-github/xpe-data/bpm-eval-255
+mkdir -p "$OUT/inj_set_v2" "$OUT/inj_set_v1" "$OUT/real_set_v1"
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+ARGS=(--out "$OUT/inj_set_v2" --width 3072 --height 3072 --expiry-ms 4102444800000)
+for k in 08 09 10 11 12 13 14; do ARGS+=(--dark "$INJ/Dark_$k.raw"); done
+for k in 23 24 25 26 27 28; do ARGS+=(--bright "$INJ/Bright_$k.raw"); done
+for k in 17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36; do ARGS+=(--bpm-bright "$INJ/Bright_$k.raw"); done
+ARGS+=(--bpm-v2 --bpm-margins 6,2,1,1)
+run S1_fixture_gen "$BIN/xpe_calib_fixture_gen.exe" "${ARGS[@]}" || exit 1
+run S2_defect_xcal_inj "$BIN/xpe_bpm_eval.exe" defect-xcal --in "$OUT/inj_set_v2/defect.xcal" --v1-out "$OUT/inj_set_v1/defect.xcal" || exit 1
+cp "$OUT/inj_set_v2/offset.xcal" "$OUT/inj_set_v2/gain.xcal" "$OUT/inj_set_v1/"
+run S2b_defect_xcal_real "$BIN/xpe_bpm_eval.exe" defect-xcal --in D:/workspace-github/xpe-data/cal-254/defect.xcal --v1-out "$OUT/real_set_v1/defect.xcal" || exit 1
+cp D:/workspace-github/xpe-data/cal-254/offset.xcal D:/workspace-github/xpe-data/cal-254/gain.xcal "$OUT/real_set_v1/"
+for ed in v2 v1; do
+  run S3_correct_$ed "$BIN/xpe_bpm_eval.exe" correct --truth "$IN" --clean-set "$CLEAN" --inj-set "$OUT/inj_set_$ed" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/82_correct_$ed.json.txt" || exit 1
+done
+run S4_time_real_v2 "$BIN/xpe_bpm_eval.exe" correct-time --set D:/workspace-github/xpe-data/cal-254 --frame "$CAL/Bright_29.raw" --width 3072 --height 3072 || exit 1
+run S4_time_real_v1 "$BIN/xpe_bpm_eval.exe" correct-time --set "$OUT/real_set_v1" --frame "$CAL/Bright_29.raw" --width 3072 --height 3072 || exit 1
+run S4_time_inj_v2 "$BIN/xpe_bpm_eval.exe" correct-time --set "$OUT/inj_set_v2" --frame "$INJ/Bright_29.raw" --width 3072 --height 3072 || exit 1
+run S4_time_inj_v1 "$BIN/xpe_bpm_eval.exe" correct-time --set "$OUT/inj_set_v1" --frame "$INJ/Bright_29.raw" --width 3072 --height 3072 || exit 1
+echo done

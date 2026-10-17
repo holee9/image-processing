@@ -1,0 +1,87 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+V2 = ROOT + 'modules/preprocess/src/xpe_bpm_v2.cpp'
+EV = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-253/evidence/21_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILT = 'BpmV2LinesTest.*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+orig = {V2: open(V2, 'rb').read(), EV: open(EV, 'rb').read()}
+h0 = hashlib.sha256(orig[V2] + orig[EV]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-253 mutation check of the line detector and the blobs (src/xpe_bpm_v2.cpp). Source hash (detector + tool) at the start: ' + h0)
+say('Tests: Full=AFullDeadRowAndColumn... GainBand=ALineWhoseCorrectionWouldRaiseTheNoise... Partial=APartialLineIsFound... Adjacent=TwoAdjacentLines... Noisy=ARowWithMoreTemporalNoise...')
+say('  Pixel=ASingleDeadPixelOrASmallBlock... Margins=LinesInsideTheMarginsAreNotCounted Config=ConfigurationAndBuffersAreChecked Blobs=BlobsGroupNeighbouringDefectivePixels...')
+say('PREDICTIONS (written before any run):')
+say('  Z1 the response tolerance gate removed (every significant response stretch is a defect)   -> red: GainBand only')
+say('  Z2 panel rejection from four adjacent lines instead of three                              -> red: Adjacent only')
+say('  Z3 a stretch is never called full                                                         -> red: Full only')
+say('  Z4 the per-pixel cut at +-3 removed (one outlier can make a stretch)                      -> red: Pixel (and maybe more)')
+say('  Z5 stretch coordinates not shifted back by the margins                                    -> red: Margins only')
+say('  Z6 the ends of a stretch are not trimmed                                                  -> unsure: Partial red if the window overshoot exceeds 8 pixels, else green (reported either way)')
+say('  Z7 the noise magnitude gate removed                                                       -> green (no test has a noise stretch under the tolerance): a test gap, to be reported and closed')
+say('  Z8 blobs with 4-neighbourhood instead of 8                                               -> red: Blobs only')
+say('  Z9 crossings not marked                                                                   -> red: Full only')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('Z1', V2, b'if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;', b'cause = XPE_BPM_LINE_CAUSE_RESPONSE; (void)lo; (void)hi; (void)g;'),
+    ('Z2', V2, b'if (g.width >= 3) g.flags |= XPE_BPM_LINE_REJECT;', b'if (g.width >= 4) g.flags |= XPE_BPM_LINE_REJECT;'),
+    ('Z3', V2, b'if ((g.b - g.a) * 100 >= length * 95) g.flags |= XPE_BPM_LINE_FULL;', b'if ((g.b - g.a) * 100 >= length * 195) g.flags |= XPE_BPM_LINE_FULL;'),
+    ('Z4', V2, b't = std::min(3.0, std::max(-3.0, t));', b't = std::min(1.0e9, std::max(-1.0e9, t));'),
+    ('Z5', V2, b'            sg.idx += across;', b'            (void)across;'),
+    ('Z6', V2, b'while (b - a > L && !holds(a, std::min(b, a + 8))) ++a;', b''),
+    ('Z7', V2, b'if (g >= job->tol) cause = XPE_BPM_LINE_CAUSE_NOISE;', b'cause = XPE_BPM_LINE_CAUSE_NOISE; (void)g;'),
+    ('Z8', V2, b'                    if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;', b'                    if (xx < 0 || yy < 0 || xx >= w || yy >= h || (dx != 0 && dy != 0)) continue;'),
+    ('Z9', V2, b'                r.flags |= XPE_BPM_LINE_CROSSES;', b'                (void)r;'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new in mutants:
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(path, 'wb').write(cur)
+        os.utime(path, None)
+        time.sleep(1)
+finally:
+    for path, data in orig.items():
+        open(path, 'wb').write(data)
+        os.utime(path, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(V2, 'rb').read() + open(EV, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

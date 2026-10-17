@@ -1,0 +1,22 @@
+total with the flat-field bit 83281
+  line/gain_loss                           line                           31800
+  line/efficiency_loss                     line                           31791
+  line/dead                                line                           16632
+  block/dead                               block                           1488
+  shared by two items                                                      1122
+  pixel/efficiency_loss                    pixel                            192
+  pixel/gain_loss                          pixel                            192
+  pixel/dead                               pixel                             64
+response-model items by level:
+  line/efficiency_loss               line   0.3     10606
+  line/efficiency_loss               line   0.4     10591
+  line/efficiency_loss               line   0.44    10594
+  line/gain_loss                     line   0.3     10583
+  line/gain_loss                     line   0.4     10609
+  line/gain_loss                     line   0.44    10608
+  pixel/efficiency_loss              pixel  0.3        64
+  pixel/efficiency_loss              pixel  0.4        64
+  pixel/efficiency_loss              pixel  0.44       64
+  pixel/gain_loss                    pixel  0.3        64
+  pixel/gain_loss                    pixel  0.4        64
+  pixel/gain_loss                    pixel  0.44       64

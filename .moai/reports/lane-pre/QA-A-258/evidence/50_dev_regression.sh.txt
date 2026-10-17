@@ -1,0 +1,48 @@
+#!/bin/bash
+# QA-A-258 measurement 1: the DEVELOPMENT REGRESSION. The same data as QA-A-256 (injection 252f inj_d, seed 251), the second edition ONCE with the new LINEARITY statistic (commit a56d3a03).
+# This is not an independent validation: the places, strengths and truth of the normal bands were seen before the change (Codex #226 finding 7). Predictions: 10_definition_predictions.md.txt section 4 (M1-M3), fixed before.
+# Everything but the line detector is as in QA-A-256 (same frames, same six effective dark frames, same truth and overlap measurement). The first edition is not re-run (not touched by the change).
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+OUT=D:/workspace-github/xpe-data/bpm-eval-258
+EV256=$ROOT/.moai/reports/lane-pre/QA-A-256/evidence
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-258/evidence
+EXE=$BIN/xpe_bpm_eval.exe
+GEN=$BIN/xpe_calib_fixture_gen.exe
+mkdir -p "$OUT"
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+DK="08 09 10 11 12 13 14"; GN="23 24 25 26 27 28"; BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+lst() { local flag=$1 dir=$2 pre=$3; shift 3; for k in "$@"; do printf -- "--%s\n%s/%s_%s.raw\n" "$flag" "$dir" "$pre" "$k"; done; }
+setargs() { local d=$1; lst dark "$d" Dark $DK; lst bright "$d" Bright $GN; lst bpm-bright "$d" Bright $BR; }
+COMMON=(--width 3072 --height 3072 --expiry-ms 4102444800000)
+V2=(--bpm-v2 --bpm-margins 6,2,1,1)
+M="--margins 6,2,1,1"
+mapfile -t A < <(setargs "$INJ")
+mapfile -t C < <(setargs "$CAL")
+run G2_planted_v2 "$GEN" --out "$OUT/inj_set_v2" "${COMMON[@]}" "${A[@]}" "${V2[@]}" || exit 1
+run G4_clean_v2 "$GEN" --out "$OUT/clean_set_v2" "${COMMON[@]}" "${C[@]}" "${V2[@]}" || exit 1
+run X1_planted "$EXE" defect-xcal --in "$OUT/inj_set_v2/defect.xcal" --map-out "$OUT/inj_v2_setmap.u8" --area-out "$OUT/inj_v2_area.u8" --lines-out "$EVD/51_lines_v2.tsv.txt" || exit 1
+run X3_clean "$EXE" defect-xcal --in "$OUT/clean_set_v2/defect.xcal" --map-out "$OUT/clean_v2_setmap.u8" --lines-out "$EVD/52_lines_clean_v2.tsv.txt" || exit 1
+# the halves of the frame lists for the Jaccard value (the line halves are new: the line detector changed; the pixel halves of QA-A-256 are unchanged)
+HA=(); for k in 08 10 12 14; do HA+=(--dark "$INJ/Dark_$k.raw"); done
+HB=(); for k in 09 11 13; do HB+=(--dark "$INJ/Dark_$k.raw"); done
+BE=(); for k in 17 19 21 23 25 27 31 33 35; do BE+=(--bright "$INJ/Bright_$k.raw"); done
+BO=(); for k in 18 20 22 24 26 28 32 34 36; do BO+=(--bright "$INJ/Bright_$k.raw"); done
+run H5_v2_lines_a "$EXE" lines $M --skip-first-dark 0 --min-dark 3 --min-bright 9 --out "$OUT/v2_half_a_lines.u8" "${HA[@]}" "${BE[@]}"
+run H6_v2_lines_b "$EXE" lines $M --skip-first-dark 0 --min-dark 3 --min-bright 9 --out "$OUT/v2_half_b_lines.u8" "${HB[@]}" "${BO[@]}"
+for n in a b; do "$EXE" merge --in "/d/workspace-github/xpe-data/bpm-eval-256/v2_half_${n}_pix.u8" --in "$OUT/v2_half_${n}_lines.u8" --out "$OUT/v2_half_$n.u8" || exit 1; done
+# the feature bits and line mask of the same six dark frames (09..14, first skip off) to split the new false alarms by cause; compared with the set's plane
+DP=(); for k in 09 10 11 12 13 14; do DP+=(--dark "$INJ/Dark_$k.raw"); done
+BP=(); for k in $BR; do BP+=(--bright "$INJ/Bright_$k.raw"); done
+run P1_v2_features "$EXE" map-v2 $M --skip-first-dark 0 --area "$OUT/v2_full_area.u8" --out "$OUT/v2_full_pix.u8" --features "$OUT/v2_full_features.u8" "${DP[@]}" "${BP[@]}" || exit 1
+run P2_v2_lines "$EXE" lines $M --skip-first-dark 0 --out "$OUT/v2_full_lines.u8" "${DP[@]}" "${BP[@]}"
+"$EXE" merge --in "$OUT/v2_full_pix.u8" --in "$OUT/v2_full_lines.u8" --out "$OUT/v2_full_map.u8" || exit 1
+if cmp -s "$OUT/v2_full_map.u8" "$OUT/inj_v2_setmap.u8"; then echo "feature run map identical to the set defect plane"; else echo "feature run map DIFFERS from the set defect plane"; fi
+# the score and the correction, once
+run S2_score_v2 "$EXE" score --truth "$IN/inj_d" --noise-truth "$EV256/30_noise_truth.tsv.txt" --map "$OUT/inj_v2_setmap.u8" --clean-map "$OUT/clean_v2_setmap.u8" --half-a "$OUT/v2_half_a.u8" --half-b "$OUT/v2_half_b.u8" --area "$OUT/inj_v2_area.u8" --overlap composite --overlap-truth "$EV256/31_overlaps_measured.tsv.txt" --overlap-out "$EVD/53_overlaps_v2.tsv.txt" --out "$EVD/54_score_v2.json.txt" || exit 1
+run C2_correct_v2 "$EXE" correct --truth "$IN/inj_d" --clean-set "$OUT/clean_set_v2" --inj-set "$OUT/inj_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/55_correct_v2.json.txt" || exit 1
+echo done

@@ -1,0 +1,198 @@
+"""QA-A-252f step 2b: xpe_bpm_eval.cpp.
+(1) the quantum gain from variances corrected for the frame-count bias of the median, regressed over the dose groups with its uncertainty,
+(2) the response levels 0.3 / 0.4 / 0.44 / 0.46 / 0.6 / 0.7 for both models, the ratio slack the same as in the detector,
+(3) the command noise-cost: the noise cost of every response item measured on verification frames, with an interval and a verdict,
+(4) score: --noise-truth combines the response axis and the noise axis; an item whose noise verdict is undetermined is counted in neither direction."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new, count=1):
+    global s
+    assert s.count(old) == count, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# ------------------------------------------------------------------------------------------------ constants and class rule
+sub('''constexpr double kResponseDefectAbove = 1.5;    // ... or above 150 %''',
+    '''constexpr double kResponseDefectAbove = 1.5;    // ... or above 150 %
+constexpr double kRatioSlack = 1e-6;            // the same slack as the detector (xpe_bpm_v2.cpp kRatioSlack): exactly 0.45 and 1.5 are normal''')
+sub('''    return (r < kResponseDefectBelow - 1e-9 || r > kResponseDefectAbove + 1e-9) ? defectClass : "control";''',
+    '''    return (r < kResponseDefectBelow - kRatioSlack || r > kResponseDefectAbove + kRatioSlack) ? defectClass : "control";''')
+
+# ------------------------------------------------------------------------------------------------ levels
+sub('''        for (double r : {0.3, 0.44, 0.46, 0.7})''', '''        for (double r : {0.3, 0.4, 0.44, 0.46, 0.6, 0.7})''')
+sub('''        {"gain_loss", {0.3, 0.44, 0.46, 0.7}}, {"efficiency_loss", {0.3, 0.44, 0.46, 0.7}}};''',
+    '''        {"gain_loss", {0.3, 0.4, 0.44, 0.46, 0.6, 0.7}}, {"efficiency_loss", {0.3, 0.4, 0.44, 0.46, 0.6, 0.7}}};''')
+
+# ------------------------------------------------------------------------------------------------ header text
+sub(''' *       levels 0.3, 0.44, 0.46, 0.7 for pixels and lines (QA-A-252e: the exact boundary 0.45 is not planted: a response estimate has a noise of about 0.0007, so an item
+ *       exactly at the threshold is decided by chance; 0.44 and 0.46 are 14 noise widths away on either side).''',
+    ''' *       levels 0.3, 0.4, 0.44, 0.46, 0.6, 0.7 for pixels and lines. The label of these items is the RESPONSE axis only (the planted response r). QA-A-252e chose the
+ *       pair 0.44 / 0.46 AFTER seeing the result at the exact 0.45 (a development experiment, not a pre-registered design); a true response of exactly 0.45 is normal, the
+ *       decision of a detector at that value fluctuates with the noise of its estimate (about 0.0007, an estimate from earlier data, not re-measured).
+ *       The NOISE axis is measured, not derived: see noise-cost below.''')
+sub(''' *   xpe_bpm_eval score --truth DIR --map F''',
+    ''' *   xpe_bpm_eval noise-cost --truth DIR --dark F... --verify F... --out FILE [--limit 2]
+ *       The noise cost of every response item (gain_loss, efficiency_loss), measured on verification frames (planted frames of ONE dose that no detector run uses): per pixel
+ *       the temporal variance (row and column means of every frame taken out, nu = frames - 1) divided by the squared measured response and by the local expectation
+ *       (median of the unplanted pixels 4..12 pixels away, divided by the median of chi-square_nu / nu). The item cost is the mean over its pixels with a chi-square
+ *       interval of nu x pixels degrees of freedom, widened by the error of the expectation. Verdict: defect when the interval lies at or above the limit, normal when it lies
+ *       below, undetermined when it contains it. The model formula 1/r is NOT used.
+ *   xpe_bpm_eval score --truth DIR --map F [--noise-truth FILE]
+ *       --noise-truth: the file of noise-cost. An item is a defect when either axis says so; normal when both say so; undetermined (counted as neither a hit nor a false alarm,
+ *       only its number is reported) when the response axis says normal and the noise verdict is undetermined.''')
+
+# ------------------------------------------------------------------------------------------------ quantum gain
+start = s.index('/**\n * The quantum gain kappa (variance per signal unit')
+endmark = '    return ratios[ratios.size() / 2];\n}\n'
+end = s.index(endmark) + len(endmark)
+new_kappa = r'''/** The quantum gain fit with its groups, for truth.json. */
+struct QuantumGainResult {
+    double      kappa{0.25}, se{0}, v0{0};
+    bool        measured{false};
+    std::string source;
+    struct Group {
+        double signal, variance, dof, pixels, kappaGroup;
+        int    frames;
+    };
+    std::vector<Group> groups;
+};
+
+std::string quantumGainJson(const QuantumGainResult& q) {
+    char b[512];
+    std::snprintf(b, sizeof b, "\"quantum_gain\": %.6f,\n  \"quantum_gain_se\": %.6f,\n  \"readout_variance\": %.4f,\n  \"quantum_gain_measured\": %s,\n  \"quantum_gain_source\": \"%s\",\n  \"quantum_gain_groups\": [", q.kappa, q.se, q.v0, q.measured ? "true" : "false", q.source.c_str());
+    std::string j = b;
+    for (size_t i = 0; i < q.groups.size(); ++i) {
+        const auto& g = q.groups[i];
+        std::snprintf(b, sizeof b, "%s{\"signal\": %.2f, \"frames\": %d, \"dof\": %.0f, \"pixels\": %.0f, \"variance\": %.4f, \"kappa_group\": %.6f}", i ? ", " : "", g.signal, g.frames, g.dof, g.pixels, g.variance, g.kappaGroup);
+        j += b;
+    }
+    return j + "]";
+}
+
+/**
+ * The quantum gain kappa (variance per signal unit, in pixel values) and the readout variance v0 from the generation bright frames (QA-A-252f, Codex #213 finding 2).
+ * Frames of nearly the same signal form a group. Per pixel the unbiased sample variance about the group mean (frames scaled to the group mean, the row mean of every frame
+ * taken out) has m - 1 degrees of freedom; its MEDIAN over the pixels is too small by the median of chi-square / nu (0.693 for three frames), so it is divided by that factor.
+ * The group variance is regressed on the group signal (variance = v0 + kappa x signal, weighted by the inverse variance of each group variance); the standard error widens with
+ * the scatter about the line. With one group only, v0 is taken from the dark noise (sigma_t squared) and the estimate says so. Without any group of two frames the default 0.25 is
+ * used and marked as an unconfirmed model.
+ */
+QuantumGainResult estimateQuantumGain(const std::vector<std::string>& brightFiles, size_t n, uint32_t w, uint32_t h, const std::vector<double>& D, double sigmaT) {
+    QuantumGainResult res;
+    res.source = "default 0.25 (unconfirmed model: no dose group of two frames among the generation frames)";
+    std::vector<std::vector<uint16_t>> fr(brightFiles.size());
+    std::vector<double>                sig(brightFiles.size(), 0.0);
+    const uint32_t x0 = w / 10, x1 = w - w / 10, y0 = h / 10, y1 = h - h / 10;
+    for (size_t k = 0; k < brightFiles.size(); ++k) {
+        if (!readRaw16(brightFiles[k], n, &fr[k])) return res;
+        double acc = 0.0;
+        for (uint32_t y = y0; y < y1; y += 3)
+            for (uint32_t x = x0; x < x1; x += 3) acc += fr[k][static_cast<size_t>(y) * w + x] - D[static_cast<size_t>(y) * w + x];
+        sig[k] = acc / (static_cast<double>((y1 - y0 + 2) / 3) * static_cast<double>((x1 - x0 + 2) / 3));
+    }
+    std::vector<size_t> order(brightFiles.size());
+    for (size_t k = 0; k < order.size(); ++k) order[k] = k;
+    std::sort(order.begin(), order.end(), [&](size_t a, size_t b) { return sig[a] < sig[b]; });
+    std::vector<std::vector<size_t>> groups;
+    for (size_t t = 0; t < order.size(); ++t) {
+        if (t == 0 || !(sig[order[t]] > 0.0) || sig[order[t]] / sig[order[t - 1]] > 1.25) groups.emplace_back();
+        groups.back().push_back(order[t]);
+    }
+    std::vector<xpe_bpm_eval::QuantumGainGroup> fit;
+    for (const auto& g : groups) {
+        if (g.size() < 2 || !(sig[g[0]] > 100.0)) continue;
+        double gm = 0.0;
+        for (size_t k : g) gm += sig[k];
+        gm /= static_cast<double>(g.size());
+        std::vector<std::vector<double>> rowMean(g.size(), std::vector<double>(h, 0.0));
+        for (size_t j = 0; j < g.size(); ++j) {
+            const double scale = gm / sig[g[j]];
+            for (uint32_t y = 0; y < h; ++y) {
+                double acc = 0.0;
+                for (uint32_t x = 0; x < w; ++x) acc += (fr[g[j]][static_cast<size_t>(y) * w + x] - D[static_cast<size_t>(y) * w + x]) * scale;
+                rowMean[j][y] = acc / w;
+            }
+        }
+        std::vector<double> vars, nets;
+        for (uint32_t y = y0; y < y1; y += 7)
+            for (uint32_t x = x0; x < x1; x += 7) {
+                const size_t        i = static_cast<size_t>(y) * w + x;
+                std::vector<double> v(g.size());
+                double              m = 0.0, net = 0.0;
+                for (size_t j = 0; j < g.size(); ++j) {
+                    const double scaled = (fr[g[j]][i] - D[i]) * (gm / sig[g[j]]);
+                    v[j] = scaled - rowMean[j][y];
+                    m += v[j];
+                    net += scaled;
+                }
+                m /= static_cast<double>(g.size());
+                net /= static_cast<double>(g.size());
+                double var = 0.0;
+                for (double e : v) var += (e - m) * (e - m);
+                var /= static_cast<double>(g.size() - 1);
+                if (net > 100.0) {
+                    vars.push_back(var);
+                    nets.push_back(net);
+                }
+            }
+        if (vars.empty()) continue;
+        const double nu = static_cast<double>(g.size() - 1);
+        xpe_bpm_eval::QuantumGainGroup q;
+        q.variance = xpe_bpm_eval::medianOf(vars) / xpe_bpm_eval::chiSquareMedianOverNu(nu);
+        q.signal = xpe_bpm_eval::medianOf(nets);
+        q.dof = nu;
+        q.pixels = static_cast<double>(vars.size());
+        fit.push_back(q);
+        res.groups.push_back({q.signal, q.variance, q.dof, q.pixels, 0.0, static_cast<int>(g.size())});
+    }
+    if (fit.empty()) {
+        res.groups.clear();
+        return res;
+    }
+    const xpe_bpm_eval::QuantumGainFit f = xpe_bpm_eval::fitQuantumGain(fit);
+    if (f.ok) {
+        res.kappa = f.kappa;
+        res.se = f.kappaSe;
+        res.v0 = f.v0;
+        res.measured = true;
+        res.source = "regression of the group variance on the group signal over " + std::to_string(f.groups) + " dose groups (median variance corrected for the frame-count bias)";
+    } else {
+        const auto& q = fit.back();   // the largest signal: the quantum part dominates
+        res.v0 = sigmaT * sigmaT;
+        res.kappa = (q.variance - res.v0) / q.signal;
+        res.se = q.variance / q.signal * std::sqrt(2.0 / (q.dof * q.pixels));
+        res.measured = res.kappa > 0.0;
+        res.source = "one dose group; the readout variance is taken from the dark noise (sigma_t squared)";
+        if (!res.measured) {
+            res.kappa = 0.25;
+            res.source = "default 0.25 (unconfirmed model: the single-group estimate was not positive)";
+        }
+    }
+    for (auto& g : res.groups) g.kappaGroup = (g.variance - res.v0) / g.signal;
+    return res;
+}
+'''
+s = s[:start] + new_kappa + s[end:]
+
+sub('''    double kappa = estimateQuantumGain(brightFiles, n, o.w, o.h, D);
+    const bool kappaMeasured = kappa > 0.0;
+    if (!kappaMeasured) kappa = 0.25;   // no dose group of two frames among the generation frames: the typical value of the cyan_test panel
+''',
+    '''    const QuantumGainResult qg = estimateQuantumGain(brightFiles, n, o.w, o.h, D, sigmaT);
+    const double            kappa = qg.kappa;
+''')
+sub('''",\\n  \\"quantum_gain\\": " + kb + ",\\n  \\"quantum_gain_measured\\": " + (kappaMeasured ? "true" : "false") + ''',
+    '''",\\n  " + quantumGainJson(qg) + ''')
+sub('''quantum gain %.4f (%s); truth in %s\\n"''', '''quantum gain %.4f (%s); truth in %s\\n"''')
+sub('''sigmaT, kappa, kappaMeasured ? "measured" : "default", out.c_str());''', '''sigmaT, kappa, qg.source.c_str(), out.c_str());''')
+sub('''                    // r times the detected quanta: the signal x r and the quantum noise variance x r. The frame already holds the quantum noise of all its quanta (variance kappa * nn),
+                    // so after x r it has r^2 * kappa * nn; the thinning adds kappa * r * (1 - r) * nn (binomial thinning of the quanta, Gaussian approximation)''',
+    '''                    // r times the detected quanta: the signal x r and the quantum noise variance x r. The frame already holds the noise of all its quanta (variance kappa * nn plus
+                    // the readout variance), so after x r it has r^2 * (kappa * nn + readout); the thinning adds kappa * r * (1 - r) * nn (binomial thinning of the quanta, Gaussian
+                    // approximation). The readout noise is therefore scaled by r^2, which a real loss of detection efficiency (before the readout) would not do (QA-A-252f: stated)''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('tool part 1 patched')

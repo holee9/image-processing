@@ -1,0 +1,183 @@
+start 2026-10-17 03:46:46  V1_score
+== noise axis (D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252g/evidence/62_noise_truth.tsv.txt, PROVISIONAL measured labels): 840 items measured; 6 response-normal items are defects by the noise axis; 368 are undetermined (counted as neither a hit nor a false alarm)
+== detection (map D:/workspace-github/xpe-data/bpm-eval-252g/inj_set/defect.xcal)
+  class/kind/shape/level              items  detected      rate   all pixels    mean recall
+  line/dead/row_full/1                    1         1    1.0000            1         1.0000
+  line/dead/col_full/1                    1         1    1.0000            1         1.0000
+  line/dead/row_partial/1                 1         1    1.0000            1         1.0000
+  line/dead/col_partial/1                 1         1    1.0000            1         1.0000
+  line/dead/row_pair/1                    1         1    1.0000            1         1.0000
+  line/dead/col_pair/1                    1         1    1.0000            1         1.0000
+  line/nonlinear/row_full/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/col_full/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/row_partial/0.4          1         1    1.0000            1         1.0000
+  line/nonlinear/col_partial/0.4          1         1    1.0000            1         1.0000
+  line/nonlinear/row_pair/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/col_pair/0.4             1         1    1.0000            1         1.0000
+  line/nonlinear/row_full/0.2             1         0    0.0000            0         0.0132
+  line/nonlinear/col_full/0.2             1         1    1.0000            0         0.5505
+  line/nonlinear/row_partial/0.2          1         0    0.0000            0         0.0119
+  line/nonlinear/col_partial/0.2          1         1    1.0000            0         0.9855
+  line/nonlinear/row_pair/0.2             1         0    0.0000            0         0.4291
+  line/nonlinear/col_pair/0.2             1         0    0.0000            0         0.1166
+  line/noisy/row_full/4                   1         0    0.0000            0         0.0000
+  line/noisy/col_full/4                   1         0    0.0000            0         0.0000
+  line/noisy/row_partial/4                1         0    0.0000            0         0.0000
+  line/noisy/col_partial/4                1         0    0.0000            0         0.0000
+  line/noisy/row_pair/4                   1         0    0.0000            0         0.0000
+  line/noisy/col_pair/4                   1         0    0.0000            0         0.0000
+  line/noisy/row_full/2                   1         0    0.0000            0         0.0000
+  line/noisy/col_full/2                   1         0    0.0000            0         0.0000
+  line/noisy/row_partial/2                1         0    0.0000            0         0.0000
+  line/noisy/col_partial/2                1         0    0.0000            0         0.0000
+  line/noisy/row_pair/2                   1         0    0.0000            0         0.0000
+  line/noisy/col_pair/2                   1         0    0.0000            0         0.0000
+  line/dead/cross/1                       1         1    1.0000            1         1.0000
+  line/nonlinear/cross/0.4                1         1    1.0000            1         1.0000
+  line/noisy/cross/4                      1         0    0.0000            0         0.0000
+  line/gain_loss/row_full/0.3             1         1    1.0000            1         1.0000
+  line/gain_loss/col_full/0.3             1         1    1.0000            1         1.0000
+  line/gain_loss/row_partial/0.3          1         1    1.0000            1         1.0000
+  line/gain_loss/col_partial/0.3          1         1    1.0000            1         1.0000
+  line/gain_loss/row_pair/0.3             1         1    1.0000            1         1.0000
+  line/gain_loss/col_pair/0.3             1         1    1.0000            1         1.0000
+  line/gain_loss/row_full/0.4             1         1    1.0000            1         1.0000
+  line/gain_loss/col_full/0.4             1         1    1.0000            1         1.0000
+  line/gain_loss/row_partial/0.4          1         1    1.0000            1         1.0000
+  line/gain_loss/col_partial/0.4          1         1    1.0000            1         1.0000
+  line/gain_loss/row_pair/0.4             1         1    1.0000            1         1.0000
+  line/gain_loss/col_pair/0.4             1         1    1.0000            1         1.0000
+  line/gain_loss/row_full/0.44            1         1    1.0000            1         1.0000
+  line/gain_loss/col_full/0.44            1         1    1.0000            1         1.0000
+  line/gain_loss/row_partial/0.44         1         1    1.0000            1         1.0000
+  line/gain_loss/col_partial/0.44         1         1    1.0000            1         1.0000
+  line/gain_loss/row_pair/0.44            1         1    1.0000            1         1.0000
+  line/gain_loss/col_pair/0.44            1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_full/0.3       1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_full/0.3       1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_partial/0.3      1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_partial/0.3      1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_pair/0.3       1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_pair/0.3       1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_full/0.4       1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_full/0.4       1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_partial/0.4      1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_partial/0.4      1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_pair/0.4       1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_pair/0.4       1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_full/0.44      1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_full/0.44      1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_partial/0.44      1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_partial/0.44      1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_pair/0.44      1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_pair/0.44      1         1    1.0000            1         1.0000
+  line/efficiency_loss/row_full/0.46      1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_full/0.46      1         1    1.0000            1         1.0000
+  line/efficiency_loss/col_pair/0.46      1         1    1.0000            1         1.0000
+  block/dead/block2/1                    16        16    1.0000           16         1.0000
+  block/dead/block3/1                    16        16    1.0000           16         1.0000
+  block/dead/block4/1                    16        16    1.0000           16         1.0000
+  block/dead/block8/1                    16        16    1.0000           16         1.0000
+  pixel/dead/pixel/1                     64        64    1.0000           64         1.0000
+  pixel/hot/pixel/200                    64        63    0.9844           63         0.9844
+  pixel/hot/pixel/100                    64        53    0.8281           53         0.8281
+  pixel/hot/pixel/50                     64        29    0.4531           29         0.4531
+  pixel/hot/pixel/25                     64         0    0.0000            0         0.0000
+  pixel/noisy/pixel/4                    64         0    0.0000            0         0.0000
+  pixel/noisy/pixel/2                    64         0    0.0000            0         0.0000
+  pixel/noisy/pixel/1                    64         0    0.0000            0         0.0000
+  pixel/nonlinear/pixel/0.4              64        64    1.0000           64         1.0000
+  pixel/nonlinear/pixel/0.2              64         6    0.0938            6         0.0938
+  pixel/gain_loss/pixel/0.3              64        64    1.0000           64         1.0000
+  pixel/gain_loss/pixel/0.4              64        64    1.0000           64         1.0000
+  pixel/gain_loss/pixel/0.44             64        64    1.0000           64         1.0000
+  pixel/gain_loss/pixel/0.46              1         1    1.0000            1         1.0000
+  pixel/efficiency_loss/pixel/0.3        64        64    1.0000           64         1.0000
+  pixel/efficiency_loss/pixel/0.4        64        64    1.0000           64         1.0000
+  pixel/efficiency_loss/pixel/0.44       64        64    1.0000           64         1.0000
+  pixel/efficiency_loss/pixel/0.46        1         1    1.0000            1         1.0000
+  pixel/efficiency_loss/pixel/0.7         1         1    1.0000            1         1.0000
+== false alarms
+  flagged pixels in the map: 198342; outside the true defects (widened by 2): 79041
+  clean map (no planting): flagged 133; outside the true defects: 133
+  NEW false alarms (flagged here, not in the clean map, outside the true defects): 78909 = 8361.499 per million pixels
+    of which on control bands: 78643
+== control bands (448 items; false detection = at least half of the band flagged)
+  dead           row_full  level 0.5   flagged   3025 of   3025 = 1.0000   clean map 0.0000   FALSE DETECTION
+  dead           col_full  level 0.5   flagged   3025 of   3025 = 1.0000   clean map 0.0000   FALSE DETECTION
+  dead           row_partial level 0.5   flagged    760 of    760 = 1.0000   clean map 0.0000   FALSE DETECTION
+  dead           col_partial level 0.5   flagged    751 of    751 = 1.0000   clean map 0.0000   FALSE DETECTION
+  dead           row_pair  level 0.5   flagged   1522 of   1522 = 1.0000   clean map 0.0000   FALSE DETECTION
+  dead           col_pair  level 0.5   flagged   1512 of   1512 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_full  level 0.46  flagged   3028 of   3028 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_full  level 0.46  flagged   3040 of   3040 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_partial level 0.46  flagged    760 of    760 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_partial level 0.46  flagged    755 of    755 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_pair  level 0.46  flagged   1520 of   1520 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_pair  level 0.46  flagged   1512 of   1512 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_full  level 0.6   flagged   3029 of   3029 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_full  level 0.6   flagged   3038 of   3038 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_partial level 0.6   flagged    760 of    760 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_partial level 0.6   flagged    753 of    753 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_pair  level 0.6   flagged   1518 of   1518 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_pair  level 0.6   flagged   1500 of   1500 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_full  level 0.7   flagged   3034 of   3034 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_full  level 0.7   flagged   3031 of   3031 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_partial level 0.7   flagged    758 of    758 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_partial level 0.7   flagged    761 of    761 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      row_pair  level 0.7   flagged   1512 of   1512 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_loss      col_pair  level 0.7   flagged   1508 of   1508 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss row_full  level 0.6   flagged   3023 of   3023 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss col_full  level 0.6   flagged   3044 of   3044 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss col_partial level 0.6   flagged    754 of    754 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss row_pair  level 0.6   flagged   1512 of   1512 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss row_full  level 0.7   flagged   3024 of   3024 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss col_full  level 0.7   flagged   3045 of   3045 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss row_partial level 0.7   flagged    760 of    760 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss col_partial level 0.7   flagged    764 of    764 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss row_pair  level 0.7   flagged   1516 of   1516 = 1.0000   clean map 0.0000   FALSE DETECTION
+  efficiency_loss col_pair  level 0.7   flagged   1498 of   1498 = 1.0000   clean map 0.0000   FALSE DETECTION
+  fixed_band     row_full  level 100   flagged   2679 of   3035 = 0.8827   clean map 0.0000   FALSE DETECTION
+  fixed_band     col_full  level 100   flagged   3014 of   3022 = 0.9974   clean map 0.0000   FALSE DETECTION
+  fixed_band     row_full  level 30    flagged     85 of   3031 = 0.0280   clean map 0.0000   ok
+  fixed_band     col_full  level 30    flagged      0 of   3043 = 0.0000   clean map 0.0000   ok
+  gain_band      row_full  level 0.8   flagged   3026 of   3026 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_band      col_full  level 0.8   flagged   3043 of   3043 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_band      row_full  level 1.2   flagged   3020 of   3020 = 1.0000   clean map 0.0000   FALSE DETECTION
+  gain_band      col_full  level 1.2   flagged   3027 of   3028 = 0.9997   clean map 0.0000   FALSE DETECTION
+  varying_band   row_full  level 20    flagged      1 of   3031 = 0.0003   clean map 0.0000   ok
+  varying_band   col_full  level 20    flagged      0 of   3021 = 0.0000   clean map 0.0000   ok
+  varying_band   row_full  level 8     flagged      0 of   3027 = 0.0000   clean map 0.0000   ok
+  varying_band   col_full  level 8     flagged      0 of   3038 = 0.0000   clean map 0.0000   ok
+  control/dead/block2/0.5               16 items  false detections    16  mean flagged fraction 1.0000   clean map 0.0000
+  control/dead/block3/0.5               16 items  false detections    16  mean flagged fraction 1.0000   clean map 0.0000
+  control/dead/block4/0.5               16 items  false detections    16  mean flagged fraction 1.0000   clean map 0.0000
+  control/dead/block8/0.5               16 items  false detections    16  mean flagged fraction 1.0000   clean map 0.0000
+  control/dead/pixel/0.5                64 items  false detections    64  mean flagged fraction 1.0000   clean map 0.0000
+  control/efficiency_loss/pixel/0.46     6 items  false detections     6  mean flagged fraction 1.0000   clean map 0.0000
+  control/efficiency_loss/pixel/0.6      3 items  false detections     3  mean flagged fraction 1.0000   clean map 0.0000
+  control/efficiency_loss/pixel/0.7      1 items  false detections     1  mean flagged fraction 1.0000   clean map 0.0000
+  control/gain_loss/pixel/0.46           5 items  false detections     5  mean flagged fraction 1.0000   clean map 0.0000
+  control/gain_loss/pixel/0.6            1 items  false detections     1  mean flagged fraction 1.0000   clean map 0.0000
+  control/gain_loss/pixel/0.7            2 items  false detections     2  mean flagged fraction 1.0000   clean map 0.0000
+  control/slope/pixel/0.75              64 items  false detections    64  mean flagged fraction 1.0000   clean map 0.0000
+  control/slope/pixel/0.9               64 items  false detections     0  mean flagged fraction 0.0000   clean map 0.0000
+  control/slope/pixel/1.1               64 items  false detections     3  mean flagged fraction 0.0469   clean map 0.0000
+  control/slope/pixel/1.25              64 items  false detections    64  mean flagged fraction 1.0000   clean map 0.0000
+  false detections: 317 of 448
+== undetermined items (368; counted neither as detections nor as false detections)
+  undetermined/efficiency_loss/col_pair/0.6        1 items  with at least half flagged     1  mean flagged fraction 1.0000
+  undetermined/efficiency_loss/col_partial/0.46     1 items  with at least half flagged     1  mean flagged fraction 1.0000
+  undetermined/efficiency_loss/pixel/0.46         57 items  with at least half flagged    57  mean flagged fraction 1.0000
+  undetermined/efficiency_loss/pixel/0.6          61 items  with at least half flagged    61  mean flagged fraction 1.0000
+  undetermined/efficiency_loss/pixel/0.7          62 items  with at least half flagged    62  mean flagged fraction 1.0000
+  undetermined/efficiency_loss/row_pair/0.46       1 items  with at least half flagged     1  mean flagged fraction 1.0000
+  undetermined/efficiency_loss/row_partial/0.46     1 items  with at least half flagged     1  mean flagged fraction 1.0000
+  undetermined/efficiency_loss/row_partial/0.6     1 items  with at least half flagged     1  mean flagged fraction 1.0000
+  undetermined/gain_loss/pixel/0.46               58 items  with at least half flagged    58  mean flagged fraction 1.0000
+  undetermined/gain_loss/pixel/0.6                63 items  with at least half flagged    63  mean flagged fraction 1.0000
+  undetermined/gain_loss/pixel/0.7                62 items  with at least half flagged    62  mean flagged fraction 1.0000
+== split-half agreement (Jaccard)
+  half A flags 195292, half B flags 202042
+  all pixels 0.9662 (195247 / 202087); inside the truth 0.9662 (195125 / 201944); outside the truth 0.8531 (122 / 143)
+exit 0 wall seconds 1

@@ -1,0 +1,21 @@
+"""QA-A-252g: expected number of BRIGHT_NOISE (P2) detections among the planted efficiency-loss pixels AFTER the exposure normalisation, from the measured costs of QA-A-252f (efficiency-loss line costs
+3.55, 2.58, 2.28, 2.34, 1.81, 1.45 for r = 0.3, 0.4, 0.44, 0.46, 0.6, 0.7). The detector on the measurement set: dose groups 3, 3, 6, 3, 3 frames (nu = 2, 2, 5, 2, 2, pooled 13), tau(13, 1 / 9,406,485) = 4.483,
+ratio of at least half the groups (3 of 5) at or above 2. The per-pixel variance of a pixel ratio is rho * chi2_nu / nu. 64 planted pixels per model and level. Written BEFORE the measurement."""
+import numpy as np
+rng = np.random.default_rng(2518)
+nus = np.array([2, 2, 5, 2, 2], dtype=float); tau = 4.483; N = 4_000_000
+costs = {0.3: 3.55, 0.4: 2.58, 0.44: 2.28, 0.46: 2.34, 0.6: 1.81, 0.7: 1.45, 'normal/gain': 1.0}
+tot = 0.0
+for lv, rho in costs.items():
+    chi = np.stack([rng.chisquare(v, N) / v for v in nus], axis=1) * rho
+    pooled = (chi * nus).sum(axis=1) / nus.sum()
+    q = ((pooled > tau) & (2 * (chi >= 2.0).sum(axis=1) >= 5)).mean()
+    n = 64 if lv != 'normal/gain' else 0
+    tot += q * n
+    print('level %-12s rho %.2f  detection per pixel %.5f  expected among 64 pixels %.2f (sd %.2f)' % (lv, rho, q, q * 64, (64 * q * (1 - q)) ** 0.5))
+print('expected efficiency-loss pixel detections, all six levels (64 each): %.1f' % tot)
+q1 = 0.0
+chi = np.stack([rng.chisquare(v, N) / v for v in nus], axis=1)
+pooled = (chi * nus).sum(axis=1) / nus.sum()
+q1 = ((pooled > tau) & (2 * (chi >= 2.0).sum(axis=1) >= 5)).mean()
+print('normal pixel false-alarm probability (MC, rho = 1): %.2e  (4M trials; expected over 9.4M pixels about %.1f)' % (q1, q1 * 9406485))

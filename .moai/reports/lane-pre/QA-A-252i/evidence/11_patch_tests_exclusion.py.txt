@@ -1,0 +1,56 @@
+"""QA-A-252i step 1 tests: a band of five adjacent rows whose whole bright value is scaled by 0.3 (the variance of a gain loss is 0.09 of its neighbours') lowers the local expectation of the pixel
+noise check for the ordinary rows around it when the window (9 here) is mostly band: without the exclusion of the detector's own line mask those rows are flagged as noise defects by the hundreds;
+with it they are not. The test also checks that the band is a line of the detector (the mask exists) and that nothing is read from the planted truth."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''constexpr uint32_t kLnGainLossRow = 4194304;''', '''constexpr uint32_t kLnGainLossBand = 8388608;   // QA-A-252i: five adjacent rows whose whole bright value is scaled by 0.3
+constexpr int kBandY0 = 100, kBandRows = 5;
+constexpr uint32_t kLnGainLossRow = 4194304;''')
+sub('''            if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);''',
+    '''            if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);
+            if (bright && (plant.lines & kLnGainLossBand) && y >= kBandY0 && y < kBandY0 + kBandRows) v = d + 0.3 * (v - d);''')
+marker = 'TEST(BpmV2Test, AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation) {'
+new = r'''TEST(BpmV2Test, TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector) {
+    // QA-A-252i: rows 100..104 have a gain loss (their variance is 0.09 of their neighbours'). With the window of 9 the local expectation of a row next to the band is the median of nine rows of which up to
+    // five are band rows: without the exclusion it collapses to the band's variance and the ordinary rows around are flagged as noise defects. The detector's own line mask is kept out of it.
+    Frames f = makeFrames(55, kDoses, 3, 7, onlyLines(kLnGainLossBand));
+    XpeBpmConfigV2 cfg{};
+    cfg.window = 9;
+    const Result r = detect(f, &cfg);
+    ASSERT_EQ(XPE_OK, r.rc);
+    // the band is a line of the detector (the mask the exclusion uses)
+    std::vector<uint8_t> mask(kN, 0);
+    XpeImageBuffer       mb = outBuf(mask);
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : f.dark) db.push_back(buf(v));
+    for (auto& v : f.bright) bb.push_back(buf(v));
+    ASSERT_EQ(XPE_OK, xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, nullptr, &mb, nullptr, 0, nullptr, 0, nullptr));
+    int inBand = 0;
+    for (int y = kBandY0; y < kBandY0 + kBandRows; ++y)
+        for (uint32_t x = 20; x < kW - 20; ++x) inBand += mask[static_cast<size_t>(y) * kW + x] != 0;
+    EXPECT_GT(inBand, kBandRows * 200) << "the band is in the line mask";
+    int around = 0, aroundRows = 0;
+    for (int y = kBandY0 - 4; y < kBandY0 + kBandRows + 4; ++y) {
+        if (y >= kBandY0 && y < kBandY0 + kBandRows) continue;
+        ++aroundRows;
+        for (uint32_t x = 20; x < kW - 20; ++x) around += (r.feat[static_cast<size_t>(y) * kW + x] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) != 0;
+    }
+    EXPECT_EQ(8, aroundRows);
+    EXPECT_LT(around, 8) << "ordinary rows around the band are no noise defects (flagged: " << around << " of " << aroundRows * (kW - 40) << ")";
+}
+
+'''
+assert s.count(marker) == 1
+s = s.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('exclusion tests patched')

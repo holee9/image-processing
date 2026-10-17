@@ -1,0 +1,36 @@
+"""QA-A-252g gap check (item 5 of the card asks for a global dose estimate that defects cannot pull): the detector takes the frame signal as the MEAN over all pixels minus the mean dark level. Written
+after the measurement; it changes no method and no number. On the planted frames of the measurement it compares that scale (group mean signal / frame signal) with the scale from the MEDIAN of the net
+signal of the frame, per frame of every dose group, and prints the largest difference. The median is read from the frame minus the dark level of the pixel (mean of the dark frames used)."""
+import numpy as np
+
+CAL = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+BR = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]
+DK = [8, 9, 10, 11, 12, 13, 14]
+n = 3072 * 3072
+dark = np.zeros(n, dtype=np.float64)
+for k in DK:
+    dark += np.fromfile(CAL + 'Dark_%02d.raw' % k, dtype=np.uint16, count=n)
+dark /= len(DK)
+dm = dark.mean()
+mean_sig, med_sig = {}, {}
+for k in BR:
+    f = np.fromfile(CAL + 'Bright_%02d.raw' % k, dtype=np.uint16, count=n).astype(np.float64)
+    mean_sig[k] = f.mean() - dm
+    med_sig[k] = float(np.median(f - dark))
+ks = sorted(BR, key=lambda k: mean_sig[k])
+groups = [[ks[0]]]
+for a, b in zip(ks, ks[1:]):
+    if mean_sig[b] / mean_sig[a] > 1.15:
+        groups.append([])
+    groups[-1].append(b)
+worst = 0.0
+for g in groups:
+    sm = np.mean([mean_sig[k] for k in g])
+    sd = np.mean([med_sig[k] for k in g])
+    row = []
+    for k in g:
+        fm, fd = sm / mean_sig[k], sd / med_sig[k]
+        worst = max(worst, abs(fm / fd - 1))
+        row.append('%d: mean-scale %.5f median-scale %.5f' % (k, fm, fd))
+    print('group signal %9.1f  frames %d  | %s' % (sm, len(g), ' | '.join(row)))
+print('largest relative difference between the two scales: %.2e' % worst)

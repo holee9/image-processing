@@ -1,0 +1,37 @@
+#!/bin/bash
+# QA-A-257 item 3 (Codex #225 finding 6): the second-edition noise detection with SEVEN effective dark frames, same injection, same tool, same default (the first dark frame of the list is skipped; that default is not changed).
+# NOT RUN yet: heavy; it starts only after the leader says "start measuring" (the gui test GUI-C-250 must not be disturbed). Predictions: 41_dark7_predictions.md.txt (committed before the run).
+# The list given to the generator is the ORIGINAL acquisition list Dark_07..14: the first frame (Dark_07, the stabilising frame of the real acquisition; the injection has no copy of it, so the clean frame is used) is
+# skipped by the second-edition generator, the seven injected frames Dark_08..14 are used. The planted and the clean set are built the same way; nothing else differs from QA-A-256.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+OUT=D:/workspace-github/xpe-data/bpm-eval-257
+P256=D:/workspace-github/xpe-data/bpm-eval-256
+EV256=$ROOT/.moai/reports/lane-pre/QA-A-256/evidence
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-257/evidence
+EXE=$BIN/xpe_bpm_eval.exe
+GEN=$BIN/xpe_calib_fixture_gen.exe
+mkdir -p "$OUT"
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+COMMON=(--width 3072 --height 3072 --expiry-ms 4102444800000)
+V2=(--bpm-v2 --bpm-margins 6,2,1,1)
+lst() { local flag=$1 dir=$2 pre=$3; shift 3; for k in "$@"; do printf -- "--%s\n%s/%s_%s.raw\n" "$flag" "$dir" "$pre" "$k"; done; }
+GN="23 24 25 26 27 28"; BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+# planted: Dark_07 from the clean acquisition (skipped), Dark_08..14 injected
+mapfile -t A < <(lst dark "$CAL" Dark 07; lst dark "$INJ" Dark 08 09 10 11 12 13 14; lst bright "$INJ" Bright $GN; lst bpm-bright "$INJ" Bright $BR)
+mapfile -t C < <(lst dark "$CAL" Dark 07 08 09 10 11 12 13 14; lst bright "$CAL" Bright $GN; lst bpm-bright "$CAL" Bright $BR)
+run G5_planted_v2_d7 "$GEN" --out "$OUT/inj_set_v2_d7" "${COMMON[@]}" "${A[@]}" "${V2[@]}" || exit 1
+run G6_clean_v2_d7 "$GEN" --out "$OUT/clean_set_v2_d7" "${COMMON[@]}" "${C[@]}" "${V2[@]}" || exit 1
+run X1_planted_map "$EXE" defect-xcal --in "$OUT/inj_set_v2_d7/defect.xcal" --map-out "$OUT/inj_d7_map.u8" --area-out "$OUT/inj_d7_area.u8" || exit 1
+run X2_clean_map "$EXE" defect-xcal --in "$OUT/clean_set_v2_d7/defect.xcal" --map-out "$OUT/clean_d7_map.u8" || exit 1
+# identity with the map QA-A-252i made with the same seven dark frames (map-v2 route), when that file is still there
+if [ -f D:/workspace-github/xpe-data/bpm-eval-252i/v3g_planted.u8 ]; then
+  if cmp -s "$OUT/inj_d7_map.u8" D:/workspace-github/xpe-data/bpm-eval-252i/v3g_planted.u8; then echo "planted map identical to QA-A-252i v3g_planted.u8"; else echo "planted map DIFFERS from QA-A-252i v3g_planted.u8"; fi
+fi
+# the score, once; the halves, the noise truth and the overlap measurement are those of QA-A-256 (same frames)
+run S3_score_v2_d7 "$EXE" score --truth "$IN/inj_d" --noise-truth "$EV256/30_noise_truth.tsv.txt" --map "$OUT/inj_d7_map.u8" --clean-map "$OUT/clean_d7_map.u8" --half-a "$P256/v2_half_a.u8" --half-b "$P256/v2_half_b.u8" --area "$OUT/inj_d7_area.u8" --overlap composite --overlap-truth "$EV256/31_overlaps_measured.tsv.txt" --overlap-out "$EVD/42_overlaps_v2_d7.tsv.txt" --out "$EVD/43_score_v2_d7.json.txt" || exit 1
+echo done

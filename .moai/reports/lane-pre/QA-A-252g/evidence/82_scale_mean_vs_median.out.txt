@@ -1,0 +1,6 @@
+group signal    2835.4  frames 3  | 17: mean-scale 1.04719 median-scale 1.04686 | 18: mean-scale 0.97867 median-scale 0.97884 | 19: mean-scale 0.97726 median-scale 0.97738
+group signal    5868.8  frames 3  | 20: mean-scale 1.00135 median-scale 1.00136 | 22: mean-scale 0.99991 median-scale 0.99988 | 21: mean-scale 0.99875 median-scale 0.99876
+group signal    9189.4  frames 6  | 26: mean-scale 1.00105 median-scale 1.00104 | 27: mean-scale 1.00103 median-scale 1.00105 | 28: mean-scale 1.00091 median-scale 1.00090 | 24: mean-scale 1.00026 median-scale 1.00023 | 23: mean-scale 0.99999 median-scale 0.99998 | 25: mean-scale 0.99678 median-scale 0.99680
+group signal   18289.4  frames 3  | 31: mean-scale 1.00385 median-scale 1.00387 | 32: mean-scale 0.99817 median-scale 0.99817 | 33: mean-scale 0.99799 median-scale 0.99798
+group signal   29166.7  frames 3  | 35: mean-scale 1.00043 median-scale 1.00044 | 34: mean-scale 1.00034 median-scale 1.00034 | 36: mean-scale 0.99923 median-scale 0.99922
+largest relative difference between the two scales: 3.23e-04

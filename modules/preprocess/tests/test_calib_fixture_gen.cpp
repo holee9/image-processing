@@ -30,6 +30,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include "xpe_fixture_gen_path.h"  // generated: XPE_FIXTURE_GEN_EXE
+#include "defect_ext.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -47,15 +48,16 @@ namespace {
 
 constexpr uint32_t kW = 256;
 constexpr uint32_t kH = 256;
+constexpr uint32_t kSynthSize = 128;   // frame size of the synthetic mode (runGenerator)
 
 /** Runs the generator into @p dir and returns its exit code. */
-int runGenerator(const fs::path& dir, unsigned seed, uint64_t expiryMs) {
+int runGenerator(const fs::path& dir, unsigned seed, uint64_t expiryMs, uint32_t size = kSynthSize) {
     std::string cmd;
     cmd += "\"";
     cmd += XPE_FIXTURE_GEN_EXE;
     cmd += "\" --out \"" + dir.string() + "\"";
-    cmd += " --width " + std::to_string(kW);
-    cmd += " --height " + std::to_string(kH);
+    cmd += " --width " + std::to_string(size);   // QA-A-252i: the synthetic mode needs no large frames; the first-generation defect map costs about 2.4 s per 65,536 pixels
+    cmd += " --height " + std::to_string(size);
     cmd += " --seed " + std::to_string(seed);
     cmd += " --expiry-ms " + std::to_string(expiryMs);
 #ifdef _WIN32
@@ -166,7 +168,7 @@ TEST_F(CalibFixtureGenTest, DifferentSeedChangesOffsetAndGain) {
 // expects as its calibPath, and one frame runs through it end to end.
 TEST_F(CalibFixtureGenTest, GeneratedSetDrivesThePipeline) {
     const fs::path d = caseDir("pipe");
-    ASSERT_EQ(0, runGenerator(d, 0, 0));
+    ASSERT_EQ(0, runGenerator(d, 0, 0, kW));
 
     ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
 
@@ -404,11 +406,21 @@ FrameSet writeFrameSet(const fs::path& dir, size_t darkCount, size_t brightCount
     return set;
 }
 
-std::string framesArgs(const FrameSet& set) {
-    std::string a = " --width " + std::to_string(kW) + " --height " + std::to_string(kH) + " --expiry-ms " + std::to_string(kFarExpiryMs);
+/** @p keepFirst: QA-A-259 -- the tests written before the first-dark rule give the list "as is" (--keep-first-dark); the default rule has its own tests. */
+std::string framesArgs(const FrameSet& set, bool keepFirst = true) {
+    std::string a = std::string(keepFirst ? " --keep-first-dark" : "") + " --width " + std::to_string(kW) + " --height " + std::to_string(kH) + " --expiry-ms " + std::to_string(kFarExpiryMs);
     for (const auto& d : set.darks) a += " --dark \"" + d + "\"";
     for (const auto& b : set.brights) a += " --bright \"" + b + "\"";
     return a;
+}
+
+size_t countIn(const std::string& text, const std::string& from, const std::string& to, const std::string& needle) {
+    const size_t b = text.find(from);
+    if (b == std::string::npos) return 0;
+    const size_t e = text.find(to, b + from.size());
+    size_t       n = 0;
+    for (size_t pos = text.find(needle, b); pos != std::string::npos && pos < e; pos = text.find(needle, pos + 1)) ++n;
+    return n;
 }
 
 /** Runs the tool in frames mode into @p out, capturing stderr in <root>/<tag>.err; returns the exit code. */
@@ -441,7 +453,7 @@ TEST_F(CalibFixtureGenTest, FramesModeBuildsTheSetFromTheGivenFramesAndIsByteIde
     EXPECT_NE(std::string::npos, manifest.find("\"mode\": \"frames\""));
     EXPECT_NE(std::string::npos, manifest.find("\"frames\": {\"dark\": 6, \"bright\": 12}"));
     size_t sha = 0, mean = 0;
-    for (size_t pos = manifest.find("\"sha256\""); pos != std::string::npos; pos = manifest.find("\"sha256\"", pos + 1)) ++sha;
+    sha = countIn(manifest, "\"inputs\": [", "\"dark_policy\"", "\"sha256\"");   // the inputs block only: the dark policy lists the darks again
     for (size_t pos = manifest.find("\"mean\": "); pos != std::string::npos; pos = manifest.find("\"mean\": ", pos + 1)) ++mean;
     EXPECT_EQ(18u, sha) << "every input needs its hash in the manifest";
     EXPECT_EQ(18u, mean) << "every input needs its mean in the manifest";
@@ -475,7 +487,7 @@ TEST_F(CalibFixtureGenTest, FramesModeListFilesGiveTheSameBytesAsRepeatedOptions
     }
     const fs::path viaOptions = caseDir("opt"), viaLists = caseDir("lst");
     ASSERT_EQ(0, runFrames(root, viaOptions, framesArgs(set), "opt"));
-    const std::string listArgs = " --width " + std::to_string(kW) + " --height " + std::to_string(kH) + " --expiry-ms " + std::to_string(kFarExpiryMs) + " --dark-list \"" +
+    const std::string listArgs = " --keep-first-dark --width " + std::to_string(kW) + " --height " + std::to_string(kH) + " --expiry-ms " + std::to_string(kFarExpiryMs) + " --dark-list \"" +
                                  (root / "in" / "darks.txt").string() + "\" --bright-list \"" + (root / "in" / "brights.txt").string() + "\"";
     ASSERT_EQ(0, runFrames(root, viaLists, listArgs, "lst"));
     for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"}) EXPECT_TRUE(readAll(viaOptions / name) == readAll(viaLists / name)) << name;
@@ -687,12 +699,117 @@ TEST_F(CalibFixtureGenTest, FramesModeTakesTheDefectMapFromItsOwnBrightFramesAnd
     };
     EXPECT_EQ(6u, count("\"role\": \"bright_and_bpm_bright\""));
     EXPECT_EQ(6u, count("\"role\": \"bpm_bright\""));
-    EXPECT_EQ(18u, count("\"sha256\"")) << "each frame once: 6 darks + 6 shared + 6 defect-map-only";
+    EXPECT_EQ(18u, countIn(manifest, "\"inputs\": [", "\"dark_policy\"", "\"sha256\"")) << "each frame once: 6 darks + 6 shared + 6 defect-map-only";
     const std::vector<char> defect = readAll(out / "defect.xcal");
     const size_t n = static_cast<size_t>(kW) * kH;
     ASSERT_GT(defect.size(), n);
     const char* mask = defect.data() + (defect.size() - n);
     EXPECT_NE(0, mask[100 * kW + 100]) << "the dead pixel of the bright frames is found from the defect map's own frames";
+}
+
+// QA-A-254: --bpm-v2 writes defect.xcal as format version 2 from the second-generation chain: the pixel map with the line mask merged in, the imaging area of --bpm-margins, the line records
+// with their individual stretches, a blob mark per group of defective pixels, the unconfirmed candidates apart; the manifest names it and states its limits.
+TEST_F(CalibFixtureGenTest, FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLinesAndTheBlobs) {
+    const FrameSet set = writeFrameSet(root / "in", 8, 6);                   // one dose: the gain map
+    const FrameSet more = writeFrameSet(root / "more", 0, 6, {1.6, 2.2});    // other doses, for the defect map only
+    // a double row defect in every bright frame: the response of rows 120 and 121 is 30 % (a defect: below 45 %), over x = 10..119 and x = 60..245
+    std::vector<std::string> all = set.brights;
+    all.insert(all.end(), more.brights.begin(), more.brights.end());
+    for (const auto& b : all) {
+        std::vector<char> raw = readAll(b);
+        auto* px = reinterpret_cast<uint16_t*>(raw.data());
+        for (uint32_t x = 10; x < 120; ++x) px[120 * kW + x] = static_cast<uint16_t>(1000 + (px[120 * kW + x] - 1000) * 0.30);   // two adjacent rows with different stretches:
+        for (uint32_t x = 60; x < 246; ++x) px[121 * kW + x] = static_cast<uint16_t>(1000 + (px[121 * kW + x] - 1000) * 0.30);   // one group of width 2, two individual stretches
+        std::ofstream(b, std::ios::binary | std::ios::trunc).write(raw.data(), static_cast<std::streamsize>(raw.size()));
+    }
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    std::string args = framesArgs(set) + " --bpm-v2 --bpm-margins 3,2,1,1";
+    for (const auto& f : all) args += " --bpm-bright \"" + f + "\"";
+    std::string err;
+    ASSERT_EQ(0, runFrames(root, a, args, "a", &err)) << err;
+    ASSERT_EQ(0, runFrames(root, b, args, "b"));
+    for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal", "manifest.json"})
+        EXPECT_TRUE(readAll(a / name) == readAll(b / name)) << name << " differs between two runs on the same frames";
+    DefectXcal d;
+    ASSERT_EQ(XPE_OK, read_defect_xcal((a / "defect.xcal").string().c_str(), false, &d));
+    EXPECT_EQ(2u, d.format_version);
+    ASSERT_TRUE(d.has_area);
+    size_t outside = 0;
+    for (uint8_t v : d.area) outside += v == 0;
+    EXPECT_EQ(static_cast<size_t>(3) * kH + static_cast<size_t>(1) * kH + static_cast<size_t>(2 + 1) * (kW - 4) , outside) << "margins 3,2,1,1: three columns left, one right, two rows top, one bottom";
+    EXPECT_EQ(0, d.area[100 * kW + 1]) << "inside the left margin";
+    EXPECT_EQ(1, d.area[100 * kW + 3]) << "just inside the area";
+    EXPECT_NE(0, d.map[100 * kW + 100]) << "the dead pixel of the bright frames";
+    bool rowFound = false;
+    for (const DefectExtLine& L : d.ext.lines) {
+        if (L.orientation == XPE_BPM_LINE_ROW && L.index <= 121 && L.index + L.width > 120) {
+            rowFound = true;
+            EXPECT_FALSE(L.segments.empty());
+            for (const DefectExtSegment& g : L.segments) {
+                EXPECT_GE(g.start, L.start);
+                EXPECT_LE(g.end, L.end);
+                for (uint32_t x = g.start; x < g.end; ++x) EXPECT_NE(0, d.map[static_cast<size_t>(g.line) * kW + x]) << "a recorded stretch is painted in the defect plane";
+            }
+        }
+    }
+    EXPECT_TRUE(rowFound) << "the planted row defect is a line record (lines: " << d.ext.lines.size() << ")";
+    EXPECT_EQ(0, d.map[120 * kW + 200]) << "row 120 is good there: the record's bounding range must not be painted as one stretch";
+    EXPECT_FALSE(d.ext.blobs.empty());
+    const std::string manifest = asText(readAll(a / "manifest.json"));
+    EXPECT_NE(std::string::npos, manifest.find("\"defect_format\"")) << manifest;
+    EXPECT_NE(std::string::npos, manifest.find("\"xcal_version\": 2"));
+    EXPECT_NE(std::string::npos, manifest.find("\"margins_ltrb\": [3, 2, 1, 1]"));
+    EXPECT_NE(std::string::npos, manifest.find("not evidence for a line pixel")) << "the limit of the pixel bit near a line is stated";
+    EXPECT_NE(std::string::npos, manifest.find("diagnostic appendix"));
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map((a / "defect.xcal").string().c_str())) << "the runtime loader takes the version-2 file";
+    xpe_clear_alerts();
+    xpe_preprocess_shutdown();
+}
+
+// QA-A-252i (the gap G1 of QA-A-254): a weak row defect -- row 120 has about three times the noise variance of its neighbours from x = 10 to 245 -- that the pixel checks do not flag one by one but the line detection finds as a stretch.
+// The defect plane of the file must hold the stretch (the line mask is merged into it); without the merge the plane has no flagged pixel on the stretch and a reader that corrects from the plane misses it.
+constexpr uint32_t kExtraNoise = 61;   // uniform 0..60 on top of the 0..40 of the frames: a variance about 3.1 times the neighbours'
+TEST_F(CalibFixtureGenTest, FramesModeBpmV2PaintsAStretchOnlyTheLineDetectionFound) {
+    const FrameSet set = writeFrameSet(root / "in", 8, 6);                   // one dose: the gain map
+    const FrameSet more = writeFrameSet(root / "more", 0, 6, {1.6, 2.2});    // other doses, for the defect map only
+    std::vector<std::string> all = set.brights;
+    all.insert(all.end(), more.brights.begin(), more.brights.end());
+    uint32_t extra = 777u;
+    for (const auto& b : all) {
+        std::vector<char> raw = readAll(b);
+        auto* px = reinterpret_cast<uint16_t*>(raw.data());
+        for (uint32_t x = 10; x < 246; ++x) px[120 * kW + x] = static_cast<uint16_t>(px[120 * kW + x] + nextNoise(extra) % kExtraNoise);   // more noise on one stretch of one row
+        std::ofstream(b, std::ios::binary | std::ios::trunc).write(raw.data(), static_cast<std::streamsize>(raw.size()));
+    }
+    const fs::path a = caseDir("w");
+    std::string    args = framesArgs(set) + " --bpm-v2 --bpm-margins 3,2,1,1";
+    for (const auto& f : all) args += " --bpm-bright \"" + f + "\"";
+    std::string err;
+    ASSERT_EQ(0, runFrames(root, a, args, "w", &err)) << err;
+    DefectXcal d;
+    ASSERT_EQ(XPE_OK, read_defect_xcal((a / "defect.xcal").string().c_str(), false, &d));
+    size_t recorded = 0, painted = 0;
+    for (const DefectExtLine& L : d.ext.lines)
+        if (L.orientation == XPE_BPM_LINE_ROW && L.index <= 120 && L.index + L.width > 120)
+            for (const DefectExtSegment& g : L.segments)
+                if (g.line == 120)
+                    for (uint32_t x = g.start; x < g.end; ++x) {
+                        ++recorded;
+                        painted += d.map[120 * kW + x] != 0;
+                    }
+    EXPECT_GT(recorded, 150u) << "the weak row is a recorded stretch (lines: " << d.ext.lines.size() << ")";
+    EXPECT_EQ(recorded, painted) << "every pixel of the recorded stretch is painted in the defect plane";
+}
+
+TEST_F(CalibFixtureGenTest, TheBpmV2OptionsBelongToTheFramesModeAndTakeFourMargins) {
+    std::string err;
+    EXPECT_NE(0, runFrames(root, caseDir("o"), " --bpm-v2", "o", &err));
+    EXPECT_NE(std::string::npos, err.find("--bpm-v2")) << err;
+    const FrameSet set = writeFrameSet(root / "in", 6, 12);
+    EXPECT_NE(0, runFrames(root, caseDir("m"), framesArgs(set) + " --bpm-v2 --bpm-margins 1,2,3", "m", &err));
+    EXPECT_NE(std::string::npos, err.find("L,T,R,B")) << err;
+    EXPECT_TRUE(hasNoMaps(caseDir("m")));
 }
 
 TEST_F(CalibFixtureGenTest, FramesModeRefusesTooFewDefectMapFramesEvenWhenTheGainFramesAreEnough) {
@@ -959,6 +1076,165 @@ TEST_F(CalibFixtureGenTest, FramesModeDoesNotTouchAnotherRunsWorkDirectory) {
         EXPECT_EQ(std::string("precious"), asText(readAll(d / "old_offset.xcal")));
     }
     EXPECT_TRUE(fs::exists(out / "offset.xcal"));
+}
+
+// ---------------------------------------------------------------- QA-A-259: the first dark frame leaves the list ONCE, for every stage
+// The raw acquisition list starts with a frame taken before the detector settles. The user gives the whole list; this tool excludes the first frame
+// once, and the same remaining list feeds the offset map, the gain dark reference and the defect map. Before, the offset kept all frames and the
+// second-generation defect map dropped one more inside the library (the documented list was trimmed by hand): the stages used different darks.
+
+/** A set whose FIRST dark differs from the rest: a lifted level and a hot pixel that only that frame has, so every stage that reads it is changed. */
+FrameSet writeSetWithOddFirstDark(const fs::path& dir, size_t darkCount) {
+    FrameSet set = writeFrameSet(dir, darkCount, 12);
+    std::vector<char> raw = readAll(set.darks[0]);
+    auto*             px = reinterpret_cast<uint16_t*>(raw.data());
+    for (size_t i = 0; i < raw.size() / sizeof(uint16_t); ++i) px[i] = static_cast<uint16_t>(px[i] + 250);
+    px[10 * kW + 10] = 30000;
+    std::ofstream(set.darks[0], std::ios::binary | std::ios::trunc).write(raw.data(), static_cast<std::streamsize>(raw.size()));
+    return set;
+}
+
+FrameSet withoutFirstDark(const FrameSet& set) {
+    FrameSet t = set;
+    t.darks.erase(t.darks.begin());
+    return t;
+}
+
+bool sameFile(const fs::path& a, const fs::path& b, const char* name) {
+    const std::vector<char> x = readAll(a / name);
+    return !x.empty() && x == readAll(b / name);
+}
+
+// The three stages read the same list: the default on seven darks is, byte for byte, the run on the six darks that remain when the first is taken
+// off by hand and kept as given -- offset, gain and defect map, for the first and for the second edition of the defect map.
+TEST_F(CalibFixtureGenTest, FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList) {
+    const FrameSet seven = writeSetWithOddFirstDark(root / "in", 7);
+    const FrameSet six = withoutFirstDark(seven);
+    for (const bool v2 : {false, true}) {
+        const std::string tag = v2 ? "v2" : "v1", extra = v2 ? " --bpm-v2 --bpm-margins 3,2,1,1" : "";
+        const fs::path    byDefault = caseDir((tag + "_default").c_str()), byHand = caseDir((tag + "_hand").c_str());
+        std::string       err;
+        ASSERT_EQ(0, runFrames(root, byDefault, framesArgs(seven, false) + extra, tag + "d", &err)) << err;
+        ASSERT_EQ(0, runFrames(root, byHand, framesArgs(six, true) + extra, tag + "h", &err)) << err;
+        for (const char* name : {"offset.xcal", "gain.xcal", "defect.xcal"}) {
+            if (v2 && std::string(name) == "defect.xcal") continue;   // the file of the second edition names who excluded the first frame ("generator" against "none"): its content is compared below
+            EXPECT_TRUE(sameFile(byDefault, byHand, name)) << tag << ": " << name << " of the default differs from the run on the list without its first frame";
+        }
+        if (v2) {
+            DefectXcal x, y;
+            ASSERT_EQ(XPE_OK, read_defect_xcal((byDefault / "defect.xcal").string().c_str(), false, &x));
+            ASSERT_EQ(XPE_OK, read_defect_xcal((byHand / "defect.xcal").string().c_str(), false, &y));
+            EXPECT_TRUE(x.map == y.map) << "the defect plane of the default differs from the run on the list without its first frame";
+            EXPECT_TRUE(x.area == y.area);
+            ASSERT_EQ(x.ext.lines.size(), y.ext.lines.size());
+            for (size_t i = 0; i < x.ext.lines.size(); ++i) {   // QA-A-261 (Codex #230): every field of every line group, not only their number
+                const DefectExtLine &p = x.ext.lines[i], &q = y.ext.lines[i];
+                EXPECT_TRUE(p.orientation == q.orientation && p.index == q.index && p.width == q.width && p.start == q.start && p.end == q.end && p.causes == q.causes && p.flags == q.flags &&
+                            p.reason == q.reason && p.strength == q.strength && p.persistence == q.persistence && p.correction == q.correction && p.segments.size() == q.segments.size())
+                    << "line group " << i;
+            }
+            ASSERT_EQ(x.ext.blobs.size(), y.ext.blobs.size());
+            for (size_t i = 0; i < x.ext.blobs.size(); ++i)
+                EXPECT_TRUE(x.ext.blobs[i].x0 == y.ext.blobs[i].x0 && x.ext.blobs[i].y0 == y.ext.blobs[i].y0 && x.ext.blobs[i].x1 == y.ext.blobs[i].x1 && x.ext.blobs[i].y1 == y.ext.blobs[i].y1 &&
+                            x.ext.blobs[i].size == y.ext.blobs[i].size)
+                    << "blob " << i;
+        }
+        if (v2) {
+            const std::string manifest = asText(readAll(byDefault / "manifest.json"));
+            EXPECT_NE(std::string::npos, manifest.find("\"dark_frames_used\": 6")) << "the second-generation chain must use the 6 frames of the used list, not drop another one\n" << manifest;
+            EXPECT_NE(std::string::npos, manifest.find("\"skip_first_dark\": false"));
+        }
+    }
+}
+
+// The first frame matters to every stage when it is kept: the offset, the gain dark reference and the defect map each change.
+TEST_F(CalibFixtureGenTest, KeepFirstDarkUsesTheListAsGivenAndEveryStageNoticesTheDifference) {
+    const FrameSet seven = writeSetWithOddFirstDark(root / "in", 7);
+    const fs::path excluded = caseDir("excluded"), kept = caseDir("kept");
+    std::string    err;
+    ASSERT_EQ(0, runFrames(root, excluded, framesArgs(seven, false), "e", &err)) << err;
+    ASSERT_EQ(0, runFrames(root, kept, framesArgs(seven, true), "k", &err)) << err;
+    EXPECT_FALSE(sameFile(excluded, kept, "offset.xcal")) << "the offset must change with the first frame";
+    EXPECT_FALSE(sameFile(excluded, kept, "gain.xcal")) << "the gain dark reference (mean) must change with the first frame";
+    EXPECT_FALSE(sameFile(excluded, kept, "defect.xcal")) << "the defect map must change with the first frame (a hot pixel only that frame has)";
+}
+
+// The manifest names the list as given and the list as used, with path and hash, and says it is one list for every stage.
+TEST_F(CalibFixtureGenTest, ManifestListsTheGivenAndTheUsedDarks) {
+    const FrameSet seven = writeSetWithOddFirstDark(root / "in", 7);
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    ASSERT_EQ(0, runFrames(root, a, framesArgs(seven, false), "a"));
+    ASSERT_EQ(0, runFrames(root, b, framesArgs(seven, true), "b"));
+    const std::string ma = asText(readAll(a / "manifest.json")), mb = asText(readAll(b / "manifest.json"));
+    EXPECT_NE(std::string::npos, ma.find("\"first_dark_excluded\": true"));
+    EXPECT_NE(std::string::npos, ma.find("\"one_list_for_all_stages\": true"));
+    EXPECT_EQ(7u, countIn(ma, "\"given\": [", "\"used\": [", "\"sha256\""));
+    EXPECT_EQ(6u, countIn(ma, "\"used\": [", "\"defect_pixels\"", "\"sha256\""));
+    EXPECT_NE(std::string::npos, ma.find("\"frames\": {\"dark\": 6, "));
+    EXPECT_NE(std::string::npos, ma.find("\"role\": \"dark_excluded_first\""));
+    // the excluded frame is the first given one, and it is not among the used ones
+    const size_t      givenAt = ma.find("\"given\": ["), usedAt = ma.find("\"used\": [");
+    const std::string first = fs::path(seven.darks[0]).generic_string();
+    const size_t      inGiven = ma.find(first, givenAt);
+    EXPECT_TRUE(inGiven != std::string::npos && inGiven < usedAt);
+    const size_t inUsed = ma.find(first, usedAt);
+    EXPECT_TRUE(inUsed == std::string::npos || inUsed > ma.find("\"defect_pixels\"")) << "the first frame must not be in the used list";
+    // kept: given == used
+    EXPECT_NE(std::string::npos, mb.find("\"first_dark_excluded\": false"));
+    EXPECT_EQ(7u, countIn(mb, "\"given\": [", "\"used\": [", "\"sha256\""));
+    EXPECT_EQ(7u, countIn(mb, "\"used\": [", "\"defect_pixels\"", "\"sha256\""));
+    EXPECT_NE(std::string::npos, mb.find("\"frames\": {\"dark\": 7, "));
+}
+
+// One dark frame leaves none after the first is excluded: a clear refusal, nothing written. Five given leave four, below the minimum.
+TEST_F(CalibFixtureGenTest, OneDarkFrameIsRefusedBecauseTheFirstIsExcluded) {
+    const FrameSet one = writeFrameSet(root / "one", 1, 12);
+    const fs::path out = root / "out_one";
+    std::string    err;
+    EXPECT_EQ(10, runFrames(root, out, framesArgs(one, false), "one", &err));
+    EXPECT_NE(std::string::npos, err.find("first dark")) << err;
+    EXPECT_FALSE(fs::exists(out));
+    const FrameSet five = writeFrameSet(root / "five", 5, 12);
+    EXPECT_EQ(10, runFrames(root, root / "out_five", framesArgs(five, false), "five", &err));
+    EXPECT_NE(std::string::npos, err.find("too few dark frames: 4 usable (5 given")) << err;
+    EXPECT_EQ(0, runFrames(root, root / "out_five_kept", framesArgs(five, true), "fivek", &err)) << err;
+}
+
+// QA-A-260 (Codex #229): the metadata says what really happened. With --keep-first-dark nobody excluded the first frame; the one-list statement holds
+// for a gain reference that is the mean of the used darks, not for none or a file.
+TEST_F(CalibFixtureGenTest, TheMetadataNamesWhoExcludedTheFirstDark) {
+    const FrameSet seven = writeSetWithOddFirstDark(root / "in", 7);
+    const fs::path a = caseDir("a"), b = caseDir("b");
+    const std::string extra = " --bpm-v2 --bpm-margins 3,2,1,1";
+    ASSERT_EQ(0, runFrames(root, a, framesArgs(seven, false) + extra, "a"));
+    ASSERT_EQ(0, runFrames(root, b, framesArgs(seven, true) + extra, "b"));
+    const std::string ma = asText(readAll(a / "manifest.json")), mb = asText(readAll(b / "manifest.json"));
+    EXPECT_NE(std::string::npos, ma.find("\"first_dark_excluded_by\": \"generator")) << ma;
+    EXPECT_NE(std::string::npos, mb.find("\"first_dark_excluded_by\": \"none")) << mb;
+    EXPECT_EQ(std::string::npos, mb.find("\"first_dark_excluded_by\": \"generator")) << "the kept list was not excluded by anybody";
+    // the same statement is inside the defect file (extension members)
+    const std::string da = asText(readAll(a / "defect.xcal")), db = asText(readAll(b / "defect.xcal"));
+    EXPECT_NE(std::string::npos, da.find("\"first_dark_excluded_by\":\"generator\""));
+    EXPECT_NE(std::string::npos, db.find("\"first_dark_excluded_by\":\"none\""));
+    EXPECT_EQ(std::string::npos, db.find("\"first_dark_excluded_by\":\"generator\""));
+}
+
+TEST_F(CalibFixtureGenTest, TheOneListStatementIsLimitedToAMeanGainReference) {
+    const FrameSet seven = writeSetWithOddFirstDark(root / "in", 7);
+    const fs::path mean = caseDir("mean"), none = caseDir("none"), file = caseDir("file");
+    ASSERT_EQ(0, runFrames(root, mean, framesArgs(seven, false), "m"));
+    ASSERT_EQ(0, runFrames(root, none, framesArgs(seven, false) + " --gain-dark-ref none", "n"));
+    ASSERT_EQ(0, runFrames(root, file, framesArgs(seven, false) + " --gain-dark-ref \"" + seven.darks[1] + "\"", "f"));
+    const std::string mm = asText(readAll(mean / "manifest.json")), mn = asText(readAll(none / "manifest.json")), mf = asText(readAll(file / "manifest.json"));
+    EXPECT_NE(std::string::npos, mm.find("\"one_list_for_all_stages\": true"));
+    EXPECT_NE(std::string::npos, mm.find("\"stages_on_the_used_list\": [\"offset\", \"gain_dark_reference\", \"defect_map\"]"));
+    EXPECT_NE(std::string::npos, mm.find("\"gain_dark_reference\": \"the mean of the used darks"));
+    for (const std::string* m : {&mn, &mf}) {
+        EXPECT_NE(std::string::npos, m->find("\"one_list_for_all_stages\": false")) << *m;
+        EXPECT_NE(std::string::npos, m->find("\"stages_on_the_used_list\": [\"offset\", \"defect_map\"]"));
+    }
+    EXPECT_NE(std::string::npos, mn.find("\"gain_dark_reference\": \"none (no dark reference"));
+    EXPECT_NE(std::string::npos, mf.find("\"gain_dark_reference\": \"the file "));
 }
 
 }  // namespace

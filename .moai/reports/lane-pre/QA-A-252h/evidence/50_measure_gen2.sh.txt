@@ -1,0 +1,55 @@
+#!/bin/bash
+# QA-A-252h: the SECOND GENERATION ONCE on the injection of QA-A-252f (the first generation does not change: it does not use the dose scale) (the same inj_d: seed 251, same cyan_test inputs and exclusion masks, six response levels for both models): noise-cost on the verification frames (exposure-scaled, and --raw-frames 1 for the labels of QA-A-252f),
+# the first generation, the second generation with the lines, both scored with the noise axis (--noise-truth). Same seed 251, same cyan_test inputs and exclusion masks as
+# QA-A-252e. Nothing in the detector or the tool changes after the predictions are committed.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+OLD=D:/workspace-github/xpe-data/bpm-eval-251
+OUT=D:/workspace-github/xpe-data/bpm-eval-252h
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-252h/evidence
+mkdir -p "$OUT"
+run() { local name=$1; shift; local s=$(date +%s); echo "start $(date '+%Y-%m-%d %H:%M:%S')  $name" > "$EVD/$name.log"; "$@" >> "$EVD/$name.log" 2>&1; local rc=$?; echo "exit $rc wall seconds $(( $(date +%s) - s ))" >> "$EVD/$name.log"; echo "$name exit $rc"; return $rc; }
+args() { local flag=$1; shift; for f in "$@"; do printf -- "--%s\n%s\n" "$flag" "$f"; done; }
+BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+DK="08 09 10 11 12 13 14"
+DKRAW="07 08 09 10 11 12 13 14"
+GN="23 24 25 26 27 28"
+mk() { local dir=$1 pre=$2; shift 2; local list=("$@"); local out=(); for k in "${list[@]}"; do out+=("$dir/${pre}_$k.raw"); done; printf '%s\n' "${out[@]}"; }
+
+# the injection of QA-A-252f is reused as it is (the input is not regenerated)
+mapfile -t D_GEN < <(mk "$CAL" Dark $DK); mapfile -t B_GEN < <(mk "$CAL" Bright $BR)
+INJ=$IN/inj_d/frames
+mapfile -t D_INJ < <(mk "$INJ" Dark $DK); mapfile -t B_INJ < <(mk "$INJ" Bright $BR); mapfile -t G_INJ < <(mk "$INJ" Bright $GN)
+mapfile -t DI < <(args dark "${D_INJ[@]}"); mapfile -t BI < <(args bright "${B_INJ[@]}")
+HA=(); for k in 08 10 12 14; do HA+=(--dark "$INJ/Dark_$k.raw"); done
+HB=(); for k in 09 11 13; do HB+=(--dark "$INJ/Dark_$k.raw"); done
+BE=(); for k in 17 19 21 23 25 27 31 33 35; do BE+=(--bright "$INJ/Bright_$k.raw"); done
+BO=(); for k in 18 20 22 24 26 28 32 34 36; do BO+=(--bright "$INJ/Bright_$k.raw"); done
+
+
+# the noise-axis labels are those of QA-A-252g (62_noise_truth.tsv.txt): the tool changed only its validation, the injection and the frames are the same
+NT=$ROOT/.moai/reports/lane-pre/QA-A-252g/evidence/62_noise_truth.tsv.txt
+
+# ---- second generation (once)
+mapfile -t D_CLEAN < <(mk "$CAL" Dark $DKRAW)
+mapfile -t DA < <(args dark "${D_CLEAN[@]}"); mapfile -t BA < <(args bright "${B_GEN[@]}")
+M="--margins 6,2,1,1"
+run V2_clean "$BIN/xpe_bpm_eval.exe" map-v2 $M --area "$OUT/v2g_clean_area.u8" --out "$OUT/v2g_clean.u8" --features "$OUT/v2g_clean_features.u8" --report "$EVD/64_report_clean.json.txt" "${DA[@]}" "${BA[@]}" || exit 1
+run V2_planted "$BIN/xpe_bpm_eval.exe" map-v2 $M --skip-first-dark 0 --area "$OUT/v2g_planted_area.u8" --out "$OUT/v2g_planted.u8" --features "$OUT/v2g_planted_features.u8" --report "$EVD/65_report_planted.json.txt" "${DI[@]}" "${BI[@]}" || exit 1
+run V2_half_a "$BIN/xpe_bpm_eval.exe" map-v2 $M --skip-first-dark 0 --area "$OUT/v2g_half_a_area.u8" --out "$OUT/v2g_half_a.u8" --min-dark 3 --min-bright 9 "${HA[@]}" "${BE[@]}" || exit 1
+run V2_half_b "$BIN/xpe_bpm_eval.exe" map-v2 $M --skip-first-dark 0 --area "$OUT/v2g_half_b_area.u8" --out "$OUT/v2g_half_b.u8" --min-dark 3 --min-bright 9 "${HB[@]}" "${BO[@]}" || exit 1
+run L1_clean "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/66_unconfirmed_clean.tsv.txt" --out "$OUT/v3g_clean_lines.u8" --tsv "$EVD/67_lines_clean.tsv.txt" --report "$EVD/67_lines_clean.json.txt" "${DA[@]}" "${BA[@]}"
+run L2_planted "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/66_unconfirmed_planted.tsv.txt" --skip-first-dark 0 --out "$OUT/v3g_planted_lines.u8" --tsv "$EVD/68_lines_planted.tsv.txt" --report "$EVD/68_lines_planted.json.txt" "${DI[@]}" "${BI[@]}"
+run L3a "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/66_unconfirmed_half_a.tsv.txt" --skip-first-dark 0 --min-dark 3 --min-bright 9 --out "$OUT/v3g_half_a_lines.u8" "${HA[@]}" "${BE[@]}"
+run L3b "$BIN/xpe_bpm_eval.exe" lines $M --unconfirmed "$EVD/66_unconfirmed_half_b.tsv.txt" --skip-first-dark 0 --min-dark 3 --min-bright 9 --out "$OUT/v3g_half_b_lines.u8" "${HB[@]}" "${BO[@]}"
+for n in clean planted half_a half_b; do
+  "$BIN/xpe_bpm_eval.exe" merge --in "$OUT/v2g_$n.u8" --in "$OUT/v3g_${n}_lines.u8" --out "$OUT/v3g_$n.u8" || exit 1
+done
+run V2_score "$BIN/xpe_bpm_eval.exe" score --truth "$IN/inj_d" --noise-truth "$NT" --map "$OUT/v3g_planted.u8" --clean-map "$OUT/v3g_clean.u8" --half-a "$OUT/v3g_half_a.u8" --half-b "$OUT/v3g_half_b.u8" --area "$OUT/v2g_planted_area.u8" --out "$EVD/69_score_v2.json.txt" || exit 1
+run V2_score_rawlabels "$BIN/xpe_bpm_eval.exe" score --truth "$IN/inj_d" --noise-truth "$ROOT/.moai/reports/lane-pre/QA-A-252g/evidence/62r_noise_truth_raw.tsv.txt" --map "$OUT/v3g_planted.u8" --clean-map "$OUT/v3g_clean.u8" --half-a "$OUT/v3g_half_a.u8" --half-b "$OUT/v3g_half_b.u8" --area "$OUT/v2g_planted_area.u8" --out "$EVD/69r_score_v2_rawlabels.json.txt" || exit 1
+# the same second-generation map scored on the response axis alone (no --noise-truth): what 252e measured, for the comparison of the two ways of labelling
+run V2_score_response_axis "$BIN/xpe_bpm_eval.exe" score --truth "$IN/inj_d" --map "$OUT/v3g_planted.u8" --clean-map "$OUT/v3g_clean.u8" --half-a "$OUT/v3g_half_a.u8" --half-b "$OUT/v3g_half_b.u8" --area "$OUT/v2g_planted_area.u8" --out "$EVD/70_score_v2_response_axis.json.txt" || exit 1
+echo done

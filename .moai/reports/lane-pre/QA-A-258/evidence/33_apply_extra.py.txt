@@ -1,0 +1,11 @@
+"""Append the extra tests (32_extra_tests_block.cpp.txt) to test_bpm_lines_lof.cpp and include the internal header."""
+base = 'D:/workspace-github/xpe-pre/'
+p = base + 'modules/preprocess/tests/test_bpm_lines_lof.cpp'
+s = open(p, encoding='utf-8', newline='').read().replace('\r\n', '\n')
+add = open(base + '.moai/reports/lane-pre/QA-A-258/evidence/32_extra_tests_block.cpp.txt', encoding='utf-8', newline='').read()
+if '#include "xpe_bpm_v2_internal.hpp"' not in s:
+    s = s.replace('#include "xpe/preprocess_api.h"\n', '#include "xpe_bpm_v2_internal.hpp"\n#include "xpe/preprocess_api.h"\n', 1)
+if 'BpmLinesLofFunctionTest' not in s:
+    s = s.rstrip('\n') + '\n' + add
+open(p, 'w', encoding='utf-8', newline='').write(s)
+print('extra tests appended')

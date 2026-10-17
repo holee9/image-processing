@@ -1,0 +1,64 @@
+"""QA-A-257 item 2 (continued): every line group of the second-edition set with the cause bits the detector recorded and the item it lies on (truth class, kind, level), so that the groups the linearity
+cause alone turned on can be compared across true defects and normal controls. Diagnosis only.
+Usage: PYTHONIOENCODING=utf-8 python 22_linearity_groups.py.txt > 23_linearity_groups.txt"""
+import numpy as np
+
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+EV7 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-257/evidence/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+S = 3072
+CAUSE = {0x01: 'response', 0x02: 'linearity', 0x04: 'noise', 0x08: 'slope'}
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = (c[1], c[2], c[3], c[4])
+ids = np.fromfile(TR + 'truth_ids.u16', dtype='<u2').reshape(S, S)
+noise = {}
+for i, line in enumerate(open(EV + '30_noise_truth.tsv.txt', encoding='utf-8')):
+    if i:
+        c = line.rstrip('\n').split('\t')
+        noise[int(c[0])] = (c[9], float(c[6]), float(c[7]), float(c[8]))
+rows = []
+for i, line in enumerate(open(EV7 + '10_lines_v2.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = line.rstrip('\n').split('\t')
+    if c[0] != 'line':
+        continue
+    st = []
+    for s in c[12].split(';'):
+        a, b = s.split(':')
+        lo, hi = b.split('-')
+        st.append((int(a), int(lo), int(hi)))
+    causes = int(c[6])
+    seg = []
+    for (ln, lo, hi) in st:
+        seg.append(ids[ln, lo:hi] if c[1] == 'row' else ids[lo:hi, ln])
+    v = np.concatenate(seg)
+    v = v[(v != 0) & (v != 0xFFFF)]
+    if len(v) == 0:
+        rows.append((c[1], int(c[2]), int(c[3]), causes, float(c[10]), 'background', '', '', '', 0))
+        continue
+    vals, cnt = np.unique(v, return_counts=True)
+    k = int(vals[np.argmax(cnt)])
+    cl, kind, shape, level = items[k]
+    rows.append((c[1], int(c[2]), int(c[3]), causes, float(c[10]), cl, kind, shape, level, k))
+print('| 방향 | 줄 | 폭 | 기록 비트 | 강도 | 위의 항목 종류(정답 종류) | 수준 | 항목 노이즈 라벨(비용 / 구간) |')
+print('|---|---|---|---|---|---|---|---|')
+for r in sorted(rows, key=lambda t: (t[3], t[5], t[6], t[8])):
+    o, idx, w, causes, strength, cl, kind, shape, level, k = r
+    cs = '+'.join(v for b, v in CAUSE.items() if causes & b)
+    nz = ''
+    if k in noise:
+        nz = '%s (%.2f / %.2f~%.2f)' % noise[k]
+    print('| %s | %d | %d | %s | %.2f | %s/%s/%s | %s | %s |' % (o, idx, w, cs, strength, cl, kind, shape, level, nz))
+print()
+print('요약: 기록 비트 조합별 줄 그룹 수와 위의 항목 종류')
+agg = {}
+for r in rows:
+    cs = '+'.join(v for b, v in CAUSE.items() if r[3] & b)
+    key = (cs, r[5] + '/' + r[6])
+    agg[key] = agg.get(key, 0) + 1
+for (cs, ik), n in sorted(agg.items()):
+    print('  %-28s %-34s %d' % (cs, ik, n))

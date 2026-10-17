@@ -1,0 +1,216 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+h = 'D:/workspace-github/xpe-pre/modules/preprocess/include/xpe/preprocess_api.h'
+
+
+def load(path):
+    s = open(path, encoding='utf-8', newline='').read()
+    return s, '\r\n' in s
+
+
+def save(path, s, crlf):
+    open(path, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+s, crlf = load(p)
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''float medianOf(float* a, size_t n) {
+    std::nth_element(a, a + n / 2, a + n);
+    return a[n / 2];
+}''', '''float medianOf(float* a, size_t n) {
+    std::nth_element(a, a + n / 2, a + n);
+    return a[n / 2];
+}
+
+/** Median of a few values (the frames of one pixel): the middle one, the mean of the two middle ones for an even count (so that a pair gives its mean). */
+float temporalMedian(std::vector<float>* v) {
+    std::sort(v->begin(), v->end());
+    const size_t m = v->size();
+    return (m & 1u) ? (*v)[m / 2] : 0.5f * ((*v)[m / 2 - 1] + (*v)[m / 2]);
+}''')
+
+# ------------------------------------------------------------------------------------------------------------ gate: untested stretches are kept
+sub('''                if (!(persist > 0.5f)) continue;   // large in half of the frames or fewer: noise that moves, not a defect of a place''',
+    '''                // large in half of the frames or fewer: noise that moves, not a defect of a place. A negative value says the test was not possible (fewer than three frames
+                // to judge by): the stretch is kept and reported with persistence -1
+                if (persist >= 0.0f && !(persist > 0.5f)) continue;''')
+
+# ------------------------------------------------------------------------------------------------------------ dark: a robust reference
+sub('''    std::vector<std::vector<double>> rowMeanK, colMeanK;   // per dark frame: the row means and the column means taken out (line persistence)''',
+    '''    std::vector<std::vector<double>> rowMeanK, colMeanK;   // per dark frame: the row means and the column means taken out (line persistence)
+    std::vector<float>               darkMed;              // line persistence: the temporal median of the dark frames, which a burst in one frame cannot move''')
+sub('''    double darkMeanAll = 0.0;
+    for (size_t i = 0; i < n; ++i) darkMeanAll += D[i];''', '''    if (job) {
+        // The persistence of a stretch is judged against the temporal MEDIAN of the dark frames, not their mean: a burst in one frame moves the mean of the stretch and so makes
+        // every other frame look large in the opposite direction (one frame in seven would read as seven in seven). The row and column means taken out of every frame are
+        // taken against the same median image.
+        darkMed.resize(n);
+        std::vector<float> vals(nd);
+        for (size_t i = 0; i < n; ++i) {
+            for (uint32_t k = 0; k < nd; ++k) vals[k] = static_cast<float>(px(dark_frames[first + k])[i]);
+            darkMed[i] = temporalMedian(&vals);
+        }
+        for (uint32_t k = 0; k < nd; ++k) {
+            const uint16_t*     p = px(dark_frames[first + k]);
+            std::vector<double> rm(static_cast<size_t>(h), 0.0), cm(static_cast<size_t>(w), 0.0);
+            for (int y = 0; y < h; ++y) {
+                double acc = 0.0;
+                for (int x = 0; x < w; ++x) acc += static_cast<double>(p[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]) - static_cast<double>(darkMed[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]);
+                rm[static_cast<size_t>(y)] = acc / w;
+            }
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                    cm[static_cast<size_t>(x)] += static_cast<double>(p[i]) - static_cast<double>(darkMed[i]) - rm[static_cast<size_t>(y)];
+                }
+            for (int x = 0; x < w; ++x) cm[static_cast<size_t>(x)] /= h;
+            rowMeanK[k] = rm;
+            colMeanK[k] = cm;
+        }
+    }
+    double darkMeanAll = 0.0;
+    for (size_t i = 0; i < n; ++i) darkMeanAll += D[i];''')
+sub('''                        const double e = static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMeanK[k][static_cast<size_t>(y)] - colMeanK[k][static_cast<size_t>(x)];
+                        acc += std::min(e * e, 16.0 * static_cast<double>(wk.bg[i]));''', '''                        const double e = static_cast<double>(p[i]) - static_cast<double>(darkMed[i]) - rowMeanK[k][static_cast<size_t>(y)] - colMeanK[k][static_cast<size_t>(x)];
+                        acc += std::min(e * e, 16.0 * static_cast<double>(wk.bg[i]));''')
+
+# ------------------------------------------------------------------------------------------------------------ bright: median of the group, groups of two are left out
+sub('''                for (size_t i = 0; i < n; ++i) vg[i] /= static_cast<float>(mg - 1);''', '''                for (size_t i = 0; i < n; ++i) vg[i] /= static_cast<float>(mg - 1);
+                if (job && mg >= 2) {
+                    // line persistence: the row and column means of every frame against the temporal median of the group (the mean for a pair)
+                    std::vector<float> gmed(n), vals(mg);
+                    for (size_t i = 0; i < n; ++i) {
+                        for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                        gmed[i] = temporalMedian(&vals);
+                    }
+                    for (uint32_t k : groups[g]) {
+                        const uint16_t*     pk = px(bright_frames[k]);
+                        std::vector<double> rm2(static_cast<size_t>(height), 0.0), cm2(static_cast<size_t>(width), 0.0);
+                        for (uint32_t y = 0; y < height; ++y) {
+                            double acc2 = 0.0;
+                            for (uint32_t x = 0; x < width; ++x) acc2 += static_cast<double>(pk[static_cast<size_t>(y) * width + x]) - static_cast<double>(gmed[static_cast<size_t>(y) * width + x]);
+                            rm2[y] = acc2 / width;
+                        }
+                        for (uint32_t y = 0; y < height; ++y)
+                            for (uint32_t x = 0; x < width; ++x) {
+                                const size_t i = static_cast<size_t>(y) * width + x;
+                                cm2[x] += static_cast<double>(pk[i]) - static_cast<double>(gmed[i]) - rm2[y];
+                            }
+                        for (uint32_t x = 0; x < width; ++x) cm2[x] /= height;
+                        brmK[k] = rm2;
+                        bcmK[k] = cm2;
+                    }
+                }''')
+old_start = s.index('            job->persistence = [&](int orient, int idx, int a, int b) -> float {\n                const int half = static_cast<int>(st.window) / 2;\n                const int lines = orient == 0 ? h : w;\n                int       frames = 0, hits = 0;\n                for (size_t g = 0; g < groups.size(); ++g) {')
+old_end = s.index('            analyzeFeature(t.data(), w, h, st, job, kKindNoise);\n            job->persistence = nullptr;')
+s = s[:old_start] + '''            job->persistence = [&](int orient, int idx, int a, int b) -> float {
+                const int half = static_cast<int>(st.window) / 2;
+                const int lines = orient == 0 ? h : w;
+                int       frames = 0, hits = 0;
+                for (size_t g = 0; g < groups.size(); ++g) {
+                    const uint32_t mg = static_cast<uint32_t>(groups[g].size());
+                    if (mg < 2) continue;   // a lone frame has no group to be judged against
+                    // a pair has no median (its reference is its mean, so both frames read as large when one carries a burst): the judgement pools the frames of all groups, and the
+                    // pair that carries a burst is then 2 frames of all of them
+                    const double cap = 16.0 * groupNom[g];
+                    // squared residual about the temporal median of the group, summed over the stretch, for the line and its neighbours, every frame at once
+                    std::vector<std::vector<double>> stat(mg, std::vector<double>(static_cast<size_t>(2 * half + 1), 0.0));
+                    std::vector<float>               vals(mg);
+                    for (int d = -half; d <= half; ++d) {
+                        const int line = idx + d;
+                        if (line < 0 || line >= lines) continue;
+                        for (int t2 = a; t2 < b; ++t2) {
+                            const int    x = orient == 0 ? t2 : line, y = orient == 0 ? line : t2;
+                            const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                            for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                            std::vector<float> srt(vals);
+                            const double       md = static_cast<double>(temporalMedian(&srt));
+                            for (uint32_t j = 0; j < mg; ++j) {
+                                const uint32_t k = groups[g][j];
+                                const double   e = static_cast<double>(vals[j]) - md - brmK[k][static_cast<size_t>(y)] - bcmK[k][static_cast<size_t>(x)];
+                                stat[j][static_cast<size_t>(d + half)] += std::min(e * e, cap);
+                            }
+                        }
+                    }
+                    for (uint32_t j = 0; j < mg; ++j) {
+                        const double       sf = stat[j][static_cast<size_t>(half)];
+                        std::vector<float> nb;
+                        for (int d = -half; d <= half; ++d)
+                            if (d != 0 && idx + d >= 0 && idx + d < lines) nb.push_back(static_cast<float>(stat[j][static_cast<size_t>(d + half)]));
+                        const double sr = nb.empty() ? sf : static_cast<double>(medianOf(nb.data(), nb.size()));
+                        ++frames;
+                        if (sr > 0.0 && sf / sr >= job->tol) ++hits;
+                    }
+                }
+                return frames >= 3 ? static_cast<float>(hits) / static_cast<float>(frames) : -1.0f;   // fewer than three frames cannot show a majority
+            };
+''' + s[old_end:]
+
+# ------------------------------------------------------------------------------------------------------------ groups keep their member stretches
+sub('''struct Group {
+    int      orient, idx, width, a, b;
+    uint32_t causes, flags;
+    float    z;
+    float    persist;
+};''', '''struct Group {
+    int      orient, idx, width, a, b;   // a, b: the bounding range along the lines of the members (metadata only)
+    uint32_t causes, flags;
+    float    z;
+    float    persist;                    // the largest persistence of the member stretches
+    struct Member {
+        int idx, a, b;
+    };
+    std::vector<Member> members;         // the individual stretches: what is painted, counted and crossed
+};''')
+sub('''            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z, lines[i].persist};''', '''            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z, lines[i].persist, {}};
+            g.members.push_back({lines[i].idx, lines[i].a, lines[i].b});''')
+sub('''                g.persist = std::max(g.persist, lines[j].persist);
+                ++g.width;''', '''                g.persist = std::max(g.persist, lines[j].persist);
+                g.members.push_back({lines[j].idx, lines[j].a, lines[j].b});
+                ++g.width;''')
+sub('''            if ((g.b - g.a) * 100 >= length * 95) g.flags |= XPE_BPM_LINE_FULL;''', '''            bool full = true;   // full when every member covers the line
+            for (const Group::Member& m : g.members) full = full && (m.b - m.a) * 100 >= length * 95;
+            if (full) g.flags |= XPE_BPM_LINE_FULL;''')
+sub('''            const bool hit = c.idx + c.width > r.a && c.idx < r.b && r.idx + r.width > c.a && r.idx < c.b;
+            if (hit) {''', '''            bool hit = false;   // a row stretch and a column stretch meet when the column lies inside the row stretch and the row inside the column stretch
+            for (const Group::Member& rm : r.members)
+                for (const Group::Member& cm : c.members) hit = hit || (cm.idx >= rm.a && cm.idx < rm.b && rm.idx >= cm.a && rm.idx < cm.b);
+            if (hit) {''')
+sub('''        rep.line_pixels += static_cast<uint32_t>((g.b - g.a) * g.width);''', '''        for (const Group::Member& m : g.members) rep.line_pixels += static_cast<uint32_t>(m.b - m.a);''')
+sub('''            for (int k = 0; k < g.width; ++k)
+                for (int t = g.a; t < g.b; ++t) {
+                    const size_t x = g.orient == 0 ? static_cast<size_t>(t) : static_cast<size_t>(g.idx + k);
+                    const size_t y = g.orient == 0 ? static_cast<size_t>(g.idx + k) : static_cast<size_t>(t);
+                    if (x < width && y < height) m[y * width + x] = 1;
+                }''', '''            for (const Group::Member& mem : g.members)   // the union of the detected stretches, not the bounding box of the group
+                for (int t = mem.a; t < mem.b; ++t) {
+                    const size_t x = g.orient == 0 ? static_cast<size_t>(t) : static_cast<size_t>(mem.idx);
+                    const size_t y = g.orient == 0 ? static_cast<size_t>(mem.idx) : static_cast<size_t>(t);
+                    if (x < width && y < height) m[y * width + x] = 1;
+                }''')
+sub('''            if (c.orient == 1 && c.idx + c.width > r.a && c.idx < r.b && r.idx + r.width > c.a && r.idx < c.b) ++rep.crossings;''', '''            if (c.orient == 1) {
+                bool hit = false;
+                for (const Group::Member& rm : r.members)
+                    for (const Group::Member& cm : c.members) hit = hit || (cm.idx >= rm.a && cm.idx < rm.b && rm.idx >= cm.a && rm.idx < cm.b);
+                if (hit) ++rep.crossings;
+            }''')
+save(p, s, crlf)
+
+# ------------------------------------------------------------------------------------------------------------ header documentation
+s, crlf = load(h)
+s = s.replace('\r\n', '\n')
+sub('''    uint32_t start;        /**< First pixel of the defective stretch along the line, frame coordinates */
+    uint32_t end;          /**< One past the last pixel of the stretch */''', '''    uint32_t start;        /**< First pixel of the defective stretch along the line, frame coordinates. For a group of adjacent lines: the smallest start of its member stretches (bounding range, metadata only) */
+    uint32_t end;          /**< One past the last pixel of the stretch (for a group: the largest end of its members). The line mask paints the union of the individual stretches, not this range */''')
+sub('''    float    persistence;  /**< Fraction of the dark frames in which the stretch is large (noise cause found in the dark frames); -1 when it was not tested */''', '''    float    persistence;  /**< Fraction of the frames in which the stretch is large, judged against the temporal median of the frames (noise cause); for a group of adjacent lines the largest of its member stretches. -1 when it was not tested (bright frames: fewer than three frames in all) */''')
+sub(''' * The noise cause is judged frame by frame: the stretch must be large in more than half of the dark frames.''', ''' * The noise cause is judged frame by frame, against the temporal MEDIAN of the frames (a burst in one frame cannot move it): the stretch must be large in more than half of the
+ * frames (the dark frames; for stretches found in the bright frames the frames of all dose groups pooled; a group of two has no median, its reference is its mean, and the pair that carries a burst counts as two frames of all).''')
+save(h, s, crlf)
+print('patched')

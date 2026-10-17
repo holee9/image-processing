@@ -1,0 +1,3 @@
+start 2026-10-16 18:06:22  S4a_half_a
+xpe_bpm_generate: 4 darks, 9 brights, 66492 defect pixels -> D:/workspace-github/xpe-data/bpm-eval-251/half_a_b.u8
+exit 0 wall seconds 419

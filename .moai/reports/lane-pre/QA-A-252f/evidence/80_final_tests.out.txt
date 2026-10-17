@@ -1,0 +1,165 @@
+Note: Google Test filter = BpmV2*:BpmEval*
+[==========] Running 72 tests from 5 test suites.
+[----------] Global test environment set-up.
+[----------] 18 tests from BpmEvalTest
+[ RUN      ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed
+[       OK ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed (1093 ms)
+[ RUN      ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules
+[       OK ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules (456 ms)
+[ RUN      ] BpmEvalTest.InjectActsAsTheSpecSays
+[       OK ] BpmEvalTest.InjectActsAsTheSpecSays (581 ms)
+[ RUN      ] BpmEvalTest.ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn
+[       OK ] BpmEvalTest.ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn (319 ms)
+[ RUN      ] BpmEvalTest.EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot
+[       OK ] BpmEvalTest.EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot (503 ms)
+[ RUN      ] BpmEvalTest.TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection
+[       OK ] BpmEvalTest.TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection (412 ms)
+[ RUN      ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne
+[       OK ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne (446 ms)
+[ RUN      ] BpmEvalTest.MapV2TakesMarginsAndWritesTheAreaMask
+[       OK ] BpmEvalTest.MapV2TakesMarginsAndWritesTheAreaMask (3713 ms)
+[ RUN      ] BpmEvalTest.MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot
+[       OK ] BpmEvalTest.MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot (5359 ms)
+[ RUN      ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize
+[       OK ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize (120 ms)
+[ RUN      ] BpmEvalTest.LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArguments
+[       OK ] BpmEvalTest.LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArguments (4283 ms)
+[ RUN      ] BpmEvalTest.ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect
+[       OK ] BpmEvalTest.ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect (449 ms)
+[ RUN      ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement
+[       OK ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement (438 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged (366 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex
+[       OK ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex (121588 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow (447 ms)
+[ RUN      ] BpmEvalTest.FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf
+[       OK ] BpmEvalTest.FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf (504 ms)
+[ RUN      ] BpmEvalTest.InjectRefusesTwoInputsWithTheSameFileName
+[       OK ] BpmEvalTest.InjectRefusesTwoInputsWithTheSameFileName (94 ms)
+[----------] 18 tests from BpmEvalTest (141187 ms total)
+
+[----------] 9 tests from BpmEvalStatsTest
+[ RUN      ] BpmEvalStatsTest.ChiSquareHelpersMatchKnownValues
+[       OK ] BpmEvalStatsTest.ChiSquareHelpersMatchKnownValues (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter
+[       OK ] BpmEvalStatsTest.TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheNoiseVerdictFollowsTheIntervalAgainstTheLimit
+[       OK ] BpmEvalStatsTest.TheNoiseVerdictFollowsTheIntervalAgainstTheLimit (2 ms)
+[ RUN      ] BpmEvalStatsTest.MedianAndPercentileFollowTheDefinition
+[       OK ] BpmEvalStatsTest.MedianAndPercentileFollowTheDefinition (0 ms)
+[ RUN      ] BpmEvalStatsTest.ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero
+[       OK ] BpmEvalStatsTest.ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero (0 ms)
+[ RUN      ] BpmEvalStatsTest.AGroupWithoutAValidSampleIsUncomputableNotZero
+[       OK ] BpmEvalStatsTest.AGroupWithoutAValidSampleIsUncomputableNotZero (0 ms)
+[ RUN      ] BpmEvalStatsTest.LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns
+[       OK ] BpmEvalStatsTest.LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheMadBasedValueIsAuxiliaryAndMayBeUncomputableWhileTheDefinedOneIsNot
+[       OK ] BpmEvalStatsTest.TheMadBasedValueIsAuxiliaryAndMayBeUncomputableWhileTheDefinedOneIsNot (0 ms)
+[ RUN      ] BpmEvalStatsTest.ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped
+[       OK ] BpmEvalStatsTest.ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped (0 ms)
+[----------] 9 tests from BpmEvalStatsTest (2 ms total)
+
+[----------] 2 tests from BpmEvalQuantumTest
+[ RUN      ] BpmEvalQuantumTest.TheQuantumGainIsEstimatedWithoutTheFrameCountBias
+[       OK ] BpmEvalQuantumTest.TheQuantumGainIsEstimatedWithoutTheFrameCountBias (632 ms)
+[ RUN      ] BpmEvalQuantumTest.NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined
+[       OK ] BpmEvalQuantumTest.NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined (887 ms)
+[----------] 2 tests from BpmEvalQuantumTest (1520 ms total)
+
+[----------] 21 tests from BpmV2Test
+[ RUN      ] BpmV2Test.FlagsEachPlantedDefectWithTheFeatureThatSeesIt
+[       OK ] BpmV2Test.FlagsEachPlantedDefectWithTheFeatureThatSeesIt (306 ms)
+[ RUN      ] BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects
+[       OK ] BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects (700 ms)
+[ RUN      ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap
+[       OK ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap (310 ms)
+[ RUN      ] BpmV2Test.NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature
+[       OK ] BpmV2Test.NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature (310 ms)
+[ RUN      ] BpmV2Test.ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature
+[       OK ] BpmV2Test.ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature (275 ms)
+[ RUN      ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect
+[       OK ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect (307 ms)
+[ RUN      ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn
+[       OK ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn (307 ms)
+[ RUN      ] BpmV2Test.WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins
+[       OK ] BpmV2Test.WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins (632 ms)
+[ RUN      ] BpmV2Test.MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic
+[       OK ] BpmV2Test.MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic (667 ms)
+[ RUN      ] BpmV2Test.WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused
+[       OK ] BpmV2Test.WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused (278 ms)
+[ RUN      ] BpmV2Test.TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes
+[       OK ] BpmV2Test.TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes (312 ms)
+[ RUN      ] BpmV2Test.TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage
+[       OK ] BpmV2Test.TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage (323 ms)
+[ RUN      ] BpmV2Test.TheResponseThresholdsAreExactAndTheInequalitiesAreFixed
+[       OK ] BpmV2Test.TheResponseThresholdsAreExactAndTheInequalitiesAreFixed (45 ms)
+[ RUN      ] BpmV2Test.ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect
+[       OK ] BpmV2Test.ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect (552 ms)
+[ RUN      ] BpmV2Test.ThresholdsFollowFromTheTargetNumberOfFalseAlarms
+[       OK ] BpmV2Test.ThresholdsFollowFromTheTargetNumberOfFalseAlarms (630 ms)
+[ RUN      ] BpmV2Test.TheFirstDarkFrameIsSkippedOnRequest
+[       OK ] BpmV2Test.TheFirstDarkFrameIsSkippedOnRequest (560 ms)
+[ RUN      ] BpmV2Test.DoseGroupsComeFromTheSignalsWhateverTheFrameOrder
+[       OK ] BpmV2Test.DoseGroupsComeFromTheSignalsWhateverTheFrameOrder (774 ms)
+[ RUN      ] BpmV2Test.TheLinearityFeatureNeedsThreeDoseGroups
+[       OK ] BpmV2Test.TheLinearityFeatureNeedsThreeDoseGroups (401 ms)
+[ RUN      ] BpmV2Test.TheFirstDarkFrameOfTheRawListIsSkippedByDefault
+[       OK ] BpmV2Test.TheFirstDarkFrameOfTheRawListIsSkippedByDefault (671 ms)
+[ RUN      ] BpmV2Test.RefusesInputsItCannotJudge
+[       OK ] BpmV2Test.RefusesInputsItCannotJudge (658 ms)
+[ RUN      ] BpmV2Test.GivesTheSameMapForTheSameInputAndLeavesTheInputAlone
+[       OK ] BpmV2Test.GivesTheSameMapForTheSameInputAndLeavesTheInputAlone (613 ms)
+[----------] 21 tests from BpmV2Test (9643 ms total)
+
+[----------] 22 tests from BpmV2LinesTest
+[ RUN      ] BpmV2LinesTest.AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross
+[       OK ] BpmV2LinesTest.AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross (323 ms)
+[ RUN      ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot
+[       OK ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot (709 ms)
+[ RUN      ] BpmV2LinesTest.APartialLineIsFoundWithItsStartAndEnd
+[       OK ] BpmV2LinesTest.APartialLineIsFoundWithItsStartAndEnd (364 ms)
+[ RUN      ] BpmV2LinesTest.TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection
+[       OK ] BpmV2LinesTest.TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection (693 ms)
+[ RUN      ] BpmV2LinesTest.ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine
+[       OK ] BpmV2LinesTest.ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine (721 ms)
+[ RUN      ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace
+[       OK ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace (344 ms)
+[ RUN      ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect
+[       OK ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect (388 ms)
+[ RUN      ] BpmV2LinesTest.ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence
+[       OK ] BpmV2LinesTest.ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence (368 ms)
+[ RUN      ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace
+[       OK ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace (362 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames
+[       OK ] BpmV2LinesTest.ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames (1510 ms)
+[ RUN      ] BpmV2LinesTest.NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot
+[       OK ] BpmV2LinesTest.NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot (663 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup
+[       OK ] BpmV2LinesTest.ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup (1375 ms)
+[ RUN      ] BpmV2LinesTest.NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot
+[       OK ] BpmV2LinesTest.NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot (343 ms)
+[ RUN      ] BpmV2LinesTest.ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted
+[       OK ] BpmV2LinesTest.ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted (186 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneFramePerPairIsNoPersistenceEvidence
+[       OK ] BpmV2LinesTest.ABurstInOneFramePerPairIsNoPersistenceEvidence (525 ms)
+[ RUN      ] BpmV2LinesTest.TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup
+[       OK ] BpmV2LinesTest.TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup (711 ms)
+[ RUN      ] BpmV2LinesTest.ASingleDeadPixelOrASmallBlockIsNotALine
+[       OK ] BpmV2LinesTest.ASingleDeadPixelOrASmallBlockIsNotALine (334 ms)
+[ RUN      ] BpmV2LinesTest.LinesInsideTheMarginsAreNotCounted
+[       OK ] BpmV2LinesTest.LinesInsideTheMarginsAreNotCounted (380 ms)
+[ RUN      ] BpmV2LinesTest.ConfigurationAndBuffersAreChecked
+[       OK ] BpmV2LinesTest.ConfigurationAndBuffersAreChecked (60 ms)
+[ RUN      ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize
+[       OK ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize (0 ms)
+[ RUN      ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+[       OK ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot (357 ms)
+[ RUN      ] BpmV2LinesTest.AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups
+[       OK ] BpmV2LinesTest.AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups (499 ms)
+[----------] 22 tests from BpmV2LinesTest (11225 ms total)
+
+[----------] Global test environment tear-down
+[==========] 72 tests from 5 test suites ran. (163580 ms total)
+[  PASSED  ] 72 tests.

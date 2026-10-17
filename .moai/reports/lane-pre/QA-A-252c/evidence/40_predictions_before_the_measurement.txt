@@ -1,0 +1,16 @@
+QA-A-252c predictions for the re-measurement (written and committed before it is run).
+Basis: measurement B of QA-A-252b (script 144_measure_steps_margins.sh.txt there; maps v2c_*), which used the planted darks Dark_08..14 with every frame used.
+What changes in this run: (a) the imaging area leaves the map as its own mask (--area) and the map is 0 outside it, instead of code 4; (b) the clean run takes the RAW dark list
+Dark_07..14 with the default first-dark skip, which uses Dark_08..14 again; (c) score reads the mask with --area. The planted frames of inj_b exist for Dark_08..14 only (the
+injection derives sigma_t from the dark frames it is given, so a planted Dark_07 would be a different injection), so the planted run and the two halves pass
+--skip-first-dark 0 explicitly: the list is trimmed already.
+
+ Q1 clean run: inside the imaging area the map and the feature bits are identical byte for byte to v2c_clean (same seven frames, same order). Outside the area the map is 0 here
+    and 4 in v2c. Confidence 95 %.
+ Q2 planted run and the two halves: inside the area identical to v2c_planted / v2c_half_a / v2c_half_b; outside 0 instead of 4. Confidence 95 %.
+ Q3 score: every number equals measurement B: new false alarms 12, control bands 0 / 12, Jaccard 0.7834 (inside 0.7953, outside 0.5933), recall table unchanged.
+    The old score read code 4 as not-a-flag; the new one reads the area mask; the pixels excluded are the same 30,699. Confidence 95 %.
+ Q4 report JSON: out_of_area_pixels 30699, pixels 9406485, dark_frames_used 7 in the clean run (8 listed, first skipped) and 7 in the planted run (7 listed, none skipped).
+    Confidence 90 %.
+ Q5 area mask file: 9,437,184 bytes, 30,699 zeros. Confidence 95 %.
+If any of Q1-Q3 fails the difference is to be explained, not hidden.

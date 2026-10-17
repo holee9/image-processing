@@ -1,0 +1,117 @@
+"""QA-A-252b: the three measured runs side by side, read from the saved maps.
+ v2  = QA-A-252 first measurement (original row/column components)
+ v2b = R1 R2 R3 R4 without the imaging-area margins (measurement A, run before the user's edge decision arrived)
+ v2c = R1 R2 R3 R4 with the margins 6,2,1,1 (measurement B)
+Code 4 in a map (outside the imaging area) is not a flag. Reads existing artifacts only."""
+import json
+import numpy as np
+
+D = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252b/evidence/'
+W = H = 3072
+FEAT = ['dark_mean', 'dark_noise', 'dose_slope', 'dose_linearity', 'flat_field', 'bright_noise']
+ids = np.fromfile(D + 'inj_b/truth_ids.u16', dtype=np.uint16).reshape(H, W)
+items = {}
+for line in open(D + 'inj_b/truth.tsv', encoding='utf-8'):
+    q = line.rstrip(chr(10)).split(chr(9))
+    if len(q) == 6 and q[0].isdigit():
+        items[int(q[0])] = (q[1], q[2], q[3], q[4], [tuple(int(v) for v in r.split(',')) for r in q[5].split(';')])
+
+
+def dil(m, r):
+    o = m.copy()
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
+            xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+            o[yd, xd] |= m[ys, xs]
+    return o
+
+
+real = np.zeros((H, W), bool)
+for c, k, s, lv, rects in items.values():
+    if c != 'control':
+        for (x, y, w, h) in rects:
+            real[y:y + h, x:x + w] = True
+wide = dil(real, 2)
+ctrl_ids = [i for i, v in items.items() if v[0] == 'control']
+ctrl = np.isin(ids, ctrl_ids)
+row_line = np.zeros(H, bool); col_line = np.zeros(W, bool)
+for i, (c, k, s, lv, rects) in items.items():
+    if c == 'line':
+        for (x, y, w, h) in rects:
+            if w > h: row_line[y:y + h] = True
+            else: col_line[x:x + w] = True
+pix_blk = np.zeros((H, W), bool)
+for c, k, s, lv, rects in items.values():
+    if c in ('pixel', 'block'):
+        for (x, y, w, h) in rects:
+            pix_blk[y:y + h, x:x + w] = True
+near_pb = dil(pix_blk, 10)
+yy, xx = np.indices((H, W))
+edge = np.minimum(np.minimum(yy, H - 1 - yy), np.minimum(xx, W - 1 - xx))
+inside = ids != 0
+
+
+def load(name):
+    m = np.fromfile(D + name, dtype=np.uint8).reshape(H, W)
+    return m != 0, m == 4
+
+
+runs = {'v2 (252 first)': ('v2_planted.u8', 'v2_clean.u8', 'v2_half_a.u8', 'v2_half_b.u8', '72_metrics_score.json'),
+        'v2b (A: no margins)': ('v2b_planted.u8', 'v2b_clean.u8', 'v2b_half_a.u8', 'v2b_half_b.u8', None),
+        'v2c (B: margins 6,2,1,1)': ('v2c_planted.u8', 'v2c_clean.u8', 'v2c_half_a.u8', 'v2c_half_b.u8', None)}
+for title, (pn, cn, an, bn, _) in runs.items():
+    mp, oap = load(pn); mc, oac = load(cn); ma, _ = load(an); mb, _ = load(bn)
+    mp &= ~oap; mc &= ~oac; ma &= ~load(an)[1]; mb &= ~load(bn)[1]
+    print('=' * 100)
+    print(title)
+    print(' clean-image flags: %d (border <8 px: %d; interior: %d)' % (mc.sum(), (mc & (edge < 8)).sum(), (mc & (edge >= 8)).sum()))
+    ex = np.zeros((H, W), bool)
+    ex[:, 0:6] = True; ex[0:2, :] = True; ex[:, 3071] = True; ex[3071, :] = True
+    print('  of which inside the six+two+one+one excluded lines: %d; in the 8-pixel border but not excluded: %d' % ((mc & ex).sum(), (mc & (edge < 8) & ~ex).sum()))
+    print('  remaining slightly raised lines (flags in the clean image): row2 %d, row3 %d, row3070 %d, col6 %d, col7 %d, col3070 %d' % (mc[2].sum(), mc[3].sum(), mc[3070].sum(), mc[:, 6].sum(), mc[:, 7].sum(), mc[:, 3070].sum()))
+    print(' out-of-area pixels: planted %d, clean %d' % (oap.sum(), oac.sum()))
+    new = mp & ~mc & ~wide
+    total = int(new.sum())
+    rem = new.copy()
+    m1 = rem & ctrl; rem &= ~m1
+    m2 = rem & (row_line[:, None] | col_line[None, :]); rem &= ~m2
+    m3 = rem & near_pb; rem &= ~m3
+    print(' new false alarms: %d = control bands %d (fixed %d, gain %d, varying %d) + rows/columns carrying a planted line %d + within 10 px of a pixel/block %d + everything else %d; of the total on the border (<8 px) %d' % (
+        total, m1.sum(), *(int((m1 & np.isin(ids, [i for i, v in items.items() if v[0] == 'control' and v[1] == kd])).sum()) for kd in ('fixed_band', 'gain_band', 'varying_band')),
+        m2.sum(), m3.sum(), rem.sum(), (new & (edge < 8)).sum()))
+    inner = new & (edge >= 8)
+    print('  interior new false alarms: %d' % inner.sum())
+    for name, a, b in (('all', None, None), ('inside planted items', inside, None), ('outside', ~inside, None)):
+        x = ma & a if a is not None else ma
+        y = mb & a if a is not None else mb
+        u = (x | y).sum()
+        print(' Jaccard %-22s %.4f (%d / %d)' % (name, (x & y).sum() / u if u else float('nan'), (x & y).sum(), u))
+    # disagreement inside items by class/kind
+    rows = {}
+    for iid, (c, k, s, lv, rects) in items.items():
+        m = ids == iid
+        if not m.any(): continue
+        r = rows.setdefault('%s/%s' % (c, k), [0, 0])
+        r[0] += int(((ma ^ mb) & m).sum()); r[1] += int(((ma | mb) & m).sum())
+    top = sorted(rows.items(), key=lambda kv: -kv[1][0])[:4]
+    print('  disagreement inside items, largest: ' + '; '.join('%s xor %d (union %d)' % (k, v[0], v[1]) for k, v in top))
+
+print('=' * 100)
+for fn in ('../../QA-A-252/evidence/72_metrics_score.json.txt', '112_metrics_score.json', '143_metrics_score.json'):
+    s = json.load(open(EV + fn, encoding='utf-8'))
+    det = {d['group']: d for d in s['detection']}
+    pick = ['pixel/dead/pixel/1', 'pixel/hot/pixel/200', 'pixel/hot/pixel/100', 'pixel/hot/pixel/50', 'pixel/hot/pixel/25', 'pixel/slope/pixel/0.9', 'pixel/slope/pixel/1.1', 'pixel/slope/pixel/0.75',
+            'pixel/slope/pixel/1.25', 'pixel/nonlinear/pixel/0.2', 'pixel/nonlinear/pixel/0.4', 'pixel/noisy/pixel/4', 'pixel/noisy/pixel/2', 'pixel/noisy/pixel/1']
+    print(fn, '| flagged', s['flagged'], 'new_fa', s['new_false_alarms'], 'in_controls', s['new_false_alarms_in_controls'], 'control_false', s['control_false_detections'], '/', s['control_items'],
+          'jaccard', round(s['jaccard_all'], 4), round(s['jaccard_inside_truth'], 4), round(s['jaccard_outside_truth'], 4))
+    print('   recall: ' + ', '.join('%s %.3f' % (g.split('/', 1)[1], det[g]['mean_recall']) for g in pick))
+    blocks = [d for d in s['detection'] if d['group'].startswith('block/')]
+    print('   blocks detected %d / %d' % (sum(d['detected'] for d in blocks), sum(d['items'] for d in blocks)))
+    lines = [d for d in s['detection'] if d['group'].startswith('line/')]
+    kinds = {}
+    for d in lines:
+        k = d['group'].split('/')[1] + '/' + d['group'].split('/')[2].split('_')[1] if '_' in d['group'].split('/')[2] else d['group']
+        kinds.setdefault(d['group'].split('/')[1], [0, 0]); kinds[d['group'].split('/')[1]][0] += d['detected']; kinds[d['group'].split('/')[1]][1] += d['items']
+    print('   lines detected (items): ' + ', '.join('%s %d/%d' % (k, v[0], v[1]) for k, v in kinds.items()))

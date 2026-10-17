@@ -1,0 +1,17 @@
+QA-A-252i mutation check of the reference exclusion (src/xpe_bpm_v2.cpp). Source hash at the start: 5aecaf000ef677be
+PREDICTIONS (written before any run):
+  X1 the line mask is not used (design run: 5 flagged without the exclusion, 0 with it) -> red: TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector only
+  X2 the masked median reads the excluded pixels too (the exclusion test is inverted: only excluded pixels are used) -> red: the same test only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 47 passed, failed: []
+--- X1
+build: BUILD_EXIT=0
+tests exit 1: 46 passed, FAILED: ['TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector']
+--- X2
+build: BUILD_EXIT=0
+tests exit 1: 46 passed, FAILED: ['TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector']
+--- restored: touch + rebuild
+source hash now: 5aecaf000ef677be (start: 5aecaf000ef677be)
+build: BUILD_EXIT=0
