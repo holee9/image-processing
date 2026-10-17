@@ -1,0 +1,57 @@
+"""QA-A-270 item 1 (stage 3): the refuting measurement of the line-end hypothesis H-end. If the detector's line stretches end a few pixels beyond a partial true line item, the same overshoot must show on ALL partial true line items it detects,
+not only on the 7 + 1 pixels that became new false alarms. For every detected line record whose index and stretch fall on a true non-control partial line item (rect length < 3072), the offset of the stretch start and end to the true rect.
+Control: full-length true line items (the stretch cannot overshoot the frame) must show offsets 0, and the stretches of the SAME records are the ones that produced the 8 pixels. Reads files only.
+Usage: python -X utf8 40_line_end_overshoot.py.txt > 41_line_end_overshoot.txt"""
+import numpy as np
+
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/'
+exec(compile(open(HERE + '20_classify_48.py.txt', encoding='utf-8').read().split('rows = []')[0], '20_head', 'exec'), globals())
+recs = []
+for i, l in enumerate(open(EV8 + '51_lines_v2.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = l.rstrip('\n').split('\t')
+    st = []
+    for s in c[12].split(';'):
+        ln, rng = s.split(':')
+        a, b = rng.split('-')
+        st.append((int(ln), int(a), int(b)))
+    recs.append(dict(orient='row' if c[1] == 'row' else 'col', index=int(c[2]), width=int(c[3]), stretches=st))
+print('detected line records: %d' % len(recs))
+rows_out = []
+for k, it in sorted(items.items()):
+    if cls[k] in ('control',):
+        continue
+    for (x, y, w, h) in it['rects']:
+        if h == 1 or h == 2 or w == 1 or w == 2:
+            horiz = w > h
+            if horiz and w < 3 or not horiz and h < 3:
+                continue
+            length = w if horiz else h
+            start = x if horiz else y
+            lines_idx = [y + j for j in range(h)] if horiz else [x + j for j in range(w)]
+            for r in recs:
+                if r['orient'] != ('row' if horiz else 'col'):
+                    continue
+                for (ln, a, b) in r['stretches']:
+                    if ln in lines_idx and not (b <= start or a >= start + length):
+                        rows_out.append((k, items[k]['kind'], items[k]['shape'], items[k]['level'], 'row' if horiz else 'col', ln, length, a - start, b - (start + length)))
+partial = [r for r in rows_out if r[6] < S]
+fulls = [r for r in rows_out if r[6] >= S]
+print('stretches overlapping a true non-control line rect: %d (partial-length items %d, full-length items %d)' % (len(rows_out), len(partial), len(fulls)))
+print('== partial-length true line items: offset of the detected stretch to the true rect (start offset, end offset; 0 = exact, positive end offset = overshoot past the true end, negative start offset = begins before the true start)')
+sa = np.array([r[7] for r in partial])
+ea = np.array([r[8] for r in partial])
+print('  stretches %d; start offset: median %.1f, min %d, max %d, share != 0: %.3f; end offset: median %.1f, min %d, max %d, share != 0: %.3f' % (len(partial), np.median(sa), sa.min(), sa.max(), np.mean(sa != 0), np.median(ea), ea.min(), ea.max(), np.mean(ea != 0)))
+print('  histogram of start offsets: ' + ', '.join('%d:%d' % (v, int((sa == v).sum())) for v in sorted(set(sa.tolist()))))
+print('  histogram of end offsets:   ' + ', '.join('%d:%d' % (v, int((ea == v).sum())) for v in sorted(set(ea.tolist()))))
+print('  by kind (end offset != 0 / stretches):')
+kinds = sorted(set(r[1] for r in partial))
+for kd in kinds:
+    sel = [r for r in partial if r[1] == kd]
+    print('    %-16s %2d / %2d   start != 0: %2d' % (kd, sum(1 for r in sel if r[8] != 0), len(sel), sum(1 for r in sel if r[7] != 0)))
+print('== control, full-length true line items: stretches %d, start offset != 0: %d, end offset != 0: %d' % (len(fulls), sum(1 for r in fulls if r[7] != 0), sum(1 for r in fulls if r[8] != 0)))
+newfa = [(int(x), int(y)) for y, x in zip(ys, xs) if lines[y, x] and ids[y, x] == 0 and feat[y, x] == 0]
+print('== the 8 new false alarms of the line mask versus all overshooting pixels beyond the dilated zone (zone = true + 2): overshoot pixels with offset > 2 in total = %d (counted per stretch end, pixel count = offset - 2)' % int(sum(max(0, r[8] - 2) + max(0, -r[7] - 2) for r in partial)))
+print('   new false alarms from the line mask: %d (these are the pixels beyond +2, per stretch)' % len(newfa))

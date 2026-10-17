@@ -1,0 +1,24 @@
+flagged bright-noise pixels on control bands: 31
+== H-real: mean d of the flagged pixels against the other pixels of the same band
+  item 101: flagged 14  mean d flagged     2064.3  mean d rest of band     1579.8  ratio 1.31  difference 484.5 = 0.31 SE
+  item 100: flagged 10  mean d flagged     1078.3  mean d rest of band     2054.5  ratio 0.52  difference -976.2 = -0.49 SE
+  item 104: flagged  3  mean d flagged     1533.8  mean d rest of band     2045.5  ratio 0.75  difference -511.6 = -0.26 SE
+  item 103: flagged  2  mean d flagged      820.0  mean d rest of band     2094.5  ratio 0.39  difference -1274.5 = -0.64 SE
+  item 110: flagged  1  mean d flagged      220.5  mean d rest of band     2585.8  ratio 0.09  difference -2365.3 = -0.90 SE
+  item 106: flagged  1  mean d flagged      450.0  mean d rest of band     2460.3  ratio 0.18  difference -2010.3 = -0.76 SE
+  pooled (weights = flagged counts): mean d flagged 1503.1, rest 1872.0, ratio 0.80
+== control (positive): pixels of the planted noisy items against the same-row/column neighbours outside every item
+  noisy items: 13; mean d inside the item / mean d in the 6-pixel ring: min 0.94 median 1.03 max 1.16
+== control (negative): 200 draws of 31 random pixels from the same six bands (same per-band counts), the same SE procedure; spread of the pooled ratio
+  random pooled ratio: mean 0.976, sd 0.235, 2.5 % 0.526, 97.5 % 1.445
+== H-edge (from 21_pixels_48.tsv.txt)
+  31 pixels: across all 0 (bands [1, 2] pixels thick: trivially on the edge, not testable); along (pixels from the nearer band end): min 9, share within 2 of an end 0.000; uniform expectation about 0.0052
+== H-tail (committed expectation, 12_expected_flags_h_tail.txt): observed 14 / 10 / 3 / 2 / 1 / 1 against upper expectations 11.15 / 12.96 / 7.35 / 2.05 / 0.24 / 0.91; sum 31 against 34.66
+   rule: observed <= upper expectation = explained by the tail
+   item 101 observed 14 upper 11.15 -> exceeds
+   item 100 observed 10 upper 12.96 -> explained
+   item 104 observed  3 upper  7.35 -> explained
+   item 103 observed  2 upper  2.05 -> explained
+   item 110 observed  1 upper  0.24 -> exceeds
+   item 106 observed  1 upper  0.91 -> exceeds
+   sum observed 31 upper 34.66 -> explained

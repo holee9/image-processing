@@ -1,0 +1,157 @@
+"""QA-A-270 item 2 (stage 1): re-run the correction pipeline from Python (ctypes, same library, same configurations as the evaluation tool's `correct` command) for both editions and both evaluation frames and keep the per-pixel outputs:
+C (clean set, defect correction on), I (planted set, correction on), U (planted set, defect correction bypassed). Then reproduce the tool's numbers: control Z0 = per (frame, group) median |I - C| / sigma_local(C) equals the tool's JSON
+(QA-A-260 44_correct_v1.json.txt / 45_correct_v2.json.txt, field correction_error[].corrected.median_z) within 0.002 for every cell, and the count of cells where the second edition is larger (rule of QA-A-256 21_tabulate.py.txt: median_z(v2) > median_z(v1) + 1e-9) is 118 of 178.
+Writes the arrays to D:/workspace-github/xpe-data/bpm-eval-270/ (outside the repository) and the summary to 61_zrun.txt. Reads files, runs the library; changes nothing. Usage: python -X utf8 60_correct_zrun.py.txt"""
+import ctypes
+import json
+import os
+import numpy as np
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+BIN = ROOT + 'build/ci-preprocess/bin/'
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+INJ = IN + 'inj_d/frames/'
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+O70 = 'D:/workspace-github/xpe-data/bpm-eval-270/'
+HERE = ROOT + '.moai/reports/lane-pre/QA-A-270/evidence/'
+EV8 = ROOT + '.moai/reports/lane-pre/QA-A-260/evidence/'
+S = 3072
+os.makedirs(O70, exist_ok=True)
+os.add_dll_directory(os.path.abspath(BIN))
+os.environ['PATH'] = os.path.abspath(BIN) + os.pathsep + os.environ.get('PATH', '')
+common = ctypes.CDLL(os.path.abspath(BIN + 'xpe_common.dll'))
+lib = ctypes.CDLL(os.path.abspath(BIN + 'xpe_preprocess.dll'))
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32), ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p), ('dataSize', ctypes.c_size_t)]
+
+
+class Meta(ctypes.Structure):
+    _fields_ = [('bodyPart', ctypes.c_char * 64), ('kVp', ctypes.c_float), ('mAs', ctypes.c_float), ('SID_mm', ctypes.c_float), ('pixelPitch_mm', ctypes.c_float), ('acquisitionTime', ctypes.c_uint64), ('flags', ctypes.c_uint32)]
+
+
+assert ctypes.sizeof(Buf) == 40, ctypes.sizeof(Buf)
+lib.xpe_preprocess_init.argtypes = [ctypes.c_char_p]
+lib.xpe_calib_load_offset.argtypes = lib.xpe_calib_load_gain.argtypes = lib.xpe_calib_load_defect_map.argtypes = [ctypes.c_char_p]
+lib.xpe_preprocess_pipeline_out.argtypes = [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta), ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p]
+rc = lib.xpe_preprocess_init(None)
+assert rc == 0, rc
+CFG_FINAL = b'{"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true}'
+CFG_NODEFECT = b'{"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassDefect":true}'
+
+
+def load_set(d):
+    common.xpe_clear_alerts()
+    for fn, nm in ((lib.xpe_calib_load_offset, 'offset'), (lib.xpe_calib_load_gain, 'gain'), (lib.xpe_calib_load_defect_map, 'defect')):
+        r = fn((d + '/' + nm + '.xcal').encode())
+        assert r == 0, (nm, r)
+
+
+def run(frame, cfg):
+    raw = np.fromfile(frame, dtype='<u2')
+    assert raw.size == S * S
+    out = np.zeros(S * S, dtype=np.float32)
+    i = Buf(S, S, 16, 16, 0, raw.ctypes.data, raw.nbytes)
+    o = Buf(S, S, 32, 32, 1, out.ctypes.data, out.nbytes)
+    m = Meta()
+    r = lib.xpe_preprocess_pipeline_out(ctypes.byref(i), ctypes.byref(o), ctypes.byref(m), None, None, cfg)
+    common.xpe_clear_alerts()
+    assert r == 0, r
+    return out.reshape(S, S)
+
+
+for ed in ('v1', 'v2'):
+    for f in (29, 30):
+        if os.path.exists(O70 + 'U_%s_%d.npy' % (ed, f)):
+            continue   # arrays of an earlier run of this script (same inputs)
+        load_set(O60 + 'clean_set_' + ed)
+        np.save(O70 + 'C_%s_%d.npy' % (ed, f), run(CAL + 'Bright_%d.raw' % f, CFG_FINAL))
+        load_set(O60 + 'inj_set_' + ed)
+        np.save(O70 + 'I_%s_%d.npy' % (ed, f), run(INJ + 'Bright_%d.raw' % f, CFG_FINAL))
+        np.save(O70 + 'U_%s_%d.npy' % (ed, f), run(INJ + 'Bright_%d.raw' % f, CFG_NODEFECT))
+        print('pipeline done: %s frame %d' % (ed, f), flush=True)
+
+# ---- the tool's groups
+items = {}
+for line in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = dict(cls0=c[1], kind=c[2], shape=c[3], level=c[4], rects=[tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+
+
+def sigma_local(C):
+    """population standard deviation over the 11 x 11 window (clipped at the border) of C, as the tool computes it"""
+    x = C.astype(np.float64) - float(np.median(C))
+    out = {}
+    def box(a):
+        p = np.pad(a, ((1, 0), (1, 0)))
+        cs = np.cumsum(np.cumsum(p, axis=0), axis=1)
+        idx = np.arange(S)
+        lo, hi = np.maximum(idx - 5, 0), np.minimum(idx + 5, S - 1) + 1
+        return cs[hi][:, hi] - cs[lo][:, hi] - cs[hi][:, lo] + cs[lo][:, lo]
+    s1, s2 = box(x), box(x * x)
+    idx = np.arange(S)
+    cnt = (np.minimum(idx + 5, S - 1) + 1 - np.maximum(idx - 5, 0)).astype(np.float64)
+    m = cnt[:, None] * cnt[None, :]
+    mean = s1 / m
+    return np.sqrt(np.maximum(0.0, s2 / m - mean * mean))
+
+
+KEYS = {}
+for k, it in items.items():
+    if it['cls0'] == 'control':
+        continue
+    KEYS[k] = it['cls0'] + '/' + it['kind'] + '/' + it['shape'] + '/' + it['level']
+log = []
+
+
+def P(s=''):
+    print(s)
+    log.append(s)
+
+
+res = {}
+for ed, jf in (('v1', '44_correct_v1.json.txt'), ('v2', '45_correct_v2.json.txt')):
+    jd = json.load(open(EV8 + jf, encoding='utf-8'))
+    for fi, f in enumerate((29, 30)):
+        C = np.load(O70 + 'C_%s_%d.npy' % (ed, f))
+        I = np.load(O70 + 'I_%s_%d.npy' % (ed, f))
+        sl = sigma_local(C)
+        z = np.abs(I.astype(np.float64) - C.astype(np.float64)) / np.where(sl > 0, sl, np.nan)
+        np.save(O70 + 'Z_%s_%d.npy' % (ed, f), z.astype(np.float32))
+        med = {}
+        for g in jd['frames'][fi]['correction_error']:
+            med[g['group']] = g['corrected']['median_z']
+        bykey = {}
+        for k, key in KEYS.items():
+            bykey.setdefault(key, []).append(k)
+        worst = 0.0
+        miss = 0
+        for key, ks in bykey.items():
+            m = np.isin(ids, ks)
+            zz = z[m]
+            zz = zz[np.isfinite(zz)]
+            mine = float(np.sort(zz)[zz.size // 2]) if zz.size else None   # the tool's median: v[floor(m / 2)] of the sorted values, the upper one for an even count
+            res[(ed, fi, key)] = mine
+            if key not in med or mine is None or med[key] in (None, 'uncomputable'):
+                miss += 1
+                continue
+            worst = max(worst, abs(mine - med[key]))
+        P('Z0 %s frame %d: groups %d, groups without a tool value %d, largest |difference| of the group median %.6f' % (ed, f, len(bykey), miss, worst))
+cells = 0
+bad = []
+for (ed, fi, key), v in res.items():
+    if ed != 'v1' or v is None:
+        continue
+    w = res.get(('v2', fi, key))
+    if w is None:
+        continue
+    cells += 1
+    if w > v + 1e-9:
+        bad.append((fi, key, v, w))
+P('Z0 cells compared %d, second edition larger %d (expect 178 and 118)' % (cells, len(bad)))
+open(HERE + '61_zrun.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(l.rstrip() for l in log) + '\n')
+json.dump([list(b) for b in bad], open(HERE + '62_cells_v2_larger.json.txt', 'w', encoding='utf-8', newline='\n'), ensure_ascii=False)

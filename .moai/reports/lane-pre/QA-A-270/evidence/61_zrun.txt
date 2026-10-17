@@ -1,0 +1,5 @@
+Z0 v1 frame 29: groups 89, groups without a tool value 0, largest |difference| of the group median 0.000000
+Z0 v1 frame 30: groups 89, groups without a tool value 0, largest |difference| of the group median 0.000000
+Z0 v2 frame 29: groups 89, groups without a tool value 0, largest |difference| of the group median 0.000000
+Z0 v2 frame 30: groups 89, groups without a tool value 0, largest |difference| of the group median 0.000000
+Z0 cells compared 178, second edition larger 118 (expect 178 and 118)

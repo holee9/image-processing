@@ -1,0 +1,4 @@
+v1 frame 29: undisturbed pixels 4517615, median z 1.6236, p95 1.9324 | truth line pixels (v2 line paths) 143026, median z 1.5360, p95 2.9091
+v1 frame 30: undisturbed pixels 4517615, median z 1.6211, p95 1.9280 | truth line pixels (v2 line paths) 143026, median z 1.5321, p95 2.9042
+v2 frame 29: undisturbed pixels 4462067, median z 1.6236, p95 1.9325 | truth line pixels (v2 line paths) 143026, median z 1.5986, p95 3.1144
+v2 frame 30: undisturbed pixels 4462067, median z 1.6211, p95 1.9281 | truth line pixels (v2 line paths) 143026, median z 1.5987, p95 3.1171

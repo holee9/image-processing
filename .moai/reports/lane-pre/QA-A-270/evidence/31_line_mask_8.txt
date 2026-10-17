@@ -1,0 +1,10 @@
+  pixel (1418,190): record row 189 width 2 strength 8.34 stretch 1418-2190; nearest true item 56 gain_loss/row_pair/0.44 rect (1422, 189, 768, 2) at Chebyshev 4 (dx 4 dy 0); row or column inside a ful
+  pixel (1419,190): record row 189 width 2 strength 8.34 stretch 1418-2190; nearest true item 56 gain_loss/row_pair/0.44 rect (1422, 189, 768, 2) at Chebyshev 3 (dx 3 dy 0); row or column inside a ful
+  pixel (1758,1111): record column 1758 width 2 strength 16.09 stretch 1111-1882; nearest true item 24 nonlinear/col_pair/0.2 rect (1758, 1114, 2, 768) at Chebyshev 3 (dx 0 dy 3); row or column inside
+  pixel (1902,1760): record column 1902 width 1 strength 11.45 stretch 990-1761; nearest true item 28 noisy/col_partial/4 rect (1902, 990, 1, 768) at Chebyshev 3 (dx 0 dy 3); row or column inside a fu
+  pixel (480,2222): record column 480 width 1 strength 13.53 stretch 1452-2225; nearest true item 85 efficiency_loss/col_partial/0.4 rect (480, 1452, 1, 768) at Chebyshev 3 (dx 0 dy 3); row or column
+  pixel (480,2223): record column 480 width 1 strength 13.53 stretch 1452-2225; nearest true item 85 efficiency_loss/col_partial/0.4 rect (480, 1452, 1, 768) at Chebyshev 4 (dx 0 dy 4); row or column
+  pixel (480,2224): record column 480 width 1 strength 13.53 stretch 1452-2225; nearest true item 85 efficiency_loss/col_partial/0.4 rect (480, 1452, 1, 768) at Chebyshev 5 (dx 0 dy 5); row or column
+  pixel (162,2317): record column 162 width 2 strength 11.09 stretch 1547-2318; nearest true item 36 noisy/col_pair/2 rect (162, 1547, 2, 768) at Chebyshev 3 (dx 0 dy 3); row or column inside a full-l
+H-inject measure (committed): 0 of 8 pixels have a row or column crossed by a full-length true line item
+control: random pixels crossed by a full-length true line item: 7 of 1000 (0.007)

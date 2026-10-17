@@ -1,0 +1,34 @@
+cells 178, v2 larger 118
+== by class
+  block              cells   8  v2 larger   1  median diff +0.0000  min -0.0052  max +0.0136
+  line               cells 138  v2 larger 111  median diff +0.1390  min -0.0638  max +0.2686
+  pixel              cells  32  v2 larger   6  median diff +0.0000  min -0.2232  max +0.0766
+== by kind
+  dead               cells  24  v2 larger  13  median diff +0.0089  min -0.0136  max +0.2686
+  efficiency_loss    cells  42  v2 larger  30  median diff +0.1565  min -0.0391  max +0.2403
+  gain_loss          cells  42  v2 larger  33  median diff +0.1567  min -0.0402  max +0.2524
+  hot                cells   8  v2 larger   2  median diff -0.0210  min -0.2232  max +0.0766
+  noisy              cells  32  v2 larger  16  median diff +0.0004  min -0.1422  max +0.0940
+  nonlinear          cells  30  v2 larger  24  median diff +0.0482  min -0.0638  max +0.2253
+== by orientation / shape family (row, col, other)
+  block2             cells   2  v2 larger   0  median diff +0.0000  min +0.0000  max +0.0000
+  block3             cells   2  v2 larger   0  median diff +0.0000  min +0.0000  max +0.0000
+  block4             cells   2  v2 larger   0  median diff +0.0000  min +0.0000  max +0.0000
+  block8             cells   2  v2 larger   1  median diff +0.0042  min -0.0052  max +0.0136
+  col                cells  66  v2 larger  55  median diff +0.1390  min -0.0638  max +0.2284
+  cross              cells   6  v2 larger   5  median diff +0.1752  min -0.0191  max +0.1860
+  pixel              cells  32  v2 larger   6  median diff +0.0000  min -0.2232  max +0.0766
+  row                cells  66  v2 larger  51  median diff +0.0976  min -0.0391  max +0.2686
+== the cells where v2 is NOT larger (60): classes/kinds
+  block/dead: 7
+  line/dead: 2
+  line/efficiency_loss: 6
+  line/gain_loss: 4
+  line/noisy: 11
+  line/nonlinear: 4
+  pixel/dead: 2
+  pixel/efficiency_loss: 6
+  pixel/gain_loss: 5
+  pixel/hot: 6
+  pixel/noisy: 5
+  pixel/nonlinear: 2

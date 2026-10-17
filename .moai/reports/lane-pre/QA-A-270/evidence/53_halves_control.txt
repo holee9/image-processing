@@ -1,0 +1,3 @@
+true noisy defects, bright-noise bit set             pixels     0  in half A     0 (0.000)  in half B     0 (0.000)  in both     0 (0.000)
+the 31 on normal control bands                       pixels    31  in half A     1 (0.032)  in half B     2 (0.065)  in both     0 (0.000)
+all true defects (any kind), bright-noise bit set    pixels  2979  in half A  2975 (0.999)  in half B  2977 (0.999)  in both  2974 (0.998)

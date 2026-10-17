@@ -1,0 +1,139 @@
+"""QA-A-270 item 1 (stage 1): reproduce the 48 new false alarms (control A0), then one row per pixel with position, detector characteristics, half-split persistence and the relation to the two dark levels.
+Reads files only. The reproduction of the tool's rule is the one of QA-A-257 / QA-A-260 (executed from their scripts, pointed at the 260 files), checked against the tool's counts before anything is split.
+Usage: python -X utf8 20_classify_48.py.txt  (writes 21_pixels_48.tsv.txt and 22_classify_48.txt next to this file)"""
+import numpy as np
+
+EV7 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-257/evidence/'
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+INJ = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+code = open(EV7 + '20_diag_line_false_alarms.py.txt', encoding='utf-8').read()
+head = code[:code.index('# ---- causes of the flagged pixels')]
+head = head.replace("OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'", "OUT = 'D:/workspace-github/xpe-data/bpm-eval-260/'")
+head = head.replace("EV + '42_overlaps_v2.tsv.txt'", "EV8 + '42_overlaps_v2.tsv.txt'")
+head = head.replace("EV + '43_score_v2.json.txt'", "EV8 + '43_score_v2.json.txt'")
+g = {'EV8': EV8, '__name__': '__main__'}
+exec(compile(head, '20_diag_pointed_at_260', 'exec'), g)
+S = 3072
+new, in_control, items, cls, ids, area = g['new'], g['in_control'], g['items'], g['cls'], g['ids'], g['area']
+zone, truth_real, undet_mask, noise = g['zone'], g['truth_real'], g['undet_mask'], g['noise']
+ld = g['ld']
+log = []
+
+
+def P(s=''):
+    print(s)
+    log.append(s)
+
+
+ok = int(new.sum()) == 48 and int(in_control.sum()) == 31
+P('A0 reproduction: new false alarms %d (expect 48), on normal control items %d (expect 31), background %d (expect 17) -> %s' % (new.sum(), in_control.sum(), int((new & (ids == 0)).sum()), 'OK' if ok else 'NOT REPRODUCED'))
+if not ok:
+    raise SystemExit('stop: control A0 failed')
+
+feat = ld(OUT + 'v2_full_features.u8')
+lines = ld(OUT + 'v2_full_lines.u8') != 0
+ha = ld(OUT + 'v2_half_a.u8') != 0
+hb = ld(OUT + 'v2_half_b.u8') != 0
+# the dark levels: planted frames Dark_08..14, high group 08 09 10 12, low group 11 13 14
+hi_ids, lo_ids = ('08', '09', '10', '12'), ('11', '13', '14')
+
+
+def mean_frames(names):
+    acc = np.zeros((S, S), dtype=np.float64)
+    for n in names:
+        acc += np.fromfile(INJ + 'Dark_%s.raw' % n, dtype='<u2').reshape(S, S)
+    return acc / len(names)
+
+
+delta = mean_frames(hi_ids) - mean_frames(lo_ids)
+d_in = delta[area]
+med = float(np.median(d_in))
+mad = float(np.median(np.abs(d_in - med)) * 1.4826)
+P('dark levels: delta = mean(08,09,10,12) - mean(11,13,14); whole-area median %.4f, robust sigma %.4f' % (med, mad))
+
+ys, xs = np.nonzero(new)
+
+
+def item_geom(k, x, y):
+    """across = distance to the nearest long side of the rect holding the pixel (0 = the pixel is on an edge row/column); along = distance to the nearer end of the long axis; band thickness."""
+    for (rx, ry, rw, rh) in items[k]['rects']:
+        if rx <= x < rx + rw and ry <= y < ry + rh:
+            if rw >= rh:
+                return min(y - ry, ry + rh - 1 - y), min(x - rx, rx + rw - 1 - x), rh, rw
+            return min(x - rx, rx + rw - 1 - x), min(y - ry, ry + rh - 1 - y), rw, rh
+    return -1, -1, 0, 0
+
+
+def near_false_alarms(x, y, r=3):
+    y0, y1, x0, x1 = max(0, y - r), min(S, y + r + 1), max(0, x - r), min(S, x + r + 1)
+    return int(new[y0:y1, x0:x1].sum()) - 1
+
+
+def dist_to_zone(x, y, r=30):
+    y0, y1, x0, x1 = max(0, y - r), min(S, y + r + 1), max(0, x - r), min(S, x + r + 1)
+    sub = (truth_real | undet_mask)[y0:y1, x0:x1]
+    if not sub.any():
+        return 999
+    yy, xx = np.nonzero(sub)
+    return int(np.min(np.maximum(np.abs(yy + y0 - y), np.abs(xx + x0 - x))))
+
+
+def area_edge(x, y):
+    return int(min(x, y, S - 1 - x, S - 1 - y)) if area[y, x] else -1
+
+
+def bits(i, j):
+    n = []
+    if lines[i, j]:
+        n.append('line')
+    f = feat[i, j]
+    for b, nm in ((1, 'darkmean'), (2, 'darknoise'), (4, 'slope'), (8, 'linearity'), (16, 'flat'), (32, 'brightnoise')):
+        if f & b:
+            n.append(nm)
+    return '+'.join(n) if n else '(none)'
+
+
+rows = []
+for y, x in zip(ys, xs):
+    k = int(ids[y, x])
+    where = 'item %d %s/%s/%s' % (k, items[k]['kind'], items[k]['shape'], items[k]['level']) if k not in (0, 0xFFFF) else ('background' if k == 0 else 'shared')
+    ac, al, th, ln = item_geom(k, x, y) if k not in (0, 0xFFFF) else (-1, -1, 0, 0)
+    z = (delta[y, x] - med) / mad
+    rows.append(dict(x=int(x), y=int(y), where=where, item=k, across=ac, along=al, thick=th, length=ln, bits=bits(y, x), nb=near_false_alarms(x, y), zone=dist_to_zone(x, y), aedge=area_edge(x, y),
+                     ha=int(ha[y, x]), hb=int(hb[y, x]), dz=float(z), line_row=int(lines[y, :].sum()), line_col=int(lines[:, x].sum())))
+with open(HERE + '21_pixels_48.tsv.txt', 'w', encoding='utf-8', newline='\n') as f:
+    cols = ['x', 'y', 'where', 'bits', 'across', 'along', 'thick', 'length', 'nb', 'zone', 'aedge', 'ha', 'hb', 'dz', 'line_row', 'line_col']
+    f.write('\t'.join(cols) + '\n')
+    for r in rows:
+        f.write('\t'.join(('%.2f' % r[c]) if isinstance(r[c], float) else str(r[c]) for c in cols) + '\n')
+P('wrote 21_pixels_48.tsv.txt (%d rows)' % len(rows))
+
+P()
+P('== partition by class')
+for key in sorted(set((r['bits'], r['item'] != 0) for r in rows)):
+    sel = [r for r in rows if (r['bits'], r['item'] != 0) == key]
+    P('  %-16s %-12s %3d' % (key[0], 'control item' if key[1] else 'background', len(sel)))
+P()
+P('== persistence in the two half acquisitions (each pixel: on in half A, half B)')
+for lab, sel in (('control, bright noise (31)', [r for r in rows if r['item'] != 0 and r['bits'] == 'brightnoise']), ('background (17)', [r for r in rows if r['item'] == 0])):
+    P('  %-30s both %2d  only A %2d  only B %2d  neither %2d' % (lab, sum(1 for r in sel if r['ha'] and r['hb']), sum(1 for r in sel if r['ha'] and not r['hb']), sum(1 for r in sel if r['hb'] and not r['ha']), sum(1 for r in sel if not r['ha'] and not r['hb'])))
+P()
+P('== position of the 31 on the control bands (across = rows/columns from the nearest long side; along = pixels from the nearer end of the band)')
+by_item = {}
+for r in rows:
+    if r['item'] not in (0, 0xFFFF):
+        by_item.setdefault(r['item'], []).append(r)
+for k, rs in sorted(by_item.items()):
+    P('  item %d %s thickness %d length %d: flagged %d; across %s; along %s; neighbours within 3: %s' % (k, rs[0]['where'].split(' ', 2)[2], rs[0]['thick'], rs[0]['length'], len(rs), sorted(r['across'] for r in rs),
+                                                                                           sorted(r['along'] for r in rs), sorted(r['nb'] for r in rs)))
+P()
+P('== the background 17, one row each: x y class | nearest true/undetermined pixel (Chebyshev, 30 max) | distance to the imaging-area edge | row/column pixels with the line mask | dark-level z | halves')
+for r in sorted((r for r in rows if r['item'] == 0), key=lambda r: (r['bits'], r['y'], r['x'])):
+    P('  %4d %4d %-18s zone %3d aedge %4d linemask row %4d col %4d dz %6.2f halfA %d halfB %d neighbours %d' % (r['x'], r['y'], r['bits'], r['zone'], r['aedge'], r['line_row'], r['line_col'], r['dz'], r['ha'], r['hb'], r['nb']))
+P()
+P('dark-level z of the 8 dark-mean pixels: ' + ', '.join('%.2f' % r['dz'] for r in rows if r['bits'] == 'darkmean'))
+P('control for the dark-level z: |z|>=3 share among ALL area pixels %.4f; among the area pixels flagged dark_mean in the map (not only new false alarms) %.4f' % (
+    float(np.mean(np.abs((d_in - med) / mad) >= 3)), float(np.mean(np.abs((delta[area & ((feat & 1) != 0)] - med) / mad) >= 3))))
+open(HERE + '22_classify_48.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(l.rstrip() for l in log) + '\n')
