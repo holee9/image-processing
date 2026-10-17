@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -75,9 +76,24 @@ struct Stack {
     std::vector<std::vector<uint16_t>> dark, bright;
 };
 
+/** A seed offset for the held-out run (QA-A-258 measurement 2): the environment variable XPE_LOF_SEED_OFFSET shifts every seed; unset = 0 = the seeds the suite uses. */
+uint64_t seedOffset() {
+#ifdef _WIN32
+    char*  e = nullptr;
+    size_t len = 0;
+    if (_dupenv_s(&e, &len, "XPE_LOF_SEED_OFFSET") != 0 || e == nullptr) return 0u;
+    const uint64_t v = static_cast<uint64_t>(std::strtoull(e, nullptr, 10));
+    std::free(e);
+    return v;
+#else
+    const char* e = std::getenv("XPE_LOF_SEED_OFFSET");
+    return e ? static_cast<uint64_t>(std::strtoull(e, nullptr, 10)) : 0u;
+#endif
+}
+
 /** The frames: 8 raw dark frames (the detector skips the first) and the bright frames of the dose groups (sizes[g] frames at kSignals[g]). */
 Stack makeStack(uint64_t seed, const std::vector<int>& sizes, const std::vector<Region>& regions) {
-    Normal rng(seed);
+    Normal rng(seed + seedOffset());
     std::vector<int16_t> modOf(kN, -1);
     for (size_t r = 0; r < regions.size(); ++r)
         for (int y = regions[r].y0; y < regions[r].y1; ++y)
