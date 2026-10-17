@@ -1724,8 +1724,11 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     EXPECT_EQ(std::string::npos, j3.find("\"ratio_clean\": 0")) << "and is not 0";
     EXPECT_EQ(std::string::npos, lower(j3).find("nan"));
     EXPECT_EQ(std::string::npos, lower(j3).find("inf"));
-    const size_t pu = j3.find("\"parts_uncomputable\": {\"corrected\": ");
+    // the plain definition's counter is the LAST "parts_uncomputable" of the frame: the imaging-area contract (QA-A-265/267) has one of its own earlier in the JSON, and reading that one let a counter that
+    // dropped the plain uncomputable parts go unnoticed (found by the QA-A-267 re-run of the QA-A-251b mutant U13)
+    const size_t pu = j3.rfind("\"parts_uncomputable\": {\"corrected\": ");
     ASSERT_NE(std::string::npos, pu);
+    ASSERT_GT(pu, j3.find("\"area_contract\"")) << "the plain counter follows the area-contract block";
     EXPECT_NE(std::string::npos, j3.find("\"clean\": ", pu));
     EXPECT_GT(std::atoi(j3.c_str() + j3.find("\"clean\": ", pu) + 9), 0) << "uncomputable parts are counted, not dropped: " << j3.substr(pu, 200);
 }
