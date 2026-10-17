@@ -499,6 +499,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_fixture_gen.cpp
         # QA-A-251 (#273): defect-map evaluation tool (runs xpe_bpm_eval as a subprocess)
         tests/test_bpm_eval.cpp
+        tests/test_bpm_lines_lof.cpp
         # QA-A-252 (#273): second-generation pixel defect detection
         tests/test_bpm_v2.cpp
         # QA-A-37 (#140): XCAL_TYPE_GAIN_POLY read path
