@@ -1,0 +1,14 @@
+pixel/noisy/pixel/4          6 darks 37/64   7 darks 49/64
+pixel/noisy/pixel/2          6 darks 7/64   7 darks 8/64
+pixel/noisy/pixel/1          6 darks 0/64   7 darks 0/64
+pixel/hot/pixel/25           6 darks 64/64   7 darks 64/64
+pixel/hot/pixel/50           6 darks 64/64   7 darks 64/64
+pixel/nonlinear/pixel/0.2    6 darks 64/64   7 darks 64/64
+flagged                        6 darks 149191   7 darks 149343
+new_false_alarms               6 darks 47   7 darks 48
+new_false_alarms_in_controls   6 darks 31   7 darks 31
+control_false_detections       6 darks 0   7 darks 0
+jaccard_all                    6 darks 0.950022   7 darks 0.945697
+detection groups with a different detected count: 2
+    pixel/noisy/pixel/4 37 -> 49 of 64
+    pixel/noisy/pixel/2 7 -> 8 of 64
