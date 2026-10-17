@@ -699,6 +699,118 @@ TEST_F(BpmEvalQuantumTest, OverlapMeasurementOnFramesWithoutSignalWritesNoRespon
     EXPECT_GT(nominalNonZero, 0u) << "the nominal chain is still written, in the diagnostic column only";
 }
 
+TEST_F(BpmEvalQuantumTest, TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost) {
+    // QA-A-268 (Codex #238 R238-4): the cost of an overlapped pixel is (s2 / (g * g)) / expectation, with g the pixel's mean over the verification frames divided by the local mean. A gain loss multiplies the
+    // signal and the noise standard deviation by g, so its noise cost is 1: the gain factor must be divided out. The mutant that leaves g * g out of that expression survived every test before this one,
+    // because the groups are one to four pixels each and no test looked at a number computed from them.
+    // The reference is independent of the expression: the ideal cost the tool writes next to each group from the NOMINAL chain (1 / the product of the efficiencies; gain losses do not change it).
+    makeQuantumFrames();
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    std::string args = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / "nc.tsv").string() + "\" --overlap-out \"" + (root / "nc_overlaps.tsv").string() + "\"";
+    for (const auto& f : darks) args += " --dark \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+    for (const auto& f : evals) args += " --verify \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, args + " > \"" + (root / "nc.log").string() + "\" 2>&1")) << text(root / "nc.log");
+
+    struct Row { std::string items, kinds, label; size_t px, used; double cost, lo, hi, ideal; bool idealDefined; bool pooled; };
+    std::vector<Row> rows;
+    {
+        std::ifstream ov(root / "nc_overlaps.tsv");
+        std::string   l;
+        std::getline(ov, l);
+        while (std::getline(ov, l)) {
+            std::vector<std::string> c;
+            std::stringstream        ss(l);
+            std::string              cell;
+            while (std::getline(ss, cell, '\t')) c.push_back(cell);
+            ASSERT_EQ(18u, c.size()) << l;
+            Row r;
+            r.items = c[0];
+            r.kinds = c[1];
+            r.px = static_cast<size_t>(std::atoi(c[2].c_str()));
+            r.used = static_cast<size_t>(std::atoi(c[3].c_str()));
+            r.cost = std::atof(c[5].c_str());
+            r.lo = std::atof(c[6].c_str());
+            r.hi = std::atof(c[7].c_str());
+            r.label = c[8];
+            r.idealDefined = c[11] != "-";
+            r.ideal = r.idealDefined ? std::atof(c[11].c_str()) : 0.0;
+            r.pooled = c[12] == "pooled";
+            rows.push_back(r);
+        }
+    }
+    // (1) gain-only groups: the ideal cost is exactly 1. The mean cost over their pixels is the quantity the g * g division decides: about 1 with it, far above with a gain factor of 0.3 .. 0.7 left in.
+    double gainCost = 0.0;
+    size_t gainUsed = 0, gainGroups = 0, gainDefect = 0;
+    // (2) every group whose ideal cost is defined: the pixel-weighted ratio of the measured to the ideal cost
+    double sumCost = 0.0, sumIdeal = 0.0;
+    size_t idealUsed = 0;
+    for (const Row& r : rows) {
+        if (r.pooled || !r.idealDefined || r.used == 0) continue;
+        sumCost += r.cost * static_cast<double>(r.used);
+        sumIdeal += r.ideal * static_cast<double>(r.used);
+        idealUsed += r.used;
+        if (r.ideal == 1.0) {
+            gainCost += r.cost * static_cast<double>(r.used);
+            gainUsed += r.used;
+            ++gainGroups;
+            gainDefect += r.label == "defect" ? 1u : 0u;
+        }
+    }
+    ASSERT_GT(gainUsed, 60u) << "the fixture has gain-only overlaps with measured pixels";
+    ASSERT_GT(idealUsed, 300u);
+    const double gainMean = gainCost / static_cast<double>(gainUsed), ratio = sumCost / sumIdeal;
+    EXPECT_GT(gainMean, 0.7) << "gain-only overlaps: " << gainGroups << " groups, " << gainUsed << " pixels";
+    EXPECT_LT(gainMean, 1.5) << "a gain loss does not add noise cost; with g * g left out the mean cost is several times larger";
+    EXPECT_EQ(0u, gainDefect) << "no gain-only overlap is a noise defect";
+    EXPECT_GT(ratio, 0.8) << "measured over ideal, pixel weighted, all groups with an ideal cost";
+    EXPECT_LT(ratio, 1.7) << "measured over ideal, pixel weighted, all groups with an ideal cost";
+    // (3) the label of every group with a measured pixel follows its interval and the limit 2 (defect: lo >= 2, normal: hi < 2, else undetermined); rows within 0.001 of the limit are not judged (4-decimal output)
+    size_t judged = 0;
+    for (const Row& r : rows) {
+        if (r.used == 0) {
+            EXPECT_EQ("undetermined", r.label) << r.items;
+            continue;
+        }
+        if (std::fabs(r.lo - 2.0) < 1e-3 || std::fabs(r.hi - 2.0) < 1e-3) continue;
+        ++judged;
+        const char* expect = r.lo >= 2.0 ? "defect" : (r.hi < 2.0 ? "normal" : "undetermined");
+        EXPECT_EQ(expect, r.label) << (r.pooled ? "pooled " : "group ") << r.items << " " << r.kinds << " cost " << r.cost << " [" << r.lo << ", " << r.hi << "]";
+    }
+    EXPECT_GT(judged, 100u);
+    // (4) the pooled rows are the pixel-weighted sums of their groups: used pixels and cost * used agree with the groups of the same kinds and levels (shape left out)
+    std::map<std::string, std::pair<size_t, double>> fromGroups;
+    for (const Row& r : rows) {
+        if (r.pooled || r.used == 0) continue;
+        std::vector<std::string> parts;
+        std::stringstream        ss(r.kinds);
+        std::string              part;
+        while (std::getline(ss, part, '+')) {
+            while (!part.empty() && part.front() == ' ') part.erase(part.begin());
+            while (!part.empty() && part.back() == ' ') part.pop_back();
+            const size_t slash = part.find('/'), at = part.find('@');
+            ASSERT_NE(std::string::npos, slash) << r.kinds;
+            ASSERT_NE(std::string::npos, at) << r.kinds;
+            parts.push_back(part.substr(0, slash) + part.substr(at));
+        }
+        std::sort(parts.begin(), parts.end());
+        std::string key;
+        for (size_t k = 0; k < parts.size(); ++k) key += (k ? " + " : "") + parts[k];
+        fromGroups[key].first += r.used;
+        fromGroups[key].second += r.cost * static_cast<double>(r.used);
+    }
+    size_t pooledChecked = 0;
+    for (const Row& r : rows) {
+        if (!r.pooled || r.used == 0) continue;
+        const auto it = fromGroups.find(r.kinds);
+        ASSERT_NE(fromGroups.end(), it) << "no group for the pooled row " << r.kinds;
+        EXPECT_EQ(it->second.first, r.used) << r.kinds;
+        EXPECT_NEAR(it->second.second, r.cost * static_cast<double>(r.used), 5e-4 * static_cast<double>(r.used) + 5e-4 * static_cast<double>(it->second.first)) << r.kinds;
+        ++pooledChecked;
+    }
+    EXPECT_GT(pooledChecked, 20u);
+}
+
 TEST_F(BpmEvalQuantumTest, NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined) {
     makeQuantumFrames();
     const fs::path out = root / "t";
@@ -1731,6 +1843,35 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     ASSERT_GT(pu, j3.find("\"area_contract\"")) << "the plain counter follows the area-contract block";
     EXPECT_NE(std::string::npos, j3.find("\"clean\": ", pu));
     EXPECT_GT(std::atoi(j3.c_str() + j3.find("\"clean\": ", pu) + 9), 0) << "uncomputable parts are counted, not dropped: " << j3.substr(pu, 200);
+    {   // QA-A-268 (Codex #238 R238-2): the same constant clean output through the imaging-area contract, with NON-ZERO counts. The clean image has no noise, so none of its parts, rows or columns can be computed;
+        // the planted image (a real frame) can, so its counts are 0: the images are counted apart, and valid = geometry-measurable - uncomputable holds with a non-zero uncomputable.
+        auto intIn = [&](const std::string& block, const char* key, const char* field) {
+            const size_t g = j3.find(std::string("\"") + block + "\"");
+            if (g == std::string::npos) return -1;
+            const size_t k0 = j3.find(std::string("\"") + key + "\"", g);
+            if (k0 == std::string::npos) return -1;
+            const size_t k = j3.find(std::string("\"") + field + "\": ", k0);
+            return k == std::string::npos ? -1 : std::atoi(j3.c_str() + k + std::strlen(field) + 4);
+        };
+        const size_t ac = j3.find("\"area_contract\"");
+        ASSERT_NE(std::string::npos, ac) << j3.substr(0, 400);
+        const int meas = intAfter(j3, "area_contract", "geometry_measurable");
+        ASSERT_GT(meas, 0);
+        EXPECT_EQ(meas, intIn("area_contract", "parts_uncomputable", "clean")) << "every geometrically measurable part of a constant clean image is uncomputable";
+        EXPECT_EQ(0, intIn("area_contract", "parts_valid", "clean"));
+        EXPECT_EQ(0, intIn("area_contract", "parts_uncomputable", "corrected")) << "the planted image is a real frame: its counts stay apart from the clean image's";
+        EXPECT_EQ(meas, intIn("area_contract", "parts_valid", "corrected"));
+        EXPECT_EQ(0, intIn("area_contract", "parts_uncomputable", "no_fix"));
+        EXPECT_EQ(meas, intIn("area_contract", "parts_valid", "no_fix"));
+        for (const char* axis : {"other_rows", "other_columns"}) {
+            const int checked = intIn("area_contract", axis, "checked");
+            ASSERT_GT(checked, 0) << axis;
+            EXPECT_EQ(checked, intIn("area_contract", axis, "uncomputable_clean")) << axis << ": every line of a constant clean image is uncomputable";
+            EXPECT_EQ(0, intIn("area_contract", axis, "valid_clean")) << axis;
+            EXPECT_EQ(0, intIn("area_contract", axis, "uncomputable_corrected")) << axis;
+            EXPECT_EQ(checked, intIn("area_contract", axis, "valid_corrected")) << axis;
+        }
+    }
 }
 
 
