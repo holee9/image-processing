@@ -1,0 +1,20 @@
+V2 = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TITLE = 'QA-A-252f mutation check of the response judgement (src/xpe_bpm_v2.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252f/evidence/22_mutation_response_log.txt'
+FILT = 'BpmV2*'
+NL = bytes([10])
+PRED = [
+    '  R1 the row and column factors are taken out before the judgement again      -> red: TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage only (0.50 on the gain-0.8 row would read 0.50)',
+    '  R2 the slack removed from the lower bound (ratio < lo)                      -> red: TheResponseThresholdsAreExactAndTheInequalitiesAreFixed only (float(0.45) is below 0.45)',
+    '  R3 the upper bound flags exactly 1.5 (>= instead of >)                      -> red: TheResponseThresholdsAreExactAndTheInequalitiesAreFixed only',
+    '  R4 the slope pass records its cause as RESPONSE (no SLOPE bit)              -> red: the lines test that checks both bits only',
+    '  every other test stays green in each mutant',
+]
+HEAD = b'float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {' + NL
+MUTANTS = [
+    ('R1', V2, HEAD + b'    separableMedian(', HEAD + b'    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), true);' + NL + b'    separableMedian('),
+    ('R2', V2, b'if (ratio < lo - kRatioSlack || ratio > hi + kRatioSlack) {', b'if (ratio < lo || ratio > hi + kRatioSlack) {'),
+    ('R3', V2, b'if (ratio < lo - kRatioSlack || ratio > hi + kRatioSlack) {', b'if (ratio < lo - kRatioSlack || ratio >= hi - kRatioSlack) {'),
+    ('R4', V2, b'job->responseCause = XPE_BPM_LINE_CAUSE_SLOPE;', b'job->responseCause = XPE_BPM_LINE_CAUSE_RESPONSE;'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252f/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

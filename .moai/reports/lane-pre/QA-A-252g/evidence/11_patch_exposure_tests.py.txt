@@ -1,0 +1,57 @@
+"""QA-A-252g step 1 tests: frames of a dose group with different doses (-6 %, 0, +6 %), a grid of 144 efficiency-loss pixels (response 1/3, noise variance follows the signal) and a grid of
+144 gain-loss pixels (the whole value scaled by 1/3). The exposure variation is no pixel noise: the gain-loss pixels must not be flagged by the noise check, the efficiency-loss pixels are
+flagged at the theoretical rate (QA-A-252g/evidence/21_fixture_theory.out.txt: 0.152 per pixel, 21.8 +- 4.3 of 144)."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''    bool oneGroupNoisyPixel{false};''', '''    bool doseSpread{false};       // QA-A-252g: the three frames of every dose group differ in dose by -6 %, 0 and +6 % (an exposure variation common to all pixels)
+    bool gridPixels{false};       // QA-A-252g: 144 efficiency-loss pixels (response 1/3, x and y = 20 + 18 k) and 144 gain-loss pixels (the value x 1/3, x and y = 29 + 18 k)
+    bool oneGroupNoisyPixel{false};''')
+sub('''    auto put = [&](double net, bool bright, bool firstDark, int darkIdx, int brightIdx) {
+        std::vector<uint16_t> fr(kN);''',
+    '''    auto put = [&](double net, bool bright, bool firstDark, int darkIdx, int brightIdx) {
+        if (plant.doseSpread && bright && brightIdx >= 0) net *= 1.0 + 0.06 * (static_cast<double>(brightIdx % 3) - 1.0);
+        std::vector<uint16_t> fr(kN);''')
+sub('''            if (plant.respRowPixels) {''', '''            if (plant.gridPixels && x >= 20 && x <= 218 && y >= 20 && y <= 218 && (x - 20) % 18 == 0 && (y - 20) % 18 == 0) sig /= 3.0;
+            if (plant.respRowPixels) {''')
+sub('''            if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);''',
+    '''            if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);
+            if (bright && plant.gridPixels && x >= 29 && x <= 227 && y >= 29 && y <= 227 && (x - 29) % 18 == 0 && (y - 29) % 18 == 0) v = d + (v - d) / 3.0;''')
+
+marker = 'TEST(BpmV2Test, ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect) {'
+new = r'''TEST(BpmV2Test, TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup) {
+    // QA-A-252g: the dose of the frames of a group differs by 6 %. That variation is common to all pixels, it is no temporal noise of a pixel. A pixel of response 1/3 keeps 1/3 of it
+    // while the row and column means taken out carry all of it, and the gain correction multiplies the rest by 9: without taking the exposure out, every gain-loss pixel is flagged.
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    p.gridPixels = true;
+    p.doseSpread = true;
+    Frames f = makeFrames(51, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    int eff = 0, gain = 0;
+    for (int b = 0; b < 12; ++b)
+        for (int a = 0; a < 12; ++a) {
+            eff += (r.feat[static_cast<size_t>(20 + 18 * b) * kW + static_cast<size_t>(20 + 18 * a)] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) != 0;
+            gain += (r.feat[static_cast<size_t>(29 + 18 * b) * kW + static_cast<size_t>(29 + 18 * a)] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) != 0;
+        }
+    EXPECT_EQ(0, gain) << "gain-loss pixels (gain-corrected noise cost 1) are not noise defects";
+    EXPECT_GE(eff, 10) << "efficiency-loss pixels of cost 3 are found at the theoretical rate 0.152 per pixel (21.8 of 144, sd 4.3)";
+    EXPECT_LE(eff, 40);
+}
+
+'''
+assert s.count(marker) == 1
+s = s.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('exposure tests patched')

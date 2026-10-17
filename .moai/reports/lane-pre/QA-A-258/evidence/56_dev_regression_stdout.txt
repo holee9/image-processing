@@ -1,0 +1,12 @@
+G2_planted_v2 exit 0 seconds 169
+G4_clean_v2 exit 0 seconds 150
+X1_planted exit 0 seconds 0
+X3_clean exit 0 seconds 0
+H5_v2_lines_a exit 0 seconds 35
+H6_v2_lines_b exit 0 seconds 34
+P1_v2_features exit 0 seconds 113
+P2_v2_lines exit 0 seconds 49
+feature run map identical to the set defect plane
+S2_score_v2 exit 0 seconds 1
+C2_correct_v2 exit 0 seconds 2
+done

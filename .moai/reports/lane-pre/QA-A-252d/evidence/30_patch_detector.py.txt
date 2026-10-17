@@ -1,0 +1,119 @@
+cpp = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+hdr = 'D:/workspace-github/xpe-pre/modules/preprocess/include/xpe/preprocess_api.h'
+tool = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+
+
+def load(path):
+    s = open(path, encoding='utf-8', newline='').read()
+    return s.replace('\r\n', '\n'), '\r\n' in s
+
+
+def save(path, s, crlf):
+    open(path, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+S = {}
+
+
+def sub(old, new):
+    s = S['s']
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    S['s'] = s.replace(old, new)
+
+
+# ------------------------------------------------------------------------------------------------------------ header
+S['s'], crlf = load(hdr)
+sub('''    float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */''', '''    float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */
+    uint32_t weak_response_pixels;                            /**< Pixels whose response is from 45 % up to 70 % of the local median: not defects (SRS FUNC-022), counted for the record only */
+    float    response_ratio_low;                              /**< The response rule: a pixel is defective below this fraction of the local median response (0.45) */
+    float    response_ratio_high;                             /**< ... or above this fraction (1.5) */''')
+sub('''    uint32_t truncated;           /**< 1 when more groups were found than max_lines */''', '''    uint32_t truncated;           /**< 1 when more groups were found than max_lines */
+    uint32_t weak_response_stretches; /**< Stretches (rows and columns, counted once per orientation) whose response is from 45 % up to 70 % of their neighbours: not defects, counted for the record only */''')
+sub(''' * (median and median absolute deviation).''', ''' * (median and median absolute deviation), except the response of a pixel (QA-A-252d, SRS FUNC-022): that is judged by a RATIO rule, not by a z score. The response is the
+ * relative flat-field response (offset-corrected bright frames, summed over the dose groups) divided by its local median after the row and column factors are taken
+ * out; below 45 % or above 150 % is a defect, 45 % up to 70 % is a weak response that is only counted (report weak_response_pixels). The slope feature no longer flags pixels.''')
+save(hdr, S['s'], crlf)
+
+# ------------------------------------------------------------------------------------------------------------ detector
+S['s'], crlf = load(cpp)
+sub('''constexpr double kMadToSigma = 1.4826;''', '''constexpr double kMadToSigma = 1.4826;
+constexpr double kResponseLow = 0.45;       // SRS FUNC-022 (provisional, user decision): a response below 45 % of the local median is a defect
+constexpr double kResponseHigh = 1.5;       // ... above 150 %
+constexpr double kWeakResponseHigh = 0.7;   // 45 % up to 70 %: weak, counted only''')
+sub('''struct LineJob {
+    double           fa{1.0};''', '''struct LineJob {
+    bool             countWeak{false};   // count the weak-response stretches of the response feature being analysed
+    uint32_t         weak{0};
+    double           fa{1.0};''')
+sub('''    const double lo = 1.0 / std::sqrt(job->tol), hi = std::sqrt(job->tol);''', '''    const double lo = kResponseLow, hi = kResponseHigh;''')
+sub('''                if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;''', '''                if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;
+                else if (job->countWeak && g < kWeakResponseHigh) ++job->weak;''')
+sub('''/** Robust z feature:''', '''/**
+ * The response ratio rule (QA-A-252d, SRS FUNC-022): the row and column factors are taken out, the local median is the background, and a pixel whose feature is below
+ * @p lo or above @p hi times the background is defective. @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
+ */
+float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {
+    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), true);
+    separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
+    std::vector<float> sample;
+    sample.reserve(wk.n / 16 + 1);
+    for (size_t i = 0; i < wk.n; ++i) {
+        const double bg = static_cast<double>(wk.bg[i]);
+        if (!(std::fabs(bg) > 1e-12)) continue;
+        const double ratio = static_cast<double>(wk.feat[i]) / bg;
+        if (i % 16 == 0) sample.push_back(static_cast<float>(ratio));
+        if (ratio < lo || ratio > hi) {
+            (*flags)[i] = static_cast<uint8_t>((*flags)[i] | bit);
+            ++*count;
+        } else if (ratio < weakHi) {
+            ++*weak;
+        }
+    }
+    return sample.empty() ? 0.0f : medianOf(sample.data(), sample.size());
+}
+
+/** Robust z feature:''')
+# F3a: no pixel flagging any more
+sub('''    if (G >= 2) {
+        active[2] = 1;
+        const double dgx = static_cast<double>(G) * Sxx - Sx * Sx;
+        for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
+        threshold[2] = lambdaTwoSided;
+        if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        if (!(job && job->linesOnly)) scaleMed[2] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE, &flags, &counts[2]);''', '''    if (G >= 2) {
+        // The slope feature is retired as a pixel feature (QA-A-252d): a response is judged by the ratio rule on the flat-field response (F4). It stays as a line feature.
+        const double dgx = static_cast<double>(G) * Sxx - Sx * Sx;
+        if (job) {
+            for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
+            analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        }''')
+sub('''    for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>(Sn[i] / Sx);
+    threshold[4] = lambdaTwoSided;
+    if (job) analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+    if (!(job && job->linesOnly)) scaleMed[4] = flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4]);''', '''    for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>(Sn[i] / Sx);
+    threshold[4] = static_cast<float>(kResponseLow);
+    if (job) {
+        job->countWeak = true;   // the weak-response stretches are counted on this feature only (the slope feature sees the same lines)
+        analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        job->countWeak = false;
+    }
+    uint32_t weakResponse = 0;
+    if (!(job && job->linesOnly)) scaleMed[4] = flagResponseRatio(wk, st, kResponseLow, kResponseHigh, kWeakResponseHigh, XPE_BPM_V2_FEATURE_FLAT, &flags, &counts[4], &weakResponse);''')
+sub('''        report->flagged_union = unionCount;''', '''        report->flagged_union = unionCount;
+        report->weak_response_pixels = weakResponse;
+        report->response_ratio_low = static_cast<float>(kResponseLow);
+        report->response_ratio_high = static_cast<float>(kResponseHigh);''')
+sub('''    rep.lines = static_cast<uint32_t>(groups.size());''', '''    rep.lines = static_cast<uint32_t>(groups.size());
+    rep.weak_response_stretches = job.weak;''')
+save(cpp, S['s'], crlf)
+
+# ------------------------------------------------------------------------------------------------------------ tool reports (raw strings: the C++ text keeps its backslashes)
+S['s'], crlf = load(tool)
+sub(r'''    j += "  ],\n  \"flagged_union\": " + std::to_string(rep.flagged_union) + "\n}\n";''', r'''    j += "  ],\n  \"flagged_union\": " + std::to_string(rep.flagged_union) + ",\n  \"weak_response_pixels\": " + std::to_string(rep.weak_response_pixels) + ",\n  \"response_ratio_low\": " +
+         fmtLevel(static_cast<double>(rep.response_ratio_low)) + ",\n  \"response_ratio_high\": " + fmtLevel(static_cast<double>(rep.response_ratio_high)) + "\n}\n";''')
+sub(r'''"{\n  \"groups\": %u, \"row_groups\": %u, \"column_groups\": %u, \"full\": %u, \"partial\": %u, \"double\": %u, \"crossings\": %u,\n"
+                  "  \"max_adjacent\": %u, \"panel_reject\": %u, \"truncated\": %u, \"line_pixels\": %u, \"pixels\": %u,\n"''', r'''"{\n  \"groups\": %u, \"row_groups\": %u, \"column_groups\": %u, \"full\": %u, \"partial\": %u, \"double\": %u, \"crossings\": %u,\n"
+                  "  \"max_adjacent\": %u, \"panel_reject\": %u, \"truncated\": %u, \"line_pixels\": %u, \"pixels\": %u, \"weak_response_stretches\": %u,\n"''')
+sub('''rep.max_adjacent, rep.panel_reject, rep.truncated, rep.line_pixels, rep.pixels,''', '''rep.max_adjacent, rep.panel_reject, rep.truncated, rep.line_pixels, rep.pixels, rep.weak_response_stretches,''')
+save(tool, S['s'], crlf)
+print('detector patched')

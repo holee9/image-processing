@@ -1,0 +1,26 @@
+"""QA-A-260 item 0 (Codex #229 R229-1, R229-2): the generator metadata says what really happened."""
+P = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+s = open(P, encoding='utf-8', newline='').read()
+
+
+def rep(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:80])
+    s = s.replace(old, new)
+
+
+# R229-1: first_dark_excluded_by follows the real exclusion (generator | none)
+rep('''\\"first_dark_excluded_by\\":\\"generator\\",''',
+    '''\\"first_dark_excluded_by\\":\\"" + std::string(firstExcluded ? "generator" : "none") + "\\",''')
+rep('''\\"first_dark_excluded_by\\": \\"generator (once, before every stage)\\",\\n''',
+    '''\\"first_dark_excluded_by\\": \\"" + std::string(firstExcluded ? "generator (once, before every stage)" : "none (--keep-first-dark: the list is used as given)") + "\\",\\n''')
+# R229-2: the "one list" statement holds for the offset, the defect map and a gain reference that is the MEAN of the used darks; a reference of "none" or a file is a different thing
+rep('''    std::string darkPolicy = "  \\"dark_policy\\": {\\n    \\"first_dark_excluded\\": " + std::string(firstExcluded ? "true" : "false") + ",\\n    \\"one_list_for_all_stages\\": true,\\n    \\"stages\\": "
+                             "[\\"offset\\", \\"gain_dark_reference\\", \\"defect_map\\"],\\n    \\"given\\": [\\n";''',
+    '''    const bool        gainRefIsMean = opt.gainDarkRef == "mean";
+    const std::string gainRefText = gainRefIsMean ? "the mean of the used darks (same list)" : (refIsFile ? "the file " + jsonText(refLabel) + " (not from the dark list)" : "none (no dark reference is subtracted)");
+    std::string       darkPolicy = "  \\"dark_policy\\": {\\n    \\"first_dark_excluded\\": " + std::string(firstExcluded ? "true" : "false") + ",\\n    \\"one_list_for_all_stages\\": " + (gainRefIsMean ? "true" : "false") +
+                             ",\\n    \\"stages_on_the_used_list\\": " + (gainRefIsMean ? "[\\"offset\\", \\"gain_dark_reference\\", \\"defect_map\\"]" : "[\\"offset\\", \\"defect_map\\"]") +
+                             ",\\n    \\"gain_dark_reference\\": \\"" + gainRefText + "\\",\\n    \\"given\\": [\\n";''')
+open(P, 'w', encoding='utf-8', newline='').write(s)
+print('patched')

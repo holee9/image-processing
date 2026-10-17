@@ -1,0 +1,25 @@
+QA-A-255b mutation check (src/defect_correct.cpp). Source hash at the start: 7eb9a6a242ad9787
+PREDICTIONS (written before any run):
+  M1 markLowGroups is no longer called                                  -> red: both crossing tests (R1, R2), the edge test, AGroupOfThreeLines... ; v1 contract test and the rest green
+  M2 the region is counted for every marked pixel, not once per group    -> red: the tests that assert the region count (R1, R2, edge, AGroupOfThreeLines...)
+  M3 pixels outside the imaging area are marked too                      -> red: the edge test only
+  M4 a REJECT-only group (width below 3) is no longer low               -> red: ASingleLineWhoseCorrectionMethodIsRejectIsLowToo only (that test is added before this run; the earlier plan listed this as a gap)
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 19 passed, failed: []
+--- M1
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence', 'AGroupThatStraddlesTheEdgeOfTheImagingAreaMarksOnlyItsPixelsInsideIt', 'APixelTheOtherDirectionCorrectedFirstKeepsTheMarkOfItsGroup', 'ARowGroupOfThreeCrossedByAFullColumnKeepsEveryPixelLow', 'ASingleLineWhoseCorrectionMethodIsRejectIsLowToo']
+--- M2
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence', 'AGroupThatStraddlesTheEdgeOfTheImagingAreaMarksOnlyItsPixelsInsideIt', 'APixelTheOtherDirectionCorrectedFirstKeepsTheMarkOfItsGroup', 'ARowGroupOfThreeCrossedByAFullColumnKeepsEveryPixelLow', 'ASingleLineWhoseCorrectionMethodIsRejectIsLowToo']
+--- M3
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['AGroupThatStraddlesTheEdgeOfTheImagingAreaMarksOnlyItsPixelsInsideIt']
+--- M4
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['ASingleLineWhoseCorrectionMethodIsRejectIsLowToo']
+--- restored: touch + rebuild
+source hash now: 7eb9a6a242ad9787 (start: 7eb9a6a242ad9787)
+build: BUILD_EXIT=0

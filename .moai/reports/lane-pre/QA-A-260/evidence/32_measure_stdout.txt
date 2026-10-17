@@ -1,0 +1,21 @@
+G1_planted_v1 exit 0 seconds 427
+G2_planted_v2 exit 0 seconds 164
+G3_clean_v1 exit 0 seconds 426
+G4_clean_v2 exit 0 seconds 149
+X1_area_planted_v2 exit 0 seconds 0
+X2_info_v1 exit 0 seconds 1
+X3_clean_v2_map exit 0 seconds 0
+X5_clean_v1_map exit 0 seconds 0
+H1_v1_half_a exit 0 seconds 411
+H2_v1_half_b exit 0 seconds 432
+H3_v2_half_a exit 0 seconds 84
+H4_v2_half_b exit 0 seconds 82
+H5_v2_lines_a exit 0 seconds 36
+H6_v2_lines_b exit 0 seconds 35
+P1_v2_features exit 0 seconds 116
+P2_v2_lines exit 0 seconds 52
+feature run map identical to the set defect plane
+P3_v1_map exit 0 seconds 434
+v1 map from the evaluation tool identical to the first-edition set defect plane
+S1_score_v1 exit 0 seconds 1
+S2_score_v2 exit 3 seconds 0

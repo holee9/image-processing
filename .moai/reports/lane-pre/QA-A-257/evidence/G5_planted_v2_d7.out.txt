@@ -1,0 +1,4 @@
+offset.xcal  04fd110d4db52ba138c1e6fd044b0f0447d005d41642bbccbaca50babe329c6b
+gain.xcal    578de1748e7094cca212e2e561607979561072d4c90e0d2c7473fd7b784cffc6
+defect.xcal  5a9e4fe60d1353a8fe895d61a6820e7b29f65d248870af2b6db13dcb46cc1749  (149343 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/bpm-eval-257/inj_set_v2_d7\manifest.json

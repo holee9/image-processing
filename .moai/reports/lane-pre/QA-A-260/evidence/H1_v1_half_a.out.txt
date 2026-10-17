@@ -1,0 +1,6 @@
+dark_list_used: command=map-v1 given=4 used=4 first_excluded=0 list_sha256=cc0201f4e9ff37d9b4c6c9d7bd1b0cbfe0f4b974fdbd8155ff4aa126cd433a95
+dark_used[0]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_08.raw c050034b6a6b3b432d0e0d1ddae55b7f922aadc418d95def09dfaabea59a4a80
+dark_used[1]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_10.raw 7a290e8ebc738f65868455dbf1efabffb5b0f2d6dd94a12598fb28fad0383481
+dark_used[2]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_12.raw 8045c3a4ea7c7afaf3b2cee6a3d9e88455c7020c5d325f7055ebe82d1d52bc60
+dark_used[3]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_14.raw ac9c506c0dea65aacd64c96086c533fa8af9aa15216e89971d0ccb2b3b906e70
+xpe_bpm_generate: 4 darks, 9 brights, 195292 defect pixels -> D:/workspace-github/xpe-data/bpm-eval-260/v1_half_a.u8

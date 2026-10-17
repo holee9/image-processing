@@ -1,0 +1,1 @@
+exit code 0; wall seconds 149.2; peak working set MiB 2002; dark list 8, gain bright 6, defect-map bright 18; resolution 3072 x 3072

@@ -1,0 +1,17 @@
+EVAL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+TARGET = 'xpe_bpm_eval'
+TITLE = 'QA-A-255 0-6 / 0-7 mutation check (tools/xpe_bpm_eval.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/25_mutation_codex221_log.txt'
+FILT = 'BpmEvalTest.Overlap*:BpmEvalTest.Chain*'
+PRED = [
+    '  Q1 the true-defect mask at an overlap is added to again (not assigned)       -> red: OverlapCombinationTable only (the overlaps under the defect row item stay in the mask)',
+    '  Q2 the undetermined zone at an overlap is added to again (not assigned)      -> red: OverlapCombinationTable only',
+    '  Q3 response_valid = 0 of the measurement is ignored by the scorer             -> red: OverlapResponseValidColumnDecidesAndAnOldFormatFileIsRefused only',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('Q1', EVAL, b't->truthReal[i] = g.after == kVerdictDefect ? 1 : 0;', b'if (g.after == kVerdictDefect) t->truthReal[i] = 1;'),
+    ('Q2', EVAL, b'(*undetMask)[i] = g.after == kVerdictUndetermined ? 1 : 0;', b'if (g.after == kVerdictUndetermined) (*undetMask)[i] = 1;'),
+    ('Q3', EVAL, b'if (!m->responseValid) {', b'if (!m->responseValid && m->responseUsed > 1000000) {'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

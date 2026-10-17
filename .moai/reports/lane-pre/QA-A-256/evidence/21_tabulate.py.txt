@@ -1,0 +1,141 @@
+"""QA-A-256: turn the outputs of 20_measure_b16.sh.txt into the B16 row table (markdown). Reads only the files the measurement wrote; the criteria are the ones of
+.moai/project/milestone-1-pre-basic.md "B16 합격 수치" (18:27 fixed rows + the same day's user decision), copied below without change.
+Usage: python 21_tabulate.py.txt > 50_b16_table.md.txt"""
+import json
+import re
+
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'
+TRUTH = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+sc = {1: json.load(open(EV + '41_score_v1.json.txt', encoding='utf-8')), 2: json.load(open(EV + '43_score_v2.json.txt', encoding='utf-8'))}
+co = {1: json.load(open(EV + '44_correct_v1.json.txt', encoding='utf-8')), 2: json.load(open(EV + '45_correct_v2.json.txt', encoding='utf-8'))}
+rows = []   # (row, v1, v2, criterion, verdict, note)
+
+
+def det(s, group):
+    for d in s['detection']:
+        if d['group'] == group:
+            return d['detected'], d['items']
+    return None
+
+
+def frac(p):
+    return 'n/a' if p is None else '%d/%d = %.3f' % (p[0], p[1], p[0] / p[1] if p[1] else 0.0)
+
+
+def rate(p):
+    return None if p is None or p[1] == 0 else p[0] / p[1]
+
+
+def groups(s, pred):
+    return [d for d in s['detection'] if pred(d['group'])]
+
+
+def min_rate(s, pred):
+    gs = groups(s, pred)
+    if not gs:
+        return None, None, 0
+    worst = min(gs, key=lambda d: d['detected'] / d['items'])
+    return worst['detected'] / worst['items'], worst['group'], len(gs)
+
+
+# 1. dead pixel / block / dead line / nonlinear 0.4 line >= 0.98
+pred1 = lambda g: g.startswith('pixel/dead/') or g.startswith('block/dead/') or g.startswith('line/dead/') or (g.startswith('line/nonlinear/') and g.endswith('/0.4'))
+r = {e: min_rate(sc[e], pred1) for e in (1, 2)}
+rows.append(('dead 화소·덩어리·dead 라인·nonlinear 0.4 라인 (그룹마다)', '최저 %.3f (%s, 그룹 %d)' % (r[1][0], r[1][1], r[1][2]), '최저 %.3f (%s, 그룹 %d)' % (r[2][0], r[2][1], r[2][2]), '모두 ≥ 0.98',
+             'PASS' if r[2][0] >= 0.98 else 'FAIL', ''))
+# 2/3. hot
+for lvl, crit in (('100', 0.95), ('200', 0.95)):
+    pass
+h = {e: (det(sc[e], 'pixel/hot/pixel/100'), det(sc[e], 'pixel/hot/pixel/200')) for e in (1, 2)}
+rows.append(('hot 100 / 200', '%s ; %s' % (frac(h[1][0]), frac(h[1][1])), '%s ; %s' % (frac(h[2][0]), frac(h[2][1])), '≥ 0.95 둘 다',
+             'PASS' if all(rate(x) is not None and rate(x) >= 0.95 for x in h[2]) else 'FAIL', ''))
+x = {e: det(sc[e], 'pixel/hot/pixel/50') for e in (1, 2)}
+rows.append(('hot 50', frac(x[1]), frac(x[2]), '≥ 0.95', 'PASS' if rate(x[2]) is not None and rate(x[2]) >= 0.95 else 'FAIL', ''))
+x = {e: det(sc[e], 'pixel/hot/pixel/25') for e in (1, 2)}
+rows.append(('hot 25', frac(x[1]), frac(x[2]), '기준 없음(보고만)', '보고', ''))
+# 4. slope: the current injection has no slope items
+sl = {e: [d['group'] for d in sc[e]['detection'] if 'slope' in d['group']] for e in (1, 2)}
+rows.append(('slope 0.9 / 1.1 / 0.75 / 1.25', '해당 그룹 없음' if not sl[1] else str(sl[1]), '해당 그룹 없음' if not sl[2] else str(sl[2]), '≥ 0.95 / ≥ 0.98',
+             '측정 불가 (현재 주입에 없음)', '252d 이후 주입은 기울기 항목 대신 응답 항목(gain_loss·efficiency_loss)을 쓴다. 표는 바꾸지 않고 아래 응답 항목을 정보로 적는다'))
+# 5. nonlinear 0.2 pixel
+x = {e: det(sc[e], 'pixel/nonlinear/pixel/0.2') for e in (1, 2)}
+rows.append(('nonlinear 0.2 (화소)', frac(x[1]), frac(x[2]), '≥ 0.234, 값 보고', 'PASS' if rate(x[2]) is not None and rate(x[2]) >= 0.234 else 'FAIL', ''))
+# 6. noisy
+x = {e: det(sc[e], 'pixel/noisy/pixel/4') for e in (1, 2)}
+rows.append(('noisy m = 4 (다크 7장)', frac(x[1]), frac(x[2]), '≥ 0.70', 'PASS' if rate(x[2]) is not None and rate(x[2]) >= 0.70 else 'FAIL', '2판은 다크 6장(첫 장 건너뜀)'))
+x = {e: (det(sc[e], 'pixel/noisy/pixel/2'), det(sc[e], 'pixel/noisy/pixel/1')) for e in (1, 2)}
+rows.append(('noisy m = 2 / m = 1', '%s ; %s' % (frac(x[1][0]), frac(x[1][1])), '%s ; %s' % (frac(x[2][0]), frac(x[2][1])), '기준 없음(보고만)', '보고', ''))
+# 7. control bands
+rows.append(('대조군 띠 오검출', '%d / %d' % (sc[1]['control_false_detections'], sc[1]['control_items']), '%d / %d' % (sc[2]['control_false_detections'], sc[2]['control_items']), '0 (전체)',
+             'PASS' if sc[2]['control_false_detections'] == 0 else 'FAIL', '대조군 항목 수는 지금 주입 기준(표의 12는 이전 주입)'))
+# 8. new false alarms
+rows.append(('새 오경보 (대조군 위 포함)', '%d (대조군 위 %d)' % (sc[1]['new_false_alarms'], sc[1]['new_false_alarms_in_controls']), '%d (대조군 위 %d)' % (sc[2]['new_false_alarms'], sc[2]['new_false_alarms_in_controls']),
+             '≤ 10', 'PASS' if sc[2]['new_false_alarms'] <= 10 else 'FAIL', '특성별 분해는 아래'))
+# 9. Jaccard
+rows.append(('절반 분할 Jaccard', '%.3f (진실 안 %.3f)' % (sc[1]['jaccard_all'], sc[1]['jaccard_inside_truth']), '%.3f (진실 안 %.3f)' % (sc[2]['jaccard_all'], sc[2]['jaccard_inside_truth']),
+             '보류(사용자 결정): 값만 보고', '보고', ''))
+# 10. D_n parts
+for fi in (0, 1):
+    p = {e: co[e]['frames'][fi]['parts_over_3_sigma'] for e in (1, 2)}
+    rows.append(('보정 후 D_n: 라인 부분 중 |비| > 3 (프레임 %d)' % (fi + 1), '%d / %d (보정 끔 %d, 깨끗한 %d)' % (p[1]['corrected'], p[1]['parts'], p[1]['no_fix'], p[1]['clean']),
+                 '%d / %d (보정 끔 %d, 깨끗한 %d)' % (p[2]['corrected'], p[2]['parts'], p[2]['no_fix'], p[2]['clean']), '≤ 6 (표의 부분 수는 54, 지금 주입은 %d)' % p[2]['parts'],
+                 'PASS' if p[2]['corrected'] <= 6 else 'FAIL', '기준은 표대로 절대 수 6 을 쓴다'))
+# 11. other rows / columns
+for fi in (0, 1):
+    for e in (1, 2):
+        pass
+    o = {e: (co[e]['frames'][fi]['other_rows'], co[e]['frames'][fi]['other_columns']) for e in (1, 2)}
+    for name, k in (('행', 0), ('열', 1)):
+        rows.append(('라인 밖 %s |D_n| > 3 개수 (프레임 %d)' % (name, fi + 1), '%d (깨끗한 %d)' % (o[1][k]['corrected'], o[1][k]['clean']), '%d (깨끗한 %d)' % (o[2][k]['corrected'], o[2][k]['clean']),
+                     '깨끗한 출력 +10 % 이내', 'PASS' if o[2][k]['corrected'] <= 1.10 * o[2][k]['clean'] else 'FAIL', '열은 개수가 작아 1~2개 차이가 비율로 크다'))
+# 12. correction error z per group (2판 <= 1판)
+bad = []
+nall = 0
+for fi in (0, 1):
+    a = {g['group']: g for g in co[1]['frames'][fi]['correction_error']}
+    b = {g['group']: g for g in co[2]['frames'][fi]['correction_error']}
+    for key, g in b.items():
+        if key not in a or not (g['corrected'].get('median_z') is not None and a[key]['corrected'].get('median_z') is not None):
+            continue
+        nall += 1
+        if g['corrected']['median_z'] > a[key]['corrected']['median_z'] + 1e-9:
+            bad.append((fi, key, a[key]['corrected']['median_z'], g['corrected']['median_z']))
+byclass = {}
+for fi, key, z1, z2 in bad:
+    byclass[key.split('/')[0]] = byclass.get(key.split('/')[0], 0) + 1
+rows.append(('검출된 결함의 보정 오차 중앙값 z (그룹마다)', '그룹×프레임 %d' % nall, '2판이 더 큰 그룹×프레임 %d (%s)' % (len(bad), ', '.join('%s %d' % kv for kv in sorted(byclass.items())) or '없음'),
+             '그룹마다 ≤ 1판 값', 'PASS' if not bad else 'FAIL', '비교는 같은 그룹·같은 프레임, 계산 불가 그룹은 불합격(없었음: 아래)'))
+unc = sum(co[e]['frames'][fi]['parts_uncomputable'][k] for e in (1, 2) for fi in (0, 1) for k in ('corrected',))
+inv = 0
+for e in (1, 2):
+    for fi in (0, 1):
+        for g in co[e]['frames'][fi]['correction_error']:
+            i = g['corrected']['invalid']
+            inv += i['zero_sigma_equal'] + i['zero_sigma_error'] + i['nonfinite']
+rows.append(('계산 불가 규칙 (D_n·보정 오차)', 'D_n 계산 불가 %d' % sum(co[1]['frames'][fi]['parts_uncomputable']['corrected'] for fi in (0, 1)), 'D_n 계산 불가 %d; z 무효 화소 합 %d' % (sum(co[2]['frames'][fi]['parts_uncomputable']['corrected'] for fi in (0, 1)), inv),
+             '계산 불가 = 불합격', 'PASS' if unc == 0 else 'FAIL', 'z 무효 화소 수는 양쪽 합'))
+rows.append(('프레임당 보정 시간', 'QA-A-255: 실제 세트 4.93 ms(중앙값)', 'QA-A-255: 실제 세트 11.36/11.83/12.75, 주입 23.45/23.92/27.89 ms (최소/중앙/최대)', '< 95 ms',
+             '인용(다시 재지 않음)', '관측 조건에서 기준 아래'))
+
+print('| 행 | 1판 | 2판 | 합격 기준 | 판정 | 비고 |')
+print('|---|---|---|---|---|---|')
+for r_ in rows:
+    print('| ' + ' | '.join(str(c) for c in r_) + ' |')
+
+# ---- information: undetermined, response items, overlaps
+print()
+print('## 판정 불가·겹침 (어느 쪽에도 합치지 않은 수)')
+for e in (1, 2):
+    s = sc[e]
+    print('- %d판: 판정 불가 항목 %d, 잡음 축에서 결함으로 승격 %d, 겹침 화소 %d = 결함 %d / 판정 불가 %d / 정상 %d (진실 마스크 %d / 영역 %d)' % (
+        e, s['undetermined_items'], s['noise_axis_promoted_to_defect'], s['overlap_pixels'], s['overlap_defect'], s['overlap_undetermined'], s['overlap_normal'], s['overlap_truth_real_pixels'], s['overlap_undetermined_zone_pixels']))
+print()
+print('## 응답 항목 (정보): 응답 45 % 미만이 결함, 이상은 대조군')
+for e in (1, 2):
+    gs = [d for d in sc[e]['detection'] if d['group'].split('/')[1] in ('gain_loss', 'efficiency_loss')]
+    tot = {}
+    for d in gs:
+        k = d['group'].split('/')[1] + '/' + d['group'].split('/')[3] + ('/pixel' if d['group'].startswith('pixel') else '/line')
+        t = tot.setdefault(k, [0, 0]); t[0] += d['detected']; t[1] += d['items']
+    print('- %d판: ' % e + '; '.join('%s %d/%d' % (k, v[0], v[1]) for k, v in sorted(tot.items())))

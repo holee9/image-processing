@@ -1,0 +1,25 @@
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+TITLE = 'QA-A-259 mutation check (tools/xpe_calib_fixture_gen.cpp, the one place the first dark leaves the list).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-259/evidence/41_mutation_log.txt'
+FILT = 'CalibFixtureGenTest.*'
+PRED = [
+    '  M1 the library drops one more dark in the second-generation chain (old double exclusion)  -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (v2 map bytes and dark_frames_used 6 -> 5)',
+    '  M2 the offset stage reads the list with the first frame back in                          -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (offset bytes)',
+    '  M3 the gain dark reference mean reads the list with the first frame back in              -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (gain bytes)',
+    '  M4 the manifest used list shows the given (first) path                                  -> red: ManifestListsTheGivenAndTheUsedDarks',
+    '  M5 the one-dark refusal removed                                                           -> red: OneDarkFrameIsRefusedBecauseTheFirstIsExcluded (message names the first dark)',
+    '  M6 the first-edition defect map reads the list with the first frame back in              -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (v1 defect bytes: the hot pixel only the first frame has)',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('M1', SRC, b'c2.skip_first_dark = XPE_BPM_V2_SKIP_NONE;', b'c2.skip_first_dark = XPE_BPM_V2_SKIP_DEFAULT;'),
+    ('M2', SRC, b'        std::vector<XpeImageBuffer> bufs = u16Buffers(darks, opt.width, opt.height);\n        if (xpe_calib_generate_offset(',
+     b'        std::vector<InputFrame> wf = darks;\n        if (firstExcluded) wf.insert(wf.begin(), firstDark);\n        std::vector<XpeImageBuffer> bufs = u16Buffers(wf, opt.width, opt.height);\n        if (xpe_calib_generate_offset('),
+    ('M3', SRC, b'        for (const auto& d : darks) {\n            for (size_t i = 0; i < pixelCount; ++i) acc[i] += d.px[i];\n        }\n        refPixels.assign(pixelCount, 0u);\n        const uint32_t n = static_cast<uint32_t>(darks.size());',
+     b'        std::vector<InputFrame> wf = darks;\n        if (firstExcluded) wf.insert(wf.begin(), firstDark);\n        for (const auto& d : wf) {\n            for (size_t i = 0; i < pixelCount; ++i) acc[i] += d.px[i];\n        }\n        refPixels.assign(pixelCount, 0u);\n        const uint32_t n = static_cast<uint32_t>(wf.size());'),
+    ('M4', SRC, b'jsonText(fs::path(darks[i].path).generic_string())', b'jsonText(fs::path(givenDarkPaths[i]).generic_string())'),
+    ('M5', SRC, b'if (!opt.keepFirstDark && darkPaths.size() < 2) {', b'if (!opt.keepFirstDark && darkPaths.size() < 1) {'),
+    ('M6', SRC, b'        std::vector<XpeImageBuffer> darkBufs = u16Buffers(darks, opt.width, opt.height), brightBufs = u16BuffersOf(bpmFrames, opt.width, opt.height);\n        XpeImageBuffer maskBuf{};',
+     b'        std::vector<InputFrame> wf = darks;\n        if (firstExcluded) wf.insert(wf.begin(), firstDark);\n        std::vector<XpeImageBuffer> darkBufs = u16Buffers(wf, opt.width, opt.height), brightBufs = u16BuffersOf(bpmFrames, opt.width, opt.height);\n        XpeImageBuffer maskBuf{};'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

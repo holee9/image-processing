@@ -1,0 +1,24 @@
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TITLE = 'QA-A-258 mutation check (src/xpe_bpm_v2.cpp, the lack-of-fit feature of the LINEARITY cause).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-258/evidence/41_mutation_log.txt'
+FILT = 'BpmLinesLof*:BpmV2LinesTest.*'
+PRED = [
+    '  U1 uniform weights instead of the nominal inverse variance (wg = 1)         -> GREEN (survives): the division by the pooled variance already removes the noise level, and the tests do not contain a case whose verdict depends on the weights. Stated as a gap, not claimed as killed',
+    '  U2 the pooled variance is not divided out (phi = 1)                         -> red: BpmLinesLofSeparationTest (a linear line with high noise becomes a LINEARITY defect); the high-noise negatives may go red too',
+    '  U3 the pooled variance is the fit residual itself (pure error from the misfit) -> red: the positive controls and the curved + low noise separation (the curvature is absorbed in the denominator); the negative controls stay green',
+    '  U5 saturation guard removed                                                 -> red: ARowWhoseBrightValuesAreClippedAtTheTopIsNoEvidenceOfCurvature',
+    '  U7 pooled degrees of freedom minimum 5 -> 0                                 -> red: WithoutThreeDoseGroupsOfPureError... (the design 2,2,2,1,1)',
+    '  U8 minimum number of groups 3 -> 1 at the call site                         -> GREEN (equivalent): lack_of_fit_feature returns 0 below three groups anyway',
+    '  U9 phi floor 0.1 -> 1e-12 at the call site                                  -> GREEN (survives): the pure-function test covers the floor of lack_of_fit_feature, not the constant at the call site; stated as a gap',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('U1', SRC, b'const double wg = static_cast<double>(mg) / groupNom[g];', b'const double wg = 1.0 + 0.0 * groupNom[g];'),
+    ('U2', SRC, b'static_cast<double>(lofOwn[i]) / nuD, kLofPhiMin);', b'1.0 + 0.0 * nuD, kLofPhiMin);'),
+    ('U3', SRC, b'static_cast<double>(lofOwn[i]) / nuD, kLofPhiMin);', b'q / static_cast<double>(lofGroups - 2u) + 1e-300 * nuD, kLofPhiMin);'),
+    ('U5', SRC, b'if (mean >= kLofSaturationLevel) lofOwn[i] = kLofSaturated;', b'if (mean >= 1e9f) lofOwn[i] = kLofSaturated;'),
+    ('U7', SRC, b'constexpr uint32_t kLofMinNu = 5;', b'constexpr uint32_t kLofMinNu = 0;'),
+    ('U8', SRC, b'if (lofGroups >= 3 && lofNu >= kLofMinNu) {', b'if (lofGroups >= 1 && lofNu >= kLofMinNu) {'),
+    ('U9', SRC, b'constexpr double kLofPhiMin = 0.1;', b'constexpr double kLofPhiMin = 1e-12;'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

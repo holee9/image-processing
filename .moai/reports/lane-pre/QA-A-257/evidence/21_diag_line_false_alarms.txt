@@ -1,0 +1,35 @@
+shared pixels 1690, groups without a final class 0
+== reproduction of the tool's counts
+  items promoted to defect by noise 6 (tool: 6), made undetermined 368 (tool: 368)
+  new false alarms 1115 (tool 1115); on normal control items 1090 (tool 1090); background 25
+  reproduced exactly
+== partition of the 1115 new false alarms (each pixel once)
+  line mask                          control item  1061
+  bright noise                       control item  26
+  line mask                          background    17
+  dark mean                          background    7
+  line mask+bright noise             control item  3
+  bright noise                       background    1
+== line mask only: 1078 pixels (1061 on control items, 17 on background)
+  by control item group (kind/shape/level): pixels, items with such a pixel / items in the group, line groups that carried them
+  efficiency_loss/col_full/0.6                759 px    1/  1 items  line groups [82, 83, 84, 85, 86]
+  efficiency_loss/row_full/0.6                302 px    1/  1 items  line groups [33, 34]
+== line groups carrying line-mask-only pixels on control items: cause bits of the group, width, strength
+  group  33 row 2359 width 1 causes linearity                  strength   4.90  line-mask-only new pixels on controls 134
+  group  34 row 2359 width 1 causes linearity                  strength   4.51  line-mask-only new pixels on controls 168
+  group  82 column 3015 width 1 causes linearity                  strength   4.88  line-mask-only new pixels on controls 162
+  group  83 column 3015 width 1 causes linearity                  strength   5.05  line-mask-only new pixels on controls 115
+  group  84 column 3015 width 1 causes linearity                  strength   4.79  line-mask-only new pixels on controls 148
+  group  85 column 3015 width 1 causes linearity                  strength   4.64  line-mask-only new pixels on controls 179
+  group  86 column 3015 width 1 causes linearity                  strength   4.81  line-mask-only new pixels on controls 155
+== those control items: noise label of the measured item (normal / undetermined / not measured)
+  efficiency_loss/col_full/0.6             normal         1
+  efficiency_loss/row_full/0.6             normal         1
+== line mask only on background (no item): by line group
+  group   1 row 189 width 2 causes response+slope             strength   8.34  pixels 2
+  group  14 row 1208 width 2 causes response+linearity+noise+slope strength  14.34  pixels 2
+  group  44 column 162 width 2 causes noise                      strength   9.84  pixels 1
+  group  48 column 480 width 1 causes response+linearity+noise+slope strength  13.53  pixels 3
+  group  51 column 630 width 1 causes response+linearity+noise+slope strength  14.25  pixels 3
+  group  71 column 1813 width 1 causes response+linearity+noise+slope strength  12.67  pixels 5
+  group  73 column 1902 width 1 causes noise                      strength  10.45  pixels 1

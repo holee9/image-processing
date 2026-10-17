@@ -1,0 +1,1 @@
+xpe_bpm_generate: 3 darks, 9 brights, 202042 defect pixels -> D:/workspace-github/xpe-data/bpm-eval-256/v1_half_b.u8

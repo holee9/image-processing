@@ -1,0 +1,15 @@
+EVAL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+TARGET = 'xpe_bpm_eval'
+TITLE = 'QA-A-255 follow-up (Codex #222) mutation check: the producer of the overlap measurement (tools/xpe_bpm_eval.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/93_mutation_producer_log.txt'
+FILT = 'BpmEvalQuantumTest.*'
+PRED = [
+    '  P4 response_valid is written as 1 whatever nResp is                      -> red: OverlapMeasurementOnFramesWithoutSignal... and NoiseCostIsMeasured... (both read the valid column against response_used)',
+    '  P5 the nominal chain is written as response_model when nResp = 0         -> red: OverlapMeasurementOnFramesWithoutSignal... only',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('P4', EVAL, b'const bool   respValid = ac.nResp > 0;', b'const bool   respValid = ac.nResp > 0 || ac.px > 0;'),
+    ('P5', EVAL, b': 0.0, ac.clipped ? 1 : 0, ideal, ac.nResp', b': nominal, ac.clipped ? 1 : 0, ideal, ac.nResp'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

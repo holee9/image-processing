@@ -1,0 +1,41 @@
+QA-A-252f mutation check of the evaluation tool (tools/xpe_bpm_eval.cpp, tools/xpe_bpm_eval_stats.hpp). Source hash at the start: fda6adb6dab5e1da
+PREDICTIONS (written before any run):
+  U1 the variance median is not divided by the median of chi-square / nu (the bias of #208) -> red: TheQuantumGainIsEstimatedWithoutTheFrameCountBias only (kappa 0.21 against 0.30)
+  U2 the scatter about the fitted line does not widen the standard errors                    -> red: TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter only
+  U3 the interval is not widened by the error of the expectation (lo)                        -> red: TheNoiseVerdictFollowsTheIntervalAgainstTheLimit only
+  U4 a noise-defect item is not made a defect by the two-axis rule                           -> red: TheScoreCombinesTheTwoAxes... only
+  U5 an undetermined item is not made undetermined                                           -> red: TheScoreCombinesTheTwoAxes... only
+  U6 the noise cost is not divided by the squared measured response                          -> red: NoiseCostIsMeasuredNotDerivedFromTheModel... only
+  U7 the pixel levels of efficiency_loss lack 0.4 and 0.6                                    -> red: ResponseItemsAreDefectsBelow45Percent..., InjectFollowsTheSpecCountsAndPlacementRules, ScoreCountsControlHitsFalseAlarmsAndHalfAgreement
+  U8 the response class bound shifted up by the slack (exactly 0.45 would be a defect)       -> GREEN: no item sits at 0.45 any more (a test gap by design, reported)
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 28 passed, failed: []
+--- U1
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'TheQuantumGainIsEstimatedWithoutTheFrameCountBias']
+--- U2
+build: BUILD_EXIT=0
+tests exit 1: 25 passed, FAILED: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter', 'TheQuantumGainIsEstimatedWithoutTheFrameCountBias']
+--- U3
+build: BUILD_EXIT=0
+tests exit 1: 25 passed, FAILED: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'TheNoiseVerdictFollowsTheIntervalAgainstTheLimit', 'TheQuantumGainIsEstimatedWithoutTheFrameCountBias']
+--- U4
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['TheNoiseVerdictFollowsTheIntervalAgainstTheLimit', 'TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']
+--- U5
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['TheNoiseVerdictFollowsTheIntervalAgainstTheLimit', 'TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']
+--- U6
+build: BUILD_EXIT=0
+tests exit 1: 26 passed, FAILED: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'TheNoiseVerdictFollowsTheIntervalAgainstTheLimit']
+--- U7
+build: BUILD_EXIT=0
+tests exit 1: 22 passed, FAILED: ['InjectFollowsTheSpecCountsAndPlacementRules', 'NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement', 'TheNoiseVerdictFollowsTheIntervalAgainstTheLimit', 'TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']
+--- U8
+build: BUILD_EXIT=0
+tests exit 1: 27 passed, FAILED: ['TheNoiseVerdictFollowsTheIntervalAgainstTheLimit']
+--- restored: touch + rebuild
+source hash now: fda6adb6dab5e1da (start: fda6adb6dab5e1da)
+build: BUILD_EXIT=0

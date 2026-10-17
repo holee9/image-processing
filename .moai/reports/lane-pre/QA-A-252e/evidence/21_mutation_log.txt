@@ -1,0 +1,22 @@
+QA-A-252e mutation check of the level pair (tools/xpe_bpm_eval.cpp). Source hash at the start: aca7e8130fd935e1
+PREDICTIONS (written before any run):
+  U1 the pair becomes 0.45 and 0.46 (the defect level moves onto the boundary) -> red: ResponseItemsAreDefectsBelow45Percent... and the counts test (the 0.44 items are missing / become controls)
+  U2 the control level becomes 0.44 as well (no 0.46)                           -> red: ResponseItemsAreDefectsBelow45Percent... and the control group test (control/efficiency_loss/pixel/0.46 missing)
+  U3 the boundary comparison <= (a response of exactly 0.45 would become a defect) -> GREEN: no item sits at 0.45 any more (a test gap by design, reported)
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 23 passed, failed: []
+--- U1
+build: BUILD_EXIT=0
+tests exit 1: 20 passed, FAILED: ['InjectFollowsTheSpecCountsAndPlacementRules', 'ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- U2
+build: BUILD_EXIT=0
+tests exit 1: 20 passed, FAILED: ['InjectFollowsTheSpecCountsAndPlacementRules', 'ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- U3
+build: BUILD_EXIT=0
+tests exit 0: 23 passed, FAILED: []
+--- restored: touch + rebuild
+source hash now: aca7e8130fd935e1 (start: aca7e8130fd935e1)
+build: BUILD_EXIT=0
+tests exit 0: 23 passed, failed: []

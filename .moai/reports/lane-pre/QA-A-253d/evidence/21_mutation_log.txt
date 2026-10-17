@@ -1,0 +1,26 @@
+QA-A-253d mutation check of the change-point ends, the relative linearity and the bright-frame persistence (src/xpe_bpm_v2.cpp). Source hash at the start: 145ed54033e5a1fd
+PREDICTIONS (written before any run):
+  Z20 the change-point ends are not applied (the coarse window ends stay)                  -> red: APartialLineIsFoundWithItsStartAndEnd only
+  Z21 the linearity feature is not made relative (the old log sse)                          -> green: the 256-row fixture does not reproduce the shift (a test gap, reported; the evidence is the column 807 of the measurement)
+  Z22 the bright-frame persistence never rejects                                            -> red: NoiseThatHitsADifferentRowInEveryBrightFrame... only
+  Z23 the per-pixel cap of the bright frame statistic removed                               -> green (no fixture has a single outlier inside a stretch): a test gap, reported
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 13 passed, failed: []
+--- Z20
+build: BUILD_EXIT=0
+tests exit 1: 12 passed, FAILED: ['APartialLineIsFoundWithItsStartAndEnd']
+--- Z21
+build: BUILD_EXIT=0
+tests exit 0: 13 passed, FAILED: []
+--- Z22
+build: BUILD_EXIT=0
+tests exit 1: 12 passed, FAILED: ['NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace']
+--- Z23
+build: BUILD_EXIT=0
+tests exit 0: 13 passed, FAILED: []
+--- restored: touch + rebuild
+source hash now: 145ed54033e5a1fd (start: 145ed54033e5a1fd)
+build: BUILD_EXIT=0
+tests exit 0: 13 passed, failed: []

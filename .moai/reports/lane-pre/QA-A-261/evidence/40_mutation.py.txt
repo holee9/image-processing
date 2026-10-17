@@ -1,0 +1,15 @@
+EVAL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+SRC = EVAL
+TITLE = 'QA-A-261 item 0 mutation check (tools/xpe_bpm_eval.cpp readMap: a defect.xcal is read by the module reader).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-261/evidence/41_mutation_log.txt'
+FILT = 'BpmEvalTest.ScoreReads*:BpmEvalTest.DefectXcal*:BpmEvalTest.Score*'
+PRED = [
+    '  R1 a .xcal path is treated as a raw map again (the xcal branch is skipped)   -> red: ScoreReadsAVersionTwoDefectFileAsItsDefectPlane (the compressed v2 file is not N or 2N bytes)',
+    '  R2 the reader error is ignored (rc check removed)                           -> red: ScoreReadsAVersionTwoDefectFileAsItsDefectPlane (a damaged file must name "not a readable defect.xcal")',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('R1', EVAL, b'const bool xcal = path.size() > 5 && path.compare(path.size() - 5, 5, ".xcal") == 0;\n    if (xcal) {\n        DefectXcal d;', b'const bool xcal = path.size() > 50000 && path.compare(path.size() - 5, 5, ".xcal") == 0;\n    if (xcal) {\n        DefectXcal d;'),
+    ('R2', EVAL, b'        if (rc != XPE_OK) {\n            std::fprintf(stderr, "%s: not a readable defect.xcal', b'        if (rc == static_cast<XpeErrorCode>(-12345)) {\n            std::fprintf(stderr, "%s: not a readable defect.xcal'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

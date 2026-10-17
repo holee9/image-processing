@@ -1,0 +1,59 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:90])
+    s = s.replace(old, new)
+
+
+sub('''kLnGainRow = 128, kLnMovingBurst = 256;''', '''kLnGainRow = 128, kLnMovingBurst = 256, kLnGainCol = 512, kLnBrightNoisyRow = 1024, kLnBrightBurst = 2048;''')
+sub('''constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;''', '''constexpr int kBurstY0 = 100, kBurstFrom = 96, kBurstTo = 192;
+// QA-A-253d: a column with response 1.2 (a band that gain correction removes), a row that is noisy in every bright frame, and a burst that moves from row to row between the bright frames
+constexpr int kLnGainColX = 180, kLnBrightNoisyY = 60, kBrightBurstY0 = 100;''')
+sub('''auto put = [&](double net, bool bright, bool firstDark, int darkIdx) {''', '''auto put = [&](double net, bool bright, bool firstDark, int darkIdx, int brightIdx) {''')
+sub('''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;''', '''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnGainCol) && x == kLnGainColX) sig *= 1.2;
+                if ((plant.lines & kLnBrightNoisyRow) && bright && y == kLnBrightNoisyY) noiseSd = 60.0;
+                if ((plant.lines & kLnBrightBurst) && bright && brightIdx >= 0 && y == kBrightBurstY0 + brightIdx && x >= kBurstFrom && x < kBurstTo) d += (brightIdx % 2 ? -90.0 : 90.0);''')
+sub('''f.dark.push_back(put(0.0, false, transientFirstDark && k == 0, k));''', '''f.dark.push_back(put(0.0, false, transientFirstDark && k == 0, k, -1));''')
+sub('''            f.bright.push_back(put(d, true, false, -1));''', '''            f.bright.push_back(put(d, true, false, -1, static_cast<int>(f.bright.size())));''')
+sub('''    EXPECT_NEAR(kLnPartialFrom, static_cast<double>(l.start), 8.0);
+    EXPECT_NEAR(kLnPartialTo, static_cast<double>(l.end), 8.0);''', '''    EXPECT_NEAR(kLnPartialFrom, static_cast<double>(l.start), 2.0) << "the start is the change point, not the edge of a coarse window";
+    EXPECT_NEAR(kLnPartialTo, static_cast<double>(l.end), 2.0);''')
+marker = 'TEST(BpmV2LinesTest, ASingleDeadPixelOrASmallBlockIsNotALine) {'
+new = '''TEST(BpmV2LinesTest, AColumnWithResponse1Point2IsABandThatGainCorrectionRemovesNotADefect) {
+    // the linearity feature is log(sse); sse grows with the square of the response, so the column stands 0.37 above its neighbours in that feature unless it is made relative
+    Frames f = makeFrames(30, kDoses, 3, 7, onlyLines(kLnGainCol));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines);
+}
+
+TEST(BpmV2LinesTest, ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence) {
+    Frames f = makeFrames(31, kDoses, 3, 7, onlyLines(kLnBrightNoisyRow));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const XpeBpmLine* l = lineAt(r, XPE_BPM_LINE_ROW, kLnBrightNoisyY);
+    ASSERT_NE(nullptr, l);
+    EXPECT_NE(0u, l->causes & XPE_BPM_LINE_CAUSE_NOISE);
+    EXPECT_GE(l->persistence, 0.8f);
+}
+
+TEST(BpmV2LinesTest, NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace) {
+    Frames f = makeFrames(32, kDoses, 3, 7, onlyLines(kLnBrightBurst));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines);
+}
+
+'''
+sub(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('tests patched')

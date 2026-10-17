@@ -1,0 +1,67 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# raw strings throughout: the C++ text keeps its backslashes as they are
+# ---- truth.json: spec version and the quantum gain
+sub(r'''\"spec_version\": 1,''', r'''\"spec_version\": 2,''')
+sub(r'''        char sb[64];
+        std::snprintf(sb, sizeof sb, "%.6f", sigmaT);
+        std::string j =''', r'''        char sb[64], kb[64];
+        std::snprintf(sb, sizeof sb, "%.6f", sigmaT);
+        std::snprintf(kb, sizeof kb, "%.6f", kappa);
+        std::string j =''')
+sub(r'''\"sigma_t\": " + sb + ",\n  \"options\": {''', r'''\"sigma_t\": " + sb + ",\n  \"quantum_gain\": " + kb + ",\n  \"quantum_gain_measured\": " + (kappaMeasured ? "true" : "false") + ",\n  \"options\": {''')
+sub(r'''evaluation frames; sigma_t %.4f; truth in %s\n", items.size(),''', r'''evaluation frames; sigma_t %.4f; quantum gain %.4f (%s); truth in %s\n", items.size(),''')
+sub('''darkFiles.size(), brightFiles.size(), evalFiles.size(), sigmaT, out.c_str());''', '''darkFiles.size(), brightFiles.size(), evalFiles.size(), sigmaT, kappa, kappaMeasured ? "measured" : "default", out.c_str());''')
+
+# ---- score: the pixel and block controls are summed per group, the line controls keep their rows
+sub('''    int controlItems = 0, controlFalse = 0;
+    std::string controlRows;''', '''    int controlItems = 0, controlFalse = 0;
+    std::string controlRows;
+    struct CtrlGroup {
+        int    items{0}, falseHits{0};
+        double fracSum{0}, cleanSum{0};
+    };
+    std::map<std::string, CtrlGroup> ctrlGroups;   // pixel and block controls (hundreds of items): one row per kind and level''')
+sub('''            const double fc = tot ? static_cast<double>(flaggedClean[static_cast<size_t>(it.id)]) / static_cast<double>(tot) : 0.0;
+            char b[200];''', '''            const double fc = tot ? static_cast<double>(flaggedClean[static_cast<size_t>(it.id)]) / static_cast<double>(tot) : 0.0;
+            if (it.shape == "pixel" || it.shape.compare(0, 5, "block") == 0) {
+                CtrlGroup& cg = ctrlGroups[groupKey(it)];
+                ++cg.items;
+                cg.falseHits += hit ? 1 : 0;
+                cg.fracSum += frac;
+                cg.cleanSum += fc;
+                continue;
+            }
+            char b[200];''')
+sub(r'''    std::printf("== control bands (%d items; false detection = at least half of the band flagged)''', r'''    for (const auto& kv : ctrlGroups) {
+        char b[260];
+        std::snprintf(b, sizeof b, "  %-34s %5d items  false detections %5d  mean flagged fraction %.4f   clean map %.4f\n", kv.first.c_str(), kv.second.items, kv.second.falseHits,
+                      kv.second.fracSum / kv.second.items, kv.second.cleanSum / kv.second.items);
+        controlRows += b;
+    }
+    std::printf("== control bands (%d items; false detection = at least half of the band flagged)''')
+sub(r'''jaccard_outside_truth\": %.6f\n}\n",''', r'''jaccard_outside_truth\": %.6f",''')
+sub('''        j += tail;
+        if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;''', r'''        j += tail;
+        j += ",\n  \"control_groups\": [\n";   // pixel and block controls summed per kind and level (the line controls are in the console table)
+        size_t cgn = 0;
+        for (const auto& kv : ctrlGroups) {
+            char b[300];
+            std::snprintf(b, sizeof b, "    {\"group\": \"%s\", \"items\": %d, \"false_detections\": %d, \"mean_flagged_fraction\": %.6f}%s\n", kv.first.c_str(), kv.second.items, kv.second.falseHits,
+                          kv.second.fracSum / kv.second.items, ++cgn < ctrlGroups.size() ? "," : "");
+            j += b;
+        }
+        j += "  ]\n}\n";
+        if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('part 2 ok')

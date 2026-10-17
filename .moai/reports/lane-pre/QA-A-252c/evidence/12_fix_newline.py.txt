@@ -1,0 +1,13 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+b = open(p, 'rb').read()
+nl = bytes([10])
+bs = bytes([92])
+broken = b'flags there are not counted' + nl + b'", outOfArea);'
+assert b.count(broken) == 1, b.count(broken)
+b = b.replace(broken, b'flags there are not counted' + bs + b'n", outOfArea);')
+broken2 = b'pixels' + nl + b'", a.str("area").c_str(), n);'
+print('second break present:', b.count(broken2))
+if b.count(broken2) == 1:
+    b = b.replace(broken2, b'pixels' + bs + b'n", a.str("area").c_str(), n);')
+open(p, 'wb').write(b)
+print('fixed')

@@ -12,6 +12,8 @@
  */
 
 #include "xcal_validator.hpp"
+#include "defect_ext.hpp"
+#include <string>
 #include "xpe/common/xpe_types.h"  // for XPE_API (XPE_DLL_EXPORT)
 #include <cstring>
 
@@ -96,8 +98,12 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
         return XPE_ERR_CONFIG_INVALID;
     }
 
-    // Check 2: version
-    if (header.version != XCAL_VERSION) {
+    // Check 2: version -- 1 for every type; 2 for a DEFECT file only (QA-A-254, the imaging-area plane and the line / blob extension)
+    const bool defectV2 = header.version == 2u && header.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+    if (header.version != XCAL_VERSION && !defectV2) {
+        if (std::memcmp(header.magic, XCAL_MAGIC, 4) == 0)
+            xcal_reject_reason("VERSION", "file version " + std::to_string(header.version) + " (type " + std::to_string(header.type) +
+                                               ") is not supported: this reader reads version 1 (every type) and version 2 (defect maps only)");
         return XPE_ERR_CONFIG_INVALID;
     }
 
@@ -161,6 +167,13 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
         if (expected_payload == 0 ||
             header.payload_len == 0 ||
             header.payload_len % expected_payload != 0) {
+            return XPE_ERR_CONFIG_INVALID;
+        }
+    } else if (defectV2) {
+        // two planes (map, imaging area) and the extension block after them; the exact length is checked against defect_ext_len by the reader
+        if (header.payload_len < 2u * expected_payload) {
+            xcal_reject_reason("LAYOUT", "the payload of a version-2 defect file is " + std::to_string(header.payload_len) + " bytes, less than its two planes of " +
+                                             std::to_string(2u * expected_payload));
             return XPE_ERR_CONFIG_INVALID;
         }
     } else if (header.payload_len != expected_payload) {

@@ -1,0 +1,176 @@
+"""QA-A-252b diagnostic 2: an independent numpy re-computation of the normalized statistics of the three features that carry the flags in the clean image
+(F1 dark mean, F3a dose slope, F4 flat field), from the raw clean frames. Nothing is generated except text output and one .npz of z images in the scratch folder.
+
+Fidelity control: the number of pixels with |z| > lambda must equal the detector's per-feature count in 70_report_clean.json (2675 / 7668 / 8890)."""
+import numpy as np, sys, math, os
+
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+SCR = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/'
+W = H = 3072
+WIN, BLOCK = 17, 64
+N = W * H
+DK = ['%02d' % k for k in range(8, 15)]
+BR = ['%02d' % k for k in list(range(17, 29)) + list(range(31, 37))]
+
+
+def raw(name):
+    return np.fromfile(CAL + name, dtype=np.uint16).reshape(H, W)
+
+
+def zthr(p):
+    lo, hi = 0.0, 40.0
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if math.erfc(mid / math.sqrt(2.0)) > p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def med_axis(a, axis, win):
+    """Median of a sliding window of odd size along an axis, reflected borders (like the detector)."""
+    r = win // 2
+    pad = [(0, 0), (0, 0)]
+    pad[axis] = (r, r)
+    p = np.pad(a, pad, mode='reflect')
+    out = np.empty_like(a)
+    chunk = 128
+    if axis == 1:
+        for y0 in range(0, H, chunk):
+            blk = p[y0:y0 + chunk]
+            v = np.lib.stride_tricks.sliding_window_view(blk, win, axis=1)
+            out[y0:y0 + chunk] = np.partition(v, r, axis=2)[:, :, r]
+    else:
+        for x0 in range(0, W, chunk):
+            blk = p[:, x0:x0 + chunk]
+            v = np.lib.stride_tricks.sliding_window_view(blk, win, axis=0)
+            out[:, x0:x0 + chunk] = np.partition(v, r, axis=2)[:, :, r]
+    return out
+
+
+def upper_median_lines(a, axis):
+    n = a.shape[axis]
+    return np.partition(a, n // 2, axis=axis).take(n // 2, axis=axis)
+
+
+def remove_rowcol(f):
+    f = f - upper_median_lines(f, 1)[:, None]
+    f = f - upper_median_lines(f, 0)[None, :]
+    return f
+
+
+def block_scale(r):
+    nb = H // BLOCK
+    v = np.abs(r).reshape(nb, BLOCK, nb, BLOCK).transpose(0, 2, 1, 3).reshape(nb, nb, BLOCK * BLOCK)
+    k = BLOCK * BLOCK // 2
+    s = 1.4826 * np.partition(v, k, axis=2)[:, :, k]
+    return s.astype(np.float32)
+
+
+def scale_image(sig):
+    nb = sig.shape[0]
+    coord = np.clip((np.arange(H, dtype=np.float32) + 0.5) / BLOCK - 0.5, 0, nb - 1)
+    i0 = np.floor(coord).astype(int)
+    i1 = np.minimum(i0 + 1, nb - 1)
+    t = (coord - i0).astype(np.float32)
+    # bilinear in y then x
+    ry = (1 - t)[:, None] * sig[i0] + t[:, None] * sig[i1]   # H x nb
+    return (1 - t)[None, :] * ry[:, i0] + t[None, :] * ry[:, i1]
+
+
+def zimage(feat):
+    f = remove_rowcol(feat.astype(np.float32))
+    bg = med_axis(med_axis(f, 1, WIN), 0, WIN)
+    r = f - bg
+    sig = block_scale(r)
+    s = np.maximum(scale_image(sig), 1e-6)
+    return r / s, r, s
+
+
+print('loading frames')
+darks = [raw('Dark_%s.raw' % k).astype(np.float64) for k in DK]
+D = (sum(darks) / len(darks)).astype(np.float32)
+bright = {k: raw('Bright_%s.raw' % k) for k in BR}
+dmean = float(D.astype(np.float64).mean())
+sig_fr = {k: float(bright[k].astype(np.float64).mean()) - dmean for k in BR}
+order = sorted(BR, key=lambda k: sig_fr[k])
+groups = [[order[0]]]
+for a, b in zip(order[:-1], order[1:]):
+    if sig_fr[b] / sig_fr[a] > 1.25:
+        groups.append([])
+    groups[-1].append(b)
+G = len(groups)
+print('dose groups', G, [len(g) for g in groups])
+Sn = np.zeros((H, W)); Sxn = np.zeros((H, W)); Sx = Sxx = 0.0
+for g in groups:
+    sg = sum(sig_fr[k] for k in g) / len(g)
+    ng = sum(bright[k].astype(np.float64) for k in g) / len(g) - D
+    Sn += ng; Sxn += sg * ng; Sx += sg; Sxx += sg * sg
+dgx = G * Sxx - Sx * Sx
+slope = ((G * Sxn - Sx * Sn) / dgx).astype(np.float32)
+flat = (Sn / Sx).astype(np.float32)
+
+p = 1.0 / N
+lam = zthr(p)
+print('lambda', lam)
+res = {}
+for name, feat, want in (('dark_mean', D, 2675), ('dose_slope', slope, 7668), ('flat_field', flat, 8890)):
+    z, r, s = zimage(feat)
+    cnt = int((np.abs(z) > lam).sum())
+    print('%-11s flagged %6d (detector: %d)  median local scale %.5g' % (name, cnt, want, float(np.median(s))))
+    res[name] = (z, r, s)
+np.savez_compressed(SCR + 'z_clean.npz', **{k: v[0].astype(np.float16) for k, v in res.items()})
+
+# --- log histogram of the normalized statistic against the Gaussian parabola (EMVA 1288 4.4.1 style)
+def hist_report(name, z):
+    zz = z.ravel()
+    edges = np.arange(-12.5, 12.51, 0.5)
+    h, _ = np.histogram(zz, bins=edges)
+    ctr = 0.5 * (edges[:-1] + edges[1:])
+    gauss = N * 0.5 * (np.vectorize(math.erf)((edges[1:]) / math.sqrt(2)) - np.vectorize(math.erf)((edges[:-1]) / math.sqrt(2)))
+    print('\n== %s: normalized statistic z, counts per 0.5 bin vs Gaussian (N=%d)' % (name, N))
+    print(' %6s %10s %12s %10s' % ('z', 'observed', 'gaussian', 'obs/gauss'))
+    for c, o, g in zip(ctr, h, gauss):
+        if abs(c) >= 3.0 or abs(c) in (0.25, 1.25, 2.25):
+            print(' %6.2f %10d %12.3f %10s' % (c, o, g, ('%.1f' % (o / g)) if g > 1e-3 else ('inf' if o else '-')))
+    # tail summaries: fraction beyond k sigma against the Gaussian
+    for k in (3, 4, 5, 5.32, 6, 8):
+        o = int((np.abs(zz) > k).sum())
+        g = N * math.erfc(k / math.sqrt(2))
+        print(' |z| > %-4g observed %8d  gaussian %12.3f  ratio %s' % (k, o, g, ('%.1f' % (o / g)) if g > 1e-3 else 'inf'))
+    # robust width of the core: empirical sigma from the central bulk vs 1
+    q = np.percentile(zz, [2.5, 16, 50, 84, 97.5])
+    print(' percentiles 2.5/16/50/84/97.5: %s ; half-width(16-84)/2 = %.3f (Gaussian: 1)' % (np.round(q, 3), 0.5 * (q[3] - q[1])))
+
+
+for name in ('dark_mean', 'dose_slope', 'flat_field'):
+    hist_report(name, res[name][0])
+
+# --- where do the tails come from? border / interior / structure
+yy, xx = np.indices((H, W))
+edge = np.minimum(np.minimum(yy, H - 1 - yy), np.minimum(xx, W - 1 - xx))
+print('\n== tail beyond lambda by position (border = within 8 pixels of the frame edge)')
+for name in ('dark_mean', 'dose_slope', 'flat_field'):
+    f = np.abs(res[name][0]) > lam
+    inner = edge >= 8
+    print(' %-11s border %6d (%.3f per thousand of the border) | interior %6d (%.4f per thousand) | interior target at 1 per feature: %.5f per thousand' % (
+        name, int((f & ~inner).sum()), 1000.0 * (f & ~inner).sum() / (~inner).sum(), int((f & inner).sum()), 1000.0 * (f & inner).sum() / inner.sum(), 1000.0 / N))
+    # interior only histogram tail ratio
+    zi = res[name][0][inner]
+    for k in (4, 5, 5.32):
+        o = int((np.abs(zi) > k).sum())
+        g = zi.size * math.erfc(k / math.sqrt(2))
+        print('    interior |z| > %-4g observed %7d gaussian %10.3f ratio %.1f' % (k, o, g, o / g if g > 1e-3 else float('inf')))
+
+# --- the local scale: relation of the scale to the actual spread of z inside blocks (is the MAD scale low where the tails are?)
+print('\n== block scale vs actual spread: for each 64x64 block the std of z over its pixels (should be about 1)')
+for name in ('dark_mean', 'dose_slope', 'flat_field'):
+    z = res[name][0]
+    nb = H // BLOCK
+    v = z.reshape(nb, BLOCK, nb, BLOCK).transpose(0, 2, 1, 3).reshape(nb * nb, BLOCK * BLOCK)
+    sd = v.std(axis=1)
+    mx = np.abs(v).max(axis=1)
+    print(' %-11s block std percentiles 5/50/95/99.9: %s ; blocks with std > 1.3: %d of %d ; blocks holding |z| > lambda: %d' % (
+        name, np.round(np.percentile(sd, [5, 50, 95, 99.9]), 3), int((sd > 1.3).sum()), nb * nb, int((mx > lam).sum())))
+sys.stdout.flush()

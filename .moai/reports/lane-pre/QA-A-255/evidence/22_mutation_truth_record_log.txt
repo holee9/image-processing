@@ -1,0 +1,25 @@
+QA-A-255 step 0 mutation check of the truth record (tools/xpe_bpm_eval.cpp). Source hash at the start: 24ebb93aa1fb0211
+PREDICTIONS (written before any run):
+  Z1 the noise label defect is ignored by finalVerdict       -> red: OverlapCombinationTable and OverlapTruthFileDecides... (not others)
+  Z2 an invalid response is not undetermined (never checked)  -> red: OverlapCombinationTable, OverlapWithoutAMeasurement..., OverlapTruthFileDecides...
+  Z3 an overlap inherits the defect class of its covering items -> red: OverlapCombinationTable (the rows with a single verdict defect) and maybe OverlapTruthFileDecides...
+  Z5 the hot/noisy/nonlinear injection class is not applied   -> red: OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain and OverlapTruthFileDecides...
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 5 passed, failed: []
+--- Z1
+build: BUILD_EXIT=0
+tests exit 1: 3 passed, FAILED: ['OverlapCombinationTable', 'OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement']
+--- Z2
+build: BUILD_EXIT=0
+tests exit 1: 3 passed, FAILED: ['OverlapCombinationTable', 'OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement']
+--- Z3
+build: BUILD_EXIT=0
+tests exit 1: 4 passed, FAILED: ['OverlapCombinationTable']
+--- Z5
+build: BUILD_EXIT=0
+tests exit 1: 3 passed, FAILED: ['OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement', 'OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain']
+--- restored: touch + rebuild
+source hash now: 24ebb93aa1fb0211 (start: 24ebb93aa1fb0211)
+build: BUILD_EXIT=0

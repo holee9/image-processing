@@ -1,0 +1,20 @@
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(235): error: Expected: (flaggedInRow(r, y, 0, kPartRowFrom - 8) + flaggedInRow(r, y, kPartRowFrom + kPartLen + 8, static_cast<int>(kW))) <= (2u), actual: 176 vs 2
+the rest of row 100 is not defective: union 941; dark_mean flagged 1 threshold 4.324919 scale 4.235961; dark_noise flagged 2 threshold 5.358659 scale 9.021700; dose_slope flagged 908 threshold 4.324919 scale 0.005418; dose_linearity flagged 0 threshold 4.169569 scale 1.183354; flat_field flagged 926 threshold 4.324919 scale 0.00
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(235): error: Expected: (flaggedInRow(r, y, 0, kPartRowFrom - 8) + flaggedInRow(r, y, kPartRowFrom + kPartLen + 8, static_cast<int>(kW))) <= (2u), actual: 176 vs 2
+the rest of row 140 is not defective: union 941; dark_mean flagged 1 threshold 4.324919 scale 4.235961; dark_noise flagged 2 threshold 5.358659 scale 9.021700; dose_slope flagged 908 threshold 4.324919 scale 0.005418; dose_linearity flagged 0 threshold 4.169569 scale 1.183354; flat_field flagged 926 threshold 4.324919 scale 0.00
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(235): error: Expected: (flaggedInRow(r, y, 0, kPartRowFrom - 8) + flaggedInRow(r, y, kPartRowFrom + kPartLen + 8, static_cast<int>(kW))) <= (2u), actual: 176 vs 2
+the rest of row 141 is not defective: union 941; dark_mean flagged 1 threshold 4.324919 scale 4.235961; dark_noise flagged 2 threshold 5.358659 scale 9.021700; dose_slope flagged 908 threshold 4.324919 scale 0.005418; dose_linearity flagged 0 threshold 4.169569 scale 1.183354; flat_field flagged 926 threshold 4.324919 scale 0.00
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(239): error: Expected: (flaggedInColumn(r, kPartCol, kPartLen + 8, static_cast<int>(kH))) <= (2u), actual: 100 vs 2
+the rest of column 30 is not defective: union 941; dark_mean flagged 1 threshold 4.324919 scale 4.235961; dark_noise flagged 2 threshold 5.358659 scale 9.021700; dose_slope flagged 908 threshold 4.324919 scale 0.005418; dose_linearity flagged 0 threshold 4.169569 scale 1.183354; flat_field flagged 926 threshold 4.324919 scale 0.
+[  FAILED  ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap (142 ms)
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(248): error: Expected: (noise) <= (2u), actual: 256 vs 2
+a shared offset of the column is not temporal noise of its pixels: union 260; dark_mean flagged 2 threshold 4.324919 scale 4.024213; dark_noise flagged 256 threshold 5.358659 scale 9.091188; dose_slope flagged 2 threshold 4.324919 scale 0.004817; dose_linearity flagged 0 threshold 4.169569 scale 1.174966; flat_field flagged 0 th
+[  FAILED  ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect (142 ms)
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(255): error: Expected: (flaggedInColumn(r, kGainCol, 0, static_cast<int>(kH))) <= (2u), actual: 131 vs 2
+a column band of response 0.8 is not a defect: union 141; dark_mean flagged 2 threshold 4.324919 scale 4.235871; dark_noise flagged 5 threshold 5.358659 scale 9.020111; dose_slope flagged 115 threshold 4.324919 scale 0.005147; dose_linearity flagged 0 threshold 4.169569 scale 1.178514; flat_field flagged 131 threshold 4.324919 s
+[  FAILED  ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn (140 ms)
+[  PASSED  ] 8 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap
+[  FAILED  ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect
+[  FAILED  ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn

@@ -166,6 +166,7 @@ struct EntryMeta {
     uint64_t    defectMarked{0};          ///< defect only: pixels marked defective
     uint64_t    defectTotal{0};           ///< defect only: pixels in the map
     uint64_t    defectHash{0};            ///< defect only: identity of the mask when over the limit (QA-A-241f)
+    std::shared_ptr<const DefectLayers> defectLayers;   ///< defect only: the layers of a version-2 file (QA-A-255), shared and immutable; null for version 1
 };
 
 /// NeedOpenCheck / Unreadable are the two steps of the open check (QA-A-203): see get_copy().
@@ -608,6 +609,7 @@ XpeErrorCode install_defect(std::unique_ptr<uint8_t[]> map, const XpeImageBuffer
         // (QA-A-241f, Codex #161) "a different over-limit map" counts as a change too: the identity is compared, not only the flag.
         warnDensity = meta.defectOverLimit && (!g_calib.defect_over_limit || g_calib.defect_hash != meta.defectHash);
         g_calib.defect_map    = std::move(map);
+        g_calib.defect_layers = meta.defectLayers;   // QA-A-255: a hit installs the layers the load made (null for version 1)
         g_calib.defect_width  = d.width;
         g_calib.defect_height = d.height;
         g_calib.defect_expiry_ms = meta.expiryMs;
@@ -870,6 +872,7 @@ try
         meta.defectMarked    = g_calib.defect_marked;
         meta.defectTotal     = g_calib.defect_total;
         meta.defectHash      = g_calib.defect_hash;
+        meta.defectLayers    = g_calib.defect_layers;
     }
 
     return publish_and_view(std::string(filePath), desc, staging.data(), defectMapOut, meta);

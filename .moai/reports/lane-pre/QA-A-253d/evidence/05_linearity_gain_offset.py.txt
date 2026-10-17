@@ -1,0 +1,71 @@
+"""QA-A-253d step 2c: does a gain band (column 807, response x1.2, planted CONTROL) shift the linearity feature F3b = log(sse / (G-2) + 1e-9)?
+Replica of the feature for the strip of columns 780..835 (cut area), planted and clean frames, and of the column-direction window statistic."""
+import math
+import numpy as np
+
+O = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+W0 = 3072
+ML, MT, MR, MB = 6, 2, 1, 1
+X0, X1, Y0, Y1 = ML, W0 - MR, MT, W0 - MB
+XA, XB = 780, 836        # frame columns of the strip
+ks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]
+L = 64
+
+
+def strip(path, name):
+    return np.fromfile(path + name, dtype=np.uint16).reshape(W0, W0)[Y0:Y1, XA:XB].astype(np.float64)
+
+
+def feature(path_frames, path_darks):
+    darks = [strip(path_darks, f'Dark_{k:02d}.raw') for k in range(8, 15)]
+    D = np.mean(darks, axis=0)
+    # the dark mean of the whole frame is needed for the group signal; the strip mean is used for the ratio only (the groups split by 25 % steps, so the grouping is the same)
+    fr = {k: strip(path_frames, f'Bright_{k:02d}.raw') for k in ks}
+    sig = {k: float(fr[k].mean() - D.mean()) for k in ks}
+    order = sorted(ks, key=lambda k: sig[k])
+    groups = [[order[0]]]
+    for k in order[1:]:
+        if sig[k] / sig[groups[-1][-1]] > 1.25:
+            groups.append([k])
+        else:
+            groups[-1].append(k)
+    G = len(groups)
+    Sg = np.array([np.mean([sig[k] for k in g]) for g in groups])
+    n_g = np.stack([np.mean([fr[k] for k in g], axis=0) - D for g in groups])   # (G, h, w)
+    Sx, Sxx = Sg.sum(), (Sg ** 2).sum()
+    Sn = n_g.sum(axis=0); Sxn = (Sg[:, None, None] * n_g).sum(axis=0); Snn = (n_g ** 2).sum(axis=0)
+    dgx = G * Sxx - Sx ** 2
+    a = (G * Sxn - Sx * Sn) / dgx
+    b = (Sn - a * Sx) / G
+    sse = np.maximum(0.0, Snn - a * Sxn - b * Sn)
+    f = np.log(sse / (G - 2) + 1e-9)
+    return f, a, G
+
+
+def stats(f, label, col):
+    # e = f minus the median of the 16 neighbouring columns at the same row (the column-direction analysis); neighbours exclude the column itself
+    c = col - XA
+    nb_cols = [x for x in range(c - 8, c + 9) if x != c and 0 <= x < f.shape[1]]
+    e_col = f[:, c] - np.median(f[:, nb_cols], axis=1)
+    sig = 1.4826 * np.median(np.abs(f[:, nb_cols[0]] - np.median(f[:, [x for x in nb_cols if x != nb_cols[0]]], axis=1)))
+    # block sigma of the neighbours' own e: use the strip columns away from the column
+    eo = []
+    for x in range(c - 12, c + 13):
+        if abs(x - c) < 10 or x < 8 or x >= f.shape[1] - 8:
+            continue
+        eo.append(f[:, x] - np.median(f[:, [y for y in range(x - 8, x + 9) if y != x]], axis=1))
+    sig = 1.4826 * np.median(np.abs(np.concatenate(eo)))
+    zt = np.clip(e_col / sig, -3, 3)
+    cs = np.concatenate([[0.0], np.cumsum(zt)])
+    zw = (cs[L:] - cs[:-L]) / math.sqrt(L)
+    print(f'{label} column {col}: mean e {e_col.mean():+.3f} (median {np.median(e_col):+.3f}), neighbour sigma {sig:.3f}, mean clipped z per pixel {zt.mean():+.3f}, '
+          f'window statistic: mean {zw.mean():+.2f} sd {zw.std():.2f} max {zw.max():.2f} at y(frame) {int(np.argmax(zw)) + MT}..{int(np.argmax(zw)) + MT + L}; windows above 6.5 (= 4.5 x 1.445): {int((zw > 6.5).sum())}')
+    return zw
+
+
+for label, pf, pd in (('planted', O + 'inj_b/frames/', O + 'inj_b/frames/'), ('clean', CAL, CAL)):
+    f, a, G = feature(pf, pd)
+    print(f'--- {label} frames: G = {G} dose groups, mean slope of column 807 / median of columns 797..817 = {np.mean(a[:, 807 - XA]) / np.median(a[:, [x - XA for x in range(797, 818) if x != 807]]):.4f}')
+    for col in (807, 801, 813, 795, 819):
+        stats(f, label, col)

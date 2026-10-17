@@ -1,0 +1,121 @@
+"""QA-A-254 step 0a (leader decision on QA-A-252h): the pixels covered by two or more planted items are scored against a COMPOSITE truth.
+- The response of the pixel is the PRODUCT of the responses of the covering response items (gain_loss, efficiency_loss: the item level); a product below 0.45 or above 1.5 is a response defect (the same rule as for one item).
+- The noise axis is the measured verdict of the covering items, unchanged (an item whose noise verdict is a defect makes the pixel a defect, one whose verdict is undetermined makes it undetermined unless a defect applies).
+- The pixel is a defect when either axis says so (a covering item that is a defect by itself, or a response product outside 0.45..1.5, or a noise defect).
+- score --overlap composite switches it on; without the option nothing changes (the earlier scores stay reproducible).
+- One extra line reports the overlapped pixels and their score: how many are defect / undetermined / normal by the composite, and how many of each the map flags."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:100])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('tools/xpe_bpm_eval.cpp', [
+    ('''// ------------------------------------------------------------------------------------------------------------- score
+struct GroupStat {''',
+     r"""/** What the composite truth made of the pixels that two or more planted items cover (QA-A-254). */
+struct OverlapReport {
+    size_t pixels{0}, defect{0}, undetermined{0}, normal{0}, promotedByProduct{0};
+};
+
+/**
+ * Composite truth of the overlapped pixels (QA-A-254, the decision on QA-A-252h): the response of a pixel covered by several response items is the product of their responses; the
+ * noise axis is the measured verdict of the covering items; the pixel is a defect when either axis says so. `cover` receives, per pixel, 0 (not overlapped), 1 normal, 2 defect, 3
+ * undetermined. The truth masks are updated: a composite defect is a true defect (truthReal), an undetermined pixel joins the undetermined zone.
+ */
+void applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vector<uint8_t>* overlapClass, OverlapReport* rep) {
+    const size_t n = static_cast<size_t>(t->w) * t->h;
+    std::vector<uint8_t> count(n, 0), anyDefect(n, 0), anyUndet(n, 0);
+    std::vector<float>   product(n, 1.0f);
+    for (const Item& it : t->items) {
+        const bool respItem = it.kind == "gain_loss" || it.kind == "efficiency_loss";
+        forItemPixels(it, t->w, [&](size_t i) {
+            if (count[i] < 255) ++count[i];
+            if (respItem) product[i] *= static_cast<float>(it.level);
+            if (it.cls == "undetermined") anyUndet[i] = 1;
+            else if (it.cls != "control") anyDefect[i] = 1;
+        });
+    }
+    overlapClass->assign(n, 0);
+    *rep = OverlapReport{};
+    for (size_t i = 0; i < n; ++i) {
+        if (count[i] < 2) continue;
+        ++rep->pixels;
+        const bool byProduct = product[i] < 0.45f - 1e-6f || product[i] > 1.5f + 1e-6f;
+        if (anyDefect[i] || byProduct) {
+            (*overlapClass)[i] = 2;
+            ++rep->defect;
+            if (!anyDefect[i]) {
+                ++rep->promotedByProduct;
+                t->truthReal[i] = 1;
+            }
+        } else if (anyUndet[i]) {
+            (*overlapClass)[i] = 3;
+            ++rep->undetermined;
+            (*undetMask)[i] = 1;
+        } else {
+            (*overlapClass)[i] = 1;
+            ++rep->normal;
+        }
+    }
+}
+
+// ------------------------------------------------------------------------------------------------------------- score
+struct GroupStat {"""),
+    ('''    std::vector<uint8_t> map, clean;
+    if (!readMap(a.str("map"), n, &map)) return 3;
+    const bool haveClean = a.has("clean-map");''',
+     '''    std::vector<uint8_t> overlapClass;
+    OverlapReport        overlap;
+    const bool           compositeOverlap = a.str("overlap") == "composite";
+    if (compositeOverlap) applyOverlapComposite(&t, &undetMask, &overlapClass, &overlap);
+    std::vector<uint8_t> map, clean;
+    if (!readMap(a.str("map"), n, &map)) return 3;
+    const bool haveClean = a.has("clean-map");'''),
+    ('''    std::printf("== false alarms\\n  flagged pixels in the map: %zu; outside the true defects (widened by 2): %zu\\n", nFlag, nOut);''',
+     '''    std::printf("== false alarms\\n  flagged pixels in the map: %zu; outside the true defects (widened by 2): %zu\\n", nFlag, nOut);
+    size_t ovFlag[4] = {0, 0, 0, 0}, ovNew[4] = {0, 0, 0, 0};
+    if (compositeOverlap) {
+        for (size_t i = 0; i < n; ++i)
+            if (overlapClass[i] != 0 && map[i]) {
+                ++ovFlag[overlapClass[i]];
+                if (haveClean && !clean[i]) ++ovNew[overlapClass[i]];
+            }
+        std::printf("== overlapped pixels (covered by two or more planted items; composite truth: response = product of the item responses, defect if either axis says so)\\n"
+                    "  pixels %zu: defect %zu (of them %zu only by the response product), undetermined %zu, normal %zu\\n"
+                    "  flagged by the map: in defect %zu, in undetermined %zu, in normal %zu (the normal ones are false alarms; new against the clean map: %zu)\\n",
+                    overlap.pixels, overlap.defect, overlap.promotedByProduct, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);
+    }'''),
+    ('''        j += "  ]\\n}\\n";
+        if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;
+    }
+    return 0;
+}
+
+// ------------------------------------------------------------------------------------------------------------- noise cost''',
+     '''        j += "  ]";
+        if (compositeOverlap) {
+            char ob[420];
+            std::snprintf(ob, sizeof ob,
+                          ",\\n  \\"overlap_pixels\\": %zu,\\n  \\"overlap_defect\\": %zu,\\n  \\"overlap_defect_by_product\\": %zu,\\n  \\"overlap_undetermined\\": %zu,\\n  \\"overlap_normal\\": %zu,\\n"
+                          "  \\"overlap_flagged_in_defect\\": %zu,\\n  \\"overlap_flagged_in_undetermined\\": %zu,\\n  \\"overlap_flagged_in_normal\\": %zu,\\n  \\"overlap_new_false_alarms\\": %zu",
+                          overlap.pixels, overlap.defect, overlap.promotedByProduct, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);
+            j += ob;
+        }
+        j += "\\n}\\n";
+        if (!writeBytes(a.str("out"), j.data(), j.size())) return 3;
+    }
+    return 0;
+}
+
+// ------------------------------------------------------------------------------------------------------------- noise cost'''),
+    (' *   xpe_bpm_eval score --truth DIR --map F [--noise-truth FILE]', ' *   xpe_bpm_eval score --truth DIR --map F [--noise-truth FILE] [--overlap composite]'),
+])
+print('overlap composite patched')

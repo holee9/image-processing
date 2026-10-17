@@ -1,0 +1,54 @@
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\fromnumeric.py:3862: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\_methods.py:142: RuntimeWarning: invalid value encountered in divide
+  ret = ret.dtype.type(ret / rcount)
+D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-252b\evidence\40_diag_new_structure.py.txt:88: RuntimeWarning: Mean of empty slice
+  i, c, k, s, lv, rects[0], float(np.median(zc_out)), float(np.median(zp_out)), float((zc_out > 5.316).mean()), float((zp_out > 5.316).mean())))
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+== dose_slope: interior new flags 27767
+ rows holding >= 100 of them: 14 (flags 26713); columns holding >= 100: 2 (flags 1053)
+ the 8 strongest rows: [(1613, 2248), (1367, 2248), (1366, 2248), (2649, 2243), (1802, 2242), (1803, 2242), (977, 2242), (2034, 2232)]
+ the 8 strongest columns: [(807, 576), (2285, 477), (1320, 15), (26, 14), (11, 14), (245, 14), (246, 14), (27, 14)]
+ flags lying in a row that carries a planted line item: 26154; in a column that carries one: 150 (of 27767)
+   row 1613: 2248 flags; planted line there: (15, 'nonlinear', 'row_partial', '0.4', 768)
+   row 1367: 2248 flags; planted line there: (17, 'nonlinear', 'row_pair', '0.4', 768)
+   row 1366: 2248 flags; planted line there: (17, 'nonlinear', 'row_pair', '0.4', 768)
+   row 2649: 2243 flags; planted line there: (9, 'dead', 'row_partial', '0.5', 768)
+   row 1803: 2242 flags; planted line there: (5, 'dead', 'row_pair', '1', 768)
+   row 1802: 2242 flags; planted line there: (5, 'dead', 'row_pair', '1', 768)
+   column 807: 576 flags; planted line there: None
+   column 2285: 477 flags; planted line there: None
+ sign of z at the flags: positive 26830, negative 937; |z| percentiles 5/50/95: [ 5.98 11.32 15.05]
+
+== flat_field: interior new flags 28949
+ rows holding >= 100 of them: 14 (flags 27566); columns holding >= 100: 2 (flags 1297)
+ the 8 strongest rows: [(1366, 2248), (1367, 2248), (1613, 2248), (2649, 2243), (1803, 2242), (977, 2242), (1802, 2242), (2034, 2232)]
+ the 8 strongest columns: [(807, 719), (2285, 578), (1320, 42), (1321, 42), (2980, 25), (2979, 16), (3049, 15), (14, 14)]
+ flags lying in a row that carries a planted line item: 26784; in a column that carries one: 230 (of 28949)
+   row 1613: 2248 flags; planted line there: (15, 'nonlinear', 'row_partial', '0.4', 768)
+   row 1367: 2248 flags; planted line there: (17, 'nonlinear', 'row_pair', '0.4', 768)
+   row 1366: 2248 flags; planted line there: (17, 'nonlinear', 'row_pair', '0.4', 768)
+   row 2649: 2243 flags; planted line there: (9, 'dead', 'row_partial', '0.5', 768)
+   row 1803: 2242 flags; planted line there: (5, 'dead', 'row_pair', '1', 768)
+   row 1802: 2242 flags; planted line there: (5, 'dead', 'row_pair', '1', 768)
+   column 807: 719 flags; planted line there: None
+   column 2285: 578 flags; planted line there: None
+ sign of z at the flags: positive 27738, negative 1211; |z| percentiles 5/50/95: [ 6.47 13.76 18.03]
+
+== do the line items shift the medians that are subtracted from other pixels in the same row / column?
+ item  3 line/dead/row_partial level 1 (1192, 977, 768, 1): on the same line outside the item: median |z| clean 0.67 planted 14.04; share > 5.32: clean 0.001 planted 1.000
+ item  4 line/dead/col_partial level 1 (1123, 2250, 1, 768): on the same line outside the item: median |z| clean 0.66 planted 1.59; share > 5.32: clean 0.000 planted 0.005
+ item  9 line/dead/row_partial level 0.5 (1532, 2649, 768, 1): on the same line outside the item: median |z| clean 0.67 planted 9.01; share > 5.32: clean 0.002 planted 0.999
+ item 10 line/dead/col_partial level 0.5 (1960, 1854, 1, 768): on the same line outside the item: median |z| clean 0.67 planted 1.97; share > 5.32: clean 0.000 planted 0.006
+ item 15 line/nonlinear/row_partial level 0.4 (1671, 1613, 768, 1): on the same line outside the item: median |z| clean 0.67 planted 12.01; share > 5.32: clean 0.000 planted 0.999
+ item 16 line/nonlinear/col_partial level 0.4 (675, 1951, 1, 768): on the same line outside the item: median |z| clean 0.70 planted 0.79; share > 5.32: clean 0.000 planted 0.004
+ item 21 line/nonlinear/row_partial level 0.2 (2104, 1859, 768, 1): on the same line outside the item: median |z| clean 0.67 planted 7.41; share > 5.32: clean 0.001 planted 0.974
+ item 22 line/nonlinear/col_partial level 0.2 (2328, 538, 1, 768): on the same line outside the item: median |z| clean 0.68 planted 0.79; share > 5.32: clean 0.000 planted 0.005
+ item 27 line/noisy/row_partial level 4 (190, 2916, 768, 1): on the same line outside the item: median |z| clean 0.68 planted 0.68; share > 5.32: clean 0.001 planted 0.005
+ item 28 line/noisy/col_partial level 4 (1902, 990, 1, 768): on the same line outside the item: median |z| clean 0.64 planted 0.64; share > 5.32: clean 0.001 planted 0.006
+ item 33 line/noisy/row_partial level 2 (1022, 366, 768, 1): on the same line outside the item: median |z| clean 0.64 planted 0.63; share > 5.32: clean 0.001 planted 0.002
+ item 34 line/noisy/col_partial level 2 (1219, 359, 1, 768): on the same line outside the item: median |z| clean 0.69 planted 0.68; share > 5.32: clean 0.000 planted 0.005
+ item 37 line/dead/cross level 1 (0, 2131, 3072, 1): on the same line outside the item: median |z| clean nan planted nan; share > 5.32: clean nan planted nan
+ item 38 line/nonlinear/cross level 0.4 (0, 96, 3072, 1): on the same line outside the item: median |z| clean nan planted nan; share > 5.32: clean nan planted nan
+ item 39 line/noisy/cross level 4 (0, 1734, 3072, 1): on the same line outside the item: median |z| clean nan planted nan; share > 5.32: clean nan planted nan

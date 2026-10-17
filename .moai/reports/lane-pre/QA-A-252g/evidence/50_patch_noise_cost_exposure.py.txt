@@ -1,0 +1,177 @@
+"""QA-A-252g step 2 (Codex #214 findings 3, 6 and the acceptance items 4, 5, 7): the truth path (the noise-cost command) takes the exposure variation out too, with its OWN implementation (it shares
+no code with the detector), and its interval no longer treats pixels x degrees of freedom as independent.
+
+Normalisation: the net signal (frame minus the dark level D) of every verification frame is multiplied by f_k = S_ref / S_k, S_k the global dose of the frame = the MEDIAN of its net signal over the
+unplanted interior pixels (planted items and 3 pixels around them are left out, so a defect cannot pull it), S_ref the mean of the S_k. Order: scale, then the deviation about the mean of the
+scaled frames, then the row and column means of every frame out. The scale is one number per frame, estimated from about 10^6 pixels (relative error ~1e-3 of the dose, a negligible variance
+of the variance); the per-pixel degrees of freedom stay frames - 1 (a pair of frames: the variance is (x1 - x2)^2 / 2, nu = 1). --raw-frames switches the scaling off (the labels of QA-A-252f).
+Interval: the pixel costs of an item, in the order of the pixels along it, are cut into blocks of 64 consecutive pixels; the variance of the block means gives the effective degrees of freedom
+2 c^2 / se^2 of the item mean (se^2 = variance of the block means / blocks); the interval uses the smaller of that and pixels x nu. The lag-1 autocorrelation is reported. The labels stay
+PROVISIONAL (status column, console, score) until the spatial correlation is checked against an independent replicate."""
+hp = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval_stats.hpp'
+h = open(hp, encoding='utf-8', newline='').read()
+hcrlf = '\r\n' in h
+h = h.replace('\r\n', '\n')
+marker = '/** The verdict on the noise cost of an item'
+assert h.count(marker) == 1
+add = r'''/** The mean of the per-pixel variance ratios of an item, the lag-1 autocorrelation along its pixels and the effective degrees of freedom of the mean from blocks of consecutive pixels (0 = not determinable). */
+struct BlockDof {
+    double mean{0}, lag1{0}, dofEff{0};
+    size_t blocks{0};
+};
+
+inline BlockDof blockEffectiveDof(const std::vector<double>& c, size_t block) {
+    BlockDof r;
+    const size_t n = c.size();
+    if (n == 0 || block == 0) return r;
+    double s = 0.0;
+    for (double v : c) s += v;
+    r.mean = s / static_cast<double>(n);
+    double num = 0.0, den = 0.0;
+    for (size_t i = 0; i < n; ++i) den += (c[i] - r.mean) * (c[i] - r.mean);
+    for (size_t i = 0; i + 1 < n; ++i) num += (c[i] - r.mean) * (c[i + 1] - r.mean);
+    r.lag1 = den > 0.0 ? num / den : 0.0;
+    const size_t nb = n / block;
+    r.blocks = nb;
+    if (nb < 4) return r;
+    std::vector<double> bm(nb, 0.0);
+    for (size_t j = 0; j < nb; ++j) {
+        for (size_t i = j * block; i < (j + 1) * block; ++i) bm[j] += c[i];
+        bm[j] /= static_cast<double>(block);
+    }
+    double mb = 0.0;
+    for (double v : bm) mb += v;
+    mb /= static_cast<double>(nb);
+    double vb = 0.0;
+    for (double v : bm) vb += (v - mb) * (v - mb);
+    vb /= static_cast<double>(nb - 1);
+    const double se2 = vb / static_cast<double>(nb);
+    r.dofEff = se2 > 0.0 ? 2.0 * mb * mb / se2 : 0.0;
+    return r;
+}
+
+'''
+h = h.replace(marker, add + marker)
+open(hp, 'w', encoding='utf-8', newline='').write(h.replace('\n', '\r\n') if hcrlf else h)
+
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# header text
+sub(''' *   xpe_bpm_eval noise-cost --truth DIR --dark F... --verify F... --out FILE [--limit 2]''',
+    ''' *   xpe_bpm_eval noise-cost --truth DIR --dark F... --verify F... --out FILE [--limit 2] [--raw-frames]''')
+sub(''' *       below, undetermined when it contains it. The model formula 1/r is NOT used.''',
+    ''' *       below, undetermined when it contains it. The model formula 1/r is NOT used.
+ *       Exposure (QA-A-252g): the net signal (frame minus the dark level) of every verification frame is multiplied by S_ref / S_k, S_k the median of its net signal over the unplanted
+ *       interior pixels (a defect cannot pull it), S_ref the mean of the S_k; then the deviation about the mean of the scaled frames, then the row and column means of every frame out.
+ *       One scale per frame from about 10^6 pixels: the per-pixel degrees of freedom stay frames - 1. --raw-frames switches the scaling off (the labels of QA-A-252f).
+ *       Interval: the degrees of freedom of an item are the smaller of pixels x nu and the effective ones from blocks of 64 consecutive pixels (variance of the block means); the labels
+ *       are PROVISIONAL (status column) until the spatial correlation is checked against an independent replicate.''')
+
+# reading: scale the frames
+sub('''    std::vector<std::vector<float>> net(verFiles.size());
+    std::vector<float>              mean(n, 0.0f);
+    for (size_t k = 0; k < verFiles.size(); ++k) {
+        std::vector<uint16_t> fr;
+        if (!readRaw16(verFiles[k], n, &fr)) return 3;
+        net[k].resize(n);
+        for (size_t i = 0; i < n; ++i) {
+            net[k][i] = static_cast<float>(fr[i] - D[i]);
+            mean[i] += net[k][i] / static_cast<float>(verFiles.size());
+        }
+    }''',
+    '''    std::vector<std::vector<float>> net(verFiles.size());
+    std::vector<float>              mean(n, 0.0f);
+    for (size_t k = 0; k < verFiles.size(); ++k) {
+        std::vector<uint16_t> fr;
+        if (!readRaw16(verFiles[k], n, &fr)) return 3;
+        net[k].resize(n);
+        for (size_t i = 0; i < n; ++i) net[k][i] = static_cast<float>(fr[i] - D[i]);
+    }
+    std::vector<uint8_t> occupied(n, 0);
+    for (size_t i = 0; i < n; ++i) occupied[i] = t.ids[i] != 0 ? 1 : 0;
+    const std::vector<uint8_t> occ = dilate(occupied, w, h, 3);
+    {   // exposure: one scale per frame from the global dose (median of the net signal over the unplanted interior pixels)
+        std::vector<double> dose(verFiles.size(), 1.0);
+        for (size_t k = 0; k < verFiles.size(); ++k) {
+            std::vector<float> sample;
+            for (uint32_t y = 32; y + 32 < h; y += 5)
+                for (uint32_t x = 32; x + 32 < w; x += 5) {
+                    const size_t i = static_cast<size_t>(y) * w + x;
+                    if (!occ[i]) sample.push_back(net[k][i]);
+                }
+            std::nth_element(sample.begin(), sample.begin() + static_cast<std::ptrdiff_t>(sample.size() / 2), sample.end());
+            dose[k] = static_cast<double>(sample[sample.size() / 2]);
+        }
+        double ref = 0.0;
+        for (double v : dose) ref += v / static_cast<double>(dose.size());
+        const bool raw = a.has("raw-frames");
+        std::printf("== exposure of the verification frames (global dose = median net signal of the unplanted pixels)%s\\n", raw ? "; --raw-frames: NOT scaled" : "");
+        for (size_t k = 0; k < verFiles.size(); ++k) {
+            const double f = raw ? 1.0 : ref / dose[k];
+            std::printf("  frame %zu dose %.2f scale %.5f\\n", k, dose[k], f);
+            for (size_t i = 0; i < n; ++i) net[k][i] = static_cast<float>(static_cast<double>(net[k][i]) * f);
+        }
+    }
+    for (size_t k = 0; k < verFiles.size(); ++k)
+        for (size_t i = 0; i < n; ++i) mean[i] += net[k][i] / static_cast<float>(verFiles.size());''')
+sub('''    net.clear();
+    net.shrink_to_fit();
+    std::vector<uint8_t> occupied(n, 0);
+    for (size_t i = 0; i < n; ++i) occupied[i] = t.ids[i] != 0 ? 1 : 0;
+    const std::vector<uint8_t> occ = dilate(occupied, w, h, 3);
+    const double medFactor''',
+    '''    net.clear();
+    net.shrink_to_fit();
+    const double medFactor''')
+
+# per-item pixel costs, effective degrees of freedom
+sub('''    std::string out = "id\\tkind\\tshape\\tlevel\\tpixels\\tdof\\tcost\\tlo\\thi\\tlabel\\n";''',
+    '''    std::string out = "id\\tkind\\tshape\\tlevel\\tpixels\\tdof\\tcost\\tlo\\thi\\tlabel\\tdof_independent\\tlag1\\tstatus\\n";''')
+sub('''        double sumC = 0.0;
+        size_t npx = 0;
+        forItemPixels(it, w, [&](size_t i) {''',
+    '''        double              sumC = 0.0;
+        size_t              npx = 0;
+        std::vector<double> pc;   // the cost of every pixel of the item, in the order along the item
+        forItemPixels(it, w, [&](size_t i) {''')
+sub('''            sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;
+            ++npx;
+        });
+        xpe_bpm_eval::NoiseVerdict v;
+        if (npx > 0) v = xpe_bpm_eval::classifyNoiseCost(sumC / static_cast<double>(npx), nu * static_cast<double>(npx), expectSe, limit);''',
+    '''            const double c = (static_cast<double>(s2[i]) / (g * g)) / expect;
+            sumC += c;
+            pc.push_back(c);
+            ++npx;
+        });
+        xpe_bpm_eval::NoiseVerdict v;
+        double                     dofUsed = nu * static_cast<double>(npx), dofIndependent = dofUsed, lag1 = 0.0;
+        if (npx > 0) {
+            const xpe_bpm_eval::BlockDof bd = xpe_bpm_eval::blockEffectiveDof(pc, 64);
+            lag1 = bd.lag1;
+            if (bd.dofEff > 0.0) dofUsed = std::min(dofUsed, bd.dofEff);
+            v = xpe_bpm_eval::classifyNoiseCost(sumC / static_cast<double>(npx), dofUsed, expectSe, limit);
+        }''')
+sub('''        std::snprintf(b, sizeof b, "%d\\t%s\\t%s\\t%s\\t%zu\\t%.0f\\t%.4f\\t%.4f\\t%.4f\\t%s\\n", it.id, it.kind.c_str(), it.shape.c_str(), fmtLevel(it.level).c_str(), npx, nu * static_cast<double>(npx), v.cost, v.lo, v.hi,
+                      label);''',
+    '''        std::snprintf(b, sizeof b, "%d\\t%s\\t%s\\t%s\\t%zu\\t%.0f\\t%.4f\\t%.4f\\t%.4f\\t%s\\t%.0f\\t%.3f\\tprovisional\\n", it.id, it.kind.c_str(), it.shape.c_str(), fmtLevel(it.level).c_str(), npx, dofUsed, v.cost, v.lo, v.hi,
+                      label, dofIndependent, lag1);''')
+sub('''    if (!writeBytes(a.str("out"), out.data(), out.size())) return 3;
+    std::printf("== noise cost of the response items''',
+    '''    if (!writeBytes(a.str("out"), out.data(), out.size())) return 3;
+    std::printf("== the labels are PROVISIONAL (effective degrees of freedom from blocks of 64 pixels; the spatial correlation is not yet checked against an independent replicate)\\n");
+    std::printf("== noise cost of the response items''')
+# score: say it
+sub('''        std::printf("== noise axis (%s): %zu items measured;''', '''        std::printf("== noise axis (%s, PROVISIONAL measured labels): %zu items measured;''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('noise-cost exposure patched')

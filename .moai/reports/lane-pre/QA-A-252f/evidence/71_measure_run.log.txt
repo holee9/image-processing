@@ -1,0 +1,18 @@
+S2_inject exit 0
+N1_noise_cost exit 0
+V1_set exit 0
+V1_half_a exit 0
+V1_half_b exit 0
+V1_score exit 0
+V2_clean exit 0
+V2_planted exit 0
+V2_half_a exit 0
+V2_half_b exit 0
+L1_clean exit 0
+L2_planted exit 0
+L3a exit 0
+L3b exit 0
+V2_score exit 0
+V2_score_response_axis exit 0
+done
+finished

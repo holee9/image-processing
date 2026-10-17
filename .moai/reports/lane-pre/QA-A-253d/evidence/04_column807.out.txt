@@ -1,0 +1,18 @@
+planted items with a rectangle within x 780..835, y 1990..2120:
+   (19, 'line', 'nonlinear', 'row_full', '0.2') (0, 2102, 3072, 1)
+   (47, 'control', 'gain_band', 'col_full', '1.2') (807, 0, 1, 3072)
+   (1081, 'pixel', 'nonlinear', 'pixel', '0.2') (783, 2054, 1, 1)
+pixel map, planted: flagged pixels in column 807, y 2000..2099: 0
+pixel map, clean: flagged pixels in column 807, y 2000..2099: 0
+line mask, planted: flagged pixels in column 807, y 2000..2099: 65 (np.int64(2020), np.int64(2084))
+neighbouring columns 800..814, number of pixels of the pixel map (planted) inside y 2020..2085: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+mean signal (bright frames, dark removed) of column 807 over y 2020..2085 against columns 797..817 (excluding 807):
+  ratio column 807 / median of neighbours: mean 1.2005  min 1.1949  max 1.2064
+  clean frames: ratio mean 1.0004  min 0.9958  max 1.0054
+  per frame (sorted by signal): mean ratio column 807 / neighbours (planted frames)
+    frame 17 signal 2727.0 ratio 1.204
+    frame 20 signal 5903.0 ratio 1.1983
+    frame 26 signal 9246.0 ratio 1.1985
+    frame 24 signal 9253.0 ratio 1.2006
+    frame 31 signal 18351.0 ratio 1.2016
+    frame 35 signal 29364.0 ratio 1.1995

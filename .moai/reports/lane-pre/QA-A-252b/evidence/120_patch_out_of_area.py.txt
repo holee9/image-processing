@@ -1,0 +1,172 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    p = base + rel
+    s = open(p, encoding='utf-8', newline='').read()
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:90])
+        s = s.replace(old, new)
+    open(p, 'w', encoding='utf-8', newline='').write(s)
+
+
+edit('include/xpe/preprocess_api.h', [
+    ('''    float    dose_group_ratio;    /**< Sorted bright-frame signals whose ratio exceeds this start a new dose group (default 1.25; at least 1.01) */
+    uint32_t reserved;            /**< Must be zero */
+} XpeBpmConfigV2;''', '''    float    dose_group_ratio;    /**< Sorted bright-frame signals whose ratio exceeds this start a new dose group (default 1.25; at least 1.01) */
+    uint32_t margin_left;         /**< Columns at the left edge that are outside the imaging area (shielded or dummy); default 0 = none (QA-A-252b) */
+    uint32_t margin_top;          /**< Rows at the top edge outside the imaging area; default 0 */
+    uint32_t margin_right;        /**< Columns at the right edge outside the imaging area; default 0 */
+    uint32_t margin_bottom;       /**< Rows at the bottom edge outside the imaging area; default 0 */
+    uint32_t reserved;            /**< Must be zero */
+} XpeBpmConfigV2;
+
+/**
+ * Map code of a pixel outside the imaging area (see XpeBpmConfigV2 margins). Defect codes are 1..3. These pixels take no part in the decision or in any local
+ * statistic (row and column components, background, scale, thresholds, frame means); consumers that read the map as "non-zero = defect" must treat this code as good.
+ */
+#define XPE_BPM_V2_OUT_OF_AREA 4u'''),
+    ('''    uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */''', '''    uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */
+    uint32_t out_of_area_pixels;                              /**< Pixels outside the imaging area (the margins of the configuration); not in `pixels` */'''),
+    ('/**< Pixels per frame (the N of the false-alarm target) */', '/**< Pixels per frame inside the imaging area (the N of the false-alarm target) */'),
+])
+
+edit('src/xpe_bpm_v2.cpp', [
+    ('''extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {''',
+     '''/** The detection on frames that hold the imaging area only (no margins). */
+XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                            const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {'''),
+])
+
+# the wrapper goes at the end of the file, after the core function's catch clauses
+p = base + 'src/xpe_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+s = s.rstrip() + '\n'
+wrapper = '''
+/**
+ * The public entry. Pixels in the margins (outside the imaging area) are cut away before anything is computed, so no statistic of the detection sees them, and are
+ * written as XPE_BPM_V2_OUT_OF_AREA into the map afterwards.
+ */
+extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {
+    const uint32_t ml = cfg ? cfg->margin_left : 0u, mt = cfg ? cfg->margin_top : 0u, mr = cfg ? cfg->margin_right : 0u, mb = cfg ? cfg->margin_bottom : 0u;
+    if (ml == 0 && mt == 0 && mr == 0 && mb == 0) {
+        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report);
+        if (rc == XPE_OK && report) report->out_of_area_pixels = 0;
+        return rc;
+    }
+    if (!dark_frames || !bright_frames || !bpm_out || num_dark == 0 || num_bright == 0) return XPE_ERR_INVALID_INPUT;
+    const uint32_t width = dark_frames[0].width, height = dark_frames[0].height;
+    if (width < 16 || height < 16 || ml > width || mr > width || mt > height || mb > height) return XPE_ERR_INVALID_INPUT;
+    if (width - ml < mr + 16 || height - mt < mb + 16) return XPE_ERR_INVALID_INPUT;
+    const uint32_t cw = width - ml - mr, ch = height - mt - mb;
+    const size_t   n = static_cast<size_t>(width) * height, cn = static_cast<size_t>(cw) * ch;
+    auto check = [&](const XpeImageBuffer& b) -> XpeErrorCode {
+        if (!b.data) return XPE_ERR_INVALID_INPUT;
+        if (b.width != width || b.height != height) return XPE_ERR_INVALID_INPUT;
+        if (b.format != XPE_PIXEL_UINT16) return XPE_ERR_UNSUPPORTED_FORMAT;
+        if (b.dataSize != 0 && b.dataSize < n * sizeof(uint16_t)) return XPE_ERR_INVALID_INPUT;
+        return XPE_OK;
+    };
+    for (uint32_t k = 0; k < num_dark; ++k)
+        if (const XpeErrorCode rc = check(dark_frames[k])) return rc;
+    for (uint32_t k = 0; k < num_bright; ++k)
+        if (const XpeErrorCode rc = check(bright_frames[k])) return rc;
+    auto checkOut = [&](const XpeImageBuffer* b) -> XpeErrorCode {
+        if (!b->data) return XPE_ERR_INVALID_INPUT;
+        if (b->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+        if (b->width != width || b->height != height || b->dataSize < n) return XPE_ERR_BUFFER_TOO_SMALL;
+        return XPE_OK;
+    };
+    if (const XpeErrorCode rc = checkOut(bpm_out)) return rc;
+    if (feature_out)
+        if (const XpeErrorCode rc = checkOut(feature_out)) return rc;
+
+    auto crop = [&](const XpeImageBuffer& src, std::vector<uint16_t>* dst) {
+        dst->resize(cn);
+        const uint16_t* p = static_cast<const uint16_t*>(src.data);
+        for (uint32_t y = 0; y < ch; ++y)
+            std::memcpy(dst->data() + static_cast<size_t>(y) * cw, p + static_cast<size_t>(y + mt) * width + ml, static_cast<size_t>(cw) * sizeof(uint16_t));
+    };
+    auto cutBuf = [&](std::vector<uint16_t>& v) {
+        XpeImageBuffer b{};
+        b.data = v.data();
+        b.width = cw;
+        b.height = ch;
+        b.bitsAllocated = 16;
+        b.bitsStored = 16;
+        b.format = XPE_PIXEL_UINT16;
+        b.dataSize = v.size() * sizeof(uint16_t);
+        return b;
+    };
+    std::vector<std::vector<uint16_t>> cd(num_dark), cb(num_bright);
+    std::vector<XpeImageBuffer>        cdb(num_dark), cbb(num_bright);
+    for (uint32_t k = 0; k < num_dark; ++k) {
+        crop(dark_frames[k], &cd[k]);
+        cdb[k] = cutBuf(cd[k]);
+    }
+    for (uint32_t k = 0; k < num_bright; ++k) {
+        crop(bright_frames[k], &cb[k]);
+        cbb[k] = cutBuf(cb[k]);
+    }
+    std::vector<uint8_t> cmap(cn, 0), cfeat(feature_out ? cn : 0, 0);
+    XpeImageBuffer       outMap{}, outFeat{};
+    outMap.data = cmap.data();
+    outMap.width = cw;
+    outMap.height = ch;
+    outMap.bitsAllocated = 8;
+    outMap.bitsStored = 8;
+    outMap.format = XPE_PIXEL_UINT8;
+    outMap.dataSize = cmap.size();
+    if (feature_out) {
+        outFeat = outMap;
+        outFeat.data = cfeat.data();
+    }
+    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report);
+    if (rc != XPE_OK) return rc;
+    uint8_t* mapDst = static_cast<uint8_t*>(bpm_out->data);
+    std::memset(mapDst, static_cast<int>(XPE_BPM_V2_OUT_OF_AREA), n);
+    for (uint32_t y = 0; y < ch; ++y) std::memcpy(mapDst + static_cast<size_t>(y + mt) * width + ml, cmap.data() + static_cast<size_t>(y) * cw, cw);
+    if (feature_out) {
+        uint8_t* featDst = static_cast<uint8_t*>(feature_out->data);
+        std::memset(featDst, 0, n);
+        for (uint32_t y = 0; y < ch; ++y) std::memcpy(featDst + static_cast<size_t>(y + mt) * width + ml, cfeat.data() + static_cast<size_t>(y) * cw, cw);
+    }
+    if (report) report->out_of_area_pixels = static_cast<uint32_t>(n - cn);
+    return XPE_OK;
+} catch (const std::bad_alloc&) {
+    return XPE_ERR_OUT_OF_MEMORY;
+} catch (...) {
+    return XPE_ERR_INTERNAL;
+}
+'''
+s += wrapper
+open(p, 'w', encoding='utf-8', newline='').write(s)
+
+edit('tools/xpe_bpm_eval.cpp', [
+    ('''    } else if (bytes.size() == n) {
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = bytes[i] != 0 ? 1 : 0;''', '''    } else if (bytes.size() == n) {
+        // 8-bit map: 0 = good, 1..3 = defect, XPE_BPM_V2_OUT_OF_AREA (4) = outside the imaging area, which is not a defect
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[i] != 0 && bytes[i] != XPE_BPM_V2_OUT_OF_AREA) ? 1 : 0;'''),
+    ('''    cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    std::vector<uint8_t> mask(n, 0), feat(n, 0);''', '''    cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
+    if (a.has("margins")) {   // L,T,R,B: columns / rows at the edges that are outside the imaging area
+        unsigned ml = 0, mt = 0, mr = 0, mb = 0;
+        char     extra = 0;
+        if (std::sscanf(a.str("margins").c_str(), "%u,%u,%u,%u%c", &ml, &mt, &mr, &mb, &extra) != 4) {
+            std::fprintf(stderr, "--margins takes L,T,R,B (four numbers)\\n");
+            return 2;
+        }
+        cfg.margin_left = ml;
+        cfg.margin_top = mt;
+        cfg.margin_right = mr;
+        cfg.margin_bottom = mb;
+    }
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    std::vector<uint8_t> mask(n, 0), feat(n, 0);'''),
+    ('''",\\n  \\"bright_frames_used\\": " + std::to_string(rep.bright_frames_used) +''', '''",\\n  \\"out_of_area_pixels\\": " + std::to_string(rep.out_of_area_pixels) + ",\\n  \\"margins\\": [" + std::to_string(cfg.margin_left) + ", " + std::to_string(cfg.margin_top) + ", " +
+                    std::to_string(cfg.margin_right) + ", " + std::to_string(cfg.margin_bottom) + "],\\n  \\"bright_frames_used\\": " + std::to_string(rep.bright_frames_used) +'''),
+])
+print('patched')

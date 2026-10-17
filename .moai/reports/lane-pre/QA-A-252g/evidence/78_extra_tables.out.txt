@@ -1,0 +1,99 @@
+columns: ['id', 'kind', 'shape', 'level', 'pixels', 'dof', 'cost', 'lo', 'hi', 'label', 'dof_independent', 'lag1', 'status']
+items: scaled 840, raw 840, 252f 840
+scaled vs raw-frames: label changes 75 {('defect', 'undetermined'): 6, ('undetermined', 'normal'): 34, ('normal', 'undetermined'): 29, ('undetermined', 'defect'): 6}; |cost ratio - 1|: median 0.3640, 95th 11.8526, max 1734.0000 (items 838)
+raw-frames (this run) vs 252f file: label changes 0 {}; |cost ratio - 1|: median 0.0000, 95th 0.0000, max 0.0000 (items 838)
+scaled vs 252f file: label changes 75 {('defect', 'undetermined'): 6, ('undetermined', 'normal'): 34, ('normal', 'undetermined'): 29, ('undetermined', 'defect'): 6}; |cost ratio - 1|: median 0.3640, 95th 11.8526, max 1734.0000 (items 838)
+line items 72: lag-1 autocorrelation median 0.090, max 0.262; effective / independent degrees of freedom: min 0.219, median 0.763; items with effective < independent: 53
+status column values: Counter({'provisional': 840})
+  gain_loss        0.3   lag1 0.20 0.20 0.09 0.26 0.14 0.05  eff/indep 0.51 0.67 0.76 0.48 0.56 0.96
+  gain_loss        0.44  lag1 0.17 0.17 0.15 0.26 0.17 0.10  eff/indep 0.68 0.67 0.43 0.23 0.76 0.76
+  gain_loss        0.46  lag1 0.21 0.18 0.17 0.25 0.10 0.16  eff/indep 0.68 0.61 0.50 0.22 0.61 0.45
+  gain_loss        0.6   lag1 0.15 0.19 0.14 0.17 0.21 0.07  eff/indep 0.62 0.89 0.66 1.00 0.65 0.69
+  efficiency_loss  0.3   lag1 -0.01 0.03 -0.01 0.01 -0.03 0.00  eff/indep 0.82 0.83 0.79 0.48 0.74 1.00
+  efficiency_loss  0.44  lag1 0.01 0.03 0.03 0.06 -0.01 0.05  eff/indep 0.98 0.74 1.00 0.70 1.00 1.00
+  efficiency_loss  0.46  lag1 0.03 0.06 0.07 0.02 0.04 0.02  eff/indep 1.00 0.92 0.61 1.00 0.91 1.00
+  efficiency_loss  0.6   lag1 0.08 0.04 0.13 0.06 0.06 0.08  eff/indep 0.82 0.87 1.00 0.39 1.00 0.74
+
+BRIGHT_NOISE bits: total 4606, inside planted items 4715, outside all items 9
+class      kind             type   level     pixels    noise per pixel
+control    efficiency_loss  line   0.46       10752      421   0.03916
+control    efficiency_loss  line   0.6        10752       68   0.00632
+control    efficiency_loss  line   0.7        10752        7   0.00065
+control    efficiency_loss  pixel  0.46          64        2   0.03125
+control    efficiency_loss  pixel  0.6           64        0   0.00000
+control    efficiency_loss  pixel  0.7           64        0   0.00000
+control    gain_loss        line   0.46       10752        8   0.00074
+control    gain_loss        line   0.6        10752       13   0.00121
+control    gain_loss        line   0.7        10752        5   0.00047
+control    gain_loss        pixel  0.46          64        0   0.00000
+control    gain_loss        pixel  0.6           64        0   0.00000
+control    gain_loss        pixel  0.7           64        0   0.00000
+line       efficiency_loss  line   0.3        10752     3016   0.28051
+line       efficiency_loss  line   0.4        10752      729   0.06780
+line       efficiency_loss  line   0.44       10752      380   0.03534
+line       gain_loss        line   0.3        10752        4   0.00037
+line       gain_loss        line   0.4        10752        5   0.00047
+line       gain_loss        line   0.44       10752        7   0.00065
+pixel      efficiency_loss  pixel  0.3           64       15   0.23438
+pixel      efficiency_loss  pixel  0.4           64        2   0.03125
+pixel      efficiency_loss  pixel  0.44          64        0   0.00000
+pixel      gain_loss        pixel  0.3           64        0   0.00000
+pixel      gain_loss        pixel  0.4           64        0   0.00000
+pixel      gain_loss        pixel  0.44          64        0   0.00000
+
+lines list planted: 252f (86, {'L': 46, 'R': 44, 'S': 44, 'N': 38}) | 252g (87, {'L': 47, 'R': 44, 'S': 44, 'N': 35})
+lines list clean  : 252f (0, {}) | 252g (0, {})
+
+1st gen
+  clean_flagged                      252f 133            252g 133
+  control_false_detections           252f 314            252g 317
+  control_items                      252f 445            252g 448
+  flagged                            252f 198342         252g 198342
+  jaccard_all                        252f 0.966153       252g 0.966153
+  jaccard_inside_truth               252f 0.966233       252g 0.966233
+  jaccard_outside_truth              252f 0.853147       252g 0.853147
+  new_false_alarms                   252f 78906          252g 78909
+  new_false_alarms_in_controls       252f 78640          252g 78643
+  noise_axis_promoted_to_defect      252f 7              252g 6
+  outside_truth                      252f 79038          252g 79041
+  undetermined_items                 252f 370            252g 368
+
+2nd gen two axes
+  clean_flagged                      252f 2353           252g 2353
+  control_false_detections           252f 3              252g 0
+  control_items                      252f 445            252g 448
+  flagged                            252f 153141         252g 151482
+  jaccard_all                        252f 0.942812       252g 0.945703
+  jaccard_inside_truth               252f 0.953584       252g 0.956353
+  jaccard_outside_truth              252f 0.386472       252g 0.39426
+  new_false_alarms                   252f 1409           252g 1252
+  new_false_alarms_in_controls       252f 1257           252g 1110
+  noise_axis_promoted_to_defect      252f 7              252g 6
+  outside_truth                      252f 3586           252g 3428
+  undetermined_items                 252f 370            252g 368
+
+2nd gen response axis
+  clean_flagged                      252f 2353           252g 2353
+  control_false_detections           252f 47             252g 6
+  control_items                      252f 822            252g 822
+  flagged                            252f 153141         252g 151482
+  jaccard_all                        252f 0.942812       252g 0.945703
+  jaccard_inside_truth               252f 0.953584       252g 0.956353
+  jaccard_outside_truth              252f 0.386472       252g 0.39426
+  new_false_alarms                   252f 12142          252g 10524
+  new_false_alarms_in_controls       252f 11919          252g 10320
+  noise_axis_promoted_to_defect      252f 0              252g 0
+  outside_truth                      252f 14331          252g 12713
+  undetermined_items                 252f 0              252g 0
+
+2nd gen, scaled labels vs raw-frames labels
+  flagged                            scaled 151482       raw 151482
+  outside_truth                      scaled 3428         raw 3429
+  clean_flagged                      scaled 2353         raw 2353
+  new_false_alarms                   scaled 1252         raw 1252
+  new_false_alarms_in_controls       scaled 1110         raw 1110
+  control_items                      scaled 448          raw 445
+  control_false_detections           scaled 0            raw 0
+  undetermined_items                 scaled 368          raw 370
+  undetermined_groups                scaled [{'group': 'undetermined/efficiency_loss/col_pair/0.6', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.116556}, {'group': 'undetermined/efficiency_loss/col_partial/0.46', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.318725}, {'group': 'undetermined/efficiency_loss/pixel/0.46', 'items': 57, 'at_least_half_flagged': 2, 'mean_flagged_fraction': 0.035088}, {'group': 'undetermined/efficiency_loss/pixel/0.6', 'items': 61, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/efficiency_loss/pixel/0.7', 'items': 62, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/efficiency_loss/row_pair/0.46', 'items': 1, 'at_least_half_flagged': 1, 'mean_flagged_fraction': 0.787779}, {'group': 'undetermined/efficiency_loss/row_partial/0.46', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.259211}, {'group': 'undetermined/efficiency_loss/row_partial/0.6', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.002632}, {'group': 'undetermined/gain_loss/pixel/0.46', 'items': 58, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/gain_loss/pixel/0.6', 'items': 63, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/gain_loss/pixel/0.7', 'items': 62, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}] raw [{'group': 'undetermined/efficiency_loss/col_pair/0.6', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.116556}, {'group': 'undetermined/efficiency_loss/col_partial/0.46', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.318725}, {'group': 'undetermined/efficiency_loss/pixel/0.46', 'items': 61, 'at_least_half_flagged': 2, 'mean_flagged_fraction': 0.032787}, {'group': 'undetermined/efficiency_loss/pixel/0.6', 'items': 59, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/efficiency_loss/pixel/0.7', 'items': 61, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/efficiency_loss/row_partial/0.46', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.259211}, {'group': 'undetermined/efficiency_loss/row_partial/0.6', 'items': 1, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.002632}, {'group': 'undetermined/gain_loss/pixel/0.46', 'items': 63, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/gain_loss/pixel/0.6', 'items': 60, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}, {'group': 'undetermined/gain_loss/pixel/0.7', 'items': 62, 'at_least_half_flagged': 0, 'mean_flagged_fraction': 0.0}]
+  noise_axis_promoted_to_defect      scaled 6            raw 7

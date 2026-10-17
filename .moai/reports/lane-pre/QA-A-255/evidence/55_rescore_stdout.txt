@@ -1,0 +1,5 @@
+N2_noise_cost exit 0
+item truth identical to 252g
+R3_gen1 exit 0
+R4_gen2 exit 0
+done

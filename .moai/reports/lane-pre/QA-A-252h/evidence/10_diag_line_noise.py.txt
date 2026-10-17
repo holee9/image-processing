@@ -1,0 +1,229 @@
+"""QA-A-252h diagnosis: why do 42 pixels on the gain-loss lines (and 68 / 7 on the efficiency-loss 0.6 / 0.7 control lines) carry the BRIGHT_NOISE bit at a rate of 7e-4 against 1e-6 for ordinary pixels?
+Offline numpy replication of the P2 statistic of the detector as committed in QA-A-252g (xpe_bpm_v2.cpp, the mean-based frame scale; the median change of 252h does not alter these numbers beyond 3e-4),
+run on the planted frames of the QA-A-252g measurement. Replication, per dose group: scaled net frames x_k = f_k (p_k - D); mean over the group; per frame the row means then the column means out;
+vg = sum e^2 / (m-1); ref = separable median (17 along x, then 17 along y, reflected borders) of vg / median(chi2_nu / nu); corrGain = 1 / clamp(flat / separable median of flat, 0.2, 3)^2 with
+flat = sum over groups of (group mean - D) / sum of the group mean signals; ratio_g = vg corrGain / ref; pooled T = sum nu_g ratio_g / sum nu_g; flagged when T > tau and ratio_g >= 2 in at least half the groups.
+It prints (a) the check against the detector's own feature file, (b) the distribution of T on ordinary pixels and on the gain-loss line pixels, (c) the table of the flagged line pixels, and (d) the
+hypotheses H1 (the local expectation of a line pixel is set from the pixels around the line), H2 (the measured response used for the gain correction is noisy: replace it by the planted response),
+H3 (the row / column mean removal): the flagged counts under each variant. Nothing here changes a method or a threshold."""
+import collections
+import numpy as np
+
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-252g/'
+W = H = 3072
+N = W * H
+DK = [8, 9, 10, 11, 12, 13, 14]
+BR = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]
+TAU = 4.483
+WIN = 17
+R = WIN // 2
+
+
+def rd(name):
+    return np.fromfile(IN + 'frames/' + name, dtype=np.uint16, count=N).astype(np.float32).reshape(H, W)
+
+
+def med_axis1(a):
+    out = np.empty_like(a)
+    pad = np.pad(a, ((0, 0), (R, R)), mode='reflect')
+    for r0 in range(0, a.shape[0], 96):
+        v = np.lib.stride_tricks.sliding_window_view(pad[r0:r0 + 96], WIN, axis=1)
+        out[r0:r0 + 96] = np.median(v, axis=2)
+    return out
+
+
+def sepmed(a):
+    return np.ascontiguousarray(med_axis1(np.ascontiguousarray(med_axis1(a).T)).T)
+
+
+D = np.zeros((H, W), dtype=np.float64)
+for k in DK:
+    D += rd('Dark_%02d.raw' % k)
+D = (D / len(DK)).astype(np.float32)
+dm = float(D.mean())
+frames = {k: rd('Bright_%02d.raw' % k) for k in BR}
+signal = {k: float(frames[k].mean()) - dm for k in BR}
+order = sorted(BR, key=lambda k: signal[k])
+groups = [[order[0]]]
+for a, b in zip(order, order[1:]):
+    if signal[b] / signal[a] > 1.25:
+        groups.append([])
+    groups[-1].append(b)
+print('groups (frames per group):', [len(g) for g in groups])
+scale = {}
+for g in groups:
+    sg = np.mean([signal[k] for k in g])
+    for k in g:
+        scale[k] = sg / signal[k]
+
+# the measured response used for the gain correction
+flat = np.zeros((H, W), dtype=np.float64)
+sx = 0.0
+for g in groups:
+    flat += np.mean([frames[k].astype(np.float64) for k in g], axis=0) - D
+    sx += np.mean([signal[k] for k in g])
+flat = (flat / sx).astype(np.float32)
+bg = sepmed(flat)
+rc = np.clip(np.where(np.abs(bg) > 1e-12, flat / bg, 1.0), 0.2, 3.0).astype(np.float32)
+corr = (1.0 / (rc.astype(np.float64) ** 2)).astype(np.float32)
+print('response rc: median %.5f' % float(np.median(rc)))
+
+# truth: the line and pixel items
+items = []
+for l in open(IN + 'truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        items.append({'id': int(p[0]), 'cls': p[1], 'kind': p[2], 'shape': p[3], 'level': p[4], 'rects': [tuple(map(int, q.split(','))) for q in p[5].split(';')]})
+itemmask = np.zeros((H, W), dtype=np.int32)
+for it in items:
+    for (x, y, w, h) in it['rects']:
+        itemmask[y:y + h, x:x + w] = it['id']
+trueR = np.ones((H, W), dtype=np.float32)
+for it in items:
+    if it['kind'] == 'gain_loss':
+        for (x, y, w, h) in it['rects']:
+            trueR[y:y + h, x:x + w] = float(it['level'])
+
+
+def statistic(corr_img, ref_mode='sep', removal=True):
+    """Returns (T, hits, ratios per group stacked, refs per group, vgs per group) for the chosen variants."""
+    nu_tot = 0
+    tsum = np.zeros((H, W), dtype=np.float64)
+    hits = np.zeros((H, W), dtype=np.int8)
+    ratios, refs, vgs = [], [], []
+    for g in groups:
+        m = len(g)
+        fk = {k: scale[k] for k in g}
+        x = {k: (fk[k] * (frames[k] - D)).astype(np.float32) for k in g}
+        gm = sum(x.values()) / m
+        vg = np.zeros((H, W), dtype=np.float32)
+        for k in g:
+            t = x[k] - gm
+            if removal:
+                t = t - t.mean(axis=1, keepdims=True)
+                t = t - t.mean(axis=0, keepdims=True)
+            vg += t * t
+        vg /= (m - 1)
+        mnu = {2: 0.455, 3: 0.693, 4: 0.789, 5: 0.839, 6: 0.870}.get(m, None)
+        if mnu is None:
+            from math import gamma
+            mnu = 1.0
+        ref = np.maximum(sepmed(vg) / mnu, 1e-9)
+        ratio = vg * corr_img / ref
+        tsum += (m - 1) * ratio
+        hits += (ratio >= 2.0).astype(np.int8)
+        nu_tot += m - 1
+        ratios.append(ratio)
+        refs.append(ref)
+        vgs.append(vg)
+    return tsum / nu_tot, hits, ratios, refs, vgs
+
+
+# (a) the replication against the detector
+T, hits, ratios, refs, vgs = statistic(corr)
+mine = (T > TAU) & (2 * hits >= len(groups))
+feat = np.fromfile(OUT + 'v2g_planted_features.u8', dtype=np.uint8, count=N).reshape(H, W)
+det = (feat & 0x20) != 0
+inter = np.zeros((H, W), dtype=bool)
+inter[12:-12, 12:-12] = True
+print('\n(a) replication check, interior pixels: detector %d, replication %d, both %d' % ((det & inter).sum(), (mine & inter).sum(), (det & mine & inter).sum()))
+
+# (b) distributions
+free = (itemmask == 0) & inter
+dil = itemmask != 0
+for _ in range(3):
+    d2 = dil.copy()
+    d2[1:] |= dil[:-1]
+    d2[:-1] |= dil[1:]
+    d2[:, 1:] |= dil[:, :-1]
+    d2[:, :-1] |= dil[:, 1:]
+    dil = d2
+free &= ~dil
+
+
+def stats(name, mask):
+    t = T[mask]
+    print('  %-34s pixels %9d  T mean %.4f sd %.4f  p99.99 %.3f  max %.3f  fraction > tau %.2e  flagged %d' % (name, mask.sum(), t.mean(), t.std(), np.percentile(t, 99.99), t.max(), (t > TAU).mean(), (mine & mask).sum()))
+
+
+print('\n(b) pooled statistic T (expected mean 1, tau %.3f)' % TAU)
+stats('ordinary pixels (no item within 3)', free)
+for name, sel in (('gain-loss lines, all levels', lambda it: it['kind'] == 'gain_loss' and it['shape'] != 'pixel'),
+                  ('gain-loss lines 0.3', lambda it: it['kind'] == 'gain_loss' and it['shape'] != 'pixel' and it['level'] == '0.3'),
+                  ('gain-loss lines 0.7 (control)', lambda it: it['kind'] == 'gain_loss' and it['shape'] != 'pixel' and it['level'] == '0.7'),
+                  ('efficiency-loss lines 0.6', lambda it: it['kind'] == 'efficiency_loss' and it['shape'] != 'pixel' and it['level'] == '0.6'),
+                  ('efficiency-loss lines 0.7', lambda it: it['kind'] == 'efficiency_loss' and it['shape'] != 'pixel' and it['level'] == '0.7')):
+    m = np.zeros((H, W), dtype=bool)
+    for it in items:
+        if sel(it):
+            for (x, y, w, h) in it['rects']:
+                m[y:y + h, x:x + w] = True
+    m &= inter
+    stats(name, m)
+    if name == 'gain-loss lines, all levels':
+        gl = m.copy()
+
+# (c) the flagged gain-loss line pixels
+print('\n(c) flagged pixels on gain-loss lines and efficiency-loss 0.6 / 0.7 lines: item, x, y, planted r, measured rc, corrGain, ref (mean over groups), vg (mean), ratio per group, T, hits')
+tab = []
+for it in items:
+    if it['shape'] == 'pixel' or not ((it['kind'] == 'gain_loss') or (it['kind'] == 'efficiency_loss' and it['level'] in ('0.6', '0.7'))):
+        continue
+    for (x0, y0, w, h) in it['rects']:
+        sub = mine[y0:y0 + h, x0:x0 + w] & inter[y0:y0 + h, x0:x0 + w]
+        for yy, xx in zip(*np.nonzero(sub)):
+            y, x = y0 + yy, x0 + xx
+            tab.append((it['kind'][:4] + '/' + it['level'] + '/' + it['shape'], x, y, float(trueR[y, x]), float(rc[y, x]), float(corr[y, x]), float(np.mean([r_[y, x] for r_ in refs])), float(np.mean([v[y, x] for v in vgs])), [round(float(rr[y, x]), 2) for rr in ratios], float(T[y, x]), int(hits[y, x])))
+for t in tab:
+    print('  %-22s x %4d y %4d r %.2f rc %.3f cg %.2f ref %8.1f vg %8.1f ratios %s T %.2f hits %d' % t)
+print('  flagged line pixels listed: %d' % len(tab))
+
+# (d) hypotheses on the gain-loss line pixels
+print('\n(d) flagged counts on the gain-loss line pixels (%d pixels) and on ordinary pixels under each variant' % gl.sum())
+base_gl, base_free = (mine & gl).sum(), (mine & free).sum()
+print('  baseline (as committed)                       gain-loss lines %d, ordinary %d' % (base_gl, base_free))
+
+# H2: gain correction from the planted response instead of the measured one (gain-loss lines only; ordinary pixels have trueR = 1)
+corr2 = (1.0 / (trueR.astype(np.float64) ** 2)).astype(np.float32)
+T2, h2, _, _, _ = statistic(corr2)
+m2 = (T2 > TAU) & (2 * h2 >= len(groups))
+print('  H2 planted response in the gain correction     gain-loss lines %d, ordinary %d' % ((m2 & gl).sum(), (m2 & free).sum()))
+
+# H1: the local expectation of a line pixel from the pixels around the line: the reference of the pixels on a line item is replaced by the median
+# of vg over the 17 x 17 window with the line pixels left out (here: the median of the rows / columns two to ten away from the line)
+T3 = np.zeros((H, W), dtype=np.float64)
+hits3 = np.zeros((H, W), dtype=np.int8)
+nu = 0
+for gi, g in enumerate(groups):
+    m = len(g)
+    mnu = {2: 0.455, 3: 0.693, 4: 0.789, 5: 0.839, 6: 0.870}[m]
+    vgm = vgs[gi].copy()
+    vgm[itemmask != 0] = np.nan
+    ref_out = refs[gi].copy()
+    # outside-line reference: median of the non-item vg inside the 17 x 17 window, estimated on the 17-row / 17-column strips (nan-aware separable median)
+    pad = np.pad(vgm, ((R, R), (R, R)), mode='reflect')
+    rows = np.empty((H, W + 2 * R), dtype=np.float32)
+    for r0 in range(0, H, 96):
+        v = np.lib.stride_tricks.sliding_window_view(pad[r0:r0 + 96 + 2 * R], WIN, axis=0)
+        rows[r0:r0 + 96] = np.nanmedian(v, axis=2)[: min(96, H - r0)]
+    ref_nan = np.empty((H, W), dtype=np.float32)
+    for r0 in range(0, H, 96):
+        v = np.lib.stride_tricks.sliding_window_view(rows[r0:r0 + 96], WIN, axis=1)
+        ref_nan[r0:r0 + 96] = np.nanmedian(v, axis=2)
+    ref_nan = np.maximum(ref_nan / mnu, 1e-9)
+    use = np.where(np.isnan(ref_nan), ref_out, ref_nan)
+    use = np.where(itemmask != 0, use, ref_out)
+    ratio = vgs[gi] * corr / use
+    T3 += (m - 1) * ratio
+    hits3 += (ratio >= 2.0).astype(np.int8)
+    nu += m - 1
+T3 /= nu
+m3 = (T3 > TAU) & (2 * hits3 >= len(groups))
+print('  H1 reference from the pixels around the line   gain-loss lines %d, ordinary %d' % ((m3 & gl).sum(), (m3 & free).sum()))
+
+# H3: no row / column mean removal
+T4, h4, _, _, _ = statistic(corr, removal=False)
+m4 = (T4 > TAU) & (2 * h4 >= len(groups))
+print('  H3 without row / column mean removal           gain-loss lines %d, ordinary %d' % ((m4 & gl).sum(), (m4 & free).sum()))
+print('\nmean T on gain-loss line pixels: baseline %.4f, H2 %.4f, H1 %.4f, H3 %.4f ; ordinary: %.4f %.4f %.4f %.4f' % (T[gl].mean(), T2[gl].mean(), T3[gl].mean(), T4[gl].mean(), T[free].mean(), T2[free].mean(), T3[free].mean(), T4[free].mean()))

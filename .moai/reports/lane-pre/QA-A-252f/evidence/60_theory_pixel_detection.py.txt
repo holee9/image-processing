@@ -1,0 +1,84 @@
+"""QA-A-252f: the theoretical detection rate of the pixel noise-cost check (P2) for the frames the measurement uses, computed BEFORE the measurement.
+
+The detector (xpe_bpm_v2.cpp after step 3): per dose group g with m_g frames the sample variance of a pixel has nu_g = m_g - 1 degrees of freedom; its ratio to the local expectation
+(the median of the neighbourhood divided by the median of chi-square/nu, so unbiased) after gain correction is rho * chi2_nu_g / nu_g, rho being the true corrected-variance ratio
+(1 for a normal pixel). The pooled statistic is sum(nu_g * ratio_g) / sum(nu_g); it must exceed tau, the threshold with P(chi2_nu / nu > tau) = p (p = target false alarms / pixels), AND the
+ratio of at least half of the groups must reach 2. The groups of the planted set of QA-A-252e (the same input frames): 5 dose groups of 3, 3, 6, 3, 3 frames.
+The local expectation is treated as exact (its error is a few per mille for a 17 x 17 median of 289 variances), the frames as independent Gaussian."""
+import math
+import numpy as np
+
+N_PIXELS = 9406485          # the pixels of the imaging area in the QA-A-252e report (63_report_planted.json.txt: "pixels")
+TARGET = 1.0                # target_false_alarms of the detector
+GROUPS = [3, 3, 6, 3, 3]    # frames per dose group
+
+
+def gamma_q(a, x):
+    gln = math.lgamma(a)
+    if x < a + 1.0:
+        ap, s, d = a, 1.0 / a, 1.0 / a
+        for _ in range(5000):
+            ap += 1.0
+            d *= x / ap
+            s += d
+            if abs(d) < abs(s) * 1e-15:
+                break
+        return 1.0 - s * math.exp(-x + a * math.log(x) - gln)
+    b, c, d = x + 1.0 - a, 1.0 / 1e-300, 0.0
+    d = 1.0 / b
+    h = d
+    for i in range(1, 5000):
+        an = -i * (i - a)
+        b += 2.0
+        d = an * d + b
+        d = d if abs(d) > 1e-300 else 1e-300
+        c = b + an / c
+        c = c if abs(c) > 1e-300 else 1e-300
+        d = 1.0 / d
+        de = d * c
+        h *= de
+        if abs(de - 1.0) < 1e-15:
+            break
+    return math.exp(-x + a * math.log(x) - gln) * h
+
+
+def tau(nu, p):
+    a = 0.5 * nu
+    lo, hi = 1.0, 1e6
+    for _ in range(300):
+        mid = 0.5 * (lo + hi)
+        if gamma_q(a, a * mid) > p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def run(GROUPS, label, trials=2_000_000):
+    nus = np.array([m - 1 for m in GROUPS], dtype=float)
+    nu_tot = nus.sum()
+    p = TARGET / N_PIXELS
+    t = tau(nu_tot, p)
+    print('degrees of freedom per group', nus.tolist(), ' pooled', int(nu_tot), ' p = %.3e' % p, ' threshold tau (pooled chi2/nu) = %.3f' % t)
+    rng = np.random.default_rng(2517)
+    print('=== ' + label)
+    print('rho = true gain-corrected variance ratio; efficiency loss r gives about 1 / r (the readout part lowers it a little)')
+    print('%-34s %8s | %12s %12s %12s' % ('case', 'rho', 'pooled only', 'persist only', 'both (P2)'))
+    # the model value 1 / r overstates the efficiency-loss cost: the variance-signal curve measured on the verification frames of the QA-A-252e injection (smoke test of noise-cost) rises
+    # faster than kappa x signal (a frame-to-frame exposure fluctuation adds a term proportional to the signal squared), V_native = 3,870 at the dose of the verification frames, so
+    # rho = 1 + kappa x mu x (1 - r) / (r x V_native) with kappa = 0.32, mu = 9,987:
+    cases = [('MEASURED-CURVE r = 0.7', 1.34), ('MEASURED-CURVE r = 0.6', 1.55), ('MEASURED-CURVE r = 0.46', 1.97), ('MEASURED-CURVE r = 0.44', 2.05), ('MEASURED-CURVE r = 0.4', 2.24),
+             ('MEASURED-CURVE r = 0.3', 2.93), ('normal pixel / gain loss (any r)', 1.0), ('efficiency loss r = 0.7', 1 / 0.7), ('efficiency loss r = 0.6', 1 / 0.6), ('efficiency loss r = 0.5 (the limit)', 2.0),
+             ('efficiency loss r = 0.46', 1 / 0.46), ('efficiency loss r = 0.44', 1 / 0.44), ('efficiency loss r = 0.4', 2.5), ('efficiency loss r = 0.3', 1 / 0.3), ('ratio 4', 4.0), ('ratio 8', 8.0)]
+    for name, rho in cases:
+        chi = np.stack([rng.chisquare(nu, trials) / nu for nu in nus], axis=1) * rho
+        pooled = (chi * nus).sum(axis=1) / nu_tot
+        hits = (chi >= 2.0).sum(axis=1)
+        a = pooled > t
+        b = 2 * hits >= len(GROUPS)
+        print('%-34s %8.3f | %12.5f %12.5f %12.5f' % (name, rho, a.mean(), b.mean(), (a & b).mean()))
+    print('(a pixel item is ONE pixel: its detection rate is the value of the last column)')
+
+
+run([3, 3, 6, 3, 3], 'the frames of the measurement: 5 dose groups of 3, 3, 6, 3, 3')
+run([8, 8, 8, 8, 8], 'for comparison: 5 doses with 8 frames each', 1_000_000)

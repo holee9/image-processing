@@ -1,0 +1,43 @@
+"""QA-A-252b diagnostic 7 (unplanted input only): what the frame-edge flags of the clean image are. Reads the z images of 20_ (scratch) and the clean frames.
+Questions: (1) is the edge a consistent shift of whole lines (a sign and a size per column/row), or scattered pixels? (2) does it look like a real edge property of
+the data (raw dark and flat statistics at the edge) or like an artefact of the reflected border of the 17-pixel background? Generates only text."""
+import numpy as np
+
+SCR = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/'
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+W = H = 3072
+LAM = 5.316
+zc = np.load(SCR + 'z_clean.npz')
+for name in ('dose_slope', 'flat_field', 'dark_mean'):
+    z = zc[name].astype(np.float32)
+    print('== %s: z by edge line (columns 0..7 and 3064..3071; rows 0..7 and 3064..3071); inner = rows/columns 64..3007 of the line' % name)
+    print(' %-10s %9s %9s %9s %9s %9s' % ('line', 'median z', 'std z', 'share>lam', 'share z>+lam', 'share z<-lam'))
+    inner_r = slice(64, H - 64); inner_c = slice(64, W - 64)
+    for c in list(range(0, 8)) + list(range(W - 8, W)):
+        v = z[inner_r, c]
+        print(' col %-6d %9.2f %9.2f %9.3f %9.3f %9.3f' % (c, np.median(v), v.std(), (np.abs(v) > LAM).mean(), (v > LAM).mean(), (v < -LAM).mean()))
+    for r in list(range(0, 8)) + list(range(H - 8, H)):
+        v = z[r, inner_c]
+        print(' row %-6d %9.2f %9.2f %9.3f %9.3f %9.3f' % (r, np.median(v), v.std(), (np.abs(v) > LAM).mean(), (v > LAM).mean(), (v < -LAM).mean()))
+    print()
+
+# raw statistics at the edge: dark mean level and temporal noise of the dark frames per column/row, flat level relative to the neighbours
+dk = np.stack([np.fromfile(CAL + 'Dark_%02d.raw' % k, dtype=np.uint16).reshape(H, W).astype(np.float32) for k in range(8, 15)])
+D = dk.mean(axis=0)
+sd = dk.std(axis=0, ddof=1)
+print('== raw dark mean level and temporal std by line (median over the inner part of the line); inner reference: whole-frame median %.2f / %.2f' % (np.median(D), np.median(sd)))
+for c in list(range(0, 8)) + [W - 1]:
+    print(' col %-5d dark mean %8.2f  std %6.2f' % (c, np.median(D[64:-64, c]), np.median(sd[64:-64, c])))
+for r in list(range(0, 4)) + [H - 2, H - 1]:
+    print(' row %-5d dark mean %8.2f  std %6.2f' % (r, np.median(D[r, 64:-64]), np.median(sd[r, 64:-64])))
+bright = np.fromfile(CAL + 'Bright_25.raw', dtype=np.uint16).reshape(H, W).astype(np.float32)
+print('\n== one bright frame (Bright_25) minus dark mean: level relative to the whole-frame median %.1f' % np.median(bright - D))
+ref = np.median(bright - D)
+for c in list(range(0, 8)) + [W - 1]:
+    print(' col %-5d relative level %.4f' % (c, np.median((bright - D)[64:-64, c]) / ref))
+for r in list(range(0, 4)) + [H - 2, H - 1]:
+    print(' row %-5d relative level %.4f' % (r, np.median((bright - D)[r, 64:-64]) / ref))
+
+# how far inside does a clean flag count stay raised? flags per column index (0..40) as a share of the line
+fl = np.abs(zc['dose_slope'].astype(np.float32)) > LAM
+print('\n== dose_slope flags per column index (share of the column, inner rows): ', [(c, round(float(fl[64:-64, c].mean()), 3)) for c in (0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 24, 40)])
