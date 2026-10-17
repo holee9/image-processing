@@ -59,3 +59,7 @@
 
 ## 증거 (`evidence/`)
 `10_method_predictions.md.txt`, `40_mutation.py.txt`, `41_mutation_log.txt`, `41_mutation_log_first_run_stale_build.txt`, `42_runner_with_touch.py.txt`, `50_fix_report_264.py.txt`, `51_fix_report_262.py.txt`, `60_col3070_direction.py.txt`, `61_col3070_result.txt`, `70_run_correct_area.sh.txt`, `71_compare_old_new.py.txt`, `72_correct_v1_area.json.txt`, `73_correct_v2_area.json.txt`, `74_compare_result.txt`, `A1_correct_v1_area.out.txt`, `A2_correct_v2_area.out.txt`.
+
+## 정정·확인 기록 (QA-A-267, 2026-10-17 22:06 KST, Codex #236 R236-4)
+- 이 보고서의 반증 첫 실행이 낡은 실행 파일을 시험했다는 기록은 그대로다. 다만 그 원인을 "헤더만 바뀌면 ninja 가 다시 짓지 않는다"로 쓴 것은 **지금은 재현되지 않는다**: QA-A-267 의 `10_revalidate.py.txt` 단계 P 에서 소비 소스를 touch 하지 않고 헤더만 바꾼 변이를 지으니 두 소비 오브젝트와 두 실행 파일이 모두 다시 지어졌다(`ninja -t deps` 도 두 오브젝트에 헤더를 유효하게 기록한다). 원인은 확정하지 못했다. touch 는 보험으로 유지하고, 이 보고서의 결론(7개 변이 빨강)은 touch 를 넣은 재실행 결과라 그대로다.
+- `lineIndexInArea` 가 자른 뒤 모양으로 방향을 다시 정하는 결함(Codex #236 R236-1)은 QA-A-267 에서 고쳤다. 새 정의 재측정 값은 바뀌지 않았다(6 / 11, 열 9 대 9; `QA-A-267/report.md`).
