@@ -1,0 +1,34 @@
+[초안 — 적용은 리더가 한다] 대상: docs/calibration/SRS-CALIB-001, RTM-CALIB-001. QA-A-266·266b (이슈 #273). 요구 번호는 리더가 부여한다(아래 `FUNC-0NN`).
+
+## A. SRS 연결 문장
+
+### FUNC-016 (dark/offset 지표) — 덧붙일 한 문장
+> 위 지표와 Phase 1 한계값은 offset 단계가 쓴 UINT16 출력 영상(0 바닥·반올림 이후)에서 잰 값에 대한 것이다. 0 바닥 이전의 부호 있는 잔차는 `FUNC-0NN` 이 별도 지표로 정하며, 승인되기 전까지 이 한계값을 그 값에 적용하지 않는다.
+
+### FUNC-035 (어두운 ROI) — 고치는 문장
+- "`dark_roi_min_pixels = 1% of pixel_count`" 뒤에: "비교는 정수로 한다(`roi × 100 ≥ pixel_count`, 내림 없음). 표본 표준편차가 필요한 지표는 ROI 가 2화소 이상일 때만 측정한다."
+- "비율 지표의 분모는 ROI 가 아니라 프레임 전체일 수 있으며, 그 지표는 ROI 가 없어도 측정된다(`FUNC-0NN`의 `CLAMP_RATE`)."
+- 현재 `xpe_verify_offset` 은 1 %를 내림으로 비교한다(100화소 미만 프레임·1 % 바로 아래 ROI 에서만 다르다). 이 SRS 가 정수 비교로 정해지면 `xpe_verify_offset` 의 비교도 같게 바꾸는 후속 카드가 필요하다. 이 초안은 옛 함수를 바꾸지 않는다.
+
+### FUNC-036 (측정됨/측정 불가 구분) — 덧붙일 한 문장
+> `XpeOffsetQuality`(FUNC-0NN)는 지표 그룹마다 `validMask` 비트로 측정 여부를 싣는다. 비트가 꺼진 필드는 측정값이 아니며 어떤 합격 판정의 입력도 될 수 없다.
+
+### FUNC-037 (지표 구조체) — 덧붙일 한 문장
+> `XpeCalibrationMetrics` 의 확장은 이 요구의 범위다. 부호 있는 offset 품질은 별도 구조체 `XpeOffsetQuality`(FUNC-0NN)가 싣고, 기존 구조체의 필드 이름·오프셋·의미는 바꾸지 않는다.
+
+### 신설 FUNC-0NN (번호는 리더가 부여) — 부호 있는 offset 품질
+> **FUNC-0NN. 시스템은 offset 보정의 품질을 0 바닥 이전의 부호 있는 잔차로도 보고해야 한다.**
+> 원시 다크 영상과 offset 맵(또는 그 파일)을 입력으로 받아, 잔차 `x = float(raw) − map` 에 대해 어두운 ROI(FUNC-035)의 평균·표본 표준편차·`DarkReduction_dB`, 프레임 전체의 `x < 0` 비율(`ClampRatePct`)과 UINT16 출력이 0 인 비율을 보고한다. UINT16 출력에서 잰 DarkBias·DSNU 도 같은 호출에서 함께 보고하며 `FUNC-016` 의 `xpe_verify_offset` 과 비트 단위로 같아야 한다. 입력으로 받은 맵의 SHA-256 을 보고한다. 이 함수는 어떤 보정 묶음 상태에도 의존하지 않는다. 측정할 수 없는 지표는 측정된 값으로 보고하지 않는다(FUNC-036).
+> **근거:** UINT16 출력에서만 재면 음의 DarkBias 가 0 바닥에 묻힌다(`Dark_16`: 부호 있는 평균 −4.05, UINT16 에서 +0.19, 어두운 화소 83 %가 0 으로 잘림). **시험:** 단위 — `test_verify_offset_signed.cpp`(RTM 초안 참고), 실데이터 — `Dark_08~16`.
+
+## B. RTM 행 초안
+기존 `FUNC-016` 번호 혼선은 RTM §주석(2026-10-03)이 이미 표시한 문제다. 아래는 현재 SRS 의 번호(`FUNC-016` = dark/offset 지표, `FUNC-035/036/037`)만 쓴다. 옛 `FUNC-016`(교정 포맷 버전 검사) 행에 붙이지 않는다.
+
+| Trace ID | Implementation Evidence | Verification Evidence | Status |
+|:---|:---|:---|:---|
+| SRS-CALIB-FUNC-0NN | `xpe_verify_offset_signed`, `xpe_verify_offset_signed_file`, 구조체 `XpeOffsetQuality` (`xpe_verify_metrics.cpp`, `preprocess_api.h`) | `test_verify_offset_signed.cpp` 18건: 음의 bias 가 UINT16 에서 숨는 것, 기준 구현 대조, 백분위 대조, 클램프율·0 출력율 경계, 변동 없음, 부등식 T-A·T-B·T-D·T-E 와 반례(+0.2, 포화 65635), 맵 SHA, 구조체 크기 21종, 빈·작은 ROI 와 정수 1 % 경계, NULL 인수 오류, 오류표, 스레드, 파일 변형, 옛 함수와 비트 동일. 반증 변이는 QA-A-266·266b 보고서 | 초안 (적용은 리더) |
+| SRS-CALIB-FUNC-035 | 위 함수의 ROI 규칙(정수 1 %, 2표본) | `AnEmptyOrTooSmallRoiIsUnmeasuredAndNeverZeroFilledAsMeasured` | 초안 |
+| SRS-CALIB-FUNC-036 | 위 함수의 `validMask` | `AnEmptyOrTooSmall...`, `TheStructSizeRuleWritesOnlyCompleteFields...`, `ANullArgumentClearsAnEarlierResult...` | 초안 |
+| SRS-CALIB-FUNC-016 | `xpe_verify_offset` (변경 없음) | `TheOutputFiguresEqualTheOldFunctionOnTheCorrectedImageBitForBit` — 옛 지표가 "출력 단계" 값임을 고정 | 초안 (메모: 부호 있는 지표는 한계값이 없다) |
+
+실측 증거: `QA-A-266/report.md` §4 (Dark_08~16, 새 출력 지표 = 옛 지표 비트 동일, `Dark_16` 부호 있는 bias −4.0542).

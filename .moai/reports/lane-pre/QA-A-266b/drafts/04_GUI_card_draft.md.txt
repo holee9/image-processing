@@ -1,0 +1,27 @@
+[초안 — 리더가 gui 레인에 넘긴다. 카드 번호와 `lane:gui` 지정은 리더] 이슈 #273 (커밋마다 `Refs #273`). 근거: `QA-A-266`·`266b` 보고서, `preprocess_api.h` 의 `XpeOffsetQuality`. 이 카드는 gui 가 바로 시작할 수 있게 쓴 초안이다.
+
+# GUI-C-NNN — 다크 지표를 부호 있는 offset 품질 API 로 옮기기 (표시·P/Invoke만, 한계값은 바꾸지 않음)
+
+## 왜
+`clients/ImageProcTest/Services/MetricsComputationService.cs` 의 DarkBias 등(62~65행)은 **미리보기(표본 추출)와 최종 출력 전체**의 평균·표준편차를 직접 계산한다. 이는 새 API 가 재는 *원시 다크의 어두운 ROI* 와 다른 모집단·단계다. 또 `DarkBias <= 5` 판정은 음의 큰 값을 통과시킨다.
+
+## 할 일
+1. **P/Invoke 선언** (`Pack = 8`, 총 120바이트, 필드와 오프셋은 `preprocess_api.h` 와 `QA-A-266b/drafts/01_api-spec_draft.md.txt` 의 표):
+   - `xpe_verify_offset_signed(const XpeImageBuffer*, const XpeImageBuffer*, ref XpeOffsetQuality)`
+   - `xpe_verify_offset_signed_file(const XpeImageBuffer*, string(UTF-8) path, ref XpeOffsetQuality)`
+   - 호출 전 `structSize = 120`. 반환 코드가 `XPE_OK` 가 아니면 값을 쓰지 않는다. `writtenSize == 120` 과 `validMask` 를 확인한다.
+2. **미측정 표시**: `validMask` 의 비트가 꺼진 지표는 "측정 안 됨"으로 표시한다. 0 점·합격·빈 값으로 표시하지 않는다. 필드는 비트가 켜진 것만 읽는다.
+3. **입력**: 원시 다크 한 장(원본 크기, UINT16)과 **대응하는 원본 크기 offset 맵**을 넘긴다. 미리보기만 있으면 이 API 를 부르지 말고 화면에 "미리보기 기준"이라고 표시한다. offset 만의 품질을 gain·결함 보정까지 지난 최종 영상 지표로 부르지 않는다.
+4. **단계를 나눠 보여 주기**: 부호 있는 bias·DSNU·DarkReduction(`...Signed`, `darkReductionDb`), 출력 bias·DSNU(`...Output`), **프레임 전체** `clampRatePct`(x < 0 비율)와 `zeroOutputRatePct`(출력 0 비율)를 서로 다른 행으로 둔다. 기존 GUI 의 ClampRate 는 출력 0 비율이므로 `zeroOutputRatePct` 와 같은 양이고 `clampRatePct` 와 다르다.
+5. **맵 식별**: 결과의 `mapSha256`(맵 payload SHA-256)을 맵 파일 헤더의 SHA-256 과 구분해 표시한다. 이 API 는 만료를 검사하지 않으므로 "적용 가능한 교정 맵"이라는 표시를 붙이지 않는다.
+6. **판정은 바꾸지 않는다**: 기존 합격 칸(`DarkBias ≤ 5`, `DSNU ≤ 20`, `ClampRate ≤ 1 %`)은 그대로 둔다. 새 부호 있는 값에는 합격 칸을 만들지 않는다(승인된 한계값 없음). 한계값을 정하는 일은 사용자 결정이다.
+7. **단위 문구**: 화소값(레인 규칙 §2). "ADU" 를 새로 쓰지 않는다. 기존 화면의 문구는 이 카드에서 바꾸지 않는다.
+
+## 시험
+- 고정 입력(합성 다크 + 알려진 offset 맵)으로 P/Invoke 왕복: 레이아웃(120바이트, 오프셋 8·16·24·32·64·72·80·88·96·104·112) 단언.
+- `validMask` 가 일부만 켜진 결과(빈 ROI, 상수 raw ROI)에서 화면이 "측정 안 됨"을 표시하는지.
+- 실데이터 `Dark_16` + `clean_set_v1/offset.xcal`: 부호 있는 bias −4.0542, 출력 bias 0.1875, 클램프율 83.1 % (`QA-A-266/report.md` §4).
+- E2E 는 UIA 패턴만(전역 입력 금지), 측정은 한 번에 하나.
+
+## 하지 않을 것
+한계값 변경, 합격 칸 추가, 다크 두 수준의 원인 추정(리더가 촬영 요청서로 다룬다), 제품 라이브러리 수정.
