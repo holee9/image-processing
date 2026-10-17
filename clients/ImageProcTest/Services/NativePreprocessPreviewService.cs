@@ -178,7 +178,8 @@ namespace ImageProcTest
             PreprocessStageSelection selection,
             FixtureCaseInfo? fixtureCase,
             string? preferredDllPath,
-            IReadOnlyList<string>? stageOrder = null)
+            IReadOnlyList<string>? stageOrder = null,
+            RawInputKind inputKind = RawInputKind.Unconfirmed)
         {
             if (!selection.HasAnyStage)
             {
@@ -240,7 +241,7 @@ namespace ImageProcTest
                         offsetCorrect,
                         gainCorrect,
                         defectCorrect);
-                    return AttachOffsetQuality(chain, handle, preview, preparedCalibration.Requests);
+                    return AttachOffsetQuality(chain, handle, preview, preparedCalibration.Requests, inputKind);
                 }
                 finally
                 {
@@ -262,7 +263,8 @@ namespace ImageProcTest
             NativePreprocessPreviewResult chain,
             IntPtr module,
             RawPreviewResult preview,
-            IReadOnlyList<CalibrationRequest> requests)
+            IReadOnlyList<CalibrationRequest> requests,
+            RawInputKind inputKind)
         {
             if (!chain.Stages.Any(stage => stage.Stage == "offset" && stage.Executed))
             {
@@ -273,21 +275,18 @@ namespace ImageProcTest
             try
             {
                 var request = requests.FirstOrDefault(r => r.Stage == "offset");
-                if (request is null)
+                // GUI-C-253b: only a frame the user confirmed as a dark is measured as one; the plan also names the original-size map reason
+                var refusal = OffsetQualityPlan.WhyNotCalled(inputKind, preview.Width, preview.Height, request?.Width, request?.Height);
+                if (refusal is not null)
                 {
-                    outcome = OffsetQualityOutcome.NotMeasured("offset 맵 요청이 없음");
-                }
-                else if (request.Width != preview.Width || request.Height != preview.Height)
-                {
-                    outcome = OffsetQualityOutcome.NotMeasured(
-                        $"원본 크기({preview.Width}x{preview.Height}) offset 맵이 없음: 이 화면의 맵은 미리보기 크기({request.Width}x{request.Height}). 위 칸은 미리보기 기준");
+                    outcome = refusal;
                 }
                 else
                 {
                     var raw = OffsetQualityNative.ReadRaw(preview.FilePath, preview.Width, preview.Height, out var problem);
                     outcome = raw is null
                         ? OffsetQualityOutcome.NotMeasured(problem!)
-                        : OffsetQualityNative.MeasureWithFile(module, raw, preview.Width, preview.Height, request.XCalPath);
+                        : OffsetQualityNative.MeasureWithFile(module, raw, preview.Width, preview.Height, request!.XCalPath);
                 }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or MarshalDirectiveException or OverflowException)

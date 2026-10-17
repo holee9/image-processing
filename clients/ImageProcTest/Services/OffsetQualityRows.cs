@@ -41,6 +41,47 @@ namespace ImageProcTest
     }
 
     /// <summary>
+    /// GUI-C-253b (Codex #240 B-3): what the opened raw image IS, as the USER said it (the app has no other means of knowing: a fixture case's roles belong to its calibration files and are partly inferred
+    /// from file names, and an opened image carries no acquisition metadata). The dark quality rows are measured only for <see cref="Dark"/>. The default is <see cref="Unconfirmed"/>; nothing guesses it
+    /// from a file name or from the mean brightness.
+    /// </summary>
+    internal enum RawInputKind
+    {
+        Unconfirmed,
+        Dark,
+        Flat,
+        Clinical,
+    }
+
+    /// <summary>The decision before the module is called: is this input allowed to be measured as a dark frame, and is there an original-size map?</summary>
+    internal static class OffsetQualityPlan
+    {
+        internal const string UnconfirmedReason = "다크 프레임 미확인 — 다크 품질을 측정하지 않음";
+
+        /// <summary>
+        /// Null = the module may be called. Otherwise the outcome to show and NO call is made. The input kind is checked first (a frame that is not a confirmed dark is never measured, whatever its map),
+        /// then the map (a separate reason).
+        /// </summary>
+        public static OffsetQualityOutcome? WhyNotCalled(RawInputKind kind, int rawWidth, int rawHeight, int? mapWidth, int? mapHeight)
+        {
+            if (kind == RawInputKind.Unconfirmed) return OffsetQualityOutcome.NotMeasured(UnconfirmedReason);
+            if (kind != RawInputKind.Dark)
+            {
+                var name = kind == RawInputKind.Flat ? "밝은 영상(평탄)" : "임상·기타 영상";
+                return OffsetQualityOutcome.NotMeasured($"다크 프레임이 아님(입력 종류: {name}) — 다크 품질을 측정하지 않음");
+            }
+
+            if (mapWidth is null || mapHeight is null) return OffsetQualityOutcome.NotMeasured("offset 맵 요청이 없음");
+            if (mapWidth != rawWidth || mapHeight != rawHeight)
+            {
+                return OffsetQualityOutcome.NotMeasured($"원본 크기({rawWidth}x{rawHeight}) offset 맵이 없음: 이 화면의 맵은 미리보기 크기({mapWidth}x{mapHeight}). 위 칸은 미리보기 기준");
+            }
+
+            return null;
+        }
+    }
+
+    /// <summary>
     /// What came back from the module, in the order the caller must read it: the return code, then <c>writtenSize</c>, then the bit of each group. <see cref="NotMeasuredReason"/> is set when nothing was
     /// measured (the module was not asked, or it refused, or it wrote less than the whole structure); then <see cref="Quality"/> carries no meaning and no row shows a number.
     /// </summary>
@@ -88,7 +129,7 @@ namespace ImageProcTest
             var rows = new List<DetectorMetricRow>
             {
                 new(BasisMetric,
-                    "원본 크기 원시 영상 + 같은 크기 offset 맵",
+                    "다크 프레임으로 확인된 원본 크기 원시 영상 + 같은 크기 offset 맵",
                     "위 DarkBias·DSNU_ADU·DarkReduction_dB·ClampRate 는 미리보기 기준이라 모집단과 단계가 다르다. 한계는 그 칸에만 적용된다",
                     "INFO"),
             };

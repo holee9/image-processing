@@ -1,5 +1,6 @@
 // GUI-C-253 (#273): the signed offset quality measurement (xpe_verify_offset_signed) shown as "measured" rows next to the existing dark metrics.
 using System.Runtime.InteropServices;
+using Xunit.Abstractions;
 
 namespace ImageProcTest.IntegrationTests.Functional;
 
@@ -7,7 +8,7 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// The layout of <see cref="XpeOffsetQuality"/> against preprocess_api.h, what a row may say, and one call of the real module on a real dark frame. The existing dark rows (DarkBias, DSNU_ADU, DarkReduction_dB,
 /// ClampRate, their limits and their pass column) are not code of this change; <see cref="OffsetQualityRows.Append"/> is the only place they meet the new rows, and it never reads them.
 /// </summary>
-public sealed class OffsetQualityTests
+public sealed class OffsetQualityTests(ITestOutputHelper output)
 {
     private static XpeOffsetQuality Full() => new()
     {
@@ -15,6 +16,9 @@ public sealed class OffsetQualityTests
         MapSha256 = Enumerable.Range(1, 32).Select(i => (byte)i).ToArray(),
         DarkBiasSigned = -4.0542, DsnuSigned = 2.5, DarkReductionDb = 21.7, ClampRatePct = 83.1, ZeroOutputRatePct = 83.4, DarkBiasOutput = 0.1875, DsnuOutput = 0.4,
     };
+
+    private static void AssertNear(double expected, double actual, double tolerance, string what) =>
+        Assert.True(Math.Abs(actual - expected) <= tolerance, $"{what}: {actual:R} is not within {tolerance:R} of {expected:R} (difference {Math.Abs(actual - expected):R})");
 
     private static DetectorMetricRow RowOf(IReadOnlyList<DetectorMetricRow> rows, string metricStart) => rows.Single(r => r.Metric.StartsWith(metricStart, StringComparison.Ordinal));
 
@@ -164,6 +168,57 @@ public sealed class OffsetQualityTests
         Assert.All(rows.Skip(existing.Length), r => Assert.DoesNotContain(r.Status, new[] { "PASS", "REVIEW" }));
     }
 
+    // ---- GUI-C-253b (Codex #240 B-3): only a frame the user confirmed as a dark is measured as one
+
+    [Fact]
+    public void AConfirmedDarkWithAnOriginalSizeMap_IsCalled()
+    {
+        Assert.Null(OffsetQualityPlan.WhyNotCalled(RawInputKind.Dark, 3072, 3072, 3072, 3072));
+    }
+
+    [Fact]
+    public void AnUnconfirmedInput_IsNeverCalled_AndSaysSo_WhateverTheMap()
+    {
+        foreach (var (mapW, mapH) in new (int?, int?)[] { (3072, 3072), (1024, 1024), (null, null) })
+        {
+            var refusal = OffsetQualityPlan.WhyNotCalled(RawInputKind.Unconfirmed, 3072, 3072, mapW, mapH);
+            Assert.NotNull(refusal);
+            Assert.Equal("다크 프레임 미확인 — 다크 품질을 측정하지 않음", refusal!.NotMeasuredReason);
+            var rows = OffsetQualityRows.Build(refusal);
+            Assert.All(rows.Where(r => r.Metric != OffsetQualityRows.BasisMetric), r => { Assert.Equal("N/A", r.Status); Assert.Equal(OffsetQualityRows.NotMeasuredText, r.Value); Assert.Equal(refusal.NotMeasuredReason, r.Gate); });
+        }
+    }
+
+    [Theory]
+    [InlineData((int)RawInputKind.Flat, "밝은 영상(평탄)")]
+    [InlineData((int)RawInputKind.Clinical, "임상·기타 영상")]
+    public void ANonDarkInput_IsNeverCalled_AndNamesWhatTheUserSaid(int kindValue, string kindText)
+    {
+        var refusal = OffsetQualityPlan.WhyNotCalled((RawInputKind)kindValue, 3072, 3072, 3072, 3072);   // an original-size map exists: the input kind still decides
+        Assert.NotNull(refusal);
+        Assert.Contains("다크 프레임이 아님", refusal!.NotMeasuredReason, StringComparison.Ordinal);
+        Assert.Contains(kindText, refusal.NotMeasuredReason, StringComparison.Ordinal);
+        Assert.Contains("다크 품질을 측정하지 않음", refusal.NotMeasuredReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AConfirmedDarkWithoutAnOriginalSizeMap_HasItsOwnReason_NotTheInputKindOne()
+    {
+        var none = OffsetQualityPlan.WhyNotCalled(RawInputKind.Dark, 3072, 3072, null, null);
+        Assert.Contains("offset 맵 요청이 없음", none!.NotMeasuredReason, StringComparison.Ordinal);
+
+        var smaller = OffsetQualityPlan.WhyNotCalled(RawInputKind.Dark, 5000, 5000, 2500, 2500);
+        Assert.Contains("원본 크기(5000x5000) offset 맵이 없음", smaller!.NotMeasuredReason, StringComparison.Ordinal);
+        Assert.Contains("미리보기 기준", smaller.NotMeasuredReason, StringComparison.Ordinal);
+        Assert.DoesNotContain("다크 프레임", smaller.NotMeasuredReason, StringComparison.Ordinal);   // it is a map problem, not an input-kind one
+    }
+
+    [Fact]
+    public void TheDefaultInputKind_IsUnconfirmed()
+    {
+        Assert.Equal(RawInputKind.Unconfirmed, default(RawInputKind));
+    }
+
     // ---- the real module on a real dark frame (needs the DLL of dev/preprocess 026ea384 and the files; skipped with a reason otherwise)
 
     /// <summary>
@@ -192,10 +247,14 @@ public sealed class OffsetQualityTests
             var outcome = OffsetQualityNative.MeasureWithFile(module, raw!, 3072, 3072, map!);
             Assert.True(outcome.Measured, outcome.NotMeasuredReason);
             var q = outcome.Quality;
+            output.WriteLine($"DLL {dll}; validMask 0x{q.ValidMask:X}; roiPixels {q.RoiPixels}; pixelCount {q.PixelCount}; map {q.MapWidth}x{q.MapHeight}; map sha256 {Convert.ToHexString(q.MapSha256).ToLowerInvariant()}");
+            output.WriteLine($"signed bias {q.DarkBiasSigned:R}; signed DSNU {q.DsnuSigned:R}; DarkReduction {q.DarkReductionDb:R} dB; clamp rate {q.ClampRatePct:R} %; zero-output rate {q.ZeroOutputRatePct:R} %; output bias {q.DarkBiasOutput:R}; output DSNU {q.DsnuOutput:R}");
             Assert.Equal(0x1Fu, q.ValidMask);
-            Assert.Equal(-4.0542, q.DarkBiasSigned, 3);
-            Assert.Equal(0.1875, q.DarkBiasOutput, 3);
-            Assert.Equal(83.1, q.ClampRatePct, 1);
+            // GUI-C-253b (Codex #240 B-2): the expected numbers are the QA-A-266 report's four-digit summaries, so each is compared with an explicit absolute tolerance of half its last digit,
+            // not by rounding the expectation again (Assert.Equal(0.1875, x, 3) compares 0.188 with x rounded to 0.187 and failed on a correct 0.18748707914735363, measured with the local DLL).
+            AssertNear(-4.0542, q.DarkBiasSigned, 5e-5, "signed bias");
+            AssertNear(0.1875, q.DarkBiasOutput, 5e-5, "output bias");
+            AssertNear(83.1, q.ClampRatePct, 0.05, "clamp rate (percent, one decimal in the report)");
             Assert.Equal(3072u, q.MapWidth);
             Assert.Equal(9437184ul, q.PixelCount);
 
@@ -209,6 +268,9 @@ public sealed class OffsetQualityTests
             Assert.True(viaMap.Measured, viaMap.NotMeasuredReason);
             Assert.Equal(q.DarkBiasSigned, viaMap.Quality.DarkBiasSigned);
             Assert.Equal(q.MapSha256, viaMap.Quality.MapSha256);
+            Assert.Equal(q.DarkBiasOutput, viaMap.Quality.DarkBiasOutput);
+            Assert.Equal(q.ClampRatePct, viaMap.Quality.ClampRatePct);
+            output.WriteLine($"in-memory map variant: signed bias {viaMap.Quality.DarkBiasSigned:R}, same map sha256 {q.MapSha256.SequenceEqual(viaMap.Quality.MapSha256)}");
         }
         finally
         {
