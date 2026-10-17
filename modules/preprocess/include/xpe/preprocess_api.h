@@ -2245,7 +2245,7 @@ XPE_API uint32_t xpe_calib_get_poly_degree(void);
 
 /** What makes a line defective (bits of XpeBpmLine::causes). */
 #define XPE_BPM_LINE_CAUSE_RESPONSE  0x01u /**< The response of the line differs from its neighbours by more than the noise tolerance can take (gain correction would add more noise than allowed) */
-#define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line */
+#define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line: the lack of fit of the line through the dose-group means, weighted by the nominal variance of the means and divided by the pixel's own pooled temporal variance (QA-A-258), so that more temporal noise alone is no nonlinearity. Not evaluated when fewer than three dose groups hold repeats or the pooled degrees of freedom are below 5 */
 #define XPE_BPM_LINE_CAUSE_SLOPE     0x08u /**< The regression slope over the doses (a proxy of the response) differs from its neighbours by the same measure; recorded apart from RESPONSE, which is the ratio of the offset-corrected image (QA-A-252f) */
 #define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance, in most of the dark frames (a line that is large in a few frames only is noise that moves, not a defect) */
 

@@ -657,6 +657,26 @@ std::vector<Group> groupSegments(const std::vector<Seg>& segs, int w, int h) {
 namespace xpe_bpm_v2_internal {
 void median_plain(const MedianPlanes& m) { separableMedian(m.in, m.tmp, m.out, m.w, m.h, m.win); }
 void median_excluding(const MedianPlanes& m) { separableMedianExcluding(m.in, m.tmp, m.out, m.plain, m.excl, m.w, m.h, m.win); }
+
+double weighted_lack_of_fit(const LofSums& s, bool* ok) {
+    const double det = s.w2 * s.w0 - s.w1 * s.w1;
+    const bool   finite = std::isfinite(s.w0) && std::isfinite(s.w1) && std::isfinite(s.w2) && std::isfinite(s.wn) && std::isfinite(s.wxn) && std::isfinite(s.wnn);
+    if (!finite || !(det > 1e-9 * s.w0 * s.w2)) {
+        *ok = false;
+        return 0.0;
+    }
+    const double a = (s.wxn * s.w0 - s.w1 * s.wn) / det;
+    const double b = (s.w2 * s.wn - s.w1 * s.wxn) / det;
+    const double q = s.wnn - a * s.wxn - b * s.wn;
+    *ok = std::isfinite(q);
+    return *ok ? std::max(0.0, q) : 0.0;
+}
+
+float lack_of_fit_feature(double qprime, uint32_t gEff, double phi, double phiMin) {
+    if (!(phi > 0.0) || !std::isfinite(phi) || !std::isfinite(qprime) || gEff < 3u) return 0.0f;
+    const double v = std::log(qprime / static_cast<double>(gEff - 2u) + 1e-9) - std::log(std::max(phi, phiMin));
+    return std::isfinite(v) ? static_cast<float>(v) : 0.0f;
+}
 }  // namespace xpe_bpm_v2_internal
 
 /** The detection on frames that hold the imaging area only (no margins). */
@@ -852,6 +872,21 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
     // bright-frame temporal noise inside the dose groups (QA-A-252b, F2b): per group the variance of the frames about the group mean (the row and column means of every frame
     // taken out, as for the dark frames), relative to its own local median; the groups are pooled as a sum of chi-square variables
     std::vector<float>   noiseSum, refSum;
+    // QA-A-258: the lack of fit of the line detector's LINEARITY cause. Weights w_g = m_g / v0_g do not depend on the pixel, so only three sums per pixel are needed; the pixel's own pure error is
+    // pooled over the dose groups against the nominal variance (own[i] = sum nu_g s2_g / v0_g). A pixel with a saturated group mean is marked with own < -1e29 and judged by no evidence.
+    // @MX:NOTE: [AUTO] the pooling assumes the SHAPE of the variance over the doses is the nominal one and only its size is the pixel's own (definition file, section 3)
+    constexpr float      kLofSaturated = -1e30f;
+    constexpr float      kLofSaturationLevel = 65500.0f;
+    std::vector<double>  lofWn, lofWxn, lofWnn;
+    std::vector<float>   lofOwn;
+    xpe_bpm_v2_internal::LofSums lofScalars{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    uint32_t             lofGroups = 0, lofNu = 0;
+    if (job) {
+        lofWn.assign(n, 0.0);
+        lofWxn.assign(n, 0.0);
+        lofWnn.assign(n, 0.0);
+        lofOwn.assign(n, 0.0f);
+    }
     std::vector<uint8_t> persistHits;   // in how many dose groups the gain-corrected variance of the pixel reaches the limit (P2: the position must persist)
     uint32_t           nuBright = 0, noiseGroups = 0;
     std::vector<double> frameScale(num_bright, 1.0);   // f_k = mean signal of the group / signal of frame k (QA-A-252g: the exposure variation is not a pixel noise)
@@ -979,6 +1014,24 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                     if (i % 16 == 0) nomSample.push_back(static_cast<float>(ref));
                 }
                 groupNom[g] = static_cast<double>(medianOf(nomSample.data(), nomSample.size()));
+                if (job && groupNom[g] > 0.0) {   // QA-A-258: the weighted sums of the lack of fit (the weights need the nominal variance of this group)
+                    const double wg = static_cast<double>(mg) / groupNom[g];
+                    const double nuOverV0 = static_cast<double>(mg - 1) / groupNom[g];
+                    for (size_t i = 0; i < n; ++i) {
+                        const float mean = acc[i] * inv;
+                        const double ng = static_cast<double>(mean - D[i]);
+                        lofWn[i] += wg * ng;
+                        lofWxn[i] += wg * sg * ng;
+                        lofWnn[i] += wg * ng * ng;
+                        if (mean >= kLofSaturationLevel) lofOwn[i] = kLofSaturated;
+                        else if (lofOwn[i] > kLofSaturated * 0.5f) lofOwn[i] += static_cast<float>(nuOverV0 * static_cast<double>(vg[i]));
+                    }
+                    lofScalars.w0 += wg;
+                    lofScalars.w1 += wg * sg;
+                    lofScalars.w2 += wg * sg * sg;
+                    ++lofGroups;
+                    lofNu += mg - 1;
+                }
                 nuBright += mg - 1;
                 ++noiseGroups;
             }
@@ -1062,13 +1115,30 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
                 const double sse = std::max(0.0, Snn[i] - a * Sxn[i] - b * Sn[i]);
                 wk.feat[i] = static_cast<float>(std::log(sse / static_cast<double>(G - 2) + 1e-9));
             }
-            if (job) {   // lines: relative linearity. sse grows with the square of the response, so a gain band (removed by gain correction) would stand out: divide it out
-                std::vector<float> rel(n);
-                for (size_t i = 0; i < n; ++i) {
-                    const double a = (static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx;
-                    rel[i] = static_cast<float>(static_cast<double>(wk.feat[i]) - 2.0 * std::log(std::max(std::fabs(a), 1e-3)));
+            if (job) {   // lines (QA-A-258): the lack of fit of the straight line through the group means, weighted by the nominal variance of the means and divided by the pixel's own pooled temporal variance.
+                // Not available (fewer than three groups with a pure error, pooled degrees of freedom below 5, degenerate doses): the LINEARITY cause is not evaluated at all; the old statistic is NOT used instead.
+                constexpr double kLofPhiMin = 0.1;
+                constexpr uint32_t kLofMinNu = 5;
+                if (lofGroups >= 3 && lofNu >= kLofMinNu) {
+                    bool        okSums = true;
+                    std::vector<float> rel(n, 0.0f);
+                    const double nuD = static_cast<double>(lofNu);
+                    for (size_t i = 0; i < n; ++i) {
+                        if (!(lofOwn[i] > kLofSaturated * 0.5f)) continue;   // saturated: no evidence
+                        xpe_bpm_v2_internal::LofSums sums = lofScalars;
+                        sums.wn = lofWn[i];
+                        sums.wxn = lofWxn[i];
+                        sums.wnn = lofWnn[i];
+                        bool        ok = true;
+                        const double q = xpe_bpm_v2_internal::weighted_lack_of_fit(sums, &ok);
+                        if (!ok) {
+                            okSums = false;
+                            break;   // the doses are degenerate (the same for every pixel): nothing to evaluate
+                        }
+                        rel[i] = xpe_bpm_v2_internal::lack_of_fit_feature(q, lofGroups, static_cast<double>(lofOwn[i]) / nuD, kLofPhiMin);
+                    }
+                    if (okSums) analyzeFeature(rel.data(), w, h, st, job, kKindLinearity);
                 }
-                analyzeFeature(rel.data(), w, h, st, job, kKindLinearity);
             }
             if (!(job && job->linesOnly)) scaleMed[3] = flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR, &flags, &counts[3]);
         }

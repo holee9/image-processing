@@ -36,6 +36,28 @@ XPE_API void median_plain(const MedianPlanes& m);
 /** The separable median of `in` without the pixels where `excl` is 1; a pixel whose window holds none takes `plain` at that pixel. */
 XPE_API void median_excluding(const MedianPlanes& m);
 
+/** The weighted sums of one pixel over the dose groups: w_g = m_g / v0_g (m_g frames, v0_g the nominal temporal variance), x_g the group signal, n_g the group mean. */
+struct LofSums {
+    double w0;    //!< sum of w_g
+    double w1;    //!< sum of w_g x_g
+    double w2;    //!< sum of w_g x_g^2
+    double wn;    //!< sum of w_g n_g
+    double wxn;   //!< sum of w_g x_g n_g
+    double wnn;   //!< sum of w_g n_g^2
+};
+
+/**
+ * The weighted residual sum of squares Q' of the straight line n = a x + b through the group means (QA-A-258, the lack of fit of the line detector's LINEARITY cause), from the weighted sums
+ * alone (normal equations). `ok` is false, and the result 0, when the doses are degenerate (the determinant is not positive) or a sum is not finite. A negative round-off result is cut to 0.
+ */
+XPE_API double weighted_lack_of_fit(const LofSums& s, bool* ok);
+
+/**
+ * The feature of a pixel: ln(Q' / (gEff - 2) + 1e-9) - ln(max(phi, phiMin)), Q' the weighted residual sum of squares, gEff the number of groups with a pure error, phi the pixel's pooled temporal
+ * variance in units of the nominal variance. 0 (no evidence of curvature) when phi is not finite or not positive, or Q' is not finite.
+ */
+XPE_API float lack_of_fit_feature(double qprime, uint32_t gEff, double phi, double phiMin);
+
 }  // namespace xpe_bpm_v2_internal
 
 #endif

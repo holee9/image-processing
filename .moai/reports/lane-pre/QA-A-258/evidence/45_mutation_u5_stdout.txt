@@ -1,0 +1,13 @@
+QA-A-258 mutation check (src/xpe_bpm_v2.cpp, the lack-of-fit feature of the LINEARITY cause). Source hash at the start: 5772548838121d98
+PREDICTIONS (written before any run):
+  U5 (retry: the first form did not compile, the unused constant is an error under /WX) saturation guard made unreachable by a factor on the level -> red: ARowWhoseBrightValuesAreClippedAtTheTopIsNoEvidenceOfCurvature
+  every other test of the filter stays green
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 31 passed, failed: []
+--- U5
+build: BUILD_EXIT=0
+tests exit 1: 30 passed, FAILED: ['ARowWhoseBrightValuesAreClippedAtTheTopIsNoEvidenceOfCurvature']
+--- restored: touch + rebuild
+source hash now: 5772548838121d98 (start: 5772548838121d98)
+build: BUILD_EXIT=0

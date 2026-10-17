@@ -14,11 +14,13 @@
 
 #include <gtest/gtest.h>
 
+#include "xpe_bpm_v2_internal.hpp"
 #include "xpe/preprocess_api.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -28,7 +30,7 @@ namespace {
 constexpr uint32_t kW = 256, kH = 256;
 constexpr size_t   kN = static_cast<size_t>(kW) * kH;
 constexpr double   kDark = 3000.0, kV0 = 9.0, kKappa = 0.3, kRef = 30000.0;
-constexpr double   kSignals[5] = {2836.65, 5871.31, 9193.33, 18297.17, 29178.97};   // the dose groups of the evaluation injection (the report of QA-A-252i)
+constexpr double   kSignals[6] = {2836.65, 5871.31, 9193.33, 18297.17, 29178.97, 38000.0};   // the first five are the dose groups of the evaluation injection (the report of QA-A-252i); the sixth is only for designs of six groups
 
 class Normal {
 public:
@@ -315,6 +317,8 @@ TEST(BpmLinesLofPositiveTest, ACurvedResponseIsALinearityDefectWhateverTheNoiseA
 // ---- The full budgets of the definition (100 negative images, 120 positive images): disabled in the suite, run by hand (--gtest_also_run_disabled_tests) and in the measurement.
 TEST(BpmLinesLofNegativeTest, DISABLED_FullBudgetOfOneHundredImages) {
     const NegativeResult r = runNegative(10);
+    std::printf("[negative controls] images %d, images with a false LINEARITY group on a planted line %d (eff0.6 %d, eff0.44 %d, gain %d, offset %d, hetero %d), LINEARITY groups anywhere %d\n", r.runs,
+                r.runsWithFalseLinearity, r.perForm[0], r.perForm[1], r.perForm[2], r.perForm[3], r.perForm[4], r.linearityGroups);
     EXPECT_EQ(100, r.runs);
     EXPECT_LE(r.runsWithFalseLinearity, 2) << "false LINEARITY by form: eff0.6 " << r.perForm[0] << ", eff0.44 " << r.perForm[1] << ", gain " << r.perForm[2] << ", offset " << r.perForm[3] << ", hetero " << r.perForm[4]
                                            << r.where;
@@ -323,6 +327,11 @@ TEST(BpmLinesLofNegativeTest, DISABLED_FullBudgetOfOneHundredImages) {
 
 TEST(BpmLinesLofPositiveTest, DISABLED_FullPowerOfOneHundredTwentyImages) {
     const PositiveResult r = runPositive(4);
+    int worst = 4;
+    for (int ci = 0; ci < 2; ++ci)
+        for (int ki = 0; ki < 3; ++ki)
+            for (int sh = 0; sh < 5; ++sh) worst = std::min(worst, r.perCombo[ci][ki][sh]);
+    std::printf("[positive controls] images %d, detected %d, weakest cell %d of 4 seeds\n", r.total, r.hits, worst);
     EXPECT_EQ(120, r.total);
     EXPECT_GE(r.hits, 114) << r.misses;
     for (int ci = 0; ci < 2; ++ci)
@@ -369,4 +378,120 @@ TEST(BpmLinesLofSeparationTest, AnotherAxisKeepsItsMeaning) {
     }
     EXPECT_GE(noise, 3);
     EXPECT_GE(response, 3);
+}
+
+// ---------------------------------------------------------------- the pure functions of the implementation, against an independent method
+namespace {
+
+/** The weighted residual sum of squares by Gram-Schmidt on the weighted inner product (not the normal equations of the implementation). */
+double gramSchmidtResidual(const std::vector<double>& w, const std::vector<double>& x, const std::vector<double>& y) {
+    const size_t G = x.size();
+    auto dot = [&](const std::vector<double>& a, const std::vector<double>& b) {
+        double s = 0.0;
+        for (size_t g = 0; g < G; ++g) s += w[g] * a[g] * b[g];
+        return s;
+    };
+    std::vector<double> q1(G, 1.0);
+    const double        n1 = std::sqrt(dot(q1, q1));
+    for (double& v : q1) v /= n1;
+    std::vector<double> q2 = x;
+    const double        c = dot(x, q1);
+    for (size_t g = 0; g < G; ++g) q2[g] -= c * q1[g];
+    const double n2 = std::sqrt(dot(q2, q2));
+    for (double& v : q2) v /= n2;
+    const double a1 = dot(y, q1), a2 = dot(y, q2);
+    std::vector<double> res(G);
+    for (size_t g = 0; g < G; ++g) res[g] = y[g] - a1 * q1[g] - a2 * q2[g];
+    return dot(res, res);
+}
+
+xpe_bpm_v2_internal::LofSums sumsOf(const std::vector<double>& w, const std::vector<double>& x, const std::vector<double>& y) {
+    xpe_bpm_v2_internal::LofSums s{0, 0, 0, 0, 0, 0};
+    for (size_t g = 0; g < x.size(); ++g) {
+        s.w0 += w[g];
+        s.w1 += w[g] * x[g];
+        s.w2 += w[g] * x[g] * x[g];
+        s.wn += w[g] * y[g];
+        s.wxn += w[g] * x[g] * y[g];
+        s.wnn += w[g] * y[g] * y[g];
+    }
+    return s;
+}
+
+}  // namespace
+
+TEST(BpmLinesLofFunctionTest, TheClosedFormMatchesGramSchmidtOnRandomGroupsAndAStraightLineHasNoMisfit) {
+    Normal rng(4242);
+    for (int t = 0; t < 1000; ++t) {
+        const size_t        G = 3 + static_cast<size_t>(t % 6);
+        std::vector<double> w(G), x(G), y(G);
+        for (size_t g = 0; g < G; ++g) {
+            x[g] = 1000.0 + 5000.0 * static_cast<double>(g) + 300.0 * rng.next();
+            w[g] = 0.01 + std::exp(rng.next());
+            y[g] = 40.0 + 0.8 * x[g] + 25.0 * rng.next() + (t % 2 == 0 ? 0.00002 * x[g] * x[g] : 0.0);
+        }
+        bool         ok = false;
+        const double q = xpe_bpm_v2_internal::weighted_lack_of_fit(sumsOf(w, x, y), &ok);
+        ASSERT_TRUE(ok);
+        const double ref = gramSchmidtResidual(w, x, y);
+        ASSERT_NEAR(ref, q, 1e-7 * std::max(1.0, ref)) << "t=" << t;
+        // an exact straight line has no misfit
+        std::vector<double> line(G);
+        for (size_t g = 0; g < G; ++g) line[g] = 17.0 + 0.5 * x[g];
+        bool ok2 = false;
+        EXPECT_NEAR(0.0, xpe_bpm_v2_internal::weighted_lack_of_fit(sumsOf(w, x, line), &ok2), 1e-6 * sumsOf(w, x, line).wnn + 1e-9);
+        EXPECT_TRUE(ok2);
+    }
+}
+
+TEST(BpmLinesLofFunctionTest, DegenerateDosesAndNonFiniteSumsGiveNoEvidenceNotACurvature) {
+    bool ok = true;
+    // every group at the same dose: the determinant is zero
+    std::vector<double> w = {1, 1, 1}, x = {5000, 5000, 5000}, y = {1, 2, 3};
+    EXPECT_EQ(0.0, xpe_bpm_v2_internal::weighted_lack_of_fit(sumsOf(w, x, y), &ok));
+    EXPECT_FALSE(ok);
+    xpe_bpm_v2_internal::LofSums bad = sumsOf({1, 1, 1}, {1000, 2000, 3000}, {1, 2, 3});
+    bad.wn = std::nan("");
+    ok = true;
+    EXPECT_EQ(0.0, xpe_bpm_v2_internal::weighted_lack_of_fit(bad, &ok));
+    EXPECT_FALSE(ok);
+    // the feature: no evidence (0) for a non-positive or non-finite pooled variance, a non-finite misfit or fewer than three groups
+    EXPECT_EQ(0.0f, xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 5, 0.0, 0.1));
+    EXPECT_EQ(0.0f, xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 5, -1.0, 0.1));
+    EXPECT_EQ(0.0f, xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 5, std::nan(""), 0.1));
+    EXPECT_EQ(0.0f, xpe_bpm_v2_internal::lack_of_fit_feature(std::nan(""), 5, 1.0, 0.1));
+    EXPECT_EQ(0.0f, xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 2, 1.0, 0.1));
+    // the floor of the pooled variance, the monotonicity, and a perfect straight line is finite (not minus infinity)
+    EXPECT_EQ(xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 5, 0.1, 0.1), xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 5, 1e-9, 0.1)) << "a pooled variance below 0.1 of nominal is judged as 0.1";
+    EXPECT_GT(xpe_bpm_v2_internal::lack_of_fit_feature(50.0, 5, 1.0, 0.1), xpe_bpm_v2_internal::lack_of_fit_feature(5.0, 5, 1.0, 0.1));
+    EXPECT_LT(xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 5, 4.0, 0.1), xpe_bpm_v2_internal::lack_of_fit_feature(10.0, 5, 1.0, 0.1)) << "the same misfit is weaker evidence in a noisier pixel";
+    EXPECT_TRUE(std::isfinite(xpe_bpm_v2_internal::lack_of_fit_feature(0.0, 5, 1.0, 0.1)));
+}
+
+// ---------------------------------------------------------------- the failure policies, through the detector
+TEST(BpmLinesLofPolicyTest, WithoutThreeDoseGroupsOfPureErrorTheLinearityCauseIsNotEvaluatedAtAll) {
+    // a strongly curved row: with enough repeats it is found (the positive controls); with groups that give no pure error (single frames, or too few repeats) the cause is not evaluated and the old
+    // statistic is not used in its place. Three designs: six single frames (no pure error), two groups with repeats and three single frames, three pairs with a pooled 3 degrees of freedom (< 5).
+    const std::vector<std::vector<int>> designs = {{1, 1, 1, 1, 1, 1}, {3, 3, 1, 1, 1}, {2, 2, 2, 1, 1}};
+    for (const auto& sizes : designs) {
+        Stack st = makeStack(9100u, sizes, {{0, 256, 100, 101, nonlinear(0.4, 1.0)}});
+        const Found r = detect(st);
+        ASSERT_EQ(XPE_OK, r.rc);
+        EXPECT_EQ(0, countCause(r, XPE_BPM_LINE_CAUSE_LINEARITY)) << "design with " << sizes.size() << " groups, first sizes " << sizes[0] << "," << sizes[1];
+    }
+    // and with the same curve and a design that has the pure error, the row is found
+    Stack ok = makeStack(9100u, {3, 3, 6, 3, 3}, {{0, 256, 100, 101, nonlinear(0.4, 1.0)}});
+    const Found rr = detect(ok);
+    ASSERT_EQ(XPE_OK, rr.rc);
+    EXPECT_TRUE(covered(rr, XPE_BPM_LINE_ROW, 100, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9));
+}
+
+TEST(BpmLinesLofPolicyTest, ARowWhoseBrightValuesAreClippedAtTheTopIsNoEvidenceOfCurvature) {
+    // +40000 counts in the bright frames only: the two highest doses are clipped at 65535 (a flattened, apparently curved response). Saturation is a different defect; the pixel has no evidence for the cause.
+    Mod clipped;
+    clipped.offset = 40000.0;
+    Stack st = makeStack(9200u, kDesignA, {{0, 256, 100, 101, clipped}});
+    const Found r = detect(st);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_FALSE(covered(r, XPE_BPM_LINE_ROW, 100, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.1)) << "a clipped row must not become a LINEARITY defect through the clipping";
 }
