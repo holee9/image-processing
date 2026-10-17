@@ -1,0 +1,38 @@
+== sets made by the generator (manifest dark_policy)
+set          given  used   excluded   one list  gain ref   first excluded frame
+planted 1st  8      7      True       True      mean       Dark_07.raw
+    used: Dark_08.raw, Dark_09.raw, Dark_10.raw, Dark_11.raw, Dark_12.raw, Dark_13.raw, Dark_14.raw
+planted 2nd  8      7      True       True      mean       Dark_07.raw
+    used: Dark_08.raw, Dark_09.raw, Dark_10.raw, Dark_11.raw, Dark_12.raw, Dark_13.raw, Dark_14.raw
+clean 1st    8      7      True       True      mean       Dark_07.raw
+    used: Dark_08.raw, Dark_09.raw, Dark_10.raw, Dark_11.raw, Dark_12.raw, Dark_13.raw, Dark_14.raw
+clean 2nd    8      7      True       True      mean       Dark_07.raw
+    used: Dark_08.raw, Dark_09.raw, Dark_10.raw, Dark_11.raw, Dark_12.raw, Dark_13.raw, Dark_14.raw
+
+== the used lists compared (path, order, sha-256)
+  planted 1st  vs planted 2nd : same path list True; same sha-256 list True
+  clean 1st    vs planted 1st : same path list True; same sha-256 list False
+  clean 1st    vs planted 2nd : same path list True; same sha-256 list False
+  clean 1st    vs clean 2nd   : same path list True; same sha-256 list True
+  clean 2nd    vs planted 1st : same path list True; same sha-256 list False
+  clean 2nd    vs planted 2nd : same path list True; same sha-256 list False
+  (the planted and the clean sets differ in sha-256 by design: the planted frames carry the injection)
+
+== offset and gain files of the four sets (sha-256, from the manifests)
+  planted 1st  offset 9bb62b78742f9fb4 gain e95ea9db019e4619 defect 9a0cc395356f4cb9
+  planted 2nd  offset 9bb62b78742f9fb4 gain e95ea9db019e4619 defect c9116cf51eda07bd
+  clean 1st    offset 5569bacf66fb25f1 gain a7ddadbd5b69a350 defect bc3186b1247519e4
+  clean 2nd    offset 5569bacf66fb25f1 gain a7ddadbd5b69a350 defect 4579e06bcf5be098
+  IAP 1.5: offset 5569bacf... gain a7ddadbd...
+
+== evaluation tool runs: dark_list_used (given, used, first excluded, list sha-256 of the used list)
+  H1_v1_half_a     map-v1 given 4 used 4 excluded 0 list cc0201f4e9ff37d9... frames 08,10,12,14
+  H2_v1_half_b     map-v1 given 3 used 3 excluded 0 list 69b7b4d3445afece... frames 09,11,13
+  H3_v2_half_a     map-v2 given 4 used 4 excluded 0 list cc0201f4e9ff37d9... frames 08,10,12,14
+  H4_v2_half_b     map-v2 given 3 used 3 excluded 0 list 69b7b4d3445afece... frames 09,11,13
+  H5_v2_lines_a    lines given 4 used 4 excluded 0 list cc0201f4e9ff37d9... frames 08,10,12,14
+  H6_v2_lines_b    lines given 3 used 3 excluded 0 list 69b7b4d3445afece... frames 09,11,13
+  P1_v2_features   map-v2 given 8 used 7 excluded 1 list 3ef59933217b380e... frames 08,09,10,11,12,13,14
+  P2_v2_lines      lines given 8 used 7 excluded 1 list 3ef59933217b380e... frames 08,09,10,11,12,13,14
+  P3_v1_map        map-v1 given 8 used 7 excluded 1 list 3ef59933217b380e... frames 08,09,10,11,12,13,14
+  second edition (P1) and first edition (P3) received the same list: True

@@ -1,0 +1,47 @@
+"""QA-A-260 item 2: which dark frames each edition and each stage really used -- path, order, sha-256, count -- from the manifests of the four sets and from the dark_list_used lines of the evaluation tool runs.
+Usage: PYTHONIOENCODING=utf-8 python 62_dark_use_table.py.txt > 63_dark_use_table.txt"""
+import json
+import re
+import hashlib
+
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+sets = [('planted 1st', 'inj_set_v1'), ('planted 2nd', 'inj_set_v2'), ('clean 1st', 'clean_set_v1'), ('clean 2nd', 'clean_set_v2')]
+lists = {}
+print('== sets made by the generator (manifest dark_policy)')
+print('%-12s %-6s %-6s %-10s %-9s %-10s %s' % ('set', 'given', 'used', 'excluded', 'one list', 'gain ref', 'first excluded frame'))
+for name, d in sets:
+    m = json.load(open(OUT + d + '/manifest.json', encoding='utf-8'))
+    dp = m['dark_policy']
+    used = [(x['path'].split('/')[-1], x['sha256']) for x in dp['used']]
+    given = [(x['path'].split('/')[-1], x['sha256']) for x in dp['given']]
+    lists[name] = used
+    ex = [i for i in m['inputs'] if i['role'] == 'dark_excluded_first']
+    print('%-12s %-6d %-6d %-10s %-9s %-10s %s' % (name, len(given), len(used), dp['first_dark_excluded'], dp['one_list_for_all_stages'], m['settings']['gain_dark_reference'], ex[0]['path'].split('/')[-1] if ex else '-'))
+    print('    used: ' + ', '.join(p for p, _ in used))
+print()
+print('== the used lists compared (path, order, sha-256)')
+names = [n for n, _ in sets]
+for a in names:
+    for b in names:
+        if a < b:
+            print('  %-12s vs %-12s: same path list %s; same sha-256 list %s' % (a, b, [p for p, _ in lists[a]] == [p for p, _ in lists[b]], lists[a] == lists[b]))
+print('  (the planted and the clean sets differ in sha-256 by design: the planted frames carry the injection)')
+print()
+print('== offset and gain files of the four sets (sha-256, from the manifests)')
+for name, d in sets:
+    m = json.load(open(OUT + d + '/manifest.json', encoding='utf-8'))
+    print('  %-12s offset %s gain %s defect %s' % (name, m['files']['offset.xcal'][:16], m['files']['gain.xcal'][:16], m['files']['defect.xcal'][:16]))
+print('  IAP 1.5: offset 5569bacf... gain a7ddadbd...')
+print()
+print('== evaluation tool runs: dark_list_used (given, used, first excluded, list sha-256 of the used list)')
+for tag in ['H1_v1_half_a', 'H2_v1_half_b', 'H3_v2_half_a', 'H4_v2_half_b', 'H5_v2_lines_a', 'H6_v2_lines_b', 'P1_v2_features', 'P2_v2_lines', 'P3_v1_map']:
+    t = open(EV + tag + '.out.txt', encoding='utf-8', errors='replace').read()
+    m = re.search(r'dark_list_used: command=(\S+) given=(\d+) used=(\d+) first_excluded=(\d) list_sha256=(\w+)', t)
+    names_used = re.findall(r'dark_used\[\d+\]: \S*/(Dark_\d+\.raw) ', t)
+    print('  %-16s %s given %s used %s excluded %s list %s... frames %s' % (tag, m.group(1), m.group(2), m.group(3), m.group(4), m.group(5)[:16], ','.join(n[5:7] for n in names_used)))
+p1 = open(EV + 'P1_v2_features.out.txt', encoding='utf-8', errors='replace').read()
+p3 = open(EV + 'P3_v1_map.out.txt', encoding='utf-8', errors='replace').read()
+a = re.search(r'list_sha256=(\w+)', p1).group(1)
+b = re.search(r'list_sha256=(\w+)', p3).group(1)
+print('  second edition (P1) and first edition (P3) received the same list: %s' % (a == b))

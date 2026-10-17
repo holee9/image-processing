@@ -1,0 +1,15 @@
+dark_list_used: command=map-v2 given=8 used=7 first_excluded=1 list_sha256=3ef59933217b380ef74e78e670c3ab4fa24969b62065f06fecaa9398f488c748
+dark_used[0]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_08.raw c050034b6a6b3b432d0e0d1ddae55b7f922aadc418d95def09dfaabea59a4a80
+dark_used[1]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_09.raw 8885be1a7aaff184187bfcab3fa5532c0d119e42a477ec1e13184bf13c525f68
+dark_used[2]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_10.raw 7a290e8ebc738f65868455dbf1efabffb5b0f2d6dd94a12598fb28fad0383481
+dark_used[3]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_11.raw 497513998594686fc2c299315b45024c23d6839c474ff562e26d61f6dd7cc5f6
+dark_used[4]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_12.raw 8045c3a4ea7c7afaf3b2cee6a3d9e88455c7020c5d325f7055ebe82d1d52bc60
+dark_used[5]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_13.raw 1f1603d5e8f5f5be048ee114ad993b495c218644a55dc108c93053586419b0c4
+dark_used[6]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_14.raw ac9c506c0dea65aacd64c96086c533fa8af9aa15216e89971d0ccb2b3b906e70
+xpe_bpm_generate_v2: 7 darks used, 18 brights in 5 dose groups, 110477 defect pixels (union of the features) -> D:/workspace-github/xpe-data/bpm-eval-260/v2_full_pix.u8
+  dark_mean       active 1  threshold 5.3156  local scale median 2.75526  flagged 2580
+  dark_noise      active 1  threshold 7.2006  local scale median 9.51375  flagged 15344
+  dose_slope      active 0  threshold 0.0000  local scale median 0  flagged 0
+  dose_linearity  active 1  threshold 5.1880  local scale median 1.0046  flagged 9206
+  flat_field      active 1  threshold 0.4500  local scale median 0.999988  flagged 83281
+  bright_noise    active 1  threshold 4.4833  local scale median 4451.29  flagged 3165
