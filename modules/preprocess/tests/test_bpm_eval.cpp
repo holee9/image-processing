@@ -643,6 +643,62 @@ TEST_F(BpmEvalQuantumTest, TheQuantumGainIsEstimatedWithoutTheFrameCountBias) {
     EXPECT_NE(std::string::npos, json.find("\"quantum_gain_groups\": [{")) << "the dose dependence is written with the fit: " << json;
 }
 
+TEST_F(BpmEvalQuantumTest, OverlapMeasurementOnFramesWithoutSignalWritesNoResponseAndOnlyADiagnostic) {
+    // QA-A-255 (Codex #222, follow-up): the producer fed RAW input on which the overlapped pixels have no local signal above 100 (the lower half of the verification frames is at the dark level): the groups below have nResp = 0. The measurement
+    // must say so in its columns - response_used 0, response_valid 0, the reason, response_model 0 - and keep the nominal chain only in the diagnostic column; the scorer's handling of such a row is the test above.
+    const std::string BSQ = "\"";   // a double quote, for the command line
+    makeQuantumFrames();
+    const fs::path out = root / "tz";
+    ASSERT_EQ(0, inject(out));
+    std::string args = "noise-cost --truth " + BSQ + out.string() + BSQ + " --out " + BSQ + (root / "nz.tsv").string() + BSQ + " --overlap-out " + BSQ + (root / "nz_overlaps.tsv").string() + BSQ;
+    for (const auto& f : darks) args += " --dark " + BSQ + (out / "frames" / fs::path(f).filename()).string() + BSQ;
+    {   // the planted verification frames, with the lower half taken down to the dark level (net signal 0 +- noise): the upper half keeps its dose, so the dose and the expectation are defined, and the
+        // overlapped pixels below have no local signal above 100
+        std::mt19937_64                  rng(77);
+        std::normal_distribution<double> unit(0.0, 1.0);
+        for (const auto& f : evals) {
+            const fs::path p = out / "frames" / fs::path(f).filename();
+            std::vector<uint8_t> raw = readBytes(p);
+            ASSERT_EQ(kN * 2, raw.size());
+            for (size_t i = (kN / 2); i < kN; ++i) {
+                const uint16_t v = static_cast<uint16_t>(std::floor(3000.0 + 3.0 * unit(rng) + 0.5));
+                raw[2 * i]       = static_cast<uint8_t>(v & 0xFF);
+                raw[2 * i + 1]   = static_cast<uint8_t>(v >> 8);
+            }
+            writeBytes(root / ("dim_" + p.filename().string()), raw.data(), raw.size());
+            args += " --verify " + BSQ + (root / ("dim_" + p.filename().string())).string() + BSQ;
+        }
+    }
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, args + " > " + BSQ + (root / "nz.log").string() + BSQ + " 2>&1")) << text(root / "nz.log");
+    std::ifstream ov(root / "nz_overlaps.tsv");
+    std::string   l;
+    std::getline(ov, l);
+    size_t groups = 0, nominalNonZero = 0, noResponse = 0, withResponse = 0;
+    while (std::getline(ov, l)) {
+        std::vector<std::string> c;
+        std::stringstream        ss(l);
+        std::string              cell;
+        while (std::getline(ss, cell, '	')) c.push_back(cell);
+        ASSERT_EQ(18u, c.size()) << l;
+        if (c[12] != "group") continue;
+        ++groups;
+        if (std::atoi(c[13].c_str()) > 0) {
+            ++withResponse;
+            EXPECT_EQ("1", c[14]) << l;
+            continue;
+        }
+        ++noResponse;
+        EXPECT_EQ("0", c[14]) << "the chain is computed on no pixel: " << l;
+        EXPECT_NE("-", c[15]) << "the reason is written: " << l;
+        EXPECT_DOUBLE_EQ(0.0, std::atof(c[9].c_str())) << "no response value is carried when there is none: " << l;
+        nominalNonZero += std::atof(c[17].c_str()) != 0.0 ? 1 : 0;
+    }
+    EXPECT_GT(groups, 0u);
+    EXPECT_GT(noResponse, 0u) << "the fixture has crossings in the lower half: groups without a response exist";
+    EXPECT_GT(withResponse, 0u) << "and the upper half keeps its response, so the rule is not applied to everything";
+    EXPECT_GT(nominalNonZero, 0u) << "the nominal chain is still written, in the diagnostic column only";
+}
+
 TEST_F(BpmEvalQuantumTest, NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined) {
     makeQuantumFrames();
     const fs::path out = root / "t";
