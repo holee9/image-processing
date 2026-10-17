@@ -29,6 +29,6 @@ MUTANTS = [
     ('M9', SRC, b'/*check_expiry=*/false, /*expected_type=*/XCAL_TYPE_OFFSET', b'/*check_expiry=*/true, /*expected_type=*/XCAL_TYPE_OFFSET'),
     ('M10', SRC, b'std::memset(out, 0, kQualityHeadSize);', b'std::memset(out, 0, sizeof(XpeOffsetQuality));'),
     ('M11', SRC, b'if (sx.size() >= roi_min) {', b'if (sx.size() >= roi_min || roi_min < 1000000000u) {'),
-    ('M12', SRC, b'(raw_range / raw_mean_val > 0.01)', b'(raw_range / raw_mean_val > 0.5)'),
+    ('M12', SRC, b'const bool has_variation = (raw_mean_val > 0.0) && (raw_range / raw_mean_val > 0.01);', b'const bool has_variation = (raw_mean_val > 0.0) && (raw_range / raw_mean_val > 0.5);'),
 ]
 exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-266/evidence/40_mutation_runner.py.txt', encoding='utf-8').read())
