@@ -154,6 +154,11 @@ def run_real():
         m = np.mean(ms, axis=0, dtype=np.float64)
         return (m / m.mean()).astype(np.float32)
 
+    def sigma_all(excluded):
+        # the noise of the mean of the normalised maps of the groups not excluded: independent maps, so the variances add and the mean divides by the number of maps
+        sg = [sigma_map[g] for g in GROUPS if g not in excluded]
+        return float(np.sqrt(np.sum(np.square(sg))) / len(sg))
+
     tab = {}
     for eval_g in ['A', 'B', 'C-eval', 'D', 'E']:
         ids = glist[eval_g]
@@ -186,7 +191,7 @@ def run_real():
         say('  evaluated group %-6s frames %s:' % (eval_g, ids))
         for mname, (pf, fx) in sorted(row.items()):
             extra = ' (current map)' if mname == 'C' else ''
-            say('      map %-4s single-frame FlatResidualPct %s -> fixed part of the group average %.4f %%   [map noise sigma_map %s]%s' % (mname, ', '.join('%.4f' % v for v in pf), fx, ('%.4f %%' % sigma_map[mname]) if mname in sigma_map else 'n/a (mean of four maps)', extra))
+            say('      map %-4s single-frame FlatResidualPct %s -> fixed part of the group average %.4f %%   [map noise sigma_map %s]%s' % (mname, ', '.join('%.4f' % v for v in pf), fx, ('%.4f %%' % sigma_map[mname]) if mname in sigma_map else '%.4f %% (mean of the other maps)' % sigma_all({'C' if eval_g == 'C-eval' else eval_g}), extra))
     say('  classification of the map question, per evaluated group (a different map must lower the fixed part of the current map by >= %.0f %% AND by more than the map-noise difference explains):' % (100 * K_MAP_GAIN))
     verdict = {}
     for eval_g, row in tab.items():
@@ -197,7 +202,8 @@ def run_real():
             continue
         best_name, best_fx = min(((m, v[1]) for m, v in row.items() if m != 'C'), key=lambda t: t[1])
         red = 1.0 - best_fx / cur[1] if cur[1] > 0 else 0.0
-        explained = np.sqrt(max(sigma_map['C'] ** 2 - (sigma_map.get(best_name, sigma_map['C']) ** 2), 0.0))
+        sig_best = sigma_all({'C' if eval_g == 'C-eval' else eval_g}) if best_name == 'ALL' else sigma_map[best_name]   # the first run of this script had no noise figure for the all-dose map and took the current map's
+        explained = np.sqrt(max(sigma_map['C'] ** 2 - sig_best ** 2, 0.0))
         gain_pts = cur[1] - best_fx
         v = 'MAP-DOSE EFFECT' if (red >= K_MAP_GAIN and gain_pts > explained + 0.02) else 'NO MAP-DOSE EFFECT'
         verdict[eval_g] = v

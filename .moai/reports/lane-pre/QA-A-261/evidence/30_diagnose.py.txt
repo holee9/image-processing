@@ -459,12 +459,25 @@ def synthetic(row_sigma, drift, S=192, seed=1, persistent=0.0, walk=0.0, nl=0.0)
     return D, F
 
 
+# QA-A-263 (Codex #232 R232-4): every synthetic control states the classification it is DESIGNED to give, and the run asserts it. The expectations come from the construction of the
+# synthetic frames (not from the first output):
+#  - h2 is PROBLEM in every control: the offset-corrected synthetic dark has a mean of about 0, so the floor at zero lifts its mean by about 0.4 sigma (sigma 3 -> more than 0.5), by design;
+#  - a is PROBLEM where the construction moves the dark level: control 2 alternates the level of the darks by +5 (the real two-level alternation, made larger than the real 2.9), control 3 has a
+#    random walk of the pixel level; with these the DarkBias of an unused dark exceeds 5;
+#  - c is UNDECIDABLE in control 5: the persistent row stripe is a large part of every frame, the new-frame ratio lands between the two bands (1.196), neither "no problem" nor "problem".
+SELFTEST_EXPECT = [
+    ('NEGATIVE CONTROL 1 (white noise only, no drift)', dict(a='NO PROBLEM', b='NO PROBLEM', c='NO PROBLEM', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('CONTROL 2 (moving row noise that averages, dark level alternation +5)', dict(a='PROBLEM', b='NO PROBLEM', c='NO PROBLEM', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('POSITIVE CONTROL for (c) (pixel noise correlated between frames)', dict(a='PROBLEM', b='NO PROBLEM', c='PROBLEM', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('POSITIVE CONTROL for (d) (pixel-dependent departure from the gain-dose response)', dict(a='NO PROBLEM', b='NO PROBLEM', c='NO PROBLEM', d='PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('POSITIVE CONTROL for (b) (persistent row stripe)', dict(a='NO PROBLEM', b='PROBLEM', c='UNDECIDABLE', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+]
+
+
 def run_selftest():
-    for title, kw in (('NEGATIVE CONTROL: white noise only, no drift, no moving row noise', dict(row_sigma=0.0, drift=False)),
-                      ('MOVING ROW NOISE that averages (sigma 2): the stripes in the map are explained, no problem expected', dict(row_sigma=2.0, drift=True)),
-                      ('POSITIVE CONTROL for (c): pixel noise correlated between frames (random walk of sigma 4)', dict(row_sigma=0.0, drift=False, walk=4.0)),
-                      ('POSITIVE CONTROL for (d): a pixel-dependent departure from the gain-dose response (3 % per unit of dose offset)', dict(row_sigma=0.0, drift=False, nl=0.08)),
-                      ('POSITIVE CONTROL: a row stripe that persists over frames and moves slowly (not averaged by sqrt(N))', dict(row_sigma=0.5, drift=False, persistent=3.0))):
+    cases = [dict(row_sigma=0.0, drift=False), dict(row_sigma=2.0, drift=True), dict(row_sigma=0.0, drift=False, walk=4.0), dict(row_sigma=0.0, drift=False, nl=0.08), dict(row_sigma=0.5, drift=False, persistent=3.0)]
+    failures = []
+    for (title, expect), kw in zip(SELFTEST_EXPECT, cases):
         D, F = synthetic(**kw)
         used_ids = list(range(8, 15))
         unused_ids = [15, 16]
@@ -480,7 +493,15 @@ def run_selftest():
         say('#' * 110)
         say('SELFTEST: ' + title)
         o = analyze(D, F, gain_ids, None, used_ids, unused_ids, offset7, gain_map, defect, 'synthetic')
+        got = {k: o[k] for k in expect}
         say('SELFTEST SUMMARY: ' + ' '.join('%s=%s' % (k, o[k]) for k in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h1', 'h2')))
+        bad = {k: (expect[k], got[k]) for k in expect if expect[k] != got[k]}
+        say('SELFTEST EXPECTED == ACTUAL: %s%s' % ('yes' if not bad else 'NO ', '' if not bad else str(bad)))
+        if bad:
+            failures.append((title, bad))
+    say('#' * 110)
+    say('SELFTEST RESULT: %s' % ('all five controls give exactly the designed classification' if not failures else 'MISMATCH: %s' % failures))
+    assert not failures, failures
 
 
 def run_real():
