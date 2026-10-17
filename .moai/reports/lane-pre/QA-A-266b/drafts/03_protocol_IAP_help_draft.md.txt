@@ -1,35 +1,63 @@
-[초안 — 적용은 리더가 한다] QA-A-266b (이슈 #273). 세 문서에 붙인다: 검증 프로토콜(`docs/calibration/ALGORITHM-VERIFICATION-GUIDE.md` 의 다크 지표 절 — 위치는 리더가 정한다), IAP(`docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md` §1.2 관측된 주의점), 사용자 도움말(`docs/help/content/` 의 다크 품질 지표 설명).
+[초안 — 적용은 리더가 doc 레인에 넘긴다. QA-A-269 에서 확정판으로 고침] QA-A-266·266b·269 (이슈 #273).
 
-## A. 검증 프로토콜 — 다크 지표의 단계와 ROI 정의
+## 0. 어느 문서에 붙이는가 (R239-3)
+| 내용 | 확정한 파일 | 이유 |
+|---|---|---|
+| 다크 지표의 정의·단계·모집단 | **`docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md` §5.2 "Dark and offset metrics"** | 이 문서가 `DarkBias`, `DSNU_ADU`, `DarkReduction_dB`, `ClampRate` 의 수식과 수용 기본값을 갖는다(실제로 평가가 참조하는 기준 문서). |
+| 알고리즘 검증 절차 안내 | `docs/calibration/ALGORITHM-VERIFICATION-GUIDE.md` | 검증 절차를 설명하는 가이드(CALIB-VER-001 v1.0, 2026-04-19)이고 지표 수식의 기준이 아니다. 거기에는 §5.2 를 가리키는 **한 줄 상호 참조**만 둔다. |
+| 촬영 관측과 다음 촬영 요구 | `docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md` §1.2 "관측된 주의점" | 다크 두 수준 관측은 이미 여기에 있다(§1.2 의 11026.4 / 11020.6 문장). |
+| 사용자 도움말 | **새 파일 `docs/help/content/dark-quality-metrics.md`** + `docs/help/content/index.md` Quick Links 표에 한 행 | 지금 help/content 에는 지표 설명 페이지가 없다(`about`, `index`, `quickstart`, `scope-and-limits`, `troubleshooting`). `troubleshooting.md` 는 오류·알림 안내라 맞지 않는다. 포털 페이지가 영어라 도움말 본문은 영어(아래 C)로 쓰고, 한국어 병기는 doc 레인이 정한다. |
 
-**한 문장 요약.** 다크 지표는 같은 이름이라도 *어느 단계의 값인가*가 다르다. 단계를 적지 않은 DarkBias 는 비교하지 않는다.
+## A. 평가 프로토콜 §5.2 — 다크 지표의 단계와 ROI 정의 (덧붙임)
 
-| 지표 | 단계 | 잰 영상 | 모집단 | 한계값(SRS) |
+**한 문장.** 다크 지표는 같은 이름이라도 *어느 단계의 값인가*와 *어느 화소 집단인가*가 다르다. 단계와 집단을 적지 않은 DarkBias·ClampRate 는 서로 비교하지 않는다.
+
+| 지표 | 단계 | 잰 영상 | 모집단 | 한계값 |
 |---|---|---|---|---|
-| DarkBias, DSNU (옛 `xpe_verify_offset`) | 출력 | offset 단계가 쓴 UINT16 영상(0 바닥·반올림 이후) | 원시의 어두운 10분위 | `abs(DarkBias) ≤ 5` 화소값(FUNC-016) |
-| `darkBiasSigned`, `dsnuSigned`, `darkReductionDb` | 부호 있는 잔차 | `x = float(raw) − map` (0 바닥·반올림 이전) | 같은 ROI | **없음** (승인 전) |
-| `darkBiasOutput`, `dsnuOutput` | 출력 | 새 함수가 계산한 UINT16 출력 | 같은 ROI | 옛 지표와 같은 값(비트 동일) |
-| `clampRatePct` | 부호 있는 잔차 | x < 0 인 화소 비율 | **프레임 전체** | 없음 |
-| `zeroOutputRatePct` | 출력 | UINT16 출력 = 0 인 화소 비율 (x < 0.5) | **프레임 전체** | GUI 의 기존 ClampRate ≤ 1 % 와 같은 양 |
+| `DarkBias`, `DSNU_ADU` (`xpe_verify_offset`) | 출력 | offset 단계가 쓴 UINT16 영상(0 바닥·반올림 이후) | 원시의 어두운 10분위 | `abs(DarkBias) ≤ 5` 화소값(FUNC-016) |
+| `darkBiasSigned`, `dsnuSigned`, `darkReductionDb` (`xpe_verify_offset_signed`) | 부호 있는 잔차 | `x = float(raw) − map` (0 바닥·반올림 이전) | 같은 ROI | **없음** (승인 전) |
+| `darkBiasOutput`, `dsnuOutput` (같은 함수) | 출력 | 이 함수가 계산한 UINT16 출력 | 같은 ROI | 없음. 두 함수가 모두 ROI 를 측정한 경우 옛 지표와 비트 동일, 한쪽만 측정하면 상태(비트)의 차이로 읽는다 |
+| `ClampRate` (§5.2 의 정의, `clampRatePct`) | 부호 있는 잔차 | `R − D < 0` 인 화소 | **프레임 전체** | §5.2: 5 % 를 넘으면 보고·검토 |
+| `zeroOutputRatePct` | 출력 | UINT16 출력 = 0 (x < 0.5) | **프레임 전체**(원본 크기, offset 단계 출력) | 없음 |
+| GUI 의 `ClampRate` | 최종 출력 | 출력 = 0 | **sampled preview 의 최종 출력**(gain·defect 까지 지난 영상) | GUI 사양서의 ≤ 1 % (SRS·§5.2 에 없는 한계) |
+`zeroOutputRatePct` 와 GUI `ClampRate` 는 "출력이 0 인 화소의 비율"이라는 연산은 같지만 **모집단과 단계가 다르다**(원본 전체의 offset 출력 대 미리보기의 최종 출력). 항상 같은 값이거나 같은 승인 기준을 쓴다고 읽으면 안 된다.
 
-**ROI.** 원시 영상의 어두운 10분위: `raw < percentile10(raw)`(엄격한 `<`, 값은 정렬한 사본의 `⌊0.1 N⌋` 번째 원소, 히스토그램으로 같은 값을 얻는다). 원시에 변동이 없으면(`(최대−최소)/평균 ≤ 0.01`) ROI 를 만들지 않는다. ROI 가 **2화소 미만이거나 프레임의 1 % 미만**(정수 비교 `roi × 100 < N`)이면 ROI 지표는 측정하지 않는다. 다른 모집단으로 대체하지 않는다(FUNC-035).
+**ROI.** 원시 영상의 어두운 10분위: `raw < percentile10(raw)`(엄격한 `<`, 값은 정렬한 사본의 `⌊0.1 N⌋` 번째 원소, 히스토그램으로 같은 값을 얻는다). 원시에 변동이 없으면 ROI 를 만들지 않는다. **변동 조건은 `(min + max) / 2 > 0` 이고 `(max − min) / ((min + max) / 2) > 0.01`** 이다(산술 평균이 아니라 최소와 최대의 중간값). ROI 가 **2화소 미만이거나 프레임의 1 % 미만**(정수 비교 `roi × 100 < N`)이면 ROI 지표를 측정하지 않는다. 다른 모집단으로 대체하지 않는다(FUNC-035).
 
-**DarkReduction.** raw ROI 에 변동이 없으면(표준편차 0) 정의되지 않으므로 측정하지 않는다. 값 0 이나 무한대로 채우지 않는다.
+**DarkReduction.** raw ROI 에 변동이 없으면(표준편차 0) 정의되지 않아 측정하지 않는다. 0 이나 무한대로 채우지 않는다.
 
 **읽는 순서.** ① 반환 코드, ② `validMask` 의 비트, ③ 비트가 켜진 필드만. 미측정을 0 점이나 합격으로 표시하지 않는다.
 
-**해석 주의.** 부호 있는 bias 가 음수이고 `clampRatePct` 가 높으면, 출력 단계의 DarkBias 가 작아 보여도 어두운 화소의 큰 비율이 0 으로 잘린 것이다(`Dark_16`: −4.05, 전체 화소의 83 %). 출력이 부호 있는 값보다 작아질 수 있는 경우(작은 양의 잔차가 0 으로 반올림, 65535 포화)가 있으므로 두 단계의 크기를 직접 비교하지 않는다.
+**두 단계를 비교할 때.** 출력이 부호 있는 값보다 커지는 경우(0 바닥)와 작아지는 경우(작은 양의 잔차가 0 으로 반올림, 65535 포화)가 모두 있으므로 크기를 직접 비교하지 않는다. 관계: 항상 `m₀ ≥ darkBiasSigned`, `|darkBiasOutput − mₛ| ≤ 0.5` (m₀ = ROI 의 mean(max(x,0)), mₛ = 65535 로 포화시킨 평균).
 
-**다크 두 수준 (사실 기록).** `Dark_08~16` 은 raw 전체 평균이 11026.5 와 11020.6 두 수준으로 갈리고(차이 약 5.82 화소값, Codex 독립 재현), 맵을 만든 7장도 4:3 으로 섞여 있다. 그래서 한 맵의 부호 있는 bias 는 한 무리에서 약 +1.9, 다른 무리에서 약 −3.9 로 나온다(프레임별 ROI 값). 원인은 확정하지 못했다. 확인 방법은 촬영 요청서 항목에 있다(리더).
+**해석 주의.** 부호 있는 bias 가 음수이고 `clampRatePct` 가 높으면, 출력 단계의 DarkBias 가 작아 보여도 **프레임 전체 화소**의 큰 비율이 0 으로 잘린다는 뜻이다(`Dark_16`: −4.05, 프레임 전체 화소의 83 %). 이것이 곧 교정 맵의 잘못을 뜻하지는 않는다(아래 "다크 두 수준").
 
-## B. IAP — §1.2 "관측된 주의점"에 덧붙일 문단
-> 다크 한 장씩의 평균 화소값이 두 수준(약 11026.5 / 11020.6, 차이 약 5.8)으로 갈리는 현상이 관측됐다(`Dark_08~16`). 한 offset 맵으로 두 수준 모두를 보정할 수 없어, 맵 품질을 부호 있는 잔차로 재면 한 수준에서 약 +1.9, 다른 수준에서 약 −3.9 화소값이 남는다. **원인은 모른다.** 다음 촬영에서는 다크를 연속으로 여러 번 찍고, 장마다 **취득 시각, 판독 모드, 리셋 방식, 온도, 게이트·판독 설정**을 기록한다. 이 기록이 있어야 수준 전환이 시간·온도·모드 중 무엇과 관련되는지 가릴 수 있다. 파일 이름만으로는 알 수 없다.
+**검증 가이드(ALGORITHM-VERIFICATION-GUIDE)에 둘 한 줄.** "다크 지표의 정의와 단계·모집단은 Preprocessing-E2E-Automated-Evaluation-Protocol.md §5.2 를 따른다."
 
-## C. 사용자 도움말 — "다크 보정 품질 지표" 설명(사용자 글)
-> **다크 보정 품질, 어떻게 읽나요**
-> 다크(X선을 끄고 찍은 영상)에서 offset 보정이 잘 됐는지는 보정 뒤 평균이 0 에 가까운지로 봅니다. 그런데 보정 결과는 0 보다 작아질 수 없어서(음수는 0 으로 잘립니다), 보정이 너무 많이 빼도 평균이 작은 양수로 보일 수 있습니다.
-> 그래서 두 가지 값을 함께 봅니다.
-> - **보정 직전 잔차**(부호 있음): 음수면 너무 많이 뺀 것입니다. 이 값이 −4 정도인데 화면의 평균이 +0.2 로 보인다면, 어두운 화소의 대부분이 0 으로 잘리고 있다는 뜻입니다.
-> - **0 으로 잘린 화소의 비율**: 프레임 전체 기준입니다. 높을수록 어두운 부분의 정보가 사라지고 있습니다.
-> 값 옆에 "측정 안 됨"이 표시되면 계산할 수 없었던 것입니다(어두운 화소가 너무 적거나 모두 같은 값). 합격이나 0 으로 읽지 마세요.
-> 한계값(합격 기준)은 아직 부호 있는 값에 정해지지 않았습니다. 화면의 합격 표시는 기존 기준(보정 결과 기준)을 따릅니다.
+## B. IAP §1.2 "관측된 주의점" — 덧붙이거나 고칠 문단
+> **다크의 두 준위 (`Dark_08~16`).** 다크 한 장씩의 **raw 전체 평균**이 두 준위(약 11026.5 와 11020.6, 차이 약 5.82 화소값)로 갈린다. 이것은 프레임 전체의 평균이다. 이 맵으로 재는 **프레임별 어두운 ROI 의 부호 있는 bias**(두 무리에서 약 +1.9 와 −3.9)는 다른 양이다: 어두운 10분위로 고른 화소의 잔차이고, 전체 평균 준위의 차이와 같은 크기가 아니며 ROI 선택의 영향도 받는다. 같은 맵으로 두 무리가 남는다는 관측은 지지되지만 **원인은 모른다**(전자적 상태 전환, 시간·온도·모드 중 무엇인지 가릴 자료가 없다). 다음 촬영에서는 다크를 연속으로 여러 번 찍고 장마다 **취득 시각, 판독 모드, 리셋 방식, 온도, 게이트·판독 설정**을 기록한다. 이 기록과 무리별 맵의 교차 시험이 있어야 원인을 가릴 수 있다. 파일 이름만으로는 알 수 없다.
+
+## C. 사용자 도움말 — 새 파일 `docs/help/content/dark-quality-metrics.md` (영어) 와 index.md 한 행
+index.md Quick Links 표에 추가: `| [Dark Quality Metrics](dark-quality-metrics.md) | How to read the dark-frame quality values of an offset map |`
+
+```markdown
+# Dark Quality Metrics
+
+An offset map is checked on a dark frame (a frame taken with the X-ray off). After the map is subtracted, the dark pixels should be close to 0.
+
+## Two kinds of numbers
+
+- **Residual before the floor (signed).** The value left after the offset is subtracted and *before* the result is limited to 0 or more. It can be negative.
+- **Value after the floor (output).** What the pipeline actually writes. It can never be below 0, so a negative residual shows up as 0.
+
+A frame can therefore show a small positive average in the output while many of its pixels were really below 0. The percentage of **all pixels of the frame** that were below 0 before the floor tells you how often that happens.
+
+## Reading the values
+
+- Look at a value only if it is marked *measured*. **Not measured** means the value could not be computed (too few dark pixels, or all the dark pixels have the same value). It is not 0 and it is not a pass.
+- The pass marks on the screen keep their earlier rules. The new signed values are shown without a pass mark, because no limit has been approved for them yet.
+- A single negative average, or a high percentage of pixels at 0, does **not** by itself show that the offset map is wrong. Noise and the choice of dark pixels also change these numbers. Compare several dark frames taken one after another.
+- Dark frames of one detector can fall into two groups with slightly different average levels. When that happens, the signed average of the same map can be positive for one group and negative for the other. The cause is not known yet.
+```
+
+(한국어 병기본은 doc 레인이 정한다. 위 영어 본문의 뜻은 "offset 을 뺀 뒤 0 바닥을 적용하기 전 잔차"를 부호 있는 값으로 설명하고, 한 장의 음수만으로 과보정이라고 단정하지 않는다.)

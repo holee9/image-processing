@@ -1,27 +1,28 @@
-[초안 — 리더가 gui 레인에 넘긴다. 카드 번호와 `lane:gui` 지정은 리더] 이슈 #273 (커밋마다 `Refs #273`). 근거: `QA-A-266`·`266b` 보고서, `preprocess_api.h` 의 `XpeOffsetQuality`. 이 카드는 gui 가 바로 시작할 수 있게 쓴 초안이다.
+[초안 — QA-A-269 에서 확정판으로 고침. 리더가 이미 이 초안을 바탕으로 `GUI-C-253` 으로 배정했다. 아래는 그 카드(2026-10-17 22:30)와 대조해 확인한 내용이다] 이슈 #273 (커밋마다 `Refs #273`). 근거: `QA-A-266`·`266b`·`269` 보고서, `preprocess_api.h` 의 `XpeOffsetQuality`, Codex #239 §04.
 
-# GUI-C-NNN — 다크 지표를 부호 있는 offset 품질 API 로 옮기기 (표시·P/Invoke만, 한계값은 바꾸지 않음)
+# GUI-C-253 — 부호 있는 offset 품질 측정을 앱에 "측정값" 행으로 연결 (판정 불변)
 
-## 왜
-`clients/ImageProcTest/Services/MetricsComputationService.cs` 의 DarkBias 등(62~65행)은 **미리보기(표본 추출)와 최종 출력 전체**의 평균·표준편차를 직접 계산한다. 이는 새 API 가 재는 *원시 다크의 어두운 ROI* 와 다른 모집단·단계다. 또 `DarkBias <= 5` 판정은 음의 큰 값을 통과시킨다.
+## 리더 결정 (카드에 반영됨)
+1. **기존 합격 판정은 그대로 둔다.** 기존 계산 경로(`MetricsComputationService` 의 sampled preview·최종 출력 통계), 모집단, 한계(`DarkBias ≤ 5`, `DSNU ≤ 20`, `ClampRate ≤ 1 %`)와 합격 칸을 바꾸지 않는다. 숫자 한계만 두고 모집단·단계를 바꾸면 판정이 달라지므로 새 값으로 판정을 옮기지 않는다. 그 이전은 요구·모집단·fixture·한계 근거를 검토하는 별도 승인 사항이다.
+2. **새 API 값은 판정 없는 "측정값" 행으로 따로 보인다.** 합격 칸을 만들지 않는다. 기존 칸은 "미리보기 기준"이라고 표시하고, 새 값은 "원본 raw, offset 을 뺀 뒤 0 바닥 적용 전/후"라고 표시한다.
+3. 기존 한계(DSNU ≤ 20, ClampRate ≤ 1 %)를 새 API 가 승인한 기준처럼 설명하지 않는다.
 
 ## 할 일
-1. **P/Invoke 선언** (`Pack = 8`, 총 120바이트, 필드와 오프셋은 `preprocess_api.h` 와 `QA-A-266b/drafts/01_api-spec_draft.md.txt` 의 표):
-   - `xpe_verify_offset_signed(const XpeImageBuffer*, const XpeImageBuffer*, ref XpeOffsetQuality)`
-   - `xpe_verify_offset_signed_file(const XpeImageBuffer*, string(UTF-8) path, ref XpeOffsetQuality)`
-   - 호출 전 `structSize = 120`. 반환 코드가 `XPE_OK` 가 아니면 값을 쓰지 않는다. `writtenSize == 120` 과 `validMask` 를 확인한다.
-2. **미측정 표시**: `validMask` 의 비트가 꺼진 지표는 "측정 안 됨"으로 표시한다. 0 점·합격·빈 값으로 표시하지 않는다. 필드는 비트가 켜진 것만 읽는다.
-3. **입력**: 원시 다크 한 장(원본 크기, UINT16)과 **대응하는 원본 크기 offset 맵**을 넘긴다. 미리보기만 있으면 이 API 를 부르지 말고 화면에 "미리보기 기준"이라고 표시한다. offset 만의 품질을 gain·결함 보정까지 지난 최종 영상 지표로 부르지 않는다.
-4. **단계를 나눠 보여 주기**: 부호 있는 bias·DSNU·DarkReduction(`...Signed`, `darkReductionDb`), 출력 bias·DSNU(`...Output`), **프레임 전체** `clampRatePct`(x < 0 비율)와 `zeroOutputRatePct`(출력 0 비율)를 서로 다른 행으로 둔다. 기존 GUI 의 ClampRate 는 출력 0 비율이므로 `zeroOutputRatePct` 와 같은 양이고 `clampRatePct` 와 다르다.
-5. **맵 식별**: 결과의 `mapSha256`(맵 payload SHA-256)을 맵 파일 헤더의 SHA-256 과 구분해 표시한다. 이 API 는 만료를 검사하지 않으므로 "적용 가능한 교정 맵"이라는 표시를 붙이지 않는다.
-6. **판정은 바꾸지 않는다**: 기존 합격 칸(`DarkBias ≤ 5`, `DSNU ≤ 20`, `ClampRate ≤ 1 %`)은 그대로 둔다. 새 부호 있는 값에는 합격 칸을 만들지 않는다(승인된 한계값 없음). 한계값을 정하는 일은 사용자 결정이다.
-7. **단위 문구**: 화소값(레인 규칙 §2). "ADU" 를 새로 쓰지 않는다. 기존 화면의 문구는 이 카드에서 바꾸지 않는다.
+1. **P/Invoke** (`Pack = 8`, 총 120바이트. 필드와 오프셋은 `drafts/01_api-spec_draft.md.txt` 의 표):
+   - `xpe_verify_offset_signed(const XpeImageBuffer*, const XpeImageBuffer*, ref XpeOffsetQuality)`, `xpe_verify_offset_signed_file(const XpeImageBuffer*, string path, ref XpeOffsetQuality)`.
+   - **모든 필드의 타입과 오프셋을 단언한다**: `structSize` 0, `writtenSize` 4, `validMask` 8, `roiPixels` 12, `pixelCount` 16, `mapWidth` 24, `mapHeight` 28, `mapSha256` 32(32바이트), `darkBiasSigned` 64, `dsnuSigned` 72, `darkReductionDb` 80, `clampRatePct` 88, `zeroOutputRatePct` 96, `darkBiasOutput` 104, `dsnuOutput` 112, 전체 `Marshal.SizeOf` 120.
+   - **경로는 UTF-8 로 마샬링한다**(`_file` 변형의 `const char*`).
+   - **raw 와 map 버퍼는 호출이 끝날 때까지 고정하고 수명을 보장한다**(`fixed` 또는 `GCHandle.Alloc(.., Pinned)`, 호출 중 해제·재할당 금지).
+   - 호출 전 `structSize = 120`. 확인 순서: **반환 코드 → `writtenSize == 120` → `validMask` 비트**. 코드가 `XPE_OK` 가 아니면 값을 쓰지 않는다.
+2. **입력**: 원본 크기의 raw 다크 한 장과 **그 raw 에 쓴 offset 맵**(원본 크기)을 넘긴다. 미리보기만 있으면 이 API 를 부르지 않고 측정값 행을 "측정 안 됨(원본 없음)"으로 둔다. offset 만의 품질을 gain·결함 보정까지 지난 최종 영상 지표로 부르지 않는다.
+3. **화면(측정값 행)**: 단계를 서로 다른 행으로 둔다. 부호 있는 bias·DSNU·DarkReduction, 출력 bias·DSNU, **프레임 전체** `clampRatePct`(x < 0 비율), `zeroOutputRatePct`(출력 0 비율). 비트가 꺼진 값은 "측정 안 됨"으로 표시하고 0·합격·빈 값으로 표시하지 않는다. 기존 GUI `ClampRate` 와 `zeroOutputRatePct` 는 연산은 같아도 모집단(미리보기의 최종 출력 대 원본 전체의 offset 출력)이 다르므로 같은 행에 놓지 않는다. 맵 SHA 는 `mapSha256`(payload)이고 맵 파일 헤더의 SHA 와 다르다고 표시하며, 이 API 는 만료를 검사하지 않으므로 "적용 가능한 교정 맵" 표시를 붙이지 않는다.
+4. **도움말 한 줄**: 다크 두 준위처럼 프레임마다 부호가 바뀔 수 있다는 점. 문구는 `drafts/03_protocol_IAP_help_draft.md.txt` §C 의 영어 도움말을 리더가 넘긴다.
+5. 단위 문구는 화소값(레인 규칙 §2). 기존 화면 문구는 이 카드에서 바꾸지 않는다.
 
 ## 시험
-- 고정 입력(합성 다크 + 알려진 offset 맵)으로 P/Invoke 왕복: 레이아웃(120바이트, 오프셋 8·16·24·32·64·72·80·88·96·104·112) 단언.
-- `validMask` 가 일부만 켜진 결과(빈 ROI, 상수 raw ROI)에서 화면이 "측정 안 됨"을 표시하는지.
-- 실데이터 `Dark_16` + `clean_set_v1/offset.xcal`: 부호 있는 bias −4.0542, 출력 bias 0.1875, 클램프율 83.1 % (`QA-A-266/report.md` §4).
-- E2E 는 UIA 패턴만(전역 입력 금지), 측정은 한 번에 하나.
+- 구조체 오프셋·크기 단언, 미측정 표시, **기존 합격 칸 불변**(같은 입력에서 기존 칸 값과 판정이 이전과 같다).
+- 실제 다크 한 장(`Dark_16` + `clean_set_v1/offset.xcal`): 부호 있는 bias −4.0542, 출력 bias 0.1875, 프레임 전체 `clampRatePct` 83.1 % (`QA-A-266/report.md` §4).
+- 시험은 이것만, 동시 실행 1개, 남은 프로세스 0. E2E 는 UIA 패턴만.
 
 ## 하지 않을 것
-한계값 변경, 합격 칸 추가, 다크 두 수준의 원인 추정(리더가 촬영 요청서로 다룬다), 제품 라이브러리 수정.
+한계값 변경, 새 값에 합격 칸 추가, 기존 계산 경로 교체, 다크 두 수준의 원인 추정(리더가 촬영 요청서로 다룬다), 제품 라이브러리 수정.
