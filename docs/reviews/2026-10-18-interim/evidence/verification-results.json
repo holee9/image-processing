@@ -1,0 +1,260 @@
+{
+  "scope": "Existing local binaries; not freshly rebuilt for every pinned source SHA. CI evidence is tracked separately.",
+  "pre": {
+    "targeted": {
+      "filter": "*Verify*:*Offset*Parity*",
+      "passed": 72,
+      "exit": 0
+    },
+    "full": {
+      "announced": 1260,
+      "timeout_ms": 55000,
+      "exit": null,
+      "result": "incomplete; fixture-dependent skips observed"
+    }
+  },
+  "post": [
+    {
+      "name": "test_xpe_common.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 69 tests from 4 test suites.\r",
+        "[==========] 69 tests from 4 test suites ran. (127 ms total)\r",
+        "[  PASSED  ] 69 tests.\r"
+      ]
+    },
+    {
+      "name": "xpe_common_logging_tests.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 15 tests from 3 test suites.\r",
+        "[==========] 15 tests from 3 test suites ran. (69 ms total)\r",
+        "[  PASSED  ] 15 tests.\r"
+      ]
+    },
+    {
+      "name": "xpe_enhance_basic_tests.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 194 tests from 21 test suites.\r",
+        "[==========] 194 tests from 21 test suites ran. (4765 ms total)\r",
+        "[  PASSED  ] 194 tests.\r"
+      ]
+    },
+    {
+      "name": "test_xpe_enhance_advanced.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 264 tests from 28 test suites.\r",
+        "[==========] 264 tests from 28 test suites ran. (17688 ms total)\r",
+        "[  PASSED  ] 264 tests.\r"
+      ]
+    },
+    {
+      "name": "gsvg_tests.exe",
+      "exit": null,
+      "error": "ETIMEDOUT",
+      "lines": [
+        "[==========] Running 182 tests from 36 test suites.\r"
+      ]
+    },
+    {
+      "name": "test_display_modality_lut.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 18 tests from 2 test suites.\r",
+        "[==========] 18 tests from 2 test suites ran. (81 ms total)\r",
+        "[  PASSED  ] 18 tests.\r"
+      ]
+    },
+    {
+      "name": "test_display_voi_lut.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 26 tests from 2 test suites.\r",
+        "[==========] 26 tests from 2 test suites ran. (156 ms total)\r",
+        "[  PASSED  ] 26 tests.\r"
+      ]
+    },
+    {
+      "name": "test_display_voi_auto_window.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 21 tests from 1 test suite.\r",
+        "[==========] 21 tests from 1 test suite ran. (227 ms total)\r",
+        "[  PASSED  ] 21 tests.\r"
+      ]
+    },
+    {
+      "name": "test_display_presentation_lut.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 32 tests from 4 test suites.\r",
+        "[==========] 32 tests from 4 test suites ran. (327 ms total)\r",
+        "[  PASSED  ] 32 tests.\r"
+      ]
+    },
+    {
+      "name": "test_display_integration.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 22 tests from 5 test suites.\r",
+        "[==========] 22 tests from 5 test suites ran. (50 ms total)\r",
+        "[  PASSED  ] 22 tests.\r"
+      ]
+    },
+    {
+      "name": "test_e2e_post_pipeline.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 12 tests from 2 test suites.\r",
+        "[==========] 12 tests from 2 test suites ran. (8669 ms total)\r",
+        "[  PASSED  ] 12 tests.\r",
+        "  YOU HAVE 8 DISABLED TESTS\r"
+      ]
+    },
+    {
+      "name": "test_display_nonfinite_pixels.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 12 tests from 1 test suite.\r",
+        "[==========] 12 tests from 1 test suite ran. (0 ms total)\r",
+        "[  PASSED  ] 12 tests.\r"
+      ]
+    },
+    {
+      "name": "test_display_datasize_overread.exe",
+      "exit": 0,
+      "lines": [
+        "[==========] Running 2 tests from 1 test suite.\r",
+        "[==========] 2 tests from 1 test suite ran. (0 ms total)\r",
+        "[  PASSED  ] 2 tests.\r"
+      ]
+    }
+  ],
+  "dicom": {
+    "dependency_path": "D:/workspace-github/image-processing/build/release/vcpkg_installed/x64-windows/bin",
+    "initial_exit": 53,
+    "after_path": [
+      {
+        "name": "reader",
+        "passed": 158
+      },
+      {
+        "name": "writer",
+        "passed": 37
+      },
+      {
+        "name": "validator",
+        "passed": 32
+      },
+      {
+        "name": "network_scu",
+        "passed": 22
+      }
+    ],
+    "after_exit": 0
+  },
+  "gui": {
+    "command": "dotnet test clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj --no-build --no-restore",
+    "total": 1015,
+    "passed": 1008,
+    "failed": 1,
+    "skipped": 6,
+    "exit": 1,
+    "failure": "NativeModuleSignatureParityTests.EveryDelegateBoundToAnExport_SaysWhatThatExportsHeaderSays",
+    "reason": "GUI lane native header lacks xpe_verify_offset_signed[_file]; clients bindings already added",
+    "offset_subset": {
+      "passed": 29,
+      "skipped": 1,
+      "total": 30,
+      "overlaps_full": true
+    }
+  },
+  "ai": {
+    "filter": "AiAbi.*:BodyPart.*:BodyPartDecision.*:AiModelCardTest.*",
+    "ci_ai_stale": {
+      "total": 87,
+      "passed": 86,
+      "failed": 1,
+      "reason": "schema.empty; old cache lacks XPE_REPO_SCHEMAS_DIR",
+      "test_binary_mtime": "2026-10-03T05:48:05.505Z",
+      "source_mtime": "2026-10-03T07:37:54.743Z"
+    },
+    "ci_post": {
+      "total": 87,
+      "passed": 55,
+      "skipped": 32,
+      "exit": 0,
+      "schema_macro": true
+    }
+  },
+  "gsvg": {
+    "full": {
+      "announced": 182,
+      "timeout_ms": 18000,
+      "result": "incomplete"
+    },
+    "subset": {
+      "filter": "GsvgAbiSmoke.*:GsvgAbiExports.*:GsvgEmptyImageContract.*:GsvgVirtualGridApi.*:GsvgMaskOutside.*",
+      "passed": 16,
+      "exit": 0
+    }
+  },
+  "checks": {
+    "header_docs": {
+      "headers": 21,
+      "findings": 0,
+      "exit": 0
+    },
+    "spec_test_refs": {
+      "definitions": 4379,
+      "spec_files": 63,
+      "new_stale": 0,
+      "exit": 0
+    },
+    "req_citations": {
+      "new_orphans": 0,
+      "baseline_ids": 1,
+      "baseline_citations": 6,
+      "exit": 0
+    },
+    "versions": {
+      "scanned": 263,
+      "ok": 45,
+      "stale": 58,
+      "missing": 160
+    }
+  },
+  "ci": {
+    "main": {
+      "run": 39075925213,
+      "head": "d06de68cbd2a5d68083cb548031800b6fbef0cdd",
+      "result": "success",
+      "jobs": 17
+    },
+    "bundle_only": {
+      "run": 39075925168,
+      "result": "success",
+      "not_product_validation": true
+    },
+    "pre": {
+      "run": 39078173085,
+      "head": "6aed1cd32456198027f8a07c4206a8520d599e54",
+      "result": "success",
+      "head_75c00431": "report-only successor; not directly tested by this run"
+    },
+    "gui": {
+      "run": 39014716192,
+      "head": "7e38209ac4c12d0b1dafda95abd96d7c2bfae0e6",
+      "result": "failure",
+      "matches_pin": false
+    },
+    "post": {
+      "run": 36411831393,
+      "head": "7567b66be628622cd444c5ad9d3fc6635314d82e",
+      "result": "success",
+      "matches_pin": false
+    }
+  }
+}
