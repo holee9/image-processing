@@ -24,7 +24,7 @@ public sealed class ComparisonImportWindow : Window
     private const long MaxDisplayPixels = 4_000_000;
 
     private readonly Func<string, string, IComparisonBackend> _backendFactory;
-    private readonly string _rememberFile = System.IO.Path.Combine(GuiDataPaths.Root, "comparison-import.json");
+    private readonly string _rememberFile = System.IO.Path.Combine(ComparisonPaths.DataRoot, "comparison-import.json");
 
     private readonly TextBox _scriptPath = new() { MinWidth = 420 };
     private readonly TextBox _pythonPath = new() { MinWidth = 420 };
@@ -102,7 +102,7 @@ public sealed class ComparisonImportWindow : Window
         Auto(_manifestPath, "ComparisonManifestPathBox"); Auto(browse, "ComparisonBrowseButton"); Auto(_openButton, "ComparisonOpenButton");
 
         root.Children.Add(Label("결과를 저장할 개발 산출물 폴더(원데이터 폴더 밖이어야 합니다. 실행마다 새 하위 폴더가 만들어지고 기존 파일은 덮어쓰지 않습니다)"));
-        _outputRoot.Text = System.IO.Path.Combine(GuiDataPaths.Root, "comparison-runs");
+        _outputRoot.Text = System.IO.Path.Combine(ComparisonPaths.DataRoot, "comparison-runs");
         Auto(_outputRoot, "ComparisonOutputRootBox");
         root.Children.Add(_outputRoot);
 
@@ -197,7 +197,7 @@ public sealed class ComparisonImportWindow : Window
     {
         try
         {
-            Directory.CreateDirectory(GuiDataPaths.Root);
+            Directory.CreateDirectory(ComparisonPaths.DataRoot);
             var o = new JsonObject { ["script_path"] = _scriptPath.Text.Trim(), ["python_path"] = _pythonPath.Text.Trim() };
             AtomicFile.WriteAllBytes(_rememberFile, System.Text.Encoding.UTF8.GetBytes(o.ToJsonString()));
         }

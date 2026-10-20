@@ -839,6 +839,9 @@ public partial class MainWindow : System.Windows.Window
         menuItem.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent, menuItem));
     }
 
+    // QA-A-273 (Refs #278): a separate window; nothing of the main window's state, backend or calibration settings is read or changed by it.
+    private void PreComparisonImport_Click(object sender, RoutedEventArgs e) => new Views.ComparisonImportWindow { Owner = this }.ShowDialog();
+
     private void ExitMenuItem_OnClick(object sender, RoutedEventArgs e)
     {
         Close();

@@ -73,6 +73,6 @@
 ## 5. 알림
 
 - 2판용 C# 이식본은 파이썬과 같은 답을 내는지 43건으로 대조해 50/50 통과했고, 그 대조가 uint32 정밀도 버그를 1건 잡았습니다(분기마다 자료형이 달라 float 으로 합쳐짐). 재구현 축소 방향이 정해져 GUI 에는 넣지 않고 보관만 했습니다. 같은 버그를 막는 `(double)` 변환은 표시용 읽기에 남아 있습니다.
-- 커밋에는 새 GUI 소스(`gui/ImageProcTest/Services/Comparison/*`, `Views/ComparisonImportWindow.cs`)와 이 폴더의 텍스트 증거가 들어갑니다. **`MainWindow.xaml`·`MainWindow.xaml.cs` 의 메뉴 항목 6줄은 커밋하지 않았습니다.** 두 파일에는 다른 사람의 미커밋 변경이 섞여 있어(0번 기준선의 dirty 항목) 파일째 올리면 그 변경까지 들어갑니다. 내 6줄은 수정 전 사본과의 차이(`my-hunks.patch.txt`)로만 기록했고 작업 트리에는 그대로 있습니다. 이 6줄이 HEAD 에 없으면 창은 컴파일되지만 메뉴에서 열리지 않습니다(UIA 시험은 작업 트리 빌드로 했습니다). 어떻게 올릴지는 리더 결정입니다. 빌드 산출물·PNG·생성 데이터는 `.moai/reports` 무시 규칙에 따라 저장소 밖(로컬 보관)입니다.
+- 커밋에는 새 GUI 소스(`gui/ImageProcTest/Services/Comparison/*`, `Views/ComparisonImportWindow.cs`), HEAD 기준으로 다시 만든 메뉴 6줄, 이 폴더의 텍스트 증거가 들어갑니다. 첫 커밋 `b4c690b3` 은 커밋되지 않은 `GuiDataPaths.cs` 를 참조해 HEAD 단독으로는 빌드되지 않았고(리더 지적), 이번에 `ComparisonPaths.cs` 로 필요한 만큼만 새 파일에 두어 해소했습니다. 메뉴 6줄은 작업 트리를 바꾸지 않고 `git apply --cached` 로 index 에만 올렸습니다(`my-hunks-on-head.patch.txt`, 커밋 전후 작업 트리 두 파일 sha256 비교는 §6). 빌드 산출물·PNG·생성 데이터는 `.moai/reports` 무시 규칙에 따라 저장소 밖(로컬 보관)입니다.
 - 합성 픽스처 생성기 `make_v4_fixtures.py` 와 구동 스크립트 `Drive-ComparisonWindow.ps1` 은 같은 폴더에 있습니다(구동 스크립트는 한글 때문에 BOM 이 필요합니다).
 - 리더의 `collaboration-ledger.md`(untracked)에 "GUI writer = xpe-pre" 한 줄을 추가했습니다.

@@ -417,6 +417,10 @@
             <MenuItem x:Name="ToolsMenu"
                       AutomationProperties.AutomationId="ToolsMenu"
                       Header="_Tools">
+                <!-- QA-A-273 (Refs #278): imports two EXISTING output files (A = official 2G X64W, B = new PRE), no vendor DLL, no engine run. -->
+                <MenuItem Header="2G · 신규 PRE 출력 가져오기 비교"
+                          AutomationProperties.AutomationId="PreComparisonImportMenuItem"
+                          Click="PreComparisonImport_Click" />
                 <MenuItem x:Name="CalibrationSettingsMenuItem"
                           AutomationProperties.AutomationId="CalibrationSettingsMenuItem"
                           Header="_Calibration Settings"
