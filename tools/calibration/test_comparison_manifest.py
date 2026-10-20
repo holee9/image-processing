@@ -368,6 +368,52 @@ class ValidatePairTests(Base):
             self.assertFalse(r["comparable"], i)
             self.assertTrue(r["reasons"], i)
 
+    # --- F250-1: postprocessed outputs are never attributable to algorithms --
+
+    def test_postprocessed_pair_refused_as_common_condition(self):
+        for e in self.m["engines"].values():
+            e["output"]["stage"] = "postprocessed"
+        r = cm.validate_pair(self.m, self.root)
+        self.assertFalse(r["comparable"])
+        self.assertIn("STAGE_NOT_ATTRIBUTABLE", r["reasons"])
+        self.assertFalse(r["algorithm_attribution"])
+
+    def test_postprocessed_pair_allowed_only_under_non_attributing_labels(self):
+        for e in self.m["engines"].values():
+            e["output"]["stage"] = "postprocessed"
+        for kind in ("e2e-non-isolated", "stored-array-difference"):
+            self.m["comparison_kind"] = kind
+            r = cm.validate_pair(self.m, self.root)
+            self.assertTrue(r["comparable"], (kind, r["reasons"]))
+            self.assertEqual(r["comparison_kind"], kind)
+            self.assertFalse(r["algorithm_attribution"])
+
+    # --- F250-2: wrong leaf types become reasons, never exceptions ------------
+
+    def test_wrong_leaf_types_return_reasons_not_exceptions(self):
+        edits = [lambda m: m["engines"]["A"]["output"].__setitem__("stage", []),
+                 lambda m: m["engines"]["A"]["output"].__setitem__("dtype", {}),
+                 lambda m: m["engines"]["A"]["output"].__setitem__("units", ["pixel value"]),
+                 lambda m: m["input"]["correction_state"].__setitem__("value", []),
+                 lambda m: m["engines"]["A"].__setitem__("execution", []),
+                 lambda m: m["engines"]["A"]["applied_settings"].__setitem__("gain", []),
+                 lambda m: m["engines"]["A"]["output"]["layout"].__setitem__("origin", {}),
+                 lambda m: m.__setitem__("comparison_kind", []),
+                 lambda m: m.__setitem__("schema", {}),
+                 lambda m: m["engines"]["A"].__setitem__("engine_id", []),
+                 lambda m: m["engines"]["A"]["output"].__setitem__("endian", []),
+                 lambda m: m["engines"]["A"]["output"].__setitem__("offset_bytes", []),
+                 lambda m: m["engines"]["A"]["output"].__setitem__("path", []),
+                 lambda m: m["input"].__setitem__("mode", [])]
+        for i, edit in enumerate(edits):
+            m = copy.deepcopy(self.m)
+            edit(m)
+            r = cm.validate_pair(m, self.root)          # must not raise
+            self.assertFalse(r["comparable"], i)
+            self.assertTrue(r["reasons"], i)
+            c = cm.compare_raw_pair(m, self.root)        # must not raise either
+            self.assertEqual(c["status"], "refused", i)
+
     def test_free_form_record_fields_are_not_contract(self):
         self.m["note"] = {"anything": [1, 2]}
         self.m["calibration_burden"] = {"x": {"value": 1, "status": "unknown", "source": None}}

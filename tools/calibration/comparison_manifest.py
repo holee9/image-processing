@@ -3,7 +3,9 @@
 Refs #278 (Task 1 of docs/superpowers/plans/2026-10-20-pre-comparison-workbench.md
 in the xpe-pre worktree). Revision 2 addresses Reviewer #248 F248-1..5; revision 3
 addresses #249 F249-1 (verified identity layout and applied settings) and F249-2
-(undefined fields refused in nested objects, malformed shapes become reasons).
+(undefined fields refused in nested objects, malformed shapes become reasons);
+revision 4 addresses #250 F250-1 (only engine-direct outputs can be attributed to
+an algorithm) and F250-2 (wrong leaf types become reasons, never exceptions).
 
 Scope is exactly two engines: A = official Samsung 2G SDSDK 2.3.0 B03 X64W,
 B = new PRE. This module only reads files that already exist. It never loads a
@@ -25,6 +27,12 @@ Fail-closed rules:
   allowed only under stored-array-difference, which never attributes the
   difference to an algorithm.
 - Any nonfinite value in the ROI refuses the comparison.
+- Only engine-direct outputs can be attributed to an algorithm. Postprocessed
+  outputs are compared only under the two non-attributing labels.
+- stored-array-difference still requires a verified correction state, input link,
+  engine identity, file hashes and declared maps; it is not "any two files" and it
+  does not confirm that ROI coordinates are physically the same.
+- algorithm_attribution=true never means better quality or verified production history.
 
 CLI:
     python comparison_manifest.py validate <manifest.json>
@@ -43,7 +51,7 @@ from pathlib import Path
 
 import numpy as np
 
-SCHEMA = "xpe-2g-pre-comparison/3"
+SCHEMA = "xpe-2g-pre-comparison/4"
 # Exact reference binary recorded in PRE-2G-COMPARE-20261020/coordination.md.
 OFFICIAL_2G_X64W_SHA256 = "bb03a668990914827e3304774c6a08d4fd03c5b13640c7f7a682820a3e7819f0"
 ENGINE_IDS = {"A": "samsung-2g-x64w", "B": "new-pre"}
@@ -51,6 +59,9 @@ ENGINE_IDS = {"A": "samsung-2g-x64w", "B": "new-pre"}
 DTYPES = {"uint16": "<u2", "int16": "<i2", "uint32": "<u4", "int32": "<i4", "float32": "<f4"}
 ALLOWED_EXECUTION = {"imported-file"}
 ALLOWED_STAGES = {"engine-direct", "postprocessed"}
+# Postprocessing (LNR/GLS/clipping, ...) is not recorded by this schema, so only the
+# engine-direct stage can support an algorithm attribution (F250-1).
+ATTRIBUTABLE_STAGE = "engine-direct"
 ALLOWED_UNITS = {"pixel value"}
 ALLOWED_CORRECTION = {"uncorrected", "offset-corrected"}
 # Only the identity layout is supported: stored arrays are compared index by index.
@@ -92,6 +103,11 @@ def sha256_file(path: Path) -> str:
 
 def _known(v) -> bool:
     return isinstance(v, str) and v.strip().lower() not in UNKNOWN_TOKENS
+
+
+def _one_of(v, allowed) -> bool:
+    """Membership test that never raises on unhashable values (lists, dicts)."""
+    return isinstance(v, str) and v in allowed
 
 
 def _int(v) -> bool:
@@ -144,9 +160,9 @@ def _check_file(entry: dict, base_dir: Path, reasons: list) -> str | None:
 
 
 def _check_output(out: dict, base_dir: Path, reasons: list) -> None:
-    if out.get("stage") not in ALLOWED_STAGES:
+    if not _one_of(out.get("stage"), ALLOWED_STAGES):
         reasons.append("UNSUPPORTED_STAGE")
-    if out.get("units") not in ALLOWED_UNITS:
+    if not _one_of(out.get("units"), ALLOWED_UNITS):
         reasons.append("UNSUPPORTED_UNITS")
     lay = _obj(out.get("layout"), LAYOUT_KEYS, reasons) if "layout" in out else {}
     if any(lay.get(k) != v for k, v in IDENTITY_LAYOUT.items()) and \
@@ -154,7 +170,7 @@ def _check_output(out: dict, base_dir: Path, reasons: list) -> None:
         reasons.append("UNSUPPORTED_LAYOUT")
     if not lay or not _verified(lay) or any(lay.get(k) != v for k, v in IDENTITY_LAYOUT.items()):
         reasons.append("LAYOUT_UNVERIFIED")
-    if out.get("dtype") not in DTYPES:
+    if not _one_of(out.get("dtype"), DTYPES):
         reasons.append("UNSUPPORTED_DTYPE")
         return
     if out.get("endian") != "little":
@@ -189,7 +205,7 @@ def _check_identity(key: str, ident: dict, reasons: list) -> None:
 def _settings(e: dict, reasons: list) -> dict | None:
     """Verified applied-correction settings, or None (recorded as SETTINGS_UNVERIFIED)."""
     s = _obj(e.get("applied_settings"), SETTINGS_KEYS, reasons) if "applied_settings" in e else {}
-    if not s or not _verified(s) or any(s.get(k) not in SETTING_VALUES for k in SETTING_STEPS):
+    if not s or not _verified(s) or any(not _one_of(s.get(k), SETTING_VALUES) for k in SETTING_STEPS):
         reasons.append("SETTINGS_UNVERIFIED")
         return None
     return {k: s[k] for k in SETTING_STEPS}
@@ -212,7 +228,7 @@ def validate_pair(manifest: dict, base_dir: Path) -> dict:
     identities["input"] = _check_file(inp, base_dir, reasons)
     cs = _obj(inp.get("correction_state"), CORRECTION_KEYS, reasons)
     # Only a verified, known, sourced correction state counts.
-    if not _verified(cs) or cs.get("value") not in ALLOWED_CORRECTION:
+    if not _verified(cs) or not _one_of(cs.get("value"), ALLOWED_CORRECTION):
         reasons.append("CORRECTION_STATE_UNVERIFIED")
     if not _known(inp.get("mode")):
         reasons.append("MODE_MISSING")
@@ -229,7 +245,7 @@ def validate_pair(manifest: dict, base_dir: Path) -> dict:
             continue
         if e.get("engine_id") != expected_id:
             reasons.append("ENGINE_OUT_OF_SCOPE")
-        if e.get("execution") not in ALLOWED_EXECUTION:
+        if not _one_of(e.get("execution"), ALLOWED_EXECUTION):
             reasons.append("LIVE_EXECUTION_NOT_AUTHORIZED")
         _check_identity(key, _obj(e.get("engine_identity"), IDENTITY_KEYS[key], reasons), reasons)
         # Each output must name the input it was produced from (F248-2).
@@ -265,12 +281,15 @@ def validate_pair(manifest: dict, base_dir: Path) -> dict:
         reasons.append("STAGE_MISMATCH")
     if oa.get("units") != ob.get("units"):
         reasons.append("UNITS_MISMATCH")
+    if oa.get("stage") != ATTRIBUTABLE_STAGE or ob.get("stage") != ATTRIBUTABLE_STAGE:
+        reasons.append("STAGE_NOT_ATTRIBUTABLE")
     if settings.get("A") and settings.get("B") and settings["A"] != settings["B"]:
         reasons.append("SETTINGS_DIFFER")
 
     kind = manifest.get("comparison_kind", COMMON_KIND)
-    if kind not in (COMMON_KIND, E2E_KIND, STORED_KIND):
+    if not _one_of(kind, (COMMON_KIND, E2E_KIND, STORED_KIND)):
         reasons.append("UNKNOWN_COMPARISON_KIND")
+        kind = None
     if parsed.get("A", {}).get("maps") != parsed.get("B", {}).get("maps"):
         # Different maps cannot isolate the algorithm.
         reasons.append("MAP_IDENTITY_DIFFERS")
@@ -292,9 +311,10 @@ def validate_pair(manifest: dict, base_dir: Path) -> dict:
     # attribution to algorithms, so it tolerates unverified layout/settings/maps.
     tolerated = {
         COMMON_KIND: set(),
-        E2E_KIND: {"MAP_IDENTITY_DIFFERS", "SETTINGS_DIFFER", "SETTINGS_UNVERIFIED"},
+        E2E_KIND: {"MAP_IDENTITY_DIFFERS", "SETTINGS_DIFFER", "SETTINGS_UNVERIFIED",
+                   "STAGE_NOT_ATTRIBUTABLE"},
         STORED_KIND: {"MAP_IDENTITY_DIFFERS", "SETTINGS_DIFFER", "SETTINGS_UNVERIFIED",
-                      "LAYOUT_UNVERIFIED"},
+                      "LAYOUT_UNVERIFIED", "STAGE_NOT_ATTRIBUTABLE"},
     }.get(kind, set())
     blocking = [r for r in reasons if r not in tolerated]
     ok = not blocking
