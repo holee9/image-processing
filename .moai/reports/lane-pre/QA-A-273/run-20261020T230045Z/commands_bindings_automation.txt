@@ -1,0 +1,582 @@
+# QA-A-273 step 0: a text extraction (regular expressions) of commands, bindings, shortcuts, AutomationIds, x:Names and Click handlers in gui/ImageProcTest XAML and code. Not a run of the GUI.
+# file:line <TAB> kind <TAB> value. Controls added without an AutomationId are not listed here; the extraction can miss patterns it has no rule for.
+gui/ImageProcTest/HelpWindow.xaml:18	Name	HelpPathTextBlock
+gui/ImageProcTest/HelpWindow.xaml:19	AutomationId	HelpPathTextBlock
+gui/ImageProcTest/HelpWindow.xaml:27	Name	HelpBrowser
+gui/ImageProcTest/HelpWindow.xaml:28	AutomationId	HelpBrowser
+gui/ImageProcTest/HelpWindow.xaml:30	Name	HelpErrorOverlay
+gui/ImageProcTest/HelpWindow.xaml:40	Name	HelpErrorTextBlock
+gui/ImageProcTest/HelpWindow.xaml:41	AutomationId	HelpErrorTextBlock
+gui/ImageProcTest/MainWindow.xaml:12	AutomationId	MainWindow
+gui/ImageProcTest/MainWindow.xaml:19	Key	BoolToVisibility
+gui/ImageProcTest/MainWindow.xaml:20	Key	StringEquals
+gui/ImageProcTest/MainWindow.xaml:21	Key	FocusPanelVisibility
+gui/ImageProcTest/MainWindow.xaml:47	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:47	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:47	KeyBinding	<KeyBinding Key="F5" Command="{Binding SetComparisonModeCommand}" CommandParameter="SwipeVertical" />
+gui/ImageProcTest/MainWindow.xaml:47	Key	F5
+gui/ImageProcTest/MainWindow.xaml:48	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:48	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:48	KeyBinding	<KeyBinding Key="F6" Command="{Binding SetComparisonModeCommand}" CommandParameter="SplitLocked" />
+gui/ImageProcTest/MainWindow.xaml:48	Key	F6
+gui/ImageProcTest/MainWindow.xaml:49	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:49	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:49	KeyBinding	<KeyBinding Key="F7" Command="{Binding SetComparisonModeCommand}" CommandParameter="OverlayOpacity" />
+gui/ImageProcTest/MainWindow.xaml:49	Key	F7
+gui/ImageProcTest/MainWindow.xaml:50	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:50	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:50	KeyBinding	<KeyBinding Key="F8" Command="{Binding SetComparisonModeCommand}" CommandParameter="DifferenceHeatmap" />
+gui/ImageProcTest/MainWindow.xaml:50	Key	F8
+gui/ImageProcTest/MainWindow.xaml:56	AutomationId	MockBackendBanner
+gui/ImageProcTest/MainWindow.xaml:60	AutomationId	MockBackendBannerText
+gui/ImageProcTest/MainWindow.xaml:72	Name	MainMenu
+gui/ImageProcTest/MainWindow.xaml:73	AutomationId	MainMenu
+gui/ImageProcTest/MainWindow.xaml:75	Name	FileMenu
+gui/ImageProcTest/MainWindow.xaml:76	AutomationId	FileMenu
+gui/ImageProcTest/MainWindow.xaml:78	Name	OpenRawMenuItem
+gui/ImageProcTest/MainWindow.xaml:79	AutomationId	OpenRawMenuItem
+gui/ImageProcTest/MainWindow.xaml:81	Command	LoadImageCommand
+gui/ImageProcTest/MainWindow.xaml:81	Command=	{Binding LoadImageCommand}
+gui/ImageProcTest/MainWindow.xaml:85	Name	OpenRecentMenuItem
+gui/ImageProcTest/MainWindow.xaml:86	AutomationId	OpenRecentMenuItem
+gui/ImageProcTest/MainWindow.xaml:100	Name	OpenDicomMenuItem
+gui/ImageProcTest/MainWindow.xaml:101	AutomationId	OpenDicomMenuItem
+gui/ImageProcTest/MainWindow.xaml:107	Name	SaveCorrectedFloatMenuItem
+gui/ImageProcTest/MainWindow.xaml:108	AutomationId	SaveCorrectedFloatMenuItem
+gui/ImageProcTest/MainWindow.xaml:110	Command	SaveCorrectedFloatCommand
+gui/ImageProcTest/MainWindow.xaml:110	Command=	{Binding SaveCorrectedFloatCommand}
+gui/ImageProcTest/MainWindow.xaml:112	Name	SaveCorrectedPngMenuItem
+gui/ImageProcTest/MainWindow.xaml:113	AutomationId	SaveCorrectedPngMenuItem
+gui/ImageProcTest/MainWindow.xaml:115	Command	SaveCorrectedPngCommand
+gui/ImageProcTest/MainWindow.xaml:115	Command=	{Binding SaveCorrectedPngCommand}
+gui/ImageProcTest/MainWindow.xaml:118	Name	SaveSettingsMenuItem
+gui/ImageProcTest/MainWindow.xaml:119	AutomationId	SaveSettingsMenuItem
+gui/ImageProcTest/MainWindow.xaml:121	Command	SaveSettingsCommand
+gui/ImageProcTest/MainWindow.xaml:121	Command=	{Binding SaveSettingsCommand}
+gui/ImageProcTest/MainWindow.xaml:122	Name	ExportAutomationReportMenuItem
+gui/ImageProcTest/MainWindow.xaml:123	AutomationId	ExportAutomationReportMenuItem
+gui/ImageProcTest/MainWindow.xaml:125	Command	ExportAutomationReportCommand
+gui/ImageProcTest/MainWindow.xaml:125	Command=	{Binding ExportAutomationReportCommand}
+gui/ImageProcTest/MainWindow.xaml:130	Name	ExportEvidenceBundleMenuItem
+gui/ImageProcTest/MainWindow.xaml:131	AutomationId	ExportEvidenceBundleMenuItem
+gui/ImageProcTest/MainWindow.xaml:133	Command	ExportEvidenceBundleCommand
+gui/ImageProcTest/MainWindow.xaml:133	Command=	{Binding ExportEvidenceBundleCommand}
+gui/ImageProcTest/MainWindow.xaml:136	Name	ExitMenuItem
+gui/ImageProcTest/MainWindow.xaml:137	AutomationId	ExitMenuItem
+gui/ImageProcTest/MainWindow.xaml:139	Click	ExitMenuItem_OnClick
+gui/ImageProcTest/MainWindow.xaml:142	Name	BackendMenu
+gui/ImageProcTest/MainWindow.xaml:143	AutomationId	BackendMenu
+gui/ImageProcTest/MainWindow.xaml:145	Name	InitializeBackendMenuItem
+gui/ImageProcTest/MainWindow.xaml:146	AutomationId	InitializeBackendMenuItem
+gui/ImageProcTest/MainWindow.xaml:148	Command	InitializeBackendCommand
+gui/ImageProcTest/MainWindow.xaml:148	Command=	{Binding InitializeBackendCommand}
+gui/ImageProcTest/MainWindow.xaml:149	Name	ShutdownBackendMenuItem
+gui/ImageProcTest/MainWindow.xaml:150	AutomationId	ShutdownBackendMenuItem
+gui/ImageProcTest/MainWindow.xaml:152	Command	ShutdownBackendCommand
+gui/ImageProcTest/MainWindow.xaml:152	Command=	{Binding ShutdownBackendCommand}
+gui/ImageProcTest/MainWindow.xaml:154	Name	BackendModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:155	AutomationId	BackendModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:160	Name	MockBackendModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:161	AutomationId	MockBackendModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:165	Command	SetBackendModeCommand
+gui/ImageProcTest/MainWindow.xaml:165	Command=	{Binding SetBackendModeCommand}
+gui/ImageProcTest/MainWindow.xaml:168	Name	NativeBackendModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:169	AutomationId	NativeBackendModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:173	Command	SetBackendModeCommand
+gui/ImageProcTest/MainWindow.xaml:173	Command=	{Binding SetBackendModeCommand}
+gui/ImageProcTest/MainWindow.xaml:178	Name	NativeDllDiagnosticsMenuItem
+gui/ImageProcTest/MainWindow.xaml:179	AutomationId	NativeDllDiagnosticsMenuItem
+gui/ImageProcTest/MainWindow.xaml:181	Command	ShowNativeDiagnosticsCommand
+gui/ImageProcTest/MainWindow.xaml:181	Command=	{Binding ShowNativeDiagnosticsCommand}
+gui/ImageProcTest/MainWindow.xaml:182	Name	OpenRuntimeLogsMenuItem
+gui/ImageProcTest/MainWindow.xaml:183	AutomationId	OpenRuntimeLogsMenuItem
+gui/ImageProcTest/MainWindow.xaml:185	Command	ExportRuntimeLogsCommand
+gui/ImageProcTest/MainWindow.xaml:185	Command=	{Binding ExportRuntimeLogsCommand}
+gui/ImageProcTest/MainWindow.xaml:190	Name	PInvokeSmokeTestMenuItem
+gui/ImageProcTest/MainWindow.xaml:191	AutomationId	PInvokeSmokeTestMenuItem
+gui/ImageProcTest/MainWindow.xaml:193	Command	RunPInvokeSmokeTestCommand
+gui/ImageProcTest/MainWindow.xaml:193	Command=	{Binding RunPInvokeSmokeTestCommand}
+gui/ImageProcTest/MainWindow.xaml:197	Name	ViewMenu
+gui/ImageProcTest/MainWindow.xaml:198	AutomationId	ViewMenu
+gui/ImageProcTest/MainWindow.xaml:218	Name	ShowCalibrationPanelMenuItem
+gui/ImageProcTest/MainWindow.xaml:219	AutomationId	ShowCalibrationPanelMenuItem
+gui/ImageProcTest/MainWindow.xaml:224	Name	ShowDisplaySettingsPanelMenuItem
+gui/ImageProcTest/MainWindow.xaml:225	AutomationId	ShowDisplaySettingsPanelMenuItem
+gui/ImageProcTest/MainWindow.xaml:230	Name	ShowLogsPanelMenuItem
+gui/ImageProcTest/MainWindow.xaml:231	AutomationId	ShowLogsPanelMenuItem
+gui/ImageProcTest/MainWindow.xaml:236	Name	ClearLogsMenuItem
+gui/ImageProcTest/MainWindow.xaml:237	AutomationId	ClearLogsMenuItem
+gui/ImageProcTest/MainWindow.xaml:239	Command	ClearLogsCommand
+gui/ImageProcTest/MainWindow.xaml:239	Command=	{Binding ClearLogsCommand}
+gui/ImageProcTest/MainWindow.xaml:240	Name	ClearAlertsMenuItem
+gui/ImageProcTest/MainWindow.xaml:241	AutomationId	ClearAlertsMenuItem
+gui/ImageProcTest/MainWindow.xaml:243	Command	ClearAlertsCommand
+gui/ImageProcTest/MainWindow.xaml:243	Command=	{Binding ClearAlertsCommand}
+gui/ImageProcTest/MainWindow.xaml:245	Name	ResetLayoutMenuItem
+gui/ImageProcTest/MainWindow.xaml:246	AutomationId	ResetLayoutMenuItem
+gui/ImageProcTest/MainWindow.xaml:248	Command	ResetLayoutCommand
+gui/ImageProcTest/MainWindow.xaml:248	Command=	{Binding ResetLayoutCommand}
+gui/ImageProcTest/MainWindow.xaml:250	Name	ZoomFitMenuItem
+gui/ImageProcTest/MainWindow.xaml:251	AutomationId	ZoomFitMenuItem
+gui/ImageProcTest/MainWindow.xaml:253	Command	ZoomFitCommand
+gui/ImageProcTest/MainWindow.xaml:253	Command=	{Binding ZoomFitCommand}
+gui/ImageProcTest/MainWindow.xaml:254	Name	ZoomActualMenuItem
+gui/ImageProcTest/MainWindow.xaml:255	AutomationId	ZoomActualMenuItem
+gui/ImageProcTest/MainWindow.xaml:257	Command	ZoomActualCommand
+gui/ImageProcTest/MainWindow.xaml:257	Command=	{Binding ZoomActualCommand}
+gui/ImageProcTest/MainWindow.xaml:258	Name	ZoomInMenuItem
+gui/ImageProcTest/MainWindow.xaml:259	AutomationId	ZoomInMenuItem
+gui/ImageProcTest/MainWindow.xaml:261	Command	ZoomInCommand
+gui/ImageProcTest/MainWindow.xaml:261	Command=	{Binding ZoomInCommand}
+gui/ImageProcTest/MainWindow.xaml:262	Name	ZoomOutMenuItem
+gui/ImageProcTest/MainWindow.xaml:263	AutomationId	ZoomOutMenuItem
+gui/ImageProcTest/MainWindow.xaml:265	Command	ZoomOutCommand
+gui/ImageProcTest/MainWindow.xaml:265	Command=	{Binding ZoomOutCommand}
+gui/ImageProcTest/MainWindow.xaml:283	Name	CompareModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:284	AutomationId	CompareModeMenuItem
+gui/ImageProcTest/MainWindow.xaml:286	Name	CompareSwipeMenuItem
+gui/ImageProcTest/MainWindow.xaml:287	AutomationId	CompareSwipeMenuItem
+gui/ImageProcTest/MainWindow.xaml:289	InputGesture	F5
+gui/ImageProcTest/MainWindow.xaml:292	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:292	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:294	Name	CompareSplitMenuItem
+gui/ImageProcTest/MainWindow.xaml:295	AutomationId	CompareSplitMenuItem
+gui/ImageProcTest/MainWindow.xaml:297	InputGesture	F6
+gui/ImageProcTest/MainWindow.xaml:300	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:300	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:302	Name	CompareOverlayMenuItem
+gui/ImageProcTest/MainWindow.xaml:303	AutomationId	CompareOverlayMenuItem
+gui/ImageProcTest/MainWindow.xaml:305	InputGesture	F7
+gui/ImageProcTest/MainWindow.xaml:308	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:308	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:310	Name	CompareDifferenceMenuItem
+gui/ImageProcTest/MainWindow.xaml:311	AutomationId	CompareDifferenceMenuItem
+gui/ImageProcTest/MainWindow.xaml:313	InputGesture	F8
+gui/ImageProcTest/MainWindow.xaml:316	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:316	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:319	Name	CompareSourceOnlyMenuItem
+gui/ImageProcTest/MainWindow.xaml:320	AutomationId	CompareSourceOnlyMenuItem
+gui/ImageProcTest/MainWindow.xaml:324	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:324	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:326	Name	CompareProcessedOnlyMenuItem
+gui/ImageProcTest/MainWindow.xaml:327	AutomationId	CompareProcessedOnlyMenuItem
+gui/ImageProcTest/MainWindow.xaml:331	Command	SetComparisonModeCommand
+gui/ImageProcTest/MainWindow.xaml:331	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/MainWindow.xaml:335	Name	ResetComparisonViewMenuItem
+gui/ImageProcTest/MainWindow.xaml:336	AutomationId	ResetComparisonViewMenuItem
+gui/ImageProcTest/MainWindow.xaml:338	Command	ResetComparisonViewCommand
+gui/ImageProcTest/MainWindow.xaml:338	Command=	{Binding ResetComparisonViewCommand}
+gui/ImageProcTest/MainWindow.xaml:339	Name	DetachComparisonViewerMenuItem
+gui/ImageProcTest/MainWindow.xaml:340	AutomationId	DetachComparisonViewerMenuItem
+gui/ImageProcTest/MainWindow.xaml:342	Command	DetachComparisonViewerCommand
+gui/ImageProcTest/MainWindow.xaml:342	Command=	{Binding DetachComparisonViewerCommand}
+gui/ImageProcTest/MainWindow.xaml:345	Name	PipelineMenu
+gui/ImageProcTest/MainWindow.xaml:346	AutomationId	PipelineMenu
+gui/ImageProcTest/MainWindow.xaml:349	Name	ApplyDisplayPipelineMenuItem
+gui/ImageProcTest/MainWindow.xaml:350	AutomationId	ApplyDisplayPipelineMenuItem
+gui/ImageProcTest/MainWindow.xaml:352	Command	ApplyDisplayPipelineCommand
+gui/ImageProcTest/MainWindow.xaml:352	Command=	{Binding ApplyDisplayPipelineCommand}
+gui/ImageProcTest/MainWindow.xaml:354	Name	UseAutomaticWindowMenuItem
+gui/ImageProcTest/MainWindow.xaml:355	AutomationId	UseAutomaticWindowMenuItem
+gui/ImageProcTest/MainWindow.xaml:357	Command	UseAutomaticWindowCommand
+gui/ImageProcTest/MainWindow.xaml:357	Command=	{Binding UseAutomaticWindowCommand}
+gui/ImageProcTest/MainWindow.xaml:359	Name	RunPreprocessingMenuItem
+gui/ImageProcTest/MainWindow.xaml:360	AutomationId	RunPreprocessingMenuItem
+gui/ImageProcTest/MainWindow.xaml:362	Command	RunPreprocessingCommand
+gui/ImageProcTest/MainWindow.xaml:362	Command=	{Binding RunPreprocessingCommand}
+gui/ImageProcTest/MainWindow.xaml:365	Name	RunDeterministicBaselineMenuItem
+gui/ImageProcTest/MainWindow.xaml:366	AutomationId	RunDeterministicBaselineMenuItem
+gui/ImageProcTest/MainWindow.xaml:368	Command	RunDeterministicBaselineCommand
+gui/ImageProcTest/MainWindow.xaml:368	Command=	{Binding RunDeterministicBaselineCommand}
+gui/ImageProcTest/MainWindow.xaml:374	Name	RunFullPipelineMenuItem
+gui/ImageProcTest/MainWindow.xaml:375	AutomationId	RunFullPipelineMenuItem
+gui/ImageProcTest/MainWindow.xaml:377	Command	RunAiBoneSuppressionCommand
+gui/ImageProcTest/MainWindow.xaml:377	Command=	{Binding RunAiBoneSuppressionCommand}
+gui/ImageProcTest/MainWindow.xaml:382	Name	StopProcessingMenuItem
+gui/ImageProcTest/MainWindow.xaml:383	AutomationId	StopProcessingMenuItem
+gui/ImageProcTest/MainWindow.xaml:385	Command	StopProcessingCommand
+gui/ImageProcTest/MainWindow.xaml:385	Command=	{Binding StopProcessingCommand}
+gui/ImageProcTest/MainWindow.xaml:390	Name	StageTimingMenuItem
+gui/ImageProcTest/MainWindow.xaml:391	AutomationId	StageTimingMenuItem
+gui/ImageProcTest/MainWindow.xaml:393	Command	ShowStageTimingCommand
+gui/ImageProcTest/MainWindow.xaml:393	Command=	{Binding ShowStageTimingCommand}
+gui/ImageProcTest/MainWindow.xaml:398	Name	OpenPipelineDiagnosticsMenuItem
+gui/ImageProcTest/MainWindow.xaml:399	AutomationId	OpenPipelineDiagnosticsMenuItem
+gui/ImageProcTest/MainWindow.xaml:401	Command	OpenPipelineDiagnosticsCommand
+gui/ImageProcTest/MainWindow.xaml:401	Command=	{Binding OpenPipelineDiagnosticsCommand}
+gui/ImageProcTest/MainWindow.xaml:405	Name	ToolsMenu
+gui/ImageProcTest/MainWindow.xaml:406	AutomationId	ToolsMenu
+gui/ImageProcTest/MainWindow.xaml:408	Header	PRE 캘리브레이션 입력·생성·재로드·평가
+gui/ImageProcTest/MainWindow.xaml:409	AutomationId	PreCalibrationWorkflowMenuItem
+gui/ImageProcTest/MainWindow.xaml:410	Click	PreCalibrationWorkflow_Click
+gui/ImageProcTest/MainWindow.xaml:411	Name	CalibrationSettingsMenuItem
+gui/ImageProcTest/MainWindow.xaml:412	AutomationId	CalibrationSettingsMenuItem
+gui/ImageProcTest/MainWindow.xaml:414	Command	ShowCalibrationSettingsCommand
+gui/ImageProcTest/MainWindow.xaml:414	Command=	{Binding ShowCalibrationSettingsCommand}
+gui/ImageProcTest/MainWindow.xaml:415	Name	FixtureManagerMenuItem
+gui/ImageProcTest/MainWindow.xaml:416	AutomationId	FixtureManagerMenuItem
+gui/ImageProcTest/MainWindow.xaml:418	Command	ShowFixtureManagerCommand
+gui/ImageProcTest/MainWindow.xaml:418	Command=	{Binding ShowFixtureManagerCommand}
+gui/ImageProcTest/MainWindow.xaml:419	Name	ExportEvidenceSnapshotMenuItem
+gui/ImageProcTest/MainWindow.xaml:420	AutomationId	ExportEvidenceSnapshotMenuItem
+gui/ImageProcTest/MainWindow.xaml:422	Command	ExportAutomationReportCommand
+gui/ImageProcTest/MainWindow.xaml:422	Command=	{Binding ExportAutomationReportCommand}
+gui/ImageProcTest/MainWindow.xaml:425	Name	OpenEvidenceFolderMenuItem
+gui/ImageProcTest/MainWindow.xaml:426	AutomationId	OpenEvidenceFolderMenuItem
+gui/ImageProcTest/MainWindow.xaml:428	Command	OpenEvidenceFolderCommand
+gui/ImageProcTest/MainWindow.xaml:428	Command=	{Binding OpenEvidenceFolderCommand}
+gui/ImageProcTest/MainWindow.xaml:434	Name	RunSelfCheckMenuItem
+gui/ImageProcTest/MainWindow.xaml:435	AutomationId	RunSelfCheckMenuItem
+gui/ImageProcTest/MainWindow.xaml:437	Command	RunSelfCheckCommand
+gui/ImageProcTest/MainWindow.xaml:437	Command=	{Binding RunSelfCheckCommand}
+gui/ImageProcTest/MainWindow.xaml:439	Name	RunGuiE2EMenuItem
+gui/ImageProcTest/MainWindow.xaml:440	AutomationId	RunGuiE2EMenuItem
+gui/ImageProcTest/MainWindow.xaml:442	Command	RunGuiE2ECommand
+gui/ImageProcTest/MainWindow.xaml:442	Command=	{Binding RunGuiE2ECommand}
+gui/ImageProcTest/MainWindow.xaml:444	Name	BenchmarkRunnerMenuItem
+gui/ImageProcTest/MainWindow.xaml:445	AutomationId	BenchmarkRunnerMenuItem
+gui/ImageProcTest/MainWindow.xaml:447	Command	RunBenchmarkCommand
+gui/ImageProcTest/MainWindow.xaml:447	Command=	{Binding RunBenchmarkCommand}
+gui/ImageProcTest/MainWindow.xaml:449	Name	QaConstancyMenuItem
+gui/ImageProcTest/MainWindow.xaml:450	AutomationId	QaConstancyMenuItem
+gui/ImageProcTest/MainWindow.xaml:454	Name	GsdfCalibrateMenuItem
+gui/ImageProcTest/MainWindow.xaml:455	AutomationId	GsdfCalibrateMenuItem
+gui/ImageProcTest/MainWindow.xaml:461	Name	HelpMenu
+gui/ImageProcTest/MainWindow.xaml:462	AutomationId	HelpMenu
+gui/ImageProcTest/MainWindow.xaml:464	Name	OpenHelpIndexMenuItem
+gui/ImageProcTest/MainWindow.xaml:465	AutomationId	OpenHelpIndexMenuItem
+gui/ImageProcTest/MainWindow.xaml:467	Click	OpenHelpIndexMenuItem_OnClick
+gui/ImageProcTest/MainWindow.xaml:468	Name	OpenQuickStartHelpMenuItem
+gui/ImageProcTest/MainWindow.xaml:469	AutomationId	OpenQuickStartHelpMenuItem
+gui/ImageProcTest/MainWindow.xaml:471	Click	OpenQuickStartHelpMenuItem_OnClick
+gui/ImageProcTest/MainWindow.xaml:472	Name	OpenScopeHelpMenuItem
+gui/ImageProcTest/MainWindow.xaml:473	AutomationId	OpenScopeHelpMenuItem
+gui/ImageProcTest/MainWindow.xaml:475	Click	OpenScopeHelpMenuItem_OnClick
+gui/ImageProcTest/MainWindow.xaml:476	Name	OpenCurrentWorkflowHelpMenuItem
+gui/ImageProcTest/MainWindow.xaml:477	AutomationId	OpenCurrentWorkflowHelpMenuItem
+gui/ImageProcTest/MainWindow.xaml:480	Click	OpenCurrentWorkflowHelpMenuItem_OnClick
+gui/ImageProcTest/MainWindow.xaml:485	Name	OpenApiReferenceMenuItem
+gui/ImageProcTest/MainWindow.xaml:486	AutomationId	OpenApiReferenceMenuItem
+gui/ImageProcTest/MainWindow.xaml:488	Command	OpenApiReferenceCommand
+gui/ImageProcTest/MainWindow.xaml:488	Command=	{Binding OpenApiReferenceCommand}
+gui/ImageProcTest/MainWindow.xaml:494	Name	OpenTroubleshootingMenuItem
+gui/ImageProcTest/MainWindow.xaml:495	AutomationId	OpenTroubleshootingMenuItem
+gui/ImageProcTest/MainWindow.xaml:497	Command	OpenTroubleshootingCommand
+gui/ImageProcTest/MainWindow.xaml:497	Command=	{Binding OpenTroubleshootingCommand}
+gui/ImageProcTest/MainWindow.xaml:500	Name	AboutBuildInfoMenuItem
+gui/ImageProcTest/MainWindow.xaml:501	AutomationId	AboutBuildInfoMenuItem
+gui/ImageProcTest/MainWindow.xaml:503	Click	AboutBuildInfoMenuItem_OnClick
+gui/ImageProcTest/MainWindow.xaml:511	AutomationId	StatusBarText
+gui/ImageProcTest/MainWindow.xaml:516	AutomationId	ChainStatusText
+gui/ImageProcTest/MainWindow.xaml:523	AutomationId	FrameTimingText
+gui/ImageProcTest/MainWindow.xaml:529	Name	RuntimeCommonVersionText
+gui/ImageProcTest/MainWindow.xaml:530	AutomationId	RuntimeCommonVersionText
+gui/ImageProcTest/MainWindow.xaml:536	Name	InitializeBackendButton
+gui/ImageProcTest/MainWindow.xaml:537	AutomationId	InitializeBackendButton
+gui/ImageProcTest/MainWindow.xaml:538	Command	InitializeBackendCommand
+gui/ImageProcTest/MainWindow.xaml:538	Command=	{Binding InitializeBackendCommand}
+gui/ImageProcTest/MainWindow.xaml:540	Name	ShutdownBackendButton
+gui/ImageProcTest/MainWindow.xaml:541	AutomationId	ShutdownBackendButton
+gui/ImageProcTest/MainWindow.xaml:542	Command	ShutdownBackendCommand
+gui/ImageProcTest/MainWindow.xaml:542	Command=	{Binding ShutdownBackendCommand}
+gui/ImageProcTest/MainWindow.xaml:545	Name	LoadRawImageButton
+gui/ImageProcTest/MainWindow.xaml:546	AutomationId	LoadRawImageButton
+gui/ImageProcTest/MainWindow.xaml:547	Command	LoadImageCommand
+gui/ImageProcTest/MainWindow.xaml:547	Command=	{Binding LoadImageCommand}
+gui/ImageProcTest/MainWindow.xaml:549	Name	SaveSettingsButton
+gui/ImageProcTest/MainWindow.xaml:550	AutomationId	SaveSettingsButton
+gui/ImageProcTest/MainWindow.xaml:551	Command	SaveSettingsCommand
+gui/ImageProcTest/MainWindow.xaml:551	Command=	{Binding SaveSettingsCommand}
+gui/ImageProcTest/MainWindow.xaml:560	Name	BodyPartSelector
+gui/ImageProcTest/MainWindow.xaml:561	AutomationId	BodyPartSelector
+gui/ImageProcTest/MainWindow.xaml:566	Name	ClearLogsButton
+gui/ImageProcTest/MainWindow.xaml:567	AutomationId	ClearLogsButton
+gui/ImageProcTest/MainWindow.xaml:568	Command	ClearLogsCommand
+gui/ImageProcTest/MainWindow.xaml:568	Command=	{Binding ClearLogsCommand}
+gui/ImageProcTest/MainWindow.xaml:570	Name	ClearAlertsButton
+gui/ImageProcTest/MainWindow.xaml:571	AutomationId	ClearAlertsButton
+gui/ImageProcTest/MainWindow.xaml:572	Command	ClearAlertsCommand
+gui/ImageProcTest/MainWindow.xaml:572	Command=	{Binding ClearAlertsCommand}
+gui/ImageProcTest/MainWindow.xaml:587	AutomationId	AiWorkerPanel
+gui/ImageProcTest/MainWindow.xaml:599	Name	AiRestartButton
+gui/ImageProcTest/MainWindow.xaml:601	AutomationId	AiRestartButton
+gui/ImageProcTest/MainWindow.xaml:602	Command	RestartAiSessionCommand
+gui/ImageProcTest/MainWindow.xaml:602	Command=	{Binding RestartAiSessionCommand}
+gui/ImageProcTest/MainWindow.xaml:605	Name	AiWorkerBanner
+gui/ImageProcTest/MainWindow.xaml:606	AutomationId	AiWorkerBanner
+gui/ImageProcTest/MainWindow.xaml:617	AutomationId	OptionalSettingsPanels
+gui/ImageProcTest/MainWindow.xaml:635	AutomationId	StudyQueue
+gui/ImageProcTest/MainWindow.xaml:646	AutomationId	VerdictBar
+gui/ImageProcTest/MainWindow.xaml:650	AutomationId	AnalysisPanel
+gui/ImageProcTest/MainWindow.xaml:668	AutomationId	ViewportShell
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:136	RelayCommand	AcknowledgePreprocessOffNoticeCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:138	RelayCommand	InitializeBackendCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:139	RelayCommand	SetBackendModeCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:140	RelayCommand	RunPInvokeSmokeTestCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:141	RelayCommand	StopProcessingCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:142	RelayCommand	ShowStageTimingCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:143	RelayCommand	RunSelfCheckCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:144	RelayCommand	RunGuiE2ECommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:145	RelayCommand	RunBenchmarkCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:146	RelayCommand	LoadRecentRawFileCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:149	RelayCommand	ExportRuntimeLogsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:150	RelayCommand	OpenEvidenceFolderCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:151	RelayCommand	OpenApiReferenceCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:152	RelayCommand	OpenTroubleshootingCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:153	RelayCommand	OpenPipelineDiagnosticsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:154	RelayCommand	ClosePipelineDiagnosticsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:155	RelayCommand	ShutdownBackendCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:156	RelayCommand	LoadImageCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:157	RelayCommand	ApplyDisplayPipelineCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:158	RelayCommand	ApplyBodyPartPresetCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:159	RelayCommand	RunPreprocessingCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:160	RelayCommand	UseAutomaticWindowCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:166	RelayCommand	RunAiBoneSuppressionCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:167	RelayCommand	RunDeterministicBaselineCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:168	RelayCommand	RestartAiSessionCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:169	RelayCommand	ZoomFitCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:170	RelayCommand	ZoomActualCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:171	RelayCommand	ZoomInCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:172	RelayCommand	ZoomOutCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:173	RelayCommand	ResetComparisonViewCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:174	RelayCommand	SetComparisonModeCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:175	RelayCommand	DetachComparisonViewerCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:176	RelayCommand	SaveSettingsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:177	RelayCommand	BrowseOffsetCalibrationDirectoryCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:178	RelayCommand	BrowseGainCalibrationDirectoryCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:179	RelayCommand	BrowseDefectCalibrationDirectoryCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:180	RelayCommand	ClearLogsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:182	RelayCommand	CopySelectedLogCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:183	RelayCommand	ClearAlertsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:184	RelayCommand	ResetLayoutCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:185	RelayCommand	ShowNativeDiagnosticsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:186	RelayCommand	ShowCalibrationSettingsCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:187	RelayCommand	ShowFixtureManagerCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:188	RelayCommand	ExportAutomationReportCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:192	RelayCommand	RunOnAllQueuedCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:193	RelayCommand	RecordVerdictCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:194	RelayCommand	SaveAndNextCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:195	RelayCommand	ToggleFocusModeCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:196	RelayCommand	ToggleRoiCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:197	RelayCommand	ExportEvidenceBundleCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:198	RelayCommand	SaveCorrectedFloatCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:199	RelayCommand	SaveCorrectedPngCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:200	RelayCommand	SwitchAnalysisTabCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:201	RelayCommand	ResetLaneBOverridesCommand
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:3449	AutomationId (code)	DetachedHudVoiWindow
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:3463	AutomationId (code)	DetachedPreviewStaleIndicator
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs:3492	AutomationId (code)	DetachedMockBackendBannerText
+gui/ImageProcTest/Views/AlgorithmBar.xaml:8	Key	BoolToVisibility
+gui/ImageProcTest/Views/AlgorithmBar.xaml:22	AutomationId	LaneAAlgorithmPicker
+gui/ImageProcTest/Views/AlgorithmBar.xaml:41	AutomationId	LaneBAlgorithmPicker
+gui/ImageProcTest/Views/AlgorithmBar.xaml:52	AutomationId	LaneBVoiWidthInput
+gui/ImageProcTest/Views/AlgorithmBar.xaml:56	AutomationId	LaneBStaleMark
+gui/ImageProcTest/Views/AnalysisPanel.xaml:9	Key	TabEquals
+gui/ImageProcTest/Views/AnalysisPanel.xaml:10	Key	StringEquals
+gui/ImageProcTest/Views/AnalysisPanel.xaml:11	Key	TabAndToggle
+gui/ImageProcTest/Views/AnalysisPanel.xaml:12	Key	BoolToVisibility
+gui/ImageProcTest/Views/AnalysisPanel.xaml:26	Command	SwitchAnalysisTabCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:26	Command=	{Binding SwitchAnalysisTabCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:44	Command	SwitchAnalysisTabCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:44	Command=	{Binding SwitchAnalysisTabCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:62	Command	SwitchAnalysisTabCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:62	Command=	{Binding SwitchAnalysisTabCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:80	Command	SwitchAnalysisTabCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:80	Command=	{Binding SwitchAnalysisTabCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:159	AutomationId	CalibrationStagesUnappliedMark
+gui/ImageProcTest/Views/AnalysisPanel.xaml:162	AutomationId	CalibrationStagesGroup
+gui/ImageProcTest/Views/AnalysisPanel.xaml:167	AutomationId	CalibOffsetModeAuto
+gui/ImageProcTest/Views/AnalysisPanel.xaml:168	AutomationId	CalibOffsetModeOn
+gui/ImageProcTest/Views/AnalysisPanel.xaml:169	AutomationId	CalibOffsetModeOff
+gui/ImageProcTest/Views/AnalysisPanel.xaml:175	AutomationId	CalibGainModeAuto
+gui/ImageProcTest/Views/AnalysisPanel.xaml:176	AutomationId	CalibGainModeOn
+gui/ImageProcTest/Views/AnalysisPanel.xaml:177	AutomationId	CalibGainModeOff
+gui/ImageProcTest/Views/AnalysisPanel.xaml:183	AutomationId	CalibDefectModeAuto
+gui/ImageProcTest/Views/AnalysisPanel.xaml:184	AutomationId	CalibDefectModeOn
+gui/ImageProcTest/Views/AnalysisPanel.xaml:185	AutomationId	CalibDefectModeOff
+gui/ImageProcTest/Views/AnalysisPanel.xaml:192	AutomationId	CalibGhostModeAuto
+gui/ImageProcTest/Views/AnalysisPanel.xaml:193	AutomationId	CalibGhostModeOn
+gui/ImageProcTest/Views/AnalysisPanel.xaml:194	AutomationId	CalibGhostModeOff
+gui/ImageProcTest/Views/AnalysisPanel.xaml:200	AutomationId	CalibTemperatureModeAuto
+gui/ImageProcTest/Views/AnalysisPanel.xaml:201	AutomationId	CalibTemperatureModeOn
+gui/ImageProcTest/Views/AnalysisPanel.xaml:202	AutomationId	CalibTemperatureModeOff
+gui/ImageProcTest/Views/AnalysisPanel.xaml:208	AutomationId	CalibNonlinearityModeAuto
+gui/ImageProcTest/Views/AnalysisPanel.xaml:209	AutomationId	CalibNonlinearityModeOn
+gui/ImageProcTest/Views/AnalysisPanel.xaml:210	AutomationId	CalibNonlinearityModeOff
+gui/ImageProcTest/Views/AnalysisPanel.xaml:216	AutomationId	CalibBinningModeAuto
+gui/ImageProcTest/Views/AnalysisPanel.xaml:217	AutomationId	CalibBinningModeOn
+gui/ImageProcTest/Views/AnalysisPanel.xaml:218	AutomationId	CalibBinningModeOff
+gui/ImageProcTest/Views/AnalysisPanel.xaml:230	AutomationId	PreprocessInChainCheckBox
+gui/ImageProcTest/Views/AnalysisPanel.xaml:237	AutomationId	AiBoneSuppressionInChainCheckBox
+gui/ImageProcTest/Views/AnalysisPanel.xaml:246	AutomationId	AiModelDirectoryInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:253	AutomationId	ExposureKvpInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:258	AutomationId	ExposureKvpPendingMark
+gui/ImageProcTest/Views/AnalysisPanel.xaml:265	AutomationId	GsvgModeNone
+gui/ImageProcTest/Views/AnalysisPanel.xaml:268	AutomationId	GsvgModeGridSuppression
+gui/ImageProcTest/Views/AnalysisPanel.xaml:271	AutomationId	GsvgModeVirtualGrid
+gui/ImageProcTest/Views/AnalysisPanel.xaml:283	AutomationId	GsvgGridRatioInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:287	AutomationId	GsvgGridFrequencyInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:300	AutomationId	GsvgAirSignalInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:304	AutomationId	GsvgIterationsInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:317	AutomationId	GsvgPyramidLevelsInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:321	AutomationId	GsvgPyramidGainInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:328	AutomationId	GsvgDenoiseKInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:334	AutomationId	GsvgTablePathInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:340	AutomationId	PixelPitchInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:346	AutomationId	ChainStatusPanelText
+gui/ImageProcTest/Views/AnalysisPanel.xaml:371	AutomationId	VoiWindowCenterInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:378	AutomationId	VoiWindowWidthInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:393	AutomationId	LaneBOverridesUnappliedMark
+gui/ImageProcTest/Views/AnalysisPanel.xaml:400	AutomationId	LaneBOverridesGroup
+gui/ImageProcTest/Views/AnalysisPanel.xaml:411	AutomationId	LaneBGsvgDenoiseKInput
+gui/ImageProcTest/Views/AnalysisPanel.xaml:417	AutomationId	LaneBResetDefaultsButton
+gui/ImageProcTest/Views/AnalysisPanel.xaml:419	Command	ResetLaneBOverridesCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:419	Command=	{Binding ResetLaneBOverridesCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:475	Command	ExportEvidenceBundleCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:475	Command=	{Binding ExportEvidenceBundleCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:520	AutomationId	AlertsOnlyFilterToggle
+gui/ImageProcTest/Views/AnalysisPanel.xaml:525	AutomationId	CopyLogLineButton
+gui/ImageProcTest/Views/AnalysisPanel.xaml:526	Command	CopySelectedLogCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:526	Command=	{Binding CopySelectedLogCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:531	Command	ClearLogsCommand
+gui/ImageProcTest/Views/AnalysisPanel.xaml:531	Command=	{Binding ClearLogsCommand}
+gui/ImageProcTest/Views/AnalysisPanel.xaml:542	AutomationId	LogListBox
+gui/ImageProcTest/Views/AnalysisPanel.xaml:543	Name	LogList
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:4	AutomationId	CalibrationPathsPanel
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:23	Key	PathText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:28	Key	NotSetText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:40	AutomationId	CalibrationPathsProvenance
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:49	Name	OffsetCalibrationPathText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:50	AutomationId	OffsetCalibrationPathText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:53	AutomationId	OffsetCalibrationNotSet
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:64	AutomationId	BrowseOffsetCalibrationButton
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:66	Command	BrowseOffsetCalibrationDirectoryCommand
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:66	Command=	{Binding BrowseOffsetCalibrationDirectoryCommand}
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:73	Name	GainCalibrationPathText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:74	AutomationId	GainCalibrationPathText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:77	AutomationId	GainCalibrationNotSet
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:88	AutomationId	BrowseGainCalibrationButton
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:90	Command	BrowseGainCalibrationDirectoryCommand
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:90	Command=	{Binding BrowseGainCalibrationDirectoryCommand}
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:97	Name	DefectCalibrationPathText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:98	AutomationId	DefectCalibrationPathText
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:101	AutomationId	DefectCalibrationNotSet
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:112	AutomationId	BrowseDefectCalibrationButton
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:114	Command	BrowseDefectCalibrationDirectoryCommand
+gui/ImageProcTest/Views/CalibrationPathsPanel.xaml:114	Command=	{Binding BrowseDefectCalibrationDirectoryCommand}
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:4	AutomationId	DisplaySettingsPanel
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:23	Key	BoolToVisibility
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:24	Key	Cell
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:28	Key	Head
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:39	AutomationId	DisplaySettingsProvenance
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:45	AutomationId	DisplaySettingsStaleBanner
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:50	AutomationId	DisplaySettingsStaleReason
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:74	AutomationId	DisplayRequestedMode
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:78	AutomationId	DisplayRenderedMode
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:84	AutomationId	DisplayRequestedCenter
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:88	AutomationId	DisplayRenderedCenter
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:94	AutomationId	DisplayRequestedWidth
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:98	AutomationId	DisplayRenderedWidth
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:104	AutomationId	DisplayLastPreset
+gui/ImageProcTest/Views/DisplaySettingsPanel.xaml:109	AutomationId	DisplayModeOptions
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:5	AutomationId	PipelineDiagnosticsPanel
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:25	Key	StageMeasurement
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:26	Key	BoolToVisibility
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:37	AutomationId	PipelineDiagnosticsProvenance
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:46	AutomationId	PipelineDiagnosticsStaleBanner
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:51	AutomationId	PipelineDiagnosticsStaleReason
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:60	AutomationId	PipelineDiagnosticsNoChain
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:77	Name	ClosePipelineDiagnosticsButton
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:78	AutomationId	ClosePipelineDiagnosticsButton
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:80	Command	ClosePipelineDiagnosticsCommand
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:80	Command=	{Binding ClosePipelineDiagnosticsCommand}
+gui/ImageProcTest/Views/PipelineDiagnosticsPanel.xaml:85	AutomationId	PipelineDiagnosticsStages
+gui/ImageProcTest/Views/StudyQueue.xaml:8	Key	StatusGlyph
+gui/ImageProcTest/Views/StudyQueue.xaml:9	Key	StatusColor
+gui/ImageProcTest/Views/StudyQueue.xaml:30	Command	LoadImageCommand
+gui/ImageProcTest/Views/StudyQueue.xaml:30	Command=	{Binding LoadImageCommand}
+gui/ImageProcTest/Views/StudyQueue.xaml:46	Name	FilterAll
+gui/ImageProcTest/Views/StudyQueue.xaml:47	Click	OnFilterChanged
+gui/ImageProcTest/Views/StudyQueue.xaml:53	Click	OnFilterChanged
+gui/ImageProcTest/Views/StudyQueue.xaml:59	Click	OnFilterChanged
+gui/ImageProcTest/Views/StudyQueue.xaml:80	Name	StudyListBox
+gui/ImageProcTest/Views/StudyQueue.xaml:81	AutomationId	StudyListBox
+gui/ImageProcTest/Views/TopBar.xaml:8	Key	BarWidth
+gui/ImageProcTest/Views/TopBar.xaml:9	Key	BarRemainder
+gui/ImageProcTest/Views/TopBar.xaml:115	Command	RunOnAllQueuedCommand
+gui/ImageProcTest/Views/TopBar.xaml:115	Command=	{Binding RunOnAllQueuedCommand}
+gui/ImageProcTest/Views/TopBar.xaml:119	Command	ExportEvidenceBundleCommand
+gui/ImageProcTest/Views/TopBar.xaml:119	Command=	{Binding ExportEvidenceBundleCommand}
+gui/ImageProcTest/Views/TopBar.xaml:124	AutomationId	FocusModeToggle
+gui/ImageProcTest/Views/TopBar.xaml:126	Command	ToggleFocusModeCommand
+gui/ImageProcTest/Views/TopBar.xaml:126	Command=	{Binding ToggleFocusModeCommand}
+gui/ImageProcTest/Views/TopBar.xaml:131	AutomationId	FocusModeUnappliedMark
+gui/ImageProcTest/Views/VerdictBar.xaml:27	AutomationId	VerdictNotesInput
+gui/ImageProcTest/Views/VerdictBar.xaml:41	Command	RecordVerdictCommand
+gui/ImageProcTest/Views/VerdictBar.xaml:41	Command=	{Binding RecordVerdictCommand}
+gui/ImageProcTest/Views/VerdictBar.xaml:62	Command	RecordVerdictCommand
+gui/ImageProcTest/Views/VerdictBar.xaml:62	Command=	{Binding RecordVerdictCommand}
+gui/ImageProcTest/Views/VerdictBar.xaml:83	Command	RecordVerdictCommand
+gui/ImageProcTest/Views/VerdictBar.xaml:83	Command=	{Binding RecordVerdictCommand}
+gui/ImageProcTest/Views/VerdictBar.xaml:106	Command	SaveAndNextCommand
+gui/ImageProcTest/Views/VerdictBar.xaml:106	Command=	{Binding SaveAndNextCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:10	Key	ZoomPercentConverter
+gui/ImageProcTest/Views/ViewportShell.xaml:11	Key	BoolToVisibility
+gui/ImageProcTest/Views/ViewportShell.xaml:20	Name	Viewport
+gui/ImageProcTest/Views/ViewportShell.xaml:21	AutomationId	WorkbenchViewport
+gui/ImageProcTest/Views/ViewportShell.xaml:40	Name	LaneRow
+gui/ImageProcTest/Views/ViewportShell.xaml:47	Name	LaneAViewport
+gui/ImageProcTest/Views/ViewportShell.xaml:48	AutomationId	LaneAViewport
+gui/ImageProcTest/Views/ViewportShell.xaml:62	Name	LaneAEmpty
+gui/ImageProcTest/Views/ViewportShell.xaml:63	AutomationId	LaneAEmptyText
+gui/ImageProcTest/Views/ViewportShell.xaml:78	Name	LaneBViewport
+gui/ImageProcTest/Views/ViewportShell.xaml:79	AutomationId	LaneBViewport
+gui/ImageProcTest/Views/ViewportShell.xaml:93	Name	LaneBEmpty
+gui/ImageProcTest/Views/ViewportShell.xaml:94	AutomationId	LaneBEmptyText
+gui/ImageProcTest/Views/ViewportShell.xaml:110	AutomationId	LaneBStaleText
+gui/ImageProcTest/Views/ViewportShell.xaml:117	Name	PreviewStaleBanner
+gui/ImageProcTest/Views/ViewportShell.xaml:127	AutomationId	PreviewStaleIndicator
+gui/ImageProcTest/Views/ViewportShell.xaml:137	Name	PreprocessOffNoticeBanner
+gui/ImageProcTest/Views/ViewportShell.xaml:148	AutomationId	PreprocessOffNoticeText
+gui/ImageProcTest/Views/ViewportShell.xaml:155	AutomationId	PreprocessOffNoticeOkButton
+gui/ImageProcTest/Views/ViewportShell.xaml:160	Command	AcknowledgePreprocessOffNoticeCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:160	Command=	{Binding AcknowledgePreprocessOffNoticeCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:165	Name	PreprocessSkippedBanner
+gui/ImageProcTest/Views/ViewportShell.xaml:175	AutomationId	PreprocessSkippedIndicator
+gui/ImageProcTest/Views/ViewportShell.xaml:200	AutomationId	CompareButtonSwipeVertical
+gui/ImageProcTest/Views/ViewportShell.xaml:202	Command	SetComparisonModeCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:202	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:208	AutomationId	CompareButtonSplitLocked
+gui/ImageProcTest/Views/ViewportShell.xaml:210	Command	SetComparisonModeCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:210	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:216	AutomationId	CompareButtonOverlayOpacity
+gui/ImageProcTest/Views/ViewportShell.xaml:218	Command	SetComparisonModeCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:218	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:224	AutomationId	CompareButtonDifferenceHeatmap
+gui/ImageProcTest/Views/ViewportShell.xaml:226	Command	SetComparisonModeCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:226	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:232	AutomationId	CompareButtonSourceOnly
+gui/ImageProcTest/Views/ViewportShell.xaml:234	Command	SetComparisonModeCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:234	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:240	AutomationId	CompareButtonProcessedOnly
+gui/ImageProcTest/Views/ViewportShell.xaml:242	Command	SetComparisonModeCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:242	Command=	{Binding SetComparisonModeCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:255	Name	HistogramToggleButton
+gui/ImageProcTest/Views/ViewportShell.xaml:256	AutomationId	HistogramToggleButton
+gui/ImageProcTest/Views/ViewportShell.xaml:267	Name	RoiToggleButton
+gui/ImageProcTest/Views/ViewportShell.xaml:318	AutomationId	HudVoiWindow
+gui/ImageProcTest/Views/ViewportShell.xaml:328	AutomationId	HudCalibStages
+gui/ImageProcTest/Views/ViewportShell.xaml:348	Command	ZoomOutCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:348	Command=	{Binding ZoomOutCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:354	Name	ZoomPercentText
+gui/ImageProcTest/Views/ViewportShell.xaml:355	AutomationId	ZoomPercentText
+gui/ImageProcTest/Views/ViewportShell.xaml:364	Command	ZoomInCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:364	Command=	{Binding ZoomInCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:373	Command	ZoomFitCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:373	Command=	{Binding ZoomFitCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:380	Command	ZoomActualCommand
+gui/ImageProcTest/Views/ViewportShell.xaml:380	Command=	{Binding ZoomActualCommand}
+gui/ImageProcTest/Views/ViewportShell.xaml:409	AutomationId	LaneATag
+gui/ImageProcTest/Views/ViewportShell.xaml:436	AutomationId	LaneBTag
+gui/ImageProcTest/Views/ViewportShell.xaml:444	Name	OpacitySliderPanel
+gui/ImageProcTest/Views/ViewportShell.xaml:458	AutomationId	OverlayOpacitySlider
