@@ -72,6 +72,13 @@ body = r'''
     $rec.afterWait=[ordered]@{roi=Get-Text 'ComparisonRoiText';hint=Get-Text 'ComparisonViewHint';verdict=Get-Text 'ComparisonValidationStatus';computeEnabled=Enabled 'ComparisonComputeButton';state=Get-Text 'ComparisonStateText'}
     Shot '03-15s-after-cancel'
   }
+  'previewNoCancel' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    $rec.drawn=[ordered]@{roi=Wait-Text 'ComparisonRoiText' 'ROI' 60;computeEnabled=Enabled 'ComparisonComputeButton'}
+    Shot '01-preview-drawn-without-cancel'
+  }
   'closePreview' {
     $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
     Open-Case $m $Script

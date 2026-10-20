@@ -1,0 +1,7 @@
+﻿08:50:23 started PID 18092
+08:50:28 menu item found: 2G · 신규 PRE 출력 가져오기 비교
+08:50:28 comparison window open: 2G · 신규 PRE 출력 가져오기 비교
+08:50:31 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-cancelPreview-20261020T235023Z\01-during-preview-read.png
+08:50:33 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-cancelPreview-20261020T235023Z\02-after-cancel.png
+08:50:48 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-cancelPreview-20261020T235023Z\03-15s-after-cancel.png
+08:50:48 done
