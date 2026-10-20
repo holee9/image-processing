@@ -16,7 +16,7 @@
 @@ -24,6 +24,9 @@
              new Views.CalibrationWorkflowWindow(model) { Owner = this }.ShowDialog();
      }
- 
+ (blank context line)
 +    // QA-A-273 (Refs #278): a separate window; nothing of the main window's state, backend or calibration settings is read or changed by it.
 +    private void PreComparisonImport_Click(object sender, RoutedEventArgs e) => new Views.ComparisonImportWindow { Owner = this }.ShowDialog();
 +

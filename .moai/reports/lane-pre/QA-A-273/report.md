@@ -1,4 +1,4 @@
-[2026-10-21 08:24 KST] QA-A-273 보고서 — 2G·신규 PRE 개발용 비교 창 (0번 기준선 + 2번 가져오기 최소판), Refs #278
+[2026-10-21 08:35 KST] QA-A-273 보고서 — 2G·신규 PRE 개발용 비교 창 (0번 기준선 + 2번 가져오기 최소판), Refs #278
 
 ## 0. 한눈에
 
@@ -76,3 +76,35 @@
 - 커밋에는 새 GUI 소스(`gui/ImageProcTest/Services/Comparison/*`, `Views/ComparisonImportWindow.cs`), HEAD 기준으로 다시 만든 메뉴 6줄, 이 폴더의 텍스트 증거가 들어갑니다. 첫 커밋 `b4c690b3` 은 커밋되지 않은 `GuiDataPaths.cs` 를 참조해 HEAD 단독으로는 빌드되지 않았고(리더 지적), 이번에 `ComparisonPaths.cs` 로 필요한 만큼만 새 파일에 두어 해소했습니다. 메뉴 6줄은 작업 트리를 바꾸지 않고 `git apply --cached` 로 index 에만 올렸습니다(`my-hunks-on-head.patch.txt`, 커밋 전후 작업 트리 두 파일 sha256 비교는 §6). 빌드 산출물·PNG·생성 데이터는 `.moai/reports` 무시 규칙에 따라 저장소 밖(로컬 보관)입니다.
 - 합성 픽스처 생성기 `make_v4_fixtures.py` 와 구동 스크립트 `Drive-ComparisonWindow.ps1` 은 같은 폴더에 있습니다(구동 스크립트는 한글 때문에 BOM 이 필요합니다).
 - 리더의 `collaboration-ledger.md`(untracked)에 "GUI writer = xpe-pre" 한 줄을 추가했습니다.
+
+## 6. 2차 커밋(리더 요청 08:27) 추가 검증
+
+### 6.1 HEAD 단독 빌드 (`602eff24`)
+
+첫 커밋 `b4c690b3` 은 커밋되지 않은 `GuiDataPaths.cs` 를 참조해 HEAD 만으로는 빌드되지 않았습니다(리더 지적, 작업 트리 빌드로만 시험해서 드러나지 않았음). `ComparisonPaths.cs` 로 필요한 규칙만 새 파일에 두고, 메뉴 6줄은 HEAD 의 `CalibrationSettingsMenuItem`·`ExitMenuItem_OnClick` 앞에 넣은 패치(`my-hunks-on-head.patch.txt`)를 `git apply --cached` 로 index 에만 올렸습니다.
+
+- `git archive HEAD gui clients` 를 `builds/headbuild-602eff24/` 에 풀어(처음엔 `clients/` 를 빠뜨려 CS2001 오류 7개 — 아카이브 범위의 실수였고 소스 문제가 아님) CI 와 같은 세 프로젝트를 Debug 로 한 번에 하나씩 빌드: ImageProcTest 종료 코드 0·오류 0개, SelfCheck 0·0개, E2E 0·0개(`headbuild-*.log.txt`).
+- SelfCheck 실행: 종료 코드 0, "Lifetime scenarios passed (30 scenarios)", "GUI-S0 self-check passed"(`headbuild-selfcheck.run.txt`). 참고: SelfCheck 의 픽스처 경로 출력이 작업 트리의 `gui/ImageProcTest/fixtures/…` 를 가리켰습니다. 픽스처 파일 자체는 HEAD 에도 있으므로 결과 판단에는 영향이 없다고 보지만, 어느 쪽을 읽었는지는 확인하지 않았습니다 → 미검증.
+- E2E 는 CI 가 실행하지만 요청 범위(빌드 3개 + SelfCheck 실행)가 아니라 실행하지 않았습니다.
+- 커밋 전후 작업 트리의 `MainWindow.xaml`·`.xaml.cs` sha256 이 같음(`sha256sum -c` 두 줄 OK, `worktree-sha-before-commit2.txt`), 커밋 전후 `git status` 목록은 내 새 파일의 상태 변화(`M`/`??` → 커밋됨)만 다름. 실행 뒤 ImageProcTest 프로세스는 보호 PID 1868·17364·19184 만 남음.
+
+### 6.2 미검증이던 두 가지를 실제로 시험
+
+스크립트 한 줄만 일부러 바꾼 복사본 4개(`stub-scripts/`, 원본은 `contract-v4/` 의 `comparison_manifest.py`)로 같은 창을 UIA 로 구동했습니다. 예측(먼저 적음): 세 거부 분기는 "실패 — 통과가 아닙니다"와 해당 사유, 취소는 실패 표시와 자식 프로세스 0개.
+
+| 바꾼 줄 | 창에 보인 결과 |
+|---|---|
+| `schema=SCHEMA` → `/3` | "result.json 의 schema 가 …/4 가 아닙니다(…/3). 실패로 처리합니다." |
+| `run_id=run_dir.name` → `"other-run"` | "run_id(other-run)가 실행 폴더 이름과 다릅니다. … 거부합니다." |
+| `manifest=manifest` → 한 필드 변경 | "result.json 에 기록된 매니페스트가 이번 요청에서 보낸 매니페스트와 다릅니다. 거부합니다." |
+| 시작에 `time.sleep(120)` + 창에서 '취소' | 계산 중에 취소 버튼 활성·계산 버튼 비활성 → 취소 뒤 "취소했거나 시간 제한에 걸렸습니다 … 실패로 기록하며 통과가 아닙니다", 상태 문구 "계산 실패", 남은 파이썬 프로세스 0 |
+
+세 거부 분기는 이 시험 전에는 한 번도 일어나 본 적이 없었으므로 위 결과가 첫 관측입니다. 10분 시간 제한 자체는 기다려 보지 않았습니다(취소와 같은 경로라고 코드로 읽었을 뿐) → 미검증으로 유지.
+
+### 6.3 최종 빌드로 다시 구동
+
+최종 작업 트리 빌드(`builds/gui1`)로 검토된 스크립트 구동 1회 더(`run-gui-final-20261020T233339Z/`): 비교 가능·computed 동일.
+
+### 6.4 증거 텍스트의 줄 끝 공백
+
+저장소의 텍스트 검사(`tools/ci/Test-TrackedTextFiles.ps1`)가 이미 커밋된 두 패치 기록(`my-hunks*.patch.txt`)의 빈 문맥 줄(공백 한 칸)을 줄 끝 공백 오류로 읽었습니다(오류 2건). 로컬에서 커밋 전에 돌린 검사는 추적되는 파일만 보아 새 파일을 놓쳤습니다. 해당 줄을 `(blank context line)` 표기로 바꿔 검사를 통과시켰고, 이 두 파일은 기록용이라 그대로는 `git apply` 되지 않습니다(실제로 index 에 적용한 패치는 커밋 `602eff24` 의 diff 입니다).

@@ -1,7 +1,8 @@
 ﻿param(
   [Parameter(Mandatory=$true)][string]$RunDir,
   [Parameter(Mandatory=$true)][string]$Script,
-  [Parameter(Mandatory=$true)][string]$Fixtures
+  [Parameter(Mandatory=$true)][string]$Fixtures,
+  [string]$Mode='full'
 )
 # QA-A-273: launches the NEWLY BUILT dev GUI (own process, own settings file) and drives ONLY the comparison window through UI Automation
 # patterns (Invoke / Value / Expand / Window). No global keyboard or mouse input. Never touches PIDs 1868, 17364, 19184. Kills only the PID it started.
@@ -99,8 +100,22 @@ try{
   Click 'ComparisonZoom100Button';Start-Sleep -Milliseconds 400
   Shot '03-ok-wl400-lvl1500-zoom100'
   Click 'ComparisonZoomFitButton';Start-Sleep -Milliseconds 400
+  if($Mode -eq 'cancel'){
+    Click 'ComparisonComputeButton'
+    Start-Sleep -Seconds 3
+    $rec.cancel=[ordered]@{beforeCancel=Get-Text 'ComparisonResultBox';cancelEnabled=Enabled 'ComparisonCancelButton';computeEnabled=Enabled 'ComparisonComputeButton'}
+    Click 'ComparisonCancelButton'
+    $rec.cancel.afterCancel=Wait-Text 'ComparisonResultBox' '실패' 30
+    $rec.cancel.stateAfter=Get-Text 'ComparisonStateText'
+    Start-Sleep -Seconds 2
+    $rec.cancel.childPythonLeft=@(Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -match 'comparison_manifest' }).Count
+    Shot '07-cancelled'
+    ($rec|ConvertTo-Json -Depth 6)|Set-Content -LiteralPath (Join-Path $RunDir 'observations.json') -Encoding UTF8
+    ([Windows.Automation.WindowPattern](D).GetCurrentPattern([Windows.Automation.WindowPattern]::Pattern)).Close()
+    return
+  }
   Click 'ComparisonComputeButton'
-  $rec.okCompute=[ordered]@{result=Wait-Text 'ComparisonResultBox' '결과:' 60;state=Get-Text 'ComparisonStateText'}
+  $rec.okCompute=[ordered]@{result=Wait-Text 'ComparisonResultBox' '결과:|실패' 60;state=Get-Text 'ComparisonStateText'}
   Log ('okCompute: '+$rec.okCompute.result.Split("`n")[0])
   Shot '04-ok-computed'
 
