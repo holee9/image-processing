@@ -10,6 +10,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import numpy as np
 
@@ -20,6 +21,9 @@ import comparison_manifest as cm  # noqa: E402
 
 def _sha(p: Path) -> str:
     return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+PRE_HEAD = "75c0043195e5afacf7d6b424bee32c063b9e99a0"
 
 
 class Fixture:
@@ -39,22 +43,24 @@ class Fixture:
         self._write("b.raw", self.b)
         self._write("in.raw", self.raw)
         self._write("gain.raw", np.ones((self.H, self.W), dtype="<f4"))
+        (self.root / "pre-config.json").write_text('{"mode":"fixture"}', encoding="utf-8")
 
     def _write(self, name, arr):
         (self.root / name).write_bytes(arr.tobytes())
 
-    def output(self, name, engine):
-        p = self.root / name
+    def output(self, name):
         return {
-            "path": name, "sha256": _sha(p), "dtype": "uint16", "endian": "little",
-            "width": self.W, "height": self.H, "stride_bytes": self.W * 2,
-            "offset_bytes": 0, "stage": "engine-direct", "units": "pixel value",
+            "path": name, "sha256": _sha(self.root / name), "dtype": "uint16",
+            "endian": "little", "width": self.W, "height": self.H,
+            "stride_bytes": self.W * 2, "offset_bytes": 0,
+            "stage": "engine-direct", "units": "pixel value",
         }
 
     def manifest(self):
-        inp = {"path": "in.raw", "sha256": _sha(self.root / "in.raw"),
+        in_sha = _sha(self.root / "in.raw")
+        inp = {"path": "in.raw", "sha256": in_sha,
                "correction_state": {"value": "uncorrected", "status": "verified",
-                                    "source": "fixture"},
+                                    "source": "fixture acquisition record"},
                "mode": "fixture-mode", "width": self.W, "height": self.H}
         maps = {"gain": {"path": "gain.raw", "sha256": _sha(self.root / "gain.raw")}}
         return {
@@ -63,18 +69,20 @@ class Fixture:
             "engines": {
                 "A": {"engine_id": "samsung-2g-x64w",
                       "engine_identity": {"dll_sha256": cm.OFFICIAL_2G_X64W_SHA256},
-                      "execution": "imported-file", "maps": copy.deepcopy(maps),
-                      "output": self.output("a.raw", "A")},
+                      "execution": "imported-file", "input_sha256": in_sha,
+                      "maps": copy.deepcopy(maps), "output": self.output("a.raw")},
                 "B": {"engine_id": "new-pre",
-                      "engine_identity": {"source_head": "75c0043195e5afacf7d6b424bee32c063b9e99a0"},
-                      "execution": "imported-file", "maps": copy.deepcopy(maps),
-                      "output": self.output("b.raw", "B")},
+                      "engine_identity": {
+                          "source_head": PRE_HEAD,
+                          "config_sha256": _sha(self.root / "pre-config.json")},
+                      "execution": "imported-file", "input_sha256": in_sha,
+                      "maps": copy.deepcopy(maps), "output": self.output("b.raw")},
             },
             "roi": {"x": 0, "y": 0, "width": self.W, "height": self.H},
         }
 
 
-class ValidatePairTests(unittest.TestCase):
+class Base(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
@@ -84,60 +92,80 @@ class ValidatePairTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def codes(self, m):
-        return set(cm.validate_pair(m, self.root)["reasons"])
+    def codes(self, m=None):
+        return set(cm.validate_pair(m or self.m, self.root)["reasons"])
 
+    def set_float_frames(self, a, b):
+        (self.root / "fa.raw").write_bytes(np.asarray(a, "<f4").tobytes())
+        (self.root / "fb.raw").write_bytes(np.asarray(b, "<f4").tobytes())
+        h, w = np.asarray(a).shape
+        for k, n in (("A", "fa.raw"), ("B", "fb.raw")):
+            self.m["engines"][k]["output"].update(
+                path=n, sha256=_sha(self.root / n), dtype="float32",
+                width=w, height=h, stride_bytes=w * 4)
+        self.m["input"].update(width=w, height=h)
+        self.m["roi"] = {"x": 0, "y": 0, "width": w, "height": h}
+
+
+class ValidatePairTests(Base):
     def test_valid_pair_is_comparable_but_never_live_2g(self):
         r = cm.validate_pair(self.m, self.root)
         self.assertTrue(r["comparable"], r["reasons"])
         self.assertEqual(r["comparison_kind"], "common-condition")
+        self.assertEqual(r["map_equivalence"], "byte-identical-only")
         self.assertFalse(r["actual_2g_executed"])
         self.assertIn("VENDOR_LIVE_BLOCKED", r["blockers"])
 
     def test_engine_scope_is_2g_and_pre_only(self):
         self.m["engines"]["A"]["engine_id"] = "tas"
-        self.assertIn("ENGINE_OUT_OF_SCOPE", self.codes(self.m))
+        self.assertIn("ENGINE_OUT_OF_SCOPE", self.codes())
 
     def test_claimed_live_execution_is_rejected(self):
         self.m["engines"]["A"]["execution"] = "live-vendor"
-        self.assertIn("LIVE_EXECUTION_NOT_AUTHORIZED", self.codes(self.m))
+        self.assertIn("LIVE_EXECUTION_NOT_AUTHORIZED", self.codes())
 
     def test_unknown_dll_identity_blocks(self):
         self.m["engines"]["A"]["engine_identity"]["dll_sha256"] = "0" * 64
-        self.assertIn("ENGINE_IDENTITY_MISMATCH", self.codes(self.m))
+        self.assertIn("ENGINE_IDENTITY_MISMATCH", self.codes())
 
-    def test_unknown_correction_state_blocks(self):
-        self.m["input"]["correction_state"]["status"] = "unknown"
-        self.assertIn("CORRECTION_STATE_UNVERIFIED", self.codes(self.m))
-
-    def test_declared_correction_state_blocks(self):
-        self.m["input"]["correction_state"]["status"] = "declared"
-        self.assertIn("CORRECTION_STATE_UNVERIFIED", self.codes(self.m))
+    def test_correction_state_must_be_verified_known_and_sourced(self):
+        for cs in ({"value": "uncorrected", "status": "unknown", "source": "x"},
+                   {"value": "uncorrected", "status": "declared", "source": "x"},
+                   {"value": "unknown", "status": "verified", "source": "x"},
+                   {"value": "uncorrected", "status": "verified"},
+                   {"value": "uncorrected", "status": "verified", "source": ""}):
+            m = copy.deepcopy(self.m)
+            m["input"]["correction_state"] = cs
+            self.assertIn("CORRECTION_STATE_UNVERIFIED", self.codes(m), cs)
 
     def test_geometry_mismatch_blocks(self):
         self.m["engines"]["B"]["output"]["width"] = 3
-        c = self.codes(self.m)
-        self.assertTrue({"GEOMETRY_MISMATCH", "FILE_SIZE_MISMATCH"} & c)
+        self.assertTrue({"GEOMETRY_MISMATCH", "FILE_SIZE_MISMATCH"} & self.codes())
 
     def test_stride_mismatch_blocks(self):
         self.m["engines"]["B"]["output"]["stride_bytes"] = 10
-        self.assertIn("UNSUPPORTED_STRIDE", self.codes(self.m))
+        self.assertIn("UNSUPPORTED_STRIDE", self.codes())
 
     def test_big_endian_unsupported(self):
         self.m["engines"]["B"]["output"]["endian"] = "big"
-        self.assertIn("UNSUPPORTED_ENDIAN", self.codes(self.m))
+        self.assertIn("UNSUPPORTED_ENDIAN", self.codes())
 
     def test_unsupported_dtype(self):
         self.m["engines"]["B"]["output"]["dtype"] = "bgra32"
-        self.assertIn("UNSUPPORTED_DTYPE", self.codes(self.m))
+        self.assertIn("UNSUPPORTED_DTYPE", self.codes())
+
+    def test_signedness_interpretation_must_match(self):
+        # Same bytes declared uint16 on one side and int16 on the other (F248-2).
+        self.m["engines"]["B"]["output"]["dtype"] = "int16"
+        self.assertIn("DTYPE_MISMATCH", self.codes())
 
     def test_stage_mismatch_blocks(self):
         self.m["engines"]["B"]["output"]["stage"] = "postprocessed"
-        self.assertIn("STAGE_MISMATCH", self.codes(self.m))
+        self.assertIn("STAGE_MISMATCH", self.codes())
 
     def test_units_mismatch_blocks(self):
         self.m["engines"]["B"]["output"]["units"] = "display"
-        self.assertIn("UNITS_MISMATCH", self.codes(self.m))
+        self.assertIn("UNSUPPORTED_UNITS", self.codes())
 
     def test_map_difference_is_labelled_e2e_not_common(self):
         (self.root / "gain2.raw").write_bytes(np.full((3, 4), 2, "<f4").tobytes())
@@ -159,15 +187,15 @@ class ValidatePairTests(unittest.TestCase):
 
     def test_input_mismatch_blocks(self):
         self.m["input"]["sha256"] = "f" * 64
-        self.assertIn("SHA_MISMATCH", self.codes(self.m))
+        self.assertIn("SHA_MISMATCH", self.codes())
 
     def test_missing_file_blocks(self):
         (self.root / "b.raw").unlink()
-        self.assertIn("MISSING_FILE", self.codes(self.m))
+        self.assertIn("MISSING_FILE", self.codes())
 
     def test_changed_file_blocks(self):
         (self.root / "a.raw").write_bytes(b"\0" * 24)
-        self.assertIn("SHA_MISMATCH", self.codes(self.m))
+        self.assertIn("SHA_MISMATCH", self.codes())
 
     def test_invalid_roi_blocks(self):
         for roi in ({"x": -1, "y": 0, "width": 2, "height": 2},
@@ -179,35 +207,90 @@ class ValidatePairTests(unittest.TestCase):
 
     def test_path_escape_blocked(self):
         self.m["engines"]["B"]["output"]["path"] = "../outside.raw"
-        self.assertIn("PATH_OUTSIDE_BASE", self.codes(self.m))
+        self.assertIn("PATH_OUTSIDE_BASE", self.codes())
 
     def test_mode_mismatch_blocks(self):
         self.m["engines"]["B"]["mode"] = "other-mode"
-        self.assertIn("MODE_MISMATCH", self.codes(self.m))
+        self.assertIn("MODE_MISMATCH", self.codes())
+
+    # --- F248-1: missing / unknown must not be resolved by equality ---------
+
+    def test_reviewer_f248_1_repro_is_refused(self):
+        m = self.m
+        m["input"].pop("mode")
+        m["input"]["correction_state"] = {"status": "verified", "value": "unknown"}
+        for e in m["engines"].values():
+            e.pop("mode", None)
+            e["output"].pop("stage")
+            e["output"].pop("units")
+        m["engines"]["B"].pop("engine_identity")
+        r = cm.validate_pair(m, self.root)
+        self.assertFalse(r["comparable"])
+        for code in ("MODE_MISSING", "CORRECTION_STATE_UNVERIFIED", "UNSUPPORTED_STAGE",
+                     "UNSUPPORTED_UNITS", "ENGINE_IDENTITY_MISMATCH"):
+            self.assertIn(code, r["reasons"])
+
+    def test_unknown_strings_equal_on_both_sides_are_refused(self):
+        for e in self.m["engines"].values():
+            e["output"]["stage"] = "unknown"
+            e["output"]["units"] = "unknown"
+        self.m["input"]["mode"] = "unknown"
+        c = self.codes()
+        self.assertTrue({"UNSUPPORTED_STAGE", "UNSUPPORTED_UNITS", "MODE_MISSING"} <= c, c)
+
+    def test_pre_identity_requires_head_and_config(self):
+        for ident in ({}, {"source_head": PRE_HEAD},
+                      {"source_head": "abc", "config_sha256": "0" * 64},
+                      {"config_sha256": "0" * 64}):
+            m = copy.deepcopy(self.m)
+            m["engines"]["B"]["engine_identity"] = ident
+            self.assertIn("ENGINE_IDENTITY_MISMATCH", self.codes(m), ident)
+
+    def test_empty_maps_need_explicit_not_applied_reason(self):
+        for e in self.m["engines"].values():
+            e["maps"] = {}
+        self.assertIn("MAPS_UNDECLARED", self.codes())
+        for e in self.m["engines"].values():
+            e["maps_not_applied_reason"] = "engine-direct output before gain"
+        self.assertNotIn("MAPS_UNDECLARED", self.codes())
+
+    # --- F248-2: input link, coordinates, scale ---------------------------
+
+    def test_engine_input_link_required_and_must_match(self):
+        self.m["engines"]["B"]["input_sha256"] = "f" * 64
+        self.assertIn("INPUT_LINK_MISMATCH", self.codes())
+        m = copy.deepcopy(self.fx.manifest())
+        m["engines"]["A"].pop("input_sha256")
+        self.assertIn("INPUT_LINK_MISMATCH", self.codes(m))
+
+    def test_unsupported_transform_fields_are_refused_not_ignored(self):
+        for key, val in (("origin", [100, 0]), ("pixel_spacing", [2.0, 2.0]),
+                         ("scale", 2.0), ("pedestal", 100)):
+            m = copy.deepcopy(self.m)
+            m["engines"]["B"]["output"][key] = val
+            self.assertIn("UNSUPPORTED_FIELD", self.codes(m), key)
+
+    def test_unknown_engine_and_top_level_fields_refused(self):
+        self.m["engines"]["B"]["crop"] = [0, 0, 2, 2]
+        self.assertIn("UNSUPPORTED_FIELD", self.codes())
+        m = copy.deepcopy(self.fx.manifest())
+        m["flip"] = True
+        self.assertIn("UNSUPPORTED_FIELD", self.codes(m))
 
 
-class CompareRawPairTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
-        self.fx = Fixture(self.root)
-        self.m = self.fx.manifest()
-
-    def tearDown(self):
-        self.tmp.cleanup()
-
+class CompareRawPairTests(Base):
     def test_signed_difference_closed_form_no_uint16_wrap(self):
         r = cm.compare_raw_pair(self.m, self.root)
-        a = self.fx.a.astype(np.float64)
-        b = self.fx.b.astype(np.float64)
-        d = a - b
+        d = self.fx.a.astype(np.float64) - self.fx.b.astype(np.float64)
         self.assertEqual(r["status"], "computed")
         self.assertEqual(r["valid_pixels"], d.size)
         self.assertAlmostEqual(r["mean_a_minus_b"], d.mean())
+        self.assertAlmostEqual(r["std_a_minus_b"], d.std())
         self.assertAlmostEqual(r["rmse"], float(np.sqrt((d ** 2).mean())))
+        self.assertAlmostEqual(r["mean_abs"], float(np.abs(d).mean()))
         self.assertEqual(r["min_a_minus_b"], d.min())
         self.assertEqual(r["max_a_minus_b"], d.max())
-        self.assertLess(r["min_a_minus_b"], 0)          # negatives preserved
+        self.assertLess(r["min_a_minus_b"], 0)
         self.assertEqual(r["units"], "pixel value")
 
     def test_roi_selects_same_coordinates_in_both(self):
@@ -216,21 +299,40 @@ class CompareRawPairTests(unittest.TestCase):
         self.assertEqual(r["valid_pixels"], 1)
         self.assertEqual(r["mean_a_minus_b"], 1100 - 1)
 
-    def test_nonfinite_float_excluded_and_counted(self):
-        a = np.array([[1, np.nan], [np.inf, 4]], "<f4")
-        b = np.array([[0, 0], [0, 1]], "<f4")
-        (self.root / "fa.raw").write_bytes(a.tobytes())
-        (self.root / "fb.raw").write_bytes(b.tobytes())
-        for k, n in (("A", "fa.raw"), ("B", "fb.raw")):
-            o = self.m["engines"][k]["output"]
-            o.update(path=n, sha256=_sha(self.root / n), dtype="float32",
-                     width=2, height=2, stride_bytes=8)
-        self.m["input"].update(width=2, height=2)
-        self.m["roi"] = {"x": 0, "y": 0, "width": 2, "height": 2}
+    def test_streaming_matches_full_array_on_larger_frame(self):
+        rng = np.random.default_rng(7)
+        a = rng.normal(1000, 50, (37, 23)).astype("<f4")
+        b = rng.normal(990, 60, (37, 23)).astype("<f4")
+        self.set_float_frames(a, b)
+        self.m["roi"] = {"x": 2, "y": 3, "width": 17, "height": 30}
+        with mock.patch.object(cm, "ROW_CHUNK", 4):
+            r = cm.compare_raw_pair(self.m, self.root)
+        d = (a.astype(np.float64) - b.astype(np.float64))[3:33, 2:19]
+        self.assertEqual(r["status"], "computed")
+        self.assertAlmostEqual(r["mean_a_minus_b"], d.mean(), places=9)
+        self.assertAlmostEqual(r["std_a_minus_b"], d.std(), places=9)
+        self.assertAlmostEqual(r["rmse"], float(np.sqrt((d ** 2).mean())), places=9)
+
+    def test_roi_read_does_not_load_full_frame(self):
+        seen = []
+        real = cm._read_rows
+
+        def spy(mm, y0, y1, xs):
+            seen.append(y1 - y0)
+            return real(mm, y0, y1, xs)
+        self.m["roi"] = {"x": 0, "y": 1, "width": 4, "height": 1}
+        with mock.patch.object(cm, "_read_rows", side_effect=spy):
+            cm.compare_raw_pair(self.m, self.root)
+        self.assertEqual(sum(seen), 2)   # one ROI row from each of A and B
+
+    def test_nonfinite_values_refuse_the_comparison(self):
+        # Plan Task 1 :98 - nonfinite values must not produce an accepted comparison.
+        self.set_float_frames([[1, np.nan], [np.inf, 4]], [[0, 0], [0, 1]])
         r = cm.compare_raw_pair(self.m, self.root)
-        self.assertEqual(r["valid_pixels"], 2)
-        self.assertEqual(r["nonfinite_excluded"], 2)
-        self.assertAlmostEqual(r["mean_a_minus_b"], 2.0)
+        self.assertEqual(r["status"], "refused")
+        self.assertIn("NONFINITE_VALUES", r["reasons"])
+        self.assertEqual(r["nonfinite_count"], 2)
+        self.assertNotIn("rmse", r)
 
     def test_refuses_when_not_comparable(self):
         self.m["engines"]["B"]["output"]["stage"] = "postprocessed"
@@ -245,38 +347,64 @@ class CompareRawPairTests(unittest.TestCase):
         self.assertEqual(before, after)
 
     def test_lossless_round_trip(self):
-        arr = cm.load_frame(self.m["engines"]["A"]["output"], self.root)
+        out = self.m["engines"]["A"]["output"]
+        arr = cm.read_roi(out, self.root, {"x": 0, "y": 0, "width": 4, "height": 3})
         self.assertEqual(arr.dtype, np.dtype("<u2"))
         self.assertEqual(arr.tobytes(), (self.root / "a.raw").read_bytes())
 
 
-class RunRecordTests(unittest.TestCase):
+class RunRecordTests(Base):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
-        self.fx = Fixture(self.root)
-        self.m = self.fx.manifest()
+        super().setUp()
         self.out = self.root / "runs"
 
-    def tearDown(self):
-        self.tmp.cleanup()
+    def rec(self, d):
+        return json.loads((d / "result.json").read_text(encoding="utf-8"))
 
     def test_each_run_gets_new_directory_and_records_hashes(self):
         d1 = cm.run_and_record(self.m, self.root, self.out)
         d2 = cm.run_and_record(self.m, self.root, self.out)
         self.assertNotEqual(d1, d2)
-        rec = json.loads((d1 / "result.json").read_text(encoding="utf-8"))
+        rec = self.rec(d1)
         self.assertEqual(rec["status"], "computed")
         self.assertEqual(rec["source_hashes_before"], rec["source_hashes_after"])
+        self.assertTrue(rec["sources_unchanged"])
         self.assertFalse(rec["quality_assessment"])
         self.assertFalse(rec["actual_2g_executed"])
 
     def test_failure_is_recorded_not_success(self):
         self.m["engines"]["B"]["output"]["stage"] = "postprocessed"
-        d = cm.run_and_record(self.m, self.root, self.out)
-        rec = json.loads((d / "result.json").read_text(encoding="utf-8"))
+        rec = self.rec(cm.run_and_record(self.m, self.root, self.out))
         self.assertEqual(rec["status"], "refused")
         self.assertIn("STAGE_MISMATCH", rec["validation"]["reasons"])
+
+    def test_source_changed_during_run_is_failure(self):
+        # F248-3: a change between validation and the after-hash must not stay computed.
+        real = cm.compare_raw_pair
+
+        def tamper(m, base):
+            r = real(m, base)
+            (self.root / "a.raw").write_bytes(b"\x01" * 24)
+            return r
+        with mock.patch.object(cm, "compare_raw_pair", side_effect=tamper):
+            rec = self.rec(cm.run_and_record(self.m, self.root, self.out))
+        self.assertEqual(rec["status"], "failed")
+        self.assertIn("SOURCE_CHANGED_DURING_RUN", rec["reasons"])
+        self.assertNotIn("rmse", rec)
+        self.assertFalse(rec["sources_unchanged"])
+
+    def test_hashing_error_is_recorded_as_error(self):
+        with mock.patch.object(cm, "_source_hashes", side_effect=OSError("locked")):
+            rec = self.rec(cm.run_and_record(self.m, self.root, self.out))
+        self.assertEqual(rec["status"], "error")
+        self.assertIn("locked", rec["error"])
+
+    def test_cli_exit_nonzero_when_not_computed(self):
+        self.m["engines"]["B"]["output"]["stage"] = "postprocessed"
+        mpath = self.root / "m.json"
+        mpath.write_text(json.dumps(self.m), encoding="utf-8")
+        self.assertEqual(cm.main(["compare", str(mpath), "--out", str(self.out)]), 2)
+        self.assertEqual(cm.main(["validate", str(mpath)]), 2)
 
     def test_calibration_burden_fields_are_recorded_not_judged(self):
         self.m["calibration_burden"] = {
@@ -285,9 +413,9 @@ class RunRecordTests(unittest.TestCase):
             "gain_refreshed": {"value": False, "status": "unknown", "source": None},
             "acquisition_count": {"value": None, "status": "unknown", "source": None},
         }
-        d = cm.run_and_record(self.m, self.root, self.out)
-        rec = json.loads((d / "result.json").read_text(encoding="utf-8"))
+        rec = self.rec(cm.run_and_record(self.m, self.root, self.out))
         self.assertEqual(rec["calibration_burden"], self.m["calibration_burden"])
+        self.assertFalse(rec["calibration_burden_verified"])
         self.assertNotIn("minimum_acquisitions", json.dumps(rec))
 
 
