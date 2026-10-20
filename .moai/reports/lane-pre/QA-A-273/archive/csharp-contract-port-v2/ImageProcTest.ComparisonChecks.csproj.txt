@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- QA-A-273: parity checks of the C# port of the comparison contract xpe-2g-pre-comparison/2 against fixtures answered by the Python contract (main-local 89b662a5). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ImageProcTest/ImageProcTest.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,25 @@
+--- a/gui/ImageProcTest/MainWindow.xaml
++++ b/gui/ImageProcTest/MainWindow.xaml
+@@ -408,6 +408,10 @@
+                 <MenuItem Header="PRE 캘리브레이션 입력·생성·재로드·평가"
+                           AutomationProperties.AutomationId="PreCalibrationWorkflowMenuItem"
+                           Click="PreCalibrationWorkflow_Click" />
++                <!-- QA-A-273 (Refs #278): imports two EXISTING output files (A = official 2G X64W, B = new PRE), no vendor DLL, no engine run. -->
++                <MenuItem Header="2G · 신규 PRE 출력 가져오기 비교"
++                          AutomationProperties.AutomationId="PreComparisonImportMenuItem"
++                          Click="PreComparisonImport_Click" />
+                 <MenuItem x:Name="CalibrationSettingsMenuItem"
+                           AutomationProperties.AutomationId="CalibrationSettingsMenuItem"
+                           Header="_Calibration Settings"
+--- a/gui/ImageProcTest/MainWindow.xaml.cs
++++ b/gui/ImageProcTest/MainWindow.xaml.cs
+@@ -24,6 +24,9 @@
+             new Views.CalibrationWorkflowWindow(model) { Owner = this }.ShowDialog();
+     }
+ 
++    // QA-A-273 (Refs #278): a separate window; nothing of the main window's state, backend or calibration settings is read or changed by it.
++    private void PreComparisonImport_Click(object sender, RoutedEventArgs e) => new Views.ComparisonImportWindow { Owner = this }.ShowDialog();
++
+     // Codex #78 finding 3 (GUI-C-198): the AI entry's availability includes a file that may appear or vanish while the app runs; it is read again each time the menu opens.
+     private void PipelineMenu_SubmenuOpened(object sender, System.Windows.RoutedEventArgs e) =>
+         (DataContext as MainWindowViewModel)?.RefreshAiBoneSuppressionAvailability();

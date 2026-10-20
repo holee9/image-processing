@@ -1,0 +1,64 @@
+"""QA-A-273: the existing-behaviour pin. Re-extracts the commands / bindings / shortcuts / AutomationIds / x:Names / Click handlers of gui/ImageProcTest with the SAME rules as step0_baseline.py and compares them
+with the step 0 inventory of a run folder: every baseline entry (file, kind, value, with its multiplicity; line numbers ignored because edits move lines) must still be present. Additions are listed, not judged.
+Control: the same comparison with one baseline entry removed from the CURRENT side must fail (the check can see a loss). Usage: python -X utf8 check_inventory_preserved.py <run folder> [> report]
+"""
+import collections
+import os
+import re
+import sys
+
+ROOT = 'D:/workspace-github/xpe-pre'
+GUI = ROOT + '/gui/ImageProcTest'
+run = sys.argv[1]
+pat = [
+    ('Command', re.compile(r'Command="\{Binding ([^}"]+)\}?"?')), ('Command=', re.compile(r'\bCommand="([^"]+)"')), ('Click', re.compile(r'\bClick="([^"]+)"')),
+    ('AutomationId', re.compile(r'AutomationProperties\.AutomationId="([^"]+)"')), ('Name', re.compile(r'\bx:Name="([^"]+)"')), ('KeyBinding', re.compile(r'<KeyBinding[^>]*>')),
+    ('InputGesture', re.compile(r'InputGestureText="([^"]+)"')), ('Header', re.compile(r'<MenuItem[^>]*Header="([^"]+)"')), ('Gesture', re.compile(r'Gesture="([^"]+)"')),
+    ('CommandBinding', re.compile(r'<CommandBinding[^>]*>')), ('Key', re.compile(r'\bKey="([^"]+)"')),
+]
+code_pat = [('RelayCommand', re.compile(r'(\w+Command)\s*=\s*new\s+(?:RelayCommand|AsyncRelayCommand)')), ('AutomationId (code)', re.compile(r'AutomationProperties\.SetAutomationId\([^,]+,\s*"([^"]+)"')),
+            ('InputBinding (code)', re.compile(r'new\s+KeyBinding\([^)]*\)|InputBindings\.Add[^;]*;'))]
+
+
+def extract():
+    rows = []
+    for d, dirs, files in os.walk(GUI):
+        dirs[:] = [x for x in dirs if x not in ('bin', 'obj', 'artifacts', 'fixtures', 'test_data', 'help')]
+        for fn in sorted(files):
+            p = os.path.join(d, fn)
+            rel = os.path.relpath(p, ROOT).replace('\\', '/')
+            if fn.endswith('.xaml'):
+                for i, line in enumerate(open(p, encoding='utf-8').read().split('\n'), 1):
+                    for kind, rx in pat:
+                        for m in rx.finditer(line):
+                            rows.append((rel, kind, (m.group(1) if m.groups() else m.group(0)).strip()))
+            elif fn.endswith('.cs'):
+                for i, line in enumerate(open(p, encoding='utf-8').read().split('\n'), 1):
+                    for kind, rx in code_pat:
+                        for m in rx.finditer(line):
+                            rows.append((rel, kind, (m.group(1) if m.groups() else m.group(0)).strip()))
+    return collections.Counter(rows)
+
+
+base = collections.Counter()
+for line in open(run + '/commands_bindings_automation.txt', encoding='utf-8'):
+    if line.startswith('#') or not line.strip():
+        continue
+    loc, kind, value = line.rstrip('\n').split('\t')
+    base[(loc.rsplit(':', 1)[0], kind, value)] += 1
+cur = extract()
+lost = base - cur
+added = cur - base
+print('baseline entries %d (distinct %d); current entries %d (distinct %d)' % (sum(base.values()), len(base), sum(cur.values()), len(cur)))
+print('LOST (in the baseline, missing now): %d' % sum(lost.values()))
+for k, n in sorted(lost.items()):
+    print('  - %s x%d' % (k, n))
+print('ADDED: %d' % sum(added.values()))
+for k, n in sorted(added.items()):
+    print('  + %s x%d' % (k, n))
+# control: remove one baseline entry from the current side; the comparison must see a loss
+victim = sorted(base)[len(base) // 2]
+cur2 = cur.copy()
+cur2[victim] -= 1
+print('control: with %r removed from the current side the check reports %d lost (must be 1)' % (victim, sum((base - +cur2).values())))
+sys.exit(1 if lost else 0)
