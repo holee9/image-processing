@@ -21,9 +21,7 @@ namespace ImageProcTest.Views;
 /// </summary>
 public sealed class ComparisonImportWindow : Window
 {
-    private const long MaxDisplayPixels = 4_000_000;
-
-    private readonly Func<string, string, IComparisonBackend> _backendFactory;
+    private readonly Func<string, string, string, IComparisonBackend> _backendFactory;
     private readonly string _rememberFile = System.IO.Path.Combine(ComparisonPaths.DataRoot, "comparison-import.json");
 
     private readonly TextBox _scriptPath = new() { MinWidth = 420 };
@@ -56,8 +54,10 @@ public sealed class ComparisonImportWindow : Window
     private readonly ScrollViewer _scrollB = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240 };
     private readonly ScaleTransform _scaleA = new(1, 1), _scaleB = new(1, 1);
 
+    private ManifestSnapshot? _snapshot;   // what the user confirmed: validation, preview and computation are all bound to it
     private JsonNode? _manifest;
     private string _baseDir = "";
+    private bool _closed;
     private IComparisonBackend? _backend;
     private ValidateResponse? _validation;
     private double[]? _pixelsA, _pixelsB;
@@ -67,10 +67,10 @@ public sealed class ComparisonImportWindow : Window
     private bool _busy, _syncing;
     private CancellationTokenSource? _cancel;
 
-    public ComparisonImportWindow() : this((script, python) => new PythonScriptComparisonBackend(script, python)) { }
+    public ComparisonImportWindow() : this((script, python, outRoot) => new PythonScriptComparisonBackend(script, python, outRoot)) { }
 
     /// <summary>The factory lets a check substitute the backend; the shipped path always uses the child-process client.</summary>
-    public ComparisonImportWindow(Func<string, string, IComparisonBackend> backendFactory)
+    public ComparisonImportWindow(Func<string, string, string, IComparisonBackend> backendFactory)
     {
         _backendFactory = backendFactory;
         Title = "2G · 신규 PRE 출력 가져오기 비교";
@@ -81,6 +81,9 @@ public sealed class ComparisonImportWindow : Window
 
         var root = new StackPanel { Margin = new Thickness(14) };
         root.Children.Add(Label("이 창은 이미 존재하는 출력 파일 두 개(A = 공식 Samsung 2G X64W, B = 신규 PRE)를 가져와 같은 조건으로 보여 주고 A−B 수치를 계산합니다. 제조사 DLL을 불러오거나 실행하지 않고, 장비를 제어하지 않으며, 화질을 판정하지 않습니다. 계산된 차이는 두 파일에 대한 수치 사실일 뿐 개선·합격의 근거가 아닙니다. 검증과 계산은 이 창이 다시 구현하지 않고 계약 스크립트(자식 프로세스)가 합니다."));
+        var provenance = new TextBlock { Text = "합성 배선 검증 / 제조사 미실측 — 이 창은 입력의 출처(실제 영상인지, 제조사 생산 결과인지)를 확인하지 않습니다. 계약에는 출처 확인 필드가 없으므로 어떤 결과도 '생산 이력 확인됨'으로 읽으면 안 됩니다.", TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.Bold, Foreground = Brushes.White, Background = Brushes.DarkOrange, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(0, 2, 0, 4) };
+        Auto(provenance, "ComparisonProvenanceNotice");
+        root.Children.Add(provenance);
         Auto(_state, "ComparisonStateText");
         _state.Text = "상태: 매니페스트를 아직 열지 않았습니다. 가져온 파일 비교이며 2G 실행이 아닙니다.";
         root.Children.Add(_state);
@@ -162,7 +165,8 @@ public sealed class ComparisonImportWindow : Window
         _manifestPath.TextChanged += (_, _) => Invalidate("매니페스트 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
         _scriptPath.TextChanged += (_, _) => Invalidate("계약 스크립트 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
         _pythonPath.TextChanged += (_, _) => Invalidate("python 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
-        Closing += (_, e) => { if (_busy) { e.Cancel = true; _result.AppendText("현재 작업이 끝날 때까지 창을 유지합니다. '취소'로 자식 프로세스를 멈출 수 있습니다." + Environment.NewLine); } };
+        _outputRoot.TextChanged += (_, _) => Invalidate("결과 폴더가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
+        Closing += (_, _) => { _closed = true; _generation++; try { _cancel?.Cancel(); } catch (ObjectDisposedException) { } };   // closing is never blocked: the child process is stopped by the token and no late result is accepted
     }
 
     private static TextBlock Label(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
@@ -212,10 +216,9 @@ public sealed class ComparisonImportWindow : Window
             _review.Text = "계약 검토 상태: 스크립트를 아직 실행하지 않았습니다.";
             return;
         }
-        var state = ComparisonContractReview.State(id.ScriptSha256);
-        _review.Text = $"스크립트 {id.ScriptPath}\nSHA-256 {id.ScriptSha256}\n{id.PythonVersion} ({id.PythonPath})\n계약 검토 상태: "
-            + (state == "reviewed" ? "검토를 통과한 스크립트와 SHA-256 이 같습니다."
-               : "검토 안 된 계약 — 이 스크립트의 SHA-256 이 검토를 통과한 값과 다릅니다. 아래 답은 비교 가능(통과)으로 보지 마십시오.");
+        _review.Text = $"실행한 스크립트(요청마다 고정 사본): {id.PinnedPath}\n원본 {id.OriginalPath}\n고정 사본 SHA-256 실행 전 {id.PinnedShaBefore} / 실행 후 {id.PinnedShaAfter ?? "읽지 못함"}\n원본 SHA-256 실행 후 {id.OriginalShaAfter ?? "읽지 못함"}\npython {id.Python.Version} · NumPy {id.Python.NumpyVersion} · {id.Python.ExePath}\n계약 검토 상태: "
+            + (id.Reviewed ? "검토를 통과한 스크립트와 SHA-256 이 같습니다(실행 전·후 모두)."
+               : "검토 안 된 계약 — 실행한 사본의 SHA-256 이 검토를 통과한 값과 다르거나 실행 전후가 다릅니다. 아래 답은 비교 가능(통과)으로 보지 마십시오.");
     }
 
     private void SetBusy(bool busy)
@@ -230,7 +233,7 @@ public sealed class ComparisonImportWindow : Window
     private void Invalidate(string why)
     {
         _generation++;
-        _manifest = null; _validation = null; _backend = null; _pixelsA = _pixelsB = null;
+        _snapshot = null; _manifest = null; _validation = null; _backend = null; _pixelsA = _pixelsB = null;
         _imageA.Source = _imageB.Source = null; _overlayA.Children.Clear(); _overlayB.Children.Clear();
         if (!_busy) _computeButton.IsEnabled = false;
         foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) b.IsEnabled = false;
@@ -247,29 +250,35 @@ public sealed class ComparisonImportWindow : Window
         Invalidate("검증 중입니다(계약 스크립트를 자식 프로세스로 실행).");
         var gen = _generation;
         SetBusy(true);
-        _cancel = new CancellationTokenSource();
+        var cts = new CancellationTokenSource();
+        _cancel = cts;
         try
         {
             if (!File.Exists(path)) throw new IOException("매니페스트 파일이 없습니다: " + path);
             Remember();
-            var baseDir = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path))!;
-            var backend = _backendFactory(_scriptPath.Text.Trim(), _pythonPath.Text.Trim());
-            var manifest = JsonNode.Parse(File.ReadAllText(path)) ?? throw new IOException("매니페스트가 비어 있습니다.");
-            var response = await backend.ValidateAsync(path, _cancel.Token);
-            if (gen != _generation) return;   // an input changed while the script ran: this answer is stale
-            _manifest = manifest; _baseDir = baseDir; _backend = backend; _validation = response;
+            var snapshot = ManifestSnapshot.Create(path);   // one read: these bytes are what is validated, previewed and computed
+            var backend = _backendFactory(_scriptPath.Text.Trim(), _pythonPath.Text.Trim(), _outputRoot.Text.Trim());
+            var response = await backend.ValidateAsync(snapshot, cts.Token);
+            if (gen != _generation || _closed) return;   // an input changed while the script ran: this answer is stale
+            _snapshot = snapshot; _manifest = snapshot.Json; _baseDir = snapshot.BaseDir; _backend = backend; _validation = response;
             UpdateReviewLine(response.Script);
             ShowValidation();
-            if (response.Ok && response.Validation?["comparable"]?.GetValue<bool>() == true) await LoadDisplayAsync(gen);
+            if (response.Ok && response.Validation?["comparable"]?.GetValue<bool>() == true) await LoadDisplayAsync(gen, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            if (gen != _generation || _closed) return;
+            Invalidate("취소했습니다. 읽던 배열·화면·성공 상태를 받아들이지 않았습니다.");
+            _verdict.Text = "취소 — 통과가 아닙니다.";
         }
         catch (Exception e)
         {
-            if (gen != _generation) return;
+            if (gen != _generation || _closed) return;
             _verdict.Text = "비교 불가 — 열지 못했습니다.";
             _reasons.Text = e.Message;
             _state.Text = "상태: 열기 실패. 가져온 파일 비교이며 2G 실행이 아닙니다. 실패는 통과가 아닙니다.";
         }
-        finally { _cancel?.Dispose(); _cancel = null; SetBusy(false); }
+        finally { if (ReferenceEquals(_cancel, cts)) _cancel = null; cts.Dispose(); if (!_closed) SetBusy(false); }
     }
 
     private void ShowValidation()
@@ -286,9 +295,9 @@ public sealed class ComparisonImportWindow : Window
         var comparable = v["comparable"]!.GetValue<bool>();
         var kind = v["comparison_kind"]?.GetValue<string>() ?? "?";
         var attribution = v["algorithm_attribution"]?.GetValue<bool>() == true;
-        var reviewed = ComparisonContractReview.IsReviewed(r.Script?.ScriptSha256);
+        var reviewed = r.Script?.Reviewed == true;
         _verdict.Text = (comparable ? $"스크립트의 답: 비교 가능 — 종류 {kind}" : "스크립트의 답: 비교 불가 — 아래 사유가 해소되기 전에는 숫자를 만들지 않습니다.")
-            + (comparable ? $" · 알고리즘 효과로 해석: {(attribution ? "예(common-condition)" : "아니오")}" : "")
+            + (comparable ? $" · 계약상 귀속 조건: {(attribution ? "충족(생산 이력·품질 확인 아님)" : "해당 없음(비귀속 라벨)")}" : "")
             + (reviewed ? "" : "  [검토 안 된 계약]");
         var lines = ((JsonArray)v["reasons"]!).Select(x => x!.GetValue<string>()).ToList();
         var blockers = (v["blockers"] as JsonArray)?.Select(x => x!.GetValue<string>()) ?? [];
@@ -307,19 +316,27 @@ public sealed class ComparisonImportWindow : Window
             : "상태: 스크립트가 비교 불가라고 답했습니다. 가져온 파일 비교이며 2G 실행이 아닙니다.";
     }
 
-    private async Task LoadDisplayAsync(int gen)
+    private async Task LoadDisplayAsync(int gen, CancellationToken cancel)
     {
         var a = ComparisonDisplayReader.ReadLayout(_manifest?["engines"]?["A"]?["output"], _baseDir);
         var b = ComparisonDisplayReader.ReadLayout(_manifest?["engines"]?["B"]?["output"], _baseDir);
-        if (a is null || b is null) { _viewHint.Text = "표시용 배치를 읽지 못했습니다. 표시하지 않았을 뿐 비교 판정과는 별개입니다."; return; }
-        var step = (int)Math.Max(1, Math.Ceiling(Math.Sqrt((double)a.Width * a.Height / MaxDisplayPixels)));
-        var (pa, pb, dw, dh) = await Task.Run(() =>
+        if (a is null || b is null) { _viewHint.Text = "표시용 배치를 읽지 못했거나 미리보기 한도(가로·세로 각 2^24 화소)를 넘습니다. 표시하지 않았을 뿐 비교 판정과는 별개입니다."; return; }
+        var step = ComparisonDisplayReader.ChooseStep(a.Width, a.Height);
+        var (pa, pb, dw, dh, mismatch) = await Task.Run(async () =>
         {
-            var (x, w, h) = ComparisonDisplayReader.ReadDecimated(a, step);
-            var (y, _, _) = ComparisonDisplayReader.ReadDecimated(b, step);
-            return (x, y, w, h);
-        });
-        if (gen != _generation) return;
+            // the preview is bound to the confirmed manifest: a file whose bytes differ from the recorded SHA-256 is not drawn
+            foreach (var (name, l) in new[] { ("A", a), ("B", b) })
+            {
+                var actual = await ComparisonDisplayReader.Sha256Async(l.Path, cancel);
+                if (!string.Equals(actual, l.Sha256, StringComparison.OrdinalIgnoreCase)) return (Array.Empty<double>(), Array.Empty<double>(), 0, 0, (string?)name);
+            }
+            var (x, w, h) = ComparisonDisplayReader.ReadDecimated(a, step, cancel);
+            var (y, _, _) = ComparisonDisplayReader.ReadDecimated(b, step, cancel);
+            return (x, y, w, h, (string?)null);
+        }, cancel);
+        cancel.ThrowIfCancellationRequested();
+        if (gen != _generation || _closed) return;
+        if (mismatch is not null) { _viewHint.Text = $"{mismatch} 출력 파일이 확인한 매니페스트의 SHA-256 과 다릅니다. 미리보기를 그리지 않았습니다. 다시 열기를 누르십시오."; return; }
         _pixelsA = pa; _pixelsB = pb; _displayWidth = dw; _displayHeight = dh; _step = step;
         double lo = double.PositiveInfinity, hi = double.NegativeInfinity;
         foreach (var arr in new[] { pa, pb })
@@ -411,20 +428,28 @@ public sealed class ComparisonImportWindow : Window
 
     private async Task ComputeAsync()
     {
-        if (_busy || _manifest is null || _backend is null || _validation?.Ok != true) return;
+        if (_busy || _snapshot is null || _backend is null || _validation?.Ok != true) return;
         var gen = _generation;
         var backend = _backend;
-        var manifestPath = _manifestPath.Text.Trim();
-        var outRoot = _outputRoot.Text.Trim();
+        var snapshot = _snapshot;
+        if (!snapshot.StillMatchesDisk(out var currentSha))
+        {
+            // same path, different bytes: a generation number cannot see this (Reviewer #252 F252-2)
+            Invalidate("매니페스트 파일이 열 때와 다릅니다.");
+            _verdict.Text = "거부 — 확인한 매니페스트와 지금 파일이 다릅니다. 통과가 아닙니다.";
+            _result.Text = $"거부: 열 때 SHA-256 {snapshot.Sha256}\n지금 SHA-256 {currentSha ?? "읽지 못함"}\n이전 미리보기·검증 결과를 지웠습니다. 다시 열기·검증을 누르십시오.";
+            return;
+        }
         SetBusy(true);
-        _cancel = new CancellationTokenSource();
+        var cts = new CancellationTokenSource();
+        _cancel = cts;
         _result.Text = "계산 중입니다(계약 스크립트 자식 프로세스). 원본 파일은 읽기만 합니다…";
         try
         {
-            var response = await backend.CompareAsync(manifestPath, outRoot, _cancel.Token);
-            if (gen != _generation) { _result.Text = ""; return; }   // other inputs were opened meanwhile: this answer describes the old ones and is not shown as current
+            var response = await backend.CompareAsync(snapshot, cts.Token);
+            if (gen != _generation || _closed) { if (!_closed) _result.Text = ""; return; }   // other inputs were opened meanwhile: this answer describes the old ones and is not shown as current
             UpdateReviewLine(response.Script);
-            var reviewed = ComparisonContractReview.IsReviewed(response.Script?.ScriptSha256);
+            var reviewed = response.Script?.Reviewed == true;
             var text = new System.Text.StringBuilder();
             if (!response.Ok)
             {
@@ -444,7 +469,7 @@ public sealed class ComparisonImportWindow : Window
                 {
                     var kind = res["validation"]?["comparison_kind"]?.GetValue<string>() ?? "?";
                     var attribution = res["validation"]?["algorithm_attribution"]?.GetValue<bool>() == true;
-                    text.AppendLine($"ROI 유효 화소 {res["valid_pixels"]}  ·  단위 {res["units"]}  ·  차이 = A − B  ·  종류 {kind}  ·  알고리즘 효과로 해석: {(attribution ? "예" : "아니오")}");
+                    text.AppendLine($"ROI 유효 화소 {res["valid_pixels"]}  ·  단위 {res["units"]}  ·  차이 = A − B  ·  종류 {kind}  ·  계약상 귀속 조건: {(attribution ? "충족(생산 이력·품질 확인 아님)" : "해당 없음(비귀속 라벨)")}");
                     text.AppendLine($"평균 {F(res["mean_a_minus_b"])}  표준편차(모집단) {F(res["std_a_minus_b"])}  RMSE {F(res["rmse"])}  평균 절댓값 {F(res["mean_abs"])}  최솟값 {F(res["min_a_minus_b"])}  최댓값 {F(res["max_a_minus_b"])}");
                     _state.Text = "상태: 가져온 파일의 수치 차이를 계산했습니다." + (reviewed ? "" : " 검토 안 된 계약의 답입니다.") + " 이것은 2G 실행도 화질 판정도 아닙니다.";
                 }
@@ -455,11 +480,12 @@ public sealed class ComparisonImportWindow : Window
                 }
                 text.AppendLine($"원본 파일 변경 없음: {(res["sources_unchanged"]?.GetValue<bool>() == true ? "예" : "아니오")}  ·  2G 실행됨: {(res["actual_2g_executed"]?.GetValue<bool>() == true ? "예" : "아니오")}  ·  화질 판정: 하지 않음");
                 text.AppendLine("저장 위치: " + response.RunDirectory);
+                text.AppendLine("확인한 매니페스트 SHA-256: " + snapshot.Sha256);
             }
             _result.Text = text.ToString();
         }
         catch (Exception e) { if (gen == _generation) { _result.Text = "실패: " + e.Message; _state.Text = "상태: 계산 실패. 통과가 아닙니다."; } }
-        finally { _cancel?.Dispose(); _cancel = null; SetBusy(false); }
+        finally { if (ReferenceEquals(_cancel, cts)) _cancel = null; cts.Dispose(); if (!_closed) SetBusy(false); }
     }
 
     private static string F(JsonNode? n) => n is JsonValue v && v.TryGetValue<double>(out var d) ? d.ToString("G10", CultureInfo.InvariantCulture) : "—";
