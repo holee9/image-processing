@@ -24,6 +24,10 @@ def _sha(p: Path) -> str:
 
 
 PRE_HEAD = "75c0043195e5afacf7d6b424bee32c063b9e99a0"
+IDENTITY_LAYOUT = {"origin": "top-left", "row_order": "top-to-bottom",
+                   "column_order": "left-to-right", "value_transform": "identity"}
+SETTINGS = {"offset": "applied", "gain": "applied", "defect": "not-applied",
+            "status": "verified", "source": "fixture run log"}
 
 
 class Fixture:
@@ -54,6 +58,7 @@ class Fixture:
             "endian": "little", "width": self.W, "height": self.H,
             "stride_bytes": self.W * 2, "offset_bytes": 0,
             "stage": "engine-direct", "units": "pixel value",
+            "layout": dict(IDENTITY_LAYOUT, status="verified", source="fixture writer"),
         }
 
     def manifest(self):
@@ -70,13 +75,15 @@ class Fixture:
                 "A": {"engine_id": "samsung-2g-x64w",
                       "engine_identity": {"dll_sha256": cm.OFFICIAL_2G_X64W_SHA256},
                       "execution": "imported-file", "input_sha256": in_sha,
-                      "maps": copy.deepcopy(maps), "output": self.output("a.raw")},
+                      "maps": copy.deepcopy(maps), "applied_settings": dict(SETTINGS),
+                      "output": self.output("a.raw")},
                 "B": {"engine_id": "new-pre",
                       "engine_identity": {
                           "source_head": PRE_HEAD,
                           "config_sha256": _sha(self.root / "pre-config.json")},
                       "execution": "imported-file", "input_sha256": in_sha,
-                      "maps": copy.deepcopy(maps), "output": self.output("b.raw")},
+                      "maps": copy.deepcopy(maps), "applied_settings": dict(SETTINGS),
+                      "output": self.output("b.raw")},
             },
             "roi": {"x": 0, "y": 0, "width": self.W, "height": self.H},
         }
@@ -276,6 +283,95 @@ class ValidatePairTests(Base):
         m = copy.deepcopy(self.fx.manifest())
         m["flip"] = True
         self.assertIn("UNSUPPORTED_FIELD", self.codes(m))
+
+    # --- F249-1: identity layout and applied settings must be verified ----
+
+    def test_layout_missing_or_unverified_blocks_common_condition(self):
+        cases = [None, dict(IDENTITY_LAYOUT, status="declared", source="readme"),
+                 dict(IDENTITY_LAYOUT, status="verified", source=""),
+                 dict(IDENTITY_LAYOUT, status="unknown", source=None)]
+        for lay in cases:
+            m = copy.deepcopy(self.m)
+            if lay is None:
+                m["engines"]["B"]["output"].pop("layout")
+            else:
+                m["engines"]["B"]["output"]["layout"] = lay
+            r = cm.validate_pair(m, self.root)
+            self.assertIn("LAYOUT_UNVERIFIED", r["reasons"], lay)
+            self.assertFalse(r["comparable"], lay)
+
+    def test_non_identity_layout_is_unsupported(self):
+        for k, v in (("row_order", "bottom-to-top"), ("column_order", "right-to-left"),
+                     ("value_transform", "scale-2"), ("origin", "bottom-left")):
+            m = copy.deepcopy(self.m)
+            m["engines"]["B"]["output"]["layout"][k] = v
+            self.assertIn("UNSUPPORTED_LAYOUT", self.codes(m), k)
+
+    def test_applied_settings_must_be_verified_and_equal(self):
+        m = copy.deepcopy(self.m)
+        m["engines"]["A"].pop("applied_settings")
+        self.assertIn("SETTINGS_UNVERIFIED", self.codes(m))
+        m = copy.deepcopy(self.m)
+        m["engines"]["B"]["applied_settings"]["status"] = "declared"
+        self.assertIn("SETTINGS_UNVERIFIED", self.codes(m))
+        m = copy.deepcopy(self.m)
+        m["engines"]["B"]["applied_settings"]["defect"] = "applied"
+        self.assertIn("SETTINGS_DIFFER", self.codes(m))
+        m = copy.deepcopy(self.m)
+        m["engines"]["B"]["applied_settings"]["gain"] = "unknown"
+        self.assertIn("SETTINGS_UNVERIFIED", self.codes(m))
+
+    def test_stored_array_difference_is_the_only_label_for_unverified_pairs(self):
+        self.m["engines"]["B"]["output"]["layout"]["status"] = "declared"
+        self.m["engines"]["B"]["applied_settings"]["status"] = "unknown"
+        self.m["comparison_kind"] = "stored-array-difference"
+        r = cm.validate_pair(self.m, self.root)
+        self.assertTrue(r["comparable"], r["reasons"])
+        self.assertEqual(r["comparison_kind"], "stored-array-difference")
+        self.assertFalse(r["algorithm_attribution"])
+        # the e2e label does not excuse an unverified layout
+        self.m["comparison_kind"] = "e2e-non-isolated"
+        self.assertFalse(cm.validate_pair(self.m, self.root)["comparable"])
+
+    def test_common_condition_reports_attribution_scope(self):
+        self.assertTrue(cm.validate_pair(self.m, self.root)["algorithm_attribution"])
+
+    # --- F249-2: nested undefined fields and wrong types ---------------------
+
+    def test_nested_undefined_fields_refused(self):
+        edits = [lambda m: m["roi"].__setitem__("origin", [100, 0]),
+                 lambda m: m["engines"]["B"]["maps"]["gain"].__setitem__("scale", 2.0),
+                 lambda m: m["engines"]["B"]["engine_identity"].__setitem__("flip_x", True),
+                 lambda m: m["input"]["correction_state"].__setitem__("unsupported_contract", True),
+                 lambda m: m["engines"]["A"]["output"]["layout"].__setitem__("rotation", 90),
+                 lambda m: m["engines"]["A"]["applied_settings"].__setitem__("lnr", "applied")]
+        for i, edit in enumerate(edits):
+            m = copy.deepcopy(self.m)
+            edit(m)
+            self.assertIn("UNSUPPORTED_FIELD", self.codes(m), i)
+
+    def test_wrong_nested_types_return_reasons_not_exceptions(self):
+        edits = [lambda m: m.__setitem__("roi", [0, 0, 4, 3]),
+                 lambda m: m["input"].__setitem__("correction_state", "verified"),
+                 lambda m: m["engines"]["B"].__setitem__("maps", ["gain.raw"]),
+                 lambda m: m["engines"]["B"]["maps"].__setitem__("gain", "gain.raw"),
+                 lambda m: m["engines"]["A"].__setitem__("engine_identity", "bb03"),
+                 lambda m: m["engines"]["A"]["output"].__setitem__("layout", "identity"),
+                 lambda m: m["engines"].__setitem__("B", "new-pre"),
+                 lambda m: m.__setitem__("engines", []),
+                 lambda m: m["roi"].__setitem__("x", 1.5),
+                 lambda m: m["roi"].__setitem__("x", False)]   # bool is not an index
+        for i, edit in enumerate(edits):
+            m = copy.deepcopy(self.m)
+            edit(m)
+            r = cm.validate_pair(m, self.root)
+            self.assertFalse(r["comparable"], i)
+            self.assertTrue(r["reasons"], i)
+
+    def test_free_form_record_fields_are_not_contract(self):
+        self.m["note"] = {"anything": [1, 2]}
+        self.m["calibration_burden"] = {"x": {"value": 1, "status": "unknown", "source": None}}
+        self.assertTrue(cm.validate_pair(self.m, self.root)["comparable"])
 
 
 class CompareRawPairTests(Base):

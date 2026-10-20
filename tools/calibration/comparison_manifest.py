@@ -1,7 +1,9 @@
 """Two-engine output comparison: contract validation and raw numeric difference.
 
 Refs #278 (Task 1 of docs/superpowers/plans/2026-10-20-pre-comparison-workbench.md
-in the xpe-pre worktree). Contract revision 2 addresses Reviewer #248 F248-1..5.
+in the xpe-pre worktree). Revision 2 addresses Reviewer #248 F248-1..5; revision 3
+addresses #249 F249-1 (verified identity layout and applied settings) and F249-2
+(undefined fields refused in nested objects, malformed shapes become reasons).
 
 Scope is exactly two engines: A = official Samsung 2G SDSDK 2.3.0 B03 X64W,
 B = new PRE. This module only reads files that already exist. It never loads a
@@ -14,8 +16,14 @@ Fail-closed rules:
 - Fields this schema does not define (origin, spacing, scale, pedestal, crop,
   ...) are refused rather than ignored. Values are compared exactly as stored.
 - Both outputs must use the same dtype; no signedness reinterpretation.
-- Map equivalence is byte-identical files only. Different maps are allowed only
-  as an explicitly labelled non-isolated end-to-end comparison.
+- Only the identity layout (top-left origin, top-to-bottom rows, left-to-right
+  columns, identity value transform) is supported, and it must be verified with a
+  source on both outputs. Applied offset/gain/defect settings must be verified and
+  equal for a common-condition comparison.
+- Map equivalence is byte-identical files only. Different maps or settings are
+  allowed only under the explicit e2e-non-isolated label. Unverified layout is
+  allowed only under stored-array-difference, which never attributes the
+  difference to an algorithm.
 - Any nonfinite value in the ROI refuses the comparison.
 
 CLI:
@@ -35,7 +43,7 @@ from pathlib import Path
 
 import numpy as np
 
-SCHEMA = "xpe-2g-pre-comparison/2"
+SCHEMA = "xpe-2g-pre-comparison/3"
 # Exact reference binary recorded in PRE-2G-COMPARE-20261020/coordination.md.
 OFFICIAL_2G_X64W_SHA256 = "bb03a668990914827e3304774c6a08d4fd03c5b13640c7f7a682820a3e7819f0"
 ENGINE_IDS = {"A": "samsung-2g-x64w", "B": "new-pre"}
@@ -45,17 +53,31 @@ ALLOWED_EXECUTION = {"imported-file"}
 ALLOWED_STAGES = {"engine-direct", "postprocessed"}
 ALLOWED_UNITS = {"pixel value"}
 ALLOWED_CORRECTION = {"uncorrected", "offset-corrected"}
+# Only the identity layout is supported: stored arrays are compared index by index.
+IDENTITY_LAYOUT = {"origin": "top-left", "row_order": "top-to-bottom",
+                   "column_order": "left-to-right", "value_transform": "identity"}
+SETTING_STEPS = ("offset", "gain", "defect")
+SETTING_VALUES = {"applied", "not-applied"}
 COMMON_KIND = "common-condition"
 E2E_KIND = "e2e-non-isolated"
+STORED_KIND = "stored-array-difference"
 UNKNOWN_TOKENS = {"", "unknown", "none", "null", "n/a"}
 ROW_CHUNK = 256  # rows per streaming block
 
+# Contract objects: every key is defined; undefined keys are refused at every level.
+# "note" and "calibration_burden" are free-form records and never part of a verdict.
 TOP_KEYS = {"schema", "input", "engines", "roi", "comparison_kind", "calibration_burden", "note"}
 INPUT_KEYS = {"path", "sha256", "correction_state", "mode", "width", "height"}
+CORRECTION_KEYS = {"value", "status", "source"}
 ENGINE_KEYS = {"engine_id", "engine_identity", "execution", "input_sha256", "mode",
-               "maps", "maps_not_applied_reason", "output", "note"}
+               "maps", "maps_not_applied_reason", "applied_settings", "output", "note"}
+IDENTITY_KEYS = {"A": {"dll_sha256"}, "B": {"source_head", "config_sha256"}}
+MAP_KEYS = {"path", "sha256"}
+SETTINGS_KEYS = set(SETTING_STEPS) | {"status", "source"}
 OUTPUT_KEYS = {"path", "sha256", "dtype", "endian", "width", "height",
-               "stride_bytes", "offset_bytes", "stage", "units"}
+               "stride_bytes", "offset_bytes", "stage", "units", "layout"}
+LAYOUT_KEYS = set(IDENTITY_LAYOUT) | {"status", "source"}
+ROI_KEYS = {"x", "y", "width", "height"}
 _HEX40 = re.compile(r"[0-9a-f]{40}")
 _HEX64 = re.compile(r"[0-9a-f]{64}")
 
@@ -72,8 +94,18 @@ def _known(v) -> bool:
     return isinstance(v, str) and v.strip().lower() not in UNKNOWN_TOKENS
 
 
-def _resolve(base_dir: Path, rel: str) -> Path | None:
-    """Resolve rel under base_dir; None if it escapes the base directory."""
+def _int(v) -> bool:
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def _verified(d: dict) -> bool:
+    return d.get("status") == "verified" and _known(d.get("source"))
+
+
+def _resolve(base_dir: Path, rel) -> Path | None:
+    """Resolve rel under base_dir; None if it escapes the base directory or is not a path."""
+    if not isinstance(rel, str) or not rel:
+        return None
     base = base_dir.resolve()
     p = (base / rel).resolve()
     try:
@@ -83,14 +115,19 @@ def _resolve(base_dir: Path, rel: str) -> Path | None:
     return p
 
 
-def _check_keys(d, allowed: set, reasons: list) -> None:
-    if not isinstance(d, dict) or set(d) - allowed:
+def _obj(d, allowed: set, reasons: list) -> dict:
+    """Return d if it is a dict with only allowed keys; otherwise record and return {}."""
+    if not isinstance(d, dict):
         reasons.append("UNSUPPORTED_FIELD")
+        return {}
+    if set(d) - allowed:
+        reasons.append("UNSUPPORTED_FIELD")
+    return d
 
 
 def _check_file(entry: dict, base_dir: Path, reasons: list) -> str | None:
-    rel = entry.get("path") if isinstance(entry, dict) else None
-    if not rel:
+    rel = entry.get("path")
+    if not isinstance(rel, str) or not rel:
         reasons.append("MISSING_FILE")
         return None
     p = _resolve(base_dir, rel)
@@ -107,18 +144,23 @@ def _check_file(entry: dict, base_dir: Path, reasons: list) -> str | None:
 
 
 def _check_output(out: dict, base_dir: Path, reasons: list) -> None:
-    _check_keys(out, OUTPUT_KEYS, reasons)
     if out.get("stage") not in ALLOWED_STAGES:
         reasons.append("UNSUPPORTED_STAGE")
     if out.get("units") not in ALLOWED_UNITS:
         reasons.append("UNSUPPORTED_UNITS")
+    lay = _obj(out.get("layout"), LAYOUT_KEYS, reasons) if "layout" in out else {}
+    if any(lay.get(k) != v for k, v in IDENTITY_LAYOUT.items()) and \
+            all(_known(lay.get(k)) for k in IDENTITY_LAYOUT):
+        reasons.append("UNSUPPORTED_LAYOUT")
+    if not lay or not _verified(lay) or any(lay.get(k) != v for k, v in IDENTITY_LAYOUT.items()):
+        reasons.append("LAYOUT_UNVERIFIED")
     if out.get("dtype") not in DTYPES:
         reasons.append("UNSUPPORTED_DTYPE")
         return
     if out.get("endian") != "little":
         reasons.append("UNSUPPORTED_ENDIAN")
     w, h = out.get("width"), out.get("height")
-    if not (isinstance(w, int) and isinstance(h, int) and w > 0 and h > 0):
+    if not (_int(w) and _int(h) and w > 0 and h > 0):
         reasons.append("GEOMETRY_MISMATCH")
         return
     item = np.dtype(DTYPES[out["dtype"]]).itemsize
@@ -126,16 +168,15 @@ def _check_output(out: dict, base_dir: Path, reasons: list) -> None:
     if out.get("stride_bytes") != w * item:
         reasons.append("UNSUPPORTED_STRIDE")
     off = out.get("offset_bytes", 0)
-    if not isinstance(off, int) or off < 0:
+    if not _int(off) or off < 0:
         reasons.append("UNSUPPORTED_FIELD")
         return
-    p = _resolve(base_dir, out.get("path", ""))
+    p = _resolve(base_dir, out.get("path"))
     if p is not None and p.is_file() and p.stat().st_size != off + w * h * item:
         reasons.append("FILE_SIZE_MISMATCH")
 
 
-def _check_identity(key: str, ident, reasons: list) -> None:
-    ident = ident if isinstance(ident, dict) else {}
+def _check_identity(key: str, ident: dict, reasons: list) -> None:
     if key == "A":
         ok = ident.get("dll_sha256") == OFFICIAL_2G_X64W_SHA256
     else:
@@ -145,56 +186,76 @@ def _check_identity(key: str, ident, reasons: list) -> None:
         reasons.append("ENGINE_IDENTITY_MISMATCH")
 
 
+def _settings(e: dict, reasons: list) -> dict | None:
+    """Verified applied-correction settings, or None (recorded as SETTINGS_UNVERIFIED)."""
+    s = _obj(e.get("applied_settings"), SETTINGS_KEYS, reasons) if "applied_settings" in e else {}
+    if not s or not _verified(s) or any(s.get(k) not in SETTING_VALUES for k in SETTING_STEPS):
+        reasons.append("SETTINGS_UNVERIFIED")
+        return None
+    return {k: s[k] for k in SETTING_STEPS}
+
+
 def validate_pair(manifest: dict, base_dir: Path) -> dict:
-    """Return comparability, reason codes, blockers and observed file identities."""
+    """Return comparability, reason codes, blockers and observed file identities.
+
+    Never raises on malformed manifests: shape errors become reason codes.
+    """
     base_dir = Path(base_dir)
     reasons: list[str] = []
     identities: dict[str, str | None] = {}
 
-    _check_keys(manifest, TOP_KEYS, reasons)
+    manifest = _obj(manifest, TOP_KEYS, reasons)
     if manifest.get("schema") != SCHEMA:
         reasons.append("SCHEMA_MISMATCH")
 
-    inp = manifest.get("input") or {}
-    _check_keys(inp, INPUT_KEYS, reasons)
+    inp = _obj(manifest.get("input"), INPUT_KEYS, reasons)
     identities["input"] = _check_file(inp, base_dir, reasons)
-    cs = inp.get("correction_state") if isinstance(inp.get("correction_state"), dict) else {}
+    cs = _obj(inp.get("correction_state"), CORRECTION_KEYS, reasons)
     # Only a verified, known, sourced correction state counts.
-    if cs.get("status") != "verified" or cs.get("value") not in ALLOWED_CORRECTION \
-            or not _known(cs.get("source")):
+    if not _verified(cs) or cs.get("value") not in ALLOWED_CORRECTION:
         reasons.append("CORRECTION_STATE_UNVERIFIED")
     if not _known(inp.get("mode")):
         reasons.append("MODE_MISSING")
 
-    engines = manifest.get("engines") or {}
-    if set(engines) != {"A", "B"}:
+    engines = manifest.get("engines")
+    if not isinstance(engines, dict) or set(engines) != {"A", "B"}:
         reasons.append("ENGINE_OUT_OF_SCOPE")
+        engines = engines if isinstance(engines, dict) else {}
+    parsed: dict[str, dict] = {}
+    settings: dict[str, dict | None] = {}
     for key, expected_id in ENGINE_IDS.items():
-        e = engines.get(key)
-        if not isinstance(e, dict):
+        e = _obj(engines.get(key), ENGINE_KEYS, reasons)
+        if not e:
             continue
-        _check_keys(e, ENGINE_KEYS, reasons)
         if e.get("engine_id") != expected_id:
             reasons.append("ENGINE_OUT_OF_SCOPE")
         if e.get("execution") not in ALLOWED_EXECUTION:
             reasons.append("LIVE_EXECUTION_NOT_AUTHORIZED")
-        _check_identity(key, e.get("engine_identity"), reasons)
+        _check_identity(key, _obj(e.get("engine_identity"), IDENTITY_KEYS[key], reasons), reasons)
         # Each output must name the input it was produced from (F248-2).
         if e.get("input_sha256") != inp.get("sha256") or not inp.get("sha256"):
             reasons.append("INPUT_LINK_MISMATCH")
         if "mode" in e and e["mode"] != inp.get("mode"):
             reasons.append("MODE_MISMATCH")
-        out = e.get("output") or {}
+        out = _obj(e.get("output"), OUTPUT_KEYS, reasons)
         identities[f"{key}.output"] = _check_file(out, base_dir, reasons)
         _check_output(out, base_dir, reasons)
-        maps = e.get("maps") or {}
+        maps = e.get("maps", {})
+        if not isinstance(maps, dict):
+            reasons.append("UNSUPPORTED_FIELD")
+            maps = {}
         if not maps and not _known(e.get("maps_not_applied_reason")):
             reasons.append("MAPS_UNDECLARED")
+        map_sha = {}
         for name, m in sorted(maps.items()):
+            m = _obj(m, MAP_KEYS, reasons)
             identities[f"{key}.map.{name}"] = _check_file(m, base_dir, reasons)
+            map_sha[name] = m.get("sha256")
+        settings[key] = _settings(e, reasons)
+        parsed[key] = {"out": out, "maps": map_sha}
 
-    a, b = engines.get("A") or {}, engines.get("B") or {}
-    oa, ob = a.get("output") or {}, b.get("output") or {}
+    oa = parsed.get("A", {}).get("out", {})
+    ob = parsed.get("B", {}).get("out", {})
     if (oa.get("width"), oa.get("height")) != (ob.get("width"), ob.get("height")) or \
             (oa.get("width"), oa.get("height")) != (inp.get("width"), inp.get("height")):
         reasons.append("GEOMETRY_MISMATCH")
@@ -204,31 +265,45 @@ def validate_pair(manifest: dict, base_dir: Path) -> dict:
         reasons.append("STAGE_MISMATCH")
     if oa.get("units") != ob.get("units"):
         reasons.append("UNITS_MISMATCH")
+    if settings.get("A") and settings.get("B") and settings["A"] != settings["B"]:
+        reasons.append("SETTINGS_DIFFER")
 
     kind = manifest.get("comparison_kind", COMMON_KIND)
-    if kind not in (COMMON_KIND, E2E_KIND):
+    if kind not in (COMMON_KIND, E2E_KIND, STORED_KIND):
         reasons.append("UNKNOWN_COMPARISON_KIND")
-    map_sha = lambda e: {k: (v or {}).get("sha256") for k, v in (e.get("maps") or {}).items()}  # noqa: E731
-    if map_sha(a) != map_sha(b):
-        # Different maps cannot isolate the algorithm; allowed only when labelled E2E.
+    if parsed.get("A", {}).get("maps") != parsed.get("B", {}).get("maps"):
+        # Different maps cannot isolate the algorithm.
         reasons.append("MAP_IDENTITY_DIFFERS")
 
-    roi = manifest.get("roi") or {}
+    roi = _obj(manifest.get("roi"), ROI_KEYS, reasons)
     w, h = oa.get("width"), oa.get("height")
-    try:
-        x, y, rw, rh = (roi[k] for k in ("x", "y", "width", "height"))
-        if not all(isinstance(v, int) for v in (x, y, rw, rh, w, h)) or x < 0 or y < 0 or \
-                rw <= 0 or rh <= 0 or x + rw > w or y + rh > h:
-            reasons.append("INVALID_ROI")
-    except (KeyError, TypeError):
+    vals = [roi.get(k) for k in ("x", "y", "width", "height")]
+    if not all(_int(v) for v in vals + [w, h]):
         reasons.append("INVALID_ROI")
+    else:
+        x, y, rw, rh = vals
+        if x < 0 or y < 0 or rw <= 0 or rh <= 0 or x + rw > w or y + rh > h:
+            reasons.append("INVALID_ROI")
 
     reasons = list(dict.fromkeys(reasons))
-    blocking = [r for r in reasons if not (r == "MAP_IDENTITY_DIFFERS" and kind == E2E_KIND)]
+    # What each label tolerates. Common-condition tolerates nothing. The E2E label
+    # tolerates differing maps/settings but still needs a verified identity layout.
+    # The stored-array label is a pure index-by-index numeric difference with no
+    # attribution to algorithms, so it tolerates unverified layout/settings/maps.
+    tolerated = {
+        COMMON_KIND: set(),
+        E2E_KIND: {"MAP_IDENTITY_DIFFERS", "SETTINGS_DIFFER", "SETTINGS_UNVERIFIED"},
+        STORED_KIND: {"MAP_IDENTITY_DIFFERS", "SETTINGS_DIFFER", "SETTINGS_UNVERIFIED",
+                      "LAYOUT_UNVERIFIED"},
+    }.get(kind, set())
+    blocking = [r for r in reasons if r not in tolerated]
+    ok = not blocking
     return {
-        "comparable": not blocking,
-        "comparison_kind": kind if not blocking else "not-comparable",
+        "comparable": ok,
+        "comparison_kind": kind if ok else "not-comparable",
+        "algorithm_attribution": ok and kind == COMMON_KIND,
         "map_equivalence": "byte-identical-only",
+        "layout_supported": "identity-only",
         "reasons": reasons,
         "blockers": ["VENDOR_LIVE_BLOCKED"],
         "actual_2g_executed": False,
