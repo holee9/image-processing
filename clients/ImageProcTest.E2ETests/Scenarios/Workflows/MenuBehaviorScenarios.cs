@@ -184,16 +184,25 @@ public sealed class MenuBehaviorScenarios(Wrist1024SliceApplicationFixture app, 
                 var version = backend.Groups["v"].Value.Trim();
                 Assert.NotEqual("unknown", version);
 
-                // The same version as the status bar's runtime summary (a separate element bound to the same backend report) and, for Native, a real one.
+                // About labels RuntimeInfo.Version as "xpe_display <version>" on Native.
+                // The status bar now gives common and display their own module-version fields.
                 var summary = Text(window, "RuntimeCommonVersionText");
-                Assert.Contains(version, summary, StringComparison.Ordinal);
+                output.WriteLine($"A-01 status runtime: {summary}");
                 if (app.BackendMode == "Native")
                 {
+                    var fields = summary.Split('|').Select(field => field.Trim()).ToArray();
+                    Assert.Contains("mode=Native", fields); // a fallback cannot satisfy the comparison
+                    var displayField = Assert.Single(fields.Where(field => field.StartsWith("display=", StringComparison.Ordinal)));
+                    var displayVersion = displayField["display=".Length..];
+                    Assert.Matches(@"^\d+\.\d+\.\d+$", displayVersion);
+                    Assert.Equal($"xpe_display {displayVersion}", version);
+                    var commonField = Assert.Single(fields.Where(field => field.StartsWith("common=", StringComparison.Ordinal)));
+                    Assert.Matches(@"^common=\d+\.\d+\.\d+$", commonField);
                     Assert.DoesNotContain("mock", version, StringComparison.OrdinalIgnoreCase);
-                    Assert.Matches(@"\d+\.\d+\.\d+", version);
                 }
                 else
                 {
+                    Assert.Contains(version, summary, StringComparison.Ordinal);
                     Assert.Contains("mock", version, StringComparison.OrdinalIgnoreCase);
                 }
 

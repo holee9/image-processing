@@ -44,10 +44,10 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// interpolated string (e.g. <c>AddLog(settings.P.ToString())</c>) is NOT distinguished — it would count
 /// as processing. No such read exists in the entry points today.</para>
 ///
-/// <para><b>Mock is not a processing path here.</b> <c>MockXpeBackend</c> simulates the seven calibration
-/// modes on its synthetic pixels (<c>CreateMockCalibrationPixels</c>); the Real backend has no
-/// counterpart, which is the finding #182 records. Counting the simulator would mark the modes connected
-/// on the backend that has no such processing.</para>
+/// <para><b>Mock is not a processing path here.</b> The Real backend now passes Offset/Gain/Defect
+/// modes into native map selection and bypass configuration (#278). Ghost/temperature/nonlinearity/binning
+/// remain unconnected on the Real path, even though Mock can simulate them. Counting the simulator
+/// would incorrectly declare those four modes connected.</para>
 /// </summary>
 [Trait("Category", "Functional")]
 public sealed class SettingsProcessingConnectionTests
@@ -78,14 +78,18 @@ public sealed class SettingsProcessingConnectionTests
     internal static readonly string[] SummaryHelpers = ["BuildCalibrationEvaluationSummary"];
 
     /// <summary>
-    /// Declared unconnected (#182). Each must be bound, must not be read by processing, and every
-    /// control bound to it must be disabled.
+    /// Calibration modes passed to native map selection and bypass configuration (#278).
     /// </summary>
-    internal static readonly string[] Unconnected =
+    internal static readonly string[] ConnectedCalibration =
     [
         nameof(AppSettings.OffsetCorrectionMode),
         nameof(AppSettings.GainCorrectionMode),
         nameof(AppSettings.DefectCorrectionMode),
+    ];
+
+    /// <summary>Declared unconnected (#182): bound, unread by Real processing, and disabled.</summary>
+    internal static readonly string[] Unconnected =
+    [
         nameof(AppSettings.GhostCorrectionMode),
         nameof(AppSettings.TemperatureCompensationMode),
         nameof(AppSettings.NonlinearityCorrectionMode),
@@ -301,7 +305,10 @@ public sealed class SettingsProcessingConnectionTests
             Assert.Contains(survey.Bindings, b => b.Property == added);
         }
 
-        Assert.Equal(21, survey.Bindings.Count(b => Unconnected.Take(7).Contains(b.Property)));
+        Assert.Equal(9, survey.Bindings.Count(b => ConnectedCalibration.Contains(b.Property)));
+        Assert.Equal(12, survey.Bindings.Count(b => Unconnected.Where(p => p != nameof(AppSettings.FocusMode)).Contains(b.Property)));
+        foreach (var property in ConnectedCalibration)
+            Assert.All(survey.Bindings.Where(b => b.Property == property), b => Assert.True(b.Writable && !b.Disabled));
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBGsvgDenoiseK) && b.Via == "LaneBGsvgDenoiseK" && b.Writable);
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneAAlgorithm) && b.Writable);
         // GUI-C-233j: the Reference/Candidate tags on the lane pictures used to bind LaneAAlgorithm one-way (the setting). They describe what was DRAWN, so they read the render record
@@ -336,10 +343,12 @@ public sealed class SettingsProcessingConnectionTests
                      nameof(AppSettings.GsvgIterations), nameof(AppSettings.GsvgTablePath),
                      nameof(AppSettings.GsvgPyramidLevels), nameof(AppSettings.GsvgPyramidGain),
                      nameof(AppSettings.GsvgDenoiseK),
-                 })
+                 }.Concat(ConnectedCalibration))
         {
             Assert.Contains(p, reads);
         }
+        foreach (var mode in Unconnected.Where(p => p != nameof(AppSettings.FocusMode)))
+            Assert.DoesNotContain(mode, reads);
     }
 
     /// <summary>
@@ -379,8 +388,8 @@ public sealed class SettingsProcessingConnectionTests
     }
 
     /// <summary>
-    /// Control: a text search that follows the summary helper and keeps string literals counts all seven
-    /// calibration modes as processed — the reading #182 rejects. The real analysis must not.
+    /// Control: a text search counts the four unsupported modes from summary text as processing.
+    /// The real analysis must exclude these while finding the three native-connected modes.
     /// </summary>
     [Fact]
     public void Control_NaiveSearch_CountsTheSummaryAsProcessing()
@@ -388,7 +397,7 @@ public sealed class SettingsProcessingConnectionTests
         var naive = ProcessingAnalysis.Run(followSummaries: true, stripStrings: false).Reads;
         var real = ProcessingAnalysis.Run(followSummaries: false, stripStrings: true).Reads;
 
-        foreach (var mode in Unconnected.Take(7))
+        foreach (var mode in Unconnected.Where(p => p != nameof(AppSettings.FocusMode)))
         {
             Assert.Contains(mode, naive);
             Assert.DoesNotContain(mode, real);

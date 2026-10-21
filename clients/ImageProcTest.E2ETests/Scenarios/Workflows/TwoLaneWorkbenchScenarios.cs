@@ -260,14 +260,21 @@ public sealed class TwoLaneWorkbenchScenarios(WorkflowApplicationFixture app, IT
             var chainText = TextOf("ChainStatusText");
             var preprocess = System.Text.RegularExpressions.Regex.Match(chainText, @"preprocess=(\w+)").Groups[1].Value;
             Assert.NotEqual("NotRequested", preprocess);   // the default settings request preprocessing (U3)
+            string SkipReason()
+            {
+                var reason = System.Text.RegularExpressions.Regex.Match(chainText,
+                    @"preprocess: (?<short>[^:|]+):");
+                Assert.True(reason.Success, $"Skipped preprocessing has no explicit short reason: {chainText}");
+                return reason.Groups["short"].Value.Trim();
+            }
             var expectedHud = preprocess switch
             {
-                "Applied" or "AppliedNoChange" => "3 stages (offset · gain · defect)",
-                "Skipped" => "not run",
-                "RequestedNotApplied" => "failed",
-                _ => "(unknown chain status: " + chainText + ")",
+                "Applied" or "AppliedNoChange" => "Calib:  3 native stages (offset · gain · defect)",
+                "Skipped" => $"Calib:  not run ({SkipReason()})",
+                "RequestedNotApplied" => "Calib:  failed",
+                _ => throw new InvalidOperationException("Unknown preprocessing status: " + chainText),
             };
-            Assert.Contains(expectedHud, TextOf("HudCalibStages"));
+            Assert.Equal(expectedHud, TextOf("HudCalibStages"));
 
             UiaMenu.Open(window, "BackendMenu");
             Thread.Sleep(350);

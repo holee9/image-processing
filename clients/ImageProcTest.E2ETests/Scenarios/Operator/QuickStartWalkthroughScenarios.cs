@@ -432,13 +432,13 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var status = app.Read("StatusBarText");
         output.WriteLine($"   chain: {chain}");
         output.WriteLine($"   HUD: '{hud}'");
-        Assert.Contains("3 stages (offset · gain · defect)", hud, StringComparison.Ordinal);
+        Assert.Equal("Calib:  3 native stages (offset · gain · defect)", hud);
         Assert.Contains("Exposure index: uncalibrated EI", status, StringComparison.Ordinal);
     }
 
     /// <summary>
     /// GUI-C-234b (U3): with NO calibration data the default chain does not silently leave the preprocess out. It is skipped with its reason: the chain line says <c>preprocess=Skipped</c>, the HUD says
-    /// <c>not run (no calibration data)</c> - not "failed" - and the exposure-index text gives the same reason. No calibration folder is given and the settings file is the test's own empty one.
+    /// <c>not run (no selected calibration)</c> - not "failed" - and the exposure-index text gives the same reason. Auto selects no absent maps; the warning remains visible. No calibration folder is given.
     /// </summary>
     [EnvGatedFact]
     public void W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed()
@@ -457,10 +457,16 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var status = app.Read("StatusBarText");
         output.WriteLine($"   chain: {chain}");
         output.WriteLine($"   HUD: '{hud}'");
-        Assert.Contains("not run (no calibration data)", hud, StringComparison.Ordinal);
+        Assert.Equal("Calib:  not run (no selected calibration)", hud);
         Assert.DoesNotContain("failed", hud, StringComparison.Ordinal);
-        Assert.Contains("preprocessing did not run: no calibration data", status, StringComparison.Ordinal);
-        Assert.Contains("no calibration data", chain, StringComparison.Ordinal);   // the status line carries the reason too
+        Assert.Contains("preprocess=Skipped", chain, StringComparison.Ordinal);
+        Assert.DoesNotContain("preprocess=RequestedNotApplied", chain, StringComparison.Ordinal);
+        Assert.Contains("no selected calibration: all stages Off or Auto without maps; executed=[]; input kept",
+            chain, StringComparison.Ordinal);
+        Assert.Contains("Exposure index: not measured (preprocessing did not run: no selected calibration).",
+            status, StringComparison.Ordinal);
+        Assert.Equal("NOT CORRECTED - preprocessing is on but was skipped (no selected calibration). Load calibration data and apply again.",
+            app.Read("PreprocessSkippedIndicator"));
     }
 
     /// <summary>
@@ -515,7 +521,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var picture = Env("XPE_C247_PICTURE");
         if (picture is not null) output.WriteLine("   picture: " + app.SaveWindowPicture(picture));
 
-        Assert.Contains("3 stages (offset · gain · defect)", hud, StringComparison.Ordinal);
+        Assert.Equal("Calib:  3 native stages (offset · gain · defect)", hud);
         Assert.NotEmpty(stageLines);
         Assert.Matches(@"offset.*gain.*defect", stageLines[0]);
         Assert.DoesNotContain("failed", chain, StringComparison.OrdinalIgnoreCase);
