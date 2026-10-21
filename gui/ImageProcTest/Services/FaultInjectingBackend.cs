@@ -27,10 +27,12 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
     private readonly int? _displayDelayMs;
     private int _calls;
     private int _statusReads;
+    private readonly FaultDelayRecorder? _delayLog;   // QA-A-279c: null unless XPE_TEST_FAULT_LOG names a path; then every injected sleep is recorded (observation only)
 
     private FaultInjectingBackend(IXpeBackend inner, int? failAfter, bool aiWorkerDisabled, int? aiWorkerSilentAfter, int? displayDelayMs)
     {
         _displayDelayMs = displayDelayMs;
+        _delayLog = displayDelayMs is null ? null : FaultDelayRecorder.TryCreate(displayDelayMs.Value, () => Volatile.Read(ref _calls));
         _inner = inner;
         _displayFault = failAfter is not null;
         _failAfter = failAfter ?? int.MaxValue;
@@ -66,28 +68,44 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ChainResult chain, AppSettings settings)
     {
-        CountAndMaybeFail();
-        DelayIfArmed();
+        var call = CountAndMaybeFail();
+        DelayIfArmed(call, FaultDelayLog.ChainOverload);
         return _inner.ApplyDisplayPipeline(rawFrame, chain, settings);
     }
 
     public LoadedImageFrame ApplyDisplayPipeline(LoadedImageFrame rawFrame, ushort[] displayInput, AppSettings settings)
     {
-        CountAndMaybeFail();
-        DelayIfArmed();
+        var call = CountAndMaybeFail();
+        DelayIfArmed(call, FaultDelayLog.DisplayInputOverload);
         return _inner.ApplyDisplayPipeline(rawFrame, displayInput, settings);
     }
 
     /// <summary>GUI-C-245: <c>display-delay:MS</c> - the display pipeline starts MS milliseconds late, so the picture it produces reaches the viewport (and the screen) that much later.</summary>
-    private void DelayIfArmed()
+    private void DelayIfArmed(int call, string overload)
     {
         if (_displayDelayMs is > 0)
         {
-            Thread.Sleep(_displayDelayMs.Value);
+            var log = _delayLog;
+            if (log is null)
+            {
+                Thread.Sleep(_displayDelayMs.Value);
+                return;
+            }
+
+            // QA-A-279c: the recorder never throws and the sleep is the same one, whether or not it is recorded.
+            var slot = log.Begin(call, overload, _displayDelayMs.Value);
+            try
+            {
+                Thread.Sleep(_displayDelayMs.Value);
+            }
+            finally
+            {
+                log.End(slot);
+            }
         }
     }
 
-    private void CountAndMaybeFail()
+    private int CountAndMaybeFail()
     {
         var call = Interlocked.Increment(ref _calls);
         if (call > _failAfter)
@@ -96,6 +114,8 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
                 $"FAULT INJECTION: display pipeline call {call} failed on purpose " +
                 $"(--automation-fault {AutomationArgs.DisplayPipelineFaultPrefix}{_failAfter}).");
         }
+
+        return call;
     }
 
     public BackendRuntimeInfo Initialize(AppSettings settings) => _inner.Initialize(settings);
@@ -145,6 +165,10 @@ public sealed class FaultInjectingBackend : IXpeBackend, IAiSessionBackend
 
     public BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
 
-    public void Shutdown() => _inner.Shutdown();
+    public void Shutdown()
+    {
+        _delayLog?.Export("Shutdown");   // QA-A-279c: observation is over when the app shuts down; the export never throws and the inner shutdown follows unchanged
+        _inner.Shutdown();
+    }
 }
 #endif

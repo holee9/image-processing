@@ -6,6 +6,7 @@ using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Definitions;
 using FlaUI.UIA3;
+using ImageProcTest.Services;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -1107,7 +1108,14 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
     }
 
     /// <summary>One open as measured: the app's proxy value and, when the SCREEN observation of that open is valid, the screen value (no later than) and the time before which the picture was not yet there.</summary>
-    private sealed record OpenMeasurement(int Proxy, double? ScreenMs, double? EarliestMs);
+    private sealed record OpenMeasurement(int Proxy, double? ScreenMs, double? EarliestMs)
+    {
+        /// <summary>QA-A-279c: the stages of the app's timing line and the window this test watched for the open. Observation only; nothing asserts on it.</summary>
+        public OpenDetail? Detail { get; init; }
+    }
+
+    /// <summary>QA-A-279c: <paramref name="WindowStartTicks"/> is taken once the screen poller has started (just before the dialog is confirmed), <paramref name="WindowEndTicks"/> when the test sees the app's timing line - both on this process's <see cref="System.Diagnostics.Stopwatch"/>. The window is wider than the app's own proxy interval.</summary>
+    private sealed record OpenDetail(int Read, int Prepare, int ChainAndDisplay, int Ui, int Render, string StageTimes, long WindowStartTicks, long WindowEndTicks);
 
     private void PrintMeasurements(List<OpenMeasurement> rows)
     {
@@ -1161,17 +1169,19 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         output.WriteLine($"   [{tag}] watched area (screen pixels): {area}");
         SelectCompareMode(app, modeItemId);   // the default: the picture on screen is the processed one alone (U8); GUI-C-246: W15c measures the other mode the same way
 
-        var taken = new List<(int Proxy, IReadOnlyList<ScreenSample> Samples, long StartedAt)>();
+        var taken = new List<(int Proxy, IReadOnlyList<ScreenSample> Samples, long StartedAt, OpenDetail? Detail)>();
         for (var i = 1; i <= opens; i++)
         {
             ScreenPoller.RaiseWithoutFocus(app.WindowHandle);
             ScreenPoller? poller = null;
+            long windowStartTicks = 0;
             app.Menu("FileMenu");
-            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1", beforeConfirm: () => poller = ScreenPoller.Start(app.WindowHandle, area));
+            app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1", beforeConfirm: () => { poller = ScreenPoller.Start(app.WindowHandle, area); windowStartTicks = System.Diagnostics.Stopwatch.GetTimestamp(); });
             Assert.NotNull(poller);
             var prefix = $"open-to-2nd-tick (proxy) #{i}:";
             app.WaitFor(() => app.Read("FrameTimingText").StartsWith(prefix, StringComparison.Ordinal), $"the app wrote '{prefix}'", 120);
-            Thread.Sleep(1200);                                          // the picture stays on screen: the end of the observation is a settled screen, not the moment the line appeared
+            var windowEndTicks = System.Diagnostics.Stopwatch.GetTimestamp();
+            Thread.Sleep(1200);                                         // the picture stays on screen: the end of the observation is a settled screen, not the moment the line appeared
             var samples = poller!.Stop(out var lastShot);
             lastShot?.Save(Path.Combine(shots, $"{tag}_open{i}_final.png"), System.Drawing.Imaging.ImageFormat.Png);
             lastShot?.Dispose();
@@ -1182,7 +1192,11 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             var m = System.Text.RegularExpressions.Regex.Match(line, @"#\d+: (\d+) ms = ");
             Assert.True(m.Success, "the timing line has an unexpected shape: " + line);
             Assert.Contains("preprocess=Applied", app.Read("ChainStatusText"), StringComparison.Ordinal);   // the picture measured is the processed one
-            taken.Add((int.Parse(m.Groups[1].Value), samples, poller.StartedAt));
+            var stages = System.Text.RegularExpressions.Regex.Match(line, @"#\d+: \d+ ms = read (\d+) \+ prepare (\d+) \+ chain-and-display (\d+) \[([^\]]*)\] \+ ui (\d+) \+ render (\d+)");
+            var detail = stages.Success
+                ? new OpenDetail(int.Parse(stages.Groups[1].Value), int.Parse(stages.Groups[2].Value), int.Parse(stages.Groups[3].Value), int.Parse(stages.Groups[5].Value), int.Parse(stages.Groups[6].Value), stages.Groups[4].Value, windowStartTicks, windowEndTicks)
+                : null;
+            taken.Add((int.Parse(m.Groups[1].Value), samples, poller.StartedAt, detail));
             Thread.Sleep(500);
         }
 
@@ -1197,7 +1211,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         var rows = new List<OpenMeasurement>();
         for (var i = 0; i < taken.Count; i++)
         {
-            var (proxyMs, samples, startedAt) = taken[i];
+            var (proxyMs, samples, startedAt, detail) = taken[i];
             var screen = ScreenSettle.Analyse(samples, startedAt, minimumStableMs: 1000, target: processedReference);
             var spacing = samples.Count > 1 ? (samples[^1].Before - samples[0].Before) * 1000.0 / System.Diagnostics.Stopwatch.Frequency / (samples.Count - 1) : double.NaN;
             output.WriteLine($"   [{tag}] screen: {screen.Captures} captures (every {spacing:0.0} ms); settled on the processed reference={screen.Settled} ({screen.Why}); picture seen between {screen.EarliestMs:0} and {screen.LatestMs:0} ms after the confirmation; the picture before it differed from the final one at {screen.LastBeforeMismatch:P0} of the points; the final picture stayed {screen.FinalRunMs:0} ms ({screen.FinalRunLength} captures)");
@@ -1208,17 +1222,17 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             if (screen.Settled && identity is { Established: false } missing)
             {
                 output.WriteLine($"   [{tag}] screen: NOT OBSERVABLE for open {i + 1}: {missing.Why}. Last capture: {Path.Combine(shots, $"{tag}_open{i + 1}_final.png")}");
-                rows.Add(new OpenMeasurement(proxyMs, null, null));
+                rows.Add(new OpenMeasurement(proxyMs, null, null) { Detail = detail });
             }
             else if (!seenToChange)
             {
                 output.WriteLine($"   [{tag}] screen: NOT OBSERVABLE for open {i + 1}: {(screen.Settled ? $"the picture before the final one differs from it at only {screen.LastBeforeMismatch:P1} of the points" : screen.Why)}. Watched area {area}; last capture: {Path.Combine(shots, $"{tag}_open{i + 1}_final.png")}");
-                rows.Add(new OpenMeasurement(proxyMs, null, null));
+                rows.Add(new OpenMeasurement(proxyMs, null, null) { Detail = detail });
             }
             else
             {
                 output.WriteLine($"   [{tag}] screen: open {i + 1} ends on the processed picture (agrees with the processed reference at {identity!.Value.FinalVsProcessed:P1}, with the source reference at {identity.Value.FinalVsSource:P1}; the two references agree with each other at {identity.Value.ProcessedVsSource:P1})");
-                rows.Add(new OpenMeasurement(proxyMs, screen.LatestMs, screen.EarliestMs));
+                rows.Add(new OpenMeasurement(proxyMs, screen.LatestMs, screen.EarliestMs) { Detail = detail });
             }
         }
 
@@ -1269,11 +1283,29 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             baseline = MeasureOpens(app, raw, opens: 3, shots, tag: "no-delay");
         }
 
+        // QA-A-279c: observation only. The delayed app also gets a log path of its own (this child's environment); the measurement, the gate and its order below are unchanged.
+        IReadOnlyDictionary<string, string>? delayEnvironment = null;
+#if XPE_TEST_FAULTS
+        var delayRun = Guid.NewGuid().ToString("N");
+        var delayLogBase = Path.Combine(Path.GetTempPath(), "xpe_w15b_diag_" + delayRun, "delay-" + delayMs);
+        var delayProcessId = 0;
+        delayEnvironment = new Dictionary<string, string> { [FaultDelayLog.EnvPath] = delayLogBase, [FaultDelayLog.EnvRun] = delayRun, [FaultDelayLog.EnvApp] = "delay-" + delayMs };
+#endif
+
         List<OpenMeasurement> delayed;
-        using (var app = GuiApp.Launch(output, native, extraArguments: ["--automation-fault", $"display-delay:{delayMs}", .. common]))
+        using (var app = GuiApp.Launch(output, native, extraArguments: ["--automation-fault", $"display-delay:{delayMs}", .. common], environment: delayEnvironment))
         {
             delayed = MeasureOpens(app, raw, opens: 3, shots, tag: $"delay-{delayMs}");
+#if XPE_TEST_FAULTS
+            delayProcessId = app.ProcessId;
+            CloseForDelayLog(app);   // after the measured opens and the reference captures; never throws
+#endif
         }
+
+        PrintObservationTable(baseline, delayed);
+#if XPE_TEST_FAULTS
+        ReportDelayLog(delayLogBase, delayRun, "delay-" + delayMs, delayMs, delayProcessId, delayed);
+#endif
 
         static double Median(IEnumerable<double> values) => values.OrderBy(x => x).ElementAt(1);
         var proxyShift = Median(delayed.Select(r => (double)r.Proxy)) - Median(baseline.Select(r => (double)r.Proxy));
@@ -1290,6 +1322,125 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         output.WriteLine($"   screen medians: no delay {Median(baseline.Select(r => r.ScreenMs!.Value)):0} ms, with the delay {Median(delayed.Select(r => r.ScreenMs!.Value)):0} ms -> moved by {screenShift:0} ms (proxy moved by {proxyShift:0} ms)");
         Assert.True(screenShift >= 0.8 * delayMs, $"the artificial delay of {delayMs} ms moved the screen value by only {screenShift:0} ms (the proxy by {proxyShift:0} ms): the screen value does NOT follow the processed picture");
     }
+
+    /// <summary>
+    /// QA-A-279c (Reviewer #267/#268): the numbers the W15b gate is computed from, laid out open by open. DISCLOSURE ONLY: nothing here is asserted or fed back into the gate. A failure to print is one
+    /// line, never an exception. The first open of each app is marked cold/first-open and IS part of the gate's median. The pairing by open number puts two DIFFERENT processes side by side; it is not a causal pairing.
+    /// </summary>
+    private void PrintObservationTable(List<OpenMeasurement> baseline, List<OpenMeasurement> delayed)
+    {
+        try
+        {
+            output.WriteLine("   [obs] DISCLOSURE ONLY - the gate below is computed from the proxy medians exactly as before");
+            output.WriteLine("   [obs] | group | open | proxy | read | prepare | chain-and-display | ui | render | note |");
+            foreach (var (group, rows) in new[] { ("no-delay", baseline), ("delay", delayed) })
+            {
+                for (var i = 0; i < rows.Count; i++)
+                {
+                    var d = rows[i].Detail;
+                    output.WriteLine($"   [obs] | {group} | {i + 1} | {rows[i].Proxy} | {d?.Read.ToString() ?? "?"} | {d?.Prepare.ToString() ?? "?"} | {d?.ChainAndDisplay.ToString() ?? "?"} | {d?.Ui.ToString() ?? "?"} | {d?.Render.ToString() ?? "?"} | {(i == 0 ? "cold/first-open, included in the gate's median" : string.Empty)} |");
+                }
+            }
+
+            static double Median(IEnumerable<double> values) => values.OrderBy(x => x).ElementAt(1);
+            if (baseline.Count == 3 && delayed.Count == 3 && baseline.All(r => r.Detail is not null) && delayed.All(r => r.Detail is not null))
+            {
+                output.WriteLine($"   [obs] medians (second of three, as the gate): proxy no-delay {Median(baseline.Select(r => (double)r.Proxy)):0} / delay {Median(delayed.Select(r => (double)r.Proxy)):0}; chain-and-display no-delay {Median(baseline.Select(r => (double)r.Detail!.ChainAndDisplay)):0} / delay {Median(delayed.Select(r => (double)r.Detail!.ChainAndDisplay)):0}");
+                for (var i = 0; i < 3; i++)
+                {
+                    output.WriteLine($"   [obs] open {i + 1}: delay minus no-delay (two different processes, same open number - side by side, not causal): proxy {delayed[i].Proxy - baseline[i].Proxy:+0;-0}, chain-and-display {delayed[i].Detail!.ChainAndDisplay - baseline[i].Detail!.ChainAndDisplay:+0;-0}, prepare {delayed[i].Detail!.Prepare - baseline[i].Detail!.Prepare:+0;-0}, render {delayed[i].Detail!.Render - baseline[i].Detail!.Render:+0;-0}");
+                }
+            }
+            else
+            {
+                output.WriteLine("   [obs] medians and pairs not printed: a timing line was missing its stage breakdown");
+            }
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"   DIAGNOSTIC-ERROR: observation table: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+#if XPE_TEST_FAULTS
+    /// <summary>QA-A-279c: asks the delayed app to close and waits for it to end (10 s at most) so that its backend can export the delay log. Called only after the measured opens and the reference captures. Never throws.</summary>
+    private void CloseForDelayLog(GuiApp app)
+    {
+        try
+        {
+            var ended = app.CloseGracefully(TimeSpan.FromSeconds(10));
+            output.WriteLine($"   [diag] graceful close of the delayed app: {(ended ? "the process ended" : "the process did NOT end within 10 s (the delay log may be INCOMPLETE; the usual Dispose follows)")}");
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"   DIAGNOSTIC-ERROR: graceful close: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// QA-A-279c: reads the delay log of the delayed app and prints what it holds. Separate from the gate: COMPLETE says the FILE is whole, nothing more. A sleep window is attributed to an open only as
+    /// "inside the window this test watched", which is wider than the app's proxy interval; the exact residual is therefore not computed (N/A: PROXY-INCLUSION-UNPROVEN). Never throws, asserts nothing.
+    /// </summary>
+    private void ReportDelayLog(string logBase, string run, string appName, int delayMs, int processId, List<OpenMeasurement> delayed)
+    {
+        try
+        {
+            var reading = FaultDelayLogReader.Read(logBase, run, appName, delayMs, processId == 0 ? null : processId);
+            output.WriteLine($"   [diag] delay log ({appName}, pid {processId}): {reading.Describe()}");
+            output.WriteLine($"   [diag] file: {reading.File ?? "(none)"}");
+            if (reading.Header is { } header)
+            {
+                output.WriteLine($"   [diag] header: frequency {header.Frequency} Hz (this process {System.Diagnostics.Stopwatch.Frequency} Hz), armed {header.ArmedMs} ms, capacity {header.Capacity}, clock anchor interval {FaultDelayAttribution.AnchorIntervalMs(header):0.000} ms");
+                output.WriteLine($"   [diag] clock-domain sanity check (tick distance minus UTC distance between the app's anchor and this test's): {FaultDelayAttribution.ClockSkewMs(header, DateTime.UtcNow, System.Diagnostics.Stopwatch.GetTimestamp()):0.0} ms - a sanity check only, not a proof");
+            }
+
+            if (reading.Footer is { } footer)
+            {
+                output.WriteLine($"   [diag] footer: calls {footer.Calls}, events {footer.Events}, pending {footer.Pending}, dropped {footer.Dropped}, errors {footer.Errors}, late {footer.Late}, exported by {footer.By}");
+            }
+
+            if (reading.Header is null || reading.Events.Count == 0 && reading.Status != FaultDelayStatus.Complete)
+            {
+                return;
+            }
+
+            var frequency = reading.Header!.Frequency;
+            foreach (var e in reading.Events)
+            {
+                output.WriteLine($"   [diag] sleep order {e.Order}: call {e.Call} ({e.Overload}), requested {e.RequestedMs} ms, recorded {FaultDelayAttribution.ElapsedMs(e, frequency):0.0} ms, thread {e.Thread}, start {e.StartTicks} end {e.EndTicks} ticks");
+            }
+
+            var inAnyWindow = 0;
+            for (var i = 0; i < delayed.Count; i++)
+            {
+                if (delayed[i].Detail is not { } d)
+                {
+                    output.WriteLine($"   [diag] open {i + 1}: no watched window (the timing line had no stage breakdown)");
+                    continue;
+                }
+
+                var window = FaultDelayAttribution.Summarize(reading, d.WindowStartTicks, d.WindowEndTicks);
+                inAnyWindow += window.Inside + window.StraddleStart + window.StraddleEnd + window.Spans;
+                output.WriteLine($"   [diag] open {i + 1} (proxy {delayed[i].Proxy} ms): sleeps inside the watched window {window.Inside}, straddling its start {window.StraddleStart}, its end {window.StraddleEnd}, spanning it {window.Spans}; overlap among them {window.Overlap}; window-attributed sleep sum {window.InsideSumMs:0.0} ms");
+                output.WriteLine($"   [diag] open {i + 1}: proxy minus sleep sum: N/A: PROXY-INCLUSION-UNPROVEN (the watched window is wider than the app's proxy interval)");
+                if (window.ArithmeticEligible)
+                {
+                    output.WriteLine($"   [diag] open {i + 1}: proxy minus window-attributed sleep sum - ARITHMETIC ONLY, not a cause, not a correction, not an input to the gate: {delayed[i].Proxy - window.InsideSumMs:0.0} ms");
+                }
+                else
+                {
+                    output.WriteLine($"   [diag] open {i + 1}: arithmetic-only figure not printed: {window.Why}");
+                }
+            }
+
+            output.WriteLine($"   [diag] sleeps recorded: {reading.Events.Count}; touching one of the three watched windows: {inAnyWindow}; outside all three (for example the reference captures after the opens): {reading.Events.Count - inAnyWindow}");
+        }
+        catch (Exception ex)
+        {
+            output.WriteLine($"   DIAGNOSTIC-ERROR: delay log report: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+#endif
 
     /// <summary>
     /// GUI-C-236 / 236b: the real-data walkthroughs (W1, W7, W12-W15) exist only where their data does (see <see cref="EnvGatedFactAttribute"/>), so on a runner without it they are not even discovered. This is the
@@ -1503,7 +1654,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         /// <summary>GUI-C-236b: the title of the dialog the last Invoke...Dialog call drove.</summary>
         public string LastDialogTitle { get; private set; } = string.Empty;
 
-        public static GuiApp Launch(ITestOutputHelper output, string nativeDir, IReadOnlyList<string> extraArguments, string? settingsDirectory = null)
+        public static GuiApp Launch(ITestOutputHelper output, string nativeDir, IReadOnlyList<string> extraArguments, string? settingsDirectory = null, IReadOnlyDictionary<string, string>? environment = null)
         {
             var exe = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "gui", "ImageProcTest", "bin", "Debug", "net8.0-windows", "ImageProcTest.exe"));
             Assert.True(File.Exists(exe), "gui/ImageProcTest/bin/Debug/net8.0-windows/ImageProcTest.exe was not found: build gui/ImageProcTest first.");
@@ -1517,6 +1668,10 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             foreach (var argument in extraArguments) info.ArgumentList.Add(argument);
             info.Environment["XPE_NATIVE_DIR"] = nativeDir;
             info.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1";
+            if (environment is not null)
+            {
+                foreach (var (name, value) in environment) info.Environment[name] = value;   // QA-A-279c: this child only; the test process's own environment is not changed
+            }
 
             var automation = new UIA3Automation();
             var application = Application.Launch(info);
@@ -1798,6 +1953,37 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         private static T? Safe<T>(Func<T> f)
         {
             try { return f(); } catch (Exception) { return default; }
+        }
+
+        /// <summary>QA-A-279c: the app's process number (the delay log's header must carry it).</summary>
+        public int ProcessId => _application.ProcessId;
+
+        /// <summary>
+        /// QA-A-279c: asks the app to close and WAITS for the process to end (at most <paramref name="timeout"/>), so a backend that exports on shutdown gets to finish. Used only by a test that
+        /// turned the delay log on, and only after its measurement and its reference captures. It kills nothing and changes nothing about <see cref="Dispose"/>, which still closes and then kills
+        /// (so a repeated close, or a close after the app is gone, is harmless). Returns whether the process had ended when it returned.
+        /// </summary>
+        public bool CloseGracefully(TimeSpan timeout)
+        {
+            try
+            {
+                if (_application.HasExited)
+                {
+                    return true;
+                }
+
+                _application.Close();
+                using var process = System.Diagnostics.Process.GetProcessById(_application.ProcessId);
+                return process.WaitForExit(timeout);
+            }
+            catch (ArgumentException)
+            {
+                return true;   // the process is already gone
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public void Dispose()

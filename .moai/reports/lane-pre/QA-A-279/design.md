@@ -202,3 +202,13 @@ UTC 시각은 항목마다 찍지 않는다(비용). 헤더에 `(utcAnchor, tick
 - 기록 비용이 열기 시간에 주는 영향의 크기.
 - 열기 하나에서 display pipeline 이 몇 번 불리는지(4.4절은 개수를 강제하지 않고 관찰한다).
 - 8.1절의 연쇄 의존 범위.
+
+## 정정 (구현 결과 반영, 원문은 위에 그대로 둔다)
+
+QA-A-279c 구현의 1회 승인 실행(2026-10-22, HEAD 3718666f 사본)에서 변이 5개가 모두 시험에 걸렸다. 8.3절 표의 예상과 실제가 다른 곳을 적는다.
+
+- **M4 (꼬리표 없음):** 8.3절은 실패 대상을 "T5 와 모든 COMPLETE 기대"로 적었다. 실제 실패는 T4·T12 를 뺀 10개(T1, T2, T3, T5, T6, T7, T8, T9, T10, T11)였다. T5 가 실패한 이유는 구현된 T5 의 **후반부**("정상 export 는 Complete 로 읽힌다")가 꼬리표를 요구하기 때문이다. T5 의 전반부(내보내기 호출 안 함 → `INCOMPLETE: no-footer`)는 M4 로 바뀌지 않는다. 따라서 "M4 는 T5 의 음성 대조 부분을 깬다"고 읽으면 틀리고, "M4 는 T5 의 양성 확인 부분과 모든 COMPLETE 기대를 깬다"가 맞다.
+- **M1 (Begin 무기록):** T9(요청·호출은 있는데 기록 없음 → ANOMALY)는 통과했다. 변이 상태가 바로 T9 의 입력 상황이므로 기대대로다. 실패한 것은 T1, T2, T5, T7, T8, T10, T11 이다.
+- **M2·M3:** T2 만 실패했다. 메시지는 각각 `call 1: recorded 0.0 ms for a real sleep of 60 ms`, `call 2: recorded 69.6 ms for a real sleep of 100 ms` 이다.
+- **M5 (call 항상 1):** T1, T2 가 실패했다(T2 는 중복 호출 번호로 `Incomplete`).
+- E2E 쪽 빌드는 시나리오 파일에 `using ImageProcTest.Services;` 가 없어 CS0103 9건으로 실패했고(`build/qa279c/logs/e2e-debug.log`), 한 줄 추가 뒤 재확인 전까지 E2E·W15b 코드는 컴파일이 확인되지 않은 상태다. 래퍼 배선은 계속 LOGGING-UNVERIFIED(배선)이다.
