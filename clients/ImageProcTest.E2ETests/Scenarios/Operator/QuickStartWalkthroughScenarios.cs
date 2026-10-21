@@ -1379,7 +1379,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
     /// <summary>
     /// QA-A-279c: reads the delay log of the delayed app and prints what it holds. Separate from the gate: COMPLETE says the FILE is whole, nothing more. A sleep window is attributed to an open only as
-    /// "inside the window this test watched", which is wider than the app's proxy interval; the exact residual is therefore not computed (N/A: PROXY-INCLUSION-UNPROVEN). Never throws, asserts nothing.
+    /// "inside the window this test watched", which is wider than the app's proxy interval; no residual of any kind is computed (N/A: PROXY-INCLUSION-UNPROVEN). Never throws, asserts nothing.
     /// </summary>
     private void ReportDelayLog(string logBase, string run, string appName, int delayMs, int processId, List<OpenMeasurement> delayed)
     {
@@ -1421,16 +1421,8 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
 
                 var window = FaultDelayAttribution.Summarize(reading, d.WindowStartTicks, d.WindowEndTicks);
                 inAnyWindow += window.Inside + window.StraddleStart + window.StraddleEnd + window.Spans;
-                output.WriteLine($"   [diag] open {i + 1} (proxy {delayed[i].Proxy} ms): sleeps inside the watched window {window.Inside}, straddling its start {window.StraddleStart}, its end {window.StraddleEnd}, spanning it {window.Spans}; overlap among them {window.Overlap}; window-attributed sleep sum {window.InsideSumMs:0.0} ms");
-                output.WriteLine($"   [diag] open {i + 1}: proxy minus sleep sum: N/A: PROXY-INCLUSION-UNPROVEN (the watched window is wider than the app's proxy interval)");
-                if (window.ArithmeticEligible)
-                {
-                    output.WriteLine($"   [diag] open {i + 1}: proxy minus window-attributed sleep sum - ARITHMETIC ONLY, not a cause, not a correction, not an input to the gate: {delayed[i].Proxy - window.InsideSumMs:0.0} ms");
-                }
-                else
-                {
-                    output.WriteLine($"   [diag] open {i + 1}: arithmetic-only figure not printed: {window.Why}");
-                }
+                output.WriteLine($"   [diag] open {i + 1} (proxy {delayed[i].Proxy} ms): sleeps inside the watched window {window.Inside}, straddling its start {window.StraddleStart}, its end {window.StraddleEnd}, spanning it {window.Spans}; overlap among them {window.Overlap}; raw sum of the sleeps placed inside {window.InsideSumMs:0.0} ms (not subtracted from anything)");
+                output.WriteLine($"   [diag] open {i + 1}: proxy minus sleep sum: N/A: PROXY-INCLUSION-UNPROVEN (the watched window is wider than the app's proxy interval; no such figure is computed)");
             }
 
             output.WriteLine($"   [diag] sleeps recorded: {reading.Events.Count}; touching one of the three watched windows: {inAnyWindow}; outside all three (for example the reference captures after the opens): {reading.Events.Count - inAnyWindow}");

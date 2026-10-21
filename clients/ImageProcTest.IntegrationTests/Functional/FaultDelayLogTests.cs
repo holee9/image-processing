@@ -242,7 +242,7 @@ public sealed class FaultDelayLogTests : IDisposable
     }
 
     [Fact]
-    public void T12_Placement_CountsWhatItSays_AndTheArithmeticFigureNeedsEveryPrecondition()
+    public void T12_Placement_CountsWhatItSays()
     {
         FaultDelayEvent At(int order, long t0, long t1) => new(order, order + 1, FaultDelayLog.ChainOverload, 60, t0, t1, 1);
         var header = new FaultDelayHeader("r", "a", 1, "w", 1000, 60, 256, "2026-10-22T00:00:00.0000000Z", 100, 101);
@@ -258,14 +258,56 @@ public sealed class FaultDelayLogTests : IDisposable
         var one = FaultDelayAttribution.Summarize(Reading(FaultDelayStatus.Complete, At(0, 1100, 1200)), 1000, 2000);
         Assert.Equal(1, one.Inside);
         Assert.Equal(100.0, one.InsideSumMs, 3);
-        Assert.True(one.ArithmeticEligible);
+        Assert.False(one.Overlap);
 
-        Assert.False(FaultDelayAttribution.Summarize(Reading(FaultDelayStatus.Incomplete, At(0, 1100, 1200)), 1000, 2000).ArithmeticEligible);                           // not a whole file
-        Assert.False(FaultDelayAttribution.Summarize(Reading(FaultDelayStatus.Complete), 1000, 2000).ArithmeticEligible);                                                   // nothing inside
-        Assert.False(FaultDelayAttribution.Summarize(Reading(FaultDelayStatus.Complete, At(0, 1100, 1200), At(1, 1900, 2100)), 1000, 2000).ArithmeticEligible);            // one crosses the edge
+        var crossing = FaultDelayAttribution.Summarize(Reading(FaultDelayStatus.Complete, At(0, 1100, 1200), At(1, 1900, 2100)), 1000, 2000);
+        Assert.Equal(1, crossing.Inside);
+        Assert.Equal(1, crossing.StraddleEnd);
         var overlapping = FaultDelayAttribution.Summarize(Reading(FaultDelayStatus.Complete, At(0, 1100, 1500), At(1, 1400, 1600)), 1000, 2000);
         Assert.True(overlapping.Overlap);
-        Assert.False(overlapping.ArithmeticEligible);
+        Assert.Equal(0, FaultDelayAttribution.Summarize(Reading(FaultDelayStatus.Complete), 1000, 2000).Inside);
+    }
+
+    [Fact]
+    public void T13_ASealBetweenTheSealCheckAndTheSlot_IsCountedLate_AndTheFileIsNotComplete()
+    {
+        // QA-A-279d (Reviewer #269 F269-1): call 2 has been counted (calls = 2) and has read "not sealed yet", then the export runs, then call 2 takes its slot. The two steps of Begin are driven by hand.
+        var calls = 1;
+        var recorder = Create(60, () => calls);
+        Sleep(recorder, 1, FaultDelayLog.ChainOverload, 60, 60);
+        calls = 2;
+        Assert.True(recorder.IsOpenForBegin());                       // call 2: step 1, "not sealed"
+        Assert.True(recorder.Export("test"));                         // the export seals and writes, with calls = 2
+        var slot = recorder.Reserve(2, FaultDelayLog.ChainOverload, 60);   // call 2: step 2, after the seal
+
+        Assert.Equal(-1, slot);                                       // the seal is looked at again: nothing is recorded ...
+        Assert.Equal(1, recorder.LateCount);                          // ... and it is counted as late
+        var reading = Read(60);
+        Assert.Equal(FaultDelayStatus.Incomplete, reading.Status);    // the file says calls = 2, events = 1: it is not a whole record
+        Assert.Contains("partial", reading.Reason, StringComparison.Ordinal);
+        Assert.Contains("call number(s) 2", reading.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void T14_CallsTwoEventsOne_IsPartialAndNeverComplete()
+    {
+        var calls = 0;
+        var recorder = Create(60, () => calls);
+        calls = 1; Sleep(recorder, 1, FaultDelayLog.ChainOverload, 60, 60);
+        calls = 2;                                                    // call 2 happened and no sleep was recorded for it; nothing else is wrong
+        Assert.True(recorder.Export("test"));
+
+        var reading = Read(60);
+        Assert.Equal(FaultDelayStatus.Incomplete, reading.Status);
+        Assert.Contains("partial (sleeps recorded for 1 of 2 calls", reading.Reason, StringComparison.Ordinal);
+        Assert.Contains("call number(s) 2", reading.Reason, StringComparison.Ordinal);
+        Assert.Equal(0, reading.Footer!.Pending + reading.Footer.Dropped + reading.Footer.Errors + reading.Footer.Late);   // the other counters are clean: only the count mismatch makes it incomplete
+
+        // an event whose call number lies outside 1..calls is refused as inconsistent, not read as complete
+        var lines = File.ReadAllLines(recorder.FilePath).Select(l => l.StartsWith("E ", StringComparison.Ordinal) ? l.Replace("call=1 ", "call=3 ") : l).ToArray();
+        var outside = FaultDelayLogReader.Classify(lines, null, "run1", "app1", 60, Environment.ProcessId);
+        Assert.Equal(FaultDelayStatus.Incomplete, outside.Status);
+        Assert.Contains("a call number outside", outside.Reason, StringComparison.Ordinal);
     }
 }
 #endif

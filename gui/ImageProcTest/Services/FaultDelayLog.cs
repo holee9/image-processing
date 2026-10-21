@@ -130,26 +130,13 @@ internal sealed class FaultDelayRecorder
     {
         try
         {
-            if (Volatile.Read(ref _sealed) != 0)
+            if (!IsOpenForBegin())
             {
                 Interlocked.Increment(ref _late);
                 return -1;
             }
 
-            var slot = Interlocked.Increment(ref _next) - 1;
-            if (slot >= _capacity)
-            {
-                Interlocked.Increment(ref _dropped);
-                return -1;
-            }
-
-            _call[slot] = call;
-            _overload[slot] = overload == FaultDelayLog.ChainOverload ? ChainCode : DisplayInputCode;
-            _requested[slot] = requestedMs;
-            _thread[slot] = Environment.CurrentManagedThreadId;
-            _start[slot] = Stopwatch.GetTimestamp();
-            Volatile.Write(ref _state[slot], 1);
-            return slot;
+            return Reserve(call, overload, requestedMs);
         }
         catch (Exception)
         {
@@ -157,6 +144,41 @@ internal sealed class FaultDelayRecorder
             return -1;
         }
     }
+
+    /// <summary>Step 1 of <see cref="Begin"/>: the table has not been sealed yet. Separate from <see cref="Reserve"/> so that a test can place an export exactly between the two (no hook in the measured path).</summary>
+    internal bool IsOpenForBegin() => Volatile.Read(ref _sealed) == 0;
+
+    /// <summary>
+    /// Step 2 of <see cref="Begin"/>: takes a slot, then looks at the seal AGAIN. A seal that arrived between step 1 and the slot is counted as late and nothing is recorded; the slot, if the export had
+    /// already taken its snapshot over it, is written there as pending, and if the snapshot was taken before the slot existed the call is a call without a sleep in the file (the reader calls that partial).
+    /// No lock is taken.
+    /// </summary>
+    internal int Reserve(int call, string overload, int requestedMs)
+    {
+        var slot = Interlocked.Increment(ref _next) - 1;
+        if (Volatile.Read(ref _sealed) != 0)
+        {
+            Interlocked.Increment(ref _late);
+            return -1;
+        }
+
+        if (slot >= _capacity)
+        {
+            Interlocked.Increment(ref _dropped);
+            return -1;
+        }
+
+        _call[slot] = call;
+        _overload[slot] = overload == FaultDelayLog.ChainOverload ? ChainCode : DisplayInputCode;
+        _requested[slot] = requestedMs;
+        _thread[slot] = Environment.CurrentManagedThreadId;
+        _start[slot] = Stopwatch.GetTimestamp();
+        Volatile.Write(ref _state[slot], 1);
+        return slot;
+    }
+
+    /// <summary>How many Begin calls found the table already sealed (in memory; the file's footer has the value at the moment it was written).</summary>
+    internal int LateCount => Volatile.Read(ref _late);
 
     /// <summary>Stamps the end of the sleep in <paramref name="slot"/> and publishes it (finished). A negative slot is ignored.</summary>
     public void End(int slot)
@@ -210,6 +232,8 @@ internal sealed class FaultDelayRecorder
                     $"E order={i} call={_call[i]} ov={(_overload[i] == ChainCode ? FaultDelayLog.ChainOverload : FaultDelayLog.DisplayInputOverload)} req={_requested[i]} t0={_start[i]} t1={_end[i]} thr={_thread[i]}\n");
             }
 
+            // The call count is read AFTER the slots were looked at: a call that arrived while the export ran is then counted as a call without a sleep in the file, which the reader
+            // calls partial (INCOMPLETE). Read the other way round it could be an event without a call, which is also refused (inconsistent). Either way the file is never complete by luck.
             text.Append(CultureInfo.InvariantCulture,
                 $"F calls={_calls()} events={events} pending={pending} dropped={Volatile.Read(ref _dropped)} errors={Volatile.Read(ref _errors)} late={Volatile.Read(ref _late)} by={Token(by)}\nEND\n");
             var bytes = Encoding.ASCII.GetBytes(text.ToString());
@@ -448,6 +472,20 @@ internal static class FaultDelayLogReader
             return new FaultDelayReading(FaultDelayStatus.Anomaly, $"armed=0 ms but {events.Count} sleep(s) recorded", header, events, footer, file);
         }
 
+        if (events.Any(e => e.Call < 1 || e.Call > footer.Calls))
+        {
+            return Incomplete($"inconsistent (a call number outside 1..{footer.Calls})", header, file, events, footer);
+        }
+
+        // QA-A-279d (Reviewer #269 F269-1): with a delay armed and nothing else armed, every counted display call sleeps once. Some sleeps recorded and some not is a PARTIAL record, whatever the
+        // rest of the file looks like - a call that arrived while the export ran lands here, and so would a counted call that failed before its sleep (a mixed fault, which this log does not
+        // describe). It is not COMPLETE, and the numbers of the calls without a sleep are named.
+        if (events.Count < footer.Calls)
+        {
+            var missing = Enumerable.Range(1, footer.Calls).Except(events.Select(e => e.Call)).ToList();
+            return Incomplete($"partial (sleeps recorded for {events.Count} of {footer.Calls} calls; no sleep for call number(s) {string.Join(",", missing.Take(10))}{(missing.Count > 10 ? ",..." : string.Empty)})", header, file, events, footer);
+        }
+
         if (events.Any(e => e.RequestedMs != header.ArmedMs))
         {
             return new FaultDelayReading(FaultDelayStatus.Anomaly, $"requestedMs differs from the header's armed={header.ArmedMs} ms in {events.Count(e => e.RequestedMs != header.ArmedMs)} event(s)", header, events, footer, file);
@@ -491,9 +529,11 @@ internal enum FaultDelayPlacement
     Outside,
 }
 
-/// <summary>What one watched window of one open contains.</summary>
-/// <param name="ArithmeticEligible">All preconditions for printing a "proxy minus window sleep sum" figure hold. The figure is arithmetic only: it is never a cause, a correction or a pass input.</param>
-internal sealed record FaultDelayWindow(int Inside, int StraddleStart, int StraddleEnd, int Spans, double InsideSumMs, bool Overlap, bool ArithmeticEligible, string Why);
+/// <summary>
+/// What one watched window of one open contains. <paramref name="InsideSumMs"/> is the plain sum of the events placed Inside; it is raw data and is never subtracted from the proxy
+/// (QA-A-279d, Reviewer #269 F269-2: no "proxy minus sleep sum" figure exists in this code).
+/// </summary>
+internal sealed record FaultDelayWindow(int Inside, int StraddleStart, int StraddleEnd, int Spans, double InsideSumMs, bool Overlap);
 
 internal static class FaultDelayAttribution
 {
@@ -509,7 +549,7 @@ internal static class FaultDelayAttribution
 
     public static double ElapsedMs(FaultDelayEvent e, long frequency) => (e.EndTicks - e.StartTicks) * 1000.0 / frequency;
 
-    /// <summary>Counts what the window holds. The sum covers only events placed Inside; <see cref="FaultDelayWindow.ArithmeticEligible"/> is true only for a COMPLETE reading, a positive frequency, at least one Inside event, no straddling or spanning event, and no overlap among the Inside events.</summary>
+    /// <summary>Counts what the window holds. The sum covers only events placed Inside.</summary>
     public static FaultDelayWindow Summarize(FaultDelayReading reading, long windowStart, long windowEnd)
     {
         var frequency = reading.Header?.Frequency ?? 0;
@@ -520,13 +560,7 @@ internal static class FaultDelayAttribution
         var overlap = inside.Zip(inside.Skip(1), (a, b) => b.StartTicks < a.EndTicks).Any(bad => bad);
         var sum = frequency > 0 ? inside.Sum(e => ElapsedMs(e, frequency)) : double.NaN;
 
-        var why = new List<string>();
-        if (reading.Status != FaultDelayStatus.Complete) why.Add($"reading is {reading.Status}");
-        if (frequency <= 0) why.Add("no valid frequency");
-        if (inside.Count == 0) why.Add("no event inside this window");
-        if (straddleStart + straddleEnd + spans > 0) why.Add("an event crosses the window edge");
-        if (overlap) why.Add("events overlap");
-        return new FaultDelayWindow(inside.Count, straddleStart, straddleEnd, spans, sum, overlap, why.Count == 0, why.Count == 0 ? "preconditions hold" : string.Join("; ", why));
+        return new FaultDelayWindow(inside.Count, straddleStart, straddleEnd, spans, sum, overlap);
     }
 
     /// <summary>
