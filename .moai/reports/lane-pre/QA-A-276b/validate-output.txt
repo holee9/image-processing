@@ -1,0 +1,29 @@
+{
+  "comparable": false,
+  "comparison_kind": "not-comparable",
+  "algorithm_attribution": false,
+  "reasons": [
+    "CORRECTION_STATE_UNVERIFIED",
+    "MODE_MISSING",
+    "ENGINE_OUT_OF_SCOPE",
+    "UNSUPPORTED_FIELD",
+    "GEOMETRY_MISMATCH",
+    "DTYPE_MISMATCH",
+    "STAGE_MISMATCH",
+    "UNITS_MISMATCH",
+    "STAGE_NOT_ATTRIBUTABLE",
+    "MAP_IDENTITY_DIFFERS",
+    "INVALID_ROI"
+  ],
+  "blockers": [
+    "VENDOR_LIVE_BLOCKED"
+  ],
+  "actual_2g_executed": false,
+  "identities": {
+    "input": "62f2979250d5e0a503bf59fff5775f907d750e81226815275a6c2f291e57f4be",
+    "B.output": "c2210d3dc5ee329bab6203435b4395eb52e1a7dad61d489530625801c2e9821a",
+    "B.map.defect.xcal": "4579e06bcf5be09828935eb48c71bd78d1f51afc9fc97f83e678158dfa2f105c",
+    "B.map.gain.xcal": "a7ddadbd5b69a350c44c638fd8887096ca4cb448eda322e5d8976575c7520d22",
+    "B.map.offset.xcal": "5569bacf66fb25f10b9137ebf3f466e9ce8d94857c90dc4a7340df362c290c39"
+  }
+}
