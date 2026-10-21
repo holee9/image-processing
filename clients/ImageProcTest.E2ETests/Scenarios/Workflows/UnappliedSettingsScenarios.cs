@@ -144,8 +144,50 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
             var modes = string.Join(",", ConnectedStages.Select(stage => $"{stage.ToLowerInvariant()}:{expected[stage]}"));
             Assert.Contains($"requested=[{modes}]", reason, StringComparison.Ordinal);
             Assert.Contains("unsupported ghost/temp/nonlinearity/binning bypassed", reason, StringComparison.Ordinal);
+            AssertNativeStagesExecutedPerMode(report, expected, reason, executed.GetProperty("hud").GetString());
             output.WriteLine($"U01 backend-consumed: {reason}");
         }
+    }
+
+    // Native stage bits of the metadata flags (GuiPreprocessRunner.RunPipelineOut): offset 0x2000, gain 0x0008, defect 0x0004. Other bits (e.g. 0x4000 bypassed) are not asserted.
+    private static readonly (string Stage, string File, string DirKey, int Bit)[] NativeStages =
+    [
+        ("Offset", "offset.xcal", "calibOffsetDir", 0x2000),
+        ("Gain", "gain.xcal", "calibGainDir", 0x0008),
+        ("Defect", "defect.xcal", "calibDefectDir", 0x0004),
+    ];
+
+    /// <summary>
+    /// F264-1 (Reviewer #264): GUI-PRE-GATE-009 / CalibrationStageSelection - Off never runs a stage, On requires its map, Auto runs it only when the map exists.
+    /// The expected set comes from the requested mode and the map files on disk, never from the reason's own <c>requested=[...]</c> echo; it is compared with the stages the
+    /// backend reports it executed, with the real stage bits of the native flags, and with the HUD text of the same render.
+    /// </summary>
+    private static void AssertNativeStagesExecutedPerMode(JsonElement report, IReadOnlyDictionary<string, string> expected, string reason, string? hud)
+    {
+        var settings = report.GetProperty("settings");
+        var wanted = new List<string>();
+        foreach (var (stage, file, dirKey, _) in NativeStages)
+        {
+            var directory = settings.GetProperty(dirKey).GetString();
+            var exists = !string.IsNullOrWhiteSpace(directory) && File.Exists(System.IO.Path.Combine(directory, file));
+            // The fixture must hold all three maps, otherwise On/Auto/Off would not be told apart by the outcome.
+            Assert.True(exists, $"U01 fixture has no {file} in '{directory}'.");
+            if (expected[stage] != "Off") wanted.Add(stage.ToLowerInvariant());
+        }
+
+        var executedMatch = System.Text.RegularExpressions.Regex.Match(reason, @"executed=\[([^\]]*)\]");
+        Assert.True(executedMatch.Success, $"The reason carries no executed=[...] list: {reason}");
+        var actual = executedMatch.Groups[1].Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        Assert.Equal(wanted.OrderBy(x => x, StringComparer.Ordinal), actual.OrderBy(x => x, StringComparer.Ordinal));
+
+        var flagsMatch = System.Text.RegularExpressions.Regex.Match(reason, @"nativeFlags=0x([0-9a-fA-F]+)");
+        Assert.True(flagsMatch.Success, $"The reason carries no nativeFlags=0x...: {reason}");
+        var flags = Convert.ToInt32(flagsMatch.Groups[1].Value, 16);
+        foreach (var (stage, _, _, bit) in NativeStages)
+            Assert.True(((flags & bit) != 0) == (expected[stage] != "Off"),
+                $"{stage}={expected[stage]}: native flag bit 0x{bit:x} is {((flags & bit) != 0 ? "set" : "clear")} (flags 0x{flags:x}); executed=[{string.Join(",", actual)}].");
+
+        Assert.Equal($"{wanted.Count} native stages ({string.Join(" · ", wanted)})", hud);
     }
 
     private JsonElement ExportFreshCalibrationReport(Window window)
