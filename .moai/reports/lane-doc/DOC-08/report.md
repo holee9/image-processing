@@ -126,3 +126,35 @@
 - `Z:/공통자료/Software/2G/` 바깥 폴더(`SDK/`, `AXD/` 등)의 내용은 이름만 봤다.
 - DLL·exe 실행, 장비 접속, `param/*.par`·시리얼·키·DICOM 헤더 열람, RAW 내용 해석, 원본 수정, push 는 하지 않았다.
 - 이 보고서 외에 쓴 파일은 없다(스크래치 추출 텍스트는 세션 임시 폴더).
+
+---
+
+## 4. 미확인 항목 정리 — SDK 사용 조건·입력 계약 (ZYBA 지시 2026-10-21, 읽기 전용 보강)
+
+[2026-10-21 추가] 기준선은 위 §2 와 `xpe-pre/.moai/reports/lane-pre/PRE-2G-COMPARE-20261020/leader-2g-contract.md` 의 계약표다. 이미 끝난 검색(PDF 전수 조건어 검색, 폴더 전수 목록, 서버 래퍼 읽기)은 반복하지 않았다. **이번에 새로 읽은 것**: 헤더 `inc/SDSDK2_abyz.h` 400~500줄(초기화·검출기 핸들 API 주석)과 1330~1669줄(보정·검증 API 본문; 앞서 §2.3 은 머리말 주석과 조건어 검색만 했다), PDF 본문의 인쇄쪽 2 "Parameter Files" 표·인쇄쪽 70·75·92~93(PDF 쪽 = 인쇄쪽 + 12). DLL 로딩·실행, `param/*.par` 내용 열람, 장비 접속은 하지 않았다.
+
+### 4.1 헤더가 증명하는 것과 증명하지 못하는 것 (갈라 적음)
+
+- **헤더·PDF 가 증명하는 것**: 함수 서명과 호출 규약(`extern "C"`, `__cdecl`), 구조체 배치(`pack(1)`, `static_assert` 크기), 어떤 API 가 어떤 인자를 받는지, 주석에 적힌 권장값. 이것은 **기술 계약**이다.
+- **헤더·PDF 가 증명하지 못하는 것**: 사용권·재배포·오프라인 사용 **권한**, NULL 핸들을 넘겼을 때의 실제 동작, 입력 화소형·바이트 순서, 출력 버퍼 크기·소유권. 보유하고 있다는 사실과 API 문서가 읽힌다는 사실은 사용 권한이 아니다(`leader-2g-contract.md` "Use conditions" 행과 같은 결론).
+
+### 4.2 항목별 상태
+
+| # | 항목 | 상태 | 근거(파일:줄 / PDF 인쇄쪽) | 소유자 | 닫는 데 필요한 최소 문서·결정 |
+|---|---|---|---|---|---|
+| A1 | SDK 사용·재배포 권한 | **[근거 없음]** (§2 와 동일, 변동 없음) | §2.1~2.3: `2G/` 아래 LICENSE·EULA·README 류 0건, PDF·헤더 조건어 0건(대조군 적중 있음) | 리더(구매·계약 담당 경유) | 비밀이 아닌 사용권·계약 발췌 1건, 또는 사용자의 "문서 없이 진행/중단" 결정 |
+| A2 | 검출기 없이(오프라인) 보정 API 사용 가능 여부 | **[근거 없음]** — 이번에 **반대 방향 근거가 추가**됨 | 모든 보정·검증 API 가 `TSDDetector` 인자를 받는다: `SDCal_Create` 헤더:1414, `SDCal_Create_DC`:1483, `SDCal_GenerateBPM`:1590, `SDCal_ValidateBrightSource`:1623, `SDCal_ValidateDataSet`:1653. `SD_SetupFirmwareFeature` 헤더:1656~1668 / PDF 인쇄쪽 75: 반환 `Error — There's no calibration engine of the detector handle or has not initialized`, 비고 "It is related to calibration features" → 보정 엔진은 검출기 핸들에 붙어 있다고 적혀 있다. "하드웨어 없이 된다" 는 문장은 어디에도 없다 | 리더(벤더 질의) | 벤더 서면 답변 1건(하드웨어 없는 `SD_CreateDetector`/`SDCal_*` 허용 여부). 서면이 없으면 사용자 승인 하의 1회 실행 시험뿐이며, 이는 **현재 금지(제조사 DLL 실행 금지)** 상태라 사용자 결정 사항 |
+| A3 | DLL 버전을 문서와 대조할 수단 | **[확인됨, 문서 수준]** | `SD_GetSDKVersion` 헤더:439~446 / PDF 인쇄쪽 70: "Get SDSDK version. It is same to DLL's." 검출기 핸들 없이 호출하는 유일한 버전 API | 리더 | 실행 자체가 DLL 로딩이라 **금지**. 사용자 허가가 나면 이 한 호출로 `2.3.0.3`(PDF 표지) 대 `2.3.0 B03`(파일 속성) 대조 가능. 지금은 파일 크기·SHA(계약서 기록)만 있다 |
+| B1 | 매개변수 파일 ↔ 검출기 모델 대응 | **[확인됨, 파일 이름 수준]** + 모델 미확인 | PDF 인쇄쪽 2 "Parameter Files" 표: `S4335-WA.par → S4335-AW`, `S4335-WF.par → F4335-AW`, `S4343-WA.par → S4343-AW`. 헤더 `TSDModelCode` 233~242: `S4335AW / S4335AWM / S4335AWV / S4343AW / S4343AWM`. 표의 `F4335-AW` 는 열거형에 **없다**(오기인지 별도 모델인지 문서로 못 정함). `SD_CreateDetector(addr, par_path)` 헤더:465~472 는 "절대 경로 권장" 만 적는다. 파일 내용은 열지 않았다 | 장비 담당(리더 경유) | 우리 검출기의 **모델명 한 줄**(S4335-AW / S4343-AW 중 무엇인지). 그래야 어느 `.par` 가 입력인지 정해진다 |
+| B2 | 입력 프레임의 화소형·부호·바이트 순서·stride | **[근거 없음]** (변동 없음) | 헤더 전체 `unsigned short / 16-bit / pixel / endian / stride / signed` 검색 0건(대조군 `unsigned char` 다수 적중). 데이터 콜백 `TSDNotifyData` 헤더:310 은 `unsigned char *data` 만. `SDCal_Process` 헤더:1437~1448 은 `size_in_byte` 만 받는다 | 리더(벤더 질의) 또는 데이터 소유자 | 벤더 서면 1줄(화소형·바이트 순서) **또는** 기존 생산자 기록. TAS 가 `short` 로 다루는 것은 구현 예시이지 계약이 아니다(`leader-2g-contract.md` 발견 3) |
+| B3 | 입력 장 수 상한·권장 | **[확인됨, 용량만]** + 새 불일치 1건 | `MAX_FRAMES 32` 헤더:1539 / PDF 인쇄쪽 56; **`MAX_DARK 3` 헤더:1538 / PDF 인쇄쪽 55 "max dark image count"** — 그러나 `TSDCalBPMInputFiles.DarkSet` 헤더:1563 은 `TSDFrameSet`(=`PathSet[MAX_FRAMES]`, 32)를 쓰고 `MAX_DARK` 는 헤더 어디에서도 쓰이지 않는다. 다크 상한이 3 인지 32 인지 문서로 정해지지 않는다. 권장 장 수 문장은 없다(§1 (c) 와 동일) | 리더(벤더 질의) | 벤더 서면 1줄(다크 장 수 상한·권장) |
+| B4 | 결함 검출 조건값 | **[확인됨]** | `TSDCalBPMInputFiles.Condition` 헤더:1568~1572: "Recommendation value is 45.(40~70)", 바로 위 `// TODO: fix 45.` — 문서에 적힌 **유일한 수치 권장값** | — | 없음(기록만) |
+| B5 | 밝은 영상 사전 검증 API | **[확인됨, 존재]** — 기존 계약표에 없던 행 | `SDCal_ValidateBrightSource` 헤더:1613~1623 / PDF 인쇄쪽 92(단일 파일, `step` = 밝은 영상 순서), `SDCal_ValidateDataSet` 헤더:1643~1653 / PDF 인쇄쪽 93("checks the uniformity for each bright image"), 결과 `TSDCalValidationResult{NotOcclude, InRange, RequiredVariation(%)}` 헤더:1599~1609 / PDF 인쇄쪽 29. 둘 다 검출기 핸들 필요. 판정 임계(범위·균일도 기준)는 문서에 없다 | 리더 | 벤더 서면(임계값) — 없어도 비교 설계에는 "벤더 검증 API 존재" 만 기록하면 됨 |
+| B6 | `SDCal_Process` 출력 크기·소유권·NULL 핸들·핸들 수명 | **[근거 없음]** (변동 없음) | `leader-2g-contract.md` "Calibration NULL handle" / "Handle lifetime" / "Process buffer" / "Buffer size/ownership" 행 그대로. 이번 헤더 재독으로 추가된 문장 없음(1405~1529 반환값 목록은 `InvalidArg / Failed / Error / Success` 뿐) | 리더(벤더 질의) | `leader-2g-contract.md` "Minimal unresolved input questions" 1 번과 동일 — 하드웨어 없는 샘플 또는 서면 계약 |
+| B7 | 입력이 AED 취득인지 선언 | **[미확인]** — 입력 데이터 쪽 공백 | `TSDCalParam.UseAED` 헤더:1380~1381 "whether the input data is from AED acquisition", `TSDCalBPMInputFiles.UseAED` 헤더:1555~1556. 호출자가 선언해야 하는데 기존 `_result.raw`·`calfiles` 의 취득 모드 기록이 없다(§3, `qa-input-provenance.md:17` "Detector mode … remain unverified") | 데이터 소유자(DR 개발팀) | 후보 1세트의 취득 모드(Normal/AED)·`Current/Previous/CurrPrev` 옵션 기록 1줄 |
+
+### 4.3 이번 보강으로 바뀐 것 / 안 바뀐 것
+
+- **바뀐 것**: A2 에 "보정 엔진이 검출기 핸들에 붙는다" 는 문서 근거(헤더:1662, PDF 인쇄쪽 75)가 추가됐다. B1 의 매개변수 파일↔모델 표, B3 의 `MAX_DARK 3` 불일치, B5 의 검증 API 두 개는 기존 계약표에 없던 행이다.
+- **안 바뀐 것**: A1(사용 권한)·A2 의 결론(근거 없음)·B2·B6 은 그대로다. 이 보강은 어떤 항목도 PASS 로 바꾸지 않는다.
+- **하지 않은 것**: DLL 로딩·실행, `param/*.par` 내용 열람, 서버 TAS 래퍼 재열람, PDF 전수 재검색(§2.2 결과 유지), 비교 실행, 구현.
