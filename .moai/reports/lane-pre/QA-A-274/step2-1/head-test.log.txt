@@ -1,0 +1,736 @@
+Test project D:/xpe-h274a/build/ci-preprocess
+        Start   70: CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary
+  1/363 Test   #70: CommonOom.TheInjectionReachesAnAllocationMadeInsideTheLibrary ....................................................................   Passed    0.01 sec
+        Start   71: CommonOom.APushIntoAFullQueueAccountsForEveryAlert
+  2/363 Test   #71: CommonOom.APushIntoAFullQueueAccountsForEveryAlert ...............................................................................   Passed    0.01 sec
+        Start   72: CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert
+  3/363 Test   #72: CommonOom.APushIntoAQueueWithRoomAccountsForEveryAlert ...........................................................................   Passed    0.01 sec
+        Start   73: CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert
+  4/363 Test   #73: CommonOom.APushIntoAQueueThatAlreadyHoldsALossAlertAccountsForEveryAlert .........................................................   Passed    0.01 sec
+        Start   74: CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized
+  5/363 Test   #74: CommonOom.AnInitThatFailsLeavesTheLibraryUninitialized ...........................................................................   Passed    0.01 sec
+        Start   75: CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone
+  6/363 Test   #75: CommonOom.ARe_initThatFailsLeavesTheQueuedAlertsAndTheInitializedStateAlone ......................................................   Passed    0.01 sec
+        Start   76: CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration
+  7/363 Test   #76: CommonOom.AConfigureThatRunsOutOfMemoryIsNotReportedAsAnInvalidConfiguration .....................................................   Passed    0.01 sec
+        Start   77: CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure
+  8/363 Test   #77: CommonOom.ALogFileThatRunsOutOfMemoryIsNotReportedAsAnIoFailure ..................................................................   Passed    0.01 sec
+        Start   78: CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile
+  9/363 Test   #78: CommonOom.ALogFileSwitchThatRunsOutOfMemoryKeepsWritingToThePreviousFile .........................................................   Passed    0.03 sec
+        Start   79: CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger
+ 10/363 Test   #79: CommonOom.AFlushThatFailsRefusesTheSwitchAndLeavesThePreviousLogger ..............................................................   Passed    0.01 sec
+        Start   80: CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger
+ 11/363 Test   #80: CommonOom.ALogFileThatCannotBeOpenedLeavesThePreviousLogger ......................................................................   Passed    0.11 sec
+        Start   81: CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere
+ 12/363 Test   #81: CommonOom.NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere .....................................................................   Passed    0.16 sec
+        Start  193: GhostCorrectTest.CreateSucceeds
+ 13/363 Test  #193: GhostCorrectTest.CreateSucceeds ..................................................................................................   Passed    0.12 sec
+        Start  194: GhostCorrectTest.ZeroWidthReturnsError
+ 14/363 Test  #194: GhostCorrectTest.ZeroWidthReturnsError ...........................................................................................   Passed    0.01 sec
+        Start  195: GhostCorrectTest.ZeroHeightReturnsError
+ 15/363 Test  #195: GhostCorrectTest.ZeroHeightReturnsError ..........................................................................................   Passed    0.01 sec
+        Start  196: GhostCorrectTest.NullHandleOutReturnsError
+ 16/363 Test  #196: GhostCorrectTest.NullHandleOutReturnsError .......................................................................................   Passed    0.01 sec
+        Start  197: GhostCorrectTest.ResetSucceeds
+ 17/363 Test  #197: GhostCorrectTest.ResetSucceeds ...................................................................................................   Passed    0.01 sec
+        Start  198: GhostCorrectTest.ResetNullHandleReturnsError
+ 18/363 Test  #198: GhostCorrectTest.ResetNullHandleReturnsError .....................................................................................   Passed    0.01 sec
+        Start  199: GhostCorrectTest.DestroyNullIsNoOp
+ 19/363 Test  #199: GhostCorrectTest.DestroyNullIsNoOp ...............................................................................................   Passed    0.01 sec
+        Start  200: GhostCorrectTest.CorrectSucceedsOnValidHandle
+ 20/363 Test  #200: GhostCorrectTest.CorrectSucceedsOnValidHandle ....................................................................................   Passed    0.01 sec
+        Start  201: GhostCorrectTest.CorrectNullHandleReturnsError
+ 21/363 Test  #201: GhostCorrectTest.CorrectNullHandleReturnsError ...................................................................................   Passed    0.01 sec
+        Start  202: GhostCorrectTest.CorrectDimensionMismatchReturnsError
+ 22/363 Test  #202: GhostCorrectTest.CorrectDimensionMismatchReturnsError ............................................................................   Passed    0.01 sec
+        Start  203: GhostCorrectTest.RepeatedFramesApplyHistoryCorrection
+ 23/363 Test  #203: GhostCorrectTest.RepeatedFramesApplyHistoryCorrection ............................................................................   Passed    0.01 sec
+        Start  204: GhostTierTest.Tier2FirstFrameIsUnchanged
+ 24/363 Test  #204: GhostTierTest.Tier2FirstFrameIsUnchanged .........................................................................................   Passed    0.01 sec
+        Start  205: GhostTierTest.NonuniformFirstFrameAndFirstAfterResetAreExactBypasses
+ 25/363 Test  #205: GhostTierTest.NonuniformFirstFrameAndFirstAfterResetAreExactBypasses .............................................................   Passed    0.01 sec
+        Start  206: GhostTierTest.AZeroValuedSuccessfulFrameStillConsumesTheFirstFrameState
+ 26/363 Test  #206: GhostTierTest.AZeroValuedSuccessfulFrameStillConsumesTheFirstFrameState ..........................................................   Passed    0.01 sec
+        Start  207: GhostTierTest.ARejectedFrameDoesNotConsumeTheFirstFrameBypass
+ 27/363 Test  #207: GhostTierTest.ARejectedFrameDoesNotConsumeTheFirstFrameBypass ....................................................................   Passed    0.01 sec
+        Start  208: GhostTierTest.Tier2SecondFrameIsReducedByHistory
+ 28/363 Test  #208: GhostTierTest.Tier2SecondFrameIsReducedByHistory .................................................................................   Passed    0.06 sec
+        Start  209: GhostTierTest.Tier2ExposureWeightScalesWithSignal
+ 29/363 Test  #209: GhostTierTest.Tier2ExposureWeightScalesWithSignal ................................................................................   Passed    0.01 sec
+        Start  210: GhostTierTest.Tier3RunsWithSpatialContext
+ 30/363 Test  #210: GhostTierTest.Tier3RunsWithSpatialContext ........................................................................................   Passed    0.01 sec
+        Start  211: GhostTierTest.Tier3SkipsSpatialContextOnTinyImage
+ 31/363 Test  #211: GhostTierTest.Tier3SkipsSpatialContextOnTinyImage ................................................................................   Passed    0.01 sec
+        Start  212: GhostTierTest.Tier3BetaStrengthensSignalDependence
+ 32/363 Test  #212: GhostTierTest.Tier3BetaStrengthensSignalDependence ...............................................................................   Passed    0.01 sec
+        Start  213: GhostTierTest.EachTierRejectsNonFiniteInput
+ 33/363 Test  #213: GhostTierTest.EachTierRejectsNonFiniteInput ......................................................................................   Passed    0.01 sec
+        Start  214: GhostTierTest.OutOfRangeTierFallsBackToTierOne
+ 34/363 Test  #214: GhostTierTest.OutOfRangeTierFallsBackToTierOne ...................................................................................   Passed    0.01 sec
+        Start  215: GhostTierTest.NonIncreasingTimestampUsesGuardedDelta
+ 35/363 Test  #215: GhostTierTest.NonIncreasingTimestampUsesGuardedDelta .............................................................................   Passed    0.01 sec
+        Start  216: GhostTierTest.Alpha1OverrideChangesTheCorrection
+ 36/363 Test  #216: GhostTierTest.Alpha1OverrideChangesTheCorrection .................................................................................   Passed    0.01 sec
+        Start  228: CalibManagerTest.CalibSaveNullPathReturnsError
+ 37/363 Test  #228: CalibManagerTest.CalibSaveNullPathReturnsError ...................................................................................   Passed    0.01 sec
+        Start  229: CalibManagerTest.CalibSaveNullTypeReturnsError
+ 38/363 Test  #229: CalibManagerTest.CalibSaveNullTypeReturnsError ...................................................................................   Passed    0.01 sec
+        Start  230: CalibManagerTest.CalibSaveInvalidTypeReturnsError
+ 39/363 Test  #230: CalibManagerTest.CalibSaveInvalidTypeReturnsError ................................................................................   Passed    0.01 sec
+        Start  231: CalibManagerTest.CalibSaveUnloadedOffsetReturnsError
+ 40/363 Test  #231: CalibManagerTest.CalibSaveUnloadedOffsetReturnsError .............................................................................   Passed    0.01 sec
+        Start  237: Boundary.GhostUseAfterDestroyReturnsError
+ 41/363 Test  #237: Boundary.GhostUseAfterDestroyReturnsError ........................................................................................   Passed    0.01 sec
+        Start  238: Boundary.CalibSaveNullPathReturnsError
+ 42/363 Test  #238: Boundary.CalibSaveNullPathReturnsError ...........................................................................................   Passed    0.01 sec
+        Start  239: Boundary.CalibSaveNullTypeReturnsError
+ 43/363 Test  #239: Boundary.CalibSaveNullTypeReturnsError ...........................................................................................   Passed    0.01 sec
+        Start  243: XCalReaderTest.RoundTrip_OffsetData_BitIdentical
+ 44/363 Test  #243: XCalReaderTest.RoundTrip_OffsetData_BitIdentical .................................................................................   Passed    0.03 sec
+        Start  244: XCalReaderTest.BadMagic_ReturnsConfigInvalid
+ 45/363 Test  #244: XCalReaderTest.BadMagic_ReturnsConfigInvalid .....................................................................................   Passed    0.01 sec
+        Start  245: XCalReaderTest.TamperedPayload_ReturnsConfigInvalid
+ 46/363 Test  #245: XCalReaderTest.TamperedPayload_ReturnsConfigInvalid ..............................................................................   Passed    0.02 sec
+        Start  246: XCalReaderTest.ExpiredFile_ReturnsCalibrationExpired
+ 47/363 Test  #246: XCalReaderTest.ExpiredFile_ReturnsCalibrationExpired .............................................................................   Passed    0.02 sec
+        Start  247: XCalReaderTest.TruncatedFile_ReturnsIoFailed
+ 48/363 Test  #247: XCalReaderTest.TruncatedFile_ReturnsIoFailed .....................................................................................   Passed    0.03 sec
+        Start  248: XCalReaderTest.NonExistentFile_ReturnsIoFailed
+ 49/363 Test  #248: XCalReaderTest.NonExistentFile_ReturnsIoFailed ...................................................................................   Passed    0.01 sec
+        Start  249: XCalReaderTest.NullPath_ReturnsInvalidInput
+ 50/363 Test  #249: XCalReaderTest.NullPath_ReturnsInvalidInput ......................................................................................   Passed    0.01 sec
+        Start  250: XCalReaderTest.NeverExpires_WithCheckExpiry_ReturnsOk
+ 51/363 Test  #250: XCalReaderTest.NeverExpires_WithCheckExpiry_ReturnsOk ............................................................................   Passed    0.02 sec
+        Start  251: XCalReaderTest.TypeMismatch_ReturnsConfigInvalid
+ 52/363 Test  #251: XCalReaderTest.TypeMismatch_ReturnsConfigInvalid .................................................................................   Passed    0.02 sec
+        Start  252: XCalWriterTest.OffsetFloat32_ExactFileSize
+ 53/363 Test  #252: XCalWriterTest.OffsetFloat32_ExactFileSize .......................................................................................   Passed    0.02 sec
+        Start  253: XCalWriterTest.OffsetFloat32_ShaMatchesRecompute
+ 54/363 Test  #253: XCalWriterTest.OffsetFloat32_ShaMatchesRecompute .................................................................................   Passed    0.02 sec
+        Start  254: XCalWriterTest.NullPath_ReturnsInvalidInput
+ 55/363 Test  #254: XCalWriterTest.NullPath_ReturnsInvalidInput ......................................................................................   Passed    0.01 sec
+        Start  255: XCalWriterTest.NullPayloadNonzeroLen_ReturnsInvalidInput
+ 56/363 Test  #255: XCalWriterTest.NullPayloadNonzeroLen_ReturnsInvalidInput .........................................................................   Passed    0.01 sec
+        Start  256: XCalWriterTest.NullConfigJsonNonzeroLen_ReturnsInvalidInput
+ 57/363 Test  #256: XCalWriterTest.NullConfigJsonNonzeroLen_ReturnsInvalidInput ......................................................................   Passed    0.01 sec
+        Start  257: XCalWriterTest.WithConfigJson_ExactFileSize
+ 58/363 Test  #257: XCalWriterTest.WithConfigJson_ExactFileSize ......................................................................................   Passed    0.02 sec
+        Start  258: XCalWriterTest.AtomicWrite_TmpFileAbsentAfterSuccess
+ 59/363 Test  #258: XCalWriterTest.AtomicWrite_TmpFileAbsentAfterSuccess .............................................................................   Passed    0.01 sec
+        Start  259: XCalWriterTest.DefectUint8Mask_ExactFileSize
+ 60/363 Test  #259: XCalWriterTest.DefectUint8Mask_ExactFileSize .....................................................................................   Passed    0.02 sec
+        Start  260: XCalValidatorTest.ValidOffsetHeader_ReturnsOk
+ 61/363 Test  #260: XCalValidatorTest.ValidOffsetHeader_ReturnsOk ....................................................................................   Passed    0.01 sec
+        Start  261: XCalValidatorTest.ValidGainHeader_ReturnsOk
+ 62/363 Test  #261: XCalValidatorTest.ValidGainHeader_ReturnsOk ......................................................................................   Passed    0.01 sec
+        Start  262: XCalValidatorTest.ValidDefectHeader_ReturnsOk
+ 63/363 Test  #262: XCalValidatorTest.ValidDefectHeader_ReturnsOk ....................................................................................   Passed    0.01 sec
+        Start  263: XCalValidatorTest.BadMagic_ReturnsConfigInvalid
+ 64/363 Test  #263: XCalValidatorTest.BadMagic_ReturnsConfigInvalid ..................................................................................   Passed    0.01 sec
+        Start  264: XCalValidatorTest.BadVersion_ReturnsConfigInvalid
+ 65/363 Test  #264: XCalValidatorTest.BadVersion_ReturnsConfigInvalid ................................................................................   Passed    0.01 sec
+        Start  265: XCalValidatorTest.TypeOutOfRange_ReturnsConfigInvalid
+ 66/363 Test  #265: XCalValidatorTest.TypeOutOfRange_ReturnsConfigInvalid ............................................................................   Passed    0.13 sec
+        Start  266: XCalValidatorTest.GainPolyAcceptsWholeNumberOfPlanes
+ 67/363 Test  #266: XCalValidatorTest.GainPolyAcceptsWholeNumberOfPlanes .............................................................................   Passed    0.01 sec
+        Start  267: XCalValidatorTest.PixelFormatOutOfRange_ReturnsConfigInvalid
+ 68/363 Test  #267: XCalValidatorTest.PixelFormatOutOfRange_ReturnsConfigInvalid .....................................................................   Passed    0.01 sec
+        Start  268: XCalValidatorTest.WidthZero_ReturnsConfigInvalid
+ 69/363 Test  #268: XCalValidatorTest.WidthZero_ReturnsConfigInvalid .................................................................................   Passed    0.01 sec
+        Start  269: XCalValidatorTest.HeightExceedsMax_ReturnsConfigInvalid
+ 70/363 Test  #269: XCalValidatorTest.HeightExceedsMax_ReturnsConfigInvalid ..........................................................................   Passed    0.13 sec
+        Start  270: XCalValidatorTest.PayloadLenMismatch_ReturnsConfigInvalid
+ 71/363 Test  #270: XCalValidatorTest.PayloadLenMismatch_ReturnsConfigInvalid ........................................................................   Passed    0.01 sec
+        Start  271: XCalValidatorTest.ConfigJsonLenOverCap_ReturnsConfigInvalid
+ 72/363 Test  #271: XCalValidatorTest.ConfigJsonLenOverCap_ReturnsConfigInvalid ......................................................................   Passed    0.01 sec
+        Start  272: XCalValidatorTest.ExpectedTypeMismatch_ReturnsConfigInvalid
+ 73/363 Test  #272: XCalValidatorTest.ExpectedTypeMismatch_ReturnsConfigInvalid ......................................................................   Passed    0.01 sec
+        Start  273: XCalValidatorTest.TypeFormatSemanticMismatch_ReturnsConfigInvalid
+ 74/363 Test  #273: XCalValidatorTest.TypeFormatSemanticMismatch_ReturnsConfigInvalid ................................................................   Passed    0.01 sec
+        Start  274: XCalValidatorTest.BytesPerPixel_CorrectValues
+ 75/363 Test  #274: XCalValidatorTest.BytesPerPixel_CorrectValues ....................................................................................   Passed    0.01 sec
+        Start  342: XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical
+ 76/363 Test  #342: XCalCompressionTest.WriteCompressed_ReadBack_BitIdentical ........................................................................   Passed    0.02 sec
+        Start  343: XCalCompressionTest.CompressedFile_SmallerThanUncompressed
+ 77/363 Test  #343: XCalCompressionTest.CompressedFile_SmallerThanUncompressed .......................................................................   Passed    0.02 sec
+        Start  344: XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged
+ 78/363 Test  #344: XCalCompressionTest.CompressedWithCallerConfig_MetadataMerged ....................................................................   Passed    0.02 sec
+        Start  345: XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid
+ 79/363 Test  #345: XCalCompressionTest.Compressed_TypeMismatch_ConfigInvalid ........................................................................   Passed    0.02 sec
+        Start  346: XCalCompressionTest.UncompressedDefect_StillReadsCorrectly
+ 80/363 Test  #346: XCalCompressionTest.UncompressedDefect_StillReadsCorrectly .......................................................................   Passed    0.02 sec
+        Start  347: XCalCompressionTest.CompressOffsetType_PayloadNotCompressed
+ 81/363 Test  #347: XCalCompressionTest.CompressOffsetType_PayloadNotCompressed ......................................................................   Passed    0.02 sec
+        Start  348: XCalCompressionTest.WorstCaseInput_FallbackToUncompressed
+ 82/363 Test  #348: XCalCompressionTest.WorstCaseInput_FallbackToUncompressed ........................................................................   Passed    0.02 sec
+        Start  349: XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed
+ 83/363 Test  #349: XCalCompressionMetaTest.AnUncompressedFileWithNestedCompressionKeysIsNotCompressed ...............................................   Passed    0.02 sec
+        Start  350: XCalCompressionMetaTest.TheLoadersAreNotFooledEither
+ 84/363 Test  #350: XCalCompressionMetaTest.TheLoadersAreNotFooledEither .............................................................................   Passed    0.02 sec
+        Start  351: XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem
+ 85/363 Test  #351: XCalCompressionMetaTest.ACompressedFileIsReadFromItsTopLevelKeysNotFromANestedDecoyBeforeThem ....................................   Passed    0.02 sec
+        Start  352: XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused
+ 86/363 Test  #352: XCalCompressionMetaTest.ACompressionKeyGivenTwiceAtTheTopLevelIsRefused ..........................................................   Passed    0.03 sec
+        Start  353: XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused
+ 87/363 Test  #353: XCalCompressionMetaTest.BrokenOrIncompleteCompressionMetadataIsRefused ...........................................................   Passed    0.05 sec
+        Start  354: XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid
+ 88/363 Test  #354: XCalCompressionMetaTest.HalfAPairIsRefusedEvenWhenTheRestOfTheFileIsValid ........................................................   Passed    0.03 sec
+        Start  355: XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo
+ 89/363 Test  #355: XCalCompressionMetaTest.TheWriterMakesValidJsonForAnEmptyCallerObjectToo .........................................................   Passed    0.04 sec
+        Start  356: XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper
+ 90/363 Test  #356: XCalCompressionMetaTest.TheOldWritersTwoShapesAreReproducedExactlyByTheTestHelper ................................................   Passed    0.01 sec
+        Start  357: XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning
+ 91/363 Test  #357: XCalCompressionMetaTest.AFileInTheOldWritersShapeLoadsWithTheSameMapAndAWarning ..................................................   Passed    0.04 sec
+        Start  358: XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused
+ 92/363 Test  #358: XCalCompressionMetaTest.ABlockThatOnlyLooksLikeTheOldWritersShapeIsStillRefused ..................................................   Passed    0.10 sec
+        Start  359: XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck
+ 93/363 Test  #359: XCalCompressionMetaTest.TheRepairLoosensNoIntegrityCheck .........................................................................   Passed    0.03 sec
+        Start  360: XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade
+ 94/363 Test  #360: XCalCompressionMetaTest.ThePairAloneWithADoubledBraceIsNotWhatTheOldWriterMade ...................................................   Passed    0.03 sec
+        Start  361: XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile
+ 95/363 Test  #361: XCalCompressionMetaTest.TheOldWritersShapesAreOnlyRepairedForAnRleCompressedDefectFile ...........................................   Passed    0.03 sec
+        Start  370: GoldenGhostTest.Frame0PassesThroughExactly
+ 96/363 Test  #370: GoldenGhostTest.Frame0PassesThroughExactly .......................................................................................   Passed    0.01 sec
+        Start  371: GoldenGhostTest.Frame1MatchesDualExponentialFormula
+ 97/363 Test  #371: GoldenGhostTest.Frame1MatchesDualExponentialFormula ..............................................................................   Passed    0.02 sec
+        Start  372: GoldenGhostTest.AfterResetHistoryIsZero
+ 98/363 Test  #372: GoldenGhostTest.AfterResetHistoryIsZero ..........................................................................................   Passed    0.01 sec
+        Start  373: GoldenGhostTest.GhostSubtractedAfterFirstFrame
+ 99/363 Test  #373: GoldenGhostTest.GhostSubtractedAfterFirstFrame ...................................................................................   Passed    0.01 sec
+        Start  434: PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags
+100/363 Test  #434: PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags .............................................................................   Passed    0.01 sec
+        Start  435: PipelineStageTest.NonlinearityAndBinningStagesRun
+101/363 Test  #435: PipelineStageTest.NonlinearityAndBinningStagesRun ................................................................................   Passed    0.01 sec
+        Start  436: PipelineStageTest.OffsetStageFailurePropagates
+102/363 Test  #436: PipelineStageTest.OffsetStageFailurePropagates ...................................................................................   Passed    0.01 sec
+        Start  437: PipelineStageTest.GainStageFailurePropagates
+103/363 Test  #437: PipelineStageTest.GainStageFailurePropagates .....................................................................................   Passed    0.01 sec
+        Start  438: PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded
+104/363 Test  #438: PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded ....................................................................   Passed    0.02 sec
+        Start  439: PipelineStageTest.AllStagesEnabledRunInSequence
+105/363 Test  #439: PipelineStageTest.AllStagesEnabledRunInSequence ..................................................................................   Passed    0.59 sec
+        Start  440: PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded
+106/363 Test  #440: PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded ..........................................................................   Passed    0.01 sec
+        Start  441: PipelineStageTest.BypassDefectStillSkipsTheStageCleanly
+107/363 Test  #441: PipelineStageTest.BypassDefectStillSkipsTheStageCleanly ..........................................................................   Passed    0.01 sec
+        Start  549: GhostRegistry.ALiveHandleIsValid
+108/363 Test  #549: GhostRegistry.ALiveHandleIsValid .................................................................................................   Passed    0.01 sec
+        Start  550: GhostRegistry.UseAfterDestroyIsRefused
+109/363 Test  #550: GhostRegistry.UseAfterDestroyIsRefused ...........................................................................................   Passed    0.01 sec
+        Start  551: GhostRegistry.AForgedHandleCarryingTheMagicIsRefused
+110/363 Test  #551: GhostRegistry.AForgedHandleCarryingTheMagicIsRefused .............................................................................   Passed    0.13 sec
+        Start  552: GhostRegistry.AnUnreadableAddressIsRefusedNotDereferenced
+111/363 Test  #552: GhostRegistry.AnUnreadableAddressIsRefusedNotDereferenced ........................................................................   Passed    0.01 sec
+        Start  553: GhostRegistry.DestroyingTwiceIsHarmless
+112/363 Test  #553: GhostRegistry.DestroyingTwiceIsHarmless ..........................................................................................   Passed    0.01 sec
+        Start  554: GhostRegistry.ConcurrentDestroyOfOneHandleFreesItOnce
+113/363 Test  #554: GhostRegistry.ConcurrentDestroyOfOneHandleFreesItOnce ............................................................................   Passed    0.06 sec
+        Start  555: GhostRegistry.CreateUseDestroyFromManyThreadsKeepsTheRegistryIntact
+114/363 Test  #555: GhostRegistry.CreateUseDestroyFromManyThreadsKeepsTheRegistryIntact ..............................................................   Passed    0.02 sec
+        Start  556: GhostRegistry.MeasureTheCostOfTheValidityCheck
+115/363 Test  #556: GhostRegistry.MeasureTheCostOfTheValidityCheck ...................................................................................   Passed    0.09 sec
+        Start  557: GhostRegistry.PipelineOnceForAB
+116/363 Test  #557: GhostRegistry.PipelineOnceForAB ..................................................................................................***Not Run (Disabled)   0.00 sec
+        Start  558: GhostRegistry.UnsupportedUseRacingDestroyCanCrash
+117/363 Test  #558: GhostRegistry.UnsupportedUseRacingDestroyCanCrash ................................................................................***Not Run (Disabled)   0.00 sec
+        Start  560: CalibSaveTest.RoundTrip_Offset_BitIdentical
+118/363 Test  #560: CalibSaveTest.RoundTrip_Offset_BitIdentical ......................................................................................   Passed    0.04 sec
+        Start  561: CalibSaveTest.RoundTrip_Gain_BitIdentical
+119/363 Test  #561: CalibSaveTest.RoundTrip_Gain_BitIdentical ........................................................................................   Passed    0.02 sec
+        Start  562: CalibSaveTest.RoundTrip_Defect_BitIdentical
+120/363 Test  #562: CalibSaveTest.RoundTrip_Defect_BitIdentical ......................................................................................   Passed    0.02 sec
+        Start  563: CalibSaveTest.NullFilepath_ReturnsInvalidInput
+121/363 Test  #563: CalibSaveTest.NullFilepath_ReturnsInvalidInput ...................................................................................   Passed    0.01 sec
+        Start  564: CalibSaveTest.NullCalibType_ReturnsInvalidInput
+122/363 Test  #564: CalibSaveTest.NullCalibType_ReturnsInvalidInput ..................................................................................   Passed    0.01 sec
+        Start  565: CalibSaveTest.InvalidCalibType_ReturnsInvalidInput
+123/363 Test  #565: CalibSaveTest.InvalidCalibType_ReturnsInvalidInput ...............................................................................   Passed    0.07 sec
+        Start  566: CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput
+124/363 Test  #566: CalibSaveTest.SaveOffset_WhenNotLoaded_ReturnsInvalidInput .......................................................................   Passed    0.01 sec
+        Start  567: CalibSaveTest.SaveOffset_HeaderFieldsAreCorrect
+125/363 Test  #567: CalibSaveTest.SaveOffset_HeaderFieldsAreCorrect ..................................................................................   Passed    0.02 sec
+        Start  568: CalibSaveTest.SaveOffset_SHA256Verifies
+126/363 Test  #568: CalibSaveTest.SaveOffset_SHA256Verifies ..........................................................................................   Passed    0.02 sec
+        Start  569: CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired
+127/363 Test  #569: CalibSaveExpiryTest.FutureExpiryIsRecordedAndReadsAsNotExpired ...................................................................   Passed    0.02 sec
+        Start  570: CalibSaveExpiryTest.PastExpiryReadsAsExpired
+128/363 Test  #570: CalibSaveExpiryTest.PastExpiryReadsAsExpired .....................................................................................   Passed    0.02 sec
+        Start  571: CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader
+129/363 Test  #571: CalibSaveExpiryTest.ExpiredFileIsRefusedByLoader .................................................................................   Passed    0.02 sec
+        Start  572: CalibSaveExpiryTest.ZeroMeansNeverExpires
+130/363 Test  #572: CalibSaveExpiryTest.ZeroMeansNeverExpires ........................................................................................   Passed    0.02 sec
+        Start  573: CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument
+131/363 Test  #573: CalibSaveExpiryTest.InvalidTypeStillRejectedWithExpiryArgument ...................................................................   Passed    0.02 sec
+        Start  574: PreprocessCalibrationTest.OffsetConfigRoundTripPreservesTemperatureAndOpaqueExtensions
+132/363 Test  #574: PreprocessCalibrationTest.OffsetConfigRoundTripPreservesTemperatureAndOpaqueExtensions ...........................................   Passed    0.02 sec
+        Start  575: PreprocessCalibrationTest.OffsetConfigCompressedRoundTripKeepsMetadataAndPayloadConsistent
+133/363 Test  #575: PreprocessCalibrationTest.OffsetConfigCompressedRoundTripKeepsMetadataAndPayloadConsistent .......................................   Passed    0.02 sec
+        Start  576: PreprocessCalibrationTest.OffsetConfigCacheHitRestoresTheMatchingMapMetadata
+134/363 Test  #576: PreprocessCalibrationTest.OffsetConfigCacheHitRestoresTheMatchingMapMetadata .....................................................   Passed    0.03 sec
+        Start  577: PreprocessCalibrationTest.OffsetConfigEmptyReplacementDoesNotKeepPreviousMetadata
+135/363 Test  #577: PreprocessCalibrationTest.OffsetConfigEmptyReplacementDoesNotKeepPreviousMetadata ................................................   Passed    0.03 sec
+        Start  578: PreprocessCalibrationTest.OffsetConfigRejectedLoadPreservesPreviousMetadata
+136/363 Test  #578: PreprocessCalibrationTest.OffsetConfigRejectedLoadPreservesPreviousMetadata ......................................................   Passed    0.02 sec
+        Start  579: PreprocessCalibrationTest.SavedDefectKeepsItsSessionAndReloadsWithTheOriginalSet
+137/363 Test  #579: PreprocessCalibrationTest.SavedDefectKeepsItsSessionAndReloadsWithTheOriginalSet .................................................   Passed    0.02 sec
+        Start  580: PreprocessCalibrationTest.SavedDefectV2RetainsTheRuntimeLayersAndCorrection
+138/363 Test  #580: PreprocessCalibrationTest.SavedDefectV2RetainsTheRuntimeLayersAndCorrection ......................................................   Passed    0.03 sec
+        Start  581: PreprocessCalibrationTest.SavedScalarGainKeepsQualityAndTheMatchingCachedConfig
+139/363 Test  #581: PreprocessCalibrationTest.SavedScalarGainKeepsQualityAndTheMatchingCachedConfig ..................................................   Passed    0.02 sec
+        Start  582: PreprocessCalibrationTest.SavedScalarGainEmptyConfigDoesNotKeepPreviousMetadata
+140/363 Test  #582: PreprocessCalibrationTest.SavedScalarGainEmptyConfigDoesNotKeepPreviousMetadata ..................................................   Passed    0.02 sec
+        Start  583: PreprocessCalibrationTest.SavedScalarGainReplaysItsClassifiedPixelsThroughThePipeline
+141/363 Test  #583: PreprocessCalibrationTest.SavedScalarGainReplaysItsClassifiedPixelsThroughThePipeline ............................................   Passed    0.04 sec
+        Start  584: PreprocessCalibrationTest.SavedActivePolynomialGainRetainsCoefficientsRangeAndOutput
+142/363 Test  #584: PreprocessCalibrationTest.SavedActivePolynomialGainRetainsCoefficientsRangeAndOutput .............................................   Passed    0.02 sec
+        Start  585: PreprocessCalibrationTest.LoadOffset_ValidXCalFile
+143/363 Test  #585: PreprocessCalibrationTest.LoadOffset_ValidXCalFile ...............................................................................   Passed    0.03 sec
+        Start  586: PreprocessCalibrationTest.LoadOffset_InvalidFilePath
+144/363 Test  #586: PreprocessCalibrationTest.LoadOffset_InvalidFilePath .............................................................................   Passed    0.01 sec
+        Start  587: PreprocessCalibrationTest.LoadOffset_NullFilePath
+145/363 Test  #587: PreprocessCalibrationTest.LoadOffset_NullFilePath ................................................................................   Passed    0.01 sec
+        Start  588: PreprocessCalibrationTest.LoadOffset_CorruptedFile
+146/363 Test  #588: PreprocessCalibrationTest.LoadOffset_CorruptedFile ...............................................................................   Passed    0.01 sec
+        Start  589: PreprocessCalibrationTest.LoadGain_ValidXCalFile
+147/363 Test  #589: PreprocessCalibrationTest.LoadGain_ValidXCalFile .................................................................................   Passed    0.03 sec
+        Start  590: PreprocessCalibrationTest.LoadGain_InvalidFilePath
+148/363 Test  #590: PreprocessCalibrationTest.LoadGain_InvalidFilePath ...............................................................................   Passed    0.01 sec
+        Start  591: PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile
+149/363 Test  #591: PreprocessCalibrationTest.LoadDefectMap_ValidXCalFile ............................................................................   Passed    0.02 sec
+        Start  592: PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath
+150/363 Test  #592: PreprocessCalibrationTest.LoadDefectMap_InvalidFilePath ..........................................................................   Passed    0.01 sec
+        Start  593: PreprocessCalibrationTest.GenerateOffset_DarkFrameAveraging
+151/363 Test  #593: PreprocessCalibrationTest.GenerateOffset_DarkFrameAveraging ......................................................................   Passed    0.02 sec
+        Start  594: PreprocessCalibrationTest.GenerateOffset_SingleFrame
+152/363 Test  #594: PreprocessCalibrationTest.GenerateOffset_SingleFrame .............................................................................   Passed    0.02 sec
+        Start  595: PreprocessCalibrationTest.GenerateOffset_NullFrames
+153/363 Test  #595: PreprocessCalibrationTest.GenerateOffset_NullFrames ..............................................................................   Passed    0.01 sec
+        Start  596: PreprocessCalibrationTest.GenerateOffset_InvalidFrameCount
+154/363 Test  #596: PreprocessCalibrationTest.GenerateOffset_InvalidFrameCount .......................................................................   Passed    0.01 sec
+        Start  597: PreprocessCalibrationTest.GenerateOffset_DimensionMismatch
+155/363 Test  #597: PreprocessCalibrationTest.GenerateOffset_DimensionMismatch .......................................................................   Passed    0.01 sec
+        Start  598: PreprocessCalibrationTest.CheckExpiry_ValidCalibration
+156/363 Test  #598: PreprocessCalibrationTest.CheckExpiry_ValidCalibration ...........................................................................   Passed    0.02 sec
+        Start  599: PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration
+157/363 Test  #599: PreprocessCalibrationTest.CheckExpiry_ExpiredCalibration .........................................................................   Passed    0.02 sec
+        Start  600: PreprocessCalibrationTest.CheckExpiry_NullFilePath
+158/363 Test  #600: PreprocessCalibrationTest.CheckExpiry_NullFilePath ...............................................................................   Passed    0.12 sec
+        Start  601: PreprocessCalibrationTest.CheckExpiry_NullOutputPointers
+159/363 Test  #601: PreprocessCalibrationTest.CheckExpiry_NullOutputPointers .........................................................................   Passed    0.01 sec
+        Start  602: PreprocessCalibrationTest.Save_OffsetCalibration
+160/363 Test  #602: PreprocessCalibrationTest.Save_OffsetCalibration .................................................................................   Passed    0.05 sec
+        Start  603: PreprocessCalibrationTest.Save_GainCalibration
+161/363 Test  #603: PreprocessCalibrationTest.Save_GainCalibration ...................................................................................   Passed    0.04 sec
+        Start  604: PreprocessCalibrationTest.Save_NullFilePath
+162/363 Test  #604: PreprocessCalibrationTest.Save_NullFilePath ......................................................................................   Passed    0.01 sec
+        Start  605: PreprocessCalibrationTest.Save_NullCalibType
+163/363 Test  #605: PreprocessCalibrationTest.Save_NullCalibType .....................................................................................   Passed    0.01 sec
+        Start  606: PreprocessCalibrationTest.Save_InvalidCalibType
+164/363 Test  #606: PreprocessCalibrationTest.Save_InvalidCalibType ..................................................................................   Passed    0.01 sec
+        Start  648: PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity
+165/363 Test  #648: PreprocessDegraded.BP04_GhostZeroLagCoefficientIsIdentity ........................................................................   Passed    0.01 sec
+        Start  800: CalibOverwriteTest.CalibSaveReplacesAnExistingFile
+166/363 Test  #800: CalibOverwriteTest.CalibSaveReplacesAnExistingFile ...............................................................................   Passed    0.02 sec
+        Start  801: PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear
+167/363 Test  #801: PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear ...........................................................   Passed    0.01 sec
+        Start  802: PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame
+168/363 Test  #802: PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame ....................................................   Passed    0.02 sec
+        Start  803: PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame
+169/363 Test  #803: PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame ....................................................................   Passed    0.12 sec
+        Start  804: PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected
+170/363 Test  #804: PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected ......................................................................   Passed    0.02 sec
+        Start  805: PipelineStageValueTest.AnUncalibratedGhostHandleLeavesTheFlagUnsetAndTheValuesAsTheyWere
+171/363 Test  #805: PipelineStageValueTest.AnUncalibratedGhostHandleLeavesTheFlagUnsetAndTheValuesAsTheyWere .........................................   Passed    0.02 sec
+        Start  806: PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame
+172/363 Test  #806: PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame .................................................   Passed    0.13 sec
+        Start  807: PipelineStageValueTest.BinningStageReturnsTheBinnedFrame
+173/363 Test  #807: PipelineStageValueTest.BinningStageReturnsTheBinnedFrame .........................................................................   Passed    0.02 sec
+        Start  808: PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput
+174/363 Test  #808: PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput ...........................................................   Passed    0.02 sec
+        Start  933: GhostInputFinite.ANonFiniteFrameIsRefusedWithNothingWrittenAndTheHandleUntouched
+175/363 Test  #933: GhostInputFinite.ANonFiniteFrameIsRefusedWithNothingWrittenAndTheHandleUntouched .................................................   Passed    0.01 sec
+        Start  934: GhostInputFinite.TheAlertNamesTheCountAndTheFirstPixel
+176/363 Test  #934: GhostInputFinite.TheAlertNamesTheCountAndTheFirstPixel ...........................................................................   Passed    0.01 sec
+        Start  935: GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds
+177/363 Test  #935: GhostInputFinite.AFiniteFrameThatOverflowsTheHistoryFailsWithoutCommittingItAndTheNextFrameSucceeds ..............................   Passed    0.01 sec
+        Start  936: GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack
+178/363 Test  #936: GhostInputFinite.AFrameThatFailsHalfWayThroughPutsItsPixelsBack ..................................................................   Passed    0.01 sec
+        Start  937: GhostInputFinite.AFiniteFrameStillComesOutAsItAlwaysDidAndRaisesNothing
+179/363 Test  #937: GhostInputFinite.AFiniteFrameStillComesOutAsItAlwaysDidAndRaisesNothing ..........................................................   Passed    0.01 sec
+        Start  938: GhostInputFinite.TheOlderRefusalsKeepTheirPrecedenceOverThePixels
+180/363 Test  #938: GhostInputFinite.TheOlderRefusalsKeepTheirPrecedenceOverThePixels ................................................................   Passed    0.01 sec
+        Start  939: GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo
+181/363 Test  #939: GhostInputFinite.AnOverflowOfTheSlowHistoryAloneIsCaughtToo ......................................................................   Passed    0.01 sec
+        Start  940: GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate
+182/363 Test  #940: GhostOraclePedestal.TheControlsSayWhatTheMetricCanAndCannotSeparate ..............................................................   Passed    0.08 sec
+        Start  941: GhostOraclePedestal.TheModuleRowsThatNeverTouchTheClamp
+183/363 Test  #941: GhostOraclePedestal.TheModuleRowsThatNeverTouchTheClamp ..........................................................................   Passed    0.83 sec
+        Start  942: GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag
+184/363 Test  #942: GhostOracleDerive.ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotTheLag ......................................................   Passed    0.05 sec
+        Start  943: GhostOracleDerive.TheRectifiedDarkReferenceGrowsWithTheNoiseAndNotWithTheLag
+185/363 Test  #943: GhostOracleDerive.TheRectifiedDarkReferenceGrowsWithTheNoiseAndNotWithTheLag .....................................................   Passed    0.02 sec
+        Start  944: GhostOracleDerive.MeasuresWhetherTheCorrectorAmplifiesTheNoise
+186/363 Test  #944: GhostOracleDerive.MeasuresWhetherTheCorrectorAmplifiesTheNoise ...................................................................   Passed    0.02 sec
+        Start  945: GhostOracleDerive.TheReplicaOfTierOneMatchesTheRealModule
+187/363 Test  #945: GhostOracleDerive.TheReplicaOfTierOneMatchesTheRealModule ........................................................................   Passed    0.01 sec
+        Start  946: GhostOracleDerive.TheDerivationIsDeterministicValidAndMeetsItsOwnConstraint
+188/363 Test  #946: GhostOracleDerive.TheDerivationIsDeterministicValidAndMeetsItsOwnConstraint ......................................................   Passed    0.23 sec
+        Start  947: GhostOracleDerive.MeasuresDerivedConfigurationsOnSequencesTheyWereNotDerivedFrom
+189/363 Test  #947: GhostOracleDerive.MeasuresDerivedConfigurationsOnSequencesTheyWereNotDerivedFrom .................................................   Passed    0.29 sec
+        Start  948: GhostOracle.TheLtiTruthSatisfiesItsDefinition
+190/363 Test  #948: GhostOracle.TheLtiTruthSatisfiesItsDefinition ....................................................................................   Passed    0.01 sec
+        Start  949: GhostOracle.TheTrapTruthLagShrinksRelativelyAsTheExposureGrows
+191/363 Test  #949: GhostOracle.TheTrapTruthLagShrinksRelativelyAsTheExposureGrows ...................................................................   Passed    0.01 sec
+        Start  950: GhostOracle.TheControlsGiveTheAnswersTheyMust
+192/363 Test  #950: GhostOracle.TheControlsGiveTheAnswersTheyMust ....................................................................................   Passed    0.02 sec
+        Start  951: GhostOracle.TheStepMeasurementSeesWhatTheClampHides
+193/363 Test  #951: GhostOracle.TheStepMeasurementSeesWhatTheClampHides ..............................................................................   Passed    0.01 sec
+        Start  952: GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing
+194/363 Test  #952: GhostOracle.ASelfModelLagIsCorrectedToTheLetterWhichProvesNothing ................................................................   Passed    0.01 sec
+        Start  953: GhostOracle.MeasuresTheModuleAgainstTheIndependentTruths
+195/363 Test  #953: GhostOracle.MeasuresTheModuleAgainstTheIndependentTruths .........................................................................   Passed    0.09 sec
+        Start  954: GhostOracle.MeasuresTheFallingStepWhereTheClampCannotHide
+196/363 Test  #954: GhostOracle.MeasuresTheFallingStepWhereTheClampCannotHide ........................................................................   Passed    0.03 sec
+        Start  955: GhostOracle.TheHarnessIsDeterministic
+197/363 Test  #955: GhostOracle.TheHarnessIsDeterministic ............................................................................................   Passed    0.02 sec
+        Start  956: GhostOracle.PrintsTheTierThreeDigestForTheSeamComparison
+198/363 Test  #956: GhostOracle.PrintsTheTierThreeDigestForTheSeamComparison .........................................................................   Passed    0.02 sec
+        Start  957: GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier
+199/363 Test  #957: GhostLagContract.AForwardUnstableSetIsRefusedInEveryTier .........................................................................   Passed    0.01 sec
+        Start  958: GhostLagContract.TheBoundaryIsSEqualsOne
+200/363 Test  #958: GhostLagContract.TheBoundaryIsSEqualsOne .........................................................................................   Passed    0.01 sec
+        Start  959: GhostLagContract.AStableSetIsAcceptedInEveryTierAndRaisesNoWarning
+201/363 Test  #959: GhostLagContract.AStableSetIsAcceptedInEveryTierAndRaisesNoWarning ...............................................................   Passed    0.01 sec
+        Start  960: GhostLagContract.ANonFiniteGainIsRefused
+202/363 Test  #960: GhostLagContract.ANonFiniteGainIsRefused .........................................................................................   Passed    0.01 sec
+        Start  961: GhostLagContract.ANegativeAlphaIsRefused
+203/363 Test  #961: GhostLagContract.ANegativeAlphaIsRefused .........................................................................................   Passed    0.01 sec
+        Start  962: GhostLagContract.TauMustBeAFinitePositiveNumber
+204/363 Test  #962: GhostLagContract.TauMustBeAFinitePositiveNumber ..................................................................................   Passed    0.01 sec
+        Start  963: GhostLagContract.TheRangeBoundariesAreInclusiveWhereTheyShouldBe
+205/363 Test  #963: GhostLagContract.TheRangeBoundariesAreInclusiveWhereTheyShouldBe .................................................................   Passed    0.01 sec
+        Start  964: GhostLagContract.AZeroAlphaContributesNothingWhateverItsTauIs
+206/363 Test  #964: GhostLagContract.AZeroAlphaContributesNothingWhateverItsTauIs ....................................................................   Passed    0.01 sec
+        Start  965: GhostLagContract.ASetThatIsNotCalibratedIsNotJudged
+207/363 Test  #965: GhostLagContract.ASetThatIsNotCalibratedIsNotJudged ..............................................................................   Passed    0.01 sec
+        Start  966: GhostLagContract.TheOutputDoesNotDependOnTheTimes
+208/363 Test  #966: GhostLagContract.TheOutputDoesNotDependOnTheTimes ................................................................................   Passed    0.01 sec
+        Start  967: GhostLagContract.EachCallIsOneFrameStep
+209/363 Test  #967: GhostLagContract.EachCallIsOneFrameStep ..........................................................................................   Passed    0.01 sec
+        Start  968: GhostLagContract.AResetStartsTheSequenceOver
+210/363 Test  #968: GhostLagContract.AResetStartsTheSequenceOver .....................................................................................   Passed    0.01 sec
+        Start  969: GhostUncalibrated.DefaultHandlePassesEveryFrameThroughBitForBit
+211/363 Test  #969: GhostUncalibrated.DefaultHandlePassesEveryFrameThroughBitForBit ..................................................................   Passed    0.01 sec
+        Start  970: GhostUncalibrated.ConstantExposureKeepsItsSignal
+212/363 Test  #970: GhostUncalibrated.ConstantExposureKeepsItsSignal .................................................................................   Passed    0.01 sec
+        Start  971: GhostUncalibrated.OneWarningAtCreationAndNoneAfterwards
+213/363 Test  #971: GhostUncalibrated.OneWarningAtCreationAndNoneAfterwards ..........................................................................   Passed    0.01 sec
+        Start  972: GhostUncalibrated.TwoHandlesWarnOnceEach
+214/363 Test  #972: GhostUncalibrated.TwoHandlesWarnOnceEach .........................................................................................   Passed    0.01 sec
+        Start  973: GhostUncalibrated.PassThroughLeavesTheHandleStateUntouched
+215/363 Test  #973: GhostUncalibrated.PassThroughLeavesTheHandleStateUntouched .......................................................................   Passed    0.01 sec
+        Start  974: GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated
+216/363 Test  #974: GhostUncalibrated.ThreeOfFourParametersIsStillUncalibrated .......................................................................   Passed    0.01 sec
+        Start  975: GhostUncalibrated.TierAndOtherKeysAloneDoNotCalibrate
+217/363 Test  #975: GhostUncalibrated.TierAndOtherKeysAloneDoNotCalibrate ............................................................................   Passed    0.01 sec
+        Start  976: GhostUncalibrated.EmptyValuesCountAsNotGiven
+218/363 Test  #976: GhostUncalibrated.EmptyValuesCountAsNotGiven .....................................................................................   Passed    0.01 sec
+        Start  977: GhostUncalibrated.RefusedCreationRaisesNoWarning
+219/363 Test  #977: GhostUncalibrated.RefusedCreationRaisesNoWarning .................................................................................   Passed    0.01 sec
+        Start  978: GhostUncalibrated.PassThroughStillRefusesWhatTheCorrectingPathRefuses
+220/363 Test  #978: GhostUncalibrated.PassThroughStillRefusesWhatTheCorrectingPathRefuses ............................................................   Passed    0.01 sec
+        Start  979: GhostUncalibrated.ResetStaysValid
+221/363 Test  #979: GhostUncalibrated.ResetStaysValid ................................................................................................   Passed    0.06 sec
+        Start  980: GhostUncalibrated.ExplicitConfigurationRaisesNoWarningAndStillCorrects
+222/363 Test  #980: GhostUncalibrated.ExplicitConfigurationRaisesNoWarningAndStillCorrects ...........................................................   Passed    0.01 sec
+        Start  981: GhostUncalibrated.ExplicitConfigurationInEveryTierRaisesNoWarning
+223/363 Test  #981: GhostUncalibrated.ExplicitConfigurationInEveryTierRaisesNoWarning ................................................................   Passed    0.01 sec
+        Start  982: GhostUncalibrated.ExplicitConfigurationDiffersFromPassThroughOnASecondFrame
+224/363 Test  #982: GhostUncalibrated.ExplicitConfigurationDiffersFromPassThroughOnASecondFrame ......................................................   Passed    0.01 sec
+        Start  983: GhostTier3Border.AUniformFrameComesOutUniformAtEverySize
+225/363 Test  #983: GhostTier3Border.AUniformFrameComesOutUniformAtEverySize .........................................................................   Passed    0.01 sec
+        Start  984: GhostTier3Border.EveryPixelFollowsTheBlendOverTheNeighboursThatExist
+226/363 Test  #984: GhostTier3Border.EveryPixelFollowsTheBlendOverTheNeighboursThatExist .............................................................   Passed    0.12 sec
+        Start  985: GhostTier3Border.ATierOneOrTwoFrameIsNotBlendedAnywhere
+227/363 Test  #985: GhostTier3Border.ATierOneOrTwoFrameIsNotBlendedAnywhere ..........................................................................   Passed    0.01 sec
+        Start  986: GhostTier3Border.PrintsTheTierDigestsForTheBeforeAfterComparison
+228/363 Test  #986: GhostTier3Border.PrintsTheTierDigestsForTheBeforeAfterComparison .................................................................   Passed    0.02 sec
+        Start  987: GhostTier3NeighbourSpan.MatchesAnIndependentWideSignedComputationAtEveryAxisLength
+229/363 Test  #987: GhostTier3NeighbourSpan.MatchesAnIndependentWideSignedComputationAtEveryAxisLength ...............................................   Passed    0.01 sec
+        Start  988: GhostTier3NeighbourSpan.TheFirstVersionLostEveryNeighbourAboveIntMaxAndTheSpanDoesNot
+230/363 Test  #988: GhostTier3NeighbourSpan.TheFirstVersionLostEveryNeighbourAboveIntMaxAndTheSpanDoesNot ............................................   Passed    0.01 sec
+        Start  989: GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne
+231/363 Test  #989: GhostTier3Orientation.AFrameFlippedProcessedAndFlippedBackComesOutAsTheUnflippedOne ..............................................   Passed    0.01 sec
+        Start  990: GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame
+232/363 Test  #990: GhostTier3Orientation.TheOutputIsTheTierThreeFormulaWithTheNeighboursReadFromTheIncomingFrame ....................................   Passed    0.01 sec
+        Start  991: GhostTier3Orientation.TiersOneAndTwoWereAlwaysDirectionIndependentAndStillAre
+233/363 Test  #991: GhostTier3Orientation.TiersOneAndTwoWereAlwaysDirectionIndependentAndStillAre ....................................................   Passed    0.12 sec
+        Start 1027: P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError
+234/363 Test #1027: P1A066.T4_GhostCorrect_MultiHandle_ConcurrentNoError .............................................................................   Passed    0.01 sec
+        Start 1029: CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest
+235/363 Test #1029: CalibFixtureGenTest.EmitsThreeXCalFilesAndManifest ...............................................................................   Passed    0.74 sec
+        Start 1252: A184Probes.GhostSingleThreadTime
+236/363 Test #1252: A184Probes.GhostSingleThreadTime .................................................................................................***Not Run (Disabled)   0.00 sec
+        Start 1253: GhostThreadSafety.SharedHandleLosesNoUpdates
+237/363 Test #1253: GhostThreadSafety.SharedHandleLosesNoUpdates .....................................................................................   Passed    0.09 sec
+        Start 1254: GhostThreadSafety.ControlExternalMutexMatchesSerialReplay
+238/363 Test #1254: GhostThreadSafety.ControlExternalMutexMatchesSerialReplay ........................................................................   Passed    0.09 sec
+        Start 1255: GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay
+239/363 Test #1255: GhostThreadSafety.ControlOneHandlePerThreadMatchesSerialReplay ...................................................................   Passed    0.05 sec
+        Start 1256: GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState
+240/363 Test #1256: GhostThreadSafety.ResetAndCorrectOnOneHandleEndInASerialisedState ................................................................   Passed    0.46 sec
+        Start 1257: GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle
+241/363 Test #1257: GhostThreadSafety.FailedFramesGetTheirOwnPixelsBackWhileSharingAHandle ...........................................................   Passed    0.03 sec
+        Start 1301: ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle
+242/363 Test #1301: ConfigStrictParse.GhostCreateRefusesAMalformedNumberAndHandsBackNoHandle .........................................................   Passed    0.01 sec
+        Start 1302: ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers
+243/363 Test #1302: ConfigStrictParse.GhostCreateAcceptsOrdinaryNumbers ..............................................................................   Passed    0.01 sec
+        Start 1304: ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable
+244/363 Test #1304: ConfigStrictParse.TheAcceptedNotationOfGhostCreateIsFixedByATable ................................................................   Passed    0.01 sec
+        Start 1315: ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject
+245/363 Test #1315: ConfigStrictParse.TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonObject ....................................................   Passed    0.01 sec
+        Start 1327: GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas
+246/363 Test #1327: GhostFailedFrame.AStandaloneCallThatFailsLeavesTheHandleAsItWas ..................................................................   Passed    0.01 sec
+        Start 1328: GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory
+247/363 Test #1328: GhostFailedFrame.ABatchCarriesOnPastAFailedFrameWithoutItsHistory ................................................................   Passed    0.02 sec
+        Start 1379: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+248/363 Test #1379: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize ........................................................................   Passed    0.08 sec
+        Start 1380: OutputUnchanged237b.PipelineEntryBypassCombinations
+249/363 Test #1380: OutputUnchanged237b.PipelineEntryBypassCombinations ..............................................................................   Passed    0.11 sec
+        Start 1381: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+250/363 Test #1381: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer .................................................................   Passed    0.04 sec
+        Start 1382: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+251/363 Test #1382: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute ...........................................................   Passed    0.21 sec
+        Start 1383: OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+252/363 Test #1383: OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes ..............................................................   Passed    0.10 sec
+        Start 1384: OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+253/363 Test #1384: OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere ........................................................   Passed    0.03 sec
+        Start 1385: OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+254/363 Test #1385: OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory .....................................................   Passed    0.01 sec
+        Start 1386: OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing
+255/363 Test #1386: OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing ...............................................................   Passed    0.02 sec
+        Start 1436: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect  # GetParam() = 3-byte object <00-00 00>
+256/363 Test #1436: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_NoDefect  # GetParam() = 3-byte object <00-00 00> ....   Passed    0.01 sec
+        Start 1437: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect  # GetParam() = 3-byte object <00-00 01>
+257/363 Test #1437: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_NoGhost_OneDefect  # GetParam() = 3-byte object <00-00 01> ...   Passed    0.02 sec
+        Start 1438: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect  # GetParam() = 3-byte object <00-01 00>
+258/363 Test #1438: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_NoDefect  # GetParam() = 3-byte object <00-01 00> ......   Passed    0.02 sec
+        Start 1439: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect  # GetParam() = 3-byte object <00-01 01>
+259/363 Test #1439: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOff_Ghost_OneDefect  # GetParam() = 3-byte object <00-01 01> .....   Passed    0.02 sec
+        Start 1440: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect  # GetParam() = 3-byte object <01-00 00>
+260/363 Test #1440: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_NoDefect  # GetParam() = 3-byte object <01-00 00> .....   Passed    0.13 sec
+        Start 1441: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect  # GetParam() = 3-byte object <01-00 01>
+261/363 Test #1441: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_NoGhost_OneDefect  # GetParam() = 3-byte object <01-00 01> ....   Passed    0.02 sec
+        Start 1442: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect  # GetParam() = 3-byte object <01-01 00>
+262/363 Test #1442: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_NoDefect  # GetParam() = 3-byte object <01-01 00> .......   Passed    0.02 sec
+        Start 1443: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect  # GetParam() = 3-byte object <01-01 01>
+263/363 Test #1443: AllCombinations/PipelineComboTest.OutputMatchesTheFormula/NonlinOn_Ghost_OneDefect  # GetParam() = 3-byte object <01-01 01> ......   Passed    0.02 sec
+        Start 1444: OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+264/363 Test #1444: OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader .............................................................   Passed    0.02 sec
+        Start 1445: OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+265/363 Test #1445: OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched ......................................................................   Passed    0.02 sec
+        Start 1446: OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+266/363 Test #1446: OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched ....................................................................   Passed    0.02 sec
+        Start 1447: OomInjection.OffsetConfigCommitsWithItsMapOrRemainsUnchangedOnAllocationFailure
+267/363 Test #1447: OomInjection.OffsetConfigCommitsWithItsMapOrRemainsUnchangedOnAllocationFailure ..................................................   Passed    0.02 sec
+        Start 1448: OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+268/363 Test #1448: OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched ....................................................................   Passed    0.02 sec
+        Start 1449: OomInjection.ADefectV2SavePreservesItsStateAndExistingDestinationOnAllocationFailure
+269/363 Test #1449: OomInjection.ADefectV2SavePreservesItsStateAndExistingDestinationOnAllocationFailure .............................................   Passed    0.05 sec
+        Start 1450: OomInjection.ACompressedOffsetSaveKeepsThePriorFileAndMetadataOnAllocationFailure
+270/363 Test #1450: OomInjection.ACompressedOffsetSaveKeepsThePriorFileAndMetadataOnAllocationFailure ................................................   Passed    0.05 sec
+        Start 1451: OomInjection.ScalarGainStateSavePreservesClassificationMetadataAndThePriorFileOnAllocationFailure
+271/363 Test #1451: OomInjection.ScalarGainStateSavePreservesClassificationMetadataAndThePriorFileOnAllocationFailure ................................   Passed    0.11 sec
+        Start 1452: OomInjection.ActivePolynomialGainSavePreservesItsStateAndThePriorFileOnAllocationFailure
+272/363 Test #1452: OomInjection.ActivePolynomialGainSavePreservesItsStateAndThePriorFileOnAllocationFailure .........................................   Passed    0.07 sec
+        Start 1453: OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+273/363 Test #1453: OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched ..............................................   Passed    0.01 sec
+        Start 1454: OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+274/363 Test #1454: OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched ...........................................   Passed    0.02 sec
+        Start 1455: OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+275/363 Test #1455: OomInjection.ACachedGainMissLeavesNoExceptionEscaping ............................................................................   Passed    0.02 sec
+        Start 1456: OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+276/363 Test #1456: OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping ..................................................................   Passed    0.02 sec
+        Start 1457: OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+277/363 Test #1457: OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping ..........................................................................   Passed    0.01 sec
+        Start 1458: OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+278/363 Test #1458: OomInjection.ACachedDefectMissLeavesNoExceptionEscaping ..........................................................................   Passed    0.02 sec
+        Start 1459: OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+279/363 Test #1459: OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched ......................................................................   Passed    0.01 sec
+        Start 1460: OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+280/363 Test #1460: OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched ....................................................................   Passed    0.01 sec
+        Start 1461: OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+281/363 Test #1461: OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched ....................................................................   Passed    0.01 sec
+        Start 1462: OomInjection.AnOffsetCorrectionAllocatesNothing
+282/363 Test #1462: OomInjection.AnOffsetCorrectionAllocatesNothing ..................................................................................   Passed    0.01 sec
+        Start 1463: OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+283/363 Test #1463: OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree .....................................................   Passed    0.01 sec
+        Start 1464: OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+284/363 Test #1464: OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind .....................................................................   Passed    0.01 sec
+        Start 1465: OomInjection.AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing
+285/363 Test #1465: OomInjection.AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing ...................................................   Passed    0.01 sec
+        Start 1466: OomInjection.ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing
+286/363 Test #1466: OomInjection.ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing .........................................   Passed    0.01 sec
+        Start 1467: OomInjection.AGhostValidationRouteUsesNoFrameAllocations
+287/363 Test #1467: OomInjection.AGhostValidationRouteUsesNoFrameAllocations .........................................................................   Passed    0.01 sec
+        Start 1468: OomInjection.AGhostValidationRefusalPreservesPixelsAndStateWithoutAllocating
+288/363 Test #1468: OomInjection.AGhostValidationRefusalPreservesPixelsAndStateWithoutAllocating .....................................................   Passed    0.01 sec
+        Start 1469: OomInjection.AGhostValidationRouteDoesNotAllocateOrLeakAcrossOneHundredFrames
+289/363 Test #1469: OomInjection.AGhostValidationRouteDoesNotAllocateOrLeakAcrossOneHundredFrames ....................................................   Passed    0.02 sec
+        Start 1470: OomInjection.FirstFrameBypassSeedsTheSameHistoryAsLegacyForAllLaterFrames
+290/363 Test #1470: OomInjection.FirstFrameBypassSeedsTheSameHistoryAsLegacyForAllLaterFrames ........................................................   Passed    0.02 sec
+        Start 1471: OomInjection.AnExtremeFiniteFirstFrameIsBypassedAndStillSeedsTheNextCorrection
+291/363 Test #1471: OomInjection.AnExtremeFiniteFirstFrameIsBypassedAndStillSeedsTheNextCorrection ...................................................   Passed    0.01 sec
+        Start 1472: OomInjection.ASparseBrightOutlierUsesTheActualFrameMeanBoundAndMatchesValidation
+292/363 Test #1472: OomInjection.ASparseBrightOutlierUsesTheActualFrameMeanBoundAndMatchesValidation .................................................   Passed    0.09 sec
+        Start 1473: OomInjection.ADefectCorrectionDoesNotCopyTheMap
+293/363 Test #1473: OomInjection.ADefectCorrectionDoesNotCopyTheMap ..................................................................................   Passed    0.01 sec
+        Start 1474: OomInjection.TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSection
+294/363 Test #1474: OomInjection.TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSection .......................................................   Passed    0.03 sec
+        Start 1475: OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+295/363 Test #1475: OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore .......................................................................   Passed    0.02 sec
+        Start 1476: OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+296/363 Test #1476: OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind ................................................   Passed    0.01 sec
+        Start 1477: OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized
+297/363 Test #1477: OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized ....................................   Passed    0.01 sec
+        Start 1478: OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes
+298/363 Test #1478: OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes ........................................   Passed    0.01 sec
+        Start 1479: OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched
+299/363 Test #1479: OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched ...............................................   Passed    0.07 sec
+        Start 1480: OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+300/363 Test #1480: OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes ..................................................   Passed    0.01 sec
+        Start 1481: OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+301/363 Test #1481: OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes ....................................................   Passed    0.01 sec
+        Start 1482: OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+302/363 Test #1482: OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes ................................................   Passed    0.01 sec
+        Start 1483: OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard
+303/363 Test #1483: OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard ................................................................   Passed    0.01 sec
+        Start 1484: OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+304/363 Test #1484: OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes .............................................   Passed    0.01 sec
+        Start 1485: OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+305/363 Test #1485: OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes ..........................................   Passed    0.01 sec
+        Start 1486: OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes
+306/363 Test #1486: OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes ................................................   Passed    0.02 sec
+        Start 1487: OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+307/363 Test #1487: OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce ...................................................................   Passed    0.02 sec
+        Start 1488: OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+308/363 Test #1488: OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched .............................................   Passed    0.02 sec
+        Start 1489: OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+309/363 Test #1489: OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched ..................................................   Passed    0.02 sec
+        Start 1490: OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+310/363 Test #1490: OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched .............................................   Passed    0.01 sec
+        Start 1491: OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched
+311/363 Test #1491: OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched .....................................   Passed    0.02 sec
+        Start 1492: OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory
+312/363 Test #1492: OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory ............................................   Passed    0.02 sec
+        Start 1493: OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+313/363 Test #1493: OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas .................................................................   Passed    0.03 sec
+        Start 1494: OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+314/363 Test #1494: OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas ...................................................................   Passed    0.04 sec
+        Start 1495: OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+315/363 Test #1495: OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched .....................................................   Passed    0.05 sec
+        Start 1496: OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension
+316/363 Test #1496: OomPipeline.TheStoreDigestTellsStoresApartByPresenceAndByEveryDimension ..........................................................   Passed    0.01 sec
+        Start 1497: OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+317/363 Test #1497: OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet ...........................................   Passed    0.04 sec
+        Start 1498: OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap
+318/363 Test #1498: OomPipeline.AFailedCachedOffsetLoadThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeMap ...........................................   Passed    0.02 sec
+        Start 1499: OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims
+319/363 Test #1499: OomPipeline.TheFrameCopiedIsTheOneTheDimensionsDescribeWhateverSizeTheCallerClaims ...............................................   Passed    0.02 sec
+        Start 1500: OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone
+320/363 Test #1500: OomPipeline.AClaimSmallerThanTheFrameIsRefusedBeforeAnythingIsDone ...............................................................   Passed    0.02 sec
+        Start 1501: OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame
+321/363 Test #1501: OomPipeline.TheOutputCapacityMustHoldTheWholeFinalFrame ..........................................................................   Passed    0.03 sec
+        Start 1502: OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal
+322/363 Test #1502: OomPipeline.ABatchChecksTheRoomOfEachFrameAndCarriesOnPastARefusal ...............................................................   Passed    0.02 sec
+        Start 1503: OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead
+323/363 Test #1503: OomPipeline.AFrameWhoseByteCountDoesNotFitInSizeTIsRefusedBeforeItIsRead .........................................................   Passed    0.02 sec
+        Start 1504: OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt
+324/363 Test #1504: OomPipeline.SetsAAndBDifferInEverythingTheDigestLooksAt ..........................................................................   Passed    0.13 sec
+        Start 1505: OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+325/363 Test #1505: OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas ..................................................   Passed    0.05 sec
+        Start 1506: OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+326/363 Test #1506: OomPipeline.AnOutOfMemoryInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas ...............................................   Passed    0.08 sec
+        Start 1507: OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre
+327/363 Test #1507: OomPipeline.TheQualityMetadataIsCurrentTheMomentTheMapsAre .......................................................................   Passed    0.01 sec
+        Start 1508: OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields
+328/363 Test #1508: OomPipeline.AQualityReadWhileTheStoreIsBeingReplacedSeesOneFilesFields ...........................................................   Passed    0.03 sec
+        Start 1509: OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame
+329/363 Test #1509: OomPipeline.AFrameIsProcessedWithOneCalibrationSetEvenIfAnotherIsLoadedMidFrame ..................................................   Passed    0.02 sec
+        Start 1510: OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet
+330/363 Test #1510: OomPipeline.AQualityReadStartedInsideTheCommitWaitsForItAndSeesTheNewSet .........................................................   Passed    1.02 sec
+        Start 1511: OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer
+331/363 Test #1511: OomPipeline.AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer ............................................................   Passed    2.04 sec
+        Start 1512: OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn
+332/363 Test #1512: OomPipeline.EveryConfigurationReadsOnlyWhatItOwnsAndEndsInTheFormatItIsPredictedToEndIn ..........................................   Passed    0.05 sec
+        Start 1513: OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind
+333/363 Test #1513: OomPipeline.ALoadOfAGainWithoutQualityLeavesNoPreviousFilesQualityBehind .........................................................   Passed    0.02 sec
+        Start 1514: OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath
+334/363 Test #1514: OomPipeline.ALoadOfAGainWithDifferentQualityReplacesTheRecordOnEveryPath .........................................................   Passed    0.02 sec
+        Start 1515: OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap
+335/363 Test #1515: OomPipeline.AFileWithoutQualityThenOneWithQualityKeepsTheHistoryAcrossTheGap .....................................................   Passed    0.02 sec
+        Start 1516: OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap
+336/363 Test #1516: OomPipeline.ACacheHitInstallsTheFilesQualityCopyBesideTheMap .....................................................................   Passed    0.02 sec
+        Start 1517: OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC
+337/363 Test #1517: OomPipeline.APartialQualityRecordDoesNotInterruptTheR2History_AThenPartialThenC ..................................................   Passed    0.03 sec
+        Start 1518: OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC
+338/363 Test #1518: OomPipeline.ARecordWithNoQualityAfterAPartialOneKeepsTheR2History_AThenPartialThenNoneThenC ......................................   Passed    0.02 sec
+        Start 1519: OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC
+339/363 Test #1519: OomPipeline.AGeneratedRecordFollowsTheSameRule_AThenPartialThenGeneratedThenPartialThenC .........................................   Passed    0.02 sec
+        Start 1520: OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory
+340/363 Test #1520: OomPipeline.ANegativeGeneratedR2IsKnownAndBecomesTheHistory ......................................................................   Passed    0.02 sec
+        Start 1521: OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne
+341/363 Test #1521: OomPipeline.AnR2OfExactlyMinusOneIsARealValueAndChainsAsOne ......................................................................   Passed    0.03 sec
+        Start 1522: OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne
+342/363 Test #1522: OomPipeline.WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstRecordIsMinusOne .............................................   Passed    0.02 sec
+        Start 1523: GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree
+343/363 Test #1523: GhostMixCompare.TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree .......................................................   Passed    0.02 sec
+        Start 1524: GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold
+344/363 Test #1524: GhostMixCompare.TheAnalyticValuesOfThePreregistrationHold ........................................................................   Passed    0.01 sec
+        Start 1525: GhostMixCompare.TheCurrentFirstFrameBypassesBothExperimentalMixSettings
+345/363 Test #1525: GhostMixCompare.TheCurrentFirstFrameBypassesBothExperimentalMixSettings ..........................................................   Passed    0.13 sec
+        Start 1526: GhostMixCompare.TheBlendLeavesNoRingAndIsTheMixOfTheUnblendedFrameAndTheRaw
+346/363 Test #1526: GhostMixCompare.TheBlendLeavesNoRingAndIsTheMixOfTheUnblendedFrameAndTheRaw ......................................................   Passed    0.07 sec
+        Start 1527: GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs
+347/363 Test #1527: GhostMixCompare.ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs ..........................................................   Passed    0.01 sec
+        Start 1528: GhostMixCompare.ComparesTheBlendKeptAndRemovedAsPreregistered
+348/363 Test #1528: GhostMixCompare.ComparesTheBlendKeptAndRemovedAsPreregistered ....................................................................   Passed    0.24 sec
+        Start 1532: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+349/363 Test #1532: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize ........................................................................   Passed    0.08 sec
+        Start 1533: OutputUnchanged237b.PipelineEntryBypassCombinations
+350/363 Test #1533: OutputUnchanged237b.PipelineEntryBypassCombinations ..............................................................................   Passed    0.11 sec
+        Start 1534: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+351/363 Test #1534: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer .................................................................   Passed    0.04 sec
+        Start 1535: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+352/363 Test #1535: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute ...........................................................   Passed    0.23 sec
+        Start 1536: OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+353/363 Test #1536: OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes ..............................................................   Passed    0.10 sec
+        Start 1537: OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+354/363 Test #1537: OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere ........................................................   Passed    0.03 sec
+        Start 1538: OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+355/363 Test #1538: OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory .....................................................   Passed    0.01 sec
+        Start 1539: OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing
+356/363 Test #1539: OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing ...............................................................   Passed    0.01 sec
+        Start 1540: OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow
+357/363 Test #1540: OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow ..............................................................   Passed    0.61 sec
+        Start 1541: OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers
+358/363 Test #1541: OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers ..............................................................   Passed    0.12 sec
+        Start 1542: OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+359/363 Test #1542: OutputUnchanged237b.DefectStageOutputForEveryMaskShape ...........................................................................   Passed    0.06 sec
+        Start 1543: OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps
+360/363 Test #1543: OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps ............................................................................   Passed    0.01 sec
+        Start 1544: OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels
+361/363 Test #1544: OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels ...................................................................   Passed    0.01 sec
+        Start 1545: OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+362/363 Test #1545: OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails ...................................................   Passed    0.06 sec
+        Start 1596: preprocess.legacy_ghost_fingerprints
+363/363 Test #1596: preprocess.legacy_ghost_fingerprints .............................................................................................   Passed    1.41 sec
+
+100% tests passed, 0 tests failed out of 360
+
+Total Test time (real) =  18.32 sec
+
+The following tests did not run:
+	557 - GhostRegistry.PipelineOnceForAB (Disabled)
+	558 - GhostRegistry.UnsupportedUseRacingDestroyCanCrash (Disabled)
+	1252 - A184Probes.GhostSingleThreadTime (Disabled)

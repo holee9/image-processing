@@ -1,0 +1,2241 @@
+diff --git a/modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h b/modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h
+index 7ee5272f..71b3c835 100644
+--- a/modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h
++++ b/modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h
+@@ -50,6 +50,7 @@ struct GhostCorrectorHandle {
+     // The defaults below are NOT a calibration -- the forward system they imply has a gain of about 2.45 and
+     // "corrects" a constant exposure to nothing -- so a handle without its own lag parameters passes frames through.
+     bool calibrated{false};
++    bool hasHistory{false}; // a successful calibrated frame, including a zero frame; cleared by reset
+
+     double alpha1{0.9};    // fast component amplitude
+     double tau1{1.0};      // fast component time constant (frames)
+@@ -63,7 +64,7 @@ struct GhostCorrectorHandle {
+     // Tier 3: NLCSC signal-dependent coefficients
+     double nlcscBeta{0.1};  // signal dependency parameter
+
+-    // Frame history ring buffer (float32 per pixel per history slot)
++    // Recursive float32 history state. This is not the unimplemented 8-16-frame ring (FUNC-014).
+     std::vector<float> hist1; // fast IRF accumulator
+     std::vector<float> hist2; // slow IRF accumulator
+
+@@ -76,7 +77,8 @@ struct GhostCorrectorHandle {
+     //   * a frame whose arithmetic provably cannot leave the float range (an upper bound on every intermediate value,
+     //     computed from the frame's largest value, the bounds below and the coefficients) is processed IN PLACE: it
+     //     cannot fail, so there is nothing to undo;
+-    //   * any other frame takes the old route with scratch planes allocated for that call alone.
++    //   * any other frame validates all identical float expressions without writes, then commits in place.
++    //     #245: no next1/next2/backup full planes; a refused validation leaves all observable state unchanged.
+     // histBound1/2: upper bounds of |hist1| and |hist2|, kept as the recurrence bound' = (decay * bound + max|frame|),
+     // never read from the planes; 0 for an empty history (create, reset).
+     double histBound1{0.0};
+@@ -164,6 +166,10 @@ void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_
+  *  as ghost-corrected. */
+ bool xpe_ghost_is_calibrated(const void* handle) noexcept;
+
++/** Internal pipeline status is produced under the same handle mutex as correction. No public ABI addition. */
++XpeErrorCode xpe_ghost_correct_with_status(void* handle, XpeImageBuffer* img,
++                                         const XpeImageMetadata* meta, bool* bypassed);
++
+ float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
+                              uint32_t x, uint32_t y,
+                              uint32_t width, uint32_t height) noexcept;
+@@ -347,6 +353,8 @@ extern XpeGhostTier3Mix xpe_ghost_tier3_mix;
+  *  counts the frames that were processed in place. Together they let a test run the same frames both ways and check
+  *  that the in-place route is never taken for a frame the other route fails. */
+ extern bool xpe_ghost_force_slow_path;
++/** Test-only replay of pre-FUNC-014-fix snapshots; never present in the shipped DLL. */
++extern bool xpe_ghost_legacy_first_frame;
+ extern unsigned long xpe_ghost_in_place_frames;
+ #endif
+
+@@ -539,6 +547,8 @@ struct CalibrationData {
+     // file's expiry (0 = never) and, for gain, its config JSON. The plain loaders write them so the
+     // cache can keep them in its entry and judge a later hit as the file read would have.
+     int64_t  offset_expiry_ms{0};
++    // Validated XCal config bytes, immutable and shared with cache/save snapshots. No temperature interpretation here.
++    std::shared_ptr<const std::vector<uint8_t>> offset_config;
+
+     // gain_map and gain_poly_coeffs are SHARED for the same reason as offset_map (QA-A-202d, Codex #32): a
+     // frame takes a CalibSnapshot of the three maps when it starts, and a load that replaces the store while
+@@ -557,6 +567,7 @@ struct CalibrationData {
+     // hit applies the very same values as the load did (QA-A-200).
+     XpeCalibQualityMeta gain_quality{};
+     bool     gain_has_quality{false};
++    std::shared_ptr<const std::vector<uint8_t>> gain_config; // original validated config; same generation as gain state
+
+     // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY coefficients, pixel-major --
+     // coefficient j of pixel p lives at [p * gain_poly_num_coeffs + j], which
+@@ -698,6 +709,7 @@ XpeErrorCode xpe_defect_correct_in(const CalibSnapshot& calib, const XpeImageBuf
+ // to a shared_ptr allocates the control block, and a commit must not allocate.
+ struct StagedOffset {
+     std::shared_ptr<float[]> map;
++    std::shared_ptr<const std::vector<uint8_t>> config;
+     uint32_t width{0};
+     uint32_t height{0};
+     int64_t  timestamp{0};
+@@ -706,6 +718,7 @@ struct StagedOffset {
+ };
+
+ struct StagedGain {
++    std::shared_ptr<const std::vector<uint8_t>> config;
+     std::shared_ptr<uint32_t[]> defectIdx;   ///< scalar map: the pixels classified defective, ascending (QA-A-211); their map value is already 1.0
+     uint32_t defectCount{0};
+     uint32_t defectInBand{0};                ///< how many of them lie in the outermost 64-pixel band (alert detail)
+diff --git a/modules/preprocess/include/xpe/preprocess_api.h b/modules/preprocess/include/xpe/preprocess_api.h
+index 9443346e..64774ba5 100644
+--- a/modules/preprocess/include/xpe/preprocess_api.h
++++ b/modules/preprocess/include/xpe/preprocess_api.h
+@@ -715,6 +715,14 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
+  * expiry_epoch_ms = 0, so no API path could produce an expiring calibration file
+  * and SRS-ALERT-005 / REQ-P1A-018 were unreachable. The expiry policy itself
+  * (30 days, and so on) belongs to the caller; this function records the value.
++ * For "gain", the active scalar or polynomial model selects the existing GAIN or GAIN_POLY file type;
++ * polynomial coefficients retain their pixel-major layout. Offset/gain config bytes are retained with the model.
++ * Classified scalar gain positions are saved
++ * with the existing invalid value 0 so reload restores the neutral applied map and its defect indices;
++ * valid 1.0 positions stay 1.0. Original invalid numeric values are not reconstructed.
++ * A defect state with runtime v2 layers is saved with
++ * the existing v2 format (area, confirmed lines and blobs); a v1 state stays v1. This saves current
++ * runtime state, not an original-file byte copy: diagnostic candidates and discarded provenance are not reconstructed.
+  *
+  * @param filepath Output XCal file path
+  * @param calib_type Calibration type (offset, gain, defect)
+@@ -823,10 +831,10 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
+  *       per frame, and a creation that fails raises none. "Calibrated" says the parameters were GIVEN, not that they
+  *       are right: whether a given set is usable is the caller's calibration.
+  *
+- * @note The handle holds the frame history twice (width*height floats, four planes) plus one more plane
+- *       with the frame as it came in: a frame writes its new history into the second pair and the pairs are
+- *       swapped only when the frame succeeded, and a frame that fails gets its pixels put back from the fifth
+- *       plane (see xpe_ghost_correct). At 3072x3072 that is about 189 MB per handle.
++ * @note The handle keeps two recursive float32 history planes (75,497,472 bytes / 72 MiB at 3072x3072),
++ *       plus two saved rows for Tier 3. Uncertain arithmetic is validated without writes before committing
++ *       in place; no three full-frame next-history/backup scratch planes are allocated.
++ *       This recursive state is not the unimplemented 8-16-frame ring of SRS-CALIB-FUNC-014.
+  *
+  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
+  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
+@@ -845,6 +853,10 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
+  * REQ-P1A-032: Apply LTI deconvolution (Tier 1/2/3)
+  * REQ-P1A-033: Compute time delta in units of frames
+  *
++ * The first successful calibrated frame after creation or xpe_ghost_reset() seeds history without
++ * changing the image. A successful zero-valued frame also consumes this bypass; rejected frames do not.
++ * Later frames retain the selected tier's correction and spatial blend.
++ *
+  * Serialised per handle with xpe_ghost_reset() and other xpe_ghost_correct() calls
+  * on the same handle (see xpe_ghost_create). The image buffer is not protected: the
+  * caller must not access the same buffer concurrently without its own synchronisation.
+@@ -860,7 +872,7 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
+  *         XPE_ERR_PROCESSING_FAILED when a corrected value or the new history overflows float (finite input
+  *         at the extremes of the range)
+  *
+- * @note Tier 3 blends the corrected value of EVERY pixel with the mean of its 3x3 neighbourhood in the incoming frame
++ * @note On frames after the initial bypass, Tier 3 blends every corrected pixel with its incoming 3x3 neighbourhood mean
+  *       (0.7 corrected + 0.3 mean). The mean is taken over the neighbours that exist: nine inside the frame, six on an edge,
+  *       four in a corner (QA-A-227: the border pixels used to be left out, so a uniform frame came out with a one-pixel ring
+  *       0.6 % to 8.4 % off). A frame smaller than 3x3 has no spatial context and is not blended. Tiers 1 and 2 read no neighbour.
+@@ -873,7 +885,8 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
+  * @note A frame that fails leaves the handle exactly as it found it: the frame history and the exposure
+  *       estimate (a failed call is not a step: the next frame continues from the last frame that SUCCEEDED).
+  *       Only a successful frame changes them. Since QA-A-217 a failed frame also leaves
+- *       `img` as it was (REQ-P1A-032): pixels already corrected when the failure was found are put back.
++ *       `img` as it was (REQ-P1A-032). Uncertain frames now validate without writing before an in-place commit,
++ *       rather than keeping full-frame next-history and rollback copies.
+  *       Before QA-A-217 they were not, and a caller had to keep its own copy; before QA-A-202c a failure
+  *       part-way through left the history of the pixels already processed updated too.
+  */
+diff --git a/modules/preprocess/src/calibration_cache.cpp b/modules/preprocess/src/calibration_cache.cpp
+index 0ac03d40..d0064e56 100644
+--- a/modules/preprocess/src/calibration_cache.cpp
++++ b/modules/preprocess/src/calibration_cache.cpp
+@@ -152,6 +152,8 @@ int64_t now_epoch_ms() noexcept
+ enum class MapKind { None, Offset, Gain, Defect };
+
+ struct EntryMeta {
++    std::shared_ptr<const std::vector<uint8_t>> offsetConfig; ///< offset only: validated original config bytes
++    std::shared_ptr<const std::vector<uint8_t>> gainConfig;   ///< gain only: validated original config bytes
+     MapKind     kind{MapKind::None};  ///< which cached loader published it = which XCal type was validated
+     int64_t     timestamp{0};
+     char        sessionId[64]{};
+@@ -538,12 +540,15 @@ void copy_session(char* dst64, const char* src64) noexcept
+ // an expiry of 0 ("never") until the next plain load -- and the other way round.
+ XpeErrorCode install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d, const EntryMeta& meta)
+ {
++    // Finish the control-block allocation before the no-throw map/config commit.
++    std::shared_ptr<float[]> shared(std::move(map));
+     bool warnSession = false;
+     {
+         std::lock_guard<std::mutex> lock(g_calib_mutex);
+         const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Offset, meta.sessionId, &warnSession);
+         if (src != XPE_OK) return src;
+-        g_calib.offset_map       = std::move(map);
++        g_calib.offset_map       = std::move(shared);
++        g_calib.offset_config    = meta.offsetConfig;
+         g_calib.offset_width     = d.width;
+         g_calib.offset_height    = d.height;
+         g_calib.offset_timestamp = meta.timestamp;
+@@ -585,6 +590,7 @@ XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
+     // overwrites both with "none" -- it must not leave the previous file's values behind (QA-A-202e, Codex #38 A1/A2).
+     g_calib.gain_quality     = quality ? *quality : XpeCalibQualityMeta{};
+     g_calib.gain_has_quality = (quality != nullptr);
++    g_calib.gain_config      = meta.gainConfig;
+     if (quality) {
+         xpe_calib_commit_quality_meta_locked(*quality);
+     } else {
+@@ -699,6 +705,7 @@ try
+         staging.resize(static_cast<size_t>(desc.dataSize));
+         std::memcpy(staging.data(), g_calib.offset_map.get(), staging.size());
+         meta.timestamp = g_calib.offset_timestamp;
++        meta.offsetConfig = g_calib.offset_config;
+         meta.expiryMs  = g_calib.offset_expiry_ms;
+         std::memcpy(meta.sessionId, g_calib.offset_session_id, sizeof(meta.sessionId));
+     }
+@@ -784,6 +791,7 @@ try
+         meta.expiryMs   = g_calib.gain_expiry_ms;
+         meta.quality    = g_calib.gain_quality;
+         meta.hasQuality = g_calib.gain_has_quality;
++        meta.gainConfig = g_calib.gain_config;
+         meta.gainDefects     = g_calib.gain_defect_idx;
+         meta.gainDefectCount = g_calib.gain_defect_count;
+         std::memcpy(meta.sessionId, g_calib.gain_session_id, sizeof(meta.sessionId));
+diff --git a/modules/preprocess/src/ghost_correct.cpp b/modules/preprocess/src/ghost_correct.cpp
+index 4ecd28c5..cf30b721 100644
+--- a/modules/preprocess/src/ghost_correct.cpp
++++ b/modules/preprocess/src/ghost_correct.cpp
+@@ -198,6 +198,7 @@ bool xpe_ghost_is_calibrated(const void* handle) noexcept
+ // Test-only (QA-A-225 M4, #238), see xpe_preprocess_internal.h.
+ XpeGhostTier3Mix xpe_ghost_tier3_mix = {0.7f, 0.3f};
+ bool xpe_ghost_force_slow_path = false;
++bool xpe_ghost_legacy_first_frame = false;
+ unsigned long xpe_ghost_in_place_frames = 0;
+ #endif
+
+@@ -241,15 +242,14 @@ namespace {
+         float exposureWeight{1.0f};
+     };
+
+-    // QA-A-237b (#245): the planes a tier reads and writes. A frame reads h1/h2 and writes the NEW history to n1/n2: scratch
+-    // planes (the route with an undo; `frameCopy` is then the incoming frame) or the history planes themselves (in place:
+-    // n1 == h1 and n2 == h2, used only for a frame that provably cannot fail; `frameCopy` is then null). A pixel reads its
+-    // own h1/h2 before it writes n1/n2, so one plane serves as both.
++    // #245 PERF-002: validation computes identical float expressions without writing a plane or pixel.
++    // Commit reuses h1/h2 in place: a pixel reads its own history before writing it.
+     struct Planes {
+         const float* h1;
+         const float* h2;
+         float* n1;
+         float* n2;
++        bool commit{true};
+     };
+
+     // The per-frame constants of the three tiers, bundled so that no function takes four floats in a row (clang-tidy
+@@ -259,6 +259,8 @@ namespace {
+         float decay2;
+         float a1;
+         float a2;
++        float frameMean;
++        float exposureWeight;
+     };
+
+     // The weights of the tier-3 blend (the shipped constants, or the test seam's variables).
+@@ -279,10 +281,13 @@ namespace {
+             const float raw = px[i];
+             if (!std::isfinite(raw)) return XPE_ERR_PROCESSING_FAILED;
+             float corrected = raw - a1 * h1[i] - a2 * h2[i];
+-            n1[i] = decay1 * h1[i] + raw;
+-            n2[i] = decay2 * h2[i] + raw;
+-            if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
+-            px[i] = (corrected > 0.0f) ? corrected : 0.0f;
++            const float next1 = decay1 * h1[i] + raw;
++            const float next2 = decay2 * h2[i] + raw;
++            if (!std::isfinite(corrected) || !std::isfinite(next1) || !std::isfinite(next2)) return XPE_ERR_PROCESSING_FAILED;
++            if (pl.commit) {
++                n1[i] = next1; n2[i] = next2;
++                px[i] = (corrected > 0.0f) ? corrected : 0.0f;
++            }
+         }
+         return XPE_OK;
+     }
+@@ -292,11 +297,11 @@ namespace {
+                              const Planes& pl, const float*) {
+         const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
+         // Exposure-weighted coefficients based on frame mean
+-        const float meanSignal = compute_frame_mean(px, n);
++        const float meanSignal = k.frameMean;
+
+         // Scale alpha based on exposure level (higher exposure = stronger correction)
+         // Reference: 50% of saturation = 1.0x scaling, 100% saturation = 1.5x scaling
+-        const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
++        const float exposureWeight = k.exposureWeight;
+         *stats = FrameStats{true, meanSignal, exposureWeight};
+
+         const float a1 = a1_base * exposureWeight;
+@@ -310,20 +315,23 @@ namespace {
+             const float raw = px[i];
+             if (!std::isfinite(raw)) return XPE_ERR_PROCESSING_FAILED;
+             float corrected = raw - a1 * h1[i] - a2 * h2[i];
+-            n1[i] = decay1 * h1[i] + raw;
+-            n2[i] = decay2 * h2[i] + raw;
+-            if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
+-            px[i] = (corrected > 0.0f) ? corrected : 0.0f;
++            const float next1 = decay1 * h1[i] + raw;
++            const float next2 = decay2 * h2[i] + raw;
++            if (!std::isfinite(corrected) || !std::isfinite(next1) || !std::isfinite(next2)) return XPE_ERR_PROCESSING_FAILED;
++            if (pl.commit) {
++                n1[i] = next1; n2[i] = next2;
++                px[i] = (corrected > 0.0f) ? corrected : 0.0f;
++            }
+         }
+         return XPE_OK;
+     }
+
+     // Tier 3: NLCSC (Nonlinear Causal Spatial Context) with signal-dependent coefficients
+-    XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px, size_t n, const TierCoeffs& k, FrameStats* stats,
+-                             const Planes& pl, const float* frameCopy) {
++    XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px, size_t /*n*/, const TierCoeffs& k, FrameStats* stats,
++                             const Planes& pl, const float* frameCopy, Tier3Mix mix) {
+         const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
+-        const float meanSignal = compute_frame_mean(px, n);
+-        const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
++        const float meanSignal = k.frameMean;
++        const float exposureWeight = k.exposureWeight;
+         *stats = FrameStats{true, meanSignal, exposureWeight};
+
+         const float* h1 = pl.h1;
+@@ -339,18 +347,14 @@ namespace {
+         // The loop updates px in place, so reading px made the pixels above and to the left count with their CORRECTED
+         // (and zero-clamped) values and the others with their original ones: the output depended on the scan direction
+         // (a frame flipped, processed and flipped back differed in 41-91 % of its pixels, QA-A-218).
+-        // QA-A-237b: the incoming frame is `frameCopy` (the route with an undo keeps a whole copy) or, for an in-place frame,
++        // The incoming frame is `frameCopy` (validation reads px itself) or, for an in-place frame,
+         // the rows of px that have not been written yet (y + 1 and below) plus two saved rows (y - 1 and y).
+         float* savedPrev = gh->rowA.data();
+         float* savedCur = gh->rowB.data();
+
+         // The blend weights of the interior pixels. A constant in the shipped library; the test seam reads them from a variable
+         // (QA-A-225 M4), with the shipped values as defaults.
+-#ifdef XPE_CACHE_TEST_HOOKS
+-        const float mixKeep = xpe_ghost_tier3_mix.keep, mixLocal = xpe_ghost_tier3_mix.local;
+-#else
+-        constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
+-#endif
++        const float mixKeep = mix.keep, mixLocal = mix.local;
+
+         // QA-A-227 (#244): EVERY pixel is blended, the mean taken over the neighbours that exist in the frame (nine inside, six
+         // on an edge, four in a corner -- the module's "valid neighbours" convention, as in the defect stage). A frame below
+@@ -414,11 +418,13 @@ namespace {
+                     }
+                 }
+
+-                n1[i] = decay1 * h1[i] + raw;
+-                n2[i] = decay2 * h2[i] + raw;
+-
+-                if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
+-                px[i] = (corrected > 0.0f) ? corrected : 0.0f;
++                const float next1 = decay1 * h1[i] + raw;
++                const float next2 = decay2 * h2[i] + raw;
++                if (!std::isfinite(corrected) || !std::isfinite(next1) || !std::isfinite(next2)) return XPE_ERR_PROCESSING_FAILED;
++                if (pl.commit) {
++                    n1[i] = next1; n2[i] = next2;
++                    px[i] = (corrected > 0.0f) ? corrected : 0.0f;
++                }
+             }
+
+             if (blend && frameCopy == nullptr) {
+@@ -432,8 +438,9 @@ namespace {
+
+     // QA-A-237b (#245), QA-A-237d (Codex #142): whether the frame's arithmetic provably stays inside the float range, so that no
+     // pixel can fail and an in-place update has nothing to undo. The check EVALUATES THE TIERS' OWN EXPRESSIONS, in float and in
+-    // the tiers' own order, at the worst case of every input: M (the frame's largest |value|) stands for the pixel and, since
+-    // |mean| <= M, for the mean; the handle's bounds stand for the history planes; coefficients enter as magnitudes. An
++    // the tiers' own order: M (the frame's largest |value|) bounds each pixel and local neighbourhood; the exact frame mean
++    // and float exposureWeight are computed once and shared by proof/validation/commit. The handle's bounds stand for the
++    // history planes; coefficients enter as magnitudes. An
+     // expression of the tier that can overflow in float is evaluated the same way here and tested for finiteness -- the
+     // coefficient a1 = a1_base * exposureWeight * signalDependence among them, which overflows to +Inf long before a1 * h1 does
+     // (the first version bounded the product a1 * h1 in double and missed it: a small history, then a large frame).
+@@ -441,7 +448,7 @@ namespace {
+     // NaN and Inf answer false. The correspondence (any change to a tier expression changes its row here):
+     //
+     //   tier code                                                  evaluated here
+-    //   exposureWeight = 1 + (mean / 32768) * 0.5     (tiers 2,3)  ew   = 1 + (M / 32768) * 0.5
++    //   exposureWeight = 1 + (mean / 32768) * 0.5     (tiers 2,3)  ew   = abs(the same computed exposureWeight)
+     //   signalDependence = 1 + beta * (raw / 32768)   (tier 3)     sd   = 1 + |beta| * (M / 32768)
+     //   a1 = a1_base * exposureWeight * signalDependence           a1w  = |a1_base| * ew * sd      (same order)
+     //   a2 = a2_base * exposureWeight * signalDependence           a2w  = |a2_base| * ew * sd
+@@ -461,7 +468,7 @@ namespace {
+         if (!fits(M)) return false;
+
+         float ew = 1.0f, sd = 1.0f;
+-        if (gh.tier == 2 || gh.tier == 3) ew = 1.0f + (M / 32768.0f) * 0.5f;
++        if (gh.tier == 2 || gh.tier == 3) ew = std::fabs(k.exposureWeight);
+         if (gh.tier == 3) sd = 1.0f + std::fabs(static_cast<float>(gh.nlcscBeta)) * (M / 32768.0f);
+         const float a1w = std::fabs(k.a1) * ew * sd;
+         const float a2w = std::fabs(k.a2) * ew * sd;
+@@ -480,9 +487,10 @@ namespace {
+     }
+ } // anonymous namespace
+
+-XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
+-                                const XpeImageMetadata* meta)
++XpeErrorCode xpe_ghost_correct_with_status(void* handle, XpeImageBuffer* img,
++                                        const XpeImageMetadata* meta, bool* bypassed)
+ {
++    if (bypassed) *bypassed = true;
+     if (!GhostCorrectorHandle::isValid(handle) || !img || !meta)
+         return XPE_ERR_INVALID_INPUT;
+
+@@ -529,66 +537,81 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
+     // A frame can still fail with a finite input (a corrected value, or the new history, overflows float at the
+     // extremes of the range): REQ-P1A-032 asks for the pixels to be put back as they came in, and the history, which only
+     // a successful frame commits, to stay as it was (QA-A-217, QA-A-202c).
+-    // QA-A-237b (#245): a frame whose arithmetic provably cannot overflow is processed in place on the history planes (it
+-    // cannot fail, so there is nothing to put back); every other frame takes the route the handle used to take for all of
+-    // them, with scratch planes that live for this call only.
++    // #245 PERF-002: bound-proven frames commit once. Others first validate every expression without writing,
++    // then commit the identical expressions. The handle mutex spans both passes; the caller must not mutate
++    // its input concurrently. Coefficients and the tier-3 test mix are snapshotted once, and this thread's
++    // floating-point environment does not change between passes. No full-frame scratch is allocated.
+     const float maxAbs = max_abs_finite(px, n);
++    // The exact same float exposure weight is used by the proof, validation and commit.
++    // Substituting max|pixel| for the mean made sparse outliers needlessly run Tier 3 twice.
++    const float frameMean = gh->tier >= 2 ? compute_frame_mean(px, n) : 0.0f;
++    const float frameExposureWeight = 1.0f + (frameMean / 32768.0f) * 0.5f;
++#ifdef XPE_CACHE_TEST_HOOKS
++    const bool legacyFirstFrame = xpe_ghost_legacy_first_frame;
++#else
++    constexpr bool legacyFirstFrame = false;
++#endif
++    if (!gh->hasHistory && !legacyFirstFrame) {
++        // FUNC-014: seed the recurrence but do not filter/clamp/blend the first successful frame.
++        // The finite entrance check and zero initial/reset histories make this update infallible.
++        for (size_t i = 0; i < n; ++i) {
++            gh->hist1[i] = px[i];
++            gh->hist2[i] = px[i];
++        }
++        constexpr double slack = 1.0 + 1.0e-6;
++        gh->histBound1 = gh->histBound2 = static_cast<double>(maxAbs) * slack;
++        if (gh->tier >= 2) {
++            gh->lastFrameMean = frameMean;
++            gh->exposureWeight = frameExposureWeight;
++        }
++        gh->hasHistory = true; // zero-valued frames consume the bypass too; refused frames never reach here
++#ifdef XPE_CACHE_TEST_HOOKS
++        ++xpe_ghost_in_place_frames; // finite, allocation-free history priming
++#endif
++        return XPE_OK;
++    }
+ #ifdef XPE_CACHE_TEST_HOOKS
+     const float mixKeep = xpe_ghost_tier3_mix.keep, mixLocal = xpe_ghost_tier3_mix.local;
+ #else
+     constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
+ #endif
+-    const TierCoeffs coeffs{decay1, decay2, a1_base, a2_base};
+-    bool inPlace = frame_cannot_leave_float_range(*gh, maxAbs, coeffs, Tier3Mix{mixKeep, mixLocal});
++    const TierCoeffs coeffs{decay1, decay2, a1_base, a2_base, frameMean, frameExposureWeight};
++    const Tier3Mix mix{mixKeep, mixLocal};
++    bool inPlace = frame_cannot_leave_float_range(*gh, maxAbs, coeffs, mix);
+ #ifdef XPE_CACHE_TEST_HOOKS
+     if (xpe_ghost_force_slow_path) inPlace = false;
+ #endif
+
+     XpeErrorCode result = XPE_OK;
+     FrameStats stats;
+-    const auto run_tier = [&](const Planes& pl, const float* frameCopy) {
++    const auto run_tier = [&](const Planes& pl, const float* frameCopy, FrameStats* frameStats) {
+         switch (gh->tier) {
+-            case 1: return ghost_tier1(gh, px, n, coeffs, &stats, pl, frameCopy);
+-            case 2: return ghost_tier2(gh, px, n, coeffs, &stats, pl, frameCopy);
+-            case 3: return ghost_tier3(gh, px, n, coeffs, &stats, pl, frameCopy);
+-            default: return ghost_tier1(gh, px, n, coeffs, &stats, pl, frameCopy);
++            case 1: return ghost_tier1(gh, px, n, coeffs, frameStats, pl, frameCopy);
++            case 2: return ghost_tier2(gh, px, n, coeffs, frameStats, pl, frameCopy);
++            case 3: return ghost_tier3(gh, px, n, coeffs, frameStats, pl, frameCopy, mix);
++            default: return ghost_tier1(gh, px, n, coeffs, frameStats, pl, frameCopy);
+         }
+     };
+-    if (inPlace) {
+-        const Planes pl{gh->hist1.data(), gh->hist2.data(), gh->hist1.data(), gh->hist2.data()};
+-        result = run_tier(pl, nullptr);
+-        if (result != XPE_OK) {
+-            // Not reachable: the bound above proves no pixel fails. If it ever were, the history is half written and the
+-            // pixels cannot be put back; leave a consistent (empty) state and say so rather than carry a mixed history on.
+-            std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
+-            std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
+-            gh->histBound1 = 0.0;
+-            gh->histBound2 = 0.0;
+-            return result;
+-        }
++    if (!inPlace) {
++        FrameStats validationStats;
++        const Planes validate{gh->hist1.data(), gh->hist2.data(), nullptr, nullptr, false};
++        result = run_tier(validate, px, &validationStats);
++        if (result != XPE_OK) return result; // no observable pixel/history/cache/frame state was written
++    }
++    const Planes commit{gh->hist1.data(), gh->hist2.data(), gh->hist1.data(), gh->hist2.data()};
++    result = run_tier(commit, nullptr, &stats);
++    if (result != XPE_OK) {
++        // Unreachable under the bound or exact validation proof. Retain the old fast-route safeguard.
++        std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
++        std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
++        gh->histBound1 = 0.0;
++        gh->histBound2 = 0.0;
++        gh->hasHistory = false;
++        return result;
++    }
+ #ifdef XPE_CACHE_TEST_HOOKS
+-        ++xpe_ghost_in_place_frames;
++    if (inPlace) ++xpe_ghost_in_place_frames; // count the bound-proven route, not validated commits
+ #endif
+-    } else {
+-        std::vector<float> next1, next2, backup;
+-        try {
+-            next1.assign(n, 0.0f);
+-            next2.assign(n, 0.0f);
+-            backup.assign(n, 0.0f);
+-        } catch (const std::bad_alloc&) {
+-            return XPE_ERR_OUT_OF_MEMORY;   // nothing has been written
+-        }
+-        std::memcpy(backup.data(), px, n * sizeof(float));
+-        const Planes pl{gh->hist1.data(), gh->hist2.data(), next1.data(), next2.data()};
+-        result = run_tier(pl, backup.data());
+-        if (result != XPE_OK) {
+-            // the history, the time and the exposure estimate are as they were; the pixels are put back
+-            std::memcpy(px, backup.data(), n * sizeof(float));
+-            return result;
+-        }
+-        gh->hist1.swap(next1);
+-        gh->hist2.swap(next2);
+-    }
+
+     // The whole frame succeeded: its history, its time and its exposure estimate become the handle's.
+     constexpr double kSlack = 1.0 + 1.0e-6;   // above the float rounding of one history update (about 1.2e-7)
+@@ -598,9 +621,16 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
+         gh->lastFrameMean = stats.meanSignal;
+         gh->exposureWeight = stats.exposureWeight;
+     }
++    gh->hasHistory = true;
++    if (bypassed) *bypassed = false;
+     return XPE_OK;
+ }
+
++XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img, const XpeImageMetadata* meta)
++{
++    return xpe_ghost_correct_with_status(handle, img, meta, nullptr);
++}
++
+ XpeErrorCode xpe_ghost_reset(void* handle)
+ {
+     if (!GhostCorrectorHandle::isValid(handle)) return XPE_ERR_INVALID_INPUT;
+@@ -613,6 +643,7 @@ XpeErrorCode xpe_ghost_reset(void* handle)
+     gh->histBound2 = 0.0;
+     gh->lastFrameMean = 0.0f;
+     gh->exposureWeight = 1.0;
++    gh->hasHistory = false;
+     return XPE_OK;
+ }
+
+diff --git a/modules/preprocess/src/pipeline.cpp b/modules/preprocess/src/pipeline.cpp
+index 1f080b4f..b40c1ca3 100644
+--- a/modules/preprocess/src/pipeline.cpp
++++ b/modules/preprocess/src/pipeline.cpp
+@@ -583,14 +583,18 @@ namespace {
+                 stage7.dataSize = stage7Data.size() * sizeof(float);
+                 std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
+             }
+-            result = xpe_ghost_correct(ghostHandle, &stage7, meta);
++            bool ghostBypassed = true;
++            result = xpe_ghost_correct_with_status(ghostHandle, &stage7, meta, &ghostBypassed);
+             if (result != XPE_OK) return result;
+
+             // QA-A-226 (#241): a handle without calibrated lag parameters passes the frame through unchanged, so the
+             // frame is not flagged as ghost-corrected. The output stays float32 either way (final_result_is_float
+             // depends on the handle being present, not on whether it corrected), so the format does not change
+             // with the configuration.
+-            if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
++            if (meta) {
++                if (!ghostBypassed) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
++                else meta->flags &= ~static_cast<uint32_t>(XPE_FLAG_GHOST_CORRECTED);
++            }
+         }
+         XPE_STAGE_HOOK(7);
+
+diff --git a/modules/preprocess/src/xcal_reader.cpp b/modules/preprocess/src/xcal_reader.cpp
+index f199a9d5..1d5ce358 100644
+--- a/modules/preprocess/src/xcal_reader.cpp
++++ b/modules/preprocess/src/xcal_reader.cpp
+@@ -120,13 +120,11 @@ static XpeErrorCode parse_config_block_with_legacy(const std::vector<uint8_t>& c
+ // integer. A key inside a nested object is not metadata, a key given twice refuses the block (xpe_config_parse_block),
+ // and half a pair is a refusal: the writer always makes both, so one alone is a damaged or hand-made block, not
+ // "uncompressed". `is_compressed` is false when neither key is there.
+-static XpeErrorCode read_compression_meta(
++XpeErrorCode xcal_read_compression_meta(
+     const XpeConfigDoc& doc,
+-    bool& is_compressed,
+-    uint32_t& out_method,
+-    uint64_t& out_raw_payload_len)
++    XCalCompressionMeta& meta)
+ {
+-    is_compressed = false;
++    meta.is_compressed = false;
+     const XpeConfigEntry* method = doc.find("xcal_compression");
+     const XpeConfigEntry* raw = doc.find("xcal_raw_payload_len");
+     if (method == nullptr && raw == nullptr) return XPE_OK;
+@@ -148,9 +146,9 @@ static XpeErrorCode read_compression_meta(
+     unsigned long long m = 0, r = 0;
+     if (!unsignedInteger(method, 0xFFFFFFFFull, &m)) return XPE_ERR_CONFIG_INVALID;
+     if (!unsignedInteger(raw, 0xFFFFFFFFFFFFFFFFull, &r)) return XPE_ERR_CONFIG_INVALID;
+-    out_method = static_cast<uint32_t>(m);
+-    out_raw_payload_len = static_cast<uint64_t>(r);
+-    is_compressed = true;
++    meta.method = static_cast<uint32_t>(m);
++    meta.raw_payload_len = static_cast<uint64_t>(r);
++    meta.is_compressed = true;
+     return XPE_OK;
+ }
+
+@@ -220,12 +218,12 @@ XpeErrorCode read_xcal_file(
+         {
+             const XpeErrorCode prc = parse_config_block_with_legacy(config, hdr.type, &config_doc, &legacy_repaired);
+             if (prc != XPE_OK) return prc;
+-            const XpeErrorCode mrc = read_compression_meta(
+-                config_doc,
+-                is_compressed,
+-                compression_method,
+-                raw_payload_len);
++            XCalCompressionMeta meta;
++            const XpeErrorCode mrc = xcal_read_compression_meta(config_doc, meta);
+             if (mrc != XPE_OK) return mrc;
++            is_compressed = meta.is_compressed;
++            compression_method = meta.method;
++            raw_payload_len = meta.raw_payload_len;
+             if (is_v2) {
+                 const XpeErrorCode lrc = defect_v2_check_layout(hdr, config_doc, is_compressed, raw_payload_len);
+                 if (lrc != XPE_OK) return lrc;
+diff --git a/modules/preprocess/src/xcal_reader.hpp b/modules/preprocess/src/xcal_reader.hpp
+index 8b6fa9d8..e7f34771 100644
+--- a/modules/preprocess/src/xcal_reader.hpp
++++ b/modules/preprocess/src/xcal_reader.hpp
+@@ -19,6 +19,14 @@
+
+ struct XpeConfigDoc;   // xpe_preprocess_internal.h
+
++// Internal storage-metadata interpretation shared by reading and saving. Not a public C API.
++struct XCalCompressionMeta {
++    bool is_compressed = false;
++    uint32_t method = 0;
++    uint64_t raw_payload_len = 0;
++};
++XpeErrorCode xcal_read_compression_meta(const XpeConfigDoc& doc, XCalCompressionMeta& meta);
++
+ /**
+  * @brief Read and validate an XCal v1 file.
+  *
+diff --git a/modules/preprocess/src/xpe_calib_load_gain.cpp b/modules/preprocess/src/xpe_calib_load_gain.cpp
+index b326a31e..6a24b29e 100644
+--- a/modules/preprocess/src/xpe_calib_load_gain.cpp
++++ b/modules/preprocess/src/xpe_calib_load_gain.cpp
+@@ -220,6 +220,8 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
+         staged.doseHi       = hi_a;
+         staged.rangePresent = present;
+         staged.rangeUsable  = usable;
++        if (!config_json.empty())
++            staged.config = std::make_shared<const std::vector<uint8_t>>(std::move(config_json));
+         std::memcpy(staged.sessionId, hdr.session_id,
+                     sizeof(hdr.session_id) < sizeof(staged.sessionId)
+                         ? sizeof(hdr.session_id)
+@@ -264,6 +266,7 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
+     xpe_calib_note_expiry_locked(CalibMapKind::Gain, staged.expiryMs);
+     g_calib.gain_quality     = staged.quality;
+     g_calib.gain_has_quality = staged.qualityFound;
++    g_calib.gain_config      = std::move(staged.config);
+     std::memcpy(g_calib.gain_session_id, staged.sessionId, sizeof(g_calib.gain_session_id));
+     // The quality record the module serves is replaced in the same critical section as the maps (QA-A-202d, Codex
+     // #32 A1) -- ALWAYS: a file with no quality metadata makes the record "none" instead of leaving the previous
+diff --git a/modules/preprocess/src/xpe_calib_load_offset.cpp b/modules/preprocess/src/xpe_calib_load_offset.cpp
+index dbece4ee..2c577fe3 100644
+--- a/modules/preprocess/src/xpe_calib_load_offset.cpp
++++ b/modules/preprocess/src/xpe_calib_load_offset.cpp
+@@ -66,6 +66,8 @@ XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noe
+         staged.height    = hdr.height;
+         staged.timestamp = hdr.created_epoch_ms;
+         staged.expiryMs  = hdr.expiry_epoch_ms;
++        if (!config_json.empty())
++            staged.config = std::make_shared<const std::vector<uint8_t>>(std::move(config_json));
+
+         // Session id (null-terminated, up to 63 chars)
+         std::memcpy(staged.sessionId, hdr.session_id,
+@@ -85,6 +87,7 @@ XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noe
+
+ void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept {
+     g_calib.offset_map       = std::move(staged.map);
++    g_calib.offset_config    = std::move(staged.config);
+     g_calib.offset_width     = staged.width;
+     g_calib.offset_height    = staged.height;
+     g_calib.offset_timestamp = staged.timestamp;
+diff --git a/modules/preprocess/src/xpe_calib_save.cpp b/modules/preprocess/src/xpe_calib_save.cpp
+index db427282..3a3f9bbe 100644
+--- a/modules/preprocess/src/xpe_calib_save.cpp
++++ b/modules/preprocess/src/xpe_calib_save.cpp
+@@ -15,12 +15,18 @@
+ #include "xpe/preprocess_api.h"
+ #include "xpe/preprocess/xpe_preprocess_internal.h"
+ #include "xcal_writer.hpp"
++#include "xcal_reader.hpp"
++#include "rle_codec.hpp"
++#include "defect_ext.hpp"
+
++#include <algorithm>
+ #include <mutex>
+ #include <cstring>
+ #include <memory>
+ #include <vector>
+ #include <chrono>
++#include <string>
++#include <limits>
+
+ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
+                                                const char* calib_type,
+@@ -32,6 +38,8 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
+
+         // Snapshot calibration data under mutex to minimise lock duration
+         std::unique_ptr<uint8_t[]> payload_copy;
++        std::shared_ptr<const std::vector<uint8_t>> config;
++        std::shared_ptr<const DefectLayers> defectLayers;
+         uint64_t payload_bytes = 0;
+         XCalFileHeader hdr;
+         std::memset(&hdr, 0, sizeof(hdr));
+@@ -47,6 +55,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
+                                 * g_calib.offset_height * sizeof(float);
+                 payload_copy = std::make_unique<uint8_t[]>(payload_bytes);
+                 std::memcpy(payload_copy.get(), g_calib.offset_map.get(), payload_bytes);
++                config = g_calib.offset_config;
+
+                 std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+                 hdr.version         = XCAL_VERSION;
+@@ -60,17 +69,35 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
+                             sizeof(g_calib.offset_session_id));
+
+             } else if (std::strcmp(calib_type, "gain") == 0) {
+-                if (!g_calib.gain_map) {
++                const bool polynomial = !g_calib.gain_map && g_calib.gain_poly_coeffs && g_calib.gain_poly_num_coeffs != 0;
++                const float* gain = polynomial ? g_calib.gain_poly_coeffs.get() : g_calib.gain_map.get();
++                if (gain == nullptr) {
+                     return XPE_ERR_INVALID_INPUT;
+                 }
+-                payload_bytes = static_cast<uint64_t>(g_calib.gain_width)
+-                                * g_calib.gain_height * sizeof(float);
+-                payload_copy = std::make_unique<uint8_t[]>(payload_bytes);
+-                std::memcpy(payload_copy.get(), g_calib.gain_map.get(), payload_bytes);
++                const uint64_t pixels = static_cast<uint64_t>(g_calib.gain_width) * g_calib.gain_height;
++                const uint64_t coefficients = polynomial ? g_calib.gain_poly_num_coeffs : 1u;
++                if (pixels == 0) return XPE_ERR_INVALID_CALIB_DATA;
++                if (pixels > static_cast<uint64_t>(std::numeric_limits<size_t>::max()) / sizeof(float) / coefficients)
++                    return XPE_ERR_OUT_OF_MEMORY;
++                payload_bytes = pixels * coefficients * sizeof(float);
++                payload_copy = std::make_unique<uint8_t[]>(static_cast<size_t>(payload_bytes));
++                std::memcpy(payload_copy.get(), gain, static_cast<size_t>(payload_bytes));
++                config = g_calib.gain_config;
++                // The applied map uses 1.0 at classified defects. Serialize those indices with the existing invalid
++                // scalar value 0 so the existing loader restores BOTH the neutral map and its defect classification.
++                if (!polynomial) {
++                    if (g_calib.gain_defect_count != 0 && !g_calib.gain_defect_idx) return XPE_ERR_PROCESSING_FAILED;
++                    for (uint32_t i = 0; i < g_calib.gain_defect_count; ++i) {
++                        const uint32_t index = g_calib.gain_defect_idx[i];
++                        if (index >= payload_bytes / sizeof(float)) return XPE_ERR_PROCESSING_FAILED;
++                        const float marker = 0.0f;
++                        std::memcpy(payload_copy.get() + static_cast<size_t>(index) * sizeof(float), &marker, sizeof(marker));
++                    }
++                }
+
+                 std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+                 hdr.version         = XCAL_VERSION;
+-                hdr.type            = static_cast<uint32_t>(XCAL_TYPE_GAIN);
++                hdr.type            = static_cast<uint32_t>(polynomial ? XCAL_TYPE_GAIN_POLY : XCAL_TYPE_GAIN);
+                 hdr.pixel_format    = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
+                 hdr.width           = g_calib.gain_width;
+                 hdr.height          = g_calib.gain_height;
+@@ -87,6 +114,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
+                                 * g_calib.defect_height;
+                 payload_copy = std::make_unique<uint8_t[]>(payload_bytes);
+                 std::memcpy(payload_copy.get(), g_calib.defect_map.get(), payload_bytes);
++                defectLayers = g_calib.defect_layers;
+
+                 std::memcpy(hdr.magic, XCAL_MAGIC, 4);
+                 hdr.version         = XCAL_VERSION;
+@@ -96,18 +124,60 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
+                 hdr.height          = g_calib.defect_height;
+                 hdr.created_epoch_ms = 0;
+                 hdr.expiry_epoch_ms  = static_cast<int64_t>(expiry_epoch_ms);
+-                std::memcpy(hdr.session_id, "defect_map\0", 11);
++                std::memcpy(hdr.session_id, g_calib.defect_session_id,
++                            sizeof(hdr.session_id));
+
+             } else {
+                 return XPE_ERR_INVALID_INPUT;
+             }
+         }  // lock released
+
++        if (defectLayers) {
++            // Preserve the CURRENT runtime layers using the existing v2 writer. Diagnostic candidates and original
++            // file config/provenance were not retained by the runtime store and are not reconstructed here.
++            DefectExt extension;
++            extension.lines = defectLayers->lines;
++            extension.blobs = defectLayers->blobs;
++            DefectXcalWrite job;
++            job.width = hdr.width;
++            job.height = hdr.height;
++            job.map = payload_copy.get();
++            job.area = defectLayers->area.empty() ? nullptr : defectLayers->area.data();
++            job.ext = &extension;
++            job.created_epoch_ms = hdr.created_epoch_ms;
++            job.expiry_epoch_ms = hdr.expiry_epoch_ms;
++            job.session_id.assign(hdr.session_id,
++                std::find(hdr.session_id, hdr.session_id + sizeof(hdr.session_id), '\0'));
++            return write_defect_xcal(filepath, job);
++        }
++
++        // Config bytes may include a payload codec. Preserve both the opaque metadata AND its storage meaning:
++        // writing decoded floats under an unchanged RLE marker would create a file the reader rejects.
++        std::vector<uint8_t> encoded;
++        const uint8_t* storedPayload = payload_copy.get();
++        uint64_t storedBytes = payload_bytes;
++        if (config && !config->empty()) {
++            XpeConfigDoc doc;
++            const XpeErrorCode parseRc = xpe_config_parse_block(
++                reinterpret_cast<const char*>(config->data()), config->size(), &doc);
++            if (parseRc != XPE_OK) return parseRc;
++            XCalCompressionMeta meta;
++            const XpeErrorCode metaRc = xcal_read_compression_meta(doc, meta);
++            if (metaRc != XPE_OK) return metaRc;
++            if (meta.is_compressed && meta.method == XCAL_COMPRESSION_RLE) {
++                if (meta.raw_payload_len != payload_bytes) return XPE_ERR_CONFIG_INVALID;
++                const int codecRc = rle_encode(payload_copy.get(), static_cast<size_t>(payload_bytes), encoded);
++                if (codecRc != XPE_OK) return static_cast<XpeErrorCode>(codecRc);
++                storedPayload = encoded.data();
++                storedBytes = encoded.size();
++            }
++        }
++
+         // Write via xcal_writer (atomic: write-to-tmp then rename, SHA-256 computed)
+         return write_xcal_file(
+             filepath, hdr,
+-            nullptr, 0,
+-            payload_copy.get(), payload_bytes);
++            config && !config->empty() ? config->data() : nullptr, config ? config->size() : 0,
++            storedPayload, storedBytes);
+
+     } catch (const std::bad_alloc&) {
+         return XPE_ERR_OUT_OF_MEMORY;
+diff --git a/modules/preprocess/tests/test_ghost_mix_compare.cpp b/modules/preprocess/tests/test_ghost_mix_compare.cpp
+index e57d26a7..1269f9dc 100644
+--- a/modules/preprocess/tests/test_ghost_mix_compare.cpp
++++ b/modules/preprocess/tests/test_ghost_mix_compare.cpp
+@@ -9,6 +9,8 @@
+  * is not decided here: until real-device data exists this is measurement evidence only. What IS asserted is mechanical: the
+  * analytic values the preregistration computed first (the Nyquist response, the noise ratio, the ring step), that the seam
+  * touches tier 3 and nothing else, and that its defaults are the shipped constants.
++ * Historical M4 measurements explicitly replay the pre-first-frame-bypass lifecycle through a TEST-ONLY seam. They do not
++ * describe the current shipped first frame. The current bypass contract is checked separately below; M4 thresholds stay fixed.
+  */
+
+ #include <gtest/gtest.h>
+@@ -17,6 +19,7 @@
+ #include "xpe/preprocess/xpe_preprocess_internal.h"
+
+ #include <cstdio>
++#include <cstring>
+ #include <string>
+ #include <vector>
+
+@@ -30,7 +33,12 @@ struct Mix {
+     ~Mix() { xpe_ghost_tier3_mix = XpeGhostTier3Mix{0.7f, 0.3f}; }
+ };
+
+-Frames runTier(int tier, const Lag& l, const Frames& in) {
++Frames runTier(int tier, const Lag& l, const Frames& in, bool historicalLifecycle = true) {
++    struct LifecycleScope {
++        bool saved{xpe_ghost_legacy_first_frame};
++        explicit LifecycleScope(bool historical) { xpe_ghost_legacy_first_frame = historical; }
++        ~LifecycleScope() { xpe_ghost_legacy_first_frame = saved; }
++    } lifecycle(historicalLifecycle);
+     int failures = 0;
+     const Frames out = runModule(lagCfg(tier, l).c_str(), in, &failures);
+     EXPECT_EQ(0, failures);
+@@ -151,14 +159,14 @@ TEST(GhostMixCompare, TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree
+     const Lag l{0.02, 3.0, 0.003, 30.0};
+     for (const int tier : {1, 2}) {
+         Frames on, off;
+-        { Mix m(true); on = runTier(tier, l, y); }
+-        { Mix m(false); off = runTier(tier, l, y); }
++        { Mix m(true); on = runTier(tier, l, y, false); }
++        { Mix m(false); off = runTier(tier, l, y, false); }
+         EXPECT_TRUE(sameBytes(on, off)) << "tier " << tier;
+     }
+     // and tier 3 does: the two runs differ
+     Frames on3, off3;
+-    { Mix m(true); on3 = runTier(3, l, y); }
+-    { Mix m(false); off3 = runTier(3, l, y); }
++    { Mix m(true); on3 = runTier(3, l, y, false); }
++    { Mix m(false); off3 = runTier(3, l, y, false); }
+     EXPECT_FALSE(sameBytes(on3, off3));
+     EXPECT_EQ(d, digestOf(on3)) << "the default mix reproduces the digest";
+     EXPECT_EQ(0.7f, xpe_ghost_tier3_mix.keep) << "the guard restored the defaults";
+@@ -180,6 +188,18 @@ TEST(GhostMixCompare, TheAnalyticValuesOfThePreregistrationHold) {
+     }
+ }
+
++TEST(GhostMixCompare, TheCurrentFirstFrameBypassesBothExperimentalMixSettings) {
++    const Lag l{0.02, 3.0, 0.003, 30.0};
++    Frames input = makeFrames({10000.0}, 5.0, 7);
++    for (const bool blend : {true, false}) {
++        Mix mix(blend);
++        const Frames output = runTier(3, l, input, false);
++        ASSERT_EQ(input.size(), output.size());
++        ASSERT_EQ(input[0].size(), output[0].size());
++        EXPECT_EQ(0, std::memcmp(input[0].data(), output[0].data(), input[0].size() * sizeof(float)));
++    }
++}
++
+ TEST(GhostMixCompare, TheBlendLeavesNoRingAndIsTheMixOfTheUnblendedFrameAndTheRaw) {
+     // QA-A-227 (#244): before it, the blend reached only the interior and a uniform frame came out with a ring of
+     // step = local*(raw - border) (the M4 run recorded 0.6 % to 8.4 %). Now every pixel is blended, so a uniform frame stays uniform
+@@ -240,6 +260,7 @@ TEST(GhostMixCompare, ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs) {
+ // ---- the comparison, exactly as the preregistration fixes it (printed, none of it asserted) --------------------------
+
+ TEST(GhostMixCompare, ComparesTheBlendKeptAndRemovedAsPreregistered) {
++    std::printf("[ghost-oracle-m4] scope: historical pre-bypass lifecycle, TEST-ONLY replay; not current first-frame behavior or real-device validation\n");
+     const auto cfgs = configs();
+     for (const auto& c : cfgs)
+         std::printf("[ghost-oracle-m4] config %-24s alpha1 %.6g tau1 %.6g alpha2 %.6g tau2 %.6g S %.4f\n", c.name.c_str(), c.lag.a1, c.lag.t1, c.lag.a2, c.lag.t2, steadyGain(c.lag));
+diff --git a/modules/preprocess/tests/test_ghost_oracle_derive.cpp b/modules/preprocess/tests/test_ghost_oracle_derive.cpp
+index 4cfaf377..5d8f39de 100644
+--- a/modules/preprocess/tests/test_ghost_oracle_derive.cpp
++++ b/modules/preprocess/tests/test_ghost_oracle_derive.cpp
+@@ -62,7 +62,14 @@ TEST_F(GhostOracleDerive, ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotThe
+             for (const auto& c : correctors(s, &fail)) {
+                 if (c.control || c.uncalibrated) continue;
+                 const Frames out = c.fn(y);
+-                ASSERT_TRUE(allNonNegative(out)) << c.name << ": the module clamps at 0, no pixel is negative";
++                if (c.name.rfind("module:", 0) == 0) {
++                    ASSERT_FALSE(out.empty());
++                    EXPECT_EQ(y.front(), out.front()) << c.name << ": FUNC-014 initial bypass preserves signed input too";
++                    ASSERT_TRUE(allNonNegative(Frames(out.begin() + 1, out.end())))
++                        << c.name << ": active corrected frames clamp at 0; the initial bypass does not";
++                } else {
++                    ASSERT_TRUE(allNonNegative(out)) << c.name;
++                }
+                 const Metrics m = measure(s, y, out);
+                 ++rows;
+                 if (m.k50.removalCorDark < 0.0) ++negative;
+diff --git a/modules/preprocess/tests/test_ghost_tiers.cpp b/modules/preprocess/tests/test_ghost_tiers.cpp
+index 7026172e..239dbc85 100644
+--- a/modules/preprocess/tests/test_ghost_tiers.cpp
++++ b/modules/preprocess/tests/test_ghost_tiers.cpp
+@@ -22,6 +22,7 @@
+ #include "xpe/common/xpe_error.h"
+
+ #include <cmath>
++#include <cstring>
+ #include <limits>
+ #include <string>
+ #include <vector>
+@@ -68,6 +69,51 @@ TEST_F(GhostTierTest, Tier2FirstFrameIsUnchanged) {
+         EXPECT_FLOAT_EQ(1000.0f, v) << "no history yet, so nothing to subtract";
+ }
+
++TEST_F(GhostTierTest, NonuniformFirstFrameAndFirstAfterResetAreExactBypasses) {
++    for (const char* cfg : {"{\"tier\":1}", "{\"tier\":2}", "{\"tier\":3}"}) {
++        create(5, 5, cfg);
++        for (int cycle = 0; cycle < 2; ++cycle) {
++            if (cycle) ASSERT_EQ(XPE_OK, xpe_ghost_reset(handle));
++            Frame first(5, 5, 0.0f);
++            first.pixels[12] = 1000.0f;
++            const auto given = first.pixels;
++            XpeImageMetadata meta{};
++            ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &first.buf, &meta));
++            EXPECT_EQ(0, std::memcmp(given.data(), first.pixels.data(), 25 * sizeof(float))) << cfg;
++            Frame second(5, 5, 0.0f);
++            second.pixels[12] = 1000.0f;
++            ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &second.buf, &meta));
++            EXPECT_LT(second.pixels[12], 1000.0f) << "the bypass must still seed history: " << cfg;
++        }
++        xpe_ghost_destroy(handle); handle = nullptr;
++    }
++}
++
++TEST_F(GhostTierTest, AZeroValuedSuccessfulFrameStillConsumesTheFirstFrameState) {
++    create(5, 5, "{\"tier\":3}");
++    XpeImageMetadata meta{};
++    Frame zero(5, 5, 0.0f);
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &zero.buf, &meta));
++    Frame second(5, 5, 0.0f);
++    second.pixels[12] = 1000.0f;
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &second.buf, &meta));
++    EXPECT_LT(second.pixels[12], 1000.0f) << "a real prior frame exists even though its history values are zero";
++}
++
++TEST_F(GhostTierTest, ARejectedFrameDoesNotConsumeTheFirstFrameBypass) {
++    create(5, 5, "{\"tier\":3}");
++    XpeImageMetadata meta{};
++    Frame bad(5, 5, 1000.0f);
++    bad.pixels.back() = std::numeric_limits<float>::quiet_NaN();
++    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_correct(handle, &bad.buf, &meta));
++    xpe_clear_alerts();
++    Frame good(5, 5, 0.0f);
++    good.pixels[12] = 1000.0f;
++    const auto given = good.pixels;
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &good.buf, &meta));
++    EXPECT_EQ(0, std::memcmp(given.data(), good.pixels.data(), 25 * sizeof(float)));
++}
++
+ // Tier 2 weights the correction by frame mean, so a second identical frame
+ // comes back reduced -- the history term is now non-zero.
+ TEST_F(GhostTierTest, Tier2SecondFrameIsReducedByHistory) {
+diff --git a/modules/preprocess/tests/test_oom_injection.cpp b/modules/preprocess/tests/test_oom_injection.cpp
+index 54f62499..640c6c04 100644
+--- a/modules/preprocess/tests/test_oom_injection.cpp
++++ b/modules/preprocess/tests/test_oom_injection.cpp
+@@ -37,11 +37,13 @@
+ #include "xcal_reader.hpp"
+ #include "rle_codec.hpp"
+ #include "fixtures/make_xcal.hpp"
++#include "defect_ext.hpp"
+
+ #include <algorithm>
+ #include <atomic>
+ #include <condition_variable>
+ #include <chrono>
++#include <cmath>
+ #include <thread>
+ #include <cstddef>
+ #include <cstdint>
+@@ -52,6 +54,7 @@
+ #include <cstring>
+ #include <functional>
+ #include <initializer_list>
++#include <iterator>
+ #include <mutex>
+ #include <new>
+ #include <string>
+@@ -283,24 +286,28 @@ void writeDefect(const char* path, bool flagged) {
+ /** Everything the loaders write, reduced to comparable values. */
+ struct Snap {
+     const void* om; uint32_t ow, oh; int64_t ot, oe;
++    const void* oc;
+     const void* gm; const void* gp; const void* gdi; uint32_t gdc; uint32_t gnc, gw, gh; int64_t gt, ge; bool ghq; double gqr; unsigned gqd;
+     const void* dm; uint32_t dw, dh; int64_t de;
++    const void* dl;
++    const void* gc;
+     bool operator==(const Snap& o) const {
+-        return om == o.om && ow == o.ow && oh == o.oh && ot == o.ot && oe == o.oe &&
++        return om == o.om && ow == o.ow && oh == o.oh && ot == o.ot && oe == o.oe && oc == o.oc &&
+                gm == o.gm && gp == o.gp && gdi == o.gdi && gdc == o.gdc && gnc == o.gnc && gw == o.gw && gh == o.gh && gt == o.gt &&
+-               ge == o.ge && ghq == o.ghq && gqr == o.gqr && gqd == o.gqd && dm == o.dm && dw == o.dw && dh == o.dh && de == o.de;
++               ge == o.ge && ghq == o.ghq && gqr == o.gqr && gqd == o.gqd && dm == o.dm && dw == o.dw && dh == o.dh && de == o.de && dl == o.dl && gc == o.gc;
+     }
+ };
+ Snap snap() {
+     std::lock_guard<std::mutex> lk(g_calib_mutex);
+     return Snap{g_calib.offset_map.get(), g_calib.offset_width, g_calib.offset_height, g_calib.offset_timestamp,
+-                g_calib.offset_expiry_ms,
++                g_calib.offset_expiry_ms, g_calib.offset_config.get(),
+                 g_calib.gain_map.get(), g_calib.gain_poly_coeffs.get(), g_calib.gain_defect_idx.get(), g_calib.gain_defect_count,
+                 g_calib.gain_poly_num_coeffs,
+                 g_calib.gain_width, g_calib.gain_height, g_calib.gain_timestamp, g_calib.gain_expiry_ms,
+                 g_calib.gain_has_quality, g_calib.gain_quality.r_squared,
+                 static_cast<unsigned>(g_calib.gain_quality.polynomial_degree),
+-                g_calib.defect_map.get(), g_calib.defect_width, g_calib.defect_height, g_calib.defect_expiry_ms};
++                g_calib.defect_map.get(), g_calib.defect_width, g_calib.defect_height, g_calib.defect_expiry_ms,
++                g_calib.defect_layers.get(), g_calib.gain_config.get()};
+ }
+ void resetStore() {
+     std::lock_guard<std::mutex> lk(g_calib_mutex);
+@@ -435,6 +442,47 @@ TEST_F(OomInjection, APlainOffsetLoadThatFailsLeavesTheStoreUntouched) {
+           [] { return xpe_calib_load_offset("oom_long_entry_file_name.xcal"); }, true);
+ }
+
++TEST_F(OomInjection, OffsetConfigCommitsWithItsMapOrRemainsUnchangedOnAllocationFailure) {
++    const std::vector<float> oldMap(N, 300.0f), nextMap(N, 100.0f);
++    const std::string oldConfig = "{\"temperature_c\":21,\"method\":\"mean\"}";
++    const std::string nextConfig = " {\"temperature_c\":34,\"method\":\"median\",\"extension\":[1,2,3]} ";
++    writeFile("oom_q.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32, oldMap.data(), N * sizeof(float), oldConfig);
++    writeFile("oom_long_entry_file_name.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32,
++        nextMap.data(), N * sizeof(float), nextConfig);
++    XpeImageBuffer returnedView{}, sentinel{};
++    sentinel.width = 123; sentinel.height = 456;
++    sentinel.data = reinterpret_cast<void*>(1); sentinel.dataSize = 789;
++    for (const bool cached : {false, true}) {
++        sweep(cached ? "offset config cached hit" : "offset config plain load",
++            [cached, &returnedView, &sentinel] {
++                resetStore(); xpe_calib_cache_clear();
++                std::memcpy(&returnedView, &sentinel, sizeof(returnedView));
++                if (cached) {
++                    XpeImageBuffer view{};
++                    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("oom_long_entry_file_name.xcal", &view));
++                }
++                ASSERT_EQ(XPE_OK, xpe_calib_load_offset("oom_q.xcal"));
++            },
++            [cached, &returnedView] {
++                if (!cached) return xpe_calib_load_offset("oom_long_entry_file_name.xcal");
++                return xpe_calib_load_offset_cached("oom_long_entry_file_name.xcal", &returnedView);
++            }, true,
++            [&](XpeErrorCode rc) -> std::string {
++                if (rc != XPE_OK) {
++                    if (cached && std::memcmp(&returnedView, &sentinel, sizeof(returnedView)) != 0)
++                        return "a failed cached load changed the caller output descriptor";
++                    return {};
++                }
++                std::lock_guard<std::mutex> lock(g_calib_mutex);
++                if (!g_calib.offset_config ||
++                    std::string(g_calib.offset_config->begin(), g_calib.offset_config->end()) != nextConfig ||
++                    !g_calib.offset_map || g_calib.offset_map[0] != 100.0f)
++                    return "a successful load did not publish the matching map/config pair";
++                return {};
++            });
++    }
++}
++
+ TEST_F(OomInjection, APlainDefectLoadThatFailsLeavesTheStoreUntouched) {
+     writeDefect("oom_q.xcal", false);
+     writeDefect("oom_long_entry_file_name.xcal", true);
+@@ -443,6 +491,164 @@ TEST_F(OomInjection, APlainDefectLoadThatFailsLeavesTheStoreUntouched) {
+           [] { return xpe_calib_load_defect_map("oom_long_entry_file_name.xcal"); }, true);
+ }
+
++TEST_F(OomInjection, ADefectV2SavePreservesItsStateAndExistingDestinationOnAllocationFailure) {
++    const auto bytes = [](const char* path) {
++        std::ifstream file(path, std::ios::binary);
++        return std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
++    };
++    std::vector<uint8_t> map(N, 0), area(N, 1);
++    area[0] = area[1] = area[2] = area[3] = 0;
++    map[W + 1] = map[W + 2] = 1; map[2 * W + 2] = 3;
++    DefectExtLine line;
++    line.index = 1; line.start = 1; line.end = 3; line.causes = 1;
++    line.correction = XPE_DEFECT_LINE_CORRECT_INTERPOLATE;
++    line.strength = 1.0f; line.persistence = 1.0f; line.segments = {{1, 1, 3}};
++    DefectExt extension;
++    extension.lines = {line}; extension.blobs = {{2, 2, 2, 2, 1}};
++    DefectXcalWrite job;
++    job.width = W; job.height = H; job.map = map.data(); job.area = area.data();
++    job.ext = &extension; job.session_id = "oom-v2";
++    ASSERT_EQ(XPE_OK, write_defect_xcal("oom_long_entry_file_name.xcal", job));
++    writeOffset("oom_q.xcal", 300.0f);
++    const auto originalDestination = bytes("oom_q.xcal");
++    ASSERT_FALSE(originalDestination.empty());
++    sweep("defect v2 state save",
++        [&] {
++            resetStore(); xpe_calib_cache_clear();
++            ASSERT_EQ(XPE_OK, write_defect_xcal("oom_long_entry_file_name.xcal", job));
++            ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("oom_long_entry_file_name.xcal"));
++            writeOffset("oom_q.xcal", 300.0f);
++        },
++        [] { return xpe_calib_save("oom_q.xcal", "defect", 0); }, true,
++        [&](XpeErrorCode rc) -> std::string {
++            if (rc != XPE_OK)
++                return bytes("oom_q.xcal") == originalDestination ? std::string() : "failed save changed the prior destination";
++            DefectXcal saved;
++            if (read_defect_xcal("oom_q.xcal", true, &saved) != XPE_OK || saved.format_version != 2 ||
++                saved.map != map || saved.area != area || saved.ext.lines.size() != 1 || saved.ext.blobs.size() != 1 ||
++                saved.session_id != "oom-v2")
++                return "successful save did not preserve the runtime v2 state";
++            return {};
++        });
++}
++
++TEST_F(OomInjection, ACompressedOffsetSaveKeepsThePriorFileAndMetadataOnAllocationFailure) {
++    const auto bytes = [](const char* path) {
++        std::ifstream file(path, std::ios::binary);
++        return std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
++    };
++    const std::vector<float> map(N, 100.0f);
++    const std::string config = "{\"method\":\"median\",\"temperature_c\":31,\"xcal_compression\":1,\"xcal_raw_payload_len\":" +
++        std::to_string(N * sizeof(float)) + "}";
++    std::vector<uint8_t> encoded;
++    ASSERT_EQ(XPE_OK, rle_encode(reinterpret_cast<const uint8_t*>(map.data()), N * sizeof(float), encoded));
++    writeFile("oom_long_entry_file_name.xcal", XCAL_TYPE_OFFSET, XCAL_FMT_FLOAT32,
++        encoded.data(), encoded.size(), config);
++    writeOffset("oom_q.xcal", 300.0f);
++    const auto originalDestination = bytes("oom_q.xcal");
++    ASSERT_FALSE(originalDestination.empty());
++    sweep("compressed offset state save",
++        [&] {
++            resetStore(); xpe_calib_cache_clear();
++            ASSERT_EQ(XPE_OK, xpe_calib_load_offset("oom_long_entry_file_name.xcal"));
++            writeOffset("oom_q.xcal", 300.0f);
++        },
++        [] { return xpe_calib_save("oom_q.xcal", "offset", 0); }, true,
++        [&](XpeErrorCode rc) -> std::string {
++            if (rc != XPE_OK)
++                return bytes("oom_q.xcal") == originalDestination ? std::string() : "failed save changed the prior destination";
++            XCalFileHeader header{};
++            std::vector<uint8_t> savedConfig, payload;
++            if (read_xcal_file("oom_q.xcal", header, savedConfig, payload, true, XCAL_TYPE_OFFSET) != XPE_OK ||
++                std::string(savedConfig.begin(), savedConfig.end()) != config || payload.size() != N * sizeof(float) ||
++                std::memcmp(payload.data(), map.data(), payload.size()) != 0)
++                return "successful save lost the codec/config/payload contract";
++            return {};
++        });
++}
++
++TEST_F(OomInjection, ScalarGainStateSavePreservesClassificationMetadataAndThePriorFileOnAllocationFailure) {
++    constexpr uint32_t gainWidth = 20, gainHeight = 20;
++    constexpr size_t gainPixels = static_cast<size_t>(gainWidth) * gainHeight;
++    const auto bytes = [](const char* path) {
++        std::ifstream file(path, std::ios::binary);
++        return std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
++    };
++    std::vector<float> map(gainPixels, 1.0f), savedValues(map);
++    map[5] = 0.0f; map[10] = 11.0f;
++    savedValues[5] = savedValues[10] = 0.0f;
++    std::vector<uint8_t> encoded;
++    ASSERT_EQ(XPE_OK, rle_encode(reinterpret_cast<const uint8_t*>(map.data()), gainPixels * sizeof(float), encoded));
++    for (const bool compressed : {false, true}) {
++        std::string config = "{\"calibration_mode\":3,\"actual_dose_levels\":5,\"polynomial_degree\":2,\"fit_r_squared\":0.9995";
++        if (compressed) config += ",\"xcal_compression\":1,\"xcal_raw_payload_len\":" + std::to_string(gainPixels * sizeof(float));
++        config += "}";
++        XCalFileHeader source{};
++        std::memcpy(source.magic, XCAL_MAGIC, 4);
++        source.version = XCAL_VERSION; source.type = XCAL_TYPE_GAIN; source.pixel_format = XCAL_FMT_FLOAT32;
++        source.width = gainWidth; source.height = gainHeight;
++        ASSERT_EQ(XPE_OK, write_xcal_file("oom_long_entry_file_name.xcal", source,
++            reinterpret_cast<const uint8_t*>(config.data()), config.size(),
++            compressed ? encoded.data() : reinterpret_cast<const uint8_t*>(map.data()),
++            compressed ? encoded.size() : gainPixels * sizeof(float)));
++        resetStore();
++        ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_long_entry_file_name.xcal"));
++        writeOffset("oom_q.xcal", 300.0f);
++        const auto originalDestination = bytes("oom_q.xcal");
++        ASSERT_FALSE(originalDestination.empty());
++        sweep(compressed ? "compressed scalar gain state save" : "scalar gain state save",
++            [&] {
++                resetStore(); xpe_calib_cache_clear();
++                ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_long_entry_file_name.xcal"));
++                writeOffset("oom_q.xcal", 300.0f);
++            },
++            [] { return xpe_calib_save("oom_q.xcal", "gain", 0); }, true,
++            [&](XpeErrorCode rc) -> std::string {
++                if (rc != XPE_OK)
++                    return bytes("oom_q.xcal") == originalDestination ? std::string() : "failed save changed the prior destination";
++                XCalFileHeader header{};
++                std::vector<uint8_t> savedConfig, payload;
++                if (read_xcal_file("oom_q.xcal", header, savedConfig, payload, true, XCAL_TYPE_GAIN) != XPE_OK ||
++                    std::string(savedConfig.begin(), savedConfig.end()) != config || payload.size() != gainPixels * sizeof(float) ||
++                    std::memcmp(payload.data(), savedValues.data(), payload.size()) != 0)
++                    return "successful save lost the scalar gain state/metadata/codec";
++                return {};
++            });
++    }
++}
++
++TEST_F(OomInjection, ActivePolynomialGainSavePreservesItsStateAndThePriorFileOnAllocationFailure) {
++    const auto bytes = [](const char* path) {
++        std::ifstream file(path, std::ios::binary);
++        return std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
++    };
++    writeGainPoly("oom_long_entry_file_name.xcal", kPolyJson);
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_long_entry_file_name.xcal"));
++    writeOffset("oom_q.xcal", 300.0f);
++    const auto originalDestination = bytes("oom_q.xcal");
++    ASSERT_FALSE(originalDestination.empty());
++    std::vector<float> expected(N * 2);
++    for (size_t i = 0; i < N; ++i) { expected[2 * i] = 1.0f; expected[2 * i + 1] = 0.0f; }
++    sweep("active polynomial gain state save",
++        [&] {
++            resetStore(); xpe_calib_cache_clear();
++            ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_long_entry_file_name.xcal"));
++            writeOffset("oom_q.xcal", 300.0f);
++        },
++        [] { return xpe_calib_save("oom_q.xcal", "gain", 0); }, true,
++        [&](XpeErrorCode rc) -> std::string {
++            if (rc != XPE_OK)
++                return bytes("oom_q.xcal") == originalDestination ? std::string() : "failed save changed the prior destination";
++            XCalFileHeader header{};
++            std::vector<uint8_t> config, payload;
++            if (read_xcal_file("oom_q.xcal", header, config, payload, true, XCAL_TYPE_GAIN_POLY) != XPE_OK ||
++                std::string(config.begin(), config.end()) != kPolyJson || payload.size() != expected.size() * sizeof(float) ||
++                std::memcmp(payload.data(), expected.data(), payload.size()) != 0)
++                return "successful save lost the active polynomial model/config";
++            return {};
++        });
++}
++
+ TEST_F(OomInjection, APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched) {
+     writeGain("oom_q.xcal", 4.0f, "{}");
+     writeGainPoly("oom_long_entry_file_name.xcal", kPolyJson);
+@@ -647,13 +853,9 @@ TEST_F(OomInjection, ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothin
+           ghostcreate::verdict);
+ }
+
+-// QA-A-237d (Codex #142, finding 2): a frame of xpe_ghost_correct that cannot be proven safe takes the scratch route, which makes
+-// three allocations of one plane each (the new history, twice, and the copy of the incoming frame). Making each of them fail in
+-// turn: the call must return XPE_ERR_OUT_OF_MEMORY with the pixels, the history and the statistics exactly as the caller gave
+-// them, leak nothing, and the first K that does not fail must produce what the same frame produces without any injection.
+-// (Before QA-A-237b these planes were allocated with the handle; nothing swept them since, and the other ghost tests feed
+-// ordinary frames, which now take the in-place route and allocate nothing.)
+-TEST_F(OomInjection, AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNothing) {
++// #245 PERF-002: the former three-plane scratch route now validates before committing and allocates nothing.
++// Keep the injection sweep as a regression guard: introducing any frame allocation must fail this contract.
++TEST_F(OomInjection, AGhostValidationRouteUsesNoFrameAllocations) {
+     constexpr uint32_t w = 40, h = 30;
+     constexpr size_t n = static_cast<size_t>(w) * h;
+     for (int tier = 1; tier <= 3; ++tier) {
+@@ -682,6 +884,11 @@ TEST_F(OomInjection, AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNoth
+                 ref = px;
+                 ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &ib, &meta));
+                 ASSERT_EQ(XPE_OK, xpe_ghost_correct(twin, &rb, &meta));
++            } else { // successful zero history is distinct from a newly created handle
++                std::fill(px.begin(), px.end(), 0.0f);
++                ref = px;
++                ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &ib, &meta));
++                ASSERT_EQ(XPE_OK, xpe_ghost_correct(twin, &rb, &meta));
+             }
+             for (size_t i = 0; i < n; ++i) px[i] = 1500.0f + static_cast<float>(i % 17);
+             const std::vector<float> given = px, hist1 = g->hist1, hist2 = g->hist2;
+@@ -714,7 +921,7 @@ TEST_F(OomInjection, AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNoth
+                 EXPECT_TRUE(mean == g->lastFrameMean && weight == g->exposureWeight) << "statistics changed, failing allocation " << k;
+                 EXPECT_EQ(liveBefore, liveAfter) << "a block leaked, failing allocation " << k;
+             }
+-            EXPECT_EQ(3, allocationsOfASuccessfulCall) << "the scratch route makes exactly the three plane allocations";
++            EXPECT_EQ(0, allocationsOfASuccessfulCall) << "validation before commit must need no full-frame scratch allocations";
+             EXPECT_EQ(0, std::memcmp(ref.data(), px.data(), n * sizeof(float))) << "the first call that was not made to fail gives the reference pixels";
+             EXPECT_TRUE(t->hist1 == g->hist1 && t->hist2 == g->hist2) << "... and the reference history";
+             xpe_ghost_destroy(handle);
+@@ -724,6 +931,211 @@ TEST_F(OomInjection, AGhostFrameOnTheScratchRouteWhoseAllocationFailsChangesNoth
+     }
+ }
+
++TEST_F(OomInjection, AGhostValidationRefusalPreservesPixelsAndStateWithoutAllocating) {
++    constexpr uint32_t w = 40, h = 30;
++    constexpr size_t n = static_cast<size_t>(w) * h;
++    for (int tier = 1; tier <= 3; ++tier) {
++        ghostcreate::warm();
++        const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
++        void* handle = nullptr;
++        ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &handle));
++        auto* g = static_cast<GhostCorrectorHandle*>(handle);
++        g->hasHistory = true; // this test injects an existing non-empty history, not a first frame
++        g->hist1.back() = 3.0e38f;
++        g->hist2.back() = 3.0e38f;
++        g->histBound1 = g->histBound2 = 3.0e38;
++        const auto hist1 = g->hist1, hist2 = g->hist2;
++        const auto rowA = g->rowA, rowB = g->rowB;
++        const bool hadHistory = g->hasHistory;
++        const double mean = g->lastFrameMean, weight = g->exposureWeight;
++        const double bound1 = g->histBound1, bound2 = g->histBound2;
++        std::vector<float> pixels(n, 1000.0f);
++        pixels.back() = 3.0e38f; // failure must occur after a long valid prefix
++        const auto before = pixels;
++        XpeImageBuffer image{};
++        image.width = w; image.height = h;
++        image.format = XPE_PIXEL_FLOAT32;
++        image.bitsAllocated = image.bitsStored = 32;
++        image.data = pixels.data(); image.dataSize = n * sizeof(float);
++        XpeImageMetadata metadata{};
++        xpe_ghost_force_slow_path = true;
++        arm(1);
++        XpeErrorCode rc = XPE_OK;
++        try { rc = xpe_ghost_correct(handle, &image, &metadata); } catch (...) { rc = XPE_ERR_INTERNAL; }
++        const bool injected = disarm();
++        xpe_ghost_force_slow_path = false;
++        const long allocations = g_count.load();
++        EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, rc) << tier;
++        EXPECT_FALSE(injected) << tier;
++        EXPECT_EQ(0, allocations) << tier;
++        EXPECT_EQ(0, std::memcmp(before.data(), pixels.data(), n * sizeof(float))) << tier;
++        EXPECT_TRUE(hist1 == g->hist1 && hist2 == g->hist2) << tier;
++        EXPECT_TRUE(rowA == g->rowA && rowB == g->rowB) << tier;
++        EXPECT_EQ(hadHistory, g->hasHistory);
++        EXPECT_EQ(mean, g->lastFrameMean); EXPECT_EQ(weight, g->exposureWeight);
++        EXPECT_EQ(bound1, g->histBound1); EXPECT_EQ(bound2, g->histBound2);
++        xpe_ghost_destroy(handle);
++        xpe_clear_alerts();
++    }
++}
++
++TEST_F(OomInjection, AGhostValidationRouteDoesNotAllocateOrLeakAcrossOneHundredFrames) {
++    constexpr uint32_t w = 40, h = 30;
++    constexpr size_t n = static_cast<size_t>(w) * h;
++    for (int tier = 1; tier <= 3; ++tier) {
++        ghostcreate::warm();
++        const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) + "}").c_str());
++        void* handle = nullptr;
++        void* reference = nullptr;
++        ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &handle));
++        ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &reference));
++        std::vector<float> pixels(n), expected(n);
++        XpeImageBuffer image{};
++        image.width = w; image.height = h;
++        image.format = XPE_PIXEL_FLOAT32;
++        image.bitsAllocated = image.bitsStored = 32;
++        image.data = pixels.data(); image.dataSize = n * sizeof(float);
++        auto referenceImage = image; referenceImage.data = expected.data();
++        XpeImageMetadata metadata{};
++        ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &image, &metadata));
++        ASSERT_EQ(XPE_OK, xpe_ghost_correct(reference, &referenceImage, &metadata));
++        const long liveBefore = g_live.load();
++        for (size_t frame = 0; frame < 100; ++frame) {
++            for (size_t i = 0; i < n; ++i) pixels[i] = 1000.0f + static_cast<float>((i * 7 + frame * 11) % 97);
++            expected = pixels;
++            ASSERT_EQ(XPE_OK, xpe_ghost_correct(reference, &referenceImage, &metadata));
++            xpe_ghost_force_slow_path = true;
++            arm(1);
++            XpeErrorCode rc = XPE_OK;
++            try { rc = xpe_ghost_correct(handle, &image, &metadata); } catch (...) { rc = XPE_ERR_INTERNAL; }
++            const bool injected = disarm();
++            xpe_ghost_force_slow_path = false;
++            const long allocations = g_count.load();
++            ASSERT_EQ(XPE_OK, rc) << "tier " << tier << " frame " << frame;
++            EXPECT_FALSE(injected);
++            EXPECT_EQ(0, allocations);
++            EXPECT_EQ(liveBefore, g_live.load());
++            EXPECT_EQ(0, std::memcmp(expected.data(), pixels.data(), n * sizeof(float)));
++            const auto* a = static_cast<GhostCorrectorHandle*>(handle);
++            const auto* b = static_cast<GhostCorrectorHandle*>(reference);
++            EXPECT_TRUE(a->hist1 == b->hist1 && a->hist2 == b->hist2);
++            EXPECT_EQ(a->lastFrameMean, b->lastFrameMean);
++            EXPECT_EQ(a->exposureWeight, b->exposureWeight);
++        }
++        xpe_ghost_destroy(handle);
++        xpe_ghost_destroy(reference);
++        xpe_clear_alerts();
++    }
++}
++
++TEST_F(OomInjection, FirstFrameBypassSeedsTheSameHistoryAsLegacyForAllLaterFrames) {
++    constexpr uint32_t w = 37, h = 29;
++    constexpr size_t n = static_cast<size_t>(w) * h;
++    for (int tier = 1; tier <= 3; ++tier) {
++        for (const float beta : {0.1f, 1.0e33f}) {
++            const std::string cfg = withStableLag(("{\"tier\":" + std::to_string(tier) +
++                ",\"nlcscBeta\":" + std::to_string(beta) + "}").c_str());
++            void* current = nullptr; void* legacy = nullptr;
++            ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &current));
++            ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &legacy));
++            std::vector<float> pixels(n), oldPixels(n);
++            XpeImageBuffer image{};
++            image.width = w; image.height = h; image.format = XPE_PIXEL_FLOAT32;
++            image.bitsAllocated = image.bitsStored = 32;
++            image.dataSize = n * sizeof(float); image.data = pixels.data();
++            auto oldImage = image; oldImage.data = oldPixels.data();
++            XpeImageMetadata meta{};
++            for (size_t frame = 0; frame < 100; ++frame) {
++                for (size_t i = 0; i < n; ++i) pixels[i] = 500.0f + static_cast<float>((i * 29 + frame * 53) % 1000);
++                oldPixels = pixels;
++                const auto original = pixels;
++                ASSERT_EQ(XPE_OK, xpe_ghost_correct(current, &image, &meta));
++                const bool saved = xpe_ghost_legacy_first_frame;
++                xpe_ghost_legacy_first_frame = true;
++                const auto legacyResult = xpe_ghost_correct(legacy, &oldImage, &meta);
++                xpe_ghost_legacy_first_frame = saved;
++                ASSERT_EQ(XPE_OK, legacyResult);
++                if (frame == 0) EXPECT_EQ(0, std::memcmp(original.data(), pixels.data(), n * sizeof(float)));
++                else EXPECT_EQ(0, std::memcmp(oldPixels.data(), pixels.data(), n * sizeof(float)));
++                const auto* a = static_cast<GhostCorrectorHandle*>(current);
++                const auto* b = static_cast<GhostCorrectorHandle*>(legacy);
++                EXPECT_TRUE(a->hist1 == b->hist1 && a->hist2 == b->hist2);
++                EXPECT_EQ(a->lastFrameMean, b->lastFrameMean);
++                EXPECT_EQ(a->exposureWeight, b->exposureWeight);
++                EXPECT_EQ(a->histBound1, b->histBound1); EXPECT_EQ(a->histBound2, b->histBound2);
++                if (frame) EXPECT_TRUE(a->rowA == b->rowA && a->rowB == b->rowB);
++            }
++            xpe_ghost_destroy(current); xpe_ghost_destroy(legacy);
++        }
++    }
++}
++
++TEST_F(OomInjection, AnExtremeFiniteFirstFrameIsBypassedAndStillSeedsTheNextCorrection) {
++    const std::string cfg = withStableLag("{\"tier\":3,\"nlcscBeta\":1e36}");
++    void* handle = nullptr;
++    ASSERT_EQ(XPE_OK, xpe_ghost_create(5, 5, cfg.c_str(), &handle));
++    std::vector<float> pixels(25, 1.0e8f);
++    XpeImageBuffer image{};
++    image.width = image.height = 5; image.format = XPE_PIXEL_FLOAT32;
++    image.bitsAllocated = image.bitsStored = 32; image.dataSize = 100; image.data = pixels.data();
++    XpeImageMetadata meta{};
++    void* legacy = nullptr;
++    ASSERT_EQ(XPE_OK, xpe_ghost_create(5, 5, cfg.c_str(), &legacy));
++    auto oldPixels = pixels;
++    auto oldImage = image; oldImage.data = oldPixels.data();
++    const bool saved = xpe_ghost_legacy_first_frame;
++    xpe_ghost_legacy_first_frame = true;
++    const auto oldResult = xpe_ghost_correct(legacy, &oldImage, &meta);
++    xpe_ghost_legacy_first_frame = saved;
++    EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, oldResult) << "legacy tried to compute an undefined coefficient times empty history";
++    EXPECT_FALSE(static_cast<GhostCorrectorHandle*>(legacy)->hasHistory);
++    xpe_ghost_destroy(legacy);
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &image, &meta));
++    EXPECT_EQ(std::vector<float>(25, 1.0e8f), pixels);
++    const auto* g = static_cast<GhostCorrectorHandle*>(handle);
++    EXPECT_TRUE(g->hasHistory);
++    EXPECT_EQ(std::vector<float>(25, 1.0e8f), g->hist1);
++    EXPECT_EQ(std::vector<float>(25, 1.0e8f), g->hist2);
++    std::fill(pixels.begin(), pixels.end(), 0.0f);
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &image, &meta));
++    EXPECT_EQ(std::vector<float>(25, 0.0f), pixels);
++    EXPECT_FLOAT_EQ(static_cast<float>(std::exp(-1.0)) * 1.0e8f, g->hist1[0]);
++    EXPECT_FLOAT_EQ(static_cast<float>(std::exp(-1.0 / 20.0)) * 1.0e8f, g->hist2[0]);
++    xpe_ghost_destroy(handle);
++}
++
++TEST_F(OomInjection, ASparseBrightOutlierUsesTheActualFrameMeanBoundAndMatchesValidation) {
++    constexpr uint32_t w = 1024, h = 1024;
++    constexpr size_t n = static_cast<size_t>(w) * h;
++    const auto cfg = withStableLag("{\"tier\":3,\"nlcscBeta\":1e10}");
++    void* handle = nullptr; void* reference = nullptr;
++    ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &handle));
++    ASSERT_EQ(XPE_OK, xpe_ghost_create(w, h, cfg.c_str(), &reference));
++    std::vector<float> pixels(n, 1000.0f), expected(n, 1000.0f);
++    XpeImageBuffer image{};
++    image.width = w; image.height = h; image.format = XPE_PIXEL_FLOAT32;
++    image.bitsAllocated = image.bitsStored = 32;
++    image.dataSize = n * sizeof(float); image.data = pixels.data();
++    auto refImage = image; refImage.data = expected.data();
++    XpeImageMetadata meta{};
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &image, &meta));
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(reference, &refImage, &meta));
++    pixels[n / 2] = expected[n / 2] = 1e20f;
++    const auto before = xpe_ghost_in_place_frames;
++    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &image, &meta));
++    EXPECT_EQ(before + 1, xpe_ghost_in_place_frames)
++        << "a single outlier must not substitute max(abs(pixel)) for the actual exposure-weight mean";
++    xpe_ghost_force_slow_path = true;
++    const auto referenceResult = xpe_ghost_correct(reference, &refImage, &meta);
++    xpe_ghost_force_slow_path = false;
++    ASSERT_EQ(XPE_OK, referenceResult);
++    EXPECT_EQ(0, std::memcmp(pixels.data(), expected.data(), n * sizeof(float)));
++    const auto* a = static_cast<GhostCorrectorHandle*>(handle);
++    const auto* b = static_cast<GhostCorrectorHandle*>(reference);
++    EXPECT_TRUE(a->hist1 == b->hist1 && a->hist2 == b->hist2);
++    xpe_ghost_destroy(handle); xpe_ghost_destroy(reference);
++}
++
+ // The defect correction takes shared ownership of the map and reads it in place: no request in a frame is as
+ // large as the map (it used to copy the whole map, under the lock). The frame is 256x256, so a copy of the
+ // map is a 65536-byte request, while the clustering bit-sets are 8 KiB.
+@@ -1005,7 +1417,8 @@ void captureReference(const Call_t& run, int frames, bool withGhost = true) {
+         EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_OFFSET_CORRECTED) << "control: the offset stage ran";
+         EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_GAIN_CORRECTED) << "control: the gain stage ran";
+         EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_DEFECT_CORRECTED) << "control: the defect stage ran";
+-        if (withGhost) EXPECT_NE(0u, g_meta[f].flags & XPE_FLAG_GHOST_CORRECTED) << "control: the ghost stage ran";
++        if (withGhost) EXPECT_EQ(f > 0, (g_meta[f].flags & XPE_FLAG_GHOST_CORRECTED) != 0)
++            << "control: the first frame seeds history; subsequent frames are corrected";
+     }
+ }
+
+diff --git a/modules/preprocess/tests/test_output_unchanged_237b.cpp b/modules/preprocess/tests/test_output_unchanged_237b.cpp
+index d9ae59d9..bac7b672 100644
+--- a/modules/preprocess/tests/test_output_unchanged_237b.cpp
++++ b/modules/preprocess/tests/test_output_unchanged_237b.cpp
+@@ -63,6 +63,7 @@ struct Rng {
+ };
+
+ std::map<std::string, uint64_t>& golden();   // defined at the end of the file
++const std::map<std::string, uint64_t>& firstBypassGolden();
+
+ bool envSet(const char* name) {
+ #ifdef _WIN32
+@@ -84,7 +85,81 @@ void expectDigest(const std::string& name, uint64_t value) {
+         ADD_FAILURE() << "no recorded digest for " << name << " (computed " << std::hex << value << ")";
+         return;
+     }
+-    EXPECT_EQ(it->second, value) << name << ": the output changed";
++    uint64_t expected = it->second;
++#ifdef XPE_CACHE_TEST_HOOKS
++    const bool legacy = xpe_ghost_legacy_first_frame;
++#else
++    constexpr bool legacy = false;
++#endif
++    if (!legacy) {
++        const auto changed = firstBypassGolden().find(name);
++        if (changed != firstBypassGolden().end()) expected = changed->second;
++    }
++    EXPECT_EQ(expected, value) << name << ": the output changed";
++}
++
++#ifdef XPE_CACHE_TEST_HOOKS
++bool legacyFingerprintRequested() {
++#ifdef _WIN32
++    char* value = nullptr;
++    size_t length = 0;
++    const bool requested = _dupenv_s(&value, &length, "XPE_A237B_LEGACY") == 0 &&
++        value != nullptr && std::strcmp(value, "1") == 0;
++    std::free(value);
++    return requested;
++#else
++    const char* value = std::getenv("XPE_A237B_LEGACY");
++    return value && std::strcmp(value, "1") == 0;
++#endif
++}
++class LegacyGhostFingerprintEnvironment : public ::testing::Environment {
++    void SetUp() override { xpe_ghost_legacy_first_frame = legacyFingerprintRequested(); }
++    void TearDown() override { xpe_ghost_legacy_first_frame = false; }
++};
++[[maybe_unused]] ::testing::Environment* const legacyFingerprintEnvironment =
++    ::testing::AddGlobalTestEnvironment(new LegacyGhostFingerprintEnvironment);
++#endif
++
++// FUNC-014 first-frame bypass intentionally changes initial pixels/flags and previously rejected cold frames.
++// The original golden() map below is retained verbatim and replayed by the separate legacy CTest job.
++const std::map<std::string, uint64_t>& firstBypassGolden() {
++    static const std::map<std::string, uint64_t> values{
++        {"pipeline/default/203x157/tier1", 0xd9a654f43e2ec788ull},
++        {"pipeline/default/203x157/tier2", 0x66a058ea995a4f59ull},
++        {"pipeline/default/203x157/tier3", 0x99996c866a9375a9ull},
++        {"pipeline/default/256x192/tier1", 0x25fab120ebece492ull},
++        {"pipeline/default/256x192/tier2", 0x0f9f6e7025ac4453ull},
++        {"pipeline/default/256x192/tier3", 0x9c8f61f0913d3a0eull},
++        {"pipeline/combo/temp_off", 0x6a431839157f49c7ull},
++        {"pipeline/combo/offset_off", 0x8ec2b22ed1b7eee7ull},
++        {"pipeline/combo/nonlin_off", 0x3b545db05d1af7e7ull},
++        {"pipeline/combo/temp_offset_nonlin_off", 0xb81a87b89e1fc2c7ull},
++        {"pipeline/combo/gain_off", 0xeaf4d816c5ffc8feull},
++        {"pipeline/combo/defect_off", 0x4123cefec05f8119ull},
++        {"pipeline/combo/binning2", 0x7ad915314edaa657ull},
++        {"pipeline/combo/gain_defect_off", 0x1cfe4ad9441131ecull},
++        {"pipeline/float_input/tier1", 0x986b58099bf1c9a6ull},
++        {"pipeline/float_input/tier3", 0xad4802f4ce76c8c6ull},
++        {"pipeline/float_input/failed_frame/tier2", 0x1da83b52cfb677d9ull},
++        {"pipeline/poly_gain/tier2", 0x29271ea2cd79c4b5ull},
++        {"pipeline/gain_classified/203x157/tier1", 0x9b437aeaafd0996aull},
++        {"pipeline/gain_classified/203x157/tier2", 0x1b0895393e0270d5ull},
++        {"pipeline/gain_classified/203x157/tier3", 0x61c515f4cd03dcc0ull},
++        {"pipeline/gain_classified/256x192/tier1", 0xe417aaa5daa7f29aull},
++        {"pipeline/gain_classified/256x192/tier2", 0xc28760fa86cfc043ull},
++        {"pipeline/gain_classified/256x192/tier3", 0x4de2e28cb38b06d7ull},
++        {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0xccd74011fcb890efull},
++        {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0xf205ed9467bd2da4ull},
++        {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0x4514a77519d5f002ull},
++        {"ghost/sequence/203x157/tier1", 0x48c3852181d25eedull},
++        {"ghost/sequence/203x157/tier2", 0x218db8cf6641ef32ull},
++        {"ghost/sequence/203x157/tier3", 0xd0e6b2fa55761b79ull},
++        {"ghost/sequence/256x192/tier1", 0x9edf59e3ab62c314ull},
++        {"ghost/sequence/256x192/tier2", 0x4b40ba7d53f5b105ull},
++        {"ghost/sequence/256x192/tier3", 0x97409ef752d6e5afull},
++        {"ghost/overflow/tier3", 0x946cf73e006bd22full},
++    };
++    return values;
+ }
+
+ // ---------------------------------------------------------------- calibration fixtures
+diff --git a/modules/preprocess/tests/test_pipeline_stage_values.cpp b/modules/preprocess/tests/test_pipeline_stage_values.cpp
+index 05ba501e..29f526c7 100644
+--- a/modules/preprocess/tests/test_pipeline_stage_values.cpp
++++ b/modules/preprocess/tests/test_pipeline_stage_values.cpp
+@@ -22,6 +22,7 @@
+ #include "xcal_writer.hpp"
+
+ #include <cstring>
++#include <algorithm>
+ #include <filesystem>
+ #include <string>
+ #include <vector>
+@@ -155,7 +156,7 @@ TEST_F(PipelineStageValueTest, GhostStageReturnsTheFrameItCorrected) {
+         xpe_preprocess_pipeline(&img, &meta, calib().c_str(), gh, cfg.c_str());
+     xpe_ghost_destroy(gh);
+     ASSERT_EQ(XPE_OK, rc);
+-    EXPECT_TRUE(meta.flags & XPE_FLAG_GHOST_CORRECTED);
++    EXPECT_FALSE(meta.flags & XPE_FLAG_GHOST_CORRECTED) << "FUNC-014: first frame seeds history without correction";
+     const float expected = (kRaw - kOffset) / kGain;
+     for (size_t i = 0; i < N; ++i) {
+         ASSERT_NEAR(expected, storage[i], 1e-3f) << "pixel " << i;
+@@ -185,6 +186,27 @@ TEST_F(PipelineStageValueTest, AnUncalibratedGhostHandleLeavesTheFlagUnsetAndThe
+     }
+ }
+
++TEST_F(PipelineStageValueTest, GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame) {
++    void* gh = nullptr;
++    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag("{\"tier\":3}").c_str(), &gh));
++    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,"
++                      "\"bypassNonlinearity\":true,\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
++    for (int frame = 0; frame < 3; ++frame) {
++        if (frame == 2) ASSERT_EQ(XPE_OK, xpe_ghost_reset(gh));
++        std::fill(storage.begin(), storage.end(), 0.0f);
++        storage[3 * W + 3] = 1000.0f;
++        const auto input = storage;
++        img.format = XPE_PIXEL_FLOAT32;
++        img.bitsAllocated = img.bitsStored = 32;
++        img.dataSize = N * sizeof(float);
++        meta = {};
++        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, calib().c_str(), gh, cfg));
++        EXPECT_EQ(frame == 1, (meta.flags & XPE_FLAG_GHOST_CORRECTED) != 0);
++        if (frame != 1) EXPECT_EQ(0, std::memcmp(input.data(), storage.data(), N * sizeof(float)));
++    }
++    xpe_ghost_destroy(gh);
++}
++
+ // Binning mode 2 scales float32 pixels by 1/mode^2 (binning_correct.cpp:14);
+ // the defect stage must receive that frame.
+ TEST_F(PipelineStageValueTest, BinningStageReturnsTheBinnedFrame) {
+@@ -265,7 +287,7 @@ TEST_P(PipelineComboTest, OutputMatchesTheFormula) {
+     if (gh) xpe_ghost_destroy(gh);
+     ASSERT_EQ(XPE_OK, rc);
+
+-    EXPECT_EQ(c.ghost, (meta.flags & XPE_FLAG_GHOST_CORRECTED) != 0);
++    EXPECT_FALSE(meta.flags & XPE_FLAG_GHOST_CORRECTED) << "this is the first frame of a fresh handle";
+     EXPECT_TRUE(meta.flags & XPE_FLAG_DEFECT_CORRECTED);
+     EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
+
+diff --git a/modules/preprocess/tests/test_xpe_calib_save.cpp b/modules/preprocess/tests/test_xpe_calib_save.cpp
+index 47970b00..e60e462c 100644
+--- a/modules/preprocess/tests/test_xpe_calib_save.cpp
++++ b/modules/preprocess/tests/test_xpe_calib_save.cpp
+@@ -43,6 +43,13 @@ protected:
+     const char* dst_gain   = "t007_dst_gain.xcal";
+     const char* dst_defect = "t007_dst_defect.xcal";
+
++    void SetUp() override {
++        // Own an empty calibration store for every case, independent of test order.
++        (void)xpe_preprocess_init(nullptr);
++        xpe_preprocess_shutdown();
++        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
++    }
++
+     void TearDown() override {
+         // Release the maps these cases load into the module (QA-A-91, #176).
+         // A W x H defect map left here made a later sigma-clip generation of
+@@ -156,15 +163,9 @@ TEST_F(CalibSaveTest, InvalidCalibType_ReturnsInvalidInput) {
+ // Test 7: Save OFFSET when g_calib has no offset loaded -> INVALID_INPUT
+ // =============================================================================
+ TEST_F(CalibSaveTest, SaveOffset_WhenNotLoaded_ReturnsInvalidInput) {
+-    // We cannot guarantee g_calib is empty (other tests may have loaded offset).
+-    // Load a valid offset first, then test that "defect" save works, and
+-    // separately test with an empty calib type that has never been loaded.
+-    // The safest test: use a path that clearly never had data.
+-    // Actually, since tests may run in any order and g_calib is shared global state,
+-    // we check the empty-defect case (less likely to be loaded by another test).
+-    // If defect is not loaded, we should get INVALID_INPUT.
+-    // Skip if already populated from Test 3.
+-    GTEST_SKIP() << "Global g_calib state is shared; skipped to avoid ordering dependency";
++    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(dst_offset, "offset", 0));
++    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(dst_gain, "gain", 0));
++    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(dst_defect, "defect", 0));
+ }
+
+ // =============================================================================
+diff --git a/modules/preprocess/tests/test_xpe_preprocess_calibration.cpp b/modules/preprocess/tests/test_xpe_preprocess_calibration.cpp
+index 7bc74422..80d7f4a0 100644
+--- a/modules/preprocess/tests/test_xpe_preprocess_calibration.cpp
++++ b/modules/preprocess/tests/test_xpe_preprocess_calibration.cpp
+@@ -10,8 +10,16 @@
+ #include <fstream>
+ #include <cstring>
+ #include <chrono>
++#include <filesystem>
++#include <vector>
++#include <string>
+ #include "xpe/preprocess_api.h"
+ #include "xpe/common/xpe_error.h"
++#include "xcal_writer.hpp"
++#include "xcal_reader.hpp"
++#include "defect_ext.hpp"
++#include "rle_codec.hpp"
++#include "xpe/preprocess/xpe_preprocess_internal.h"
+
+ // =============================================================================
+ // Test Data Generation Helpers
+@@ -20,20 +28,98 @@
+ namespace {
+
+ /**
+- * @brief Create test XCal file stub (returns false; real fixture added in T-005)
+- *
+- * T-001: Stub returning false so tests that depend on this skip gracefully.
+- * The old format was incompatible with the XCal v1 canonical header defined in
+- * SPEC-XPE-P1A (136-byte fixed header with separate config_json/payload lengths).
+- * Real fixture will be implemented in T-005 using xcal_writer.
++ * @brief Create a canonical XCal v1 fixture with a valid payload hash.
+  */
+-bool CreateTestXCalFile(const char* /*filepath*/,
+-                        uint32_t /*width*/,
+-                        uint32_t /*height*/,
+-                        uint32_t /*data_type*/,
+-                        const char* /*session_id*/ = "test-session-123") {
+-    // Stub: always fails so callers use GTEST_SKIP()
+-    return false;
++bool CreateTestXCalFile(const char* filepath,
++                        uint32_t width,
++                        uint32_t height,
++                        uint32_t data_type,
++                        const char* session_id = "test-session-123",
++                        int64_t expiry_ms = 4102444800000LL) {
++    XCalFileHeader header{};
++    std::memcpy(header.magic, XCAL_MAGIC, 4);
++    header.version = XCAL_VERSION;
++    header.type = data_type == 0 ? XCAL_TYPE_OFFSET : data_type == 1 ? XCAL_TYPE_GAIN : XCAL_TYPE_DEFECT;
++    header.pixel_format = data_type == 2 ? XCAL_FMT_UINT8_MASK : XCAL_FMT_FLOAT32;
++    header.width = width; header.height = height;
++    header.expiry_epoch_ms = expiry_ms;
++    const size_t length = std::strlen(session_id);
++    if (length >= sizeof(header.session_id)) return false;
++    std::memcpy(header.session_id, session_id, length);
++    const size_t pixels = static_cast<size_t>(width) * height;
++    if (data_type == 2) {
++        const std::vector<uint8_t> mask(pixels, 0);
++        return XPE_OK == write_xcal_file(filepath, header, nullptr, 0, mask.data(), mask.size());
++    }
++    const std::vector<float> map(pixels, data_type == 0 ? 100.0f : 2.0f);
++    return XPE_OK == write_xcal_file(filepath, header, nullptr, 0,
++        reinterpret_cast<const uint8_t*>(map.data()), map.size() * sizeof(float));
++}
++
++void ExpectSavedMap(uint32_t type, float value) {
++    XCalFileHeader header{};
++    std::vector<uint8_t> config, payload;
++    ASSERT_EQ(XPE_OK, read_xcal_file("test_output.xcal", header, config, payload, true, type));
++    EXPECT_EQ(1024u, header.width); EXPECT_EQ(1024u, header.height);
++    EXPECT_EQ(XCAL_FMT_FLOAT32, header.pixel_format);
++    const std::vector<float> expected(1024 * 1024, value);
++    ASSERT_EQ(expected.size() * sizeof(float), payload.size());
++    EXPECT_EQ(0, std::memcmp(expected.data(), payload.data(), payload.size()));
++}
++
++bool WriteOffsetWithConfig(const char* path, const std::string& config, float shift = 0.0f) {
++    XCalFileHeader header{};
++    std::memcpy(header.magic, XCAL_MAGIC, 4);
++    header.version = XCAL_VERSION;
++    header.type = XCAL_TYPE_OFFSET;
++    header.pixel_format = XCAL_FMT_FLOAT32;
++    header.width = 2; header.height = 2;
++    std::memcpy(header.session_id, "test-session-123", 16);
++    const float map[]{1.0f + shift, 2.0f + shift, 3.0f + shift, 4.0f + shift};
++    return XPE_OK == write_xcal_file(path, header,
++        config.empty() ? nullptr : reinterpret_cast<const uint8_t*>(config.data()), config.size(),
++        reinterpret_cast<const uint8_t*>(map), sizeof(map));
++}
++
++void ExpectSavedOffsetConfig(const std::string& expected, float shift = 0.0f) {
++    ASSERT_EQ(XPE_OK, xpe_calib_save("test_output.xcal", "offset", 4102444800000ULL));
++    XCalFileHeader header{};
++    std::vector<uint8_t> config, payload;
++    ASSERT_EQ(XPE_OK, read_xcal_file("test_output.xcal", header, config, payload, true, XCAL_TYPE_OFFSET));
++    EXPECT_EQ(expected, std::string(config.begin(), config.end()));
++    EXPECT_EQ(4102444800000LL, header.expiry_epoch_ms);
++    const float expectedMap[]{1.0f + shift, 2.0f + shift, 3.0f + shift, 4.0f + shift};
++    ASSERT_EQ(sizeof(expectedMap), payload.size());
++    EXPECT_EQ(0, std::memcmp(expectedMap, payload.data(), sizeof(expectedMap)));
++}
++
++bool WriteScalarGainWithConfig(const char* path, uint32_t width, uint32_t height,
++    const std::vector<float>& map, const std::string& config, bool compressed = false) {
++    if (map.size() != static_cast<size_t>(width) * height) return false;
++    XCalFileHeader header{};
++    std::memcpy(header.magic, XCAL_MAGIC, 4);
++    header.version = XCAL_VERSION; header.type = XCAL_TYPE_GAIN;
++    header.pixel_format = XCAL_FMT_FLOAT32; header.width = width; header.height = height;
++    std::memcpy(header.session_id, "test-session-123", 16);
++    const uint8_t* data = reinterpret_cast<const uint8_t*>(map.data());
++    size_t size = map.size() * sizeof(float);
++    std::vector<uint8_t> encoded;
++    if (compressed) {
++        if (rle_encode(data, size, encoded) != XPE_OK) return false;
++        data = encoded.data(); size = encoded.size();
++    }
++    return XPE_OK == write_xcal_file(path, header,
++        config.empty() ? nullptr : reinterpret_cast<const uint8_t*>(config.data()), config.size(), data, size);
++}
++
++void ExpectSavedGainConfig(const std::string& expected, const std::vector<float>& map) {
++    ASSERT_EQ(XPE_OK, xpe_calib_save("test_output.xcal", "gain", 0));
++    XCalFileHeader header{};
++    std::vector<uint8_t> config, payload;
++    ASSERT_EQ(XPE_OK, read_xcal_file("test_output.xcal", header, config, payload, true, XCAL_TYPE_GAIN));
++    EXPECT_EQ(expected, std::string(config.begin(), config.end()));
++    ASSERT_EQ(map.size() * sizeof(float), payload.size());
++    EXPECT_EQ(0, std::memcmp(map.data(), payload.data(), payload.size()));
+ }
+
+ /**
+@@ -101,7 +187,13 @@ void FreeTestImage(XpeImageBuffer* img) {
+
+ class PreprocessCalibrationTest : public ::testing::Test {
+ protected:
++    std::filesystem::path previousDirectory, fixtureDirectory;
+     void SetUp() override {
++        previousDirectory = std::filesystem::current_path();
++        fixtureDirectory = std::filesystem::temp_directory_path() /
++            ("xpe_calibration_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
++        ASSERT_TRUE(std::filesystem::create_directory(fixtureDirectory));
++        std::filesystem::current_path(fixtureDirectory);
+         xpe_preprocess_shutdown();
+         ASSERT_EQ(xpe_preprocess_init(NULL), XPE_OK);
+     }
+@@ -115,9 +207,272 @@ protected:
+         std::remove("test_defect.xcal");
+         std::remove("test_check.xcal");
+         std::remove("test_output.xcal");
++        std::remove("test_corrupted.xcal");
++        if (!previousDirectory.empty()) std::filesystem::current_path(previousDirectory);
++        if (!fixtureDirectory.empty()) {
++            std::error_code error;
++            std::filesystem::remove(fixtureDirectory, error); // only removes the empty directory created by this test
++        }
+     }
+ };
+
++TEST_F(PreprocessCalibrationTest, OffsetConfigRoundTripPreservesTemperatureAndOpaqueExtensions) {
++    const std::string config = " {\"method\":\"median\", \"integration_time_ms\":123.5,\"temperature_c\":31.25,\"extension\":{\"v\":[1,2],\"xcal_compression\":1,\"xcal_raw_payload_len\":16}} \n";
++    ASSERT_TRUE(WriteOffsetWithConfig("test_offset.xcal", config));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_offset.xcal"));
++    ExpectSavedOffsetConfig(config);
++}
++
++TEST_F(PreprocessCalibrationTest, OffsetConfigCompressedRoundTripKeepsMetadataAndPayloadConsistent) {
++    XCalFileHeader header{};
++    std::memcpy(header.magic, XCAL_MAGIC, 4);
++    header.version = XCAL_VERSION; header.type = XCAL_TYPE_OFFSET;
++    header.pixel_format = XCAL_FMT_FLOAT32; header.width = header.height = 2;
++    const float map[]{1.0f, 2.0f, 3.0f, 4.0f};
++    const std::string config = "{\"temperature_c\":31,\"xcal_compression\":1,\"xcal_raw_payload_len\":16}";
++    std::vector<uint8_t> encoded;
++    ASSERT_EQ(XPE_OK, rle_encode(reinterpret_cast<const uint8_t*>(map), sizeof(map), encoded));
++    ASSERT_EQ(XPE_OK, write_xcal_file("test_offset.xcal", header,
++        reinterpret_cast<const uint8_t*>(config.data()), config.size(), encoded.data(), encoded.size()));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_offset.xcal"));
++    ExpectSavedOffsetConfig(config);
++}
++
++TEST_F(PreprocessCalibrationTest, OffsetConfigCacheHitRestoresTheMatchingMapMetadata) {
++    const std::string a = "{\"temperature_c\":21,\"method\":\"mean\"}";
++    const std::string b = "{\"temperature_c\":34,\"method\":\"median\"}";
++    ASSERT_TRUE(WriteOffsetWithConfig("test_offset.xcal", a));
++    ASSERT_TRUE(WriteOffsetWithConfig("test_check.xcal", b, 100.0f));
++    XpeImageBuffer view{};
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("test_offset.xcal", &view));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_check.xcal"));
++    ExpectSavedOffsetConfig(b, 100.0f);
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("test_offset.xcal", &view));
++    ExpectSavedOffsetConfig(a);
++}
++
++TEST_F(PreprocessCalibrationTest, OffsetConfigEmptyReplacementDoesNotKeepPreviousMetadata) {
++    ASSERT_TRUE(WriteOffsetWithConfig("test_offset.xcal", "{\"temperature_c\":31}"));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_offset.xcal"));
++    ASSERT_TRUE(WriteOffsetWithConfig("test_check.xcal", ""));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_check.xcal"));
++    ExpectSavedOffsetConfig("");
++    XpeImageBuffer view{};
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("test_check.xcal", &view));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_offset.xcal"));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset_cached("test_check.xcal", &view));
++    ExpectSavedOffsetConfig("");
++}
++
++TEST_F(PreprocessCalibrationTest, OffsetConfigRejectedLoadPreservesPreviousMetadata) {
++    const std::string config = "{\"temperature_c\":31}";
++    ASSERT_TRUE(WriteOffsetWithConfig("test_offset.xcal", config));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_offset.xcal"));
++    ASSERT_TRUE(CreateCorruptedXCalFile("test_corrupted.xcal"));
++    EXPECT_NE(XPE_OK, xpe_calib_load_offset("test_corrupted.xcal"));
++    ExpectSavedOffsetConfig(config);
++}
++
++TEST_F(PreprocessCalibrationTest, SavedDefectKeepsItsSessionAndReloadsWithTheOriginalSet) {
++    const char* session = "saved-set-session";
++    ASSERT_TRUE(CreateTestXCalFile("test_offset.xcal", 2, 2, 0, session));
++    ASSERT_TRUE(CreateTestXCalFile("test_gain.xcal", 2, 2, 1, session));
++    ASSERT_TRUE(CreateTestXCalFile("test_defect.xcal", 2, 2, 2, session));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_offset.xcal"));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_gain.xcal"));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("test_defect.xcal"));
++    ASSERT_EQ(XPE_OK, xpe_calib_save("test_output.xcal", "defect", 4102444800000ULL));
++    XCalFileHeader header{};
++    std::vector<uint8_t> config, payload;
++    ASSERT_EQ(XPE_OK, read_xcal_file("test_output.xcal", header, config, payload, true, XCAL_TYPE_DEFECT));
++    EXPECT_STREQ(session, header.session_id);
++    xpe_preprocess_shutdown();
++    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_offset("test_offset.xcal"));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_gain.xcal"));
++    EXPECT_EQ(XPE_OK, xpe_calib_load_defect_map("test_output.xcal"));
++}
++
++TEST_F(PreprocessCalibrationTest, SavedDefectV2RetainsTheRuntimeLayersAndCorrection) {
++    constexpr uint32_t width = 16, height = 16;
++    std::vector<uint8_t> map(width * height, 0), area(width * height, 1);
++    for (uint32_t x = 0; x < width; ++x) area[x] = 0;
++    for (uint32_t x = 2; x < 6; ++x) map[3 * width + x] = 1;
++    map[5 * width + 5] = map[5 * width + 6] = 3;
++    DefectExtLine line;
++    line.orientation = 0; line.index = 3; line.width = 1; line.start = 2; line.end = 6;
++    line.causes = 1; line.correction = XPE_DEFECT_LINE_CORRECT_INTERPOLATE;
++    line.strength = 12.5f; line.persistence = 0.75f; line.segments = {{3, 2, 6}};
++    DefectExt extension;
++    extension.lines = {line}; extension.blobs = {{5, 5, 6, 5, 2}};
++    DefectXcalWrite job;
++    job.width = width; job.height = height; job.map = map.data(); job.area = area.data();
++    job.ext = &extension; job.session_id = "saved-v2-state";
++    ASSERT_EQ(XPE_OK, write_defect_xcal("test_defect.xcal", job));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("test_defect.xcal"));
++    std::vector<float> input(width * height), before(input.size()), after(input.size());
++    for (uint32_t y = 0; y < height; ++y)
++        for (uint32_t x = 0; x < width; ++x)
++            input[y * width + x] = map[y * width + x] ? 60000.0f : static_cast<float>(x * x + 10 * y * y + x * y);
++    XpeImageBuffer in{}, out{};
++    in.width = out.width = width; in.height = out.height = height;
++    in.bitsAllocated = out.bitsAllocated = 32; in.bitsStored = out.bitsStored = 32;
++    in.format = out.format = XPE_PIXEL_FLOAT32;
++    in.data = input.data(); out.data = before.data();
++    in.dataSize = out.dataSize = input.size() * sizeof(float);
++    XpeImageMetadata meta{};
++    ASSERT_EQ(XPE_OK, xpe_defect_correct(&in, &out, &meta));
++    ASSERT_EQ(XPE_OK, xpe_calib_save("test_output.xcal", "defect", 4102444800000ULL));
++    DefectXcal saved;
++    ASSERT_EQ(XPE_OK, read_defect_xcal("test_output.xcal", true, &saved));
++    EXPECT_EQ(2u, saved.format_version);
++    EXPECT_EQ(map, saved.map); EXPECT_EQ(area, saved.area);
++    EXPECT_EQ("saved-v2-state", saved.session_id);
++    EXPECT_EQ(4102444800000LL, saved.expiry_epoch_ms);
++    ASSERT_EQ(1u, saved.ext.lines.size());
++    const auto& actual = saved.ext.lines[0];
++    EXPECT_EQ(line.orientation, actual.orientation); EXPECT_EQ(line.index, actual.index);
++    EXPECT_EQ(line.width, actual.width); EXPECT_EQ(line.start, actual.start); EXPECT_EQ(line.end, actual.end);
++    EXPECT_EQ(line.causes, actual.causes); EXPECT_EQ(line.correction, actual.correction);
++    EXPECT_FLOAT_EQ(line.strength, actual.strength); EXPECT_FLOAT_EQ(line.persistence, actual.persistence);
++    ASSERT_EQ(1u, actual.segments.size());
++    EXPECT_EQ(3u, actual.segments[0].line); EXPECT_EQ(2u, actual.segments[0].start); EXPECT_EQ(6u, actual.segments[0].end);
++    ASSERT_EQ(1u, saved.ext.blobs.size());
++    EXPECT_EQ(5u, saved.ext.blobs[0].x0); EXPECT_EQ(5u, saved.ext.blobs[0].y0);
++    EXPECT_EQ(6u, saved.ext.blobs[0].x1); EXPECT_EQ(5u, saved.ext.blobs[0].y1); EXPECT_EQ(2u, saved.ext.blobs[0].size);
++    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("test_output.xcal"));
++    out.data = after.data(); meta = XpeImageMetadata{};
++    ASSERT_EQ(XPE_OK, xpe_defect_correct(&in, &out, &meta));
++    EXPECT_EQ(0, std::memcmp(before.data(), after.data(), before.size() * sizeof(float)));
++}
++
++TEST_F(PreprocessCalibrationTest, SavedScalarGainKeepsQualityAndTheMatchingCachedConfig) {
++    const std::string a = " {\"calibration_mode\":3,\"actual_dose_levels\":5,\"polynomial_degree\":2,\"fit_r_squared\":0.9995,\"extension\":{\"source\":\"A\"}} ";
++    const std::string b = "{\"calibration_mode\":1,\"actual_dose_levels\":1,\"polynomial_degree\":0,\"fit_r_squared\":0.5}";
++    const std::vector<float> mapA(16, 1.0f), mapB(16, 2.0f);
++    ASSERT_TRUE(WriteScalarGainWithConfig("test_gain.xcal", 4, 4, mapA, a));
++    ASSERT_TRUE(WriteScalarGainWithConfig("test_check.xcal", 4, 4, mapB, b));
++    XpeImageBuffer view{};
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("test_gain.xcal", &view));
++    XpeCalibQualityMeta before{};
++    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&before));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_check.xcal"));
++    ExpectSavedGainConfig(b, mapB);
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("test_gain.xcal", &view));
++    ExpectSavedGainConfig(a, mapA);
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_output.xcal"));
++    XpeCalibQualityMeta after{};
++    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&after));
++    EXPECT_EQ(before.num_points, after.num_points); EXPECT_EQ(before.polynomial_degree, after.polynomial_degree);
++    EXPECT_DOUBLE_EQ(before.r_squared, after.r_squared); EXPECT_EQ(before.calibration_pass, after.calibration_pass);
++}
++
++TEST_F(PreprocessCalibrationTest, SavedScalarGainEmptyConfigDoesNotKeepPreviousMetadata) {
++    const std::vector<float> map(16, 1.0f);
++    ASSERT_TRUE(WriteScalarGainWithConfig("test_gain.xcal", 4, 4, map, "{\"fit_r_squared\":1}"));
++    ASSERT_TRUE(WriteScalarGainWithConfig("test_check.xcal", 4, 4, map, ""));
++    XpeImageBuffer view{};
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("test_check.xcal", &view));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_gain.xcal"));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("test_check.xcal", &view));
++    ExpectSavedGainConfig("", map);
++}
++
++TEST_F(PreprocessCalibrationTest, SavedScalarGainReplaysItsClassifiedPixelsThroughThePipeline) {
++    ASSERT_EQ(0, xpe_get_pending_alert_count());
++    struct OwnedAlerts {
++        ~OwnedAlerts() { xpe_clear_alerts(); }
++    } ownedAlerts; // This case starts with an empty queue and owns the classification warnings it raises.
++    constexpr uint32_t width = 16, height = 16;
++    constexpr size_t count = width * height;
++    const size_t bad1 = 8 * width + 8, bad2 = 5 * width + 5;
++    ASSERT_TRUE(CreateTestXCalFile("test_defect.xcal", width, height, 2));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_defect_map("test_defect.xcal"));
++    for (const bool compressed : {false, true}) {
++        std::vector<float> map(count, 1.0f), before(count), after(count);
++        map[bad1] = 0.0f; map[bad2] = 11.0f;
++        std::vector<uint16_t> raw(count);
++        for (size_t i = 0; i < count; ++i) raw[i] = static_cast<uint16_t>(1000 + i);
++        raw[bad1] = raw[bad2] = 65535;
++        const std::string config = compressed ?
++            "{\"source\":\"classified\",\"xcal_compression\":1,\"xcal_raw_payload_len\":1024}" :
++            "{\"source\":\"classified\"}";
++        ASSERT_TRUE(WriteScalarGainWithConfig("test_gain.xcal", width, height, map, config, compressed));
++        ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_gain.xcal"));
++        XpeImageBuffer in{}, out{};
++        in.width = out.width = width; in.height = out.height = height;
++        in.bitsAllocated = in.bitsStored = 16; out.bitsAllocated = out.bitsStored = 32;
++        in.format = XPE_PIXEL_UINT16; out.format = XPE_PIXEL_FLOAT32;
++        in.data = raw.data(); in.dataSize = raw.size() * sizeof(uint16_t);
++        out.data = before.data(); out.dataSize = before.size() * sizeof(float);
++        XpeCalibrationState state{}; state.gainLoaded = state.defectLoaded = true;
++        XpeImageMetadata meta{};
++        const char* pipelineConfig = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGhost\":true}";
++        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &out, &meta, &state, nullptr, pipelineConfig));
++        ASSERT_NE(65535.0f, before[bad1]); ASSERT_NE(65535.0f, before[bad2]);
++        ASSERT_EQ(XPE_OK, xpe_calib_save("test_output.xcal", "gain", 0));
++        ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_output.xcal"));
++        out.data = after.data(); meta = XpeImageMetadata{};
++        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&in, &out, &meta, &state, nullptr, pipelineConfig));
++        EXPECT_EQ(0, std::memcmp(before.data(), after.data(), before.size() * sizeof(float))) << "compressed=" << compressed;
++    }
++}
++
++TEST_F(PreprocessCalibrationTest, SavedActivePolynomialGainRetainsCoefficientsRangeAndOutput) {
++    ASSERT_EQ(0, xpe_get_pending_alert_count());
++    struct OwnedAlerts { ~OwnedAlerts() { xpe_clear_alerts(); } } ownedAlerts;
++    constexpr uint32_t width = 4, height = 4;
++    constexpr size_t count = width * height;
++    std::vector<float> coefficients(count * 2), before(count), after(count);
++    std::vector<uint16_t> raw(count);
++    for (size_t i = 0; i < count; ++i) {
++        coefficients[2 * i] = 0.8f + static_cast<float>(i % 4) * 0.01f;
++        coefficients[2 * i + 1] = 0.001f;
++        raw[i] = static_cast<uint16_t>(i == 0 ? 5 : i == count - 1 ? 150 : 20 + i * 2);
++    }
++    const std::string config = " {\"dose_min\":10,\"dose_max\":100,\"calibration_mode\":3,\"actual_dose_levels\":5,\"polynomial_degree\":1,\"fit_r_squared\":1,\"extension\":{\"source\":\"poly\"}} ";
++    XCalFileHeader header{};
++    std::memcpy(header.magic, XCAL_MAGIC, 4);
++    header.version = XCAL_VERSION; header.type = XCAL_TYPE_GAIN_POLY; header.pixel_format = XCAL_FMT_FLOAT32;
++    header.width = width; header.height = height; std::memcpy(header.session_id, "poly-save-state", 15);
++    ASSERT_EQ(XPE_OK, write_xcal_file("test_gain.xcal", header,
++        reinterpret_cast<const uint8_t*>(config.data()), config.size(),
++        reinterpret_cast<const uint8_t*>(coefficients.data()), coefficients.size() * sizeof(float)));
++    const std::vector<float> scalar(count, 1.5f);
++    const std::string scalarConfig = "{\"source\":\"scalar-replacement\"}";
++    ASSERT_TRUE(WriteScalarGainWithConfig("test_check.xcal", width, height, scalar, scalarConfig));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_check.xcal"));
++    ExpectSavedGainConfig(scalarConfig, scalar);
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_gain.xcal"));
++    XpeImageBuffer in{}, out{};
++    in.width = out.width = width; in.height = out.height = height;
++    in.bitsAllocated = in.bitsStored = 16; out.bitsAllocated = out.bitsStored = 32;
++    in.format = XPE_PIXEL_UINT16; out.format = XPE_PIXEL_FLOAT32;
++    in.data = raw.data(); in.dataSize = raw.size() * sizeof(uint16_t);
++    out.data = before.data(); out.dataSize = before.size() * sizeof(float);
++    XpeImageMetadata meta{};
++    ASSERT_EQ(XPE_OK, xpe_gain_correct(&in, &out, &meta));
++    ASSERT_EQ(XPE_OK, xpe_calib_save("test_output.xcal", "gain", 4102444800000ULL));
++    XCalFileHeader saved{};
++    std::vector<uint8_t> savedConfig, payload;
++    ASSERT_EQ(XPE_OK, read_xcal_file("test_output.xcal", saved, savedConfig, payload, true, XCAL_TYPE_GAIN_POLY));
++    EXPECT_EQ(config, std::string(savedConfig.begin(), savedConfig.end()));
++    EXPECT_STREQ("poly-save-state", saved.session_id);
++    EXPECT_EQ(4102444800000LL, saved.expiry_epoch_ms);
++    ASSERT_EQ(coefficients.size() * sizeof(float), payload.size());
++    EXPECT_EQ(0, std::memcmp(coefficients.data(), payload.data(), payload.size()));
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_output.xcal"));
++    out.data = after.data(); meta = XpeImageMetadata{};
++    ASSERT_EQ(XPE_OK, xpe_gain_correct(&in, &out, &meta));
++    EXPECT_EQ(0, std::memcmp(before.data(), after.data(), before.size() * sizeof(float)));
++    XpeCalibQualityMeta quality{};
++    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&quality));
++    EXPECT_EQ(5u, quality.num_points); EXPECT_EQ(1u, quality.polynomial_degree);
++    EXPECT_DOUBLE_EQ(1.0, quality.r_squared);
++    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_check.xcal"));
++    ExpectSavedGainConfig(scalarConfig, scalar);
++}
++
+ // =============================================================================
+ // Calibration Loading Tests
+ // =============================================================================
+@@ -130,9 +485,7 @@ protected:
+  * Then returns XPE_OK
+  */
+ TEST_F(PreprocessCalibrationTest, LoadOffset_ValidXCalFile) {
+-    if (!CreateTestXCalFile("test_offset.xcal", 1024, 1024, 0)) {
+-        GTEST_SKIP() << "XCal fixture not yet implemented (T-005)";
+-    }
++    ASSERT_TRUE(CreateTestXCalFile("test_offset.xcal", 1024, 1024, 0));
+     XpeErrorCode result = xpe_calib_load_offset("test_offset.xcal");
+     EXPECT_EQ(result, XPE_OK);
+ }
+@@ -187,9 +540,7 @@ TEST_F(PreprocessCalibrationTest, LoadOffset_CorruptedFile) {
+  * Then returns XPE_OK
+  */
+ TEST_F(PreprocessCalibrationTest, LoadGain_ValidXCalFile) {
+-    if (!CreateTestXCalFile("test_gain.xcal", 1024, 1024, 1)) {
+-        GTEST_SKIP() << "XCal fixture not yet implemented (T-005)";
+-    }
++    ASSERT_TRUE(CreateTestXCalFile("test_gain.xcal", 1024, 1024, 1));
+     XpeErrorCode result = xpe_calib_load_gain("test_gain.xcal");
+     EXPECT_EQ(result, XPE_OK);
+ }
+@@ -215,9 +566,7 @@ TEST_F(PreprocessCalibrationTest, LoadGain_InvalidFilePath) {
+  * Then returns XPE_OK
+  */
+ TEST_F(PreprocessCalibrationTest, LoadDefectMap_ValidXCalFile) {
+-    if (!CreateTestXCalFile("test_defect.xcal", 1024, 1024, 2)) {
+-        GTEST_SKIP() << "XCal fixture not yet implemented (T-005)";
+-    }
++    ASSERT_TRUE(CreateTestXCalFile("test_defect.xcal", 1024, 1024, 2));
+     XpeErrorCode result = xpe_calib_load_defect_map("test_defect.xcal");
+     EXPECT_EQ(result, XPE_OK);
+ }
+@@ -387,9 +736,7 @@ TEST_F(PreprocessCalibrationTest, GenerateOffset_DimensionMismatch) {
+  * Then returns is_expired=false with remaining_days > 0
+  */
+ TEST_F(PreprocessCalibrationTest, CheckExpiry_ValidCalibration) {
+-    if (!CreateTestXCalFile("test_check.xcal", 1024, 1024, 0)) {
+-        GTEST_SKIP() << "XCal fixture not yet implemented (T-005)";
+-    }
++    ASSERT_TRUE(CreateTestXCalFile("test_check.xcal", 1024, 1024, 0));
+     bool is_expired = false;
+     int32_t remaining_days = 0;
+
+@@ -411,11 +758,15 @@ TEST_F(PreprocessCalibrationTest, CheckExpiry_ValidCalibration) {
+  * When expired calibration file is checked
+  * Then returns is_expired=true with negative remaining_days
+  *
+- * Note: This test is skipped until T-005 provides a proper XCal v1 writer.
+- * The legacy format written here does not match XCalHeader binary layout.
++ * Uses the canonical writer with an expiry timestamp in the past.
+  */
+ TEST_F(PreprocessCalibrationTest, CheckExpiry_ExpiredCalibration) {
+-    GTEST_SKIP() << "Requires XCal v1 writer fixture from T-005";
++    ASSERT_TRUE(CreateTestXCalFile("test_check.xcal", 1024, 1024, 0, "test-session-123", 1));
++    bool expired = false;
++    int32_t days = 0;
++    ASSERT_EQ(XPE_OK, xpe_calib_check_expiry("test_check.xcal", &expired, &days));
++    EXPECT_TRUE(expired);
++    EXPECT_LE(days, 0);
+ }
+
+ /**
+@@ -467,16 +818,13 @@ TEST_F(PreprocessCalibrationTest, CheckExpiry_NullOutputPointers) {
+  * Then file is created successfully
+  */
+ TEST_F(PreprocessCalibrationTest, Save_OffsetCalibration) {
+-    if (!CreateTestXCalFile("test_offset.xcal", 1024, 1024, 0)) {
+-        GTEST_SKIP() << "XCal fixture not yet implemented (T-005)";
+-    }
++    ASSERT_TRUE(CreateTestXCalFile("test_offset.xcal", 1024, 1024, 0));
+     ASSERT_EQ(xpe_calib_load_offset("test_offset.xcal"), XPE_OK);
+
+     XpeErrorCode result = xpe_calib_save("test_output.xcal", "offset", 0);
+
+-    EXPECT_TRUE(result == XPE_OK ||
+-                result == XPE_ERR_INVALID_INPUT ||
+-                result == XPE_ERR_IO_FAILED);
++    ASSERT_EQ(XPE_OK, result);
++    ExpectSavedMap(XCAL_TYPE_OFFSET, 100.0f);
+ }
+
+ /**
+@@ -487,16 +835,13 @@ TEST_F(PreprocessCalibrationTest, Save_OffsetCalibration) {
+  * Then file is created successfully
+  */
+ TEST_F(PreprocessCalibrationTest, Save_GainCalibration) {
+-    if (!CreateTestXCalFile("test_gain.xcal", 1024, 1024, 1)) {
+-        GTEST_SKIP() << "XCal fixture not yet implemented (T-005)";
+-    }
++    ASSERT_TRUE(CreateTestXCalFile("test_gain.xcal", 1024, 1024, 1));
+     ASSERT_EQ(xpe_calib_load_gain("test_gain.xcal"), XPE_OK);
+
+     XpeErrorCode result = xpe_calib_save("test_output.xcal", "gain", 0);
+
+-    EXPECT_TRUE(result == XPE_OK ||
+-                result == XPE_ERR_INVALID_INPUT ||
+-                result == XPE_ERR_IO_FAILED);
++    ASSERT_EQ(XPE_OK, result);
++    ExpectSavedMap(XCAL_TYPE_GAIN, 2.0f);
+ }
+
+ /**
