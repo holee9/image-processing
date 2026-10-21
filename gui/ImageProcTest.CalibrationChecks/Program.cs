@@ -187,7 +187,9 @@ internal static class Program
                 finally { window.Close(); model.ShutdownBackendBlocking(); app.Shutdown(); }
             });
         }
-        if (args.Length != 2) Check("Evidence export preserves an already existing fixed report", () =>
+        // QA-A-274 7-1 (c): the export now also writes the fixed menu-command-report.json (Lane C scenarios read it). The invariant the old check protected is kept in full -
+        // a previous fixed report is never lost - but it is now asserted as "its exact bytes survive in evidence/snapshots/replaced-fixed-report-*.json" instead of "it stays in place".
+        if (args.Length != 2) Check("Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot", () =>
         {
             // This is the isolated check output, never the user's running GUI output.
             if (!AppContext.BaseDirectory.Contains("PRE-GUI-20261019T063546Z-7f92a1", StringComparison.Ordinal))
@@ -197,27 +199,98 @@ internal static class Program
                 throw new InvalidOperationException("Refuse test output reuse.");
             var marker = "previous evidence must remain byte-identical";
             File.WriteAllText(fixedPath, marker);
+            var markerBytes = File.ReadAllBytes(fixedPath);
             var settings = new AppSettings { BackendMode = "Mock" };
             var vm = new MainWindowViewModel(settings,
                 new AppSettingsService(Path.Combine(AppContext.BaseDirectory, "settings-test.json")),
                 _ => new MockXpeBackend(new RawImageLoader(), "", false, "", false));
             try
             {
+                var snapshotDirectory = Path.Combine(GuiDataPaths.Root, "evidence", "snapshots");
+                string[] Replaced() => Directory.Exists(snapshotDirectory) ? Directory.GetFiles(snapshotDirectory, "replaced-fixed-report-*.json") : [];
+
                 vm.ExportAutomationReportCommand.Execute(null);
-                if (File.ReadAllText(fixedPath) != marker)
-                    throw new InvalidOperationException("Existing fixed evidence was overwritten.");
-                if (!vm.StatusText.Contains("exported", StringComparison.OrdinalIgnoreCase))
+                if (!vm.StatusText.Contains("exported", StringComparison.OrdinalIgnoreCase) || vm.StatusText.Contains("NOT updated", StringComparison.Ordinal))
                     throw new InvalidOperationException("A successful unique export was not reported.");
                 var first = vm.LastEvidenceSnapshotPath;
                 if (first is null || !File.Exists(first))
                     throw new InvalidOperationException("Export path does not identify the actual new evidence.");
+                var firstBytes = File.ReadAllBytes(first);
+                if (!File.ReadAllBytes(fixedPath).SequenceEqual(firstBytes))
+                    throw new InvalidOperationException("The fixed report is not the same bytes as the snapshot.");
+                using (var fixedDocument = JsonDocument.Parse(firstBytes))
+                {
+                    var evidence = fixedDocument.RootElement.GetProperty("evidence");
+                    if (evidence.GetProperty("snapshotFile").GetString() != Path.GetFileName(first))
+                        throw new InvalidOperationException("The fixed report does not name this run's snapshot.");
+                    if (!fixedDocument.RootElement.TryGetProperty("generatedAt", out _) || !fixedDocument.RootElement.TryGetProperty("processingChain", out _) || !fixedDocument.RootElement.TryGetProperty("comparison", out _))
+                        throw new InvalidOperationException("The existing report schema lost fields.");
+                }
+                var replaced = Replaced();
+                if (replaced.Length != 1 || !File.ReadAllBytes(replaced[0]).SequenceEqual(markerBytes))
+                    throw new InvalidOperationException("The previous fixed report was not kept byte for byte.");
+
                 vm.ExportAutomationReportCommand.Execute(null);
-                if (File.ReadAllText(fixedPath) != marker)
-                    throw new InvalidOperationException("Repeated export touched old evidence.");
-                if (vm.LastEvidenceSnapshotPath == first)
+                var second = vm.LastEvidenceSnapshotPath;
+                if (second is null || second == first || !File.Exists(second))
                     throw new InvalidOperationException("Repeated export reused a path.");
+                if (!File.ReadAllBytes(first).SequenceEqual(firstBytes))
+                    throw new InvalidOperationException("Repeated export touched an old snapshot.");
+                if (!File.ReadAllBytes(fixedPath).SequenceEqual(File.ReadAllBytes(second)))
+                    throw new InvalidOperationException("The fixed report does not follow the latest snapshot.");
+                // the previous fixed report was the first snapshot's exact bytes, which are kept as that snapshot: no second copy of it
+                replaced = Replaced();
+                if (replaced.Length != 1 || !File.ReadAllBytes(replaced[0]).SequenceEqual(markerBytes))
+                    throw new InvalidOperationException("The second export copied a previous fixed report that was already kept as a snapshot, or lost the first one.");
             }
             finally { vm.ShutdownBackendBlocking(); }
+        });
+        // The two failure orders, on the store itself with throw-away folders (no GUI involved).
+        if (args.Length != 2) Check("Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone", () =>
+        {
+            var root = Path.Combine(Path.GetTempPath(), "xpe-dualwrite-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var report = new { generatedAt = DateTimeOffset.Now, value = 1 };
+                // (a) the fixed name is occupied by a folder: the snapshot must still be complete, the failure reported, the folder untouched
+                var aliasDirA = Path.Combine(root, "a-exe");
+                Directory.CreateDirectory(Path.Combine(aliasDirA, EvidenceSnapshotStore.FixedAliasName));
+                var a = EvidenceSnapshotStore.Publish(Path.Combine(root, "a-data"), aliasDirA, report, "run-a");
+                if (a.SnapshotPath is null || !File.Exists(a.SnapshotPath) || a.AliasError is null || a.SnapshotError is not null)
+                    throw new InvalidOperationException("Fixed-copy failure was not reported as partial success.");
+                if (!Directory.Exists(Path.Combine(aliasDirA, EvidenceSnapshotStore.FixedAliasName)) || Directory.GetFiles(aliasDirA, "*.tmp").Length != 0)
+                    throw new InvalidOperationException("Fixed-copy failure left a temporary file or replaced the occupant.");
+                // (c) a fixed report that names a snapshot but has been changed since is NOT kept by that snapshot: it must be copied before it is replaced
+                var aliasDirC = Path.Combine(root, "c-exe");
+                Directory.CreateDirectory(aliasDirC);
+                var dataC = Path.Combine(root, "c-data");
+                var c1 = EvidenceSnapshotStore.Publish(dataC, aliasDirC, report, "run-c1");
+                var c1Bytes = File.ReadAllBytes(c1.SnapshotPath!);
+                // still valid JSON and still naming c1, but not the same bytes: only a byte comparison can tell it from the snapshot
+                var changed = System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.UTF8.GetString(c1Bytes).Replace("\"runId\": \"run-c1\"", "\"runId\": \"run-c1-edited\""));
+                if (changed.SequenceEqual(c1Bytes)) throw new InvalidOperationException("The check could not change the fixed report.");
+                File.WriteAllBytes(Path.Combine(aliasDirC, EvidenceSnapshotStore.FixedAliasName), changed);
+                var c2 = EvidenceSnapshotStore.Publish(dataC, aliasDirC, report, "run-c2");
+                if (c2.ReplacedAliasCopyPath is null || !File.ReadAllBytes(c2.ReplacedAliasCopyPath).SequenceEqual(changed) || !File.ReadAllBytes(c1.SnapshotPath!).SequenceEqual(c1Bytes))
+                    throw new InvalidOperationException("A changed fixed report was replaced without being kept.");
+                // an untouched one (what the previous export wrote) needs no copy
+                var c3 = EvidenceSnapshotStore.Publish(dataC, aliasDirC, report, "run-c3");
+                if (c3.ReplacedAliasCopyPath is not null)
+                    throw new InvalidOperationException("An unchanged fixed report was copied although its snapshot already keeps it.");
+                // (b) the snapshot cannot be created (a file sits where the data folder's evidence folder must be): nothing may be written beside the executable
+                var aliasDirB = Path.Combine(root, "b-exe");
+                Directory.CreateDirectory(aliasDirB);
+                File.WriteAllText(Path.Combine(aliasDirB, EvidenceSnapshotStore.FixedAliasName), "older fixed report");
+                var dataB = Path.Combine(root, "b-data");
+                Directory.CreateDirectory(dataB);
+                File.WriteAllText(Path.Combine(dataB, "evidence"), "not a folder");
+                var b = EvidenceSnapshotStore.Publish(dataB, aliasDirB, report, "run-b");
+                if (b.SnapshotPath is not null || b.SnapshotError is null)
+                    throw new InvalidOperationException("Snapshot failure was not reported.");
+                if (File.ReadAllText(Path.Combine(aliasDirB, EvidenceSnapshotStore.FixedAliasName)) != "older fixed report" || Directory.GetFiles(aliasDirB).Length != 1)
+                    throw new InvalidOperationException("Snapshot failure still touched the fixed report.");
+            }
+            finally { try { Directory.Delete(root, recursive: true); } catch (IOException) { } }
         });
         // F260-1 (Reviewer #260): LastEvidenceSnapshotPath keeps the last SUCCESSFUL snapshot, so a consumer that read it after a failed export would take the previous file for this export's result.
         // The judgment the consumers use (EvidenceExportResult) must refuse, on the same view model that exported successfully a moment before. The failure is a deny rule on the snapshot folder
@@ -268,6 +341,37 @@ internal static class Program
             finally
             {
                 if (denied) { var security = folder.GetAccessControl(); security.RemoveAccessRule(deny); folder.SetAccessControl(security); }
+                vm.ShutdownBackendBlocking();
+            }
+        });
+        // Only the fixed copy fails (a folder sits on its name): still a success of the snapshot, and the result says the fixed copy was not updated.
+        if (args.Length != 2) Check("When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated", () =>
+        {
+            if (!AppContext.BaseDirectory.Contains("PRE-GUI-20261019T063546Z-7f92a1", StringComparison.Ordinal))
+                throw new InvalidOperationException("Run checks only from this task's unique build output.");
+            var vm = new MainWindowViewModel(new AppSettings { BackendMode = "Mock" },
+                new AppSettingsService(Path.Combine(AppContext.BaseDirectory, "settings-test-fixed-copy-failed.json")),
+                _ => new MockXpeBackend(new RawImageLoader(), "", false, "", false));
+            var fixedPath = Path.Combine(AppContext.BaseDirectory, EvidenceSnapshotStore.FixedAliasName);
+            try
+            {
+                var before = vm.LastEvidenceExport;
+                vm.ExportAutomationReportCommand.Execute(null);
+                EvidenceExportResult.RequireNewSuccess(before, vm.LastEvidenceExport);
+                if (!vm.LastEvidenceExport!.FixedCopyUpdated)
+                    throw new InvalidOperationException("A fully successful export did not report the fixed copy as updated.");
+                File.Delete(fixedPath);
+                Directory.CreateDirectory(fixedPath);
+                before = vm.LastEvidenceExport;
+                vm.ExportAutomationReportCommand.Execute(null);
+                var path = EvidenceExportResult.RequireNewSuccess(before, vm.LastEvidenceExport);
+                var result = vm.LastEvidenceExport!;
+                if (result.FixedCopyUpdated || string.IsNullOrEmpty(result.FixedCopyError) || vm.LastEvidenceSnapshotPath != path || !vm.StatusText.Contains("NOT updated", StringComparison.Ordinal))
+                    throw new InvalidOperationException("A fixed-copy-only failure was not reported as a snapshot success plus a fixed-copy failure.");
+            }
+            finally
+            {
+                if (Directory.Exists(fixedPath)) Directory.Delete(fixedPath);
                 vm.ShutdownBackendBlocking();
             }
         });

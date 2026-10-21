@@ -2682,25 +2682,27 @@ public sealed class MainWindowViewModel : ObservableObject
             alertCount = Alerts.Count
         };
 
+        // QA-A-274 7-1 (c): one report, two outputs from the same bytes - the unique snapshot (evidence of record) and the fixed menu-command-report.json beside the executable that older consumers read.
         var exportId = Guid.NewGuid().ToString("N");
-        try
+        var published = EvidenceSnapshotStore.Publish(GuiDataPaths.Root, AppContext.BaseDirectory, report, RunSet.RunId ?? string.Empty);
+        LastEvidenceExport = new EvidenceExportResult(exportId, published.SnapshotPath, published.SnapshotError?.Message, published.AliasPath, published.AliasError?.Message);
+        if (published.SnapshotPath is null)
         {
-            LastEvidenceSnapshotPath = EvidenceSnapshotStore.Write(GuiDataPaths.Root, report);
-            LastEvidenceExport = new EvidenceExportResult(exportId, LastEvidenceSnapshotPath, null);
-            StatusText = $"Automation report exported: {LastEvidenceSnapshotPath}";
-            Log(StatusText);
+            StatusText = $"Evidence snapshot was not exported: {published.SnapshotError!.Message}. Existing evidence was not replaced; the fixed report {published.AliasPath} was not touched.";
         }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        else
         {
-            LastEvidenceExport = new EvidenceExportResult(exportId, null, error.Message);
-            StatusText = $"Evidence snapshot was not exported: {error.Message}. Existing evidence was not replaced.";
-            Log(StatusText);
+            LastEvidenceSnapshotPath = published.SnapshotPath;
+            StatusText = published.AliasError is null
+                ? $"Automation report exported: {published.SnapshotPath} (fixed copy: {published.AliasPath})"
+                : $"Automation report exported: {published.SnapshotPath}. The fixed copy {published.AliasPath} was NOT updated and may still name an older run: {published.AliasError.Message}";
         }
+        Log(StatusText);
     }
 
     /// <summary>
-    /// The file produced by the last SUCCESSFUL snapshot export; never a fixed legacy file. It is kept when a later export fails, so it must not be used to decide whether the export
-    /// just run succeeded: use <see cref="LastEvidenceExport"/> for that.
+    /// The snapshot written by the last export whose snapshot was fully written; never the fixed menu-command-report.json. It is set even when only the fixed copy failed (the snapshot is the
+    /// evidence of record) and is KEPT when a later snapshot fails, so it must not be used to decide whether the export just run succeeded: use <see cref="LastEvidenceExport"/> for that.
     /// </summary>
     public string? LastEvidenceSnapshotPath { get; private set; }
 
