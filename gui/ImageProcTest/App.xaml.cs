@@ -62,6 +62,9 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
+        // #277: remote-view compatibility without a developer-folder startup hook.
+        if (string.Equals(Environment.GetEnvironmentVariable("XPE_GUI_RENDER_MODE"), "SoftwareOnly", StringComparison.OrdinalIgnoreCase))
+            System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         // #129: install the shared native search policy before anything can P/Invoke. Doing it here
         // rather than in a static constructor keeps the ordering explicit: the resolver must be in
         // place before the first DllImport, and only one may ever be registered per assembly.

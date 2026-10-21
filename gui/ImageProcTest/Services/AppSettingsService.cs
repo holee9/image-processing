@@ -42,7 +42,7 @@ public sealed class AppSettingsService
 
     public AppSettingsService(string? filePath = null)
     {
-        FilePath = filePath ?? Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        FilePath = filePath ?? Path.Combine(GuiDataPaths.Root, "appsettings.json");
     }
 
     public string FilePath { get; }
@@ -221,7 +221,29 @@ public sealed class AppSettingsService
 
     public void Save(AppSettings settings)
     {
+        // #277: never rewrite a newer schema through this older model.
+        if (File.Exists(FilePath))
+        {
+            using var stored = JsonDocument.Parse(File.ReadAllText(FilePath));
+            if (stored.RootElement.TryGetProperty("settingsSchemaVersion", out var schema)
+                && (!schema.TryGetInt32(out var version) || version > AppSettings.CurrentSchemaVersion))
+                throw new InvalidOperationException("Newer settings schema: save refused; original preserved.");
+        }
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(settings, _serializerOptions));
+        var temporary = FilePath + ".writing-" + Guid.NewGuid().ToString("N");
+        try
+        {
+            using (var stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(stream, settings, _serializerOptions);
+                stream.Flush(true);
+            }
+            if (File.Exists(FilePath)) File.Replace(temporary, FilePath, FilePath + ".previous");
+            else File.Move(temporary, FilePath);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
     }
 }

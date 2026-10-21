@@ -2560,7 +2560,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         try
         {
-            var directory = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+            var directory = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
             Directory.CreateDirectory(directory);
             var path = Path.Combine(directory, "runtime-log.txt");
 
@@ -3071,7 +3071,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             var inputs = Settings.Snapshot();
             var runId = string.IsNullOrWhiteSpace(RunSet.RunId) ? "adhoc-" + DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) : RunSet.RunId;
-            var folder = Path.Combine(AppContext.BaseDirectory, "evidence", runId, $"baseline-{++_baselineRunCount}");
+            var folder = Path.Combine(GuiDataPaths.Root, "evidence", runId, $"baseline-{++_baselineRunCount}");
             var metadata = new BaselineDicomMetadata(inputs.SelectedBodyPart, inputs.ExposureKvp, inputs.PixelPitchMm);
 
             var result = await Task.Run(() => BaselineExecution.Run(
@@ -3664,7 +3664,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var dir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+        var dir = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "verdicts.json");
 
@@ -3938,7 +3938,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var directory = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+        var directory = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
         if (!Directory.Exists(directory))
         {
             StatusText = $"No evidence folder yet for this run set: {directory}";
@@ -4003,7 +4003,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 return;
             }
 
-            var evidenceDir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+            var evidenceDir = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
             if (!Directory.Exists(evidenceDir))
             {
                 StatusText = "No evidence directory found for current run-set.";
@@ -4011,7 +4011,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 return;
             }
 
-            var bundleDir = Path.Combine(AppContext.BaseDirectory, "evidence", "bundles");
+            var bundleDir = Path.Combine(GuiDataPaths.Root, "evidence", "bundles");
             Directory.CreateDirectory(bundleDir);
 
             var zipPath = Path.Combine(bundleDir, $"{RunSet.RunId}.zip");
