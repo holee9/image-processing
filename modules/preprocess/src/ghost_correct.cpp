@@ -198,6 +198,7 @@ bool xpe_ghost_is_calibrated(const void* handle) noexcept
 // Test-only (QA-A-225 M4, #238), see xpe_preprocess_internal.h.
 XpeGhostTier3Mix xpe_ghost_tier3_mix = {0.7f, 0.3f};
 bool xpe_ghost_force_slow_path = false;
+bool xpe_ghost_legacy_first_frame = false;
 unsigned long xpe_ghost_in_place_frames = 0;
 #endif
 
@@ -241,15 +242,14 @@ namespace {
         float exposureWeight{1.0f};
     };
 
-    // QA-A-237b (#245): the planes a tier reads and writes. A frame reads h1/h2 and writes the NEW history to n1/n2: scratch
-    // planes (the route with an undo; `frameCopy` is then the incoming frame) or the history planes themselves (in place:
-    // n1 == h1 and n2 == h2, used only for a frame that provably cannot fail; `frameCopy` is then null). A pixel reads its
-    // own h1/h2 before it writes n1/n2, so one plane serves as both.
+    // #245 PERF-002: validation computes identical float expressions without writing a plane or pixel.
+    // Commit reuses h1/h2 in place: a pixel reads its own history before writing it.
     struct Planes {
         const float* h1;
         const float* h2;
         float* n1;
         float* n2;
+        bool commit{true};
     };
 
     // The per-frame constants of the three tiers, bundled so that no function takes four floats in a row (clang-tidy
@@ -259,6 +259,8 @@ namespace {
         float decay2;
         float a1;
         float a2;
+        float frameMean;
+        float exposureWeight;
     };
 
     // The weights of the tier-3 blend (the shipped constants, or the test seam's variables).
@@ -279,10 +281,13 @@ namespace {
             const float raw = px[i];
             if (!std::isfinite(raw)) return XPE_ERR_PROCESSING_FAILED;
             float corrected = raw - a1 * h1[i] - a2 * h2[i];
-            n1[i] = decay1 * h1[i] + raw;
-            n2[i] = decay2 * h2[i] + raw;
-            if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
-            px[i] = (corrected > 0.0f) ? corrected : 0.0f;
+            const float next1 = decay1 * h1[i] + raw;
+            const float next2 = decay2 * h2[i] + raw;
+            if (!std::isfinite(corrected) || !std::isfinite(next1) || !std::isfinite(next2)) return XPE_ERR_PROCESSING_FAILED;
+            if (pl.commit) {
+                n1[i] = next1; n2[i] = next2;
+                px[i] = (corrected > 0.0f) ? corrected : 0.0f;
+            }
         }
         return XPE_OK;
     }
@@ -292,11 +297,11 @@ namespace {
                              const Planes& pl, const float*) {
         const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
         // Exposure-weighted coefficients based on frame mean
-        const float meanSignal = compute_frame_mean(px, n);
+        const float meanSignal = k.frameMean;
 
         // Scale alpha based on exposure level (higher exposure = stronger correction)
         // Reference: 50% of saturation = 1.0x scaling, 100% saturation = 1.5x scaling
-        const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
+        const float exposureWeight = k.exposureWeight;
         *stats = FrameStats{true, meanSignal, exposureWeight};
 
         const float a1 = a1_base * exposureWeight;
@@ -310,20 +315,23 @@ namespace {
             const float raw = px[i];
             if (!std::isfinite(raw)) return XPE_ERR_PROCESSING_FAILED;
             float corrected = raw - a1 * h1[i] - a2 * h2[i];
-            n1[i] = decay1 * h1[i] + raw;
-            n2[i] = decay2 * h2[i] + raw;
-            if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
-            px[i] = (corrected > 0.0f) ? corrected : 0.0f;
+            const float next1 = decay1 * h1[i] + raw;
+            const float next2 = decay2 * h2[i] + raw;
+            if (!std::isfinite(corrected) || !std::isfinite(next1) || !std::isfinite(next2)) return XPE_ERR_PROCESSING_FAILED;
+            if (pl.commit) {
+                n1[i] = next1; n2[i] = next2;
+                px[i] = (corrected > 0.0f) ? corrected : 0.0f;
+            }
         }
         return XPE_OK;
     }
 
     // Tier 3: NLCSC (Nonlinear Causal Spatial Context) with signal-dependent coefficients
-    XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px, size_t n, const TierCoeffs& k, FrameStats* stats,
-                             const Planes& pl, const float* frameCopy) {
+    XpeErrorCode ghost_tier3(GhostCorrectorHandle* gh, float* px, size_t /*n*/, const TierCoeffs& k, FrameStats* stats,
+                             const Planes& pl, const float* frameCopy, Tier3Mix mix) {
         const float decay1 = k.decay1, decay2 = k.decay2, a1_base = k.a1, a2_base = k.a2;
-        const float meanSignal = compute_frame_mean(px, n);
-        const float exposureWeight = 1.0f + (meanSignal / 32768.0f) * 0.5f;
+        const float meanSignal = k.frameMean;
+        const float exposureWeight = k.exposureWeight;
         *stats = FrameStats{true, meanSignal, exposureWeight};
 
         const float* h1 = pl.h1;
@@ -339,18 +347,14 @@ namespace {
         // The loop updates px in place, so reading px made the pixels above and to the left count with their CORRECTED
         // (and zero-clamped) values and the others with their original ones: the output depended on the scan direction
         // (a frame flipped, processed and flipped back differed in 41-91 % of its pixels, QA-A-218).
-        // QA-A-237b: the incoming frame is `frameCopy` (the route with an undo keeps a whole copy) or, for an in-place frame,
+        // The incoming frame is `frameCopy` (validation reads px itself) or, for an in-place frame,
         // the rows of px that have not been written yet (y + 1 and below) plus two saved rows (y - 1 and y).
         float* savedPrev = gh->rowA.data();
         float* savedCur = gh->rowB.data();
 
         // The blend weights of the interior pixels. A constant in the shipped library; the test seam reads them from a variable
         // (QA-A-225 M4), with the shipped values as defaults.
-#ifdef XPE_CACHE_TEST_HOOKS
-        const float mixKeep = xpe_ghost_tier3_mix.keep, mixLocal = xpe_ghost_tier3_mix.local;
-#else
-        constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
-#endif
+        const float mixKeep = mix.keep, mixLocal = mix.local;
 
         // QA-A-227 (#244): EVERY pixel is blended, the mean taken over the neighbours that exist in the frame (nine inside, six
         // on an edge, four in a corner -- the module's "valid neighbours" convention, as in the defect stage). A frame below
@@ -414,11 +418,13 @@ namespace {
                     }
                 }
 
-                n1[i] = decay1 * h1[i] + raw;
-                n2[i] = decay2 * h2[i] + raw;
-
-                if (!std::isfinite(corrected) || !std::isfinite(n1[i]) || !std::isfinite(n2[i])) return XPE_ERR_PROCESSING_FAILED;
-                px[i] = (corrected > 0.0f) ? corrected : 0.0f;
+                const float next1 = decay1 * h1[i] + raw;
+                const float next2 = decay2 * h2[i] + raw;
+                if (!std::isfinite(corrected) || !std::isfinite(next1) || !std::isfinite(next2)) return XPE_ERR_PROCESSING_FAILED;
+                if (pl.commit) {
+                    n1[i] = next1; n2[i] = next2;
+                    px[i] = (corrected > 0.0f) ? corrected : 0.0f;
+                }
             }
 
             if (blend && frameCopy == nullptr) {
@@ -432,8 +438,9 @@ namespace {
 
     // QA-A-237b (#245), QA-A-237d (Codex #142): whether the frame's arithmetic provably stays inside the float range, so that no
     // pixel can fail and an in-place update has nothing to undo. The check EVALUATES THE TIERS' OWN EXPRESSIONS, in float and in
-    // the tiers' own order, at the worst case of every input: M (the frame's largest |value|) stands for the pixel and, since
-    // |mean| <= M, for the mean; the handle's bounds stand for the history planes; coefficients enter as magnitudes. An
+    // the tiers' own order: M (the frame's largest |value|) bounds each pixel and local neighbourhood; the exact frame mean
+    // and float exposureWeight are computed once and shared by proof/validation/commit. The handle's bounds stand for the
+    // history planes; coefficients enter as magnitudes. An
     // expression of the tier that can overflow in float is evaluated the same way here and tested for finiteness -- the
     // coefficient a1 = a1_base * exposureWeight * signalDependence among them, which overflows to +Inf long before a1 * h1 does
     // (the first version bounded the product a1 * h1 in double and missed it: a small history, then a large frame).
@@ -441,7 +448,7 @@ namespace {
     // NaN and Inf answer false. The correspondence (any change to a tier expression changes its row here):
     //
     //   tier code                                                  evaluated here
-    //   exposureWeight = 1 + (mean / 32768) * 0.5     (tiers 2,3)  ew   = 1 + (M / 32768) * 0.5
+    //   exposureWeight = 1 + (mean / 32768) * 0.5     (tiers 2,3)  ew   = abs(the same computed exposureWeight)
     //   signalDependence = 1 + beta * (raw / 32768)   (tier 3)     sd   = 1 + |beta| * (M / 32768)
     //   a1 = a1_base * exposureWeight * signalDependence           a1w  = |a1_base| * ew * sd      (same order)
     //   a2 = a2_base * exposureWeight * signalDependence           a2w  = |a2_base| * ew * sd
@@ -461,7 +468,7 @@ namespace {
         if (!fits(M)) return false;
 
         float ew = 1.0f, sd = 1.0f;
-        if (gh.tier == 2 || gh.tier == 3) ew = 1.0f + (M / 32768.0f) * 0.5f;
+        if (gh.tier == 2 || gh.tier == 3) ew = std::fabs(k.exposureWeight);
         if (gh.tier == 3) sd = 1.0f + std::fabs(static_cast<float>(gh.nlcscBeta)) * (M / 32768.0f);
         const float a1w = std::fabs(k.a1) * ew * sd;
         const float a2w = std::fabs(k.a2) * ew * sd;
@@ -480,9 +487,10 @@ namespace {
     }
 } // anonymous namespace
 
-XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
-                                const XpeImageMetadata* meta)
+XpeErrorCode xpe_ghost_correct_with_status(void* handle, XpeImageBuffer* img,
+                                        const XpeImageMetadata* meta, bool* bypassed)
 {
+    if (bypassed) *bypassed = true;
     if (!GhostCorrectorHandle::isValid(handle) || !img || !meta)
         return XPE_ERR_INVALID_INPUT;
 
@@ -529,66 +537,81 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     // A frame can still fail with a finite input (a corrected value, or the new history, overflows float at the
     // extremes of the range): REQ-P1A-032 asks for the pixels to be put back as they came in, and the history, which only
     // a successful frame commits, to stay as it was (QA-A-217, QA-A-202c).
-    // QA-A-237b (#245): a frame whose arithmetic provably cannot overflow is processed in place on the history planes (it
-    // cannot fail, so there is nothing to put back); every other frame takes the route the handle used to take for all of
-    // them, with scratch planes that live for this call only.
+    // #245 PERF-002: bound-proven frames commit once. Others first validate every expression without writing,
+    // then commit the identical expressions. The handle mutex spans both passes; the caller must not mutate
+    // its input concurrently. Coefficients and the tier-3 test mix are snapshotted once, and this thread's
+    // floating-point environment does not change between passes. No full-frame scratch is allocated.
     const float maxAbs = max_abs_finite(px, n);
+    // The exact same float exposure weight is used by the proof, validation and commit.
+    // Substituting max|pixel| for the mean made sparse outliers needlessly run Tier 3 twice.
+    const float frameMean = gh->tier >= 2 ? compute_frame_mean(px, n) : 0.0f;
+    const float frameExposureWeight = 1.0f + (frameMean / 32768.0f) * 0.5f;
+#ifdef XPE_CACHE_TEST_HOOKS
+    const bool legacyFirstFrame = xpe_ghost_legacy_first_frame;
+#else
+    constexpr bool legacyFirstFrame = false;
+#endif
+    if (!gh->hasHistory && !legacyFirstFrame) {
+        // FUNC-014: seed the recurrence but do not filter/clamp/blend the first successful frame.
+        // The finite entrance check and zero initial/reset histories make this update infallible.
+        for (size_t i = 0; i < n; ++i) {
+            gh->hist1[i] = px[i];
+            gh->hist2[i] = px[i];
+        }
+        constexpr double slack = 1.0 + 1.0e-6;
+        gh->histBound1 = gh->histBound2 = static_cast<double>(maxAbs) * slack;
+        if (gh->tier >= 2) {
+            gh->lastFrameMean = frameMean;
+            gh->exposureWeight = frameExposureWeight;
+        }
+        gh->hasHistory = true; // zero-valued frames consume the bypass too; refused frames never reach here
+#ifdef XPE_CACHE_TEST_HOOKS
+        ++xpe_ghost_in_place_frames; // finite, allocation-free history priming
+#endif
+        return XPE_OK;
+    }
 #ifdef XPE_CACHE_TEST_HOOKS
     const float mixKeep = xpe_ghost_tier3_mix.keep, mixLocal = xpe_ghost_tier3_mix.local;
 #else
     constexpr float mixKeep = 0.7f, mixLocal = 0.3f;
 #endif
-    const TierCoeffs coeffs{decay1, decay2, a1_base, a2_base};
-    bool inPlace = frame_cannot_leave_float_range(*gh, maxAbs, coeffs, Tier3Mix{mixKeep, mixLocal});
+    const TierCoeffs coeffs{decay1, decay2, a1_base, a2_base, frameMean, frameExposureWeight};
+    const Tier3Mix mix{mixKeep, mixLocal};
+    bool inPlace = frame_cannot_leave_float_range(*gh, maxAbs, coeffs, mix);
 #ifdef XPE_CACHE_TEST_HOOKS
     if (xpe_ghost_force_slow_path) inPlace = false;
 #endif
 
     XpeErrorCode result = XPE_OK;
     FrameStats stats;
-    const auto run_tier = [&](const Planes& pl, const float* frameCopy) {
+    const auto run_tier = [&](const Planes& pl, const float* frameCopy, FrameStats* frameStats) {
         switch (gh->tier) {
-            case 1: return ghost_tier1(gh, px, n, coeffs, &stats, pl, frameCopy);
-            case 2: return ghost_tier2(gh, px, n, coeffs, &stats, pl, frameCopy);
-            case 3: return ghost_tier3(gh, px, n, coeffs, &stats, pl, frameCopy);
-            default: return ghost_tier1(gh, px, n, coeffs, &stats, pl, frameCopy);
+            case 1: return ghost_tier1(gh, px, n, coeffs, frameStats, pl, frameCopy);
+            case 2: return ghost_tier2(gh, px, n, coeffs, frameStats, pl, frameCopy);
+            case 3: return ghost_tier3(gh, px, n, coeffs, frameStats, pl, frameCopy, mix);
+            default: return ghost_tier1(gh, px, n, coeffs, frameStats, pl, frameCopy);
         }
     };
-    if (inPlace) {
-        const Planes pl{gh->hist1.data(), gh->hist2.data(), gh->hist1.data(), gh->hist2.data()};
-        result = run_tier(pl, nullptr);
-        if (result != XPE_OK) {
-            // Not reachable: the bound above proves no pixel fails. If it ever were, the history is half written and the
-            // pixels cannot be put back; leave a consistent (empty) state and say so rather than carry a mixed history on.
-            std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
-            std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
-            gh->histBound1 = 0.0;
-            gh->histBound2 = 0.0;
-            return result;
-        }
-#ifdef XPE_CACHE_TEST_HOOKS
-        ++xpe_ghost_in_place_frames;
-#endif
-    } else {
-        std::vector<float> next1, next2, backup;
-        try {
-            next1.assign(n, 0.0f);
-            next2.assign(n, 0.0f);
-            backup.assign(n, 0.0f);
-        } catch (const std::bad_alloc&) {
-            return XPE_ERR_OUT_OF_MEMORY;   // nothing has been written
-        }
-        std::memcpy(backup.data(), px, n * sizeof(float));
-        const Planes pl{gh->hist1.data(), gh->hist2.data(), next1.data(), next2.data()};
-        result = run_tier(pl, backup.data());
-        if (result != XPE_OK) {
-            // the history, the time and the exposure estimate are as they were; the pixels are put back
-            std::memcpy(px, backup.data(), n * sizeof(float));
-            return result;
-        }
-        gh->hist1.swap(next1);
-        gh->hist2.swap(next2);
+    if (!inPlace) {
+        FrameStats validationStats;
+        const Planes validate{gh->hist1.data(), gh->hist2.data(), nullptr, nullptr, false};
+        result = run_tier(validate, px, &validationStats);
+        if (result != XPE_OK) return result; // no observable pixel/history/cache/frame state was written
     }
+    const Planes commit{gh->hist1.data(), gh->hist2.data(), gh->hist1.data(), gh->hist2.data()};
+    result = run_tier(commit, nullptr, &stats);
+    if (result != XPE_OK) {
+        // Unreachable under the bound or exact validation proof. Retain the old fast-route safeguard.
+        std::fill(gh->hist1.begin(), gh->hist1.end(), 0.0f);
+        std::fill(gh->hist2.begin(), gh->hist2.end(), 0.0f);
+        gh->histBound1 = 0.0;
+        gh->histBound2 = 0.0;
+        gh->hasHistory = false;
+        return result;
+    }
+#ifdef XPE_CACHE_TEST_HOOKS
+    if (inPlace) ++xpe_ghost_in_place_frames; // count the bound-proven route, not validated commits
+#endif
 
     // The whole frame succeeded: its history, its time and its exposure estimate become the handle's.
     constexpr double kSlack = 1.0 + 1.0e-6;   // above the float rounding of one history update (about 1.2e-7)
@@ -598,7 +621,14 @@ XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
         gh->lastFrameMean = stats.meanSignal;
         gh->exposureWeight = stats.exposureWeight;
     }
+    gh->hasHistory = true;
+    if (bypassed) *bypassed = false;
     return XPE_OK;
+}
+
+XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img, const XpeImageMetadata* meta)
+{
+    return xpe_ghost_correct_with_status(handle, img, meta, nullptr);
 }
 
 XpeErrorCode xpe_ghost_reset(void* handle)
@@ -613,6 +643,7 @@ XpeErrorCode xpe_ghost_reset(void* handle)
     gh->histBound2 = 0.0;
     gh->lastFrameMean = 0.0f;
     gh->exposureWeight = 1.0;
+    gh->hasHistory = false;
     return XPE_OK;
 }
 

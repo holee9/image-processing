@@ -583,14 +583,18 @@ namespace {
                 stage7.dataSize = stage7Data.size() * sizeof(float);
                 std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
             }
-            result = xpe_ghost_correct(ghostHandle, &stage7, meta);
+            bool ghostBypassed = true;
+            result = xpe_ghost_correct_with_status(ghostHandle, &stage7, meta, &ghostBypassed);
             if (result != XPE_OK) return result;
 
             // QA-A-226 (#241): a handle without calibrated lag parameters passes the frame through unchanged, so the
             // frame is not flagged as ghost-corrected. The output stays float32 either way (final_result_is_float
             // depends on the handle being present, not on whether it corrected), so the format does not change
             // with the configuration.
-            if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
+            if (meta) {
+                if (!ghostBypassed) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
+                else meta->flags &= ~static_cast<uint32_t>(XPE_FLAG_GHOST_CORRECTED);
+            }
         }
         XPE_STAGE_HOOK(7);
 

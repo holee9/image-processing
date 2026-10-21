@@ -650,6 +650,11 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(xpe_preprocess_oom_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+    add_test(NAME preprocess.legacy_ghost_fingerprints
+        COMMAND $<TARGET_FILE:xpe_preprocess_oom_tests> --gtest_filter=OutputUnchanged237b.* --gtest_color=no)
+    set_tests_properties(preprocess.legacy_ghost_fingerprints PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        ENVIRONMENT "XPE_A237B_LEGACY=1")
 
     # QA-A-244 (#245): the expiry tests that need time to pass. They used to wait on the wall clock (a 400 ms expiry window, then a 600 ms
     # sleep) and failed on a slow CI runner when loading the maps and the first frame took longer than the window. This target compiles

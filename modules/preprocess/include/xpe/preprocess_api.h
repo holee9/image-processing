@@ -715,6 +715,14 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
  * expiry_epoch_ms = 0, so no API path could produce an expiring calibration file
  * and SRS-ALERT-005 / REQ-P1A-018 were unreachable. The expiry policy itself
  * (30 days, and so on) belongs to the caller; this function records the value.
+ * For "gain", the active scalar or polynomial model selects the existing GAIN or GAIN_POLY file type;
+ * polynomial coefficients retain their pixel-major layout. Offset/gain config bytes are retained with the model.
+ * Classified scalar gain positions are saved
+ * with the existing invalid value 0 so reload restores the neutral applied map and its defect indices;
+ * valid 1.0 positions stay 1.0. Original invalid numeric values are not reconstructed.
+ * A defect state with runtime v2 layers is saved with
+ * the existing v2 format (area, confirmed lines and blobs); a v1 state stays v1. This saves current
+ * runtime state, not an original-file byte copy: diagnostic candidates and discarded provenance are not reconstructed.
  *
  * @param filepath Output XCal file path
  * @param calib_type Calibration type (offset, gain, defect)
@@ -823,10 +831,10 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *       per frame, and a creation that fails raises none. "Calibrated" says the parameters were GIVEN, not that they
  *       are right: whether a given set is usable is the caller's calibration.
  *
- * @note The handle holds the frame history twice (width*height floats, four planes) plus one more plane
- *       with the frame as it came in: a frame writes its new history into the second pair and the pairs are
- *       swapped only when the frame succeeded, and a frame that fails gets its pixels put back from the fifth
- *       plane (see xpe_ghost_correct). At 3072x3072 that is about 189 MB per handle.
+ * @note The handle keeps two recursive float32 history planes (75,497,472 bytes / 72 MiB at 3072x3072),
+ *       plus two saved rows for Tier 3. Uncertain arithmetic is validated without writes before committing
+ *       in place; no three full-frame next-history/backup scratch planes are allocated.
+ *       This recursive state is not the unimplemented 8-16-frame ring of SRS-CALIB-FUNC-014.
  *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
@@ -845,6 +853,10 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * REQ-P1A-032: Apply LTI deconvolution (Tier 1/2/3)
  * REQ-P1A-033: Compute time delta in units of frames
  *
+ * The first successful calibrated frame after creation or xpe_ghost_reset() seeds history without
+ * changing the image. A successful zero-valued frame also consumes this bypass; rejected frames do not.
+ * Later frames retain the selected tier's correction and spatial blend.
+ *
  * Serialised per handle with xpe_ghost_reset() and other xpe_ghost_correct() calls
  * on the same handle (see xpe_ghost_create). The image buffer is not protected: the
  * caller must not access the same buffer concurrently without its own synchronisation.
@@ -860,7 +872,7 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *         XPE_ERR_PROCESSING_FAILED when a corrected value or the new history overflows float (finite input
  *         at the extremes of the range)
  *
- * @note Tier 3 blends the corrected value of EVERY pixel with the mean of its 3x3 neighbourhood in the incoming frame
+ * @note On frames after the initial bypass, Tier 3 blends every corrected pixel with its incoming 3x3 neighbourhood mean
  *       (0.7 corrected + 0.3 mean). The mean is taken over the neighbours that exist: nine inside the frame, six on an edge,
  *       four in a corner (QA-A-227: the border pixels used to be left out, so a uniform frame came out with a one-pixel ring
  *       0.6 % to 8.4 % off). A frame smaller than 3x3 has no spatial context and is not blended. Tiers 1 and 2 read no neighbour.
@@ -873,7 +885,8 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * @note A frame that fails leaves the handle exactly as it found it: the frame history and the exposure
  *       estimate (a failed call is not a step: the next frame continues from the last frame that SUCCEEDED).
  *       Only a successful frame changes them. Since QA-A-217 a failed frame also leaves
- *       `img` as it was (REQ-P1A-032): pixels already corrected when the failure was found are put back.
+ *       `img` as it was (REQ-P1A-032). Uncertain frames now validate without writing before an in-place commit,
+ *       rather than keeping full-frame next-history and rollback copies.
  *       Before QA-A-217 they were not, and a caller had to keep its own copy; before QA-A-202c a failure
  *       part-way through left the history of the pixels already processed updated too.
  */

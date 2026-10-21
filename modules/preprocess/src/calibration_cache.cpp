@@ -152,6 +152,8 @@ int64_t now_epoch_ms() noexcept
 enum class MapKind { None, Offset, Gain, Defect };
 
 struct EntryMeta {
+    std::shared_ptr<const std::vector<uint8_t>> offsetConfig; ///< offset only: validated original config bytes
+    std::shared_ptr<const std::vector<uint8_t>> gainConfig;   ///< gain only: validated original config bytes
     MapKind     kind{MapKind::None};  ///< which cached loader published it = which XCal type was validated
     int64_t     timestamp{0};
     char        sessionId[64]{};
@@ -538,12 +540,15 @@ void copy_session(char* dst64, const char* src64) noexcept
 // an expiry of 0 ("never") until the next plain load -- and the other way round.
 XpeErrorCode install_offset(std::unique_ptr<float[]> map, const XpeImageBuffer& d, const EntryMeta& meta)
 {
+    // Finish the control-block allocation before the no-throw map/config commit.
+    std::shared_ptr<float[]> shared(std::move(map));
     bool warnSession = false;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
         const XpeErrorCode src = xpe_calib_session_check_locked(CalibMapKind::Offset, meta.sessionId, &warnSession);
         if (src != XPE_OK) return src;
-        g_calib.offset_map       = std::move(map);
+        g_calib.offset_map       = std::move(shared);
+        g_calib.offset_config    = meta.offsetConfig;
         g_calib.offset_width     = d.width;
         g_calib.offset_height    = d.height;
         g_calib.offset_timestamp = meta.timestamp;
@@ -585,6 +590,7 @@ XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     // overwrites both with "none" -- it must not leave the previous file's values behind (QA-A-202e, Codex #38 A1/A2).
     g_calib.gain_quality     = quality ? *quality : XpeCalibQualityMeta{};
     g_calib.gain_has_quality = (quality != nullptr);
+    g_calib.gain_config      = meta.gainConfig;
     if (quality) {
         xpe_calib_commit_quality_meta_locked(*quality);
     } else {
@@ -699,6 +705,7 @@ try
         staging.resize(static_cast<size_t>(desc.dataSize));
         std::memcpy(staging.data(), g_calib.offset_map.get(), staging.size());
         meta.timestamp = g_calib.offset_timestamp;
+        meta.offsetConfig = g_calib.offset_config;
         meta.expiryMs  = g_calib.offset_expiry_ms;
         std::memcpy(meta.sessionId, g_calib.offset_session_id, sizeof(meta.sessionId));
     }
@@ -784,6 +791,7 @@ try
         meta.expiryMs   = g_calib.gain_expiry_ms;
         meta.quality    = g_calib.gain_quality;
         meta.hasQuality = g_calib.gain_has_quality;
+        meta.gainConfig = g_calib.gain_config;
         meta.gainDefects     = g_calib.gain_defect_idx;
         meta.gainDefectCount = g_calib.gain_defect_count;
         std::memcpy(meta.sessionId, g_calib.gain_session_id, sizeof(meta.sessionId));

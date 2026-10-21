@@ -220,6 +220,8 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         staged.doseHi       = hi_a;
         staged.rangePresent = present;
         staged.rangeUsable  = usable;
+        if (!config_json.empty())
+            staged.config = std::make_shared<const std::vector<uint8_t>>(std::move(config_json));
         std::memcpy(staged.sessionId, hdr.session_id,
                     sizeof(hdr.session_id) < sizeof(staged.sessionId)
                         ? sizeof(hdr.session_id)
@@ -264,6 +266,7 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
     xpe_calib_note_expiry_locked(CalibMapKind::Gain, staged.expiryMs);
     g_calib.gain_quality     = staged.quality;
     g_calib.gain_has_quality = staged.qualityFound;
+    g_calib.gain_config      = std::move(staged.config);
     std::memcpy(g_calib.gain_session_id, staged.sessionId, sizeof(g_calib.gain_session_id));
     // The quality record the module serves is replaced in the same critical section as the maps (QA-A-202d, Codex
     // #32 A1) -- ALWAYS: a file with no quality metadata makes the record "none" instead of leaving the previous
