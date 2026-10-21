@@ -1,0 +1,280 @@
+diff --git a/gui/ImageProcTest/Services/EvidenceSnapshotStore.cs b/gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+--- a/gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
++++ b/gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+@@ -1,11 +1,25 @@
+ using System.IO;
++using System.Text;
+ using System.Text.Json;
++using System.Text.Json.Nodes;
+ 
+ namespace ImageProcTest.Services;
+ 
+-/// <summary>Publishes a new snapshot without opening an existing evidence file for writing.</summary>
++/// <summary>
++/// Publishes ONE automation report twice from the same bytes: as a new unique snapshot (the evidence of record, never opened for writing again) and as the fixed
++/// <c>menu-command-report.json</c> beside the executable that older consumers (Lane C end-to-end scenarios) still read. QA-A-274 section 7-1 (c).
++/// </summary>
+ public static class EvidenceSnapshotStore
+ {
++    public const string FixedAliasName = "menu-command-report.json";
++
++    /// <summary>
++    /// What happened to each of the two outputs. <see cref="SnapshotPath"/> is set only when the snapshot is fully written and closed; <see cref="AliasError"/> is
++    /// set when the snapshot exists but the fixed copy could not be replaced (the previous fixed file, if any, is then still in place and still names an OLDER snapshot).
++    /// </summary>
++    public sealed record PublishResult(string? SnapshotPath, string? AliasPath, string? ReplacedAliasCopyPath, Exception? SnapshotError, Exception? AliasError);
++
++    /// <summary>Publishes a new snapshot without opening an existing evidence file for writing (snapshot only; kept for callers that need no fixed copy).</summary>
+     public static string Write(string applicationDirectory, object report)
+     {
+         var directory = Path.Combine(applicationDirectory, "evidence", "snapshots");
+@@ -15,4 +29,86 @@
+         JsonSerializer.Serialize(stream, report, new JsonSerializerOptions { WriteIndented = true });
+         return path;
+     }
++
++    /// <summary>
++    /// Order and failure rules:
++    /// 1. The report is serialized once; a top-level <c>evidence</c> object (<c>runId</c>, <c>snapshotFile</c>) is the only addition to the existing schema, so a fixed file that
++    ///    does not name the snapshot of THIS run is recognisably stale.
++    /// 2. The snapshot is written first (CreateNew). If that fails, its own partial file is removed and the fixed copy is NOT touched: a fixed file must never name a snapshot that does not exist.
++    /// 3. A previous fixed file that is not already kept byte for byte as one of our own snapshots (the normal case: the last export wrote both) is first copied to
++    ///    <c>evidence/snapshots/replaced-fixed-report-*.json</c>; only if nothing is left to keep, or that copy exists, is the fixed file replaced (temporary file in the same folder,
++    ///    then move over), so a reader sees the old or the new file, never half of one. If the copy fails the fixed file is left alone.
++    /// 4. A failed fixed copy does not undo the snapshot: the snapshot is the evidence of record. The failure is returned in <see cref="PublishResult.AliasError"/>.
++    /// </summary>
++    public static PublishResult Publish(string snapshotRoot, string aliasDirectory, object report, string runId)
++    {
++        var directory = Path.Combine(snapshotRoot, "evidence", "snapshots");
++        var stamp = $"{DateTime.UtcNow:yyyyMMddTHHmmssfffZ}-{Guid.NewGuid():N}";
++        var snapshotName = $"menu-command-report-{stamp}.json";
++        var snapshotPath = Path.Combine(directory, snapshotName);
++        var aliasPath = Path.Combine(aliasDirectory, FixedAliasName);
++
++        var node = JsonSerializer.SerializeToNode(report)!.AsObject();
++        node["evidence"] = new JsonObject { ["runId"] = runId, ["snapshotFile"] = snapshotName };
++        var bytes = new UTF8Encoding(false).GetBytes(node.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
++
++        var created = false;
++        try
++        {
++            Directory.CreateDirectory(directory);
++            using (var stream = new FileStream(snapshotPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
++            {
++                created = true;
++                stream.Write(bytes, 0, bytes.Length);
++            }
++        }
++        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
++        {
++            if (created) TryDelete(snapshotPath);
++            return new PublishResult(null, aliasPath, null, error, null);
++        }
++
++        string? replacedCopy = null;
++        var temp = aliasPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
++        try
++        {
++            if (File.Exists(aliasPath) && !IsKeptAsSnapshot(aliasPath, directory))
++            {
++                replacedCopy = Path.Combine(directory, $"replaced-fixed-report-{stamp}.json");
++                File.Copy(aliasPath, replacedCopy, overwrite: false);
++            }
++            File.WriteAllBytes(temp, bytes);
++            File.Move(temp, aliasPath, overwrite: true);
++            return new PublishResult(snapshotPath, aliasPath, replacedCopy, null, null);
++        }
++        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
++        {
++            TryDelete(temp);
++            return new PublishResult(snapshotPath, aliasPath, replacedCopy, null, error);
++        }
++    }
++
++    /// <summary>True when the fixed file names one of our snapshots in its <c>evidence</c> object and that snapshot holds exactly the same bytes (nothing would be lost by replacing it).</summary>
++    private static bool IsKeptAsSnapshot(string aliasPath, string snapshotDirectory)
++    {
++        try
++        {
++            var previous = File.ReadAllBytes(aliasPath);
++            using var document = JsonDocument.Parse(previous);
++            var name = document.RootElement.GetProperty("evidence").GetProperty("snapshotFile").GetString();
++            if (string.IsNullOrEmpty(name) || name != Path.GetFileName(name)) return false;
++            var kept = Path.Combine(snapshotDirectory, name);
++            return File.Exists(kept) && File.ReadAllBytes(kept).AsSpan().SequenceEqual(previous);
++        }
++        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or KeyNotFoundException or InvalidOperationException)
++        {
++            return false;
++        }
++    }
++
++    private static void TryDelete(string path)
++    {
++        try { File.Delete(path); }
++        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
++    }
+ }
+diff --git a/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs b/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+--- a/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
++++ b/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+@@ -2682,20 +2682,26 @@
+             alertCount = Alerts.Count
+         };
+ 
+-        try
+-        {
+-            LastEvidenceSnapshotPath = EvidenceSnapshotStore.Write(GuiDataPaths.Root, report);
+-            StatusText = $"Automation report exported: {LastEvidenceSnapshotPath}";
+-            Log(StatusText);
+-        }
+-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+-        {
+-            StatusText = $"Evidence snapshot was not exported: {error.Message}. Existing evidence was not replaced.";
+-            Log(StatusText);
+-        }
+-    }
+-
+-    /// <summary>The file produced by the last successful snapshot export; never a fixed legacy file.</summary>
++        // QA-A-274 7-1 (c): one report, two outputs from the same bytes - the unique snapshot (evidence of record) and the fixed menu-command-report.json beside the executable that older consumers read.
++        var published = EvidenceSnapshotStore.Publish(GuiDataPaths.Root, AppContext.BaseDirectory, report, RunSet.RunId ?? string.Empty);
++        if (published.SnapshotPath is null)
++        {
++            StatusText = $"Evidence snapshot was not exported: {published.SnapshotError!.Message}. Existing evidence was not replaced; the fixed report {published.AliasPath} was not touched.";
++        }
++        else
++        {
++            LastEvidenceSnapshotPath = published.SnapshotPath;
++            StatusText = published.AliasError is null
++                ? $"Automation report exported: {published.SnapshotPath} (fixed copy: {published.AliasPath})"
++                : $"Automation report exported: {published.SnapshotPath}. The fixed copy {published.AliasPath} was NOT updated and may still name an older run: {published.AliasError.Message}";
++        }
++        Log(StatusText);
++    }
++
++    /// <summary>
++    /// The unique snapshot written by the last export whose snapshot was fully written; never the fixed menu-command-report.json. It is set even when only the fixed copy failed
++    /// (the snapshot is the evidence of record), and left unchanged when the snapshot itself failed, so after a failure read <see cref="StatusText"/> first.
++    /// </summary>
+     public string? LastEvidenceSnapshotPath { get; private set; }
+ 
+     private void BrowseCalibrationDirectory(CalibrationPathKind kind)
+diff --git a/gui/ImageProcTest.CalibrationChecks/Program.cs b/gui/ImageProcTest.CalibrationChecks/Program.cs
+--- a/gui/ImageProcTest.CalibrationChecks/Program.cs
++++ b/gui/ImageProcTest.CalibrationChecks/Program.cs
+@@ -187,7 +187,9 @@
+                 finally { window.Close(); model.ShutdownBackendBlocking(); app.Shutdown(); }
+             });
+         }
+-        if (args.Length != 2) Check("Evidence export preserves an already existing fixed report", () =>
++        // QA-A-274 7-1 (c): the export now also writes the fixed menu-command-report.json (Lane C scenarios read it). The invariant the old check protected is kept in full -
++        // a previous fixed report is never lost - but it is now asserted as "its exact bytes survive in evidence/snapshots/replaced-fixed-report-*.json" instead of "it stays in place".
++        if (args.Length != 2) Check("Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot", () =>
+         {
+             // This is the isolated check output, never the user's running GUI output.
+             if (!AppContext.BaseDirectory.Contains("PRE-GUI-20261019T063546Z-7f92a1", StringComparison.Ordinal))
+@@ -197,27 +199,98 @@
+                 throw new InvalidOperationException("Refuse test output reuse.");
+             var marker = "previous evidence must remain byte-identical";
+             File.WriteAllText(fixedPath, marker);
++            var markerBytes = File.ReadAllBytes(fixedPath);
+             var settings = new AppSettings { BackendMode = "Mock" };
+             var vm = new MainWindowViewModel(settings,
+                 new AppSettingsService(Path.Combine(AppContext.BaseDirectory, "settings-test.json")),
+                 _ => new MockXpeBackend(new RawImageLoader(), "", false, "", false));
+             try
+             {
++                var snapshotDirectory = Path.Combine(GuiDataPaths.Root, "evidence", "snapshots");
++                string[] Replaced() => Directory.Exists(snapshotDirectory) ? Directory.GetFiles(snapshotDirectory, "replaced-fixed-report-*.json") : [];
++
+                 vm.ExportAutomationReportCommand.Execute(null);
+-                if (File.ReadAllText(fixedPath) != marker)
+-                    throw new InvalidOperationException("Existing fixed evidence was overwritten.");
+-                if (!vm.StatusText.Contains("exported", StringComparison.OrdinalIgnoreCase))
++                if (!vm.StatusText.Contains("exported", StringComparison.OrdinalIgnoreCase) || vm.StatusText.Contains("NOT updated", StringComparison.Ordinal))
+                     throw new InvalidOperationException("A successful unique export was not reported.");
+                 var first = vm.LastEvidenceSnapshotPath;
+                 if (first is null || !File.Exists(first))
+                     throw new InvalidOperationException("Export path does not identify the actual new evidence.");
++                var firstBytes = File.ReadAllBytes(first);
++                if (!File.ReadAllBytes(fixedPath).SequenceEqual(firstBytes))
++                    throw new InvalidOperationException("The fixed report is not the same bytes as the snapshot.");
++                using (var fixedDocument = JsonDocument.Parse(firstBytes))
++                {
++                    var evidence = fixedDocument.RootElement.GetProperty("evidence");
++                    if (evidence.GetProperty("snapshotFile").GetString() != Path.GetFileName(first))
++                        throw new InvalidOperationException("The fixed report does not name this run's snapshot.");
++                    if (!fixedDocument.RootElement.TryGetProperty("generatedAt", out _) || !fixedDocument.RootElement.TryGetProperty("processingChain", out _) || !fixedDocument.RootElement.TryGetProperty("comparison", out _))
++                        throw new InvalidOperationException("The existing report schema lost fields.");
++                }
++                var replaced = Replaced();
++                if (replaced.Length != 1 || !File.ReadAllBytes(replaced[0]).SequenceEqual(markerBytes))
++                    throw new InvalidOperationException("The previous fixed report was not kept byte for byte.");
++
+                 vm.ExportAutomationReportCommand.Execute(null);
+-                if (File.ReadAllText(fixedPath) != marker)
+-                    throw new InvalidOperationException("Repeated export touched old evidence.");
+-                if (vm.LastEvidenceSnapshotPath == first)
++                var second = vm.LastEvidenceSnapshotPath;
++                if (second is null || second == first || !File.Exists(second))
+                     throw new InvalidOperationException("Repeated export reused a path.");
++                if (!File.ReadAllBytes(first).SequenceEqual(firstBytes))
++                    throw new InvalidOperationException("Repeated export touched an old snapshot.");
++                if (!File.ReadAllBytes(fixedPath).SequenceEqual(File.ReadAllBytes(second)))
++                    throw new InvalidOperationException("The fixed report does not follow the latest snapshot.");
++                // the previous fixed report was the first snapshot's exact bytes, which are kept as that snapshot: no second copy of it
++                replaced = Replaced();
++                if (replaced.Length != 1 || !File.ReadAllBytes(replaced[0]).SequenceEqual(markerBytes))
++                    throw new InvalidOperationException("The second export copied a previous fixed report that was already kept as a snapshot, or lost the first one.");
+             }
+             finally { vm.ShutdownBackendBlocking(); }
++        });
++        // The two failure orders, on the store itself with throw-away folders (no GUI involved).
++        if (args.Length != 2) Check("Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone", () =>
++        {
++            var root = Path.Combine(Path.GetTempPath(), "xpe-dualwrite-" + Guid.NewGuid().ToString("N"));
++            try
++            {
++                var report = new { generatedAt = DateTimeOffset.Now, value = 1 };
++                // (a) the fixed name is occupied by a folder: the snapshot must still be complete, the failure reported, the folder untouched
++                var aliasDirA = Path.Combine(root, "a-exe");
++                Directory.CreateDirectory(Path.Combine(aliasDirA, EvidenceSnapshotStore.FixedAliasName));
++                var a = EvidenceSnapshotStore.Publish(Path.Combine(root, "a-data"), aliasDirA, report, "run-a");
++                if (a.SnapshotPath is null || !File.Exists(a.SnapshotPath) || a.AliasError is null || a.SnapshotError is not null)
++                    throw new InvalidOperationException("Fixed-copy failure was not reported as partial success.");
++                if (!Directory.Exists(Path.Combine(aliasDirA, EvidenceSnapshotStore.FixedAliasName)) || Directory.GetFiles(aliasDirA, "*.tmp").Length != 0)
++                    throw new InvalidOperationException("Fixed-copy failure left a temporary file or replaced the occupant.");
++                // (c) a fixed report that names a snapshot but has been changed since is NOT kept by that snapshot: it must be copied before it is replaced
++                var aliasDirC = Path.Combine(root, "c-exe");
++                Directory.CreateDirectory(aliasDirC);
++                var dataC = Path.Combine(root, "c-data");
++                var c1 = EvidenceSnapshotStore.Publish(dataC, aliasDirC, report, "run-c1");
++                var c1Bytes = File.ReadAllBytes(c1.SnapshotPath!);
++                // still valid JSON and still naming c1, but not the same bytes: only a byte comparison can tell it from the snapshot
++                var changed = System.Text.Encoding.UTF8.GetBytes(System.Text.Encoding.UTF8.GetString(c1Bytes).Replace("\"runId\": \"run-c1\"", "\"runId\": \"run-c1-edited\""));
++                if (changed.SequenceEqual(c1Bytes)) throw new InvalidOperationException("The check could not change the fixed report.");
++                File.WriteAllBytes(Path.Combine(aliasDirC, EvidenceSnapshotStore.FixedAliasName), changed);
++                var c2 = EvidenceSnapshotStore.Publish(dataC, aliasDirC, report, "run-c2");
++                if (c2.ReplacedAliasCopyPath is null || !File.ReadAllBytes(c2.ReplacedAliasCopyPath).SequenceEqual(changed) || !File.ReadAllBytes(c1.SnapshotPath!).SequenceEqual(c1Bytes))
++                    throw new InvalidOperationException("A changed fixed report was replaced without being kept.");
++                // an untouched one (what the previous export wrote) needs no copy
++                var c3 = EvidenceSnapshotStore.Publish(dataC, aliasDirC, report, "run-c3");
++                if (c3.ReplacedAliasCopyPath is not null)
++                    throw new InvalidOperationException("An unchanged fixed report was copied although its snapshot already keeps it.");
++                // (b) the snapshot cannot be created (a file sits where the data folder's evidence folder must be): nothing may be written beside the executable
++                var aliasDirB = Path.Combine(root, "b-exe");
++                Directory.CreateDirectory(aliasDirB);
++                File.WriteAllText(Path.Combine(aliasDirB, EvidenceSnapshotStore.FixedAliasName), "older fixed report");
++                var dataB = Path.Combine(root, "b-data");
++                Directory.CreateDirectory(dataB);
++                File.WriteAllText(Path.Combine(dataB, "evidence"), "not a folder");
++                var b = EvidenceSnapshotStore.Publish(dataB, aliasDirB, report, "run-b");
++                if (b.SnapshotPath is not null || b.SnapshotError is null)
++                    throw new InvalidOperationException("Snapshot failure was not reported.");
++                if (File.ReadAllText(Path.Combine(aliasDirB, EvidenceSnapshotStore.FixedAliasName)) != "older fixed report" || Directory.GetFiles(aliasDirB).Length != 1)
++                    throw new InvalidOperationException("Snapshot failure still touched the fixed report.");
++            }
++            finally { try { Directory.Delete(root, recursive: true); } catch (IOException) { } }
+         });
+         Console.WriteLine($"CALIBRATION_CHECKS failures={failures}");
+         return failures == 0 ? 0 : 1;

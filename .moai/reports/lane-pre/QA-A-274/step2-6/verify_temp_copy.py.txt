@@ -1,0 +1,25 @@
+"""QA-A-274 step 2-6: (a) the temporary copy equals HEAD + 2-3 + 2-4 v2 + 2-5 v2 exactly; (b) the working tree was not touched (dirty-file SHA-256 vs the step2-2 record); (c) patch hashes. Read-only."""
+import hashlib, json, os, subprocess
+ROOT = r'D:\workspace-github\xpe-pre'; TMP = r'D:\xpe-h274TAGPLACEHOLDER'; P = ROOT + r'\.moai\reports\lane-pre\QA-A-274\patches'
+def sha(p): return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+final = json.load(open(P + r'\expected-states-v2.json', encoding='utf-8'))['final']
+bad = []
+for path, text in final.items():
+    t = os.path.join(TMP, path)
+    if not os.path.exists(t) or open(t, 'rb').read() != text.encode('utf-8'):
+        bad.append(('temp copy differs from expected final state', path))
+print('temp copy files checked:', len(final), 'mismatch:', len(bad), bad[:3])
+only_wt = [p for p in final if os.path.exists(os.path.join(ROOT, p)) and open(os.path.join(ROOT, p), 'rb').read() != open(os.path.join(TMP, p), 'rb').read()]
+new_in_tree = [p for p in final if not os.path.exists(os.path.join(ROOT, p))]
+print('files where working tree != temp copy:'); [print('  ', p) for p in sorted(only_wt)]
+print('files that do not exist in the working tree at all (new in the temp copy):'); [print('  ', p) for p in sorted(new_in_tree)]
+rec = json.load(open(ROOT + r'\.moai\reports\lane-pre\QA-A-274\step2-2\dirty-sha-before.json', encoding='utf-8'))
+chg = []
+for p, h in rec.items():
+    w = os.path.join(ROOT, p)
+    cur = sha(w) if os.path.exists(w) else None
+    if cur != h: chg.append((p, h and h[:12], cur and cur[:12]))
+print('dirty files in the step2-2 record:', len(rec), 'changed since:', len(chg), chg[:5])
+for n in ('2-3-c1a.patch', '2-4-b1.patch', '2-5-dualwrite.patch', '2-4-b1.v2.patch', '2-5-dualwrite.v2.patch'):
+    print('patch', n, sha(os.path.join(P, n + '.txt')))
+print('HEAD', subprocess.run(['git', '-C', ROOT, 'rev-parse', 'HEAD'], capture_output=True).stdout.decode().strip())

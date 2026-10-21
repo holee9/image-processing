@@ -1,0 +1,7 @@
+PASS Reload rejects bytes changed after child validation and incomplete load evidence
+PASS Stage selection does not confuse requested modes and executed evidence
+FAIL Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot: The previous fixed report was not kept byte for byte.
+FAIL Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone: Could not find file 'C:\Users\drake\AppData\Local\Temp\xpe-dualwrite-6a673f85c428489b85b9d9c8030d8f5a\c-data\evidence\snapshots\replaced-fixed-report-20261021T071134856Z-9fc9ae38f98b4031a344b3b732928aa2.json'.
+PASS A failed export is judged as a failure, not as the previous export's success
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=2

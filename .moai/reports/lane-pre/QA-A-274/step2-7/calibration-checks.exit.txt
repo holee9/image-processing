@@ -1,0 +1,2 @@
+fixed report in fresh checks output before run: 0
+CHECKS_EXIT=0

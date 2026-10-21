@@ -1,0 +1,31 @@
+APPLIED 2-3-c1a
+APPLIED 2-4-b1.v2
+APPLIED 2-5-dualwrite.v2
+temp copy files checked: 24 mismatch: 0 []
+files where working tree != temp copy:
+   gui/ImageProcTest.CalibrationChecks/Program.cs
+   gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+   gui/ImageProcTest/MainWindow.xaml.cs
+   gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+   gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+files that do not exist in the working tree at all (new in the temp copy):
+   gui/ImageProcTest/Services/EvidenceExportResult.cs
+dirty files in the step2-2 record: 100 changed since: 2 [('.moai/harness/usage-log.jsonl', 'b27a7e0b79e1', 'eb10879f47f2'), ('.moai/lessons-inbox.jsonl', '047eac66f3f2', 'b129345a6bf1')]
+patch 2-3-c1a.patch e2fab16382d5cd36c3fdd79222711fef61938b8bf9ccf0b5384d8d01608b7452
+patch 2-4-b1.patch 1c4a75b2cf6a4b7fed51cdde410b6c7484f4cc852b6001ab206d3359d39eb9ed
+patch 2-5-dualwrite.patch 43880776c29f7421b15761c76a877d373465197a816c2fc3688e249581a1cae9
+patch 2-4-b1.v2.patch 13cb71da7b619ec35bfad77a9e1fed8cff1a39955252c074bb2c9fadda712d9f
+patch 2-5-dualwrite.v2.patch 066930ba5cd13c28220f8ba529f3d88151c2d4e7a1402294083bd94a8720845f
+HEAD 33b235ece0dadc5307a65947322cc3a17a45d4fd
+ImageProcTest.CalibrationChecks BUILD_EXIT=0 warnings=경고22개 errors=오류0개
+ImageProcTest.E2E BUILD_EXIT=0 warnings=경고0개 errors=오류0개
+ImageProcTest.SelfCheck BUILD_EXIT=0 warnings=경고1개 errors=오류0개
+fixed report in fresh checks output before run: 0
+CHECKS_EXIT=0
+PASS Reload rejects bytes changed after child validation and incomplete load evidence
+PASS Stage selection does not confuse requested modes and executed evidence
+PASS Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot
+PASS Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone
+PASS A failed export is judged as a failure, not as the previous export's success
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=0

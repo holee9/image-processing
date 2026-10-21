@@ -1,0 +1,1249 @@
+diff --git a/gui/ImageProcTest.CalibrationChecks/ImageProcTest.CalibrationChecks.csproj b/gui/ImageProcTest.CalibrationChecks/ImageProcTest.CalibrationChecks.csproj
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest.CalibrationChecks/ImageProcTest.CalibrationChecks.csproj
+@@ -0,0 +1,13 @@
++<Project Sdk="Microsoft.NET.Sdk">
++  <PropertyGroup>
++    <OutputType>Exe</OutputType>
++    <TargetFramework>net8.0-windows</TargetFramework>
++    <PlatformTarget>x64</PlatformTarget>
++    <UseWPF>true</UseWPF>
++    <Nullable>enable</Nullable>
++    <ImplicitUsings>enable</ImplicitUsings>
++  </PropertyGroup>
++  <ItemGroup>
++    <ProjectReference Include="../ImageProcTest/ImageProcTest.csproj" />
++  </ItemGroup>
++</Project>
+diff --git a/gui/ImageProcTest.CalibrationChecks/Program.cs b/gui/ImageProcTest.CalibrationChecks/Program.cs
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest.CalibrationChecks/Program.cs
+@@ -0,0 +1,231 @@
++using System.IO;
++using System.Security.Cryptography;
++using System.Text.Json;
++using System.Diagnostics;
++using System.Windows;
++using System.Windows.Controls;
++using System.Windows.Automation;
++using System.Windows.Media;
++using ImageProcTest.Models;
++using ImageProcTest.Services;
++using ImageProcTest.ViewModels;
++
++internal static class Program
++{
++    [STAThread]
++    private static int Main(string[] args)
++    {
++        var failures = 0;
++        Check("Reload rejects bytes changed after child validation and incomplete load evidence", () =>
++        {
++            var hashes = new Dictionary<string, string> { ["o"] = "checked-o", ["g"] = "checked-g", ["d"] = "checked-d" };
++            using var valid = JsonDocument.Parse(JsonSerializer.Serialize(new { passed = true, loads = hashes.Select(p => new { path = p.Key, sha256 = p.Value, code = 0 }) }));
++            CalibrationWorkflowService.ValidateReloadReport(valid.RootElement, hashes);
++            hashes["o"] = "unvalidated-new-bytes";
++            try { CalibrationWorkflowService.ValidateReloadReport(valid.RootElement, hashes); throw new Exception("Post-child change accepted."); }
++            catch (IOException e) when (e.Message.Contains("SHA")) { }
++            using var partial = JsonDocument.Parse("{\"passed\":true,\"loads\":[{\"path\":\"o\",\"sha256\":\"checked-o\",\"code\":0}]}");
++            try { CalibrationWorkflowService.ValidateReloadReport(partial.RootElement, hashes); throw new Exception("Incomplete report accepted."); }
++            catch (IOException e) when (e.Message.Contains("3개")) { }
++        });
++        Check("Stage selection does not confuse requested modes and executed evidence", () =>
++        {
++            if (CalibrationStageSelection.ShouldLoad("Off", true) || CalibrationStageSelection.ShouldLoad("Auto", false)
++                || !CalibrationStageSelection.ShouldLoad("On", false) || !CalibrationStageSelection.ShouldLoad("Auto", true))
++                throw new Exception("Mode selection violates Auto/On/Off.");
++            if (!CalibrationStageSelection.ExecutedFromReason("requested=[offset:Auto]; executed=[gain,defect]; flags=12").SequenceEqual(new[] { "gain", "defect" }))
++                throw new Exception("HUD does not use actual executed stages.");
++            if (CalibrationStageSelection.ExecutedFromReason("Mock applied").Length != 0)
++                throw new Exception("Mock counted as native calibration.");
++        });
++        if (args.Length == 2 && args[1] == "real")
++        {
++            Check("Existing real RAW workflow (quality gates remain authoritative)", () =>
++            {
++                var inputs = "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles";
++                string FileName(string kind, int n) => Path.Combine(inputs, $"{kind}_{n:00}.raw");
++                var dark = Enumerable.Range(7, 8).Select(i => FileName("Dark", i)).ToArray();
++                var bright = Enumerable.Range(23, 6).Select(i => FileName("Bright", i)).ToArray();
++                var bpm = Enumerable.Range(17, 12).Concat(Enumerable.Range(31, 6)).Select(i => FileName("Bright", i)).ToArray();
++                var service = new CalibrationWorkflowService(Path.GetDirectoryName(args[0])!, args[0], new CalibrationInputs(3072, 3072, dark, bright, bpm, false, 0));
++                Console.WriteLine("REAL_RUN " + service.RunDirectory);
++                service.ValidateAsync().GetAwaiter().GetResult();
++                service.GenerateAsync().GetAwaiter().GetResult();
++                service.ReloadAsync().GetAwaiter().GetResult();
++                service.VerifyReadyToApply();
++                foreach (var entry in new[] { ("Bright", 29, "flat"), ("Dark", 15, "dark") })
++                {
++                    var output = service.EvaluateAsync(FileName(entry.Item1, entry.Item2), entry.Item3, "", "", "normalized_gain").GetAwaiter().GetResult();
++                    Console.WriteLine("REAL_EVALUATION " + output + "\n" + CalibrationWorkflowService.QualitySummary(output));
++                }
++            });
++        }
++        if (args.Length == 1)
++        {
++            Check("Synthetic workflow: validate/no output, generate, reload, independent evaluation, reject reused input", () =>
++            {
++                var root = Path.Combine(Path.GetDirectoryName(args[0])!, "synthetic-" + Guid.NewGuid().ToString("N")[..8]);
++                Directory.CreateDirectory(root);
++                string Raw(string name, int level, int frame)
++                {
++                    var path = Path.Combine(root, name + ".raw");
++                    using var writer = new BinaryWriter(new FileStream(path, FileMode.CreateNew));
++                    for (var i = 0; i < 64 * 64; i++) writer.Write((ushort)(level + i % 13 + (i * 17 + frame * 7) % 11));
++                    return path;
++                }
++                var dark = Enumerable.Range(0, 6).Select(i => Raw("dark" + i, 100, i)).ToArray();
++                var bright = Enumerable.Range(0, 10).Select(i => Raw("bright" + i, 6000, i)).ToArray();
++                var workflow = new CalibrationWorkflowService(root, args[0], new CalibrationInputs(64, 64, dark, bright, [], false, 0));
++                workflow.ValidateAsync().GetAwaiter().GetResult();
++                if (Directory.Exists(workflow.SetDirectory)) throw new Exception("Validate generated files.");
++                workflow.GenerateAsync().GetAwaiter().GetResult();
++                workflow.ReloadAsync().GetAwaiter().GetResult();
++                workflow.VerifyReadyToApply();
++                var tool = Path.Combine(args[0], "xpe_calib_fixture_gen.exe");
++                void Refused(string label, string[] darks, string[] flats)
++                {
++                    var output = Path.Combine(root, label);
++                    var info = new ProcessStartInfo(tool) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
++                    foreach (var arg in new[] { "--validate-only", "--width", "64", "--height", "64", "--out", output }) info.ArgumentList.Add(arg);
++                    foreach (var p in darks) { info.ArgumentList.Add("--dark"); info.ArgumentList.Add(p); }
++                    foreach (var p in flats) { info.ArgumentList.Add("--bright"); info.ArgumentList.Add(p); }
++                    using var process = Process.Start(info)!;
++                    var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
++                    process.WaitForExit(); Task.WaitAll(stdout, stderr);
++                    if (process.ExitCode == 0 || Directory.Exists(output)) throw new Exception("Invalid input accepted/wrote output: " + label);
++                    Console.WriteLine($"NATIVE_PREFLIGHT_REFUSAL {label} exit={process.ExitCode}");
++                }
++                Refused("too-few", dark[..4], bright);
++                Refused("duplicate", dark, bright.Select((p, i) => i == 1 ? bright[0] : p).ToArray());
++                var saturated = Raw("saturated", 65500, 0);
++                using (var file = new BinaryWriter(new FileStream(saturated, FileMode.Open))) for (var i = 0; i < 20; i++) file.Write(ushort.MaxValue);
++                Refused("saturation", dark, bright.Take(9).Append(saturated).ToArray());
++                var mixed = Raw("mixed-dose", 18000, 0);
++                Refused("mixed-dose", dark, bright.Take(9).Append(mixed).ToArray());
++                var shortRaw = Path.Combine(root, "short.raw"); File.WriteAllBytes(shortRaw, new byte[10]);
++                Refused("wrong-size", dark, bright.Take(9).Append(shortRaw).ToArray());
++                var assembly = typeof(CalibrationWorkflowService).Assembly;
++                assembly.GetType("ImageProcTest.Services.Native.GuiNativeLibraryResolver")!.GetMethod("Install")!.Invoke(null, null);
++                Environment.SetEnvironmentVariable("XPE_NATIVE_DIR", args[0]);
++                Environment.SetEnvironmentVariable("XPE_NATIVE_DIR_EXCLUSIVE", "1");
++                var run = assembly.GetType("ImageProcTest.Services.Native.GuiPreprocessRunner")!.GetMethod("Run")!;
++                var pixels = Enumerable.Repeat((ushort)6005, 64 * 64).ToArray();
++                var preserved = (ushort[])pixels.Clone();
++                PreprocessRunResult Apply(string offset, string gainMode, string defectMode) => (PreprocessRunResult)run.Invoke(null,
++                    [pixels, 64, 64, workflow.SetDirectory, workflow.SetDirectory, workflow.SetDirectory, "CHEST", 0f, 0.14f, false, offset, gainMode, defectMode])!;
++                var all = Apply("Auto", "Auto", "Auto");
++                if (!all.Ran || !CalibrationStageSelection.ExecutedFromReason(all.Summary).SequenceEqual(new[] { "offset", "gain", "defect" }))
++                    throw new Exception("Native all-stage Auto failed: " + all.Summary);
++                var bypass = Apply("Off", "On", "On");
++                if (!bypass.Ran || !CalibrationStageSelection.ExecutedFromReason(bypass.Summary).SequenceEqual(new[] { "gain", "defect" }))
++                    throw new Exception("Native Offset Off failed: " + bypass.Summary);
++                var off = Apply("Off", "Off", "Off");
++                if (off.Ran || !off.Skipped || !pixels.SequenceEqual(preserved)) throw new Exception("All Off changed input or claimed application.");
++                Console.WriteLine("NATIVE_MODES " + all.Summary + "\n" + bypass.Summary + "\n" + off.Summary);
++                NativeRuntimeEvidence.VerifyPreCombination(args[0]);
++                var wrongNative = Path.Combine(root, "wrong-native"); Directory.CreateDirectory(wrongNative);
++                File.WriteAllBytes(Path.Combine(wrongNative, "xpe_common.dll"), new byte[] { 1, 2, 3 });
++                try { NativeRuntimeEvidence.VerifyPreCombination(wrongNative); throw new Exception("Different GUI/tool native bytes accepted."); }
++                catch (InvalidOperationException e) when (e.Message.Contains("SHA")) { }
++                Console.WriteLine("NATIVE_COMBINATION matching accepted; mismatched SHA refused");
++                try { workflow.EvaluateAsync(dark[0], "dark", "", "").GetAwaiter().GetResult(); throw new Exception("Generation input accepted as holdout."); }
++                catch (InvalidOperationException e) when (e.Message.Contains("holdout")) { }
++                var holdout = Raw("independent", 6010, 14);
++                workflow.EvaluateAsync(holdout, "flat", "", "").GetAwaiter().GetResult();
++                File.AppendAllText(bright[0], "mutation");
++                try { workflow.ValidateAsync().GetAwaiter().GetResult(); throw new Exception("Changed input accepted."); }
++                catch (InvalidOperationException e) when (e.Message.Contains("입력 변경")) { }
++                var manifestPath = Path.Combine(workflow.SetDirectory, "manifest.json");
++                var manifestNode = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(manifestPath))!;
++                manifestNode["inputs"]![0]!["sha256"] = new string('0', 64);
++                File.WriteAllText(manifestPath, manifestNode.ToJsonString());
++                try { workflow.VerifyReadyToApply(); throw new Exception("Consumed-input SHA mismatch accepted."); }
++                catch (IOException e) when (e.Message.Contains("baseline")) { }
++                Console.WriteLine("MANIFEST_INPUT_MISMATCH refused; altered synthetic evidence intentionally retained");
++                Console.WriteLine("SYNTHETIC_ONLY " + workflow.RunDirectory);
++                var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
++                RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
++                var model = new MainWindowViewModel(new AppSettings { BackendMode = "Mock" }, new AppSettingsService(Path.Combine(root, "ui-settings.json")),
++                    _ => new MockXpeBackend(new RawImageLoader(), "", false, "", false));
++                var window = new ImageProcTest.Views.CalibrationWorkflowWindow(model);
++                try
++                {
++                    window.Show(); window.UpdateLayout();
++                    if (window.ActualWidth < 1 || window.ActualHeight < 1 || !window.Title.Contains("PRE")) throw new Exception("Workflow window did not display.");
++                    Console.WriteLine("WPF_WORKFLOW_VISIBLE title=" + window.Title);
++                    var main = new ImageProcTest.MainWindow { Width = 1280, Height = 800 };
++                    try
++                    {
++                        main.Show();
++                        var mainModel = (MainWindowViewModel)main.DataContext;
++                        mainModel.Settings.ShowCalibrationPanel = true;
++                        mainModel.Settings.ShowDisplayPanel = true;
++                        mainModel.OpenPipelineDiagnosticsCommand.Execute(null);
++                        main.UpdateLayout();
++                        main.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
++                        IEnumerable<DependencyObject> Walk(DependencyObject parent)
++                        {
++                            yield return parent;
++                            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
++                                foreach (var child in Walk(VisualTreeHelper.GetChild(parent, i))) yield return child;
++                        }
++                        var controls = Walk(main).OfType<FrameworkElement>().ToArray();
++                        var offRadio = controls.OfType<RadioButton>().Single(c => AutomationProperties.GetAutomationId(c) == "CalibOffsetModeOff");
++                        var ghostRadio = controls.OfType<RadioButton>().Single(c => AutomationProperties.GetAutomationId(c) == "CalibGhostModeOff");
++                        if (!offRadio.IsEnabled || ghostRadio.IsEnabled) throw new Exception("Supported/unsupported stage controls not distinguished.");
++                        offRadio.IsChecked = true;
++                        if (mainModel.Settings.OffsetCorrectionMode != "Off") throw new Exception("Offset Off did not update actual bound settings.");
++                        var viewport = controls.Single(c => AutomationProperties.GetAutomationId(c) == "ViewportShell");
++                        var optional = controls.Single(c => AutomationProperties.GetAutomationId(c) == "OptionalSettingsPanels");
++                        var status = controls.Single(c => AutomationProperties.GetAutomationId(c) == "StatusBarText");
++                        if (viewport.ActualWidth <= 0 || optional.ActualWidth != 360 || optional.TranslatePoint(new Point(0, optional.ActualHeight), main).Y > status.TranslatePoint(new Point(0, 0), main).Y + 1)
++                            throw new Exception("Optional panels consume viewport or overlap status.");
++                        Console.WriteLine($"WPF_LAYOUT 1280x800 viewportWidth={viewport.ActualWidth}; optionalWidth={optional.ActualWidth}; OffsetOff bound; Ghost disabled");
++                    }
++                    finally { main.Close(); }
++                }
++                finally { window.Close(); model.ShutdownBackendBlocking(); app.Shutdown(); }
++            });
++        }
++        if (args.Length != 2) Check("Evidence export preserves an already existing fixed report", () =>
++        {
++            // This is the isolated check output, never the user's running GUI output.
++            if (!AppContext.BaseDirectory.Contains("PRE-GUI-20261019T063546Z-7f92a1", StringComparison.Ordinal))
++                throw new InvalidOperationException("Run checks only from this task's unique build output.");
++            var fixedPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
++            if (File.Exists(fixedPath))
++                throw new InvalidOperationException("Refuse test output reuse.");
++            var marker = "previous evidence must remain byte-identical";
++            File.WriteAllText(fixedPath, marker);
++            var settings = new AppSettings { BackendMode = "Mock" };
++            var vm = new MainWindowViewModel(settings,
++                new AppSettingsService(Path.Combine(AppContext.BaseDirectory, "settings-test.json")),
++                _ => new MockXpeBackend(new RawImageLoader(), "", false, "", false));
++            try
++            {
++                vm.ExportAutomationReportCommand.Execute(null);
++                if (File.ReadAllText(fixedPath) != marker)
++                    throw new InvalidOperationException("Existing fixed evidence was overwritten.");
++                if (!vm.StatusText.Contains("exported", StringComparison.OrdinalIgnoreCase))
++                    throw new InvalidOperationException("A successful unique export was not reported.");
++                var first = vm.LastEvidenceSnapshotPath;
++                if (first is null || !File.Exists(first))
++                    throw new InvalidOperationException("Export path does not identify the actual new evidence.");
++                vm.ExportAutomationReportCommand.Execute(null);
++                if (File.ReadAllText(fixedPath) != marker)
++                    throw new InvalidOperationException("Repeated export touched old evidence.");
++                if (vm.LastEvidenceSnapshotPath == first)
++                    throw new InvalidOperationException("Repeated export reused a path.");
++            }
++            finally { vm.ShutdownBackendBlocking(); }
++        });
++        Console.WriteLine($"CALIBRATION_CHECKS failures={failures}");
++        return failures == 0 ? 0 : 1;
++
++        void Check(string name, Action test)
++        {
++            try { test(); Console.WriteLine("PASS " + name); }
++            catch (Exception error) { failures++; Console.WriteLine("FAIL " + name + ": " + error.Message); }
++        }
++    }
++}
+diff --git a/gui/ImageProcTest.E2E/Program.cs b/gui/ImageProcTest.E2E/Program.cs
+--- a/gui/ImageProcTest.E2E/Program.cs
++++ b/gui/ImageProcTest.E2E/Program.cs
+@@ -574,7 +574,7 @@
+     var stage = vm.LastChain.Stages.FirstOrDefault(st => st.StageId == ImageProcTest.Models.StageIds.Preprocess);
+     return stage?.Status switch
+     {
+-        ImageProcTest.Models.StageStatus.Applied or ImageProcTest.Models.StageStatus.AppliedNoChange => "3 stages (offset · gain · defect)",
++        ImageProcTest.Models.StageStatus.Applied or ImageProcTest.Models.StageStatus.AppliedNoChange => "3 native stages (offset · gain · defect)",
+         ImageProcTest.Models.StageStatus.RequestedNotApplied => "failed",
+         ImageProcTest.Models.StageStatus.Skipped => $"not run ({(stage.Reason.Contains(':') ? stage.Reason[..stage.Reason.IndexOf(':')].Trim() : stage.Reason.Trim())})",
+         _ => "not run",
+diff --git a/gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs b/gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+--- a/gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
++++ b/gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+@@ -131,7 +131,7 @@
+             return chain;
+         }
+
+-        var replaced = chain.Stages.Select(st => st.StageId == StageIds.Preprocess ? st with { Status = status, Reason = status == StageStatus.Skipped ? "no calibration data: scripted" : "scripted: " + status } : st).ToList();
++        var replaced = chain.Stages.Select(st => st.StageId == StageIds.Preprocess ? st with { Status = status, Reason = status == StageStatus.Skipped ? "no calibration data: scripted" : "scripted: " + status + (status is StageStatus.Applied or StageStatus.AppliedNoChange ? "; executed=[offset,gain,defect]" : "") } : st).ToList();
+         return chain with { Stages = replaced };
+     }
+ }
+@@ -1615,14 +1615,14 @@
+     private static System.Text.Json.JsonElement ReportRoot(MainWindowViewModel vm)
+     {
+         typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
+-        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
++        var path = vm.LastEvidenceSnapshotPath ?? throw new InvalidOperationException("Export did not return its actual new path.");
+         return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.Clone();
+     }
+
+     private static System.Text.Json.JsonElement ReportDisplayPipeline(MainWindowViewModel vm)
+     {
+         typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
+-        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
++        var path = vm.LastEvidenceSnapshotPath ?? throw new InvalidOperationException("Export did not return its actual new path.");
+         return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("displayPipeline");
+     }
+
+@@ -1974,7 +1974,7 @@
+             vm.ApplyDisplayPipelineCommand.Execute(null);
+             await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with a successful preprocess to commit");
+             await FlushUi();
+-            rows.Add(Cross("preprocess requested, ran", "3 stages (offset · gain · defect)", "Applied", true, "Exposure index:"));
++            rows.Add(Cross("preprocess requested, ran", "3 native stages (offset · gain · defect)", "Applied", true, "Exposure index:"));
+
+             // (3b) switched off by the user: the only way the stage is NotRequested now
+             vm.Settings.PreprocessInChain = false;
+diff --git a/gui/ImageProcTest/App.xaml.cs b/gui/ImageProcTest/App.xaml.cs
+--- a/gui/ImageProcTest/App.xaml.cs
++++ b/gui/ImageProcTest/App.xaml.cs
+@@ -69,6 +69,13 @@
+         // rather than in a static constructor keeps the ordering explicit: the resolver must be in
+         // place before the first DllImport, and only one may ever be registered per assembly.
+         Services.Native.GuiNativeLibraryResolver.Install();
++        if (e.Args.Length > 0 && e.Args[0] == "--inspect-calibration-set")
++        {
++            var code = e.Args.Length == 3
++                ? Services.Native.CalibrationSetInspector.Execute(e.Args[1], e.Args[2]) : 2;
++            Shutdown(code);
++            return;
++        }
+
+         // GUI-C-186b: relative model directories are resolved against the working directory AS IT IS NOW, once. A file dialog can
+         // move the working directory later; the AI model directory must not follow it.
+diff --git a/gui/ImageProcTest/MainWindow.xaml b/gui/ImageProcTest/MainWindow.xaml
+--- a/gui/ImageProcTest/MainWindow.xaml
++++ b/gui/ImageProcTest/MainWindow.xaml
+@@ -68,18 +68,6 @@
+
+         <!-- Workbench AlgorithmBar (Slice 3) -->
+         <views:AlgorithmBar DockPanel.Dock="Top" />
+-
+-        <!-- #225 row 13 (GUI-C-168). Collapsed until the Tools menu opens it; the flag has a reader
+-             here, which is what the two panel flags below lacked until GUI-C-170. -->
+-        <views:PipelineDiagnosticsPanel DockPanel.Dock="Right"
+-                                        Visibility="{Binding ShowPipelineDiagnostics, Converter={StaticResource BoolToVisibility}}" />
+-
+-        <!-- #225 rows 7 and 8 (GUI-C-170). Each flag is a persisted Settings.* value and the panel is its
+-             reader. Collapsed by default (MENU-001 §9.2), opened by the View toggle. -->
+-        <views:CalibrationPathsPanel DockPanel.Dock="Right"
+-                                     Visibility="{Binding Settings.ShowCalibrationPanel, Converter={StaticResource BoolToVisibility}}" />
+-        <views:DisplaySettingsPanel DockPanel.Dock="Right"
+-                                    Visibility="{Binding Settings.ShowDisplayPanel, Converter={StaticResource BoolToVisibility}}" />
+
+         <Menu x:Name="MainMenu"
+               AutomationProperties.AutomationId="MainMenu"
+@@ -417,6 +405,9 @@
+             <MenuItem x:Name="ToolsMenu"
+                       AutomationProperties.AutomationId="ToolsMenu"
+                       Header="_Tools">
++                <MenuItem Header="PRE 캘리브레이션 입력·생성·재로드·평가"
++                          AutomationProperties.AutomationId="PreCalibrationWorkflowMenuItem"
++                          Click="PreCalibrationWorkflow_Click" />
+                 <!-- QA-A-273 (Refs #278): imports two EXISTING output files (A = official 2G X64W, B = new PRE), no vendor DLL, no engine run. -->
+                 <MenuItem Header="2G · 신규 PRE 출력 가져오기 비교"
+                           AutomationProperties.AutomationId="PreComparisonImportMenuItem"
+@@ -518,11 +509,18 @@
+         </Menu>
+
+         <StatusBar DockPanel.Dock="Bottom">
++            <StatusBar.ItemsPanel>
++                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
++            </StatusBar.ItemsPanel>
+             <StatusBarItem AutomationProperties.AutomationId="StatusBarText"
+-                           Content="{Binding StatusText}" />
++                           Content="{Binding StatusText}" ToolTip="{Binding StatusText}" MaxWidth="560">
++                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" MaxWidth="540" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
++            </StatusBarItem>
+             <Separator />
+             <StatusBarItem AutomationProperties.AutomationId="ChainStatusText"
+-                           Content="{Binding ChainStatus}" />
++                           Content="{Binding ChainStatus}" ToolTip="{Binding ChainStatus}" MaxWidth="560">
++                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" MaxWidth="540" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
++            </StatusBarItem>
+             <Separator />
+             <Separator />
+             <StatusBarItem>
+@@ -618,6 +616,25 @@
+         </Border>
+
+         <!-- Workbench Study Queue (Slice 5) -->
++        <!-- Optional panels share one scrollable column instead of each consuming another full width. -->
++        <ScrollViewer DockPanel.Dock="Right" Width="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
++                      AutomationProperties.AutomationId="OptionalSettingsPanels">
++            <ScrollViewer.Style>
++                <Style TargetType="ScrollViewer">
++                    <Setter Property="Visibility" Value="Collapsed" />
++                    <Style.Triggers>
++                        <DataTrigger Binding="{Binding ShowPipelineDiagnostics}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
++                        <DataTrigger Binding="{Binding Settings.ShowCalibrationPanel}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
++                        <DataTrigger Binding="{Binding Settings.ShowDisplayPanel}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
++                    </Style.Triggers>
++                </Style>
++            </ScrollViewer.Style>
++            <StackPanel>
++                <views:PipelineDiagnosticsPanel Visibility="{Binding ShowPipelineDiagnostics, Converter={StaticResource BoolToVisibility}}" />
++                <views:CalibrationPathsPanel Visibility="{Binding Settings.ShowCalibrationPanel, Converter={StaticResource BoolToVisibility}}" />
++                <views:DisplaySettingsPanel Visibility="{Binding Settings.ShowDisplayPanel, Converter={StaticResource BoolToVisibility}}" />
++            </StackPanel>
++        </ScrollViewer>
+         <views:StudyQueue DockPanel.Dock="Left"
+                           AutomationProperties.AutomationId="StudyQueue">
+             <views:StudyQueue.Visibility>
+diff --git a/gui/ImageProcTest/MainWindow.xaml.cs b/gui/ImageProcTest/MainWindow.xaml.cs
+--- a/gui/ImageProcTest/MainWindow.xaml.cs
++++ b/gui/ImageProcTest/MainWindow.xaml.cs
+@@ -17,6 +17,12 @@
+
+     /// <summary>Where this run's settings are read from and written to. #136: not the shipped file under automation.</summary>
+     private readonly string _settingsFilePath;
++
++    private void PreCalibrationWorkflow_Click(object sender, RoutedEventArgs e)
++    {
++        if (DataContext is MainWindowViewModel model && !model.IsBackendTransitioning)
++            new Views.CalibrationWorkflowWindow(model) { Owner = this }.ShowDialog();
++    }
+
+     // Codex #78 finding 3 (GUI-C-198): the AI entry's availability includes a file that may appear or vanish while the app runs; it is read again each time the menu opens.
+     private void PipelineMenu_SubmenuOpened(object sender, System.Windows.RoutedEventArgs e) =>
+@@ -655,14 +661,16 @@
+
+             ClickMenuItem(ExportAutomationReportMenuItem);
+             await Task.Delay(200);
+-            var menuCommandReportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+-            report.MenuCommandReportCreated = File.Exists(menuCommandReportPath);
++            var menuCommandReportPath = viewModel.LastEvidenceSnapshotPath;
++            report.MenuCommandReportCreated = menuCommandReportPath is not null && File.Exists(menuCommandReportPath);
++            var menuCommandReportText = menuCommandReportPath is not null && report.MenuCommandReportCreated
++                ? File.ReadAllText(menuCommandReportPath) : string.Empty;
+             report.ComparisonEvidenceExported =
+                 report.MenuCommandReportCreated &&
+-                File.ReadAllText(menuCommandReportPath).Contains("\"comparison\"", StringComparison.OrdinalIgnoreCase);
++                menuCommandReportText.Contains("\"comparison\"", StringComparison.OrdinalIgnoreCase);
+             report.CalibrationEvaluationEvidenceExported =
+                 report.MenuCommandReportCreated &&
+-                File.ReadAllText(menuCommandReportPath).Contains("\"calibrationEvaluation\"", StringComparison.OrdinalIgnoreCase);
++                menuCommandReportText.Contains("\"calibrationEvaluation\"", StringComparison.OrdinalIgnoreCase);
+
+             // #136: read the file THIS run wrote, which under automation is the isolated one.
+             var settingsFile = _settingsFilePath;
+diff --git a/gui/ImageProcTest/Models/BackendRuntimeInfo.cs b/gui/ImageProcTest/Models/BackendRuntimeInfo.cs
+--- a/gui/ImageProcTest/Models/BackendRuntimeInfo.cs
++++ b/gui/ImageProcTest/Models/BackendRuntimeInfo.cs
+@@ -21,6 +21,7 @@
+     public string NativeSource { get; init; } = string.Empty;
+
+     public string DisplayVersion { get; init; } = string.Empty;
++    public string CommonVersion { get; init; } = "unknown";
+
+     public bool DisplayDllDetected { get; init; }
+
+diff --git a/gui/ImageProcTest/Models/RenderRecord.cs b/gui/ImageProcTest/Models/RenderRecord.cs
+--- a/gui/ImageProcTest/Models/RenderRecord.cs
++++ b/gui/ImageProcTest/Models/RenderRecord.cs
+@@ -38,7 +38,7 @@
+     public static RenderBackend From(BackendRuntimeInfo info) => new(
+         string.Equals(info.BackendName, RealBackendName, StringComparison.Ordinal) ? "Native" : "Mock",
+         info.BackendName,
+-        info.Version,
++        info.CommonVersion,
+         info.DisplayVersion,
+         info.NativeSource);
+ }
+diff --git a/gui/ImageProcTest/Services/CalibrationStageSelection.cs b/gui/ImageProcTest/Services/CalibrationStageSelection.cs
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest/Services/CalibrationStageSelection.cs
+@@ -0,0 +1,20 @@
++using ImageProcTest.Models;
++
++namespace ImageProcTest.Services;
++
++/// <summary>Auto uses an available map, On requires one, Off never loads one. Load validation is authoritative.</summary>
++public static class CalibrationStageSelection
++{
++    public static bool ShouldLoad(string mode, bool exists) => CalibrationStageMode.Normalize(mode) switch
++    { CalibrationStageMode.Off => false, CalibrationStageMode.On => true, _ => exists };
++
++    public static string[] ExecutedFromReason(string? reason)
++    {
++        const string marker = "executed=[";
++        var start = reason?.IndexOf(marker, StringComparison.Ordinal) ?? -1;
++        if (start < 0) return [];
++        start += marker.Length;
++        var end = reason!.IndexOf(']', start);
++        return end < start ? [] : reason[start..end].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
++    }
++}
+diff --git a/gui/ImageProcTest/Services/CalibrationWorkflowService.cs b/gui/ImageProcTest/Services/CalibrationWorkflowService.cs
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest/Services/CalibrationWorkflowService.cs
+@@ -0,0 +1,218 @@
++using System.Diagnostics;
++using System.IO;
++using System.Security.Cryptography;
++using System.Text.Json;
++
++namespace ImageProcTest.Services;
++
++/// <summary>Operator workflow over the existing PRE tools, with immutable per-run evidence.</summary>
++public sealed record CalibrationInputs(int Width, int Height, string[] Dark, string[] Gain,
++    string[] Defect, bool KeepFirstDark, ulong ExpiryMs);
++
++public sealed class CalibrationWorkflowService
++{
++    public string RunDirectory { get; }
++    public string SetDirectory => Path.Combine(RunDirectory, "calibration-set");
++    public string NativeDirectory { get; }
++    public CalibrationInputs Inputs { get; }
++    private readonly Dictionary<string, string> _inputHashes;
++    private bool _validated;
++    private bool _generated;
++    private Dictionary<string, string>? _reloadedHashes;
++
++    public CalibrationWorkflowService(string outputRoot, string nativeDirectory, CalibrationInputs inputs)
++    {
++        Inputs = inputs with { Dark = (string[])inputs.Dark.Clone(), Gain = (string[])inputs.Gain.Clone(), Defect = (string[])inputs.Defect.Clone() };
++        NativeDirectory = Path.GetFullPath(nativeDirectory);
++        RunDirectory = Path.Combine(Path.GetFullPath(outputRoot), $"pre-{DateTime.UtcNow:yyyyMMddTHHmmssfffZ}-{Guid.NewGuid():N}");
++        if (inputs.Width <= 0 || inputs.Height <= 0) throw new InvalidOperationException("영상 크기는 양수여야 합니다.");
++        _inputHashes = new(StringComparer.OrdinalIgnoreCase);
++        foreach (var path in inputs.Dark.Concat(inputs.Gain).Concat(inputs.Defect))
++        {
++            var full = Path.GetFullPath(path);
++            if (new FileInfo(full).Length != checked((long)inputs.Width * inputs.Height * 2))
++                throw new InvalidOperationException($"UINT16LE 크기 불일치: {full}");
++            _inputHashes[full] = Hash(full);
++        }
++        Directory.CreateDirectory(RunDirectory);
++        WriteNew(Path.Combine(RunDirectory, "inputs.json"), new
++        {
++            inputs = Inputs, files = _inputHashes,
++            acquisitionMetadata = "사용자 촬영기록과 대조 필요; kVp/mAs/SID/온도/PREP 미확인",
++            offsetGeneratorTemplate = "기존 생성기 100 ms / 25 C: 취득 실측값 아님",
++            quality = "미검증: 생성/재로드/적용 성공은 실영상 품질 합격이 아님"
++        });
++    }
++
++    public async Task<string> ValidateAsync()
++    {
++        VerifyInputs();
++        _validated = false;
++        var result = await ToolAsync("validate", Path.Combine(NativeDirectory, "xpe_calib_fixture_gen.exe"), GeneratorArguments(true));
++        VerifyInputs();
++        _validated = result.ExitCode == 0;
++        if (!_validated) throw new InvalidOperationException($"입력 검사 실패 ({result.ExitCode}). {result.Evidence}");
++        return result.Evidence;
++    }
++
++    public async Task<string> GenerateAsync()
++    {
++        if (!_validated) throw new InvalidOperationException("먼저 입력 검사를 통과하십시오.");
++        VerifyInputs();
++        _generated = false;
++        var result = await ToolAsync("generate", Path.Combine(NativeDirectory, "xpe_calib_fixture_gen.exe"), GeneratorArguments(false));
++        VerifyInputs();
++        if (result.ExitCode != 0 || !MapPaths().All(File.Exists) || !File.Exists(Path.Combine(SetDirectory, "manifest.json")))
++            throw new InvalidOperationException($"생성 실패/불완전 ({result.ExitCode}); 경로를 재사용하지 마십시오. {result.Evidence}");
++        VerifyManifest();
++        _generated = true;
++        return result.Evidence;
++    }
++
++    public async Task<string> ReloadAsync()
++    {
++        if (!_generated) throw new InvalidOperationException("이 실행의 생성 완료 후 재로드하십시오.");
++        VerifyManifest();
++        var report = Path.Combine(RunDirectory, $"reload-{Guid.NewGuid():N}.json");
++        var arguments = new List<string>();
++        var executable = Path.Combine(AppContext.BaseDirectory, "ImageProcTest.exe");
++        if (!File.Exists(executable))
++        {
++            executable = "dotnet";
++            arguments.Add(typeof(CalibrationWorkflowService).Assembly.Location);
++        }
++        arguments.AddRange(["--inspect-calibration-set", SetDirectory, report]);
++        _reloadedHashes = null;
++        var result = await ToolAsync("reload", executable, arguments);
++        if (result.ExitCode != 0 || !File.Exists(report))
++            throw new InvalidOperationException($"PRE 공개 API 재로드 실패 ({result.ExitCode}). {result.Evidence}");
++        using var document = JsonDocument.Parse(File.ReadAllText(report));
++        _reloadedHashes = ValidateReloadReport(document.RootElement, MapPaths().ToDictionary(p => p, Hash, StringComparer.OrdinalIgnoreCase));
++        return report;
++    }
++
++    public static Dictionary<string, string> ValidateReloadReport(JsonElement root, IReadOnlyDictionary<string, string> current)
++    {
++        if (!root.GetProperty("passed").GetBoolean()) throw new InvalidOperationException("재로드 보고서가 실패입니다.");
++        var checkedHashes = root.GetProperty("loads").EnumerateArray().ToDictionary(
++            item => item.GetProperty("path").GetString()!, item => item.GetProperty("sha256").GetString()!, StringComparer.OrdinalIgnoreCase);
++        if (checkedHashes.Count != 3 || current.Count != 3 || root.GetProperty("loads").EnumerateArray().Any(item => item.GetProperty("code").GetInt32() != 0))
++            throw new IOException("재로드 보고서가 정확한 3개 map 성공을 입증하지 않습니다.");
++        foreach (var (path, sha) in current)
++            if (!checkedHashes.TryGetValue(path, out var inspected) || inspected != sha)
++                throw new IOException("재로드 시점과 현재 map SHA가 다릅니다. 새 실행으로 검사하십시오.");
++        return checkedHashes;
++    }
++
++    public void VerifyReadyToApply()
++    {
++        if (_reloadedHashes is null) throw new InvalidOperationException("생성한 세트를 별도 PRE 프로세스에서 재로드한 뒤 적용하십시오.");
++        VerifyManifest();
++        foreach (var (path, hash) in _reloadedHashes)
++            if (Hash(path) != hash) throw new InvalidOperationException($"재로드 후 파일 변경: {path}. 다시 검사하십시오.");
++    }
++
++    public async Task<string> EvaluateAsync(string holdout, string inputKind, string oracle, string reference, string gainSemantics = "unknown")
++    {
++        VerifyReadyToApply();
++        VerifyInputs();
++        if (inputKind is not ("image" or "dark" or "flat")) throw new InvalidOperationException("영상 종류를 선택하십시오.");
++        if (gainSemantics is not ("unknown" or "normalized_gain" or "reciprocal_gain")) throw new InvalidOperationException("Gain 의미를 명시하십시오.");
++        var raw = Path.GetFullPath(holdout);
++        if (new FileInfo(raw).Length != checked((long)Inputs.Width * Inputs.Height * 2))
++            throw new InvalidOperationException("독립 평가 RAW 크기 불일치.");
++        var before = Hash(raw);
++        if (_inputHashes.Values.Contains(before, StringComparer.OrdinalIgnoreCase))
++            throw new InvalidOperationException("학습/생성 목록과 같은 내용의 영상은 독립 holdout으로 사용할 수 없습니다 (제외한 첫 Dark 포함).");
++        var output = Path.Combine(RunDirectory, "evaluation-" + Guid.NewGuid().ToString("N"));
++        var args = new List<string> { "--raw", raw, "--calib", SetDirectory, "--width", Inputs.Width.ToString(),
++            "--height", Inputs.Height.ToString(), "--input-kind", inputKind, "--gain-semantics", gainSemantics, "--out", output };
++        if (!string.IsNullOrWhiteSpace(oracle)) { args.Add("--oracle-bpm"); args.Add(Path.GetFullPath(oracle)); args.Add("--oracle-kind"); args.Add("reference"); }
++        if (!string.IsNullOrWhiteSpace(reference)) { args.Add("--reference-f32"); args.Add(Path.GetFullPath(reference)); }
++        var result = await ToolAsync("evaluate", Path.Combine(NativeDirectory, "xpe_pre_e2e.exe"), args);
++        var after = Hash(raw);
++        WriteNew(Path.Combine(RunDirectory, "holdout-" + Guid.NewGuid().ToString("N") + ".json"), new
++        { path = raw, before, after, unchanged = before == after, output, result.ExitCode,
++            oracle = string.IsNullOrWhiteSpace(oracle) ? "未提供 / 외부 결함 정답 미검증" : Path.GetFullPath(oracle),
++            reference = string.IsNullOrWhiteSpace(reference) ? "미제공 / 외부 수치 동등성 미검증" : Path.GetFullPath(reference),
++            independence = "생성 입력 SHA와 불일치 확인; oracle/reference 출처 독립성은 사용자 증거 필요",
++            quality = "exit 0 또는 Applied는 합격 아님. evaluation report의 phase1/release/CES 및 미평가 지표를 확인" });
++        if (before != after) throw new InvalidOperationException("평가 전후 원본 SHA가 다릅니다.");
++        if (result.ExitCode != 0) throw new InvalidOperationException($"평가 실행 실패 ({result.ExitCode}). {result.Evidence}");
++        VerifyReadyToApply();
++        return output;
++    }
++
++    public static string QualitySummary(string directory)
++    {
++        using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "report.json")));
++        var root = report.RootElement;
++        return $"phase1={root.GetProperty("phase1_pass")}; release={root.GetProperty("release_pass")}; score={root.GetProperty("score").GetRawText()}\n"
++            + string.Join("\n", root.GetProperty("gates").EnumerateArray().Select(g => $"{g.GetProperty("id").GetString()}: {g.GetProperty("result").GetString()}"));
++    }
++
++    public static string Hash(string path)
++    {
++        using var stream = File.OpenRead(path);
++        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
++    }
++
++    public static void WriteNew(string path, object value)
++    {
++        using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
++        JsonSerializer.Serialize(stream, value, new JsonSerializerOptions { WriteIndented = true });
++    }
++
++    private string[] MapPaths() => [Path.Combine(SetDirectory, "offset.xcal"), Path.Combine(SetDirectory, "gain.xcal"), Path.Combine(SetDirectory, "defect.xcal")];
++    private void VerifyManifest()
++    {
++        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(SetDirectory, "manifest.json")));
++        var consumed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
++        foreach (var item in manifest.RootElement.GetProperty("inputs").EnumerateArray())
++        {
++            var path = Path.GetFullPath(item.GetProperty("path").GetString()!);
++            if (!_inputHashes.TryGetValue(path, out var baseline) || item.GetProperty("sha256").GetString() != baseline)
++                throw new IOException("생성기가 실제 소비한 입력 SHA가 등록 baseline과 다릅니다: " + path);
++            consumed.Add(path);
++        }
++        if (!consumed.SetEquals(_inputHashes.Keys)) throw new IOException("생성 manifest의 입력 목록이 등록 목록과 다릅니다.");
++        foreach (var path in MapPaths())
++            if (manifest.RootElement.GetProperty("files").GetProperty(Path.GetFileName(path)).GetString() != Hash(path))
++                throw new IOException($"생성 manifest와 map SHA 불일치: {path}");
++    }
++    private void VerifyInputs()
++    {
++        foreach (var (path, hash) in _inputHashes)
++            if (Hash(path) != hash) throw new InvalidOperationException($"검사 후 입력 변경: {path}. 새 실행을 만드십시오.");
++    }
++    private List<string> GeneratorArguments(bool validate)
++    {
++        var args = new List<string> { "--out", SetDirectory, "--width", Inputs.Width.ToString(), "--height", Inputs.Height.ToString(),
++            "--expiry-ms", Inputs.ExpiryMs.ToString(), "--bpm-v2" };
++        if (validate) args.Add("--validate-only");
++        if (Inputs.KeepFirstDark) args.Add("--keep-first-dark");
++        foreach (var p in Inputs.Dark) { args.Add("--dark"); args.Add(Path.GetFullPath(p)); }
++        foreach (var p in Inputs.Gain) { args.Add("--bright"); args.Add(Path.GetFullPath(p)); }
++        foreach (var p in Inputs.Defect) { args.Add("--bpm-bright"); args.Add(Path.GetFullPath(p)); }
++        return args;
++    }
++    private async Task<(int ExitCode, string Evidence)> ToolAsync(string operation, string executable, IEnumerable<string> arguments)
++    {
++        var args = arguments.ToArray();
++        var info = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = RunDirectory };
++        foreach (var arg in args) info.ArgumentList.Add(arg);
++        info.Environment["XPE_NATIVE_DIR"] = NativeDirectory;
++        info.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1";
++        info.Environment.Remove("DOTNET_STARTUP_HOOKS");
++        info.RedirectStandardOutput = info.RedirectStandardError = true;
++        using var process = Process.Start(info) ?? throw new IOException("로컬 도구를 시작하지 못했습니다.");
++        var stdout = process.StandardOutput.ReadToEndAsync();
++        var stderr = process.StandardError.ReadToEndAsync();
++        await process.WaitForExitAsync();
++        var evidence = Path.Combine(RunDirectory, operation + "-" + Guid.NewGuid().ToString("N") + ".json");
++        WriteNew(evidence, new { operation, executable, executableSha256 = File.Exists(executable) ? Hash(executable) : null,
++            arguments = args, nativeDirectory = NativeDirectory, exitCode = process.ExitCode,
++            stdout = await stdout, stderr = await stderr, utc = DateTime.UtcNow });
++        return (process.ExitCode, evidence);
++    }
++}
+diff --git a/gui/ImageProcTest/Services/EvidenceSnapshotStore.cs b/gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+@@ -0,0 +1,18 @@
++using System.IO;
++using System.Text.Json;
++
++namespace ImageProcTest.Services;
++
++/// <summary>Publishes a new snapshot without opening an existing evidence file for writing.</summary>
++public static class EvidenceSnapshotStore
++{
++    public static string Write(string applicationDirectory, object report)
++    {
++        var directory = Path.Combine(applicationDirectory, "evidence", "snapshots");
++        Directory.CreateDirectory(directory);
++        var path = Path.Combine(directory, $"menu-command-report-{DateTime.UtcNow:yyyyMMddTHHmmssfffZ}-{Guid.NewGuid():N}.json");
++        using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
++        JsonSerializer.Serialize(stream, report, new JsonSerializerOptions { WriteIndented = true });
++        return path;
++    }
++}
+diff --git a/gui/ImageProcTest/Services/Native/CalibrationSetInspector.cs b/gui/ImageProcTest/Services/Native/CalibrationSetInspector.cs
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest/Services/Native/CalibrationSetInspector.cs
+@@ -0,0 +1,49 @@
++using System.Diagnostics;
++using System.IO;
++using System.Runtime.InteropServices;
++
++namespace ImageProcTest.Services.Native;
++
++/// <summary>Separate-process reload. Never clears the operator GUI's calibration store.</summary>
++internal static class CalibrationSetInspector
++{
++    internal static int Execute(string directory, string report)
++    {
++        if (File.Exists(report)) return 2;
++        var loads = new List<object>();
++        var passed = false;
++        string? error = null;
++        try
++        {
++            if (Marshal.SizeOf<XpeImageMetadataNative>() != 96 || Marshal.SizeOf<XpeImageBufferNative>() != 40)
++                throw new InvalidOperationException("PRE ABI size mismatch (96/40).");
++            var init = XpePreprocessNative.xpe_preprocess_init(null);
++            if (init != 0) throw new InvalidOperationException($"PRE init {init}");
++            try
++            {
++                foreach (var (name, load) in new (string, Func<string, int>)[] {
++                    ("offset.xcal", XpePreprocessNative.xpe_calib_load_offset),
++                    ("gain.xcal", XpePreprocessNative.xpe_calib_load_gain),
++                    ("defect.xcal", XpePreprocessNative.xpe_calib_load_defect_map) })
++                {
++                    var path = Path.GetFullPath(Path.Combine(directory, name));
++                    var sha = CalibrationWorkflowService.Hash(path);
++                    var code = load(path);
++                    loads.Add(new { path, sha256 = sha, code });
++                    if (code != 0) throw new InvalidOperationException($"{name} load {code}");
++                    if (CalibrationWorkflowService.Hash(path) != sha) throw new IOException("Map changed during reload.");
++                }
++                passed = true;
++            }
++            finally { XpePreprocessNative.xpe_preprocess_shutdown(); }
++        }
++        catch (Exception ex) { error = ex.Message; }
++        var modules = new List<object>();
++        foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
++            if (module.ModuleName.StartsWith("xpe_", StringComparison.OrdinalIgnoreCase))
++                modules.Add(new { module.ModuleName, path = module.FileName, sha256 = CalibrationWorkflowService.Hash(module.FileName) });
++        CalibrationWorkflowService.WriteNew(report, new { passed, error, loads, modules,
++            limitation = "공개 loader의 SHA/형식/만료/session 검사는 통과했어도 생성기 session generated는 detector UUID 검증이 아님. 실영상 품질 미검증." });
++        return passed ? 0 : 1;
++    }
++}
+diff --git a/gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs b/gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs
+--- a/gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs
++++ b/gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs
+@@ -48,13 +48,18 @@
+         string bodyPart,
+         float kVp,
+         float pixelPitchMm,
+-        bool measureExposureIndex = false)
++        bool measureExposureIndex = false,
++        string offsetMode = "Auto", string gainMode = "Auto", string defectMode = "Auto")
+     {
+         var offset = Path.Combine(offsetDirectory, OffsetFile);
+         var gain = Path.Combine(gainDirectory, GainFile);
+         var defect = Path.Combine(defectDirectory, DefectFile);
+
+-        var missing = new[] { offset, gain, defect }.Where(p => !File.Exists(p)).ToArray();
++        var applyOffset = CalibrationStageSelection.ShouldLoad(offsetMode, File.Exists(offset));
++        var applyGain = CalibrationStageSelection.ShouldLoad(gainMode, File.Exists(gain));
++        var applyDefect = CalibrationStageSelection.ShouldLoad(defectMode, File.Exists(defect));
++        var selected = new[] { (offset, applyOffset), (gain, applyGain), (defect, applyDefect) };
++        var missing = selected.Where(p => p.Item2 && !File.Exists(p.Item1)).Select(p => p.Item1).ToArray();
+         if (missing.Length > 0)
+         {
+             // GUI-C-234b: a skip with a reason (<short>: <detail>), not a failure - the HUD says "not run (no calibration data)".
+@@ -64,8 +69,10 @@
+                 "Generate a set with xpe_calib_fixture_gen --out <dir> and point the calibration " +
+                 "directories at it.",
+                 null,
+-                Skipped: true);
+-        }
++                Skipped: false);
++        }
++        if (!applyOffset && !applyGain && !applyDefect)
++            return new PreprocessRunResult(false, "no selected calibration: all stages Off or Auto without maps; executed=[]; input kept", null, Skipped: true);
+
+         var initCode = XpePreprocessNative.xpe_preprocess_init(null);
+         if (initCode != XpeOk)
+@@ -75,13 +82,14 @@
+
+         try
+         {
+-            foreach (var (path, load, name) in new (string, Func<string, int>, string)[]
++            foreach (var (path, load, name, enabled) in new (string, Func<string, int>, string, bool)[]
+                      {
+-                         (offset, XpePreprocessNative.xpe_calib_load_offset, "offset"),
+-                         (gain, XpePreprocessNative.xpe_calib_load_gain, "gain"),
+-                         (defect, XpePreprocessNative.xpe_calib_load_defect_map, "defect"),
++                         (offset, XpePreprocessNative.xpe_calib_load_offset, "offset", applyOffset),
++                         (gain, XpePreprocessNative.xpe_calib_load_gain, "gain", applyGain),
++                         (defect, XpePreprocessNative.xpe_calib_load_defect_map, "defect", applyDefect),
+                      })
+             {
++                if (!enabled) continue;
+                 var code = load(path);
+                 if (code != XpeOk)
+                 {
+@@ -93,7 +101,10 @@
+             // export is a FAILURE with an instruction, not a reason to run the older in-place stage calls.
+             try
+             {
+-                return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
++                var config = System.Text.Json.JsonSerializer.Serialize(new { bypassOffset = !applyOffset, bypassGain = !applyGain,
++                    bypassDefect = !applyDefect, bypassTemp = true, bypassNonlinearity = true, bypassBinning = true, bypassGhost = true });
++                return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex, config,
++                    $"requested=[offset:{offsetMode},gain:{gainMode},defect:{defectMode}]");
+             }
+             catch (EntryPointNotFoundException)
+             {
+@@ -117,7 +128,7 @@
+     /// (<c>xpe_preprocess_pipeline_out</c>): the raw image the user opened is never written (SRS-CALIB-SAFE-004).
+     /// </summary>
+     private static PreprocessRunResult RunPipelineOut(ushort[] rawPixels, int width, int height, string bodyPart,
+-        float kVp, float pixelPitchMm, bool measureExposureIndex)
++        float kVp, float pixelPitchMm, bool measureExposureIndex, string config, string requested)
+     {
+         var metadata = XpeImageMetadataNative.Create(bodyPart, kVp: kVp, mAs: 2.0f, sidMm: 1000.0f, pixelPitchMm: pixelPitchMm);
+
+@@ -138,18 +149,22 @@
+             Buffer.BlockCopy(rawPixels, 0, signed, 0, count * sizeof(ushort));
+             Marshal.Copy(signed, 0, input.Data, count);
+
+-            var code = XpePreprocessNative.xpe_preprocess_pipeline_out(ref input, ref output, ref metadata, IntPtr.Zero, IntPtr.Zero, PipelineConfigJson);
++            var code = XpePreprocessNative.xpe_preprocess_pipeline_out(ref input, ref output, ref metadata, IntPtr.Zero, IntPtr.Zero, config);
+             if (code != XpeOk)
+             {
+                 return new PreprocessRunResult(false, $"xpe_preprocess_pipeline_out failed ({code}).", null);
+             }
+
+             var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref output, ref metadata) : string.Empty;
++            var actual = new List<string>();
++            if ((metadata.Flags & 0x2000) != 0) actual.Add("offset");
++            if ((metadata.Flags & 0x0008) != 0) actual.Add("gain");
++            if ((metadata.Flags & 0x0004) != 0) actual.Add("defect");
+             var floats = ReadFloats(output.Data, count);
+             var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats);   // the gain stage's intermediate is internal to the pipeline: only the final image is counted
+             return new PreprocessRunResult(
+                 true,
+-                $"Preprocess: xpe_preprocess_pipeline_out ({string.Join(" -> ", ExecutedStages)}, input kept) on {width}x{height} ({bodyPart}).{exposure}",
++                $"Preprocess: xpe_preprocess_pipeline_out; {requested}; executed=[{string.Join(",", actual)}]; nativeFlags=0x{metadata.Flags:x}; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; {width}x{height} ({bodyPart}).{exposure}",
+                 ScaleToUInt16(floats),
+                 nonFinite,
+                 floats);
+diff --git a/gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs b/gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs
+--- a/gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs
++++ b/gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs
+@@ -77,6 +77,8 @@
+
+ internal static class XpeCommonNative
+ {
++    [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl)]
++    internal static extern IntPtr xpe_version();
+     [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl)]
+     internal static extern int xpe_alloc_image(
+         uint width,
+diff --git a/gui/ImageProcTest/Services/NativeRuntimeEvidence.cs b/gui/ImageProcTest/Services/NativeRuntimeEvidence.cs
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest/Services/NativeRuntimeEvidence.cs
+@@ -0,0 +1,43 @@
++using System.Diagnostics;
++using System.IO;
++using System.Runtime.InteropServices;
++using ImageProcTest.Services.Native;
++
++namespace ImageProcTest.Services;
++
++/// <summary>Actual module paths and SHA; semantic versions alone cannot certify a mixed build.</summary>
++public static class NativeRuntimeEvidence
++{
++    public static void VerifyPreCombination(string toolDirectory)
++    {
++        foreach (var name in new[] { "xpe_common.dll", "xpe_preprocess.dll" })
++        {
++            NativeModuleAudit.PreflightModule(name, "PRE calibration apply");
++            var loaded = Process.GetCurrentProcess().Modules.Cast<ProcessModule>().SingleOrDefault(m => string.Equals(m.ModuleName, name, StringComparison.OrdinalIgnoreCase))
++                ?? throw new InvalidOperationException($"실제 {name} 로드 증거 없음. Native backend와 고정 native 폴더로 실행하십시오.");
++            if (CalibrationWorkflowService.Hash(loaded.FileName) != CalibrationWorkflowService.Hash(Path.Combine(toolDirectory, name)))
++                throw new InvalidOperationException($"GUI 실제 {name}와 검사 도구의 DLL SHA가 다릅니다. 조합을 검증하기 전 적용하지 않습니다.");
++            var handle = NativeLibrary.Load(loaded.FileName);
++            try
++            {
++                var exports = name == "xpe_preprocess.dll"
++                    ? new[] { "xpe_preprocess_init", "xpe_preprocess_shutdown", "xpe_calib_load_offset", "xpe_calib_load_gain", "xpe_calib_load_defect_map", "xpe_preprocess_pipeline_out" }
++                    : new[] { "xpe_version", "xpe_alloc_image", "xpe_free_image" };
++                foreach (var export in exports)
++                    if (!NativeLibrary.TryGetExport(handle, export, out _)) throw new InvalidOperationException($"{name} export 없음: {export}");
++            }
++            finally { NativeLibrary.Free(handle); }
++        }
++    }
++    public static object Capture()
++    {
++        var modules = new List<object>();
++        foreach (ProcessModule module in Process.GetCurrentProcess().Modules)
++            if (NativeModuleAudit.IsNativeModuleOfTheProduct(module.ModuleName))
++                modules.Add(new { name = module.ModuleName, path = module.FileName, sha256 = CalibrationWorkflowService.Hash(module.FileName) });
++        var assembly = typeof(NativeRuntimeEvidence).Assembly.Location;
++        return new { guiAssembly = assembly, guiSha256 = CalibrationWorkflowService.Hash(assembly), modules,
++            abi = "x64 Cdecl Pack=8; buffer40 metadata96; public loader/pipeline calls validated separately",
++            limitation = "로드 경로/해시는 식별 증거. 전체 조합의 제품·실영상 품질 승인을 의미하지 않음" };
++    }
++}
+diff --git a/gui/ImageProcTest/Services/RealXpeBackend.cs b/gui/ImageProcTest/Services/RealXpeBackend.cs
+--- a/gui/ImageProcTest/Services/RealXpeBackend.cs
++++ b/gui/ImageProcTest/Services/RealXpeBackend.cs
+@@ -73,6 +73,7 @@
+             NativeDllPath = _commonDllPath,
+             NativeSource = Native.GuiNativeLibraryResolver.SourceLabel("xpe_common.dll"),
+             DisplayVersion = displayVersion,
++            CommonVersion = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(Native.XpeCommonNative.xpe_version()) ?? "unknown",
+             DisplayDllDetected = File.Exists(_displayDllPath),
+             DisplayDllPath = _displayDllPath
+         };
+@@ -396,7 +397,7 @@
+             settings.SelectedBodyPart,
+             settings.ExposureKvp,
+             settings.PixelPitchMm,
+-            true));   // GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index is measured on every run, not only the Baseline's (measureExposureIndex here means 'Baseline run' and is not passed on)
++            true, settings.OffsetCorrectionMode, settings.GainCorrectionMode, settings.DefectCorrectionMode));
+
+         // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
+         if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
+@@ -481,6 +482,7 @@
+         {
+             BackendName = "RealXpeBackend",
+             Version = _runtimeInfo.Version,
++            CommonVersion = _runtimeInfo.CommonVersion,
+             State = "Shutdown",
+             SupportsNativeRuntime = true,
+             NativeDllDetected = File.Exists(_commonDllPath),
+diff --git a/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs b/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+--- a/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
++++ b/gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+@@ -1029,7 +1029,7 @@
+             var preprocess = rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+             return preprocess?.Status switch
+             {
+-                StageStatus.Applied or StageStatus.AppliedNoChange => $"{GuiPreprocessRunner.ExecutedStages.Length} stages ({string.Join(" · ", GuiPreprocessRunner.ExecutedStages)})",
++                StageStatus.Applied or StageStatus.AppliedNoChange => $"{CalibrationStageSelection.ExecutedFromReason(preprocess.Reason).Length} native stages ({string.Join(" · ", CalibrationStageSelection.ExecutedFromReason(preprocess.Reason))})",
+                 StageStatus.RequestedNotApplied => "failed",
+                 StageStatus.Skipped => $"not run ({ShortReasonOf(preprocess.Reason)})",
+                 _ => "not run",
+@@ -1513,7 +1513,7 @@
+
+             if (!string.IsNullOrWhiteSpace(RuntimeInfo.Version))
+             {
+-                parts.Add($"common={RuntimeInfo.Version}");
++                parts.Add($"common={RuntimeInfo.CommonVersion}");
+             }
+
+             if (!string.IsNullOrWhiteSpace(RuntimeInfo.DisplayVersion))
+@@ -2592,10 +2592,10 @@
+
+     private void ExportAutomationReport()
+     {
+-        var reportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+         var report = new
+         {
+             generatedAt = DateTimeOffset.Now,
++            provenance = NativeRuntimeEvidence.Capture(),
+             backend = RuntimeInfo,
+             // #175 HAZ-GUI-005 (3): what actually produced the results, not what was asked for.
+             actualBackendMode = ActualBackendMode,
+@@ -2642,7 +2642,7 @@
+                 // GUI-C-233k: the modes and the summary below are what was CONFIGURED for the render. What actually ran is `executed` (the preprocess stage runs offset, gain and defect; the other four
+                 // modes are not connected to that call), and it is what the HUD's "Calib:" line shows.
+                 // GUI-C-234b: `reason` is the preprocess stage's own reason (why it was skipped or failed, or its summary when it ran); null with no render.
+-                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages =RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
++                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages = CalibrationStageSelection.ExecutedFromReason(_render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason) },
+                 // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
+                 summary = RenderedInputs is null ? null : FormatCalibrationModes(RenderedInputs),
+                 // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
+@@ -2682,10 +2682,21 @@
+             alertCount = Alerts.Count
+         };
+
+-        File.WriteAllText(reportPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
+-        StatusText = $"Automation report exported: {reportPath}";
+-        Log(StatusText);
+-    }
++        try
++        {
++            LastEvidenceSnapshotPath = EvidenceSnapshotStore.Write(GuiDataPaths.Root, report);
++            StatusText = $"Automation report exported: {LastEvidenceSnapshotPath}";
++            Log(StatusText);
++        }
++        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
++        {
++            StatusText = $"Evidence snapshot was not exported: {error.Message}. Existing evidence was not replaced.";
++            Log(StatusText);
++        }
++    }
++
++    /// <summary>The file produced by the last successful snapshot export; never a fixed legacy file.</summary>
++    public string? LastEvidenceSnapshotPath { get; private set; }
+
+     private void BrowseCalibrationDirectory(CalibrationPathKind kind)
+     {
+diff --git a/gui/ImageProcTest/Views/AnalysisPanel.xaml b/gui/ImageProcTest/Views/AnalysisPanel.xaml
+--- a/gui/ImageProcTest/Views/AnalysisPanel.xaml
++++ b/gui/ImageProcTest/Views/AnalysisPanel.xaml
+@@ -156,12 +156,10 @@
+                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                         <TextBlock Text="Calibration Stages" Foreground="#f0f2f5" FontSize="12"
+                                    FontWeight="SemiBold" />
+-                        <TextBlock AutomationProperties.AutomationId="CalibrationStagesUnappliedMark" Text="미적용" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." />
++                        <TextBlock AutomationProperties.AutomationId="CalibrationStagesUnappliedMark" Text="기본 3단계 연결" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="Offset/Gain/Defect: Auto는 존재하는 map을 loader로 검증, On은 map 필수, Off는 map을 로드하지 않습니다. Run은 요청 모드를 바꾸지 않습니다." />
+                     </StackPanel>
+
+-                    <!-- #182: no backend processing path reads these modes. Kept, values persisted, disabled. -->
+-                    <StackPanel AutomationProperties.AutomationId="CalibrationStagesGroup" IsEnabled="False"
+-                                ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." ToolTipService.ShowOnDisabled="True">
++                    <StackPanel AutomationProperties.AutomationId="CalibrationStagesGroup">
+
+                     <!-- Offset -->
+                     <TextBlock Text="Offset" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+@@ -188,6 +186,7 @@
+                     </UniformGrid>
+
+                     <!-- Ghost -->
++                    <StackPanel IsEnabled="False" ToolTip="Ghost/온도/비선형/Binning은 이 GUI 처리에 연결되지 않아 우회됩니다. 미정 계약을 자동으로 만들지 않습니다." ToolTipService.ShowOnDisabled="True">
+                     <TextBlock Text="Ghost" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
+                     <UniformGrid Columns="3" Margin="0,0,0,12">
+                         <RadioButton AutomationProperties.AutomationId="CalibGhostModeAuto" Content="Auto" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
+@@ -219,6 +218,7 @@
+                         <RadioButton AutomationProperties.AutomationId="CalibBinningModeOff" Content="Off" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
+                     </UniformGrid>
+
++                    </StackPanel>
+                     </StackPanel>
+
+                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,4,0,12" />
+diff --git a/gui/ImageProcTest/Views/CalibrationWorkflowWindow.cs b/gui/ImageProcTest/Views/CalibrationWorkflowWindow.cs
+new file mode 100644
+--- /dev/null
++++ b/gui/ImageProcTest/Views/CalibrationWorkflowWindow.cs
+@@ -0,0 +1,115 @@
++using System.IO;
++using System.Windows;
++using System.Windows.Controls;
++using ImageProcTest.Services;
++using ImageProcTest.ViewModels;
++
++namespace ImageProcTest.Views;
++
++/// <summary>Korean operator steps. All work uses local tools and unique output directories.</summary>
++public sealed class CalibrationWorkflowWindow : Window
++{
++    private readonly StackPanel _form = new() { Margin = new Thickness(18) };
++    private readonly TextBox _log = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MinHeight = 140, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
++    private readonly List<Control> _inputs = [];
++    private CalibrationWorkflowService? _workflow;
++    private bool _busy;
++
++    public CalibrationWorkflowWindow(MainWindowViewModel model)
++    {
++        Title = "PRE 캘리브레이션 — 입력·검사·생성·재로드·평가";
++        Width = 940; Height = 820; MinWidth = 720; MinHeight = 500;
++        WindowStartupLocation = WindowStartupLocation.CenterOwner;
++        MaxHeight = SystemParameters.WorkArea.Height;
++        Content = new ScrollViewer { Content = _form, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
++        Label("이 창은 장비를 제어하지 않습니다. 원본 UINT16LE만 읽고 새 고유 폴더에 저장합니다. 생성/적용 ≠ 실영상 품질 합격.");
++        Label("1. 입력 준비: 각 목록은 파일 전체 경로 한 줄당 하나. Dark 전체 목록의 첫 장은 기본 1회 제외됩니다. Gain은 동일 선량, Defect는 별도 다선량 목록을 줄 수 있습니다.");
++        var native = Field("로컬 도구/DLL 폴더 (xpe_calib_fixture_gen.exe, xpe_pre_e2e.exe, v5 PRE/common)", Environment.GetEnvironmentVariable("XPE_NATIVE_DIR") ?? "");
++        var output = Field("새 실행들을 보관할 출력 상위 폴더 (기존 파일 덮어쓰기 없음)", "");
++        var width = Field("가로 화소", model.Settings.RawWidth.ToString());
++        var height = Field("세로 화소", model.Settings.RawHeight.ToString());
++        var dark = Field("Dark RAW 목록 (취득 순서)", "", true);
++        var gain = Field("Gain Bright RAW 목록 (동일 조건/선량)", "", true);
++        var defect = Field("Defect Bright RAW 목록 (비우면 Gain 목록 사용)", "", true);
++        var keep = new CheckBox { Content = "첫 Dark도 사용 (명시적으로 선택한 경우만 --keep-first-dark)", Margin = new Thickness(0, 4, 0, 8) };
++        _form.Children.Add(keep); _inputs.Add(keep);
++        var expiry = Field("명시적 XCAL 만료 Unix epoch 밀리초 (정책 자동 결정 안 함; 0=기존 생성기의 만료 미지정)", "0");
++        Label("만료 미지정/생성기 session=generated는 detector UUID 또는 임상 사용 승인 증거가 아닙니다. 기존 offset 생성기의 100ms/25°C는 템플릿이며 촬영 실측값으로 쓰지 않습니다.");
++        var rawDeclaration = new CheckBox { Content = "촬영기록을 대조했고 입력은 offset 미차감 원시 RAW입니다 (이미 보정된 CalData 등은 넣지 않음)", Margin = new Thickness(0, 6, 0, 6) };
++        _form.Children.Add(rawDeclaration); _inputs.Add(rawDeclaration);
++        var creationInputs = _inputs.ToArray();
++        AddButton("2. 입력 검사 (생성하지 않음)", async () =>
++        {
++            if (_workflow is null)
++            {
++                if (rawDeclaration.IsChecked != true) throw new InvalidOperationException("입력 보정상태를 확인하십시오. 촬영조건/보정상태를 수치만으로 추정하지 않습니다.");
++                if (string.IsNullOrWhiteSpace(native.Text) || string.IsNullOrWhiteSpace(output.Text)) throw new InvalidOperationException("도구와 출력 폴더를 지정하십시오.");
++                _workflow = new CalibrationWorkflowService(output.Text, native.Text,
++                    new CalibrationInputs(int.Parse(width.Text), int.Parse(height.Text), Lines(dark.Text), Lines(gain.Text), Lines(defect.Text), keep.IsChecked == true, ulong.Parse(expiry.Text)));
++                foreach (var control in creationInputs) control.IsEnabled = false;
++            }
++            Append("검사: " + await _workflow.ValidateAsync());
++        });
++        AddButton("3. Offset / Gain / Defect 생성·고유 경로 저장", async () =>
++            Append("생성: " + await Required().GenerateAsync() + "\n세트: " + Required().SetDirectory));
++        AddButton("4. 저장된 세트 재로드 (별도 PRE 프로세스 공개 API)", async () =>
++            Append("재로드: " + await Required().ReloadAsync() + "\n주의: 실영상 품질은 아직 미검증"));
++        AddButton("5. 이 GUI의 경로로 적용 (자동 Run 아님)", () =>
++        {
++            Required().VerifyReadyToApply();
++            if (model.IsBackendTransitioning) throw new InvalidOperationException("백엔드 전환 중입니다. 완료 후 적용하십시오.");
++            if (model.IsMockBackend) throw new InvalidOperationException("Mock backend는 실제 PRE 적용이 아닙니다. Native backend를 확인하십시오.");
++            NativeRuntimeEvidence.VerifyPreCombination(Required().NativeDirectory);
++            CalibrationWorkflowService.WriteNew(Path.Combine(Required().RunDirectory, "gui-apply-" + Guid.NewGuid().ToString("N") + ".json"),
++                new { native = NativeRuntimeEvidence.Capture(), set = Required().SetDirectory, quality = "경로 적용 준비 검증; 실제 Run/품질 합격 아님" });
++            model.Settings.OffsetCalibrationDirectory = Required().SetDirectory;
++            model.Settings.GainCalibrationDirectory = Required().SetDirectory;
++            model.Settings.DefectCalibrationDirectory = Required().SetDirectory;
++            Append("경로 적용 완료. 창을 닫고 평가 RAW를 열어 Run Preprocessing 실행. 실제 Native/Applied와 경고를 확인하십시오. 품질 합격 아님.");
++            return Task.CompletedTask;
++        });
++        Label("6. 독립영상 평가: 생성 입력(첫 제외 Dark 포함)과 SHA가 겹치면 거부. detector-domain 기본 PRE 출력 기준, enhancement/VOI 전 평가. 촬영 조건·정답 출처는 별도 기록과 대조해야 합니다.");
++        var holdout = Field("평가용 RAW 전체 경로", "");
++        var kind = new ComboBox { ItemsSource = new[] { "image", "dark", "flat" }, SelectedIndex = 0, Margin = new Thickness(0, 4, 0, 8) };
++        _form.Children.Add(kind);
++        Label("Gain 의미 (사용자 근거로 선택; 모르면 unknown 유지, 조건부 FPN 평가는 미검증)");
++        var semantics = new ComboBox { ItemsSource = new[] { "unknown", "normalized_gain", "reciprocal_gain" }, SelectedIndex = 0 };
++        _form.Children.Add(semantics);
++        var oracle = Field("선택: 독립 외부 defect oracle UINT8 (0 good / nonzero bad), 원본 RAW 아님", "");
++        var reference = Field("선택: 독립 reference FLOAT32LE (동일 단계·정렬·크기·ADU), 원본 RAW 아님", "");
++        AddButton("6. 독립 평가 및 보고서 저장", async () =>
++        {
++            var result = await Required().EvaluateAsync(holdout.Text, (string)kind.SelectedItem, oracle.Text, reference.Text, (string)semantics.SelectedItem);
++            Append("평가 산출물: " + result + "\n" + CalibrationWorkflowService.QualitySummary(result)
++                + "\n종료코드 0은 실행 성공입니다. oracle/reference 미제공 항목은 미검증입니다.");
++        });
++        Label("같은 입력의 재생성/수정은 이 창을 닫고 새로 여십시오. 결과 폴더의 inputs/manifest/reload/evaluate 보고서와 원본 촬영기록을 함께 보관하십시오. 외부 oracle/ref의 독립성은 SHA 비중복만으로 증명되지 않습니다.");
++        _form.Children.Add(_log);
++        Closing += (_, e) => { if (_busy) { e.Cancel = true; Append("현재 로컬 작업이 끝날 때까지 창을 유지합니다. 다른 프로세스를 중단하지 않습니다."); } };
++    }
++
++    private static string[] Lines(string text) => text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
++    private CalibrationWorkflowService Required() => _workflow ?? throw new InvalidOperationException("먼저 입력 검사를 실행하십시오.");
++    private void Label(string text) => _form.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 6) });
++    private TextBox Field(string label, string value, bool multiple = false)
++    {
++        Label(label);
++        var box = new TextBox { Text = value, AcceptsReturn = multiple, MinHeight = multiple ? 72 : 26, VerticalScrollBarVisibility = multiple ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled };
++        _form.Children.Add(box); _inputs.Add(box); return box;
++    }
++    private void AddButton(string title, Func<Task> action)
++    {
++        var button = new Button { Content = title, HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(0, 8, 0, 4) };
++        button.Click += async (_, _) =>
++        {
++            if (_busy) return;
++            _busy = true;
++            Append("실행 중: " + title + " — 완료될 때까지 기다려 주십시오. 원본/다른 프로세스는 유지합니다.");
++            try { await action(); }
++            catch (Exception error) { Append("실패/미완료: " + error.Message); }
++            finally { _busy = false; }
++        };
++        _form.Children.Add(button);
++    }
++    private void Append(string message) { _log.AppendText(message + Environment.NewLine); _log.ScrollToEnd(); }
++}
+diff --git a/modules/preprocess/tools/xpe_calib_fixture_gen.cpp b/modules/preprocess/tools/xpe_calib_fixture_gen.cpp
+--- a/modules/preprocess/tools/xpe_calib_fixture_gen.cpp
++++ b/modules/preprocess/tools/xpe_calib_fixture_gen.cpp
+@@ -158,6 +158,7 @@
+     std::vector<std::string> bpmBrightFiles;   // QA-A-250b: bright frames of the defect map when they differ from the gain frames
+     std::string              bpmBrightList;
+     bool                     framesMode{false};
++    bool                     validateOnly{false}; // Run exactly the frames preflight without generating or publishing files.
+     bool                     keepFirstDark{false};    // QA-A-259: --keep-first-dark; default = the first dark frame of the list is excluded once, for every stage
+     bool                     bpmV2{false};            // QA-A-254: defect.xcal from the second-generation chain, written as format version 2
+     uint32_t                 bpmMargin[4]{0, 0, 0, 0}; // left, top, right, bottom: rows and columns outside the imaging area (--bpm-v2)
+@@ -189,6 +190,7 @@
+         "                  acquisition); by default this tool excludes the first frame ONCE and the same remaining list\n"
+         "                  feeds the offset map, the gain dark reference and the defect map (both editions). The\n"
+         "                  option keeps the list as given. manifest.json lists the given and the used frames.\n"
++        "  --validate-only  frames mode only: run input checks, write no calibration files\n"
+         "  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file\n"
+         "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n"
+         "  --bpm-bright F   bright frames of the defect map only (several doses allowed); the\n"
+@@ -261,6 +263,8 @@
+                 return false;
+             }
+             for (int k = 0; k < 4; ++k) opt->bpmMargin[k] = static_cast<uint32_t>(v[k]);
++        } else if (arg == "--validate-only") {
++            opt->validateOnly = true;
+         } else if (arg == "--gain-poly") {
+             opt->gainPoly = true;
+         } else if (arg == "--poly-degree") {
+@@ -278,6 +282,10 @@
+     }
+     if (opt->outDir.empty()) return false;
+     opt->framesMode = !opt->darkFiles.empty() || !opt->brightFiles.empty() || !opt->darkList.empty() || !opt->brightList.empty();
++    if (opt->validateOnly && !opt->framesMode) {
++        std::fprintf(stderr, "--validate-only requires --dark/--bright frames mode\n");
++        return false;
++    }
+     if (opt->framesMode) {
+         if (!opt->calDir.empty()) {
+             std::fprintf(stderr, "--dark/--bright cannot be combined with --caldata\n");
+@@ -900,6 +908,12 @@
+
+     std::vector<uint8_t> theirs;
+     if (!opt.compareBpm.empty() && !readReferenceMask(opt.compareBpm, pixelCount, &theirs)) return 9;
++
++    if (opt.validateOnly) {
++        std::printf("{\"validation_only\":true,\"dark_used\":%zu,\"gain_frames\":%zu,\"bpm_frames\":%zu,\"gain_dose_ratio\":%.17g}\n",
++                    darks.size(), brights.size(), bpmFrames.size(), doseRatio);
++        return 0;
++    }
+
+     // ---- generation, into a work directory of this run beside --out; --out is touched only by publishSet, after all four files exist
+     WorkDir workDir(out);
