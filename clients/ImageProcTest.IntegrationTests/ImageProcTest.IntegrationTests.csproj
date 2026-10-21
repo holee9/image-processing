@@ -125,6 +125,8 @@
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeDisplayInterop.cs" Link="Chain\Linked\XpeDisplayInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpePreprocessInterop.cs" Link="Chain\Linked\XpePreprocessInterop.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\GuiPreprocessRunner.cs" Link="Chain\Linked\GuiPreprocessRunner.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\CalibrationStageSelection.cs" Link="Chain\Linked\CalibrationStageSelection.cs" />
+    <Compile Include="..\..\gui\ImageProcTest\Services\GuiDataPaths.cs" Link="Chain\Linked\GuiDataPaths.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\PreprocessRunResult.cs" Link="Chain\Linked\PreprocessRunResult.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Models\XpeBodyPartEnum.cs" Link="Chain\Linked\XpeBodyPartEnum.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\Native\XpeExposureIndexInterop.cs" Link="Chain\Linked\XpeExposureIndexInterop.cs" />
