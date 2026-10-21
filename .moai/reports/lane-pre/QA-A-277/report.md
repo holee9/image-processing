@@ -10,7 +10,7 @@ Refs #278. 원 조사: gui GUI-C-254. 결과: **6건 모두 PASS, patch 로컬 �
 - 그래서 **실행은 `git archive HEAD gui clients` 로 푼 깨끗한 사본 `build/qa277/src`(git 무시 경로)에서 했다.** 사본에 같은 patch 를 적용해 시험했고, 작업 트리에는 patch 6개 파일만 적용해 커밋했다.
 - 네이티브 DLL: CI run 39571675063 의 산출물 4개(common·preprocess·post·dicom)를 `gh run download` 로 받아 `build/qa277/dlls` 에 합쳤다(CI 의 병합 규칙과 같음, 기존 파일은 덮어쓰지 않음). 보정 세트는 CI 와 같이 release `testdata-calib-v1` 을 받아 SHA256SUMS 6건 OK 확인 후 `xpe_calib_fixture_gen --expiry-ms 4102444800000` 으로 만들었다(`build/qa277/calib-real`, exit 0). 제조사 DLL·장치 접근 없음.
 - 환경 변수는 CI 와 같다: `XPE_E2E_BACKEND=Native`, `XPE_NATIVE_DIR`(+`_EXCLUSIVE=1`), `XPE_E2E_ALLOW_GLOBAL_INPUT=1`(CI 가 같은 값을 줌; 이 시험들은 UIA 패턴만 쓰며 전역 입력 API 는 호출하지 않음), `XPE_C231_*`.
-- patch: `evidence/e2e.patch.txt`, sha256 앞 16자 `4f8e1473acafd35f`(카드와 일치). `git apply --check --whitespace=error` OK, 적용 OK.
+- patch: `evidence/e2e.patch.gz.b64.txt`(gzip+base64, 복원 아래), 복원한 원본 sha256 앞 16자 `4f8e1473acafd35f`(카드와 일치). `git apply --check --whitespace=error` OK, 적용 OK.
 - 카드는 "E2ETests 의 시험 6개 파일"이라 했으나 patch 의 6개 파일 중 하나(`SettingsProcessingConnectionTests.cs`)는 `clients/ImageProcTest.IntegrationTests/` 에 있다. patch 가 정한 대로 6개 모두 적용·커밋했다. 리더가 범위를 확인해 주기 바란다.
 
 ## 2. 반증 1건 (patch 적용 전)
@@ -49,7 +49,7 @@ patch 가 바꾼 것은 시험 6개 파일뿐이다(206 줄 추가, 50 줄 삭�
 
 - 시험 patch 커밋: `de8a37cc240c4cfc699d04ecb0025f1166abc785` — 명시적 pathspec 6개, `Refs #278`, `QA-A-277`, `GUI-C-254` 표기. push 없음.
 - 기존 dirty 파일(gui 제품 8개 등)은 스테이징·수정하지 않았다.
-- 증거: `evidence/e2e.patch.txt` 와 이 보고서만 추적된다. `.log` 는 `.moai/reports/**` 무시 규칙 때문에 디스크에만 있다.
+- 증거: `evidence/e2e.patch.gz.b64.txt` 와 이 보고서만 추적된다. `.log` 는 `.moai/reports/**` 무시 규칙 때문에 디스크에만 있다.
 - **남은 프로세스 0**: 모든 실행 직후와 보고서 작성 직전에 `tasklist | grep -ciE 'ImageProcTest|testhost|xpe_ai_worker|dotnet'` = 0.
 
 ## 6. 미검증
@@ -57,3 +57,9 @@ patch 가 바꾼 것은 시험 6개 파일뿐이다(206 줄 추가, 50 줄 삭�
 - 전체 스위트(`Category!=Measurement`)는 돌리지 않았다. 6건 각각만 확인했다. 다른 시험이 이 patch 로 영향을 받는지는 CI 몫이다.
 - 슬래시 경로에서 W13 이 실패한 구체 원인.
 - 작업 트리의 미커밋 gui 제품 변경이 의도된 것인지(별도 확인 필요, 이 카드에서는 손대지 않음).
+
+## 7. 증거 형식 정정 (2026-10-21 20:3x, CI 39591918725 text-lint)
+
+patch 원본 `e2e.patch.txt` 에 줄 끝 공백 17건이 있어 text-lint 가 실패했다(제품 실패 아님). QA-A-275 와 같은 방식으로 patch 바이트는 그대로 두고 저장 형식만 gzip+base64 텍스트로 바꿨다. lint 규칙은 약화하지 않았고 patch 를 다듬지 않았다.
+- 복원: `base64 -d e2e.patch.gz.b64.txt | gzip -dc > e2e.patch.txt`
+- 왕복 검증(python gzip mtime=0): 원본 27731 바이트, sha256 `4f8e1473acafd35f15784d019f30183efacef641a45a17c11ebe8ec77e7c1423` = 복원본과 동일. 커밋 `de8a37cc` 에 들어간 시험 6개 파일은 바뀌지 않았다.
