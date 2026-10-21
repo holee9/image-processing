@@ -82,3 +82,5 @@ gui\ImageProcTest\Services\AppSettingsService.cs(45,45): error CS0103: 'GuiDataP
 - W16 실행 결과, `SettingsProcessingConnectionTests` 실행 결과(둘 다 없음).
 - On·Auto 방향의 변이, gain·defect 단계를 무시하는 변이(Off 분기 한 곳만 변이).
 - 작업 트리(dirty) 기준 실행. 이 카드는 깨끗한 사본만 썼다.
+
+후속: 이 보고서 작성 뒤 시험 변경은 c6d211a4 로 커밋됨(4·70·76행의 미커밋 서술은 883bd0e2 시점 상태).
