@@ -73,6 +73,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             NativeDllPath = _commonDllPath,
             NativeSource = Native.GuiNativeLibraryResolver.SourceLabel("xpe_common.dll"),
             DisplayVersion = displayVersion,
+            CommonVersion = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(Native.XpeCommonNative.xpe_version()) ?? "unknown",
             DisplayDllDetected = File.Exists(_displayDllPath),
             DisplayDllPath = _displayDllPath
         };
@@ -396,7 +397,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.SelectedBodyPart,
             settings.ExposureKvp,
             settings.PixelPitchMm,
-            true));   // GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index is measured on every run, not only the Baseline's (measureExposureIndex here means 'Baseline run' and is not passed on)
+            true, settings.OffsetCorrectionMode, settings.GainCorrectionMode, settings.DefectCorrectionMode));
 
         // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
         if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
@@ -481,6 +482,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         {
             BackendName = "RealXpeBackend",
             Version = _runtimeInfo.Version,
+            CommonVersion = _runtimeInfo.CommonVersion,
             State = "Shutdown",
             SupportsNativeRuntime = true,
             NativeDllDetected = File.Exists(_commonDllPath),

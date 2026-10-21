@@ -69,18 +69,6 @@
         <!-- Workbench AlgorithmBar (Slice 3) -->
         <views:AlgorithmBar DockPanel.Dock="Top" />
 
-        <!-- #225 row 13 (GUI-C-168). Collapsed until the Tools menu opens it; the flag has a reader
-             here, which is what the two panel flags below lacked until GUI-C-170. -->
-        <views:PipelineDiagnosticsPanel DockPanel.Dock="Right"
-                                        Visibility="{Binding ShowPipelineDiagnostics, Converter={StaticResource BoolToVisibility}}" />
-
-        <!-- #225 rows 7 and 8 (GUI-C-170). Each flag is a persisted Settings.* value and the panel is its
-             reader. Collapsed by default (MENU-001 §9.2), opened by the View toggle. -->
-        <views:CalibrationPathsPanel DockPanel.Dock="Right"
-                                     Visibility="{Binding Settings.ShowCalibrationPanel, Converter={StaticResource BoolToVisibility}}" />
-        <views:DisplaySettingsPanel DockPanel.Dock="Right"
-                                    Visibility="{Binding Settings.ShowDisplayPanel, Converter={StaticResource BoolToVisibility}}" />
-
         <Menu x:Name="MainMenu"
               AutomationProperties.AutomationId="MainMenu"
               DockPanel.Dock="Top">
@@ -417,6 +405,9 @@
             <MenuItem x:Name="ToolsMenu"
                       AutomationProperties.AutomationId="ToolsMenu"
                       Header="_Tools">
+                <MenuItem Header="PRE 캘리브레이션 입력·생성·재로드·평가"
+                          AutomationProperties.AutomationId="PreCalibrationWorkflowMenuItem"
+                          Click="PreCalibrationWorkflow_Click" />
                 <!-- QA-A-273 (Refs #278): imports two EXISTING output files (A = official 2G X64W, B = new PRE), no vendor DLL, no engine run. -->
                 <MenuItem Header="2G · 신규 PRE 출력 가져오기 비교"
                           AutomationProperties.AutomationId="PreComparisonImportMenuItem"
@@ -518,11 +509,18 @@
         </Menu>
 
         <StatusBar DockPanel.Dock="Bottom">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
             <StatusBarItem AutomationProperties.AutomationId="StatusBarText"
-                           Content="{Binding StatusText}" />
+                           Content="{Binding StatusText}" ToolTip="{Binding StatusText}" MaxWidth="560">
+                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" MaxWidth="540" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
+            </StatusBarItem>
             <Separator />
             <StatusBarItem AutomationProperties.AutomationId="ChainStatusText"
-                           Content="{Binding ChainStatus}" />
+                           Content="{Binding ChainStatus}" ToolTip="{Binding ChainStatus}" MaxWidth="560">
+                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" MaxWidth="540" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
+            </StatusBarItem>
             <Separator />
             <Separator />
             <StatusBarItem>
@@ -618,6 +616,25 @@
         </Border>
 
         <!-- Workbench Study Queue (Slice 5) -->
+        <!-- Optional panels share one scrollable column instead of each consuming another full width. -->
+        <ScrollViewer DockPanel.Dock="Right" Width="360" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                      AutomationProperties.AutomationId="OptionalSettingsPanels">
+            <ScrollViewer.Style>
+                <Style TargetType="ScrollViewer">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ShowPipelineDiagnostics}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                        <DataTrigger Binding="{Binding Settings.ShowCalibrationPanel}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                        <DataTrigger Binding="{Binding Settings.ShowDisplayPanel}" Value="True"><Setter Property="Visibility" Value="Visible" /></DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ScrollViewer.Style>
+            <StackPanel>
+                <views:PipelineDiagnosticsPanel Visibility="{Binding ShowPipelineDiagnostics, Converter={StaticResource BoolToVisibility}}" />
+                <views:CalibrationPathsPanel Visibility="{Binding Settings.ShowCalibrationPanel, Converter={StaticResource BoolToVisibility}}" />
+                <views:DisplaySettingsPanel Visibility="{Binding Settings.ShowDisplayPanel, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </ScrollViewer>
         <views:StudyQueue DockPanel.Dock="Left"
                           AutomationProperties.AutomationId="StudyQueue">
             <views:StudyQueue.Visibility>

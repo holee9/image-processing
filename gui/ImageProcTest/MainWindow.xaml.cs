@@ -18,6 +18,12 @@ public partial class MainWindow : System.Windows.Window
     /// <summary>Where this run's settings are read from and written to. #136: not the shipped file under automation.</summary>
     private readonly string _settingsFilePath;
 
+    private void PreCalibrationWorkflow_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel model && !model.IsBackendTransitioning)
+            new Views.CalibrationWorkflowWindow(model) { Owner = this }.ShowDialog();
+    }
+
     // Codex #78 finding 3 (GUI-C-198): the AI entry's availability includes a file that may appear or vanish while the app runs; it is read again each time the menu opens.
     private void PipelineMenu_SubmenuOpened(object sender, System.Windows.RoutedEventArgs e) =>
         (DataContext as MainWindowViewModel)?.RefreshAiBoneSuppressionAvailability();
@@ -653,16 +659,20 @@ public partial class MainWindow : System.Windows.Window
                 report.BaselineEvidenceFolder = baseline.EvidenceFolder;
             }
 
+            // F260-1: this export's own result, not the last successful path (which a failed export leaves pointing at the previous file)
+            var exportBefore = viewModel.LastEvidenceExport;
             ClickMenuItem(ExportAutomationReportMenuItem);
             await Task.Delay(200);
-            var menuCommandReportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
-            report.MenuCommandReportCreated = File.Exists(menuCommandReportPath);
+            var menuCommandReportPath = ImageProcTest.Services.EvidenceExportResult.NewSuccessPath(exportBefore, viewModel.LastEvidenceExport);
+            report.MenuCommandReportCreated = menuCommandReportPath is not null && File.Exists(menuCommandReportPath);
+            var menuCommandReportText = menuCommandReportPath is not null && report.MenuCommandReportCreated
+                ? File.ReadAllText(menuCommandReportPath) : string.Empty;
             report.ComparisonEvidenceExported =
                 report.MenuCommandReportCreated &&
-                File.ReadAllText(menuCommandReportPath).Contains("\"comparison\"", StringComparison.OrdinalIgnoreCase);
+                menuCommandReportText.Contains("\"comparison\"", StringComparison.OrdinalIgnoreCase);
             report.CalibrationEvaluationEvidenceExported =
                 report.MenuCommandReportCreated &&
-                File.ReadAllText(menuCommandReportPath).Contains("\"calibrationEvaluation\"", StringComparison.OrdinalIgnoreCase);
+                menuCommandReportText.Contains("\"calibrationEvaluation\"", StringComparison.OrdinalIgnoreCase);
 
             // #136: read the file THIS run wrote, which under automation is the isolated one.
             var settingsFile = _settingsFilePath;

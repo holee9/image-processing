@@ -78,6 +78,8 @@ internal struct XpePresentationLutParamsNative
 internal static class XpeCommonNative
 {
     [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl)]
+    internal static extern IntPtr xpe_version();
+    [DllImport("xpe_common.dll", CallingConvention = CallingConvention.Cdecl)]
     internal static extern int xpe_alloc_image(
         uint width,
         uint height,

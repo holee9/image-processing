@@ -1029,7 +1029,7 @@ public sealed class MainWindowViewModel : ObservableObject
             var preprocess = rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
             return preprocess?.Status switch
             {
-                StageStatus.Applied or StageStatus.AppliedNoChange => $"{GuiPreprocessRunner.ExecutedStages.Length} stages ({string.Join(" · ", GuiPreprocessRunner.ExecutedStages)})",
+                StageStatus.Applied or StageStatus.AppliedNoChange => $"{CalibrationStageSelection.ExecutedFromReason(preprocess.Reason).Length} native stages ({string.Join(" · ", CalibrationStageSelection.ExecutedFromReason(preprocess.Reason))})",
                 StageStatus.RequestedNotApplied => "failed",
                 StageStatus.Skipped => $"not run ({ShortReasonOf(preprocess.Reason)})",
                 _ => "not run",
@@ -1513,7 +1513,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
             if (!string.IsNullOrWhiteSpace(RuntimeInfo.Version))
             {
-                parts.Add($"common={RuntimeInfo.Version}");
+                parts.Add($"common={RuntimeInfo.CommonVersion}");
             }
 
             if (!string.IsNullOrWhiteSpace(RuntimeInfo.DisplayVersion))
@@ -2592,10 +2592,10 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void ExportAutomationReport()
     {
-        var reportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
         var report = new
         {
             generatedAt = DateTimeOffset.Now,
+            provenance = NativeRuntimeEvidence.Capture(),
             backend = RuntimeInfo,
             // #175 HAZ-GUI-005 (3): what actually produced the results, not what was asked for.
             actualBackendMode = ActualBackendMode,
@@ -2642,7 +2642,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 // GUI-C-233k: the modes and the summary below are what was CONFIGURED for the render. What actually ran is `executed` (the preprocess stage runs offset, gain and defect; the other four
                 // modes are not connected to that call), and it is what the HUD's "Calib:" line shows.
                 // GUI-C-234b: `reason` is the preprocess stage's own reason (why it was skipped or failed, or its summary when it ran); null with no render.
-                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages =RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
+                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages = CalibrationStageSelection.ExecutedFromReason(_render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason) },
                 // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
                 summary = RenderedInputs is null ? null : FormatCalibrationModes(RenderedInputs),
                 // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
@@ -2682,10 +2682,30 @@ public sealed class MainWindowViewModel : ObservableObject
             alertCount = Alerts.Count
         };
 
-        File.WriteAllText(reportPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
-        StatusText = $"Automation report exported: {reportPath}";
-        Log(StatusText);
+        var exportId = Guid.NewGuid().ToString("N");
+        try
+        {
+            LastEvidenceSnapshotPath = EvidenceSnapshotStore.Write(GuiDataPaths.Root, report);
+            LastEvidenceExport = new EvidenceExportResult(exportId, LastEvidenceSnapshotPath, null);
+            StatusText = $"Automation report exported: {LastEvidenceSnapshotPath}";
+            Log(StatusText);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            LastEvidenceExport = new EvidenceExportResult(exportId, null, error.Message);
+            StatusText = $"Evidence snapshot was not exported: {error.Message}. Existing evidence was not replaced.";
+            Log(StatusText);
+        }
     }
+
+    /// <summary>
+    /// The file produced by the last SUCCESSFUL snapshot export; never a fixed legacy file. It is kept when a later export fails, so it must not be used to decide whether the export
+    /// just run succeeded: use <see cref="LastEvidenceExport"/> for that.
+    /// </summary>
+    public string? LastEvidenceSnapshotPath { get; private set; }
+
+    /// <summary>The outcome of the most recent export attempt, successful or not, with an identifier unique to that attempt (null before the first one).</summary>
+    public EvidenceExportResult? LastEvidenceExport { get; private set; }
 
     private void BrowseCalibrationDirectory(CalibrationPathKind kind)
     {
