@@ -1,0 +1,20 @@
+import json, subprocess, collections
+D = '.moai/reports/lane-pre/QA-A-274/'
+rows = json.load(open(D + 'inventory-rows.json', encoding='utf-8'))
+now = subprocess.run(['date', '+%Y-%m-%d %H:%M'], capture_output=True, text=True).stdout.strip()
+prod = [r for r in rows if r['unit'] not in ('X', 'Y')]
+rv = collections.Counter(r['review'].split(' (')[0] for r in prod)
+tbl = ['| 상태 | 경로 | 단위 | 출처 | 검토 상태 |', '|---|---|---|---|---|']
+y = [r for r in rows if r['unit'] == 'Y']
+for r in rows:
+    if r['unit'] == 'Y':
+        continue
+    tbl.append('| %s | `%s` | %s | %s | %s |' % (r['st'], r['path'], r['unit'], r['origin'], r['review']))
+tbl.append('| ?? | `tools/packaging/pre-gui/InstallHost/obj/**` ({}개) | Y | 빌드 산출물(제품 아님) | 해당 없음 |'.format(len(y)))
+t = open(D + 'inventory.template.md', encoding='utf-8').read()
+for k, v in {'NOW': now, 'TOTAL': len(rows), 'PRODUCT': len(prod), 'NX': sum(r['unit'] == 'X' for r in rows), 'NY': len(y),
+             'RV_MATCH': rv['검토됨-해시 일치'], 'RV_CHANGED': rv['검토됨-이후 변경'], 'RV_NONE': rv['검토 없음'], 'TABLE': '\n'.join(tbl)}.items():
+    t = t.replace('{{%s}}' % k, str(v))
+assert '{{' not in t
+open(D + 'inventory.md', 'w', encoding='utf-8', newline='\n').write(t)
+print(now, len(rows), len(prod), dict(rv))
