@@ -17,12 +17,61 @@ internal static class Program
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
     [DllImport("user32.dll")] static extern bool IsWindow(IntPtr hwnd);
+    [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+    [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr hwnd, out NativeRect rect);
+    [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr hwnd, ref NativePoint point);
+    [StructLayout(LayoutKind.Sequential)] struct NativeRect { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] struct NativePoint { public int X, Y; }
     static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
     static string evidence = "";
     static Process? process;
     static UIA3Automation automation = null!;
     static Window window = null!;
     static int expectedDpi = 96;
+    static bool probeOnly;
+    static bool captureHook;
+    static string hookDirectory = "";
+    static double CaptureWpf(IntPtr handle, string stem, Bitmap frame, Rectangle windowBounds)
+    {
+        string token = Guid.NewGuid().ToString("N");
+        string request = IO.Path.Combine(hookDirectory, token + ".request.json");
+        string response = IO.Path.Combine(hookDirectory, token + ".response.json");
+        string client = stem + ".wpf-client.png";
+        string temporary = request + ".tmp";
+        IO.File.WriteAllText(temporary, JsonSerializer.Serialize(new { hwnd = handle.ToInt64(), output = client }));
+        IO.File.Move(temporary, request);
+        for (int n = 0; n < 200 && !IO.File.Exists(response); n++) Thread.Sleep(100);
+        if (!IO.File.Exists(response)) throw new InvalidOperationException("WPF capture hook timed out after 20 seconds");
+        using var metadata = JsonDocument.Parse(IO.File.ReadAllText(response));
+        if (metadata.RootElement.TryGetProperty("error", out var error)) throw new InvalidOperationException(error.GetString());
+        double ratio = metadata.RootElement.GetProperty("nonWhiteRatio").GetDouble();
+        IO.File.Copy(response, stem + ".wpf.json", overwrite: false);
+        if (!GetClientRect(handle, out var rect)) throw new InvalidOperationException("GetClientRect failed");
+        var point = new NativePoint(); if (!ClientToScreen(handle, ref point)) throw new InvalidOperationException("ClientToScreen failed");
+        using var content = new Bitmap(client);
+        if (Math.Abs(content.Width - (rect.Right - rect.Left)) > 2 || Math.Abs(content.Height - (rect.Bottom - rect.Top)) > 2)
+            throw new InvalidOperationException($"WPF/Win32 size mismatch: capture={content.Size}, client={rect.Right}x{rect.Bottom}");
+        using (var g = Graphics.FromImage(frame)) g.DrawImageUnscaled(content, point.X - windowBounds.X, point.Y - windowBounds.Y);
+        frame.Save(stem + ".window.png", ImageFormat.Png);
+        return ratio;
+    }
+    static double NonWhiteRatio(Bitmap image)
+    {
+        var bounds = new Rectangle(12, Math.Min(55, image.Height / 4), image.Width - 24, image.Height - Math.Min(55, image.Height / 4) - 12);
+        var data = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        try
+        {
+            byte[] pixels = new byte[Math.Abs(data.Stride) * image.Height]; Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
+            long nonWhite = 0;
+            for (int y = bounds.Top; y < bounds.Bottom; y++) for (int x = bounds.Left; x < bounds.Right; x++)
+            {
+                int p = y * data.Stride + x * 4, alpha = pixels[p + 3];
+                if (255 - (255 - pixels[p]) * alpha / 255 <= 245 || 255 - (255 - pixels[p + 1]) * alpha / 255 <= 245 || 255 - (255 - pixels[p + 2]) * alpha / 255 <= 245) nonWhite++;
+            }
+            return (double)nonWhite / (bounds.Width * (long)bounds.Height);
+        }
+        finally { image.UnlockBits(data); }
+    }
     static readonly System.Collections.Concurrent.ConcurrentQueue<Exception> InvocationErrors = new();
     static readonly List<Task> Invocations = new();
     static readonly object LogLock = new();
@@ -64,11 +113,20 @@ internal static class Program
             var handle = w.Properties.NativeWindowHandle.Value;
             string stem = IO.Path.Combine(evidence, stage + "-" + handle);
             using (var image = new Bitmap(r.Width, r.Height))
-            using (var g = Graphics.FromImage(image)) { var dc = g.GetHdc(); var printed = PrintWindow(handle, dc, 2); g.ReleaseHdc(dc); image.Save(stem + ".print.png", ImageFormat.Png); Note("PRINTWINDOW=" + printed); if (!printed) throw new InvalidOperationException("PrintWindow failed; saved image is not valid visual evidence"); }
+            {
+                using (var g = Graphics.FromImage(image)) { var dc = g.GetHdc(); var printed = PrintWindow(handle, dc, 2); g.ReleaseHdc(dc); Note("PRINTWINDOW(flags=0x2)=" + printed); if (!printed) throw new InvalidOperationException("PrintWindow failed"); }
+                double ratio;
+                if (captureHook && handle == window.Properties.NativeWindowHandle.Value) ratio = CaptureWpf(handle, stem, image, r);
+                else { image.Save(stem + ".print.png", ImageFormat.Png); ratio = NonWhiteRatio(image); }
+                double windowRatio = NonWhiteRatio(image);
+                IO.File.WriteAllText(stem + ".quality.json", JsonSerializer.Serialize(new { flags = 2, method = captureHook && handle == window.Properties.NativeWindowHandle.Value ? "WPF hook" : "PrintWindow", nonWhiteRatio = ratio, windowNonWhiteRatio = windowRatio, threshold = 0.05, accepted = ratio > 0.05 && windowRatio > 0.05 }, Json));
+                Note("CAPTURE_NONWHITE_RATIO=" + ratio.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+                if (ratio <= 0.05 || windowRatio <= 0.05) throw new InvalidOperationException("Capture failed: body nonwhite ratio must exceed 5%");
+            }
             GetWindowThreadProcessId(GetForegroundWindow(), out uint front);
-            if (front == process!.Id)
+            if (!captureHook && front == process!.Id)
             { using var image = new Bitmap(r.Width, r.Height); using var g = Graphics.FromImage(image); g.CopyFromScreen(r.X, r.Y, 0, 0, image.Size); image.Save(stem + ".screen.png", ImageFormat.Png); }
-            else Note("SCREEN_SKIPPED=another process is foreground");
+            else Note(captureHook ? "CAPTURE_METHOD=WPF hook; no foreground change" : "SCREEN_SKIPPED=another process is foreground");
             var rows = new List<object>();
             foreach (var e in new[] { w }.Concat(w.FindAllDescendants())) { try { rows.Add(Dump(e)); } catch (Exception ex) { rows.Add(new { dumpError = ex.Message }); } }
             IO.File.WriteAllText(stem + ".uia.json", JsonSerializer.Serialize(rows, Json));
@@ -96,6 +154,19 @@ internal static class Program
     {
         var d = Dialog(); Note("DIALOG=" + d.Name); Snapshot("dialog-" + DateTime.Now.ToString("HHmmss"));
         IntPtr dialogHandle = d.Properties.NativeWindowHandle.Value;
+        if (captureHook)
+        {
+            var r = d.BoundingRectangle;
+            string stem = IO.Path.Combine(evidence, "native-dialog-" + DateTime.Now.ToString("HHmmssfff") + "-" + dialogHandle);
+            using var image = new Bitmap(r.Width, r.Height, PixelFormat.Format32bppRgb);
+            using (var g = Graphics.FromImage(image)) { var dc = g.GetHdc(); bool ok = PrintWindow(dialogHandle, dc, 2); g.ReleaseHdc(dc); if (!ok) throw new InvalidOperationException("Native dialog PrintWindow failed"); }
+            image.Save(stem + ".dialog.png", ImageFormat.Png);
+            double ratio = NonWhiteRatio(image);
+            IO.File.WriteAllText(stem + ".quality.json", JsonSerializer.Serialize(new { method = "Native dialog PrintWindow", flags = 2, nonWhiteRatio = ratio, threshold = 0.05, accepted = ratio > 0.05 }, Json));
+            IO.File.WriteAllText(stem + ".uia.json", JsonSerializer.Serialize(new[] { d }.Concat(d.FindAllDescendants()).Select(e => { try { return Dump(e); } catch (Exception ex) { return new { dumpError = ex.Message }; } }), Json));
+            Note("NATIVE_DIALOG_NONWHITE_RATIO=" + ratio.ToString("R", System.Globalization.CultureInfo.InvariantCulture));
+            if (ratio <= 0.05) throw new InvalidOperationException("Native dialog capture failed: body nonwhite ratio must exceed 5%");
+        }
         if (d.Name.StartsWith("Save Corrected Image", StringComparison.Ordinal))
         {
             // Preserve the app's suggested unique name. Its source is a copy in this run directory.
@@ -119,6 +190,18 @@ internal static class Program
     [STAThread]
     static int Main(string[] args)
     {
+        SetThreadDpiAwarenessContext(new IntPtr(-4));
+        if (args.Length == 1 && args[0] == "--capture-controls")
+        {
+            using var white = new Bitmap(300, 200);
+            using (var g = Graphics.FromImage(white)) g.Clear(Color.White);
+            using var dark = new Bitmap(300, 200);
+            using (var g = Graphics.FromImage(dark)) g.Clear(Color.FromArgb(255, 20, 20, 20));
+            using var transparent = new Bitmap(300, 200);
+            double w = NonWhiteRatio(white), d = NonWhiteRatio(dark), t = NonWhiteRatio(transparent);
+            Console.WriteLine($"WHITE={w:R} DARK={d:R} TRANSPARENT={t:R} threshold=0.05");
+            return w == 0 && t == 0 && d > 0.05 ? 0 : 1;
+        }
         if (args.Length >= 2 && args[0] == "--display-settings")
         {
             Process.Start(new ProcessStartInfo("ms-settings:display") { UseShellExecute = true });
@@ -154,6 +237,8 @@ internal static class Program
         if (args.Length == 6 && args[0] == "--compare")
         { try { PreCli.Compare(args[1], args[2], args[3], args[4], args[5]); return 0; } catch (Exception ex) { Console.Error.WriteLine("CLI_COMPARISON_ERROR=" + ex.Message); return 1; } }
         string root = IO.Path.GetFullPath(args[0]), run = IO.Path.GetFullPath(args[1]), set = args[2];
+        probeOnly = args.Contains("probe");
+        captureHook = args.Contains("hook");
         expectedDpi = args.Length >= 4 ? int.Parse(args[3], System.Globalization.CultureInfo.InvariantCulture) : 96;
         evidence = IO.Path.Combine(run, set + "-uia3-" + DateTime.Now.ToString("HHmmss")); IO.Directory.CreateDirectory(evidence);
         string exe = IO.Path.Combine(root, "gui/ImageProcTest/bin/x64/RelWithDebInfo/net8.0-windows/ImageProcTest.exe");
@@ -164,6 +249,12 @@ internal static class Program
         var info = new ProcessStartInfo(exe) { UseShellExecute = false, WorkingDirectory = IO.Path.GetDirectoryName(exe)! };
         foreach (var a in new[] { "--automation-backend", "Native", "--automation-settings", settings, "--automation-width", "3072", "--automation-height", "2560" }) info.ArgumentList.Add(a);
         info.Environment["XPE_NATIVE_DIR"] = IO.Path.Combine(root, "build/gui-c255-native/bin"); info.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1"; info.Environment.Remove("XPE_E2E_ALLOW_GLOBAL_INPUT");
+        if (captureHook)
+        {
+            hookDirectory = evidence;
+            info.Environment["DOTNET_STARTUP_HOOKS"] = IO.Path.Combine(root, "clients/ImageProcTest.CaptureHook/bin/RelWithDebInfo/net8.0-windows/ImageProcTest.CaptureHook.dll");
+            info.Environment["XPE_GUI_CAPTURE_DIR"] = evidence;
+        }
         using var uia = new UIA3Automation(); automation = uia;
         try
         {
@@ -171,6 +262,7 @@ internal static class Program
             using var app = FlaUI.Core.Application.Attach(process.Id);
             window = app.GetMainWindow(automation, TimeSpan.FromSeconds(30)); if (window == null) throw new InvalidOperationException("No main window");
             Thread.Sleep(1500); Snapshot("01-launch");
+            if (probeOnly) { Menu("FileMenu", "ExitMenuItem"); process.WaitForExit(10000); return 0; }
             Menu("ViewMenu", "ShowCalibrationPanelMenuItem"); Snapshot("02-calibration-panel");
             foreach (string kind in new[] { "Offset", "Gain", "Defect" }) { Invoke(Id(window, "Browse" + kind + "CalibrationButton")); DialogPath(cal); Snapshot("03-calibration-" + kind); }
             Menu("FileMenu", "OpenRawMenuItem"); DialogPath(raw); Thread.Sleep(3000); Snapshot("04-raw-open");
@@ -185,7 +277,7 @@ internal static class Program
             IO.File.WriteAllText(IO.Path.Combine(evidence, "08-exit.uia.json"), "[]");
             PreCli.Compare(root, cal, raw, saved, evidence); Note("CLI_COMPARISON_WRITTEN"); return 0;
         }
-        catch (Exception ex) { Note("BLOCKED=" + ex); if (window != null) try { Snapshot("99-blocked"); } catch (Exception se) { Note("SNAPSHOT_ERROR=" + se.Message); } return 1; }
+        catch (Exception ex) { Note("BLOCKED=" + ex); if (window != null && !probeOnly) try { Snapshot("99-blocked"); } catch (Exception se) { Note("SNAPSHOT_ERROR=" + se.Message); } return 1; }
         finally { if (process != null) { if (!process.HasExited) { process.Kill(); process.WaitForExit(5000); } Note("OWNED_PROCESS_REMAINING=" + (process.HasExited ? 0 : 1)); process.Dispose(); } }
     }
 }

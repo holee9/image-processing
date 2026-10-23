@@ -43,3 +43,13 @@ This probe deliberately does not change application behavior, fix display issues
 claim image quality, or replace independent QA. Inspect `flow.log` and the UIA
 status strings as well as the process exit code: optional chain stages may report
 missing DLLs, and Metrics may still contain a placeholder.
+
+GUI-C-255b adds optional arguments after the set: expected DPI (`96` or `144`),
+`hook` to load the test-only WPF capture library, and `probe` to capture one
+initial window without running the processing workflow. Without the hook,
+PrintWindow explicitly uses flags `0x2`. Every capture now checks that its body
+contains more than 5% nonwhite pixels; a blank screenshot makes the run fail.
+`--capture-controls` verifies opaque white and transparent controls score zero
+and an opaque dark control exceeds that threshold. The WPF hook's client bitmap
+and composed full-window image are checked, and native file dialogs get their
+own PNG/quality/UIA records. See the capture-hook README for the rendering scope.
