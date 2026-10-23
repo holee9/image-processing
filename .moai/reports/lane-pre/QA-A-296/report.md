@@ -76,6 +76,8 @@
 
 ### 5.2 2G 대비 일치 (QA-A-294 와 같은 변환: PRE×C/C′, 상자 밖 0, 12800 상한, 반올림) — `evidence/cmp2g_out.txt`
 
+정정 (2026-10-24, QA-A-296-C2): 이 절의 2G 비교 수치(`evidence/cmp2g_out.txt`, `cmp2g_out_final.txt`)는 출력 폴더 `pre-w3072-20261023-1748` 을 읽은 결과다(`cmp2g_out_final.txt` 1행). 1748 과 1727 은 출력 SHA 180쌍이 모두 같으므로(Reviewer `XPE-LEADER-310-180PAIR-AUDIT.md` §2·§3) 수치는 1727 에도 그대로 적용된다.
+
 | 집합 | 옛 PRE 일치율 | 새 PRE 일치율 |
 |---|---:|---:|
 | 정상 | 99.963 % | 99.963 % (같음) |
@@ -158,6 +160,8 @@ MSYS_NO_PATHCONV=1 /c/Windows/System32/cmd.exe /c "D:\workspace-github\xpe-pre\b
 ```
 `tools/b.bat` 는 PATH 를 초기화하고 `vcvars64.bat` 를 부른 뒤 `build/ci-preprocess` 에서 ninja 를 돌린다. 산출물: `build/ci-preprocess/bin/xpe_preprocess.dll`(sha256 8dff1433…78c7), `xpe_common.dll`(56bb73af…41fa4, 변경 없음).
 
+정정 (2026-10-24, QA-A-296-C2): 현재 `build/ci-preprocess/bin/xpe_preprocess.dll` 은 sha256 `1b183c2806d12d07c4739d810818a59aeb027a52093c631fae64c4dc189c24ed`, 링크 2026-10-23 17:42:11 이다(재계산). 위 `8dff1433…78c7` 의 실물과 채취 기록은 찾지 못했다 — **미확인**으로 남기며 오기라고 단정하지 않는다. 현재 DLL 해시는 출력 1727·1748 을 만든 실행에 쓰인 DLL 의 해시가 아니다(실행 당시 DLL 은 미확인). 1b183c28 과 커밋 57ddbd2e 의 연결은 소스 17개의 일치(줄바꿈 정규화)까지만 확인했고, 검증 완료가 아니다.
+
 단위·통합 시험: `cd modules/preprocess && ../../build/ci-preprocess/bin/xpe_preprocess_tests.exe --gtest_brief=1` — 기대: 1373 통과, 3 건너뜀(실데이터), 종료 코드 0. 신규 시험만: `--gtest_filter='Saturation*:DefectLineTest*:ParallelDeterminism*'`. 실데이터 3개는 `XPE_SAT_2G_RAW`(예: `batch-20261022-1230/in/s0_gf/img/001.raw`), `XPE_SAT_2G_BPM`(`.../s0_gf/BPMap.map`), `XPE_SAT_CYAN_RAW`(`tests/test_data/cyan_test/Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00.raw`), `XPE_SAT_CALDATA6_RAW`(`tests/test_data/CalData_6/bright01.raw`)를 지정하면 돈다. 기대: 12800 / 65535 / 미결정.
 
 ### 10.2 하니스 (QA-A-283 의 `m2_dump_pre` 와 같은 `xpe_preprocess_pipeline_out` 호출)
@@ -212,6 +216,8 @@ cd D:/workspace-github/xpe-pre/build/qa296-work
 | 손상 로드 거부 뒤 상태 | (코드 변경 없음) | `ARefusedLoadLeavesTheOutputOfTheEarlierStateUnchanged`: 공개 로더로 유효 세트를 설치해 한 장 처리(포화 화소가 S_out) → 손상 기록 로드 거부 → 같은 입력의 출력이 바이트 동일; 반증: 다른 수준의 유효 파일을 로드하면 출력이 달라진다 |
 
 결과: 전체 `xpe_preprocess_tests` 1373 통과, 3 건너뜀, 종료 코드 0 (`evidence/full9.log`). 180장 재실행(출력 `pre-w3072-20261023-1727` 과 새로 만든 출력이 180장 모두 바이트 동일, 끄기 설정은 옛 출력과 180장 모두 바이트 동일) — §5 수치는 그대로다. 변경 파일 sha256(앞 8자): pipeline.cpp 03d2109e, xpe_calib_generate_gain.cpp e3dfc024, test_saturation.cpp fc137267.
+
+정정 (2026-10-24, QA-A-296-C2): 위 "새로 만든 출력"은 `pre-w3072-20261023-1748` 이다(2G 비교 `evidence/cmp2g_out_final.txt` 1행이 읽은 폴더). Reviewer 의 180쌍 감사(`XPE-LEADER-310-180PAIR-AUDIT.md` §2·§3)에서 1727 과 1748 은 출력 SHA 180쌍이 전부 같고 `config.json`·`runs.txt` 도 같다. 어느 DLL 이 이 두 실행에 로드됐는지는 기록이 없어 **미확인**이다(1727 은 17:27~28, 1748 은 17:48 에 만들어졌고 현재 DLL 의 링크는 17:42:11 이다).
 
 ## 12. 코드 커밋 (QA-A-296-C1, 2026-10-23 22:35)
 
