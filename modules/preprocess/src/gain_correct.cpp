@@ -16,6 +16,8 @@
 #include <vector>
 #include <mutex>
 #include <immintrin.h>
+#include <atomic>
+#include "parallel.hpp"
 #if defined(_MSC_VER)
 #include <intrin.h>
 #endif
@@ -497,8 +499,22 @@ XpeErrorCode xpe_gain_correct_in(
 
         // Validate the whole gain map BEFORE anything is written: a refused map must leave `dst` exactly as the caller
         // gave it (the pass only reads).
-        for (size_t i = 0; i < n; ++i) {
-            if (!is_valid_gain(gainmap[i])) return XPE_ERR_CONFIG_INVALID;
+        // QA-A-296 (Refs #278): eight values a compare, on several threads. xpe_gain_value_valid is
+        // isfinite && > 0 && >= MIN && <= MAX; with MIN > 0 the two ordered compares below are the same set (a NaN fails both,
+        // an infinity fails <= MAX), so the verdict is the one the scalar loop gave.
+        {
+            std::atomic<bool> bad{false};
+            xpe_parallel_chunks(n, size_t{1} << 20, [&](size_t b, size_t e) {
+                const __m256 lo = _mm256_set1_ps(XPE_GAIN_APPLIED_MIN), hi = _mm256_set1_ps(XPE_GAIN_APPLIED_MAX);
+                size_t i = b;
+                for (; i + 8 <= e; i += 8) {
+                    const __m256 v = _mm256_loadu_ps(gainmap + i);
+                    const __m256 ok = _mm256_and_ps(_mm256_cmp_ps(v, lo, _CMP_GE_OQ), _mm256_cmp_ps(v, hi, _CMP_LE_OQ));
+                    if (_mm256_movemask_ps(ok) != 0xFF) { bad.store(true); return; }
+                }
+                for (; i < e; ++i) if (!is_valid_gain(gainmap[i])) { bad.store(true); return; }
+            });
+            if (bad.load()) return XPE_ERR_CONFIG_INVALID;
         }
 
         // QA-A-237b (#245, SRS-CALIB-PERF-002): the reciprocals are computed a block at a time into a small buffer and
@@ -507,26 +523,33 @@ XpeErrorCode xpe_gain_correct_in(
         // output is byte for byte what the plane version wrote. The block is a multiple of 8, so the vector loop of
         // apply_gain_avx2 covers each block exactly and only the last block has a scalar tail.
         // Apply. One path: see the QA-A-72 note where the runtime probe used to be.
-        constexpr size_t kBlock = 8192;   // pixels: 32 KiB of reciprocals, still in cache when the block is applied
-        float reciprocal[kBlock];
+        static constexpr size_t kBlock = 8192;   // pixels: 32 KiB of reciprocals, still in cache when the block is applied
+        const size_t blocks = (n + kBlock - 1) / kBlock;
+        // One block: the reciprocals into a buffer of the calling thread, then the product (QA-A-296: blocks are independent, so
+        // several threads each take some; a pixel's value is `float(pixel) * (1.0f / gain)` whoever computes it).
+        const auto applyBlock = [&](size_t b, bool descending) {
+            float reciprocal[kBlock];
+            const size_t start = b * kBlock;
+            const size_t len = (n - start < kBlock) ? (n - start) : kBlock;
+            for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
+            if (descending) apply_gain_avx2_descending(src + start, reciprocal, dst + start, len);
+            else apply_gain_avx2(src + start, reciprocal, dst + start, static_cast<uint32_t>(len), 1u);
+        };
         if (static_cast<const void*>(src) != static_cast<const void*>(dst)) {
-            for (size_t start = 0; start < n; start += kBlock) {
-                const size_t len = (n - start < kBlock) ? (n - start) : kBlock;
-                for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
-                apply_gain_avx2(src + start, reciprocal, dst + start, static_cast<uint32_t>(len), 1u);
-            }
+            xpe_parallel_chunks(blocks, 16, [&](size_t b0, size_t b1) { for (size_t b = b0; b < b1; ++b) applyBlock(b, false); });
         } else {
             // QA-A-237c (#245): the output float frame is written over the input uint16 frame (the pipeline's working buffer).
-            // Blocks from the end, and the pixels of a block from the end: see apply_gain_avx2_descending for why no input
-            // pixel is overwritten before it is read. Block b writes only bytes that belong to input blocks above b, except
-            // the first block, which overlaps itself and relies on the order inside the block.
-            const size_t blocks = (n + kBlock - 1) / kBlock;
-            for (size_t b = blocks; b-- > 0;) {
-                const size_t start = b * kBlock;
-                const size_t len = (n - start < kBlock) ? (n - start) : kBlock;
-                for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
-                apply_gain_avx2_descending(src + start, reciprocal, dst + start, len);
+            // Float block b occupies the bytes of the uint16 blocks 2b and 2b+1 (and, for b >= 1, nothing of its own input), so a block
+            // may run once blocks 2b and 2b+1 are done. QA-A-296: the blocks are therefore taken in rounds from the top -- the blocks
+            // from ceil(hi/2) to hi - 1 need only blocks that are already done -- and the blocks of one round run on several threads.
+            // Block 0 overlaps its own input and goes last, with the descending kernel (the order inside the block is what makes it safe).
+            size_t hi = blocks;
+            while (hi > 1) {
+                const size_t lo = (hi + 1) / 2;
+                xpe_parallel_chunks(hi - lo, 8, [&](size_t k0, size_t k1) { for (size_t k = k0; k < k1; ++k) applyBlock(lo + k, false); });
+                hi = lo;
             }
+            applyBlock(0, true);
         }
 
         output->format        = XPE_PIXEL_FLOAT32;

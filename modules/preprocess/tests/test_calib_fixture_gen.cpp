@@ -103,6 +103,7 @@ protected:
     }
 
     void TearDown() override {
+        xpe_clear_alerts();   // QA-A-296: a pipeline run with a gain map and no saturation level raises XPE_WARN_SATURATION_UNSET
         std::error_code ec;
         fs::remove_all(root, ec);  // best effort; a leftover temp dir is not a failure
     }

@@ -44,6 +44,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xpe_calib_generate_offset.cpp # T-008: 5-arg generate offset (XCal v1)
     src/xpe_calib_generate_offset_methods.cpp # shared offset generation methods
     src/xpe_calib_generate_gain.cpp  # SWU-1.12: FUNC-026/027 gain generation
+    src/saturation.cpp               # QA-A-296 (#278): detector saturation level (pile-up detection, output rule)
     src/xpe_calib_generate_nonlin_lut.cpp # QA-A-110 (#186): FUNC-006-EXT 6a LUT generation
     src/xpe_calib_load_nonlin_lut.cpp     # QA-A-111 (#186): FUNC-006-EXT 6a LUT load
     # XCal v1 file format helpers (required by load/save/generate functions above)
@@ -497,6 +498,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_poly_policy.cpp
         tests/test_gain_defect_classify.cpp
         tests/test_gain_poly_classify.cpp
+        tests/test_saturation.cpp            # QA-A-296 (#278): detector saturation level (setting, gain-file record, pile-up, output rule)
+        tests/test_defect_lines.cpp          # QA-A-296 (#278): long runs of masked pixels in a version-1 map are interpolated across the line
+        tests/test_parallel_determinism.cpp  # QA-A-296 (#278): the output does not depend on the thread count
         tests/test_defect_fill_interior.cpp
         tests/test_defect_fill_equivalence.cpp
         tests/test_defect_input_finite.cpp
@@ -579,6 +583,7 @@ if(_XPE_BUILD_TESTS)
         src/defect_ext.cpp            # QA-A-254: not exported from the DLL, like the reader and the writer it uses
         src/helpers.cpp               # xpe_interpolate_pixel is not exported from the DLL (QA-A-172)
         src/calib_expiry_check.cpp    # not exported from the DLL: the tests call it with the clock at the boundary (QA-A-241)
+        src/saturation.cpp            # QA-A-296: not exported from the DLL
     )
 
     target_include_directories(xpe_preprocess_tests

@@ -164,6 +164,7 @@ struct EntryMeta {
     bool        hasQuality{false};
     std::shared_ptr<uint32_t[]> gainDefects;   ///< gain only: the pixels classified defective at load (QA-A-211), shared and immutable
     uint32_t    gainDefectCount{0};
+    XpeGainSat  gainSat;   ///< QA-A-296: the saturation record and median of the gain load
     bool        defectOverLimit{false};   ///< defect only: the map was above the density tolerance when it was loaded (QA-A-241e)
     uint64_t    defectMarked{0};          ///< defect only: pixels marked defective
     uint64_t    defectTotal{0};           ///< defect only: pixels in the map
@@ -574,6 +575,7 @@ XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     g_calib.gain_map = std::move(shared);
     g_calib.gain_defect_idx   = meta.gainDefects;   // a hit installs the classification the load made (QA-A-211)
     g_calib.gain_defect_count = meta.gainDefectCount;
+    g_calib.gain_sat          = meta.gainSat;
     g_calib.gain_poly_coeffs.reset();
     g_calib.gain_poly_num_coeffs = 0;
     g_calib.gain_poly_has_range  = false;
@@ -794,6 +796,7 @@ try
         meta.gainConfig = g_calib.gain_config;
         meta.gainDefects     = g_calib.gain_defect_idx;
         meta.gainDefectCount = g_calib.gain_defect_count;
+        meta.gainSat         = g_calib.gain_sat;
         std::memcpy(meta.sessionId, g_calib.gain_session_id, sizeof(meta.sessionId));
     }
 

@@ -533,6 +533,18 @@ struct XpeCalibrationState {
  * Populated by xpe_calib_load_offset / xpe_calib_load_gain / xpe_calib_load_defect_map.
  * ========================================================================= */
 
+/**
+ * QA-A-296 (Refs #278): what the loaded scalar gain file says about the detector's saturation. `known` is false for a
+ * file written before the record existed (and for a polynomial); `determined` is false when the generator found no
+ * pile-up ("undetermined"). (The median of the gain values that gives S_out depends on the defect map as well, so it is not kept
+ * here: xpe_sat_median_for in saturation.cpp computes it per (gain map, defect map) pair.)
+ */
+struct XpeGainSat {
+    bool     known{false};
+    bool     determined{false};
+    uint32_t level{0};
+};
+
 struct CalibrationData {
     // offset_map and defect_map are SHARED so that xpe_offset_correct / xpe_defect_correct can take a
     // reference under the lock and read the map outside it (QA-A-202, #233): a reload in the middle of
@@ -568,6 +580,7 @@ struct CalibrationData {
     XpeCalibQualityMeta gain_quality{};
     bool     gain_has_quality{false};
     std::shared_ptr<const std::vector<uint8_t>> gain_config; // original validated config; same generation as gain state
+    XpeGainSat gain_sat;   // QA-A-296: the saturation record of the config above and the median of gain_map; same generation
 
     // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY coefficients, pixel-major --
     // coefficient j of pixel p lives at [p * gain_poly_num_coeffs + j], which
@@ -656,6 +669,7 @@ struct CalibSnapshot {
     std::shared_ptr<float[]>   gain_map;           ///< the scalar plane; null while a polynomial is loaded
     std::shared_ptr<uint32_t[]> gain_defect_idx;   ///< scalar map: ascending indices of the pixels classified defective at load (QA-A-211); null when none
     uint32_t gain_defect_count{0};
+    XpeGainSat gain_sat;                           ///< QA-A-296: the file's saturation record and the scalar plane's median
     std::shared_ptr<float[]>   gain_poly_coeffs;   ///< pixel-major coefficient planes; null for a scalar map
     uint32_t gain_poly_num_coeffs{0};
     bool     gain_poly_has_range{false};
@@ -690,10 +704,26 @@ XpeErrorCode xpe_offset_correct_in(const CalibSnapshot& calib, const XpeImageBuf
 XpeErrorCode xpe_gain_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                  XpeImageBuffer* output, const XpeImageMetadata* metadata,
                                  std::vector<uint32_t>* frame_defects = nullptr);
+/**
+ * QA-A-296 (Refs #278): how a version-1 defect map's long runs of masked pixels are corrected. A run of at least `minRun`
+ * masked pixels along a row (or a column) is a line defect and is interpolated linearly across the line from the nearest
+ * valid pixels on both sides (the same rule as a version-2 file's line layer); every other masked pixel is corrected as before.
+ * The members' defaults are the pipeline's: rows off, columns off (the minimum run and the rule were chosen and judged on the same data;
+ * a default needs an independent check first), minRun 8.
+ * A call that passes nullptr gets the correction as it was before QA-A-296 (no line handling): the single-stage entry points
+ * xpe_defect_correct / xpe_defect_correct_ex keep their output byte for byte.
+ */
+struct XpeDefectLineOptions {
+    bool     rows{false};
+    bool     cols{false};
+    uint32_t minRun{8};
+};
+
 XpeErrorCode xpe_defect_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                    XpeImageBuffer* output, const XpeImageMetadata* metadata,
                                    const std::vector<uint32_t>* frame_defects = nullptr,
-                                   XpeDefectCorrectionReport* report = nullptr, std::vector<uint8_t>* low_confidence = nullptr);
+                                   XpeDefectCorrectionReport* report = nullptr, std::vector<uint8_t>* low_confidence = nullptr,
+                                   const XpeDefectLineOptions* line_options = nullptr);
 
 /* =========================================================================
  * Staged calibration loads (QA-A-202c, #233 / Codex #27 A1)
@@ -739,6 +769,7 @@ struct StagedGain {
     double   doseHi{-1.0};
     bool     rangePresent{false};
     bool     rangeUsable{false};
+    XpeGainSat sat;   ///< QA-A-296: scalar maps only
 };
 
 struct StagedDefect {

@@ -104,6 +104,8 @@ protected:
     }
 
     void TearDown() override {
+        // QA-A-296: a pipeline run with a gain map and no saturation level raises XPE_WARN_SATURATION_UNSET; leave the queue as found.
+        xpe_clear_alerts();
         xpe_preprocess_shutdown();
         fs::remove_all(tmpDir);
     }
@@ -264,7 +266,8 @@ TEST_F(PipelineExTest, PipelineExNullStateSkipsCalibration) {
     const char* config = "{\"bypassReadout\":true,\"bypassTemp\":true,"
                           "\"bypassNonlinearity\":true,\"bypassBinning\":true,"
                           "\"bypassGhost\":true,\"bypassOffset\":true,"
-                          "\"bypassGain\":true,\"bypassDefect\":true}";
+                          "\"bypassGain\":true,\"bypassDefect\":true,"
+                          "\"saturationLevel\":\"off\"}";   // QA-A-296: this case counts alerts; saturation handling is not what it is about
     xpe_clear_alerts();
     XpeErrorCode rc = xpe_preprocess_pipeline_ex(&img, &meta, nullptr, nullptr, config);
     EXPECT_EQ(XPE_OK, rc);

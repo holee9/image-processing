@@ -30,6 +30,7 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xcal_writer.hpp"
 #include "xcal_reader.hpp"
+#include "saturation.hpp"
 
 #include <cstring>
 #include <cmath>
@@ -363,6 +364,62 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain(
         meta[sizeof(meta) - 1] = '\0';
 
         std::string config_json = meta;
+
+        // QA-A-296 (Refs #278): the detector's saturation level, found from the pile-up at the top of the histogram of
+        // the flat frames (the raw frames, known defect pixels left out). A frame set with no frame exposed to saturation
+        // has no pile-up: the file then says "undetermined" -- a value is never guessed. The thresholds are the defaults of
+        // XpeSatParams, tuned on 2G data only; the caller's metadata (top-level numbers saturation_min_count_frac,
+        // saturation_min_ratio, saturation_max_above_frac) overrides them, and "saturation_detection":"off" skips the record.
+        {
+            XpeSatParams sp;
+            bool detect = true;
+            if (metadata_json != nullptr && metadata_json[0] != '\0') {
+                XpeConfigDoc md;
+                // QA-A-296 (D4): metadata that is not one valid JSON object without a repeated member name is a refusal, and nothing is written
+                if (xpe_config_parse(metadata_json, &md) != XPE_OK) return XPE_ERR_CONFIG_INVALID;
+                {
+                    // a key that is absent keeps the documented default; a key that is present must be a number in range (QA-A-296: no silent fallback)
+                    double v = 0.0;
+                    std::string t;
+                    bool q = false;
+                    if (md.find("saturation_min_count_frac")) { if (!md.getNumber("saturation_min_count_frac", &v) || !(v > 0.0 && v <= 1.0)) return XPE_ERR_CONFIG_INVALID; sp.minCountFrac = v; }
+                    if (md.find("saturation_min_ratio")) { if (!md.getNumber("saturation_min_ratio", &v) || !(v >= 1.0)) return XPE_ERR_CONFIG_INVALID; sp.minRatio = v; }
+                    if (md.find("saturation_max_above_frac")) { if (!md.getNumber("saturation_max_above_frac", &v) || !(v >= 0.0 && v <= 1.0)) return XPE_ERR_CONFIG_INVALID; sp.maxAboveFrac = v; }
+                    if (md.find("saturation_detection")) { if (!md.getString("saturation_detection", &t, &q) || !q || t != "off") return XPE_ERR_CONFIG_INVALID; detect = false; }
+                }
+            }
+            if (detect) {
+                const CalibSnapshot snap = xpe_calib_snapshot();   // the defect map as one consistent set, not read under a load
+                const uint8_t* excl = (snap.defect_map && snap.defect_width == width && snap.defect_height == height)
+                                          ? snap.defect_map.get() : nullptr;
+                std::vector<uint32_t> hist(XPE_SAT_BINS);
+                uint32_t used = 0;
+                bool conflict = false;
+                uint32_t level = 0;
+                for (int32_t i = 0; i < num_frames; ++i) {
+                    std::fill(hist.begin(), hist.end(), 0u);
+                    uint64_t counted = 0;
+                    xpe_sat_histogram(static_cast<const uint16_t*>(flat_frames[i].data), width, height, 1u, excl,
+                                      hist.data(), &counted);
+                    uint32_t lv = 0;
+                    uint64_t cnt = 0;
+                    if (!xpe_sat_find_pile(hist.data(), counted, sp, &lv, &cnt)) continue;
+                    if (used > 0 && lv != level) conflict = true;
+                    level = lv;
+                    ++used;
+                }
+                const bool determined = used > 0 && !conflict;
+                xpe_sat_record_append_json(&config_json, determined, determined ? level : 0u, sp, used,
+                                           static_cast<uint32_t>(num_frames));
+                if (!determined) {
+                    xpe_alert_push(conflict
+                        ? "XPE_WARN_SATURATION_UNDETERMINED: the flat frames pile up at different raw values; the gain calibration records the saturation level as undetermined"
+                        : "XPE_WARN_SATURATION_UNDETERMINED: no flat frame shows a pile-up at the top of its histogram (no frame was exposed to saturation); the gain calibration records the saturation level as undetermined",
+                        XPE_ALERT_INFO);
+                }
+            }
+        }
+
         if (metadata_json != nullptr && metadata_json[0] != '\0') {
             // The caller's metadata used to BE the whole config JSON. It is
             // nested rather than merged so it survives verbatim whatever shape
