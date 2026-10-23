@@ -1,0 +1,7 @@
+"""QA-A-252h: the cost of an efficiency-loss pixel per dose group from the measured quantum gain (kappa 0.3475, readout variance 61.8, QA-A-252f/252g truth.json), against the mean gain-corrected ratio the detector statistic gave on the efficiency-loss line pixels (15_diag_overlap.out.txt). The model: variance of the planted pixel = kappa r s + r^2 v0 (signal x r, quantum variance x r, readout x r^2), corrected by 1/r^2, against the unplanted expectation kappa s + v0."""
+kappa, v0 = 0.347514, 61.8234
+sig = [3007.9, 6222.0, 9744.1, 19397.8, 30938.0]
+obs = {0.3: [3.93, 3.82, 3.75, 3.82, 3.89], 0.4: [2.77, 2.69, 2.69, 2.71, 2.77], 0.44: [2.40, 2.43, 2.35, 2.36, 2.38], 0.46: [2.49, 2.47, 2.39, 2.44, 2.49], 0.6: [1.88, 1.89, 1.86, 1.88, 1.88], 0.7: [1.51, 1.48, 1.50, 1.53, 1.55]}
+for r, o in obs.items():
+    m = [(kappa * s / r + v0) / (kappa * s + v0) for s in sig]
+    print('r=%.2f model %s | observed %s | observed - model %s | mean ratio observed / model %.3f' % (r, ' '.join('%.2f' % v for v in m), ' '.join('%.2f' % v for v in o), ' '.join('%+.2f' % (a - b) for a, b in zip(o, m)), sum(o) / sum(m)))

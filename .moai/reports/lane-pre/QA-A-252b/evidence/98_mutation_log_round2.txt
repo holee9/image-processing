@@ -1,0 +1,20 @@
+QA-A-252b mutation check of the revised detector (src/xpe_bpm_v2.cpp). Source hash at the start: 46e02f0b18ef20f9
+Tests: Partial=APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap Varying=AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect Gain=AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn
+  BrightNoise=NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature; the others are the QA-A-252 tests
+ROUND 2 (round 1 left two gaps, W1 and W6 stayed green; added tests: a raised row segment for the additive component, a stronger column offset for the bright-noise means)
+PREDICTIONS (written before this run):
+  W1 row/column component from the line itself again -> red: ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature only (slope and flat field use the multiplicative path)
+  W6 bright noise without the row/column means of the frame -> red: AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect only
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 13 passed, failed: []
+--- W1
+build: BUILD_EXIT=0
+tests exit 1: 12 passed, FAILED: ['ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature']
+--- W6
+build: BUILD_EXIT=0
+tests exit 1: 12 passed, FAILED: ['AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect']
+--- restored: touch + rebuild
+source hash now: 46e02f0b18ef20f9 (start: 46e02f0b18ef20f9)
+build: BUILD_EXIT=0
+tests exit 0: 13 passed, failed: []

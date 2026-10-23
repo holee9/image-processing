@@ -1,0 +1,122 @@
+"""QA-A-252g step 2 tests: the effective degrees of freedom from blocks, the exposure normalisation of the truth path (default) against --raw-frames, the 13-column noise truth, and the
+regression control (an input whose frames have the same dose must give the results of before the normalisation)."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''        ASSERT_EQ(10u, c.size()) << line;''', '''        ASSERT_EQ(13u, c.size()) << line;
+        EXPECT_EQ("provisional", c[12]) << "the labels of the noise truth are provisional";''')
+sub('''class BpmEvalQuantumTest : public BpmEvalTest {
+protected:
+    static constexpr double kKappa = 0.30, kV0 = 9.0;''',
+    '''class BpmEvalQuantumTest : public BpmEvalTest {
+protected:
+    static constexpr double kKappa = 0.30, kV0 = 9.0;
+    double evalSpread{0.0};   // the two evaluation frames differ in dose by -evalSpread and +evalSpread (QA-A-252g)''')
+sub('''        for (int k = 0; k < 2; ++k) evals.push_back(frame(9000.0, "Eval_" + std::to_string(k) + ".raw"));''',
+    '''        for (int k = 0; k < 2; ++k) evals.push_back(frame(9000.0 * (1.0 + (k ? evalSpread : -evalSpread)), "Eval_" + std::to_string(k) + ".raw"));''')
+
+marker = 'TEST_F(BpmEvalTest, TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection) {'
+new = r'''TEST(BpmEvalStatsTest, TheEffectiveDegreesOfFreedomFallWhenThePixelsAreCorrelated) {
+    using namespace xpe_bpm_eval;
+    std::mt19937_64 rng(11);
+    std::normal_distribution<double> unit(0.0, 1.0);
+    const size_t n = 4096;
+    std::vector<double> iid(n), smooth(n);
+    for (size_t i = 0; i < n; ++i) {
+        const double z = unit(rng);
+        iid[i] = z * z;   // variance ratios of one degree of freedom
+    }
+    // the same ratios, each averaged with the next 7: correlated along the item, a running mean of 8
+    for (size_t i = 0; i < n; ++i) {
+        double acc = 0.0;
+        for (size_t k = 0; k < 8; ++k) acc += iid[(i + k) % n];
+        smooth[i] = acc / 8.0;
+    }
+    const BlockDof a = blockEffectiveDof(iid, 64), b = blockEffectiveDof(smooth, 64);
+    EXPECT_NEAR(1.0, a.mean, 0.1);
+    EXPECT_LT(std::fabs(a.lag1), 0.1) << "independent pixels";
+    EXPECT_GT(a.dofEff, 0.5 * static_cast<double>(n)) << "independent pixels: about one degree of freedom per pixel (" << a.dofEff << ")";
+    EXPECT_GT(b.lag1, 0.7) << "a running mean of 8 correlates neighbours (0.875)";
+    EXPECT_LT(b.dofEff, 0.3 * static_cast<double>(n)) << "correlated pixels: far fewer than one degree of freedom per pixel (" << b.dofEff << ")";
+    EXPECT_EQ(0.0, blockEffectiveDof(std::vector<double>(100, 1.0), 64).dofEff) << "fewer than four blocks: not determinable";
+}
+
+TEST_F(BpmEvalQuantumTest, NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves) {
+    // the two verification frames differ in dose by 6 %. A pixel that keeps 0.3 of the value keeps 0.3 of that difference while the row and column means carry all of it: without the
+    // exposure taken out the cost of a gain-loss line reads in the hundreds. With it, a gain loss costs 1 and an efficiency loss 3.3.
+    evalSpread = 0.03;
+    makeQuantumFrames();
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    auto run = [&](const char* extra, const char* name) {
+        std::string args = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / name).string() + "\"" + extra;
+        for (const auto& f : darks) args += " --dark \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+        for (const auto& f : evals) args += " --verify \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+        return runCmd(XPE_BPM_EVAL_EXE, args + " > \"" + (root / (std::string(name) + ".log")).string() + "\" 2>&1");
+    };
+    ASSERT_EQ(0, run("", "nc.tsv")) << text(root / "nc.tsv.log");
+    ASSERT_EQ(0, run(" --raw-frames", "nc_raw.tsv")) << text(root / "nc_raw.tsv.log");
+    auto costOf = [&](const char* file, const char* kind, const char* level, std::string* label) {
+        std::ifstream f(root / file);
+        std::string line;
+        std::getline(f, line);
+        while (std::getline(f, line)) {
+            std::vector<std::string> c;
+            std::stringstream ss(line);
+            std::string cell;
+            while (std::getline(ss, cell, '\t')) c.push_back(cell);
+            if (c.size() >= 13 && c[1] == kind && c[2] == "row_full" && c[3] == level) {
+                if (label) *label = c[9];
+                return std::atof(c[6].c_str());
+            }
+        }
+        return -1.0;
+    };
+    std::string labelGain, labelEff;
+    const double gain = costOf("nc.tsv", "gain_loss", "0.3", &labelGain), eff = costOf("nc.tsv", "efficiency_loss", "0.3", &labelEff), gainRaw = costOf("nc_raw.tsv", "gain_loss", "0.3", nullptr);
+    EXPECT_NEAR(1.0, gain, 0.2) << "a gain loss costs 1 once the exposure is out";
+    EXPECT_EQ("normal", labelGain);
+    EXPECT_NEAR(3.33, eff, 0.5);
+    EXPECT_EQ("defect", labelEff);
+    EXPECT_GT(gainRaw, 20.0) << "without the scaling the exposure difference of the two frames reads as a noise of the line";
+}
+
+'''
+assert s.count(marker) == 1
+s = s.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+# the regression control of the detector: an input whose frames have the same dose
+p2 = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s2 = open(p2, encoding='utf-8', newline='').read()
+crlf2 = '\r\n' in s2
+s2 = s2.replace('\r\n', '\n')
+marker2 = 'TEST(BpmV2Test, ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect) {'
+new2 = r'''TEST(BpmV2Test, AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation) {
+    // regression control (QA-A-252g): the frames of every group have the same dose, so the scales are 1 (to the noise of the frame means) and nothing may change. The numbers are the
+    // counts of the detector of QA-A-252f (the exposure normalisation switched off) on the same input.
+    Plant p{};
+    p.brightNoisyPixel = true;
+    Frames f = makeFrames(52, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const uint32_t golden[XPE_BPM_V2_FEATURE_COUNT] = {GOLDEN_FLAGGED};
+    for (int k = 0; k < XPE_BPM_V2_FEATURE_COUNT; ++k) EXPECT_EQ(golden[k], r.rep.flagged[k]) << "feature " << k << " " << describe(r.rep);
+    EXPECT_EQ(static_cast<uint32_t>(GOLDEN_UNION), r.rep.flagged_union) << describe(r.rep);
+    EXPECT_NE(0, r.feat[static_cast<size_t>(kBrightNoisyY) * kW + kBrightNoisyX] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE);
+}
+
+'''
+assert s2.count(marker2) == 1
+s2 = s2.replace(marker2, new2 + marker2)
+open(p2, 'w', encoding='utf-8', newline='').write(s2.replace('\n', '\r\n') if crlf2 else s2)
+print('dof and exposure tests patched (golden numbers still to fill in)')

@@ -1,0 +1,31 @@
+QA-A-253e mutation check of the robust persistence and the union mask (src/xpe_bpm_v2.cpp). Source hash at the start: e5c989b589fcf982
+PREDICTIONS (written before any run):
+  Z30 the dark reference is the mean again (D) instead of the median                      -> red: ABurstInOneDarkFrame... (and maybe NoiseInMostDarkFrames... the 2-of-7 half)
+  Z31 the bright reference is the group mean instead of the median                        -> red: ABurstInOneBrightFrame... only
+  Z32 the mask paints the bounding range of the group for every member                    -> red: TheMaskPaintsTheUnion... only
+  Z33 an untested stretch (persistence -1) is rejected instead of kept                    -> red: ANoisyRowThatCannotBeJudged... only
+  Z34 pairs are left out of the bright judgement (mg < 3)                                 -> red: ABurstInOneBrightFrame... (the four groups of two) only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 19 passed, failed: []
+--- Z30
+build: BUILD_EXIT=0
+tests exit 1: 17 passed, FAILED: ['ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames', 'NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot']
+--- Z31
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup']
+--- Z32
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup']
+--- Z33
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['ANoisyRowThatCannotBeJudgedFrameByFrameIsKeptAndSaysSo']
+--- Z34
+build: BUILD_EXIT=0
+tests exit 1: 18 passed, FAILED: ['ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup']
+--- restored: touch + rebuild
+source hash now: e5c989b589fcf982 (start: e5c989b589fcf982)
+build: BUILD_EXIT=0
+tests exit 0: 19 passed, failed: []
+finished

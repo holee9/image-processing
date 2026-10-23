@@ -1,0 +1,6 @@
+N1_noise_cost_overlaps exit 0
+item truth identical to 252g
+S1_measured exit 0
+S2_measured exit 0
+done
+EXIT=0

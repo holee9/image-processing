@@ -26,6 +26,8 @@
 #include <memory>
 #include <mutex>
 
+struct DefectLayers;   // defect_ext.hpp: the imaging area, the lines and the blobs of a version-2 defect file (QA-A-255)
+
 /* =========================================================================
  * SWU-1.4: GhostCorrectorHandle — opaque handle backing xpe_ghost_create
  * REQ-P1A-085 to REQ-P1A-087
@@ -580,6 +582,7 @@ struct CalibrationData {
     double gain_poly_dose_max{0.0};
 
     std::shared_ptr<uint8_t[]> defect_map;   // shared for the same reason as offset_map
+    std::shared_ptr<const DefectLayers> defect_layers;   // QA-A-255: null for a version-1 file; installed and replaced together with defect_map
     uint32_t defect_width{0};
     uint32_t defect_height{0};
     int64_t  defect_expiry_ms{0};
@@ -651,6 +654,7 @@ struct CalibSnapshot {
     uint32_t gain_height{0};
 
     std::shared_ptr<uint8_t[]> defect_map;
+    std::shared_ptr<const DefectLayers> defect_layers;   // QA-A-255: the frame's layers, from the same moment as defect_map
     uint32_t defect_width{0};
     uint32_t defect_height{0};
 
@@ -677,7 +681,8 @@ XpeErrorCode xpe_gain_correct_in(const CalibSnapshot& calib, const XpeImageBuffe
                                  std::vector<uint32_t>* frame_defects = nullptr);
 XpeErrorCode xpe_defect_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                    XpeImageBuffer* output, const XpeImageMetadata* metadata,
-                                   const std::vector<uint32_t>* frame_defects = nullptr);
+                                   const std::vector<uint32_t>* frame_defects = nullptr,
+                                   XpeDefectCorrectionReport* report = nullptr, std::vector<uint8_t>* low_confidence = nullptr);
 
 /* =========================================================================
  * Staged calibration loads (QA-A-202c, #233 / Codex #27 A1)
@@ -725,6 +730,7 @@ struct StagedGain {
 
 struct StagedDefect {
     std::shared_ptr<uint8_t[]> map;
+    std::shared_ptr<const DefectLayers> layers;   ///< QA-A-255: a version-2 file's layers; null for version 1
     uint32_t width{0};
     uint32_t height{0};
     int64_t  expiryMs{0};

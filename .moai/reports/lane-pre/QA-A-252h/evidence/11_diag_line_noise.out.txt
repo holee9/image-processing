@@ -1,0 +1,143 @@
+groups (frames per group): [3, 3, 6, 3, 3]
+response rc: median 0.99999
+
+(a) replication check, interior pixels: detector 4567, replication 4560, both 4555
+
+(b) pooled statistic T (expected mean 1, tau 4.483)
+  ordinary pixels (no item within 3) pixels   7737222  T mean 1.0092 sd 0.3987  p99.99 3.233  max 22.496  fraction > tau 7.75e-07  flagged 6
+  gain-loss lines, all levels        pixels     64109  T mean 1.0934 sd 0.4649  p99.99 7.075  max 10.129  fraction > tau 7.18e-04  flagged 42
+  gain-loss lines 0.3                pixels     10701  T mean 1.1303 sd 0.4743  p99.99 5.368  max 5.527  fraction > tau 3.74e-04  flagged 4
+  gain-loss lines 0.7 (control)      pixels     10701  T mean 1.0662 sd 0.4403  p99.99 5.792  max 6.046  fraction > tau 5.61e-04  flagged 5
+  efficiency-loss lines 0.6          pixels     10701  T mean 1.8886 sd 0.7931  p99.99 9.072  max 9.517  fraction > tau 6.45e-03  flagged 68
+  efficiency-loss lines 0.7          pixels     10701  T mean 1.5158 sd 0.6254  p99.99 8.117  max 12.789  fraction > tau 6.54e-04  flagged 7
+
+(c) flagged pixels on gain-loss lines and efficiency-loss 0.6 / 0.7 lines: item, x, y, planted r, measured rc, corrGain, ref (mean over groups), vg (mean), ratio per group, T, hits
+  gain/0.3/row_full      x  103 y 2161 r 0.30 rc 0.200 cg 25.00 ref   2391.3 vg    829.6 ratios [2.67, 1.26, 4.11, 9.34, 12.37] T 5.53 hits 4
+  gain/0.3/col_full      x  735 y 2857 r 0.30 rc 0.200 cg 25.00 ref   3286.4 vg    398.0 ratios [7.68, 2.06, 6.84, 4.02, 0.77] T 4.87 hits 4
+  gain/0.3/col_full      x  735 y 3025 r 0.30 rc 0.200 cg 25.00 ref   2244.9 vg    411.8 ratios [20.09, 1.43, 2.56, 0.48, 6.75] T 5.41 hits 3
+  gain/0.3/row_partial   x  480 y 1497 r 0.30 rc 0.200 cg 25.00 ref   4230.8 vg    911.5 ratios [4.92, 2.31, 3.65, 7.86, 5.23] T 4.53 hits 5
+  gain/0.4/col_full      x  807 y 2798 r 0.40 rc 0.200 cg 25.00 ref   2864.7 vg    885.1 ratios [2.05, 9.38, 9.68, 2.17, 10.48] T 7.43 hits 5
+  gain/0.4/col_full      x  807 y 2857 r 0.40 rc 0.240 cg 17.30 ref   2882.7 vg   1399.5 ratios [9.94, 12.02, 10.75, 0.8, 12.24] T 9.52 hits 4
+  gain/0.4/col_partial   x  981 y 2359 r 0.40 rc 0.241 cg 17.20 ref   4442.9 vg   1188.6 ratios [3.24, 0.29, 8.6, 4.38, 4.55] T 5.23 hits 4
+  gain/0.4/row_pair      x 1192 y 1655 r 0.40 rc 0.200 cg 25.00 ref   4991.5 vg    588.9 ratios [0.97, 6.53, 7.34, 3.77, 0.35] T 4.61 hits 3
+  gain/0.4/col_pair      x  555 y  914 r 0.40 rc 0.200 cg 25.00 ref   3923.7 vg    857.2 ratios [4.06, 6.65, 3.27, 5.38, 5.99] T 4.66 hits 5
+  gain/0.44/row_full     x  480 y 1703 r 0.44 rc 0.200 cg 25.00 ref   4714.2 vg    928.9 ratios [23.42, 0.53, 2.87, 6.47, 3.86] T 6.38 hits 4
+  gain/0.44/row_full     x 1192 y 1703 r 0.44 rc 0.200 cg 25.00 ref   5454.3 vg   1114.9 ratios [0.37, 16.26, 4.02, 7.66, 2.19] T 5.62 hits 4
+  gain/0.44/row_full     x 1681 y 1703 r 0.44 rc 0.200 cg 25.00 ref   5495.5 vg   1012.8 ratios [2.5, 5.65, 3.57, 12.3, 0.99] T 4.67 hits 4
+  gain/0.44/row_full     x 1682 y 1703 r 0.44 rc 0.200 cg 25.00 ref   5207.9 vg    871.1 ratios [5.98, 5.78, 3.03, 10.69, 0.5] T 4.70 hits 4
+  gain/0.44/col_full     x 2111 y 2552 r 0.44 rc 0.200 cg 25.00 ref   4479.9 vg   1247.9 ratios [9.16, 18.14, 1.87, 5.53, 7.26] T 6.89 hits 4
+  gain/0.44/row_pair     x 1733 y  189 r 0.44 rc 0.263 cg 14.43 ref   3657.8 vg    634.0 ratios [29.28, 5.62, 2.64, 0.72, 0.25] T 6.54 hits 3
+  gain/0.44/row_pair     x 1733 y  190 r 0.44 rc 0.264 cg 14.32 ref   3774.8 vg   1219.0 ratios [16.03, 3.71, 2.53, 6.86, 3.12] T 5.54 hits 5
+  gain/0.46/row_full     x 2738 y  740 r 0.46 rc 0.200 cg 25.00 ref   3581.3 vg    712.2 ratios [2.17, 6.03, 5.14, 3.45, 5.84] T 4.67 hits 5
+  gain/0.46/col_full     x  435 y 1469 r 0.46 rc 0.202 cg 24.54 ref   4034.8 vg    677.8 ratios [8.0, 1.2, 5.52, 3.13, 4.44] T 4.70 hits 4
+  gain/0.46/col_full     x  435 y 2798 r 0.46 rc 0.212 cg 22.17 ref   3080.0 vg    632.2 ratios [2.18, 7.04, 5.35, 9.24, 1.87] T 5.19 hits 4
+  gain/0.46/col_full     x  435 y 3025 r 0.46 rc 0.202 cg 24.59 ref   2299.5 vg    468.2 ratios [8.23, 0.95, 6.18, 3.24, 6.5] T 5.29 hits 4
+  gain/0.46/col_pair     x 2916 y 1885 r 0.46 rc 0.321 cg 9.68 ref   2980.9 vg   1387.6 ratios [5.45, 3.48, 6.15, 2.43, 5.51] T 4.96 hits 5
+  gain/0.46/col_pair     x 2915 y 2306 r 0.46 rc 0.200 cg 25.00 ref   2959.8 vg   1009.4 ratios [20.99, 2.4, 9.23, 11.54, 6.11] T 9.86 hits 5
+  gain/0.46/col_pair     x 2916 y 2306 r 0.46 rc 0.200 cg 25.00 ref   2916.9 vg   1025.3 ratios [4.47, 1.35, 4.31, 4.27, 15.43] T 5.58 hits 4
+  gain/0.46/col_pair     x 2915 y 2359 r 0.46 rc 0.277 cg 13.02 ref   2782.1 vg   1116.1 ratios [5.89, 3.61, 4.46, 7.04, 4.33] T 4.93 hits 5
+  gain/0.6/row_full      x  135 y 2524 r 0.60 rc 0.421 cg 5.64 ref   3219.2 vg   2718.0 ratios [4.23, 5.24, 4.3, 5.77, 4.17] T 4.64 hits 5
+  gain/0.6/row_full      x 2738 y 2524 r 0.60 rc 0.200 cg 25.00 ref   3136.1 vg   1115.9 ratios [1.03, 3.74, 10.94, 0.82, 15.48] T 7.45 hits 3
+  gain/0.6/row_full      x 2873 y 2524 r 0.60 rc 0.200 cg 25.00 ref   2606.3 vg   1107.1 ratios [2.13, 2.71, 3.64, 8.09, 17.49] T 6.08 hits 5
+  gain/0.6/col_full      x 2645 y  319 r 0.60 rc 0.240 cg 17.40 ref   3473.2 vg    724.2 ratios [1.61, 3.71, 6.05, 8.82, 0.43] T 4.57 hits 3
+  gain/0.6/col_full      x 2645 y 2306 r 0.60 rc 0.200 cg 25.00 ref   3183.5 vg    705.1 ratios [5.82, 8.05, 6.38, 8.32, 2.57] T 6.26 hits 5
+  gain/0.6/row_pair      x 2738 y 2759 r 0.60 rc 0.200 cg 25.00 ref   2851.9 vg    600.2 ratios [5.6, 6.94, 1.75, 8.14, 4.68] T 4.58 hits 4
+  gain/0.6/row_pair      x 2872 y 2759 r 0.60 rc 0.200 cg 25.00 ref   2481.1 vg    678.1 ratios [2.32, 0.04, 2.77, 17.08, 2.81] T 4.49 hits 4
+  gain/0.6/row_pair      x 2510 y 2760 r 0.60 rc 0.240 cg 17.31 ref   3487.2 vg   1892.8 ratios [0.93, 4.23, 7.75, 13.55, 8.74] T 7.21 hits 4
+  gain/0.6/row_pair      x 2738 y 2760 r 0.60 rc 0.200 cg 25.00 ref   2839.3 vg    936.6 ratios [28.1, 5.61, 2.42, 4.31, 11.11] T 8.49 hits 5
+  gain/0.6/row_pair      x 2872 y 2760 r 0.60 rc 0.200 cg 25.00 ref   2460.6 vg   1574.3 ratios [12.24, 2.41, 4.5, 4.96, 34.97] T 10.13 hits 5
+  gain/0.6/row_pair      x 2873 y 2760 r 0.60 rc 0.200 cg 25.00 ref   2460.5 vg    780.3 ratios [10.86, 3.93, 2.4, 6.47, 12.66] T 6.14 hits 5
+  gain/0.6/col_pair      x 1501 y  710 r 0.60 rc 0.275 cg 13.23 ref   4442.1 vg   1537.8 ratios [2.67, 8.55, 8.03, 0.9, 5.34] T 5.78 hits 4
+  gain/0.6/col_pair      x 1502 y  710 r 0.60 rc 0.276 cg 13.16 ref   4337.4 vg   1197.7 ratios [3.2, 5.92, 5.62, 3.81, 2.35] T 4.51 hits 5
+  gain/0.7/row_full      x  701 y  420 r 0.70 rc 0.321 cg 9.72 ref   3556.2 vg   2164.8 ratios [1.19, 7.72, 7.53, 2.6, 7.63] T 5.84 hits 4
+  gain/0.7/row_full      x 2738 y  420 r 0.70 rc 0.210 cg 22.63 ref   2796.3 vg    653.9 ratios [1.61, 6.34, 3.45, 13.45, 0.65] T 4.72 hits 3
+  gain/0.7/col_full      x 2427 y 2306 r 0.70 rc 0.209 cg 22.84 ref   4330.0 vg   1131.5 ratios [17.25, 2.67, 2.87, 5.55, 6.64] T 6.05 hits 5
+  gain/0.7/col_partial   x 2293 y  319 r 0.70 rc 0.281 cg 12.68 ref   4181.0 vg   1818.0 ratios [3.51, 8.31, 1.99, 11.93, 2.64] T 4.83 hits 4
+  gain/0.7/row_pair      x 1192 y  540 r 0.70 rc 0.308 cg 10.51 ref   4472.9 vg   2117.1 ratios [3.92, 7.05, 4.88, 6.59, 2.97] T 5.04 hits 5
+  effi/0.6/row_full      x   30 y 2359 r 1.00 rc 0.596 cg 2.81 ref   2760.0 vg   2715.6 ratios [7.86, 1.42, 6.43, 1.6, 2.33] T 4.51 hits 3
+  effi/0.6/row_full      x   44 y 2359 r 1.00 rc 0.597 cg 2.80 ref   2764.9 vg   8677.0 ratios [2.04, 1.49, 1.76, 17.64, 6.8] T 4.98 hits 3
+  effi/0.6/row_full      x   58 y 2359 r 1.00 rc 0.277 cg 13.06 ref   2246.0 vg   1807.6 ratios [6.62, 0.17, 5.71, 3.48, 21.11] T 7.02 hits 4
+  effi/0.6/row_full      x   59 y 2359 r 1.00 rc 0.276 cg 13.13 ref   2076.7 vg   1634.8 ratios [7.68, 2.06, 3.77, 2.84, 20.5] T 6.54 hits 5
+  effi/0.6/row_full      x  135 y 2359 r 1.00 rc 0.418 cg 5.72 ref   3155.8 vg   1730.9 ratios [0.63, 7.06, 7.88, 0.96, 2.56] T 4.76 hits 3
+  effi/0.6/row_full      x  225 y 2359 r 1.00 rc 0.600 cg 2.78 ref   3091.8 vg   4149.3 ratios [0.09, 6.92, 8.83, 3.4, 1.3] T 5.20 hits 3
+  effi/0.6/row_full      x  278 y 2359 r 1.00 rc 0.602 cg 2.76 ref   3494.5 vg   5561.8 ratios [4.99, 9.59, 2.73, 6.08, 2.5] T 4.61 hits 5
+  effi/0.6/row_full      x  450 y 2359 r 1.00 rc 0.598 cg 2.80 ref   3673.7 vg   7305.1 ratios [9.29, 1.58, 1.59, 9.29, 5.78] T 4.60 hits 3
+  effi/0.6/row_full      x  981 y 2359 r 0.40 rc 0.241 cg 17.20 ref   4442.9 vg   1188.6 ratios [3.24, 0.29, 8.6, 4.38, 4.55] T 5.23 hits 4
+  effi/0.6/row_full      x 1192 y 2359 r 1.00 rc 0.264 cg 14.34 ref   4591.8 vg   2255.4 ratios [0.79, 4.74, 2.5, 9.8, 8.06] T 4.56 hits 4
+  effi/0.6/row_full      x 2329 y 2359 r 1.00 rc 0.603 cg 2.75 ref   4053.9 vg   7243.2 ratios [4.41, 1.64, 4.3, 12.61, 1.05] T 4.69 hits 3
+  effi/0.6/row_full      x 2510 y 2359 r 1.00 rc 0.239 cg 17.48 ref   3835.9 vg   1314.9 ratios [1.82, 4.31, 8.54, 0.13, 8.98] T 5.63 hits 3
+  effi/0.6/row_full      x 2548 y 2359 r 1.00 rc 0.600 cg 2.78 ref   3815.6 vg   5397.6 ratios [1.8, 3.56, 6.65, 4.31, 3.19] T 4.54 hits 4
+  effi/0.6/row_full      x 2713 y 2359 r 1.00 rc 0.598 cg 2.79 ref   3247.1 vg   7343.7 ratios [2.05, 9.87, 2.67, 15.53, 1.86] T 5.54 hits 4
+  effi/0.6/row_full      x 2760 y 2359 r 1.00 rc 0.601 cg 2.77 ref   3462.4 vg   6452.2 ratios [4.27, 2.28, 4.73, 5.84, 5.74] T 4.61 hits 5
+  effi/0.6/row_full      x 2872 y 2359 r 1.00 rc 0.200 cg 25.00 ref   3004.3 vg   1335.5 ratios [1.66, 16.99, 2.81, 10.12, 14.1] T 7.68 hits 4
+  effi/0.6/row_full      x 2873 y 2359 r 1.00 rc 0.200 cg 25.00 ref   2975.8 vg    433.8 ratios [12.16, 2.08, 10.48, 3.22, 1.02] T 6.87 hits 4
+  effi/0.6/row_full      x 2915 y 2359 r 0.46 rc 0.277 cg 13.02 ref   2782.1 vg   1116.1 ratios [5.89, 3.61, 4.46, 7.04, 4.33] T 4.93 hits 5
+  effi/0.6/row_full      x 2979 y 2359 r 1.00 rc 0.301 cg 11.03 ref   2700.2 vg   1249.2 ratios [8.16, 3.47, 3.33, 5.56, 5.35] T 4.75 hits 5
+  effi/0.6/row_full      x 3029 y 2359 r 1.00 rc 0.599 cg 2.78 ref   2722.2 vg   5060.1 ratios [0.92, 1.6, 7.73, 2.57, 7.53] T 4.91 hits 3
+  effi/0.6/col_full      x 3015 y  107 r 1.00 rc 0.600 cg 2.78 ref   2339.4 vg   2111.2 ratios [13.57, 0.92, 5.18, 2.51, 0.46] T 4.68 hits 3
+  effi/0.6/col_full      x 3015 y  213 r 1.00 rc 0.601 cg 2.77 ref   3007.0 vg   4645.5 ratios [12.8, 2.77, 2.59, 0.22, 7.71] T 4.61 hits 4
+  effi/0.6/col_full      x 3015 y  289 r 1.00 rc 0.600 cg 2.78 ref   2670.5 vg   4100.1 ratios [0.58, 3.47, 8.47, 0.34, 5.82] T 4.83 hits 3
+  effi/0.6/col_full      x 3015 y  319 r 1.00 rc 0.239 cg 17.47 ref   3197.5 vg   1538.7 ratios [2.03, 6.6, 5.99, 8.43, 9.91] T 6.46 hits 5
+  effi/0.6/col_full      x 3015 y  550 r 1.00 rc 0.598 cg 2.79 ref   2817.0 vg   2687.3 ratios [2.38, 8.93, 7.36, 0.43, 0.55] T 4.72 hits 3
+  effi/0.6/col_full      x 3015 y  790 r 1.00 rc 0.601 cg 2.77 ref   3079.6 vg   7974.1 ratios [3.16, 3.89, 4.7, 5.25, 10.46] T 5.31 hits 5
+  effi/0.6/col_full      x 3015 y  914 r 1.00 rc 0.241 cg 17.23 ref   3237.3 vg   1738.2 ratios [9.11, 6.23, 9.61, 7.44, 11.27] T 8.94 hits 5
+  effi/0.6/col_full      x 3015 y 1310 r 1.00 rc 0.600 cg 2.78 ref   3083.9 vg   5518.2 ratios [0.9, 16.38, 3.59, 7.38, 1.94] T 5.47 hits 3
+  effi/0.6/col_full      x 3015 y 1350 r 1.00 rc 0.605 cg 2.74 ref   3113.5 vg   5436.9 ratios [6.44, 1.97, 6.27, 0.9, 6.82] T 4.89 hits 3
+  effi/0.6/col_full      x 3015 y 1412 r 1.00 rc 0.601 cg 2.77 ref   3099.0 vg   3993.6 ratios [5.52, 0.05, 7.44, 5.66, 1.78] T 4.86 hits 3
+  effi/0.6/col_full      x 3015 y 1469 r 1.00 rc 0.263 cg 14.41 ref   3357.2 vg   1847.3 ratios [1.9, 2.01, 11.25, 6.03, 9.52] T 7.32 hits 4
+  effi/0.6/col_full      x 3015 y 1471 r 1.00 rc 0.600 cg 2.78 ref   3570.1 vg   6520.1 ratios [0.73, 3.68, 6.85, 4.42, 5.51] T 4.84 hits 4
+  effi/0.6/col_full      x 3015 y 1784 r 1.00 rc 0.604 cg 2.74 ref   3131.8 vg   5229.5 ratios [1.85, 8.06, 4.36, 5.27, 3.9] T 4.61 hits 4
+  effi/0.6/col_full      x 3015 y 2033 r 1.00 rc 0.601 cg 2.77 ref   2893.9 vg   5796.3 ratios [0.48, 1.83, 5.81, 12.14, 3.25] T 4.96 hits 3
+  effi/0.6/col_full      x 3015 y 2180 r 1.00 rc 0.600 cg 2.78 ref   3281.4 vg   4257.0 ratios [9.77, 5.3, 3.78, 0.78, 4.37] T 4.57 hits 4
+  effi/0.6/col_full      x 3015 y 2306 r 1.00 rc 0.200 cg 25.00 ref   2824.8 vg   1469.4 ratios [4.26, 2.45, 7.34, 5.79, 24.78] T 8.56 hits 5
+  effi/0.6/col_full      x 3015 y 2530 r 1.00 rc 0.599 cg 2.79 ref   2566.0 vg   2839.2 ratios [8.45, 6.67, 4.9, 1.18, 2.45] T 4.77 hits 4
+  effi/0.6/col_full      x 3015 y 2642 r 1.00 rc 0.600 cg 2.78 ref   2618.5 vg   6413.8 ratios [5.36, 3.97, 5.46, 16.26, 1.92] T 6.33 hits 4
+  effi/0.6/col_full      x 3015 y 2684 r 1.00 rc 0.599 cg 2.79 ref   2607.7 vg   3054.9 ratios [6.58, 8.3, 4.69, 5.18, 0.29] T 4.93 hits 4
+  effi/0.6/col_full      x 3015 y 2767 r 1.00 rc 0.597 cg 2.80 ref   2492.3 vg   3795.4 ratios [0.53, 15.4, 7.06, 2.36, 3.09] T 6.01 hits 4
+  effi/0.6/row_partial   x  576 y 2857 r 1.00 rc 0.601 cg 2.77 ref   3076.2 vg   7448.9 ratios [1.14, 3.01, 6.56, 0.07, 12.9] T 5.16 hits 3
+  effi/0.6/row_partial   x  704 y 2857 r 1.00 rc 0.600 cg 2.78 ref   3156.6 vg   2643.6 ratios [7.84, 13.89, 2.64, 0.82, 0.25] T 4.52 hits 3
+  effi/0.6/row_partial   x  735 y 2857 r 0.30 rc 0.200 cg 25.00 ref   3286.4 vg    398.0 ratios [7.68, 2.06, 6.84, 4.02, 0.77] T 4.87 hits 4
+  effi/0.6/row_partial   x  807 y 2857 r 0.40 rc 0.240 cg 17.30 ref   2882.7 vg   1399.5 ratios [9.94, 12.02, 10.75, 0.8, 12.24] T 9.52 hits 4
+  effi/0.6/col_partial   x 1733 y  167 r 1.00 rc 0.597 cg 2.80 ref   3704.1 vg   8287.9 ratios [5.24, 11.13, 1.91, 2.16, 9.27] T 5.01 hits 4
+  effi/0.6/col_partial   x 1733 y  189 r 0.44 rc 0.263 cg 14.43 ref   3657.8 vg    634.0 ratios [29.28, 5.62, 2.64, 0.72, 0.25] T 6.54 hits 3
+  effi/0.6/col_partial   x 1733 y  190 r 0.44 rc 0.264 cg 14.32 ref   3774.8 vg   1219.0 ratios [16.03, 3.71, 2.53, 6.86, 3.12] T 5.54 hits 5
+  effi/0.6/col_partial   x 1733 y  235 r 1.00 rc 0.601 cg 2.77 ref   4248.0 vg   8213.8 ratios [0.8, 6.0, 5.45, 3.79, 7.17] T 4.83 hits 4
+  effi/0.6/col_partial   x 1733 y  710 r 1.00 rc 0.276 cg 13.16 ref   5482.4 vg   2579.8 ratios [2.13, 4.98, 8.39, 0.2, 9.18] T 5.76 hits 4
+  effi/0.6/row_pair      x  701 y 2406 r 1.00 rc 0.276 cg 13.09 ref   3434.6 vg   2566.5 ratios [7.09, 4.49, 0.94, 2.0, 22.44] T 5.91 hits 4
+  effi/0.6/row_pair      x  842 y 2406 r 1.00 rc 0.601 cg 2.77 ref   4002.9 vg   4193.0 ratios [12.37, 1.3, 5.12, 0.66, 2.9] T 4.62 hits 3
+  effi/0.6/row_pair      x 1096 y 2406 r 1.00 rc 0.277 cg 13.05 ref   4513.3 vg   1280.8 ratios [11.81, 2.73, 7.1, 4.98, 1.27] T 5.93 hits 4
+  effi/0.6/row_pair      x 1158 y 2406 r 1.00 rc 0.597 cg 2.80 ref   4245.0 vg  11887.4 ratios [0.21, 2.55, 3.12, 6.85, 12.89] T 4.66 hits 4
+  effi/0.6/row_pair      x 1192 y 2406 r 1.00 rc 0.265 cg 14.23 ref   4170.5 vg    919.0 ratios [5.93, 2.57, 7.34, 0.41, 2.99] T 4.65 hits 4
+  effi/0.6/row_pair      x 1096 y 2407 r 1.00 rc 0.276 cg 13.16 ref   4587.9 vg   2177.1 ratios [3.65, 6.43, 7.39, 11.54, 2.37] T 6.53 hits 5
+  effi/0.6/row_pair      x 1250 y 2407 r 1.00 rc 0.603 cg 2.75 ref   4062.9 vg   8288.8 ratios [10.9, 3.02, 3.43, 1.48, 9.83] T 5.20 hits 4
+  effi/0.6/col_pair      x  102 y 1865 r 1.00 rc 0.599 cg 2.79 ref   2959.5 vg   2908.9 ratios [2.52, 4.39, 7.92, 0.62, 1.89] T 4.50 hits 3
+  effi/0.6/col_pair      x  103 y 1873 r 1.00 rc 0.600 cg 2.78 ref   3041.7 vg   5187.1 ratios [14.08, 0.36, 3.88, 1.97, 6.59] T 5.03 hits 3
+  effi/0.6/col_pair      x  102 y 2051 r 1.00 rc 0.601 cg 2.77 ref   2956.6 vg   3792.4 ratios [1.44, 3.66, 8.03, 4.8, 1.59] T 4.86 hits 3
+  effi/0.6/col_pair      x  102 y 2099 r 1.00 rc 0.602 cg 2.76 ref   2972.8 vg   7522.7 ratios [0.83, 5.3, 4.86, 6.15, 9.03] T 5.15 hits 4
+  effi/0.6/col_pair      x  103 y 2147 r 1.00 rc 0.599 cg 2.79 ref   2978.3 vg   7325.3 ratios [3.96, 2.92, 3.91, 21.49, 0.31] T 5.92 hits 4
+  effi/0.6/col_pair      x  103 y 2161 r 0.30 rc 0.200 cg 25.00 ref   2391.3 vg    829.6 ratios [2.67, 1.26, 4.11, 9.34, 12.37] T 5.53 hits 4
+  effi/0.6/col_pair      x  103 y 2191 r 1.00 rc 0.600 cg 2.78 ref   3241.7 vg   3922.5 ratios [4.15, 7.79, 4.95, 5.53, 0.7] T 4.70 hits 4
+  effi/0.6/col_pair      x  102 y 2306 r 1.00 rc 0.200 cg 25.00 ref   3082.9 vg    524.8 ratios [14.58, 4.56, 14.93, 0.04, 2.54] T 9.08 hits 4
+  effi/0.6/col_pair      x  103 y 2306 r 1.00 rc 0.200 cg 25.00 ref   3044.7 vg    759.6 ratios [3.05, 3.92, 8.37, 2.39, 8.84] T 6.02 hits 5D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-252h\evidence\10_diag_line_noise.py.txt:209: RuntimeWarning: All-NaN slice encountered
+  rows[r0:r0 + 96] = np.nanmedian(v, axis=2)[: min(96, H - r0)]
+
+  effi/0.6/col_pair      x  102 y 2353 r 1.00 rc 0.603 cg 2.75 ref   2695.6 vg   5440.3 ratios [1.35, 0.26, 6.89, 9.06, 4.75] T 5.02 hits 3
+  effi/0.6/col_pair      x  103 y 2377 r 1.00 rc 0.599 cg 2.79 ref   2841.9 vg   7500.8 ratios [1.69, 7.28, 2.96, 3.38, 13.7] T 5.15 hits 4
+  effi/0.6/col_pair      x  102 y 2438 r 1.00 rc 0.598 cg 2.79 ref   2677.0 vg   3489.9 ratios [5.59, 1.99, 5.33, 9.01, 0.37] T 4.66 hits 3
+  effi/0.7/row_full      x 2270 y 1885 r 1.00 rc 0.701 cg 2.03 ref   5648.5 vg  17429.2 ratios [7.83, 5.33, 2.38, 4.89, 8.3] T 4.97 hits 5
+  effi/0.7/row_full      x 2738 y 1885 r 1.00 rc 0.210 cg 22.70 ref   3900.9 vg   1225.7 ratios [0.33, 11.4, 10.24, 15.3, 1.68] T 8.35 hits 3
+  effi/0.7/row_full      x 2916 y 1885 r 0.46 rc 0.321 cg 9.68 ref   2980.9 vg   1387.6 ratios [5.45, 3.48, 6.15, 2.43, 5.51] T 4.96 hits 5
+  effi/0.7/col_full      x  135 y 2306 r 1.00 rc 0.210 cg 22.68 ref   3095.0 vg   1363.2 ratios [13.77, 8.96, 17.21, 8.61, 8.75] T 12.79 hits 5
+  effi/0.7/col_full      x  135 y 2359 r 1.00 rc 0.418 cg 5.72 ref   3155.8 vg   1730.9 ratios [0.63, 7.06, 7.88, 0.96, 2.56] T 4.76 hits 3
+  effi/0.7/col_full      x  135 y 2524 r 0.60 rc 0.421 cg 5.64 ref   3219.2 vg   2718.0 ratios [4.23, 5.24, 4.3, 5.77, 4.17] T 4.64 hits 5
+  effi/0.7/row_pair      x 1889 y  789 r 1.00 rc 0.698 cg 2.05 ref   3798.6 vg  11335.7 ratios [3.75, 4.47, 2.23, 10.08, 6.08] T 4.61 hits 5
+  flagged line pixels listed: 117
+
+(d) flagged counts on the gain-loss line pixels (64109 pixels) and on ordinary pixels under each variant
+  baseline (as committed)                       gain-loss lines 42, ordinary 6
+  H2 planted response in the gain correction     gain-loss lines 0, ordinary 6
+  H1 reference from the pixels around the line   gain-loss lines 26, ordinary 6
+  H3 without row / column mean removal           gain-loss lines 39, ordinary 6
+
+mean T on gain-loss line pixels: baseline 1.0934, H2 1.0835, H1 1.0215, H3 1.0784 ; ordinary: 1.0092 1.0092 1.0092 1.0088
+finished

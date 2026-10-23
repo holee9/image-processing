@@ -1,0 +1,25 @@
+[2026-10-17 17:16 KST] QA-A-259 방법과 예측 (구현 전에 기록)
+
+## 변경
+생성 도구 `xpe_calib_fixture_gen` 의 frames 모드가 다크 목록의 첫 장을 **한 곳에서 한 번만** 뺀다. 남은 같은 목록을 offset, 게인의 다크 참조(`--gain-dark-ref mean`), 결함 맵(1판 `xpe_bpm_generate`, 2판 `xpe_bpm_generate_v2` + `xpe_bpm_find_lines`)에 똑같이 쓴다. 2판 호출에는 `skip_first_dark = XPE_BPM_V2_SKIP_NONE`(목록은 이미 정리됨)을 넣어 라이브러리 안의 두 번째 제외를 끈다. 라이브러리 기본값(첫 장 제외)과 평가 도구의 `--skip-first-dark` 는 바꾸지 않는다.
+- 기본: 첫 장 제외. 옵션 `--keep-first-dark`: 제외하지 않는다(목록 전체를 쓴다). 사용자는 첫 장을 포함한 전체 목록을 넣는다.
+- 다크가 1장이면(첫 장 제외 뒤 0장) 명확한 오류로 거부한다(종료 코드 10, 기존 "장 수 부족" 계열). `--keep-first-dark` 와 1장은 기존 최소 장 수 검사(5장)가 맡는다.
+- manifest: `frames.dark`(실제 쓴 장 수) 외에 `dark_policy` 블록 — `first_dark_excluded`, `given`(경로, sha256, 넣은 순서), `used`(경로, sha256), `stages`(offset, gain_dark_reference, defect_map_v1\|v2 가 모두 `used` 를 쓴다는 선언은 하나의 목록으로 둔다: `one_list_for_all_stages: true`). 제외된 장은 inputs 에서 role `dark_excluded_first` 로 남는다.
+
+## 예측 (시험)
+T1 기본(7장 목록)의 offset·gain·defect 세 파일이 `--keep-first-dark` 로 줄 맨 앞 1장을 손으로 뺀 6장 목록을 준 결과와 **바이트 동일**하다(세 단계가 같은 목록을 쓴다는 직접 단언). 1판과 2판 각각.
+T2 기본과 `--keep-first-dark`(같은 7장 목록)는 offset, gain, defect 가 각각 **다르다**(첫 장이 각 단계에 영향을 주는 입력을 쓴다: 첫 장의 평균을 다르게 만든 시험 세트).
+T3 manifest 의 `given` 은 7장, `used` 는 6장이고 `used` 는 `given` 의 두 번째부터다; `--keep-first-dark` 에서는 둘이 같다.
+T4 다크 1장은 종료 코드 10, 메시지에 "first dark" 를 포함하고 출력 폴더에 아무것도 남지 않는다.
+T5 기존 frames 모드 시험은 `--keep-first-dark` 를 붙여 원래 의미(목록 전체 사용)를 그대로 시험한다; 붙이지 않은 기본 동작은 새 시험이 맡는다.
+
+## 반증 (실행해서 빨개져야 하는 것, 결과 전에 기록)
+M1 결함 맵 2판에서 `skip_first_dark` 를 기본값으로 되돌림(옛 동작: 생성기 + 라이브러리 두 번 제외) → T1(2판)이 빨개진다.
+M2 offset 단계만 제외 전 목록 사용 → T1·T3 빨개진다.
+M3 게인 다크 참조 평균만 제외 전 목록 사용 → T1 의 gain 이 빨개진다.
+M4 manifest `used` 에 첫 장 포함 → T3 빨개진다.
+M5 1장 거부 제거 → T4 빨개진다.
+M6 1판 결함 맵만 제외 전 목록 사용 → T1(1판) 빨개진다.
+
+## 실세트 1회 (측정)
+cyan_test 로 `Dark_07~14` 8장 전체 + 게인 `Bright_23~28`(6장) + 결함 맵 `Bright_17~28,31~36`(18장), `--bpm-v2` 와 같은 여백, 기본 설정. 예측: 쓴 다크 = `Dark_08~14` 7장이고 offset sha256 = `5569bacf…`, gain = `a7ddadbd…`(IAP 1.5 의 세트와 같은 7장·같은 평균이므로). defect 의 sha256 은 바뀐다(이전 세트는 도구가 결함 맵에서 한 장을 더 뺀 6장). 참고로 기록: 최대 작업 집합(MiB), 입력 장 수, 해상도, 종료 코드.

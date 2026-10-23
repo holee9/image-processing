@@ -1,0 +1,3 @@
+R1_gen1 exit 0
+R2_gen2 exit 0
+done

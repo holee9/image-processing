@@ -1,0 +1,8 @@
+start 2026-10-16 18:30:34  M2_planted
+xpe_bpm_generate_v2: 7 darks used, 18 brights in 5 dose groups, 104262 defect pixels (union of the features) -> D:/workspace-github/xpe-data/bpm-eval-251/v2_planted.u8
+  dark_mean       active 1  threshold 5.3162  local scale median 2.75381  flagged 3004
+  dark_noise      active 1  threshold 7.2018  local scale median 9.53108  flagged 18935
+  dose_slope      active 1  threshold 5.3162  local scale median 0.0031343  flagged 78403
+  dose_linearity  active 1  threshold 5.1886  local scale median 1.00105  flagged 9155
+  flat_field      active 1  threshold 5.3162  local scale median 0.00260179  flagged 80245
+exit 0 wall seconds 19

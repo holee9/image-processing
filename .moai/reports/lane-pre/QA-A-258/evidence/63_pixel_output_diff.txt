@@ -1,0 +1,12 @@
+feature bits: pixels that differ (old -> new flagged counts)
+  dark mean        old    2478 new    2478  differ      0  (new only 0, old only 0)
+  dark noise       old   13568 new   13568  differ      0  (new only 0, old only 0)
+  dose slope       old       0 new       0  differ      0  (new only 0, old only 0)
+  dose linearity   old    9206 new    9206  differ      0  (new only 0, old only 0)
+  flat response    old   83281 new   83281  differ      0  (new only 0, old only 0)
+  bright noise     old    3154 new    3163  differ      9  (new only 9, old only 0)
+line mask: old 146606 new 144453, removed 2157, added 4
+pixel map without lines: old 108607 new 108610, differ 3
+differing feature pixels: 9; of them within 8 rows/columns of a removed line pixel: 9
+differing feature pixels away from every removed line: 0
+bits of the differing pixels (xor): dark mean 0, dark noise 0, dose slope 0, dose linearity 0, flat response 0, bright noise 9

@@ -1,0 +1,12 @@
+7 pixel sets
+median chi2/nu per group [0.693, 0.693, 0.8703, 0.693, 0.693]
+set                            n | median of: response g | corrected ratio per group (5) | pooled/13 | groups>=2
+gain_loss 0.3                 24 | g 0.300 | 74.39 0.67 1.04 2.97 1.32 | pooled 12.63 | persist>=3: 8 of 24, pooled>4.48: 24
+gain_loss 0.46                24 | g 0.460 | 20.67 0.38 1.14 1.11 0.41 | pooled 4.08 | persist>=3: 1 of 24, pooled>4.48: 8
+gain_loss 0.7                 24 | g 0.700 | 3.20 0.68 1.04 1.12 0.58 | pooled 1.41 | persist>=3: 2 of 24, pooled>4.48: 0
+efficiency_loss 0.3           24 | g 0.300 | 67.22 2.82 3.36 5.50 2.85 | pooled 14.64 | persist>=3: 23 of 24, pooled>4.48: 24
+efficiency_loss 0.46          24 | g 0.461 | 21.22 1.36 1.79 2.22 2.04 | pooled 5.89 | persist>=3: 17 of 24, pooled>4.48: 18
+efficiency_loss 0.7           24 | g 0.700 | 2.27 0.97 1.55 1.09 0.76 | pooled 1.66 | persist>=3: 3 of 24, pooled>4.48: 0
+normal -                      24 | g 1.001 | 1.04 0.72 0.96 0.95 0.78 | pooled 1.08 | persist>=3: 2 of 24, pooled>4.48: 0
+raw (uncorrected) variance ratio per group, median over the pixels of gain_loss 0.3: 6.716 0.061 0.093 0.268 0.118
+raw (uncorrected) variance ratio per group, median over the pixels of normal -: 1.041 0.720 0.965 0.956 0.782

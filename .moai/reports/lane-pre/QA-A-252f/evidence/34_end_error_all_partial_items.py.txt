@@ -1,0 +1,37 @@
+"""QA-A-252f: how far do the reported stretches of the planted partial lines (768 long, 1 or 2 wide) reach beyond the planted ends?
+For every non-control line item with a 768-long rectangle, the group of the same orientation whose index is inside the item and whose range overlaps it is taken from the
+lines list of the QA-A-252e planted run; start error = item start - group start (positive: the group starts early), end error = group end - item end (positive: late).
+The group range is the bounding range of its members (one member per cause), so an error is an upper bound of the error of any single member."""
+import statistics as st
+T = 'D:/workspace-github/xpe-data/bpm-eval-252e/inj_c/truth.tsv'
+G = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252e/evidence/67_lines_planted.tsv.txt'
+items = []
+for l in open(T, encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit() and p[1] == 'line':
+        for r in p[5].split(';'):
+            x, y, w, h = map(int, r.split(','))
+            if max(w, h) == 768 and min(w, h) <= 2:
+                items.append((int(p[0]), p[2], p[3], p[4], 'row' if w > h else 'column', y if w > h else x, (x if w > h else y), 768, min(w, h)))
+groups = []
+for l in list(open(G, encoding='utf-8'))[1:]:
+    p = l.rstrip('\n').split('\t')
+    groups.append((p[0], int(p[1]), int(p[2]), int(p[3]), int(p[4]), int(p[5])))
+rows = []
+for it in items:
+    iid, kind, shape, lv, ori, idx, a, ln, wd = it
+    b = a + ln
+    hit = [g for g in groups if g[0] == ori and idx <= g[1] + 0 <= idx + wd - 1 + 0 and g[3] < b and g[4] > a]
+    hit = [g for g in groups if g[0] == ori and idx - 1 <= g[1] <= idx + wd and g[3] < b and g[4] >= a]
+    if not hit:
+        rows.append((iid, kind, shape, lv, None, None, None)); continue
+    g = max(hit, key=lambda t: min(t[4], b) - max(t[3], a))
+    rows.append((iid, kind, shape, lv, a - g[3], g[4] - b + 0, g[5]))
+print('%-3s %-16s %-12s %-5s %-9s %-9s %s' % ('id', 'kind', 'shape', 'level', 'start err', 'end err', 'causes'))
+for r in rows: print('%-3d %-16s %-12s %-5s %-9s %-9s %s' % (r[0], r[1], r[2], r[3], r[4], r[5], r[6]))
+ok = [r for r in rows if r[4] is not None]
+print('items', len(rows), 'found', len(ok))
+for name, sel in (('all found', ok), ('efficiency_loss', [r for r in ok if r[1] == 'efficiency_loss']), ('other kinds', [r for r in ok if r[1] != 'efficiency_loss'])):
+    if not sel: continue
+    s = [r[4] for r in sel]; e = [r[5] for r in sel]
+    print('%-16s n=%d  start error median %s max %s | end error median %s max %s | |error|>=20: %d' % (name, len(sel), st.median(s), max(s), st.median(e), max(e), sum(1 for r in sel if abs(r[4]) >= 20 or abs(r[5]) >= 20)))

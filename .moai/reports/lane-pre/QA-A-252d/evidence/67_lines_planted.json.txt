@@ -1,0 +1,6 @@
+{
+  "groups": 60, "row_groups": 30, "column_groups": 30, "full": 23, "partial": 37, "double": 15, "crossings": 266,
+  "max_adjacent": 2, "panel_reject": 0, "truncated": 0, "line_pixels": 107693, "pixels": 9406485, "weak_response_stretches": 25,
+  "unconfirmed": 0, "dark_frames_raw": 7, "dark_frames_valid": 7, "bright_frames_raw": 18, "bright_frames_valid": 18,
+  "null_width": [3.308, 2.057, 1.454, 1.460, 1.700, 1.719]
+}

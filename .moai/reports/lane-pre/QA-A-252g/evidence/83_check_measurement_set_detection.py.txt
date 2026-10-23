@@ -1,0 +1,9 @@
+"""QA-A-252g: detection probability of the pixel check on the dose groups of the QA-A-252f measurement set (3, 3, 6, 3, 3 frames) at pixel costs 2.5, 3 and 4 (tau = 4.483, half of the groups at ratio >= 2)."""
+import numpy as np
+rng = np.random.default_rng(2519)
+nus = np.array([2, 2, 5, 2, 2], dtype=float)
+N = 4_000_000
+for rho in (2.5, 3.0, 4.0):
+    chi = np.stack([rng.chisquare(v, N) / v for v in nus], axis=1) * rho
+    pooled = (chi * nus).sum(axis=1) / nus.sum()
+    print('rho %.1f  detection probability %.3f' % (rho, ((pooled > 4.483) & (2 * (chi >= 2.0).sum(axis=1) >= 5)).mean()))

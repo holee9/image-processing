@@ -1,0 +1,18 @@
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/src/defect_correct.cpp'
+TITLE = 'QA-A-255b mutation check (src/defect_correct.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255b/evidence/21_mutation_log.txt'
+FILT = 'LowConfidenceTest.*:DefectCorrectV2Test.*'
+PRED = [
+    '  M1 markLowGroups is no longer called                                  -> red: both crossing tests (R1, R2), the edge test, AGroupOfThreeLines... ; v1 contract test and the rest green',
+    '  M2 the region is counted for every marked pixel, not once per group    -> red: the tests that assert the region count (R1, R2, edge, AGroupOfThreeLines...)',
+    '  M3 pixels outside the imaging area are marked too                      -> red: the edge test only',
+    '  M4 a REJECT-only group (width below 3) is no longer low               -> red: ASingleLineWhoseCorrectionMethodIsRejectIsLowToo only (that test is added before this run; the earlier plan listed this as a gap)',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('M1', SRC, b'        markLowGroups(pass);\n', b'        (void)&markLowGroups;\n'),
+    ('M2', SRC, b'                markLow(c, idx);\n                any = true;\n            }\n        if (any) ++c.rep->low_confidence_regions;', b'                markLow(c, idx);\n                ++c.rep->low_confidence_regions;\n                any = true;\n            }\n        if (c.rep == nullptr && any) ++c.rep->low_confidence_regions;'),
+    ('M3', SRC, b'if (!c.ms->test(idx) || !inArea(*c.layers, idx)) continue;\n                markLow(c, idx);', b'if (!c.ms->test(idx)) continue;\n                markLow(c, idx);'),
+    ('M4', SRC, b'if (!((L.width >= 3u) || (L.correction == XPE_DEFECT_LINE_CORRECT_REJECT))) continue;', b'if (!(L.width >= 3u)) continue;'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

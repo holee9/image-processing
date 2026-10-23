@@ -1,0 +1,12 @@
+--- planted frames: G = 5 dose groups, mean slope of column 807 / median of columns 797..817 = 1.1713
+planted column 807: mean e +0.268 (median +0.345), neighbour sigma 1.043, mean clipped z per pixel +0.260, window statistic: mean +2.09 sd 1.21 max 6.35 at y(frame) 2020..2084; windows above 6.5 (= 4.5 x 1.445): 0
+planted column 801: mean e -0.115 (median -0.030), neighbour sigma 1.048, mean clipped z per pixel -0.105, window statistic: mean -0.83 sd 1.15 max 2.47 at y(frame) 2928..2992; windows above 6.5 (= 4.5 x 1.445): 0
+planted column 813: mean e -0.099 (median -0.037), neighbour sigma 1.043, mean clipped z per pixel -0.090, window statistic: mean -0.75 sd 1.08 max 2.05 at y(frame) 1632..1696; windows above 6.5 (= 4.5 x 1.445): 0
+planted column 795: mean e -0.111 (median -0.054), neighbour sigma 1.074, mean clipped z per pixel -0.096, window statistic: mean -0.77 sd 1.03 max 1.83 at y(frame) 242..306; windows above 6.5 (= 4.5 x 1.445): 0
+planted column 819: mean e -0.132 (median -0.007), neighbour sigma 1.100, mean clipped z per pixel -0.114, window statistic: mean -0.93 sd 0.99 max 3.07 at y(frame) 2824..2888; windows above 6.5 (= 4.5 x 1.445): 0
+--- clean frames: G = 5 dose groups, mean slope of column 807 / median of columns 797..817 = 0.9771
+clean column 807: mean e -0.099 (median -0.024), neighbour sigma 1.047, mean clipped z per pixel -0.088, window statistic: mean -0.69 sd 1.19 max 3.59 at y(frame) 2032..2096; windows above 6.5 (= 4.5 x 1.445): 0
+clean column 801: mean e -0.095 (median -0.007), neighbour sigma 1.056, mean clipped z per pixel -0.085, window statistic: mean -0.67 sd 1.15 max 2.60 at y(frame) 2927..2991; windows above 6.5 (= 4.5 x 1.445): 0
+clean column 813: mean e -0.076 (median -0.014), neighbour sigma 1.051, mean clipped z per pixel -0.069, window statistic: mean -0.58 sd 1.05 max 2.18 at y(frame) 1632..1696; windows above 6.5 (= 4.5 x 1.445): 0
+clean column 795: mean e -0.112 (median -0.051), neighbour sigma 1.046, mean clipped z per pixel -0.098, window statistic: mean -0.79 sd 1.07 max 1.93 at y(frame) 242..306; windows above 6.5 (= 4.5 x 1.445): 0
+clean column 819: mean e -0.135 (median -0.005), neighbour sigma 1.062, mean clipped z per pixel -0.119, window statistic: mean -0.98 sd 1.01 max 3.08 at y(frame) 2824..2888; windows above 6.5 (= 4.5 x 1.445): 0

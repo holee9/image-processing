@@ -1,0 +1,2 @@
+correct-time 3072 x 3072, 9 runs: median 4.93 ms, min 4.52 ms, max 6.53 ms
+  layers_used 0, isolated 0, blob 0, line 0 (groups 0, one-sided 0), low_confidence 0 px in 0 regions, unfilled 0, out_of_area 0

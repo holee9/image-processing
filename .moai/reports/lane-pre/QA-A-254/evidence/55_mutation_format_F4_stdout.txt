@@ -1,0 +1,22 @@
+QA-A-254 mutation check of the XCal defect file version 2 (src/defect_ext.cpp, src/xcal_validator.cpp). Source hash at the start: cc513ba88af344e8
+PREDICTIONS (written before any run):
+  (F1..F3, F5, F6 of the first run are in 51_mutation_format_log.txt; F4 was GREEN there: the OFFSET test only counted one alert. The test now reads the alert text.)
+  F1 the segment range checks of a line record are removed            -> red: ASegmentOutsideItsLineIsRefused only
+  F2 the declared extension length is not compared with the payload   -> red: TheDeclaredExtensionLengthMustMatchThePayload only
+  F3 the imaging-area plane is not checked for values other than 0, 1 -> red: TheImagingAreaPlaneHoldsZeroAndOneOnly only
+  F4 the validator accepts version 2 for every type                   -> red: XCalValidatorTest.BadVersion_ReturnsConfigInvalid only
+  F5 the length pre-check of a file never reports a short file        -> red: ATruncatedFileIsRefusedAndTheAlertSaysItEndsEarly only
+  F6 the extension encoder does not validate the geometry             -> red: ASegmentOutsideItsLineIsRefused and TheWriterRefusesARecordOutsideTheGeometryAndWritesNothing
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 38 passed, failed: []
+--- F4
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['BadVersion_ReturnsConfigInvalid']
+--- F4
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['BadVersion_ReturnsConfigInvalid']
+--- restored: touch + rebuild
+source hash now: cc513ba88af344e8 (start: cc513ba88af344e8)
+build: BUILD_EXIT=0

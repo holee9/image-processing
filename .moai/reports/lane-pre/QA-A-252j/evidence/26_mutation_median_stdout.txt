@@ -1,0 +1,21 @@
+QA-A-252j mutation check of the excluding median (src/xpe_bpm_v2.cpp). Source hash at the start: d5f0dcea985c60dc
+PREDICTIONS (written before any run):
+  Y1 a window with no admissible pixel takes 0 instead of the ordinary median -> red: AWindowWithNoAdmissiblePixel... only
+  Y2 the exclusion mask is ignored (every pixel is used)                      -> red: AWindowWithNoAdmissiblePixel... and TheLocalExpectation... (both)
+  Y3 the empty-row marker (NaN) is not skipped in the second pass             -> red: AWindowWithNoAdmissiblePixel... only
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 3 passed, failed: []
+--- Y1
+build: BUILD_EXIT=1
+does not compile: the tests are not run
+--- Y2
+build: BUILD_EXIT=1
+does not compile: the tests are not run
+--- Y3
+build: BUILD_EXIT=0
+tests exit 1: 2 passed, FAILED: ['AWindowWithNoAdmissiblePixelTakesTheOrdinaryMedianAndExcludedPixelsLeaveTheWindow']
+--- restored: touch + rebuild
+source hash now: d5f0dcea985c60dc (start: d5f0dcea985c60dc)
+build: BUILD_EXIT=0

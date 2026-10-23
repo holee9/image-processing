@@ -1,0 +1,35 @@
+new false alarms (recomputed): 222  (score said 222)
+  from the pixel detector map alone: 12  from the line mask only: 210
+  of the line-only part: pixels also in the clean map are excluded already by the definition
+line-only new false alarms by category:
+  end overhang, start side                                76
+  end overhang, end side                                  69
+  group without a planted line (unmatched)                65
+overhang distances beyond the truth end (pixels): count by distance
+  end overhang, start side {3: 32, 4: 32, 5: 9, 6: 3}
+  end overhang, end side {3: 34, 4: 28, 5: 7}
+unmatched groups: {'unmatched column807': 65}
+groups with line-only new false alarms, per matched planted line:
+  12 ('noisy', 'row_pair', '2', 'row', 1008, 425, 1203, 'truth', (431, 1008, 768, 2))
+  10 ('nonlinear', 'row_pair', '0.2', 'row', 2034, 1297, 2074, 'truth', (1301, 2034, 768, 2))
+  10 ('noisy', 'col_pair', '2', 'column', 162, 1543, 2320, 'truth', (162, 1547, 2, 768))
+  10 ('nonlinear', 'col_pair', '0.4', 'column', 1320, 42, 819, 'truth', (1320, 46, 2, 768))
+  10 ('nonlinear', 'col_pair', '0.2', 'column', 1758, 1109, 1886, 'truth', (1758, 1114, 2, 768))
+  8 ('nonlinear', 'row_pair', '0.4', 'row', 1366, 1413, 2189, 'truth', (1417, 1366, 768, 2))
+  8 ('dead', 'row_pair', '1', 'row', 1802, 1715, 2491, 'truth', (1719, 1802, 768, 2))
+  8 ('noisy', 'row_pair', '4', 'row', 2245, 2040, 2816, 'truth', (2045, 2245, 768, 2))
+  8 ('noisy', 'col_pair', '4', 'column', 260, 346, 1122, 'truth', (260, 351, 2, 768))
+  8 ('dead', 'col_pair', '1', 'column', 926, 36, 812, 'truth', (926, 40, 2, 768))
+  8 ('dead', 'col_pair', '0.5', 'column', 2979, 1810, 2586, 'truth', (2979, 1814, 2, 768))
+  5 ('noisy', 'col_partial', '4', 'column', 1902, 984, 1761, 'truth', (1902, 990, 1, 768))
+  4 ('dead', 'row_pair', '0.5', 'row', 240, 926, 1702, 'truth', (930, 240, 768, 2))
+  4 ('dead', 'row_partial', '1', 'row', 977, 1188, 1964, 'truth', (1192, 977, 768, 1))
+  4 ('nonlinear', 'row_partial', '0.4', 'row', 1613, 1667, 2443, 'truth', (1671, 1613, 768, 1))
+  4 ('nonlinear', 'row_partial', '0.2', 'row', 1859, 2100, 2876, 'truth', (2104, 1859, 768, 1))
+  4 ('dead', 'row_partial', '0.5', 'row', 2649, 1528, 2304, 'truth', (1532, 2649, 768, 1))
+  4 ('nonlinear', 'col_partial', '0.4', 'column', 675, 1947, 2723, 'truth', (675, 1951, 1, 768))
+  4 ('dead', 'col_partial', '1', 'column', 1123, 2246, 3022, 'truth', (1123, 2250, 1, 768))
+  4 ('dead', 'col_partial', '0.5', 'column', 1960, 1850, 2626, 'truth', (1960, 1854, 1, 768))
+  3 ('noisy', 'row_partial', '4', 'row', 2916, 188, 963, 'truth', (190, 2916, 768, 1))
+  3 ('nonlinear', 'col_partial', '0.2', 'column', 2328, 534, 1309, 'truth', (2328, 538, 1, 768))
+  2 ('noisy', 'row_partial', '2', 'row', 366, 1018, 1791, 'truth', (1022, 366, 768, 1))

@@ -1,0 +1,23 @@
+Note: Google Test filter = BpmEvalTest.*
+[==========] Running 7 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 7 tests from BpmEvalTest
+[ RUN      ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed
+[       OK ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed (1057 ms)
+[ RUN      ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules
+[       OK ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules (325 ms)
+[ RUN      ] BpmEvalTest.InjectActsAsTheSpecSays
+[       OK ] BpmEvalTest.InjectActsAsTheSpecSays (607 ms)
+[ RUN      ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne
+[       OK ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne (414 ms)
+[ RUN      ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement
+[       OK ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement (393 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged (343 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex
+[       OK ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex (92378 ms)
+[----------] 7 tests from BpmEvalTest (95520 ms total)
+
+[----------] Global test environment tear-down
+[==========] 7 tests from 1 test suite ran. (95520 ms total)
+[  PASSED  ] 7 tests.

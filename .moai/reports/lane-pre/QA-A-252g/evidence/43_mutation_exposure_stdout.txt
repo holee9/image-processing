@@ -1,0 +1,18 @@
+QA-A-252g mutation check of the exposure normalisation (src/xpe_bpm_v2.cpp). Source hash at the start: 59870a0340f1130a
+PREDICTIONS (written before any run):
+  E1 no scaling of the frames (frameScale = 1: the behaviour of QA-A-252f)        -> red: TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup only
+  E3 the group mean of the scaled frames is formed without the scale               -> red: TheNoiseCostIgnoresTheExposureVariation... only (the deviations keep the dose difference)
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 44 passed, failed: []
+--- E1
+build: BUILD_EXIT=0
+tests exit 1: 43 passed, FAILED: ['TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup']
+--- E3
+build: BUILD_EXIT=0
+tests exit 0: 44 passed, FAILED: []
+--- restored: touch + rebuild
+source hash now: 59870a0340f1130a (start: 59870a0340f1130a)
+build: BUILD_EXIT=0
+finished

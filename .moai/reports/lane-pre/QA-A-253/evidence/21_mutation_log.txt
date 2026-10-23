@@ -1,0 +1,48 @@
+QA-A-253 mutation check of the line detector and the blobs (src/xpe_bpm_v2.cpp). Source hash (detector + tool) at the start: 78a466b0408b829d
+Tests: Full=AFullDeadRowAndColumn... GainBand=ALineWhoseCorrectionWouldRaiseTheNoise... Partial=APartialLineIsFound... Adjacent=TwoAdjacentLines... Noisy=ARowWithMoreTemporalNoise...
+  Pixel=ASingleDeadPixelOrASmallBlock... Margins=LinesInsideTheMarginsAreNotCounted Config=ConfigurationAndBuffersAreChecked Blobs=BlobsGroupNeighbouringDefectivePixels...
+PREDICTIONS (written before any run):
+  Z1 the response tolerance gate removed (every significant response stretch is a defect)   -> red: GainBand only
+  Z2 panel rejection from four adjacent lines instead of three                              -> red: Adjacent only
+  Z3 a stretch is never called full                                                         -> red: Full only
+  Z4 the per-pixel cut at +-3 removed (one outlier can make a stretch)                      -> red: Pixel (and maybe more)
+  Z5 stretch coordinates not shifted back by the margins                                    -> red: Margins only
+  Z6 the ends of a stretch are not trimmed                                                  -> unsure: Partial red if the window overshoot exceeds 8 pixels, else green (reported either way)
+  Z7 the noise magnitude gate removed                                                       -> green (no test has a noise stretch under the tolerance): a test gap, to be reported and closed
+  Z8 blobs with 4-neighbourhood instead of 8                                               -> red: Blobs only
+  Z9 crossings not marked                                                                   -> red: Full only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 9 passed, failed: []
+--- Z1
+build: BUILD_EXIT=0
+tests exit 1: 2 passed, FAILED: ['AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross', 'ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot', 'APartialLineIsFoundWithItsStartAndEnd', 'ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine', 'ASingleDeadPixelOrASmallBlockIsNotALine', 'LinesInsideTheMarginsAreNotCounted', 'TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection']
+--- Z2
+build: BUILD_EXIT=0
+tests exit 1: 8 passed, FAILED: ['TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection']
+--- Z3
+build: BUILD_EXIT=0
+tests exit 1: 8 passed, FAILED: ['AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross']
+--- Z4
+build: BUILD_EXIT=0
+tests exit 1: 8 passed, FAILED: ['ASingleDeadPixelOrASmallBlockIsNotALine']
+--- Z5
+build: BUILD_EXIT=0
+tests exit 1: 8 passed, FAILED: ['LinesInsideTheMarginsAreNotCounted']
+--- Z6
+build: BUILD_EXIT=0
+tests exit 1: 8 passed, FAILED: ['APartialLineIsFoundWithItsStartAndEnd']
+--- Z7
+build: BUILD_EXIT=0
+tests exit 1: 2 passed, FAILED: ['AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross', 'ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot', 'APartialLineIsFoundWithItsStartAndEnd', 'ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine', 'ASingleDeadPixelOrASmallBlockIsNotALine', 'LinesInsideTheMarginsAreNotCounted', 'TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection']
+--- Z8
+build: BUILD_EXIT=0
+tests exit 1: 8 passed, FAILED: ['BlobsGroupNeighbouringDefectivePixelsWithTheirSize']
+--- Z9
+build: BUILD_EXIT=0
+tests exit 1: 8 passed, FAILED: ['AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross']
+--- restored: touch + rebuild
+source hash now: 78a466b0408b829d (start: 78a466b0408b829d)
+build: BUILD_EXIT=0
+tests exit 0: 9 passed, failed: []

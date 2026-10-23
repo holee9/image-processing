@@ -7,6 +7,7 @@
 
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
+#include "defect_ext.hpp"
 #include <memory>
 #include <mutex>
 #include <new>
@@ -396,6 +397,241 @@ float median_filter_cluster(const float* pixels, const MaskSet& ms,
     return values[mid];
 }
 
+
+// QA-A-255 (SRS-CALIB-FUNC-039): the correction of a frame whose defect file carries its layers. Everything is READ from `src` (valid pixels) or from `dst` (pixels this pass filled, blobs only), so the result
+// is the same for an in-place call. The pixels outside the imaging area are in the mask set (no source) and are never written.
+constexpr int kLineReach = 8;   // how far across a line group a valid pixel is looked for
+
+struct LayerPass {
+    const float*               src;
+    float*                     dst;
+    const MaskSet*             ms;
+    const DefectLayers*        layers;
+    Grid                       grid;
+    std::vector<bool>*         visited;   // by MaskSet slot: corrected, or taken into a cluster
+    std::vector<uint8_t>*      cstate;    // by MaskSet slot: 0 not in the blob, 1 pending, 2 queued, 3 filled
+    FillDistance*              fd;
+    std::vector<float>*        scratch;
+    XpeDefectCorrectionReport* rep;
+    std::vector<uint8_t>*      low;       // by pixel: 1 = low confidence (may be empty = not wanted)
+};
+
+inline bool inArea(const DefectLayers& L, size_t idx) { return L.area.empty() || L.area[idx] != 0; }
+
+struct AcrossHit {
+    float value;
+    int   pos;
+    bool  ok;
+};
+
+// Where findAcross looks: along y (alongY) or x, at the fixed other coordinate, from `start` going `dir` (-1 / +1). A struct, so that the two
+// integers and the flag/coordinate pair cannot be swapped at a call site.
+struct AcrossRay {
+    bool     alongY;
+    uint32_t fixedCoord;
+    int      start;
+    int      dir;
+};
+
+// The nearest valid pixel along the ray.
+AcrossHit findAcross(const LayerPass& c, const AcrossRay& ray)
+{
+    const bool alongY = ray.alongY;
+    const uint32_t fixedCoord = ray.fixedCoord;
+    const int start = ray.start, dir = ray.dir;
+    const int limit = static_cast<int>(alongY ? c.grid.height : c.grid.width);
+    for (int k = 0; k < kLineReach; ++k) {
+        const int pos = start + dir * k;
+        if (pos < 0 || pos >= limit) break;
+        const size_t idx = alongY ? static_cast<size_t>(pos) * c.grid.width + fixedCoord : static_cast<size_t>(fixedCoord) * c.grid.width + static_cast<size_t>(pos);
+        if (!c.ms->test(idx)) return AcrossHit{c.src[idx], pos, true};
+    }
+    return AcrossHit{0.0f, 0, false};
+}
+
+void markLow(LayerPass& c, size_t idx)
+{
+    if (!c.low->empty() && (*c.low)[idx] == 0) {
+        (*c.low)[idx] = 1;
+        ++c.rep->low_confidence_pixels;
+    }
+}
+
+// QA-A-255b (Codex #223): a pixel of a line group of three or more lines, or of a group whose correction is REJECT, is low confidence by what it IS, not by how it was corrected. The state is set here, for
+// every pixel of every such group, before any correction path runs, so a pixel the line stage skips (no valid pixel across it) or that another stage takes first keeps it.
+void markLowGroups(LayerPass& c)
+{
+    for (const DefectExtLine& L : c.layers->lines) {
+        if (!((L.width >= 3u) || (L.correction == XPE_DEFECT_LINE_CORRECT_REJECT))) continue;
+        const bool rowLine = (L.orientation == 0);
+        bool       any = false;
+        for (const DefectExtSegment& sg : L.segments)
+            for (uint32_t p = sg.start; p < sg.end; ++p) {
+                const uint32_t x = rowLine ? p : sg.line, y = rowLine ? sg.line : p;
+                if (x >= c.grid.width || y >= c.grid.height) continue;
+                const size_t idx = static_cast<size_t>(y) * c.grid.width + x;
+                if (!c.ms->test(idx) || !inArea(*c.layers, idx)) continue;
+                markLow(c, idx);
+                any = true;
+            }
+        if (any) ++c.rep->low_confidence_regions;
+    }
+}
+
+void correctLines(LayerPass& c)
+{
+    const uint32_t W = c.grid.width;
+    for (uint32_t orientation = 0; orientation < 2; ++orientation) {
+        const bool rowLine = (orientation == 0);   // a row line is crossed along y
+        for (const DefectExtLine& L : c.layers->lines) {
+            if (L.orientation != orientation || L.segments.empty()) continue;
+            const int  first = static_cast<int>(L.index), last = static_cast<int>(L.index + L.width) - 1;
+            bool       any = false;
+            for (const DefectExtSegment& sg : L.segments) {
+                for (uint32_t p = sg.start; p < sg.end; ++p) {
+                    const uint32_t x = rowLine ? p : sg.line, y = rowLine ? sg.line : p;
+                    if (x >= c.grid.width || y >= c.grid.height) continue;
+                    const size_t idx = static_cast<size_t>(y) * W + x;
+                    if (!c.ms->test(idx) || !inArea(*c.layers, idx)) continue;
+                    const size_t slot = c.ms->slot(idx);
+                    if ((*c.visited)[slot]) continue;
+                    const uint32_t fixedCoord = rowLine ? x : y;
+                    const AcrossHit a = findAcross(c, AcrossRay{rowLine, fixedCoord, first - 1, -1});
+                    const AcrossHit b = findAcross(c, AcrossRay{rowLine, fixedCoord, last + 1, +1});
+                    if (!a.ok && !b.ok) continue;   // no valid pixel across: the blob stage fills it from what is around
+                    float v;
+                    if (a.ok && b.ok) {
+                        const double coord = rowLine ? y : x;
+                        v = static_cast<float>(static_cast<double>(a.value) + (static_cast<double>(b.value) - static_cast<double>(a.value)) * (coord - a.pos) / static_cast<double>(b.pos - a.pos));
+                    } else {
+                        v = a.ok ? a.value : b.value;
+                        ++c.rep->one_sided_line_pixels;
+                    }
+                    c.dst[idx] = v;
+                    (*c.visited)[slot] = true;
+                    ++c.rep->line_pixels;
+                    any = true;
+                }
+            }
+            if (any) ++c.rep->line_groups;
+        }
+    }
+}
+
+// The median of the usable neighbours of the pixel `idx` (row-major index): valid pixels, and pixels of this blob that are already filled.
+bool peelValue(LayerPass& c, uint32_t idx, float* out)
+{
+    const uint32_t W = c.grid.width, H = c.grid.height;
+    const uint32_t x = idx % W, y = idx / W;
+    float          vals[8];
+    int            count = 0;
+    for (int dy = -1; dy <= 1; ++dy)
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            const int nx = static_cast<int>(x) + dx, ny = static_cast<int>(y) + dy;
+            if (nx < 0 || ny < 0 || static_cast<uint32_t>(nx) >= W || static_cast<uint32_t>(ny) >= H) continue;
+            const size_t j = static_cast<size_t>(ny) * W + static_cast<uint32_t>(nx);
+            if (!c.ms->test(j) || (*c.cstate)[c.ms->slot(j)] == 3) vals[count++] = c.dst[j];
+        }
+    if (count == 0) return false;
+    std::nth_element(vals, vals + count / 2, vals + count);
+    *out = vals[count / 2];
+    return true;
+}
+
+// A blob of two or more pixels, filled from the outside in (see the header of this patch). `cluster` holds its pixels.
+void fillBlob(LayerPass& c, const std::vector<uint32_t>& cluster)
+{
+    const uint32_t W = c.grid.width, H = c.grid.height;
+    for (uint32_t idx : cluster) (*c.cstate)[c.ms->slot(idx)] = 1;
+    std::vector<uint32_t> frontier, next;
+    std::vector<float>    values;
+    float                 probe;
+    for (uint32_t idx : cluster)
+        if (peelValue(c, idx, &probe)) {
+            frontier.push_back(idx);
+            (*c.cstate)[c.ms->slot(idx)] = 2;
+        }
+    while (!frontier.empty()) {
+        values.assign(frontier.size(), 0.0f);
+        for (size_t k = 0; k < frontier.size(); ++k) peelValue(c, frontier[k], &values[k]);   // from the state before this layer
+        for (size_t k = 0; k < frontier.size(); ++k) {
+            c.dst[frontier[k]] = values[k];
+            (*c.cstate)[c.ms->slot(frontier[k])] = 3;
+            ++c.rep->blob_pixels;
+        }
+        next.clear();
+        for (uint32_t idx : frontier) {
+            const int x = static_cast<int>(idx % W), y = static_cast<int>(idx / W);
+            for (int dy = -1; dy <= 1; ++dy)
+                for (int dx = -1; dx <= 1; ++dx) {
+                    if (dx == 0 && dy == 0) continue;
+                    const int nx = x + dx, ny = y + dy;
+                    if (nx < 0 || ny < 0 || static_cast<uint32_t>(nx) >= W || static_cast<uint32_t>(ny) >= H) continue;
+                    const size_t j = static_cast<size_t>(ny) * W + static_cast<uint32_t>(nx);
+                    if (!c.ms->test(j)) continue;
+                    uint8_t& st = (*c.cstate)[c.ms->slot(j)];
+                    if (st == 1) {
+                        st = 2;
+                        next.push_back(static_cast<uint32_t>(j));
+                    }
+                }
+        }
+        frontier.swap(next);
+    }
+    bool anyLow = false;
+    for (uint32_t idx : cluster) {
+        uint8_t& st = (*c.cstate)[c.ms->slot(idx)];
+        if (st == 1) {   // no chain of neighbours reaches it: the ring fill of the first edition, marked
+            bool found = true;
+            c.dst[idx] = median_filter_cluster(c.src, *c.ms, idx % W, idx / W, W, H, *c.fd, *c.scratch, &found);
+            if (!found) ++c.rep->unfilled_pixels;
+            else ++c.rep->blob_pixels;
+            markLow(c, idx);
+            anyLow = true;
+        }
+    }
+    if (anyLow) ++c.rep->low_confidence_regions;
+    for (uint32_t idx : cluster) (*c.cstate)[c.ms->slot(idx)] = 0;
+}
+
+void correctBlobs(LayerPass& c)
+{
+    const uint32_t W = c.grid.width, H = c.grid.height;
+    c.ms->forEach([&](size_t idx) {
+        const size_t slot = c.ms->slot(idx);
+        if ((*c.visited)[slot] || !inArea(*c.layers, idx)) return;
+        std::vector<uint32_t> cluster;
+        std::queue<uint32_t>  q;
+        q.push(static_cast<uint32_t>(idx));
+        (*c.visited)[slot] = true;
+        while (!q.empty()) {
+            const uint32_t cur = q.front();
+            q.pop();
+            cluster.push_back(cur);
+            const int cx = static_cast<int>(cur % W), cy = static_cast<int>(cur / W);
+            static const int dx[4] = {-1, 1, 0, 0}, dy[4] = {0, 0, -1, 1};
+            for (int k = 0; k < 4; ++k) {
+                const int nx = cx + dx[k], ny = cy + dy[k];
+                if (nx < 0 || ny < 0 || static_cast<uint32_t>(nx) >= W || static_cast<uint32_t>(ny) >= H) continue;
+                const size_t j = static_cast<size_t>(ny) * W + static_cast<uint32_t>(nx);
+                if (!c.ms->test(j) || !inArea(*c.layers, j)) continue;
+                const size_t js = c.ms->slot(j);
+                if ((*c.visited)[js]) continue;
+                (*c.visited)[js] = true;
+                q.push(static_cast<uint32_t>(j));
+            }
+        }
+        if (cluster.size() == 1u) {
+            const MaskSet& ms = *c.ms;
+            c.dst[idx] = xpe_interpolate_pixel_masked(c.src, [&](size_t i) { return ms.test(i); }, static_cast<uint32_t>(idx % W), static_cast<uint32_t>(idx / W), W, H);
+            ++c.rep->isolated_pixels;
+        } else {
+            fillBlob(c, cluster);
+        }
+    });
+}
+
 } // anonymous namespace
 
 // @MX:ANCHOR: [AUTO] xpe_defect_correct — public API entry point (new g_calib-based)
@@ -406,8 +642,14 @@ XpeErrorCode xpe_defect_correct_in(
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
     const XpeImageMetadata* metadata,
-    const std::vector<uint32_t>* frame_defects) try
+    const std::vector<uint32_t>* frame_defects,
+    XpeDefectCorrectionReport* report,
+    std::vector<uint8_t>*   low_confidence) try
 {
+    if (report) {
+        *report = XpeDefectCorrectionReport{};
+        report->size = static_cast<uint32_t>(sizeof(XpeDefectCorrectionReport));
+    }
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
     if (input->format != XPE_PIXEL_FLOAT32) return XPE_ERR_UNSUPPORTED_FORMAT;
@@ -557,13 +799,24 @@ XpeErrorCode xpe_defect_correct_in(
             extraCount = extraOwn.size();
         }
     }
+    // QA-A-255: a version-2 map's layers. The pixels outside the imaging area join the mask set (so that no fill reads them) but are never written.
+    const DefectLayers* const layers = (calib.defect_layers && calib.defect_layers->width == W && calib.defect_layers->height == H) ? calib.defect_layers.get() : nullptr;
+    const size_t outsideN = layers ? layers->outside : 0u;
+    std::vector<uint8_t> maskPlane;
+    const uint8_t*       maskBase = dm;
+    if (layers && outsideN > 0) {
+        maskPlane.assign(dm, dm + n);
+        for (size_t i = 0; i < n; ++i)
+            if (layers->area[i] == 0) maskPlane[i] = 1;
+        maskBase = maskPlane.data();
+    }
     MaskSet maskSet;
-    maskSet.build(dm, n, extra, extraCount);
+    maskSet.build(maskBase, n, extra, extraCount);
     extraOwn = std::vector<uint32_t>();   // built into the set
 
     if (addsToMap) {
         // D1: the union is above the density SRS-CALIB-FUNC-003 tolerates -> ONE warning for the frame, never a refusal.
-        const size_t u = maskSet.count();
+        const size_t u = maskSet.count() - outsideN;
         if (static_cast<double>(u) > XPE_GAIN_DEFECT_MAX_FRACTION * static_cast<double>(n)) {
             char msg[320];
             std::snprintf(msg, sizeof(msg),
@@ -585,7 +838,12 @@ XpeErrorCode xpe_defect_correct_in(
         std::memcpy(dst, src, n * sizeof(float));
     }
 
-    const bool hasDefects = maskSet.count() > 0;
+    const bool hasDefects = maskSet.count() > outsideN;
+    if (low_confidence) low_confidence->assign(layers ? n : 0u, 0);
+    if (report && layers) {
+        report->layers_used = 1u;
+        report->out_of_area_pixels = static_cast<uint32_t>(outsideN);
+    }
     if (!hasDefects) {
         output->format        = XPE_PIXEL_FLOAT32;
         output->bitsAllocated = 32u;
@@ -626,6 +884,45 @@ XpeErrorCode xpe_defect_correct_in(
     // solid 3x3 block that forces the ring fallback -- and compares
     // element-wise, so that change goes red instead of quiet.
     const float* const source = src;
+
+    if (layers) {   // QA-A-255: the second edition: lines, blobs, imaging area
+        XpeDefectCorrectionReport localReport{};
+        std::vector<bool>         visitedL(maskSet.slots(), false);
+        std::vector<uint8_t>      cstate(maskSet.slots(), 0);
+        FillDistance              fdL;
+        std::vector<float>        scratch;
+        scratch.reserve(8u * static_cast<size_t>(kFillMaxRadius));
+        std::vector<uint8_t>      lowLocal;
+        std::vector<uint8_t>&     lowPlane = low_confidence ? *low_confidence : lowLocal;
+        if (lowPlane.empty()) lowPlane.assign(n, 0);
+        LayerPass pass{source, dst, &maskSet, layers, Grid{W, H}, &visitedL, &cstate, &fdL, &scratch, report ? report : &localReport, &lowPlane};
+        markLowGroups(pass);
+        correctLines(pass);
+        correctBlobs(pass);
+        if (!low_confidence) lowLocal.clear();
+        const XpeDefectCorrectionReport& rr = report ? *report : localReport;
+        if (rr.low_confidence_pixels > 0) {
+            char msg[320];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_WARN_DEFECT_LOW_CONFIDENCE: %u pixel(s) in %u region(s) were filled with low confidence (a line group of three or more lines, "
+                "or a blob without an adjacent valid pixel)", rr.low_confidence_pixels, rr.low_confidence_regions);
+            msg[sizeof(msg) - 1] = '\0';
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
+        }
+        if (rr.unfilled_pixels > 0) {
+            char msg[320];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_WARN_DEFECT_NO_VALID_NEIGHBOUR: %u masked pixel(s) have no valid pixel within %d pixels to fill them from and keep their input value",
+                rr.unfilled_pixels, kFillMaxRadius);
+            msg[sizeof(msg) - 1] = '\0';
+            xpe_alert_push(msg, XPE_ALERT_WARNING);
+        }
+        output->format        = XPE_PIXEL_FLOAT32;
+        output->bitsAllocated = 32u;
+        output->bitsStored    = 32u;
+        output->dataSize      = n * sizeof(float);
+        return XPE_OK;
+    }
 
     // REQ-P1A-012: cluster-aware defect correction
     std::vector<bool> visited(maskSet.slots(), false);   // the pixels of every cluster found so far, corrected or being corrected
@@ -676,6 +973,40 @@ catch (const std::bad_alloc&) {
     return XPE_ERR_OUT_OF_MEMORY;
 } catch (...) {
     return XPE_ERR_PROCESSING_FAILED;
+}
+
+extern "C" XPE_API XpeErrorCode xpe_defect_correct_ex(
+    const XpeImageBuffer*   input,
+    XpeImageBuffer*         output,
+    const XpeImageMetadata* metadata,
+    XpeDefectCorrectionReport* report,
+    XpeImageBuffer*         low_confidence_out)
+{
+    // QA-A-255: xpe_defect_correct with a report. The same snapshot and expiry rules; see xpe_defect_correct for the try region.
+    try {
+        if (low_confidence_out) {
+            if (!input || !low_confidence_out->data) return XPE_ERR_INVALID_INPUT;
+            if (low_confidence_out->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+            if (low_confidence_out->width != input->width || low_confidence_out->height != input->height ||
+                low_confidence_out->dataSize < static_cast<size_t>(input->width) * input->height) return XPE_ERR_BUFFER_TOO_SMALL;
+        }
+        const CalibSnapshot calib = xpe_calib_snapshot();
+        const XpeErrorCode expiry = xpe_calib_snapshot_expiry_check(
+            calib, XPE_EXPIRY_DEFECT | (calib.gain_defect_count > 0 ? XPE_EXPIRY_GAIN : 0u));
+        if (expiry != XPE_OK) return expiry;
+        std::vector<uint8_t> low;
+        const XpeErrorCode rc = xpe_defect_correct_in(calib, input, output, metadata, nullptr, report, low_confidence_out ? &low : nullptr);
+        if (rc == XPE_OK && low_confidence_out) {
+            const size_t n = static_cast<size_t>(input->width) * input->height;
+            if (low.size() == n) std::memcpy(low_confidence_out->data, low.data(), n);
+            else std::memset(low_confidence_out->data, 0, n);
+        }
+        return rc;
+    } catch (const std::bad_alloc&) {
+        return XPE_ERR_OUT_OF_MEMORY;
+    } catch (...) {
+        return XPE_ERR_PROCESSING_FAILED;
+    }
 }
 
 // Runtime detection implementation moved to runtime_detection.cpp (REQ-P1A-013)

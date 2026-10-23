@@ -1,0 +1,131 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    p = base + rel
+    s = open(p, encoding='utf-8', newline='').read()
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:80])
+        s = s.replace(old, new)
+    open(p, 'w', encoding='utf-8', newline='').write(s)
+
+
+edit('include/xpe/preprocess_api.h', [
+    ('''#define XPE_BPM_V2_FEATURE_FLAT        0x10u /**< Local deviation of the relative flat-field response */
+''', '''#define XPE_BPM_V2_FEATURE_FLAT        0x10u /**< Local deviation of the relative flat-field response */
+#define XPE_BPM_V2_FEATURE_BRIGHT_NOISE 0x20u /**< Temporal noise of the bright frames inside the dose groups against its local median (QA-A-252b) */
+'''),
+    ('#define XPE_BPM_V2_FEATURE_COUNT 5', '#define XPE_BPM_V2_FEATURE_COUNT 6'),
+    (' * Feature order in the arrays: dark mean, dark noise, dose slope, dose linearity, flat field\n', ' * Feature order in the arrays: dark mean, dark noise, dose slope, dose linearity, flat field, bright noise\n'),
+    ('Degrees of freedom of the variance-ratio feature (dark noise), 0 for the others', 'Degrees of freedom of the variance-ratio features (dark noise, bright noise), 0 for the others'),
+    ('variance ratio for dark noise */', 'variance ratio for the noise features */'),
+    ('local scale (z features) or of the local reference (dark noise) */', 'local scale (z features) or of the local reference (noise features) */'),
+])
+
+edit('src/xpe_bpm_v2.cpp', [
+    ('''    std::vector<double> groupSignal(G, 0.0);
+    {
+        std::vector<float> acc(n);''', '''    std::vector<double> groupSignal(G, 0.0);
+    // bright-frame temporal noise inside the dose groups (QA-A-252b, F2b): per group the variance of the frames about the group mean (the row and column means of every frame
+    // taken out, as for the dark frames), relative to its own local median; the groups are pooled as a sum of chi-square variables
+    std::vector<float> noiseSum, refSum;
+    uint32_t           nuBright = 0, noiseGroups = 0;
+    {
+        std::vector<float> acc(n);
+        std::vector<float> vg, vgTmp, vgBg;'''),
+    ('''                Sxn[i] += sg * ng;
+                Snn[i] += ng * ng;
+            }
+        }
+    }
+''', '''                Sxn[i] += sg * ng;
+                Snn[i] += ng * ng;
+            }
+            const uint32_t mg = static_cast<uint32_t>(groups[g].size());
+            if (mg >= 2) {
+                if (noiseSum.empty()) {
+                    noiseSum.assign(n, 0.0f);
+                    refSum.assign(n, 0.0f);
+                    vg.resize(n);
+                    vgTmp.resize(n);
+                    vgBg.resize(n);
+                }
+                std::fill(vg.begin(), vg.end(), 0.0f);
+                std::vector<double> rm(static_cast<size_t>(height)), cm(static_cast<size_t>(width));
+                for (uint32_t k : groups[g]) {
+                    const uint16_t* p = px(bright_frames[k]);
+                    for (uint32_t y = 0; y < height; ++y) {
+                        double a = 0.0;
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            a += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv);
+                        }
+                        rm[y] = a / width;
+                    }
+                    std::fill(cm.begin(), cm.end(), 0.0);
+                    for (uint32_t y = 0; y < height; ++y)
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            cm[x] += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y];
+                        }
+                    for (uint32_t x = 0; x < width; ++x) cm[x] /= height;
+                    for (uint32_t y = 0; y < height; ++y)
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            const double e = static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y] - cm[x];
+                            vg[i] += static_cast<float>(e * e);
+                        }
+                }
+                for (size_t i = 0; i < n; ++i) vg[i] /= static_cast<float>(mg - 1);
+                separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
+                const double mnu = varianceMedian(mg - 1);
+                for (size_t i = 0; i < n; ++i) {
+                    const double ref = std::max(static_cast<double>(vgBg[i]) / mnu, kReferenceFloor);
+                    noiseSum[i] += static_cast<float>((mg - 1) * (static_cast<double>(vg[i]) / ref));
+                    refSum[i] += static_cast<float>(ref);
+                }
+                nuBright += mg - 1;
+                ++noiseGroups;
+            }
+        }
+    }
+'''),
+    ('''    uint32_t counts[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
+    float    scaleMed[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
+    double   threshold[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
+    uint32_t nu[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0};
+    uint32_t active[XPE_BPM_V2_FEATURE_COUNT] = {1, 1, 0, 0, 1};''', '''    uint32_t counts[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    float    scaleMed[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    double   threshold[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    uint32_t nu[XPE_BPM_V2_FEATURE_COUNT] = {0, 0, 0, 0, 0, 0};
+    uint32_t active[XPE_BPM_V2_FEATURE_COUNT] = {1, 1, 0, 0, 1, 0};'''),
+    ('''    // F4 relative flat-field response
+''', '''    // F2b bright temporal noise inside the dose groups (needs a group of two frames or more)
+    if (nuBright > 0) {
+        active[5] = 1;
+        nu[5] = nuBright;
+        threshold[5] = varianceThreshold(nuBright, p);
+        std::vector<float> sample;
+        sample.reserve(n / 16 + 1);
+        for (size_t i = 0; i < n; ++i) {
+            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > threshold[5]) {
+                flags[i] = static_cast<uint8_t>(flags[i] | XPE_BPM_V2_FEATURE_BRIGHT_NOISE);
+                ++counts[5];
+            }
+            if (i % 16 == 0) sample.push_back(refSum[i] / static_cast<float>(noiseGroups));
+        }
+        scaleMed[5] = medianOf(sample.data(), sample.size());
+    }
+
+    // F4 relative flat-field response
+'''),
+    ('const uint8_t brightBits = XPE_BPM_V2_FEATURE_DOSE_SLOPE | XPE_BPM_V2_FEATURE_DOSE_LINEAR | XPE_BPM_V2_FEATURE_FLAT;', 'const uint8_t brightBits = XPE_BPM_V2_FEATURE_DOSE_SLOPE | XPE_BPM_V2_FEATURE_DOSE_LINEAR | XPE_BPM_V2_FEATURE_FLAT | XPE_BPM_V2_FEATURE_BRIGHT_NOISE;'),
+])
+
+edit('tests/test_bpm_v2.cpp', [
+    ('{"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field"};', '{"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field", "bright_noise"};'),
+])
+edit('tools/xpe_bpm_eval.cpp', [
+    ('{"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field"};', '{"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field", "bright_noise"};'),
+])
+print('patched')

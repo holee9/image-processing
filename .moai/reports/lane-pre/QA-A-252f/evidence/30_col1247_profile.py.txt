@@ -1,0 +1,29 @@
+"""QA-A-252f: profile of column 1247 (planted item 67: efficiency_loss col_partial 0.3, y 1787..2554) around the end of the item, in the planted set of QA-A-252e.
+For blocks of 10 rows: the net bright response of the column against the median of the columns x-12..x-3 and x+3..x+12 (ratio), and the temporal variance of two
+bright frames of one dose group against the same neighbours. Rows of full-width items are skipped. The detected stretch is 1787..2607."""
+import numpy as np
+W = 3072
+I = 'D:/workspace-github/xpe-data/bpm-eval-252e/inj_c/frames/'
+def rd(n): return np.fromfile(I + n, dtype='<u2').reshape(W, W).astype(np.float64)
+dk = np.mean([rd('Dark_%02d.raw' % k) for k in (8, 9, 10, 11, 12, 13, 14)], axis=0)
+a, b = rd('Bright_23.raw'), rd('Bright_24.raw')
+m = (a + b) / 2 - dk
+v = (a - b) ** 2 / 2
+X = 1247
+nb = list(range(X - 12, X - 2)) + list(range(X + 3, X + 13))
+skip = set()
+for l in open('D:/workspace-github/xpe-data/bpm-eval-252e/inj_c/truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        for r in p[5].split(';'):
+            x, y, w, h = map(int, r.split(','))
+            if w >= 3000:
+                skip.update(range(y - 3, y + h + 3))
+print('full-width item rows near the end:', sorted(r for r in skip if 2480 <= r <= 2680)[:40])
+print('%-12s %-10s %-10s %s' % ('rows', 'resp ratio', 'var ratio', 'note'))
+for y0 in range(2490, 2670, 10):
+    ys = [y for y in range(y0, y0 + 10) if y not in skip]
+    if not ys: print('%d-%d      (all rows skipped)' % (y0, y0 + 9)); continue
+    rr = np.mean([m[y, X] / np.median(m[y, nb]) for y in ys])
+    vr = np.mean([v[y, X] for y in ys]) / np.mean([np.median(v[y, nb]) for y in ys])
+    print('%-12s %-10.3f %-10.3f %s' % ('%d-%d' % (y0, y0 + 9), rr, vr, 'item ends at 2554' if y0 <= 2554 < y0 + 10 else ''))

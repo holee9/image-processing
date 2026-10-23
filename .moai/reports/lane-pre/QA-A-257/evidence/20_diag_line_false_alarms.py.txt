@@ -1,0 +1,223 @@
+"""QA-A-257 item 2: where do the new false alarms of the second edition lie, and which line-detector characteristic turned them on?
+Reproduces the evaluation tool's rule for "new false alarms" (QA-A-256 43_score_v2.json.txt: 1,115 = 1,090 on normal control items + 25 background) from its inputs, step by step:
+ - item class: truth.tsv class (cls0); a control item stays "control" (normal) unless the measured noise label promotes it to a defect or makes it undetermined (30_noise_truth.tsv.txt, used pixels > 0);
+ - shared pixels (two or more items): the final class of the measured overlap group (42_overlaps_v2.tsv.txt, column `final`) is assigned to the true-defect / undetermined masks;
+ - zone = true-defect | undetermined, widened by 2 pixels; new false alarm = flagged in the planted map, not in the clean map, outside the widened zone, imaging area applied to both.
+The reproduction is checked against the tool's counts before anything is split. Usage: PYTHONIOENCODING=utf-8 python 20_diag_line_false_alarms.py.txt > 21_diag_line_false_alarms.txt"""
+import json
+import numpy as np
+
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'
+EV7 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-257/evidence/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+S = 3072
+CAUSE = {0x01: 'response', 0x02: 'linearity', 0x04: 'noise', 0x08: 'slope'}
+
+# ---- truth
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        rects = []
+        for r in c[5].split(';'):
+            v = [int(x) for x in r.split(',')]
+            rects.append(tuple(v))
+        items[int(c[0])] = dict(id=int(c[0]), cls0=c[1], kind=c[2], shape=c[3], level=c[4], rects=rects)
+ids = np.fromfile(TR + 'truth_ids.u16', dtype='<u2').reshape(S, S)
+
+noise = {}
+for i, line in enumerate(open(EV + '30_noise_truth.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = line.rstrip('\n').split('\t')
+    noise[int(c[0])] = dict(label=c[9], used=int(c[4]))
+
+# ---- item classes
+cls = {k: v['cls0'] for k, v in items.items()}
+promoted = undet = 0
+for k, it in items.items():
+    if it['cls0'] != 'control' or k not in noise:
+        continue
+    n = noise[k]
+    valid = n['used'] > 0 and n['label'] in ('defect', 'normal')
+    if valid and n['label'] == 'defect':
+        cls[k] = 'defect'; promoted += 1
+    elif not valid or n['label'] != 'normal':
+        cls[k] = 'undetermined'; undet += 1
+
+
+def paint(sel):
+    m = np.zeros((S, S), dtype=bool)
+    for k, it in items.items():
+        if sel(cls[k]):
+            for (x, y, w, h) in it['rects']:
+                m[y:y + h, x:x + w] = True
+    return m
+
+
+truth_real = paint(lambda c: c not in ('control', 'undetermined'))
+undet_mask = paint(lambda c: c == 'undetermined')
+
+# ---- shared pixels: the final class of the measured overlap group
+final = {}
+for i, line in enumerate(open(EV + '42_overlaps_v2.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = line.rstrip('\n').split('\t')
+    final[c[0]] = c[11]
+ys, xs = np.nonzero(ids == 0xFFFF)
+cover = [[] for _ in range(len(ys))]
+for k, it in items.items():
+    for (x, y, w, h) in it['rects']:
+        hit = np.nonzero((xs >= x) & (xs < x + w) & (ys >= y) & (ys < y + h))[0]
+        for j in hit:
+            cover[j].append(k)
+missing = 0
+for j in range(len(ys)):
+    key = '+'.join(str(k) for k in sorted(cover[j]))
+    f = final.get(key)
+    if f is None:
+        missing += 1
+        continue
+    truth_real[ys[j], xs[j]] = (f == 'defect')
+    undet_mask[ys[j], xs[j]] = (f == 'undetermined')
+print('shared pixels %d, groups without a final class %d' % (len(ys), missing))
+
+
+def dilate(m, r):
+    out = m.copy()
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            if dy == 0 and dx == 0:
+                continue
+            sh = np.zeros_like(m)
+            sh[max(-dy, 0):S + min(-dy, 0), max(-dx, 0):S + min(-dx, 0)] = m[max(dy, 0):S + min(dy, 0), max(dx, 0):S + min(dx, 0)]
+            out |= sh
+    return out
+
+
+zone = dilate(truth_real | undet_mask, 2)
+
+
+def ld(p):
+    return np.fromfile(p, dtype=np.uint8).reshape(S, S)
+
+
+area = ld(OUT + 'inj_v2_area.u8') != 0
+mp = (ld(OUT + 'inj_v2_setmap.u8') != 0) & area
+cl = (ld(OUT + 'clean_v2_setmap.u8') != 0) & area
+new = mp & ~cl & ~zone
+control_left = np.zeros(65536, dtype=bool)
+for k in items:
+    control_left[k] = cls[k] == 'control'
+in_control = new & (ids != 0) & (ids != 0xFFFF) & control_left[ids.astype(np.int64)]
+sc = json.load(open(EV + '43_score_v2.json.txt', encoding='utf-8'))
+print('== reproduction of the tool\'s counts')
+print('  items promoted to defect by noise %d (tool: %d), made undetermined %d (tool: %d)' % (promoted, sc['noise_axis_promoted_to_defect'], undet, sc['undetermined_items']))
+print('  new false alarms %d (tool %d); on normal control items %d (tool %d); background %d' % (new.sum(), sc['new_false_alarms'], in_control.sum(), sc['new_false_alarms_in_controls'], int((new & (ids == 0)).sum())))
+if int(new.sum()) != sc['new_false_alarms'] or int(in_control.sum()) != sc['new_false_alarms_in_controls']:
+    print('  NOT REPRODUCED: the splits below are not valid')
+    raise SystemExit(0)
+print('  reproduced exactly')
+
+# ---- causes of the flagged pixels: feature bits of the pixel detector and the line mask
+feat = ld(OUT + 'v2_full_features.u8')
+lines = ld(OUT + 'v2_full_lines.u8') != 0
+combo = np.full((S, S), '', dtype=object)
+
+
+def name(i):
+    n = []
+    if lines[i]:
+        n.append('line mask')
+    f = feat[i]
+    if f & 0x01: n.append('dark mean')
+    if f & 0x02: n.append('dark noise')
+    if f & 0x04 or f & 0x08: n.append('dose slope/linearity')
+    if f & 0x10: n.append('flat response')
+    if f & 0x20: n.append('bright noise')
+    return '+'.join(n) if n else '(none)'
+
+
+nz = np.nonzero(new)
+tab = {}
+for y, x in zip(*nz):
+    place = 'control item' if in_control[y, x] else 'background'
+    key = (name((y, x)), place)
+    tab[key] = tab.get(key, 0) + 1
+print('== partition of the %d new false alarms (each pixel once)' % new.sum())
+for (c, p), n in sorted(tab.items(), key=lambda t: -t[1]):
+    print('  %-34s %-13s %d' % (c, p, n))
+
+# ---- the line-mask-only pixels on control items: which items, which line groups
+lm_only = new & lines & ((feat & 0x3f) == 0)
+print('== line mask only: %d pixels (%d on control items, %d on background)' % (lm_only.sum(), (lm_only & in_control).sum(), (lm_only & (ids == 0)).sum()))
+# line groups from the table of the set (defect-xcal --lines-out)
+glines = []
+for i, line in enumerate(open(EV7 + '10_lines_v2.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = line.rstrip('\n').split('\t')
+    if c[0] != 'line':
+        continue
+    st = []
+    for s in c[12].split(';'):
+        a, b = s.split(':')
+        lo, hi = b.split('-')
+        st.append((int(a), int(lo), int(hi)))
+    glines.append(dict(orient=c[1], index=int(c[2]), width=int(c[3]), causes=int(c[6]), strength=float(c[10]), stretches=st))
+gid = np.full((S, S), -1, dtype=np.int32)
+for gi, g in enumerate(glines):
+    for (ln, lo, hi) in g['stretches']:
+        if g['orient'] == 'row':
+            gid[ln, lo:hi] = gi
+        else:
+            gid[lo:hi, ln] = gi
+by_item = {}
+for y, x in zip(*np.nonzero(lm_only & in_control)):
+    k = int(ids[y, x])
+    it = items[k]
+    key = '%s/%s/%s' % (it['kind'], it['shape'], it['level'])
+    d = by_item.setdefault(key, dict(pixels=0, items=set(), groups=set()))
+    d['pixels'] += 1
+    d['items'].add(k)
+    d['groups'].add(int(gid[y, x]))
+total_items = {}
+for k, it in items.items():
+    if cls[k] == 'control':
+        key = '%s/%s/%s' % (it['kind'], it['shape'], it['level'])
+        total_items[key] = total_items.get(key, 0) + 1
+print('  by control item group (kind/shape/level): pixels, items with such a pixel / items in the group, line groups that carried them')
+for key, d in sorted(by_item.items(), key=lambda t: -t[1]['pixels']):
+    print('  %-40s %6d px  %3d/%3d items  line groups %s' % (key, d['pixels'], len(d['items']), total_items.get(key, 0), sorted(d['groups'])))
+print('== line groups carrying line-mask-only pixels on control items: cause bits of the group, width, strength')
+used = sorted({g for d in by_item.values() for g in d['groups']})
+for gi in used:
+    g = glines[gi] if gi >= 0 else None
+    if g is None:
+        print('  (pixel without a line group in the table)')
+        continue
+    cs = '+'.join(v for b, v in CAUSE.items() if g['causes'] & b)
+    npx = int((lm_only & in_control & (gid == gi)).sum())
+    print('  group %3d %s %d width %d causes %-26s strength %6.2f  line-mask-only new pixels on controls %d' % (gi, g['orient'], g['index'], g['width'], cs, g['strength'], npx))
+# noise label and response of the items
+print('== those control items: noise label of the measured item (normal / undetermined / not measured)')
+lab = {}
+for key, d in by_item.items():
+    for k in d['items']:
+        l = noise[k]['label'] if k in noise else 'not measured'
+        lab[(key, l)] = lab.get((key, l), 0) + 1
+for (key, l), n in sorted(lab.items()):
+    print('  %-40s %-14s %d' % (key, l, n))
+# ---- the 17 line-mask-only pixels on background: which line groups
+print('== line mask only on background (no item): by line group')
+bg = lm_only & (ids == 0)
+for gi in sorted({int(gid[y, x]) for y, x in zip(*np.nonzero(bg))}):
+    g = glines[gi] if gi >= 0 else None
+    npx = int((bg & (gid == gi)).sum())
+    if g is None:
+        print('  %d pixels without a line group in the table' % npx)
+    else:
+        cs = '+'.join(v for b, v in CAUSE.items() if g['causes'] & b)
+        print('  group %3d %s %d width %d causes %-26s strength %6.2f  pixels %d' % (gi, g['orient'], g['index'], g['width'], cs, g['strength'], npx))

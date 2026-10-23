@@ -1,0 +1,46 @@
+#!/bin/bash
+# QA-A-251 one-time measurement of the first-generation defect map (method: 30_method_fixed_before_measurement.md section 4).
+# Steps run one after another; every step's output goes to its own log; a nonzero exit stops the run.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+OUT=D:/workspace-github/xpe-data/bpm-eval-251
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-251/evidence
+mkdir -p "$OUT"
+run() { local name=$1; shift; local s=$(date +%s); echo "start $(date '+%Y-%m-%d %H:%M:%S')  $name" > "$EVD/$name.log"; "$@" >> "$EVD/$name.log" 2>&1; local rc=$?; echo "exit $rc wall seconds $(( $(date +%s) - s ))" >> "$EVD/$name.log"; echo "$name exit $rc"; return $rc; }
+
+DARKS=(); for k in 08 09 10 11 12 13 14; do DARKS+=("$CAL/Dark_$k.raw"); done
+GAIN=();  for k in 23 24 25 26 27 28; do GAIN+=("$CAL/Bright_$k.raw"); done
+BPMB=();  for k in 17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36; do BPMB+=("$CAL/Bright_$k.raw"); done
+EVAL=("$CAL/Bright_29.raw" "$CAL/Bright_30.raw")
+
+args() { local flag=$1; shift; for f in "$@"; do printf -- "--%s\n%s\n" "$flag" "$f"; done; }
+mapfile -t DA < <(args dark "${DARKS[@]}")
+mapfile -t GA < <(args bright "${GAIN[@]}")
+mapfile -t BA < <(args bpm-bright "${BPMB[@]}")
+mapfile -t BAll < <(args bright "${BPMB[@]}")
+mapfile -t EA < <(args eval "${EVAL[@]}")
+
+# S1 clean set
+run S1_clean_set "$BIN/xpe_calib_fixture_gen.exe" --out "$OUT/clean_set" --expiry-ms 4102444800000 --compare-bpm "$CAL/BPM.raw" "${DA[@]}" "${GA[@]}" "${BA[@]}" || exit 1
+# S2 plant
+run S2_inject "$BIN/xpe_bpm_eval.exe" inject --out "$OUT/inj" --seed 251 --exclude-mask "$CAL/BPM.raw" --exclude-mask "$OUT/clean_set/defect.xcal" "${DA[@]}" "${BAll[@]}" "${EA[@]}" || exit 1
+# S3 planted set
+INJ=$OUT/inj/frames
+DI=(); for k in 08 09 10 11 12 13 14; do DI+=(--dark "$INJ/Dark_$k.raw"); done
+GI=(); for k in 23 24 25 26 27 28; do GI+=(--bright "$INJ/Bright_$k.raw"); done
+BI=(); for k in 17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36; do BI+=(--bpm-bright "$INJ/Bright_$k.raw"); done
+run S3_injected_set "$BIN/xpe_calib_fixture_gen.exe" --out "$OUT/inj_set" --expiry-ms 4102444800000 "${DI[@]}" "${GI[@]}" "${BI[@]}" || exit 1
+# S4 halves: even and odd positions of each role's list
+HA=(); for k in 08 10 12 14; do HA+=(--dark "$INJ/Dark_$k.raw"); done
+HB=(); for k in 09 11 13; do HB+=(--dark "$INJ/Dark_$k.raw"); done
+BE=(); for k in 17 19 21 23 25 27 31 33 35; do BE+=(--bright "$INJ/Bright_$k.raw"); done
+BO=(); for k in 18 20 22 24 26 28 32 34 36; do BO+=(--bright "$INJ/Bright_$k.raw"); done
+run S4a_half_a "$BIN/xpe_bpm_eval.exe" map-v1 --out "$OUT/half_a.u8" --min-dark 3 --min-bright 9 "${HA[@]}" "${BE[@]}" || exit 1
+run S4b_half_b "$BIN/xpe_bpm_eval.exe" map-v1 --out "$OUT/half_b.u8" --min-dark 3 --min-bright 9 "${HB[@]}" "${BO[@]}" || exit 1
+# S5 score
+run S5_score "$BIN/xpe_bpm_eval.exe" score --truth "$OUT/inj" --map "$OUT/inj_set/defect.xcal" --clean-map "$OUT/clean_set/defect.xcal" --half-a "$OUT/half_a.u8" --half-b "$OUT/half_b.u8" --out "$EVD/60_metrics_score.json" || exit 1
+# S6 correction error and line index
+run S6_correct "$BIN/xpe_bpm_eval.exe" correct --truth "$OUT/inj" --clean-set "$OUT/clean_set" --inj-set "$OUT/inj_set" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/61_metrics_correct.json" || exit 1
+echo done

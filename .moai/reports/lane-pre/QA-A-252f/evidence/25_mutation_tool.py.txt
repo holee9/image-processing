@@ -1,0 +1,28 @@
+TOOL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+HDR = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval_stats.hpp'
+TITLE = 'QA-A-252f mutation check of the evaluation tool (tools/xpe_bpm_eval.cpp, tools/xpe_bpm_eval_stats.hpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252f/evidence/26_mutation_tool_log.txt'
+FILT = 'BpmEval*:-BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex'
+NL = bytes([10])
+PRED = [
+    '  U1 the variance median is not divided by the median of chi-square / nu (the bias of #208) -> red: TheQuantumGainIsEstimatedWithoutTheFrameCountBias only (kappa 0.21 against 0.30)',
+    '  U2 the scatter about the fitted line does not widen the standard errors                    -> red: TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter only',
+    '  U3 the interval is not widened by the error of the expectation (lo)                        -> red: TheNoiseVerdictFollowsTheIntervalAgainstTheLimit only',
+    '  U4 a noise-defect item is not made a defect by the two-axis rule                           -> red: TheScoreCombinesTheTwoAxes... only',
+    '  U5 an undetermined item is not made undetermined                                           -> red: TheScoreCombinesTheTwoAxes... only',
+    '  U6 the noise cost is not divided by the squared measured response                          -> red: NoiseCostIsMeasuredNotDerivedFromTheModel... only',
+    '  U7 the pixel levels of efficiency_loss lack 0.4 and 0.6                                    -> red: ResponseItemsAreDefectsBelow45Percent..., InjectFollowsTheSpecCountsAndPlacementRules, ScoreCountsControlHitsFalseAlarmsAndHalfAgreement',
+    '  U8 the response class bound shifted up by the slack (exactly 0.45 would be a defect)       -> GREEN: no item sits at 0.45 any more (a test gap by design, reported)',
+    '  every other test stays green in each mutant',
+]
+MUTANTS = [
+    ('U1', TOOL, b'q.variance = xpe_bpm_eval::medianOf(vars) / xpe_bpm_eval::chiSquareMedianOverNu(nu);', b'q.variance = xpe_bpm_eval::medianOf(vars);'),
+    ('U2', HDR, b'const double scale = k > 2 ? std::max(1.0, r.chiSquare / static_cast<double>(k - 2)) : 1.0;', b'const double scale = 1.0;'),
+    ('U3', HDR, b'v.lo = dof * cost / chiSquareQuantile(dof, 0.975) / widen;', b'v.lo = dof * cost / chiSquareQuantile(dof, 0.975);'),
+    ('U4', TOOL, b'            it.cls = defectClassOfShape(it.shape);' + NL + b'            ++*promoted;', b'            ++*promoted;'),
+    ('U5', TOOL, b'            it.cls = "undetermined";' + NL + b'            ++*undetermined;', b'            ++*undetermined;'),
+    ('U6', TOOL, b'sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;', b'sumC += static_cast<double>(s2[i]) / expect;'),
+    ('U7', TOOL, b'{"efficiency_loss", {0.3, 0.4, 0.44, 0.46, 0.6, 0.7}}};', b'{"efficiency_loss", {0.3, 0.44, 0.46, 0.7}}};'),
+    ('U8', TOOL, b'r < kResponseDefectBelow - kRatioSlack', b'r < kResponseDefectBelow + kRatioSlack'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252f/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

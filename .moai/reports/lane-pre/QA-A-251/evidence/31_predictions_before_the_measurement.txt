@@ -1,0 +1,29 @@
+QA-A-251 predictions for the first-generation defect map, written after the tool, its tests and the mutation checks and before the measurement ran.
+Reasoning basis: the first-generation generator (xpe_bpm_generate, defaults) flags a pixel from (a) the mean of the dark frames against the local median of a 32 x 32 window with
+a threshold of 8 x MAD, and (b) the mean of the bright frames against the mean of a 128 x 128 window with +-7 %. It looks at no temporal noise and no per-dose response.
+Confidence is stated; none of these is a result.
+
+ R1 Pixel defects, detection rate (share of the 64 planted pixels flagged):
+    dead a=1.0 and a=0.5: at least 0.95 (the bright rule sees a 50-100 % loss). slope g=0.75 and 1.25: at least 0.95; g=0.9 and 1.1: between 0.5 and 1.0 (10 % against a 7 % band).
+    hot h=200, 100, 50: at least 0.9; h=25: between 0.2 and 0.8 (the dark threshold is about 8 x the local spread of the dark mean, which I estimate at 20-30 pixel values).
+    nonlinear c=0.4: at least 0.9; c=0.2: between 0.4 and 1.0. Confidence about 70 %.
+ R2 noisy pixels (m=4, 2, 1): 0.0 to 0.15 at every level. The first-generation generator uses the mean of the dark frames only, so added temporal noise (reduced by the square
+    root of 7 in the mean) stays under the threshold. This is the gap the second generation must close. Confidence about 80 %.
+ R3 Blocks (dead, 2 x 2 to 8 x 8, a=1.0 and 0.5): detection rate at least 0.9 for every size (every pixel of the block deviates by 50-100 % from the 128 x 128 mean).
+    Confidence about 75 %.
+ R4 Lines: dead and nonlinear lines at least 0.9 for the full, partial and pair shapes at a=1.0 (and at least 0.5 at a=0.5 and c=0.2); noisy lines 0.0-0.15.
+    The one-pixel-wide full row or column does not disturb the 128 x 128 window mean enough to hide itself. Confidence about 65 %.
+ R5 Control bands, false detections out of 12: fixed_band h=100 flagged in both directions (dark mean shifted by 100 against a threshold near 25), h=30 flagged in at least one direction,
+    gain_band g=0.8 and 1.2 flagged in both directions (20 % off the window mean), varying_band s=20 and 8 not flagged (the 7-frame mean leaves about 7.6 and 3.0).
+    So I expect between 6 and 10 of 12 control bands called a false detection. Confidence about 60 %.
+ R6 New false alarms (flagged only in the planted run, outside the truth widened by 2): between 0 and 40. Planted pixels sit at least 8 pixels from each other and
+    the window statistics change little. Confidence about 60 %.
+ R7 Split-half Jaccard (all pixels): between 0.5 and 0.9, higher inside the truth (deterministic dead and slope pixels appear in both halves) than outside it (natural defects
+    near the threshold appear in one half only). Confidence about 55 %.
+ R8 Correction error |planted - clean| / local sigma, defect correction on: median between 0.3 and 2.5 for the kinds that are flagged (an interpolated pixel differs from the
+    clean pixel by about one local sigma); for undetected kinds (noisy) the median is the injected size over the local sigma. Without defect correction the median for dead
+    pixels is above 20. Confidence about 60 %.
+ R9 D_n: dead and nonlinear full lines exceed 3 predicted sigmas without defect correction (huge ratios); with the first-generation correction applied most are within 3 sigma.
+    Noisy lines stay within 3 sigma everywhere (the line mean of zero-mean noise does not move). Confidence about 50 %.
+ R10 Natural defects: the clean map for Dark_08..14 (without Dark_07) is near the 134 pixels of the earlier map (between 100 and 250). Confidence about 70 %.
+ R11 Time: each of the two full set generations about 6-8 minutes; each half map about 3-5 minutes.

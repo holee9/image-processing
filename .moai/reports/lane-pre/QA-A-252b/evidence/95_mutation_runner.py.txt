@@ -1,0 +1,80 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+SRC = ROOT + 'modules/preprocess/src/xpe_bpm_v2.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-252b/evidence/96_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILT = 'BpmV2Test.*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+orig = open(SRC, 'rb').read()
+h0 = hashlib.sha256(orig).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-252b mutation check of the revised detector (src/xpe_bpm_v2.cpp). Source hash at the start: ' + h0)
+say('Tests: Partial=APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap Varying=AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect Gain=AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn')
+say('  BrightNoise=NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature; the others are the QA-A-252 tests')
+say('PREDICTIONS (written before any run):')
+say('  W1 row/column component from the line itself again (the difference to the neighbours dropped)  -> red: Partial; Stripes and Gain may also go red')
+say('  W2 dark noise without the column mean of the frame                    -> red: Varying only')
+say('  W3 R2 off for the dose slope (flat field stays multiplicative)         -> red: Gain only')
+say('  W4 bright-noise degrees of freedom m instead of m - 1                 -> red: BrightNoise only')
+say('  W5 bright noise missing from the bright-side bits of the map code      -> red: BrightNoise only')
+say('  W6 bright noise without the row/column means of the frame             -> red: Varying (its bright-noise assertion); BrightNoise stays green')
+say('  W7 bright-noise groups pooled without the weight (m - 1)               -> probably nothing red (the groups here are all the same size): a test gap, to be reported')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('W1', b'return multiplicative ? (std::fabs(ref) > 1e-30f ? v / ref : 1.0f) : v - ref; };', b'return multiplicative ? (std::fabs(ref) > 1e-30f ? v / ref : 1.0f) : v; };'),
+    ('W2', b'- rowMean[static_cast<size_t>(y)] - colMean[static_cast<size_t>(x)];', b'- rowMean[static_cast<size_t>(y)];'),
+    ('W3', b'flagRobustZ(wk, st, lambdaTwoSided, false, true, XPE_BPM_V2_FEATURE_DOSE_SLOPE,', b'flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DOSE_SLOPE,'),
+    ('W4', b'nuBright += mg - 1;', b'nuBright += mg;'),
+    ('W5', b'XPE_BPM_V2_FEATURE_FLAT | XPE_BPM_V2_FEATURE_BRIGHT_NOISE;', b'XPE_BPM_V2_FEATURE_FLAT;'),
+    ('W6', b'- static_cast<double>(acc[i] * inv) - rm[y] - cm[x];', b'- static_cast<double>(acc[i] * inv);'),
+    ('W7', b'noiseSum[i] += static_cast<float>((mg - 1) * (static_cast<double>(vg[i]) / ref));', b'noiseSum[i] += static_cast<float>(static_cast<double>(vg[i]) / ref);'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, old, new in mutants:
+        assert orig.count(old) == 1, (name, orig.count(old))
+        say('--- ' + name)
+        open(SRC, 'wb').write(orig.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(SRC, 'wb').write(orig)
+        os.utime(SRC, None)
+        time.sleep(1)
+finally:
+    open(SRC, 'wb').write(orig)
+    os.utime(SRC, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(SRC, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

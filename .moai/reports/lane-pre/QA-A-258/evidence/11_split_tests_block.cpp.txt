@@ -1,0 +1,122 @@
+namespace {
+
+struct NegativeResult {
+    int         runs{0}, runsWithFalseLinearity{0}, linearityGroups{0};
+    int         perForm[5] = {0, 0, 0, 0, 0};
+    std::string where;
+};
+
+/** Five forms x two dose designs x `seeds` seeds; each image carries one full row (form f) and one full column (form f + 1). The seeds 0..seeds-1 of the full run are the first seeds of any shorter run. */
+NegativeResult runNegative(int seeds) {
+    const Mod   forms[5] = {efficiency(0.6), efficiency(0.44), gainLoss(0.7), brightOffset(150.0), heteroscedastic()};
+    const char* names[5] = {"efficiency 0.6", "efficiency 0.44", "gain 0.7", "bright offset", "heteroscedastic"};
+    constexpr int kRowY = 100, kColX = 150;
+    NegativeResult res;
+    for (int design = 0; design < 2; ++design)
+        for (int f = 0; f < 5; ++f)
+            for (int seed = 0; seed < seeds; ++seed) {
+                const std::vector<int>& sizes = design == 0 ? kDesignA : kDesignB;
+                Stack st = makeStack(1000u + static_cast<uint64_t>(design * 100 + f * 10 + seed), sizes, {{0, static_cast<int>(kW), kRowY, kRowY + 1, forms[f]}, {kColX, kColX + 1, 0, static_cast<int>(kH), forms[(f + 1) % 5]}});
+                const Found r = detect(st);
+                EXPECT_EQ(XPE_OK, r.rc);
+                ++res.runs;
+                res.linearityGroups += countCause(r, XPE_BPM_LINE_CAUSE_LINEARITY);
+                const bool rowFalse = covered(r, XPE_BPM_LINE_ROW, kRowY, 0, static_cast<int>(kW), XPE_BPM_LINE_CAUSE_LINEARITY, 0.1);
+                const bool colFalse = covered(r, XPE_BPM_LINE_COLUMN, kColX, 0, static_cast<int>(kH), XPE_BPM_LINE_CAUSE_LINEARITY, 0.1);
+                if (rowFalse || colFalse) {
+                    ++res.runsWithFalseLinearity;
+                    if (rowFalse) ++res.perForm[f];
+                    if (colFalse) ++res.perForm[(f + 1) % 5];
+                    res.where += std::string(" [design ") + (design == 0 ? "A" : "B") + " seed " + std::to_string(seed) + (rowFalse ? std::string(" row=") + names[f] : std::string()) +
+                                 (colFalse ? std::string(" col=") + names[(f + 1) % 5] : std::string()) + "]";
+                }
+            }
+    return res;
+}
+
+struct PositiveResult {
+    int         total{0}, hits{0};
+    int         perCombo[2][3][5] = {};
+    std::string misses;
+};
+
+/** c in {0.4, 0.2} x noise {0.25, 1, 4} x five shapes x `seeds` seeds. */
+PositiveResult runPositive(int seeds) {
+    const double cs[2] = {0.4, 0.2}, kms[3] = {0.25, 1.0, 4.0};
+    const char*  shapeNames[5] = {"row_full", "col_full", "row_partial", "row_pair", "cross"};
+    PositiveResult res;
+    for (int ci = 0; ci < 2; ++ci)
+        for (int ki = 0; ki < 3; ++ki)
+            for (int sh = 0; sh < 5; ++sh)
+                for (int seed = 0; seed < seeds; ++seed) {
+                    const Mod m = nonlinear(cs[ci], kms[ki]);
+                    std::vector<Region> reg;
+                    switch (sh) {
+                    case 0: reg = {{0, 256, 100, 101, m}}; break;
+                    case 1: reg = {{150, 151, 0, 256, m}}; break;
+                    case 2: reg = {{80, 176, 60, 61, m}}; break;
+                    case 3: reg = {{0, 256, 180, 182, m}}; break;
+                    default: reg = {{0, 256, 120, 121, m}, {70, 71, 0, 256, m}}; break;
+                    }
+                    Stack st = makeStack(5000u + static_cast<uint64_t>(ci * 1000 + ki * 100 + sh * 10 + seed), kDesignA, reg);
+                    const Found r = detect(st);
+                    EXPECT_EQ(XPE_OK, r.rc);
+                    bool ok = false;
+                    switch (sh) {
+                    case 0: ok = covered(r, XPE_BPM_LINE_ROW, 100, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9); break;
+                    case 1: ok = covered(r, XPE_BPM_LINE_COLUMN, 150, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9); break;
+                    case 2: ok = covered(r, XPE_BPM_LINE_ROW, 60, 80, 176, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9); break;
+                    case 3: ok = covered(r, XPE_BPM_LINE_ROW, 180, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9) && covered(r, XPE_BPM_LINE_ROW, 181, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9); break;
+                    default:
+                        ok = covered(r, XPE_BPM_LINE_ROW, 120, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9) && covered(r, XPE_BPM_LINE_COLUMN, 70, 0, 256, XPE_BPM_LINE_CAUSE_LINEARITY, 0.9);
+                        break;
+                    }
+                    ++res.total;
+                    res.hits += ok ? 1 : 0;
+                    res.perCombo[ci][ki][sh] += ok ? 1 : 0;
+                    if (!ok) res.misses += std::string(" [c ") + std::to_string(cs[ci]).substr(0, 3) + " x" + std::to_string(kms[ki]).substr(0, 4) + " " + shapeNames[sh] + " seed " + std::to_string(seed) + "]";
+                }
+    return res;
+}
+
+}  // namespace
+
+// ---- The CI subset: the same forms with fewer seeds (2 per cell of the negative controls, 1 per cell of the positive controls), so that the suite stays short. The budgets scale with the number of runs
+// and are fixed in the definition file (the amendment of QA-A-258 before the first run of the implementation).
+TEST(BpmLinesLofNegativeTest, AStraightResponseWithMoreNoiseOrADifferentGainOrOffsetDoesNotMakeALinearityDefect) {
+    const NegativeResult r = runNegative(2);
+    EXPECT_EQ(20, r.runs);
+    EXPECT_LE(r.runsWithFalseLinearity, 1) << "false LINEARITY on a straight-line response in 20 images: eff0.6 " << r.perForm[0] << ", eff0.44 " << r.perForm[1] << ", gain " << r.perForm[2] << ", offset "
+                                           << r.perForm[3] << ", hetero " << r.perForm[4] << r.where;
+    EXPECT_LE(r.linearityGroups, r.runs) << "LINEARITY groups anywhere (target: at most one per image)";
+}
+
+TEST(BpmLinesLofPositiveTest, ACurvedResponseIsALinearityDefectWhateverTheNoiseAndTheShape) {
+    for (int ci = 0; ci < 2; ++ci)
+        for (int ki = 0; ki < 3; ++ki) {
+            const double kms[3] = {0.25, 1.0, 4.0};
+            ASSERT_GT(expectedMisfit(nonlinear(ci == 0 ? 0.4 : 0.2, kms[ki]), kDesignA), 266.0) << "the design of the control: the expected misfit exceeds 266 >> G - 2 = 3 in every cell";
+        }
+    const PositiveResult r = runPositive(1);
+    EXPECT_EQ(30, r.total);
+    EXPECT_GE(r.hits, 29) << "the expected power: at least 29 of 30" << r.misses;
+}
+
+// ---- The full budgets of the definition (100 negative images, 120 positive images): disabled in the suite, run by hand (--gtest_also_run_disabled_tests) and in the measurement.
+TEST(BpmLinesLofNegativeTest, DISABLED_FullBudgetOfOneHundredImages) {
+    const NegativeResult r = runNegative(10);
+    EXPECT_EQ(100, r.runs);
+    EXPECT_LE(r.runsWithFalseLinearity, 2) << "false LINEARITY by form: eff0.6 " << r.perForm[0] << ", eff0.44 " << r.perForm[1] << ", gain " << r.perForm[2] << ", offset " << r.perForm[3] << ", hetero " << r.perForm[4]
+                                           << r.where;
+    EXPECT_LE(r.linearityGroups, r.runs);
+}
+
+TEST(BpmLinesLofPositiveTest, DISABLED_FullPowerOfOneHundredTwentyImages) {
+    const PositiveResult r = runPositive(4);
+    EXPECT_EQ(120, r.total);
+    EXPECT_GE(r.hits, 114) << r.misses;
+    for (int ci = 0; ci < 2; ++ci)
+        for (int ki = 0; ki < 3; ++ki)
+            for (int sh = 0; sh < 5; ++sh) EXPECT_GE(r.perCombo[ci][ki][sh], 3) << "cell c#" << ci << " noise#" << ki << " shape#" << sh;
+}
+

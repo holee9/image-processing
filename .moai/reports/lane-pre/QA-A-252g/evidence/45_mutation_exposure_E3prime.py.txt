@@ -1,0 +1,14 @@
+V2 = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TITLE = 'QA-A-252g mutation check of the exposure normalisation (src/xpe_bpm_v2.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252g/evidence/44_mutation_exposure_E3prime_log.txt'
+FILT = 'BpmV2*'
+PRED = [
+    '  (E3 of the first run, the group mean formed without the scale, was GREEN: an equivalent mutant, not a test gap - the scales are S_mean / S_k, so the unscaled mean of the frames equals the',
+    '   scaled mean to first order. Recorded in 42_mutation_exposure_log.txt. This run: E3prime)',
+    '  E3prime the row means of the frames are taken from the UNSCALED values          -> red: TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup only (the scaled values keep the dose difference)',
+    '  every other test stays green',
+]
+MUTANTS = [
+    ('E3prime', V2, b'a += fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]);', b'a += (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]);'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252g/evidence/40_mutation_common.py.txt', encoding='utf-8').read())

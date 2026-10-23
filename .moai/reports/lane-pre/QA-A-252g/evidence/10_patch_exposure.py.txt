@@ -1,0 +1,101 @@
+"""QA-A-252g step 1 (leader decision on QA-A-252f, P2): the exposure variation between the frames of a dose group is a component common to all pixels, not the temporal noise of a pixel,
+so it is taken out BEFORE the group variance is formed. Method: every frame of a group is scaled to the mean dose of the group (the frame's mean net value against the group mean of
+those), x_k = f_k * (p_k - D) with f_k = group mean signal / signal_k; the variance about the group mean is formed on the x_k (row and column means of every frame out, as before). The local
+reference is formed from that variance image, so it is on the same footing. The line persistence (temporal median of the group, per-frame residuals) uses the same scaled values.
+Reason for scaling instead of differencing the frames: the group mean and the median of the persistence stay defined for groups of three and more, and the same scaling is the one the
+quantum gain estimator already uses."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:100])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('src/xpe_bpm_v2.cpp', [
+    ('''        std::vector<float> acc(n);
+        std::vector<float> vg, vgTmp, vgBg;''',
+     '''        std::vector<float> acc(n);
+        std::vector<float> vg, vgTmp, vgBg, gmean;   // gmean: the group mean of the frames scaled to the mean dose of the group'''),
+    ('''    uint32_t           nuBright = 0, noiseGroups = 0;''',
+     '''    uint32_t           nuBright = 0, noiseGroups = 0;
+    std::vector<double> frameScale(num_bright, 1.0);   // f_k = mean signal of the group / signal of frame k (QA-A-252g: the exposure variation is not a pixel noise)'''),
+    ('''            sg /= static_cast<double>(groups[g].size());
+            groupSignal[g] = sg;''',
+     '''            sg /= static_cast<double>(groups[g].size());
+            for (uint32_t k : groups[g]) frameScale[k] = sg / signal[k];
+            groupSignal[g] = sg;'''),
+    ('''                    vg.resize(n);
+                    vgTmp.resize(n);
+                    vgBg.resize(n);
+                }
+                std::fill(vg.begin(), vg.end(), 0.0f);''',
+     '''                    vg.resize(n);
+                    vgTmp.resize(n);
+                    vgBg.resize(n);
+                    gmean.resize(n);
+                }
+                std::fill(vg.begin(), vg.end(), 0.0f);
+                std::fill(gmean.begin(), gmean.end(), 0.0f);
+                for (uint32_t k : groups[g]) {
+                    const uint16_t* p = px(bright_frames[k]);
+                    const double    fk = frameScale[k] / static_cast<double>(mg);
+                    for (size_t i = 0; i < n; ++i) gmean[i] += static_cast<float>(fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])));
+                }'''),
+    ('''                    const uint16_t* p = px(bright_frames[k]);
+                    for (uint32_t y = 0; y < height; ++y) {
+                        double a = 0.0;
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            a += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv);
+                        }
+                        rm[y] = a / width;
+                    }
+                    std::fill(cm.begin(), cm.end(), 0.0);
+                    for (uint32_t y = 0; y < height; ++y)
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            cm[x] += static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y];
+                        }''',
+     '''                    const uint16_t* p = px(bright_frames[k]);
+                    const double    fk = frameScale[k];
+                    for (uint32_t y = 0; y < height; ++y) {
+                        double a = 0.0;
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            a += fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]);
+                        }
+                        rm[y] = a / width;
+                    }
+                    std::fill(cm.begin(), cm.end(), 0.0);
+                    for (uint32_t y = 0; y < height; ++y)
+                        for (uint32_t x = 0; x < width; ++x) {
+                            const size_t i = static_cast<size_t>(y) * width + x;
+                            cm[x] += fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]) - rm[y];
+                        }'''),
+    ('''                            const double e = static_cast<double>(p[i]) - static_cast<double>(acc[i] * inv) - rm[y] - cm[x];
+                            vg[i] += static_cast<float>(e * e);''',
+     '''                            const double e = fk * (static_cast<double>(p[i]) - static_cast<double>(D[i])) - static_cast<double>(gmean[i]) - rm[y] - cm[x];
+                            vg[i] += static_cast<float>(e * e);'''),
+    ('''                        for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                        gmed[i] = temporalMedian(&vals);''',
+     '''                        for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(frameScale[groups[g][j]] * (static_cast<double>(px(bright_frames[groups[g][j]])[i]) - static_cast<double>(D[i])));
+                        gmed[i] = temporalMedian(&vals);'''),
+    ('''                            for (uint32_t x = 0; x < width; ++x) acc2 += static_cast<double>(pk[static_cast<size_t>(y) * width + x]) - static_cast<double>(gmed[static_cast<size_t>(y) * width + x]);''',
+     '''                            for (uint32_t x = 0; x < width; ++x) {
+                                const size_t ii = static_cast<size_t>(y) * width + x;
+                                acc2 += frameScale[k] * (static_cast<double>(pk[ii]) - static_cast<double>(D[ii])) - static_cast<double>(gmed[ii]);
+                            }'''),
+    ('''                                cm2[x] += static_cast<double>(pk[i]) - static_cast<double>(gmed[i]) - rm2[y];''',
+     '''                                cm2[x] += frameScale[k] * (static_cast<double>(pk[i]) - static_cast<double>(D[i])) - static_cast<double>(gmed[i]) - rm2[y];'''),
+    ('''                            for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(px(bright_frames[groups[g][j]])[i]);
+                            std::vector<float> srt(vals);''',
+     '''                            for (uint32_t j = 0; j < mg; ++j) vals[j] = static_cast<float>(frameScale[groups[g][j]] * (static_cast<double>(px(bright_frames[groups[g][j]])[i]) - static_cast<double>(D[i])));
+                            std::vector<float> srt(vals);'''),
+])
+print('exposure normalisation patched')

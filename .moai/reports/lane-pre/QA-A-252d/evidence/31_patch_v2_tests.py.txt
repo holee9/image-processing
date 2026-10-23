@@ -1,0 +1,90 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# ---------------------------------------------------------------- the generator
+sub('''    bool strongShading{false};''', '''    bool strongShading{false};
+    bool respPixels{false};       // QA-A-252d: single pixels with a response of 0.40, 0.50, 0.60, 0.75, 1.45, 1.60 (row 220)''')
+sub('''kLnDarkBurstOne = 4096,''', '''kLnLowRow = 262144, kLnHighRow = 524288, kLnWeakRow = 1048576, kLnDarkBurstOne = 4096,''')
+sub('''constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;''', '''constexpr int kSingleY = 140, kSomeFramesY = 160, kStagY = 210;
+// QA-A-252d: response rows (0.3 and 1.7 are defects, 0.6 is weak) and the response pixels
+constexpr int kLnLowRowY = 70, kLnHighRowY = 190, kLnWeakRowY = 50, kRespY = 220;
+constexpr int kRespX[6] = {30, 40, 50, 60, 70, 80};
+constexpr double kRespR[6] = {0.40, 0.50, 0.60, 0.75, 1.45, 1.60};''')
+sub('''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnDarkBurstOne)''', '''                if ((plant.lines & kLnGainRow) && y == kLnGainY) sig *= 1.2;
+                if ((plant.lines & kLnLowRow) && y == kLnLowRowY) sig *= 0.3;
+                if ((plant.lines & kLnHighRow) && y == kLnHighRowY) sig *= 1.7;
+                if ((plant.lines & kLnWeakRow) && y == kLnWeakRowY) sig *= 0.6;
+                if ((plant.lines & kLnDarkBurstOne)''')
+sub('''            if (plant.yGradient) sig *=''', '''            if (plant.respPixels && y == kRespY)
+                for (int q = 0; q < 6; ++q)
+                    if (x == kRespX[q]) sig *= kRespR[q];
+            if (plant.yGradient) sig *=''')
+
+# ---------------------------------------------------------------- tests whose expectation changed with the rule
+sub('''    EXPECT_NE(0, r.feat[at(kSlopeX, kSlopeY)] & (XPE_BPM_V2_FEATURE_FLAT | XPE_BPM_V2_FEATURE_DOSE_SLOPE));
+    EXPECT_EQ(1, r.map[at(kSlopeX, kSlopeY)]);''', '''    // a response of 1.10 is inside 45 %..150 % of the local median: not a defect (SRS FUNC-022), and the slope feature no longer flags pixels
+    EXPECT_EQ(0, r.feat[at(kSlopeX, kSlopeY)] & (XPE_BPM_V2_FEATURE_FLAT | XPE_BPM_V2_FEATURE_DOSE_SLOPE));
+    EXPECT_EQ(0, r.map[at(kSlopeX, kSlopeY)]);''')
+sub('''    for (int k : {0, 2, 4}) {   // the z features: erfc(lambda / sqrt 2) * N is the target''', '''    EXPECT_FLOAT_EQ(0.45f, a.rep.threshold[4]) << "the response rule: 45 % of the local median, whatever the false-alarm target";
+    EXPECT_FLOAT_EQ(0.45f, a.rep.response_ratio_low);
+    EXPECT_FLOAT_EQ(1.5f, a.rep.response_ratio_high);
+    for (int k : {0}) {   // the z feature (the dark mean): erfc(lambda / sqrt 2) * N is the target''')
+sub('''    EXPECT_EQ(1u, r.rep.feature_active[2]);
+    EXPECT_EQ(0u, r.rep.feature_active[3]);''', '''    EXPECT_EQ(0u, r.rep.feature_active[2]) << "the slope feature is retired as a pixel feature (it stays a line feature)";
+    EXPECT_EQ(0u, r.rep.feature_active[3]);''')
+sub('''    // row 80: response 0.5 (correction doubles the noise: 6 dB, a defect); row 150: response 1.2 and column 220: response 0.8 (1.6 dB and 1.9 dB: bands that gain correction removes)
+    Frames f = makeFrames(22, kDoses, 3, 7, onlyLines(kLnHalfRow | kLnGainRow));''', '''    // QA-A-252d: a response below 45 % or above 150 % is a defect; 0.5 (row 80), 0.6 (row 50), 1.2 (row 150) and the 0.8 column are not; 0.3 (row 70) and 1.7 (row 190) are
+    Frames f = makeFrames(22, kDoses, 3, 7, onlyLines(kLnHalfRow | kLnGainRow | kLnLowRow | kLnHighRow | kLnWeakRow));''')
+sub('''    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) << "response 0.5: found";
+    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnGainY)) << "response 1.2: a band that gain correction removes";
+    EXPECT_EQ(1u, r.rep.lines);''', '''    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY)) << "response 0.3: found";
+    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHighRowY)) << "response 1.7: found";
+    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnHalfRowY)) << "response 0.5: inside 45 %..150 %, normal";
+    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnWeakRowY)) << "response 0.6: weak, counted only";
+    EXPECT_EQ(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnGainY)) << "response 1.2: a band that gain correction removes";
+    EXPECT_EQ(2u, r.rep.lines);
+    EXPECT_GE(r.rep.weak_response_stretches, 2u) << "the rows at 0.5 and 0.6 are weak responses";''')
+
+# ---------------------------------------------------------------- new tests
+marker = 'TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {'
+new = r'''TEST(BpmV2Test, TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes) {
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    p.respPixels = true;
+    Frames f = makeFrames(46, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    for (int q = 0; q < 6; ++q) {
+        const bool defect = kRespR[q] < 0.45 + 1e-9 ? kRespR[q] < 0.45 : kRespR[q] > 1.5;
+        const bool flagged = (r.feat[static_cast<size_t>(kRespY) * kW + kRespX[q]] & XPE_BPM_V2_FEATURE_FLAT) != 0;
+        EXPECT_EQ(defect, flagged) << "response " << kRespR[q];
+    }
+    EXPECT_EQ(2u, r.rep.weak_response_pixels) << "0.50 and 0.60 are from 45 % up to 70 %: weak, counted, not flagged";
+}
+
+TEST(BpmV2LinesTest, AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups) {
+    // eight dose groups make the linearity statistic sharp enough for the shift of log(sse) by a gain band (x1.35: +0.6) to stand out when it is not made relative
+    const std::vector<double> doses8 = {1000.0, 2000.0, 3000.0, 4500.0, 6000.0, 9000.0, 13000.0, 18000.0};
+    Frames f = makeFrames(47, doses8, 3, 7, onlyLines(kLnGainCol));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0u, r.rep.lines);
+}
+
+'''
+assert s.count(marker) == 1
+s = s.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('v2 tests patched')

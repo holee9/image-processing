@@ -1,0 +1,111 @@
+"""QA-A-252g: tables of the report that 75_analyze.py.txt does not print (written after the measurement; nothing here changes a method or a number): the labels of the exposure-scaled truth against the
+--raw-frames truth, the effective degrees of freedom and lag-1 autocorrelation of the line items, where the BRIGHT_NOISE bits lie (inside which items, outside all), the cause-bit totals of the
+lines lists, and the scores side by side with QA-A-252f."""
+import collections
+import json
+
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-252g/'
+E3 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252g/evidence/'
+E2 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252f/evidence/'
+W = 3072
+
+
+def tsv(p):
+    L = [l.rstrip('\n').split('\t') for l in open(p, encoding='utf-8')]
+    return L[0], L[1:]
+
+
+h, a = tsv(E3 + '62_noise_truth.tsv.txt')
+_, r = tsv(E3 + '62r_noise_truth_raw.tsv.txt')
+_, o = tsv(E2 + '62_noise_truth.tsv.txt')
+print('columns:', h)
+A = {int(x[0]): x for x in a}
+R = {int(x[0]): x for x in r}
+O = {int(x[0]): x for x in o}
+print('items: scaled %d, raw %d, 252f %d' % (len(A), len(R), len(O)))
+
+
+def cmp(X, Y, nx, ny):
+    chg = collections.Counter()
+    costs = []
+    for k in X:
+        if k not in Y:
+            continue
+        if X[k][9] != Y[k][9]:
+            chg[(Y[k][9], X[k][9])] += 1
+        cx, cy = float(X[k][6]), float(Y[k][6])
+        if cy > 0:
+            costs.append(abs(cx / cy - 1))
+    costs.sort()
+    print('%s vs %s: label changes %d %s; |cost ratio - 1|: median %.4f, 95th %.4f, max %.4f (items %d)' % (nx, ny, sum(chg.values()), dict(chg), costs[len(costs) // 2], costs[int(len(costs) * 0.95)], costs[-1], len(costs)))
+
+
+cmp(A, R, 'scaled', 'raw-frames')
+cmp(R, O, 'raw-frames (this run)', '252f file')
+cmp(A, O, 'scaled', '252f file')
+lines = [x for x in a if x[2] != 'pixel']
+lag = sorted(float(x[11]) for x in lines)
+ratio = sorted(float(x[5]) / float(x[10]) for x in lines)
+print('line items %d: lag-1 autocorrelation median %.3f, max %.3f; effective / independent degrees of freedom: min %.3f, median %.3f; items with effective < independent: %d' % (len(lines), lag[len(lag) // 2], lag[-1], ratio[0], ratio[len(ratio) // 2], sum(x < 0.9999 for x in ratio)))
+print('status column values:', collections.Counter(x[12] for x in a))
+for k in ('gain_loss', 'efficiency_loss'):
+    for lv in ('0.3', '0.44', '0.46', '0.6'):
+        s = [x for x in lines if x[1] == k and x[3] == lv]
+        print('  %-16s %-5s lag1 %s  eff/indep %s' % (k, lv, ' '.join('%.2f' % float(x[11]) for x in s), ' '.join('%.2f' % (float(x[5]) / float(x[10])) for x in s)))
+# where the BRIGHT_NOISE bits lie
+items = []
+for l in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        items.append((int(p[0]), p[1], p[2], p[3], p[4], [tuple(map(int, q.split(','))) for q in p[5].split(';')]))
+feat = open(OUT + 'v2g_planted_features.u8', 'rb').read()
+inside = collections.Counter()
+size = collections.Counter()
+mask = bytearray(len(feat))
+for (_, cls, kind, shape, lv, rects) in items:
+    key = (cls, kind, 'pixel' if shape == 'pixel' else 'line', lv)
+    for (x, y, w, hh) in rects:
+        for yy in range(y, y + hh):
+            base = yy * W
+            for xx in range(x, x + w):
+                mask[base + xx] = 1
+                size[key] += 1
+                if feat[base + xx] & 0x20:
+                    inside[key] += 1
+total = sum(1 for v in feat if v & 0x20)
+outside = sum(1 for i, v in enumerate(feat) if (v & 0x20) and not mask[i])
+print('\nBRIGHT_NOISE bits: total %d, inside planted items %d, outside all items %d' % (total, sum(inside.values()), outside))
+print('%-10s %-16s %-6s %-5s %10s %8s %9s' % ('class', 'kind', 'type', 'level', 'pixels', 'noise', 'per pixel'))
+for key in sorted(size):
+    if key[1] in ('gain_loss', 'efficiency_loss'):
+        print('%-10s %-16s %-6s %-5s %10d %8d %9.5f' % (key + (size[key], inside[key], inside[key] / size[key])))
+
+
+def bits(p):
+    L = [l.rstrip('\n').split('\t') for l in open(p, encoding='utf-8')][1:]
+    c = collections.Counter()
+    for x in L:
+        v = int(x[5])
+        for b, n in ((1, 'R'), (2, 'L'), (4, 'N'), (8, 'S')):
+            if v & b:
+                c[n] += 1
+    return len(L), dict(c)
+
+
+print('\nlines list planted: 252f %s | 252g %s' % (bits(E2 + '68_lines_planted.tsv.txt'), bits(E3 + '68_lines_planted.tsv.txt')))
+print('lines list clean  : 252f %s | 252g %s' % (bits(E2 + '67_lines_clean.tsv.txt'), bits(E3 + '67_lines_clean.tsv.txt')))
+keys = ['flagged', 'outside_truth', 'clean_flagged', 'new_false_alarms', 'new_false_alarms_in_controls', 'control_items', 'control_false_detections', 'undetermined_items', 'undetermined_groups', 'noise_axis_promoted_to_defect']
+for tag, f in (('1st gen', '63_score_v1.json.txt'), ('2nd gen two axes', '69_score_v2.json.txt'), ('2nd gen response axis', '70_score_v2_response_axis.json.txt')):
+    d2 = json.load(open(E2 + f, encoding='utf-8'))
+    d3 = json.load(open(E3 + f, encoding='utf-8'))
+    print('\n%s' % tag)
+    for k in sorted(set(d2) | set(d3)):
+        v = d3.get(k, d2.get(k))
+        if isinstance(v, (int, float, str)) and (k in keys or 'jaccard' in k.lower() or 'agree' in k.lower() or 'half' in k.lower()):
+            print('  %-34s 252f %-14s 252g %s' % (k, d2.get(k), d3.get(k)))
+d3r = json.load(open(E3 + '69r_score_v2_rawlabels.json.txt', encoding='utf-8'))
+d3 = json.load(open(E3 + '69_score_v2.json.txt', encoding='utf-8'))
+print('\n2nd gen, scaled labels vs raw-frames labels')
+for k in keys:
+    print('  %-34s scaled %-12s raw %s' % (k, d3.get(k), d3r.get(k)))

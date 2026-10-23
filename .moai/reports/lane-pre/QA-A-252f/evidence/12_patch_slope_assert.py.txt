@@ -1,0 +1,16 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+t = s.replace('\r\n', '\n')
+a = '''    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY)) << "response 0.3: found";
+'''
+b = '''    EXPECT_NE(nullptr, lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY)) << "response 0.3: found";
+    if (const XpeBpmLine* low = lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY)) {   // QA-A-252f: the response of the offset-corrected image and the slope proxy are recorded apart
+        EXPECT_NE(0u, low->causes & XPE_BPM_LINE_CAUSE_RESPONSE) << "the ratio of the offset-corrected image";
+        EXPECT_NE(0u, low->causes & XPE_BPM_LINE_CAUSE_SLOPE) << "the slope proxy has its own cause bit";
+    }
+'''
+assert t.count(a) == 1
+t = t.replace(a, b)
+open(p, 'w', encoding='utf-8', newline='').write(t.replace('\n', '\r\n') if crlf else t)
+print('slope assertion patched')

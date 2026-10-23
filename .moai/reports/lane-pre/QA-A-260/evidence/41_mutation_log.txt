@@ -1,0 +1,45 @@
+QA-A-260 mutation check (tools/xpe_bpm_eval.cpp: one exclusion of the first dark; tools/xpe_calib_fixture_gen.cpp: honest metadata). Source hash at the start: 76b810ef6a4c6029
+PREDICTIONS (written before any run):
+  E1 map-v1 gets the first dark back (the old behaviour of the first edition)             -> red: TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList (xpe_bpm_generate: 5 darks)
+  E2 lines asks the library to skip one more dark (double exclusion in the line detector)  -> red: TheTwo... (dark 5 of 5 raw becomes 4 of 4)
+  E3 map-v2 asks the library to skip one more dark                                         -> red: TheTwo... (5 darks used becomes 4) and MapV2SkipsTheFirstDarkFrame...
+  E4 --keep-first-dark is ignored                                                          -> red: TheTwo... (kept section)
+  E5 the older --skip-first-dark 0 is no longer read as "trimmed already"                  -> red: TheTwo... (lines with --skip-first-dark 0) and MapV2SkipsTheFirstDarkFrame...
+  E6 one-frame refusal removed (the message names the first dark frame)                    -> red: TheTwo... (message check)
+  G1 defect file says "generator" also when the first dark was kept                        -> red: TheMetadataNamesWhoExcludedTheFirstDark (defect.xcal members)
+  G2 manifest defect_format says "generator" also when the first dark was kept             -> red: TheMetadataNamesWhoExcludedTheFirstDark (manifest)
+  G3 the one-list statement is also true for --gain-dark-ref none                          -> red: TheOneListStatementIsLimitedToAMeanGainReference
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 51 passed, failed: []
+--- E1
+build: BUILD_EXIT=0
+tests exit 1: 50 passed, FAILED: ['TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList']
+--- E2
+build: BUILD_EXIT=0
+tests exit 1: 50 passed, FAILED: ['TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList']
+--- E3
+build: BUILD_EXIT=0
+tests exit 1: 49 passed, FAILED: ['MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot', 'TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList']
+--- E4
+build: BUILD_EXIT=0
+tests exit 1: 50 passed, FAILED: ['TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList']
+--- E5
+build: BUILD_EXIT=0
+tests exit 1: 49 passed, FAILED: ['MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot', 'TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList']
+--- E6
+build: BUILD_EXIT=0
+tests exit 1: 50 passed, FAILED: ['TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList']
+--- G1
+build: BUILD_EXIT=0
+tests exit 1: 50 passed, FAILED: ['TheMetadataNamesWhoExcludedTheFirstDark']
+--- G2
+build: BUILD_EXIT=0
+tests exit 1: 50 passed, FAILED: ['TheMetadataNamesWhoExcludedTheFirstDark']
+--- G3
+build: BUILD_EXIT=0
+tests exit 1: 50 passed, FAILED: ['TheOneListStatementIsLimitedToAMeanGainReference']
+--- restored: touch + rebuild
+source hash now: 76b810ef6a4c6029 (start: 76b810ef6a4c6029)
+build: BUILD_EXIT=0

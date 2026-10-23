@@ -1,0 +1,193 @@
+"""QA-A-252f step 2d: the local expectation of the temporal variance in noise-cost is the MEASURED variance-signal curve of the unplanted pixels of the verification frames (equal-count
+bins of the mean net signal, median variance of each bin divided by the median of chi-square / nu), read at the local signal of the pixel. A ring median of a few hundred
+pixels would carry an error of 10 % (common to all pixels of an item), which is wider than the question (2 against 1.67 or 2.17) asks."""
+hp = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval_stats.hpp'
+h = open(hp, encoding='utf-8', newline='').read()
+hcrlf = '\r\n' in h
+h = h.replace('\r\n', '\n')
+marker = '/** The verdict on the noise cost of an item'
+assert h.count(marker) == 1
+add = r'''/**
+ * Relative standard error of the median of @p n samples of chi-square_nu / nu (the asymptotic variance of a sample median, 1 / (4 n f(m)^2), with f the density of
+ * chi-square_nu / nu at its median m): 2.33 / sqrt(n) for nu = 1, 1.2 / sqrt(n) for nu = 5.
+ */
+inline double medianRelativeSe(double nu, double n) {
+    const double m = chiSquareMedianOverNu(nu), x = nu * m;
+    const double pdf = std::exp((0.5 * nu - 1.0) * std::log(x) - 0.5 * x - 0.5 * nu * std::log(2.0) - std::lgamma(0.5 * nu));
+    const double f = nu * pdf;
+    return 1.0 / (2.0 * std::sqrt(n) * f * m);
+}
+
+'''
+h = h.replace(marker, add + marker)
+open(hp, 'w', encoding='utf-8', newline='').write(h.replace('\n', '\r\n') if hcrlf else h)
+
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+start = s.index('/**\n * noise-cost (QA-A-252f): see the header of this file.')
+end = s.index('// ------------------------------------------------------------------------------------------------------------- module access')
+new = r'''/**
+ * noise-cost (QA-A-252f): see the header of this file. The verification frames are planted frames of ONE dose; the temporal deviation about their mean has the row and the
+ * column mean of every frame taken out (as the detector does), nu = frames - 1. The expectation a pixel is compared with is the variance-signal curve measured on the unplanted
+ * pixels of the same frames (equal-count bins of the mean net signal; the median variance of a bin divided by the median of chi-square / nu), read at the pixel's local signal
+ * (the median of the unplanted pixels 4..12 away). That curve is a measurement, not the model formula kappa * signal + readout.
+ */
+int cmdNoiseCost(const Args& a) {
+    Truth t;
+    const std::vector<std::string> darkFiles = a.list("dark"), verFiles = a.list("verify");
+    if (!a.has("truth") || !a.has("out") || darkFiles.size() < 3 || verFiles.size() < 2 || !loadTruth(a.str("truth"), &t)) {
+        std::fprintf(stderr, "noise-cost needs --truth DIR, --out FILE, at least 3 --dark and at least 2 --verify frames (planted, of one dose)\n");
+        return 2;
+    }
+    const uint32_t w = t.w, h = t.h;
+    const size_t   n = static_cast<size_t>(w) * h;
+    const double   limit = a.has("limit") ? std::strtod(a.str("limit").c_str(), nullptr) : 2.0;
+    const double   nu = static_cast<double>(verFiles.size() - 1);
+    std::vector<double> D(n, 0.0);
+    for (const std::string& f : darkFiles) {
+        std::vector<uint16_t> fr;
+        if (!readRaw16(f, n, &fr)) return 3;
+        for (size_t i = 0; i < n; ++i) D[i] += fr[i];
+    }
+    for (size_t i = 0; i < n; ++i) D[i] /= static_cast<double>(darkFiles.size());
+    std::vector<std::vector<float>> net(verFiles.size());
+    std::vector<float>              mean(n, 0.0f);
+    for (size_t k = 0; k < verFiles.size(); ++k) {
+        std::vector<uint16_t> fr;
+        if (!readRaw16(verFiles[k], n, &fr)) return 3;
+        net[k].resize(n);
+        for (size_t i = 0; i < n; ++i) {
+            net[k][i] = static_cast<float>(fr[i] - D[i]);
+            mean[i] += net[k][i] / static_cast<float>(verFiles.size());
+        }
+    }
+    std::vector<float> s2(n, 0.0f);   // the unbiased temporal variance of every pixel, nu degrees of freedom
+    {
+        std::vector<double> rm(h), cm(w);
+        for (size_t k = 0; k < verFiles.size(); ++k) {
+            for (uint32_t y = 0; y < h; ++y) {
+                double acc = 0.0;
+                for (uint32_t x = 0; x < w; ++x) acc += net[k][static_cast<size_t>(y) * w + x] - mean[static_cast<size_t>(y) * w + x];
+                rm[y] = acc / w;
+            }
+            std::fill(cm.begin(), cm.end(), 0.0);
+            for (uint32_t y = 0; y < h; ++y)
+                for (uint32_t x = 0; x < w; ++x) cm[x] += net[k][static_cast<size_t>(y) * w + x] - mean[static_cast<size_t>(y) * w + x] - rm[y];
+            for (uint32_t x = 0; x < w; ++x) cm[x] /= h;
+            for (uint32_t y = 0; y < h; ++y)
+                for (uint32_t x = 0; x < w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * w + x;
+                    const double e = net[k][i] - mean[i] - rm[y] - cm[x];
+                    s2[i] += static_cast<float>(e * e / nu);
+                }
+        }
+    }
+    net.clear();
+    net.shrink_to_fit();
+    std::vector<uint8_t> occupied(n, 0);
+    for (size_t i = 0; i < n; ++i) occupied[i] = t.ids[i] != 0 ? 1 : 0;
+    const std::vector<uint8_t> occ = dilate(occupied, w, h, 3);
+    const double medFactor = xpe_bpm_eval::chiSquareMedianOverNu(nu);
+
+    // the measured variance-signal curve of the unplanted pixels
+    struct Sample {
+        float mean, var;
+    };
+    std::vector<Sample> cal;
+    for (uint32_t y = 32; y + 32 < h; y += 4)
+        for (uint32_t x = 32; x + 32 < w; x += 4) {
+            const size_t i = static_cast<size_t>(y) * w + x;
+            if (!occ[i] && mean[i] > 100.0f) cal.push_back({mean[i], s2[i]});
+        }
+    const size_t nBins = 32;
+    if (cal.size() < nBins * 200) {
+        std::fprintf(stderr, "noise-cost: only %zu unplanted pixels with a signal to calibrate the expectation on\n", cal.size());
+        return 3;
+    }
+    std::sort(cal.begin(), cal.end(), [](const Sample& p, const Sample& q) { return p.mean < q.mean; });
+    std::vector<double> binMean, binVar;
+    const size_t        per = cal.size() / nBins;
+    for (size_t b = 0; b < nBins; ++b) {
+        std::vector<double> m, v;
+        for (size_t k = b * per; k < (b + 1) * per; ++k) {
+            m.push_back(cal[k].mean);
+            v.push_back(cal[k].var);
+        }
+        binMean.push_back(xpe_bpm_eval::medianOf(m));
+        binVar.push_back(xpe_bpm_eval::medianOf(v) / medFactor);
+    }
+    const double expectSe = xpe_bpm_eval::medianRelativeSe(nu, static_cast<double>(per));
+    auto expectation = [&](double mu) {
+        if (mu <= binMean.front()) return binVar.front();
+        if (mu >= binMean.back()) return binVar.back();
+        const size_t k = static_cast<size_t>(std::upper_bound(binMean.begin(), binMean.end(), mu) - binMean.begin());
+        const double f = (mu - binMean[k - 1]) / (binMean[k] - binMean[k - 1]);
+        return binVar[k - 1] + f * (binVar[k] - binVar[k - 1]);
+    };
+    std::printf("== variance-signal curve of the unplanted pixels (%zu pixels in %zu bins of %zu; relative standard error of a bin %.3f)\n", cal.size(), nBins, per, expectSe);
+    std::printf("  signal %.0f -> variance %.2f   signal %.0f -> variance %.2f   signal %.0f -> variance %.2f\n", binMean[nBins / 8], binVar[nBins / 8], binMean[nBins / 2], binVar[nBins / 2],
+                binMean[nBins - 1 - nBins / 8], binVar[nBins - 1 - nBins / 8]);
+
+    std::vector<std::pair<int, int>> ring;   // the unplanted pixels 4..12 away (Chebyshev distance): the local signal
+    for (int dy = -12; dy <= 12; ++dy)
+        for (int dx = -12; dx <= 12; ++dx)
+            if (std::max(std::abs(dx), std::abs(dy)) >= 4) ring.push_back({dx, dy});
+    std::string out = "id\tkind\tshape\tlevel\tpixels\tdof\tcost\tlo\thi\tlabel\n";
+    struct Sum {
+        int                 items{0}, defect{0}, normal{0}, undetermined{0};
+        std::vector<double> costs;
+    };
+    std::map<std::string, Sum> sums;
+    for (const Item& it : t.items) {
+        if (it.kind != "gain_loss" && it.kind != "efficiency_loss") continue;
+        double sumC = 0.0;
+        size_t npx = 0;
+        forItemPixels(it, w, [&](size_t i) {
+            if (t.ids[i] == kSharedId) return;   // shared with another item: its value is not this item's alone
+            const int          x = static_cast<int>(i % w), y = static_cast<int>(i / w);
+            std::vector<float> vm;
+            vm.reserve(ring.size());
+            for (const auto& o : ring) {
+                const int xx = x + o.first, yy = y + o.second;
+                if (xx < 0 || yy < 0 || xx >= static_cast<int>(w) || yy >= static_cast<int>(h)) continue;
+                const size_t j = static_cast<size_t>(yy) * w + static_cast<size_t>(xx);
+                if (!occ[j]) vm.push_back(mean[j]);
+            }
+            if (vm.size() < 60) return;
+            std::nth_element(vm.begin(), vm.begin() + static_cast<std::ptrdiff_t>(vm.size() / 2), vm.end());
+            const double localMean = static_cast<double>(vm[vm.size() / 2]);
+            const double g = static_cast<double>(mean[i]) / localMean;
+            const double expect = expectation(localMean);
+            if (!(localMean > 100.0) || !(g > 0.05) || !(expect > 0.0)) return;
+            sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;
+            ++npx;
+        });
+        xpe_bpm_eval::NoiseVerdict v;
+        if (npx > 0) v = xpe_bpm_eval::classifyNoiseCost(sumC / static_cast<double>(npx), nu * static_cast<double>(npx), expectSe, limit);
+        const char* label = !npx ? "undetermined" : (v.label == xpe_bpm_eval::NoiseLabel::Defect ? "defect" : (v.label == xpe_bpm_eval::NoiseLabel::Normal ? "normal" : "undetermined"));
+        char b[300];
+        std::snprintf(b, sizeof b, "%d\t%s\t%s\t%s\t%zu\t%.0f\t%.4f\t%.4f\t%.4f\t%s\n", it.id, it.kind.c_str(), it.shape.c_str(), fmtLevel(it.level).c_str(), npx, nu * static_cast<double>(npx), v.cost, v.lo, v.hi,
+                      label);
+        out += b;
+        Sum& sm = sums[it.kind + "/" + it.shape + "/" + fmtLevel(it.level)];
+        ++sm.items;
+        if (std::string(label) == "undetermined") ++sm.undetermined;
+        else if (std::string(label) == "defect") ++sm.defect;
+        else ++sm.normal;
+        if (npx) sm.costs.push_back(v.cost);
+    }
+    if (!writeBytes(a.str("out"), out.data(), out.size())) return 3;
+    std::printf("== noise cost of the response items (%zu verification frames, nu = %.0f per pixel, limit %.2f)\n  %-44s %6s %7s %7s %13s %12s\n", verFiles.size(), nu, limit, "kind/shape/level", "items",
+                "defect", "normal", "undetermined", "median cost");
+    for (auto& kv : sums)
+        std::printf("  %-44s %6d %7d %7d %13d %12.3f\n", kv.first.c_str(), kv.second.items, kv.second.defect, kv.second.normal, kv.second.undetermined,
+                    kv.second.costs.empty() ? 0.0 : xpe_bpm_eval::medianOf(kv.second.costs));
+    return 0;
+}
+
+'''
+s = s[:start] + new + s[end:]
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('noise-cost curve patched')

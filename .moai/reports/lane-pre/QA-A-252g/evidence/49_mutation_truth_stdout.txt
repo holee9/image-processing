@@ -1,0 +1,17 @@
+QA-A-252g mutation check of the truth path (tools/xpe_bpm_eval.cpp noise-cost): exposure scaling and effective degrees of freedom. Source hash at the start: 5e7d723e0c3a7c52
+PREDICTIONS (written before any run):
+  T1 the scale of every verification frame forced to 1 (the labels of QA-A-252f)     -> red: NoiseCostTakesTheExposureOutOfTheVerificationFrames... only (pixRaw is large either way, the 10x contrast fails)
+  T2 the effective degrees of freedom ignored (pixels x nu as before)                  -> red: NoiseCostTakesTheExposureOutOfTheVerificationFrames... only (no item with fewer effective degrees)
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 75 passed, failed: []
+--- T1
+build: BUILD_EXIT=0
+tests exit 1: 74 passed, FAILED: ['NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves']
+--- T2
+build: BUILD_EXIT=0
+tests exit 1: 74 passed, FAILED: ['NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves']
+--- restored: touch + rebuild
+source hash now: 5e7d723e0c3a7c52 (start: 5e7d723e0c3a7c52)
+build: BUILD_EXIT=0

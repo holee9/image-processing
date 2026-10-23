@@ -1,0 +1,56 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# small items (pixels and blocks) of any class, and line-type items (lines and the controls that are lines)
+sub('''TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {''', '''namespace {
+bool isSmall(const Item& it) { return it.shape == "pixel" || it.shape.compare(0, 5, "block") == 0; }
+bool isLineType(const Item& it) { return (it.cls == "line" || it.cls == "control") && !isSmall(it); }
+}  // namespace
+
+TEST_F(BpmEvalTest, InjectFollowsTheSpecCountsAndPlacementRules) {''')
+sub('''    EXPECT_EQ(39, perClass["line"]);       // 6 model levels x 6 shapes + 3 crossings
+    EXPECT_EQ(12, perClass["control"]);    // 3 kinds x 2 levels x 2 directions
+    EXPECT_EQ(16, perClass["block"]);      // 4 sizes x 2 levels x 2
+    EXPECT_EQ(45, perClass["pixel"]);      // 15 levels x 3
+    std::map<std::string, int> pixelKinds;
+    for (const Item& it : items) if (it.cls == "pixel") ++pixelKinds[it.kind + "/" + std::to_string(it.level)];
+    EXPECT_EQ(15u, pixelKinds.size());''', '''    // QA-A-252d: a response below 45 % is a defect, 0.45 and above is normal (class control)
+    EXPECT_EQ(45, perClass["line"]);       // dead 1.0, nonlinear x2, noisy x2 at 6 shapes = 30 + gain_loss and efficiency_loss at 0.3 = 12, + 3 crossings
+    EXPECT_EQ(8, perClass["block"]);       // dead 1.0: 4 sizes x 2
+    EXPECT_EQ(36, perClass["pixel"]);      // 12 levels x 3 (dead 1, hot x4, noisy x3, nonlinear x2, gain_loss 0.3, efficiency_loss 0.3)
+    int controlLines = 0, controlBlocks = 0, controlPixels = 0;
+    for (const Item& it : items) {
+        if (it.cls != "control") continue;
+        if (it.shape == "pixel") ++controlPixels;
+        else if (isSmall(it)) ++controlBlocks;
+        else ++controlLines;
+    }
+    EXPECT_EQ(42, controlLines);           // 12 bands (3 kinds x 2 levels x 2 directions) + dead 0.5 and the two loss models at 0.45 and 0.7: 5 x 6 shapes = 30
+    EXPECT_EQ(8, controlBlocks);           // dead 0.5: 4 sizes x 2
+    EXPECT_EQ(27, controlPixels);          // 9 levels x 3 (dead 0.5, slope x4, gain_loss and efficiency_loss at 0.45 and 0.7)
+    std::map<std::string, int> pixelKinds;
+    for (const Item& it : items) if (it.cls == "pixel") ++pixelKinds[it.kind + "/" + std::to_string(it.level)];
+    EXPECT_EQ(12u, pixelKinds.size());''')
+sub('''        if (it.cls != "line" && it.cls != "control") continue;
+        for (const Rect& q : it.rects) {
+            if (q.w > q.h) lineRowIntervals''', '''        if (!isLineType(it)) continue;
+        for (const Rect& q : it.rects) {
+            if (q.w > q.h) lineRowIntervals''')
+sub('''            const bool line = it.cls == "line" || it.cls == "control";''', '''            const bool line = isLineType(it);''')
+sub('''        if (it.cls == "pixel" || it.cls == "block") {
+            const Rect q = it.rects[0];''', '''        if (isSmall(it)) {
+            const Rect q = it.rects[0];''')
+sub('''                if (items[a].cls == "pixel" || items[a].cls == "block" || items[b].cls == "pixel" || items[b].cls == "block") continue;''', '''                if (isSmall(items[a]) || isSmall(items[b])) continue;''')
+# the slope pixel is a control now (response 1.25 is normal)
+sub('''    const Item* slope = findItem("pixel", "slope", "pixel", 1.25);''', '''    const Item* slope = findItem("control", "slope", "pixel", 1.25);''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('eval tests patched')

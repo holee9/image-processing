@@ -1,0 +1,104 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:70])
+    s = s.replace(old, new)
+
+
+sub('''struct Plant {
+    bool stripes{true};
+    bool defects{true};
+};
+''', '''struct Plant {
+    bool stripes{true};
+    bool defects{true};
+    // QA-A-252b: what the first measurement of the detector showed it cannot take (#273)
+    bool partialLines{false};   // a quarter of a row / of a column, and of a two-row line, without response in the bright frames
+    bool varyingColumn{false};  // a column whose offset changes from frame to frame
+    bool yGradient{false};      // the gain also changes along the columns (vertical shading), so a multiplicative column band leaves a trace
+};
+''')
+
+sub('''constexpr int kGainCol = 220;                // response 0.8 in the bright frames (a column band)
+''', '''constexpr int kGainCol = 220;                // response 0.8 in the bright frames (a column band)
+constexpr int kPartRow = 100, kPartRowPair = 140, kPartCol = 30;   // partial lines: a quarter of the length (64 of 256), from the frame start
+constexpr int kPartLen = 64;
+constexpr int kVarCol = 70;                  // a column offset that is a new random value in every frame (sd 15)
+''')
+
+sub('''    auto atPlant = [&](int x, int y, int px, int py) { return x == px && y == py; };
+    Frames f;
+    auto put = [&](double net, bool bright, bool firstDark) {
+        std::vector<uint16_t> fr(kN);
+        for (size_t i = 0; i < kN; ++i) {
+            const int x = static_cast<int>(i % kW), y = static_cast<int>(i / kW);
+            double d = D0[i], sig = net * G[i];
+''', '''    auto atPlant = [&](int x, int y, int px, int py) { return x == px && y == py; };
+    Frames f;
+    Normal frameRng(seed + 99);   // separate from the pixel noise, so the planted extras do not change any other value
+    auto put = [&](double net, bool bright, bool firstDark) {
+        std::vector<uint16_t> fr(kN);
+        const double columnOffset = plant.varyingColumn ? 15.0 * frameRng.next() : 0.0;
+        for (size_t i = 0; i < kN; ++i) {
+            const int x = static_cast<int>(i % kW), y = static_cast<int>(i / kW);
+            double d = D0[i], sig = net * G[i];
+            if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);
+            if (plant.varyingColumn && x == kVarCol) d += columnOffset;
+            if (plant.partialLines) {
+                if ((y == kPartRow || y == kPartRowPair || y == kPartRowPair + 1) && x < kPartLen) sig = 0.0;
+                if (x == kPartCol && y < kPartLen) sig = 0.0;
+            }
+''')
+
+new_tests = '''
+// ---------------------------------------------------------------- QA-A-252b: the three failures of the first measurement (#273), on synthetic frames
+// The shading of the synthetic gain is 10 % along the rows, like a real flat field; a row component taken as the median of the row itself is then moved by
+// a defect that covers a part of the row.
+size_t flaggedInRow(const Result& r, int y, int xFrom, int xTo) {
+    size_t n = 0;
+    for (int x = xFrom; x < xTo; ++x) n += r.map[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] != 0;
+    return n;
+}
+size_t flaggedInColumn(const Result& r, int x, int yFrom, int yTo) {
+    size_t n = 0;
+    for (int y = yFrom; y < yTo; ++y) n += r.map[static_cast<size_t>(y) * kW + static_cast<size_t>(x)] != 0;
+    return n;
+}
+
+TEST(BpmV2Test, APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap) {
+    Frames f = makeFrames(5, kDoses, 3, 7, Plant{false, false, true, false, false});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    for (int y : {kPartRow, kPartRowPair, kPartRowPair + 1}) {
+        EXPECT_GE(flaggedInRow(r, y, 0, kPartLen), static_cast<size_t>(kPartLen) * 9 / 10) << "the defective part of row " << y << " is found";
+        EXPECT_LE(flaggedInRow(r, y, kPartLen + 8, static_cast<int>(kW)), 2u) << "the rest of row " << y << " is not defective: " << describe(r.rep);
+    }
+    EXPECT_GE(flaggedInColumn(r, kPartCol, 0, kPartLen), static_cast<size_t>(kPartLen) * 9 / 10);
+    EXPECT_LE(flaggedInColumn(r, kPartCol, kPartLen + 8, static_cast<int>(kH)), 2u) << "the rest of column " << kPartCol << " is not defective: " << describe(r.rep);
+}
+
+TEST(BpmV2Test, AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect) {
+    Frames f = makeFrames(6, kDoses, 3, 7, Plant{false, false, false, true, false});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    size_t noise = 0;
+    for (uint32_t y = 0; y < kH; ++y) noise += (r.feat[static_cast<size_t>(y) * kW + kVarCol] & XPE_BPM_V2_FEATURE_DARK_NOISE) != 0;
+    EXPECT_LE(noise, 2u) << "a shared offset of the column is not temporal noise of its pixels: " << describe(r.rep);
+}
+
+TEST(BpmV2Test, AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn) {
+    Frames f = makeFrames(7, kDoses, 3, 7, Plant{true, false, false, false, true});
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_LE(flaggedInColumn(r, kGainCol, 0, static_cast<int>(kH)), 2u) << "a column band of response 0.8 is not a defect: " << describe(r.rep);
+    EXPECT_LE(r.rep.flagged_union, 10u) << describe(r.rep);
+}
+'''
+
+marker = '''TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {'''
+sub(marker, new_tests.lstrip('\\n') + '\\n' + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s)
+print('patched')

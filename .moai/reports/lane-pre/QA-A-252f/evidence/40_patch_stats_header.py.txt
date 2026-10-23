@@ -1,0 +1,127 @@
+"""QA-A-252f step 2a: numeric parts of the quantum gain fit and of the noise-cost verdict, in xpe_bpm_eval_stats.hpp (so that the tests call them directly)."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval_stats.hpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+marker = '}  // namespace xpe_bpm_eval'
+assert s.count(marker) == 1
+new = r'''// ------------------------------------------------------------------------------------------------------------- chi-square, quantum gain, noise cost (QA-A-252f)
+
+/** Regularised lower incomplete gamma function P(a, x): the chi-square distribution function is P(nu / 2, x / 2). */
+inline double gammaP(double a, double x) {
+    if (!(x > 0.0)) return 0.0;
+    const double gln = std::lgamma(a);
+    if (x < a + 1.0) {   // series
+        double ap = a, sum = 1.0 / a, del = sum;
+        for (int n = 0; n < 5000; ++n) {
+            ap += 1.0;
+            del *= x / ap;
+            sum += del;
+            if (std::fabs(del) < std::fabs(sum) * 1e-15) break;
+        }
+        return sum * std::exp(-x + a * std::log(x) - gln);
+    }
+    double b = x + 1.0 - a, c = 1e300, d = 1.0 / b, h = d;   // continued fraction for the upper function
+    for (int i = 1; i < 5000; ++i) {
+        const double an = -static_cast<double>(i) * (static_cast<double>(i) - a);
+        b += 2.0;
+        d = an * d + b;
+        if (std::fabs(d) < 1e-300) d = 1e-300;
+        c = b + an / c;
+        if (std::fabs(c) < 1e-300) c = 1e-300;
+        d = 1.0 / d;
+        const double del = d * c;
+        h *= del;
+        if (std::fabs(del - 1.0) < 1e-15) break;
+    }
+    return 1.0 - std::exp(-x + a * std::log(x) - gln) * h;
+}
+
+/** The value x with P(chi-square_nu <= x) = p, by bisection. */
+inline double chiSquareQuantile(double nu, double p) {
+    double lo = 0.0, hi = std::max(10.0, nu * 4.0 + 40.0);
+    while (gammaP(0.5 * nu, 0.5 * hi) < p) hi *= 2.0;
+    for (int it = 0; it < 300; ++it) {
+        const double mid = 0.5 * (lo + hi);
+        if (gammaP(0.5 * nu, 0.5 * mid) < p) lo = mid;
+        else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+}
+
+/**
+ * The median of chi-square_nu / nu: the factor by which the MEDIAN of unbiased sample variances (nu degrees of freedom) is too small (nu = 1: 0.455, nu = 2: 0.693,
+ * nu = 5: 0.870, the same bias as in the sample-variance median of #208). Dividing a median of sample variances by it makes it the variance.
+ */
+inline double chiSquareMedianOverNu(double nu) { return chiSquareQuantile(nu, 0.5) / nu; }
+
+/** One dose group of the quantum gain fit: its net signal, its variance (already divided by chiSquareMedianOverNu), its degrees of freedom and the number of pixels. */
+struct QuantumGainGroup {
+    double signal{0}, variance{0}, dof{0}, pixels{0};
+};
+
+/** The fit variance = v0 + kappa * signal over the dose groups, weighted by the inverse variance of each group variance (2 variance^2 / (dof * pixels)). */
+struct QuantumGainFit {
+    bool   ok{false};
+    double kappa{0}, v0{0}, kappaSe{0}, v0Se{0}, chiSquare{0};
+    int    groups{0};
+};
+
+inline QuantumGainFit fitQuantumGain(const std::vector<QuantumGainGroup>& g) {
+    QuantumGainFit r;
+    double S = 0, Sx = 0, Sy = 0, Sxx = 0, Sxy = 0;
+    int    k = 0;
+    for (const QuantumGainGroup& q : g) {
+        if (!(q.variance > 0.0) || !(q.dof > 0.0) || !(q.pixels > 0.0) || !(q.signal > 0.0)) continue;
+        const double w = q.dof * q.pixels / (2.0 * q.variance * q.variance);
+        S += w;
+        Sx += w * q.signal;
+        Sy += w * q.variance;
+        Sxx += w * q.signal * q.signal;
+        Sxy += w * q.signal * q.variance;
+        ++k;
+    }
+    r.groups = k;
+    const double delta = S * Sxx - Sx * Sx;
+    if (k < 2 || !(delta > 0.0)) return r;
+    r.kappa = (S * Sxy - Sx * Sy) / delta;
+    r.v0 = (Sxx * Sy - Sx * Sxy) / delta;
+    for (const QuantumGainGroup& q : g) {
+        if (!(q.variance > 0.0) || !(q.dof > 0.0) || !(q.pixels > 0.0) || !(q.signal > 0.0)) continue;
+        const double w = q.dof * q.pixels / (2.0 * q.variance * q.variance), e = q.variance - r.v0 - r.kappa * q.signal;
+        r.chiSquare += w * e * e;
+    }
+    const double scale = k > 2 ? std::max(1.0, r.chiSquare / static_cast<double>(k - 2)) : 1.0;   // the scatter about the line widens the errors, never narrows them
+    r.kappaSe = std::sqrt(S / delta * scale);
+    r.v0Se = std::sqrt(Sxx / delta * scale);
+    r.ok = std::isfinite(r.kappa) && r.kappa > 0.0;
+    return r;
+}
+
+/** The verdict on the noise cost of an item (the variance after gain correction against the local expectation; 2 is the SRS limit). */
+enum class NoiseLabel { Defect, Normal, Undetermined };
+
+struct NoiseVerdict {
+    double     cost{0}, lo{0}, hi{0};
+    NoiseLabel label{NoiseLabel::Undetermined};
+};
+
+/**
+ * The cost @p cost of an item measured with @p dof independent degrees of freedom of its variance estimate (pixels x (frames - 1)); @p extraLogSe is the standard error
+ * (natural log) of the local expectation it is compared with. The interval is the chi-square interval at 95 % widened by the error of the expectation. Defect: the
+ * interval lies at or above @p limit. Normal: it lies below. Undetermined: it contains @p limit (the item is counted neither as a hit nor as a false alarm).
+ */
+inline NoiseVerdict classifyNoiseCost(double cost, double dof, double extraLogSe, double limit = 2.0) {
+    NoiseVerdict v;
+    v.cost = cost;
+    const double widen = std::exp(1.96 * extraLogSe);
+    v.lo = dof * cost / chiSquareQuantile(dof, 0.975) / widen;
+    v.hi = dof * cost / chiSquareQuantile(dof, 0.025) * widen;
+    v.label = v.lo >= limit ? NoiseLabel::Defect : (v.hi < limit ? NoiseLabel::Normal : NoiseLabel::Undetermined);
+    return v;
+}
+
+'''
+s = s.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('stats header patched')

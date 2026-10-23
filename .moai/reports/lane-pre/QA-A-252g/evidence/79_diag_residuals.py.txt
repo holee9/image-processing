@@ -1,0 +1,88 @@
+"""QA-A-252g diagnosis of the three results that missed a prediction (written after the measurement; reads the outputs, changes nothing):
+1. which items the 35 NOISE-cause lines of the lines list belong to (the prediction D2 compared the response items with the whole list),
+2. where the 42 BRIGHT_NOISE pixels on the gain-loss lines lie (distance to the line ends, line orientation, shape),
+3. the label changes between the exposure-scaled truth and the raw-frames truth by item type and shape."""
+import collections
+
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-252g/'
+E3 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252g/evidence/'
+W = 3072
+
+items = []
+for l in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        items.append({'id': int(p[0]), 'cls': p[1], 'kind': p[2], 'shape': p[3], 'level': p[4], 'rects': [tuple(map(int, q.split(','))) for q in p[5].split(';')]})
+
+groups = []
+for l in list(open(E3 + '68_lines_planted.tsv.txt', encoding='utf-8'))[1:]:
+    p = l.rstrip('\n').split('\t')
+    groups.append({'ori': p[0], 'idx': int(p[1]), 'width': int(p[2]), 'a': int(p[3]), 'b': int(p[4]), 'causes': int(p[5])})
+
+
+def match(it):
+    x, y, w, h = it['rects'][0]
+    ori = 'row' if w > h else 'column'
+    idx, wd = (y, h) if ori == 'row' else (x, w)
+    a, ln = (x, w) if ori == 'row' else (y, h)
+    b = a + ln
+    best = None
+    for g in groups:
+        if g['ori'] != ori or g['idx'] > idx + wd or g['idx'] + g['width'] - 1 < idx - 1:
+            continue
+        ov = min(g['b'], b) - max(g['a'], a)
+        if ov >= 0.5 * ln and (best is None or ov > best[0]):
+            best = (ov, g)
+    return best[1] if best else None
+
+
+used = set()
+byKind = collections.Counter()
+for it in items:
+    if it['shape'] == 'pixel':
+        continue
+    g = match(it)
+    if g is not None:
+        used.add(id(g))
+        if g['causes'] & 4:
+            byKind[(it['cls'], it['kind'], it['level'])] += 1
+unmatched = [g for g in groups if id(g) not in used]
+print('1. NOISE-cause lines by the planted item they belong to (cls, kind, level):')
+for k, v in sorted(byKind.items()):
+    print('   %-40s %d' % (str(k), v))
+print('   lines list entries matching no planted line item: %d, of which with the NOISE bit: %d' % (len(unmatched), sum(1 for g in unmatched if g['causes'] & 4)))
+for g in [g for g in unmatched if g['causes'] & 4][:20]:
+    print('     unmatched NOISE line: %s index %d width %d from %d to %d causes %d' % (g['ori'], g['idx'], g['width'], g['a'], g['b'], g['causes']))
+
+feat = open(OUT + 'v2g_planted_features.u8', 'rb').read()
+print('\n2. BRIGHT_NOISE pixels on the gain-loss lines (distance to the nearer end of the item, along the line):')
+dist = []
+perItem = collections.Counter()
+for it in items:
+    if it['kind'] != 'gain_loss' or it['shape'] == 'pixel':
+        continue
+    for (x, y, w, h) in it['rects']:
+        ori = 'row' if w > h else 'col'
+        for yy in range(y, y + h):
+            for xx in range(x, x + w):
+                if feat[yy * W + xx] & 0x20:
+                    along = (xx - x) if ori == 'row' else (yy - y)
+                    ln = w if ori == 'row' else h
+                    dist.append(min(along, ln - 1 - along))
+                    perItem[(it['cls'], it['shape'], it['level'])] += 1
+print('   pixels %d; distance to the nearer end: <= 8: %d, 9..64: %d, > 64: %d' % (len(dist), sum(d <= 8 for d in dist), sum(8 < d <= 64 for d in dist), sum(d > 64 for d in dist)))
+for k, v in sorted(perItem.items()):
+    print('   %-40s %d' % (str(k), v))
+
+a = {int(x.split('\t')[0]): x.rstrip('\n').split('\t') for x in list(open(E3 + '62_noise_truth.tsv.txt', encoding='utf-8'))[1:]}
+r = {int(x.split('\t')[0]): x.rstrip('\n').split('\t') for x in list(open(E3 + '62r_noise_truth_raw.tsv.txt', encoding='utf-8'))[1:]}
+chg = collections.Counter()
+for k in a:
+    if a[k][9] != r[k][9]:
+        chg[(a[k][1], 'pixel' if a[k][2] == 'pixel' else 'line', r[k][9], a[k][9])] += 1
+print('\n3. label changes (kind, type, raw-frames label -> scaled label):')
+for k, v in sorted(chg.items()):
+    print('   %-70s %d' % (str(k), v))
+pix = [k for k in a if a[k][2] == 'pixel']
+print('   pixel items %d; of them with a changed label %d; line items changed %d' % (len(pix), sum(1 for k in pix if a[k][9] != r[k][9]), sum(1 for k in a if a[k][2] != 'pixel' and a[k][9] != r[k][9])))

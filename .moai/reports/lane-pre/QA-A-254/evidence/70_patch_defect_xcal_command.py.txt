@@ -1,0 +1,112 @@
+"""QA-A-254 step 2b: xpe_bpm_eval defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F]: reads a defect.xcal of format version 1 or 2 and says what it holds (version, size, flagged pixels,
+outside-area pixels, line / blob / candidate counts); writes the layers out for comparison. On a refusal it prints the code and the reason alerts and exits 3. Used for the real-set check of QA-A-254."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:100])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('tools/xpe_bpm_eval.cpp', [
+    ('#include "xpe_bpm_eval_stats.hpp"\n', '#include "xpe_bpm_eval_stats.hpp"\n#include "defect_ext.hpp"\n#include "xpe/common/xpe_common_api.h"\n'),
+    ('''/** blobs --map F [--width W --height H] [--out blobs.tsv]: the blobs of a map with their size. */''',
+     r'''/**
+ * defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F] (QA-A-254): what a defect.xcal of format version 1 or 2 holds. --map-out and --area-out write the planes (width x height
+ * bytes); --lines-out writes a TSV of the line records and the unconfirmed candidates with their individual stretches.
+ */
+int cmdDefectXcal(const Args& a) {
+    if (!a.has("in")) {
+        usage();
+        return 2;
+    }
+    DefectXcal d;
+    xpe_clear_alerts();
+    const XpeErrorCode rc = read_defect_xcal(a.str("in").c_str(), false, &d);
+    if (rc != XPE_OK) {
+        std::printf("refused: error code %d\n", static_cast<int>(rc));
+        const int32_t n = xpe_get_pending_alert_count();
+        for (int32_t i = 0; i < n; ++i) {
+            char    msg[1024] = {0};
+            int32_t sev = 0;
+            if (xpe_get_pending_alert(i, msg, sizeof msg, &sev) == XPE_OK) std::printf("  alert: %s\n", msg);
+        }
+        xpe_clear_alerts();
+        return 3;
+    }
+    size_t flagged = 0, outside = 0;
+    for (uint8_t v : d.map) flagged += v != 0;
+    for (uint8_t v : d.area) outside += v == 0;
+    size_t segments = 0;
+    for (const DefectExtLine& L : d.ext.lines) segments += L.segments.size();
+    std::printf("defect.xcal: format version %u, %u x %u, session \"%s\"\n  defect plane: %zu pixels flagged\n  imaging area: %s%zu pixels outside\n  line groups: %zu (%zu stretches), blobs: %zu, unconfirmed candidates: %zu\n",
+                d.format_version, d.width, d.height, d.session_id.c_str(), flagged, d.has_area ? "" : "none (version 1: every pixel inside); ", outside, d.ext.lines.size(), segments, d.ext.blobs.size(),
+                d.ext.candidates.size());
+    if (a.has("map-out") && !writeBytes(a.str("map-out"), d.map.data(), d.map.size())) return 3;
+    if (a.has("area-out") && d.has_area && !writeBytes(a.str("area-out"), d.area.data(), d.area.size())) return 3;
+    if (a.has("lines-out")) {
+        std::string tsv = "kind\torientation\tindex\twidth\tstart\tend\tcauses\tflags\treason\tcorrection\tstrength\tpersistence\tstretches\n";
+        auto row = [&](const char* kind, const DefectExtLine& L) {
+            std::string st;
+            for (const DefectExtSegment& g : L.segments) st += (st.empty() ? "" : ";") + std::to_string(g.line) + ":" + std::to_string(g.start) + "-" + std::to_string(g.end);
+            char b[320];
+            std::snprintf(b, sizeof b, "%s\t%s\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%u\t%.2f\t%.2f\t", kind, L.orientation == 0 ? "row" : "column", L.index, L.width, L.start, L.end, L.causes, L.flags, L.reason, L.correction,
+                          static_cast<double>(L.strength), static_cast<double>(L.persistence));
+            tsv += b + st + "\n";
+        };
+        for (const DefectExtLine& L : d.ext.lines) row("line", L);
+        for (const DefectExtLine& L : d.ext.candidates) row("candidate", L);
+        if (!writeBytes(a.str("lines-out"), tsv.data(), tsv.size())) return 3;
+    }
+    return 0;
+}
+
+/** blobs --map F [--width W --height H] [--out blobs.tsv]: the blobs of a map with their size. */'''),
+    ('    if (a.cmd == "blobs") return cmdBlobs(a);', '    if (a.cmd == "blobs") return cmdBlobs(a);\n    if (a.cmd == "defect-xcal") return cmdDefectXcal(a);'),
+    (' *   xpe_bpm_eval score --truth DIR --map F', ' *   xpe_bpm_eval defect-xcal --in F [--map-out F] [--area-out F] [--lines-out F]\n *       What a defect.xcal of format version 1 or 2 holds, and the layers written out (QA-A-254).\n *   xpe_bpm_eval score --truth DIR --map F'),
+])
+
+edit('tests/test_bpm_eval.cpp', [
+    ('#include "xpe/common/xpe_common_api.h"\n', '#include "xpe/common/xpe_common_api.h"\n') if False else ('class BpmEvalQuantumTest : public BpmEvalTest {', r'''TEST_F(BpmEvalTest, DefectXcalCommandReadsBothVersionsAndSaysWhyItRefuses) {
+    // QA-A-254: a version-2 file made by the writer, the command's summary and the planes it writes out; a damaged file is refused with the alert text in the output
+    const uint32_t W = 64, H = 48;
+    std::vector<uint8_t> map(static_cast<size_t>(W) * H, 0), area(map.size(), 1);
+    map[5 * W + 5] = 1;
+    map[6 * W + 7] = 2;
+    for (uint32_t x = 0; x < W; ++x) area[x] = 0;   // the top row is outside
+    DefectExt ext;
+    DefectExtLine L;
+    L.orientation = 0; L.index = 20; L.width = 1; L.start = 8; L.end = 40; L.causes = 1; L.correction = XPE_DEFECT_LINE_CORRECT_INTERPOLATE; L.strength = 4.0f;
+    L.segments = {{20, 8, 40}};
+    ext.lines = {L};
+    ext.blobs = {{5, 5, 5, 5, 1}};
+    DefectXcalWrite w;
+    w.width = W; w.height = H; w.map = map.data(); w.area = area.data(); w.ext = &ext; w.session_id = "t";
+    const fs::path f = root / "d2.xcal";
+    ASSERT_EQ(XPE_OK, write_defect_xcal(f.string().c_str(), w));
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, "defect-xcal --in \"" + f.string() + "\" --map-out \"" + (root / "m.u8").string() + "\" --area-out \"" + (root / "a.u8").string() + "\" --lines-out \"" +
+                                                (root / "l.tsv").string() + "\" > \"" + (root / "d.txt").string() + "\" 2>&1"));
+    const std::string out = text(root / "d.txt"), lines = text(root / "l.tsv");
+    EXPECT_NE(std::string::npos, out.find("format version 2, 64 x 48")) << out;
+    EXPECT_NE(std::string::npos, out.find("defect plane: 2 pixels flagged")) << out;
+    EXPECT_NE(std::string::npos, out.find("imaging area: 64 pixels outside")) << out;
+    EXPECT_NE(std::string::npos, out.find("line groups: 1 (1 stretches), blobs: 1, unconfirmed candidates: 0")) << out;
+    EXPECT_EQ(map, readBytes(root / "m.u8"));
+    EXPECT_EQ(area, readBytes(root / "a.u8"));
+    EXPECT_NE(std::string::npos, lines.find("line\trow\t20\t1\t8\t40")) << lines;
+    EXPECT_NE(std::string::npos, lines.find("20:8-40")) << lines;
+    std::vector<uint8_t> b = readBytes(f);
+    b[4] = 9;   // an unsupported version number
+    writeBytes(root / "bad.xcal", b.data(), b.size());
+    EXPECT_EQ(3, runCmd(XPE_BPM_EVAL_EXE, "defect-xcal --in \"" + (root / "bad.xcal").string() + "\" > \"" + (root / "bad.txt").string() + "\" 2>&1"));
+    EXPECT_NE(std::string::npos, text(root / "bad.txt").find("alert: XPE_ERR_XCAL_VERSION: file version 9")) << text(root / "bad.txt");
+}
+
+class BpmEvalQuantumTest : public BpmEvalTest {'''),
+])
+print('defect-xcal command patched')

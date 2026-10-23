@@ -1,0 +1,99 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+CPP = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+HPP = ROOT + 'modules/preprocess/tools/xpe_bpm_eval_stats.hpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-251b/evidence/22_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FAST = 'BpmEvalStatsTest.*:BpmEvalTest.*-BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex'
+ALL = 'BpmEvalStatsTest.*:BpmEvalTest.*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests(filt):
+    r = subprocess.run([EXE, '--gtest_filter=' + filt], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+NL = chr(10).encode()   # the tool sources use LF
+orig = {CPP: open(CPP, 'rb').read(), HPP: open(HPP, 'rb').read()}
+h0 = hashlib.sha256(orig[CPP] + orig[HPP]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-251b mutation check of the evaluation tool fixes. Source hash (tool + header) at the start: ' + h0)
+say('Short names: pct=MedianAndPercentileFollowTheDefinition invalid=ASampleThatCannotBeComputedIsInvalid... group=AGroupWithoutAValidSampleIsUncomputableNotZero exact=LineIndexHasTheExactRatio...')
+say('  mad=TheMadBasedValueIsAuxiliary... noden=ALineIndexWithoutADenominator... half=ScoreCallsALineDetectedAtExactlyHalf... ctrl=FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf')
+say('  counts=ScoreCountsControlHitsFalseAlarmsAndHalfAgreement name=InjectRefusesTwoInputsWithTheSameFileName slow=CorrectRunsOnTwoSetsAndReportsTheLineIndex')
+say('PREDICTIONS (written before any run):')
+say('  U1 percentile without the +0.5                         -> red: pct, group')
+say('  U2 median index (m - 1) / 2 instead of m / 2           -> red: pct only (the odd-sized group has the same median)')
+say('  U3 zero-sigma reasons swapped (equal <-> error)        -> red: invalid only')
+say('  U4 zero sigma counted as a valid sample with z = 0     -> red: invalid, slow')
+say('  U5 a group always "computable"                         -> red: group, slow')
+say('  U6 sample standard deviation with n instead of n - 1   -> red: exact only')
+say('  U7 the two-line extension of the prediction dropped     -> red: exact only')
+say('  U8 a zero denominator still "computable"               -> red: noden, slow')
+say('  U9 detection ">= 0.5" turned into "> 0.5"               -> red: half only')
+say('  U10 false alarms leave out the control bands again     -> red: ctrl, counts')
+say('  U11 file-name collision check removed                  -> red: name only')
+say('  U12 control share of the new false alarms not counted  -> red: ctrl, counts')
+say('  U13 uncomputable line-index parts not counted          -> red: slow only')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('U1', HPP, b'static_cast<size_t>(q * static_cast<double>(v.size() - 1) + 0.5)', b'static_cast<size_t>(q * static_cast<double>(v.size() - 1))', FAST),
+    ('U2', HPP, b'v.begin() + static_cast<std::ptrdiff_t>(v.size() / 2), v.end());\n    return v[v.size() / 2];', b'v.begin() + static_cast<std::ptrdiff_t>((v.size() - 1) / 2), v.end());\n    return v[(v.size() - 1) / 2];', FAST),
+    ('U3', HPP, b'return d == 0.0 ? ZStatus::ZeroSigmaEqual : ZStatus::ZeroSigmaError;', b'return d == 0.0 ? ZStatus::ZeroSigmaError : ZStatus::ZeroSigmaEqual;', FAST),
+    ('U4', HPP, b'if (!(sigma > 0.0)) return d == 0.0 ? ZStatus::ZeroSigmaEqual : ZStatus::ZeroSigmaError;', b'if (!(sigma > 0.0)) { *z = 0.0; return ZStatus::Valid; }', ALL),
+    ('U5', HPP, b'bool   computable() const { return !z.empty(); }', b'bool   computable() const { return true; }', ALL),
+    ('U6', HPP, b'r.sigmaPix = std::sqrt(ss / static_cast<double>(res.size() - 1)) / std::sqrt(1.5);', b'r.sigmaPix = std::sqrt(ss / static_cast<double>(res.size())) / std::sqrt(1.5);', FAST),
+    ('U7', HPP, b'std::sqrt(1.0 / (static_cast<double>(k) * len) + 0.5 / len)', b'std::sqrt(1.0 / static_cast<double>(len) + 0.5 / len)', FAST),
+    ('U8', HPP, b'r.computable = std::isfinite(r.dn) && std::isfinite(r.sigmaPred) && r.sigmaPred > 0.0;', b'r.computable = std::isfinite(r.dn) && std::isfinite(r.sigmaPred);', ALL),
+    ('U9', CPP, b'if (frac >= 0.5) ++g.detected;', b'if (frac > 0.5) ++g.detected;', FAST),
+    ('U10', CPP, b'dilate(t.truthReal, t.w, t.h, 2)', b'dilate(t.truthAny, t.w, t.h, 2)', FAST),
+    ('U11', CPP, b'if (!names.insert(baseName(f)).second) {', b'if (!names.insert(baseName(f)).second && f.empty()) {', FAST),
+    ('U12', CPP, b'if (id != 0 && id != kSharedId && controlId[id]) ++nNewControl;', b'if (id != 0 && id != kSharedId && controlId[id] && nNew == 0) ++nNewControl;', FAST),
+    ('U13', CPP, b'if (!ls[k]->computable) ++unc[k];', b'if (!ls[k]->computable && k < 0) ++unc[k];', ALL),
+]
+try:
+    say('--- step 0: unmutated')
+    b = build()
+    say('build: ' + b)
+    rc, ok, bad = run_tests(ALL)
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new, filt in mutants:
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests(filt)
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(path, 'wb').write(cur)
+        os.utime(path, None)
+        time.sleep(1)
+finally:
+    for path, data in orig.items():
+        open(path, 'wb').write(data)
+        os.utime(path, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(CPP, 'rb').read() + open(HPP, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests(ALL)
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

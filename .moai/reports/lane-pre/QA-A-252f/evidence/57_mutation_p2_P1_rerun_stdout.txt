@@ -1,0 +1,17 @@
+QA-A-252f mutation check of the noise-cost check P2 (src/xpe_bpm_v2.cpp). Source hash at the start: b945d7d7feb05a7b
+PREDICTIONS (written before any run):
+  P1 the gain correction is 1 (no correction)                                      -> red: TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot only (the 0.3 efficiency row loses its NOISE cause)
+  (this run: P1 only; P2..P4 are in 53_mutation_p2_log.txt)
+  P2 the persistence over the dose groups is removed from the pixel check          -> red: ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect only
+  P3 the per-frame persistence of the line stretches is judged without the correction -> red: TheNoiseCostOfAnEfficiencyLossRow... only (the stretch is discarded for lack of persistence)
+  P4 the pooled statistic of the lines is not corrected (the pixel persistence is)  -> red: TheNoiseCostOfAnEfficiencyLossRow... only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 43 passed, failed: []
+--- P1
+build: BUILD_EXIT=0
+tests exit 1: 42 passed, FAILED: ['TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot']
+--- restored: touch + rebuild
+source hash now: b945d7d7feb05a7b (start: b945d7d7feb05a7b)
+build: BUILD_EXIT=0

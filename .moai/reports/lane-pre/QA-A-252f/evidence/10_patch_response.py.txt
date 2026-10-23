@@ -1,0 +1,71 @@
+"""QA-A-252f step 1 (Codex #213 finding 1): the response ratio is judged against the local median of the OFFSET-CORRECTED image (no row/column factor taken out first);
+the response cause of a line is the stretch ratio of that same image, and the slope proxy has its own cause bit."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:90])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('src/xpe_bpm_v2.cpp', [
+    ('''constexpr double kWeakResponseHigh = 0.7;   // 45 % up to 70 %: weak, counted only''',
+     '''constexpr double kWeakResponseHigh = 0.7;   // 45 % up to 70 %: weak, counted only
+constexpr double kRatioSlack = 1e-6;        // the ratio is a quotient of floats (about 6e-8 resolution): a response of exactly 0.45 or 1.5 is normal, whatever the rounding'''),
+    ('''/**
+ * The response ratio rule (QA-A-252d, SRS FUNC-022): the row and column factors are taken out, the local median is the background, and a pixel whose feature is below
+ * @p lo or above @p hi times the background is defective. @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
+ */
+float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {
+    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), true);
+    separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));''',
+     '''/**
+ * The response ratio rule (SRS FUNC-022; QA-A-252d, corrected in QA-A-252f): the feature is the relative response of the OFFSET-CORRECTED bright frames (summed over the
+ * dose groups), and the background is its local median as it is: no row or column factor is taken out first (that normalisation belongs to the other features only).
+ * The local median is the separable one of the other features: the median over @c window pixels along x, then the median of those over @c window pixels along y; it is
+ * not a true two-dimensional median of the window. A pixel whose feature is below @p lo or above @p hi times the background (to within kRatioSlack) is defective.
+ * @p weak counts the pixels from @p lo up to @p weakHi (not flagged). Returns the median ratio.
+ */
+float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, double weakHi, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, uint32_t* weak) {
+    separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));'''),
+    ('''        if (ratio < lo || ratio > hi) {
+            (*flags)[i] = static_cast<uint8_t>((*flags)[i] | bit);
+            ++*count;
+        } else if (ratio < weakHi) {''',
+     '''        if (ratio < lo - kRatioSlack || ratio > hi + kRatioSlack) {
+            (*flags)[i] = static_cast<uint8_t>((*flags)[i] | bit);
+            ++*count;
+        } else if (ratio < weakHi) {'''),
+    ('''    bool             countWeak{false};   // count the weak-response stretches of the response feature being analysed''',
+     '''    bool             countWeak{false};   // count the weak-response stretches of the response feature being analysed
+    uint32_t         responseCause{XPE_BPM_LINE_CAUSE_RESPONSE};   // the cause a response stretch gets: RESPONSE for the offset-corrected image, SLOPE for the slope proxy'''),
+    ('''                if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;
+                else if (job->countWeak && g < kWeakResponseHigh) ++job->weak;''',
+     '''                if (g < lo - kRatioSlack || g > hi + kRatioSlack) cause = job->responseCause;
+                else if (job->countWeak && g < kWeakResponseHigh) ++job->weak;'''),
+    ('''        if (job) {
+            for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
+            analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+        }''',
+     '''        if (job) {
+            for (size_t i = 0; i < n; ++i) wk.feat[i] = static_cast<float>((static_cast<double>(G) * Sxn[i] - Sx * Sn[i]) / dgx);
+            job->responseCause = XPE_BPM_LINE_CAUSE_SLOPE;   // the slope is a proxy of the response (it is the regression slope, not the ratio of the offset-corrected image): its own cause
+            analyzeFeature(wk.feat.data(), w, h, st, job, kKindResponse);
+            job->responseCause = XPE_BPM_LINE_CAUSE_RESPONSE;
+        }'''),
+])
+
+edit('include/xpe/preprocess_api.h', [
+    ('''    uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65) */''',
+     '''    uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65). The local median is separable: the median along x
+                                       *   over this many pixels, then the median of those along y (it is not a two-dimensional median of the window) */'''),
+    ('''#define XPE_BPM_LINE_CAUSE_NOISE     0x04u''',
+     '''#define XPE_BPM_LINE_CAUSE_SLOPE     0x08u /**< The regression slope over the doses (a proxy of the response) differs from its neighbours by the same measure; recorded apart from RESPONSE, which is the ratio of the offset-corrected image (QA-A-252f) */
+#define XPE_BPM_LINE_CAUSE_NOISE     0x04u'''),
+])
+print('response patched')

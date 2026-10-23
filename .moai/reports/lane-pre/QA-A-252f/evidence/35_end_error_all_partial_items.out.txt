@@ -1,0 +1,41 @@
+id  kind             shape        level start err end err   causes
+3   dead             row_partial  1     0         0         1
+4   dead             col_partial  1     0         0         1
+5   dead             row_pair     1     0         0         1
+6   dead             col_pair     1     0         0         1
+15  nonlinear        row_partial  0.4   0         0         2
+16  nonlinear        col_partial  0.4   0         0         2
+17  nonlinear        row_pair     0.4   0         0         2
+18  nonlinear        col_pair     0.4   1         0         2
+21  nonlinear        row_partial  0.2   0         0         2
+22  nonlinear        col_partial  0.2   0         0         2
+23  nonlinear        row_pair     0.2   0         0         2
+24  nonlinear        col_pair     0.2   0         0         2
+27  noisy            row_partial  4     0         0         4
+28  noisy            col_partial  4     0         3         4
+29  noisy            row_pair     4     0         1         4
+30  noisy            col_pair     4     0         0         4
+33  noisy            row_partial  2     -1        -1        4
+34  noisy            col_partial  2     0         0         4
+35  noisy            row_pair     2     0         2         4
+36  noisy            col_pair     2     0         3         4
+42  gain_loss        row_partial  0.3   0         0         1
+43  gain_loss        col_partial  0.3   0         0         1
+44  gain_loss        row_pair     0.3   0         0         1
+45  gain_loss        col_pair     0.3   0         0         1
+48  gain_loss        row_partial  0.44  0         0         1
+49  gain_loss        col_partial  0.44  0         0         1
+50  gain_loss        row_pair     0.44  1         0         1
+51  gain_loss        col_pair     0.44  0         0         1
+66  efficiency_loss  row_partial  0.3   0         0         3
+67  efficiency_loss  col_partial  0.3   0         52        3
+68  efficiency_loss  row_pair     0.3   7         0         3
+69  efficiency_loss  col_pair     0.3   2         0         3
+72  efficiency_loss  row_partial  0.44  5         0         3
+73  efficiency_loss  col_partial  0.44  0         0         3
+74  efficiency_loss  row_pair     0.44  3         3         1
+75  efficiency_loss  col_pair     0.44  0         8         3
+items 36 found 36
+all found        n=36  start error median 0.0 max 7 | end error median 0.0 max 52 | |error|>=20: 1
+efficiency_loss  n=8  start error median 1.0 max 7 | end error median 0.0 max 52 | |error|>=20: 1
+other kinds      n=28  start error median 0.0 max 1 | end error median 0.0 max 3 | |error|>=20: 0

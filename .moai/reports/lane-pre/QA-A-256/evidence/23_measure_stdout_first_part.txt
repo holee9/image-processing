@@ -1,0 +1,23 @@
+N1_noise_cost exit 0 seconds 2
+item truth identical to QA-A-252g
+G1_planted_v1 exit 0 seconds 411
+G2_planted_v2 exit 0 seconds 161
+G3_clean_v1 exit 0 seconds 414
+G4_clean_v2 exit 0 seconds 144
+X1_area_planted_v2 exit 0 seconds 0
+X2_info_v1 exit 0 seconds 0
+X3_clean_v2_map exit 0 seconds 0
+X4_planted_v1_map exit 0 seconds 0
+X5_clean_v1_map exit 0 seconds 0
+H1_v1_half_a exit 0 seconds 402
+H2_v1_half_b exit 0 seconds 394
+H3_v2_half_a exit 0 seconds 82
+H4_v2_half_b exit 0 seconds 84
+H5_v2_lines_a exit 0 seconds 37
+H6_v2_lines_b exit 0 seconds 38
+P1_v2_features exit 0 seconds 106
+P2_v2_lines exit 0 seconds 48
+P3_set_map exit 0 seconds 0
+feature run map identical to the set defect plane
+S1_score_v1 exit 0 seconds 1
+S2_score_v2 exit 3 seconds 0

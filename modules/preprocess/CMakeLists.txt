@@ -32,6 +32,7 @@ set(XPE_PREPROCESS_SOURCES
     src/rle_codec.cpp            # RLE compression for defect maps
     src/xpe_calib_check_expiry.cpp  # REQ-P1A-018 XCal v1 header-only expiry check (3-arg API)
     src/xpe_defect_gen.cpp       # SWU-1.11 BPM Generation (FUNC-022~025)
+    src/xpe_bpm_v2.cpp           # SRS-CALIB-FUNC-022 v1.4: second-generation pixel defect detection (QA-A-252, #273)
     src/xpe_calib_mode.cpp       # SWU-1.12 Calibration Mode Selection (FUNC-031~033)
     # XCal v1 calibration API (T-006..T-009)
     src/xpe_calibration.cpp         # global g_calib + g_calib_mutex definitions
@@ -49,6 +50,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xcal_reader.cpp
     src/xcal_writer.cpp
     src/xcal_validator.cpp
+    src/defect_ext.cpp              # QA-A-254: XCal defect file version 2 (imaging-area plane, line / blob extension)
     src/xpe_sha256_backend.cpp      # QA-A-106 (#179): CNG/PicoSHA2 SHA-256 backend
     # SWU-1.12: Verification Metrics API (PRE-11)
     src/xpe_verify_metrics.cpp  # Quality assessment metrics for calibration verification
@@ -143,6 +145,40 @@ xpe_target_warnings_as_errors(xpe_calib_fixture_gen)
 
 # Same output directory as the test binaries so the CI artifact picks it up.
 set_target_properties(xpe_calib_fixture_gen PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+
+# =============================================================================
+# QA-A-251 (#273): defect-map evaluation tool. Plants defects whose positions are
+# known and scores a defect map against them (method:
+# .moai/reports/lane-pre/QA-A-251/evidence/30_method_fixed_before_measurement.md).
+# It reads maps and frames only; it adds no export and is not part of a product.
+# =============================================================================
+add_executable(xpe_bpm_eval
+    tools/xpe_bpm_eval.cpp
+    src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
+)
+
+target_include_directories(xpe_bpm_eval
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party  # picosha2, via xpe_sha256.hpp
+)
+
+target_link_libraries(xpe_bpm_eval PRIVATE xpe_preprocess xpe_common)
+if(WIN32)
+    target_link_libraries(xpe_bpm_eval PRIVATE bcrypt)
+endif()
+target_compile_features(xpe_bpm_eval PRIVATE cxx_std_17)
+
+if(MSVC)
+    target_compile_options(xpe_bpm_eval PRIVATE /W4)
+else()
+    target_compile_options(xpe_bpm_eval PRIVATE -Wall -Wextra)
+endif()
+xpe_target_warnings_as_errors(xpe_bpm_eval)
+
+set_target_properties(xpe_bpm_eval PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
@@ -306,6 +342,8 @@ if(_XPE_BUILD_TESTS)
         tests/test_xcal_reader.cpp
         tests/test_xcal_writer.cpp
         tests/test_xcal_validator.cpp
+        tests/test_defect_xcal_v2.cpp        # QA-A-254: XCal defect file version 2
+        tests/test_defect_correct_v2.cpp     # QA-A-255: defect correction, second edition (lines, blobs, imaging area)
         tests/test_xpe_sha256.cpp
         # QA-A-106 (#179): CNG/PicoSHA2 digest parity
         tests/test_sha256_backend_parity.cpp
@@ -459,6 +497,11 @@ if(_XPE_BUILD_TESTS)
         tests/test_req_p1a_066.cpp
         # QA-A-36 (#141): fixture generator determinism + pipeline acceptance
         tests/test_calib_fixture_gen.cpp
+        # QA-A-251 (#273): defect-map evaluation tool (runs xpe_bpm_eval as a subprocess)
+        tests/test_bpm_eval.cpp
+        tests/test_bpm_lines_lof.cpp
+        # QA-A-252 (#273): second-generation pixel defect detection
+        tests/test_bpm_v2.cpp
         # QA-A-37 (#140): XCAL_TYPE_GAIN_POLY read path
         tests/test_calib_gain_poly_load.cpp
         # QA-A-38 (#138 #97): XPE-ALG-001 9.8.2.1 N_min static-defect marking
@@ -511,6 +554,7 @@ if(_XPE_BUILD_TESTS)
         src/xcal_reader.cpp
         src/xpe_sha256_backend.cpp    # Sha256Stream is not exported from the DLL
         src/xcal_validator.cpp
+        src/defect_ext.cpp            # QA-A-254: not exported from the DLL, like the reader and the writer it uses
         src/helpers.cpp               # xpe_interpolate_pixel is not exported from the DLL (QA-A-172)
         src/calib_expiry_check.cpp    # not exported from the DLL: the tests call it with the clock at the boundary (QA-A-241)
     )
@@ -518,6 +562,7 @@ if(_XPE_BUILD_TESTS)
     target_include_directories(xpe_preprocess_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
                 ${CMAKE_CURRENT_SOURCE_DIR}/src
+                ${CMAKE_CURRENT_SOURCE_DIR}/tools   # xpe_bpm_eval_stats.hpp (QA-A-251b)
                 ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party
     )
 
@@ -546,6 +591,13 @@ if(_XPE_BUILD_TESTS)
     # definition -- on Windows the path contains backslashes, which a plain
     # -D"..." string turns into invalid escapes. A raw string literal does not.
     add_dependencies(xpe_preprocess_tests xpe_calib_fixture_gen)
+    add_dependencies(xpe_preprocess_tests xpe_bpm_eval)
+    file(GENERATE
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xpe_bpm_eval_path.h
+        CONTENT "#pragma once
+#define XPE_BPM_EVAL_EXE R\"($<TARGET_FILE:xpe_bpm_eval>)\"
+"
+    )
     file(GENERATE
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xpe_fixture_gen_path.h
         CONTENT "#pragma once

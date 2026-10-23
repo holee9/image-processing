@@ -1,0 +1,105 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub(r'''    EXPECT_NE(std::string::npos, j.find("\"control_items\": 12")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 12")) << j;''', r'''    int nControl = 0;
+    for (const Item& it : parseTruth(t / "truth.tsv")) nControl += it.cls == "control" ? 1 : 0;
+    EXPECT_EQ(77, nControl);
+    EXPECT_NE(std::string::npos, j.find("\"control_items\": 77")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"control_false_detections\": 77")) << j;
+    EXPECT_NE(std::string::npos, j.find("\"control_groups\"")) << "the pixel and block controls are summed per kind and level";
+    EXPECT_NE(std::string::npos, j.find("\"group\": \"control/efficiency_loss/pixel/0.45\", \"items\": 3, \"false_detections\": 3")) << j;''')
+
+new_tests = r'''
+// ---------------------------------------------------------------- QA-A-252d: response items
+TEST_F(BpmEvalTest, ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn) {
+    makeFrames(5, 3, 2);
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    const std::vector<Item> items = parseTruth(out / "truth.tsv");
+    auto classOf = [&](const char* kind, const char* shape, double level) -> std::string {
+        for (const Item& it : items)
+            if (it.kind == kind && it.shape == shape && std::fabs(it.level - level) < 1e-9) return it.cls;
+        return "missing";
+    };
+    for (const char* kind : {"gain_loss", "efficiency_loss"}) {
+        EXPECT_EQ("pixel", classOf(kind, "pixel", 0.3)) << kind;
+        EXPECT_EQ("control", classOf(kind, "pixel", 0.45)) << kind << ": exactly 45 % is not below 45 %";
+        EXPECT_EQ("control", classOf(kind, "pixel", 0.7)) << kind;
+        EXPECT_EQ("line", classOf(kind, "row_full", 0.3)) << kind;
+        EXPECT_EQ("control", classOf(kind, "col_partial", 0.45)) << kind;
+        EXPECT_EQ("control", classOf(kind, "row_pair", 0.7)) << kind;
+    }
+    EXPECT_EQ("line", classOf("dead", "row_full", 1.0));
+    EXPECT_EQ("control", classOf("dead", "row_full", 0.5)) << "a response of 0.5 is normal now";
+    EXPECT_EQ("control", classOf("dead", "pixel", 0.5));
+    EXPECT_EQ("control", classOf("dead", "block4", 0.5));
+    EXPECT_EQ("block", classOf("dead", "block4", 1.0));
+    for (double lv : {0.75, 0.9, 1.1, 1.25}) EXPECT_EQ("control", classOf("slope", "pixel", lv)) << lv;
+    EXPECT_EQ("pixel", classOf("nonlinear", "pixel", 0.4)) << "nonlinearity is judged by the linearity feature, not by a response ratio";
+}
+
+TEST_F(BpmEvalTest, EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot) {
+    makeFrames(5, 3, 2);
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    const std::vector<Item> items = parseTruth(out / "truth.tsv");
+    const std::string json = text(out / "truth.json");
+    const size_t kp = json.find("\"quantum_gain\": ");
+    ASSERT_NE(std::string::npos, kp) << json;
+    const double kappa = std::atof(json.c_str() + kp + 16);
+    EXPECT_GT(kappa, 0.0);
+    EXPECT_NE(std::string::npos, json.find("\"quantum_gain_measured\": true")) << "three bright frames of one dose are in the generation set";
+    std::vector<std::vector<uint16_t>> d0, b0, b1;
+    for (const auto& f : darks) d0.push_back(readFrame(f));
+    for (const auto& f : brights) { b0.push_back(readFrame(f)); b1.push_back(readFrame(out / "frames" / fs::path(f).filename())); }
+    std::vector<double> D(kN, 0.0);
+    for (const auto& f : d0) for (size_t i = 0; i < kN; ++i) D[i] += f[i];
+    for (double& v : D) v /= static_cast<double>(d0.size());
+    const std::vector<uint8_t> raw = readBytes(out / "truth_ids.u16");
+    std::vector<uint16_t> ids(kN);
+    std::memcpy(ids.data(), raw.data(), raw.size());
+    auto residual = [&](const char* kind, double r, double* meanNet) {
+        const Item* row = nullptr;
+        for (const Item& it : items) if (it.kind == kind && it.shape == "row_full" && std::fabs(it.level - r) < 1e-9) row = &it;
+        EXPECT_NE(nullptr, row) << kind;
+        double s1 = 0, s2 = 0, sn = 0;
+        size_t cnt = 0;
+        if (row) {
+            const int y = row->rects[0].y;
+            for (size_t k = 0; k < b0.size(); ++k)
+                for (int x = 0; x < static_cast<int>(kW); ++x) {
+                    const size_t i = static_cast<size_t>(y) * kW + static_cast<size_t>(x);
+                    if (ids[i] != static_cast<uint16_t>(row->id)) continue;   // a crossing line is not ours alone
+                    const double n = b0[k][i] - D[i];
+                    const double e = static_cast<double>(b1[k][i]) - (D[i] + r * n);
+                    s1 += e; s2 += e * e; sn += n; ++cnt;
+                }
+        }
+        EXPECT_GT(cnt, 500u);
+        *meanNet = cnt ? sn / static_cast<double>(cnt) : 0.0;
+        return cnt ? s2 / static_cast<double>(cnt) - (s1 / static_cast<double>(cnt)) * (s1 / static_cast<double>(cnt)) : 0.0;
+    };
+    double netGain = 0, netEff = 0;
+    const double varGain = residual("gain_loss", 0.3, &netGain);
+    const double varEff = residual("efficiency_loss", 0.3, &netEff);
+    EXPECT_LT(varGain, 0.5) << "gain loss is deterministic (the rounding of the pixel value only)";
+    const double predicted = kappa * 0.3 * 0.7 * netEff;
+    EXPECT_GT(varEff, 0.7 * predicted) << "efficiency loss adds kappa * r * (1 - r) * signal of noise variance";
+    EXPECT_LT(varEff, 1.3 * predicted);
+}
+'''
+marker = '// ---------------------------------------------------------------- scoring'
+assert s.count(marker) == 1
+s = s.replace(marker, new_tests.lstrip('\n') + '\n' + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('eval tests 2 patched')

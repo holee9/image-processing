@@ -1,0 +1,4 @@
+tau(8, 1/65536) = 4.542
+r = 0.333  rho per dose [3.106, 3.048, 3.024, 3.012]  detection probability per pixel 0.1517  (144 pixels: expected 21.8, sd 4.3)
+r = 0.500  rho per dose [2.035, 2.016, 2.008, 2.004]  detection probability per pixel 0.0207  (144 pixels: expected 3.0, sd 1.7)
+r = 1.000  rho per dose [1.0, 1.0, 1.0, 1.0]  detection probability per pixel 0.0000  (144 pixels: expected 0.0, sd 0.0)

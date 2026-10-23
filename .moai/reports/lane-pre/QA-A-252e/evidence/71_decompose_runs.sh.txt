@@ -1,0 +1,24 @@
+#!/bin/bash
+# QA-A-252e question 2: where do the new false alarms outside the planted items come from, and why did the pixel detector's share grow from 12 (QA-A-252c)?
+# A: QA-A-252c as measured (old detector on inj_b).  D: the current detector on the SAME injection inj_b (same inputs as 252c).  B/C: 252d and 252e injections inj_c.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+X=D:/workspace-github/xpe-data
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-252e/evidence
+args() { local flag=$1; shift; for f in "$@"; do printf -- "--%s\n%s\n" "$flag" "$f"; done; }
+mk() { local dir=$1 pre=$2; shift 2; local list=("$@"); local out=(); for k in "${list[@]}"; do out+=("$dir/${pre}_$k.raw"); done; printf '%s\n' "${out[@]}"; }
+BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"; DK="08 09 10 11 12 13 14"
+mapfile -t D_INJ < <(mk "$X/bpm-eval-251/inj_b/frames" Dark $DK); mapfile -t B_INJ < <(mk "$X/bpm-eval-251/inj_b/frames" Bright $BR)
+mapfile -t DI < <(args dark "${D_INJ[@]}"); mapfile -t BI < <(args bright "${B_INJ[@]}")
+# D: the current detector on inj_b, and its own clean map (the clean run of 252e is the same input as 252c's)
+"$BIN/xpe_bpm_eval.exe" map-v2 --margins 6,2,1,1 --skip-first-dark 0 --area "$X/bpm-eval-252e/v2h_injb_area.u8" --out "$X/bpm-eval-252e/v2h_injb_planted.u8" --features "$X/bpm-eval-252e/v2h_injb_features.u8" "${DI[@]}" "${BI[@]}" > "$EVD/72_injb_current.log" 2>&1 || echo "map-v2 on inj_b failed"
+P="python -I $EVD/70_decompose.py.txt"
+{
+$P "A 252c as measured (old detector, inj_b, pixel map)" $X/bpm-eval-251/inj_b $X/bpm-eval-251/v2d_planted.u8 $X/bpm-eval-251/v2d_clean.u8 "" $X/bpm-eval-251/v2d_planted_features.u8
+$P "D current detector on inj_b (pixel map)" $X/bpm-eval-251/inj_b $X/bpm-eval-252e/v2h_injb_planted.u8 $X/bpm-eval-252e/v2g_clean.u8 "" $X/bpm-eval-252e/v2h_injb_features.u8
+$P "B 252d current detector on inj_c (pixel map + lines)" $X/bpm-eval-252d/inj_c $X/bpm-eval-252d/v2g_planted.u8 $X/bpm-eval-252d/v3g_clean.u8 $X/bpm-eval-252d/v3g_planted_lines.u8 $X/bpm-eval-252d/v2g_planted_features.u8 --tsv $EVD/73_others_252d.tsv.txt
+$P "C 252e current detector on inj_c (pixel map + lines)" $X/bpm-eval-252e/inj_c $X/bpm-eval-252e/v2g_planted.u8 $X/bpm-eval-252e/v3g_clean.u8 $X/bpm-eval-252e/v3g_planted_lines.u8 $X/bpm-eval-252e/v2g_planted_features.u8 --tsv $EVD/74_others_252e.tsv.txt
+} > "$EVD/75_decompose.out.txt" 2>&1
+echo done

@@ -1,0 +1,6 @@
+D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_23.raw
+D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_24.raw
+D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_25.raw
+D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_26.raw
+D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_27.raw
+D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Bright_28.raw

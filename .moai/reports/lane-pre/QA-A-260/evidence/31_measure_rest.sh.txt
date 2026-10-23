@@ -1,0 +1,20 @@
+#!/bin/bash
+# QA-A-260 continuation of 30_measure_b16.sh.txt (as QA-A-256 24_measure_rest.sh.txt did): S2 stopped with exit 3 because "score --map" cannot read a version-2 defect file (the known defect of the evaluation tool's
+# readMap, unchanged since QA-A-256). No code changed: the set's defect plane and the clean plane exported by "defect-xcal --map-out" in step X1/X3 are given to "score" instead; the content is the same.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+OUT=D:/workspace-github/xpe-data/bpm-eval-260
+EV256=$ROOT/.moai/reports/lane-pre/QA-A-256/evidence
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-260/evidence
+EXE=$BIN/xpe_bpm_eval.exe
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+NT=$EV256/30_noise_truth.tsv.txt
+OV=$EV256/31_overlaps_measured.tsv.txt
+run S2_score_v2 "$EXE" score --truth "$IN/inj_d" --noise-truth "$NT" --map "$OUT/inj_v2_setmap.u8" --clean-map "$OUT/clean_v2_setmap.u8" --half-a "$OUT/v2_half_a.u8" --half-b "$OUT/v2_half_b.u8" --area "$OUT/inj_v2_area.u8" --overlap composite --overlap-truth "$OV" --overlap-out "$EVD/42_overlaps_v2.tsv.txt" --out "$EVD/43_score_v2.json.txt" || exit 1
+run C1_correct_v1 "$EXE" correct --truth "$IN/inj_d" --clean-set "$OUT/clean_set_v1" --inj-set "$OUT/inj_set_v1" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/44_correct_v1.json.txt" || exit 1
+run C2_correct_v2 "$EXE" correct --truth "$IN/inj_d" --clean-set "$OUT/clean_set_v2" --inj-set "$OUT/inj_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/45_correct_v2.json.txt" || exit 1
+echo done

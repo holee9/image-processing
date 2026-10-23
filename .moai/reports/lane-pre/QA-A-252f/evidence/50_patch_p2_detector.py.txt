@@ -1,0 +1,81 @@
+"""QA-A-252f step 3 (P2, synthesis 2026-10-16): the noise-cost check of the detector.
+After gain correction the measured temporal variance of a pixel in the bright frames of one dose, against the local expectation, is a defect from 2 times (3.01 dB) on, and it has to
+persist over the dose groups. The gain is the MEASURED response of the pixel (the relative response of the offset-corrected frames against its local median), not 1 / r of a model.
+The frame-count bias of the sample variance (P5) was corrected before (the local reference is the median of the variances divided by the median of chi-square / nu); this patch
+adds the gain correction, the persistence over the dose groups and the same gain correction for the line stretches (their statistic and their per-frame persistence)."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:100])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('src/xpe_bpm_v2.cpp', [
+    ('''constexpr double kRatioSlack = 1e-6; ''',
+     '''constexpr double kNoiseCostLimit = 2.0;     // SRS FUNC-022 (leader decision, synthesis P2): a gain-corrected variance of twice the local expectation (3.01 dB) is a defect
+constexpr double kRatioSlack = 1e-6; '''),
+    ('''    // ---- per-pixel least-squares sums over the groups: n_g = a * S_g + b
+''',
+     '''    // ---- the gain correction of the noise-cost judgement (QA-A-252f, P2): the measured response of every pixel, the relative response of the offset-corrected bright frames against
+    // its local median (the quantity of the response rule), squared and inverted. It is a measurement, not the model 1 / r: the variance of a pixel is divided by the square of what
+    // the pixel actually passes on. The response is bounded to 0.2 .. 3 (a pixel below 0.45 is a response defect whatever its noise).
+    std::vector<float> corrGain(n, 1.0f);
+    {
+        std::vector<float>  flat(n, 0.0f), tmpP(n), bgP(n);
+        std::vector<double> accP(n);
+        double              sxPre = 0.0;
+        for (uint32_t g = 0; g < G; ++g) {
+            std::fill(accP.begin(), accP.end(), 0.0);
+            double sg = 0.0;
+            for (uint32_t k : groups[g]) {
+                const uint16_t* p = px(bright_frames[k]);
+                for (size_t i = 0; i < n; ++i) accP[i] += p[i];
+                sg += signal[k];
+            }
+            const double mgd = static_cast<double>(groups[g].size());
+            sxPre += sg / mgd;
+            for (size_t i = 0; i < n; ++i) flat[i] += static_cast<float>(accP[i] / mgd - static_cast<double>(D[i]));
+        }
+        for (size_t i = 0; i < n; ++i) flat[i] = static_cast<float>(static_cast<double>(flat[i]) / sxPre);
+        separableMedian(flat.data(), tmpP.data(), bgP.data(), w, h, static_cast<int>(st.window));
+        for (size_t i = 0; i < n; ++i) {
+            const double b = static_cast<double>(bgP[i]);
+            const double r = std::fabs(b) > 1e-12 ? static_cast<double>(flat[i]) / b : 1.0;
+            const double rc = std::min(3.0, std::max(0.2, r));
+            corrGain[i] = static_cast<float>(1.0 / (rc * rc));
+        }
+    }
+
+    // ---- per-pixel least-squares sums over the groups: n_g = a * S_g + b
+'''),
+    ('''    std::vector<float> noiseSum, refSum;''', '''    std::vector<float>   noiseSum, refSum;
+    std::vector<uint8_t> persistHits;   // in how many dose groups the gain-corrected variance of the pixel reaches the limit (P2: the position must persist)'''),
+    ('''                    noiseSum.assign(n, 0.0f);
+                    refSum.assign(n, 0.0f);''', '''                    noiseSum.assign(n, 0.0f);
+                    refSum.assign(n, 0.0f);
+                    persistHits.assign(n, 0);'''),
+    ('''                    noiseSum[i] += static_cast<float>((mg - 1) * (static_cast<double>(vg[i]) / ref));
+                    refSum[i] += static_cast<float>(ref);''',
+     '''                    const double ratioG = static_cast<double>(vg[i]) * static_cast<double>(corrGain[i]) / ref;   // gain-corrected variance against its local expectation (P2)
+                    noiseSum[i] += static_cast<float>((mg - 1) * ratioG);
+                    refSum[i] += static_cast<float>(ref);
+                    if (ratioG >= kNoiseCostLimit) ++persistHits[i];'''),
+    ('''            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > threshold[5]) {''',
+     '''            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > threshold[5] && 2u * persistHits[i] >= noiseGroups) {'''),
+    ('''                                stat[j][static_cast<size_t>(d + half)] += std::min(e * e, cap);''',
+     '''                                stat[j][static_cast<size_t>(d + half)] += std::min(e * e * static_cast<double>(corrGain[i]), cap);'''),
+])
+
+edit('include/xpe/preprocess_api.h', [
+    ('''#define XPE_BPM_V2_FEATURE_BRIGHT_NOISE 0x20u /**< Temporal noise of the bright frames inside the dose groups against its local median (QA-A-252b) */''',
+     '''#define XPE_BPM_V2_FEATURE_BRIGHT_NOISE 0x20u /**< Temporal noise of the bright frames inside the dose groups, gain-corrected (the variance divided by the square of the measured response of the pixel), against its
+                                                    *   local median: a defect when the pooled statistic exceeds the false-alarm threshold AND the corrected variance reaches twice the local expectation in
+                                                    *   at least half of the dose groups (QA-A-252b; the gain correction and the persistence are QA-A-252f, the noise cost of SRS FUNC-022) */'''),
+])
+print('p2 detector patched')

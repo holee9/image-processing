@@ -1,0 +1,29 @@
+"""QA-A-252e: is the relative temporal noise (variance / net signal squared) of an efficiency_loss line higher by 1/r than that of its neighbours, and equal for gain_loss?
+Frames: two bright frames of the same dose (23, 24 of the planted set); net signal = frame mean minus the mean of the dark frames. Lines: the full rows/columns of
+the 0.46 items and the same orientation 6..25 pixels away on both sides (skipping items). Output only the ratios."""
+import numpy as np
+W = 3072
+F = 'D:/workspace-github/xpe-data/bpm-eval-252e/inj_c/frames/'
+def rd(n): return np.fromfile(F + n, dtype='<u2').reshape(W, W).astype(np.float64)
+a, b = rd('Bright_23.raw'), rd('Bright_24.raw')
+dk = np.mean([rd('Dark_%02d.raw' % k) for k in (8, 9, 10, 11, 12, 13, 14)], axis=0)
+m = ((a + b) / 2 - dk)
+v = ((a - b) ** 2) / 2          # single-frame temporal variance estimate per pixel
+print('mean of the two frames differs by', float(a.mean() - b.mean()), ' (same dose if near 0)')
+items = [l.rstrip('\n').split('\t') for l in open('D:/workspace-github/xpe-data/bpm-eval-252e/inj_c/truth.tsv', encoding='utf-8') if l[:1].isdigit()]
+def rel(sl_line, sl_nb_list):
+    # relative noise = sum of variance / sum of net signal squared over the stretch
+    return v[sl_line].sum() / (m[sl_line] ** 2).sum()
+for kind in ('gain_loss', 'efficiency_loss'):
+    for shape in ('row_full', 'col_full'):
+        it = [i for i in items if i[2] == kind and i[3] == shape and i[4] == '0.46'][0]
+        x, y, w, h = map(int, it[5].split(','))
+        if shape == 'row_full':
+            line = (slice(y, y + 1), slice(0, W))
+            nbs = [(slice(y + d, y + d + 1), slice(0, W)) for d in (-25, -20, -15, -10, 10, 15, 20, 25)]
+        else:
+            line = (slice(0, W), slice(x, x + 1))
+            nbs = [(slice(0, W), slice(x + d, x + d + 1)) for d in (-25, -20, -15, -10, 10, 15, 20, 25)]
+        rl = rel(line, None)
+        rn = np.mean([rel(s, None) for s in nbs])
+        print('%-16s %-9s r=0.46  relative noise line %.5f  neighbours %.5f  ratio %.3f   (1/r = %.3f)' % (kind, shape, rl, rn, rl / rn, 1 / 0.46))

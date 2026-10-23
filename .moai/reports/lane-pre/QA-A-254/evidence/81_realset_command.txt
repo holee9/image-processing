@@ -1,0 +1,1 @@
+--out D:/workspace-github/xpe-data/cal-254 --width 3072 --height 3072 --expiry-ms 4102444800000 --dark D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_07.raw --dark D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_08.raw --dark D:/workspace-gi

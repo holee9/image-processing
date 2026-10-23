@@ -1,0 +1,23 @@
+QA-A-252 predictions for the second-generation pixel detector, written with the method (30_method_fixed_before_measurement.md) before the detector was written and before any measurement.
+Basis: the QA-A-251 first-generation results, the thresholds the lead computed (milestone-1-pre-basic.md, B16 table: local robust sigma of the dark mean 5.93 pixel values,
+flat-field 0.40 %, median dark temporal noise 2.91) and the Gaussian / chi-square reasoning of method 2.5. Confidence is stated; none of these is a result.
+
+ P1 Pixel defects seen through the flat-field and dose features: dead a=1.0 and 0.5, slope 0.75 and 1.25, nonlinear c=0.4: detection 1.0 (at least 0.98). Confidence about 85 %.
+ P2 slope 0.9 and 1.1: at least 0.95 (z about 25 against a threshold of 5.3). nonlinear c=0.2 (about 8 % mean response change over the five doses, z about 20): at least 0.9.
+    Confidence about 75 %.
+ P3 hot (visible only in the dark mean): 200 and 100: at least 0.95; 50 (z = 8.4): at least 0.9, most likely 0.95-1.0; 25 (z = 4.2): 0.0-0.2. Confidence about 70 %.
+ P4 noisy (visible only in the dark temporal noise, 7 frames, chi-square with 6 degrees of freedom): m=4: 0.6-0.95 (lead's estimate 0.83); m=2: 0.03-0.2 (estimate 0.08);
+    m=1: 0.0-0.02. Confidence about 60 %: the local reference is itself estimated from the same noisy variances.
+ P5 Blocks (dead, 2 to 8 pixels square): 1.0 for every size (the 17 x 17 separable median cannot be dragged by an 8 x 8 block). Confidence about 70 %: the block rows of a
+    separable median see the block in 8 of 17 values, which is under half.
+ P6 Lines: full and two-row dead / nonlinear lines are NOT flagged by this card (the row and column components are removed first, by design; lines are QA-A-253): detection of
+    full, pair and cross shapes 0.0-0.1. Partial lines (a quarter of the row or column) stay visible after the median subtraction and are flagged: 0.9-1.0 for dead and
+    nonlinear c=0.4. This is a deliberate drop against the first generation and is reported as such. Confidence about 65 %.
+ P7 Control bands: 0 of 12 false detections (fixed, gain and varying bands all vanish in the row and column subtraction). Confidence about 70 %: a crossing with another item
+    could leave a few flagged pixels, but half of a band is needed for a false detection.
+ P8 New false alarms (flagged in the planted run, not in the clean 2nd-generation map, outside the truth widened by 2): 0-10. Confidence about 60 %.
+ P9 Natural flags: the clean second-generation map flags between 50 and 1500 pixels in total; the count is above the target of 5 (1 per feature) because the Gaussian and
+    chi-square assumptions are only approximate on real data. Per feature, F2 and F3b (variance ratios) flag the most. Confidence about 60 %.
+ P10 Split-half Jaccard: between 0.4 and 0.9, probably BELOW the first generation's 0.887, because the halves have 4 and 3 dark frames (chi-square with 3 and 2 degrees of
+    freedom) and the variance features are noisy at that size. Confidence about 55 % that it is below 0.887. This is the row of the B16 table I consider most at risk.
+ P11 Time per map: under 3 minutes (single thread, five separable median filters and a few block statistics); peak memory under 1.5 GB for the full 25-frame input.

@@ -26,6 +26,7 @@
 #include "xpe/preprocess/xcal_format.h"
 #include "xpe/common/xpe_error.h"
 #include "xcal_validator.hpp"
+#include "xpe/common/xpe_common_api.h"
 
 namespace {
 
@@ -110,8 +111,15 @@ TEST(XCalValidatorTest, BadMagic_ReturnsConfigInvalid) {
 // =============================================================================
 TEST(XCalValidatorTest, BadVersion_ReturnsConfigInvalid) {
     XCalFileHeader hdr = MakeValidOffsetHeader();
-    hdr.version = 2;
+    hdr.version = 2;   // version 2 exists for DEFECT files only (QA-A-254): an OFFSET file with it is refused, with its reason as one alert
+    xpe_clear_alerts();
     EXPECT_EQ(validate_xcal_header(hdr), XPE_ERR_CONFIG_INVALID);
+    ASSERT_EQ(1, xpe_get_pending_alert_count()) << "the refusal says why (XPE_ERR_XCAL_VERSION)";
+    char msg[512] = {0};
+    int32_t sev = -1;
+    ASSERT_EQ(XPE_OK, xpe_get_pending_alert(0, msg, sizeof msg, &sev));
+    EXPECT_EQ(0, std::strncmp(msg, "XPE_ERR_XCAL_VERSION:", 21)) << msg;
+    xpe_clear_alerts();
 }
 
 // =============================================================================

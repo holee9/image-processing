@@ -1,0 +1,12 @@
+"""Insert 11_patch_tests.cpp.txt before the closing namespace of test_defect_correct_v2.cpp."""
+base = 'D:/workspace-github/xpe-pre/'
+p = base + 'modules/preprocess/tests/test_defect_correct_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+new = open(base + '.moai/reports/lane-pre/QA-A-255b/evidence/11_patch_tests.cpp.txt', encoding='utf-8', newline='').read().replace('\r\n', '\n')
+assert s.count('}  // namespace') == 1
+i = s.index('}  // namespace')
+s = s[:i] + new + s[i:]
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('tests inserted')

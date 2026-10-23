@@ -1,0 +1,94 @@
+start 2026-10-17 03:25:45  N1_noise_cost
+== exposure of the verification frames (global dose = median net signal of the unplanted pixels)
+  frame 0 dose 9397.29 scale 0.99929
+  frame 1 dose 9383.86 scale 1.00072
+== variance-signal curve of the unplanted pixels (1856970 pixels in 12 bins of 154747; relative standard error of a bin 0.006)
+  signal 8504 -> variance 2320.43   signal 9479 -> variance 3233.66   signal 9984 -> variance 3876.34
+== the labels are PROVISIONAL (effective degrees of freedom from blocks of 64 pixels; the spatial correlation is not yet checked against an independent replicate)
+== noise cost of the response items (2 verification frames, nu = 1 per pixel, limit 2.00)
+  kind/shape/level                              items  defect  normal  undetermined  median cost
+  efficiency_loss/col_full/0.3                      1       1       0             0        3.553
+  efficiency_loss/col_full/0.4                      1       1       0             0        2.580
+  efficiency_loss/col_full/0.44                     1       1       0             0        2.278
+  efficiency_loss/col_full/0.46                     1       1       0             0        2.338
+  efficiency_loss/col_full/0.6                      1       0       1             0        1.785
+  efficiency_loss/col_full/0.7                      1       0       1             0        1.545
+  efficiency_loss/col_pair/0.3                      1       1       0             0        3.774
+  efficiency_loss/col_pair/0.4                      1       1       0             0        2.390
+  efficiency_loss/col_pair/0.44                     1       1       0             0        2.206
+  efficiency_loss/col_pair/0.46                     1       1       0             0        2.371
+  efficiency_loss/col_pair/0.6                      1       0       0             1        1.883
+  efficiency_loss/col_pair/0.7                      1       0       1             0        1.614
+  efficiency_loss/col_partial/0.3                   1       1       0             0        3.208
+  efficiency_loss/col_partial/0.4                   1       1       0             0        2.573
+  efficiency_loss/col_partial/0.44                  1       1       0             0        2.380
+  efficiency_loss/col_partial/0.46                  1       0       0             1        1.982
+  efficiency_loss/col_partial/0.6                   1       0       1             0        1.550
+  efficiency_loss/col_partial/0.7                   1       0       1             0        1.436
+  efficiency_loss/pixel/0.3                        64       9       1            54        1.202
+  efficiency_loss/pixel/0.4                        64       2       2            60        1.233
+  efficiency_loss/pixel/0.44                       64       4       1            59        1.487
+  efficiency_loss/pixel/0.46                       64       1       6            57        0.748
+  efficiency_loss/pixel/0.6                        64       0       3            61        0.426
+  efficiency_loss/pixel/0.7                        64       1       1            62        0.800
+  efficiency_loss/row_full/0.3                      1       1       0             0        3.272
+  efficiency_loss/row_full/0.4                      1       1       0             0        2.537
+  efficiency_loss/row_full/0.44                     1       1       0             0        2.152
+  efficiency_loss/row_full/0.46                     1       1       0             0        2.463
+  efficiency_loss/row_full/0.6                      1       0       1             0        1.814
+  efficiency_loss/row_full/0.7                      1       0       1             0        1.452
+  efficiency_loss/row_pair/0.3                      1       1       0             0        3.182
+  efficiency_loss/row_pair/0.4                      1       1       0             0        2.575
+  efficiency_loss/row_pair/0.44                     1       1       0             0        2.283
+  efficiency_loss/row_pair/0.46                     1       0       0             1        2.159
+  efficiency_loss/row_pair/0.6                      1       0       1             0        1.803
+  efficiency_loss/row_pair/0.7                      1       0       1             0        1.351
+  efficiency_loss/row_partial/0.3                   1       1       0             0        4.253
+  efficiency_loss/row_partial/0.4                   1       1       0             0        2.622
+  efficiency_loss/row_partial/0.44                  1       1       0             0        2.639
+  efficiency_loss/row_partial/0.46                  1       0       0             1        2.187
+  efficiency_loss/row_partial/0.6                   1       0       0             1        2.186
+  efficiency_loss/row_partial/0.7                   1       0       1             0        1.372
+  gain_loss/col_full/0.3                            1       0       1             0        1.069
+  gain_loss/col_full/0.4                            1       0       1             0        1.039
+  gain_loss/col_full/0.44                           1       0       1             0        0.958
+  gain_loss/col_full/0.46                           1       0       1             0        0.992
+  gain_loss/col_full/0.6                            1       0       1             0        0.947
+  gain_loss/col_full/0.7                            1       0       1             0        0.936
+  gain_loss/col_pair/0.3                            1       0       1             0        1.041
+  gain_loss/col_pair/0.4                            1       0       1             0        0.988
+  gain_loss/col_pair/0.44                           1       0       1             0        1.066
+  gain_loss/col_pair/0.46                           1       0       1             0        1.004
+  gain_loss/col_pair/0.6                            1       0       1             0        1.020
+  gain_loss/col_pair/0.7                            1       0       1             0        1.030
+  gain_loss/col_partial/0.3                         1       0       1             0        0.876
+  gain_loss/col_partial/0.4                         1       0       1             0        0.991
+  gain_loss/col_partial/0.44                        1       0       1             0        1.010
+  gain_loss/col_partial/0.46                        1       0       1             0        0.915
+  gain_loss/col_partial/0.6                         1       0       1             0        1.025
+  gain_loss/col_partial/0.7                         1       0       1             0        0.949
+  gain_loss/pixel/0.3                              64       0       4            60        0.381
+  gain_loss/pixel/0.4                              64       0       4            60        0.362
+  gain_loss/pixel/0.44                             64       0       4            60        0.518
+  gain_loss/pixel/0.46                             64       1       5            58        0.520
+  gain_loss/pixel/0.6                              64       0       1            63        0.428
+  gain_loss/pixel/0.7                              64       0       2            62        0.491
+  gain_loss/row_full/0.3                            1       0       1             0        1.047
+  gain_loss/row_full/0.4                            1       0       1             0        0.946
+  gain_loss/row_full/0.44                           1       0       1             0        0.980
+  gain_loss/row_full/0.46                           1       0       1             0        1.019
+  gain_loss/row_full/0.6                            1       0       1             0        1.047
+  gain_loss/row_full/0.7                            1       0       1             0        0.972
+  gain_loss/row_pair/0.3                            1       0       1             0        1.017
+  gain_loss/row_pair/0.4                            1       0       1             0        0.960
+  gain_loss/row_pair/0.44                           1       0       1             0        0.992
+  gain_loss/row_pair/0.46                           1       0       1             0        0.996
+  gain_loss/row_pair/0.6                            1       0       1             0        1.098
+  gain_loss/row_pair/0.7                            1       0       1             0        1.005
+  gain_loss/row_partial/0.3                         1       0       1             0        0.984
+  gain_loss/row_partial/0.4                         1       0       1             0        0.991
+  gain_loss/row_partial/0.44                        1       0       1             0        0.978
+  gain_loss/row_partial/0.46                        1       0       1             0        0.987
+  gain_loss/row_partial/0.6                         1       0       1             0        0.918
+  gain_loss/row_partial/0.7                         1       0       1             0        0.950
+exit 0 wall seconds 2

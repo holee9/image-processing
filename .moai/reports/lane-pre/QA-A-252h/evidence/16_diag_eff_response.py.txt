@@ -1,0 +1,66 @@
+"""QA-A-252h diagnosis, fourth step (card item 4): the efficiency-loss line pixels give a mean gain-corrected ratio 6 .. 17 % above the cost the truth path measured (r = 0.3: 3.82 against 3.55) and above the
+model (3.2 .. 3.3). The statistic is vg * corrGain / ref. Which factor carries the excess? On the efficiency-loss line pixels covered by ONE item, per level: the mean measured response against the planted
+one (the response squared correction), the mean of the statistic as committed, the mean of the statistic with the gain correction set to the planted response (1 / r^2), the mean variance ratio vg / ref
+without any correction, and the same quantities on ordinary pixels (no item within 3). Also the position: the mean statistic at the first and last 8 pixels of the items against the middle, and next to
+the crossings. Reads outputs only; nothing here changes a method or a threshold."""
+import numpy as np
+
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/'
+src = open(HERE + '10_diag_line_noise.py.txt', encoding='utf-8').read()
+head = src[:src.index('# (a) the replication')]
+ns = {'__name__': 'diag'}
+exec(head, ns)
+H, W, G = ns['H'], ns['W'], len(ns['groups'])
+items, rc, corr, trueR_gain = ns['items'], ns['rc'], ns['corr'], ns['trueR']
+T, hits, ratios, refs, vgs = ns['statistic'](corr)
+# planted efficiency response per pixel (single coverage only)
+cover = np.zeros((H, W), dtype=np.int16)
+effR = np.zeros((H, W), dtype=np.float32)
+alongPos = np.full((H, W), -1, dtype=np.int32)
+for it in items:
+    for (x, y, w, h) in it['rects']:
+        cover[y:y + h, x:x + w] += 1
+        if it['kind'] == 'efficiency_loss' and it['shape'] != 'pixel':
+            effR[y:y + h, x:x + w] = float(it['level'])
+            if w > h:
+                alongPos[y:y + h, x:x + w] = np.minimum(np.arange(w)[None, :], w - 1 - np.arange(w)[None, :])
+            else:
+                alongPos[y:y + h, x:x + w] = np.minimum(np.arange(h)[:, None], h - 1 - np.arange(h)[:, None])
+inter = np.zeros((H, W), dtype=bool)
+inter[12:-12, 12:-12] = True
+vgmean = sum(vgs) / len(vgs)
+refmean = sum(refs) / len(refs)
+corr_nom = np.where(effR > 0, 1.0 / np.maximum(effR, 1e-3) ** 2, 1.0).astype(np.float32)
+T_nom = np.zeros((H, W), dtype=np.float64)
+nu_tot = 0
+for gi, g in enumerate(ns['groups']):
+    T_nom += (len(g) - 1) * vgs[gi] * corr_nom / refs[gi]
+    nu_tot += len(g) - 1
+T_nom /= nu_tot
+free = inter & (cover == 0)
+print('ordinary pixels: mean T %.4f, mean vg/ref %.4f, mean rc %.5f' % (T[free].mean(), float((vgmean / refmean)[free].mean()), rc[free].mean()))
+print('\nper level, efficiency-loss line pixels covered by one item (interior):')
+print('  level  pixels | mean rc / r | mean r^2 corrGain | mean T committed | mean T with planted r | mean vg/ref (no correction) | mean ref / ordinary ref | truth-path cost')
+cost = {0.3: 3.55, 0.4: 2.58, 0.44: 2.28, 0.46: 2.34, 0.6: 1.81, 0.7: 1.45}
+oref = float(refmean[free].mean())
+for lv in (0.3, 0.4, 0.44, 0.46, 0.6, 0.7):
+    m = inter & (cover == 1) & (np.abs(effR - lv) < 1e-6)
+    print('  %.2f %7d | %.4f | %.4f | %.3f | %.3f | %.3f | %.3f | %.2f' % (lv, m.sum(), float((rc[m] / lv).mean()), float((corr[m] * lv * lv).mean()), T[m].mean(), T_nom[m].mean(), float((vgmean / refmean)[m].mean()), float(refmean[m].mean()) / oref, cost[lv]))
+print('\nposition along the item (r = 0.3 and 0.4 single-covered line pixels): mean T by distance to the nearer end')
+for lv in (0.3, 0.4):
+    base = inter & (cover == 1) & (np.abs(effR - lv) < 1e-6)
+    for name, lo, hi in (('0..8', 0, 8), ('9..64', 9, 64), ('> 64', 65, 10**6)):
+        m = base & (alongPos >= lo) & (alongPos <= hi)
+        print('  r=%.1f distance %-6s pixels %6d mean T %.3f flagged rate %.4f' % (lv, name, m.sum(), T[m].mean(), float(((T > ns['TAU']) & (2 * hits >= G))[m].mean())))
+# next to crossings: single-covered pixels within 3 pixels of a double-covered pixel
+two = cover >= 2
+near = two.copy()
+for _ in range(3):
+    n2 = near.copy()
+    n2[1:] |= near[:-1]
+    n2[:-1] |= near[1:]
+    n2[:, 1:] |= near[:, :-1]
+    n2[:, :-1] |= near[:, 1:]
+    near = n2
+m = inter & (cover == 1) & (np.abs(effR - 0.3) < 1e-6)
+print('\nr=0.3 single-covered pixels within 3 pixels of a crossing: %d, mean T %.3f; farther: %d, mean T %.3f' % ((m & near).sum(), T[m & near].mean(), (m & ~near).sum(), T[m & ~near].mean()))

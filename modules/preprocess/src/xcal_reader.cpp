@@ -17,6 +17,7 @@
 #include "xcal_validator.hpp"
 #include "xpe_sha256.hpp"
 #include "rle_codec.hpp"
+#include "defect_ext.hpp"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <algorithm>
@@ -185,6 +186,14 @@ XpeErrorCode read_xcal_file(
         if (!f.good() || f.gcount() != static_cast<std::streamsize>(sizeof(hdr))) {
             return XPE_ERR_IO_FAILED;
         }
+        // QA-A-254: the format version. 1 is every type as before; 2 is a DEFECT file with the imaging-area plane and the extension block. Anything else is refused with its reason.
+        const bool is_v2 = hdr.version == 2u && hdr.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT) && std::memcmp(hdr.magic, XCAL_MAGIC, 4) == 0;
+        if (hdr.version != XCAL_VERSION && !is_v2) {
+            if (std::memcmp(hdr.magic, XCAL_MAGIC, 4) == 0)
+                xcal_reject_reason("VERSION", "file version " + std::to_string(hdr.version) + " (type " + std::to_string(hdr.type) +
+                                                   ") is not supported: this reader reads version 1 (every type) and version 2 (defect maps only)");
+            return XPE_ERR_CONFIG_INVALID;
+        }
 
         // Check for compressed payload before strict validation
         // Compressed payload_len will NOT match width*height*bpp
@@ -217,6 +226,10 @@ XpeErrorCode read_xcal_file(
                 compression_method,
                 raw_payload_len);
             if (mrc != XPE_OK) return mrc;
+            if (is_v2) {
+                const XpeErrorCode lrc = defect_v2_check_layout(hdr, config_doc, is_compressed, raw_payload_len);
+                if (lrc != XPE_OK) return lrc;
+            }
         }
 
         // Validate header (skip payload_len check for compressed data)
@@ -226,9 +239,7 @@ XpeErrorCode read_xcal_file(
             if (std::memcmp(hdr.magic, XCAL_MAGIC, 4) != 0) {
                 return XPE_ERR_CONFIG_INVALID;
             }
-            if (hdr.version != XCAL_VERSION) {
-                return XPE_ERR_CONFIG_INVALID;
-            }
+            // (the version was checked above: 1 for every type, 2 for a DEFECT file)
             // QA-A-37 (#140): same ceiling correction as validate_xcal_header
             // Check 3 -- the compressed path had its own copy of it.
             if (hdr.type > static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT)) {
@@ -251,7 +262,7 @@ XpeErrorCode read_xcal_file(
             }
             // Verify raw_payload_len matches expected uncompressed size
             size_t bpp = xcal_bytes_per_pixel(hdr.pixel_format);
-            if (bpp > 0) {
+            if (bpp > 0 && !is_v2) {   // a version-2 payload is two planes and the extension block: defect_v2_check_layout has judged its length
                 uint64_t expected_raw = static_cast<uint64_t>(hdr.width) *
                                         static_cast<uint64_t>(hdr.height) *
                                         static_cast<uint64_t>(bpp);

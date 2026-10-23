@@ -1,0 +1,78 @@
+Note: Google Test filter = LowConfidenceTest.*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from LowConfidenceTest
+[ RUN      ] LowConfidenceTest.ARowGroupOfThreeCrossedByAFullColumnKeepsEveryPixelLow
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(455): error: Expected equality of these values:
+  want.pixels
+    Which is: 213
+  inMask
+    Which is: 210
+the pixels marked in the mask
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(456): error: Expected equality of these values:
+  want.pixels
+    Which is: 213
+  rep.low_confidence_pixels
+    Which is: 210
+the report counts the same pixels
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(464): error: Expected equality of these values:
+  want.pixels > 0
+    Which is: true
+  found
+    Which is: false
+one warning that carries the same two numbers, and none when nothing is low
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(481): error: Expected equality of these values:
+  1
+  low[y * W + x]
+    Which is: '\0'
+40,20
+
+[  FAILED  ] LowConfidenceTest.ARowGroupOfThreeCrossedByAFullColumnKeepsEveryPixelLow (3 ms)
+[ RUN      ] LowConfidenceTest.APixelTheOtherDirectionCorrectedFirstKeepsTheMarkOfItsGroup
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(455): error: Expected equality of these values:
+  want.pixels
+    Which is: 30
+  inMask
+    Which is: 27
+the pixels marked in the mask
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(456): error: Expected equality of these values:
+  want.pixels
+    Which is: 30
+  rep.low_confidence_pixels
+    Which is: 27
+the report counts the same pixels
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(464): error: Expected equality of these values:
+  want.pixels > 0
+    Which is: true
+  found
+    Which is: false
+one warning that carries the same two numbers, and none when nothing is low
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_defect_correct_v2.cpp(497): error: Expected equality of these values:
+  1
+  low[y * W + x]
+    Which is: '\0'
+40,40
+
+[  FAILED  ] LowConfidenceTest.APixelTheOtherDirectionCorrectedFirstKeepsTheMarkOfItsGroup (3 ms)
+[ RUN      ] LowConfidenceTest.AGroupThatStraddlesTheEdgeOfTheImagingAreaMarksOnlyItsPixelsInsideIt
+[       OK ] LowConfidenceTest.AGroupThatStraddlesTheEdgeOfTheImagingAreaMarksOnlyItsPixelsInsideIt (2 ms)
+[ RUN      ] LowConfidenceTest.ASingleLineWhoseCorrectionMethodIsRejectIsLowToo
+[       OK ] LowConfidenceTest.ASingleLineWhoseCorrectionMethodIsRejectIsLowToo (2 ms)
+[ RUN      ] LowConfidenceTest.AVersionOneMapReportsNoCountsBeyondTheContract
+[       OK ] LowConfidenceTest.AVersionOneMapReportsNoCountsBeyondTheContract (1 ms)
+[----------] 5 tests from LowConfidenceTest (13 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (13 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] LowConfidenceTest.ARowGroupOfThreeCrossedByAFullColumnKeepsEveryPixelLow
+[  FAILED  ] LowConfidenceTest.APixelTheOtherDirectionCorrectedFirstKeepsTheMarkOfItsGroup
+
+ 2 FAILED TESTS

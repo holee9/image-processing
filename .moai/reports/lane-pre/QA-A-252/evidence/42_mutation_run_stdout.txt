@@ -1,0 +1,41 @@
+QA-A-252 mutation check of the second-generation detector (src/xpe_bpm_v2.cpp). Source hash at the start: 019b616127338fd9
+Tests (BpmV2Test): Flags=FlagsEachPlantedDefectWithTheFeatureThatSeesIt Stripes=StripesThatOffsetAndGainRemoveAreNotDefects Thresholds=ThresholdsFollowFromTheTargetNumberOfFalseAlarms
+  Skip=TheFirstDarkFrameIsSkippedOnRequest Groups=DoseGroupsComeFromTheSignalsWhateverTheFrameOrder Lin3=TheLinearityFeatureNeedsThreeDoseGroups Refuses=RefusesInputsItCannotJudge Same=GivesTheSameMapForTheSameInput...
+PREDICTIONS (written before any run):
+  V1 first-dark skip always off                         -> red: Skip only
+  V2 map code 2 (dark side) written as 1                -> red: Flags only
+  V3 dose groups never split (ratio limit huge)         -> red: Groups, Lin3; Flags may also go red (the dead pixel is judged by the response features)
+  V4 union count counts every pixel                     -> red: at least one of Flags, Stripes, Thresholds (they bound or compare flagged_union); Same stays green
+  V5 two-sided threshold without the sqrt 2             -> red: Thresholds only
+  V6 the reserved field of the config is not refused    -> red: Refuses only, if that test covers the field; otherwise nothing is red and the test has a gap
+  V7 MAD-to-sigma factor 1.0 instead of 1.4826          -> red: at least one test that bounds false alarms (Stripes or Flags); not predicted which
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 8 passed, failed: []
+--- V1
+build: BUILD_EXIT=0
+tests exit 1: 6 passed, FAILED: ['RefusesInputsItCannotJudge', 'TheFirstDarkFrameIsSkippedOnRequest']
+--- V2
+build: BUILD_EXIT=0
+tests exit 1: 7 passed, FAILED: ['FlagsEachPlantedDefectWithTheFeatureThatSeesIt']
+--- V3
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['DoseGroupsComeFromTheSignalsWhateverTheFrameOrder', 'TheLinearityFeatureNeedsThreeDoseGroups', 'ThresholdsFollowFromTheTargetNumberOfFalseAlarms']
+--- V4
+build: BUILD_EXIT=0
+tests exit 1: 7 passed, FAILED: ['FlagsEachPlantedDefectWithTheFeatureThatSeesIt']
+--- V5
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['FlagsEachPlantedDefectWithTheFeatureThatSeesIt', 'StripesThatOffsetAndGainRemoveAreNotDefects', 'ThresholdsFollowFromTheTargetNumberOfFalseAlarms']
+--- V6
+build: BUILD_EXIT=0
+tests exit 1: 7 passed, FAILED: ['RefusesInputsItCannotJudge']
+--- V7
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['FlagsEachPlantedDefectWithTheFeatureThatSeesIt', 'StripesThatOffsetAndGainRemoveAreNotDefects', 'TheFirstDarkFrameIsSkippedOnRequest']
+--- restored: touch + rebuild
+source hash now: 019b616127338fd9 (start: 019b616127338fd9)
+build: BUILD_EXIT=0
+tests exit 0: 8 passed, failed: []
+finished

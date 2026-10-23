@@ -1,0 +1,30 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:90])
+    s = s.replace(old, new)
+
+
+# magnitude: the segment sum of the row against the median of the segment sums of the neighbouring rows (mean against mean, not mean against a median of pixels)
+sub('''            double sf = 0.0, sr = 0.0;
+            for (int k = a; k < b; ++k) {
+                sf += static_cast<double>(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
+                sr += static_cast<double>(ref[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
+            }''', '''            auto segSum = [&](int yy) {
+                double t = 0.0;
+                for (int k = a; k < b; ++k) t += static_cast<double>(f[static_cast<size_t>(yy) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
+                return t;
+            };
+            const double sf = segSum(y);
+            std::vector<float> nbSums;   // the neighbouring rows, the same pixels: mean against mean (a median of single pixels is biased low for skewed features)
+            const int half = static_cast<int>(st.window) / 2;
+            for (int dy = -half; dy <= half; ++dy)
+                if (dy != 0 && y + dy >= 0 && y + dy < h) nbSums.push_back(static_cast<float>(segSum(y + dy)));
+            const double sr = nbSums.empty() ? sf : static_cast<double>(medianOf(nbSums.data(), nbSums.size()));''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('patched')

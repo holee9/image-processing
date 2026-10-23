@@ -1,0 +1,27 @@
+QA-A-253c mutation check of the line persistence (src/xpe_bpm_v2.cpp). Source hash at the start: b8777586961b9a90
+Tests (BpmV2LinesTest.*): Moving=NoiseThatHitsADifferentRowInEveryFrame... Noisy=ARowWithMoreTemporalNoise... (now also persistence >= 0.8); the other seven are unaffected by persistence
+PREDICTIONS (written before any run):
+  Z10 the persistence gate never rejects (persist < -2 instead of persist <= 0.5)         -> red: Moving only
+  Z11 the majority rule becomes 0.99 (every frame)                                        -> green (the planted noisy row is large in all frames): a test gap, reported
+  Z12 the neighbouring lines are not used (reference = the line itself, ratio 1)          -> red: Noisy only
+  Z13 the per-pixel cap of the frame statistic removed                                    -> green (no test has a single outlier inside a stretch): a test gap, reported
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 10 passed, failed: []
+--- Z10
+build: BUILD_EXIT=0
+tests exit 1: 9 passed, FAILED: ['NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace']
+--- Z11
+build: BUILD_EXIT=0
+tests exit 0: 10 passed, FAILED: []
+--- Z12
+build: BUILD_EXIT=0
+tests exit 1: 9 passed, FAILED: ['ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine']
+--- Z13
+build: BUILD_EXIT=0
+tests exit 0: 10 passed, FAILED: []
+--- restored: touch + rebuild
+source hash now: b8777586961b9a90 (start: b8777586961b9a90)
+build: BUILD_EXIT=0
+tests exit 0: 10 passed, failed: []

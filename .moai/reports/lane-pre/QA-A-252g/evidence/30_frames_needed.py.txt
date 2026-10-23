@@ -1,0 +1,90 @@
+"""QA-A-252g: how many frames per dose does the pixel noise-cost check need to find a single pixel whose gain-corrected variance is rho times the local expectation (rho = 2.5, 3, 4), with
+a detection probability of 80 % and of 95 %, at the false-alarm rate of the CURRENT threshold?
+
+The check (xpe_bpm_v2.cpp): per dose group of m frames the sample variance of a pixel has nu = m - 1 degrees of freedom; its ratio to the local expectation, after the exposure variation and
+the gain are taken out, is rho * chi2_nu / nu. A pixel is flagged when (a) the pooled statistic sum(nu_g ratio_g) / sum(nu_g) exceeds tau, with P(chi2_N / N > tau) = p, N = G (m - 1),
+p = target false alarms / pixels = 1 / 9,406,485 (the imaging area of the measurements), and (b) the ratio reaches 2 in at least half of the G dose groups (rule: 2 * hits >= G).
+Table 1 takes the local expectation as exact (what the threshold assumes). Table 2 adds the error of the expectation: the local reference is a median of 17 x 17 = 289 values of the
+group variance, relative standard error 1.253 * sqrt(2 / (nu * 289)) for large nu (the exact asymptotic value of a median of chi2/nu is used), common to all groups of a pixel.
+G is the number of dose groups of the calibration set: 5 as in the cyan_test acquisition, and 3."""
+import math
+import numpy as np
+
+N_PIX = 9406485.0
+rng = np.random.default_rng(2517)
+TRIALS = 600_000
+
+
+def gamma_q(a, x):
+    gln = math.lgamma(a)
+    if x < a + 1.0:
+        ap, s, d = a, 1.0 / a, 1.0 / a
+        for _ in range(5000):
+            ap += 1.0; d *= x / ap; s += d
+            if abs(d) < abs(s) * 1e-15: break
+        return 1.0 - s * math.exp(-x + a * math.log(x) - gln)
+    b, c = x + 1.0 - a, 1.0 / 1e-300
+    d = 1.0 / b; h = d
+    for i in range(1, 5000):
+        an = -i * (i - a); b += 2.0
+        d = an * d + b; d = d if abs(d) > 1e-300 else 1e-300
+        c = b + an / c; c = c if abs(c) > 1e-300 else 1e-300
+        d = 1.0 / d; de = d * c; h *= de
+        if abs(de - 1.0) < 1e-15: break
+    return math.exp(-x + a * math.log(x) - gln) * h
+
+
+def tau(nu, p):
+    a = 0.5 * nu; lo, hi = 1.0, 1e6
+    for _ in range(300):
+        mid = 0.5 * (lo + hi)
+        if gamma_q(a, a * mid) > p: lo = mid
+        else: hi = mid
+    return 0.5 * (lo + hi)
+
+
+def median_rel_se(nu, n):
+    # asymptotic relative standard error of the median of n samples of chi2_nu / nu
+    r = np.random.default_rng(1).chisquare(nu, 2_000_000) / nu
+    m = float(np.median(r))
+    h = 0.02 * m
+    f = float(((r > m - h) & (r < m + h)).mean() / (2 * h))
+    return 1.0 / (2.0 * math.sqrt(n) * f * m)
+
+
+def detect_prob(G, m, rho, ref_error):
+    nu = m - 1
+    nu_tot = G * nu
+    t = tau(nu_tot, 1.0 / N_PIX)
+    chi = rng.chisquare(nu, size=(TRIALS, G)) / nu * rho
+    if ref_error:
+        # one common error of the local expectation per pixel (lognormal with the relative standard error of a median of 289 variances)
+        chi = chi / np.exp(rng.normal(0.0, median_rel_se(nu, 289), size=(TRIALS, 1)))
+    pooled = chi.mean(axis=1)
+    hits = (chi >= 2.0).sum(axis=1)
+    return float(((pooled > t) & (2 * hits >= G)).mean()), t
+
+
+def needed(G, rho, target, ref_error):
+    for m in range(2, 61):
+        q, t = detect_prob(G, m, rho, ref_error)
+        if q >= target:
+            return m, q, t
+    return None, 0.0, 0.0
+
+
+for ref_error, title in ((False, 'Table 1: the local expectation taken as exact'), (True, 'Table 2: with the error of the local expectation (median of 289 variances)')):
+    print('== ' + title)
+    print('  dose groups G | rho | frames per dose for 80 % (probability, tau) | frames per dose for 95 % | total frames (80 % / 95 %)')
+    for G in (5, 3):
+        for rho in (2.5, 3.0, 4.0):
+            a = needed(G, rho, 0.80, ref_error)
+            b = needed(G, rho, 0.95, ref_error)
+            fa = '>60' if a[0] is None else '%d (%.3f, %.2f)' % (a[0], a[1], a[2])
+            fb = '>60' if b[0] is None else '%d (%.3f, %.2f)' % (b[0], b[1], b[2])
+            ta = '-' if a[0] is None else str(a[0] * G)
+            tb = '-' if b[0] is None else str(b[0] * G)
+            print('  G = %d | %.1f | %-22s | %-22s | %s / %s' % (G, rho, fa, fb, ta, tb))
+    print()
+print('false-alarm rate of the current threshold: pooled threshold tau at p = 1 / 9,406,485 per pixel (one per image), and the persistence rule; for normal pixels the joint rate is below 1e-7')
+print('detection probability for the frames of the QA-A-252f measurement (3,3,6,3,3) at rho = 2.5 / 3 / 4: pooled + persistence = 0.036 / 0.167 / 0.316 (61_theory_pixel_detection.out.txt, 1 / r rows)')

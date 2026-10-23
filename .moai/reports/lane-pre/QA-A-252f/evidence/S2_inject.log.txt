@@ -1,0 +1,3 @@
+start 2026-10-17 02:26:20  S2_inject
+planted 1979 items (251843 pixels with an item) in 7 dark, 18 bright and 2 evaluation frames; sigma_t 2.9144; quantum gain 0.3475 (regression of the group variance on the group signal over 5 dose groups (median variance corrected for the frame-count bias)); truth in D:/workspace-github/xpe-data/bpm-eval-252f/inj_d
+exit 0 wall seconds 6

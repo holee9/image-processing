@@ -1,0 +1,18 @@
+== measurement artifacts (not committed): /d/workspace-github/xpe-data/bpm-eval-251
+clean_set/offset.xcal      37748888 B  sha256 5569bacf66fb25f10b9137ebf3f466e9ce8d94857c90dc4a7340df362c290c39
+clean_set/gain.xcal        37748888 B  sha256 a7ddadbd5b69a350c44c638fd8887096ca4cb448eda322e5d8976575c7520d22
+clean_set/defect.xcal       9437336 B  sha256 bc3186b1247519e4ad3b5f01f360fb843f70f910e7c6fa3580430b4dead5757e
+clean_set/manifest.json        6815 B  sha256 e1d100b59db53dd7dc46f5ff0938340560c54d51c010e2b41a4cd3fbef39f348
+inj/truth.tsv                 44414 B  sha256 2608be161b3e1298d0cdbd402734363f8d22c23b1776a3e845ea613f3ce8b44e
+inj/truth.json                 3978 B  sha256 6151cb21bb00eb97d38506e69ae1399046bed219083df0a83f26b65083a502fd
+inj/truth_ids.u16          18874368 B  sha256 b2c196cdb493a72ea62d2f39218579e3ab8c669d15d38a984005796cb4e667fa
+inj_set/offset.xcal        37748888 B  sha256 f0515b0dea36884d6c9ff4313b3d4e74ec848555ec772b63ef5885f12cf33a48
+inj_set/gain.xcal          37748888 B  sha256 df4c34cc32a64cffdda1d1bd01b7973460f7029c1f2312081bb1961ccf9e78ef
+inj_set/defect.xcal         9437336 B  sha256 53a42a0bde3d5a31d8fa232b3f6a7fb19461483cf928d1671ad5e746fd9409f7
+inj_set/manifest.json          6061 B  sha256 76bac98a281e64cdb89cfe795dd83bc209a4cb64c7a93330942f1f52d08fd1a9
+half_a.u8                   9437184 B  sha256 6805f3ed6d794e36d2b0d73d80191f9e1e5cfba252e9c59dfa8a31dc892fb1a4
+half_b.u8                   9437184 B  sha256 37031e254c8c4a289d3baf66a29623707ba7dc1d56e58d74b105c7c0d1599e88
+exe sha256: xpe_bpm_eval e737733f914c4857dc8b1da5836c201d5a56ad21310f1b72df0016a4d041f531
+exe sha256: xpe_calib_fixture_gen 5cc03fb945d2212c345032ab4e1243aa8cf32fce7d5955d871c44381cd97299c
+dll sha256: xpe_preprocess c2524c57d80f3c9cb7ad72195355c11e855ba40c53132bf7f26154858fb94d32
+HEAD at measurement: 3977ad39

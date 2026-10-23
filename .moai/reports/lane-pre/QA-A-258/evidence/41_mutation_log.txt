@@ -1,0 +1,37 @@
+QA-A-258 mutation check (src/xpe_bpm_v2.cpp, the lack-of-fit feature of the LINEARITY cause). Source hash at the start: 5772548838121d98
+PREDICTIONS (written before any run):
+  U1 uniform weights instead of the nominal inverse variance (wg = 1)         -> GREEN (survives): the division by the pooled variance already removes the noise level, and the tests do not contain a case whose verdict depends on the weights. Stated as a gap, not claimed as killed
+  U2 the pooled variance is not divided out (phi = 1)                         -> red: BpmLinesLofSeparationTest (a linear line with high noise becomes a LINEARITY defect); the high-noise negatives may go red too
+  U3 the pooled variance is the fit residual itself (pure error from the misfit) -> red: the positive controls and the curved + low noise separation (the curvature is absorbed in the denominator); the negative controls stay green
+  U5 saturation guard removed                                                 -> red: ARowWhoseBrightValuesAreClippedAtTheTopIsNoEvidenceOfCurvature
+  U7 pooled degrees of freedom minimum 5 -> 0                                 -> red: WithoutThreeDoseGroupsOfPureError... (the design 2,2,2,1,1)
+  U8 minimum number of groups 3 -> 1 at the call site                         -> GREEN (equivalent): lack_of_fit_feature returns 0 below three groups anyway
+  U9 phi floor 0.1 -> 1e-12 at the call site                                  -> GREEN (survives): the pure-function test covers the floor of lack_of_fit_feature, not the constant at the call site; stated as a gap
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 31 passed, failed: []
+--- U1
+build: BUILD_EXIT=0
+tests exit 1: 30 passed, FAILED: ['AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups']
+--- U2
+build: BUILD_EXIT=0
+tests exit 1: 29 passed, FAILED: ['AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups', 'ALinearLineWithHighNoiseIsANoiseDefectAndANonlinearLineWithLowNoiseIsALinearityDefect']
+--- U3
+build: BUILD_EXIT=0
+tests exit 1: 19 passed, FAILED: ['ACurvedResponseIsALinearityDefectWhateverTheNoiseAndTheShape', 'AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross', 'ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot', 'ALinearLineWithHighNoiseIsANoiseDefectAndANonlinearLineWithLowNoiseIsALinearityDefect', 'APartialLineIsFoundWithItsStartAndEnd', 'ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine', 'AStraightResponseWithMoreNoiseOrADifferentGainOrOffsetDoesNotMakeALinearityDefect', 'LinesInsideTheMarginsAreNotCounted', 'NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace', 'TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup', 'TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection', 'WithoutThreeDoseGroupsOfPureErrorTheLinearityCauseIsNotEvaluatedAtAll']
+--- U5
+build: BUILD_EXIT=1
+does not compile: the tests are not run
+--- U7
+build: BUILD_EXIT=0
+tests exit 1: 30 passed, FAILED: ['WithoutThreeDoseGroupsOfPureErrorTheLinearityCauseIsNotEvaluatedAtAll']
+--- U8
+build: BUILD_EXIT=0
+tests exit 0: 31 passed, FAILED: []
+--- U9
+build: BUILD_EXIT=0
+tests exit 0: 31 passed, FAILED: []
+--- restored: touch + rebuild
+source hash now: 5772548838121d98 (start: 5772548838121d98)
+build: BUILD_EXIT=0

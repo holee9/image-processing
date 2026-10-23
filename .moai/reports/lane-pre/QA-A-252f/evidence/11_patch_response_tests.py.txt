@@ -1,0 +1,73 @@
+"""QA-A-252f step 1 tests: a pixel on a gain row is judged against the local median of the offset-corrected image; the thresholds 0.45 and 1.5 are exact."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''    bool respPixels{false};       // QA-A-252d: single pixels with a response of 0.40, 0.50, 0.60, 0.75, 1.45, 1.60 (row 220)''',
+    '''    bool respPixels{false};       // QA-A-252d: single pixels with a response of 0.40, 0.50, 0.60, 0.75, 1.45, 1.60 (row 220)
+    bool respRowPixels{false};    // QA-A-252f: a row of gain 1.2 (row 100) and a row of gain 0.8 (row 150), each with one pixel of nominal response 0.46 and 0.50 (x 60)''')
+sub('''            if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);''',
+    '''            if (plant.respRowPixels) {
+                if (y == kGainRowHi) sig *= x == kRowPixX ? 1.2 * 0.46 : 1.2;
+                if (y == kGainRowLo) sig *= x == kRowPixX ? 0.8 * 0.50 : 0.8;
+            }
+            if (plant.yGradient) sig *= 0.93 + 0.14 * y / (kH - 1);''')
+sub('''constexpr int kRespX[6] = {30, 40, 50, 60, 70, 80};''',
+    '''constexpr int kGainRowHi = 100, kGainRowLo = 150, kRowPixX = 60;   // QA-A-252f
+constexpr int kRespX[6] = {30, 40, 50, 60, 70, 80};''')
+
+marker = 'TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {'
+new = r'''TEST(BpmV2Test, TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage) {
+    // QA-A-252f (Codex #213 finding 1): the row factor is not taken out before the judgement. A pixel of nominal 0.46 on a row of gain 1.2 reads 0.55 of its surroundings
+    // (normal); a pixel of nominal 0.50 on a row of gain 0.8 reads 0.40 of its surroundings (a defect), although it is 0.50 of its own row.
+    Plant p{};
+    p.stripes = false;
+    p.defects = false;
+    p.respRowPixels = true;
+    Frames f = makeFrames(48, kDoses, 3, 7, p);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0, r.feat[static_cast<size_t>(kGainRowHi) * kW + kRowPixX] & XPE_BPM_V2_FEATURE_FLAT) << "0.46 on a row of gain 1.2: 0.55 of the local median";
+    EXPECT_NE(0, r.feat[static_cast<size_t>(kGainRowLo) * kW + kRowPixX] & XPE_BPM_V2_FEATURE_FLAT) << "0.50 on a row of gain 0.8: 0.40 of the local median";
+}
+
+TEST(BpmV2Test, TheResponseThresholdsAreExactAndTheInequalitiesAreFixed) {
+    // noise-free frames of integer pixel values: the offset-corrected response of every pixel is its planted ratio to within the float resolution. Exactly 0.45 and 1.5 are
+    // normal (the rule is "below 45 %" and "above 150 %"); 0.4499 and 1.5001 are defects
+    Frames f;
+    const std::vector<double> nets = {10000.0, 20000.0};
+    const double              ratios[6] = {0.4499, 0.45, 0.50, 1.4999, 1.5, 1.5001};
+    auto make = [&](double net, bool bright) {
+        std::vector<uint16_t> fr(kN, 1000);
+        if (bright)
+            for (size_t i = 0; i < kN; ++i) fr[i] = static_cast<uint16_t>(1000 + net);
+        if (bright)
+            for (int q = 0; q < 6; ++q) fr[static_cast<size_t>(30) * kW + static_cast<size_t>(20 + 10 * q)] = static_cast<uint16_t>(1000 + std::floor(net * ratios[q] + 0.5));
+        return fr;
+    };
+    for (int k = 0; k < 7; ++k) f.dark.push_back(make(0.0, false));
+    for (double net : nets)
+        for (int k = 0; k < 3; ++k) {
+            f.bright.push_back(make(net, true));
+            f.signal.push_back(net);
+        }
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const bool expected[6] = {true, false, false, false, false, true};
+    for (int q = 0; q < 6; ++q)
+        EXPECT_EQ(expected[q], (r.feat[static_cast<size_t>(30) * kW + static_cast<size_t>(20 + 10 * q)] & XPE_BPM_V2_FEATURE_FLAT) != 0) << "response " << ratios[q];
+}
+
+'''
+assert s.count(marker) == 1
+s = s.replace(marker, new + marker)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('response tests patched')

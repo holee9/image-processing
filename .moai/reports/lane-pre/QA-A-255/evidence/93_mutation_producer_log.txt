@@ -1,0 +1,17 @@
+QA-A-255 follow-up (Codex #222) mutation check: the producer of the overlap measurement (tools/xpe_bpm_eval.cpp). Source hash at the start: 7101b5a7a5924091
+PREDICTIONS (written before any run):
+  P4 response_valid is written as 1 whatever nResp is                      -> red: OverlapMeasurementOnFramesWithoutSignal... and NoiseCostIsMeasured... (both read the valid column against response_used)
+  P5 the nominal chain is written as response_model when nResp = 0         -> red: OverlapMeasurementOnFramesWithoutSignal... only
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 6 passed, failed: []
+--- P4
+build: BUILD_EXIT=0
+tests exit 1: 4 passed, FAILED: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'OverlapMeasurementOnFramesWithoutSignalWritesNoResponseAndOnlyADiagnostic']
+--- P5
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['OverlapMeasurementOnFramesWithoutSignalWritesNoResponseAndOnlyADiagnostic']
+--- restored: touch + rebuild
+source hash now: 7101b5a7a5924091 (start: 7101b5a7a5924091)
+build: BUILD_EXIT=0

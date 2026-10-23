@@ -1,0 +1,99 @@
+"""QA-A-259: patch of modules/preprocess/tools/xpe_calib_fixture_gen.cpp -- the first dark frame is excluded once, in the generator, and every stage uses the same list."""
+import sys
+
+P = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+s = open(P, encoding='utf-8', newline='').read().replace('\r\n', '\n')
+
+
+def rep(old, new, count=1):
+    global s
+    assert s.count(old) == count, (s.count(old), old[:80])
+    s = s.replace(old, new)
+
+
+rep('''    bool                     bpmV2{false};            // QA-A-254''',
+    '''    bool                     keepFirstDark{false};    // QA-A-259: --keep-first-dark; default = the first dark frame of the list is excluded once, for every stage
+    bool                     bpmV2{false};            // QA-A-254''')
+rep('''        "                             [--bpm-v2] [--bpm-margins L,T,R,B]\\n"''',
+    '''        "                             [--bpm-v2] [--bpm-margins L,T,R,B] [--keep-first-dark]\\n"''')
+rep('''        "  --gain-dark-ref  dark reference''',
+    '''        "  --keep-first-dark  QA-A-259: give the WHOLE dark list including the first frame (stored and marked at the\\n"
+        "                  acquisition); by default this tool excludes the first frame ONCE and the same remaining list\\n"
+        "                  feeds the offset map, the gain dark reference and the defect map (both editions). The\\n"
+        "                  option keeps the list as given. manifest.json lists the given and the used frames.\\n"
+        "  --gain-dark-ref  dark reference''')
+rep('''        "                  blob extension (SRS FUNC-039). The first dark frame is skipped (raw list).\\n"''',
+    '''        "                  blob extension (SRS FUNC-039). The first dark frame is excluded by this tool, once (see --keep-first-dark).\\n"''')
+rep('''        } else if (arg == "--bpm-v2") {
+            opt->bpmV2 = true;''',
+    '''        } else if (arg == "--keep-first-dark") {
+            opt->keepFirstDark = true;
+        } else if (arg == "--bpm-v2") {
+            opt->bpmV2 = true;''')
+rep('''!opt->bpmBrightList.empty() || opt->bpmV2) {
+        std::fprintf(stderr, "--gain-dark-ref, --compare-bpm, --bpm-bright and --bpm-v2 belong''',
+    '''!opt->bpmBrightList.empty() || opt->bpmV2 || opt->keepFirstDark) {
+        std::fprintf(stderr, "--gain-dark-ref, --compare-bpm, --bpm-bright, --bpm-v2 and --keep-first-dark belong''')
+# the count check, on the usable count
+rep('''    if (darkPaths.size() < kMinDarkFrames) {
+        std::fprintf(stderr, "too few dark frames: %zu given, at least %zu are needed (offset map, gain dark reference and defect map)\\n", darkPaths.size(), kMinDarkFrames);
+        return 10;
+    }''',
+    '''    if (!opt.keepFirstDark && darkPaths.size() < 2) {
+        std::fprintf(stderr,
+                     "too few dark frames: %zu given. The first dark frame is excluded (the detector has not settled), so at least 2 are needed to leave one; give the whole list including the first "
+                     "frame, or --keep-first-dark to use the list as given\\n",
+                     darkPaths.size());
+        return 10;
+    }
+    const size_t usableDarks = darkPaths.size() - (opt.keepFirstDark ? 0u : 1u);
+    if (usableDarks < kMinDarkFrames) {
+        std::fprintf(stderr, "too few dark frames: %zu usable (%zu given%s), at least %zu are needed (offset map, gain dark reference and defect map)\\n", usableDarks, darkPaths.size(),
+                     opt.keepFirstDark ? "" : ", the first excluded", kMinDarkFrames);
+        return 10;
+    }''')
+# trim once, right after the content duplicate check
+rep('''    // The dark reference of the gain stage (read before the dose check''',
+    '''    // QA-A-259: the ONE place the first dark frame leaves the list. Every stage below (offset, gain dark reference, defect map of either edition) reads `darks`, the used list.
+    InputFrame firstDark;
+    const std::vector<std::string> givenDarkPaths = darkPaths;
+    std::vector<std::string> givenDarkShas;
+    for (const auto& d : darks) givenDarkShas.push_back(d.sha);
+    const bool firstExcluded = !opt.keepFirstDark;
+    if (firstExcluded) {
+        firstDark = std::move(darks.front());
+        firstDark.role = "dark_excluded_first";
+        darks.erase(darks.begin());
+    }
+
+    // The dark reference of the gain stage (read before the dose check''')
+rep('''        XpeBpmConfigV2 c2{};
+''', '''        XpeBpmConfigV2 c2{};
+        c2.skip_first_dark = XPE_BPM_V2_SKIP_NONE;   // QA-A-259: the list was trimmed by this tool; the library must not drop another frame
+''')
+rep('''\\"skip_first_dark\\":true,''', '''\\"skip_first_dark\\":false,\\"first_dark_excluded_by\\":\\"generator\\",''')
+rep('''"    \\"skip_first_dark\\": true,\\n''', '''"    \\"skip_first_dark\\": false,\\n    \\"first_dark_excluded_by\\": \\"generator (once, before every stage)\\",\\n''')
+# manifest: inputs list gets the excluded frame, plus the dark_policy block
+rep('''    for (const auto& d : darks) all.push_back(&d);
+    for (const auto& b : brights) all.push_back(&b);
+    for (const auto& b : bpmOnly) all.push_back(&b);''',
+    '''    if (firstExcluded) all.push_back(&firstDark);
+    for (const auto& d : darks) all.push_back(&d);
+    for (const auto& b : brights) all.push_back(&b);
+    for (const auto& b : bpmOnly) all.push_back(&b);''')
+rep('''    std::ofstream manifest((work / "manifest.json").string(), std::ios::binary);''',
+    '''    // QA-A-259: the dark list as given and as used, in one place, with the one list every stage reads.
+    std::string darkPolicy = "  \\"dark_policy\\": {\\n    \\"first_dark_excluded\\": " + std::string(firstExcluded ? "true" : "false") + ",\\n    \\"one_list_for_all_stages\\": true,\\n    \\"stages\\": "
+                             "[\\"offset\\", \\"gain_dark_reference\\", \\"defect_map\\"],\\n    \\"given\\": [\\n";
+    for (size_t i = 0; i < givenDarkPaths.size(); ++i) {
+        darkPolicy += "      {\\"path\\": \\"" + jsonText(fs::path(givenDarkPaths[i]).generic_string()) + "\\", \\"sha256\\": \\"" + givenDarkShas[i] + "\\"}" + (i + 1 < givenDarkPaths.size() ? ",\\n" : "\\n");
+    }
+    darkPolicy += "    ],\\n    \\"used\\": [\\n";
+    for (size_t i = 0; i < darks.size(); ++i) {
+        darkPolicy += "      {\\"path\\": \\"" + jsonText(fs::path(darks[i].path).generic_string()) + "\\", \\"sha256\\": \\"" + darks[i].sha + "\\"}" + (i + 1 < darks.size() ? ",\\n" : "\\n");
+    }
+    darkPolicy += "    ]\\n  },\\n";
+    std::ofstream manifest((work / "manifest.json").string(), std::ios::binary);''')
+rep('''<< inputs << "  ],\\n  \\"defect_pixels\\": "''', '''<< inputs << "  ],\\n" << darkPolicy << "  \\"defect_pixels\\": "''')
+open(P, 'w', encoding='utf-8', newline='').write(s)
+print('patched')

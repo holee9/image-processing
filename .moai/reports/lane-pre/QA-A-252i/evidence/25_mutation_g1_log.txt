@@ -1,0 +1,13 @@
+QA-A-252i mutation check of the line-mask merge of xpe_calib_fixture_gen (the gap G1 of QA-A-254). Source hash at the start: 87214906e1b807a2
+PREDICTIONS (written before any run):
+  G1 the line mask is not merged into the defect plane -> red: FramesModeBpmV2PaintsAStretchOnlyTheLineDetectionFound only (recorded 236 stretch pixels, painted 0 expected)
+  every other test stays green
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 3 passed, failed: []
+--- G1
+build: BUILD_EXIT=0
+tests exit 1: 1 passed, FAILED: ['FramesModeBpmV2PaintsAStretchOnlyTheLineDetectionFound', 'FramesModeBpmV2WritesFormatVersion2WithTheAreaTheLinesAndTheBlobs']
+--- restored: touch + rebuild
+source hash now: 87214906e1b807a2 (start: 87214906e1b807a2)
+build: BUILD_EXIT=0

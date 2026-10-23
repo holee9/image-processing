@@ -1,0 +1,12 @@
+GEN = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+TITLE = 'QA-A-252i mutation check of the line-mask merge of xpe_calib_fixture_gen (the gap G1 of QA-A-254).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252i/evidence/25_mutation_g1_log.txt'
+FILT = 'CalibFixtureGenTest.FramesModeBpmV2*:CalibFixtureGenTest.TheBpmV2*'
+PRED = [
+    '  G1 the line mask is not merged into the defect plane -> red: FramesModeBpmV2PaintsAStretchOnlyTheLineDetectionFound only (recorded 236 stretch pixels, painted 0 expected)',
+    '  every other test stays green',
+]
+MUTANTS = [
+    ('G1', GEN, b'if (mask[i] == 0u && lineMask[i] != 0u) mask[i] = 1u;', b'if (mask[i] == 0u && lineMask[i] != 0u) mask[i] = 0u;'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252i/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

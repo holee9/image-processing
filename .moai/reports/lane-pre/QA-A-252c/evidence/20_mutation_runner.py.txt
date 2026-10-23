@@ -1,0 +1,85 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+V2 = ROOT + 'modules/preprocess/src/xpe_bpm_v2.cpp'
+EV = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-252c/evidence/21_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILT = 'BpmV2Test.*:BpmEvalTest.MapV2*:BpmEvalTest.ScoreWith*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+orig = {V2: open(V2, 'rb').read(), EV: open(EV, 'rb').read()}
+h0 = hashlib.sha256(orig[V2] + orig[EV]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-252c mutation check of the area mask, the skip default and the tool options. Source hash (detector + tool) at the start: ' + h0)
+say('Tests: Default=TheFirstDarkFrameOfTheRawListIsSkippedByDefault Margins=MarginsAreToldByTheAreaMask... NoMargins=WithoutMarginsTheWholeFrameIsTheAreaAnd... OnRequest=TheFirstDarkFrameIsSkippedOnRequest')
+say('  Thresholds=ThresholdsFollowFromTheTargetNumberOfFalseAlarms MapV2Area=MapV2TakesMarginsAndWritesTheAreaMask MapV2Skip=MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot ScoreArea=ScoreWithAnAreaMask...')
+say('PREDICTIONS (written before any run):')
+say('  Y1 default skip back to 0 (all dark frames used)                -> red: Default, Thresholds, MapV2Skip; OnRequest stays green (it names both policies)')
+say('  Y2 SKIP_NONE treated like a skip                                 -> red: Default, OnRequest, MapV2Skip')
+say('  Y3 skip_first_dark = 3 accepted                                  -> red: Default only')
+say('  Y4 area mask 1 inside written as 0                               -> red: Margins and MapV2Area')
+say('  Y5 no margins: the area output is not written                    -> red: NoMargins only')
+say('  Y6 tool: an explicit --skip-first-dark 0 maps to SKIP_FIRST      -> red: MapV2Skip only')
+say('  Y7 score: the area mask is not applied to the clean map          -> red: ScoreArea only')
+say('  Y8 score: the area mask is not applied at all                    -> red: ScoreArea only')
+say('  every other test stays green in each mutant')
+
+mutants = [
+    ('Y1', V2, b's->skip = 1;   // the dark list is the raw acquisition list', b's->skip = 0;   // the dark list is the raw acquisition list'),
+    ('Y2', V2, b's->skip = in->skip_first_dark == XPE_BPM_V2_SKIP_NONE ? 0u : 1u;', b's->skip = 1u;'),
+    ('Y3', V2, b'if (in->skip_first_dark > XPE_BPM_V2_SKIP_NONE) return XPE_ERR_INVALID_INPUT;', b''),
+    ('Y4', V2, b'std::memset(areaDst + static_cast<size_t>(y + mt) * width + ml, 1, cw);', b'std::memset(areaDst + static_cast<size_t>(y + mt) * width + ml, 0, cw);'),
+    ('Y5', V2, b'if (area_out) std::memset(area_out->data, 1, static_cast<size_t>(bpm_out->width) * bpm_out->height);', b''),
+    ('Y6', EV, b'(a.num("skip-first-dark", 1) != 0 ? XPE_BPM_V2_SKIP_FIRST : XPE_BPM_V2_SKIP_NONE)', b'(a.num("skip-first-dark", 1) != 0 ? XPE_BPM_V2_SKIP_FIRST : XPE_BPM_V2_SKIP_FIRST)'),
+    ('Y7', EV, b'if (haveClean) applyArea(&clean);', b''),
+    ('Y8', EV, b'if (area.empty()) return;', b'return;'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new in mutants:
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(path, 'wb').write(cur)
+        os.utime(path, None)
+        time.sleep(1)
+finally:
+    for path, data in orig.items():
+        open(path, 'wb').write(data)
+        os.utime(path, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(V2, 'rb').read() + open(EV, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

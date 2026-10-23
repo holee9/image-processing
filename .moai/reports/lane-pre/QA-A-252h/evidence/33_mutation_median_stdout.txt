@@ -1,0 +1,21 @@
+QA-A-252h mutation check of the median dose (src/xpe_bpm_v2.cpp) and of the noise-cost dose validation (tools/xpe_bpm_eval.cpp). Source hash at the start: 7dd74b6544672111
+PREDICTIONS (written before any run):
+  M1 the detector dose is the MEAN of the sample instead of the median      -> red: AFrameWhoseMedianNetSignalIsNotPositiveIsRefused only (the mean of that input is positive, so it is accepted)
+  M2 the detector accepts a non-positive dose (check removed)                -> red: AFrameWhoseMedianNetSignalIsNotPositiveIsRefused only
+  T3 the noise-cost check keeps only the finiteness of the dose              -> red: NoiseCostRefusesVerificationFramesWhoseMedianNetSignalIsNotPositive only
+  every other test stays green in each mutant. NOT covered by a test (stated as a gap): the empty-sample check of noise-cost (no unplanted interior pixel), because no fixture image is small enough.
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 77 passed, failed: []
+--- M1
+build: BUILD_EXIT=0
+tests exit 1: 76 passed, FAILED: ['AFrameWhoseMedianNetSignalIsNotPositiveIsRefused']
+--- M2
+build: BUILD_EXIT=0
+tests exit 1: 76 passed, FAILED: ['AFrameWhoseMedianNetSignalIsNotPositiveIsRefused']
+--- T3
+build: BUILD_EXIT=0
+tests exit 1: 76 passed, FAILED: ['NoiseCostRefusesVerificationFramesWhoseMedianNetSignalIsNotPositive']
+--- restored: touch + rebuild
+source hash now: 7dd74b6544672111 (start: 7dd74b6544672111)
+build: BUILD_EXIT=0

@@ -1,0 +1,20 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+t = s.replace('\r\n', '\n')
+B = chr(92)   # a backslash, spelled out so that no layer turns it into a control character
+
+
+def sub(a, b):
+    global t
+    assert t.count(a) == 1, (t.count(a), a[:70])
+    t = t.replace(a, b)
+
+
+sub('flags' + B + 'tstrength' + B + 'n"', 'flags' + B + 'tstrength' + B + 'tpersistence' + B + 'n"')
+sub('%u' + B + 't%u' + B + 't%.2f' + B + 'n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength));',
+    '%u' + B + 't%.2f' + B + 't%.2f' + B + 'n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength), static_cast<double>(l.persistence));')
+sub('flags %u z %.1f' + B + 'n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength));',
+    'flags %u z %.1f persistence %.2f' + B + 'n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength), static_cast<double>(l.persistence));')
+open(p, 'w', encoding='utf-8', newline='').write(t.replace('\n', '\r\n') if crlf else t)
+print('tool ok')

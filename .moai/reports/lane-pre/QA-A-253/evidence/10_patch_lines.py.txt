@@ -1,0 +1,340 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    p = base + rel
+    s = open(p, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:90])
+        s = s.replace(old, new)
+    open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+# --------------------------------------------------------------------------------------------------------------------------------------- header
+edit('include/xpe/preprocess_api.h', [
+    ('''#ifdef __cplusplus
+}
+#endif
+
+#endif /* XPE_PREPROCESS_API_H */''', '''/* ---- Line and blob detection (SRS-CALIB-FUNC-023, QA-A-253, #273) ------------------------------------------------------------------------------------------ */
+
+/** Orientation of a line defect. */
+#define XPE_BPM_LINE_ROW    0u
+#define XPE_BPM_LINE_COLUMN 1u
+
+/** What makes a line defective (bits of XpeBpmLine::causes). */
+#define XPE_BPM_LINE_CAUSE_RESPONSE  0x01u /**< The response of the line differs from its neighbours by more than the noise tolerance can take (gain correction would add more noise than allowed) */
+#define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line */
+#define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance */
+
+/** Bits of XpeBpmLine::flags. */
+#define XPE_BPM_LINE_FULL    0x01u /**< The defective stretch covers (nearly) the whole length of the line */
+#define XPE_BPM_LINE_CROSSES 0x02u /**< A line of the other orientation crosses this stretch */
+#define XPE_BPM_LINE_REJECT  0x04u /**< Three or more adjacent lines: not a correction task but a panel rejection condition */
+
+/** Line detection configuration. Zero-initialised fields take the defaults. */
+typedef struct {
+    float    target_false_alarms;  /**< Expected false line stretches over the whole frame (default 1; range (0, 1000]) */
+    uint32_t min_segment;          /**< Shortest stretch along a line, in pixels (default 64; range 16..1024) */
+    float    noise_tolerance_db;   /**< A line is defective only when correcting it would raise the noise by more than this (default 3 dB = a power ratio of 2; range (0, 20]) */
+    uint32_t reserved;             /**< Must be zero */
+} XpeBpmLineConfig;
+
+/** One group of adjacent defective lines of the same orientation. */
+typedef struct {
+    uint32_t orientation;  /**< XPE_BPM_LINE_ROW or XPE_BPM_LINE_COLUMN */
+    uint32_t index;        /**< Row (or column) number of the first line of the group, frame coordinates */
+    uint32_t width;        /**< Number of adjacent lines in the group: 1, 2, or 3 and more */
+    uint32_t start;        /**< First pixel of the defective stretch along the line, frame coordinates */
+    uint32_t end;          /**< One past the last pixel of the stretch */
+    uint32_t causes;       /**< XPE_BPM_LINE_CAUSE_* bits */
+    uint32_t flags;        /**< XPE_BPM_LINE_* flag bits */
+    float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
+} XpeBpmLine;
+
+/** What xpe_bpm_find_lines found. */
+typedef struct {
+    uint32_t lines;               /**< Groups found (rows and columns) */
+    uint32_t row_groups;          /**< ... of which rows */
+    uint32_t column_groups;       /**< ... of which columns */
+    uint32_t full_lines;          /**< Groups that cover the whole line */
+    uint32_t partial_lines;       /**< Groups that cover a part of the line */
+    uint32_t double_lines;        /**< Groups of exactly two adjacent lines */
+    uint32_t crossings;           /**< Pairs of a row and a column group that cross */
+    uint32_t max_adjacent;        /**< Widest group */
+    uint32_t panel_reject;        /**< 1 when some group is three adjacent lines or more */
+    uint32_t truncated;           /**< 1 when more groups were found than max_lines */
+    uint32_t line_pixels;         /**< Pixels covered by the groups */
+    uint32_t pixels;              /**< Pixels inside the imaging area */
+    float    null_width[6];       /**< Empirical width (robust sd) of the window statistic of each stretch test, in units of the uncorrelated-noise prediction: rows then columns of the three tests */
+} XpeBpmLineReport;
+
+/**
+ * @brief Line defect detection (SRS-CALIB-FUNC-023, QA-A-253)
+ *
+ * Finds defective rows and columns on the same frames and with the same configuration as xpe_bpm_generate_v2 (raw dark list, first dark skipped by default,
+ * margins). The images of the per-pixel features are examined BEFORE their row and column components are removed (the pixel detector removes whole lines by design):
+ * for every row the difference between the row and the median of its neighbouring rows is summed over windows of min_segment pixels and compared with the noise
+ * of an uncorrelated sum; the width of the same statistic over all rows and columns (its empirical null) scales the threshold; the threshold follows from the
+ * target number of false stretches. A stretch is kept only when it is also large enough to matter (see the XPE_BPM_LINE_CAUSE_* bits): a response within the noise
+ * tolerance of the neighbours is a band that offset and gain correction removes and is not reported.
+ *
+ * Adjacent defective lines are grouped: two lines are a double line, three or more set panel_reject (not a correction task). A row and a column group that
+ * cross are marked.
+ *
+ * @param dark_frames Dark frames (UINT16), raw acquisition list
+ * @param num_dark Number of dark frames
+ * @param bright_frames Bright frames (UINT16)
+ * @param num_bright Number of bright frames
+ * @param cfg Pixel detector configuration (skip, margins, window, block, minimum frames); NULL = defaults
+ * @param lcfg Line configuration; NULL = defaults
+ * @param line_mask_out Optional output (UINT8, size of the frames): 1 on the pixels of the reported stretches, 0 elsewhere (also outside the imaging area); NULL to skip
+ * @param lines_out Optional array for the groups; NULL to skip
+ * @param max_lines Capacity of lines_out
+ * @param report Optional output
+ * @return XPE_OK on success; the errors of xpe_bpm_generate_v2 for invalid input
+ */
+XPE_API XpeErrorCode xpe_bpm_find_lines(
+    const XpeImageBuffer* dark_frames,
+    uint32_t num_dark,
+    const XpeImageBuffer* bright_frames,
+    uint32_t num_bright,
+    const XpeBpmConfigV2* cfg,
+    const XpeBpmLineConfig* lcfg,
+    XpeImageBuffer* line_mask_out,
+    XpeBpmLine* lines_out,
+    uint32_t max_lines,
+    XpeBpmLineReport* report);
+
+/** One blob: a connected group of defective pixels (8-neighbourhood). */
+typedef struct {
+    uint32_t x0, y0, x1, y1;  /**< Bounding box, x1 and y1 inclusive */
+    uint32_t size;            /**< Number of pixels */
+} XpeBpmBlob;
+
+/**
+ * @brief Groups the defective pixels of a map into blobs with their size (SRS-CALIB-FUNC-023)
+ *
+ * @param map Defect map (UINT8, 0 good, anything else defective)
+ * @param blobs_out Optional array for the blobs, largest first; NULL to only count
+ * @param max_blobs Capacity of blobs_out
+ * @param blob_count Optional output: the number of blobs found (can exceed max_blobs)
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT for a NULL map; XPE_ERR_UNSUPPORTED_FORMAT if the map is not UINT8
+ */
+XPE_API XpeErrorCode xpe_bpm_blobs(const XpeImageBuffer* map, XpeBpmBlob* blobs_out, uint32_t max_blobs, uint32_t* blob_count);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* XPE_PREPROCESS_API_H */'''),
+])
+
+# --------------------------------------------------------------------------------------------------------------------------------------- source
+edit('src/xpe_bpm_v2.cpp', [
+    # A. line analysis helpers, in the anonymous namespace, before its end
+    ('''}  // namespace
+
+/** The detection on frames that hold the imaging area only (no margins). */''', '''// ---------------------------------------------------------------------------------------------------------------------------------------- lines (QA-A-253)
+enum LineKind { kKindResponse = 0, kKindLinearity = 1, kKindNoise = 2 };
+
+struct Seg {
+    int      orient;   // 0 row, 1 column
+    int      idx;      // the row or column
+    int      a, b;     // [a, b) along the line
+    uint32_t cause;
+    float    z;
+};
+
+struct LineJob {
+    double           fa{1.0};
+    int              minSeg{64};
+    double           tol{1.9952623149688795};   // 3 dB as a power ratio
+    bool             linesOnly{false};
+    std::vector<Seg> segs;
+    float            nullWidth[6]{1, 1, 1, 1, 1, 1};
+};
+
+void transposeImage(const float* in, float* out, int w, int h) {
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) out[static_cast<size_t>(x) * static_cast<size_t>(h) + static_cast<size_t>(y)] = in[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+}
+
+/**
+ * Stretches along the rows of f (w x h). e is the difference to the median of the neighbouring rows at the same column (for the response kind the ratio minus one);
+ * the window statistic is the sum over min_segment pixels of e / local scale, each term cut at +-3 so that a single outlier (a dead pixel, a hot pixel) cannot make a
+ * stretch, divided by the square root of the window length: the uncorrelated-noise prediction. Its robust width over all windows (the empirical null) rescales it.
+ */
+void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job, int kind, int orient, int nullSlot, std::vector<Seg>* out) {
+    const size_t n = static_cast<size_t>(w) * static_cast<size_t>(h);
+    const int    L = std::min(job->minSeg, w);
+    if (L < 8) return;
+    std::vector<float> ref(n), e(n);
+    slidingMedian(f, ref.data(), w, h, static_cast<int>(st.window), true);
+    for (size_t i = 0; i < n; ++i) {
+        if (kind == kKindResponse) e[i] = std::fabs(ref[i]) > 1e-30f ? f[i] / ref[i] - 1.0f : 0.0f;
+        else e[i] = f[i] - ref[i];
+    }
+    std::vector<float> sig;
+    int                nbx = 0, nby = 0;
+    blockScale(e.data(), w, h, static_cast<int>(st.block), &sig, &nbx, &nby);
+    const int nw = w - L + 1;
+    std::vector<float> zw(static_cast<size_t>(h) * static_cast<size_t>(nw));
+    std::vector<double> cs(static_cast<size_t>(w) + 1);
+    for (int y = 0; y < h; ++y) {
+        cs[0] = 0.0;
+        for (int x = 0; x < w; ++x) {
+            const double s = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), x, y)), 1e-9);
+            double       t = static_cast<double>(e[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]) / s;
+            t = std::min(3.0, std::max(-3.0, t));
+            cs[static_cast<size_t>(x) + 1] = cs[static_cast<size_t>(x)] + t;
+        }
+        for (int x = 0; x < nw; ++x) zw[static_cast<size_t>(y) * static_cast<size_t>(nw) + static_cast<size_t>(x)] = static_cast<float>((cs[static_cast<size_t>(x + L)] - cs[static_cast<size_t>(x)]) / std::sqrt(static_cast<double>(L)));
+    }
+    // the empirical null: robust width of the window statistic over all rows and windows
+    std::vector<float> sample;
+    sample.reserve(zw.size() / 8 + 1);
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < nw; x += 8) sample.push_back(std::fabs(zw[static_cast<size_t>(y) * static_cast<size_t>(nw) + static_cast<size_t>(x)]));
+    const double kappa = std::max(1.0, static_cast<double>(kMadToSigma) * static_cast<double>(medianOf(sample.data(), sample.size())));
+    job->nullWidth[nullSlot] = static_cast<float>(kappa);
+    const double tests = std::max(1.0, static_cast<double>(h) * static_cast<double>(w) / static_cast<double>(L));
+    const double lambda = zThreshold(job->fa / tests);
+    const double lo = 1.0 / std::sqrt(job->tol), hi = std::sqrt(job->tol);
+    for (int y = 0; y < h; ++y) {
+        const float* zr = zw.data() + static_cast<size_t>(y) * static_cast<size_t>(nw);
+        const float* er = e.data() + static_cast<size_t>(y) * static_cast<size_t>(w);
+        int          x = 0;
+        while (x < nw) {
+            const double z = static_cast<double>(zr[x]) / kappa;
+            const bool   upperOnly = kind != kKindResponse;
+            const int    sign = z > lambda ? 1 : ((!upperOnly && z < -lambda) ? -1 : 0);
+            if (sign == 0) {
+                ++x;
+                continue;
+            }
+            int    x2 = x;
+            double zmax = std::fabs(z);
+            while (x2 + 1 < nw) {
+                const double z2 = static_cast<double>(zr[x2 + 1]) / kappa;
+                if (!(sign > 0 ? z2 > lambda : z2 < -lambda)) break;
+                ++x2;
+                zmax = std::max(zmax, std::fabs(z2));
+            }
+            int a = x, b = x2 + L;
+            // trim the ends: a stretch ends where eight pixels in a row no longer reach half of its mean
+            auto meanOf = [&](int p, int q) {
+                double s = 0.0;
+                for (int k = p; k < q; ++k) s += static_cast<double>(er[k]);
+                return s / std::max(1, q - p);
+            };
+            const double m = meanOf(a, b);
+            auto holds = [&](int p, int q) { return sign * meanOf(p, q) >= 0.5 * sign * m && sign * m > 0.0; };
+            while (b - a > L && !holds(a, std::min(b, a + 8))) ++a;
+            while (b - a > L && !holds(std::max(a, b - 8), b)) --b;
+            x = x2 + 1;
+            if (b - a < L) continue;
+            // magnitude: a stretch that offset and gain correction removes is no defect
+            double sf = 0.0, sr = 0.0;
+            for (int k = a; k < b; ++k) {
+                sf += static_cast<double>(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
+                sr += static_cast<double>(ref[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(k)]);
+            }
+            uint32_t cause = 0;
+            if (kind == kKindResponse) {
+                const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
+                if (g < lo || g > hi) cause = XPE_BPM_LINE_CAUSE_RESPONSE;
+            } else if (kind == kKindNoise) {
+                const double g = std::fabs(sr) > 1e-30 ? sf / sr : 1.0;
+                if (g >= job->tol) cause = XPE_BPM_LINE_CAUSE_NOISE;
+            } else {
+                cause = XPE_BPM_LINE_CAUSE_LINEARITY;
+            }
+            if (cause == 0) continue;
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax)});
+        }
+    }
+}
+
+/** Examines one feature image along its rows and its columns. */
+void analyzeFeature(const float* f, int w, int h, const Settings& st, LineJob* job, int kind) {
+    const int slot = kind * 2;
+    rowStretches(f, w, h, st, job, kind, 0, slot, &job->segs);
+    std::vector<float> t(static_cast<size_t>(w) * static_cast<size_t>(h));
+    transposeImage(f, t.data(), w, h);
+    rowStretches(t.data(), h, w, st, job, kind, 1, slot + 1, &job->segs);
+}
+
+struct Group {
+    int      orient, idx, width, a, b;
+    uint32_t causes, flags;
+    float    z;
+};
+
+/** Merges the stretches of one line, then groups adjacent lines whose stretches overlap by half. */
+std::vector<Group> groupSegments(std::vector<Seg> segs, int w, int h) {
+    std::vector<Group> groups;
+    for (int orient = 0; orient < 2; ++orient) {
+        std::vector<Seg> mine;
+        for (const Seg& s : segs)
+            if (s.orient == orient) mine.push_back(s);
+        std::sort(mine.begin(), mine.end(), [](const Seg& p, const Seg& q) { return p.idx != q.idx ? p.idx < q.idx : p.a < q.a; });
+        // one stretch per overlapping set on a line
+        std::vector<Seg> lines;
+        for (const Seg& s : mine) {
+            if (!lines.empty() && lines.back().idx == s.idx && s.a <= lines.back().b) {
+                lines.back().b = std::max(lines.back().b, s.b);
+                lines.back().cause |= s.cause;
+                lines.back().z = std::max(lines.back().z, s.z);
+            } else {
+                lines.push_back(s);
+            }
+        }
+        // adjacent lines with overlapping stretches form a group
+        std::vector<bool> used(lines.size(), false);
+        for (size_t i = 0; i < lines.size(); ++i) {
+            if (used[i]) continue;
+            Group g{orient, lines[i].idx, 1, lines[i].a, lines[i].b, lines[i].cause, 0, lines[i].z};
+            used[i] = true;
+            int last = lines[i].idx;
+            for (size_t j = i + 1; j < lines.size(); ++j) {
+                if (used[j] || lines[j].idx != last + 1) continue;
+                const int ov = std::min(g.b, lines[j].b) - std::max(g.a, lines[j].a);
+                const int shorter = std::min(g.b - g.a, lines[j].b - lines[j].a);
+                if (ov * 2 < shorter) continue;
+                g.a = std::min(g.a, lines[j].a);
+                g.b = std::max(g.b, lines[j].b);
+                g.causes |= lines[j].cause;
+                g.z = std::max(g.z, lines[j].z);
+                ++g.width;
+                last = lines[j].idx;
+                used[j] = true;
+            }
+            const int length = orient == 0 ? w : h;
+            if ((g.b - g.a) * 100 >= length * 95) g.flags |= XPE_BPM_LINE_FULL;
+            if (g.width >= 3) g.flags |= XPE_BPM_LINE_REJECT;
+            groups.push_back(g);
+        }
+    }
+    // crossings
+    for (Group& r : groups) {
+        if (r.orient != 0) continue;
+        for (Group& c : groups) {
+            if (c.orient != 1) continue;
+            const bool hit = c.idx + c.width > r.a && c.idx < r.b && r.idx + r.width > c.a && r.idx < c.b;
+            if (hit) {
+                r.flags |= XPE_BPM_LINE_CROSSES;
+                c.flags |= XPE_BPM_LINE_CROSSES;
+            }
+        }
+    }
+    return groups;
+}
+
+}  // namespace
+
+/** The detection on frames that hold the imaging area only (no margins). */'''),
+])
+print('part 1 patched')

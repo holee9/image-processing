@@ -146,6 +146,7 @@ CalibSnapshot xpe_calib_snapshot_locked() noexcept
     s.gain_width           = g_calib.gain_width;
     s.gain_height          = g_calib.gain_height;
     s.defect_map           = g_calib.defect_map;
+    s.defect_layers        = g_calib.defect_layers;
     s.defect_width         = g_calib.defect_width;
     s.defect_height        = g_calib.defect_height;
     s.offset_expiry_ms     = g_calib.offset_expiry_ms;

@@ -1,0 +1,7 @@
+G5_planted_v2_d7 exit 0 seconds 166
+G6_clean_v2_d7 exit 0 seconds 152
+X1_planted_map exit 0 seconds 0
+X2_clean_map exit 0 seconds 0
+planted map DIFFERS from QA-A-252i v3g_planted.u8
+S3_score_v2_d7 exit 0 seconds 1
+done

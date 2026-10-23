@@ -1,0 +1,63 @@
+Note: Google Test filter = BpmEvalTest.*
+[==========] Running 27 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 27 tests from BpmEvalTest
+[ RUN      ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed
+[       OK ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed (1117 ms)
+[ RUN      ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules
+[       OK ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules (339 ms)
+[ RUN      ] BpmEvalTest.InjectActsAsTheSpecSays
+[       OK ] BpmEvalTest.InjectActsAsTheSpecSays (607 ms)
+[ RUN      ] BpmEvalTest.ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn
+[       OK ] BpmEvalTest.ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn (316 ms)
+[ RUN      ] BpmEvalTest.EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot
+[       OK ] BpmEvalTest.EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot (497 ms)
+[ RUN      ] BpmEvalTest.DefectXcalCommandReadsBothVersionsAndSaysWhyItRefuses
+[       OK ] BpmEvalTest.DefectXcalCommandReadsBothVersionsAndSaysWhyItRefuses (54 ms)
+[ RUN      ] BpmEvalTest.ChainCommandAppliesTheInjectionChain
+[       OK ] BpmEvalTest.ChainCommandAppliesTheInjectionChain (247 ms)
+[ RUN      ] BpmEvalTest.OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain
+[       OK ] BpmEvalTest.OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain (29 ms)
+[ RUN      ] BpmEvalTest.OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement
+[       OK ] BpmEvalTest.OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement (57 ms)
+[ RUN      ] BpmEvalTest.OverlapCombinationTable
+[       OK ] BpmEvalTest.OverlapCombinationTable (59 ms)
+[ RUN      ] BpmEvalTest.OverlapResponseValidColumnDecidesAndAnOldFormatFileIsRefused
+[       OK ] BpmEvalTest.OverlapResponseValidColumnDecidesAndAnOldFormatFileIsRefused (121 ms)
+[ RUN      ] BpmEvalTest.OverlapOfFourItemsRunsThroughTheChainAndNineAreRefused
+[       OK ] BpmEvalTest.OverlapOfFourItemsRunsThroughTheChainAndNineAreRefused (76 ms)
+[ RUN      ] BpmEvalTest.TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection
+[       OK ] BpmEvalTest.TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection (419 ms)
+[ RUN      ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne
+[       OK ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne (463 ms)
+[ RUN      ] BpmEvalTest.MapV2TakesMarginsAndWritesTheAreaMask
+[       OK ] BpmEvalTest.MapV2TakesMarginsAndWritesTheAreaMask (282 ms)
+[ RUN      ] BpmEvalTest.MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot
+[       OK ] BpmEvalTest.MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot (288 ms)
+[ RUN      ] BpmEvalTest.TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList
+[       OK ] BpmEvalTest.TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList (1641 ms)
+[ RUN      ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize
+[       OK ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize (134 ms)
+[ RUN      ] BpmEvalTest.LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArguments
+[       OK ] BpmEvalTest.LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArguments (5188 ms)
+[ RUN      ] BpmEvalTest.ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect
+[       OK ] BpmEvalTest.ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect (491 ms)
+[ RUN      ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement
+[       OK ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement (446 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged (400 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnSetsMadeWithTheFirstGenerationMapOfASmallInput
+[       OK ] BpmEvalTest.CorrectRunsOnSetsMadeWithTheFirstGenerationMapOfASmallInput (13208 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex
+[       OK ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex (18997 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow (453 ms)
+[ RUN      ] BpmEvalTest.FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf
+[       OK ] BpmEvalTest.FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf (432 ms)
+[ RUN      ] BpmEvalTest.InjectRefusesTwoInputsWithTheSameFileName
+[       OK ] BpmEvalTest.InjectRefusesTwoInputsWithTheSameFileName (70 ms)
+[----------] 27 tests from BpmEvalTest (46445 ms total)
+
+[----------] Global test environment tear-down
+[==========] 27 tests from 1 test suite ran. (46445 ms total)
+[  PASSED  ] 27 tests.

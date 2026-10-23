@@ -1,0 +1,58 @@
+"""QA-A-252i: the final union of the second generation before (QA-A-252h) and after the exclusion of the detector's line pixels from the local expectation of the pixel noise check.
+Prints: the union (flagged pixels of the final map) before / after / removed / added; the BRIGHT_NOISE bit (0x20 of the feature plane) before / after / removed / added; where the changed
+pixels lie (inside or outside the detector's line mask; item class and kind and level of the planted items under them); the 38 pixels of the 0.6 / 0.7 line items the leader named, by
+kind of change. Only reads files; nothing is detected."""
+import collections
+
+W = 3072
+BEF = 'D:/workspace-github/xpe-data/bpm-eval-252h/'
+AFT = 'D:/workspace-github/xpe-data/bpm-eval-252i/'
+TRUTH = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth.tsv'
+
+
+def rd(p):
+    return open(p, 'rb').read()
+
+
+mb, ma = rd(BEF + 'v3g_planted.u8'), rd(AFT + 'v3g_planted.u8')
+fb, fa = rd(BEF + 'v2g_planted_features.u8'), rd(AFT + 'v2g_planted_features.u8')
+lb, la = rd(BEF + 'v3g_planted_lines.u8'), rd(AFT + 'v3g_planted_lines.u8')
+cb, ca = rd(BEF + 'v3g_clean.u8'), rd(AFT + 'v3g_clean.u8')
+print('lines output identical (planted):', lb == la, ' clean map identical:', cb == ca)
+n = len(mb)
+items = []
+for l in open(TRUTH, encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        items.append((int(p[0]), p[1], p[2], p[3], p[4], [tuple(map(int, q.split(','))) for q in p[5].split(';')]))
+cover = [[] for _ in range(n)] if False else {}
+for (i, cls, kind, shape, lv, rects) in items:
+    for (x, y, w, h) in rects:
+        for yy in range(y, y + h):
+            for xx in range(x, x + w):
+                cover.setdefault(yy * W + xx, []).append((cls, kind, 'pixel' if shape == 'pixel' else 'line', lv))
+
+
+def table(name, b, a):
+    only_b = [i for i in range(n) if b[i] and not a[i]]
+    only_a = [i for i in range(n) if a[i] and not b[i]]
+    print('\n== %s: before %d, after %d, removed %d, added %d' % (name, sum(1 for v in b if v), sum(1 for v in a if v), len(only_b), len(only_a)))
+    for tag, lst in (('removed', only_b), ('added', only_a)):
+        inl = sum(1 for i in lst if la[i])
+        print('  %s: inside the line mask %d, outside %d, under no planted item %d' % (tag, inl, len(lst) - inl, sum(1 for i in lst if i not in cover)))
+        c = collections.Counter()
+        for i in lst:
+            for k in cover.get(i, [('none', '', '', '')]):
+                c[k] += 1
+        for k, v in sorted(c.items(), key=lambda t: -t[1])[:12]:
+            print('    %-8s %-16s %-6s %-5s %6d' % (k[0], k[1], k[2], k[3], v))
+    return only_b, only_a
+
+
+ub, ua = table('final union (map nonzero)', mb, ma)
+nb, na = table('BRIGHT_NOISE bit (feature plane 0x20)', bytes(1 if v & 0x20 else 0 for v in fb), bytes(1 if v & 0x20 else 0 for v in fa))
+# pixels in the map by the noise bit alone (no other feature bit, not in the line mask), before and after: the 68 / 38 of the leader's note
+for name, m, f, l in (('before', mb, fb, lb), ('after', ma, fa, la)):
+    alone = [i for i in range(n) if m[i] and (f[i] & 0x20) and not (f[i] & ~0x20) and not l[i]]
+    on = [i for i in alone if any(k[1] == 'efficiency_loss' and k[2] == 'line' and k[3] in ('0.6', '0.7') for k in cover.get(i, []))]
+    print('\n%s: in the map by the BRIGHT_NOISE bit alone outside the line mask: %d, on 0.6 / 0.7 efficiency-loss line items: %d' % (name, len(alone), len(on)))

@@ -1,0 +1,56 @@
+QA-A-251 mutation check of the evaluation tool. Source hash at the start: 75fcbe9c3745a17f
+Short names: determ=InjectIsDeterministic placement=InjectFollowsTheSpecCountsAndPlacementRules acts=InjectActsAsTheSpecSays perfect=ScoreSeparatesAPerfectMapFromAnEmptyOne
+  counts=ScoreCountsControlHitsFalseAlarmsAndHalfAgreement half=ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged correct=CorrectRunsOnTwoSetsAndReportsTheLineIndex
+PREDICTIONS (written before any run):
+  Q1 darks planted as if bright (plant(f, true))            -> red: acts only
+  Q2 the exclusion map ignored                              -> red: placement only
+  Q3 a line is detected when ANY pixel is flagged           -> red: half only
+  Q4 a control band never counts as a false detection       -> red: counts only
+  Q5 no 2-pixel widening of the truth for false alarms      -> red: counts only
+  Q6 Jaccard intersection counted as the union              -> red: counts only
+  Q7 dead acts with the level instead of 1 - level          -> red: acts only
+  Q8 crossing pixels marked with the last item, not shared  -> red: placement only
+  Q9 the dark level D not divided by the frame count        -> red: acts only
+  Q10 D_n with the opposite sign                            -> red: correct only
+  Q11 predicted sigma of D_n scaled by 100                  -> red: correct only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 7 passed, failed: []
+--- Q1
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['InjectActsAsTheSpecSays']
+--- Q2
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['InjectFollowsTheSpecCountsAndPlacementRules']
+--- Q3
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged']
+--- Q4
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- Q5
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- Q6
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- Q7
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['InjectActsAsTheSpecSays']
+--- Q8
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['InjectFollowsTheSpecCountsAndPlacementRules']
+--- Q9
+build: BUILD_EXIT=0
+tests exit 1: 5 passed, FAILED: ['InjectActsAsTheSpecSays']
+--- Q10
+build: BUILD_EXIT=0
+tests exit 1: 0 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+--- Q11
+build: BUILD_EXIT=0
+tests exit 1: 0 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+--- restored: touch + rebuild
+source hash now: 75fcbe9c3745a17f (start: 75fcbe9c3745a17f)
+build: BUILD_EXIT=0
+tests exit 0: 7 passed, failed: []

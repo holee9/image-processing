@@ -1,0 +1,1 @@
+exit code 0; wall seconds 48.1; peak working set MiB 1903 (= 1995 MB)

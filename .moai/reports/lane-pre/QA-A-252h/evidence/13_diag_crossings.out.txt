@@ -1,0 +1,59 @@
+groups (frames per group): [3, 3, 6, 3, 3]
+response rc: median 0.99999
+groups (frames per group): [3, 3, 6, 3, 3]
+response rc: median 1.00000
+flagged interior: planted 4560, clean 4
+clean frames: pixels with response outside 0.9..1.1 or statistic > 2: 167733 (1.777 %)
+natural low-response columns (> 5 % of the column): []
+natural low-response rows (> 5 % of the row): []
+
+flagged pixels on line items: item, x, y, planted response r, rc planted, rc clean, T planted, T clean, abnormal in clean frames
+  gain-loss lines and efficiency-loss 0.6 / 0.7 lines: flagged 117, of them abnormal in the clean frames 21 (17.9 %)
+  gain_loss        0.3   row_full     x  103 y 2161 r 0.30 rc_planted 0.200 rc_clean 1.002 T_planted  5.53 T_clean  1.72 abnormal False
+  gain_loss        0.3   col_full     x  735 y 2857 r 0.30 rc_planted 0.200 rc_clean 1.000 T_planted  4.87 T_clean  1.19 abnormal False
+  gain_loss        0.3   col_full     x  735 y 3025 r 0.30 rc_planted 0.200 rc_clean 1.004 T_planted  5.41 T_clean  0.86 abnormal False
+  gain_loss        0.3   row_partial  x  480 y 1497 r 0.30 rc_planted 0.200 rc_clean 0.998 T_planted  4.53 T_clean  1.13 abnormal False
+  gain_loss        0.4   col_full     x  807 y 2798 r 0.40 rc_planted 0.200 rc_clean 1.000 T_planted  7.43 T_clean  0.97 abnormal False
+  gain_loss        0.4   col_full     x  807 y 2857 r 0.40 rc_planted 0.240 rc_clean 0.999 T_planted  9.52 T_clean  1.85 abnormal False
+  gain_loss        0.4   col_partial  x  981 y 2359 r 0.40 rc_planted 0.241 rc_clean 1.004 T_planted  5.23 T_clean  1.46 abnormal False
+  gain_loss        0.4   row_pair     x 1192 y 1655 r 0.40 rc_planted 0.200 rc_clean 1.002 T_planted  4.61 T_clean  0.93 abnormal False
+  gain_loss        0.4   col_pair     x  555 y  914 r 0.40 rc_planted 0.200 rc_clean 1.003 T_planted  4.66 T_clean  0.59 abnormal False
+  gain_loss        0.44  row_full     x  480 y 1703 r 0.44 rc_planted 0.200 rc_clean 0.998 T_planted  6.38 T_clean  0.67 abnormal False
+  gain_loss        0.44  row_full     x 1192 y 1703 r 0.44 rc_planted 0.200 rc_clean 0.998 T_planted  5.62 T_clean  0.68 abnormal False
+  gain_loss        0.44  row_full     x 1681 y 1703 r 0.44 rc_planted 0.200 rc_clean 0.999 T_planted  4.67 T_clean  0.80 abnormal False
+  gain_loss        0.44  row_full     x 1682 y 1703 r 0.44 rc_planted 0.200 rc_clean 0.996 T_planted  4.70 T_clean  0.76 abnormal False
+  gain_loss        0.44  col_full     x 2111 y 2552 r 0.44 rc_planted 0.200 rc_clean 1.000 T_planted  6.89 T_clean  1.49 abnormal False
+  gain_loss        0.44  row_pair     x 1733 y  189 r 0.44 rc_planted 0.263 rc_clean 1.000 T_planted  6.54 T_clean  2.01 abnormal True
+  gain_loss        0.44  row_pair     x 1733 y  190 r 0.44 rc_planted 0.264 rc_clean 1.002 T_planted  5.54 T_clean  1.15 abnormal False
+  gain_loss        0.46  row_full     x 2738 y  740 r 0.46 rc_planted 0.200 rc_clean 1.001 T_planted  4.67 T_clean  1.22 abnormal False
+  gain_loss        0.46  col_full     x  435 y 1469 r 0.46 rc_planted 0.202 rc_clean 0.997 T_planted  4.70 T_clean  1.56 abnormal False
+  gain_loss        0.46  col_full     x  435 y 2798 r 0.46 rc_planted 0.212 rc_clean 1.002 T_planted  5.19 T_clean  0.64 abnormal False
+  gain_loss        0.46  col_full     x  435 y 3025 r 0.46 rc_planted 0.202 rc_clean 0.998 T_planted  5.29 T_clean  0.78 abnormal False
+  gain_loss        0.46  col_pair     x 2916 y 1885 r 0.46 rc_planted 0.321 rc_clean 0.999 T_planted  4.96 T_clean  1.32 abnormal False
+  gain_loss        0.46  col_pair     x 2915 y 2306 r 0.46 rc_planted 0.200 rc_clean 1.003 T_planted  9.86 T_clean  1.52 abnormal False
+  gain_loss        0.46  col_pair     x 2916 y 2306 r 0.46 rc_planted 0.200 rc_clean 1.004 T_planted  5.58 T_clean  1.36 abnormal False
+  gain_loss        0.46  col_pair     x 2915 y 2359 r 0.46 rc_planted 0.277 rc_clean 1.002 T_planted  4.93 T_clean  0.89 abnormal False
+  gain_loss        0.6   row_full     x  135 y 2524 r 0.60 rc_planted 0.421 rc_clean 1.001 T_planted  4.64 T_clean  1.60 abnormal False
+  gain_loss        0.6   row_full     x 2738 y 2524 r 0.60 rc_planted 0.200 rc_clean 1.000 T_planted  7.45 T_clean  1.50 abnormal False
+  gain_loss        0.6   row_full     x 2873 y 2524 r 0.60 rc_planted 0.200 rc_clean 1.004 T_planted  6.08 T_clean  1.46 abnormal False
+  gain_loss        0.6   col_full     x 2645 y  319 r 0.60 rc_planted 0.240 rc_clean 1.000 T_planted  4.57 T_clean  0.90 abnormal False
+  gain_loss        0.6   col_full     x 2645 y 2306 r 0.60 rc_planted 0.200 rc_clean 1.001 T_planted  6.26 T_clean  1.32 abnormal False
+  gain_loss        0.6   row_pair     x 2738 y 2759 r 0.60 rc_planted 0.200 rc_clean 0.997 T_planted  4.58 T_clean  1.29 abnormal False
+
+flag rate per pixel of every line type, all pixels / pixels normal in the clean frames; theory = pixel items of the same cost (QA-A-252g 61_expected_pixel_noise.out.txt)
+  gain_loss        0.3   pixels  10701 flagged     4 rate 0.00000 | normal in clean: pixels  10496 flagged     4 rate 0.00000 | theory none
+  gain_loss        0.4   pixels  10699 flagged     5 rate 0.00000 | normal in clean: pixels  10516 flagged     5 rate 0.00000 | theory none
+  gain_loss        0.44  pixels  10700 flagged     7 rate 0.00000 | normal in clean: pixels  10514 flagged     6 rate 0.00000 | theory none
+  gain_loss        0.46  pixels  10703 flagged     8 rate 0.00000 | normal in clean: pixels  10534 flagged     8 rate 0.00000 | theory none
+  gain_loss        0.6   pixels  10698 flagged    13 rate 0.00000 | normal in clean: pixels  10475 flagged    13 rate 0.00000 | theory none
+  gain_loss        0.7   pixels  10701 flagged     5 rate 0.00000 | normal in clean: pixels  10512 flagged     5 rate 0.00000 | theory none
+  efficiency_loss  0.3   pixels  10701 flagged  2990 rate 0.00032 | normal in clean: pixels  10511 flagged  2889 rate 0.00031 | theory 0.214
+  efficiency_loss  0.4   pixels  10702 flagged   719 rate 0.00008 | normal in clean: pixels  10501 flagged   644 rate 0.00007 | theory 0.0438
+  efficiency_loss  0.44  pixels  10699 flagged   369 rate 0.00004 | normal in clean: pixels  10500 flagged   326 rate 0.00003 | theory 0.0181
+  efficiency_loss  0.46  pixels  10701 flagged   414 rate 0.00004 | normal in clean: pixels  10505 flagged   367 rate 0.00004 | theory 0.0221
+  efficiency_loss  0.6   pixels  10701 flagged    68 rate 0.00001 | normal in clean: pixels  10489 flagged    50 rate 0.00001 | theory 0.0021
+  efficiency_loss  0.7   pixels  10701 flagged     7 rate 0.00000 | normal in clean: pixels  10504 flagged     5 rate 0.00000 | theory 0.0001
+
+flagged gain-loss / efficiency-0.6-0.7 line pixels on a natural low-response column or row: 0 of 117
+position: {'interior': 116, 'image border <= 40': 1}
+finished

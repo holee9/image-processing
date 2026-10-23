@@ -1,0 +1,18 @@
+V2 = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TITLE = 'QA-A-252f mutation check of the noise-cost check P2 (src/xpe_bpm_v2.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252f/evidence/53_mutation_p2_log.txt'
+FILT = 'BpmV2*'
+PRED = [
+    '  P1 the gain correction is 1 (no correction)                                      -> red: TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot only (the 0.3 efficiency row loses its NOISE cause)',
+    '  P2 the persistence over the dose groups is removed from the pixel check          -> red: ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect only',
+    '  P3 the per-frame persistence of the line stretches is judged without the correction -> red: TheNoiseCostOfAnEfficiencyLossRow... only (the stretch is discarded for lack of persistence)',
+    '  P4 the pooled statistic of the lines is not corrected (the pixel persistence is)  -> red: TheNoiseCostOfAnEfficiencyLossRow... only',
+    '  every other test stays green in each mutant',
+]
+MUTANTS = [
+    ('P1', V2, b'corrGain[i] = static_cast<float>(1.0 / (rc * rc));', b'corrGain[i] = 1.0f;'),
+    ('P2', V2, b' && 2u * persistHits[i] >= noiseGroups) {', b') {'),
+    ('P3', V2, b'std::min(e * e * static_cast<double>(corrGain[i]), cap)', b'std::min(e * e, cap)'),
+    ('P4', V2, b'noiseSum[i] += static_cast<float>((mg - 1) * ratioG);', b'noiseSum[i] += static_cast<float>((mg - 1) * (static_cast<double>(vg[i]) / ref));'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252f/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

@@ -402,6 +402,45 @@ XPE_API XpeErrorCode xpe_defect_correct(const XpeImageBuffer* input,
                                         XpeImageBuffer* output,
                                         const XpeImageMetadata* metadata);
 
+/**
+ * @brief What the defect stage did to a frame (QA-A-255, SRS-CALIB-FUNC-039).
+ *
+ * Filled by xpe_defect_correct_ex(). For a frame corrected with a version-1 map only `size` is filled: every count is 0
+ * (the first edition does not count its pixels), and `layers_used` = 0 tells that the first edition ran. A version-2 map
+ * sets `layers_used` = 1 and fills the counts.
+ */
+typedef struct {
+    uint32_t size;                     /**< sizeof(XpeDefectCorrectionReport), set by the function. All counts below, except layers_used and out_of_area_pixels, are filled only when layers_used is 1: the correction of a version-1 defect file does not count its pixels and leaves them 0 */
+    uint32_t layers_used;              /**< 1 when the layers of a version-2 defect file (lines, imaging area) drove the correction, else 0 */
+    uint32_t isolated_pixels;          /**< single defective pixels, corrected from their four neighbours (SRS-CALIB-FUNC-007) */
+    uint32_t blob_pixels;              /**< pixels of blobs of two or more, filled from the outside inward */
+    uint32_t line_pixels;              /**< pixels of recorded line stretches, interpolated across the line */
+    uint32_t line_groups;              /**< line groups (one or more adjacent lines) that were corrected */
+    uint32_t one_sided_line_pixels;    /**< line pixels that had a valid neighbour on one side only and were copied from it */
+    uint32_t low_confidence_pixels;    /**< pixels filled with low confidence: lines of a group of three or more, blobs without an adjacent valid pixel */
+    uint32_t low_confidence_regions;   /**< line groups and blobs that hold low-confidence pixels */
+    uint32_t unfilled_pixels;          /**< defective pixels with no valid pixel within 16 pixels: they keep their input value */
+    uint32_t out_of_area_pixels;       /**< pixels outside the imaging area: not used as a source and left as they were */
+} XpeDefectCorrectionReport;
+
+/**
+ * @brief xpe_defect_correct() with a report of what was done (QA-A-255).
+ *
+ * The same correction as xpe_defect_correct(). @p report and @p low_confidence_out are optional (NULL = not wanted).
+ *
+ * @param input Input image buffer (gain-corrected, FLOAT32)
+ * @param output Output image buffer (defect-corrected, FLOAT32)
+ * @param metadata Image metadata; must be non-NULL
+ * @param report Receives the counts (may be NULL)
+ * @param low_confidence_out A UINT8 buffer of the input's width and height that receives 1 where a pixel was filled with low confidence and 0 elsewhere (may be NULL)
+ * @return The codes of xpe_defect_correct(), and XPE_ERR_BUFFER_TOO_SMALL / XPE_ERR_UNSUPPORTED_FORMAT when @p low_confidence_out does not fit
+ */
+XPE_API XpeErrorCode xpe_defect_correct_ex(const XpeImageBuffer* input,
+                                           XpeImageBuffer* output,
+                                           const XpeImageMetadata* metadata,
+                                           XpeDefectCorrectionReport* report,
+                                           XpeImageBuffer* low_confidence_out);
+
 /* =============================================================================
  * Phase 4: Calibration Management (REQ-P1A-017~019, AC-CAL-004~005)
  * ============================================================================ */
@@ -1893,6 +1932,133 @@ XPE_API XpeErrorCode xpe_bpm_generate(
     const XpeBpmConfig* cfg,
     XpeImageBuffer* bpm_out);
 
+/**
+ * @brief Second-generation defective-pixel detection configuration (QA-A-252, #273)
+ *
+ * Zero-initialised fields take the defaults below, so a caller may pass a zeroed struct (or NULL) to
+ * get the defaults. Validation limits are given per field.
+ */
+typedef struct {
+    float    target_false_alarms; /**< Expected false alarms per feature over the whole frame (default 1.0; range (0, 1000]) */
+    uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65). The local median is separable: the median along x
+                                       *   over this many pixels, then the median of those along y (it is not a two-dimensional median of the window) */
+    uint32_t sigma_block;         /**< Side of the blocks of the local scale estimate in pixels (default 64; range 16..512) */
+    uint32_t skip_first_dark;     /**< The dark list is the RAW acquisition list: its first frame (taken before the detector settles) is not used.
+                                       *   XPE_BPM_V2_SKIP_DEFAULT (0, also a NULL configuration) and XPE_BPM_V2_SKIP_FIRST (1): skip it.
+                                       *   XPE_BPM_V2_SKIP_NONE (2): the list was already trimmed, use every frame. Anything else is refused */
+    uint32_t min_frames_dark;     /**< Minimum dark frames after skipping (default 5; at least 3) */
+    uint32_t min_frames_bright;   /**< Minimum bright frames (default 6; at least 2) */
+    float    dose_group_ratio;    /**< Sorted bright-frame signals whose ratio exceeds this start a new dose group (default 1.25; at least 1.01) */
+    uint32_t margin_left;         /**< Columns at the left edge that are outside the imaging area (shielded or dummy); default 0 = none (QA-A-252b) */
+    uint32_t margin_top;          /**< Rows at the top edge outside the imaging area; default 0 */
+    uint32_t margin_right;        /**< Columns at the right edge outside the imaging area; default 0 */
+    uint32_t margin_bottom;       /**< Rows at the bottom edge outside the imaging area; default 0 */
+    uint32_t reserved;            /**< Must be zero */
+} XpeBpmConfigV2;
+
+/** Values of XpeBpmConfigV2::skip_first_dark. */
+#define XPE_BPM_V2_SKIP_DEFAULT 0u /**< Default: the first dark frame of the raw list is skipped */
+#define XPE_BPM_V2_SKIP_FIRST   1u /**< The first dark frame is skipped (same as the default) */
+#define XPE_BPM_V2_SKIP_NONE    2u /**< The list is already trimmed: every dark frame is used */
+
+/** Feature bits of the optional per-pixel feature output of xpe_bpm_generate_v2. */
+#define XPE_BPM_V2_FEATURE_DARK_MEAN   0x01u /**< Local deviation of the dark mean */
+#define XPE_BPM_V2_FEATURE_DARK_NOISE  0x02u /**< Temporal noise of the dark frames against its local median */
+#define XPE_BPM_V2_FEATURE_DOSE_SLOPE  0x04u /**< Slope of the response over the dose groups */
+#define XPE_BPM_V2_FEATURE_DOSE_LINEAR 0x08u /**< Residual of the straight-line fit over the dose groups (log of its variance, upper side) */
+#define XPE_BPM_V2_FEATURE_FLAT        0x10u /**< Local deviation of the relative flat-field response */
+#define XPE_BPM_V2_FEATURE_BRIGHT_NOISE 0x20u /**< Temporal noise of the bright frames inside the dose groups, gain-corrected (the variance divided by the square of the measured response of the pixel), against its
+                                                    *   local median: a defect when the pooled statistic exceeds the false-alarm threshold AND the corrected variance reaches twice the local expectation in
+                                                    *   at least half of the dose groups (QA-A-252b; the gain correction and the persistence are QA-A-252f, the noise cost of SRS FUNC-022) */
+
+/** Number of detection features reported by XpeBpmReportV2. */
+#define XPE_BPM_V2_FEATURE_COUNT 6
+
+/** Largest number of dose groups xpe_bpm_generate_v2 accepts. */
+#define XPE_BPM_V2_MAX_DOSE_GROUPS 8
+
+/**
+ * @brief What xpe_bpm_generate_v2 decided and why (thresholds and the numbers they came from)
+ *
+ * Feature order in the arrays: dark mean, dark noise, dose slope, dose linearity, flat field, bright noise
+ * (the bit order of the XPE_BPM_V2_FEATURE_* values).
+ */
+typedef struct {
+    uint32_t pixels;                                          /**< Pixels per frame inside the imaging area (the N of the false-alarm target) */
+    uint32_t dark_frames_used;                                /**< Dark frames used after skipping */
+    uint32_t bright_frames_used;                              /**< Bright frames used */
+    uint32_t dose_groups;                                     /**< Dose groups found */
+    uint32_t feature_active[XPE_BPM_V2_FEATURE_COUNT];        /**< 1 when the feature ran (the linearity feature needs three dose groups) */
+    uint32_t degrees_of_freedom[XPE_BPM_V2_FEATURE_COUNT];    /**< Degrees of freedom of the variance-ratio features (dark noise, bright noise), 0 for the others */
+    float    threshold[XPE_BPM_V2_FEATURE_COUNT];             /**< Threshold: |z| for the z features, z (upper side only) for the linearity feature, variance ratio for the noise features */
+    float    scale_median[XPE_BPM_V2_FEATURE_COUNT];          /**< Median over the frame of the local scale (z features) or of the local reference (noise features) */
+    uint32_t flagged[XPE_BPM_V2_FEATURE_COUNT];               /**< Pixels each feature flagged */
+    uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */
+    uint32_t out_of_area_pixels;                              /**< Pixels outside the imaging area (the margins of the configuration); not in `pixels` */
+    float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */
+    uint32_t weak_response_pixels;                            /**< Pixels whose response is from 45 % up to 70 % of the local median: not defects (SRS FUNC-022), counted for the record only */
+    float    response_ratio_low;                              /**< The response rule: a pixel is defective below this fraction of the local median response (0.45) */
+    float    response_ratio_high;                             /**< ... or above this fraction (1.5) */
+    uint32_t group_frames[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Frames in each dose group */
+} XpeBpmReportV2;
+
+/**
+ * @brief Second-generation defective-pixel detection (SRS-CALIB-FUNC-022, QA-A-252)
+ *
+ * Replaces the single fixed threshold of xpe_bpm_generate by several per-pixel features, each judged
+ * on its own, with the union flagged: (1) the local deviation of the dark mean, (2) the temporal
+ * noise of the dark frames, (3) the slope and the straight-line residual of the response over dose
+ * groups, (4) the local deviation of the relative flat-field response. Deviations are robust
+ * (median and median absolute deviation), except the response of a pixel (QA-A-252d, SRS FUNC-022): that is judged by a RATIO rule, not by a z score. The response is the
+ * relative flat-field response (offset-corrected bright frames, summed over the dose groups) divided by its local median after the row and column factors are taken
+ * out; below 45 % or above 150 % is a defect, 45 % up to 70 % is a weak response that is only counted (report weak_response_pixels). The slope feature no longer flags pixels. The row and column components of each feature image are
+ * subtracted before the local statistics, so stripes that offset and gain correction remove do
+ * not spread into pixel defects (and full-length line defects are not reported here either; line
+ * detection is a separate step). Thresholds are not fixed constants: each follows from the
+ * target number of false alarms per feature over the frame, and the report returns them.
+ *
+ * Bright frames may be of several doses; they are grouped by signal (see XpeBpmConfigV2).
+ *
+ * Input contract: the dark frames are the raw acquisition list. The first one is skipped by default (see XpeBpmConfigV2::skip_first_dark;
+ * pass XPE_BPM_V2_SKIP_NONE for a list that was trimmed already), so a list of five frames leaves four and is refused by the default minimum of five.
+ *
+ * False alarms: the threshold of each feature is set for a target of expected false alarms PER FEATURE (default 1). The union over the features is expected to hold
+ * about as many by chance as there are features that ran (up to six); the report states the counts per feature.
+ *
+ * Imaging area: pixels in the margins of the configuration are outside the imaging area (shielded or dummy). They take no part in the decision or in any local statistic
+ * (frame means, row and column components, background, scale, the N of the false-alarm target). In bpm_out and feature_out they are 0, exactly like a good pixel,
+ * so the map keeps the meaning of the defect codes (0 good, 1..3 and above as in xpe_bpm_generate); the pixels outside the area are told by area_out.
+ *
+ * @param dark_frames Dark frames (UINT16, offset-uncorrected), all of one size
+ * @param num_dark Number of dark frames in the raw list, before the skipping of the first
+ * @param bright_frames Bright frames (UINT16, offset-uncorrected), the size of the dark frames
+ * @param num_bright Number of bright frames
+ * @param cfg Configuration (NULL = defaults)
+ * @param bpm_out Output map (UINT8, size of the frames): 0 good, 1 flagged by a bright-frame
+ *        feature only, 2 by a dark-frame feature only, 3 by both
+ * @param feature_out Optional output (UINT8, size of the frames): the XPE_BPM_V2_FEATURE_* bits
+ *        of the features that flagged each pixel; NULL to skip
+ * @param area_out Optional output (UINT8, size of the frames): 1 for a pixel inside the imaging area, 0 outside (see the margins of the configuration); NULL to skip
+ * @param report Optional output: thresholds and counts; NULL to skip
+ * @return XPE_OK on success
+ *         XPE_ERR_INVALID_INPUT on NULL pointers, too few frames, a bright frame without signal,
+ *                               frames of different sizes, an invalid configuration, or more
+ *                               dose groups than XPE_BPM_V2_MAX_DOSE_GROUPS
+ *         XPE_ERR_UNSUPPORTED_FORMAT if an input is not UINT16 or an output is not UINT8
+ *         XPE_ERR_BUFFER_TOO_SMALL if an output buffer is smaller than the frames
+ *         XPE_ERR_OUT_OF_MEMORY if working memory cannot be allocated
+ */
+XPE_API XpeErrorCode xpe_bpm_generate_v2(
+    const XpeImageBuffer* dark_frames,
+    uint32_t num_dark,
+    const XpeImageBuffer* bright_frames,
+    uint32_t num_bright,
+    const XpeBpmConfigV2* cfg,
+    XpeImageBuffer* bpm_out,
+    XpeImageBuffer* feature_out,
+    XpeImageBuffer* area_out,
+    XpeBpmReportV2* report);
+
 #ifdef __cplusplus
 }
 #endif
@@ -2069,6 +2235,141 @@ XPE_API uint32_t xpe_calib_get_max_points(void);
  *         largest ceiling (4) -- the degree used is resolved per generation
  */
 XPE_API uint32_t xpe_calib_get_poly_degree(void);
+
+/* ---- Line and blob detection (SRS-CALIB-FUNC-023, QA-A-253, #273) ------------------------------------------------------------------------------------------ */
+
+/** Orientation of a line defect: a row (the line runs along x). */
+#define XPE_BPM_LINE_ROW    0u
+/** Orientation of a line defect: a column (the line runs along y). */
+#define XPE_BPM_LINE_COLUMN 1u
+
+/** What makes a line defective (bits of XpeBpmLine::causes). */
+#define XPE_BPM_LINE_CAUSE_RESPONSE  0x01u /**< The response of the line differs from its neighbours by more than the noise tolerance can take (gain correction would add more noise than allowed) */
+#define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line: the lack of fit of the line through the dose-group means, weighted by the nominal variance of the means and divided by the pixel's own pooled temporal variance (QA-A-258), so that more temporal noise alone is no nonlinearity. Not evaluated when fewer than three dose groups hold repeats or the pooled degrees of freedom are below 5 */
+#define XPE_BPM_LINE_CAUSE_SLOPE     0x08u /**< The regression slope over the doses (a proxy of the response) differs from its neighbours by the same measure; recorded apart from RESPONSE, which is the ratio of the offset-corrected image (QA-A-252f) */
+#define XPE_BPM_LINE_CAUSE_NOISE     0x04u /**< The temporal noise of the line exceeds that of its neighbours by more than the noise tolerance, in most of the dark frames (a line that is large in a few frames only is noise that moves, not a defect) */
+
+/** Why a stretch is only a candidate (XpeBpmLine::reason of the unconfirmed list). */
+#define XPE_BPM_LINE_REASON_NONE           0u /**< A confirmed group */
+#define XPE_BPM_LINE_REASON_TOO_FEW_FRAMES 1u /**< The persistence could not be judged: fewer than three frames that can be judged (bright frames of dose groups of three or more) */
+
+/** Bits of XpeBpmLine::flags. */
+#define XPE_BPM_LINE_FULL    0x01u /**< The defective stretch covers (nearly) the whole length of the line */
+#define XPE_BPM_LINE_CROSSES 0x02u /**< A line of the other orientation crosses this stretch */
+#define XPE_BPM_LINE_REJECT  0x04u /**< Three or more adjacent lines: not a correction task but a panel rejection condition */
+
+/** Line detection configuration. Zero-initialised fields take the defaults. */
+typedef struct {
+    float    target_false_alarms;  /**< Expected false line stretches over the whole frame (default 1; range (0, 1000]) */
+    uint32_t min_segment;          /**< Shortest stretch along a line, in pixels (default 64; range 16..1024) */
+    float    noise_tolerance_db;   /**< A line is defective only when correcting it would raise the noise by more than this (default 3 dB = a power ratio of 2; range (0, 20]) */
+    uint32_t reserved;             /**< Must be zero */
+} XpeBpmLineConfig;
+
+/** One group of adjacent defective lines of the same orientation. */
+typedef struct {
+    uint32_t orientation;  /**< XPE_BPM_LINE_ROW or XPE_BPM_LINE_COLUMN */
+    uint32_t index;        /**< Row (or column) number of the first line of the group, frame coordinates */
+    uint32_t width;        /**< Number of adjacent lines in the group: 1, 2, or 3 and more */
+    uint32_t start;        /**< First pixel of the defective stretch along the line, frame coordinates. For a group of adjacent lines: the smallest start of its member stretches (bounding range, metadata only) */
+    uint32_t end;          /**< One past the last pixel of the stretch (for a group: the largest end of its members). The line mask paints the union of the individual stretches, not this range */
+    uint32_t causes;       /**< XPE_BPM_LINE_CAUSE_* bits */
+    uint32_t flags;        /**< XPE_BPM_LINE_* flag bits */
+    float    strength;     /**< Largest |z| of the windows that support the stretch (against the empirical noise width) */
+    uint32_t reason;       /**< XPE_BPM_LINE_REASON_NONE for a confirmed group, the reason for an unconfirmed candidate */
+    float    persistence;  /**< Fraction of the frames in which the stretch is large, judged against the temporal median of the frames (noise cause); for a group of adjacent lines the largest of its member stretches. -1 when it was not tested (bright frames: fewer than three frames in all) */
+} XpeBpmLine;
+
+/** What xpe_bpm_find_lines found. */
+typedef struct {
+    uint32_t lines;               /**< Groups found (rows and columns) */
+    uint32_t row_groups;          /**< ... of which rows */
+    uint32_t column_groups;       /**< ... of which columns */
+    uint32_t full_lines;          /**< Groups that cover the whole line */
+    uint32_t partial_lines;       /**< Groups that cover a part of the line */
+    uint32_t double_lines;        /**< Groups of exactly two adjacent lines */
+    uint32_t crossings;           /**< Pairs of a row and a column group that cross */
+    uint32_t max_adjacent;        /**< Widest group */
+    uint32_t panel_reject;        /**< 1 when some group is three adjacent lines or more */
+    uint32_t truncated;           /**< 1 when more groups were found than max_lines */
+    uint32_t unconfirmed;         /**< Candidates whose persistence could not be judged: they are NOT in the mask and not in the groups, they are listed apart (unconfirmed_out) */
+    uint32_t dark_frames_raw;     /**< Dark frames in the raw list */
+    uint32_t dark_frames_valid;   /**< Dark frames used for the persistence of the stretches found in the dark frames (after the first is skipped) */
+    uint32_t bright_frames_raw;   /**< Bright frames in the list */
+    uint32_t bright_frames_valid; /**< Bright frames used for the persistence of the stretches found in the bright frames: those of the dose groups of three or more (a pair cannot tell which of its two frames is odd) */
+    uint32_t weak_response_stretches; /**< Stretches (rows and columns, counted once per orientation) whose response is from 45 % up to 70 % of their neighbours: not defects, counted for the record only */
+    uint32_t line_pixels;         /**< Pixels covered by the groups */
+    uint32_t pixels;              /**< Pixels inside the imaging area */
+    float    null_width[6];       /**< Empirical width (robust sd) of the window statistic of each stretch test, in units of the uncorrelated-noise prediction: rows then columns of the three tests */
+} XpeBpmLineReport;
+
+/**
+ * @brief Line defect detection (SRS-CALIB-FUNC-023, QA-A-253)
+ *
+ * Finds defective rows and columns on the same frames and with the same configuration as xpe_bpm_generate_v2 (raw dark list, first dark skipped by default,
+ * margins). The images of the per-pixel features are examined BEFORE their row and column components are removed (the pixel detector removes whole lines by design):
+ * for every row the difference between the row and the median of its neighbouring rows is summed over windows of min_segment pixels and compared with the noise
+ * of an uncorrelated sum; the width of the same statistic over all rows and columns (its empirical null) scales the threshold; the threshold follows from the
+ * target number of false stretches. A stretch is kept only when it is also large enough to matter (see the XPE_BPM_LINE_CAUSE_* bits): a response within the noise
+ * tolerance of the neighbours is a band that offset and gain correction removes and is not reported.
+ *
+ * The noise cause is judged frame by frame, against the temporal MEDIAN of the frames (a burst in one frame cannot move it): the stretch must be large in more than half of the
+ * frames (the dark frames; for stretches found in the bright frames the frames of the dose groups of THREE OR MORE: a pair has no median and cannot tell which of its two
+ * frames is odd, so its frames count neither in the numerator nor in the denominator). A stretch whose persistence cannot be judged (fewer than three frames that can be
+ * judged) is not confirmed: it is not painted into the mask and not counted among the groups, it is listed apart (unconfirmed_out) with its place and the reason. The report
+ * says how many raw frames there were and how many were used for the persistence. Noise that moves from line to line between frames
+ * is never a defect of a place and is not reported. (Stretches found in the bright frames are not tested per frame.)
+ *
+ * Adjacent defective lines are grouped: two lines are a double line, three or more set panel_reject (not a correction task). A row and a column group that
+ * cross are marked.
+ *
+ * @param dark_frames Dark frames (UINT16), raw acquisition list
+ * @param num_dark Number of dark frames
+ * @param bright_frames Bright frames (UINT16)
+ * @param num_bright Number of bright frames
+ * @param cfg Pixel detector configuration (skip, margins, window, block, minimum frames); NULL = defaults
+ * @param lcfg Line configuration; NULL = defaults
+ * @param line_mask_out Optional output (UINT8, size of the frames): 1 on the pixels of the reported stretches, 0 elsewhere (also outside the imaging area); NULL to skip
+ * @param lines_out Optional array for the groups; NULL to skip
+ * @param max_lines Capacity of lines_out
+ * @param unconfirmed_out Optional array for the unconfirmed candidates (width 1, reason XPE_BPM_LINE_REASON_*, persistence -1); NULL to skip
+ * @param max_unconfirmed Capacity of unconfirmed_out
+ * @param report Optional output
+ * @return XPE_OK on success; the errors of xpe_bpm_generate_v2 for invalid input
+ */
+XPE_API XpeErrorCode xpe_bpm_find_lines(
+    const XpeImageBuffer* dark_frames,
+    uint32_t num_dark,
+    const XpeImageBuffer* bright_frames,
+    uint32_t num_bright,
+    const XpeBpmConfigV2* cfg,
+    const XpeBpmLineConfig* lcfg,
+    XpeImageBuffer* line_mask_out,
+    XpeBpmLine* lines_out,
+    uint32_t max_lines,
+    XpeBpmLine* unconfirmed_out,
+    uint32_t max_unconfirmed,
+    XpeBpmLineReport* report);
+
+/** One blob: a connected group of defective pixels (8-neighbourhood). */
+typedef struct {
+    uint32_t x0;    /**< Bounding box: left column (inclusive) */
+    uint32_t y0;    /**< Bounding box: top row (inclusive) */
+    uint32_t x1;    /**< Bounding box: right column (inclusive) */
+    uint32_t y1;    /**< Bounding box: bottom row (inclusive) */
+    uint32_t size;  /**< Number of pixels */
+} XpeBpmBlob;
+
+/**
+ * @brief Groups the defective pixels of a map into blobs with their size (SRS-CALIB-FUNC-023)
+ *
+ * @param map Defect map (UINT8, 0 good, anything else defective)
+ * @param blobs_out Optional array for the blobs, largest first; NULL to only count
+ * @param max_blobs Capacity of blobs_out
+ * @param blob_count Optional output: the number of blobs found (can exceed max_blobs)
+ * @return XPE_OK on success; XPE_ERR_INVALID_INPUT for a NULL map; XPE_ERR_UNSUPPORTED_FORMAT if the map is not UINT8
+ */
+XPE_API XpeErrorCode xpe_bpm_blobs(const XpeImageBuffer* map, XpeBpmBlob* blobs_out, uint32_t max_blobs, uint32_t* blob_count);
 
 #ifdef __cplusplus
 }

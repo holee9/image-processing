@@ -1,0 +1,75 @@
+== A 252c as measured (old detector, inj_b, pixel map)
+new false alarms 12  on control items 3  others 9
+others by source: pixel detector map 9  line mask only 0
+groups (8-connected): 9  sizes of the pixel-detector groups: [1, 1, 1, 1, 1, 1, 1, 1, 1]
+  source pixel features bright_noise : 1
+  source pixel features dark_mean : 4
+  source pixel features flat : 4
+  source pixel distance to the nearest planted item: 9..40 px : 5
+  source pixel distance to the nearest planted item: farther : 1
+  source pixel distance to the nearest planted item: within 3..8 px of a planted item : 3
+  nearest item class/kind control/varying_band source pixel : 2
+  nearest item class/kind line/nonlinear source pixel : 2
+  nearest item class/kind pixel/slope source pixel : 2
+  nearest item class/kind line/noisy source pixel : 2
+  nearest item class/kind line/dead source pixel : 1
+== D current detector on inj_b (pixel map)
+new false alarms 8  on control items 3  others 5
+others by source: pixel detector map 5  line mask only 0
+groups (8-connected): 5  sizes of the pixel-detector groups: [1, 1, 1, 1, 1]
+  source pixel features bright_noise : 1
+  source pixel features dark_mean : 4
+  source pixel distance to the nearest planted item: 9..40 px : 3
+  source pixel distance to the nearest planted item: farther : 1
+  source pixel distance to the nearest planted item: within 3..8 px of a planted item : 1
+  nearest item class/kind pixel/slope source pixel : 2
+  nearest item class/kind line/noisy source pixel : 2
+  nearest item class/kind line/dead source pixel : 1
+== B 252d current detector on inj_c (pixel map + lines)
+new false alarms 15689  on control items 15577  others 112
+others by source: pixel detector map 32  line mask only 80
+groups (8-connected): 76  sizes of the pixel-detector groups: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 4]
+  source line features - : 80
+  source pixel features bright_noise : 1
+  source pixel features dark_mean : 8
+  source pixel features flat : 23
+  source line distance to the nearest planted item: 9..40 px : 10
+  source line distance to the nearest planted item: within 3..8 px of a planted item : 70
+  source pixel distance to the nearest planted item: 9..40 px : 5
+  source pixel distance to the nearest planted item: within 3..8 px of a planted item : 27
+  nearest item class/kind control/gain_loss source line : 28
+  nearest item class/kind control/efficiency_loss source line : 22
+  nearest item class/kind line/efficiency_loss source line : 16
+  nearest item class/kind control/dead source line : 12
+  nearest item class/kind control/efficiency_loss source pixel : 11
+  nearest item class/kind control/gain_loss source pixel : 9
+  nearest item class/kind control/dead source pixel : 3
+  nearest item class/kind line/noisy source pixel : 3
+  nearest item class/kind control/varying_band source pixel : 2
+  nearest item class/kind line/noisy source line : 2
+  nearest item class/kind control/gain_band source pixel : 1
+  nearest item class/kind line/gain_loss source pixel : 1
+== C 252e current detector on inj_c (pixel map + lines)
+new false alarms 4964  on control items 4862  others 102
+others by source: pixel detector map 9  line mask only 93
+groups (8-connected): 36  sizes of the pixel-detector groups: [1, 1, 1, 1, 1, 1, 1, 2]
+  source line features - : 93
+  source pixel features bright_noise : 1
+  source pixel features dark_mean : 6
+  source pixel features flat : 2
+  source line distance to the nearest planted item: 9..40 px : 44
+  source line distance to the nearest planted item: within 3..8 px of a planted item : 49
+  source pixel distance to the nearest planted item: 9..40 px : 5
+  source pixel distance to the nearest planted item: within 3..8 px of a planted item : 4
+  nearest item class/kind control/efficiency_loss source line : 45
+  nearest item class/kind line/efficiency_loss source line : 30
+  nearest item class/kind control/dead source line : 8
+  nearest item class/kind control/gain_loss source line : 6
+  nearest item class/kind line/noisy source pixel : 2
+  nearest item class/kind line/noisy source line : 2
+  nearest item class/kind control/dead source pixel : 2
+  nearest item class/kind control/fixed_band source pixel : 1
+  nearest item class/kind control/efficiency_loss source pixel : 1
+  nearest item class/kind line/gain_loss source pixel : 1
+  nearest item class/kind pixel/noisy source pixel : 1
+  nearest item class/kind line/efficiency_loss source pixel : 1

@@ -1,0 +1,16 @@
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/src/defect_correct.cpp'
+TITLE = 'QA-A-255 correction mutation check (src/defect_correct.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/91_mutation_correction_log.txt'
+FILT = 'DefectCorrectV2Test.*'
+PRED = [
+    '  C1 the interpolation weight across a line group is always 1/2             -> red: ATwoLineGroupIsBridged..., AGroupOfThreeLinesIsCorrected... only (a single line sits at 1/2, so the single-line row and column tests stay green)',
+    '  C2 pixels outside the imaging area are no longer masked (read as source)  -> red: TheImagingAreaIsNoSource... plus the two enclosed-blob tests; the rest green',
+    '  C3 the low-confidence flag of a group is never set                        -> red: AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence only',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('C1', SRC, b'(coord - a.pos) / static_cast<double>(b.pos - a.pos)', b'0.5 + 0.0 * (coord - a.pos) / static_cast<double>(b.pos - a.pos)'),
+    ('C2', SRC, b'if (layers->area[i] == 0) maskPlane[i] = 1;', b'if (layers->area[i] == 7) maskPlane[i] = 1;'),
+    ('C3', SRC, b'const bool lowGroup = (L.width >= 3u) || (L.correction == XPE_DEFECT_LINE_CORRECT_REJECT);', b'const bool lowGroup = (L.width >= 300u) || (L.correction == 99);'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

@@ -1,0 +1,40 @@
+QA-A-252b mutation check of the revised detector (src/xpe_bpm_v2.cpp). Source hash at the start: 46e02f0b18ef20f9
+Tests: Partial=APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap Varying=AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect Gain=AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn
+  BrightNoise=NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature; the others are the QA-A-252 tests
+PREDICTIONS (written before any run):
+  W1 row/column component from the line itself again (the difference to the neighbours dropped)  -> red: Partial; Stripes and Gain may also go red
+  W2 dark noise without the column mean of the frame                    -> red: Varying only
+  W3 R2 off for the dose slope (flat field stays multiplicative)         -> red: Gain only
+  W4 bright-noise degrees of freedom m instead of m - 1                 -> red: BrightNoise only
+  W5 bright noise missing from the bright-side bits of the map code      -> red: BrightNoise only
+  W6 bright noise without the row/column means of the frame             -> red: Varying (its bright-noise assertion); BrightNoise stays green
+  W7 bright-noise groups pooled without the weight (m - 1)               -> probably nothing red (the groups here are all the same size): a test gap, to be reported
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 12 passed, failed: []
+--- W1
+build: BUILD_EXIT=0
+tests exit 0: 12 passed, FAILED: []
+--- W2
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect']
+--- W3
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn']
+--- W4
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature']
+--- W5
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature']
+--- W6
+build: BUILD_EXIT=0
+tests exit 0: 12 passed, FAILED: []
+--- W7
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature']
+--- restored: touch + rebuild
+source hash now: 46e02f0b18ef20f9 (start: 46e02f0b18ef20f9)
+build: BUILD_EXIT=0
+tests exit 0: 12 passed, failed: []

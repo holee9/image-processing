@@ -1,0 +1,14 @@
+[2026-10-17 05:08 KST] QA-A-254 실세트 생성 예측 (실행 전에 기록)
+
+명령(한 번): `xpe_calib_fixture_gen --out D:/workspace-github/xpe-data/cal-254 --width 3072 --height 3072 --expiry-ms 4102444800000 --dark Dark_07..14 (8장) --bright Bright_23..28 (6장, 한 선량) --bpm-bright Bright_17..28,31..36 (18장) --bpm-v2 --bpm-margins 6,2,1,1` (cyan_test/calfiles). 이어서 `xpe_bpm_eval defect-xcal` 로 결함 평면·영역 평면·줄 목록을 내보내 252h 의 깨끗한 영상 2판 맵과 비교한다. 검출기·도구는 커밋 `c644e85a`에 고정.
+
+예측:
+R1 종료 코드 0, 네 파일(offset.xcal, gain.xcal, defect.xcal, manifest.json)이 생긴다. defect.xcal 은 형식 판 2.
+R2 촬영 영역 밖 화소 정확히 30,699 (= 6 × 3072 + 1 × 3072 + (2 + 1) × (3072 − 7)).
+R3 결함 평면은 252h 의 `v3g_clean.u8`(같은 어두운 7장·밝은 18장·같은 여백, `map-v2` + `lines` 병합)와 바이트 단위로 같다(다른 화소 0). 영역 평면은 `v2g_clean_area.u8` 과 같다.
+R4 줄 그룹 0, 미확정 후보 0 (252f/252g 의 깨끗한 영상 줄 목록이 비어 있다: `67_lines_clean`, `66_unconfirmed_clean`). 이 실세트는 줄 기록 경로를 지나지 않는다 — 줄 기록의 정확성은 합성 프레임 시험(판 2 왕복·개별 구간)이 맡는다.
+R5 덩어리 수는 `xpe_bpm_eval blobs --map v3g_clean.u8` 의 개수와 같다.
+R6 manifest 에 defect_format 블록(xcal_version 2, margins_ltrb [6, 2, 1, 1], pixels_outside_imaging_area 30699, line_groups 0)과 한계 문구가 들어간다.
+R7 같은 명령을 두 번째로 돌리면 바이트가 같다는 것은 합성 프레임 시험으로 확인했고(실세트는 한 번만 생성), 이 실행에서는 확인하지 않는다.
+
+틀리면 보고서에 그대로 적는다.

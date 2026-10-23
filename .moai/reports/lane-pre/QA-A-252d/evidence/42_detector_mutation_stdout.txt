@@ -1,0 +1,31 @@
+QA-A-252d mutation check of the response ratio rule (src/xpe_bpm_v2.cpp). Source hash at the start: e02d3c7d63a8b422
+PREDICTIONS (written before any run):
+  R1 lower bound 0.45 -> 0.55                                      -> red: TheResponseRuleFlagsBelow45Percent... only (0.50 would be flagged)
+  R2 upper bound 1.5 -> 1.7                                         -> red: TheResponseRuleFlagsBelow45Percent... only (1.60 would not be flagged)
+  R3 the weak band is not counted for the pixels                     -> red: TheResponseRuleFlagsBelow45Percent... only
+  R4 the line response bounds back to the 3 dB tolerance (0.71..1.41) -> red: ALineWhoseCorrection... only (0.5 and 0.6 rows would be found, 1.7 too)
+  R5 the linearity feature not made relative (8 dose groups)         -> red: AGainBandIsNotALinearityDefect... only (this closes the test gap of QA-A-253d), unless the 1.35 band still does not cross
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 38 passed, failed: []
+--- R1
+build: BUILD_EXIT=0
+tests exit 1: 35 passed, FAILED: ['ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot', 'TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes', 'ThresholdsFollowFromTheTargetNumberOfFalseAlarms']
+--- R2
+build: BUILD_EXIT=0
+tests exit 1: 35 passed, FAILED: ['ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot', 'TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes', 'ThresholdsFollowFromTheTargetNumberOfFalseAlarms']
+--- R3
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes']
+--- R4
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot']
+--- R5
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups']
+--- restored: touch + rebuild
+source hash now: e02d3c7d63a8b422 (start: e02d3c7d63a8b422)
+build: BUILD_EXIT=0
+tests exit 0: 38 passed, failed: []
+finished

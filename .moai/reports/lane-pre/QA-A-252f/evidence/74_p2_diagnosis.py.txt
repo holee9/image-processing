@@ -1,0 +1,94 @@
+"""QA-A-252f: why are 23 of the 64 gain_loss 0.3 pixels flagged by the bright-noise check (P2), when a gain loss scales signal and noise together and the gain-corrected variance should be the original?
+Re-computation (numpy) of the detector's quantities for the pixels of the planted set of the measurement: per dose group the variance about the group mean (row and column means of every frame
+taken out), its local reference (separable median over 17 x 17 divided by the median of chi-square / nu), the measured response and the gain correction. Read only: nothing is changed."""
+import numpy as np
+
+W = 3072
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+F = OUT + 'inj_d/frames/'
+GROUPS = [[17, 18, 19], [20, 21, 22], [23, 24, 25, 26, 27, 28], [31, 32, 33], [34, 35, 36]]
+DARK = [8, 9, 10, 11, 12, 13, 14]
+HALF = 8
+
+
+def rd(name):
+    return np.fromfile(F + name, dtype='<u2').reshape(W, W)
+
+
+items = []
+for l in open(OUT + 'inj_d/truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        items.append((int(p[0]), p[1], p[2], p[3], p[4], [tuple(map(int, r.split(','))) for r in p[5].split(';')]))
+sel = {}
+for kind in ('gain_loss', 'efficiency_loss'):
+    for lv in ('0.3', '0.46', '0.7'):
+        sel[(kind, lv)] = [it[5][0] for it in items if it[2] == kind and it[3] == 'pixel' and it[4] == lv][:24]
+rng = np.random.default_rng(5)
+normal = []
+occ = np.zeros((W, W), bool)
+for it in items:
+    for x, y, w, h in it[5]:
+        occ[max(0, y - 12):y + h + 12, max(0, x - 12):x + w + 12] = True
+while len(normal) < 24:
+    x, y = rng.integers(60, W - 60, 2)
+    if not occ[y, x]:
+        normal.append((int(x), int(y), 1, 1))
+sel[('normal', '-')] = normal
+print('%d pixel sets' % len(sel))
+
+dk = np.mean([rd('Dark_%02d.raw' % k).astype(np.float64) for k in DARK], axis=0)
+frames = {k: rd('Bright_%02d.raw' % k).astype(np.float64) for g in GROUPS for k in g}
+sig = {k: frames[k].mean() - dk.mean() for k in frames}
+net_sum = np.zeros((W, W))
+sx = 0.0
+vg = []
+for g in GROUPS:
+    mean = np.mean([frames[k] for k in g], axis=0)
+    net_sum += mean - dk
+    sx += np.mean([sig[k] for k in g])
+    v = np.zeros((W, W))
+    for k in g:
+        d = frames[k] - mean
+        rm = d.mean(axis=1, keepdims=True)
+        cm = (d - rm).mean(axis=0, keepdims=True)
+        v += (d - rm - cm) ** 2
+    vg.append(v / (len(g) - 1))
+flat = net_sum / sx
+
+
+def med_sep(a, x, y):
+    """the separable median of the detector at (x, y): the median over 17 pixels along x for each of the 17 rows, then the median of those"""
+    rows = [np.median(a[yy, x - HALF:x + HALF + 1]) for yy in range(y - HALF, y + HALF + 1)]
+    return float(np.median(rows))
+
+
+def chi_median_over_nu(nu):
+    r = np.random.default_rng(1).chisquare(nu, 4_000_000) / nu
+    return float(np.median(r))
+
+
+mnu = [chi_median_over_nu(len(g) - 1) for g in GROUPS]
+print('median chi2/nu per group', [round(m, 4) for m in mnu])
+print('%-26s %5s | %s' % ('set', 'n', 'median of: response g | corrected ratio per group (5) | pooled/13 | groups>=2'))
+for key, pts in sel.items():
+    res = []
+    for x, y, w, h in pts:
+        g = flat[y, x] / med_sep(flat, x, y)
+        corr = 1.0 / min(3.0, max(0.2, g)) ** 2
+        ratios = []
+        for gi, grp in enumerate(GROUPS):
+            ref = max(med_sep(vg[gi], x, y) / mnu[gi], 1e-9)
+            ratios.append(vg[gi][y, x] * corr / ref)
+        nus = np.array([len(gr) - 1 for gr in GROUPS], float)
+        res.append((g, ratios, float((np.array(ratios) * nus).sum() / nus.sum()), int(sum(r >= 2.0 for r in ratios))))
+    gm = np.median([r[0] for r in res])
+    rm = np.median(np.array([r[1] for r in res]), axis=0)
+    print('%-26s %5d | g %.3f | %s | pooled %.2f | persist>=3: %d of %d, pooled>4.48: %d' % (key[0] + ' ' + key[1], len(res), gm, ' '.join('%.2f' % v for v in rm), np.median([r[2] for r in res]),
+                                                                                    sum(r[3] >= 3 for r in res), len(res), sum(r[2] > 4.483 for r in res)))
+# what the detector does with the raw variance of a gain-loss pixel: its raw ratio per group (no correction)
+for key in (('gain_loss', '0.3'), ('normal', '-')):
+    raw = []
+    for x, y, w, h in sel[key]:
+        raw.append([vg[gi][y, x] / max(med_sep(vg[gi], x, y) / mnu[gi], 1e-9) for gi in range(5)])
+    print('raw (uncorrected) variance ratio per group, median over the pixels of %s %s: %s' % (key[0], key[1], ' '.join('%.3f' % v for v in np.median(np.array(raw), axis=0))))

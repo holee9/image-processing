@@ -1,0 +1,130 @@
+"""QA-A-252i step 1 (Codex #216 findings 3 and 4): the local expectation of the pixel noise check (P2) is formed WITHOUT the pixels of the detector's own line mask.
+Order: xpe_bpm_generate_v2 first runs the line detection of xpe_bpm_find_lines (a lines-only pass, which does not use the exclusion: no circularity), takes its mask (the painted union of the confirmed
+stretches), and runs the pixel pass with that mask as the exclusion of the P2 reference. The line detection called by a user (xpe_bpm_find_lines) runs the same mask-free pass, so the mask is the
+same one. The planted truth is never read. The exclusion applies to the P2 reference only (the other features' references are not changed); a window that holds no admissible pixel
+takes the plain separable median of that pixel. A frame without a line mask takes the unchanged path (the results are bit-identical)."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:100])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('src/xpe_bpm_v2.cpp', [
+    # the masked separable median, beside the plain one
+    ('''/** Median of @p win values along the columns (alongY) or along the rows, reflected borders. */
+void slidingMedian(''',
+     '''/**
+ * The separable median with pixels left out (QA-A-252i): the median along x over the window pixels that are NOT excluded, then the median along y of those over the pixels that exist.
+ * `excl` is 1 for an excluded pixel. A row window with no admissible pixel gives no value (NaN) to the second pass; a pixel whose second pass finds no value takes `plain`, the plain
+ * separable median of the same image. Reflected borders as in separableMedian.
+ */
+void separableMedianExcluding(const float* in, float* tmp, float* out, const float* plain, const uint8_t* excl, int w, int h, int win) {
+    const int r = win / 2;
+    float     buf[65];
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    for (int y = 0; y < h; ++y) {
+        const size_t row = static_cast<size_t>(y) * static_cast<size_t>(w);
+        for (int x = 0; x < w; ++x) {
+            int cnt = 0;
+            for (int k = -r; k <= r; ++k) {
+                const size_t i = row + static_cast<size_t>(reflect(x + k, w));
+                if (!excl[i]) buf[cnt++] = in[i];
+            }
+            if (cnt == 0) {
+                tmp[row + static_cast<size_t>(x)] = nan;
+            } else {
+                std::nth_element(buf, buf + cnt / 2, buf + cnt);
+                tmp[row + static_cast<size_t>(x)] = buf[cnt / 2];
+            }
+        }
+    }
+    for (int y = 0; y < h; ++y) {
+        const size_t row = static_cast<size_t>(y) * static_cast<size_t>(w);
+        for (int x = 0; x < w; ++x) {
+            int cnt = 0;
+            for (int k = -r; k <= r; ++k) {
+                const float v = tmp[static_cast<size_t>(reflect(y + k, h)) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+                if (v == v) buf[cnt++] = v;
+            }
+            if (cnt == 0) {
+                out[row + static_cast<size_t>(x)] = plain[row + static_cast<size_t>(x)];
+            } else {
+                std::nth_element(buf, buf + cnt / 2, buf + cnt);
+                out[row + static_cast<size_t>(x)] = buf[cnt / 2];
+            }
+        }
+    }
+}
+
+/** Median of @p win values along the columns (alongY) or along the rows, reflected borders. */
+void slidingMedian('''),
+    # the core takes the exclusion mask
+    ('''                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report, LineJob* job) try {
+    if (!dark_frames || !bright_frames || !bpm_out) return XPE_ERR_INVALID_INPUT;''',
+     '''                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report, LineJob* job,
+                                   const uint8_t* refExclude = nullptr) try {
+    if (!dark_frames || !bright_frames || !bpm_out) return XPE_ERR_INVALID_INPUT;'''),
+    # the P2 reference
+    ('''                separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
+                const double mnu = varianceMedian(mg - 1);''',
+     '''                if (refExclude != nullptr) {   // QA-A-252i: the reference does not see the pixels of the detector's own line mask
+                    separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
+                    if (plainRef.empty()) plainRef.resize(n);
+                    std::copy(vgBg.begin(), vgBg.end(), plainRef.begin());
+                    separableMedianExcluding(vg.data(), vgTmp.data(), vgBg.data(), plainRef.data(), refExclude, w, h, static_cast<int>(st.window));
+                } else {
+                    separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
+                }
+                const double mnu = varianceMedian(mg - 1);'''),
+    ('''        std::vector<float> vg, vgTmp, vgBg, gmean;''', '''        std::vector<float> plainRef;   // QA-A-252i: the plain separable median, the fallback of a pixel whose whole window is excluded
+        std::vector<float> vg, vgTmp, vgBg, gmean;'''),
+    # the margin wrapper
+    ('''                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out, XpeBpmReportV2* report,
+                                   LineJob* job) try {''',
+     '''                                   const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out, XpeBpmReportV2* report,
+                                   LineJob* job, const uint8_t* refExclude = nullptr) try {'''),
+    ('''        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report, job);
+        if (rc == XPE_OK) {''',
+     '''        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report, job, refExclude);
+        if (rc == XPE_OK) {'''),
+    ('''    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report, job);''',
+     '''    std::vector<uint8_t> cexcl;
+    if (refExclude != nullptr) {
+        cexcl.resize(cn);
+        for (uint32_t y = 0; y < ch; ++y) std::memcpy(cexcl.data() + static_cast<size_t>(y) * cw, refExclude + static_cast<size_t>(y + mt) * width + ml, cw);
+    }
+    const XpeErrorCode rc = generateV2Core(cdb.data(), num_dark, cbb.data(), num_bright, cfg, &outMap, feature_out ? &outFeat : nullptr, report, job, refExclude != nullptr ? cexcl.data() : nullptr);'''),
+    # the public entry: line detection first
+    ('''                                                    XpeBpmReportV2* report) try {
+    return runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, area_out, report, nullptr);
+} catch (const std::bad_alloc&) {''',
+     '''                                                    XpeBpmReportV2* report) try {
+    // QA-A-252i: the line detection comes first and its mask (the painted union of the confirmed stretches) is kept out of the local expectation of the pixel noise check. The lines-only pass
+    // does not use the exclusion, so the mask does not depend on it. A failure of that pass leaves the pixel pass as it was (it reports its own errors).
+    std::vector<uint8_t> lineMask;
+    if (dark_frames && bright_frames && num_dark > 0 && num_bright > 0 && dark_frames[0].width > 0 && dark_frames[0].height > 0) {
+        const size_t n = static_cast<size_t>(dark_frames[0].width) * dark_frames[0].height;
+        lineMask.assign(n, 0);
+        XpeImageBuffer lb{};
+        lb.data = lineMask.data();
+        lb.width = dark_frames[0].width;
+        lb.height = dark_frames[0].height;
+        lb.bitsAllocated = 8;
+        lb.bitsStored = 8;
+        lb.format = XPE_PIXEL_UINT8;
+        lb.dataSize = n;
+        if (xpe_bpm_find_lines(dark_frames, num_dark, bright_frames, num_bright, cfg, nullptr, &lb, nullptr, 0, nullptr, 0, nullptr) != XPE_OK ||
+            std::none_of(lineMask.begin(), lineMask.end(), [](uint8_t b) { return b != 0; }))
+            lineMask.clear();
+    }
+    return runWithMargins(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, area_out, report, nullptr, lineMask.empty() ? nullptr : lineMask.data());
+} catch (const std::bad_alloc&) {'''),
+])
+print('reference exclusion patched')

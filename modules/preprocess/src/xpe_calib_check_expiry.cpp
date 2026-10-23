@@ -51,7 +51,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
         }
 
         // Validate version
-        if (hdr.version != XCAL_VERSION) {
+        if (hdr.version != XCAL_VERSION && !(hdr.version == 2u && hdr.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT))) {   // QA-A-254: a version-2 defect file
             return XPE_ERR_CONFIG_INVALID;
         }
 

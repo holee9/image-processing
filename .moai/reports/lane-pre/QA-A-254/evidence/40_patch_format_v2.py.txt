@@ -1,0 +1,211 @@
+"""QA-A-254 step 1: the XCal DEFECT file, format version 2 (SRS-CALIB-FUNC-039). Reader, validator, expiry check, loader and the build list accept version 2 for DEFECT files only;
+version-1 files are read exactly as before. The reasons of a refusal are pushed as one XPE_ALERT_ERROR ("XPE_ERR_XCAL_<KIND>: ...") beside the error code."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:100])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('src/defect_ext.cpp', [
+    ('''        if (in.ext != nullptr || true) {
+            std::string why;
+            if (!defect_ext_encode(ext, in.width, in.height, &extBytes, &why)) {
+                xcal_reject_reason("EXTENSION", why);
+                return XPE_ERR_INVALID_INPUT;
+            }
+        }''',
+     '''        {
+            std::string why;
+            if (!defect_ext_encode(ext, in.width, in.height, &extBytes, &why)) {
+                xcal_reject_reason("EXTENSION", why);
+                return XPE_ERR_INVALID_INPUT;
+            }
+        }'''),
+])
+
+edit('src/defect_ext.hpp', [
+    ('''#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#define XCAL_VERSION_DEFECT_EXT 2u''',
+     '''#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+struct XpeConfigDoc;   // xpe_preprocess_internal.h
+
+#define XCAL_VERSION_DEFECT_EXT 2u'''),
+    ('XPE_API XpeErrorCode defect_v2_check_layout(const XCalFileHeader& hdr, const struct XpeConfigDoc& config, bool compressed, uint64_t raw_payload_len);',
+     'XPE_API XpeErrorCode defect_v2_check_layout(const XCalFileHeader& hdr, const XpeConfigDoc& config, bool compressed, uint64_t raw_payload_len);'),
+])
+
+# --- the validator: version 1 everywhere, version 2 for DEFECT; the payload of a version-2 DEFECT file is at least the two planes
+edit('src/xcal_validator.cpp', [
+    ('''    // Check 2: version
+    if (header.version != XCAL_VERSION) {
+        return XPE_ERR_CONFIG_INVALID;
+    }''',
+     '''    // Check 2: version -- 1 for every type; 2 for a DEFECT file only (QA-A-254, the imaging-area plane and the line / blob extension)
+    const bool defectV2 = header.version == 2u && header.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT);
+    if (header.version != XCAL_VERSION && !defectV2) {
+        if (std::memcmp(header.magic, XCAL_MAGIC, 4) == 0)
+            xcal_reject_reason("VERSION", "file version " + std::to_string(header.version) + " (type " + std::to_string(header.type) +
+                                               ") is not supported: this reader reads version 1 (every type) and version 2 (defect maps only)");
+        return XPE_ERR_CONFIG_INVALID;
+    }'''),
+    ('''    if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY)) {
+        // A polynomial gain file carries (degree + 1) coefficient planes, so
+        // its payload is a whole positive multiple of one plane rather than
+        // exactly one. The degree itself is derived from that multiple.
+        if (expected_payload == 0 ||
+            header.payload_len == 0 ||
+            header.payload_len % expected_payload != 0) {
+            return XPE_ERR_CONFIG_INVALID;
+        }
+    } else if (header.payload_len != expected_payload) {''',
+     '''    if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY)) {
+        // A polynomial gain file carries (degree + 1) coefficient planes, so
+        // its payload is a whole positive multiple of one plane rather than
+        // exactly one. The degree itself is derived from that multiple.
+        if (expected_payload == 0 ||
+            header.payload_len == 0 ||
+            header.payload_len % expected_payload != 0) {
+            return XPE_ERR_CONFIG_INVALID;
+        }
+    } else if (defectV2) {
+        // two planes (map, imaging area) and the extension block after them; the exact length is checked against defect_ext_len by the reader
+        if (header.payload_len < 2u * expected_payload) {
+            xcal_reject_reason("LAYOUT", "the payload of a version-2 defect file is " + std::to_string(header.payload_len) + " bytes, less than its two planes of " +
+                                             std::to_string(2u * expected_payload));
+            return XPE_ERR_CONFIG_INVALID;
+        }
+    } else if (header.payload_len != expected_payload) {'''),
+    ('#include "xcal_validator.hpp"\n', '#include "xcal_validator.hpp"\n#include "defect_ext.hpp"\n#include <string>\n'),
+])
+
+# --- the expiry check reads the header itself
+edit('src/xpe_calib_check_expiry.cpp', [
+    ('''        if (hdr.version != XCAL_VERSION) {''',
+     '''        if (hdr.version != XCAL_VERSION && !(hdr.version == 2u && hdr.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT))) {   // QA-A-254: a version-2 defect file'''),
+])
+
+# --- the reader
+edit('src/xcal_reader.cpp', [
+    ('#include "rle_codec.hpp"\n', '#include "rle_codec.hpp"\n#include "defect_ext.hpp"\n'),
+    ('''        f.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+        if (!f.good() || f.gcount() != static_cast<std::streamsize>(sizeof(hdr))) {
+            return XPE_ERR_IO_FAILED;
+        }''',
+     '''        f.read(reinterpret_cast<char*>(&hdr), sizeof(hdr));
+        if (!f.good() || f.gcount() != static_cast<std::streamsize>(sizeof(hdr))) {
+            xcal_reject_reason("TRUNCATED", "the file ends inside the " + std::to_string(sizeof(hdr)) + "-byte header (" + std::to_string(f.gcount()) + " bytes found)");
+            return XPE_ERR_IO_FAILED;
+        }
+        // QA-A-254: the format version. 1 is every type as before; 2 is a DEFECT file with the imaging-area plane and the extension block. Anything else is refused with its reason.
+        const bool is_v2 = hdr.version == 2u && hdr.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT) && std::memcmp(hdr.magic, XCAL_MAGIC, 4) == 0;
+        if (hdr.version != XCAL_VERSION && !is_v2) {
+            if (std::memcmp(hdr.magic, XCAL_MAGIC, 4) == 0)
+                xcal_reject_reason("VERSION", "file version " + std::to_string(hdr.version) + " (type " + std::to_string(hdr.type) +
+                                                   ") is not supported: this reader reads version 1 (every type) and version 2 (defect maps only)");
+            return XPE_ERR_CONFIG_INVALID;
+        }'''),
+    ('''            if (!f.good() ||
+                f.gcount() != static_cast<std::streamsize>(hdr.config_json_len)) {
+                return XPE_ERR_IO_FAILED;
+            }''',
+     '''            if (!f.good() ||
+                f.gcount() != static_cast<std::streamsize>(hdr.config_json_len)) {
+                xcal_reject_reason("TRUNCATED", "the file ends inside the config block (" + std::to_string(hdr.config_json_len) + " bytes declared, " + std::to_string(f.gcount()) + " found)");
+                return XPE_ERR_IO_FAILED;
+            }'''),
+    ('''            if (mrc != XPE_OK) return mrc;
+        }
+
+        // Validate header (skip payload_len check for compressed data)''',
+     '''            if (mrc != XPE_OK) return mrc;
+            if (is_v2) {
+                const XpeErrorCode lrc = defect_v2_check_layout(hdr, config_doc, is_compressed, raw_payload_len);
+                if (lrc != XPE_OK) return lrc;
+            }
+        }
+
+        // Validate header (skip payload_len check for compressed data)'''),
+    ('''            if (hdr.version != XCAL_VERSION) {
+                return XPE_ERR_CONFIG_INVALID;
+            }
+            // QA-A-37 (#140): same ceiling correction as validate_xcal_header''',
+     '''            // (the version was checked above: 1 for every type, 2 for a DEFECT file)
+            // QA-A-37 (#140): same ceiling correction as validate_xcal_header'''),
+    ('''            if (bpp > 0) {
+                uint64_t expected_raw = static_cast<uint64_t>(hdr.width) *''',
+     '''            if (bpp > 0 && !is_v2) {   // a version-2 payload is two planes and the extension block: defect_v2_check_layout has judged its length
+                uint64_t expected_raw = static_cast<uint64_t>(hdr.width) *'''),
+    ('''                if (!f.good() || f.gcount() != static_cast<std::streamsize>(chunk)) {
+                    return XPE_ERR_IO_FAILED;
+                }''',
+     '''                if (!f.good() || f.gcount() != static_cast<std::streamsize>(chunk)) {
+                    xcal_reject_reason("TRUNCATED", "the file ends inside the payload (" + std::to_string(payload_bytes) + " bytes declared, " + std::to_string(done + static_cast<size_t>(f.gcount())) + " found)");
+                    return XPE_ERR_IO_FAILED;
+                }'''),
+])
+
+# --- the loader: a version-2 file contributes its map plane; the area plane and the extension are checked, not kept in the runtime store
+edit('src/xpe_calib_load_defect_map.cpp', [
+    ('#include "xcal_reader.hpp"\n', '#include "xcal_reader.hpp"\n#include "defect_ext.hpp"\n'),
+    ('''        if (!sink.filled) {
+            // A compressed file: the decompressed bytes are in `payload`, copied into the map as before.
+            size_t expected = static_cast<size_t>(hdr.width) * hdr.height;
+            if (payload.size() != expected) {
+                return XPE_ERR_CONFIG_INVALID;
+            }
+            staged.map.reset(new uint8_t[expected]);
+            std::memcpy(staged.map.get(), payload.data(), payload.size());
+        }''',
+     '''        if (!sink.filled) {
+            // A compressed file: the decompressed bytes are in `payload`, copied into the map as before.
+            size_t expected = static_cast<size_t>(hdr.width) * hdr.height;
+            if (hdr.version == XCAL_VERSION_DEFECT_EXT) {
+                // QA-A-254: a version-2 file. Plane 1 (imaging area) and the extension block are checked here -- a damaged one refuses the file with its reason -- and the defect
+                // plane is installed exactly like a version-1 map. The runtime store keeps the map only; the other layers are read with read_defect_xcal.
+                DefectXcal parts;
+                const XpeErrorCode src = defect_v2_split(hdr, payload, &parts);
+                if (src != XPE_OK) return src;
+                staged.map.reset(new uint8_t[expected]);
+                std::memcpy(staged.map.get(), parts.map.data(), expected);
+            } else {
+                if (payload.size() != expected) {
+                    return XPE_ERR_CONFIG_INVALID;
+                }
+                staged.map.reset(new uint8_t[expected]);
+                std::memcpy(staged.map.get(), payload.data(), payload.size());
+            }
+        }'''),
+])
+
+# --- the format header: the version, documented
+edit('include/xpe/preprocess/xcal_format.h', [
+    ('''/** @brief XCal file format version number (= 1). */
+#define XCAL_VERSION 1u''',
+     '''/** @brief XCal file format version number (= 1).
+ *
+ * Version 2 (QA-A-254, SRS-CALIB-FUNC-039) exists for XCAL_TYPE_DEFECT files only: the payload is the defect plane, then an imaging-area plane of the same size (1 inside, 0 outside),
+ * then an extension block (line records, blob marks, unconfirmed candidates); the config block carries "defect_ext_len". Every other type, and every file written before, is version 1 and is
+ * read as before. A reader built before version 2 refuses a version-2 file at the version check. Layout and checks: src/defect_ext.hpp. */
+#define XCAL_VERSION 1u'''),
+])
+
+# --- the build
+edit('CMakeLists.txt', [
+    ('    src/xcal_validator.cpp\n', '    src/xcal_validator.cpp\n    src/defect_ext.cpp              # QA-A-254: XCal defect file version 2 (imaging-area plane, line / blob extension)\n'),
+])
+print('format v2 patched')

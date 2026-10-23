@@ -1,0 +1,128 @@
+"""QA-A-253d step 1: the 222 new false alarms of QA-A-253c, pixel by pixel. Same definition as `xpe_bpm_eval score`: flagged in the planted map, not flagged in the clean map,
+outside the planted TRUE defects widened by 2 pixels (controls are not defects)."""
+import collections
+import numpy as np
+
+O = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+EVD = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-253e/evidence/'
+W = 3072
+
+
+def u8(name):
+    return np.fromfile(O + name, dtype=np.uint8).reshape(W, W)
+
+
+pix = u8('v2d_planted.u8') > 0
+lin = u8('v3e_planted_lines.u8') > 0
+mp = u8('v3e_planted.u8') > 0
+clean = u8('v3e_clean.u8') > 0
+items = []
+for l in open(O + 'inj_b/truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        rects = [tuple(map(int, r.split(','))) for r in p[5].split(';')]
+        items.append(dict(id=int(p[0]), cls=p[1], kind=p[2], shape=p[3], level=p[4], rects=rects))
+real = np.zeros((W, W), bool)
+for it in items:
+    if it['cls'] == 'control':
+        continue
+    for x, y, w, h in it['rects']:
+        real[y:y + h, x:x + w] = True
+# widen by 2 (square)
+pad = np.pad(real, 2)
+wide = np.zeros_like(real)
+for dy in range(5):
+    for dx in range(5):
+        wide |= pad[dy:dy + W, dx:dx + W]
+new = mp & ~clean & ~wide
+print('new false alarms (recomputed):', int(new.sum()), ' (score said 222)')
+print('  from the pixel detector map alone:', int((new & pix).sum()), ' from the line mask only:', int((new & lin & ~pix).sum()))
+print('  of the line-only part: pixels also in the clean map are excluded already by the definition')
+
+groups = []
+for l in open(EVD + '52_lines_planted.tsv.txt', encoding='utf-8').read().split('\n')[1:]:
+    p = l.split('\t')
+    if len(p) < 9:
+        continue
+    groups.append(dict(o=p[0], idx=int(p[1]), wd=int(p[2]), a=int(p[3]), b=int(p[4]), c=int(p[5])))
+truth_lines = [it for it in items if it['cls'] == 'line']
+
+
+def rect_of(g):
+    if g['o'] == 'row':
+        return (g['a'], g['idx'], g['b'] - g['a'], g['wd'])
+    return (g['idx'], g['a'], g['wd'], g['b'] - g['a'])
+
+
+def match_truth(g):
+    gx, gy, gw, gh = rect_of(g)
+    best = None
+    for it in truth_lines:
+        for x, y, w, h in it['rects']:
+            if x < gx + gw and gx < x + w and y < gy + gh and gy < y + h:
+                ov = (min(x + w, gx + gw) - max(x, gx)) * (min(y + h, gy + gh) - max(y, gy))
+                if best is None or ov > best[0]:
+                    best = (ov, it, (x, y, w, h))
+    return best
+
+
+cat = collections.Counter()
+detail = collections.defaultdict(list)
+ys, xs = np.nonzero(new & lin & ~pix)
+# assign every pixel to the group rectangle that contains it
+grect = [(g, rect_of(g), match_truth(g)) for g in groups]
+for y, x in zip(ys.tolist(), xs.tolist()):
+    owner = None
+    for g, (rx, ry, rw, rh), m in grect:
+        if rx <= x < rx + rw and ry <= y < ry + rh:
+            owner = (g, (rx, ry, rw, rh), m)
+            break
+    if owner is None:
+        cat['no owner'] += 1
+        continue
+    g, r, m = owner
+    if m is None:
+        cat['group without a planted line (unmatched)'] += 1
+        detail['unmatched ' + g['o'] + str(g['idx'])].append((x, y))
+        continue
+    _, it, (tx, ty, tw, th) = m
+    along = 'x' if g['o'] == 'row' else 'y'
+    lo_t, hi_t = (tx, tx + tw) if along == 'x' else (ty, ty + th)
+    pos = x if along == 'x' else y
+    lat_lo, lat_hi = (ty, ty + th) if along == 'x' else (tx, tx + tw)
+    lat = y if along == 'x' else x
+    if pos < lo_t:
+        side = 'end overhang, start side'
+        d = lo_t - pos
+    elif pos >= hi_t:
+        side = 'end overhang, end side'
+        d = pos - hi_t + 1
+    elif lat < lat_lo or lat >= lat_hi:
+        side = 'lateral (line wider than the planted line)'
+        d = 0
+    else:
+        side = 'inside the truth rectangle (widening zone)'
+        d = 0
+    cat[side] += 1
+    detail[side].append(d)
+print('line-only new false alarms by category:')
+for k, v in cat.most_common():
+    print(f'  {k:55s} {v}')
+print('overhang distances beyond the truth end (pixels): count by distance')
+for side in ('end overhang, start side', 'end overhang, end side'):
+    c = collections.Counter(detail.get(side, []))
+    print(' ', side, dict(sorted(c.items())))
+print('unmatched groups:', {k: len(v) for k, v in detail.items() if k.startswith('unmatched')})
+# per planted line item: number of overhang pixels on its two ends
+per = collections.Counter()
+for g, (rx, ry, rw, rh), m in grect:
+    if m is None:
+        continue
+    _, it, (tx, ty, tw, th) = m
+    sub = new[ry:ry + rh, rx:rx + rw] & lin[ry:ry + rh, rx:rx + rw] & ~pix[ry:ry + rh, rx:rx + rw]
+    n = int(sub.sum())
+    if n:
+        per[(it['kind'], it['shape'], it['level'], g['o'], g['idx'], g['a'], g['b'], 'truth', (tx, ty, tw, th))] = n
+print('groups with line-only new false alarms, per matched planted line:')
+for k, v in sorted(per.items(), key=lambda kv: -kv[1]):
+    print(' ', v, k)

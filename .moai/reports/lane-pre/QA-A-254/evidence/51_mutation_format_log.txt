@@ -1,0 +1,33 @@
+QA-A-254 mutation check of the XCal defect file version 2 (src/defect_ext.cpp, src/xcal_validator.cpp). Source hash at the start: 3899cb0acddec931
+PREDICTIONS (written before any run):
+  F1 the segment range checks of a line record are removed            -> red: ASegmentOutsideItsLineIsRefused only
+  F2 the declared extension length is not compared with the payload   -> red: TheDeclaredExtensionLengthMustMatchThePayload only
+  F3 the imaging-area plane is not checked for values other than 0, 1 -> red: TheImagingAreaPlaneHoldsZeroAndOneOnly only
+  F4 the validator accepts version 2 for every type                   -> red: XCalValidatorTest.BadVersion_ReturnsConfigInvalid only
+  F5 the length pre-check of a file never reports a short file        -> red: ATruncatedFileIsRefusedAndTheAlertSaysItEndsEarly only
+  F6 the extension encoder does not validate the geometry             -> red: ASegmentOutsideItsLineIsRefused and TheWriterRefusesARecordOutsideTheGeometryAndWritesNothing
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 38 passed, failed: []
+--- F1
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['ASegmentOutsideItsLineIsRefused']
+--- F2
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['TheDeclaredExtensionLengthMustMatchThePayload']
+--- F3
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['TheImagingAreaPlaneHoldsZeroAndOneOnly']
+--- F4
+build: BUILD_EXIT=0
+tests exit 0: 38 passed, FAILED: []
+--- F5
+build: BUILD_EXIT=0
+tests exit 1: 37 passed, FAILED: ['ATruncatedFileIsRefusedAndTheAlertSaysItEndsEarly']
+--- F6
+build: BUILD_EXIT=0
+tests exit 1: 36 passed, FAILED: ['ASegmentOutsideItsLineIsRefused', 'TheWriterRefusesARecordOutsideTheGeometryAndWritesNothing']
+--- restored: touch + rebuild
+source hash now: 3899cb0acddec931 (start: 3899cb0acddec931)
+build: BUILD_EXIT=0

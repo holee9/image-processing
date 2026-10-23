@@ -1,0 +1,10 @@
+"""Splice 11_split_tests_block.cpp.txt over the negative and positive tests of test_bpm_lines_lof.cpp (CI subset + disabled full budgets)."""
+base = 'D:/workspace-github/xpe-pre/'
+p = base + 'modules/preprocess/tests/test_bpm_lines_lof.cpp'
+s = open(p, encoding='utf-8', newline='').read().replace('\r\n', '\n')
+new = open(base + '.moai/reports/lane-pre/QA-A-258/evidence/11_split_tests_block.cpp.txt', encoding='utf-8', newline='').read()
+a = s.index('TEST(BpmLinesLofNegativeTest')
+b = s.index('TEST(BpmLinesLofSeparationTest, ALinearLineWithHighNoise')
+s = s[:a] + new + s[b:]
+open(p, 'w', encoding='utf-8', newline='').write(s)
+print('split applied')

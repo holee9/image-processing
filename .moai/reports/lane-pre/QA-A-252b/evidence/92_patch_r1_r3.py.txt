@@ -1,0 +1,105 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:80])
+    s = s.replace(old, new)
+
+
+# ---- R1: row and column components from the difference to the neighbouring lines
+a = s.index('/** Subtracts the median of every row, then the median of every column of the result. */')
+b = s.index('/** Local scale:')
+new_fn = '''/** Median of @p win values along the columns (alongY) or along the rows, reflected borders. */
+void slidingMedian(const float* in, float* out, int w, int h, int win, bool alongY) {
+    const int r = win / 2;
+    float buf[65];
+    for (int y = 0; y < h; ++y)
+        for (int x = 0; x < w; ++x) {
+            if (alongY) {
+                for (int k = -r; k <= r; ++k) buf[k + r] = in[static_cast<size_t>(reflect(y + k, h)) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+            } else {
+                for (int k = -r; k <= r; ++k) buf[k + r] = in[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(reflect(x + k, w))];
+            }
+            std::nth_element(buf, buf + r, buf + win);
+            out[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)] = buf[r];
+        }
+}
+
+/**
+ * Removes the row component, then the column component (QA-A-252b). The component of a row is the median over the row of the difference between the row and the
+ * median of the neighbouring rows at the same column, so a gradient along the row cancels and a defect that covers a part of the row moves the median by no more than
+ * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. With @p multiplicative the
+ * component is a factor (the median of the ratio) instead of an offset. Constant over the whole line: removed. Not constant along the line: left for the later steps.
+ */
+void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplicative) {
+    std::vector<float> line(static_cast<size_t>(std::max(w, h)));
+    auto component = [&](float v, float ref) -> float { return multiplicative ? (std::fabs(ref) > 1e-30f ? v / ref : 1.0f) : v - ref; };
+    auto apply = [&](float& v, float c) {
+        if (multiplicative) {
+            if (std::fabs(c) > 1e-30f) v /= c;
+        } else {
+            v -= c;
+        }
+    };
+    slidingMedian(f, tmp, w, h, win, true);
+    for (int y = 0; y < h; ++y) {
+        float* row = f + static_cast<size_t>(y) * static_cast<size_t>(w);
+        const float* ref = tmp + static_cast<size_t>(y) * static_cast<size_t>(w);
+        for (int x = 0; x < w; ++x) line[static_cast<size_t>(x)] = component(row[x], ref[x]);
+        const float c = medianOf(line.data(), static_cast<size_t>(w));
+        for (int x = 0; x < w; ++x) apply(row[x], c);
+    }
+    slidingMedian(f, tmp, w, h, win, false);
+    for (int x = 0; x < w; ++x) {
+        for (int y = 0; y < h; ++y) line[static_cast<size_t>(y)] = component(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)], tmp[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]);
+        const float c = medianOf(line.data(), static_cast<size_t>(h));
+        for (int y = 0; y < h; ++y) apply(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)], c);
+    }
+}
+
+'''
+s = s[:a] + new_fn + s[b:]
+
+sub('''float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
+    removeRowColumn(wk.feat.data(), wk.w, wk.h);''', '''float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
+    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), multiplicative);''')
+sub('flagRobustZ(wk, st, lambdaTwoSided, false, XPE_BPM_V2_FEATURE_DARK_MEAN,', 'flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN,')
+sub('flagRobustZ(wk, st, lambdaTwoSided, false, XPE_BPM_V2_FEATURE_DOSE_SLOPE,', 'flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DOSE_SLOPE,')
+sub('flagRobustZ(wk, st, threshold[3], true, XPE_BPM_V2_FEATURE_DOSE_LINEAR,', 'flagRobustZ(wk, st, threshold[3], true, false, XPE_BPM_V2_FEATURE_DOSE_LINEAR,')
+sub('flagRobustZ(wk, st, lambdaTwoSided, false, XPE_BPM_V2_FEATURE_FLAT,', 'flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_FLAT,')
+
+# ---- R3: the dark temporal variance without the column component of every frame
+old_loop_start = s.index('        std::vector<double> rowMean(static_cast<size_t>(h));')
+old_loop_end = s.index('        for (size_t i = 0; i < n; ++i) s2[i] /= static_cast<float>(nd - 1);')
+new_loop = '''        std::vector<double> rowMean(static_cast<size_t>(h)), colMean(static_cast<size_t>(w));
+        for (uint32_t k = first; k < num_dark; ++k) {
+            const uint16_t* p = px(dark_frames[k]);
+            for (int y = 0; y < h; ++y) {
+                double acc = 0.0;
+                for (int x = 0; x < w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                    acc += static_cast<double>(p[i]) - static_cast<double>(D[i]);
+                }
+                rowMean[static_cast<size_t>(y)] = acc / w;
+            }
+            // the column component of this frame: what is left of the column means after the row means are taken out (a shared offset of a column that changes from frame to frame)
+            std::fill(colMean.begin(), colMean.end(), 0.0);
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                    colMean[static_cast<size_t>(x)] += static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMean[static_cast<size_t>(y)];
+                }
+            for (int x = 0; x < w; ++x) colMean[static_cast<size_t>(x)] /= h;
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x) {
+                    const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
+                    const double e = static_cast<double>(p[i]) - static_cast<double>(D[i]) - rowMean[static_cast<size_t>(y)] - colMean[static_cast<size_t>(x)];
+                    s2[i] += static_cast<float>(e * e);
+                }
+        }
+'''
+s = s[:old_loop_start] + new_loop + s[old_loop_end:]
+open(p, 'w', encoding='utf-8', newline='').write(s)
+print('patched')

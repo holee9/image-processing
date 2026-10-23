@@ -1,0 +1,65 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_eval.cpp'
+raw = open(p, 'rb').read().decode('utf-8')
+crlf = '\r\n' in raw
+s = raw.replace('\r\n', '\n')
+
+old = '''    EXPECT_LT(std::fabs(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_clean")), 3.0) << "the clean frame shows no band: " << j2;
+}'''
+new = r'''    EXPECT_LT(std::fabs(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_clean")), 3.0) << "the clean frame shows no band: " << j2;
+
+    // no nan or inf ever reaches the JSON
+    auto lower = [](std::string x) {
+        for (char& ch : x) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        return x;
+    };
+    for (const std::string* js : {&j, &j2}) {
+        EXPECT_EQ(std::string::npos, lower(*js).find("nan")) << *js;
+        EXPECT_EQ(std::string::npos, lower(*js).find("inf")) << *js;
+    }
+
+    // Codex #204 finding 1 end to end: a clean output without any noise (a set made of constant frames, a constant clean frame) leaves the local sigma at zero.
+    // The groups must come out "uncomputable" with their invalid samples counted, not as a median of 0, and the line index of the clean output likewise.
+    fs::create_directories(root / "constant");
+    std::vector<std::string> cd, cb;
+    for (int k = 0; k < 6; ++k) {
+        std::vector<uint16_t> f(kN, 3000);
+        const fs::path pth = root / "constant" / ("d" + std::to_string(k) + ".raw");
+        writeBytes(pth, f.data(), f.size() * 2);
+        cd.push_back(pth.string());
+    }
+    for (int k = 0; k < 10; ++k) {
+        std::vector<uint16_t> f(kN, 9000);
+        const fs::path pth = root / "constant" / ("b" + std::to_string(k) + ".raw");
+        writeBytes(pth, f.data(), f.size() * 2);
+        cb.push_back(pth.string());
+    }
+    std::string cargs = "--out \"" + (root / "const_set").string() + "\" --width 1024 --height 1024 --expiry-ms 4102444800000";
+    for (const auto& d : cd) cargs += " --dark \"" + d + "\"";
+    for (const auto& b : cb) cargs += " --bright \"" + b + "\"";
+    cargs += " > \"" + (root / "cs.log").string() + "\" 2>&1";
+    ASSERT_EQ(0, runCmd(XPE_FIXTURE_GEN_EXE, cargs)) << text(root / "cs.log");
+    std::vector<uint16_t> flat(kN, 5000);
+    writeBytes(root / "constant" / "clean_eval.raw", flat.data(), flat.size() * 2);
+    const std::string cmd3 = "correct --truth \"" + t.string() + "\" --clean-set \"" + (root / "const_set").string() + "\" --inj-set \"" + (root / "inj_set").string() + "\" --clean-eval \"" +
+                             (root / "constant" / "clean_eval.raw").string() + "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --out \"" +
+                             (root / "c3.json").string() + "\" > \"" + (root / "c3.txt").string() + "\" 2>&1";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, cmd3)) << text(root / "c3.txt");
+    const std::string j3 = text(root / "c3.json");
+    EXPECT_NE(std::string::npos, j3.find("\"median_z\": \"uncomputable\"")) << j3.substr(0, 1500);
+    EXPECT_NE(std::string::npos, j3.find("\"valid\": 0,")) << "no valid sample in the groups";
+    EXPECT_NE(std::string::npos, j3.find("\"zero_sigma_error\": ")) << "the invalid samples are counted with their reason";
+    EXPECT_EQ(std::string::npos, j3.find("\"median_z\": 0")) << "never a median of 0 for a group that cannot be computed";
+    EXPECT_NE(std::string::npos, j3.find("\"ratio_clean\": \"uncomputable\"")) << "the line index of a noiseless clean output cannot be computed";
+    EXPECT_EQ(std::string::npos, j3.find("\"ratio_clean\": 0")) << "and is not 0";
+    EXPECT_EQ(std::string::npos, lower(j3).find("nan"));
+    EXPECT_EQ(std::string::npos, lower(j3).find("inf"));
+    const size_t pu = j3.find("\"parts_uncomputable\": {\"corrected\": ");
+    ASSERT_NE(std::string::npos, pu);
+    EXPECT_NE(std::string::npos, j3.find("\"clean\": ", pu));
+    EXPECT_GT(std::atoi(j3.c_str() + j3.find("\"clean\": ", pu) + 9), 0) << "uncomputable parts are counted, not dropped: " << j3.substr(pu, 200);
+}'''
+assert s.count(old) == 1
+s = s.replace(old, new)
+s = s.replace('#include <cmath>\n#include <cstdint>', '#include <cctype>\n#include <cmath>\n#include <cstdint>', 1)
+open(p, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+print('patched slow test')

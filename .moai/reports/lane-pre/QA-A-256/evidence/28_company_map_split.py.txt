@@ -1,0 +1,34 @@
+"""QA-A-256 item 5 (diagnosis only): the second-generation clean-input map against the company map BPM.raw, split by characteristic.
+Usage: PYTHONIOENCODING=utf-8 python 28_company_map_split.py.txt > 63_company_map_split.txt"""
+import numpy as np
+
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/BPM.raw'
+O = 'D:/workspace-github/xpe-data/bpm-eval-256/'
+S = 3072
+
+
+def ld(p, dt=np.uint8):
+    return np.fromfile(p, dtype=dt).reshape(S, S)
+
+
+comp = ld(CAL, np.uint16) != 0
+ours = ld(O + 'clean_v2_setmap.u8') != 0
+feat = ld(O + 'clean_full_features.u8')
+lines = ld(O + 'clean_full_lines.u8') != 0
+area = ld(O + 'clean_full_area.u8') != 0
+ours1 = ld(O + 'clean_v1_setmap.u8') != 0
+print('회사 맵 %d화소 / 1판 %d / 2판 %d (2판 영상 영역 밖 %d)' % (comp.sum(), ours1.sum(), ours.sum(), int((~area).sum())))
+print('1판 ∩ 회사 %d, 1판만 %d, 회사만 %d' % ((ours1 & comp).sum(), (ours1 & ~comp).sum(), (comp & ~ours1).sum()))
+print('2판 ∩ 회사 %d, 2판만 %d, 회사만 %d' % ((ours & comp).sum(), (ours & ~comp).sum(), (comp & ~ours).sum()))
+names = (('줄 마스크', lines), ('어두운 평균', (feat & 0x01) != 0), ('어두운 잡음', (feat & 0x02) != 0), ('기울기·선형성', (feat & 0x0c) != 0), ('평탄 응답', (feat & 0x10) != 0), ('밝은 잡음', (feat & 0x20) != 0))
+only = ours & ~comp
+print('2판만 켠 화소 %d 의 특성별(여러 특성이면 각각 센다):' % only.sum())
+for n, m in names:
+    print('  %-12s %d' % (n, int((only & m).sum())))
+print('  영상 영역 밖(2판 맵에서 제외된 영역) 안에 있는 것: %d' % int((only & ~area).sum()))
+both = ours & comp
+print('둘 다 켠 화소 %d 의 특성별:' % both.sum())
+for n, m in names:
+    print('  %-12s %d' % (n, int((both & m).sum())))
+co = comp & ~ours
+print('회사만 켠 화소 %d: 영상 영역 밖 %d, 1판은 켠 것 %d' % (co.sum(), int((co & ~area).sum()), int((co & ours1).sum())))

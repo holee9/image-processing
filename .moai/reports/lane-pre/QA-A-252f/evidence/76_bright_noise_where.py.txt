@@ -1,0 +1,35 @@
+"""QA-A-252f: where are the 14,637 pixels with the bright-noise bit (0x20) of the measurement? By the planted item that covers them (kind, level, shape type) or outside every item."""
+import numpy as np, collections
+W = 3072
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+feat = np.fromfile(OUT + 'v2g_planted_features.u8', dtype=np.uint8).reshape(W, W)
+ids = np.fromfile(OUT + 'inj_d/truth_ids.u16', dtype=np.uint16).reshape(W, W)
+info = {}
+for l in open(OUT + 'inj_d/truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        info[int(p[0])] = (p[1], p[2], p[3], p[4])
+bit = (feat & 0x20) > 0
+yy, xx = np.nonzero(bit)
+cnt = collections.Counter()
+for y, x in zip(yy, xx):
+    i = int(ids[y, x])
+    if i == 0:
+        near = ids[max(0, y - 3):y + 4, max(0, x - 3):x + 4]
+        cnt[('outside every item', 'within 3 pixels of an item' if near.any() else 'far from every item', '')] += 1
+    elif i == 65535:
+        cnt[('shared by two items', '', '')] += 1
+    else:
+        c, k, s, lv = info[i]
+        typ = 'pixel' if s == 'pixel' else ('block' if s.startswith('block') else 'line')
+        cnt[(c + '/' + k, typ, lv)] += 1
+print('total with the bit', int(bit.sum()))
+agg = collections.Counter()
+for (a, b, c), v in cnt.items():
+    agg[(a, b)] += v
+for (a, b), v in sorted(agg.items(), key=lambda t: -t[1])[:25]:
+    print('  %-40s %-28s %7d' % (a, b, v))
+print('response-model items by level:')
+for (a, b, c), v in sorted(cnt.items()):
+    if 'gain_loss' in a or 'efficiency_loss' in a:
+        print('  %-34s %-6s %-5s %7d' % (a, b, c, v))

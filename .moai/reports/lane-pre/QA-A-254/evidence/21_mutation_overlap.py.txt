@@ -1,0 +1,18 @@
+TOOL = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+TITLE = 'QA-A-254 mutation check of the composite overlap truth and of the noise-cost sample refusals (tools/xpe_bpm_eval.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-254/evidence/22_mutation_overlap_log.txt'
+FILT = 'BpmV2*:BpmEval*:-BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex'
+PRED = [
+    '  O1 the dead item does not change the chain response                  -> red: OverlapCompositeScoresEveryOverlapByOneRuleThroughTheInjectionChain only (the three dead crossings turn normal)',
+    '  O2 the response rule never makes a pixel a defect                      -> red: OverlapComposite... only',
+    '  O3 an undetermined overlap is read as normal                           -> red: OverlapComposite... only',
+    '  O4 the dose-sample refusal reads "not positive" for the empty case too -> red: NoiseCostRefusesAnEmptyDoseSampleAndANonPositiveMedianEachWithItsOwnReason only',
+    '  every other test stays green in each mutant',
+]
+MUTANTS = [
+    ('O1', TOOL, b'vb = d + (1.0 - it->level) * (vb - d);', b'vb = vb + 0.0 * it->level;'),
+    ('O2', TOOL, b'const bool byResponse = g.response < kResponseDefectBelow - kRatioSlack || g.response > kResponseDefectAbove + kRatioSlack;', b'const bool byResponse = g.response < -1.0 || g.response > 1.0e9;'),
+    ('O3', TOOL, b'g.after = (anyDefect[i] || byResponse) ? 2 : (anyUndet[i] ? 3 : 1);', b'g.after = (anyDefect[i] || byResponse) ? 2 : 1;'),
+    ('O4', TOOL, b'no unplanted interior pixel to estimate the dose of verification frame', b'not positive: no pixel to estimate the dose of verification frame'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-254/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

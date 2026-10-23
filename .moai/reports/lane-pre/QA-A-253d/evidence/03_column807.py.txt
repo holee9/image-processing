@@ -1,0 +1,56 @@
+"""QA-A-253d step 2b: column 807, y 2020..2085 (a 65-pixel linearity stretch that only the planted run reports)."""
+import numpy as np
+
+O = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+W = 3072
+
+
+def u8(name):
+    return np.fromfile(O + name, dtype=np.uint8).reshape(W, W)
+
+
+items = []
+for l in open(O + 'inj_b/truth.tsv', encoding='utf-8'):
+    p = l.rstrip('\n').split('\t')
+    if len(p) >= 6 and p[0].isdigit():
+        items.append((int(p[0]), p[1], p[2], p[3], p[4], [tuple(map(int, r.split(','))) for r in p[5].split(';')]))
+print('planted items with a rectangle within x 780..835, y 1990..2120:')
+for it in items:
+    for x, y, w, h in it[5]:
+        if x < 835 and x + w > 780 and y < 2120 and y + h > 1990:
+            print('  ', it[:5], (x, y, w, h))
+pix_p = u8('v2d_planted.u8') > 0
+pix_c = u8('v2d_clean.u8') > 0
+lin_p = u8('v3c_planted_lines.u8') > 0
+for name, m in (('pixel map, planted', pix_p), ('pixel map, clean', pix_c), ('line mask, planted', lin_p)):
+    col = m[2000:2100, 807]
+    ys = np.nonzero(col)[0] + 2000
+    print(f'{name}: flagged pixels in column 807, y 2000..2099: {len(ys)}', (ys.min(), ys.max()) if len(ys) else '')
+print('neighbouring columns 800..814, number of pixels of the pixel map (planted) inside y 2020..2085:', [int(pix_p[2020:2086, x].sum()) for x in range(800, 815)])
+# the raw feature: dark and bright frame statistics along column 807 versus its neighbours, planted frames
+FR = O + 'inj_b/frames/'
+ks = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]
+D = np.mean([np.fromfile(FR + f'Dark_{k:02d}.raw', dtype=np.uint16).reshape(W, W).astype(np.float32) for k in range(8, 15)], axis=0)
+sig = []
+for k in ks:
+    f = np.fromfile(FR + f'Bright_{k:02d}.raw', dtype=np.uint16).reshape(W, W).astype(np.float32) - D
+    sig.append(f)
+sig = np.stack(sig)
+mean_sig = sig.mean(axis=0)
+rows = slice(2020, 2086)
+print('mean signal (bright frames, dark removed) of column 807 over y 2020..2085 against columns 797..817 (excluding 807):')
+neigh = np.median(np.stack([mean_sig[rows, x] for x in list(range(797, 807)) + list(range(808, 818))]), axis=0)
+print('  ratio column 807 / median of neighbours: mean %.4f  min %.4f  max %.4f' % ((mean_sig[rows, 807] / neigh).mean(), (mean_sig[rows, 807] / neigh).min(), (mean_sig[rows, 807] / neigh).max()))
+# the same ratio in the real (unplanted) frames
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+Dc = np.mean([np.fromfile(CAL + f'Dark_{k:02d}.raw', dtype=np.uint16).reshape(W, W).astype(np.float32) for k in range(8, 15)], axis=0)
+sc = np.mean([np.fromfile(CAL + f'Bright_{k:02d}.raw', dtype=np.uint16).reshape(W, W).astype(np.float32) - Dc for k in ks], axis=0)
+nc = np.median(np.stack([sc[rows, x] for x in list(range(797, 807)) + list(range(808, 818))]), axis=0)
+r = sc[rows, 807] / nc
+print('  clean frames: ratio mean %.4f  min %.4f  max %.4f' % (r.mean(), r.min(), r.max()))
+# per dose: linearity along the stretch. fit n = a*S + b*S^2 per pixel is not needed: show the ratio of column 807 to neighbours per dose group
+order = np.argsort(sig.mean(axis=(1, 2)))
+print('  per frame (sorted by signal): mean ratio column 807 / neighbours (planted frames)')
+for i in order[::3]:
+    nb = np.median(np.stack([sig[i][rows, x] for x in list(range(797, 807)) + list(range(808, 818))]), axis=0)
+    print('    frame', ks[i], 'signal', round(float(sig[i].mean()), 0), 'ratio', round(float((sig[i][rows, 807] / nb).mean()), 4))

@@ -1,0 +1,38 @@
+D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-252f\evidence\32_col1247_ml_end.py.txt:45: RuntimeWarning: invalid value encountered in divide
+  E[:, x] = (f[:, x] / r - 1.0) if kind == 'response' else (f[:, x] - r)
+D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-252f\evidence\32_col1247_ml_end.py.txt:45: RuntimeWarning: divide by zero encountered in divide
+  E[:, x] = (f[:, x] / r - 1.0) if kind == 'response' else (f[:, x] - r)
+group signals: [np.float64(2910.0), np.float64(6017.0), np.float64(9420.0), np.float64(18751.0), np.float64(29903.0)]
+response  item rows 1787 .. 2554
+   coarse [1746, 2596)  refined [1787, 2555)  core mean z 2.930
+   mean z by 25-row block around the end (rows 2480..):  [3.0, 3.0, 3.0, 0.22, -0.1, 0.26, 0.51]
+linearity item rows 1787 .. 2554
+   coarse [1793, 1858)  refined [1803, 1917)  core mean z 0.958
+   coarse [1796, 1892)  refined [1803, 1953)  core mean z 0.956
+   coarse [1845, 1920)  refined [1803, 1984)  core mean z 0.952
+   coarse [1862, 2007)  refined [1803, 2071)  core mean z 1.045
+   coarse [1946, 2015)  refined [1882, 2071)  core mean z 0.939
+   coarse [1954, 2021)  refined [1895, 2085)  core mean z 0.928
+   coarse [1972, 2036)  refined [1908, 2100)  core mean z 0.947
+   coarse [1974, 2041)  refined [1910, 2100)  core mean z 0.955
+   coarse [2021, 2090)  refined [1957, 2147)  core mean z 0.972
+   coarse [2028, 2153)  refined [1965, 2217)  core mean z 0.967
+   coarse [2091, 2155)  refined [2030, 2219)  core mean z 0.969
+   coarse [2105, 2169)  refined [2056, 2233)  core mean z 0.962
+   coarse [2131, 2197)  refined [2068, 2260)  core mean z 0.929
+   coarse [2137, 2201)  refined [2074, 2265)  core mean z 0.934
+   coarse [2139, 2204)  refined [2079, 2268)  core mean z 0.959
+   coarse [2153, 2283)  refined [2091, 2337)  core mean z 1.028
+   coarse [2221, 2289)  refined [2158, 2352)  core mean z 0.943
+   coarse [2227, 2333)  refined [2163, 2397)  core mean z 1.021
+   coarse [2272, 2386)  refined [2209, 2450)  core mean z 0.945
+   coarse [2324, 2388)  refined [2261, 2450)  core mean z 0.937
+   coarse [2326, 2390)  refined [2262, 2450)  core mean z 0.944
+   coarse [2328, 2393)  refined [2264, 2450)  core mean z 0.974
+   coarse [2331, 2395)  refined [2281, 2450)  core mean z 0.941
+   coarse [2334, 2400)  refined [2281, 2464)  core mean z 0.981
+   coarse [2338, 2414)  refined [2281, 2476)  core mean z 0.941
+   coarse [2460, 2535)  refined [2396, 2558)  core mean z 0.974
+   coarse [2477, 2547)  refined [2428, 2558)  core mean z 0.957
+   coarse [2487, 2551)  refined [2428, 2558)  core mean z 0.941
+   mean z by 25-row block around the end (rows 2480..):  [0.85, 1.05, 0.82, 0.34, 0.52, 0.27, 0.07]

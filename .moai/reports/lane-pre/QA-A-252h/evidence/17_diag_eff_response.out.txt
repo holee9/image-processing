@@ -1,0 +1,23 @@
+groups (frames per group): [3, 3, 6, 3, 3]
+response rc: median 0.99999
+ordinary pixels: mean T 1.0136, mean vg/ref 1.0107, mean rc 0.99999
+
+per level, efficiency-loss line pixels covered by one item (interior):
+  level  pixels | mean rc / r | mean r^2 corrGain | mean T committed | mean T with planted r | mean vg/ref (no correction) | mean ref / ordinary ref | truth-path cost
+  0.30   10568 | 1.0001 | 0.9998 | 3.819 | 3.820 | 0.343 | 0.920 | 3.55
+  0.40   10553 | 1.0003 | 0.9994 | 2.718 | 2.719 | 0.434 | 0.999 | 2.58
+  0.44   10556 | 1.0003 | 0.9995 | 2.377 | 2.379 | 0.457 | 1.090 | 2.28
+  0.46   10582 | 1.0003 | 0.9995 | 2.439 | 2.441 | 0.516 | 0.912 | 2.34
+  0.60   10555 | 1.0001 | 0.9998 | 1.873 | 1.873 | 0.671 | 0.847 | 1.81
+  0.70   10559 | 1.0002 | 0.9996 | 1.509 | 1.510 | 0.744 | 0.992 | 1.45
+
+position along the item (r = 0.3 and 0.4 single-covered line pixels): mean T by distance to the nearer end
+  r=0.3 distance 0..8   pixels    106 mean T 3.923 flagged rate 0.2736
+  r=0.3 distance 9..64  pixels    871 mean T 4.131 flagged rate 0.3364
+  r=0.3 distance > 64   pixels   9591 mean T 3.790 flagged rate 0.2733
+  r=0.4 distance 0..8   pixels    105 mean T 2.695 flagged rate 0.0571
+  r=0.4 distance 9..64  pixels    875 mean T 2.816 flagged rate 0.0914
+  r=0.4 distance > 64   pixels   9573 mean T 2.709 flagged rate 0.0634
+
+r=0.3 single-covered pixels within 3 pixels of a crossing: 738, mean T 3.948; farther: 9830, mean T 3.810
+finished

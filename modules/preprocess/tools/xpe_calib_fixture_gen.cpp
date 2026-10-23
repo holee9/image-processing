@@ -99,6 +99,7 @@
 #include "xpe/common/xpe_error.h"
 #include "xpe/preprocess/xcal_format.h"
 #include "xcal_writer.hpp"
+#include "defect_ext.hpp"
 #include "xpe_sha256.hpp"
 
 #ifdef _WIN32
@@ -157,6 +158,9 @@ struct Options {
     std::vector<std::string> bpmBrightFiles;   // QA-A-250b: bright frames of the defect map when they differ from the gain frames
     std::string              bpmBrightList;
     bool                     framesMode{false};
+    bool                     keepFirstDark{false};    // QA-A-259: --keep-first-dark; default = the first dark frame of the list is excluded once, for every stage
+    bool                     bpmV2{false};            // QA-A-254: defect.xcal from the second-generation chain, written as format version 2
+    uint32_t                 bpmMargin[4]{0, 0, 0, 0}; // left, top, right, bottom: rows and columns outside the imaging area (--bpm-v2)
 };
 
 void printUsage() {
@@ -168,6 +172,7 @@ void printUsage() {
         "                             [--dark F]... [--bright F]... [--dark-list L] [--bright-list L]\n"
         "                             [--gain-dark-ref mean|none|F] [--compare-bpm F]\n"
         "                             [--bpm-bright F]... [--bpm-bright-list L]\n"
+        "                             [--bpm-v2] [--bpm-margins L,T,R,B] [--keep-first-dark]\n"
         "\n"
         "Writes offset.xcal, gain.xcal, defect.xcal and manifest.json into <dir>.\n"
         "The same arguments always produce byte-identical files.\n"
@@ -180,10 +185,18 @@ void printUsage() {
         "                  (width/height default to 3072; not with --gain-poly)\n"
         "  --dark/--bright F  one real frame per option (repeat), or --dark-list/--bright-list L\n"
         "                  (a text file, one path per line). At least 5 dark and 10 bright frames.\n"
+        "  --keep-first-dark  QA-A-259: give the WHOLE dark list including the first frame (stored and marked at the\n"
+        "                  acquisition); by default this tool excludes the first frame ONCE and the same remaining list\n"
+        "                  feeds the offset map, the gain dark reference and the defect map (both editions). The\n"
+        "                  option keeps the list as given. manifest.json lists the given and the used frames.\n"
         "  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file\n"
         "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n"
         "  --bpm-bright F   bright frames of the defect map only (several doses allowed); the\n"
-        "                  --bright frames of the gain map must be ONE dose (max/min <= 1.25)\n");
+        "                  --bright frames of the gain map must be ONE dose (max/min <= 1.25)\n"
+        "  --bpm-v2        (QA-A-254) defect.xcal from the second-generation chain: pixel map, lines,\n"
+        "                  blobs and the imaging area, written as XCal format version 2 with the line /\n"
+        "                  blob extension (SRS FUNC-039). The first dark frame is excluded by this tool, once (see --keep-first-dark).\n"
+        "  --bpm-margins   L,T,R,B  columns / rows outside the imaging area for --bpm-v2 (default 0,0,0,0)\n");
 }
 
 bool parseArgs(int argc, char** argv, Options* opt) {
@@ -225,6 +238,29 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             else if (arg == "--bpm-bright") opt->bpmBrightFiles.push_back(v);
             else if (arg == "--bpm-bright-list") opt->bpmBrightList = v;
             else opt->compareBpm = v;
+        } else if (arg == "--keep-first-dark") {
+            opt->keepFirstDark = true;
+        } else if (arg == "--bpm-v2") {
+            opt->bpmV2 = true;
+        } else if (arg == "--bpm-margins") {
+            if (i + 1 >= argc) return false;
+            unsigned long v[4] = {0, 0, 0, 0};
+            const char*   c = argv[++i];
+            int           got = 0;
+            while (got < 4) {
+                char* end = nullptr;
+                v[got] = std::strtoul(c, &end, 10);
+                if (end == c) break;
+                ++got;
+                c = end;
+                if (*c == ',' && got < 4) ++c;
+                else break;
+            }
+            if (got != 4 || *c != '\0') {
+                std::fprintf(stderr, "--bpm-margins takes L,T,R,B (four numbers)\n");
+                return false;
+            }
+            for (int k = 0; k < 4; ++k) opt->bpmMargin[k] = static_cast<uint32_t>(v[k]);
         } else if (arg == "--gain-poly") {
             opt->gainPoly = true;
         } else if (arg == "--poly-degree") {
@@ -252,8 +288,8 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             return false;
         }
         if (!opt->sizeGiven) opt->width = opt->height = 3072u;
-    } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean" || !opt->bpmBrightFiles.empty() || !opt->bpmBrightList.empty()) {
-        std::fprintf(stderr, "--gain-dark-ref, --compare-bpm and --bpm-bright belong to the --dark/--bright mode\n");
+    } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean" || !opt->bpmBrightFiles.empty() || !opt->bpmBrightList.empty() || opt->bpmV2 || opt->keepFirstDark) {
+        std::fprintf(stderr, "--gain-dark-ref, --compare-bpm, --bpm-bright, --bpm-v2 and --keep-first-dark belong to the --dark/--bright mode\n");
         return false;
     }
     if (!opt->calDir.empty()) {
@@ -760,8 +796,17 @@ int runFramesMode(const Options& opt) {
     }
 
     // Counts first: it costs nothing and needs no file.
-    if (darkPaths.size() < kMinDarkFrames) {
-        std::fprintf(stderr, "too few dark frames: %zu given, at least %zu are needed (offset map, gain dark reference and defect map)\n", darkPaths.size(), kMinDarkFrames);
+    if (!opt.keepFirstDark && darkPaths.size() < 2) {
+        std::fprintf(stderr,
+                     "too few dark frames: %zu given. The first dark frame is excluded (the detector has not settled), so at least 2 are needed to leave one; give the whole list including the first "
+                     "frame, or --keep-first-dark to use the list as given\n",
+                     darkPaths.size());
+        return 10;
+    }
+    const size_t usableDarks = darkPaths.size() - (opt.keepFirstDark ? 0u : 1u);
+    if (usableDarks < kMinDarkFrames) {
+        std::fprintf(stderr, "too few dark frames: %zu usable (%zu given%s), at least %zu are needed (offset map, gain dark reference and defect map)\n", usableDarks, darkPaths.size(),
+                     opt.keepFirstDark ? "" : ", the first excluded", kMinDarkFrames);
         return 10;
     }
     if (brightPaths.size() < kMinGainFrames) {
@@ -816,6 +861,18 @@ int runFramesMode(const Options& opt) {
         if (separateBpm) {
             if (const int rc = rejectContentDuplicates(k, "bpm_bright")) return rc;
         }
+    }
+
+    // QA-A-259: the ONE place the first dark frame leaves the list. Every stage below (offset, gain dark reference, defect map of either edition) reads `darks`, the used list.
+    InputFrame firstDark;
+    const std::vector<std::string> givenDarkPaths = darkPaths;
+    std::vector<std::string> givenDarkShas;
+    for (const auto& d : darks) givenDarkShas.push_back(d.sha);
+    const bool firstExcluded = !opt.keepFirstDark;
+    if (firstExcluded) {
+        firstDark = std::move(darks.front());
+        firstDark.role = "dark_excluded_first";
+        darks.erase(darks.begin());
     }
 
     // The dark reference of the gain stage (read before the dose check: the check uses the same reference as the generator).
@@ -892,6 +949,7 @@ int runFramesMode(const Options& opt) {
             return 6;
         }
     }
+    std::string v2Info;   // the manifest block of a --bpm-v2 run
     XpeBpmConfig cfg{};
     cfg.lambda_dark       = 8.0f;
     cfg.mask_size_dark    = 32u;
@@ -901,7 +959,7 @@ int runFramesMode(const Options& opt) {
     cfg.min_frames_bright = 10u;
     std::vector<uint8_t> mask(pixelCount, 0u);
     size_t defectCount = 0;
-    {
+    if (!opt.bpmV2) {
         std::vector<XpeImageBuffer> darkBufs = u16Buffers(darks, opt.width, opt.height), brightBufs = u16BuffersOf(bpmFrames, opt.width, opt.height);
         XpeImageBuffer maskBuf{};
         maskBuf.data = mask.data();
@@ -924,6 +982,139 @@ int runFramesMode(const Options& opt) {
             std::fprintf(stderr, "writing defect.xcal failed\n");
             return 7;
         }
+    } else {
+        // ---- QA-A-254: the second-generation chain -> format version 2
+        std::vector<XpeImageBuffer> darkBufs = u16Buffers(darks, opt.width, opt.height), brightBufs = u16BuffersOf(bpmFrames, opt.width, opt.height);
+        XpeBpmConfigV2 c2{};
+        c2.skip_first_dark = XPE_BPM_V2_SKIP_NONE;   // QA-A-259: the list was trimmed by this tool; the library must not drop another frame
+        c2.margin_left = opt.bpmMargin[0];
+        c2.margin_top = opt.bpmMargin[1];
+        c2.margin_right = opt.bpmMargin[2];
+        c2.margin_bottom = opt.bpmMargin[3];
+        std::vector<uint8_t> area(pixelCount, 0u), lineMask(pixelCount, 0u);
+        auto u8buf = [&](std::vector<uint8_t>& v) {
+            XpeImageBuffer b{};
+            b.data = v.data();
+            b.width = opt.width;
+            b.height = opt.height;
+            b.bitsAllocated = 8;
+            b.bitsStored = 8;
+            b.format = XPE_PIXEL_UINT8;
+            b.dataSize = v.size();
+            return b;
+        };
+        XpeImageBuffer maskBuf = u8buf(mask), areaBuf = u8buf(area), lineBuf = u8buf(lineMask);
+        XpeBpmReportV2 rep2{};
+        XpeErrorCode rc = forcedFailure("bpm") ? XPE_ERR_PROCESSING_FAILED
+                                               : xpe_bpm_generate_v2(darkBufs.data(), static_cast<uint32_t>(darkBufs.size()), brightBufs.data(), static_cast<uint32_t>(brightBufs.size()), &c2, &maskBuf, nullptr, &areaBuf, &rep2);
+        if (rc != XPE_OK) {
+            std::fprintf(stderr, "xpe_bpm_generate_v2 failed (%d)\n", static_cast<int>(rc));
+            return 7;
+        }
+        const uint32_t kMaxLines = 4096, kMaxCandidates = 65536, kMaxBlobs = 65536;
+        std::vector<XpeBpmLine> lines(kMaxLines), unconfirmed(kMaxCandidates);
+        XpeBpmLineReport lrep{};
+        rc = xpe_bpm_find_lines(darkBufs.data(), static_cast<uint32_t>(darkBufs.size()), brightBufs.data(), static_cast<uint32_t>(brightBufs.size()), &c2, nullptr, &lineBuf, lines.data(), kMaxLines,
+                                unconfirmed.data(), kMaxCandidates, &lrep);
+        if (rc != XPE_OK) {
+            std::fprintf(stderr, "xpe_bpm_find_lines failed (%d)\n", static_cast<int>(rc));
+            return 7;
+        }
+        if (lrep.truncated != 0 || lrep.unconfirmed > kMaxCandidates || lrep.lines > kMaxLines) {
+            std::fprintf(stderr, "more line groups (%u) or candidates (%u) than the file records (%u / %u): nothing is dropped silently, the set is refused\n", lrep.lines, lrep.unconfirmed, kMaxLines,
+                         kMaxCandidates);
+            return 7;
+        }
+        // the defect plane: the pixel map with the line mask merged in (a pixel the map already marks keeps its code, a line pixel it does not mark gets code 1)
+        size_t outside = 0;
+        for (size_t i = 0; i < pixelCount; ++i) {
+            if (mask[i] == 0u && lineMask[i] != 0u) mask[i] = 1u;
+            if (mask[i]) ++defectCount;
+            if (area[i] == 0u) ++outside;
+        }
+        std::vector<XpeBpmBlob> blobs(kMaxBlobs);
+        uint32_t blobCount = 0;
+        if (xpe_bpm_blobs(&maskBuf, blobs.data(), kMaxBlobs, &blobCount) != XPE_OK) {
+            std::fprintf(stderr, "xpe_bpm_blobs failed\n");
+            return 7;
+        }
+        const uint32_t blobsListed = blobCount < kMaxBlobs ? blobCount : kMaxBlobs;
+        DefectExt ext;
+        const uint32_t minSegment = 64;   // the default of XpeBpmLineConfig::min_segment: a stretch is never shorter
+        for (uint32_t g = 0; g < lrep.lines; ++g) {
+            const XpeBpmLine& L = lines[g];
+            DefectExtLine r;
+            r.orientation = L.orientation;
+            r.index = L.index;
+            r.width = L.width;
+            r.start = L.start;
+            r.end = L.end;
+            r.causes = L.causes;
+            r.flags = L.flags;
+            r.reason = 0;
+            r.strength = L.strength;
+            r.persistence = L.persistence;
+            r.correction = (L.width >= 3u || (L.flags & XPE_BPM_LINE_REJECT) != 0u) ? XPE_DEFECT_LINE_CORRECT_REJECT : XPE_DEFECT_LINE_CORRECT_INTERPOLATE;
+            // the individual stretches: runs of the line mask along each member line inside the group's range. A run shorter than the minimum stretch is the pixel of a crossing line, not a stretch
+            for (uint32_t m = L.index; m < L.index + L.width; ++m) {
+                uint32_t runStart = 0;
+                bool inRun = false;
+                for (uint32_t t = L.start; t <= L.end; ++t) {
+                    const bool on = t < L.end && (L.orientation == XPE_BPM_LINE_ROW ? lineMask[static_cast<size_t>(m) * opt.width + t] != 0u : lineMask[static_cast<size_t>(t) * opt.width + m] != 0u);
+                    if (on && !inRun) { inRun = true; runStart = t; }
+                    if (!on && inRun) {
+                        inRun = false;
+                        if (t - runStart >= minSegment) r.segments.push_back({m, runStart, t});
+                    }
+                }
+            }
+            if (r.segments.empty()) r.segments.push_back({L.index, L.start, L.end});   // never an empty record: the group's range is its one stretch
+            ext.lines.push_back(std::move(r));
+        }
+        for (uint32_t c = 0; c < lrep.unconfirmed; ++c) {
+            const XpeBpmLine& L = unconfirmed[c];
+            DefectExtLine r;
+            r.orientation = L.orientation;
+            r.index = L.index;
+            r.width = L.width;
+            r.start = L.start;
+            r.end = L.end;
+            r.causes = L.causes;
+            r.flags = L.flags;
+            r.reason = L.reason;
+            r.strength = L.strength;
+            r.persistence = L.persistence;
+            r.correction = XPE_DEFECT_LINE_CORRECT_UNSPECIFIED;
+            ext.candidates.push_back(std::move(r));
+        }
+        for (uint32_t b = 0; b < blobsListed; ++b) ext.blobs.push_back({blobs[b].x0, blobs[b].y0, blobs[b].x1, blobs[b].y1, blobs[b].size});
+        std::string members = "\"method\":\"bpm_v2+lines\",\"margins_ltrb\":[" + std::to_string(opt.bpmMargin[0]) + "," + std::to_string(opt.bpmMargin[1]) + "," + std::to_string(opt.bpmMargin[2]) + "," +
+                              std::to_string(opt.bpmMargin[3]) + "],\"skip_first_dark\":false,\"first_dark_excluded_by\":\"" + std::string(firstExcluded ? "generator" : "none") + "\",\"line_pixel_bit_note\":\"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is "
+                              "contaminated by the line); do not cite it as the evidence for a line pixel\",\"candidates_are\":\"diagnostic appendix, not part of the defect layer\"";
+        DefectXcalWrite job;
+        job.width = opt.width;
+        job.height = opt.height;
+        job.map = mask.data();
+        job.area = area.data();
+        job.ext = &ext;
+        job.created_epoch_ms = 0;
+        job.expiry_epoch_ms = static_cast<int64_t>(opt.expiryMs);
+        job.session_id = "fixture";
+        job.extra_config_members = members;
+        std::remove(defectPath.c_str());
+        std::remove((defectPath + ".tmp").c_str());
+        const XpeErrorCode wrc = write_defect_xcal(defectPath.c_str(), job);
+        if (wrc != XPE_OK) {
+            std::fprintf(stderr, "writing defect.xcal (format version 2) failed (%d)\n", static_cast<int>(wrc));
+            return 7;
+        }
+        v2Info = "  \"defect_format\": {\n    \"xcal_version\": 2,\n    \"method\": \"xpe_bpm_generate_v2 + xpe_bpm_find_lines (line mask merged into the pixel map), blobs by xpe_bpm_blobs\",\n"
+                 "    \"skip_first_dark\": false,\n    \"first_dark_excluded_by\": \"" + std::string(firstExcluded ? "generator (once, before every stage)" : "none (--keep-first-dark: the list is used as given)") + "\",\n    \"margins_ltrb\": [" + std::to_string(opt.bpmMargin[0]) + ", " + std::to_string(opt.bpmMargin[1]) + ", " + std::to_string(opt.bpmMargin[2]) + ", " +
+                 std::to_string(opt.bpmMargin[3]) + "],\n    \"dark_frames_used\": " + std::to_string(rep2.dark_frames_used) + ",\n    \"pixels_outside_imaging_area\": " + std::to_string(outside) + ",\n    \"line_groups\": " + std::to_string(ext.lines.size()) +
+                 ",\n    \"line_pixels\": " + std::to_string(lrep.line_pixels) + ",\n    \"panel_reject\": " + std::to_string(lrep.panel_reject) + ",\n    \"blobs\": " + std::to_string(blobCount) +
+                 ",\n    \"blobs_listed\": " + std::to_string(blobsListed) + ",\n    \"unconfirmed_candidates\": " + std::to_string(ext.candidates.size()) +
+                 ",\n    \"limits\": \"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is contaminated by the line): it is not evidence for a line pixel; segment ends at a crossing "
+                 "may include pixels of the crossing line; the unconfirmed candidates are a diagnostic appendix and are not part of the defect layer\"\n  },\n";
     }
     for (const std::string& tmp : {offsetScratch, gainScratch}) {
         std::remove(tmp.c_str());
@@ -955,6 +1146,7 @@ int runFramesMode(const Options& opt) {
     const std::string offsetSha = sha256Hex(offsetPath), gainSha = sha256Hex(gainPath), defectSha = sha256Hex(defectPath);
     std::string inputs;
     std::vector<const InputFrame*> all;
+    if (firstExcluded) all.push_back(&firstDark);
     for (const auto& d : darks) all.push_back(&d);
     for (const auto& b : brights) all.push_back(&b);
     for (const auto& b : bpmOnly) all.push_back(&b);
@@ -963,6 +1155,20 @@ int runFramesMode(const Options& opt) {
         inputs += "    {\"role\": \"" + all[i]->role + "\", \"path\": \"" + jsonText(fs::path(all[i]->path).generic_string()) + "\", \"sha256\": \"" + all[i]->sha +
                   "\", \"mean\": " + fixed(all[i]->mean, 3) + "}" + (i + 1 < all.size() ? ",\n" : "\n");
     }
+    // QA-A-259: the dark list as given and as used, in one place, with the one list every stage reads.
+    const bool        gainRefIsMean = opt.gainDarkRef == "mean";
+    const std::string gainRefText = gainRefIsMean ? "the mean of the used darks (same list)" : (refIsFile ? "the file " + jsonText(refLabel) + " (not from the dark list)" : "none (no dark reference is subtracted)");
+    std::string       darkPolicy = "  \"dark_policy\": {\n    \"first_dark_excluded\": " + std::string(firstExcluded ? "true" : "false") + ",\n    \"one_list_for_all_stages\": " + (gainRefIsMean ? "true" : "false") +
+                             ",\n    \"stages_on_the_used_list\": " + (gainRefIsMean ? "[\"offset\", \"gain_dark_reference\", \"defect_map\"]" : "[\"offset\", \"defect_map\"]") +
+                             ",\n    \"gain_dark_reference\": \"" + gainRefText + "\",\n    \"given\": [\n";
+    for (size_t i = 0; i < givenDarkPaths.size(); ++i) {
+        darkPolicy += "      {\"path\": \"" + jsonText(fs::path(givenDarkPaths[i]).generic_string()) + "\", \"sha256\": \"" + givenDarkShas[i] + "\"}" + (i + 1 < givenDarkPaths.size() ? ",\n" : "\n");
+    }
+    darkPolicy += "    ],\n    \"used\": [\n";
+    for (size_t i = 0; i < darks.size(); ++i) {
+        darkPolicy += "      {\"path\": \"" + jsonText(fs::path(darks[i].path).generic_string()) + "\", \"sha256\": \"" + darks[i].sha + "\"}" + (i + 1 < darks.size() ? ",\n" : "\n");
+    }
+    darkPolicy += "    ]\n  },\n";
     std::ofstream manifest((work / "manifest.json").string(), std::ios::binary);
     if (!manifest || forcedFailure("manifest")) {
         std::fprintf(stderr, "writing manifest.json failed\n");
@@ -976,8 +1182,8 @@ int runFramesMode(const Options& opt) {
              << ", \"min_frames_bright\": " << cfg.min_frames_bright << "},\n    \"saturated_share_limit\": " << fixed(kSaturatedShareLimit, 4) << ",\n    \"gain_dose_ratio\": " << fixed(doseRatio, 4)
              << ",\n    \"gain_dose_ratio_limit\": " << fixed(kGainDoseRatioLimit, 2)
              << ",\n    \"gain_dose_basis\": \"mean over pixels of max(0, bright - gain dark reference); reference: " << jsonText(refLabel) << "\"\n  },\n  \"inputs\": [\n"
-             << inputs << "  ],\n  \"defect_pixels\": " << defectCount << ",\n"
-             << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
+             << inputs << "  ],\n" << darkPolicy << "  \"defect_pixels\": " << defectCount << ",\n"
+             << v2Info << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
              << "\"\n  }\n}\n";
     manifest.close();
     if (!manifest) {

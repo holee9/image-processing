@@ -1,0 +1,375 @@
+"""QA-A-255 step 0 (Codex #220: the fourth hold on the scoring truth, fixed by structure): ONE record per item and per overlap, the response axis (value, valid, source, why unused) and the
+noise axis (label, valid, pixels used) kept apart, and the final class computed in ONE function (finalVerdict). Consequences:
+ - an overlap is classified from its OWN measurement only; the classes of the covering items (above all their noise promotions, which were measured on pixels that exclude the shared ones) are not inherited;
+ - the sole thing an overlap takes from its items is the injection class of the kinds whose defect is defined by the injection and not by a level (hot, noisy, nonlinear): that is the
+   response axis, source named;
+ - an unmeasured response is NOT replaced by the nominal chain: response_valid = false with the reason, and the overlap is undetermined unless the other axis says defect;
+ - the earlier inheriting rule is still computed, as a diagnostic column (`inherited`), so the change it made can be counted.
+ - new command `chain` (the arithmetic of the injection chain, for the tests)."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+p = base + 'tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new, count=1):
+    global s
+    assert s.count(old) == count, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# ---- Item keeps its injection class
+sub('''struct Item {
+    int               id{0};
+    std::string       cls;     // pixel, block, line, control''', '''struct Item {
+    int               id{0};
+    std::string       cls;     // pixel, block, line, control (after the noise axis: also undetermined)
+    std::string       cls0;    // the class of truth.tsv, the injection class (QA-A-255: an overlap reads this, never the promotions of cls)''')
+sub('''            it.id = std::atoi(c[0].c_str());
+            it.cls = c[1];
+            it.kind = c[2];''', '''            it.id = std::atoi(c[0].c_str());
+            it.cls = c[1];
+            it.cls0 = c[1];
+            it.kind = c[2];''')
+
+# ---- NoiseRecord and the loader: pixels used
+sub('''struct NoiseRecord {
+    std::string label;   // defect, normal, undetermined
+    double      cost{0}, lo{0}, hi{0};
+};''', '''struct NoiseRecord {
+    std::string label;   // defect, normal, undetermined
+    double      cost{0}, lo{0}, hi{0};
+    size_t      used{0};   // QA-A-255: the pixels the label was decided on
+};''')
+sub('''        r.cost = std::strtod(c[6].c_str(), nullptr);
+        r.lo = std::strtod(c[7].c_str(), nullptr);
+        r.hi = std::strtod(c[8].c_str(), nullptr);
+        r.label = c[9];
+        (*out)[std::atoi(c[0].c_str())] = r;''', '''        r.cost = std::strtod(c[6].c_str(), nullptr);
+        r.lo = std::strtod(c[7].c_str(), nullptr);
+        r.hi = std::strtod(c[8].c_str(), nullptr);
+        r.label = c[9];
+        r.used = static_cast<size_t>(std::strtoull(c[4].c_str(), nullptr, 10));
+        (*out)[std::atoi(c[0].c_str())] = r;''')
+
+# ---- OverlapMeasure: pixels used
+sub('''struct OverlapMeasure {
+    std::string label;
+    double      cost{0}, response{1.0};
+    bool        clipped{false};
+};''', '''struct OverlapMeasure {
+    std::string label;
+    double      cost{0}, response{1.0};
+    bool        clipped{false};
+    size_t      used{0};   // QA-A-255: the pixels the noise label was decided on
+};''')
+sub('''        m.cost = std::strtod(c[5].c_str(), nullptr);
+        m.label = c[8];''', '''        m.cost = std::strtod(c[5].c_str(), nullptr);
+        m.used = static_cast<size_t>(std::strtoull(c[3].c_str(), nullptr, 10));
+        m.label = c[8];''')
+
+# ---- the record and THE function, before applyNoiseAxis
+a = s.index('/**\n * The two axes (QA-A-252f)')
+b = s.index('/** One distinct overlap:')
+NEW_AXES = r'''enum Verdict : uint8_t { kVerdictNormal = 1, kVerdictDefect = 2, kVerdictUndetermined = 3 };
+
+/** The response axis of a ground-truth record: a value, whether it is a valid measurement or definition, where it comes from and, when it is not valid, why it is not used. */
+struct ResponseAxis {
+    double      value{1.0};
+    bool        valid{false};
+    bool        defect{false};   ///< meaningful only when valid
+    std::string source;
+    std::string unused;          ///< the reason when !valid
+};
+
+/** The noise axis: whether the item or overlap was measured at all, the label, whether the label is a decision, the pixels that decided it. */
+struct NoiseAxis {
+    bool        applicable{false};
+    bool        valid{false};    ///< the label is defect or normal (not undetermined, not missing)
+    std::string label;
+    size_t      usedPixels{0};
+};
+
+/**
+ * THE rule (QA-A-255): the only place where the two axes become a class. Defect when a valid response says defect or a valid noise label says defect; undetermined when no axis says defect and
+ * the response is not valid or the noise axis (when it applies) is not a decision; normal when everything that applies says normal.
+ */
+Verdict finalVerdict(const ResponseAxis& r, const NoiseAxis& n) {
+    if ((r.valid && r.defect) || (n.applicable && n.valid && n.label == "defect")) return kVerdictDefect;
+    if (!r.valid || (n.applicable && !(n.valid && n.label == "normal"))) return kVerdictUndetermined;
+    return kVerdictNormal;
+}
+
+/**
+ * The two axes for the ITEMS (QA-A-252f): the response axis is the injection class of truth.tsv (a response below 45 % or above 150 % is a defect), the noise axis is the measured verdict.
+ * Both go through finalVerdict. Returns the numbers of items promoted to defect by the noise axis and made undetermined.
+ */
+void applyNoiseAxis(Truth* t, const std::map<int, NoiseRecord>& noise, int* promoted, int* undetermined, std::vector<uint8_t>* undetMask) {
+    *promoted = 0;
+    *undetermined = 0;
+    const size_t n = static_cast<size_t>(t->w) * t->h;
+    undetMask->assign(n, 0);
+    for (Item& it : t->items) {
+        const auto f = noise.find(it.id);
+        if (f == noise.end()) continue;
+        ResponseAxis r;
+        r.valid = true;
+        r.defect = it.cls0 != "control";
+        r.source = "injection class";
+        NoiseAxis nz;
+        nz.applicable = true;
+        nz.label = f->second.label;
+        nz.usedPixels = f->second.used;
+        nz.valid = f->second.used > 0 && (f->second.label == "defect" || f->second.label == "normal");
+        const Verdict v = finalVerdict(r, nz);
+        if (it.cls0 != "control") continue;   // the response axis already says defect: nothing to promote
+        if (v == kVerdictDefect) {
+            it.cls = defectClassOfShape(it.shape);
+            ++*promoted;
+        } else if (v == kVerdictUndetermined) {
+            it.cls = "undetermined";
+            ++*undetermined;
+        }
+    }
+    t->truthReal.assign(n, 0);
+    for (const Item& it : t->items) {
+        if (it.cls == "control") continue;
+        if (it.cls == "undetermined") {
+            forItemPixels(it, t->w, [&](size_t i) { (*undetMask)[i] = 1; });
+            continue;
+        }
+        forItemPixels(it, t->w, [&](size_t i) { t->truthReal[i] = 1; });
+    }
+}
+
+'''
+s = s[:a] + NEW_AXES + s[b:]
+
+# ---- the overlap record, replacing OverlapGroup / OverlapReport
+a = s.index('/** One distinct overlap: the set of items')
+b = s.index('/**\n * The items that cover each pixel covered twice or more')
+NEW_GROUP = r'''/** One distinct overlap: the set of items that cover a pixel (in injection order, at most kMaxOverlapItems) with its ground-truth record. */
+constexpr size_t kMaxOverlapItems = 8;
+
+struct OverlapGroup {
+    std::vector<int> ids;
+    size_t           pixels{0};
+    ResponseAxis     response;
+    NoiseAxis        noise;
+    bool             clipped{false}, unmeasured{false}, intrinsic{false};
+    uint8_t          inherited{0};   ///< DIAGNOSTIC: the class the earlier rule gave (the classes of the covering items inherited): 1 normal, 2 defect, 3 undetermined
+    uint8_t          after{0};       ///< the class of finalVerdict
+    size_t           flagged{0};
+    size_t           firstPixel{0};
+};
+
+std::string overlapKey(const std::vector<int>& ids) {
+    std::string k;
+    for (size_t j = 0; j < ids.size(); ++j) k += (j ? "+" : "") + std::to_string(ids[j]);
+    return k;
+}
+
+struct OverlapReport {
+    size_t pixels{0}, defect{0}, undetermined{0}, normal{0}, notInherited{0};
+    size_t inheritedDefect{0}, inheritedUndetermined{0}, inheritedNormal{0};
+    size_t noiseDefectPx{0}, noiseUndetPx{0}, unmeasuredPx{0}, clippedPx{0}, intrinsicPx{0};
+    size_t transition[4][4]{};        // [inherited][after]
+    std::vector<OverlapGroup> groups;
+};
+
+'''
+s = s[:a] + NEW_GROUP + s[b:]
+
+# the old overlapKey / OverlapReport definitions that stood between the structs and collectOverlaps are gone with the slice; remove any duplicate definition of overlapKey that remains
+dup = '''std::string overlapKey(const std::vector<int>& ids) {
+    std::string k;
+    for (size_t j = 0; j < ids.size(); ++j) k += (j ? "+" : "") + std::to_string(ids[j]);
+    return k;
+}
+
+'''
+first = s.index(dup)
+second = s.find(dup, first + 1)
+if second != -1:
+    s = s[:second] + s[second + len(dup):]
+
+# ---- applyOverlapComposite
+a = s.index('bool applyOverlapComposite(')
+b = s.index('// ------------------------------------------------------------------------------------------------------------- score')
+NEW_COMPOSITE = r'''bool applyOverlapComposite(Truth* t, std::vector<uint8_t>* undetMask, std::vector<uint8_t>* overlapClass, std::vector<uint32_t>* overlapGroup, OverlapReport* rep,
+                           const std::map<std::string, OverlapMeasure>* measured = nullptr) {
+    const size_t n = static_cast<size_t>(t->w) * t->h;
+    std::map<size_t, std::vector<int>> multi;
+    std::string                        err;
+    if (!collectOverlaps(*t, &multi, &err)) {
+        std::fprintf(stderr, "overlap composite: %s\n", err.c_str());
+        return false;
+    }
+    std::map<int, const Item*> byId;
+    for (const Item& it : t->items) byId[it.id] = &it;
+    overlapClass->assign(n, 0);
+    overlapGroup->assign(n, 0);
+    *rep = OverlapReport{};
+    std::map<std::string, uint32_t> index;
+    for (const auto& kv : multi) {
+        const size_t i = kv.first;
+        const std::vector<int>& ids = kv.second;
+        const std::string key = overlapKey(ids);
+        auto f = index.find(key);
+        if (f == index.end()) {
+            OverlapGroup g;
+            g.ids = ids;
+            g.firstPixel = i;
+            bool inheritedDefect = false, inheritedUndet = false;
+            std::vector<const Item*> chain;
+            for (int id : ids) {
+                const Item* it = byId[id];
+                chain.push_back(it);
+                if (it->cls == "undetermined") inheritedUndet = true;
+                else if (it->cls != "control") inheritedDefect = true;
+                if (it->cls0 != "control" && (it->kind == "hot" || it->kind == "noisy" || it->kind == "nonlinear")) g.intrinsic = true;
+            }
+            g.inherited = inheritedDefect ? 2 : (inheritedUndet ? 3 : 1);
+            // the record of the overlap: its OWN measurement, nothing of the covering items' single verdicts
+            g.noise.applicable = true;
+            g.noise.label = "none";
+            const OverlapMeasure* m = nullptr;
+            if (measured) {
+                const auto mf = measured->find(key);
+                if (mf != measured->end()) m = &mf->second;
+            }
+            if (!measured) {
+                g.response.unused = "no overlap measurement given (--overlap-truth)";
+                g.unmeasured = true;
+            } else if (!m) {
+                g.response.unused = "this overlap is not in the overlap measurement";
+                g.unmeasured = true;
+            } else {
+                g.response.value = m->response;
+                g.response.source = "measured chain (real dark level, local signal of the verification frames)";
+                g.clipped = m->clipped;
+                if (m->clipped) {
+                    g.response.unused = "the chain leaves 0..65535";
+                } else {
+                    g.response.valid = true;
+                    g.response.defect = m->response < kResponseDefectBelow - kRatioSlack || m->response > kResponseDefectAbove + kRatioSlack;
+                }
+                g.noise.label = m->label;
+                g.noise.usedPixels = m->used;
+                g.noise.valid = m->used > 0 && (m->label == "defect" || m->label == "normal");
+            }
+            if (g.intrinsic) {   // hot, noisy and nonlinear items are defects by the injection, not by a level: the response axis, source named
+                g.response.valid = true;
+                g.response.defect = true;
+                g.response.source += (g.response.source.empty() ? "" : " + ") + std::string("injection class of a hot/noisy/nonlinear item");
+                g.response.unused.clear();
+            }
+            g.after = finalVerdict(g.response, g.noise);
+            f = index.emplace(key, static_cast<uint32_t>(rep->groups.size())).first;
+            rep->groups.push_back(g);
+        }
+        OverlapGroup& g = rep->groups[f->second];
+        if (g.noise.valid && g.noise.label == "defect") ++rep->noiseDefectPx;
+        if (!g.noise.valid) ++rep->noiseUndetPx;
+        if (g.unmeasured) ++rep->unmeasuredPx;
+        if (g.clipped) ++rep->clippedPx;
+        if (g.intrinsic) ++rep->intrinsicPx;
+        ++g.pixels;
+        (*overlapGroup)[i] = f->second;
+        (*overlapClass)[i] = g.after;
+        ++rep->pixels;
+        ++rep->transition[g.inherited][g.after];
+        if (g.inherited == 2) ++rep->inheritedDefect; else if (g.inherited == 3) ++rep->inheritedUndetermined; else ++rep->inheritedNormal;
+        if (g.after == kVerdictDefect) {
+            ++rep->defect;
+            if (g.inherited != 2) {
+                ++rep->notInherited;
+                t->truthReal[i] = 1;
+            }
+        } else if (g.after == kVerdictUndetermined) {
+            ++rep->undetermined;
+            (*undetMask)[i] = 1;
+        } else {
+            ++rep->normal;
+        }
+    }
+    return true;
+}
+
+'''
+s = s[:a] + NEW_COMPOSITE + s[b:]
+
+# ---- the reporting in cmdScore
+sub('''        for (const OverlapGroup& g : overlap.groups) ovFlagBefore[g.before] += g.flagged;''', '''        for (const OverlapGroup& g : overlap.groups) ovFlagBefore[g.inherited] += g.flagged;''')
+sub('''                    "  rule: defect when a covering item is a defect by itself, or when the response through the injection chain is outside 0.45 .. 1.5; undetermined when a covering item is; else normal\\n"
+                    "  pixels %zu: defect %zu (of them %zu only by the response through the chain), undetermined %zu, normal %zu\\n"
+                    "  class by the earlier rule (before): defect %zu, undetermined %zu, normal %zu; change of class (before -> after): normal->defect %zu, undetermined->defect %zu, other %zu\\n"''',
+    '''                    "  rule (one function for items and overlaps): defect when a valid response (the overlap's own measured chain, or a hot/noisy/nonlinear item by injection) or a valid noise label says defect; undetermined when no axis says defect and the response is not valid or the noise label is not a decision; else normal. The classes of the covering items are NOT inherited\\n"
+                    "  pixels %zu: defect %zu (of them %zu not defect by the inheriting rule), undetermined %zu, normal %zu\\n"
+                    "  class by the INHERITING rule (diagnostic): defect %zu, undetermined %zu, normal %zu; change of class (inherited -> now): normal->defect %zu, undetermined->defect %zu, other %zu\\n"''')
+sub('''                    overlap.groups.size(), overlap.pixels, overlap.defect, overlap.promotedByResponse, overlap.undetermined, overlap.normal, overlap.beforeDefect, overlap.beforeUndetermined,
+                    overlap.beforeNormal, overlap.transition[1][2], overlap.transition[3][2], overlap.pixels - overlap.transition[1][2] - overlap.transition[3][2] - overlap.transition[2][2] - overlap.transition[3][3] - overlap.transition[1][1],''',
+    '''                    overlap.groups.size(), overlap.pixels, overlap.defect, overlap.notInherited, overlap.undetermined, overlap.normal, overlap.inheritedDefect, overlap.inheritedUndetermined,
+                    overlap.inheritedNormal, overlap.transition[1][2], overlap.transition[3][2], overlap.pixels - overlap.transition[1][2] - overlap.transition[3][2] - overlap.transition[2][2] - overlap.transition[3][3] - overlap.transition[1][1],''')
+sub('''        if (haveOverlapTruth)
+            std::printf("  measured (%s, %zu groups read): pixels whose noise label is defect %zu, undetermined %zu; not in the measurement %zu; chain outside 0..65535 %zu\\n", a.str("overlap-truth").c_str(),
+                        overlapMeasured.size(), overlap.noiseDefectPx, overlap.noiseUndetPx, overlap.unmeasuredPx, overlap.clippedPx);''',
+    '''        std::printf("  response: %zu pixels have no valid measured response (not measured %zu, chain outside 0..65535 %zu; these are not judged by the nominal chain); %zu pixels are defect by the injection class of a hot/noisy/nonlinear item\\n"
+                    "  noise: pixels whose overlap noise label is defect %zu, not a decision (undetermined or missing) %zu%s\\n",
+                    overlap.unmeasuredPx + overlap.clippedPx, overlap.unmeasuredPx, overlap.clippedPx, overlap.intrinsicPx, overlap.noiseDefectPx, overlap.noiseUndetPx,
+                    haveOverlapTruth ? (" (measurement: " + a.str("overlap-truth") + ", " + std::to_string(overlapMeasured.size()) + " groups read)").c_str() : " (no measurement given)");''')
+# the list
+sub('''            std::string tsv = "items\\tkinds\\tpixels\\tresponse\\tbefore\\tafter\\tflagged\\tfirst_pixel_x\\tfirst_pixel_y\\n";''',
+    '''            std::string tsv = "items\\tkinds\\tpixels\\tresponse\\tresponse_valid\\tresponse_source\\tresponse_unused\\tnoise_label\\tnoise_valid\\tnoise_used\\tinherited\\tfinal\\tflagged\\tfirst_pixel_x\\tfirst_pixel_y\\n";''')
+sub('''                char b[1200];
+                std::snprintf(b, sizeof b, "%s\\t%s\\t%zu\\t%.4f\\t%s\\t%s\\t%zu\\t%zu\\t%zu\\n", overlapKey(g.ids).c_str(), kinds.c_str(), g.pixels, g.response, cn[g.before], cn[g.after], g.flagged,
+                              g.firstPixel % t.w, g.firstPixel / t.w);''', '''                char b[1800];
+                std::snprintf(b, sizeof b, "%s\\t%s\\t%zu\\t%.4f\\t%d\\t%s\\t%s\\t%s\\t%d\\t%zu\\t%s\\t%s\\t%zu\\t%zu\\t%zu\\n", overlapKey(g.ids).c_str(), kinds.c_str(), g.pixels, g.response.value, g.response.valid ? 1 : 0,
+                              g.response.source.empty() ? "-" : g.response.source.c_str(), g.response.unused.empty() ? "-" : g.response.unused.c_str(), g.noise.label.c_str(), g.noise.valid ? 1 : 0, g.noise.usedPixels,
+                              cn[g.inherited], cn[g.after], g.flagged, g.firstPixel % t.w, g.firstPixel / t.w);''')
+# json
+sub('''                          overlap.pixels, overlap.defect, overlap.promotedByResponse, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);''',
+    '''                          overlap.pixels, overlap.defect, overlap.notInherited, overlap.undetermined, overlap.normal, ovFlag[2], ovFlag[3], ovFlag[1], ovNew[1]);''')
+s = s.replace('overlap_defect_by_response', 'overlap_defect_not_inherited')   # the meaning changed with the rule: defect now, not by the inheriting rule
+
+# ---- the chain command
+sub('''int cmdBlobs(const Args& a) {''', r'''/**
+ * chain --truth DIR --items a+b+c [--dark D] [--signal S] (QA-A-255): the response of the injection chain for the items in the given order, with the dark level D (default 1000) and the net
+ * bright signal S (default 10000); prints "response R clipped C". The arithmetic the overlap measurement uses, for the tests.
+ */
+int cmdChain(const Args& a) {
+    Truth t;
+    if (!a.has("truth") || !a.has("items") || !loadTruth(a.str("truth"), &t)) {
+        usage();
+        return 2;
+    }
+    std::map<int, const Item*> byId;
+    for (const Item& it : t.items) byId[it.id] = &it;
+    std::vector<const Item*> chain;
+    const std::string        spec = a.str("items");
+    size_t                   from = 0;
+    while (from <= spec.size()) {
+        size_t plus = spec.find('+', from);
+        if (plus == std::string::npos) plus = spec.size();
+        const auto f = byId.find(std::atoi(spec.substr(from, plus - from).c_str()));
+        if (f == byId.end()) {
+            std::fprintf(stderr, "chain: no item %s\n", spec.substr(from, plus - from).c_str());
+            return 3;
+        }
+        chain.push_back(f->second);
+        from = plus + 1;
+    }
+    bool         clipped = false;
+    const double r = chainResponseAt(chain, a.has("dark") ? std::strtod(a.str("dark").c_str(), nullptr) : 1000.0, a.has("signal") ? std::strtod(a.str("signal").c_str(), nullptr) : 10000.0, &clipped);
+    std::printf("response %.4f clipped %d\n", r, clipped ? 1 : 0);
+    return 0;
+}
+
+int cmdBlobs(const Args& a) {''')
+sub('    if (a.cmd == "blobs") return cmdBlobs(a);', '    if (a.cmd == "blobs") return cmdBlobs(a);\n    if (a.cmd == "chain") return cmdChain(a);')
+
+# the header comment of the tool
+sub(' *       --overlap-truth (QA-A-252j)', ' *   xpe_bpm_eval chain --truth DIR --items a+b+c [--dark D] [--signal S]\n *       The response of the injection chain (QA-A-255; the arithmetic of the overlap measurement)\n *       --overlap-truth (QA-A-252j)')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('truth record patched')

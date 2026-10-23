@@ -1,0 +1,109 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    p = base + rel
+    s = open(p, encoding='utf-8', newline='').read()
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:90])
+        s = s.replace(old, new)
+    open(p, 'w', encoding='utf-8', newline='').write(s)
+
+
+edit('include/xpe/preprocess_api.h', [
+    ('''    uint32_t skip_first_dark;     /**< 1 = the first dark frame (before the detector settles) is not used; 0 = use it. Zero-initialised means 0 */''',
+     '''    uint32_t skip_first_dark;     /**< The dark list is the RAW acquisition list: its first frame (taken before the detector settles) is not used.
+                                       *   XPE_BPM_V2_SKIP_DEFAULT (0, also a NULL configuration) and XPE_BPM_V2_SKIP_FIRST (1): skip it.
+                                       *   XPE_BPM_V2_SKIP_NONE (2): the list was already trimmed, use every frame. Anything else is refused */'''),
+    ('''/**
+ * Map code of a pixel outside the imaging area (see XpeBpmConfigV2 margins). Defect codes are 1..3. These pixels take no part in the decision or in any local
+ * statistic (row and column components, background, scale, thresholds, frame means); consumers that read the map as "non-zero = defect" must treat this code as good.
+ */
+#define XPE_BPM_V2_OUT_OF_AREA 4u
+''', '''/** Values of XpeBpmConfigV2::skip_first_dark. */
+#define XPE_BPM_V2_SKIP_DEFAULT 0u /**< Default: the first dark frame of the raw list is skipped */
+#define XPE_BPM_V2_SKIP_FIRST   1u /**< The first dark frame is skipped (same as the default) */
+#define XPE_BPM_V2_SKIP_NONE    2u /**< The list is already trimmed: every dark frame is used */
+'''),
+    (''' * Bright frames may be of several doses; they are grouped by signal (see XpeBpmConfigV2).
+ *
+ * @param dark_frames Dark frames (UINT16, offset-uncorrected), all of one size
+ * @param num_dark Number of dark frames, before the optional skipping of the first''', ''' * Bright frames may be of several doses; they are grouped by signal (see XpeBpmConfigV2).
+ *
+ * Input contract: the dark frames are the raw acquisition list. The first one is skipped by default (see XpeBpmConfigV2::skip_first_dark;
+ * pass XPE_BPM_V2_SKIP_NONE for a list that was trimmed already), so a list of five frames leaves four and is refused by the default minimum of five.
+ *
+ * False alarms: the threshold of each feature is set for a target of expected false alarms PER FEATURE (default 1). The union over the features is expected to hold
+ * about as many by chance as there are features that ran (up to six); the report states the counts per feature.
+ *
+ * Imaging area: pixels in the margins of the configuration are outside the imaging area (shielded or dummy). They take no part in the decision or in any local statistic
+ * (frame means, row and column components, background, scale, the N of the false-alarm target). In bpm_out and feature_out they are 0, exactly like a good pixel,
+ * so the map keeps the meaning of the defect codes (0 good, 1..3 and above as in xpe_bpm_generate); the pixels outside the area are told by area_out.
+ *
+ * @param dark_frames Dark frames (UINT16, offset-uncorrected), all of one size
+ * @param num_dark Number of dark frames in the raw list, before the skipping of the first'''),
+    (''' * @param feature_out Optional output (UINT8, size of the frames): the XPE_BPM_V2_FEATURE_* bits
+ *        of the features that flagged each pixel; NULL to skip
+''', ''' * @param feature_out Optional output (UINT8, size of the frames): the XPE_BPM_V2_FEATURE_* bits
+ *        of the features that flagged each pixel; NULL to skip
+ * @param area_out Optional output (UINT8, size of the frames): 1 for a pixel inside the imaging area, 0 outside (see the margins of the configuration); NULL to skip
+'''),
+    ('''    XpeImageBuffer* feature_out,
+    XpeBpmReportV2* report);''', '''    XpeImageBuffer* feature_out,
+    XpeImageBuffer* area_out,
+    XpeBpmReportV2* report);'''),
+])
+
+edit('src/xpe_bpm_v2.cpp', [
+    ('''    s->skip = 0;
+    s->minDark = 5;''', '''    s->skip = 1;   // the dark list is the raw acquisition list: its first frame is skipped unless the caller says it was trimmed already
+    s->minDark = 5;'''),
+    ('''    s->skip = in->skip_first_dark != 0 ? 1u : 0u;
+''', '''    if (in->skip_first_dark > XPE_BPM_V2_SKIP_NONE) return XPE_ERR_INVALID_INPUT;
+    s->skip = in->skip_first_dark == XPE_BPM_V2_SKIP_NONE ? 0u : 1u;
+'''),
+    ('''extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeBpmReportV2* report) try {
+    const uint32_t ml''', '''extern "C" XPE_API XpeErrorCode xpe_bpm_generate_v2(const XpeImageBuffer* dark_frames, uint32_t num_dark, const XpeImageBuffer* bright_frames, uint32_t num_bright,
+                                                    const XpeBpmConfigV2* cfg, XpeImageBuffer* bpm_out, XpeImageBuffer* feature_out, XpeImageBuffer* area_out,
+                                                    XpeBpmReportV2* report) try {
+    const uint32_t ml'''),
+    ('''    if (ml == 0 && mt == 0 && mr == 0 && mb == 0) {
+        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report);
+        if (rc == XPE_OK && report) report->out_of_area_pixels = 0;
+        return rc;
+    }''', '''    if (ml == 0 && mt == 0 && mr == 0 && mb == 0) {
+        if (area_out && bpm_out) {
+            if (!area_out->data) return XPE_ERR_INVALID_INPUT;
+            if (area_out->format != XPE_PIXEL_UINT8) return XPE_ERR_UNSUPPORTED_FORMAT;
+            if (area_out->width != bpm_out->width || area_out->height != bpm_out->height || area_out->dataSize < static_cast<size_t>(bpm_out->width) * bpm_out->height) return XPE_ERR_BUFFER_TOO_SMALL;
+        }
+        const XpeErrorCode rc = generateV2Core(dark_frames, num_dark, bright_frames, num_bright, cfg, bpm_out, feature_out, report);
+        if (rc == XPE_OK) {
+            if (report) report->out_of_area_pixels = 0;
+            if (area_out) std::memset(area_out->data, 1, static_cast<size_t>(bpm_out->width) * bpm_out->height);
+        }
+        return rc;
+    }'''),
+    ('''    if (const XpeErrorCode rc = checkOut(bpm_out)) return rc;
+    if (feature_out)
+        if (const XpeErrorCode rc = checkOut(feature_out)) return rc;
+
+    auto crop''', '''    if (const XpeErrorCode rc = checkOut(bpm_out)) return rc;
+    if (feature_out)
+        if (const XpeErrorCode rc = checkOut(feature_out)) return rc;
+    if (area_out)
+        if (const XpeErrorCode rc = checkOut(area_out)) return rc;
+
+    auto crop'''),
+    ('''    std::memset(mapDst, static_cast<int>(XPE_BPM_V2_OUT_OF_AREA), n);''', '''    std::memset(mapDst, 0, n);   // outside the imaging area the map is 0 (good): the defect codes keep their meaning, the area has its own output'''),
+    ('''    if (report) report->out_of_area_pixels = static_cast<uint32_t>(n - cn);
+    return XPE_OK;''', '''    if (area_out) {
+        uint8_t* areaDst = static_cast<uint8_t*>(area_out->data);
+        std::memset(areaDst, 0, n);
+        for (uint32_t y = 0; y < ch; ++y) std::memset(areaDst + static_cast<size_t>(y + mt) * width + ml, 1, cw);
+    }
+    if (report) report->out_of_area_pixels = static_cast<uint32_t>(n - cn);
+    return XPE_OK;'''),
+])
+print('patched')

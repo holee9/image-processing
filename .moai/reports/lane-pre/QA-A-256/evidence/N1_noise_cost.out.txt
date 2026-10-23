@@ -1,0 +1,291 @@
+== exposure of the verification frames (global dose = median net signal of the unplanted pixels)
+  frame 0 dose 9397.29 scale 0.99929
+  frame 1 dose 9383.86 scale 1.00072
+== variance-signal curve of the unplanted pixels (1856970 pixels in 12 bins of 154747; relative standard error of a bin 0.006)
+  signal 8504 -> variance 2320.43   signal 9479 -> variance 3233.66   signal 9984 -> variance 3876.34
+== overlapped pixels, measured (1326 distinct overlaps, 1690 pixels): defect 47, normal 48, undetermined 1231 groups; 0 groups leave 0..65535 in the chain
+  pooled by kinds and levels                           groups  pixels    used      cost     ideal
+  efficiency_loss@0.3 + efficiency_loss@0.4                 5       6       6     4.328    8.3333  undetermined
+  efficiency_loss@0.3 + efficiency_loss@0.44                6       7       7     9.259    7.5758  defect
+  efficiency_loss@0.3 + efficiency_loss@0.46                6       9       9     4.575    7.2464  defect
+  efficiency_loss@0.3 + efficiency_loss@0.6                 4       6       6     0.817    5.5556  undetermined
+  efficiency_loss@0.3 + efficiency_loss@0.7                 3       4       4     6.998    4.7619  defect
+  efficiency_loss@0.3 + fixed_band@100                      3       4       4    12.702         -  defect
+  efficiency_loss@0.3 + gain_band@1.2                       3       4       4     3.068         -  undetermined
+  efficiency_loss@0.3 + gain_loss@0.3                       5       7       7     4.481    3.3333  undetermined
+  efficiency_loss@0.3 + gain_loss@0.4                       4       5       5     5.118    3.3333  undetermined
+  efficiency_loss@0.3 + gain_loss@0.46                      4       5       5     4.368    3.3333  undetermined
+  efficiency_loss@0.3 + gain_loss@0.6                       6      11      11     8.067    3.3333  defect
+  efficiency_loss@0.3 + noisy@2                             5       8       8     2.165         -  undetermined
+  efficiency_loss@0.3 + noisy@4                             6       7       7     7.119         -  defect
+  efficiency_loss@0.3 + nonlinear@0.2                       4       5       5     1.898         -  undetermined
+  efficiency_loss@0.3 + nonlinear@0.4                       8       9       9     5.884         -  defect
+  efficiency_loss@0.3 + varying_band@20                     3       3       3     8.201         -  defect
+  efficiency_loss@0.4 + efficiency_loss@0.44                4       5       5     6.722    5.6818  defect
+  efficiency_loss@0.4 + efficiency_loss@0.6                 5       6       6     2.140    4.1667  undetermined
+  efficiency_loss@0.4 + efficiency_loss@0.7                 6       8       8     3.277    3.5714  undetermined
+  efficiency_loss@0.4 + fixed_band@100                      3       4       4     1.912         -  undetermined
+  efficiency_loss@0.4 + fixed_band@30                       3       3       3     0.676         -  undetermined
+  efficiency_loss@0.4 + gain_band@0.8                       4       5       5     0.914         -  undetermined
+  efficiency_loss@0.4 + gain_band@1.2                       4       6       6     0.317         -  normal
+  efficiency_loss@0.4 + gain_loss@0.3                       5       6       6     7.096    2.5000  defect
+  efficiency_loss@0.4 + gain_loss@0.4                       3       4       4     9.874    2.5000  defect
+  efficiency_loss@0.4 + gain_loss@0.44                      5       7       7     3.901    2.5000  undetermined
+  efficiency_loss@0.4 + gain_loss@0.6                       5       7       7     2.997    2.5000  undetermined
+  efficiency_loss@0.4 + gain_loss@0.7                       7       8       8     1.731    2.5000  undetermined
+  efficiency_loss@0.4 + noisy@2                             5       6       6     2.150         -  undetermined
+  efficiency_loss@0.4 + noisy@4                            10      14      14     2.715         -  undetermined
+  efficiency_loss@0.4 + nonlinear@0.2                       8      13      13     3.153         -  undetermined
+  efficiency_loss@0.4 + nonlinear@0.4                       6       7       7     3.835         -  undetermined
+  efficiency_loss@0.4 + varying_band@20                     3       4       4     2.964         -  undetermined
+  efficiency_loss@0.4 + varying_band@8                      5       6       6     3.000         -  undetermined
+  efficiency_loss@0.44 + efficiency_loss@0.44               3       5       5     8.162    5.1653  defect
+  efficiency_loss@0.44 + efficiency_loss@0.46               4       4       4     5.136    4.9407  undetermined
+  efficiency_loss@0.44 + efficiency_loss@0.6                5       6       6     2.629    3.7879  undetermined
+  efficiency_loss@0.44 + efficiency_loss@0.7                3       3       3     2.239    3.2468  undetermined
+  efficiency_loss@0.44 + fixed_band@100                     3       3       3     0.716         -  undetermined
+  efficiency_loss@0.44 + fixed_band@30                      3       4       4     3.967         -  undetermined
+  efficiency_loss@0.44 + gain_band@1.2                      3       3       3     3.162         -  undetermined
+  efficiency_loss@0.44 + gain_loss@0.3                      6      10      10     3.325    2.2727  undetermined
+  efficiency_loss@0.44 + gain_loss@0.4                      5       6       6     2.379    2.2727  undetermined
+  efficiency_loss@0.44 + gain_loss@0.44                     5       6       6     4.526    2.2727  undetermined
+  efficiency_loss@0.44 + gain_loss@0.46                     4       4       4     2.353    2.2727  undetermined
+  efficiency_loss@0.44 + gain_loss@0.6                      4       7       7     5.497    2.2727  defect
+  efficiency_loss@0.44 + gain_loss@0.7                      4       6       6     3.400    2.2727  undetermined
+  efficiency_loss@0.44 + noisy@2                            7       9       9     1.571         -  undetermined
+  efficiency_loss@0.44 + noisy@4                            7       9       9     1.688         -  undetermined
+  efficiency_loss@0.44 + nonlinear@0.2                      3       4       4     4.985         -  undetermined
+  efficiency_loss@0.44 + nonlinear@0.4                      8      14      14     2.556         -  undetermined
+  efficiency_loss@0.44 + varying_band@20                    3       4       4     2.879         -  undetermined
+  efficiency_loss@0.44 + varying_band@8                     3       4       4     2.256         -  undetermined
+  efficiency_loss@0.46 + efficiency_loss@0.6                9      13      13     5.143    3.6232  defect
+  efficiency_loss@0.46 + efficiency_loss@0.7                3       3       3     3.525    3.1056  undetermined
+  efficiency_loss@0.46 + fixed_band@100                     4       6       6     1.886         -  undetermined
+  efficiency_loss@0.46 + gain_band@0.8                      3       3       3     1.166         -  undetermined
+  efficiency_loss@0.46 + gain_band@1.2                      4       5       5     5.884         -  defect
+  efficiency_loss@0.46 + gain_loss@0.3                      4       4       4     2.913    2.1739  undetermined
+  efficiency_loss@0.46 + gain_loss@0.4                      3       4       4     1.881    2.1739  undetermined
+  efficiency_loss@0.46 + gain_loss@0.44                     3       3       3     1.522    2.1739  undetermined
+  efficiency_loss@0.46 + gain_loss@0.46                     3       3       3     8.908    2.1739  defect
+  efficiency_loss@0.46 + gain_loss@0.6                      5       7       7     1.860    2.1739  undetermined
+  efficiency_loss@0.46 + noisy@2                            4       5       5     0.710         -  undetermined
+  efficiency_loss@0.46 + noisy@4                            5       5       5     0.621         -  undetermined
+  efficiency_loss@0.46 + nonlinear@0.2                      3       3       3     0.999         -  undetermined
+  efficiency_loss@0.46 + nonlinear@0.4                      9      14      14     1.604         -  undetermined
+  efficiency_loss@0.46 + varying_band@20                    4       5       5     2.208         -  undetermined
+  efficiency_loss@0.6 + efficiency_loss@0.7                 4       6       6     4.189    2.3810  undetermined
+  efficiency_loss@0.6 + gain_band@0.8                       3       4       4     3.146         -  undetermined
+  efficiency_loss@0.6 + gain_band@1.2                       3       4       4     2.357         -  undetermined
+  efficiency_loss@0.6 + gain_loss@0.3                       5       7       7     6.639    1.6667  defect
+  efficiency_loss@0.6 + gain_loss@0.4                       7       9       9     1.730    1.6667  undetermined
+  efficiency_loss@0.6 + gain_loss@0.44                      3       4       4     1.856    1.6667  undetermined
+  efficiency_loss@0.6 + gain_loss@0.46                      7       9       9     2.412    1.6667  undetermined
+  efficiency_loss@0.6 + gain_loss@0.6                       5       6       6     3.927    1.6667  undetermined
+  efficiency_loss@0.6 + gain_loss@0.7                       3       3       3     0.178    1.6667  undetermined
+  efficiency_loss@0.6 + noisy@2                             5       6       6     0.409         -  undetermined
+  efficiency_loss@0.6 + noisy@4                             5       6       6     2.319         -  undetermined
+  efficiency_loss@0.6 + nonlinear@0.2                       3       4       4     1.938         -  undetermined
+  efficiency_loss@0.6 + nonlinear@0.4                       9      12      12     1.705         -  undetermined
+  efficiency_loss@0.6 + varying_band@8                      3       4       4     2.492         -  undetermined
+  efficiency_loss@0.7 + fixed_band@100                      3       4       4     1.497         -  undetermined
+  efficiency_loss@0.7 + gain_band@0.8                       3       4       4     0.547         -  undetermined
+  efficiency_loss@0.7 + gain_band@1.2                       4       6       6     0.945         -  undetermined
+  efficiency_loss@0.7 + gain_loss@0.3                       5       7       7     3.201    1.4286  undetermined
+  efficiency_loss@0.7 + gain_loss@0.4                       4       4       4     2.841    1.4286  undetermined
+  efficiency_loss@0.7 + gain_loss@0.44                      4       6       6     0.689    1.4286  undetermined
+  efficiency_loss@0.7 + gain_loss@0.46                      4       5       5     2.595    1.4286  undetermined
+  efficiency_loss@0.7 + gain_loss@0.6                       4       5       5     0.797    1.4286  undetermined
+  efficiency_loss@0.7 + gain_loss@0.7                       5       8       8     0.737    1.4286  undetermined
+  efficiency_loss@0.7 + noisy@2                             5       7       7     0.830         -  undetermined
+  efficiency_loss@0.7 + noisy@4                             7      12      12     1.367         -  undetermined
+  efficiency_loss@0.7 + nonlinear@0.2                       6      10      10     1.078         -  undetermined
+  efficiency_loss@0.7 + nonlinear@0.4                       6       7       7     2.062         -  undetermined
+  efficiency_loss@0.7 + varying_band@20                     3       4       4     1.502         -  undetermined
+  efficiency_loss@0.7 + varying_band@8                      3       4       4     1.606         -  undetermined
+  fixed_band@100 + gain_loss@0.3                            3       4       4     3.059         -  undetermined
+  fixed_band@100 + gain_loss@0.4                            4       4       4     0.711         -  undetermined
+  fixed_band@100 + gain_loss@0.44                           3       4       4     0.812         -  undetermined
+  fixed_band@100 + gain_loss@0.46                           4       5       5     0.887         -  undetermined
+  fixed_band@100 + gain_loss@0.6                            3       3       3     0.544         -  undetermined
+  fixed_band@100 + gain_loss@0.7                            3       3       3     0.270         -  undetermined
+  fixed_band@100 + noisy@4                                  5       6       6     1.656         -  undetermined
+  fixed_band@100 + nonlinear@0.4                            7       8       8     0.856         -  undetermined
+  fixed_band@30 + gain_loss@0.3                             5       6       6     0.714         -  undetermined
+  fixed_band@30 + gain_loss@0.44                            3       3       3     3.028         -  undetermined
+  fixed_band@30 + gain_loss@0.7                             3       4       4     0.983         -  undetermined
+  fixed_band@30 + noisy@2                                   3       4       4     0.846         -  undetermined
+  fixed_band@30 + noisy@4                                   6       6       6     0.747         -  undetermined
+  fixed_band@30 + nonlinear@0.2                             3       4       4     0.687         -  undetermined
+  fixed_band@30 + nonlinear@0.4                             4       4       4     0.734         -  undetermined
+  gain_band@0.8 + gain_loss@0.3                             4       4       4     1.571         -  undetermined
+  gain_band@0.8 + gain_loss@0.4                             3       3       3     1.634         -  undetermined
+  gain_band@0.8 + gain_loss@0.46                            3       4       4     0.245         -  undetermined
+  gain_band@0.8 + gain_loss@0.6                             3       3       3     0.557         -  undetermined
+  gain_band@0.8 + noisy@2                                   3       4       4     0.670         -  undetermined
+  gain_band@0.8 + noisy@4                                   5       5       5     0.685         -  undetermined
+  gain_band@0.8 + nonlinear@0.4                             5       5       5     0.543         -  undetermined
+  gain_band@1.2 + gain_loss@0.3                             3       3       3     2.381         -  undetermined
+  gain_band@1.2 + gain_loss@0.4                             4       4       4     1.711         -  undetermined
+  gain_band@1.2 + gain_loss@0.44                            3       4       4     1.554         -  undetermined
+  gain_band@1.2 + gain_loss@0.46                            4       5       5     0.471         -  undetermined
+  gain_band@1.2 + gain_loss@0.6                             3       3       3     0.605         -  undetermined
+  gain_band@1.2 + gain_loss@0.7                             3       3       3     0.909         -  undetermined
+  gain_band@1.2 + noisy@2                                   3       4       4     1.573         -  undetermined
+  gain_band@1.2 + noisy@4                                   5       6       6     1.038         -  undetermined
+  gain_band@1.2 + nonlinear@0.2                             3       3       3     0.343         -  undetermined
+  gain_band@1.2 + nonlinear@0.4                             7       8       8     0.660         -  undetermined
+  gain_loss@0.3 + gain_loss@0.3                             3       3       3     0.927    1.0000  undetermined
+  gain_loss@0.3 + gain_loss@0.4                             5       6       6     0.469    1.0000  undetermined
+  gain_loss@0.3 + gain_loss@0.44                            6       9       9     3.026    1.0000  undetermined
+  gain_loss@0.3 + gain_loss@0.46                            5       6       6     0.192    1.0000  normal
+  gain_loss@0.3 + gain_loss@0.6                             4       7       7     1.690    1.0000  undetermined
+  gain_loss@0.3 + noisy@2                                   6       8       8     0.807         -  undetermined
+  gain_loss@0.3 + noisy@4                                  11      15      15     0.765         -  normal
+  gain_loss@0.3 + nonlinear@0.2                             4       4       4     0.730         -  undetermined
+  gain_loss@0.3 + nonlinear@0.4                             8      12      12     0.262         -  normal
+  gain_loss@0.3 + varying_band@20                           4       6       6     1.311         -  undetermined
+  gain_loss@0.3 + varying_band@8                            4       5       5     1.463         -  undetermined
+  gain_loss@0.4 + gain_loss@0.4                             3       5       5     1.729    1.0000  undetermined
+  gain_loss@0.4 + gain_loss@0.44                            6       7       7     1.195    1.0000  undetermined
+  gain_loss@0.4 + gain_loss@0.46                            3       4       4     0.616    1.0000  undetermined
+  gain_loss@0.4 + gain_loss@0.6                             4       5       5     0.910    1.0000  undetermined
+  gain_loss@0.4 + gain_loss@0.7                             3       3       3     2.640    1.0000  undetermined
+  gain_loss@0.4 + noisy@2                                   6      10      10     2.553         -  undetermined
+  gain_loss@0.4 + noisy@4                                   6       7       7     0.585         -  undetermined
+  gain_loss@0.4 + nonlinear@0.2                             5       5       5     0.443         -  undetermined
+  gain_loss@0.4 + nonlinear@0.4                             7       9       9     0.792         -  undetermined
+  gain_loss@0.4 + varying_band@20                           3       3       3     0.621         -  undetermined
+  gain_loss@0.44 + gain_loss@0.44                           3       4       4     0.748    1.0000  undetermined
+  gain_loss@0.44 + gain_loss@0.46                           4       6       6     0.798    1.0000  undetermined
+  gain_loss@0.44 + gain_loss@0.6                            4       4       4     0.559    1.0000  undetermined
+  gain_loss@0.44 + gain_loss@0.7                            5       7       7     0.732    1.0000  undetermined
+  gain_loss@0.44 + noisy@2                                  3       4       4     0.831         -  undetermined
+  gain_loss@0.44 + noisy@4                                  7       8       8     1.232         -  undetermined
+  gain_loss@0.44 + nonlinear@0.2                            4       5       5     2.050         -  undetermined
+  gain_loss@0.44 + nonlinear@0.4                            9      12      12     0.500         -  normal
+  gain_loss@0.44 + varying_band@20                          4       5       5     0.826         -  undetermined
+  gain_loss@0.46 + gain_loss@0.6                            8      15      15     0.957    1.0000  undetermined
+  gain_loss@0.46 + gain_loss@0.7                            3       3       3     1.441    1.0000  undetermined
+  gain_loss@0.46 + noisy@2                                  7       9       9     1.260         -  undetermined
+  gain_loss@0.46 + noisy@4                                  7       9       9     1.791         -  undetermined
+  gain_loss@0.46 + nonlinear@0.2                            4       5       5     0.173         -  normal
+  gain_loss@0.46 + nonlinear@0.4                            8      11      11     0.704         -  undetermined
+  gain_loss@0.46 + varying_band@20                          3       4       4     0.413         -  undetermined
+  gain_loss@0.6 + gain_loss@0.6                             4       6       6     1.408    1.0000  undetermined
+  gain_loss@0.6 + gain_loss@0.7                             5       9       9     0.346    1.0000  normal
+  gain_loss@0.6 + noisy@2                                   3       3       3     0.184         -  undetermined
+  gain_loss@0.6 + noisy@4                                   6       8       8     0.843         -  undetermined
+  gain_loss@0.6 + nonlinear@0.2                             4       4       4     0.844         -  undetermined
+  gain_loss@0.6 + nonlinear@0.4                             7       7       7     0.589         -  undetermined
+  gain_loss@0.6 + varying_band@20                           4       5       5     1.115         -  undetermined
+  gain_loss@0.6 + varying_band@8                            3       4       4     0.241         -  undetermined
+  gain_loss@0.7 + gain_loss@0.7                             3       3       3     0.463    1.0000  undetermined
+  gain_loss@0.7 + noisy@2                                   4       5       5     0.801         -  undetermined
+  gain_loss@0.7 + noisy@4                                   9      13      13     2.105         -  undetermined
+  gain_loss@0.7 + nonlinear@0.2                             4       4       4     1.507         -  undetermined
+  gain_loss@0.7 + nonlinear@0.4                            11      21      21     0.491         -  normal
+  gain_loss@0.7 + varying_band@20                           4       5       5     1.092         -  undetermined
+  gain_loss@0.7 + varying_band@8                            4       5       5     3.250         -  undetermined
+  noisy@2 + noisy@2                                         4       6       6     0.447         -  undetermined
+  noisy@2 + noisy@4                                         6       7       7     0.463         -  normal
+  noisy@2 + nonlinear@0.2                                   3       4       4     2.224         -  undetermined
+  noisy@2 + nonlinear@0.4                                  10      13      13     0.753         -  normal
+  noisy@2 + varying_band@8                                  3       4       4     0.455         -  undetermined
+  noisy@4 + noisy@4                                         7       8       8     0.770         -  undetermined
+  noisy@4 + nonlinear@0.2                                   8      11      11     1.047         -  undetermined
+  noisy@4 + nonlinear@0.4                                  10      12      12     0.710         -  normal
+  noisy@4 + varying_band@20                                 5       5       5     0.920         -  undetermined
+  noisy@4 + varying_band@8                                  5       6       6     1.244         -  undetermined
+  nonlinear@0.2 + nonlinear@0.4                             9      14      14     1.383         -  undetermined
+  nonlinear@0.2 + varying_band@20                           5       7       7     2.633         -  undetermined
+  nonlinear@0.2 + varying_band@8                            4       5       5     0.338         -  undetermined
+  nonlinear@0.4 + nonlinear@0.4                             6       8       8     0.188         -  normal
+  nonlinear@0.4 + varying_band@20                           6       7       7     0.351         -  normal
+  nonlinear@0.4 + varying_band@8                            4       4       4     0.333         -  undetermined
+== the labels are PROVISIONAL (effective degrees of freedom from blocks of 64 pixels; the spatial correlation is not yet checked against an independent replicate)
+== noise cost of the response items (2 verification frames, nu = 1 per pixel, limit 2.00)
+  kind/shape/level                              items  defect  normal  undetermined  median cost
+  efficiency_loss/col_full/0.3                      1       1       0             0        3.553
+  efficiency_loss/col_full/0.4                      1       1       0             0        2.580
+  efficiency_loss/col_full/0.44                     1       1       0             0        2.278
+  efficiency_loss/col_full/0.46                     1       1       0             0        2.338
+  efficiency_loss/col_full/0.6                      1       0       1             0        1.785
+  efficiency_loss/col_full/0.7                      1       0       1             0        1.545
+  efficiency_loss/col_pair/0.3                      1       1       0             0        3.774
+  efficiency_loss/col_pair/0.4                      1       1       0             0        2.390
+  efficiency_loss/col_pair/0.44                     1       1       0             0        2.206
+  efficiency_loss/col_pair/0.46                     1       1       0             0        2.371
+  efficiency_loss/col_pair/0.6                      1       0       0             1        1.883
+  efficiency_loss/col_pair/0.7                      1       0       1             0        1.614
+  efficiency_loss/col_partial/0.3                   1       1       0             0        3.208
+  efficiency_loss/col_partial/0.4                   1       1       0             0        2.573
+  efficiency_loss/col_partial/0.44                  1       1       0             0        2.380
+  efficiency_loss/col_partial/0.46                  1       0       0             1        1.982
+  efficiency_loss/col_partial/0.6                   1       0       1             0        1.550
+  efficiency_loss/col_partial/0.7                   1       0       1             0        1.436
+  efficiency_loss/pixel/0.3                        64       9       1            54        1.202
+  efficiency_loss/pixel/0.4                        64       2       2            60        1.233
+  efficiency_loss/pixel/0.44                       64       4       1            59        1.487
+  efficiency_loss/pixel/0.46                       64       1       6            57        0.748
+  efficiency_loss/pixel/0.6                        64       0       3            61        0.426
+  efficiency_loss/pixel/0.7                        64       1       1            62        0.800
+  efficiency_loss/row_full/0.3                      1       1       0             0        3.272
+  efficiency_loss/row_full/0.4                      1       1       0             0        2.537
+  efficiency_loss/row_full/0.44                     1       1       0             0        2.152
+  efficiency_loss/row_full/0.46                     1       1       0             0        2.463
+  efficiency_loss/row_full/0.6                      1       0       1             0        1.814
+  efficiency_loss/row_full/0.7                      1       0       1             0        1.452
+  efficiency_loss/row_pair/0.3                      1       1       0             0        3.182
+  efficiency_loss/row_pair/0.4                      1       1       0             0        2.575
+  efficiency_loss/row_pair/0.44                     1       1       0             0        2.283
+  efficiency_loss/row_pair/0.46                     1       0       0             1        2.159
+  efficiency_loss/row_pair/0.6                      1       0       1             0        1.803
+  efficiency_loss/row_pair/0.7                      1       0       1             0        1.351
+  efficiency_loss/row_partial/0.3                   1       1       0             0        4.253
+  efficiency_loss/row_partial/0.4                   1       1       0             0        2.622
+  efficiency_loss/row_partial/0.44                  1       1       0             0        2.639
+  efficiency_loss/row_partial/0.46                  1       0       0             1        2.187
+  efficiency_loss/row_partial/0.6                   1       0       0             1        2.186
+  efficiency_loss/row_partial/0.7                   1       0       1             0        1.372
+  gain_loss/col_full/0.3                            1       0       1             0        1.069
+  gain_loss/col_full/0.4                            1       0       1             0        1.039
+  gain_loss/col_full/0.44                           1       0       1             0        0.958
+  gain_loss/col_full/0.46                           1       0       1             0        0.992
+  gain_loss/col_full/0.6                            1       0       1             0        0.947
+  gain_loss/col_full/0.7                            1       0       1             0        0.936
+  gain_loss/col_pair/0.3                            1       0       1             0        1.041
+  gain_loss/col_pair/0.4                            1       0       1             0        0.988
+  gain_loss/col_pair/0.44                           1       0       1             0        1.066
+  gain_loss/col_pair/0.46                           1       0       1             0        1.004
+  gain_loss/col_pair/0.6                            1       0       1             0        1.020
+  gain_loss/col_pair/0.7                            1       0       1             0        1.030
+  gain_loss/col_partial/0.3                         1       0       1             0        0.876
+  gain_loss/col_partial/0.4                         1       0       1             0        0.991
+  gain_loss/col_partial/0.44                        1       0       1             0        1.010
+  gain_loss/col_partial/0.46                        1       0       1             0        0.915
+  gain_loss/col_partial/0.6                         1       0       1             0        1.025
+  gain_loss/col_partial/0.7                         1       0       1             0        0.949
+  gain_loss/pixel/0.3                              64       0       4            60        0.381
+  gain_loss/pixel/0.4                              64       0       4            60        0.362
+  gain_loss/pixel/0.44                             64       0       4            60        0.518
+  gain_loss/pixel/0.46                             64       1       5            58        0.520
+  gain_loss/pixel/0.6                              64       0       1            63        0.428
+  gain_loss/pixel/0.7                              64       0       2            62        0.491
+  gain_loss/row_full/0.3                            1       0       1             0        1.047
+  gain_loss/row_full/0.4                            1       0       1             0        0.946
+  gain_loss/row_full/0.44                           1       0       1             0        0.980
+  gain_loss/row_full/0.46                           1       0       1             0        1.019
+  gain_loss/row_full/0.6                            1       0       1             0        1.047
+  gain_loss/row_full/0.7                            1       0       1             0        0.972
+  gain_loss/row_pair/0.3                            1       0       1             0        1.017
+  gain_loss/row_pair/0.4                            1       0       1             0        0.960
+  gain_loss/row_pair/0.44                           1       0       1             0        0.992
+  gain_loss/row_pair/0.46                           1       0       1             0        0.996
+  gain_loss/row_pair/0.6                            1       0       1             0        1.098
+  gain_loss/row_pair/0.7                            1       0       1             0        1.005
+  gain_loss/row_partial/0.3                         1       0       1             0        0.984
+  gain_loss/row_partial/0.4                         1       0       1             0        0.991
+  gain_loss/row_partial/0.44                        1       0       1             0        0.978
+  gain_loss/row_partial/0.46                        1       0       1             0        0.987
+  gain_loss/row_partial/0.6                         1       0       1             0        0.918
+  gain_loss/row_partial/0.7                         1       0       1             0        0.950

@@ -1,0 +1,6 @@
+start 2026-10-17 00:58:18  V1_set
+offset.xcal  60b00354e98a32a87d188e58ec864d98736d53ead53725df19b4f00349d4e349
+gain.xcal    a0f1a768957a2341a43916b6fb20c583530497531894033e5165d60169a05d5c
+defect.xcal  989c388f5e86d1e0a8b06a0af4967912d0ebe8481976e666d355a178ec9a8748  (155752 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/bpm-eval-252e/inj_set\manifest.json
+exit 0 wall seconds 414

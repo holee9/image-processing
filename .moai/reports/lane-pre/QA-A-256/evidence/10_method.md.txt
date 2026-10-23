@@ -1,0 +1,35 @@
+[2026-10-17 09:53 KST] QA-A-256 B16 판정 측정 — 방법, 행별 명령·필드, 예측 (측정 전에 기록)
+
+## 입력과 도구
+- 도구: 지금 HEAD 의 `xpe_bpm_eval`(진실표·겹침 판정 468bd58d 계열, 255b 까지 반영), `xpe_calib_fixture_gen`. 코드는 이 측정 동안 바꾸지 않는다.
+- 주입: 252f `inj_d`(시드 251, 지금 쓰는 주입: 응답 항목 gain_loss·efficiency_loss, 대조군, 잡음 항목). 정답: 항목 판정 = 응답 축(응답 45 % 미만·150 % 초과만 결함) + 잡음 축(`noise-cost`, 252g 와 바이트 동일해야 함), 겹침 화소 = 합성 판정(`--overlap composite`, `noise-cost --overlap-out`).
+- 1판 열도 지금 주입으로 다시 잰다(18:27 의 값은 바뀌기 전 주입). 두 판 모두 `xpe_calib_fixture_gen` 으로 오프셋·게인·결함 맵을 같은 영상에서 한 세트로 만든다: 1판은 `--dark 08..14 --bright 23..28 --bpm-bright 17..28,31..36`, 2판은 거기에 `--bpm-v2 --bpm-margins 6,2,1,1`. 깨끗한 쪽 기준도 각 판의 세트(cyan_test 원본 같은 목록).
+- **입력 차이(측정 한계로 미리 적는다)**: 2판 생성기는 목록의 첫 다크 영상을 건너뛴다(주입 영상 목록에는 Dark_07 이 없어 Dark_08 이 건너뛰어진다). 2판 결함 맵은 다크 6장, 1판은 7장이다. 252i 는 7장(건너뛰기 끔)이었다.
+- 코드가 도는 순서: `20_measure_b16.sh.txt`(한 번씩, 하나씩). 표는 `21_tabulate.py.txt`, 새 오경보의 특성별 분해는 `22_newfa_split.py.txt`(진단, 점수 아님).
+
+## 표의 행 → 명령·필드
+| 행 | 명령 | 필드 / 계산 |
+|---|---|---|
+| dead 화소·덩어리·dead 라인·nonlinear 0.4 라인 ≥ 0.98 | `score` | `detection[]` 의 `pixel/dead`, `block/dead`, `line/dead`, `line/nonlinear/*/0.4` 그룹마다 detected/items, 최저값 |
+| hot 100/200, hot 50 ≥ 0.95, hot 25 보고 | `score` | `pixel/hot/pixel/{100,200,50,25}` detected/items |
+| slope 0.9/1.1/0.75/1.25 | `score` | 지금 주입에 기울기 항목이 없다 → "측정 불가" 로 적고 응답 항목 검출을 정보로 적는다. 기준표·정답 규칙은 바꾸지 않는다 |
+| nonlinear 0.2 화소 ≥ 0.234 | `score` | `pixel/nonlinear/pixel/0.2` |
+| noisy m = 4 ≥ 0.70, m = 2·1 보고 | `score` | `pixel/noisy/pixel/{4,2,1}` |
+| 대조군 띠 오검출 = 0 | `score` | `control_false_detections` / `control_items` |
+| 새 오경보 ≤ 10 | `score` | `new_false_alarms`, `new_false_alarms_in_controls`; 특성별 분해는 `22_newfa_split` |
+| 절반 분할 Jaccard | `score` | `jaccard_all`, `jaccard_inside_truth` (값만 보고, 사용자 결정으로 판정 보류) |
+| 보정 후 D_n 라인 부분 \|비\| > 3 ≤ 6 (프레임마다) | `correct` | `frames[].parts_over_3_sigma.corrected` (표의 54 개는 이전 주입의 부분 수, 지금은 142 — 기준 6 은 표대로 절대 수로 적용) |
+| 라인 밖 행·열 \|D_n\| > 3 이 깨끗한 출력 +10 % 이내 | `correct` | `frames[].other_rows/other_columns` 의 corrected 대 clean, 행·열 따로 |
+| 검출된 결함의 보정 오차 중앙값 z ≤ 1판 | `correct` | `correction_error[]` 그룹·프레임마다 `corrected.median_z` 2판 ≤ 1판 |
+| 계산 불가 = 불합격 | `correct` | `parts_uncomputable`, `correction_error[].corrected.invalid` |
+| 프레임당 보정 시간 < 95 ms | (인용) | QA-A-255 의 관측값, 다시 재지 않음 |
+
+판정 불가 정답은 어느 쪽에도 합치지 않고 개수를 따로 적는다(`undetermined_items`, 겹침 `overlap_undetermined`).
+
+## 예측 (측정 전)
+A. 항목 진실표(`noise-cost`)는 252g 와 바이트 동일.
+B. 2판: dead/덩어리/dead 라인/nonlinear 0.4 모두 1.0 근처(≥ 0.98), hot 100/200/50/25 전부 ≥ 0.95, 대조군 오검출 0, noisy m=4 는 0.70 근처 — 다크가 6장이라 252i 의 0.766 보다 낮을 수 있어 합격 여부는 불확실(0.60~0.80).
+C. 2판 새 오경보는 10 을 크게 넘는다(1,000 안팎, 252i 의 1,251 근처). 1판은 수만(252g 의 77,047 근처)이고 대조군 오검출은 수백.
+D. 보정: 2판 라인 부분 \|비\| > 3 은 6 을 넘는다(255 에서 10 / 15). 줄 밖 행은 깨끗한 출력 +10 % 이내, 열은 개수가 작아 판정이 갈릴 수 있다. 보정 오차 z 는 줄 그룹에서 2판이 1판보다 커서 해당 행은 불합격.
+E. 불합격 행의 원인 구분(미리 적는 가설): 새 오경보 = 알고리즘 문제(대조군 위가 대부분일 것 — 252i 에서 1,110/1,251), 보정 라인 D_n = 알고리즘 한계(양옆 보간) + 측정 한계(평가 프레임 2장), noisy = 측정 한계(다크 장 수).
+틀리면 보고서에 그대로 적는다.

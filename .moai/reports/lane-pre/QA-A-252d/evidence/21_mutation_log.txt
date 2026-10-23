@@ -1,0 +1,26 @@
+QA-A-252d mutation check of the response items of the injector (tools/xpe_bpm_eval.cpp). Source hash at the start: 7e73896d76496d45
+PREDICTIONS (written before any run):
+  T1 the boundary: 0.45 is a defect (<= instead of <)                       -> red: ResponseItemsAreDefectsBelow45Percent... and the item-count test (InjectFollowsTheSpecCounts...), nothing else
+  T2 efficiency loss without the added quantum noise term                    -> red: EfficiencyLossScalesTheQuantumNoise... only
+  T3 gain loss is not applied to the bright frames                           -> red: EfficiencyLoss... (its gain residual is large) only
+  T4 the quantum gain is not measured (always the default 0.25)              -> red: EfficiencyLoss... (the measured flag and the prediction) only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 23 passed, failed: []
+--- T1
+build: BUILD_EXIT=0
+tests exit 1: 20 passed, FAILED: ['InjectFollowsTheSpecCountsAndPlacementRules', 'ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- T2
+build: BUILD_EXIT=0
+tests exit 1: 22 passed, FAILED: ['EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot']
+--- T3
+build: BUILD_EXIT=0
+tests exit 1: 22 passed, FAILED: ['EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot']
+--- T4
+build: BUILD_EXIT=0
+tests exit 1: 22 passed, FAILED: ['EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot']
+--- restored: touch + rebuild
+source hash now: 7e73896d76496d45 (start: 7e73896d76496d45)
+build: BUILD_EXIT=0
+tests exit 0: 23 passed, failed: []

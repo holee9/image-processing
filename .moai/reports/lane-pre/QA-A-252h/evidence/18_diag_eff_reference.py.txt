@@ -1,0 +1,63 @@
+"""QA-A-252h diagnosis, fifth step (card item 4, the local expectation): 17_diag_eff_response.out.txt shows that the response squared correction is exact on the efficiency-loss line pixels
+(measured response / planted response 1.000; correcting with the planted response changes the mean statistic by 0.001) and that the position along the item does not matter (the middle of the items
+has the same mean T as the ends). What remains of the factors of the statistic vg * corrGain / ref is the reference. The reference of a line pixel is the separable median (17 along x, then 17 along y)
+of vg, so the line's own pixels (whose variance is lowered) are inside the window. Hypothesis H1b: that lowers the reference and raises the ratio. This script recomputes the statistic with the
+reference taken from the pixels that belong to no planted item (nan-aware median, same window) and compares the mean statistic and the flag rate per level with the committed one and with the cost of the
+truth path. Reads outputs only; nothing here changes a method or a threshold."""
+import numpy as np
+
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/'
+src = open(HERE + '10_diag_line_noise.py.txt', encoding='utf-8').read()
+head = src[:src.index('# (a) the replication')]
+ns = {'__name__': 'diag'}
+exec(head, ns)
+H, W, G, TAU, WIN, R = ns['H'], ns['W'], len(ns['groups']), ns['TAU'], ns['WIN'], ns['R']
+items, corr, itemmask = ns['items'], ns['corr'], ns['itemmask']
+T, hits, ratios, refs, vgs = ns['statistic'](corr)
+cover = np.zeros((H, W), dtype=np.int16)
+effR = np.zeros((H, W), dtype=np.float32)
+for it in items:
+    for (x, y, w, h) in it['rects']:
+        cover[y:y + h, x:x + w] += 1
+        if it['kind'] == 'efficiency_loss' and it['shape'] != 'pixel':
+            effR[y:y + h, x:x + w] = float(it['level'])
+mnu_of = {2: 0.455, 3: 0.693, 4: 0.789, 5: 0.839, 6: 0.870}
+T2 = np.zeros((H, W), dtype=np.float64)
+hits2 = np.zeros((H, W), dtype=np.int8)
+nu = 0
+refratio = []
+for gi, g in enumerate(ns['groups']):
+    m = len(g)
+    vgm = vgs[gi].copy()
+    vgm[cover > 0] = np.nan
+    pad = np.pad(vgm, ((R, R), (R, R)), mode='reflect')
+    rows = np.empty((H, W + 2 * R), dtype=np.float32)
+    for r0 in range(0, H, 96):
+        v = np.lib.stride_tricks.sliding_window_view(pad[r0:r0 + 96 + 2 * R], WIN, axis=0)
+        rows[r0:r0 + 96] = np.nanmedian(v, axis=2)[: min(96, H - r0)]
+    ref_out = np.empty((H, W), dtype=np.float32)
+    for r0 in range(0, H, 96):
+        v = np.lib.stride_tricks.sliding_window_view(rows[r0:r0 + 96], WIN, axis=1)
+        ref_out[r0:r0 + 96] = np.nanmedian(v, axis=2)
+    ref_out = np.maximum(ref_out / mnu_of[m], 1e-9)
+    ref_use = np.where(np.isnan(ref_out) | (cover == 0), refs[gi], ref_out)
+    refratio.append(refs[gi] / ref_use)
+    ratio = vgs[gi] * corr / ref_use
+    T2 += (m - 1) * ratio
+    hits2 += (ratio >= 2.0).astype(np.int8)
+    nu += m - 1
+T2 /= nu
+refratio = sum(refratio) / len(refratio)
+flag1 = (T > TAU) & (2 * hits >= G)
+flag2 = (T2 > TAU) & (2 * hits2 >= G)
+inter = np.zeros((H, W), dtype=bool)
+inter[12:-12, 12:-12] = True
+cost = {0.3: 3.55, 0.4: 2.58, 0.44: 2.28, 0.46: 2.34, 0.6: 1.81, 0.7: 1.45}
+theory = {0.3: 0.214, 0.4: 0.0438, 0.44: 0.0181, 0.46: 0.0221, 0.6: 0.0021, 0.7: 0.0001}
+print('efficiency-loss line pixels covered by one item, per level: committed reference (window includes the item pixels) against a reference from the pixels outside every item')
+print('  level  pixels | mean ref(committed)/ref(outside) | mean T committed | mean T outside ref | truth-path cost | flag rate committed | flag rate outside ref | theory rate')
+for lv in (0.3, 0.4, 0.44, 0.46, 0.6, 0.7):
+    mk = inter & (cover == 1) & (np.abs(effR - lv) < 1e-6)
+    print('  %.2f %7d | %.4f | %.3f | %.3f | %.2f | %.4f | %.4f | %.4f' % (lv, mk.sum(), float(refratio[mk].mean()), T[mk].mean(), T2[mk].mean(), cost[lv], float(flag1[mk].mean()), float(flag2[mk].mean()), theory[lv]))
+free = inter & (cover == 0)
+print('ordinary pixels: mean T committed %.4f, mean T outside ref %.4f (unchanged by construction)' % (T[free].mean(), T2[free].mean()))

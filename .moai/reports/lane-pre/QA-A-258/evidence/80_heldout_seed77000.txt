@@ -1,0 +1,18 @@
+Note: Google Test filter = BpmLinesLof*DISABLED_*
+[==========] Running 2 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from BpmLinesLofNegativeTest
+[ RUN      ] BpmLinesLofNegativeTest.DISABLED_FullBudgetOfOneHundredImages
+[negative controls] images 100, images with a false LINEARITY group on a planted line 0 (eff0.6 0, eff0.44 0, gain 0, offset 0, hetero 0), LINEARITY groups anywhere 2
+[       OK ] BpmLinesLofNegativeTest.DISABLED_FullBudgetOfOneHundredImages (39031 ms)
+[----------] 1 test from BpmLinesLofNegativeTest (39031 ms total)
+
+[----------] 1 test from BpmLinesLofPositiveTest
+[ RUN      ] BpmLinesLofPositiveTest.DISABLED_FullPowerOfOneHundredTwentyImages
+[positive controls] images 120, detected 120, weakest cell 4 of 4 seeds
+[       OK ] BpmLinesLofPositiveTest.DISABLED_FullPowerOfOneHundredTwentyImages (47723 ms)
+[----------] 1 test from BpmLinesLofPositiveTest (47723 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 2 test suites ran. (86755 ms total)
+[  PASSED  ] 2 tests.

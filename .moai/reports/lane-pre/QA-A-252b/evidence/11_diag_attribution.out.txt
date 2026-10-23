@@ -1,0 +1,53 @@
+items 1139
+new false alarms (planted flagged, clean not, outside real defects widened 2): 32764 | clean flagged 11686 | planted flagged 104262
+check: new on control bands (exclusive id of a control item): 5658
+
+== new false alarms by Chebyshev distance to the nearest planted item (any item incl. control bands)
+ 0-2      5901
+ 3-5      1130
+ 6-10     2495
+ >10     23238
+
+== new false alarms by the class of the nearest item (distance <= 10), and > 10
+ pixel        868
+ block        234
+ line        1632
+ control     6792
+ >10        23238
+
+== features of the new false alarms (bit per pixel; a pixel can have several)
+ dark_mean            30
+ dark_noise         3498
+ dose_slope        27992
+ dose_linearity        0
+ flat_field        29224
+ features of ALL flags in the clean image:
+ dark_mean          2675
+ dark_noise          112
+ dose_slope         7668
+ dose_linearity        1
+ flat_field         8890
+
+== new false alarms on control bands, per band item and feature
+ item 41 fixed_band/col_full level 100 rects [(735, 0, 1, 3072)]: new 12 of 3054 own pixels | dark_mean 0, dark_noise 0, dose_slope 11, dose_linearity 0, flat_field 12
+ item 43 fixed_band/col_full level 30 rects [(2811, 0, 1, 3072)]: new 11 of 3054 own pixels | dark_mean 0, dark_noise 0, dose_slope 11, dose_linearity 0, flat_field 11
+ item 44 gain_band/row_full level 0.8 rects [(0, 413, 3072, 1)]: new 272 of 3050 own pixels | dark_mean 0, dark_noise 0, dose_slope 171, dose_linearity 0, flat_field 269
+ item 45 gain_band/col_full level 0.8 rects [(2285, 0, 1, 3072)]: new 591 of 3050 own pixels | dark_mean 0, dark_noise 0, dose_slope 490, dose_linearity 0, flat_field 591
+ item 46 gain_band/row_full level 1.2 rects [(0, 579, 3072, 1)]: new 543 of 3049 own pixels | dark_mean 0, dark_noise 0, dose_slope 406, dose_linearity 0, flat_field 537
+ item 47 gain_band/col_full level 1.2 rects [(807, 0, 1, 3072)]: new 733 of 3054 own pixels | dark_mean 0, dark_noise 0, dose_slope 589, dose_linearity 0, flat_field 731
+ item 49 varying_band/col_full level 20 rects [(978, 0, 1, 3072)]: new 3007 of 3053 own pixels | dark_mean 0, dark_noise 3007, dose_slope 10, dose_linearity 0, flat_field 10
+ item 51 varying_band/col_full level 8 rects [(2111, 0, 1, 3072)]: new 489 of 3048 own pixels | dark_mean 0, dark_noise 485, dose_slope 5, dose_linearity 0, flat_field 5
+
+== spatial structure of the clean-image flags (11686)
+ rows with >= 20 flags: 5 (flags in them: 2727); columns with >= 20 flags: 7 (flags in them: 5306)
+ isolated (no flagged neighbour): 3467; with 1-2 neighbours: 3302; with 3+ neighbours: 4917
+ border distance 0-7: 8045 flags in 98048 pixels (82.052 per thousand)
+ border distance 8-63: 246 flags in 672000 pixels (0.366 per thousand)
+ border distance 64-255: 856 flags in 2113536 pixels (0.405 per thousand)
+ border distance 256-9999: 2539 flags in 6553600 pixels (0.387 per thousand)
+ strongest columns: [(4, 1740), (3, 1397), (0, 972), (2, 623), (5, 328), (1, 226), (3071, 20), (344, 9), (345, 9), (1819, 8)]
+ strongest rows: [(0, 1708), (1, 535), (3071, 315), (2, 119), (3, 50), (3070, 17), (894, 14), (1153, 12), (496, 11), (495, 11)]
+
+== overlap with other maps (diagnostic only, not a ground truth)
+ BPM.raw size 18874368
+ BPM.raw is not 8-bit 3072x3072; skipped

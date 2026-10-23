@@ -1,0 +1,217 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+S = {}
+
+
+def load(rel):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    return s.replace('\r\n', '\n'), '\r\n' in s
+
+
+def save(rel, s, crlf):
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+def sub(old, new):
+    s = S['s']
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    S['s'] = s.replace(old, new)
+
+
+# ------------------------------------------------------------------------------------------------------------ header
+S['s'], crlf = load('include/xpe/preprocess_api.h')
+sub('''/** Bits of XpeBpmLine::flags. */''', '''/** Why a stretch is only a candidate (XpeBpmLine::reason of the unconfirmed list). */
+#define XPE_BPM_LINE_REASON_NONE           0u /**< A confirmed group */
+#define XPE_BPM_LINE_REASON_TOO_FEW_FRAMES 1u /**< The persistence could not be judged: fewer than three frames that can be judged (bright frames of dose groups of three or more) */
+
+/** Bits of XpeBpmLine::flags. */''')
+sub('''    float    persistence;  /**<''', '''    uint32_t reason;       /**< XPE_BPM_LINE_REASON_NONE for a confirmed group, the reason for an unconfirmed candidate */
+    float    persistence;  /**<''')
+sub('''    uint32_t truncated;           /**< 1 when more groups were found than max_lines */''', '''    uint32_t truncated;           /**< 1 when more groups were found than max_lines */
+    uint32_t unconfirmed;         /**< Candidates whose persistence could not be judged: they are NOT in the mask and not in the groups, they are listed apart (unconfirmed_out) */
+    uint32_t dark_frames_raw;     /**< Dark frames in the raw list */
+    uint32_t dark_frames_valid;   /**< Dark frames used for the persistence of the stretches found in the dark frames (after the first is skipped) */
+    uint32_t bright_frames_raw;   /**< Bright frames in the list */
+    uint32_t bright_frames_valid; /**< Bright frames used for the persistence of the stretches found in the bright frames: those of the dose groups of three or more (a pair cannot tell which of its two frames is odd) */''')
+sub(''' * @param max_lines Capacity of lines_out
+ * @param report Optional output''', ''' * @param max_lines Capacity of lines_out
+ * @param unconfirmed_out Optional array for the unconfirmed candidates (width 1, reason XPE_BPM_LINE_REASON_*, persistence -1); NULL to skip
+ * @param max_unconfirmed Capacity of unconfirmed_out
+ * @param report Optional output''')
+sub('''    XpeBpmLine* lines_out,
+    uint32_t max_lines,
+    XpeBpmLineReport* report);''', '''    XpeBpmLine* lines_out,
+    uint32_t max_lines,
+    XpeBpmLine* unconfirmed_out,
+    uint32_t max_unconfirmed,
+    XpeBpmLineReport* report);''')
+sub(''' * frames (the dark frames; for stretches found in the bright frames the frames of all dose groups pooled; a group of two has no median, its reference is its mean, and the pair that carries a burst counts as two frames of all).''', ''' * frames (the dark frames; for stretches found in the bright frames the frames of the dose groups of THREE OR MORE: a pair has no median and cannot tell which of its two
+ * frames is odd, so its frames count neither in the numerator nor in the denominator). A stretch whose persistence cannot be judged (fewer than three frames that can be
+ * judged) is not confirmed: it is not painted into the mask and not counted among the groups, it is listed apart (unconfirmed_out) with its place and the reason. The report
+ * says how many raw frames there were and how many were used for the persistence.''')
+save('include/xpe/preprocess_api.h', S['s'], crlf)
+
+# ------------------------------------------------------------------------------------------------------------ detector
+S['s'], crlf = load('src/xpe_bpm_v2.cpp')
+sub('''    float    persist{-1.0f};   // fraction of the dark frames in which the stretch is large; -1 = not tested''', '''    float    persist{-1.0f};   // fraction of the frames in which the stretch is large; -1 = not tested
+    bool     unconfirmed{false};   // the persistence could not be judged: a candidate, not a defect''')
+sub('''struct LineJob {
+    bool             countWeak{false};''', '''struct LineJob {
+    uint32_t         darkRaw{0}, darkValid{0}, brightRaw{0}, brightValid{0};   // the frames of the persistence judgement
+    bool             countWeak{false};''')
+sub('''                // large in half of the frames or fewer: noise that moves, not a defect of a place. A negative value says the test was not possible (fewer than three frames
+                // to judge by): the stretch is kept and reported with persistence -1
+                if (persist >= 0.0f && !(persist > 0.5f)) continue;
+            }
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax), persist});''', '''                // large in half of the frames or fewer: noise that moves, not a defect of a place. A negative value says the test was not possible (fewer than three frames
+                // to judge by): the stretch is an unconfirmed candidate, listed apart and never painted
+                if (persist < 0.0f) unconfirmed = true;
+                else if (!(persist > 0.5f)) continue;
+            }
+            out->push_back(Seg{orient, y, a, b, cause, static_cast<float>(zmax), persist, unconfirmed});''')
+sub('''            float persist = -1.0f;
+            if (cause == XPE_BPM_LINE_CAUSE_NOISE && job->persistence) {''', '''            float persist = -1.0f;
+            bool  unconfirmed = false;
+            if (cause == XPE_BPM_LINE_CAUSE_NOISE && job->persistence) {''')
+sub('''                if (job && mg >= 2) {
+                    // line persistence: the row and column means of every frame against the temporal median of the group (the mean for a pair)''', '''                if (job && mg >= 3) {
+                    // line persistence: the row and column means of every frame against the temporal median of the group (groups of three or more only)''')
+sub('''                    if (mg < 2) continue;   // a lone frame has no group to be judged against
+                    // a pair has no median (its reference is its mean, so both frames read as large when one carries a burst): the judgement pools the frames of all groups, and the
+                    // pair that carries a burst is then 2 frames of all of them''', '''                    // A pair has no median (its reference is its mean, so both frames read as large when one carries a burst) and cannot tell which frame is odd: the frames of
+                    // groups of fewer than three count neither in the numerator nor in the denominator (QA-A-253f)
+                    if (mg < 3) continue;''')
+sub('''    if (G > XPE_BPM_V2_MAX_DOSE_GROUPS) return XPE_ERR_INVALID_INPUT;''', '''    if (G > XPE_BPM_V2_MAX_DOSE_GROUPS) return XPE_ERR_INVALID_INPUT;
+    if (job) {   // lines: the frames of the persistence judgement (reported)
+        job->darkRaw = num_dark;
+        job->darkValid = nd;
+        job->brightRaw = num_bright;
+        job->brightValid = 0;
+        for (const auto& grp : groups)
+            if (grp.size() >= 3) job->brightValid += static_cast<uint32_t>(grp.size());
+    }''')
+# find_lines
+sub('''                                                   const XpeBpmConfigV2* cfg, const XpeBpmLineConfig* lcfg, XpeImageBuffer* line_mask_out, XpeBpmLine* lines_out,
+                                                   uint32_t max_lines, XpeBpmLineReport* report) try {''', '''                                                   const XpeBpmConfigV2* cfg, const XpeBpmLineConfig* lcfg, XpeImageBuffer* line_mask_out, XpeBpmLine* lines_out,
+                                                   uint32_t max_lines, XpeBpmLine* unconfirmed_out, uint32_t max_unconfirmed, XpeBpmLineReport* report) try {''')
+sub('''    const std::vector<Group> groups = groupSegments(job.segs, vw, vh);''', '''    // confirmed stretches become groups; the candidates whose persistence could not be judged are kept apart (never painted)
+    std::vector<Seg> confirmedSegs, pendingSegs;
+    for (const Seg& sg : job.segs) (sg.unconfirmed ? pendingSegs : confirmedSegs).push_back(sg);
+    const std::vector<Group> groups = groupSegments(confirmedSegs, vw, vh);
+    std::sort(pendingSegs.begin(), pendingSegs.end(), [](const Seg& p, const Seg& q) { return p.orient != q.orient ? p.orient < q.orient : (p.idx != q.idx ? p.idx < q.idx : p.a < q.a); });
+    std::vector<Seg> pending;
+    for (const Seg& sg : pendingSegs) {
+        if (!pending.empty() && pending.back().orient == sg.orient && pending.back().idx == sg.idx && sg.a <= pending.back().b) {
+            pending.back().b = std::max(pending.back().b, sg.b);
+            pending.back().z = std::max(pending.back().z, sg.z);
+        } else {
+            pending.push_back(sg);
+        }
+    }''')
+sub('''    rep.weak_response_stretches = job.weak;''', '''    rep.weak_response_stretches = job.weak;
+    rep.unconfirmed = static_cast<uint32_t>(pending.size());
+    rep.dark_frames_raw = job.darkRaw;
+    rep.dark_frames_valid = job.darkValid;
+    rep.bright_frames_raw = job.brightRaw;
+    rep.bright_frames_valid = job.brightValid;
+    if (unconfirmed_out)
+        for (size_t k = 0; k < pending.size() && k < max_unconfirmed; ++k) {
+            XpeBpmLine& o = unconfirmed_out[k];
+            o = XpeBpmLine{};
+            o.orientation = static_cast<uint32_t>(pending[k].orient);
+            o.index = static_cast<uint32_t>(pending[k].idx);
+            o.width = 1;
+            o.start = static_cast<uint32_t>(pending[k].a);
+            o.end = static_cast<uint32_t>(pending[k].b);
+            o.causes = pending[k].cause;
+            o.strength = pending[k].z;
+            o.reason = XPE_BPM_LINE_REASON_TOO_FEW_FRAMES;
+            o.persistence = -1.0f;
+        }''')
+save('src/xpe_bpm_v2.cpp', S['s'], crlf)
+
+# ------------------------------------------------------------------------------------------------------------ tool
+S['s'], crlf = load('tools/xpe_bpm_eval.cpp')
+sub(r'''    std::vector<XpeBpmLine> lines(4096);''', r'''    std::vector<XpeBpmLine> lines(4096), unconfirmed(4096);''')
+sub(r'''&cfg, &lc, &mb, lines.data(), static_cast<uint32_t>(lines.size()), &rep);''', r'''&cfg, &lc, &mb, lines.data(), static_cast<uint32_t>(lines.size()), unconfirmed.data(), static_cast<uint32_t>(unconfirmed.size()), &rep);''')
+sub(r'''    lines.resize(std::min<size_t>(rep.lines, lines.size()));''', r'''    lines.resize(std::min<size_t>(rep.lines, lines.size()));
+    unconfirmed.resize(std::min<size_t>(rep.unconfirmed, unconfirmed.size()));
+    if (a.has("unconfirmed")) {   // the candidates whose persistence could not be judged: place and reason, never in the mask
+        std::string ut = "orientation\tindex\tstart\tend\tcauses\tstrength\treason\n";
+        for (const XpeBpmLine& l : unconfirmed) {
+            char b[160];
+            std::snprintf(b, sizeof b, "%s\t%u\t%u\t%u\t%u\t%.2f\t%u\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.start, l.end, l.causes, static_cast<double>(l.strength), l.reason);
+            ut += b;
+        }
+        if (!writeBytes(a.str("unconfirmed"), ut.data(), ut.size())) return 3;
+    }''')
+sub(r'''\"pixels\": %u, \"weak_response_stretches\": %u,\n"''', r'''\"pixels\": %u, \"weak_response_stretches\": %u,\n"
+                  "  \"unconfirmed\": %u, \"dark_frames_raw\": %u, \"dark_frames_valid\": %u, \"bright_frames_raw\": %u, \"bright_frames_valid\": %u,\n"''')
+sub('''rep.line_pixels, rep.pixels, rep.weak_response_stretches,''', '''rep.line_pixels, rep.pixels, rep.weak_response_stretches,
+                  rep.unconfirmed, rep.dark_frames_raw, rep.dark_frames_valid, rep.bright_frames_raw, rep.bright_frames_valid,''')
+sub(r'''    std::printf("xpe_bpm_find_lines: %u groups''', r'''    std::printf("xpe_bpm_find_lines: %u unconfirmed candidates (persistence not judged); persistence frames: dark %u of %u raw, bright %u of %u raw\n", rep.unconfirmed, rep.dark_frames_valid, rep.dark_frames_raw,
+                rep.bright_frames_valid, rep.bright_frames_raw);
+    std::printf("xpe_bpm_find_lines: %u groups''')
+sub('char j[900];', 'char j[1600];')
+save('tools/xpe_bpm_eval.cpp', S['s'], crlf)
+
+# ------------------------------------------------------------------------------------------------------------ tests
+S['s'], crlf = load('tests/test_bpm_v2.cpp')
+sub('''    std::vector<XpeBpmLine>    lines;''', '''    std::vector<XpeBpmLine>    lines, unconfirmed;''')
+sub('''    r.lines.assign(64, XpeBpmLine{});
+    XpeImageBuffer mb = outBuf(r.mask);''', '''    r.lines.assign(64, XpeBpmLine{});
+    r.unconfirmed.assign(64, XpeBpmLine{});
+    XpeImageBuffer mb = outBuf(r.mask);''')
+sub('''cfg, lcfg, &mb, r.lines.data(), 64, &r.rep);''', '''cfg, lcfg, &mb, r.lines.data(), 64, r.unconfirmed.data(), 64, &r.rep);''')
+sub('''    r.lines.resize(std::min<size_t>(r.rep.lines, 64));''', '''    r.lines.resize(std::min<size_t>(r.rep.lines, 64));
+    r.unconfirmed.resize(std::min<size_t>(r.rep.unconfirmed, 64));''')
+sub('''xpe_bpm_find_lines(nullptr, 7, nullptr, 12, nullptr, nullptr, nullptr, nullptr, 0, nullptr));''', '''xpe_bpm_find_lines(nullptr, 7, nullptr, 12, nullptr, nullptr, nullptr, nullptr, 0, nullptr, 0, nullptr));''')
+sub('''kLnLowRow = 262144,''', '''kLnBrightBurstMask = 2097152, kLnLowRow = 262144,''')
+sub('''                if ((plant.lines & kLnBrightNoisyFrames)''', '''                if ((plant.lines & kLnBrightBurstMask) && bright && brightIdx >= 0 && ((plant.frameMask >> brightIdx) & 1u) && y == kSingleY && x >= kBurstFrom && x < kBurstTo)
+                    d += plant.burstAmp * 0.5 * std::sqrt(std::max(sig, 1.0));
+                if ((plant.lines & kLnBrightNoisyFrames)''')
+# the test of the untestable stretch: kept before, listed apart now
+a = S['s'].index('TEST(BpmV2LinesTest, ANoisyRowThatCannotBeJudgedFrameByFrameIsKeptAndSaysSo) {')
+b = S['s'].index('TEST(BpmV2LinesTest, TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup) {')
+S['s'] = S['s'][:a] + '''TEST(BpmV2LinesTest, ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted) {
+    // two bright frames in all: no majority is possible; the stretch found in the bright frames is an unconfirmed candidate, not a defect
+    Frames f = makeFrames(45, {9000.0}, 2, 7, lonePlant(kLnBrightNoisyFrames, 400.0, 3u));
+    XpeBpmConfigV2 cfg{};
+    cfg.min_frames_bright = 2;
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, &cfg, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(nullptr, noiseGroupAt(r, kSomeFramesY)) << "not confirmed";
+    ASSERT_GE(r.rep.unconfirmed, 1u);
+    const XpeBpmLine* u = nullptr;
+    for (const XpeBpmLine& l : r.unconfirmed)
+        if (l.orientation == XPE_BPM_LINE_ROW && l.index == static_cast<uint32_t>(kSomeFramesY)) u = &l;
+    ASSERT_NE(nullptr, u) << "it is on the list of unconfirmed candidates, with its place";
+    EXPECT_EQ(XPE_BPM_LINE_REASON_TOO_FEW_FRAMES, u->reason);
+    EXPECT_FLOAT_EQ(-1.0f, u->persistence);
+    for (uint32_t x = u->start; x < u->end; ++x) EXPECT_EQ(0, r.mask[static_cast<size_t>(kSomeFramesY) * kW + x]) << "an unconfirmed candidate is never painted: x " << x;
+    EXPECT_EQ(2u, r.rep.bright_frames_raw);
+    EXPECT_EQ(0u, r.rep.bright_frames_valid) << "a pair is not persistence evidence";
+    EXPECT_EQ(7u, r.rep.dark_frames_raw);
+    EXPECT_EQ(6u, r.rep.dark_frames_valid) << "the first dark frame is skipped";
+}
+
+TEST(BpmV2LinesTest, ABurstInOneFramePerPairIsNoPersistenceEvidence) {
+    // Codex #211: [100,0] [100,0] and [100,0] [100,0] [0,0]. A pair cannot tell which of its frames is odd: its frames count neither for nor against persistence
+    for (const std::vector<double>& doses : {std::vector<double>{2000.0, 4500.0}, std::vector<double>{2000.0, 4500.0, 9000.0}}) {
+        Frames f = makeFrames(48, doses, 2, 7, lonePlant(kLnBrightBurstMask, 20.0, 5u));   // frames 0 and 2: the first frame of the first and of the second pair
+        XpeBpmConfigV2 cfg{};
+        cfg.min_frames_bright = 2;
+        const XpeBpmLineConfig lc = shortWindows();
+        const LinesResult r = findLines(f, &cfg, &lc);
+        ASSERT_EQ(XPE_OK, r.rc);
+        EXPECT_EQ(nullptr, noiseGroupAt(r, kSingleY)) << doses.size() << " pairs: not confirmed";
+        for (uint32_t x = static_cast<uint32_t>(kBurstFrom); x < static_cast<uint32_t>(kBurstTo); ++x)
+            EXPECT_EQ(0, r.mask[static_cast<size_t>(kSingleY) * kW + x]) << doses.size() << " pairs: nothing painted at x " << x;
+        EXPECT_EQ(0u, r.rep.bright_frames_valid);
+        EXPECT_EQ(static_cast<uint32_t>(doses.size() * 2), r.rep.bright_frames_raw);
+    }
+}
+
+''' + S['s'][b:]
+save('tests/test_bpm_v2.cpp', S['s'], crlf)
+print('253f patched')

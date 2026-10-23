@@ -1,0 +1,2 @@
+xpe_bpm_find_lines: 0 unconfirmed candidates (persistence not judged); persistence frames: dark 6 of 6 raw, bright 18 of 18 raw
+xpe_bpm_find_lines: 0 groups (0 rows, 0 columns; 0 full, 0 partial, 0 double, 0 crossings), widest 0, panel reject 0

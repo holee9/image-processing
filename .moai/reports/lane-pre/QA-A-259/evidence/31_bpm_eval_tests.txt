@@ -1,0 +1,17 @@
+Note: Google Test filter = BpmEvalTest.Correct*:BpmEvalTest.ScoreCallsALine*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from BpmEvalTest
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged (343 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnSetsMadeWithTheFirstGenerationMapOfASmallInput
+[       OK ] BpmEvalTest.CorrectRunsOnSetsMadeWithTheFirstGenerationMapOfASmallInput (12879 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex
+[       OK ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex (18950 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow (415 ms)
+[----------] 4 tests from BpmEvalTest (32589 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (32589 ms total)
+[  PASSED  ] 4 tests.

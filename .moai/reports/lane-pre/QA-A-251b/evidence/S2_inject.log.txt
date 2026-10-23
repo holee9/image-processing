@@ -1,0 +1,3 @@
+start 2026-10-16 18:06:17  S2_inject
+planted 1139 items (123344 pixels with an item) in 7 dark, 18 bright and 2 evaluation frames; sigma_t 2.9144; truth in D:/workspace-github/xpe-data/bpm-eval-251/inj_b
+exit 0 wall seconds 5

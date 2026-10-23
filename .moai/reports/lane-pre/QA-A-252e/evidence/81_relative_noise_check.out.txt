@@ -1,0 +1,5 @@
+mean of the two frames differs by 2.510412428113341  (same dose if near 0)
+gain_loss        row_full  r=0.46  relative noise line 0.00004  neighbours 0.00004  ratio 0.954   (1/r = 2.174)
+gain_loss        col_full  r=0.46  relative noise line 0.00004  neighbours 0.00004  ratio 1.016   (1/r = 2.174)
+efficiency_loss  row_full  r=0.46  relative noise line 0.00007  neighbours 0.00004  ratio 1.915   (1/r = 2.174)
+efficiency_loss  col_full  r=0.46  relative noise line 0.00007  neighbours 0.00003  ratio 2.081   (1/r = 2.174)

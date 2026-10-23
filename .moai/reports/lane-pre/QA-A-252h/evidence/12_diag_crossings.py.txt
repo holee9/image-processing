@@ -1,0 +1,86 @@
+"""QA-A-252h diagnosis, second step. The table of 10_diag_line_noise.py.txt shows the flagged pixels of the gain-loss lines at the SAME columns (x = 435, 735, 807, 2738, 2872, 2873, 2915, 2916, ...) on different
+lines, and measured responses rc = 0.200 (the clamp floor) where the planted response is 0.3 .. 0.7. Hypothesis H4: these are crossings of a planted line with a natural low-response column / row of the real
+calibration frames, where the pixel has its own noise that does not scale with its response. This script runs the same replicated statistic on the CLEAN frames (the real cyan_test frames the injection started
+from) and on the planted frames, and tabulates for every flagged pixel on a line item: the clean response and statistic at that pixel, the planted ones, and whether the pixel was already abnormal without the line.
+It then gives the per-pixel flag rate of every line type on the pixels that are NOT abnormal in the clean frames, against the theoretical rates (pixel items of the same cost) and against the rates on all pixels.
+Reads outputs only; nothing here changes a method or a threshold."""
+import collections
+import numpy as np
+
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/'
+src = open(HERE + '10_diag_line_noise.py.txt', encoding='utf-8').read()
+head = src[:src.index('# (a) the replication')]
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+
+
+def build(clean):
+    h = head
+    if clean:
+        h = h.replace("IN + 'frames/'", "CAL").replace('DK = [8, 9, 10, 11, 12, 13, 14]', 'DK = [7, 8, 9, 10, 11, 12, 13, 14]')
+    ns = {'CAL': CAL, '__name__': 'diag'}
+    exec(h, ns)
+    return ns
+
+
+P = build(False)
+C = build(True)
+TP, hp = P['statistic'](P['corr'])[:2]
+TC, hc = C['statistic'](C['corr'])[:2]
+H, W = P['H'], P['W']
+TAU = P['TAU']
+G = len(P['groups'])
+inter = np.zeros((H, W), dtype=bool)
+inter[12:-12, 12:-12] = True
+flagP = (TP > TAU) & (2 * hp >= G)
+flagC = (TC > TAU) & (2 * hc >= G)
+rcP, rcC = P['rc'], C['rc']
+print('flagged interior: planted %d, clean %d' % ((flagP & inter).sum(), (flagC & inter).sum()))
+items = P['items']
+inter = inter
+# pixels already abnormal in the clean frames: response outside 0.9 .. 1.1 or a clean statistic above 2
+abn = (np.abs(rcC - 1.0) > 0.10) | (TC > 2.0)
+print('clean frames: pixels with response outside 0.9..1.1 or statistic > 2: %d (%.3f %%)' % (abn.sum(), 100.0 * abn.mean()))
+# natural columns / rows: lines of the clean frames where more than 5 % of the pixels have response below 0.9
+colbad = (rcC < 0.9).mean(axis=0)
+rowbad = (rcC < 0.9).mean(axis=1)
+print('natural low-response columns (> 5 %% of the column): %s' % [int(x) for x in np.nonzero(colbad > 0.05)[0]][:60])
+print('natural low-response rows (> 5 %% of the row): %s' % [int(y) for y in np.nonzero(rowbad > 0.05)[0]][:60])
+
+print('\nflagged pixels on line items: item, x, y, planted response r, rc planted, rc clean, T planted, T clean, abnormal in clean frames')
+rows = []
+for it in items:
+    if it['shape'] == 'pixel' or it['kind'] not in ('gain_loss', 'efficiency_loss'):
+        continue
+    for (x0, y0, w, h) in it['rects']:
+        sub = flagP[y0:y0 + h, x0:x0 + w] & inter[y0:y0 + h, x0:x0 + w]
+        for yy, xx in zip(*np.nonzero(sub)):
+            y, x = y0 + yy, x0 + xx
+            rows.append((it['kind'], it['level'], it['shape'], x, y, float(P['trueR'][y, x]), float(rcP[y, x]), float(rcC[y, x]), float(TP[y, x]), float(TC[y, x]), bool(abn[y, x])))
+gl = [r for r in rows if r[0] == 'gain_loss' or (r[0] == 'efficiency_loss' and r[1] in ('0.6', '0.7'))]
+n_abn = sum(r[10] for r in gl)
+print('  gain-loss lines and efficiency-loss 0.6 / 0.7 lines: flagged %d, of them abnormal in the clean frames %d (%.1f %%)' % (len(gl), n_abn, 100.0 * n_abn / max(1, len(gl))))
+for r in gl[:30]:
+    print('  %-16s %-5s %-12s x %4d y %4d r %.2f rc_planted %.3f rc_clean %.3f T_planted %5.2f T_clean %5.2f abnormal %s' % r)
+
+print('\nflag rate per pixel of every line type, all pixels / pixels normal in the clean frames; theory = pixel items of the same cost (QA-A-252g 61_expected_pixel_noise.out.txt)')
+theory = {('efficiency_loss', '0.3'): 0.214, ('efficiency_loss', '0.4'): 0.0438, ('efficiency_loss', '0.44'): 0.0181, ('efficiency_loss', '0.46'): 0.0221, ('efficiency_loss', '0.6'): 0.0021, ('efficiency_loss', '0.7'): 0.0001}
+for kind in ('gain_loss', 'efficiency_loss'):
+    for lv in ('0.3', '0.4', '0.44', '0.46', '0.6', '0.7'):
+        m = np.zeros((H, W), dtype=bool)
+        for it in items:
+            if it['kind'] == kind and it['level'] == lv and it['shape'] != 'pixel':
+                for (x, y, w, h) in it['rects']:
+                    m[y:y + h, x:x + w] = True
+        m &= inter
+        mn = m & ~abn
+        print('  %-16s %-5s pixels %6d flagged %5d rate %.5f | normal in clean: pixels %6d flagged %5d rate %.5f | theory %s' % (kind, lv, m.sum(), (flagP & m).sum(), (flagP & m).mean() if m.sum() else 0, mn.sum(), (flagP & mn).sum(), (flagP & mn).mean() if mn.sum() else 0, theory.get((kind, lv), 'none')))
+# crossings: the flagged pixels whose row or column is a natural low-response line
+cols = set(int(x) for x in np.nonzero(colbad > 0.05)[0])
+rws = set(int(y) for y in np.nonzero(rowbad > 0.05)[0])
+cross = sum(1 for r in gl if r[3] in cols or r[4] in rws)
+print('\nflagged gain-loss / efficiency-0.6-0.7 line pixels on a natural low-response column or row: %d of %d' % (cross, len(gl)))
+# distance to the item ends and to the image border
+edge = collections.Counter()
+for r in gl:
+    edge['image border <= 40' if min(r[3], r[4], W - 1 - r[3], H - 1 - r[4]) <= 40 else 'interior'] += 1
+print('position: %s' % dict(edge))

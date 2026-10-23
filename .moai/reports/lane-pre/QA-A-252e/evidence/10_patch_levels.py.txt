@@ -1,0 +1,33 @@
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:90])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('tools/xpe_bpm_eval.cpp', [
+    (''' *       levels 0.3, 0.45, 0.7 for pixels and lines.''', ''' *       levels 0.3, 0.44, 0.46, 0.7 for pixels and lines (QA-A-252e: the exact boundary 0.45 is not planted: a response estimate has a noise of about 0.0007, so an item
+ *       exactly at the threshold is decided by chance; 0.44 and 0.46 are 14 noise widths away on either side).'''),
+    ('''        for (double r : {0.3, 0.45, 0.7})''', '''        for (double r : {0.3, 0.44, 0.46, 0.7})'''),
+    ('''        {"gain_loss", {0.3, 0.45, 0.7}}, {"efficiency_loss", {0.3, 0.45, 0.7}}};''', '''        {"gain_loss", {0.3, 0.44, 0.46, 0.7}}, {"efficiency_loss", {0.3, 0.44, 0.46, 0.7}}};'''),
+])
+edit('tests/test_bpm_eval.cpp', [
+    ('''    EXPECT_EQ(45, perClass["line"]);       // dead 1.0, nonlinear x2, noisy x2 at 6 shapes = 30 + gain_loss and efficiency_loss at 0.3 = 12, + 3 crossings''', '''    EXPECT_EQ(57, perClass["line"]);       // dead 1.0, nonlinear x2, noisy x2 at 6 shapes = 30 + gain_loss and efficiency_loss at 0.3 and 0.44 = 24, + 3 crossings'''),
+    ('''    EXPECT_EQ(36, perClass["pixel"]);      // 12 levels x 3 (dead 1, hot x4, noisy x3, nonlinear x2, gain_loss 0.3, efficiency_loss 0.3)''', '''    EXPECT_EQ(42, perClass["pixel"]);      // 14 levels x 3 (dead 1, hot x4, noisy x3, nonlinear x2, gain_loss and efficiency_loss at 0.3 and 0.44)'''),
+    ('''dead 0.5 and the two loss models at 0.45 and 0.7: 5 x 6 shapes = 30''', '''dead 0.5 and the two loss models at 0.46 and 0.7: 5 x 6 shapes = 30'''),
+    ('''gain_loss and efficiency_loss at 0.45 and 0.7)''', '''gain_loss and efficiency_loss at 0.46 and 0.7)'''),
+    ('''    EXPECT_EQ(12u, pixelKinds.size());''', '''    EXPECT_EQ(14u, pixelKinds.size());'''),
+    ('''        EXPECT_EQ("control", classOf(kind, "pixel", 0.45)) << kind << ": exactly 45 % is not below 45 %";''', '''        EXPECT_EQ("pixel", classOf(kind, "pixel", 0.44)) << kind << ": 44 % is below 45 %";
+        EXPECT_EQ("control", classOf(kind, "pixel", 0.46)) << kind << ": 46 % is not";
+        EXPECT_EQ("missing", classOf(kind, "pixel", 0.45)) << kind << ": the exact boundary is not planted (a response estimate has a noise of about 0.0007)";'''),
+    ('''        EXPECT_EQ("control", classOf(kind, "col_partial", 0.45)) << kind;''', '''        EXPECT_EQ("line", classOf(kind, "row_full", 0.44)) << kind;
+        EXPECT_EQ("control", classOf(kind, "col_partial", 0.46)) << kind;'''),
+    ('''control/efficiency_loss/pixel/0.45''', '''control/efficiency_loss/pixel/0.46'''),
+])
+print('levels patched')

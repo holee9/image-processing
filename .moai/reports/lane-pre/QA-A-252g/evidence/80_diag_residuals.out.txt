@@ -1,0 +1,44 @@
+1. NOISE-cause lines by the planted item they belong to (cls, kind, level):
+   ('control', 'efficiency_loss', '0.46')   4
+   ('line', 'efficiency_loss', '0.3')       6
+   ('line', 'efficiency_loss', '0.4')       6
+   ('line', 'efficiency_loss', '0.44')      5
+   ('line', 'noisy', '2')                   6
+   ('line', 'noisy', '4')                   7
+   lines list entries matching no planted line item: 14, of which with the NOISE bit: 1
+     unmatched NOISE line: column index 2389 width 1 from 2 to 3071 causes 4
+
+2. BRIGHT_NOISE pixels on the gain-loss lines (distance to the nearer end of the item, along the line):
+   pixels 42; distance to the nearer end: <= 8: 0, 9..64: 2, > 64: 40
+   ('control', 'col_full', '0.46')          3
+   ('control', 'col_full', '0.6')           2
+   ('control', 'col_full', '0.7')           1
+   ('control', 'col_pair', '0.46')          4
+   ('control', 'col_pair', '0.6')           2
+   ('control', 'col_partial', '0.7')        1
+   ('control', 'row_full', '0.46')          1
+   ('control', 'row_full', '0.6')           3
+   ('control', 'row_full', '0.7')           2
+   ('control', 'row_pair', '0.6')           6
+   ('control', 'row_pair', '0.7')           1
+   ('line', 'col_full', '0.3')              2
+   ('line', 'col_full', '0.4')              2
+   ('line', 'col_full', '0.44')             1
+   ('line', 'col_pair', '0.4')              1
+   ('line', 'col_partial', '0.4')           1
+   ('line', 'row_full', '0.3')              1
+   ('line', 'row_full', '0.44')             4
+   ('line', 'row_pair', '0.4')              1
+   ('line', 'row_pair', '0.44')             2
+   ('line', 'row_partial', '0.3')           1
+
+3. label changes (kind, type, raw-frames label -> scaled label):
+   ('efficiency_loss', 'line', 'defect', 'undetermined')                  1
+   ('efficiency_loss', 'pixel', 'defect', 'undetermined')                 5
+   ('efficiency_loss', 'pixel', 'normal', 'undetermined')                 12
+   ('efficiency_loss', 'pixel', 'undetermined', 'defect')                 5
+   ('efficiency_loss', 'pixel', 'undetermined', 'normal')                 14
+   ('gain_loss', 'pixel', 'normal', 'undetermined')                       17
+   ('gain_loss', 'pixel', 'undetermined', 'defect')                       1
+   ('gain_loss', 'pixel', 'undetermined', 'normal')                       20
+   pixel items 768; of them with a changed label 74; line items changed 1

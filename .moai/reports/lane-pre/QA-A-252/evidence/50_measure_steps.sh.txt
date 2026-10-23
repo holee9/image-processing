@@ -1,0 +1,38 @@
+#!/bin/bash
+# QA-A-252 one-time measurement of the second-generation defect map (method: 30_method_fixed_before_measurement.md section 3, with the change of section 6).
+# Same inputs, same planted frames (inj_b = inj of QA-A-251, truth hashes checked in 51 below) and the same scoring command as QA-A-251b.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+OUT=D:/workspace-github/xpe-data/bpm-eval-251
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-252/evidence
+run() { local name=$1; shift; local s=$(date +%s); echo "start $(date '+%Y-%m-%d %H:%M:%S')  $name" > "$EVD/$name.log"; "$@" >> "$EVD/$name.log" 2>&1; local rc=$?; echo "exit $rc wall seconds $(( $(date +%s) - s ))" >> "$EVD/$name.log"; echo "$name exit $rc"; return $rc; }
+
+args() { local flag=$1; shift; for f in "$@"; do printf -- "--%s\n%s\n" "$flag" "$f"; done; }
+BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+DK="08 09 10 11 12 13 14"
+mk() { local dir=$1 pre=$2; shift 2; local list=("$@"); local out=(); for k in "${list[@]}"; do out+=("$dir/${pre}_$k.raw"); done; printf '%s\n' "${out[@]}"; }
+
+# S0 the truth files are the ones of QA-A-251
+echo "truth sha256:" > "$EVD/51_truth_check.log"
+sha256sum "$OUT/inj_b/truth.tsv" "$OUT/inj_b/truth_ids.u16" >> "$EVD/51_truth_check.log"
+
+mapfile -t D_CLEAN < <(mk "$CAL" Dark $DK); mapfile -t B_CLEAN < <(mk "$CAL" Bright $BR)
+mapfile -t D_INJ < <(mk "$OUT/inj_b/frames" Dark $DK); mapfile -t B_INJ < <(mk "$OUT/inj_b/frames" Bright $BR)
+mapfile -t DA < <(args dark "${D_CLEAN[@]}"); mapfile -t BA < <(args bright "${B_CLEAN[@]}")
+mapfile -t DI < <(args dark "${D_INJ[@]}"); mapfile -t BI < <(args bright "${B_INJ[@]}")
+
+run M1_clean "$BIN/xpe_bpm_eval.exe" map-v2 --out "$OUT/v2_clean.u8" --features "$OUT/v2_clean_features.u8" --report "$EVD/70_report_clean.json" "${DA[@]}" "${BA[@]}" || exit 1
+run M2_planted "$BIN/xpe_bpm_eval.exe" map-v2 --out "$OUT/v2_planted.u8" --features "$OUT/v2_planted_features.u8" --report "$EVD/71_report_planted.json" "${DI[@]}" "${BI[@]}" || exit 1
+
+# halves of the planted frames: even and odd positions of each role's list (as in QA-A-251)
+HA=(); for k in 08 10 12 14; do HA+=(--dark "$OUT/inj_b/frames/Dark_$k.raw"); done
+HB=(); for k in 09 11 13; do HB+=(--dark "$OUT/inj_b/frames/Dark_$k.raw"); done
+BE=(); for k in 17 19 21 23 25 27 31 33 35; do BE+=(--bright "$OUT/inj_b/frames/Bright_$k.raw"); done
+BO=(); for k in 18 20 22 24 26 28 32 34 36; do BO+=(--bright "$OUT/inj_b/frames/Bright_$k.raw"); done
+run M3a_half_a "$BIN/xpe_bpm_eval.exe" map-v2 --out "$OUT/v2_half_a.u8" --min-dark 3 --min-bright 9 "${HA[@]}" "${BE[@]}" || exit 1
+run M3b_half_b "$BIN/xpe_bpm_eval.exe" map-v2 --out "$OUT/v2_half_b.u8" --min-dark 3 --min-bright 9 "${HB[@]}" "${BO[@]}" || exit 1
+
+run M4_score "$BIN/xpe_bpm_eval.exe" score --truth "$OUT/inj_b" --map "$OUT/v2_planted.u8" --clean-map "$OUT/v2_clean.u8" --half-a "$OUT/v2_half_a.u8" --half-b "$OUT/v2_half_b.u8" --out "$EVD/72_metrics_score.json" || exit 1
+echo done

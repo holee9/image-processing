@@ -1,0 +1,32 @@
+QA-A-252b mutation check of the out-of-area margins (detector wrapper and the score tool). Source hash (detector + tool) at the start: bed565ecbc4ae485
+Tests: Marked=MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatistic Wild=WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins
+  NoMargins=NoMarginsMeansNoOutOfAreaCodeAndMarginsThatLeaveNoAreaAreRefused Score4=ScoreTreatsTheOutOfAreaCodeAsNotAFlag
+PREDICTIONS (written before any run):
+  X1 the out-of-area code written as 0                         -> red: Marked only
+  X2 the crop starts one column too far to the right            -> red: Marked (reads past the row end into the next row, whose first columns are wild)
+  X3 out_of_area_pixels reported as all pixels                  -> red: Marked only
+  X4 the score tool counts code 4 as a flag                     -> red: Score4 only
+  X5 margins larger than the area are not refused (check removed) -> red: NoMargins only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 17 passed, failed: []
+--- X1
+build: BUILD_EXIT=0
+tests exit 1: 16 passed, FAILED: ['MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatistic']
+--- X2
+build: BUILD_EXIT=0
+tests exit 1: 16 passed, FAILED: ['MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatistic']
+--- X3
+build: BUILD_EXIT=0
+tests exit 1: 16 passed, FAILED: ['MarginsAreMarkedOutOfAreaAndTakeNoPartInTheDecisionOrAnyStatistic']
+--- X4
+build: BUILD_EXIT=0
+tests exit 1: 16 passed, FAILED: ['ScoreTreatsTheOutOfAreaCodeAsNotAFlag']
+--- X5
+build: BUILD_EXIT=0
+tests exit 0: 17 passed, FAILED: []
+--- restored: touch + rebuild
+source hash now: bed565ecbc4ae485 (start: bed565ecbc4ae485)
+build: BUILD_EXIT=0
+tests exit 0: 17 passed, failed: []

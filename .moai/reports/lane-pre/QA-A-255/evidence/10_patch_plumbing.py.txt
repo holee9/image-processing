@@ -1,0 +1,116 @@
+"""QA-A-255 step 1: the layers of a version-2 defect file (imaging area, lines with their individual stretches, blob marks) are kept in the runtime store, in the snapshot a frame takes, and in the
+calibration cache entry, as ONE immutable shared object (`DefectLayers`). A version-1 file leaves the pointer empty, which is what makes the version-1 path the old path: the correction function
+takes the new route only when the snapshot carries layers.
+ - defect_ext.hpp/.cpp: struct DefectLayers, make_defect_layers
+ - xpe_preprocess_internal.h: forward declaration, members of the store, the snapshot and StagedDefect
+ - xpe_calibration.cpp: the snapshot copies it
+ - xpe_calib_load_defect_map.cpp: the stage builds it from the version-2 parts; the commit installs it (null for a version-1 file, so loading a version-1 file after a version-2 file clears it)
+ - calibration_cache.cpp: the entry keeps it, a hit installs it."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+
+
+def edit(rel, pairs):
+    s = open(base + rel, encoding='utf-8', newline='').read()
+    crlf = '\r\n' in s
+    s = s.replace('\r\n', '\n')
+    for old, new in pairs:
+        assert s.count(old) == 1, (rel, s.count(old), old[:110])
+        s = s.replace(old, new)
+    open(base + rel, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+
+
+edit('src/defect_ext.hpp', [
+    ('#include <cstddef>\n#include <cstdint>\n#include <string>\n#include <vector>\n',
+     '#include <cstddef>\n#include <cstdint>\n#include <memory>\n#include <string>\n#include <vector>\n'),
+    ('''/** What a writer is given.''', '''/**
+ * What the correction needs of a version-2 file, immutable and shared (QA-A-255): the imaging area (empty = every pixel is inside), the confirmed lines with their individual stretches and the
+ * blob marks. The runtime store, the frame's snapshot and the cache entry hold the same object; a version-1 file has none.
+ */
+struct DefectLayers {
+    uint32_t                   width{0}, height{0};
+    std::vector<uint8_t>       area;      ///< width x height bytes, 1 inside the imaging area; empty when the file has no area layer
+    size_t                     outside{0};   ///< pixels with area == 0
+    std::vector<DefectExtLine> lines;
+    std::vector<DefectExtBlob> blobs;
+};
+
+/** The layers of a file read with read_defect_xcal / defect_v2_split; null for a version-1 file. */
+XPE_API std::shared_ptr<const DefectLayers> make_defect_layers(const DefectXcal& parts);
+
+/** What a writer is given.'''),
+])
+
+edit('src/defect_ext.cpp', [
+    ('''// NOLINTBEGIN(bugprone-easily-swappable-parameters): size is''', '''std::shared_ptr<const DefectLayers> make_defect_layers(const DefectXcal& parts) {
+    if (parts.format_version < XCAL_VERSION_DEFECT_EXT) return nullptr;
+    auto d = std::make_shared<DefectLayers>();
+    d->width = parts.width;
+    d->height = parts.height;
+    if (parts.has_area) {
+        d->area = parts.area;
+        d->outside = static_cast<size_t>(std::count(d->area.begin(), d->area.end(), static_cast<uint8_t>(0)));
+    }
+    d->lines = parts.ext.lines;
+    d->blobs = parts.ext.blobs;
+    return d;
+}
+
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): size is'''),
+])
+
+edit('include/xpe/preprocess/xpe_preprocess_internal.h', [
+    ('#include <memory>\n#include <mutex>\n', '#include <memory>\n#include <mutex>\n\nstruct DefectLayers;   // defect_ext.hpp: the imaging area, the lines and the blobs of a version-2 defect file (QA-A-255)\n'),
+    ('''    std::shared_ptr<uint8_t[]> defect_map;   // shared for the same reason as offset_map
+    uint32_t defect_width{0};''', '''    std::shared_ptr<uint8_t[]> defect_map;   // shared for the same reason as offset_map
+    std::shared_ptr<const DefectLayers> defect_layers;   // QA-A-255: null for a version-1 file; installed and replaced together with defect_map
+    uint32_t defect_width{0};'''),
+    ('''    std::shared_ptr<uint8_t[]> defect_map;
+    uint32_t defect_width{0};
+    uint32_t defect_height{0};
+
+    // QA-A-241 (#245, SRS-CALIB-SAFE-002)''', '''    std::shared_ptr<uint8_t[]> defect_map;
+    std::shared_ptr<const DefectLayers> defect_layers;   // QA-A-255: the frame's layers, from the same moment as defect_map
+    uint32_t defect_width{0};
+    uint32_t defect_height{0};
+
+    // QA-A-241 (#245, SRS-CALIB-SAFE-002)'''),
+    ('''struct StagedDefect {
+    std::shared_ptr<uint8_t[]> map;''', '''struct StagedDefect {
+    std::shared_ptr<uint8_t[]> map;
+    std::shared_ptr<const DefectLayers> layers;   ///< QA-A-255: a version-2 file's layers; null for version 1'''),
+])
+
+edit('src/xpe_calibration.cpp', [
+    ('    s.defect_map           = g_calib.defect_map;\n', '    s.defect_map           = g_calib.defect_map;\n    s.defect_layers        = g_calib.defect_layers;\n'),
+])
+
+edit('src/xpe_calib_load_defect_map.cpp', [
+    ('''                staged.map.reset(new uint8_t[expected]);
+                std::memcpy(staged.map.get(), parts.map.data(), expected);
+            } else {''', '''                staged.map.reset(new uint8_t[expected]);
+                std::memcpy(staged.map.get(), parts.map.data(), expected);
+                staged.layers = make_defect_layers(parts);   // QA-A-255: kept, the correction uses them
+            } else {'''),
+    ('''    g_calib.defect_map       = std::move(staged.map);
+    g_calib.defect_width     = staged.width;''', '''    g_calib.defect_map       = std::move(staged.map);
+    g_calib.defect_layers    = std::move(staged.layers);   // null for a version-1 file: loading one after a version-2 file clears the layers
+    g_calib.defect_width     = staged.width;'''),
+    ('''                // plane is installed exactly like a version-1 map. The runtime store keeps the map only; the other layers are read with read_defect_xcal.''',
+     '''                // plane is installed exactly like a version-1 map. QA-A-255: the other layers (imaging area, lines, blobs) are kept too (StagedDefect::layers).'''),
+])
+
+edit('src/calibration_cache.cpp', [
+    ('''    uint64_t    defectHash{0};            ///< defect only: identity of the mask when over the limit (QA-A-241f)
+};''', '''    uint64_t    defectHash{0};            ///< defect only: identity of the mask when over the limit (QA-A-241f)
+    std::shared_ptr<const DefectLayers> defectLayers;   ///< defect only: the layers of a version-2 file (QA-A-255), shared and immutable; null for version 1
+};'''),
+    ('''        g_calib.defect_map    = std::move(map);
+        g_calib.defect_width  = d.width;''', '''        g_calib.defect_map    = std::move(map);
+        g_calib.defect_layers = meta.defectLayers;   // QA-A-255: a hit installs the layers the load made (null for version 1)
+        g_calib.defect_width  = d.width;'''),
+    ('''        meta.defectHash      = g_calib.defect_hash;
+    }''', '''        meta.defectHash      = g_calib.defect_hash;
+        meta.defectLayers    = g_calib.defect_layers;
+    }'''),
+])
+print('plumbing patched')

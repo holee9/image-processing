@@ -1,0 +1,20 @@
+# QA-A-258 (Codex #227 point 3): the peak working set of one line-detection run at 3072 x 3072 with the new statistic (same inputs as the P2 step of 50_dev_regression.sh.txt).
+# The added arrays of the new statistic are 3 x double + 1 x float per pixel = 28 bytes x 9,437,184 = about 264 MB (computed from the code, only in line runs).
+$exe = 'D:\workspace-github\xpe-pre\build\ci-preprocess\bin\xpe_bpm_eval.exe'
+$inj = 'D:\workspace-github\xpe-data\bpm-eval-252f\inj_d\frames'
+$out = 'D:\workspace-github\xpe-data\bpm-eval-258\mem_lines.u8'
+$args = @('lines', '--margins', '6,2,1,1', '--skip-first-dark', '0', '--out', $out)
+foreach ($k in '09','10','11','12','13','14') { $args += @('--dark', "$inj\Dark_$k.raw") }
+foreach ($k in 17,18,19,20,21,22,23,24,25,26,27,28,31,32,33,34,35,36) { $args += @('--bright', "$inj\Bright_$k.raw") }
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
+$p = Start-Process -FilePath $exe -ArgumentList $args -PassThru -NoNewWindow -RedirectStandardOutput 'D:\workspace-github\xpe-data\bpm-eval-258\mem_lines.stdout.txt'
+$null = $p.Handle   # keep the handle so ExitCode is readable after exit (the first run printed an empty exit code)
+$peak = 0
+while (-not $p.HasExited) {
+    $p.Refresh()
+    if ($p.PeakWorkingSet64 -gt $peak) { $peak = $p.PeakWorkingSet64 }
+    Start-Sleep -Milliseconds 100
+}
+$p.WaitForExit()
+$sw.Stop()
+"exit code $($p.ExitCode); wall seconds $([math]::Round($sw.Elapsed.TotalSeconds,1)); peak working set MiB $([math]::Round($peak / 1MB,0)) (= $([math]::Round($peak / 1000000,0)) MB)"

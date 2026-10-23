@@ -1,0 +1,88 @@
+"""QA-A-252b diagnostic 4: where are the new false alarms of the dose-slope / flat-field features that sit far (> 10 px) from every planted item,
+and why do they have |z| ~ 11-14 in the planted run but |z| < 1 in the clean run? Reads maps, truth and the z images written by 30_ (scratch). Generates only text."""
+import numpy as np
+
+D = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+SCR = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/'
+W = H = 3072
+mp = np.fromfile(D + 'v2_planted.u8', dtype=np.uint8).reshape(H, W)
+mc = np.fromfile(D + 'v2_clean.u8', dtype=np.uint8).reshape(H, W)
+fp = np.fromfile(D + 'v2_planted_features.u8', dtype=np.uint8).reshape(H, W)
+zp = np.load(SCR + 'z_planted.npz')
+zc = np.load(SCR + 'z_clean.npz')
+items = {}
+for line in open(D + 'inj_b/truth.tsv', encoding='utf-8'):
+    q = line.rstrip(chr(10)).split(chr(9))
+    if len(q) == 6 and q[0].isdigit():
+        items[int(q[0])] = (q[1], q[2], q[3], q[4], [tuple(int(v) for v in r.split(',')) for r in q[5].split(';')])
+
+
+def dil(m, r):
+    o = m.copy()
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
+            xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+            o[yd, xd] |= m[ys, xs]
+    return o
+
+
+real = np.zeros((H, W), bool)
+for c, k, s, lv, rects in items.values():
+    if c != 'control':
+        for (x, y, w, h) in rects:
+            real[y:y + h, x:x + w] = True
+new = (mp != 0) & (mc == 0) & ~dil(real, 2)
+yy, xx = np.indices((H, W))
+edge = np.minimum(np.minimum(yy, H - 1 - yy), np.minimum(xx, W - 1 - xx))
+far = new & (edge >= 8)
+
+for name, bit in (('dose_slope', 4), ('flat_field', 16)):
+    m = far & ((fp & bit) != 0)
+    rows = m.sum(1); cols = m.sum(0)
+    print('== %s: interior new flags %d' % (name, m.sum()))
+    print(' rows holding >= 100 of them: %d (flags %d); columns holding >= 100: %d (flags %d)' % ((rows >= 100).sum(), rows[rows >= 100].sum(), (cols >= 100).sum(), cols[cols >= 100].sum()))
+    print(' the 8 strongest rows:', [(int(r), int(rows[r])) for r in np.argsort(rows)[::-1][:8]])
+    print(' the 8 strongest columns:', [(int(c), int(cols[c])) for c in np.argsort(cols)[::-1][:8]])
+    # which planted line item runs through those rows / columns?
+    line_rows = {}
+    line_cols = {}
+    for i, (c, k, s, lv, rects) in items.items():
+        if c != 'line':
+            continue
+        for (x, y, w, h) in rects:
+            if w > h:
+                for r in range(y, y + h):
+                    line_rows[r] = (i, k, s, lv, w)
+            else:
+                for cc in range(x, x + w):
+                    line_cols[cc] = (i, k, s, lv, h)
+    on_line_row = sum(int(rows[r]) for r in line_rows)
+    on_line_col = sum(int(cols[c]) for c in line_cols)
+    print(' flags lying in a row that carries a planted line item: %d; in a column that carries one: %d (of %d)' % (on_line_row, on_line_col, m.sum()))
+    top = sorted(((int(rows[r]), r) for r in range(H) if rows[r] >= 100), reverse=True)[:6]
+    for n, r in top:
+        print('   row %d: %d flags; planted line there: %s' % (r, n, line_rows.get(r)))
+    topc = sorted(((int(cols[c]), c) for c in range(W) if cols[c] >= 100), reverse=True)[:6]
+    for n, c in topc:
+        print('   column %d: %d flags; planted line there: %s' % (c, n, line_cols.get(c)))
+    # sign of z
+    z = zp[name].astype(np.float32)[m]
+    print(' sign of z at the flags: positive %d, negative %d; |z| percentiles 5/50/95: %s' % ((z > 0).sum(), (z < 0).sum(), np.round(np.percentile(np.abs(z), [5, 50, 95]), 2)))
+    print()
+
+# the row and column median removal: how far does the planted line move the row / column medians of the slope image?
+print('== do the line items shift the medians that are subtracted from other pixels in the same row / column?')
+slope_c = zc['dose_slope'].astype(np.float32); slope_p = zp['dose_slope'].astype(np.float32)
+for i, (c, k, s, lv, rects) in sorted(items.items()):
+    if c != 'line' or ('partial' not in s and 'cross' not in s):
+        continue
+    (x, y, w, h) = rects[0]
+    if w > h:
+        line = (slice(y, y + h), slice(None)); outside = np.ones(W, bool); outside[x:x + w] = False
+        zc_out = np.abs(slope_c[y, outside]); zp_out = np.abs(slope_p[y, outside])
+    else:
+        outside = np.ones(H, bool); outside[y:y + h] = False
+        zc_out = np.abs(slope_c[outside, x]); zp_out = np.abs(slope_p[outside, x])
+    print(' item %2d %s/%s/%s level %s %s: on the same line outside the item: median |z| clean %.2f planted %.2f; share > 5.32: clean %.3f planted %.3f' % (
+        i, c, k, s, lv, rects[0], float(np.median(zc_out)), float(np.median(zp_out)), float((zc_out > 5.316).mean()), float((zp_out > 5.316).mean())))

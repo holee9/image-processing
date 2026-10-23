@@ -1,0 +1,14 @@
+new false alarms (recomputed): 23  (score said 222)
+  from the pixel detector map alone: 12  from the line mask only: 11
+  of the line-only part: pixels also in the clean map are excluded already by the definition
+line-only new false alarms by category:
+  end overhang, start side                                8
+  end overhang, end side                                  3
+overhang distances beyond the truth end (pixels): count by distance
+  end overhang, start side {3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1, 9: 1, 10: 1}
+  end overhang, end side {3: 3}
+unmatched groups: {}
+groups with line-only new false alarms, per matched planted line:
+  8 ('dead', 'row_partial', '0.5', 'row', 2649, 1522, 2300, 'truth', (1532, 2649, 768, 1))
+  2 ('noisy', 'col_pair', '2', 'column', 162, 1547, 2318, 'truth', (162, 1547, 2, 768))
+  1 ('noisy', 'col_partial', '4', 'column', 1902, 990, 1761, 'truth', (1902, 990, 1, 768))

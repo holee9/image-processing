@@ -1,0 +1,21 @@
+QA-A-255 correction mutation check (src/defect_correct.cpp). Source hash at the start: da2b0918567a6e1f
+PREDICTIONS (written before any run):
+  C1 the interpolation weight across a line group is always 1/2             -> red: ATwoLineGroupIsBridged..., AGroupOfThreeLinesIsCorrected... only (a single line sits at 1/2, so the single-line row and column tests stay green)
+  C2 pixels outside the imaging area are no longer masked (read as source)  -> red: TheImagingAreaIsNoSource... plus the two enclosed-blob tests; the rest green
+  C3 the low-confidence flag of a group is never set                        -> red: AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence only
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 14 passed, failed: []
+--- C1
+build: BUILD_EXIT=0
+tests exit 1: 12 passed, FAILED: ['AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence', 'ATwoLineGroupIsBridgedFromItsTwoOuterNeighbours']
+--- C2
+build: BUILD_EXIT=0
+tests exit 1: 11 passed, FAILED: ['ABlobEnclosedByTheOutsideOfTheAreaTakesTheRingFillAndIsMarked', 'ABlobWithNoValidPixelWithinSixteenKeepsItsValueAndIsMarked', 'TheImagingAreaIsNoSourceAndItsPixelsAreLeftAsTheyWere']
+--- C3
+build: BUILD_EXIT=0
+tests exit 1: 13 passed, FAILED: ['AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence']
+--- restored: touch + rebuild
+source hash now: da2b0918567a6e1f (start: da2b0918567a6e1f)
+build: BUILD_EXIT=0

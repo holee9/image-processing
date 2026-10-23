@@ -1,0 +1,29 @@
+lines output identical (planted): True  clean map identical: True
+
+== final union (map nonzero): before 151482, after 151476, removed 6, added 0
+  removed: inside the line mask 0, outside 6, under no planted item 1
+    control  efficiency_loss  line   0.46       4
+    none                                        1
+    control  efficiency_loss  line   0.6        1
+  added: inside the line mask 0, outside 0, under no planted item 0
+
+== BRIGHT_NOISE bit (feature plane 0x20): before 4600, after 3156, removed 1445, added 1
+  removed: inside the line mask 1439, outside 6, under no planted item 1
+    line     efficiency_loss  line   0.3      865
+    line     efficiency_loss  line   0.4      280
+    line     efficiency_loss  line   0.44     159
+    control  efficiency_loss  line   0.46     139
+    control  efficiency_loss  line   0.6        7
+    control  gain_loss        line   0.6        4
+    line     gain_loss        line   0.3        3
+    control  gain_loss        line   0.7        2
+    line     gain_loss        line   0.4        2
+    line     nonlinear        line   0.4        2
+    line     noisy            line   4          2
+    control  dead             line   0.5        2
+  added: inside the line mask 1, outside 0, under no planted item 0
+    control  efficiency_loss  line   0.46       1
+
+before: in the map by the BRIGHT_NOISE bit alone outside the line mask: 76, on 0.6 / 0.7 efficiency-loss line items: 38
+
+after: in the map by the BRIGHT_NOISE bit alone outside the line mask: 70, on 0.6 / 0.7 efficiency-loss line items: 37

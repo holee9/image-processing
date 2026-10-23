@@ -1,0 +1,33 @@
+QA-A-259 mutation check (tools/xpe_calib_fixture_gen.cpp, the one place the first dark leaves the list). Source hash at the start: 03986448d350e513
+PREDICTIONS (written before any run):
+  M1 the library drops one more dark in the second-generation chain (old double exclusion)  -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (v2 map bytes and dark_frames_used 6 -> 5)
+  M2 the offset stage reads the list with the first frame back in                          -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (offset bytes)
+  M3 the gain dark reference mean reads the list with the first frame back in              -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (gain bytes)
+  M4 the manifest used list shows the given (first) path                                  -> red: ManifestListsTheGivenAndTheUsedDarks
+  M5 the one-dark refusal removed                                                           -> red: OneDarkFrameIsRefusedBecauseTheFirstIsExcluded (message names the first dark)
+  M6 the first-edition defect map reads the list with the first frame back in              -> red: FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList (v1 defect bytes: the hot pixel only the first frame has)
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 46 passed, failed: []
+--- M1
+build: BUILD_EXIT=0
+tests exit 1: 45 passed, FAILED: ['FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList']
+--- M2
+build: BUILD_EXIT=0
+tests exit 1: 44 passed, FAILED: ['FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList', 'KeepFirstDarkUsesTheListAsGivenAndEveryStageNoticesTheDifference']
+--- M3
+build: BUILD_EXIT=0
+tests exit 1: 44 passed, FAILED: ['FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList', 'KeepFirstDarkUsesTheListAsGivenAndEveryStageNoticesTheDifference']
+--- M4
+build: BUILD_EXIT=0
+tests exit 1: 45 passed, FAILED: ['ManifestListsTheGivenAndTheUsedDarks']
+--- M5
+build: BUILD_EXIT=0
+tests exit 1: 45 passed, FAILED: ['OneDarkFrameIsRefusedBecauseTheFirstIsExcluded']
+--- M6
+build: BUILD_EXIT=0
+tests exit 1: 44 passed, FAILED: ['FirstDarkIsExcludedOnceAndAllThreeStagesReadTheSameList', 'KeepFirstDarkUsesTheListAsGivenAndEveryStageNoticesTheDifference']
+--- restored: touch + rebuild
+source hash now: 03986448d350e513 (start: 03986448d350e513)
+build: BUILD_EXIT=0

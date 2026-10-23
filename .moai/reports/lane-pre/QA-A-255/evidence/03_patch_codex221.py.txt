@@ -1,0 +1,122 @@
+"""QA-A-255 0-6, 0-7 (Codex #221):
+ 0-6 the two truth masks at an overlap are ASSIGNED from the final class, whatever the earlier value: truthReal = (final == defect), undetMask = (final == undetermined). The score reports how many overlap
+     pixels carry each mask so that a test can assert them (they must equal the defect and the undetermined counts).
+ 0-7 noise-cost --overlap-out says whether the response is valid: columns response_used (pixels the chain was computed on), response_valid, response_unused (why not), cost_unused (why the cost was not
+     used), response_nominal_diag (the nominal chain, a diagnostic only). The parser reads them; a file without them is refused; "a row exists" no longer means "the response is valid"."""
+base = 'D:/workspace-github/xpe-pre/modules/preprocess/'
+p = base + 'tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new, count=1):
+    global s
+    assert s.count(old) == count, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# ---- 0-6: assignment
+sub('''        if (g.after == kVerdictDefect) {
+            ++rep->defect;
+            if (g.inherited != 2) {
+                ++rep->notInherited;
+                t->truthReal[i] = 1;
+            }
+        } else if (g.after == kVerdictUndetermined) {
+            ++rep->undetermined;
+            (*undetMask)[i] = 1;
+        } else {
+            ++rep->normal;
+        }''', '''        // the masks at an overlap are the FINAL class, assigned (not added to what the covering items left there: a defect item's pixels were all set in truthReal, an undetermined item's in undetMask)
+        t->truthReal[i] = g.after == kVerdictDefect ? 1 : 0;
+        (*undetMask)[i] = g.after == kVerdictUndetermined ? 1 : 0;
+        if (g.after == kVerdictDefect) {
+            ++rep->defect;
+            if (g.inherited != 2) ++rep->notInherited;
+        } else if (g.after == kVerdictUndetermined) {
+            ++rep->undetermined;
+        } else {
+            ++rep->normal;
+        }''')
+# count the masks at the overlap pixels in the score and report them
+sub('''    size_t ovFlag[4] = {0, 0, 0, 0}, ovNew[4] = {0, 0, 0, 0}, ovFlagBefore[4] = {0, 0, 0, 0};''', '''    size_t ovFlag[4] = {0, 0, 0, 0}, ovNew[4] = {0, 0, 0, 0}, ovFlagBefore[4] = {0, 0, 0, 0};
+    size_t ovTruthReal = 0, ovUndetZone = 0;''')
+sub('''        for (const OverlapGroup& g : overlap.groups) ovFlagBefore[g.inherited] += g.flagged;''', '''        for (const OverlapGroup& g : overlap.groups) ovFlagBefore[g.inherited] += g.flagged;
+        for (size_t i = 0; i < n; ++i)
+            if (overlapClass[i] != 0) {
+                ovTruthReal += t.truthReal[i];
+                ovUndetZone += undetMask[i];
+            }''')
+sub('''        std::printf("  response: %zu pixels have no valid measured response''', '''        std::printf("  masks at the overlaps (assigned from the final class): true-defect mask %zu pixels, undetermined zone %zu pixels\\n", ovTruthReal, ovUndetZone);
+        std::printf("  response: %zu pixels have no valid measured response''')
+sub('''            if (haveOverlapTruth) {
+                char mb[300];''', '''            {
+                char tb[200];
+                std::snprintf(tb, sizeof tb, ",\\n  \\"overlap_truth_real_pixels\\": %zu,\\n  \\"overlap_undetermined_zone_pixels\\": %zu", ovTruthReal, ovUndetZone);
+                j += tb;
+            }
+            if (haveOverlapTruth) {
+                char mb[300];''')
+
+# ---- 0-7: the measurement record and parser
+sub('''struct OverlapMeasure {
+    std::string label;
+    double      cost{0}, response{1.0};
+    bool        clipped{false};
+    size_t      used{0};   // QA-A-255: the pixels the noise label was decided on
+};''', '''struct OverlapMeasure {
+    std::string label;
+    double      cost{0}, response{1.0};
+    bool        clipped{false};
+    size_t      used{0};   // QA-A-255: the pixels the noise label was decided on
+    size_t      responseUsed{0};      // the pixels the chain response was computed on
+    bool        responseValid{false}; // a measured response exists (responseUsed > 0)
+    std::string responseUnused;       // why not, when it does not
+    std::string costUnused;           // why the noise cost was not used, when used == 0
+};''')
+sub('''        if (c.size() < 13) return false;
+        if (c[0] == "*") continue;
+        OverlapMeasure m;''', '''        if (c.size() < 18) {
+            std::fprintf(stderr, "%s: the overlap measurement has %zu columns; it lacks response_valid and the unused reasons (noise-cost of QA-A-255 writes 18): regenerate it\\n", path.c_str(), c.size());
+            return false;
+        }
+        if (c[0] == "*") continue;
+        OverlapMeasure m;
+        m.responseUsed = static_cast<size_t>(std::strtoull(c[13].c_str(), nullptr, 10));
+        m.responseValid = c[14] == "1";
+        m.responseUnused = c[15];
+        m.costUnused = c[16];''')
+# score: the response is valid only when the measurement says so
+sub('''                g.response.value = m->response;
+                g.response.source = "measured chain (real dark level, local signal of the verification frames)";
+                g.clipped = m->clipped;
+                if (m->clipped) {
+                    g.response.unused = "the chain leaves 0..65535";
+                } else {''', '''                g.response.value = m->response;
+                g.response.source = "measured chain (real dark level, local signal of the verification frames)";
+                g.clipped = m->clipped;
+                if (!m->responseValid) {
+                    g.response.unused = m->responseUnused.empty() || m->responseUnused == "-" ? "the measurement holds no valid response" : m->responseUnused;
+                } else if (m->clipped) {
+                    g.response.unused = "the chain leaves 0..65535";
+                } else {''')
+
+# noise-cost writer: header, group row, pooled row
+sub('''std::string ovOut = "items\\tkinds\\tpixels\\tused\\tdof\\tcost\\tlo\\thi\\tlabel\\tresponse_model\\tclipped\\tideal_cost\\trow\\n";''',
+    '''std::string ovOut = "items\\tkinds\\tpixels\\tused\\tdof\\tcost\\tlo\\thi\\tlabel\\tresponse_model\\tclipped\\tideal_cost\\trow\\tresponse_used\\tresponse_valid\\tresponse_unused\\tcost_unused\\tresponse_nominal_diag\\n";''')
+sub('''            char b[700];
+            std::snprintf(b, sizeof b, "%s\\t%s\\t%zu\\t%zu\\t%.0f\\t%.4f\\t%.4f\\t%.4f\\t%s\\t%.4f\\t%d\\t%s\\tgroup\\n", kv.first.c_str(), kindsOf(ac.ids, true).c_str(), ac.px, ac.used, nu * static_cast<double>(ac.used), v.cost,
+                          v.lo, v.hi, label, ac.nResp ? ac.sumR / static_cast<double>(ac.nResp) : chainResponse([&] { std::vector<const Item*> c; for (int id : ac.ids) c.push_back(byId[id]); return c; }()),
+                          ac.clipped ? 1 : 0, ideal);''', '''            const double nominal = chainResponse([&] { std::vector<const Item*> c; for (int id : ac.ids) c.push_back(byId[id]); return c; }());
+            const bool   respValid = ac.nResp > 0;
+            char b[900];
+            std::snprintf(b, sizeof b, "%s\\t%s\\t%zu\\t%zu\\t%.0f\\t%.4f\\t%.4f\\t%.4f\\t%s\\t%.4f\\t%d\\t%s\\tgroup\\t%zu\\t%d\\t%s\\t%s\\t%.4f\\n", kv.first.c_str(), kindsOf(ac.ids, true).c_str(), ac.px, ac.used,
+                          nu * static_cast<double>(ac.used), v.cost, v.lo, v.hi, label, respValid ? ac.sumR / static_cast<double>(ac.nResp) : 0.0, ac.clipped ? 1 : 0, ideal, ac.nResp, respValid ? 1 : 0,
+                          respValid ? "-" : "no pixel with a local signal above 100 and 60 reference pixels", ac.used ? "-" : "no pixel with a valid cost (local signal, response above 0.05, expectation)", nominal);''')
+sub('''            char b[700];
+            std::snprintf(b, sizeof b, "*\\t%s\\t%zu\\t%zu\\t%.0f\\t%.4f\\t%.4f\\t%.4f\\t%s\\t-\\t0\\t%s\\tpooled\\n", kv.first.c_str(), pl.px, pl.used, nu * static_cast<double>(pl.used), v.cost, v.lo, v.hi, labelOf(v, pl.used), ideal);''',
+    '''            char b[900];
+            std::snprintf(b, sizeof b, "*\\t%s\\t%zu\\t%zu\\t%.0f\\t%.4f\\t%.4f\\t%.4f\\t%s\\t-\\t0\\t%s\\tpooled\\t0\\t0\\t-\\t-\\t0\\n", kv.first.c_str(), pl.px, pl.used, nu * static_cast<double>(pl.used), v.cost, v.lo, v.hi, labelOf(v, pl.used), ideal);''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('codex 221 items patched')

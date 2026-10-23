@@ -1,0 +1,90 @@
+"""QA-A-252h diagnosis, third step. 12_diag_crossings.py.txt rejected the hypothesis that the flagged gain-loss line pixels sit on natural defect columns (0 / 117 do; the clean frames give response 1.000 and
+a normal statistic at 83 % of them) and showed that the MEASURED response of those pixels in the planted frames is 0.20 .. 0.33 where the table showed the planted response 0.3 .. 0.6 of one line.
+Hypothesis H5: those pixels are covered by TWO planted items (a row and a column, or a line and a pixel item, the injection places items independently), so their true response is the product of the two
+responses (0.4 x 0.6 = 0.24), below the 0.2 floor of the response bound for products under 0.2. This script (a) counts the planted items covering every pixel, (b) gives the flag rate of line pixels
+covered by one item against two or more, (c) lists the covering items of the flagged pixels, (d) for the efficiency-loss lines compares the statistic with the cost measured by the truth path
+(rate of the pixel items 0.214 / 0.044 / ... in 61_expected_pixel_noise.out.txt) : mean and standard deviation of T, the mean ratio per dose group, and the rate that the observed T distribution implies.
+Reads outputs only; nothing here changes a method or a threshold. (The flag rate of 12_ was divided by the image size by mistake; the counts there are right, the rates here are recomputed.)"""
+import collections
+import numpy as np
+
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252h/evidence/'
+src = open(HERE + '10_diag_line_noise.py.txt', encoding='utf-8').read()
+head = src[:src.index('# (a) the replication')]
+ns = {'__name__': 'diag'}
+exec(head, ns)
+H, W, TAU, G = ns['H'], ns['W'], ns['TAU'], len(ns['groups'])
+items = ns['items']
+T, hits, ratios, refs, vgs = ns['statistic'](ns['corr'])
+flag = (T > TAU) & (2 * hits >= G)
+inter = np.zeros((H, W), dtype=bool)
+inter[12:-12, 12:-12] = True
+rc = ns['rc']
+cover = np.zeros((H, W), dtype=np.int16)
+who = collections.defaultdict(list)
+for it in items:
+    for (x, y, w, h) in it['rects']:
+        cover[y:y + h, x:x + w] += 1
+        if w * h <= 4096:
+            pass
+print('pixels covered by 0 / 1 / 2 / 3 items: %s' % [int((cover == c).sum()) for c in range(4)])
+
+
+def covering(x, y):
+    out = []
+    for it in items:
+        for (x0, y0, w, h) in it['rects']:
+            if x0 <= x < x0 + w and y0 <= y < y0 + h:
+                out.append('%s/%s/%s/%s' % (it['cls'], it['kind'], it['shape'], it['level']))
+    return out
+
+
+print('\n(b) flag rate of line-item pixels by the number of items covering them (interior)')
+for kind in ('gain_loss', 'efficiency_loss'):
+    m = np.zeros((H, W), dtype=bool)
+    for it in items:
+        if it['kind'] == kind and it['shape'] != 'pixel':
+            for (x, y, w, h) in it['rects']:
+                m[y:y + h, x:x + w] = True
+    m &= inter
+    for c in (1, 2, 3):
+        s = m & (cover == c)
+        print('  %-16s covered by %d item(s): pixels %7d flagged %5d rate %.5f   median measured response %.3f' % (kind, c, s.sum(), (flag & s).sum(), (flag & s).sum() / max(1, s.sum()), float(np.median(rc[s])) if s.any() else float('nan')))
+
+print('\n(c) covering items of the flagged gain-loss line pixels')
+cnt = collections.Counter()
+rows = []
+for it in items:
+    if it['kind'] != 'gain_loss' or it['shape'] == 'pixel':
+        continue
+    for (x0, y0, w, h) in it['rects']:
+        sub = flag[y0:y0 + h, x0:x0 + w] & inter[y0:y0 + h, x0:x0 + w]
+        for yy, xx in zip(*np.nonzero(sub)):
+            rows.append((x0 + xx, y0 + yy))
+rows = sorted(set(rows))
+for (x, y) in rows:
+    cv = covering(x, y)
+    cnt[len(cv)] += 1
+    print('  x %4d y %4d  measured response %.3f  T %.2f  covered by %d: %s' % (x, y, rc[y, x], T[y, x], len(cv), '; '.join(cv)))
+print('  flagged gain-loss line pixels %d, by number of covering items: %s' % (len(rows), dict(cnt)))
+
+print('\n(d) efficiency-loss lines: statistic against the measured cost (truth path costs 3.55 / 2.58 / 2.28 / 2.34 / 1.81 / 1.45)')
+theory_rate = {'0.3': 0.214, '0.4': 0.0438, '0.44': 0.0181, '0.46': 0.0221, '0.6': 0.0021, '0.7': 0.0001}
+cost = {'0.3': 3.55, '0.4': 2.58, '0.44': 2.28, '0.46': 2.34, '0.6': 1.81, '0.7': 1.45}
+for lv in ('0.3', '0.4', '0.44', '0.46', '0.6', '0.7'):
+    m = np.zeros((H, W), dtype=bool)
+    for it in items:
+        if it['kind'] == 'efficiency_loss' and it['level'] == lv and it['shape'] != 'pixel':
+            for (x, y, w, h) in it['rects']:
+                m[y:y + h, x:x + w] = True
+    m &= inter & (cover == 1)
+    t = T[m]
+    pg = [float(np.mean(r_[m])) for r_ in ratios]
+    print('  r=%s pixels %6d  flagged rate %.4f (theory %.4f)  T mean %.3f sd %.3f (theory at cost %.2f: mean %.2f sd %.2f)  mean ratio per group %s' % (lv, m.sum(), (flag & m).sum() / m.sum(), theory_rate[lv], t.mean(), t.std(), cost[lv], cost[lv], cost[lv] * (2.0 / 13) ** 0.5, ' '.join('%.2f' % v for v in pg)))
+    # rate implied by an exact chi-square model with the OBSERVED mean ratio per group (heterogeneity ignored)
+    rng = np.random.default_rng(5)
+    nus = np.array([2, 2, 5, 2, 2], dtype=float)
+    chi = np.stack([rng.chisquare(v, 400000) / v * g for v, g in zip(nus, pg)], axis=1)
+    pooled = (chi * nus).sum(axis=1) / nus.sum()
+    q = ((pooled > TAU) & (2 * (chi >= 2.0).sum(axis=1) >= 5)).mean()
+    print('        rate implied by chi-square groups with the observed group means: %.4f' % q)

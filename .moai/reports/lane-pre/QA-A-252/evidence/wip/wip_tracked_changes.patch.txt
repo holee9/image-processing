@@ -1,0 +1,225 @@
+diff --git a/modules/preprocess/CMakeLists.txt b/modules/preprocess/CMakeLists.txt
+index 162be54f..c6cb529a 100644
+--- a/modules/preprocess/CMakeLists.txt
++++ b/modules/preprocess/CMakeLists.txt
+@@ -32,6 +32,7 @@ set(XPE_PREPROCESS_SOURCES
+     src/rle_codec.cpp            # RLE compression for defect maps
+     src/xpe_calib_check_expiry.cpp  # REQ-P1A-018 XCal v1 header-only expiry check (3-arg API)
+     src/xpe_defect_gen.cpp       # SWU-1.11 BPM Generation (FUNC-022~025)
++    src/xpe_bpm_v2.cpp           # SRS-CALIB-FUNC-022 v1.4: second-generation pixel defect detection (QA-A-252, #273)
+     src/xpe_calib_mode.cpp       # SWU-1.12 Calibration Mode Selection (FUNC-031~033)
+     # XCal v1 calibration API (T-006..T-009)
+     src/xpe_calibration.cpp         # global g_calib + g_calib_mutex definitions
+@@ -495,6 +496,8 @@ if(_XPE_BUILD_TESTS)
+         tests/test_calib_fixture_gen.cpp
+         # QA-A-251 (#273): defect-map evaluation tool (runs xpe_bpm_eval as a subprocess)
+         tests/test_bpm_eval.cpp
++        # QA-A-252 (#273): second-generation pixel defect detection
++        tests/test_bpm_v2.cpp
+         # QA-A-37 (#140): XCAL_TYPE_GAIN_POLY read path
+         tests/test_calib_gain_poly_load.cpp
+         # QA-A-38 (#138 #97): XPE-ALG-001 9.8.2.1 N_min static-defect marking
+diff --git a/modules/preprocess/include/xpe/preprocess_api.h b/modules/preprocess/include/xpe/preprocess_api.h
+index 1b4d66fd..0cab1fbc 100644
+--- a/modules/preprocess/include/xpe/preprocess_api.h
++++ b/modules/preprocess/include/xpe/preprocess_api.h
+@@ -1893,6 +1893,100 @@ XPE_API XpeErrorCode xpe_bpm_generate(
+     const XpeBpmConfig* cfg,
+     XpeImageBuffer* bpm_out);
+
++/**
++ * @brief Second-generation defective-pixel detection configuration (QA-A-252, #273)
++ *
++ * Zero-initialised fields take the defaults below, so a caller may pass a zeroed struct (or NULL) to
++ * get the defaults. Validation limits are given per field.
++ */
++typedef struct {
++    float    target_false_alarms; /**< Expected false alarms per feature over the whole frame (default 1.0; range (0, 1000]) */
++    uint32_t window;              /**< Side of the local background window in pixels, odd (default 17; range 9..65) */
++    uint32_t sigma_block;         /**< Side of the blocks of the local scale estimate in pixels (default 64; range 16..512) */
++    uint32_t skip_first_dark;     /**< 1 = the first dark frame (before the detector settles) is not used; 0 = use it. Zero-initialised means 0 */
++    uint32_t min_frames_dark;     /**< Minimum dark frames after skipping (default 5; at least 3) */
++    uint32_t min_frames_bright;   /**< Minimum bright frames (default 6; at least 2) */
++    float    dose_group_ratio;    /**< Sorted bright-frame signals whose ratio exceeds this start a new dose group (default 1.25; at least 1.01) */
++    uint32_t reserved;            /**< Must be zero */
++} XpeBpmConfigV2;
++
++/** Feature bits of the optional per-pixel feature output of xpe_bpm_generate_v2. */
++#define XPE_BPM_V2_FEATURE_DARK_MEAN   0x01u /**< Local deviation of the dark mean */
++#define XPE_BPM_V2_FEATURE_DARK_NOISE  0x02u /**< Temporal noise of the dark frames against its local median */
++#define XPE_BPM_V2_FEATURE_DOSE_SLOPE  0x04u /**< Slope of the response over the dose groups */
++#define XPE_BPM_V2_FEATURE_DOSE_LINEAR 0x08u /**< Residual of the straight-line fit over the dose groups (log of its variance, upper side) */
++#define XPE_BPM_V2_FEATURE_FLAT        0x10u /**< Local deviation of the relative flat-field response */
++
++/** Number of detection features reported by XpeBpmReportV2. */
++#define XPE_BPM_V2_FEATURE_COUNT 5
++
++/** Largest number of dose groups xpe_bpm_generate_v2 accepts. */
++#define XPE_BPM_V2_MAX_DOSE_GROUPS 8
++
++/**
++ * @brief What xpe_bpm_generate_v2 decided and why (thresholds and the numbers they came from)
++ *
++ * Feature order in the arrays: dark mean, dark noise, dose slope, dose linearity, flat field
++ * (the bit order of the XPE_BPM_V2_FEATURE_* values).
++ */
++typedef struct {
++    uint32_t pixels;                                          /**< Pixels per frame (the N of the false-alarm target) */
++    uint32_t dark_frames_used;                                /**< Dark frames used after skipping */
++    uint32_t bright_frames_used;                              /**< Bright frames used */
++    uint32_t dose_groups;                                     /**< Dose groups found */
++    uint32_t feature_active[XPE_BPM_V2_FEATURE_COUNT];        /**< 1 when the feature ran (the linearity feature needs three dose groups) */
++    uint32_t degrees_of_freedom[XPE_BPM_V2_FEATURE_COUNT];    /**< Degrees of freedom of the variance-ratio feature (dark noise), 0 for the others */
++    float    threshold[XPE_BPM_V2_FEATURE_COUNT];             /**< Threshold: |z| for the z features, z (upper side only) for the linearity feature, variance ratio for dark noise */
++    float    scale_median[XPE_BPM_V2_FEATURE_COUNT];          /**< Median over the frame of the local scale (z features) or of the local reference (dark noise) */
++    uint32_t flagged[XPE_BPM_V2_FEATURE_COUNT];               /**< Pixels each feature flagged */
++    uint32_t flagged_union;                                   /**< Pixels flagged by at least one feature */
++    float    group_signal[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Mean net signal of each dose group (pixel values) */
++    uint32_t group_frames[XPE_BPM_V2_MAX_DOSE_GROUPS];        /**< Frames in each dose group */
++} XpeBpmReportV2;
++
++/**
++ * @brief Second-generation defective-pixel detection (SRS-CALIB-FUNC-022, QA-A-252)
++ *
++ * Replaces the single fixed threshold of xpe_bpm_generate by several per-pixel features, each judged
++ * on its own, with the union flagged: (1) the local deviation of the dark mean, (2) the temporal
++ * noise of the dark frames, (3) the slope and the straight-line residual of the response over dose
++ * groups, (4) the local deviation of the relative flat-field response. Deviations are robust
++ * (median and median absolute deviation). The row and column components of each feature image are
++ * subtracted before the local statistics, so stripes that offset and gain correction remove do
++ * not spread into pixel defects (and full-length line defects are not reported here either; line
++ * detection is a separate step). Thresholds are not fixed constants: each follows from the
++ * target number of false alarms per feature over the frame, and the report returns them.
++ *
++ * Bright frames may be of several doses; they are grouped by signal (see XpeBpmConfigV2).
++ *
++ * @param dark_frames Dark frames (UINT16, offset-uncorrected), all of one size
++ * @param num_dark Number of dark frames, before the optional skipping of the first
++ * @param bright_frames Bright frames (UINT16, offset-uncorrected), the size of the dark frames
++ * @param num_bright Number of bright frames
++ * @param cfg Configuration (NULL = defaults)
++ * @param bpm_out Output map (UINT8, size of the frames): 0 good, 1 flagged by a bright-frame
++ *        feature only, 2 by a dark-frame feature only, 3 by both
++ * @param feature_out Optional output (UINT8, size of the frames): the XPE_BPM_V2_FEATURE_* bits
++ *        of the features that flagged each pixel; NULL to skip
++ * @param report Optional output: thresholds and counts; NULL to skip
++ * @return XPE_OK on success
++ *         XPE_ERR_INVALID_INPUT on NULL pointers, too few frames, a bright frame without signal,
++ *                               frames of different sizes, an invalid configuration, or more
++ *                               dose groups than XPE_BPM_V2_MAX_DOSE_GROUPS
++ *         XPE_ERR_UNSUPPORTED_FORMAT if an input is not UINT16 or an output is not UINT8
++ *         XPE_ERR_BUFFER_TOO_SMALL if an output buffer is smaller than the frames
++ *         XPE_ERR_OUT_OF_MEMORY if working memory cannot be allocated
++ */
++XPE_API XpeErrorCode xpe_bpm_generate_v2(
++    const XpeImageBuffer* dark_frames,
++    uint32_t num_dark,
++    const XpeImageBuffer* bright_frames,
++    uint32_t num_bright,
++    const XpeBpmConfigV2* cfg,
++    XpeImageBuffer* bpm_out,
++    XpeImageBuffer* feature_out,
++    XpeBpmReportV2* report);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/modules/preprocess/tools/xpe_bpm_eval.cpp b/modules/preprocess/tools/xpe_bpm_eval.cpp
+index be466440..8b4bcbbd 100644
+--- a/modules/preprocess/tools/xpe_bpm_eval.cpp
++++ b/modules/preprocess/tools/xpe_bpm_eval.cpp
+@@ -16,6 +16,8 @@
+  *       Detection rate per kind and level, false alarms, control false detections, split-half Jaccard.
+  *   xpe_bpm_eval correct --truth DIR --clean-set DIR --inj-set DIR --clean-eval F... --inj-eval F... [--out metrics.json]
+  *       Correction error against local noise and the line index D_n (TG-150 4.3.9) on evaluation frames, through the application's final pipeline.
++ *   xpe_bpm_eval map-v2 --out MASK.u8 [--features F.u8] [--report R.json] --dark F... --bright F... [--skip-first-dark 0|1] [--target-fa 1] [--min-dark N] [--min-bright N]
++ *       The second-generation detector xpe_bpm_generate_v2 (QA-A-252): the map, the per-pixel feature bits and a JSON report of the thresholds.
+  *   xpe_bpm_eval map-v1 --out MASK.u8 --dark F... --bright F... [--min-dark N] [--min-bright N] [--width W] [--height H]
+  *       The module's xpe_bpm_generate with default settings (only the minimum frame counts can be lowered), the mask written as raw uint8.
+  *
+@@ -807,6 +809,77 @@ int cmdMapV1(const Args& a) {
+     return 0;
+ }
+
++int cmdMapV2(const Args& a) {
++    const uint32_t w = static_cast<uint32_t>(a.num("width", 3072)), h = static_cast<uint32_t>(a.num("height", 3072));
++    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright");
++    if (!a.has("out") || darkFiles.empty() || brightFiles.empty()) {
++        usage();
++        return 2;
++    }
++    const size_t n = static_cast<size_t>(w) * h;
++    std::vector<std::vector<uint16_t>> darks(darkFiles.size()), brights(brightFiles.size());
++    for (size_t k = 0; k < darks.size(); ++k)
++        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
++    for (size_t k = 0; k < brights.size(); ++k)
++        if (!readRaw16(brightFiles[k], n, &brights[k])) return 3;
++    std::vector<XpeImageBuffer> db, bb;
++    for (auto& v : darks) db.push_back(bufU16(v, w, h));
++    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
++    XpeBpmConfigV2 cfg{};
++    cfg.target_false_alarms = static_cast<float>(std::strtod(a.str("target-fa", "1").c_str(), nullptr));
++    cfg.skip_first_dark = static_cast<uint32_t>(a.num("skip-first-dark", 0));
++    cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
++    cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
++    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
++    std::vector<uint8_t> mask(n, 0), feat(n, 0);
++    auto outBuf = [&](std::vector<uint8_t>& v) {
++        XpeImageBuffer b{};
++        b.data = v.data();
++        b.width = w;
++        b.height = h;
++        b.bitsAllocated = 8;
++        b.bitsStored = 8;
++        b.format = XPE_PIXEL_UINT8;
++        b.dataSize = v.size();
++        return b;
++    };
++    XpeImageBuffer mb = outBuf(mask), fb = outBuf(feat);
++    XpeBpmReportV2 rep{};
++    const XpeErrorCode rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &mb, &fb, &rep);
++    xpe_preprocess_shutdown();
++    if (rc != XPE_OK) {
++        std::fprintf(stderr, "xpe_bpm_generate_v2 failed (%d)\n", static_cast<int>(rc));
++        return 4;
++    }
++    if (!writeBytes(a.str("out"), mask.data(), mask.size())) return 3;
++    if (a.has("features") && !writeBytes(a.str("features"), feat.data(), feat.size())) return 3;
++    static const char* const names[XPE_BPM_V2_FEATURE_COUNT] = {"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field"};
++    std::string j = "{\n  \"detector\": \"xpe_bpm_generate_v2\",\n  \"target_false_alarms\": " + fmtLevel(static_cast<double>(cfg.target_false_alarms)) + ",\n  \"skip_first_dark\": " +
++                    std::to_string(cfg.skip_first_dark) + ",\n  \"pixels\": " + std::to_string(rep.pixels) + ",\n  \"dark_frames_used\": " + std::to_string(rep.dark_frames_used) +
++                    ",\n  \"bright_frames_used\": " + std::to_string(rep.bright_frames_used) + ",\n  \"dose_groups\": " + std::to_string(rep.dose_groups) + ",\n  \"groups\": [";
++    for (uint32_t g = 0; g < rep.dose_groups; ++g) {
++        char b[96];
++        std::snprintf(b, sizeof b, "%s{\"signal\": %.2f, \"frames\": %u}", g ? ", " : "", static_cast<double>(rep.group_signal[g]), rep.group_frames[g]);
++        j += b;
++    }
++    j += "],\n  \"features\": [\n";
++    for (int f = 0; f < XPE_BPM_V2_FEATURE_COUNT; ++f) {
++        char b[330];
++        std::snprintf(b, sizeof b, "    {\"name\": \"%s\", \"active\": %u, \"degrees_of_freedom\": %u, \"threshold\": %.4f, \"scale_median\": %.6g, \"flagged\": %u}%s\n", names[f],
++                      rep.feature_active[f], rep.degrees_of_freedom[f], static_cast<double>(rep.threshold[f]), static_cast<double>(rep.scale_median[f]), rep.flagged[f],
++                      f + 1 < XPE_BPM_V2_FEATURE_COUNT ? "," : "");
++        j += b;
++    }
++    j += "  ],\n  \"flagged_union\": " + std::to_string(rep.flagged_union) + "\n}\n";
++    if (a.has("report") && !writeBytes(a.str("report"), j.data(), j.size())) return 3;
++    std::printf("xpe_bpm_generate_v2: %u darks used, %u brights in %u dose groups, %u defect pixels (union of the features) -> %s\n", rep.dark_frames_used, rep.bright_frames_used,
++                rep.dose_groups, rep.flagged_union, a.str("out").c_str());
++    for (int f = 0; f < XPE_BPM_V2_FEATURE_COUNT; ++f)
++        std::printf("  %-15s active %u  threshold %.4f  local scale median %.6g  flagged %u\n", names[f], rep.feature_active[f], static_cast<double>(rep.threshold[f]),
++                    static_cast<double>(rep.scale_median[f]), rep.flagged[f]);
++    return 0;
++}
++
+ // ------------------------------------------------------------------------------------------------------------- correct
+ const char* const kCfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+ const char* const kCfgNoDefect = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+@@ -1014,6 +1087,7 @@ int main(int argc, char** argv) {
+     if (a.cmd == "score") return cmdScore(a);
+     if (a.cmd == "correct") return cmdCorrect(a);
+     if (a.cmd == "map-v1") return cmdMapV1(a);
++    if (a.cmd == "map-v2") return cmdMapV2(a);
+     usage();
+     return 2;
+ }

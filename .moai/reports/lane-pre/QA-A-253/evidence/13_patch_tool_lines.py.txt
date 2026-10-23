@@ -1,0 +1,183 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+# the margin option is shared by map-v2 and lines
+a = s.index('    if (a.has("margins")) {   // L,T,R,B')
+b = s.index('        cfg.margin_bottom = mb;\n    }\n', a) + len('        cfg.margin_bottom = mb;\n    }\n')
+block = s[a:b]
+s = s[:a] + '    if (a.has("margins") && !parseMargins(a, &cfg)) return 2;\n' + s[b:]
+helper_body = block.replace('    if (a.has("margins")) {   // L,T,R,B: columns / rows at the edges that are outside the imaging area\n', '').rstrip()
+assert helper_body.endswith('}')
+helper_body = helper_body[:-1].rstrip('\n')   # drop the closing brace of the if
+helper_body = helper_body.replace('            return 2;', '            return false;')
+helper = '''/** --margins L,T,R,B: columns / rows at the edges that are outside the imaging area. False (after a message) for anything but four numbers. */
+bool parseMargins(const Args& a, XpeBpmConfigV2* cfgOut) {
+    XpeBpmConfigV2& cfg = *cfgOut;
+''' + helper_body + '''
+    return true;
+}
+
+'''
+sub('int cmdMapV2(const Args& a) {', helper + 'int cmdMapV2(const Args& a) {')
+
+sub('''     *   xpe_bpm_eval map-v1''' if False else '''int cmdMapV2(const Args& a) {''', '''/** The common loading of the frame lists of map-v2 and lines; false after a message. */
+bool loadFrames(const Args& a, uint32_t* w, uint32_t* h, std::vector<std::vector<uint16_t>>* darks, std::vector<std::vector<uint16_t>>* brights) {
+    *w = static_cast<uint32_t>(a.num("width", 3072));
+    *h = static_cast<uint32_t>(a.num("height", 3072));
+    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright");
+    if (darkFiles.empty() || brightFiles.empty()) return false;
+    const size_t n = static_cast<size_t>(*w) * *h;
+    darks->resize(darkFiles.size());
+    brights->resize(brightFiles.size());
+    for (size_t k = 0; k < darks->size(); ++k)
+        if (!readRaw16(darkFiles[k], n, &(*darks)[k])) return false;
+    for (size_t k = 0; k < brights->size(); ++k)
+        if (!readRaw16(brightFiles[k], n, &(*brights)[k])) return false;
+    return true;
+}
+
+int cmdLines(const Args& a) {
+    uint32_t                           w = 0, h = 0;
+    std::vector<std::vector<uint16_t>> darks, brights;
+    if (!a.has("out") || !loadFrames(a, &w, &h, &darks, &brights)) {
+        usage();
+        return 2;
+    }
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : darks) db.push_back(bufU16(v, w, h));
+    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
+    XpeBpmConfigV2 cfg{};
+    cfg.skip_first_dark = a.has("skip-first-dark") ? (a.num("skip-first-dark", 1) != 0 ? XPE_BPM_V2_SKIP_FIRST : XPE_BPM_V2_SKIP_NONE) : XPE_BPM_V2_SKIP_DEFAULT;
+    cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
+    cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
+    if (a.has("margins") && !parseMargins(a, &cfg)) return 2;
+    XpeBpmLineConfig lc{};
+    lc.target_false_alarms = static_cast<float>(std::strtod(a.str("fa", "0").c_str(), nullptr));
+    lc.min_segment = static_cast<uint32_t>(a.num("min-segment", 0));
+    lc.noise_tolerance_db = static_cast<float>(std::strtod(a.str("tolerance-db", "0").c_str(), nullptr));
+    const size_t           n = static_cast<size_t>(w) * h;
+    std::vector<uint8_t>   mask(n, 0);
+    std::vector<XpeBpmLine> lines(4096);
+    XpeImageBuffer         mb{};
+    mb.data = mask.data();
+    mb.width = w;
+    mb.height = h;
+    mb.bitsAllocated = 8;
+    mb.bitsStored = 8;
+    mb.format = XPE_PIXEL_UINT8;
+    mb.dataSize = mask.size();
+    XpeBpmLineReport rep{};
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    const XpeErrorCode rc = xpe_bpm_find_lines(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &lc, &mb, lines.data(), static_cast<uint32_t>(lines.size()), &rep);
+    xpe_preprocess_shutdown();
+    if (rc != XPE_OK) {
+        std::fprintf(stderr, "xpe_bpm_find_lines failed (%d)\\n", static_cast<int>(rc));
+        return 4;
+    }
+    if (!writeBytes(a.str("out"), mask.data(), mask.size())) return 3;
+    lines.resize(std::min<size_t>(rep.lines, lines.size()));
+    std::string tsv = "orientation\\tindex\\twidth\\tstart\\tend\\tcauses\\tflags\\tstrength\\n";
+    for (const XpeBpmLine& l : lines) {
+        char b[160];
+        std::snprintf(b, sizeof b, "%s\\t%u\\t%u\\t%u\\t%u\\t%u\\t%u\\t%.2f\\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength));
+        tsv += b;
+    }
+    if (a.has("tsv") && !writeBytes(a.str("tsv"), tsv.data(), tsv.size())) return 3;
+    char j[900];
+    std::snprintf(j, sizeof j,
+                  "{\\n  \\"groups\\": %u, \\"row_groups\\": %u, \\"column_groups\\": %u, \\"full\\": %u, \\"partial\\": %u, \\"double\\": %u, \\"crossings\\": %u,\\n"
+                  "  \\"max_adjacent\\": %u, \\"panel_reject\\": %u, \\"truncated\\": %u, \\"line_pixels\\": %u, \\"pixels\\": %u,\\n"
+                  "  \\"null_width\\": [%.3f, %.3f, %.3f, %.3f, %.3f, %.3f]\\n}\\n",
+                  rep.lines, rep.row_groups, rep.column_groups, rep.full_lines, rep.partial_lines, rep.double_lines, rep.crossings, rep.max_adjacent, rep.panel_reject, rep.truncated, rep.line_pixels, rep.pixels,
+                  static_cast<double>(rep.null_width[0]), static_cast<double>(rep.null_width[1]), static_cast<double>(rep.null_width[2]), static_cast<double>(rep.null_width[3]),
+                  static_cast<double>(rep.null_width[4]), static_cast<double>(rep.null_width[5]));
+    if (a.has("report") && !writeBytes(a.str("report"), j, std::strlen(j))) return 3;
+    std::printf("xpe_bpm_find_lines: %u groups (%u rows, %u columns; %u full, %u partial, %u double, %u crossings), widest %u, panel reject %u\\n", rep.lines, rep.row_groups, rep.column_groups, rep.full_lines,
+                rep.partial_lines, rep.double_lines, rep.crossings, rep.max_adjacent, rep.panel_reject);
+    for (const XpeBpmLine& l : lines)
+        std::printf("  %s %u width %u [%u, %u) causes %u flags %u z %.1f\\n", l.orientation == XPE_BPM_LINE_ROW ? "row" : "column", l.index, l.width, l.start, l.end, l.causes, l.flags, static_cast<double>(l.strength));
+    return rep.panel_reject ? 20 : 0;   // 20: three adjacent lines or more, the panel is rejected (the outputs are written all the same)
+}
+
+/** merge --in A --in B ... --out C: the union of 8-bit maps (the first non-zero value of the inputs at each pixel). */
+int cmdMerge(const Args& a) {
+    const std::vector<std::string> in = a.list("in");
+    if (in.size() < 2 || !a.has("out")) {
+        usage();
+        return 2;
+    }
+    std::vector<uint8_t> out;
+    for (size_t k = 0; k < in.size(); ++k) {
+        std::vector<uint8_t> b;
+        if (!readAllBytes(in[k], &b)) {
+            std::fprintf(stderr, "%s: cannot open\\n", in[k].c_str());
+            return 3;
+        }
+        if (k == 0) out = b;
+        else if (b.size() != out.size()) {
+            std::fprintf(stderr, "%s: %zu bytes, the first map has %zu\\n", in[k].c_str(), b.size(), out.size());
+            return 3;
+        } else {
+            for (size_t i = 0; i < out.size(); ++i)
+                if (out[i] == 0) out[i] = b[i];
+        }
+    }
+    return writeBytes(a.str("out"), out.data(), out.size()) ? 0 : 3;
+}
+
+/** blobs --map F [--width W --height H] [--out blobs.tsv]: the blobs of a map with their size. */
+int cmdBlobs(const Args& a) {
+    const uint32_t w = static_cast<uint32_t>(a.num("width", 3072)), h = static_cast<uint32_t>(a.num("height", 3072));
+    std::vector<uint8_t> m;
+    if (!a.has("map") || !readAllBytes(a.str("map"), &m) || m.size() != static_cast<size_t>(w) * h) {
+        std::fprintf(stderr, "blobs needs --map of width x height bytes\\n");
+        return 2;
+    }
+    XpeImageBuffer b{};
+    b.data = m.data();
+    b.width = w;
+    b.height = h;
+    b.format = XPE_PIXEL_UINT8;
+    b.dataSize = m.size();
+    uint32_t count = 0;
+    std::vector<XpeBpmBlob> blobs(1u << 16);
+    if (xpe_bpm_blobs(&b, blobs.data(), static_cast<uint32_t>(blobs.size()), &count) != XPE_OK) return 4;
+    blobs.resize(std::min<size_t>(count, blobs.size()));
+    size_t cls[4] = {0, 0, 0, 0};
+    for (const XpeBpmBlob& k : blobs) ++cls[k.size == 1 ? 0 : (k.size <= 3 ? 1 : (k.size <= 15 ? 2 : 3))];
+    std::printf("blobs: %u (single pixels %zu, 2-3 pixels %zu, 4-15 pixels %zu, 16 and more %zu)\\n", count, cls[0], cls[1], cls[2], cls[3]);
+    std::string tsv = "x0\\ty0\\tx1\\ty1\\tsize\\n";
+    for (const XpeBpmBlob& k : blobs) {
+        char line[96];
+        std::snprintf(line, sizeof line, "%u\\t%u\\t%u\\t%u\\t%u\\n", k.x0, k.y0, k.x1, k.y1, k.size);
+        tsv += line;
+    }
+    if (a.has("out") && !writeBytes(a.str("out"), tsv.data(), tsv.size())) return 3;
+    return 0;
+}
+
+int cmdMapV2(const Args& a) {''')
+
+sub('''    if (a.cmd == "map-v2") return cmdMapV2(a);''', '''    if (a.cmd == "map-v2") return cmdMapV2(a);
+    if (a.cmd == "lines") return cmdLines(a);
+    if (a.cmd == "merge") return cmdMerge(a);
+    if (a.cmd == "blobs") return cmdBlobs(a);''')
+sub(''' *   xpe_bpm_eval map-v1 --out MASK.u8''', ''' *   xpe_bpm_eval lines --out LINES.u8 [--tsv F] [--report R.json] --dark F... --bright F... [--margins L,T,R,B] [--skip-first-dark 0|1] [--fa N] [--min-segment N] [--tolerance-db D]
+ *       The line detector xpe_bpm_find_lines (QA-A-253): defective rows and columns (full, partial, double, crossing) as a mask and a table; exit code 20 when three or
+ *       more adjacent lines are found (panel rejection).
+ *   xpe_bpm_eval merge --in A.u8 --in B.u8 ... --out C.u8
+ *       The union of 8-bit maps (a pixel keeps its first non-zero value).
+ *   xpe_bpm_eval blobs --map F [--width W --height H] [--out blobs.tsv]
+ *       The blobs (8-neighbourhood groups of defective pixels) of a map with their sizes.
+ *   xpe_bpm_eval map-v1 --out MASK.u8''')
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('tool patched')

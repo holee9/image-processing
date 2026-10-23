@@ -1,0 +1,193 @@
+"""QA-A-252c diagnostic (card item 3): the new false alarms of measurement B that are neither on a control band nor on a planted line row ("everything else"),
+pixel by pixel, with the feature, the z in the clean image and the z in the planted image. Diagnostic only, no constant is changed.
+
+An independent numpy port of the dark-mean feature (F1, additive row/column components) and of the flat-field feature (F4, multiplicative components) of the revised
+detector on the imaging area (columns 6..3070, rows 2..3070). Fidelity control: the number of pixels with |z| > lambda must equal the detector's per-feature count in
+141_report_clean.json / 142_report_planted.json (clean and planted run of measurement B)."""
+import json
+import math
+import sys
+import numpy as np
+
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+INJ = 'D:/workspace-github/xpe-data/bpm-eval-251/inj_b/frames/'
+DAT = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252b/evidence/'
+W0 = H0 = 3072
+X0, Y0, X1, Y1 = 6, 2, 3071, 3071       # imaging area: columns 6..3070, rows 2..3070
+W, H = X1 - X0, Y1 - Y0
+WIN, BLOCK = 17, 64
+DK = ['%02d' % k for k in range(8, 15)]
+BR = ['%02d' % k for k in list(range(17, 29)) + list(range(31, 37))]
+
+
+def upper_median(a, axis):
+    n = a.shape[axis]
+    return np.partition(a, n // 2, axis=axis).take(n // 2, axis=axis)
+
+
+def sliding_median(a, axis, win=WIN):
+    r = win // 2
+    pad = [(0, 0), (0, 0)]
+    pad[axis] = (r, r)
+    p = np.pad(a, pad, mode='reflect')
+    out = np.empty_like(a)
+    chunk = 128
+    if axis == 1:
+        for y0 in range(0, a.shape[0], chunk):
+            v = np.lib.stride_tricks.sliding_window_view(p[y0:y0 + chunk], win, axis=1)
+            out[y0:y0 + chunk] = np.partition(v, r, axis=2)[:, :, r]
+    else:
+        for x0 in range(0, a.shape[1], chunk):
+            v = np.lib.stride_tricks.sliding_window_view(p[:, x0:x0 + chunk], win, axis=0)
+            out[:, x0:x0 + chunk] = np.partition(v, r, axis=2)[:, :, r]
+    return out
+
+
+def components(f, multiplicative):
+    """Row then column component; the multiplicative form guards a zero reference or factor like the detector (ratio 1 / factor not applied)."""
+    f = f.astype(np.float32)
+
+    def line_component(g, ref, axis):
+        if not multiplicative:
+            return g - ref, upper_median(g - ref, axis)
+        ok = np.abs(ref) > 1e-30
+        ratio = np.where(ok, g / np.where(ok, ref, 1), 1).astype(np.float32)
+        return ratio, upper_median(ratio, axis)
+
+    def apply(g, c, shape):
+        if not multiplicative:
+            return g - c.reshape(shape)
+        okc = np.abs(c) > 1e-30
+        return np.where(okc.reshape(shape), g / np.where(okc, c, 1).reshape(shape), g).astype(np.float32)
+
+    _, rho = line_component(f, sliding_median(f, 0), 1)
+    f = apply(f, rho, (-1, 1))
+    _, kap = line_component(f, sliding_median(f, 1), 0)
+    return apply(f, kap, (1, -1))
+
+
+def block_scale(r):
+    nbx = (W + BLOCK - 1) // BLOCK
+    nby = (H + BLOCK - 1) // BLOCK
+    sig = np.zeros((nby, nbx), np.float32)
+    for by in range(nby):
+        for bx in range(nbx):
+            v = np.abs(r[by * BLOCK:(by + 1) * BLOCK, bx * BLOCK:(bx + 1) * BLOCK]).ravel()
+            sig[by, bx] = np.float32(1.4826) * np.partition(v, v.size // 2)[v.size // 2]
+    return sig
+
+
+def scale_image(sig):
+    nby, nbx = sig.shape
+    fy = np.clip((np.arange(H, dtype=np.float32) + 0.5) / BLOCK - 0.5, 0, nby - 1)
+    fx = np.clip((np.arange(W, dtype=np.float32) + 0.5) / BLOCK - 0.5, 0, nbx - 1)
+    y0 = np.floor(fy).astype(int); y1 = np.minimum(y0 + 1, nby - 1); ty = (fy - y0).astype(np.float32)
+    x0 = np.floor(fx).astype(int); x1 = np.minimum(x0 + 1, nbx - 1); tx = (fx - x0).astype(np.float32)
+    ry = (1 - ty)[:, None] * sig[y0] + ty[:, None] * sig[y1]
+    return (1 - tx)[None, :] * ry[:, x0] + tx[None, :] * ry[:, x1]
+
+
+def zimage(feat, multiplicative):
+    f = components(feat, multiplicative)
+    bg = sliding_median(sliding_median(f, 1), 0)
+    r = f - bg
+    s = np.maximum(scale_image(block_scale(r)), 1e-6)
+    return r / s
+
+
+def zthr(p):
+    lo, hi = 0.0, 40.0
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        if math.erfc(mid / math.sqrt(2.0)) > p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def features(folder_dark, folder_bright):
+    def raw(folder, name):
+        return np.fromfile(folder + name, dtype=np.uint16).reshape(H0, W0)[Y0:Y1, X0:X1]
+    darks = [raw(folder_dark, 'Dark_%s.raw' % k).astype(np.float64) for k in DK]
+    D = (sum(darks) / len(darks)).astype(np.float32)
+    bright = {k: raw(folder_bright, 'Bright_%s.raw' % k) for k in BR}
+    dmean = float(D.astype(np.float64).mean())
+    sig = {k: float(bright[k].astype(np.float64).mean()) - dmean for k in BR}
+    order = sorted(BR, key=lambda k: sig[k])
+    groups = [[order[0]]]
+    for a, b in zip(order[:-1], order[1:]):
+        if sig[b] / sig[a] > 1.25:
+            groups.append([])
+        groups[-1].append(b)
+    Sn = np.zeros((H, W)); Sx = 0.0
+    for g in groups:
+        sg = sum(sig[k] for k in g) / len(g)
+        ng = sum(bright[k].astype(np.float64) for k in g) / len(g) - D
+        Sn += ng; Sx += sg
+    return D, (Sn / Sx).astype(np.float32)
+
+
+N = W * H
+lam = zthr(1.0 / N)
+print('imaging area %d x %d = %d pixels, lambda %.4f' % (W, H, N, lam))
+out = {}
+for name, folder in (('clean', (CAL, CAL)), ('planted', (INJ, INJ))):
+    D, flat = features(*folder)
+    zd = zimage(D, False)
+    zf = zimage(flat, True)
+    rep = json.load(open(EV + ('141_report_clean.json' if name == 'clean' else '142_report_planted.json'), encoding='utf-8'))
+    want = {f['name']: f['flagged'] for f in rep['features']}
+    print('%-8s dark_mean flagged %6d (detector %d) | flat_field flagged %6d (detector %d)' % (name, int((np.abs(zd) > lam).sum()), want['dark_mean'], int((np.abs(zf) > lam).sum()), want['flat_field']))
+    out[name] = (zd, zf)
+
+# the 12 new false alarms of measurement B, and which of them are "everything else"
+mp = np.fromfile(DAT + 'v2c_planted.u8', dtype=np.uint8).reshape(H0, W0)
+mc = np.fromfile(DAT + 'v2c_clean.u8', dtype=np.uint8).reshape(H0, W0)
+fp = np.fromfile(DAT + 'v2c_planted_features.u8', dtype=np.uint8).reshape(H0, W0)
+ids = np.fromfile(DAT + 'inj_b/truth_ids.u16', dtype=np.uint16).reshape(H0, W0)
+items = {}
+for line in open(DAT + 'inj_b/truth.tsv', encoding='utf-8'):
+    q = line.rstrip(chr(10)).split(chr(9))
+    if len(q) == 6 and q[0].isdigit():
+        items[int(q[0])] = (q[1], q[2], [tuple(int(v) for v in r.split(',')) for r in q[5].split(';')])
+real = np.zeros((H0, W0), bool)
+for c, k, rects in items.values():
+    if c != 'control':
+        for (x, y, w, h) in rects:
+            real[y:y + h, x:x + w] = True
+wide = real.copy()
+for dy in range(-2, 3):
+    for dx in range(-2, 3):
+        ys = slice(max(dy, 0), H0 + min(dy, 0)); yd = slice(max(-dy, 0), H0 + min(-dy, 0))
+        xs = slice(max(dx, 0), W0 + min(dx, 0)); xd = slice(max(-dx, 0), W0 + min(-dx, 0))
+        wide[yd, xd] |= real[ys, xs]
+new = (mp != 0) & (mc == 0) & ~wide
+ctrl_ids = [i for i, v in items.items() if v[0] == 'control']
+ctrl = np.isin(ids, ctrl_ids)
+row_line = np.zeros(H0, bool); col_line = np.zeros(W0, bool)
+for c, k, rects in items.values():
+    if c == 'line':
+        for (x, y, w, h) in rects:
+            if w > h: row_line[y:y + h] = True
+            else: col_line[x:x + w] = True
+others = new & ~ctrl & ~(row_line[:, None] | col_line[None, :])
+ys, xs = np.nonzero(new)
+names = ['dark_mean', 'dark_noise', 'dose_slope', 'dose_linearity', 'flat_field', 'bright_noise']
+print()
+print('new false alarms of measurement B: %d; control band %d; carried by a planted line row/column %d; everything else %d' % (new.sum(), (new & ctrl).sum(), (new & ~ctrl & (row_line[:, None] | col_line[None, :])).sum(), others.sum()))
+print('%-4s %-10s %-22s %-10s %10s %10s' % ('#', 'x,y', 'class', 'feature', 'z clean', 'z planted'))
+k = 0
+for y, x in zip(ys, xs):
+    cls = 'control band' if ctrl[y, x] else ('line row/column' if (row_line[y] or col_line[x]) else 'everything else')
+    feats = [n for b, n in enumerate(names) if fp[y, x] >> b & 1]
+    for fname in feats:
+        if fname in ('dark_mean', 'flat_field'):
+            z = (out['clean'][0 if fname == 'dark_mean' else 1][y - Y0, x - X0], out['planted'][0 if fname == 'dark_mean' else 1][y - Y0, x - X0])
+            zs = ('%10.3f %10.3f' % (z[0], z[1]))
+        else:
+            zs = '%10s %10s' % ('(not ported)', '(not ported)')
+        k += 1
+        print('%-4d %-10s %-22s %-10s %s' % (k, '%d,%d' % (x, y), cls, fname, zs))
+sys.stdout.flush()

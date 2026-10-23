@@ -1,0 +1,12 @@
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TITLE = 'QA-A-258 mutation check (src/xpe_bpm_v2.cpp, the lack-of-fit feature of the LINEARITY cause).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-258/evidence/44_mutation_u5_log.txt'
+FILT = 'BpmLinesLof*:BpmV2LinesTest.*'
+PRED = [
+    '  U5 (retry: the first form did not compile, the unused constant is an error under /WX) saturation guard made unreachable by a factor on the level -> red: ARowWhoseBrightValuesAreClippedAtTheTopIsNoEvidenceOfCurvature',
+    '  every other test of the filter stays green',
+]
+MUTANTS = [
+    ('U5', SRC, b'if (mean >= kLofSaturationLevel) lofOwn[i] = kLofSaturated;', b'if (mean >= kLofSaturationLevel * 1e6f) lofOwn[i] = kLofSaturated;'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-255/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

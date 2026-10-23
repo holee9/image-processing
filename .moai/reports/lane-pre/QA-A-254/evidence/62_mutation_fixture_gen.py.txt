@@ -1,0 +1,18 @@
+GEN = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_calib_fixture_gen.cpp'
+TITLE = 'QA-A-254 mutation check of the --bpm-v2 path of xpe_calib_fixture_gen (tools/xpe_calib_fixture_gen.cpp).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-254/evidence/63_mutation_fixture_gen_log.txt'
+FILT = 'CalibFixtureGenTest.FramesModeBpmV2*:CalibFixtureGenTest.TheBpmV2*'
+PRED = [
+    '  G1 the line mask is not merged into the defect plane                  -> red: FramesModeBpmV2WritesFormatVersion2... only (a recorded stretch must be painted)',
+    '  G2 the margins are not passed to the detector                          -> red: FramesModeBpmV2WritesFormatVersion2... only (the area plane has no outside pixels)',
+    '  G3 the segments are not recorded (the fallback range only)             -> red: FramesModeBpmV2WritesFormatVersion2... only is NOT expected: the fallback is a valid single stretch, painted inside the group range; stays GREEN or red - recorded as observed',
+    '  G4 the limits sentence is dropped from the manifest                    -> red: FramesModeBpmV2WritesFormatVersion2... only',
+    '  every other test stays green in each mutant',
+]
+MUTANTS = [
+    ('G1', GEN, b'if (mask[i] == 0u && lineMask[i] != 0u) mask[i] = 1u;', b'if (mask[i] == 0u && lineMask[i] != 0u) mask[i] = 0u;'),
+    ('G2', GEN, b'c2.margin_left = opt.bpmMargin[0];', b'c2.margin_left = 0;'),
+    ('G3', GEN, b'if (t - runStart >= minSegment) r.segments.push_back({m, runStart, t});', b'if (t - runStart >= 100000u) r.segments.push_back({m, runStart, t});'),
+    ('G4', GEN, b'not evidence for a line pixel', b'is evidence enough'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-254/evidence/20_mutation_common.py.txt', encoding='utf-8').read())

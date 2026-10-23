@@ -1,0 +1,9 @@
+level 0.3          rho 3.55  detection per pixel 0.21421  expected among 64 pixels 13.71 (sd 3.28)
+level 0.4          rho 2.58  detection per pixel 0.04375  expected among 64 pixels 2.80 (sd 1.64)
+level 0.44         rho 2.28  detection per pixel 0.01808  expected among 64 pixels 1.16 (sd 1.07)
+level 0.46         rho 2.34  detection per pixel 0.02207  expected among 64 pixels 1.41 (sd 1.18)
+level 0.6          rho 1.81  detection per pixel 0.00207  expected among 64 pixels 0.13 (sd 0.36)
+level 0.7          rho 1.45  detection per pixel 0.00012  expected among 64 pixels 0.01 (sd 0.09)
+level normal/gain  rho 1.00  detection per pixel 0.00000  expected among 64 pixels 0.00 (sd 0.00)
+expected efficiency-loss pixel detections, all six levels (64 each): 19.2
+normal pixel false-alarm probability (MC, rho = 1): 2.50e-07  (4M trials; expected over 9.4M pixels about 2.4)

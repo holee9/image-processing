@@ -1,0 +1,72 @@
+"""QA-A-252f step 3 tests: the noise cost (P2) of the detector. A row whose signal is scaled (efficiency loss: the noise variance follows the signal in the fixture) has a gain-corrected
+noise of 1 / r; a row whose whole value is scaled (gain loss) has none. A noisy pixel in one dose group only does not persist."""
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_v2.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+crlf = '\r\n' in s
+s = s.replace('\r\n', '\n')
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+
+sub('''    bool respRowPixels{false};    // QA-A-252f:''', '''    bool oneGroupNoisyPixel{false};   // QA-A-252f: a pixel (the place of brightNoisyPixel) with extra noise sd 400 in the frames of the FIRST dose group only
+    bool respRowPixels{false};    // QA-A-252f:''')
+sub('''constexpr int kGainRowHi = 100, kGainRowLo = 150, kRowPixX = 60;   // QA-A-252f''',
+    '''constexpr int kGainRowHi = 100, kGainRowLo = 150, kRowPixX = 60;   // QA-A-252f
+constexpr uint32_t kLnGainLossRow = 4194304;   // QA-A-252f: a row whose WHOLE bright value (signal and noise) is scaled by 0.3, like a loss of conversion gain
+constexpr int kLnGainLossRowY = 130;''')
+sub('''            if (bright && plant.brightNoisyPixel && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 150.0 * pixelRng.next();''',
+    '''            if (bright && plant.brightNoisyPixel && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 150.0 * pixelRng.next();
+            if (bright && plant.oneGroupNoisyPixel && brightIdx >= 0 && brightIdx < 3 && atPlant(x, y, kBrightNoisyX, kBrightNoisyY)) v += 400.0 * pixelRng.next();
+            if (bright && (plant.lines & kLnGainLossRow) && y == kLnGainLossRowY) v = d + 0.3 * (v - d);''')
+
+marker2 = 'TEST(BpmV2LinesTest, AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups) {'
+new2 = r'''TEST(BpmV2LinesTest, TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot) {
+    // QA-A-252f (P2): after gain correction the variance of a row whose signal is scaled by 0.3 (the noise variance of the fixture follows the signal) is 3.3 times its neighbours':
+    // a noise-cost defect. A row whose whole value is scaled by 0.3 is corrected back to the original noise: it is a response defect and nothing else.
+    Frames f = makeFrames(49, kDoses, 3, 7, onlyLines(kLnLowRow | kLnGainLossRow));
+    const XpeBpmLineConfig lc = shortWindows();
+    const LinesResult r = findLines(f, nullptr, &lc);
+    ASSERT_EQ(XPE_OK, r.rc);
+    const XpeBpmLine* eff = lineAt(r, XPE_BPM_LINE_ROW, kLnLowRowY);
+    const XpeBpmLine* gain = lineAt(r, XPE_BPM_LINE_ROW, kLnGainLossRowY);
+    ASSERT_NE(nullptr, eff) << "response 0.3 by efficiency loss";
+    ASSERT_NE(nullptr, gain) << "response 0.3 by gain loss";
+    EXPECT_NE(0u, eff->causes & XPE_BPM_LINE_CAUSE_RESPONSE);
+    EXPECT_NE(0u, eff->causes & XPE_BPM_LINE_CAUSE_NOISE) << "the gain-corrected variance is 3.3 times the neighbours'";
+    EXPECT_NE(0u, gain->causes & XPE_BPM_LINE_CAUSE_RESPONSE);
+    EXPECT_EQ(0u, gain->causes & XPE_BPM_LINE_CAUSE_NOISE) << "the gain loss scales signal and noise together: corrected, the noise is the original";
+}
+
+'''
+
+marker = 'TEST(BpmV2Test, ThresholdsFollowFromTheTargetNumberOfFalseAlarms) {'
+new = r'''TEST(BpmV2Test, ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect) {
+    // the position must persist (P2): a pixel with a large variance in one of four dose groups is a transient, not a defect of the place
+    Plant one{};
+    one.stripes = false;
+    one.defects = false;
+    one.oneGroupNoisyPixel = true;
+    Frames f = makeFrames(50, kDoses, 3, 7, one);
+    const Result r = detect(f, nullptr);
+    ASSERT_EQ(XPE_OK, r.rc);
+    EXPECT_EQ(0, r.feat[static_cast<size_t>(kBrightNoisyY) * kW + kBrightNoisyX] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) << "noise in the first dose group only";
+    Plant all{};
+    all.stripes = false;
+    all.defects = false;
+    all.brightNoisyPixel = true;
+    Frames g = makeFrames(50, kDoses, 3, 7, all);
+    const Result q = detect(g, nullptr);
+    ASSERT_EQ(XPE_OK, q.rc);
+    EXPECT_NE(0, q.feat[static_cast<size_t>(kBrightNoisyY) * kW + kBrightNoisyX] & XPE_BPM_V2_FEATURE_BRIGHT_NOISE) << "the same pixel noisy in every dose group";
+}
+
+'''
+assert s.count(marker) == 1 and s.count(marker2) == 1
+s = s.replace(marker, new + marker)
+s = s.replace(marker2, new2 + marker2)
+open(p, 'w', encoding='utf-8', newline='').write(s.replace('\n', '\r\n') if crlf else s)
+print('p2 tests patched')

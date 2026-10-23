@@ -1,0 +1,90 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+raw = open(p, 'rb').read().decode('utf-8')
+crlf = '\r\n' in raw
+s = raw.replace('\r\n', '\n')
+
+old = r'''// ------------------------------------------------------------------------------------------------------------- correct'''
+new = r'''int cmdMapV2(const Args& a) {
+    const uint32_t w = static_cast<uint32_t>(a.num("width", 3072)), h = static_cast<uint32_t>(a.num("height", 3072));
+    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright");
+    if (!a.has("out") || darkFiles.empty() || brightFiles.empty()) {
+        usage();
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<std::vector<uint16_t>> darks(darkFiles.size()), brights(brightFiles.size());
+    for (size_t k = 0; k < darks.size(); ++k)
+        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
+    for (size_t k = 0; k < brights.size(); ++k)
+        if (!readRaw16(brightFiles[k], n, &brights[k])) return 3;
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : darks) db.push_back(bufU16(v, w, h));
+    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
+    XpeBpmConfigV2 cfg{};
+    cfg.target_false_alarms = static_cast<float>(std::strtod(a.str("target-fa", "1").c_str(), nullptr));
+    cfg.skip_first_dark = static_cast<uint32_t>(a.num("skip-first-dark", 0));
+    cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
+    cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    std::vector<uint8_t> mask(n, 0), feat(n, 0);
+    auto outBuf = [&](std::vector<uint8_t>& v) {
+        XpeImageBuffer b{};
+        b.data = v.data();
+        b.width = w;
+        b.height = h;
+        b.bitsAllocated = 8;
+        b.bitsStored = 8;
+        b.format = XPE_PIXEL_UINT8;
+        b.dataSize = v.size();
+        return b;
+    };
+    XpeImageBuffer mb = outBuf(mask), fb = outBuf(feat);
+    XpeBpmReportV2 rep{};
+    const XpeErrorCode rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &mb, &fb, &rep);
+    xpe_preprocess_shutdown();
+    if (rc != XPE_OK) {
+        std::fprintf(stderr, "xpe_bpm_generate_v2 failed (%d)\n", static_cast<int>(rc));
+        return 4;
+    }
+    if (!writeBytes(a.str("out"), mask.data(), mask.size())) return 3;
+    if (a.has("features") && !writeBytes(a.str("features"), feat.data(), feat.size())) return 3;
+    static const char* const names[XPE_BPM_V2_FEATURE_COUNT] = {"dark_mean", "dark_noise", "dose_slope", "dose_linearity", "flat_field"};
+    std::string j = "{\n  \"detector\": \"xpe_bpm_generate_v2\",\n  \"target_false_alarms\": " + fmtLevel(static_cast<double>(cfg.target_false_alarms)) + ",\n  \"skip_first_dark\": " +
+                    std::to_string(cfg.skip_first_dark) + ",\n  \"pixels\": " + std::to_string(rep.pixels) + ",\n  \"dark_frames_used\": " + std::to_string(rep.dark_frames_used) +
+                    ",\n  \"bright_frames_used\": " + std::to_string(rep.bright_frames_used) + ",\n  \"dose_groups\": " + std::to_string(rep.dose_groups) + ",\n  \"groups\": [";
+    for (uint32_t g = 0; g < rep.dose_groups; ++g) {
+        char b[96];
+        std::snprintf(b, sizeof b, "%s{\"signal\": %.2f, \"frames\": %u}", g ? ", " : "", static_cast<double>(rep.group_signal[g]), rep.group_frames[g]);
+        j += b;
+    }
+    j += "],\n  \"features\": [\n";
+    for (int f = 0; f < XPE_BPM_V2_FEATURE_COUNT; ++f) {
+        char b[330];
+        std::snprintf(b, sizeof b, "    {\"name\": \"%s\", \"active\": %u, \"degrees_of_freedom\": %u, \"threshold\": %.4f, \"scale_median\": %.6g, \"flagged\": %u}%s\n", names[f],
+                      rep.feature_active[f], rep.degrees_of_freedom[f], static_cast<double>(rep.threshold[f]), static_cast<double>(rep.scale_median[f]), rep.flagged[f],
+                      f + 1 < XPE_BPM_V2_FEATURE_COUNT ? "," : "");
+        j += b;
+    }
+    j += "  ],\n  \"flagged_union\": " + std::to_string(rep.flagged_union) + "\n}\n";
+    if (a.has("report") && !writeBytes(a.str("report"), j.data(), j.size())) return 3;
+    std::printf("xpe_bpm_generate_v2: %u darks used, %u brights in %u dose groups, %u defect pixels (union of the features) -> %s\n", rep.dark_frames_used, rep.bright_frames_used,
+                rep.dose_groups, rep.flagged_union, a.str("out").c_str());
+    for (int f = 0; f < XPE_BPM_V2_FEATURE_COUNT; ++f)
+        std::printf("  %-15s active %u  threshold %.4f  local scale median %.6g  flagged %u\n", names[f], rep.feature_active[f], static_cast<double>(rep.threshold[f]),
+                    static_cast<double>(rep.scale_median[f]), rep.flagged[f]);
+    return 0;
+}
+
+// ------------------------------------------------------------------------------------------------------------- correct'''
+assert s.count(old) == 1
+s = s.replace(old, new)
+old2 = '    if (a.cmd == "map-v1") return cmdMapV1(a);'
+assert s.count(old2) == 1
+s = s.replace(old2, old2 + '\n    if (a.cmd == "map-v2") return cmdMapV2(a);')
+old3 = ' *   xpe_bpm_eval map-v1 --out MASK.u8'
+assert s.count(old3) == 1
+s = s.replace(old3, ''' *   xpe_bpm_eval map-v2 --out MASK.u8 [--features F.u8] [--report R.json] --dark F... --bright F... [--skip-first-dark 0|1] [--target-fa 1] [--min-dark N] [--min-bright N]
+ *       The second-generation detector xpe_bpm_generate_v2 (QA-A-252): the map, the per-pixel feature bits and a JSON report of the thresholds.
+''' + old3)
+open(p, 'wb').write((s.replace('\n', '\r\n') if crlf else s).encode('utf-8'))
+print('patched', crlf)

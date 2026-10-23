@@ -1,0 +1,173 @@
+"""QA-A-260 item 1: the evaluation tool excludes the first dark frame ONCE, at the entry point, for map-v1, map-v2 and lines (same rule as the generator)."""
+P = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(P, encoding='utf-8', newline='').read().replace('\r\n', '\n')
+
+
+def rep(old, new, count=1):
+    global s
+    assert s.count(old) == count, (s.count(old), old[:90])
+    s = s.replace(old, new)
+
+
+# a valueless flag
+rep('''        const std::string k = argv[i];
+        if (k.size() < 3 || k[0] != '-' || k[1] != '-' || i + 1 >= argc) {''',
+    '''        const std::string k = argv[i];
+        if (k == "--keep-first-dark") {   // QA-A-260: a flag without a value, like the generator's option of the same name
+            a->opt["keep-first-dark"].push_back("1");
+            continue;
+        }
+        if (k.size() < 3 || k[0] != '-' || k[1] != '-' || i + 1 >= argc) {''')
+
+# the helpers, before cmdMapV1
+rep('''int cmdMapV1(const Args& a) {''',
+    '''/**
+ * QA-A-260: the one place the first dark frame leaves the list for a detector run (map-v1, map-v2, lines). The list given is the RAW acquisition list; its first
+ * frame (taken before the detector settles) is excluded once and the remaining list goes to the detector of either edition, which is told not to drop another
+ * (XPE_BPM_V2_SKIP_NONE). --keep-first-dark, or the older --skip-first-dark 0 (which says the list was trimmed already), uses the list as given.
+ */
+struct DarkSelection {
+    std::vector<std::string> given, used;
+    bool                     excluded{false};
+};
+
+bool selectDarks(const Args& a, DarkSelection* out) {
+    out->given = a.list("dark");
+    const bool keep = a.has("keep-first-dark") || (a.has("skip-first-dark") && a.num("skip-first-dark", 1) == 0);
+    out->excluded = !keep && !out->given.empty();
+    if (out->excluded && out->given.size() < 2) {
+        std::fprintf(stderr, "one dark frame given: the first dark frame is excluded (the detector has not settled), so none would be left; give the whole list or --keep-first-dark\\n");
+        return false;
+    }
+    out->used = out->given;
+    if (out->excluded) out->used.erase(out->used.begin());
+    return true;
+}
+
+/** The list the detector really receives, printed so that two runs can be compared: count, then path and sha-256 of every used frame in order, and the sha-256 of that listing. */
+void printDarkList(const char* command, const DarkSelection& ds) {
+    std::string listing;
+    for (const std::string& p : ds.used) listing += fs::path(p).generic_string() + "|" + sha256Hex(p) + "\\n";
+    const auto digest = compute_sha256(reinterpret_cast<const uint8_t*>(listing.data()), listing.size());
+    std::string hex;
+    for (uint8_t b : digest) {
+        char t[3];
+        std::snprintf(t, sizeof t, "%02x", b);
+        hex += t;
+    }
+    std::printf("dark_list_used: command=%s given=%zu used=%zu first_excluded=%d list_sha256=%s\\n", command, ds.given.size(), ds.used.size(), ds.excluded ? 1 : 0, hex.c_str());
+    for (size_t i = 0; i < ds.used.size(); ++i) std::printf("dark_used[%zu]: %s %s\\n", i, fs::path(ds.used[i]).generic_string().c_str(), sha256Hex(ds.used[i]).c_str());
+}
+
+int cmdMapV1(const Args& a) {''')
+rep('''    const uint32_t w = static_cast<uint32_t>(a.num("width", 3072)), h = static_cast<uint32_t>(a.num("height", 3072));
+    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright");
+    if (!a.has("out") || darkFiles.empty() || brightFiles.empty()) {
+        usage();
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<std::vector<uint16_t>> darks(darkFiles.size()), brights(brightFiles.size());
+    for (size_t k = 0; k < darks.size(); ++k)
+        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
+    for (size_t k = 0; k < brights.size(); ++k)
+        if (!readRaw16(brightFiles[k], n, &brights[k])) return 3;
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : darks) db.push_back(bufU16(v, w, h));
+    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
+    XpeBpmConfig cfg{};''',
+    '''    const uint32_t w = static_cast<uint32_t>(a.num("width", 3072)), h = static_cast<uint32_t>(a.num("height", 3072));
+    DarkSelection ds;
+    if (!selectDarks(a, &ds)) return 2;
+    const std::vector<std::string>& darkFiles = ds.used;
+    const std::vector<std::string> brightFiles = a.list("bright");
+    if (!a.has("out") || darkFiles.empty() || brightFiles.empty()) {
+        usage();
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<std::vector<uint16_t>> darks(darkFiles.size()), brights(brightFiles.size());
+    for (size_t k = 0; k < darks.size(); ++k)
+        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
+    for (size_t k = 0; k < brights.size(); ++k)
+        if (!readRaw16(brightFiles[k], n, &brights[k])) return 3;
+    printDarkList("map-v1", ds);
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : darks) db.push_back(bufU16(v, w, h));
+    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
+    XpeBpmConfig cfg{};''')
+
+# lines: the shared loader
+rep('''bool loadFrames(const Args& a, uint32_t* w, uint32_t* h, std::vector<std::vector<uint16_t>>* darks, std::vector<std::vector<uint16_t>>* brights) {
+    *w = static_cast<uint32_t>(a.num("width", 3072));
+    *h = static_cast<uint32_t>(a.num("height", 3072));
+    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright");
+    if (darkFiles.empty() || brightFiles.empty()) return false;''',
+    '''bool loadFrames(const Args& a, uint32_t* w, uint32_t* h, std::vector<std::vector<uint16_t>>* darks, std::vector<std::vector<uint16_t>>* brights, DarkSelection* dsOut) {
+    *w = static_cast<uint32_t>(a.num("width", 3072));
+    *h = static_cast<uint32_t>(a.num("height", 3072));
+    if (!selectDarks(a, dsOut)) return false;
+    const std::vector<std::string>& darkFiles = dsOut->used;
+    const std::vector<std::string> brightFiles = a.list("bright");
+    if (darkFiles.empty() || brightFiles.empty()) return false;''')
+rep('''    std::vector<std::vector<uint16_t>> darks, brights;
+    if (!a.has("out") || !loadFrames(a, &w, &h, &darks, &brights)) {
+        usage();
+        return 2;
+    }''', '''    std::vector<std::vector<uint16_t>> darks, brights;
+    DarkSelection                      ds;
+    if (!a.has("out") || !loadFrames(a, &w, &h, &darks, &brights, &ds)) {
+        usage();
+        return 2;
+    }
+    printDarkList("lines", ds);''')
+rep('''    cfg.skip_first_dark = a.has("skip-first-dark") ? (a.num("skip-first-dark", 1) != 0 ? XPE_BPM_V2_SKIP_FIRST : XPE_BPM_V2_SKIP_NONE) : XPE_BPM_V2_SKIP_DEFAULT;''',
+    '''    cfg.skip_first_dark = XPE_BPM_V2_SKIP_NONE;   // QA-A-260: the list was trimmed by selectDarks; the library must not drop another frame''', count=2)
+
+# map-v2
+rep('''    const std::vector<std::string> darkFiles = a.list("dark"), brightFiles = a.list("bright");
+    if (!a.has("out") || darkFiles.empty() || brightFiles.empty()) {
+        usage();
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<std::vector<uint16_t>> darks(darkFiles.size()), brights(brightFiles.size());
+    for (size_t k = 0; k < darks.size(); ++k)
+        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
+    for (size_t k = 0; k < brights.size(); ++k)
+        if (!readRaw16(brightFiles[k], n, &brights[k])) return 3;
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : darks) db.push_back(bufU16(v, w, h));
+    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
+    XpeBpmConfigV2 cfg{};
+    cfg.target_false_alarms''',
+    '''    DarkSelection ds;
+    if (!selectDarks(a, &ds)) return 2;
+    const std::vector<std::string>& darkFiles = ds.used;
+    const std::vector<std::string> brightFiles = a.list("bright");
+    if (!a.has("out") || darkFiles.empty() || brightFiles.empty()) {
+        usage();
+        return 2;
+    }
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<std::vector<uint16_t>> darks(darkFiles.size()), brights(brightFiles.size());
+    for (size_t k = 0; k < darks.size(); ++k)
+        if (!readRaw16(darkFiles[k], n, &darks[k])) return 3;
+    for (size_t k = 0; k < brights.size(); ++k)
+        if (!readRaw16(brightFiles[k], n, &brights[k])) return 3;
+    printDarkList("map-v2", ds);
+    std::vector<XpeImageBuffer> db, bb;
+    for (auto& v : darks) db.push_back(bufU16(v, w, h));
+    for (auto& v : brights) bb.push_back(bufU16(v, w, h));
+    XpeBpmConfigV2 cfg{};
+    cfg.target_false_alarms''')
+rep('''\\"skip_first_dark\\": " +
+                    std::to_string(cfg.skip_first_dark) + ",''', '''\\"skip_first_dark\\": " +
+                    std::to_string(cfg.skip_first_dark) + ",\\n  \\"first_dark_excluded_by_tool\\": " + (ds.excluded ? "true" : "false") + ",\\n  \\"dark_frames_given\\": " + std::to_string(ds.given.size()) + ",''')
+rep('''    // the list is the raw acquisition list and the first dark frame is skipped by default; an explicit 0 says the list was trimmed already
+''','''    // QA-A-260: the list is the RAW acquisition list; selectDarks excluded its first frame once (--keep-first-dark or --skip-first-dark 0: the list was trimmed already)
+''')
+# usage header lines
+s = s.replace('[--skip-first-dark 0|1]', '[--keep-first-dark] [--skip-first-dark 0|1]')
+open(P, 'w', encoding='utf-8', newline='').write(s)
+print('patched')

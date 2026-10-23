@@ -1,0 +1,10 @@
+S1_fixture_gen exit 0 seconds 157
+S2_defect_xcal_inj exit 0 seconds 0
+S2b_defect_xcal_real exit 0 seconds 0
+S3_correct_v2 exit 0 seconds 2
+S3_correct_v1 exit 0 seconds 2
+S4_time_real_v2 exit 0 seconds 0
+S4_time_real_v1 exit 0 seconds 1
+S4_time_inj_v2 exit 0 seconds 0
+S4_time_inj_v1 exit 0 seconds 0
+done

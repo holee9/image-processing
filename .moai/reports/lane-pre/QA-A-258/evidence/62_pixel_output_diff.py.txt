@@ -1,0 +1,32 @@
+"""QA-A-258 (Codex #227 point 2): code preserved is not output unchanged. Compare the pixel-detector outputs of QA-A-256 (old statistic) and of the development regression (new statistic): per feature bit
+the number of pixels that differ, the pixel map, the line mask, and where the differing pixels lie relative to the line mask that changed. Diagnosis; reads files only.
+Usage: PYTHONIOENCODING=utf-8 python 62_pixel_output_diff.py.txt > 63_pixel_output_diff.txt"""
+import numpy as np
+S = 3072
+A = 'D:/workspace-github/xpe-data/bpm-eval-256/'
+B = 'D:/workspace-github/xpe-data/bpm-eval-258/'
+ld = lambda p: np.fromfile(p, dtype=np.uint8).reshape(S, S)
+fa, fb = ld(A + 'v2_full_features.u8'), ld(B + 'v2_full_features.u8')
+la, lb = ld(A + 'v2_full_lines.u8') != 0, ld(B + 'v2_full_lines.u8') != 0
+pa, pb = ld(A + 'v2_full_pix.u8') != 0, ld(B + 'v2_full_pix.u8') != 0
+names = {0x01: 'dark mean', 0x02: 'dark noise', 0x04: 'dose slope', 0x08: 'dose linearity', 0x10: 'flat response', 0x20: 'bright noise'}
+print('feature bits: pixels that differ (old -> new flagged counts)')
+for bit, n in names.items():
+    a, b = (fa & bit) != 0, (fb & bit) != 0
+    print('  %-16s old %7d new %7d  differ %6d  (new only %d, old only %d)' % (n, a.sum(), b.sum(), (a != b).sum(), (b & ~a).sum(), (a & ~b).sum()))
+print('line mask: old %d new %d, removed %d, added %d' % (la.sum(), lb.sum(), (la & ~lb).sum(), (lb & ~la).sum()))
+print('pixel map without lines: old %d new %d, differ %d' % (pa.sum(), pb.sum(), (pa != pb).sum()))
+removed = la & ~lb
+d = (fa != fb)
+# distance of a differing feature pixel from the removed line pixels (same row or column within 8 pixels)
+rows = np.nonzero(removed.any(axis=1))[0]
+cols = np.nonzero(removed.any(axis=0))[0]
+near = np.zeros((S, S), dtype=bool)
+for r in rows:
+    near[max(0, r - 8):r + 9, :] = True
+for c in cols:
+    near[:, max(0, c - 8):c + 9] = True
+print('differing feature pixels: %d; of them within 8 rows/columns of a removed line pixel: %d' % (d.sum(), (d & near).sum()))
+other = d & ~near
+print('differing feature pixels away from every removed line: %d' % other.sum())
+print('bits of the differing pixels (xor): ' + ', '.join('%s %d' % (n, int((((fa ^ fb) & bit) != 0).sum())) for bit, n in names.items()))

@@ -1,0 +1,104 @@
+"""QA-A-252b diagnostic 6: a complete partition of the 32,764 new false alarms into disjoint causes (every pixel in exactly one row of the table), by priority:
+1. on a control band (non-shared own pixels of a control item)
+2. in a row or column that carries a planted partial/pair line item (outside the item, outside the widened real defects)
+3. within 10 px of a planted pixel/block item
+4. everything else.
+The sum of the rows is checked against the total. Reads existing artifacts only."""
+import numpy as np
+
+D = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+W = H = 3072
+mp = np.fromfile(D + 'v2_planted.u8', dtype=np.uint8).reshape(H, W) != 0
+mc = np.fromfile(D + 'v2_clean.u8', dtype=np.uint8).reshape(H, W) != 0
+fp = np.fromfile(D + 'v2_planted_features.u8', dtype=np.uint8).reshape(H, W)
+ids = np.fromfile(D + 'inj_b/truth_ids.u16', dtype=np.uint16).reshape(H, W)
+items = {}
+for line in open(D + 'inj_b/truth.tsv', encoding='utf-8'):
+    q = line.rstrip(chr(10)).split(chr(9))
+    if len(q) == 6 and q[0].isdigit():
+        items[int(q[0])] = (q[1], q[2], q[3], q[4], [tuple(int(v) for v in r.split(',')) for r in q[5].split(';')])
+
+
+def dil(m, r):
+    o = m.copy()
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
+            xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+            o[yd, xd] |= m[ys, xs]
+    return o
+
+
+real = np.zeros((H, W), bool)
+for c, k, s, lv, rects in items.values():
+    if c != 'control':
+        for (x, y, w, h) in rects:
+            real[y:y + h, x:x + w] = True
+new = mp & ~mc & ~dil(real, 2)
+total = int(new.sum())
+
+ctrl_ids = [i for i, v in items.items() if v[0] == 'control']
+ctrl = np.isin(ids, ctrl_ids)
+row_line = np.zeros(H, bool); col_line = np.zeros(W, bool)
+row_full_line = np.zeros(H, bool); col_full_line = np.zeros(W, bool)
+for i, (c, k, s, lv, rects) in items.items():
+    if c != 'line':
+        continue
+    for (x, y, w, h) in rects:
+        if w > h:
+            row_line[y:y + h] = True
+            if w == W:
+                row_full_line[y:y + h] = True
+        else:
+            col_line[x:x + w] = True
+            if h == H:
+                col_full_line[x:x + w] = True
+pix_blk = np.zeros((H, W), bool)
+for c, k, s, lv, rects in items.values():
+    if c in ('pixel', 'block'):
+        for (x, y, w, h) in rects:
+            pix_blk[y:y + h, x:x + w] = True
+near_pb = dil(pix_blk, 10)
+
+rem = new.copy()
+parts = []
+m1 = rem & ctrl; rem &= ~m1; parts.append(('1 on a control band', m1))
+lrow = row_line[:, None] & np.ones((1, W), bool)
+lcol = col_line[None, :] & np.ones((H, 1), bool)
+m2 = rem & (lrow | lcol); rem &= ~m2; parts.append(('2 in a row/column carrying a planted line item', m2))
+m3 = rem & near_pb; rem &= ~m3; parts.append(('3 within 10 px of a planted pixel/block item', m3))
+parts.append(('4 everything else', rem))
+s = 0
+print('new false alarms (same definition as the score): %d' % total)
+FEAT = ['dark_mean', 'dark_noise', 'dose_slope', 'dose_linearity', 'flat_field']
+print(' %-50s %8s | %s' % ('cause (disjoint)', 'pixels', ' '.join('%10s' % f for f in FEAT)))
+for name, m in parts:
+    n = int(m.sum()); s += n
+    print(' %-50s %8d | %s' % (name, n, ' '.join('%10d' % int((m & ((fp & (1 << b)) != 0)).sum()) for b in range(5))))
+print(' %-50s %8d  (check: equals total %s)' % ('sum', s, s == total))
+m2d = parts[1][1]
+rows_hit = int(((m2d.sum(1) > 0) & row_line).sum()); cols_hit = int(((m2d.sum(0) > 0) & col_line).sum())
+print('\n group 2 split: in rows carrying a partial/pair line: %d; in columns: %d; pixels in both a line row and a line column are counted once, in rows' % (
+    int((m2d & lrow).sum()), int((m2d & ~lrow & lcol).sum())))
+# per-item: how many of group 2 per line kind (rows only)
+cnt = {}
+for i, (c, k, sh, lv, rects) in items.items():
+    if c != 'line':
+        continue
+    for (x, y, w, h) in rects:
+        if w > h and w < W:
+            n = int(m2d[y:y + h, :].sum())
+        elif h > w and h < H:
+            n = int(m2d[:, x:x + w].sum())
+        else:
+            continue
+        key = '%s/%s/%s' % (k, sh, lv)
+        cnt[key] = cnt.get(key, 0) + n
+print(' by partial/pair line item (pixels outside the item, in its row/column):')
+for k, v in sorted(cnt.items(), key=lambda kv: -kv[1])[:16]:
+    print('   %-34s %6d' % (k, v))
+# control bands group: which kinds
+print('\n group 1 split by control kind:')
+for kind in ('fixed_band', 'gain_band', 'varying_band'):
+    ii = [i for i, v in items.items() if v[0] == 'control' and v[1] == kind]
+    print('   %-14s %6d' % (kind, int((m1 & np.isin(ids, ii)).sum())))

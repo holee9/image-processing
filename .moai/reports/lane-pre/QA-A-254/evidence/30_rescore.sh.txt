@@ -1,0 +1,20 @@
+#!/bin/bash
+# QA-A-254 step 0a: the maps of QA-A-252g (1st generation) and QA-A-252h (2nd generation) are scored AGAIN, nothing is detected again. Each map is scored twice: with the earlier rules
+# (no --overlap) and with the composite truth of the overlapped pixels (--overlap composite). The truth, the noise labels, the maps and the clean maps are the ones the earlier scores used.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+OLD=D:/workspace-github/xpe-data/bpm-eval-251
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+G1=D:/workspace-github/xpe-data/bpm-eval-252g
+G2=D:/workspace-github/xpe-data/bpm-eval-252h
+NT=$ROOT/.moai/reports/lane-pre/QA-A-252g/evidence/62_noise_truth.tsv.txt
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-254/evidence
+run() { local name=$1; shift; "$@" > "$EVD/$name.out.txt" 2>&1; echo "$name exit $?"; }
+S1=(score --truth "$IN/inj_d" --noise-truth "$NT" --map "$G1/inj_set/defect.xcal" --clean-map "$OLD/clean_set/defect.xcal" --half-a "$G1/v1_half_a.u8" --half-b "$G1/v1_half_b.u8")
+S2=(score --truth "$IN/inj_d" --noise-truth "$NT" --map "$G2/v3g_planted.u8" --clean-map "$G2/v3g_clean.u8" --half-a "$G2/v3g_half_a.u8" --half-b "$G2/v3g_half_b.u8" --area "$G2/v2g_planted_area.u8")
+run S1_before "$BIN/xpe_bpm_eval.exe" "${S1[@]}" --out "$EVD/31_gen1_before.json.txt"
+run S1_after "$BIN/xpe_bpm_eval.exe" "${S1[@]}" --overlap composite --overlap-out "$EVD/32_gen1_overlaps.tsv.txt" --out "$EVD/33_gen1_after.json.txt"
+run S2_before "$BIN/xpe_bpm_eval.exe" "${S2[@]}" --out "$EVD/34_gen2_before.json.txt"
+run S2_after "$BIN/xpe_bpm_eval.exe" "${S2[@]}" --overlap composite --overlap-out "$EVD/35_gen2_overlaps.tsv.txt" --out "$EVD/36_gen2_after.json.txt"
+echo done

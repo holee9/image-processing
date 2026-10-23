@@ -1,0 +1,78 @@
+import hashlib, os, subprocess, time
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+V2 = ROOT + 'modules/preprocess/src/xpe_bpm_v2.cpp'
+EV = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-253e/evidence/21_mutation_log.txt'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+FILT = 'BpmV2LinesTest.*'
+BS = chr(92)
+
+
+def say(t):
+    print(t)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+orig = {V2: open(V2, 'rb').read(), EV: open(EV, 'rb').read()}
+h0 = hashlib.sha256(orig[V2] + orig[EV]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-253e mutation check of the robust persistence and the union mask (src/xpe_bpm_v2.cpp). Source hash at the start: ' + h0)
+say('PREDICTIONS (written before any run):')
+say('  Z30 the dark reference is the mean again (D) instead of the median                      -> red: ABurstInOneDarkFrame... (and maybe NoiseInMostDarkFrames... the 2-of-7 half)')
+say('  Z31 the bright reference is the group mean instead of the median                        -> red: ABurstInOneBrightFrame... only')
+say('  Z32 the mask paints the bounding range of the group for every member                    -> red: TheMaskPaintsTheUnion... only')
+say('  Z33 an untested stretch (persistence -1) is rejected instead of kept                    -> red: ANoisyRowThatCannotBeJudged... only')
+say('  Z34 pairs are left out of the bright judgement (mg < 3)                                 -> red: ABurstInOneBrightFrame... (the four groups of two) only')
+say('  every other test stays green in each mutant')
+
+CRLF = bytes([10])
+mutants = [
+    ('Z30', V2, b'static_cast<double>(darkMed[i]) - rowMeanK[k]', b'static_cast<double>(D[i]) - rowMeanK[k]'),
+    ('Z31', V2, b'const double       md = static_cast<double>(temporalMedian(&srt));', b'const double       md = [&] { double q = 0; for (float u : vals) q += u; return q / vals.size(); }(); (void)srt;'),
+    ('Z32', V2, b'for (int t = mem.a; t < mem.b; ++t) {', b'for (int t = g.a; t < g.b; ++t) {'),
+    ('Z33', V2, b'if (persist >= 0.0f && !(persist > 0.5f)) continue;', b'if (!(persist > 0.5f)) continue;'),
+    ('Z34', V2, b'if (mg < 2) continue;   // a lone frame has no group', b'if (mg < 3) continue;   // a lone frame has no group'),
+]
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new in mutants:
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if b != 'BUILD_EXIT=0':
+            say('mutant did not compile; tests NOT run (an old binary would give a false green)')
+        else:
+            rc, ok, bad = run_tests()
+            say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        open(path, 'wb').write(cur)
+        os.utime(path, None)
+        time.sleep(1)
+finally:
+    for path, data in orig.items():
+        open(path, 'wb').write(data)
+        os.utime(path, None)
+say('--- restored: touch + rebuild')
+say('source hash now: %s (start: %s)' % (hashlib.sha256(open(V2, 'rb').read() + open(EV, 'rb').read()).hexdigest()[:16], h0))
+say('build: ' + build())
+rc, ok, bad = run_tests()
+say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))

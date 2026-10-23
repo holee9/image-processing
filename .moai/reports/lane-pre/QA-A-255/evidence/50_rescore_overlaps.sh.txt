@@ -1,0 +1,19 @@
+#!/bin/bash
+# QA-A-255 step 0-4: the maps of QA-A-252g (1st generation) and QA-A-252h (2nd generation) are scored AGAIN with the truth record of QA-A-255 (one function for the class, an overlap read from its
+# own measurement only). The overlap measurement is the one of QA-A-252j (noise-cost --overlap-out, 61_overlaps_measured.tsv.txt): the same frames, nothing is measured again, nothing is detected again.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+OLD=D:/workspace-github/xpe-data/bpm-eval-251
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+G1=D:/workspace-github/xpe-data/bpm-eval-252g
+G2=D:/workspace-github/xpe-data/bpm-eval-252h
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-255/evidence
+NT=$ROOT/.moai/reports/lane-pre/QA-A-252g/evidence/62_noise_truth.tsv.txt
+OV=$ROOT/.moai/reports/lane-pre/QA-A-252j/evidence/61_overlaps_measured.tsv.txt
+run() { local name=$1; shift; "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc"; return $rc; }
+S1=(score --truth "$IN/inj_d" --noise-truth "$NT" --map "$G1/inj_set/defect.xcal" --clean-map "$OLD/clean_set/defect.xcal" --half-a "$G1/v1_half_a.u8" --half-b "$G1/v1_half_b.u8")
+S2=(score --truth "$IN/inj_d" --noise-truth "$NT" --map "$G2/v3g_planted.u8" --clean-map "$G2/v3g_clean.u8" --half-a "$G2/v3g_half_a.u8" --half-b "$G2/v3g_half_b.u8" --area "$G2/v2g_planted_area.u8")
+run R1_gen1 "$BIN/xpe_bpm_eval.exe" "${S1[@]}" --overlap composite --overlap-truth "$OV" --overlap-out "$EVD/61_gen1_overlaps.tsv.txt" --out "$EVD/62_gen1_rescored.json.txt" || exit 1
+run R2_gen2 "$BIN/xpe_bpm_eval.exe" "${S2[@]}" --overlap composite --overlap-truth "$OV" --overlap-out "$EVD/63_gen2_overlaps.tsv.txt" --out "$EVD/64_gen2_rescored.json.txt" || exit 1
+echo done

@@ -1,0 +1,65 @@
+QA-A-251b mutation check of the evaluation tool fixes. Source hash (tool + header) at the start: 6831c230e6ae2765
+Short names: pct=MedianAndPercentileFollowTheDefinition invalid=ASampleThatCannotBeComputedIsInvalid... group=AGroupWithoutAValidSampleIsUncomputableNotZero exact=LineIndexHasTheExactRatio...
+  mad=TheMadBasedValueIsAuxiliary... noden=ALineIndexWithoutADenominator... half=ScoreCallsALineDetectedAtExactlyHalf... ctrl=FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf
+  counts=ScoreCountsControlHitsFalseAlarmsAndHalfAgreement name=InjectRefusesTwoInputsWithTheSameFileName slow=CorrectRunsOnTwoSetsAndReportsTheLineIndex
+PREDICTIONS (written before any run):
+  U1 percentile without the +0.5                         -> red: pct, group
+  U2 median index (m - 1) / 2 instead of m / 2           -> red: pct only (the odd-sized group has the same median)
+  U3 zero-sigma reasons swapped (equal <-> error)        -> red: invalid only
+  U4 zero sigma counted as a valid sample with z = 0     -> red: invalid, slow
+  U5 a group always "computable"                         -> red: group, slow
+  U6 sample standard deviation with n instead of n - 1   -> red: exact only
+  U7 the two-line extension of the prediction dropped     -> red: exact only
+  U8 a zero denominator still "computable"               -> red: noden, slow
+  U9 detection ">= 0.5" turned into "> 0.5"               -> red: half only
+  U10 false alarms leave out the control bands again     -> red: ctrl, counts
+  U11 file-name collision check removed                  -> red: name only
+  U12 control share of the new false alarms not counted  -> red: ctrl, counts
+  U13 uncomputable line-index parts not counted          -> red: slow only
+  every other test stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 16 passed, failed: []
+--- U1
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['MedianAndPercentileFollowTheDefinition']
+--- U2
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['MedianAndPercentileFollowTheDefinition']
+--- U3
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero']
+--- U4
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+--- U5
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['AGroupWithoutAValidSampleIsUncomputableNotZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+--- U6
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns']
+--- U7
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns']
+--- U8
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+--- U9
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow']
+--- U10
+build: BUILD_EXIT=0
+tests exit 1: 13 passed, FAILED: ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- U11
+build: BUILD_EXIT=0
+tests exit 1: 14 passed, FAILED: ['InjectRefusesTwoInputsWithTheSameFileName']
+--- U12
+build: BUILD_EXIT=0
+tests exit 1: 13 passed, FAILED: ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+--- U13
+build: BUILD_EXIT=0
+tests exit 1: 15 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+--- restored: touch + rebuild
+source hash now: 6831c230e6ae2765 (start: 6831c230e6ae2765)
+build: BUILD_EXIT=0
+tests exit 0: 16 passed, failed: []

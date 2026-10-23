@@ -1,0 +1,95 @@
+"""QA-A-252b diagnostic 5: what the split-half Jaccard (all 0.822, inside the planted items 0.755, outside 0.928) is made of; and a few overlaps with other maps
+(diagnostic only, none of them is ground truth). Reads existing artifacts only."""
+import numpy as np
+
+D = 'D:/workspace-github/xpe-data/bpm-eval-251/'
+W = H = 3072
+a = np.fromfile(D + 'v2_half_a.u8', dtype=np.uint8).reshape(H, W) != 0
+b = np.fromfile(D + 'v2_half_b.u8', dtype=np.uint8).reshape(H, W) != 0
+full = np.fromfile(D + 'v2_planted.u8', dtype=np.uint8).reshape(H, W) != 0
+clean = np.fromfile(D + 'v2_clean.u8', dtype=np.uint8).reshape(H, W) != 0
+ids = np.fromfile(D + 'inj_b/truth_ids.u16', dtype=np.uint16).reshape(H, W)
+items = {}
+for line in open(D + 'inj_b/truth.tsv', encoding='utf-8'):
+    q = line.rstrip(chr(10)).split(chr(9))
+    if len(q) == 6 and q[0].isdigit():
+        items[int(q[0])] = (q[1], q[2], q[3], q[4])
+
+
+def dil(m, r):
+    o = m.copy()
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
+            xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+            o[yd, xd] |= m[ys, xs]
+    return o
+
+
+def jac(x, y, region=None):
+    if region is not None:
+        x = x & region; y = y & region
+    u = (x | y).sum()
+    return (x & y).sum() / u if u else float('nan'), int((x & y).sum()), int(u)
+
+
+inside = ids != 0
+print('flagged: half A %d, half B %d, intersection %d, union %d; full planted %d, clean %d' % (a.sum(), b.sum(), (a & b).sum(), (a | b).sum(), full.sum(), clean.sum()))
+for name, reg in (('all', None), ('inside planted items', inside), ('outside', ~inside)):
+    j, i, u = jac(a, b, reg)
+    print(' Jaccard %-22s %.4f  (intersection %d / union %d)' % (name, j, i, u))
+
+print('\n== inside the planted items: the disagreement (A xor B) by item class and kind, with the pixels each map flags')
+rows = {}
+for iid, (c, k, s, lv) in items.items():
+    m = ids == iid
+    if not m.any():
+        continue
+    key = '%s/%s' % (c, k)
+    r = rows.setdefault(key, [0, 0, 0, 0])
+    r[0] += int(m.sum()); r[1] += int((a & m).sum()); r[2] += int((b & m).sum()); r[3] += int((a & b & m).sum())
+print(' %-22s %9s %9s %9s %9s %9s %8s' % ('class/kind', 'pixels', 'A flags', 'B flags', 'both', 'union', 'Jaccard'))
+tot_x = 0
+for key, (n, fa, fb, both) in sorted(rows.items(), key=lambda kv: -(kv[1][1] + kv[1][2] - 2 * kv[1][3])):
+    uni = fa + fb - both
+    print(' %-22s %9d %9d %9d %9d %9d %8.3f   xor %d' % (key, n, fa, fb, both, uni, both / uni if uni else float('nan'), uni - both))
+
+print('\n== all disagreement pixels (A xor B): how far from the other map\'s nearest flag')
+xor = a ^ b
+only_a = a & ~b; only_b = b & ~a
+near_b = dil(b, 1); near_a = dil(a, 1)
+print(' only A: %d, of which within 1 pixel of a B flag: %d; only B: %d, within 1 pixel of an A flag: %d' % (only_a.sum(), (only_a & near_b).sum(), only_b.sum(), (only_b & near_a).sum()))
+edge = np.minimum(np.minimum(*np.indices((H, W))), np.minimum(H - 1 - np.indices((H, W))[0], W - 1 - np.indices((H, W))[1]))
+print(' disagreement within 8 px of the frame edge: %d of %d' % ((xor & (edge < 8)).sum(), xor.sum()))
+print(' disagreement inside planted items: %d; outside items: %d' % ((xor & inside).sum(), (xor & ~inside).sum()))
+# isolated pixels vs part of structure: neighbours of the flag in its own map
+nb = np.zeros((H, W), np.int16)
+for m, nm in ((a, 'A'), (b, 'B')):
+    nb[:] = 0
+    mi = m.astype(np.int16)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dy == 0 and dx == 0:
+                continue
+            ys = slice(max(dy, 0), H + min(dy, 0)); yd = slice(max(-dy, 0), H + min(-dy, 0))
+            xs = slice(max(dx, 0), W + min(dx, 0)); xd = slice(max(-dx, 0), W + min(-dx, 0))
+            nb[yd, xd] += mi[ys, xs]
+    ox = m & ~(b if nm == 'A' else a)
+    print(' only %s (%d): isolated %d, 1-2 flagged neighbours %d, 3+ neighbours %d' % (nm, ox.sum(), (ox & (nb == 0)).sum(), (ox & (nb >= 1) & (nb <= 2)).sum(), (ox & (nb >= 3)).sum()))
+
+print('\n== the full-frame set (18 bright, 7 dark) against each half: how many of the half-flags are in the full map, and the other way round')
+for nm, m in (('A', a), ('B', b)):
+    print(' half %s: %d flags, %d also in the full map (%.3f); full map has %d, half %s covers %.3f of it' % (nm, m.sum(), (m & full).sum(), (m & full).sum() / m.sum(), full.sum(), nm, (m & full).sum() / full.sum()))
+
+print('\n== other maps (diagnostic overlap only)')
+bpm = np.fromfile('D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/BPM.raw', dtype=np.uint16)
+print(' BPM.raw as uint16: %d values, non-zero %d' % (bpm.size, (bpm != 0).sum()))
+if bpm.size == H * W:
+    bm = bpm.reshape(H, W) != 0
+    for nm, m in (('v2 clean', clean),):
+        print(' company map flags %d; v2 clean flags %d; overlap %d (%.3f of v2 clean)' % (bm.sum(), m.sum(), (m & bm).sum(), (m & bm).sum() / m.sum()))
+v1 = np.fromfile(D + 'clean_set/defect.xcal', dtype=np.uint8)
+print(' clean_set/defect.xcal bytes %d (header + map; first-generation map inside an .xcal file)' % v1.size)
+if v1.size >= H * W:
+    v1m = v1[v1.size - H * W:].reshape(H, W) != 0
+    print(' first-generation clean map flags %d; overlap with v2 clean %d' % (v1m.sum(), (v1m & clean).sum()))

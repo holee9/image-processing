@@ -1,0 +1,66 @@
+p = 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp'
+s = open(p, encoding='utf-8', newline='').read()
+
+
+def sub(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:90])
+    s = s.replace(old, new)
+
+
+# the plain 8-bit map keeps its meaning: every non-zero value is a defect (4 is the noisy code of the first generation)
+sub('''        // 8-bit map: 0 = good, 1..3 = defect, XPE_BPM_V2_OUT_OF_AREA (4) = outside the imaging area, which is not a defect
+        for (size_t i = 0; i < n; ++i) (*flags)[i] = (bytes[i] != 0 && bytes[i] != XPE_BPM_V2_OUT_OF_AREA) ? 1 : 0;''',
+    '''        for (size_t i = 0; i < n; ++i) (*flags)[i] = bytes[i] != 0 ? 1 : 0;''')
+
+sub('''[--skip-first-dark 0|1] [--target-fa 1]''', '''[--skip-first-dark 0|1] [--margins L,T,R,B] [--area OUT.u8] [--target-fa 1]''')
+sub(''' *   xpe_bpm_eval score --truth DIR --map F [--clean-map F] [--half-a F --half-b F] [--out metrics.json]''',
+    ''' *   xpe_bpm_eval score --truth DIR --map F [--clean-map F] [--half-a F --half-b F] [--area MASK.u8] [--out metrics.json]
+ *       --area: the imaging-area mask (1 inside, 0 outside, as written by map-v2 --area): flags outside it are not counted in any map.''')
+
+# map-v2: the first-dark policy of the command line and the area output
+sub('''    cfg.skip_first_dark = static_cast<uint32_t>(a.num("skip-first-dark", 0));''',
+    '''    // the list is the raw acquisition list and the first dark frame is skipped by default; an explicit 0 says the list was trimmed already
+    cfg.skip_first_dark = a.has("skip-first-dark") ? (a.num("skip-first-dark", 1) != 0 ? XPE_BPM_V2_SKIP_FIRST : XPE_BPM_V2_SKIP_NONE) : XPE_BPM_V2_SKIP_DEFAULT;''')
+sub('''    std::vector<uint8_t> mask(n, 0), feat(n, 0);
+    auto outBuf''', '''    std::vector<uint8_t> mask(n, 0), feat(n, 0), area(n, 0);
+    auto outBuf''')
+sub('''    XpeImageBuffer mb = outBuf(mask), fb = outBuf(feat);
+    XpeBpmReportV2 rep{};
+    const XpeErrorCode rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &mb, &fb, &rep);''',
+    '''    XpeImageBuffer mb = outBuf(mask), fb = outBuf(feat), ab = outBuf(area);
+    XpeBpmReportV2 rep{};
+    const XpeErrorCode rc = xpe_bpm_generate_v2(db.data(), static_cast<uint32_t>(db.size()), bb.data(), static_cast<uint32_t>(bb.size()), &cfg, &mb, &fb, &ab, &rep);''')
+sub('''    if (a.has("features") && !writeBytes(a.str("features"), feat.data(), feat.size())) return 3;''',
+    '''    if (a.has("features") && !writeBytes(a.str("features"), feat.data(), feat.size())) return 3;
+    if (a.has("area") && !writeBytes(a.str("area"), area.data(), area.size())) return 3;''')
+
+# score: --area
+sub('''    const bool haveClean = a.has("clean-map");
+    if (haveClean && !readMap(a.str("clean-map"), n, &clean)) return 3;
+''', '''    const bool haveClean = a.has("clean-map");
+    if (haveClean && !readMap(a.str("clean-map"), n, &clean)) return 3;
+    std::vector<uint8_t> area;
+    size_t               outOfArea = 0;
+    if (a.has("area")) {
+        if (!readAllBytes(a.str("area"), &area) || area.size() != n) {
+            std::fprintf(stderr, "%s: not an imaging-area mask of %zu pixels\\n", a.str("area").c_str(), n);
+            return 3;
+        }
+        for (size_t i = 0; i < n; ++i) outOfArea += area[i] == 0;
+    }
+    auto applyArea = [&](std::vector<uint8_t>* m) {
+        if (area.empty()) return;
+        for (size_t i = 0; i < n; ++i)
+            if (area[i] == 0) (*m)[i] = 0;
+    };
+    applyArea(&map);
+    if (haveClean) applyArea(&clean);
+    if (!area.empty()) std::printf("imaging area mask: %zu pixels outside; flags there are not counted\n", outOfArea);
+''')
+sub('''        if (!readMap(a.str("half-a"), n, &ha) || !readMap(a.str("half-b"), n, &hb)) return 3;''',
+    '''        if (!readMap(a.str("half-a"), n, &ha) || !readMap(a.str("half-b"), n, &hb)) return 3;
+        applyArea(&ha);
+        applyArea(&hb);''')
+open(p, 'w', encoding='utf-8', newline='').write(s)
+print('patched')

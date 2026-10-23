@@ -1,0 +1,14 @@
+V2 = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_bpm_v2.cpp'
+TITLE = 'RETRY of Y1 and Y2 of 24_mutation_median (the first versions did not compile: an unused parameter is an error).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252j/evidence/27_mutation_median_retry_log.txt'
+FILT = 'BpmV2Test.TheExcludingMedian*:BpmV2Test.AWindowWithNo*:BpmV2Test.TheLocalExpectation*'
+PRED = [
+    '  Y1 a window with no admissible pixel takes 0 instead of the ordinary median -> red: AWindowWithNoAdmissiblePixel... only',
+    '  Y2 the exclusion mask is ignored (every pixel is used)                      -> red: AWindowWithNoAdmissiblePixel... and TheLocalExpectation... (both)',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('Y1', V2, b'out[row + static_cast<size_t>(x)] = plain[row + static_cast<size_t>(x)];', b'out[row + static_cast<size_t>(x)] = 0.0f * plain[row + static_cast<size_t>(x)];'),
+    ('Y2', V2, b'if (!excl[i]) buf[cnt++] = in[i];', b'if (!excl[i] || excl[i] < 2) buf[cnt++] = in[i];'),
+]
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-252j/evidence/20_mutation_common.py.txt', encoding='utf-8').read())
