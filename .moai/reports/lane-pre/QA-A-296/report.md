@@ -212,3 +212,11 @@ cd D:/workspace-github/xpe-pre/build/qa296-work
 | 손상 로드 거부 뒤 상태 | (코드 변경 없음) | `ARefusedLoadLeavesTheOutputOfTheEarlierStateUnchanged`: 공개 로더로 유효 세트를 설치해 한 장 처리(포화 화소가 S_out) → 손상 기록 로드 거부 → 같은 입력의 출력이 바이트 동일; 반증: 다른 수준의 유효 파일을 로드하면 출력이 달라진다 |
 
 결과: 전체 `xpe_preprocess_tests` 1373 통과, 3 건너뜀, 종료 코드 0 (`evidence/full9.log`). 180장 재실행(출력 `pre-w3072-20261023-1727` 과 새로 만든 출력이 180장 모두 바이트 동일, 끄기 설정은 옛 출력과 180장 모두 바이트 동일) — §5 수치는 그대로다. 변경 파일 sha256(앞 8자): pipeline.cpp 03d2109e, xpe_calib_generate_gain.cpp e3dfc024, test_saturation.cpp fc137267.
+
+## 12. 코드 커밋 (QA-A-296-C1, 2026-10-23 22:35)
+
+- 커밋: `57ddbd2ed0a3682d73020d685ee70e5eb3db0bad` (브랜치 `dev/preprocess`, 부모 `325422f7`, push 하지 않음). 사전 시험: `tools/ci/Test-TrackedTextFiles.ps1` 통과.
+- 세 파일 SHA-256 대조(Reviewer #306 이 본 값과 앞 8자 일치): `src/pipeline.cpp` 03d2109e, `src/xpe_calib_generate_gain.cpp` e3dfc024, `tests/test_saturation.cpp` fc137267. 불일치 없음.
+- 커밋한 파일(`modules/preprocess` 17개 + 보고서 1개): CMakeLists.txt, include/xpe/preprocess/xpe_preprocess_internal.h, src/{calibration_cache,defect_correct,gain_correct,pipeline,xpe_calib_generate_gain,xpe_calib_load_gain,xpe_calibration}.cpp, src/{parallel.hpp,saturation.cpp,saturation.hpp}, tests/{test_calib_fixture_gen,test_pipeline_ex,test_defect_lines,test_parallel_determinism,test_saturation}.cpp, 이 보고서(§11 까지).
+- 커밋하지 않은 것: 기존에 수정돼 있던 tests/test_ghost_oracle.cpp, test_nonlin_lut_apply.cpp, test_nonlin_lut_generate.cpp, test_nonlin_poly_apply.cpp, 추적되지 않는 `.moai/` 폴더들, gui/·clients/·docs/·cmake/·.claude/ 의 변경.
+- 새 시험·새 기능·새 측정은 하지 않았다.
