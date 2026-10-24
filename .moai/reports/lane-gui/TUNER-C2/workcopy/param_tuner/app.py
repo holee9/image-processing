@@ -951,22 +951,31 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # ---------------------------------------------------------------- 파라미터 <-> 테이블
     def _read_table(self):
-        """테이블 → (init Params, defs)"""
+        """Validate the complete table before changing definitions or starting work."""
         init = default_params()
+        pending = []
         for r, d in enumerate(self.defs):
-            def val(c, fallback):
+            values = []
+            for c in (3, 5, 6):
                 try:
-                    return int(self.table.item(r, c).text())
-                except ValueError:
-                    return fallback
-            d.enabled = self.table.item(r, 0).checkState() == Qt.Checked
-            d.default = val(3, d.default)
-            d.lo, d.hi = val(5, d.lo), val(6, d.hi)
-            d.lo, d.hi = min(d.lo, d.default), max(d.hi, d.default)
+                    values.append(int(self.table.item(r, c).text()))
+                except ValueError as ex:
+                    raise ValueError(f"{d.name}: 초기값/최소/최대는 정수로 입력하세요.") from ex
+            default, lo, hi = values
+            if lo > hi:
+                raise ValueError(f"{d.name}: 최소값은 최대값보다 클 수 없습니다.")
+            # Preserve the existing explicit initial-value range expansion policy.
+            lo, hi = min(lo, default), max(hi, default)
+            enabled = self.table.item(r, 0).checkState() == Qt.Checked
+            pending.append((d, default, lo, hi, enabled))
             if d.kind == "post":
-                init.post[d.index] = d.default
+                init.post[d.index] = default
             else:
-                init.lut[d.index] = d.default
+                init.lut[d.index] = default
+        if not init.lut_valid():
+            raise ValueError("LUT X 좌표는 0~100 안에서 엄격하게 증가해야 합니다.")
+        for d, default, lo, hi, enabled in pending:
+            d.default, d.lo, d.hi, d.enabled = default, lo, hi, enabled
         return init, self.defs
 
     def _show_params(self, p, col):
@@ -1027,13 +1036,13 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         try:
             cfg = self._make_cfg()
+            init, defs = self._read_table()
         except ValueError as ex:
             QtWidgets.QMessageBox.warning(self, "입력 확인", str(ex))
             return
         self.refresh_inputs(quiet=False)
         if self.src is None or self.tgt is None:
             return
-        init, defs = self._read_table()
         self._show_params(init, 4)
         self._save_settings()
         self.plot.reset()

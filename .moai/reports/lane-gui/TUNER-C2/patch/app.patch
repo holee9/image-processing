@@ -1,0 +1,43 @@
+--- a/param_tuner/app.py
++++ b/param_tuner/app.py
+@@ -954 +954 @@
+-        """테이블 → (init Params, defs)"""
++        """Validate the complete table before changing definitions or starting work."""
+@@ -955,0 +956 @@
++        pending = []
+@@ -957 +958,2 @@
+-            def val(c, fallback):
++            values = []
++            for c in (3, 5, 6):
+@@ -959,7 +961,10 @@
+-                    return int(self.table.item(r, c).text())
+-                except ValueError:
+-                    return fallback
+-            d.enabled = self.table.item(r, 0).checkState() == Qt.Checked
+-            d.default = val(3, d.default)
+-            d.lo, d.hi = val(5, d.lo), val(6, d.hi)
+-            d.lo, d.hi = min(d.lo, d.default), max(d.hi, d.default)
++                    values.append(int(self.table.item(r, c).text()))
++                except ValueError as ex:
++                    raise ValueError(f"{d.name}: 초기값/최소/최대는 정수로 입력하세요.") from ex
++            default, lo, hi = values
++            if lo > hi:
++                raise ValueError(f"{d.name}: 최소값은 최대값보다 클 수 없습니다.")
++            # Preserve the existing explicit initial-value range expansion policy.
++            lo, hi = min(lo, default), max(hi, default)
++            enabled = self.table.item(r, 0).checkState() == Qt.Checked
++            pending.append((d, default, lo, hi, enabled))
+@@ -967 +972 @@
+-                init.post[d.index] = d.default
++                init.post[d.index] = default
+@@ -969 +974,5 @@
+-                init.lut[d.index] = d.default
++                init.lut[d.index] = default
++        if not init.lut_valid():
++            raise ValueError("LUT X 좌표는 0~100 안에서 엄격하게 증가해야 합니다.")
++        for d, default, lo, hi, enabled in pending:
++            d.default, d.lo, d.hi, d.enabled = default, lo, hi, enabled
+@@ -1029,0 +1039 @@
++            init, defs = self._read_table()
+@@ -1036 +1045,0 @@
+-        init, defs = self._read_table()

@@ -1,0 +1,7 @@
+TUNER-C2 GUI 입력 계약 수정 및 회귀 검증
+
+Refs #279
+
+원본 사본 84889dff 이후 workcopy app.py만 최소 수정.
+정수 입력·역전 범위·LUT X 검증과 오류 경로, 순수 Python 7시험.
+원본 S 미변경. Reviewer 및 리더 검토용, push 없음.
