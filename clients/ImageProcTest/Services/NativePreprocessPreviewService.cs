@@ -488,37 +488,37 @@ namespace ImageProcTest
             switch (request.Stage)
             {
                 case "offset":
-                {
-                    var code = WithFrame(request.DarkPixels!, request.Width, request.Height, frame =>
-                        module.GenerateOffset([frame], 1, IntegrationTimeMs, TemperatureC, request.XCalPath, null));
-                    return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadOffset(request.XCalPath) : code;
-                }
+                    {
+                        var code = WithFrame(request.DarkPixels!, request.Width, request.Height, frame =>
+                            module.GenerateOffset([frame], 1, IntegrationTimeMs, TemperatureC, request.XCalPath, null));
+                        return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadOffset(request.XCalPath) : code;
+                    }
 
                 case "gain":
-                {
-                    var code = WithFrame(request.FlatPixels!, request.Width, request.Height, flat =>
                     {
-                        if (request.FlatDarkReference is null)
+                        var code = WithFrame(request.FlatPixels!, request.Width, request.Height, flat =>
                         {
-                            return module.GenerateGain([flat], 1, IntPtr.Zero, request.XCalPath, null);
-                        }
+                            if (request.FlatDarkReference is null)
+                            {
+                                return module.GenerateGain([flat], 1, IntPtr.Zero, request.XCalPath, null);
+                            }
 
-                        return WithFrame(request.FlatDarkReference, request.Width, request.Height, dark =>
-                        {
-                            var darkPointer = Marshal.AllocHGlobal(Marshal.SizeOf<XpeCommonApi.XpeImageBuffer>());
-                            try
+                            return WithFrame(request.FlatDarkReference, request.Width, request.Height, dark =>
                             {
-                                Marshal.StructureToPtr(dark, darkPointer, fDeleteOld: false);
-                                return module.GenerateGain([flat], 1, darkPointer, request.XCalPath, null);
-                            }
-                            finally
-                            {
-                                Marshal.FreeHGlobal(darkPointer);
-                            }
+                                var darkPointer = Marshal.AllocHGlobal(Marshal.SizeOf<XpeCommonApi.XpeImageBuffer>());
+                                try
+                                {
+                                    Marshal.StructureToPtr(dark, darkPointer, fDeleteOld: false);
+                                    return module.GenerateGain([flat], 1, darkPointer, request.XCalPath, null);
+                                }
+                                finally
+                                {
+                                    Marshal.FreeHGlobal(darkPointer);
+                                }
+                            });
                         });
-                    });
-                    return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadGain(request.XCalPath) : code;
-                }
+                        return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadGain(request.XCalPath) : code;
+                    }
 
                 case "defect":
                     return module.LoadDefect(request.XCalPath);

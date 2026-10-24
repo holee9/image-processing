@@ -1,0 +1,7 @@
+GUI-HOOK-1 GUI 공백 서식 오류로 막힌 gate 수정
+
+Refs #279
+
+ImageProcTest의 세 C# 파일 공백만 수정한다.
+dotnet format gate 재현 80건→0, 공백 무시 diff 비어 있음.
+ImageProcTest Release 빌드 경고0/오류0. 정상 훅으로만 커밋.

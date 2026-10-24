@@ -229,49 +229,49 @@ namespace ImageProcTest
                 switch (stage)
                 {
                     case "modality-lut":
-                    {
-                        var parameters = XpeModalityLutParams.Identity;
-                        var stageStopwatch = Stopwatch.StartNew();
-                        var code = applyModality(ref buffer, ref parameters);
-                        stageStopwatch.Stop();
-                        var result = CreateStageResult(
-                            "modality-lut",
-                            code,
-                            stageStopwatch.Elapsed.TotalMilliseconds,
-                            $"mode={parameters.Mode}; slope={parameters.RescaleSlope:0.###}; intercept={parameters.RescaleIntercept:0.###}.{autoDetails}");
-                        AddRequiredStage(stages, result);
-                        break;
-                    }
+                        {
+                            var parameters = XpeModalityLutParams.Identity;
+                            var stageStopwatch = Stopwatch.StartNew();
+                            var code = applyModality(ref buffer, ref parameters);
+                            stageStopwatch.Stop();
+                            var result = CreateStageResult(
+                                "modality-lut",
+                                code,
+                                stageStopwatch.Elapsed.TotalMilliseconds,
+                                $"mode={parameters.Mode}; slope={parameters.RescaleSlope:0.###}; intercept={parameters.RescaleIntercept:0.###}.{autoDetails}");
+                            AddRequiredStage(stages, result);
+                            break;
+                        }
 
                     case "voi-lut":
-                    {
-                        var parameters = CreateAutoVoi(inputPixels);
-                        var stageStopwatch = Stopwatch.StartNew();
-                        var code = applyVoi(ref buffer, ref parameters);
-                        stageStopwatch.Stop();
-                        var result = CreateStageResult(
-                            "voi-lut",
-                            code,
-                            stageStopwatch.Elapsed.TotalMilliseconds,
-                            $"mode={parameters.Mode}; center={parameters.Center:0.###}; width={parameters.Width:0.###}; output={parameters.MinOut:0.###}..{parameters.MaxOut:0.###}.{autoDetails}");
-                        AddRequiredStage(stages, result);
-                        break;
-                    }
+                        {
+                            var parameters = CreateAutoVoi(inputPixels);
+                            var stageStopwatch = Stopwatch.StartNew();
+                            var code = applyVoi(ref buffer, ref parameters);
+                            stageStopwatch.Stop();
+                            var result = CreateStageResult(
+                                "voi-lut",
+                                code,
+                                stageStopwatch.Elapsed.TotalMilliseconds,
+                                $"mode={parameters.Mode}; center={parameters.Center:0.###}; width={parameters.Width:0.###}; output={parameters.MinOut:0.###}..{parameters.MaxOut:0.###}.{autoDetails}");
+                            AddRequiredStage(stages, result);
+                            break;
+                        }
 
                     case "presentation-lut":
-                    {
-                        var parameters = XpePresentationLutParams.LinearUInt16();
-                        var stageStopwatch = Stopwatch.StartNew();
-                        var code = applyPresentation(ref buffer, ref parameters, 0);
-                        stageStopwatch.Stop();
-                        var result = CreateStageResult(
-                            "presentation-lut",
-                            code,
-                            stageStopwatch.Elapsed.TotalMilliseconds,
-                            $"linearUInt16=true; gsdf={parameters.GsdfEnabled}; preview={preview.PreviewWidth}x{preview.PreviewHeight}.{autoDetails}");
-                        AddRequiredStage(stages, result);
-                        break;
-                    }
+                        {
+                            var parameters = XpePresentationLutParams.LinearUInt16();
+                            var stageStopwatch = Stopwatch.StartNew();
+                            var code = applyPresentation(ref buffer, ref parameters, 0);
+                            stageStopwatch.Stop();
+                            var result = CreateStageResult(
+                                "presentation-lut",
+                                code,
+                                stageStopwatch.Elapsed.TotalMilliseconds,
+                                $"linearUInt16=true; gsdf={parameters.GsdfEnabled}; preview={preview.PreviewWidth}x{preview.PreviewHeight}.{autoDetails}");
+                            AddRequiredStage(stages, result);
+                            break;
+                        }
 
                     default:
                         throw new InvalidOperationException($"Native display preview does not support stage '{stage}'.");

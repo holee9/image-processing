@@ -1,0 +1,33 @@
+gate-before.log {"NativeDependencyLoader.cs": 7, "NativePreprocessPreviewService.cs": 34, "NativePresentationExportService.cs": 39} lines= 251
+gate-after-two-files.log {"NativePresentationExportService.cs": 39} lines= 135
+gate-after.log {} lines= 18
+moai.exe : time=2026-10-24T10:54:09.836+09:00 level=WARN msg="ast-grep (sg) CLI not found; skipping scan" binary=sg hin
+t="install from https://ast-grep.github.io/guide/quick-start.html"
+위치 D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-HOOK-1\run.ps1:17 문자:9
++         & $moai.Source gate 2>&1 | Tee-Object -FilePath (Join-Path $r ...
++         ~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time=2026-10-24...ick-start.html":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+graph-freshness: codemaps=absent(value=0 threshold=40), mx-index=absent(value=0 threshold=1), edges=absent(value=0 thre
+shold=0) (advisory)
+typecheck: skipped (no default for this language; set gate.typecheck.command to enable one)
+ast-grep scan skipped: the sg CLI was not found, so no rules ran (install from https://ast-grep.github.io/guide/quick-s
+tart.html)
+
+quality gate steps (3 configured):
+  - typecheck: skipped — no default for this language; set gate.typecheck.command to enable one
+  - dotnet format: executed in 5.852s at 2026-10-24T10:53:27.055+09:00 — dotnet format --verify-no-changes
+  - dotnet test: executed in 834ms at 2026-10-24T10:54:09.845+09:00 — dotnet test
+build.log {} lines= 9
+  ImageProcTest -> D:\workspace-github\xpe-gui\clients\ImageProcTest\bin\Release\net8.0-windows\ImageProcTest.dll
+
+빌드했습니다.
+    경고 0개
+    오류 0개
+
+경과 시간: 00:00:04.13
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.
+diff -w exit= 0 stdout_bytes= 0
+PASS: non-whitespace bytes identical in all three C# files.
