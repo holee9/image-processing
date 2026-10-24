@@ -1,0 +1,550 @@
+{
+  "protocols": [
+  {
+    "name": "ABDOMEN_DECU",
+    "code": 1001
+  },
+  {
+    "name": "ABDOMEN_ERECT",
+    "code": 1002
+  },
+  {
+    "name": "ABDOMEN_IVP",
+    "code": 1003
+  },
+  {
+    "name": "ABDOMEN_KUB",
+    "code": 1004
+  },
+  {
+    "name": "ABDOMEN_LAT",
+    "code": 1005
+  },
+  {
+    "name": "ABDOMEN_PRONE",
+    "code": 1006
+  },
+  {
+    "name": "ABDOMEN_SUPINE",
+    "code": 1007
+  },
+  {
+    "name": "CHEST_AP",
+    "code": 1101
+  },
+  {
+    "name": "CHEST_APICOGRAM",
+    "code": 1102
+  },
+  {
+    "name": "CHEST_DECU",
+    "code": 1103
+  },
+  {
+    "name": "CHEST_INFANTOGRAM",
+    "code": 1104
+  },
+  {
+    "name": "CHEST_LAT",
+    "code": 1105
+  },
+  {
+    "name": "CHEST_OBL",
+    "code": 1106
+  },
+  {
+    "name": "CHEST_PA",
+    "code": 1107
+  },
+  {
+    "name": "AC_JOINT_W_WEIGHTS",
+    "code": 1201
+  },
+  {
+    "name": "AC_JOINT_WO_WEIGHTS",
+    "code": 1202
+  },
+  {
+    "name": "CLAVICLE_AP",
+    "code": 1203
+  },
+  {
+    "name": "CLAVICLE_AXIAL",
+    "code": 1204
+  },
+  {
+    "name": "COCCYX_AP",
+    "code": 1301
+  },
+  {
+    "name": "COCCYX_AP_AXIAL",
+    "code": 1302
+  },
+  {
+    "name": "COCCYX_LAT",
+    "code": 1303
+  },
+  {
+    "name": "C_SPINE_AP",
+    "code": 1401
+  },
+  {
+    "name": "C_SPINE_EXT",
+    "code": 1402
+  },
+  {
+    "name": "C_SPINE_FLEX",
+    "code": 1403
+  },
+  {
+    "name": "C_SPINE_LAT",
+    "code": 1404
+  },
+  {
+    "name": "C_SPINE_OBL",
+    "code": 1405
+  },
+  {
+    "name": "C_SPINE_OPEN_MOUTH",
+    "code": 1406
+  },
+  {
+    "name": "C_SPINE_SWIMMER",
+    "code": 1407
+  },
+  {
+    "name": "CT_SPINE_AP",
+    "code": 1501
+  },
+  {
+    "name": "CT_SPINE_EXT",
+    "code": 1502
+  },
+  {
+    "name": "CT_SPINE_FLEX",
+    "code": 1503
+  },
+  {
+    "name": "CT_SPINE_LAT",
+    "code": 1504
+  },
+  {
+    "name": "CT_SPINE_OBL",
+    "code": 1505
+  },
+  {
+    "name": "CT_SPINE_SWIMMER",
+    "code": 1506
+  },
+  {
+    "name": "MAXILLARY_AP",
+    "code": 1601
+  },
+  {
+    "name": "NASAL_LAT",
+    "code": 1602
+  },
+  {
+    "name": "ORBITAL_AP",
+    "code": 1603
+  },
+  {
+    "name": "ORBITAL_AXIAL",
+    "code": 1604
+  },
+  {
+    "name": "ORBITAL_CALDWELL",
+    "code": 1605
+  },
+  {
+    "name": "ORBITAL_TOWNE",
+    "code": 1606
+  },
+  {
+    "name": "ORBITAL_WATERS",
+    "code": 1607
+  },
+  {
+    "name": "SELLA_TURCICA_LAT",
+    "code": 1608
+  },
+  {
+    "name": "TM_JOINT_CLOSE",
+    "code": 1609
+  },
+  {
+    "name": "TM_JOINT_OPEN",
+    "code": 1610
+  },
+  {
+    "name": "ZYGOMATIC_ARCH",
+    "code": 1611
+  },
+  {
+    "name": "FEMUR_AP",
+    "code": 1701
+  },
+  {
+    "name": "FEMUR_LAT",
+    "code": 1702
+  },
+  {
+    "name": "FEMUR_OBL",
+    "code": 1703
+  },
+  {
+    "name": "HIP_AP",
+    "code": 1801
+  },
+  {
+    "name": "HIP_AXIAL",
+    "code": 1802
+  },
+  {
+    "name": "HIP_FROG_LEG",
+    "code": 1803
+  },
+  {
+    "name": "HIP_LAT",
+    "code": 1804
+  },
+  {
+    "name": "HIP_OBL",
+    "code": 1805
+  },
+  {
+    "name": "SI_JOINT",
+    "code": 1806
+  },
+  {
+    "name": "SI_JOINT_AXIAL",
+    "code": 1807
+  },
+  {
+    "name": "SI_JOINT_OBL",
+    "code": 1808
+  },
+  {
+    "name": "HUMERUS_AP",
+    "code": 1901
+  },
+  {
+    "name": "HUMERUS_LAT",
+    "code": 1902
+  },
+  {
+    "name": "HUMERUS_OBL",
+    "code": 1903
+  },
+  {
+    "name": "HUMERUS_SWIMMER",
+    "code": 1904
+  },
+  {
+    "name": "L_SPINE_AP",
+    "code": 2001
+  },
+  {
+    "name": "L_SPINE_EXT",
+    "code": 2002
+  },
+  {
+    "name": "L_SPINE_FLEX",
+    "code": 2003
+  },
+  {
+    "name": "L_SPINE_LAT",
+    "code": 2004
+  },
+  {
+    "name": "L_SPINE_OBL",
+    "code": 2005
+  },
+  {
+    "name": "L_SPINE_SPOT",
+    "code": 2006
+  },
+  {
+    "name": "LS_SPINE_AP",
+    "code": 2101
+  },
+  {
+    "name": "LS_SPINE_EXT",
+    "code": 2102
+  },
+  {
+    "name": "LS_SPINE_FLEX",
+    "code": 2103
+  },
+  {
+    "name": "LS_SPINE_LAT",
+    "code": 2104
+  },
+  {
+    "name": "LS_SPINE_OBL",
+    "code": 2105
+  },
+  {
+    "name": "LS_SPINE_SPOT",
+    "code": 2106
+  },
+  {
+    "name": "MASTOID_LAWS",
+    "code": 2201
+  },
+  {
+    "name": "MASTOID_SCHULLER",
+    "code": 2202
+  },
+  {
+    "name": "MASTOID_STENVERS",
+    "code": 2203
+  },
+  {
+    "name": "MASTOID_TOWNE",
+    "code": 2204
+  },
+  {
+    "name": "PELVIS_AP",
+    "code": 2301
+  },
+  {
+    "name": "PELVIS_INLET",
+    "code": 2302
+  },
+  {
+    "name": "PELVIS_LAT",
+    "code": 2303
+  },
+  {
+    "name": "PELVIS_OBL",
+    "code": 2304
+  },
+  {
+    "name": "PELVIS_OUTLET",
+    "code": 2305
+  },
+  {
+    "name": "PNS_CALDWELL",
+    "code": 2401
+  },
+  {
+    "name": "PNS_LAT",
+    "code": 2402
+  },
+  {
+    "name": "PNS_TOWNE",
+    "code": 2403
+  },
+  {
+    "name": "PNS_WATERS",
+    "code": 2404
+  },
+  {
+    "name": "RIB_AP",
+    "code": 2501
+  },
+  {
+    "name": "RIB_AP_LOWER",
+    "code": 2502
+  },
+  {
+    "name": "RIB_AP_UPPER",
+    "code": 2503
+  },
+  {
+    "name": "RIB_OBL",
+    "code": 2504
+  },
+  {
+    "name": "RIB_OBL_LOWER",
+    "code": 2505
+  },
+  {
+    "name": "RIB_OBL_UPPER",
+    "code": 2506
+  },
+  {
+    "name": "RIB_PA",
+    "code": 2507
+  },
+  {
+    "name": "RIB_PA_LOWER",
+    "code": 2508
+  },
+  {
+    "name": "RIB_PA_UPPER",
+    "code": 2509
+  },
+  {
+    "name": "SACRUM_AP",
+    "code": 2601
+  },
+  {
+    "name": "SACRUM_AP_AXIAL",
+    "code": 2602
+  },
+  {
+    "name": "SACRUM_LAT",
+    "code": 2603
+  },
+  {
+    "name": "SC_JOINT_OBL",
+    "code": 2701
+  },
+  {
+    "name": "SC_JOINT_PA",
+    "code": 2702
+  },
+  {
+    "name": "SC_JOINT_AP",
+    "code": 2703
+  },
+  {
+    "name": "SC_JOINT_AXIAL",
+    "code": 2704
+  },
+  {
+    "name": "SCAPULA_AP",
+    "code": 2801
+  },
+  {
+    "name": "SCAPULA_LAT",
+    "code": 2802
+  },
+  {
+    "name": "SCAPULA_OBL",
+    "code": 2803
+  },
+  {
+    "name": "SHOULDER_AP",
+    "code": 2901
+  },
+  {
+    "name": "SHOULDER_AP_EXTERNAL",
+    "code": 2902
+  },
+  {
+    "name": "SHOULDER_AP_INTERNAL",
+    "code": 2903
+  },
+  {
+    "name": "SHOULDER_AXIAL",
+    "code": 2904
+  },
+  {
+    "name": "SHOULDER_GRASHEY",
+    "code": 2905
+  },
+  {
+    "name": "SHOULDER_OBL",
+    "code": 2906
+  },
+  {
+    "name": "SHOULDER_SWIMMER",
+    "code": 2907
+  },
+  {
+    "name": "SHOULDER_Y_VIEW",
+    "code": 2908
+  },
+  {
+    "name": "SKULL_AP",
+    "code": 3001
+  },
+  {
+    "name": "SKULL_CALDWELL",
+    "code": 3002
+  },
+  {
+    "name": "SKULL_LAT",
+    "code": 3003
+  },
+  {
+    "name": "SKULL_PA",
+    "code": 3004
+  },
+  {
+    "name": "SKULL_SUBMENTOVERTEX_VIEW",
+    "code": 3005
+  },
+  {
+    "name": "SKULL_TOWNE",
+    "code": 3006
+  },
+  {
+    "name": "SKULL_WATERS",
+    "code": 3007
+  },
+  {
+    "name": "STERNUM_LAT",
+    "code": 3101
+  },
+  {
+    "name": "STERNUM_OBL",
+    "code": 3102
+  },
+  {
+    "name": "TL_SPINE_AP",
+    "code": 3201
+  },
+  {
+    "name": "TL_SPINE_EXT",
+    "code": 3202
+  },
+  {
+    "name": "TL_SPINE_FLEX",
+    "code": 3203
+  },
+  {
+    "name": "TL_SPINE_LAT",
+    "code": 3204
+  },
+  {
+    "name": "TL_SPINE_OBL",
+    "code": 3205
+  },
+  {
+    "name": "T_SPINE_AP",
+    "code": 3301
+  },
+  {
+    "name": "T_SPINE_EXT",
+    "code": 3302
+  },
+  {
+    "name": "T_SPINE_FLEX",
+    "code": 3303
+  },
+  {
+    "name": "T_SPINE_LAT",
+    "code": 3304
+  },
+  {
+    "name": "T_SPINE_OBL",
+    "code": 3305
+  },
+  {
+    "name": "WHOLE_BODY_AP",
+    "code": 3401
+  },
+  {
+    "name": "WHOLE_BODY_LAT",
+    "code": 3402
+  },
+  {
+    "name": "LONG_BONE_AP",
+    "code": 3501
+  },
+  {
+    "name": "LONG_BONE_LAT",
+    "code": 3502
+  },
+  {
+    "name": "PHYSICAL_TEST",
+    "code": 4001
+  }
+]
+
+
+}
