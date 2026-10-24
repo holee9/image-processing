@@ -16,3 +16,9 @@
 - git diff --stat: NativeDependencyLoader14줄, NativePreprocessPreviewService46줄, NativePresentationExportService78줄; 총3파일69삽입/69삭제(공백만). 기존 tracked dirty5파일은 stage하지 않는다.
 
 정상 pre-commit에서 moai gate가 실제 발견되는 PATH로 새 커밋을 시도한다. 실패 시 우회 없이 오류 원문/스테이징 상태를 보고한다. commit.log는 커밋 실행 중 생성되므로 최초 commit에는 포함되지 않으며 결과 SHA는 후속 회신으로 전달한다. push/다른 레인 적용 없음.
+
+## 정상 훅 커밋 결과
+
+- 코드/초기 증거 커밋 **127ed511** (`GUI-HOOK-1 GUI 공백 서식 오류로 막힌 gate 수정`, Refs #279). 정상 pre-commit의 moai gate가 실제 실행되어 format6.024s/test849ms 후 rc0으로 커밋됐다. `commit.log`에 훅 출력과 커밋 결과 원문이 있다. 오류로 보이는 PowerShell NativeCommandError 표시는 stderr의 기존 경고를 포장한 것으로 실제 exit0이며 원문은 숨기지 않았다.
+- 초기80건→두파일수정후39건→세파일수정후0건. `git diff -w`는 **세 소스파일에 한정**한 결과이며 증거 문서까지 공백 변경이라는 주장은 하지 않는다.
+- 리더와 Reviewer 세션에127ed511 및 변경 범위 검토를 요청했다. 기존5파일의 tracked dirty 상태는 유지됐다. 이 후속 문서/훅 원문 기록도 amend 없이 새 커밋으로 남긴다. 다음 정상 훅 로그는 기존 commit.log를 덮어쓰지 않도록 commit-evidence.log에 둔다.

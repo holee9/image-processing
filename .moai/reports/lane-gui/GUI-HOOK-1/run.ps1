@@ -1,4 +1,5 @@
-param([ValidateSet('before', 'after', 'format', 'format-export', 'build', 'commit')][string]$Step)
+param([ValidateSet('before', 'after', 'format', 'format-export', 'build', 'commit')][string]$Step,
+      [ValidateSet('commit.log', 'commit-evidence.log')][string]$CommitLog = 'commit.log')
 $ErrorActionPreference = 'Continue'
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new()
 $root = 'D:\workspace-github\xpe-gui'
@@ -30,7 +31,7 @@ switch ($Step) {
         $result = $LASTEXITCODE
     }
     'commit' {
-        & $git commit -F .moai/reports/lane-gui/GUI-HOOK-1/commit-message.txt -- clients/ImageProcTest/Diagnostics/NativeDependencyLoader.cs clients/ImageProcTest/Services/NativePreprocessPreviewService.cs clients/ImageProcTest/Services/NativePresentationExportService.cs .moai/reports/lane-gui/GUI-HOOK-1 2>&1 | Tee-Object -FilePath (Join-Path $report 'commit.log')
+        & $git commit -F .moai/reports/lane-gui/GUI-HOOK-1/commit-message.txt -- clients/ImageProcTest/Diagnostics/NativeDependencyLoader.cs clients/ImageProcTest/Services/NativePreprocessPreviewService.cs clients/ImageProcTest/Services/NativePresentationExportService.cs .moai/reports/lane-gui/GUI-HOOK-1 2>&1 | Tee-Object -FilePath (Join-Path $report $CommitLog)
         $result = $LASTEXITCODE
     }
 }
