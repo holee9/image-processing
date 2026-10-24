@@ -56,3 +56,28 @@ S = `D:/workspace/ProjectGit/PE_analysis/param_tuner` (아래 S 상대경로는 
 - 공통 경고 `D:/workspace-github/image-processing/.moai/state/codex-msgs/20261022-1040-all-warning.md`의 카드 내 자율수행/범위외 확장금지/레인 push금지를 재확인했다. 이번 회수/수정/시험/보고 범위에서 반영했고 다른 변경은 섞지 않았다.
 - Reviewer(`xpe-reviewer`, 01a15dc2-dcf3-7521-971c-e08dd7e74fe1)에 경로와 기준커밋, 실제수정/시험을 세션 통신했다. Reviewer는 다른 리더 작업 수행 중이며 **TUNER-C2를 아직 검토/승인하지 않았음**을 회신했다. 승인으로 오기하지 않으며 리더의 검토 배정/판정에 연결한다. 리더에게도 완료 자료와 미해결 JSON/엔진 범위를 전달한다.
 - 최종 staged 검사에서 diff 아티팩트의 빈 context 행/시험 로그 끝 공백을 발견하여 정리했다. app.patch는 zero-context unified diff(`git apply --unidiff-zero` 용)이며 제품 코드 변경은 동일하다. 최종 staged `diff --check`로 다시 확인한다.
+
+## [2026-10-24 10:43 KST] F313-1 수신·착수·수정 결과
+
+수신/근거: 리더 inbox `D:/workspace-github/image-processing/.moai/lanes/gui/inbox/TUNER-C2.md`의 10:41 추가와 Reviewer `D:/workspace-github/xpe-reviewer/.moai/state/reviews/XPE-LEADER-313-TUNER-C2.md:9-15`를 읽었다. #313은 로컬 검토 문서 식별자로 확인했다(GitHub issue313 조회는404, 기존 작업 이슈는 #279 유지). Reviewer가 인용한 a8d65208의 최종 후속 커밋은13f0cc5c이며 문제의 on_run 순서는 동일했다.
+
+판단: 입력 로드 전에 표를 읽어야 한다는 제품 요구는 없다. 이전 수정은 실제로 `refresh_inputs`가 입력 부재를 확인하기 전에 defs를 변경했고, 이전 순서 강제 시험은 그 선택을 잘못 요구했다. 기존7/7 통과를 이 결함의 해결 근거로 사용하지 않는다. 원본13 failure 중 이전 순서 시험 실패는 기존 파싱 결함으로 계산하지 않는다.
+
+착수/RED: 기대값을 완화하지 않고 기존 순서 강제 시험을 세 동작 시험으로 교체했다. 실제 `_read_table`+`on_run`을 AST 추출해 결합 호출한다. 수정 전13f0cc5c workcopy에서 입력 없음 3조합(src/tgt 모두 없음·src만 없음·tgt만 없음) 모두 defs변경 재현. 새9시험 중2메서드에서4 failure/subcase(입력 없음3 + 잘못된 표에서 입력확인을 건너뛴 경로1), exit1. [F313-1/red-workcopy.txt](F313-1/red-workcopy.txt).
+
+수정: **실제 workcopy/param_tuner/app.py**의 on_run에서 `_read_table()`을 `refresh_inputs`와 src/tgt None 조기 반환 뒤로 되돌렸다. 그 자리에서 ValueError를 기존 경고 방식으로 처리하고 반환한다. `_read_table`의 정수/역전범위/LUT/전행검증 후 일괄 반영은 그대로 유지했다. patch/app.py와 unified diff도 실제 사본에 맞췄다. JSON/엔진/기타파일 정책 변경 없음.
+
+검증(명령은 `C:/Users/drake/AppData/Local/Programs/Python/Python312/python.exe -I -B -X utf8 .moai/reports/lane-gui/TUNER-C2/patch/test_table_contract.py <mode>`):
+
+|대상/조건|결과|
+|---|---|
+|candidate: 입력 없음 3조합|defs 전체 불변, 표 미읽음, Worker 생성/시작0|
+|candidate: 유효 입력+잘못된 뒷행 정수|경고1, defs 전체 불변, Worker 생성/시작0|
+|candidate: 유효 입력+유효 표|두 행 일괄반영, Worker 경계에 initial12/33과 동일 defs 전달, start1|
+|candidate 전체|9/9 통과, exit0; F313-1/candidate.txt|
+|original 전체|9시험 중4메서드 통과/5메서드 실패,13 failure/subcase, exit1; F313-1/original.txt. 입력 없음/유효 표 경로는 원본에서도 통과하고, 파싱 결함은 계속 실패|
+|보존 검사|snapshot.py verify PASS: 원본19 SHA불변, 실제workcopy는 app.py만 변경,17 Python AST 유효, patch사본 일치; F313-1/source-verification.txt|
+
+시험의 UI/Worker 경계는 표시호출·연결·start를 기록하는 무실행 어댑터다. 실제 앱·Qt·엔진·DLL·스레드·영상은 실행/생성하지 않았으며 전체 제품 검증으로 확대하지 않는다. 결과 원문은 종료공백만 정리해 저장했다. 기존 원본 SHA목록/과거시험로그/기준커밋과 별도 tracked dirty5파일을 보존한다.
+
+커밋/재검토: 이 폴더만 명시 stage하여 **새 수정 커밋 하나**를 시도한다(`TUNER-C2 F313-1`, `Refs #279`). SKIP_MOAI_PRECOMMIT는 정의되지 않았으며 훅 우회 없이 실행한다. 훅이 막으면 오류와 stage 상태를 보고하고 커밋하지 않는다. 리더/Reviewer에 새 근거를 보내 재검토를 요청하며, 독립검토 통과/리더 결정 전 S적용·push금지를 유지한다.

@@ -1036,12 +1036,16 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         try:
             cfg = self._make_cfg()
-            init, defs = self._read_table()
         except ValueError as ex:
             QtWidgets.QMessageBox.warning(self, "입력 확인", str(ex))
             return
         self.refresh_inputs(quiet=False)
         if self.src is None or self.tgt is None:
+            return
+        try:
+            init, defs = self._read_table()
+        except ValueError as ex:
+            QtWidgets.QMessageBox.warning(self, "입력 확인", str(ex))
             return
         self._show_params(init, 4)
         self._save_settings()

@@ -37,7 +37,10 @@
 +            raise ValueError("LUT X 좌표는 0~100 안에서 엄격하게 증가해야 합니다.")
 +        for d, default, lo, hi, enabled in pending:
 +            d.default, d.lo, d.hi, d.enabled = default, lo, hi, enabled
-@@ -1029,0 +1039 @@
-+            init, defs = self._read_table()
-@@ -1036 +1045,0 @@
+@@ -1036 +1045,5 @@
 -        init, defs = self._read_table()
++        try:
++            init, defs = self._read_table()
++        except ValueError as ex:
++            QtWidgets.QMessageBox.warning(self, "입력 확인", str(ex))
++            return

@@ -2,7 +2,7 @@
 
 Breaks caught: silent invalid-int fallback, inverted search intervals,
 invalid LUT geometry, partial definition mutation before rejecting input.
-Run: python -B test_table_contract.py [original|candidate]
+Run: python -I -B -X utf8 test_table_contract.py [original|candidate]
 """
 import ast
 from dataclasses import dataclass, field
@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import List
 import sys
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parent
@@ -40,20 +41,76 @@ class Cell:
     def checkState(self): return 2
 
 def fixture(rows=None):
-    defs = [SimpleNamespace(kind='post', index=0, key='post.0', name='Contrast', default=10, lo=0, hi=30, enabled=False),
-            SimpleNamespace(kind='lut', index=3, key='lut.3', name='CP2 X', default=33, lo=0, hi=100, enabled=False)]
+    defs = [SimpleNamespace(kind='post', index=0, key='post.0', name='Contrast', group='tone', default=10, lo=0, hi=30, enabled=False),
+            SimpleNamespace(kind='lut', index=3, key='lut.3', name='CP2 X', group='lut', default=33, lo=0, hi=100, enabled=False)]
     cells = [[Cell(v) for v in row] for row in (rows or [['', '', '', '12', '', '0', '30'], ['', '', '', '33', '', '0', '100']])]
     return SimpleNamespace(defs=defs, table=SimpleNamespace(item=lambda r, c: cells[r][c])), cells
 
+class Control:
+    """Inert boundary adapter for UI display calls; no Qt or thread is created."""
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
+
+def run_fixture(present=(True, True)):
+    obj, cells = fixture()
+    observed = SimpleNamespace(warnings=[], workers=[], reads=0, refreshes=0, started=0)
+    class WorkerBoundary:
+        def __init__(self, cfg, init, defs, single):
+            self.cfg, self.init, self.defs, self.single = cfg, init, defs, single
+            self.log = self.stage = self.evaled = self.done = self.failed = Control()
+            observed.workers.append(self)
+        def start(self): observed.started += 1
+    def read_table():
+        observed.reads += 1
+        return parse(obj)
+    def refresh(**kwargs):
+        observed.refreshes += 1
+        obj.src = object() if present[0] else None
+        obj.tgt = object() if present[1] else None
+    run_scope.update(QtWidgets=SimpleNamespace(QMessageBox=SimpleNamespace(warning=lambda *args: observed.warnings.append(args))),
+                     Worker=WorkerBoundary, time=time, GROUP_ORDER=['tone', 'lut'])
+    obj.worker = obj.src = obj.tgt = None
+    obj._make_cfg = lambda: SimpleNamespace(opt=object())
+    obj._read_table, obj.refresh_inputs = read_table, refresh
+    for name in ('_show_params', '_save_settings', '_set_status', '_set_running', '_on_stage', '_on_eval', '_on_done', '_on_failed'):
+        setattr(obj, name, lambda *args, **kwargs: None)
+    for name in ('plot', 'card_loss', 'card_psnr', 'card_ssim', 'card_mae', 'card_eval', 'stepper', 'progress', 'logbox', 'timer'):
+        setattr(obj, name, Control())
+    obj.panels = [SimpleNamespace(arr=None, qimg=None, subtitle='') for _ in range(3)]
+    return obj, cells, observed
+
+def definitions(obj):
+    return [(d.default, d.lo, d.hi, d.enabled) for d in obj.defs]
+
 class ContractTests(unittest.TestCase):
-    def test_bad_table_is_reported_before_loading_or_worker_start(self):
-        warnings = []
-        run_scope['QtWidgets'] = SimpleNamespace(QMessageBox=SimpleNamespace(warning=lambda *args: warnings.append(args)))
-        def invalid(): raise ValueError('invalid table')
-        def forbidden(**kwargs): self.fail('input refresh must not precede validation')
-        obj = SimpleNamespace(worker=None, _make_cfg=lambda: object(), _read_table=invalid, refresh_inputs=forbidden)
+    def test_missing_input_preserves_defs_and_does_not_start_worker(self):
+        for present in ((False, False), (False, True), (True, False)):
+            with self.subTest(present=present):
+                obj, _, observed = run_fixture(present)
+                before = definitions(obj)
+                run(obj)
+                self.assertEqual(definitions(obj), before)
+                self.assertEqual((observed.reads, observed.refreshes, observed.started), (0, 1, 0))
+                self.assertEqual(observed.workers, [])
+
+    def test_valid_inputs_bad_table_warns_preserves_defs_and_does_not_start_worker(self):
+        obj, cells, observed = run_fixture()
+        cells[1][3].value = 'oops'
+        before = definitions(obj)
         run(obj)
-        self.assertEqual(len(warnings), 1)
+        self.assertEqual(definitions(obj), before)
+        self.assertEqual((observed.reads, observed.refreshes, observed.started), (1, 1, 0))
+        self.assertEqual(len(observed.warnings), 1)
+        self.assertEqual(observed.workers, [])
+
+    def test_valid_inputs_valid_table_commits_and_passes_values_to_worker(self):
+        obj, _, observed = run_fixture()
+        run(obj)
+        self.assertEqual(definitions(obj), [(12, 0, 30, True), (33, 0, 100, True)])
+        self.assertEqual((observed.reads, observed.refreshes, observed.started), (1, 1, 1))
+        self.assertEqual(observed.warnings, [])
+        self.assertEqual((observed.workers[0].init.post[0], observed.workers[0].init.lut[3]), (12, 33))
+        self.assertIs(observed.workers[0].defs, obj.defs)
 
     def test_valid_integer_edit_reaches_init_and_enabled(self):
         obj, _ = fixture()
