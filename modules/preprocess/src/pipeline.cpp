@@ -46,6 +46,15 @@ void (*xpe_pipeline_gain_frame_hook)(void*, size_t, bool) = nullptr;
 #endif
 
 namespace {
+    // QA-A-315 (Refs #278): a whole-frame copy between two disjoint buffers, in ranges on several threads (the bytes are the memcpy's).
+    // The frame copies into the working buffer and out to the caller took 2.3 ms and 1.6-1.8 ms on one thread at 3072x2560 (evidence 06).
+    void parallel_copy(void* dst, const void* src, size_t bytes)
+    {
+        xpe_parallel_chunks(bytes, size_t{2} << 20, [&](size_t b, size_t e) {
+            std::memcpy(static_cast<unsigned char*>(dst) + b, static_cast<const unsigned char*>(src) + b, e - b);
+        });
+    }
+
     // Pipeline configuration from JSON
     struct PipelineConfig {
         bool bypassReadout{false};
@@ -423,7 +432,7 @@ namespace {
         std::unique_ptr<unsigned char[]> work;
         if (widen) {
             work.reset(new unsigned char[floatBytes]);   // every byte is written before it is read: the frame first, the float frame later
-            std::memcpy(work.get(), img->data, inputBytes);
+            parallel_copy(work.get(), img->data, inputBytes);
         }
         uint16_t* const work16 = reinterpret_cast<uint16_t*>(work.get());
         float* const workF = reinterpret_cast<float*>(work.get());
@@ -759,7 +768,7 @@ namespace {
         }
         if (out) {
             // SAFE-004: the result goes to the caller's output buffer; the input buffer is never written.
-            std::memcpy(out->data, finalStage->data, outputBytes);
+            parallel_copy(out->data, finalStage->data, outputBytes);
             out->width = img->width;
             out->height = img->height;
             out->format = finalStage->format;
@@ -770,7 +779,7 @@ namespace {
             return XPE_OK;
         }
         if (finalStage->data != img->data)
-            std::memcpy(const_cast<void*>(img->data), finalStage->data, outputBytes);
+            parallel_copy(const_cast<void*>(img->data), finalStage->data, outputBytes);
         XPE_STAGE_HOOK(9);
 
         // Update img metadata to reflect actual output format

@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <exception>
+#include <future>
 #include <system_error>
 #include <thread>
 #include <vector>
@@ -42,7 +43,10 @@ void xpe_parallel_chunks(size_t items, size_t minPerThread, Fn&& fn)
     if (threads == 1) { fn(size_t{0}, items); return; }
 
     const size_t per = (items + threads - 1) / threads;
-    std::vector<std::thread> pool;
+    // QA-A-315 (Refs #278): the ranges run as std::async tasks, which the MSVC runtime takes from the process thread pool instead of
+    // creating and destroying a thread for each range (an empty call cost 0.49 ms with std::thread, QA-A-315 evidence 06; a frame makes
+    // several calls). The ranges, and so every result, are the same as before.
+    std::vector<std::future<void>> pool;
     std::vector<std::exception_ptr> errors(threads);
     pool.reserve(threads - 1);
     for (size_t t = 1; t < threads; ++t) {
@@ -52,12 +56,12 @@ void xpe_parallel_chunks(size_t items, size_t minPerThread, Fn&& fn)
             try { fn(b, e); } catch (...) { errors[t] = std::current_exception(); }
         };
         try {
-            pool.emplace_back(body);
+            pool.emplace_back(std::async(std::launch::async, body));
         } catch (const std::system_error&) {
             body();   // no thread to be had: this range runs here
         }
     }
     try { fn(size_t{0}, std::min(items, per)); } catch (...) { errors[0] = std::current_exception(); }
-    for (auto& th : pool) th.join();
+    for (auto& task : pool) task.wait();
     for (auto& ep : errors) if (ep) std::rethrow_exception(ep);
 }

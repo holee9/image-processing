@@ -84,8 +84,14 @@ public:
     void build(const uint8_t* base, size_t n, const uint32_t* extra, size_t extraCount)
     {
         n_ = n;
-        size_t baseCount = 0;
-        forEachNonZero(base, n, [&](size_t) { ++baseCount; });
+        // QA-A-315 (Refs #278): counted on several threads (a count per range, summed: the total does not depend on the split).
+        std::atomic<size_t> baseTotal{0};
+        xpe_parallel_chunks(n, size_t{1} << 20, [&](size_t b, size_t e) {
+            size_t c = 0;
+            forEachNonZero(base + b, e - b, [&](size_t) { ++c; });
+            baseTotal.fetch_add(c);
+        });
+        const size_t baseCount = baseTotal.load();
         size_t extraNew = 0;
         for (size_t k = 0; k < extraCount; ++k) extraNew += (base[extra[k]] == 0);
         count_ = baseCount + extraNew;
@@ -95,9 +101,12 @@ public:
             if (extraCount == 0) {
                 plane_ = base;
             } else {
-                own_.assign(base, base + n);
-                for (size_t k = 0; k < extraCount; ++k) own_[extra[k]] = 1;
-                plane_ = own_.data();
+                // QA-A-315: copied on several threads into a plane allocated without a zero fill (every byte is written).
+                own_.reset(new uint8_t[n]);
+                uint8_t* const plane = own_.get();
+                xpe_parallel_chunks(n, size_t{1} << 20, [&](size_t b, size_t e) { std::memcpy(plane + b, base + b, e - b); });
+                for (size_t k = 0; k < extraCount; ++k) plane[extra[k]] = 1;
+                plane_ = plane;
             }
             return;
         }
@@ -143,6 +152,8 @@ public:
     }
 
     size_t count() const noexcept { return count_; }
+    // The plane of the dense form (n bytes, non-zero = masked), nullptr in the sparse form.
+    const uint8_t* densePlane() const noexcept { return dense_ ? plane_ : nullptr; }
     // How many entries a table indexed by slot() needs.
     size_t slots() const noexcept { return dense_ ? n_ : count_; }
 
@@ -197,11 +208,20 @@ private:
     size_t n_ = 0;
     size_t count_ = 0;
     const uint8_t* plane_ = nullptr;   // dense form
-    std::vector<uint8_t> own_;         // dense form with additions: the union plane
+    std::unique_ptr<uint8_t[]> own_;   // dense form with additions: the union plane
     std::vector<uint64_t> l1_;         // sparse form: bit b of word w: block 64 * w + b holds a masked pixel
     std::vector<uint32_t> l1Rank_;     // non-empty blocks before word w
     std::vector<uint64_t> blockBits_;  // per non-empty block: the masked pixels, bit i = pixel 64 * block + i
     std::vector<uint32_t> blockBase_;  // per non-empty block: masked pixels before it
+};
+
+// QA-A-315 (Refs #278): the masked pixels in raster order, in a buffer written without a zero fill.
+struct MaskedList {
+    std::unique_ptr<uint32_t[]> p;
+    size_t count = 0;
+    size_t size() const noexcept { return count; }
+    const uint32_t* data() const noexcept { return p.get(); }
+    uint32_t operator[](size_t k) const noexcept { return p[k]; }
 };
 
 // QA-A-211b (#233, Codex #71): how far a masked pixel looks for a valid pixel to fill from. The pixels of a defect
@@ -222,7 +242,11 @@ constexpr int kFillMaxRadius = 16;
 // pixels, which are never asked).
 struct FillDistance {
     std::vector<uint8_t> dist;
+    std::unique_ptr<uint8_t[]> denseDist;   // QA-A-315: buildDense()'s table (one entry a masked pixel), filled on several threads
+    const uint8_t* table = nullptr;          // the table readers use: dist.data() after build(), denseDist after buildDense()
+    bool byRank = false;                     // QA-A-315: buildDense()'s table is indexed by the position in `masked`, not by the slot
     bool ready = false;
+    std::atomic<bool> built{false};   // QA-A-315: set (release) when `table` is complete; a reader that sees it skips call_once
     std::once_flag once;   // QA-A-296: the first pixel that needs the table builds it, whichever thread it is on
 
     // `dist` has one entry a MaskSet slot (QA-A-237f); it is read and written only for masked pixels.
@@ -287,6 +311,7 @@ struct FillDistance {
                 if (best < dist[idx]) dist[idx] = static_cast<uint8_t>(best);
             }
             for (const uint32_t idx : order) if (dist[idx] > kFillMaxRadius) dist[idx] = 0;
+            table = dist.data();
             ready = true;
             return;
         }
@@ -306,6 +331,74 @@ struct FillDistance {
             uint8_t& cell = dist[ms.slot(idx)];
             if (cell > kFillMaxRadius) cell = 0;   // not reached within kFillMaxRadius (including kInf)
         }
+        table = dist.data();
+        ready = true;
+    }
+
+    // QA-A-315 (Refs #278): the same table for a DENSE mask set (slot == pixel index), on several threads. The Chebyshev distance is
+    // separable: the distance of (x, y) to the nearest valid pixel is the minimum over the rows y' of max(|y - y'|, h(x, y')), where
+    // h(x, y') is the distance along row y' from x to the nearest valid pixel of that row. h is computed row by row (rows are
+    // independent), then each masked pixel takes the minimum over |y - y'| <= kFillMaxRadius; a value above kFillMaxRadius becomes 0,
+    // as in build(). Every entry depends only on the mask, so the split into threads does not change the table, and the table is the
+    // one the two raster passes of build() compute (the exact chessboard distance, the frame edge ignored as a neighbour).
+    // `masked`: the masked pixels (any order). Both tables are allocated without a zero fill and written on several threads, so the first
+    // touch of their pages is spread over the threads too (a zeroed 7.9 MB vector cost ~1.3 ms on the calling thread, QA-A-315 evidence 06).
+    // The serial build() took 4.4-5.6 ms on the 236,647-368,710-pixel border bands of the 3072x2560 sets while every other thread
+    // waited for it (QA-A-315 evidence 03).
+    void buildDense(const MaskSet& ms, const Grid& grid, const uint32_t* masked, size_t maskedCount) {
+        const uint32_t width = grid.width;
+        const uint32_t height = grid.height;
+        const size_t n = static_cast<size_t>(width) * height;
+        constexpr int kFar = kFillMaxRadius + 1;   // farther than kFillMaxRadius
+        // h is needed at the masked pixels only (a valid pixel's is 0, and the pass below tests the mask instead of reading it). The masked
+        // pixels of a row are a stretch of `masked` (ascending); each run [a, b] of consecutive ones has its nearest valid pixels at a - 1 and
+        // b + 1 (when inside the row), so h(x) = min(x - a + 1, b + 1 - x), capped at kFar -- the two passes along the row compute the same.
+        const std::unique_ptr<uint8_t[]> h(new uint8_t[n]);
+        uint8_t* const hw = h.get();
+        xpe_parallel_chunks(height, 64, [&](size_t y0, size_t y1) {
+            const uint32_t* q = std::lower_bound(masked, masked + maskedCount, static_cast<uint32_t>(y0 * width));
+            const uint32_t* const qEnd = std::lower_bound(q, masked + maskedCount, static_cast<uint32_t>(std::min<size_t>(y1 * width, n)));
+            while (q < qEnd) {
+                const size_t row = (*q / width) * width;
+                const uint32_t a = static_cast<uint32_t>(*q - row);
+                const uint32_t* r = q + 1;
+                while (r < qEnd && *r == r[-1] + 1u && (*r - row) < width) ++r;
+                const uint32_t b = static_cast<uint32_t>(r[-1] - row);
+                for (uint32_t x = a; x <= b; ++x) {
+                    const int left = a > 0 ? static_cast<int>(x - a + 1) : kFar;
+                    const int right = b + 1 < width ? static_cast<int>(b + 1 - x) : kFar;
+                    hw[row + x] = static_cast<uint8_t>(std::min(kFar, std::min(left, right)));
+                }
+                q = r;
+            }
+        });
+        // One entry a masked pixel, at its position in `masked` (a pixel-sized table touched the pages of the whole frame wherever the band
+        // runs down the sides; median_filter_cluster is handed the position by its caller and reads masked pixels only).
+        denseDist.reset(new uint8_t[std::max<size_t>(1, maskedCount)]);
+        uint8_t* const out = denseDist.get();
+        const uint8_t* const hp = h.get();
+        std::atomic<size_t> next{0};
+        constexpr size_t kBlock = 4096;
+        xpe_parallel_chunks(std::min<size_t>(XPE_PARALLEL_MAX_THREADS, std::max<size_t>(1, maskedCount / 20000)), 1, [&](size_t, size_t) {
+            for (;;) {
+                const size_t b = next.fetch_add(kBlock);
+                if (b >= maskedCount) break;
+                const size_t e = std::min(maskedCount, b + kBlock);
+                for (size_t q = b; q < e; ++q) {
+                    const size_t idx = masked[q];
+                    const size_t y = idx / width;
+                    int best = hp[idx];
+                    for (int k = 1; k < best; ++k) {   // a row k away offers at least k; a valid pixel there offers exactly k
+                        const size_t off = static_cast<size_t>(k) * width;
+                        if (y >= static_cast<size_t>(k)) { const size_t j = idx - off; const int c = ms.test(j) ? std::max<int>(k, hp[j]) : k; if (c < best) best = c; }
+                        if (y + static_cast<size_t>(k) < height) { const size_t j = idx + off; const int c = ms.test(j) ? std::max<int>(k, hp[j]) : k; if (c < best) best = c; }
+                    }
+                    out[q] = static_cast<uint8_t>(best > kFillMaxRadius ? 0 : best);
+                }
+            }
+        });
+        table = out;
+        byRank = true;
         ready = true;
     }
 };
@@ -319,7 +412,8 @@ struct FillDistance {
 // Only unmasked pixels are read, whatever the radius: the in-place guarantee of xpe_defect_correct_in holds.
 float median_filter_cluster(const float* pixels, const MaskSet& ms,
                              uint32_t x, uint32_t y,
-                             uint32_t width, uint32_t height, FillDistance& fd, std::vector<float>& values, bool* found)
+                             uint32_t width, uint32_t height, FillDistance& fd, std::vector<float>& values, bool* found,
+                             size_t rank = 0)
 {
     values.clear();   // a scratch buffer the caller reuses: no allocation per pixel (QA-A-213)
     *found = true;
@@ -343,13 +437,36 @@ float median_filter_cluster(const float* pixels, const MaskSet& ms,
     }
 
     if (values.empty()) {
-        std::call_once(fd.once, [&]() { fd.build(ms, Grid{width, height}); });
-        const int radius = fd.dist[ms.slot(static_cast<size_t>(y) * width + x)];   // 0: none within kFillMaxRadius
+        if (!fd.built.load(std::memory_order_acquire)) {
+            std::call_once(fd.once, [&]() { fd.build(ms, Grid{width, height}); fd.built.store(true, std::memory_order_release); });
+        }
+        // 0: none within kFillMaxRadius. `rank`: the pixel's position in the list buildDense() was given (QA-A-315), read only then.
+        const int radius = fd.table[fd.byRank ? rank : ms.slot(static_cast<size_t>(y) * width + x)];
         if (radius >= 2) {
+            const uint8_t* const plane = ms.densePlane();
             for (int dy = -radius; dy <= radius; ++dy) {
                 const int ny = static_cast<int>(y) + dy;
                 if (ny < 0 || static_cast<uint32_t>(ny) >= height) continue;
                 const bool edgeRow = (dy == -radius || dy == radius);
+                if (edgeRow && plane != nullptr) {
+                    // QA-A-315 (Refs #278): the ring's top and bottom rows on a dense plane, 16 mask bytes at a time; the valid pixels
+                    // are taken in ascending x, the order of the loop below, so `values` is the same vector.
+                    const size_t rowBase = static_cast<size_t>(ny) * width;
+                    const uint8_t* const mrow = plane + rowBase;
+                    const float* const prow = pixels + rowBase;
+                    const int x1 = std::min(static_cast<int>(x) + radius, static_cast<int>(width) - 1);
+                    int xx = std::max(static_cast<int>(x) - radius, 0);
+                    const __m128i zero = _mm_setzero_si128();
+                    for (; xx + 16 <= x1 + 1; xx += 16) {
+                        unsigned m = static_cast<unsigned>(_mm_movemask_epi8(_mm_cmpeq_epi8(_mm_loadu_si128(reinterpret_cast<const __m128i*>(mrow + xx)), zero)));
+                        while (m != 0) {
+                            values.push_back(prow[xx + countTrailingZeros64(m)]);
+                            m &= m - 1;
+                        }
+                    }
+                    for (; xx <= x1; ++xx) if (mrow[xx] == 0) values.push_back(prow[xx]);
+                    continue;
+                }
                 for (int dx = -radius; dx <= radius; dx += (edgeRow ? 1 : 2 * radius)) {
                     const int nx = static_cast<int>(x) + dx;
                     if (nx < 0 || static_cast<uint32_t>(nx) >= width) continue;
@@ -1043,15 +1160,45 @@ XpeErrorCode xpe_defect_correct_in(
     // 4-connected component of two or more) and an isolated pixel otherwise. A pixel's value depends only on valid pixels and on the
     // mask, never on another corrected pixel, so the pixels can be computed in any order and on several threads: the result is the one the
     // component-by-component walk gave. (That walk, a breadth-first search over each component, was 40-50 ms on a 368,710-pixel border band.)
-    std::vector<uint32_t> masked;
-    masked.reserve(maskSet.count());
-    maskSet.forEach([&](size_t idx) { masked.push_back(static_cast<uint32_t>(idx)); });
-    std::vector<uint8_t> done(maskSet.slots(), 0);   // by MaskSet slot: corrected by the line pass
+    // QA-A-315 (Refs #278): a dense set is listed on several threads -- the plane is cut into kListParts fixed parts (not one a thread),
+    // each part counted, the counts summed in part order and each part written at its offset -- so the list is the ascending one
+    // forEach() gives, whatever the threads. The serial listing of a 368,710-pixel band took 1.0-2.9 ms (evidence 03, 06).
+    MaskedList masked;
+    masked.p.reset(new uint32_t[std::max<size_t>(1, maskSet.count())]);
+    if (const uint8_t* const plane = maskSet.densePlane()) {
+        constexpr size_t kListParts = 64;
+        const size_t part = (((n + kListParts - 1) / kListParts) + 63) & ~size_t{63};
+        std::vector<size_t> offset(kListParts + 1, 0);
+        xpe_parallel_chunks(kListParts, 1, [&](size_t p0, size_t p1) {
+            for (size_t p = p0; p < p1; ++p) {
+                const size_t b = std::min(n, p * part), e = std::min(n, b + part);
+                size_t c = 0;
+                forEachNonZero(plane + b, e - b, [&](size_t) { ++c; });
+                offset[p + 1] = c;
+            }
+        });
+        for (size_t p = 0; p < kListParts; ++p) offset[p + 1] += offset[p];
+        xpe_parallel_chunks(kListParts, 1, [&](size_t p0, size_t p1) {
+            for (size_t p = p0; p < p1; ++p) {
+                const size_t b = std::min(n, p * part), e = std::min(n, b + part);
+                uint32_t* out = masked.p.get() + offset[p];
+                forEachNonZero(plane + b, e - b, [&](size_t i) { *out++ = static_cast<uint32_t>(b + i); });
+            }
+        });
+        masked.count = offset[kListParts];
+    } else {
+        maskSet.forEach([&](size_t idx) { masked.p[masked.count++] = static_cast<uint32_t>(idx); });
+    }
+    // By MaskSet slot: corrected by the line pass. QA-A-315 (Refs #278): allocated only when the line pass runs; without it no pixel is
+    // done and the table would be slots() zero bytes (7.9 MB for a dense set at 3072x2560, ~1.3 ms to allocate, evidence 06).
+    std::vector<uint8_t> done;
+    const auto isDone = [&](size_t idx) { return !done.empty() && done[maskSet.slot(idx)] != 0; };
 
     {
         XpeDefectLineOptions lineOpts;
         if (line_options) lineOpts = *line_options; else { lineOpts.rows = false; lineOpts.cols = false; }   // nullptr = as before QA-A-296
         if (lineOpts.rows || lineOpts.cols) {
+            done.assign(maskSet.slots(), 0);
             std::vector<LineRun> runs;
             classifyLineRuns(maskSet, Grid{W, H}, lineOpts, &runs);
             // rows first, then columns (a pixel of both is done by the row pass); the runs of one orientation share no pixel
@@ -1066,27 +1213,44 @@ XpeErrorCode xpe_defect_correct_in(
     }
 
     FillDistance fillDistance;             // built on the first cluster pixel whose 3x3 holds no valid pixel (QA-A-213)
+    // QA-A-315 (Refs #278): a dense mask set (the large border bands) builds the table here, on several threads, instead of on one thread
+    // inside the loop below while the others wait; the call_once in median_filter_cluster then finds it built. The table is the same.
+    if (maskSet.slots() == n && masked.size() >= 20000) {
+        std::call_once(fillDistance.once, [&]() { fillDistance.buildDense(maskSet, Grid{W, H}, masked.data(), masked.size()); fillDistance.built.store(true, std::memory_order_release); });
+    }
     std::atomic<size_t> unfilledCount{0};  // masked pixels with no valid pixel within kFillMaxRadius (QA-A-211b)
-    xpe_parallel_chunks(masked.size(), 20000, [&](size_t b, size_t e) {
+    // QA-A-315: the pixels are handed out in blocks of kFillBlock from a shared counter, not split into one fixed range a thread: the cost
+    // of a pixel ranges from a 3x3 look to a ring of radius 16, and the fixed ranges took 11-21 ms on the same frame (evidence 04). Each
+    // pixel is still computed from read-only data into its own place, so the assignment does not change the output. The thread count is
+    // the one the fixed split used (masked.size() / 20000, at most XPE_PARALLEL_MAX_THREADS).
+    constexpr size_t kFillBlock = 1024;
+    std::atomic<size_t> nextFill{0};
+    const size_t fillWorkers = std::max<size_t>(1, std::min<size_t>(XPE_PARALLEL_MAX_THREADS, masked.size() / 20000));
+    xpe_parallel_chunks(fillWorkers, 1, [&](size_t, size_t) {
         std::vector<float> fillValues;     // scratch for median_filter_cluster, one per thread
         fillValues.reserve(8u * static_cast<size_t>(kFillMaxRadius));
         size_t localUnfilled = 0;
-        for (size_t k = b; k < e; ++k) {
-            const size_t idx = masked[k];
-            if (done[maskSet.slot(idx)]) continue;
-            const uint32_t x = static_cast<uint32_t>(idx % W);
-            const uint32_t y = static_cast<uint32_t>(idx / W);
-            bool cluster = false;
-            if (x > 0)     { const size_t n1 = idx - 1; cluster = cluster || (maskSet.test(n1) && !done[maskSet.slot(n1)]); }
-            if (x + 1 < W) { const size_t n1 = idx + 1; cluster = cluster || (maskSet.test(n1) && !done[maskSet.slot(n1)]); }
-            if (y > 0)     { const size_t n1 = idx - W; cluster = cluster || (maskSet.test(n1) && !done[maskSet.slot(n1)]); }
-            if (y + 1 < H) { const size_t n1 = idx + W; cluster = cluster || (maskSet.test(n1) && !done[maskSet.slot(n1)]); }
-            if (cluster) {
-                bool found = true;
-                dst[idx] = median_filter_cluster(source, maskSet, x, y, W, H, fillDistance, fillValues, &found);
-                if (!found) ++localUnfilled;
-            } else {
-                dst[idx] = xpe_interpolate_pixel_masked(source, [&](size_t i) { return maskSet.test(i); }, x, y, W, H);
+        for (;;) {
+            const size_t b = nextFill.fetch_add(kFillBlock);
+            if (b >= masked.size()) break;
+            const size_t e = std::min(masked.size(), b + kFillBlock);
+            for (size_t k = b; k < e; ++k) {
+                const size_t idx = masked[k];
+                if (isDone(idx)) continue;
+                const uint32_t x = static_cast<uint32_t>(idx % W);
+                const uint32_t y = static_cast<uint32_t>(idx / W);
+                bool cluster = false;
+                if (x > 0)     { const size_t n1 = idx - 1; cluster = cluster || (maskSet.test(n1) && !isDone(n1)); }
+                if (x + 1 < W) { const size_t n1 = idx + 1; cluster = cluster || (maskSet.test(n1) && !isDone(n1)); }
+                if (y > 0)     { const size_t n1 = idx - W; cluster = cluster || (maskSet.test(n1) && !isDone(n1)); }
+                if (y + 1 < H) { const size_t n1 = idx + W; cluster = cluster || (maskSet.test(n1) && !isDone(n1)); }
+                if (cluster) {
+                    bool found = true;
+                    dst[idx] = median_filter_cluster(source, maskSet, x, y, W, H, fillDistance, fillValues, &found, k);
+                    if (!found) ++localUnfilled;
+                } else {
+                    dst[idx] = xpe_interpolate_pixel_masked(source, [&](size_t i) { return maskSet.test(i); }, x, y, W, H);
+                }
             }
         }
         unfilledCount.fetch_add(localUnfilled);
