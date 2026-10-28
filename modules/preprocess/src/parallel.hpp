@@ -46,8 +46,12 @@ void xpe_parallel_chunks(size_t items, size_t minPerThread, Fn&& fn)
     // QA-A-315 (Refs #278): the ranges run as std::async tasks, which the MSVC runtime takes from the process thread pool instead of
     // creating and destroying a thread for each range (an empty call cost 0.49 ms with std::thread, QA-A-315 evidence 06; a frame makes
     // several calls). The ranges, and so every result, are the same as before.
-    std::vector<std::future<void>> pool;
+    // Reviewer PRE313-317 P1: `errors` is declared before `pool` so that it is destroyed after it. A std::async future's
+    // destructor waits for its task, so when an exception this function does not catch (std::bad_alloc from a launch) leaves
+    // it, every running range finishes writing errors[t] before `errors` is freed. A launch failure other than
+    // std::system_error still propagates, now after the running ranges have finished.
     std::vector<std::exception_ptr> errors(threads);
+    std::vector<std::future<void>> pool;
     pool.reserve(threads - 1);
     for (size_t t = 1; t < threads; ++t) {
         const size_t b = std::min(items, t * per), e = std::min(items, b + per);
