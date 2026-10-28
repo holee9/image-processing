@@ -43,7 +43,7 @@
      3	ShortLineThreshold = 10
      4	BPMCondition = 45
      5	ParFile = C:\FT_20231206_2G_x64\S4335-WS.par
-     6	BTBPMPath = 
+     6	BTBPMPath =
 === run_cal.bat (cat -n)
      1	RunCal.exe D:\data\inspection\FT\C2\20161027_16H062(S_M)_AL_Tape\20161027_16H062(S_M)_AL_Tape=== S4335-WS.par (grep -n for Cal/Dark/BPM/Bright/Step/Gain/Offset/Defect)
 10:Settings.FrameWidth = 3072

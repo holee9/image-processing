@@ -10,9 +10,9 @@ index 3fcf3c04..5b15f799 100644
 +#include <cstdlib> // QA319TMP
 +#include <string> // QA319TMP
 +#pragma warning(disable : 4996) // QA319TMP
- 
+
  namespace {
- 
+
 @@ -255,6 +259,7 @@ void slidingMedian(const float* in, float* out, int w, int h, int win, bool alon
   * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. With @p multiplicative the
   * component is a factor (the median of the ratio) instead of an offset. Constant over the whole line: removed. Not constant along the line: left for the later steps.
@@ -44,7 +44,7 @@ index 3fcf3c04..5b15f799 100644
      }
  }
 @@ -348,9 +357,14 @@ float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, doub
- 
+
  /** Robust z feature: subtracts rows and columns, estimates background and scale, flags |z| > lambda (z > lambda when @p upperOnly). Returns the median local scale. */
  float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
 +    const char* d319 = (bit == XPE_BPM_V2_FEATURE_DARK_MEAN) ? std::getenv("XPE319_DUMP") : nullptr; // QA319TMP
@@ -74,4 +74,4 @@ index 3fcf3c04..5b15f799 100644
 +        FILE* fp = std::fopen((std::string(d319) + "_meta.txt").c_str(), "w"); if (fp) { std::fprintf(fp, "w %d h %d win %u block %u lambda %.9g upperOnly %d count %u med %.9g\n", wk.w, wk.h, st.window, st.block, lambda, upperOnly ? 1 : 0, *count, static_cast<double>(med)); std::fclose(fp); } } // QA319TMP
      return med;
  }
- 
+

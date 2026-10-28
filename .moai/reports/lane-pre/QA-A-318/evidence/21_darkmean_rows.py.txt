@@ -18,7 +18,7 @@ print("rows with >50% flagged:", int((rowfrac > 0.5).sum()), " >10%:", int((rowf
 I = r"Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/images"
 md = np.fromfile(I + "/MasterDark.raw", dtype="<u2").reshape(H, W).astype(np.float64)
 r = np.arange(H)[:, None] % 32; c = np.arange(W)[None, :] % 2
-band = (r >= 24); 
+band = (r >= 24);
 for bn, bm in (("rows mod32 24..31", band), ("rows mod32 0..23", ~band)):
     for cn in (0, 1):
         m = bm & (c == cn) & area

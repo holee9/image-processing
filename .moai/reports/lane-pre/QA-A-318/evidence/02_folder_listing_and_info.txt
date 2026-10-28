@@ -1,21 +1,21 @@
 # Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/corrected/Data_Information.txt (CP949 -> UTF-8)
 ========== Map infomations ==========
 
-PositionMap.raw : 3x3 초과한 픽셀들이 저장 되는 map 
+PositionMap.raw : 3x3 초과한 픽셀들이 저장 되는 map
 
-AED_BPM.raw : AED 모드에서 취득된 bright를 이용해서 만든 BPM 
+AED_BPM.raw : AED 모드에서 취득된 bright를 이용해서 만든 BPM
 
-Stitch_BPM.raw : stitch 모드에서 취득된 bright를 이용해서 만든 BPM 
+Stitch_BPM.raw : stitch 모드에서 취득된 bright를 이용해서 만든 BPM
 
-BPM_with_Filter.raw : Al filter 없는 데이터로 만든 BPM 
+BPM_with_Filter.raw : Al filter 없는 데이터로 만든 BPM
 
-BPM_without_Filter.raw : Al filter 있는 데이터로 만든 BPM 
+BPM_without_Filter.raw : Al filter 있는 데이터로 만든 BPM
 
-DotDefectBPM.raw : Dot defect만 검출하여 만든 map 
+DotDefectBPM.raw : Dot defect만 검출하여 만든 map
 
-BT_BPM.raw : aging test 에서 생성된 BPM 
+BT_BPM.raw : aging test 에서 생성된 BPM
 
-TOTAL_BPM.raw : BPM_with_Filter + BPM_without_Filter + BT_BPM + Unsaturated Pixel + previous BPM + Mura 
+TOTAL_BPM.raw : BPM_with_Filter + BPM_without_Filter + BT_BPM + Unsaturated Pixel + previous BPM + Mura
 
 TOTAL_BPM_original.raw : BPM_with_Filter + BPM_without_Filter
 
@@ -43,7 +43,7 @@ Total_Defect_Map.raw :  BPM_with_Filter + BPM_without_Filter
 
 # listing (ls -l size name) images/corrected/12_CalData_20
 == images
- 
+
 15728640 AEDBright_00.raw
 15728640 AEDBright_00.raw.cal.raw
 15728640 AEDBright_01.raw
@@ -164,7 +164,7 @@ Total_Defect_Map.raw :  BPM_with_Filter + BPM_without_Filter
 15728640 bright03_02.raw
 15728640 bright03_03.raw
 == corrected
- 
+
 15728640 AED_BPM.raw
 15728640 BPM_with_Filter.raw
 15728640 BPM_without_Filter.raw
@@ -258,7 +258,7 @@ Total_Defect_Map.raw :  BPM_with_Filter + BPM_without_Filter
 15728640 Total_Defect_Map.raw
 6144 VLineMap.raw
 == 12_CalData_20
- 
+
 7864320 BPMap.map
 15728640 Bright01.raw
 15728640 Bright02.raw
