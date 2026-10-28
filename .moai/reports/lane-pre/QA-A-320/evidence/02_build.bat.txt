@@ -1,0 +1,8 @@
+@echo off
+set "PATH=C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem"
+call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat" >nul
+set "PATH=C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja;%PATH%"
+cd /d %1
+if "%3"=="configure" cmake --preset ci-preprocess
+cmake --build build/ci-preprocess --target %2
+exit /b %errorlevel%

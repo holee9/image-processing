@@ -1,0 +1,116 @@
+=== OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas
+rc=3
+QA320 inject: failAt=40 count=40 injected=1 tid=3112
+  #02 operator new  <wt>/modules\preprocess\tests\test_oom_injection.cpp:223
+  #03 Concurrency::details::_DefaultPPLTaskScheduler::schedule  <msvc>/pplwin.h:85
+  #04 Concurrency::details::_Task_impl_base::_ScheduleTask  <msvc>/ppltasks.h:1766
+  #05 Concurrency::task<void>::task<void><<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4039
+  #06 Concurrency::create_task<<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4559
+  #07 std::_Get_associated_state<void,std::_Fake_no_copy_callable_adapter<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &> >  <msvc>/future:1357
+  #08 std::async<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &>  <msvc>/future:1367
+  #09 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:63
+  #10 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #11 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #12 pipeline_ex_impl  <wt>/modules\preprocess\src\pipeline.cpp:971
+  #13 xpe_preprocess_pipeline_ex  <wt>/modules\preprocess\src\pipeline.cpp:1103
+QA320 terminate: failAt=0 count=40 injected=1 tid=3112
+  #02 terminate  ?:0
+  #13 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #14 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #15 std::_Task_async_state<void>::`scalar deleting destructor'  ?:0
+  #16 std::_Destroy_range<std::allocator<std::future<void> > >  <msvc>/xmemory:1102
+  #17 std::vector<std::future<void>,std::allocator<std::future<void> > >::~vector<std::future<void>,std::allocator<std::future<void> > >  <msvc>/vector:830
+  #40 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #41 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #42 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:69
+  #43 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #44 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #45 pipeline_ex_impl  <wt>/modules\preprocess\src\pipeline.cpp:971
+  #46 xpe_preprocess_pipeline_ex  <wt>/modules\preprocess\src\pipeline.cpp:1103
+=== OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+rc=3
+QA320 inject: failAt=72 count=72 injected=1 tid=25172
+  #02 operator new  <wt>/modules\preprocess\tests\test_oom_injection.cpp:223
+  #03 Concurrency::details::_DefaultPPLTaskScheduler::schedule  <msvc>/pplwin.h:85
+  #04 Concurrency::details::_Task_impl_base::_ScheduleTask  <msvc>/ppltasks.h:1766
+  #05 Concurrency::task<void>::task<void><<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4039
+  #06 Concurrency::create_task<<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4559
+  #07 std::_Get_associated_state<void,std::_Fake_no_copy_callable_adapter<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &> >  <msvc>/future:1357
+  #08 std::async<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &>  <msvc>/future:1367
+  #09 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:63
+  #10 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #11 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #12 pipeline_impl  <wt>/modules\preprocess\src\pipeline.cpp:884
+  #13 xpe_preprocess_pipeline  <wt>/modules\preprocess\src\pipeline.cpp:1094
+QA320 terminate: failAt=0 count=72 injected=1 tid=25172
+  #02 terminate  ?:0
+  #13 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #14 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #15 std::_Task_async_state<void>::`scalar deleting destructor'  ?:0
+  #16 std::_Destroy_range<std::allocator<std::future<void> > >  <msvc>/xmemory:1102
+  #17 std::vector<std::future<void>,std::allocator<std::future<void> > >::~vector<std::future<void>,std::allocator<std::future<void> > >  <msvc>/vector:830
+  #40 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #41 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #42 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:69
+  #43 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #44 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #45 pipeline_impl  <wt>/modules\preprocess\src\pipeline.cpp:884
+  #46 xpe_preprocess_pipeline  <wt>/modules\preprocess\src\pipeline.cpp:1094
+=== OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+rc=3
+QA320 inject: failAt=72 count=72 injected=1 tid=11388
+  #02 operator new  <wt>/modules\preprocess\tests\test_oom_injection.cpp:223
+  #03 Concurrency::details::_DefaultPPLTaskScheduler::schedule  <msvc>/pplwin.h:85
+  #04 Concurrency::details::_Task_impl_base::_ScheduleTask  <msvc>/ppltasks.h:1766
+  #05 Concurrency::task<void>::task<void><<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4039
+  #06 Concurrency::create_task<<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4559
+  #07 std::_Get_associated_state<void,std::_Fake_no_copy_callable_adapter<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &> >  <msvc>/future:1357
+  #08 std::async<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &>  <msvc>/future:1367
+  #09 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:63
+  #10 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #11 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #12 pipeline_batch_impl  <wt>/modules\preprocess\src\pipeline.cpp:1043
+  #13 xpe_preprocess_pipeline_batch  <wt>/modules\preprocess\src\pipeline.cpp:1137
+QA320 terminate: failAt=0 count=72 injected=1 tid=11388
+  #02 terminate  ?:0
+  #13 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #14 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #15 std::_Task_async_state<void>::`scalar deleting destructor'  ?:0
+  #16 std::_Destroy_range<std::allocator<std::future<void> > >  <msvc>/xmemory:1102
+  #17 std::vector<std::future<void>,std::allocator<std::future<void> > >::~vector<std::future<void>,std::allocator<std::future<void> > >  <msvc>/vector:830
+  #40 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #41 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #42 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:69
+  #43 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #44 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #45 pipeline_batch_impl  <wt>/modules\preprocess\src\pipeline.cpp:1043
+  #46 xpe_preprocess_pipeline_batch  <wt>/modules\preprocess\src\pipeline.cpp:1137
+=== OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet
+rc=3
+QA320 inject: failAt=72 count=72 injected=1 tid=25184
+  #02 operator new  <wt>/modules\preprocess\tests\test_oom_injection.cpp:223
+  #03 Concurrency::details::_DefaultPPLTaskScheduler::schedule  <msvc>/pplwin.h:85
+  #04 Concurrency::details::_Task_impl_base::_ScheduleTask  <msvc>/ppltasks.h:1766
+  #05 Concurrency::task<void>::task<void><<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4039
+  #06 Concurrency::create_task<<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  <msvc>/ppltasks.h:4559
+  #07 std::_Get_associated_state<void,std::_Fake_no_copy_callable_adapter<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &> >  <msvc>/future:1357
+  #08 std::async<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &>  <msvc>/future:1367
+  #09 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:63
+  #10 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #11 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #12 pipeline_impl  <wt>/modules\preprocess\src\pipeline.cpp:884
+  #13 xpe_preprocess_pipeline  <wt>/modules\preprocess\src\pipeline.cpp:1094
+QA320 terminate: failAt=0 count=72 injected=1 tid=25184
+  #02 terminate  ?:0
+  #13 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #14 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #15 std::_Task_async_state<void>::`scalar deleting destructor'  ?:0
+  #16 std::_Destroy_range<std::allocator<std::future<void> > >  <msvc>/xmemory:1102
+  #17 std::vector<std::future<void>,std::allocator<std::future<void> > >::~vector<std::future<void>,std::allocator<std::future<void> > >  <msvc>/vector:830
+  #40 Concurrency::details::_ExceptionHolder::_RethrowUserException  <msvc>/ppltasks.h:799
+  #41 Concurrency::details::_Task_impl_base::_Wait  <msvc>/ppltasks.h:1622
+  #42 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:69
+  #43 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #44 `anonymous namespace'::pipeline_core  <wt>/modules\preprocess\src\pipeline.cpp:693
+  #45 pipeline_impl  <wt>/modules\preprocess\src\pipeline.cpp:884
+  #46 xpe_preprocess_pipeline  <wt>/modules\preprocess\src\pipeline.cpp:1094

@@ -1,0 +1,69 @@
+Running main() from <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomInjection
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+
+QA320 terminate: failAt=8 count=65 injected=1 tid=34448
+  #00 qa320::dump  <wt>/modules\preprocess\tests\test_oom_injection.cpp:200
+  #01 qa320::onTerminate  <wt>/modules\preprocess\tests\test_oom_injection.cpp:209
+  #02 terminate  ?:0
+  #03 ?  ?:0
+  #04 ?  ?:0
+  #05 ?  ?:0
+  #06 _CxxFrameHandler4  ?:0
+  #07 _chkstk  ?:0
+  #08 RtlWow64GetCurrentMachine  ?:0
+  #09 RtlRaiseException  ?:0
+  #10 RaiseException  ?:0
+  #11 __ExceptionPtrRethrow  ?:0
+  #12 std::rethrow_exception  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\exception:323
+  #13 Concurrency::details::_ExceptionHolder::_RethrowUserException  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:799
+  #14 Concurrency::details::_Task_impl_base::_Wait  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:1622
+  #15 std::_Task_async_state<void>::`scalar deleting destructor'  ?:0
+  #16 std::_Destroy_range<std::allocator<std::future<void> > >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\xmemory:1102
+  #17 std::vector<std::future<void>,std::allocator<std::future<void> > >::~vector<std::future<void>,std::allocator<std::future<void> > >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\vector:830
+  #18 _CxxFrameHandler4  ?:0
+  #19 ?  ?:0
+  #20 ?  ?:0
+  #21 ?  ?:0
+  #22 ?  ?:0
+  #23 _CxxFrameHandler4  ?:0
+  #24 __GSHandlerCheck_EH4  D:\a\_work\1\s\src\vctools\crt\vcstartup\src\gs\amd64\gshandlereh4.cpp:86
+  #25 _chkstk  ?:0
+  #26 RtlUnwindEx  ?:0
+  #27 ?  ?:0
+  #28 ?  ?:0
+  #29 ?  ?:0
+  #30 ?  ?:0
+  #31 ?  ?:0
+  #32 _CxxFrameHandler4  ?:0
+  #33 __GSHandlerCheck_EH4  D:\a\_work\1\s\src\vctools\crt\vcstartup\src\gs\amd64\gshandlereh4.cpp:86
+  #34 _chkstk  ?:0
+  #35 RtlWow64GetCurrentMachine  ?:0
+  #36 RtlRaiseException  ?:0
+  #37 RaiseException  ?:0
+  #38 __ExceptionPtrRethrow  ?:0
+  #39 std::rethrow_exception  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\exception:323
+  #40 Concurrency::details::_ExceptionHolder::_RethrowUserException  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:799
+  #41 Concurrency::details::_Task_impl_base::_Wait  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:1622
+  #42 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:69
+  #43 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #44 xpe_defect_correct  <wt>/modules\preprocess\src\defect_correct.cpp:1341
+  #45 <lambda_e14d30bddc8354a7c9045b7e6b6f053f>::operator()  <wt>/modules\preprocess\tests\test_oom_injection.cpp:817
+  #46 `anonymous namespace'::sweep  <wt>/modules\preprocess\tests\test_oom_injection.cpp:383
+  #47 OomInjection_ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree_Test::TestBody  <wt>/modules\preprocess\tests\test_oom_injection.cpp:803
+  #48 testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test,void>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2605
+  #49 testing::internal::HandleExceptionsInMethodIfSupported<testing::Test,void>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2648
+  #50 testing::Test::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2694
+  #51 testing::TestInfo::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2839
+  #52 testing::TestSuite::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:3017
+  #53 testing::internal::UnitTestImpl::RunAllTests  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:5921
+  #54 testing::internal::HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl,bool>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2605
+  #55 testing::internal::HandleExceptionsInMethodIfSupported<testing::internal::UnitTestImpl,bool>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2648
+  #56 testing::UnitTest::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:5484
+  #57 main  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc:65
+  #58 __scrt_common_main_seh  D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+  #59 BaseThreadInitThunk  ?:0
+  #60 RtlUserThreadStart  ?:0
