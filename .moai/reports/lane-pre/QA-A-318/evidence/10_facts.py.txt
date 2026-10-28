@@ -1,0 +1,110 @@
+# QA-A-318 step-1 facts (scratch; saved as evidence 10_facts.py.txt). Read-only on NAS.
+import hashlib, os, sys, json
+import numpy as np
+B = r"Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+I, C, D20, D6 = B + "/images", B + "/corrected", B + "/12_CalData_20", B + "/12_CalData_6"
+W, H = 3072, 2560
+def u16(p): return np.fromfile(p, dtype="<u2").reshape(H, W)
+def s16(p): return np.fromfile(p, dtype="<i2").reshape(H, W)
+def u8(p): return np.fromfile(p, dtype="u1").reshape(H, W)
+def pct(a): return f"{100.0*np.count_nonzero(a)/a.size:.4f} %"
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for b in iter(lambda: f.read(1 << 22), b""): h.update(b)
+    return h.hexdigest()
+out = []
+P = lambda *a: out.append(" ".join(str(x) for x in a))
+
+# --- A. dark / MasterDark / dark.raw
+darks = [u16(f"{I}/dark03_{i:02d}.raw").astype(np.float64) for i in range(10)]
+md = u16(f"{I}/MasterDark.raw")
+for name, fr in (("all10", darks), ("skip_first_9", darks[1:])):
+    m = np.mean(fr, axis=0)
+    P(f"A MasterDark == floor(mean(dark03 {name})):", pct(np.floor(m) == md), "| == rint:", pct(np.rint(m) == md),
+      "| max|MasterDark-mean|:", f"{np.max(np.abs(md - m)):.4f}")
+P("A dark03 frame means:", [round(float(d.mean()), 3) for d in darks])
+P("A MasterDark mean:", round(float(md.mean()), 3), "min", int(md.min()), "max", int(md.max()))
+for f in (f"{D20}/dark.raw", f"{D6}/dark.raw", f"{I}/AEDDark.raw"):
+    x = u16(f); P("A", os.path.relpath(f, B), "== MasterDark:", pct(x == md), "mean", round(float(x.mean()), 3))
+del darks
+
+# --- B. __OC__ = raw - MasterDark ?
+def oc_check(raw_p, oc_p, tag):
+    r = u16(raw_p).astype(np.int32); o_u = u16(oc_p).astype(np.int32); o_s = s16(oc_p).astype(np.int32)
+    d = r - md.astype(np.int32)
+    P(f"B {tag}: oc_int16 == raw-MD: {pct(o_s == d)} | oc_uint16 == max(0,raw-MD): {pct(o_u == np.maximum(d,0))}"
+      f" | oc_uint16 == raw-MD wrap16: {pct(o_u == (d & 0xFFFF))} | raw-MD<0 count {int(np.count_nonzero(d<0))}"
+      f" | oc int16 neg count {int(np.count_nonzero(o_s<0))} | oc mean(int16) {o_s.mean():.2f}")
+for i in range(10): oc_check(f"{I}/Bright02_{i:02d}.raw", f"{I}/Bright02_{i:02d}.raw__OC__.raw", f"Bright02_{i:02d}")
+oc_check(f"{I}/Dark04_00.raw", f"{I}/Dark04_00.raw__OC__.raw", "Dark04_00")
+for k in (11, 12, 13, 14): oc_check(f"{I}/Bright{k}_00.raw", f"{I}/Bright{k}_00.raw__OC__.raw", f"Bright{k}_00")
+for i in range(20): oc_check(f"{I}/bright03_{i:02d}.raw", f"{I}/Bright03_{i:02d}.raw__OC__.raw", f"bright03_{i:02d}(lower raw) vs Bright03_{i:02d}__OC__")
+for i in range(20): oc_check(f"{I}/bright05_{i:02d}.raw", f"{I}/Bright05_{i:02d}.raw__OC__.raw", f"bright05_{i:02d}(lower raw) vs Bright05_{i:02d}__OC__")
+
+# --- C. identity by sha256 (who is a copy of whom)
+files = {}
+for d in (I, D20, D6):
+    for n in sorted(os.listdir(d)):
+        p = f"{d}/{n}"
+        if os.path.getsize(p) in (15728640, 7864320): files[os.path.relpath(p, B)] = sha(p)
+inv = {}
+for k, v in files.items(): inv.setdefault(v, []).append(k)
+P("C groups of byte-identical files (size 15728640/7864320, images+CalData_20+CalData_6):")
+for v, ks in inv.items():
+    if len(ks) > 1: P("C   ", v[:12], ks)
+json.dump(files, open(sys.argv[1], "w"), indent=0)
+
+# --- D. BrightAvg / MasterBright candidates
+ba_u, ba_s = u16(f"{I}/BrightAvg.raw"), s16(f"{I}/BrightAvg.raw")
+mb_u, mb_s = u16(f"{I}/MasterBright.raw"), s16(f"{I}/MasterBright.raw")
+P("D BrightAvg == MasterBright:", pct(ba_u == mb_u), "| BrightAvg mean u16", round(float(ba_u.mean()),2), "s16", round(float(ba_s.mean()),2),
+  "neg", int(np.count_nonzero(ba_s<0)), "| MasterBright mean u16", round(float(mb_u.mean()),2), "s16", round(float(mb_s.mean()),2), "neg", int(np.count_nonzero(mb_s<0)))
+def cand(tag, paths, signed):
+    fr = [(s16(p) if signed else u16(p)).astype(np.float64) for p in paths]
+    m = np.mean(fr, axis=0)
+    for nm, tgt in (("BrightAvg", ba_s if signed else ba_u), ("MasterBright", mb_s if signed else mb_u)):
+        P(f"D {nm} vs {tag} ({'int16' if signed else 'uint16'}): rint {pct(np.rint(m)==tgt)} floor {pct(np.floor(m)==tgt)} trunc {pct(np.trunc(m)==tgt)} max|d| {np.max(np.abs(tgt-m)):.3f}")
+for sg in (True, False):
+    cand("mean Bright02_00..09 __OC__", [f"{I}/Bright02_{i:02d}.raw__OC__.raw" for i in range(10)], sg)
+    cand("mean CalData_20 Bright01..10", [f"{D20}/Bright{i:02d}.raw" for i in range(1,11)], sg)
+    cand("mean CalData_6 bright01..06", [f"{D6}/bright{i:02d}.raw" for i in range(1,7)], sg)
+    cand("mean Bright03_00..19 __OC__", [f"{I}/Bright03_{i:02d}.raw__OC__.raw" for i in range(20)], sg)
+
+# --- E. CalData frame means (dose of each frame, int16 reading)
+for d, names in ((D20, [f"Bright{i:02d}.raw" for i in range(1,11)] + [f"bright{i}.raw" for i in range(11,21)]), (D6, [f"bright{i:02d}.raw" for i in range(1,7)])):
+    P("E", os.path.relpath(d, B), [(n, round(float(s16(f"{d}/{n}").mean()),1)) for n in names])
+P("E Bright02 OC int16 means", [round(float(s16(f"{I}/Bright02_{i:02d}.raw__OC__.raw").mean()),1) for i in range(10)])
+P("E Bright03 OC int16 means", [round(float(s16(f"{I}/Bright03_{i:02d}.raw__OC__.raw").mean()),1) for i in range(20)])
+P("E bright03 raw uint16 means (_00.._19)", [round(float(u16(f"{I}/bright03_{i:02d}.raw").mean()),1) for i in range(20)])
+P("E bright03 raw uint16 means (_0.._9)", [round(float(u16(f"{I}/bright03_{i}.raw").mean()),1) for i in range(10)])
+
+# --- F. defect maps
+maps = {"CalData_20/BPMap.map(u8)": u8(f"{D20}/BPMap.map"), "CalData_6/BPMap.map(u8)": u8(f"{D6}/BPMap.map")}
+for rel in ("12_CalData_20/Total_Defect_Map.raw","12_CalData_6/Total_Defect_Map.raw","images/TOTAL_BPM.raw","images/BPM_with_Filter.raw","images/BPM_without_Filter.raw",
+            "corrected/TOTAL_BPM.raw","corrected/TOTAL_BPM_original.raw","corrected/Total_Defect_Map.raw","corrected/BPM_with_Filter.raw","corrected/BPM_without_Filter.raw",
+            "corrected/AED_BPM.raw","corrected/DotDefectBPM.raw","corrected/Stitch_BPM.raw","corrected/Bright03_bpm_14.raw","corrected/PositionMap.raw","12_CalData_20/PositionMap.raw"):
+    maps[rel] = u16(f"{B}/{rel}")
+for k, m in maps.items():
+    vals, cnt = np.unique(m, return_counts=True)
+    top = sorted(zip(cnt.tolist(), vals.tolist()), reverse=True)[:6]
+    P(f"F {k}: nonzero {int(np.count_nonzero(m))} | top (count,value) {top}")
+nz = {k: (m != 0) for k, m in maps.items()}
+def rel(a, b):
+    A, Bm = nz[a], nz[b]
+    P(f"F rel {a} vs {b}: |A| {int(A.sum())} |B| {int(Bm.sum())} both {int((A&Bm).sum())} A_only {int((A&~Bm).sum())} B_only {int((~A&Bm).sum())} equal_sets {bool((A==Bm).all())}")
+pairs = [("12_CalData_20/Total_Defect_Map.raw","corrected/Total_Defect_Map.raw"),("images/TOTAL_BPM.raw","corrected/TOTAL_BPM.raw"),
+         ("CalData_20/BPMap.map(u8)","12_CalData_20/Total_Defect_Map.raw"),("CalData_20/BPMap.map(u8)","corrected/TOTAL_BPM.raw"),
+         ("corrected/TOTAL_BPM_original.raw","corrected/Total_Defect_Map.raw"),("corrected/Total_Defect_Map.raw","corrected/TOTAL_BPM.raw"),
+         ("images/BPM_with_Filter.raw","corrected/BPM_with_Filter.raw"),("images/BPM_without_Filter.raw","corrected/BPM_without_Filter.raw"),
+         ("CalData_20/BPMap.map(u8)","CalData_6/BPMap.map(u8)")]
+for a, b in pairs: rel(a, b)
+U = nz["corrected/BPM_with_Filter.raw"] | nz["corrected/BPM_without_Filter.raw"]
+P("F corrected Total_Defect_Map set == with|without (corrected):", bool((U == nz["corrected/Total_Defect_Map.raw"]).all()), "| union", int(U.sum()))
+P("F corrected TOTAL_BPM_original set == with|without:", bool((U == nz["corrected/TOTAL_BPM_original.raw"]).all()))
+# full-length lines in TOTAL_BPM
+for k in ("corrected/TOTAL_BPM.raw", "CalData_20/BPMap.map(u8)", "12_CalData_20/Total_Defect_Map.raw"):
+    m = nz[k]; rows = np.where(m.mean(axis=1) > 0.5)[0]; cols = np.where(m.mean(axis=0) > 0.5)[0]
+    P(f"F {k}: rows >50% flagged {rows.tolist()[:20]} (n={rows.size}) | cols >50% flagged {cols.tolist()[:20]} (n={cols.size})")
+open(sys.argv[2], "w", encoding="utf-8").write("\n".join(out) + "\n")
+print("done", len(out))
