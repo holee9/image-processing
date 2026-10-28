@@ -1,0 +1,42 @@
+import numpy as np, math, sys
+from numpy.lib.stride_tricks import sliding_window_view as swv
+S=3072; MT,MB,ML,MR=2,1,6,1
+CAL='D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+INJ='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+WIN=17; R=8; BLK=64
+def rd(p): return np.fromfile(p,dtype='<u2').reshape(S,S)[MT:S-MB, ML:S-MR]
+def smed(a,axis):  # sliding median along axis, reflect
+    if axis==0: return smed(a.T,1).T
+    pad=np.pad(a,((0,0),(R,R)),mode='reflect'); out=np.empty_like(a)
+    for y0 in range(0,a.shape[0],256):
+        v=swv(pad[y0:y0+256],WIN,axis=1); out[y0:y0+256]=np.partition(v,R,axis=-1)[...,R]
+    return out
+def feat(D):
+    f=D.copy()
+    ref=smed(f,0); c=np.median(f-ref,axis=1); f=f-c[:,None]
+    ref=smed(f,1); c=np.median(f-ref,axis=0); f=f-c[None,:]
+    bg=smed(smed(f,1),0); r=f-bg
+    h,w=r.shape; nby=(h+BLK-1)//BLK; nbx=(w+BLK-1)//BLK; sig=np.zeros((nby,nbx),np.float32)
+    for by in range(nby):
+        for bx in range(nbx):
+            v=np.abs(r[by*BLK:(by+1)*BLK,bx*BLK:(bx+1)*BLK]).ravel(); k=v.size//2
+            sig[by,bx]=1.4826*np.partition(v,k)[k]
+    fx=np.clip((np.arange(w)+0.5)/BLK-0.5,0,nbx-1); fy=np.clip((np.arange(h)+0.5)/BLK-0.5,0,nby-1)
+    x0=fx.astype(int); y0=fy.astype(int); x1=np.minimum(x0+1,nbx-1); y1=np.minimum(y0+1,nby-1); tx=fx-x0; ty=fy-y0
+    s=(1-ty)[:,None]*((1-tx)[None,:]*sig[y0][:,x0]+tx[None,:]*sig[y0][:,x1])+ty[:,None]*((1-tx)[None,:]*sig[y1][:,x0]+tx[None,:]*sig[y1][:,x1])
+    return f,bg,r,s
+n=(S-MT-MB)*(S-ML-MR); p=1.0/n
+lam=math.sqrt(2)*__import__('statistics').NormalDist().inv_cdf(1-p/2)/math.sqrt(2)
+print('lambda',lam)
+pts=[(349,199),(796,199),(901,2185),(1023,1453),(1095,454),(1253,1246),(1590,2707),(1612,196),(536,934)]
+res={}
+for name,dirs in (('planted',[INJ]*7),('clean',[CAL]*7)):
+    D=np.zeros((S-MT-MB,S-ML-MR),np.float64)
+    for k,d in zip(range(8,15),dirs): D+=rd(d+'Dark_%02d.raw'%k)
+    D=(D/7).astype(np.float32)
+    f,bg,r,s=feat(D); z=r/s
+    fl=np.abs(z)>lam; print(name,'DM flags',int(fl.sum()))
+    np.save('D:/workspace-github/xpe-data/qa-314-tmp/z_%s.npy'%name,z.astype(np.float32))
+    for (y,x) in pts:
+        yy,xx=y-MT,x-ML
+        print(' %s (%d,%d) D=%.2f f=%.2f bg=%.2f r=%.2f s=%.3f z=%.2f'%(name,y,x,D[yy,xx],f[yy,xx],bg[yy,xx],r[yy,xx],s[yy,xx],z[yy,xx]))
