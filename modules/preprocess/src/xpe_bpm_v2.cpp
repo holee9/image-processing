@@ -488,14 +488,21 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             // The ends: the windows give a coarse stretch (a window that only touches the stretch can still reach the threshold, so the coarse ends lie outside by up to a
             // window). The ends are the change points of the maximum-likelihood fit of one elevated stretch: with m the mean level of the stretch (taken from its core), the
             // stretch is the maximum-sum run of (z - m/2) in the cut z terms, searched within one window length beyond the coarse ends.
+            // QA-A-314: the upper cut is the level of the stretch itself (the median of its uncut core terms), at least 3. With a fixed cut at 3 a strong line (tens of noise
+            // widths) had m = 3 and its ends took in the ordinary pixels of 1.5 to 3 widths next to it (3 to 5 pixels beyond the true end in the B16 measurement). A line whose
+            // core level is 3 or less is cut as before.
             {
                 const int lo2 = std::max(0, a - L), hi2 = std::min(w, b + L);
                 std::vector<double> zt(static_cast<size_t>(hi2 - lo2));
                 for (int t = lo2; t < hi2; ++t) {
                     const double sc = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), t, y)), 1e-9);
-                    zt[static_cast<size_t>(t - lo2)] = std::min(3.0, std::max(-3.0, sign * static_cast<double>(er[t]) / sc));
+                    zt[static_cast<size_t>(t - lo2)] = sign * static_cast<double>(er[t]) / sc;
                 }
                 const int c0 = (b - a >= 2 * L) ? a + L / 2 : a, c1 = (b - a >= 2 * L) ? b - L / 2 : b;
+                std::vector<double> core(zt.begin() + (c0 - lo2), zt.begin() + (c1 - lo2));
+                std::nth_element(core.begin(), core.begin() + static_cast<std::ptrdiff_t>(core.size() / 2), core.end());
+                const double cutHi = std::max(3.0, core[core.size() / 2]);
+                for (double& v : zt) v = std::min(cutHi, std::max(-3.0, v));
                 double    m = 0.0;
                 for (int t = c0; t < c1; ++t) m += zt[static_cast<size_t>(t - lo2)];
                 m /= std::max(1, c1 - c0);
