@@ -1,0 +1,24 @@
+## after_commit s1_um300 all {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=17.450 min=12.457 median_excl_first=13.089 max=15.256
+## after_commit s1_um300 gain_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=7.149 min=4.399 median_excl_first=4.663 max=5.758
+## after_commit s1_um300 defect_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=21.268 min=16.066 median_excl_first=16.667 max=18.485
+## after_commit s1_um300 both_bypassed {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=1.114 min=0.265 median_excl_first=0.283 max=0.573
+## after_commit s0_gf all {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=12.548 min=10.135 median_excl_first=10.531 max=11.317
+## after_commit s0_gf gain_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=6.295 min=4.378 median_excl_first=4.810 max=5.347
+## after_commit s0_gf defect_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=17.606 min=14.570 median_excl_first=15.016 max=16.881
+## after_commit s0_gf both_bypassed {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=0.827 min=0.258 median_excl_first=0.274 max=0.603
+## after_commit s6_gad_pre all {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=18.947 min=12.799 median_excl_first=13.546 max=16.114
+## after_commit s6_gad_pre gain_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=6.047 min=4.258 median_excl_first=4.735 max=5.739
+## after_commit s6_gad_pre defect_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=25.036 min=17.246 median_excl_first=18.009 max=20.734
+## after_commit s6_gad_pre both_bypassed {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=0.856 min=0.325 median_excl_first=0.391 max=0.585
