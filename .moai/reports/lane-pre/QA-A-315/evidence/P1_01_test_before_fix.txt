@@ -1,0 +1,28 @@
+﻿# Reviewer PRE313-317 P1 reproduction BEFORE the fix (QA-A-315, Refs #278)
+HEAD a611bd553d93fa9ef1f093baa9db5c8f1809e173 (parallel.hpp unchanged, sha256 2556f05876e52afca751a6d100987e4aca06fa1c9724cf7f8b5f53fd6d90c548)
+test: build/ci-preprocess/bin/xpe_preprocess_parallel_unwind_tests.exe (tests/test_parallel_unwind.cpp)
+
+--- run 1
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ParallelUnwind
+[ RUN      ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc
+[calibration] caller-thread allocations: 2 ranges = 6 (repeat 6), 3 ranges = 10
+native exit code -1073741819 (0xC0000005)
+--- run 2
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ParallelUnwind
+[ RUN      ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc
+[calibration] caller-thread allocations: 2 ranges = 6 (repeat 6), 3 ranges = 10
+native exit code -1073741819 (0xC0000005)
+--- run 3
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ParallelUnwind
+[ RUN      ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc
+[calibration] caller-thread allocations: 2 ranges = 6 (repeat 6), 3 ranges = 10
+native exit code -1073741819 (0xC0000005)

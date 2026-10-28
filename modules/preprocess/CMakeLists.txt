@@ -681,6 +681,22 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(xpe_preprocess_oom_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+    # Reviewer PRE313-317 P1 (QA-A-315, #278): xpe_parallel_chunks when a later task launch throws std::bad_alloc. Its own
+    # executable because it replaces operator new/delete; it needs only the header-only helper and GoogleTest.
+    add_executable(xpe_preprocess_parallel_unwind_tests tests/test_parallel_unwind.cpp)
+    target_include_directories(xpe_preprocess_parallel_unwind_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(xpe_preprocess_parallel_unwind_tests PRIVATE GTest::gtest_main)
+    target_compile_features(xpe_preprocess_parallel_unwind_tests PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_preprocess_parallel_unwind_tests PRIVATE /W4)
+    else()
+        target_compile_options(xpe_preprocess_parallel_unwind_tests PRIVATE -Wall -Wextra)
+    endif()
+    xpe_target_warnings_as_errors(xpe_preprocess_parallel_unwind_tests)
+    gtest_discover_tests(xpe_preprocess_parallel_unwind_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
     add_test(NAME preprocess.legacy_ghost_fingerprints
         COMMAND $<TARGET_FILE:xpe_preprocess_oom_tests> --gtest_filter=OutputUnchanged237b.* --gtest_color=no)
     set_tests_properties(preprocess.legacy_ghost_fingerprints PROPERTIES
