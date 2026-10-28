@@ -87,7 +87,7 @@
 
 ## 4. 결함 맵 비교 — 측정 불가 (차단)
 
-- `xpe_bpm_generate_v2` 는 다크 프레임이 첫 장 건너뛴 뒤 기본 5장(`xpe_bpm_v2.cpp:53-54`), 설정해도 최소 3장(`:70`) 필요, 부족하면 `XPE_ERR_INVALID_INPUT`(`:696`). 세트마다 다크는 1장.
+- `xpe_bpm_generate_v2` 다크 조건(Reviewer P2 반영으로 구분): 기본은 첫 장 건너뜀 + 5장 = 총 6장(`xpe_bpm_v2.cpp:53-54`), `skip_first_dark NONE` 로 설정하면 최소 3장(`:70`). 부족하면 `XPE_ERR_INVALID_INPUT`(`:696`). 세트마다 다크는 1장이라 두 조건 모두 거부가 타당하다.
 - 측정: 6세트 모두 (a) 기본 설정 (b) `skip_first_dark NONE` + `min_frames_dark 3` 에서 `rc=-1`(`20_generate_log.txt`).
 - 다크·밝은 프레임은 offset 이 빠지지 않은 원값이어야 하는데(`preprocess_api.h:2139-2141`) 2G 밝은 프레임은 offset 이 빠진 int16 값이다. 같은 다크 복제나 0 프레임 투입은 없는 측정값을 만드는 것이라 하지 않았다.
 - PRE 결함 수·공통·PRE만·caleng만·줄 일치는 **측정 불가**. caleng 쪽 사실만: 결함 수(§1), 전폭 가로줄 10줄(255+256k) 5세트, s1_um300 은 0줄.
@@ -97,7 +97,7 @@
 
 | 항목 | 사유 |
 |---|---|
-| offset 생성 비교 | `dark.raw` 1장뿐 |
+| offset 생성 비교 | API 는 다크 최소 1장으로 생성 가능하다(`xpe_calib_generate_offset_methods.cpp:30`). 비교가 불가한 이유는 원시 다크 여러 장(stack), caleng 의 offset 생성 방식, 독립 품질 검증 자료가 없기 때문이다(Reviewer PRE313-317 P2 반영, 10-29) |
 | 결함 맵 2판 생성·비교 | §4 |
 | `dark.raw` 가 한 장인지 평균인지 | 파일만으로 판별 불가 |
 | xcal 포화 기록을 모듈 로더로 확인 | 바이트 검사로 대신함(§0) |
