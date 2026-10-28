@@ -1,0 +1,61 @@
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8', newline='').read()
+nl = '\r\n' if '\r\n' in s else '\n'
+L = s.split(nl)
+T = ' // QA315TMP'
+BS = chr(92)
+
+def find(pred, start=0):
+    for k in range(start, len(L)):
+        if pred(L[k]):
+            return k
+    raise SystemExit('not found')
+
+def ind(k):
+    return L[k][:len(L[k]) - len(L[k].lstrip())]
+
+# header helpers after '#include <vector>'
+k = find(lambda l: l.strip() == '#include <vector>')
+L[k+1:k+1] = [
+    '#include <chrono>' + T,
+    '#include <cstdio>' + T,
+    'static thread_local std::chrono::steady_clock::time_point qa315_dl;' + T,
+    'static double qa315_fd_ms = 0;' + T,
+    'static std::atomic<size_t> qa315_ring{0};' + T,
+    'static void qa315_lap(const char* t) { const auto now = std::chrono::steady_clock::now(); std::fprintf(stderr, "QA315 defect %s %.3f' + BS + 'n", t, std::chrono::duration<double, std::milli>(now - qa315_dl).count()); qa315_dl = now; }' + T,
+    'struct Qa315FdGuard { std::chrono::steady_clock::time_point t = std::chrono::steady_clock::now(); ~Qa315FdGuard() { qa315_fd_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t).count(); } };' + T,
+]
+# FillDistance::build start
+k = find(lambda l: l.strip() == 'void build(const MaskSet& ms, const Grid& grid) {')
+L.insert(k+1, ind(k) + '    Qa315FdGuard qa315_guard;' + T)
+# ring count in median_filter_cluster
+k = find(lambda l: l.strip().startswith('float median_filter_cluster('))
+k = find(lambda l: l.strip() == 'if (values.empty()) {', k)
+L.insert(k+1, ind(k) + '    qa315_ring.fetch_add(1, std::memory_order_relaxed);' + T)
+# entry
+k = find(lambda l: l.strip().startswith('XpeErrorCode xpe_defect_correct_in('))
+k = find(lambda l: l.strip() == 'if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;', k)
+L.insert(k, ind(k) + 'qa315_dl = std::chrono::steady_clock::now(); qa315_ring = 0; qa315_fd_ms = 0;' + T)
+k = find(lambda l: l.strip().startswith('// QA-A-202 (#233): shared ownership'), k)
+L.insert(k, ind(k) + 'qa315_lap("finite");' + T)
+k = find(lambda l: l.strip().startswith('extraOwn = std::vector<uint32_t>();'), k)
+L.insert(k+1, ind(k) + 'qa315_lap("maskset"); std::fprintf(stderr, "QA315 info count=%zu slots=%zu extra=%zu layers=%d' + BS + 'n", maskSet.count(), maskSet.slots(), extraCount, layers ? 1 : 0);' + T)
+k = find(lambda l: l.strip().startswith('const bool hasDefects = maskSet.count() > outsideN;'), k)
+L.insert(k, ind(k) + 'qa315_lap("copy");' + T)
+k = find(lambda l: l.strip().startswith('std::vector<uint8_t> done(maskSet.slots(), 0);'), k)
+L.insert(k+1, ind(k) + 'qa315_lap("list");' + T)
+k = find(lambda l: l.strip().startswith('FillDistance fillDistance;'), k)
+L.insert(k, ind(k) + 'qa315_lap("lines"); std::atomic<size_t> qa315_nc{0}, qa315_ni{0};' + T)
+k = find(lambda l: l.strip().startswith('size_t localUnfilled = 0;'), k)
+L.insert(k+1, ind(k) + 'size_t qa315_lc = 0, qa315_li = 0;' + T)
+k = find(lambda l: l.strip() == 'if (cluster) {', k)
+L.insert(k+1, ind(k) + '    ++qa315_lc;' + T)
+k = find(lambda l: l.strip() == '} else {', k)
+L.insert(k+1, ind(k) + '    ++qa315_li;' + T)
+k = find(lambda l: l.strip().startswith('unfilledCount.fetch_add(localUnfilled);'), k)
+L.insert(k, ind(k) + 'qa315_nc += qa315_lc; qa315_ni += qa315_li;' + T)
+k = find(lambda l: l.strip().startswith('const size_t unfilled = unfilledCount.load();'), k)
+L.insert(k+1, ind(k) + 'qa315_lap("fill"); std::fprintf(stderr, "QA315 info fd_ms=%.3f cluster=%zu isolated=%zu ring=%zu' + BS + 'n", qa315_fd_ms, qa315_nc.load(), qa315_ni.load(), qa315_ring.load());' + T)
+open(p, 'w', encoding='utf-8', newline='').write(nl.join(L))
+print('ok')
