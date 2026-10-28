@@ -1,0 +1,24 @@
+Note: Google Test filter = BpmV2PeriodicDarkTest.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from BpmV2PeriodicDarkTest
+[ RUN      ] BpmV2PeriodicDarkTest.ARowBandTimesColumnParityDarkStructureIsNotFlaggedAsDefects
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2_periodic_dark.cpp(153): error: Expected: (r.darkMeanOutsidePlants) <= (kFalseAlarmRoom), actual: 7169 vs 5
+dark_mean flagged 7173 (outside the plants 7169), threshold 4.324919, scale 1.729821, union 7174 -- the odd columns of the band rows are a readout structure of the whole frame, not defects
+
+[  FAILED  ] BpmV2PeriodicDarkTest.ARowBandTimesColumnParityDarkStructureIsNotFlaggedAsDefects (575 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlAPureRowComponentOfTheSameAmplitudeIsNotFlagged
+[       OK ] BpmV2PeriodicDarkTest.ControlAPureRowComponentOfTheSameAmplitudeIsNotFlagged (567 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlAPureColumnComponentOfTheSameAmplitudeIsNotFlagged
+[       OK ] BpmV2PeriodicDarkTest.ControlAPureColumnComponentOfTheSameAmplitudeIsNotFlagged (558 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlNoStructure
+[       OK ] BpmV2PeriodicDarkTest.ControlNoStructure (560 ms)
+[----------] 4 tests from BpmV2PeriodicDarkTest (2262 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (2262 ms total)
+[  PASSED  ] 3 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] BpmV2PeriodicDarkTest.ARowBandTimesColumnParityDarkStructureIsNotFlaggedAsDefects
+
+ 1 FAILED TEST
