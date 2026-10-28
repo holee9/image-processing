@@ -1,0 +1,109 @@
+﻿# QA-A-316 qa316_gen run 2026-10-28 23:11 dll=build/ci-preprocess/bin/xpe_preprocess.dll
+===== s0_gf
+gain frames 10, defect bright frames 10
+  gain frame Bright01_OC_06452.raw
+  gain frame Bright02_OC_06470.raw
+  gain frame Bright03_OC_06464.raw
+  gain frame Bright04_OC_06478.raw
+  gain frame Bright05_OC_06476.raw
+  gain frame Bright06_OC_06471.raw
+  gain frame Bright07_OC_06474.raw
+  gain frame Bright08_OC_06480.raw
+  gain frame Bright09_OC_06488.raw
+  gain frame Bright10_OC_06478.raw
+int16 negatives set to 0: 1301564
+xpe_calib_generate_gain rc=0 -> D:\workspace-github\xpe-data\qa-316-tmp\s0_gf\gain.xcal
+xpe_bpm_generate_v2 (NULL config, 1 dark) rc=-1
+xpe_bpm_generate_v2 (skip NONE, min_frames_dark 3, 1 dark) rc=-1
+XPE_ERR_INVALID_INPUT=-1
+exit=0
+===== s1_um300
+gain frames 10, defect bright frames 10
+  gain frame Bright01_OC_00469.raw
+  gain frame Bright02_OC_00478.raw
+  gain frame Bright03_OC_00478.raw
+  gain frame Bright04_OC_00475.raw
+  gain frame Bright05_OC_00472.raw
+  gain frame Bright06_OC_00477.raw
+  gain frame Bright07_OC_00478.raw
+  gain frame Bright08_OC_00480.raw
+  gain frame Bright09_OC_00480.raw
+  gain frame Bright10_OC_00484.raw
+int16 negatives set to 0: 687421
+xpe_calib_generate_gain rc=0 -> D:\workspace-github\xpe-data\qa-316-tmp\s1_um300\gain.xcal
+xpe_bpm_generate_v2 (NULL config, 1 dark) rc=-1
+xpe_bpm_generate_v2 (skip NONE, min_frames_dark 3, 1 dark) rc=-1
+XPE_ERR_INVALID_INPUT=-1
+exit=0
+===== s4_csi_pre
+gain frames 10, defect bright frames 10
+  gain frame Bright01_OC_05315.raw
+  gain frame Bright02_OC_05432.raw
+  gain frame Bright03_OC_05341.raw
+  gain frame Bright04_OC_05379.raw
+  gain frame Bright05_OC_05359.raw
+  gain frame Bright06_OC_05362.raw
+  gain frame Bright07_OC_05432.raw
+  gain frame Bright08_OC_05426.raw
+  gain frame Bright09_OC_05444.raw
+  gain frame Bright10_OC_05383.raw
+int16 negatives set to 0: 284645
+xpe_calib_generate_gain rc=0 -> D:\workspace-github\xpe-data\qa-316-tmp\s4_csi_pre\gain.xcal
+xpe_bpm_generate_v2 (NULL config, 1 dark) rc=-1
+xpe_bpm_generate_v2 (skip NONE, min_frames_dark 3, 1 dark) rc=-1
+XPE_ERR_INVALID_INPUT=-1
+exit=0
+===== s5_csi_post
+gain frames 10, defect bright frames 10
+  gain frame Bright01_OC_05594.raw
+  gain frame Bright02_OC_05566.raw
+  gain frame Bright03_OC_05622.raw
+  gain frame Bright04_OC_05654.raw
+  gain frame Bright05_OC_05644.raw
+  gain frame Bright06_OC_05640.raw
+  gain frame Bright07_OC_05653.raw
+  gain frame Bright08_OC_05660.raw
+  gain frame Bright09_OC_05664.raw
+  gain frame Bright10_OC_05663.raw
+int16 negatives set to 0: 272411
+xpe_calib_generate_gain rc=0 -> D:\workspace-github\xpe-data\qa-316-tmp\s5_csi_post\gain.xcal
+xpe_bpm_generate_v2 (NULL config, 1 dark) rc=-1
+xpe_bpm_generate_v2 (skip NONE, min_frames_dark 3, 1 dark) rc=-1
+XPE_ERR_INVALID_INPUT=-1
+exit=0
+===== s6_gad_pre
+gain frames 10, defect bright frames 10
+  gain frame Bright01_OC_02460.raw
+  gain frame Bright02_OC_02461.raw
+  gain frame Bright03_OC_02461.raw
+  gain frame Bright04_OC_02464.raw
+  gain frame Bright05_OC_02469.raw
+  gain frame Bright06_OC_02500.raw
+  gain frame Bright07_OC_02466.raw
+  gain frame Bright08_OC_02518.raw
+  gain frame Bright09_OC_02525.raw
+  gain frame Bright10_OC_02511.raw
+int16 negatives set to 0: 731868
+xpe_calib_generate_gain rc=0 -> D:\workspace-github\xpe-data\qa-316-tmp\s6_gad_pre\gain.xcal
+xpe_bpm_generate_v2 (NULL config, 1 dark) rc=-1
+xpe_bpm_generate_v2 (skip NONE, min_frames_dark 3, 1 dark) rc=-1
+XPE_ERR_INVALID_INPUT=-1
+exit=0
+===== s7_gad_post
+gain frames 10, defect bright frames 10
+  gain frame Bright01_OC_02415.raw
+  gain frame Bright02_OC_02419.raw
+  gain frame Bright03_OC_02461.raw
+  gain frame Bright04_OC_02478.raw
+  gain frame Bright05_OC_02468.raw
+  gain frame Bright06_OC_02461.raw
+  gain frame Bright07_OC_02465.raw
+  gain frame Bright08_OC_02461.raw
+  gain frame Bright09_OC_02468.raw
+  gain frame Bright10_OC_02434.raw
+int16 negatives set to 0: 413913
+xpe_calib_generate_gain rc=0 -> D:\workspace-github\xpe-data\qa-316-tmp\s7_gad_post\gain.xcal
+xpe_bpm_generate_v2 (NULL config, 1 dark) rc=-1
+xpe_bpm_generate_v2 (skip NONE, min_frames_dark 3, 1 dark) rc=-1
+XPE_ERR_INVALID_INPUT=-1
+exit=0

@@ -1,0 +1,63 @@
+// QA-A-316 scratch harness (not shipped): calls the exported PRE generators on one 2G caleng calibration folder.
+//   qa316_gen SRC_DIR OUT_DIR   (3072 x 2560)
+//   gain : xpe_calib_generate_gain(Bright01..10 as int16 -> uint16 max(0,v), 10, dark_reference=NULL, OUT/gain.xcal, NULL)
+//   v2   : xpe_bpm_generate_v2(dark=[dark.raw], brights=Bright11..20 as stored) with (a) NULL config (b) skip NONE + min_frames_dark 3 -> return codes only
+#include "xpe/preprocess_api.h"
+#include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <filesystem>
+#include <regex>
+#include <string>
+#include <vector>
+namespace fs = std::filesystem;
+static const unsigned W = 3072, H = 2560;
+static bool rd(const fs::path& p, std::vector<uint16_t>& v) {
+    v.assign((size_t)W * H, 0); FILE* f = _wfopen(p.c_str(), L"rb"); if (!f) return false;
+    const bool ok = std::fread(v.data(), 2, v.size(), f) == v.size(); std::fclose(f); return ok;
+}
+static XpeImageBuffer buf(void* d, XpePixelFormat fm, unsigned bits) {
+    XpeImageBuffer b{}; b.data = d; b.width = W; b.height = H; b.format = fm; b.bitsAllocated = b.bitsStored = (uint16_t)bits;
+    b.dataSize = (size_t)W * H * (bits / 8u); return b;
+}
+int wmain(int argc, wchar_t** argv) {
+    if (argc != 3) return 2;
+    const fs::path src = argv[1], out = argv[2];
+    std::vector<fs::path> g, d2;
+    const std::wregex rg(LR"(Bright(0[1-9]|10)_OC_[0-9]+[.]raw)"), rb(LR"(Bright(1[1-9]|20)_OC_[0-9]+[.]raw)");
+    for (auto& e : fs::directory_iterator(src)) {
+        const std::wstring n = e.path().filename().wstring();
+        if (std::regex_match(n, rg)) g.push_back(e.path()); else if (std::regex_match(n, rb)) d2.push_back(e.path());
+    }
+    std::sort(g.begin(), g.end()); std::sort(d2.begin(), d2.end());
+    std::printf("gain frames %zu, defect bright frames %zu\n", g.size(), d2.size());
+    if (g.size() != 10 || d2.size() != 10) return 3;
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    std::vector<std::vector<uint16_t>> fr(10); std::vector<XpeImageBuffer> bufs(10);
+    size_t neg = 0;
+    for (int i = 0; i < 10; ++i) {
+        if (!rd(g[i], fr[i])) return 5;
+        for (auto& x : fr[i]) { const int16_t s = (int16_t)x; if (s < 0) { x = 0; ++neg; } }
+        bufs[i] = buf(fr[i].data(), XPE_PIXEL_UINT16, 16);
+        std::printf("  gain frame %ls\n", g[i].filename().c_str());
+    }
+    std::printf("int16 negatives set to 0: %zu\n", neg);
+    const std::string gp = (out / "gain.xcal").string();
+    const XpeErrorCode rcg = xpe_calib_generate_gain(bufs.data(), 10, nullptr, gp.c_str(), nullptr);
+    std::printf("xpe_calib_generate_gain rc=%d -> %s\n", (int)rcg, gp.c_str());
+    fr.clear(); bufs.clear();
+    std::vector<uint16_t> dark; if (!rd(src / L"dark.raw", dark)) return 6;
+    std::vector<std::vector<uint16_t>> bb(10); std::vector<XpeImageBuffer> bbuf(10);
+    for (int i = 0; i < 10; ++i) { if (!rd(d2[i], bb[i])) return 7; bbuf[i] = buf(bb[i].data(), XPE_PIXEL_UINT16, 16); }
+    XpeImageBuffer db = buf(dark.data(), XPE_PIXEL_UINT16, 16);
+    std::vector<uint8_t> map((size_t)W * H); XpeImageBuffer mb = buf(map.data(), XPE_PIXEL_UINT8, 8);
+    XpeBpmReportV2 rep{};
+    const XpeErrorCode rca = xpe_bpm_generate_v2(&db, 1, bbuf.data(), 10, nullptr, &mb, nullptr, nullptr, &rep);
+    std::printf("xpe_bpm_generate_v2 (NULL config, 1 dark) rc=%d\n", (int)rca);
+    XpeBpmConfigV2 c{}; c.skip_first_dark = XPE_BPM_V2_SKIP_NONE; c.min_frames_dark = 3;
+    const XpeErrorCode rcb = xpe_bpm_generate_v2(&db, 1, bbuf.data(), 10, &c, &mb, nullptr, nullptr, &rep);
+    std::printf("xpe_bpm_generate_v2 (skip NONE, min_frames_dark 3, 1 dark) rc=%d\n", (int)rcb);
+    std::printf("XPE_ERR_INVALID_INPUT=%d\n", (int)XPE_ERR_INVALID_INPUT);
+    xpe_preprocess_shutdown();
+    return rcg == XPE_OK ? 0 : 8;
+}
