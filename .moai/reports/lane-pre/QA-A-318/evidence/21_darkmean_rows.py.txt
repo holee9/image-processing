@@ -1,0 +1,25 @@
+# QA-A-318 diagnostic (scratch; evidence 21_darkmean_rows.py.txt): where the v2 dark-mean feature (bit 0) flags, by row phase
+import numpy as np, sys
+W, H = 3072, 2560
+f = np.fromfile(sys.argv[1], dtype="u1").reshape(H, W)
+b0 = (f & 1) != 0
+area = np.zeros((H, W), bool); area[2:H-92, 15:W-17] = True
+rowfrac = (b0 & area).sum(1) / area.sum(1).clip(1)
+print("bit0 flagged inside cut:", int((b0 & area).sum()))
+for per in (8, 16, 32, 64):
+    ph = np.array([rowfrac[2:H-92][(np.arange(2, H-92) % per) == k].mean() for k in range(per)])
+    print(f"row period {per}: mean flagged fraction by (row mod {per}):", " ".join(f"{x:.3f}" for x in ph))
+colfrac = (b0 & area).sum(0) / area.sum(0).clip(1)
+for per in (8, 16, 32):
+    ph = np.array([colfrac[15:W-17][(np.arange(15, W-17) % per) == k].mean() for k in range(per)])
+    print(f"col period {per}: mean flagged fraction by (col mod {per}):", " ".join(f"{x:.3f}" for x in ph))
+print("rows with >50% flagged:", int((rowfrac > 0.5).sum()), " >10%:", int((rowfrac > 0.1).sum()), " <1%:", int((rowfrac[2:H-92] < 0.01).sum()))
+# MasterDark level by (row mod 32 in 24..31) x (col parity), inside cut -- does the dark itself carry the pattern?
+I = r"Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/images"
+md = np.fromfile(I + "/MasterDark.raw", dtype="<u2").reshape(H, W).astype(np.float64)
+r = np.arange(H)[:, None] % 32; c = np.arange(W)[None, :] % 2
+band = (r >= 24); 
+for bn, bm in (("rows mod32 24..31", band), ("rows mod32 0..23", ~band)):
+    for cn in (0, 1):
+        m = bm & (c == cn) & area
+        print(f"MasterDark {bn}, col%2=={cn}: mean {md[m].mean():.2f} median {np.median(md[m]):.1f} n={int(m.sum())}")
