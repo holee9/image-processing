@@ -71,7 +71,7 @@ def main(out_b, out_c):
         C, MB, MC = CMEAS[sid], float(bright.mean()), mg[sid]["mG"]
         box = np.zeros((H, W), bool); box[R0:R1, C0:C1] = True
         inner = np.zeros((H, W), bool); inner[R0 + 1:R1 - 1, C0 + 1:C1 - 1] = True
-        gB = gain_payload(f"{T}/xcal_b/{sid}/gain.xcal"); gC = gain_payload(f"{T}/xcal_c/{sid}/gain.xcal")
+        gB = gain_payload(f"{T}/xcal_b/{sid}/gain.xcal"); gC = gain_payload(f"{T}/xcal_c/{sid}/xcal/gain.xcal")
         roi = box & np.isfinite(gB) & (gB > 0) & np.isfinite(gC) & (gC > 0)
         roi.astype(np.uint8).tofile(f"{T}/m_roi.u8"); (D & inner).astype(np.uint8).tofile(f"{T}/m_truth.u8")
         for img in s["images"]:

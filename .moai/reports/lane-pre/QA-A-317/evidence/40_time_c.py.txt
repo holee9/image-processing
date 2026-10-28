@@ -1,0 +1,9 @@
+"""QA-A-317: PRE gain generation time, qa317_time.exe per set, 7 runs (median excluding the first)."""
+import json, os, subprocess
+T = "D:/workspace-github/xpe-data/qa-317-tmp"
+m = json.load(open("D:/workspace-github/xpe-2g-offline/batch-20261022-1230/manifest.json", encoding="utf-8"))
+env = dict(os.environ, PATH=r"D:\workspace-github\xpe-pre\build\ci-preprocess\bin;" + os.environ["PATH"])
+for s in m["sets"]:
+    r = subprocess.run([f"{T}/qa317_time.exe", s["cal_source"], f"{T}/time_gain.xcal", "7"], capture_output=True, text=True, env=env)
+    print(s["id"], "exit", r.returncode, r.stdout.strip(), flush=True)
+os.remove(f"{T}/time_gain.xcal")
