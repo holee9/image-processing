@@ -14,8 +14,10 @@
 #include <ctime>
 #include <memory>
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): width and height are the frame size and rowStep the row stride of the sample (1 = every row); the call sites pass (img->width, img->height, 16u) and (width, height, 1u)
 void xpe_sat_histogram(const uint16_t* raw, uint32_t width, uint32_t height, uint32_t rowStep,
                        const uint8_t* exclude, uint32_t* hist, uint64_t* counted) noexcept
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     if (raw == nullptr || hist == nullptr || width == 0 || height == 0) return;
     if (rowStep == 0) rowStep = 1;
@@ -195,7 +197,9 @@ void xpe_sat_record_append_json(std::string* json, bool determined, uint32_t lev
     if (len > 0) json->append(buf, static_cast<size_t>(std::min<int>(len, static_cast<int>(sizeof(buf)) - 1)));
 }
 
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): n is the pixel count of the range, level the raw saturation value and sOut the output value of a saturated pixel; the one call site passes (e - b, level, sOut)
 void xpe_sat_apply(float* out, const uint16_t* raw, size_t n, uint32_t level, float sOut) noexcept
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     const uint16_t lv = static_cast<uint16_t>(level);
     for (size_t i = 0; i < n; ++i) {

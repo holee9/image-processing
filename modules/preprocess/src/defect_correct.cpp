@@ -359,7 +359,7 @@ struct FillDistance {
             const uint32_t* q = std::lower_bound(masked, masked + maskedCount, static_cast<uint32_t>(y0 * width));
             const uint32_t* const qEnd = std::lower_bound(q, masked + maskedCount, static_cast<uint32_t>(std::min<size_t>(y1 * width, n)));
             while (q < qEnd) {
-                const size_t row = (*q / width) * width;
+                const size_t row = static_cast<size_t>(*q / width) * width;
                 const uint32_t a = static_cast<uint32_t>(*q - row);
                 const uint32_t* r = q + 1;
                 while (r < qEnd && *r == r[-1] + 1u && (*r - row) < width) ++r;
@@ -770,7 +770,9 @@ void classifyLineRuns(const MaskSet& ms, const Grid& g, const XpeDefectLineOptio
 }
 
 // The nearest valid pixel along y (alongY) or x from `start` going `dir`, at most kLineReach steps (the same search as findAcross).
+// NOLINTBEGIN(bugprone-easily-swappable-parameters): fixedCoord is the column (alongY) or row of the line's crossing pixel and start the first coordinate searched along the other axis; the two call sites pass (fixedCoord, line - 1, -1) and (fixedCoord, line + 1, +1)
 bool acrossValid(const float* src, const MaskSet& ms, const Grid& g, bool alongY, uint32_t fixedCoord, int start, int dir, float* value, int* pos)
+// NOLINTEND(bugprone-easily-swappable-parameters)
 {
     const int limit = static_cast<int>(alongY ? g.height : g.width);
     for (int k = 0; k < kLineReach; ++k) {
