@@ -24,7 +24,11 @@
 
 namespace {
 
-constexpr uint32_t kW = 256, kH = 256;
+// 260 rows: the last band (rows 248..255) is followed by 4 ordinary rows before the bottom edge, as on the FT tool frame cut to its imaging area (band rows
+// 2456..2463, then rows 2464..2467, then the cut). A first fix (one row component per column parity, one pass) removed the band in the interior but shifted
+// these 4 rows: the reflected 17-row window there is mostly band rows (QA-A-319 evidence/34_stage_dump_fix1_vc_crop_rows2452_2465.txt). These synthetic frames
+// do NOT reproduce that shift (they pass under the first fix too, evidence/22_test_h260_under_fix1_parity_only.txt); its guard is the FT tool measurement.
+constexpr uint32_t kW = 256, kH = 260;
 constexpr size_t   kN = static_cast<size_t>(kW) * kH;
 constexpr double   kAmp = -20.0;   // the level of the structure (QA-A-318: odd 2476.66 against even 2497.25 in the band rows)
 

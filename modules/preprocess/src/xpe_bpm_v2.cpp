@@ -252,7 +252,8 @@ void slidingMedian(const float* in, float* out, int w, int h, int win, bool alon
 /**
  * Removes the row component, then the column component (QA-A-252b). The component of a row is the median over the row of the difference between the row and the
  * median of the neighbouring rows at the same column, so a gradient along the row cancels and a defect that covers a part of the row moves the median by no more than
- * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. With @p multiplicative the
+ * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. The row component is taken
+ * separately for the even and the odd columns of the row (QA-A-319). With @p multiplicative the
  * component is a factor (the median of the ratio) instead of an offset. Constant over the whole line: removed. Not constant along the line: left for the later steps.
  */
 void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplicative) {
@@ -265,13 +266,32 @@ void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplic
             v -= c;
         }
     };
-    slidingMedian(f, tmp, w, h, win, true);
+    // the reference of the row step: the median of the win rows around the row along the column; at the top and bottom the window is moved inside the image
+    // instead of reflected (QA-A-319). Reflection counts the rows next to the edge twice: on the FT tool frame cut to its imaging area the band rows 2456..2463
+    // were then 10 of the 17 values of the last 4 rows, the reference took the band level and the per-parity row component shifted those ordinary rows.
+    if (h >= win) {
+        std::vector<float> col(static_cast<size_t>(win));
+        for (int x = 0; x < w; ++x)
+            for (int y = 0; y < h; ++y) {
+                const int y0 = std::min(std::max(y - win / 2, 0), h - win);
+                for (int k = 0; k < win; ++k) col[static_cast<size_t>(k)] = f[static_cast<size_t>(y0 + k) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+                tmp[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)] = medianOf(col.data(), col.size());
+            }
+    } else {
+        slidingMedian(f, tmp, w, h, win, true);
+    }
     for (int y = 0; y < h; ++y) {
         float* row = f + static_cast<size_t>(y) * static_cast<size_t>(w);
         const float* ref = tmp + static_cast<size_t>(y) * static_cast<size_t>(w);
-        for (int x = 0; x < w; ++x) line[static_cast<size_t>(x)] = component(row[x], ref[x]);
-        const float c = medianOf(line.data(), static_cast<size_t>(w));
-        for (int x = 0; x < w; ++x) apply(row[x], c);
+        // one component for the even columns and one for the odd columns (QA-A-319): a readout with a different level on the two column parities over a band of rows
+        // (row mod 32 = 24..31 on the FT tool detector) is a component of the row, not of its pixels; with one number per row it stayed and the separable median
+        // (8 band rows of the 17 of the window) took the background of the odd band pixels from the rows outside the band
+        size_t ne = 0, no = 0;
+        for (int x = 0; x < w; x += 2) line[ne++] = component(row[x], ref[x]);
+        const float ce = medianOf(line.data(), ne);
+        for (int x = 1; x < w; x += 2) line[no++] = component(row[x], ref[x]);
+        const float co = no > 0 ? medianOf(line.data(), no) : ce;
+        for (int x = 0; x < w; ++x) apply(row[x], (x & 1) != 0 ? co : ce);
     }
     slidingMedian(f, tmp, w, h, win, false);
     for (int x = 0; x < w; ++x) {
