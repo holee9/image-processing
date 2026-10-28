@@ -1,0 +1,4 @@
+defect.xcal: format version 2, 3072 x 3072, session "fixture"
+  defect plane: 2338 pixels flagged
+  imaging area: 30699 pixels outside
+  line groups: 0 (0 stretches), blobs: 2330, unconfirmed candidates: 0

@@ -1,0 +1,22 @@
+# QA-A-319: PRE V-a / V-c defect maps vs the engine TOTAL_BPM (counting rules of QA-A-318 20_compare.py.txt); argv: folder with v_a/v_c .map.u8/.feat.u8
+import sys, hashlib, numpy as np
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92
+eng = np.fromfile(B + "/corrected/TOTAL_BPM.raw", dtype="<u2").reshape(H, W) != 0
+area = np.zeros((H, W), bool); area[TP:H - BT, L:W - R] = True
+band = ((np.arange(H) % 32) >= 24)[:, None]; odd = (np.arange(W) % 2 == 1)[None, :]
+sha = lambda p: hashlib.sha256(open(p, 'rb').read()).hexdigest()
+for tag in ("v_a", "v_c"):
+    p = sys.argv[1] + "/" + tag
+    m = np.fromfile(p + ".map.u8", dtype="u1").reshape(H, W); f = np.fromfile(p + ".feat.u8", dtype="u1").reshape(H, W)
+    pre = m != 0
+    print(f"{tag}: map sha256 {sha(p + '.map.u8')}")
+    for rn, msk in (("whole frame", np.ones((H, W), bool)), ("inside cut", area)):
+        A, E = pre & msk, eng & msk
+        print(f"  [{rn}] PRE {int(A.sum())} engine {int(E.sum())} both {int((A & E).sum())} PRE_only {int((A & ~E).sum())} engine_only {int((~A & E).sum())}")
+    print("  feature-bit counts (whole frame): " + str({b: int(np.count_nonzero(f & (1 << b))) for b in range(6)}))
+    dm = (f & 1) != 0
+    for bn, bm in (("band", band), ("other", ~band)):
+        for pn, pm in (("even", ~odd), ("odd", odd)):
+            s = np.broadcast_to(bm & pm, (H, W))
+            print(f"  dark-mean flagged fraction rows {bn} cols {pn}: {dm[s].mean():.5f}")
