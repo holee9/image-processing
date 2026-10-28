@@ -1,0 +1,8 @@
+clean_set_v2/offset.xcal identical
+clean_set_v2/gain.xcal identical
+clean_set_v2/defect.xcal identical
+inj_set_v2/offset.xcal identical
+inj_set_v2/gain.xcal identical
+inj_set_v2/defect.xcal differ (D:/workspace-github/xpe-data/bpm-eval-260/inj_set_v2/defect.xcal D:/workspace-github/xpe-data/qa-314-tmp/out/inj_set_v2/defect.xcal differ: char 113, line 1)
+260 clean_set_v1/offset.xcal vs 314 clean_set_v2/offset.xcal: identical
+260 clean_set_v1/gain.xcal vs 314 clean_set_v2/gain.xcal: identical

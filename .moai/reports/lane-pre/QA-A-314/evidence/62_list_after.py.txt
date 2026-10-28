@@ -1,0 +1,33 @@
+import numpy as np
+T='D:/workspace-github/xpe-data/qa-314-tmp/ev/'
+E3='D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-314/evidence/'
+head=open(T+'diag_head.py',encoding='utf-8').read()
+head=head.replace("OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'","OUT = 'D:/workspace-github/xpe-data/qa-314-tmp/out/'")
+head=head.replace("EV + '30_noise_truth.tsv.txt'","'"+T+"30_noise_truth.tsv.txt'")
+head=head.replace("EV + '42_overlaps_v2.tsv.txt'","'"+E3+"42_overlaps_v2.tsv.txt'")
+head=head.replace("EV + '43_score_v2.json.txt'","'"+E3+"43_score_v2.json.txt'")
+g={'__name__':'__main__'}
+exec(compile(head,'h','exec'),g)
+new,inc,ids,items,ld=g['new'],g['in_control'],g['ids'],g['items'],g['ld']
+print('tool',g['sc']['new_false_alarms'],g['sc']['new_false_alarms_in_controls'],'repro',int(new.sum()),int(inc.sum()))
+OUT=g['OUT']
+feat=ld('D:/workspace-github/xpe-data/bpm-eval-260/v2_full_features.u8'); lines=ld('D:/workspace-github/xpe-data/bpm-eval-260/v2_full_lines.u8')!=0
+area=ld(OUT+'inj_v2_area.u8')!=0
+NAMES={1:'DM',2:'DN',4:'DS',8:'DL',0x10:'FL',0x20:'BN'}
+S=3072
+ys,xs=np.nonzero(new & ~inc)
+# area bounds
+ay,ax=np.nonzero(area); print('area rows',ay.min(),ay.max(),'cols',ax.min(),ax.max())
+tid=ids
+for y,x in zip(ys,xs):
+    b='+'.join(v for k,v in NAMES.items() if feat[y,x]&k)
+    if lines[y,x]: b='LINE'+('+'+b if b else '')
+    # nearest truth item within 12
+    y0,y1,x0,x1=max(0,y-12),min(S,y+13),max(0,x-12),min(S,x+13)
+    w=tid[y0:y1,x0:x1]; near=sorted(set(int(v) for v in np.unique(w) if v and int(v) in items))
+    nd=[]
+    if (w==65535).any(): nd.append('SHARED')
+    for i in near[:3]:
+        it=items[i]; yy,xx=np.nonzero(w==i); d=int(np.max(np.abs(np.stack([yy+y0-y,xx+x0-x])),axis=0).min())
+        nd.append('%d:%s/%s/%s/%s d%d'%(i,it['cls0'],it['kind'],it['shape'],it['level'],d))
+    print(y,x,b,'lineRunRow',int(lines[y].sum()),'lineRunCol',int(lines[:,x].sum()),' near',nd)
