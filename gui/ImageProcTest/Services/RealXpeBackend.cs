@@ -63,6 +63,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         _telemetry.Clear();
 
         var displayVersion = GetDisplayVersion();
+        var commonVersion = GetCommonVersion();
         _runtimeInfo = new BackendRuntimeInfo
         {
             BackendName = "RealXpeBackend",
@@ -73,7 +74,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             NativeDllPath = _commonDllPath,
             NativeSource = Native.GuiNativeLibraryResolver.SourceLabel("xpe_common.dll"),
             DisplayVersion = displayVersion,
-            CommonVersion = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(Native.XpeCommonNative.xpe_version()) ?? "unknown",
+            CommonVersion = commonVersion,
             DisplayDllDetected = File.Exists(_displayDllPath),
             DisplayDllPath = _displayDllPath
         };
@@ -99,6 +100,9 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     public string GetVersion() => _runtimeInfo.Version;
 
     public string GetDisplayVersion() => InvokeNative(XpeDisplayNative.GetVersion);
+
+    // QA-A-322: through InvokeNative like GetDisplayVersion, so the #110 alert drain runs after this native call too.
+    private string GetCommonVersion() => InvokeNative(() => System.Runtime.InteropServices.Marshal.PtrToStringAnsi(Native.XpeCommonNative.xpe_version()) ?? "unknown");
 
     public LoadedImageFrame LoadRawImage(string path, AppSettings settings)
     {
