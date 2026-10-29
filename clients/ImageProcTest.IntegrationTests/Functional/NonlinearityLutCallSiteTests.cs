@@ -70,11 +70,32 @@ public sealed class NonlinearityLutCallSiteTests(Xunit.Abstractions.ITestOutputH
         var text = File.ReadAllText(RunnerSource());
 
         Assert.DoesNotContain("xpe_nonlinearity_correct(", text);
-        Assert.Matches(@"xpe_preprocess_pipeline_out\(\s*ref\s+\w+\s*,\s*ref\s+\w+\s*,\s*ref\s+\w+\s*,\s*IntPtr\.Zero\s*,\s*IntPtr\.Zero\s*,\s*PipelineConfigJson\s*\)", text);
-        var config = Regex.Match(text, "PipelineConfigJson = \"(.*)\";");
-        Assert.True(config.Success, "PipelineConfigJson was not found.");
-        output.WriteLine("config handed to the pipeline: " + config.Groups[1].Value);
-        Assert.Contains("bypassNonlinearity", config.Groups[1].Value);
+
+        // QA-A-322: since QA-A-274e (a3a573a8) the config is built per run from the operator's offset/gain/defect selection, so the pipeline call passes a
+        // parameter, not the PipelineConfigJson constant. The property is unchanged — the config the pipeline RECEIVES states the nonlinearity setting — so this
+        // follows the argument actually passed back to where it is built (call -> RunPipelineOut parameter -> its one call site -> the serialized object),
+        // instead of reading a constant the call no longer uses.
+        var call = Regex.Match(text, @"xpe_preprocess_pipeline_out\(\s*ref\s+\w+\s*,\s*ref\s+\w+\s*,\s*ref\s+\w+\s*,\s*IntPtr\.Zero\s*,\s*IntPtr\.Zero\s*,\s*(?<arg>\w+)\s*\)");
+        Assert.True(call.Success, "The xpe_preprocess_pipeline_out call (ref, ref, ref, IntPtr.Zero, IntPtr.Zero, <config>) was not found.");
+        var passed = call.Groups["arg"].Value;
+
+        var declaration = Regex.Match(text, @"RunPipelineOut\((?<params>[^)]*)\)\s*\{");
+        Assert.True(declaration.Success, "The RunPipelineOut declaration was not found.");
+        var parameters = declaration.Groups["params"].Value.Split(',')
+            .Select(p => Regex.Match(p.Trim(), @"(\w+)$").Groups[1].Value).ToList();
+        var position = parameters.IndexOf(passed);
+        Assert.True(position >= 0, $"The config passed to the pipeline ('{passed}') is not a RunPipelineOut parameter: [{string.Join(", ", parameters)}].");
+
+        // Exactly one call site: a second path handing the pipeline a different config would otherwise go unread.
+        var callSite = Assert.Single(Regex.Matches(text, @"(?:return|=)\s+RunPipelineOut\((?<args>[^;]*?)\);"));
+        var arguments = callSite.Groups["args"].Value.Split(',');
+        Assert.True(arguments.Length > position, "The RunPipelineOut call site has fewer arguments than its declaration.");
+        var source = arguments[position].Trim();
+
+        var built = Regex.Match(text, @"var\s+" + Regex.Escape(source) + @"\s*=\s*System\.Text\.Json\.JsonSerializer\.Serialize\(\s*new\s*\{(?<body>[^}]*)\}");
+        Assert.True(built.Success, $"'{source}' (the argument the call site passes as '{passed}') is not built by JsonSerializer.Serialize(new {{ ... }}).");
+        output.WriteLine($"config handed to the pipeline: {passed} <- {source} = {{{Regex.Replace(built.Groups["body"].Value, @"\s+", " ").Trim()}}}");
+        Assert.Matches(@"\bbypassNonlinearity\s*=\s*true\b", built.Groups["body"].Value);
     }
 
     private static int Count(string text, string needle) =>

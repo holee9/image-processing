@@ -1,0 +1,41 @@
+# 수정 전, 71b87d63(dev/preprocess HEAD) export, 두 시험 필터 실행 — 관련 5파일은 0162bd31 과 동일(git diff --stat 71b87d63 0162bd31 출력 없음)
+$ dotnet test clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj -c Debug --nologo --filter "...EveryNativeCall_IsInsideAWrappedOrExemptMember|...TheGui_CallsPipelineOut_AndHandsTheNonlinearitySettingOverInTheConfig"
+[xUnit.net 00:00:00.60]     ImageProcTest.IntegrationTests.Functional.NativeCallWrapperGuardTests.EveryNativeCall_IsInsideAWrappedOrExemptMember [FAIL]
+[xUnit.net 00:00:00.62]     ImageProcTest.IntegrationTests.Functional.NonlinearityLutCallSiteTests.TheGui_CallsPipelineOut_AndHandsTheNonlinearitySettingOverInTheConfig [FAIL]
+gui/ImageProcTest/Services/RealXpeBackend.cs:76 in 'Initialize': CommonVersion = System.Runtime.InteropServices.Marshal.PtrToStringAnsi(Native.XpeCommonNative.xpe_version()) ?? "unknown",
+   Assert.Matches() Failure: Pattern not found in value
+Regex: "xpe_preprocess_pipeline_out\\(\\s*ref\\s+\\w+\\s*,"···
+Value: "// #141 (Phase 1a): run the preprocess stages agai"···
+실패!  - 실패:     2, 통과:     0, 건너뜀:     0, 전체:     2, 기간: 147 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+
+# 수정 전, 0162bd31 export, 전체
+$ dotnet test clients/ImageProcTest.IntegrationTests/ImageProcTest.IntegrationTests.csproj -c Debug --nologo
+[xUnit.net 00:00:03.53]     ImageProcTest.IntegrationTests.Functional.NonlinearityLutCallSiteTests.TheGui_CallsPipelineOut_AndHandsTheNonlinearitySettingOverInTheConfig [FAIL]
+[xUnit.net 00:00:24.25]     ImageProcTest.IntegrationTests.Functional.NativeCallWrapperGuardTests.EveryNativeCall_IsInsideAWrappedOrExemptMember [FAIL]
+실패!  - 실패:     2, 통과:   857, 건너뜀:   140, 전체:   999, 기간: 23 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+# 수정 후, 0162bd31 export + 수정 2파일, 대상 두 클래스 (detailed)
+  통과 ImageProcTest.IntegrationTests.Functional.NonlinearityLutCallSiteTests.TheGui_NeverLoadsOrUnloadsTheNonlinearityLut_WhileItDoesLoadTheOthers [19 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.NonlinearityLutCallSiteTests.TheGui_CallsPipelineOut_AndHandsTheNonlinearitySettingOverInTheConfig [7 ms]
+ config handed to the pipeline: config <- config = {bypassOffset = !applyOffset, bypassGain = !applyGain, bypassDefect = !applyDefect, bypassTemp = true, bypassNonlinearity = true, bypassBinning = true, bypassGhost = true}
+  통과 ImageProcTest.IntegrationTests.Functional.NativeCallWrapperGuardTests.EveryNativeCall_IsInsideAWrappedOrExemptMember [10 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.NativeCallWrapperGuardTests.TheWrapperExists_AndAtLeastOneMemberRoutesThroughIt [< 1 ms]
+
+# 반증: export 의 GuiPreprocessRunner.cs 에서 bypassNonlinearity = true -> false (실행 후 원복, cmp 일치)
+[xUnit.net 00:00:00.24]     ImageProcTest.IntegrationTests.Functional.NonlinearityLutCallSiteTests.TheGui_CallsPipelineOut_AndHandsTheNonlinearitySettingOverInTheConfig [FAIL]
+Regex: "\\bbypassNonlinearity\\s*=\\s*true\\b"
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 25 ms - ImageProcTest.IntegrationTests.dll (net8.0)
+
+# 수정 후 전체
+통과!  - 실패:     0, 통과:   859, 건너뜀:   140, 전체:   999, 기간: 20 s - ImageProcTest.IntegrationTests.dll (net8.0)
+
+# GUI 앱 빌드 (dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug -v q), exit 0
+    경고 22개
+    오류 0개
+RealXpeBackend.cs 를 언급한 경고 줄 수: 0
+f34e557c924246485e99b3bcb0d6348e3601d231c8cb124c5cf0e4d555f062ed *qa322-after-full.log
+d2d66a8352e87059ce714ca2fd1e6d43c08bcc5f55249e8e4cd03669edce9da3 *qa322-after-target.log
+b43e1911dd98ae5a720fe65040b8185eedc34ec23e42c2e697186e67aaa34a1a *qa322-before-full.log
+521000107c9056fa0358606a9339077d91d12f2dea6429761d97376c8156f87f *qa322-before.log
+7c546f435f01a53f47aba5c7128671d7bc593a258a05524dc64d397b7a5ec719 *qa322-gui-build.log
+9ad93eb6e5a2d9a3bca0ef53ccc8b637353f690cff155610382a01842516d310 *qa322-mut.log
