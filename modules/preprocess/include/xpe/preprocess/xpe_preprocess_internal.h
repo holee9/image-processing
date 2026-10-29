@@ -701,9 +701,21 @@ CalibSnapshot xpe_calib_snapshot() noexcept;
  */
 XpeErrorCode xpe_offset_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                    XpeImageBuffer* output, const XpeImageMetadata* metadata);
+/**
+ * QA-A-325 (Refs #278): the saturation output rule (xpe_sat_apply) handed to the gain stage, which applies it to each block of the
+ * float frame right after writing the block, instead of a second pass over the whole frame (0.82-0.85 ms at 3072x2560, QA-A-325
+ * evidence 11). Element for element the same operations in the same order as the separate pass, so the frame is the same bytes.
+ * `raw` is the pipeline input (the caller's uint16 frame), never the gain stage's input or output.
+ */
+struct XpeGainSatFuse {
+    const uint16_t* raw{nullptr};
+    uint32_t        level{0};
+    float           sOut{0.0f};
+};
 XpeErrorCode xpe_gain_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                  XpeImageBuffer* output, const XpeImageMetadata* metadata,
-                                 std::vector<uint32_t>* frame_defects = nullptr);
+                                 std::vector<uint32_t>* frame_defects = nullptr,
+                                 const XpeGainSatFuse* sat = nullptr);
 /**
  * QA-A-296 (Refs #278): how a version-1 defect map's long runs of masked pixels are corrected. A run of at least `minRun`
  * masked pixels along a row (or a column) is a line defect and is interpolated linearly across the line from the nearest

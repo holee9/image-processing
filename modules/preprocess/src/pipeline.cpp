@@ -178,11 +178,16 @@ namespace {
      * the caller's key, else the gain file's record, else there is none: then no handling, one alert (XPE_WARN_SATURATION_UNSET).
      * With a level: a pixel whose RAW value (the caller's frame) is >= level becomes S_out = level / median(gain), every other
      * pixel is limited to S_out. A frame whose pile-up sits at another value than the level raises an alert and changes nothing.
+     * QA-A-325 (Refs #278): split in two around the gain stage. This half runs BEFORE it: it settles the level and S_out and adds the
+     * same notes in the same order, and when the rule applies it fills `*fuse` and returns true -- the gain stage then applies the rule
+     * to each block it writes (XpeGainSatFuse), so the frame is not read and written a second time. monitor_saturation() is the
+     * other half, run after a successful gain stage. Neither half writes a pixel; a gain stage that fails pushes none of the notes,
+     * as before (the notes are pushed once, at the end of the step).
      */
-    void apply_saturation(const PipelineConfig& cfg, const CalibSnapshot& calib, const XpeImageBuffer* img,
-                          XpeImageBuffer* stage4, size_t pixelCount, SatNotes* notes)
+    bool prepare_saturation(const PipelineConfig& cfg, const CalibSnapshot& calib, const XpeImageBuffer* img,
+                            const XpeImageBuffer* stage4, SatNotes* notes, XpeGainSatFuse* fuse)
     {
-        if (cfg.saturationOff) return;
+        if (cfg.saturationOff) return false;
         uint32_t level = cfg.saturationLevel;
         const bool fromConfig = level != 0;
         if (level == 0 && calib.gain_sat.known && calib.gain_sat.determined) level = calib.gain_sat.level;
@@ -195,16 +200,16 @@ namespace {
                     : "XPE_WARN_SATURATION_UNSET: neither the pipeline configuration (saturationLevel) nor the gain calibration "
                       "gives the detector's saturation level; saturated pixels are not handled (set saturationLevel, or regenerate "
                       "the gain calibration with a frame exposed to saturation; \"off\" silences this alert)");
-            return;
+            return false;
         }
         const float sOut = xpe_sat_output_value(level, xpe_sat_median_for(calib));
-        if (stage4->format != XPE_PIXEL_FLOAT32 || img->format != XPE_PIXEL_UINT16) return;
+        if (stage4->format != XPE_PIXEL_FLOAT32 || img->format != XPE_PIXEL_UINT16) return false;
         if (!(sOut > 0.0f) || !std::isfinite(sOut)) {
             // the gain plane gives no usable median: saturated pixels cannot be given their value, so nothing is changed and the call says so
             notes->add(XPE_ALERT_WARNING,
                 "XPE_WARN_SATURATION_NOT_APPLIED: the saturated output value cannot be formed (the gain plane has no usable median); "
                 "saturated pixels are not handled");
-            return;
+            return false;
         }
         if (fromConfig && calib.gain_sat.known && calib.gain_sat.determined && calib.gain_sat.level != level) {
             char msg[256];
@@ -214,9 +219,16 @@ namespace {
             msg[sizeof(msg) - 1] = '\0';
             notes->add(XPE_ALERT_INFO, msg);
         }
+        fuse->raw = static_cast<const uint16_t*>(img->data);
+        fuse->level = level;
+        fuse->sOut = sOut;
+        return true;
+    }
+
+    /** QA-A-325: the second half of the saturation step (see prepare_saturation), after the gain stage applied the rule. */
+    void monitor_saturation(const CalibSnapshot& calib, const XpeImageBuffer* img, uint32_t level, SatNotes* notes)
+    {
         const uint16_t* raw = static_cast<const uint16_t*>(img->data);
-        float* const outF = static_cast<float*>(stage4->data);
-        xpe_parallel_chunks(pixelCount, size_t{1} << 20, [&](size_t b, size_t e) { xpe_sat_apply(outF + b, raw + b, e - b, level, sOut); });
 
         // Monitor (alert only, the level is never changed): every 16th row, known defect pixels left out.
         // A looser share above the pile than the calibration rule: a detector can carry a few rows of fixed 65535.
@@ -536,11 +548,15 @@ namespace {
 
             // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
             // This performs UINT16 → FLOAT32 domain transition
-            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, &frameGainDefects);
+            // QA-A-325 (Refs #278): the saturation rule rides in the gain stage (prepare_saturation); its monitor follows the stage.
+            XpeGainSatFuse satFuse;
+            const bool satFused = calib.gain_map && img->format == XPE_PIXEL_UINT16 &&
+                                  prepare_saturation(cfg, calib, img, &stage4, &satNotes, &satFuse);
+            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, &frameGainDefects, satFused ? &satFuse : nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
-            if (calib.gain_map && img->format == XPE_PIXEL_UINT16) apply_saturation(cfg, calib, img, &stage4, pixelCount, &satNotes);
+            if (satFused) monitor_saturation(calib, img, satFuse.level, &satNotes);
             release_buffer(stage1Data);   // stage 4 holds its own float frame; the uint16 frames are not read again
             release_buffer(stage2Data);
             release_buffer(stage3Data);

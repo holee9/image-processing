@@ -18,6 +18,7 @@
 #include <immintrin.h>
 #include <atomic>
 #include "parallel.hpp"
+#include "saturation.hpp"
 #if defined(_MSC_VER)
 #include <intrin.h>
 #endif
@@ -279,7 +280,8 @@ XpeErrorCode xpe_gain_correct_in(
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
     const XpeImageMetadata* metadata,
-    std::vector<uint32_t>*  frame_defects)
+    std::vector<uint32_t>*  frame_defects,
+    const XpeGainSatFuse*   sat)
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
@@ -534,6 +536,10 @@ XpeErrorCode xpe_gain_correct_in(
             for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
             if (descending) apply_gain_avx2_descending(src + start, reciprocal, dst + start, len);
             else apply_gain_avx2(src + start, reciprocal, dst + start, static_cast<uint32_t>(len), 1u);
+            // QA-A-325 (Refs #278): the saturation rule on the block just written, while it is in cache. The block's float pixels are
+            // final here (nothing later in this function writes them) and `sat->raw` is the caller's frame, which this function neither
+            // reads as input nor writes, so this is the separate whole-frame pass of the pipeline, element for element.
+            if (sat != nullptr) xpe_sat_apply(dst + start, sat->raw + start, len, sat->level, sat->sOut);
         };
         if (static_cast<const void*>(src) != static_cast<const void*>(dst)) {
             xpe_parallel_chunks(blocks, 16, [&](size_t b0, size_t b1) { for (size_t b = b0; b < b1; ++b) applyBlock(b, false); });
