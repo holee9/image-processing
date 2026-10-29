@@ -712,10 +712,21 @@ struct XpeGainSatFuse {
     uint32_t        level{0};
     float           sOut{0.0f};
 };
+/**
+ * QA-A-325 F325-1 (Refs #278): how the pipeline hands the saturation rule to the gain stage. `prepare` is the first half of the
+ * saturation step (the level, S_out -- the median of the gain plane -- and the notes). The gain stage calls it once, AFTER every
+ * check that can refuse the frame or the map has passed and before any pixel is written, so a refused frame is refused before
+ * that work, as when the whole step ran after the stage. It fills `*fuse` and returns true when the rule applies; it may throw
+ * std::bad_alloc (XPE_ERR_OUT_OF_MEMORY, nothing written).
+ */
+struct XpeGainSatHook {
+    bool (*prepare)(void* ctx, XpeGainSatFuse* fuse){nullptr};
+    void* ctx{nullptr};
+};
 XpeErrorCode xpe_gain_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                  XpeImageBuffer* output, const XpeImageMetadata* metadata,
                                  std::vector<uint32_t>* frame_defects = nullptr,
-                                 const XpeGainSatFuse* sat = nullptr);
+                                 const XpeGainSatHook* sat = nullptr);
 /**
  * QA-A-296 (Refs #278): how a version-1 defect map's long runs of masked pixels are corrected. A run of at least `minRun`
  * masked pixels along a row (or a column) is a line defect and is interpolated linearly across the line from the nearest

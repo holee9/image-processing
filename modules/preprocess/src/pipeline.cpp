@@ -178,7 +178,8 @@ namespace {
      * the caller's key, else the gain file's record, else there is none: then no handling, one alert (XPE_WARN_SATURATION_UNSET).
      * With a level: a pixel whose RAW value (the caller's frame) is >= level becomes S_out = level / median(gain), every other
      * pixel is limited to S_out. A frame whose pile-up sits at another value than the level raises an alert and changes nothing.
-     * QA-A-325 (Refs #278): split in two around the gain stage. This half runs BEFORE it: it settles the level and S_out and adds the
+     * QA-A-325 (Refs #278): split in two around the gain stage. This half runs before the stage writes a pixel (F325-1: called by the
+     * stage through XpeGainSatHook once its checks have passed, see prepare_saturation_hook): it settles the level and S_out and adds the
      * same notes in the same order, and when the rule applies it fills `*fuse` and returns true -- the gain stage then applies the rule
      * to each block it writes (XpeGainSatFuse), so the frame is not read and written a second time. monitor_saturation() is the
      * other half, run after a successful gain stage. Neither half writes a pixel; a gain stage that fails pushes none of the notes,
@@ -223,6 +224,28 @@ namespace {
         fuse->level = level;
         fuse->sOut = sOut;
         return true;
+    }
+
+    /**
+     * QA-A-325 F325-1 (Refs #278): prepare_saturation as the gain stage's hook (XpeGainSatHook). The stage calls it after every check
+     * that can refuse the frame, so a refused frame is refused before the median of the gain plane is formed -- the order of the
+     * step before QA-A-325, when it ran after the stage. `fused` / `level` tell the caller whether the rule was applied, and at which level.
+     */
+    struct SatPrep {
+        const PipelineConfig* cfg{nullptr};
+        const CalibSnapshot*  calib{nullptr};
+        const XpeImageBuffer* img{nullptr};
+        const XpeImageBuffer* stage4{nullptr};
+        SatNotes*             notes{nullptr};
+        bool                  fused{false};
+        uint32_t              level{0};
+    };
+    bool prepare_saturation_hook(void* ctx, XpeGainSatFuse* fuse)
+    {
+        auto* p = static_cast<SatPrep*>(ctx);
+        p->fused = prepare_saturation(*p->cfg, *p->calib, p->img, p->stage4, p->notes, fuse);
+        if (p->fused) p->level = fuse->level;
+        return p->fused;
     }
 
     /** QA-A-325: the second half of the saturation step (see prepare_saturation), after the gain stage applied the rule. */
@@ -549,14 +572,22 @@ namespace {
             // Use new 3-arg API: xpe_gain_correct(input, output, metadata)
             // This performs UINT16 → FLOAT32 domain transition
             // QA-A-325 (Refs #278): the saturation rule rides in the gain stage (prepare_saturation); its monitor follows the stage.
-            XpeGainSatFuse satFuse;
-            const bool satFused = calib.gain_map && img->format == XPE_PIXEL_UINT16 &&
-                                  prepare_saturation(cfg, calib, img, &stage4, &satNotes, &satFuse);
-            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, &frameGainDefects, satFused ? &satFuse : nullptr);
+            // F325-1: the stage prepares it through the hook, after its own checks, so a refused frame is refused first.
+            SatPrep satPrep;
+            satPrep.cfg = &cfg;
+            satPrep.calib = &calib;
+            satPrep.img = img;
+            satPrep.stage4 = &stage4;
+            satPrep.notes = &satNotes;
+            XpeGainSatHook satHook;
+            satHook.prepare = &prepare_saturation_hook;
+            satHook.ctx = &satPrep;
+            const bool satWanted = calib.gain_map && img->format == XPE_PIXEL_UINT16;
+            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, &frameGainDefects, satWanted ? &satHook : nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
-            if (satFused) monitor_saturation(calib, img, satFuse.level, &satNotes);
+            if (satPrep.fused) monitor_saturation(calib, img, satPrep.level, &satNotes);
             release_buffer(stage1Data);   // stage 4 holds its own float frame; the uint16 frames are not read again
             release_buffer(stage2Data);
             release_buffer(stage3Data);
