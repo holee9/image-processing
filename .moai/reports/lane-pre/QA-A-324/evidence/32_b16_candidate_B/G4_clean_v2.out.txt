@@ -1,0 +1,4 @@
+offset.xcal  5569bacf66fb25f10b9137ebf3f466e9ce8d94857c90dc4a7340df362c290c39
+gain.xcal    a7ddadbd5b69a350c44c638fd8887096ca4cb448eda322e5d8976575c7520d22
+defect.xcal  8fcd8734b76ec4ed47dde3186cdb288b7a67128fd9f3f6b6f7feb9958584abf5  (2337 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/qa-324-tmp/out_candB/clean_set_v2\manifest.json

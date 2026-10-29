@@ -1,0 +1,78 @@
+== frame 1
+  id    1 line/dead/row_full/1               part 0 L 3072  D: corrected -20.907 no_fix -9174.743 clean -1.588
+      item px in map & area: 3065 px sum/L +0.072 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 7 px sum/L -20.980 | neighbour line px in map: 29 (their D sum/L +0.072)
+  id    2 line/dead/col_full/1               part 0 L 3072  D: corrected -8.919 no_fix -9172.078 clean -0.238
+      item px in map & area: 3069 px sum/L +0.049 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 3 px sum/L -8.967 | neighbour line px in map: 26 (their D sum/L +0.049)
+  id   37 line/dead/cross/1                  part 0 L 3072  D: corrected -20.819 no_fix -9176.006 clean +0.281
+      item px in map & area: 3065 px sum/L +0.021 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 7 px sum/L -20.840 | neighbour line px in map: 27 (their D sum/L +0.021)
+  id   37 line/dead/cross/1                  part 1 L 3072  D: corrected -8.789 no_fix -9170.199 clean +1.865
+      item px in map & area: 3069 px sum/L +0.154 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 3 px sum/L -8.943 | neighbour line px in map: 30 (their D sum/L +0.154)
+  id  120 control/varying_band/row_full/20   part 0 L 3072  D: corrected +27.808 no_fix +27.976 clean +0.224
+      item px in map & area: 26 px sum/L +0.139 | item px NOT in map, in area: 3039 px sum/L +27.656 | outside area: 7 px sum/L +0.013 | neighbour line px in map: 27 (their D sum/L +0.135)
+  id  121 control/varying_band/col_full/20   part 0 L 3072  D: corrected -0.826 no_fix -0.596 clean -2.037
+      item px in map & area: 31 px sum/L +0.058 | item px NOT in map, in area: 3038 px sum/L -0.875 | outside area: 3 px sum/L -0.008 | neighbour line px in map: 36 (their D sum/L +0.030)
+  id  122 control/varying_band/row_full/8    part 0 L 3072  D: corrected -2.282 no_fix -2.094 clean -0.471
+      item px in map & area: 27 px sum/L -0.138 | item px NOT in map, in area: 3038 px sum/L -2.067 | outside area: 7 px sum/L -0.077 | neighbour line px in map: 28 (their D sum/L -0.134)
+  id  123 control/varying_band/col_full/8    part 0 L 3072  D: corrected +17.087 no_fix +17.392 clean -1.180
+      item px in map & area: 23 px sum/L +0.064 | item px NOT in map, in area: 3046 px sum/L +17.019 | outside area: 3 px sum/L +0.004 | neighbour line px in map: 21 (their D sum/L +0.089)
+  id   58 control/gain_loss/row_full/0.46    part 0 L 3072  D: corrected -0.555 no_fix -0.475 clean -0.447
+      item px in map & area: 40 px sum/L -0.150 | item px NOT in map, in area: 3025 px sum/L -0.372 | outside area: 7 px sum/L -0.033 | neighbour line px in map: 29 (their D sum/L -0.122)
+  id   63 control/gain_loss/col_pair/0.46    part 0 L 768  D: corrected -3.158 no_fix -3.261 clean -3.189
+      item px in map & area: 13 px sum/L -0.456 | item px NOT in map, in area: 755 px sum/L -2.702 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 6 (their D sum/L -0.023)
+  id   64 control/gain_loss/row_full/0.6     part 0 L 3072  D: corrected +2.760 no_fix +2.777 clean +2.997
+      item px in map & area: 37 px sum/L -0.009 | item px NOT in map, in area: 3028 px sum/L +2.715 | outside area: 7 px sum/L +0.054 | neighbour line px in map: 25 (their D sum/L -0.038)
+  id   66 control/gain_loss/row_partial/0.6  part 0 L 768  D: corrected +5.976 no_fix +5.931 clean +5.987
+      item px in map & area: 7 px sum/L +0.183 | item px NOT in map, in area: 761 px sum/L +5.793 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 4 (their D sum/L -0.011)
+  id  100 control/efficiency_loss/row_full/0.6 part 0 L 3072  D: corrected +0.354 no_fix +0.335 clean +0.397
+      item px in map & area: 53 px sum/L +0.020 | item px NOT in map, in area: 3012 px sum/L +0.420 | outside area: 7 px sum/L -0.086 | neighbour line px in map: 28 (their D sum/L +0.069)
+  id  103 control/efficiency_loss/col_partial/0.6 part 0 L 768  D: corrected -0.210 no_fix +0.237 clean -0.291
+      item px in map & area: 16 px sum/L -0.332 | item px NOT in map, in area: 752 px sum/L +0.122 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 6 (their D sum/L -0.167)
+  id  106 control/efficiency_loss/row_full/0.7 part 0 L 3072  D: corrected -4.541 no_fix -4.134 clean -2.839
+      item px in map & area: 38 px sum/L -0.093 | item px NOT in map, in area: 3027 px sum/L -4.391 | outside area: 7 px sum/L -0.057 | neighbour line px in map: 25 (their D sum/L -0.073)
+  id  239 control/dead/block8/0.5            part 0 L 8  D: corrected -0.133 no_fix -0.133 clean -0.132
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L -0.133 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)
+  id  246 control/dead/block8/0.5            part 0 L 8  D: corrected +34.744 no_fix +34.744 clean +35.099
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L +34.744 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)
+  id  248 control/dead/block8/0.5            part 0 L 8  D: corrected +30.240 no_fix +30.240 clean +30.570
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L +30.240 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)
+  id  250 control/dead/block8/0.5            part 0 L 8  D: corrected +23.906 no_fix +23.906 clean +24.108
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L +23.906 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)
+== frame 2
+  id    1 line/dead/row_full/1               part 0 L 3072  D: corrected -20.752 no_fix -9163.553 clean -0.891
+      item px in map & area: 3065 px sum/L +0.124 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 7 px sum/L -20.876 | neighbour line px in map: 29 (their D sum/L +0.124)
+  id    2 line/dead/col_full/1               part 0 L 3072  D: corrected -8.878 no_fix -9160.613 clean +0.948
+      item px in map & area: 3069 px sum/L +0.079 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 3 px sum/L -8.957 | neighbour line px in map: 26 (their D sum/L +0.079)
+  id   37 line/dead/cross/1                  part 0 L 3072  D: corrected -20.744 no_fix -9164.036 clean -1.895
+      item px in map & area: 3065 px sum/L +0.083 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 7 px sum/L -20.827 | neighbour line px in map: 27 (their D sum/L +0.083)
+  id   37 line/dead/cross/1                  part 1 L 3072  D: corrected -8.836 no_fix -9159.522 clean +0.985
+      item px in map & area: 3069 px sum/L +0.117 | item px NOT in map, in area: 0 px sum/L +0.000 | outside area: 3 px sum/L -8.953 | neighbour line px in map: 30 (their D sum/L +0.117)
+  id  120 control/varying_band/row_full/20   part 0 L 3072  D: corrected +3.862 no_fix +4.015 clean -0.066
+      item px in map & area: 26 px sum/L +0.019 | item px NOT in map, in area: 3039 px sum/L +3.860 | outside area: 7 px sum/L -0.018 | neighbour line px in map: 27 (their D sum/L +0.029)
+  id  121 control/varying_band/col_full/20   part 0 L 3072  D: corrected -22.758 no_fix -22.756 clean +0.094
+      item px in map & area: 31 px sum/L -0.357 | item px NOT in map, in area: 3038 px sum/L -22.420 | outside area: 3 px sum/L +0.020 | neighbour line px in map: 36 (their D sum/L -0.318)
+  id  122 control/varying_band/row_full/8    part 0 L 3072  D: corrected +2.898 no_fix +2.854 clean +0.588
+      item px in map & area: 27 px sum/L -0.072 | item px NOT in map, in area: 3038 px sum/L +2.944 | outside area: 7 px sum/L +0.025 | neighbour line px in map: 28 (their D sum/L -0.090)
+  id  123 control/varying_band/col_full/8    part 0 L 3072  D: corrected +5.780 no_fix +5.913 clean +0.518
+      item px in map & area: 23 px sum/L -0.001 | item px NOT in map, in area: 3046 px sum/L +5.792 | outside area: 3 px sum/L -0.011 | neighbour line px in map: 21 (their D sum/L -0.041)
+  id   58 control/gain_loss/row_full/0.46    part 0 L 3072  D: corrected -4.343 no_fix -4.302 clean -4.277
+      item px in map & area: 40 px sum/L -0.149 | item px NOT in map, in area: 3025 px sum/L -4.193 | outside area: 7 px sum/L -0.001 | neighbour line px in map: 29 (their D sum/L -0.144)
+  id   63 control/gain_loss/col_pair/0.46    part 0 L 768  D: corrected -4.225 no_fix -4.222 clean -4.329
+      item px in map & area: 13 px sum/L +0.025 | item px NOT in map, in area: 755 px sum/L -4.249 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 6 (their D sum/L +0.046)
+  id   64 control/gain_loss/row_full/0.6     part 0 L 3072  D: corrected +2.336 no_fix +2.324 clean +2.286
+      item px in map & area: 37 px sum/L +0.018 | item px NOT in map, in area: 3028 px sum/L +2.278 | outside area: 7 px sum/L +0.040 | neighbour line px in map: 25 (their D sum/L +0.027)
+  id   66 control/gain_loss/row_partial/0.6  part 0 L 768  D: corrected +2.019 no_fix +2.074 clean +1.881
+      item px in map & area: 7 px sum/L +0.118 | item px NOT in map, in area: 761 px sum/L +1.902 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 4 (their D sum/L +0.006)
+  id  100 control/efficiency_loss/row_full/0.6 part 0 L 3072  D: corrected -4.525 no_fix -4.420 clean -3.895
+      item px in map & area: 53 px sum/L -0.099 | item px NOT in map, in area: 3012 px sum/L -4.593 | outside area: 7 px sum/L +0.168 | neighbour line px in map: 28 (their D sum/L -0.202)
+  id  103 control/efficiency_loss/col_partial/0.6 part 0 L 768  D: corrected -5.855 no_fix -4.884 clean -2.827
+      item px in map & area: 16 px sum/L -0.163 | item px NOT in map, in area: 752 px sum/L -5.692 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 6 (their D sum/L -0.042)
+  id  106 control/efficiency_loss/row_full/0.7 part 0 L 3072  D: corrected +0.384 no_fix +0.539 clean +0.538
+      item px in map & area: 38 px sum/L -0.094 | item px NOT in map, in area: 3027 px sum/L +0.506 | outside area: 7 px sum/L -0.028 | neighbour line px in map: 25 (their D sum/L -0.056)
+  id  239 control/dead/block8/0.5            part 0 L 8  D: corrected +23.912 no_fix +23.912 clean +24.143
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L +23.912 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)
+  id  246 control/dead/block8/0.5            part 0 L 8  D: corrected -14.956 no_fix -14.956 clean -15.170
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L -14.956 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)
+  id  248 control/dead/block8/0.5            part 0 L 8  D: corrected +48.412 no_fix +48.412 clean +48.858
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L +48.412 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)
+  id  250 control/dead/block8/0.5            part 0 L 8  D: corrected +25.036 no_fix +25.036 clean +25.277
+      item px in map & area: 0 px sum/L +0.000 | item px NOT in map, in area: 8 px sum/L +25.036 | outside area: 0 px sum/L +0.000 | neighbour line px in map: 0 (their D sum/L +0.000)

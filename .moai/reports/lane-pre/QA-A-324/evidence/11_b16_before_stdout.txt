@@ -1,0 +1,11 @@
+G2_planted_v2 exit 0 seconds 132
+G4_clean_v2 exit 0 seconds 118
+X1_area_planted_v2 exit 0 seconds 1
+X3_clean_v2_map exit 0 seconds 0
+H3_v2_half_a exit 0 seconds 66
+H4_v2_half_b exit 0 seconds 67
+H5_v2_lines_a exit 0 seconds 29
+H6_v2_lines_b exit 0 seconds 29
+S2_score_v2 exit 0 seconds 0
+C2_correct_v2 exit 0 seconds 3
+done

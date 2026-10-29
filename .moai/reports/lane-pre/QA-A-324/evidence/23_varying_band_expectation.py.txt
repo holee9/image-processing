@@ -1,0 +1,22 @@
+"""QA-A-324: expected number of varying-band line parts with |D_n/sigma| > 3 in an evaluation frame, whatever the correction does.
+The injection adds to every pixel of a varying band, in every frame, one common value level * N(0,1) drawn per frame (xpe_bpm_eval.cpp:682-684, 704-705).
+The offset and gain maps cannot remove a value that changes from frame to frame; no PRE stage removes a per-frame line offset (the pipeline stages are
+offset, gain, defect; kCfgFinal bypasses temperature, nonlinearity, binning only, xpe_bpm_eval.cpp:2343). The corrected D of these parts equals the
+no-fix D (22_dn_dump_out.txt: 27.81 vs 27.98, 17.09 vs 17.39, ...) and the clean D is near 0, so D is the drawn value. sigma_pred is read from the
+tool's own ratio: sigma = D_corrected / ratio_corrected (both from the dump and the json). P(|level*N| > 3 sigma) = 2 * (1 - Phi(3 sigma / level)).
+Usage: python -I 23_varying_band_expectation.py.txt <45_correct_v2.json.txt>"""
+import json, math, sys
+d = json.load(open(sys.argv[1], encoding='utf-8'))
+# D_corrected per (frame, id) from 22_dn_dump_out.txt (row/column mean differences of the dumped corrected image)
+Dc = {(0, 120): 27.808, (0, 121): -0.826, (0, 122): -2.282, (0, 123): 17.087, (1, 120): 3.862, (1, 121): -22.758, (1, 122): 2.898, (1, 123): 5.780}
+level = {120: 20.0, 121: 20.0, 122: 8.0, 123: 8.0}
+Phi = lambda z: 0.5 * (1 + math.erf(z / math.sqrt(2)))
+for f in (0, 1):
+    tot = 0.0
+    for x in d['frames'][f]['line_index']:
+        if x['id'] in level:
+            s = Dc[(f, x['id'])] / x['ratio_corrected']
+            p = 2 * (1 - Phi(3 * s / level[x['id']]))
+            tot += p
+            print('frame %d id %d level %.0f sigma_pred %.3f  ratio %.2f  P(|ratio|>3) %.3f' % (f + 1, x['id'], level[x['id']], s, x['ratio_corrected'], p))
+    print('frame %d expected varying-band parts over 3 sigma: %.2f' % (f + 1, tot))
