@@ -1,0 +1,2 @@
+bash 01_ab.sh.txt 4 "H=D:/workspace-github/xpe-data/qa-325-f1-tmp/binH F=D:/workspace-github/xpe-data/qa-325-f1-tmp/binF" 'sat_on_interp_off=,"saturationLevel":12800' s6_gad_pre
+(second batch, same command) bash 01_ab.sh.txt 4 "H=D:/workspace-github/xpe-data/qa-325-f1-tmp/binH F=D:/workspace-github/xpe-data/qa-325-f1-tmp/binF" 'sat_on_interp_off=,"saturationLevel":12800' s6_gad_pre
