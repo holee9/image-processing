@@ -27,3 +27,17 @@ xpe_sat_apply 를 프레임 전체 별도 패스 대신 이득 단계가 쓴 819
 ## 리더 판정 (2026-10-29 16:24)
 - diff 직접 확인: pipeline.cpp:553-559 — 포화 적용 위치만 이득 단계 안으로 옮겼고, 이득 실패 시 반환(:556) 뒤 monitor 를 부르지 않는 순서가 전과 같다. raw = img->data(:222)이고 넓힘 버퍼는 별도 할당 work.get()(:450)이라 겹치지 않는다. 인덱스 61 유지.
 - 판정: 수용. KR6 은 출하 근접 설정에서 세 세트 모두 15 ms 이하 달성, 단 s6 여유가 작다는 점을 함께 공개한다. push 후 CI 와 Reviewer 검토, main 병합.
+
+## F325-1 보완 (Reviewer 16:25 P2) — [2026-10-29 18:21 KST] 리더 기록
+
+- 결함: a793ff24 에서 prepare_saturation(이득 평면 중앙값, 할당+전체 읽기)이 xpe_gain_correct_in 의 거부 검사보다 앞섰다.
+- 수정 6ce56a2d: xpe_gain_correct_in 이 XpeGainSatHook 을 받아 마지막 거부 검사(gain_correct.cpp:519) 뒤, 화소 쓰기 전(:525)에 한 번 호출. 감시는 규칙이 적용된 경우에만(pipeline.cpp:590).
+- 재현 시험 OomPipeline.AFrameTheGainStageRefusesIsRefusedBeforeTheSaturationStepAllocates: 수정 전 할당 off 21 / on 22 실패(f1_10), 수정 후 통과(f1_11). 대조군 2개(맵 없음 = 같음, 정상 프레임 = on 이 많음).
+- 시험: 216 실행 213 PASS 3 SKIP(SaturationRealData), oom 100/100, ParallelUnwind 1/1. 출력 sha256 18/18 동일(f1_21), B16 json 2개 바이트 동일.
+- s6 교대 8라운드: 수정 중앙값 14.933 ms, 같은 날 HEAD 재빌드 14.843 ms, 짝 차이 중앙값 +0.033 ms(양수 4/8) — 회귀 없음. 두 변형 모두 일부 라운드 15 ms 초과(오늘 기계 상태에서 HEAD 도 14.84 ms).
+- 증거 2135a9a6 (f1_*). 임시 폴더 xpe-data/qa-325-f1-tmp, 스크래치 fixsrc 삭제.
+
+### 리더 확인
+- git show 6ce56a2d 로 diff 직접 읽음. 훅 호출 위치(:525) 뒤에 남은 반환은 catch 의 OUT_OF_MEMORY 뿐이며 훅의 bad_alloc 도 같은 경로. 훅을 넘기는 조건(gain_map && UINT16)은 수정 전 satFused 조건과 같고 알림 순서도 같다.
+- 판정: 받아들인다. push 후 CI 와 Reviewer 재검토를 거쳐 main 병합.
+- 주의: KR6 는 "지정 조건 측정 실적"이며 오늘 측정에서 HEAD 도 중앙값 14.84 ms, 일부 라운드 15 ms 초과 — 여유가 작다는 기존 공개 사항을 유지한다.
