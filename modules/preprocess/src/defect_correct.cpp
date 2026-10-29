@@ -353,7 +353,9 @@ struct FillDistance {
         // h is needed at the masked pixels only (a valid pixel's is 0, and the pass below tests the mask instead of reading it). The masked
         // pixels of a row are a stretch of `masked` (ascending); each run [a, b] of consecutive ones has its nearest valid pixels at a - 1 and
         // b + 1 (when inside the row), so h(x) = min(x - a + 1, b + 1 - x), capped at kFar -- the two passes along the row compute the same.
-        const std::unique_ptr<uint8_t[]> h(new uint8_t[n]);
+        // At least one byte, as denseDist below: the only caller has already refused a zero width or height (n > 0 there), so the
+        // table is the same; the analyzer cannot see that check and flagged writes into a zero-sized allocation (QA-A-321).
+        const std::unique_ptr<uint8_t[]> h(new uint8_t[std::max<size_t>(1, n)]);
         uint8_t* const hw = h.get();
         xpe_parallel_chunks(height, 64, [&](size_t y0, size_t y1) {
             const uint32_t* q = std::lower_bound(masked, masked + maskedCount, static_cast<uint32_t>(y0 * width));
