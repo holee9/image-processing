@@ -1,0 +1,4 @@
+bright03_09: n 7483742 | eng==floor 96.304% | ==rint 46.741% | ==ceil 0.247% | max|eng-v| 1.064 | mean(eng-v) -0.5329
+bright03_13: n 7483742 | eng==floor 92.123% | ==rint 42.288% | ==ceil 0.247% | max|eng-v| 1.163 | mean(eng-v) -0.5776
+bright03_15: n 7483742 | eng==floor 81.552% | ==rint 31.772% | ==ceil 0.248% | max|eng-v| 1.365 | mean(eng-v) -0.6825
+images/Bright03_13.raw__OC__.raw.cal.raw: ==floor 5.287% ==rint 4.977% max|cal-v| 37.381

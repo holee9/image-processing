@@ -1,0 +1,62 @@
+# QA-A-323 KR3 part 2: per-pixel physical quantities of engine_only point pixels vs PRE thresholds. argv: tmp folder
+import sys, numpy as np
+T = sys.argv[1]
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+I = B + "/images"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92
+u16 = lambda p: np.fromfile(p, dtype="<u2").reshape(H, W).astype(np.float64)
+s16 = lambda p: np.fromfile(p, dtype="<i2").reshape(H, W).astype(np.float64)
+MD = u16(I + "/MasterDark.raw"); MB = s16(I + "/MasterBright.raw")
+dk = np.stack([u16(f"{I}/dark03_{i:02d}.raw") for i in range(1, 10)])          # PRE uses 01..09 (first skipped)
+dstd = dk.std(axis=0, ddof=1); dmean = dk.mean(axis=0)
+br = np.stack([u16(f"{I}/Bright02_{i:02d}.raw") for i in range(10)]) - MD
+bstd = br.std(axis=0, ddof=1); bmean = br.mean(axis=0)
+del dk, br
+# column profile near the left cut edge
+print("column means inside cut rows (2..2467):  col MasterDark MasterBright(OC) bright_ratio_to_cols_25_40")
+ref = MB[TP:H - BT, 25:41].mean()
+for c in range(10, 26):
+    print(f"  col {c}: {MD[TP:H-BT, c].mean():.2f} {MB[TP:H-BT, c].mean():.2f} {MB[TP:H-BT, c].mean()/ref:.4f}")
+def local(img, ys, xs, r=8):
+    # median of a (2r+1)^2 window excluding the centre, clipped to the cut area
+    out = np.empty(len(ys))
+    for k, (y, x) in enumerate(zip(ys, xs)):
+        y0, y1 = max(TP, y - r), min(H - BT, y + r + 1); x0, x1 = max(L, x - r), min(W - R, x + r + 1)
+        w = img[y0:y1, x0:x1].ravel().copy(); w = np.delete(w, (y - y0) * (x1 - x0) + (x - x0))
+        out[k] = np.median(w)
+    return out
+def describe(tag, pts):
+    ys, xs = pts[:, 0], pts[:, 1]
+    rb = MB[ys, xs] / local(MB, ys, xs)
+    dd = dmean[ys, xs] - local(dmean, ys, xs)
+    dn = (dstd[ys, xs] / local(dstd, ys, xs)) ** 2
+    bn = ((bstd[ys, xs] / np.maximum(bmean[ys, xs], 1)) / local(bstd / np.maximum(bmean, 1), ys, xs)) ** 2
+    q = lambda v: " ".join(f"{np.percentile(v, p):.4f}" for p in (0, 5, 25, 50, 75, 95, 100))
+    print(f"\n[{tag}] n={len(ys)}  (percentiles 0 5 25 50 75 95 100)")
+    print("  bright response ratio MB/local17 :", q(rb))
+    print("  dark mean minus local17 (DN)     :", q(dd))
+    print("  dark variance ratio vs local     :", q(dn))
+    print("  bright gain-corr variance ratio  :", q(bn))
+    print("  count resp<0.45 or >1.5:", int(((rb < 0.45) | (rb > 1.5)).sum()), "| resp outside 0.9..1.1:", int(((rb < 0.9) | (rb > 1.1)).sum()),
+          "| resp outside 0.95..1.05:", int(((rb < 0.95) | (rb > 1.05)).sum()), "| |dark dev|>5:", int((np.abs(dd) > 5).sum()),
+          "| dark var ratio>2:", int((dn > 2).sum()), "| bright var ratio>2:", int((bn > 2).sum()))
+    return rb, dd, dn, bn
+rng = np.random.default_rng(323)
+eo = np.load(T + "/eo_pts.npy"); po = np.load(T + "/preonly_pts.npy")
+eng = np.fromfile(B + "/corrected/TOTAL_BPM.raw", dtype="<u2").reshape(H, W) != 0
+pre = np.fromfile(T + "/v_c.map.u8", dtype="u1").reshape(H, W) != 0
+ys = rng.integers(TP + 10, H - BT - 10, 4000); xs = rng.integers(L + 30, W - R - 10, 4000)
+keep = ~eng[ys, xs] & ~pre[ys, xs]; ctl = np.stack([ys[keep], xs[keep]], 1)[:2000]
+describe("control: random pixels neither map flags", ctl)
+rb, dd, dn, bn = describe("engine_only point pixels (outside cols 15-19)", eo)
+describe("PRE_only pixels", po)
+# examples: 6 representative engine-only points
+print("\nexamples engine_only (y x resp darkdev darkVarRatio brightVarRatio with without):")
+wf = np.fromfile(B + "/corrected/BPM_with_Filter.raw", dtype="<u2").reshape(H, W) != 0
+wo = np.fromfile(B + "/corrected/BPM_without_Filter.raw", dtype="<u2").reshape(H, W) != 0
+order = np.argsort(np.abs(rb - 1))
+for k in list(order[:3]) + list(order[len(order)//2:len(order)//2+2]) + list(order[-3:]):
+    y, x = eo[k]
+    print(f"  {y} {x} {rb[k]:.4f} {dd[k]:.2f} {dn[k]:.2f} {bn[k]:.2f} {int(wf[y,x])} {int(wo[y,x])}")
+print("engine_only point split with/without:", "with&without", int((wf[eo[:,0],eo[:,1]] & wo[eo[:,0],eo[:,1]]).sum()),
+      "with_only", int((wf[eo[:,0],eo[:,1]] & ~wo[eo[:,0],eo[:,1]]).sum()), "without_only", int((~wf[eo[:,0],eo[:,1]] & wo[eo[:,0],eo[:,1]]).sum()))

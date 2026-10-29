@@ -1,0 +1,6 @@
+line mask pixels 12554 | in cols 15-19 12330 | col 1534 103 engine there 0 | col 2555 121 engine there 0
+PRE map (V-c): PRE 7010 both 6935 PRE_only 75 engine_only 5963 coverage 0.5377
+PRE map | line mask (V-c): PRE 12620 both 12338 PRE_only 282 engine_only 560 coverage 0.9566
+PRE map margins 20 (V-c'): PRE 83 both 8 PRE_only 75 engine_only 12890 coverage 0.0006
+V-c' map | V-c cols 15-19 line mask: PRE 12413 both 12338 PRE_only 75 engine_only 560 coverage 0.9566
+V-c' (margin 20) outside cols>=20 vs V-c same region: identical flags in cols>=20: True | differing 0

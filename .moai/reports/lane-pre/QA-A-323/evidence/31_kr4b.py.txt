@@ -1,0 +1,25 @@
+# QA-A-323 KR4 part 2: search for a statistic of MasterBright equal to the engine constant (3424 = MasterBright.raw.cal.raw value on good pixels)
+import numpy as np
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"; I = B + "/images"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92
+MB = np.fromfile(I + "/MasterBright.raw", dtype="<i2").reshape(H, W).astype(np.float64)
+cal = np.fromfile(I + "/MasterBright.raw.cal.raw", dtype="<u2").reshape(H, W).astype(np.float64)
+eng = np.fromfile(B + "/corrected/TOTAL_BPM.raw", dtype="<u2").reshape(H, W) != 0
+TARGET = 3424.0
+print("MasterBright.raw.cal.raw: unique values on cut-area good pixels:", dict(zip(*[a.tolist() for a in np.unique(cal[TP:H-BT, L:W-R][~eng[TP:H-BT, L:W-R]], return_counts=True)])))
+print("  values outside the cut (top 5):", sorted(zip(*[a.tolist() for a in np.unique(cal[~np.pad(np.ones((H-TP-BT, W-L-R), bool), ((TP, BT), (L, R)))], return_counts=True)]), key=lambda t: -t[1])[:5])
+res = []
+cy, cx = H // 2, W // 2
+for s in range(32, 2401, 16):
+    v = MB[cy - s // 2:cy + s // 2, cx - s // 2:cx + s // 2].mean(); res.append((abs(v - TARGET), f"centre square {s}", v))
+for frac in np.arange(0.0, 0.46, 0.01):   # inner fraction of the full frame
+    y0, x0 = int(H * frac), int(W * frac); v = MB[y0:H - y0, x0:W - x0].mean(); res.append((abs(v - TARGET), f"full frame minus {frac:.2f} each side", v))
+for bs in (128, 256, 512, 1024):
+    bm = np.array([[MB[y:y + bs, x:x + bs].mean() for x in range(0, W, bs)] for y in range(0, H, bs)])
+    for nm, v in (("max", bm.max()), ("median", np.median(bm)), ("mean", bm.mean()), ("p90", np.percentile(bm, 90))):
+        res.append((abs(v - TARGET), f"{bs}-block means {nm}", v))
+for q in range(50, 100): res.append((abs(np.percentile(MB[TP:H-BT, L:W-R], q) - TARGET), f"cut-area percentile {q}", np.percentile(MB[TP:H-BT, L:W-R], q)))
+res.append((abs(MB.max() / 2 - TARGET), "max/2 full", MB.max() / 2))
+res.sort()
+print("closest 15 candidates to 3424 (|diff|, name, value):")
+for d, n, v in res[:15]: print(f"  {d:.3f} | {n} | {v:.3f}")

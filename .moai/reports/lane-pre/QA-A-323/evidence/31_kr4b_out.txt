@@ -1,0 +1,18 @@
+MasterBright.raw.cal.raw: unique values on cut-area good pixels: {3424.0: 7483742}
+  values outside the cut (top 5): [(0.0, 367680)]
+closest 15 candidates to 3424 (|diff|, name, value):
+  0.000 | cut-area percentile 86 | 3424.000
+  0.499 | centre square 1264 | 3423.501
+  0.623 | centre square 1248 | 3424.623
+  1.167 | full frame minus 0.27 each side | 3422.833
+  1.622 | centre square 1280 | 3422.378
+  1.679 | centre square 1232 | 3425.679
+  2.733 | centre square 1216 | 3426.733
+  2.763 | centre square 1296 | 3421.237
+  2.771 | full frame minus 0.28 each side | 3426.771
+  3.765 | centre square 1200 | 3427.765
+  3.894 | centre square 1312 | 3420.106
+  4.000 | cut-area percentile 85 | 3420.000
+  4.000 | cut-area percentile 87 | 3428.000
+  4.757 | centre square 1184 | 3428.757
+  5.057 | centre square 1328 | 3418.943

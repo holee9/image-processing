@@ -1,0 +1,63 @@
+# QA-A-323 KR4: where does engine/PRE ~1.0891 come from? argv: tmp folder
+import sys, numpy as np
+T = sys.argv[1]
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+I, C = B + "/images", B + "/corrected"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92; CW, CH = W - L - R, H - TP - BT
+u16 = lambda p: np.fromfile(p, dtype="<u2").reshape(H, W).astype(np.float64)
+s16 = lambda p: np.fromfile(p, dtype="<i2").reshape(H, W).astype(np.float64)
+MB = s16(I + "/MasterBright.raw"); MD = u16(I + "/MasterDark.raw")
+eng = u16(C + "/TOTAL_BPM.raw") != 0
+area = np.zeros((H, W), bool); area[TP:H - BT, L:W - R] = True
+good_c = (~eng)[TP:H - BT, L:W - R]
+# --- PRE normalisation actually used: read the gain xcal is not needed, recompute the generator's mean (xpe_calib_generate_gain.cpp:292-315)
+acc = np.zeros((H, W))
+for i in range(10): acc += np.maximum(u16(f"{I}/Bright02_{i:02d}.raw") - MD, 0)
+graw = (acc / 10).astype(np.float32).astype(np.float64)
+mean_p = graw.mean()
+print(f"PRE gain_raw full-frame mean (normaliser, xpe_calib_generate_gain.cpp:315) = {mean_p:.4f}")
+# --- engine normaliser per pixel: K = OcGc * MB / OC  (if engine OcGc = OC * K / MB)
+for i in (9, 13, 15):
+    e = np.fromfile(f"{C}/Bright03_{i:02d}_OcGc.raw", dtype="<u2").reshape(CH, CW).astype(np.float64)
+    oc = s16(f"{I}/Bright03_{i:02d}__OC__.raw")[TP:H - BT, L:W - R] if False else s16(f"{I}/bright03_{i:02d}.raw__OC__.raw")[TP:H - BT, L:W - R]
+    mb = MB[TP:H - BT, L:W - R]
+    sel = good_c & (oc > 200) & (mb > 1000)
+    K = e[sel] * mb[sel] / oc[sel]
+    pre = np.fromfile(f"{T}/corr/bright03_{i:02d}.raw.ocgc.f32", dtype="<f4").reshape(H, W).astype(np.float64)[TP:H - BT, L:W - R] if i in (9, 15) else None
+    msg = ""
+    if pre is not None:
+        r = e[sel] / pre[sel]; msg = f" | eng/PRE median {np.median(r):.5f} (current HEAD PRE output)"
+        Kp = pre[sel] * graw[TP:H - BT, L:W - R][sel] / oc[sel]
+        msg += f" | PRE K = PREout*gain_raw/OC median {np.median(Kp):.4f}"
+    print(f"bright03_{i:02d}: engine K = OcGc*MB/OC: median {np.median(K):.4f} p1 {np.percentile(K,1):.4f} p99 {np.percentile(K,99):.4f} n {int(sel.sum())}{msg}")
+print()
+K15 = None
+e = np.fromfile(f"{C}/Bright03_15_OcGc.raw", dtype="<u2").reshape(CH, CW).astype(np.float64)
+oc = s16(f"{I}/bright03_15.raw__OC__.raw")[TP:H - BT, L:W - R]; mb = MB[TP:H - BT, L:W - R]
+sel = good_c & (oc > 200) & (mb > 1000); Ke = float(np.median(e[sel] * mb[sel] / oc[sel]))
+print(f"engine K (bright03_15) = {Ke:.4f};  K / mean_p = {Ke / mean_p:.5f}")
+# --- candidate statistics of MasterBright / BrightAvg / PRE gain_raw
+cands = {}
+def add(nm, v): cands[nm] = float(v)
+for src, img in (("MasterBright", MB), ("PRE gain_raw", graw), ("BrightAvg(int16)", s16(I + "/BrightAvg.raw"))):
+    add(f"{src} mean full frame", img.mean())
+    add(f"{src} mean cut area", img[area].mean())
+    add(f"{src} mean cut area, engine-good", img[area & ~eng].mean())
+    add(f"{src} median full frame", np.median(img))
+    add(f"{src} median cut area", np.median(img[area]))
+    add(f"{src} mean cut area excl. cols 15-19", img[TP:H - BT, 20:W - R].mean())
+    cy, cx = H // 2, W // 2
+    for half in (64, 128, 256, 512):
+        add(f"{src} mean centre {2*half}x{2*half}", img[cy - half:cy + half, cx - half:cx + half].mean())
+    cyc, cxc = TP + CH // 2, L + CW // 2
+    add(f"{src} mean centre-of-cut 512x512", img[cyc - 256:cyc + 256, cxc - 256:cxc + 256].mean())
+    add(f"{src} max cut area", img[area].max())
+    add(f"{src} p99 cut area", np.percentile(img[area], 99))
+print("\ncandidate | value | value/mean_p | |value - engineK|/engineK")
+for nm, v in cands.items():
+    print(f"  {nm} | {v:.4f} | {v / mean_p:.5f} | {abs(v - Ke) / Ke:.5f}")
+# engine-calibrated MasterBright if present
+for nm in ("MasterBright.raw.cal.raw", "full_input.cal.raw"):
+    v = u16(f"{I}/{nm}")
+    print(f"\n{nm}: shape full; mean full {v.mean():.4f} mean cut {v[area].mean():.4f} median cut {np.median(v[area]):.4f} | cut-area good pixels p1/p50/p99",
+          [round(float(np.percentile(v[area & ~eng], q)), 3) for q in (1, 50, 99)])
