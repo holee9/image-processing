@@ -1029,7 +1029,7 @@ public sealed class MainWindowViewModel : ObservableObject
             var preprocess = rendered.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
             return preprocess?.Status switch
             {
-                StageStatus.Applied or StageStatus.AppliedNoChange => $"{GuiPreprocessRunner.ExecutedStages.Length} stages ({string.Join(" · ", GuiPreprocessRunner.ExecutedStages)})",
+                StageStatus.Applied or StageStatus.AppliedNoChange => $"{CalibrationStageSelection.ExecutedFromReason(preprocess.Reason).Length} native stages ({string.Join(" · ", CalibrationStageSelection.ExecutedFromReason(preprocess.Reason))})",
                 StageStatus.RequestedNotApplied => "failed",
                 StageStatus.Skipped => $"not run ({ShortReasonOf(preprocess.Reason)})",
                 _ => "not run",
@@ -1513,7 +1513,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
             if (!string.IsNullOrWhiteSpace(RuntimeInfo.Version))
             {
-                parts.Add($"common={RuntimeInfo.Version}");
+                parts.Add($"common={RuntimeInfo.CommonVersion}");
             }
 
             if (!string.IsNullOrWhiteSpace(RuntimeInfo.DisplayVersion))
@@ -2560,7 +2560,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         try
         {
-            var directory = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+            var directory = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
             Directory.CreateDirectory(directory);
             var path = Path.Combine(directory, "runtime-log.txt");
 
@@ -2592,10 +2592,10 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void ExportAutomationReport()
     {
-        var reportPath = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
         var report = new
         {
             generatedAt = DateTimeOffset.Now,
+            provenance = NativeRuntimeEvidence.Capture(),
             backend = RuntimeInfo,
             // #175 HAZ-GUI-005 (3): what actually produced the results, not what was asked for.
             actualBackendMode = ActualBackendMode,
@@ -2642,7 +2642,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 // GUI-C-233k: the modes and the summary below are what was CONFIGURED for the render. What actually ran is `executed` (the preprocess stage runs offset, gain and defect; the other four
                 // modes are not connected to that call), and it is what the HUD's "Calib:" line shows.
                 // GUI-C-234b: `reason` is the preprocess stage's own reason (why it was skipped or failed, or its summary when it ran); null with no render.
-                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages =RenderedPreprocessStatus is StageStatus.Applied or StageStatus.AppliedNoChange ? GuiPreprocessRunner.ExecutedStages : Array.Empty<string>() },
+                executed = new { preprocess = RenderedPreprocessStatus?.ToString(), reason = _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason, hud = CalibStageCountDisplay, stages = CalibrationStageSelection.ExecutedFromReason(_render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Reason) },
                 // GUI-C-233e: the summary of what the displayed render USED, like the seven modes beside it (null while nothing was rendered for this frame); the one for what is asked for now is requested.summary
                 summary = RenderedInputs is null ? null : FormatCalibrationModes(RenderedInputs),
                 // GUI-C-233d: the modes the displayed render used (null before it); the modes asked for now are in `requested`
@@ -2682,10 +2682,32 @@ public sealed class MainWindowViewModel : ObservableObject
             alertCount = Alerts.Count
         };
 
-        File.WriteAllText(reportPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
-        StatusText = $"Automation report exported: {reportPath}";
+        // QA-A-274 7-1 (c): one report, two outputs from the same bytes - the unique snapshot (evidence of record) and the fixed menu-command-report.json beside the executable that older consumers read.
+        var exportId = Guid.NewGuid().ToString("N");
+        var published = EvidenceSnapshotStore.Publish(GuiDataPaths.Root, AppContext.BaseDirectory, report, RunSet.RunId ?? string.Empty);
+        LastEvidenceExport = new EvidenceExportResult(exportId, published.SnapshotPath, published.SnapshotError?.Message, published.AliasPath, published.AliasError?.Message);
+        if (published.SnapshotPath is null)
+        {
+            StatusText = $"Evidence snapshot was not exported: {published.SnapshotError!.Message}. Existing evidence was not replaced; the fixed report {published.AliasPath} was not touched.";
+        }
+        else
+        {
+            LastEvidenceSnapshotPath = published.SnapshotPath;
+            StatusText = published.AliasError is null
+                ? $"Automation report exported: {published.SnapshotPath} (fixed copy: {published.AliasPath})"
+                : $"Automation report exported: {published.SnapshotPath}. The fixed copy {published.AliasPath} was NOT updated and may still name an older run: {published.AliasError.Message}";
+        }
         Log(StatusText);
     }
+
+    /// <summary>
+    /// The snapshot written by the last export whose snapshot was fully written; never the fixed menu-command-report.json. It is set even when only the fixed copy failed (the snapshot is the
+    /// evidence of record) and is KEPT when a later snapshot fails, so it must not be used to decide whether the export just run succeeded: use <see cref="LastEvidenceExport"/> for that.
+    /// </summary>
+    public string? LastEvidenceSnapshotPath { get; private set; }
+
+    /// <summary>The outcome of the most recent export attempt, successful or not, with an identifier unique to that attempt (null before the first one).</summary>
+    public EvidenceExportResult? LastEvidenceExport { get; private set; }
 
     private void BrowseCalibrationDirectory(CalibrationPathKind kind)
     {
@@ -3071,7 +3093,7 @@ public sealed class MainWindowViewModel : ObservableObject
         {
             var inputs = Settings.Snapshot();
             var runId = string.IsNullOrWhiteSpace(RunSet.RunId) ? "adhoc-" + DateTimeOffset.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture) : RunSet.RunId;
-            var folder = Path.Combine(AppContext.BaseDirectory, "evidence", runId, $"baseline-{++_baselineRunCount}");
+            var folder = Path.Combine(GuiDataPaths.Root, "evidence", runId, $"baseline-{++_baselineRunCount}");
             var metadata = new BaselineDicomMetadata(inputs.SelectedBodyPart, inputs.ExposureKvp, inputs.PixelPitchMm);
 
             var result = await Task.Run(() => BaselineExecution.Run(
@@ -3664,7 +3686,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var dir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+        var dir = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "verdicts.json");
 
@@ -3938,7 +3960,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return;
         }
 
-        var directory = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+        var directory = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
         if (!Directory.Exists(directory))
         {
             StatusText = $"No evidence folder yet for this run set: {directory}";
@@ -4003,7 +4025,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 return;
             }
 
-            var evidenceDir = Path.Combine(AppContext.BaseDirectory, "evidence", RunSet.RunId);
+            var evidenceDir = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
             if (!Directory.Exists(evidenceDir))
             {
                 StatusText = "No evidence directory found for current run-set.";
@@ -4011,7 +4033,7 @@ public sealed class MainWindowViewModel : ObservableObject
                 return;
             }
 
-            var bundleDir = Path.Combine(AppContext.BaseDirectory, "evidence", "bundles");
+            var bundleDir = Path.Combine(GuiDataPaths.Root, "evidence", "bundles");
             Directory.CreateDirectory(bundleDir);
 
             var zipPath = Path.Combine(bundleDir, $"{RunSet.RunId}.zip");

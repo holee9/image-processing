@@ -1,0 +1,5 @@
+class/kind                pixels       bit on      share  both halves
+control/efficiency_loss     32032          307     0.0096          232
+line/efficiency_loss       31821         2741     0.0861         2741
+pixel/efficiency_loss        192           17     0.0885           17
+kinds with the bit on no pixel: block/dead, control/dead, control/fixed_band, control/gain_band, control/gain_loss, control/slope, control/varying_band, line/dead, line/gain_loss, line/noisy, line/nonlinear, pixel/dead, pixel/gain_loss, pixel/hot, pixel/noisy, pixel/nonlinear

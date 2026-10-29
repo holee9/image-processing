@@ -1,0 +1,36 @@
+"""QA-A-267 R236-4 follow-up. The first re-run (10_revalidate.py.txt, log 11) found four things to look at, and this script runs exactly those with the same runner (its text is reused: only the mutant list, the old sets, the predictions,
+the log path and the 'expected green' set are replaced; the step P block is skipped):
+  A13 (251b U13) was GREEN, the old run was red: the test that caught it read the first "parts_uncomputable" of the JSON, and the QA-A-267 R236-3 change put an area-contract key of the same name before it.
+      The test now reads the last one (tests/test_bpm_eval.cpp). A13 is run again with the corrected test.
+  A10 (251b U10): the text `dilate(t.truthReal, ...)` is gone since QA-A-255 (the false-alarm zone is `std::vector<uint8_t> zone = t.truthReal;`); the same mutation in today's form is A10b.
+  B6 (252f U6): `sumC += (s2 / (g * g)) / expect` now exists twice (the pixel loop was changed to `const double c = ...; sumC += c;` and a second site for overlapped pixels was added); the first run's text hit the second site.
+      B6a is the mutation at the first site (the one the old run meant), B6 at the second site is run as it was.
+Usage: PYTHONIOENCODING=utf-8 python -X utf8 13_revalidate_followup.py.txt"""
+SRC = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-267/evidence/10_revalidate.py.txt'
+src = open(SRC, encoding='utf-8').read()
+a = src.index('# the failing sets the old runs logged')
+b = src.index('paths = [CPP, HPP, TESTCPP]')
+new_region = '''ORIG = {'A13': ['CorrectRunsOnTwoSetsAndReportsTheLineIndex'], 'A10b': ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement'],
+        'B6a': ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined'], 'B6': []}
+GREEN_EXPECTED = ('B6',)
+PRED = [
+    '  F1 A13 (the plain uncomputable-part counter dropped) is RED with the corrected test: CorrectRunsOnTwoSetsAndReportsTheLineIndex (the same set as the old run).',
+    '  F2 A10b (the false-alarm zone built from every item instead of the true defects) is RED: FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf and ScoreCountsControlHitsFalseAlarmsAndHalfAgreement (the old set).',
+    '  F3 B6a (the noise cost of the pixel loop not divided by g squared) is RED: NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined (the old set).',
+    '  F4 B6 at the second site (overlapped pixels) is GREEN: no test reaches the g squared of that site. This would be a test gap of the evaluation tool, to be reported, not fixed here.',
+    '  Q  the baseline (with the corrected test) passes and the restore comes back to the same source hash and a passing run.',
+]
+MUT = [
+    ('A13', '251b U13', CPP, 'tool', b'if (!ls[k]->computable) ++unc[k];', b'if (!ls[k]->computable && k < 0) ++unc[k];'),
+    ('A10b', '251b U10 in today\\'s form', CPP, 'tool', b'std::vector<uint8_t> zone = t.truthReal;', b'std::vector<uint8_t> zone = t.truthAny;'),
+    ('B6a', '252f U6 at the first site', CPP, 'tool', b'const double c = (static_cast<double>(s2[i]) / (g * g)) / expect;', b'const double c = static_cast<double>(s2[i]) / expect;'),
+    ('B6', '252f U6 at the second site (as in the first re-run)', CPP, 'tool', b'sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;', b'sumC += static_cast<double>(s2[i]) / expect;'),
+]
+'''
+src = src[:a] + new_region + src[b:]
+pa = src.index("    say('--- step P")
+pb = src.index('    for mid, label, path, cons, old, new in MUT:')
+src = src[:pa] + src[pb:]
+src = src.replace('11_revalidate_log.txt', '14_followup_log.txt').replace("mid == 'B8'", 'mid in GREEN_EXPECTED').replace("mid != 'B8'", 'mid not in GREEN_EXPECTED')
+src = src.replace("if mid in GREEN_EXPECTED:\n            say('(B8 was green in the old run too)' if not bad else '(B8 was green in the old run: now RED)')", "if mid in GREEN_EXPECTED:\n            say('(expected green)' if not bad else '(expected green: now RED)')")
+exec(compile(src, 'followup', 'exec'))

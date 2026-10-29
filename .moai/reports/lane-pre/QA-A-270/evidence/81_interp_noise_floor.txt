@@ -1,0 +1,8 @@
+floor medians (both frames pooled, 120000 pixels per variant), z = |pixel - replacement| / sigma_local
+  A rows (mean of the rows above and below)                          median 0.5673  p95 1.6642
+  A columns (mean of the columns left and right)                     median 0.5808  p95 1.6871
+  B width-2, first line (2/3 outer-before + 1/3 outer-after), rows   median 0.6612  p95 1.9220
+  B width-2, first line, columns                                     median 0.6709  p95 1.9445
+  C median of the 8 neighbours                                       median 0.5638  p95 1.6357
+A - C: rows 0.0035, columns 0.0170 (the real difference at the same planted line pixels: 0.114)
+prediction check: A - C in [0.05, 0.20] for rows and columns: False

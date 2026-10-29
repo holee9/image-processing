@@ -1,0 +1,13 @@
+diff --git a/modules/preprocess/tools/xpe_bpm_eval.cpp b/modules/preprocess/tools/xpe_bpm_eval.cpp
+index d6f2b6ed..52ec3de1 100644
+--- a/modules/preprocess/tools/xpe_bpm_eval.cpp
++++ b/modules/preprocess/tools/xpe_bpm_eval.cpp
+@@ -2340,7 +2340,7 @@ int cmdMapV2(const Args& a) {
+ }
+
+ // ------------------------------------------------------------------------------------------------------------- correct
+-const char* const kCfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
++const char* const kCfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"defectLineInterpolation\":\"rows\"}";
+ const char* const kCfgNoDefect = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+
+ bool loadSet(const std::string& dir) {

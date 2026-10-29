@@ -1,0 +1,10 @@
+dose groups (frame ids): [[17, 18, 19], [20, 22, 21], [26, 27, 28, 24, 23, 25], [31, 32, 33], [35, 34, 36]]
+corrGain done 4 s
+group 0 (3 frames) done 10 s
+group 1 (3 frames) done 17 s
+group 2 (6 frames) done 24 s
+group 3 (3 frames) done 31 s
+group 4 (3 frames) done 37 s
+threshold 4.4833 (product report: 4.4833), nuBright 13 (13), groups [3, 3, 6, 3, 3]
+product pixels with bit 0x20: 3165, replica: 3165, in both: 3165, product only: 0, replica only: 0, mismatch share of the product count: 0.0000 %
+PASS

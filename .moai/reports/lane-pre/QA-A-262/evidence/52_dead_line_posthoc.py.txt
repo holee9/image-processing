@@ -1,0 +1,49 @@
+"""QA-A-262 item 2, POST-HOC (not in the committed method: written after 41_item2_result.txt showed that the exceeding parts are led by the fully detected dead lines, whose D_n after the second-edition correction is
+-20.9 (rows) and -8.9 (columns) pixel values, against +11.2 in the first edition, with the clean output near 0).
+Question: is the shift of the whole line a uniform offset along the corrected line (a bias of the interpolation), or is it carried by a few pixels (crossings with other dead lines or flagged neighbours)?
+For the dead row of item 1 and the dead column of item 2 in evaluation frame 1, both editions: the per-pixel residual r = corrected - mean of the two neighbouring lines, its median, mean, and the share of the
+mean carried by the pixels whose neighbours on the defect plane are flagged (the interpolation then does not see its immediate neighbours). Uses the 50_item4_columns.py.txt harness (the same product calls).
+Usage: PYTHONIOENCODING=utf-8 python 52_dead_line_posthoc.py.txt > 53_dead_line_posthoc_result.txt"""
+import re
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-262/evidence/50_item4_columns.py.txt', encoding='utf-8').read()
+head = src[:src.index("FRAMES = ['Bright_29.raw'")]
+head = head.replace("S = 3072\nCFG", "S = 3072\nCFG")
+g = {'__name__': 'h'}
+exec(compile(head, '50_harness', 'exec'), g)
+np, items, pipeline, init, load_set = g['np'], g['items'], g['pipeline'], g['init'], g['load_set']
+M60, CAL, INJ, S, say = g['M60'], g['CAL'], g['INJ'], g['S'], g['say']
+init()
+for ed, tag in (('A', 'v1'), ('B', 'v2')):
+    load_set(M60 + 'inj_set_%s/offset.xcal' % tag, M60 + 'inj_set_%s/gain.xcal' % tag, M60 + 'inj_set_%s/defect.xcal' % tag)
+    I = pipeline(INJ + 'Bright_29.raw').astype(np.float64)
+    plane = np.fromfile(M60 + 'inj_%s_setmap.u8' % tag, dtype=np.uint8).reshape(S, S) != 0
+    say('=' * 110)
+    say('edition %s (%s), evaluation frame 1 (Bright_29), planted set' % (ed, tag))
+    for k, part, name in ((1, 0, 'dead row (item 1)'), (2, 0, 'dead column (item 2)')):
+        x, y, w, h = items[k]['rects'][part]
+        if w > h:
+            line = I[y, :]
+            nb = 0.5 * (I[y - 1, :] + I[y + 1, :])
+            nflag = plane[y - 1, :] | plane[y + 1, :]
+            own = plane[y, :]
+        else:
+            line = I[:, x]
+            nb = 0.5 * (I[:, x - 1] + I[:, x + 1])
+            nflag = plane[:, x - 1] | plane[:, x + 1]
+            own = plane[:, x]
+        r = line - nb
+        n = r.size
+        say('  %s: pixels %d, flagged on the plane in the line itself %d (%.1f %%), with a flagged immediate neighbour %d (%.1f %%)' % (name, n, own.sum(), 100.0 * own.mean(), nflag.sum(), 100.0 * nflag.mean()))
+        say('      residual (corrected - mean of neighbours): mean %+.3f, median %+.3f, 5 %% %+.2f, 95 %% %+.2f, std %.2f' % (r.mean(), np.median(r), np.percentile(r, 5), np.percentile(r, 95), r.std()))
+        say('      mean residual over pixels with unflagged neighbours %+.3f (%d pixels), with a flagged neighbour %+.3f (%d pixels); share of the line mean carried by the flagged-neighbour pixels %.1f %%' %
+            (r[~nflag].mean() if (~nflag).any() else float('nan'), int((~nflag).sum()), r[nflag].mean() if nflag.any() else float('nan'), int(nflag.sum()), 100.0 * r[nflag].sum() / r.sum() if r.sum() != 0 else float('nan')))
+        big = np.abs(r) > 5 * r[~nflag].std() if (~nflag).sum() > 10 else np.zeros(n, dtype=bool)
+        say('      pixels beyond 5 sigma of the unflagged-neighbour residual: %d (carrying %.1f %% of the sum)' % (big.sum(), 100.0 * r[big].sum() / r.sum() if r.sum() != 0 else float('nan')))
+        if w > h:
+            crop_rect = (6, y, S - 6 - 1, 1)
+        else:
+            crop_rect = (x, 2, 1, S - 2 - 1)
+        pi_full, pi_crop = g['part_index'](I, (x, y, w, h)), g['part_index'](I, crop_rect)
+        say('      line index D_n over the whole line: %+.3f pixel values (ratio %+.2f); over the imaging area only (rectangle %s): %+.3f pixel values (ratio %+.2f)' % (pi_full[0], pi_full[2], crop_rect, pi_crop[0], pi_crop[2]))
+        pos = np.nonzero(big)[0]
+        say('      positions along the line of those pixels: %s; residuals %s; the line pixels NOT on the defect plane: positions %s (imaging-area margins of this measurement: left 6, right 1, top 2, bottom 1)' % (pos.tolist(), ' '.join('%+.0f' % v for v in r[pos]), np.nonzero(~own)[0].tolist()))

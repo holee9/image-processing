@@ -1,0 +1,293 @@
+using System.IO;
+using System.Security.Cryptography;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+
+namespace ImageProcTest.Services.Comparison;
+
+/// <summary>
+/// The contract <c>xpe-2g-pre-comparison/2</c> (QA-A-273, Refs #278), ported from tools/calibration/comparison_manifest.py of main-local commit 89b662a5 (Reviewer #248 F248-1..5).
+/// It validates a manifest that names two EXISTING output files (A = official Samsung 2G X64W, B = new PRE). It never loads a vendor DLL, never runs an engine and never judges image quality:
+/// a computed difference is a numeric fact about two files. Reason codes, their ORDER and the comparable flag are the Python contract's; parity is checked on shared fixtures
+/// (gui/ImageProcTest.ComparisonChecks). Manifests whose values have a different JSON type than the schema's (for example a list where an object belongs) are outside that parity.
+/// </summary>
+public static class ComparisonContract
+{
+    public const string Schema = "xpe-2g-pre-comparison/2";
+    public const string Official2gX64wSha256 = "bb03a668990914827e3304774c6a08d4fd03c5b13640c7f7a682820a3e7819f0";
+    public const string CommonKind = "common-condition";
+    public const string E2eKind = "e2e-non-isolated";
+    public const int RowChunk = 256;
+
+    private static readonly (string Key, string Id)[] EngineIds = [("A", "samsung-2g-x64w"), ("B", "new-pre")];
+    private static readonly HashSet<string> TopKeys = ["schema", "input", "engines", "roi", "comparison_kind", "calibration_burden", "note"];
+    private static readonly HashSet<string> InputKeys = ["path", "sha256", "correction_state", "mode", "width", "height"];
+    private static readonly HashSet<string> EngineKeys = ["engine_id", "engine_identity", "execution", "input_sha256", "mode", "maps", "maps_not_applied_reason", "output", "note"];
+    private static readonly HashSet<string> OutputKeys = ["path", "sha256", "dtype", "endian", "width", "height", "stride_bytes", "offset_bytes", "stage", "units"];
+    private static readonly HashSet<string> Stages = ["engine-direct", "postprocessed"];
+    private static readonly HashSet<string> Units = ["pixel value"];
+    private static readonly HashSet<string> CorrectionValues = ["uncorrected", "offset-corrected"];
+    private static readonly HashSet<string> UnknownTokens = ["", "unknown", "none", "null", "n/a"];
+    private static readonly Regex Hex40 = new("^[0-9a-f]{40}$", RegexOptions.CultureInvariant);
+    private static readonly Regex Hex64 = new("^[0-9a-f]{64}$", RegexOptions.CultureInvariant);
+
+    /// <summary>Lossless little-endian scalar formats only; anything else is refused, not converted.</summary>
+    public static int? ItemSize(string? dtype) => dtype switch { "uint16" or "int16" => 2, "uint32" or "int32" or "float32" => 4, _ => null };
+
+    public static string Sha256File(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
+    }
+
+    // ---- Python-semantics helpers over System.Text.Json.Nodes (None = null node, dict.get = Get, `x or {}` = OrEmpty, isinstance(x, int) = TryInt)
+    internal static JsonNode? Get(JsonNode? n, string key) => n is JsonObject o && o.TryGetPropertyValue(key, out var v) ? v : null;
+    internal static bool Has(JsonNode? n, string key) => n is JsonObject o && o.ContainsKey(key);
+    internal static string? Str(JsonNode? n) => n is JsonValue v && v.GetValueKind() == System.Text.Json.JsonValueKind.String ? v.GetValue<string>() : null;
+
+    private static bool Truthy(JsonNode? n)
+    {
+        switch (n)
+        {
+            case null: return false;
+            case JsonObject o: return o.Count > 0;
+            case JsonArray a: return a.Count > 0;
+            case JsonValue v:
+                switch (v.GetValueKind())
+                {
+                    case System.Text.Json.JsonValueKind.String: return v.GetValue<string>().Length > 0;
+                    case System.Text.Json.JsonValueKind.True: return true;
+                    case System.Text.Json.JsonValueKind.False: return false;
+                    case System.Text.Json.JsonValueKind.Number: return !(v.TryGetValue<double>(out var d) && d == 0.0);
+                    default: return false;
+                }
+            default: return true;
+        }
+    }
+
+    private static JsonNode OrEmpty(JsonNode? n) => Truthy(n) ? n! : new JsonObject();
+
+    /// <summary>Python isinstance(x, int): a JSON integer (4, not 4.0) or a JSON boolean (True is an int in Python).</summary>
+    internal static bool TryInt(JsonNode? n, out long value)
+    {
+        value = 0;
+        if (n is not JsonValue v) return false;
+        switch (v.GetValueKind())
+        {
+            case System.Text.Json.JsonValueKind.True: value = 1; return true;
+            case System.Text.Json.JsonValueKind.False: value = 0; return true;
+            case System.Text.Json.JsonValueKind.Number: return v.TryGetValue<long>(out value);
+            default: return false;
+        }
+    }
+
+    /// <summary>Python == between two JSON scalars: None, bool/number (numerically), string.</summary>
+    internal static bool PyEq(JsonNode? a, JsonNode? b)
+    {
+        if (a is null || b is null) return a is null && b is null;
+        if (Num(a, out var x) && Num(b, out var y)) return x == y;
+        var sa = Str(a);
+        var sb = Str(b);
+        if (sa is not null || sb is not null) return sa is not null && sb is not null && string.Equals(sa, sb, StringComparison.Ordinal);
+        return a.ToJsonString() == b.ToJsonString();
+    }
+
+    private static bool Num(JsonNode n, out double d)
+    {
+        d = 0;
+        if (n is not JsonValue v) return false;
+        switch (v.GetValueKind())
+        {
+            case System.Text.Json.JsonValueKind.True: d = 1; return true;
+            case System.Text.Json.JsonValueKind.False: d = 0; return true;
+            case System.Text.Json.JsonValueKind.Number: return v.TryGetValue<double>(out d);
+            default: return false;
+        }
+    }
+
+    private static bool Known(JsonNode? n) { var s = Str(n); return s is not null && !UnknownTokens.Contains(s.Trim().ToLowerInvariant()); }
+
+    private static bool CheckKeys(JsonNode? n, HashSet<string> allowed, List<string> reasons)
+    {
+        if (n is not JsonObject o || o.Any(p => !allowed.Contains(p.Key))) { reasons.Add("UNSUPPORTED_FIELD"); return false; }
+        return true;
+    }
+
+    /// <summary>Resolve rel under baseDir; null if it escapes the base directory.</summary>
+    public static string? Resolve(string baseDir, string rel)
+    {
+        var b = Path.GetFullPath(baseDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var p = Path.GetFullPath(Path.Combine(b, rel));
+        if (string.Equals(p, b, StringComparison.OrdinalIgnoreCase)) return p;
+        return p.StartsWith(b + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ? p : null;
+    }
+
+    private static string? CheckFile(JsonNode? entry, string baseDir, List<string> reasons)
+    {
+        var rel = entry is JsonObject ? Get(entry, "path") : null;
+        if (!Truthy(rel)) { reasons.Add("MISSING_FILE"); return null; }
+        var p = Resolve(baseDir, Str(rel) ?? "");
+        if (p is null) { reasons.Add("PATH_OUTSIDE_BASE"); return null; }
+        if (!File.Exists(p)) { reasons.Add("MISSING_FILE"); return null; }
+        var actual = Sha256File(p);
+        if (!string.Equals(Str(Get(entry, "sha256")), actual, StringComparison.Ordinal)) reasons.Add("SHA_MISMATCH");
+        return actual;
+    }
+
+    private static void CheckOutput(JsonNode? outp, string baseDir, List<string> reasons)
+    {
+        CheckKeys(outp, OutputKeys, reasons);
+        if (!Stages.Contains(Str(Get(outp, "stage")) ?? "\0")) reasons.Add("UNSUPPORTED_STAGE");
+        if (!Units.Contains(Str(Get(outp, "units")) ?? "\0")) reasons.Add("UNSUPPORTED_UNITS");
+        var dtype = Str(Get(outp, "dtype"));
+        var item = ItemSize(dtype);
+        if (item is null) { reasons.Add("UNSUPPORTED_DTYPE"); return; }
+        if (Str(Get(outp, "endian")) != "little") reasons.Add("UNSUPPORTED_ENDIAN");
+        if (!(TryInt(Get(outp, "width"), out var w) && TryInt(Get(outp, "height"), out var h) && w > 0 && h > 0)) { reasons.Add("GEOMETRY_MISMATCH"); return; }
+        if (!PyEq(Get(outp, "stride_bytes"), JsonValue.Create(w * item.Value))) reasons.Add("UNSUPPORTED_STRIDE");
+        long off = 0;
+        if (Has(outp, "offset_bytes") && !(TryInt(Get(outp, "offset_bytes"), out off) && off >= 0)) { reasons.Add("UNSUPPORTED_FIELD"); return; }
+        var p = Resolve(baseDir, Str(Get(outp, "path")) ?? "");
+        if (p is not null && File.Exists(p) && new FileInfo(p).Length != off + w * h * item.Value) reasons.Add("FILE_SIZE_MISMATCH");
+    }
+
+    private static void CheckIdentity(string key, JsonNode? ident, List<string> reasons)
+    {
+        var ident2 = ident is JsonObject ? ident : null;
+        bool ok;
+        if (key == "A") ok = Str(Get(ident2, "dll_sha256")) == Official2gX64wSha256;
+        else ok = Hex40.IsMatch(PyStr(Get(ident2, "source_head"))) && Hex64.IsMatch(PyStr(Get(ident2, "config_sha256")));
+        if (!ok) reasons.Add("ENGINE_IDENTITY_MISMATCH");
+    }
+
+    /// <summary>Python str(x) for the hex checks: a string is itself, None is "None", anything else its JSON text (never matches a hex pattern).</summary>
+    private static string PyStr(JsonNode? n) => n is null ? "None" : Str(n) ?? n.ToJsonString();
+
+    public sealed record Validation(bool Comparable, string ComparisonKind, string MapEquivalence, IReadOnlyList<string> Reasons, IReadOnlyList<string> Blockers, bool Actual2gExecuted,
+        IReadOnlyDictionary<string, string?> Identities);
+
+    /// <summary>Comparability, reason codes, blockers and observed file identities. Any reason other than MAP_IDENTITY_DIFFERS under the labelled e2e kind blocks.</summary>
+    public static Validation Validate(JsonNode? manifest, string baseDir)
+    {
+        var reasons = new List<string>();
+        var identities = new SortedDictionary<string, string?>(StringComparer.Ordinal);
+        CheckKeys(manifest, TopKeys, reasons);
+        if (Str(Get(manifest, "schema")) != Schema) reasons.Add("SCHEMA_MISMATCH");
+
+        var inp = OrEmpty(Get(manifest, "input"));
+        CheckKeys(inp, InputKeys, reasons);
+        identities["input"] = CheckFile(inp, baseDir, reasons);
+        var csNode = Get(inp, "correction_state");
+        var cs = csNode is JsonObject ? csNode : new JsonObject();
+        if (Str(Get(cs, "status")) != "verified" || !CorrectionValues.Contains(Str(Get(cs, "value")) ?? "\0") || !Known(Get(cs, "source"))) reasons.Add("CORRECTION_STATE_UNVERIFIED");
+        if (!Known(Get(inp, "mode"))) reasons.Add("MODE_MISSING");
+
+        var engines = OrEmpty(Get(manifest, "engines"));
+        var engineKeys = engines is JsonObject eo ? eo.Select(p => p.Key).ToHashSet() : [];
+        if (!engineKeys.SetEquals(["A", "B"])) reasons.Add("ENGINE_OUT_OF_SCOPE");
+        foreach (var (key, expectedId) in EngineIds)
+        {
+            var e = Get(engines, key);
+            if (e is not JsonObject) continue;
+            CheckKeys(e, EngineKeys, reasons);
+            if (Str(Get(e, "engine_id")) != expectedId) reasons.Add("ENGINE_OUT_OF_SCOPE");
+            if (Str(Get(e, "execution")) != "imported-file") reasons.Add("LIVE_EXECUTION_NOT_AUTHORIZED");
+            CheckIdentity(key, Get(e, "engine_identity"), reasons);
+            // Each output must name the input it was produced from (F248-2).
+            if (!PyEq(Get(e, "input_sha256"), Get(inp, "sha256")) || !Truthy(Get(inp, "sha256"))) reasons.Add("INPUT_LINK_MISMATCH");
+            if (Has(e, "mode") && !PyEq(Get(e, "mode"), Get(inp, "mode"))) reasons.Add("MODE_MISMATCH");
+            var outp = OrEmpty(Get(e, "output"));
+            identities[$"{key}.output"] = CheckFile(outp, baseDir, reasons);
+            CheckOutput(outp, baseDir, reasons);
+            var maps = OrEmpty(Get(e, "maps"));
+            if (!Truthy(maps) || maps is JsonObject { Count: 0 })
+            {
+                if (!Known(Get(e, "maps_not_applied_reason"))) reasons.Add("MAPS_UNDECLARED");
+            }
+            if (maps is JsonObject mo)
+                foreach (var name in mo.Select(p => p.Key).OrderBy(k => k, StringComparer.Ordinal))
+                    identities[$"{key}.map.{name}"] = CheckFile(mo[name], baseDir, reasons);
+        }
+
+        var a = OrEmpty(Get(engines, "A"));
+        var b = OrEmpty(Get(engines, "B"));
+        var oa = OrEmpty(Get(a, "output"));
+        var ob = OrEmpty(Get(b, "output"));
+        var sameAB = PyEq(Get(oa, "width"), Get(ob, "width")) && PyEq(Get(oa, "height"), Get(ob, "height"));
+        var sameAI = PyEq(Get(oa, "width"), Get(inp, "width")) && PyEq(Get(oa, "height"), Get(inp, "height"));
+        if (!sameAB || !sameAI) reasons.Add("GEOMETRY_MISMATCH");
+        if (!PyEq(Get(oa, "dtype"), Get(ob, "dtype"))) reasons.Add("DTYPE_MISMATCH");
+        if (!PyEq(Get(oa, "stage"), Get(ob, "stage"))) reasons.Add("STAGE_MISMATCH");
+        if (!PyEq(Get(oa, "units"), Get(ob, "units"))) reasons.Add("UNITS_MISMATCH");
+
+        var kindNode = Has(manifest, "comparison_kind") ? Get(manifest, "comparison_kind") : JsonValue.Create(CommonKind);
+        var kindStr = Str(kindNode);
+        if (kindStr != CommonKind && kindStr != E2eKind) reasons.Add("UNKNOWN_COMPARISON_KIND");
+        if (!MapShaEqual(a, b)) reasons.Add("MAP_IDENTITY_DIFFERS");
+
+        var roiNode = OrEmpty(Get(manifest, "roi"));
+        var width = Get(oa, "width");
+        var height = Get(oa, "height");
+        long rx = 0, ry = 0, rw = 0, rh = 0, fw = 0, fh = 0;
+        var roiOk = Has(roiNode, "x") && Has(roiNode, "y") && Has(roiNode, "width") && Has(roiNode, "height")
+                    && TryInt(Get(roiNode, "x"), out rx) && TryInt(Get(roiNode, "y"), out ry) && TryInt(Get(roiNode, "width"), out rw) && TryInt(Get(roiNode, "height"), out rh)
+                    && TryInt(width, out fw) && TryInt(height, out fh)
+                    && !(rx < 0 || ry < 0 || rw <= 0 || rh <= 0 || rx + rw > fw || ry + rh > fh);
+        if (!roiOk) reasons.Add("INVALID_ROI");
+
+        reasons = reasons.Distinct().ToList();
+        var blocking = reasons.Where(r => !(r == "MAP_IDENTITY_DIFFERS" && kindStr == E2eKind)).ToList();
+        var comparable = blocking.Count == 0;
+        return new Validation(comparable, comparable ? kindStr! : "not-comparable", "byte-identical-only", reasons, ["VENDOR_LIVE_BLOCKED"], false, identities);
+    }
+
+    private static bool MapShaEqual(JsonNode a, JsonNode b)
+    {
+        Dictionary<string, JsonNode?> Shas(JsonNode e)
+        {
+            var d = new Dictionary<string, JsonNode?>(StringComparer.Ordinal);
+            if (OrEmpty(Get(e, "maps")) is JsonObject m)
+                foreach (var p in m) d[p.Key] = Get(OrEmpty(p.Value), "sha256");
+            return d;
+        }
+        var x = Shas(a);
+        var y = Shas(b);
+        return x.Count == y.Count && x.All(p => y.TryGetValue(p.Key, out var v) && PyEq(p.Value, v));
+    }
+
+    /// <summary>The Korean line shown for a reason code. The code itself is always shown too: it is the contract's word.</summary>
+    public static string ReasonText(string code) => code switch
+    {
+        "SCHEMA_MISMATCH" => "스키마가 xpe-2g-pre-comparison/2 가 아닙니다.",
+        "UNSUPPORTED_FIELD" => "이 스키마가 정의하지 않은 필드가 있거나 값 형식이 맞지 않습니다(무시하지 않고 거부).",
+        "MISSING_FILE" => "매니페스트가 가리키는 파일이 없거나 경로가 비어 있습니다.",
+        "PATH_OUTSIDE_BASE" => "경로가 매니페스트 폴더 밖을 가리킵니다.",
+        "SHA_MISMATCH" => "파일의 SHA-256 이 매니페스트의 값과 다릅니다.",
+        "CORRECTION_STATE_UNVERIFIED" => "입력의 보정 상태가 '확인됨 + 알려진 값 + 출처'가 아닙니다. 선언만 한 값이나 unknown 은 숫자를 막습니다.",
+        "MODE_MISSING" => "입력의 모드가 비었거나 unknown 입니다.",
+        "ENGINE_OUT_OF_SCOPE" => "엔진이 A(공식 Samsung 2G X64W)와 B(신규 PRE) 둘이 아닙니다(TAS 등은 범위 밖).",
+        "LIVE_EXECUTION_NOT_AUTHORIZED" => "가져온 파일(imported-file)이 아닌 실행 방식입니다. 실제 실행은 허가되지 않았습니다.",
+        "ENGINE_IDENTITY_MISMATCH" => "엔진 식별 정보가 맞지 않습니다(A: 공식 DLL SHA-256, B: 소스 HEAD 40자리와 설정 SHA-256).",
+        "INPUT_LINK_MISMATCH" => "엔진 출력이 이 입력(SHA-256)에서 만들어졌다는 연결이 맞지 않습니다.",
+        "MODE_MISMATCH" => "엔진의 모드가 입력의 모드와 다릅니다.",
+        "MAPS_UNDECLARED" => "맵이 선언되지 않았고 '맵을 적용하지 않은 사유'도 없습니다.",
+        "UNSUPPORTED_STAGE" => "출력 단계가 engine-direct / postprocessed 가 아닙니다.",
+        "UNSUPPORTED_UNITS" => "출력 단위가 'pixel value' 가 아닙니다.",
+        "UNSUPPORTED_DTYPE" => "지원하지 않는 자료형입니다(uint16, int16, uint32, int32, float32 만).",
+        "UNSUPPORTED_ENDIAN" => "little endian 이 아닙니다.",
+        "GEOMETRY_MISMATCH" => "A·B·입력의 가로·세로가 같지 않거나 양의 정수가 아닙니다.",
+        "UNSUPPORTED_STRIDE" => "행 간격(stride)이 가로×자료형 크기와 다릅니다(채워진 행은 변환 없이 받지 않음).",
+        "FILE_SIZE_MISMATCH" => "파일 크기가 offset + 가로×세로×자료형 크기와 다릅니다.",
+        "DTYPE_MISMATCH" => "A 와 B 의 자료형이 다릅니다(부호 재해석 없음).",
+        "STAGE_MISMATCH" => "A 와 B 의 출력 단계가 다릅니다.",
+        "UNITS_MISMATCH" => "A 와 B 의 단위가 다릅니다.",
+        "UNKNOWN_COMPARISON_KIND" => "비교 종류가 common-condition / e2e-non-isolated 가 아닙니다.",
+        "MAP_IDENTITY_DIFFERS" => "A 와 B 의 맵 파일이 바이트 단위로 같지 않습니다. e2e-non-isolated 로 표시했을 때만 비교하며, 알고리즘 효과를 분리하지 못합니다.",
+        "INVALID_ROI" => "ROI 가 정수 좌표로 영상 안에 들어 있지 않습니다.",
+        "NONFINITE_VALUES" => "ROI 안에 유한하지 않은 값이 있어 비교를 거부했습니다.",
+        "SOURCE_CHANGED_DURING_RUN" => "비교하는 동안 원본 파일이 바뀌었습니다. 이 숫자는 안정된 값이 아니므로 실패로 기록합니다.",
+        "EXCEPTION" => "비교 중 예외가 났습니다. 성공으로 기록하지 않습니다.",
+        "VENDOR_LIVE_BLOCKED" => "실제 2G 실행은 막혀 있습니다(G-2G-READY 미충족).",
+        _ => "정의되지 않은 사유 코드입니다.",
+    };
+}

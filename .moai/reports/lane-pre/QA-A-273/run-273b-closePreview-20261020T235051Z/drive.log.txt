@@ -1,0 +1,5 @@
+﻿08:50:51 started PID 7072
+08:50:56 menu item found: 2G · 신규 PRE 출력 가져오기 비교
+08:50:56 comparison window open: 2G · 신규 PRE 출력 가져오기 비교
+08:50:59 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-closePreview-20261020T235051Z\01-during-preview-read.png
+08:51:03 done

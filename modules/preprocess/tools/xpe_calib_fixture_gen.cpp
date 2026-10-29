@@ -158,6 +158,7 @@ struct Options {
     std::vector<std::string> bpmBrightFiles;   // QA-A-250b: bright frames of the defect map when they differ from the gain frames
     std::string              bpmBrightList;
     bool                     framesMode{false};
+    bool                     validateOnly{false}; // Run exactly the frames preflight without generating or publishing files.
     bool                     keepFirstDark{false};    // QA-A-259: --keep-first-dark; default = the first dark frame of the list is excluded once, for every stage
     bool                     bpmV2{false};            // QA-A-254: defect.xcal from the second-generation chain, written as format version 2
     uint32_t                 bpmMargin[4]{0, 0, 0, 0}; // left, top, right, bottom: rows and columns outside the imaging area (--bpm-v2)
@@ -189,6 +190,7 @@ void printUsage() {
         "                  acquisition); by default this tool excludes the first frame ONCE and the same remaining list\n"
         "                  feeds the offset map, the gain dark reference and the defect map (both editions). The\n"
         "                  option keeps the list as given. manifest.json lists the given and the used frames.\n"
+        "  --validate-only  frames mode only: run input checks, write no calibration files\n"
         "  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file\n"
         "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n"
         "  --bpm-bright F   bright frames of the defect map only (several doses allowed); the\n"
@@ -261,6 +263,8 @@ bool parseArgs(int argc, char** argv, Options* opt) {
                 return false;
             }
             for (int k = 0; k < 4; ++k) opt->bpmMargin[k] = static_cast<uint32_t>(v[k]);
+        } else if (arg == "--validate-only") {
+            opt->validateOnly = true;
         } else if (arg == "--gain-poly") {
             opt->gainPoly = true;
         } else if (arg == "--poly-degree") {
@@ -278,6 +282,10 @@ bool parseArgs(int argc, char** argv, Options* opt) {
     }
     if (opt->outDir.empty()) return false;
     opt->framesMode = !opt->darkFiles.empty() || !opt->brightFiles.empty() || !opt->darkList.empty() || !opt->brightList.empty();
+    if (opt->validateOnly && !opt->framesMode) {
+        std::fprintf(stderr, "--validate-only requires --dark/--bright frames mode\n");
+        return false;
+    }
     if (opt->framesMode) {
         if (!opt->calDir.empty()) {
             std::fprintf(stderr, "--dark/--bright cannot be combined with --caldata\n");
@@ -900,6 +908,12 @@ int runFramesMode(const Options& opt) {
 
     std::vector<uint8_t> theirs;
     if (!opt.compareBpm.empty() && !readReferenceMask(opt.compareBpm, pixelCount, &theirs)) return 9;
+
+    if (opt.validateOnly) {
+        std::printf("{\"validation_only\":true,\"dark_used\":%zu,\"gain_frames\":%zu,\"bpm_frames\":%zu,\"gain_dose_ratio\":%.17g}\n",
+                    darks.size(), brights.size(), bpmFrames.size(), doseRatio);
+        return 0;
+    }
 
     // ---- generation, into a work directory of this run beside --out; --out is touched only by publishSet, after all four files exist
     WorkDir workDir(out);

@@ -1,0 +1,291 @@
+"""QA-A-274 step 2-6 (card QA-A-274d, Reviewer #260 finding F260-1): writes 2-4-b1.v2.patch.txt and 2-5-dualwrite.v2.patch.txt.
+
+The old files are kept untouched. Nothing is staged, committed or built; the working tree is only read through patches/expected-states.json.
+s1 = tree after 2-3 (unchanged), s2 = tree after 2-4 v1 (read from expected-states.json), s2v2 = tree after 2-4 v2, s3v2 = tree after 2-5 v2.
+
+F260-1: LastEvidenceSnapshotPath keeps the last successful snapshot when a later export fails, so a consumer that reads it after the command takes the previous file for this
+export's success. Fix: every export attempt, successful or not, leaves its own EvidenceExportResult (unique export id, this attempt's snapshot path or error, and from 2-5 on the
+fixed copy outcome) in vm.LastEvidenceExport; the consumers (MainWindow automation, SelfCheck) compare it with the result they saw before the command via
+EvidenceExportResult.NewSuccessPath / RequireNewSuccess. LastEvidenceSnapshotPath keeps its meaning (last successful snapshot, earlier evidence stays reachable).
+Run from the repository root: python -I -X utf8 .moai/reports/lane-pre/QA-A-274/make_v2.py.txt
+"""
+import difflib
+import json
+
+OUT = '.moai/reports/lane-pre/QA-A-274/patches/'
+Q = '.moai/reports/lane-pre/QA-A-274/'
+states = json.load(open(OUT + 'expected-states.json', encoding='utf-8'))
+s1, s2 = states['s1'], states['s2']
+
+# reuse the 2-5 v1 building blocks (store with Publish, the two 2-5 checks) without re-typing them
+src = open(Q + 'make_dualwrite.py.txt', encoding='utf-8').read().split('\ndef diff(')[0]
+ns = {}
+exec(src, ns)
+NEW_STORE, OLD_TRY, OLD_CHECK_START, NEW_CHECK = ns['NEW_STORE'], ns['OLD_TRY'], ns['OLD_CHECK_START'], ns['NEW_CHECK']
+
+STORE = 'gui/ImageProcTest/Services/EvidenceSnapshotStore.cs'
+RESULT = 'gui/ImageProcTest/Services/EvidenceExportResult.cs'
+VM = 'gui/ImageProcTest/ViewModels/MainWindowViewModel.cs'
+CHK = 'gui/ImageProcTest.CalibrationChecks/Program.cs'
+MW = 'gui/ImageProcTest/MainWindow.xaml.cs'
+SC = 'gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs'
+
+
+def once(text, old, new):
+    assert text.count(old) == 1, (text.count(old), old[:80])
+    return text.replace(old, new)
+
+
+# ------------------------------------------------------------------------------------------------ 2-4 v2
+RESULT_24 = '''using System.IO;
+
+namespace ImageProcTest.Services;
+
+/// <summary>
+/// The outcome of ONE export attempt, successful or not. It is kept apart from <c>MainWindowViewModel.LastEvidenceSnapshotPath</c>, which deliberately keeps pointing at the last
+/// SUCCESSFUL snapshot so earlier evidence stays reachable after a failure. A consumer that has to know whether the export it just ran succeeded therefore must not read that path:
+/// it takes the result it saw before the command and asks <see cref="NewSuccessPath"/> / <see cref="RequireNewSuccess"/> about the result after it.
+/// </summary>
+/// <param name="ExportId">Unique to this attempt (a run id cannot tell two exports of the same run apart).</param>
+/// <param name="SnapshotPath">The snapshot this attempt wrote, or null when it failed.</param>
+/// <param name="SnapshotError">Why this attempt failed, or null when it succeeded.</param>
+public sealed record EvidenceExportResult(string ExportId, string? SnapshotPath, string? SnapshotError)
+{
+    /// <summary>The snapshot of the export that ran after <paramref name="before"/>, or null when no new export ran, that export failed, or its file is gone.</summary>
+    public static string? NewSuccessPath(EvidenceExportResult? before, EvidenceExportResult? after)
+    {
+        if (after is null || after.ExportId == before?.ExportId) return null;
+        var path = after.SnapshotPath;
+        return path is not null && File.Exists(path) ? path : null;
+    }
+
+    /// <summary>As <see cref="NewSuccessPath"/>, but throws with the reason when there is no new success.</summary>
+    public static string RequireNewSuccess(EvidenceExportResult? before, EvidenceExportResult? after)
+    {
+        if (after is null || after.ExportId == before?.ExportId)
+            throw new InvalidOperationException("No new export ran: the export result is the one seen before the command.");
+        if (after.SnapshotPath is null)
+            throw new InvalidOperationException($"This export failed: {after.SnapshotError}");
+        return NewSuccessPath(before, after) ?? throw new InvalidOperationException($"The snapshot of this export is missing: {after.SnapshotPath}");
+    }
+}
+'''
+
+NEW_TRY_24 = '''        var exportId = Guid.NewGuid().ToString("N");
+        try
+        {
+            LastEvidenceSnapshotPath = EvidenceSnapshotStore.Write(GuiDataPaths.Root, report);
+            LastEvidenceExport = new EvidenceExportResult(exportId, LastEvidenceSnapshotPath, null);
+            StatusText = $"Automation report exported: {LastEvidenceSnapshotPath}";
+            Log(StatusText);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            LastEvidenceExport = new EvidenceExportResult(exportId, null, error.Message);
+            StatusText = $"Evidence snapshot was not exported: {error.Message}. Existing evidence was not replaced.";
+            Log(StatusText);
+        }
+    }
+
+    /// <summary>
+    /// The file produced by the last SUCCESSFUL snapshot export; never a fixed legacy file. It is kept when a later export fails, so it must not be used to decide whether the export
+    /// just run succeeded: use <see cref="LastEvidenceExport"/> for that.
+    /// </summary>
+    public string? LastEvidenceSnapshotPath { get; private set; }
+
+    /// <summary>The outcome of the most recent export attempt, successful or not, with an identifier unique to that attempt (null before the first one).</summary>
+    public EvidenceExportResult? LastEvidenceExport { get; private set; }
+'''
+# OLD_TRY ends with the old property declaration; the replacement carries both properties
+CHECK_FAILED_EXPORT = r'''        // F260-1 (Reviewer #260): LastEvidenceSnapshotPath keeps the last SUCCESSFUL snapshot, so a consumer that read it after a failed export would take the previous file for this export's result.
+        // The judgment the consumers use (EvidenceExportResult) must refuse, on the same view model that exported successfully a moment before. The failure is a deny rule on the snapshot folder
+        // (new files cannot be created, the earlier snapshot stays in place and readable), which is exactly the case in which an old file looks like a fresh success.
+        if (args.Length != 2) Check("A failed export is judged as a failure, not as the previous export's success", () =>
+        {
+            if (!AppContext.BaseDirectory.Contains("PRE-GUI-20261019T063546Z-7f92a1", StringComparison.Ordinal))
+                throw new InvalidOperationException("Run checks only from this task's unique build output.");
+            var vm = new MainWindowViewModel(new AppSettings { BackendMode = "Mock" },
+                new AppSettingsService(Path.Combine(AppContext.BaseDirectory, "settings-test-failed-export.json")),
+                _ => new MockXpeBackend(new RawImageLoader(), "", false, "", false));
+            var folder = new DirectoryInfo(Path.Combine(GuiDataPaths.Root, "evidence", "snapshots"));
+            var deny = new System.Security.AccessControl.FileSystemAccessRule(System.Security.Principal.WindowsIdentity.GetCurrent().User!,
+                System.Security.AccessControl.FileSystemRights.CreateFiles, System.Security.AccessControl.InheritanceFlags.None,
+                System.Security.AccessControl.PropagationFlags.None, System.Security.AccessControl.AccessControlType.Deny);
+            var denied = false;
+            try
+            {
+                var before = vm.LastEvidenceExport;
+                vm.ExportAutomationReportCommand.Execute(null);
+                var first = EvidenceExportResult.RequireNewSuccess(before, vm.LastEvidenceExport);
+                var firstBytes = File.ReadAllBytes(first);
+                // a result no new export produced is not a success, whatever it says
+                if (EvidenceExportResult.NewSuccessPath(vm.LastEvidenceExport, vm.LastEvidenceExport) is not null)
+                    throw new InvalidOperationException("A result that no new export produced was judged a success.");
+                try { EvidenceExportResult.RequireNewSuccess(vm.LastEvidenceExport, vm.LastEvidenceExport); throw new InvalidOperationException("RequireNewSuccess accepted a result that no new export produced."); }
+                catch (InvalidOperationException error) when (error.Message.Contains("No new export ran", StringComparison.Ordinal)) { }
+
+                var security = folder.GetAccessControl();
+                security.AddAccessRule(deny);
+                folder.SetAccessControl(security);
+                denied = true;
+                before = vm.LastEvidenceExport;
+                vm.ExportAutomationReportCommand.Execute(null);
+                var after = vm.LastEvidenceExport;
+                if (after is null || after.ExportId == before?.ExportId || after.SnapshotPath is not null || string.IsNullOrEmpty(after.SnapshotError))
+                    throw new InvalidOperationException("The failed export did not leave its own failed result.");
+                if (vm.LastEvidenceSnapshotPath != first || !File.ReadAllBytes(first).SequenceEqual(firstBytes))
+                    throw new InvalidOperationException("The previous successful evidence was not preserved.");
+                if (EvidenceExportResult.NewSuccessPath(before, after) is not null)
+                    throw new InvalidOperationException("A failed export was judged a success (the previous file still exists).");
+                string? judged = null, refusal = null;
+                try { judged = EvidenceExportResult.RequireNewSuccess(before, after); }
+                catch (InvalidOperationException error) { refusal = error.Message; }
+                if (judged is not null || refusal is null || !refusal.Contains("failed", StringComparison.Ordinal))
+                    throw new InvalidOperationException($"A failed export was judged a success ({judged}) or refused without saying why ({refusal}).");
+            }
+            finally
+            {
+                if (denied) { var security = folder.GetAccessControl(); security.RemoveAccessRule(deny); folder.SetAccessControl(security); }
+                vm.ShutdownBackendBlocking();
+            }
+        });
+'''
+
+CHECK_ALIAS_ONLY = r'''        // Only the fixed copy fails (a folder sits on its name): still a success of the snapshot, and the result says the fixed copy was not updated.
+        if (args.Length != 2) Check("When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated", () =>
+        {
+            if (!AppContext.BaseDirectory.Contains("PRE-GUI-20261019T063546Z-7f92a1", StringComparison.Ordinal))
+                throw new InvalidOperationException("Run checks only from this task's unique build output.");
+            var vm = new MainWindowViewModel(new AppSettings { BackendMode = "Mock" },
+                new AppSettingsService(Path.Combine(AppContext.BaseDirectory, "settings-test-fixed-copy-failed.json")),
+                _ => new MockXpeBackend(new RawImageLoader(), "", false, "", false));
+            var fixedPath = Path.Combine(AppContext.BaseDirectory, EvidenceSnapshotStore.FixedAliasName);
+            try
+            {
+                var before = vm.LastEvidenceExport;
+                vm.ExportAutomationReportCommand.Execute(null);
+                EvidenceExportResult.RequireNewSuccess(before, vm.LastEvidenceExport);
+                if (!vm.LastEvidenceExport!.FixedCopyUpdated)
+                    throw new InvalidOperationException("A fully successful export did not report the fixed copy as updated.");
+                File.Delete(fixedPath);
+                Directory.CreateDirectory(fixedPath);
+                before = vm.LastEvidenceExport;
+                vm.ExportAutomationReportCommand.Execute(null);
+                var path = EvidenceExportResult.RequireNewSuccess(before, vm.LastEvidenceExport);
+                var result = vm.LastEvidenceExport!;
+                if (result.FixedCopyUpdated || string.IsNullOrEmpty(result.FixedCopyError) || vm.LastEvidenceSnapshotPath != path || !vm.StatusText.Contains("NOT updated", StringComparison.Ordinal))
+                    throw new InvalidOperationException("A fixed-copy-only failure was not reported as a snapshot success plus a fixed-copy failure.");
+            }
+            finally
+            {
+                if (Directory.Exists(fixedPath)) Directory.Delete(fixedPath);
+                vm.ShutdownBackendBlocking();
+            }
+        });
+'''
+
+TAIL = '        Console.WriteLine($"CALIBRATION_CHECKS failures={failures}");\n'
+
+s2v2 = dict(s2)
+s2v2[RESULT] = RESULT_24
+s2v2[VM] = once(s2[VM], OLD_TRY, NEW_TRY_24)
+s2v2[MW] = once(
+    s2[MW],
+    '            ClickMenuItem(ExportAutomationReportMenuItem);\n            await Task.Delay(200);\n            var menuCommandReportPath = viewModel.LastEvidenceSnapshotPath;\n',
+    '            // F260-1: this export\'s own result, not the last successful path (which a failed export leaves pointing at the previous file)\n'
+    '            var exportBefore = viewModel.LastEvidenceExport;\n'
+    '            ClickMenuItem(ExportAutomationReportMenuItem);\n            await Task.Delay(200);\n'
+    '            var menuCommandReportPath = ImageProcTest.Services.EvidenceExportResult.NewSuccessPath(exportBefore, viewModel.LastEvidenceExport);\n')
+sc = s2[SC]
+for name in ('ReportRoot', 'ReportDisplayPipeline'):
+    pass
+old_line = '        var path = vm.LastEvidenceSnapshotPath ?? throw new InvalidOperationException("Export did not return its actual new path.");\n'
+assert sc.count(old_line) == 2
+sc = sc.replace(
+    '        typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);\n' + old_line,
+    '        var exportBefore = vm.LastEvidenceExport;\n'
+    '        typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);\n'
+    '        var path = global::ImageProcTest.Services.EvidenceExportResult.RequireNewSuccess(exportBefore, vm.LastEvidenceExport);\n')
+assert sc.count('RequireNewSuccess(exportBefore') == 2, sc.count('RequireNewSuccess(exportBefore')
+s2v2[SC] = sc
+s2v2[CHK] = once(s2[CHK], TAIL, CHECK_FAILED_EXPORT + TAIL)
+
+# ------------------------------------------------------------------------------------------------ 2-5 v2
+RESULT_25 = RESULT_24.replace(
+    '/// <param name="SnapshotError">Why this attempt failed, or null when it succeeded.</param>\npublic sealed record EvidenceExportResult(string ExportId, string? SnapshotPath, string? SnapshotError)\n{\n',
+    '/// <param name="SnapshotError">Why this attempt failed, or null when it succeeded.</param>\n'
+    '/// <param name="FixedCopyPath">Where this attempt tried to put the fixed copy <c>menu-command-report.json</c>; set whenever the snapshot step ran, even if the fixed copy then failed.</param>\n'
+    '/// <param name="FixedCopyError">Why the fixed copy was not updated although the snapshot was written, or null.</param>\n'
+    'public sealed record EvidenceExportResult(string ExportId, string? SnapshotPath, string? SnapshotError, string? FixedCopyPath = null, string? FixedCopyError = null)\n{\n'
+    '    /// <summary>True only when the snapshot AND the fixed copy of this attempt were both written (a snapshot-only success has a stale fixed copy).</summary>\n'
+    '    public bool FixedCopyUpdated => SnapshotPath is not null && FixedCopyError is null;\n\n')
+assert RESULT_25 != RESULT_24
+
+NEW_TRY_25 = '''        // QA-A-274 7-1 (c): one report, two outputs from the same bytes - the unique snapshot (evidence of record) and the fixed menu-command-report.json beside the executable that older consumers read.
+        var exportId = Guid.NewGuid().ToString("N");
+        var published = EvidenceSnapshotStore.Publish(GuiDataPaths.Root, AppContext.BaseDirectory, report, RunSet.RunId ?? string.Empty);
+        LastEvidenceExport = new EvidenceExportResult(exportId, published.SnapshotPath, published.SnapshotError?.Message, published.AliasPath, published.AliasError?.Message);
+        if (published.SnapshotPath is null)
+        {
+            StatusText = $"Evidence snapshot was not exported: {published.SnapshotError!.Message}. Existing evidence was not replaced; the fixed report {published.AliasPath} was not touched.";
+        }
+        else
+        {
+            LastEvidenceSnapshotPath = published.SnapshotPath;
+            StatusText = published.AliasError is null
+                ? $"Automation report exported: {published.SnapshotPath} (fixed copy: {published.AliasPath})"
+                : $"Automation report exported: {published.SnapshotPath}. The fixed copy {published.AliasPath} was NOT updated and may still name an older run: {published.AliasError.Message}";
+        }
+        Log(StatusText);
+    }
+
+    /// <summary>
+    /// The snapshot written by the last export whose snapshot was fully written; never the fixed menu-command-report.json. It is set even when only the fixed copy failed (the snapshot is the
+    /// evidence of record) and is KEPT when a later snapshot fails, so it must not be used to decide whether the export just run succeeded: use <see cref="LastEvidenceExport"/> for that.
+    /// </summary>
+    public string? LastEvidenceSnapshotPath { get; private set; }
+
+    /// <summary>The outcome of the most recent export attempt, successful or not, with an identifier unique to that attempt (null before the first one).</summary>
+    public EvidenceExportResult? LastEvidenceExport { get; private set; }
+'''
+
+a = s2v2[CHK].index(OLD_CHECK_START)
+b = s2v2[CHK].index('        // F260-1 (Reviewer #260)')
+chk3 = s2v2[CHK][:a] + NEW_CHECK.replace(TAIL, '') + s2v2[CHK][b:]
+chk3 = once(chk3, TAIL, CHECK_ALIAS_ONLY + TAIL)
+
+s3v2 = {
+    STORE: NEW_STORE,
+    RESULT: RESULT_25,
+    VM: once(s2v2[VM], NEW_TRY_24, NEW_TRY_25),
+    CHK: chk3,
+}
+
+
+def diff(old_states, new_states):
+    out = []
+    nl = chr(10)
+    for p in sorted(new_states):
+        old = old_states.get(p)
+        new = new_states[p]
+        if old == new:
+            continue
+        assert new.endswith(nl) and (old is None or old.endswith(nl)), p
+        o = (old or '').splitlines(keepends=True)
+        n = new.splitlines(keepends=True)
+        out.append('diff --git a/%s b/%s' % (p, p) + nl)
+        if old is None:
+            out.append('new file mode 100644' + nl)
+        out.extend(difflib.unified_diff(o, n, '/dev/null' if old is None else 'a/' + p, 'b/' + p, n=3, lineterm=nl))
+    return ''.join(out)
+
+
+p24 = diff(s1, s2v2)
+mid = dict(s2v2)
+p25 = diff(s2v2, s3v2)
+open(OUT + '2-4-b1.v2.patch.txt', 'w', encoding='utf-8', newline='\n').write(p24)
+open(OUT + '2-5-dualwrite.v2.patch.txt', 'w', encoding='utf-8', newline='\n').write(p25)
+final = dict(s2v2)
+final.update(s3v2)
+json.dump({'s2': s2v2, 's3': s3v2, 'final': final}, open(OUT + 'expected-states-v2.json', 'w', encoding='utf-8'))
+print('2-4 v2', len(p24), '2-5 v2', len(p25), 'final files', len(final))

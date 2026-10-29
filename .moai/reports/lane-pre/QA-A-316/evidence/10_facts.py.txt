@@ -1,0 +1,96 @@
+# QA-A-316 step 1: per-set facts of the 2G caleng calibration folders (read-only NAS input).
+# run: python -I 10_facts.py.txt > 11_facts.txt
+import json, os, re, sys
+import numpy as np
+
+W, H = 3072, 2560
+MAN = 'D:/workspace-github/xpe-2g-offline/batch-20261022-1230/manifest.json'
+m = json.load(open(MAN, encoding='utf-8'))
+sets = m if isinstance(m, list) else m.get('sets', m)
+
+def rd16(p):
+    a = np.fromfile(p, dtype='<u2')
+    assert a.size == W * H, (p, a.size)
+    return a.reshape(H, W)
+
+def rd8(p):
+    a = np.fromfile(p, dtype=np.uint8)
+    assert a.size == W * H, (p, a.size)
+    return a.reshape(H, W)
+
+def q(a, ps=(0, 1, 50, 99, 100)):
+    return ' '.join(f'p{p}={np.percentile(a, p):.1f}' for p in ps)
+
+def where_summary(mask, name):
+    n = int(mask.sum())
+    print(f'  {name}: count={n}')
+    if n == 0:
+        return
+    rows = mask.sum(axis=1); cols = mask.sum(axis=0)
+    full_rows = np.where(rows == W)[0]; full_cols = np.where(cols == H)[0]
+    print(f'    full-width rows ({len(full_rows)}): {full_rows.tolist()[:40]}')
+    print(f'    full-height cols ({len(full_cols)}): {full_cols.tolist()[:40]}')
+    in_full = mask.copy(); in_full[full_rows, :] = False; in_full[:, full_cols] = False
+    print(f'    outside full rows/cols: {int(in_full.sum())}')
+    for k in (1, 4, 16, 32):
+        edge = np.zeros_like(mask); edge[:k, :] = True; edge[-k:, :] = True; edge[:, :k] = True; edge[:, -k:] = True
+        print(f'    within {k}px of frame edge: {int((mask & edge).sum())}')
+    ys, xs = np.nonzero(in_full)
+    if ys.size:
+        print(f'    rest bbox y[{ys.min()},{ys.max()}] x[{xs.min()},{xs.max()}]; rows with >=1: {int((in_full.sum(1)>0).sum())}, cols with >=1: {int((in_full.sum(0)>0).sum())}')
+        top_r = np.argsort(-in_full.sum(1))[:5]; top_c = np.argsort(-in_full.sum(0))[:5]
+        print('    top rows (row:count) ' + ' '.join(f'{r}:{int(in_full[r].sum())}' for r in top_r))
+        print('    top cols (col:count) ' + ' '.join(f'{c}:{int(in_full[:, c].sum())}' for c in top_c))
+
+for s in sets:
+    sid, src = s['id'], s['cal_source']
+    print(f'===== {sid}  {src}')
+    names = sorted(f for f in os.listdir(src) if re.match(r'Bright\d\d_OC_\d+\.raw$', f))
+    print(f'  bright files: {len(names)}')
+    dark = rd16(src + 'dark.raw').astype(np.float64)
+    print(f'  dark.raw mean={dark.mean():.1f} std={dark.std():.1f} n0={int((dark==0).sum())} n65535={int((dark==65535).sum())} {q(dark)}')
+    cm = {}
+    frames = {}
+    for nm in names:
+        a = rd16(src + nm)
+        idx = int(nm[6:8]); oc = int(nm[12:17])
+        frames[idx] = a
+        c = a[H//2-200:H//2+200, :].astype(np.float64).mean()
+        cm[idx] = c
+        print(f'  {nm}: OC={oc} mean={a.mean():.1f} center(+-200 rows)={c:.1f} mean<darkmean={a.mean() < dark.mean()} n0={int((a==0).sum())} n65535={int((a==65535).sum())}')
+    g = [cm[i] for i in range(1, 11)]
+    print(f'  Bright01..10 center min={min(g):.1f} max={max(g):.1f} ratio={max(g)/min(g):.4f}')
+    oc = [int(nm[12:17]) for nm in names[:10]]
+    print(f'  Bright01..10 OC name min={min(oc)} max={max(oc)} ratio={max(oc)/min(oc):.4f}')
+    stack = np.stack([frames[i] for i in range(1, 11)]).astype(np.float64)
+    mean10 = stack.mean(axis=0)
+    r10 = np.floor(mean10 + 0.5)          # round half up
+    rh = np.rint(mean10)                  # round half to even
+    ba = rd16(src + 'BrightAvg.raw')
+    bp = rd8(src + 'BPMap.map')
+    bpm_raw_p = src + 'BPM.raw'
+    bsz = os.path.getsize(bpm_raw_p)
+    if bsz == W * H * 2:
+        bpmr = rd16(bpm_raw_p); print(f'  BPM.raw uint16 values {np.unique(bpmr).tolist()[:6]} nonzero={int((bpmr!=0).sum())}')
+    else:
+        bpmr = rd8(bpm_raw_p); print(f'  BPM.raw size {bsz} (uint8) values {np.unique(bpmr).tolist()[:6]} nonzero={int((bpmr!=0).sum())}')
+    print(f'  BPMap.map values {np.unique(bp).tolist()[:6]} nonzero={int((bp!=0).sum())}; same set as BPM.raw nonzero: {bool(((bp!=0)==(bpmr!=0)).all())}')
+    good = bp == 0
+    ba_f = ba.astype(np.float64)
+    for lab, rr in (('round_half_up', r10), ('rint_half_even', rh)):
+        eq = ba_f == rr
+        print(f'  BrightAvg == {lab}(mean(01..10)): good pixels {eq[good].mean()*100:.3f}% ({int(eq[good].sum())}/{int(good.sum())}); defect pixels {eq[~good].mean()*100:.3f}%; all {eq.mean()*100:.3f}%')
+    d = ba_f - r10
+    ne = good & (d != 0)
+    print(f'  good pixels with BrightAvg != round_half_up: {int(ne.sum())}; |diff| {q(np.abs(d[ne])) if ne.any() else "-"}')
+    print(f'    of those, BrightAvg==0: {int((ne & (ba==0)).sum())}, ==65535: {int((ne & (ba==65535)).sum())}, other: {int((ne & (ba!=0) & (ba!=65535)).sum())}')
+    oth = ne & (ba != 0) & (ba != 65535)
+    if oth.any():
+        print(f'    other |diff| {q(np.abs(d[oth]))}')
+    print(f'  BrightAvg n0={int((ba==0).sum())} n65535={int((ba==65535).sum())}; of n0 in BPMap defects: {int(((ba==0)&~good).sum())}; of n65535 in BPMap defects: {int(((ba==65535)&~good).sum())}')
+    where_summary(ba == 0, 'BrightAvg==0')
+    where_summary(ba == 65535, 'BrightAvg==65535')
+    where_summary(bp != 0, 'BPMap defects')
+    zero_mean = (r10 == 0)
+    print(f'  round(mean(01..10))==0 count={int(zero_mean.sum())}; ==65535 count={int((r10==65535).sum())}')
+    sys.stdout.flush()

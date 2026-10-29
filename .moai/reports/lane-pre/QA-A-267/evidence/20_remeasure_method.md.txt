@@ -1,0 +1,13 @@
+QA-A-267 item 6: the new definition measured once more after the three fixes (R236-1..3). Method and predictions, written BEFORE the run.
+
+Run (one time, nothing changed afterwards): the two `correct` runs of QA-A-265 (70_run_correct_area.sh.txt), same sets (bpm-eval-260 clean_set_v1/v2, inj_set_v1/v2), same truth (bpm-eval-252f/inj_d), same evaluation frames Bright_29, Bright_30, --margins 6,2,1,1,
+with the tool built from the QA-A-267 fixes (commit e0be8dd8) and --out written into this evidence directory. Compared with QA-A-265's new-definition figures (73_correct_v2_area.json.txt and 72_correct_v1_area.json.txt) and with QA-A-260's old-definition JSON.
+
+Predictions:
+  E1 every old-definition field (correction_error, line_index, parts_over_3_sigma, parts_uncomputable, other_rows, other_columns) is identical to QA-A-260 in all four frame results (the fixes must not touch the old definition).
+  E2 the new-definition counts of QA-A-265 do not change: second edition parts over 3 sigma 6 (frame 1) and 11 (frame 2), first edition 75 and 78, columns outside items 9 and 9 (second edition), 10 / 8 and 8 / 8 (first edition). Reason: no part of this truth has a cut extent shorter
+      than its thickness (the old tool never reported an extent under 8, and the thick items are far longer); a change would mean such a part existed and was read as the other orientation before. This is a prediction, about 70 % sure.
+  E3 not measurable by geometry: item outside 0, reference outside 0, extent under 8 is 0, extent below thickness 0, outside the area 0 (as in 265, plus the new reason).
+  E4 uncomputable parts, rows and columns are 0 for every image (real frames are not constant); so valid = geometry_measurable everywhere (142 parts).
+  E5 the key names of the new JSON exist (geometry_measurable, parts_uncomputable, parts_valid, extent_below_thickness, uncomputable_corrected for rows and columns).
+Whether the new definition is adopted is the user's decision; this run only reports whether its figures change.

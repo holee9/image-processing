@@ -1,0 +1,59 @@
+"""QA-A-313: QA-A-260 60_tabulate_and_join.py.txt with the folders changed: (1) the B16 row table of this measurement (QA-A-256 21_tabulate.py.txt, unchanged, pointed at theQA-A-313 json files); (2) the same rows beside the QA-A-260 values (1st/2nd edition, 260 and 313). Inputs extracted with git show eaf076f3 into the scratch folder ev256/.Usage: PYTHONIOENCODING=utf-8 python -I -X utf8 60_tabulate_and_join.py.txt"""
+import io
+import contextlib
+
+EV6 = 'D:/workspace-github/xpe-data/qa-313-tmp/ev256/'
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-313/evidence/'
+code = open(EV6 + '21_tabulate.py.txt', encoding='utf-8').read()
+code = code.replace("EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'", "EV = '" + EV8 + "'")
+code = code.replace("OUT = 'D:/workspace-github/xpe-data/bpm-eval-256/'", "OUT = 'D:/workspace-github/xpe-data/qa-313-tmp/out/'")
+# QA-A-261 (Codex #230 R230-3): the note of the noisy row said the second edition had six dark frames; in this measurement both editions used seven
+assert "'2판은 다크 6장(첫 장 건너뜀)'" in code
+code = code.replace("'2판은 다크 6장(첫 장 건너뜀)'", "'두 판 모두 다크 7장(입력 8장에서 첫 장 한 번 제외)'")
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    exec(compile(code, '21_tabulate_pointed_at_260', 'exec'), {'__name__': '__main__'})
+def esc_rows(text):
+    # a pipe inside a cell (|비|, |D_n|) is escaped so that the markdown columns do not split; cells are separated by ' | '
+    out = []
+    for line in text.splitlines():
+        if line.startswith('|') and not line.startswith('|---'):
+            cells = line[2:-2].split(' | ')
+            line = '| ' + ' | '.join(c.replace('|', chr(92) + '|') for c in cells) + ' |'
+        out.append(line)
+    return chr(10).join(out) + chr(10)
+
+
+table313_raw = buf.getvalue()
+table313 = esc_rows(table313_raw)
+open(EV8 + '50_b16_table_313.md.txt', 'w', encoding='utf-8', newline='\n').write(table313)
+print('wrote 50_b16_table_313.md.txt (%d lines)' % table313.count('\n'))
+
+
+def rows(text):
+    out = {}
+    order = []
+    for line in text.splitlines():
+        if not line.startswith('|') or line.startswith('|---') or line.startswith('| 행'):
+            continue
+        c = [x.strip() for x in line.strip().strip('|').split(' | ')]
+        out[c[0]] = c
+        order.append(c[0])
+    return out, order
+
+
+t256 = open(EV6 + '50_b16_table_260.md.txt', encoding='utf-8').read().replace(chr(92) + '|', '|')  # QA-A-313: the 260 table is stored with escaped pipes; unescape so the row keys match
+r6, order = rows(t256)
+r8, order8 = rows(table313_raw)
+lines = ['| 행 | 1판 (260) | 1판 (313) | 2판 (260) | 2판 (313) | 합격 기준 | 판정 (260 → 313) |', '|---|---|---|---|---|---|---|']
+for k in order8:
+    a = r6.get(k)
+    b = r8[k]
+    if a is None:
+        lines.append('| %s | (260 에 없음) | %s | (260 에 없음) | %s | %s | → %s |' % (k, b[1], b[2], b[3], b[4]))
+        continue
+    lines.append('| %s | %s | %s | %s | %s | %s | %s → %s |' % (k, a[1], b[1], a[2], b[2], b[3], a[4], b[4]))
+    lines[-1] = lines[-1].replace('|비|', chr(92) + '|비' + chr(92) + '|').replace('|D_n|', chr(92) + '|D_n' + chr(92) + '|')
+open(EV8 + '51_b16_table_side_by_side.md.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
+print('wrote 51_b16_table_side_by_side.md.txt (%d rows)' % (len(lines) - 2))
+print('rows in 260 table not in 313: %s' % [k for k in order if k not in r8])

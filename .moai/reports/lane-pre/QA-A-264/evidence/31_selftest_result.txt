@@ -1,0 +1,47 @@
+==============================================================================================================
+SELFTEST order A
+  moving rows only                                                     OK    M_R share 1.006 (expected 1.000), others F_R -0.006 M_C +0.000 F_C -0.000 M_L +0.000 F_L -0.000, sum exact
+  fixed rows only                                                      OK    F_R share 1.000 (expected 1.000), others M_R +0.000 M_C +0.000 F_C +0.000 M_L +0.000 F_L +0.000, sum exact
+  moving columns only                                                  OK    M_C share 1.019 (expected 1.000), others F_C -0.019 M_R +0.000 F_R +0.000 M_L +0.000 F_L +0.000, sum exact
+  fixed columns only                                                   OK    F_C share 1.000 (expected 1.000), others M_C +0.000 M_R +0.000 F_R +0.000 M_L +0.000 F_L +0.000, sum exact
+  fixed low-frequency pattern only (wavelength 384)                    OK    F_L share 0.832 (expected 0.832), others M_L +0.000 M_R +0.000 F_R +0.000 M_C +0.000 F_C +0.000, sum exact
+  moving low-frequency pattern only (wavelength 256, 12 frames)        OK    M_L share 0.702 (expected 0.657), others F_L -0.044 M_R +0.000 F_R -0.000 M_C +0.000 F_C -0.000, sum exact
+  defect pixels only (in the map)                                      OK    defect share 0.9971, defect pixels 59112
+  defects NOT in the map, on white noise: found as robust outliers (about 19 sigma) OK    defect energy 1.514e-06 vs 1.526e-06, outliers outside the map 40 (40 injected)
+  temporal white noise only: white moving share                        OK    M_W/total 0.9972, M_W/sigma^2 0.996
+  NEGATIVE control: white only -> rows+columns+low frequency below 2 % OK    sum of the six line/low-frequency terms 0.0028 of total
+  fixed pixel pattern only: white fixed share                          OK    F_W/total 0.9974
+  mixed case M_R (expected 9.083e-06 incl. white leakage)              OK    got 8.720e-06 (-4.0 %)
+  mixed case F_R (expected 4.012e-06 incl. white leakage)              OK    got 3.971e-06 (-1.0 %)
+  mixed case M_C (expected 1.083e-06 incl. white leakage)              OK    got 1.139e-06 (+5.1 %)
+  mixed case F_C (expected 2.262e-06 incl. white leakage)              OK    got 2.317e-06 (+2.4 %)
+  mixed case M_W within 10 % of the injected temporal white variance   OK    M_W 6.391e-05 vs 6.400e-05
+  mixed case: defect energy within 20 % of 40 * 0.05^2 / N             OK    V_D 1.835e-07 vs 1.695e-07 (40 pixels in the defect set)
+  mixed case: components add up to the total in every frame            OK    max |sum - total| / total 1.5e-16
+==============================================================================================================
+SELFTEST order B
+  moving rows only                                                     OK    M_R share 0.984 (expected 1.000), others F_R -0.004 M_C +0.000 F_C -0.000 M_L +0.022 F_L -0.002, sum exact
+  fixed rows only                                                      OK    F_R share 0.996 (expected 1.000), others M_R +0.000 M_C +0.000 F_C +0.000 M_L +0.000 F_L +0.004, sum exact
+  moving columns only                                                  OK    M_C share 1.005 (expected 1.000), others F_C -0.021 M_R +0.000 F_R -0.000 M_L +0.014 F_L +0.002, sum exact
+  fixed columns only                                                   OK    F_C share 0.979 (expected 1.000), others M_C +0.000 M_R +0.000 F_R +0.000 M_L +0.000 F_L +0.021, sum exact
+  fixed low-frequency pattern only (wavelength 384)                    OK    F_L share 0.832 (expected 0.832), others M_L +0.000 M_R +0.000 F_R +0.000 M_C +0.000 F_C +0.000, sum exact
+  moving low-frequency pattern only (wavelength 256, 12 frames)        OK    M_L share 0.702 (expected 0.657), others F_L -0.044 M_R +0.000 F_R +0.000 M_C +0.000 F_C -0.000, sum exact
+  defect pixels only (in the map)                                      OK    defect share 0.9971, defect pixels 59112
+  defects NOT in the map, on white noise: found as robust outliers (about 19 sigma) OK    defect energy 1.514e-06 vs 1.526e-06, outliers outside the map 40 (40 injected)
+  temporal white noise only: white moving share                        OK    M_W/total 0.9972, M_W/sigma^2 0.996
+  NEGATIVE control: white only -> rows+columns+low frequency below 2 % OK    sum of the six line/low-frequency terms 0.0028 of total
+  fixed pixel pattern only: white fixed share                          OK    F_W/total 0.9974
+  mixed case M_R (expected 9.083e-06 incl. white leakage)              OK    got 8.614e-06 (-5.2 %)
+  mixed case F_R (expected 4.012e-06 incl. white leakage)              OK    got 3.886e-06 (-3.1 %)
+  mixed case M_C (expected 1.083e-06 incl. white leakage)              OK    got 1.125e-06 (+3.8 %)
+  mixed case F_C (expected 2.262e-06 incl. white leakage)              OK    got 2.276e-06 (+0.6 %)
+  mixed case M_W within 10 % of the injected temporal white variance   OK    M_W 6.391e-05 vs 6.400e-05
+  mixed case: defect energy within 20 % of 40 * 0.05^2 / N             OK    V_D 1.835e-07 vs 1.695e-07 (40 pixels in the defect set)
+  mixed case: components add up to the total in every frame            OK    max |sum - total| / total 1.5e-16
+==============================================================================================================
+SELFTEST standard formulas
+  TG-150 eq.(37): uncorrelated noise gives SD_row / prediction = 1 (+-10 %) OK    ratios 0.974 0.942
+  TG-150: a row pattern of sigma 0.2 on white sigma 1 gives SD_row / prediction near sqrt(1 + 0.2^2 * 768) = 5.6 OK    row ratio 5.43 (expected 5.63), column ratio 0.924
+  EMVA eq.(39) recovers the injected row / column / pixel spatial variances (+-25 %, +-5 % for pixels) OK    row 0.089 (0.090), column 0.037 (0.040), pixel 1.001 (1.000); sum 1.1267 vs total 1.1267
+==============================================================================================================
+SELFTEST RESULT: all controls give the designed values

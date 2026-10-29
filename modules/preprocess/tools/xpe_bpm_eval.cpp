@@ -41,7 +41,9 @@
  *       only its number is reported) when the response axis says normal and the noise verdict is undetermined. [--clean-map F] [--half-a F --half-b F] [--area MASK.u8] [--out metrics.json]
  *       --area: the imaging-area mask (1 inside, 0 outside, as written by map-v2 --area): flags outside it are not counted in any map.
  *       Detection rate per kind and level, false alarms, control false detections, split-half Jaccard.
- *   xpe_bpm_eval correct --truth DIR --clean-set DIR --inj-set DIR --clean-eval F... --inj-eval F... [--out metrics.json]
+ *   xpe_bpm_eval correct --truth DIR --clean-set DIR --inj-set DIR --clean-eval F... --inj-eval F... [--margins L,T,R,B] [--out metrics.json]
+ *       With --margins the line index is also measured under the imaging-area contract (QA-A-265): only where the part's lines, its two reference lines and its extent cut to the area
+ *       lie inside the area; the rest is counted as not measurable with its reason. The old figures stay as they were; the new ones are printed and written as "area_contract".
  *       Correction error against local noise and the line index D_n (TG-150 4.3.9) on evaluation frames, through the application's final pipeline.
  *   xpe_bpm_eval map-v2 --out MASK.u8 [--features F.u8] [--report R.json] --dark F... --bright F... [--keep-first-dark] [--skip-first-dark 0|1] [--margins L,T,R,B] [--area OUT.u8] [--target-fa 1] [--min-dark N] [--min-bright N]
  *       The second-generation detector xpe_bpm_generate_v2 (QA-A-252): the map, the per-pixel feature bits and a JSON report of the thresholds.
@@ -1911,32 +1913,43 @@ int cmdMapV1(const Args& a) {
     return 0;
 }
 
-/** --margins L,T,R,B: columns / rows at the edges that are outside the imaging area. False (after a message) for anything but four numbers. */
-bool parseMargins(const Args& a, XpeBpmConfigV2* cfgOut) {
+/**
+ * --margins L,T,R,B: columns / rows at the edges that are outside the imaging area. Four unsigned decimal numbers separated by commas and nothing else (no sign, no blank, no empty field, no
+ * hexadecimal or octal, at most the range of the stored 32-bit field), checked BEFORE anything is converted to a signed int (QA-A-267, Codex #236 R236-2: strtoul had saturated 4294967296 to 4294967295 without an error check, and as a signed int that is x = -1, outside the frame):
+ * each margin and each opposite pair must also be smaller than the frame (L, R and L + R below the width, T, B and T + B below the height). Anything else: a message and false (the commands exit 2).
+ * parseMargins is shared by map-v2, lines and correct, so all three refuse the same inputs.
+ */
+bool parseMargins(const Args& a, XpeBpmConfigV2* cfgOut, uint32_t frameW, uint32_t frameH) {
     XpeBpmConfigV2& cfg = *cfgOut;
-        unsigned    v[4] = {0, 0, 0, 0};
-        int         got = 0;
-        const std::string spec = a.str("margins");
-        const char*       c = spec.c_str();
-        while (got < 4) {
-            char* end = nullptr;
-            const unsigned long x = std::strtoul(c, &end, 10);
-            if (end == c) break;
-            v[got++] = static_cast<unsigned>(x);
-            c = end;
-            if (*c == ',' && got < 4) ++c;
-            else break;
+    const std::string spec = a.str("margins");
+    unsigned long long v[4] = {0, 0, 0, 0};
+    size_t pos = 0;
+    bool   ok = true;
+    for (int i = 0; i < 4 && ok; ++i) {
+        const size_t stop = (i < 3) ? spec.find(',', pos) : spec.size();
+        if (stop == std::string::npos || stop == pos || stop - pos > 10) { ok = false; break; }   // missing field, empty field, or more than ten digits (above 4294967295 anyway)
+        unsigned long long x = 0;
+        for (size_t c = pos; c < stop; ++c) {
+            if (spec[c] < '0' || spec[c] > '9') { ok = false; break; }
+            x = x * 10 + static_cast<unsigned long long>(spec[c] - '0');
         }
-        if (got != 4 || *c != '\0') {
-            std::fprintf(stderr, "--margins takes L,T,R,B (four numbers)\n");
-            return false;
-        }
-        const unsigned ml = v[0], mt = v[1], mr = v[2], mb = v[3];
-        cfg.margin_left = ml;
-        cfg.margin_top = mt;
-        cfg.margin_right = mr;
-        cfg.margin_bottom = mb;
-
+        if (!ok || x > 0xFFFFFFFFull) { ok = false; break; }
+        v[i] = x;
+        pos = stop + 1;
+    }
+    if (ok && (pos != spec.size() + 1)) ok = false;   // text after the fourth number (a fifth field)
+    if (!ok) {
+        std::fprintf(stderr, "--margins takes L,T,R,B (four unsigned decimal numbers, each at most 4294967295)\n");
+        return false;
+    }
+    if (v[0] >= frameW || v[2] >= frameW || v[0] + v[2] >= frameW || v[1] >= frameH || v[3] >= frameH || v[1] + v[3] >= frameH) {
+        std::fprintf(stderr, "--margins %s do not fit a %u x %u frame (each margin and each pair L+R, T+B must be smaller than the frame)\n", spec.c_str(), frameW, frameH);
+        return false;
+    }
+    cfg.margin_left = static_cast<uint32_t>(v[0]);
+    cfg.margin_top = static_cast<uint32_t>(v[1]);
+    cfg.margin_right = static_cast<uint32_t>(v[2]);
+    cfg.margin_bottom = static_cast<uint32_t>(v[3]);
     return true;
 }
 
@@ -1974,7 +1987,7 @@ int cmdLines(const Args& a) {
     cfg.skip_first_dark = XPE_BPM_V2_SKIP_NONE;   // QA-A-260: the list was trimmed by selectDarks; the library must not drop another frame
     cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
     cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
-    if (a.has("margins") && !parseMargins(a, &cfg)) return 2;
+    if (a.has("margins") && !parseMargins(a, &cfg, w, h)) return 2;
     XpeBpmLineConfig lc{};
     lc.target_false_alarms = static_cast<float>(std::strtod(a.str("fa", "0").c_str(), nullptr));
     lc.min_segment = static_cast<uint32_t>(a.num("min-segment", 0));
@@ -2272,7 +2285,7 @@ int cmdMapV2(const Args& a) {
     cfg.skip_first_dark = XPE_BPM_V2_SKIP_NONE;   // QA-A-260: the list was trimmed by selectDarks; the library must not drop another frame
     cfg.min_frames_dark = static_cast<uint32_t>(a.num("min-dark", 5));
     cfg.min_frames_bright = static_cast<uint32_t>(a.num("min-bright", 6));
-    if (a.has("margins") && !parseMargins(a, &cfg)) return 2;
+    if (a.has("margins") && !parseMargins(a, &cfg, w, h)) return 2;
     if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
     std::vector<uint8_t> mask(n, 0), feat(n, 0), area(n, 0);
     auto outBuf = [&](std::vector<uint8_t>& v) {
@@ -2401,6 +2414,15 @@ int cmdCorrect(const Args& a) {
         return 2;
     }
     if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    // QA-A-265: the imaging area of the line-index contract. Without --margins the area is the whole frame and the contract numbers equal the plain ones.
+    XpeBpmConfigV2 marginCfg{};
+    if (a.has("margins") && !parseMargins(a, &marginCfg, t.w, t.h)) return 2;
+    const xpe_bpm_eval::Area area{static_cast<int>(marginCfg.margin_left), static_cast<int>(marginCfg.margin_top), static_cast<int>(t.w) - static_cast<int>(marginCfg.margin_right),
+                                  static_cast<int>(t.h) - static_cast<int>(marginCfg.margin_bottom)};
+    if (area.x1 - area.x0 < 3 * xpe_bpm_eval::kMinAreaExtent || area.y1 - area.y0 < 3 * xpe_bpm_eval::kMinAreaExtent) {
+        std::fprintf(stderr, "--margins leave no imaging area\n");
+        return 2;
+    }
     std::string json = "{\n  \"frames\": [\n";
     for (size_t f = 0; f < cleanEval.size(); ++f) {
         std::vector<float> C, I, U;
@@ -2459,6 +2481,9 @@ int cmdCorrect(const Args& a) {
         std::printf("  line index D_n / predicted sigma (|ratio| > 3 = a line remains; sigma from the standard deviation as defined; the MAD-based ratio is auxiliary)\n"
                     "  %-4s %-34s %-6s %12s %12s %12s | %12s\n", "id", "class/kind/shape/level", "part", "corrected", "no fix", "clean", "corrected(mad)");
         int over[3] = {0, 0, 0}, unc[3] = {0, 0, 0}, parts = 0, skipped = 0;
+        // the contract: parts of the plain definition split by status; over-3-sigma counts among the measured parts and among the fully inside ones (corrected, no fix, clean)
+        int areaFull = 0, areaClipped = 0, areaItemOut = 0, areaRefOut = 0, areaShort = 0, areaOutside = 0, areaThick = 0;
+        int areaOver[3] = {0, 0, 0}, areaOverFull[3] = {0, 0, 0}, areaUnc[3] = {0, 0, 0}, areaUncFull[3] = {0, 0, 0};
         bool firstJson = true;
         for (const Item& it : t.items) {
             if (it.cls != "line" && it.cls != "control") continue;
@@ -2467,6 +2492,30 @@ int cmdCorrect(const Args& a) {
                                 lc = xpe_bpm_eval::lineIndex(C.data(), t.w, t.h, it.rects[r]);
                 if (li.skipped || lu.skipped || lc.skipped) { ++skipped; continue; }
                 ++parts;
+                {
+                    using xpe_bpm_eval::AreaStatus;
+                    const xpe_bpm_eval::AreaLineIndex ai = xpe_bpm_eval::lineIndexInArea(I.data(), t.w, t.h, it.rects[r], area), au = xpe_bpm_eval::lineIndexInArea(U.data(), t.w, t.h, it.rects[r], area),
+                                                      ac = xpe_bpm_eval::lineIndexInArea(C.data(), t.w, t.h, it.rects[r], area);
+                    switch (ai.status) {
+                        case AreaStatus::Full: ++areaFull; break;
+                        case AreaStatus::Clipped: ++areaClipped; break;
+                        case AreaStatus::ItemOutside: ++areaItemOut; break;
+                        case AreaStatus::ReferenceOutside: ++areaRefOut; break;
+                        case AreaStatus::TooShort: ++areaShort; break;
+                        case AreaStatus::OutsideArea: ++areaOutside; break;
+                        case AreaStatus::LengthBelowThickness: ++areaThick; break;
+                    }
+                    if (ai.measured()) {
+                        const xpe_bpm_eval::AreaLineIndex* as[3] = {&ai, &au, &ac};
+                        for (int k = 0; k < 3; ++k) {
+                            if (!as[k]->li.computable) { ++areaUnc[k]; if (ai.status == AreaStatus::Full) ++areaUncFull[k]; }
+                            else if (std::fabs(as[k]->li.ratio) > 3.0) {
+                                ++areaOver[k];
+                                if (ai.status == AreaStatus::Full) ++areaOverFull[k];
+                            }
+                        }
+                    }
+                }
                 const LineIndex* ls[3] = {&li, &lu, &lc};
                 for (int k = 0; k < 3; ++k) {
                     if (!ls[k]->computable) ++unc[k];
@@ -2514,6 +2563,52 @@ int cmdCorrect(const Args& a) {
         }
         std::printf("  rows outside every line item: %zu checked, |D_n| > 3 sigma: corrected %zu, clean %zu (uncomputable %zu, %zu); columns: %zu checked, corrected %zu, clean %zu (uncomputable %zu, %zu)\n",
                     rowsN, rowsI, rowsC, rowsUncI, rowsUncC, colsN, colsI, colsC, colsUncI, colsUncC);
+
+        // QA-A-265: the same rows and columns under the imaging-area contract (extent = the area, both reference lines inside the area)
+        size_t aRowsN = 0, aRowsI = 0, aRowsC = 0, aColsN = 0, aColsI = 0, aColsC = 0, aRowsUncI = 0, aRowsUncC = 0, aColsUncI = 0, aColsUncC = 0;
+        auto areaCount = [&](const std::vector<float>& img, const Rect& q, size_t* over3, size_t* uncomputable) {
+            const xpe_bpm_eval::AreaLineIndex l = xpe_bpm_eval::lineIndexInArea(img.data(), t.w, t.h, q, area);
+            if (!l.measured()) return false;
+            if (!l.li.computable) ++*uncomputable;
+            else if (std::fabs(l.li.dn) > 3.0 * l.li.sigmaPred) ++*over3;
+            return true;
+        };
+        for (int y = 1; y + 1 < static_cast<int>(t.h); ++y) {
+            if (rowSkip[static_cast<size_t>(y)]) continue;
+            if (!areaCount(I, Rect{area.x0, y, area.x1 - area.x0, 1}, &aRowsI, &aRowsUncI)) continue;
+            ++aRowsN;
+            areaCount(C, Rect{area.x0, y, area.x1 - area.x0, 1}, &aRowsC, &aRowsUncC);
+        }
+        for (int x = 1; x + 1 < static_cast<int>(t.w); ++x) {
+            if (colSkip[static_cast<size_t>(x)]) continue;
+            if (!areaCount(I, Rect{x, area.y0, 1, area.y1 - area.y0}, &aColsI, &aColsUncI)) continue;
+            ++aColsN;
+            areaCount(C, Rect{x, area.y0, 1, area.y1 - area.y0}, &aColsC, &aColsUncC);
+        }
+        const int areaMeasured = areaFull + areaClipped;
+        // QA-A-267 (Codex #236 R236-3): "measured" is what the GEOMETRY allows; a measured part can still be uncomputable (constant or non-finite input), per image. The valid number is the difference.
+        std::printf("  imaging-area contract (area columns %d..%d, rows %d..%d): of %d parts, %d geometrically measurable (%d fully inside, %d cut to the area), not measurable: item outside %d, reference line outside %d, extent < %d %d, extent < thickness %d, outside %d\n"
+                    "      of the measurable parts, uncomputable: corrected %d, no fix %d, clean %d; so valid: corrected %d, no fix %d, clean %d; |ratio| > 3 among the valid: corrected %d, no fix %d, clean %d; among the fully inside valid parts only: corrected %d, no fix %d, clean %d\n"
+                    "      rows outside every line item under the contract: %zu geometrically measurable, uncomputable corrected %zu, clean %zu, beyond 3 sigma: corrected %zu, clean %zu; columns: %zu measurable, uncomputable corrected %zu, clean %zu, beyond 3 sigma: corrected %zu, clean %zu\n",
+                    area.x0, area.x1 - 1, area.y0, area.y1 - 1, parts, areaMeasured, areaFull, areaClipped, areaItemOut, areaRefOut, xpe_bpm_eval::kMinAreaExtent, areaShort, areaThick, areaOutside,
+                    areaUnc[0], areaUnc[1], areaUnc[2], areaMeasured - areaUnc[0], areaMeasured - areaUnc[1], areaMeasured - areaUnc[2], areaOver[0], areaOver[1], areaOver[2], areaOverFull[0], areaOverFull[1], areaOverFull[2],
+                    aRowsN, aRowsUncI, aRowsUncC, aRowsI, aRowsC, aColsN, aColsUncI, aColsUncC, aColsI, aColsC);
+        char ab[3200];
+        std::snprintf(ab, sizeof ab,
+                      "    \"area_contract\": {\"area\": [%d, %d, %d, %d], \"parts\": %d, \"measured\": %d, \"geometry_measurable\": %d, \"fully_inside\": %d, \"cut_to_area\": %d,\n"
+                      "      \"not_measurable\": {\"item_outside\": %d, \"reference_outside\": %d, \"extent_too_short\": %d, \"extent_below_thickness\": %d, \"outside_area\": %d},\n"
+                      "      \"parts_uncomputable\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d},\n"
+                      "      \"parts_valid\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d},\n"
+                      "      \"parts_over_3_sigma_measured\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d, \"measured\": %d, \"valid_corrected\": %d, \"valid_no_fix\": %d, \"valid_clean\": %d},\n"
+                      "      \"parts_over_3_sigma_fully_inside\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d, \"measured\": %d, \"valid_corrected\": %d, \"valid_no_fix\": %d, \"valid_clean\": %d},\n"
+                      "      \"other_rows\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu, \"uncomputable_corrected\": %zu, \"uncomputable_clean\": %zu, \"valid_corrected\": %zu, \"valid_clean\": %zu},\n"
+                      "      \"other_columns\": {\"checked\": %zu, \"corrected\": %zu, \"clean\": %zu, \"uncomputable_corrected\": %zu, \"uncomputable_clean\": %zu, \"valid_corrected\": %zu, \"valid_clean\": %zu}},\n",
+                      area.x0, area.y0, area.x1, area.y1, parts, areaMeasured, areaMeasured, areaFull, areaClipped, areaItemOut, areaRefOut, areaShort, areaThick, areaOutside,
+                      areaUnc[0], areaUnc[1], areaUnc[2], areaMeasured - areaUnc[0], areaMeasured - areaUnc[1], areaMeasured - areaUnc[2],
+                      areaOver[0], areaOver[1], areaOver[2], areaMeasured, areaMeasured - areaUnc[0], areaMeasured - areaUnc[1], areaMeasured - areaUnc[2],
+                      areaOverFull[0], areaOverFull[1], areaOverFull[2], areaFull, areaFull - areaUncFull[0], areaFull - areaUncFull[1], areaFull - areaUncFull[2],
+                      aRowsN, aRowsI, aRowsC, aRowsUncI, aRowsUncC, aRowsN - aRowsUncI, aRowsN - aRowsUncC, aColsN, aColsI, aColsC, aColsUncI, aColsUncC, aColsN - aColsUncI, aColsN - aColsUncC);
+        json += ab;
         char b[900];
         std::snprintf(b, sizeof b,
                       "    \"parts_over_3_sigma\": {\"corrected\": %d, \"no_fix\": %d, \"clean\": %d, \"parts\": %d},\n"

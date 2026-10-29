@@ -1,0 +1,13 @@
+@echo off
+rem QA-A-274 2-1: HEAD-only build (git archive HEAD extracted to D:\xpe-h274a). Read-only for the working tree.
+set "PATH=C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem"
+call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
+set "CMK=C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe"
+set "DEPS=D:\workspace-github\xpe-pre\build\ci-preprocess\_deps"
+set "LOG=D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-274\step2-1"
+cd /d D:\xpe-h274a
+"%CMK%" --preset ci-preprocess -DFETCHCONTENT_SOURCE_DIR_SPDLOG=%DEPS%\spdlog-src -DFETCHCONTENT_SOURCE_DIR_NLOHMANN_JSON=%DEPS%\nlohmann_json-src -DFETCHCONTENT_SOURCE_DIR_FMT=%DEPS%\fmt-src -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=%DEPS%\googletest-src > "%LOG%\head-configure.log" 2>&1
+echo CONFIGURE_EXIT=%errorlevel%
+if errorlevel 1 exit /b 1
+"%CMK%" --build --preset ci-preprocess > "%LOG%\head-build.log" 2>&1
+echo BUILD_EXIT=%errorlevel%

@@ -1,0 +1,39 @@
+"""QA-A-265: (1) the old-definition figures of the new runs against QA-A-260's JSON (must be identical: the tool change must not touch the old definition), (2) old and new figures side by side per edition and frame.
+Usage: PYTHONIOENCODING=utf-8 python -X utf8 71_compare_old_new.py.txt > 74_compare_result.txt"""
+import json
+
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+EV5 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-265/evidence/'
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+ok_all = True
+for tag, old, new in (('first edition (v1)', '44_correct_v1.json.txt', '72_correct_v1_area.json.txt'), ('second edition (v2)', '45_correct_v2.json.txt', '73_correct_v2_area.json.txt')):
+    jo = json.load(open(EV8 + old, encoding='utf-8'))
+    jn = json.load(open(EV5 + new, encoding='utf-8'))
+    say('=' * 130)
+    say(tag)
+    for f, (fo, fn) in enumerate(zip(jo['frames'], jn['frames'])):
+        same = True
+        for key in ('correction_error', 'line_index', 'parts_over_3_sigma', 'parts_uncomputable', 'other_rows', 'other_columns'):
+            if fo[key] != fn[key]:
+                same = False
+                say('  frame %d: the old-definition field %s DIFFERS from QA-A-260' % (f + 1, key))
+        ok_all = ok_all and same
+        a = fn['area_contract']
+        po, pn = fo['parts_over_3_sigma'], a['parts_over_3_sigma_measured']
+        say('  frame %d: old definition identical to QA-A-260: %s' % (f + 1, 'yes' if same else 'NO'))
+        say('      OLD  (whole rectangle)       parts %3d: corrected %3d  no fix %3d  clean %3d      rows outside items: %4d checked, corrected %3d, clean %3d; columns: %3d checked, corrected %2d, clean %2d' %
+            (po['parts'], po['corrected'], po['no_fix'], po['clean'], fo['other_rows']['checked'], fo['other_rows']['corrected'], fo['other_rows']['clean'], fo['other_columns']['checked'], fo['other_columns']['corrected'], fo['other_columns']['clean']))
+        nm = a['not_measurable']
+        say('      NEW  (imaging-area contract) parts %3d: measured %3d (fully inside %d, cut to the area %d); not measurable: item outside %d, reference line outside %d, extent < 8 %d, outside the area %d' %
+            (a['parts'], a['measured'], a['fully_inside'], a['cut_to_area'], nm['item_outside'], nm['reference_outside'], nm['extent_too_short'], nm['outside_area']))
+        say('           over 3 sigma among the %d measured parts: corrected %3d  no fix %3d  clean %3d;  among the %d fully inside parts only: corrected %3d  no fix %3d  clean %3d' %
+            (pn['measured'], pn['corrected'], pn['no_fix'], pn['clean'], a['parts_over_3_sigma_fully_inside']['measured'], a['parts_over_3_sigma_fully_inside']['corrected'], a['parts_over_3_sigma_fully_inside']['no_fix'], a['parts_over_3_sigma_fully_inside']['clean']))
+        say('           rows outside items: %4d checked, corrected %3d, clean %3d; columns: %3d checked, corrected %2d, clean %2d' %
+            (a['other_rows']['checked'], a['other_rows']['corrected'], a['other_rows']['clean'], a['other_columns']['checked'], a['other_columns']['corrected'], a['other_columns']['clean']))
+say('=' * 130)
+say('old-definition figures identical to QA-A-260 in every field of every frame of both editions: %s' % ('YES' if ok_all else 'NO -- stop: the tool change touched the old definition'))

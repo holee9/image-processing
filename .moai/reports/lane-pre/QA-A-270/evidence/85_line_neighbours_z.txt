@@ -1,0 +1,2 @@
+v1 frame 29 | d=1: n 250456 median 1.5932 (baseline 1.6236, +-0.0304) | d=2: n 251191 median 1.5931 (baseline 1.6236, +-0.0305) | d=3: n 251201 median 1.5925 (baseline 1.6236, +-0.0311) | d=4: n 251104 median 1.5926 (baseline 1.6236, +-0.0310)
+v2 frame 29 | d=1: n 250456 median 1.5933 (baseline 1.6236, +-0.0303) | d=2: n 251191 median 1.5933 (baseline 1.6236, +-0.0303) | d=3: n 251201 median 1.5927 (baseline 1.6236, +-0.0309) | d=4: n 251104 median 1.5927 (baseline 1.6236, +-0.0309)

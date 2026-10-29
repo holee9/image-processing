@@ -1,0 +1,10 @@
+## before (HEAD d66927f5 source = 50d58039 xpe_bpm_v2.cpp)
+eff2f7b07cf964eae624cdbfd53946a8d4366576cd7800ce29ae034bab48b67a *build/ci-preprocess/bin/xpe_preprocess.dll
+42174903e130fb2332f9c8ce13b9a2f78385cd3a9eab24511615ebb35ec7a43a *build/ci-preprocess/bin/xpe_bpm_eval.exe
+0f391114e45c6c0eed388480441a8836a60f815c4e99a9b99e7d80f72f781ad8 *build/ci-preprocess/bin/xpe_calib_fixture_gen.exe
+d66927f5597cd5f5de95372a9dba241884ceb1a2
+## after (final fix)
+e248bd47fad5b6086a070d3ed28d82ac28c30e68e635b3e6c4d608f3e33c4b69 *build/ci-preprocess/bin/xpe_preprocess.dll
+42174903e130fb2332f9c8ce13b9a2f78385cd3a9eab24511615ebb35ec7a43a *build/ci-preprocess/bin/xpe_bpm_eval.exe
+0f391114e45c6c0eed388480441a8836a60f815c4e99a9b99e7d80f72f781ad8 *build/ci-preprocess/bin/xpe_calib_fixture_gen.exe
+8015d3be044ae8f095dd394a22c134f955604884d3c793df68998a21fea1e456 *modules/preprocess/src/xpe_bpm_v2.cpp

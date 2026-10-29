@@ -1,0 +1,17 @@
+frame mean (raw) and net signal over the dark mean of Dark_08~14 (11023.96):
+  Bright_17: raw mean 13758.71  net 2734.75
+  Bright_18: raw mean 13950.22  net 2926.25
+  Bright_19: raw mean 13954.39  net 2930.43
+  Bright_20: raw mean 16944.15  net 5920.19
+  Bright_21: raw mean 16959.55  net 5935.59
+  Bright_22: raw mean 16952.70  net 5928.74
+pairwise temporal noise s_ij = std(Y_i - Y_j)/sqrt(2) in percent of the mean (a stationary group gives the same value for every pair):
+  Bright_17 vs 18: 1.1619 %
+  Bright_17 vs 19: 1.1606 %
+  Bright_18 vs 19: 1.0620 %
+  Bright_20 vs 21: 0.7454 %
+  Bright_20 vs 22: 0.7460 %
+  Bright_21 vs 22: 0.7456 %
+D = Bright_17 - mean(Bright_18, Bright_19): variance 2.1330e-04; expected for a stationary frame (1.5 * s_18,19^2) 1.6918e-04; excess 4.4121e-05 (= 0.6642 % in quadrature)
+  shape of the excess (shares of 4.401e-05): rows 0.44, columns 0.20, low frequency (64x64 blocks) 0.01, local 0.35
+  regression of D on the mean image of 18 and 19: slope -0.9100 (a multiplicative difference would show a slope; 0 = none)

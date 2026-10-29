@@ -1,0 +1,66 @@
+[초안 — 적용은 리더가 한다] 대상: docs/project/api-spec.md. QA-A-266·266b (이슈 #273). 아래 세 곳을 고친다.
+
+## (1) §0 내보내기 목록과 §4 개수 표
+- `xpe_preprocess` 줄에 `xpe_verify_offset_signed`, `xpe_verify_offset_signed_file` 두 이름을 알파벳 순서에 맞게 끼운다.
+- 개수 (`QA-A-269/evidence/10_count_exports.py.txt`, 헤더에서 센다: 주석과 전처리 줄을 지운 뒤 `XPE_API <반환형> 이름(` 선언의 서로 다른 이름 수. DLL export 표의 덤프가 아니다):
+  - **새 함수 두 개의 증분: +2** (`xpe_verify_offset_signed`, `xpe_verify_offset_signed_file`; 같은 방식으로 센 dev/preprocess 에서 QA-A-266 직전 `dc64ee7e` 54 → `59e5602d` 56, 사라진 선언 없음).
+  - **통합 HEAD 의 전체 수: 56** (`59e5602d`, Codex #239 의 독립 집계 56 과 같다). 현재 문서의 49 에 단순히 +2 를 해 51 로 적으면 틀린다.
+  - 문서의 49 는 이미 낡았다. 같은 스크립트로 센 main(`330f4b3d`)은 **50**이고, dev/preprocess 는 main 에 없는 4개(`xpe_bpm_blobs`, `xpe_bpm_find_lines`, `xpe_bpm_generate_v2`, `xpe_defect_correct_ex`)와 새 함수 2개를 더 가졌다(50 + 4 + 2 = 56). main 의 50 과 문서의 49 가 1 어긋나는 이유는 확인하지 않았다.
+  - 합계(122)와 목록은 이 카드가 정하지 않는다. **통합 PR 에서 §0 의 목록·개수·합계를 생성 스크립트로 한꺼번에 다시 만든다**(나머지 모듈의 수도 같은 방식으로 확인해야 한다). 이 초안은 preprocess 의 56 과 증분 +2 만 근거로 한다.
+- §4 비고 칸: `2026-10-17 xpe_verify_offset_signed(_file) 추가 (QA-A-266)`.
+
+## (2) §6.22 신설 — 부호 있는 offset 품질 (QA-A-266, 266b)
+
+### 6.22 xpe_verify_offset_signed / xpe_verify_offset_signed_file
+
+```c
+XPE_API XpeErrorCode xpe_verify_offset_signed(const XpeImageBuffer* raw_image, const XpeImageBuffer* offset_map, XpeOffsetQuality* quality);
+XPE_API XpeErrorCode xpe_verify_offset_signed_file(const XpeImageBuffer* raw_image, const char* offset_xcal_path, XpeOffsetQuality* quality);
+```
+
+**무엇을 재는가.** 원시 다크 한 장(`raw_image`, UINT16)과 offset 맵(`offset_map` FLOAT32, 같은 폭·높이, 또는 `.xcal` 파일)으로 보정 잔차 `x = float(raw) − map` 을 0 바닥과 반올림 **이전**에 잰다. `xpe_verify_offset` 은 `xpe_offset_correct` 가 쓴 UINT16 영상(0 바닥·반올림 **이후**)을 읽으므로 음의 DarkBias 를 볼 수 없다(`Dark_16`: 잔차 평균 −4.05 가 UINT16 에서는 +0.19).
+
+**상태가 없다.** 적재된 보정 묶음을 읽지 않고 `xpe_preprocess_init` 이 필요 없다. "같은 맵"은 호출자가 넘긴 맵이다. 결과에 맵 payload 의 SHA-256(float32 바이트열; `.xcal` 헤더의 해시와 다르다)과 크기를 돌려준다. 이 해시는 "이번 측정에 넘긴 맵"의 식별자이고, 파이프라인이 같은 맵을 썼다는 보증이 아니다. 호출 중에 입력 버퍼를 바꾸지 않는 것은 호출자의 몫이다.
+
+**파일 변형.** 검증은 모듈의 `.xcal` 리더(형식·종류·SHA-256)를 따르고 **만료는 검사하지 않는다**(저장된 맵의 품질을 재는 것이지 영상에 적용하는 것이 아니다). "적용해도 되는 교정 맵"의 증명으로 읽으면 안 된다.
+
+**결과 구조체 `XpeOffsetQuality` (120바이트, 8바이트 정렬, P/Invoke `Pack = 8`)**
+
+| 오프셋 | 크기 | 필드 | 그룹 비트 | 뜻 |
+|---:|---:|---|---|---|
+| 0 | 4 | `structSize` | — | [입력] 호출자가 컴파일한 `sizeof`, 32 이상 |
+| 4 | 4 | `writtenSize` | — | 쓴 바이트(필드 경계, 아래), 오류면 0 |
+| 8 | 4 | `validMask` | — | 측정되고 쓰인 그룹의 비트, 오류면 0 |
+| 12 | 4 | `roiPixels` | — | 어두운 ROI 화소 수(측정 여부와 무관) |
+| 16 | 8 | `pixelCount` | — | 폭 × 높이 |
+| 24 | 4+4 | `mapWidth`, `mapHeight` | — | 맵 크기 |
+| 32 | 32 | `mapSha256` | `MAP_IDENT` 0x10 | 맵 float32 바이트열의 SHA-256 |
+| 64 | 8 | `darkBiasSigned` | `ROI_SIGNED` 0x01 | ROI 에서 mean(x), 화소값 |
+| 72 | 8 | `dsnuSigned` | `ROI_SIGNED` | ROI 에서 x 의 표본 표준편차 |
+| 80 | 8 | `darkReductionDb` | `DARK_REDUCTION` 0x02 | 20·log10(std(raw ROI) / max(std(x ROI), 1e-9)) |
+| 88 | 8 | `clampRatePct` | `CLAMP_RATE` 0x08 | **프레임 전체**에서 x < 0 인 화소 비율(0 바닥 전, x = 0 은 세지 않음) |
+| 96 | 8 | `zeroOutputRatePct` | `CLAMP_RATE` | **프레임 전체**에서 UINT16 출력이 0 인 화소 비율(반올림 후, x < 0.5) |
+| 104 | 8 | `darkBiasOutput` | `ROI_OUTPUT` 0x04 | ROI 에서 UINT16 출력의 평균. **두 함수가 모두 ROI 를 측정한 경우에만** 옛 `dark_bias` 와 비트 동일(아래 "옛 함수와의 연속성") |
+| 112 | 8 | `dsnuOutput` | `ROI_OUTPUT` | ROI 에서 UINT16 출력의 표본 표준편차. 두 함수가 모두 측정한 경우에만 옛 `dsnu_adu` 와 비트 동일 |
+
+**ROI 와 측정 조건.** ROI 는 원시의 어두운 10분위(`raw < percentile10`, 엄격한 `<`, 원시에 변동이 있을 때)다. `ROI_SIGNED`·`ROI_OUTPUT` 은 ROI 가 **2화소 이상이고 프레임의 1 % 이상**(정수 비교 `roi × 100 ≥ 화소 수`)일 때만 켜진다. `DARK_REDUCTION` 은 거기에 더해 raw ROI 의 표준편차가 0 보다 크고 결과가 유한할 때만 켜진다. 조건이 아니면 비트가 꺼지고 값은 0 이다. `inf`·`nan` 은 어떤 필드에도 들어가지 않는다. (옛 함수와의 차이는 아래 "옛 함수와의 연속성".)
+
+**구조체 크기 규칙(필드 경계).** 쓰는 범위는 호출자의 `structSize` 를 넘지 않는 가장 큰 필드 경계(32, 64, 72, 80, 88, 96, 104, 112, 120)까지다. 필드의 일부만 쓰는 일은 없고 그 경계 밖의 바이트는 건드리지 않는다. 그룹의 필드가 전부 쓰인 범위 안에 있을 때만 그 비트가 켜지고, 아니면 비트는 꺼지고 쓰인 범위 안의 그 그룹 바이트는 0 이다. 비트가 꺼진 필드는 측정값이 아니다. 호출자는 비트를 먼저 확인하고, 비트가 켜졌을 때만 필드를 읽는다. 새 필드는 끝에만 덧붙인다.
+
+**오류.** NULL `quality` 또는 `structSize < 32`: 아무것도 쓰지 않고 `XPE_ERR_INVALID_INPUT`. 그 밖의 모든 오류(NULL `raw_image`·`offset_map`·경로 포함): 쓸 수 있는 `quality` 의 머리 32바이트를 0 으로 만든다(이전 결과가 남지 않는다. `structSize` 는 유지). 코드: `INVALID_INPUT`(NULL, 크기, `dataSize`, 맵 크기 불일치), `UNSUPPORTED_FORMAT`(원시 UINT16·맵 FLOAT32 아님), `INVALID_CALIB_DATA`(맵에 유한하지 않은 값), 파일 리더의 코드, `OUT_OF_MEMORY`, `PROCESSING_FAILED`. 예외는 경계를 넘지 않는다.
+
+**옛 함수와의 연속성 (`xpe_verify_offset`, 규범이 아니라 관측된 호환성).**
+- 같은 raw ROI 를 쓰고 **두 함수가 모두 해당 지표를 측정한 경우**에는 `darkBiasOutput`·`dsnuOutput` 이 같은 offset 출력 산술과 통계로 계산한 `dark_bias`·`dsnu_adu` 와 비트 동일하다. 이번 다크 9장에서는 모두 같았다(그것이 보증은 아니다).
+- **ROI 가 측정 가능한지의 판정이 두 함수에서 다르다**: 새 함수는 `roi × 100 ≥ 화소 수`(정수 비교)와 2화소 이상, 옛 함수는 `roi ≥ ⌊화소 수 / 100⌋` 이고 두 번째 화소 조건이 없다. 화소 수가 100의 배수가 아니고 ROI 가 정확히 `⌊화소 수 / 100⌋` 일 때 옛 함수는 측정하고 새 함수는 측정하지 않는다. 3072 × 3072 에서도 생긴다(전체 9,437,184 화소 중 ROI 94,371 = 0.99999 %: 옛 함수는 측정, 새 함수는 `ROI_OUTPUT` 비트 꺼짐).
+- 한쪽만 측정한 경우 값 0 과 비교하지 않고 **상태(비트)의 차이로 표시**한다. 시험: `VerifyOffsetSigned.TheOutputFiguresAreTheOldFunctionsOnlyWhereBothMeasureAndTheStatesDifferWhereTheRoiRulesDo`(N = 100, 201, 301, 10001).
+- 이 차이는 알려진 호환성 예외로 두고(리더 결정) 별도 후속으로 추적한다. 새 함수의 엄밀한 규칙을 내림으로 되돌리지 않고, 옛 함수를 이 문서 변경에서 바꾸지 않는다. SRS 가 정수 비교를 명확히 정한 뒤에도 옛 함수가 그것에 적합하다고 표시하지 않는다.
+
+**두 단계의 관계(ROI 의 m₀ = mean(max(x,0)), mₛ = mean(min(max(x,0),65535)))**
+- 항상: `m₀ ≥ darkBiasSigned`, `|darkBiasOutput − mₛ| ≤ 0.5`.
+- 포화가 없을 때(ROI 의 모든 x ≤ 65535): `|darkBiasOutput − m₀| ≤ 0.5`. 거기에 x 가 모두 정수면 `darkBiasOutput = m₀ ≥ darkBiasSigned`.
+- 항상 성립하지 **않는** 것: `darkBiasOutput ≥ darkBiasSigned`. 잔차가 모두 +0.2 이면 출력이 0 이고, 모두 65635 이면 `darkBiasSigned` 65635 · `darkBiasOutput` 65535 다.
+
+**합격 판정이 없다.** 이 함수는 한계값을 모르고 `overall_pass` 에 해당하는 값을 내지 않는다. FUNC-016 의 한계(`abs(DarkBias) ≤ 5`)를 부호 있는 값에 적용할지는 승인된 결정이 필요하다.
+
+## (3) §6 머리의 "남은 공개 진입점의 예외 경계(§6.20 (3))" 문장
+`xpe_verify_offset/gain/pipeline` 목록 뒤에 `xpe_verify_offset_signed(_file)` 를 덧붙인다.

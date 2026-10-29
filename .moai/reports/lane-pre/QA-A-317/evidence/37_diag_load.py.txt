@@ -1,0 +1,8 @@
+"""QA-A-317 diagnosis: return codes of the three exported loaders for the C set (and B for contrast), via ctypes."""
+import ctypes, os, sys
+os.add_dll_directory(r"D:\workspace-github\xpe-pre\build\ci-preprocess\bin")
+d = ctypes.CDLL(r"D:\workspace-github\xpe-pre\build\ci-preprocess\bin\xpe_preprocess.dll")
+print("init", d.xpe_preprocess_init(None))
+for tag, base in (("C", "D:/workspace-github/xpe-data/qa-317-tmp/xcal_c/s0_gf"), ("B", "D:/workspace-github/xpe-2g-offline/pre-w3072-20261022-1240/s0_gf/xcal")):
+    for fn, f in (("xpe_calib_load_offset", "offset"), ("xpe_calib_load_gain", "gain"), ("xpe_calib_load_defect_map", "defect")):
+        print(tag, f, getattr(d, fn)(f"{base}/{f}.xcal".encode()))

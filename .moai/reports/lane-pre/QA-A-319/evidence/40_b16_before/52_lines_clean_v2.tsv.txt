@@ -1,0 +1,1 @@
+kind	orientation	index	width	start	end	causes	flags	reason	correction	strength	persistence	stretches

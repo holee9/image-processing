@@ -1,0 +1,25 @@
+--- a/gui/ImageProcTest/MainWindow.xaml
++++ b/gui/ImageProcTest/MainWindow.xaml
+@@ -417,6 +417,10 @@
+             <MenuItem x:Name="ToolsMenu"
+                       AutomationProperties.AutomationId="ToolsMenu"
+                       Header="_Tools">
++                <!-- QA-A-273 (Refs #278): imports two EXISTING output files (A = official 2G X64W, B = new PRE), no vendor DLL, no engine run. -->
++                <MenuItem Header="2G · 신규 PRE 출력 가져오기 비교"
++                          AutomationProperties.AutomationId="PreComparisonImportMenuItem"
++                          Click="PreComparisonImport_Click" />
+                 <MenuItem x:Name="CalibrationSettingsMenuItem"
+                           AutomationProperties.AutomationId="CalibrationSettingsMenuItem"
+                           Header="_Calibration Settings"
+--- a/gui/ImageProcTest/MainWindow.xaml.cs
++++ b/gui/ImageProcTest/MainWindow.xaml.cs
+@@ -839,6 +839,9 @@
+         menuItem.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent, menuItem));
+     }
+ (blank context line)
++    // QA-A-273 (Refs #278): a separate window; nothing of the main window's state, backend or calibration settings is read or changed by it.
++    private void PreComparisonImport_Click(object sender, RoutedEventArgs e) => new Views.ComparisonImportWindow { Owner = this }.ShowDialog();
++
+     private void ExitMenuItem_OnClick(object sender, RoutedEventArgs e)
+     {
+         Close();

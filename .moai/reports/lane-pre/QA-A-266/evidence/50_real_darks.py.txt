@@ -1,0 +1,68 @@
+"""QA-A-266: the signed offset quality on the real dark frames Dark_08..Dark_16, new API against the old one, side by side.
+Usage: PYTHONIOENCODING=utf-8 python -X utf8 50_real_darks.py.txt > 51_real_darks_result.txt
+Method (fixed before the run, committed with the predictions below):
+  map   = D:/workspace-github/xpe-data/bpm-eval-260/clean_set_v1/offset.xcal (the set of QA-A-260..265; its offset map is the mean of Dark_08..Dark_14)
+  raw   = calfiles/Dark_XX.raw, XX = 08..16, 3072 x 3072 UINT16 little endian
+  new   = xpe_verify_offset_signed_file(raw, offset.xcal)          (no init, no loaded set)
+  old   = xpe_offset_correct + xpe_verify_offset on the loaded set (init + load_offset first, in a process of its own for the old route: one process holds one set)
+  numpy = the same quantities recomputed in float64/float32 with numpy and a sorted-copy percentile: x = raw - map in float32, ROI = raw < percentile10 (index floor(0.1 n)), at least 1 %.
+Every figure is printed, none is selected. One run; the method is not changed after the figures are seen.
+PREDICTIONS (written before the run):
+  P1  for every frame the new darkBiasOutput and dsnuOutput equal the old dark_bias and dsnu_adu exactly (bit for bit)
+  P2  the new signed figures equal numpy's within 1e-6 (bias, dsnu), and roiPixels equals numpy's
+  P3  Dark_16: darkBiasSigned about -4.05 (QA-A-263), old dark_bias about +0.19; Dark_15: darkBiasSigned about +1.65, old about +2.34
+  P4  Dark_08..Dark_14 (the frames the map was built from): |darkBiasSigned| below 1.0 pixel value
+  P5  for every frame |darkBiasOutput - mean(max(x,0))| <= 0.5 (the rounding bound), and mean(max(x,0)) >= darkBiasSigned
+  P6  Dark_16 has a clampRatePct clearly higher than Dark_15's (its signed bias is negative, theirs positive)
+  P7  the map identity: mapSha256 is the same for all nine frames and equals the SHA-256 of the 3072 x 3072 float32 payload of offset.xcal
+"""
+import hashlib, sys, ctypes
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-263/evidence/20_dll.py.txt', encoding='utf-8').read())
+
+
+class Q(ctypes.Structure):
+    _fields_ = [('structSize', ctypes.c_uint32), ('writtenSize', ctypes.c_uint32), ('validMask', ctypes.c_uint32), ('roiPixels', ctypes.c_uint32),
+                ('pixelCount', ctypes.c_uint64), ('mapWidth', ctypes.c_uint32), ('mapHeight', ctypes.c_uint32), ('mapSha256', ctypes.c_uint8 * 32),
+                ('darkBiasSigned', ctypes.c_double), ('dsnuSigned', ctypes.c_double), ('darkReductionDb', ctypes.c_double), ('clampRatePct', ctypes.c_double),
+                ('zeroOutputRatePct', ctypes.c_double), ('darkBiasOutput', ctypes.c_double), ('dsnuOutput', ctypes.c_double)]
+
+
+assert ctypes.sizeof(Q) == 120 and Q.mapSha256.offset == 32 and Q.darkBiasSigned.offset == 64 and Q.dsnuOutput.offset == 112, 'XpeOffsetQuality layout'
+LIB.xpe_verify_offset_signed_file.argtypes = [ctypes.POINTER(Buf), ctypes.c_char_p, ctypes.POINTER(Q)]
+LIB.xpe_verify_offset_signed_file.restype = ctypes.c_int32
+
+S = 3072
+n = S * S
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+SETD = 'D:/workspace-github/xpe-data/bpm-eval-260/clean_set_v1/'
+mp = read_payload(SETD + 'offset.xcal', n).reshape(S, S)
+sha_payload = hashlib.sha256(mp.tobytes()).hexdigest()
+print('map payload sha256 %s' % sha_payload)
+init()
+load_set(SETD + 'offset.xcal')
+all_ok = True
+print('%-8s %10s %9s %9s %9s %9s %9s | %10s %9s | %8s %8s | %s' % ('frame', 'signedBias', 'signedDsnu', 'redDb', 'clamp%', 'zeroOut%', 'roiPix', 'outBias', 'outDsnu', 'oldBias', 'oldDsnu', 'checks'))
+for k in range(8, 17):
+    raw = np.fromfile(CAL + 'Dark_%02d.raw' % k, dtype='<u2').reshape(S, S)
+    rb, ra = buf_of(raw)
+    q = Q()
+    q.structSize = ctypes.sizeof(Q)
+    rc = LIB.xpe_verify_offset_signed_file(ctypes.byref(rb), (SETD + 'offset.xcal').encode(), ctypes.byref(q))
+    assert rc == 0, rc
+    old = verify_offset(raw, offset_correct(raw))
+    # numpy reference
+    x = raw.astype(np.float32) - mp
+    thr = np.sort(raw.ravel())[int(n * 0.1)]
+    sel = raw < thr
+    xs = x[sel].astype(np.float64)
+    mc = float(np.maximum(x[sel].astype(np.float64), 0).mean())
+    chk = []
+    chk.append('P1 %s' % ('ok' if (q.darkBiasOutput == old.dark_bias and q.dsnuOutput == old.dsnu_adu) else 'DIFF'))
+    chk.append('P2 %s' % ('ok' if (abs(q.darkBiasSigned - xs.mean()) < 1e-6 and abs(q.dsnuSigned - xs.std(ddof=1)) < 1e-6 and q.roiPixels == int(sel.sum())) else 'DIFF'))
+    chk.append('P5 %s' % ('ok' if (abs(q.darkBiasOutput - mc) <= 0.5 and mc >= q.darkBiasSigned - 1e-9) else 'DIFF'))
+    chk.append('P7 %s' % ('ok' if bytes(q.mapSha256).hex() == sha_payload else 'DIFF'))
+    all_ok = all_ok and all(c.endswith('ok') for c in chk)
+    print('Dark_%02d %10.4f %9.4f %9.3f %9.3f %9.3f %9d | %10.4f %9.4f | %8.4f %8.4f | %s' % (k, q.darkBiasSigned, q.dsnuSigned, q.darkReductionDb, q.clampRatePct, q.zeroOutputRatePct, q.roiPixels,
+                                                                                   q.darkBiasOutput, q.dsnuOutput, old.dark_bias, old.dsnu_adu, ' '.join(chk)))
+print('validMask of the last frame: 0x%02x (all five groups = 0x1f)' % q.validMask)
+print('ALL P1/P2/P5/P7 CHECKS OK' if all_ok else 'SOME CHECK DIFFERS')

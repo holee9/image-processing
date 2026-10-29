@@ -1,0 +1,6 @@
+s0_gf exit 0 192.0 151.1 163.4 155.1 148.4 145.9 156.2 | median_excl_first=155.1 min=145.9 max=163.4
+s1_um300 exit 0 153.4 147.1 144.8 145.3 152.0 147.0 162.8 | median_excl_first=147.1 min=144.8 max=162.8
+s4_csi_pre exit 0 151.8 143.7 150.2 149.8 157.1 151.8 160.8 | median_excl_first=151.8 min=143.7 max=160.8
+s5_csi_post exit 0 156.6 154.9 173.2 156.1 165.2 148.1 148.4 | median_excl_first=156.1 min=148.1 max=173.2
+s6_gad_pre exit 0 143.9 155.2 154.2 146.4 146.5 150.5 155.4 | median_excl_first=154.2 min=146.4 max=155.4
+s7_gad_post exit 0 148.2 149.1 146.3 152.6 144.5 149.2 142.8 | median_excl_first=149.1 min=142.8 max=152.6

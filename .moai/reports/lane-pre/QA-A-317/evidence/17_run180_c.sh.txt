@@ -1,0 +1,14 @@
+#!/bin/bash
+# QA-A-317 copy of build/qa296-work/run180.sh with X = the C calibration sets (only line changed). usage: run180_c.sh OUTROOT CONFIG_JSON_EXTRA
+OUT="$1"; EXTRA="$2"
+export PATH="/d/workspace-github/xpe-pre/build/ci-preprocess/bin:$PATH"
+B=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in
+X=D:/workspace-github/xpe-data/qa-317-tmp/xcal_c
+CFG='{"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true'"$EXTRA"'}'
+mkdir -p "$OUT"
+echo "$CFG" > "$OUT/config.json"
+for s in s0_gf s1_um300 s4_csi_pre s5_csi_post s6_gad_pre s7_gad_post; do
+  mkdir -p "$OUT/$s"
+  ./qa296_run.exe dump "$B/$s/img" "$X/$s/xcal" "$OUT/$s/out" 3072 2560 "$CFG" > "$OUT/$s/run.stdout.txt" 2> "$OUT/$s/run.stderr.txt"
+  echo "$s exit=$?" >> "$OUT/runs.txt"
+done

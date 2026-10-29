@@ -1,0 +1,38 @@
+exec(open('dm3.py').read().split('import math')[0])
+import math
+def rrc(f):
+    ref=smed(f,0); cr=np.median(f-ref,axis=1); f=f-cr[:,None]
+    ref=smed(f,1); cc=np.median(f-ref,axis=0); return f-cc[None,:]
+def zof(D,passes):
+    f=D.copy()
+    for _ in range(passes): f=rrc(f)
+    bg=smed(smed(f,1),0); r=f-bg
+    h,w=r.shape; nby=(h+BLK-1)//BLK; nbx=(w+BLK-1)//BLK; sig=np.zeros((nby,nbx),np.float32)
+    for by in range(nby):
+        for bx in range(nbx):
+            v=np.abs(r[by*BLK:(by+1)*BLK,bx*BLK:(bx+1)*BLK]).ravel(); k=v.size//2
+            sig[by,bx]=1.4826*np.partition(v,k)[k]
+    fx=np.clip((np.arange(w)+0.5)/BLK-0.5,0,nbx-1); fy=np.clip((np.arange(h)+0.5)/BLK-0.5,0,nby-1)
+    x0=fx.astype(int); y0=fy.astype(int); x1=np.minimum(x0+1,nbx-1); y1=np.minimum(y0+1,nby-1); tx=fx-x0; ty=fy-y0
+    s=(1-ty)[:,None]*((1-tx)[None,:]*sig[y0][:,x0]+tx[None,:]*sig[y0][:,x1])+ty[:,None]*((1-tx)[None,:]*sig[y1][:,x0]+tx[None,:]*sig[y1][:,x1])
+    return r/s
+lam=5.315594538546082
+Dd={}
+for name,d in (('p',INJ),('c',CAL)):
+    D=np.zeros((S-MT-MB,S-ML-MR),np.float64)
+    for k in range(8,15): D+=rd(d+'Dark_%02d.raw'%k)
+    Dd[name]=(D/7).astype(np.float32)
+ids=np.fromfile('D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16','<u2').reshape(S,S)[MT:S-MB,ML:S-MR]
+far=np.ones_like(ids,bool)
+# far from any truth item by >2 (chebyshev): dilate
+m=ids!=0
+for dy in range(-2,3):
+    for dx in range(-2,3): far&=~np.roll(np.roll(m,dy,0),dx,1)
+for passes in (1,2,3):
+    zp=zof(Dd['p'],passes); zc=zof(Dd['c'],passes)
+    P_=np.abs(zp)>lam; C_=np.abs(zc)>lam
+    nf=P_&~C_&far
+    print('passes',passes,'DM planted',int(P_.sum()),'clean',int(C_.sum()),'planted-not-clean far from all items',int(nf.sum()),'clean-not-planted far',int((C_&~P_&far).sum()))
+    for y,x in [(349,199),(796,199),(901,2185),(1023,1453),(1095,454),(1253,1246),(1590,2707),(1612,196)]:
+        print('   (%d,%d) zc %.4f zp %.4f'%(y,x,zc[y-MT,x-ML],zp[y-MT,x-ML]))
+    ys,xs=np.nonzero(nf); print('   new list',[(int(a)+MT,int(b)+ML) for a,b in zip(ys,xs)][:20])

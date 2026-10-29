@@ -1,0 +1,42 @@
+"""QA-A-269 R239-3 (draft 01): count the public XPE_API function declarations of xpe_preprocess from the HEADERS, at two revisions, so that the increment of the two new functions and the whole count of the integrated HEAD are
+stated apart. Method (the one of api-spec section 0): every header under modules/preprocess/include, comments removed (block and line), preprocessor lines removed, then every `XPE_API <return type> name(` declaration is one
+function; distinct names. This is a count of header declarations, NOT a dump of the DLL export table.
+Usage: python -X utf8 10_count_exports.py.txt [rev ...]   (default: HEAD and the parent of the first QA-A-266 commit 25be6653)"""
+import re
+import subprocess
+import sys
+
+ROOT = 'D:/workspace-github/xpe-pre'
+
+
+def git(*a):
+    return subprocess.run(['git', '-C', ROOT] + list(a), capture_output=True, text=True, encoding='utf-8', errors='replace').stdout
+
+
+def strip(src):
+    src = re.sub(r'/\*.*?\*/', ' ', src, flags=re.S)
+    src = re.sub(r'//[^\n]*', ' ', src)
+    return '\n'.join(l for l in src.split('\n') if not l.lstrip().startswith('#'))
+
+
+def names_at(rev, subdir='modules/preprocess/include'):
+    files = [f for f in git('ls-tree', '-r', '--name-only', rev, subdir).split('\n') if f.endswith('.h') or f.endswith('.hpp')]
+    out = {}
+    for f in files:
+        body = strip(git('show', rev + ':' + f))
+        for m in re.finditer(r'\bXPE_API\b([^;{}]*?)\b([A-Za-z_]\w*)\s*\(', body):
+            out.setdefault(m.group(2), f)
+    return out
+
+
+revs = sys.argv[1:] or ['HEAD', '25be6653^']
+res = {}
+for r in revs:
+    res[r] = names_at(r)
+    print('%-12s %s: %d distinct XPE_API function declarations in modules/preprocess/include' % (r, git('rev-parse', '--short', r).strip(), len(res[r])))
+if len(revs) == 2:
+    a, b = res[revs[0]], res[revs[1]]
+    print('added between %s and %s: %s' % (revs[1], revs[0], sorted(set(a) - set(b))))
+    print('removed: %s' % sorted(set(b) - set(a)))
+print('names at %s:' % revs[0])
+print(', '.join(sorted(res[revs[0]])))

@@ -50,6 +50,7 @@ struct GhostCorrectorHandle {
     // The defaults below are NOT a calibration -- the forward system they imply has a gain of about 2.45 and
     // "corrects" a constant exposure to nothing -- so a handle without its own lag parameters passes frames through.
     bool calibrated{false};
+    bool hasHistory{false}; // a successful calibrated frame, including a zero frame; cleared by reset
 
     double alpha1{0.9};    // fast component amplitude
     double tau1{1.0};      // fast component time constant (frames)
@@ -63,7 +64,7 @@ struct GhostCorrectorHandle {
     // Tier 3: NLCSC signal-dependent coefficients
     double nlcscBeta{0.1};  // signal dependency parameter
 
-    // Frame history ring buffer (float32 per pixel per history slot)
+    // Recursive float32 history state. This is not the unimplemented 8-16-frame ring (FUNC-014).
     std::vector<float> hist1; // fast IRF accumulator
     std::vector<float> hist2; // slow IRF accumulator
 
@@ -76,7 +77,8 @@ struct GhostCorrectorHandle {
     //   * a frame whose arithmetic provably cannot leave the float range (an upper bound on every intermediate value,
     //     computed from the frame's largest value, the bounds below and the coefficients) is processed IN PLACE: it
     //     cannot fail, so there is nothing to undo;
-    //   * any other frame takes the old route with scratch planes allocated for that call alone.
+    //   * any other frame validates all identical float expressions without writes, then commits in place.
+    //     #245: no next1/next2/backup full planes; a refused validation leaves all observable state unchanged.
     // histBound1/2: upper bounds of |hist1| and |hist2|, kept as the recurrence bound' = (decay * bound + max|frame|),
     // never read from the planes; 0 for an empty history (create, reset).
     double histBound1{0.0};
@@ -163,6 +165,10 @@ void xpe_alert_nonfinite(const char* prefix, size_t count, size_t first, uint32_
  *  false for a null or invalid handle. Not exported; the pipeline asks it so it does not flag an unchanged frame
  *  as ghost-corrected. */
 bool xpe_ghost_is_calibrated(const void* handle) noexcept;
+
+/** Internal pipeline status is produced under the same handle mutex as correction. No public ABI addition. */
+XpeErrorCode xpe_ghost_correct_with_status(void* handle, XpeImageBuffer* img,
+                                         const XpeImageMetadata* meta, bool* bypassed);
 
 float xpe_interpolate_pixel(const float* pixels, const uint8_t* defectMask,
                              uint32_t x, uint32_t y,
@@ -347,6 +353,8 @@ extern XpeGhostTier3Mix xpe_ghost_tier3_mix;
  *  counts the frames that were processed in place. Together they let a test run the same frames both ways and check
  *  that the in-place route is never taken for a frame the other route fails. */
 extern bool xpe_ghost_force_slow_path;
+/** Test-only replay of pre-FUNC-014-fix snapshots; never present in the shipped DLL. */
+extern bool xpe_ghost_legacy_first_frame;
 extern unsigned long xpe_ghost_in_place_frames;
 #endif
 
@@ -525,6 +533,18 @@ struct XpeCalibrationState {
  * Populated by xpe_calib_load_offset / xpe_calib_load_gain / xpe_calib_load_defect_map.
  * ========================================================================= */
 
+/**
+ * QA-A-296 (Refs #278): what the loaded scalar gain file says about the detector's saturation. `known` is false for a
+ * file written before the record existed (and for a polynomial); `determined` is false when the generator found no
+ * pile-up ("undetermined"). (The median of the gain values that gives S_out depends on the defect map as well, so it is not kept
+ * here: xpe_sat_median_for in saturation.cpp computes it per (gain map, defect map) pair.)
+ */
+struct XpeGainSat {
+    bool     known{false};
+    bool     determined{false};
+    uint32_t level{0};
+};
+
 struct CalibrationData {
     // offset_map and defect_map are SHARED so that xpe_offset_correct / xpe_defect_correct can take a
     // reference under the lock and read the map outside it (QA-A-202, #233): a reload in the middle of
@@ -539,6 +559,8 @@ struct CalibrationData {
     // file's expiry (0 = never) and, for gain, its config JSON. The plain loaders write them so the
     // cache can keep them in its entry and judge a later hit as the file read would have.
     int64_t  offset_expiry_ms{0};
+    // Validated XCal config bytes, immutable and shared with cache/save snapshots. No temperature interpretation here.
+    std::shared_ptr<const std::vector<uint8_t>> offset_config;
 
     // gain_map and gain_poly_coeffs are SHARED for the same reason as offset_map (QA-A-202d, Codex #32): a
     // frame takes a CalibSnapshot of the three maps when it starts, and a load that replaces the store while
@@ -557,6 +579,8 @@ struct CalibrationData {
     // hit applies the very same values as the load did (QA-A-200).
     XpeCalibQualityMeta gain_quality{};
     bool     gain_has_quality{false};
+    std::shared_ptr<const std::vector<uint8_t>> gain_config; // original validated config; same generation as gain state
+    XpeGainSat gain_sat;   // QA-A-296: the saturation record of the config above and the median of gain_map; same generation
 
     // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY coefficients, pixel-major --
     // coefficient j of pixel p lives at [p * gain_poly_num_coeffs + j], which
@@ -645,6 +669,7 @@ struct CalibSnapshot {
     std::shared_ptr<float[]>   gain_map;           ///< the scalar plane; null while a polynomial is loaded
     std::shared_ptr<uint32_t[]> gain_defect_idx;   ///< scalar map: ascending indices of the pixels classified defective at load (QA-A-211); null when none
     uint32_t gain_defect_count{0};
+    XpeGainSat gain_sat;                           ///< QA-A-296: the file's saturation record and the scalar plane's median
     std::shared_ptr<float[]>   gain_poly_coeffs;   ///< pixel-major coefficient planes; null for a scalar map
     uint32_t gain_poly_num_coeffs{0};
     bool     gain_poly_has_range{false};
@@ -679,10 +704,26 @@ XpeErrorCode xpe_offset_correct_in(const CalibSnapshot& calib, const XpeImageBuf
 XpeErrorCode xpe_gain_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                  XpeImageBuffer* output, const XpeImageMetadata* metadata,
                                  std::vector<uint32_t>* frame_defects = nullptr);
+/**
+ * QA-A-296 (Refs #278): how a version-1 defect map's long runs of masked pixels are corrected. A run of at least `minRun`
+ * masked pixels along a row (or a column) is a line defect and is interpolated linearly across the line from the nearest
+ * valid pixels on both sides (the same rule as a version-2 file's line layer); every other masked pixel is corrected as before.
+ * The members' defaults are the pipeline's: rows off, columns off (the minimum run and the rule were chosen and judged on the same data;
+ * a default needs an independent check first), minRun 8.
+ * A call that passes nullptr gets the correction as it was before QA-A-296 (no line handling): the single-stage entry points
+ * xpe_defect_correct / xpe_defect_correct_ex keep their output byte for byte.
+ */
+struct XpeDefectLineOptions {
+    bool     rows{false};
+    bool     cols{false};
+    uint32_t minRun{8};
+};
+
 XpeErrorCode xpe_defect_correct_in(const CalibSnapshot& calib, const XpeImageBuffer* input,
                                    XpeImageBuffer* output, const XpeImageMetadata* metadata,
                                    const std::vector<uint32_t>* frame_defects = nullptr,
-                                   XpeDefectCorrectionReport* report = nullptr, std::vector<uint8_t>* low_confidence = nullptr);
+                                   XpeDefectCorrectionReport* report = nullptr, std::vector<uint8_t>* low_confidence = nullptr,
+                                   const XpeDefectLineOptions* line_options = nullptr);
 
 /* =========================================================================
  * Staged calibration loads (QA-A-202c, #233 / Codex #27 A1)
@@ -698,6 +739,7 @@ XpeErrorCode xpe_defect_correct_in(const CalibSnapshot& calib, const XpeImageBuf
 // to a shared_ptr allocates the control block, and a commit must not allocate.
 struct StagedOffset {
     std::shared_ptr<float[]> map;
+    std::shared_ptr<const std::vector<uint8_t>> config;
     uint32_t width{0};
     uint32_t height{0};
     int64_t  timestamp{0};
@@ -706,6 +748,7 @@ struct StagedOffset {
 };
 
 struct StagedGain {
+    std::shared_ptr<const std::vector<uint8_t>> config;
     std::shared_ptr<uint32_t[]> defectIdx;   ///< scalar map: the pixels classified defective, ascending (QA-A-211); their map value is already 1.0
     uint32_t defectCount{0};
     uint32_t defectInBand{0};                ///< how many of them lie in the outermost 64-pixel band (alert detail)
@@ -726,6 +769,7 @@ struct StagedGain {
     double   doseHi{-1.0};
     bool     rangePresent{false};
     bool     rangeUsable{false};
+    XpeGainSat sat;   ///< QA-A-296: scalar maps only
 };
 
 struct StagedDefect {

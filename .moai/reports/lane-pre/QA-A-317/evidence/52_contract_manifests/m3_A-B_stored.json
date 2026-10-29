@@ -1,0 +1,125 @@
+{
+ "schema": "xpe-2g-pre-comparison/4",
+ "input": {
+  "path": "input.raw",
+  "sha256": "7018ddbe02cda8c2dc52a3d068c8187211e7f733374f09f74a24816cdb276185",
+  "correction_state": {
+   "value": "offset-corrected",
+   "status": "unverified",
+   "source": "batch manifest.json does not record the correction state of img/*.raw"
+  },
+  "mode": "2G batch-20261022-1230 s4_csi_pre",
+  "width": 3072,
+  "height": 2560
+ },
+ "roi": {
+  "x": 15,
+  "y": 2,
+  "width": 3040,
+  "height": 2466
+ },
+ "engines": {
+  "A": {
+   "engine_id": "samsung-2g-x64w",
+   "engine_identity": {
+    "dll_sha256": "bb03a668990914827e3304774c6a08d4fd03c5b13640c7f7a682820a3e7819f0"
+   },
+   "execution": "imported-file",
+   "input_sha256": "7018ddbe02cda8c2dc52a3d068c8187211e7f733374f09f74a24816cdb276185",
+   "mode": "2G batch-20261022-1230 s4_csi_pre",
+   "maps": {
+    "dark": {
+     "path": "A_dark.raw",
+     "sha256": "a04b7788a21617daca6457c4aedb40596cea485f7dcd06750ec39e1643315160"
+    },
+    "bright": {
+     "path": "A_BrightAvg.raw",
+     "sha256": "898a7e9506251cd72adef75641fa96798bdbaa6b0e890055bce8f6bbce77d67c"
+    },
+    "bpm": {
+     "path": "A_BPMap.map",
+     "sha256": "0388065cfd99968a12bfd68b85fa04d61a291d5def46f2e3ffcaacfbe1e512af"
+    }
+   },
+   "applied_settings": {
+    "offset": "applied",
+    "gain": "applied",
+    "defect": "applied",
+    "status": "unverified",
+    "source": "run_batch.py passes DarkPath/BrightPath/BPMPath; which steps the DLL applied is not recorded"
+   },
+   "output": {
+    "path": "A_out.raw",
+    "sha256": "0111ea538ece7cd18e631f312cd343fe6b8032bf79b76b15d91e049506e18079",
+    "dtype": "uint16",
+    "endian": "little",
+    "width": 3072,
+    "height": 2560,
+    "stride_bytes": 6144,
+    "offset_bytes": 0,
+    "stage": "engine-direct",
+    "units": "pixel value",
+    "layout": {
+     "origin": "top-left",
+     "row_order": "top-to-bottom",
+     "column_order": "left-to-right",
+     "value_transform": "identity",
+     "status": "verified",
+     "source": "QA-A-296 cmp2g_out_final.txt: index-by-index normal-class match 99.963 % between A and B arrays"
+    }
+   }
+  },
+  "B": {
+   "engine_id": "new-pre",
+   "engine_identity": {
+    "source_head": "2f7ed06b3ff4b8289cdc9b6a610fbdeda3d94241",
+    "config_sha256": "4fdf017761d29bbda091655db5fab3fa3abb1f0ef18c5943161e809ac517a167"
+   },
+   "execution": "imported-file",
+   "input_sha256": "7018ddbe02cda8c2dc52a3d068c8187211e7f733374f09f74a24816cdb276185",
+   "mode": "2G batch-20261022-1230 s4_csi_pre",
+   "maps": {
+    "offset": {
+     "path": "B_offset.xcal",
+     "sha256": "97bac341009a54fea6fe3d8d4b0f88f732b3d1f93545caa9337b37acfa2f4d04"
+    },
+    "gain": {
+     "path": "B_gain.xcal",
+     "sha256": "a5b109d03e54aa4c4c09a24b39a08a32db30771e6fbd009751cd9f21685000a8"
+    },
+    "defect": {
+     "path": "B_defect.xcal",
+     "sha256": "5a903847b1cf988d4bfe4d44eee97a230c8191814101be0a2873dcc8da4aca29"
+    }
+   },
+   "applied_settings": {
+    "offset": "not-applied",
+    "gain": "applied",
+    "defect": "applied",
+    "status": "verified",
+    "source": "pre_config.json: bypassOffset true, gain and defect stages not bypassed"
+   },
+   "output": {
+    "path": "B_out.f32",
+    "sha256": "3cafef8497790fce09d61a5a8688f26263cd3caab354ab352969929e9fcf6329",
+    "dtype": "float32",
+    "endian": "little",
+    "width": 3072,
+    "height": 2560,
+    "stride_bytes": 12288,
+    "offset_bytes": 0,
+    "stage": "engine-direct",
+    "units": "pixel value",
+    "layout": {
+     "origin": "top-left",
+     "row_order": "top-to-bottom",
+     "column_order": "left-to-right",
+     "value_transform": "identity",
+     "status": "verified",
+     "source": "QA-A-296 cmp2g_out_final.txt: index-by-index normal-class match 99.963 % between A and B arrays"
+    }
+   }
+  }
+ },
+ "comparison_kind": "stored-array-difference"
+}

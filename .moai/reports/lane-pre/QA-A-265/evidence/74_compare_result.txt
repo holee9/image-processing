@@ -1,0 +1,26 @@
+==================================================================================================================================
+first edition (v1)
+  frame 1: old definition identical to QA-A-260: yes
+      OLD  (whole rectangle)       parts 142: corrected  75  no fix  13  clean   8      rows outside items: 2611 checked, corrected 248, clean 269; columns: 369 checked, corrected 10, clean  8
+      NEW  (imaging-area contract) parts 142: measured 142 (fully inside 88, cut to the area 54); not measurable: item outside 0, reference line outside 0, extent < 8 0, outside the area 0
+           over 3 sigma among the 142 measured parts: corrected  75  no fix  13  clean   8;  among the 88 fully inside parts only: corrected  32  no fix   7  clean   5
+           rows outside items: 2608 checked, corrected 246, clean 259; columns: 362 checked, corrected 10, clean  8
+  frame 2: old definition identical to QA-A-260: yes
+      OLD  (whole rectangle)       parts 142: corrected  78  no fix  13  clean   8      rows outside items: 2611 checked, corrected 247, clean 255; columns: 369 checked, corrected  8, clean  8
+      NEW  (imaging-area contract) parts 142: measured 142 (fully inside 88, cut to the area 54); not measurable: item outside 0, reference line outside 0, extent < 8 0, outside the area 0
+           over 3 sigma among the 142 measured parts: corrected  78  no fix  13  clean   8;  among the 88 fully inside parts only: corrected  33  no fix   8  clean   5
+           rows outside items: 2608 checked, corrected 250, clean 261; columns: 362 checked, corrected  8, clean  8
+==================================================================================================================================
+second edition (v2)
+  frame 1: old definition identical to QA-A-260: yes
+      OLD  (whole rectangle)       parts 142: corrected  10  no fix  13  clean   8      rows outside items: 2611 checked, corrected 266, clean 267; columns: 369 checked, corrected  9, clean  8
+      NEW  (imaging-area contract) parts 142: measured 142 (fully inside 88, cut to the area 54); not measurable: item outside 0, reference line outside 0, extent < 8 0, outside the area 0
+           over 3 sigma among the 142 measured parts: corrected   6  no fix  13  clean   8;  among the 88 fully inside parts only: corrected   2  no fix   7  clean   5
+           rows outside items: 2608 checked, corrected 267, clean 262; columns: 362 checked, corrected  9, clean  9
+  frame 2: old definition identical to QA-A-260: yes
+      OLD  (whole rectangle)       parts 142: corrected  15  no fix  13  clean   8      rows outside items: 2611 checked, corrected 261, clean 255; columns: 369 checked, corrected  9, clean  8
+      NEW  (imaging-area contract) parts 142: measured 142 (fully inside 88, cut to the area 54); not measurable: item outside 0, reference line outside 0, extent < 8 0, outside the area 0
+           over 3 sigma among the 142 measured parts: corrected  11  no fix  13  clean   8;  among the 88 fully inside parts only: corrected   5  no fix   8  clean   5
+           rows outside items: 2608 checked, corrected 257, clean 262; columns: 362 checked, corrected  9, clean  9
+==================================================================================================================================
+old-definition figures identical to QA-A-260 in every field of every frame of both editions: YES

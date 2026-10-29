@@ -1,0 +1,28 @@
+==============================================================================================================
+edition A (v1), evaluation frame 1 (Bright_29), planted set
+  dead row (item 1): pixels 3072, flagged on the plane in the line itself 3072 (100.0 %), with a flagged immediate neighbour 33 (1.1 %)
+      residual (corrected - mean of neighbours): mean +11.236, median +10.183, 5 % -35.64, 95 % +61.85, std 29.56
+      mean residual over pixels with unflagged neighbours +11.367 (3039 pixels), with a flagged neighbour -0.843 (33 pixels); share of the line mean carried by the flagged-neighbour pixels -0.1 %
+      pixels beyond 5 sigma of the unflagged-neighbour residual: 1 (carrying 0.4 % of the sum)
+      line index D_n over the whole line: +11.236 pixel values (ratio +12.22); over the imaging area only (rectangle (6, 1165, 3065, 1)): +11.218 pixel values (ratio +12.18)
+      positions along the line of those pixels: [1421]; residuals +154; the line pixels NOT on the defect plane: positions [] (imaging-area margins of this measurement: left 6, right 1, top 2, bottom 1)
+  dead column (item 2): pixels 3072, flagged on the plane in the line itself 3072 (100.0 %), with a flagged immediate neighbour 36 (1.2 %)
+      residual (corrected - mean of neighbours): mean +11.275, median +10.271, 5 % -36.30, 95 % +62.10, std 29.15
+      mean residual over pixels with unflagged neighbours +11.434 (3036 pixels), with a flagged neighbour -2.137 (36 pixels); share of the line mean carried by the flagged-neighbour pixels -0.2 %
+      pixels beyond 5 sigma of the unflagged-neighbour residual: 0 (carrying 0.0 % of the sum)
+      line index D_n over the whole line: +11.275 pixel values (ratio +12.18); over the imaging area only (rectangle (1283, 2, 1, 3069)): +11.249 pixel values (ratio +12.15)
+      positions along the line of those pixels: []; residuals ; the line pixels NOT on the defect plane: positions [] (imaging-area margins of this measurement: left 6, right 1, top 2, bottom 1)
+==============================================================================================================
+edition B (v2), evaluation frame 1 (Bright_29), planted set
+  dead row (item 1): pixels 3072, flagged on the plane in the line itself 3065 (99.8 %), with a flagged immediate neighbour 29 (0.9 %)
+      residual (corrected - mean of neighbours): mean -20.907, median +0.000, 5 % -0.00, 95 % +0.00, std 439.01
+      mean residual over pixels with unflagged neighbours -21.180 (3043 pixels), with a flagged neighbour +7.645 (29 pixels); share of the line mean carried by the flagged-neighbour pixels -0.3 %
+      pixels beyond 5 sigma of the unflagged-neighbour residual: 7 (carrying 100.3 % of the sum)
+      line index D_n over the whole line: -20.907 pixel values (ratio -22.79); over the imaging area only (rectangle (6, 1165, 3065, 1)): +0.072 pixel values (ratio +0.08)
+      positions along the line of those pixels: [0, 1, 2, 3, 4, 5, 3071]; residuals -9141 -9222 -9224 -9186 -9211 -9257 -9210; the line pixels NOT on the defect plane: positions [0, 1, 2, 3, 4, 5, 3071] (imaging-area margins of this measurement: left 6, right 1, top 2, bottom 1)
+  dead column (item 2): pixels 3072, flagged on the plane in the line itself 3069 (99.9 %), with a flagged immediate neighbour 26 (0.8 %)
+      residual (corrected - mean of neighbours): mean -8.919, median +0.000, 5 % -0.00, 95 % +0.00, std 286.83
+      mean residual over pixels with unflagged neighbours -9.044 (3046 pixels), with a flagged neighbour +5.732 (26 pixels); share of the line mean carried by the flagged-neighbour pixels -0.5 %
+      pixels beyond 5 sigma of the unflagged-neighbour residual: 3 (carrying 100.5 % of the sum)
+      line index D_n over the whole line: -8.919 pixel values (ratio -9.63); over the imaging area only (rectangle (1283, 2, 1, 3069)): +0.049 pixel values (ratio +0.05)
+      positions along the line of those pixels: [0, 1, 3071]; residuals -9140 -9177 -9231; the line pixels NOT on the defect plane: positions [0, 1, 3071] (imaging-area margins of this measurement: left 6, right 1, top 2, bottom 1)

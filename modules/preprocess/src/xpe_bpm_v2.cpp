@@ -252,7 +252,8 @@ void slidingMedian(const float* in, float* out, int w, int h, int win, bool alon
 /**
  * Removes the row component, then the column component (QA-A-252b). The component of a row is the median over the row of the difference between the row and the
  * median of the neighbouring rows at the same column, so a gradient along the row cancels and a defect that covers a part of the row moves the median by no more than
- * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. With @p multiplicative the
+ * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. The row component is taken
+ * separately for the even and the odd columns of the row (QA-A-319). With @p multiplicative the
  * component is a factor (the median of the ratio) instead of an offset. Constant over the whole line: removed. Not constant along the line: left for the later steps.
  */
 void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplicative) {
@@ -265,13 +266,32 @@ void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplic
             v -= c;
         }
     };
-    slidingMedian(f, tmp, w, h, win, true);
+    // the reference of the row step: the median of the win rows around the row along the column; at the top and bottom the window is moved inside the image
+    // instead of reflected (QA-A-319). Reflection counts the rows next to the edge twice: on the FT tool frame cut to its imaging area the band rows 2456..2463
+    // were then 10 of the 17 values of the last 4 rows, the reference took the band level and the per-parity row component shifted those ordinary rows.
+    if (h >= win) {
+        std::vector<float> col(static_cast<size_t>(win));
+        for (int x = 0; x < w; ++x)
+            for (int y = 0; y < h; ++y) {
+                const int y0 = std::min(std::max(y - win / 2, 0), h - win);
+                for (int k = 0; k < win; ++k) col[static_cast<size_t>(k)] = f[static_cast<size_t>(y0 + k) * static_cast<size_t>(w) + static_cast<size_t>(x)];
+                tmp[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)] = medianOf(col.data(), col.size());
+            }
+    } else {
+        slidingMedian(f, tmp, w, h, win, true);
+    }
     for (int y = 0; y < h; ++y) {
         float* row = f + static_cast<size_t>(y) * static_cast<size_t>(w);
         const float* ref = tmp + static_cast<size_t>(y) * static_cast<size_t>(w);
-        for (int x = 0; x < w; ++x) line[static_cast<size_t>(x)] = component(row[x], ref[x]);
-        const float c = medianOf(line.data(), static_cast<size_t>(w));
-        for (int x = 0; x < w; ++x) apply(row[x], c);
+        // one component for the even columns and one for the odd columns (QA-A-319): a readout with a different level on the two column parities over a band of rows
+        // (row mod 32 = 24..31 on the FT tool detector) is a component of the row, not of its pixels; with one number per row it stayed and the separable median
+        // (8 band rows of the 17 of the window) took the background of the odd band pixels from the rows outside the band
+        size_t ne = 0, no = 0;
+        for (int x = 0; x < w; x += 2) line[ne++] = component(row[x], ref[x]);
+        const float ce = medianOf(line.data(), ne);
+        for (int x = 1; x < w; x += 2) line[no++] = component(row[x], ref[x]);
+        const float co = no > 0 ? medianOf(line.data(), no) : ce;
+        for (int x = 0; x < w; ++x) apply(row[x], (x & 1) != 0 ? co : ce);
     }
     slidingMedian(f, tmp, w, h, win, false);
     for (int x = 0; x < w; ++x) {
@@ -488,14 +508,21 @@ void rowStretches(const float* f, int w, int h, const Settings& st, LineJob* job
             // The ends: the windows give a coarse stretch (a window that only touches the stretch can still reach the threshold, so the coarse ends lie outside by up to a
             // window). The ends are the change points of the maximum-likelihood fit of one elevated stretch: with m the mean level of the stretch (taken from its core), the
             // stretch is the maximum-sum run of (z - m/2) in the cut z terms, searched within one window length beyond the coarse ends.
+            // QA-A-314: the upper cut is the level of the stretch itself (the median of its uncut core terms), at least 3. With a fixed cut at 3 a strong line (tens of noise
+            // widths) had m = 3 and its ends took in the ordinary pixels of 1.5 to 3 widths next to it (3 to 5 pixels beyond the true end in the B16 measurement). A line whose
+            // core level is 3 or less is cut as before.
             {
                 const int lo2 = std::max(0, a - L), hi2 = std::min(w, b + L);
                 std::vector<double> zt(static_cast<size_t>(hi2 - lo2));
                 for (int t = lo2; t < hi2; ++t) {
                     const double sc = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), t, y)), 1e-9);
-                    zt[static_cast<size_t>(t - lo2)] = std::min(3.0, std::max(-3.0, sign * static_cast<double>(er[t]) / sc));
+                    zt[static_cast<size_t>(t - lo2)] = sign * static_cast<double>(er[t]) / sc;
                 }
                 const int c0 = (b - a >= 2 * L) ? a + L / 2 : a, c1 = (b - a >= 2 * L) ? b - L / 2 : b;
+                std::vector<double> core(zt.begin() + (c0 - lo2), zt.begin() + (c1 - lo2));
+                std::nth_element(core.begin(), core.begin() + static_cast<std::ptrdiff_t>(core.size() / 2), core.end());
+                const double cutHi = std::max(3.0, core[core.size() / 2]);
+                for (double& v : zt) v = std::min(cutHi, std::max(-3.0, v));
                 double    m = 0.0;
                 for (int t = c0; t < c1; ++t) m += zt[static_cast<size_t>(t - lo2)];
                 m /= std::max(1, c1 - c0);

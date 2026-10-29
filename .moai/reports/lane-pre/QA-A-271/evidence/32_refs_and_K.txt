@@ -1,0 +1,11 @@
+references written
+K2 frame 29: planted U equals Cp at all 9185341 pixels outside every truth item: True; truth-item pixels where U != Cp: 250497 of 251843
+K2 frame 30: planted U equals Cp at all 9185341 pixels outside every truth item: True; truth-item pixels where U != Cp: 250523 of 251843
+K1 frame 29: library correct_ex(U) with the ORIGINAL v1 file equals the pipeline output I_v1: True
+K1 frame 29: with the REWRITTEN v1 file (writer of this script) equals the original output: True
+K1 frame 29: ORIGINAL v2 file equals I_v2: True
+K1 frame 29: REWRITTEN v2 file (map, area, line records from the tsv, no blob marks) equals the original output: True; layers_used 1 line_pixels 143889 (original 143889)
+K1 frame 30: library correct_ex(U) with the ORIGINAL v1 file equals the pipeline output I_v1: True
+K1 frame 30: with the REWRITTEN v1 file (writer of this script) equals the original output: True
+K1 frame 30: ORIGINAL v2 file equals I_v2: True
+K1 frame 30: REWRITTEN v2 file (map, area, line records from the tsv, no blob marks) equals the original output: True; layers_used 1 line_pixels 143889 (original 143889)

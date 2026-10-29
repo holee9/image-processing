@@ -1,0 +1,119 @@
+"""QA-A-271 (added after 61_positive_and_pseudo.txt was read; NOT in the committed method, a follow-up of the surprise that a bias of +0.1 / +0.25 sigma LOWERED the cell z by exactly 0.1 / 0.248):
+Part 1: the SIGNED residual (I - Cc) / sigma_local(Cc) at undisturbed pixels and at the oracle line pixels, for the first-edition algorithm (R4) and the second-edition algorithm (R5): if the calibration difference is mostly a one-sided shift, I - Cc is negative nearly everywhere.
+Part 2: pseudo lines as in 60_positive_and_pseudo.py.txt Part 2, with the placement rule relaxed TWICE (the first version required a 24-pixel neighbourhood free of any map pixel, which does not exist: the clean frame's own defects are scattered everywhere, 2 % of the pixels; the second still found
+none for length 400): length 100, no truth item within 3 pixels, no pixel of either edition's map on the line pixels, separation 12 between pseudo lines. Error against the pixel's own value (the truth of a pseudo-line pixel), in units of sigma_local(Cc): bias and standard deviation per algorithm.
+Usage: python -X utf8 62_signed_and_pseudo.py.txt > 63_signed_and_pseudo.txt"""
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-271/evidence/30_lib.py.txt', encoding='utf-8').read()
+exec(compile(src, '30_lib', 'exec'), globals())
+
+mo, mo_lines = oracle_mask_and_lines()
+write_defect(O71 + 'r4_mo_a1.xcal', S, S, mo)
+write_defect(O71 + 'r5_mo_a2.xcal', S, S, mo, None, mo_lines)
+mp1 = np.fromfile(O60 + 'inj_v1_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+mp2 = np.fromfile(O60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+line_pix = np.zeros((S, S), dtype=bool)
+for L in mo_lines:
+    for (ln, a, b) in L['segments']:
+        if L['orientation'] == 0:
+            line_pix[ln, a:b] = True
+        else:
+            line_pix[a:b, ln] = True
+touched = np.zeros((S, S), dtype=bool)
+for k, it in items.items():
+    for (x, y, w, h) in it['rects']:
+        touched[y:y + h, x:x + w] = True
+und = ~touched & ~mp1 & ~mp2
+print('== Part 1: signed residual (I - Cc) / sigma_local(Cc), frame 29')
+U = np.load(O70 + 'U_v2_29.npy')
+Cc = np.load(O71 + 'Cc_29.npy')
+sl = sigma_local(Cc)
+outs = {}
+for r, p in (('R4 (A1, oracle mask)', O71 + 'r4_mo_a1.xcal'), ('R5 (A2, oracle mask)', O71 + 'r5_mo_a2.xcal')):
+    load_defect(p)
+    outs[r], _ = correct_ex(U)
+sg = lambda o, m: ((o.astype(np.float64) - Cc.astype(np.float64)) / np.where(sl > 0, sl, np.nan))[m]
+
+
+def st(v):
+    v = v[np.isfinite(v)]
+    return 'n %8d  mean %+7.3f  median %+7.3f  sd %6.3f  share negative %.3f  median |.| %.3f' % (v.size, v.mean(), np.median(v), v.std(), np.mean(v < 0), np.median(np.abs(v)))
+
+
+print('  undisturbed pixels (no truth item, in neither edition map), U vs Cc:   ' + st(sg(U, und)))
+for kd in ('gain_loss', 'efficiency_loss', 'dead', 'nonlinear', 'noisy'):
+    m = np.zeros((S, S), dtype=bool)
+    for k, it in items.items():
+        if it['cls0'] == 'line' and it['kind'] == kd:
+            for (x, y, w, h) in it['rects']:
+                m[y:y + h, x:x + w] = True
+    m &= (ids != 0) & (ids != 0xFFFF)
+    for r, o in outs.items():
+        print('  oracle line pixels of kind %-16s %-21s %s' % (kd, r, st(sg(o, m))))
+print('  U itself (no correction) at the same line pixels, gain_loss: ' + st(sg(U, (ids != 0) & line_pix & np.isin(ids, [k for k, it in items.items() if it['kind'] == 'gain_loss' and it['cls0'] == 'line']))))
+
+print()
+print('== Part 2: pseudo lines on undisturbed data')
+rng = np.random.default_rng(271)
+tdil = touched.copy()
+for sh in range(1, 4):
+    tdil[sh:, :] |= touched[:-sh, :]; tdil[:-sh, :] |= touched[sh:, :]
+    tdil[:, sh:] |= touched[:, :-sh]; tdil[:, :-sh] |= touched[:, sh:]
+mapany = mp1 | mp2
+lines_p = []
+mask_p = np.zeros((S, S), dtype=np.uint8)
+taken = np.zeros((S, S), dtype=bool)
+specs = [(w, o) for w in (1, 2) for o in (0, 1) for _ in range(60)]
+rng.shuffle(specs)
+tries = 0
+for (w, o) in specs:
+    for _ in range(3000):
+        tries += 1
+        idx = int(rng.integers(40, S - 40))
+        st0 = int(rng.integers(40, S - 40 - 100))
+        if o == 0:
+            win = (slice(idx - 12, idx + w + 12), slice(st0 - 12, st0 + 112))
+            core = (slice(idx, idx + w), slice(st0, st0 + 100))
+        else:
+            win = (slice(st0 - 12, st0 + 112), slice(idx - 12, idx + w + 12))
+            core = (slice(st0, st0 + 100), slice(idx, idx + w))
+        if tdil[core].any() or taken[win].any() or mapany[core].any():
+            continue
+        taken[win] = True
+        if o == 0:
+            mask_p[idx:idx + w, st0:st0 + 100] = 1
+        else:
+            mask_p[st0:st0 + 100, idx:idx + w] = 1
+        lines_p.append(dict(orientation=o, index=idx, width=w, start=st0, end=st0 + 100, causes=1, flags=0, reason=0, correction=1, strength=1.0, persistence=-1.0, segments=[(idx + j, st0, st0 + 100) for j in range(w)], _w=w, _o=o))
+        break
+lines_p.sort(key=lambda L: (L['orientation'], L['index']))
+print('  %d pseudo lines placed (%d tries); pixels %d' % (len(lines_p), tries, int(mask_p.sum())))
+write_defect(O71 + 'pseudo_a1.xcal', S, S, mask_p)
+write_defect(O71 + 'pseudo_a2.xcal', S, S, mask_p, None, [{k: v for k, v in L.items() if not k.startswith('_')} for L in lines_p])
+errs = {}
+for a, p in (('A1', O71 + 'pseudo_a1.xcal'), ('A2', O71 + 'pseudo_a2.xcal')):
+    load_defect(p)
+    out, rep = correct_ex(U)
+    errs[a] = (out.astype(np.float64) - U.astype(np.float64)) / np.where(sl > 0, sl, np.nan)
+    print('  %s: report line_pixels %d isolated %d blob %d' % (a, rep.line_pixels, rep.isolated_pixels, rep.blob_pixels))
+print('  %-10s %-3s %9s %10s %9s %12s' % ('group', 'alg', 'pixels', 'bias', 'sd', 'median |e|'))
+for title, sel in (('all', lambda L: True), ('width 1', lambda L: L['_w'] == 1), ('width 2', lambda L: L['_w'] == 2), ('rows', lambda L: L['_o'] == 0), ('columns', lambda L: L['_o'] == 1)):
+    m = np.zeros((S, S), dtype=bool)
+    for L in lines_p:
+        if sel(L):
+            for (ln, a, b) in L['segments']:
+                if L['orientation'] == 0:
+                    m[ln, a:b] = True
+                else:
+                    m[a:b, ln] = True
+    for a in ('A1', 'A2'):
+        v = errs[a][m]
+        v = v[np.isfinite(v)]
+        print('  %-10s %-3s %9d %+10.4f %9.4f %12.4f' % (title, a, v.size, v.mean(), v.std(), np.median(np.abs(v))))
+
+print()
+print('== the shift between the two calibration sets at undisturbed pixels (frame 29): ratio U / Cc and difference U - Cc')
+Uf, Ccf = U.astype(np.float64), Cc.astype(np.float64)
+ok = und & (Ccf > 0)
+r = Uf[ok] / Ccf[ok]
+dif = (Uf - Ccf)[ok]
+print('  ratio U/Cc: median %.6f  mean %.6f  sd %.6f  p01 %.6f  p99 %.6f   | difference U - Cc: median %.4f  sd %.4f   | sigma_local(Cc) median %.4f   | median Cc %.2f' % (np.median(r), r.mean(), r.std(), np.percentile(r, 1), np.percentile(r, 99), np.median(dif), dif.std(), np.median(sl[ok]), np.median(Ccf[ok])))

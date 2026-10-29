@@ -1,0 +1,45 @@
+"""QA-A-266: corrections of the QA-A-263 report for Codex #233 R233-1, R233-2, R233-3 and the two user decisions. Each replacement asserts that its old text occurs exactly once.
+Usage: python -X utf8 60_fix_report_263.py.txt"""
+P = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-263/report.md'
+s = open(P, encoding='utf-8', newline='').read()
+assert '\r\n' not in s
+
+
+def rep(old, new):
+    global s
+    assert s.count(old) == 1, (s.count(old), old[:60])
+    s = s.replace(old, new)
+
+
+# R233-1: 0.66 % is the square root of a variance difference; it is not "most of" 1.27 %
+rep('이 초과분이 공식 값 1.27 %의 대부분이다.',
+    '이 0.66 %는 분산 차의 제곱근이다. 분산으로 따지면 공식 값 1.2734 %의 약 27 % (0.6642² / 1.2734² = 0.272)이고, "대부분"이 아니다. 나머지는 안정한 프레임에도 있는 시간 잡음과 고정 구조다. `Bright_17` 을 빼도 `Bright_18`·`19` 는 1.09 %로 1.0 % 한계를 넘는다.')
+rep('초과 0.66 %는 첫 프레임의 비정상 변동 |',
+    '1.27 %의 분산 중 약 27 %가 첫 프레임의 비정상 변동. 빼도 18·19 는 1.09 %로 한계 초과 |')
+# R233-2: the dose-dependence verdict is limited to what the pre-registered rule can see
+rep('다섯 평가 그룹 모두 **선량 효과 없음**. 아래를 공개한다.',
+    '다섯 평가 그룹 모두 **이번 비교에서 사전 기준을 넘는 선량 효과를 검출하지 못했다**. "선량 효과가 없다"는 결론이 아니다(분류 규칙이 설명되는 양을 먼저 빼므로 작은 효과는 보이지 않는다. 퍼센트가 아니라 분산(%²) 단위로 다시 따지는 일은 하지 않았다: 미검증). 아래를 공개한다.')
+rep('| 맵의 선량 의존성 | **원인 아님** | 5개 평가 그룹에서 없음 |',
+    '| 맵의 선량 의존성 | **이번 비교에서 사전 기준을 넘는 효과를 검출하지 못함** (원인 배제가 아님) | 5개 평가 그룹에서 기준 미달. 작은 효과는 이 규칙으로 볼 수 없다 |')
+rep('이 데이터는 "한 선량으로 만든 것이 문제"를 지지하지 않는다.',
+    '이 데이터는 "한 선량으로 만든 것이 문제"를 지지하지 않는다(반증도 아니다: 사전 기준을 넘는 효과가 없었다는 뜻이다).')
+# R233-3: no retroactive PASS; the first-frame cause is a hypothesis
+rep('| Bright_17 의 1.27 % | **데이터 한계(첫 프레임 불안정) + 요구 해석 문제** |',
+    '| Bright_17 의 1.27 % | **현 요구(1.0 %) 미달 + 첫 프레임 불안정(원인은 가설, 규칙 아님)** |')
+rep('| Bright_18·19 의 1.09 % | **요구 해석 문제** |',
+    '| Bright_18·19 의 1.09 % | **현 요구(1.0 %) 미달 + 요구 재검토 후보** |')
+rep('| 20·29·30 (0.64~0.78 %) | **요구 해석 문제** |',
+    '| 20·29·30 (0.64~0.78 %) | **현 요구(0.5 % 하드닝) 미달 + 요구 재검토 후보** |')
+rep('이 선량에서는 구조 보정 품질과 무관하게 넘는다 |',
+    '이 선량에서는 구조 보정 품질과 무관하게 넘는다. 소급해서 합격으로 읽지 않는다 |')
+# the correction note at the top, after the first block
+rep('이슈 #273. 코드는 바꾸지 않았다.',
+    '''## 0. 정정 (Codex #233, QA-A-266 에서 반영, 2026-10-17 20:51 KST)
+- R233-1: Bright_17 의 초과 0.66 %는 분산 차의 제곱근이고 공식 값 1.2734 %의 분산 중 약 27 %다. "대부분"이 아니다. `Bright_17` 을 빼도 18·19 는 1.09 %로 1.0 % 한계를 넘는다.
+- R233-2: 맵의 선량 의존성은 "원인 아님"이 아니라 "이번 비교에서 사전 기준을 넘는 효과를 검출하지 못함"이다.
+- R233-3: "요구 해석 문제"를 "현 요구 미달 + 요구 재검토 후보"로 바꿨다. 소급 합격은 없다. 첫 프레임 불안정의 원인은 가설이다.
+- 사용자 결정 기록: ① 평탄도 요구는 그대로 두고 미달로 기록한다. ② 게이트 방향 움직이는 줄 잡음은 기록만 하고 나중에 다룬다.
+
+이슈 #273. 코드는 바꾸지 않았다.''')
+open(P, 'w', encoding='utf-8', newline='\n').write(s)
+print('fixed')

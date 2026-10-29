@@ -1,0 +1,204 @@
+"""QA-A-267 R236-4: re-run of the mutation checks of QA-A-251b (U1..U13) and QA-A-252f (U1..U8) of the evaluation tool, with a runner that PROVES each mutant was compiled in.
+Differences from the old runners (05_mutation_runner.py.txt of 251b, 20_mutation_common.py.txt / 25_mutation_tool.py.txt of 252f), all of which touched no consumer of a mutated header:
+  * the two consumers of the header (the object of the tests' test_bpm_eval.cpp and of the tool's xpe_bpm_eval.cpp) are touched before every build of a mutant;
+  * for every mutant the runner records which consumer objects are newer than the moment the mutant was written, the sha256 of the tests executable and of the tool executable against the baseline's,
+    and the executables' modification times; a mutant whose consumers were not all rebuilt, or whose executable does not differ from the baseline, is INVALID and is not counted;
+  * the return codes of the build (BUILD_EXIT) and of the test run are kept for every step; a failing baseline stops the run before any mutant; after the restore the source hash, a rebuild and a full test run
+    are repeated, and the run ends with an error if they are not as at the start;
+  * step P (before any mutant, announced in PRED): one header mutant is built WITHOUT touching the consumers, to learn whether the old runners' header mutants were compiled in at all.
+Usage: PYTHONIOENCODING=utf-8 python -X utf8 10_revalidate.py.txt   (one process, one build at a time)"""
+import hashlib, os, subprocess, sys, time
+ROOT = 'D:/workspace-github/xpe-pre/'
+SPD = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/'
+BAT = SPD + 'build237.bat'
+TOOLS = ROOT + 'modules/preprocess/tools/'
+CPP = TOOLS + 'xpe_bpm_eval.cpp'
+HPP = TOOLS + 'xpe_bpm_eval_stats.hpp'
+TESTCPP = ROOT + 'modules/preprocess/tests/test_bpm_eval.cpp'
+BD = ROOT + 'build/ci-preprocess/'
+OBJ_TEST = BD + 'modules/preprocess/CMakeFiles/xpe_preprocess_tests.dir/tests/test_bpm_eval.cpp.obj'
+OBJ_TOOL = BD + 'modules/preprocess/CMakeFiles/xpe_bpm_eval.dir/tools/xpe_bpm_eval.cpp.obj'
+EXE_TEST = BD + 'bin/xpe_preprocess_tests.exe'
+EXE_TOOL = BD + 'bin/xpe_bpm_eval.exe'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-267/evidence/11_revalidate_log.txt'
+FILT = 'BpmEval*'
+BS = chr(92)
+NL = bytes([10])
+
+
+def say(t):
+    print(t, flush=True)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def sha(path):
+    return hashlib.sha256(open(path, 'rb').read()).hexdigest()[:16]
+
+
+def build(touch):
+    for f in touch:
+        os.utime(f, None)
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE_TEST, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+def snapshot():
+    return {'obj_test': os.path.getmtime(OBJ_TEST), 'obj_tool': os.path.getmtime(OBJ_TOOL), 'exe_test': os.path.getmtime(EXE_TEST), 'exe_tool': os.path.getmtime(EXE_TOOL),
+            'sha_test': sha(EXE_TEST), 'sha_tool': sha(EXE_TOOL)}
+
+
+# the failing sets the old runs logged (251b 22_mutation_log.txt, 252f 26_mutation_tool_log.txt); 252f U8 was green. Tests that were only added later may add to a set.
+ORIG = {
+    'A1': ['MedianAndPercentileFollowTheDefinition'], 'A2': ['MedianAndPercentileFollowTheDefinition'], 'A3': ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero'],
+    'A4': ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex'],
+    'A5': ['AGroupWithoutAValidSampleIsUncomputableNotZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex'], 'A6': ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns'],
+    'A7': ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns'], 'A8': ['ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex'],
+    'A9': ['ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow'], 'A10': ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement'],
+    'A11': ['InjectRefusesTwoInputsWithTheSameFileName'], 'A12': ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement'],
+    'A13': ['CorrectRunsOnTwoSetsAndReportsTheLineIndex'],
+    'B1': ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'TheQuantumGainIsEstimatedWithoutTheFrameCountBias'], 'B2': ['TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter'],
+    'B3': ['TheNoiseVerdictFollowsTheIntervalAgainstTheLimit'], 'B4': ['TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection'],
+    'B5': ['TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection'], 'B6': ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined'],
+    'B7': ['InjectFollowsTheSpecCountsAndPlacementRules', 'NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'ResponseItemsAreDefectsBelow45PercentAndNormalFrom45Percent'],
+    'B8': [],
+}
+PRED = [
+    '  P  (no touch) a header mutant built WITHOUT touching the consumers is compiled in: both consumer objects get newer and the executables change. Reason: ninja -t deps lists the header for both objects (#deps 29 and 11, VALID).',
+    '     If it is NOT compiled in, every header result of the old runs (251b U1..U8, 252f U2/U3) was a result of a stale executable and must be re-read; the old logs show reds for all of them, which a stale executable cannot give, so I predict compiled in.',
+    '  Q  the baseline passes (all BpmEval tests) and the restore rebuilds to the same source hash and to a passing run.',
+    '  R  every one of the 21 mutants (A1..A13 = 251b U1..U13, B1..B8 = 252f U1..U8) is VALID (all consumers rebuilt, executables differ from the baseline) and red with a failing set that contains the old set;',
+    '     B8 stays green (no item sits at exactly 0.45). Sets may be larger than the old ones because the old runs of 251b used a FAST filter without the slow Correct test and tests were added since.',
+    '  S  the old reports need no correction.',
+]
+MUT = [  # (id, label, path, consumers rebuilt by the mutant, old bytes, new bytes)
+    ('A1', '251b U1', HPP, 'both', b'static_cast<size_t>(q * static_cast<double>(v.size() - 1) + 0.5)', b'static_cast<size_t>(q * static_cast<double>(v.size() - 1))'),
+    ('A2', '251b U2', HPP, 'both', b'v.begin() + static_cast<std::ptrdiff_t>(v.size() / 2), v.end());\n    return v[v.size() / 2];', b'v.begin() + static_cast<std::ptrdiff_t>((v.size() - 1) / 2), v.end());\n    return v[(v.size() - 1) / 2];'),
+    ('A3', '251b U3', HPP, 'both', b'return d == 0.0 ? ZStatus::ZeroSigmaEqual : ZStatus::ZeroSigmaError;', b'return d == 0.0 ? ZStatus::ZeroSigmaError : ZStatus::ZeroSigmaEqual;'),
+    ('A4', '251b U4', HPP, 'both', b'if (!(sigma > 0.0)) return d == 0.0 ? ZStatus::ZeroSigmaEqual : ZStatus::ZeroSigmaError;', b'if (!(sigma > 0.0)) { *z = 0.0; return ZStatus::Valid; }'),
+    ('A5', '251b U5', HPP, 'both', b'bool   computable() const { return !z.empty(); }', b'bool   computable() const { return true; }'),
+    ('A6', '251b U6', HPP, 'both', b'r.sigmaPix = std::sqrt(ss / static_cast<double>(res.size() - 1)) / std::sqrt(1.5);', b'r.sigmaPix = std::sqrt(ss / static_cast<double>(res.size())) / std::sqrt(1.5);'),
+    ('A7', '251b U7', HPP, 'both', b'std::sqrt(1.0 / (static_cast<double>(k) * len) + 0.5 / len)', b'std::sqrt(1.0 / static_cast<double>(len) + 0.5 / len)'),
+    ('A8', '251b U8', HPP, 'both', b'r.computable = std::isfinite(r.dn) && std::isfinite(r.sigmaPred) && r.sigmaPred > 0.0;', b'r.computable = std::isfinite(r.dn) && std::isfinite(r.sigmaPred);'),
+    ('A9', '251b U9', CPP, 'tool', b'if (frac >= 0.5) ++g.detected;', b'if (frac > 0.5) ++g.detected;'),
+    ('A10', '251b U10', CPP, 'tool', b'dilate(t.truthReal, t.w, t.h, 2)', b'dilate(t.truthAny, t.w, t.h, 2)'),
+    ('A11', '251b U11', CPP, 'tool', b'if (!names.insert(baseName(f)).second) {', b'if (!names.insert(baseName(f)).second && f.empty()) {'),
+    ('A12', '251b U12', CPP, 'tool', b'if (id != 0 && id != kSharedId && controlId[id]) ++nNewControl;', b'if (id != 0 && id != kSharedId && controlId[id] && nNew == 0) ++nNewControl;'),
+    ('A13', '251b U13', CPP, 'tool', b'if (!ls[k]->computable) ++unc[k];', b'if (!ls[k]->computable && k < 0) ++unc[k];'),
+    ('B1', '252f U1', CPP, 'tool', b'q.variance = xpe_bpm_eval::medianOf(vars) / xpe_bpm_eval::chiSquareMedianOverNu(nu);', b'q.variance = xpe_bpm_eval::medianOf(vars);'),
+    ('B2', '252f U2', HPP, 'both', b'const double scale = k > 2 ? std::max(1.0, r.chiSquare / static_cast<double>(k - 2)) : 1.0;', b'const double scale = 1.0;'),
+    ('B3', '252f U3', HPP, 'both', b'v.lo = dof * cost / chiSquareQuantile(dof, 0.975) / widen;', b'v.lo = dof * cost / chiSquareQuantile(dof, 0.975);'),
+    ('B4', '252f U4', CPP, 'tool', b'            it.cls = defectClassOfShape(it.shape);' + NL + b'            ++*promoted;', b'            ++*promoted;'),
+    ('B5', '252f U5', CPP, 'tool', b'            it.cls = "undetermined";' + NL + b'            ++*undetermined;', b'            ++*undetermined;'),
+    ('B6', '252f U6', CPP, 'tool', b'sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;', b'sumC += static_cast<double>(s2[i]) / expect;'),
+    ('B7', '252f U7', CPP, 'tool', b'{"efficiency_loss", {0.3, 0.4, 0.44, 0.46, 0.6, 0.7}}};', b'{"efficiency_loss", {0.3, 0.44, 0.46, 0.7}}};'),
+    ('B8', '252f U8', CPP, 'tool', b'r < kResponseDefectBelow - kRatioSlack', b'r < kResponseDefectBelow + kRatioSlack'),
+]
+paths = [CPP, HPP, TESTCPP]
+orig = {p: open(p, 'rb').read() for p in paths}
+h0 = hashlib.sha256(b''.join(orig[p] for p in paths)).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-267 R236-4 re-validation of the evaluation-tool mutation checks. Source hash (tool, header, tests) at the start: ' + h0)
+say('PREDICTIONS (written before any run):')
+for l in PRED:
+    say(l)
+fail = []
+
+
+def restore_all():
+    for p in paths:
+        open(p, 'wb').write(orig[p])
+        os.utime(p, None)
+
+
+try:
+    say('--- step 0: the baseline, unmutated, with both consumers touched')
+    b = build([TESTCPP, CPP])
+    say('build: ' + b)
+    if 'BUILD_EXIT=0' not in b:
+        raise SystemExit('baseline does not build: stopped before any mutant')
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    if rc != 0 or bad:
+        raise SystemExit('baseline is not green: stopped before any mutant')
+    base = snapshot()
+    say('baseline: tests exe sha %s, tool exe sha %s' % (base['sha_test'], base['sha_tool']))
+
+    say('--- step P: header mutant A1 built WITHOUT touching the consumers')
+    mid, label, path, cons, old, new = MUT[0]
+    assert orig[path].count(old) == 1
+    tm = time.time()
+    time.sleep(1.1)
+    open(path, 'wb').write(orig[path].replace(old, new))
+    tw = time.time()
+    b = build([])
+    say('build: ' + b)
+    s = snapshot()
+    say('P: test object rebuilt %s, tool object rebuilt %s, tests exe newer %s, tool exe newer %s, tests exe sha differs %s, tool exe sha differs %s' % (
+        s['obj_test'] >= tw, s['obj_tool'] >= tw, s['exe_test'] >= tw, s['exe_tool'] >= tw, s['sha_test'] != base['sha_test'], s['sha_tool'] != base['sha_tool']))
+    rc, ok, bad = run_tests()
+    say('P: tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+    restore_all()
+    b = build([TESTCPP, CPP])
+    say('restore after P: ' + b)
+    rc, ok, bad = run_tests()
+    say('restore after P: tests exit %d, failed %s' % (rc, bad))
+    if rc != 0:
+        raise SystemExit('the baseline did not come back after step P')
+
+    for mid, label, path, cons, old, new in MUT:
+        for p in paths:
+            open(p, 'wb').write(orig[p])
+            os.utime(p, None)
+        if orig[path].count(old) != 1:
+            say('--- %s (%s): NOT RUN, the old text occurs %d times in the current source' % (mid, label, orig[path].count(old)))
+            fail.append(mid)
+            continue
+        say('--- %s (%s, %s)' % (mid, label, os.path.basename(path)))
+        open(path, 'wb').write(orig[path].replace(old, new))
+        tw = time.time()
+        touch = [TESTCPP, CPP] if cons == 'both' else [CPP]
+        b = build(touch)
+        say('build: ' + b)
+        if 'BUILD_EXIT=0' not in b:
+            say('does not compile: INVALID, not counted')
+            fail.append(mid)
+            continue
+        s = snapshot()
+        need_test = (cons == 'both')
+        ok_obj = (s['obj_tool'] >= tw) and (s['obj_test'] >= tw if need_test else True)
+        ok_exe = (s['exe_tool'] >= tw and s['sha_tool'] != base['sha_tool']) and ((s['exe_test'] >= tw and s['sha_test'] != base['sha_test']) if need_test else True)
+        say('consumers rebuilt %s (test obj %s, tool obj %s); executables newer and different from the baseline %s (tests exe sha %s, tool exe sha %s)' % (
+            ok_obj, s['obj_test'] >= tw, s['obj_tool'] >= tw, ok_exe, s['sha_test'], s['sha_tool']))
+        if not (ok_obj and ok_exe):
+            say('INVALID: the mutant is not proven to be compiled in; it is not counted')
+            fail.append(mid)
+            continue
+        rc, ok, bad = run_tests()
+        want = ORIG[mid]
+        rel = 'same as the old set' if sorted(bad) == sorted(want) else ('contains the old set' if set(want) <= set(bad) else 'DIFFERENT from the old set')
+        say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+        say('result: %s; old set: %s; %s' % ('red' if bad else 'GREEN', want, rel))
+        if mid == 'B8':
+            say('(B8 was green in the old run too)' if not bad else '(B8 was green in the old run: now RED)')
+        if (bad and mid == 'B8') or ((not bad) and mid != 'B8') or rel.startswith('DIFFERENT'):
+            fail.append(mid + ':' + rel)
+finally:
+    restore_all()
+    say('--- restored: touch + rebuild')
+    h1 = hashlib.sha256(b''.join(open(p, 'rb').read() for p in paths)).hexdigest()[:16]
+    say('source hash now: %s (start: %s)' % (h1, h0))
+    b = build([TESTCPP, CPP])
+    say('build: ' + b)
+    rc, ok, bad = run_tests()
+    say('final baseline: tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    say('mutants that differ from the prediction or are invalid: %s' % (fail or 'none'))
+    if h1 != h0 or rc != 0:
+        say('ERROR: the tree is not as at the start')
+        sys.exit(3)

@@ -1,0 +1,19 @@
+Note: Google Test filter = ParallelDeterminism*
+[==========] Running 5 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 5 tests from ParallelDeterminismTest
+[ RUN      ] ParallelDeterminismTest.TheFrameReallyHasAMaskLargeEnoughToSplit
+[       OK ] ParallelDeterminismTest.TheFrameReallyHasAMaskLargeEnoughToSplit (17 ms)
+[ RUN      ] ParallelDeterminismTest.OneThreadAndManyThreadsGiveTheSameBytes
+[       OK ] ParallelDeterminismTest.OneThreadAndManyThreadsGiveTheSameBytes (238 ms)
+[ RUN      ] ParallelDeterminismTest.TheSameHoldsWithTheLineInterpolationOnColumnsAndOff
+[       OK ] ParallelDeterminismTest.TheSameHoldsWithTheLineInterpolationOnColumnsAndOff (239 ms)
+[ RUN      ] ParallelDeterminismTest.FalsificationTheComparisonSeesADifference
+[       OK ] ParallelDeterminismTest.FalsificationTheComparisonSeesADifference (135 ms)
+[ RUN      ] ParallelDeterminismTest.ABadThreadLimitIsARefusal
+[       OK ] ParallelDeterminismTest.ABadThreadLimitIsARefusal (29 ms)
+[----------] 5 tests from ParallelDeterminismTest (659 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 1 test suite ran. (659 ms total)
+[  PASSED  ] 5 tests.

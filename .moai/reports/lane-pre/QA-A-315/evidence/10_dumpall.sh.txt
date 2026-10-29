@@ -1,0 +1,16 @@
+#!/bin/bash
+# usage: dumpall.sh OUTROOT  -> dumps frame 001 for s0,s1,s6 under 4 configs, prints sha256
+export PATH="/d/workspace-github/xpe-pre/build/ci-preprocess/bin:$PATH"
+T=/d/workspace-github/xpe-data/qa-315-tmp
+B=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in
+X=D:/workspace-github/xpe-2g-offline/pre-w3072-20261022-1240
+BASE='"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true'
+R=$1
+for S in s0_gf s1_um300 s6_gad_pre; do
+  mkdir -p $T/in/$S; [ -f $T/in/$S/001.raw ] || cp $B/$S/img/001.raw $T/in/$S/
+  for cfg in "default|" "on|,\"saturationLevel\":12800,\"defectLineInterpolation\":\"rows\"" "gain_only|,\"bypassDefect\":true" "defect_only|,\"bypassGain\":true" "t1|,\"maxThreads\":1"; do
+    n="${cfg%%|*}"; a="${cfg#*|}"; o=$R/$S/$n; rm -rf $o; mkdir -p $o
+    /d/workspace-github/xpe-pre/build/qa296-work/qa296_run.exe dump "$T/in/$S" "$X/$S/xcal" "$o" 3072 2560 "{$BASE$a}" >/dev/null || echo "FAIL $S $n"
+    echo "$S $n $(sha256sum $o/*.f32 | cut -c1-64)"
+  done
+done

@@ -1,0 +1,1 @@
+{"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"saturationLevel":12800,"defectLineInterpolation":"rows"}

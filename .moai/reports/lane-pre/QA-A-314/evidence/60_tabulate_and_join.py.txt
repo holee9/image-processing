@@ -1,0 +1,36 @@
+"""QA-A-314: the B16 row table after the fix (QA-A-256 21_tabulate.py.txt, unchanged, pointed at a folder holding the QA-A-313 first-edition json files and this
+measurement's second-edition json files), and the same rows beside the QA-A-313 table. Usage: PYTHONIOENCODING=utf-8 python 60_tabulate_and_join.py.txt"""
+import io, contextlib, shutil, os
+EV6 = 'D:/workspace-github/xpe-data/qa-314-tmp/ev/'
+E3 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-313/evidence/'
+E4 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-314/evidence/'
+J = 'D:/workspace-github/xpe-data/qa-314-tmp/json/'
+os.makedirs(J, exist_ok=True)
+for f in ('41_score_v1.json.txt', '44_correct_v1.json.txt'): shutil.copy(E3 + f, J + f)
+for f in ('43_score_v2.json.txt', '45_correct_v2.json.txt'): shutil.copy(E4 + f, J + f)
+code = open(EV6 + '21_tabulate.py.txt', encoding='utf-8').read()
+code = code.replace("EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'", "EV = '" + J + "'")
+assert "'2판은 다크 6장(첫 장 건너뜀)'" in code
+code = code.replace("'2판은 다크 6장(첫 장 건너뜀)'", "'두 판 모두 다크 7장(입력 8장에서 첫 장 한 번 제외)'")
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    exec(compile(code, '21_tabulate_pointed_at_314', 'exec'), {'__name__': '__main__'})
+t314 = buf.getvalue()
+def rows(text):
+    out, order = {}, []
+    for line in text.splitlines():
+        if not line.startswith('|') or line.startswith('|---') or line.startswith('| 행'): continue
+        c = [x.strip() for x in line.strip().strip('|').split(' | ')]
+        out[c[0]] = c; order.append(c[0])
+    return out, order
+t313 = open(E3 + '50_b16_table_313.md.txt', encoding='utf-8').read().replace(chr(92) + '|', '|')
+r3, o3 = rows(t313); r4, o4 = rows(t314)
+lines = ['| 행 | 2판 수정 전 (QA-A-313) | 2판 수정 후 (QA-A-314) | 합격 기준 | 판정 (313 → 314) |', '|---|---|---|---|---|']
+for k in o4:
+    a = r3.get(k); b = r4[k]
+    if a is None: lines.append('| %s | (313 에 없음) | %s | %s | → %s |' % (k, b[2], b[3], b[4])); continue
+    lines.append('| %s | %s | %s | %s | %s → %s |' % (k, a[2], b[2], b[3], a[4], b[4]))
+    lines[-1] = lines[-1].replace('|비|', chr(92) + '|비' + chr(92) + '|').replace('|D_n|', chr(92) + '|D_n' + chr(92) + '|')
+open(E4 + '51_b16_table_313_vs_314.md.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
+v1same = all(r3[k][1] == r4[k][1] for k in o4 if k in r3)
+print('rows', len(lines) - 2, 'first-edition column identical to 313:', v1same, 'rows in 313 not in 314:', [k for k in o3 if k not in r4])

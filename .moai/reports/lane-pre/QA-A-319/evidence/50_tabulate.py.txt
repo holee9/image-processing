@@ -1,0 +1,39 @@
+"""QA-A-319: the B16 row table before and after the fix. QA-A-256 21_tabulate.py.txt (git show eaf076f3, unchanged except the folder it reads and the dark-count
+label replaced exactly as in QA-A-314 60_tabulate_and_join.py.txt), run once on the before folder and once on the after folder; first-edition json files from QA-A-313."""
+import io, contextlib, shutil, os
+T = 'D:/workspace-github/xpe-data/qa-319-tmp/'
+E3 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-313/evidence/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-319/evidence/'
+def table(phase):
+    J = T + 'json_' + phase + '/'
+    os.makedirs(J, exist_ok=True)
+    for f in ('41_score_v1.json.txt', '44_correct_v1.json.txt'): shutil.copy(E3 + f, J + f)
+    for f in ('43_score_v2.json.txt', '45_correct_v2.json.txt'): shutil.copy(EV + '40_b16_' + phase + '/' + f, J + f)
+    code = open(T + 'ev256/21_tabulate.py.txt', encoding='utf-8').read()
+    code = code.replace("EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'", "EV = '" + J + "'")
+    assert "'2판은 다크 6장(첫 장 건너뜀)'" in code
+    code = code.replace("'2판은 다크 6장(첫 장 건너뜀)'", "'두 판 모두 다크 7장(입력 8장에서 첫 장 한 번 제외)'")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        exec(compile(code, '21_tabulate_' + phase, 'exec'), {'__name__': '__main__'})
+    return buf.getvalue()
+def rows(text):
+    out, order = {}, []
+    for line in text.splitlines():
+        if not line.startswith('|') or line.startswith('|---') or line.startswith('| 행'): continue
+        c = [x.strip() for x in line.strip().strip('|').split(' | ')]
+        out[c[0]] = c; order.append(c[0])
+    return out, order
+tb, ta = table('before'), table('after')
+rb, ob = rows(tb); ra, oa = rows(ta)
+lines = ['| 행 | 2판 수정 전 (QA-A-319, HEAD d66927f5) | 2판 수정 후 (QA-A-319) | 합격 기준 | 판정 (전 → 후) |', '|---|---|---|---|---|']
+for k in oa:
+    a = rb.get(k); b = ra[k]
+    if a is None: lines.append('| %s | (수정 전에 없음) | %s | %s | → %s |' % (k, b[2], b[3], b[4])); continue
+    lines.append('| %s | %s | %s | %s | %s → %s |' % (k, a[2], b[2], b[3], a[4], b[4]))
+    lines[-1] = lines[-1].replace('|비|', chr(92) + '|비' + chr(92) + '|').replace('|D_n|', chr(92) + '|D_n' + chr(92) + '|')
+open(EV + '50_b16_table_before_vs_after.md.txt', 'w', encoding='utf-8', newline='\n').write('\n'.join(lines) + '\n')
+open(EV + '50_b16_table_raw_before.txt', 'w', encoding='utf-8', newline='\n').write(tb)
+open(EV + '50_b16_table_raw_after.txt', 'w', encoding='utf-8', newline='\n').write(ta)
+changed = [k for k in oa if k in rb and rb[k][2] != ra[k][2]]
+print('rows', len(lines) - 2, 'rows whose second-edition value changed:', changed, 'rows only before:', [k for k in ob if k not in ra])

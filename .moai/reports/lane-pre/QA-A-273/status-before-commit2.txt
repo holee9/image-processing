@@ -1,0 +1,491 @@
+ D .claude/scheduled_tasks.lock
+ M cmake/Platform.cmake
+ M docs/calibration/ALGORITHM-VERIFICATION-GUIDE.md
+ M docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md
+ M docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md
+ M docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md
+ M docs/help/content/index.md
+ M docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md
+ M docs/project/api-spec.md
+ M gui/ImageProcTest.E2E/Program.cs
+ M gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+ M gui/ImageProcTest/App.xaml.cs
+ M gui/ImageProcTest/MainWindow.xaml
+ M gui/ImageProcTest/MainWindow.xaml.cs
+ M gui/ImageProcTest/Models/BackendRuntimeInfo.cs
+ M gui/ImageProcTest/Models/RenderRecord.cs
+ M gui/ImageProcTest/Services/AppSettingsService.cs
+ M gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs
+ M gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs
+ M gui/ImageProcTest/Services/RealXpeBackend.cs
+ M gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+ M gui/ImageProcTest/Views/AnalysisPanel.xaml
+ M gui/ImageProcTest/Views/ComparisonImportWindow.cs
+ M gui/ImageProcTest/help/quick-start.html
+ M gui/ImageProcTest/help/quick-start.ko.html
+ M modules/preprocess/CMakeLists.txt
+ M modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h
+ M modules/preprocess/include/xpe/preprocess_api.h
+ M modules/preprocess/src/calibration_cache.cpp
+ M modules/preprocess/src/ghost_correct.cpp
+ M modules/preprocess/src/pipeline.cpp
+ M modules/preprocess/src/xcal_reader.cpp
+ M modules/preprocess/src/xcal_reader.hpp
+ M modules/preprocess/src/xpe_calib_load_gain.cpp
+ M modules/preprocess/src/xpe_calib_load_offset.cpp
+ M modules/preprocess/src/xpe_calib_save.cpp
+ M modules/preprocess/tests/test_ghost_mix_compare.cpp
+ M modules/preprocess/tests/test_ghost_oracle.cpp
+ M modules/preprocess/tests/test_ghost_oracle_derive.cpp
+ M modules/preprocess/tests/test_ghost_tiers.cpp
+ M modules/preprocess/tests/test_nonlin_lut_apply.cpp
+ M modules/preprocess/tests/test_nonlin_lut_generate.cpp
+ M modules/preprocess/tests/test_nonlin_poly_apply.cpp
+ M modules/preprocess/tests/test_oom_injection.cpp
+ M modules/preprocess/tests/test_output_unchanged_237b.cpp
+ M modules/preprocess/tests/test_pipeline_stage_values.cpp
+ M modules/preprocess/tests/test_xpe_calib_save.cpp
+ M modules/preprocess/tests/test_xpe_preprocess_calibration.cpp
+ M modules/preprocess/tools/xpe_calib_fixture_gen.cpp
+?? .claude/settings.json.bak-hook
+?? .claude/settings.json.bak-rmask
+?? .claude/settings.local.json.lock
+?? .moai/harness/usage-log.jsonl
+?? .moai/lessons-inbox.jsonl
+?? .moai/reports/lane-doc/DOC-06/change-table.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/acquisition-after-decisions.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/change-inventory.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/cli-v2-direct-run.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/closure-audit.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/continue-status.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/current-status.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/decision-evidence.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/doc-application-map.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/doc-evidence.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/doc06-conflicts.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/feature-status.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/final-current-state.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/final-v5-raw-handoff.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/final-validation-handoff.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/followup-build-doc-status.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/frozen-source-manifest-v2.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/frozen-source-manifest-v3.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/frozen-source-manifest-v4.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/frozen-source-manifest-v5.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/frozen-source-manifest.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/ghost-firstframe-finding.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/gui-recovery-v1/bright-conditions-revision.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/gui-recovery-v1/recovery-report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/handoff.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/issue-245-final-state-validation.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/issue-245-full-ctest-validation.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/issue-245-oracle-validation.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/issue-245-validation.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/issue-continuation.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/issue-start.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/issue-validation.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/latest-handoff.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/next-decisions.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/ninja-followup-plan.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/oracle-implementation-results.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/out-of-core-history-proposal.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-defect-oracle-metrics.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-firstframe.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-ghost-memory.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-ghost-report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-offset-config.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-reference-report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-save-active-gain.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-save-scalar-gain.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-save-session.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-save-v2-state.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan-synthetic-producer-report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/plan.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-bright_29-oracle-v3-20261019/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-bright_29-v2-20261019/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-dark15-config/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-dark15-final/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-dark15-handoff-20261019/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-dark15-v2/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-dark_15-oracle-v3-20261019/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-dark_15-v2-20261019/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-flat29-config/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-flat29-final/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-flat29-handoff-20261019/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/real-flat29-v2/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/results.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/review-247-revision.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/review-ghost-memory-request.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/review-request-247.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/review-stripe-request.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/runbook.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/synthetic-poly-report-v1/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/synthetic-producer-report-v1/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/usage.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/v5-final-raw-two-cases/Bright_29/report.md
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/v5-final-raw-two-cases/Dark_15/report.md
+?? .moai/reports/lane-pre/INSTALLER-DOC-20261020-01a15359/research-and-acceptance.md
+?? .moai/reports/lane-pre/PRE-2G-COMPARE-20261020/coordination.md
+?? .moai/reports/lane-pre/PRE-2G-COMPARE-20261020/leader-2g-contract.md
+?? .moai/reports/lane-pre/PRE-2G-COMPARE-20261020/qa-input-provenance.md
+?? .moai/reports/lane-pre/PRE-2G-COMPARE-20261020/reviewer-contract-audit.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/.moai/state/session-memo.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/lists/dark-gui.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/lists/defect-L123.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/lists/gain-L2.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/lists/holdout-L1.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/lists/holdout-L2.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/lists/holdout-L3.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/lists/holdout-dark.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-20261019-doc/mail-draft.ko.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/acquisition-guide-final.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/baseline-build/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/build7-independent-acceptance.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/checks-green-export-build/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/checks-green-export-build/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/checks-red-build/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/checks-red-build/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/claude-route-and-build7-evidence.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/collaboration-ledger.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/decisions-and-data.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/distribution-investigation-20261020-leader.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/final-report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/handoff-facts-addendum.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/handoff-runbook.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/owner-plan.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/pre-20261019T070424691Z-d89b59b7763c48c1b729fe9411939fd9/evaluation-6878ef0fefe147398202ae99a045dea1/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/pre-20261019T070424691Z-d89b59b7763c48c1b729fe9411939fd9/evaluation-8f309f0df47d4210a7b51fda70921d0e/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/pre-20261019T072844456Z-fed88a309e8a45bbbe85e0f0249d440b/evaluation-6170937ee83c45f7830668688880106e/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/01-before-validation.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/02-unconfirmed-input.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/03-overlap-rejected.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/04-recovery-evaluation.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/findings.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/help-render.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/pre-20261019T085023746Z-0421bb1b9d984d2ba0808aebcb54a967/evaluation-a19e472cf0b342b78989fd95a7d8b971/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/step-2.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/step-3.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/step-4.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-01a15358/step-5.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/CASE/lists/dark-gui.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/CASE/lists/defect-L123.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/CASE/lists/gain-L2.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/CASE/lists/holdout-L1.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/CASE/lists/holdout-L2.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/CASE/lists/holdout-L3.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/CASE/lists/holdout-dark.relative.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/GUI_RESULTS/pre-20261019T095626693Z-ad3951e320c94434a176d40da487aae1/evaluation-00fc00adde2a4659b7a7cc5213bad040/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/GUI_RESULTS/pre-20261019T095626693Z-ad3951e320c94434a176d40da487aae1/evaluation-5359a8fdd3254817aafd2b7ca31ce3f5/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/GUI_RESULTS/pre-20261019T095626693Z-ad3951e320c94434a176d40da487aae1/evaluation-c2bf3643ec8d40d687d856c716906471/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/GUI_RESULTS/pre-20261019T095626693Z-ad3951e320c94434a176d40da487aae1/evaluation-eecef1ea5e9742a6bd76a1ef1bd954f8/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/GUI_RESULTS/pre-20261019T095626693Z-ad3951e320c94434a176d40da487aae1/evaluation-fad8684294d549309c43a2127b4dcad9/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-acquisition-01a15358/findings.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-cause-01a15358/findings.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-cause-01a15358/reviewer-note.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/qa-doc-route-followup.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/real-raw-cause-final.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/review-acquisition-reviewer-01a0f0f3.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/review-cause-reviewer-01a0f0f3/review.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/review-distribution-reviewer-01a0f0f3.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/review-scope-reviewer-01a0f0f3.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/review-update-lifecycle-reviewer-01a0f0f3.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/scope-completion-correction.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/scope-qa-01a15358/findings.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/selfcheck-build-1/obj/ImageProcTest.SelfCheck/debug/ImageProcTest.SelfCheck.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/selfcheck-build-1/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/synthetic-39cf8bae/pre-20261019T070415125Z-a02ac2f0ece346a780b287c63bccf9b0/evaluation-8a4943b6ea8a413ebc6fa2a908d5cb12/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/synthetic-45f73f31/pre-20261019T071829375Z-b6b4a49e388e4cad94b1972957b65b04/evaluation-fe063f18eb94418fb8a97a866f7f3dbf/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/synthetic-4e3d84ef/pre-20261019T080428705Z-3597beccf3f04a499fe6c401368b3804/evaluation-1712f37dc0e040119498b939b3623872/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/synthetic-5042cab9/pre-20261019T070857425Z-75a4a49256dc4ad889484d9d44fe8260/evaluation-c5ee133fe8224a1d9e9eb2ba2591425e/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/synthetic-5f115e9a/pre-20261019T072056322Z-a9f3e8edbe0742c2a6dfe77cbc70542b/evaluation-752b0f09d715476aa27e4588e53e1673/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/synthetic-655960ac/pre-20261019T065832370Z-3111f32053564d15b2ccee25e430df97/evaluation-adef3447d98c4935a255bfc48147e2c4/report.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/temp-doc-01a15359/acquisition-doc-verification.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/temp-doc-01a15359/final-verification.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/temp-doc-01a15359/independent-findings.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/temp-doc-01a15359/scope-doc-findings.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/temp-doc-01a15359/scope-doc-verification.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/temporary-qa-doc-coordination.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/temporary-qa-doc-final.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/terminal-pane-restoration.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/ui-six-attempt1.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/update-lifecycle-investigation-20261020-leader.md
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-1/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-1/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-2/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-2/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-3/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-3/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-4/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-4/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-5/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-5/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-6/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-6/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-7/obj/ImageProcTest.CalibrationChecks/debug/ImageProcTest.CalibrationChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/workflow-build-7/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/design-and-acceptance.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/final-installation-report.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/issue-body.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/issue-validation.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/managed-build-1.0.8/obj/ImageProcTest/release_win-x64/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/managed-build-1.0.8/obj/ImageProcTest/release_win-x64/PublishOutputs.ec98dc8ee8.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/payload-1.0.8/DISTRIBUTION-LIMITS.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/settings-build/obj/ImageProcTest/release/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/settings-build/obj/SettingsChecks/release/SettingsChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r2/managed-build-1.0.8/obj/ImageProcTest/release_win-x64/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r2/managed-build-1.0.8/obj/ImageProcTest/release_win-x64/PublishOutputs.ee1719b632.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r2/payload-1.0.8/DISTRIBUTION-LIMITS.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r3/managed-build-1.0.8/obj/ImageProcTest/release_win-x64/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r3/managed-build-1.0.8/obj/ImageProcTest/release_win-x64/PublishOutputs.e400da7a70.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r3/payload-1.0.8/DISTRIBUTION-LIMITS.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/managed-build-1.0.9/obj/ImageProcTest/release_win-x64/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/managed-build-1.0.9/obj/ImageProcTest/release_win-x64/PublishOutputs.1a2f94f099.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/payload-1.0.9/DISTRIBUTION-LIMITS.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/payload-1.0.9/licenses/dcmtk-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/payload-1.0.9/licenses/fmt-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/payload-1.0.9/licenses/microsoft.netcore.app.runtime.win-x64-LICENSE.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/payload-1.0.9/licenses/microsoft.netcore.app.runtime.win-x64-THIRD-PARTY-NOTICES.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/payload-1.0.9/licenses/openjpeg-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r4/payload-1.0.9/licenses/spdlog-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/managed-build-1.0.10/obj/ImageProcTest/release_win-x64/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/managed-build-1.0.10/obj/ImageProcTest/release_win-x64/PublishOutputs.cd248e7f2c.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/payload-1.0.10/DISTRIBUTION-LIMITS.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/payload-1.0.10/licenses/dcmtk-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/payload-1.0.10/licenses/fmt-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/payload-1.0.10/licenses/microsoft.netcore.app.runtime.win-x64-LICENSE.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/payload-1.0.10/licenses/microsoft.netcore.app.runtime.win-x64-THIRD-PARTY-NOTICES.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/payload-1.0.10/licenses/openjpeg-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/test-r5/payload-1.0.10/licenses/spdlog-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/tools/inno-7.1.0/Examples/ISPPExample1License.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/tools/inno-7.1.0/Examples/License.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/tools/inno-7.1.0/Examples/Readme-Dutch.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/tools/inno-7.1.0/Examples/Readme-German.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/tools/inno-7.1.0/Examples/Readme.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/tools/inno-7.1.0/license.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/payload-1.0.0-2/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/payload-1.0.1-4/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/payload-1.0.2-5/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/payload-1.0.2-6/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/product/versions/1.0.0-198c1aec380143d992fb27b9d5beed12/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/product/versions/1.0.0-cc2386ad28b64517a059a9afb25e82c0/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/product/versions/1.0.1-345f5f98a06e435faf4a1b0e1b11a7ff/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/product/versions/1.0.2-49120ff12a574393bd9460b7cc4c0a71/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/product/versions/1.0.2-90ae82ed15154ed6871e02209c58b093/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/product/versions/1.0.2-b19848f018484176be737d727dacdda2/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/transaction-tests/product/versions/1.0.2-cf13e5ceaf65468c8c2e0aacbb27a507/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/managed-build-1.0.10/obj/ImageProcTest/release_win-x64/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/managed-build-1.0.10/obj/ImageProcTest/release_win-x64/PublishOutputs.e94c1003db.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/payload-1.0.10/DISTRIBUTION-LIMITS.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/payload-1.0.10/licenses/dcmtk-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/payload-1.0.10/licenses/fmt-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/payload-1.0.10/licenses/microsoft.netcore.app.runtime.win-x64-LICENSE.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/payload-1.0.10/licenses/microsoft.netcore.app.runtime.win-x64-THIRD-PARTY-NOTICES.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/payload-1.0.10/licenses/openjpeg-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r1/payload-1.0.10/licenses/spdlog-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/managed-build-1.0.11/obj/ImageProcTest/release_win-x64/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/managed-build-1.0.11/obj/ImageProcTest/release_win-x64/PublishOutputs.0fc9fd1c86.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/payload-1.0.11/DISTRIBUTION-LIMITS.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/payload-1.0.11/licenses/dcmtk-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/payload-1.0.11/licenses/fmt-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/payload-1.0.11/licenses/microsoft.netcore.app.runtime.win-x64-LICENSE.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/payload-1.0.11/licenses/microsoft.netcore.app.runtime.win-x64-THIRD-PARTY-NOTICES.TXT
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/payload-1.0.11/licenses/openjpeg-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/user-r2/payload-1.0.11/licenses/spdlog-copyright.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/payload-1.0.0/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/payload-1.0.1/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/payload-1.0.2/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/product/versions/1.0.0-bcb147dd476444c3876911bf41be3e02/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/product/versions/1.0.1-8f31e3573aa84c02aa459ea3c6503978/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/product/versions/1.0.1-e359811bca2c44bf8c9f3b2bc9d7c5e2/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/product/versions/1.0.2-15748a5cd09e4db8934df8a9a28f2cf8/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/product/versions/1.0.2-85279c6e81ed452ab1636a18796735b7/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/product/versions/1.0.2-9c2547b398614242bd573f7838d67ae2/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/independent-fixture/product/versions/1.0.2-cb89fc4afef54ecf9632f478864571b8/owned.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/installed-gui-native/own-data/evidence/20261020-101231-0e9906/runtime-log.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/installed-gui-native/stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/installed-gui-native/stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/installed-pre-smoke/evaluation/report.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/installed-pre-smoke/own-gui-data/evidence/20261020-101116-4bd728/runtime-log.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/review.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/evaluate.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/evaluate.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/generate.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/generate.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/gui-native.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/gui-native.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/reload.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/reload.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/ui.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/ui.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/validate.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/actual-r5/validate.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/design-review.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/final-review.md
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/evaluate.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/evaluate.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/generate.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/generate.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/gui-native.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/gui-native.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/reload.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/reload.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/ui.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/ui.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/validate.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-final-r2/validate.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-user-r1/real-install.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-user-r1/real-install.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-user-r1/test-uninstall.stderr.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/real-user-r1/test-uninstall.stdout.txt
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/status.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-DOC-01a15359/recommendation-and-claude-handoff.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-DOC-01a15359/research.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/final-optimization-report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/additional-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/additional-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/additional-existing-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/additional-existing-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/additional-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/additional-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/eval-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/eval-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/evaluate-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/evaluate-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/evaluate-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/evaluate-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/generate.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/baseline_7d18b/generate.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/additional-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/additional-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/additional-existing-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/additional-existing-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/additional-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/additional-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/eval-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/eval-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/evaluate-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/evaluate-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/evaluate-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/evaluate-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/generate.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/forward_5d13b/generate.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/additional-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/additional-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/additional-existing-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/additional-existing-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/additional-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/additional-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/eval-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/eval-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/evaluate-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/evaluate-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/evaluate-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/evaluate-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/generate.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/reverse_5d13b/generate.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/additional-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/additional-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/additional-existing-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/additional-existing-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/additional-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/additional-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/eval-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/eval-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/evaluate-dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/evaluate-dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/evaluate-flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/evaluate-flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/generate.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/native-results/threegroups_5d11b/generate.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/used-dark-five.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/coupled-loo-design.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/experiment-design.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/findings.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/literature-review.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/pilot73-review.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/signal-helper-review.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/training-loo-design.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/uncertainty-and-confirmation-plan.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/native-replay-forward/dark.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/native-replay-forward/dark.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/native-replay-forward/eval-dark/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/native-replay-forward/eval-flat/report.md
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/native-replay-forward/flat.stderr.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/native-replay-forward/flat.stdout.txt
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/review.md
+?? .moai/reports/lane-pre/QA-A-202/evidence/30_lint.txt
+?? .moai/reports/lane-pre/QA-A-260/evidence/.moai/state/session-memo.md
+?? .moai/reports/lane-pre/QA-A-273/builds/baseline/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/QA-A-273/builds/checks1.run.txt
+?? .moai/reports/lane-pre/QA-A-273/builds/checks1/obj/ImageProcTest.ComparisonChecks/debug/ImageProcTest.ComparisonChecks.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/QA-A-273/builds/checks1/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/QA-A-273/builds/gui1/obj/ImageProcTest/debug/ImageProcTest.csproj.FileListAbsolute.txt
+?? .moai/reports/lane-pre/QA-A-273/my-hunks-on-head.patch.txt
+?? .moai/reports/lane-pre/QA-A-273/status-before-commit2.txt
+?? .moai/reports/lane-pre/QA-A-273/worktree-sha-before-commit2.txt
+?? cmake/MsvcNinjaIncludePrefix.cmake
+?? docs/development/PRE-GUI-CALIBRATION-WORKFLOW-DOC-SUPPLEMENT.md
+?? docs/development/PRE-GUI-CALIBRATION-WORKFLOW.md
+?? docs/help/content/dark-quality-metrics.md
+?? docs/superpowers/plans/2026-10-20-pre-comparison-workbench.md
+?? gui/ImageProcTest.CalibrationChecks/ImageProcTest.CalibrationChecks.csproj
+?? gui/ImageProcTest.CalibrationChecks/Program.cs
+?? gui/ImageProcTest/Services/CalibrationStageSelection.cs
+?? gui/ImageProcTest/Services/CalibrationWorkflowService.cs
+?? gui/ImageProcTest/Services/Comparison/ComparisonPaths.cs
+?? gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+?? gui/ImageProcTest/Services/GuiDataPaths.cs
+?? gui/ImageProcTest/Services/Native/CalibrationSetInspector.cs
+?? gui/ImageProcTest/Services/NativeRuntimeEvidence.cs
+?? gui/ImageProcTest/Views/CalibrationWorkflowWindow.cs
+?? modules/preprocess/.moai/state/config-cache.json
+?? modules/preprocess/.moai/state/session-memo.md
+?? modules/preprocess/src/.moai/state/config-cache.json
+?? modules/preprocess/src/.moai/state/session-memo.md
+?? modules/preprocess/tests/test_pre_e2e.cpp
+?? modules/preprocess/tests/test_pre_test_evidence.py
+?? modules/preprocess/tools/.moai/state/config-cache.json
+?? modules/preprocess/tools/.moai/state/session-memo.md
+?? modules/preprocess/tools/xpe_pre_defect_metrics.hpp
+?? modules/preprocess/tools/xpe_pre_e2e.cpp
+?? modules/preprocess/tools/xpe_pre_e2e.hpp
+?? modules/preprocess/tools/xpe_pre_e2e_report.hpp
+?? modules/preprocess/tools/xpe_pre_stripe.hpp
+?? modules/preprocess/tools/xpe_pre_test_evidence.py
+?? tools/calibration/measure_signal_stack.py
+?? tools/calibration/test_measure_signal_stack.py
+?? tools/ci/msvc_include_output.py
+?? tools/ci/test_msvc_include_output.py
+?? tools/ci/verify_msvc_header_dependencies.py
+?? tools/packaging/pre-gui/InstallHost/InstallHost.csproj
+?? tools/packaging/pre-gui/InstallHost/Program.cs
+?? tools/packaging/pre-gui/InstallHost/obj/InstallHost.csproj.nuget.dgspec.json
+?? tools/packaging/pre-gui/InstallHost/obj/InstallHost.csproj.nuget.g.props
+?? tools/packaging/pre-gui/InstallHost/obj/InstallHost.csproj.nuget.g.targets
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/.NETCoreApp,Version=v8.0.AssemblyAttributes.cs
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallH.720B479D.Up2Date
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.AssemblyInfo.cs
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.AssemblyInfoInputs.cache
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.GeneratedMSBuildEditorConfig.editorconfig
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.GlobalUsings.g.cs
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.assets.cache
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.csproj.CoreCompileInputs.cache
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.csproj.FileListAbsolute.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.genbundle.cache
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.genpublishdeps.cache
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.genruntimeconfig.cache
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/InstallHost.sourcelink.json
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/PublishOutputs.1492598de8.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/PublishOutputs.181f6a3cb4.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/PublishOutputs.1ec06cf25d.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/PublishOutputs.21cd1cd08a.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/PublishOutputs.2b40f61954.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/PublishOutputs.8a7561c39b.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/PublishOutputs.c1317f70f1.txt
+?? tools/packaging/pre-gui/InstallHost/obj/Release/net8.0/win-x64/XpeInstallHost.deps.json
+?? tools/packaging/pre-gui/InstallHost/obj/project.assets.json
+?? tools/packaging/pre-gui/InstallHost/obj/project.nuget.cache
+?? tools/packaging/pre-gui/SettingsChecks/Program.cs
+?? tools/packaging/pre-gui/SettingsChecks/SettingsChecks.csproj
+?? tools/packaging/pre-gui/build_candidate.py
+?? tools/packaging/pre-gui/pre-gui.iss

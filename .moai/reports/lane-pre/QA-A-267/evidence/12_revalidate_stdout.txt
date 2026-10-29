@@ -1,0 +1,125 @@
+QA-A-267 R236-4 re-validation of the evaluation-tool mutation checks. Source hash (tool, header, tests) at the start: f02a188829f42cce
+PREDICTIONS (written before any run):
+  P  (no touch) a header mutant built WITHOUT touching the consumers is compiled in: both consumer objects get newer and the executables change. Reason: ninja -t deps lists the header for both objects (#deps 29 and 11, VALID).
+     If it is NOT compiled in, every header result of the old runs (251b U1..U8, 252f U2/U3) was a result of a stale executable and must be re-read; the old logs show reds for all of them, which a stale executable cannot give, so I predict compiled in.
+  Q  the baseline passes (all BpmEval tests) and the restore rebuilds to the same source hash and to a passing run.
+  R  every one of the 21 mutants (A1..A13 = 251b U1..U13, B1..B8 = 252f U1..U8) is VALID (all consumers rebuilt, executables differ from the baseline) and red with a failing set that contains the old set;
+     B8 stays green (no item sits at exactly 0.45). Sets may be larger than the old ones because the old runs of 251b used a FAST filter without the slow Correct test and tests were added since.
+  S  the old reports need no correction.
+--- step 0: the baseline, unmutated, with both consumers touched
+build: BUILD_EXIT=0
+tests exit 0: 52 passed, failed: []
+baseline: tests exe sha df2dd899acf1734e, tool exe sha ffac4c7fbae4ed3a
+--- step P: header mutant A1 built WITHOUT touching the consumers
+build: BUILD_EXIT=0
+P: test object rebuilt True, tool object rebuilt True, tests exe newer True, tool exe newer True, tests exe sha differs True, tool exe sha differs True
+P: tests exit 1: 51 passed, FAILED: ['MedianAndPercentileFollowTheDefinition']
+restore after P: BUILD_EXIT=0
+restore after P: tests exit 0, failed []
+--- A1 (251b U1, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 769aa0e75c08d29d, tool exe sha ee69fffadb3e9243)
+tests exit 1: 51 passed, FAILED: ['MedianAndPercentileFollowTheDefinition']
+result: red; old set: ['MedianAndPercentileFollowTheDefinition']; same as the old set
+--- A2 (251b U2, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 3c5c3d62e1239b5c, tool exe sha bd16afd93922568b)
+tests exit 1: 51 passed, FAILED: ['MedianAndPercentileFollowTheDefinition']
+result: red; old set: ['MedianAndPercentileFollowTheDefinition']; same as the old set
+--- A3 (251b U3, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 7f10e4585ffe7dcf, tool exe sha d45f4e00de345448)
+tests exit 1: 51 passed, FAILED: ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero']
+result: red; old set: ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero']; same as the old set
+--- A4 (251b U4, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha c6117b7e915e389b, tool exe sha be87c89754deff97)
+tests exit 1: 50 passed, FAILED: ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+result: red; old set: ['ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']; same as the old set
+--- A5 (251b U5, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha d37c05368a6a7ee7, tool exe sha dff260a35fd9662a)
+tests exit 1: 50 passed, FAILED: ['AGroupWithoutAValidSampleIsUncomputableNotZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+result: red; old set: ['AGroupWithoutAValidSampleIsUncomputableNotZero', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']; same as the old set
+--- A6 (251b U6, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha b4c31c30198e3535, tool exe sha 340b9eabfe93565d)
+tests exit 1: 51 passed, FAILED: ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns']
+result: red; old set: ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns']; same as the old set
+--- A7 (251b U7, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha a2fcd49c15865113, tool exe sha 82e8070763f3397f)
+tests exit 1: 51 passed, FAILED: ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns']
+result: red; old set: ['LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns']; same as the old set
+--- A8 (251b U8, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha b105cb2fb8896f96, tool exe sha a3fab0692888f9f6)
+tests exit 1: 49 passed, FAILED: ['ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped', 'AMeasuredPartCanStillBeUncomputableAndTheContractSaysSo', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+result: red; old set: ['ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped', 'CorrectRunsOnTwoSetsAndReportsTheLineIndex']; contains the old set
+--- A9 (251b U9, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha b621cae7a2c42e9b, tool exe sha 8cb583e912d3acae)
+tests exit 1: 51 passed, FAILED: ['ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow']
+result: red; old set: ['ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow']; same as the old set
+--- A10 (251b U10): NOT RUN, the old text occurs 0 times in the current source
+--- A11 (251b U11, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha b54517eb39a5ccfc, tool exe sha d555f5e4b29dabe3)
+tests exit 1: 51 passed, FAILED: ['InjectRefusesTwoInputsWithTheSameFileName']
+result: red; old set: ['InjectRefusesTwoInputsWithTheSameFileName']; same as the old set
+--- A12 (251b U12, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 4b2438fc4d89bc10, tool exe sha b986fe78b05f2279)
+tests exit 1: 50 passed, FAILED: ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+result: red; old set: ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']; same as the old set
+--- A13 (251b U13, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 1d422d9721704fb5, tool exe sha 7a172ac0e9674e21)
+tests exit 0: 52 passed, FAILED: []
+result: GREEN; old set: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']; DIFFERENT from the old set
+--- B1 (252f U1, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 0896bc081597ea5e, tool exe sha 77b0a7507f5936c1)
+tests exit 1: 49 passed, FAILED: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves', 'TheQuantumGainIsEstimatedWithoutTheFrameCountBias']
+result: red; old set: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'TheQuantumGainIsEstimatedWithoutTheFrameCountBias']; contains the old set
+--- B2 (252f U2, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha bc5c63a90dfa76c5, tool exe sha ab5527b45233e76f)
+tests exit 1: 51 passed, FAILED: ['TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter']
+result: red; old set: ['TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter']; same as the old set
+--- B3 (252f U3, xpe_bpm_eval_stats.hpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha b9f52c28438f428f, tool exe sha 4a9241e7e6dba878)
+tests exit 1: 51 passed, FAILED: ['TheNoiseVerdictFollowsTheIntervalAgainstTheLimit']
+result: red; old set: ['TheNoiseVerdictFollowsTheIntervalAgainstTheLimit']; same as the old set
+--- B4 (252f U4, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 79d6a763f81aab62, tool exe sha e40df95bca86d2ad)
+tests exit 1: 50 passed, FAILED: ['OverlapCombinationTable', 'TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']
+result: red; old set: ['TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']; contains the old set
+--- B5 (252f U5, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha fda1d12ebf7897fb, tool exe sha 7e05629643c5e404)
+tests exit 1: 50 passed, FAILED: ['OverlapCombinationTable', 'TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']
+result: red; old set: ['TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']; contains the old set
+--- B6 (252f U6, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 284238ae250b0cd5, tool exe sha fb347a83e5d38654)
+tests exit 0: 52 passed, FAILED: []
+result: GREEN; old set: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined']; DIFFERENT from the old set
+--- B7 (252f U7, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 74de743045a39bc6, tool exe sha 1386aa8c43f11c8f)
+tests exit 1: 47 passed, FAILED: ['InjectFollowsTheSpecCountsAndPlacementRules', 'NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement', 'TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection']
+result: red; old set: ['InjectFollowsTheSpecCountsAndPlacementRules', 'NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'ResponseItemsAreDefectsBelow45PercentAndNormalFrom45Percent']; DIFFERENT from the old set
+--- B8 (252f U8, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha c8e9f8906840be24, tool exe sha 21c8c0f6c2da58b1)
+tests exit 0: 52 passed, FAILED: []
+result: GREEN; old set: []; same as the old set
+(B8 was green in the old run too)
+--- restored: touch + rebuild
+source hash now: f02a188829f42cce (start: f02a188829f42cce)
+build: BUILD_EXIT=0
+final baseline: tests exit 0: 52 passed, failed: []
+mutants that differ from the prediction or are invalid: ['A10', 'A13:DIFFERENT from the old set', 'B6:DIFFERENT from the old set', 'B7:DIFFERENT from the old set']

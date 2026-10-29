@@ -1,0 +1,24 @@
+## after2 s1_um300 all {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=24.279 min=12.669 median_excl_first=13.183 max=16.016
+## after2 s1_um300 gain_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=5.631 min=4.482 median_excl_first=4.628 max=5.177
+## after2 s1_um300 defect_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=18.345 min=16.042 median_excl_first=16.645 max=17.901
+## after2 s1_um300 both_bypassed {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=0.842 min=0.294 median_excl_first=0.355 max=0.784
+## after2 s0_gf all {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=12.189 min=10.171 median_excl_first=10.589 max=12.038
+## after2 s0_gf gain_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=6.451 min=4.467 median_excl_first=4.750 max=5.790
+## after2 s0_gf defect_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=19.220 min=14.386 median_excl_first=15.209 max=17.741
+## after2 s0_gf both_bypassed {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s0_gf/img/001.raw RUNS=31 first=0.889 min=0.254 median_excl_first=0.285 max=0.614
+## after2 s6_gad_pre all {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=19.935 min=12.843 median_excl_first=13.495 max=17.023
+## after2 s6_gad_pre gain_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=6.041 min=4.479 median_excl_first=4.769 max=5.553
+## after2 s6_gad_pre defect_only {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=21.479 min=17.362 median_excl_first=17.910 max=19.421
+## after2 s6_gad_pre both_bypassed {"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true,"bypassGain":true,"bypassDefect":true}
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=1.054 min=0.244 median_excl_first=0.266 max=0.605

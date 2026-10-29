@@ -1,0 +1,16 @@
+#!/bin/bash
+# step 2-7: HEAD-only verification. git archive HEAD into a fresh folder, build 3 GUI projects, run checks + selfcheck, one at a time.
+REPO=/d/workspace-github/xpe-pre; T=/d/xpe-h274k; OUTW='D:\xpe-h274k-out'; OUT=/d/xpe-h274k-out; L=$REPO/.moai/reports/lane-pre/QA-A-274/step2-7
+cd $REPO; test ! -e $T || exit 9
+mkdir $T && git archive HEAD | tar -x -C $T || exit 9
+: > $L/gui-build.exit.txt
+build() { (cd $T/gui/$1 && dotnet build -c Release -o "$2" > $L/$1-build.log.txt 2>&1; echo "$1 BUILD_EXIT=$? warnings=$(grep -E '경고 [0-9]+개' $L/$1-build.log.txt | tr -d ' ') errors=$(grep -E '오류 [0-9]+개' $L/$1-build.log.txt | tr -d ' ')" | tee -a $L/gui-build.exit.txt); }
+build ImageProcTest.CalibrationChecks "$OUTW"'\PRE-GUI-20261019T063546Z-7f92a1-274e-checks'
+build ImageProcTest.E2E "$OUTW"'\e2e-compile-only'
+build ImageProcTest.SelfCheck 'D:\xpe-h274k\_out\selfcheck'
+C=$OUT/PRE-GUI-20261019T063546Z-7f92a1-274e-checks
+echo "fixed report in fresh checks output before run: $(ls $C | grep -c menu-command)" | tee $L/calibration-checks.exit.txt
+(cd $C && timeout 300 ./ImageProcTest.CalibrationChecks.exe > $L/calibration-checks.log.txt 2>&1; echo "CHECKS_EXIT=$?" | tee -a $L/calibration-checks.exit.txt); cut -c1-200 $L/calibration-checks.log.txt
+(cd $T/_out/selfcheck && s=$(date +%s); timeout 570 ./ImageProcTest.SelfCheck.exe > $L/selfcheck-run.log.txt 2>&1; echo "SELFCHECK_EXIT=$? secs=$(( $(date +%s) - s ))" | tee $L/selfcheck.exit.txt); grep -E "Lifetime scenarios passed|self-check passed" $L/selfcheck-run.log.txt
+dotnet build-server shutdown > $L/build-server-shutdown.txt 2>&1
+echo "remaining dotnet/msbuild/compiler/test processes: $(tasklist | grep -ciE 'dotnet|msbuild|VBCS|ImageProcTest|xpe_calib|ctest|ninja|cmake|cl\.exe')" | tee $L/processes-after.txt

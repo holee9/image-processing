@@ -1,0 +1,1 @@
+{"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true}

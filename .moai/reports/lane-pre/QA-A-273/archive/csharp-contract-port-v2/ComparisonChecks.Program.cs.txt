@@ -1,0 +1,138 @@
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using ImageProcTest.Services.Comparison;
+
+// QA-A-273. Usage: ImageProcTest.ComparisonChecks <fixtures dir>   (fixtures: make_fixtures.py, answered by the Python contract of main-local 89b662a5)
+// Each case folder holds manifest.json and expected.json. Same reason codes in the same order, same comparable flag and kind, statistics within relative 1e-12.
+// Synthetic data: agreement is not a 2G run and says nothing about image quality.
+internal static class Program
+{
+    private static int _failures, _checks;
+
+    private static void Check(string name, Action body)
+    {
+        _checks++;
+        try { body(); Console.WriteLine("PASS " + name); }
+        catch (Exception e) { _failures++; Console.WriteLine("FAIL " + name + " :: " + e.Message); }
+    }
+
+    private static bool Near(double a, double b) => a == b || Math.Abs(a - b) <= 1e-12 * Math.Max(1.0, Math.Max(Math.Abs(a), Math.Abs(b)));
+
+    private static string[] Reasons(JsonNode? n) => n is JsonArray a ? a.Select(x => x!.GetValue<string>()).ToArray() : [];
+
+    private static int Main(string[] args)
+    {
+        var fixtures = args.Length > 0 ? args[0] : Path.Combine(AppContext.BaseDirectory, "fixtures");
+        var cases = File.ReadAllLines(Path.Combine(fixtures, "cases.txt")).Where(l => l.Length > 0).ToArray();
+        Check("fixture count is the Python generator's (43)", () => { if (cases.Length != 43) throw new Exception("cases " + cases.Length); });
+        foreach (var name in cases)
+        {
+            var dir = Path.Combine(fixtures, name);
+            Check("parity " + name, () =>
+            {
+                var manifest = JsonNode.Parse(File.ReadAllText(Path.Combine(dir, "manifest.json")))!;
+                var exp = JsonNode.Parse(File.ReadAllText(Path.Combine(dir, "expected.json")))!;
+                var ev = exp["validate"]!;
+                var v = ComparisonContract.Validate(manifest, dir);
+                if (!v.Reasons.SequenceEqual(Reasons(ev["reasons"]))) throw new Exception($"reasons [{string.Join(",", v.Reasons)}] != python [{string.Join(",", Reasons(ev["reasons"]))}]");
+                if (v.Comparable != ev["comparable"]!.GetValue<bool>()) throw new Exception("comparable differs");
+                if (v.ComparisonKind != ev["comparison_kind"]!.GetValue<string>()) throw new Exception("comparison_kind differs: " + v.ComparisonKind);
+                if (v.MapEquivalence != ev["map_equivalence"]!.GetValue<string>()) throw new Exception("map_equivalence differs");
+                if (!v.Blockers.SequenceEqual(Reasons(ev["blockers"]))) throw new Exception("blockers differ");
+                if (v.Actual2gExecuted) throw new Exception("actual_2g_executed must be false");
+                var ec = exp["compare"]!;
+                var c = ComparisonRunner.Compare(manifest, dir);
+                if (c.Status != ec["status"]!.GetValue<string>()) throw new Exception($"status {c.Status} != python {ec["status"]}");
+                if (!c.Reasons.SequenceEqual(Reasons(ec["reasons"]))) throw new Exception($"compare reasons [{string.Join(",", c.Reasons)}] != python [{string.Join(",", Reasons(ec["reasons"]))}]");
+                if (c.Status == "computed")
+                {
+                    var s = c.Stats!;
+                    if (s.ValidPixels != ec["valid_pixels"]!.GetValue<long>()) throw new Exception("valid_pixels differs");
+                    foreach (var (key, got) in new[] { ("mean_a_minus_b", s.MeanAMinusB), ("std_a_minus_b", s.StdAMinusB), ("rmse", s.Rmse), ("mean_abs", s.MeanAbs), ("min_a_minus_b", s.MinAMinusB), ("max_a_minus_b", s.MaxAMinusB) })
+                        if (!Near(got, ec[key]!.GetValue<double>())) throw new Exception($"{key}: {got:R} != python {ec[key]!.GetValue<double>():R}");
+                }
+                else
+                {
+                    if (c.Stats is not null) throw new Exception("a refused comparison carries statistics");
+                    if (ec["nonfinite_count"] is { } nf && c.NonfiniteCount != nf.GetValue<long>()) throw new Exception("nonfinite_count differs");
+                }
+            });
+        }
+
+        // ---- C# only: the recording rules (the Python run_and_record has the same rules; its fixtures cannot trigger a change between two reads deterministically)
+        var work = Path.Combine(Path.GetTempPath(), "xpe-cmp-checks-" + Guid.NewGuid().ToString("N")[..8]);
+        Directory.CreateDirectory(work);
+        try
+        {
+            var ok = Path.Combine(fixtures, "ok_float32");
+            var okManifest = JsonNode.Parse(File.ReadAllText(Path.Combine(ok, "manifest.json")))!;
+            Check("a recorded run is a new folder each time and says computed / 2G not executed / no quality assessment", () =>
+            {
+                var r1 = ComparisonRunner.RunAndRecord(okManifest, ok, work);
+                var r2 = ComparisonRunner.RunAndRecord(okManifest, ok, work);
+                if (r1 == r2) throw new Exception("run folder reused");
+                var res = JsonNode.Parse(File.ReadAllText(Path.Combine(r1, "result.json")))!;
+                if (res["status"]!.GetValue<string>() != "computed") throw new Exception("status " + res["status"]);
+                if (res["actual_2g_executed"]!.GetValue<bool>() || res["quality_assessment"]!.GetValue<bool>() || res["calibration_burden_verified"]!.GetValue<bool>()) throw new Exception("a claim flag is true");
+                if (!res["sources_unchanged"]!.GetValue<bool>()) throw new Exception("sources_unchanged false");
+                if (res["schema"]!.GetValue<string>() != "xpe-2g-pre-comparison/2") throw new Exception("schema");
+                if (res["valid_pixels"]!.GetValue<long>() != 30) throw new Exception("valid_pixels");
+            });
+            Check("a source file changed between the two hashings makes the run FAILED without statistics", () =>
+            {
+                var copy = Path.Combine(work, "copy"); CopyDir(ok, copy);
+                var target = Path.Combine(copy, "a_out.bin");
+                var run = ComparisonRunner.RunAndRecord(okManifest, copy, work, () => { using var f = new FileStream(target, FileMode.Open, FileAccess.Write, FileShare.Read); f.Seek(0, SeekOrigin.Begin); f.WriteByte(0x7F); });
+                var res = JsonNode.Parse(File.ReadAllText(Path.Combine(run, "result.json")))!;
+                if (res["status"]!.GetValue<string>() != "failed") throw new Exception("status " + res["status"]);
+                if (!Reasons(res["reasons"]).Contains("SOURCE_CHANGED_DURING_RUN")) throw new Exception("reason missing");
+                if (res["valid_pixels"] is not null || res["mean_a_minus_b"] is not null) throw new Exception("statistics kept");
+                if (res["sources_unchanged"]!.GetValue<bool>()) throw new Exception("sources_unchanged true");
+            });
+            Check("a refused comparison is recorded as refused with its reasons and never as computed", () =>
+            {
+                var bad = Path.Combine(fixtures, "input_link_mismatch");
+                var m = JsonNode.Parse(File.ReadAllText(Path.Combine(bad, "manifest.json")))!;
+                var run = ComparisonRunner.RunAndRecord(m, bad, work);
+                var res = JsonNode.Parse(File.ReadAllText(Path.Combine(run, "result.json")))!;
+                if (res["status"]!.GetValue<string>() != "refused" || !Reasons(res["reasons"]).Contains("INPUT_LINK_MISMATCH")) throw new Exception("not refused with the reason");
+                if (res["valid_pixels"] is not null) throw new Exception("statistics present");
+            });
+            Check("an exception while reading is recorded as error, not success", () =>
+            {
+                var copy = Path.Combine(work, "short"); CopyDir(ok, copy);
+                var m = JsonNode.Parse(File.ReadAllText(Path.Combine(copy, "manifest.json")))!;
+                var run = ComparisonRunner.RunAndRecord(m, copy, work, () => throw new IOException("injected"));
+                var res = JsonNode.Parse(File.ReadAllText(Path.Combine(run, "result.json")))!;
+                if (res["status"]!.GetValue<string>() != "error" || !Reasons(res["reasons"]).Contains("EXCEPTION")) throw new Exception("status " + res["status"]);
+            });
+            Check("the comparison does not modify its source files", () =>
+            {
+                var files = Directory.GetFiles(ok).Where(f => !f.EndsWith("expected.json")).OrderBy(f => f, StringComparer.Ordinal).ToArray();
+                var before = files.Select(ComparisonContract.Sha256File).ToArray();
+                ComparisonRunner.RunAndRecord(okManifest, ok, work);
+                var after = files.Select(ComparisonContract.Sha256File).ToArray();
+                if (!before.SequenceEqual(after)) throw new Exception("a source file changed");
+            });
+            Check("display reading is a decimated copy and leaves the numbers to the streamed ROI", () =>
+            {
+                var eng = okManifest["engines"]!["A"]!["output"]!;
+                var (px, w, h) = ComparisonRunner.ReadForDisplay(eng, ok, 1);
+                if (w != 12 || h != 8 || px.Length != 96) throw new Exception("size");
+                var (px2, w2, h2) = ComparisonRunner.ReadForDisplay(eng, ok, 2);
+                if (w2 != 6 || h2 != 4 || px2[1] != px[2] || px2[w2] != px[2 * w]) throw new Exception("decimation does not pick every second pixel of every second row");
+            });
+        }
+        finally { try { Directory.Delete(work, true); } catch (IOException) { } }
+
+        Console.WriteLine($"{_checks - _failures}/{_checks} checks passed");
+        return _failures == 0 ? 0 : 1;
+    }
+
+    private static void CopyDir(string from, string to)
+    {
+        Directory.CreateDirectory(to);
+        foreach (var f in Directory.GetFiles(from)) File.Copy(f, Path.Combine(to, Path.GetFileName(f)));
+    }
+}

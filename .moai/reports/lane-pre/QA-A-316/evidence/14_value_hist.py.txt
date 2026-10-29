@@ -1,0 +1,12 @@
+# QA-A-316: value distribution of one gain frame and BrightAvg above 32767 (is 65535 a lone code or the top of a wrapped range?)
+import json, os, re, numpy as np
+W,H=3072,2560
+m=json.load(open('D:/workspace-github/xpe-2g-offline/batch-20261022-1230/manifest.json',encoding='utf-8'))
+sets=m if isinstance(m,list) else m.get('sets',m)
+for s in sets:
+    src=s['cal_source']; nm=sorted(f for f in os.listdir(src) if f.startswith('Bright01_'))[0]
+    a=np.fromfile(src+nm,dtype='<u2'); ba=np.fromfile(src+'BrightAvg.raw',dtype='<u2'); d=np.fromfile(src+'dark.raw',dtype='<u2')
+    for lab,x in ((nm,a),('BrightAvg.raw',ba),('dark.raw',d)):
+        hi=x[x>32767]
+        print(s['id'],lab,'n>32767=',hi.size,'n==65535=',int((x==65535).sum()),'n in [32768,65534]=',int(((x>32767)&(x<65535)).sum()),
+              'p99.9=',np.percentile(x,99.9),'max<65535=',int(x[x<65535].max()),'n in [20000,32767]=',int(((x>=20000)&(x<=32767)).sum()))

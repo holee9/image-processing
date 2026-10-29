@@ -1,0 +1,5 @@
+G2_planted_v2 exit 0 seconds 139
+G4_clean_v2 exit 0 seconds 123
+X1_area_planted_v2 exit 0 seconds 0
+X3_clean_v2_map exit 0 seconds 0
+maps-done

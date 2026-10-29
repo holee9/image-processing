@@ -1,0 +1,82 @@
+parts x frames: 284 (second edition); exceeding 3 sigma after correction: 25 (frame 1 10, frame 2 15); exceeding in the clean output: 16
+========================================================================================================================
+== every exceeding part (frame, item, part, class/kind/shape/level, orientation, width x length, share covered by the detector line mask, crossings, end distance; ratio corrected / no fix / clean / first edition)
+  f1 item 1    part 0 line     dead               row_full     1      row 1x3072  cover 1.00 cross 37 end 0     | corrected -22.79  no fix -1742.41  clean -1.71  first edition +12.22
+  f1 item 2    part 0 line     dead               col_full     1      col 1x3072  cover 1.00 cross 39 end 0     | corrected -9.63  no fix -1429.27  clean -0.25  first edition +12.18
+  f1 item 37   part 0 line     dead               cross        1      row 1x3072  cover 1.00 cross 43 end 0     | corrected -22.25  no fix -1745.11  clean +0.30  first edition +11.69
+  f1 item 37   part 1 line     dead               cross        1      col 1x3072  cover 1.00 cross 41 end 0     | corrected -9.44  no fix -1425.78  clean +1.96  first edition +11.41
+  f1 item 64   part 0 control  gain_loss          row_full     0.6    row 1x3072  cover 0.01 cross 39 end 0     | corrected +3.29  no fix +0.44  clean +3.52  first edition +12.65
+  f1 item 66   part 0 control  gain_loss          row_partial  0.6    row 1x768   cover 0.00 cross 7 end 948   | corrected +3.24  no fix +0.40  clean +3.21  first edition +6.93
+  f1 item 106  part 0 control  efficiency_loss    row_full     0.7    row 1x3072  cover 0.01 cross 40 end 0     | corrected -4.85  no fix -0.78  clean -3.00  first edition +12.41
+  f1 item 120  part 0 control  varying_band       row_full     20     row 1x3072  cover 0.01 cross 36 end 0     | corrected +30.63  no fix +5.35  clean +0.24  first edition +30.31
+  f1 item 123  part 0 control  varying_band       col_full     8      col 1x3072  cover 0.01 cross 32 end 0     | corrected +20.04  no fix +3.31  clean -1.36  first edition +20.02
+  f1 item 246  part 0 control  dead               block8       0.5    col 8x8     cover 0.00 cross 0 end 651   | corrected +4.44  no fix +4.44  clean +4.44  first edition +2.14
+  f2 item 1    part 0 line     dead               row_full     1      row 1x3072  cover 1.00 cross 37 end 0     | corrected -22.16  no fix -1748.03  clean -0.93  first edition +11.89
+  f2 item 2    part 0 line     dead               col_full     1      col 1x3072  cover 1.00 cross 39 end 0     | corrected -9.67  no fix -1431.12  clean +1.01  first edition +13.09
+  f2 item 37   part 0 line     dead               cross        1      row 1x3072  cover 1.00 cross 43 end 0     | corrected -22.60  no fix -1741.66  clean -2.03  first edition +12.65
+  f2 item 37   part 1 line     dead               cross        1      col 1x3072  cover 1.00 cross 41 end 0     | corrected -9.62  no fix -1432.68  clean +1.06  first edition +12.28
+  f2 item 58   part 0 control  gain_loss          row_full     0.46   row 1x3072  cover 0.01 cross 38 end 0     | corrected -4.84  no fix -0.71  clean -4.69  first edition +12.86
+  f2 item 63   part 0 control  gain_loss          col_pair     0.46   col 2x768   cover 0.01 cross 12 end 534   | corrected -3.36  no fix -0.35  clean -3.40  first edition +0.84
+  f2 item 100  part 0 control  efficiency_loss    row_full     0.6    row 1x3072  cover 0.01 cross 42 end 0     | corrected -4.97  no fix -0.69  clean -4.21  first edition +12.49
+  f2 item 103  part 0 control  efficiency_loss    col_partial  0.6    col 1x768   cover 0.01 cross 11 end 158   | corrected -3.17  no fix -2.61  clean -1.53  first edition +6.47
+  f2 item 120  part 0 control  varying_band       row_full     20     row 1x3072  cover 0.01 cross 36 end 0     | corrected +4.05  no fix +0.77  clean -0.07  first edition +3.90
+  f2 item 121  part 0 control  varying_band       col_full     20     col 1x3072  cover 0.01 cross 42 end 0     | corrected -25.20  no fix -3.77  clean +0.10  first edition -24.64
+  f2 item 122  part 0 control  varying_band       row_full     8      row 1x3072  cover 0.01 cross 37 end 0     | corrected +3.05  no fix +0.54  clean +0.61  first edition +3.13
+  f2 item 123  part 0 control  varying_band       col_full     8      col 1x3072  cover 0.01 cross 32 end 0     | corrected +6.82  no fix +1.13  clean +0.60  first edition +6.95
+  f2 item 239  part 0 control  dead               block8       0.5    col 8x8     cover 0.00 cross 0 end 1014  | corrected +3.38  no fix +3.38  clean +3.38  first edition +3.47
+  f2 item 248  part 0 control  dead               block8       0.5    col 8x8     cover 0.00 cross 0 end 459   | corrected +8.85  no fix +8.85  clean +8.84  first edition +1.95
+  f2 item 250  part 0 control  dead               block8       0.5    col 8x8     cover 0.00 cross 0 end 1446  | corrected +3.70  no fix +3.70  clean +3.70  first edition +1.63
+========================================================================================================================
+== exceeding parts and the clean output: of the 25 exceeding parts, the same part exceeds in the clean output of the same frame in 9 (a structure of the acquisition, not of the correction); 16 exceeding parts exceed only after correction
+   the clean output exceeds in 16 part-frames; of them 9 also exceed after correction
+========================================================================================================================
+== exceeding / all parts by group (parts x frames; both frames together)
+  item class
+      control                            exceeding 17 / 140   (clean output exceeds: 9)
+      line                               exceeding  8 / 144   (clean output exceeds: 7)
+  orientation
+      column                             exceeding 13 / 158   (clean output exceeds: 7)
+      row                                exceeding 12 / 126   (clean output exceeds: 9)
+  width of the part (pixels)
+      width 1                            exceeding 20 / 180   (clean output exceeds: 9)
+      width >= 2                         exceeding  5 / 104   (clean output exceeds: 7)
+  detector line mask covers the part
+      covered >= 0.99                    exceeding  8 / 150   (clean output exceeds: 7)
+      not covered                        exceeding  4 /  32   (clean output exceeds: 4)
+      partly covered                     exceeding 13 / 102   (clean output exceeds: 5)
+  crosses another line/control rectangle of the other orientation
+      crosses                            exceeding 21 / 252   (clean output exceeds: 12)
+      no crossing                        exceeding  4 /  32   (clean output exceeds: 4)
+  nearer end distance from the frame edge
+      end <= 16                          exceeding 18 / 108   (clean output exceeds: 6)
+      end > 16                           exceeding  7 / 176   (clean output exceeds: 10)
+  kind
+      dead                               exceeding 12 /  60   (clean output exceeds: 4)
+      efficiency_loss                    exceeding  3 /  72   (clean output exceeds: 3)
+      fixed_band                         exceeding  0 /   8   (clean output exceeds: 0)
+      gain_band                          exceeding  0 /   8   (clean output exceeds: 0)
+      gain_loss                          exceeding  4 /  72   (clean output exceeds: 9)
+      noisy                              exceeding  0 /  28   (clean output exceeds: 0)
+      nonlinear                          exceeding  0 /  28   (clean output exceeds: 0)
+      varying_band                       exceeding  6 /   8   (clean output exceeds: 0)
+  level
+      0.2                                exceeding  0 /  12   (clean output exceeds: 0)
+      0.3                                exceeding  0 /  24   (clean output exceeds: 3)
+      0.4                                exceeding  0 /  40   (clean output exceeds: 0)
+      0.44                               exceeding  0 /  24   (clean output exceeds: 4)
+      0.46                               exceeding  2 /  24   (clean output exceeds: 2)
+      0.5                                exceeding  4 /  44   (clean output exceeds: 4)
+      0.6                                exceeding  4 /  24   (clean output exceeds: 3)
+      0.7                                exceeding  1 /  24   (clean output exceeds: 0)
+      0.8                                exceeding  0 /   4   (clean output exceeds: 0)
+      1                                  exceeding  8 /  16   (clean output exceeds: 0)
+      1.2                                exceeding  0 /   4   (clean output exceeds: 0)
+      100                                exceeding  0 /   4   (clean output exceeds: 0)
+      2                                  exceeding  0 /  12   (clean output exceeds: 0)
+      20                                 exceeding  3 /   4   (clean output exceeds: 0)
+      30                                 exceeding  0 /   4   (clean output exceeds: 0)
+      4                                  exceeding  0 /  16   (clean output exceeds: 0)
+      8                                  exceeding  3 /   4   (clean output exceeds: 0)
+========================================================================================================================
+== the three predicted shapes (method section 2): (i) partly covered by the detector, (ii) width >= 2, (iii) crossing another line; share of the 25 exceeding parts in each
+  (i) partly or not covered: 17, (ii) width >= 2: 5, (iii) crossing: 21, none of the three: 0

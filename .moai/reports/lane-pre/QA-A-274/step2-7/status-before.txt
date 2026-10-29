@@ -1,0 +1,80 @@
+ D .claude/scheduled_tasks.lock
+ M cmake/Platform.cmake
+ M docs/calibration/ALGORITHM-VERIFICATION-GUIDE.md
+ M docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md
+ M docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md
+ M docs/calibration/SRS-CALIB-001_Software_Requirements_Specification.md
+ M docs/help/content/index.md
+ M docs/project/Preprocessing-E2E-Automated-Evaluation-Protocol.md
+ M docs/project/api-spec.md
+ M gui/ImageProcTest.E2E/Program.cs
+ M gui/ImageProcTest.SelfCheck/LifetimeScenarios.cs
+ M gui/ImageProcTest/App.xaml.cs
+ M gui/ImageProcTest/MainWindow.xaml
+ M gui/ImageProcTest/MainWindow.xaml.cs
+ M gui/ImageProcTest/Models/BackendRuntimeInfo.cs
+ M gui/ImageProcTest/Models/RenderRecord.cs
+ M gui/ImageProcTest/Services/AppSettingsService.cs
+ M gui/ImageProcTest/Services/Native/GuiPreprocessRunner.cs
+ M gui/ImageProcTest/Services/Native/XpeDisplayInterop.cs
+ M gui/ImageProcTest/Services/RealXpeBackend.cs
+ M gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+ M gui/ImageProcTest/Views/AnalysisPanel.xaml
+ M gui/ImageProcTest/help/quick-start.html
+ M gui/ImageProcTest/help/quick-start.ko.html
+ M modules/preprocess/tests/test_ghost_oracle.cpp
+ M modules/preprocess/tests/test_nonlin_lut_apply.cpp
+ M modules/preprocess/tests/test_nonlin_lut_generate.cpp
+ M modules/preprocess/tests/test_nonlin_poly_apply.cpp
+ M modules/preprocess/tools/xpe_calib_fixture_gen.cpp
+?? .claude/settings.json.bak-hook
+?? .claude/settings.json.bak-rmask
+?? .claude/settings.local.json.lock
+?? .moai/harness/
+?? .moai/lessons-inbox.jsonl
+?? .moai/reports/lane-doc/
+?? .moai/reports/lane-pre/CODEX-TEMP-2026-10-18/
+?? .moai/reports/lane-pre/INSTALLER-DOC-20261020-01a15359/
+?? .moai/reports/lane-pre/PRE-2G-COMPARE-20261020/
+?? .moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/
+?? .moai/reports/lane-pre/PRE-INSTALLER-20261020-reviewer-01a0f0f3/
+?? .moai/reports/lane-pre/PRE-INSTALLER-QA-20261020-01a15358/
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-DOC-01a15359/
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-leader/
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-qa-01a15358/
+?? .moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/
+?? .moai/reports/lane-pre/QA-A-202/evidence/30_lint.txt
+?? .moai/reports/lane-pre/QA-A-260/evidence/.moai/
+?? .moai/reports/lane-pre/QA-A-273/builds/
+?? .moai/reports/lane-pre/QA-A-274/make_dualwrite.py.txt
+?? .moai/reports/lane-pre/QA-A-274/make_patches.py.txt
+?? .moai/reports/lane-pre/QA-A-274/make_v2.py.txt
+?? .moai/reports/lane-pre/QA-A-274/patches/
+?? .moai/reports/lane-pre/QA-A-274/step2-2/fill_addendum.py.txt
+?? .moai/reports/lane-pre/QA-A-274/step2-2/result-addendum.md
+?? .moai/reports/lane-pre/QA-A-274/step2-2/result-addendum.template.md
+?? .moai/reports/lane-pre/QA-A-274/step2-5/
+?? .moai/reports/lane-pre/QA-A-274/step2-6/
+?? .moai/reports/lane-pre/QA-A-274/step2-7/
+?? cmake/MsvcNinjaIncludePrefix.cmake
+?? docs/development/PRE-GUI-CALIBRATION-WORKFLOW-DOC-SUPPLEMENT.md
+?? docs/development/PRE-GUI-CALIBRATION-WORKFLOW.md
+?? docs/help/content/dark-quality-metrics.md
+?? docs/superpowers/
+?? gui/ImageProcTest.CalibrationChecks/
+?? gui/ImageProcTest/Services/CalibrationStageSelection.cs
+?? gui/ImageProcTest/Services/CalibrationWorkflowService.cs
+?? gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+?? gui/ImageProcTest/Services/GuiDataPaths.cs
+?? gui/ImageProcTest/Services/Native/CalibrationSetInspector.cs
+?? gui/ImageProcTest/Services/NativeRuntimeEvidence.cs
+?? gui/ImageProcTest/Views/CalibrationWorkflowWindow.cs
+?? modules/preprocess/.moai/
+?? modules/preprocess/src/.moai/
+?? modules/preprocess/tools/.moai/
+?? tools/calibration/
+?? tools/ci/msvc_include_output.py
+?? tools/ci/test_msvc_include_output.py
+?? tools/ci/verify_msvc_header_dependencies.py
+?? tools/packaging/

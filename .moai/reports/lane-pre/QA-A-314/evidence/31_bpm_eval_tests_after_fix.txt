@@ -1,0 +1,121 @@
+Note: Google Test filter = BpmEval*
+[==========] Running 53 tests from 3 test suites.
+[----------] Global test environment set-up.
+[----------] 28 tests from BpmEvalTest
+[ RUN      ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed
+[       OK ] BpmEvalTest.InjectIsDeterministicAndDependsOnTheSeed (1208 ms)
+[ RUN      ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules
+[       OK ] BpmEvalTest.InjectFollowsTheSpecCountsAndPlacementRules (346 ms)
+[ RUN      ] BpmEvalTest.InjectActsAsTheSpecSays
+[       OK ] BpmEvalTest.InjectActsAsTheSpecSays (647 ms)
+[ RUN      ] BpmEvalTest.ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn
+[       OK ] BpmEvalTest.ResponseItemsAreDefectsBelow45PercentAndNormalFrom45PercentOn (314 ms)
+[ RUN      ] BpmEvalTest.EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot
+[       OK ] BpmEvalTest.EfficiencyLossScalesTheQuantumNoiseVarianceWithTheSignalAndGainLossDoesNot (529 ms)
+[ RUN      ] BpmEvalTest.DefectXcalCommandReadsBothVersionsAndSaysWhyItRefuses
+[       OK ] BpmEvalTest.DefectXcalCommandReadsBothVersionsAndSaysWhyItRefuses (57 ms)
+[ RUN      ] BpmEvalTest.ChainCommandAppliesTheInjectionChain
+[       OK ] BpmEvalTest.ChainCommandAppliesTheInjectionChain (393 ms)
+[ RUN      ] BpmEvalTest.OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain
+[       OK ] BpmEvalTest.OverlapWithoutAMeasurementIsNotJudgedByTheNominalChain (32 ms)
+[ RUN      ] BpmEvalTest.OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement
+[       OK ] BpmEvalTest.OverlapTruthFileDecidesTheOverlappedPixelsFromTheMeasurement (30 ms)
+[ RUN      ] BpmEvalTest.OverlapCombinationTable
+[       OK ] BpmEvalTest.OverlapCombinationTable (30 ms)
+[ RUN      ] BpmEvalTest.OverlapResponseValidColumnDecidesAndAnOldFormatFileIsRefused
+[       OK ] BpmEvalTest.OverlapResponseValidColumnDecidesAndAnOldFormatFileIsRefused (55 ms)
+[ RUN      ] BpmEvalTest.OverlapOfFourItemsRunsThroughTheChainAndNineAreRefused
+[       OK ] BpmEvalTest.OverlapOfFourItemsRunsThroughTheChainAndNineAreRefused (82 ms)
+[ RUN      ] BpmEvalTest.TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection
+[       OK ] BpmEvalTest.TheScoreCombinesTheTwoAxesAndCountsUndeterminedItemsInNeitherDirection (498 ms)
+[ RUN      ] BpmEvalTest.ScoreReadsAVersionTwoDefectFileAsItsDefectPlane
+[       OK ] BpmEvalTest.ScoreReadsAVersionTwoDefectFileAsItsDefectPlane (633 ms)
+[ RUN      ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne
+[       OK ] BpmEvalTest.ScoreSeparatesAPerfectMapFromAnEmptyOne (448 ms)
+[ RUN      ] BpmEvalTest.MapV2TakesMarginsAndWritesTheAreaMask
+[       OK ] BpmEvalTest.MapV2TakesMarginsAndWritesTheAreaMask (300 ms)
+[ RUN      ] BpmEvalTest.MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot
+[       OK ] BpmEvalTest.MapV2SkipsTheFirstDarkFrameOfTheRawListUnlessToldNot (498 ms)
+[ RUN      ] BpmEvalTest.TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList
+[       OK ] BpmEvalTest.TheTwoEditionsAndTheLineDetectorReceiveTheSameDarkList (1688 ms)
+[ RUN      ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize
+[       OK ] BpmEvalTest.MergeTakesTheUnionOfMapsAndBlobsCountsTheGroupsWithTheirSize (197 ms)
+[ RUN      ] BpmEvalTest.LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArguments
+[       OK ] BpmEvalTest.LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArguments (5632 ms)
+[ RUN      ] BpmEvalTest.ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect
+[       OK ] BpmEvalTest.ScoreWithAnAreaMaskIgnoresFlagsOutsideItAndKeepsCodeFourADefect (454 ms)
+[ RUN      ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement
+[       OK ] BpmEvalTest.ScoreCountsControlHitsFalseAlarmsAndHalfAgreement (442 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedWhenMostOfItsOwnPixelsAreFlagged (373 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnSetsMadeWithTheFirstGenerationMapOfASmallInput
+[       OK ] BpmEvalTest.CorrectRunsOnSetsMadeWithTheFirstGenerationMapOfASmallInput (10952 ms)
+[ RUN      ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex
+[       OK ] BpmEvalTest.CorrectRunsOnTwoSetsAndReportsTheLineIndex (18430 ms)
+[ RUN      ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow
+[       OK ] BpmEvalTest.ScoreCallsALineDetectedAtExactlyHalfOfItsOwnPixelsAndNotBelow (443 ms)
+[ RUN      ] BpmEvalTest.FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf
+[       OK ] BpmEvalTest.FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf (508 ms)
+[ RUN      ] BpmEvalTest.InjectRefusesTwoInputsWithTheSameFileName
+[       OK ] BpmEvalTest.InjectRefusesTwoInputsWithTheSameFileName (70 ms)
+[----------] 28 tests from BpmEvalTest (45310 ms total)
+
+[----------] 18 tests from BpmEvalStatsTest
+[ RUN      ] BpmEvalStatsTest.ChiSquareHelpersMatchKnownValues
+[       OK ] BpmEvalStatsTest.ChiSquareHelpersMatchKnownValues (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter
+[       OK ] BpmEvalStatsTest.TheQuantumGainFitRecoversTheLineAndWidensWithTheScatter (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheNoiseVerdictFollowsTheIntervalAgainstTheLimit
+[       OK ] BpmEvalStatsTest.TheNoiseVerdictFollowsTheIntervalAgainstTheLimit (2 ms)
+[ RUN      ] BpmEvalStatsTest.TheEffectiveDegreesOfFreedomFallWhenThePixelsAreCorrelated
+[       OK ] BpmEvalStatsTest.TheEffectiveDegreesOfFreedomFallWhenThePixelsAreCorrelated (0 ms)
+[ RUN      ] BpmEvalStatsTest.MedianAndPercentileFollowTheDefinition
+[       OK ] BpmEvalStatsTest.MedianAndPercentileFollowTheDefinition (0 ms)
+[ RUN      ] BpmEvalStatsTest.ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero
+[       OK ] BpmEvalStatsTest.ASampleThatCannotBeComputedIsInvalidWithItsReasonAndNeverZero (0 ms)
+[ RUN      ] BpmEvalStatsTest.AGroupWithoutAValidSampleIsUncomputableNotZero
+[       OK ] BpmEvalStatsTest.AGroupWithoutAValidSampleIsUncomputableNotZero (0 ms)
+[ RUN      ] BpmEvalStatsTest.LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns
+[       OK ] BpmEvalStatsTest.LineIndexHasTheExactRatioForOneAndTwoLinesRowsAndColumns (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheMadBasedValueIsAuxiliaryAndMayBeUncomputableWhileTheDefinedOneIsNot
+[       OK ] BpmEvalStatsTest.TheMadBasedValueIsAuxiliaryAndMayBeUncomputableWhileTheDefinedOneIsNot (0 ms)
+[ RUN      ] BpmEvalStatsTest.ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped
+[       OK ] BpmEvalStatsTest.ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSkipped (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheAreaContractMeasuresADeadRowOnTheImagingAreaOnlyNotOnItsUncorrectedMargins
+[       OK ] BpmEvalStatsTest.TheAreaContractMeasuresADeadRowOnTheImagingAreaOnlyNotOnItsUncorrectedMargins (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheAreaContractIsTheSameForAColumnAsForARow
+[       OK ] BpmEvalStatsTest.TheAreaContractIsTheSameForAColumnAsForARow (0 ms)
+[ RUN      ] BpmEvalStatsTest.TheAreaContractSaysWhyAPartIsNotMeasured
+[       OK ] BpmEvalStatsTest.TheAreaContractSaysWhyAPartIsNotMeasured (0 ms)
+[ RUN      ] BpmEvalStatsTest.ACutThatLeavesTheRowShorterThanItIsThickIsNotMeasuredInsteadOfBeingReadAsAColumn
+[       OK ] BpmEvalStatsTest.ACutThatLeavesTheRowShorterThanItIsThickIsNotMeasuredInsteadOfBeingReadAsAColumn (0 ms)
+[ RUN      ] BpmEvalStatsTest.ACutLengthEqualToTheThicknessIsMeasuredAsTheOrientationThePartHad
+[       OK ] BpmEvalStatsTest.ACutLengthEqualToTheThicknessIsMeasuredAsTheOrientationThePartHad (0 ms)
+[ RUN      ] BpmEvalStatsTest.ChangingPixelsOutsideTheAreaNeverChangesAMeasuredPart
+[       OK ] BpmEvalStatsTest.ChangingPixelsOutsideTheAreaNeverChangesAMeasuredPart (0 ms)
+[ RUN      ] BpmEvalStatsTest.AMeasuredPartCanStillBeUncomputableAndTheContractSaysSo
+[       OK ] BpmEvalStatsTest.AMeasuredPartCanStillBeUncomputableAndTheContractSaysSo (0 ms)
+[ RUN      ] BpmEvalStatsTest.WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures
+[       OK ] BpmEvalStatsTest.WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures (0 ms)
+[----------] 18 tests from BpmEvalStatsTest (3 ms total)
+
+[----------] 7 tests from BpmEvalQuantumTest
+[ RUN      ] BpmEvalQuantumTest.TheQuantumGainIsEstimatedWithoutTheFrameCountBias
+[       OK ] BpmEvalQuantumTest.TheQuantumGainIsEstimatedWithoutTheFrameCountBias (614 ms)
+[ RUN      ] BpmEvalQuantumTest.OverlapMeasurementOnFramesWithoutSignalWritesNoResponseAndOnlyADiagnostic
+[       OK ] BpmEvalQuantumTest.OverlapMeasurementOnFramesWithoutSignalWritesNoResponseAndOnlyADiagnostic (953 ms)
+[ RUN      ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost
+[       OK ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost (1006 ms)
+[ RUN      ] BpmEvalQuantumTest.NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined
+[       OK ] BpmEvalQuantumTest.NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined (994 ms)
+[ RUN      ] BpmEvalQuantumTest.NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves
+[       OK ] BpmEvalQuantumTest.NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves (1207 ms)
+[ RUN      ] BpmEvalQuantumTest.NoiseCostRefusesVerificationFramesWhoseMedianNetSignalIsNotPositive
+[       OK ] BpmEvalQuantumTest.NoiseCostRefusesVerificationFramesWhoseMedianNetSignalIsNotPositive (696 ms)
+[ RUN      ] BpmEvalQuantumTest.NoiseCostRefusesAnEmptyDoseSampleAndANonPositiveMedianEachWithItsOwnReason
+[       OK ] BpmEvalQuantumTest.NoiseCostRefusesAnEmptyDoseSampleAndANonPositiveMedianEachWithItsOwnReason (742 ms)
+[----------] 7 tests from BpmEvalQuantumTest (6216 ms total)
+
+[----------] Global test environment tear-down
+[==========] 53 tests from 3 test suites ran. (51530 ms total)
+[  PASSED  ] 53 tests.

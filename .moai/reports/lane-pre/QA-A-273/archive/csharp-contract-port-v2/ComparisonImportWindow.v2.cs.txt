@@ -1,0 +1,377 @@
+using System.Globalization;
+using System.IO;
+using System.Text.Json.Nodes;
+using System.Windows;
+using System.Windows.Automation;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Controls.Primitives;
+using ImageProcTest.Services;
+using ImageProcTest.Services.Comparison;
+
+namespace ImageProcTest.Views;
+
+/// <summary>
+/// QA-A-273 (Refs #278): the first slice of the 2G / new PRE comparison workbench. It OPENS a manifest naming two EXISTING output files (A = official Samsung 2G X64W, B = new PRE), shows the contract
+/// verdict with its reason codes, shows A and B with ONE window/level, ONE zoom and the SAME ROI, computes the signed A-minus-B statistics from the original arrays (never from what is drawn) and saves
+/// the result in a new folder. It never loads a vendor DLL, never runs an engine, never judges image quality. The live 2G action is disabled and says why.
+/// </summary>
+public sealed class ComparisonImportWindow : Window
+{
+    private const long MaxDisplayPixels = 4_000_000;
+
+    private readonly TextBox _manifestPath = new() { MinWidth = 420 };
+    private readonly TextBox _outputRoot = new() { MinWidth = 420 };
+    private readonly TextBlock _state = new() { FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _verdict = new() { FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+    private readonly TextBox _reasons = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MinHeight = 56, MaxHeight = 140, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+    private readonly TextBlock _engines = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBox _window = new() { Width = 100 };
+    private readonly TextBox _level = new() { Width = 100 };
+    private readonly TextBlock _roiText = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBlock _viewHint = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly TextBox _result = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MinHeight = 96, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+    private readonly Button _openButton = new() { Content = "열기·검증" };
+    private readonly Button _computeButton = new() { Content = "A−B 통계 계산·저장", IsEnabled = false };
+    private readonly Button _applyWl = new() { Content = "W/L 적용", IsEnabled = false };
+    private readonly Button _fit = new() { Content = "맞춤", IsEnabled = false };
+    private readonly Button _actual = new() { Content = "100%", IsEnabled = false };
+    private readonly Button _zoomIn = new() { Content = "+", IsEnabled = false };
+    private readonly Button _zoomOut = new() { Content = "−", IsEnabled = false };
+    private readonly Image _imageA = new() { Stretch = Stretch.None, SnapsToDevicePixels = true };
+    private readonly Image _imageB = new() { Stretch = Stretch.None, SnapsToDevicePixels = true };
+    private readonly Canvas _overlayA = new(), _overlayB = new();
+    private readonly Grid _hostA = new(), _hostB = new();
+    private readonly ScrollViewer _scrollA = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240 };
+    private readonly ScrollViewer _scrollB = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 240 };
+    private readonly ScaleTransform _scaleA = new(1, 1), _scaleB = new(1, 1);
+
+    private JsonNode? _manifest;
+    private string _baseDir = "";
+    private ComparisonContract.Validation? _validation;
+    private double[]? _pixelsA, _pixelsB;
+    private int _displayWidth, _displayHeight, _step = 1;
+    private double _dataMin, _dataMax;
+    private double _zoom = 1.0;
+    private int _generation;
+    private bool _busy, _syncing;
+
+    public ComparisonImportWindow()
+    {
+        Title = "2G · 신규 PRE 출력 가져오기 비교";
+        Width = 1180; Height = 860; MinWidth = 820; MinHeight = 560;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        MaxHeight = SystemParameters.WorkArea.Height;
+        AutomationProperties.SetAutomationId(this, "ComparisonImportWindow");
+
+        var root = new StackPanel { Margin = new Thickness(14) };
+        root.Children.Add(Label("이 창은 이미 존재하는 출력 파일 두 개(A = 공식 Samsung 2G X64W, B = 신규 PRE)를 가져와 같은 조건으로 보여 주고 A−B 수치를 계산합니다. 제조사 DLL을 불러오거나 실행하지 않고, 장비를 제어하지 않으며, 화질을 판정하지 않습니다. 계산된 차이는 두 파일에 대한 수치 사실일 뿐 개선·합격의 근거가 아닙니다."));
+        Auto(_state, "ComparisonStateText");
+        _state.Text = "상태: 매니페스트를 아직 열지 않았습니다. 가져온 파일 비교이며 2G 실행이 아닙니다.";
+        root.Children.Add(_state);
+
+        root.Children.Add(Label("매니페스트(JSON, 스키마 xpe-2g-pre-comparison/2). 파일 경로는 매니페스트 폴더 안에서만 읽습니다."));
+        var pathRow = new DockPanel { Margin = new Thickness(0, 2, 0, 4) };
+        var browse = new Button { Content = "찾아보기…", Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(10, 2, 10, 2) };
+        _openButton.Margin = new Thickness(6, 0, 0, 0); _openButton.Padding = new Thickness(10, 2, 10, 2);
+        DockPanel.SetDock(_openButton, Dock.Right); DockPanel.SetDock(browse, Dock.Right);
+        pathRow.Children.Add(_openButton); pathRow.Children.Add(browse); pathRow.Children.Add(_manifestPath);
+        root.Children.Add(pathRow);
+        Auto(_manifestPath, "ComparisonManifestPathBox"); Auto(browse, "ComparisonBrowseButton"); Auto(_openButton, "ComparisonOpenButton");
+
+        root.Children.Add(Label("결과를 저장할 상위 폴더(실행마다 새 하위 폴더가 만들어지고 기존 파일은 덮어쓰지 않습니다)"));
+        _outputRoot.Text = Path.Combine(GuiDataPaths.Root, "comparison-runs");
+        Auto(_outputRoot, "ComparisonOutputRootBox");
+        root.Children.Add(_outputRoot);
+
+        Auto(_verdict, "ComparisonValidationStatus"); Auto(_reasons, "ComparisonReasonsList"); Auto(_engines, "ComparisonEngineSummary");
+        root.Children.Add(_verdict); root.Children.Add(_reasons); root.Children.Add(_engines);
+
+        // display controls: one window/level, one zoom, the same ROI
+        var controls = new WrapPanel { Margin = new Thickness(0, 8, 0, 4) };
+        controls.Children.Add(new TextBlock { Text = "표시 W/L(두 영상 공통, 표시 전용):  Window ", VerticalAlignment = VerticalAlignment.Center });
+        controls.Children.Add(_window);
+        controls.Children.Add(new TextBlock { Text = "  Level ", VerticalAlignment = VerticalAlignment.Center });
+        controls.Children.Add(_level);
+        foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) { b.Margin = new Thickness(6, 0, 0, 0); b.Padding = new Thickness(10, 2, 10, 2); controls.Children.Add(b); }
+        Auto(_window, "ComparisonWindowBox"); Auto(_level, "ComparisonLevelBox"); Auto(_applyWl, "ComparisonApplyWlButton"); Auto(_fit, "ComparisonZoomFitButton");
+        Auto(_actual, "ComparisonZoom100Button"); Auto(_zoomIn, "ComparisonZoomInButton"); Auto(_zoomOut, "ComparisonZoomOutButton");
+        root.Children.Add(controls);
+        Auto(_roiText, "ComparisonRoiText"); Auto(_viewHint, "ComparisonViewHint");
+        root.Children.Add(_roiText); root.Children.Add(_viewHint);
+
+        var viewers = new UniformGrid { Columns = 2, Margin = new Thickness(0, 4, 0, 4) };
+        viewers.Children.Add(Viewer("A — 공식 Samsung 2G X64W (가져온 출력)", _scrollA, _hostA, _imageA, _overlayA, _scaleA, "ComparisonViewerA"));
+        viewers.Children.Add(Viewer("B — 신규 PRE (가져온 출력)", _scrollB, _hostB, _imageB, _overlayB, _scaleB, "ComparisonViewerB"));
+        root.Children.Add(viewers);
+
+        var actions = new WrapPanel { Margin = new Thickness(0, 6, 0, 2) };
+        _computeButton.Padding = new Thickness(12, 6, 12, 6);
+        var live = new Button { Content = "실제 2G 실행", IsEnabled = false, Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(8, 0, 0, 0) };
+        actions.Children.Add(_computeButton); actions.Children.Add(live);
+        Auto(_computeButton, "ComparisonComputeButton"); Auto(live, "ComparisonLive2gButton");
+        root.Children.Add(actions);
+        var liveReason = Label("실제 2G 실행은 막혀 있습니다 (G-2G-READY blocked): 오프라인 핸들 생성·초기화, 입출력 버퍼와 소유권, 배타 접근, 적용 가능한 사용 조건, 원본 RAW·맵의 출처가 아직 정의·허가되지 않았습니다. 이 창은 제조사 DLL을 불러오지 않습니다.");
+        Auto(liveReason, "ComparisonLive2gReason");
+        root.Children.Add(liveReason);
+        Auto(_result, "ComparisonResultBox");
+        root.Children.Add(_result);
+
+        Content = new ScrollViewer { Content = root, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+
+        browse.Click += (_, _) =>
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "비교 매니페스트 (*.json)|*.json|모든 파일|*.*", CheckFileExists = true };
+            if (dlg.ShowDialog(this) == true) _manifestPath.Text = dlg.FileName;
+        };
+        _openButton.Click += async (_, _) => await OpenAsync();
+        _computeButton.Click += async (_, _) => await ComputeAsync();
+        _applyWl.Click += (_, _) => RenderBoth(useTextWl: true);
+        _fit.Click += (_, _) => ZoomFit();
+        _actual.Click += (_, _) => SetZoom(1.0 / _step);
+        _zoomIn.Click += (_, _) => SetZoom(_zoom * 1.25);
+        _zoomOut.Click += (_, _) => SetZoom(_zoom / 1.25);
+        _scrollA.ScrollChanged += (_, _) => Sync(_scrollA, _scrollB);
+        _scrollB.ScrollChanged += (_, _) => Sync(_scrollB, _scrollA);
+        _manifestPath.TextChanged += (_, _) => Invalidate("매니페스트 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
+        Closing += (_, e) => { if (_busy) { e.Cancel = true; _result.AppendText("현재 작업이 끝날 때까지 창을 유지합니다." + Environment.NewLine); } };
+    }
+
+    private static TextBlock Label(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 4) };
+    private static void Auto(DependencyObject d, string id) => AutomationProperties.SetAutomationId(d, id);
+
+    private static UIElement Viewer(string title, ScrollViewer scroll, Grid host, Image image, Canvas overlay, ScaleTransform scale, string id)
+    {
+        host.Children.Add(image); host.Children.Add(overlay);
+        host.LayoutTransform = scale;
+        scroll.Content = host;
+        scroll.Background = Brushes.Black;
+        Auto(scroll, id);
+        var panel = new StackPanel { Margin = new Thickness(0, 0, 6, 0) };
+        panel.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 2) });
+        panel.Children.Add(scroll);
+        return panel;
+    }
+
+    private void SetBusy(bool busy)
+    {
+        _busy = busy;
+        _openButton.IsEnabled = !busy;
+        _computeButton.IsEnabled = !busy && _validation?.Comparable == true;
+    }
+
+    /// <summary>Drops everything derived from the previous manifest: a result must never outlive the inputs it describes.</summary>
+    private void Invalidate(string why)
+    {
+        _generation++;
+        _manifest = null; _validation = null; _pixelsA = _pixelsB = null;
+        _imageA.Source = _imageB.Source = null; _overlayA.Children.Clear(); _overlayB.Children.Clear();
+        _computeButton.IsEnabled = false;
+        foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) b.IsEnabled = false;
+        _verdict.Text = ""; _reasons.Text = ""; _engines.Text = ""; _roiText.Text = ""; _viewHint.Text = "";
+        _result.Text = "";
+        _state.Text = "상태: " + why + " 가져온 파일 비교이며 2G 실행이 아닙니다.";
+    }
+
+    private async Task OpenAsync()
+    {
+        if (_busy) return;
+        var path = _manifestPath.Text.Trim();
+        Invalidate("검증 중입니다.");
+        var gen = _generation;
+        SetBusy(true);
+        try
+        {
+            if (!File.Exists(path)) throw new IOException("매니페스트 파일이 없습니다: " + path);
+            var baseDir = Path.GetDirectoryName(Path.GetFullPath(path))!;
+            (JsonNode Manifest, ComparisonContract.Validation Validation) parsed = await Task.Run(() =>
+            {
+                var node = JsonNode.Parse(File.ReadAllText(path)) ?? throw new IOException("매니페스트가 비어 있습니다.");
+                return (node, ComparisonContract.Validate(node, baseDir));
+            });
+            if (gen != _generation) return;   // the path changed while the check ran: this answer is stale
+            _manifest = parsed.Manifest; _baseDir = baseDir; _validation = parsed.Validation;
+            ShowValidation();
+            if (parsed.Validation.Comparable) await LoadDisplayAsync(gen);
+        }
+        catch (Exception e)
+        {
+            if (gen != _generation) return;
+            _verdict.Text = "비교 불가 — 매니페스트를 읽지 못했습니다.";
+            _reasons.Text = e.Message;
+            _state.Text = "상태: 열기 실패. 가져온 파일 비교이며 2G 실행이 아닙니다. 실패는 통과가 아닙니다.";
+        }
+        finally { SetBusy(false); }
+    }
+
+    private void ShowValidation()
+    {
+        var v = _validation!;
+        _verdict.Text = v.Comparable
+            ? $"비교 가능 — 종류: {v.ComparisonKind}" + (v.ComparisonKind == ComparisonContract.E2eKind ? " (맵이 달라 알고리즘 효과를 분리하지 못하는 종단 비교)" : "")
+            : "비교 불가 — 아래 사유 코드가 해소되기 전에는 숫자를 만들지 않습니다.";
+        var lines = v.Reasons.Select(r => $"{r}: {ComparisonContract.ReasonText(r)}").ToList();
+        lines.AddRange(v.Blockers.Select(b => $"{b}: {ComparisonContract.ReasonText(b)}"));
+        _reasons.Text = string.Join(Environment.NewLine, lines);
+        var a = ComparisonContract.Get(ComparisonContract.Get(_manifest, "engines"), "A");
+        var b = ComparisonContract.Get(ComparisonContract.Get(_manifest, "engines"), "B");
+        string Eng(string label, JsonNode? e)
+        {
+            var o = ComparisonContract.Get(e, "output");
+            return $"{label}: 단계 {ComparisonContract.Str(ComparisonContract.Get(o, "stage")) ?? "?"} · 자료형 {ComparisonContract.Str(ComparisonContract.Get(o, "dtype")) ?? "?"} · 단위 {ComparisonContract.Str(ComparisonContract.Get(o, "units")) ?? "?"} · 실행 방식 {ComparisonContract.Str(ComparisonContract.Get(e, "execution")) ?? "?"} · 출력 SHA-256 {Short(v.Identities.GetValueOrDefault(label[..1] + ".output"))}";
+        }
+        _engines.Text = Eng("A", a) + Environment.NewLine + Eng("B", b) + Environment.NewLine
+            + $"입력 SHA-256 {Short(v.Identities.GetValueOrDefault("input"))} · 보정 상태 {ComparisonContract.Str(ComparisonContract.Get(ComparisonContract.Get(ComparisonContract.Get(_manifest, "input"), "correction_state"), "value")) ?? "?"} · 맵 동일성: {v.MapEquivalence}";
+        _state.Text = v.Comparable
+            ? "상태: 가져온 파일의 계약 검증을 통과했습니다. 아직 수치를 계산하지 않았습니다. 2G 실행이 아닙니다."
+            : "상태: 계약 검증 실패(비교 불가). 가져온 파일 비교이며 2G 실행이 아닙니다.";
+    }
+
+    private static string Short(string? sha) => string.IsNullOrEmpty(sha) ? "(없음)" : sha[..12] + "…";
+
+    private async Task LoadDisplayAsync(int gen)
+    {
+        var engines = ComparisonContract.Get(_manifest, "engines");
+        var outA = ComparisonContract.Get(ComparisonContract.Get(engines, "A"), "output")!;
+        var outB = ComparisonContract.Get(ComparisonContract.Get(engines, "B"), "output")!;
+        ComparisonContract.TryInt(ComparisonContract.Get(outA, "width"), out var w);
+        ComparisonContract.TryInt(ComparisonContract.Get(outA, "height"), out var h);
+        var step = (int)Math.Max(1, Math.Ceiling(Math.Sqrt((double)w * h / MaxDisplayPixels)));
+        var baseDir = _baseDir;
+        var (pa, pb, dw, dh) = await Task.Run(() =>
+        {
+            var (a, aw, ah) = ComparisonRunner.ReadForDisplay(outA, baseDir, step);
+            var (b, _, _) = ComparisonRunner.ReadForDisplay(outB, baseDir, step);
+            return (a, b, aw, ah);
+        });
+        if (gen != _generation) return;
+        _pixelsA = pa; _pixelsB = pb; _displayWidth = dw; _displayHeight = dh; _step = step;
+        double lo = double.PositiveInfinity, hi = double.NegativeInfinity;
+        foreach (var arr in new[] { pa, pb })
+            foreach (var v in arr)
+                if (double.IsFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; }
+        if (!double.IsFinite(lo)) { lo = 0; hi = 1; }
+        if (hi <= lo) hi = lo + 1;
+        _dataMin = lo; _dataMax = hi;
+        _window.Text = (hi - lo).ToString("R", CultureInfo.InvariantCulture);
+        _level.Text = ((hi + lo) / 2).ToString("R", CultureInfo.InvariantCulture);
+        var roi = ComparisonContract.Get(_manifest, "roi")!;
+        _roiText.Text = $"ROI(매니페스트의 정수 좌표, A·B 양쪽에 같은 좌표로 표시): x={roi["x"]}, y={roi["y"]}, 가로={roi["width"]}, 세로={roi["height"]}";
+        _viewHint.Text = $"표시 전용 복사본: 원본 {w}×{h}" + (step > 1 ? $", 표시는 {step}화소마다 한 점({dw}×{dh})로 줄였습니다 — 표시 좌표 = 원본 좌표 ÷ {step}" : ", 줄이지 않음")
+            + ". 통계는 표시 배열이 아니라 원본 파일의 ROI 행을 직접 읽어 계산합니다. W/L·확대·줄임은 숫자에 영향을 주지 않습니다. 초기 W/L = 두 영상의 유한한 값 전체의 최솟값~최댓값(임계값을 정하지 않음).";
+        foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) b.IsEnabled = true;
+        RenderBoth(useTextWl: false);
+        DrawRoi(roi);
+        ZoomFit();
+        _computeButton.IsEnabled = true;
+    }
+
+    private void RenderBoth(bool useTextWl)
+    {
+        if (_pixelsA is null || _pixelsB is null) return;
+        double lo = _dataMin, hi = _dataMax;
+        if (useTextWl)
+        {
+            if (!double.TryParse(_window.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var ww) || !double.TryParse(_level.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var ll) || !(ww > 0) || !double.IsFinite(ll))
+            {
+                _viewHint.Text = "W/L 값이 올바르지 않습니다(Window > 0 인 숫자). 표시를 바꾸지 않았습니다.";
+                return;
+            }
+            lo = ll - ww / 2; hi = ll + ww / 2;
+        }
+        _imageA.Source = ToBitmap(_pixelsA, lo, hi);
+        _imageB.Source = ToBitmap(_pixelsB, lo, hi);   // the SAME lo/hi for both: one window/level
+    }
+
+    private BitmapSource ToBitmap(double[] pixels, double lo, double hi)
+    {
+        var bytes = new byte[pixels.Length];
+        var scale = 255.0 / (hi - lo);
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            var v = pixels[i];
+            bytes[i] = !double.IsFinite(v) ? (byte)0 : (byte)Math.Clamp(Math.Round((v - lo) * scale), 0, 255);
+        }
+        var bmp = BitmapSource.Create(_displayWidth, _displayHeight, 96, 96, PixelFormats.Gray8, null, bytes, _displayWidth);
+        bmp.Freeze();
+        return bmp;
+    }
+
+    private void DrawRoi(JsonNode roi)
+    {
+        foreach (var canvas in new[] { _overlayA, _overlayB })
+        {
+            canvas.Children.Clear();
+            canvas.Width = _displayWidth; canvas.Height = _displayHeight;
+            ComparisonContract.TryInt(roi["x"], out var x); ComparisonContract.TryInt(roi["y"], out var y);
+            ComparisonContract.TryInt(roi["width"], out var rw); ComparisonContract.TryInt(roi["height"], out var rh);
+            var rect = new System.Windows.Shapes.Rectangle { Width = Math.Max(1.0, (double)rw / _step), Height = Math.Max(1.0, (double)rh / _step), Stroke = Brushes.Yellow, StrokeThickness = 1.0 / Math.Max(_zoom, 1e-6), IsHitTestVisible = false };
+            Canvas.SetLeft(rect, (double)x / _step); Canvas.SetTop(rect, (double)y / _step);
+            canvas.Children.Add(rect);
+        }
+    }
+
+    private void SetZoom(double zoom)
+    {
+        _zoom = Math.Clamp(zoom, 0.02, 64.0);
+        _scaleA.ScaleX = _scaleA.ScaleY = _scaleB.ScaleX = _scaleB.ScaleY = _zoom;   // one scale for both
+        foreach (var canvas in new[] { _overlayA, _overlayB })
+            foreach (var r in canvas.Children.OfType<System.Windows.Shapes.Rectangle>()) r.StrokeThickness = 1.0 / _zoom;
+    }
+
+    private void ZoomFit()
+    {
+        if (_displayWidth <= 0 || _displayHeight <= 0) return;
+        var vw = Math.Max(50.0, Math.Min(_scrollA.ViewportWidth > 0 ? _scrollA.ViewportWidth : 500, _scrollB.ViewportWidth > 0 ? _scrollB.ViewportWidth : 500) - 4);
+        var vh = Math.Max(50.0, Math.Min(_scrollA.ViewportHeight > 0 ? _scrollA.ViewportHeight : 300, _scrollB.ViewportHeight > 0 ? _scrollB.ViewportHeight : 300) - 4);
+        SetZoom(Math.Min(vw / _displayWidth, vh / _displayHeight));
+    }
+
+    private void Sync(ScrollViewer from, ScrollViewer to)
+    {
+        if (_syncing) return;
+        _syncing = true;
+        try { to.ScrollToHorizontalOffset(from.HorizontalOffset); to.ScrollToVerticalOffset(from.VerticalOffset); }
+        finally { _syncing = false; }
+    }
+
+    private async Task ComputeAsync()
+    {
+        if (_busy || _manifest is null || _validation?.Comparable != true) return;
+        var gen = _generation;
+        var manifest = _manifest.DeepClone();
+        var baseDir = _baseDir;
+        var outRoot = _outputRoot.Text.Trim();
+        SetBusy(true);
+        _result.Text = "계산 중입니다. 원본 파일을 읽기만 하며 바꾸지 않습니다…";
+        try
+        {
+            var runDir = await Task.Run(() => ComparisonRunner.RunAndRecord(manifest, baseDir, outRoot));
+            if (gen != _generation) { _result.Text = ""; return; }   // a different manifest was opened meanwhile: this result describes the old one and is not shown as current
+            var res = JsonNode.Parse(File.ReadAllText(Path.Combine(runDir, "result.json")))!;
+            var status = res["status"]!.GetValue<string>();
+            var reasons = res["reasons"] is JsonArray ra ? ra.Select(x => x!.GetValue<string>()).ToList() : [];
+            var text = new System.Text.StringBuilder();
+            text.AppendLine($"결과: {status}" + (reasons.Count > 0 ? "  사유: " + string.Join(", ", reasons) : ""));
+            if (status == "computed")
+            {
+                text.AppendLine($"ROI 유효 화소 {res["valid_pixels"]}  ·  단위 {res["units"]}  ·  차이 = A − B");
+                text.AppendLine($"평균 {F(res["mean_a_minus_b"])}  표준편차(모집단) {F(res["std_a_minus_b"])}  RMSE {F(res["rmse"])}  평균 절댓값 {F(res["mean_abs"])}  최솟값 {F(res["min_a_minus_b"])}  최댓값 {F(res["max_a_minus_b"])}");
+                _state.Text = "상태: 가져온 파일의 수치 차이를 계산했습니다. 이것은 2G 실행도 화질 판정도 아닙니다.";
+            }
+            else
+            {
+                text.AppendLine("숫자를 만들지 않았습니다. " + string.Join(" ", reasons.Select(r => ComparisonContract.ReasonText(r))));
+                _state.Text = $"상태: 비교가 {status} 로 끝났습니다. 통과가 아닙니다. 2G 실행이 아닙니다.";
+            }
+            text.AppendLine($"원본 파일 변경 없음: {(res["sources_unchanged"]!.GetValue<bool>() ? "예" : "아니오")}  ·  2G 실행됨: {(res["actual_2g_executed"]!.GetValue<bool>() ? "예" : "아니오")}  ·  화질 판정: 하지 않음");
+            text.AppendLine("저장 위치: " + runDir);
+            _result.Text = text.ToString();
+        }
+        catch (Exception e) { if (gen == _generation) { _result.Text = "실패: " + e.Message; _state.Text = "상태: 저장·계산 실패. 통과가 아닙니다."; } }
+        finally { SetBusy(false); }
+    }
+
+    private static string F(JsonNode? n) => n is null ? "—" : n.GetValue<double>().ToString("G10", CultureInfo.InvariantCulture);
+}

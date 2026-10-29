@@ -1,0 +1,3 @@
+QA-A-266b: the real dark measurement of QA-A-266 (script QA-A-266/evidence/50_real_darks.py.txt, unchanged) is run once more with the library built from the 266b fixes.
+Prediction (written before the run): the printed figures are byte for byte the same as QA-A-266/evidence/51_real_darks_result.txt (the ROIs are about 900,000 pixels, the raw ROIs have a spread, the struct is the full 120 bytes),
+the checks P1/P2/P5/P7 are all ok, validMask of the last frame is 0x1f. Any difference means the fixes changed a figure on real data and must be explained before anything else.

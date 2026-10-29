@@ -1,0 +1,2 @@
+d33f78f5e64ba753f8e67d3a2fa5bf95442ad3358b2e9e8a421d0d2d23881f58 *gui/ImageProcTest/MainWindow.xaml
+ac0ab4a521f7d22a61e16d28b4feabea8f4a9ba15536c9b77758c63cc115ac57 *gui/ImageProcTest/MainWindow.xaml.cs

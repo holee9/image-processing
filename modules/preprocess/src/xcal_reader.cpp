@@ -120,13 +120,11 @@ static XpeErrorCode parse_config_block_with_legacy(const std::vector<uint8_t>& c
 // integer. A key inside a nested object is not metadata, a key given twice refuses the block (xpe_config_parse_block),
 // and half a pair is a refusal: the writer always makes both, so one alone is a damaged or hand-made block, not
 // "uncompressed". `is_compressed` is false when neither key is there.
-static XpeErrorCode read_compression_meta(
+XpeErrorCode xcal_read_compression_meta(
     const XpeConfigDoc& doc,
-    bool& is_compressed,
-    uint32_t& out_method,
-    uint64_t& out_raw_payload_len)
+    XCalCompressionMeta& meta)
 {
-    is_compressed = false;
+    meta.is_compressed = false;
     const XpeConfigEntry* method = doc.find("xcal_compression");
     const XpeConfigEntry* raw = doc.find("xcal_raw_payload_len");
     if (method == nullptr && raw == nullptr) return XPE_OK;
@@ -148,9 +146,9 @@ static XpeErrorCode read_compression_meta(
     unsigned long long m = 0, r = 0;
     if (!unsignedInteger(method, 0xFFFFFFFFull, &m)) return XPE_ERR_CONFIG_INVALID;
     if (!unsignedInteger(raw, 0xFFFFFFFFFFFFFFFFull, &r)) return XPE_ERR_CONFIG_INVALID;
-    out_method = static_cast<uint32_t>(m);
-    out_raw_payload_len = static_cast<uint64_t>(r);
-    is_compressed = true;
+    meta.method = static_cast<uint32_t>(m);
+    meta.raw_payload_len = static_cast<uint64_t>(r);
+    meta.is_compressed = true;
     return XPE_OK;
 }
 
@@ -220,12 +218,12 @@ XpeErrorCode read_xcal_file(
         {
             const XpeErrorCode prc = parse_config_block_with_legacy(config, hdr.type, &config_doc, &legacy_repaired);
             if (prc != XPE_OK) return prc;
-            const XpeErrorCode mrc = read_compression_meta(
-                config_doc,
-                is_compressed,
-                compression_method,
-                raw_payload_len);
+            XCalCompressionMeta meta;
+            const XpeErrorCode mrc = xcal_read_compression_meta(config_doc, meta);
             if (mrc != XPE_OK) return mrc;
+            is_compressed = meta.is_compressed;
+            compression_method = meta.method;
+            raw_payload_len = meta.raw_payload_len;
             if (is_v2) {
                 const XpeErrorCode lrc = defect_v2_check_layout(hdr, config_doc, is_compressed, raw_payload_len);
                 if (lrc != XPE_OK) return lrc;

@@ -1,0 +1,17 @@
+import json,sys
+def leaves(o,p=''):
+    if isinstance(o,dict):
+        for k,v in o.items(): yield from leaves(v,p+'/'+k)
+    elif isinstance(o,list):
+        for i,v in enumerate(o): yield from leaves(v,p+'[%d]'%i)
+    else: yield p,o
+for n in ['44_correct_v1','45_correct_v2']:
+    a=dict(leaves(json.load(open(sys.argv[1]+'/260_'+n+'.json',encoding='utf-8'))))
+    b=dict(leaves(json.load(open(sys.argv[2]+'/'+n+'.json.txt',encoding='utf-8'))))
+    d=[k for k in set(a)|set(b) if a.get(k)!=b.get(k)]
+    print(n,'leaves',len(a),len(b),'differ',len(d))
+    import re
+    pat={}
+    for k in d: pat.setdefault(re.sub(r'\[\d+\]','[]',k),[]).append(k)
+    for p,ks in sorted(pat.items()):
+        k=ks[0]; print('  ',p,'n=',len(ks),'e.g.',k,a.get(k),'->',b.get(k))

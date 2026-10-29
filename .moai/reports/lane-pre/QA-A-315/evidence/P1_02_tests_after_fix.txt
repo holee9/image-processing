@@ -1,0 +1,22 @@
+# Reviewer PRE313-317 P1 after the fix (QA-A-315, Refs #278)
+HEAD 6354330d64779ec3d5ea5f2b9c85af37c22dcb2b
+xpe_preprocess.dll sha256 cd411f995a514306ee231ab855c252373b0019d6e8ae12f26a8e073bc69b5356
+--- xpe_preprocess_parallel_unwind_tests.exe x3
+[calibration] caller-thread allocations: 2 ranges = 6 (repeat 6), 3 ranges = 10
+[       OK ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc (503 ms)
+[  PASSED  ] 1 test.
+exit=0
+[calibration] caller-thread allocations: 2 ranges = 6 (repeat 6), 3 ranges = 10
+[       OK ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc (501 ms)
+[  PASSED  ] 1 test.
+exit=0
+[calibration] caller-thread allocations: 2 ranges = 6 (repeat 6), 3 ranges = 10
+[       OK ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc (507 ms)
+[  PASSED  ] 1 test.
+exit=0
+--- xpe_preprocess_tests.exe --gtest_filter=ParallelDeterminism*:DefectCorrect*:GainCorrect*:Pipeline*:SaturationTest*:DefectLine*
+exit=0
+[==========] Running 143 tests from 14 test suites.
+[==========] 143 tests from 14 test suites ran. (2124 ms total)
+[  PASSED  ] 143 tests.
+note: the 'exit=' lines after the three unwind runs are the exit status of the grep filter, not of the test; each run printed [  PASSED  ] 1 test. The 'exit=0' after the filtered xpe_preprocess_tests run is that executable's own exit status.

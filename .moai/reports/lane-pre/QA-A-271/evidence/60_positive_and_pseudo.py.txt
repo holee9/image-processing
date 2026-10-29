@@ -1,0 +1,135 @@
+"""QA-A-271 §2.6 and a real-data complement.
+Part 1 (committed in 10_method_predictions.md.txt §2.6): bad interpolations placed on the oracle line pixels of R5's output (the version 2 algorithm at the oracle mask): B1 copy of the neighbour on one side only, B2 mean of the two pixels 3 pixels outside the group,
+B3 / B4 a constant bias of +0.1 / +0.25 sigma_local. The metric is the evaluation tool's cell median z (138 line cells). Detection rule: cells where the bad output is larger than R5 >= 110 of 138 AND the shift of the median over the 138 cells >= 0.05.
+References C_v2 and Cc (Cp is not used: see 41_c4_factorial.txt, the planted calibration at a defect pixel is not a valid reference).
+Part 2 (NOT in the committed method, added after 41_c4_factorial.txt was read; a real-data counterpart of the phantom): 240 pseudo lines (width 1 and 2, row and column, length 400) placed where nothing is defective (no truth item, no map pixel of either edition, within the inner
+imaging area, no other pseudo line within 12 pixels). Both algorithms correct them in the planted frame U; the error against the frame's own value is |out - U| / sigma_local(Cc) (the true value of a pseudo-line pixel is the value it had), its bias and standard deviation.
+Usage: python -X utf8 60_positive_and_pseudo.py.txt > 61_positive_and_pseudo.txt"""
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-271/evidence/30_lib.py.txt', encoding='utf-8').read()
+exec(compile(src, '30_lib', 'exec'), globals())
+import json
+
+mo, mo_lines = oracle_mask_and_lines()
+line_keys = sorted(k for k in CELL_PIX if k.startswith('line/'))
+print('line cells per frame %d (x 2 frames = %d)' % (len(line_keys), 2 * len(line_keys)))
+write_defect(O71 + 'r5_mo_a2.xcal', S, S, mo, None, mo_lines)
+ok_pix = np.zeros((S, S), dtype=bool)   # oracle line pixels
+for L in mo_lines:
+    for (ln, a, b) in L['segments']:
+        if L['orientation'] == 0:
+            ok_pix[ln, a:b] = True
+        else:
+            ok_pix[a:b, ln] = True
+
+
+def across_value(U, L, first_side, dist_extra=0):
+    """array with the value of the pixel `across` the line at the given side for every oracle line pixel of group L (distance 1 + dist_extra from the group)"""
+    return None
+
+
+res = {}
+for f in (29, 30):
+    U = np.load(O70 + 'U_v2_%d.npy' % f).astype(np.float64)
+    load_defect(O71 + 'r5_mo_a2.xcal')
+    good, _ = correct_ex(U.astype(np.float32))
+    good = good.astype(np.float64)
+    sl = {rn: sigma_local(np.load(p % f)) for rn, p in (('C_v2', O70 + 'C_v2_%d.npy'), ('Cc', O71 + 'Cc_%d.npy'))}
+    # the bad outputs
+    b1 = good.copy(); b2 = good.copy()
+    for L in mo_lines:
+        row = L['orientation'] == 0
+        first, last = L['index'], L['index'] + L['width'] - 1
+        for (ln, a, b) in L['segments']:
+            ps = np.arange(a, b)
+            if row:
+                before = U[first - 1, ps] if first - 1 >= 0 else U[last + 1, ps]
+                far = 0.5 * (U[max(first - 3, 0), ps] + U[min(last + 3, S - 1), ps])
+                b1[ln, a:b] = before
+                b2[ln, a:b] = far
+            else:
+                before = U[ps, first - 1] if first - 1 >= 0 else U[ps, last + 1]
+                far = 0.5 * (U[ps, max(first - 3, 0)] + U[ps, min(last + 3, S - 1)])
+                b1[a:b, ln] = before
+                b2[a:b, ln] = far
+    outs = {'good (R5)': good, 'B1 one-sided copy': b1, 'B2 far neighbours (3 px)': b2}
+    for d, nm in ((0.1, 'B3 bias +0.1 sigma'), (0.25, 'B4 bias +0.25 sigma')):
+        o = good.copy()
+        o[ok_pix] += d * sl['C_v2'][ok_pix]
+        outs[nm] = o
+    for rn in ('C_v2', 'Cc'):
+        C = np.load(O70 + 'C_v2_%d.npy' % f) if rn == 'C_v2' else np.load(O71 + 'Cc_%d.npy' % f)
+        for nm, o in outs.items():
+            res[(f, rn, nm)] = cell_medians(zmap(o, C, sl[rn]))
+print('== Part 1: bad interpolations as positive controls (138 line cells)')
+print('  %-6s %-26s %20s %22s %s' % ('ref', 'bad interpolation', 'cells larger than R5', 'shift of the median', 'detected (>=110 and >=0.05)'))
+for rn in ('C_v2', 'Cc'):
+    base = [res[(f, rn, 'good (R5)')][k] for f in (29, 30) for k in line_keys]
+    for nm in ('B1 one-sided copy', 'B2 far neighbours (3 px)', 'B3 bias +0.1 sigma', 'B4 bias +0.25 sigma'):
+        bad = [res[(f, rn, nm)][k] for f in (29, 30) for k in line_keys]
+        n_larger = sum(1 for a, b in zip(bad, base) if a > b + 1e-9)
+        shift = float(np.median(np.array(bad) - np.array(base)))
+        print('  %-6s %-26s %12d / %d %22.4f %s' % (rn, nm, n_larger, len(base), shift, 'yes' if (n_larger >= 110 and shift >= 0.05) else 'no'))
+print('  for scale: the observed second-over-first-edition difference is +0.1595 (median of the 118 cells) and the algorithm effect of 41_c4_factorial.txt is +0.17')
+
+# ---- Part 2
+rng = np.random.default_rng(271)
+mp1 = np.fromfile(O60 + 'inj_v1_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+mp2 = np.fromfile(O60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+bad = mp1 | mp2 | (ids != 0)
+dil = bad.copy()
+for sh in range(1, 13):
+    dil[sh:, :] |= bad[:-sh, :]; dil[:-sh, :] |= bad[sh:, :]
+    dil[:, sh:] |= bad[:, :-sh]; dil[:, :-sh] |= bad[:, sh:]
+lines_p = []
+mask_p = np.zeros((S, S), dtype=np.uint8)
+taken = np.zeros((S, S), dtype=bool)
+tries = 0
+specs = [(w, o) for w in (1, 2) for o in (0, 1) for _ in range(60)]
+rng.shuffle(specs)
+for (w, o) in specs:
+    for _ in range(200):
+        tries += 1
+        idx = int(rng.integers(40, S - 40))
+        st = int(rng.integers(40, S - 40 - 400))
+        if o == 0:
+            ys0, ys1, xs0, xs1 = idx - 12, idx + w + 12, st - 12, st + 412
+        else:
+            ys0, ys1, xs0, xs1 = st - 12, st + 412, idx - 12, idx + w + 12
+        if dil[ys0:ys1, xs0:xs1].any() or taken[ys0:ys1, xs0:xs1].any():
+            continue
+        taken[ys0:ys1, xs0:xs1] = True
+        if o == 0:
+            mask_p[idx:idx + w, st:st + 400] = 1
+            segs = [(idx + j, st, st + 400) for j in range(w)]
+        else:
+            mask_p[st:st + 400, idx:idx + w] = 1
+            segs = [(idx + j, st, st + 400) for j in range(w)]
+        lines_p.append(dict(orientation=o, index=idx, width=w, start=st, end=st + 400, causes=1, flags=0, reason=0, correction=1, strength=1.0, persistence=-1.0, segments=segs, _w=w, _o=o))
+        break
+lines_p.sort(key=lambda L: (L['orientation'], L['index']))
+print('== Part 2 (not committed beforehand): %d pseudo lines placed (%d tries); pixels %d' % (len(lines_p), tries, int(mask_p.sum())))
+write_defect(O71 + 'pseudo_a1.xcal', S, S, mask_p)
+write_defect(O71 + 'pseudo_a2.xcal', S, S, mask_p, None, [{k: v for k, v in L.items() if not k.startswith('_')} for L in lines_p])
+U = np.load(O70 + 'U_v2_29.npy')
+sl = sigma_local(np.load(O71 + 'Cc_29.npy'))
+errs = {}
+for a, p in (('A1', O71 + 'pseudo_a1.xcal'), ('A2', O71 + 'pseudo_a2.xcal')):
+    load_defect(p)
+    out, rep = correct_ex(U)
+    e = (out.astype(np.float64) - U.astype(np.float64)) / np.where(sl > 0, sl, np.nan)
+    errs[a] = e
+    print('  %s: report line_pixels %d isolated %d blob %d' % (a, rep.line_pixels, rep.isolated_pixels, rep.blob_pixels))
+print('  %-14s %-3s %10s %10s %10s %12s' % ('group', 'alg', 'pixels', 'bias', 'sd', 'median |e|'))
+for title, sel in (('all', lambda L: True), ('width 1', lambda L: L['_w'] == 1), ('width 2', lambda L: L['_w'] == 2), ('rows', lambda L: L['_o'] == 0), ('columns', lambda L: L['_o'] == 1)):
+    m = np.zeros((S, S), dtype=bool)
+    for L in lines_p:
+        if sel(L):
+            for (ln, a, b) in L['segments']:
+                if L['orientation'] == 0:
+                    m[ln, a:b] = True
+                else:
+                    m[a:b, ln] = True
+    for a in ('A1', 'A2'):
+        v = errs[a][m]
+        v = v[np.isfinite(v)]
+        print('  %-14s %-3s %10d %+10.4f %10.4f %12.4f' % (title, a, v.size, v.mean(), v.std(), np.median(np.abs(v))))

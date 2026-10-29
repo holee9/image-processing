@@ -12,7 +12,10 @@
 #include "xpe_strict_parse.hpp"
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
+#include "saturation.hpp"
+#include "parallel.hpp"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
@@ -43,6 +46,15 @@ void (*xpe_pipeline_gain_frame_hook)(void*, size_t, bool) = nullptr;
 #endif
 
 namespace {
+    // QA-A-315 (Refs #278): a whole-frame copy between two disjoint buffers, in ranges on several threads (the bytes are the memcpy's).
+    // The frame copies into the working buffer and out to the caller took 2.3 ms and 1.6-1.8 ms on one thread at 3072x2560 (evidence 06).
+    void parallel_copy(void* dst, const void* src, size_t bytes)
+    {
+        xpe_parallel_chunks(bytes, size_t{2} << 20, [&](size_t b, size_t e) {
+            std::memcpy(static_cast<unsigned char*>(dst) + b, static_cast<const unsigned char*>(src) + b, e - b);
+        });
+    }
+
     // Pipeline configuration from JSON
     struct PipelineConfig {
         bool bypassReadout{false};
@@ -60,6 +72,19 @@ namespace {
 
         float detectorTempC{25.0f};
         int32_t binningMode{1};
+
+        // QA-A-296 (Refs #278): the detector's saturation level, as a raw pixel value 1..65535, or "off". Neither given
+        // = the gain file's record decides; no record either = no saturation handling and one alert per call.
+        bool     saturationOff{false};
+        uint32_t saturationLevel{0};   // 0 = not given
+
+        // QA-A-296: how long runs of masked pixels in a version-1 defect map are corrected: "off" (every masked pixel the
+        // way it was before), "rows" (default: a horizontal run is interpolated across the line) or "rows_cols".
+        XpeDefectLineOptions defectLines;
+
+        // QA-A-296: the most threads one call may use; 0 = as many as the machine has (up to 16). 1 = single threaded. The output is the
+        // same whatever the value (the split never changes a pixel).
+        uint32_t maxThreads{0};
 
         // QA-A-202 (#233): a number that is not a number is a refusal, not an exception. Every conversion
         // below is strict (the whole value, finite, in range -- xpe_strict_parse.hpp); a failure is
@@ -93,10 +118,127 @@ namespace {
             if (cfg.doc.getString("binningMode", &v) && !v.empty() && !xpe_strict::parse_int(v, &cfg.binningMode))
                 return XPE_ERR_CONFIG_INVALID;
 
+            // QA-A-296 (D4): the three keys below check the JSON TYPE as well. A key that is present must be a bare integer in range
+            // (saturationLevel, maxThreads) or one of the fixed strings; an empty string, an object, an array, a number written as a string,
+            // true/false/null, a fraction are all XPE_ERR_CONFIG_INVALID. (getString is false for an object or an array.)
+            bool quoted = false;
+            if (cfg.doc.find("saturationLevel") != nullptr) {
+                if (!cfg.doc.getString("saturationLevel", &v, &quoted)) return XPE_ERR_CONFIG_INVALID;
+                if (quoted) {
+                    if (v != "off") return XPE_ERR_CONFIG_INVALID;   // "", "OFF", "12800" ...
+                    cfg.saturationOff = true;
+                } else {
+                    double lvNum = 0.0;
+                    int32_t lv = 0;
+                    if (!cfg.doc.getNumber("saturationLevel", &lvNum) || !xpe_strict::parse_int(v, &lv) || lv < 1 || lv > 65535) return XPE_ERR_CONFIG_INVALID;
+                    cfg.saturationLevel = static_cast<uint32_t>(lv);
+                }
+            }
+            if (cfg.doc.find("maxThreads") != nullptr) {
+                double mtNum = 0.0;
+                int32_t mt = 0;
+                if (!cfg.doc.getString("maxThreads", &v, &quoted) || quoted || !cfg.doc.getNumber("maxThreads", &mtNum) ||
+                    !xpe_strict::parse_int(v, &mt) || mt < 1 || mt > static_cast<int32_t>(XPE_PARALLEL_MAX_THREADS)) return XPE_ERR_CONFIG_INVALID;
+                cfg.maxThreads = static_cast<uint32_t>(mt);
+            }
+            if (cfg.doc.find("defectLineInterpolation") != nullptr) {
+                if (!cfg.doc.getString("defectLineInterpolation", &v, &quoted) || !quoted) return XPE_ERR_CONFIG_INVALID;
+                if (v == "off") { cfg.defectLines.rows = false; cfg.defectLines.cols = false; }
+                else if (v == "rows") { cfg.defectLines.rows = true; cfg.defectLines.cols = false; }
+                else if (v == "rows_cols") { cfg.defectLines.rows = true; cfg.defectLines.cols = true; }
+                else return XPE_ERR_CONFIG_INVALID;
+            }
+
             *out = std::move(cfg);
             return XPE_OK;
         }
     };
+
+    /**
+     * QA-A-296 (D4): the saturation notes of one call. Saturation alerts are at most ONE per call, INFO included: every condition adds a
+     * note, and the call pushes a single alert at the end of the saturation step. The alert carries the code of the most severe note (the
+     * first among equals) and the texts of all notes, so nothing is lost when conditions overlap.
+     */
+    struct SatNotes {
+        std::vector<std::pair<int, std::string>> items;   // severity, text (the text starts with its code)
+        void add(int severity, const char* text) { items.emplace_back(severity, text); }
+        void push() const
+        {
+            if (items.empty()) return;
+            size_t lead = 0;
+            for (size_t i = 1; i < items.size(); ++i) if (items[i].first > items[lead].first) lead = i;
+            std::string text = items[lead].second;
+            for (size_t i = 0; i < items.size(); ++i) if (i != lead) text += " | " + items[i].second;
+            xpe_alert_push(text.c_str(), static_cast<XpeAlertSeverity>(items[lead].first));
+        }
+    };
+
+    /**
+     * QA-A-296 (Refs #278): saturation handling right after a scalar-map gain stage wrote `stage4`. The level comes from
+     * the caller's key, else the gain file's record, else there is none: then no handling, one alert (XPE_WARN_SATURATION_UNSET).
+     * With a level: a pixel whose RAW value (the caller's frame) is >= level becomes S_out = level / median(gain), every other
+     * pixel is limited to S_out. A frame whose pile-up sits at another value than the level raises an alert and changes nothing.
+     */
+    void apply_saturation(const PipelineConfig& cfg, const CalibSnapshot& calib, const XpeImageBuffer* img,
+                          XpeImageBuffer* stage4, size_t pixelCount, SatNotes* notes)
+    {
+        if (cfg.saturationOff) return;
+        uint32_t level = cfg.saturationLevel;
+        const bool fromConfig = level != 0;
+        if (level == 0 && calib.gain_sat.known && calib.gain_sat.determined) level = calib.gain_sat.level;
+        if (level == 0) {
+            notes->add(XPE_ALERT_WARNING,
+                calib.gain_sat.known
+                    ? "XPE_WARN_SATURATION_UNSET: the gain calibration records the saturation level as undetermined and the "
+                      "pipeline configuration gives no saturationLevel; saturated pixels are not handled (set saturationLevel, or "
+                      "regenerate the gain calibration with a frame exposed to saturation; \"off\" silences this alert)"
+                    : "XPE_WARN_SATURATION_UNSET: neither the pipeline configuration (saturationLevel) nor the gain calibration "
+                      "gives the detector's saturation level; saturated pixels are not handled (set saturationLevel, or regenerate "
+                      "the gain calibration with a frame exposed to saturation; \"off\" silences this alert)");
+            return;
+        }
+        const float sOut = xpe_sat_output_value(level, xpe_sat_median_for(calib));
+        if (stage4->format != XPE_PIXEL_FLOAT32 || img->format != XPE_PIXEL_UINT16) return;
+        if (!(sOut > 0.0f) || !std::isfinite(sOut)) {
+            // the gain plane gives no usable median: saturated pixels cannot be given their value, so nothing is changed and the call says so
+            notes->add(XPE_ALERT_WARNING,
+                "XPE_WARN_SATURATION_NOT_APPLIED: the saturated output value cannot be formed (the gain plane has no usable median); "
+                "saturated pixels are not handled");
+            return;
+        }
+        if (fromConfig && calib.gain_sat.known && calib.gain_sat.determined && calib.gain_sat.level != level) {
+            char msg[256];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_INFO_SATURATION_OVERRIDE: saturationLevel %u from the pipeline configuration is used; the gain calibration records %u",
+                static_cast<unsigned>(level), static_cast<unsigned>(calib.gain_sat.level));
+            msg[sizeof(msg) - 1] = '\0';
+            notes->add(XPE_ALERT_INFO, msg);
+        }
+        const uint16_t* raw = static_cast<const uint16_t*>(img->data);
+        float* const outF = static_cast<float*>(stage4->data);
+        xpe_parallel_chunks(pixelCount, size_t{1} << 20, [&](size_t b, size_t e) { xpe_sat_apply(outF + b, raw + b, e - b, level, sOut); });
+
+        // Monitor (alert only, the level is never changed): every 16th row, known defect pixels left out.
+        // A looser share above the pile than the calibration rule: a detector can carry a few rows of fixed 65535.
+        std::vector<uint32_t> hist(XPE_SAT_BINS, 0u);
+        uint64_t counted = 0;
+        const uint8_t* excl = (calib.defect_map && calib.defect_width == img->width && calib.defect_height == img->height)
+                                  ? calib.defect_map.get() : nullptr;
+        xpe_sat_histogram(raw, img->width, img->height, 16u, excl, hist.data(), &counted);
+        XpeSatParams mp;
+        mp.maxAboveFrac = 5e-3;
+        uint32_t seen = 0;
+        uint64_t seenCount = 0;
+        if (xpe_sat_find_pile(hist.data(), counted, mp, &seen, &seenCount) && seen != level) {
+            char msg[320];
+            std::snprintf(msg, sizeof(msg),
+                "XPE_WARN_SATURATION_MISMATCH: the frame piles up at the raw value %u but the saturation level in use is %u; "
+                "the level was not changed (check saturationLevel / the gain calibration for this detector)",
+                static_cast<unsigned>(seen), static_cast<unsigned>(level));
+            msg[sizeof(msg) - 1] = '\0';
+            notes->add(XPE_ALERT_WARNING, msg);
+        }
+    }
 
     /**
      * width * height * elemSize as a size_t. False when a side is 0 or the product does not fit: two uint32
@@ -218,6 +360,7 @@ namespace {
         XpeStageDiagnostics* diag = nullptr)
     {
         if (!img || !img->data) return XPE_ERR_INVALID_INPUT;
+        const XpeParallelLimitGuard threadLimit(cfg.maxThreads);   // QA-A-296: for this call only
         // QA-A-246: the per-stage counts are collected here and copied to the caller's struct only when the call succeeds, so a failed
         // call leaves validMask 0. With diag == nullptr nothing below counts anything.
         XpeStageDiagnostics counts{};
@@ -289,7 +432,7 @@ namespace {
         std::unique_ptr<unsigned char[]> work;
         if (widen) {
             work.reset(new unsigned char[floatBytes]);   // every byte is written before it is read: the frame first, the float frame later
-            std::memcpy(work.get(), img->data, inputBytes);
+            parallel_copy(work.get(), img->data, inputBytes);
         }
         uint16_t* const work16 = reinterpret_cast<uint16_t*>(work.get());
         float* const workF = reinterpret_cast<float*>(work.get());
@@ -374,6 +517,7 @@ namespace {
         XPE_STAGE_HOOK(3);
 
         // Stage 4: Gain Correction (PRE-03) - uint16 in, float32 out (DOMAIN TRANSITION)
+        SatNotes satNotes;   // QA-A-296: the saturation notes of this call, pushed once after the gain stage
         XpeImageBuffer stage4;
         std::vector<float> stage4Data;
         // QA-A-211 (#233): the pixels a polynomial gain classified defective in THIS frame, handed to the defect stage
@@ -396,6 +540,7 @@ namespace {
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
+            if (calib.gain_map && img->format == XPE_PIXEL_UINT16) apply_saturation(cfg, calib, img, &stage4, pixelCount, &satNotes);
             release_buffer(stage1Data);   // stage 4 holds its own float frame; the uint16 frames are not read again
             release_buffer(stage2Data);
             release_buffer(stage3Data);
@@ -449,6 +594,13 @@ namespace {
             // No gain correction and no float stage after it: stage4 = stage3 (uint16)
             stage4 = stage3;
         }
+        // QA-A-296: saturation handling exists only for a scalar gain map applied to a uint16 frame; anything else says so once.
+        if (!cfg.saturationOff && !(!cfg.bypassGain && calib.gain_map && img->format == XPE_PIXEL_UINT16)) {
+            satNotes.add(XPE_ALERT_WARNING,
+                "XPE_WARN_SATURATION_NOT_APPLIED: saturation handling applies only to a scalar gain map on a uint16 frame; this call uses "
+                "no gain, a polynomial gain or another input format, so saturated pixels are not handled (\"saturationLevel\":\"off\" silences this alert)");
+        }
+        satNotes.push();   // at most one saturation alert for the call
         XPE_STAGE_HOOK(4);
 #ifdef XPE_CACHE_TEST_HOOKS
         if (xpe_pipeline_gain_frame_hook) xpe_pipeline_gain_frame_hook(stage4.data, pixelCount, stage4.format == XPE_PIXEL_FLOAT32);
@@ -538,7 +690,7 @@ namespace {
                 // In place (QA-A-146: the stage reads only pixels it does not write, so one buffer serves as input and
                 // output; the call shape is documented and pinned by DefectCorrectTest.InPlaceMatchesOutOfPlace). No
                 // third float frame, and the copy of input to output is skipped inside the stage.
-                result = xpe_defect_correct_in(calib, &stage5, &stage5, meta, &frameGainDefects);
+                result = xpe_defect_correct_in(calib, &stage5, &stage5, meta, &frameGainDefects, nullptr, nullptr, &cfg.defectLines);
                 if (result != XPE_OK) return result;
                 stage6 = stage5;
             } else {
@@ -550,7 +702,7 @@ namespace {
                 stage6.format = XPE_PIXEL_FLOAT32;
                 stage6.data = stage6Data.data();
                 stage6.dataSize = stage6Data.size() * sizeof(float);
-                result = xpe_defect_correct_in(calib, &stage5, &stage6, meta, &frameGainDefects);
+                result = xpe_defect_correct_in(calib, &stage5, &stage6, meta, &frameGainDefects, nullptr, nullptr, &cfg.defectLines);
                 if (result != XPE_OK) return result;
                 release_buffer(stage4Data);   // stage 6 holds its own frame
                 release_buffer(stage5Data);
@@ -583,14 +735,18 @@ namespace {
                 stage7.dataSize = stage7Data.size() * sizeof(float);
                 std::memcpy(stage7Data.data(), stage6.data, pixelCount * sizeof(float));
             }
-            result = xpe_ghost_correct(ghostHandle, &stage7, meta);
+            bool ghostBypassed = true;
+            result = xpe_ghost_correct_with_status(ghostHandle, &stage7, meta, &ghostBypassed);
             if (result != XPE_OK) return result;
 
             // QA-A-226 (#241): a handle without calibrated lag parameters passes the frame through unchanged, so the
             // frame is not flagged as ghost-corrected. The output stays float32 either way (final_result_is_float
             // depends on the handle being present, not on whether it corrected), so the format does not change
             // with the configuration.
-            if (meta && xpe_ghost_is_calibrated(ghostHandle)) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
+            if (meta) {
+                if (!ghostBypassed) meta->flags |= XPE_FLAG_GHOST_CORRECTED;
+                else meta->flags &= ~static_cast<uint32_t>(XPE_FLAG_GHOST_CORRECTED);
+            }
         }
         XPE_STAGE_HOOK(7);
 
@@ -612,7 +768,7 @@ namespace {
         }
         if (out) {
             // SAFE-004: the result goes to the caller's output buffer; the input buffer is never written.
-            std::memcpy(out->data, finalStage->data, outputBytes);
+            parallel_copy(out->data, finalStage->data, outputBytes);
             out->width = img->width;
             out->height = img->height;
             out->format = finalStage->format;
@@ -623,7 +779,7 @@ namespace {
             return XPE_OK;
         }
         if (finalStage->data != img->data)
-            std::memcpy(const_cast<void*>(img->data), finalStage->data, outputBytes);
+            parallel_copy(const_cast<void*>(img->data), finalStage->data, outputBytes);
         XPE_STAGE_HOOK(9);
 
         // Update img metadata to reflect actual output format

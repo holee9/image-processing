@@ -1,0 +1,59 @@
+QA320 inject: failAt=7 count=7 injected=1 tid=14708
+  #00 qa320::dump  <wt>/modules\preprocess\tests\test_oom_injection.cpp:200
+  #01 qa320::dumpInject  <wt>/modules\preprocess\tests\test_oom_injection.cpp:208
+  #02 operator new  <wt>/modules\preprocess\tests\test_oom_injection.cpp:223
+  #03 Concurrency::task<void>::task<void><<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:4039
+  #04 Concurrency::create_task<<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:4559
+  #05 std::_Get_associated_state<void,std::_Fake_no_copy_callable_adapter<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &> >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\future:1357
+  #06 std::async<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &>  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\future:1367
+  #07 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:63
+  #08 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #09 xpe_defect_correct  <wt>/modules\preprocess\src\defect_correct.cpp:1341
+  #10 <lambda_e14d30bddc8354a7c9045b7e6b6f053f>::operator()  <wt>/modules\preprocess\tests\test_oom_injection.cpp:818
+  #11 `anonymous namespace'::sweep  <wt>/modules\preprocess\tests\test_oom_injection.cpp:384
+  #12 OomInjection_ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree_Test::TestBody  <wt>/modules\preprocess\tests\test_oom_injection.cpp:804
+  #13 testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test,void>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2605
+  #14 testing::internal::HandleExceptionsInMethodIfSupported<testing::Test,void>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2648
+  #15 testing::Test::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2694
+  #16 testing::TestInfo::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2839
+  #17 testing::TestSuite::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:3017
+  #18 testing::internal::UnitTestImpl::RunAllTests  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:5921
+  #19 testing::internal::HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl,bool>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2605
+  #20 testing::internal::HandleExceptionsInMethodIfSupported<testing::internal::UnitTestImpl,bool>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2648
+  #21 testing::UnitTest::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:5484
+  #22 main  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc:65
+  #23 __scrt_common_main_seh  D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+  #24 BaseThreadInitThunk  ?:0
+  #25 RtlUserThreadStart  ?:0
+
+QA320 inject: failAt=8 count=8 injected=1 tid=14708
+  #00 qa320::dump  <wt>/modules\preprocess\tests\test_oom_injection.cpp:200
+  #01 qa320::dumpInject  <wt>/modules\preprocess\tests\test_oom_injection.cpp:208
+  #02 operator new  <wt>/modules\preprocess\tests\test_oom_injection.cpp:223
+  #03 Concurrency::details::_DefaultPPLTaskScheduler::schedule  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\pplwin.h:85
+  #04 Concurrency::details::_Task_impl_base::_ScheduleTask  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:1766
+  #05 Concurrency::task<void>::task<void><<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:4039
+  #06 Concurrency::create_task<<lambda_7308ccfb10b5c4a842e9854b4a5309b6> >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\ppltasks.h:4559
+  #07 std::_Get_associated_state<void,std::_Fake_no_copy_callable_adapter<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &> >  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\future:1357
+  #08 std::async<<lambda_bd2ad2baaf7a98dab6ff0c13f3c7f1ee> const &>  C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\future:1367
+  #09 xpe_parallel_chunks<<lambda_406785067a7101d0ce134025e43fb04e> >  <wt>/modules\preprocess\src\parallel.hpp:63
+  #10 xpe_defect_correct_in  <wt>/modules\preprocess\src\defect_correct.cpp:1180
+  #11 xpe_defect_correct  <wt>/modules\preprocess\src\defect_correct.cpp:1341
+  #12 <lambda_e14d30bddc8354a7c9045b7e6b6f053f>::operator()  <wt>/modules\preprocess\tests\test_oom_injection.cpp:818
+  #13 `anonymous namespace'::sweep  <wt>/modules\preprocess\tests\test_oom_injection.cpp:384
+  #14 OomInjection_ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree_Test::TestBody  <wt>/modules\preprocess\tests\test_oom_injection.cpp:804
+  #15 testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test,void>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2605
+  #16 testing::internal::HandleExceptionsInMethodIfSupported<testing::Test,void>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2648
+  #17 testing::Test::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2694
+  #18 testing::TestInfo::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2839
+  #19 testing::TestSuite::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:3017
+  #20 testing::internal::UnitTestImpl::RunAllTests  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:5921
+  #21 testing::internal::HandleSehExceptionsInMethodIfSupported<testing::internal::UnitTestImpl,bool>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2605
+  #22 testing::internal::HandleExceptionsInMethodIfSupported<testing::internal::UnitTestImpl,bool>  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:2648
+  #23 testing::UnitTest::Run  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest.cc:5484
+  #24 main  <wt>/build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc:65
+  #25 __scrt_common_main_seh  D:\a\_work\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+  #26 BaseThreadInitThunk  ?:0
+  #27 RtlUserThreadStart  ?:0
+
+QA320 terminate: failAt=0 count=8 injected=1 tid=14708

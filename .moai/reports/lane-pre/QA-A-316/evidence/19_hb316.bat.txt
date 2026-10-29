@@ -1,0 +1,5 @@
+@echo off
+set "PATH=C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem"
+call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 11
+cl /nologo /EHsc /O2 /MD /std:c++17 /I D:\workspace-github\xpe-pre\modules\preprocess\include /I D:\workspace-github\xpe-pre\modules\common\include D:\workspace-github\xpe-data\qa-316-tmp\qa316_gen.cpp /Fe:D:\workspace-github\xpe-data\qa-316-tmp\qa316_gen.exe /Fo:D:\workspace-github\xpe-data\qa-316-tmp\qa316_gen.obj /link /LIBPATH:D:\workspace-github\xpe-pre\build\ci-preprocess\lib xpe_preprocess.lib xpe_common.lib || exit /b 12
+exit /b 0

@@ -1,0 +1,54 @@
+"""QA-A-265 (Codex #234 R234-5): the columns that exceed 3 sigma after the second-edition correction and are not in the clean output -- 2895 (frames 1 and 2) and 3070 (frame 2) -- with the distance to the detector's lines taken from
+the ORIENTED line records (the line table of the planted second-edition set: orientation, index, stretches), not from the pixel mask (a horizontal line crosses every column). For each such column also: which pixels the correction
+changed (corrected output against the no-defect-correction output), whether they sit on the defect plane, and where the column lies relative to the imaging area (3070 is the last column inside the area, 3071 is a margin column).
+Reads the line table 51_lines_v2.tsv.txt (QA-A-260), runs the shipped pipeline through the QA-A-262 harness. Usage: PYTHONIOENCODING=utf-8 python 60_col3070_direction.py.txt > 61_col3070_result.txt"""
+import numpy as np
+
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-262/evidence/50_item4_columns.py.txt', encoding='utf-8').read()
+head = src[:src.index("FRAMES = ['Bright_29.raw'")]
+g = {'__name__': 'h'}
+exec(compile(head, '50_harness', 'exec'), g)
+pipeline, init, load_set, items, say = g['pipeline'], g['init'], g['load_set'], g['items'], g['say']
+M60, CAL, INJ, S = g['M60'], g['CAL'], g['INJ'], g['S']
+CFG_NODEFECT = b'{"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassDefect":true}'
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+ML, MT, MR, MB = 6, 2, 1, 1
+
+# ---- the detector's oriented line records (planted second-edition set)
+segs = []
+cols_hdr = None
+for l in open(EV8 + '51_lines_v2.tsv.txt', encoding='utf-8'):
+    c = l.rstrip('\n').split('\t')
+    if c[0] == 'kind':
+        cols_hdr = c
+        continue
+    if cols_hdr and c[0] == 'line' and len(c) >= len(cols_hdr):
+        rec = dict(zip(cols_hdr, c))
+        segs.append(rec)
+say('detector line records: %d (orientation row: %d, column: %d)' % (len(segs), sum(1 for r in segs if r['orientation'] == 'row'), sum(1 for r in segs if r['orientation'] == 'col' or r['orientation'] == 'column')))
+col_lines = [r for r in segs if r['orientation'] in ('col', 'column')]
+say('detected column lines at indices: %s' % sorted(int(r['index']) for r in col_lines))
+truth_cols = sorted({x for it in items.values() if it['cls'] in ('line', 'control') for (x, y, w, h) in it['rects'] if w <= h for x in range(x, x + w)})
+say('truth line/control column items span %d columns' % len(truth_cols))
+
+init()
+load_set(M60 + 'inj_set_v2/offset.xcal', M60 + 'inj_set_v2/gain.xcal', M60 + 'inj_set_v2/defect.xcal')
+plane = np.fromfile(M60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+lines_mask = np.fromfile(M60 + 'v2_full_lines.u8', dtype=np.uint8).reshape(S, S) != 0
+for frame, cols in (('Bright_29.raw', (2895,)), ('Bright_30.raw', (2895, 3070))):
+    I = pipeline(INJ + frame)
+    U = pipeline(INJ + frame, CFG_NODEFECT)
+    say('=' * 110)
+    say('evaluation frame %s' % frame)
+    for x in cols:
+        diff = np.nonzero(I[:, x] != U[:, x])[0]
+        nb = [np.count_nonzero(I[:, xx] != U[:, xx]) for xx in (x - 1, x, x + 1)]
+        dist_det_col = min((abs(x - int(r['index'])) for r in col_lines), default=-1)
+        dist_truth_col = min(abs(x - t) for t in truth_cols)
+        say('  column %d: inside the imaging area columns [%d, %d]: %s (neighbour %d is %s)' % (x, ML, S - MR - 1, 'yes' if ML <= x <= S - MR - 1 else 'NO', x + 1, 'a margin column' if x + 1 > S - MR - 1 else 'inside'))
+        say('      distance to the nearest DETECTED COLUMN line (oriented records): %d columns; to the nearest truth line/control column item: %d columns' % (dist_det_col, dist_truth_col))
+        say('      pixels of the column changed by the defect correction: %d (columns x-1, x, x+1: %s); on the defect plane in the column: %d; line-mask pixels in the column: %d' % (len(diff), nb, int(plane[:, x].sum()), int(lines_mask[:, x].sum())))
+        if len(diff):
+            say('      changed pixel rows: %s ...' % diff[:20].tolist())
+        for xx in (x - 1, x + 1):
+            say('      neighbour column %d: plane pixels %d, changed pixels %d' % (xx, int(plane[:, xx].sum()), int(np.count_nonzero(I[:, xx] != U[:, xx]))))

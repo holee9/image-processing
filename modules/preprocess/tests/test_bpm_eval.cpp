@@ -699,6 +699,120 @@ TEST_F(BpmEvalQuantumTest, OverlapMeasurementOnFramesWithoutSignalWritesNoRespon
     EXPECT_GT(nominalNonZero, 0u) << "the nominal chain is still written, in the diagnostic column only";
 }
 
+TEST_F(BpmEvalQuantumTest, TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost) {
+    // QA-A-268 (Codex #238 R238-4): the cost of an overlapped pixel is (s2 / (g * g)) / expectation, with g the pixel's mean over the verification frames divided by the local mean. A gain loss multiplies the
+    // signal and the noise standard deviation by g, so its noise cost is 1: the gain factor must be divided out. The mutant that leaves g * g out of that expression survived every test before this one,
+    // because the groups are one to four pixels each and no test looked at a number computed from them.
+    // The reference is independent of the expression: the ideal cost the tool writes next to each group from the NOMINAL chain (1 / the product of the efficiencies; gain losses do not change it).
+    makeQuantumFrames();
+    const fs::path out = root / "t";
+    ASSERT_EQ(0, inject(out));
+    std::string args = "noise-cost --truth \"" + out.string() + "\" --out \"" + (root / "nc.tsv").string() + "\" --overlap-out \"" + (root / "nc_overlaps.tsv").string() + "\"";
+    for (const auto& f : darks) args += " --dark \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+    for (const auto& f : evals) args += " --verify \"" + (out / "frames" / fs::path(f).filename()).string() + "\"";
+    ASSERT_EQ(0, runCmd(XPE_BPM_EVAL_EXE, args + " > \"" + (root / "nc.log").string() + "\" 2>&1")) << text(root / "nc.log");
+
+    struct Row { std::string items, kinds, label; size_t px, used; double cost, lo, hi, ideal; bool idealDefined; bool pooled; };
+    std::vector<Row> rows;
+    {
+        std::ifstream ov(root / "nc_overlaps.tsv");
+        std::string   l;
+        std::getline(ov, l);
+        while (std::getline(ov, l)) {
+            std::vector<std::string> c;
+            std::stringstream        ss(l);
+            std::string              cell;
+            while (std::getline(ss, cell, '\t')) c.push_back(cell);
+            ASSERT_EQ(18u, c.size()) << l;
+            Row r;
+            r.items = c[0];
+            r.kinds = c[1];
+            r.px = static_cast<size_t>(std::atoi(c[2].c_str()));
+            r.used = static_cast<size_t>(std::atoi(c[3].c_str()));
+            r.cost = std::atof(c[5].c_str());
+            r.lo = std::atof(c[6].c_str());
+            r.hi = std::atof(c[7].c_str());
+            r.label = c[8];
+            r.idealDefined = c[11] != "-";
+            r.ideal = r.idealDefined ? std::atof(c[11].c_str()) : 0.0;
+            r.pooled = c[12] == "pooled";
+            rows.push_back(r);
+        }
+    }
+    // (1) gain-only groups: the ideal cost is exactly 1. The mean cost over their pixels is the quantity the g * g division decides: about 1 with it. Without the division the cost is c' = s2 / expect = g * g * c, which is SMALLER
+    // than c for g < 1 (a gain loss has g between 0.3 and 0.7 and more than one of them multiplies), so the mean falls BELOW the lower bound; the upper bound does not catch that mutant. The bounds 0.7 .. 1.5 and 0.8 .. 1.7 are
+    // regression tolerances for this fixed seed (the observed values are 1.0707 and 1.254), not statistically derived confidence intervals, and they do not promise to detect the defect on another input or seed.
+    double gainCost = 0.0;
+    size_t gainUsed = 0, gainGroups = 0, gainDefect = 0;
+    // (2) every group whose ideal cost is defined: the pixel-weighted ratio of the measured to the ideal cost
+    double sumCost = 0.0, sumIdeal = 0.0;
+    size_t idealUsed = 0;
+    for (const Row& r : rows) {
+        if (r.pooled || !r.idealDefined || r.used == 0) continue;
+        sumCost += r.cost * static_cast<double>(r.used);
+        sumIdeal += r.ideal * static_cast<double>(r.used);
+        idealUsed += r.used;
+        if (r.ideal == 1.0) {
+            gainCost += r.cost * static_cast<double>(r.used);
+            gainUsed += r.used;
+            ++gainGroups;
+            gainDefect += r.label == "defect" ? 1u : 0u;
+        }
+    }
+    ASSERT_GT(gainUsed, 60u) << "the fixture has gain-only overlaps with measured pixels";
+    ASSERT_GT(idealUsed, 300u);
+    const double gainMean = gainCost / static_cast<double>(gainUsed), ratio = sumCost / sumIdeal;
+    EXPECT_GT(gainMean, 0.7) << "gain-only overlaps: " << gainGroups << " groups, " << gainUsed << " pixels; without the division by g * g each cost is multiplied by g * g < 1 and the mean falls below this bound";
+    EXPECT_LT(gainMean, 1.5) << "a gain loss does not add noise cost: a mean above the fixed-seed tolerance would mean a cost too large (for example a multiplication where a division is meant)";
+    EXPECT_EQ(0u, gainDefect) << "no gain-only overlap is a noise defect";
+    EXPECT_GT(ratio, 0.8) << "measured over ideal, pixel weighted, all groups with an ideal cost (fixed-seed regression tolerance)";
+    EXPECT_LT(ratio, 1.7) << "measured over ideal, pixel weighted, all groups with an ideal cost (fixed-seed regression tolerance)";
+    // (3) the label of every group with a measured pixel follows its interval and the limit 2 (defect: lo >= 2, normal: hi < 2, else undetermined); rows within 0.001 of the limit are not judged (4-decimal output)
+    size_t judged = 0;
+    for (const Row& r : rows) {
+        if (r.used == 0) {
+            EXPECT_EQ("undetermined", r.label) << r.items;
+            continue;
+        }
+        if (std::fabs(r.lo - 2.0) < 1e-3 || std::fabs(r.hi - 2.0) < 1e-3) continue;
+        ++judged;
+        const char* expect = r.lo >= 2.0 ? "defect" : (r.hi < 2.0 ? "normal" : "undetermined");
+        EXPECT_EQ(expect, r.label) << (r.pooled ? "pooled " : "group ") << r.items << " " << r.kinds << " cost " << r.cost << " [" << r.lo << ", " << r.hi << "]";
+    }
+    EXPECT_GT(judged, 100u);
+    // (4) the pooled rows are the pixel-weighted sums of their groups: used pixels and cost * used agree with the groups of the same kinds and levels (shape left out)
+    std::map<std::string, std::pair<size_t, double>> fromGroups;
+    for (const Row& r : rows) {
+        if (r.pooled || r.used == 0) continue;
+        std::vector<std::string> parts;
+        std::stringstream        ss(r.kinds);
+        std::string              part;
+        while (std::getline(ss, part, '+')) {
+            while (!part.empty() && part.front() == ' ') part.erase(part.begin());
+            while (!part.empty() && part.back() == ' ') part.pop_back();
+            const size_t slash = part.find('/'), at = part.find('@');
+            ASSERT_NE(std::string::npos, slash) << r.kinds;
+            ASSERT_NE(std::string::npos, at) << r.kinds;
+            parts.push_back(part.substr(0, slash) + part.substr(at));
+        }
+        std::sort(parts.begin(), parts.end());
+        std::string key;
+        for (size_t k = 0; k < parts.size(); ++k) key += (k ? " + " : "") + parts[k];
+        fromGroups[key].first += r.used;
+        fromGroups[key].second += r.cost * static_cast<double>(r.used);
+    }
+    size_t pooledChecked = 0;
+    for (const Row& r : rows) {
+        if (!r.pooled || r.used == 0) continue;
+        const auto it = fromGroups.find(r.kinds);
+        ASSERT_NE(fromGroups.end(), it) << "no group for the pooled row " << r.kinds;
+        EXPECT_EQ(it->second.first, r.used) << r.kinds;
+        EXPECT_NEAR(it->second.second, r.cost * static_cast<double>(r.used), 5e-4 * static_cast<double>(r.used) + 5e-4 * static_cast<double>(it->second.first)) << r.kinds;
+        ++pooledChecked;
+    }
+    EXPECT_GT(pooledChecked, 20u);
+}
+
 TEST_F(BpmEvalQuantumTest, NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined) {
     makeQuantumFrames();
     const fs::path out = root / "t";
@@ -1431,6 +1545,9 @@ TEST_F(BpmEvalTest, LinesCommandWritesTheMaskTheTableAndTheReportAndChecksItsArg
     EXPECT_NE(std::string::npos, j.find("\"pixels\": 1")) << "the imaging area: " << j;
     EXPECT_NE(std::string::npos, text(root / "ln.tsv").find("orientation\tindex\twidth")) << text(root / "ln.tsv");
     EXPECT_EQ(2, run(" --margins 6,2,1", root / "bad.u8")) << "three numbers are not a margin specification";
+    EXPECT_EQ(2, run(" --margins 4294967296,2,1,1", root / "bad3.u8")) << "a margin above 32 bits is refused; the old parser let strtoul saturate it to 4294967295, which became x = -1 as a signed int (QA-A-267)";
+    EXPECT_EQ(2, run(" --margins -1,2,1,1", root / "bad4.u8")) << "a signed margin is refused";
+    EXPECT_EQ(2, run(" --margins 600,0,600,0", root / "bad5.u8")) << "margins larger than the frame are refused";
     EXPECT_EQ(rc == 20 ? 20 : 0, run(" --margins 6,2,1,1 --tolerance-db 3", root / "ln2.u8")) << "the tolerance option is accepted";
     EXPECT_EQ(4, run(" --tolerance-db 30", root / "bad2.u8")) << "a tolerance beyond 20 dB is refused by the library";
 }
@@ -1629,6 +1746,52 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     EXPECT_GT(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_no_fix"), 4.0) << "a band the offset map does not know stands out (standard-deviation denominator, QA-A-251b), with the right sign: " << j2;
     EXPECT_LT(std::fabs(ratioOf(j2, "control/fixed_band/row_full/100", "ratio_clean")), 3.0) << "the clean frame shows no band: " << j2;
 
+    // QA-A-265: the imaging-area contract end to end. With empty margins the contract equals the plain figures; with margins it says how many parts it measured; bad margins stop the tool.
+    auto intAfter = [](const std::string& json, const std::string& key, const char* field) {
+        const size_t g = json.find("\"" + key + "\"");
+        if (g == std::string::npos) return -1;
+        const size_t k = json.find(std::string("\"") + field + "\": ", g);
+        return k == std::string::npos ? -1 : std::atoi(json.c_str() + k + std::strlen(field) + 4);
+    };
+    auto correctWith = [&](const char* margins, const char* tag) {
+        const std::string c = "correct --truth \"" + t.string() + "\" --clean-set \"" + (root / "clean_set").string() + "\" --inj-set \"" + (root / "inj_set").string() + "\" --clean-eval \"" + evals[0] +
+                              "\" --inj-eval \"" + (t / "frames" / fs::path(evals[0]).filename()).string() + "\" --margins \"" + margins + "\" --out \"" + (root / (std::string(tag) + ".json")).string() +
+                              "\" > \"" + (root / (std::string(tag) + ".txt")).string() + "\" 2>&1";
+        return runCmd(XPE_BPM_EVAL_EXE, c);
+    };
+    ASSERT_EQ(0, correctWith("0,0,0,0", "m0")) << text(root / "m0.txt");
+    const std::string jm0 = text(root / "m0.json");
+    ASSERT_NE(std::string::npos, jm0.find("\"area_contract\"")) << jm0;
+    EXPECT_EQ(intAfter(jm0, "parts_over_3_sigma", "corrected"), intAfter(jm0, "parts_over_3_sigma_measured", "corrected")) << "no margins: the contract equals the plain count: " << jm0;
+    EXPECT_EQ(intAfter(jm0, "parts_over_3_sigma", "clean"), intAfter(jm0, "parts_over_3_sigma_measured", "clean")) << jm0;
+    EXPECT_EQ(intAfter(jm0, "parts_over_3_sigma", "parts"), intAfter(jm0, "area_contract", "measured")) << "every part the plain definition measures is measured when there is no margin: " << jm0;
+    ASSERT_EQ(0, correctWith("8,8,8,8", "m8")) << text(root / "m8.txt");
+    const std::string jm8 = text(root / "m8.json");
+    EXPECT_NE(std::string::npos, jm8.find("\"area\": [8, 8, 1016, 1016]")) << jm8;
+    EXPECT_NE(std::string::npos, text(root / "m8.txt").find("imaging-area contract")) << text(root / "m8.txt");
+    EXPECT_LE(intAfter(jm8, "area_contract", "measured"), intAfter(jm8, "area_contract", "parts")) << jm8;
+    EXPECT_EQ(2, correctWith("1,2,3", "mbad")) << "four numbers are required";
+    EXPECT_EQ(2, correctWith("600,0,600,0", "mnone")) << "margins that leave no imaging area stop the tool";
+    // QA-A-267 (Codex #236 R236-2): the grammar is unsigned decimal numbers and nothing else, and the margins must fit the frame; each of these used to be accepted (leading blank, sign), saturated by strtoul to 4294967295 (out of range), or read as something else
+    for (const char* bad : {"4294967296,2,1,1", "-1,2,1,1", "+6,2,1,1", " 6,2,1,1", "6 ,2,1,1", "6,2,1,1,3", "6,,1,1", "0x10,2,1,1", "6.5,2,1,1", "99999999999,2,1,1", "4294967295,2,1,1",
+                            "1024,0,0,0", "0,1024,0,0", "512,0,512,0", "0,512,0,512", "6,2,1,", ",6,2,1"}) {
+        EXPECT_EQ(2, correctWith(bad, "mgrammar")) << "'" << bad << "' must be refused";
+    }
+    EXPECT_EQ(0, correctWith("0000006,2,1,1", "mzeros")) << "leading zeros are decimal numbers";
+    EXPECT_EQ(2, correctWith("510,0,510,0", "mtiny")) << "valid margins that leave an area under 24 pixels still stop the tool";
+    {
+        // R236-3: the counts say how many parts the geometry allows and how many of those are valid per image
+        const std::string jv = text(root / "m8.json");
+        const int meas = intAfter(jv, "area_contract", "geometry_measurable");
+        ASSERT_GE(meas, 0) << jv;
+        EXPECT_EQ(meas, intAfter(jv, "area_contract", "measured"));
+        for (const char* img : {"corrected", "no_fix", "clean"}) {
+            EXPECT_EQ(meas - intAfter(jv, "parts_uncomputable", img), intAfter(jv, "parts_valid", img)) << img << ": " << jv;
+        }
+        EXPECT_NE(std::string::npos, jv.find("\"extent_below_thickness\": ")) << jv;
+        EXPECT_NE(std::string::npos, jv.find("\"uncomputable_corrected\": ")) << "rows and columns are counted per image: " << jv;
+    }
+
     // no nan or inf ever reaches the JSON
     auto lower = [](std::string x) {
         for (char& ch : x) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
@@ -1675,10 +1838,42 @@ TEST_F(BpmEvalTest, CorrectRunsOnTwoSetsAndReportsTheLineIndex) {
     EXPECT_EQ(std::string::npos, j3.find("\"ratio_clean\": 0")) << "and is not 0";
     EXPECT_EQ(std::string::npos, lower(j3).find("nan"));
     EXPECT_EQ(std::string::npos, lower(j3).find("inf"));
-    const size_t pu = j3.find("\"parts_uncomputable\": {\"corrected\": ");
+    // the plain definition's counter is the LAST "parts_uncomputable" of the frame: the imaging-area contract (QA-A-265/267) has one of its own earlier in the JSON, and reading that one let a counter that
+    // dropped the plain uncomputable parts go unnoticed (found by the QA-A-267 re-run of the QA-A-251b mutant U13)
+    const size_t pu = j3.rfind("\"parts_uncomputable\": {\"corrected\": ");
     ASSERT_NE(std::string::npos, pu);
+    ASSERT_GT(pu, j3.find("\"area_contract\"")) << "the plain counter follows the area-contract block";
     EXPECT_NE(std::string::npos, j3.find("\"clean\": ", pu));
     EXPECT_GT(std::atoi(j3.c_str() + j3.find("\"clean\": ", pu) + 9), 0) << "uncomputable parts are counted, not dropped: " << j3.substr(pu, 200);
+    {   // QA-A-268 (Codex #238 R238-2): the same constant clean output through the imaging-area contract, with NON-ZERO counts. The clean image has no noise, so none of its parts, rows or columns can be computed;
+        // the planted image (a real frame) can, so its counts are 0: the images are counted apart, and valid = geometry-measurable - uncomputable holds with a non-zero uncomputable.
+        auto intIn = [&](const std::string& block, const char* key, const char* field) {
+            const size_t g = j3.find(std::string("\"") + block + "\"");
+            if (g == std::string::npos) return -1;
+            const size_t k0 = j3.find(std::string("\"") + key + "\"", g);
+            if (k0 == std::string::npos) return -1;
+            const size_t k = j3.find(std::string("\"") + field + "\": ", k0);
+            return k == std::string::npos ? -1 : std::atoi(j3.c_str() + k + std::strlen(field) + 4);
+        };
+        const size_t ac = j3.find("\"area_contract\"");
+        ASSERT_NE(std::string::npos, ac) << j3.substr(0, 400);
+        const int meas = intAfter(j3, "area_contract", "geometry_measurable");
+        ASSERT_GT(meas, 0);
+        EXPECT_EQ(meas, intIn("area_contract", "parts_uncomputable", "clean")) << "every geometrically measurable part of a constant clean image is uncomputable";
+        EXPECT_EQ(0, intIn("area_contract", "parts_valid", "clean"));
+        EXPECT_EQ(0, intIn("area_contract", "parts_uncomputable", "corrected")) << "the planted image is a real frame: its counts stay apart from the clean image's";
+        EXPECT_EQ(meas, intIn("area_contract", "parts_valid", "corrected"));
+        EXPECT_EQ(0, intIn("area_contract", "parts_uncomputable", "no_fix"));
+        EXPECT_EQ(meas, intIn("area_contract", "parts_valid", "no_fix"));
+        for (const char* axis : {"other_rows", "other_columns"}) {
+            const int checked = intIn("area_contract", axis, "checked");
+            ASSERT_GT(checked, 0) << axis;
+            EXPECT_EQ(checked, intIn("area_contract", axis, "uncomputable_clean")) << axis << ": every line of a constant clean image is uncomputable";
+            EXPECT_EQ(0, intIn("area_contract", axis, "valid_clean")) << axis;
+            EXPECT_EQ(0, intIn("area_contract", axis, "uncomputable_corrected")) << axis;
+            EXPECT_EQ(checked, intIn("area_contract", axis, "valid_corrected")) << axis;
+        }
+    }
 }
 
 
@@ -1807,6 +2002,177 @@ TEST(BpmEvalStatsTest, ALineIndexWithoutADenominatorIsUncomputableAndEdgesAreSki
     EXPECT_FALSE(xpe_bpm_eval::lineIndex(bad.data(), 300, 40, xpe_bpm_eval::Rect{10, 10, 200, 1}).computable);
     // at the frame edge there is no line before the item
     EXPECT_TRUE(xpe_bpm_eval::lineIndex(img.data(), 300, 40, xpe_bpm_eval::Rect{10, 0, 200, 1}).skipped);
+}
+
+namespace {
+
+/** A w x h image of a flat level with a deterministic pixel noise (about +-1); a transposed copy for the column-type cases is made by the caller. */
+std::vector<float> noisyFlat(uint32_t w, uint32_t h) {
+    std::vector<float> img(static_cast<size_t>(w) * h);
+    uint32_t s = 12345u;
+    for (float& v : img) {
+        s = s * 1664525u + 1013904223u;
+        v = 100.0f + (static_cast<float>(s >> 16) / 65535.0f - 0.5f) * 2.0f;
+    }
+    return img;
+}
+
+}  // namespace
+
+// QA-A-265 (Codex #234 R234-1): a dead row whose imaging-area pixels are corrected but whose margin pixels are not. The plain index over the whole rectangle reads the margin pixels as a line
+// offset; the contract reads the part inside the area only.
+TEST(BpmEvalStatsTest, TheAreaContractMeasuresADeadRowOnTheImagingAreaOnlyNotOnItsUncorrectedMargins) {
+    const uint32_t w = 300, h = 40;
+    std::vector<float> img = noisyFlat(w, h);
+    const int y = 20;
+    for (uint32_t x = 0; x < w; ++x) {
+        const bool margin = x < 6 || x >= 299;
+        img[static_cast<size_t>(y) * w + x] = margin ? 0.0f : 0.5f * (img[static_cast<size_t>(y - 1) * w + x] + img[static_cast<size_t>(y + 1) * w + x]);   // the corrected line is exactly the mean of its neighbours
+    }
+    const xpe_bpm_eval::Rect whole{0, y, static_cast<int>(w), 1};
+    const xpe_bpm_eval::Area area{6, 2, 299, 39};
+    const xpe_bpm_eval::LineIndex plain = xpe_bpm_eval::lineIndex(img.data(), w, h, whole);
+    ASSERT_TRUE(plain.computable);
+    EXPECT_LT(plain.ratio, -20.0) << "the margin pixels (7 of 300 at 0 against 100) dominate the plain index";
+    const xpe_bpm_eval::AreaLineIndex ai = xpe_bpm_eval::lineIndexInArea(img.data(), w, h, whole, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, ai.status);
+    ASSERT_TRUE(ai.measured());
+    ASSERT_TRUE(ai.li.computable);
+    EXPECT_EQ(6, ai.used.x);
+    EXPECT_EQ(293, ai.used.w);
+    EXPECT_LT(std::fabs(ai.li.ratio), 1.0) << "inside the area the line is the mean of its neighbours: nothing remains";
+    // the reference of D_n is the line before and after, measured on the same extent: the value is the plain index of the clipped rectangle, bit for bit
+    const xpe_bpm_eval::LineIndex ref = xpe_bpm_eval::lineIndex(img.data(), w, h, ai.used);
+    EXPECT_EQ(ref.dn, ai.li.dn);
+    EXPECT_EQ(ref.ratio, ai.li.ratio);
+}
+
+TEST(BpmEvalStatsTest, TheAreaContractIsTheSameForAColumnAsForARow) {
+    const uint32_t w = 40, h = 300;
+    std::vector<float> img = noisyFlat(w, h);
+    const int x = 20;
+    for (uint32_t y = 0; y < h; ++y) {
+        const bool margin = y < 2 || y >= 299;
+        img[static_cast<size_t>(y) * w + x] = margin ? 0.0f : 0.5f * (img[static_cast<size_t>(y) * w + x - 1] + img[static_cast<size_t>(y) * w + x + 1]);
+    }
+    const xpe_bpm_eval::Rect whole{x, 0, 1, static_cast<int>(h)};
+    const xpe_bpm_eval::Area area{2, 2, 39, 299};
+    EXPECT_LT(xpe_bpm_eval::lineIndex(img.data(), w, h, whole).ratio, -20.0);
+    const xpe_bpm_eval::AreaLineIndex ai = xpe_bpm_eval::lineIndexInArea(img.data(), w, h, whole, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, ai.status);
+    EXPECT_EQ(2, ai.used.y);
+    EXPECT_EQ(297, ai.used.h);
+    EXPECT_LT(std::fabs(ai.li.ratio), 1.0);
+}
+
+TEST(BpmEvalStatsTest, TheAreaContractSaysWhyAPartIsNotMeasured) {
+    const std::vector<float> img = noisyFlat(300, 40);
+    const xpe_bpm_eval::Area area{6, 2, 299, 39};
+    auto status = [&](const xpe_bpm_eval::Rect& q, const xpe_bpm_eval::Area& a) { return xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, a).status; };
+    using S = xpe_bpm_eval::AreaStatus;
+    EXPECT_EQ(S::Full, status({10, 20, 200, 1}, area)) << "a part wholly inside";
+    EXPECT_EQ(S::ReferenceOutside, status({10, 2, 200, 1}, area)) << "the line before the part (row 1) is a margin row";
+    EXPECT_EQ(S::ReferenceOutside, status({10, 37, 200, 2}, area)) << "the line after the part (row 39) is a margin row";
+    EXPECT_EQ(S::ItemOutside, status({10, 1, 200, 1}, area)) << "the line of the part itself is a margin row";
+    EXPECT_EQ(S::ItemOutside, status({10, 38, 200, 2}, area)) << "the second line of the part is outside";
+    EXPECT_EQ(S::TooShort, status({100, 20, 200, 1}, xpe_bpm_eval::Area{6, 2, 107, 39})) << "7 pixels of the extent are inside";
+    EXPECT_EQ(S::Clipped, status({100, 20, 200, 1}, xpe_bpm_eval::Area{6, 2, 108, 39})) << "8 pixels are enough";
+    EXPECT_EQ(S::OutsideArea, status({10, 20, 40, 1}, xpe_bpm_eval::Area{100, 2, 299, 39})) << "no pixel of the extent is inside";
+    // a part that cannot be measured has no value that could be mistaken for a measurement
+    EXPECT_FALSE(xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, {10, 2, 200, 1}, area).measured());
+}
+
+// ------------------------------------------------------------------------------------------------------------- QA-A-267 (Codex #236 R236-1): cutting a part to the area never turns it into the other orientation
+
+namespace {
+
+std::vector<float> transposed(const std::vector<float>& img, uint32_t w, uint32_t h) {
+    std::vector<float> t(img.size());
+    for (uint32_t y = 0; y < h; ++y)
+        for (uint32_t x = 0; x < w; ++x) t[static_cast<size_t>(x) * h + y] = img[static_cast<size_t>(y) * w + x];
+    return t;
+}
+
+}  // namespace
+
+TEST(BpmEvalStatsTest, ACutThatLeavesTheRowShorterThanItIsThickIsNotMeasuredInsteadOfBeingReadAsAColumn) {
+    // the reproduction of Codex #236: 300 x 40, area {6, 2, 106, 39}, part {0, 20, 14, 10} (a row 14 long and 10 thick); the cut leaves 8 pixels, and a rectangle 8 wide and 10 high used to be read as a column
+    const std::vector<float> img = noisyFlat(300, 40);
+    using S = xpe_bpm_eval::AreaStatus;
+    const xpe_bpm_eval::AreaLineIndex a = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, {0, 20, 14, 10}, xpe_bpm_eval::Area{6, 2, 106, 39});
+    EXPECT_EQ(S::LengthBelowThickness, a.status);
+    EXPECT_FALSE(a.measured());
+    // the same part as a column, in the transposed image and the transposed area: the same verdict (rows and columns are symmetric)
+    const std::vector<float> t = transposed(img, 300, 40);
+    const xpe_bpm_eval::AreaLineIndex b = xpe_bpm_eval::lineIndexInArea(t.data(), 40, 300, {20, 0, 10, 14}, xpe_bpm_eval::Area{2, 6, 39, 106});
+    EXPECT_EQ(S::LengthBelowThickness, b.status);
+    // a cut that is longer than the part is thick still measures
+    EXPECT_EQ(S::Clipped, xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, {0, 20, 14, 10}, xpe_bpm_eval::Area{4, 2, 106, 39}).status) << "10 pixels left = the thickness: a (square) row part";
+}
+
+TEST(BpmEvalStatsTest, ACutLengthEqualToTheThicknessIsMeasuredAsTheOrientationThePartHad) {
+    const std::vector<float> img = noisyFlat(300, 40);
+    const xpe_bpm_eval::Rect q{0, 20, 30, 10};                    // a row 30 long, 10 thick
+    const xpe_bpm_eval::Area area{20, 2, 299, 39};                // cut to x = 20..29: 10 long, as thick as it is long
+    const xpe_bpm_eval::AreaLineIndex a = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, a.status);
+    EXPECT_EQ(10, a.used.w);
+    EXPECT_EQ(10, a.used.h);
+    const xpe_bpm_eval::LineIndex asRow = xpe_bpm_eval::lineIndexOriented(img.data(), 300, 40, a.used, true);
+    const xpe_bpm_eval::LineIndex asColumn = xpe_bpm_eval::lineIndexOriented(img.data(), 300, 40, a.used, false);
+    EXPECT_EQ(asRow.dn, a.li.dn) << "the part was a row";
+    EXPECT_EQ(asRow.ratio, a.li.ratio);
+    EXPECT_NE(asColumn.dn, a.li.dn) << "a square rectangle read by shape would have been a column: the two orientations must differ on this image";
+    // the same part as a column in the transposed world gives the same numbers
+    const std::vector<float> t = transposed(img, 300, 40);
+    const xpe_bpm_eval::AreaLineIndex c = xpe_bpm_eval::lineIndexInArea(t.data(), 40, 300, {20, 0, 10, 30}, xpe_bpm_eval::Area{2, 20, 39, 299});
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, c.status);
+    EXPECT_EQ(a.li.dn, c.li.dn);
+    EXPECT_EQ(a.li.ratio, c.li.ratio);
+    // and the plain index of a rectangle that is not square is unchanged by the new overload
+    EXPECT_EQ(xpe_bpm_eval::lineIndexOriented(img.data(), 300, 40, q, true).dn, xpe_bpm_eval::lineIndex(img.data(), 300, 40, q).dn);
+}
+
+TEST(BpmEvalStatsTest, ChangingPixelsOutsideTheAreaNeverChangesAMeasuredPart) {
+    std::vector<float> img = noisyFlat(300, 40);
+    const xpe_bpm_eval::Area area{6, 2, 299, 39};
+    const xpe_bpm_eval::Rect q{0, 20, 100, 3};
+    const xpe_bpm_eval::AreaLineIndex before = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, before.status);
+    for (uint32_t y = 0; y < 40; ++y)
+        for (uint32_t x = 0; x < 300; ++x)
+            if (x < 6 || x >= 299 || y < 2 || y >= 39) img[static_cast<size_t>(y) * 300 + x] = 12345.0f;
+    const xpe_bpm_eval::AreaLineIndex after = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, area);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Clipped, after.status);
+    EXPECT_EQ(before.li.dn, after.li.dn);
+    EXPECT_EQ(before.li.ratio, after.li.ratio);
+}
+
+TEST(BpmEvalStatsTest, AMeasuredPartCanStillBeUncomputableAndTheContractSaysSo) {
+    // R236-3: measurable by geometry is not valid by arithmetic. A constant image has no noise to predict D_n from.
+    const std::vector<float> flat(300 * 40, 100.0f);
+    const xpe_bpm_eval::AreaLineIndex a = xpe_bpm_eval::lineIndexInArea(flat.data(), 300, 40, {10, 20, 200, 1}, xpe_bpm_eval::Area{0, 0, 300, 40});
+    EXPECT_TRUE(a.measured());
+    EXPECT_FALSE(a.li.computable) << "constant input: the predicted standard deviation is 0";
+    std::vector<float> bad(300 * 40, 100.0f);
+    for (size_t i = 0; i < bad.size(); i += 7) bad[i] = std::numeric_limits<float>::quiet_NaN();
+    const xpe_bpm_eval::AreaLineIndex n = xpe_bpm_eval::lineIndexInArea(bad.data(), 300, 40, {10, 20, 200, 1}, xpe_bpm_eval::Area{0, 0, 300, 40});
+    EXPECT_TRUE(n.measured());
+    EXPECT_FALSE(n.li.computable) << "non-finite input";
+}
+
+TEST(BpmEvalStatsTest, WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures) {
+    const std::vector<float> img = lineImage(true, 300, 40, 10, 1, 10, 200, 3.0, 5.0);
+    const xpe_bpm_eval::Area whole{0, 0, 300, 40};
+    const xpe_bpm_eval::Rect q{10, 10, 200, 1};
+    const xpe_bpm_eval::AreaLineIndex ai = xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, q, whole);
+    const xpe_bpm_eval::LineIndex li = xpe_bpm_eval::lineIndex(img.data(), 300, 40, q);
+    ASSERT_EQ(xpe_bpm_eval::AreaStatus::Full, ai.status);
+    EXPECT_EQ(li.dn, ai.li.dn);
+    EXPECT_EQ(li.ratio, ai.li.ratio);
+    // and where the plain index skips a part at the frame edge, the contract does not measure it either (the line before does not exist)
+    EXPECT_TRUE(xpe_bpm_eval::lineIndex(img.data(), 300, 40, {10, 0, 200, 1}).skipped);
+    EXPECT_FALSE(xpe_bpm_eval::lineIndexInArea(img.data(), 300, 40, {10, 0, 200, 1}, whole).measured());
 }
 
 namespace {

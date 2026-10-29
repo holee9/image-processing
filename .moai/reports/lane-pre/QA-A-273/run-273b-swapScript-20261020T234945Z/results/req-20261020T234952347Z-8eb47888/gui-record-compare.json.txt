@@ -1,0 +1,24 @@
+{
+  "written_by": "ImageProcTest comparison import window (QA-A-273b)",
+  "utc": "2026-10-20T23:49:52.6350338Z",
+  "command": "compare",
+  "original_script_path": "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-273b-swapScript-20261020T234945Z\\work\\script\\comparison_manifest.py",
+  "original_script_sha256_read": "0f3352c7ea3222a1ed3d02d3beade2b3f33b8db79c878648f47537abb442e7d7",
+  "original_script_sha256_after_run": "0f3352c7ea3222a1ed3d02d3beade2b3f33b8db79c878648f47537abb442e7d7",
+  "pinned_script_path": "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-273b-swapScript-20261020T234945Z\\results\\req-20261020T234952347Z-8eb47888\\pinned\\comparison_manifest.py",
+  "pinned_script_sha256_before_run": "0f3352c7ea3222a1ed3d02d3beade2b3f33b8db79c878648f47537abb442e7d7",
+  "pinned_script_sha256_after_run": "0f3352c7ea3222a1ed3d02d3beade2b3f33b8db79c878648f47537abb442e7d7",
+  "python_exe": "C:\\Users\\drake\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "python_version": "3.12.10",
+  "numpy_version": "2.5.3",
+  "exit_code": 0,
+  "run_directory": "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-273b-swapScript-20261020T234945Z\\results\\req-20261020T234952347Z-8eb47888\\runs\\20261020T234952Z-35094aa6",
+  "reviewed_script_sha256": [
+    "86104cc6c11fd43a010a15abe696075bdc751db3aa0b66cf5c5925d2280ddf0c",
+    "e9e3850c27cf2bb56521cb945439320afea4f0952c50d5a099aca4d1dc26baa6"
+  ],
+  "contract_reviewed": false,
+  "stdout_tail": "computed D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-273b-swapScript-20261020T234945Z\\results\\req-20261020T234952347Z-8eb47888\\runs\\20261020T234952Z-35094aa6",
+  "stderr_tail": "",
+  "limit": "Between hashing the bytes and the child opening the pinned copy a short gap remains: another process could replace the pinned copy in it. The after-run hash records whether that happened; it does not prevent it."
+}

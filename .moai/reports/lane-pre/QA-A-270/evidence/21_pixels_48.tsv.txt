@@ -1,0 +1,49 @@
+x	y	where	bits	across	along	thick	length	nb	zone	aedge	ha	hb	dz	line_row	line_col
+3015	107	item 101 efficiency_loss/col_full/0.6	brightnoise	0	107	1	3072	0	11	56	0	0	-1.01	19	16
+1733	167	item 103 efficiency_loss/col_partial/0.6	brightnoise	0	9	1	768	0	22	167	0	0	1.18	19	30
+1418	190	background	line	-1	-1	0	0	1	4	190	1	0	-0.94	788	31
+1419	190	background	line	-1	-1	0	0	1	3	190	1	0	-1.82	788	31
+3015	213	item 101 efficiency_loss/col_full/0.6	brightnoise	0	213	1	3072	0	999	56	0	0	-0.71	19	16
+1733	235	item 103 efficiency_loss/col_partial/0.6	brightnoise	0	77	1	768	0	19	235	0	0	-0.30	19	30
+3015	289	item 101 efficiency_loss/col_full/0.6	brightnoise	0	289	1	3072	0	30	56	0	0	-0.30	19	16
+199	349	background	darkmean	-1	-1	0	0	0	14	199	1	0	-0.27	21	17
+934	536	background	brightnoise	-1	-1	0	0	0	7	536	0	0	-1.01	26	27
+3015	550	item 101 efficiency_loss/col_full/0.6	brightnoise	0	550	1	3072	0	26	56	0	0	0.78	27	16
+1889	789	item 110 efficiency_loss/row_pair/0.7	brightnoise	0	108	2	768	0	999	789	0	0	-2.09	28	31
+3015	790	item 101 efficiency_loss/col_full/0.6	brightnoise	0	790	1	3072	0	999	56	0	0	0.07	28	16
+199	796	background	darkmean	-1	-1	0	0	0	999	199	0	0	0.44	28	17
+2185	901	background	darkmean	-1	-1	0	0	0	13	886	1	0	-2.26	24	26
+1453	1023	background	darkmean	-1	-1	0	0	0	20	1023	0	0	0.07	26	30
+454	1095	background	darkmean	-1	-1	0	0	0	3	454	1	0	-0.64	24	20
+1758	1111	background	line	-1	-1	0	0	0	3	1111	0	0	1.45	27	793
+1246	1253	background	darkmean	-1	-1	0	0	0	9	1246	0	0	-1.69	25	25
+3015	1350	item 101 efficiency_loss/col_full/0.6	brightnoise	0	1350	1	3072	0	999	56	0	1	1.25	24	16
+3015	1412	item 101 efficiency_loss/col_full/0.6	brightnoise	0	1412	1	3072	0	999	56	0	0	-0.74	24	16
+2707	1590	background	darkmean	-1	-1	0	0	0	999	364	0	0	-1.25	27	19
+196	1612	background	darkmean	-1	-1	0	0	0	12	196	0	0	0.57	27	17
+1902	1760	background	line	-1	-1	0	0	0	3	1169	0	0	-2.43	28	792
+3015	1784	item 101 efficiency_loss/col_full/0.6	brightnoise	0	1287	1	3072	0	13	56	0	1	-0.13	27	16
+2270	1885	item 106 efficiency_loss/row_full/0.7	brightnoise	0	801	1	3072	0	26	801	0	0	0.17	23	25
+3015	2033	item 101 efficiency_loss/col_full/0.6	brightnoise	0	1038	1	3072	0	999	56	0	0	-1.05	23	16
+3015	2180	item 101 efficiency_loss/col_full/0.6	brightnoise	0	891	1	3072	0	11	56	0	0	-1.08	26	16
+480	2222	background	line	-1	-1	0	0	2	3	480	1	1	-1.08	28	784
+480	2223	background	line	-1	-1	0	0	2	4	480	1	1	1.18	28	784
+480	2224	background	line	-1	-1	0	0	2	5	480	1	1	-1.65	28	784
+162	2317	background	line	-1	-1	0	0	0	3	162	1	0	0.47	26	779
+30	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	30	1	3072	0	28	30	0	0	0.40	25	15
+44	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	44	1	3072	0	14	44	0	0	-0.34	25	15
+225	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	225	1	3072	0	9	225	1	0	-0.07	25	17
+278	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	278	1	3072	0	999	278	0	0	-0.13	25	17
+450	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	450	1	3072	0	15	450	0	0	0.13	25	20
+2329	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	742	1	3072	0	999	712	0	0	-0.30	25	25
+2548	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	523	1	3072	0	999	523	0	0	0.88	25	19
+2713	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	358	1	3072	0	4	358	0	0	-0.10	25	19
+2760	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	311	1	3072	0	22	311	0	0	-0.30	25	19
+3029	2359	item 100 efficiency_loss/row_full/0.6	brightnoise	0	42	1	3072	0	14	42	0	0	-0.54	25	15
+842	2406	item 104 efficiency_loss/row_pair/0.6	brightnoise	0	227	2	768	0	999	665	0	0	-0.03	25	28
+1158	2406	item 104 efficiency_loss/row_pair/0.6	brightnoise	0	224	2	768	0	10	665	0	0	0.10	25	26
+1250	2407	item 104 efficiency_loss/row_pair/0.6	brightnoise	0	132	2	768	0	3	664	0	0	0.98	25	25
+3015	2530	item 101 efficiency_loss/col_full/0.6	brightnoise	0	541	1	3072	0	6	56	0	0	-0.61	23	16
+3015	2642	item 101 efficiency_loss/col_full/0.6	brightnoise	0	429	1	3072	0	13	56	0	0	-0.74	23	16
+3015	2684	item 101 efficiency_loss/col_full/0.6	brightnoise	0	387	1	3072	0	999	56	0	0	-1.11	22	16
+3015	2767	item 101 efficiency_loss/col_full/0.6	brightnoise	0	304	1	3072	0	999	56	0	0	2.93	21	16

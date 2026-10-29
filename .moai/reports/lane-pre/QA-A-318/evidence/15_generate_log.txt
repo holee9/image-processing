@@ -1,0 +1,193 @@
+== O-a
+  in[0] dark03_00.raw
+  in[1] dark03_01.raw
+  in[2] dark03_02.raw
+  in[3] dark03_03.raw
+  in[4] dark03_04.raw
+  in[5] dark03_05.raw
+  in[6] dark03_06.raw
+  in[7] dark03_07.raw
+  in[8] dark03_08.raw
+  in[9] dark03_09.raw
+xpe_calib_generate_offset n=10 rc=0 -> D:/workspace-github/xpe-data/qa-318-tmp/offset_all10.xcal
+rc=0
+== O-b
+  in[0] dark03_01.raw
+  in[1] dark03_02.raw
+  in[2] dark03_03.raw
+  in[3] dark03_04.raw
+  in[4] dark03_05.raw
+  in[5] dark03_06.raw
+  in[6] dark03_07.raw
+  in[7] dark03_08.raw
+  in[8] dark03_09.raw
+xpe_calib_generate_offset n=9 rc=0 -> D:/workspace-github/xpe-data/qa-318-tmp/offset_skip1.xcal
+rc=0
+== G-a
+dark_reference Z:/  in[0] Bright02_00.raw
+  in[1] Bright02_01.raw
+  in[2] Bright02_02.raw
+  in[3] Bright02_03.raw
+  in[4] Bright02_04.raw
+  in[5] Bright02_05.raw
+  in[6] Bright02_06.raw
+  in[7] Bright02_07.raw
+  in[8] Bright02_08.raw
+  in[9] Bright02_09.raw
+xpe_calib_generate_gain n=10 rc=0 -> D:/workspace-github/xpe-data/qa-318-tmp/gain_a.xcal
+rc=0
+== G-b
+dark_reference NULL
+  in[0] Bright02_00.raw__OC__.raw
+  in[1] Bright02_01.raw__OC__.raw
+  in[2] Bright02_02.raw__OC__.raw
+  in[3] Bright02_03.raw__OC__.raw
+  in[4] Bright02_04.raw__OC__.raw
+  in[5] Bright02_05.raw__OC__.raw
+  in[6] Bright02_06.raw__OC__.raw
+  in[7] Bright02_07.raw__OC__.raw
+  in[8] Bright02_08.raw__OC__.raw
+  in[9] Bright02_09.raw__OC__.raw
+  int16 negatives set to 0: 93614
+xpe_calib_generate_gain n=10 rc=0 -> D:/workspace-github/xpe-data/qa-318-tmp/gain_b.xcal
+rc=0
+== V-a
+darks 10 brights 10
+  in[0] dark03_00.raw
+  in[1] dark03_01.raw
+  in[2] dark03_02.raw
+  in[3] dark03_03.raw
+  in[4] dark03_04.raw
+  in[5] dark03_05.raw
+  in[6] dark03_06.raw
+  in[7] dark03_07.raw
+  in[8] dark03_08.raw
+  in[9] dark03_09.raw
+  in[0] Bright02_00.raw
+  in[1] Bright02_01.raw
+  in[2] Bright02_02.raw
+  in[3] Bright02_03.raw
+  in[4] Bright02_04.raw
+  in[5] Bright02_05.raw
+  in[6] Bright02_06.raw
+  in[7] Bright02_07.raw
+  in[8] Bright02_08.raw
+  in[9] Bright02_09.raw
+xpe_bpm_generate_v2 skip=def min_frames_dark=0 rc=0
+report pixels=7864320 dark_used=9 bright_used=10 dose_groups=1 union=1122436 weak=10558
+  feature 0 active=1 flagged=976843 threshold=5.2829 scale_median=1.4826 dof=0
+  feature 1 active=1 flagged=71 threshold=5.9283 scale_median=0.6969 dof=8
+  feature 2 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 3 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 4 active=1 flagged=155834 threshold=0.4500 scale_median=1.0000 dof=0
+  feature 5 active=1 flagged=78465 threshold=5.5130 scale_median=243.6629 dof=9
+  group 0 signal=3143.38 frames=10
+rc=0
+== V-b
+darks 10 brights 20
+  in[0] dark03_00.raw
+  in[1] dark03_01.raw
+  in[2] dark03_02.raw
+  in[3] dark03_03.raw
+  in[4] dark03_04.raw
+  in[5] dark03_05.raw
+  in[6] dark03_06.raw
+  in[7] dark03_07.raw
+  in[8] dark03_08.raw
+  in[9] dark03_09.raw
+  in[0] Bright02_00.raw
+  in[1] Bright02_01.raw
+  in[2] Bright02_02.raw
+  in[3] Bright02_03.raw
+  in[4] Bright02_04.raw
+  in[5] Bright02_05.raw
+  in[6] Bright02_06.raw
+  in[7] Bright02_07.raw
+  in[8] Bright02_08.raw
+  in[9] Bright02_09.raw
+  in[10] bright03_00.raw
+  in[11] bright03_01.raw
+  in[12] bright03_03.raw
+  in[13] bright03_04.raw
+  in[14] bright03_07.raw
+  in[15] bright03_11.raw
+  in[16] bright03_13.raw
+  in[17] bright03_17.raw
+  in[18] bright03_18.raw
+  in[19] bright03_19.raw
+xpe_bpm_generate_v2 skip=def min_frames_dark=0 rc=0
+report pixels=7864320 dark_used=9 bright_used=20 dose_groups=7 union=1154285 weak=10061
+  feature 0 active=1 flagged=976843 threshold=5.2829 scale_median=1.4826 dof=0
+  feature 1 active=1 flagged=71 threshold=5.9283 scale_median=0.6969 dof=8
+  feature 2 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 3 active=1 flagged=25 threshold=5.1545 scale_median=0.5660 dof=0
+  feature 4 active=1 flagged=192116 threshold=0.4500 scale_median=1.0000 dof=0
+  feature 5 active=1 flagged=99551 threshold=4.4496 scale_median=323.9474 dof=13
+  group 0 signal=48.36 frames=1
+  group 1 signal=71.80 frames=1
+  group 2 signal=147.84 frames=1
+  group 3 signal=190.53 frames=1
+  group 4 signal=782.81 frames=1
+  group 5 signal=3149.82 frames=13
+  group 6 signal=4807.08 frames=2
+rc=0
+== C
+load offset rc=0 gain rc=0
+  bright03_01.raw offset_correct rc=0 gain_correct rc=0
+  bright03_03.raw offset_correct rc=0 gain_correct rc=0
+  bright03_05.raw offset_correct rc=0 gain_correct rc=0
+  bright03_07.raw offset_correct rc=0 gain_correct rc=0
+  bright03_09.raw offset_correct rc=0 gain_correct rc=0
+  bright03_11.raw offset_correct rc=0 gain_correct rc=0
+  bright03_13.raw offset_correct rc=0 gain_correct rc=0
+  bright03_15.raw offset_correct rc=0 gain_correct rc=0
+rc=0
+== V-c
+darks 10 brights 20
+  in[0] dark03_00.raw
+  in[1] dark03_01.raw
+  in[2] dark03_02.raw
+  in[3] dark03_03.raw
+  in[4] dark03_04.raw
+  in[5] dark03_05.raw
+  in[6] dark03_06.raw
+  in[7] dark03_07.raw
+  in[8] dark03_08.raw
+  in[9] dark03_09.raw
+  in[0] Bright02_00.raw
+  in[1] Bright02_01.raw
+  in[2] Bright02_02.raw
+  in[3] Bright02_03.raw
+  in[4] Bright02_04.raw
+  in[5] Bright02_05.raw
+  in[6] Bright02_06.raw
+  in[7] Bright02_07.raw
+  in[8] Bright02_08.raw
+  in[9] Bright02_09.raw
+  in[10] bright03_00.raw
+  in[11] bright03_01.raw
+  in[12] bright03_03.raw
+  in[13] bright03_04.raw
+  in[14] bright03_07.raw
+  in[15] bright03_11.raw
+  in[16] bright03_13.raw
+  in[17] bright03_17.raw
+  in[18] bright03_18.raw
+  in[19] bright03_19.raw
+margins l=15 t=2 r=17 b=92
+xpe_bpm_generate_v2 skip=def min_frames_dark=0 rc=0
+report pixels=7496640 dark_used=9 bright_used=20 dose_groups=7 union=937573 weak=2364
+  feature 0 active=1 flagged=931827 threshold=5.2741 scale_median=1.4830 dof=0
+  feature 1 active=1 flagged=70 threshold=5.9147 scale_median=0.6977 dof=8
+  feature 2 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 3 active=1 flagged=3 threshold=5.1455 scale_median=0.5806 dof=0
+  feature 4 active=1 flagged=6461 threshold=0.4500 scale_median=0.9999 dof=0
+  feature 5 active=1 flagged=5036 threshold=4.4406 scale_median=319.6017 dof=13
+  group 0 signal=49.82 frames=1
+  group 1 signal=73.98 frames=1
+  group 2 signal=152.34 frames=1
+  group 3 signal=196.32 frames=1
+  group 4 signal=806.63 frames=1
+  group 5 signal=3245.85 frames=13
+  group 6 signal=4954.05 frames=2
+rc=0

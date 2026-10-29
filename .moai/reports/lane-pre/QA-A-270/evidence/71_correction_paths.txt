@@ -1,0 +1,29 @@
+replica counts (frame-wide): line_pixels 143889, one_sided 16, isolated 3650, blob_pixels 1804 (low-confidence ring fills 0), out_of_area 30699
+library report (rc 0): layers_used 1, line_pixels 143889, one_sided 16, isolated 3650, blob_pixels 1804, low_confidence_pixels 0, unfilled 0, out_of_area 30699
+control Z1 (replica equals the library report on every count): PASS
+control Z1b: pixels whose value the library changed 149341; replica pixels with a correcting path 149343; changed pixels without a path 0; path pixels unchanged (value happened to equal) 2
+
+== the 118 cells (frame x group) where the second edition is larger
+  median z difference (v2 - v1) over the cells: median 0.1595, 10 % 0.0073, 90 % 0.2090, max 0.2686; share > 0.05: 0.669, > 0.10: 0.602, > 0.25: 0.017
+  pixels of these cells by correction path (second edition), total 216510:
+    undetected                               58    0.03 %
+    outside area (preserved)                229    0.11 %
+    isolated pixel                          332    0.15 %
+    blob (filled from outside)             1025    0.47 %
+    blob (ring fill, low confidence)          0    0.00 %
+    line 1 wide, two-sided               173938   80.34 %
+    line 1 wide, one-sided                    4    0.00 %
+    line 2 wide, two-sided                40924   18.90 %
+    line 2 wide, one-sided                    0    0.00 %
+  per path: median z at the same pixels, second edition vs first edition (pooled over the cells)
+    undetected                         pixels       58  v2 median z 1.607  v1 median z 1.607  share of pixels with z2 > z1 + 1e-9: 0.000
+    outside area (preserved)           pixels      229  v2 median z 1.884  v1 median z 1.656  share of pixels with z2 > z1 + 1e-9: 0.594
+    isolated pixel                     pixels      332  v2 median z 1.679  v1 median z 1.617  share of pixels with z2 > z1 + 1e-9: 0.307
+    blob (filled from outside)         pixels     1025  v2 median z 1.794  v1 median z 1.779  share of pixels with z2 > z1 + 1e-9: 0.224
+    line 1 wide, two-sided             pixels   173938  v2 median z 1.603  v1 median z 1.489  share of pixels with z2 > z1 + 1e-9: 0.624
+    line 1 wide, one-sided             pixels        4  v2 median z 2.762  v1 median z 1.976  share of pixels with z2 > z1 + 1e-9: 0.750
+    line 2 wide, two-sided             pixels    40924  v2 median z 1.589  v1 median z 1.560  share of pixels with z2 > z1 + 1e-9: 0.504
+  counterfactual: number of the 118 cells in which the v2 median is no longer larger when
+    the pixels of ONE path take the first edition z: undetected 0; outside area (preserved) 0; isolated pixel 6; blob (filled from outside) 1; blob (ring fill, low confidence) 0; line 1 wide, two-sided 55; line 1 wide, one-sided 0; line 2 wide, two-sided 27; line 2 wide, one-sided 0
+    cumulatively in the order undetected, outside area, isolated, blob, blob low-confidence, line 1, line 1 one-sided, line 2, line 2 one-sided (first path after which the cell is no longer larger): undetected 0; outside area (preserved) 0; isolated pixel 6; blob (filled from outside) 1; blob (ring fill, low confidence) 0; line 1 wide, two-sided 83; line 1 wide, one-sided 1; line 2 wide, two-sided 27; line 2 wide, one-sided 0
+    cells never resolved by any swap: 0

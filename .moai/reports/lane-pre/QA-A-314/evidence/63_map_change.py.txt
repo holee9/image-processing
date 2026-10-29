@@ -1,0 +1,15 @@
+import numpy as np
+S=3072
+ld=lambda p: np.fromfile(p,np.uint8).reshape(S,S)!=0
+a=ld('D:/workspace-github/xpe-data/bpm-eval-260/inj_v2_setmap.u8'); b=ld('D:/workspace-github/xpe-data/qa-314-tmp/out/inj_v2_setmap.u8')
+c0=ld('D:/workspace-github/xpe-data/bpm-eval-260/clean_v2_setmap.u8'); c1=ld('D:/workspace-github/xpe-data/qa-314-tmp/out/clean_v2_setmap.u8')
+ids=np.fromfile('D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16','<u2').reshape(S,S)
+print('planted map: before',int(a.sum()),'after',int(b.sum()),'removed',int((a&~b).sum()),'added',int((b&~a).sum()))
+print('  removed pixels inside a truth item',int((a&~b&(ids!=0)).sum()),'outside',int((a&~b&(ids==0)).sum()))
+print('clean map: before',int(c0.sum()),'after',int(c1.sum()),'removed',int((c0&~c1).sum()),'added',int((c1&~c0).sum()))
+T={}
+for l in open('D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth.tsv',encoding='utf-8'):
+    c=l.rstrip('\n').split('\t')
+    if len(c)>=6 and c[0].isdigit(): T[int(c[0])]='/'.join(c[1:6])
+for y,x in zip(*np.nonzero(a&~b&(ids!=0))): print('removed truth px',(int(y),int(x)),'item',int(ids[y,x]),T.get(int(ids[y,x]),'shared'))
+for y,x in zip(*np.nonzero(b&~a)): print('added px',(int(y),int(x)),'item',int(ids[y,x]),T.get(int(ids[y,x]),'-'))

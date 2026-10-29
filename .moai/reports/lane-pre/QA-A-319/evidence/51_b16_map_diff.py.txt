@@ -1,0 +1,24 @@
+"""QA-A-319: which pixels changed between the B16 maps before and after the fix (inj = planted set, clean = clean set; both defect-xcal --map-out planes,
+3072 x 3072 u8). N = inj & ~clean (the tool's new false alarm, before its truth-widening exclusion). truth_ids.u16 != 0 marks a planted item pixel; distance to the
+nearest truth pixel is the Chebyshev distance in a 25x25 box (reported as >12 when none). Rows mod 32 and column parity are printed for the band question."""
+import numpy as np
+S = 3072
+T = 'D:/workspace-github/xpe-data/qa-319-tmp/'
+ld = lambda p, dt='u1': np.fromfile(p, dtype=dt).reshape(S, S)
+ib, cb = ld(T + 'out_before2/inj_v2_setmap.u8') != 0, ld(T + 'out_before2/clean_v2_setmap.u8') != 0
+ia, ca = ld(T + 'out_after/inj_v2_setmap.u8') != 0, ld(T + 'out_after/clean_v2_setmap.u8') != 0
+tid = ld('D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16', '<u2')
+print('inj flagged before/after', int(ib.sum()), int(ia.sum()), '| clean flagged before/after', int(cb.sum()), int(ca.sum()))
+print('inj: removed by fix', int((ib & ~ia).sum()), 'added by fix', int((~ib & ia).sum()), '| clean: removed', int((cb & ~ca).sum()), 'added', int((~cb & ca).sum()))
+nb, na = ib & ~cb, ia & ~ca
+print('N=inj&~clean before', int(nb.sum()), 'after', int(na.sum()))
+def near(y, x):
+    y0, y1, x0, x1 = max(0, y - 12), min(S, y + 13), max(0, x - 12), min(S, x + 13)
+    yy, xx = np.nonzero(tid[y0:y1, x0:x1])
+    return int(np.max(np.abs(np.stack([yy + y0 - y, xx + x0 - x])), axis=0).min()) if yy.size else None
+for name, m in (('N after only', na & ~nb), ('N before only', nb & ~na), ('clean removed', cb & ~ca), ('clean added', ~cb & ca), ('inj removed', ib & ~ia), ('inj added', ~ib & ia)):
+    ys, xs = np.nonzero(m)
+    print(f'== {name}: {ys.size}')
+    for y, x in list(zip(ys, xs))[:40]:
+        d = near(y, x)
+        print(f'  y {y} x {x} y%32 {y % 32} x%2 {x % 2} truth_id {int(tid[y, x])} nearest_truth_dist {d if d is not None else ">12"} inj_b {int(ib[y,x])} inj_a {int(ia[y,x])} clean_b {int(cb[y,x])} clean_a {int(ca[y,x])}')

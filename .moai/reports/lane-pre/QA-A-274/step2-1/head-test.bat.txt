@@ -1,0 +1,10 @@
+@echo off
+rem QA-A-274 2-1: HEAD-only tests, one ctest process at a time.
+set "PATH=C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem"
+call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
+set "CT=C:\Program Files\Microsoft Visual Studio\2022\Professional\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\ctest.exe"
+set "LOG=D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-274\step2-1"
+cd /d D:\xpe-h274a\build\ci-preprocess
+"%CT%" -N -R "Ghost|Oom|OutputUnchanged|legacy_ghost|CalibSave|XCal|PipelineStage|PreprocessCalibration|calib_save|StageValue" > "%LOG%\head-test-list.log" 2>&1
+"%CT%" -R "Ghost|Oom|OutputUnchanged|legacy_ghost|CalibSave|XCal|PipelineStage|PreprocessCalibration|calib_save|StageValue" -j1 --output-on-failure --timeout 900 > "%LOG%\head-test.log" 2>&1
+echo CTEST_EXIT=%errorlevel%

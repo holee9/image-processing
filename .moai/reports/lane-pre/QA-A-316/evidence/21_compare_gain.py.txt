@@ -1,0 +1,44 @@
+# QA-A-316: PRE gain.xcal (qa316_gen) vs caleng-derived gain G_c = BrightAvg_int16 / mean(BrightAvg_int16) (definition: 00_method_and_feed_rules.md §2).
+import json, os, re, hashlib, struct
+import numpy as np
+W, H = 3072, 2560
+N = W * H
+TMP = 'D:/workspace-github/xpe-data/qa-316-tmp'
+m = json.load(open('D:/workspace-github/xpe-2g-offline/batch-20261022-1230/manifest.json', encoding='utf-8'))
+sets = m if isinstance(m, list) else m.get('sets', m)
+
+def stats(lab, d, a, b):
+    ad = np.abs(d)
+    r = np.corrcoef(a, b)[0, 1]
+    print(f'  {lab}: n={d.size} diff(G-Gc) median={np.median(d):.6f} p1={np.percentile(d,1):.6f} p99={np.percentile(d,99):.6f} '
+          f'|diff| median={np.median(ad):.6f} p99={np.percentile(ad,99):.6f} max={ad.max():.6f} pearson_r={r:.6f}')
+
+for s in sets:
+    sid, src = s['id'], s['cal_source']
+    p = f'{TMP}/{sid}/gain.xcal'
+    raw = open(p, 'rb').read()
+    sha = hashlib.sha256(raw).hexdigest()
+    magic = raw[:4]; ver, typ, pf, w, h = struct.unpack_from('<5I', raw, 4)
+    cfg_len, pay_len = struct.unpack_from('<QQ', raw, 0x68)
+    cfg = raw[0x98:0x98 + cfg_len].decode('utf-8', 'replace')
+    G = np.frombuffer(raw, dtype='<f4', count=N, offset=0x98 + cfg_len).astype(np.float64)
+    print(f'===== {sid} gain.xcal sha256={sha} size={len(raw)} magic={magic} type={typ} pixel_format={pf} {w}x{h} config_len={cfg_len} payload_len={pay_len}')
+    sat = re.findall(r'"saturation_[a-z_]+"\s*:\s*("[^"]*"|[-0-9.eE]+)', cfg)
+    keys = re.findall(r'"(saturation_[a-z_]+)"\s*:\s*("[^"]*"|[-0-9.eE]+)', cfg)
+    print(f'  saturation record in config: {keys}')
+    names = sorted(f for f in os.listdir(src) if re.match(r'Bright(0[1-9]|10)_OC_\d+\.raw$', f))
+    st = np.stack([np.fromfile(src + n, dtype='<i2') for n in names]).astype(np.float64)
+    ref = np.maximum(st, 0).mean(0); ref = ref / ref.mean()
+    print(f'  control: max |G - numpy(mean(max(0,v))/mean)| = {np.abs(G - ref).max():.3e}')
+    ba = np.fromfile(src + 'BrightAvg.raw', dtype='<i2').astype(np.float64)
+    Gc = ba / ba.mean()
+    bp = np.fromfile(src + 'BPMap.map', dtype=np.uint8)
+    good = bp == 0
+    print(f'  mean(BrightAvg_int16)={ba.mean():.3f}; G: min={G.min():.4f} max={G.max():.4f}; Gc: min={Gc.min():.4f} max={Gc.max():.4f}')
+    d = G - Gc
+    stats('all pixels', d, G, Gc)
+    stats('BPMap good pixels', d[good], G[good], Gc[good])
+    stats('BPMap defect pixels', d[~good], G[~good], Gc[~good])
+    neg = (st < 0).any(0)
+    stats('good, no negative frame value', d[good & ~neg], G[good & ~neg], Gc[good & ~neg])
+    stats('good, >=1 negative frame value', d[good & neg], G[good & neg], Gc[good & neg]) if (good & neg).any() else None

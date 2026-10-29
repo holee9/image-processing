@@ -1,0 +1,37 @@
+#!/bin/bash
+# QA-A-313 (Refs #273): B12 (FUNC-016 DarkBias / DarkReduction, FUNC-017 FlatResidualPct) and the B16 time row, on the current code, with existing tools only.
+# Run AFTER 30_measure_b16.sh.txt (it uses the clean sets that script generates: Dark_07..14 given -> Dark_08..14 used, gain Bright_23..28, defect Bright_17..28,31..36).
+#
+# B12 path 1 (the QA-A-250c judgement, unchanged): the disabled test A241Measure.DISABLED_A250c_CyanSeparatedJudgement in xpe_preprocess_tests
+#   (modules/preprocess/tests/test_zz_a241_measure.cpp, unmodified at eaf076f3). Held out: Dark_15, Dark_16 (FUNC-016), Bright_29, Bright_30 (FUNC-017).
+#   Run once on the second-edition clean set (the development default since QA-A-260) and once on the first-edition clean set (the edition of the 10-15 value).
+#   XPE_A250_V1/V2 = the earlier sets calib-cyan-v1/v2 (byte comparison lines only, not a criterion). Only this one test runs (no full suite).
+# B12 path 2 (signed DarkBias, QA-A-266 method unchanged): 32_signed_offset.py.txt = QA-A-266 50_real_darks.py.txt with two paths changed
+#   (the DLL helper copy 21_dll.py.txt = QA-A-263 20_dll.py.txt verbatim; the set = this run's clean_set_v1).
+# B16 time row: QA-A-296 timing harness (34_timing.sh.txt = build/qa296-work/timing.sh verbatim, 35_qa296_run.cpp.txt = its runner source), default configuration
+#   (EXTRA empty) on the three sets QA-A-296 used, 31 runs, median excluding the first. Input 3072 x 2560 (batch-20261022-1230), not cyan 3072 x 3072.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+S=D:/workspace-github/xpe-data/qa-313-tmp
+OUT=$S/out
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-313/evidence
+PY=/c/Users/drake/AppData/Local/Programs/Python/Python312/python.exe
+export XPE_A250_DATA=D:/workspace-github/image-processing/tests/test_data/cyan_test
+export XPE_A250_V1=D:/workspace-github/xpe-data/calib-cyan-v1
+export XPE_A250_V2=D:/workspace-github/xpe-data/calib-cyan-v2
+export XPE_A250_OUT=$S/phantom
+export PATH="$BIN:$PATH"
+F='--gtest_filter=A241Measure.DISABLED_A250c_CyanSeparatedJudgement --gtest_also_run_disabled_tests'
+for ed in v2 v1; do
+  s=$(date +%s)
+  XPE_A250_SET=$OUT/clean_set_$ed "$BIN/xpe_preprocess_tests.exe" $F > "$EVD/B12_a250c_$ed.out.txt" 2>&1
+  echo "B12_a250c_$ed exit $? seconds $(( $(date +%s) - s ))"
+done
+s=$(date +%s)
+PYTHONIOENCODING=utf-8 "$PY" -I -X utf8 "$EVD/32_signed_offset.py.txt" > "$EVD/B12_signed_offset.out.txt" 2>&1
+echo "B12_signed_offset exit $? seconds $(( $(date +%s) - s ))"
+cd "$ROOT/build/qa296-work" || exit 1
+for set in s1_um300 s0_gf s6_gad_pre; do bash "$EVD/34_timing.sh.txt" "$set" qa313-default '' ; done > "$EVD/T1_timing.out.txt" 2>&1
+echo "T1_timing exit $?"
+echo done

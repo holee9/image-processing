@@ -1,0 +1,15 @@
+## prof6 (opt1 code, s1_um300, zeroed std::vector<uint8_t>(7,864,320) allocation laps)
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=27.953 min=24.130 median_excl_first=24.704 max=26.670
+  defect:list_only n=31 median_excl_first=1.052
+  defect:list      n=31 median_excl_first=1.312
+  defect:fd_alloc  n=31 median_excl_first=1.309
+  defect:fd_h      n=31 median_excl_first=2.065
+  defect:fd_distalloc n=31 median_excl_first=1.296
+  defect:fdbuild   n=31 median_excl_first=1.829
+   31 QA315 info fd_ms=0.000 cluster=367706 isolated=1004 ring=0
+
+## prof9 (opt2 code, s1_um300, empty 16-range xpe_parallel_chunks with std::thread; fresh 7.9 MB new[] + memset parallel vs serial)
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=34.310 min=27.332 median_excl_first=30.485 max=33.404
+  defect:empty_par n=31 median_excl_first=0.488
+  defect:alloc_touch_par n=31 median_excl_first=1.135
+  defect:alloc_touch_serial n=31 median_excl_first=2.091

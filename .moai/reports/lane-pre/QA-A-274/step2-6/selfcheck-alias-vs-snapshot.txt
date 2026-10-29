@@ -1,0 +1,3 @@
+snapshots 30 replaced-copies 0
+fixed == newest snapshot bytes: True
+fixed names newest snapshot: True

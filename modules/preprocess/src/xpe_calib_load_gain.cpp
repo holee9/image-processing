@@ -14,6 +14,7 @@
 #include "xpe/preprocess_api.h"
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 #include "xcal_reader.hpp"
+#include "saturation.hpp"
 
 #include <cstdio>
 #include <mutex>
@@ -202,7 +203,19 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
             usable  = present && (hi_a > lo_a);
         }
 
+        // QA-A-296: the saturation record in the config block (absent in a file written before it existed) and the
+        // median of the scalar plane. A present but malformed record refuses the file: nothing has been committed.
+        XpeGainSat sat;
+        if (!is_poly) {
+            XpeSatRecord rec;
+            if (!xpe_sat_record_from_config(config, &rec)) return XPE_ERR_CONFIG_INVALID;
+            sat.known = rec.known;
+            sat.determined = rec.determined;
+            sat.level = rec.level;
+        }
+
         StagedGain staged;
+        staged.sat          = sat;
         staged.map          = std::move(map);
         staged.defectIdx    = std::move(defect_idx);
         staged.defectCount  = static_cast<uint32_t>(scan.count);
@@ -220,6 +233,8 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         staged.doseHi       = hi_a;
         staged.rangePresent = present;
         staged.rangeUsable  = usable;
+        if (!config_json.empty())
+            staged.config = std::make_shared<const std::vector<uint8_t>>(std::move(config_json));
         std::memcpy(staged.sessionId, hdr.session_id,
                     sizeof(hdr.session_id) < sizeof(staged.sessionId)
                         ? sizeof(hdr.session_id)
@@ -252,6 +267,7 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
         g_calib.gain_poly_coeffs.reset();
         g_calib.gain_poly_num_coeffs = 0;
     }
+    g_calib.gain_sat = staged.isPoly ? XpeGainSat{} : staged.sat;
     // The range belongs to whichever polynomial is current; setting it on every load keeps
     // a previous file's bounds from surviving into the next one (QA-A-123, #194).
     g_calib.gain_poly_has_range = (staged.isPoly && staged.rangeUsable);
@@ -264,6 +280,7 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
     xpe_calib_note_expiry_locked(CalibMapKind::Gain, staged.expiryMs);
     g_calib.gain_quality     = staged.quality;
     g_calib.gain_has_quality = staged.qualityFound;
+    g_calib.gain_config      = std::move(staged.config);
     std::memcpy(g_calib.gain_session_id, staged.sessionId, sizeof(g_calib.gain_session_id));
     // The quality record the module serves is replaced in the same critical section as the maps (QA-A-202d, Codex
     // #32 A1) -- ALWAYS: a file with no quality metadata makes the record "none" instead of leaving the previous
