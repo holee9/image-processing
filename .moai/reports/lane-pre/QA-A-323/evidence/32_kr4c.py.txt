@@ -1,0 +1,17 @@
+# QA-A-323 KR4 part 3: does engine OcGc equal OC*3424/MasterBright with some rounding? (good cut-area pixels)
+import numpy as np
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"; I, C = B + "/images", B + "/corrected"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92; CW, CH = W - L - R, H - TP - BT
+MB = np.fromfile(I + "/MasterBright.raw", dtype="<i2").reshape(H, W).astype(np.float64)[TP:H-BT, L:W-R]
+good = (np.fromfile(C + "/TOTAL_BPM.raw", dtype="<u2").reshape(H, W) == 0)[TP:H-BT, L:W-R] & (MB > 0)
+for i in (9, 13, 15):
+    oc = np.fromfile(f"{I}/bright03_{i:02d}.raw__OC__.raw", dtype="<i2").reshape(H, W).astype(np.float64)[TP:H-BT, L:W-R]
+    e = np.fromfile(f"{C}/Bright03_{i:02d}_OcGc.raw", dtype="<u2").reshape(CH, CW).astype(np.float64)
+    v = oc * 3424.0 / MB
+    s = good & (oc > 0)
+    print(f"bright03_{i:02d}: n {int(s.sum())} | eng==floor {100*np.mean(e[s]==np.floor(v[s])):.3f}% | ==rint {100*np.mean(e[s]==np.rint(v[s])):.3f}% | ==ceil {100*np.mean(e[s]==np.ceil(v[s])):.3f}%"
+          f" | max|eng-v| {np.abs(e[s]-v[s]).max():.3f} | mean(eng-v) {np.mean(e[s]-v[s]):.4f}")
+oc = np.fromfile(f"{I}/Bright03_13.raw__OC__.raw", dtype="<i2").reshape(H, W).astype(np.float64)[TP:H-BT, L:W-R]
+cal = np.fromfile(f"{I}/Bright03_13.raw__OC__.raw.cal.raw", dtype="<u2").reshape(H, W).astype(np.float64)[TP:H-BT, L:W-R]
+v = oc * 3424.0 / MB; s = good & (oc > 0)
+print(f"images/Bright03_13.raw__OC__.raw.cal.raw: ==floor {100*np.mean(cal[s]==np.floor(v[s])):.3f}% ==rint {100*np.mean(cal[s]==np.rint(v[s])):.3f}% max|cal-v| {np.abs(cal[s]-v[s]).max():.3f}")

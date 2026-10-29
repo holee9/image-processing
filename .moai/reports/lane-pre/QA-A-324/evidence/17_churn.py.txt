@@ -1,0 +1,19 @@
+"""QA-A-324: symmetry of the map change between the clean and the planted sets OUTSIDE the tool's left-out zone (the zone of 13_fa_table head), per feature.
+gained = bit set in the planted set, not in the clean set (a new false alarm when the pixel's map is new); lost = the reverse (never counted by the metric).
+Usage: python -I 17_churn.py.txt <out folder> <score evidence folder>"""
+import sys, numpy as np
+T = 'D:/workspace-github/xpe-data/qa-324-tmp/'
+OUTF, EVF = sys.argv[1], sys.argv[2]
+head = open(T + 'head324.py', encoding='utf-8').read()
+head = head.replace("OUT = 'D:/workspace-github/xpe-data/qa-324-tmp/out_before/'", "OUT = '" + OUTF + "'").replace("EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-324/evidence/11_b16_before/'", "EV = '" + EVF + "'")
+g = {'__name__': '__main__'}
+exec(compile(head, 'h', 'exec'), g)
+ld, zone, area, ids = g['ld'], g['zone'], g['area'], g['ids']
+fi, fc = ld(OUTF + 'inj_full_features.u8'), ld(OUTF + 'clean_full_features.u8')
+out = area & ~zone
+bg = out & (ids == 0)
+for name, b in (('DM', 1), ('DN', 2), ('DL', 8), ('FL', 16), ('BN', 32)):
+    pi, pc = (fi & b) != 0, (fc & b) != 0
+    print('%s outside zone: planted %d clean %d gained %d lost %d | background only: gained %d lost %d' % (name, int((pi & out).sum()), int((pc & out).sum()), int((pi & ~pc & out).sum()), int((pc & ~pi & out).sum()), int((pi & ~pc & bg).sum()), int((pc & ~pi & bg).sum())))
+mi, mc = ld(OUTF + 'inj_v2_setmap.u8') != 0, ld(OUTF + 'clean_v2_setmap.u8') != 0
+print('map outside zone: gained %d (tool new false alarms) lost %d' % (int((mi & ~mc & out).sum()), int((mc & ~mi & out).sum())))

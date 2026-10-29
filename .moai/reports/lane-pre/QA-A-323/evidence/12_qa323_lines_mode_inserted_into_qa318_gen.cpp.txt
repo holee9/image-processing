@@ -1,0 +1,18 @@
+    } else if (mode == L"lines") {   // QA-A-323: same inputs as bpm, xpe_bpm_find_lines with defaults -> OUT_PREFIX.lines.u8 + group list
+        const fs::path pre = argv[2]; const int nd = _wtoi(argv[5]);
+        std::vector<std::vector<uint16_t>> df, bf; std::vector<XpeImageBuffer> db, bb;
+        if (!load(6, 6 + nd, argv, df, db, false)) return 5;
+        if (!load(6 + nd, argc, argv, bf, bb, false)) return 5;
+        XpeBpmConfigV2 c{}; c.skip_first_dark = XPE_BPM_V2_SKIP_DEFAULT;
+        if (const char* m = std::getenv("QA318_MARGINS")) std::sscanf(m, "%u,%u,%u,%u", &c.margin_left, &c.margin_top, &c.margin_right, &c.margin_bottom);
+        std::vector<uint8_t> lm((size_t)W * H); XpeImageBuffer lb = buf(lm.data(), XPE_PIXEL_UINT8, 8);
+        std::vector<XpeBpmLine> ls(256), us(256); XpeBpmLineReport lr{};
+        rc = xpe_bpm_find_lines(db.data(), (uint32_t)db.size(), bb.data(), (uint32_t)bb.size(), &c, nullptr, &lb, ls.data(), 256, us.data(), 256, &lr);
+        std::printf("xpe_bpm_find_lines rc=%d lines=%u rows=%u cols=%u full=%u partial=%u max_adj=%u reject=%u unconfirmed=%u line_pixels=%u weak_stretches=%u\n", rc, lr.lines,
+                    lr.row_groups, lr.column_groups, lr.full_lines, lr.partial_lines, lr.max_adjacent, lr.panel_reject, lr.unconfirmed, lr.line_pixels, lr.weak_response_stretches);
+        for (unsigned i = 0; i < lr.lines && i < 256; ++i)
+            std::printf("  group orient=%u index=%u width=%u start=%u end=%u causes=0x%x flags=0x%x strength=%.2f persist=%.2f\n", ls[i].orientation, ls[i].index, ls[i].width,
+                        ls[i].start, ls[i].end, ls[i].causes, ls[i].flags, ls[i].strength, ls[i].persistence);
+        for (unsigned i = 0; i < lr.unconfirmed && i < 256; ++i)
+            std::printf("  unconfirmed orient=%u index=%u start=%u end=%u causes=0x%x reason=%u\n", us[i].orientation, us[i].index, us[i].start, us[i].end, us[i].causes, us[i].reason);
+        wr(fs::path(pre.wstring() + L".lines.u8"), lm.data(), lm.size());

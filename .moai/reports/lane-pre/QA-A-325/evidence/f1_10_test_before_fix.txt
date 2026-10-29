@@ -1,0 +1,30 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *RefusesIsRefusedBeforeTheSaturation*
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OomPipeline
+[ RUN      ] OomPipeline.AFrameTheGainStageRefusesIsRefusedBeforeTheSaturationStepAllocates
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2485): error: Expected equality of these values:
+  off
+    Which is: 21
+  on
+    Which is: 22
+a frame of another size than the gain map was refused only after the saturation step allocated
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_oom_injection.cpp(2497): error: Expected equality of these values:
+  off
+    Which is: 21
+  on
+    Which is: 22
+a gain map the gain stage refuses was refused only after the saturation step allocated
+
+[  FAILED  ] OomPipeline.AFrameTheGainStageRefusesIsRefusedBeforeTheSaturationStepAllocates (3 ms)
+[----------] 1 test from OomPipeline (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OomPipeline.AFrameTheGainStageRefusesIsRefusedBeforeTheSaturationStepAllocates
+
+ 1 FAILED TEST

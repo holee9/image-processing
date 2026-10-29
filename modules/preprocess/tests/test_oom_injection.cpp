@@ -2418,6 +2418,85 @@ bool runGuarded(dsz::Frame& f, const Config& c, XpeErrorCode* rc) {
 
 }  // namespace combo
 
+/* =========================================================================
+ * QA-A-325 F325-1 (Refs #278): a gain stage that refuses the frame does so before the saturation step allocates
+ * ========================================================================= */
+
+namespace satorder {
+
+/** One pipeline call on a w x h frame with every stage before the gain stage bypassed; `*allocations` = operator-new calls. */
+XpeErrorCode runCounted(uint32_t w, uint32_t h, const char* satValue, long* allocations) {
+    const size_t n = static_cast<size_t>(w) * h;
+    std::vector<uint8_t> bytes(n * sizeof(float), 0);   // n uint16 pixels in room for n floats
+    auto* px = reinterpret_cast<uint16_t*>(bytes.data());
+    for (size_t i = 0; i < n; ++i) px[i] = static_cast<uint16_t>(1000 + (i * 37) % 300);
+    XpeImageBuffer img{};
+    img.data = bytes.data();
+    img.width = w; img.height = h;
+    img.bitsAllocated = 16; img.bitsStored = 16;
+    img.format = XPE_PIXEL_UINT16;
+    img.dataSize = n * sizeof(float);
+    XpeImageMetadata meta{};
+    const std::string cfg =
+        std::string("{\"bypassReadout\":\"true\",\"bypassTemp\":\"true\",\"bypassOffset\":\"true\",\"bypassNonlinearity\":\"true\","
+                    "\"bypassBinning\":\"true\",\"bypassDefect\":\"true\",\"bypassGhost\":\"true\",\"saturationLevel\":") + satValue + "}";
+    arm(1000000000L);                       // counts allocations, never fails one
+    XpeErrorCode rc = XPE_ERR_INTERNAL;
+    try { rc = xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, cfg.c_str()); } catch (...) { rc = XPE_ERR_INTERNAL; }
+    *allocations = g_count.load();
+    disarm();
+    return rc;
+}
+
+/** A fresh scalar gain map in the store (a new map pointer, so the saturation median is not a cache hit). */
+void loadGain() {
+    xpe_calib_cache_clear();
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_pipe_calib/gain.xcal"));
+}
+
+}  // namespace satorder
+
+// Before QA-A-325 the saturation step ran after a successful gain stage; QA-A-325 moved its first half
+// (prepare_saturation: the median of the gain plane, a population of gain_width * gain_height floats) in front of the gain
+// stage. A frame the gain stage refuses must still be refused before that work -- same code, and no allocation
+// the old order did not make (under memory pressure such an allocation could replace the refusal with OUT_OF_MEMORY).
+// Measured as the operator-new count of the call with the rule on ("saturationLevel":12800) against the same call with it
+// off ("off"): equal when nothing of the saturation step ran.
+TEST_F(OomPipeline, AFrameTheGainStageRefusesIsRefusedBeforeTheSaturationStepAllocates) {
+    xpe_preprocess_shutdown();
+    xpe_preprocess_init(nullptr);
+    long on = -1, off = -1;
+
+    // Control 1: no gain map -- the saturation step cannot run in either config, so the two configs allocate alike.
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, satorder::runCounted(W, H, "12800", &on));
+    EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, satorder::runCounted(W, H, "\"off\"", &off));
+    ASSERT_EQ(off, on) << "control: the two configuration texts must allocate alike when no saturation step can run";
+
+    // Control 2: a frame the gain stage accepts -- the rule on allocates more (median population, monitor histogram).
+    satorder::loadGain();
+    ASSERT_EQ(XPE_OK, satorder::runCounted(W, H, "\"off\"", &off));
+    ASSERT_EQ(XPE_OK, satorder::runCounted(W, H, "12800", &on));
+    EXPECT_GT(on, off) << "control: the count must see the saturation step when it does run";
+
+    // Case 1: the gain map's size differs from the frame (gain_correct.cpp: scalar path, XPE_ERR_INVALID_INPUT).
+    satorder::loadGain();
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, satorder::runCounted(2 * W, 2 * H, "\"off\"", &off));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, satorder::runCounted(2 * W, 2 * H, "12800", &on));
+    EXPECT_EQ(off, on) << "a frame of another size than the gain map was refused only after the saturation step allocated";
+
+    // Case 2: a gain value outside the applied range (gain_correct.cpp: the whole-map check, XPE_ERR_CONFIG_INVALID). A loaded
+    // scalar map is classified on load, so the value is put into the store directly.
+    satorder::loadGain();
+    {
+        std::lock_guard<std::mutex> lk(g_calib_mutex);
+        ASSERT_TRUE(g_calib.gain_map);
+        g_calib.gain_map.get()[3] = 0.0f;
+    }
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, satorder::runCounted(W, H, "\"off\"", &off));
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, satorder::runCounted(W, H, "12800", &on));
+    EXPECT_EQ(off, on) << "a gain map the gain stage refuses was refused only after the saturation step allocated";
+}
+
 TEST_F(OomPipeline, AGainBypassFollowedByBinningDoesNotReadPastTheStageBuffer) {
 #ifndef _WIN32
     GTEST_SKIP() << "the page-guard allocator is Windows-only";

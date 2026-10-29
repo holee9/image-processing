@@ -1,0 +1,35 @@
+# QA-A-323 KR3 part 4: per-point deviation over bright03 mid/high doses vs control percentile; split by engine subset. argv: tmp
+import sys, numpy as np
+T = sys.argv[1]
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+I, C = B + "/images", B + "/corrected"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92
+u16 = lambda p: np.fromfile(p, dtype="<u2").reshape(H, W).astype(np.float64)
+MD = u16(I + "/MasterDark.raw"); eng = u16(C + "/TOTAL_BPM.raw") != 0
+wf = u16(C + "/BPM_with_Filter.raw") != 0; wo = u16(C + "/BPM_without_Filter.raw") != 0
+pre = np.fromfile(T + "/v_c.map.u8", dtype="u1").reshape(H, W) != 0
+eo = np.load(T + "/eo_pts.npy")
+rng = np.random.default_rng(323)
+ys = rng.integers(TP + 10, H - BT - 10, 8000); xs = rng.integers(L + 30, W - R - 10, 8000)
+keep = ~eng[ys, xs] & ~pre[ys, xs]; ctl = np.stack([ys[keep], xs[keep]], 1)[:5000]
+def ratio(img, pts, r=8):
+    out = np.empty(len(pts))
+    for k, (y, x) in enumerate(pts):
+        y0, y1 = max(TP, y - r), min(H - BT, y + r + 1); x0, x1 = max(L, x - r), min(W - R, x + r + 1)
+        out[k] = img[y, x] / np.median(img[y0:y1, x0:x1])
+    return out
+idx = [6, 7, 8, 9, 10, 11, 12, 13, 17, 18, 19]
+RE, RC = [], []
+for i in idx:
+    img = u16(I + "/bright03_%02d.raw" % i) - MD
+    RE.append(ratio(img, eo)); RC.append(ratio(img, ctl))
+RE, RC = np.stack(RE), np.stack(RC)
+mE, mC = (RE - 1).mean(axis=0), (RC - 1).mean(axis=0)   # mean signed relative deviation over the 11 frames
+print("mean signed (r-1) over bright03_{06..13,17..19}: control p0.5/p50/p99.5", [round(float(np.percentile(mC, q)), 4) for q in (0.5, 50, 99.5)])
+for nm, msk in (("engine_only all", np.ones(len(eo), bool)), ("with_only", wf[eo[:,0],eo[:,1]] & ~wo[eo[:,0],eo[:,1]]), ("without_only", ~wf[eo[:,0],eo[:,1]] & wo[eo[:,0],eo[:,1]])):
+    v = mE[msk]
+    lo, hi = np.percentile(mC, 0.5), np.percentile(mC, 99.5)
+    print(f"{nm} n={int(msk.sum())}: mean(r-1) p5/p50/p95 {[round(float(np.percentile(v, q)), 4) for q in (5, 50, 95)]} | below ctl p0.5 {int((v < lo).sum())} above ctl p99.5 {int((v > hi).sum())}")
+    for t in (0.01, 0.015, 0.02, 0.03):
+        print(f"   |mean(r-1)|>{t}: eo {int((np.abs(v) > t).sum())} ({(np.abs(v) > t).mean():.3f}) | ctl fraction {(np.abs(mC) > t).mean():.4f}")
+print("sign split engine_only: negative", int((mE < 0).sum()), "positive", int((mE > 0).sum()))

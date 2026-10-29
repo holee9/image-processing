@@ -1,0 +1,11 @@
+ebd0b158990c911ff3682c13619bfeab4e33f982f3fa01f8d4e998ff74bf71d7 *binA/xpe_preprocess.dll
+30d0f91d8ac332782b30bf54debe05523d8fc933bed075294ec0f70d5ab72be0 *binB/xpe_preprocess.dll
+cad542f8e321db8fcd6ff6471df90badeb6d830c412ea0ada3c913e57cf77511 *binC/xpe_preprocess.dll
+6ec41e979ddca62bce9e2ef30e5f2d7500cc0123fcf2fb2282dfb517c1891901 *binA/qa296_run.exe
+src after: pipeline/defect_correct/gain_correct
+f5ba93d34b680b8e
+187ae32740437c1e
+02636f1225f0204d
+diff 20_ vs 21_: none
+diff 20_ vs 28_: none
+15 of QA-A-315 01_: identical 15/15

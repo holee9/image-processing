@@ -1,0 +1,55 @@
+"""QA-A-324: measured gain-corrected variance ratio rho on the efficiency_loss control lines that carry the BN new false alarms, from the frames themselves
+(no detector code). For each dose group (frames grouped by their mean signal; group sizes must come out 3,3,6,3,3 as the detector reports), per pixel the
+temporal variance of (frame - dark mean) after removing each frame's row mean and column mean (the detector's e, xpe_bpm_v2.cpp:991), times 1/rhat^2 with
+rhat = the pixel's mean signal / its 17-column (row line: 17-row) neighbourhood median signal. rho = that variance / the median variance of the reference lines
+(lines at distance 3..10 on both sides). Planted frames (inj_d) and the clean frames of the same names. Usage: python -I 16_eff_loss_variance.py.txt"""
+import numpy as np
+S = 3072
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+INJ = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+BR = [17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36]
+LINES = [('101 eff 0.6 col_full', 'col', 3015, (0, S)), ('100 eff 0.6 row_full', 'row', 2359, (0, S)), ('106 eff 0.7 row_full', 'row', 1885, (0, S))]
+def rd(p): return np.fromfile(p, dtype='<u2').reshape(S, S).astype(np.float64)
+for src, name in ((INJ, 'planted'), (CAL, 'clean')):
+    D = np.mean([rd((CAL if k == 7 else src) + 'Dark_%02d.raw' % k) for k in range(8, 15)], axis=0)   # dark mean of Dark_08..14 (first frame Dark_07 excluded)
+    fr = {k: rd(src + 'Bright_%d.raw' % k) - D for k in BR}
+    lev = {k: float(np.median(v[1000:2000, 1000:2000])) for k, v in fr.items()}
+    order = sorted(BR, key=lambda k: lev[k])
+    groups = []
+    for k in order:
+        if groups and abs(lev[k] - lev[groups[-1][0]]) < 0.05 * lev[groups[-1][0]]: groups[-1].append(k)
+        else: groups.append([k])
+    print('== %s: dose groups by mean signal %s' % (name, [(g, round(lev[g[0]])) for g in groups]))
+    for label, orient, idx, _ in LINES:
+        sl = slice(max(0, idx - 10), idx + 11)
+        num, den = 0.0, 0
+        rows = []
+        for g in groups:
+            if len(g) < 2: continue
+            stack = []
+            for k in g:
+                f = fr[k]
+                sub = f[:, sl] if orient == 'col' else f[sl, :]
+                sub = sub - sub.mean(axis=1, keepdims=True) * 0 # keep: row/col means of the whole frame below
+                stack.append(f)
+            st = np.stack(stack)
+            # remove each frame's row mean and column mean (whole frame), as the detector does
+            st = st - st.mean(axis=2, keepdims=True) - st.mean(axis=1, keepdims=True) + st.mean(axis=(1, 2), keepdims=True)
+            var = st.var(axis=0, ddof=1)
+            mean = np.mean(stack, axis=0)
+            if orient == 'col':
+                v = var[:, sl]; m = mean[:, sl]
+                lineV, lineM = v[:, 10], m[:, 10]
+                refV = np.median(np.concatenate([v[:, 0:8], v[:, 13:21]], axis=1), axis=1)
+                refM = np.median(np.concatenate([m[:, 0:8], m[:, 13:21]], axis=1), axis=1)
+            else:
+                v = var[sl, :]; m = mean[sl, :]
+                lineV, lineM = v[10, :], m[10, :]
+                refV = np.median(np.concatenate([v[0:8, :], v[13:21, :]], axis=0), axis=0)
+                refM = np.median(np.concatenate([m[0:8, :], m[13:21, :]], axis=0), axis=0)
+            r = lineM / refM
+            rho = (lineV / r ** 2) / refV
+            ok = np.isfinite(rho) & (refV > 0)
+            rows.append('g%s rhat median %.3f, rho mean %.3f (median %.3f)' % (g, float(np.median(r[ok])), float(np.mean(rho[ok])), float(np.median(rho[ok]))))
+        print('  %s %s %d:' % (label, orient, idx))
+        for r_ in rows: print('    ' + r_)

@@ -18,6 +18,7 @@
 #include <immintrin.h>
 #include <atomic>
 #include "parallel.hpp"
+#include "saturation.hpp"
 #if defined(_MSC_VER)
 #include <intrin.h>
 #endif
@@ -279,7 +280,8 @@ XpeErrorCode xpe_gain_correct_in(
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
     const XpeImageMetadata* metadata,
-    std::vector<uint32_t>*  frame_defects)
+    std::vector<uint32_t>*  frame_defects,
+    const XpeGainSatHook*   sat)
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
     if (!input->data || !output->data) return XPE_ERR_INVALID_INPUT;
@@ -517,6 +519,11 @@ XpeErrorCode xpe_gain_correct_in(
             if (bad.load()) return XPE_ERR_CONFIG_INVALID;
         }
 
+        // QA-A-325 F325-1 (Refs #278): every check that can refuse this call is above. Only now is the saturation step prepared
+        // (the median of the gain plane allocates and reads the whole plane), so a refused frame is refused before that work.
+        XpeGainSatFuse satFuse;
+        const XpeGainSatFuse* satRule = (sat != nullptr && sat->prepare(sat->ctx, &satFuse)) ? &satFuse : nullptr;
+
         // QA-A-237b (#245, SRS-CALIB-PERF-002): the reciprocals are computed a block at a time into a small buffer and
         // applied at once, not into a plane of n floats (36.0 MiB at 3072x3072) that lived for the whole call. The value
         // of each reciprocal (`1.0f / gain`) and of each product (`pixel * reciprocal`) is the same as before, so the
@@ -534,6 +541,10 @@ XpeErrorCode xpe_gain_correct_in(
             for (size_t j = 0; j < len; ++j) reciprocal[j] = 1.0f / gainmap[start + j];
             if (descending) apply_gain_avx2_descending(src + start, reciprocal, dst + start, len);
             else apply_gain_avx2(src + start, reciprocal, dst + start, static_cast<uint32_t>(len), 1u);
+            // QA-A-325 (Refs #278): the saturation rule on the block just written, while it is in cache. The block's float pixels are
+            // final here (nothing later in this function writes them) and `satRule->raw` is the caller's frame, which this function
+            // neither reads as input nor writes, so this is the separate whole-frame pass of the pipeline, element for element.
+            if (satRule != nullptr) xpe_sat_apply(dst + start, satRule->raw + start, len, satRule->level, satRule->sOut);
         };
         if (static_cast<const void*>(src) != static_cast<const void*>(dst)) {
             xpe_parallel_chunks(blocks, 16, [&](size_t b0, size_t b1) { for (size_t b = b0; b < b1; ++b) applyBlock(b, false); });

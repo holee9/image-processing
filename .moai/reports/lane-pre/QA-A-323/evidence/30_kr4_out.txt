@@ -1,0 +1,51 @@
+PRE gain_raw full-frame mean (normaliser, xpe_calib_generate_gain.cpp:315) = 3144.1321
+bright03_09: engine K = OcGc*MB/OC: median 3423.1498 p1 3422.3542 p99 3423.9476 n 7483742 | eng/PRE median 1.08907 (current HEAD PRE output) | PRE K = PREout*gain_raw/OC median 3144.1319
+bright03_13: engine K = OcGc*MB/OC: median 3423.6296 p1 3423.2929 p99 3423.9671 n 7483742
+bright03_15: engine K = OcGc*MB/OC: median 3423.8067 p1 3423.6365 p99 3423.9776 n 7483742 | eng/PRE median 1.08914 (current HEAD PRE output) | PRE K = PREout*gain_raw/OC median 3144.1319
+
+engine K (bright03_15) = 3423.8067;  K / mean_p = 1.08895
+
+candidate | value | value/mean_p | |value - engineK|/engineK
+  MasterBright mean full frame | 3143.6843 | 0.99986 | 0.08182
+  MasterBright mean cut area | 3239.3126 | 1.03027 | 0.05389
+  MasterBright mean cut area, engine-good | 3244.6481 | 1.03197 | 0.05233
+  MasterBright median full frame | 3241.0000 | 1.03081 | 0.05339
+  MasterBright median cut area | 3254.0000 | 1.03494 | 0.04960
+  MasterBright mean cut area excl. cols 15-19 | 3244.6479 | 1.03197 | 0.05233
+  MasterBright mean centre 128x128 | 3445.1349 | 1.09573 | 0.00623
+  MasterBright mean centre 256x256 | 3440.9546 | 1.09441 | 0.00501
+  MasterBright mean centre 512x512 | 3437.2775 | 1.09324 | 0.00393
+  MasterBright mean centre 1024x1024 | 3436.8725 | 1.09311 | 0.00382
+  MasterBright mean centre-of-cut 512x512 | 3441.7268 | 1.09465 | 0.00523
+  MasterBright max cut area | 3625.0000 | 1.15294 | 0.05876
+  MasterBright p99 cut area | 3492.0000 | 1.11064 | 0.01992
+  PRE gain_raw mean full frame | 3144.1321 | 1.00000 | 0.08169
+  PRE gain_raw mean cut area | 3239.7628 | 1.03042 | 0.05375
+  PRE gain_raw mean cut area, engine-good | 3245.0982 | 1.03211 | 0.05220
+  PRE gain_raw median full frame | 3241.8999 | 1.03110 | 0.05313
+  PRE gain_raw median cut area | 3254.0000 | 1.03494 | 0.04960
+  PRE gain_raw mean cut area excl. cols 15-19 | 3245.0980 | 1.03211 | 0.05220
+  PRE gain_raw mean centre 128x128 | 3445.5822 | 1.09588 | 0.00636
+  PRE gain_raw mean centre 256x256 | 3441.4038 | 1.09455 | 0.00514
+  PRE gain_raw mean centre 512x512 | 3437.7270 | 1.09338 | 0.00407
+  PRE gain_raw mean centre 1024x1024 | 3437.3225 | 1.09325 | 0.00395
+  PRE gain_raw mean centre-of-cut 512x512 | 3442.1767 | 1.09479 | 0.00537
+  PRE gain_raw max cut area | 3625.1001 | 1.15297 | 0.05879
+  PRE gain_raw p99 cut area | 3492.3000 | 1.11074 | 0.02001
+  BrightAvg(int16) mean full frame | 5864.1764 | 1.86512 | 0.71277
+  BrightAvg(int16) mean cut area | 6115.1000 | 1.94492 | 0.78605
+  BrightAvg(int16) mean cut area, engine-good | 6115.7394 | 1.94513 | 0.78624
+  BrightAvg(int16) median full frame | 6174.0000 | 1.96366 | 0.80326
+  BrightAvg(int16) median cut area | 6200.0000 | 1.97193 | 0.81085
+  BrightAvg(int16) mean cut area excl. cols 15-19 | 6115.7407 | 1.94513 | 0.78624
+  BrightAvg(int16) mean centre 128x128 | 6521.4382 | 2.07416 | 0.90473
+  BrightAvg(int16) mean centre 256x256 | 6519.2983 | 2.07348 | 0.90411
+  BrightAvg(int16) mean centre 512x512 | 6520.5072 | 2.07387 | 0.90446
+  BrightAvg(int16) mean centre 1024x1024 | 6524.1947 | 2.07504 | 0.90554
+  BrightAvg(int16) mean centre-of-cut 512x512 | 6530.4998 | 2.07704 | 0.90738
+  BrightAvg(int16) max cut area | 6833.0000 | 2.17325 | 0.99573
+  BrightAvg(int16) p99 cut area | 6659.0000 | 2.11791 | 0.94491
+
+MasterBright.raw.cal.raw: shape full; mean full 3258.5519 mean cut 3418.3708 median cut 3424.0000 | cut-area good pixels p1/p50/p99 [3424.0, 3424.0, 3424.0]
+
+full_input.cal.raw: shape full; mean full 7335.3896 mean cut 7695.1609 median cut 7696.0000 | cut-area good pixels p1/p50/p99 [7639.0, 7696.0, 7747.0]

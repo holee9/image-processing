@@ -1,0 +1,128 @@
+Note: Google Test filter = BpmV2*
+[==========] Running 55 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 27 tests from BpmV2Test
+[ RUN      ] BpmV2Test.FlagsEachPlantedDefectWithTheFeatureThatSeesIt
+[       OK ] BpmV2Test.FlagsEachPlantedDefectWithTheFeatureThatSeesIt (501 ms)
+[ RUN      ] BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects
+[       OK ] BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects (1019 ms)
+[ RUN      ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap
+[       OK ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap (554 ms)
+[ RUN      ] BpmV2Test.NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature
+[       OK ] BpmV2Test.NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature (503 ms)
+[ RUN      ] BpmV2Test.ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature
+[       OK ] BpmV2Test.ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature (504 ms)
+[ RUN      ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect
+[       OK ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect (573 ms)
+[ RUN      ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn
+[       OK ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn (475 ms)
+[ RUN      ] BpmV2Test.WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins
+[       OK ] BpmV2Test.WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins (1081 ms)
+[ RUN      ] BpmV2Test.MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic
+[       OK ] BpmV2Test.MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic (975 ms)
+[ RUN      ] BpmV2Test.WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused
+[       OK ] BpmV2Test.WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused (506 ms)
+[ RUN      ] BpmV2Test.TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes
+[       OK ] BpmV2Test.TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes (517 ms)
+[ RUN      ] BpmV2Test.TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage
+[       OK ] BpmV2Test.TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage (502 ms)
+[ RUN      ] BpmV2Test.TheResponseThresholdsAreExactAndTheInequalitiesAreFixed
+[       OK ] BpmV2Test.TheResponseThresholdsAreExactAndTheInequalitiesAreFixed (71 ms)
+[ RUN      ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+[       OK ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup (497 ms)
+[ RUN      ] BpmV2Test.AFrameWhoseMedianNetSignalIsNotPositiveIsRefused
+[       OK ] BpmV2Test.AFrameWhoseMedianNetSignalIsNotPositiveIsRefused (47 ms)
+[ RUN      ] BpmV2Test.TheExcludingMedianIsTheOrdinaryMedianWhenNothingIsExcluded
+[       OK ] BpmV2Test.TheExcludingMedianIsTheOrdinaryMedianWhenNothingIsExcluded (0 ms)
+[ RUN      ] BpmV2Test.AWindowWithNoAdmissiblePixelTakesTheOrdinaryMedianAndExcludedPixelsLeaveTheWindow
+[       OK ] BpmV2Test.AWindowWithNoAdmissiblePixelTakesTheOrdinaryMedianAndExcludedPixelsLeaveTheWindow (0 ms)
+[ RUN      ] BpmV2Test.TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector
+[       OK ] BpmV2Test.TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector (823 ms)
+[ RUN      ] BpmV2Test.AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation
+[       OK ] BpmV2Test.AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation (501 ms)
+[ RUN      ] BpmV2Test.ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect
+[       OK ] BpmV2Test.ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect (1006 ms)
+[ RUN      ] BpmV2Test.ThresholdsFollowFromTheTargetNumberOfFalseAlarms
+[       OK ] BpmV2Test.ThresholdsFollowFromTheTargetNumberOfFalseAlarms (1001 ms)
+[ RUN      ] BpmV2Test.TheFirstDarkFrameIsSkippedOnRequest
+[       OK ] BpmV2Test.TheFirstDarkFrameIsSkippedOnRequest (988 ms)
+[ RUN      ] BpmV2Test.DoseGroupsComeFromTheSignalsWhateverTheFrameOrder
+[       OK ] BpmV2Test.DoseGroupsComeFromTheSignalsWhateverTheFrameOrder (1231 ms)
+[ RUN      ] BpmV2Test.TheLinearityFeatureNeedsThreeDoseGroups
+[       OK ] BpmV2Test.TheLinearityFeatureNeedsThreeDoseGroups (637 ms)
+[ RUN      ] BpmV2Test.TheFirstDarkFrameOfTheRawListIsSkippedByDefault
+[       OK ] BpmV2Test.TheFirstDarkFrameOfTheRawListIsSkippedByDefault (1052 ms)
+[ RUN      ] BpmV2Test.RefusesInputsItCannotJudge
+[       OK ] BpmV2Test.RefusesInputsItCannotJudge (1738 ms)
+[ RUN      ] BpmV2Test.GivesTheSameMapForTheSameInputAndLeavesTheInputAlone
+[       OK ] BpmV2Test.GivesTheSameMapForTheSameInputAndLeavesTheInputAlone (967 ms)
+[----------] 27 tests from BpmV2Test (18294 ms total)
+
+[----------] 22 tests from BpmV2LinesTest
+[ RUN      ] BpmV2LinesTest.AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross
+[       OK ] BpmV2LinesTest.AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross (285 ms)
+[ RUN      ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot
+[       OK ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot (577 ms)
+[ RUN      ] BpmV2LinesTest.APartialLineIsFoundWithItsStartAndEnd
+[       OK ] BpmV2LinesTest.APartialLineIsFoundWithItsStartAndEnd (287 ms)
+[ RUN      ] BpmV2LinesTest.TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection
+[       OK ] BpmV2LinesTest.TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection (571 ms)
+[ RUN      ] BpmV2LinesTest.ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine
+[       OK ] BpmV2LinesTest.ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine (569 ms)
+[ RUN      ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace
+[       OK ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace (289 ms)
+[ RUN      ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect
+[       OK ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect (293 ms)
+[ RUN      ] BpmV2LinesTest.ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence
+[       OK ] BpmV2LinesTest.ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence (307 ms)
+[ RUN      ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace
+[       OK ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace (287 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames
+[       OK ] BpmV2LinesTest.ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames (1133 ms)
+[ RUN      ] BpmV2LinesTest.NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot
+[       OK ] BpmV2LinesTest.NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot (577 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup
+[       OK ] BpmV2LinesTest.ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup (1102 ms)
+[ RUN      ] BpmV2LinesTest.NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot
+[       OK ] BpmV2LinesTest.NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot (335 ms)
+[ RUN      ] BpmV2LinesTest.ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted
+[       OK ] BpmV2LinesTest.ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted (144 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneFramePerPairIsNoPersistenceEvidence
+[       OK ] BpmV2LinesTest.ABurstInOneFramePerPairIsNoPersistenceEvidence (409 ms)
+[ RUN      ] BpmV2LinesTest.TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup
+[       OK ] BpmV2LinesTest.TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup (566 ms)
+[ RUN      ] BpmV2LinesTest.ASingleDeadPixelOrASmallBlockIsNotALine
+[       OK ] BpmV2LinesTest.ASingleDeadPixelOrASmallBlockIsNotALine (290 ms)
+[ RUN      ] BpmV2LinesTest.LinesInsideTheMarginsAreNotCounted
+[       OK ] BpmV2LinesTest.LinesInsideTheMarginsAreNotCounted (295 ms)
+[ RUN      ] BpmV2LinesTest.ConfigurationAndBuffersAreChecked
+[       OK ] BpmV2LinesTest.ConfigurationAndBuffersAreChecked (43 ms)
+[ RUN      ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize
+[       OK ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize (0 ms)
+[ RUN      ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+[       OK ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot (291 ms)
+[ RUN      ] BpmV2LinesTest.AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups
+[       OK ] BpmV2LinesTest.AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups (425 ms)
+[----------] 22 tests from BpmV2LinesTest (9086 ms total)
+
+[----------] 2 tests from BpmV2LineEndsTest
+[ RUN      ] BpmV2LineEndsTest.AStrongLineStretchEndsWhereTheLineEndsAndLeavesTheSlightlyWeakNeighboursOut
+[       OK ] BpmV2LineEndsTest.AStrongLineStretchEndsWhereTheLineEndsAndLeavesTheSlightlyWeakNeighboursOut (280 ms)
+[ RUN      ] BpmV2LineEndsTest.WithoutTheWeakNeighboursTheSameLineEndsInTheSamePlace
+[       OK ] BpmV2LineEndsTest.WithoutTheWeakNeighboursTheSameLineEndsInTheSamePlace (265 ms)
+[----------] 2 tests from BpmV2LineEndsTest (546 ms total)
+
+[----------] 4 tests from BpmV2PeriodicDarkTest
+[ RUN      ] BpmV2PeriodicDarkTest.ARowBandTimesColumnParityDarkStructureIsNotFlaggedAsDefects
+[       OK ] BpmV2PeriodicDarkTest.ARowBandTimesColumnParityDarkStructureIsNotFlaggedAsDefects (503 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlAPureRowComponentOfTheSameAmplitudeIsNotFlagged
+[       OK ] BpmV2PeriodicDarkTest.ControlAPureRowComponentOfTheSameAmplitudeIsNotFlagged (512 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlAPureColumnComponentOfTheSameAmplitudeIsNotFlagged
+[       OK ] BpmV2PeriodicDarkTest.ControlAPureColumnComponentOfTheSameAmplitudeIsNotFlagged (492 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlNoStructure
+[       OK ] BpmV2PeriodicDarkTest.ControlNoStructure (507 ms)
+[----------] 4 tests from BpmV2PeriodicDarkTest (2016 ms total)
+
+[----------] Global test environment tear-down
+[==========] 55 tests from 4 test suites ran. (29944 ms total)
+[  PASSED  ] 55 tests.

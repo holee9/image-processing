@@ -1,0 +1,54 @@
+shared pixels 1690, groups without a final class 0
+== reproduction of the tool's counts
+  items promoted to defect by noise 6 (tool: 6), made undetermined 368 (tool: 368)
+  new false alarms 43 (tool 43); on normal control items 31 (tool 31); background 12
+  reproduced exactly
+tool 43 31 repro 43 31
+y	x	inj_bits	clean_bits	under	near(<=12, chebyshev distance)
+107	3015	BN	-	101:control/efficiency_loss/col_full/0.6	38:line/nonlinear/cross/0.4 d11
+167	1733	BN	-	103:control/efficiency_loss/col_partial/0.6
+180	1925	DM	-	-	56:line/gain_loss/row_pair/0.44 d9; 1881:undetermined/efficiency_loss/pixel/0.6 d4
+213	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+235	1733	BN	-	103:control/efficiency_loss/col_partial/0.6
+289	3015	BN	-	101:control/efficiency_loss/col_full/0.6	236:control/dead/block8/0.5 d11
+440	1475	DM	-	-	1247:pixel/gain_loss/pixel/0.3 d9
+536	934	BN	-	-	6:line/dead/col_pair/1 d7; 74:control/gain_loss/row_pair/0.7 d4
+550	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+789	1889	BN	-	110:control/efficiency_loss/row_pair/0.7
+790	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+796	199	DM	-	-	115:control/fixed_band/col_full/30 d2
+1253	1246	DM	-	-	120:control/varying_band/row_full/20 d6; 1354:pixel/gain_loss/pixel/0.44 d9
+1350	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+1412	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+1440	988	DM	-	-
+1588	1119	DM	-	-	114:control/fixed_band/row_full/30 d7
+1590	2707	DM	-	-	114:control/fixed_band/row_full/30 d9
+1612	196	DM	-	-	115:control/fixed_band/col_full/30 d1; 419:pixel/hot/pixel/200 d12
+1784	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+1885	2270	BN	-	106:control/efficiency_loss/row_full/0.7
+1896	2670	DM	-	-	106:control/efficiency_loss/row_full/0.7 d11; 123:control/varying_band/col_full/8 d2
+2033	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+2180	3015	BN	-	101:control/efficiency_loss/col_full/0.6	31:line/noisy/row_full/2 d11
+2359	30	BN	-	100:control/efficiency_loss/row_full/0.6
+2359	44	BN	-	100:control/efficiency_loss/row_full/0.6
+2359	225	BN	-	100:control/efficiency_loss/row_full/0.6	117:control/gain_band/col_full/0.8 d9
+2359	278	BN	-	100:control/efficiency_loss/row_full/0.6
+2359	450	BN	-	100:control/efficiency_loss/row_full/0.6
+2359	2329	BN	-	100:control/efficiency_loss/row_full/0.6
+2359	2548	BN	-	100:control/efficiency_loss/row_full/0.6
+2359	2713	BN	-	100:control/efficiency_loss/row_full/0.6	61:control/gain_loss/col_partial/0.46 d4
+2359	2760	BN	-	100:control/efficiency_loss/row_full/0.6
+2359	3029	BN	-	100:control/efficiency_loss/row_full/0.6
+2406	842	BN	-	104:control/efficiency_loss/row_pair/0.6
+2406	1158	BN	-	104:control/efficiency_loss/row_pair/0.6	14:line/nonlinear/col_full/0.4 d10
+2407	1250	BN	-	104:control/efficiency_loss/row_pair/0.6	67:control/gain_loss/col_partial/0.6 d3
+2530	3015	BN	-	101:control/efficiency_loss/col_full/0.6	64:control/gain_loss/row_full/0.6 d6
+2642	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+2672	2118	DM	-	-	53:line/gain_loss/col_full/0.44 d7
+2684	3015	BN	-	101:control/efficiency_loss/col_full/0.6
+2767	3015	BN	-	101:control/efficiency_loss/col_full/0.6	68:control/gain_loss/row_pair/0.6 d7
+2871	305	DM	-	-
+== by planted-set bits and place
+  BN                       control    31
+  DM                       background 11
+  BN                       background 1

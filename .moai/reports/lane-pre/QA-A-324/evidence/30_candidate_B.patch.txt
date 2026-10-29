@@ -1,0 +1,13 @@
+diff --git a/modules/preprocess/src/xpe_bpm_v2.cpp b/modules/preprocess/src/xpe_bpm_v2.cpp
+index 5d942383..1e713635 100644
+--- a/modules/preprocess/src/xpe_bpm_v2.cpp
++++ b/modules/preprocess/src/xpe_bpm_v2.cpp
+@@ -1179,7 +1179,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
+         std::vector<float> sample;
+         sample.reserve(n / 16 + 1);
+         for (size_t i = 0; i < n; ++i) {
+-            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > threshold[5] && 2u * persistHits[i] >= noiseGroups) {
++            if (static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright) > kNoiseCostLimit * threshold[5] && 2u * persistHits[i] >= noiseGroups) {   // QA324CAND-B
+                 flags[i] = static_cast<uint8_t>(flags[i] | XPE_BPM_V2_FEATURE_BRIGHT_NOISE);
+                 ++counts[5];
+             }

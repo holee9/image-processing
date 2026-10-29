@@ -1,0 +1,32 @@
+"""QA-A-324: where is the BN bit the ONLY reason a pixel is in the planted map (no other feature bit, no line mask)? Per truth class/kind and outside items,
+and per non-control group the detected count with and without those pixels (detected = >= half of the item's pixels flagged).
+Usage: python -I 19_bn_only.py.txt <out folder>"""
+import sys, numpy as np
+from collections import Counter, defaultdict
+S = 3072; O = sys.argv[1]; TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+ids = np.fromfile(TR + 'truth_ids.u16', dtype='<u2').reshape(S, S)
+f = np.fromfile(O + 'inj_full_features.u8', np.uint8).reshape(S, S)
+li = np.fromfile(O + 'inj_full_lines.u8', np.uint8).reshape(S, S) != 0
+mp = np.fromfile(O + 'inj_v2_setmap.u8', np.uint8).reshape(S, S) != 0
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit(): items[int(c[0])] = c
+bnonly = mp & ((f & 0x1f) == 0) & ~li & ((f & 0x20) != 0)
+print('map pixels %d, BN-only pixels %d' % (int(mp.sum()), int(bnonly.sum())))
+where = Counter()
+for v in ids[bnonly]:
+    v = int(v)
+    where['background' if v == 0 else ('shared' if v == 0xFFFF else items[v][1] + '/' + items[v][2] + '/' + items[v][4])] += 1
+for k, v in where.most_common(): print('  %-36s %d' % (k, v))
+chg = defaultdict(lambda: [0, 0, 0])
+for k, c in items.items():
+    if c[1] == 'control': continue
+    sel = ids == k; n = int(sel.sum())
+    if n == 0: continue
+    a = int(mp[sel].sum()); b = int((mp & ~bnonly)[sel].sum())
+    key = '%s/%s/%s/%s' % (c[1], c[2], c[3], c[4])
+    chg[key][0] += 1; chg[key][1] += int(2 * a >= n); chg[key][2] += int(2 * b >= n)
+d = [(k, v) for k, v in sorted(chg.items()) if v[1] != v[2]]
+print('groups whose detected count changes without the BN-only pixels: %d' % len(d))
+for k, v in d: print('  %-36s items %d detected %d -> %d' % (k, v[0], v[1], v[2]))
