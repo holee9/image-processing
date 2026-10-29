@@ -1,0 +1,39 @@
+# QA-A-325: insert temporary section timers (every inserted line ends with // QA325TMP). Removal: delete those lines.
+import sys
+root = sys.argv[1]
+T = ' // QA325TMP'
+def ins(path, edits):
+    L = open(path, encoding='utf-8', newline='').read().split('\n')
+    for anchor, where, text in edits:
+        hits = [i for i, l in enumerate(L) if anchor in l]
+        assert len(hits) == 1, (path, anchor, hits)
+        i = hits[0]
+        new = [t + T for t in text]
+        L[i + 1 if where == 'after' else i:i + 1 if where == 'after' else i] = new
+    open(path, 'w', encoding='utf-8', newline='').write('\n'.join(L))
+
+ins(root + '/pipeline.cpp', [
+    ('#define XPE_STAGE_HOOK(n) ((void)0)', 'after', [
+        '#include <chrono>', '#include <cstdio>',
+        'thread_local std::chrono::steady_clock::time_point qa325_last;',
+        'void qa325_stage(const char* s) { const auto now = std::chrono::steady_clock::now(); std::fprintf(stderr, "QA325 stage %s %.3f\\n", s, std::chrono::duration<double, std::milli>(now - qa325_last).count()); qa325_last = now; }',
+        '#undef XPE_STAGE_HOOK', '#define XPE_STAGE_HOOK(n) qa325_stage("s" #n)']),
+    ('const float sOut = xpe_sat_output_value(level, xpe_sat_median_for(calib));', 'after', ['qa325_stage("sat_prep_median");']),
+    ('xpe_sat_histogram(raw, img->width, img->height, 16u, excl, hist.data(), &counted);', 'after', ['qa325_stage("sat_hist");']),
+    ('note_bypass(cfg, meta);', 'after', ['qa325_last = std::chrono::steady_clock::now();']),
+    ('result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, &frameGainDefects, satFused', 'after', ['qa325_stage("gain_fn");']),
+])
+
+ins(root + '/defect_correct.cpp', [
+    ('#include <intrin.h>', 'after', ['#include <chrono>', '#include <cstdio>',
+        'static thread_local std::chrono::steady_clock::time_point qa325_dl;',
+        'static void qa325_lap(const char* t) { const auto now = std::chrono::steady_clock::now(); std::fprintf(stderr, "QA325 defect %s %.3f\\n", t, std::chrono::duration<double, std::milli>(now - qa325_dl).count()); qa325_dl = now; }']),
+    ('if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;', 'after', ['qa325_dl = std::chrono::steady_clock::now();']),
+    ('const uint32_t bad = badFlag.load();', 'after', ['qa325_lap("finite");']),
+    ('extraOwn = std::vector<uint32_t>();   // built into the set', 'after', ['qa325_lap("maskset");']),
+    ('const float* const source = src;', 'before', ['qa325_lap("copy");']),
+    ('std::vector<uint8_t> done;', 'before', ['qa325_lap("list");']),
+    ('FillDistance fillDistance;             // built', 'before', ['qa325_lap("lines");']),
+    ('std::call_once(fillDistance.once', 'after', ['qa325_lap("filldist");']),
+    ('const size_t unfilled = unfilledCount.load();', 'after', ['qa325_lap("fill");']),
+])

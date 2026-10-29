@@ -1,0 +1,18 @@
+import sys,re,glob,statistics as st,collections,os
+# QA-A-325: per (set,cfg) median over runs (first run of each 31-run invocation dropped) of each QA325 section timer
+d=collections.defaultdict(lambda: collections.defaultdict(list))
+for f in sorted(glob.glob(sys.argv[1]+'/*.err')):
+    k=os.path.basename(f).rsplit('_r',1)[0]
+    runs=[]; cur=[]
+    for l in open(f):
+        m=re.match(r'QA325 (stage|defect) (\S+) ([0-9.]+)',l)
+        if not m: continue
+        key=m.group(1)[0]+':'+m.group(2)
+        if key=='s:s0' and cur: runs.append(cur); cur=[]
+        cur.append((key,float(m.group(3))))
+    if cur: runs.append(cur)
+    for run in runs[1:]:
+        for key,v in run: d[k][key].append(v)
+for k in sorted(d):
+    print('==',k, 'n_runs=',len(d[k]['s:s0']))
+    for key,v in d[k].items(): print(f'  {key:14s} median={st.median(v):7.3f}  p10={sorted(v)[len(v)//10]:7.3f} p90={sorted(v)[9*len(v)//10]:7.3f}')
