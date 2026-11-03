@@ -111,6 +111,22 @@ internal class ScenarioBackend : IXpeBackend
     public virtual BackendRuntimeInfo GetRuntimeInfo() => _inner.GetRuntimeInfo();
 }
 
+internal sealed class LaneContractBackend : ScenarioBackend
+{
+    public readonly System.Collections.Concurrent.ConcurrentQueue<AppSettings> Requests = new();
+    public StageStatus? ScriptedGsvgStatus;
+    public StageStatus? ScriptedPreStatus;
+
+    public override ChainResult RunChain(LoadedImageFrame rawFrame, IReadOnlyList<StageRequest> stages, AppSettings settings)
+    {
+        Requests.Enqueue(settings.Snapshot());
+        var chain = base.RunChain(rawFrame, stages, settings);
+        return chain with { Stages = chain.Stages.Select(s =>
+            s.StageId == StageIds.Gsvg && ScriptedGsvgStatus.HasValue ? s with { Status = ScriptedGsvgStatus.Value, Reason = "scripted grid outcome" } :
+            s.StageId == StageIds.Preprocess && ScriptedPreStatus.HasValue ? s with { Status = ScriptedPreStatus.Value, Reason = "scripted preprocess outcome" } : s).ToArray() };
+    }
+}
+
 /// <summary>GUI-C-233k: a scripted backend whose preprocess stage reports the status the scenario chooses (the Mock never runs one); null leaves the Mock's own answer.</summary>
 internal sealed class PreprocessOutcomeBackend : ScenarioBackend
 {
@@ -407,9 +423,9 @@ internal static class LifetimeScenarios
     /// <summary>Lets everything already queued on the UI thread run (a continuation posted by a finished await included), then returns.</summary>
     private static async Task FlushUi() => await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
 
-    public static void Run(bool studyContractOnly = false)
+    public static void Run(bool studyContractOnly = false, bool laneContractOnly = false)
     {
-        var scratch = studyContractOnly ? Path.Combine(AppContext.BaseDirectory, "gui-c-256-check") : TempDirectory();
+        var scratch = studyContractOnly || laneContractOnly ? Path.Combine(AppContext.BaseDirectory, laneContractOnly ? "gui-c-257-check" : "gui-c-256-check") : TempDirectory();
         Directory.CreateDirectory(scratch);
         var rawPath = WriteSmallRaw(scratch);
         var width = SmallSide;
@@ -424,6 +440,17 @@ internal static class LifetimeScenarios
                 {
                     try
                     {
+                        if (laneContractOnly)
+                        {
+                            await Timed(() => LaneSelectionAndResultsShareOneContract(rawPath, scratch));
+                            await Timed(() => ChoosingTheReferenceAlgorithmNeverSwitchesTheMainPreprocessingOff(rawPath, width, height));
+                            await Timed(() => EqualLanesMakeOneAiCallPerApply(rawPath, width, height));
+                            await Timed(() => TheScreensLaneTagsAndStageCountDescribeTheRender_AndAFailedCandidateLeavesNoPicture(rawPath, width, height));
+                            await Timed(() => AnOldLaneThatFailsAfterAReplacementKeepsTheNewLanes(rawPath, width, height));
+                            await Timed(() => AnOldLaneThatSucceedsAfterAShutdownChangesNothing(rawPath, width, height));
+                            return;
+                        }
+                        if (!studyContractOnly) await Timed(() => LaneSelectionAndResultsShareOneContract(rawPath, scratch));
                         await Timed(() => ManualStudyVerdictsStayWithTheLoadedImage(rawPath, scratch));
                         if (studyContractOnly) return;
                         await Timed(() => StartedApplyIsDroppedByAShutdown(rawPath, width, height));
@@ -491,6 +518,76 @@ internal static class LifetimeScenarios
         }
 
         Console.WriteLine($"Lifetime scenarios passed ({_scenariosRun} scenarios).");
+    }
+
+    private static async Task LaneSelectionAndResultsShareOneContract(string rawPath, string directory)
+    {
+        _scenario = "GUI-C-257 lane selection and result contract";
+        var backend = new LaneContractBackend();
+        var vm = NewViewModel(SmallSide, SmallSide, _ => backend, directory, out _, laneBVoiWindowWidth: 0);
+        try
+        {
+            vm.LaneAAlgorithm = "No grid correction";
+            var panel = new ImageProcTest.Views.AnalysisPanel { DataContext = vm };
+            IEnumerable<System.Windows.DependencyObject> Descendants(System.Windows.DependencyObject parent)
+            {
+                foreach (var child in System.Windows.LogicalTreeHelper.GetChildren(parent).OfType<System.Windows.DependencyObject>())
+                {
+                    yield return child;
+                    foreach (var descendant in Descendants(child)) yield return descendant;
+                }
+            }
+            var radios = Descendants(panel).OfType<System.Windows.Controls.RadioButton>().ToArray();
+            var virtualRadio = radios.Single(r => System.Windows.Automation.AutomationProperties.GetAutomationId(r) == "GsvgModeVirtualGrid");
+            var suppressRadio = radios.Single(r => System.Windows.Automation.AutomationProperties.GetAutomationId(r) == "GsvgModeGridSuppression");
+            vm.LaneBAlgorithm = "Virtual grid";
+            await FlushUi();
+            Check(virtualRadio.IsChecked == true && vm.Settings.GsvgMode == GsvgModes.None, "B Virtual selection must check the Parameters radio without changing A grid settings");
+            await LoadAndDrawLanes(vm, rawPath);
+            Check(backend.Requests.Any(r => r.GsvgMode == GsvgModes.VirtualGrid), "Virtual must reach the Candidate backend request");
+            Check(vm.ChainStatus.Contains("B") && vm.ChainStatus.Contains("gsvg=RequestedNotApplied") && vm.ChainStatus.Contains("native backend"), $"chain line must report B outcome and reason; actual {vm.ChainStatus}");
+            Check(vm.RenderedLaneBAlgorithm == "Virtual grid (not applied)", $"refused grid must not claim applied; actual {vm.RenderedLaneBAlgorithm}");
+            var oldTag = vm.RenderedLaneBAlgorithm;
+            suppressRadio.IsChecked = true;
+            await FlushUi();
+            Check(vm.LaneBAlgorithm == "Grid suppression" && vm.Settings.GsvgMode == GsvgModes.None, "Parameters Suppress must change B selector only");
+            Check(vm.LaneBIsStale && vm.RenderedLaneBAlgorithm == oldTag, "unapplied radio edit must keep the old rendered tag and existing stale flag");
+
+            async Task Apply()
+            {
+                var previous = vm.CurrentRender?.Id;
+                vm.ApplyDisplayPipelineCommand.Execute(null);
+                await Until(() => vm.CurrentRender?.Id != previous && vm.LaneBImage is not null, "Candidate result");
+                await FlushUi();
+            }
+            vm.LaneBAlgorithm = "Preprocess + virtual grid";
+            backend.ScriptedGsvgStatus = StageStatus.Applied;
+            backend.ScriptedPreStatus = StageStatus.Skipped;
+            await Apply();
+            Check(vm.RenderedLaneBAlgorithm == "Preprocess + virtual grid (not applied)", "applied grid with skipped requested PRE must say not applied");
+            backend.ScriptedPreStatus = StageStatus.AppliedNoChange;
+            backend.ScriptedGsvgStatus = StageStatus.AppliedNoChange;
+            await Apply();
+            Check(vm.RenderedLaneBAlgorithm == "Preprocess + virtual grid", "AppliedNoChange is an applied stage for both PRE and grid");
+            vm.LaneBAlgorithm = "No grid correction";
+            backend.ScriptedPreStatus = null;
+            backend.ScriptedGsvgStatus = null;
+            await Apply();
+            Check(vm.RenderedLaneBAlgorithm == "No grid correction" && vm.ChainStatus.Contains("gsvg=NotRequested"), "no grid request must remain distinct from refused grid");
+            // Stored A/B names can be equal while the legacy main-chain mode differs.
+            vm.Settings.LaneAAlgorithm = "Grid suppression";
+            vm.LaneBAlgorithm = "Grid suppression";
+            vm.Settings.GsvgMode = GsvgModes.None;
+            backend.Requests.Clear();
+            await Apply();
+            Check(backend.Requests.Last().GsvgMode == GsvgModes.GridSuppression, "equal picker names must still honor B preset when stored main mode differs");
+            Console.WriteLine($"  Candidate Virtual request observed; actual radios, stale tag, refused/PRE-skipped/AppliedNoChange/NotRequested outcomes checked");
+        }
+        finally
+        {
+            vm.BeginShutdown();
+            await Until(() => !vm.IsBackendTransitioning, "lane backend shutdown");
+        }
     }
 
     private static async Task ManualStudyVerdictsStayWithTheLoadedImage(string rawPath, string directory)
@@ -847,7 +944,10 @@ internal static class LifetimeScenarios
             await FlushUi();
             var laneA = vm.LaneAImage;
             var laneB = vm.LaneBImage;
+            var factsA = vm.CurrentRender?.LaneAFacts;
+            var factsB = vm.CurrentRender?.LaneBFacts;
             Check(laneA is not null && laneB is not null, $"the new backend did not draw both lanes {State(vm)}");
+            Check(factsA is not null && factsB is not null, "the new lanes must have result facts");
 
             old.ChainRelease.Set();                           // the OLD task now fails
             await Until(() => vm.Logs.Any(line => line.Contains("Lane rendering of a backend that is no longer current failed", StringComparison.Ordinal)), "the old lane task's outcome to be logged");
@@ -856,6 +956,7 @@ internal static class LifetimeScenarios
             Check(ReferenceEquals(vm.LaneAImage, laneA) && ReferenceEquals(vm.LaneBImage, laneB),
                 $"a stale lane failure erased or replaced the new lanes (before: laneA={Id(laneA)} laneB={Id(laneB)}) {State(vm)}");
             Check(vm.Logs.Any(line => line.Contains("no longer current failed", StringComparison.Ordinal)), "the stale failure was not recognised as stale");
+            Check(ReferenceEquals(vm.CurrentRender?.LaneAFacts, factsA) && ReferenceEquals(vm.CurrentRender?.LaneBFacts, factsB), "a late failure replaced the new lane facts");
         }
         finally
         {
@@ -883,12 +984,14 @@ internal static class LifetimeScenarios
             var timingsBefore = vm.PipelineTimings;
             vm.BeginShutdown();                               // the shutdown begins AND ends while the lane task waits: the same backend
             await Until(() => !vm.IsBackendTransitioning, "the shutdown to finish");   // object is back in place, no transition running
+            var factsAfterShutdown = vm.CurrentRender?.LaneBFacts;
 
             backend.ChainRelease.Set();                       // the old task now succeeds
             await Until(() => vm.Logs.Any(line => line.Contains("Lane B result dropped", StringComparison.Ordinal)), "the stale success to be dropped");
             await FlushUi();
 
             Check(ReferenceEquals(vm.LaneBImage, laneB), $"a stale lane success replaced Lane B after the shutdown {State(vm)}");
+            Check(ReferenceEquals(vm.CurrentRender?.LaneBFacts, factsAfterShutdown), "a late success restored or replaced lane facts after shutdown");
             // The Apply's own tail (the timing line) belongs to the render that was dropped: it must not run after the lanes' wait.
             Check(vm.PipelineTimings == timingsBefore, "the dropped render's timing line was written after the lanes' wait");
         }
@@ -1004,10 +1107,14 @@ internal static class LifetimeScenarios
         {
             var backend = new AiScenarioBackend { AiCeiling = 2 };
             var vm = NewViewModel(width, height, _ => backend, directory, out _, laneBVoiWindowWidth: 0f, aiInChain: true);
+            // Equal means equal effective settings, not legacy equal names with a different stored main mode (GUI-C-257).
+            vm.LaneAAlgorithm = "No grid correction";
+            vm.LaneBAlgorithm = "No grid correction";
             await LoadAndDrawLanes(vm, rawPath);
 
             Check(backend.AiCalls == 1, $"one Apply with equal lanes should make 1 AI call, made {backend.AiCalls}");
             Check(backend.ChainCalls == 1, $"one Apply with equal lanes should make 1 chain call (the Candidate is the Reference), made {backend.ChainCalls}");
+            Check(backend.ApplyCalls == 1, $"one Apply with equal effective settings should make 1 display call, made {backend.ApplyCalls}");
             await Until(() => vm.AiWorkerStatusSummary == "worker=Active; failures=1; ceiling=2", "the status of the one AI call", 5000);
         }
         finally
@@ -1970,7 +2077,7 @@ internal static class LifetimeScenarios
             var tagA = vm.RenderedLaneAAlgorithm;
             var tagB = vm.RenderedLaneBAlgorithm;
             var stages = vm.CalibStageCountDisplay;
-            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm && stages == "not run (native backend required)", $"after the render the tags/count are not the record's: '{tagA}' '{tagB}' '{stages}'");
+            Check(tagA == vm.CurrentRender!.Inputs.LaneAAlgorithm + " (not applied)" && tagB == vm.CurrentRender.Inputs.LaneBAlgorithm + " (not applied)" && stages == "not run (native backend required)", $"after the Mock render the tags/count must describe refused grid correction: '{tagA}' '{tagB}' '{stages}'");
 
             // settings change, nothing re-applied: the tags and the count still describe what was DRAWN; the Candidate is stale
             var otherA = MainWindowViewModel.AlgorithmOptions.First(o => o != vm.Settings.LaneAAlgorithm);
@@ -1992,6 +2099,7 @@ internal static class LifetimeScenarios
             await Task.Delay(300);
             await FlushUi();
             Check(vm.CurrentRender is not null && vm.LaneAImage is null && vm.LaneBImage is null, $"a failed Candidate left lane pictures behind (A={(vm.LaneAImage is null ? "none" : "set")}, B={(vm.LaneBImage is null ? "none" : "set")})");
+            Check(vm.CurrentRender?.LaneAFacts is null && vm.CurrentRender?.LaneBFacts is null, "a failed Candidate left lane facts behind");
             // GUI-C-233k: the lanes hold no picture (the Candidate failed), so neither tag names an algorithm - the screen shows "—" rather than the name of something that was not drawn
             Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null, $"a lane without a picture still names an algorithm: A='{vm.RenderedLaneAAlgorithm}' B='{vm.RenderedLaneBAlgorithm}'");
             Check(vm.CurrentRender!.Inputs.LaneAAlgorithm == otherA && vm.CurrentRender.Inputs.LaneBAlgorithm == otherB, "the second render's record does not carry the algorithms it was rendered with");

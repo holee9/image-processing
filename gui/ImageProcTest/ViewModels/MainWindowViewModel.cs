@@ -808,7 +808,9 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Status bar summary of <see cref="LastChain"/>: each stage and its status, and whether the display started
     /// from the raw frame. A requested stage that did not apply says so here (HAZ-GUI-005).
     /// </summary>
-    public string ChainStatus => _render?.ChainStatus ?? NoChainStatus;
+    public string ChainStatus => _render is { } rendered
+        ? rendered.ChainStatus + (rendered.LaneBFacts is { } candidate ? " | B " + candidate.Summary : string.Empty)
+        : NoChainStatus;
 
     /// <summary>
     /// GUI-C-248: the number of the render on screen ("render #N", 0 before the first), exposed to UI Automation as the help text of the chain status item. <see cref="ChainStatus"/> carries stage times in whole
@@ -1072,10 +1074,10 @@ public sealed class MainWindowViewModel : ObservableObject
     private StageStatus? RenderedPreprocessStatus => _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Status;
 
     /// <summary>GUI-C-233j/k: the algorithm the Reference lane on screen was drawn with (from the render record); null while that lane holds no picture (no render, or the lane work failed) - the screen then shows "—". The selector in the algorithm bar edits the REQUESTED one (<see cref="LaneAAlgorithm"/>).</summary>
-    public string? RenderedLaneAAlgorithm => _render is { LaneA: not null } rendered ? rendered.Inputs.LaneAAlgorithm : null;
+    public string? RenderedLaneAAlgorithm => _render is { LaneA: not null } rendered ? rendered.LaneAFacts?.AlgorithmLabel(rendered.Inputs.LaneAAlgorithm) : null;
 
     /// <summary>GUI-C-233j/k: the algorithm the Candidate lane on screen was drawn with (from the render record); null while that lane holds no picture.</summary>
-    public string? RenderedLaneBAlgorithm => _render is { LaneB: not null } rendered ? rendered.Inputs.LaneBAlgorithm : null;
+    public string? RenderedLaneBAlgorithm => _render is { LaneB: not null } rendered ? rendered.LaneBFacts?.AlgorithmLabel(rendered.Inputs.LaneBAlgorithm) : null;
 
     public string ComparisonStatus =>
         $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
@@ -1626,6 +1628,23 @@ public sealed class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(LaneBIsStale));
             OnPropertyChanged(nameof(LaneBDenoiseKApplies));
             OnPropertyChanged(nameof(LaneBDenoiseKUnapplied));
+        }
+    }
+
+    /// <summary>GUI-C-257: another control for the Candidate preset; never a second persisted grid mode.</summary>
+    public string CandidateGsvgMode
+    {
+        get => AlgorithmPreset.For(LaneBAlgorithm).GsvgMode;
+        set
+        {
+            var mode = GsvgModes.Normalize(value);
+            if (mode == CandidateGsvgMode) return;
+            LaneBAlgorithm = mode switch
+            {
+                GsvgModes.GridSuppression => "Grid suppression",
+                GsvgModes.VirtualGrid => "Virtual grid",
+                _ => "No grid correction"
+            };
         }
     }
 
@@ -3615,6 +3634,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(AppSettings.LaneBAlgorithm))
+        {
+            OnPropertyChanged(nameof(LaneBAlgorithm));
+            OnPropertyChanged(nameof(CandidateGsvgMode));
+        }
         RefreshParametersStale();   // #171 ①
 
         // GUI-C-234d: switching preprocessing on is the answer to the notice; the notice goes with it (and does not return if it is switched off again by hand).
@@ -4147,20 +4171,22 @@ public sealed class MainWindowViewModel : ObservableObject
             // The Reference IS what the main viewport just drew — same original, same settings. Running
             // the pipeline again for it would be a second computation of a result already in hand, and
             // it would not be the same claim either: two runs of one setting can only agree.
-            UpdateRender(renderId, r => r with { LaneA = reference });
+            UpdateRender(renderId, r => r with { LaneA = reference, LaneAFacts = LaneRenderFacts.From(r.Chain, r.Voi) });
 
             // With no override the Candidate is the Reference, so nothing is run for it either. That
             // keeps an ordinary apply at exactly one pipeline call — measured: adding a second and third
             // call broke W-23 and W-26, which count the calls an Apply makes through the fault-injection
             // seam. The cost is paid only when the user actually asks the two lanes to differ.
+            var candidate = inputs.Snapshot();
+            AlgorithmPreset.For(inputs.LaneBAlgorithm).ApplyTo(candidate);
             var differs = inputs.LaneBVoiWindowWidth > 0.0f
                 || !string.Equals(inputs.LaneBAlgorithm, inputs.LaneAAlgorithm, StringComparison.Ordinal)
+                || candidate.GsvgMode != inputs.GsvgMode
+                || candidate.PreprocessInChain != inputs.PreprocessInChain
                 || Math.Abs(inputs.LaneBGsvgDenoiseK - inputs.GsvgDenoiseK) > 0.0001;
 
             if (differs)
             {
-                var candidate = inputs.Snapshot();
-                AlgorithmPreset.For(inputs.LaneBAlgorithm).ApplyTo(candidate);
                 if (inputs.LaneBVoiWindowWidth > 0.0f)
                 {
                     candidate.VoiWindowWidth = inputs.LaneBVoiWindowWidth;
@@ -4171,18 +4197,18 @@ public sealed class MainWindowViewModel : ObservableObject
                 // it from the lane's settings without knowing a lane exists.
                 candidate.GsvgDenoiseK = inputs.LaneBGsvgDenoiseK;
 
-                var candidateImage = await Task.Run(() => RenderLane(backend, sourceFrame, candidate));
+                var candidateResult = await Task.Run(() => RenderLane(backend, sourceFrame, candidate));
                 if (!IsCurrent(ticket))
                 {
                     Log($"Lane B result dropped: {WhyStale(ticket)}");
                     return;
                 }
 
-                UpdateRender(renderId, r => r with { LaneB = candidateImage });
+                UpdateRender(renderId, r => r with { LaneB = candidateResult.Image, LaneBFacts = candidateResult.Facts });
             }
             else
             {
-                UpdateRender(renderId, r => r with { LaneB = reference });
+                UpdateRender(renderId, r => r with { LaneB = reference, LaneBFacts = r.LaneAFacts });
             }
         }
         catch (Exception ex)
@@ -4195,15 +4221,15 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             Log($"Lane rendering failed: {ex.Message}");
-            UpdateRender(renderId, r => r with { LaneA = null, LaneB = null });
+            UpdateRender(renderId, r => r with { LaneA = null, LaneB = null, LaneAFacts = null, LaneBFacts = null });
         }
     }
 
-    private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
+    private static (System.Windows.Media.ImageSource? Image, LaneRenderFacts Facts) RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
     {
         var chain = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
         var frame = backend.ApplyDisplayPipeline(sourceFrame, chain, settings);
-        return frame.ProcessedPreview ?? frame.Preview;
+        return (frame.ProcessedPreview ?? frame.Preview, LaneRenderFacts.From(chain, RenderedVoi.From(settings, frame.AppliedVoi)));
     }
 
     /// <summary>

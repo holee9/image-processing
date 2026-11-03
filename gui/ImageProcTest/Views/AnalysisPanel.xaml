@@ -263,13 +263,13 @@
                     <TextBlock Text="Grid correction" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,8">
                         <RadioButton AutomationProperties.AutomationId="GsvgModeNone" Content="None" GroupName="GsvgMode"
-                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=None}"
+                                     IsChecked="{Binding CandidateGsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=None}"
                                      Foreground="#8a909c" FontSize="10" />
                         <RadioButton AutomationProperties.AutomationId="GsvgModeGridSuppression" Content="Suppress" GroupName="GsvgMode"
-                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=GridSuppression}"
+                                     IsChecked="{Binding CandidateGsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=GridSuppression}"
                                      Foreground="#8a909c" FontSize="10" />
                         <RadioButton AutomationProperties.AutomationId="GsvgModeVirtualGrid" Content="Virtual" GroupName="GsvgMode"
-                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=VirtualGrid}"
+                                     IsChecked="{Binding CandidateGsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=VirtualGrid}"
                                      Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 

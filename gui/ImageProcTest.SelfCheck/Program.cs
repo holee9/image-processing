@@ -11,6 +11,11 @@ if (args.Contains("--study-contract"))
     ImageProcTest.SelfCheck.LifetimeScenarios.Run(studyContractOnly: true);
     return;
 }
+if (args.Contains("--lane-contract"))
+{
+    ImageProcTest.SelfCheck.LifetimeScenarios.Run(laneContractOnly: true);
+    return;
+}
 
 var repoRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
 var fixtureRoot = GuiFixtureManifestService.GetRepositoryFixtureRoot(repoRoot);

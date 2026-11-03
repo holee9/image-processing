@@ -28,7 +28,30 @@ public sealed record RenderRecord(
     string Timings,
     long Id = 0,
     System.Windows.Media.ImageSource? LaneA = null,
-    System.Windows.Media.ImageSource? LaneB = null);
+    System.Windows.Media.ImageSource? LaneB = null,
+    LaneRenderFacts? LaneAFacts = null,
+    LaneRenderFacts? LaneBFacts = null);
+
+/// <summary>GUI-C-257: lane results without retaining another chain's pixel or float arrays.</summary>
+public sealed record LaneRenderFacts(IReadOnlyList<RenderedStage> Stages, RenderedVoi Voi)
+{
+    public static LaneRenderFacts From(ChainResult chain, RenderedVoi voi) => new(
+        chain.Stages.Select(s => new RenderedStage(s.StageId, s.Status, s.Reason, s.ElapsedMs)).ToArray(), voi);
+
+    public string Summary => "chain: " + string.Join(", ", Stages.Select(s => $"{s.StageId}={s.Status}"))
+        + "; " + string.Join(" | ", Stages.Where(s => s.Status is StageStatus.RequestedNotApplied or StageStatus.Skipped).Select(s => $"{s.StageId}: {s.Reason}"));
+
+    public string AlgorithmLabel(string name)
+    {
+        var preset = AlgorithmPreset.For(name);
+        bool Applied(string stageId) => Stages.Any(s => s.StageId == stageId && s.Status is StageStatus.Applied or StageStatus.AppliedNoChange);
+        var applied = (preset.GsvgMode == GsvgModes.None || Applied(StageIds.Gsvg))
+            && (!preset.PreprocessInChain || Applied(StageIds.Preprocess));
+        return applied ? name : name + " (not applied)";
+    }
+}
+
+public sealed record RenderedStage(string StageId, StageStatus Status, string Reason, double ElapsedMs);
 
 /// <summary>The backend that PRODUCED a render, captured when it was committed (not read from the backend that is current later).</summary>
 public sealed record RenderBackend(string Mode, string BackendName, string CommonVersion, string DisplayVersion, string NativeSource)
