@@ -1,0 +1,103 @@
+Note: Google Test filter = Saturation*
+[==========] Running 36 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 4 tests from SaturationPile
+[ RUN      ] SaturationPile.FindsThePileAtTheTopAtTwoDifferentLevels
+[       OK ] SaturationPile.FindsThePileAtTheTopAtTwoDifferentLevels (0 ms)
+[ RUN      ] SaturationPile.FalsificationNoPileMeansUndeterminedNotAGuess
+[       OK ] SaturationPile.FalsificationNoPileMeansUndeterminedNotAGuess (0 ms)
+[ RUN      ] SaturationPile.FalsificationAPileBelowALargerOutlierGroupIsNotTheTop
+[       OK ] SaturationPile.FalsificationAPileBelowALargerOutlierGroupIsNotTheTop (0 ms)
+[ RUN      ] SaturationPile.KnownDefectPixelsAreLeftOutOfTheHistogram
+[       OK ] SaturationPile.KnownDefectPixelsAreLeftOutOfTheHistogram (0 ms)
+[----------] 4 tests from SaturationPile (10 ms total)
+
+[----------] 26 tests from SaturationTest
+[ RUN      ] SaturationTest.ExplicitSettingWinsOverTheGainFile
+[       OK ] SaturationTest.ExplicitSettingWinsOverTheGainFile (21 ms)
+[ RUN      ] SaturationTest.TheGainFileRecordIsUsedWhenNothingIsSet
+[       OK ] SaturationTest.TheGainFileRecordIsUsedWhenNothingIsSet (10 ms)
+[ RUN      ] SaturationTest.WithNeitherThereIsNoHandlingAndExactlyOneAlert
+[       OK ] SaturationTest.WithNeitherThereIsNoHandlingAndExactlyOneAlert (12 ms)
+[ RUN      ] SaturationTest.FalsificationAnUndeterminedRecordIsNotALevel
+[       OK ] SaturationTest.FalsificationAnUndeterminedRecordIsNotALevel (11 ms)
+[ RUN      ] SaturationTest.OffIsSilentAndChangesNothing
+[       OK ] SaturationTest.OffIsSilentAndChangesNothing (10 ms)
+[ RUN      ] SaturationTest.ABadSettingIsARefusalNotADefault
+[       OK ] SaturationTest.ABadSettingIsARefusalNotADefault (10 ms)
+[ RUN      ] SaturationTest.AMalformedOrPartialRecordRefusesTheGainFileAndAnOldFileLoads
+[       OK ] SaturationTest.AMalformedOrPartialRecordRefusesTheGainFileAndAnOldFileLoads (235 ms)
+[ RUN      ] SaturationTest.TheMedianLeavesOutThePixelsTheGainCalibrationClassifiedDefective
+[       OK ] SaturationTest.TheMedianLeavesOutThePixelsTheGainCalibrationClassifiedDefective (10 ms)
+[ RUN      ] SaturationTest.TheMedianLeavesOutTheDefectMapAndIsComputedAgainWhenTheMapIsReplaced
+[       OK ] SaturationTest.TheMedianLeavesOutTheDefectMapAndIsComputedAgainWhenTheMapIsReplaced (15 ms)
+[ RUN      ] SaturationTest.ExplicitThresholdsInTheMetadataAreCheckedAndAbsentOnesTakeTheDefaults
+[       OK ] SaturationTest.ExplicitThresholdsInTheMetadataAreCheckedAndAbsentOnesTakeTheDefaults (13 ms)
+[ RUN      ] SaturationTest.SaturatedPixelsAllCarryOneValueAndWithoutTheRuleTheyDoNot
+[       OK ] SaturationTest.SaturatedPixelsAllCarryOneValueAndWithoutTheRuleTheyDoNot (12 ms)
+[ RUN      ] SaturationTest.OutputNeverExceedsTheSaturatedValue
+[       OK ] SaturationTest.OutputNeverExceedsTheSaturatedValue (14 ms)
+[ RUN      ] SaturationTest.NormalPixelsBelowTheSaturatedValueAreBitIdenticalToTheRuleOffRun
+[       OK ] SaturationTest.NormalPixelsBelowTheSaturatedValueAreBitIdenticalToTheRuleOffRun (15 ms)
+[ RUN      ] SaturationTest.OutputIsMonotoneInTheRawValueAndTheClampIsWhatMakesItSo
+[       OK ] SaturationTest.OutputIsMonotoneInTheRawValueAndTheClampIsWhatMakesItSo (42 ms)
+[ RUN      ] SaturationTest.AFrameThatPilesUpAtAnotherValueRaisesAMismatchAlertAndKeepsTheLevel
+[       OK ] SaturationTest.AFrameThatPilesUpAtAnotherValueRaisesAMismatchAlertAndKeepsTheLevel (12 ms)
+[ RUN      ] SaturationTest.WithoutAScalarGainTheRuleIsOffAndTheCallSaysSoOnce
+[       OK ] SaturationTest.WithoutAScalarGainTheRuleIsOffAndTheCallSaysSoOnce (11 ms)
+[ RUN      ] SaturationTest.APolynomialGainIsNotCappedAndSaysSo
+[       OK ] SaturationTest.APolynomialGainIsNotCappedAndSaysSo (11 ms)
+[ RUN      ] SaturationTest.TheMonitorIsALimitedHeuristicItMissesAPileOutsideTheSampledRows
+[       OK ] SaturationTest.TheMonitorIsALimitedHeuristicItMissesAPileOutsideTheSampledRows (11 ms)
+[ RUN      ] SaturationTest.GenerationRecordsTheLevelFoundAndTheLoadedFileUsesIt
+[       OK ] SaturationTest.GenerationRecordsTheLevelFoundAndTheLoadedFileUsesIt (28 ms)
+[ RUN      ] SaturationTest.FalsificationGenerationFromFramesWithoutAPileWritesUndeterminedAndNoLevel
+[       OK ] SaturationTest.FalsificationGenerationFromFramesWithoutAPileWritesUndeterminedAndNoLevel (10 ms)
+[ RUN      ] SaturationTest.FramesThatDisagreeOnTheLevelAreUndetermined
+[       OK ] SaturationTest.FramesThatDisagreeOnTheLevelAreUndetermined (7 ms)
+[ RUN      ] SaturationTest.TheThreeKeysCheckTheJsonTypeToo
+[       OK ] SaturationTest.TheThreeKeysCheckTheJsonTypeToo (12 ms)
+[ RUN      ] SaturationTest.OverlappingSaturationConditionsGiveOneAlertWithEveryReason
+[       OK ] SaturationTest.OverlappingSaturationConditionsGiveOneAlertWithEveryReason (11 ms)
+[ RUN      ] SaturationTest.NoLevelAndNoScalarGainAreOneAlertNotTwo
+[       OK ] SaturationTest.NoLevelAndNoScalarGainAreOneAlertNotTwo (11 ms)
+[ RUN      ] SaturationTest.MetadataThatDoesNotParseIsARefusalAndWritesNothing
+[       OK ] SaturationTest.MetadataThatDoesNotParseIsARefusalAndWritesNothing (8 ms)
+[ RUN      ] SaturationTest.ARefusedLoadLeavesTheOutputOfTheEarlierStateUnchanged
+[       OK ] SaturationTest.ARefusedLoadLeavesTheOutputOfTheEarlierStateUnchanged (22 ms)
+[----------] 26 tests from SaturationTest (601 ms total)
+
+[----------] 3 tests from SaturationUnit
+[ RUN      ] SaturationUnit.TheMedianPopulationAndTheUnusableCases
+[       OK ] SaturationUnit.TheMedianPopulationAndTheUnusableCases (0 ms)
+[ RUN      ] SaturationUnit.AZeroBelowSixtyFourCountsIsHandledByTheAddedFloorOfOne
+[       OK ] SaturationUnit.AZeroBelowSixtyFourCountsIsHandledByTheAddedFloorOfOne (0 ms)
+[ RUN      ] SaturationUnit.ASaturationBelowTheFloorOf65IsNeverEstimated
+[       OK ] SaturationUnit.ASaturationBelowTheFloorOf65IsNeverEstimated (0 ms)
+[----------] 3 tests from SaturationUnit (0 ms total)
+
+[----------] 3 tests from SaturationRealData
+[ RUN      ] SaturationRealData.TwoGFrameGives12800
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_saturation.cpp(702): Skipped
+XPE_SAT_2G_RAW / XPE_SAT_2G_BPM not set
+
+[  SKIPPED ] SaturationRealData.TwoGFrameGives12800 (0 ms)
+[ RUN      ] SaturationRealData.CyanFrameGives65535
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_saturation.cpp(721): Skipped
+XPE_SAT_CYAN_RAW not set
+
+[  SKIPPED ] SaturationRealData.CyanFrameGives65535 (0 ms)
+[ RUN      ] SaturationRealData.CalData6IsUndetermined
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_saturation.cpp(736): Skipped
+XPE_SAT_CALDATA6_RAW not set
+
+[  SKIPPED ] SaturationRealData.CalData6IsUndetermined (0 ms)
+[----------] 3 tests from SaturationRealData (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 36 tests from 4 test suites ran. (612 ms total)
+[  PASSED  ] 33 tests.
+[  SKIPPED ] 3 tests, listed below:
+[  SKIPPED ] SaturationRealData.TwoGFrameGives12800
+[  SKIPPED ] SaturationRealData.CyanFrameGives65535
+[  SKIPPED ] SaturationRealData.CalData6IsUndetermined

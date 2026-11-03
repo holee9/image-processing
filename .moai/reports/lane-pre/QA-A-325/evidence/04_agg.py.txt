@@ -1,0 +1,14 @@
+import sys, re, statistics as st, collections
+# QA-A-325: aggregate ab.sh output: per (set,cfg,var) the per-round medians, their median / min / max / stdev, and cpu load range
+d = collections.defaultdict(list); load = collections.defaultdict(list)
+for f in sys.argv[1:]:
+    for l in open(f):
+        m = re.search(r'set=(\S+) cfg=(\S+) var=(\S+) cpu_before=([0-9.]*)%.*median_excl_first=([0-9.]+)', l)
+        if not m: continue
+        k = (m.group(1), m.group(2), m.group(3)); d[k].append(float(m.group(5)))
+        if m.group(4): load[k].append(float(m.group(4)))
+print(f"{'set':12s} {'cfg':18s} {'var':4s} n  med_of_rounds  min    max    stdev  rounds | cpu% min-max")
+for k in sorted(d):
+    v = d[k]; c = load[k]
+    print(f"{k[0]:12s} {k[1]:18s} {k[2]:4s} {len(v)}  {st.median(v):7.3f}  {min(v):7.3f} {max(v):7.3f} {st.stdev(v) if len(v)>1 else 0:6.3f}  "
+          + ' '.join(f'{x:.2f}' for x in v) + (f" | {min(c):.1f}-{max(c):.1f}" if c else ''))

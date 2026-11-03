@@ -1,0 +1,27 @@
+# run.sh
+#!/bin/bash
+T=D:/workspace-github/xpe-data/qa-323-tmp
+I="Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/images"
+export PATH="/d/workspace-github/xpe-pre/build/ci-preprocess/bin:$PATH"
+X=$T/qa318_gen.exe
+D10=(); for i in 00 01 02 03 04 05 06 07 08 09; do D10+=("$I/dark03_$i.raw"); done
+B02=(); for i in 00 01 02 03 04 05 06 07 08 09; do B02+=("$I/Bright02_$i.raw"); done
+B03S=(); for i in 00 01 03 04 07 11 13 17 18 19; do B03S+=("$I/bright03_$i.raw"); done
+echo "== V-c"; QA318_MARGINS=15,2,17,92 $X bpm $T/v_c def 0 10 "${D10[@]}" "${B02[@]}" "${B03S[@]}"; echo "rc=$?"
+echo "== O-a"; $X offset $T/offset_all10.xcal "${D10[@]}"; echo "rc=$?"
+echo "== G-a"; $X gain $T/gain_a.xcal "$I/MasterDark.raw" u "${B02[@]}"; echo "rc=$?"
+echo "== C"; mkdir -p $T/corr; C=(); for i in 09 15; do C+=("$I/bright03_$i.raw"); done
+$X correct $T/offset_all10.xcal $T/gain_a.xcal $T/corr "${C[@]}"; echo "rc=$?"
+
+# runl.sh
+#!/bin/bash
+T=D:/workspace-github/xpe-data/qa-323-tmp
+I="Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/images"
+export PATH="/d/workspace-github/xpe-pre/build/ci-preprocess/bin:$PATH"
+X=$T/qa323_gen.exe
+D10=(); for i in 00 01 02 03 04 05 06 07 08 09; do D10+=("$I/dark03_$i.raw"); done
+B02=(); for i in 00 01 02 03 04 05 06 07 08 09; do B02+=("$I/Bright02_$i.raw"); done
+B03S=(); for i in 00 01 03 04 07 11 13 17 18 19; do B03S+=("$I/bright03_$i.raw"); done
+echo "== V-c lines"; QA318_MARGINS=15,2,17,92 $X lines $T/v_c def 0 10 "${D10[@]}" "${B02[@]}" "${B03S[@]}" | grep -v "in\["; echo "rc=$?"
+echo "== V-c' lines, margins 20/2/17/92"; QA318_MARGINS=20,2,17,92 $X lines $T/v_c20 def 0 10 "${D10[@]}" "${B02[@]}" "${B03S[@]}" | grep -v "in\["; echo "rc=$?"
+echo "== V-c' bpm, margins 20/2/17/92 (exploratory: left margin past the 5 dead columns)"; QA318_MARGINS=20,2,17,92 $X bpm $T/v_c20 def 0 10 "${D10[@]}" "${B02[@]}" "${B03S[@]}" | grep -v "in\["; echo "rc=$?"

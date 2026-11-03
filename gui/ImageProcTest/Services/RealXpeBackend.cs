@@ -63,6 +63,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         _telemetry.Clear();
 
         var displayVersion = GetDisplayVersion();
+        var commonVersion = GetCommonVersion();
         _runtimeInfo = new BackendRuntimeInfo
         {
             BackendName = "RealXpeBackend",
@@ -73,6 +74,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             NativeDllPath = _commonDllPath,
             NativeSource = Native.GuiNativeLibraryResolver.SourceLabel("xpe_common.dll"),
             DisplayVersion = displayVersion,
+            CommonVersion = commonVersion,
             DisplayDllDetected = File.Exists(_displayDllPath),
             DisplayDllPath = _displayDllPath
         };
@@ -98,6 +100,9 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     public string GetVersion() => _runtimeInfo.Version;
 
     public string GetDisplayVersion() => InvokeNative(XpeDisplayNative.GetVersion);
+
+    // QA-A-322: through InvokeNative like GetDisplayVersion, so the #110 alert drain runs after this native call too.
+    private string GetCommonVersion() => InvokeNative(() => System.Runtime.InteropServices.Marshal.PtrToStringAnsi(Native.XpeCommonNative.xpe_version()) ?? "unknown");
 
     public LoadedImageFrame LoadRawImage(string path, AppSettings settings)
     {
@@ -396,7 +401,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
             settings.SelectedBodyPart,
             settings.ExposureKvp,
             settings.PixelPitchMm,
-            true));   // GUI-C-234 (pipeline-spec 6.1, (EI-0)): the exposure index is measured on every run, not only the Baseline's (measureExposureIndex here means 'Baseline run' and is not passed on)
+            true, settings.OffsetCorrectionMode, settings.GainCorrectionMode, settings.DefectCorrectionMode));
 
         // GUI-C-232b: the Deterministic Baseline runs this stage with its own fixed parameters; only an ordinary run offers a save candidate, and only to its own chain result.
         if (!measureExposureIndex && result is { Ran: true, Floats: { } floats } && frameKey is not null)
@@ -481,6 +486,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
         {
             BackendName = "RealXpeBackend",
             Version = _runtimeInfo.Version,
+            CommonVersion = _runtimeInfo.CommonVersion,
             State = "Shutdown",
             SupportsNativeRuntime = true,
             NativeDllDetected = File.Exists(_commonDllPath),

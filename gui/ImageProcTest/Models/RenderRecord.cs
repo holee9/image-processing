@@ -38,7 +38,7 @@ public sealed record RenderBackend(string Mode, string BackendName, string Commo
     public static RenderBackend From(BackendRuntimeInfo info) => new(
         string.Equals(info.BackendName, RealBackendName, StringComparison.Ordinal) ? "Native" : "Mock",
         info.BackendName,
-        info.Version,
+        info.CommonVersion,
         info.DisplayVersion,
         info.NativeSource);
 }

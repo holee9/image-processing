@@ -1,0 +1,32 @@
+import numpy as np, math, sys
+from numpy.lib.stride_tricks import sliding_window_view as swv
+S=3072; MT,MB,ML,MR=2,1,6,1
+CAL='D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+INJ='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+WIN=17; R=8; BLK=64
+def rd(p): return np.fromfile(p,dtype='<u2').reshape(S,S)[MT:S-MB, ML:S-MR]
+def smed(a,axis):  # sliding median along axis, reflect
+    if axis==0: return smed(a.T,1).T
+    pad=np.pad(a,((0,0),(R,R)),mode='reflect'); out=np.empty_like(a)
+    for y0 in range(0,a.shape[0],256):
+        v=swv(pad[y0:y0+256],WIN,axis=1); out[y0:y0+256]=np.partition(v,R,axis=-1)[...,R]
+    return out
+def parts(D):
+    f=D.copy()
+    ref=smed(f,0); cr=np.median(f-ref,axis=1); f=f-cr[:,None]
+    ref=smed(f,1); cc=np.median(f-ref,axis=0); f=f-cc[None,:]
+    bg=smed(smed(f,1),0); r=f-bg
+    return cr,cc,bg,r
+import math
+pts=[(349,199),(796,199),(901,2185),(1023,1453),(1095,454),(1253,1246),(1590,2707),(1612,196)]
+out={}
+for name,d in (('p',INJ),('c',CAL)):
+    D=np.zeros((S-MT-MB,S-ML-MR),np.float64)
+    for k in range(8,15): D+=rd(d+'Dark_%02d.raw'%k)
+    D=(D/7).astype(np.float32); out[name]=(D,)+parts(D)
+zp=np.load('D:/workspace-github/xpe-data/qa-314-tmp/z_planted.npy'); zc=np.load('D:/workspace-github/xpe-data/qa-314-tmp/z_clean.npy')
+for y,x in pts:
+    yy,xx=y-MT,x-ML
+    Dp,crp,ccp,bgp,rp=out['p']; Dc,crc,ccc,bgc,rc=out['c']
+    sp=rp[yy,xx]/zp[yy,xx]; sc=rc[yy,xx]/zc[yy,xx]
+    print('(%d,%d) dD=%.3f d_rowcomp=%.3f d_colcomp=%.3f d_bg=%.3f d_r=%.3f | s %.4f->%.4f (%.2f%%) | zc %.4f zp %.4f | dz from r %.4f from s %.4f'%(y,x,Dp[yy,xx]-Dc[yy,xx],crp[yy]-crc[yy],ccp[xx]-ccc[xx],bgp[yy,xx]-bgc[yy,xx],rp[yy,xx]-rc[yy,xx],sc,sp,100*(sp/sc-1),zc[yy,xx],zp[yy,xx],(rp[yy,xx]-rc[yy,xx])/sc, rp[yy,xx]/sp-rp[yy,xx]/sc))

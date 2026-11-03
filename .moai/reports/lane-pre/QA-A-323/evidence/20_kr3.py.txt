@@ -1,0 +1,64 @@
+# QA-A-323 KR3: PRE V-c defect map (HEAD 6b75a131) vs engine maps, pixel level. argv: tmp folder
+import sys, hashlib, numpy as np
+T = sys.argv[1]
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92
+u16 = lambda p: np.fromfile(p, dtype="<u2").reshape(H, W)
+eng = u16(B + "/corrected/TOTAL_BPM.raw") != 0
+wf = u16(B + "/corrected/BPM_with_Filter.raw") != 0
+wo = u16(B + "/corrected/BPM_without_Filter.raw") != 0
+aed = u16(B + "/corrected/AED_BPM.raw") != 0
+pm = np.fromfile(T + "/v_c.map.u8", dtype="u1").reshape(H, W)
+ft = np.fromfile(T + "/v_c.feat.u8", dtype="u1").reshape(H, W)
+pre = pm != 0
+area = np.zeros((H, W), bool); area[TP:H - BT, L:W - R] = True
+print("map sha256", hashlib.sha256(open(T + "/v_c.map.u8", "rb").read()).hexdigest())
+print("PRE flagged outside cut:", int((pre & ~area).sum()), "| engine outside cut:", int((eng & ~area).sum()),
+      "| AED outside cut:", int((aed & ~area).sum()))
+print("AED subset of TOTAL:", bool((aed & ~eng).sum() == 0), "AED&~TOTAL", int((aed & ~eng).sum()))
+print()
+print("set | n | both(PRE&set) | set_only(~PRE) | PRE_only(PRE&~set) | coverage both/n")
+for nm, S in (("TOTAL_BPM", eng), ("BPM_with_Filter", wf), ("BPM_without_Filter", wo), ("AED_BPM", aed),
+              ("with&without", wf & wo), ("with_only", wf & ~wo), ("without_only", wo & ~wf)):
+    n = int(S.sum()); b = int((pre & S).sum())
+    print(f"{nm} | {n} | {b} | {n - b} | {int((pre & ~S).sum())} | {b / n if n else float('nan'):.4f}")
+# line vs point split: engine column lines (cols with >50% flagged) and rows
+cols = np.where(eng.mean(axis=0) > 0.5)[0]; rows = np.where(eng.mean(axis=1) > 0.5)[0]
+print("\nengine line cols", cols.tolist(), "rows", rows.tolist())
+line = np.zeros((H, W), bool); line[:, cols] = True; line[rows, :] = True
+for nm, msk in (("in engine line cols", line), ("not in line cols", ~line)):
+    E = eng & msk
+    print(f"[{nm}] engine {int(E.sum())} both {int((pre & E).sum())} engine_only {int((~pre & E).sum())} PRE_only {int((pre & ~eng & msk).sum())}")
+print("per line col: col engine PRE both (inside cut rows 2..2467)")
+for c in range(12, 24):
+    e = eng[TP:H - BT, c]; p = pre[TP:H - BT, c]
+    print(f"  col {c}: engine {int(e.sum())} PRE {int(p.sum())} both {int((e & p).sum())}")
+# point defects: cluster size of engine_only (4-neighbourhood) without scipy
+eo = (~pre & eng & ~line)
+print("\nengine_only point pixels (outside line cols):", int(eo.sum()))
+# neighbour count within engine set
+E = eng.astype(np.int8); nb = np.zeros((H, W), np.int8)
+for dy, dx in ((1,0),(-1,0),(0,1),(0,-1)):
+    nb += np.roll(np.roll(E, dy, 0), dx, 1)
+for nm, S in (("engine_only point", eo), ("both point", pre & eng & ~line)):
+    v = nb[S]; print(f"  {nm}: engine 4-neighbours 0:{int((v==0).sum())} 1:{int((v==1).sum())} 2+:{int((v>=2).sum())}")
+# feature classification of PRE pixels
+names = {0:"DARK_MEAN",1:"DARK_NOISE",2:"DOSE_SLOPE",3:"DOSE_LINEAR",4:"FLAT",5:"BRIGHT_NOISE"}
+print("\nfeature bits | PRE&engine | PRE_only")
+for b in range(6):
+    m = (ft & (1 << b)) != 0
+    print(f"  {names[b]} | {int((m & eng).sum())} | {int((m & ~eng).sum())}")
+print("feature combos of PRE_only:")
+v, c = np.unique(ft[pre & ~eng], return_counts=True)
+for a, n in sorted(zip(v.tolist(), c.tolist()), key=lambda t: -t[1]): print(f"  0x{a:02x}: {n}")
+print("weak (map value) distribution PRE: ", dict(zip(*[x.tolist() for x in np.unique(pm[pre], return_counts=True)])))
+print("feat bits of engine_only:", dict(zip(*[x.tolist() for x in np.unique(ft[eng & ~pre], return_counts=True)])))
+# by-subset engine_only spatial: rows
+eo_all = eng & ~pre
+ys, xs = np.nonzero(eo_all & ~line)
+np.save(T + "/eo_pts.npy", np.stack([ys, xs], 1))
+ys2, xs2 = np.nonzero(pre & eng & ~line)
+np.save(T + "/both_pts.npy", np.stack([ys2, xs2], 1))
+ys3, xs3 = np.nonzero(pre & ~eng)
+np.save(T + "/preonly_pts.npy", np.stack([ys3, xs3], 1))
+print("engine_only point rows: min/median/max", int(ys.min()), int(np.median(ys)), int(ys.max()), "cols", int(xs.min()), int(np.median(xs)), int(xs.max()))

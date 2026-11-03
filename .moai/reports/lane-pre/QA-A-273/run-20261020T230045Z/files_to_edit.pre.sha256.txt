@@ -1,0 +1,8 @@
+# QA-A-273: the files this card may edit, before the first edit. New files created by the card are not listed (they do not exist yet). Copies: preedit-copies/
+c4b86b9c24807acc4e0bf3626dd5991f86e23a4c7708a6a50580993001fd1bca  modified      gui/ImageProcTest/MainWindow.xaml
+bafe0d5d2de1ddde0a1cfe3dcba50d6d3804f6ee7d58d5969f4c60268971b677  modified      gui/ImageProcTest/MainWindow.xaml.cs
+e9687335d9256c2e0f77415293d26bc142babacdf056cc429162705d7290ca6c  modified      gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+ebbb19b33739aa034501d287999797d60cdd7d806ba2828775e0b1c27e77ad37  tracked-clean gui/ImageProcTest/Views/TopBar.xaml
+dc75533726b4d0250cdd67b2358569e038c3d638ab203e47638a4d164d959fc3  tracked-clean gui/ImageProcTest/Views/AlgorithmBar.xaml
+53202a48cacec9b4753acf3d21c8c7da73245be230f2694958e4e808527a9e6a  modified      gui/ImageProcTest/Views/AnalysisPanel.xaml
+d744d596211559ca67203f563567214fe6823848a5dbbf7b025850e9639f1836  tracked-clean gui/ImageProcTest/Views/ViewportShell.xaml

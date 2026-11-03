@@ -1,0 +1,259 @@
+{
+  "purpose": "Evidence that the contract (xpe-2g-pre-comparison/4) has no field for. Not part of conditions.json.",
+  "base_dir_policy": "validate/compare are run with base_dir = D:/workspace-github (common ancestor of image-processing, xpe-data, xpe-pre); every path in conditions.json is relative to it; absolute D:/ paths in the calibration manifest were converted by stripping that prefix; no file was copied, so SHA links are to the original bytes. The private output lives under xpe-pre/build/qa276_out/ (git-ignored).",
+  "input_extra": {
+    "dtype": "uint16 little-endian (card-declared; length-compatible, not independently proven)",
+    "width": 3072,
+    "height": 3072,
+    "stride_bytes": 6144,
+    "file_length_bytes": 18874368
+  },
+  "engine_B_extra": {
+    "pre_dlls": {
+      "xpe_preprocess.dll": "d404d4071bd8c9b0d799cb5e98c67512022e3f5bd0e6d0cae192c865afe7643d",
+      "xpe_common.dll": "56bb73afc0af27a50471cc3148462aaa333de94ff1636c8a3952a67427641fa4"
+    },
+    "xpe_pre_e2e_exe_sha256": "9645a8e2fdc124bc4a14fdc3be4a02a7449fb6144d8af72663803fc7377e925d",
+    "loaded_modules_observed": "QA-276-INDEP execution.json lists PRE/common/spdlog and MSVCP140 for its own caller; QA-A-276 did not record a module list",
+    "source_head_note": "75c0043195e5afacf7d6b424bee32c063b9e99a0 is the HEAD recorded by the 10/18 run of this same binary (execution-evidence.json head). The binary was built from that HEAD plus uncommitted changes (DLL mtime 2026-10-19 02:00); those changes were later committed as e404b70e0cb3fced2a80b49edb5197f4f345c74b. Build-to-commit equality is NOT verified.",
+    "config_file": "pre-config.json",
+    "config_sha256": "945ced65cd3b5e809b0d120d5def42d16e294607c5179e73236559f638f08a6f",
+    "settings_requested_vs_applied": "config requests bypass of readout/temp/nonlinearity/binning/ghost; offset/gain/defect are applied via the calibration state (flags 0x200c). Requested values are not used as proof of application."
+  },
+  "output_extra": {
+    "length_bytes": 37748736,
+    "check": "offset_bytes + width*height*4 = 37748736",
+    "min": 4258.3544921875,
+    "max": 77956.15625,
+    "fraction_above_65535": 0.0047940148247612845,
+    "non_finite": 0,
+    "independent_reproduction": "QA-276-INDEP: same sha256, 0 differing pixels of 9437184"
+  },
+  "maps_provenance": {
+    "generator": "xpe_calib_fixture_gen",
+    "manifest": "xpe-data/bpm-eval-260/clean_set_v2/manifest.json",
+    "manifest_sha256": "5f2a286b47f8c00f83a2b16a3a8c103e5efe4e4e5513c84acfb892b4b82de177",
+    "frames_field_of_manifest": {
+      "dark": 7,
+      "bright": 6,
+      "bpm_bright": 18
+    },
+    "frame_count_source": "the manifest 'frames' and 'inputs' fields written by the generator; not inferred from folder file counts",
+    "excluded_frames": [
+      "image-processing/tests/test_data/cyan_test/calfiles/Dark_07.raw"
+    ],
+    "excluded_note": "Dark_07 excluded as first dark (dark_policy.first_dark_excluded=true, applied once for every stage). Other calfiles frames (Dark_15, Dark_16, Bright_29, CalSet_*) are not listed as inputs of these maps.",
+    "per_map": {
+      "offset.xcal": {
+        "sha256": "5569bacf66fb25f10b9137ebf3f466e9ce8d94857c90dc4a7340df362c290c39",
+        "consumed_roles": [
+          "dark"
+        ],
+        "note": "dark_policy.stages_on_the_used_list includes offset"
+      },
+      "gain.xcal": {
+        "sha256": "a7ddadbd5b69a350c44c638fd8887096ca4cb448eda322e5d8976575c7520d22",
+        "consumed_roles": [
+          "bright_and_bpm_bright",
+          "dark"
+        ],
+        "note": "gain dark reference = mean of the used darks; role-to-map assignment follows the manifest role names and dark_policy; bright_and_bpm_bright (6) are the gain frames per frames.bright=6"
+      },
+      "defect.xcal": {
+        "sha256": "4579e06bcf5be09828935eb48c71bd78d1f51afc9fc97f83e678158dfa2f105c",
+        "consumed_roles": [
+          "dark",
+          "bright_and_bpm_bright",
+          "bpm_bright"
+        ],
+        "note": "frames.bpm_bright=18 = 6 bright_and_bpm_bright + 12 bpm_bright; defect_format.dark_frames_used=7"
+      }
+    },
+    "frames": [
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_07.raw",
+        "sha256_manifest": "5af7d2658337d89189df10665814f9deee7b2f4656b48a91495d00046de5e460",
+        "sha256_rehashed_now": "5af7d2658337d89189df10665814f9deee7b2f4656b48a91495d00046de5e460",
+        "match": true,
+        "role": "dark_excluded_first"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_08.raw",
+        "sha256_manifest": "408938d3ecd635c508341d428a4ef7a4102f7e3a7488ed868939402da7bdf90f",
+        "sha256_rehashed_now": "408938d3ecd635c508341d428a4ef7a4102f7e3a7488ed868939402da7bdf90f",
+        "match": true,
+        "role": "dark"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_09.raw",
+        "sha256_manifest": "89a34cec8000b188054c206e3eb24b90c1ee27e527816b2eeaeb60d2fcce2a21",
+        "sha256_rehashed_now": "89a34cec8000b188054c206e3eb24b90c1ee27e527816b2eeaeb60d2fcce2a21",
+        "match": true,
+        "role": "dark"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_10.raw",
+        "sha256_manifest": "0a6627bdf1df223a14a5e41584af17b9b4d131e0bde61f36f690091c6b820262",
+        "sha256_rehashed_now": "0a6627bdf1df223a14a5e41584af17b9b4d131e0bde61f36f690091c6b820262",
+        "match": true,
+        "role": "dark"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_11.raw",
+        "sha256_manifest": "e8fa15c751cfc5aa6476cbfa6ccecfde89effffb02a58b91d7e365ea5cb2c80d",
+        "sha256_rehashed_now": "e8fa15c751cfc5aa6476cbfa6ccecfde89effffb02a58b91d7e365ea5cb2c80d",
+        "match": true,
+        "role": "dark"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_12.raw",
+        "sha256_manifest": "03f5d6bb2f868816036a07005ef615fd62d9f2586d53ac587096912543af34df",
+        "sha256_rehashed_now": "03f5d6bb2f868816036a07005ef615fd62d9f2586d53ac587096912543af34df",
+        "match": true,
+        "role": "dark"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_13.raw",
+        "sha256_manifest": "1260ea2e3bd3af50b5785b7f6dc1026b83bac7dcee0a759fcbbd7301628df7e8",
+        "sha256_rehashed_now": "1260ea2e3bd3af50b5785b7f6dc1026b83bac7dcee0a759fcbbd7301628df7e8",
+        "match": true,
+        "role": "dark"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Dark_14.raw",
+        "sha256_manifest": "1e6c1aced410ff00c87b1166343cdb75af6a9c1cb0edbea2551207feb5549b74",
+        "sha256_rehashed_now": "1e6c1aced410ff00c87b1166343cdb75af6a9c1cb0edbea2551207feb5549b74",
+        "match": true,
+        "role": "dark"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_23.raw",
+        "sha256_manifest": "863ed58233fff6e86d25690900c5908b6bb044d103b6a46a230c5080cbea3c79",
+        "sha256_rehashed_now": "863ed58233fff6e86d25690900c5908b6bb044d103b6a46a230c5080cbea3c79",
+        "match": true,
+        "role": "bright_and_bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_24.raw",
+        "sha256_manifest": "5d859591f5552dca126a1094d510c3835f24794c1489869ff25d9297825fdca6",
+        "sha256_rehashed_now": "5d859591f5552dca126a1094d510c3835f24794c1489869ff25d9297825fdca6",
+        "match": true,
+        "role": "bright_and_bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_25.raw",
+        "sha256_manifest": "b037b014adb90b66de05d234186407e74ef94a8c32b1b58f150053d65eeef8fb",
+        "sha256_rehashed_now": "b037b014adb90b66de05d234186407e74ef94a8c32b1b58f150053d65eeef8fb",
+        "match": true,
+        "role": "bright_and_bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_26.raw",
+        "sha256_manifest": "a42c4917cf9ddf9ca9678a9b1d10ab9ff4f2a15a3aa625ae348716a347470ab7",
+        "sha256_rehashed_now": "a42c4917cf9ddf9ca9678a9b1d10ab9ff4f2a15a3aa625ae348716a347470ab7",
+        "match": true,
+        "role": "bright_and_bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_27.raw",
+        "sha256_manifest": "a32400643c54a706e05ad9ccb6daff127c325b13e087587ad71eb4ed23c83adb",
+        "sha256_rehashed_now": "a32400643c54a706e05ad9ccb6daff127c325b13e087587ad71eb4ed23c83adb",
+        "match": true,
+        "role": "bright_and_bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_28.raw",
+        "sha256_manifest": "1a54e42fc845f4ac8fbac36ca1ef7a32c4c52a7c88d3be4502206e48e1f7996d",
+        "sha256_rehashed_now": "1a54e42fc845f4ac8fbac36ca1ef7a32c4c52a7c88d3be4502206e48e1f7996d",
+        "match": true,
+        "role": "bright_and_bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_17.raw",
+        "sha256_manifest": "bc0f97f2959121eeff034186dddcaa15af90289a5d7d6669376d9a932765d580",
+        "sha256_rehashed_now": "bc0f97f2959121eeff034186dddcaa15af90289a5d7d6669376d9a932765d580",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_18.raw",
+        "sha256_manifest": "ed646e7aec2d80da6de47e4dee8e42c436cb08e9909a11a80d2b7a9c298619d3",
+        "sha256_rehashed_now": "ed646e7aec2d80da6de47e4dee8e42c436cb08e9909a11a80d2b7a9c298619d3",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_19.raw",
+        "sha256_manifest": "b6065b6a2b2e2c0fafa37d35c3daa2183c7dea43e2f8803c2365a405429085fc",
+        "sha256_rehashed_now": "b6065b6a2b2e2c0fafa37d35c3daa2183c7dea43e2f8803c2365a405429085fc",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_20.raw",
+        "sha256_manifest": "ce17d45fd9ae80c4088f39c76ea95ff097d841b139d150c2239e18056594051c",
+        "sha256_rehashed_now": "ce17d45fd9ae80c4088f39c76ea95ff097d841b139d150c2239e18056594051c",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_21.raw",
+        "sha256_manifest": "1fe20ad6408f0c7fa2864684a058dcc45808d8aa569014150603a68e06d8c53e",
+        "sha256_rehashed_now": "1fe20ad6408f0c7fa2864684a058dcc45808d8aa569014150603a68e06d8c53e",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_22.raw",
+        "sha256_manifest": "97e4991291a194db51cd6030a73368cf8329bd015abca9a71f79f71ee66f7df1",
+        "sha256_rehashed_now": "97e4991291a194db51cd6030a73368cf8329bd015abca9a71f79f71ee66f7df1",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_31.raw",
+        "sha256_manifest": "24d58e48a045453b8f9cf47455478c92f960dbe4231dcf4066ad272938e200af",
+        "sha256_rehashed_now": "24d58e48a045453b8f9cf47455478c92f960dbe4231dcf4066ad272938e200af",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_32.raw",
+        "sha256_manifest": "ec28d83c106ae812d802b0f00a9d15bba9ded4f5b876a2120e6ff31d3d42d25d",
+        "sha256_rehashed_now": "ec28d83c106ae812d802b0f00a9d15bba9ded4f5b876a2120e6ff31d3d42d25d",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_33.raw",
+        "sha256_manifest": "517e397a929351f31a53bc7cf6739bf8cd14df368cdc49dee78c7b8571864e60",
+        "sha256_rehashed_now": "517e397a929351f31a53bc7cf6739bf8cd14df368cdc49dee78c7b8571864e60",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_34.raw",
+        "sha256_manifest": "9c971018b8f142defaa991316499e462948ee6ad2a6b7b944a2db77f5e372f49",
+        "sha256_rehashed_now": "9c971018b8f142defaa991316499e462948ee6ad2a6b7b944a2db77f5e372f49",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_35.raw",
+        "sha256_manifest": "660f58f7fc4b6ea20488e5549bc1501f0f8943436b2d72aaba057486b293be74",
+        "sha256_rehashed_now": "660f58f7fc4b6ea20488e5549bc1501f0f8943436b2d72aaba057486b293be74",
+        "match": true,
+        "role": "bpm_bright"
+      },
+      {
+        "path": "image-processing/tests/test_data/cyan_test/calfiles/Bright_36.raw",
+        "sha256_manifest": "9d313cc109414d9d390d2b72c0061bce1700edf6ebf35e38904ce6f7b8362983",
+        "sha256_rehashed_now": "9d313cc109414d9d390d2b72c0061bce1700edf6ebf35e38904ce6f7b8362983",
+        "match": true,
+        "role": "bpm_bright"
+      }
+    ],
+    "frames_rehash_mismatch_count": 0,
+    "unverified": "whether these frames were acquired in the same session/detector mode as the Chest phantom input; settings.offset exposure_ms=100 / temperature_c=25 are generator parameters, not acquisition facts"
+  }
+}

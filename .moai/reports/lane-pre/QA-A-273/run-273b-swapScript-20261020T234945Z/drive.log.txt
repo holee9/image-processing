@@ -1,0 +1,6 @@
+﻿08:49:45 started PID 27060
+08:49:51 menu item found: 2G · 신규 PRE 출력 가져오기 비교
+08:49:51 comparison window open: 2G · 신규 PRE 출력 가져오기 비교
+08:49:52 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-swapScript-20261020T234945Z\01-validated-with-reviewed-script.png
+08:49:52 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-swapScript-20261020T234945Z\02-computed-after-script-swap.png
+08:49:52 done

@@ -1,0 +1,21 @@
+"""QA-A-264: turns TABLE 1 of 32_budget_result.txt (order A) into the markdown table that opens the report. Nothing is recomputed: every number is copied from the result file; the low-frequency column is moving + fixed, the sum column is
+copied (it was computed by the measurement script and must read 100.00). Usage: python 40_make_table1.py.txt > 41_table1.md.txt"""
+import re
+
+lines = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-264/evidence/32_budget_result.txt', encoding='utf-8').read().splitlines()
+start = next(i for i, l in enumerate(lines) if l.startswith('TABLE 1'))
+rows = []
+for l in lines[start:]:
+    if l.startswith('TABLE 2'):
+        break
+    m = re.match(r'\s+Bright_(\d+)(\*?)\s+([\d.]+)\s+\|\s+(-?[\d.]+)\s+(-?[\d.]+)\s+\|\s+(-?[\d.]+)\s+(-?[\d.]+)\s+\|\s+(-?[\d.]+)\s+(-?[\d.]+)\s+\|\s+(-?[\d.]+)\s+\(\s*(\d+) /\s*(\d+)\)\s+\|\s+(-?[\d.]+)\s+\|\s+(-?[\d.]+)\s+\|\s+(-?[\d.]+)', l)
+    if m:
+        rows.append(m.groups())
+assert len(rows) == 20, len(rows)
+print('| 프레임 | 공식 FlatResidualPct | 움직이는 행 | 고정 행 | 움직이는 열 | 고정 열 | 저주파(움직임+고정) | 결함 화소 | 백색 잡음: 시간 | 백색 잡음: 고정 화소 무늬 | 합 |')
+print('|---|---|---|---|---|---|---|---|---|---|---|')
+for (k, star, off, rm, rf, cm, cf, lm, lf, dfx, nmap, nex, wt, wf, tot) in rows:
+    mark = '*' if star else ''
+    if k in ('18', '19'):
+        mark = '†'
+    print('| Bright_%s%s | %s | %s | %s | %s | %s | %.2f | %s | %s | %s | %s |' % (k, mark, off, rm, rf, cm, cf, float(lm) + float(lf), dfx, wt, wf, tot))

@@ -1,0 +1,49 @@
+column means inside cut rows (2..2467):  col MasterDark MasterBright(OC) bright_ratio_to_cols_25_40
+  col 10: 2531.94 1.00 0.0003
+  col 11: 2527.62 0.94 0.0003
+  col 12: 2532.58 0.98 0.0003
+  col 13: 2528.48 0.96 0.0003
+  col 14: 2533.50 0.98 0.0003
+  col 15: 2529.45 0.99 0.0003
+  col 16: 2534.79 0.98 0.0003
+  col 17: 2531.08 0.96 0.0003
+  col 18: 2537.04 0.50 0.0002
+  col 19: 2535.00 0.65 0.0002
+  col 20: 2496.15 2905.66 0.9692
+  col 21: 2491.36 2983.49 0.9952
+  col 22: 2495.66 3002.37 1.0015
+  col 23: 2491.00 3003.30 1.0018
+  col 24: 2495.53 2999.28 1.0005
+  col 25: 2490.74 2998.30 1.0001
+
+[control: random pixels neither map flags] n=2000  (percentiles 0 5 25 50 75 95 100)
+  bright response ratio MB/local17 : 0.9077 0.9941 0.9976 1.0000 1.0021 1.0052 1.0102
+  dark mean minus local17 (DN)     : -18.3333 -15.2222 -2.2222 -0.1111 3.8333 7.4472 16.8889
+  dark variance ratio vs local     : 0.3728 0.6681 0.8547 1.0092 1.1534 1.3986 1.9947
+  bright gain-corr variance ratio  : 0.1466 0.4652 0.7397 0.9923 1.2893 1.7454 3.1726
+  count resp<0.45 or >1.5: 0 | resp outside 0.9..1.1: 0 | resp outside 0.95..1.05: 1 | |dark dev|>5: 604 | dark var ratio>2: 0 | bright var ratio>2: 37
+
+[engine_only point pixels (outside cols 15-19)] n=560  (percentiles 0 5 25 50 75 95 100)
+  bright response ratio MB/local17 : 0.9720 0.9939 0.9974 0.9999 1.0021 1.0059 1.0108
+  dark mean minus local17 (DN)     : -17.9444 -15.4444 -2.2917 -0.2222 3.5000 7.3417 16.6111
+  dark variance ratio vs local     : 0.3210 0.6713 0.8577 1.0084 1.1473 1.4065 1.8734
+  bright gain-corr variance ratio  : 0.1906 0.5267 0.7559 0.9671 1.2785 1.7876 2.7766
+  count resp<0.45 or >1.5: 0 | resp outside 0.9..1.1: 0 | resp outside 0.95..1.05: 0 | |dark dev|>5: 175 | dark var ratio>2: 0 | bright var ratio>2: 10
+
+[PRE_only pixels] n=75  (percentiles 0 5 25 50 75 95 100)
+  bright response ratio MB/local17 : 0.9808 0.9943 0.9967 0.9997 1.0020 1.0040 1.0073
+  dark mean minus local17 (DN)     : -15.2222 -14.7778 -2.9167 -0.0556 5.9444 14.3222 128.6111
+  dark variance ratio vs local     : 0.6181 0.9882 1.3957 1.7236 1.9399 2.4656 4.6055
+  bright gain-corr variance ratio  : 0.2899 0.4485 0.8580 0.9999 1.3294 1.7640 2.5191
+  count resp<0.45 or >1.5: 0 | resp outside 0.9..1.1: 0 | resp outside 0.95..1.05: 0 | |dark dev|>5: 37 | dark var ratio>2: 15 | bright var ratio>2: 1
+
+examples engine_only (y x resp darkdev darkVarRatio brightVarRatio with without):
+  1327 569 1.0000 7.00 0.98 0.28 1 0
+  147 1684 1.0000 -1.11 0.89 1.09 1 0
+  1134 1495 1.0000 6.44 1.27 0.91 0 1
+  2008 972 0.9976 7.94 1.00 0.71 1 0
+  1817 1840 0.9976 7.56 1.26 0.89 1 0
+  698 1382 0.9853 15.56 1.60 1.32 0 1
+  2405 21 0.9722 -5.33 1.87 0.61 0 1
+  2406 21 0.9720 -6.11 0.74 0.82 0 1
+engine_only point split with/without: with&without 0 with_only 440 without_only 120

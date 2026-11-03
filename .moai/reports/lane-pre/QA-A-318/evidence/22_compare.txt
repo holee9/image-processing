@@ -1,0 +1,81 @@
+## offset
+  xcal offset_all10.xcal magic=b'XCAL' type=0 fmt=1 3072x2560 cfg='{"method":"mean","integration_time_ms":0,"temperature_c":0}' payload=31457280 total=31457491 sha256=6ac2e0dbd5cf77b07d878e844a58f722d9a15faf19a46b8510d2c7957e9c30fa
+O-a all10: floor(v)==MasterDark 100.0000 % | rint(v)==MasterDark 55.1978 % | v-MasterDark: mean 0.4488 max|.| 0.8999 p0=0 p1=0 p50=0.399902 p99=0.899902 p100=0.899902 | control max|v - numpy float64 mean| 1.953e-04
+O-a all10: |v-MasterDark| >= 1: 0 px; inside cut & not engine-defect max|d| 0.8999
+  xcal offset_skip1.xcal magic=b'XCAL' type=0 fmt=1 3072x2560 cfg='{"method":"mean","integration_time_ms":0,"temperature_c":0}' payload=31457280 total=31457491 sha256=19b20c0112087ef138963d0262602e1ce36a630bcf0a5686183e2131d225c15a
+O-b skip1: floor(v)==MasterDark 69.4635 % | rint(v)==MasterDark 25.3564 % | v-MasterDark: mean 0.7476 max|.| 21.4443 p0=-0.333252 p1=0.111084 p50=0.777832 p99=1.33325 p100=21.4443 | control max|v - numpy float64 mean| 1.085e-04
+O-b skip1: |v-MasterDark| >= 1: 2397767 px; inside cut & not engine-defect max|d| 2.0000
+## gain
+  xcal gain_a.xcal magic=b'XCAL' type=1 fmt=1 3072x2560 cfg='{"calibration_mode":3,"requested_calibration_mode":3,"actual_dose_levels":1,"polynomial_degree":0,"fit_r_squared":1.000000000,"max_residual_pct":0.000000,"mean_residual_pct":0.000000,"calibration_pass":1,"saturation_status":"undetermined","saturation_method":"histogram_top_pile/1","saturation_min_count_frac":0.0005,"saturation_min_ratio":50,"saturation_max_above_frac":0.001,"saturation_frames_used":0,"saturation_frames_total":10,"saturation_decided_at":"2026-10-28T22:20:58Z"}' payload=31457280 total=31457912 sha256=60dd1d90e794cefa9a246a9900a5a3799e290843e66580166ea87404e52b829a
+  xcal gain_b.xcal magic=b'XCAL' type=1 fmt=1 3072x2560 cfg='{"calibration_mode":3,"requested_calibration_mode":3,"actual_dose_levels":1,"polynomial_degree":0,"fit_r_squared":1.000000000,"max_residual_pct":0.000000,"mean_residual_pct":0.000000,"calibration_pass":1,"saturation_status":"undetermined","saturation_method":"histogram_top_pile/1","saturation_min_count_frac":0.0005,"saturation_min_ratio":50,"saturation_max_above_frac":0.001,"saturation_frames_used":0,"saturation_frames_total":10,"saturation_decided_at":"2026-10-28T22:21:02Z"}' payload=31457280 total=31457912 sha256=e5a27dc119cde47ec77c9ad5c947379ab415ec4df0bf3f7c19ced63be46f8274
+control G-a vs G-b max|diff| 0.000e+00 identical_bytes_payload True
+control G-a vs numpy mean(max(0,raw-MasterDark))/mean max|diff| 1.137e-07
+MasterBright int16 mean 3143.6843, negatives 5
+G-a - G_c [all] n=7864320: median 3.587e-06 p1 -1.557e-04 p99 1.590e-04 max|.| 0.0045 pearson 0.99999987
+G-a - G_c [not engine defect] n=7851422: median 3.467e-06 p1 -1.557e-04 p99 1.590e-04 max|.| 0.0006 pearson 0.99999987
+G-a - G_c [inside cut & not engine defect] n=7483742: median -8.031e-07 p1 -1.558e-04 p99 1.490e-04 max|.| 0.0002 pearson 0.99999820
+largest |G-a - G_c| pixels (row,col,G-a,G_c,engineDefect): [(2418, 5, 0.0004, 0.0, False), (2104, 10, 0.0004, 0.0, False), (1889, 14, 0.0004, 0.0, False), (2499, 16, 0.0, -0.0006, False), (1038, 2617, 0.0, -0.0045, True)]
+## defect map v2
+v_a: sha256 c12e09d58afc48ac216524b2224f7e0613af3b8d255d6cb363888215675cd351 | codes {0: 6741884, 1: 145545, 2: 966036, 3: 10855} | feat sha256 9bca4803c63109497aa462596eacf91818fa6ba2161254ef97ace0a4988f9e73
+  v_a [whole frame] vs TOTAL_BPM: PRE 1122436 engine 12898 both 5239 PRE_only 1117197 engine_only 7659
+  v_a [whole frame] vs BPM_with_Filter: PRE 1122436 engine 12774 both 5227 PRE_only 1117209 engine_only 7547
+  v_a [whole frame] vs BPM_without_Filter: PRE 1122436 engine 12458 both 5170 PRE_only 1117266 engine_only 7288
+  v_a [whole frame] full lines (>50% of the line flagged): rows n=602 [24, 25, 26, 27, 28, 29, 30, 56, 57, 59, 60, 62, 63, 88, 89] cols n=2 [18, 19]
+  v_a [inside cut] vs TOTAL_BPM: PRE 940703 engine 12898 both 5239 PRE_only 935464 engine_only 7659
+  v_a [inside cut] vs BPM_with_Filter: PRE 940703 engine 12774 both 5227 PRE_only 935476 engine_only 7547
+  v_a [inside cut] vs BPM_without_Filter: PRE 940703 engine 12458 both 5170 PRE_only 935533 engine_only 7288
+  v_a [inside cut] full lines (>50% of the line flagged): rows n=400 [27, 28, 30, 57, 63, 88, 91, 92, 93, 120, 122, 123, 124, 127, 153] cols n=2 [18, 19]
+  v_a engine-only(TOTAL_BPM): n=7659 feature-bit counts {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+  v_a common: n=5239 feature-bit counts {0: 2010, 1: 4, 2: 0, 3: 0, 4: 3758, 5: 1444}
+  v_a PRE-only: n=1117197 feature-bit counts {0: 974833, 1: 67, 2: 0, 3: 0, 4: 152076, 5: 77021}
+v_b: sha256 cf706ba95d4601f7b4af508145e3fc1807f9e88c2f3e6873135e53d34191f96d | codes {0: 6710035, 1: 177394, 2: 961949, 3: 14942} | feat sha256 e5a63ee02b0765aac1bedc8c896c3b57d2fc413ece017191e67a0f601452b6a8
+  v_b [whole frame] vs TOTAL_BPM: PRE 1154285 engine 12898 both 7679 PRE_only 1146606 engine_only 5219
+  v_b [whole frame] vs BPM_with_Filter: PRE 1154285 engine 12774 both 7663 PRE_only 1146622 engine_only 5111
+  v_b [whole frame] vs BPM_without_Filter: PRE 1154285 engine 12458 both 7610 PRE_only 1146675 engine_only 4848
+  v_b [whole frame] full lines (>50% of the line flagged): rows n=671 [24, 25, 26, 27, 28, 29, 30, 31, 56, 57, 58, 59, 60, 61, 62] cols n=19 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+  v_b [inside cut] vs TOTAL_BPM: PRE 943147 engine 12898 both 7679 PRE_only 935468 engine_only 5219
+  v_b [inside cut] vs BPM_with_Filter: PRE 943147 engine 12774 both 7663 PRE_only 935484 engine_only 5111
+  v_b [inside cut] vs BPM_without_Filter: PRE 943147 engine 12458 both 7610 PRE_only 935537 engine_only 4848
+  v_b [inside cut] full lines (>50% of the line flagged): rows n=491 [24, 25, 26, 27, 28, 29, 30, 31, 57, 58, 59, 60, 61, 62, 63] cols n=4 [15, 17, 18, 19]
+  v_b engine-only(TOTAL_BPM): n=5219 feature-bit counts {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+  v_b common: n=7679 feature-bit counts {0: 2010, 1: 4, 2: 0, 3: 3, 4: 6657, 5: 5697}
+  v_b PRE-only: n=1146606 feature-bit counts {0: 974833, 1: 67, 2: 0, 3: 22, 4: 185459, 5: 93854}
+v_c: sha256 d43af0f9579d447e7a7a5f38e28314bdb1e1152d6f64494dc450671adf345173 | codes {0: 6926747, 1: 5697, 2: 930638, 3: 1238} | feat sha256 1421c9aebdcafc1e402ef643fdce725c70a062dbb4a8e86881a5d7f616450987
+  v_c [whole frame] vs TOTAL_BPM: PRE 937573 engine 12898 both 7931 PRE_only 929642 engine_only 4967
+  v_c [whole frame] vs BPM_with_Filter: PRE 937573 engine 12774 both 7915 PRE_only 929658 engine_only 4859
+  v_c [whole frame] vs BPM_without_Filter: PRE 937573 engine 12458 both 7864 PRE_only 929709 engine_only 4594
+  v_c [whole frame] full lines (>50% of the line flagged): rows n=0 [] cols n=5 [15, 16, 17, 18, 19]
+  v_c [inside cut] vs TOTAL_BPM: PRE 937573 engine 12898 both 7931 PRE_only 929642 engine_only 4967
+  v_c [inside cut] vs BPM_with_Filter: PRE 937573 engine 12774 both 7915 PRE_only 929658 engine_only 4859
+  v_c [inside cut] vs BPM_without_Filter: PRE 937573 engine 12458 both 7864 PRE_only 929709 engine_only 4594
+  v_c [inside cut] full lines (>50% of the line flagged): rows n=537 [24, 25, 26, 27, 28, 30, 31, 56, 57, 58, 59, 60, 61, 62, 63] cols n=5 [15, 16, 17, 18, 19]
+  v_c engine-only(TOTAL_BPM): n=4967 feature-bit counts {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+  v_c common: n=7931 feature-bit counts {0: 2234, 1: 4, 2: 0, 3: 3, 4: 6461, 5: 5035}
+  v_c PRE-only: n=929642 feature-bit counts {0: 929593, 1: 66, 2: 0, 3: 0, 4: 0, 5: 1}
+engine TOTAL_BPM full lines whole frame rows [] cols [15, 16, 17, 18, 19]; inside cut ([], [15, 16, 17, 18, 19])
+## correction
+  xcal offset_all10.xcal magic=b'XCAL' type=0 fmt=1 3072x2560 cfg='{"method":"mean","integration_time_ms":0,"temperature_c":0}' payload=31457280 total=31457491 sha256=6ac2e0dbd5cf77b07d878e844a58f722d9a15faf19a46b8510d2c7957e9c30fa
+bright03_01: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.4502 % | oc sha ece168828e106ac3 ocgc sha 81a1a7b40465a90f
+  OcGc: eng uint16 mean 78.38 min 0 max 147 int16-neg 0 | PRE crop mean 72.03 | best shift (r,dy,dx)=(0.975701,0,0) | at (0,0): pearson 0.975705 fit eng=1.069014*PRE+1.377 residual p1 -0.93 p99 1.14 std 0.592 | eng/PRE p1=1.07542 p50=1.08686 p99=1.10387 | n=7483742
+  OcGcDc: eng uint16 mean 78.50 min 65 max 93 int16-neg 0 | PRE crop mean 72.03 | best shift (r,dy,dx)=(0.975701,0,0) | at (0,0): pearson 0.975705 fit eng=1.069014*PRE+1.377 residual p1 -0.93 p99 1.14 std 0.592 | eng/PRE p1=1.07542 p50=1.08686 p99=1.10387 | n=7483742
+bright03_03: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.4679 % | oc sha 014e4d19e554a72d ocgc sha cce98d3e9c126562
+  OcGc: eng uint16 mean 161.07 min 0 max 181 int16-neg 0 | PRE crop mean 147.95 | best shift (r,dy,dx)=(0.987324,0,0) | at (0,0): pearson 0.987301 fit eng=1.077744*PRE+1.613 residual p1 -0.92 p99 1.13 std 0.593 | eng/PRE p1=1.08247 p50=1.08802 p99=1.09627 | n=7483742
+  OcGcDc: eng uint16 mean 161.33 min 143 max 181 int16-neg 0 | PRE crop mean 147.95 | best shift (r,dy,dx)=(0.987324,0,0) | at (0,0): pearson 0.987301 fit eng=1.077744*PRE+1.613 residual p1 -0.92 p99 1.13 std 0.593 | eng/PRE p1=1.08247 p50=1.08802 p99=1.09627 | n=7483742
+bright03_05: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.4655 % | oc sha f184be0e94d1cdff ocgc sha ccc8bebde0f60df4
+  OcGc: eng uint16 mean 332.77 min 0 max 576 int16-neg 0 | PRE crop mean 305.60 | best shift (r,dy,dx)=(0.993786,0,0) | at (0,0): pearson 0.993776 fit eng=1.083374*PRE+1.691 residual p1 -0.92 p99 1.14 std 0.594 | eng/PRE p1=1.0859 p50=1.08861 p99=1.09261 | n=7483742
+  OcGcDc: eng uint16 mean 333.31 min 306 max 362 int16-neg 0 | PRE crop mean 305.60 | best shift (r,dy,dx)=(0.993786,0,0) | at (0,0): pearson 0.993776 fit eng=1.083374*PRE+1.691 residual p1 -0.92 p99 1.14 std 0.594 | eng/PRE p1=1.0859 p50=1.08861 p99=1.09261 | n=7483742
+bright03_07: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.4434 % | oc sha 3477f7f85f4da406 ocgc sha a9901c27cc73d183
+  OcGc: eng uint16 mean 851.50 min 0 max 898 int16-neg 0 | PRE crop mean 781.88 | best shift (r,dy,dx)=(0.997495,0,0) | at (0,0): pearson 0.997494 fit eng=1.086365*PRE+2.096 residual p1 -0.97 p99 1.17 std 0.599 | eng/PRE p1=1.08781 p50=1.08893 p99=1.09054 | n=7483742
+  OcGcDc: eng uint16 mean 852.90 min 813 max 894 int16-neg 0 | PRE crop mean 781.88 | best shift (r,dy,dx)=(0.997495,0,0) | at (0,0): pearson 0.997494 fit eng=1.086365*PRE+2.096 residual p1 -0.97 p99 1.17 std 0.599 | eng/PRE p1=1.08781 p50=1.08893 p99=1.09054 | n=7483742
+bright03_09: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.4346 % | oc sha 5b74ae5edfb4a4d2 ocgc sha a9d0371f5b44a6b4
+  OcGc: eng uint16 mean 2139.08 min 0 max 2217 int16-neg 0 | PRE crop mean 1964.06 | best shift (r,dy,dx)=(0.998948,0,0) | at (0,0): pearson 0.998947 fit eng=1.087831*PRE+2.513 residual p1 -1.11 p99 1.30 std 0.624 | eng/PRE p1=1.08855 p50=1.08907 p99=1.08977 | n=7483742
+  OcGcDc: eng uint16 mean 2142.60 min 2076 max 2208 int16-neg 0 | PRE crop mean 1964.06 | best shift (r,dy,dx)=(0.998948,0,0) | at (0,0): pearson 0.998947 fit eng=1.087831*PRE+2.513 residual p1 -1.11 p99 1.30 std 0.624 | eng/PRE p1=1.08855 p50=1.08907 p99=1.08977 | n=7483742
+bright03_11: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.4052 % | oc sha 21ad598b2dfe5852 ocgc sha 53ca4d5cff51f172
+  OcGc: eng uint16 mean 3413.51 min 0 max 3515 int16-neg 0 | PRE crop mean 3134.21 | best shift (r,dy,dx)=(0.999235,0,0) | at (0,0): pearson 0.999234 fit eng=1.087759*PRE+4.248 residual p1 -1.27 p99 1.49 std 0.683 | eng/PRE p1=1.08871 p50=1.0891 p99=1.08959 | n=7483742
+  OcGcDc: eng uint16 mean 3419.14 min 3332 max 3502 int16-neg 0 | PRE crop mean 3134.21 | best shift (r,dy,dx)=(0.999235,0,0) | at (0,0): pearson 0.999234 fit eng=1.087759*PRE+4.248 residual p1 -1.27 p99 1.49 std 0.683 | eng/PRE p1=1.08871 p50=1.0891 p99=1.08959 | n=7483742
+bright03_13: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.3987 % | oc sha d8b481d236aa5f08 ocgc sha 7beb820fc7399912
+  OcGc: eng uint16 mean 5324.07 min 0 max 5873 int16-neg 0 | PRE crop mean 4888.35 | best shift (r,dy,dx)=(0.999426,0,0) | at (0,0): pearson 0.999427 fit eng=1.088479*PRE+3.202 residual p1 -1.51 p99 1.69 std 0.762 | eng/PRE p1=1.08882 p50=1.08913 p99=1.08948 | n=7483742
+  OcGcDc: eng uint16 mean 5332.84 min 5221 max 5446 int16-neg 0 | PRE crop mean 4888.35 | best shift (r,dy,dx)=(0.999426,0,0) | at (0,0): pearson 0.999427 fit eng=1.088479*PRE+3.202 residual p1 -1.51 p99 1.69 std 0.762 | eng/PRE p1=1.08882 p50=1.08913 p99=1.08948 | n=7483742
+bright03_15: PRE oc control: oc_u16 == floor(clip(raw-PREoffset,0,65535)+0.5) (float32) 100.0000 % | oc_u16 == raw-MasterDark (int, >=0) 60.4219 % | oc sha 7797b798d68dd3af ocgc sha 68d0259e831f56fe
+  OcGc: eng uint16 mean 12054.85 min 0 max 13433 int16-neg 0 | PRE crop mean 11068.22 | best shift (r,dy,dx)=(0.999994,0,0) | at (0,0): pearson 0.999994 fit eng=1.089244*PRE+-1.138 residual p1 -2.44 p99 2.62 std 1.235 | eng/PRE p1=1.08892 p50=1.08914 p99=1.08938 | n=7483742
+  OcGcDc: eng uint16 mean 12076.16 min 11475 max 13406 int16-neg 0 | PRE crop mean 11068.22 | best shift (r,dy,dx)=(0.999994,0,0) | at (0,0): pearson 0.999994 fit eng=1.089244*PRE+-1.138 residual p1 -2.44 p99 2.62 std 1.235 | eng/PRE p1=1.08892 p50=1.08914 p99=1.08938 | n=7483742

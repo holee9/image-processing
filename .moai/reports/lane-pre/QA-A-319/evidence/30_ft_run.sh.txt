@@ -1,0 +1,11 @@
+#!/bin/bash
+# QA-A-319: QA-A-318 V-a and V-c generation (14_run318.sh.txt commands, output folder $1)
+O=$1; mkdir -p "$O"
+I="Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/images"
+export PATH="/d/workspace-github/xpe-pre/build/ci-preprocess/bin:$PATH"
+X=D:/workspace-github/xpe-data/qa-319-tmp/qa318_gen.exe
+D10=(); for i in 00 01 02 03 04 05 06 07 08 09; do D10+=("$I/dark03_$i.raw"); done
+B02=(); for i in 00 01 02 03 04 05 06 07 08 09; do B02+=("$I/Bright02_$i.raw"); done
+B03S=(); for i in 00 01 03 04 07 11 13 17 18 19; do B03S+=("$I/bright03_$i.raw"); done
+echo "== V-a"; $X bpm $O/v_a def 0 10 "${D10[@]}" "${B02[@]}"; echo "rc=$?"
+echo "== V-c"; QA318_MARGINS=15,2,17,92 $X bpm $O/v_c def 0 10 "${D10[@]}" "${B02[@]}" "${B03S[@]}"; echo "rc=$?"

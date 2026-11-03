@@ -1,0 +1,8 @@
+modules/preprocess/tools/xpe_pre_e2e.cpp
+modules/preprocess/tools/xpe_pre_e2e.hpp
+modules/preprocess/tools/xpe_pre_e2e_report.hpp
+modules/preprocess/tools/xpe_pre_defect_metrics.hpp
+modules/preprocess/tools/xpe_pre_stripe.hpp
+modules/preprocess/tools/xpe_pre_test_evidence.py
+modules/preprocess/tests/test_pre_e2e.cpp
+modules/preprocess/tests/test_pre_test_evidence.py

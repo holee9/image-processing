@@ -1,0 +1,104 @@
+// QA-A-318 scratch harness (not shipped): calls the exported PRE functions on the FT-tool folder 20250501_12 (3072 x 2560 uint16 raw).
+//   qa318 offset  OUT.xcal FILE...                      xpe_calib_generate_offset(frames as stored, n, 0, 0, OUT, NULL = mean)
+//   qa318 bpm     OUT_PREFIX SKIP(def|none) MINDARK NDARK DARK... BRIGHT...
+//                                                      xpe_bpm_generate_v2(darks, brights, cfg) -> OUT_PREFIX.map.u8 / .feat.u8 + report
+//   qa318 gain    OUT.xcal DARKREF|NULL SIGN(u|s) FILE...  xpe_calib_generate_gain(frames, n, darkref, OUT, NULL)
+//                                                      SIGN s: file read as int16 v, passed as uint16 max(0, v) (QA-A-316 rule)
+//   qa318 correct OFFSET.xcal GAIN.xcal OUTDIR FILE...  xpe_calib_load_offset + xpe_calib_load_gain, then per file
+//                                                      xpe_offset_correct (u16) -> xpe_gain_correct (f32) -> OUTDIR/<name>.oc.u16, .ocgc.f32
+#include "xpe/preprocess_api.h"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <string>
+#include <vector>
+namespace fs = std::filesystem;
+static const unsigned W = 3072, H = 2560;
+static bool rd(const fs::path& p, std::vector<uint16_t>& v) {
+    v.assign((size_t)W * H, 0); FILE* f = _wfopen(p.c_str(), L"rb"); if (!f) return false;
+    const bool ok = std::fread(v.data(), 2, v.size(), f) == v.size(); std::fclose(f); return ok;
+}
+static bool wr(const fs::path& p, const void* d, size_t n) {
+    FILE* f = _wfopen(p.c_str(), L"wb"); if (!f) return false; const bool ok = std::fwrite(d, 1, n, f) == n; std::fclose(f); return ok;
+}
+static XpeImageBuffer buf(void* d, XpePixelFormat fm, unsigned bits) {
+    XpeImageBuffer b{}; b.data = d; b.width = W; b.height = H; b.format = fm; b.bitsAllocated = b.bitsStored = (uint16_t)bits;
+    b.dataSize = (size_t)W * H * (bits / 8u); return b;
+}
+static bool load(int a0, int argc, wchar_t** argv, std::vector<std::vector<uint16_t>>& fr, std::vector<XpeImageBuffer>& b, bool signedClamp) {
+    const int n = argc - a0; fr.assign(n, {}); b.assign(n, {}); size_t neg = 0;
+    for (int i = 0; i < n; ++i) {
+        if (!rd(argv[a0 + i], fr[i])) { std::printf("read fail %ls\n", argv[a0 + i]); return false; }
+        if (signedClamp) for (auto& x : fr[i]) if ((int16_t)x < 0) { x = 0; ++neg; }
+        b[i] = buf(fr[i].data(), XPE_PIXEL_UINT16, 16);
+        std::printf("  in[%d] %ls\n", i, fs::path(argv[a0 + i]).filename().c_str());
+    }
+    if (signedClamp) std::printf("  int16 negatives set to 0: %zu\n", neg);
+    return true;
+}
+int wmain(int argc, wchar_t** argv) {
+    if (argc < 3) return 2;
+    const std::wstring mode = argv[1];
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+    int rc = 0;
+    std::vector<std::vector<uint16_t>> fr; std::vector<XpeImageBuffer> b;
+    if (mode == L"offset") {
+        if (!load(3, argc, argv, fr, b, false)) return 5;
+        const std::string op = fs::path(argv[2]).string();
+        rc = xpe_calib_generate_offset(b.data(), (int32_t)b.size(), 0.0f, 0.0f, op.c_str(), nullptr);
+        std::printf("xpe_calib_generate_offset n=%zu rc=%d -> %s\n", b.size(), rc, op.c_str());
+    } else if (mode == L"bpm") {
+        const fs::path pre = argv[2]; const std::wstring sk = argv[3]; const unsigned minDark = (unsigned)_wtoi(argv[4]);
+        const int nd = _wtoi(argv[5]);
+        std::vector<std::vector<uint16_t>> df, bf; std::vector<XpeImageBuffer> db, bb;
+        std::vector<wchar_t*> dv(argv + 6, argv + 6 + nd), bv(argv + 6 + nd, argv + argc);
+        std::printf("darks %d brights %zu\n", nd, bv.size());
+        if (!load(6, 6 + nd, argv, df, db, false)) return 5;
+        if (!load(6 + nd, argc, argv, bf, bb, false)) return 5;
+        XpeBpmConfigV2 c{}; c.skip_first_dark = (sk == L"none") ? XPE_BPM_V2_SKIP_NONE : XPE_BPM_V2_SKIP_DEFAULT; c.min_frames_dark = minDark;
+        if (const char* m = std::getenv("QA318_MARGINS")) { std::sscanf(m, "%u,%u,%u,%u", &c.margin_left, &c.margin_top, &c.margin_right, &c.margin_bottom);
+            std::printf("margins l=%u t=%u r=%u b=%u\n", c.margin_left, c.margin_top, c.margin_right, c.margin_bottom); }
+        std::vector<uint8_t> map((size_t)W * H), feat((size_t)W * H);
+        XpeImageBuffer mb = buf(map.data(), XPE_PIXEL_UINT8, 8), fb = buf(feat.data(), XPE_PIXEL_UINT8, 8);
+        XpeBpmReportV2 r{};
+        rc = xpe_bpm_generate_v2(db.data(), (uint32_t)db.size(), bb.data(), (uint32_t)bb.size(), &c, &mb, &fb, nullptr, &r);
+        std::printf("xpe_bpm_generate_v2 skip=%ls min_frames_dark=%u rc=%d\n", sk.c_str(), minDark, rc);
+        if (rc == XPE_OK) {
+            std::printf("report pixels=%u dark_used=%u bright_used=%u dose_groups=%u union=%u weak=%u\n", r.pixels, r.dark_frames_used, r.bright_frames_used,
+                        r.dose_groups, r.flagged_union, r.weak_response_pixels);
+            for (int k = 0; k < XPE_BPM_V2_FEATURE_COUNT; ++k)
+                std::printf("  feature %d active=%u flagged=%u threshold=%.4f scale_median=%.4f dof=%u\n", k, r.feature_active[k], r.flagged[k], r.threshold[k],
+                            r.scale_median[k], r.degrees_of_freedom[k]);
+            for (unsigned g = 0; g < r.dose_groups && g < XPE_BPM_V2_MAX_DOSE_GROUPS; ++g)
+                std::printf("  group %u signal=%.2f frames=%u\n", g, r.group_signal[g], r.group_frames[g]);
+            wr(fs::path(pre.wstring() + L".map.u8"), map.data(), map.size());
+            wr(fs::path(pre.wstring() + L".feat.u8"), feat.data(), feat.size());
+        }
+    } else if (mode == L"gain") {
+        const std::string op = fs::path(argv[2]).string(); const std::wstring dk = argv[3]; const bool sgn = std::wstring(argv[4]) == L"s";
+        std::vector<uint16_t> dark; XpeImageBuffer dbuf{}; const XpeImageBuffer* dp = nullptr;
+        if (dk != L"NULL") { if (!rd(dk, dark)) return 6; dbuf = buf(dark.data(), XPE_PIXEL_UINT16, 16); dp = &dbuf; }
+        std::printf("dark_reference %ls\n", dk.c_str());
+        if (!load(5, argc, argv, fr, b, sgn)) return 5;
+        rc = xpe_calib_generate_gain(b.data(), (int32_t)b.size(), dp, op.c_str(), nullptr);
+        std::printf("xpe_calib_generate_gain n=%zu rc=%d -> %s\n", b.size(), rc, op.c_str());
+    } else if (mode == L"correct") {
+        const std::string o = fs::path(argv[2]).string(), g = fs::path(argv[3]).string(); const fs::path od = argv[4];
+        int r1 = xpe_calib_load_offset(o.c_str()), r2 = xpe_calib_load_gain(g.c_str());
+        std::printf("load offset rc=%d gain rc=%d\n", r1, r2);
+        if (r1 || r2) return 7;
+        XpeImageMetadata md{}; std::vector<uint16_t> in, oc((size_t)W * H); std::vector<float> gc((size_t)W * H);
+        for (int i = 5; i < argc; ++i) {
+            if (!rd(argv[i], in)) return 5;
+            XpeImageBuffer ib = buf(in.data(), XPE_PIXEL_UINT16, 16), ob = buf(oc.data(), XPE_PIXEL_UINT16, 16), gb = buf(gc.data(), XPE_PIXEL_FLOAT32, 32);
+            const int a = xpe_offset_correct(&ib, &ob, &md); const int c2 = a ? -1 : xpe_gain_correct(&ob, &gb, &md);
+            const std::wstring nm = fs::path(argv[i]).filename().wstring();
+            std::printf("  %ls offset_correct rc=%d gain_correct rc=%d\n", nm.c_str(), a, c2);
+            if (a || c2) { rc = a ? a : c2; continue; }
+            wr(od / (nm + L".oc.u16"), oc.data(), oc.size() * 2); wr(od / (nm + L".ocgc.f32"), gc.data(), gc.size() * 4);
+        }
+    } else return 3;
+    xpe_preprocess_shutdown();
+    return rc;
+}

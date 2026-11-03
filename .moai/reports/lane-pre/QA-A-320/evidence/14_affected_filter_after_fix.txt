@@ -1,0 +1,339 @@
+Note: Google Test filter = ParallelDeterminism*:DefectCorrect*:GainCorrect*:Pipeline*:SaturationTest*:DefectLine*
+[==========] Running 143 tests from 14 test suites.
+[----------] Global test environment set-up.
+[----------] 10 tests from GainCorrectTest
+[ RUN      ] GainCorrectTest.AppliesGainCorrection
+[       OK ] GainCorrectTest.AppliesGainCorrection (5 ms)
+[ RUN      ] GainCorrectTest.OutputFormatIsFloat32
+[       OK ] GainCorrectTest.OutputFormatIsFloat32 (1 ms)
+[ RUN      ] GainCorrectTest.NullInputReturnsError
+[       OK ] GainCorrectTest.NullInputReturnsError (0 ms)
+[ RUN      ] GainCorrectTest.NullOutputReturnsError
+[       OK ] GainCorrectTest.NullOutputReturnsError (1 ms)
+[ RUN      ] GainCorrectTest.DimensionMismatchReturnsError
+[       OK ] GainCorrectTest.DimensionMismatchReturnsError (1 ms)
+[ RUN      ] GainCorrectTest.UnityGainPreservesValues
+[       OK ] GainCorrectTest.UnityGainPreservesValues (8 ms)
+[ RUN      ] GainCorrectTest.ZeroWidthReturnsError
+[       OK ] GainCorrectTest.ZeroWidthReturnsError (1 ms)
+[ RUN      ] GainCorrectTest.TruncatedInputDataSizeReturnsError
+[       OK ] GainCorrectTest.TruncatedInputDataSizeReturnsError (0 ms)
+[ RUN      ] GainCorrectTest.GainMapNotLoadedReturnsCalibNotLoaded
+[       OK ] GainCorrectTest.GainMapNotLoadedReturnsCalibNotLoaded (0 ms)
+[ RUN      ] GainCorrectTest.OutputDataSizeEqualsPixelCountTimesFloat
+[       OK ] GainCorrectTest.OutputDataSizeEqualsPixelCountTimesFloat (0 ms)
+[----------] 10 tests from GainCorrectTest (22 ms total)
+
+[----------] 15 tests from DefectCorrectTest
+[ RUN      ] DefectCorrectTest.InPlaceMatchesOutOfPlace
+[       OK ] DefectCorrectTest.InPlaceMatchesOutOfPlace (5 ms)
+[ RUN      ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot
+[       OK ] DefectCorrectTest.OutOfPlaceStillCorrectsWithoutTheSnapshot (5 ms)
+[ RUN      ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused
+[       OK ] DefectCorrectTest.PartiallyOverlappingBuffersAreRefused (1 ms)
+[ RUN      ] DefectCorrectTest.NoDefectsLeavesImageUnchanged
+[       OK ] DefectCorrectTest.NoDefectsLeavesImageUnchanged (4 ms)
+[ RUN      ] DefectCorrectTest.SingleDefectPixelIsReplaced
+[       OK ] DefectCorrectTest.SingleDefectPixelIsReplaced (4 ms)
+[ RUN      ] DefectCorrectTest.NullInputReturnsError
+[       OK ] DefectCorrectTest.NullInputReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.NullOutputReturnsError
+[       OK ] DefectCorrectTest.NullOutputReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DimensionMismatchReturnsError
+[       OK ] DefectCorrectTest.DimensionMismatchReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded
+[       OK ] DefectCorrectTest.DefectMapNotLoadedReturnsCalibNotLoaded (0 ms)
+[ RUN      ] DefectCorrectTest.DefectClusterUsesMedianFilter
+[       OK ] DefectCorrectTest.DefectClusterUsesMedianFilter (1 ms)
+[ RUN      ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors
+[       OK ] DefectCorrectTest.EdgeDefectUsesInBoundsNeighbors (4 ms)
+[ RUN      ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects
+[       OK ] DefectCorrectTest.CorrectionRecallOnSyntheticDefects (4 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullImgReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullImgReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeNullOutReturnsError
+[       OK ] DefectCorrectTest.DetectRuntimeNullOutReturnsError (0 ms)
+[ RUN      ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects
+[       OK ] DefectCorrectTest.DetectRuntimeCleanImageYieldsZeroDefects (0 ms)
+[----------] 15 tests from DefectCorrectTest (32 ms total)
+
+[----------] 14 tests from DefectCorrectV2Test
+[ RUN      ] DefectCorrectV2Test.AVersionOneMapGivesTheBytesOfTheCodeBeforeQAA255
+[       OK ] DefectCorrectV2Test.AVersionOneMapGivesTheBytesOfTheCodeBeforeQAA255 (4 ms)
+[ RUN      ] DefectCorrectV2Test.AVersionOneMapReportsNoLayersAndNoLowConfidence
+[       OK ] DefectCorrectV2Test.AVersionOneMapReportsNoLayersAndNoLowConfidence (1 ms)
+[ RUN      ] DefectCorrectV2Test.AVersionTwoMapOfIsolatedPixelsGivesTheBytesOfTheVersionOneMap
+[       OK ] DefectCorrectV2Test.AVersionTwoMapOfIsolatedPixelsGivesTheBytesOfTheVersionOneMap (8 ms)
+[ RUN      ] DefectCorrectV2Test.ARowLineIsInterpolatedFromTheLinesAboveAndBelow
+[       OK ] DefectCorrectV2Test.ARowLineIsInterpolatedFromTheLinesAboveAndBelow (8 ms)
+[ RUN      ] DefectCorrectV2Test.ATwoLineGroupIsBridgedFromItsTwoOuterNeighbours
+[       OK ] DefectCorrectV2Test.ATwoLineGroupIsBridgedFromItsTwoOuterNeighbours (1 ms)
+[ RUN      ] DefectCorrectV2Test.AColumnLineIsInterpolatedFromTheLinesAtItsSides
+[       OK ] DefectCorrectV2Test.AColumnLineIsInterpolatedFromTheLinesAtItsSides (4 ms)
+[ RUN      ] DefectCorrectV2Test.AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence
+[       OK ] DefectCorrectV2Test.AGroupOfThreeLinesIsCorrectedAndMarkedLowConfidence (3 ms)
+[ RUN      ] DefectCorrectV2Test.ABlobIsFilledFromTheOutsideInAndNothingStaysUnfilled
+[       OK ] DefectCorrectV2Test.ABlobIsFilledFromTheOutsideInAndNothingStaysUnfilled (4 ms)
+[ RUN      ] DefectCorrectV2Test.TheImagingAreaIsNoSourceAndItsPixelsAreLeftAsTheyWere
+[       OK ] DefectCorrectV2Test.TheImagingAreaIsNoSourceAndItsPixelsAreLeftAsTheyWere (4 ms)
+[ RUN      ] DefectCorrectV2Test.ABlobEnclosedByTheOutsideOfTheAreaTakesTheRingFillAndIsMarked
+[       OK ] DefectCorrectV2Test.ABlobEnclosedByTheOutsideOfTheAreaTakesTheRingFillAndIsMarked (8 ms)
+[ RUN      ] DefectCorrectV2Test.ABlobWithNoValidPixelWithinSixteenKeepsItsValueAndIsMarked
+[       OK ] DefectCorrectV2Test.ABlobWithNoValidPixelWithinSixteenKeepsItsValueAndIsMarked (3 ms)
+[ RUN      ] DefectCorrectV2Test.InPlaceMatchesOutOfPlaceForAVersionTwoMap
+[       OK ] DefectCorrectV2Test.InPlaceMatchesOutOfPlaceForAVersionTwoMap (4 ms)
+[ RUN      ] DefectCorrectV2Test.TheCachedLoaderKeepsTheLayersAndALaterVersionOneFileClearsThem
+[       OK ] DefectCorrectV2Test.TheCachedLoaderKeepsTheLayersAndALaterVersionOneFileClearsThem (2 ms)
+[ RUN      ] DefectCorrectV2Test.TheLowConfidenceBufferIsCheckedLikeAnyOutput
+[       OK ] DefectCorrectV2Test.TheLowConfidenceBufferIsCheckedLikeAnyOutput (1 ms)
+[----------] 14 tests from DefectCorrectV2Test (62 ms total)
+
+[----------] 4 tests from PipelineBypassTest
+[ RUN      ] PipelineBypassTest.JsonBooleanBypassFlagsAreHonoured
+[       OK ] PipelineBypassTest.JsonBooleanBypassFlagsAreHonoured (0 ms)
+[ RUN      ] PipelineBypassTest.QuotedBypassFlagsStillHonoured
+[       OK ] PipelineBypassTest.QuotedBypassFlagsStillHonoured (0 ms)
+[ RUN      ] PipelineBypassTest.WhitespaceAroundBooleanIsTolerated
+[       OK ] PipelineBypassTest.WhitespaceAroundBooleanIsTolerated (0 ms)
+[ RUN      ] PipelineBypassTest.JsonBooleanFalseDoesNotBypass
+[       OK ] PipelineBypassTest.JsonBooleanFalseDoesNotBypass (0 ms)
+[----------] 4 tests from PipelineBypassTest (0 ms total)
+
+[----------] 22 tests from GainCorrectReciprocalFMATest
+[ RUN      ] GainCorrectReciprocalFMATest.ReciprocalPrecomputationIsValid
+[       OK ] GainCorrectReciprocalFMATest.ReciprocalPrecomputationIsValid (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.ZeroGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.ZeroGainIsRefusedAtLoad (3 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NegativeGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.NegativeGainIsRefusedAtLoad (4 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NaNGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.NaNGainIsRefusedAtLoad (3 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.InfGainIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.InfGainIsRefusedAtLoad (4 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainBelowTheRequirementMinimumIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.GainBelowTheRequirementMinimumIsRefusedAtLoad (8 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainAboveTheRequirementMaximumIsRefusedAtLoad
+[       OK ] GainCorrectReciprocalFMATest.GainAboveTheRequirementMaximumIsRefusedAtLoad (4 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainAtTheRequirementMinimumSucceeds
+[       OK ] GainCorrectReciprocalFMATest.GainAtTheRequirementMinimumSucceeds (3 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.GainAtTheRequirementMaximumSucceeds
+[       OK ] GainCorrectReciprocalFMATest.GainAtTheRequirementMaximumSucceeds (4 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.SmallGainProducesLargeOutput
+[       OK ] GainCorrectReciprocalFMATest.SmallGainProducesLargeOutput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.UnityGainProducesIdentityConversion
+[       OK ] GainCorrectReciprocalFMATest.UnityGainProducesIdentityConversion (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.ReciprocalAccuracyAcrossGainRange
+[       OK ] GainCorrectReciprocalFMATest.ReciprocalAccuracyAcrossGainRange (10 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.OutputFormatIsFloat32
+[       OK ] GainCorrectReciprocalFMATest.OutputFormatIsFloat32 (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.OutputDataSizeIsCorrect
+[       OK ] GainCorrectReciprocalFMATest.OutputDataSizeIsCorrect (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.SmallInputWithSmallGain
+[       OK ] GainCorrectReciprocalFMATest.SmallInputWithSmallGain (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.LargeInputWithLargeGain
+[       OK ] GainCorrectReciprocalFMATest.LargeInputWithLargeGain (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NonAVX2AlignedImageSize
+[       OK ] GainCorrectReciprocalFMATest.NonAVX2AlignedImageSize (3 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NullImgReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.NullImgReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.NullOutputReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.NullOutputReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.DimensionMismatchReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.DimensionMismatchReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.ZeroWidthReturnsInvalidInput
+[       OK ] GainCorrectReciprocalFMATest.ZeroWidthReturnsInvalidInput (0 ms)
+[ RUN      ] GainCorrectReciprocalFMATest.PerPixelGainMapVariation
+[       OK ] GainCorrectReciprocalFMATest.PerPixelGainMapVariation (8 ms)
+[----------] 22 tests from GainCorrectReciprocalFMATest (68 ms total)
+
+[----------] 14 tests from PipelineExTest
+[ RUN      ] PipelineExTest.StateLoadPopulatesAllMaps
+[       OK ] PipelineExTest.StateLoadPopulatesAllMaps (12 ms)
+[ RUN      ] PipelineExTest.StateReleaseFreesMemory
+[       OK ] PipelineExTest.StateReleaseFreesMemory (8 ms)
+[ RUN      ] PipelineExTest.StateReleaseOnZeroInitIsSafe
+[       OK ] PipelineExTest.StateReleaseOnZeroInitIsSafe (2 ms)
+[ RUN      ] PipelineExTest.StateLoadNullReturnsError
+[       OK ] PipelineExTest.StateLoadNullReturnsError (3 ms)
+[ RUN      ] PipelineExTest.StateLoadNonexistentDirSkipsMaps
+[       OK ] PipelineExTest.StateLoadNonexistentDirSkipsMaps (3 ms)
+[ RUN      ] PipelineExTest.PipelineExWithState
+[       OK ] PipelineExTest.PipelineExWithState (6 ms)
+[ RUN      ] PipelineExTest.PipelineExNullImgReturnsError
+[       OK ] PipelineExTest.PipelineExNullImgReturnsError (2 ms)
+[ RUN      ] PipelineExTest.PipelineExNullStateSkipsCalibration
+[       OK ] PipelineExTest.PipelineExNullStateSkipsCalibration (2 ms)
+[ RUN      ] PipelineExTest.BatchProcessesMultipleFrames
+[       OK ] PipelineExTest.BatchProcessesMultipleFrames (6 ms)
+[ RUN      ] PipelineExTest.BatchNullImagesReturnsError
+[       OK ] PipelineExTest.BatchNullImagesReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchZeroCountReturnsError
+[       OK ] PipelineExTest.BatchZeroCountReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchNullMetasReturnsError
+[       OK ] PipelineExTest.BatchNullMetasReturnsError (2 ms)
+[ RUN      ] PipelineExTest.BatchSingleFrameWorks
+[       OK ] PipelineExTest.BatchSingleFrameWorks (7 ms)
+[ RUN      ] PipelineExTest.BatchContinuesOnError
+[       OK ] PipelineExTest.BatchContinuesOnError (5 ms)
+[----------] 14 tests from PipelineExTest (70 ms total)
+
+[----------] 8 tests from PipelineStageTest
+[ RUN      ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags
+[       OK ] PipelineStageTest.ReadoutAndTempStagesRunAndSetFlags (0 ms)
+[ RUN      ] PipelineStageTest.NonlinearityAndBinningStagesRun
+[       OK ] PipelineStageTest.NonlinearityAndBinningStagesRun (0 ms)
+[ RUN      ] PipelineStageTest.OffsetStageFailurePropagates
+[       OK ] PipelineStageTest.OffsetStageFailurePropagates (0 ms)
+[ RUN      ] PipelineStageTest.GainStageFailurePropagates
+[       OK ] PipelineStageTest.GainStageFailurePropagates (0 ms)
+[ RUN      ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded
+[       OK ] PipelineStageTest.OffsetAndGainStagesRunWithCalibrationLoaded (5 ms)
+[ RUN      ] PipelineStageTest.AllStagesEnabledRunInSequence
+[       OK ] PipelineStageTest.AllStagesEnabledRunInSequence (1 ms)
+[ RUN      ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded
+[       OK ] PipelineStageTest.DefectStageFailsWhenItsMapIsNotLoaded (0 ms)
+[ RUN      ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly
+[       OK ] PipelineStageTest.BypassDefectStillSkipsTheStageCleanly (0 ms)
+[----------] 8 tests from PipelineStageTest (10 ms total)
+
+[----------] 1 test from PipelinePerformance3072
+[ RUN      ] PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001
+[perf-gate-pipeline] one-time load (PERF-003 budget 200 ms for all three, not asserted): offset 43.7 ms, gain 49.4 ms, defect 13.3 ms, total 106.3 ms
+[perf-gate-pipeline] frame 0 (cold) total 24.7 ms (SRS-CALIB-PERF-001 limit 500 ms, asserted) | stage ms, SRS budget in brackets, not asserted: readout 4.2, temp 7.1, nonlinearity 0.0 [20], offset 2.8 [55], gain 2.2 [55], defect 1.2 [95], ghost 7.2 [140], binning 0.0 [10]
+[perf-gate-pipeline] frame 1 (warm) total 49.2 ms (SRS-CALIB-PERF-001 limit 500 ms, asserted) | stage ms, SRS budget in brackets, not asserted: readout 4.3, temp 7.0, nonlinearity 0.0 [20], offset 2.9 [55], gain 2.2 [55], defect 1.1 [95], ghost 31.7 [140], binning 0.0 [10]
+[perf-gate-pipeline] ghost changed 9437184 of 9437184 pixels of frame 1
+[       OK ] PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001 (379 ms)
+[----------] 1 test from PipelinePerformance3072 (379 ms total)
+
+[----------] 3 tests from GainCorrectAVX2ParityTest
+[ RUN      ] GainCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference
+[gain-parity] 1024x768  differing=0 of 786432  worst_ulp=0
+[       OK ] GainCorrectAVX2ParityTest.ShippedPathMatchesTheScalarReference (38 ms)
+[ RUN      ] GainCorrectAVX2ParityTest.MultipleCallsAreBitIdentical
+[       OK ] GainCorrectAVX2ParityTest.MultipleCallsAreBitIdentical (18 ms)
+[ RUN      ] GainCorrectAVX2ParityTest.ParityWithNonMultipleStride
+[       OK ] GainCorrectAVX2ParityTest.ParityWithNonMultipleStride (20 ms)
+[----------] 3 tests from GainCorrectAVX2ParityTest (77 ms total)
+
+[----------] 2 tests from DefectCorrectDeterminismTest
+[ RUN      ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical
+[       OK ] DefectCorrectDeterminismTest.MultipleCallsAreBitIdentical (7 ms)
+[ RUN      ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride
+[       OK ] DefectCorrectDeterminismTest.DeterministicOnANonMultipleStride (13 ms)
+[----------] 2 tests from DefectCorrectDeterminismTest (21 ms total)
+
+[----------] 8 tests from PipelineStageValueTest
+[ RUN      ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear
+[       OK ] PipelineStageValueTest.NonlinearityWithoutCorrectionLeavesTheFlagClear (3 ms)
+[ RUN      ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame
+[       OK ] PipelineStageValueTest.OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame (6 ms)
+[ RUN      ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame
+[       OK ] PipelineStageValueTest.BypassingNonlinearityGivesTheSameFrame (3 ms)
+[ RUN      ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected
+[       OK ] PipelineStageValueTest.GhostStageReturnsTheFrameItCorrected (2 ms)
+[ RUN      ] PipelineStageValueTest.AnUncalibratedGhostHandleLeavesTheFlagUnsetAndTheValuesAsTheyWere
+[       OK ] PipelineStageValueTest.AnUncalibratedGhostHandleLeavesTheFlagUnsetAndTheValuesAsTheyWere (2 ms)
+[ RUN      ] PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame
+[       OK ] PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame (3 ms)
+[ RUN      ] PipelineStageValueTest.BinningStageReturnsTheBinnedFrame
+[       OK ] PipelineStageValueTest.BinningStageReturnsTheBinnedFrame (2 ms)
+[ RUN      ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput
+[       OK ] PipelineStageValueTest.GhostCorrectionOfTheSecondFrameReachesTheOutput (3 ms)
+[----------] 8 tests from PipelineStageValueTest (29 ms total)
+
+[----------] 26 tests from SaturationTest
+[ RUN      ] SaturationTest.ExplicitSettingWinsOverTheGainFile
+[       OK ] SaturationTest.ExplicitSettingWinsOverTheGainFile (12 ms)
+[ RUN      ] SaturationTest.TheGainFileRecordIsUsedWhenNothingIsSet
+[       OK ] SaturationTest.TheGainFileRecordIsUsedWhenNothingIsSet (19 ms)
+[ RUN      ] SaturationTest.WithNeitherThereIsNoHandlingAndExactlyOneAlert
+[       OK ] SaturationTest.WithNeitherThereIsNoHandlingAndExactlyOneAlert (11 ms)
+[ RUN      ] SaturationTest.FalsificationAnUndeterminedRecordIsNotALevel
+[       OK ] SaturationTest.FalsificationAnUndeterminedRecordIsNotALevel (12 ms)
+[ RUN      ] SaturationTest.OffIsSilentAndChangesNothing
+[       OK ] SaturationTest.OffIsSilentAndChangesNothing (12 ms)
+[ RUN      ] SaturationTest.ABadSettingIsARefusalNotADefault
+[       OK ] SaturationTest.ABadSettingIsARefusalNotADefault (12 ms)
+[ RUN      ] SaturationTest.AMalformedOrPartialRecordRefusesTheGainFileAndAnOldFileLoads
+[       OK ] SaturationTest.AMalformedOrPartialRecordRefusesTheGainFileAndAnOldFileLoads (249 ms)
+[ RUN      ] SaturationTest.TheMedianLeavesOutThePixelsTheGainCalibrationClassifiedDefective
+[       OK ] SaturationTest.TheMedianLeavesOutThePixelsTheGainCalibrationClassifiedDefective (11 ms)
+[ RUN      ] SaturationTest.TheMedianLeavesOutTheDefectMapAndIsComputedAgainWhenTheMapIsReplaced
+[       OK ] SaturationTest.TheMedianLeavesOutTheDefectMapAndIsComputedAgainWhenTheMapIsReplaced (15 ms)
+[ RUN      ] SaturationTest.ExplicitThresholdsInTheMetadataAreCheckedAndAbsentOnesTakeTheDefaults
+[       OK ] SaturationTest.ExplicitThresholdsInTheMetadataAreCheckedAndAbsentOnesTakeTheDefaults (8 ms)
+[ RUN      ] SaturationTest.SaturatedPixelsAllCarryOneValueAndWithoutTheRuleTheyDoNot
+[       OK ] SaturationTest.SaturatedPixelsAllCarryOneValueAndWithoutTheRuleTheyDoNot (11 ms)
+[ RUN      ] SaturationTest.OutputNeverExceedsTheSaturatedValue
+[       OK ] SaturationTest.OutputNeverExceedsTheSaturatedValue (10 ms)
+[ RUN      ] SaturationTest.NormalPixelsBelowTheSaturatedValueAreBitIdenticalToTheRuleOffRun
+[       OK ] SaturationTest.NormalPixelsBelowTheSaturatedValueAreBitIdenticalToTheRuleOffRun (10 ms)
+[ RUN      ] SaturationTest.OutputIsMonotoneInTheRawValueAndTheClampIsWhatMakesItSo
+[       OK ] SaturationTest.OutputIsMonotoneInTheRawValueAndTheClampIsWhatMakesItSo (38 ms)
+[ RUN      ] SaturationTest.AFrameThatPilesUpAtAnotherValueRaisesAMismatchAlertAndKeepsTheLevel
+[       OK ] SaturationTest.AFrameThatPilesUpAtAnotherValueRaisesAMismatchAlertAndKeepsTheLevel (11 ms)
+[ RUN      ] SaturationTest.WithoutAScalarGainTheRuleIsOffAndTheCallSaysSoOnce
+[       OK ] SaturationTest.WithoutAScalarGainTheRuleIsOffAndTheCallSaysSoOnce (10 ms)
+[ RUN      ] SaturationTest.APolynomialGainIsNotCappedAndSaysSo
+[       OK ] SaturationTest.APolynomialGainIsNotCappedAndSaysSo (10 ms)
+[ RUN      ] SaturationTest.TheMonitorIsALimitedHeuristicItMissesAPileOutsideTheSampledRows
+[       OK ] SaturationTest.TheMonitorIsALimitedHeuristicItMissesAPileOutsideTheSampledRows (11 ms)
+[ RUN      ] SaturationTest.GenerationRecordsTheLevelFoundAndTheLoadedFileUsesIt
+[       OK ] SaturationTest.GenerationRecordsTheLevelFoundAndTheLoadedFileUsesIt (15 ms)
+[ RUN      ] SaturationTest.FalsificationGenerationFromFramesWithoutAPileWritesUndeterminedAndNoLevel
+[       OK ] SaturationTest.FalsificationGenerationFromFramesWithoutAPileWritesUndeterminedAndNoLevel (10 ms)
+[ RUN      ] SaturationTest.FramesThatDisagreeOnTheLevelAreUndetermined
+[       OK ] SaturationTest.FramesThatDisagreeOnTheLevelAreUndetermined (7 ms)
+[ RUN      ] SaturationTest.TheThreeKeysCheckTheJsonTypeToo
+[       OK ] SaturationTest.TheThreeKeysCheckTheJsonTypeToo (11 ms)
+[ RUN      ] SaturationTest.OverlappingSaturationConditionsGiveOneAlertWithEveryReason
+[       OK ] SaturationTest.OverlappingSaturationConditionsGiveOneAlertWithEveryReason (11 ms)
+[ RUN      ] SaturationTest.NoLevelAndNoScalarGainAreOneAlertNotTwo
+[       OK ] SaturationTest.NoLevelAndNoScalarGainAreOneAlertNotTwo (10 ms)
+[ RUN      ] SaturationTest.MetadataThatDoesNotParseIsARefusalAndWritesNothing
+[       OK ] SaturationTest.MetadataThatDoesNotParseIsARefusalAndWritesNothing (7 ms)
+[ RUN      ] SaturationTest.ARefusedLoadLeavesTheOutputOfTheEarlierStateUnchanged
+[       OK ] SaturationTest.ARefusedLoadLeavesTheOutputOfTheEarlierStateUnchanged (22 ms)
+[----------] 26 tests from SaturationTest (575 ms total)
+
+[----------] 11 tests from DefectLineTest
+[ RUN      ] DefectLineTest.AOneRowRunIsInterpolatedLinearlyAcrossItWithTheFractionKept
+[       OK ] DefectLineTest.AOneRowRunIsInterpolatedLinearlyAcrossItWithTheFractionKept (3 ms)
+[ RUN      ] DefectLineTest.AThreeRowLineIsInterpolatedBetweenTheRowsOutsideIt
+[       OK ] DefectLineTest.AThreeRowLineIsInterpolatedBetweenTheRowsOutsideIt (6 ms)
+[ RUN      ] DefectLineTest.EverythingThatIsNotALongRunIsCorrectedAsBefore
+[       OK ] DefectLineTest.EverythingThatIsNotALongRunIsCorrectedAsBefore (7 ms)
+[ RUN      ] DefectLineTest.ARunAlongTheTopEdgeCopiesTheNearestValidRow
+[       OK ] DefectLineTest.ARunAlongTheTopEdgeCopiesTheNearestValidRow (6 ms)
+[ RUN      ] DefectLineTest.ColumnsAreOffByDefaultAndOnWithRowsCols
+[       OK ] DefectLineTest.ColumnsAreOffByDefaultAndOnWithRowsCols (4 ms)
+[ RUN      ] DefectLineTest.TheShippedDefaultIsOffRowsIncluded
+[       OK ] DefectLineTest.TheShippedDefaultIsOffRowsIncluded (4 ms)
+[ RUN      ] DefectLineTest.AClusterTouchingALineIsTheIntendedlyAffectedSetAndStaysFinite
+[       OK ] DefectLineTest.AClusterTouchingALineIsTheIntendedlyAffectedSetAndStaysFinite (7 ms)
+[ RUN      ] DefectLineTest.ABadKeyIsARefusal
+[       OK ] DefectLineTest.ABadKeyIsARefusal (3 ms)
+[ RUN      ] DefectLineTest.ARowAndAColumnThatCrossAreBothHandledAndNothingIsRevisited
+[       OK ] DefectLineTest.ARowAndAColumnThatCrossAreBothHandledAndNothingIsRevisited (5 ms)
+[ RUN      ] DefectLineTest.ABandWiderThanTheReachIsLeftToTheOldPath
+[       OK ] DefectLineTest.ABandWiderThanTheReachIsLeftToTheOldPath (7 ms)
+[ RUN      ] DefectLineTest.ARunAtTheLeftEdgeColumnIsATwoSidedColumnOnlyWhenColumnsAreOn
+[       OK ] DefectLineTest.ARunAtTheLeftEdgeColumnIsATwoSidedColumnOnlyWhenColumnsAreOn (8 ms)
+[----------] 11 tests from DefectLineTest (64 ms total)
+
+[----------] 5 tests from ParallelDeterminismTest
+[ RUN      ] ParallelDeterminismTest.TheFrameReallyHasAMaskLargeEnoughToSplit
+[       OK ] ParallelDeterminismTest.TheFrameReallyHasAMaskLargeEnoughToSplit (15 ms)
+[ RUN      ] ParallelDeterminismTest.OneThreadAndManyThreadsGiveTheSameBytes
+[       OK ] ParallelDeterminismTest.OneThreadAndManyThreadsGiveTheSameBytes (221 ms)
+[ RUN      ] ParallelDeterminismTest.TheSameHoldsWithTheLineInterpolationOnColumnsAndOff
+[       OK ] ParallelDeterminismTest.TheSameHoldsWithTheLineInterpolationOnColumnsAndOff (245 ms)
+[ RUN      ] ParallelDeterminismTest.FalsificationTheComparisonSeesADifference
+[       OK ] ParallelDeterminismTest.FalsificationTheComparisonSeesADifference (134 ms)
+[ RUN      ] ParallelDeterminismTest.ABadThreadLimitIsARefusal
+[       OK ] ParallelDeterminismTest.ABadThreadLimitIsARefusal (30 ms)
+[----------] 5 tests from ParallelDeterminismTest (647 ms total)
+
+[----------] Global test environment tear-down
+[==========] 143 tests from 14 test suites ran. (2062 ms total)
+[  PASSED  ] 143 tests.

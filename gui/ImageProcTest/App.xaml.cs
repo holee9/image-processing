@@ -62,10 +62,20 @@ public partial class App : System.Windows.Application
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
     {
+        // #277: remote-view compatibility without a developer-folder startup hook.
+        if (string.Equals(Environment.GetEnvironmentVariable("XPE_GUI_RENDER_MODE"), "SoftwareOnly", StringComparison.OrdinalIgnoreCase))
+            System.Windows.Media.RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         // #129: install the shared native search policy before anything can P/Invoke. Doing it here
         // rather than in a static constructor keeps the ordering explicit: the resolver must be in
         // place before the first DllImport, and only one may ever be registered per assembly.
         Services.Native.GuiNativeLibraryResolver.Install();
+        if (e.Args.Length > 0 && e.Args[0] == "--inspect-calibration-set")
+        {
+            var code = e.Args.Length == 3
+                ? Services.Native.CalibrationSetInspector.Execute(e.Args[1], e.Args[2]) : 2;
+            Shutdown(code);
+            return;
+        }
 
         // GUI-C-186b: relative model directories are resolved against the working directory AS IT IS NOW, once. A file dialog can
         // move the working directory later; the AI model directory must not follow it.

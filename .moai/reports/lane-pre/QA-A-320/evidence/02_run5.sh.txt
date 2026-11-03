@@ -1,0 +1,8 @@
+#!/bin/bash
+# usage: run5.sh <bin dir> <label> -> appends per-test result lines to bisect.txt
+B=$1; L=$2; T=/d/workspace-github/xpe-data/qa-320-tmp
+for t in OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet; do
+  "$B/xpe_preprocess_oom_tests.exe" --gtest_filter=$t > $T/one.txt 2>&1; rc=$?
+  last=$(grep -E "^\[  (PASSED|FAILED)|^\[       OK|^\[  FAILED" $T/one.txt | head -1)
+  echo "$L rc=$rc $t ${last:-<no verdict line>}" >> $T/bisect.txt
+done

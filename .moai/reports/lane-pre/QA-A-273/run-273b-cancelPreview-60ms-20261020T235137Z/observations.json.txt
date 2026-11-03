@@ -1,0 +1,68 @@
+﻿{
+    "scenario":  "cancelPreview",
+    "delayMs":  60,
+    "validated":  {
+                      "verdict":  "스크립트의 답: 비교 가능 — 종류 common-condition · 계약상 귀속 조건: 충족(생산 이력·품질 확인 아님)"
+                  },
+    "during":  {
+                   "cancelEnabled":  true,
+                   "computeEnabled":  false,
+                   "roi":  ""
+               },
+    "cancelled":  {
+                      "verdict":  "취소 — 통과가 아닙니다.",
+                      "state":  "상태: 취소했습니다. 읽던 배열·화면·성공 상태를 받아들이지 않았습니다. 가져온 파일 비교이며 2G 실행이 아닙니다.",
+                      "computeEnabled":  false
+                  },
+    "afterWait":  {
+                      "roi":  "",
+                      "hint":  "",
+                      "verdict":  "취소 — 통과가 아닙니다.",
+                      "computeEnabled":  false,
+                      "state":  "상태: 취소했습니다. 읽던 배열·화면·성공 상태를 받아들이지 않았습니다. 가져온 파일 비교이며 2G 실행이 아닙니다."
+                  },
+    "identity":  {
+                     "pid":  30540,
+                     "exe":  "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\builds\\gui2\\bin\\ImageProcTest\\debug\\ImageProcTest.exe",
+                     "exeSha":  "E98E66D4D7E0AE2327672DF4953C718F988A715104524992D5EA33FF3FECB0D9",
+                     "managedDll":  "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\builds\\gui2\\bin\\ImageProcTest\\debug\\ImageProcTest.dll",
+                     "managedSha":  "2EE1D15EC21602900DB0184F142C2484E62935D516F57F5335FEF3D3160EFF9C",
+                     "nativeFiles":  [
+                                         {
+                                             "name":  "fmt.dll",
+                                             "sha256":  "6841FE26693AE740D190F0FB0ED0D8AD5502BA44A0A31B9D46C63C8F869A3110"
+                                         },
+                                         {
+                                             "name":  "spdlog.dll",
+                                             "sha256":  "C372F7166D778A76A8E915A3EAA2CE5ADC7017A04BD24B5EB591414C27E48721"
+                                         },
+                                         {
+                                             "name":  "xpe_calib_fixture_gen.exe",
+                                             "sha256":  "0F391114E45C6C0EED388480441A8836A60F815C4E99A9B99E7D80F72F781AD8"
+                                         },
+                                         {
+                                             "name":  "xpe_common.dll",
+                                             "sha256":  "56BB73AFC0AF27A50471CC3148462AAA333DE94FF1636C8A3952A67427641FA4"
+                                         },
+                                         {
+                                             "name":  "xpe_display.dll",
+                                             "sha256":  "C7D6DBA80ED408F5F962EFFE7B7DD2214846EB1E9B3E1FA24A3E818719A46719"
+                                         },
+                                         {
+                                             "name":  "xpe_enhance_basic.dll",
+                                             "sha256":  "236DDC0EEAE5A24C4135AC9B2D6893FE462DDBF0AB1643FEA1495A36335FF72B"
+                                         },
+                                         {
+                                             "name":  "xpe_preprocess.dll",
+                                             "sha256":  "D404D4071BD8C9B0D799CB5E98C67512022E3F5BD0E6D0CAE192C865AFE7643D"
+                                         },
+                                         {
+                                             "name":  "xpe_pre_e2e.exe",
+                                             "sha256":  "9645A8E2FDC124BC4A14FDC3BE4A02A7449FB6144D8AF72663803FC7377E925D"
+                                         }
+                                     ],
+                     "scriptPath":  "D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-273/contract-v4/comparison_manifest.py",
+                     "scriptSha":  "86104CC6C11FD43A010A15ABE696075BDC751DB3AA0B66CF5C5925D2280DDF0C",
+                     "fixtures":  "D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-273/fixtures-v4"
+                 }
+}

@@ -1,0 +1,4 @@
+gui/ImageProcTest/App.xaml.cs
+gui/ImageProcTest/Services/AppSettingsService.cs
+gui/ImageProcTest/Services/GuiDataPaths.cs
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs

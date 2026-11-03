@@ -1,0 +1,26 @@
+"""QA-A-324: which features flag the planted noisy items (pixel, and line pixels) in the planted set; how many items would stay detected without the BN bit
+(an item counts detected when >= half of its pixels are flagged, xpe_bpm_eval.cpp score rule). Line mask included as it is. Usage: python -I 18_noisy_bits.py.txt <out folder>"""
+import sys, numpy as np
+from collections import Counter
+S = 3072; O = sys.argv[1]; TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+ids = np.fromfile(TR + 'truth_ids.u16', dtype='<u2').reshape(S, S)
+f = np.fromfile(O + 'inj_full_features.u8', np.uint8).reshape(S, S)
+li = np.fromfile(O + 'inj_full_lines.u8', np.uint8).reshape(S, S) != 0
+mp = np.fromfile(O + 'inj_v2_setmap.u8', np.uint8).reshape(S, S) != 0
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit(): items[int(c[0])] = c
+groups = {}
+for k, c in items.items():
+    if c[2] != 'noisy': continue
+    key = '%s/%s/%s/%s' % (c[1], c[2], c[3], c[4])
+    sel = ids == k
+    n = int(sel.sum())
+    if n == 0: continue
+    flagged = mp[sel]; noBN = ((f[sel] & 0x1f) != 0) | li[sel]
+    gst = groups.setdefault(key, [0, 0, 0, Counter()])
+    gst[0] += 1; gst[1] += int(flagged.sum() * 2 >= n); gst[2] += int(noBN.sum() * 2 >= n)
+    for v in f[sel][flagged]: gst[3]['+'.join(nm for b, nm in ((1, 'DM'), (2, 'DN'), (8, 'DL'), (16, 'FL'), (32, 'BN')) if v & b) or 'LINE-only'] += 1
+for key, (n, det, det_nobn, bits) in sorted(groups.items()):
+    print('%-28s items %3d detected %3d, detected without BN bit %3d | flagged pixels by bits %s' % (key, n, det, det_nobn, dict(bits.most_common(6))))

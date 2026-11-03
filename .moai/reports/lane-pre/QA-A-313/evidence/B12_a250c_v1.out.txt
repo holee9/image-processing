@@ -1,0 +1,33 @@
+Note: Google Test filter = A241Measure.DISABLED_A250c_CyanSeparatedJudgement
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from A241Measure
+[ RUN      ] A241Measure.DISABLED_A250c_CyanSeparatedJudgement
+[a250c] manifest inputs: 26 | bpm_bright 12 | bright_and_bpm_bright 6 | dark 7 | dark_excluded_first 1
+[a250c] SEPARATION Dark_15   sha256 b2620ef9a0dfad5d04c88acb4317a76626ca723f326e6e30b8cc48e94af6dd37 appears in 0 of 26 generation inputs (any role)
+[a250c] SEPARATION Dark_16   sha256 f5e030c82cb9e9bdc2ef9173dc5356ce3a143ed1a98a496370917c14fb1acac4 appears in 0 of 26 generation inputs (any role)
+[a250c] SEPARATION Bright_29 sha256 912a096c07b08241fb55673b0585a49f354d42a0db4aa2999e059cb16fae9a9a appears in 0 of 26 generation inputs (any role)
+[a250c] SEPARATION Bright_30 sha256 c797de2d46abddc73482f8e2f8fdb4add7d09bb2718ea5807d2b050132845b30 appears in 0 of 26 generation inputs (any role)
+[a250c] CONTROL    Dark_07   sha256 5af7d2658337d89189df10665814f9deee7b2f4656b48a91495d00046de5e460 appears in 1 generation input(s)
+[a250c] CONTROL    Dark_14   sha256 1e6c1aced410ff00c87b1166343cdb75af6a9c1cb0edbea2551207feb5549b74 appears in 1 generation input(s)
+[a250c] CONTROL    Bright_17 sha256 bc0f97f2959121eeff034186dddcaa15af90289a5d7d6669376d9a932765d580 appears in 1 generation input(s)
+[a250c] CONTROL    Bright_23 sha256 863ed58233fff6e86d25690900c5908b6bb044d103b6a46a230c5080cbea3c79 appears in 1 generation input(s)
+[a250c] CONTROL    Bright_28 sha256 1a54e42fc845f4ac8fbac36ca1ef7a32c4c52a7c88d3be4502206e48e1f7996d appears in 1 generation input(s)
+[a250c] CONTROL    Bright_31 sha256 24d58e48a045453b8f9cf47455478c92f960dbe4231dcf4066ad272938e200af appears in 1 generation input(s)
+[a250c] CONTROL    Bright_36 sha256 9d313cc109414d9d390d2b72c0061bce1700edf6ebf35e38904ce6f7b8362983 appears in 1 generation input(s)
+[a250c] SEPARATION RESULT: the four evaluation frames appear in 0 generation inputs; the 7 control frames each appear exactly once: yes
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_zz_a241_measure.cpp(2211): error: Expected equality of these values:
+  8
+  perRole["dark"]
+    Which is: 7
+
+[  FAILED  ] A241Measure.DISABLED_A250c_CyanSeparatedJudgement (1254 ms)
+[----------] 1 test from A241Measure (1254 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1255 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] A241Measure.DISABLED_A250c_CyanSeparatedJudgement
+
+ 1 FAILED TEST

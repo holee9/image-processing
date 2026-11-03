@@ -1,0 +1,54 @@
+===== s0_gf gain.xcal sha256=efa36c63b226d6d98d74d16169ae505c4d20b5c42dc1069d1816f51a6b7b80eb size=31457912 magic=b'XCAL' type=1 pixel_format=1 3072x2560 config_len=480 payload_len=31457280
+  saturation record in config: [('saturation_status', '"undetermined"'), ('saturation_method', '"histogram_top_pile/1"'), ('saturation_min_count_frac', '0.0005'), ('saturation_min_ratio', '50'), ('saturation_max_above_frac', '0.001'), ('saturation_frames_used', '0'), ('saturation_frames_total', '10'), ('saturation_decided_at', '"2026-10-28T14:11:20Z"')]
+  control: max |G - numpy(mean(max(0,v))/mean)| = 1.944e-07
+  mean(BrightAvg_int16)=5634.646; G: min=0.0000 max=2.7274; Gc: min=-1.1861 max=2.7274
+  all pixels: n=7864320 diff(G-Gc) median=-0.000005 p1=-0.000095 p99=0.000195 |diff| median=0.000047 p99=0.000195 max=1.186055 pearson_r=0.999998
+  BPMap good pixels: n=7832628 diff(G-Gc) median=-0.000005 p1=-0.000095 p99=0.000195 |diff| median=0.000047 p99=0.000195 max=1.186055 pearson_r=0.999998
+  BPMap defect pixels: n=31692 diff(G-Gc) median=-0.000005 p1=-0.000095 p99=0.000084 |diff| median=0.000047 p99=0.000095 max=0.015405 pearson_r=1.000000
+  good, no negative frame value: n=7567985 diff(G-Gc) median=-0.000006 p1=-0.000095 p99=0.000084 |diff| median=0.000042 p99=0.000095 max=0.000095 pearson_r=1.000000
+  good, >=1 negative frame value: n=264643 diff(G-Gc) median=0.000106 p1=-0.000053 p99=0.000532 |diff| median=0.000106 p99=0.000532 max=1.186055 pearson_r=0.063937
+===== s1_um300 gain.xcal sha256=1482b6ffc40eb6a59f3311026f5ecbd94d04f6a423a5bce7c415fb4e30dec8cc size=31457912 magic=b'XCAL' type=1 pixel_format=1 3072x2560 config_len=480 payload_len=31457280
+  saturation record in config: [('saturation_status', '"undetermined"'), ('saturation_method', '"histogram_top_pile/1"'), ('saturation_min_count_frac', '0.0005'), ('saturation_min_ratio', '50'), ('saturation_max_above_frac', '0.001'), ('saturation_frames_used', '0'), ('saturation_frames_total', '10'), ('saturation_decided_at', '"2026-10-28T14:11:26Z"')]
+  control: max |G - numpy(mean(max(0,v))/mean)| = 1.158e-07
+  mean(BrightAvg_int16)=430.870; G: min=0.0000 max=1.1736; Gc: min=-0.0789 max=1.1744
+  all pixels: n=7864320 diff(G-Gc) median=-0.000028 p1=-0.001191 p99=0.001160 |diff| median=0.000666 p99=0.001191 max=0.329327 pearson_r=0.999995
+  BPMap good pixels: n=7863290 diff(G-Gc) median=-0.000028 p1=-0.001191 p99=0.001160 |diff| median=0.000666 p99=0.001191 max=0.329327 pearson_r=0.999995
+  BPMap defect pixels: n=1030 diff(G-Gc) median=-0.000025 p1=-0.001190 p99=0.001134 |diff| median=0.000495 p99=0.001190 max=0.004642 pearson_r=0.999982
+  good, no negative frame value: n=7585387 diff(G-Gc) median=-0.000029 p1=-0.001191 p99=0.001133 |diff| median=0.000495 p99=0.001191 max=0.001192 pearson_r=0.999986
+  good, >=1 negative frame value: n=277903 diff(G-Gc) median=0.000696 p1=-0.000696 p99=0.002785 |diff| median=0.000696 p99=0.002785 max=0.329327 pearson_r=0.758702
+===== s4_csi_pre gain.xcal sha256=f06f34b8bd5ad4d9ad3b0700ecbc71572a06c7a3e384769bb272d260889421a0 size=31457912 magic=b'XCAL' type=1 pixel_format=1 3072x2560 config_len=480 payload_len=31457280
+  saturation record in config: [('saturation_status', '"undetermined"'), ('saturation_method', '"histogram_top_pile/1"'), ('saturation_min_count_frac', '0.0005'), ('saturation_min_ratio', '50'), ('saturation_max_above_frac', '0.001'), ('saturation_frames_used', '0'), ('saturation_frames_total', '10'), ('saturation_decided_at', '"2026-10-28T14:11:32Z"')]
+  control: max |G - numpy(mean(max(0,v))/mean)| = 1.614e-07
+  mean(BrightAvg_int16)=4856.984; G: min=0.0000 max=3.1641; Gc: min=-1.3760 max=3.1641
+  all pixels: n=7864320 diff(G-Gc) median=-0.000001 p1=-0.000104 p99=0.000102 |diff| median=0.000060 p99=0.000104 max=1.375957 pearson_r=0.999997
+  BPMap good pixels: n=7832685 diff(G-Gc) median=-0.000001 p1=-0.000104 p99=0.000102 |diff| median=0.000060 p99=0.000104 max=1.375957 pearson_r=0.999997
+  BPMap defect pixels: n=31635 diff(G-Gc) median=-0.000001 p1=-0.000104 p99=0.000102 |diff| median=0.000060 p99=0.000104 max=0.064855 pearson_r=0.999999
+  good, no negative frame value: n=7685114 diff(G-Gc) median=-0.000001 p1=-0.000104 p99=0.000102 |diff| median=0.000043 p99=0.000104 max=0.000105 pearson_r=1.000000
+  good, >=1 negative frame value: n=147571 diff(G-Gc) median=0.000062 p1=-0.000082 p99=0.000226 |diff| median=0.000062 p99=0.000226 max=1.375957 pearson_r=-0.027711
+===== s5_csi_post gain.xcal sha256=bec0296420ed832389d392d1c2f096c90b468f7ea1610768f2b3fb547b00988e size=31457912 magic=b'XCAL' type=1 pixel_format=1 3072x2560 config_len=480 payload_len=31457280
+  saturation record in config: [('saturation_status', '"undetermined"'), ('saturation_method', '"histogram_top_pile/1"'), ('saturation_min_count_frac', '0.0005'), ('saturation_min_ratio', '50'), ('saturation_max_above_frac', '0.001'), ('saturation_frames_used', '0'), ('saturation_frames_total', '10'), ('saturation_decided_at', '"2026-10-28T14:11:41Z"')]
+  control: max |G - numpy(mean(max(0,v))/mean)| = 1.064e-07
+  mean(BrightAvg_int16)=5124.833; G: min=0.0000 max=2.9987; Gc: min=-1.3040 max=2.9987
+  all pixels: n=7864320 diff(G-Gc) median=-0.000001 p1=-0.000099 p99=0.000097 |diff| median=0.000057 p99=0.000099 max=1.304043 pearson_r=0.999997
+  BPMap good pixels: n=7832629 diff(G-Gc) median=-0.000001 p1=-0.000099 p99=0.000097 |diff| median=0.000057 p99=0.000099 max=1.304043 pearson_r=0.999997
+  BPMap defect pixels: n=31691 diff(G-Gc) median=-0.000001 p1=-0.000099 p99=0.000097 |diff| median=0.000040 p99=0.000099 max=0.065563 pearson_r=0.999999
+  good, no negative frame value: n=7685042 diff(G-Gc) median=-0.000001 p1=-0.000099 p99=0.000097 |diff| median=0.000040 p99=0.000099 max=0.000099 pearson_r=1.000000
+  good, >=1 negative frame value: n=147587 diff(G-Gc) median=0.000039 p1=-0.000078 p99=0.000215 |diff| median=0.000059 p99=0.000215 max=1.304043 pearson_r=0.234131
+===== s6_gad_pre gain.xcal sha256=351cabfaffbe1da2d213cf6592652e5e8fe684f9620db96fd9b4c834468c1f19 size=31457912 magic=b'XCAL' type=1 pixel_format=1 3072x2560 config_len=480 payload_len=31457280
+  saturation record in config: [('saturation_status', '"undetermined"'), ('saturation_method', '"histogram_top_pile/1"'), ('saturation_min_count_frac', '0.0005'), ('saturation_min_ratio', '50'), ('saturation_max_above_frac', '0.001'), ('saturation_frames_used', '0'), ('saturation_frames_total', '10'), ('saturation_decided_at', '"2026-10-28T14:11:48Z"')]
+  control: max |G - numpy(mean(max(0,v))/mean)| = 3.072e-07
+  mean(BrightAvg_int16)=2318.635; G: min=0.0000 max=6.6280; Gc: min=-2.8823 max=6.6280
+  all pixels: n=7864320 diff(G-Gc) median=-0.000006 p1=-0.000222 p99=0.000216 |diff| median=0.000123 p99=0.000222 max=2.882299 pearson_r=0.999991
+  BPMap good pixels: n=7832778 diff(G-Gc) median=-0.000006 p1=-0.000222 p99=0.000216 |diff| median=0.000123 p99=0.000222 max=2.882299 pearson_r=0.999991
+  BPMap defect pixels: n=31542 diff(G-Gc) median=-0.000006 p1=-0.000222 p99=0.000210 |diff| median=0.000123 p99=0.000222 max=0.003882 pearson_r=1.000000
+  good, no negative frame value: n=7584311 diff(G-Gc) median=-0.000006 p1=-0.000222 p99=0.000210 |diff| median=0.000093 p99=0.000222 max=0.000232 pearson_r=1.000000
+  good, >=1 negative frame value: n=248467 diff(G-Gc) median=0.000173 p1=-0.000129 p99=0.000561 |diff| median=0.000173 p99=0.000561 max=2.882299 pearson_r=0.042449
+===== s7_gad_post gain.xcal sha256=878eb2a9efbfe024e62a4fec474c48729a795abd4d7fe4f4e9b9b842cae21b0a size=31457912 magic=b'XCAL' type=1 pixel_format=1 3072x2560 config_len=480 payload_len=31457280
+  saturation record in config: [('saturation_status', '"undetermined"'), ('saturation_method', '"histogram_top_pile/1"'), ('saturation_min_count_frac', '0.0005'), ('saturation_min_ratio', '50'), ('saturation_max_above_frac', '0.001'), ('saturation_frames_used', '0'), ('saturation_frames_total', '10'), ('saturation_decided_at', '"2026-10-28T14:11:55Z"')]
+  control: max |G - numpy(mean(max(0,v))/mean)| = 3.191e-07
+  mean(BrightAvg_int16)=2289.314; G: min=0.0000 max=6.7129; Gc: min=-2.9192 max=6.7129
+  all pixels: n=7864320 diff(G-Gc) median=-0.000004 p1=-0.000222 p99=0.000215 |diff| median=0.000127 p99=0.000222 max=2.919215 pearson_r=0.999991
+  BPMap good pixels: n=7832770 diff(G-Gc) median=-0.000004 p1=-0.000222 p99=0.000215 |diff| median=0.000127 p99=0.000222 max=2.919215 pearson_r=0.999991
+  BPMap defect pixels: n=31550 diff(G-Gc) median=-0.000004 p1=-0.000222 p99=0.000215 |diff| median=0.000127 p99=0.000222 max=0.004368 pearson_r=1.000000
+  good, no negative frame value: n=7634968 diff(G-Gc) median=-0.000004 p1=-0.000222 p99=0.000215 |diff| median=0.000091 p99=0.000222 max=0.000228 pearson_r=1.000000
+  good, >=1 negative frame value: n=197802 diff(G-Gc) median=0.000131 p1=-0.000175 p99=0.000480 |diff| median=0.000131 p99=0.000480 max=2.919215 pearson_r=0.807672

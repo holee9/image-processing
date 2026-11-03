@@ -48,13 +48,18 @@ internal static class GuiPreprocessRunner
         string bodyPart,
         float kVp,
         float pixelPitchMm,
-        bool measureExposureIndex = false)
+        bool measureExposureIndex = false,
+        string offsetMode = "Auto", string gainMode = "Auto", string defectMode = "Auto")
     {
         var offset = Path.Combine(offsetDirectory, OffsetFile);
         var gain = Path.Combine(gainDirectory, GainFile);
         var defect = Path.Combine(defectDirectory, DefectFile);
 
-        var missing = new[] { offset, gain, defect }.Where(p => !File.Exists(p)).ToArray();
+        var applyOffset = CalibrationStageSelection.ShouldLoad(offsetMode, File.Exists(offset));
+        var applyGain = CalibrationStageSelection.ShouldLoad(gainMode, File.Exists(gain));
+        var applyDefect = CalibrationStageSelection.ShouldLoad(defectMode, File.Exists(defect));
+        var selected = new[] { (offset, applyOffset), (gain, applyGain), (defect, applyDefect) };
+        var missing = selected.Where(p => p.Item2 && !File.Exists(p.Item1)).Select(p => p.Item1).ToArray();
         if (missing.Length > 0)
         {
             // GUI-C-234b: a skip with a reason (<short>: <detail>), not a failure - the HUD says "not run (no calibration data)".
@@ -64,8 +69,10 @@ internal static class GuiPreprocessRunner
                 "Generate a set with xpe_calib_fixture_gen --out <dir> and point the calibration " +
                 "directories at it.",
                 null,
-                Skipped: true);
+                Skipped: false);
         }
+        if (!applyOffset && !applyGain && !applyDefect)
+            return new PreprocessRunResult(false, "no selected calibration: all stages Off or Auto without maps; executed=[]; input kept", null, Skipped: true);
 
         var initCode = XpePreprocessNative.xpe_preprocess_init(null);
         if (initCode != XpeOk)
@@ -75,13 +82,14 @@ internal static class GuiPreprocessRunner
 
         try
         {
-            foreach (var (path, load, name) in new (string, Func<string, int>, string)[]
+            foreach (var (path, load, name, enabled) in new (string, Func<string, int>, string, bool)[]
                      {
-                         (offset, XpePreprocessNative.xpe_calib_load_offset, "offset"),
-                         (gain, XpePreprocessNative.xpe_calib_load_gain, "gain"),
-                         (defect, XpePreprocessNative.xpe_calib_load_defect_map, "defect"),
+                         (offset, XpePreprocessNative.xpe_calib_load_offset, "offset", applyOffset),
+                         (gain, XpePreprocessNative.xpe_calib_load_gain, "gain", applyGain),
+                         (defect, XpePreprocessNative.xpe_calib_load_defect_map, "defect", applyDefect),
                      })
             {
+                if (!enabled) continue;
                 var code = load(path);
                 if (code != XpeOk)
                 {
@@ -93,7 +101,10 @@ internal static class GuiPreprocessRunner
             // export is a FAILURE with an instruction, not a reason to run the older in-place stage calls.
             try
             {
-                return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex);
+                var config = System.Text.Json.JsonSerializer.Serialize(new { bypassOffset = !applyOffset, bypassGain = !applyGain,
+                    bypassDefect = !applyDefect, bypassTemp = true, bypassNonlinearity = true, bypassBinning = true, bypassGhost = true });
+                return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex, config,
+                    $"requested=[offset:{offsetMode},gain:{gainMode},defect:{defectMode}]");
             }
             catch (EntryPointNotFoundException)
             {
@@ -117,7 +128,7 @@ internal static class GuiPreprocessRunner
     /// (<c>xpe_preprocess_pipeline_out</c>): the raw image the user opened is never written (SRS-CALIB-SAFE-004).
     /// </summary>
     private static PreprocessRunResult RunPipelineOut(ushort[] rawPixels, int width, int height, string bodyPart,
-        float kVp, float pixelPitchMm, bool measureExposureIndex)
+        float kVp, float pixelPitchMm, bool measureExposureIndex, string config, string requested)
     {
         var metadata = XpeImageMetadataNative.Create(bodyPart, kVp: kVp, mAs: 2.0f, sidMm: 1000.0f, pixelPitchMm: pixelPitchMm);
 
@@ -138,18 +149,22 @@ internal static class GuiPreprocessRunner
             Buffer.BlockCopy(rawPixels, 0, signed, 0, count * sizeof(ushort));
             Marshal.Copy(signed, 0, input.Data, count);
 
-            var code = XpePreprocessNative.xpe_preprocess_pipeline_out(ref input, ref output, ref metadata, IntPtr.Zero, IntPtr.Zero, PipelineConfigJson);
+            var code = XpePreprocessNative.xpe_preprocess_pipeline_out(ref input, ref output, ref metadata, IntPtr.Zero, IntPtr.Zero, config);
             if (code != XpeOk)
             {
                 return new PreprocessRunResult(false, $"xpe_preprocess_pipeline_out failed ({code}).", null);
             }
 
             var exposure = measureExposureIndex ? MeasureUncalibratedExposureIndex(ref output, ref metadata) : string.Empty;
+            var actual = new List<string>();
+            if ((metadata.Flags & 0x2000) != 0) actual.Add("offset");
+            if ((metadata.Flags & 0x0008) != 0) actual.Add("gain");
+            if ((metadata.Flags & 0x0004) != 0) actual.Add("defect");
             var floats = ReadFloats(output.Data, count);
             var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats);   // the gain stage's intermediate is internal to the pipeline: only the final image is counted
             return new PreprocessRunResult(
                 true,
-                $"Preprocess: xpe_preprocess_pipeline_out ({string.Join(" -> ", ExecutedStages)}, input kept) on {width}x{height} ({bodyPart}).{exposure}",
+                $"Preprocess: xpe_preprocess_pipeline_out; {requested}; executed=[{string.Join(",", actual)}]; nativeFlags=0x{metadata.Flags:x}; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; {width}x{height} ({bodyPart}).{exposure}",
                 ScaleToUInt16(floats),
                 nonFinite,
                 floats);

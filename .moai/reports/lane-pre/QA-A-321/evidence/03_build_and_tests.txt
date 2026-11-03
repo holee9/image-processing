@@ -1,0 +1,38 @@
+## build: build.bat (QA-A-320 02_build.bat.txt, targets xpe_preprocess xpe_preprocess_tests xpe_preprocess_oom_tests xpe_preprocess_parallel_unwind_tests) on build/ci-preprocess -> rc=0
+[1/8] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess.dir\src\defect_correct.cpp.obj
+[2/8] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\defect_correct.cpp.obj
+[3/8] Linking CXX shared library bin\xpe_preprocess.dll
+[4/4] Linking CXX executable bin\xpe_preprocess_oom_tests.exe
+
+## $ build/ci-preprocess/bin/xpe_preprocess_tests.exe --gtest_filter='DefectCorrect*:ParallelDeterminism*:Pipeline*'  -> rc=0
+[==========] Running 71 tests from 9 test suites.
+[----------] 15 tests from DefectCorrectTest (44 ms total)
+[----------] 4 tests from PipelineBypassTest (0 ms total)
+[----------] 14 tests from PipelineExTest (62 ms total)
+[----------] 8 tests from PipelineStageTest (14 ms total)
+[----------] 2 tests from DefectCorrectDeterminismTest (22 ms total)
+[----------] 8 tests from PipelineStageValueTest (25 ms total)
+[----------] 5 tests from ParallelDeterminismTest (643 ms total)
+[==========] 71 tests from 9 test suites ran. (1246 ms total)
+[  PASSED  ] 71 tests.
+
+## $ build/ci-preprocess/bin/xpe_preprocess_oom_tests.exe  (whole executable) -> rc=0
+[==========] Running 99 tests from 4 test suites.
+[----------] 49 tests from OomInjection (544 ms total)
+[----------] 30 tests from OomPipeline (1669 ms total)
+[----------] 6 tests from GhostMixCompare (315 ms total)
+[==========] 99 tests from 4 test suites ran. (3732 ms total)
+[  PASSED  ] 99 tests.
+  YOU HAVE 3 DISABLED TESTS
+
+## $ build/ci-preprocess/bin/xpe_preprocess_parallel_unwind_tests.exe -> rc=0
+[==========] Running 1 test from 1 test suite.
+[----------] 1 test from ParallelUnwind (500 ms total)
+[==========] 1 test from 1 test suite ran. (500 ms total)
+[  PASSED  ] 1 test.
+
+## binaries tested (sha256sum)
+817421ca9ed9dad0a57cc4ec717e315ce79d1c4e9b7c504a3e03089d1ac77bdf *build/ci-preprocess/bin/xpe_preprocess.dll
+2781471f390570be49dd7012b2b0ec5e58283079effa282c3a9667cdab50fed8 *build/ci-preprocess/bin/xpe_preprocess_tests.exe
+22eefdb39785935d28cd1219beff1620a7c8420a10792fd5c3ec47baa6515c80 *build/ci-preprocess/bin/xpe_preprocess_oom_tests.exe
+302790119bb123a278f5c6cd0780224b6bbdbb583f56c07db1ff255a7767ccfa *build/ci-preprocess/bin/xpe_preprocess_parallel_unwind_tests.exe

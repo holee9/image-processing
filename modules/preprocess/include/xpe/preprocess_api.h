@@ -715,6 +715,14 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
  * expiry_epoch_ms = 0, so no API path could produce an expiring calibration file
  * and SRS-ALERT-005 / REQ-P1A-018 were unreachable. The expiry policy itself
  * (30 days, and so on) belongs to the caller; this function records the value.
+ * For "gain", the active scalar or polynomial model selects the existing GAIN or GAIN_POLY file type;
+ * polynomial coefficients retain their pixel-major layout. Offset/gain config bytes are retained with the model.
+ * Classified scalar gain positions are saved
+ * with the existing invalid value 0 so reload restores the neutral applied map and its defect indices;
+ * valid 1.0 positions stay 1.0. Original invalid numeric values are not reconstructed.
+ * A defect state with runtime v2 layers is saved with
+ * the existing v2 format (area, confirmed lines and blobs); a v1 state stays v1. This saves current
+ * runtime state, not an original-file byte copy: diagnostic candidates and discarded provenance are not reconstructed.
  *
  * @param filepath Output XCal file path
  * @param calib_type Calibration type (offset, gain, defect)
@@ -823,10 +831,10 @@ XPE_API XpeErrorCode xpe_preprocess_get_param_range(const char* param_name,
  *       per frame, and a creation that fails raises none. "Calibrated" says the parameters were GIVEN, not that they
  *       are right: whether a given set is usable is the caller's calibration.
  *
- * @note The handle holds the frame history twice (width*height floats, four planes) plus one more plane
- *       with the frame as it came in: a frame writes its new history into the second pair and the pairs are
- *       swapped only when the frame succeeded, and a frame that fails gets its pixels put back from the fifth
- *       plane (see xpe_ghost_correct). At 3072x3072 that is about 189 MB per handle.
+ * @note The handle keeps two recursive float32 history planes (75,497,472 bytes / 72 MiB at 3072x3072),
+ *       plus two saved rows for Tier 3. Uncertain arithmetic is validated without writes before committing
+ *       in place; no three full-frame next-history/backup scratch planes are allocated.
+ *       This recursive state is not the unimplemented 8-16-frame ring of SRS-CALIB-FUNC-014.
  *
  * @note SRS-CALIB-NFR-003: one handle may be shared by several threads. Calls to
  *       xpe_ghost_correct() and xpe_ghost_reset() on the same handle are serialised
@@ -845,6 +853,10 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * REQ-P1A-032: Apply LTI deconvolution (Tier 1/2/3)
  * REQ-P1A-033: Compute time delta in units of frames
  *
+ * The first successful calibrated frame after creation or xpe_ghost_reset() seeds history without
+ * changing the image. A successful zero-valued frame also consumes this bypass; rejected frames do not.
+ * Later frames retain the selected tier's correction and spatial blend.
+ *
  * Serialised per handle with xpe_ghost_reset() and other xpe_ghost_correct() calls
  * on the same handle (see xpe_ghost_create). The image buffer is not protected: the
  * caller must not access the same buffer concurrently without its own synchronisation.
@@ -860,7 +872,7 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  *         XPE_ERR_PROCESSING_FAILED when a corrected value or the new history overflows float (finite input
  *         at the extremes of the range)
  *
- * @note Tier 3 blends the corrected value of EVERY pixel with the mean of its 3x3 neighbourhood in the incoming frame
+ * @note On frames after the initial bypass, Tier 3 blends every corrected pixel with its incoming 3x3 neighbourhood mean
  *       (0.7 corrected + 0.3 mean). The mean is taken over the neighbours that exist: nine inside the frame, six on an edge,
  *       four in a corner (QA-A-227: the border pixels used to be left out, so a uniform frame came out with a one-pixel ring
  *       0.6 % to 8.4 % off). A frame smaller than 3x3 has no spatial context and is not blended. Tiers 1 and 2 read no neighbour.
@@ -873,7 +885,8 @@ XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height,
  * @note A frame that fails leaves the handle exactly as it found it: the frame history and the exposure
  *       estimate (a failed call is not a step: the next frame continues from the last frame that SUCCEEDED).
  *       Only a successful frame changes them. Since QA-A-217 a failed frame also leaves
- *       `img` as it was (REQ-P1A-032): pixels already corrected when the failure was found are put back.
+ *       `img` as it was (REQ-P1A-032). Uncertain frames now validate without writing before an in-place commit,
+ *       rather than keeping full-frame next-history and rollback copies.
  *       Before QA-A-217 they were not, and a caller had to keep its own copy; before QA-A-202c a failure
  *       part-way through left the history of the pixels already processed updated too.
  */
@@ -1702,6 +1715,100 @@ XPE_API XpeErrorCode xpe_verify_offset(
     const XpeImageBuffer* corrected_image,
     const XpeImageMetadata* metadata,
     XpeCalibrationMetrics* metrics);
+
+/** @name Signed offset quality (QA-A-266, Codex #232 R232-2 / #233 R233-4, R233-5)
+ *  xpe_verify_offset() reads the UINT16 image the offset stage wrote: after the 0 floor and the rounding. A negative DarkBias cannot show
+ *  there (a Dark_16 whose signed bias is -4.05 reads +0.19). xpe_verify_offset_signed() takes the raw dark and the offset map itself and measures the
+ *  residual before the clamp. It keeps no state: nothing is read from the loaded calibration set and xpe_preprocess_init() is not needed.
+ *  @{ */
+#define XPE_OFFSETQ_ROI_SIGNED     0x01u   /**< darkBiasSigned, dsnuSigned measured: the dark ROI has at least 2 pixels and at least 1 % of the frame (integer comparison, roi * 100 >= pixels) */
+#define XPE_OFFSETQ_DARK_REDUCTION 0x02u   /**< darkReductionDb measured: as ROI_SIGNED, and the raw ROI has a spread (std > 0) and the result is finite */
+#define XPE_OFFSETQ_ROI_OUTPUT     0x04u   /**< darkBiasOutput, dsnuOutput measured: as ROI_SIGNED. Equal to xpe_verify_offset()'s dark_bias / dsnu_adu only when that function measured too (see XpeOffsetQuality) */
+#define XPE_OFFSETQ_CLAMP_RATE     0x08u   /**< clampRatePct, zeroOutputRatePct measured (whole frame: valid whenever the inputs are) */
+#define XPE_OFFSETQ_MAP_IDENT      0x10u   /**< mapSha256 filled in */
+
+/**
+ * @brief Result of xpe_verify_offset_signed(). 120 bytes, 8-byte aligned.
+ *
+ * Caller sets structSize = sizeof(XpeOffsetQuality) as it compiled it (at least 32). Rules of what is written (QA-A-266b, Codex #237 R237-2):
+ *   - What is written ends at a FIELD boundary: the largest of 32 (the head), 64 (after mapSha256), 72, 80, 88, 96, 104, 112, 120 that is not beyond structSize. A field is never written in part;
+ *     bytes of the caller's struct beyond that boundary are not touched. writtenSize is the number of bytes written. A larger structSize from a newer caller is accepted (120 bytes are written).
+ *   - A validMask bit is set only if the group was measured AND all of its fields lie inside what was written. For every other group the bit is clear and the bytes of that group that lie inside
+ *     what was written are 0. So a field whose bit is clear never holds a measurement; the caller reads the bit first and a field only when its bit is set.
+ *   - The head fields (writtenSize, validMask, roiPixels, pixelCount, mapWidth, mapHeight) are always written on success.
+ *   - New fields are only ever appended.
+ *
+ * Stage of every value (never mix them as if they were one population):
+ *   Signed fields   : residual x = float(raw) - map, BEFORE the 0 floor and the rounding; ROI = the darkest decile of the raw frame (raw < percentile10, at least 1 %).
+ *   Output fields   : the UINT16 value o = (uint16)(clamp(x, 0, 65535) + 0.5f) that xpe_offset_correct writes, over the SAME ROI. When BOTH functions measure the dark ROI (this function: the
+ *                     XPE_OFFSETQ_ROI_OUTPUT bit is set; xpe_verify_offset(): XPE_METRIC_DARK_BIAS is set in measured_mask), darkBiasOutput and dsnuOutput equal dark_bias and dsnu_adu of
+ *                     xpe_verify_offset() on that corrected image, bit for bit. The two functions do NOT always agree on whether the ROI is measurable (QA-A-269, Codex #239 R239-2): this one needs
+ *                     roi * 100 >= pixels (an integer comparison) and at least 2 pixels, xpe_verify_offset() needs roi >= floor(pixels / 100) and no second pixel. For a frame whose size is not a
+ *                     multiple of 100 and a ROI of exactly floor(pixels / 100) pixels (this happens at 3072 x 3072: 94,371 of 9,437,184), xpe_verify_offset() measures and this function does not. When one
+ *                     of them does not measure, compare the STATES (the bits), never the 0 that the unmeasured field holds. The known sizes are not a guarantee: the nine real darks of QA-A-266 agreed.
+ *   clampRatePct    : 100 * count(x < 0) / N over the whole frame, before the floor (x == 0 is not counted).
+ *   zeroOutputRatePct: 100 * count(o == 0) / N over the whole frame, after the rounding (x < 0.5): a different quantity from clampRatePct.
+ * Relations between the two stages (QA-A-266b, Codex #237 R237-4). With m_0 = mean(max(x,0)) and m_s = mean(min(max(x,0),65535)) over the ROI:
+ *   always:  m_0 >= darkBiasSigned  (the floor can only raise a mean)   and   |darkBiasOutput - m_s| <= 0.5  (the rounding moves a pixel by at most 0.5)
+ *   when every ROI residual satisfies x <= 65535 (nothing saturates): m_s = m_0, so |darkBiasOutput - m_0| <= 0.5
+ *   when additionally every ROI residual is an integer: darkBiasOutput = m_0 >= darkBiasSigned (the rounding adds nothing to an integer)
+ * It does NOT hold in general that darkBiasOutput >= darkBiasSigned: a ROI residual of +0.2 everywhere rounds to output 0, and a residual above 65535 saturates (x = 65635 everywhere gives
+ * darkBiasSigned 65635 and darkBiasOutput 65535). A map that makes x exceed 65535 is a broken map; the function still measures it.
+ */
+typedef struct XpeOffsetQuality {
+    uint32_t structSize;          /**< [in]  sizeof(XpeOffsetQuality) as the caller compiled it; at least 32 */
+    uint32_t writtenSize;         /**< [out] bytes written (a field boundary, see above); 0 on any failure */
+    uint32_t validMask;           /**< [out] XPE_OFFSETQ_* groups measured AND completely inside what was written; 0 on any failure */
+    uint32_t roiPixels;           /**< [out] pixels the dark ROI selected, whether or not that was enough to measure (0 on failure and when the frame has no spread) */
+    uint64_t pixelCount;          /**< [out] width * height (0 on failure) */
+    uint32_t mapWidth;            /**< [out] width of the offset map the measurement used (0 on failure) */
+    uint32_t mapHeight;           /**< [out] height of the offset map (0 on failure) */
+    uint8_t  mapSha256[32];       /**< [out] SHA-256 of the map's float32 bytes; valid when XPE_OFFSETQ_MAP_IDENT is set */
+    double   darkBiasSigned;      /**< [out] ROI_SIGNED:     mean(x), pixel values */
+    double   dsnuSigned;          /**< [out] ROI_SIGNED:     sample standard deviation of x */
+    double   darkReductionDb;     /**< [out] DARK_REDUCTION: 20 log10(std(raw ROI) / max(std(x ROI), 1e-9)) */
+    double   clampRatePct;        /**< [out] CLAMP_RATE:     percent of the frame with x < 0 */
+    double   zeroOutputRatePct;   /**< [out] CLAMP_RATE:     percent of the frame whose UINT16 output is 0 */
+    double   darkBiasOutput;      /**< [out] ROI_OUTPUT:     mean(o) */
+    double   dsnuOutput;          /**< [out] ROI_OUTPUT:     sample standard deviation of o */
+} XpeOffsetQuality;
+
+/**
+ * @brief Signed quality of an offset map against one raw dark frame (stateless)
+ *
+ * @param raw_image UINT16 raw dark frame
+ * @param offset_map FLOAT32 offset map of the same width and height (the map itself, not a loaded set)
+ * @param quality [in/out] structSize set by the caller (at least 32); filled as described at XpeOffsetQuality
+ * @return XPE_OK (a ROI that is empty or too small, or a raw frame without variation, is XPE_OK with the ROI groups' bits clear and their fields 0, never a measured value)
+ *         XPE_ERR_INVALID_INPUT for NULL quality, structSize < 32, NULL raw_image or offset_map, an empty or overflowing size, a short dataSize or a map of another size
+ *         XPE_ERR_UNSUPPORTED_FORMAT if raw_image is not UINT16 or offset_map is not FLOAT32
+ *         XPE_ERR_INVALID_CALIB_DATA if the map holds a value that is not finite
+ *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED
+ *         On ANY error, once @p quality is not NULL and its structSize is at least 32, the 32-byte head of @p quality is zeroed (an earlier result in it does not survive: validMask is 0);
+ *         bytes beyond the head are not touched and carry no meaning. For a NULL @p quality or a structSize below 32 nothing is written.
+ */
+XPE_API XpeErrorCode xpe_verify_offset_signed(
+    const XpeImageBuffer* raw_image,
+    const XpeImageBuffer* offset_map,
+    XpeOffsetQuality* quality);
+
+/**
+ * @brief xpe_verify_offset_signed() with the offset map read from an XCal OFFSET file
+ *
+ * The file is validated by the module's reader (magic, type, SHA-256). Its expiry is NOT checked: this measures a stored map, it does not apply it.
+ * mapSha256 is the SHA-256 of the map's float32 payload bytes (not the file header's hash over config and payload).
+ *
+ * @param raw_image UINT16 raw dark frame (as for xpe_verify_offset_signed)
+ * @param offset_xcal_path Path of the XCal OFFSET file holding the map; NULL is refused (XPE_ERR_INVALID_INPUT)
+ * @param quality [in/out] the result record; its structSize says how much of it the caller can hold (as for xpe_verify_offset_signed)
+ * @return the results of xpe_verify_offset_signed(), plus the reader's errors for the file (XPE_ERR_IO_FAILED, XPE_ERR_CONFIG_INVALID, ...);
+ *         XPE_ERR_INVALID_INPUT if offset_xcal_path is NULL (the output rule of xpe_verify_offset_signed applies: the head of a usable @p quality is zeroed)
+ */
+XPE_API XpeErrorCode xpe_verify_offset_signed_file(
+    const XpeImageBuffer* raw_image,
+    const char* offset_xcal_path,
+    XpeOffsetQuality* quality);
+/** @} */
 
 /**
  * @brief Verify gain correction quality

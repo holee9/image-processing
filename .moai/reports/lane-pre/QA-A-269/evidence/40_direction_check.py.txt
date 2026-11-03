@@ -1,0 +1,86 @@
+"""QA-A-269 (Codex #240 A-1): the real numbers behind the mutants of the overlapped-pixel noise cost. With the correct expression c = s2 / (g * g) / expect; without the division c' = s2 / expect = g * g * c, which is SMALLER than c for g < 1.
+So the O1 mutant is caught by the LOWER bounds of the QA-A-268 test, not by the upper ones. This script builds O1, O2 and O3 one at a time, runs the one test, and keeps the values gtest prints for the failed bounds
+(gainMean against 0.7, ratio against 0.8). Predictions (written before the run): O1 gainMean about 0.2 to 0.55 and below 0.7, ratio below 0.8; O2 (multiplied by g * g: c * g^4) lower still; O3 (no division by the expectation) above 1.5.
+One build at a time; the sources are restored and rebuilt at the end and the source hash is compared. Usage: PYTHONIOENCODING=utf-8 python -X utf8 40_direction_check.py.txt"""
+import hashlib, os, re, subprocess, sys, time
+ROOT = 'D:/workspace-github/xpe-pre/'
+SPD = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/'
+BAT = SPD + 'build237.bat'
+CPP = ROOT + 'modules/preprocess/tools/xpe_bpm_eval.cpp'
+TESTCPP = ROOT + 'modules/preprocess/tests/test_bpm_eval.cpp'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+TOOL = ROOT + 'build/ci-preprocess/bin/xpe_bpm_eval.exe'
+LOG = ROOT + '.moai/reports/lane-pre/QA-A-269/evidence/41_direction_check_log.txt'
+BS = chr(92)
+OLD = b'ac.sumC += (static_cast<double>(s2[i]) / (g * g)) / expect;'
+MUT = [('O1 without the division by g*g', b'ac.sumC += static_cast<double>(s2[i]) / expect;'),
+       ('O2 multiplied by g*g', b'ac.sumC += (static_cast<double>(s2[i]) * (g * g)) / expect;'),
+       ('O3 without the division by the expectation', b'ac.sumC += (static_cast<double>(s2[i]) / (g * g)) / 1.0;')]
+
+
+def say(t):
+    print(t, flush=True)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+def build():
+    for f in (TESTCPP, CPP):
+        os.utime(f, None)
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), 'xpe_preprocess_tests'], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_test():
+    r = subprocess.run([EXE, '--gtest_filter=BpmEvalQuantumTest.TheOverlappedPixel*'], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    keep = [l.strip() for l in r.stdout.splitlines() if ('actual' in l.lower() or 'Expected' in l or 'Which is' in l or 'gain-only' in l or 'measured over ideal' in l or 'PASSED' in l or 'FAILED  ]' in l)]
+    return r.returncode, keep
+
+
+orig = {p: open(p, 'rb').read() for p in (CPP, TESTCPP)}
+h0 = hashlib.sha256(orig[CPP] + orig[TESTCPP]).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say('QA-A-269 direction check of the overlapped-cost mutants. Source hash at the start: ' + h0)
+try:
+    say('--- baseline')
+    t0 = time.time()
+    say('build: ' + build())
+    rc, keep = run_test()
+    say('test exit %d' % rc)
+    for l in keep:
+        say('  ' + l)
+    if rc != 0:
+        raise SystemExit('baseline test is not green: stopped')
+    base_sha = hashlib.sha256(open(TOOL, 'rb').read()).hexdigest()[:16]
+    for name, new in MUT:
+        for p, d in orig.items():
+            open(p, 'wb').write(d)
+            os.utime(p, None)
+        assert orig[CPP].count(OLD) == 1
+        open(CPP, 'wb').write(orig[CPP].replace(OLD, new))
+        tw = time.time()
+        say('--- ' + name)
+        b = build()
+        say('build: ' + b)
+        sha_now = hashlib.sha256(open(TOOL, 'rb').read()).hexdigest()[:16]
+        fresh = os.path.getmtime(TOOL) >= tw and sha_now != base_sha
+        say('tool executable newer and different from the baseline: %s' % fresh)
+        if 'BUILD_EXIT=0' not in b or not fresh:
+            say('INVALID: not counted')
+            continue
+        rc, keep = run_test()
+        say('test exit %d' % rc)
+        for l in keep:
+            say('  ' + l)
+finally:
+    for p, d in orig.items():
+        open(p, 'wb').write(d)
+        os.utime(p, None)
+    say('--- restored')
+    h1 = hashlib.sha256(open(CPP, 'rb').read() + open(TESTCPP, 'rb').read()).hexdigest()[:16]
+    say('source hash now %s (start %s)' % (h1, h0))
+    say('build: ' + build())
+    rc, keep = run_test()
+    say('final baseline test exit %d' % rc)
+    if h1 != h0 or rc != 0:
+        say('ERROR: the tree is not as at the start')
+        sys.exit(3)

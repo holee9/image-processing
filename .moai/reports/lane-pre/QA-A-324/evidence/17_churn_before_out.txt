@@ -1,0 +1,7 @@
+  reproduced exactly
+DM outside zone: planted 2097 clean 2107 gained 11 lost 21 | background only: gained 11 lost 20
+DN outside zone: planted 108 clean 108 gained 0 lost 0 | background only: gained 0 lost 0
+DL outside zone: planted 1 clean 1 gained 0 lost 0 | background only: gained 0 lost 0
+FL outside zone: planted 0 clean 0 gained 0 lost 0 | background only: gained 0 lost 0
+BN outside zone: planted 36 clean 4 gained 32 lost 0 | background only: gained 1 lost 0
+map outside zone: gained 43 (tool new false alarms) lost 21

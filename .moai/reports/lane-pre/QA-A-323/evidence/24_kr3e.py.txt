@@ -1,0 +1,13 @@
+# QA-A-323 KR3 part 5: PRE map OR PRE line mask vs engine; the two partial noise columns. argv: tmp
+import sys, numpy as np
+T = sys.argv[1]; B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+W, H = 3072, 2560
+eng = np.fromfile(B + "/corrected/TOTAL_BPM.raw", dtype="<u2").reshape(H, W) != 0
+pre = np.fromfile(T + "/v_c.map.u8", dtype="u1").reshape(H, W) != 0
+lm = np.fromfile(T + "/v_c.lines.u8", dtype="u1").reshape(H, W) != 0
+p20 = np.fromfile(T + "/v_c20.map.u8", dtype="u1").reshape(H, W) != 0
+print("line mask pixels", int(lm.sum()), "| in cols 15-19", int(lm[:, 15:20].sum()), "| col 1534", int(lm[:, 1534].sum()), "engine there", int((lm[:, 1534] & eng[:, 1534]).sum()),
+      "| col 2555", int(lm[:, 2555].sum()), "engine there", int((lm[:, 2555] & eng[:, 2555]).sum()))
+for nm, P in (("PRE map (V-c)", pre), ("PRE map | line mask (V-c)", pre | lm), ("PRE map margins 20 (V-c')", p20), ("V-c' map | V-c cols 15-19 line mask", p20 | (lm & (np.arange(W) < 20)[None, :]))):
+    print(f"{nm}: PRE {int(P.sum())} both {int((P & eng).sum())} PRE_only {int((P & ~eng).sum())} engine_only {int((~P & eng).sum())} coverage {(P & eng).sum() / eng.sum():.4f}")
+print("V-c' (margin 20) outside cols>=20 vs V-c same region: identical flags in cols>=20:", bool(((p20 ^ pre)[:, 20:]).sum() == 0), "| differing", int(((p20 ^ pre)[:, 20:]).sum()))

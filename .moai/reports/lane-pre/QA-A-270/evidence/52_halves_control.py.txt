@@ -1,0 +1,18 @@
+"""QA-A-270 item 1 (stage 4b): control for the split-half persistence. Among pixels the full map flags with the bright-noise bit ONLY (no other bit, no line mask), split by truth: planted true defects of kind noisy (the same
+detector characteristic catching known defects) versus the 31 on the normal control bands. Share also flagged in half A, half B, both. Reads files only.
+Usage: python -X utf8 52_halves_control.py.txt > 53_halves_control.txt"""
+import numpy as np
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/'
+exec(compile(open(HERE + '20_classify_48.py.txt', encoding='utf-8').read().split('rows = []')[0], '20_head', 'exec'), globals())
+only_bn = ((feat & 32) != 0) & area   # QA-A-270: the first version required the bit ALONE and found no true defect (every true defect also carries another bit); the control uses 'bit set'
+noisy_true = np.zeros((S, S), dtype=bool)
+for k, it in items.items():
+    if cls[k] == 'defect' and it['kind'] == 'noisy':
+        for (x, y, w, h) in it['rects']:
+            noisy_true[y:y + h, x:x + w] = True
+groups = (('true noisy defects, bright-noise bit set', only_bn & noisy_true & (ids != 0xFFFF)), ('the 31 on normal control bands', new & (ids != 0) & (ids != 0xFFFF) & (feat == 32)),
+          ('all true defects (any kind), bright-noise bit set', only_bn & truth_real & (ids != 0xFFFF)))
+for name, m in groups:
+    n = int(m.sum())
+    a, b = int((m & ha).sum()), int((m & hb).sum())
+    print('%-52s pixels %5d  in half A %5d (%.3f)  in half B %5d (%.3f)  in both %5d (%.3f)' % (name, n, a, a / max(n, 1), b, b / max(n, 1), int((m & ha & hb).sum()), (m & ha & hb).sum() / max(n, 1)))

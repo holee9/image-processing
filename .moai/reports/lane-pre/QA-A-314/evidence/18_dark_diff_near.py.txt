@@ -1,0 +1,16 @@
+import numpy as np
+S=3072
+CAL='D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+INJ='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+ids=np.fromfile('D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16','<u2').reshape(S,S)
+dp=np.zeros((S,S)); dc=np.zeros((S,S))
+for k in range(8,15):
+  dp+=np.fromfile(INJ+'Dark_%02d.raw'%k,'<u2').reshape(S,S); dc+=np.fromfile(CAL+'Dark_%02d.raw'%k,'<u2').reshape(S,S)
+d=(dp-dc)/7; nz=d!=0
+print('pixels with dark difference',int(nz.sum()),'of which outside truth items',int((nz&(ids==0)).sum()))
+for y,x in [(349,199),(796,199),(901,2185),(1023,1453),(1095,454),(1253,1246),(1590,2707),(1612,196)]:
+  for rad in (8,32):
+    w=nz[max(0,y-rad):y+rad+1,max(0,x-rad):x+rad+1]
+    print(y,x,'r%d'%rad,'changed px',int(w.sum()), 'row changed',int(nz[y].sum()),'col changed',int(nz[:,x].sum()))
+  by,bx=(y-2)//64,(x-6)//64
+  print('   block changed px',int(nz[2+by*64:2+by*64+64,6+bx*64:6+bx*64+64].sum()))

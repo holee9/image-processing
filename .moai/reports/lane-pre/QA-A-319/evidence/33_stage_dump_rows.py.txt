@@ -1,0 +1,14 @@
+import numpy as np, sys
+# QA-A-319 after-fix stage dump around the rows with whole odd half-rows still flagged (argv: folder, first row, last row)
+T = sys.argv[1]; y0, y1 = int(sys.argv[2]), int(sys.argv[3])
+meta = open(T + '/dump_meta.txt').read().split(); W = int(meta[1]); H = int(meta[3]); lam = float(meta[meta.index('lambda') + 1]); cnt = int(meta[meta.index('count') + 1])
+L = lambda n: np.fromfile(T + '/dump_' + n + '.f32', dtype=np.float32)
+orig, vref, afterrc, hmed, bg, resid, scale = [L(n).reshape(H, W).astype(np.float64) for n in ['orig', 'vref', 'afterrc', 'hmed', 'bg', 'resid', 'scale']]
+rowco, rowce, colc = L('rowc'), L('rowce'), L('colc')
+flag = np.abs(resid) > lam * scale
+print('meta', ' '.join(meta), '| control recomputed', int(flag.sum()), 'reported', cnt)
+print('row y (y%32) | mean orig even/odd | mean vref even/odd | ce co | afterrc even/odd | hmed even/odd | bg even/odd | resid even/odd | flagged even/odd')
+for y in range(max(0, y0 - 10), min(H, y1 + 11)):
+    e, o = slice(0, W, 2), slice(1, W, 2)
+    m = lambda a, s: a[y, s].mean()
+    print(f'{y} ({y%32:2d}) | {m(orig,e):8.2f} {m(orig,o):8.2f} | {m(vref,e):8.2f} {m(vref,o):8.2f} | {rowce[y]:6.2f} {rowco[y]:6.2f} | {m(afterrc,e):8.2f} {m(afterrc,o):8.2f} | {m(hmed,e):8.2f} {m(hmed,o):8.2f} | {m(bg,e):8.2f} {m(bg,o):8.2f} | {m(resid,e):6.2f} {m(resid,o):6.2f} | {int(flag[y,e].sum())} {int(flag[y,o].sum())}')

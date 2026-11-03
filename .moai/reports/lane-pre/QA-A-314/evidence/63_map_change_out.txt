@@ -1,0 +1,8 @@
+planted map: before 149343 after 149305 removed 39 added 1
+  removed pixels inside a truth item 4 outside 35
+clean map: before 2353 after 2353 removed 0 added 0
+removed truth px (2203, 59) item 99 control/efficiency_loss/col_pair/0.46/58,2202,2,768
+removed truth px (2916, 190) item 27 line/noisy/row_partial/4/190,2916,768,1
+removed truth px (2968, 59) item 99 control/efficiency_loss/col_pair/0.46/58,2202,2,768
+removed truth px (2969, 59) item 99 control/efficiency_loss/col_pair/0.46/58,2202,2,768
+added px (1548, 163) item 36 line/noisy/col_pair/2/162,1547,2,768

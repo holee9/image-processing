@@ -1,0 +1,3 @@
+control-1 (A = in-memory copy of B, comparison_kind as written): reasons = ["CORRECTION_STATE_UNVERIFIED", "MODE_MISSING"]
+control-2 (control 1 + test-only state/mode): reasons = [] comparable = True
+control-3 (control 1 with B.output.sha256 zeroed): reasons = ["CORRECTION_STATE_UNVERIFIED", "MODE_MISSING", "SHA_MISMATCH"]

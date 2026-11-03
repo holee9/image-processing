@@ -1,0 +1,402 @@
+===== s0_gf  Z:/공통자료/개발팀 Test image/09. EOD_애드로지/20260708_XRS3 배터리 테스트_각 시료별/2G GF/cal/★A1417MCWGF2403040001(2G)/
+  bright files: 20
+  dark.raw mean=5713.5 std=332.1 n0=6053 n65535=12 p0=0.0 p1=5449.0 p50=5635.0 p99=6339.0 p100=65535.0
+  Bright01_OC_06452.raw: OC=6452 mean=6786.0 center(+-200 rows)=6318.7 mean<darkmean=False n0=84691 n65535=72723
+  Bright02_OC_06470.raw: OC=6470 mean=6722.9 center(+-200 rows)=6305.0 mean<darkmean=False n0=85620 n65535=69945
+  Bright03_OC_06464.raw: OC=6464 mean=6713.3 center(+-200 rows)=6326.4 mean<darkmean=False n0=85878 n65535=70620
+  Bright04_OC_06478.raw: OC=6478 mean=6734.0 center(+-200 rows)=6334.0 mean<darkmean=False n0=85333 n65535=69573
+  Bright05_OC_06476.raw: OC=6476 mean=6726.5 center(+-200 rows)=6302.4 mean<darkmean=False n0=85281 n65535=69874
+  Bright06_OC_06471.raw: OC=6471 mean=6693.6 center(+-200 rows)=6328.2 mean<darkmean=False n0=85890 n65535=69636
+  Bright07_OC_06474.raw: OC=6474 mean=6726.7 center(+-200 rows)=6321.6 mean<darkmean=False n0=84859 n65535=69710
+  Bright08_OC_06480.raw: OC=6480 mean=6696.8 center(+-200 rows)=6340.0 mean<darkmean=False n0=84851 n65535=69277
+  Bright09_OC_06488.raw: OC=6488 mean=6696.4 center(+-200 rows)=6376.9 mean<darkmean=False n0=85092 n65535=69663
+  Bright10_OC_06478.raw: OC=6478 mean=6696.6 center(+-200 rows)=6356.8 mean<darkmean=False n0=85322 n65535=70012
+  Bright11_OC_00098.raw: OC=98 mean=1048.2 center(+-200 rows)=331.2 mean<darkmean=True n0=87519 n65535=65493
+  Bright12_OC_00138.raw: OC=138 mean=1101.9 center(+-200 rows)=395.6 mean<darkmean=True n0=86929 n65535=66097
+  Bright13_OC_00304.raw: OC=304 mean=1254.9 center(+-200 rows)=526.9 mean<darkmean=True n0=87206 n65535=66351
+  Bright14_OC_00378.raw: OC=378 mean=1303.2 center(+-200 rows)=593.8 mean<darkmean=True n0=86165 n65535=65093
+  Bright15_OC_01601.raw: OC=1601 mean=2401.6 center(+-200 rows)=1757.8 mean<darkmean=True n0=86645 n65535=67537
+  Bright16_OC_06455.raw: OC=6455 mean=6701.3 center(+-200 rows)=6331.7 mean<darkmean=False n0=84307 n65535=69949
+  Bright17_OC_10071.raw: OC=10071 mean=9966.3 center(+-200 rows)=9745.4 mean<darkmean=False n0=81947 n65535=72619
+  Bright18_OC_05150.raw: OC=5150 mean=5546.1 center(+-200 rows)=5069.9 mean<darkmean=True n0=85424 n65535=71225
+  Bright19_OC_07155.raw: OC=7155 mean=7376.8 center(+-200 rows)=6963.6 mean<darkmean=False n0=83173 n65535=71839
+  Bright20_OC_11273.raw: OC=11273 mean=11090.2 center(+-200 rows)=10832.5 mean<darkmean=False n0=79307 n65535=73712
+  Bright01..10 center min=6302.4 max=6376.9 ratio=1.0118
+  Bright01..10 OC name min=6452 max=6488 ratio=1.0056
+  BPM.raw uint16 values [0, 16383] nonzero=31692
+  BPMap.map values [0, 255] nonzero=31692; same set as BPM.raw nonzero: True
+  BrightAvg == round_half_up(mean(01..10)): good pixels 92.042% (7209325/7832628); defect pixels 94.532%; all 92.052%
+  BrightAvg == rint_half_even(mean(01..10)): good pixels 96.872% (7587597/7832628); defect pixels 99.303%; all 96.881%
+  good pixels with BrightAvg != round_half_up: 623303; |diff| p0=1.0 p1=1.0 p50=1.0 p99=39321.0 p100=52429.0
+    of those, BrightAvg==0: 113241, ==65535: 73057, other: 437005
+    other |diff| p0=1.0 p1=1.0 p50=1.0 p99=13107.0 p100=52429.0
+  BrightAvg n0=118083 n65535=73910; of n0 in BPMap defects: 249; of n65535 in BPMap defects: 37
+  BrightAvg==0: count=118083
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 118083
+    within 1px of frame edge: 3412
+    within 4px of frame edge: 14331
+    within 16px of frame edge: 41514
+    within 32px of frame edge: 58860
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2547, cols with >=1: 3072
+    top rows (row:count) 2556:2979 2526:1162 2534:1160 2507:1137 2487:1136
+    top cols (col:count) 13:1295 9:1276 10:1218 6:1218 14:1215
+  BrightAvg==65535: count=73910
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 73910
+    within 1px of frame edge: 1918
+    within 4px of frame edge: 6232
+    within 16px of frame edge: 20048
+    within 32px of frame edge: 34255
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2546, cols with >=1: 3072
+    top rows (row:count) 2515:944 2529:935 2494:926 2508:909 2533:880
+    top cols (col:count) 3060:740 3055:738 3061:728 3070:710 3062:700
+  BPMap defects: count=31692
+    full-width rows (10): [255, 511, 767, 1023, 1279, 1535, 1791, 2047, 2303, 2559]
+    full-height cols (0): []
+    outside full rows/cols: 972
+    within 1px of frame edge: 3090
+    within 4px of frame edge: 3144
+    within 16px of frame edge: 3374
+    within 32px of frame edge: 3673
+    rest bbox y[5,2467] x[15,3035]; rows with >=1: 782, cols with >=1: 816
+    top rows (row:count) 2421:3 2245:3 2033:3 2224:3 71:3
+    top cols (col:count) 15:6 45:4 2408:4 1269:3 2190:3
+  round(mean(01..10))==0 count=4658; ==65535 count=1362
+===== s1_um300  Z:/공통자료/개발팀 Test image/00. 2025년/20250211_본사 방문 테스트_ 2G_300um 2ea/300um_image/1417_cal/
+  bright files: 20
+  dark.raw mean=6271.1 std=252.7 n0=6061 n65535=12 p0=0.0 p1=6233.0 p50=6279.0 p99=6332.0 p100=65535.0
+  Bright01_OC_00469.raw: OC=469 mean=1016.3 center(+-200 rows)=581.4 mean<darkmean=True n0=125771 n65535=55806
+  Bright02_OC_00478.raw: OC=478 mean=975.0 center(+-200 rows)=582.1 mean<darkmean=True n0=123317 n65535=52423
+  Bright03_OC_00478.raw: OC=478 mean=1032.1 center(+-200 rows)=594.1 mean<darkmean=True n0=127119 n65535=57350
+  Bright04_OC_00475.raw: OC=475 mean=1005.9 center(+-200 rows)=597.7 mean<darkmean=True n0=125372 n65535=55395
+  Bright05_OC_00472.raw: OC=472 mean=1015.8 center(+-200 rows)=594.6 mean<darkmean=True n0=127132 n65535=56481
+  Bright06_OC_00477.raw: OC=477 mean=978.3 center(+-200 rows)=582.7 mean<darkmean=True n0=123874 n65535=52751
+  Bright07_OC_00478.raw: OC=478 mean=1006.0 center(+-200 rows)=595.4 mean<darkmean=True n0=124575 n65535=55133
+  Bright08_OC_00480.raw: OC=480 mean=1001.8 center(+-200 rows)=598.6 mean<darkmean=True n0=124689 n65535=54469
+  Bright09_OC_00480.raw: OC=480 mean=1008.7 center(+-200 rows)=610.1 mean<darkmean=True n0=125047 n65535=55429
+  Bright10_OC_00484.raw: OC=484 mean=997.2 center(+-200 rows)=605.0 mean<darkmean=True n0=124041 n65535=53775
+  Bright11_OC_00033.raw: OC=33 mean=664.2 center(+-200 rows)=158.4 mean<darkmean=True n0=127901 n65535=59082
+  Bright12_OC_00068.raw: OC=68 mean=652.2 center(+-200 rows)=182.5 mean<darkmean=True n0=125741 n65535=56410
+  Bright13_OC_00237.raw: OC=237 mean=765.0 center(+-200 rows)=325.7 mean<darkmean=True n0=122966 n65535=52461
+  Bright14_OC_00598.raw: OC=598 mean=1101.1 center(+-200 rows)=700.0 mean<darkmean=True n0=124439 n65535=53733
+  Bright15_OC_00750.raw: OC=750 mean=1246.1 center(+-200 rows)=843.2 mean<darkmean=True n0=123601 n65535=53375
+  Bright16_OC_00965.raw: OC=965 mean=1377.1 center(+-200 rows)=1054.1 mean<darkmean=True n0=120450 n65535=48954
+  Bright17_OC_00116.raw: OC=116 mean=677.9 center(+-200 rows)=211.4 mean<darkmean=True n0=124364 n65535=54232
+  Bright18_OC_00557.raw: OC=557 mean=1076.5 center(+-200 rows)=652.8 mean<darkmean=True n0=125515 n65535=54023
+  Bright19_OC_00696.raw: OC=696 mean=1141.7 center(+-200 rows)=774.3 mean<darkmean=True n0=121090 n65535=49163
+  Bright20_OC_00734.raw: OC=734 mean=1218.4 center(+-200 rows)=813.1 mean<darkmean=True n0=122749 n65535=52484
+  Bright01..10 center min=581.4 max=610.1 ratio=1.0494
+  Bright01..10 OC name min=469 max=484 ratio=1.0320
+  BPM.raw size 7864320 (uint8) values [0, 255] nonzero=1030
+  BPMap.map values [0, 255] nonzero=1030; same set as BPM.raw nonzero: True
+  BrightAvg == round_half_up(mean(01..10)): good pixels 91.647% (7206497/7863290); defect pixels 93.689%; all 91.648%
+  BrightAvg == rint_half_even(mean(01..10)): good pixels 96.466% (7585432/7863290); defect pixels 99.417%; all 96.467%
+  good pixels with BrightAvg != round_half_up: 656793; |diff| p0=1.0 p1=1.0 p50=1.0 p99=32768.0 p100=52428.0
+    of those, BrightAvg==0: 183671, ==65535: 14541, other: 458581
+    other |diff| p0=1.0 p1=1.0 p50=1.0 p99=13107.0 p100=45875.0
+  BrightAvg n0=197037 n65535=14566; of n0 in BPMap defects: 4; of n65535 in BPMap defects: 1
+  BrightAvg==0: count=197037
+    full-width rows (2): [2555, 2557]
+    full-height cols (0): []
+    outside full rows/cols: 190893
+    within 1px of frame edge: 5159
+    within 4px of frame edge: 23233
+    within 16px of frame edge: 81084
+    within 32px of frame edge: 108097
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2558, cols with >=1: 3072
+    top rows (row:count) 2556:3070 2548:1838 2504:1731 2490:1728 2494:1726
+    top cols (col:count) 13:2129 9:2063 8:1965 0:1907 3068:1903
+  BrightAvg==65535: count=14566
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 14566
+    within 1px of frame edge: 378
+    within 4px of frame edge: 1268
+    within 16px of frame edge: 5465
+    within 32px of frame edge: 7614
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2040, cols with >=1: 2937
+    top rows (row:count) 2527:243 2494:208 2525:202 2548:197 2543:186
+    top cols (col:count) 6:197 1:195 12:171 3060:158 3056:156
+  BPMap defects: count=1030
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 1030
+    within 1px of frame edge: 0
+    within 4px of frame edge: 0
+    within 16px of frame edge: 5
+    within 32px of frame edge: 21
+    rest bbox y[7,2467] x[17,3054]; rows with >=1: 842, cols with >=1: 873
+    top rows (row:count) 219:5 659:4 54:3 900:3 1203:3
+    top cols (col:count) 1118:4 905:3 1054:3 762:3 650:3
+  round(mean(01..10))==0 count=13362; ==65535 count=29
+===== s4_csi_pre  Z:/공통자료/개발팀 Test image/03. 두산 시료/20251023 기존두산이미지/2023.03.14 NDT 1차 Test Raw 영상/Test 전후 비교평가/CsI/DS Test 전 calibration file/
+  bright files: 20
+  dark.raw mean=5848.6 std=408.5 n0=3027 n65535=12 p0=0.0 p1=5641.0 p50=5760.0 p99=6330.0 p100=65535.0
+  Bright01_OC_05315.raw: OC=5315 mean=5047.0 center(+-200 rows)=5231.7 mean<darkmean=True n0=77701 n65535=25991
+  Bright02_OC_05432.raw: OC=5432 mean=5130.9 center(+-200 rows)=5330.0 mean<darkmean=True n0=75493 n65535=24172
+  Bright03_OC_05341.raw: OC=5341 mean=5063.5 center(+-200 rows)=5257.8 mean<darkmean=True n0=76559 n65535=25311
+  Bright04_OC_05379.raw: OC=5379 mean=5084.1 center(+-200 rows)=5289.3 mean<darkmean=True n0=74081 n65535=24042
+  Bright05_OC_05359.raw: OC=5359 mean=5077.4 center(+-200 rows)=5279.3 mean<darkmean=True n0=74803 n65535=24909
+  Bright06_OC_05362.raw: OC=5362 mean=5068.5 center(+-200 rows)=5279.1 mean<darkmean=True n0=73176 n65535=23726
+  Bright07_OC_05432.raw: OC=5432 mean=5132.1 center(+-200 rows)=5349.1 mean<darkmean=True n0=73732 n65535=24023
+  Bright08_OC_05426.raw: OC=5426 mean=5131.4 center(+-200 rows)=5347.9 mean<darkmean=True n0=73278 n65535=24488
+  Bright09_OC_05444.raw: OC=5444 mean=5139.0 center(+-200 rows)=5363.2 mean<darkmean=True n0=71594 n65535=23748
+  Bright10_OC_05383.raw: OC=5383 mean=5068.0 center(+-200 rows)=5288.2 mean<darkmean=True n0=69653 n65535=21838
+  Bright11_OC_00084.raw: OC=84 mean=539.5 center(+-200 rows)=186.4 mean<darkmean=True n0=99224 n65535=41953
+  Bright12_OC_00114.raw: OC=114 mean=556.3 center(+-200 rows)=222.9 mean<darkmean=True n0=99996 n65535=41110
+  Bright13_OC_00256.raw: OC=256 mean=641.8 center(+-200 rows)=310.0 mean<darkmean=True n0=95691 n65535=37003
+  Bright14_OC_00324.raw: OC=324 mean=733.3 center(+-200 rows)=409.9 mean<darkmean=True n0=98024 n65535=39999
+  Bright15_OC_01357.raw: OC=1357 mean=1582.0 center(+-200 rows)=1387.3 mean<darkmean=True n0=90049 n65535=33071
+  Bright16_OC_05482.raw: OC=5482 mean=5145.5 center(+-200 rows)=5371.2 mean<darkmean=True n0=68597 n65535=21027
+  Bright17_OC_08528.raw: OC=8528 mean=7841.8 center(+-200 rows)=8320.2 mean<darkmean=False n0=57396 n65535=17483
+  Bright18_OC_04424.raw: OC=4424 mean=4186.8 center(+-200 rows)=4360.6 mean<darkmean=True n0=71509 n65535=21833
+  Bright19_OC_06219.raw: OC=6219 mean=5810.1 center(+-200 rows)=6118.5 mean<darkmean=True n0=62088 n65535=19663
+  Bright20_OC_10011.raw: OC=10011 mean=9185.5 center(+-200 rows)=9792.5 mean<darkmean=False n0=50330 n65535=16820
+  Bright01..10 center min=5231.7 max=5363.2 ratio=1.0251
+  Bright01..10 OC name min=5315 max=5444 ratio=1.0243
+  BPM.raw uint16 values [0, 16383] nonzero=31635
+  BPMap.map values [0, 255] nonzero=31635; same set as BPM.raw nonzero: True
+  BrightAvg == round_half_up(mean(01..10)): good pixels 93.262% (7304899/7832685); defect pixels 94.519%; all 93.267%
+  BrightAvg == rint_half_even(mean(01..10)): good pixels 98.117% (7685212/7832685); defect pixels 99.624%; all 98.123%
+  good pixels with BrightAvg != round_half_up: 527786; |diff| p0=1.0 p1=1.0 p50=1.0 p99=32768.0 p100=58982.0
+    of those, BrightAvg==0: 69066, ==65535: 3899, other: 454821
+    other |diff| p0=1.0 p1=1.0 p50=1.0 p99=13107.0 p100=58982.0
+  BrightAvg n0=74898 n65535=3930; of n0 in BPMap defects: 270; of n65535 in BPMap defects: 9
+  BrightAvg==0: count=74898
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 74898
+    within 1px of frame edge: 4811
+    within 4px of frame edge: 18400
+    within 16px of frame edge: 54330
+    within 32px of frame edge: 61701
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2547, cols with >=1: 3072
+    top rows (row:count) 2556:2979 0:1920 1:1717 2525:575 2534:533
+    top cols (col:count) 3057:1831 11:1789 3:1768 9:1763 3058:1733
+  BrightAvg==65535: count=3930
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 3930
+    within 1px of frame edge: 986
+    within 4px of frame edge: 2024
+    within 16px of frame edge: 3727
+    within 32px of frame edge: 3834
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 1556, cols with >=1: 1287
+    top rows (row:count) 0:800 1:467 2525:16 2541:15 2556:12
+    top cols (col:count) 3064:151 6:139 4:138 1:126 3068:125
+  BPMap defects: count=31635
+    full-width rows (10): [255, 511, 767, 1023, 1279, 1535, 1791, 2047, 2303, 2559]
+    full-height cols (0): []
+    outside full rows/cols: 915
+    within 1px of frame edge: 3090
+    within 4px of frame edge: 3144
+    within 16px of frame edge: 3371
+    within 32px of frame edge: 3711
+    rest bbox y[4,2467] x[15,3054]; rows with >=1: 746, cols with >=1: 768
+    top rows (row:count) 242:4 4:3 720:3 764:3 635:3
+    top cols (col:count) 16:13 17:8 15:6 18:6 125:4
+  round(mean(01..10))==0 count=5695; ==65535 count=26
+===== s5_csi_post  Z:/공통자료/개발팀 Test image/03. 두산 시료/20251023 기존두산이미지/2023.03.14 NDT 1차 Test Raw 영상/Test 전후 비교평가/CsI/DS Test 후 calibration file/
+  bright files: 20
+  dark.raw mean=5845.2 std=309.0 n0=6056 n65535=12 p0=0.0 p1=5641.0 p50=5761.0 p99=6328.0 p100=65535.0
+  Bright01_OC_05594.raw: OC=5594 mean=5317.4 center(+-200 rows)=5482.0 mean<darkmean=True n0=76022 n65535=23766
+  Bright02_OC_05566.raw: OC=5566 mean=5299.1 center(+-200 rows)=5463.5 mean<darkmean=True n0=77539 n65535=24404
+  Bright03_OC_05622.raw: OC=5622 mean=5337.4 center(+-200 rows)=5511.4 mean<darkmean=True n0=75590 n65535=23159
+  Bright04_OC_05654.raw: OC=5654 mean=5376.0 center(+-200 rows)=5551.8 mean<darkmean=True n0=76462 n65535=24060
+  Bright05_OC_05644.raw: OC=5644 mean=5365.5 center(+-200 rows)=5540.6 mean<darkmean=True n0=76029 n65535=24024
+  Bright06_OC_05640.raw: OC=5640 mean=5369.9 center(+-200 rows)=5547.1 mean<darkmean=True n0=75811 n65535=24606
+  Bright07_OC_05653.raw: OC=5653 mean=5362.4 center(+-200 rows)=5540.5 mean<darkmean=True n0=74666 n65535=22876
+  Bright08_OC_05660.raw: OC=5660 mean=5374.8 center(+-200 rows)=5554.6 mean<darkmean=True n0=74775 n65535=23289
+  Bright09_OC_05664.raw: OC=5664 mean=5352.1 center(+-200 rows)=5551.7 mean<darkmean=True n0=70593 n65535=20843
+  Bright10_OC_05663.raw: OC=5663 mean=5363.8 center(+-200 rows)=5554.8 mean<darkmean=True n0=71900 n65535=22086
+  Bright11_OC_00083.raw: OC=83 mean=519.3 center(+-200 rows)=182.3 mean<darkmean=True n0=100401 n65535=40552
+  Bright12_OC_00116.raw: OC=116 mean=549.4 center(+-200 rows)=203.4 mean<darkmean=True n0=99095 n65535=40112
+  Bright13_OC_00258.raw: OC=258 mean=633.3 center(+-200 rows)=313.4 mean<darkmean=True n0=95426 n65535=36112
+  Bright14_OC_00324.raw: OC=324 mean=703.1 center(+-200 rows)=412.2 mean<darkmean=True n0=96076 n65535=37150
+  Bright15_OC_01384.raw: OC=1384 mean=1622.1 center(+-200 rows)=1443.6 mean<darkmean=True n0=91893 n65535=34011
+  Bright16_OC_05626.raw: OC=5626 mean=5339.3 center(+-200 rows)=5527.3 mean<darkmean=True n0=71304 n65535=23004
+  Bright17_OC_08770.raw: OC=8770 mean=8130.6 center(+-200 rows)=8558.4 mean<darkmean=False n0=58981 n65535=17511
+  Bright18_OC_04666.raw: OC=4666 mean=4444.7 center(+-200 rows)=4606.1 mean<darkmean=True n0=70876 n65535=22382
+  Bright19_OC_06552.raw: OC=6552 mean=6140.8 center(+-200 rows)=6438.7 mean<darkmean=False n0=61927 n65535=18083
+  Bright20_OC_10029.raw: OC=10029 mean=9262.1 center(+-200 rows)=9810.9 mean<darkmean=False n0=50323 n65535=14870
+  Bright01..10 center min=5463.5 max=5554.8 ratio=1.0167
+  Bright01..10 OC name min=5566 max=5664 ratio=1.0176
+  BPM.raw uint16 values [0, 16383] nonzero=31691
+  BPMap.map values [0, 255] nonzero=31691; same set as BPM.raw nonzero: True
+  BrightAvg == round_half_up(mean(01..10)): good pixels 93.262% (7304874/7832629); defect pixels 94.721%; all 93.268%
+  BrightAvg == rint_half_even(mean(01..10)): good pixels 98.117% (7685137/7832629); defect pixels 99.662%; all 98.123%
+  good pixels with BrightAvg != round_half_up: 527755; |diff| p0=1.0 p1=1.0 p50=1.0 p99=26215.0 p100=52428.0
+    of those, BrightAvg==0: 64762, ==65535: 3087, other: 459906
+    other |diff| p0=1.0 p1=1.0 p50=1.0 p99=13107.0 p100=45875.0
+  BrightAvg n0=70367 n65535=3116; of n0 in BPMap defects: 244; of n65535 in BPMap defects: 4
+  BrightAvg==0: count=70367
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 70367
+    within 1px of frame edge: 4518
+    within 4px of frame edge: 17572
+    within 16px of frame edge: 48248
+    within 32px of frame edge: 55598
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2547, cols with >=1: 3072
+    top rows (row:count) 2556:2979 0:1975 1:1591 2535:596 2527:541
+    top cols (col:count) 3065:1900 3063:1852 3066:1773 3064:1725 3067:1697
+  BrightAvg==65535: count=3116
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 3116
+    within 1px of frame edge: 946
+    within 4px of frame edge: 1865
+    within 16px of frame edge: 2918
+    within 32px of frame edge: 3014
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 1162, cols with >=1: 1379
+    top rows (row:count) 0:798 1:626 2556:12 2525:8 2541:8
+    top cols (col:count) 3071:103 4:87 3:85 3070:78 3058:76
+  BPMap defects: count=31691
+    full-width rows (10): [255, 511, 767, 1023, 1279, 1535, 1791, 2047, 2303, 2559]
+    full-height cols (0): []
+    outside full rows/cols: 971
+    within 1px of frame edge: 3090
+    within 4px of frame edge: 3144
+    within 16px of frame edge: 3381
+    within 32px of frame edge: 3713
+    rest bbox y[4,2467] x[15,3054]; rows with >=1: 769, cols with >=1: 782
+    top rows (row:count) 4:12 870:4 374:4 1047:4 2144:4
+    top cols (col:count) 17:7 18:6 19:6 15:5 3054:5
+  round(mean(01..10))==0 count=5487; ==65535 count=28
+===== s6_gad_pre  Z:/공통자료/개발팀 Test image/03. 두산 시료/20251023 기존두산이미지/2023.03.14 NDT 1차 Test Raw 영상/Test 전후 비교평가/Gadox/DS Test 전 Cal/
+  bright files: 20
+  dark.raw mean=5850.4 std=995.4 n0=3501 n65535=658 p0=0.0 p1=5634.0 p50=5749.0 p99=6328.0 p100=65535.0
+  Bright01_OC_02460.raw: OC=2460 mean=2931.4 center(+-200 rows)=2525.2 mean<darkmean=True n0=104304 n65535=56097
+  Bright02_OC_02461.raw: OC=2461 mean=2925.4 center(+-200 rows)=2524.5 mean<darkmean=True n0=103336 n65535=55347
+  Bright03_OC_02461.raw: OC=2461 mean=2921.3 center(+-200 rows)=2512.3 mean<darkmean=True n0=103154 n65535=55308
+  Bright04_OC_02464.raw: OC=2464 mean=2921.4 center(+-200 rows)=2536.3 mean<darkmean=True n0=102732 n65535=55147
+  Bright05_OC_02469.raw: OC=2469 mean=2934.7 center(+-200 rows)=2537.8 mean<darkmean=True n0=103101 n65535=56179
+  Bright06_OC_02500.raw: OC=2500 mean=2948.6 center(+-200 rows)=2581.5 mean<darkmean=True n0=103490 n65535=54907
+  Bright07_OC_02466.raw: OC=2466 mean=2877.2 center(+-200 rows)=2517.9 mean<darkmean=True n0=101213 n65535=51402
+  Bright08_OC_02518.raw: OC=2518 mean=2952.4 center(+-200 rows)=2595.4 mean<darkmean=True n0=102086 n65535=53396
+  Bright09_OC_02525.raw: OC=2525 mean=2947.7 center(+-200 rows)=2591.7 mean<darkmean=True n0=101642 n65535=52866
+  Bright10_OC_02511.raw: OC=2511 mean=2925.1 center(+-200 rows)=2585.9 mean<darkmean=True n0=101644 n65535=52532
+  Bright11_OC_00035.raw: OC=35 mean=601.3 center(+-200 rows)=186.7 mean<darkmean=True n0=99177 n65535=48969
+  Bright12_OC_00051.raw: OC=51 mean=606.5 center(+-200 rows)=220.1 mean<darkmean=True n0=98494 n65535=48674
+  Bright13_OC_00114.raw: OC=114 mean=668.4 center(+-200 rows)=250.4 mean<darkmean=True n0=98545 n65535=48480
+  Bright14_OC_00144.raw: OC=144 mean=624.6 center(+-200 rows)=314.0 mean<darkmean=True n0=91630 n65535=43126
+  Bright15_OC_00612.raw: OC=612 mean=1063.3 center(+-200 rows)=766.9 mean<darkmean=True n0=92175 n65535=43710
+  Bright16_OC_02504.raw: OC=2504 mean=2828.8 center(+-200 rows)=2597.6 mean<darkmean=True n0=95215 n65535=45373
+  Bright17_OC_03924.raw: OC=3924 mean=4156.6 center(+-200 rows)=3991.1 mean<darkmean=True n0=96661 n65535=47418
+  Bright18_OC_02576.raw: OC=2576 mean=2879.7 center(+-200 rows)=2683.6 mean<darkmean=True n0=93169 n65535=42704
+  Bright19_OC_03371.raw: OC=3371 mean=3662.1 center(+-200 rows)=3493.5 mean<darkmean=True n0=94479 n65535=46006
+  Bright20_OC_05237.raw: OC=5237 mean=5427.3 center(+-200 rows)=5297.7 mean<darkmean=True n0=96948 n65535=48161
+  Bright01..10 center min=2512.3 max=2595.4 ratio=1.0331
+  Bright01..10 OC name min=2460 max=2525 ratio=1.0264
+  BPM.raw uint16 values [0, 16383] nonzero=31542
+  BPMap.map values [0, 255] nonzero=31542; same set as BPM.raw nonzero: True
+  BrightAvg == round_half_up(mean(01..10)): good pixels 91.995% (7205782/7832778); defect pixels 94.322%; all 92.005%
+  BrightAvg == rint_half_even(mean(01..10)): good pixels 96.834% (7584787/7832778); defect pixels 99.518%; all 96.845%
+  good pixels with BrightAvg != round_half_up: 626996; |diff| p0=1.0 p1=1.0 p50=1.0 p99=32768.0 p100=52428.0
+    of those, BrightAvg==0: 157845, ==65535: 27972, other: 441179
+    other |diff| p0=1.0 p1=1.0 p50=1.0 p99=13107.0 p100=45875.0
+  BrightAvg n0=163852 n65535=28079; of n0 in BPMap defects: 262; of n65535 in BPMap defects: 3
+  BrightAvg==0: count=163852
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 163852
+    within 1px of frame edge: 4482
+    within 4px of frame edge: 16685
+    within 16px of frame edge: 48816
+    within 32px of frame edge: 75509
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2547, cols with >=1: 3072
+    top rows (row:count) 2556:2979 2542:1712 2488:1710 2494:1680 2490:1669
+    top cols (col:count) 3061:1714 3062:1706 3058:1701 3060:1645 3057:1604
+  BrightAvg==65535: count=28079
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 28079
+    within 1px of frame edge: 1306
+    within 4px of frame edge: 2815
+    within 16px of frame edge: 6002
+    within 32px of frame edge: 10937
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2134, cols with >=1: 3065
+    top rows (row:count) 0:861 2488:540 1:492 2542:476 2494:473
+    top cols (col:count) 3067:263 3071:253 3068:242 3066:242 3056:222
+  BPMap defects: count=31542
+    full-width rows (10): [255, 511, 767, 1023, 1279, 1535, 1791, 2047, 2303, 2559]
+    full-height cols (0): []
+    outside full rows/cols: 822
+    within 1px of frame edge: 3090
+    within 4px of frame edge: 3144
+    within 16px of frame edge: 3372
+    within 32px of frame edge: 3680
+    rest bbox y[4,2461] x[15,3054]; rows with >=1: 681, cols with >=1: 698
+    top rows (row:count) 1982:5 243:4 2045:4 768:3 370:3
+    top cols (col:count) 15:4 656:4 17:3 16:3 944:3
+  round(mean(01..10))==0 count=5842; ==65535 count=158
+===== s7_gad_post  Z:/공통자료/개발팀 Test image/03. 두산 시료/20251023 기존두산이미지/2023.03.14 NDT 1차 Test Raw 영상/Test 전후 비교평가/Gadox/DS Test 후 Cal/
+  bright files: 20
+  dark.raw mean=5841.3 std=894.7 n0=3607 n65535=649 p0=0.0 p1=5627.0 p50=5743.0 p99=6332.0 p100=65535.0
+  Bright01_OC_02415.raw: OC=2415 mean=2622.9 center(+-200 rows)=2491.9 mean<darkmean=True n0=92657 n65535=36394
+  Bright02_OC_02419.raw: OC=2419 mean=2603.2 center(+-200 rows)=2486.1 mean<darkmean=True n0=90087 n65535=33851
+  Bright03_OC_02461.raw: OC=2461 mean=2637.2 center(+-200 rows)=2493.1 mean<darkmean=True n0=89201 n65535=33616
+  Bright04_OC_02478.raw: OC=2478 mean=2663.1 center(+-200 rows)=2517.5 mean<darkmean=True n0=89415 n65535=34290
+  Bright05_OC_02468.raw: OC=2468 mean=2628.8 center(+-200 rows)=2506.4 mean<darkmean=True n0=87863 n65535=32312
+  Bright06_OC_02461.raw: OC=2461 mean=2640.6 center(+-200 rows)=2511.2 mean<darkmean=True n0=90030 n65535=34043
+  Bright07_OC_02465.raw: OC=2465 mean=2646.1 center(+-200 rows)=2515.3 mean<darkmean=True n0=89381 n65535=34256
+  Bright08_OC_02461.raw: OC=2461 mean=2643.7 center(+-200 rows)=2523.4 mean<darkmean=True n0=88787 n65535=34283
+  Bright09_OC_02468.raw: OC=2468 mean=2652.6 center(+-200 rows)=2521.8 mean<darkmean=True n0=89731 n65535=34663
+  Bright10_OC_02434.raw: OC=2434 mean=2604.3 center(+-200 rows)=2509.7 mean<darkmean=True n0=87740 n65535=33091
+  Bright11_OC_00034.raw: OC=34 mean=402.1 center(+-200 rows)=183.7 mean<darkmean=True n0=86036 n65535=33755
+  Bright12_OC_00050.raw: OC=50 mean=420.6 center(+-200 rows)=207.4 mean<darkmean=True n0=87271 n65535=33885
+  Bright13_OC_00111.raw: OC=111 mean=439.2 center(+-200 rows)=224.0 mean<darkmean=True n0=83429 n65535=30139
+  Bright14_OC_00142.raw: OC=142 mean=459.1 center(+-200 rows)=255.2 mean<darkmean=True n0=83214 n65535=29693
+  Bright15_OC_00607.raw: OC=607 mean=900.6 center(+-200 rows)=715.5 mean<darkmean=True n0=84419 n65535=30776
+  Bright16_OC_02472.raw: OC=2472 mean=2642.4 center(+-200 rows)=2511.2 mean<darkmean=True n0=88183 n65535=33240
+  Bright17_OC_03867.raw: OC=3867 mean=3932.9 center(+-200 rows)=3896.1 mean<darkmean=True n0=89398 n65535=34033
+  Bright18_OC_02573.raw: OC=2573 mean=2760.6 center(+-200 rows)=2666.9 mean<darkmean=True n0=87785 n65535=33899
+  Bright19_OC_03280.raw: OC=3280 mean=3443.7 center(+-200 rows)=3356.2 mean<darkmean=True n0=90509 n65535=35843
+  Bright20_OC_05184.raw: OC=5184 mean=5242.7 center(+-200 rows)=5249.6 mean<darkmean=True n0=92948 n65535=38539
+  Bright01..10 center min=2486.1 max=2523.4 ratio=1.0150
+  Bright01..10 OC name min=2415 max=2478 ratio=1.0261
+  BPM.raw uint16 values [0, 16383] nonzero=31550
+  BPMap.map values [0, 255] nonzero=31550; same set as BPM.raw nonzero: True
+  BrightAvg == round_half_up(mean(01..10)): good pixels 92.637% (7256005/7832770); defect pixels 94.643%; all 92.645%
+  BrightAvg == rint_half_even(mean(01..10)): good pixels 97.476% (7635098/7832770); defect pixels 99.610%; all 97.485%
+  good pixels with BrightAvg != round_half_up: 576765; |diff| p0=1.0 p1=1.0 p50=1.0 p99=32768.0 p100=58982.0
+    of those, BrightAvg==0: 103880, ==65535: 5306, other: 467579
+    other |diff| p0=1.0 p1=1.0 p50=1.0 p99=13107.0 p100=58982.0
+  BrightAvg n0=109893 n65535=5334; of n0 in BPMap defects: 266; of n65535 in BPMap defects: 4
+  BrightAvg==0: count=109893
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 109893
+    within 1px of frame edge: 5254
+    within 4px of frame edge: 17860
+    within 16px of frame edge: 50472
+    within 32px of frame edge: 66176
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 2547, cols with >=1: 3072
+    top rows (row:count) 2556:2979 0:1897 2540:1096 2507:1056 2538:1033
+    top cols (col:count) 3061:1844 4:1794 0:1781 5:1745 3:1719
+  BrightAvg==65535: count=5334
+    full-width rows (0): []
+    full-height cols (0): []
+    outside full rows/cols: 5334
+    within 1px of frame edge: 865
+    within 4px of frame edge: 1829
+    within 16px of frame edge: 3394
+    within 32px of frame edge: 4002
+    rest bbox y[0,2559] x[0,3071]; rows with >=1: 1469, cols with >=1: 1729
+    top rows (row:count) 0:755 1:463 2538:58 2540:53 2507:51
+    top cols (col:count) 3068:111 2:110 3055:105 8:103 3065:100
+  BPMap defects: count=31550
+    full-width rows (10): [255, 511, 767, 1023, 1279, 1535, 1791, 2047, 2303, 2559]
+    full-height cols (0): []
+    outside full rows/cols: 830
+    within 1px of frame edge: 3090
+    within 4px of frame edge: 3144
+    within 16px of frame edge: 3368
+    within 32px of frame edge: 3680
+    rest bbox y[4,2465] x[15,3054]; rows with >=1: 686, cols with >=1: 695
+    top rows (row:count) 645:4 1568:4 1560:4 1002:3 1264:3
+    top cols (col:count) 3054:6 16:5 1644:4 15:3 905:3
+  round(mean(01..10))==0 count=5878; ==65535 count=28

@@ -1,0 +1,33 @@
+"""QA-A-270 item 2 (stage 4b, POST HOC, descriptive): for truth line items by kind, the share of item pixels that each edition's defect plane flags, and the number of flagged pixels within 2 pixels outside the item rectangles (mask widening). Reads maps and truth only.
+Usage: python -X utf8 92_detection_by_kind.py.txt > 93_detection_by_kind.txt"""
+import numpy as np
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+S = 3072
+m = {e: np.fromfile(O60 + 'inj_%s_setmap.u8' % e, dtype=np.uint8).reshape(S, S) != 0 for e in ('v1', 'v2')}
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+items = {}
+for line in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = (c[1], c[2], c[3], c[4], [tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+agg = {}
+for k, (cls, kind, shape, level, rects) in items.items():
+    if cls != 'line':
+        continue
+    pix = np.zeros((S, S), dtype=bool)
+    wide = np.zeros((S, S), dtype=bool)
+    for (x, y, w, h) in rects:
+        pix[y:y + h, x:x + w] = True
+        wide[max(0, y - 2):y + h + 2, max(0, x - 2):x + w + 2] = True
+    own = pix & (ids == k)
+    ring = wide & ~pix & (ids == 0)
+    a = agg.setdefault(kind, dict(n=0, v1=0, v2=0, r1=0, r2=0, items=0))
+    a['items'] += 1
+    a['n'] += int(own.sum())
+    for e in ('v1', 'v2'):
+        a[e] += int((m[e] & own).sum())
+        a['r' + e[1]] += int((m[e] & ring).sum())
+print('%-16s %5s %9s %12s %12s %20s %20s' % ('kind', 'items', 'pixels', 'v1 flagged', 'v2 flagged', 'v1 ring (<=2 out)', 'v2 ring (<=2 out)'))
+for kind, a in sorted(agg.items()):
+    print('%-16s %5d %9d %6d %.3f %6d %.3f %20d %20d' % (kind, a['items'], a['n'], a['v1'], a['v1'] / a['n'], a['v2'], a['v2'] / a['n'], a['r1'], a['r2']))

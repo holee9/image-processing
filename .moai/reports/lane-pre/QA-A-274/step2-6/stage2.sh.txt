@@ -1,0 +1,41 @@
+#!/bin/bash
+# step 2-6 stage 2: SelfCheck run, then falsification arms (one at a time), then process count. Usage: bash stage2.sh.txt <tag>
+TAG=$1; REPO=/d/workspace-github/xpe-pre; T=/d/xpe-h274$TAG; OUT=/d/xpe-h274$TAG-out; OUTW='D:\xpe-h274'$TAG'-out'
+L=$REPO/.moai/reports/lane-pre/QA-A-274/step2-6
+(cd $T/_out/selfcheck && s=$(date +%s); timeout 570 ./ImageProcTest.SelfCheck.exe > $L/selfcheck-run.log.txt 2>&1; echo "SELFCHECK_EXIT=$? secs=$(( $(date +%s) - s ))" | tee $L/selfcheck.exit.txt); grep -E "Lifetime scenarios passed|self-check passed" $L/selfcheck-run.log.txt
+(cd $T/_out/selfcheck && python -I -c "
+import glob,os,json
+a=open('menu-command-report.json','rb').read()
+snaps=sorted(glob.glob(os.path.join('evidence','snapshots','menu-command-report-2*.json')),key=os.path.getmtime)
+print('snapshots',len(snaps),'replaced-copies',len(glob.glob(os.path.join('evidence','snapshots','replaced-fixed-report-*.json'))))
+print('fixed == newest snapshot bytes:', a==open(snaps[-1],'rb').read())
+print('fixed names newest snapshot:', json.loads(a)['evidence']['snapshotFile']==os.path.basename(snaps[-1]))") | tee $L/selfcheck-alias-vs-snapshot.txt
+V=$T-var; mkdir -p $V/clients && cp -r $T/gui $V/gui && cp -r $T/clients/ImageProcTest $V/clients/ImageProcTest
+: > $L/falsify.txt
+GT='PRE-GUI-20261019T063546Z-7f92a1-274d'
+arm() { ARM=$1; REL=$2; OLD=$3; NEW=$4; WHY=$5
+  cp $T/$REL $V/$REL; SW=$(cygpath -w $V/$REL)
+  python -I -c "
+import sys
+p=r'$SW'; t=open(p,encoding='utf-8').read(); old=sys.argv[1]; new=sys.argv[2]
+assert t.count(old)==1,(t.count(old),old)
+open(p,'w',encoding='utf-8',newline='\n').write(t.replace(old,new))" "$OLD" "$NEW" || { echo "arm $ARM MUTATION NOT APPLIED" >> $L/falsify.txt; return; }
+  echo "--- arm $ARM: $WHY (mutation applied)" >> $L/falsify.txt
+  OUTD="$OUTW"'\'$GT'-arm-'$ARM
+  (cd $V/gui/ImageProcTest.CalibrationChecks && dotnet build -c Release -o "$OUTD" > $L/falsify-$ARM-build.log.txt 2>&1; echo "arm $ARM BUILD_EXIT=$?" >> $L/falsify.txt)
+  D="$OUT/$GT-arm-$ARM"
+  echo "arm $ARM fixed-report-files-in-fresh-output-before-run=$(ls "$D" | grep -c menu-command)" >> $L/falsify.txt
+  (cd "$D" && timeout 300 ./ImageProcTest.CalibrationChecks.exe > $L/falsify-$ARM-run.log.txt 2>&1; echo "arm $ARM CHECKS_EXIT=$?" >> $L/falsify.txt; grep -E "^(PASS|FAIL)|failures" $L/falsify-$ARM-run.log.txt | grep -vE "^PASS (Reload|Stage)" | cut -c1-260 >> $L/falsify.txt)
+  cp $T/$REL $V/$REL; }
+S=gui/ImageProcTest/Services/EvidenceSnapshotStore.cs; R=gui/ImageProcTest/Services/EvidenceExportResult.cs; M=gui/ImageProcTest/ViewModels/MainWindowViewModel.cs
+arm A $S 'File.Copy(aliasPath, replacedCopy, overwrite: false);' '/* arm A */' "previous fixed report is not kept"
+arm B $S 'return new PublishResult(null, aliasPath, null, error, null);' 'File.WriteAllBytes(aliasPath, bytes); return new PublishResult(null, aliasPath, null, error, null);' "fixed copy written although the snapshot failed"
+arm C $S '["snapshotFile"] = snapshotName' '["snapshotFile"] = "menu-command-report-stale.json"' "fixed report names a wrong snapshot"
+arm D $S 'File.Exists(kept) && File.ReadAllBytes(kept).AsSpan().SequenceEqual(previous)' 'File.Exists(kept)' "snapshot named by the old fixed report trusted without comparing bytes"
+arm E $S 'File.Exists(aliasPath) && !IsKeptAsSnapshot(aliasPath, directory)' 'File.Exists(aliasPath)' "every previous fixed report copied again"
+arm F $M 'new EvidenceExportResult(exportId, published.SnapshotPath, published.SnapshotError?.Message' 'new EvidenceExportResult(exportId, published.SnapshotPath ?? LastEvidenceSnapshotPath, published.SnapshotError?.Message' "F260-1 revived in the view model: a failed export carries the previous successful path as its own"
+arm G $R 'if (after is null || after.ExportId == before?.ExportId) return null;' 'if (after is null) return null;' "judgment accepts a result no new export produced"
+arm H $R 'var path = after.SnapshotPath;' 'var path = after.SnapshotPath ?? before?.SnapshotPath;' "F260-1 revived in the judgment: falls back to the previous result's path when this export failed"
+cat $L/falsify.txt
+dotnet build-server shutdown > $L/build-server-shutdown.txt 2>&1
+echo "remaining dotnet/msbuild/compiler/test processes: $(tasklist | grep -ciE 'dotnet|msbuild|VBCS|ImageProcTest|xpe_calib|ctest|ninja|cmake|cl\.exe')" | tee $L/processes-after.txt

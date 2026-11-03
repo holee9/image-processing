@@ -1,0 +1,21 @@
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=19.319 min=13.803 median_excl_first=14.432 max=16.296
+== prof20.err
+  stage:0          n=31 median_excl_first=0.000
+  stage:1          n=31 median_excl_first=0.696
+  stage:3          n=31 median_excl_first=0.007
+  stage:40         n=31 median_excl_first=1.977
+  stage:4          n=31 median_excl_first=0.018
+  stage:5          n=31 median_excl_first=0.003
+  defect:finite    n=31 median_excl_first=0.389
+  defect:maskset   n=31 median_excl_first=0.973
+  defect:copy      n=31 median_excl_first=0.015
+  defect:list      n=31 median_excl_first=0.789
+  defect:lines     n=31 median_excl_first=0.007
+  defect:fd_h      n=31 median_excl_first=0.663
+  defect:fdbuild   n=31 median_excl_first=1.587
+  defect:fill      n=31 median_excl_first=4.769
+  stage:6          n=31 median_excl_first=9.651
+  stage:7          n=31 median_excl_first=0.004
+  stage:9          n=31 median_excl_first=0.911
+   31 QA315 info count=353090 slots=7864320 extra=324910 layers=0
+   31 QA315 info fd_ms=0.000 cluster=352349 isolated=741 ring=0

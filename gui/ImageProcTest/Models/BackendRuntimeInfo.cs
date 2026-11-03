@@ -21,6 +21,7 @@ public sealed class BackendRuntimeInfo
     public string NativeSource { get; init; } = string.Empty;
 
     public string DisplayVersion { get; init; } = string.Empty;
+    public string CommonVersion { get; init; } = "unknown";
 
     public bool DisplayDllDetected { get; init; }
 

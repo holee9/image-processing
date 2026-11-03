@@ -1,0 +1,257 @@
+"""QA-A-262 R1: numpy replica of the bright temporal noise feature (F2b) of xpe_bpm_v2.cpp (generateV2Core), on the frames of the planted measurement 252f.
+It returns, per pixel of the imaging area, the quantities the product does not export: per dose group vg (variance of the frames about the group mean, row and column means out, frame scale applied),
+the local expectation ref, ratioG = vg * corrGain / ref, the pooled statistic T = sum (m_g - 1) ratioG / nuBright and the number of groups with ratioG >= 2.
+Check (method file section 0): the pixels with T > threshold and 2 * hits >= groups against the product's feature bit 0x20 in v2_full_features.u8 (mismatch <= 0.1 % of the pixels the product switched on).
+Everything of the product's rule is taken from its source (lines cited in the comments); nothing is tuned to the data.
+Usage: PYTHONIOENCODING=utf-8 python 20_r1_replica.py.txt   (writes D:/workspace-github/xpe-data/bpm-eval-262/r1_*.npy and prints the check)"""
+import os
+import sys
+import time
+import math
+import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
+
+FR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+OUT = 'D:/workspace-github/xpe-data/bpm-eval-262/'
+M60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+S = 3072
+ML, MT, MR, MB = 6, 2, 1, 1                    # margins of the measurement (left, top, right, bottom)
+DARK_IDS = list(range(8, 15))                  # the used list (Dark_07 excluded by the tool)
+BRIGHT_IDS = list(range(17, 29)) + list(range(31, 37))
+WIN = 17
+RATIO = 1.25                                   # st.ratio: a new dose group where the signal ratio exceeds it
+FLOOR = 1e-9                                   # kReferenceFloor
+COST_LIMIT = 2.0                               # kNoiseCostLimit
+os.makedirs(OUT, exist_ok=True)
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+# ---- chi-square helpers (the product's bisection on the regularised upper incomplete gamma; here the same by the exact series/continued fraction through math)
+def gammaQ(a, x):
+    if x <= 0:
+        return 1.0
+    if x < a + 1.0:
+        ap, s, d = a, 1.0 / a, 1.0 / a
+        for _ in range(1000):
+            ap += 1.0
+            d *= x / ap
+            s += d
+            if abs(d) < abs(s) * 1e-16:
+                break
+        return 1.0 - s * math.exp(-x + a * math.log(x) - math.lgamma(a))
+    b = x + 1.0 - a
+    c = 1.0 / 1e-300
+    d = 1.0 / b
+    h = d
+    for i in range(1, 1000):
+        an = -i * (i - a)
+        b += 2.0
+        d = an * d + b
+        d = 1e-300 if abs(d) < 1e-300 else d
+        c = b + an / c
+        c = 1e-300 if abs(c) < 1e-300 else c
+        d = 1.0 / d
+        de = d * c
+        h *= de
+        if abs(de - 1.0) < 1e-15:
+            break
+    return math.exp(-x + a * math.log(x) - math.lgamma(a)) * h
+
+
+def variance_threshold(nu, p):
+    a = 0.5 * nu
+    lo, hi = 1.0, 1e6
+    for _ in range(300):
+        mid = 0.5 * (lo + hi)
+        if gammaQ(a, a * mid) > p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def variance_median(nu):
+    a = 0.5 * nu
+    lo, hi = 1e-6, 1e3
+    for _ in range(300):
+        mid = 0.5 * (lo + hi)
+        if gammaQ(a, a * mid) > 0.5:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+# ---- separable median (window 17, reflected borders; row pass then column pass), optionally with left-out pixels (separableMedianExcluding: upper median of the admissible values)
+def _pass(a, excl, plain_unused=None):
+    """Median along axis 1 of a (float32). excl: bool array or None. Returns float32 (NaN where no admissible value)."""
+    h, w = a.shape
+    r = WIN // 2
+    out = np.empty((h, w), dtype=np.float32)
+    ap = np.pad(a, ((0, 0), (r, r)), mode='reflect')
+    ep = np.pad(excl, ((0, 0), (r, r)), mode='reflect') if excl is not None else None
+    step = 48
+    for y0 in range(0, h, step):
+        y1 = min(h, y0 + step)
+        win = sliding_window_view(ap[y0:y1], WIN, axis=1)
+        if ep is None:
+            out[y0:y1] = np.partition(win, r, axis=-1)[..., r]
+        else:
+            ew = sliding_window_view(ep[y0:y1], WIN, axis=1)
+            vals = np.where(ew, np.inf, win)
+            cnt = (~ew).sum(axis=-1)
+            srt = np.sort(vals, axis=-1)
+            idx = np.minimum(cnt // 2, WIN - 1)
+            pick = np.take_along_axis(srt, idx[..., None], axis=-1)[..., 0]
+            out[y0:y1] = np.where(cnt == 0, np.float32('nan'), pick)
+    return out
+
+
+def _pass_nan(a, plain):
+    """Second pass of the excluding median: NaN entries are inadmissible; a pixel with no value takes `plain`."""
+    h, w = a.shape
+    r = WIN // 2
+    out = np.empty((h, w), dtype=np.float32)
+    ap = np.pad(a, ((0, 0), (r, r)), mode='reflect')
+    step = 48
+    for y0 in range(0, h, step):
+        y1 = min(h, y0 + step)
+        win = sliding_window_view(ap[y0:y1], WIN, axis=1)
+        bad = np.isnan(win)
+        vals = np.where(bad, np.inf, win)
+        cnt = (~bad).sum(axis=-1)
+        srt = np.sort(vals, axis=-1)
+        idx = np.minimum(cnt // 2, WIN - 1)
+        pick = np.take_along_axis(srt, idx[..., None], axis=-1)[..., 0]
+        out[y0:y1] = np.where(cnt == 0, plain[y0:y1], pick)
+    return out
+
+
+def sep_median(a):
+    t = _pass(a, None)                       # along x
+    return np.ascontiguousarray(_pass(np.ascontiguousarray(t.T), None).T)   # along y
+
+
+def sep_median_excl(a, excl, plain):
+    t = _pass(a, excl)                       # along x over the admissible pixels
+    # second pass along y: NaN = no value
+    return np.ascontiguousarray(_pass_nan(np.ascontiguousarray(t.T), np.ascontiguousarray(plain.T)).T)
+
+
+def load(name):
+    return np.fromfile(FR + name, dtype='<u2').reshape(S, S)[MT:S - MB, ML:S - MR]
+
+
+def replicate(exclude_mask=None, verbose=True):
+    t0 = time.time()
+    darks = [load('Dark_%02d.raw' % k) for k in DARK_IDS]
+    nd = len(darks)
+    h, w = darks[0].shape
+    n = h * w
+    D = (sum(d.astype(np.uint32) for d in darks).astype(np.float32) / np.float32(nd)).astype(np.float32)
+    dark_mean_all = float(D.astype(np.float64).sum() / n)
+    brights = {k: load('Bright_%02d.raw' % k) for k in BRIGHT_IDS}
+    signal = {k: float(brights[k].astype(np.float64).sum() / n) - dark_mean_all for k in BRIGHT_IDS}
+    dose = {}
+    for k in BRIGHT_IDS:
+        smp = (brights[k].ravel()[::5].astype(np.float32) - D.ravel()[::5])
+        dose[k] = float(np.sort(smp)[smp.size // 2])
+    order = sorted(BRIGHT_IDS, key=lambda k: signal[k])   # stable sort on signal
+    groups = [[order[0]]]
+    for t in range(1, len(order)):
+        if signal[order[t]] / signal[order[t - 1]] > RATIO:
+            groups.append([])
+        groups[-1].append(order[t])
+    say('dose groups (frame ids):', groups)
+    # corrGain from the relative flat response (the quantity of the response rule)
+    flat = np.zeros((h, w), dtype=np.float32)
+    sx_pre = 0.0
+    for g in groups:
+        acc = sum(brights[k].astype(np.float64) for k in g)
+        mg = len(g)
+        sx_pre += sum(signal[k] for k in g) / mg
+        flat += (acc / mg - D.astype(np.float64)).astype(np.float32)
+    flat = (flat.astype(np.float64) / sx_pre).astype(np.float32)
+    bg = sep_median(flat)
+    r = np.where(np.abs(bg) > 1e-12, flat / np.where(np.abs(bg) > 1e-12, bg, 1.0), 1.0)
+    rc = np.clip(r, 0.2, 3.0)
+    corr_gain = (1.0 / (rc.astype(np.float64) ** 2)).astype(np.float32)
+    say('corrGain done %.0f s' % (time.time() - t0))
+    ratio_g, refs, vgs = [], [], []
+    noise_sum = np.zeros((h, w), dtype=np.float32)
+    ref_sum = np.zeros((h, w), dtype=np.float32)
+    persist = np.zeros((h, w), dtype=np.uint8)
+    nu_bright = 0
+    n_groups = 0
+    for gi, g in enumerate(groups):
+        mg = len(g)
+        if mg < 2:
+            continue
+        dg = float(sum(dose[k] for k in g) / mg)
+        fscale = {k: dg / dose[k] for k in g}
+        gmean = np.zeros((h, w), dtype=np.float32)
+        for k in g:
+            fk = fscale[k] / mg
+            gmean += (fk * (brights[k].astype(np.float64) - D.astype(np.float64))).astype(np.float32)
+        vg = np.zeros((h, w), dtype=np.float32)
+        for k in g:
+            fk = fscale[k]
+            e0 = fk * (brights[k].astype(np.float64) - D.astype(np.float64)) - gmean.astype(np.float64)
+            rm = e0.mean(axis=1)
+            e1 = e0 - rm[:, None]
+            cm = e1.mean(axis=0)
+            e = e1 - cm[None, :]
+            vg += (e * e).astype(np.float32)
+        vg /= np.float32(mg - 1)
+        if exclude_mask is not None:
+            plain = sep_median(vg)
+            vgbg = sep_median_excl(vg, exclude_mask, plain)
+        else:
+            vgbg = sep_median(vg)
+        mnu = variance_median(mg - 1)
+        ref = np.maximum(vgbg.astype(np.float64) / mnu, FLOOR)
+        rg = vg.astype(np.float64) * corr_gain.astype(np.float64) / ref
+        noise_sum += ((mg - 1) * rg).astype(np.float32)
+        ref_sum += ref.astype(np.float32)
+        persist += (rg >= COST_LIMIT).astype(np.uint8)
+        nu_bright += mg - 1
+        n_groups += 1
+        ratio_g.append(rg.astype(np.float32))
+        refs.append(ref.astype(np.float32))
+        vgs.append(vg)
+        say('group %d (%d frames) done %.0f s' % (gi, mg, time.time() - t0))
+    thr = variance_threshold(nu_bright, 1.0 / n)
+    T = noise_sum / np.float32(nu_bright)
+    on = (T.astype(np.float64) > thr) & (2 * persist.astype(np.int32) >= n_groups)
+    return dict(ratioG=ratio_g, ref=refs, vg=vgs, corrGain=corr_gain, T=T, hits=persist, on=on, thr=thr, nuBright=nu_bright, groups=groups, margins=(ML, MT, MR, MB), n=n,
+                signal=signal, dose=dose, dark_mean_all=dark_mean_all)
+
+
+def full_frame(a, fill=0):
+    out = np.full((S, S), fill, dtype=a.dtype)
+    out[MT:S - MB, ML:S - MR] = a
+    return out
+
+
+if __name__ == '__main__':
+    lm = np.fromfile(M60 + 'v2_full_lines.u8', dtype=np.uint8).reshape(S, S)
+    excl = (lm != 0)[MT:S - MB, ML:S - MR]
+    res = replicate(excl)
+    feat = np.fromfile(M60 + 'v2_full_features.u8', dtype=np.uint8).reshape(S, S)[MT:S - MB, ML:S - MR]
+    prod = (feat & 0x20) != 0
+    on = res['on']
+    say('threshold %.4f (product report: 4.4833), nuBright %d (13), groups %s' % (res['thr'], res['nuBright'], [len(g) for g in res['groups']]))
+    say('product pixels with bit 0x20: %d, replica: %d, in both: %d, product only: %d, replica only: %d, mismatch share of the product count: %.4f %%' %
+        (prod.sum(), on.sum(), (prod & on).sum(), (prod & ~on).sum(), (on & ~prod).sum(), 100.0 * ((prod ^ on).sum()) / max(prod.sum(), 1)))
+    np.save(OUT + 'r1_T.npy', res['T'])
+    np.save(OUT + 'r1_hits.npy', res['hits'])
+    np.save(OUT + 'r1_corrGain.npy', res['corrGain'])
+    for i, (a, b, c) in enumerate(zip(res['ratioG'], res['ref'], res['vg'])):
+        np.save(OUT + 'r1_ratioG_%d.npy' % i, a)
+        np.save(OUT + 'r1_ref_%d.npy' % i, b)
+        np.save(OUT + 'r1_vg_%d.npy' % i, c)
+    np.save(OUT + 'r1_on.npy', on)
+    say('PASS' if (prod ^ on).sum() <= 0.001 * prod.sum() else 'FAIL (replica does not match; the dependent items are not judged)')

@@ -1,0 +1,56 @@
+diff --git a/modules/preprocess/CMakeLists.txt b/modules/preprocess/CMakeLists.txt
+index 82685483..ee13a32a 100644
+--- a/modules/preprocess/CMakeLists.txt
++++ b/modules/preprocess/CMakeLists.txt
+@@ -112,6 +112,24 @@ endif()
+ #                by the root project via enable_testing())
+ # BUILD_TESTS:   XPE root project option
+ # ---------------------------------------------------------------------------
++add_executable(xpe_pre_e2e tools/xpe_pre_e2e.cpp src/xpe_sha256_backend.cpp)
++target_include_directories(xpe_pre_e2e PRIVATE
++    ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src
++    ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
++target_link_libraries(xpe_pre_e2e PRIVATE xpe_preprocess xpe_common nlohmann_json::nlohmann_json)
++target_compile_features(xpe_pre_e2e PRIVATE cxx_std_17)
++target_compile_definitions(xpe_pre_e2e PRIVATE XPE_PRE_E2E_STANDALONE)
++if(WIN32)
++    target_link_libraries(xpe_pre_e2e PRIVATE bcrypt)
++endif()
++if(MSVC)
++    target_compile_options(xpe_pre_e2e PRIVATE /W4)
++else()
++    target_compile_options(xpe_pre_e2e PRIVATE -Wall -Wextra)
++endif()
++xpe_target_warnings_as_errors(xpe_pre_e2e)
++set_target_properties(xpe_pre_e2e PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
++
+ # =============================================================================
+ # QA-A-36 (#141): deterministic XCal fixture generator
+ #
+@@ -456,6 +474,7 @@ if(_XPE_BUILD_TESTS)
+         tests/test_verify_metrics_edges.cpp
+         # QA-A-266: the signed offset quality (stateless; the clamp-before bias that xpe_verify_offset cannot see)
+         tests/test_verify_offset_signed.cpp
++        tests/test_pre_e2e.cpp              # FUNC-015/021: E2E evidence and conservative readiness reporting (#245)
+         # SWU-1.12: Calibration Mode Selection tests (FUNC-031~033)
+         tests/test_calib_mode.cpp
+         # QA-A-101 (#169): FUNC-031 (3)(4)(5)(8) mode caps and AUTO selection
+@@ -550,6 +569,7 @@ if(_XPE_BUILD_TESTS)
+
+     add_executable(xpe_preprocess_tests
+         ${XPE_TEST_SOURCES}
++        tools/xpe_pre_e2e.cpp
+         src/rle_codec.cpp
+         src/xpe_calib_generate_offset_methods.cpp
+         src/xcal_writer.cpp
+@@ -594,6 +614,10 @@ if(_XPE_BUILD_TESTS)
+     # -D"..." string turns into invalid escapes. A raw string literal does not.
+     add_dependencies(xpe_preprocess_tests xpe_calib_fixture_gen)
+     add_dependencies(xpe_preprocess_tests xpe_bpm_eval)
++    add_dependencies(xpe_preprocess_tests xpe_pre_e2e)
++    file(GENERATE
++        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xpe_pre_e2e_path.h
++        CONTENT "#pragma once\n#define XPE_PRE_E2E_EXE R\"($<TARGET_FILE:xpe_pre_e2e>)\"\n")
+     file(GENERATE
+         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xpe_bpm_eval_path.h
+         CONTENT "#pragma once

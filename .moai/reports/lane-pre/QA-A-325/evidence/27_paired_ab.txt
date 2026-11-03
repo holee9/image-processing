@@ -1,0 +1,10 @@
+s0_gf        default            n=6 A-B median=+0.159 min=-0.291 max=+0.385  B<A in 5/6 rounds
+s0_gf        sat_on_interp_off  n=6 A-B median=+0.602 min=+0.114 max=+1.018  B<A in 6/6 rounds
+s1_um300     default            n=6 A-B median=-0.080 min=-0.435 max=+0.716  B<A in 2/6 rounds
+s1_um300     sat_on_interp_off  n=6 A-B median=+0.406 min=-0.624 max=+0.713  B<A in 5/6 rounds
+s6_gad_pre   default            n=6 A-B median=-0.146 min=-0.844 max=+0.502  B<A in 3/6 rounds
+s6_gad_pre   sat_on_interp_off  n=6 A-B median=+1.147 min=+0.475 max=+2.206  B<A in 6/6 rounds
+---
+s0_gf        sat_on_interp_off  n=8 A-B median=+0.351 min=+0.078 max=+0.627  B<A in 8/8 rounds
+s1_um300     sat_on_interp_off  n=8 A-B median=+0.628 min=-0.131 max=+0.817  B<A in 6/8 rounds
+s6_gad_pre   sat_on_interp_off  n=8 A-B median=+0.653 min=-0.082 max=+0.995  B<A in 7/8 rounds

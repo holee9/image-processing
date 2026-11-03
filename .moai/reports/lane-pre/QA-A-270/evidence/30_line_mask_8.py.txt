@@ -1,0 +1,64 @@
+"""QA-A-270 item 1 (stage 2): the 8 new false alarms of the line mask. For each: the detected line record that holds it, the nearest true item (kind/shape/level, rect), whether the pixel lies beside the item (across), beyond its end (along), or elsewhere;
+and the committed H-inject measure (is the pixel's row or column crossed by a full-length true line item) against 1,000 random row/column pairs as the control. Reads files only.
+Usage: python -X utf8 30_line_mask_8.py.txt > 31_line_mask_8.txt"""
+import numpy as np
+
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/'
+exec(compile(open(HERE + '20_classify_48.py.txt', encoding='utf-8').read().split("P('wrote 21_pixels_48.tsv.txt")[0].split('rows = []')[0], '20_head', 'exec'), globals())
+lines_rec = []
+for i, l in enumerate(open(EV8 + '51_lines_v2.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = l.rstrip('\n').split('\t')
+    st = []
+    for s in c[12].split(';'):
+        ln, rng = s.split(':')
+        a, b = rng.split('-')
+        st.append((int(ln), int(a), int(b)))
+    lines_rec.append(dict(orient=c[1], index=int(c[2]), width=int(c[3]), start=int(c[4]), end=int(c[5]), strength=float(c[10]), stretches=st))
+
+full = []   # true line items covering the whole frame length (control items excluded: they are normal)
+for k, it in items.items():
+    if cls[k] in ('control',):
+        continue
+    for (x, y, w, h) in it['rects']:
+        if it['kind'].startswith('line') or it['shape'] in ('row_full', 'col_full', 'row_pair', 'col_pair') or w == S or h == S:
+            full.append((k, x, y, w, h))
+print('true (non-control) items with a full-length rect: %d' % len({f[0] for f in full}))
+P = print
+bg_line = [(int(x), int(y)) for y, x in zip(ys, xs) if lines[y, x] and ids[y, x] == 0 and feat[y, x] == 0]
+print('line-mask background pixels (no feature bit): %d' % len(bg_line))
+crossed = 0
+for (x, y) in bg_line:
+    rec = None
+    for r in lines_rec:
+        for (ln, a, b) in r['stretches']:
+            if r['orient'] == 'row' and ln == y and a <= x < b or r['orient'] != 'row' and ln == x and a <= y < b:
+                rec = (r, ln, a, b)
+    # nearest true item pixel (Chebyshev, window 12)
+    best = None
+    for k, it in items.items():
+        if cls[k] == 'control':
+            continue
+        for (rx, ry, rw, rh) in it['rects']:
+            dx = max(rx - x, 0, x - (rx + rw - 1))
+            dy = max(ry - y, 0, y - (ry + rh - 1))
+            d = max(dx, dy)
+            if best is None or d < best[0]:
+                best = (d, k, dx, dy, (rx, ry, rw, rh))
+    cross = any((fx <= x < fx + fw) or (fy <= y < fy + fh) for (_, fx, fy, fw, fh) in full if (fw == S and fy <= y < fy + fh) or (fh == S and fx <= x < fx + fw))
+    crossed += int(cross)
+    d, k, dx, dy, rc = best
+    print('  pixel (%d,%d): record %s; nearest true item %d %s/%s/%s rect %s at Chebyshev %d (dx %d dy %d); row or column inside a full-length true line item: %s' % (
+        x, y, ('%s %d width %d strength %.2f stretch %d-%d' % (rec[0]['orient'], rec[0]['index'], rec[0]['width'], rec[0]['strength'], rec[2], rec[3])) if rec else 'none found', k, items[k]['kind'], items[k]['shape'], items[k]['level'], rc, d, dx, dy, cross))
+print('H-inject measure (committed): %d of %d pixels have a row or column crossed by a full-length true line item' % (crossed, len(bg_line)))
+rng = np.random.default_rng(270)
+hit = 0
+tot = 0
+for _ in range(1000):
+    x, y = int(rng.integers(0, S)), int(rng.integers(0, S))
+    c = any((fw == S and fy <= y < fy + fh) or (fh == S and fx <= x < fx + fw) for (_, fx, fy, fw, fh) in full)
+    hit += int(c)
+    tot += 1
+print('control: random pixels crossed by a full-length true line item: %d of %d (%.3f)' % (hit, tot, hit / tot))

@@ -1,0 +1,10 @@
+"""QA-A-317: hash of an XCal file without its time stamps: header created_epoch_ms (0x18) and the config key saturation_decided_at.
+Prints file sha, payload sha (bytes after 152+config_len), config sha with the decided_at value blanked, created_epoch_ms."""
+import hashlib, re, struct, sys
+for p in sys.argv[1:]:
+    b = open(p, 'rb').read()
+    cfg_len = struct.unpack_from('<Q', b, 0x68)[0]
+    cfg = b[152:152 + cfg_len]
+    cfg_n = re.sub(rb'"saturation_decided_at"\s*:\s*"[^"]*"', b'"saturation_decided_at":""', cfg)
+    print(p, 'file', hashlib.sha256(b).hexdigest(), 'payload', hashlib.sha256(b[152 + cfg_len:]).hexdigest(),
+          'config_wo_time', hashlib.sha256(cfg_n).hexdigest(), 'created_ms', struct.unpack_from('<q', b, 0x18)[0])

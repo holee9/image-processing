@@ -1,0 +1,38 @@
+# QA-A-316: probe which averaging rule reproduces caleng BrightAvg.raw from Bright01..10 (measured match fractions only).
+import json, os, re
+import numpy as np
+W, H = 3072, 2560
+m = json.load(open('D:/workspace-github/xpe-2g-offline/batch-20261022-1230/manifest.json', encoding='utf-8'))
+sets = m if isinstance(m, list) else m.get('sets', m)
+for s in sets:
+    src = s['cal_source']
+    names = sorted(f for f in os.listdir(src) if re.match(r'Bright(0[1-9]|10)_OC_\d+\.raw$', f))
+    st = np.stack([np.fromfile(src + n, dtype='<u2').reshape(H, W) for n in names]).astype(np.float64)
+    ba = np.fromfile(src + 'BrightAvg.raw', dtype='<u2').reshape(H, W).astype(np.float64)
+    bp = np.fromfile(src + 'BPMap.map', dtype=np.uint8).reshape(H, W)
+    good = bp == 0
+    print(f'===== {s["id"]} frames={len(names)}')
+    def rep(lab, est):
+        e = np.where(np.isfinite(est), est, -1)
+        eq = ba == e
+        print(f'  {lab}: all {eq.mean()*100:.3f}%  good {eq[good].mean()*100:.3f}%  defect {eq[~good].mean()*100:.3f}%')
+        return eq
+    rep('rint(mean all 10)', np.rint(st.mean(0)))
+    v1 = st != 65535
+    c1 = v1.sum(0)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        e1 = np.where(c1 > 0, np.rint((st * v1).sum(0) / c1), 0)
+    rep('rint(mean excl 65535; none left -> 0)', e1)
+    v2 = (st != 65535) & (st != 0)
+    c2 = v2.sum(0)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        e2 = np.where(c2 > 0, np.rint((st * v2).sum(0) / c2), 0)
+    rep('rint(mean excl 0 and 65535; none left -> 0)', e2)
+    rep('floor(mean all 10)', np.floor(st.mean(0)))
+    rep('trunc(sum/10) int', (st.sum(0) // 10))
+    rep('median 10 (rint)', np.rint(np.median(st, 0)))
+    # counts of 0 / 65535 among the 10 frame values at pixels where BrightAvg == 0 / 65535
+    n0 = (st == 0).sum(0); n6 = (st == 65535).sum(0)
+    for lab, msk in (('BrightAvg==0', ba == 0), ('BrightAvg==65535', ba == 65535)):
+        print(f'  {lab}: n={int(msk.sum())}; frames-at-0 per pixel hist {np.bincount(n0[msk], minlength=11).tolist()}; frames-at-65535 hist {np.bincount(n6[msk], minlength=11).tolist()}')
+        print(f'    rint(mean all 10) at these pixels: p1={np.percentile(np.rint(st.mean(0))[msk],1):.0f} p50={np.percentile(np.rint(st.mean(0))[msk],50):.0f} p99={np.percentile(np.rint(st.mean(0))[msk],99):.0f}')

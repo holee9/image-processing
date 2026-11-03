@@ -1,0 +1,17 @@
+frame 1 parts 54 exceeding after correction 7 exceeding in clean 0 {'corrected': 7, 'no_fix': 9, 'clean': 0, 'parts': 54} {'checked': 2875, 'corrected': 59, 'clean': 60, 'uncomputable_corrected': 0, 'uncomputable_clean': 0}
+    1 line/dead/row_full/1 0 corrected -22.8237 clean -1.7081
+    2 line/dead/col_full/1 0 corrected -9.6639 clean -0.2537
+    12 line/dead/col_pair/0.5 0 corrected 3.1323 clean 2.9615
+    37 line/dead/cross/1 0 corrected -22.2382 clean 0.2961
+    37 line/dead/cross/1 1 corrected -9.4754 clean 1.9618
+    48 control/varying_band/row_full/20 0 corrected 34.7894 clean 0.191
+    51 control/varying_band/col_full/8 0 corrected 19.1542 clean 0.0712
+frame 2 parts 54 exceeding after correction 8 exceeding in clean 0 {'corrected': 8, 'no_fix': 9, 'clean': 0, 'parts': 54} {'checked': 2875, 'corrected': 56, 'clean': 60, 'uncomputable_corrected': 0, 'uncomputable_clean': 0}
+    1 line/dead/row_full/1 0 corrected -22.1676 clean -0.9334
+    2 line/dead/col_full/1 0 corrected -9.7133 clean 1.015
+    37 line/dead/cross/1 0 corrected -22.5423 clean -2.0307
+    37 line/dead/cross/1 1 corrected -9.6794 clean 1.0565
+    48 control/varying_band/row_full/20 0 corrected 5.2716 clean 0.2932
+    49 control/varying_band/col_full/20 0 corrected -23.9223 clean 1.3544
+    50 control/varying_band/row_full/8 0 corrected 3.7055 clean 0.8602
+    51 control/varying_band/col_full/8 0 corrected 7.675 clean 2.1996

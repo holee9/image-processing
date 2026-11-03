@@ -1,0 +1,16 @@
+v_a: map sha256 ae02ec35aa5d8e87aed8811ab70236c2807c4c88ed0ae79f4ff45ed316cd0b3f
+  [whole frame] PRE 165977 engine 12898 both 3794 PRE_only 162183 engine_only 9104
+  [inside cut] PRE 3868 engine 12898 both 3794 PRE_only 74 engine_only 9104
+  feature-bit counts (whole frame): {0: 9662, 1: 71, 2: 0, 3: 0, 4: 155834, 5: 78465}
+  dark-mean flagged fraction rows band cols even: 0.00024
+  dark-mean flagged fraction rows band cols odd: 0.00782
+  dark-mean flagged fraction rows other cols even: 0.00003
+  dark-mean flagged fraction rows other cols odd: 0.00056
+v_c: map sha256 1f5360ef78321b21f2e4efcd8ac7d72b63dc5b68524a13d48552b508ddbf7a66
+  [whole frame] PRE 7010 engine 12898 both 6935 PRE_only 75 engine_only 5963
+  [inside cut] PRE 7010 engine 12898 both 6935 PRE_only 75 engine_only 5963
+  feature-bit counts (whole frame): {0: 15, 1: 70, 2: 0, 3: 3, 4: 6461, 5: 5036}
+  dark-mean flagged fraction rows band cols even: 0.00000
+  dark-mean flagged fraction rows band cols odd: 0.00000
+  dark-mean flagged fraction rows other cols even: 0.00000
+  dark-mean flagged fraction rows other cols odd: 0.00000

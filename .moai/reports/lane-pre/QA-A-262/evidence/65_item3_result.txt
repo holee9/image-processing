@@ -1,0 +1,26 @@
+group x frame entries in all four arms: 178 (A 178, B 178, B' 178, C 178)
+========================================================================================================================
+== retreat counts (number of group x frame entries where the first arm has the larger median z)
+  second vs first edition (260) B larger in 118 of 178 (line 111/138, pixel 6/32, block 1/8); smaller in 36, equal 24, uncomputable 0; difference of the medians: median +0.0286, quartiles +0.0000 .. +0.1720, 5 % -0.034, 95 % +0.214
+  reference effect           B larger in  22 of 178 (line 20/138, pixel 1/32, block 1/8); smaller in 11, equal 145, uncomputable 0; difference of the medians: median +0.0000, quartiles +0.0000 .. +0.0000, 5 % -0.000, 95 % +0.001
+  correction-path effect     B' larger in 122 of 178 (line 119/138, pixel 0/32, block 3/8); smaller in 19, equal 37, uncomputable 0; difference of the medians: median +0.1529, quartiles +0.0000 .. +0.1853, 5 % -0.021, 95 % +0.222
+  map effect                 C larger in  70 of 178 (line 64/138, pixel 5/32, block 1/8); smaller in 58, equal 50, uncomputable 0; difference of the medians: median +0.0000, quartiles -0.0031 .. +0.0016, 5 % -0.183, 95 % +0.031
+  note: B vs A = 118 (QA-A-260 reported 118 of 178)
+========================================================================================================================
+== the line groups: the share of the total retreat that each step carries, and the sum of the step differences (B - A = (B - B') + (B' - C) + (C - A)) per entry
+  entries 178: median of B - A +0.0286; of the reference step +0.0000, the correction-path step +0.1529, the map step +0.0000; mean of B - A +0.0746 = reference +0.0000 + path +0.0991 + map -0.0244
+== the ten entries with the largest B - A (group, frame: A, B, B', C median z)
+  line/dead/row_partial/1                      f2: A 1.270  B 1.539  B' 1.539  C 1.269
+  line/gain_loss/row_partial/0.4               f1: A 1.298  B 1.551  B' 1.551  C 1.301
+  line/dead/row_partial/1                      f1: A 1.348  B 1.594  B' 1.594  C 1.348
+  line/efficiency_loss/row_partial/0.44        f1: A 1.514  B 1.755  B' 1.755  C 1.514
+  line/efficiency_loss/row_full/0.44           f2: A 1.352  B 1.585  B' 1.585  C 1.355
+  line/efficiency_loss/col_partial/0.44        f2: A 1.321  B 1.549  B' 1.549  C 1.316
+  line/efficiency_loss/row_partial/0.3         f1: A 1.483  B 1.710  B' 1.710  C 1.483
+  line/nonlinear/row_full/0.4                  f1: A 1.420  B 1.645  B' 1.645  C 1.423
+  line/gain_loss/col_partial/0.4               f2: A 1.329  B 1.551  B' 1.551  C 1.332
+  line/gain_loss/col_full/0.44                 f2: A 1.434  B 1.647  B' 1.647  C 1.431
+== by class: median of B - A and of its three steps
+  line   entries 138: B-A +0.1390 (reference +0.0000, path +0.1683, map +0.0000)
+  pixel  entries  32: B-A +0.0000 (reference +0.0000, path +0.0000, map +0.0000)
+  block  entries   8: B-A +0.0000 (reference +0.0000, path +0.0000, map +0.0000)

@@ -1,0 +1,22 @@
+#!/bin/bash
+# QA-A-274 step 2-6: one sequential run (never two builds or tests at once). Usage: bash run_pipeline.sh.txt <tag>   (temporary copy = /d/xpe-h274<tag>)
+# Read-only for the working tree; writes only the temporary copy, its output folders, and the logs beside this script.
+TAG=$1; REPO=/d/workspace-github/xpe-pre; T=/d/xpe-h274$TAG; OUT=/d/xpe-h274$TAG-out; OUTW='D:\xpe-h274'$TAG'-out'
+L=$REPO/.moai/reports/lane-pre/QA-A-274/step2-6; P=$REPO/.moai/reports/lane-pre/QA-A-274/patches
+cd $REPO || exit 9
+test ! -e $T || { echo "temporary copy exists"; exit 9; }
+mkdir $T && git archive HEAD | tar -x -C $T || exit 9
+(cd $T && git init -q . && git config core.autocrlf false && for f in 2-3-c1a 2-4-b1.v2 2-5-dualwrite.v2; do git -c core.autocrlf=false apply --check $P/$f.patch.txt && git -c core.autocrlf=false apply $P/$f.patch.txt && echo "APPLIED $f"; done) | tee $L/apply.txt
+sed "s/TAGPLACEHOLDER/$TAG/" $L/verify_temp_copy.py.txt > $L/verify_run.py.txt
+python -I -X utf8 $L/verify_run.py.txt 2>&1 | tee $L/verify_temp_copy.out.txt | cut -c1-200
+: > $L/gui-build.exit.txt
+build() { # project outdir
+  (cd $T/gui/$1 && dotnet build -c Release -o "$2" > $L/$1-build.log.txt 2>&1; echo "$1 BUILD_EXIT=$? warnings=$(grep -E '경고 [0-9]+개' $L/$1-build.log.txt | tr -d ' ') errors=$(grep -E '오류 [0-9]+개' $L/$1-build.log.txt | tr -d ' ')" | tee -a $L/gui-build.exit.txt)
+}
+CHK="$OUTW"'\PRE-GUI-20261019T063546Z-7f92a1-274d-checks'
+build ImageProcTest.CalibrationChecks "$CHK"
+build ImageProcTest.E2E "$OUTW"'\e2e-compile-only'
+build ImageProcTest.SelfCheck 'D:\xpe-h274'$TAG'\_out\selfcheck'
+C=$OUT/PRE-GUI-20261019T063546Z-7f92a1-274d-checks
+echo "fixed report in fresh checks output before run: $(ls $C | grep -c menu-command)" | tee $L/calibration-checks.exit.txt
+(cd $C && timeout 300 ./ImageProcTest.CalibrationChecks.exe > $L/calibration-checks.log.txt 2>&1; echo "CHECKS_EXIT=$?" | tee -a $L/calibration-checks.exit.txt); cut -c1-230 $L/calibration-checks.log.txt

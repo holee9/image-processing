@@ -1,0 +1,16 @@
+#!/bin/bash
+# QA-A-262 item 3: the two correction runs that complete the four arms (A and B are QA-A-260's 44 and 45). Same tool, same truth, same evaluation frames as QA-A-260; only the sets differ.
+#   B' = second-edition planted set, FIRST-edition clean set    (B vs B' = reference effect)
+#   C  = second-edition MAP through the first-edition PATH (60_make_set_c.py.txt), first-edition clean set    (B' vs C = correction-path effect, C vs A = map effect)
+set -u
+ROOT=D:/workspace-github/xpe-pre
+EXE=$ROOT/build/ci-preprocess/bin/xpe_bpm_eval.exe
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+O60=D:/workspace-github/xpe-data/bpm-eval-260
+O62=D:/workspace-github/xpe-data/bpm-eval-262
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-262/evidence
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+run K1_correct_Bprime "$EXE" correct --truth "$IN/inj_d" --clean-set "$O60/clean_set_v1" --inj-set "$O60/inj_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/62_correct_Bprime.json.txt" || exit 1
+run K2_correct_C "$EXE" correct --truth "$IN/inj_d" --clean-set "$O60/clean_set_v1" --inj-set "$O62/inj_set_v2c" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/63_correct_C.json.txt" || exit 1

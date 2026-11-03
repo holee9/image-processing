@@ -1,0 +1,20 @@
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/01_engine_config_quote.txt:46 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:4 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:6 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:8 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:10 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:12 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:14 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:16 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:18 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:46 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:167 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/02_folder_listing_and_info.txt:261 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-318/evidence/21_darkmean_rows.py.txt:21 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-319/evidence/12_temp_instrumentation.patch.txt:13 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-319/evidence/12_temp_instrumentation.patch.txt:15 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-319/evidence/12_temp_instrumentation.patch.txt:47 contains trailing whitespace.
+ERROR: .moai/reports/lane-pre/QA-A-319/evidence/12_temp_instrumentation.patch.txt:77 contains trailing whitespace.
+
+Tracked text file validation failed with 17 error(s).
+

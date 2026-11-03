@@ -1,0 +1,537 @@
+"""QA-A-261 item 1: offset / gain re-inspection, MEASUREMENT ONLY (no product code is read or changed; the script reads frames and the maps the generator wrote).
+Items a-h of the card; every item ends with a classification from the criteria fixed in 10_method_criteria.md.txt (committed before this script was run on the real data).
+  python 30_diagnose.py.txt --selftest        synthetic frames with known row noise / drift: checks the arithmetic and the classifier (positive and negative controls)
+  python 30_diagnose.py.txt --real            the cyan_test frames and the maps of the clean set (QA-A-260 clean_set_v1, default rule: Dark_07 excluded)
+Output: text on stdout (redirect to a .txt evidence file)."""
+import sys
+import json
+import numpy as np
+
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+SETD = 'D:/workspace-github/xpe-data/bpm-eval-260/clean_set_v1/'
+MARGINS = (6, 2, 1, 1)   # left, top, right, bottom: columns / rows outside the imaging area
+# ---- criteria constants (the same numbers as in 10_method_criteria.md.txt)
+C_A_BIAS_LIMIT = 5.0          # |DarkBias| <= 5 (SRS-CALIB-FUNC-016)
+C_A_REPRO_TOL = 0.5           # the IAP value reproduced within this
+C_B_OK = 1.5                  # stripe ratio below: no problem
+C_B_BAD = 2.0                 # stripe ratio at or above: problem
+C_C_LO, C_C_HI, C_C_BAD = 0.9, 1.15, 1.3   # sqrt(N) ratio: [LO, HI] no problem, above BAD problem
+C_D_LIMIT = 1.0               # FlatResidualPct <= 1.0 % (SRS-CALIB-FUNC-017), structured part
+C_D_GROW_RATIO, C_D_GROW_MIN = 2.0, 0.3   # dose dependence: max/min above ratio and max above MIN percent
+C_F_OK, C_F_BAD = 1e-3, 1e-2  # relative gain change from the rounded reference
+C_G_OUT = 100                 # pixels (unflagged) allowed outside the gain range / saturated before "problem"
+C_H_VAR_FRAC = 0.05           # rounding variance as a fraction of temporal variance
+C_H_MEAN_SHIFT = 0.5          # mean shift (pixel value) from the floor at zero
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+def classify(ok, bad):
+    """'no problem' / 'problem' / 'undecidable' from two booleans (ok = inside the no-problem band, bad = inside the problem band)."""
+    if ok and not bad:
+        return 'NO PROBLEM'
+    if bad and not ok:
+        return 'PROBLEM'
+    return 'UNDECIDABLE'
+
+
+# ------------------------------------------------------------------------------------------------------------ helpers
+def crop_slices(S_h, S_w):
+    l, t, r, b = MARGINS
+    return slice(t, S_h - b), slice(l, S_w - r)
+
+
+def rounded_mean_u16(frames):
+    """The generator's reference rule: (sum + n/2) / n in integers."""
+    acc = np.zeros(frames[0].shape, dtype=np.uint64)
+    for f in frames:
+        acc += f
+    n = len(frames)
+    return ((acc + n // 2) // n).astype(np.uint16)
+
+
+def float_mean(frames):
+    acc = np.zeros(frames[0].shape, dtype=np.float64)
+    for f in frames:
+        acc += f
+    return (acc / len(frames)).astype(np.float32)
+
+
+def robust_std(x):
+    x = np.asarray(x, dtype=np.float64).ravel()
+    med = np.median(x)
+    return 1.4826 * np.median(np.abs(x - med))
+
+
+def decile_roi(raw):
+    thr = np.percentile(raw, 10)
+    m = raw < thr
+    return m, int(m.sum()) >= 0.01 * raw.size
+
+
+def sliding_median(p, k):
+    pad = k // 2
+    q = np.pad(p, pad, mode='reflect')
+    w = np.lib.stride_tricks.sliding_window_view(q, k)
+    return np.median(w, axis=1)
+
+
+def masked_axis_means(frame, valid, axis):
+    """Mean over the other axis (axis=1: row means; axis=0: column means), only over valid pixels. float64."""
+    f = np.where(valid, frame.astype(np.float64), 0.0)
+    cnt = valid.sum(axis=axis)
+    return f.sum(axis=axis) / np.maximum(cnt, 1)
+
+
+def box_mean_interior(a, k):
+    """Mean over k x k boxes by integral image; returns an array of the interior (size - k + 1)."""
+    c = np.cumsum(np.cumsum(a.astype(np.float64), axis=0), axis=1)
+    c = np.pad(c, ((1, 0), (1, 0)))
+    s = c[k:, k:] - c[:-k, k:] - c[k:, :-k] + c[:-k, :-k]
+    return s / (k * k)
+
+
+def apply_offset_u16(frame, offset):
+    """The library's offset step (float subtract, +0.5 rounding step, floor at 0, ceiling 65535), as an array of integers held in float32."""
+    x = frame.astype(np.float32) - offset + np.float32(0.5)
+    return np.floor(np.clip(x, 0.0, 65535.0)).astype(np.float32)
+
+
+# ------------------------------------------------------------------------------------------------------------ the analysis
+def analyze(D, F, gain_ids, ref_ids, used_dark_ids, unused_dark_ids, offset7, gain_map, defect, label):
+    """D: dict id -> uint16 dark frames; F: dict id -> uint16 flat frames; gain_ids: the flats the gain map was made from; used_dark_ids: darks the offset (and the gain reference) used;
+    offset7 / gain_map: float32 maps written by the generator (the default rule); defect: bool plane of the set's defect map. Returns a dict of classifications."""
+    S_h, S_w = next(iter(D.values())).shape
+    ys, xs = crop_slices(S_h, S_w)
+    area = np.zeros((S_h, S_w), dtype=bool)
+    area[ys, xs] = True
+    valid = area & ~defect
+    out = {}
+    say('=' * 110)
+    say('%s: frames %dx%d, valid pixels %d of %d (imaging area, defect map excluded)' % (label, S_w, S_h, int(valid.sum()), S_h * S_w))
+    used = [D[k] for k in used_dark_ids]
+    N = len(used)
+
+    # ------------------------------------------------------------------ (a) DarkBias, first dark
+    say('-' * 110)
+    say('(a) first dark frame: level of every dark, DarkBias of the unused darks with the offset made without (7) and with (8) the first frame')
+    means = {k: float(D[k][valid].mean()) for k in sorted(D)}
+    say('    frame means over the valid area: ' + ', '.join('%d: %.2f' % (k, v) for k, v in means.items()))
+    first = min(D)
+    rest = [means[k] for k in used_dark_ids]
+    say('    first dark %d is %.2f below the mean of the used darks (%.2f)' % (first, float(np.mean(rest)) - means[first], float(np.mean(rest))))
+    all_ids = [first] + list(used_dark_ids)
+    offset8 = float_mean([D[k] for k in all_ids])
+    # the generator rule is the plain float mean: check it on the 7-dark map the generator wrote
+    rule_dev = float(np.abs(offset7 - float_mean(used)).max())
+    say('    control: the generator\'s offset map minus my mean of the same %d darks: max |difference| = %g' % (N, rule_dev))
+    out['a_rule_control'] = rule_dev <= 1e-3
+    rows = []
+    for name, off in (('7 darks (first excluded)', offset7), ('8 darks (first kept)', offset8)):
+        for k in unused_dark_ids:
+            raw = D[k]
+            roi, okroi = decile_roi(raw)
+            y = raw.astype(np.float32) - off
+            y2 = apply_offset_u16(raw, off)
+            v1 = float(y[roi].mean())
+            v2 = float(y2[roi].mean())
+            v3 = float(y[valid].mean())
+            rows.append((name, k, v1, v2, v3, okroi))
+    say('    DarkBias (mean of the corrected dark): V1 = float, darkest decile of the raw frame (FUNC-035) | V2 = library rule (+0.5, floor 0), same ROI | V3 = float, whole valid area')
+    for name, k, v1, v2, v3, okroi in rows:
+        say('      %-26s unused dark %d: V1 %+8.2f   V2 %+8.2f   V3 %+8.2f   (ROI ok: %s)' % (name, k, v1, v2, v3, okroi))
+    b7 = [r for r in rows if r[0].startswith('7')]
+    b8 = [r for r in rows if r[0].startswith('8')]
+    iap = {'8': {15: 14.2, 16: 8.5}, '7': {15: 2.4, 16: -3.4}}
+    best = None
+    for variant, idx in (('V1', 2), ('V2', 3), ('V3', 4)):
+        dev = max(max(abs(r[idx] - iap['7'][r[1]]) for r in b7), max(abs(r[idx] - iap['8'][r[1]]) for r in b8))
+        say('    variant %s: largest deviation from the IAP values (+14.2/+8.5 with the first frame, +2.4/-3.4 without) = %.2f' % (variant, dev))
+        if best is None or dev < best[1]:
+            best = (variant, dev)
+    out['a_repro_variant'] = best
+    out['a_repro'] = best[1] <= C_A_REPRO_TOL
+    eff = [(r8[1], r8[2] - r7[2], r8[3] - r7[3], r8[4] - r7[4]) for r7, r8 in zip(b7, b8)]
+    say('    effect of keeping the first frame on DarkBias (8 minus 7): ' + '; '.join('dark %d: V1 %+.2f V2 %+.2f V3 %+.2f' % e for e in eff))
+    bias_ok = all(abs(r[2]) <= C_A_BIAS_LIMIT for r in b7)
+    bias8_ok = all(abs(r[2]) <= C_A_BIAS_LIMIT for r in b8)
+    out['a_bias7_within_limit'] = bias_ok
+    out['a_bias8_within_limit'] = bias8_ok
+    out['a'] = 'NO PROBLEM' if bias_ok else 'PROBLEM'
+    say('    -> |DarkBias| <= %.1f for the 7-dark map: %s; for the 8-dark map: %s; the first-frame exclusion %s' % (C_A_BIAS_LIMIT, bias_ok, bias8_ok, 'is what keeps the limit' if bias_ok and not bias8_ok else 'does not change the verdict on the limit'))
+    say('    CLASSIFICATION (a): %s' % out['a'])
+
+    # ------------------------------------------------------------------ (c) sqrt(N) law of the pixel noise in the offset map (before (b), it fixes sigma_t)
+    say('-' * 110)
+    say('(c) temporal noise of the offset map: does it fall as 1/sqrt(N)?')
+    stack = np.stack([f.astype(np.float32) for f in used], axis=0)   # N x H x W
+    sd_t = stack.std(axis=0, ddof=1)
+    var_med = float(np.median(sd_t[valid] ** 2))
+    say('    temporal std per pixel over the %d used darks: median %.3f, mean of the variance %.3f (variance of the mean map predicted %.3f)' % (N, float(np.median(sd_t[valid])), float(np.mean(sd_t[valid] ** 2)), float(np.mean(sd_t[valid] ** 2)) / N))
+    half_a = list(range(0, N, 2))
+    half_b = list(range(1, N, 2))
+    res = {}
+    for tag, remove_cm in (('as measured', False), ('frame mean removed', True)):
+        st = stack.copy()
+        if remove_cm:
+            cm = st[:, valid].mean(axis=1)
+            st -= cm[:, None, None]
+        sd = st.std(axis=0, ddof=1)
+        d = st[half_a].mean(axis=0) - st[half_b].mean(axis=0)
+        z = d / np.sqrt(np.maximum(sd, 1e-6) ** 2 * (1.0 / len(half_a) + 1.0 / len(half_b)))
+        zr = robust_std(z[valid])
+        res[tag] = (float(np.std(d[valid])), zr, float(np.sqrt(np.mean(sd[valid] ** 2) * (1.0 / len(half_a) + 1.0 / len(half_b)))))
+        say('    %-20s: halves of %d and %d darks: std of (A-B) = %.4f, predicted from sigma_t = %.4f, robust std of the normalised difference = %.4f' % (tag, len(half_a), len(half_b), res[tag][0], res[tag][2], res[tag][1]))
+    # the reference value of the robust statistic for independent Gaussian frames (same estimator on a synthetic stack of the same shape)
+    rng = np.random.default_rng(5)
+    syn = rng.normal(0.0, 3.0, size=(N, 400, 400)).astype(np.float32)
+    sds = syn.std(axis=0, ddof=1)
+    dz = (syn[half_a].mean(axis=0) - syn[half_b].mean(axis=0)) / np.sqrt(sds ** 2 * (1.0 / len(half_a) + 1.0 / len(half_b)))
+    ref = robust_std(dz)
+    say('    reference value of the robust statistic for independent Gaussian frames (same N, same estimator): %.4f' % ref)
+    rc = res['frame mean removed'][1] / ref
+    rc_raw = res['as measured'][1] / ref
+    say('    ratio to the reference: frame mean removed %.3f, as measured %.3f' % (rc, rc_raw))
+    out['c_halves_ratio'] = rc
+    say('    (the halves test is shown as information: it has little power against noise that drifts slowly between frames)')
+    # the primary test: a NEW dark frame against the map. Its deviation from the map has the temporal noise of the frame plus the noise of the map, sigma*sqrt(1+1/N);
+    # sigma is the median temporal std of the used darks. The same formula on independent Gaussian frames gives the reference value (the estimators are biased a little the same way).
+    def new_frame_ratio(sd_median, y_list):
+        return float(np.mean([robust_std(((y - np.median(y[valid]))[valid])) for y in y_list])) / (sd_median * np.sqrt(1.0 + 1.0 / N))
+
+    new_y = [D[k].astype(np.float32) - offset7 for k in unused_dark_ids]
+    st_cm = stack - stack[:, valid].mean(axis=1)[:, None, None]   # the frame level (drift between frames) is removed from sigma_t as it is from the new frames
+    sd_cm = st_cm.std(axis=0, ddof=1)
+    real_ratio = new_frame_ratio(float(np.median(sd_cm[valid])), new_y)
+    syn2 = rng.normal(0.0, 3.0, size=(N + 2, 400, 400)).astype(np.float32)
+    syn_map = syn2[:N].mean(axis=0)
+    syn_sd = syn2[:N].std(axis=0, ddof=1)
+    syn_ratio = float(np.mean([robust_std(syn2[N + q] - syn_map) for q in range(2)])) / (float(np.median(syn_sd)) * np.sqrt(1.0 + 1.0 / N))
+    rc2 = real_ratio / syn_ratio
+    say('    new-frame test: robust std of a corrected unused dark (its median removed) over median(sigma_t)*sqrt(1+1/N) = %.4f; the same for independent Gaussian frames = %.4f; ratio = %.3f' % (real_ratio, syn_ratio, rc2))
+    out['c_ratio'] = rc2
+    out['c'] = classify(C_C_LO <= rc2 <= C_C_HI, rc2 > C_C_BAD)
+    say('    CLASSIFICATION (c): %s (new-frame ratio: no problem for %.2f..%.2f, problem above %.2f)' % (out['c'], C_C_LO, C_C_HI, C_C_BAD))
+    # the noise cost of the map on a new frame: corrected unused dark, temporal part
+    sig = float(np.sqrt(np.mean(sd_t[valid] ** 2)))
+    new = [D[k].astype(np.float32) - offset7 for k in unused_dark_ids]
+    say('    corrected unused darks: std over the valid area (includes fixed pattern left): ' + ', '.join('%.3f' % float(n[valid].std()) for n in new) + '; sqrt(sigma_t^2 (1+1/N)) = %.3f' % (sig * np.sqrt(1.0 + 1.0 / N)))
+
+    # ------------------------------------------------------------------ (b) row / column stripes of the offset map
+    say('-' * 110)
+    say('(b) moving row / column noise left in the offset map')
+
+    def stripes(maps, label_map, valid_mask):
+        rep = {}
+        for axis, name in ((1, 'rows'), (0, 'columns')):
+            frames_prof = np.stack([masked_axis_means(f.astype(np.float64), valid_mask, axis) for f in maps], axis=0)   # N x length
+            # remove each frame's own level (common mode) so that only the stripe part remains
+            frames_prof = frames_prof - frames_prof.mean(axis=1, keepdims=True)
+            var_t = frames_prof.var(axis=0, ddof=1)
+            sigma_line = float(np.sqrt(np.mean(var_t)))   # temporal std of a line mean
+            rep[name] = sigma_line
+        return rep
+
+    sl = stripes(used, 'dark', valid)
+    say('    temporal std of one line mean in one dark frame (frame level removed): rows %.4f, columns %.4f' % (sl['rows'], sl['columns']))
+    bres = {}
+    for axis, name in ((1, 'rows'), (0, 'columns')):
+        prof = masked_axis_means(offset7.astype(np.float64), valid, axis)
+        prof = prof - prof.mean()
+        base = sliding_median(prof, 101)
+        s_obs = robust_std(prof - base)
+        s_pred = sl[name] / np.sqrt(N)
+        say('    offset map %-7s: stripe amplitude (robust std of the profile minus its 101-line median) %.4f; moving noise predicted sigma/sqrt(N) = %.4f; share of the variance explained by moving noise %.2f' % (name, s_obs, s_pred, min(1.0, (s_pred / s_obs) ** 2) if s_obs > 0 else float('nan')))
+        # the same line statistic of the corrected unused darks: map leakage and the new frame's own row noise
+        resid = []
+        for k in unused_dark_ids:
+            y = D[k].astype(np.float64) - offset7.astype(np.float64)
+            p = masked_axis_means(y, valid, axis)
+            p = p - p.mean()
+            resid.append(robust_std(p - sliding_median(p, 101)))
+        s_res_pred = sl[name] * np.sqrt(1.0 + 1.0 / N)
+        ratio = float(np.mean(resid)) / s_res_pred
+        say('                         corrected unused darks %s: stripe amplitude %s; predicted sigma*sqrt(1+1/N) = %.4f; ratio %.2f' % (name, ', '.join('%.4f' % r for r in resid), s_res_pred, ratio))
+        bres[name] = ratio
+    out['b_ratios'] = bres
+    worst = max(bres.values())
+    out['b'] = classify(worst < C_B_OK, worst >= C_B_BAD)
+    say('    CLASSIFICATION (b): %s (ratio of the stripe amplitude of corrected unused darks to the prediction: no problem below %.1f, problem at %.1f or more; worst of rows and columns %.2f)' % (out['b'], C_B_OK, C_B_BAD, worst))
+
+    # ------------------------------------------------------------------ (f) the reference of the gain stage
+    say('-' * 110)
+    say('(f) gain dark reference "mean": same list as the offset?')
+    ref_u16 = rounded_mean_u16(used)
+    refdev = np.abs(ref_u16.astype(np.float32) - offset7)
+    say('    reference = integer-rounded mean of the %d used darks; offset = float mean of the same darks; max |reference - offset| = %.4f, mean %.4f (rounding only)' % (N, float(refdev.max()), float(refdev.mean())))
+    gs = [F[k] for k in gain_ids]
+
+    def make_gain(reference):
+        acc = np.zeros((S_h, S_w), dtype=np.float64)
+        for f in gs:
+            acc += f.astype(np.float64) - reference.astype(np.float64)
+        raw_g = (acc / len(gs)).astype(np.float32)
+        return raw_g / np.float32(raw_g.astype(np.float64).mean())
+
+    g_mine = make_gain(ref_u16)
+    gdev = float(np.max(np.abs(g_mine - gain_map) / np.maximum(np.abs(gain_map), 1e-6)))
+    say('    control: the generator\'s gain map against my recomputation with the rounded reference: max relative difference %g' % gdev)
+    out['f_control'] = gdev <= 1e-5
+    g_float = make_gain(offset7)
+    rel = np.abs(g_float - g_mine) / np.maximum(np.abs(g_mine), 1e-6)
+    say('    gain map with the float (offset) reference instead of the rounded one: relative difference max %.3g, p99.9 %.3g, mean %.3g' % (float(rel[valid].max()), float(np.percentile(rel[valid], 99.9)), float(rel[valid].mean())))
+    out['f_rel_max'] = float(rel[valid].max())
+    out['f'] = classify(out['f_rel_max'] < C_F_OK, out['f_rel_max'] >= C_F_BAD)
+    say('    CLASSIFICATION (f): %s (no problem below %g, problem at %g or more; the manifest check of the list is in the report)' % (out['f'], C_F_OK, C_F_BAD))
+
+    # ------------------------------------------------------------------ (d) dose dependence of the flatness after the gain
+    say('-' * 110)
+    say('(d) flatness after offset and gain, per dose group (frames not used for the gain map, plus the same-dose evaluation frames)')
+    groups = {}
+    gain_mean_signal = float(np.mean([F[k][valid].mean() for k in gain_ids]))
+    for k in sorted(F):
+        if k in gain_ids:
+            continue   # the frames that made the gain map are not an evaluation of it (the first real run had them in the group of their own dose; corrected here, see the report)
+        key = int(round(float(F[k][valid].mean()) / 1500.0))   # dose groups are 1500+ apart; frames of one dose are within ~1 %
+        groups.setdefault(key, []).append(k)
+    # gain group = the dose of the gain frames
+    res_d = []
+    for key in sorted(groups):
+        ids = groups[key]
+        ys_ = []
+        for k in ids:
+            y = apply_offset_u16(F[k], offset7) / gain_map
+            y = y / float(y[valid].mean())
+            ys_.append(y)
+        stk = np.stack(ys_, axis=0)
+        n_g = len(ids)
+        sig_pix = float(np.sqrt(np.mean(stk.var(axis=0, ddof=1)[valid]))) if n_g > 1 else float('nan')
+        ym = stk.mean(axis=0)
+        glob = float(ym[valid].std())
+        # local: remove a 31 x 31 box mean (interior only)
+        k31 = 31
+        bm = box_mean_interior(ym, k31)
+        h = k31 // 2
+        core = ym[h:h + bm.shape[0], h:h + bm.shape[1]]
+        vcore = valid[h:h + bm.shape[0], h:h + bm.shape[1]]
+        loc = float((core - bm)[vcore].std())
+        noise_group = sig_pix / np.sqrt(n_g) if n_g > 1 else float('nan')
+        # the local part of the temporal noise is the same as its total (white); the structured parts are the quadrature differences
+        st_glob = float(np.sqrt(max(glob ** 2 - noise_group ** 2, 0.0))) if n_g > 1 else float('nan')
+        st_loc = float(np.sqrt(max(loc ** 2 - noise_group ** 2, 0.0))) if n_g > 1 else float('nan')
+        meanF = float(np.mean([F[k][valid].mean() for k in ids]))
+        tag = 'GAIN DOSE (evaluation frames only)' if abs(meanF - gain_mean_signal) < 0.02 * gain_mean_signal else ''
+        say('    dose group of mean signal %8.0f (%s) frames %s' % (meanF, tag, ids))
+        say('        group average: global std/mean %.4f %%, local (31x31 high-pass) %.4f %%, temporal noise of the average %.4f %% -> structured global %.4f %%, local %.4f %%' % (100 * glob, 100 * loc, 100 * noise_group, 100 * st_glob, 100 * st_loc))
+        res_d.append((meanF, ids, st_glob, st_loc, bool(tag), n_g))
+    graded = [r for r in res_d if r[5] > 1 and not np.isnan(r[2])]
+    # the group of the gain frames is evaluated with the same-dose evaluation frames only (the gain frames made the map)
+    out['d_rows'] = res_d
+    glob_vals = [r[2] * 100 for r in graded]
+    mx, mn = (max(glob_vals), min(glob_vals)) if glob_vals else (float('nan'), float('nan'))
+    bad = (mx > C_D_LIMIT) or (mx / max(mn, 1e-9) > C_D_GROW_RATIO and mx > C_D_GROW_MIN)
+    ok = (mx <= C_D_LIMIT) and not (mx / max(mn, 1e-9) > C_D_GROW_RATIO and mx > C_D_GROW_MIN)
+    out['d'] = classify(ok, bad) if glob_vals else 'UNDECIDABLE'
+    say('    structured global residual over the dose groups with at least two frames: min %.4f %%, max %.4f %%' % (mn, mx))
+    say('    CLASSIFICATION (d): %s (problem if the structured residual exceeds %.1f %% at any dose, or grows by more than %.1fx between doses and exceeds %.1f %%)' % (out['d'], C_D_LIMIT, C_D_GROW_RATIO, C_D_GROW_MIN))
+
+    # ------------------------------------------------------------------ (e) row / column stripes of the gain map and after the gain
+    say('-' * 110)
+    say('(e) moving row / column noise left in the gain map')
+    meanS = float(np.mean([f[valid].astype(np.float64).mean() - ref_u16[valid].astype(np.float64).mean() for f in gs]))
+    eres = {}
+    for axis, name in ((1, 'rows'), (0, 'columns')):
+        fp = np.stack([masked_axis_means((f.astype(np.float64) - ref_u16.astype(np.float64)) / meanS, valid, axis) for f in gs], axis=0)
+        fp = fp - fp.mean(axis=1, keepdims=True)
+        sig_flat = float(np.sqrt(np.mean(fp.var(axis=0, ddof=1))))
+        dp = np.stack([masked_axis_means(f.astype(np.float64), valid, axis) for f in used], axis=0)
+        dp = dp - dp.mean(axis=1, keepdims=True)
+        sig_dark = float(np.sqrt(np.mean(dp.var(axis=0, ddof=1)))) / meanS
+        prof = masked_axis_means(gain_map.astype(np.float64), valid, axis)
+        prof = prof - prof.mean()
+        s_obs = robust_std(prof - sliding_median(prof, 101))
+        s_pred = float(np.sqrt(sig_flat ** 2 / len(gs) + sig_dark ** 2 / N))
+        # corrected evaluation frames of the gain dose (frames of the gain dose that the map was not made from)
+        same = [k for k in F if k not in gain_ids and abs(float(F[k][valid].mean()) - float(np.mean([f[valid].mean() for f in gs]))) < 0.02 * float(np.mean([f[valid].mean() for f in gs]))]
+        rr = []
+        for k in same:
+            y = apply_offset_u16(F[k], offset7) / gain_map
+            y = y / float(y[valid].mean()) - 1.0
+            p = masked_axis_means(y, valid, axis)
+            p = p - p.mean()
+            rr.append(robust_std(p - sliding_median(p, 101)))
+        s_res_pred = float(np.sqrt(sig_flat ** 2 * (1.0 + 1.0 / len(gs)) + sig_dark ** 2 / N))
+        ratio = float(np.mean(rr)) / s_res_pred if rr else float('nan')
+        say('    %-7s: temporal std of a line mean of one flat (relative) %.5f; gain map stripe amplitude %.5f vs predicted from moving noise %.5f; evaluation frames of the gain dose %s: stripe amplitude %s vs predicted %.5f -> ratio %.2f' % (name, sig_flat, s_obs, s_pred, same, ', '.join('%.5f' % r for r in rr), s_res_pred, ratio))
+        eres[name] = ratio
+    out['e_ratios'] = eres
+    vals = [v for v in eres.values() if not np.isnan(v)]
+    worst_e = max(vals) if vals else float('nan')
+    out['e'] = classify(bool(vals) and worst_e < C_B_OK, bool(vals) and worst_e >= C_B_BAD) if vals else 'UNDECIDABLE'
+    say('    CLASSIFICATION (e): %s (same bands as (b); worst ratio %.2f)' % (out['e'], worst_e))
+
+    # ------------------------------------------------------------------ (g) saturation, near zero, gain range
+    say('-' * 110)
+    say('(g) saturation / near-zero / gain range')
+    sat_dark = sum(int((D[k] >= 65535).sum()) for k in D)
+    sat_flat = {k: int((F[k] >= 65535).sum()) for k in F}
+    say('    saturated pixels (65535): darks %d, flats %s' % (sat_dark, {k: v for k, v in sat_flat.items() if v}))
+    net = [f.astype(np.int64) - ref_u16.astype(np.int64) for f in gs]
+    nonpos = sum(int(((n <= 0) & area).sum()) for n in net)
+    say('    pixels with net signal <= 0 in the gain frames (frame x pixel, inside the imaging area): %d' % nonpos)
+    g = gain_map.astype(np.float64)
+    nonfinite = int((~np.isfinite(g)).sum())
+    outrange = (g < 0.5) | (g > 2.0) | ~np.isfinite(g)
+    out_unflagged = int((outrange & area & ~defect).sum())
+    out_flagged = int((outrange & area & defect).sum())
+    say('    gain map: min %.4f max %.4f; non-finite %d; outside [0.5, 2.0]: %d inside the imaging area (%d flagged in the defect map, %d NOT flagged)' % (float(np.nanmin(g[area])), float(np.nanmax(g[area])), nonfinite, out_flagged + out_unflagged, out_flagged, out_unflagged))
+    clamps = {}
+    for k in list(unused_dark_ids) + [k for k in F if k not in gain_ids]:
+        raw = D[k] if k in D else F[k]
+        x = raw.astype(np.float32) - offset7 + np.float32(0.5)
+        lo = int((x < 0).sum())
+        hi = int((x > 65535).sum())
+        clamps[k] = (lo, hi)
+    say('    after the offset step, pixels clamped to 0 / to 65535 (unused darks %s, other flats): ' % list(unused_dark_ids) + '; '.join('%d: %d / %d' % (k, v[0], v[1]) for k, v in clamps.items()))
+    sat_in_gain = sum(sat_flat[k] for k in gain_ids)
+    out['g_counts'] = dict(sat_in_gain=sat_in_gain, nonfinite=nonfinite, out_unflagged=out_unflagged)
+    bad_g = nonfinite > 0 or out_unflagged > C_G_OUT or sat_in_gain > C_G_OUT
+    out['g'] = 'PROBLEM' if bad_g else 'NO PROBLEM'
+    say('    CLASSIFICATION (g): %s (problem if any non-finite gain, or more than %d unflagged out-of-range gains, or more than %d saturated pixels in the gain frames)' % (out['g'], C_G_OUT, C_G_OUT))
+
+    # ------------------------------------------------------------------ (h) rounding
+    say('-' * 110)
+    say('(h) rounding of floor(raw - offset + 0.5) / gain')
+    hres = []
+    var_dark = float(np.mean(sd_t[valid] ** 2))
+    for k in unused_dark_ids:
+        raw = D[k]
+        exact = raw.astype(np.float32) - offset7
+        d_round = (np.floor(exact + np.float32(0.5)) - exact)[valid]   # rounding alone, no clamp
+        clamp_shift = float(np.maximum(exact, 0).astype(np.float64)[valid].mean() - exact.astype(np.float64)[valid].mean())   # the floor at 0 alone, no rounding
+        both = (apply_offset_u16(raw, offset7) - exact)[valid]
+        hres.append((k, float(d_round.mean()), float(d_round.var()), clamp_shift, float(both.mean()), float(both.var())))
+        say('    unused dark %d: rounding alone: mean %+.4f, variance %.4f (temporal variance of a dark pixel %.3f -> %.2f %%); floor at 0 alone: mean shift %+.4f (%.1f %% of the pixels are clamped); both: mean %+.4f variance %.4f' % (k, hres[-1][1], hres[-1][2], var_dark, 100 * hres[-1][2] / var_dark, clamp_shift, 100.0 * float((exact < 0)[valid].mean()), hres[-1][4], hres[-1][5]))
+    flat_var = []
+    for k in [k for k in F if k not in gain_ids][:6]:
+        exact = (F[k].astype(np.float32) - offset7) / gain_map
+        rnd = apply_offset_u16(F[k], offset7) / gain_map
+        d = (rnd - exact)[valid]
+        flat_var.append((k, float(d.mean()), float(d.std()), float(d.std() / exact[valid].mean())))
+    say('    flats (offset-step rounding then gain, minus exact): ' + '; '.join('%d: mean %+.4f std %.4f (%.1f ppm of the signal)' % (v[0], v[1], v[2], 1e6 * v[3]) for v in flat_var))
+    frac_vars = [r[2] / var_dark for r in hres]
+    shifts = [abs(r[3]) for r in hres]
+    out['h_var_frac'] = max(frac_vars)
+    out['h_shift'] = max(shifts)
+    out['h1'] = 'NO PROBLEM' if max(frac_vars) < C_H_VAR_FRAC else 'PROBLEM'
+    out['h2'] = 'NO PROBLEM' if max(shifts) <= C_H_MEAN_SHIFT else 'PROBLEM'
+    out['h'] = 'PROBLEM' if 'PROBLEM' in (out['h1'], out['h2']) else 'NO PROBLEM'
+    say('    CLASSIFICATION (h1, rounding noise): %s (problem if the rounding variance reaches %.0f %% of the temporal variance of a dark pixel; worst %.2f %%)' % (out['h1'], 100 * C_H_VAR_FRAC, 100 * max(frac_vars)))
+    say('    CLASSIFICATION (h2, floor at 0): %s (problem if the floor at 0 shifts the mean of a corrected dark by more than %.1f; worst %.3f)' % (out['h2'], C_H_MEAN_SHIFT, max(shifts)))
+    say('=' * 110)
+    return out
+
+
+# ------------------------------------------------------------------------------------------------------------ data
+def synthetic(row_sigma, drift, S=192, seed=1, persistent=0.0, walk=0.0, nl=0.0):
+    """Frames with known properties: pedestal + fixed pattern + white noise + a moving row noise of sigma row_sigma (+ a row stripe that persists across frames if persistent > 0) + per-frame level drift."""
+    rng = np.random.default_rng(seed)
+    pat = rng.normal(0, 4, size=(S, S)).astype(np.float32)
+    row_fix = rng.normal(0, 1.0, size=(S, 1)).astype(np.float32)
+    D = {}
+    walk_state = np.zeros((S, S), dtype=np.float32)
+    pix_nl = rng.normal(0, 1.0, size=(S, S)).astype(np.float32)
+    levels = [-90.0] + [0.0, 5.0, 0.0, 5.0, 0.0, 5.0, 0.0, 5.0, 0.0][:9]
+    for i, k in enumerate(range(7, 17)):
+        lvl = levels[i] if drift else 0.0
+        persist = persistent * np.sin(np.arange(S)[:, None] * 0.7 + 0.3 * i)
+        walk_state = walk_state + rng.normal(0, walk, size=(S, S)).astype(np.float32)   # a pixel noise that is correlated between frames (a random walk): not averaged by sqrt(N)
+        D[k] = np.clip(11000 + pat + row_fix + lvl + persist + walk_state + rng.normal(0, 3.0, size=(S, S)) + rng.normal(0, row_sigma, size=(S, 1)), 0, 65535).astype(np.uint16)
+    F = {}
+    gain_true = (1.0 + rng.normal(0, 0.01, size=(S, S))).astype(np.float32)
+    doses = {17: 13700, 18: 13700, 19: 13700, 20: 16600, 21: 16600, 22: 16600, 23: 19800, 24: 19800, 25: 19800, 26: 19800, 27: 19800, 28: 19800, 29: 19800, 30: 19800, 31: 28500, 32: 28500, 33: 28500, 34: 38900, 35: 38900, 36: 38900}
+    for k, dose in doses.items():
+        sig = dose * gain_true * (1.0 + nl * pix_nl * (dose / 30000.0 - 0.66))   # nl: a pixel-dependent departure from the gain-dose response
+        noise = rng.normal(0, 1.0, size=(S, S)) * np.sqrt(4.0 + 0.3 * sig) + rng.normal(0, row_sigma * 2, size=(S, 1))
+        F[k] = np.clip(11000 + pat + row_fix + sig + noise, 0, 65535).astype(np.uint16)
+    return D, F
+
+
+# QA-A-263 (Codex #232 R232-4): every synthetic control states the classification it is DESIGNED to give, and the run asserts it. The expectations come from the construction of the
+# synthetic frames (not from the first output):
+#  - h2 is PROBLEM in every control: the offset-corrected synthetic dark has a mean of about 0, so the floor at zero lifts its mean by about 0.4 sigma (sigma 3 -> more than 0.5), by design;
+#  - a is PROBLEM where the construction moves the dark level: control 2 alternates the level of the darks by +5 (the real two-level alternation, made larger than the real 2.9), control 3 has a
+#    random walk of the pixel level; with these the DarkBias of an unused dark exceeds 5;
+#  - c is UNDECIDABLE in control 5: the persistent row stripe is a large part of every frame, the new-frame ratio lands between the two bands (1.196), neither "no problem" nor "problem".
+SELFTEST_EXPECT = [
+    ('NEGATIVE CONTROL 1 (white noise only, no drift)', dict(a='NO PROBLEM', b='NO PROBLEM', c='NO PROBLEM', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('CONTROL 2 (moving row noise that averages, dark level alternation +5)', dict(a='PROBLEM', b='NO PROBLEM', c='NO PROBLEM', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('POSITIVE CONTROL for (c) (pixel noise correlated between frames)', dict(a='PROBLEM', b='NO PROBLEM', c='PROBLEM', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('POSITIVE CONTROL for (d) (pixel-dependent departure from the gain-dose response)', dict(a='NO PROBLEM', b='NO PROBLEM', c='NO PROBLEM', d='PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+    ('POSITIVE CONTROL for (b) (persistent row stripe)', dict(a='NO PROBLEM', b='PROBLEM', c='UNDECIDABLE', d='NO PROBLEM', e='NO PROBLEM', f='NO PROBLEM', g='NO PROBLEM', h1='NO PROBLEM', h2='PROBLEM')),
+]
+
+
+def run_selftest():
+    cases = [dict(row_sigma=0.0, drift=False), dict(row_sigma=2.0, drift=True), dict(row_sigma=0.0, drift=False, walk=4.0), dict(row_sigma=0.0, drift=False, nl=0.08), dict(row_sigma=0.5, drift=False, persistent=3.0)]
+    failures = []
+    for (title, expect), kw in zip(SELFTEST_EXPECT, cases):
+        D, F = synthetic(**kw)
+        used_ids = list(range(8, 15))
+        unused_ids = [15, 16]
+        offset7 = float_mean([D[k] for k in used_ids])
+        ref = rounded_mean_u16([D[k] for k in used_ids])
+        gain_ids = list(range(23, 29))
+        acc = np.zeros(offset7.shape, dtype=np.float64)
+        for k in gain_ids:
+            acc += F[k].astype(np.float64) - ref.astype(np.float64)
+        rawg = (acc / len(gain_ids)).astype(np.float32)
+        gain_map = rawg / np.float32(rawg.astype(np.float64).mean())
+        defect = np.zeros(offset7.shape, dtype=bool)
+        say('#' * 110)
+        say('SELFTEST: ' + title)
+        o = analyze(D, F, gain_ids, None, used_ids, unused_ids, offset7, gain_map, defect, 'synthetic')
+        got = {k: o[k] for k in expect}
+        say('SELFTEST SUMMARY: ' + ' '.join('%s=%s' % (k, o[k]) for k in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h1', 'h2')))
+        bad = {k: (expect[k], got[k]) for k in expect if expect[k] != got[k]}
+        say('SELFTEST EXPECTED == ACTUAL: %s%s' % ('yes' if not bad else 'NO ', '' if not bad else str(bad)))
+        if bad:
+            failures.append((title, bad))
+    say('#' * 110)
+    say('SELFTEST RESULT: %s' % ('all five controls give exactly the designed classification' if not failures else 'MISMATCH: %s' % failures))
+    assert not failures, failures
+
+
+def run_real():
+    S = 3072
+    n = S * S
+
+    def load(path):
+        return np.fromfile(path, dtype='<u2').reshape(S, S)
+
+    D = {k: load(CAL + 'Dark_%02d.raw' % k) for k in range(7, 17)}
+    F = {k: load(CAL + 'Bright_%d.raw' % k) for k in range(17, 37)}
+    off = np.frombuffer(open(SETD + 'offset.xcal', 'rb').read()[-n * 4:], dtype='<f4').reshape(S, S).copy()
+    gain = np.frombuffer(open(SETD + 'gain.xcal', 'rb').read()[-n * 4:], dtype='<f4').reshape(S, S).copy()
+    defect = np.frombuffer(open(SETD + 'defect.xcal', 'rb').read()[-n:], dtype=np.uint8).reshape(S, S) != 0
+    man = json.load(open(SETD + 'manifest.json', encoding='utf-8'))
+    used_names = [x['path'].split('/')[-1] for x in man['dark_policy']['used']]
+    used_ids = [int(nm[5:7]) for nm in used_names]
+    gain_ids = [int(i['path'].split('/')[-1][7:9]) for i in man['inputs'] if i['role'] in ('bright', 'bright_and_bpm_bright')]
+    say('manifest: dark_policy.used = %s; first_dark_excluded = %s; one_list_for_all_stages = %s; gain_dark_reference = %s' % (used_names, man['dark_policy']['first_dark_excluded'], man['dark_policy']['one_list_for_all_stages'], man['dark_policy']['gain_dark_reference']))
+    say('manifest: gain frames = %s; defect map flags %d pixels (v1 plane of the clean set)' % (gain_ids, int(defect.sum())))
+    say('offset.xcal sha256 prefix: ' + man['files']['offset.xcal'][:16] + '  gain.xcal: ' + man['files']['gain.xcal'][:16])
+    unused = [k for k in D if k not in used_ids and k != 7]
+    o = analyze(D, F, gain_ids, None, used_ids, unused, off, gain, defect, 'cyan_test, clean set (default rule: Dark_07 excluded)')
+    say('SUMMARY: ' + ' '.join('%s=%s' % (k, o[k]) for k in ('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h1', 'h2')))
+
+
+if __name__ == '__main__':
+    if '--selftest' in sys.argv:
+        run_selftest()
+    elif '--real' in sys.argv:
+        run_real()
+    else:
+        print(__doc__)

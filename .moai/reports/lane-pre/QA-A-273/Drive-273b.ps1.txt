@@ -1,0 +1,179 @@
+﻿param(
+  [Parameter(Mandatory=$true)][string]$RunDir,
+  [Parameter(Mandatory=$true)][string]$Script,
+  [Parameter(Mandatory=$true)][string]$Fixtures,
+  [string]$Scenario,
+  [int]$DelayMs=0
+)
+# QA-A-273: launches the NEWLY BUILT dev GUI (own process, own settings file) and drives ONLY the comparison window through UI Automation
+# patterns (Invoke / Value / Expand / Window). No global keyboard or mouse input. Never touches PIDs 1868, 17364, 19184. Kills only the PID it started.
+$ErrorActionPreference='Stop'
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+Add-Type -AssemblyName System.Drawing
+Add-Type -TypeDefinition @'
+using System;using System.Runtime.InteropServices;
+public static class QaShot {
+ [StructLayout(LayoutKind.Sequential)] public struct RECT {public int L,T,R,B;}
+ [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h,out RECT r);
+ [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h,IntPtr dc,uint flags);
+}
+'@
+$protected=@(1868,17364,19184)
+$base='D:\workspace-github\xpe-pre\.moai\reports\lane-pre'
+$exe=Join-Path $base 'QA-A-273\builds\gui2\bin\ImageProcTest\debug\ImageProcTest.exe'
+$native=Join-Path $base 'PRE-GUI-20261019T063546Z-7f92a1\native-gui'
+$calib=Join-Path $base 'PRE-GUI-20261019T063546Z-7f92a1\pre-20261019T070424691Z-d89b59b7763c48c1b729fe9411939fd9\calibration-set'
+$hook=Join-Path $base 'CODEX-TEMP-2026-10-18\gui-recovery-v1\XpeSoftwareRenderHook-v3.dll'
+$settings=Join-Path $RunDir 'gui-settings.json'
+New-Item -ItemType Directory -Force -Path $RunDir | Out-Null
+$log=New-Object System.Collections.Generic.List[string]
+function Log($t){$line=('{0:HH:mm:ss} {1}' -f (Get-Date),$t);$log.Add($line);Write-Host $line}
+
+$info=New-Object System.Diagnostics.ProcessStartInfo
+$info.FileName=$exe;$info.WorkingDirectory=Split-Path $exe -Parent;$info.UseShellExecute=$false
+$info.EnvironmentVariables['XPE_NATIVE_DIR']=$native;$info.EnvironmentVariables['XPE_NATIVE_DIR_EXCLUSIVE']='1'
+$info.EnvironmentVariables['DOTNET_STARTUP_HOOKS']=$hook;$info.EnvironmentVariables['XPE_GUI_RENDER_MODE']='SoftwareOnly'
+if($DelayMs -gt 0){$info.EnvironmentVariables['XPE_COMPARISON_TEST_ROW_DELAY_MS']=[string]$DelayMs}
+$info.Arguments='--automation-backend "Native" --automation-calib "'+$calib+'" --automation-width "3072" --automation-height "3072" --automation-settings "'+$settings+'"'
+$proc=[System.Diagnostics.Process]::Start($info)
+$pid1=$proc.Id
+if($pid1 -in $protected){throw 'Started PID is protected?!'}
+Log ('started PID '+$pid1)
+function Root {[Windows.Automation.AutomationElement]::FromHandle((Get-Process -Id $pid1).MainWindowHandle)}
+try{
+  $deadline=[DateTime]::UtcNow.AddSeconds(60)
+  do{Start-Sleep -Milliseconds 500;$proc.Refresh()}while($proc.MainWindowHandle -eq [IntPtr]::Zero -and [DateTime]::UtcNow -lt $deadline)
+  if($proc.MainWindowHandle -eq [IntPtr]::Zero){throw 'no main window'}
+  Start-Sleep -Seconds 4
+  function FindIn($el,$id){$el.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::AutomationIdProperty),$id))}
+  function Wait-Find($scopeFn,$id,$sec){$d=[DateTime]::UtcNow.AddSeconds($sec);do{$e=FindIn (& $scopeFn) $id;if($e){return $e};Start-Sleep -Milliseconds 200}while([DateTime]::UtcNow -lt $d);throw ('not found: '+$id)}
+  # open the menu entry
+  $menu=Wait-Find { Root } 'ToolsMenu' 20
+  ([Windows.Automation.ExpandCollapsePattern]$menu.GetCurrentPattern([Windows.Automation.ExpandCollapsePattern]::Pattern)).Expand()
+  Start-Sleep -Milliseconds 300
+  $item=Wait-Find { Root } 'PreComparisonImportMenuItem' 10
+  Log ('menu item found: '+$item.Current.Name)
+  ([Windows.Automation.InvokePattern]$item.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern)).Invoke()
+  # the dialog is a separate top-level window of the same process
+  $desk=[Windows.Automation.AutomationElement]::RootElement
+  $pidCond=New-Object Windows.Automation.PropertyCondition ([Windows.Automation.AutomationElement]::ProcessIdProperty),$pid1
+  function Dlg {$w=$desk.FindAll([Windows.Automation.TreeScope]::Children,$pidCond);foreach($x in $w){if($x.Current.AutomationId -eq 'ComparisonImportWindow'){return $x}};$e=FindIn (Root) 'ComparisonImportWindow';return $e}
+  $d=[DateTime]::UtcNow.AddSeconds(15);$dlg=$null
+  do{$dlg=Dlg;if($dlg){break};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $d)
+  if(-not $dlg){foreach($x in $desk.FindAll([Windows.Automation.TreeScope]::Children,$pidCond)){Log ('top-level: id='+$x.Current.AutomationId+' name='+$x.Current.Name+' class='+$x.Current.ClassName)};throw 'comparison window did not open'}
+  Log ('comparison window open: '+$dlg.Current.Name)
+  function D {Dlg}
+  function Get-Text($id){$e=FindIn (D) $id;if(-not $e){return '<missing>'}
+    $vp=$null;if($e.TryGetCurrentPattern([Windows.Automation.ValuePattern]::Pattern,[ref]$vp)){return $vp.Current.Value};return $e.Current.Name}
+  function Set-Text($id,$v){$e=FindIn (D) $id;([Windows.Automation.ValuePattern]$e.GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern)).SetValue($v)}
+  function Click($id){$e=FindIn (D) $id;([Windows.Automation.InvokePattern]$e.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern)).Invoke()}
+  function Enabled($id){(FindIn (D) $id).Current.IsEnabled}
+  function Shot($name){
+    $h=[IntPtr](D).Current.NativeWindowHandle
+    $r=New-Object QaShot+RECT;[QaShot]::GetWindowRect($h,[ref]$r)|Out-Null
+    $bmp=New-Object Drawing.Bitmap ($r.R-$r.L),($r.B-$r.T);$g=[Drawing.Graphics]::FromImage($bmp);$dc=$g.GetHdc()
+    try{[QaShot]::PrintWindow($h,$dc,2)|Out-Null}finally{$g.ReleaseHdc($dc);$g.Dispose()}
+    $p=Join-Path $RunDir ($name+'.png');$bmp.Save($p);$bmp.Dispose();Log ('screenshot '+$p)}
+  function Wait-Text($id,$pattern,$sec){$d=[DateTime]::UtcNow.AddSeconds($sec);do{$t=Get-Text $id;if($t -match $pattern){return $t};Start-Sleep -Milliseconds 300}while([DateTime]::UtcNow -lt $d);throw ("timeout waiting for $id /$pattern/ last='$t'")}
+
+  $rec=[ordered]@{scenario=$Scenario;delayMs=$DelayMs}
+  $work=Join-Path $RunDir 'work'; New-Item -ItemType Directory -Force -Path $work | Out-Null
+  function Copy-Fixture($name){$d=Join-Path $work $name; Copy-Item -Recurse -Path (Join-Path $Fixtures 'ok') -Destination $d; return $d}
+  function Open-Case($manifest,$script){
+    Set-Text 'ComparisonOutputRootBox' (Join-Path $RunDir 'results')
+    Set-Text 'ComparisonScriptPathBox' $script
+    Set-Text 'ComparisonManifestPathBox' $manifest
+    Click 'ComparisonOpenButton'}
+  switch($Scenario){
+  'swapScript' {
+    $sd=Join-Path $work 'script'; New-Item -ItemType Directory -Force -Path $sd | Out-Null
+    $sp=Join-Path $sd 'comparison_manifest.py'; Copy-Item $Script $sp
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $sp
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40;review=Get-Text 'ComparisonContractReviewState'}
+    Shot '01-validated-with-reviewed-script'
+    # the SAME path now holds different bytes (one line appended) - after the validation was shown
+    [IO.File]::AppendAllText($sp,"`n# swapped after validation (QA-A-273b control)`n")
+    $rec.swapSha=(Get-FileHash $sp).Hash
+    Click 'ComparisonComputeButton'
+    $rec.afterSwap=[ordered]@{result=Wait-Text 'ComparisonResultBox' '결과:|실패|거부' 60;review=Get-Text 'ComparisonContractReviewState';verdict=Get-Text 'ComparisonValidationStatus'}
+    Shot '02-computed-after-script-swap'
+    $rec.runRecords=@(Get-ChildItem (Join-Path $RunDir 'results') -Recurse -Filter 'gui-record-*.json' | ForEach-Object{$_.FullName})
+  }
+  'swapManifest' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2
+    $rec.before=[ordered]@{roi=Get-Text 'ComparisonRoiText';computeEnabled=Enabled 'ComparisonComputeButton'}
+    Shot '01-validated-and-previewed'
+    $text=[IO.File]::ReadAllText($m)
+    $new=$text.Replace('"x": 16','"x": 20')
+    if($new -eq $text){throw 'manifest swap did not change anything'}
+    [IO.File]::WriteAllText($m,$new,(New-Object Text.UTF8Encoding($false)))   # same path, another VALID manifest
+    Click 'ComparisonComputeButton'
+    Start-Sleep -Seconds 1
+    $rec.afterSwap=[ordered]@{verdict=Get-Text 'ComparisonValidationStatus';result=Get-Text 'ComparisonResultBox';roi=Get-Text 'ComparisonRoiText';hint=Get-Text 'ComparisonViewHint';computeEnabled=Enabled 'ComparisonComputeButton';state=Get-Text 'ComparisonStateText'}
+    Shot '02-after-manifest-swap-refused'
+    Click 'ComparisonOpenButton'
+    $rec.reopened=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2
+    $rec.reopened.roi=Get-Text 'ComparisonRoiText'
+    Click 'ComparisonComputeButton'
+    $rec.reopened.result=Wait-Text 'ComparisonResultBox' '결과:|실패' 60
+    Shot '03-reopened-and-computed'
+  }
+  'cancelPreview' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2   # the preview read is now running (test build: slowed per row by XPE_COMPARISON_TEST_ROW_DELAY_MS)
+    $rec.during=[ordered]@{cancelEnabled=Enabled 'ComparisonCancelButton';computeEnabled=Enabled 'ComparisonComputeButton';roi=Get-Text 'ComparisonRoiText'}
+    Shot '01-during-preview-read'
+    Click 'ComparisonCancelButton'
+    $rec.cancelled=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '취소' 20;state=Get-Text 'ComparisonStateText'}
+    Start-Sleep -Seconds 1
+    $rec.cancelled.computeEnabled=Enabled 'ComparisonComputeButton'
+    Shot '02-after-cancel'
+    Start-Sleep -Seconds 15    # long enough for a read that ignored the cancellation to finish and draw
+    $rec.afterWait=[ordered]@{roi=Get-Text 'ComparisonRoiText';hint=Get-Text 'ComparisonViewHint';verdict=Get-Text 'ComparisonValidationStatus';computeEnabled=Enabled 'ComparisonComputeButton';state=Get-Text 'ComparisonStateText'}
+    Shot '03-15s-after-cancel'
+  }
+  'previewNoCancel' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    $rec.drawn=[ordered]@{roi=Wait-Text 'ComparisonRoiText' 'ROI' 60;computeEnabled=Enabled 'ComparisonComputeButton'}
+    Shot '01-preview-drawn-without-cancel'
+  }
+  'closePreview' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2
+    Shot '01-during-preview-read'
+    ([Windows.Automation.WindowPattern](D).GetCurrentPattern([Windows.Automation.WindowPattern]::Pattern)).Close()
+    $d=[DateTime]::UtcNow.AddSeconds(10);$gone=$false
+    do{Start-Sleep -Milliseconds 250;if(-not (Dlg)){$gone=$true;break}}while([DateTime]::UtcNow -lt $d)
+    $rec.closeNotBlocked=$gone
+    Start-Sleep -Seconds 3
+    $rec.mainWindowStillAlive=(-not $proc.HasExited)
+    $rec.pythonLeft=@(Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -match 'comparison_manifest' }).Count
+  }
+  default { throw 'unknown scenario' }
+  }
+  $proc.Refresh()
+  $managed=Join-Path (Split-Path $proc.Path -Parent) 'ImageProcTest.dll'
+  $nat=Get-ChildItem $native -File|Where-Object{$_.Name -match '\.(dll|exe)$'}|ForEach-Object{[pscustomobject]@{name=$_.Name;sha256=(Get-FileHash $_.FullName).Hash}}
+  $rec.identity=[ordered]@{pid=$pid1;exe=$proc.Path;exeSha=(Get-FileHash $proc.Path).Hash;managedDll=$managed;managedSha=(Get-FileHash $managed).Hash;nativeFiles=$nat;scriptPath=$Script;scriptSha=(Get-FileHash $Script).Hash;fixtures=$Fixtures}
+  ($rec|ConvertTo-Json -Depth 6)|Set-Content -LiteralPath (Join-Path $RunDir 'observations.json') -Encoding UTF8
+  if($Scenario -ne 'closePreview'){([Windows.Automation.WindowPattern](D).GetCurrentPattern([Windows.Automation.WindowPattern]::Pattern)).Close()}
+  Log 'done'
+}
+finally{
+  $log|Set-Content -LiteralPath (Join-Path $RunDir 'drive.log.txt') -Encoding UTF8
+  if(-not $proc.HasExited){$proc.CloseMainWindow()|Out-Null;Start-Sleep -Seconds 3}
+  if(-not $proc.HasExited){$proc.Kill()}
+  Write-Host ('exited: '+$proc.HasExited)
+}

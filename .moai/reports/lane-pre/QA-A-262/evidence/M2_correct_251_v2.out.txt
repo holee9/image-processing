@@ -1,0 +1,246 @@
+== evaluation frame Bright_29.raw (clean) / Bright_29.raw (planted)
+  correction error |planted - clean| / local sigma (11 x 11 window of the clean output); invalid = sigma zero or a value not finite, never counted as 0
+  class/kind/shape/level                pixels    valid       median          p95 |    valid median(no fix)  p95(no fix)
+  line/noisy/col_full/4                   3056     3056        0.650        1.872 |     3056        0.484        0.878   invalid: corrected 0, no fix 0
+  line/noisy/col_full/2                   3054     3054        0.675        1.951 |     3054        0.477        0.690   invalid: corrected 0, no fix 0
+  line/dead/col_full/0.5                  3052     3052        0.454        0.547 |     3052        0.454        0.547   invalid: corrected 0, no fix 0
+  line/nonlinear/col_full/0.4             3052     3052        0.696        1.978 |     3052        0.441        0.712   invalid: corrected 0, no fix 0
+  line/dead/col_full/1                    3053     3053        0.692        1.905 |     3053      153.311      182.470   invalid: corrected 0, no fix 0
+  line/nonlinear/cross/0.4                6102     6102        0.660        1.946 |     6102        0.472        0.725   invalid: corrected 0, no fix 0
+  line/dead/cross/1                       6101     6101        0.672        1.972 |     6101      155.063      183.543   invalid: corrected 0, no fix 0
+  line/nonlinear/col_full/0.2             3050     3050        0.674        1.950 |     3050        0.464        0.610   invalid: corrected 0, no fix 0
+  line/noisy/cross/4                      6104     6104        0.662        1.931 |     6104        0.467        0.826   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/50                        64       64        0.675        1.589 |       64        0.471        0.565   invalid: corrected 0, no fix 0
+  pixel/noisy/pixel/4                       64       64        0.665        1.805 |       64        0.518        0.836   invalid: corrected 0, no fix 0
+  block/dead/block3/0.5                    144      144        0.484        0.566 |      144        0.484        0.566   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/200                       64       64        0.646        1.714 |       64        0.489        0.593   invalid: corrected 0, no fix 0
+  line/dead/col_pair/1                    1528     1528        0.762        2.042 |     1528      156.700      186.921   invalid: corrected 0, no fix 0
+  block/dead/block8/1                     1024     1024        0.910        2.567 |     1024      162.328      197.691   invalid: corrected 0, no fix 0
+  pixel/dead/pixel/1                        64       64        0.755        1.703 |       64      161.534      190.909   invalid: corrected 0, no fix 0
+  line/nonlinear/col_pair/0.4             1522     1522        0.705        2.118 |     1522        0.444        0.708   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/25                        64       64        0.540        1.594 |       64        0.483        0.558   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/1.1                     64       64        0.484        0.548 |       64        0.484        0.548   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/0.75                    64       64        0.475        0.558 |       64        0.475        0.558   invalid: corrected 0, no fix 0
+  pixel/nonlinear/pixel/0.2                 64       64        0.628        1.843 |       64        0.459        0.621   invalid: corrected 0, no fix 0
+  pixel/noisy/pixel/2                       64       64        0.487        0.828 |       64        0.486        0.695   invalid: corrected 0, no fix 0
+  block/dead/block4/0.5                    256      256        0.471        0.571 |      256        0.471        0.571   invalid: corrected 0, no fix 0
+  pixel/noisy/pixel/1                       64       64        0.468        0.560 |       64        0.468        0.560   invalid: corrected 0, no fix 0
+  pixel/dead/pixel/0.5                      64       64        0.494        0.554 |       64        0.494        0.554   invalid: corrected 0, no fix 0
+  block/dead/block4/1                      256      256        0.731        2.120 |      256      162.101      189.670   invalid: corrected 0, no fix 0
+  block/dead/block3/1                      144      144        0.599        1.941 |      144      165.478      193.603   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/0.9                     64       64        0.476        0.549 |       64        0.476        0.549   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/100                       64       64        0.735        1.736 |       64        0.482        0.605   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/1.25                    64       64        0.466        0.535 |       64        0.466        0.535   invalid: corrected 0, no fix 0
+  line/dead/row_pair/0.5                  1522     1522        0.474        0.543 |     1522        0.474        0.543   invalid: corrected 0, no fix 0
+  pixel/nonlinear/pixel/0.4                 64       64        0.551        1.740 |       64        0.450        0.708   invalid: corrected 0, no fix 0
+  block/dead/block2/1                       64       64        0.695        2.488 |       64      163.103      193.230   invalid: corrected 0, no fix 0
+  line/noisy/col_pair/4                   1532     1532        0.773        2.135 |     1532        0.491        0.896   invalid: corrected 0, no fix 0
+  line/noisy/col_partial/2                 764      764        0.689        1.989 |      764        0.443        0.622   invalid: corrected 0, no fix 0
+  line/noisy/row_partial/2                 760      760        0.691        2.007 |      760        0.482        0.680   invalid: corrected 0, no fix 0
+  block/dead/block2/0.5                     64       64        0.465        0.515 |       64        0.465        0.515   invalid: corrected 0, no fix 0
+  line/nonlinear/col_partial/0.2           766      766        0.616        1.889 |      766        0.451        0.590   invalid: corrected 0, no fix 0
+  block/dead/block8/0.5                   1024     1024        0.467        0.528 |     1024        0.467        0.528   invalid: corrected 0, no fix 0
+  line/dead/row_partial/1                  764      764        0.704        1.923 |      764      153.254      176.850   invalid: corrected 0, no fix 0
+  line/noisy/col_partial/4                 761      761        0.716        2.073 |      761        0.457        0.815   invalid: corrected 0, no fix 0
+  line/noisy/row_pair/2                   1524     1524        0.733        2.195 |     1524        0.458        0.651   invalid: corrected 0, no fix 0
+  line/nonlinear/col_pair/0.2             1518     1518        0.797        2.225 |     1518        0.441        0.583   invalid: corrected 0, no fix 0
+  line/dead/row_full/1                    3053     3053        0.658        1.923 |     3053      155.577      188.595   invalid: corrected 0, no fix 0
+  line/noisy/row_full/4                   3054     3054        0.661        1.971 |     3054        0.460        0.809   invalid: corrected 0, no fix 0
+  line/nonlinear/row_pair/0.4             1524     1524        0.763        2.253 |     1524        0.441        0.717   invalid: corrected 0, no fix 0
+  line/noisy/col_pair/2                   1522     1522        0.768        2.081 |     1522        0.493        0.716   invalid: corrected 0, no fix 0
+  line/nonlinear/row_partial/0.4           760      760        0.661        1.878 |      760        0.431        0.702   invalid: corrected 0, no fix 0
+  line/dead/row_pair/1                    1524     1524        0.786        2.232 |     1524      152.320      177.914   invalid: corrected 0, no fix 0
+  line/dead/col_pair/0.5                  1524     1524        0.517        0.594 |     1524        0.517        0.594   invalid: corrected 0, no fix 0
+  line/dead/col_partial/0.5                760      760        0.454        0.524 |      760        0.454        0.524   invalid: corrected 0, no fix 0
+  line/nonlinear/row_partial/0.2           763      763        0.672        1.978 |      763        0.467        0.610   invalid: corrected 0, no fix 0
+  line/dead/row_full/0.5                  3052     3052        0.463        0.547 |     3052        0.463        0.547   invalid: corrected 0, no fix 0
+  line/nonlinear/col_partial/0.4           762      762        0.635        1.742 |      762        0.436        0.675   invalid: corrected 0, no fix 0
+  line/nonlinear/row_full/0.4             3051     3051        0.691        1.932 |     3051        0.455        0.717   invalid: corrected 0, no fix 0
+  line/nonlinear/row_pair/0.2             1530     1530        0.745        2.164 |     1530        0.445        0.587   invalid: corrected 0, no fix 0
+  line/nonlinear/row_full/0.2             3051     3051        0.656        1.918 |     3051        0.458        0.604   invalid: corrected 0, no fix 0
+  line/noisy/row_full/2                   3051     3051        0.642        1.895 |     3051        0.469        0.677   invalid: corrected 0, no fix 0
+  line/noisy/row_pair/4                   1526     1526        0.790        2.126 |     1526        0.474        0.852   invalid: corrected 0, no fix 0
+  line/dead/col_partial/1                  767      767        0.665        1.937 |      767      155.340      178.718   invalid: corrected 0, no fix 0
+  line/dead/row_partial/0.5                763      763        0.464        0.553 |      763        0.464        0.553   invalid: corrected 0, no fix 0
+  line/noisy/row_partial/4                 764      764        0.643        1.731 |      764        0.502        0.905   invalid: corrected 0, no fix 0
+  line index D_n / predicted sigma (|ratio| > 3 = a line remains; sigma from the standard deviation as defined; the MAD-based ratio is auxiliary)
+  id   class/kind/shape/level             part      corrected       no fix        clean | corrected(mad)
+  1    line/dead/row_full/1               0            -22.82     -1742.50        -1.71 |       -23.06
+  2    line/dead/col_full/1               0             -9.66     -1429.35        -0.25 |        -9.94
+  3    line/dead/row_partial/1            0             -0.00      -438.45         0.12 |        -0.00
+  4    line/dead/col_partial/1            0              0.00     -5036.30         0.53 |         0.00
+  5    line/dead/row_pair/1               0              0.03     -5929.39         2.10 |         0.03
+  6    line/dead/col_pair/1               0              0.03     -6527.38         0.00 |         0.03
+  7    line/dead/row_full/0.5             0             -2.59        -0.45        -2.56 |        -2.69
+  8    line/dead/col_full/0.5             0              0.42         0.05         0.26 |         0.43
+  9    line/dead/row_partial/0.5          0              0.28         0.02         0.21 |         0.29
+  10   line/dead/col_partial/0.5          0              0.54         0.06         0.50 |         0.53
+  11   line/dead/row_pair/0.5             0              2.27         0.29         2.21 |         2.30
+  12   line/dead/col_pair/0.5             0              3.13         0.32         2.96 |         3.01
+  13   line/nonlinear/row_full/0.4        0              0.02         0.64         2.54 |         0.02
+  14   line/nonlinear/col_full/0.4        0              0.01         0.33         0.58 |         0.01
+  15   line/nonlinear/row_partial/0.4     0              0.06        -0.11        -1.54 |         0.06
+  16   line/nonlinear/col_partial/0.4     0             -0.00        -0.06        -1.60 |        -0.00
+  17   line/nonlinear/row_pair/0.4        0              0.14         0.28         1.57 |         0.14
+  18   line/nonlinear/col_pair/0.4        0              0.04         0.55        -0.46 |         0.04
+  19   line/nonlinear/row_full/0.2        0             -0.06        -0.38        -2.90 |        -0.06
+  20   line/nonlinear/col_full/0.2        0             -0.01         0.28         1.32 |        -0.01
+  21   line/nonlinear/row_partial/0.2     0             -0.00         0.60         0.27 |        -0.00
+  22   line/nonlinear/col_partial/0.2     0             -0.01        -0.11        -1.46 |        -0.01
+  23   line/nonlinear/row_pair/0.2        0              0.09         0.05        -0.05 |         0.09
+  24   line/nonlinear/col_pair/0.2        0              0.08         0.09         0.42 |         0.08
+  25   line/noisy/row_full/4              0              0.02         0.03         0.10 |         0.02
+  26   line/noisy/col_full/4              0              0.06        -0.22        -1.30 |         0.06
+  27   line/noisy/row_partial/4           0             -0.00        -0.93        -0.70 |        -0.00
+  28   line/noisy/col_partial/4           0              0.02         0.19         1.64 |         0.02
+  29   line/noisy/row_pair/4              0              0.07         2.67         2.60 |         0.07
+  30   line/noisy/col_pair/4              0             -0.01         1.77         1.59 |        -0.01
+  31   line/noisy/row_full/2              0             -0.01         0.05         0.17 |        -0.01
+  32   line/noisy/col_full/2              0              0.03         0.40         2.61 |         0.03
+  33   line/noisy/row_partial/2           0              0.09         0.01         0.08 |         0.10
+  34   line/noisy/col_partial/2           0             -0.01         0.05        -0.04 |        -0.01
+  35   line/noisy/row_pair/2              0              0.04         1.51         1.49 |         0.04
+  36   line/noisy/col_pair/2              0              0.11        -0.14        -1.10 |         0.11
+  37   line/dead/cross/1                  0            -22.24     -1745.74         0.30 |       -23.85
+  37   line/dead/cross/1                  1             -9.48     -1425.81         1.96 |        -9.65
+  38   line/nonlinear/cross/0.4           0              0.06         0.25         1.24 |         0.06
+  38   line/nonlinear/cross/0.4           1              0.03         0.09        -0.85 |         0.03
+  39   line/noisy/cross/4                 0              0.04        -0.31        -1.93 |         0.04
+  39   line/noisy/cross/4                 1             -0.00        -0.08        -0.93 |        -0.00
+  40   control/fixed_band/row_full/100    0              0.65         0.11         0.68 |         0.66
+  41   control/fixed_band/col_full/100    0              1.53         0.24         1.39 |         1.53
+  42   control/fixed_band/row_full/30     0              1.43         0.24         1.43 |         1.42
+  43   control/fixed_band/col_full/30     0             -1.88        -0.28        -1.83 |        -1.91
+  44   control/gain_band/row_full/0.8     0             -1.48        -0.23        -1.52 |        -1.45
+  45   control/gain_band/col_full/0.8     0              0.34         0.04         0.32 |         0.34
+  46   control/gain_band/row_full/1.2     0              1.30         0.20         1.34 |         1.31
+  47   control/gain_band/col_full/1.2     0              0.05         0.02         0.10 |         0.05
+  48   control/varying_band/row_full/20   0             34.79         4.82         0.19 |        34.93
+  49   control/varying_band/col_full/20   0              0.94         0.17        -0.31 |         0.92
+  50   control/varying_band/row_full/8    0             -0.35        -0.04         1.71 |        -0.35
+  51   control/varying_band/col_full/8    0             19.15         2.84         0.07 |        19.47
+  parts with |ratio| > 3: corrected 7, no fix 9, clean 0 (of 54; uncomputable: corrected 0, no fix 0, clean 0; skipped at the frame edge 0)
+  rows outside every line item: 2875 checked, |D_n| > 3 sigma: corrected 286, clean 292 (uncomputable 0, 0); columns: 2875 checked, corrected 59, clean 60 (uncomputable 0, 0)
+== evaluation frame Bright_30.raw (clean) / Bright_30.raw (planted)
+  correction error |planted - clean| / local sigma (11 x 11 window of the clean output); invalid = sigma zero or a value not finite, never counted as 0
+  class/kind/shape/level                pixels    valid       median          p95 |    valid median(no fix)  p95(no fix)
+  line/noisy/col_full/4                   3056     3056        0.675        1.894 |     3056        0.481        0.880   invalid: corrected 0, no fix 0
+  line/noisy/col_full/2                   3054     3054        0.679        1.939 |     3054        0.483        0.693   invalid: corrected 0, no fix 0
+  line/dead/col_full/0.5                  3052     3052        0.461        0.540 |     3052        0.461        0.540   invalid: corrected 0, no fix 0
+  line/nonlinear/col_full/0.4             3052     3052        0.680        1.918 |     3052        0.414        0.665   invalid: corrected 0, no fix 0
+  line/dead/col_full/1                    3053     3053        0.673        1.989 |     3053      153.228      181.167   invalid: corrected 0, no fix 0
+  line/nonlinear/cross/0.4                6102     6102        0.688        1.920 |     6102        0.439        0.691   invalid: corrected 0, no fix 0
+  line/dead/cross/1                       6101     6101        0.688        1.944 |     6101      155.806      183.845   invalid: corrected 0, no fix 0
+  line/nonlinear/col_full/0.2             3050     3050        0.676        1.940 |     3050        0.450        0.586   invalid: corrected 0, no fix 0
+  line/noisy/cross/4                      6104     6104        0.680        1.958 |     6104        0.470        0.835   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/50                        64       64        0.542        1.645 |       64        0.480        0.552   invalid: corrected 0, no fix 0
+  pixel/noisy/pixel/4                       64       64        0.632        1.766 |       64        0.486        0.938   invalid: corrected 0, no fix 0
+  block/dead/block3/0.5                    144      144        0.493        0.592 |      144        0.493        0.592   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/200                       64       64        0.588        1.735 |       64        0.468        0.551   invalid: corrected 0, no fix 0
+  line/dead/col_pair/1                    1528     1528        0.765        2.201 |     1528      161.333      185.303   invalid: corrected 0, no fix 0
+  block/dead/block8/1                     1024     1024        0.955        2.498 |     1024      163.496      194.351   invalid: corrected 0, no fix 0
+  pixel/dead/pixel/1                        64       64        0.499        1.714 |       64      162.493      190.944   invalid: corrected 0, no fix 0
+  line/nonlinear/col_pair/0.4             1522     1522        0.800        2.097 |     1522        0.416        0.682   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/25                        64       64        0.618        1.666 |       64        0.483        0.563   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/1.1                     64       64        0.471        0.559 |       64        0.471        0.559   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/0.75                    64       64        0.461        0.559 |       64        0.461        0.559   invalid: corrected 0, no fix 0
+  pixel/nonlinear/pixel/0.2                 64       64        0.584        1.904 |       64        0.470        0.610   invalid: corrected 0, no fix 0
+  pixel/noisy/pixel/2                       64       64        0.514        1.212 |       64        0.500        0.637   invalid: corrected 0, no fix 0
+  block/dead/block4/0.5                    256      256        0.468        0.569 |      256        0.468        0.569   invalid: corrected 0, no fix 0
+  pixel/noisy/pixel/1                       64       64        0.466        0.586 |       64        0.466        0.586   invalid: corrected 0, no fix 0
+  pixel/dead/pixel/0.5                      64       64        0.481        0.578 |       64        0.481        0.578   invalid: corrected 0, no fix 0
+  block/dead/block4/1                      256      256        0.748        2.078 |      256      159.255      176.116   invalid: corrected 0, no fix 0
+  block/dead/block3/1                      144      144        0.683        2.247 |      144      153.962      185.999   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/0.9                     64       64        0.479        0.573 |       64        0.479        0.573   invalid: corrected 0, no fix 0
+  pixel/hot/pixel/100                       64       64        0.565        1.601 |       64        0.464        0.558   invalid: corrected 0, no fix 0
+  pixel/slope/pixel/1.25                    64       64        0.470        0.559 |       64        0.470        0.559   invalid: corrected 0, no fix 0
+  line/dead/row_pair/0.5                  1522     1522        0.478        0.562 |     1522        0.478        0.562   invalid: corrected 0, no fix 0
+  pixel/nonlinear/pixel/0.4                 64       64        0.861        1.826 |       64        0.442        0.688   invalid: corrected 0, no fix 0
+  block/dead/block2/1                       64       64        0.885        2.319 |       64      163.806      203.635   invalid: corrected 0, no fix 0
+  line/noisy/col_pair/4                   1532     1532        0.770        2.191 |     1532        0.488        0.880   invalid: corrected 0, no fix 0
+  line/noisy/col_partial/2                 764      764        0.736        1.938 |      764        0.446        0.634   invalid: corrected 0, no fix 0
+  line/noisy/row_partial/2                 760      760        0.649        1.952 |      760        0.464        0.657   invalid: corrected 0, no fix 0
+  block/dead/block2/0.5                     64       64        0.480        0.542 |       64        0.480        0.542   invalid: corrected 0, no fix 0
+  line/nonlinear/col_partial/0.2           766      766        0.625        1.946 |      766        0.452        0.598   invalid: corrected 0, no fix 0
+  block/dead/block8/0.5                   1024     1024        0.457        0.557 |     1024        0.457        0.557   invalid: corrected 0, no fix 0
+  line/dead/row_partial/1                  764      764        0.744        1.952 |      764      152.673      173.329   invalid: corrected 0, no fix 0
+  line/noisy/col_partial/4                 761      761        0.697        2.001 |      761        0.450        0.746   invalid: corrected 0, no fix 0
+  line/noisy/row_pair/2                   1524     1524        0.768        2.208 |     1524        0.456        0.616   invalid: corrected 0, no fix 0
+  line/nonlinear/col_pair/0.2             1518     1518        0.789        2.249 |     1518        0.426        0.563   invalid: corrected 0, no fix 0
+  line/dead/row_full/1                    3053     3053        0.666        1.924 |     3053      157.502      184.678   invalid: corrected 0, no fix 0
+  line/noisy/row_full/4                   3054     3054        0.655        1.920 |     3054        0.462        0.824   invalid: corrected 0, no fix 0
+  line/nonlinear/row_pair/0.4             1524     1524        0.759        2.231 |     1524        0.413        0.671   invalid: corrected 0, no fix 0
+  line/noisy/col_pair/2                   1522     1522        0.708        2.119 |     1522        0.495        0.701   invalid: corrected 0, no fix 0
+  line/nonlinear/row_partial/0.4           760      760        0.625        1.878 |      760        0.392        0.691   invalid: corrected 0, no fix 0
+  line/dead/row_pair/1                    1524     1524        0.737        2.193 |     1524      152.363      177.519   invalid: corrected 0, no fix 0
+  line/dead/col_pair/0.5                  1524     1524        0.526        0.600 |     1524        0.526        0.600   invalid: corrected 0, no fix 0
+  line/dead/col_partial/0.5                760      760        0.460        0.525 |      760        0.460        0.525   invalid: corrected 0, no fix 0
+  line/nonlinear/row_partial/0.2           763      763        0.710        1.978 |      763        0.452        0.594   invalid: corrected 0, no fix 0
+  line/dead/row_full/0.5                  3052     3052        0.468        0.561 |     3052        0.468        0.561   invalid: corrected 0, no fix 0
+  line/nonlinear/col_partial/0.4           762      762        0.727        2.041 |      762        0.433        0.691   invalid: corrected 0, no fix 0
+  line/nonlinear/row_full/0.4             3051     3051        0.667        1.946 |     3051        0.420        0.682   invalid: corrected 0, no fix 0
+  line/nonlinear/row_pair/0.2             1530     1530        0.729        2.135 |     1530        0.434        0.574   invalid: corrected 0, no fix 0
+  line/nonlinear/row_full/0.2             3051     3051        0.659        1.885 |     3051        0.451        0.586   invalid: corrected 0, no fix 0
+  line/noisy/row_full/2                   3051     3051        0.662        1.901 |     3051        0.466        0.683   invalid: corrected 0, no fix 0
+  line/noisy/row_pair/4                   1526     1526        0.763        2.146 |     1526        0.463        0.826   invalid: corrected 0, no fix 0
+  line/dead/col_partial/1                  767      767        0.706        2.041 |      767      152.729      179.328   invalid: corrected 0, no fix 0
+  line/dead/row_partial/0.5                763      763        0.472        0.552 |      763        0.472        0.552   invalid: corrected 0, no fix 0
+  line/noisy/row_partial/4                 764      764        0.692        1.909 |      764        0.505        0.937   invalid: corrected 0, no fix 0
+  line index D_n / predicted sigma (|ratio| > 3 = a line remains; sigma from the standard deviation as defined; the MAD-based ratio is auxiliary)
+  id   class/kind/shape/level             part      corrected       no fix        clean | corrected(mad)
+  1    line/dead/row_full/1               0            -22.17     -1747.96        -0.93 |       -21.79
+  2    line/dead/col_full/1               0             -9.71     -1431.34         1.02 |       -10.12
+  3    line/dead/row_partial/1            0              0.00      -439.57        -2.58 |         0.00
+  4    line/dead/col_partial/1            0              0.00     -5093.78         1.86 |         0.00
+  5    line/dead/row_pair/1               0              0.08     -5659.48        -0.89 |         0.07
+  6    line/dead/col_pair/1               0              0.01     -6604.22         2.86 |         0.01
+  7    line/dead/row_full/0.5             0              0.73         0.11         0.72 |         0.72
+  8    line/dead/col_full/0.5             0              0.12         0.01         0.13 |         0.12
+  9    line/dead/row_partial/0.5          0             -0.14        -0.02        -0.19 |        -0.14
+  10   line/dead/col_partial/0.5          0             -0.11        -0.03        -0.22 |        -0.11
+  11   line/dead/row_pair/0.5             0             -0.56        -0.09        -0.73 |        -0.57
+  12   line/dead/col_pair/0.5             0              0.36         0.02         0.25 |         0.39
+  13   line/nonlinear/row_full/0.4        0              0.07         0.90         1.86 |         0.08
+  14   line/nonlinear/col_full/0.4        0              0.05         0.69         0.89 |         0.05
+  15   line/nonlinear/row_partial/0.4     0              0.04        -0.01        -1.84 |         0.04
+  16   line/nonlinear/col_partial/0.4     0              0.00         0.28         1.00 |         0.00
+  17   line/nonlinear/row_pair/0.4        0              0.06         0.45         1.99 |         0.06
+  18   line/nonlinear/col_pair/0.4        0              0.08         2.62         0.55 |         0.07
+  19   line/nonlinear/row_full/0.2        0              0.02        -0.01        -1.54 |         0.02
+  20   line/nonlinear/col_full/0.2        0              0.02         0.33         0.66 |         0.02
+  21   line/nonlinear/row_partial/0.2     0              0.00         2.93         2.21 |         0.00
+  22   line/nonlinear/col_partial/0.2     0             -0.00         0.15         0.55 |        -0.00
+  23   line/nonlinear/row_pair/0.2        0              0.08        -0.12        -1.76 |         0.07
+  24   line/nonlinear/col_pair/0.2        0              0.10         0.25         1.63 |         0.10
+  25   line/noisy/row_full/4              0             -0.01        -0.17        -0.96 |        -0.01
+  26   line/noisy/col_full/4              0              0.02         0.02        -0.01 |         0.02
+  27   line/noisy/row_partial/4           0              0.00         0.82         0.93 |         0.00
+  28   line/noisy/col_partial/4           0              0.04        -0.08        -0.49 |         0.04
+  29   line/noisy/row_pair/4              0              0.05         2.46         2.31 |         0.06
+  30   line/noisy/col_pair/4              0              0.02         1.27         1.63 |         0.02
+  31   line/noisy/row_full/2              0             -0.03        -0.18        -1.05 |        -0.03
+  32   line/noisy/col_full/2              0              0.07        -0.11        -0.57 |         0.07
+  33   line/noisy/row_partial/2           0              0.05        -0.01        -0.01 |         0.05
+  34   line/noisy/col_partial/2           0             -0.04        -0.04        -0.53 |        -0.04
+  35   line/noisy/row_pair/2              0              0.04         2.16         2.13 |         0.04
+  36   line/noisy/col_pair/2              0              0.14        -0.05        -0.33 |         0.14
+  37   line/dead/cross/1                  0            -22.54     -1741.88        -2.03 |       -23.09
+  37   line/dead/cross/1                  1             -9.68     -1432.71         1.06 |        -9.87
+  38   line/nonlinear/cross/0.4           0              0.04         0.80         2.62 |         0.04
+  38   line/nonlinear/cross/0.4           1              0.01         0.55         0.52 |         0.01
+  39   line/noisy/cross/4                 0              0.10         0.34         1.88 |         0.10
+  39   line/noisy/cross/4                 1             -0.01         0.17         1.04 |        -0.01
+  40   control/fixed_band/row_full/100    0              1.18         0.20         1.25 |         1.18
+  41   control/fixed_band/col_full/100    0              2.14         0.37         2.11 |         2.15
+  42   control/fixed_band/row_full/30     0             -0.58        -0.11        -0.65 |        -0.60
+  43   control/fixed_band/col_full/30     0             -0.68        -0.10        -0.64 |        -0.66
+  44   control/gain_band/row_full/0.8     0              1.20         0.16         1.13 |         1.25
+  45   control/gain_band/col_full/0.8     0              0.26         0.04         0.30 |         0.27
+  46   control/gain_band/row_full/1.2     0              0.42         0.09         0.58 |         0.42
+  47   control/gain_band/col_full/1.2     0              0.15         0.04         0.24 |         0.15
+  48   control/varying_band/row_full/20   0              5.27         0.74         0.29 |         5.43
+  49   control/varying_band/col_full/20   0            -23.92        -4.21         1.35 |       -24.76
+  50   control/varying_band/row_full/8    0              3.71         0.51         0.86 |         3.74
+  51   control/varying_band/col_full/8    0              7.68         1.17         2.20 |         7.65
+  parts with |ratio| > 3: corrected 8, no fix 9, clean 0 (of 54; uncomputable: corrected 0, no fix 0, clean 0; skipped at the frame edge 0)
+  rows outside every line item: 2875 checked, |D_n| > 3 sigma: corrected 287, clean 285 (uncomputable 0, 0); columns: 2875 checked, corrected 56, clean 60 (uncomputable 0, 0)

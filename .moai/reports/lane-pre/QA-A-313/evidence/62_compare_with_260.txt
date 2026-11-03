@@ -1,0 +1,8 @@
+41_score_v1.json.txt IDENTICAL
+43_score_v2.json.txt IDENTICAL
+44_correct_v1.json.txt DIFFERS
+45_correct_v2.json.txt DIFFERS
+40_overlaps_v1.tsv.txt IDENTICAL
+42_overlaps_v2.tsv.txt IDENTICAL
+51_lines_v2.tsv.txt IDENTICAL
+52_lines_clean_v2.tsv.txt IDENTICAL

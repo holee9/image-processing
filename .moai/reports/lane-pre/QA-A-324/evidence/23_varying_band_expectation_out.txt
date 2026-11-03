@@ -1,0 +1,10 @@
+frame 1 id 120 level 20 sigma_pred 0.908  ratio 30.63  P(|ratio|>3) 0.892
+frame 1 id 121 level 20 sigma_pred 0.908  ratio -0.91  P(|ratio|>3) 0.892
+frame 1 id 122 level 8 sigma_pred 0.935  ratio -2.44  P(|ratio|>3) 0.726
+frame 1 id 123 level 8 sigma_pred 0.853  ratio 20.04  P(|ratio|>3) 0.749
+frame 1 expected varying-band parts over 3 sigma: 3.26
+frame 2 id 120 level 20 sigma_pred 0.955  ratio 4.05  P(|ratio|>3) 0.886
+frame 2 id 121 level 20 sigma_pred 0.903  ratio -25.20  P(|ratio|>3) 0.892
+frame 2 id 122 level 8 sigma_pred 0.951  ratio 3.05  P(|ratio|>3) 0.721
+frame 2 id 123 level 8 sigma_pred 0.847  ratio 6.82  P(|ratio|>3) 0.751
+frame 2 expected varying-band parts over 3 sigma: 3.25

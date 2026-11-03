@@ -1,0 +1,50 @@
+"""QA-A-317 step C-1: regenerate the PRE gain maps with the unchanged QA-A-316 harness and rules.
+For every set: run qa316_gen.exe <cal_source> <T>/c_gain/<set> (gain: Bright01..10, int16 -> uint16 max(0,v), dark NULL),
+record sha256 of gain.xcal, list the cal_source folder (acquisition burden), and compute the generator's
+normalisation mean mG = mean_pixels(float32(mean_frames(max(0,int16 v)))) (xpe_calib_generate_gain.cpp:296-322),
+which is the C-side constant of the QA-A-294 transform (v = p * C / mG).
+Usage: python -I -X utf8 gen_c.py   (writes gen_c_log.txt, gen_c.json in T)
+"""
+import hashlib, json, os, re, subprocess, sys
+import numpy as np
+
+T = "D:/workspace-github/xpe-data/qa-317-tmp"
+B = "D:/workspace-github/xpe-2g-offline/batch-20261022-1230/"
+W, H = 3072, 2560
+man = json.load(open(B + "manifest.json", encoding="utf-8"))
+log = open(f"{T}/gen_c_log.txt", "w", encoding="utf-8")
+res = {}
+
+
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for c in iter(lambda: f.read(1 << 20), b""):
+            h.update(c)
+    return h.hexdigest()
+
+
+for s in man["sets"]:
+    sid, src = s["id"], s["cal_source"]
+    out = f"{T}/c_gain/{sid}"
+    os.makedirs(out, exist_ok=True)
+    r = subprocess.run([f"{T}/qa316_gen.exe", src, out], capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       env=dict(os.environ, PATH="D:\\workspace-github\\xpe-pre\\build\\ci-preprocess\\bin;" + os.environ["PATH"]))
+    log.write(f"===== {sid}\n{r.stdout}{r.stderr}exit={r.returncode}\n")
+    names = sorted(os.listdir(src))
+    raws = [n for n in names if n.lower().endswith(".raw")]
+    bright = [n for n in raws if re.fullmatch(r"Bright\d\d_OC_\d+\.raw", n)]
+    gfr = [n for n in bright if 1 <= int(n[6:8]) <= 10]
+    acc = np.zeros(W * H, np.float64)
+    for n in gfr:
+        v = np.fromfile(os.path.join(src, n), "<i2").astype(np.float64)
+        acc += np.maximum(v, 0.0)
+    g = (acc / len(gfr)).astype(np.float32)
+    mG = float(g.astype(np.float64).sum() / g.size)
+    res[sid] = {"gain_sha256": sha(f"{out}/gain.xcal") if os.path.isfile(f"{out}/gain.xcal") else None,
+                "exit": r.returncode, "folder_files": names, "raw_files": len(raws), "bright_oc_files": len(bright),
+                "dark_like": [n for n in raws if "dark" in n.lower()], "gain_frames": gfr, "mG": mG}
+    log.write(f"{sid} sha={res[sid]['gain_sha256']} mG={mG:.6f} raw_files={len(raws)} bright_oc={len(bright)} files={names}\n")
+    log.flush()
+json.dump(res, open(f"{T}/gen_c.json", "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+print("done")

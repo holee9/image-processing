@@ -1,0 +1,115 @@
+"""Builds Drive-273b.ps1 from the QA-A-273 driver header (launch + UIA helpers) and the three scenario bodies of QA-A-273b."""
+R = '.moai/reports/lane-pre/QA-A-273/'
+src = open(R + 'Drive-ComparisonWindow.ps1', encoding='utf-8-sig').read()
+i = src.index("  function Wait-Text")
+j = src.index('\n', i) + 1
+head = src[:j]
+head = head.replace("  [string]$Mode='full'\n)", "  [string]$Scenario,\n  [int]$DelayMs=0\n)", 1)
+head = head.replace("builds\\gui1\\bin", "builds\\gui2\\bin", 1)
+head = head.replace("$info.Arguments=", "if($DelayMs -gt 0){$info.EnvironmentVariables['XPE_COMPARISON_TEST_ROW_DELAY_MS']=[string]$DelayMs}\n$info.Arguments=", 1)
+assert "$Scenario" in head and 'gui2' in head and 'DelayMs' in head
+body = r'''
+  $rec=[ordered]@{scenario=$Scenario;delayMs=$DelayMs}
+  $work=Join-Path $RunDir 'work'; New-Item -ItemType Directory -Force -Path $work | Out-Null
+  function Copy-Fixture($name){$d=Join-Path $work $name; Copy-Item -Recurse -Path (Join-Path $Fixtures 'ok') -Destination $d; return $d}
+  function Open-Case($manifest,$script){
+    Set-Text 'ComparisonOutputRootBox' (Join-Path $RunDir 'results')
+    Set-Text 'ComparisonScriptPathBox' $script
+    Set-Text 'ComparisonManifestPathBox' $manifest
+    Click 'ComparisonOpenButton'}
+  switch($Scenario){
+  'swapScript' {
+    $sd=Join-Path $work 'script'; New-Item -ItemType Directory -Force -Path $sd | Out-Null
+    $sp=Join-Path $sd 'comparison_manifest.py'; Copy-Item $Script $sp
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $sp
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40;review=Get-Text 'ComparisonContractReviewState'}
+    Shot '01-validated-with-reviewed-script'
+    # the SAME path now holds different bytes (one line appended) - after the validation was shown
+    [IO.File]::AppendAllText($sp,"`n# swapped after validation (QA-A-273b control)`n")
+    $rec.swapSha=(Get-FileHash $sp).Hash
+    Click 'ComparisonComputeButton'
+    $rec.afterSwap=[ordered]@{result=Wait-Text 'ComparisonResultBox' '결과:|실패|거부' 60;review=Get-Text 'ComparisonContractReviewState';verdict=Get-Text 'ComparisonValidationStatus'}
+    Shot '02-computed-after-script-swap'
+    $rec.runRecords=@(Get-ChildItem (Join-Path $RunDir 'results') -Recurse -Filter 'gui-record-*.json' | ForEach-Object{$_.FullName})
+  }
+  'swapManifest' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2
+    $rec.before=[ordered]@{roi=Get-Text 'ComparisonRoiText';computeEnabled=Enabled 'ComparisonComputeButton'}
+    Shot '01-validated-and-previewed'
+    $text=[IO.File]::ReadAllText($m)
+    $new=$text.Replace('"x": 16','"x": 20')
+    if($new -eq $text){throw 'manifest swap did not change anything'}
+    [IO.File]::WriteAllText($m,$new,(New-Object Text.UTF8Encoding($false)))   # same path, another VALID manifest
+    Click 'ComparisonComputeButton'
+    Start-Sleep -Seconds 1
+    $rec.afterSwap=[ordered]@{verdict=Get-Text 'ComparisonValidationStatus';result=Get-Text 'ComparisonResultBox';roi=Get-Text 'ComparisonRoiText';hint=Get-Text 'ComparisonViewHint';computeEnabled=Enabled 'ComparisonComputeButton';state=Get-Text 'ComparisonStateText'}
+    Shot '02-after-manifest-swap-refused'
+    Click 'ComparisonOpenButton'
+    $rec.reopened=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2
+    $rec.reopened.roi=Get-Text 'ComparisonRoiText'
+    Click 'ComparisonComputeButton'
+    $rec.reopened.result=Wait-Text 'ComparisonResultBox' '결과:|실패' 60
+    Shot '03-reopened-and-computed'
+  }
+  'cancelPreview' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2   # the preview read is now running (test build: slowed per row by XPE_COMPARISON_TEST_ROW_DELAY_MS)
+    $rec.during=[ordered]@{cancelEnabled=Enabled 'ComparisonCancelButton';computeEnabled=Enabled 'ComparisonComputeButton';roi=Get-Text 'ComparisonRoiText'}
+    Shot '01-during-preview-read'
+    Click 'ComparisonCancelButton'
+    $rec.cancelled=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '취소' 20;state=Get-Text 'ComparisonStateText'}
+    Start-Sleep -Seconds 1
+    $rec.cancelled.computeEnabled=Enabled 'ComparisonComputeButton'
+    Shot '02-after-cancel'
+    Start-Sleep -Seconds 15    # long enough for a read that ignored the cancellation to finish and draw
+    $rec.afterWait=[ordered]@{roi=Get-Text 'ComparisonRoiText';hint=Get-Text 'ComparisonViewHint';verdict=Get-Text 'ComparisonValidationStatus';computeEnabled=Enabled 'ComparisonComputeButton';state=Get-Text 'ComparisonStateText'}
+    Shot '03-15s-after-cancel'
+  }
+  'previewNoCancel' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    $rec.drawn=[ordered]@{roi=Wait-Text 'ComparisonRoiText' 'ROI' 60;computeEnabled=Enabled 'ComparisonComputeButton'}
+    Shot '01-preview-drawn-without-cancel'
+  }
+  'closePreview' {
+    $m=Join-Path (Copy-Fixture 'm') 'manifest.json'
+    Open-Case $m $Script
+    $rec.validated=[ordered]@{verdict=Wait-Text 'ComparisonValidationStatus' '스크립트의 답' 40}
+    Start-Sleep -Seconds 2
+    Shot '01-during-preview-read'
+    ([Windows.Automation.WindowPattern](D).GetCurrentPattern([Windows.Automation.WindowPattern]::Pattern)).Close()
+    $d=[DateTime]::UtcNow.AddSeconds(10);$gone=$false
+    do{Start-Sleep -Milliseconds 250;if(-not (Dlg)){$gone=$true;break}}while([DateTime]::UtcNow -lt $d)
+    $rec.closeNotBlocked=$gone
+    Start-Sleep -Seconds 3
+    $rec.mainWindowStillAlive=(-not $proc.HasExited)
+    $rec.pythonLeft=@(Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -match 'comparison_manifest' }).Count
+  }
+  default { throw 'unknown scenario' }
+  }
+  $proc.Refresh()
+  $managed=Join-Path (Split-Path $proc.Path -Parent) 'ImageProcTest.dll'
+  $nat=Get-ChildItem $native -File|Where-Object{$_.Name -match '\.(dll|exe)$'}|ForEach-Object{[pscustomobject]@{name=$_.Name;sha256=(Get-FileHash $_.FullName).Hash}}
+  $rec.identity=[ordered]@{pid=$pid1;exe=$proc.Path;exeSha=(Get-FileHash $proc.Path).Hash;managedDll=$managed;managedSha=(Get-FileHash $managed).Hash;nativeFiles=$nat;scriptPath=$Script;scriptSha=(Get-FileHash $Script).Hash;fixtures=$Fixtures}
+  ($rec|ConvertTo-Json -Depth 6)|Set-Content -LiteralPath (Join-Path $RunDir 'observations.json') -Encoding UTF8
+  if($Scenario -ne 'closePreview'){([Windows.Automation.WindowPattern](D).GetCurrentPattern([Windows.Automation.WindowPattern]::Pattern)).Close()}
+  Log 'done'
+}
+finally{
+  $log|Set-Content -LiteralPath (Join-Path $RunDir 'drive.log.txt') -Encoding UTF8
+  if(-not $proc.HasExited){$proc.CloseMainWindow()|Out-Null;Start-Sleep -Seconds 3}
+  if(-not $proc.HasExited){$proc.Kill()}
+  Write-Host ('exited: '+$proc.HasExited)
+}
+'''
+out = head + body
+open(R + 'Drive-273b.ps1', 'wb').write(b'\xef\xbb\xbf' + out.encode('utf-8'))
+print('written', len(out))

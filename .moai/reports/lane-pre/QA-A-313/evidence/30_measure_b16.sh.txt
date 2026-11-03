@@ -1,0 +1,64 @@
+#!/bin/bash
+# QA-A-313 (Refs #273): B16 re-measurement of the current code (dev/preprocess eaf076f3, code base 57ddbd2e) with the QA-A-260 method UNCHANGED.
+# Source: QA-A-260 evidence/30_measure_b16.sh.txt (git show eaf076f3:...) + its continuation 31_measure_rest.sh.txt. Changes, and only these:
+#   1. OUT  -> D:/workspace-github/xpe-data/qa-313-tmp/out (one scratch folder, deleted after the run; rule section 4)
+#   2. EV256 -> D:/workspace-github/xpe-data/qa-313-tmp/ev256 (30_noise_truth.tsv.txt and 31_overlaps_measured.tsv.txt of QA-A-256, extracted with git show
+#      from eaf076f3 because the report folder is not on disk; content identical to the committed files, SHA-256 recorded in the run log)
+#   3. EVD  -> this evidence folder
+#   4. S2 uses the defect plane exported by defect-xcal --map-out (the form of QA-A-260 31_measure_rest.sh.txt; score --map cannot read a version-2 defect file)
+#   5. The diagnostic block P1/P2/P3 (feature bits, not a score) is left out.
+# Tools, injection (bpm-eval-252f inj_d, seed 251), frame lists (Dark_07..14 given, first dark excluded by the tools -> Dark_08..14), margins, evaluation frames: unchanged.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+OUT=D:/workspace-github/xpe-data/qa-313-tmp/out
+EV256=D:/workspace-github/xpe-data/qa-313-tmp/ev256
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-313/evidence
+EXE=$BIN/xpe_bpm_eval.exe
+GEN=$BIN/xpe_calib_fixture_gen.exe
+mkdir -p "$OUT"
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+GN="23 24 25 26 27 28"; BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+lst() { local flag=$1 dir=$2 pre=$3; shift 3; for k in "$@"; do printf -- "--%s\n%s/%s_%s.raw\n" "$flag" "$dir" "$pre" "$k"; done; }
+COMMON=(--width 3072 --height 3072 --expiry-ms 4102444800000)
+V2=(--bpm-v2 --bpm-margins 6,2,1,1)
+M="--margins 6,2,1,1"
+# the planted set: the injection has no copy of Dark_07, so the clean acquisition frame stands in (it is the excluded frame); Dark_08..14 are the injected ones
+mapfile -t A < <(lst dark "$CAL" Dark 07; lst dark "$INJ" Dark 08 09 10 11 12 13 14; lst bright "$INJ" Bright $GN; lst bpm-bright "$INJ" Bright $BR)
+mapfile -t C < <(lst dark "$CAL" Dark 07 08 09 10 11 12 13 14; lst bright "$CAL" Bright $GN; lst bpm-bright "$CAL" Bright $BR)
+
+# ---- the four sets (offset, gain and defect map from the same list, per edition)
+run G1_planted_v1 "$GEN" --out "$OUT/inj_set_v1" "${COMMON[@]}" "${A[@]}" || exit 1
+run G2_planted_v2 "$GEN" --out "$OUT/inj_set_v2" "${COMMON[@]}" "${A[@]}" "${V2[@]}" || exit 1
+run G3_clean_v1 "$GEN" --out "$OUT/clean_set_v1" "${COMMON[@]}" "${C[@]}" || exit 1
+run G4_clean_v2 "$GEN" --out "$OUT/clean_set_v2" "${COMMON[@]}" "${C[@]}" "${V2[@]}" || exit 1
+run X1_area_planted_v2 "$EXE" defect-xcal --in "$OUT/inj_set_v2/defect.xcal" --area-out "$OUT/inj_v2_area.u8" --map-out "$OUT/inj_v2_setmap.u8" --lines-out "$EVD/51_lines_v2.tsv.txt" || exit 1
+run X2_info_v1 "$EXE" defect-xcal --in "$OUT/inj_set_v1/defect.xcal" --map-out "$OUT/inj_v1_setmap.u8" || exit 1
+run X3_clean_v2_map "$EXE" defect-xcal --in "$OUT/clean_set_v2/defect.xcal" --map-out "$OUT/clean_v2_setmap.u8" --lines-out "$EVD/52_lines_clean_v2.tsv.txt" || exit 1
+run X5_clean_v1_map "$EXE" defect-xcal --in "$OUT/clean_set_v1/defect.xcal" --map-out "$OUT/clean_v1_setmap.u8" || exit 1
+
+# ---- halves of the frame lists (split-half Jaccard, value only). The halves are subsets of the USED list Dark_08..14, so they are given as they are (--keep-first-dark): nothing more is excluded.
+HA=(); for k in 08 10 12 14; do HA+=(--dark "$INJ/Dark_$k.raw"); done
+HB=(); for k in 09 11 13; do HB+=(--dark "$INJ/Dark_$k.raw"); done
+BE=(); for k in 17 19 21 23 25 27 31 33 35; do BE+=(--bright "$INJ/Bright_$k.raw"); done
+BO=(); for k in 18 20 22 24 26 28 32 34 36; do BO+=(--bright "$INJ/Bright_$k.raw"); done
+run H1_v1_half_a "$EXE" map-v1 --keep-first-dark --out "$OUT/v1_half_a.u8" --min-dark 3 --min-bright 9 "${HA[@]}" "${BE[@]}" || exit 1
+run H2_v1_half_b "$EXE" map-v1 --keep-first-dark --out "$OUT/v1_half_b.u8" --min-dark 3 --min-bright 9 "${HB[@]}" "${BO[@]}" || exit 1
+run H3_v2_half_a "$EXE" map-v2 $M --keep-first-dark --area "$OUT/v2_half_a_area.u8" --out "$OUT/v2_half_a_pix.u8" --min-dark 3 --min-bright 9 "${HA[@]}" "${BE[@]}" || exit 1
+run H4_v2_half_b "$EXE" map-v2 $M --keep-first-dark --area "$OUT/v2_half_b_area.u8" --out "$OUT/v2_half_b_pix.u8" --min-dark 3 --min-bright 9 "${HB[@]}" "${BO[@]}" || exit 1
+run H5_v2_lines_a "$EXE" lines $M --keep-first-dark --min-dark 3 --min-bright 9 --out "$OUT/v2_half_a_lines.u8" "${HA[@]}" "${BE[@]}"
+run H6_v2_lines_b "$EXE" lines $M --keep-first-dark --min-dark 3 --min-bright 9 --out "$OUT/v2_half_b_lines.u8" "${HB[@]}" "${BO[@]}"
+for n in a b; do "$EXE" merge --in "$OUT/v2_half_${n}_pix.u8" --in "$OUT/v2_half_${n}_lines.u8" --out "$OUT/v2_half_$n.u8" || exit 1; done
+
+# ---- scoring, once per edition (S2 in the form of QA-A-260 31_measure_rest.sh.txt)
+NT=$EV256/30_noise_truth.tsv.txt
+OV=$EV256/31_overlaps_measured.tsv.txt
+run S1_score_v1 "$EXE" score --truth "$IN/inj_d" --noise-truth "$NT" --map "$OUT/inj_set_v1/defect.xcal" --clean-map "$OUT/clean_set_v1/defect.xcal" --half-a "$OUT/v1_half_a.u8" --half-b "$OUT/v1_half_b.u8" --overlap composite --overlap-truth "$OV" --overlap-out "$EVD/40_overlaps_v1.tsv.txt" --out "$EVD/41_score_v1.json.txt" || exit 1
+run S2_score_v2 "$EXE" score --truth "$IN/inj_d" --noise-truth "$NT" --map "$OUT/inj_v2_setmap.u8" --clean-map "$OUT/clean_v2_setmap.u8" --half-a "$OUT/v2_half_a.u8" --half-b "$OUT/v2_half_b.u8" --area "$OUT/inj_v2_area.u8" --overlap composite --overlap-truth "$OV" --overlap-out "$EVD/42_overlaps_v2.tsv.txt" --out "$EVD/43_score_v2.json.txt" || exit 1
+# ---- correction error and line index through the final pipeline, once per edition (each edition with its own planted set and its own clean set)
+run C1_correct_v1 "$EXE" correct --truth "$IN/inj_d" --clean-set "$OUT/clean_set_v1" --inj-set "$OUT/inj_set_v1" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/44_correct_v1.json.txt" || exit 1
+run C2_correct_v2 "$EXE" correct --truth "$IN/inj_d" --clean-set "$OUT/clean_set_v2" --inj-set "$OUT/inj_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/45_correct_v2.json.txt" || exit 1
+echo done

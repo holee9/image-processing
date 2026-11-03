@@ -1,0 +1,73 @@
+the 31 pixels sit on items [100, 101, 103, 104, 106, 110]
+==============================================================================================================
+== the items: pixels in the imaging crop, flagged pixels, the item's measured response r (median of corrGain^-1/2 over the item pixels outside the edge zone)
+  item 100 efficiency_loss/row_full/0.6       pixels 3016 (edge zone 801, outside 2215), flagged 10 (in edge zone 1), r = 0.6001
+      flagged pixel (x 30, y 2359): distance from the band end 30, T 4.50, hits 3, ratioG per group 7.87 1.42 6.43 1.59 2.33
+      flagged pixel (x 44, y 2359): distance from the band end 44, T 4.98, hits 3, ratioG per group 2.03 1.49 1.77 17.60 6.80
+      flagged pixel (x 225, y 2359): distance from the band end 225, T 5.20, hits 3, ratioG per group 0.09 6.93 8.82 3.40 1.30
+      flagged pixel (x 278, y 2359): distance from the band end 278, T 4.62, hits 5, ratioG per group 4.99 9.61 2.73 6.08 2.50
+      flagged pixel (x 450, y 2359): distance from the band end 450, T 4.60, hits 3, ratioG per group 9.26 1.58 1.59 9.28 5.79
+      flagged pixel (x 2329, y 2359): distance from the band end 742, T 4.68, hits 3, ratioG per group 4.41 1.64 4.29 12.60 1.05
+      flagged pixel (x 2548, y 2359): distance from the band end 523, T 4.53, hits 4, ratioG per group 1.81 3.55 6.65 4.30 3.18
+      flagged pixel (x 2713, y 2359): distance from the band end 358, T 5.54, hits 4, ratioG per group 2.05 9.88 2.67 15.51 1.86
+      flagged pixel (x 2760, y 2359): distance from the band end 311, T 4.60, hits 5, ratioG per group 4.27 2.27 4.73 5.85 5.72
+      flagged pixel (x 3029, y 2359): distance from the band end 42, T 4.91, hits 3, ratioG per group 0.91 1.60 7.73 2.57 7.53
+  item 101 efficiency_loss/col_full/0.6       pixels 3041 (edge zone 612, outside 2429), flagged 14 (in edge zone 2), r = 0.6001
+      flagged pixel (x 3015, y 107): distance from the band end 107, T 4.68, hits 3, ratioG per group 13.59 0.92 5.18 2.52 0.47
+      flagged pixel (x 3015, y 213): distance from the band end 213, T 4.62, hits 4, ratioG per group 12.84 2.76 2.59 0.22 7.73
+      flagged pixel (x 3015, y 289): distance from the band end 289, T 4.83, hits 3, ratioG per group 0.58 3.47 8.47 0.34 5.82
+      flagged pixel (x 3015, y 550): distance from the band end 550, T 4.72, hits 3, ratioG per group 2.40 8.92 7.35 0.43 0.55
+      flagged pixel (x 3015, y 790): distance from the band end 790, T 5.32, hits 5, ratioG per group 3.15 3.90 4.71 5.25 10.49
+      flagged pixel (x 3015, y 1350): distance from the band end 1350, T 4.89, hits 3, ratioG per group 6.41 1.96 6.27 0.89 6.83
+      flagged pixel (x 3015, y 1412): distance from the band end 1412, T 4.87, hits 3, ratioG per group 5.55 0.05 7.44 5.68 1.78
+      flagged pixel (x 3015, y 1784): distance from the band end 1287, T 4.61, hits 4, ratioG per group 1.85 8.02 4.37 5.28 3.90
+      flagged pixel (x 3015, y 2033): distance from the band end 1038, T 4.97, hits 3, ratioG per group 0.47 1.83 5.82 12.18 3.24
+      flagged pixel (x 3015, y 2180): distance from the band end 891, T 4.56, hits 4, ratioG per group 9.77 5.29 3.78 0.79 4.37
+      flagged pixel (x 3015, y 2530): distance from the band end 541, T 4.77, hits 4, ratioG per group 8.44 6.67 4.91 1.17 2.45
+      flagged pixel (x 3015, y 2642): distance from the band end 429, T 6.32, hits 4, ratioG per group 5.36 3.97 5.47 16.18 1.92
+      flagged pixel (x 3015, y 2684): distance from the band end 387, T 4.94, hits 4, ratioG per group 6.58 8.32 4.69 5.19 0.29
+      flagged pixel (x 3015, y 2767): distance from the band end 304, T 6.02, hits 4, ratioG per group 0.52 15.43 7.07 2.36 3.11
+  item 103 efficiency_loss/col_partial/0.6    pixels 754 (edge zone 199, outside 555), flagged 2 (in edge zone 0), r = 0.5999
+      flagged pixel (x 1733, y 167): distance from the band end 9, T 5.02, hits 4, ratioG per group 5.31 11.11 1.91 2.17 9.28
+      flagged pixel (x 1733, y 235): distance from the band end 77, T 4.83, hits 4, ratioG per group 0.83 6.01 5.45 3.79 7.15
+  item 104 efficiency_loss/row_pair/0.6       pixels 1512 (edge zone 534, outside 978), flagged 3 (in edge zone 1), r = 0.5996
+      flagged pixel (x 842, y 2406): distance from the band end 227, T 4.62, hits 3, ratioG per group 12.36 1.31 5.13 0.66 2.89
+      flagged pixel (x 1158, y 2406): distance from the band end 224, T 4.67, hits 4, ratioG per group 0.21 2.55 3.12 6.87 12.88
+      flagged pixel (x 1250, y 2407): distance from the band end 132, T 5.19, hits 4, ratioG per group 10.90 3.01 3.43 1.48 9.79
+  item 106 efficiency_loss/row_full/0.7       pixels 3017 (edge zone 803, outside 2214), flagged 1 (in edge zone 0), r = 0.6999
+      flagged pixel (x 2270, y 1885): distance from the band end 801, T 4.97, hits 5, ratioG per group 7.83 5.31 2.39 4.89 8.33
+  item 110 efficiency_loss/row_pair/0.7       pixels 1516 (edge zone 352, outside 1164), flagged 1 (in edge zone 0), r = 0.7003
+      flagged pixel (x 1889, y 789): distance from the band end 108, T 4.60, hits 5, ratioG per group 3.79 4.47 2.23 10.05 6.05
+==============================================================================================================
+== H-edge: are the flagged pixels over-represented in the edge zone (8 pixels from a band end, or 8 pixels from another item / the detector line mask)?
+  item pixels 12856, of them in the edge zone 3301 (25.7 %); flagged 31, of them in the edge zone 4 (12.9 %); exact one-sided hypergeometric p = 0.9746
+  criterion (p < 0.01 and at least 50 % of the flagged pixels in the edge zone): REJECTED
+==============================================================================================================
+== H-model: measured rho_g per item and group against the model rho_g(r) = (v0 / r^2 + kappa S_g / r) / (v0 + kappa S_g)
+  group mean net signals 2837 5871 9193 18297 29179
+  background nominal variance per group (median of the local expectation) 989.708 1996.778 3133.570 6167.616 9718.006
+  linear fit nominal = v0 + kappa * S: v0 = 64.9545, kappa = 0.331627 (residuals -15.955 -15.259 +19.860 +34.831 -23.477)
+  item 100 (r 0.6001): measured rho_g 1.768 1.706 1.779 1.778 1.674 | model 1.738 1.702 1.689 1.678 1.674 | within +-10 %: 5 of 5, groups above 1.15: 5 -> H-model SUPPORTED
+  item 101 (r 0.6001): measured rho_g 2.006 1.923 1.950 2.081 1.915 | model 1.738 1.702 1.690 1.678 1.674 | within +-10 %: 0 of 5, groups above 1.15: 5 -> H-model not supported
+  item 103 (r 0.5999): measured rho_g 1.420 1.746 1.641 1.640 1.867 | model 1.739 1.703 1.690 1.679 1.674 | within +-10 %: 3 of 5, groups above 1.15: 5 -> H-model not supported
+  item 104 (r 0.5996): measured rho_g 1.742 1.697 1.699 1.723 1.859 | model 1.740 1.704 1.691 1.680 1.675 | within +-10 %: 4 of 5, groups above 1.15: 5 -> H-model not supported
+  item 106 (r 0.6999): measured rho_g 1.400 1.404 1.425 1.545 1.442 | model 1.468 1.449 1.442 1.435 1.433 | within +-10 %: 5 of 5, groups above 1.15: 5 -> H-model SUPPORTED
+  item 110 (r 0.7003): measured rho_g 1.547 1.361 1.439 1.494 1.563 | model 1.468 1.448 1.441 1.435 1.432 | within +-10 %: 5 of 5, groups above 1.15: 5 -> H-model SUPPORTED
+  H-model: supported on 3 of 6 items (the method asks per item)
+==============================================================================================================
+== H-tail: Monte Carlo of the product rule (T = sum nu_g ratio_g / 13 > 4.4833 and at least 3 of 5 groups with ratio >= 2), 200000 pixels per item, ratio_g = rho_g chi2(nu_g)/nu_g, groups independent
+  item   pixels  observed |  expected (a) rho=1 | (b) measured rho_g | (c) item cost rho (Codex #230)
+   100     3016        10 |      0.000 (rate 0.00e+00) |      4.554 (rate 1.51e-03) |      5.911 (rate 1.96e-03, cost 1.8136)
+   101     3041        14 |      0.000 (rate 0.00e+00) |     14.384 (rate 4.73e-03) |      5.200 (rate 1.71e-03, cost 1.7853)
+   103      754         2 |      0.000 (rate 0.00e+00) |      0.588 (rate 7.80e-04) |      0.253 (rate 3.35e-04, cost 1.5500)
+   104     1512         3 |      0.000 (rate 0.00e+00) |      1.913 (rate 1.27e-03) |      3.016 (rate 1.99e-03, cost 1.8033)
+   106     3017         1 |      0.000 (rate 0.00e+00) |      0.287 (rate 9.50e-05) |      0.543 (rate 1.80e-04, cost 1.4523)
+   110     1516         1 |      0.000 (rate 0.00e+00) |      0.227 (rate 1.50e-04) |      0.053 (rate 3.50e-05, cost 1.3508)
+  sum: observed 31 | (a) 0.00 | (b) 21.95 | (c) 14.98   (method: (b) in 15.5 .. 62 = the rho_g model plus the finite-sample tail explains; above 62 = further factors; below 15.5 = the approximation does not explain 31)
+  criterion: EXPLAINED by the rho_g model plus the finite-sample tail
+==============================================================================================================
+== reference error: the local expectation ref at the flagged pixels against the unflagged pixels of the same item (outside the edge zone)
+  relative deviation of ref (flagged / item median - 1) over 155 values: median -0.0917, 5% -0.4054, 95% +0.1634, min -0.5456, max +0.3067
+  line-mask pixels inside the 17 x 17 window: flagged mean 0.00 (max 0), unflagged item pixels mean 0.00 (max 0)
+==============================================================================================================
+== summary: H-edge REJECTED | H-model supported on 3 of 6 items | H-tail: EXPLAINED by the rho_g model plus the finite-sample tail

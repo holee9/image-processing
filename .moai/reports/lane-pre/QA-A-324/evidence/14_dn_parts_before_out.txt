@@ -1,0 +1,34 @@
+frame 1 parts_over_3_sigma {'corrected': 10, 'no_fix': 13, 'clean': 8, 'parts': 142}
+  OVER  id    1 line/dead/row_full/1                     part 0 corrected   -22.79 no_fix  -1742.41 clean   -1.71
+  OVER  id    2 line/dead/col_full/1                     part 0 corrected    -9.63 no_fix  -1429.27 clean   -0.25
+  OVER  id   37 line/dead/cross/1                        part 0 corrected   -22.25 no_fix  -1745.11 clean    0.30
+  OVER  id   37 line/dead/cross/1                        part 1 corrected    -9.44 no_fix  -1425.78 clean    1.96
+  clean id   43 line/gain_loss/col_partial/0.3           part 0 corrected    -0.03 no_fix     -1.14 clean   -3.62
+  clean id   52 line/gain_loss/row_full/0.44             part 0 corrected     0.11 no_fix     -0.59 clean   -3.56
+  clean id   56 line/gain_loss/row_pair/0.44             part 0 corrected     0.11 no_fix     -0.43 clean   -3.66
+  OVER  id   64 control/gain_loss/row_full/0.6           part 0 corrected     3.29 no_fix      0.44 clean    3.52
+  OVER  id   66 control/gain_loss/row_partial/0.6        part 0 corrected     3.24 no_fix      0.40 clean    3.21
+  clean id   76 line/efficiency_loss/row_full/0.3        part 0 corrected     0.01 no_fix     -1.12 clean    3.16
+  clean id   81 line/efficiency_loss/col_pair/0.3        part 0 corrected     0.11 no_fix     -1.23 clean    3.62
+  OVER  id  106 control/efficiency_loss/row_full/0.7     part 0 corrected    -4.85 no_fix     -0.78 clean   -3.00
+  OVER  id  120 control/varying_band/row_full/20         part 0 corrected    30.63 no_fix      5.35 clean    0.24
+  OVER  id  123 control/varying_band/col_full/8          part 0 corrected    20.04 no_fix      3.31 clean   -1.36
+  OVER  id  246 control/dead/block8/0.5                  part 0 corrected     4.44 no_fix      4.44 clean    4.44
+frame 2 parts_over_3_sigma {'corrected': 15, 'no_fix': 13, 'clean': 8, 'parts': 142}
+  OVER  id    1 line/dead/row_full/1                     part 0 corrected   -22.16 no_fix  -1748.03 clean   -0.93
+  OVER  id    2 line/dead/col_full/1                     part 0 corrected    -9.67 no_fix  -1431.12 clean    1.01
+  OVER  id   37 line/dead/cross/1                        part 0 corrected   -22.60 no_fix  -1741.66 clean   -2.03
+  OVER  id   37 line/dead/cross/1                        part 1 corrected    -9.62 no_fix  -1432.68 clean    1.06
+  clean id   52 line/gain_loss/row_full/0.44             part 0 corrected     0.08 no_fix     -0.64 clean   -3.85
+  clean id   54 line/gain_loss/row_partial/0.44          part 0 corrected    -0.00 no_fix     -0.36 clean   -3.84
+  OVER  id   58 control/gain_loss/row_full/0.46          part 0 corrected    -4.84 no_fix     -0.71 clean   -4.69
+  OVER  id   63 control/gain_loss/col_pair/0.46          part 0 corrected    -3.36 no_fix     -0.35 clean   -3.40
+  OVER  id  100 control/efficiency_loss/row_full/0.6     part 0 corrected    -4.97 no_fix     -0.69 clean   -4.21
+  OVER  id  103 control/efficiency_loss/col_partial/0.6  part 0 corrected    -3.17 no_fix     -2.61 clean   -1.53
+  OVER  id  120 control/varying_band/row_full/20         part 0 corrected     4.05 no_fix      0.77 clean   -0.07
+  OVER  id  121 control/varying_band/col_full/20         part 0 corrected   -25.20 no_fix     -3.77 clean    0.10
+  OVER  id  122 control/varying_band/row_full/8          part 0 corrected     3.05 no_fix      0.54 clean    0.61
+  OVER  id  123 control/varying_band/col_full/8          part 0 corrected     6.82 no_fix      1.13 clean    0.60
+  OVER  id  239 control/dead/block8/0.5                  part 0 corrected     3.38 no_fix      3.38 clean    3.38
+  OVER  id  248 control/dead/block8/0.5                  part 0 corrected     8.85 no_fix      8.85 clean    8.84
+  OVER  id  250 control/dead/block8/0.5                  part 0 corrected     3.70 no_fix      3.70 clean    3.70

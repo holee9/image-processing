@@ -1,0 +1,10 @@
+import sys,re,statistics as st,collections
+for f in sys.argv[1:]:
+    d=collections.defaultdict(list); info=collections.Counter()
+    for l in open(f):
+        m=re.match(r'QA315 (stage|defect) (\S+) ([0-9.]+)',l)
+        if m: d[m.group(1)+':'+m.group(2)].append(float(m.group(3)))
+        elif l.startswith('QA315 info'): info[l.strip()]+=1
+    print('==',f.split('/')[-1])
+    for k,v in d.items(): print(f'  {k:16s} n={len(v)} median_excl_first={st.median(v[1:]):.3f}')
+    for k,c in info.most_common(4): print('  ',c,k[:150])

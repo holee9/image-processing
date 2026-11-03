@@ -1,0 +1,24 @@
+s0_gf rint(mean int16): all 100.0000% good 100.0000% defect 100.0000% mismatches 0
+s0_gf round_half_up(mean int16): all 95.0125% good 95.0117% defect 95.2228% mismatches 392230
+s0_gf trunc toward zero(mean int16): all 55.4108% good 55.4133% defect 54.8056% mismatches 3506635
+   int16 view: frames negative fraction (Bright01..10 pooled) 1.655%; BrightAvg negative 117040, zero 118083; int16 BrightAvg min -6683 max 15368
+s1_um300 rint(mean int16): all 100.0000% good 100.0000% defect 100.0000% mismatches 0
+s1_um300 round_half_up(mean int16): all 94.9129% good 94.9130% defect 94.1748% mismatches 400064
+s1_um300 trunc toward zero(mean int16): all 55.7104% good 55.7098% defect 60.4854% mismatches 3483076
+   int16 view: frames negative fraction (Bright01..10 pooled) 0.874%; BrightAvg negative 14706, zero 197037; int16 BrightAvg min -34 max 506
+s4_csi_pre rint(mean int16): all 100.0000% good 100.0000% defect 100.0000% mismatches 0
+s4_csi_pre round_half_up(mean int16): all 95.0213% good 95.0219% defect 94.8886% mismatches 391539
+s4_csi_pre trunc toward zero(mean int16): all 55.2269% good 55.2259% defect 55.4923% mismatches 3521096
+   int16 view: frames negative fraction (Bright01..10 pooled) 0.362%; BrightAvg negative 4111, zero 74898; int16 BrightAvg min -6683 max 15368
+s5_csi_post rint(mean int16): all 100.0000% good 100.0000% defect 100.0000% mismatches 0
+s5_csi_post round_half_up(mean int16): all 95.0155% good 95.0154% defect 95.0491% mismatches 391997
+s5_csi_post trunc toward zero(mean int16): all 55.1596% good 55.1603% defect 54.9746% mismatches 3526393
+   int16 view: frames negative fraction (Bright01..10 pooled) 0.346%; BrightAvg negative 3284, zero 70367; int16 BrightAvg min -6683 max 15368
+s6_gad_pre rint(mean int16): all 100.0000% good 100.0000% defect 100.0000% mismatches 0
+s6_gad_pre round_half_up(mean int16): all 94.9614% good 94.9621% defect 94.7974% mismatches 396250
+s6_gad_pre trunc toward zero(mean int16): all 55.6024% good 55.6042% defect 55.1582% mismatches 3491572
+   int16 view: frames negative fraction (Bright01..10 pooled) 0.931%; BrightAvg negative 29787, zero 163852; int16 BrightAvg min -6683 max 15368
+s7_gad_post rint(mean int16): all 100.0000% good 100.0000% defect 100.0000% mismatches 0
+s7_gad_post round_half_up(mean int16): all 94.9706% good 94.9704% defect 95.0269% mismatches 395525
+s7_gad_post trunc toward zero(mean int16): all 55.3222% good 55.3206% defect 55.7401% mismatches 3513602
+   int16 view: frames negative fraction (Bright01..10 pooled) 0.526%; BrightAvg negative 5596, zero 109893; int16 BrightAvg min -6683 max 15368

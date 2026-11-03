@@ -1,0 +1,10 @@
+groups nu [2, 2, 5, 2, 2], nuBright 13, tau5 4.48330, p 1.063e-07
+normal pixel                       rho 1.000  P(flag) 1.500e-07  expected per 3,072-pixel line 0.00, per 6,144-pixel pair 0.00
+efficiency_loss 0.7 (1/r bound)    rho 1.429  P(flag) 9.380e-05  expected per 3,072-pixel line 0.29, per 6,144-pixel pair 0.58
+efficiency_loss 0.6 (1/r bound)    rho 1.667  P(flag) 7.899e-04  expected per 3,072-pixel line 2.43, per 6,144-pixel pair 4.85
+noise cost limit 2.0               rho 2.000  P(flag) 5.772e-03  expected per 3,072-pixel line 17.73, per 6,144-pixel pair 35.47
+-- separating power, this set (nu 2,2,5,2,2)
+rho 1.95  P(flag) rule A 4.538e-03 (per 3,072-pixel line 13.94)  rule B 5.000e-08 (per line 0.00)
+rho 2.00  P(flag) rule A 5.799e-03 (per 3,072-pixel line 17.82)  rule B 5.000e-08 (per line 0.00)
+rho 3.00  P(flag) rule A 1.035e-01 (per 3,072-pixel line 317.83)  rule B 2.081e-04 (per line 0.64)
+rho 5.00  P(flag) rule A 5.311e-01 (per 3,072-pixel line 1631.53)  rule B 3.773e-02 (per line 115.90)

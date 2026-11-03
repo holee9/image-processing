@@ -1,0 +1,71 @@
+"""Common part of the mutation runners of QA-A-252f: build, run a gtest filter, apply one mutant at a time, restore with a new mtime, compare the source hash.
+Use: exec(open(this file).read()) after defining TITLE, LOG, FILT, PRED (list of prediction lines) and MUTANTS (name, path, old bytes, new bytes)."""
+import hashlib, os, subprocess, time
+ROOT = 'D:/workspace-github/xpe-pre/'
+BAT = 'C:/Users/drake/AppData/Local/Temp/claude/D--workspace-github-xpe-pre/c51d57cf-b9fc-4933-bc4a-9af9ebf82810/scratchpad/build237.bat'
+EXE = ROOT + 'build/ci-preprocess/bin/xpe_preprocess_tests.exe'
+BS = chr(92)
+TARGET = globals().get('TARGET', 'xpe_preprocess_tests')
+
+
+def say(t):
+    print(t, flush=True)
+    open(LOG, 'a', encoding='utf-8').write(t + chr(10))
+
+
+TOUCH = ['D:/workspace-github/xpe-pre/modules/preprocess/tests/test_bpm_eval.cpp', 'D:/workspace-github/xpe-pre/modules/preprocess/tools/xpe_bpm_eval.cpp']
+
+
+def build():
+    # QA-A-265: a change of the header xpe_bpm_eval_stats.hpp alone did not make ninja rebuild the test executable (the first run of this check tested a stale executable for M3 to M7); the two
+    # translation units that include it are touched before every build, so every build compiles them.
+    for f in TOUCH:
+        os.utime(f, None)
+    r = subprocess.run(['cmd.exe', '/c', BAT.replace('/', BS), TARGET], capture_output=True, text=True, encoding='cp949', errors='replace')
+    return (r.stdout.strip().splitlines() or ['?'])[-1]
+
+
+def run_tests():
+    r = subprocess.run([EXE, '--gtest_filter=' + FILT], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=ROOT)
+    ok = sorted({l.split(']')[1].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[       OK ]')})
+    bad = sorted({l.split(']')[1].split(',')[0].split('(')[0].strip().split('.')[1] for l in r.stdout.splitlines() if l.startswith('[  FAILED  ]') and '.' in l})
+    return r.returncode, ok, bad
+
+
+paths = sorted({m[1] for m in MUTANTS})
+orig = {p: open(p, 'rb').read() for p in paths}
+h0 = hashlib.sha256(b''.join(orig[p] for p in paths)).hexdigest()[:16]
+open(LOG, 'w', encoding='utf-8').write('')
+say(TITLE + ' Source hash at the start: ' + h0)
+say('PREDICTIONS (written before any run):')
+for l in PRED:
+    say(l)
+try:
+    say('--- step 0: unmutated')
+    say('build: ' + build())
+    rc, ok, bad = run_tests()
+    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))
+    for name, path, old, new in MUTANTS:
+        for p in paths:   # every file back to the original first: with two files a mutant must not inherit the previous one (the first run of QA-A-252f did, and was discarded)
+            open(p, 'wb').write(orig[p])
+            os.utime(p, None)
+        cur = orig[path]
+        assert cur.count(old) == 1, (name, cur.count(old))
+        say('--- ' + name)
+        open(path, 'wb').write(cur.replace(old, new))
+        b = build()
+        say('build: ' + b)
+        if 'BUILD_EXIT=0' not in b:
+            say('does not compile: the tests are not run')
+            continue
+        rc, ok, bad = run_tests()
+        say('tests exit %d: %d passed, FAILED: %s' % (rc, len(ok), bad))
+finally:
+    for p in paths:
+        open(p, 'wb').write(orig[p])
+    for p in paths:
+        os.utime(p, None)
+    say('--- restored: touch + rebuild')
+    h1 = hashlib.sha256(b''.join(open(p, 'rb').read() for p in paths)).hexdigest()[:16]
+    say('source hash now: %s (start: %s)' % (h1, h0))
+    say('build: ' + build())

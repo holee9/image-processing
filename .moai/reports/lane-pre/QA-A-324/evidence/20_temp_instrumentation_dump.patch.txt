@@ -1,0 +1,16 @@
+diff --git a/modules/preprocess/tools/xpe_bpm_eval.cpp b/modules/preprocess/tools/xpe_bpm_eval.cpp
+index d6f2b6ed..5a8ca819 100644
+--- a/modules/preprocess/tools/xpe_bpm_eval.cpp
++++ b/modules/preprocess/tools/xpe_bpm_eval.cpp
+@@ -2428,6 +2428,11 @@ int cmdCorrect(const Args& a) {
+         std::vector<float> C, I, U;
+         if (!loadSet(a.str("clean-set")) || !runPipeline(cleanEval[f], t.w, t.h, kCfgFinal, &C)) return 4;
+         if (!loadSet(a.str("inj-set")) || !runPipeline(injEval[f], t.w, t.h, kCfgFinal, &I) || !runPipeline(injEval[f], t.w, t.h, kCfgNoDefect, &U)) return 4;
++        char* qd = nullptr; size_t qn = 0; // QA324TMP
++        if (_dupenv_s(&qd, &qn, "QA324_DUMP") == 0 && qd != nullptr) { // QA324TMP
++            const std::string qp = std::string(qd) + "/f" + std::to_string(f); // QA324TMP
++            if (!writeBytes(qp + "_C.f32", C.data(), C.size() * 4) || !writeBytes(qp + "_I.f32", I.data(), I.size() * 4) || !writeBytes(qp + "_U.f32", U.data(), U.size() * 4)) return 3; // QA324TMP
++        } // QA324TMP
+         std::printf("== evaluation frame %s (clean) / %s (planted)\n", baseName(cleanEval[f]).c_str(), baseName(injEval[f]).c_str());
+
+         // correction error against local noise

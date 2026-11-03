@@ -1,0 +1,44 @@
+# QA-A-323 KR3 part 3: do the engine_only point pixels differ from ordinary pixels in ANY available frame set? argv: tmp folder
+import sys, numpy as np
+T = sys.argv[1]
+B = "Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12"
+I, C = B + "/images", B + "/corrected"
+W, H = 3072, 2560; L, TP, R, BT = 15, 2, 17, 92
+u16 = lambda p: np.fromfile(p, dtype="<u2").reshape(H, W).astype(np.float64)
+MD = u16(I + "/MasterDark.raw")
+eng = u16(C + "/TOTAL_BPM.raw") != 0
+pre = np.fromfile(T + "/v_c.map.u8", dtype="u1").reshape(H, W) != 0
+eo = np.load(T + "/eo_pts.npy")
+rng = np.random.default_rng(323)
+ys = rng.integers(TP + 10, H - BT - 10, 4000); xs = rng.integers(L + 30, W - R - 10, 4000)
+keep = ~eng[ys, xs] & ~pre[ys, xs]; ctl = np.stack([ys[keep], xs[keep]], 1)[:2000]
+def ratio(img, pts, r=8):
+    out = np.empty(len(pts))
+    for k, (y, x) in enumerate(pts):
+        y0, y1 = max(TP, y - r), min(H - BT, y + r + 1); x0, x1 = max(L, x - r), min(W - R, x + r + 1)
+        w = img[y0:y1, x0:x1]; m = np.median(w); out[k] = img[y, x] / m if m != 0 else np.nan
+    return out
+print("rows mod 512 of engine_only points: top", sorted(zip(*np.unique(eo[:, 0] % 512, return_counts=True)), key=lambda t: -t[1])[:5])
+lab = u16(C + "/LabelMap.raw")
+print("LabelMap nonzero total", int((lab != 0).sum()), "| at engine_only points nonzero", int((lab[eo[:,0], eo[:,1]] != 0).sum()), "of", len(eo),
+      "| at TOTAL_BPM nonzero", int((lab[eng] != 0).sum()))
+print("LabelMap values at engine_only points (top):", sorted(zip(*[a.tolist() for a in np.unique(lab[eo[:,0], eo[:,1]], return_counts=True)]), key=lambda t: -t[1])[:8])
+sets = {"bright03_%02d-MD" % i: (I + "/bright03_%02d.raw" % i, True) for i in range(20)}
+for nm in ["bright05_%02d" % i for i in range(10)] + ["bright06_%02d" % i for i in range(5)] + ["bright07_%02d" % i for i in range(5)] + ["Bright%d_00" % i for i in (11, 12, 13, 14)]:
+    sets[nm + "-MD"] = (I + "/" + nm + ".raw", True)
+AD = u16(I + "/AEDDark.raw")
+print("\nframe | mean signal | ctl |r-1| p99, max | eo |r-1| p99, max | eo count |r-1| > ctl max")
+dev_eo = []; dev_ctl = []
+for nm, (p, sub) in sets.items():
+    img = u16(p) - MD
+    rc, re = ratio(img, ctl), ratio(img, eo)
+    dc, de = np.abs(rc - 1), np.abs(re - 1)
+    dev_eo.append(de); dev_ctl.append(dc)
+    print(f"{nm} | {img[TP:H-BT, 25:W-R].mean():.1f} | {np.nanpercentile(dc, 99):.4f}, {np.nanmax(dc):.4f} | {np.nanpercentile(de, 99):.4f}, {np.nanmax(de):.4f} | {int((de > np.nanmax(dc)).sum())}")
+for i in range(6):
+    img = u16(I + "/AEDBright_%02d.raw" % i) - AD
+    rc, re = ratio(img, ctl), ratio(img, eo); dc, de = np.abs(rc - 1), np.abs(re - 1)
+    print(f"AEDBright_{i:02d}-AEDDark | {img[TP:H-BT, 25:W-R].mean():.1f} | {np.nanpercentile(dc, 99):.4f}, {np.nanmax(dc):.4f} | {np.nanpercentile(de, 99):.4f}, {np.nanmax(de):.4f} | {int((de > np.nanmax(dc)).sum())}")
+DE, DC = np.nanmax(np.stack(dev_eo), axis=0), np.nanmax(np.stack(dev_ctl), axis=0)
+print("\nmax over all MD-subtracted frame sets of |r-1|: ctl p50/p95/p99/max", [round(float(np.nanpercentile(DC, q)), 4) for q in (50, 95, 99, 100)],
+      "| eo p50/p95/p99/max", [round(float(np.nanpercentile(DE, q)), 4) for q in (50, 95, 99, 100)])

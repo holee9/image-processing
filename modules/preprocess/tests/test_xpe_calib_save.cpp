@@ -43,6 +43,13 @@ protected:
     const char* dst_gain   = "t007_dst_gain.xcal";
     const char* dst_defect = "t007_dst_defect.xcal";
 
+    void SetUp() override {
+        // Own an empty calibration store for every case, independent of test order.
+        (void)xpe_preprocess_init(nullptr);
+        xpe_preprocess_shutdown();
+        ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    }
+
     void TearDown() override {
         // Release the maps these cases load into the module (QA-A-91, #176).
         // A W x H defect map left here made a later sigma-clip generation of
@@ -156,15 +163,9 @@ TEST_F(CalibSaveTest, InvalidCalibType_ReturnsInvalidInput) {
 // Test 7: Save OFFSET when g_calib has no offset loaded -> INVALID_INPUT
 // =============================================================================
 TEST_F(CalibSaveTest, SaveOffset_WhenNotLoaded_ReturnsInvalidInput) {
-    // We cannot guarantee g_calib is empty (other tests may have loaded offset).
-    // Load a valid offset first, then test that "defect" save works, and
-    // separately test with an empty calib type that has never been loaded.
-    // The safest test: use a path that clearly never had data.
-    // Actually, since tests may run in any order and g_calib is shared global state,
-    // we check the empty-defect case (less likely to be loaded by another test).
-    // If defect is not loaded, we should get INVALID_INPUT.
-    // Skip if already populated from Test 3.
-    GTEST_SKIP() << "Global g_calib state is shared; skipped to avoid ordering dependency";
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(dst_offset, "offset", 0));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(dst_gain, "gain", 0));
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_calib_save(dst_defect, "defect", 0));
 }
 
 // =============================================================================

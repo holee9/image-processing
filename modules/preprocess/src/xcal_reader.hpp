@@ -19,6 +19,14 @@
 
 struct XpeConfigDoc;   // xpe_preprocess_internal.h
 
+// Internal storage-metadata interpretation shared by reading and saving. Not a public C API.
+struct XCalCompressionMeta {
+    bool is_compressed = false;
+    uint32_t method = 0;
+    uint64_t raw_payload_len = 0;
+};
+XpeErrorCode xcal_read_compression_meta(const XpeConfigDoc& doc, XCalCompressionMeta& meta);
+
 /**
  * @brief Read and validate an XCal v1 file.
  *

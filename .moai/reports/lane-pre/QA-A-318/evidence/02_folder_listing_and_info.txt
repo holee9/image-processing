@@ -1,0 +1,286 @@
+# Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/corrected/Data_Information.txt (CP949 -> UTF-8)
+========== Map infomations ==========
+
+PositionMap.raw : 3x3 초과한 픽셀들이 저장 되는 map
+
+AED_BPM.raw : AED 모드에서 취득된 bright를 이용해서 만든 BPM
+
+Stitch_BPM.raw : stitch 모드에서 취득된 bright를 이용해서 만든 BPM
+
+BPM_with_Filter.raw : Al filter 없는 데이터로 만든 BPM
+
+BPM_without_Filter.raw : Al filter 있는 데이터로 만든 BPM
+
+DotDefectBPM.raw : Dot defect만 검출하여 만든 map
+
+BT_BPM.raw : aging test 에서 생성된 BPM
+
+TOTAL_BPM.raw : BPM_with_Filter + BPM_without_Filter + BT_BPM + Unsaturated Pixel + previous BPM + Mura
+
+TOTAL_BPM_original.raw : BPM_with_Filter + BPM_without_Filter
+
+Total_Defect_Map.raw :  BPM_with_Filter + BPM_without_Filter
+
+
+# Z:/공통자료/Solution팀 자료/소프트웨어 자료/자체 개발/FT툴 관련/202550526/20250501_12/dose.txt
+0.3235014
+0.4560435
+0.7747348
+1.068719
+1.339068
+2.153782
+2.725907
+5.587521
+8.761441
+13.65803
+17.93751
+22.53444
+28.69236
+35.55772
+45.2152
+0
+5.5669
+
+# listing (ls -l size name) images/corrected/12_CalData_20
+== images
+
+15728640 AEDBright_00.raw
+15728640 AEDBright_00.raw.cal.raw
+15728640 AEDBright_01.raw
+15728640 AEDBright_01.raw.cal.raw
+15728640 AEDBright_02.raw
+15728640 AEDBright_02.raw.cal.raw
+15728640 AEDBright_03.raw
+15728640 AEDBright_03.raw.cal.raw
+15728640 AEDBright_04.raw
+15728640 AEDBright_04.raw.cal.raw
+15728640 AEDBright_05.raw
+15728640 AEDBright_05.raw.cal.raw
+15728640 AEDDark.raw
+15728640 BPM_with_Filter.raw
+15728640 BPM_without_Filter.raw
+15728640 Bright02_00.raw
+15728640 Bright02_00.raw__OC__.raw
+15728640 Bright02_01.raw
+15728640 Bright02_01.raw__OC__.raw
+15728640 Bright02_02.raw
+15728640 Bright02_02.raw__OC__.raw
+15728640 Bright02_03.raw
+15728640 Bright02_03.raw__OC__.raw
+15728640 Bright02_04.raw
+15728640 Bright02_04.raw__OC__.raw
+15728640 Bright02_05.raw
+15728640 Bright02_05.raw__OC__.raw
+15728640 Bright02_06.raw
+15728640 Bright02_06.raw__OC__.raw
+15728640 Bright02_07.raw
+15728640 Bright02_07.raw__OC__.raw
+15728640 Bright02_08.raw
+15728640 Bright02_08.raw__OC__.raw
+15728640 Bright02_09.raw
+15728640 Bright02_09.raw__OC__.raw
+15728640 Bright03_00.raw__OC__.raw
+15728640 Bright03_00.raw__OC__.raw.cal.raw
+15728640 Bright03_01.raw__OC__.raw
+15728640 Bright03_01.raw__OC__.raw.cal.raw
+15728640 Bright03_02.raw__OC__.raw
+15728640 Bright03_02.raw__OC__.raw.cal.raw
+15728640 Bright03_03.raw__OC__.raw
+15728640 Bright03_04.raw__OC__.raw
+15728640 Bright03_05.raw__OC__.raw
+15728640 Bright03_06.raw__OC__.raw
+15728640 Bright03_06.raw__OC__.raw.cal.raw
+15728640 Bright03_07.raw__OC__.raw
+15728640 Bright03_07.raw__OC__.raw.cal.raw
+15728640 Bright03_08.raw__OC__.raw
+15728640 Bright03_08.raw__OC__.raw.cal.raw
+15728640 Bright03_09.raw__OC__.raw
+15728640 Bright03_09.raw__OC__.raw.cal.raw
+15728640 Bright03_10.raw__OC__.raw
+15728640 Bright03_10.raw__OC__.raw.cal.raw
+15728640 Bright03_11.raw__OC__.raw
+15728640 Bright03_11.raw__OC__.raw.cal.raw
+15728640 Bright03_12.raw__OC__.raw
+15728640 Bright03_12.raw__OC__.raw.cal.raw
+15728640 Bright03_13.raw__OC__.raw
+15728640 Bright03_13.raw__OC__.raw.cal.raw
+15728640 Bright03_14.raw__OC__.raw
+15728640 Bright03_15.raw__OC__.raw
+15728640 Bright03_16.raw__OC__.raw
+15728640 Bright03_17.raw__OC__.raw
+15728640 Bright03_17.raw__OC__.raw.cal.raw
+15728640 Bright03_18.raw__OC__.raw
+15728640 Bright03_18.raw__OC__.raw.cal.raw
+15728640 Bright03_19.raw__OC__.raw
+15728640 Bright03_19.raw__OC__.raw.cal.raw
+15728640 Bright05_00.raw__OC__.raw
+15728640 Bright05_01.raw__OC__.raw
+15728640 Bright05_02.raw__OC__.raw
+15728640 Bright05_03.raw__OC__.raw
+15728640 Bright05_04.raw__OC__.raw
+15728640 Bright05_05.raw__OC__.raw
+15728640 Bright05_06.raw__OC__.raw
+15728640 Bright05_07.raw__OC__.raw
+15728640 Bright05_08.raw__OC__.raw
+15728640 Bright05_09.raw__OC__.raw
+15728640 Bright05_10.raw__OC__.raw
+15728640 Bright05_11.raw__OC__.raw
+15728640 Bright05_12.raw__OC__.raw
+15728640 Bright05_13.raw__OC__.raw
+15728640 Bright05_14.raw__OC__.raw
+15728640 Bright05_15.raw__OC__.raw
+15728640 Bright05_16.raw__OC__.raw
+15728640 Bright05_17.raw__OC__.raw
+15728640 Bright05_18.raw__OC__.raw
+15728640 Bright05_19.raw__OC__.raw
+15728640 Bright06_00.raw__OC__.raw
+15728640 Bright06_01.raw__OC__.raw
+15728640 Bright06_02.raw__OC__.raw
+15728640 Bright06_03.raw__OC__.raw
+15728640 Bright06_04.raw__OC__.raw
+15728640 Bright07_00.raw__OC__.raw
+15728640 Bright07_01.raw__OC__.raw
+15728640 Bright07_02.raw__OC__.raw
+15728640 Bright07_03.raw__OC__.raw
+15728640 Bright07_04.raw__OC__.raw
+15728640 Bright11_00.raw
+15728640 Bright11_00.raw__OC__.raw
+15728640 Bright12_00.raw
+15728640 Bright12_00.raw__OC__.raw
+15728640 Bright13_00.raw
+15728640 Bright13_00.raw__OC__.raw
+15728640 Bright14_00.raw
+15728640 Bright14_00.raw__OC__.raw
+15728640 BrightAvg.raw
+15728640 Dark04_00.raw
+15728640 Dark04_00.raw__OC__.raw
+15728640 MasterBright.raw
+15728640 MasterBright.raw.cal.raw
+15728640 MasterDark.raw
+15728640 TOTAL_BPM.raw
+15728640 bright03_0.raw
+15728640 bright03_00.raw
+15728640 bright03_01.raw
+15728640 bright03_02.raw
+15728640 bright03_03.raw
+== corrected
+
+15728640 AED_BPM.raw
+15728640 BPM_with_Filter.raw
+15728640 BPM_without_Filter.raw
+14993280 Bright03_00_OcGcDc.raw
+14993280 Bright03_01_OcGc.raw
+14993280 Bright03_01_OcGcDc.raw
+14993280 Bright03_02_OcGcDc.raw
+14993280 Bright03_03_OcGc.raw
+14993280 Bright03_03_OcGcDc.raw
+14993280 Bright03_04_OcGcDc.raw
+14993280 Bright03_05_OcGc.raw
+14993280 Bright03_05_OcGcDc.raw
+14993280 Bright03_06_OcGcDc.raw
+14993280 Bright03_07_OcGc.raw
+14993280 Bright03_07_OcGcDc.raw
+14993280 Bright03_08_OcGcDc.raw
+14993280 Bright03_09_OcGc.raw
+14993280 Bright03_09_OcGcDc.raw
+14993280 Bright03_10_OcGc.raw
+14993280 Bright03_10_OcGcDc.raw
+14993280 Bright03_11_OcGc.raw
+14993280 Bright03_11_OcGcDc.raw
+14993280 Bright03_12_OcGc.raw
+14993280 Bright03_12_OcGcDc.raw
+14993280 Bright03_13_OcGc.raw
+14993280 Bright03_13_OcGcDc.raw
+14993280 Bright03_14_OcGc.raw
+14993280 Bright03_14_OcGcDc.raw
+14993280 Bright03_15_OcGc.raw
+14993280 Bright03_15_OcGcDc.raw
+15728640 Bright03_bpm_14.raw
+14993280 Bright05_00_OcGcDc.raw
+14993280 Bright05_01_OcGcDc.raw
+14993280 Bright05_02_OcGcDc.raw
+14993280 Bright05_03_OcGcDc.raw
+14993280 Bright05_04_OcGcDc.raw
+14993280 Bright05_05_OcGcDc.raw
+14993280 Bright05_06_OcGcDc.raw
+14993280 Bright05_07_OcGcDc.raw
+14993280 Bright05_08_OcGcDc.raw
+14993280 Bright05_09_OcGcDc.raw
+14993280 Bright05_10_OcGcDc.raw
+14993280 Bright05_11_OcGcDc.raw
+14993280 Bright05_12_OcGcDc.raw
+14993280 Bright05_13_OcGcDc.raw
+14993280 Bright05_14_OcGcDc.raw
+14993280 Bright05_15_OcGcDc.raw
+14993280 Bright05_16_OcGcDc.raw
+14993280 Bright05_17_OcGcDc.raw
+14993280 Bright05_18_OcGcDc.raw
+14993280 Bright05_19_OcGcDc.raw
+14993280 Bright06_00_OcGcDc.raw
+14993280 Bright06_01_OcGcDc.raw
+14993280 Bright06_02_OcGcDc.raw
+14993280 Bright06_03_OcGcDc.raw
+14993280 Bright06_04_OcGcDc.raw
+14993280 Bright06_averaged.raw
+14993280 Bright07_00_OcGcDc.raw
+14993280 Bright07_01_OcGcDc.raw
+14993280 Bright07_02_OcGcDc.raw
+14993280 Bright07_03_OcGcDc.raw
+14993280 Bright07_04_OcGcDc.raw
+14993280 Bright07_averaged.raw
+14993280 Bright11_00_OcDc.raw
+14993280 Bright12_00_OcGcDc.raw
+14993280 Bright13_00_OcGcDc.raw
+14993280 Bright14_00_OcGcDc.raw
+1351 Cluster.txt
+773 Cluster_AED.txt
+763 Cluster_Stitch.txt
+0 Cluster_position.txt
+15728640 Dark03_00_Dc.raw
+15728640 Dark03_01_Dc.raw
+15728640 Dark03_02_Dc.raw
+15728640 Dark03_03_Dc.raw
+15728640 Dark03_04_Dc.raw
+15728640 Dark03_05_Dc.raw
+15728640 Dark03_06_Dc.raw
+15728640 Dark03_07_Dc.raw
+15728640 Dark03_08_Dc.raw
+15728640 Dark03_09_Dc.raw
+14993280 Dark04_00_OcDc.raw
+689 Data_Information.txt
+15728640 DotDefectBPM.raw
+5120 HLineMap.raw
+15728640 LabelMap.raw
+15728640 PositionMap.raw
+15728640 Stitch_BPM.raw
+15728640 TOTAL_BPM.raw
+15728640 TOTAL_BPM_original.raw
+15728640 Total_Defect_Map.raw
+6144 VLineMap.raw
+== 12_CalData_20
+
+7864320 BPMap.map
+15728640 Bright01.raw
+15728640 Bright02.raw
+15728640 Bright03.raw
+15728640 Bright04.raw
+15728640 Bright05.raw
+15728640 Bright06.raw
+15728640 Bright07.raw
+15728640 Bright08.raw
+15728640 Bright09.raw
+15728640 Bright10.raw
+0 Cluster_position.txt
+15728640 PositionMap.raw
+15728640 Total_Defect_Map.raw
+15728640 bright11.raw
+15728640 bright12.raw
+15728640 bright13.raw
+15728640 bright14.raw
+15728640 bright15.raw
+15728640 bright16.raw
+15728640 bright17.raw
+15728640 bright18.raw
+15728640 bright19.raw
+15728640 bright20.raw
+15728640 dark.raw

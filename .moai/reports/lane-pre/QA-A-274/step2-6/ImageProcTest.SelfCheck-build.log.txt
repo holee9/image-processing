@@ -1,0 +1,16 @@
+  복원할 프로젝트를 확인하는 중...
+  D:\xpe-h274j\gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj을(를) 61밀리초 동안 복원했습니다.
+  복원할 2 프로젝트의 1이(가) 최신 상태입니다.
+  ImageProcTest -> D:\xpe-h274j\_out\selfcheck\ImageProcTest.dll
+D:\xpe-h274j\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs(269,64): warning CS8604: 'CorrectedImage.CorrectedImage(float[] Floats, int Width, int Height, ushort[] RawKey)'의 매개 변수 'RawKey'에 대한 가능한 null 참조 인수입니다. [D:\xpe-h274j\gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj]
+  ImageProcTest.SelfCheck -> D:\xpe-h274j\_out\selfcheck\ImageProcTest.SelfCheck.dll
+
+빌드했습니다.
+
+D:\xpe-h274j\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs(269,64): warning CS8604: 'CorrectedImage.CorrectedImage(float[] Floats, int Width, int Height, ushort[] RawKey)'의 매개 변수 'RawKey'에 대한 가능한 null 참조 인수입니다. [D:\xpe-h274j\gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj]
+    경고 1개
+    오류 0개
+
+경과 시간: 00:00:01.81
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

@@ -1,0 +1,9 @@
+"""QA-A-271: one more correction of the QA-A-270 report, found while redoing the control (270 filter error: cls == 'defect' dropped every planted noisy item). The old sentence occurs exactly once."""
+P = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/report.md'
+s = open(P, encoding='utf-8', newline='').read()
+old = '처음 낸 대조군(참 잡음 결함, 비트만 켜진 것)은 해당 화소가 0개여서 쓰지 못하고 정의를 "비트가 켜진 것"으로 바꿨으며, 파일에 이유를 적었다.'
+new = ('처음 낸 대조군(참 잡음 결함, 비트만 켜진 것)이 0개였던 것은 데이터에 그런 화소가 없어서가 아니라 **내 필터 오류**(`cls == \'defect\'` 로 걸러 주입된 잡음 항목이 모두 빠짐)였고, 이 설명은 정정한다 '
+       '(QA-A-271: 잡음 항목 27,476 화소 중 밝은 잡음 비트가 켜진 것은 0개이고, 그 이유는 주입 분산비가 1.002~1.08이라 검출 특성의 문턱에 못 미치기 때문이다). 아래의 대조군(참 결함 2,979 화소)은 정의를 "비트가 켜진 것"으로 바꾼 것이다.')
+assert s.count(old) == 1
+open(P, 'w', encoding='utf-8', newline='\n').write(s.replace(old, new))
+print('fixed')

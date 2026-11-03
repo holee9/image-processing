@@ -1,0 +1,163 @@
+"""QA-A-262 R2 and item 4: the shipped pipeline through ctypes (the same call as the evaluation tool `correct`: xpe_preprocess_pipeline_out with bypassTemp, bypassNonlinearity, bypassBinning) and the evaluation tool's
+line index D_n (xpe_bpm_eval_stats.hpp lineIndex), applied to every row and column outside the line and control items (+-3 lines), for the planted frame (corrected output) and the clean frame (clean output), first edition (A)
+and second edition (B), evaluation frames 1 and 2 (Bright_29, Bright_30).
+Validation (method section 0, R2): the counts of rows and columns beyond 3 sigma must equal the integers in 44_correct_v1.json.txt / 45_correct_v2.json.txt (rows: checked, corrected, clean; columns likewise) and the
+D_n ratios of the dead line parts must equal the JSON ratios to two decimals. Item 4 is read only if the integer summary matches.
+Usage: PYTHONIOENCODING=utf-8 python 50_item4_columns.py.txt > 51_item4_result.txt"""
+import ctypes
+import json
+import numpy as np
+
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-263/evidence/20_dll.py.txt', encoding='utf-8').read())
+
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+INJ = TR + 'frames/'
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+M60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+S = 3072
+CFG = b'{"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true}'
+LIB.xpe_preprocess_pipeline_out.argtypes = [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta), ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p]
+LIB.xpe_preprocess_pipeline_out.restype = ctypes.c_int32
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+def pipeline(path, cfg=None):
+    raw = np.fromfile(path, dtype='<u2').reshape(S, S)
+    ib, ia = buf_of(raw)
+    out = np.zeros((S, S), dtype=np.float32)
+    ob, oa = buf_of(out)
+    m = Meta()
+    rc = LIB.xpe_preprocess_pipeline_out(ctypes.byref(ib), ctypes.byref(ob), ctypes.byref(m), None, None, cfg or CFG)
+    # xpe_clear_alerts lives in another library; the alerts do not enter the pixel result, so the harness does not clear them
+    assert rc == 0, rc
+    return out
+
+
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = dict(id=int(c[0]), cls=c[1], kind=c[2], shape=c[3], level=c[4], rects=[tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+row_skip = np.zeros(S, dtype=bool)
+col_skip = np.zeros(S, dtype=bool)
+for it in items.values():
+    if it['cls'] not in ('line', 'control'):
+        continue
+    for (x, y, w, h) in it['rects']:
+        if w > h:
+            row_skip[max(0, y - 3):min(S - 1, y + h + 2) + 1] = True
+        else:
+            col_skip[max(0, x - 3):min(S - 1, x + w + 2) + 1] = True
+
+
+def line_index_rows(img):
+    """D_n, sigmaPred and ratio for every row y = 1 .. S-2 (rect {0, y, S, 1}): the front neighbour is row y - 1."""
+    a = img.astype(np.float64)
+    P = a.mean(axis=1)
+    dn = P[1:-1] - 0.5 * (P[:-2] + P[2:])
+    res = a[:, 1:-1] - 0.5 * (a[:, :-2] + a[:, 2:])
+    sp = res.std(axis=1, ddof=1) / np.sqrt(1.5)
+    sig = sp[:-2] * np.sqrt(1.0 / S + 0.5 / S)
+    return dn, sig, dn / sig            # index i -> row i + 1
+
+
+def line_index_cols(img):
+    a = img.astype(np.float64)
+    P = a.mean(axis=0)
+    dn = P[1:-1] - 0.5 * (P[:-2] + P[2:])
+    res = a[1:-1, :] - 0.5 * (a[:-2, :] + a[2:, :])
+    sp = res.std(axis=0, ddof=1) / np.sqrt(1.5)
+    sig = sp[:-2] * np.sqrt(1.0 / S + 0.5 / S)
+    return dn, sig, dn / sig            # index i -> column i + 1
+
+
+def part_index(img, rect):
+    """lineIndex of a truth rectangle (row-type or column-type), general case."""
+    x, y, w, h = rect
+    a = img.astype(np.float64)
+    row = w > h
+    k, ln = (h, w) if row else (w, h)
+    first = y if row else x
+    b, af = first - 1, first + k
+    if b < 0 or af >= (S if True else 0) or ln < 8:
+        return None
+    if row:
+        item = a[first:first + k, x:x + w].mean()
+        pb, pa = a[b, x:x + w].mean(), a[af, x:x + w].mean()
+        front = a[b, x:x + w]
+    else:
+        item = a[y:y + h, first:first + k].mean()
+        pb, pa = a[y:y + h, b].mean(), a[y:y + h, af].mean()
+        front = a[y:y + h, b]
+    dn = item - 0.5 * (pb + pa)
+    res = front[1:-1] - 0.5 * (front[:-2] + front[2:])
+    sig = res.std(ddof=1) / np.sqrt(1.5) * np.sqrt(1.0 / (k * ln) + 0.5 / ln)
+    return dn, sig, dn / sig
+
+
+CFG_NODEFECT = b'{"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassDefect":true}'
+FRAMES = ['Bright_29.raw', 'Bright_30.raw']
+init()
+out = {}
+for ed, tag, jf in (('A', 'v1', '44_correct_v1.json.txt'), ('B', 'v2', '45_correct_v2.json.txt')):
+    js = json.load(open(EV8 + jf, encoding='utf-8'))
+    load_set(M60 + 'clean_set_%s/offset.xcal' % tag, M60 + 'clean_set_%s/gain.xcal' % tag, M60 + 'clean_set_%s/defect.xcal' % tag)
+    Cs = [pipeline(CAL + f) for f in FRAMES]
+    load_set(M60 + 'inj_set_%s/offset.xcal' % tag, M60 + 'inj_set_%s/gain.xcal' % tag, M60 + 'inj_set_%s/defect.xcal' % tag)
+    Is = [pipeline(INJ + f) for f in FRAMES]
+    Us = [pipeline(INJ + f, CFG_NODEFECT) for f in FRAMES]
+    say('=' * 120)
+    say('== edition %s (%s): validation of R2 against %s' % (ed, tag, jf))
+    ok = True
+    for f in range(2):
+        jr = js['frames'][f]
+        rn = np.nonzero(~row_skip[1:-1])[0]
+        cn = np.nonzero(~col_skip[1:-1])[0]
+        ri, rc = line_index_rows(Is[f]), line_index_rows(Cs[f])
+        ci, cc = line_index_cols(Is[f]), line_index_cols(Cs[f])
+        nr, nrc = int((np.abs(ri[2][rn]) > 3).sum()), int((np.abs(rc[2][rn]) > 3).sum())
+        nc, ncc = int((np.abs(ci[2][cn]) > 3).sum()), int((np.abs(cc[2][cn]) > 3).sum())
+        e_r, e_c = jr['other_rows'], jr['other_columns']
+        match = (len(rn) == e_r['checked'] and nr == e_r['corrected'] and nrc == e_r['clean'] and len(cn) == e_c['checked'] and nc == e_c['corrected'] and ncc == e_c['clean'])
+        ok = ok and match
+        say('  frame %d: rows checked %d (tool %d), beyond 3 sigma corrected %d (tool %d) clean %d (tool %d); columns checked %d (tool %d), corrected %d (tool %d) clean %d (tool %d) -> %s' %
+            (f + 1, len(rn), e_r['checked'], nr, e_r['corrected'], nrc, e_r['clean'], len(cn), e_c['checked'], nc, e_c['corrected'], ncc, e_c['clean'], 'MATCH' if match else 'DIFFERENT'))
+        # the dead line parts: ratios against the JSON
+        for k, part in ((1, 0), (2, 0), (37, 0), (37, 1)):
+            p = next(q for q in jr['line_index'] if q['id'] == k and q['part'] == part)
+            li = part_index(Is[f], items[k]['rects'][part])
+            lc = part_index(Cs[f], items[k]['rects'][part])
+            m2 = abs(li[2] - p['ratio_corrected']) < 0.01 and abs(lc[2] - p['ratio_clean']) < 0.01
+            ok = ok and m2
+            say('      dead line item %d part %d: D_n corrected %+.3f (sigma_pred %.4f -> ratio %+.2f; tool %+.2f), clean D_n %+.3f (ratio %+.2f; tool %+.2f) -> %s' %
+                (k, part, li[0], li[1], li[2], p['ratio_corrected'], lc[0], lc[2], p['ratio_clean'], 'MATCH' if m2 else 'DIFFERENT'))
+    say('  R2 validation for edition %s: %s' % (ed, 'PASS' if ok else 'FAIL -- item 4 of this edition is not judged'))
+    out[ed] = dict(ok=ok, I=Is, C=Cs, U=Us)
+
+say('=' * 120)
+say('== item 4: columns outside every line item (+-3 columns): beyond 3 sigma after correction, per frame; "new" = beyond 3 sigma corrected but not in the clean output; "gone" = the reverse')
+line_cols = sorted({x for it in items.values() if it['cls'] in ('line', 'control') for (x, y, w, h) in it['rects'] if not w > h for x in range(x, x + w)})
+lines_mask = np.fromfile(M60 + 'v2_full_lines.u8', dtype=np.uint8).reshape(S, S) != 0
+det_cols = np.nonzero(lines_mask.any(axis=0))[0]
+for ed in ('A', 'B'):
+    if not out[ed]['ok']:
+        continue
+    say('  edition %s' % ed)
+    cn = np.nonzero(~col_skip[1:-1])[0]
+    for f in range(2):
+        ci, cc = line_index_cols(out[ed]['I'][f]), line_index_cols(out[ed]['C'][f])
+        cu = line_index_cols(out[ed]['U'][f])
+        over_i = {int(i) + 1 for i in cn if abs(ci[2][i]) > 3}
+        over_c = {int(i) + 1 for i in cn if abs(cc[2][i]) > 3}
+        new, gone, both = sorted(over_i - over_c), sorted(over_c - over_i), sorted(over_i & over_c)
+        say('    frame %d: corrected %d, clean %d, both %d, new %d, gone %d' % (f + 1, len(over_i), len(over_c), len(both), len(new), len(gone)))
+        for x in new + gone:
+            near_item = min((abs(x - xx) for xx in line_cols), default=-1)
+            near_det = min((abs(x - int(d)) for d in det_cols), default=-1) if len(det_cols) else -1
+            kind = 'new ' if x in new else 'gone'
+            say('      %s column %4d: D_n ratio corrected %+.2f, clean %+.2f, no defect correction %+.2f; nearest truth line/control column %d away, nearest detector line-mask column %d away' %
+                (kind, x, ci[2][x - 1], cc[2][x - 1], cu[2][x - 1], near_item, near_det))

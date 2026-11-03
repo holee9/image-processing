@@ -1,0 +1,163 @@
+"""QA-A-274 step 1: builds the per-file part of inventory.md from the working tree (read-only: nothing is staged or changed)."""
+import collections
+import glob
+import hashlib
+import json
+import os
+import re
+import subprocess
+
+D = '.moai/reports/lane-pre/QA-A-274/'
+B = '.moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/'
+RV = 'D:/workspace-github/image-processing/.moai/state/reviews/'
+
+
+def sha(p):
+    try:
+        return hashlib.sha256(open(p, 'rb').read()).hexdigest()
+    except OSError:
+        return None
+
+
+# ---- current state (untracked directories expanded; .moai/reports excluded by the card)
+lines = subprocess.run(['git', 'status', '--porcelain', '-uall'], capture_output=True, text=True, encoding='utf-8').stdout.splitlines()
+cur = [(l[:2], l[3:].strip('"')) for l in lines if not l[3:].startswith('.moai/reports/')]
+
+base = json.load(open(B + 'baseline.json', encoding='utf-8-sig'))
+bstat = set(l[3:].strip('"') for l in base['pre_status'].splitlines() if l.strip())
+bsrc = base['sources']
+fz = json.load(open(B + 'frozen-current-v2.json', encoding='utf-8-sig'))
+fzc = {x['path']: x for x in fz['changed_from_task_baseline']}
+fzu = {x['path']: x for x in fz['original_untracked_not_hashed_at_baseline']}
+fa = json.load(open(B + 'final-audit.json', encoding='utf-8-sig'))
+fan = {}
+for x in fa['files']:
+    p = x['path'].replace(chr(92), '/')
+    i = p.lower().find('xpe-pre/')
+    fan[p[i + 8:] if i >= 0 else p] = x['expected']
+b7 = json.load(open(B + 'frozen-final-build7.json', encoding='utf-8-sig'))
+b7h = {x['path']: x['current'] for x in b7['changed_from_task_baseline']}
+
+# ---- review documents: hashes they contain and the paths they cite
+rev_docs = sorted(glob.glob(RV + 'CODEX-TEMP-*.md'))
+rev_hash = {}
+rev_cite = collections.defaultdict(set)
+pat = re.compile(r'(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])')
+pth = re.compile(r'((?:gui|modules|docs|tools|cmake)/[\w./-]+\.(?:cs|xaml|cpp|hpp|h|md|py|html|csproj|cmake|txt|iss))')
+for f in rev_docs:
+    t = open(f, encoding='utf-8', errors='replace').read()
+    name = os.path.basename(f).replace('.md', '').replace('CODEX-TEMP-', '')
+    for h in set(pat.findall(t.lower())):
+        rev_hash.setdefault(h, set()).add(name)
+    for c in set(pth.findall(t)):
+        rev_cite[c].add(name)
+
+# installer sources the Reviewer accepted: source-1.0.11.json (review.md of PRE-INSTALLER-...-reviewer)
+s11 = open(glob.glob('.moai/reports/lane-pre/PRE-INSTALLER-20261020-leader/**/source-1.0.11.json', recursive=True)[0], encoding='utf-8-sig').read().lower()
+# low-count helper accepted by the Reviewer
+shr = ''.join(open(f, encoding='utf-8', errors='replace').read().lower() for f in glob.glob('.moai/reports/lane-pre/PRE-LOWCOUNT-20261020-reviewer-01a0f0f3/*.*') if f.endswith(('.md', '.json')))
+
+
+def cited(path):
+    out = set()
+    for c, docs in rev_cite.items():
+        if path.endswith(c) or c.endswith(path):
+            out |= docs
+    return out
+
+
+UNIT = [  # (prefix or exact path, unit code)
+    ('.claude/', 'X'), ('.moai/', 'X'), ('modules/preprocess/.moai/', 'X'), ('modules/preprocess/src/.moai/', 'X'), ('modules/preprocess/tools/.moai/', 'X'),
+    ('tools/packaging/pre-gui/InstallHost/obj/', 'Y'),
+    ('cmake/', 'A1'), ('tools/ci/', 'A1'),
+    ('modules/preprocess/src/xcal_reader', 'A2'), ('modules/preprocess/src/calibration_cache.cpp', 'A2'), ('modules/preprocess/src/xpe_calib_load_', 'A2'),
+    ('modules/preprocess/src/xpe_calib_save.cpp', 'A2'), ('modules/preprocess/tests/test_xpe_calib_save.cpp', 'A2'),
+    ('modules/preprocess/src/ghost_correct.cpp', 'A3'), ('modules/preprocess/src/pipeline.cpp', 'A3'),
+    ('modules/preprocess/tests/test_ghost_mix_compare.cpp', 'A3'), ('modules/preprocess/tests/test_ghost_oracle_derive.cpp', 'A3'),
+    ('modules/preprocess/tests/test_ghost_tiers.cpp', 'A3'), ('modules/preprocess/tests/test_pipeline_stage_values.cpp', 'A3'),
+    ('modules/preprocess/tests/test_output_unchanged_237b.cpp', 'A3'),
+    ('modules/preprocess/tests/test_oom_injection.cpp', 'A2+A3'), ('modules/preprocess/tests/test_xpe_preprocess_calibration.cpp', 'A2+A3'),
+    ('modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h', 'A2+A3'), ('modules/preprocess/include/xpe/preprocess_api.h', 'A2+A3'),
+    ('modules/preprocess/CMakeLists.txt', 'A4+A3'),
+    ('modules/preprocess/tools/xpe_pre_', 'A4'), ('modules/preprocess/tests/test_pre_', 'A4'),
+    ('modules/preprocess/tests/test_ghost_oracle.cpp', 'A5'), ('modules/preprocess/tests/test_nonlin_', 'A5'),
+    ('modules/preprocess/tools/xpe_calib_fixture_gen.cpp', 'B1'),
+    ('docs/project/api-spec.md', 'A2+Q'), ('docs/project/Preprocessing-E2E', 'A4'),
+    ('docs/calibration/', 'A6'), ('docs/help/content/', 'A6'),
+    ('docs/development/', 'B6'), ('docs/superpowers/', 'Z'),
+    ('gui/ImageProcTest/MainWindow.xaml', 'B1+Q'),
+    ('gui/ImageProcTest/ViewModels/MainWindowViewModel.cs', 'B1+C1'), ('gui/ImageProcTest/App.xaml.cs', 'B1+C1'),
+    ('gui/ImageProcTest/Services/AppSettingsService.cs', 'C1'), ('gui/ImageProcTest/Services/GuiDataPaths.cs', 'C1'),
+    ('gui/ImageProcTest/help/', 'C1'), ('tools/packaging/', 'C1'),
+    ('gui/', 'B1'),
+    ('tools/calibration/', 'D1'),
+]
+
+
+def unit(p):
+    for k, u in UNIT:
+        if p == k or p.startswith(k):
+            return u
+    return '?'
+
+
+rows = []
+for st, p in cur:
+    h = sha(p)
+    u = unit(p)
+    inb = p in bstat or any(p.startswith(b) for b in bstat if b.endswith('/'))
+    # ---- origin
+    if u in ('X',):
+        origin = '도구 상태(제품 아님)'
+    elif u == 'Y':
+        origin = '빌드 산출물(제품 아님)'
+    elif u == 'Z':
+        origin = '불명'
+    elif p.startswith('gui/ImageProcTest/MainWindow.xaml'):
+        origin = 'Codex 임시리더 GUI 변경 + 273 변경(혼합)'
+    elif u in ('C1',) or (u == 'B1+C1'):
+        origin = 'Codex 임시리더 설치기(#277) 변경' + (' + Codex 임시리더 GUI 변경(혼합)' if u == 'B1+C1' else '')
+    elif u == 'D1':
+        origin = 'Codex 임시리더 저수량(#273/#245) 보조 도구'
+    elif inb and bsrc.get(p) == h:
+        origin = '이전부터 있던 dirty(baseline.json, 이후 변경 없음)'
+    elif inb and p in fzu and fzu[p]['current'] == h:
+        origin = '이전부터 있던 dirty(baseline.json, 이후 변경 없음)'
+    elif inb:
+        origin = '이전부터 있던 dirty(baseline.json), 이후 변경됨'
+    elif p in fzc or p in b7h or p in fan:
+        origin = 'Codex 임시리더 GUI 변경(frozen-current-v2.json)'
+    elif p == 'docs/development/PRE-GUI-CALIBRATION-WORKFLOW-DOC-SUPPLEMENT.md':
+        origin = 'Codex 임시리더 Doc 세션 산출(frozen 목록 밖)'
+    else:
+        origin = '불명'
+    # ---- review state
+    docs = rev_hash.get(h, set()) if h else set()
+    if p.startswith('gui/ImageProcTest/MainWindow.xaml'):
+        rv = '검토됨-이후 변경 (Reviewer build7 수용 해시 %s → 지금 %s; 차이는 273 메뉴 hunk)' % (b7h.get(p, '')[:8], h[:8])
+    elif h and h in s11:
+        rv = '검토됨-해시 일치 (Reviewer 설치 검토 review.md · source-1.0.11.json)'
+    elif docs:
+        rv = '검토됨-해시 일치 (CODEX-TEMP-%s)' % ', '.join(sorted(docs))
+    elif h and h == b7h.get(p) or (h and h == fan.get(p)):
+        rv = '검토됨-해시 일치 (Reviewer build6/7 독립 수용, final-audit.json)'
+    elif h and h in shr:
+        rv = '검토됨-해시 일치 (Reviewer 저수량 검토 signal-helper-review.md)'
+    elif cited(p):
+        rv = '검토됨-이후 변경 (CODEX-TEMP-%s 가 인용한 해시와 지금 해시가 다름)' % ', '.join(sorted(cited(p)))
+    elif u in ('X', 'Y'):
+        rv = '해당 없음'
+    elif p in b7h:
+        rv = '검토됨-이후 변경 (build7 해시 %s → 지금 %s)' % (b7h[p][:8], h[:8])
+    else:
+        rv = '검토 없음'
+    rows.append(dict(st=st.strip() or ' ', path=p, unit=u, origin=origin, review=rv, sha=h))
+
+json.dump(rows, open(D + 'inventory-rows.json', 'w', encoding='utf-8'), indent=1, ensure_ascii=False)
+cnt = collections.Counter(r['unit'] for r in rows)
+print(len(rows), dict(cnt))
+print(collections.Counter(r['origin'] for r in rows))
+print(collections.Counter(r['review'].split(' (')[0] for r in rows))
+for r in rows:
+    if r['unit'] == '?' or r['origin'] == '불명':
+        print('UNKNOWN', r['path'], r['unit'], r['origin'])

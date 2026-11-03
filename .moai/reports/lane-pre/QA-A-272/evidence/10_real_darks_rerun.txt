@@ -1,0 +1,13 @@
+map payload sha256 fb2a46c03dd6e7c9209fe23003911aa356a26aae1a691df4510b67ce808d6b05
+frame    signedBias signedDsnu     redDb    clamp%  zeroOut%    roiPix |    outBias   outDsnu |  oldBias  oldDsnu | checks
+Dark_08     1.8985    2.9357    10.699    18.802    24.408    896344 |     2.3523    2.3201 |   2.3523   2.3201 | P1 ok P2 ok P5 ok P7 ok
+Dark_09     1.9834    2.9491    10.633    18.729    24.312    892807 |     2.4193    2.3513 |   2.4193   2.3513 | P1 ok P2 ok P5 ok P7 ok
+Dark_10     1.7124    2.9460    10.678    20.782    26.689    907507 |     2.2188    2.2786 |   2.2188   2.2786 | P1 ok P2 ok P5 ok P7 ok
+Dark_11    -3.8911    2.9385    10.787    86.344    90.110    943193 |     0.1237    0.5443 |   0.1237   0.5443 | P1 ok P2 ok P5 ok P7 ok
+Dark_12     1.9102    2.9321    10.670    19.314    25.029    897350 |     2.3603    2.3213 |   2.3603   2.3213 | P1 ok P2 ok P5 ok P7 ok
+Dark_13    -3.9112    2.9329    10.722    86.585    90.310    882073 |     0.1211    0.5398 |   0.1211   0.5398 | P1 ok P2 ok P5 ok P7 ok
+Dark_14    -3.8561    2.9421    10.759    86.048    89.866    942361 |     0.1281    0.5550 |   0.1281   0.5550 | P1 ok P2 ok P5 ok P7 ok
+Dark_15     1.6494    3.4174     9.411    23.948    29.377    905018 |     2.3395    2.5367 |   2.3395   2.5367 | P1 ok P2 ok P5 ok P7 ok
+Dark_16    -4.0542    3.3817     9.468    83.105    86.966    885197 |     0.1875    0.7238 |   0.1875   0.7238 | P1 ok P2 ok P5 ok P7 ok
+validMask of the last frame: 0x1f (all five groups = 0x1f)
+ALL P1/P2/P5/P7 CHECKS OK

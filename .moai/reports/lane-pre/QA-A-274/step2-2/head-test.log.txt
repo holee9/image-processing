@@ -1,0 +1,105 @@
+Test project D:/xpe-h274b/build/ci-preprocess
+      Start  787: PreStripe.MatchesAnIndependentTwoPassFourByFourOracleAndTranspose
+ 1/48 Test  #787: PreStripe.MatchesAnIndependentTwoPassFourByFourOracleAndTranspose .......................   Passed    0.01 sec
+      Start  788: PreStripe.UsesPositiveGainRoiAndOnlyOriginalNeighbourPairs
+ 2/48 Test  #788: PreStripe.UsesPositiveGainRoiAndOnlyOriginalNeighbourPairs ..............................   Passed    0.01 sec
+      Start  789: PreStripe.DegenerateOrNonfiniteEvidenceIsUnmeasured
+ 3/48 Test  #789: PreStripe.DegenerateOrNonfiniteEvidenceIsUnmeasured .....................................   Passed    0.01 sec
+      Start  790: PreStripe.UsesTheTruncatedThirtyThreeSampleWindowOnLongProfiles
+ 4/48 Test  #790: PreStripe.UsesTheTruncatedThirtyThreeSampleWindowOnLongProfiles .........................   Passed    0.13 sec
+      Start  791: PreE2EReport.UsesTheEightProtocolWeightsRatherThanAnUnweightedAverage
+ 5/48 Test  #791: PreE2EReport.UsesTheEightProtocolWeightsRatherThanAnUnweightedAverage ...................   Passed    0.01 sec
+      Start  792: PreE2EReport.ClampReviewUsesTheExistingStrictFivePercentBoundary
+ 6/48 Test  #792: PreE2EReport.ClampReviewUsesTheExistingStrictFivePercentBoundary ........................   Passed    0.01 sec
+      Start  793: PreE2EReport.CompleteMeasuredEvidenceCanReachTheSpecifiedPromotionGates
+ 7/48 Test  #793: PreE2EReport.CompleteMeasuredEvidenceCanReachTheSpecifiedPromotionGates .................   Passed    0.01 sec
+      Start  794: PreE2EReport.MissingComponentsAreNullAndCannotBePromoted
+ 8/48 Test  #794: PreE2EReport.MissingComponentsAreNullAndCannotBePromoted ................................   Passed    0.01 sec
+      Start  795: PreE2EReport.UnknownSemanticsAndMissingRawProofAreCappedAtSeventy
+ 9/48 Test  #795: PreE2EReport.UnknownSemanticsAndMissingRawProofAreCappedAtSeventy .......................   Passed    0.01 sec
+      Start  796: PreE2EReport.SafetyFailureTakesTheStricterCapAndCannotBeHiddenByGoodScores
+10/48 Test  #796: PreE2EReport.SafetyFailureTakesTheStricterCapAndCannotBeHiddenByGoodScores ..............   Passed    0.01 sec
+      Start  797: PreE2EReport.ProvenRawMutationIsABlockingSafetyFailure
+11/48 Test  #797: PreE2EReport.ProvenRawMutationIsABlockingSafetyFailure ..................................   Passed    0.01 sec
+      Start  798: PreE2EReport.NonfiniteScoresAreUnmeasuredButFiniteScoresAreClamped
+12/48 Test  #798: PreE2EReport.NonfiniteScoresAreUnmeasuredButFiniteScoresAreClamped ......................   Passed    0.01 sec
+      Start  799: PreE2EReport.MarkdownLabelsUnmeasuredMetricsAndIncompleteReadiness
+13/48 Test  #799: PreE2EReport.MarkdownLabelsUnmeasuredMetricsAndIncompleteReadiness ......................   Passed    0.01 sec
+      Start  800: PreE2EReport.PromotionBoundariesIncludeEightyFiveAndNinetyTwoExactly
+14/48 Test  #800: PreE2EReport.PromotionBoundariesIncludeEightyFiveAndNinetyTwoExactly ....................   Passed    0.01 sec
+      Start  801: PreE2ERun.ReferenceMeasuresFullPopulationWithoutPromotionAndPreservesInput
+15/48 Test  #801: PreE2ERun.ReferenceMeasuresFullPopulationWithoutPromotionAndPreservesInput ..............   Passed    0.07 sec
+      Start  802: PreE2ERun.ReferenceExactMatchDoesNotInventEpsilonAndCliConnectsInput
+16/48 Test  #802: PreE2ERun.ReferenceExactMatchDoesNotInventEpsilonAndCliConnectsInput ....................   Passed    0.06 sec
+      Start  803: PreE2ERun.ReferenceRejectsWrongLengthAndNonfiniteWithoutDroppingPixels
+17/48 Test  #803: PreE2ERun.ReferenceRejectsWrongLengthAndNonfiniteWithoutDroppingPixels ..................   Passed    0.14 sec
+      Start  804: PreE2ERun.OracleIsIndependentFromTheLoadedPredictionAndIsPreserved
+18/48 Test  #804: PreE2ERun.OracleIsIndependentFromTheLoadedPredictionAndIsPreserved ......................   Passed    0.02 sec
+      Start  805: PreE2ERun.OracleMeasuresActualStageFramesAndHandlesVersionTwoAreaWithoutDroppingTruth
+19/48 Test  #805: PreE2ERun.OracleMeasuresActualStageFramesAndHandlesVersionTwoAreaWithoutDroppingTruth ...   Passed    0.13 sec
+      Start  806: PreE2ERun.OraclePredictionIncludesOriginalGainClassificationRatherThanNeutralizedGain
+20/48 Test  #806: PreE2ERun.OraclePredictionIncludesOriginalGainClassificationRatherThanNeutralizedGain ...   Passed    0.03 sec
+      Start  807: PreE2ERun.PolynomialOracleKeepsUnsupportedSelectionNullButMeasuresActualStageFrames
+21/48 Test  #807: PreE2ERun.PolynomialOracleKeepsUnsupportedSelectionNullButMeasuresActualStageFrames .....   Passed    0.02 sec
+      Start  808: PreE2ERun.OracleValidatesLengthAndKindAndCliActuallyConnectsIt
+22/48 Test  #808: PreE2ERun.OracleValidatesLengthAndKindAndCliActuallyConnectsIt ..........................   Passed    0.04 sec
+      Start  809: PreE2ERun.MeasuresTheRealBasicStagesAndPreservesRawAndMapProvenance
+23/48 Test  #809: PreE2ERun.MeasuresTheRealBasicStagesAndPreservesRawAndMapProvenance .....................   Passed    0.02 sec
+      Start  810: PreE2ERun.StripeFailureIsReportedEvenBelowTheResidualJudgingSignalLevel
+24/48 Test  #810: PreE2ERun.StripeFailureIsReportedEvenBelowTheResidualJudgingSignalLevel .................   Passed    0.02 sec
+      Start  811: PreE2ERun.HighClampRateRequestsReviewWithoutInventingASignedBiasPassLimit
+25/48 Test  #811: PreE2ERun.HighClampRateRequestsReviewWithoutInventingASignedBiasPassLimit ...............   Passed    0.02 sec
+      Start  812: PreE2ERun.ReplaysTheSameCpuPipelineForDeterminismEvidence
+26/48 Test  #812: PreE2ERun.ReplaysTheSameCpuPipelineForDeterminismEvidence ...............................   Passed    0.03 sec
+      Start  813: PreE2ERun.StripePassDoesNotPromoteABelowSignalFlatFrame
+27/48 Test  #813: PreE2ERun.StripePassDoesNotPromoteABelowSignalFlatFrame .................................   Passed    0.02 sec
+      Start  814: PreE2ERun.DefinedFlatGatesCanBeMeasuredWithoutInventingATotalScore
+28/48 Test  #814: PreE2ERun.DefinedFlatGatesCanBeMeasuredWithoutInventingATotalScore ......................   Passed    0.02 sec
+      Start  815: PreE2ERun.FlatMetricsAreMeasuredOnTheGainStageAndNotInventedForOtherKinds
+29/48 Test  #815: PreE2ERun.FlatMetricsAreMeasuredOnTheGainStageAndNotInventedForOtherKinds ...............   Passed    0.02 sec
+      Start  816: PreE2ERun.AUniformDarkFrameReportsUnmeasurableInsteadOfZeroBias
+30/48 Test  #816: PreE2ERun.AUniformDarkFrameReportsUnmeasurableInsteadOfZeroBias .........................   Passed    0.02 sec
+      Start  817: PreE2ERun.RejectsWrongSizeAndMissingCalibrationWithoutAQualityPass
+31/48 Test  #817: PreE2ERun.RejectsWrongSizeAndMissingCalibrationWithoutAQualityPass ......................   Passed    0.02 sec
+      Start  818: PreE2ERun.WritesJsonAndMarkdownOnlyInANewDirectoryAndNeverOverwritesEvidence
+32/48 Test  #818: PreE2ERun.WritesJsonAndMarkdownOnlyInANewDirectoryAndNeverOverwritesEvidence ............   Passed    0.03 sec
+      Start  819: PreE2ERun.SignedDarkBiasAndClampRateAreMeasuredWithoutANewSignedPassGate
+33/48 Test  #819: PreE2ERun.SignedDarkBiasAndClampRateAreMeasuredWithoutANewSignedPassGate ................   Passed    0.02 sec
+      Start  820: PreE2ERun.InvalidGainCoverageUsesOriginalFileRatherThanTheSanitizedLoadedMap
+34/48 Test  #820: PreE2ERun.InvalidGainCoverageUsesOriginalFileRatherThanTheSanitizedLoadedMap ............   Passed    0.02 sec
+      Start  821: PreE2ERun.ReportsOnlyTheObservedConfiguredGhostBypass
+35/48 Test  #821: PreE2ERun.ReportsOnlyTheObservedConfiguredGhostBypass ...................................   Passed    0.02 sec
+      Start  822: PreE2ERun.RejectedInputsDoNotClaimThatGhostWasExecutedOrBypassed
+36/48 Test  #822: PreE2ERun.RejectedInputsDoNotClaimThatGhostWasExecutedOrBypassed ........................   Passed    0.02 sec
+      Start  823: PreE2ERun.CorruptedMapsCannotProduceASuccessfulRun
+37/48 Test  #823: PreE2ERun.CorruptedMapsCannotProduceASuccessfulRun ......................................   Passed    0.02 sec
+      Start  824: PreE2ERun.ExpiredMapsCannotProduceASuccessfulRun
+38/48 Test  #824: PreE2ERun.ExpiredMapsCannotProduceASuccessfulRun ........................................   Passed    0.02 sec
+      Start  825: PreE2ERun.RejectsOverflowAndUnrecognizedEvidenceLabels
+39/48 Test  #825: PreE2ERun.RejectsOverflowAndUnrecognizedEvidenceLabels ..................................   Passed    0.01 sec
+      Start  826: PreE2ERun.FpnReductionUsesRawAndFinalStandardDeviationsNotPrnuImprovement
+40/48 Test  #826: PreE2ERun.FpnReductionUsesRawAndFinalStandardDeviationsNotPrnuImprovement ...............   Passed    0.14 sec
+      Start  827: PreE2ERun.AMeanChangeWithoutAVarianceChangeDoesNotBecomeFpnReduction
+41/48 Test  #827: PreE2ERun.AMeanChangeWithoutAVarianceChangeDoesNotBecomeFpnReduction ....................   Passed    0.02 sec
+      Start  828: PreE2ERun.VerificationRoiCoverageAndGainApplicationRangeAreDistinct
+42/48 Test  #828: PreE2ERun.VerificationRoiCoverageAndGainApplicationRangeAreDistinct .....................   Passed    0.04 sec
+      Start  829: PreE2ERun.CliExitCodesDistinguishArgumentsExecutionAndOutputRefusal
+43/48 Test  #829: PreE2ERun.CliExitCodesDistinguishArgumentsExecutionAndOutputRefusal .....................   Passed    0.11 sec
+      Start  830: PreE2ERun.OutputFailureDoesNotPublishACompleteJsonReport
+44/48 Test  #830: PreE2ERun.OutputFailureDoesNotPublishACompleteJsonReport ................................   Passed    0.02 sec
+      Start 1191: BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects
+45/48 Test #1191: BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects ...................................   Passed    1.08 sec
+      Start 1408: A241Measure.B6_StripeInvestigation
+46/48 Test #1408: A241Measure.B6_StripeInvestigation ......................................................***Not Run (Disabled)   0.00 sec
+      Start 1409: A241Measure.B6_StripeNoiseRatio
+47/48 Test #1409: A241Measure.B6_StripeNoiseRatio .........................................................***Not Run (Disabled)   0.00 sec
+      Start 1441: RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor
+48/48 Test #1441: RuntimeDetectionRatesTest.KnownDivergence_StripedFrameMissesTheTprFloor .................   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 46
+
+Total Test time (real) =   2.65 sec
+
+The following tests did not run:
+	1408 - A241Measure.B6_StripeInvestigation (Disabled)
+	1409 - A241Measure.B6_StripeNoiseRatio (Disabled)

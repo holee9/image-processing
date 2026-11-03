@@ -1,0 +1,72 @@
+"""QA-A-273: synthetic fixtures for the comparison window, schema xpe-2g-pre-comparison/3.
+Usage: python -X utf8 make_v3_fixtures.py <comparison_manifest.py copy> <out dir>
+Writes <out>/ok/ (a comparable pair), <out>/refused_sha/ (one byte of B changed after the SHA was recorded),
+<out>/refused_unverified/ (applied_settings not verified, common-condition). Frames are SYNTHETIC: success here is
+not evidence of a vendor run, of 2G execution, or of image quality.
+"""
+import copy
+import hashlib
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+spec = importlib.util.spec_from_file_location("cm", sys.argv[1])
+cm = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(cm)
+out = Path(sys.argv[2])
+W, H = 96, 64
+LAYOUT = {"origin": "top-left", "row_order": "top-to-bottom", "column_order": "left-to-right", "value_transform": "identity"}
+SETTINGS = {"offset": "applied", "gain": "applied", "defect": "not-applied", "status": "verified", "source": "synthetic fixture log"}
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+def build(root, tamper_b=False, settings_status="verified"):
+    root.mkdir(parents=True, exist_ok=True)
+    yy, xx = np.mgrid[0:H, 0:W]
+    a = (1000 + 8 * xx + 5 * yy).astype("<u2")
+    b = (a.astype(np.int32) + 7 + (xx % 5)).astype("<u2")
+    raw = np.full((H, W), 3000, "<u2")
+    (root / "a.raw").write_bytes(a.tobytes())
+    (root / "b.raw").write_bytes(b.tobytes())
+    (root / "in.raw").write_bytes(raw.tobytes())
+    (root / "gain.raw").write_bytes(np.ones((H, W), "<f4").tobytes())
+    (root / "pre-config.json").write_text('{"mode":"synthetic"}', encoding="utf-8")
+
+    def output(name):
+        return {"path": name, "sha256": sha(root / name), "dtype": "uint16", "endian": "little", "width": W, "height": H, "stride_bytes": W * 2,
+                "offset_bytes": 0, "stage": "engine-direct", "units": "pixel value", "layout": dict(LAYOUT, status="verified", source="synthetic writer")}
+
+    in_sha = sha(root / "in.raw")
+    maps = {"gain": {"path": "gain.raw", "sha256": sha(root / "gain.raw")}}
+    st = dict(SETTINGS, status=settings_status)
+    m = {
+        "schema": cm.SCHEMA,
+        "input": {"path": "in.raw", "sha256": in_sha, "correction_state": {"value": "uncorrected", "status": "verified", "source": "synthetic record"}, "mode": "synthetic-mode", "width": W, "height": H},
+        "engines": {
+            "A": {"engine_id": "samsung-2g-x64w", "engine_identity": {"dll_sha256": cm.OFFICIAL_2G_X64W_SHA256}, "execution": "imported-file", "input_sha256": in_sha,
+                  "maps": copy.deepcopy(maps), "applied_settings": dict(st), "output": output("a.raw")},
+            "B": {"engine_id": "new-pre", "engine_identity": {"source_head": "75c0043195e5afacf7d6b424bee32c063b9e99a0", "config_sha256": sha(root / "pre-config.json")},
+                  "execution": "imported-file", "input_sha256": in_sha, "maps": copy.deepcopy(maps), "applied_settings": dict(st), "output": output("b.raw")},
+        },
+        "roi": {"x": 16, "y": 8, "width": 48, "height": 32},
+    }
+    if tamper_b:
+        data = bytearray((root / "b.raw").read_bytes())
+        data[0] ^= 1
+        (root / "b.raw").write_bytes(bytes(data))
+    (root / "manifest.json").write_text(json.dumps(m, indent=2), encoding="utf-8")
+    exp = cm.validate_pair(m, root)
+    (root / "script_answer.txt").write_text("comparable=%s reasons=%s\n" % (exp["comparable"], exp["reasons"]), encoding="utf-8")
+
+
+build(out / "ok")
+build(out / "refused_sha", tamper_b=True)
+build(out / "refused_unverified", settings_status="declared")
+for d in ("ok", "refused_sha", "refused_unverified"):
+    print(d, (out / d / "script_answer.txt").read_text(encoding="utf-8").strip())

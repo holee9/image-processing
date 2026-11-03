@@ -1,0 +1,16 @@
+line/noisy/col_full/2        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'LINE-only': 2625, 'DN': 411}
+line/noisy/col_full/4        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'DN': 2505, 'LINE-only': 525, 'DM+DN': 8, 'DM': 2}
+line/noisy/col_pair/2        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'LINE-only': 1345, 'DN': 163}
+line/noisy/col_pair/4        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'DN': 1183, 'LINE-only': 339, 'DM+DN': 5, 'DM': 1}
+line/noisy/col_partial/2     items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'LINE-only': 645, 'DN': 109, 'DM': 2}
+line/noisy/col_partial/4     items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'DN': 567, 'LINE-only': 187, 'DM+DN': 1, 'DM': 1}
+line/noisy/cross/4           items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'DN': 4972, 'LINE-only': 1051, 'DM+DN': 22, 'DM': 3}
+line/noisy/row_full/2        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'LINE-only': 2620, 'DN': 391, 'DM': 2}
+line/noisy/row_full/4        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'DN': 2482, 'LINE-only': 524, 'DM+DN': 18, 'DM': 3}
+line/noisy/row_pair/2        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'LINE-only': 1320, 'DN': 193, 'DM': 1}
+line/noisy/row_pair/4        items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'DN': 1226, 'LINE-only': 274, 'DM+DN': 7, 'DM': 1}
+line/noisy/row_partial/2     items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'LINE-only': 668, 'DN': 88}
+line/noisy/row_partial/4     items   1 detected   1, detected without BN bit   1 | flagged pixels by bits {'DN': 639, 'LINE-only': 115, 'DM+DN': 5}
+pixel/noisy/pixel/1          items  64 detected   0, detected without BN bit   0 | flagged pixels by bits {}
+pixel/noisy/pixel/2          items  64 detected   8, detected without BN bit   8 | flagged pixels by bits {'DN': 8}
+pixel/noisy/pixel/4          items  64 detected  49, detected without BN bit  49 | flagged pixels by bits {'DN': 49}

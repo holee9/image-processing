@@ -1,0 +1,15 @@
+﻿08:33:39 started PID 31616
+08:33:44 menu item found: 2G · 신규 PRE 출력 가져오기 비교
+08:33:44 comparison window open: 2G · 신규 PRE 출력 가져오기 비교
+08:33:45 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-final-20261020T233339Z\01-opened.png
+08:33:45 noScript: 실패 — 계약 스크립트의 답을 얻지 못했습니다. 통과가 아닙니다.
+08:33:48 okValidate: 스크립트의 답: 비교 가능 — 종류 common-condition · 알고리즘 효과로 해석: 예(common-condition)
+08:33:48 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-final-20261020T233339Z\02-ok-validated.png
+08:33:49 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-final-20261020T233339Z\03-ok-wl400-lvl1500-zoom100.png
+08:33:50 okCompute: 결과: computed
+08:33:50 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-final-20261020T233339Z\04-ok-computed.png
+08:33:51 refusedSha: 스크립트의 답: 비교 불가 — 아래 사유가 해소되기 전에는 숫자를 만들지 않습니다.
+08:33:51 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-final-20261020T233339Z\05-refused-sha.png
+08:33:52 refusedUnverified: 스크립트의 답: 비교 불가 — 아래 사유가 해소되기 전에는 숫자를 만들지 않습니다.
+08:33:52 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-final-20261020T233339Z\06-refused-unverified.png
+08:33:52 dialog closed

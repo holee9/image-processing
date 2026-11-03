@@ -1,0 +1,28 @@
+"""QA-A-263 step 0: the ctypes caller against the numbers Codex #232 measured by calling the same DLL (FlatResidualPct of six flats, DarkBias of two unused darks).
+Usage: PYTHONIOENCODING=utf-8 python 21_dll_check.py.txt > 22_dll_check_result.txt"""
+import sys
+exec(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-263/evidence/20_dll.py.txt', encoding='utf-8').read())
+S = 3072
+n = S * S
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+SETD = 'D:/workspace-github/xpe-data/bpm-eval-260/clean_set_v1/'
+init()
+load_set(SETD + 'offset.xcal', SETD + 'gain.xcal')
+gain = read_payload(SETD + 'gain.xcal', n).reshape(S, S)
+codex = {17: 1.273415927, 20: 0.784438478, 29: 0.642845440, 30: 0.643744869, 31: 0.486670940, 34: 0.412741314}
+worst = 0.0
+for k, ref in codex.items():
+    raw = np.fromfile(CAL + 'Bright_%d.raw' % k, dtype='<u2').reshape(S, S)
+    c16 = offset_correct(raw)
+    g = gain_correct(c16)
+    mt = verify_gain(c16, g, gain)
+    print('Bright_%d: FlatResidualPct (prnu_after) %.9f  Codex %.9f  difference %+.2e  prnu_before %.4f  overall_pass %s' % (k, mt.prnu_after, ref, mt.prnu_after - ref, mt.prnu_before, mt.overall_pass))
+    worst = max(worst, abs(mt.prnu_after - ref))
+codex_d = {15: 2.339520319, 16: 0.187487079}
+for k, ref in codex_d.items():
+    raw = np.fromfile(CAL + 'Dark_%d.raw' % k, dtype='<u2').reshape(S, S)
+    c16 = offset_correct(raw)
+    mt = verify_offset(raw, c16)
+    print('Dark_%d: DarkBias %.9f  Codex %.9f  difference %+.2e  dsnu_adu %.4f  dark_reduction_db %.3f  overall_pass %s' % (k, mt.dark_bias, ref, mt.dark_bias - ref, mt.dsnu_adu, mt.dark_reduction_db, mt.overall_pass))
+    worst = max(worst, abs(mt.dark_bias - ref))
+print('largest difference to Codex: %.2e -> %s' % (worst, 'REPRODUCED' if worst < 1e-6 else 'NOT REPRODUCED'))

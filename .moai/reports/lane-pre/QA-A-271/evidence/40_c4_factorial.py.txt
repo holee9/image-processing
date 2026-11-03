@@ -1,0 +1,95 @@
+"""QA-A-271 §2: the C4 cause separation on the real frames. Runs (all on the same input U, frames 29 and 30): R1 = (M1, A1) original first edition, R2 = (M2, A2) original second edition, R3 = (M2, A1), R4 = (Mo, A1), R5 = (Mo, A2);
+references C_v1, C_v2 (as the evaluation tool), Cc (clean set, no defect correction), Cp (same calibration set as the planted frame, no defect correction). The 178 cells and the z definition are those of the evaluation tool.
+Method, rules and predictions: 10_method_predictions.md.txt (committed before this runs). Usage: python -X utf8 40_c4_factorial.py.txt > 41_c4_factorial.txt"""
+import json
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-271/evidence/30_lib.py.txt', encoding='utf-8').read()
+exec(compile(src, '30_lib', 'exec'), globals())
+
+mp1 = np.fromfile(O60 + 'inj_v1_setmap.u8', dtype=np.uint8).reshape(S, S)
+mp2 = np.fromfile(O60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S)
+area2 = np.fromfile(O60 + 'inj_v2_area.u8', dtype=np.uint8).reshape(S, S)
+mo, mo_lines = oracle_mask_and_lines()
+print('oracle mask %d pixels, %d oracle line groups; v1 map %d pixels, v2 map %d pixels' % (int(mo.sum()), len(mo_lines), int((mp1 != 0).sum()), int((mp2 != 0).sum())))
+files = {'R3': O71 + 'r3_m2_a1.xcal', 'R4': O71 + 'r4_mo_a1.xcal', 'R5': O71 + 'r5_mo_a2.xcal'}
+write_defect(files['R3'], S, S, mp2)
+write_defect(files['R4'], S, S, mo)
+write_defect(files['R5'], S, S, mo, None, mo_lines)
+srcs = {'R1': O60 + 'inj_set_v1/defect.xcal', 'R2': O60 + 'inj_set_v2/defect.xcal', **files}
+REFS = ('C_v1', 'C_v2', 'Cc', 'Cp')
+cells = {}   # (run, ref, frame) -> {key: median}
+for f in (29, 30):
+    U = np.load(O70 + 'U_v2_%d.npy' % f)
+    out = {}
+    for r, p in srcs.items():
+        load_defect(p)
+        out[r], rep = correct_ex(U)
+    ref = {'C_v1': np.load(O70 + 'C_v1_%d.npy' % f), 'C_v2': np.load(O70 + 'C_v2_%d.npy' % f), 'Cc': np.load(O71 + 'Cc_%d.npy' % f), 'Cp': np.load(O71 + 'Cp_%d.npy' % f)}
+    for rn, C in ref.items():
+        sl = sigma_local(C)
+        for r in srcs:
+            cells[(r, rn, f)] = cell_medians(zmap(out[r], C, sl))
+    print('frame %d done' % f, flush=True)
+keys = sorted(CELL_PIX)
+cell_list = [(f, k) for f in (29, 30) for k in keys]
+json.dump({'%s|%s|%d' % k: v for k, v in cells.items()}, open(HERE + '42_c4_cells.json.txt', 'w', encoding='utf-8', newline='\n'))
+
+
+def Z(run, ref, f, key):
+    return cells[(run, ref, f)][key]
+
+
+# ---- Z0': the original comparison
+orig = {(f, k): Z('R2', 'C_v2', f, k) - Z('R1', 'C_v1', f, k) for (f, k) in cell_list}
+larger = [c for c, v in orig.items() if v > 1e-9]
+print('Z0 (control): original R2/C_v2 against R1/C_v1: cells %d, second edition larger %d (expect 178 and 118)' % (len(cell_list), len(larger)))
+if len(larger) != 118:
+    print('stop: Z0 failed')
+    raise SystemExit(0)
+kind_of = {k: k.split('/')[1] for k in keys}
+cls_of = {k: k.split('/')[0] for k in keys}
+
+
+def med(v):
+    return float(np.median(np.array(v))) if len(v) else float('nan')
+
+
+def share_pos(v):
+    return float(np.mean(np.array(v) > 1e-9)) if len(v) else float('nan')
+
+
+d0 = [orig[c] for c in larger]
+print('original difference over the 118 cells: median %+.4f' % med(d0))
+print()
+print('== telescoping decomposition of the original difference over the 118 cells (path: reference, then map, then algorithm)')
+E_ref = [Z('R1', 'C_v2', f, k) - Z('R1', 'C_v1', f, k) for (f, k) in larger]
+E_map = [Z('R3', 'C_v2', f, k) - Z('R1', 'C_v2', f, k) for (f, k) in larger]
+E_alg = [Z('R2', 'C_v2', f, k) - Z('R3', 'C_v2', f, k) for (f, k) in larger]
+tot = [a + b + c for a, b, c in zip(E_ref, E_map, E_alg)]
+print('  terms: median E_ref %+.4f   E_map %+.4f   E_alg %+.4f   sum(check against the difference) max |sum - difference| = %.2e' % (med(E_ref), med(E_map), med(E_alg), max(abs(t - d) for t, d in zip(tot, d0))))
+print('  share of the median original difference: E_ref %.2f   E_map %.2f   E_alg %.2f' % (med(E_ref) / med(d0), med(E_map) / med(d0), med(E_alg) / med(d0)))
+print('  by item kind (cells, median of the original difference, E_ref, E_map, E_alg):')
+for kd in sorted(set(kind_of[k] for (f, k) in larger)):
+    sel = [i for i, (f, k) in enumerate(larger) if kind_of[k] == kd]
+    print('    %-16s %3d  %+.4f  %+.4f  %+.4f  %+.4f' % (kd, len(sel), med([d0[i] for i in sel]), med([E_ref[i] for i in sel]), med([E_map[i] for i in sel]), med([E_alg[i] for i in sel])))
+print()
+print('== the oracle experiments (all 178 cells, then the 138 line-class cells)')
+line_cells = [(f, k) for (f, k) in cell_list if cls_of[k] == 'line']
+for title, cs in (('all 178 cells', cell_list), ('138 line cells', line_cells)):
+    print('  ' + title)
+    for ref in REFS:
+        a1 = [Z('R5', ref, f, k) - Z('R4', ref, f, k) for (f, k) in cs]       # algorithm effect, oracle mask
+        a2 = [Z('R2', ref, f, k) - Z('R3', ref, f, k) for (f, k) in cs]       # algorithm effect, v2 map
+        m1 = [Z('R3', ref, f, k) - Z('R1', ref, f, k) for (f, k) in cs]       # map effect (v1 -> v2 map), v1 algorithm
+        m2 = [Z('R4', ref, f, k) - Z('R1', ref, f, k) for (f, k) in cs]       # map effect (v1 map -> oracle), v1 algorithm
+        print('    ref %-5s alg effect (oracle mask) median %+.4f larger-in-%3d | alg effect (v2 map) %+.4f larger-in-%3d | map effect v1->v2 %+.4f | v1->oracle %+.4f' % (
+            ref, med(a1), sum(1 for v in a1 if v > 1e-9), med(a2), sum(1 for v in a2 if v > 1e-9), med(m1), med(m2)))
+print()
+print('== by kind, line cells, reference C_v2 and Cp: algorithm effect at the oracle mask (R5 - R4), median [cells]')
+for kd in sorted(set(kind_of[k] for (f, k) in line_cells)):
+    cs = [(f, k) for (f, k) in line_cells if kind_of[k] == kd]
+    print('    %-16s [%2d]  C_v2 %+.4f   Cp %+.4f    map effect v1->oracle (C_v2) %+.4f' % (kd, len(cs), med([Z('R5', 'C_v2', f, k) - Z('R4', 'C_v2', f, k) for (f, k) in cs]), med([Z('R5', 'Cp', f, k) - Z('R4', 'Cp', f, k) for (f, k) in cs]),
+                                                                                       med([Z('R4', 'C_v2', f, k) - Z('R1', 'C_v2', f, k) for (f, k) in cs])))
+print()
+print('== level of z: median over the 138 line cells for each run and reference')
+for ref in REFS:
+    print('    ref %-5s ' % ref + '  '.join('%s %.3f' % (r, med([Z(r, ref, f, k) for (f, k) in line_cells])) for r in ('R1', 'R2', 'R3', 'R4', 'R5')))

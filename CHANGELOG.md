@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026-11-03 — 운영자 앱 실영상 수동 점검 기록
+
+- **docs**: `docs/design/VERIFICATION-20261103-live-real-frame.md` 신규 — 설계 문서의 세 핵심 아이디어(레인 비교·스터디 큐 판정·분석 패널)를 실제 앱·실제 영상에서 대조. `docs/design/README.md` 에 "Status against the live build" 절, `docs/README.md` v3.7.0, 루트 README 점검 요약 추가
+- **이슈**: #280 (사용자 영상에 큐·판정 흐름 미동작), #281 (레인 선택↔gsvg 체인 불일치), #282 (Metrics 탭 미채움·경고 배너 가림·상태줄 잘림·한영 혼용) 신규; #274 에 실측 코멘트
+- 처리 순서(전처리 → 기본 강조 → 표시)와 전처리 보정 세트 전용 화면(1→6 단계)은 정상 확인
+
 ---
 
 ## [1.4.0-governance] — 2026-04-21

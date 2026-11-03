@@ -1,0 +1,9 @@
+Bright_17: FlatResidualPct (prnu_after) 1.273415927  Codex 1.273415927  difference -1.15e-10  prnu_before 7.5420  overall_pass False
+Bright_20: FlatResidualPct (prnu_after) 0.784438478  Codex 0.784438478  difference -7.24e-11  prnu_before 7.0270  overall_pass False
+Bright_29: FlatResidualPct (prnu_after) 0.642845440  Codex 0.642845440  difference +3.45e-10  prnu_before 7.0039  overall_pass False
+Bright_30: FlatResidualPct (prnu_after) 0.643744869  Codex 0.643744869  difference +2.99e-10  prnu_before 7.0239  overall_pass False
+Bright_31: FlatResidualPct (prnu_after) 0.486670940  Codex 0.486670940  difference +2.96e-10  prnu_before 7.0042  overall_pass True
+Bright_34: FlatResidualPct (prnu_after) 0.412741314  Codex 0.412741314  difference +2.67e-10  prnu_before 6.9550  overall_pass True
+Dark_15: DarkBias 2.339520319  Codex 2.339520319  difference -6.71e-11  dsnu_adu 2.5367  dark_reduction_db 11.999  overall_pass True
+Dark_16: DarkBias 0.187487079  Codex 0.187487079  difference +1.47e-10  dsnu_adu 0.7238  dark_reduction_db 22.859  overall_pass True
+largest difference to Codex: 3.45e-10 -> REPRODUCED

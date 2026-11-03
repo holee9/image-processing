@@ -1,0 +1,44 @@
+p='modules/preprocess/src/xpe_bpm_v2.cpp'
+s=open(p,'rb').read().decode('utf-8')
+nl='\r\n' if '\r\n' in s else '\n'
+T=' // QA319TMP'
+def ins_after(anchor, text):
+    global s
+    anchor=anchor.replace('\n',nl)
+    assert s.count(anchor)==1, (anchor, s.count(anchor))
+    j=s.index(anchor)+len(anchor)
+    s=s[:j]+text+s[j:]
+ins_after('#include <vector>', nl+'#include <cstdio>'+T+nl+'#include <cstdlib>'+T+nl+'#include <string>'+T)
+a='void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplicative) {'
+i=s.index(a)
+s=s[:i]+'static std::vector<float>* g319Row = nullptr; static std::vector<float>* g319Col = nullptr; static std::vector<float>* g319VRef = nullptr; static std::vector<float>* g319HRef = nullptr;'+T+nl+s[i:]
+ins_after('    slidingMedian(f, tmp, w, h, win, true);', nl+'    if (g319VRef) std::copy(tmp, tmp + static_cast<size_t>(w) * static_cast<size_t>(h), g319VRef->begin());'+T)
+ins_after('        const float c = medianOf(line.data(), static_cast<size_t>(w));', nl+'        if (g319Row) (*g319Row)[static_cast<size_t>(y)] = c;'+T)
+ins_after('    slidingMedian(f, tmp, w, h, win, false);', nl+'    if (g319HRef) std::copy(tmp, tmp + static_cast<size_t>(w) * static_cast<size_t>(h), g319HRef->begin());'+T)
+ins_after('        const float c = medianOf(line.data(), static_cast<size_t>(h));', nl+'        if (g319Col) (*g319Col)[static_cast<size_t>(x)] = c;'+T)
+ins_after('float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {',
+  nl+'    const char* d319 = (bit == XPE_BPM_V2_FEATURE_DARK_MEAN) ? std::getenv("XPE319_DUMP") : nullptr;'+T
+ +nl+'    std::vector<float> o319, r319(static_cast<size_t>(wk.h)), c319(static_cast<size_t>(wk.w)), vr319, hr319, a319, h319, s319;'+T
+ +nl+'    if (d319) { o319 = wk.feat; vr319.resize(wk.n); hr319.resize(wk.n); g319Row = &r319; g319Col = &c319; g319VRef = &vr319; g319HRef = &hr319; }'+T)
+ins_after('    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), multiplicative);\n    separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));\n    for (size_t i = 0; i < wk.n; ++i) wk.feat[i] -= wk.bg[i];   // residual',
+  nl+'    if (d319) h319 = wk.tmp;'+T)
+# a319 must be captured right after removeRowColumn: insert after the removeRowColumn line inside flagRobustZ (unique with following separableMedian handled above)
+a='    removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), multiplicative);'
+assert s.count(a)==1
+j=s.index(a)+len(a)
+s=s[:j]+nl+'    if (d319) { a319 = wk.feat; g319Row = nullptr; g319Col = nullptr; g319VRef = nullptr; g319HRef = nullptr; }'+T+s[j:]
+ins_after('            const double s = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), x, y)), kScaleFloor);\n            const double r = static_cast<double>(wk.feat[i]);\n            if ((upperOnly ? r : std::fabs(r)) > lambda * s) {',
+  '')
+a='            const double s = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), x, y)), kScaleFloor);\n            const double r = static_cast<double>(wk.feat[i]);\n            if ((upperOnly ? r : std::fabs(r)) > lambda * s) {'.replace('\n',nl)
+first=a.split(nl)[0]
+j=s.index(a)+len(first)
+s=s[:j]+nl+'            if (d319) { if (s319.empty()) s319.resize(wk.n); s319[i] = static_cast<float>(s); }'+T+s[j:]
+a=('                ++*count;\n            }\n        }\n    return med;\n}\n\n/** Variance-ratio').replace('\n',nl)
+assert s.count(a)==1
+j=s.index(a)+len(('                ++*count;\n            }\n        }\n').replace('\n',nl))
+dump=('    if (d319) { auto wr = [&](const char* nm, const std::vector<float>& v) { std::string fn = std::string(d319) + nm; FILE* fp = std::fopen(fn.c_str(), "wb"); if (fp) { std::fwrite(v.data(), sizeof(float), v.size(), fp); std::fclose(fp); } };'+T+nl
+ +'        wr("_orig.f32", o319); wr("_vref.f32", vr319); wr("_hrefcol.f32", hr319); wr("_afterrc.f32", a319); wr("_hmed.f32", h319); wr("_bg.f32", wk.bg); wr("_resid.f32", wk.feat); wr("_scale.f32", s319); wr("_rowc.f32", r319); wr("_colc.f32", c319);'+T+nl
+ +'        FILE* fp = std::fopen((std::string(d319) + "_meta.txt").c_str(), "w"); if (fp) { std::fprintf(fp, "w %d h %d win %u block %u lambda %.9g upperOnly %d count %u med %.9g\\n", wk.w, wk.h, st.window, st.block, lambda, upperOnly ? 1 : 0, *count, static_cast<double>(med)); std::fclose(fp); } }'+T+nl)
+s=s[:j]+dump+s[j:]
+open(p,'wb').write(s.encode('utf-8'))
+print('ok')

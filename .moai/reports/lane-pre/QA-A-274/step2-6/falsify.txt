@@ -1,0 +1,72 @@
+--- arm A: previous fixed report is not kept (mutation applied)
+arm A BUILD_EXIT=0
+arm A fixed-report-files-in-fresh-output-before-run=0
+arm A CHECKS_EXIT=1
+FAIL Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot: The previous fixed report was not kept byte for byte.
+FAIL Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone: Could not find file 'C:\Users\drake\AppData\Local\Temp\xpe-dualwrite-6a673f85c428489b85b9d9c8030d8f5a\c-data\evidence\snapshots\replaced-fixed-report-20261021
+PASS A failed export is judged as a failure, not as the previous export's success
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=2
+--- arm B: fixed copy written although the snapshot failed (mutation applied)
+arm B BUILD_EXIT=0
+arm B fixed-report-files-in-fresh-output-before-run=0
+arm B CHECKS_EXIT=1
+PASS Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot
+FAIL Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone: Snapshot failure still touched the fixed report.
+PASS A failed export is judged as a failure, not as the previous export's success
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=1
+--- arm C: fixed report names a wrong snapshot (mutation applied)
+arm C BUILD_EXIT=0
+arm C fixed-report-files-in-fresh-output-before-run=0
+arm C CHECKS_EXIT=1
+FAIL Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot: The fixed report does not name this run's snapshot.
+FAIL Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone: An unchanged fixed report was copied although its snapshot already keeps it.
+PASS A failed export is judged as a failure, not as the previous export's success
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=2
+--- arm D: snapshot named by the old fixed report trusted without comparing bytes (mutation applied)
+arm D BUILD_EXIT=0
+arm D fixed-report-files-in-fresh-output-before-run=0
+arm D CHECKS_EXIT=1
+PASS Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot
+FAIL Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone: A changed fixed report was replaced without being kept.
+PASS A failed export is judged as a failure, not as the previous export's success
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=1
+--- arm E: every previous fixed report copied again (mutation applied)
+arm E BUILD_EXIT=0
+arm E fixed-report-files-in-fresh-output-before-run=0
+arm E CHECKS_EXIT=1
+FAIL Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot: The second export copied a previous fixed report that was already kept as a snapshot, or lost the first one.
+FAIL Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone: An unchanged fixed report was copied although its snapshot already keeps it.
+PASS A failed export is judged as a failure, not as the previous export's success
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=2
+--- arm F: F260-1 revived in the view model: a failed export carries the previous successful path as its own (mutation applied)
+arm F BUILD_EXIT=0
+arm F fixed-report-files-in-fresh-output-before-run=0
+arm F CHECKS_EXIT=1
+PASS Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot
+PASS Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone
+FAIL A failed export is judged as a failure, not as the previous export's success: The failed export did not leave its own failed result.
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=1
+--- arm G: judgment accepts a result no new export produced (mutation applied)
+arm G BUILD_EXIT=0
+arm G fixed-report-files-in-fresh-output-before-run=0
+arm G CHECKS_EXIT=1
+PASS Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot
+PASS Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone
+FAIL A failed export is judged as a failure, not as the previous export's success: A result that no new export produced was judged a success.
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=1
+--- arm H: F260-1 revived in the judgment: falls back to the previous result's path when this export failed (mutation applied)
+arm H BUILD_EXIT=0
+arm H fixed-report-files-in-fresh-output-before-run=0
+arm H CHECKS_EXIT=1
+PASS Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot
+PASS Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone
+FAIL A failed export is judged as a failure, not as the previous export's success: A failed export was judged a success (the previous file still exists).
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=1

@@ -1,0 +1,20 @@
+"""QA-A-269 mutation check of the R239-2 test (the states of the two functions differ where their ROI rules differ). The runner of QA-A-266 (freshness of the executable asserted for every mutant) plus the baseline stop of QA-A-266b.
+Usage: PYTHONIOENCODING=utf-8 python -X utf8 20_mutation.py.txt"""
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_verify_metrics.cpp'
+TITLE = 'QA-A-269 mutation check (the ROI states of the new and the old function).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-269/evidence/21_mutation_log.txt'
+FILT = 'VerifyOffsetSigned*'
+PRED = [
+    '  P1 the new function compares the 1 % by rounding down (roi >= n / 100) like the old one -> RED: TheOutputFiguresAreTheOldFunctionsOnlyWhereBothMeasure... (n = 201, 301, 10001 would be measured) and AnEmptyOrTooSmallRoi...',
+    '  P2 the two-pixel minimum removed (n = 100, roi = 1 would be measured)                    -> RED: the same two tests',
+    '  every other test of the filter stays green in each mutant',
+]
+MUTANTS = [
+    ('P1', SRC, b'const bool roi_ok = sx.size() >= 2u && sx.size() * 100u >= n;', b'const bool roi_ok = sx.size() >= 2u && sx.size() >= n / 100u;'),
+    ('P2', SRC, b'const bool roi_ok = sx.size() >= 2u && sx.size() * 100u >= n;', b'const bool roi_ok = sx.size() * 100u >= n;'),
+]
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-266/evidence/40_mutation_runner.py.txt', encoding='utf-8').read()
+marker = "    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))\n    for name, path, old, new in MUTANTS:"
+assert src.count(marker) == 1
+src = src.replace(marker, "    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))\n    if rc != 0 or bad:\n        raise SystemExit('baseline is not green: stopped before any mutant')\n    for name, path, old, new in MUTANTS:")
+exec(compile(src, 'runner', 'exec'))

@@ -1,0 +1,84 @@
+// QA-A-296 scratch harness (derived from QA-A-283 m2_dump_pre.cpp): the same xpe_preprocess_pipeline_out call.
+//   qa296_run dump RAW_DIR CALIB_DIR OUT_DIR WIDTH HEIGHT CONFIG_JSON   -> OUT_DIR/<name>.f32 for every RAW_DIR/*.raw (sorted)
+//   qa296_run time RAW CALIB_DIR WIDTH HEIGHT CONFIG_JSON RUNS         -> per-run milliseconds; median excluding the first
+#include "xpe/preprocess_api.h"
+#include "xpe/preprocess/xpe_preprocess_internal.h"
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <string>
+#include <vector>
+namespace fs = std::filesystem;
+static XpeImageBuffer buf(void* d, unsigned w, unsigned h, XpePixelFormat f, unsigned bits) {
+    XpeImageBuffer b{}; b.data = d; b.width = w; b.height = h; b.format = f;
+    b.bitsAllocated = b.bitsStored = (uint16_t)bits; b.dataSize = (size_t)w * h * (bits / 8u); return b;
+}
+static bool readRaw(const std::string& p, std::vector<uint16_t>& raw) {
+    FILE* f = std::fopen(p.c_str(), "rb"); if (!f) return false;
+    const bool ok = std::fread(raw.data(), 2, raw.size(), f) == raw.size(); std::fclose(f); return ok;
+}
+int main(int argc, char** argv) {
+    if (argc < 2) return 2;
+    const std::string mode = argv[1];
+    if (mode == "dump" && argc == 8) {
+        const std::string rawDir = argv[2], calib = argv[3], outDir = argv[4], config = argv[7];
+        const unsigned W = (unsigned)std::strtoul(argv[5], nullptr, 10), H = (unsigned)std::strtoul(argv[6], nullptr, 10);
+        const size_t n = (size_t)W * H;
+        fs::create_directories(outDir);
+        std::vector<std::string> names;
+        for (const auto& e : fs::directory_iterator(rawDir)) if (e.path().extension() == ".raw") names.push_back(e.path().filename().string());
+        std::sort(names.begin(), names.end());
+        if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+        XpeCalibrationState maps{};
+        if (xpe_calib_state_load(&maps, calib.c_str()) != XPE_OK || !maps.offsetLoaded || !maps.gainLoaded || !maps.defectLoaded) return 5;
+        std::vector<uint16_t> raw(n); std::vector<float> out(n);
+        for (const auto& nm : names) {
+            if (!readRaw(rawDir + "/" + nm, raw)) return 3;
+            XpeImageBuffer in = buf(raw.data(), W, H, XPE_PIXEL_UINT16, 16), o = buf(out.data(), W, H, XPE_PIXEL_FLOAT32, 32);
+            XpeImageMetadata meta{};
+            const XpeErrorCode rc = xpe_preprocess_pipeline_out(&in, &o, &meta, &maps, nullptr, config.c_str());
+            std::printf("%s rc=%d flags=0x%x format=%d\n", nm.c_str(), (int)rc, meta.flags, (int)o.format);
+            if (rc != XPE_OK) return 6;
+            const std::string op = outDir + "/" + nm.substr(0, nm.size() - 4) + ".f32";
+            FILE* g = std::fopen(op.c_str(), "wb"); if (!g || std::fwrite(out.data(), 4, n, g) != n) return 7; std::fclose(g);
+            xpe_clear_alerts();
+        }
+        xpe_calib_state_release(&maps); xpe_preprocess_shutdown();
+        return 0;
+    }
+    if (mode == "time" && argc == 8) {
+        const std::string rawPath = argv[2], calib = argv[3], config = argv[6];
+        const unsigned W = (unsigned)std::strtoul(argv[4], nullptr, 10), H = (unsigned)std::strtoul(argv[5], nullptr, 10);
+        const int runs = std::atoi(argv[7]);
+        const size_t n = (size_t)W * H;
+        std::vector<uint16_t> raw(n); std::vector<float> out(n);
+        if (!readRaw(rawPath, raw)) return 3;
+        if (xpe_preprocess_init(nullptr) != XPE_OK) return 4;
+        XpeCalibrationState maps{};
+        if (xpe_calib_state_load(&maps, calib.c_str()) != XPE_OK) return 5;
+        std::vector<double> ms;
+        for (int i = 0; i < runs; ++i) {
+            XpeImageBuffer in = buf(raw.data(), W, H, XPE_PIXEL_UINT16, 16), o = buf(out.data(), W, H, XPE_PIXEL_FLOAT32, 32);
+            XpeImageMetadata meta{};
+            const auto t0 = std::chrono::steady_clock::now();
+            const XpeErrorCode rc = xpe_preprocess_pipeline_out(&in, &o, &meta, &maps, nullptr, config.c_str());
+            const auto t1 = std::chrono::steady_clock::now();
+            if (rc != XPE_OK) { std::printf("rc=%d\n", (int)rc); return 6; }
+            ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+            xpe_clear_alerts();
+        }
+        std::vector<double> rest(ms.begin() + 1, ms.end());
+        std::sort(rest.begin(), rest.end());
+        const double median = rest[rest.size() / 2];
+        std::printf("RAW=%s RUNS=%d first=%.3f min=%.3f median_excl_first=%.3f max=%.3f\n", rawPath.c_str(), runs, ms[0], rest.front(), median, rest.back());
+        for (double v : ms) std::printf("%.3f ", v);
+        std::printf("\n");
+        xpe_calib_state_release(&maps); xpe_preprocess_shutdown();
+        return 0;
+    }
+    std::fprintf(stderr, "usage\n");
+    return 2;
+}

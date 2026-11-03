@@ -1,0 +1,100 @@
+"""QA-A-271 §3: (3.2) synthetic positive control of the independent-pair test for the 31 pixels, and (3.3) the same detector characteristic on the planted noisy items (the corrected version of 270's control).
+3.2: the pair frames Bright_29 / Bright_30 (planted); d = (B29 - B30)^2 / 2. For each of the six bands (items 101, 100, 104, 103, 110, 106) draw the same number of random pixels as were flagged (14, 10, 3, 2, 1, 1) from the band pixels that are not flagged and add Gaussian noise
+to the pair difference so that the variance of those pixels is s times the band's mean ((s-1) * v_b added to the difference's variance 2 v_b: noise sd sqrt(2 (s-1) v_b)). The statistic: per band z_i = (mean d of the drawn pixels - mean d of the rest of the band) / (sd of the rest / sqrt(n_i)) (closed-form SE; 270 used a
+bootstrap of the same quantity) and the pooled z = sum n_i (m_i - r_i) / sqrt(sum n_i sd_i^2). Detection: pooled z >= 2. s = 1.0 (null: the false-detection rate must be about 0.05), 1.1, 1.5, 2.0, 3.0; 200 repetitions each, seeded.
+The ACTUAL 31 are also run through the same pooled formula (this value was seen before in 270: ratio 0.80).
+3.3: planted noisy items (cls0 line or pixel, kind noisy): the share of their pixels with the bright-noise bit (0x20) in the second-edition feature map, and of those the share also on in both half maps.
+Method and predictions: 10_method_predictions.md.txt §3. Usage: python -X utf8 70_sensitivity.py.txt > 71_sensitivity.txt"""
+import numpy as np
+
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+INJ = IN + 'inj_d/frames/'
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+S = 3072
+items = {}
+for line in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = (c[1], c[2], c[3], c[4], [tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+feat = np.fromfile(O60 + 'v2_full_features.u8', dtype=np.uint8).reshape(S, S)
+ha = np.fromfile(O60 + 'v2_half_a.u8', dtype=np.uint8).reshape(S, S) != 0
+hb = np.fromfile(O60 + 'v2_half_b.u8', dtype=np.uint8).reshape(S, S) != 0
+b29 = np.fromfile(INJ + 'Bright_29.raw', dtype='<u2').reshape(S, S).astype(np.float64)
+b30 = np.fromfile(INJ + 'Bright_30.raw', dtype='<u2').reshape(S, S).astype(np.float64)
+delta = b29 - b30
+d = delta ** 2 / 2.0
+bands = {101: 14, 100: 10, 104: 3, 103: 2, 110: 1, 106: 1}
+bpix = {}
+for k in bands:
+    m = np.zeros((S, S), dtype=bool)
+    for (x, y, w, h) in items[k][4]:
+        m[y:y + h, x:x + w] = True
+    bpix[k] = np.nonzero((m & (ids == k)).ravel())[0]
+# the actual flagged pixels: the new false alarms on control bands are not recomputed here; the pooled formula is applied to the flagged set read from QA-A-270's pixel table
+flag_idx = {k: [] for k in bands}
+for l in list(open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/21_pixels_48.tsv.txt', encoding='utf-8'))[1:]:
+    c = l.rstrip('\n').split('\t')
+    if c[2].startswith('item') and c[3] == 'brightnoise':
+        kid = int(c[2].split()[1])
+        flag_idx[kid].append(int(c[1]) * S + int(c[0]))
+
+
+def pooled(dv, flagged, rest_by_band):
+    num = 0.0
+    den = 0.0
+    per = []
+    for k in bands:
+        n = len(flagged[k])
+        if n == 0:
+            continue
+        f = dv[flagged[k]]
+        rest = dv[rest_by_band[k]]
+        sd = rest.std()
+        zi = (f.mean() - rest.mean()) / (sd / np.sqrt(n))
+        per.append((k, n, f.mean() / rest.mean(), zi))
+        num += n * (f.mean() - rest.mean())
+        den += n * sd * sd
+    return num / np.sqrt(den), per
+
+
+rest_actual = {}
+for k in bands:
+    fl = np.array(flag_idx[k], dtype=np.int64)
+    rest_actual[k] = np.setdiff1d(bpix[k], fl)
+z_act, per = pooled(d.ravel(), {k: np.array(v, dtype=np.int64) for k, v in flag_idx.items()}, rest_actual)
+print('== the ACTUAL 31 flagged pixels with the same pooled formula: pooled z %+.3f' % z_act)
+for k, n, ratio, zi in per:
+    print('   item %d: n %2d  mean-d ratio flagged / rest %.3f  z %+.2f' % (k, n, ratio, zi))
+rng = np.random.default_rng(271)
+print('== 3.2 synthetic positive control: detection rate (pooled z >= 2), 200 repetitions per s, the same six bands and counts (31 pixels)')
+for s in (1.0, 1.1, 1.5, 2.0, 3.0):
+    hits = 0
+    zs = []
+    for rep in range(200):
+        flagged = {}
+        rest = {}
+        dv = d.ravel().copy()
+        for k, n in bands.items():
+            pick = rng.choice(bpix[k], size=n, replace=False)
+            flagged[k] = pick
+            rest[k] = np.setdiff1d(bpix[k], pick)
+            if s > 1.0:
+                vb = d.ravel()[rest[k]].mean()
+                dd = delta.ravel()[pick] + rng.normal(0.0, np.sqrt(2.0 * (s - 1.0) * vb), size=n)
+                dv[pick] = dd ** 2 / 2.0
+        z, _ = pooled(dv, flagged, rest)
+        zs.append(z)
+        hits += int(z >= 2.0)
+    print('   s = %.1f: detected %3d / 200 (%.3f); pooled z median %+.2f' % (s, hits, hits / 200.0, float(np.median(zs))))
+print('== 3.3 the same characteristic on planted noisy items (cls0 line / pixel, kind noisy, not control)')
+for title, sel in (('all noisy items', lambda it: True), ('line items', lambda it: it[0] == 'line'), ('pixel items', lambda it: it[0] == 'pixel')):
+    m = np.zeros((S, S), dtype=bool)
+    for k, it in items.items():
+        if it[1] == 'noisy' and it[0] != 'control' and sel(it):
+            for (x, y, w, h) in it[4]:
+                m[y:y + h, x:x + w] = True
+    m &= (ids != 0) & (ids != 0xFFFF)
+    n = int(m.sum())
+    bit = m & ((feat & 0x20) != 0)
+    print('   %-16s pixels %6d  bright-noise bit on %6d (%.3f)  of those in both halves %6d (%.3f)  in half A %6d  in half B %6d' % (title, n, int(bit.sum()), bit.sum() / max(n, 1), int((bit & ha & hb).sum()), (bit & ha & hb).sum() / max(int(bit.sum()), 1), int((bit & ha).sum()), int((bit & hb).sum())))

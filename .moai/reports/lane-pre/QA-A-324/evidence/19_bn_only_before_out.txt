@@ -1,0 +1,6 @@
+map pixels 149302, BN-only pixels 81
+  control/efficiency_loss/0.6          40
+  control/efficiency_loss/0.46         34
+  background                           5
+  control/efficiency_loss/0.7          2
+groups whose detected count changes without the BN-only pixels: 0

@@ -1,0 +1,10 @@
+"""QA-A-317: second run of the unchanged QA-A-316 harness into c_gain_rep/<set> (determinism check of the payload)."""
+import json, os, subprocess
+T = "D:/workspace-github/xpe-data/qa-317-tmp"
+m = json.load(open("D:/workspace-github/xpe-2g-offline/batch-20261022-1230/manifest.json", encoding="utf-8"))
+env = dict(os.environ, PATH=r"D:\workspace-github\xpe-pre\build\ci-preprocess\bin;" + os.environ["PATH"])
+for s in m["sets"]:
+    o = f"{T}/c_gain_rep/{s['id']}"
+    os.makedirs(o, exist_ok=True)
+    r = subprocess.run([f"{T}/qa316_gen.exe", s["cal_source"], o], capture_output=True, env=env)
+    print(s["id"], r.returncode)

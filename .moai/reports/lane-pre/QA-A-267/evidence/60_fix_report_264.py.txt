@@ -1,0 +1,9 @@
+"""QA-A-267 item 5: the sentence of the QA-A-264 report (section 2) that said the low-dose frames fail because their variance is mostly pixel-scale temporal variation."""
+P = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-264/report.md'
+s = open(P, encoding='utf-8', newline='').read()
+old = '- 저선량 프레임(`Bright_17~19`)이 1.0 % 를 넘는 것은 이 프레임들의 분산이 대부분 화소 규모 시간 변동이기 때문이다(`Bright_18`·`19` 의 시간 몫은 그룹 A 추정이 오염되어 신뢰할 수 없고 원자료 표에서 별도로 다룬다).'
+new = '- 저선량 프레임(`Bright_17~19`)은 공간 투영(행·열·64×64 블록)을 제거해도 1.0 % 미달이 남는다. 이는 시간 변동이 큰 모형과 일관되지만, 그룹 A 의 시간 변동 몫과 원인은 확정하지 못했다(`Bright_18`·`19` 의 시간 몫은 그룹 A 추정이 오염되어 신뢰할 수 없고 원자료 표에서 별도로 다룬다. Codex #236, QA-A-267 에서 문구를 낮춤).'
+assert s.count(old) == 1
+s = s.replace(old, new)
+open(P, 'w', encoding='utf-8', newline='\n').write(s)
+print('fixed')

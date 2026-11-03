@@ -1,0 +1,23 @@
+"""QA-A-270 item 2 (stage 3b, POST HOC, explanatory): the baseline of the z measure itself. z = |I - C| / sigma_local(C) compares two DIFFERENT calibration sets (planted vs clean). At pixels far (> 12) from every map pixel and truth item
+there is no defect to correct, so the median z there is the part of the line/blob z that the comparison produces on its own. Per edition and frame: baseline median/p95 of the undisturbed pixels, and the median z of the 118-cell line pixels (path line 1 / line 2) for comparison.
+Reads the arrays of 60_correct_zrun.py.txt. Usage: python -X utf8 82_baseline_z.py.txt > 83_baseline_z.txt"""
+import numpy as np
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+O70 = 'D:/workspace-github/xpe-data/bpm-eval-270/'
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+S = 3072
+setmap = {e: np.fromfile(O60 + 'inj_%s_setmap.u8' % e, dtype=np.uint8).reshape(S, S) != 0 for e in ('v1', 'v2')}
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+path = np.load(O70 + 'path_v2.npy')
+area = np.fromfile(O60 + 'inj_v2_area.u8', dtype=np.uint8).reshape(S, S) != 0
+for e in ('v1', 'v2'):
+    bad = setmap[e] | (ids != 0) | ~area
+    near = bad.copy()
+    for sh in range(1, 13):
+        near[sh:, :] |= bad[:-sh, :]; near[:-sh, :] |= bad[sh:, :]
+        near[:, sh:] |= bad[:, :-sh]; near[:, :-sh] |= bad[:, sh:]
+    for fi, f in enumerate((29, 30)):
+        z = np.load(O70 + 'Z_%s_%d.npy' % (e, f)).astype(np.float64)
+        u = z[~near & np.isfinite(z)]
+        ln = z[(path >= 2) & (path <= 5) & (ids != 0) & (ids != 0xFFFF) & np.isfinite(z)]
+        print('%s frame %d: undisturbed pixels %d, median z %.4f, p95 %.4f | truth line pixels (v2 line paths) %d, median z %.4f, p95 %.4f' % (e, f, u.size, np.sort(u)[u.size // 2], np.percentile(u, 95), ln.size, np.sort(ln)[ln.size // 2], np.percentile(ln, 95)))

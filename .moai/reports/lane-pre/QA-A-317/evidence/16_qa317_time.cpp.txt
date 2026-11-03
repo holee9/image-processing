@@ -1,0 +1,50 @@
+// QA-A-317 scratch harness (not shipped): PRE gain generation time with the QA-A-316 feed rules.
+//   qa317_time SRC_DIR OUT_GAIN_XCAL RUNS
+// Loads Bright01..10_OC_*.raw from SRC_DIR once (int16 -> uint16 max(0,v), the QA-A-316 rule), then calls
+// xpe_calib_generate_gain(frames, 10, NULL, OUT, NULL) RUNS times. Timed: the generator call only (no file reading).
+// Prints every run in ms and the median excluding the first run.
+#include "xpe/preprocess_api.h"
+#include <algorithm>
+#include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <regex>
+#include <string>
+#include <vector>
+namespace fs = std::filesystem;
+static const unsigned W = 3072, H = 2560;
+int wmain(int argc, wchar_t** argv) {
+    if (argc != 4) return 2;
+    const fs::path src = argv[1], out = argv[2];
+    const int runs = _wtoi(argv[3]);
+    std::vector<fs::path> g;
+    const std::wregex rg(LR"(Bright(0[1-9]|10)_OC_[0-9]+[.]raw)");
+    for (auto& e : fs::directory_iterator(src)) if (std::regex_match(e.path().filename().wstring(), rg)) g.push_back(e.path());
+    std::sort(g.begin(), g.end());
+    if (g.size() != 10 || runs < 2) return 3;
+    std::vector<std::vector<uint16_t>> fr(10); std::vector<XpeImageBuffer> bufs(10);
+    for (size_t i = 0; i < 10; ++i) {
+        fr[i].assign((size_t)W * H, 0);
+        FILE* f = _wfopen(g[i].c_str(), L"rb"); if (!f) return 4;
+        const bool ok = std::fread(fr[i].data(), 2, fr[i].size(), f) == fr[i].size(); std::fclose(f); if (!ok) return 4;
+        for (auto& x : fr[i]) { const int16_t s = (int16_t)x; if (s < 0) x = 0; }
+        XpeImageBuffer b{}; b.data = fr[i].data(); b.width = W; b.height = H; b.format = XPE_PIXEL_UINT16;
+        b.bitsAllocated = b.bitsStored = 16; b.dataSize = (size_t)W * H * 2; bufs[i] = b;
+    }
+    if (xpe_preprocess_init(nullptr) != XPE_OK) return 5;
+    const std::string op = out.string();
+    std::vector<double> ms;
+    for (int r = 0; r < runs; ++r) {
+        const auto t0 = std::chrono::steady_clock::now();
+        const XpeErrorCode rc = xpe_calib_generate_gain(bufs.data(), 10, nullptr, op.c_str(), nullptr);
+        const auto t1 = std::chrono::steady_clock::now();
+        if (rc != XPE_OK) { std::printf("rc=%d\n", (int)rc); return 6; }
+        ms.push_back(std::chrono::duration<double, std::milli>(t1 - t0).count());
+    }
+    std::vector<double> rest(ms.begin() + 1, ms.end()); std::sort(rest.begin(), rest.end());
+    for (double v : ms) std::printf("%.1f ", v);
+    std::printf("| median_excl_first=%.1f min=%.1f max=%.1f\n", rest[rest.size() / 2], rest.front(), rest.back());
+    xpe_preprocess_shutdown();
+    return 0;
+}

@@ -1,0 +1,162 @@
+Note: Google Test filter = BpmV2*
+[==========] Running 55 tests from 4 test suites.
+[----------] Global test environment set-up.
+[----------] 27 tests from BpmV2Test
+[ RUN      ] BpmV2Test.FlagsEachPlantedDefectWithTheFeatureThatSeesIt
+[       OK ] BpmV2Test.FlagsEachPlantedDefectWithTheFeatureThatSeesIt (508 ms)
+[ RUN      ] BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects
+[       OK ] BpmV2Test.StripesThatOffsetAndGainRemoveAreNotDefects (1004 ms)
+[ RUN      ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap
+[       OK ] BpmV2Test.APartialLineDoesNotPushTheRestOfItsRowOrColumnIntoTheMap (563 ms)
+[ RUN      ] BpmV2Test.NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(331): error: Expected: (0) != (r.feat[at] & 0x20u), actual: 0 vs 0
+union 5; dark_mean flagged 3 threshold 4.324919 scale 4.200670; dark_noise flagged 2 threshold 5.984990 scale 9.026045; dose_slope flagged 0 threshold 0.000000 scale 0.000000; dose_linearity flagged 0 threshold 4.169569 scale 1.184305; flat_field flagged 0 threshold 0.450000 scale 0.999880; bright_noise flagged 0 threshold 4.541625 scale 2117.089844
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(333): error: Expected equality of these values:
+  1
+  r.map[at]
+    Which is: '\0'
+a bright-frame feature gives code 1
+
+[  FAILED  ] BpmV2Test.NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature (514 ms)
+[ RUN      ] BpmV2Test.ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature
+[       OK ] BpmV2Test.ARaisedSegmentOfARowDoesNotPushTheRestOfTheRowIntoTheDarkMeanFeature (511 ms)
+[ RUN      ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect
+[       OK ] BpmV2Test.AColumnOffsetThatChangesFromFrameToFrameIsNotADarkNoiseDefect (583 ms)
+[ RUN      ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn
+[       OK ] BpmV2Test.AGainBandIsRemovedEvenWhenTheGainAlsoChangesAlongTheColumn (475 ms)
+[ RUN      ] BpmV2Test.WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins
+[       OK ] BpmV2Test.WildValuesOutsideTheImagingAreaDisturbTheDetectionUnlessTheyAreDeclaredAsMargins (1072 ms)
+[ RUN      ] BpmV2Test.MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic
+[       OK ] BpmV2Test.MarginsAreToldByTheAreaMaskAndTakeNoPartInTheDecisionOrAnyStatistic (967 ms)
+[ RUN      ] BpmV2Test.WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused
+[       OK ] BpmV2Test.WithoutMarginsTheWholeFrameIsTheAreaAndMarginsThatLeaveNoAreaAreRefused (508 ms)
+[ RUN      ] BpmV2Test.TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes
+[       OK ] BpmV2Test.TheResponseRuleFlagsBelow45PercentAndAbove150PercentAndCountsTheWeakOnes (517 ms)
+[ RUN      ] BpmV2Test.TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage
+[       OK ] BpmV2Test.TheResponseIsJudgedAgainstTheLocalMedianOfTheOffsetCorrectedImage (499 ms)
+[ RUN      ] BpmV2Test.TheResponseThresholdsAreExactAndTheInequalitiesAreFixed
+[       OK ] BpmV2Test.TheResponseThresholdsAreExactAndTheInequalitiesAreFixed (73 ms)
+[ RUN      ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(978): error: Expected: (eff) >= (10), actual: 0 vs 10
+efficiency-loss pixels of cost 3 are found at the theoretical rate 0.152 per pixel (21.8 of 144, sd 4.3)
+
+[  FAILED  ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup (504 ms)
+[ RUN      ] BpmV2Test.AFrameWhoseMedianNetSignalIsNotPositiveIsRefused
+[       OK ] BpmV2Test.AFrameWhoseMedianNetSignalIsNotPositiveIsRefused (50 ms)
+[ RUN      ] BpmV2Test.TheExcludingMedianIsTheOrdinaryMedianWhenNothingIsExcluded
+[       OK ] BpmV2Test.TheExcludingMedianIsTheOrdinaryMedianWhenNothingIsExcluded (0 ms)
+[ RUN      ] BpmV2Test.AWindowWithNoAdmissiblePixelTakesTheOrdinaryMedianAndExcludedPixelsLeaveTheWindow
+[       OK ] BpmV2Test.AWindowWithNoAdmissiblePixelTakesTheOrdinaryMedianAndExcludedPixelsLeaveTheWindow (0 ms)
+[ RUN      ] BpmV2Test.TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector
+[       OK ] BpmV2Test.TheLocalExpectationOfThePixelNoiseCheckLeavesOutTheLinePixelsOfTheDetector (834 ms)
+[ RUN      ] BpmV2Test.AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(1088): error: Expected equality of these values:
+  golden[k]
+    Which is: 1
+  r.rep.flagged[k]
+    Which is: 0
+feature 5 union 3; dark_mean flagged 1 threshold 4.324919 scale 4.200670; dark_noise flagged 1 threshold 5.984990 scale 9.020344; dose_slope flagged 0 threshold 0.000000 scale 0.000000; dose_linearity flagged 0 threshold 4.169569 scale 1.187270; flat_field flagged 1 threshold 0.450000 scale 0.999798; bright_noise flagged 0 threshold 4.541625 scale 2098.010254
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(1089): error: Expected equality of these values:
+  static_cast<uint32_t>(4)
+    Which is: 4
+  r.rep.flagged_union
+    Which is: 3
+union 3; dark_mean flagged 1 threshold 4.324919 scale 4.200670; dark_noise flagged 1 threshold 5.984990 scale 9.020344; dose_slope flagged 0 threshold 0.000000 scale 0.000000; dose_linearity flagged 0 threshold 4.169569 scale 1.187270; flat_field flagged 1 threshold 0.450000 scale 0.999798; bright_noise flagged 0 threshold 4.541625 scale 2098.010254
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(1090): error: Expected: (0) != (r.feat[static_cast<size_t>(kBrightNoisyY) * kW + kBrightNoisyX] & 0x20u), actual: 0 vs 0
+
+[  FAILED  ] BpmV2Test.AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation (502 ms)
+[ RUN      ] BpmV2Test.ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect
+[       OK ] BpmV2Test.ANoisyPixelThatIsNoisyInOneDoseGroupOnlyIsNoNoiseDefect (1006 ms)
+[ RUN      ] BpmV2Test.ThresholdsFollowFromTheTargetNumberOfFalseAlarms
+[       OK ] BpmV2Test.ThresholdsFollowFromTheTargetNumberOfFalseAlarms (971 ms)
+[ RUN      ] BpmV2Test.TheFirstDarkFrameIsSkippedOnRequest
+[       OK ] BpmV2Test.TheFirstDarkFrameIsSkippedOnRequest (997 ms)
+[ RUN      ] BpmV2Test.DoseGroupsComeFromTheSignalsWhateverTheFrameOrder
+[       OK ] BpmV2Test.DoseGroupsComeFromTheSignalsWhateverTheFrameOrder (1229 ms)
+[ RUN      ] BpmV2Test.TheLinearityFeatureNeedsThreeDoseGroups
+[       OK ] BpmV2Test.TheLinearityFeatureNeedsThreeDoseGroups (633 ms)
+[ RUN      ] BpmV2Test.TheFirstDarkFrameOfTheRawListIsSkippedByDefault
+[       OK ] BpmV2Test.TheFirstDarkFrameOfTheRawListIsSkippedByDefault (1046 ms)
+[ RUN      ] BpmV2Test.RefusesInputsItCannotJudge
+[       OK ] BpmV2Test.RefusesInputsItCannotJudge (1738 ms)
+[ RUN      ] BpmV2Test.GivesTheSameMapForTheSameInputAndLeavesTheInputAlone
+[       OK ] BpmV2Test.GivesTheSameMapForTheSameInputAndLeavesTheInputAlone (962 ms)
+[----------] 27 tests from BpmV2Test (18287 ms total)
+
+[----------] 22 tests from BpmV2LinesTest
+[ RUN      ] BpmV2LinesTest.AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross
+[       OK ] BpmV2LinesTest.AFullDeadRowAndColumnAreFoundAsFullLinesAndTheyCross (307 ms)
+[ RUN      ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot
+[       OK ] BpmV2LinesTest.ALineWhoseCorrectionWouldRaiseTheNoiseByMoreThanTheToleranceIsADefectButAGainBandIsNot (569 ms)
+[ RUN      ] BpmV2LinesTest.APartialLineIsFoundWithItsStartAndEnd
+[       OK ] BpmV2LinesTest.APartialLineIsFoundWithItsStartAndEnd (285 ms)
+[ RUN      ] BpmV2LinesTest.TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection
+[       OK ] BpmV2LinesTest.TwoAdjacentLinesAreADoubleLineAndThreeSetThePanelRejection (573 ms)
+[ RUN      ] BpmV2LinesTest.ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine
+[       OK ] BpmV2LinesTest.ARowWithMoreTemporalNoiseIsFoundAndCleanFramesGiveNoLine (564 ms)
+[ RUN      ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace
+[       OK ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryFrameIsNoDefectOfAPlace (288 ms)
+[ RUN      ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect
+[       OK ] BpmV2LinesTest.AColumnWithResponse1Point35IsABandThatGainCorrectionRemovesNotADefect (283 ms)
+[ RUN      ] BpmV2LinesTest.ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence
+[       OK ] BpmV2LinesTest.ARowThatIsNoisyInEveryBrightFrameIsFoundWithFullPersistence (289 ms)
+[ RUN      ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace
+[       OK ] BpmV2LinesTest.NoiseThatHitsADifferentRowInEveryBrightFrameIsNoDefectOfAPlace (288 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames
+[       OK ] BpmV2LinesTest.ABurstInOneDarkFrameIsNoDefectOfAPlaceWhateverItsSizeAndTheNumberOfFrames (1163 ms)
+[ RUN      ] BpmV2LinesTest.NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot
+[       OK ] BpmV2LinesTest.NoiseInMostDarkFramesIsADefectAndNoiseInAFewIsNot (578 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup
+[       OK ] BpmV2LinesTest.ABurstInOneBrightFrameIsNoNoiseDefectWhateverTheSizeOfTheDoseGroup (1110 ms)
+[ RUN      ] BpmV2LinesTest.NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot
+[       OK ] BpmV2LinesTest.NoiseInMostBrightFramesIsADefectAndNoiseInAFewIsNot (334 ms)
+[ RUN      ] BpmV2LinesTest.ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted
+[       OK ] BpmV2LinesTest.ANoisyRowThatCannotBeJudgedFrameByFrameIsListedApartAndNeverPainted (144 ms)
+[ RUN      ] BpmV2LinesTest.ABurstInOneFramePerPairIsNoPersistenceEvidence
+[       OK ] BpmV2LinesTest.ABurstInOneFramePerPairIsNoPersistenceEvidence (414 ms)
+[ RUN      ] BpmV2LinesTest.TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup
+[       OK ] BpmV2LinesTest.TheMaskPaintsTheUnionOfTheStretchesNotTheBoundingBoxOfTheGroup (568 ms)
+[ RUN      ] BpmV2LinesTest.ASingleDeadPixelOrASmallBlockIsNotALine
+[       OK ] BpmV2LinesTest.ASingleDeadPixelOrASmallBlockIsNotALine (289 ms)
+[ RUN      ] BpmV2LinesTest.LinesInsideTheMarginsAreNotCounted
+[       OK ] BpmV2LinesTest.LinesInsideTheMarginsAreNotCounted (297 ms)
+[ RUN      ] BpmV2LinesTest.ConfigurationAndBuffersAreChecked
+[       OK ] BpmV2LinesTest.ConfigurationAndBuffersAreChecked (39 ms)
+[ RUN      ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize
+[       OK ] BpmV2LinesTest.BlobsGroupNeighbouringDefectivePixelsWithTheirSize (0 ms)
+[ RUN      ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+[       OK ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot (298 ms)
+[ RUN      ] BpmV2LinesTest.AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups
+[       OK ] BpmV2LinesTest.AGainBandIsNotALinearityDefectWhateverTheNumberOfDoseGroups (414 ms)
+[----------] 22 tests from BpmV2LinesTest (9105 ms total)
+
+[----------] 2 tests from BpmV2LineEndsTest
+[ RUN      ] BpmV2LineEndsTest.AStrongLineStretchEndsWhereTheLineEndsAndLeavesTheSlightlyWeakNeighboursOut
+[       OK ] BpmV2LineEndsTest.AStrongLineStretchEndsWhereTheLineEndsAndLeavesTheSlightlyWeakNeighboursOut (275 ms)
+[ RUN      ] BpmV2LineEndsTest.WithoutTheWeakNeighboursTheSameLineEndsInTheSamePlace
+[       OK ] BpmV2LineEndsTest.WithoutTheWeakNeighboursTheSameLineEndsInTheSamePlace (263 ms)
+[----------] 2 tests from BpmV2LineEndsTest (538 ms total)
+
+[----------] 4 tests from BpmV2PeriodicDarkTest
+[ RUN      ] BpmV2PeriodicDarkTest.ARowBandTimesColumnParityDarkStructureIsNotFlaggedAsDefects
+[       OK ] BpmV2PeriodicDarkTest.ARowBandTimesColumnParityDarkStructureIsNotFlaggedAsDefects (522 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlAPureRowComponentOfTheSameAmplitudeIsNotFlagged
+[       OK ] BpmV2PeriodicDarkTest.ControlAPureRowComponentOfTheSameAmplitudeIsNotFlagged (513 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlAPureColumnComponentOfTheSameAmplitudeIsNotFlagged
+[       OK ] BpmV2PeriodicDarkTest.ControlAPureColumnComponentOfTheSameAmplitudeIsNotFlagged (502 ms)
+[ RUN      ] BpmV2PeriodicDarkTest.ControlNoStructure
+[       OK ] BpmV2PeriodicDarkTest.ControlNoStructure (508 ms)
+[----------] 4 tests from BpmV2PeriodicDarkTest (2047 ms total)
+
+[----------] Global test environment tear-down
+[==========] 55 tests from 4 test suites ran. (29980 ms total)
+[  PASSED  ] 52 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] BpmV2Test.NoiseThatOnlyTheBrightFramesShowIsSeenByTheBrightNoiseFeature
+[  FAILED  ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+[  FAILED  ] BpmV2Test.AnInputWhoseFramesHaveTheSameDoseGivesTheResultsOfBeforeTheExposureNormalisation
+
+ 3 FAILED TESTS

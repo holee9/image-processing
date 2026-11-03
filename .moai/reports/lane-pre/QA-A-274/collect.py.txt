@@ -1,0 +1,34 @@
+import json,subprocess,hashlib,os,re,sys
+B='.moai/reports/lane-pre/PRE-GUI-20261019T063546Z-7f92a1/'
+def sh(p):
+    try: return hashlib.sha256(open(p,'rb').read()).hexdigest()
+    except Exception: return None
+out=subprocess.run(['git','status','--porcelain','-uall'],capture_output=True,text=True,encoding='utf-8').stdout.splitlines()
+cur=[(l[:2],l[3:].strip('"')) for l in out if not l[3:].startswith('.moai/reports/')]
+base=json.load(open(B+'baseline.json',encoding='utf-8-sig'))
+fz=json.load(open(B+'frozen-current-v2.json',encoding='utf-8-sig'))
+fa=json.load(open(B+'final-audit.json',encoding='utf-8-sig'))
+bs=base['sources']; bstat=base['pre_status']
+bpaths=set(l[3:].strip('"') for l in bstat.splitlines() if l.strip())
+fzc={x['path']:x for x in fz['changed_from_task_baseline']}
+fzu={x['path']:x for x in fz['original_untracked_not_hashed_at_baseline']}
+fan={}
+for x in fa['files']:
+    p=x['path'].replace(chr(92),'/'); p=p[p.lower().index('xpe-pre/')+8:] if 'xpe-pre/' in p.lower() else p; fan[p]=x
+res=[]
+for st,p in cur:
+    h=sh(p)
+    r=dict(st=st,path=p,sha=h,inbase_status=p in bpaths or any(p.startswith(b) for b in bpaths if b.endswith('/')),
+      base_sha=bs.get(p),fz=fzc.get(p),fzu=fzu.get(p),fa=fan.get(p))
+    res.append(r)
+json.dump(res,open('.moai/reports/lane-pre/QA-A-274/collected.json','w'),indent=1)
+print(len(res))
+for r in res:
+    f=r['fz'];
+    tag=[]
+    if r['inbase_status']: tag.append('B')
+    if r['base_sha']: tag.append('bs=' + ('=' if r['base_sha']==r['sha'] else '!='))
+    if f: tag.append('FZ(cur=%s)'%('=' if f['current']==r['sha'] else '!='))
+    if r['fzu']: tag.append('FZU(cur=%s)'%('=' if r['fzu']['current']==r['sha'] else '!='))
+    if r['fa']: tag.append('FA(%s)'%('=' if r['fa']['expected']==r['sha'] else '!='))
+    print(r['st'],r['path'],' '.join(tag))

@@ -1,0 +1,53 @@
+"""QA-A-317: tables from analyze_summary.json / analyze_frames.jsonl (no new measurement).
+Verdict rule (00_method.md section 4, fixed before results): for metric m and pair (X vs Y), over every measured frame,
+if sign(m_X - m_Y) is the same for all frames and the median of (m_X - m_Y)/m_Y is >= 5 % in magnitude, write
+"X lower" / "X higher"; otherwise "undecided". No equivalence verdict."""
+import json, statistics
+
+T = "D:/workspace-github/xpe-data/qa-317-tmp"
+S = json.load(open(f"{T}/analyze_summary.json", encoding="utf-8"))
+F = [json.loads(l) for l in open(f"{T}/analyze_frames.jsonl", encoding="utf-8")]
+sets = [k for k in S["sets"] if k != "total"] + ["total"]
+print("B sha vs 1748:", S["sha_B_vs_1748"])
+print("frames:", len(F), "B==1748:", sum(1 for f in F if f["sha_B"] == f["sha_B_1748"]))
+for p in ("AB", "AC", "BC"):
+    print(f"\n## pair {p}: match % normal/saturated/defect/all | all: bins | p50 p99 max | mean|d| | mean signed (2nd-1st)")
+    for s in sets:
+        r = S["sets"][s]
+        m = [r[f"{p}.{k}"]["match_pct"] for k in ("normal", "saturated", "defect", "all")]
+        a = r[f"{p}.all"]
+        print(f"{s:12s} " + " ".join(f"{x:8.3f}" if x is not None else "     n/a" for x in m)
+              + f" | {a['bins_0_1_2to5_6to20_gt20']} | {a['p50']} {a['p99']} {a['max']} | {a['mean_abs']:.4f} | {r[p + '.mean_signed_all']:+.4f}")
+    for k in ("normal", "saturated", "defect"):
+        a = S["sets"]["total"][f"{p}.{k}"]
+        print(f"  total {k:9s} n={a['n']} bins={a['bins_0_1_2to5_6to20_gt20']} p50={a['p50']} p99={a['p99']} max={a['max']} mean|d|={a['mean_abs']:.4f}")
+
+
+def verdict(vals):
+    d = [(x - y) / y for x, y in vals if y != 0]
+    if not d or len(d) != len(vals):
+        return "undecided (no data)"
+    pos, neg = all(v > 0 for v in d), all(v < 0 for v in d)
+    med = statistics.median(d)
+    if (pos or neg) and abs(med) >= 0.05:
+        return ("higher" if pos else "lower") + f" (all {len(d)} frames, median rel {med:+.3%})"
+    return f"undecided (pos {sum(v > 0 for v in d)}/neg {sum(v < 0 for v in d)}/{len(d)}, median rel {med:+.3%})"
+
+
+for metric, sel in (("flat_residual_pct", lambda f: f["empty"] and f["roi_saturated"] == 0),
+                    ("stripe_ratio", lambda f: f["empty"] and f["roi_saturated"] == 0),
+                    ("defect_residual", lambda f: True)):
+    fr = [f for f in F if sel(f)]
+    print(f"\n## {metric}: frames measured {len(fr)}")
+    print(f"{'set':12s} {'n':>3s} {'A median':>12s} {'B median':>12s} {'C median':>12s}")
+    for s in sets:
+        g = [f for f in fr if s == "total" or f["set"] == s]
+        if not g:
+            print(f"{s:12s}   0 (no eligible frame)"); continue
+        med = [statistics.median(f["metrics"][e][metric] for f in g) for e in "ABC"]
+        print(f"{s:12s} {len(g):3d} " + " ".join(f"{x:12.5f}" for x in med))
+    for x, y in (("B", "A"), ("C", "A"), ("C", "B")):
+        vals = [(f["metrics"][x][metric], f["metrics"][y][metric]) for f in fr]
+        print(f"  {x} vs {y}: {verdict(vals)}")
+excl = [(f["set"], f["idx"], f["roi_saturated"]) for f in F if f["empty"] and f["roi_saturated"] > 0]
+print("\nEmpty frames excluded (ROI raw>=12800 count):", len(excl), excl)

@@ -1,0 +1,38 @@
+========================================================================================================================
+== edition A (v1): validation of R2 against 44_correct_v1.json.txt
+  frame 1: rows checked 2611 (tool 2611), beyond 3 sigma corrected 248 (tool 248) clean 269 (tool 269); columns checked 369 (tool 369), corrected 10 (tool 10) clean 8 (tool 8) -> MATCH
+      dead line item 1 part 0: D_n corrected +11.236 (sigma_pred 0.9194 -> ratio +12.22; tool +12.22), clean D_n -1.595 (ratio -1.72; tool -1.72) -> MATCH
+      dead line item 2 part 0: D_n corrected +11.275 (sigma_pred 0.9256 -> ratio +12.18; tool +12.18), clean D_n -0.229 (ratio -0.24; tool -0.24) -> MATCH
+      dead line item 37 part 0: D_n corrected +10.959 (sigma_pred 0.9376 -> ratio +11.69; tool +11.69), clean D_n +0.285 (ratio +0.30; tool +0.30) -> MATCH
+      dead line item 37 part 1: D_n corrected +10.718 (sigma_pred 0.9396 -> ratio +11.41; tool +11.41), clean D_n +1.869 (ratio +1.97; tool +1.97) -> MATCH
+  frame 2: rows checked 2611 (tool 2611), beyond 3 sigma corrected 247 (tool 247) clean 255 (tool 255); columns checked 369 (tool 369), corrected 8 (tool 8) clean 8 (tool 8) -> MATCH
+      dead line item 1 part 0: D_n corrected +11.177 (sigma_pred 0.9404 -> ratio +11.89; tool +11.89), clean D_n -0.854 (ratio -0.89; tool -0.89) -> MATCH
+      dead line item 2 part 0: D_n corrected +12.035 (sigma_pred 0.9193 -> ratio +13.09; tool +13.09), clean D_n +0.936 (ratio +1.00; tool +1.00) -> MATCH
+      dead line item 37 part 0: D_n corrected +11.649 (sigma_pred 0.9209 -> ratio +12.65; tool +12.65), clean D_n -1.897 (ratio -2.03; tool -2.03) -> MATCH
+      dead line item 37 part 1: D_n corrected +11.340 (sigma_pred 0.9233 -> ratio +12.28; tool +12.28), clean D_n +0.992 (ratio +1.06; tool +1.06) -> MATCH
+  R2 validation for edition A: PASS
+========================================================================================================================
+== edition B (v2): validation of R2 against 45_correct_v2.json.txt
+  frame 1: rows checked 2611 (tool 2611), beyond 3 sigma corrected 266 (tool 266) clean 267 (tool 267); columns checked 369 (tool 369), corrected 9 (tool 9) clean 8 (tool 8) -> MATCH
+      dead line item 1 part 0: D_n corrected -20.907 (sigma_pred 0.9174 -> ratio -22.79; tool -22.79), clean D_n -1.588 (ratio -1.71; tool -1.71) -> MATCH
+      dead line item 2 part 0: D_n corrected -8.919 (sigma_pred 0.9266 -> ratio -9.63; tool -9.63), clean D_n -0.238 (ratio -0.25; tool -0.25) -> MATCH
+      dead line item 37 part 0: D_n corrected -20.819 (sigma_pred 0.9358 -> ratio -22.25; tool -22.25), clean D_n +0.281 (ratio +0.30; tool +0.30) -> MATCH
+      dead line item 37 part 1: D_n corrected -8.789 (sigma_pred 0.9309 -> ratio -9.44; tool -9.44), clean D_n +1.865 (ratio +1.96; tool +1.96) -> MATCH
+  frame 2: rows checked 2611 (tool 2611), beyond 3 sigma corrected 261 (tool 261) clean 255 (tool 255); columns checked 369 (tool 369), corrected 9 (tool 9) clean 8 (tool 8) -> MATCH
+      dead line item 1 part 0: D_n corrected -20.752 (sigma_pred 0.9363 -> ratio -22.16; tool -22.16), clean D_n -0.891 (ratio -0.93; tool -0.93) -> MATCH
+      dead line item 2 part 0: D_n corrected -8.878 (sigma_pred 0.9185 -> ratio -9.67; tool -9.67), clean D_n +0.948 (ratio +1.02; tool +1.01) -> MATCH
+      dead line item 37 part 0: D_n corrected -20.744 (sigma_pred 0.9180 -> ratio -22.60; tool -22.60), clean D_n -1.895 (ratio -2.03; tool -2.03) -> MATCH
+      dead line item 37 part 1: D_n corrected -8.836 (sigma_pred 0.9180 -> ratio -9.62; tool -9.62), clean D_n +0.985 (ratio +1.06; tool +1.06) -> MATCH
+  R2 validation for edition B: PASS
+========================================================================================================================
+== item 4: columns outside every line item (+-3 columns): beyond 3 sigma after correction, per frame; "new" = beyond 3 sigma corrected but not in the clean output; "gone" = the reverse
+  edition A
+    frame 1: corrected 10, clean 8, both 8, new 2, gone 0
+      new  column 1805: D_n ratio corrected +3.03, clean +2.95, no defect correction +0.39; nearest truth line/control column 4 away, nearest detector line-mask column 0 away
+      new  column 2895: D_n ratio corrected -3.06, clean -2.93, no defect correction -0.44; nearest truth line/control column 5 away, nearest detector line-mask column 0 away
+    frame 2: corrected 8, clean 8, both 8, new 0, gone 0
+  edition B
+    frame 1: corrected 9, clean 8, both 8, new 1, gone 0
+      new  column 2895: D_n ratio corrected -3.02, clean -2.92, no defect correction -0.44; nearest truth line/control column 5 away, nearest detector line-mask column 0 away
+    frame 2: corrected 9, clean 8, both 8, new 1, gone 0
+      new  column 3070: D_n ratio corrected +3.26, clean -0.63, no defect correction -0.09; nearest truth line/control column 31 away, nearest detector line-mask column 0 away

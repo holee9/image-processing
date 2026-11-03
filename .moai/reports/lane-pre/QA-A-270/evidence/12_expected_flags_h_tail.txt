@@ -1,0 +1,10 @@
+threshold 4.4833, groups nu [2, 2, 5, 2, 2], limit 2.0, 4,000,000 draws per cost
+item  band                              pixels | cost      lo        hi        | expected flagged at cost: cost      lo        hi
+101   efficiency_loss/col_full/0.6        3044 | 1.785     1.674     1.907     |                                 5.35      2.48     11.15
+100   efficiency_loss/row_full/0.6        3023 | 1.814     1.697     1.941     |                                 6.40      3.01     12.96
+104   efficiency_loss/row_pair/0.6        1512 | 1.803     1.662     1.962     |                                 3.02      1.17      7.35
+103   efficiency_loss/col_partial/0.6      754 | 1.550     1.313     1.855     |                                 0.23      0.02      2.05
+110   efficiency_loss/row_pair/0.7        1516 | 1.351     1.242     1.473     |                                 0.05      0.01      0.24
+106   efficiency_loss/row_full/0.7        3024 | 1.452     1.363     1.550     |                                 0.36      0.15      0.91
+sum of the six bands: expected flagged 15.41 (at the cost), 6.84 (lower bound), 34.66 (upper bound)
+control: a cost of 1.0 (the design case, the band is like its neighbours): expected per 3000 pixels 0.0000

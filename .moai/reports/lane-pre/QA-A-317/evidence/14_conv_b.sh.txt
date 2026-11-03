@@ -1,0 +1,21 @@
+#!/bin/bash
+# QA-A-317: rebuild the B calibration set with the B conversion (xpe_calib_fixture_gen --caldata, QA-A-248 path:
+# dark.raw -> offset, BrightAvg.raw as bright04/05/06 -> gain with no dark reference, BPMap.map -> defect),
+# then assemble the C set = this offset.xcal + this defect.xcal + the regenerated PRE gain.xcal (c_gain/<set>).
+T=/d/workspace-github/xpe-data/qa-317-tmp
+IN=/d/workspace-github/xpe-2g-offline/batch-20261022-1230/in
+X=/d/workspace-github/xpe-2g-offline/pre-w3072-20261022-1240
+export PATH="/d/workspace-github/xpe-pre/build/ci-preprocess/bin:$PATH"
+for s in s0_gf s1_um300 s4_csi_pre s5_csi_post s6_gad_pre s7_gad_post; do
+  cd_=$T/caldata/$s; mkdir -p $cd_ $T/xcal_b/$s $T/xcal_c/$s
+  cp $IN/$s/dark.raw $cd_/dark.raw; for k in 04 05 06; do cp $IN/$s/BrightAvg.raw $cd_/bright$k.raw; done; cp $IN/$s/BPMap.map $cd_/BPMap.map
+  xpe_calib_fixture_gen.exe --caldata "$(cygpath -w $cd_)" --out "$(cygpath -w $T/xcal_b/$s)" --width 3072 --height 2560 --seed 0 --expiry-ms 0 > $T/xcal_b/$s/convert.stdout.txt 2>&1
+  echo "$s convert_exit=$?"
+  for f in offset gain defect; do
+    a=$(sha256sum < $T/xcal_b/$s/$f.xcal | cut -c1-64); b=$(sha256sum < $X/$s/xcal/$f.xcal | cut -c1-64)
+    echo "$s $f regen=$a B_1240=$b $([ "$a" = "$b" ] && echo SAME || echo DIFF)"
+  done
+  cp $T/xcal_b/$s/offset.xcal $T/xcal_b/$s/defect.xcal $T/xcal_c/$s/; cp $T/c_gain/$s/gain.xcal $T/xcal_c/$s/gain.xcal
+  (cd $T/xcal_c/$s && sha256sum offset.xcal gain.xcal defect.xcal) | sed "s#^#$s #"
+  rm -rf $cd_
+done

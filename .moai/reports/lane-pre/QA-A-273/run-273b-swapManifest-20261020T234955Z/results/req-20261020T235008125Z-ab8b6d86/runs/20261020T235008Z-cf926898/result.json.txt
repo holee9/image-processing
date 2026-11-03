@@ -1,0 +1,167 @@
+{
+  "status": "computed",
+  "reasons": [],
+  "validation": {
+    "comparable": true,
+    "comparison_kind": "common-condition",
+    "algorithm_attribution": true,
+    "map_equivalence": "byte-identical-only",
+    "layout_supported": "identity-only",
+    "reasons": [],
+    "blockers": [
+      "VENDOR_LIVE_BLOCKED"
+    ],
+    "actual_2g_executed": false,
+    "identities": {
+      "input": "b5fa0b55b5332e51977db98857c8883310a87fa4e71d0901a66df47c3b543e7a",
+      "A.output": "d0da86ee2e630f432a8173b088087dc4a3facafe768967eab6c84e01056fb01f",
+      "A.map.gain": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7",
+      "B.output": "d58953d69a7f7f3899ad3220415e123685ac92ab8f4d694a8add2c297ba7fc88",
+      "B.map.gain": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7"
+    }
+  },
+  "roi": {
+    "x": 20,
+    "y": 8,
+    "width": 48,
+    "height": 32
+  },
+  "units": "pixel value",
+  "difference": "A minus B (A=samsung-2g-x64w imported output, B=new-pre imported output)",
+  "valid_pixels": 1536,
+  "mean_a_minus_b": -8.9375,
+  "std_a_minus_b": 1.4054395812935776,
+  "rmse": 9.047329256010675,
+  "mean_abs": 8.9375,
+  "min_a_minus_b": -11.0,
+  "max_a_minus_b": -7.0,
+  "schema": "xpe-2g-pre-comparison/4",
+  "run_id": "20261020T235008Z-cf926898",
+  "base_dir": "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-273b-swapManifest-20261020T234955Z\\work\\m",
+  "manifest": {
+    "schema": "xpe-2g-pre-comparison/4",
+    "input": {
+      "path": "in.raw",
+      "sha256": "b5fa0b55b5332e51977db98857c8883310a87fa4e71d0901a66df47c3b543e7a",
+      "correction_state": {
+        "value": "uncorrected",
+        "status": "verified",
+        "source": "synthetic record"
+      },
+      "mode": "synthetic-mode",
+      "width": 96,
+      "height": 64
+    },
+    "engines": {
+      "A": {
+        "engine_id": "samsung-2g-x64w",
+        "engine_identity": {
+          "dll_sha256": "bb03a668990914827e3304774c6a08d4fd03c5b13640c7f7a682820a3e7819f0"
+        },
+        "execution": "imported-file",
+        "input_sha256": "b5fa0b55b5332e51977db98857c8883310a87fa4e71d0901a66df47c3b543e7a",
+        "maps": {
+          "gain": {
+            "path": "gain.raw",
+            "sha256": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7"
+          }
+        },
+        "applied_settings": {
+          "offset": "applied",
+          "gain": "applied",
+          "defect": "not-applied",
+          "status": "verified",
+          "source": "synthetic fixture log"
+        },
+        "output": {
+          "path": "a.raw",
+          "sha256": "d0da86ee2e630f432a8173b088087dc4a3facafe768967eab6c84e01056fb01f",
+          "dtype": "uint16",
+          "endian": "little",
+          "width": 96,
+          "height": 64,
+          "stride_bytes": 192,
+          "offset_bytes": 0,
+          "stage": "engine-direct",
+          "units": "pixel value",
+          "layout": {
+            "origin": "top-left",
+            "row_order": "top-to-bottom",
+            "column_order": "left-to-right",
+            "value_transform": "identity",
+            "status": "verified",
+            "source": "synthetic writer"
+          }
+        }
+      },
+      "B": {
+        "engine_id": "new-pre",
+        "engine_identity": {
+          "source_head": "75c0043195e5afacf7d6b424bee32c063b9e99a0",
+          "config_sha256": "20fe08a28b64c88a77555928f5719b23d8f0fe22bcb4fc40722870012e1eb97f"
+        },
+        "execution": "imported-file",
+        "input_sha256": "b5fa0b55b5332e51977db98857c8883310a87fa4e71d0901a66df47c3b543e7a",
+        "maps": {
+          "gain": {
+            "path": "gain.raw",
+            "sha256": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7"
+          }
+        },
+        "applied_settings": {
+          "offset": "applied",
+          "gain": "applied",
+          "defect": "not-applied",
+          "status": "verified",
+          "source": "synthetic fixture log"
+        },
+        "output": {
+          "path": "b.raw",
+          "sha256": "d58953d69a7f7f3899ad3220415e123685ac92ab8f4d694a8add2c297ba7fc88",
+          "dtype": "uint16",
+          "endian": "little",
+          "width": 96,
+          "height": 64,
+          "stride_bytes": 192,
+          "offset_bytes": 0,
+          "stage": "engine-direct",
+          "units": "pixel value",
+          "layout": {
+            "origin": "top-left",
+            "row_order": "top-to-bottom",
+            "column_order": "left-to-right",
+            "value_transform": "identity",
+            "status": "verified",
+            "source": "synthetic writer"
+          }
+        }
+      }
+    },
+    "roi": {
+      "x": 20,
+      "y": 8,
+      "width": 48,
+      "height": 32
+    }
+  },
+  "source_hashes_before": {
+    "input": "b5fa0b55b5332e51977db98857c8883310a87fa4e71d0901a66df47c3b543e7a",
+    "A.output": "d0da86ee2e630f432a8173b088087dc4a3facafe768967eab6c84e01056fb01f",
+    "A.map.gain": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7",
+    "B.output": "d58953d69a7f7f3899ad3220415e123685ac92ab8f4d694a8add2c297ba7fc88",
+    "B.map.gain": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7"
+  },
+  "source_hashes_after": {
+    "input": "b5fa0b55b5332e51977db98857c8883310a87fa4e71d0901a66df47c3b543e7a",
+    "A.output": "d0da86ee2e630f432a8173b088087dc4a3facafe768967eab6c84e01056fb01f",
+    "A.map.gain": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7",
+    "B.output": "d58953d69a7f7f3899ad3220415e123685ac92ab8f4d694a8add2c297ba7fc88",
+    "B.map.gain": "08f46753296b40512f918614f5b0be6f15e4a95fb0aeeff6c9026be0a396c4a7"
+  },
+  "sources_unchanged": true,
+  "calibration_burden": null,
+  "calibration_burden_verified": false,
+  "actual_2g_executed": false,
+  "quality_assessment": false,
+  "note": "Imported-file numeric difference only. Not a vendor run, not a quality judgement."
+}

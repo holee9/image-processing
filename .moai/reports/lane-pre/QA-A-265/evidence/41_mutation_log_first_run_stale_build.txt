@@ -1,0 +1,37 @@
+QA-A-265 mutation check (the imaging-area contract of the line index: lineIndexInArea and the correct command). Source hash at the start: 4b593ce225d15a32
+PREDICTIONS (written before any run):
+  M1 the extent is not cut to the area (lo = p0, hi = p0 + len)                  -> red: TheAreaContractMeasuresADeadRow... (status Full instead of Clipped, ratio -20 or worse), ...SameForAColumn..., ...SaysWhy... (Clipped expected)
+  M2 the reference lines (before / after) are not checked against the area       -> red: TheAreaContractSaysWhyAPartIsNotMeasured (ReferenceOutside expected), WithTheWholeFrame... (edge part measured)
+  M3 the across range of a row part is taken from the columns (axes swapped)      -> red: the row / column tests and SaysWhy
+  M4 the minimum extent of 8 pixels is not asked                                  -> red: TheAreaContractSaysWhyAPartIsNotMeasured (7 pixels must be TooShort)
+  M5 the part itself outside the area is not checked                              -> red: TheAreaContractSaysWhyAPartIsNotMeasured (ItemOutside expected)
+  M6 the correct command ignores the left margin when it builds the area          -> red: CorrectRunsOnTwoSetsAndReportsTheLineIndex ("area": [8, 8, 1016, 1016])
+  M7 the correct command carries on after a bad --margins                         -> red: CorrectRunsOnTwoSetsAndReportsTheLineIndex (exit code 2 expected)
+  every other test of the filter stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 5 passed, failed: []
+--- M1
+build: BUILD_EXIT=1
+does not compile: the tests are not run
+--- M2
+build: BUILD_EXIT=0
+tests exit 1: 3 passed, FAILED: ['TheAreaContractSaysWhyAPartIsNotMeasured', 'WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures']
+--- M3
+build: BUILD_EXIT=0
+tests exit 1: 3 passed, FAILED: ['TheAreaContractSaysWhyAPartIsNotMeasured', 'WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures']
+--- M4
+build: BUILD_EXIT=0
+tests exit 1: 3 passed, FAILED: ['TheAreaContractSaysWhyAPartIsNotMeasured', 'WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures']
+--- M5
+build: BUILD_EXIT=0
+tests exit 1: 3 passed, FAILED: ['TheAreaContractSaysWhyAPartIsNotMeasured', 'WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures']
+--- M6
+build: BUILD_EXIT=0
+tests exit 1: 2 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex', 'TheAreaContractSaysWhyAPartIsNotMeasured', 'WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures']
+--- M7
+build: BUILD_EXIT=0
+tests exit 1: 2 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex', 'TheAreaContractSaysWhyAPartIsNotMeasured', 'WithTheWholeFrameAsTheAreaTheContractEqualsThePlainIndexWhereThePlainIndexMeasures']
+--- restored: touch + rebuild
+source hash now: 4b593ce225d15a32 (start: 4b593ce225d15a32)
+build: BUILD_EXIT=0

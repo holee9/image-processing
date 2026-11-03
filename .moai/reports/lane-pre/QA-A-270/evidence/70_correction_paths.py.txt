@@ -1,0 +1,220 @@
+"""QA-A-270 item 2 (stage 2): the correction path of every masked pixel of the planted second-edition set, replicated from defect_correct.cpp (order: row lines, column lines, then clusters), checked against the library's own report
+(control Z1: xpe_defect_correct_ex on the gain-corrected planted frame U gives line_pixels, one_sided_line_pixels, isolated_pixels, blob_pixels, low_confidence_pixels, out_of_area_pixels; the replica's frame-wide counts must be equal).
+Then the decomposition of the 118 cells (frame x group) where the second edition's median z is larger than the first edition's: pixel counts and shares per path, the per-path median z of both editions at the SAME pixels, and the counterfactual
+(the cell median when the pixels of one path take the first edition's z; and when all paths up to and including that path in the order of the table do). Arrays come from 60_correct_zrun.py.txt (Z_v1_*, Z_v2_*.npy).
+Usage: python -X utf8 70_correction_paths.py.txt > 71_correction_paths.txt"""
+import ctypes
+import json
+import os
+from collections import deque
+import numpy as np
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+BIN = ROOT + 'build/ci-preprocess/bin/'
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+O70 = 'D:/workspace-github/xpe-data/bpm-eval-270/'
+HERE = ROOT + '.moai/reports/lane-pre/QA-A-270/evidence/'
+EV8 = ROOT + '.moai/reports/lane-pre/QA-A-260/evidence/'
+S = 3072
+P_NAMES = ['undetected', 'outside area (preserved)', 'line 1 wide, two-sided', 'line 1 wide, one-sided', 'line 2 wide, two-sided', 'line 2 wide, one-sided', 'isolated pixel', 'blob (filled from outside)', 'blob (ring fill, low confidence)']
+PU, PO, PL1, PL1o, PL2, PL2o, PI, PB, PBL = range(9)
+
+area = np.fromfile(O60 + 'inj_v2_area.u8', dtype=np.uint8).reshape(S, S) != 0
+setmap = np.fromfile(O60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+mask = setmap | ~area
+path = np.full((S, S), PU, dtype=np.int8)
+path[~area] = PO
+
+# ---- the line records of the planted second-edition set
+lines = []
+for i, l in enumerate(open(EV8 + '51_lines_v2.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = l.rstrip('\n').split('\t')
+    st = []
+    for s in c[12].split(';'):
+        ln, rng = s.split(':')
+        a, b = rng.split('-')
+        st.append((int(ln), int(a), int(b)))
+    lines.append(dict(row=(c[1] == 'row'), index=int(c[2]), width=int(c[3]), stretches=st, correction=int(c[9])))
+assert all(L['width'] < 3 and L['correction'] == 1 for L in lines)
+visited = np.zeros((S, S), dtype=bool)
+REACH = 8
+
+
+def across(row_line, fixed, start, d):
+    for k in range(REACH):
+        pos = start + d * k
+        if pos < 0 or pos >= S:
+            break
+        y, x = (pos, fixed) if row_line else (fixed, pos)
+        if not mask[y, x]:
+            return True
+    return False
+
+
+counts = dict(line=0, one_sided=0, groups=0)
+for orient_row in (True, False):
+    for L in lines:
+        if L['row'] != orient_row:
+            continue
+        first, last = L['index'], L['index'] + L['width'] - 1
+        any_ = False
+        for (ln, a, b) in L['stretches']:
+            for p in range(a, b):
+                x, y = (p, ln) if orient_row else (ln, p)
+                if x >= S or y >= S or not mask[y, x] or not area[y, x] or visited[y, x]:
+                    continue
+                fixed = x if orient_row else y
+                ha, hb = across(orient_row, fixed, first - 1, -1), across(orient_row, fixed, last + 1, +1)
+                if not ha and not hb:
+                    continue
+                visited[y, x] = True
+                counts['line'] += 1
+                one = not (ha and hb)
+                counts['one_sided'] += int(one)
+                path[y, x] = (PL1o if one else PL1) if L['width'] == 1 else (PL2o if one else PL2)
+                any_ = True
+        counts['groups'] += int(any_)
+
+# ---- clusters
+iso = blob = low = 0
+ys, xs = np.nonzero(mask & area & ~visited)
+seen = visited.copy()
+for y0, x0 in zip(ys, xs):
+    if seen[y0, x0]:
+        continue
+    seen[y0, x0] = True
+    cl = []
+    q = deque([(y0, x0)])
+    while q:
+        y, x = q.popleft()
+        cl.append((y, x))
+        for dy, dx in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+            ny, nx = y + dy, x + dx
+            if 0 <= ny < S and 0 <= nx < S and mask[ny, nx] and area[ny, nx] and not seen[ny, nx]:
+                seen[ny, nx] = True
+                q.append((ny, nx))
+    if len(cl) == 1:
+        iso += 1
+        path[cl[0]] = PI
+        continue
+    reach = any(0 <= y + dy < S and 0 <= x + dx < S and not mask[y + dy, x + dx] for (y, x) in cl for dy in (-1, 0, 1) for dx in (-1, 0, 1) if dy or dx)
+    for (y, x) in cl:
+        path[y, x] = PB if reach else PBL
+    blob += len(cl)
+    low += 0 if reach else len(cl)
+print('replica counts (frame-wide): line_pixels %d, one_sided %d, isolated %d, blob_pixels %d (low-confidence ring fills %d), out_of_area %d' % (counts['line'], counts['one_sided'], iso, blob, low, int((~area).sum())))
+
+# ---- Z1: the library's own report
+os.add_dll_directory(os.path.abspath(BIN))
+os.environ['PATH'] = os.path.abspath(BIN) + os.pathsep + os.environ.get('PATH', '')
+common = ctypes.CDLL(os.path.abspath(BIN + 'xpe_common.dll'))
+lib = ctypes.CDLL(os.path.abspath(BIN + 'xpe_preprocess.dll'))
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32), ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p), ('dataSize', ctypes.c_size_t)]
+
+
+class Meta(ctypes.Structure):
+    _fields_ = [('bodyPart', ctypes.c_char * 64), ('kVp', ctypes.c_float), ('mAs', ctypes.c_float), ('SID_mm', ctypes.c_float), ('pixelPitch_mm', ctypes.c_float), ('acquisitionTime', ctypes.c_uint64), ('flags', ctypes.c_uint32)]
+
+
+class Rep(ctypes.Structure):
+    _fields_ = [(n, ctypes.c_uint32) for n in ('size', 'layers_used', 'isolated_pixels', 'blob_pixels', 'line_pixels', 'line_groups', 'one_sided_line_pixels', 'low_confidence_pixels', 'low_confidence_regions', 'unfilled_pixels', 'out_of_area_pixels')]
+
+
+lib.xpe_preprocess_init.argtypes = [ctypes.c_char_p]
+lib.xpe_calib_load_defect_map.argtypes = [ctypes.c_char_p]
+lib.xpe_defect_correct_ex.argtypes = [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta), ctypes.POINTER(Rep), ctypes.POINTER(Buf)]
+assert lib.xpe_preprocess_init(None) == 0
+assert lib.xpe_calib_load_defect_map((O60 + 'inj_set_v2/defect.xcal').encode()) == 0
+U = np.ascontiguousarray(np.load(O70 + 'U_v2_29.npy'), dtype=np.float32)
+out = np.zeros_like(U)
+lc = np.zeros((S, S), dtype=np.uint8)
+bi, bo, bl, rep = Buf(S, S, 32, 32, 1, U.ctypes.data, U.nbytes), Buf(S, S, 32, 32, 1, out.ctypes.data, out.nbytes), Buf(S, S, 8, 8, 2, lc.ctypes.data, lc.nbytes), Rep()
+rc = lib.xpe_defect_correct_ex(ctypes.byref(bi), ctypes.byref(bo), ctypes.byref(Meta()), ctypes.byref(rep), ctypes.byref(bl))
+common.xpe_clear_alerts()
+print('library report (rc %d): layers_used %d, line_pixels %d, one_sided %d, isolated %d, blob_pixels %d, low_confidence_pixels %d, unfilled %d, out_of_area %d' % (
+    rc, rep.layers_used, rep.line_pixels, rep.one_sided_line_pixels, rep.isolated_pixels, rep.blob_pixels, rep.low_confidence_pixels, rep.unfilled_pixels, rep.out_of_area_pixels))
+z1_ok = (rep.line_pixels == counts['line'] and rep.one_sided_line_pixels == counts['one_sided'] and rep.isolated_pixels == iso and rep.blob_pixels == blob and rep.low_confidence_pixels == low and rep.out_of_area_pixels == int((~area).sum()))
+print('control Z1 (replica equals the library report on every count): %s' % ('PASS' if z1_ok else 'FAIL'))
+# the pixels of the library's corrected output that differ from the input are exactly the masked in-area pixels the replica assigned to a correcting path
+changed = (out != U) & area
+print('control Z1b: pixels whose value the library changed %d; replica pixels with a correcting path %d; changed pixels without a path %d; path pixels unchanged (value happened to equal) %d' % (
+    int(changed.sum()), int(((path >= PL1)).sum()), int((changed & (path < PL1)).sum()), int(((path >= PL1) & ~changed).sum())))
+np.save(O70 + 'path_v2.npy', path)
+if not z1_ok:
+    print('stop: Z1 failed, the decomposition is not valid')
+    raise SystemExit(0)
+
+# ---- the decomposition
+items = {}
+for line in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = c[1] + '/' + c[2] + '/' + c[3] + '/' + c[4] if c[1] != 'control' else None
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+bad = json.load(open(HERE + '62_cells_v2_larger.json.txt', encoding='utf-8'))
+Z = {(ed, f): np.load(O70 + 'Z_%s_%d.npy' % (ed, f)) for ed in ('v1', 'v2') for f in (0, 1) if False}
+Zs = {(ed, fi): np.load(O70 + 'Z_%s_%d.npy' % (ed, 29 + fi)) for ed in ('v1', 'v2') for fi in (0, 1)}
+v1map = np.fromfile(O60 + 'inj_v1_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+
+
+def med(a):
+    a = a[np.isfinite(a)]
+    return float(np.sort(a)[a.size // 2]) if a.size else float('nan')
+
+
+tot_px = np.zeros(9, dtype=np.int64)
+cell_rows = []
+diffs = []
+cnt_single = np.zeros(9, dtype=np.int64)
+cnt_cum = np.zeros(9, dtype=np.int64)
+order = [PU, PO, PI, PB, PBL, PL1, PL1o, PL2, PL2o]
+for fi, key, m1, m2 in bad:
+    ks = [k for k, v in items.items() if v == key]
+    sel = np.isin(ids, ks)
+    z1, z2, pt = Zs[('v1', fi)][sel].astype(np.float64), Zs[('v2', fi)][sel].astype(np.float64), path[sel]
+    assert abs(med(z2) - m2) < 1e-4 and abs(med(z1) - m1) < 1e-4, (key, med(z2), m2, med(z1), m1)
+    diffs.append(m2 - m1)
+    m1c = med(z1)   # the first edition's cell median recomputed from the float arrays (the JSON value is rounded to 6 decimals); the swaps are compared against it, so that an all-swapped cell equals it exactly
+    px = np.array([(pt == p).sum() for p in range(9)])
+    tot_px += px
+    for p in range(9):
+        z2b = np.where(pt == p, z1, z2)
+        if med(z2b) <= m1c + 1e-9:
+            cnt_single[p] += 1
+    cur = z2.copy()
+    for p in order:
+        cur = np.where(pt == p, z1, cur)
+        if med(cur) <= m1c + 1e-9:
+            cnt_cum[p] += 1
+            break
+    cell_rows.append((fi, key, m1, m2, px))
+diffs = np.array(diffs)
+print()
+print('== the %d cells (frame x group) where the second edition is larger' % len(bad))
+print('  median z difference (v2 - v1) over the cells: median %.4f, 10 %% %.4f, 90 %% %.4f, max %.4f; share > 0.05: %.3f, > 0.10: %.3f, > 0.25: %.3f' % (
+    np.median(diffs), np.percentile(diffs, 10), np.percentile(diffs, 90), diffs.max(), np.mean(diffs > 0.05), np.mean(diffs > 0.10), np.mean(diffs > 0.25)))
+print('  pixels of these cells by correction path (second edition), total %d:' % tot_px.sum())
+for p in order:
+    print('    %-34s %8d  %6.2f %%' % (P_NAMES[p], tot_px[p], 100.0 * tot_px[p] / max(tot_px.sum(), 1)))
+print('  per path: median z at the same pixels, second edition vs first edition (pooled over the cells)')
+allz1, allz2, allpt = [], [], []
+for fi, key, m1, m2, px in cell_rows:
+    ks = [k for k, v in items.items() if v == key]
+    sel = np.isin(ids, ks)
+    allz1.append(Zs[('v1', fi)][sel]); allz2.append(Zs[('v2', fi)][sel]); allpt.append(path[sel])
+allz1, allz2, allpt = np.concatenate(allz1).astype(np.float64), np.concatenate(allz2).astype(np.float64), np.concatenate(allpt)
+for p in order:
+    s = allpt == p
+    if s.sum():
+        print('    %-34s pixels %8d  v2 median z %.3f  v1 median z %.3f  share of pixels with z2 > z1 + 1e-9: %.3f' % (P_NAMES[p], s.sum(), med(allz2[s]), med(allz1[s]), float(np.mean(allz2[s] > allz1[s] + 1e-9))))
+print('  counterfactual: number of the %d cells in which the v2 median is no longer larger when' % len(bad))
+print('    the pixels of ONE path take the first edition z: ' + '; '.join('%s %d' % (P_NAMES[p], cnt_single[p]) for p in order))
+print('    cumulatively in the order undetected, outside area, isolated, blob, blob low-confidence, line 1, line 1 one-sided, line 2, line 2 one-sided (first path after which the cell is no longer larger): ' + '; '.join('%s %d' % (P_NAMES[p], cnt_cum[p]) for p in order))
+print('    cells never resolved by any swap: %d' % (len(bad) - int(cnt_cum.sum())))
+# the control for the table: the same split for the 60 cells where v2 is NOT larger; their paths and swaps must not create "larger" cells

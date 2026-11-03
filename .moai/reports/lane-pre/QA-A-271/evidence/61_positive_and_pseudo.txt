@@ -1,0 +1,38 @@
+D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-271\evidence\60_positive_and_pseudo.py.txt:135: RuntimeWarning: Mean of empty slice
+  print('  %-14s %-3s %10d %+10.4f %10.4f %12.4f' % (title, a, v.size, v.mean(), v.std(), np.median(np.abs(v))))
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\_methods.py:142: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\_methods.py:219: RuntimeWarning: Degrees of freedom <= 0 for slice
+  ret = _var(a, axis=axis, dtype=dtype, out=out, ddof=ddof,
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\_methods.py:178: RuntimeWarning: invalid value encountered in divide
+  arrmean = um.true_divide(arrmean, div, out=arrmean,
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\_methods.py:211: RuntimeWarning: invalid value encountered in scalar divide
+  ret = ret.dtype.type(ret / rcount)
+C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\site-packages\numpy\_core\fromnumeric.py:3862: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+line cells per frame 69 (x 2 frames = 138)
+== Part 1: bad interpolations as positive controls (138 line cells)
+  ref    bad interpolation          cells larger than R5    shift of the median detected (>=110 and >=0.05)
+  C_v2   B1 one-sided copy                    94 / 138                 0.0188 no
+  C_v2   B2 far neighbours (3 px)            102 / 138                 0.0216 no
+  C_v2   B3 bias +0.1 sigma                    0 / 138                -0.1000 no
+  C_v2   B4 bias +0.25 sigma                   0 / 138                -0.2479 no
+  Cc     B1 one-sided copy                    94 / 138                 0.0188 no
+  Cc     B2 far neighbours (3 px)            104 / 138                 0.0211 no
+  Cc     B3 bias +0.1 sigma                    0 / 138                -0.1000 no
+  Cc     B4 bias +0.25 sigma                   0 / 138                -0.2479 no
+  for scale: the observed second-over-first-edition difference is +0.1595 (median of the 118 cells) and the algorithm effect of 41_c4_factorial.txt is +0.17
+== Part 2 (not committed beforehand): 0 pseudo lines placed (48000 tries); pixels 0
+  A1: report line_pixels 0 isolated 0 blob 0
+  A2: report line_pixels 0 isolated 0 blob 0
+  group          alg     pixels       bias         sd   median |e|
+  all            A1           0       +nan        nan          nan
+  all            A2           0       +nan        nan          nan
+  width 1        A1           0       +nan        nan          nan
+  width 1        A2           0       +nan        nan          nan
+  width 2        A1           0       +nan        nan          nan
+  width 2        A2           0       +nan        nan          nan
+  rows           A1           0       +nan        nan          nan
+  rows           A2           0       +nan        nan          nan
+  columns        A1           0       +nan        nan          nan
+  columns        A2           0       +nan        nan          nan

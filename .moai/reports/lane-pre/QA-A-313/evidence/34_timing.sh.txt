@@ -1,0 +1,12 @@
+#!/bin/bash
+# usage: timing.sh SET LABEL EXTRA_ALL
+export PATH="/d/workspace-github/xpe-pre/build/ci-preprocess/bin:$PATH"
+S="$1"; LABEL="$2"; EXTRA="$3"
+B=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in
+X=D:/workspace-github/xpe-2g-offline/pre-w3072-20261022-1240
+BASE='"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true'"$EXTRA"
+for cfg in "all|" "gain_only|,\"bypassDefect\":true" "defect_only|,\"bypassGain\":true" "both_bypassed|,\"bypassGain\":true,\"bypassDefect\":true"; do
+  name="${cfg%%|*}"; add="${cfg#*|}"
+  echo "## $LABEL $S $name {$BASE$add}"
+  ./qa296_run.exe time "$B/$S/img/001.raw" "$X/$S/xcal" 3072 2560 "{$BASE$add}" 31 | head -1
+done

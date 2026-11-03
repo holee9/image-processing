@@ -1,0 +1,17 @@
+== the ACTUAL 31 flagged pixels with the same pooled formula: pooled z -0.772
+   item 101: n 14  mean-d ratio flagged / rest 1.308  z +0.80
+   item 100: n 10  mean-d ratio flagged / rest 0.525  z -1.09
+   item 104: n  3  mean-d ratio flagged / rest 0.750  z -0.32
+   item 103: n  2  mean-d ratio flagged / rest 0.391  z -0.60
+   item 110: n  1  mean-d ratio flagged / rest 0.085  z -0.64
+   item 106: n  1  mean-d ratio flagged / rest 0.183  z -0.57
+== 3.2 synthetic positive control: detection rate (pooled z >= 2), 200 repetitions per s, the same six bands and counts (31 pixels)
+   s = 1.0: detected   4 / 200 (0.020); pooled z median -0.18
+   s = 1.1: detected  16 / 200 (0.080); pooled z median +0.29
+   s = 1.5: detected  82 / 200 (0.410); pooled z median +1.69
+   s = 2.0: detected 158 / 200 (0.790); pooled z median +3.70
+   s = 3.0: detected 200 / 200 (1.000); pooled z median +7.09
+== 3.3 the same characteristic on planted noisy items (cls0 line / pixel, kind noisy, not control)
+   all noisy items  pixels  27476  bright-noise bit on      0 (0.000)  of those in both halves      0 (0.000)  in half A      0  in half B      0
+   line items       pixels  27284  bright-noise bit on      0 (0.000)  of those in both halves      0 (0.000)  in half A      0  in half B      0
+   pixel items      pixels    192  bright-noise bit on      0 (0.000)  of those in both halves      0 (0.000)  in half A      0  in half B      0

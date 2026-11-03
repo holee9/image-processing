@@ -1,0 +1,25 @@
+#!/bin/bash
+# QA-A-325 alternating A/B timing. usage: ab.sh ROUNDS "VAR1=bindir1 VAR2=bindir2 ..." "CFG1=extra1;CFG2=extra2" SET...
+# Per round, per set: every (variant, config) pair in order, then the order of variants is reversed on odd rounds.
+# Each cell = qa296_run time ... 31 runs, median excluding the first (QA-A-296 §6.3 / QA-A-315 method).
+ROUNDS="$1"; VARS="$2"; CFGS="$3"; shift 3
+B=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in
+X=D:/workspace-github/xpe-2g-offline/pre-w3072-20261022-1240
+BASE='"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true'
+load() { typeperf "\\Processor(_Total)\\% Processor Time" -sc 1 2>/dev/null | grep -E '^"[0-9]' | head -1 | cut -d'"' -f4; }
+IFS=';' read -ra CL <<< "$CFGS"
+read -ra VL <<< "$VARS"
+for ((r=0; r<ROUNDS; r++)); do
+  if (( r % 2 )); then ORDER=(); for ((i=${#VL[@]}-1; i>=0; i--)); do ORDER+=("${VL[$i]}"); done; else ORDER=("${VL[@]}"); fi
+  for S in "$@"; do
+    for c in "${CL[@]}"; do
+      cn="${c%%=*}"; ca="${c#*=}"
+      for v in "${ORDER[@]}"; do
+        vn="${v%%=*}"; vd="${v#*=}"
+        L=$(load)
+        o=$("$vd/qa296_run.exe" time "$B/$S/img/001.raw" "$X/$S/xcal" 3072 2560 "{$BASE$ca}" 31 | head -1)
+        echo "round=$r set=$S cfg=$cn var=$vn cpu_before=${L}% $o"
+      done
+    done
+  done
+done

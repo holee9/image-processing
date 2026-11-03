@@ -1,0 +1,14 @@
+#!/bin/bash
+# QA-A-267 (after the R236 fixes, commit e0be8dd8 and the test fix): QA-A-260's two `correct` runs (first edition, second edition; same sets, same truth, same evaluation frames) with the one added argument --margins 6,2,1,1 (the margins of the measurement).
+# The old figures must come out as in QA-A-260's JSON (checked by 71_compare_old_new.py.txt); the new ones are the imaging-area contract.
+set -u
+ROOT=D:/workspace-github/xpe-pre
+EXE=$ROOT/build/ci-preprocess/bin/xpe_bpm_eval.exe
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+O60=D:/workspace-github/xpe-data/bpm-eval-260
+EVD=$ROOT/.moai/reports/lane-pre/QA-A-267/evidence
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+run A1_correct_v1_area_267 "$EXE" correct --truth "$IN/inj_d" --clean-set "$O60/clean_set_v1" --inj-set "$O60/inj_set_v1" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --margins 6,2,1,1 --out "$EVD/22_correct_v1_area.json.txt" || exit 1
+run A2_correct_v2_area_267 "$EXE" correct --truth "$IN/inj_d" --clean-set "$O60/clean_set_v2" --inj-set "$O60/inj_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --margins 6,2,1,1 --out "$EVD/23_correct_v2_area.json.txt" || exit 1

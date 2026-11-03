@@ -1,0 +1,20 @@
+# QA-A-316: test the reading of Bright01..10 and BrightAvg.raw as signed int16 (two's complement) instead of uint16.
+import json, os, re, numpy as np
+W,H=3072,2560
+m=json.load(open('D:/workspace-github/xpe-2g-offline/batch-20261022-1230/manifest.json',encoding='utf-8'))
+sets=m if isinstance(m,list) else m.get('sets',m)
+for s in sets:
+    src=s['cal_source']
+    names=sorted(f for f in os.listdir(src) if re.match(r'Bright(0[1-9]|10)_OC_\d+\.raw$',f))
+    st=np.stack([np.fromfile(src+n,dtype='<i2') for n in names]).astype(np.float64)
+    ba=np.fromfile(src+'BrightAvg.raw',dtype='<i2').astype(np.float64)
+    bp=np.fromfile(src+'BPMap.map',dtype=np.uint8); good=bp==0
+    mn=st.mean(0)
+    for lab,e in (('rint(mean int16)',np.rint(mn)),('round_half_up(mean int16)',np.floor(mn+0.5)),('trunc toward zero(mean int16)',np.trunc(mn))):
+        eq=ba==e
+        print(f'{s["id"]} {lab}: all {eq.mean()*100:.4f}% good {eq[good].mean()*100:.4f}% defect {eq[~good].mean()*100:.4f}% mismatches {int((~eq).sum())}')
+    e=np.rint(mn); ne=ba!=e
+    if ne.any():
+        d=np.abs(ba-e)[ne]
+        print(f'   rint mismatch |diff| p50={np.percentile(d,50):.1f} p99={np.percentile(d,99):.1f} max={d.max():.1f}; in BPMap defects {int((ne&~good).sum())}')
+    print(f'   int16 view: frames negative fraction (Bright01..10 pooled) {(st<0).mean()*100:.3f}%; BrightAvg negative {int((ba<0).sum())}, zero {int((ba==0).sum())}; int16 BrightAvg min {ba.min():.0f} max {ba.max():.0f}')

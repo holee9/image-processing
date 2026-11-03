@@ -1,0 +1,33 @@
+"""QA-A-272: mutants of offset_output_u16 (xpe_verify_metrics.cpp) against the new boundary test and the old-function bit-identity tests. Predictions written first (below), one run, restore verified by the source hash.
+PREDICTIONS: M1 round-to-nearest of the clamped x (std::lround): RED in TheUint16OutputRoundsHalfUp... (only the float32-tie case differs: 0.49999997 -> 0 instead of 1); M2 truncation without the +0.5: RED (0.5 -> 0 etc.);
+M3 banker's rounding (std::nearbyint): RED (0.5 -> 0, 2.5 -> 2); M4 no clamp at 65535 (the cast wraps): RED (65535.5 and 70000).
+The first run of this script used '/tmp/b.py', which a Windows Python resolves to another directory: every build failed and the 'survived' lines of that run mean nothing (built False); this is the corrected run.
+Usage: python -X utf8 20_mutation.py.txt > 21_mutation.txt"""
+import hashlib, subprocess, sys
+SRC = 'modules/preprocess/src/xpe_verify_metrics.cpp'
+orig = open(SRC, encoding='utf-8', newline='').read()
+h0 = hashlib.sha256(orig.encode()).hexdigest()[:16]
+BODY = '''    uint16_t out = 0;
+    xpe_offset_apply_scalar_reference(&raw, &map, &out, 1);
+    return out;'''
+assert orig.count(BODY) == 1
+MUT = {
+ 'M1 round-to-nearest (lround)': '    const float c = std::min(std::max(static_cast<float>(raw) - map, 0.0f), 65535.0f);\n    return static_cast<uint16_t>(std::lround(c));',
+ 'M2 truncation (no +0.5)': '    const float c = std::min(std::max(static_cast<float>(raw) - map, 0.0f), 65535.0f);\n    return static_cast<uint16_t>(c);',
+ 'M3 banker rounding (nearbyint)': '    const float c = std::min(std::max(static_cast<float>(raw) - map, 0.0f), 65535.0f);\n    return static_cast<uint16_t>(std::nearbyint(c));',
+ 'M4 no upper clamp': '    float c = static_cast<float>(raw) - map;\n    if (c < 0.0f) c = 0.0f;\n    return static_cast<uint16_t>(c + 0.5f);',
+}
+def run(cmd, timeout=1500):
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+try:
+    for name, body in MUT.items():
+        open(SRC, 'w', encoding='utf-8', newline='').write(orig.replace(BODY, body))
+        b = run(['python', 'C:/Users/drake/AppData/Local/Temp/b.py', 'xpe_preprocess_tests'])
+        built = 'BUILD_EXIT=0' in b.stdout
+        t = run(['./build/ci-preprocess/bin/xpe_preprocess_tests.exe', '--gtest_filter=VerifyOffsetSigned*'])
+        failed = [l for l in t.stdout.splitlines() if l.startswith('[  FAILED  ]') and ' ms' not in l]
+        print('%-34s built %s; failing: %s' % (name, built, '; '.join(sorted(set(l.split()[3] for l in failed))) or 'NONE (survived)'), flush=True)
+finally:
+    open(SRC, 'w', encoding='utf-8', newline='').write(orig)
+    h1 = hashlib.sha256(open(SRC, encoding='utf-8', newline='').read().encode()).hexdigest()[:16]
+    print('source hash before %s after %s -> %s' % (h0, h1, 'restored' if h0 == h1 else 'NOT RESTORED'))

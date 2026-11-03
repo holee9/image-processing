@@ -63,6 +63,7 @@ struct Rng {
 };
 
 std::map<std::string, uint64_t>& golden();   // defined at the end of the file
+const std::map<std::string, uint64_t>& firstBypassGolden();
 
 bool envSet(const char* name) {
 #ifdef _WIN32
@@ -84,7 +85,81 @@ void expectDigest(const std::string& name, uint64_t value) {
         ADD_FAILURE() << "no recorded digest for " << name << " (computed " << std::hex << value << ")";
         return;
     }
-    EXPECT_EQ(it->second, value) << name << ": the output changed";
+    uint64_t expected = it->second;
+#ifdef XPE_CACHE_TEST_HOOKS
+    const bool legacy = xpe_ghost_legacy_first_frame;
+#else
+    constexpr bool legacy = false;
+#endif
+    if (!legacy) {
+        const auto changed = firstBypassGolden().find(name);
+        if (changed != firstBypassGolden().end()) expected = changed->second;
+    }
+    EXPECT_EQ(expected, value) << name << ": the output changed";
+}
+
+#ifdef XPE_CACHE_TEST_HOOKS
+bool legacyFingerprintRequested() {
+#ifdef _WIN32
+    char* value = nullptr;
+    size_t length = 0;
+    const bool requested = _dupenv_s(&value, &length, "XPE_A237B_LEGACY") == 0 &&
+        value != nullptr && std::strcmp(value, "1") == 0;
+    std::free(value);
+    return requested;
+#else
+    const char* value = std::getenv("XPE_A237B_LEGACY");
+    return value && std::strcmp(value, "1") == 0;
+#endif
+}
+class LegacyGhostFingerprintEnvironment : public ::testing::Environment {
+    void SetUp() override { xpe_ghost_legacy_first_frame = legacyFingerprintRequested(); }
+    void TearDown() override { xpe_ghost_legacy_first_frame = false; }
+};
+[[maybe_unused]] ::testing::Environment* const legacyFingerprintEnvironment =
+    ::testing::AddGlobalTestEnvironment(new LegacyGhostFingerprintEnvironment);
+#endif
+
+// FUNC-014 first-frame bypass intentionally changes initial pixels/flags and previously rejected cold frames.
+// The original golden() map below is retained verbatim and replayed by the separate legacy CTest job.
+const std::map<std::string, uint64_t>& firstBypassGolden() {
+    static const std::map<std::string, uint64_t> values{
+        {"pipeline/default/203x157/tier1", 0xd9a654f43e2ec788ull},
+        {"pipeline/default/203x157/tier2", 0x66a058ea995a4f59ull},
+        {"pipeline/default/203x157/tier3", 0x99996c866a9375a9ull},
+        {"pipeline/default/256x192/tier1", 0x25fab120ebece492ull},
+        {"pipeline/default/256x192/tier2", 0x0f9f6e7025ac4453ull},
+        {"pipeline/default/256x192/tier3", 0x9c8f61f0913d3a0eull},
+        {"pipeline/combo/temp_off", 0x6a431839157f49c7ull},
+        {"pipeline/combo/offset_off", 0x8ec2b22ed1b7eee7ull},
+        {"pipeline/combo/nonlin_off", 0x3b545db05d1af7e7ull},
+        {"pipeline/combo/temp_offset_nonlin_off", 0xb81a87b89e1fc2c7ull},
+        {"pipeline/combo/gain_off", 0xeaf4d816c5ffc8feull},
+        {"pipeline/combo/defect_off", 0x4123cefec05f8119ull},
+        {"pipeline/combo/binning2", 0x7ad915314edaa657ull},
+        {"pipeline/combo/gain_defect_off", 0x1cfe4ad9441131ecull},
+        {"pipeline/float_input/tier1", 0x986b58099bf1c9a6ull},
+        {"pipeline/float_input/tier3", 0xad4802f4ce76c8c6ull},
+        {"pipeline/float_input/failed_frame/tier2", 0x1da83b52cfb677d9ull},
+        {"pipeline/poly_gain/tier2", 0x29271ea2cd79c4b5ull},
+        {"pipeline/gain_classified/203x157/tier1", 0x9b437aeaafd0996aull},
+        {"pipeline/gain_classified/203x157/tier2", 0x1b0895393e0270d5ull},
+        {"pipeline/gain_classified/203x157/tier3", 0x61c515f4cd03dcc0ull},
+        {"pipeline/gain_classified/256x192/tier1", 0xe417aaa5daa7f29aull},
+        {"pipeline/gain_classified/256x192/tier2", 0xc28760fa86cfc043ull},
+        {"pipeline/gain_classified/256x192/tier3", 0x4de2e28cb38b06d7ull},
+        {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0xccd74011fcb890efull},
+        {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0xf205ed9467bd2da4ull},
+        {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0x4514a77519d5f002ull},
+        {"ghost/sequence/203x157/tier1", 0x48c3852181d25eedull},
+        {"ghost/sequence/203x157/tier2", 0x218db8cf6641ef32ull},
+        {"ghost/sequence/203x157/tier3", 0xd0e6b2fa55761b79ull},
+        {"ghost/sequence/256x192/tier1", 0x9edf59e3ab62c314ull},
+        {"ghost/sequence/256x192/tier2", 0x4b40ba7d53f5b105ull},
+        {"ghost/sequence/256x192/tier3", 0x97409ef752d6e5afull},
+        {"ghost/overflow/tier3", 0x946cf73e006bd22full},
+    };
+    return values;
 }
 
 // ---------------------------------------------------------------- calibration fixtures

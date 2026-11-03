@@ -1,0 +1,116 @@
+"""QA-A-262 item 2: the line parts whose line index D_n exceeds 3 sigma after the second-edition correction (10 of 142 on evaluation frame 1, 15 of 142 on frame 2; QA-A-260 45_correct_v2.json.txt).
+Reads the QA-A-260 correction JSON (product evaluation tool `correct`, once per edition), the truth, the detector's line mask of the planted frames and the line table. Method: 10_method_predictions.md.txt section 2.
+A part is a rectangle of a line or control item. Attributes: orientation, width, length, whether the detector's line mask covers it (share of its pixels), crossing another line/control rectangle of the other orientation
+within 1 pixel, distance of its nearer end from the frame edge, kind/shape/level. Counts are exceeding parts / all parts per group (no significance test: the groups hold 10 and 15 exceeding parts).
+Usage: PYTHONIOENCODING=utf-8 python 40_item2_dn_parts.py.txt > 41_item2_result.txt"""
+import json
+import numpy as np
+
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+M60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+S = 3072
+
+
+def say(*a):
+    print(*a, flush=True)
+
+
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = dict(id=int(c[0]), cls=c[1], kind=c[2], shape=c[3], level=c[4], rects=[tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+lines_mask = np.fromfile(M60 + 'v2_full_lines.u8', dtype=np.uint8).reshape(S, S) != 0
+clean_lines_mask = None
+
+
+def attrs(it, r):
+    x, y, w, h = it['rects'][r]
+    row = w > h
+    width, length = (h, w) if row else (w, h)
+    cover = float(lines_mask[y:y + h, x:x + w].mean())
+    end_dist = min(x, y, S - 1 - (x + w - 1), S - 1 - (y + h - 1)) if False else (min(x, S - 1 - (x + w - 1)) if row else min(y, S - 1 - (y + h - 1)))
+    cross = 0
+    for k, o in items.items():
+        if o['cls'] not in ('line', 'control'):
+            continue
+        for q, (ox, oy, ow, oh) in enumerate(o['rects']):
+            if k == it['id'] and q == r:
+                continue
+            orow = ow > oh
+            if orow == row:
+                continue
+            if x - 1 <= ox + ow - 1 and ox <= x + w and y - 1 <= oy + oh - 1 and oy <= y + h:
+                cross += 1
+    return dict(row=row, width=width, length=length, cover=cover, end=end_dist, cross=cross, cls=it['cls'], kind=it['kind'], shape=it['shape'], level=it['level'])
+
+
+def load(name):
+    j = json.load(open(EV8 + name, encoding='utf-8'))
+    out = []
+    for fr in j['frames']:
+        out.append({(p['id'], p['part']): p for p in fr['line_index']})
+    return out
+
+
+def num(v):
+    return v if isinstance(v, float) else None
+
+
+v2 = load('45_correct_v2.json.txt')
+v1 = load('44_correct_v1.json.txt')
+rows = []
+for f, fr in enumerate(v2):
+    for (k, r), p in sorted(fr.items()):
+        a = attrs(items[k], r)
+        a.update(frame=f + 1, id=k, part=r, rc=num(p['ratio_corrected']), rn=num(p['ratio_no_fix']), rcl=num(p['ratio_clean']), r1=num(v1[f][(k, r)]['ratio_corrected']) if (k, r) in v1[f] else None)
+        rows.append(a)
+say('parts x frames: %d (second edition); exceeding 3 sigma after correction: %d (frame 1 %d, frame 2 %d); exceeding in the clean output: %d' %
+    (len(rows), sum(1 for a in rows if a['rc'] is not None and abs(a['rc']) > 3), sum(1 for a in rows if a['frame'] == 1 and a['rc'] is not None and abs(a['rc']) > 3),
+     sum(1 for a in rows if a['frame'] == 2 and a['rc'] is not None and abs(a['rc']) > 3), sum(1 for a in rows if a['rcl'] is not None and abs(a['rcl']) > 3)))
+over = [a for a in rows if a['rc'] is not None and abs(a['rc']) > 3]
+say('=' * 120)
+say('== every exceeding part (frame, item, part, class/kind/shape/level, orientation, width x length, share covered by the detector line mask, crossings, end distance; ratio corrected / no fix / clean / first edition)')
+for a in over:
+    say('  f%d item %-4d part %d %-8s %-18s %-12s %-6s %s %dx%-5d cover %.2f cross %d end %-5d | corrected %+.2f  no fix %s  clean %s  first edition %s' %
+        (a['frame'], a['id'], a['part'], a['cls'], a['kind'], a['shape'], a['level'], 'row' if a['row'] else 'col', a['width'], a['length'], a['cover'], a['cross'], a['end'], a['rc'],
+         '%+.2f' % a['rn'] if a['rn'] is not None else 'n/a', '%+.2f' % a['rcl'] if a['rcl'] is not None else 'n/a', '%+.2f' % a['r1'] if a['r1'] is not None else 'n/a'))
+say('=' * 120)
+say('== exceeding parts and the clean output: of the %d exceeding parts, the same part exceeds in the clean output of the same frame in %d (a structure of the acquisition, not of the correction); %d exceeding parts exceed only after correction' %
+    (len(over), sum(1 for a in over if a['rcl'] is not None and abs(a['rcl']) > 3), sum(1 for a in over if not (a['rcl'] is not None and abs(a['rcl']) > 3))))
+clean_over = [a for a in rows if a['rcl'] is not None and abs(a['rcl']) > 3]
+say('   the clean output exceeds in %d part-frames; of them %d also exceed after correction' % (len(clean_over), sum(1 for a in clean_over if a['rc'] is not None and abs(a['rc']) > 3)))
+say('=' * 120)
+say('== exceeding / all parts by group (parts x frames; both frames together)')
+
+
+def group(name, key):
+    tab = {}
+    for a in rows:
+        tab.setdefault(key(a), [0, 0, 0])
+        tab[key(a)][1] += 1
+        if a['rc'] is not None and abs(a['rc']) > 3:
+            tab[key(a)][0] += 1
+        if a['rcl'] is not None and abs(a['rcl']) > 3:
+            tab[key(a)][2] += 1
+    say('  %s' % name)
+    for k in sorted(tab, key=str):
+        say('      %-34s exceeding %2d / %3d   (clean output exceeds: %d)' % (k, tab[k][0], tab[k][1], tab[k][2]))
+
+
+group('item class', lambda a: a['cls'])
+group('orientation', lambda a: 'row' if a['row'] else 'column')
+group('width of the part (pixels)', lambda a: 'width 1' if a['width'] == 1 else 'width >= 2')
+group('detector line mask covers the part', lambda a: 'covered >= 0.99' if a['cover'] >= 0.99 else ('partly covered' if a['cover'] > 0 else 'not covered'))
+group('crosses another line/control rectangle of the other orientation', lambda a: 'crosses' if a['cross'] else 'no crossing')
+group('nearer end distance from the frame edge', lambda a: 'end <= 16' if a['end'] <= 16 else 'end > 16')
+group('kind', lambda a: a['kind'])
+group('level', lambda a: a['level'])
+say('=' * 120)
+say('== the three predicted shapes (method section 2): (i) partly covered by the detector, (ii) width >= 2, (iii) crossing another line; share of the %d exceeding parts in each' % len(over))
+i = sum(1 for a in over if a['cover'] < 0.99)
+ii = sum(1 for a in over if a['width'] >= 2)
+iii = sum(1 for a in over if a['cross'])
+none = sum(1 for a in over if a['cover'] >= 0.99 and a['width'] == 1 and not a['cross'])
+say('  (i) partly or not covered: %d, (ii) width >= 2: %d, (iii) crossing: %d, none of the three: %d' % (i, ii, iii, none))

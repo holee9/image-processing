@@ -1,0 +1,11 @@
+import numpy as np
+S=3072
+CAL='D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+INJ='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/'
+ld=lambda p: np.fromfile(p,'<u2').reshape(S,S).astype(np.int32)
+ids=np.fromfile('D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16','<u2').reshape(S,S)
+for fr in ('Bright_23','Dark_10'):
+  a=ld(INJ+fr+'.raw'); b=ld(CAL+fr+'.raw'); d=a-b
+  print(fr,'changed px',int((d!=0).sum()),'changed outside items',int(((d!=0)&(ids==0)).sum()))
+  for name,sl in (('col480 rows2214-2226',(slice(2214,2227),480)),('col1902 rows1753-1763',(slice(1753,1764),1902)),('row190 cols1414-1424',(190,slice(1414,1425))),('col1758 rows1108-1117',(slice(1108,1118),1758)),('col162 rows2310-2319',(slice(2310,2320),162))):
+    print('  ',name,'diff',d[sl].tolist(),'ids',ids[sl].tolist())

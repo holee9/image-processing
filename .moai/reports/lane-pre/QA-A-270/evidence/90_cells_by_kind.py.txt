@@ -1,0 +1,25 @@
+"""QA-A-270 item 2 (stage 4, POST HOC, descriptive): the 118 cells and all 178 by item kind and orientation: how many cells have v2 larger, and the median of (median z v2 - median z v1). Reads 62_cells_v2_larger.json.txt and the JSON of QA-A-260. No prediction (descriptive cut).
+Usage: python -X utf8 90_cells_by_kind.py.txt > 91_cells_by_kind.txt"""
+import json
+import numpy as np
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/'
+j1, j2 = json.load(open(EV8 + '44_correct_v1.json.txt', encoding='utf-8')), json.load(open(EV8 + '45_correct_v2.json.txt', encoding='utf-8'))
+rows = []
+for fi in (0, 1):
+    a = {g['group']: g['corrected']['median_z'] for g in j1['frames'][fi]['correction_error']}
+    b = {g['group']: g['corrected']['median_z'] for g in j2['frames'][fi]['correction_error']}
+    for k in a:
+        if k in b and a[k] is not None and b[k] is not None:
+            cls, kind, shape, level = k.split('/')
+            rows.append((cls, kind, shape.split('_')[0] if shape != 'pixel' else shape, shape, b[k] - a[k], b[k] > a[k] + 1e-9, k))
+print('cells %d, v2 larger %d' % (len(rows), sum(r[5] for r in rows)))
+for title, idx in (('by class', 0), ('by kind', 1), ('by orientation / shape family (row, col, other)', 2)):
+    print('== ' + title)
+    for key in sorted(set(r[idx] for r in rows)):
+        sel = [r for r in rows if r[idx] == key]
+        d = np.array([r[4] for r in sel])
+        print('  %-18s cells %3d  v2 larger %3d  median diff %+.4f  min %+.4f  max %+.4f' % (key, len(sel), sum(r[5] for r in sel), np.median(d), d.min(), d.max()))
+print('== the cells where v2 is NOT larger (%d): classes/kinds' % sum(1 for r in rows if not r[5]))
+for key in sorted(set((r[0], r[1]) for r in rows if not r[5])):
+    print('  %s/%s: %d' % (key[0], key[1], sum(1 for r in rows if not r[5] and (r[0], r[1]) == key)))

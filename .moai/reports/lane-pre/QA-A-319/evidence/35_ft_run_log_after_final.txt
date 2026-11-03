@@ -1,0 +1,20 @@
+== V-a
+xpe_bpm_generate_v2 skip=def min_frames_dark=0 rc=0
+report pixels=7864320 dark_used=9 bright_used=10 dose_groups=1 union=165977 weak=10558
+  feature 0 active=1 flagged=9662 threshold=5.2829 scale_median=1.1532 dof=0
+  feature 1 active=1 flagged=71 threshold=5.9283 scale_median=0.6969 dof=8
+  feature 2 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 3 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 4 active=1 flagged=155834 threshold=0.4500 scale_median=1.0000 dof=0
+  feature 5 active=1 flagged=78465 threshold=5.5130 scale_median=243.6629 dof=9
+rc=0
+== V-c
+xpe_bpm_generate_v2 skip=def min_frames_dark=0 rc=0
+report pixels=7496640 dark_used=9 bright_used=20 dose_groups=7 union=7010 weak=2364
+  feature 0 active=1 flagged=15 threshold=5.2741 scale_median=1.1532 dof=0
+  feature 1 active=1 flagged=70 threshold=5.9147 scale_median=0.6977 dof=8
+  feature 2 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 3 active=1 flagged=3 threshold=5.1455 scale_median=0.5806 dof=0
+  feature 4 active=1 flagged=6461 threshold=0.4500 scale_median=0.9999 dof=0
+  feature 5 active=1 flagged=5036 threshold=4.4406 scale_median=319.6017 dof=13
+rc=0

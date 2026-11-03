@@ -1,0 +1,21 @@
+#!/bin/bash
+# QA-A-324 (Refs #278): per-pixel feature bits of the planted AND clean second-edition maps (diagnosis, not a score).
+# Form of QA-A-260 30_measure_b16.sh P1/P2 (git show eaf076f3), applied to both sets; the map of each run is compared byte for byte with the set defect plane
+# exported by 10_measure_b16.sh (X1/X3), so the bits describe exactly the scored maps.
+set -u
+BIN=D:/workspace-github/xpe-pre/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+INJ=D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames
+OUT=$1
+EXE=$BIN/xpe_bpm_eval.exe
+M="--margins 6,2,1,1"
+BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+for set in inj clean; do
+  if [ $set = inj ]; then SRC=$INJ; else SRC=$CAL; fi
+  DP=(--dark "$CAL/Dark_07.raw"); for k in 08 09 10 11 12 13 14; do DP+=(--dark "$SRC/Dark_$k.raw"); done
+  BP=(); for k in $BR; do BP+=(--bright "$SRC/Bright_$k.raw"); done
+  "$EXE" map-v2 $M --area "$OUT/${set}_full_area.u8" --out "$OUT/${set}_full_pix.u8" --features "$OUT/${set}_full_features.u8" "${DP[@]}" "${BP[@]}" > /dev/null || exit 1
+  "$EXE" lines $M --out "$OUT/${set}_full_lines.u8" "${DP[@]}" "${BP[@]}" > /dev/null
+  "$EXE" merge --in "$OUT/${set}_full_pix.u8" --in "$OUT/${set}_full_lines.u8" --out "$OUT/${set}_full_map.u8" > /dev/null || exit 1
+  if cmp -s "$OUT/${set}_full_map.u8" "$OUT/${set}_v2_setmap.u8"; then echo "$set: feature run map identical to the set defect plane"; else echo "$set: feature run map DIFFERS from the set defect plane"; fi
+done

@@ -1,0 +1,4 @@
+gui/ImageProcTest.CalibrationChecks/Program.cs
+gui/ImageProcTest/Services/EvidenceExportResult.cs
+gui/ImageProcTest/Services/EvidenceSnapshotStore.cs
+gui/ImageProcTest/ViewModels/MainWindowViewModel.cs

@@ -1,0 +1,44 @@
+"""QA-A-270 item 2 (stage 3c, POST HOC, explanatory): are the pixels NEXT TO the detected lines already disturbed? The line stage reads its two valid neighbours across the line. For every detected line stretch of the planted second-edition set,
+the z of the pixels at distance d = 1..4 outside the line group (both sides, not masked, not in a truth item), per edition, against the undisturbed baseline (83_baseline_z.txt: 1.6236 / 1.6211).
+PREDICTION (written before the run): the z at d = 1 is above the baseline by 0.02 to 0.15 and falls to the baseline by d = 4 for both editions (the maps and the evaluation of the planted set see the line's neighbourhood differently).
+If d = 1 is not above the baseline by at least 0.02 the neighbour-disturbance explanation does not hold. Usage: python -X utf8 84_line_neighbours_z.py.txt > 85_line_neighbours_z.txt"""
+import numpy as np
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+O70 = 'D:/workspace-github/xpe-data/bpm-eval-270/'
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+EV8 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-260/evidence/'
+S = 3072
+setmap = np.fromfile(O60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+recs = []
+for i, l in enumerate(open(EV8 + '51_lines_v2.tsv.txt', encoding='utf-8')):
+    if i == 0:
+        continue
+    c = l.rstrip('\n').split('\t')
+    st = []
+    for s in c[12].split(';'):
+        ln, rng = s.split(':'); a, b = rng.split('-'); st.append((int(ln), int(a), int(b)))
+    recs.append((c[1] == 'row', int(c[2]), int(c[3]), st))
+pts = {d: [] for d in range(1, 5)}
+for row, index, width, st in recs:
+    first, last = index, index + width - 1
+    lo = min(s[1] for s in st); hi = max(s[2] for s in st)
+    for d in range(1, 5):
+        for side in (first - d, last + d):
+            if not (0 <= side < S):
+                continue
+            ps = np.arange(lo, hi)
+            ys, xs = (np.full_like(ps, side), ps) if row else (ps, np.full_like(ps, side))
+            ok = (ys < S) & (xs < S)
+            ys, xs = ys[ok], xs[ok]
+            keep = ~setmap[ys, xs] & (ids[ys, xs] == 0)
+            pts[d].append((ys[keep], xs[keep]))
+base = {'v1': 1.6236, 'v2': 1.6236}
+for e in ('v1', 'v2'):
+    z = np.load(O70 + 'Z_%s_29.npy' % e).astype(np.float64)
+    out = []
+    for d in range(1, 5):
+        v = np.concatenate([z[y, x] for y, x in pts[d]])
+        v = v[np.isfinite(v)]
+        out.append('d=%d: n %d median %.4f (baseline %.4f, +%.4f)' % (d, v.size, np.sort(v)[v.size // 2], base[e], np.sort(v)[v.size // 2] - base[e]))
+    print(e + ' frame 29 | ' + ' | '.join(out))

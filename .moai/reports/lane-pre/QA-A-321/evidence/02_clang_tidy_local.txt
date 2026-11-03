@@ -1,0 +1,28 @@
+## compile DB: ninja -C build/ci-preprocess -t compdb CXX_COMPILER__xpe_preprocess_unscanned_RelWithDebInfo > <scratch>/compile_commands.json
+##   (build/ci-preprocess/compile_commands.json of 07:34 held 22 entries, none for modules/preprocess/src -> regenerated from build.ninja)
+##   then the msvc_include_output.py wrapper prefix was stripped:  sed -i -E 's#"command": "[^"]*python\.exe [^ ]*msvc_include_output\.py --native-prefix-hex [0-9a-f]+ #"command": "#'
+## tool: "/c/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/Llvm/x64/bin/clang-tidy.exe" --version
+  LLVM version 19.1.5
+
+## BEFORE (HEAD 9d866391 source, new uint8_t[n])
+$ clang-tidy -p <scratch> --quiet --checks='-*,clang-analyzer-cplusplus.NewDelete' --extra-arg=-D_CRT_USE_BUILTIN_OFFSETOF modules/preprocess/src/defect_correct.cpp
+rc=0, warnings: 0
+$ clang-tidy -p <scratch> --quiet --extra-arg=-D_CRT_USE_BUILTIN_OFFSETOF modules/preprocess/src/defect_correct.cpp   (module .clang-tidy, full config)
+rc=0, warnings shown: 0
+20581 warnings generated.
+=> the 2 CI findings do NOT reproduce with local LLVM 19.1.5 + MSVC 14.44 headers.
+
+## POSITIVE CONTROL: copy of the fixed defect_correct.cpp with the allocation replaced by new uint8_t[0] (modules/preprocess/src/qa321_probe.cpp, compile command interpolated by clang-tidy, file deleted right after; rc=0). Lines are +2 vs HEAD (the 2 new comment lines); HEAD 370/390 = these 372/392.
+$ clang-tidy -p <scratch> --quiet --checks='-*,clang-analyzer-cplusplus.NewDelete' --extra-arg=-D_CRT_USE_BUILTIN_OFFSETOF modules/preprocess/src/qa321_probe.cpp
+2 warnings generated.
+D:\workspace-github\xpe-pre\modules\preprocess\src\qa321_probe.cpp:372:33: warning: Use of memory allocated with size zero [clang-analyzer-cplusplus.NewDelete]
+D:\workspace-github\xpe-pre\modules\preprocess\src\qa321_probe.cpp:392:32: warning: Use of memory allocated with size zero [clang-analyzer-cplusplus.NewDelete]
+probe 372 = defect_correct.cpp(after) 372: hw[row + x] = static_cast<uint8_t>(std::min(kFar, std::min(left, right)));
+probe 392 = defect_correct.cpp(after) 392: int best = hp[idx];
+=> the local checker does follow the xpe_parallel_chunks lambdas to the same two statements CI names; (inference, unverified: with n symbolic, LLVM 19.1.5 + MSVC 14.44 headers find no feasible n==0 path; the CI tool on VS 18 / MSVC 14.51 does).
+
+## AFTER (new uint8_t[std::max<size_t>(1, n)])
+same targeted command: rc=0, warnings: 0
+same full-config command: rc=0, warnings shown: 0
+20581 warnings generated.
+## not run locally: tools/ci/check_clang_tidy.py over all 37 preprocess sources (CI decides; local tool differs from the runner's).

@@ -1,0 +1,40 @@
+"""QA-A-324: the new false alarms of B16, one row each, with the feature bits of BOTH sets (planted and clean), the line mask, the item under the pixel
+and the nearest planted items. The tool's rule is reproduced by the QA-A-257 20_diag_line_false_alarms.py head (lines 1-123, paths only changed) and
+checked against the tool's counts before anything is listed. Usage: python -I 13_fa_table.py.txt <out folder> <score evidence folder>"""
+import sys
+import numpy as np
+T = 'D:/workspace-github/xpe-data/qa-324-tmp/'
+OUTF, EVF = sys.argv[1], sys.argv[2]
+head = open(T + 'head324.py', encoding='utf-8').read()
+head = head.replace("OUT = 'D:/workspace-github/xpe-data/qa-324-tmp/out_before/'", "OUT = '" + OUTF + "'")
+head = head.replace("EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-324/evidence/11_b16_before/'", "EV = '" + EVF + "'")
+g = {'__name__': '__main__'}
+exec(compile(head, 'h', 'exec'), g)
+new, inc, ids, items, ld, cls = g['new'], g['in_control'], g['ids'], g['items'], g['ld'], g['cls']
+S = 3072
+fi, fc = ld(OUTF + 'inj_full_features.u8'), ld(OUTF + 'clean_full_features.u8')
+li, lc = ld(OUTF + 'inj_full_lines.u8') != 0, ld(OUTF + 'clean_full_lines.u8') != 0
+NAMES = {1: 'DM', 2: 'DN', 4: 'DS', 8: 'DL', 0x10: 'FL', 0x20: 'BN'}
+def bits(f, l):
+    b = '+'.join(v for k, v in NAMES.items() if f & k)
+    if l: b = 'LINE' + ('+' + b if b else '')
+    return b or '-'
+print('tool', g['sc']['new_false_alarms'], g['sc']['new_false_alarms_in_controls'], 'repro', int(new.sum()), int(inc.sum()))
+print('y\tx\tinj_bits\tclean_bits\tunder\tnear(<=12, chebyshev distance)')
+from collections import Counter
+cnt = Counter()
+for y, x in zip(*np.nonzero(new)):
+    i = int(ids[y, x])
+    under = '-' if i == 0 else ('SHARED' if i == 0xFFFF else '%d:%s/%s/%s/%s' % (i, cls[i], items[i]['kind'], items[i]['shape'], items[i]['level']))
+    y0, y1, x0, x1 = max(0, y - 12), min(S, y + 13), max(0, x - 12), min(S, x + 13)
+    w = ids[y0:y1, x0:x1]
+    nd = []
+    for k in sorted(set(int(v) for v in np.unique(w) if v and int(v) in items and int(v) != i)):
+        yy, xx = np.nonzero(w == k)
+        d = int(np.max(np.abs(np.stack([yy + y0 - y, xx + x0 - x])), axis=0).min())
+        nd.append('%d:%s/%s/%s/%s d%d' % (k, cls[k], items[k]['kind'], items[k]['shape'], items[k]['level'], d))
+    bi, bc = bits(int(fi[y, x]), bool(li[y, x])), bits(int(fc[y, x]), bool(lc[y, x]))
+    cnt[(bi, 'control' if inc[y, x] else 'background')] += 1
+    print('%d\t%d\t%s\t%s\t%s\t%s' % (y, x, bi, bc, under, '; '.join(nd[:3])))
+print('== by planted-set bits and place')
+for k, v in sorted(cnt.items(), key=lambda kv: -kv[1]): print('  %-24s %-10s %d' % (k[0], k[1], v))

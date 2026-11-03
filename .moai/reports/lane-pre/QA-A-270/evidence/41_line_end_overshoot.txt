@@ -1,0 +1,15 @@
+detected line records: 76
+stretches overlapping a true non-control line rect: 99 (partial-length items 69, full-length items 30)
+== partial-length true line items: offset of the detected stretch to the true rect (start offset, end offset; 0 = exact, positive end offset = overshoot past the true end, negative start offset = begins before the true start)
+  stretches 69; start offset: median 0.0, min -4, max 2, share != 0: 0.159; end offset: median 0.0, min -2, max 5, share != 0: 0.246
+  histogram of start offsets: -4:1, -3:1, -1:5, 0:58, 1:3, 2:1
+  histogram of end offsets:   -2:1, -1:1, 0:52, 1:6, 2:6, 3:2, 5:1
+  by kind (end offset != 0 / stretches):
+    dead              0 /  6   start != 0:  0
+    efficiency_loss   9 / 21   start != 0:  5
+    gain_loss         3 / 18   start != 0:  2
+    noisy             5 / 12   start != 0:  2
+    nonlinear         0 / 12   start != 0:  2
+== control, full-length true line items: stretches 30, start offset != 0: 30, end offset != 0: 30
+== the 8 new false alarms of the line mask versus all overshooting pixels beyond the dilated zone (zone = true + 2): overshoot pixels with offset > 2 in total = 8 (counted per stretch end, pixel count = offset - 2)
+   new false alarms from the line mask: 8 (these are the pixels beyond +2, per stretch)

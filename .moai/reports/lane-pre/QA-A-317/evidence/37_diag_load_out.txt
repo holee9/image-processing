@@ -1,0 +1,7 @@
+init 0
+C offset 0
+C gain 0
+C defect 0
+B offset 0
+B gain 0
+B defect 0

@@ -1,0 +1,55 @@
+"""QA-A-270 item 2 (stage 3, POST HOC: added after the path decomposition 71_correction_paths.txt was read; it is an explanatory control, not part of the committed method).
+Question: is the larger median z of the second edition on line pixels (1.603 vs 1.489 at the same pixels) the noise floor of a two-neighbour line interpolation, rather than a mistake of the line stage?
+Floor measurement on the CLEAN corrected frame C (second edition, frames 29 and 30) at pixels far from every defect of the planted map and from the truth items (distance > 12): the z of replacing a pixel by
+  (A) the mean of its two neighbours across (the line stage's width-1 rule), rows and columns separately;
+  (B) the width-2 rule: first line 2/3 outer-before + 1/3 outer-after (distances 1 and 2), and the second line the mirror;
+  (C) the median of the 8 neighbours (a stand-in for the first edition's neighbourhood fill, which is not replicated exactly);
+with z = |pixel - replacement| / sigma_local(C) (11 x 11 window, as the tool). 60,000 random pixels per variant, seeded.
+PREDICTIONS (written before the run): the medians of A (rows and columns) are above those of C by 0.05 to 0.20 (the sign of the real difference 0.114), B is between A and C, and the floors are in the neighbourhood of 1.0 or above 1.0
+(the tool's sigma_local is a window standard deviation of the corrected image and does not equal the pixel noise); if A - C comes out below 0.03 or above 0.30 the noise-floor explanation of the 0.114 does not hold.
+Usage: python -X utf8 80_interp_noise_floor.py.txt > 81_interp_noise_floor.txt"""
+import numpy as np
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/'
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+O70 = 'D:/workspace-github/xpe-data/bpm-eval-270/'
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+S = 3072
+src = open(HERE + '60_correct_zrun.py.txt', encoding='utf-8').read()
+exec(compile(src[src.index('def sigma_local'):src.index('KEYS = {}')], 'sigma', 'exec'), globals())
+setmap = np.fromfile(O60 + 'inj_v2_setmap.u8', dtype=np.uint8).reshape(S, S) != 0
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+bad = setmap | (ids != 0)
+near = bad.copy()
+for sh in range(1, 13):
+    near[sh:, :] |= bad[:-sh, :]; near[:-sh, :] |= bad[sh:, :]
+    near[:, sh:] |= bad[:, :-sh]; near[:, :-sh] |= bad[:, sh:]
+rng = np.random.default_rng(270)
+res = {}
+for f in (29, 30):
+    C = np.load(O70 + 'C_v2_%d.npy' % f).astype(np.float64)
+    sl = sigma_local(C.astype(np.float32))
+    cand = np.argwhere(~near)
+    cand = cand[(cand[:, 0] > 6) & (cand[:, 0] < S - 7) & (cand[:, 1] > 6) & (cand[:, 1] < S - 7)]
+    pick = cand[rng.choice(len(cand), size=60000, replace=False)]
+    y, x = pick[:, 0], pick[:, 1]
+    v = C[y, x]
+    s = sl[y, x]
+    ok = s > 0
+    out = {}
+    out['A rows (mean of the rows above and below)'] = np.abs(v - 0.5 * (C[y - 1, x] + C[y + 1, x]))
+    out['A columns (mean of the columns left and right)'] = np.abs(v - 0.5 * (C[y, x - 1] + C[y, x + 1]))
+    out['B width-2, first line (2/3 outer-before + 1/3 outer-after), rows'] = np.abs(v - (2.0 / 3.0 * C[y - 1, x] + 1.0 / 3.0 * C[y + 2, x]))
+    out['B width-2, first line, columns'] = np.abs(v - (2.0 / 3.0 * C[y, x - 1] + 1.0 / 3.0 * C[y, x + 2]))
+    nb = np.stack([C[y + dy, x + dx] for dy in (-1, 0, 1) for dx in (-1, 0, 1) if dy or dx])
+    out['C median of the 8 neighbours'] = np.abs(v - np.median(nb, axis=0))
+    for k, d in out.items():
+        res.setdefault(k, []).append(d[ok] / s[ok])
+print('floor medians (both frames pooled, %d pixels per variant), z = |pixel - replacement| / sigma_local' % sum(len(a) for a in res['C median of the 8 neighbours']))
+meds = {}
+for k, arrs in res.items():
+    z = np.concatenate(arrs)
+    meds[k] = float(np.sort(z)[z.size // 2])
+    print('  %-66s median %.4f  p95 %.4f' % (k, meds[k], float(np.percentile(z, 95))))
+a_rows, a_cols, c8 = meds['A rows (mean of the rows above and below)'], meds['A columns (mean of the columns left and right)'], meds['C median of the 8 neighbours']
+print('A - C: rows %.4f, columns %.4f (the real difference at the same planted line pixels: 0.114)' % (a_rows - c8, a_cols - c8))
+print('prediction check: A - C in [0.05, 0.20] for rows and columns: %s' % (0.05 <= a_rows - c8 <= 0.20 and 0.05 <= a_cols - c8 <= 0.20))

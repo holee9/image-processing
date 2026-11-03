@@ -1,0 +1,38 @@
+====================================================================================================
+first edition (v1)
+  frame 1 E2 parts_over_3_sigma_measured corrected/no_fix/clean now [75, 13, 8]            QA-A-265 [75, 13, 8]            same
+  frame 1 E2 parts_over_3_sigma_fully_inside                  now [32, 7, 5]             QA-A-265 [32, 7, 5]             same
+  frame 1 E2 other_rows checked/corrected/clean               now [2608, 246, 259]       QA-A-265 [2608, 246, 259]       same
+  frame 1 E2 other_columns checked/corrected/clean            now [362, 10, 8]           QA-A-265 [362, 10, 8]           same
+  frame 1 E2 measured / fully_inside / cut_to_area            now [142, 88, 54]          QA-A-265 [142, 88, 54]          same
+  frame 1 E3 not measurable by geometry: {'item_outside': 0, 'reference_outside': 0, 'extent_too_short': 0, 'extent_below_thickness': 0, 'outside_area': 0} -> all 0
+  frame 1 E4 uncomputable parts [0, 0, 0] rows [0, 0] columns [0, 0]; valid == geometry_measurable (142): True -> as predicted
+  frame 1 E5 the new keys exist: True
+  frame 2 E2 parts_over_3_sigma_measured corrected/no_fix/clean now [78, 13, 8]            QA-A-265 [78, 13, 8]            same
+  frame 2 E2 parts_over_3_sigma_fully_inside                  now [33, 8, 5]             QA-A-265 [33, 8, 5]             same
+  frame 2 E2 other_rows checked/corrected/clean               now [2608, 250, 261]       QA-A-265 [2608, 250, 261]       same
+  frame 2 E2 other_columns checked/corrected/clean            now [362, 8, 8]            QA-A-265 [362, 8, 8]            same
+  frame 2 E2 measured / fully_inside / cut_to_area            now [142, 88, 54]          QA-A-265 [142, 88, 54]          same
+  frame 2 E3 not measurable by geometry: {'item_outside': 0, 'reference_outside': 0, 'extent_too_short': 0, 'extent_below_thickness': 0, 'outside_area': 0} -> all 0
+  frame 2 E4 uncomputable parts [0, 0, 0] rows [0, 0] columns [0, 0]; valid == geometry_measurable (142): True -> as predicted
+  frame 2 E5 the new keys exist: True
+====================================================================================================
+second edition (v2)
+  frame 1 E2 parts_over_3_sigma_measured corrected/no_fix/clean now [6, 13, 8]             QA-A-265 [6, 13, 8]             same
+  frame 1 E2 parts_over_3_sigma_fully_inside                  now [2, 7, 5]              QA-A-265 [2, 7, 5]              same
+  frame 1 E2 other_rows checked/corrected/clean               now [2608, 267, 262]       QA-A-265 [2608, 267, 262]       same
+  frame 1 E2 other_columns checked/corrected/clean            now [362, 9, 9]            QA-A-265 [362, 9, 9]            same
+  frame 1 E2 measured / fully_inside / cut_to_area            now [142, 88, 54]          QA-A-265 [142, 88, 54]          same
+  frame 1 E3 not measurable by geometry: {'item_outside': 0, 'reference_outside': 0, 'extent_too_short': 0, 'extent_below_thickness': 0, 'outside_area': 0} -> all 0
+  frame 1 E4 uncomputable parts [0, 0, 0] rows [0, 0] columns [0, 0]; valid == geometry_measurable (142): True -> as predicted
+  frame 1 E5 the new keys exist: True
+  frame 2 E2 parts_over_3_sigma_measured corrected/no_fix/clean now [11, 13, 8]            QA-A-265 [11, 13, 8]            same
+  frame 2 E2 parts_over_3_sigma_fully_inside                  now [5, 8, 5]              QA-A-265 [5, 8, 5]              same
+  frame 2 E2 other_rows checked/corrected/clean               now [2608, 257, 262]       QA-A-265 [2608, 257, 262]       same
+  frame 2 E2 other_columns checked/corrected/clean            now [362, 9, 9]            QA-A-265 [362, 9, 9]            same
+  frame 2 E2 measured / fully_inside / cut_to_area            now [142, 88, 54]          QA-A-265 [142, 88, 54]          same
+  frame 2 E3 not measurable by geometry: {'item_outside': 0, 'reference_outside': 0, 'extent_too_short': 0, 'extent_below_thickness': 0, 'outside_area': 0} -> all 0
+  frame 2 E4 uncomputable parts [0, 0, 0] rows [0, 0] columns [0, 0]; valid == geometry_measurable (142): True -> as predicted
+  frame 2 E5 the new keys exist: True
+====================================================================================================
+E1 holds  E2 holds  E3 holds  E4 holds  E5 holds

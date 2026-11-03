@@ -1,0 +1,43 @@
+import numpy as np, sys
+T = sys.argv[1]; W, H = 3072, 2560
+L = lambda n: np.fromfile(T + '/dump_' + n + '.f32', dtype=np.float32)
+orig, vref, afterrc, hmed, bg, resid, scale = [L(n).reshape(H, W) for n in ['orig', 'vref', 'afterrc', 'hmed', 'bg', 'resid', 'scale']]
+hrefcol = L('hrefcol').reshape(H, W)
+rowc = L('rowc'); colc = L('colc')
+meta = open(T + '/dump_meta.txt').read().split(); lam = float(meta[meta.index('lambda') + 1]); cnt = int(meta[meta.index('count') + 1])
+flag = np.abs(resid.astype(np.float64)) > lam * scale.astype(np.float64)
+print('meta', ' '.join(meta))
+print('control: recomputed flagged =', int(flag.sum()), ' reported count =', cnt)
+y = np.arange(H); band = (y % 32) >= 24
+par = np.arange(W) % 2
+print('\n== per class means (rows band = y%32 in 24..31) ==')
+print('class            orig      vref    orig-vref afterrc    hmed      bg       resid    scale   flagfrac')
+for bn, bm in [('band', band), ('other', ~band)]:
+    for pn in [0, 1]:
+        sl = (bm[:, None]) & (par[None, :] == pn)
+        f = lambda a: float(a[sl].astype(np.float64).mean())
+        print(f'{bn:5s} {"even" if pn == 0 else "odd ":4s}  {f(orig):9.3f} {f(vref):9.3f} {f(orig - vref):8.3f} {f(afterrc):8.3f} {f(hmed):8.3f} {f(bg):8.3f} {f(resid):8.3f} {f(scale):7.3f}  {float(flag[sl].mean()):.4f}')
+print('\n== row component c (median over row of orig - vertical sliding median) ==')
+for bn, bm in [('band', band), ('other', ~band)]:
+    r = rowc[bm]
+    print(f'{bn}: n={r.size} mean={r.mean():.3f} median={np.median(r):.3f} p5={np.percentile(r,5):.3f} p95={np.percentile(r,95):.3f}')
+print('band rows: c by y%32:', ' '.join(f'{np.median(rowc[(y%32)==k]):.2f}' for k in range(24, 32)))
+print('col component: even median %.3f odd median %.3f' % (np.median(colc[0::2]), np.median(colc[1::2])))
+# within band rows: distribution of (orig - vref) per parity -> median over the row sits where
+d = (orig - vref)[band]
+print('band rows orig-vref even: median %.3f p25 %.3f p75 %.3f | odd: median %.3f p25 %.3f p75 %.3f' % (
+    np.median(d[:, 0::2]), np.percentile(d[:, 0::2], 25), np.percentile(d[:, 0::2], 75), np.median(d[:, 1::2]), np.percentile(d[:, 1::2], 25), np.percentile(d[:, 1::2], 75)))
+# per-band-row flag fractions
+fr = flag[band].mean(axis=1)
+print('band rows flagged fraction: min %.3f median %.3f max %.3f; rows >0.4: %d of %d' % (fr.min(), np.median(fr), fr.max(), int((fr > 0.4).sum()), fr.size))
+# pixel dump
+print('\n== pixel dump: y x | orig vref rowc colc afterrc hmed bg resid scale z flag ==')
+for yy in [1307, 1306, 1311, 1312, 1300]:
+    for xx in [1000, 1001, 1002, 1003]:
+        z = resid[yy, xx] / scale[yy, xx]
+        print(f'{yy} (y%32={yy%32}) {xx} | {orig[yy,xx]:.3f} {vref[yy,xx]:.3f} {rowc[yy]:.3f} {colc[xx]:.3f} {afterrc[yy,xx]:.3f} {hmed[yy,xx]:.3f} {bg[yy,xx]:.3f} {resid[yy,xx]:.3f} {scale[yy,xx]:.3f} {z:.2f} {int(flag[yy,xx])}')
+print('\nhmed in band row 1307, x 1000..1011:', ' '.join(f'{v:.2f}' for v in hmed[1307, 1000:1012]))
+print('afterrc in band row 1307, x 1000..1011:', ' '.join(f'{v:.2f}' for v in afterrc[1307, 1000:1012]))
+print('bg column x=1001, y 1296..1315:', ' '.join(f'{v:.2f}' for v in bg[1296:1316, 1001]))
+print('hmed column x=1001, y 1296..1315:', ' '.join(f'{v:.2f}' for v in hmed[1296:1316, 1001]))
+print('hmed column x=1000, y 1296..1315:', ' '.join(f'{v:.2f}' for v in hmed[1296:1316, 1000]))

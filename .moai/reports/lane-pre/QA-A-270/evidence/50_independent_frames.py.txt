@@ -1,0 +1,89 @@
+"""QA-A-270 item 1 (stage 4): H-real, H-edge and H-tail for the 31 bright-noise pixels on the normal control bands.
+ - H-real: the independent verification pair Bright_29 / Bright_30 (not among the 18 frames of the detector, one dose group): the temporal variance estimate d = (B29 - B30)^2 / 2 per pixel. For every band: the mean d of the flagged pixels
+   against the mean d of the other pixels of the same band (same gain, same dose), difference divided by the bootstrap standard error (2,000 resamples of the unflagged band pixels with the flagged count). < 2 SE = regression to the band mean.
+   Control (positive): the same ratio for pixels of the planted 'noisy' items against their surroundings must be far above 2 SE, else the pair cannot see noise and the H-real result is void.
+   Control (negative): 31 random pixels of the same bands (seeded) give a z of the same procedure; its spread over 200 draws is reported.
+ - H-edge: positions across/along from 21_pixels_48.tsv.txt (not recomputed): bands are 1-2 pixels thick, so 'across' is trivially at the edge (not testable); along: share within 2 pixels of a band end.
+ - H-tail: observed counts against the committed expectation (12_expected_flags_h_tail.txt).
+Reads files only. Usage: python -X utf8 50_independent_frames.py.txt > 51_independent_frames.txt"""
+import numpy as np
+
+HERE = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-270/evidence/'
+exec(compile(open(HERE + '20_classify_48.py.txt', encoding='utf-8').read().split('rows = []')[0], '20_head', 'exec'), globals())
+b29 = np.fromfile(INJ + 'Bright_29.raw', dtype='<u2').reshape(S, S).astype(np.float64)
+b30 = np.fromfile(INJ + 'Bright_30.raw', dtype='<u2').reshape(S, S).astype(np.float64)
+d = (b29 - b30) ** 2 / 2.0
+rng = np.random.default_rng(270)
+sel = new & (ids != 0) & (ids != 0xFFFF) & (feat == 32)
+print('flagged bright-noise pixels on control bands: %d' % sel.sum())
+
+
+def band_mask(k):
+    m = np.zeros((S, S), dtype=bool)
+    for (x, y, w, h) in items[k]['rects']:
+        m[y:y + h, x:x + w] = True
+    return m & (ids == k) & area
+
+
+def zscore(flag_idx, rest, n_boot=2000):
+    obs = d[flag_idx].mean() - rest.mean()
+    boots = np.array([rng.choice(rest, size=len(flag_idx), replace=True).mean() for _ in range(n_boot)]) - rest.mean()
+    return obs, float(obs / boots.std()) if boots.std() > 0 else float('nan')
+
+
+print('== H-real: mean d of the flagged pixels against the other pixels of the same band')
+tot_flag, tot_z = [], []
+for k in (101, 100, 104, 103, 110, 106):
+    band = band_mask(k)
+    fl = sel & band
+    rest = d[band & ~fl]
+    obs, z = zscore(np.nonzero(fl.ravel())[0] if False else (np.nonzero(fl)[0], np.nonzero(fl)[1]), rest)
+    print('  item %d: flagged %2d  mean d flagged %10.1f  mean d rest of band %10.1f  ratio %.2f  difference %.1f = %.2f SE' % (k, fl.sum(), d[fl].mean(), rest.mean(), d[fl].mean() / rest.mean(), obs, z))
+    tot_flag.append((fl.sum(), d[fl].mean(), rest.mean()))
+fl_all = sum(a * b for a, b, c in tot_flag) / sum(a for a, b, c in tot_flag)
+rest_all = sum(a * c for a, b, c in tot_flag) / sum(a for a, b, c in tot_flag)
+print('  pooled (weights = flagged counts): mean d flagged %.1f, rest %.1f, ratio %.2f' % (fl_all, rest_all, fl_all / rest_all))
+print('== control (positive): pixels of the planted noisy items against the same-row/column neighbours outside every item')
+zs = []
+for k, it in sorted(items.items()):
+    if it['kind'] != 'noisy' or cls[k] == 'control':
+        continue
+    band = band_mask(k)
+    if band.sum() < 50:
+        continue
+    ring = np.zeros((S, S), dtype=bool)
+    for (x, y, w, h) in it['rects']:
+        ring[max(0, y - 6):y + h + 6, max(0, x - 6):x + w + 6] = True
+    ring &= (ids == 0) & area
+    zs.append((k, it['shape'], it['level'], int(band.sum()), d[band].mean() / d[ring].mean()))
+print('  noisy items: %d; mean d inside the item / mean d in the 6-pixel ring: min %.2f median %.2f max %.2f' % (len(zs), min(z[4] for z in zs), float(np.median([z[4] for z in zs])), max(z[4] for z in zs)))
+print('== control (negative): 200 draws of 31 random pixels from the same six bands (same per-band counts), the same SE procedure; spread of the pooled ratio')
+pool = []
+for _ in range(200):
+    fr, rr = 0.0, 0.0
+    n_tot = 0
+    for (cnt, _, _), k in zip(tot_flag, (101, 100, 104, 103, 110, 106)):
+        band = band_mask(k)
+        yy, xx = np.nonzero(band)
+        pick = rng.choice(len(yy), size=cnt, replace=False)
+        m = np.zeros((S, S), dtype=bool)
+        m[yy[pick], xx[pick]] = True
+        fr += d[m].sum()
+        rr += d[band & ~m].mean() * cnt
+        n_tot += cnt
+    pool.append(fr / rr)
+pool = np.array(pool)
+print('  random pooled ratio: mean %.3f, sd %.3f, 2.5 %% %.3f, 97.5 %% %.3f' % (pool.mean(), pool.std(), np.percentile(pool, 2.5), np.percentile(pool, 97.5)))
+print('== H-edge (from 21_pixels_48.tsv.txt)')
+along = []
+for l in list(open(HERE + '21_pixels_48.tsv.txt', encoding='utf-8'))[1:]:
+    c = l.rstrip('\n').split('\t')
+    if c[2].startswith('item') and c[3] == 'brightnoise':
+        along.append((int(c[4]), int(c[5]), int(c[6]), int(c[7])))
+print('  31 pixels: across all 0 (bands %s pixels thick: trivially on the edge, not testable); along (pixels from the nearer band end): min %d, share within 2 of an end %.3f; uniform expectation about %.4f' % (
+    sorted(set(a[2] for a in along)), min(a[1] for a in along), np.mean([a[1] <= 2 for a in along]), 4.0 / 768.0))
+print('== H-tail (committed expectation, 12_expected_flags_h_tail.txt): observed 14 / 10 / 3 / 2 / 1 / 1 against upper expectations 11.15 / 12.96 / 7.35 / 2.05 / 0.24 / 0.91; sum 31 against 34.66')
+print('   rule: observed <= upper expectation = explained by the tail')
+for k, o, up in ((101, 14, 11.15), (100, 10, 12.96), (104, 3, 7.35), (103, 2, 2.05), (110, 1, 0.24), (106, 1, 0.91)):
+    print('   item %d observed %2d upper %5.2f -> %s' % (k, o, up, 'explained' if o <= up else 'exceeds'))
+print('   sum observed 31 upper 34.66 -> explained')

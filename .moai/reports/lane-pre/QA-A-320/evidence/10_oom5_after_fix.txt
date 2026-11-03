@@ -1,0 +1,5 @@
+fix rc=0 OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree [       OK ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (17 ms)
+fix rc=0 OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas [       OK ] OomPipeline.PipelineExThatRunsOutOfMemoryLeavesEverythingAsItWas (31 ms)
+fix rc=0 OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas [       OK ] OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas (52 ms)
+fix rc=0 OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched [       OK ] OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched (83 ms)
+fix rc=0 OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet [       OK ] OomPipeline.AFailedPipelineThatStartedOnAnEmptyStoreLeavesNothingOrTheWholeVerifiedSet (51 ms)

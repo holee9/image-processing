@@ -1,0 +1,16 @@
+"""QA-A-317 control for qa317_metrics.exe on a 64x64 synthetic image (known answers):
+image = 100 everywhere, pixel (10,10) = 200 and marked as truth -> defect residual must be 100 over 1 pixel;
+ROI = all pixels except (10,10); flat residual must be 0 (constant ROI); then rows alternate +/-1 -> row stripe ratio > 1."""
+import subprocess, numpy as np
+T = "D:/workspace-github/xpe-data/qa-317-tmp"
+W = H = 64
+img = np.full((H, W), 100, np.float32); img[10, 10] = 200
+roi = np.ones((H, W), np.uint8); roi[10, 10] = 0
+tr = np.zeros((H, W), np.uint8); tr[10, 10] = 1
+def run(im):
+    im.tofile(f"{T}/ctrl_img.f32"); roi.tofile(f"{T}/ctrl_roi.u8"); tr.tofile(f"{T}/ctrl_tr.u8")
+    return subprocess.run([f"{T}/qa317_metrics.exe", f"{T}/ctrl_img.f32", f"{T}/ctrl_roi.u8", f"{T}/ctrl_tr.u8", str(W), str(H)], capture_output=True, text=True).stdout.strip()
+print("constant:", run(img))
+rng = np.random.default_rng(1)
+im2 = (img + rng.normal(0, 1, img.shape)).astype(np.float32); print("noise   :", run(im2))
+im3 = im2.copy(); im3[::2, :] += 3; print("rows+3  :", run(im3))

@@ -1,0 +1,46 @@
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s1_um300/img/001.raw RUNS=31 first=50.474 min=19.437 median_excl_first=20.204 max=29.926
+RAW=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in/s6_gad_pre/img/001.raw RUNS=31 first=71.586 min=19.921 median_excl_first=20.947 max=23.883
+== prof22_s1_um300.err
+  stage:0          n=31 median_excl_first=0.000
+  stage:1          n=31 median_excl_first=0.683
+  stage:3          n=31 median_excl_first=0.007
+  stage:40         n=31 median_excl_first=2.094
+  stage:4          n=31 median_excl_first=1.343
+  stage:5          n=31 median_excl_first=0.012
+  defect:finite    n=31 median_excl_first=0.400
+  defect:maskset   n=31 median_excl_first=1.026
+  defect:copy      n=31 median_excl_first=0.015
+  defect:list      n=31 median_excl_first=0.896
+  defect:done_alloc n=31 median_excl_first=1.311
+  defect:classify  n=31 median_excl_first=1.235
+  defect:lines     n=31 median_excl_first=3.651
+  defect:fd_h      n=31 median_excl_first=0.772
+  defect:fdbuild   n=31 median_excl_first=1.909
+  defect:fill      n=31 median_excl_first=2.022
+  stage:6          n=31 median_excl_first=14.003
+  stage:7          n=31 median_excl_first=0.006
+  stage:9          n=31 median_excl_first=0.881
+   31 QA315 info count=368710 slots=7864320 extra=367689 layers=0
+   31 QA315 info fd_ms=0.000 cluster=337305 isolated=1005 ring=0
+== prof22_s6_gad_pre.err
+  stage:0          n=31 median_excl_first=0.000
+  stage:1          n=31 median_excl_first=0.671
+  stage:3          n=31 median_excl_first=0.009
+  stage:40         n=31 median_excl_first=2.040
+  stage:4          n=31 median_excl_first=1.248
+  stage:5          n=31 median_excl_first=0.013
+  defect:finite    n=31 median_excl_first=0.403
+  defect:maskset   n=31 median_excl_first=0.988
+  defect:copy      n=31 median_excl_first=0.016
+  defect:list      n=31 median_excl_first=0.828
+  defect:done_alloc n=31 median_excl_first=1.325
+  defect:classify  n=31 median_excl_first=1.180
+  defect:lines     n=31 median_excl_first=3.161
+  defect:fd_h      n=31 median_excl_first=0.694
+  defect:fdbuild   n=31 median_excl_first=1.577
+  defect:fill      n=31 median_excl_first=4.023
+  stage:6          n=31 median_excl_first=14.929
+  stage:7          n=31 median_excl_first=0.006
+  stage:9          n=31 median_excl_first=0.877
+   31 QA315 info count=353090 slots=7864320 extra=324910 layers=0
+   31 QA315 info fd_ms=0.000 cluster=263630 isolated=750 ring=0

@@ -1,0 +1,8 @@
+import numpy as np
+S=3072
+f=np.fromfile('D:/workspace-github/xpe-data/bpm-eval-260/v2_full_features.u8',np.uint8).reshape(S,S)[2:S-1,6:S-1]
+z=np.load('D:/workspace-github/xpe-data/qa-314-tmp/z_planted.npy')
+t=(f&1)!=0; m=np.abs(z)>5.315594538546082
+print('tool DM',int(t.sum()),'mine',int(m.sum()),'both',int((t&m).sum()),'tool only',int((t&~m).sum()),'mine only',int((m&~t).sum()))
+for thr in (5.30,5.33):
+  print(thr,int((np.abs(z)>thr).sum()))

@@ -1,0 +1,7 @@
+@echo off
+set "PATH=C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem"
+call "C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 11
+set T=D:\workspace-github\xpe-data\qa-317-tmp
+cl /nologo /EHsc /O2 /MD /std:c++17 /I D:\workspace-github\xpe-pre\modules\preprocess\tools %T%\qa317_metrics.cpp /Fe:%T%\qa317_metrics.exe /Fo:%T%\qa317_metrics.obj || exit /b 12
+cl /nologo /EHsc /O2 /MD /std:c++17 /I D:\workspace-github\xpe-pre\modules\preprocess\include /I D:\workspace-github\xpe-pre\modules\common\include %T%\qa317_time.cpp /Fe:%T%\qa317_time.exe /Fo:%T%\qa317_time.obj /link /LIBPATH:D:\workspace-github\xpe-pre\build\ci-preprocess\lib xpe_preprocess.lib xpe_common.lib || exit /b 13
+exit /b 0

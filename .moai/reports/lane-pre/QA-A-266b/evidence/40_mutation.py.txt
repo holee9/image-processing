@@ -1,0 +1,38 @@
+"""QA-A-266b mutation check of the boundary fixes of xpe_verify_offset_signed (R237-1..3). The runner of QA-A-266 (freshness of the executable asserted for every mutant) with one addition required by the
+QA-A-267 review: a failing baseline stops the run before any mutant. Usage: PYTHONIOENCODING=utf-8 python -X utf8 40_mutation.py.txt"""
+SRC = 'D:/workspace-github/xpe-pre/modules/preprocess/src/xpe_verify_metrics.cpp'
+TITLE = 'QA-A-266b mutation check (ROI rules, struct publication, NULL-argument output).'
+LOG = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-266b/evidence/41_mutation_log.txt'
+FILT = 'VerifyOffsetSigned*'
+PRED = [
+    '  N1 the two-sample minimum of the ROI removed                                       -> red: AnEmptyOrTooSmallRoiIsUnmeasured... (a ROI of 1 pixel would be measured)',
+    '  N2 the 1 % compared by rounding down (roi >= n / 100) instead of the integer roi * 100 >= n -> red: AnEmptyOrTooSmallRoi... (2 of 201 and 3 of 301 would be measured)',
+    '  N3a the "std of the raw ROI > 0" condition of the dB removed alone                 -> GREEN: the finite test of the dB covers it (log10(0) is -inf); the two guards are redundant to each other',
+    '  N3b the "dB is finite" condition removed alone                                    -> GREEN: the spread condition covers every input that makes it infinite',
+    '  N3c both conditions of the dB removed (the guard replaced by a test that is always true) -> red: AnEmptyOrTooSmallRoi... (10 equal pixels: DARK_REDUCTION must be clear, the value must be finite)',
+    '  N4 the written part reaches 7 bytes past the largest field boundary inside structSize -> red: TheStructSizeRuleWritesOnlyCompleteFields... (writtenSize, and bytes past the boundary)',
+    '  N5 the bytes of a group that does not fit are not zeroed                          -> red: TheStructSizeRuleWritesOnlyCompleteFields... (size 72: darkBiasSigned would read 2)',
+    '  N6 a NULL raw or map leaves the output as it was                                  -> red: ANullArgumentClearsAnEarlierResultLikeEveryOtherError',
+    '  N7 a NULL path / NULL raw of the file variant leaves the output as it was         -> red: ANullArgumentClearsAnEarlierResultLikeEveryOtherError',
+    '  N8 the finite check of the four ROI statistics removed                            -> GREEN: no input of a finite map and a UINT16 raw makes a double sum infinite; a defensive guard without a test, reported',
+    '  N9 the ROI group bits are set by the old rule (any ROI of size >= 0)               -> red: AnEmptyOrTooSmallRoi... and ARawFrameWithoutVariationOrWithoutAnROI...',
+    '  every other test of the filter stays green in each mutant, except where named above',
+]
+MUTANTS = [
+    ('N1', SRC, b'const bool roi_ok = sx.size() >= 2u && sx.size() * 100u >= n;', b'const bool roi_ok = sx.size() * 100u >= n;'),
+    ('N2', SRC, b'const bool roi_ok = sx.size() >= 2u && sx.size() * 100u >= n;', b'const bool roi_ok = sx.size() >= 2u && sx.size() >= n / 100u;'),
+    ('N3a', SRC, b'if (std_r > 0.0 && std::isfinite(db)) {', b'if (std::isfinite(db)) {'),
+    ('N3b', SRC, b'if (std_r > 0.0 && std::isfinite(db)) {', b'if (std_r > 0.0) {'),
+    ('N3c', SRC, b'if (std_r > 0.0 && std::isfinite(db)) {', b'if (std_r >= 0.0) {'),
+    ('N4', SRC, b'        if (bound <= cap) take = bound;', b'        if (bound <= cap + 7u) take = bound;'),
+    ('N5', SRC, b'            std::memset(reinterpret_cast<uint8_t*>(&w) + g.begin, 0, g.end - g.begin);', b'            std::memset(reinterpret_cast<uint8_t*>(&w) + g.begin, 0, 0u);'),
+    ('N6', SRC, b'    if (!raw_image || !offset_map) return quality_failure(quality, XPE_ERR_INVALID_INPUT);', b'    if (!raw_image || !offset_map) return XPE_ERR_INVALID_INPUT;'),
+    ('N7', SRC, b'        if (!raw_image || !offset_xcal_path) return quality_failure(quality, XPE_ERR_INVALID_INPUT);', b'        if (!raw_image || !offset_xcal_path) return XPE_ERR_INVALID_INPUT;'),
+    ('N8', SRC, b'if (std::isfinite(mean_x) && std::isfinite(std_x) && std::isfinite(mean_o) && std::isfinite(std_o)) {', b'if (n > 0u) {'),
+    ('N9', SRC, b'const bool roi_ok = sx.size() >= 2u && sx.size() * 100u >= n;', b"const bool roi_ok = (sx.size() | 1u) != 0u;"),
+]
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-266/evidence/40_mutation_runner.py.txt', encoding='utf-8').read()
+marker = "    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))\n    for name, path, old, new in MUTANTS:"
+assert src.count(marker) == 1
+src = src.replace(marker, "    say('tests exit %d: %d passed, failed: %s' % (rc, len(ok), bad))\n    if rc != 0 or bad:\n        raise SystemExit('baseline is not green: stopped before any mutant')\n    for name, path, old, new in MUTANTS:")
+exec(compile(src, 'runner', 'exec'))

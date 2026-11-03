@@ -1,0 +1,29 @@
+import sys
+p = sys.argv[1]
+s = open(p, encoding='utf-8', newline='').read()
+nl = '\r\n' if '\r\n' in s else '\n'
+L = s.split(nl)
+T = ' // QA315TMP'
+BS = chr(92)
+
+def find(pred, start=0):
+    for k in range(start, len(L)):
+        if pred(L[k]):
+            return k
+    raise SystemExit('not found')
+
+def ind(k):
+    return L[k][:len(L[k]) - len(L[k].lstrip())]
+
+k = find(lambda l: l.strip().startswith('static std::atomic<size_t> qa315_ring{0};'))
+L.insert(k+1, 'static std::atomic<size_t> qa315_rh[17];' + T)
+k = find(lambda l: l.strip().startswith('const int radius = fd.dist[ms.slot('))
+L.insert(k+1, ind(k) + 'qa315_rh[radius].fetch_add(1, std::memory_order_relaxed);' + T)
+k = find(lambda l: l.strip().startswith('size_t qa315_lc = 0, qa315_li = 0;'))
+L.insert(k+1, ind(k) + 'const auto qa315_c0 = std::chrono::steady_clock::now();' + T)
+k = find(lambda l: l.strip().startswith('qa315_nc += qa315_lc; qa315_ni += qa315_li;'))
+L.insert(k+1, ind(k) + 'std::fprintf(stderr, "QA315 chunk %zu %zu %.3f' + BS + 'n", b, e, std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - qa315_c0).count());' + T)
+k = find(lambda l: l.strip().startswith('qa315_lap("fill");'))
+L.insert(k+1, ind(k) + 'for (int r = 0; r <= 16; ++r) { std::fprintf(stderr, "QA315 rh %d %zu' + BS + 'n", r, qa315_rh[r].load()); qa315_rh[r] = 0; }' + T)
+open(p, 'w', encoding='utf-8', newline='').write(nl.join(L))
+print('ok')

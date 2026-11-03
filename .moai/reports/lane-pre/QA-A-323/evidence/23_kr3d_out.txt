@@ -1,0 +1,17 @@
+mean signed (r-1) over bright03_{06..13,17..19}: control p0.5/p50/p99.5 [-0.0094, 0.0001, 0.0088]
+engine_only all n=560: mean(r-1) p5/p50/p95 [-0.0072, 0.0003, 0.0077] | below ctl p0.5 14 above ctl p99.5 19
+   |mean(r-1)|>0.01: eo 15 (0.027) | ctl fraction 0.0048
+   |mean(r-1)|>0.015: eo 5 (0.009) | ctl fraction 0.0004
+   |mean(r-1)|>0.02: eo 3 (0.005) | ctl fraction 0.0000
+   |mean(r-1)|>0.03: eo 1 (0.002) | ctl fraction 0.0000
+with_only n=440: mean(r-1) p5/p50/p95 [-0.007, 0.0005, 0.0078] | below ctl p0.5 9 above ctl p99.5 16
+   |mean(r-1)|>0.01: eo 9 (0.020) | ctl fraction 0.0048
+   |mean(r-1)|>0.015: eo 0 (0.000) | ctl fraction 0.0004
+   |mean(r-1)|>0.02: eo 0 (0.000) | ctl fraction 0.0000
+   |mean(r-1)|>0.03: eo 0 (0.000) | ctl fraction 0.0000
+without_only n=120: mean(r-1) p5/p50/p95 [-0.0078, -0.0006, 0.0067] | below ctl p0.5 5 above ctl p99.5 3
+   |mean(r-1)|>0.01: eo 6 (0.050) | ctl fraction 0.0048
+   |mean(r-1)|>0.015: eo 5 (0.042) | ctl fraction 0.0004
+   |mean(r-1)|>0.02: eo 3 (0.025) | ctl fraction 0.0000
+   |mean(r-1)|>0.03: eo 1 (0.008) | ctl fraction 0.0000
+sign split engine_only: negative 267 positive 293

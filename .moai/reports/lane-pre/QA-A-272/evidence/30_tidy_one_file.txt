@@ -1,0 +1,96 @@
+13799 warnings and 1 error generated.
+Error while processing D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp.
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:12:10: error: 'xpe/preprocess_api.h' file not found [clang-diagnostic-error]
+   12 | #include "xpe/preprocess_api.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:195:24: warning: 2 adjacent parameters of 'compute_std' of convertible types are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  195 |     double compute_std(const std::vector<double>& values, double mean) noexcept {
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:195:51: note: the first parameter in the range is 'values'
+  195 |     double compute_std(const std::vector<double>& values, double mean) noexcept {
+      |                                                   ^~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:195:66: note: the last parameter in the range is 'mean'
+  195 |     double compute_std(const std::vector<double>& values, double mean) noexcept {
+      |                                                                  ^~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:195:59: note: 'const int &' and 'double' parameters accept and bind the same kind of values
+  195 |     double compute_std(const std::vector<double>& values, double mean) noexcept {
+      |                                                           ^
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:195:59: note: 'const int &' and 'double' may be implicitly converted: 'const int &' (as 'int') -> 'double', 'double' -> 'const int &' (as 'int')
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:208:29: warning: 2 adjacent parameters of 'compute_flatness' of similar type are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  208 |     double compute_flatness(const std::vector<double>& values, int bins = 256) {   // builds a histogram: allocates, so not noexcept (QA-A-204)
+      |                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:208:56: note: the first parameter in the range is 'values'
+  208 |     double compute_flatness(const std::vector<double>& values, int bins = 256) {   // builds a histogram: allocates, so not noexcept (QA-A-204)
+      |                                                        ^~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:208:68: note: the last parameter in the range is 'bins'
+  208 |     double compute_flatness(const std::vector<double>& values, int bins = 256) {   // builds a histogram: allocates, so not noexcept (QA-A-204)
+      |                                                                    ^~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:208:64: note: 'const int &' and 'int' parameters accept and bind the same kind of values
+  208 |     double compute_flatness(const std::vector<double>& values, int bins = 256) {   // builds a histogram: allocates, so not noexcept (QA-A-204)
+      |                                                                ^
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:255:35: warning: 3 adjacent parameters of 'compute_neighbor_mean' of similar type ('uint32_t') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  255 |                                   uint32_t x, uint32_t y,
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~
+  256 |                                   uint32_t width, uint32_t height) noexcept {
+      |                                   ~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:255:44: note: the first parameter in the range is 'x'
+  255 |                                   uint32_t x, uint32_t y,
+      |                                            ^
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:256:44: note: the last parameter in the range is 'width'
+  256 |                                   uint32_t width, uint32_t height) noexcept {
+      |                                            ^~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:406:60: warning: narrowing conversion from 'size_t' (aka 'unsigned long long') to 'double' [bugprone-narrowing-conversions]
+  406 |     uint16_t dark_threshold = raw_copy[static_cast<size_t>(pixel_count * 0.1)];
+      |                                                            ^
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:621:70: warning: narrowing conversion from 'size_t' (aka 'unsigned long long') to 'double' [bugprone-narrowing-conversions]
+  621 |     metrics->gain_coverage = static_cast<double>(valid_gain_count) / pixel_count;
+      |                                                                      ^
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:761:77: warning: narrowing conversion from 'size_t' (aka 'unsigned long long') to 'double' [bugprone-narrowing-conversions]
+  761 |     metrics->defect_density = (static_cast<double>(metrics->defect_count) / pixel_count) * 100.0;
+      |                                                                             ^
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:903:5: warning: 2 adjacent parameters of 'xpe_verify_offset' of similar type ('const XpeImageBuffer *') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  903 |     const XpeImageBuffer* raw_image,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  904 |     const XpeImageBuffer* corrected_image,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:903:27: note: the first parameter in the range is 'raw_image'
+  903 |     const XpeImageBuffer* raw_image,
+      |                           ^~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:904:27: note: the last parameter in the range is 'corrected_image'
+  904 |     const XpeImageBuffer* corrected_image,
+      |                           ^~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:920:5: warning: 3 adjacent parameters of 'xpe_verify_gain' of similar type ('const XpeImageBuffer *') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  920 |     const XpeImageBuffer* before_gain,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  921 |     const XpeImageBuffer* after_gain,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  922 |     const XpeImageBuffer* gain_map,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:920:27: note: the first parameter in the range is 'before_gain'
+  920 |     const XpeImageBuffer* before_gain,
+      |                           ^~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:922:27: note: the last parameter in the range is 'gain_map'
+  922 |     const XpeImageBuffer* gain_map,
+      |                           ^~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:938:5: warning: 2 adjacent parameters of 'xpe_verify_pipeline' of similar type ('const XpeImageBuffer *') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+  938 |     const XpeImageBuffer* raw_image,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  939 |     const XpeImageBuffer* final_image,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:938:27: note: the first parameter in the range is 'raw_image'
+  938 |     const XpeImageBuffer* raw_image,
+      |                           ^~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:939:27: note: the last parameter in the range is 'final_image'
+  939 |     const XpeImageBuffer* final_image,
+      |                           ^~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:1136:5: warning: 2 adjacent parameters of 'xpe_verify_offset_signed' of similar type ('const XpeImageBuffer *') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+ 1136 |     const XpeImageBuffer* raw_image,
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 1137 |     const XpeImageBuffer* offset_map,
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:1136:27: note: the first parameter in the range is 'raw_image'
+ 1136 |     const XpeImageBuffer* raw_image,
+      |                           ^~~~~~~~~
+D:\workspace-github\xpe-pre\modules\preprocess\src\xpe_verify_metrics.cpp:1137:27: note: the last parameter in the range is 'offset_map'
+ 1137 |     const XpeImageBuffer* offset_map,
+      |                           ^~~~~~~~~~

@@ -1,0 +1,25 @@
+{
+  "written_by": "ImageProcTest comparison import window (QA-A-273)",
+  "utc": "2026-10-20T23:22:53.8062387Z",
+  "script_path": "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\contract-v4-modified\\comparison_manifest.py",
+  "script_sha256": "ef9b6e9ecb5c9949ad8c44591b3ba6d900559be1186fdc08ecd1e6bc11597482",
+  "python_path": "python",
+  "python_version": "Python 3.12.10",
+  "command": [
+    "python",
+    "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\contract-v4-modified\\comparison_manifest.py",
+    "compare",
+    "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\fixtures-v4\\ok\\manifest.json",
+    "--out",
+    "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-gui-contract-v4-modified-20261020T232243Z\\results"
+  ],
+  "exit_code": 0,
+  "reviewed_script_sha256": [
+    "86104cc6c11fd43a010a15abe696075bdc751db3aa0b66cf5c5925d2280ddf0c",
+    "e9e3850c27cf2bb56521cb945439320afea4f0952c50d5a099aca4d1dc26baa6"
+  ],
+  "computed_script_sha256": "ef9b6e9ecb5c9949ad8c44591b3ba6d900559be1186fdc08ecd1e6bc11597482",
+  "contract_review_state": "unreviewed-sha-differs",
+  "stdout_tail": "computed D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-gui-contract-v4-modified-20261020T232243Z\\results\\20261020T232253Z-7ed71262",
+  "stderr_tail": ""
+}

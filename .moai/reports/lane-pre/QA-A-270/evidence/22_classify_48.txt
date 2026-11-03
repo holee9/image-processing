@@ -1,0 +1,43 @@
+A0 reproduction: new false alarms 48 (expect 48), on normal control items 31 (expect 31), background 17 (expect 17) -> OK
+dark levels: delta = mean(08,09,10,12) - mean(11,13,14); whole-area median 5.8333, robust sigma 2.4710
+wrote 21_pixels_48.tsv.txt (48 rows)
+
+== partition by class
+  brightnoise      background     1
+  brightnoise      control item  31
+  darkmean         background     8
+  line             background     8
+
+== persistence in the two half acquisitions (each pixel: on in half A, half B)
+  control, bright noise (31)     both  0  only A  1  only B  2  neither 28
+  background (17)                both  3  only A  6  only B  0  neither  8
+
+== position of the 31 on the control bands (across = rows/columns from the nearest long side; along = pixels from the nearer end of the band)
+  item 100 efficiency_loss/row_full/0.6 thickness 1 length 3072: flagged 10; across [np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0)]; along [np.int64(30), np.int64(42), np.int64(44), np.int64(225), np.int64(278), np.int64(311), np.int64(358), np.int64(450), np.int64(523), np.int64(742)]; neighbours within 3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  item 101 efficiency_loss/col_full/0.6 thickness 1 length 3072: flagged 14; across [np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0), np.int64(0)]; along [np.int64(107), np.int64(213), np.int64(289), np.int64(304), np.int64(387), np.int64(429), np.int64(541), np.int64(550), np.int64(790), np.int64(891), np.int64(1038), np.int64(1287), np.int64(1350), np.int64(1412)]; neighbours within 3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  item 103 efficiency_loss/col_partial/0.6 thickness 1 length 768: flagged 2; across [np.int64(0), np.int64(0)]; along [np.int64(9), np.int64(77)]; neighbours within 3: [0, 0]
+  item 104 efficiency_loss/row_pair/0.6 thickness 2 length 768: flagged 3; across [np.int64(0), np.int64(0), np.int64(0)]; along [np.int64(132), np.int64(224), np.int64(227)]; neighbours within 3: [0, 0, 0]
+  item 106 efficiency_loss/row_full/0.7 thickness 1 length 3072: flagged 1; across [np.int64(0)]; along [np.int64(801)]; neighbours within 3: [0]
+  item 110 efficiency_loss/row_pair/0.7 thickness 2 length 768: flagged 1; across [np.int64(0)]; along [np.int64(108)]; neighbours within 3: [0]
+
+== the background 17, one row each: x y class | nearest true/undetermined pixel (Chebyshev, 30 max) | distance to the imaging-area edge | row/column pixels with the line mask | dark-level z | halves
+   934  536 brightnoise        zone   7 aedge  536 linemask row   26 col   27 dz  -1.01 halfA 0 halfB 0 neighbours 0
+   199  349 darkmean           zone  14 aedge  199 linemask row   21 col   17 dz  -0.27 halfA 1 halfB 0 neighbours 0
+   199  796 darkmean           zone 999 aedge  199 linemask row   28 col   17 dz   0.44 halfA 0 halfB 0 neighbours 0
+  2185  901 darkmean           zone  13 aedge  886 linemask row   24 col   26 dz  -2.26 halfA 1 halfB 0 neighbours 0
+  1453 1023 darkmean           zone  20 aedge 1023 linemask row   26 col   30 dz   0.07 halfA 0 halfB 0 neighbours 0
+   454 1095 darkmean           zone   3 aedge  454 linemask row   24 col   20 dz  -0.64 halfA 1 halfB 0 neighbours 0
+  1246 1253 darkmean           zone   9 aedge 1246 linemask row   25 col   25 dz  -1.69 halfA 0 halfB 0 neighbours 0
+  2707 1590 darkmean           zone 999 aedge  364 linemask row   27 col   19 dz  -1.25 halfA 0 halfB 0 neighbours 0
+   196 1612 darkmean           zone  12 aedge  196 linemask row   27 col   17 dz   0.57 halfA 0 halfB 0 neighbours 0
+  1418  190 line               zone   4 aedge  190 linemask row  788 col   31 dz  -0.94 halfA 1 halfB 0 neighbours 1
+  1419  190 line               zone   3 aedge  190 linemask row  788 col   31 dz  -1.82 halfA 1 halfB 0 neighbours 1
+  1758 1111 line               zone   3 aedge 1111 linemask row   27 col  793 dz   1.45 halfA 0 halfB 0 neighbours 0
+  1902 1760 line               zone   3 aedge 1169 linemask row   28 col  792 dz  -2.43 halfA 0 halfB 0 neighbours 0
+   480 2222 line               zone   3 aedge  480 linemask row   28 col  784 dz  -1.08 halfA 1 halfB 1 neighbours 2
+   480 2223 line               zone   4 aedge  480 linemask row   28 col  784 dz   1.18 halfA 1 halfB 1 neighbours 2
+   480 2224 line               zone   5 aedge  480 linemask row   28 col  784 dz  -1.65 halfA 1 halfB 1 neighbours 2
+   162 2317 line               zone   3 aedge  162 linemask row   26 col  779 dz   0.47 halfA 1 halfB 0 neighbours 0
+
+dark-level z of the 8 dark-mean pixels: -0.27, 0.44, -2.26, 0.07, -0.64, -1.69, -1.25, 0.57
+control for the dark-level z: |z|>=3 share among ALL area pixels 0.0040; among the area pixels flagged dark_mean in the map (not only new false alarms) 0.0314

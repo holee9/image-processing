@@ -1,0 +1,258 @@
+using System.Buffers.Binary;
+using System.IO;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
+namespace ImageProcTest.Services.Comparison;
+
+/// <summary>Signed A-minus-B statistics over the shared ROI, float64, streamed in row blocks (the ROI rows are read by seeking; a full frame is never loaded for the numbers).</summary>
+public sealed record PairStatistics(long ValidPixels, double MeanAMinusB, double StdAMinusB, double Rmse, double MeanAbs, double MinAMinusB, double MaxAMinusB);
+
+/// <summary>Outcome of one comparison. Status is computed, refused, failed or error; only <c>computed</c> carries statistics.</summary>
+public sealed record ComparisonOutcome(string Status, IReadOnlyList<string> Reasons, ComparisonContract.Validation? Validation, PairStatistics? Stats, long NonfiniteCount);
+
+/// <summary>Reads, compares and records. Imported-file numeric difference only: no vendor run, no quality judgement (QA-A-273, contract xpe-2g-pre-comparison/2).</summary>
+public static class ComparisonRunner
+{
+    private sealed class Frame : IDisposable
+    {
+        private readonly FileStream _stream;
+        public readonly string Dtype;
+        public readonly int Item;
+        public readonly long Width, Height, Offset;
+
+        public Frame(JsonNode output, string baseDir)
+        {
+            var path = ComparisonContract.Resolve(baseDir, ComparisonContract.Str(ComparisonContract.Get(output, "path")) ?? "") ?? throw new IOException("path outside base");
+            Dtype = ComparisonContract.Str(ComparisonContract.Get(output, "dtype")) ?? "";
+            Item = ComparisonContract.ItemSize(Dtype) ?? throw new IOException("unsupported dtype");
+            ComparisonContract.TryInt(ComparisonContract.Get(output, "width"), out Width);
+            ComparisonContract.TryInt(ComparisonContract.Get(output, "height"), out Height);
+            Offset = ComparisonContract.Has(output, "offset_bytes") ? (ComparisonContract.TryInt(ComparisonContract.Get(output, "offset_bytes"), out var o) ? o : 0) : 0;
+            _stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        /// <summary>The columns x0..x0+n of row y, exactly as stored, as float64 (every supported format converts to double without rounding).</summary>
+        public void ReadRow(long y, long x0, int n, double[] into, int at, long step = 1)
+        {
+            var count = (int)((n + step - 1) / step);
+            var bytes = new byte[n * Item];
+            _stream.Seek(Offset + (y * Width + x0) * Item, SeekOrigin.Begin);
+            try { _stream.ReadExactly(bytes); } catch (EndOfStreamException) { throw new IOException($"short read at row {y}"); }
+            for (var i = 0; i < count; i++)
+            {
+                var span = bytes.AsSpan((int)(i * step) * Item, Item);
+                // every arm is cast to double ON ITS OWN: without it the switch takes the best common type (float) and a uint32 near 4e9 loses its low bits (found by the parity fixture ok_uint32_large)
+                into[at + i] = Dtype switch
+                {
+                    "uint16" => (double)BinaryPrimitives.ReadUInt16LittleEndian(span),
+                    "int16" => (double)BinaryPrimitives.ReadInt16LittleEndian(span),
+                    "uint32" => (double)BinaryPrimitives.ReadUInt32LittleEndian(span),
+                    "int32" => (double)BinaryPrimitives.ReadInt32LittleEndian(span),
+                    _ => (double)BinaryPrimitives.ReadSingleLittleEndian(span),
+                };
+            }
+        }
+
+        public void Dispose() => _stream.Dispose();
+    }
+
+    /// <summary>Chunked A-minus-B statistics (Chan's parallel combination). A nonfinite difference anywhere in the ROI refuses the comparison: only the count is returned.</summary>
+    private static (PairStatistics? Stats, long Nonfinite) StreamStats(JsonNode outA, JsonNode outB, string baseDir, JsonNode roi)
+    {
+        ComparisonContract.TryInt(ComparisonContract.Get(roi, "x"), out var rx);
+        ComparisonContract.TryInt(ComparisonContract.Get(roi, "y"), out var ry);
+        ComparisonContract.TryInt(ComparisonContract.Get(roi, "width"), out var rw);
+        ComparisonContract.TryInt(ComparisonContract.Get(roi, "height"), out var rh);
+        using var fa = new Frame(outA, baseDir);
+        using var fb = new Frame(outB, baseDir);
+        long n = 0, nonfinite = 0;
+        double mean = 0.0, m2 = 0.0, sabs = 0.0, ssq = 0.0, lo = double.PositiveInfinity, hi = double.NegativeInfinity;
+        var rowsA = new double[ComparisonContract.RowChunk * (int)rw];
+        var rowsB = new double[ComparisonContract.RowChunk * (int)rw];
+        for (var y0 = ry; y0 < ry + rh; y0 += ComparisonContract.RowChunk)
+        {
+            var y1 = Math.Min(y0 + ComparisonContract.RowChunk, ry + rh);
+            var rows = (int)(y1 - y0);
+            for (var i = 0; i < rows; i++)
+            {
+                fa.ReadRow(y0 + i, rx, (int)rw, rowsA, i * (int)rw);
+                fb.ReadRow(y0 + i, rx, (int)rw, rowsB, i * (int)rw);
+            }
+            var k = rows * (int)rw;
+            var d = new double[k];
+            var chunkNonfinite = 0;
+            for (var i = 0; i < k; i++)
+            {
+                d[i] = rowsA[i] - rowsB[i];
+                if (!double.IsFinite(d[i])) chunkNonfinite++;
+            }
+            nonfinite += chunkNonfinite;
+            if (nonfinite != 0) continue;   // keep counting; the result is refused below
+            double sum = 0.0;
+            for (var i = 0; i < k; i++) sum += d[i];
+            var cm = sum / k;
+            double cm2 = 0.0, cabs = 0.0, cssq = 0.0;
+            for (var i = 0; i < k; i++)
+            {
+                var dev = d[i] - cm;
+                cm2 += dev * dev;
+                cabs += Math.Abs(d[i]);
+                cssq += d[i] * d[i];
+                if (d[i] < lo) lo = d[i];
+                if (d[i] > hi) hi = d[i];
+            }
+            var delta = cm - mean;
+            var tot = n + k;
+            mean += delta * k / tot;
+            m2 += cm2 + delta * delta * n * k / tot;
+            n = tot;
+            sabs += cabs;
+            ssq += cssq;
+        }
+        if (nonfinite != 0) return (null, nonfinite);
+        return (new PairStatistics(n, mean, Math.Sqrt(m2 / n), Math.Sqrt(ssq / n), sabs / n, lo, hi), 0);
+    }
+
+    /// <summary>Validate, then compute the statistics. A manifest that is not comparable is refused with its reason codes.</summary>
+    public static ComparisonOutcome Compare(JsonNode manifest, string baseDir)
+    {
+        var v = ComparisonContract.Validate(manifest, baseDir);
+        if (!v.Comparable) return new ComparisonOutcome("refused", v.Reasons, v, null, 0);
+        var engines = ComparisonContract.Get(manifest, "engines");
+        var (stats, nonfinite) = StreamStats(ComparisonContract.Get(ComparisonContract.Get(engines, "A"), "output")!, ComparisonContract.Get(ComparisonContract.Get(engines, "B"), "output")!,
+            baseDir, ComparisonContract.Get(manifest, "roi")!);
+        if (stats is null) return new ComparisonOutcome("refused", ["NONFINITE_VALUES"], v, null, nonfinite);
+        return new ComparisonOutcome("computed", [], v, stats, 0);
+    }
+
+    private static SortedDictionary<string, string?> SourceHashes(JsonNode manifest, string baseDir)
+    {
+        var result = new SortedDictionary<string, string?>(StringComparer.Ordinal);
+        var entries = new List<(string Label, JsonNode? Entry)> { ("input", ComparisonContract.Get(manifest, "input")) };
+        if (ComparisonContract.Get(manifest, "engines") is JsonObject engines)
+            foreach (var key in engines.Select(p => p.Key).OrderBy(k => k, StringComparer.Ordinal))
+            {
+                var e = engines[key];
+                entries.Add(($"{key}.output", ComparisonContract.Get(e, "output")));
+                if (ComparisonContract.Get(e, "maps") is JsonObject maps)
+                    foreach (var name in maps.Select(p => p.Key).OrderBy(k => k, StringComparer.Ordinal)) entries.Add(($"{key}.map.{name}", maps[name]));
+            }
+        foreach (var (label, entry) in entries)
+        {
+            var rel = ComparisonContract.Str(ComparisonContract.Get(entry, "path"));
+            var p = string.IsNullOrEmpty(rel) ? null : ComparisonContract.Resolve(baseDir, rel);
+            result[label] = p is not null && File.Exists(p) ? ComparisonContract.Sha256File(p) : null;
+        }
+        return result;
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    /// <summary>
+    /// Compare and write result.json into a NEW, never reused run folder under <paramref name="outRoot"/> (name: UTC stamp + 8 hex). Source files are hashed before and after: a change in between records
+    /// <c>failed</c> with SOURCE_CHANGED_DURING_RUN and drops the statistics. An exception is recorded as <c>error</c>, never as success. <paramref name="betweenReads"/> is a test seam run after the numbers are read.
+    /// </summary>
+    public static string RunAndRecord(JsonNode manifest, string baseDir, string outRoot, Action? betweenReads = null)
+    {
+        Directory.CreateDirectory(outRoot);
+        var runId = DateTime.UtcNow.ToString("yyyyMMdd'T'HHmmss'Z'") + "-" + Guid.NewGuid().ToString("N")[..8];
+        var runDir = Path.Combine(outRoot, runId);
+        if (Directory.Exists(runDir)) throw new IOException("run folder already exists: " + runDir);
+        Directory.CreateDirectory(runDir);
+        SortedDictionary<string, string?>? before = null, after = null;
+        var result = new JsonObject();
+        try
+        {
+            before = SourceHashes(manifest, baseDir);
+            var outcome = Compare(manifest, baseDir);
+            betweenReads?.Invoke();
+            after = SourceHashes(manifest, baseDir);
+            result["status"] = outcome.Status;
+            result["reasons"] = new JsonArray(outcome.Reasons.Select(r => (JsonNode?)JsonValue.Create(r)).ToArray());
+            if (outcome.Validation is { } val) result["validation"] = ValidationJson(val);
+            if (outcome.Stats is { } s)
+            {
+                result["roi"] = ComparisonContract.Get(manifest, "roi")?.DeepClone();
+                result["units"] = ComparisonContract.Str(ComparisonContract.Get(ComparisonContract.Get(ComparisonContract.Get(ComparisonContract.Get(manifest, "engines"), "A"), "output"), "units"));
+                result["difference"] = "A minus B (A=samsung-2g-x64w imported output, B=new-pre imported output)";
+                result["valid_pixels"] = s.ValidPixels;
+                result["mean_a_minus_b"] = s.MeanAMinusB;
+                result["std_a_minus_b"] = s.StdAMinusB;
+                result["rmse"] = s.Rmse;
+                result["mean_abs"] = s.MeanAbs;
+                result["min_a_minus_b"] = s.MinAMinusB;
+                result["max_a_minus_b"] = s.MaxAMinusB;
+            }
+            else if (outcome.NonfiniteCount > 0) result["nonfinite_count"] = outcome.NonfiniteCount;
+            if (!before.SequenceEqual(after))
+            {
+                // Inputs changed while we read them: the numbers describe nothing stable.
+                foreach (var key in new[] { "valid_pixels", "mean_a_minus_b", "std_a_minus_b", "rmse", "mean_abs", "min_a_minus_b", "max_a_minus_b" }) result.Remove(key);
+                result["status"] = "failed";
+                var list = ((JsonArray)result["reasons"]!).Select(x => x!.GetValue<string>()).ToList();
+                list.Add("SOURCE_CHANGED_DURING_RUN");
+                result["reasons"] = new JsonArray(list.Select(r => (JsonNode?)JsonValue.Create(r)).ToArray());
+            }
+        }
+        catch (Exception exc)
+        {
+            result = new JsonObject
+            {
+                ["status"] = "error",
+                ["reasons"] = new JsonArray("EXCEPTION"),
+                ["error"] = exc.GetType().Name + ": " + exc.Message,
+            };
+        }
+        result["schema"] = ComparisonContract.Schema;
+        result["run_id"] = runId;
+        result["base_dir"] = Path.GetFullPath(baseDir);
+        result["manifest"] = manifest.DeepClone();
+        result["source_hashes_before"] = HashesJson(before);
+        result["source_hashes_after"] = HashesJson(after);
+        result["sources_unchanged"] = before is not null && after is not null && before.SequenceEqual(after);
+        result["calibration_burden"] = ComparisonContract.Get(manifest, "calibration_burden")?.DeepClone();
+        result["calibration_burden_verified"] = false;   // recorded as supplied, never judged
+        result["actual_2g_executed"] = false;
+        result["quality_assessment"] = false;
+        result["note"] = "Imported-file numeric difference only. Not a vendor run, not a quality judgement.";
+        AtomicFile.WriteAllBytes(Path.Combine(runDir, "result.json"), System.Text.Encoding.UTF8.GetBytes(result.ToJsonString(JsonOptions)));
+        return runDir;
+    }
+
+    private static JsonNode? HashesJson(SortedDictionary<string, string?>? h)
+    {
+        if (h is null) return null;
+        var o = new JsonObject();
+        foreach (var p in h) o[p.Key] = p.Value;
+        return o;
+    }
+
+    public static JsonObject ValidationJson(ComparisonContract.Validation v)
+    {
+        var ids = new JsonObject();
+        foreach (var p in v.Identities) ids[p.Key] = p.Value;
+        return new JsonObject
+        {
+            ["comparable"] = v.Comparable,
+            ["comparison_kind"] = v.ComparisonKind,
+            ["map_equivalence"] = v.MapEquivalence,
+            ["reasons"] = new JsonArray(v.Reasons.Select(r => (JsonNode?)JsonValue.Create(r)).ToArray()),
+            ["blockers"] = new JsonArray(v.Blockers.Select(r => (JsonNode?)JsonValue.Create(r)).ToArray()),
+            ["actual_2g_executed"] = v.Actual2gExecuted,
+            ["identities"] = ids,
+        };
+    }
+
+    /// <summary>Reads a decimated copy of one output frame for DISPLAY only (every <paramref name="step"/>-th pixel of every <paramref name="step"/>-th row). The numbers never come from this array.</summary>
+    public static (double[] Pixels, int Width, int Height) ReadForDisplay(JsonNode output, string baseDir, int step)
+    {
+        using var f = new Frame(output, baseDir);
+        var w = (int)((f.Width + step - 1) / step);
+        var h = (int)((f.Height + step - 1) / step);
+        var pixels = new double[(long)w * h];
+        for (var yy = 0; yy < h; yy++) f.ReadRow(yy * (long)step, 0, (int)f.Width, pixels, yy * w, step);
+        return (pixels, w, h);
+    }
+}

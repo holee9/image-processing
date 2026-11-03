@@ -156,12 +156,10 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="Calibration Stages" Foreground="#f0f2f5" FontSize="12"
                                    FontWeight="SemiBold" />
-                        <TextBlock AutomationProperties.AutomationId="CalibrationStagesUnappliedMark" Text="미적용" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." />
+                        <TextBlock AutomationProperties.AutomationId="CalibrationStagesUnappliedMark" Text="기본 3단계 연결" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="Offset/Gain/Defect: Auto는 존재하는 map을 loader로 검증, On은 map 필수, Off는 map을 로드하지 않습니다. Run은 요청 모드를 바꾸지 않습니다." />
                     </StackPanel>
 
-                    <!-- #182: no backend processing path reads these modes. Kept, values persisted, disabled. -->
-                    <StackPanel AutomationProperties.AutomationId="CalibrationStagesGroup" IsEnabled="False"
-                                ToolTip="처리 연결 없음 — #182. 이 값은 설정 파일에 저장되지만 어떤 백엔드 처리에도 전달되지 않습니다." ToolTipService.ShowOnDisabled="True">
+                    <StackPanel AutomationProperties.AutomationId="CalibrationStagesGroup">
 
                     <!-- Offset -->
                     <TextBlock Text="Offset" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
@@ -188,6 +186,7 @@
                     </UniformGrid>
 
                     <!-- Ghost -->
+                    <StackPanel IsEnabled="False" ToolTip="Ghost/온도/비선형/Binning은 이 GUI 처리에 연결되지 않아 우회됩니다. 미정 계약을 자동으로 만들지 않습니다." ToolTipService.ShowOnDisabled="True">
                     <TextBlock Text="Ghost" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
                         <RadioButton AutomationProperties.AutomationId="CalibGhostModeAuto" Content="Auto" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
@@ -219,6 +218,7 @@
                         <RadioButton AutomationProperties.AutomationId="CalibBinningModeOff" Content="Off" GroupName="Binning" IsChecked="{Binding Settings.BinningCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
+                    </StackPanel>
                     </StackPanel>
 
                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,4,0,12" />

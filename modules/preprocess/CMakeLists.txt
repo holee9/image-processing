@@ -44,6 +44,7 @@ set(XPE_PREPROCESS_SOURCES
     src/xpe_calib_generate_offset.cpp # T-008: 5-arg generate offset (XCal v1)
     src/xpe_calib_generate_offset_methods.cpp # shared offset generation methods
     src/xpe_calib_generate_gain.cpp  # SWU-1.12: FUNC-026/027 gain generation
+    src/saturation.cpp               # QA-A-296 (#278): detector saturation level (pile-up detection, output rule)
     src/xpe_calib_generate_nonlin_lut.cpp # QA-A-110 (#186): FUNC-006-EXT 6a LUT generation
     src/xpe_calib_load_nonlin_lut.cpp     # QA-A-111 (#186): FUNC-006-EXT 6a LUT load
     # XCal v1 file format helpers (required by load/save/generate functions above)
@@ -112,6 +113,24 @@ endif()
 #                by the root project via enable_testing())
 # BUILD_TESTS:   XPE root project option
 # ---------------------------------------------------------------------------
+add_executable(xpe_pre_e2e tools/xpe_pre_e2e.cpp src/xpe_sha256_backend.cpp)
+target_include_directories(xpe_pre_e2e PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../third_party)
+target_link_libraries(xpe_pre_e2e PRIVATE xpe_preprocess xpe_common nlohmann_json::nlohmann_json)
+target_compile_features(xpe_pre_e2e PRIVATE cxx_std_17)
+target_compile_definitions(xpe_pre_e2e PRIVATE XPE_PRE_E2E_STANDALONE)
+if(WIN32)
+    target_link_libraries(xpe_pre_e2e PRIVATE bcrypt)
+endif()
+if(MSVC)
+    target_compile_options(xpe_pre_e2e PRIVATE /W4)
+else()
+    target_compile_options(xpe_pre_e2e PRIVATE -Wall -Wextra)
+endif()
+xpe_target_warnings_as_errors(xpe_pre_e2e)
+set_target_properties(xpe_pre_e2e PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # =============================================================================
 # QA-A-36 (#141): deterministic XCal fixture generator
 #
@@ -454,6 +473,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_verify_metrics.cpp
         # QA-A-32 (#120): verify_* edge paths (format/fallback/median branches)
         tests/test_verify_metrics_edges.cpp
+        # QA-A-266: the signed offset quality (stateless; the clamp-before bias that xpe_verify_offset cannot see)
+        tests/test_verify_offset_signed.cpp
+        tests/test_pre_e2e.cpp              # FUNC-015/021: E2E evidence and conservative readiness reporting (#245)
         # SWU-1.12: Calibration Mode Selection tests (FUNC-031~033)
         tests/test_calib_mode.cpp
         # QA-A-101 (#169): FUNC-031 (3)(4)(5)(8) mode caps and AUTO selection
@@ -476,6 +498,9 @@ if(_XPE_BUILD_TESTS)
         tests/test_gain_poly_policy.cpp
         tests/test_gain_defect_classify.cpp
         tests/test_gain_poly_classify.cpp
+        tests/test_saturation.cpp            # QA-A-296 (#278): detector saturation level (setting, gain-file record, pile-up, output rule)
+        tests/test_defect_lines.cpp          # QA-A-296 (#278): long runs of masked pixels in a version-1 map are interpolated across the line
+        tests/test_parallel_determinism.cpp  # QA-A-296 (#278): the output does not depend on the thread count
         tests/test_defect_fill_interior.cpp
         tests/test_defect_fill_equivalence.cpp
         tests/test_defect_input_finite.cpp
@@ -502,6 +527,10 @@ if(_XPE_BUILD_TESTS)
         tests/test_bpm_lines_lof.cpp
         # QA-A-252 (#273): second-generation pixel defect detection
         tests/test_bpm_v2.cpp
+        # QA-A-314 (#273): line stretch ends not carried onto slightly weak neighbours
+        tests/test_bpm_v2_line_ends.cpp
+        # QA-A-319 (#273 #278): a row band x column parity dark structure is not flagged by the dark-mean feature
+        tests/test_bpm_v2_periodic_dark.cpp
         # QA-A-37 (#140): XCAL_TYPE_GAIN_POLY read path
         tests/test_calib_gain_poly_load.cpp
         # QA-A-38 (#138 #97): XPE-ALG-001 9.8.2.1 N_min static-defect marking
@@ -548,6 +577,7 @@ if(_XPE_BUILD_TESTS)
 
     add_executable(xpe_preprocess_tests
         ${XPE_TEST_SOURCES}
+        tools/xpe_pre_e2e.cpp
         src/rle_codec.cpp
         src/xpe_calib_generate_offset_methods.cpp
         src/xcal_writer.cpp
@@ -557,6 +587,7 @@ if(_XPE_BUILD_TESTS)
         src/defect_ext.cpp            # QA-A-254: not exported from the DLL, like the reader and the writer it uses
         src/helpers.cpp               # xpe_interpolate_pixel is not exported from the DLL (QA-A-172)
         src/calib_expiry_check.cpp    # not exported from the DLL: the tests call it with the clock at the boundary (QA-A-241)
+        src/saturation.cpp            # QA-A-296: not exported from the DLL
     )
 
     target_include_directories(xpe_preprocess_tests
@@ -592,6 +623,10 @@ if(_XPE_BUILD_TESTS)
     # -D"..." string turns into invalid escapes. A raw string literal does not.
     add_dependencies(xpe_preprocess_tests xpe_calib_fixture_gen)
     add_dependencies(xpe_preprocess_tests xpe_bpm_eval)
+    add_dependencies(xpe_preprocess_tests xpe_pre_e2e)
+    file(GENERATE
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xpe_pre_e2e_path.h
+        CONTENT "#pragma once\n#define XPE_PRE_E2E_EXE R\"($<TARGET_FILE:xpe_pre_e2e>)\"\n")
     file(GENERATE
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/xpe_bpm_eval_path.h
         CONTENT "#pragma once
@@ -648,6 +683,27 @@ if(_XPE_BUILD_TESTS)
     gtest_discover_tests(xpe_preprocess_oom_tests
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
+    # Reviewer PRE313-317 P1 (QA-A-315, #278): xpe_parallel_chunks when a later task launch throws std::bad_alloc. Its own
+    # executable because it replaces operator new/delete; it needs only the header-only helper and GoogleTest.
+    add_executable(xpe_preprocess_parallel_unwind_tests tests/test_parallel_unwind.cpp)
+    target_include_directories(xpe_preprocess_parallel_unwind_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(xpe_preprocess_parallel_unwind_tests PRIVATE GTest::gtest_main)
+    target_compile_features(xpe_preprocess_parallel_unwind_tests PRIVATE cxx_std_17)
+    if(MSVC)
+        target_compile_options(xpe_preprocess_parallel_unwind_tests PRIVATE /W4)
+    else()
+        target_compile_options(xpe_preprocess_parallel_unwind_tests PRIVATE -Wall -Wextra)
+    endif()
+    xpe_target_warnings_as_errors(xpe_preprocess_parallel_unwind_tests)
+    gtest_discover_tests(xpe_preprocess_parallel_unwind_tests
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+
+    add_test(NAME preprocess.legacy_ghost_fingerprints
+        COMMAND $<TARGET_FILE:xpe_preprocess_oom_tests> --gtest_filter=OutputUnchanged237b.* --gtest_color=no)
+    set_tests_properties(preprocess.legacy_ghost_fingerprints PROPERTIES
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        ENVIRONMENT "XPE_A237B_LEGACY=1")
 
     # QA-A-244 (#245): the expiry tests that need time to pass. They used to wait on the wall clock (a 400 ms expiry window, then a 600 ms
     # sleep) and failed on a slow CI runner when loading the maps and the first frame took longer than the window. This target compiles

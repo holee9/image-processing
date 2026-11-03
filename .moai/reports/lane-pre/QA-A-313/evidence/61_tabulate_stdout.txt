@@ -1,0 +1,3 @@
+wrote 50_b16_table_313.md.txt (30 lines)
+wrote 51_b16_table_side_by_side.md.txt (20 rows)
+rows in 260 table not in 313: []

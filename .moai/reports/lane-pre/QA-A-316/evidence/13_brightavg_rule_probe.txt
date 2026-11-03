@@ -1,0 +1,66 @@
+===== s0_gf frames=10
+  rint(mean all 10): all 96.881%  good 96.872%  defect 99.303%
+  rint(mean excl 65535; none left -> 0): all 97.476%  good 97.467%  defect 99.757%
+  rint(mean excl 0 and 65535; none left -> 0): all 96.896%  good 96.886%  defect 99.375%
+  floor(mean all 10): all 53.316%  good 53.312%  defect 54.193%
+  trunc(sum/10) int: all 53.316%  good 53.312%  defect 54.193%
+  median 10 (rint): all 11.423%  good 11.423%  defect 11.347%
+  BrightAvg==0: n=118083; frames-at-0 per pixel hist [1163, 6316, 16298, 25359, 27182, 20980, 11725, 4584, 1245, 232, 2999]; frames-at-65535 hist [10538, 23883, 32662, 27366, 15533, 6229, 1688, 179, 5, 0, 0]
+    rint(mean all 10) at these pixels: p1=0 p50=19661 p99=39321
+  BrightAvg==65535: n=73910; frames-at-0 per pixel hist [3578, 13716, 21441, 19317, 11027, 3972, 809, 50, 0, 0, 0]; frames-at-65535 hist [746, 4115, 10628, 16491, 17496, 13108, 7376, 2970, 845, 111, 24]
+    rint(mean all 10) at these pixels: p1=26214 p50=45874 p99=65535
+===== s1_um300 frames=10
+  rint(mean all 10): all 96.467%  good 96.466%  defect 99.417%
+  rint(mean excl 65535; none left -> 0): all 97.841%  good 97.841%  defect 99.515%
+  rint(mean excl 0 and 65535; none left -> 0): all 96.450%  good 96.450%  defect 99.417%
+  floor(mean all 10): all 53.104%  good 53.103%  defect 60.000%
+  trunc(sum/10) int: all 53.104%  good 53.103%  defect 60.000%
+  median 10 (rint): all 27.980%  good 27.981%  defect 18.155%
+  BrightAvg==0: n=197037; frames-at-0 per pixel hist [1482, 8861, 23965, 40676, 46028, 36059, 20622, 7859, 1943, 308, 9234]; frames-at-65535 hist [25611, 48315, 58109, 39418, 17942, 6057, 1439, 145, 1, 0, 0]
+    rint(mean all 10) at these pixels: p1=0 p50=13108 p99=39321
+  BrightAvg==65535: n=14566; frames-at-0 per pixel hist [366, 1612, 3409, 4191, 3147, 1458, 349, 34, 0, 0, 0]; frames-at-65535 hist [122, 679, 1925, 3168, 3511, 2759, 1639, 617, 135, 8, 3]
+    rint(mean all 10) at these pixels: p1=26214 p50=39321 p99=58981
+===== s4_csi_pre frames=10
+  rint(mean all 10): all 98.123%  good 98.117%  defect 99.624%
+  rint(mean excl 65535; none left -> 0): all 99.098%  good 99.095%  defect 99.893%
+  rint(mean excl 0 and 65535; none left -> 0): all 97.900%  good 97.895%  defect 99.213%
+  floor(mean all 10): all 53.966%  good 53.961%  defect 55.148%
+  trunc(sum/10) int: all 53.966%  good 53.961%  defect 55.148%
+  median 10 (rint): all 7.842%  good 7.847%  defect 6.616%
+  BrightAvg==0: n=74898; frames-at-0 per pixel hist [382, 2512, 7438, 13797, 17487, 15043, 9681, 4210, 1140, 205, 3003]; frames-at-65535 hist [10676, 20798, 22034, 13346, 5671, 1862, 471, 40, 0, 0, 0]
+    rint(mean all 10) at these pixels: p1=0 p50=13108 p99=39321
+  BrightAvg==65535: n=3930; frames-at-0 per pixel hist [101, 426, 879, 1109, 904, 420, 87, 4, 0, 0, 0]; frames-at-65535 hist [25, 162, 393, 743, 962, 843, 499, 228, 57, 6, 12]
+    rint(mean all 10) at these pixels: p1=26214 p50=39321 p99=58981
+===== s5_csi_post frames=10
+  rint(mean all 10): all 98.123%  good 98.117%  defect 99.662%
+  rint(mean excl 65535; none left -> 0): all 99.128%  good 99.125%  defect 99.896%
+  rint(mean excl 0 and 65535; none left -> 0): all 97.909%  good 97.904%  defect 99.271%
+  floor(mean all 10): all 53.939%  good 53.936%  defect 54.659%
+  trunc(sum/10) int: all 53.939%  good 53.936%  defect 54.659%
+  median 10 (rint): all 6.788%  good 6.804%  defect 2.824%
+  BrightAvg==0: n=70367; frames-at-0 per pixel hist [367, 2332, 7175, 13164, 16439, 14140, 8932, 3657, 972, 185, 3004]; frames-at-65535 hist [10498, 20014, 20560, 12091, 5108, 1687, 368, 41, 0, 0, 0]
+    rint(mean all 10) at these pixels: p1=0 p50=13108 p99=39321
+  BrightAvg==65535: n=3116; frames-at-0 per pixel hist [91, 347, 704, 869, 665, 359, 75, 6, 0, 0, 0]; frames-at-65535 hist [26, 143, 378, 618, 761, 620, 384, 138, 34, 2, 12]
+    rint(mean all 10) at these pixels: p1=26214 p50=39321 p99=58982
+===== s6_gad_pre frames=10
+  rint(mean all 10): all 96.845%  good 96.834%  defect 99.518%
+  rint(mean excl 65535; none left -> 0): all 97.917%  good 97.909%  defect 99.876%
+  rint(mean excl 0 and 65535; none left -> 0): all 96.814%  good 96.804%  defect 99.331%
+  floor(mean all 10): all 53.296%  good 53.290%  defect 54.689%
+  trunc(sum/10) int: all 53.296%  good 53.290%  defect 54.689%
+  median 10 (rint): all 4.402%  good 4.413%  defect 1.671%
+  BrightAvg==0: n=163852; frames-at-0 per pixel hist [1472, 8671, 22416, 35430, 38821, 29664, 16097, 6321, 1647, 313, 3000]; frames-at-65535 hist [15384, 37901, 48200, 36095, 18037, 6490, 1576, 166, 3, 0, 0]
+    rint(mean all 10) at these pixels: p1=0 p50=19661 p99=39321
+  BrightAvg==65535: n=28079; frames-at-0 per pixel hist [876, 3929, 7447, 7786, 5295, 2181, 516, 48, 1, 0, 0]; frames-at-65535 hist [293, 1595, 4226, 6586, 6575, 4986, 2624, 930, 219, 32, 13]
+    rint(mean all 10) at these pixels: p1=26214 p50=39321 p99=58981
+===== s7_gad_post frames=10
+  rint(mean all 10): all 97.485%  good 97.476%  defect 99.610%
+  rint(mean excl 65535; none left -> 0): all 98.659%  good 98.654%  defect 99.902%
+  rint(mean excl 0 and 65535; none left -> 0): all 97.359%  good 97.351%  defect 99.249%
+  floor(mean all 10): all 53.613%  good 53.606%  defect 55.372%
+  trunc(sum/10) int: all 53.613%  good 53.606%  defect 55.372%
+  median 10 (rint): all 6.825%  good 6.842%  defect 2.685%
+  BrightAvg==0: n=109893; frames-at-0 per pixel hist [910, 5123, 13676, 22521, 25773, 20551, 12051, 4803, 1237, 237, 3011]; frames-at-65535 hist [13666, 29207, 33316, 20986, 9104, 2904, 647, 63, 0, 0, 0]
+    rint(mean all 10) at these pixels: p1=0 p50=13108 p99=39321
+  BrightAvg==65535: n=5334; frames-at-0 per pixel hist [125, 600, 1205, 1516, 1196, 548, 130, 14, 0, 0, 0]; frames-at-65535 hist [71, 240, 712, 1118, 1214, 1030, 621, 253, 53, 8, 14]
+    rint(mean all 10) at these pixels: p1=26214 p50=39321 p99=58981

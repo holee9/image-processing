@@ -1,0 +1,48 @@
+QA-A-269 direction check of the overlapped-cost mutants. Source hash at the start: 9953034f78e064e4
+--- baseline
+build: BUILD_EXIT=0
+test exit 0
+  [  PASSED  ] 1 test.
+--- O1 without the division by g*g
+build: BUILD_EXIT=0
+tool executable newer and different from the baseline: True
+test exit 1
+  D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_eval.cpp(765): error: Expected: (gainMean) > (0.7), actual: 0.055144 vs 0.7
+  gain-only overlaps: 71 groups, 100 pixels; without the division by g * g each cost is multiplied by g * g < 1 and the mean falls below this bound
+  D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_eval.cpp(768): error: Expected: (ratio) > (0.8), actual: 0.066799962946097205 vs 0.8
+  measured over ideal, pixel weighted, all groups with an ideal cost (fixed-seed regression tolerance)
+  [  FAILED  ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost (1024 ms)
+  [  PASSED  ] 0 tests.
+  [  FAILED  ] 1 test, listed below:
+  [  FAILED  ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost
+--- O2 multiplied by g*g
+build: BUILD_EXIT=0
+tool executable newer and different from the baseline: True
+test exit 1
+  D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_eval.cpp(765): error: Expected: (gainMean) > (0.7), actual: 0.00477 vs 0.7
+  gain-only overlaps: 71 groups, 100 pixels; without the division by g * g each cost is multiplied by g * g < 1 and the mean falls below this bound
+  D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_eval.cpp(768): error: Expected: (ratio) > (0.8), actual: 0.0061975251482945101 vs 0.8
+  measured over ideal, pixel weighted, all groups with an ideal cost (fixed-seed regression tolerance)
+  [  FAILED  ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost (1049 ms)
+  [  PASSED  ] 0 tests.
+  [  FAILED  ] 1 test, listed below:
+  [  FAILED  ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost
+--- O3 without the division by the expectation
+build: BUILD_EXIT=0
+tool executable newer and different from the baseline: True
+test exit 1
+  D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_eval.cpp(766): error: Expected: (gainMean) < (1.5), actual: 2884.8375209999995 vs 1.5
+  D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_eval.cpp(767): error: Expected equality of these values:
+  Which is: 0
+  Which is: 70
+  no gain-only overlap is a noise defect
+  D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_eval.cpp(769): error: Expected: (ratio) < (1.7), actual: 3384.6850483232288 vs 1.7
+  measured over ideal, pixel weighted, all groups with an ideal cost (fixed-seed regression tolerance)
+  [  FAILED  ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost (1002 ms)
+  [  PASSED  ] 0 tests.
+  [  FAILED  ] 1 test, listed below:
+  [  FAILED  ] BpmEvalQuantumTest.TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost
+--- restored
+source hash now 9953034f78e064e4 (start 9953034f78e064e4)
+build: BUILD_EXIT=0
+final baseline test exit 0

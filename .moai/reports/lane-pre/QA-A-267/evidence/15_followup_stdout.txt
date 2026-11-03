@@ -1,0 +1,37 @@
+QA-A-267 R236-4 re-validation of the evaluation-tool mutation checks. Source hash (tool, header, tests) at the start: 8315c98eacb6cbe8
+PREDICTIONS (written before any run):
+  F1 A13 (the plain uncomputable-part counter dropped) is RED with the corrected test: CorrectRunsOnTwoSetsAndReportsTheLineIndex (the same set as the old run).
+  F2 A10b (the false-alarm zone built from every item instead of the true defects) is RED: FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf and ScoreCountsControlHitsFalseAlarmsAndHalfAgreement (the old set).
+  F3 B6a (the noise cost of the pixel loop not divided by g squared) is RED: NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined (the old set).
+  F4 B6 at the second site (overlapped pixels) is GREEN: no test reaches the g squared of that site. This would be a test gap of the evaluation tool, to be reported, not fixed here.
+  Q  the baseline (with the corrected test) passes and the restore comes back to the same source hash and a passing run.
+--- step 0: the baseline, unmutated, with both consumers touched
+build: BUILD_EXIT=0
+tests exit 0: 52 passed, failed: []
+baseline: tests exe sha 1d7c56060bd1b347, tool exe sha b46c425b45e8c477
+--- A13 (251b U13, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 7b08919d09ea6ab8, tool exe sha 37bf4f3dadc7af4b)
+tests exit 1: 51 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+result: red; old set: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']; same as the old set
+--- A10b (251b U10 in today's form, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 04a721cc71f69222, tool exe sha 9bc2dc4f6f5f9901)
+tests exit 1: 50 passed, FAILED: ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']
+result: red; old set: ['FlagsOnANormalControlBandAreNewFalseAlarmsEvenBelowHalf', 'ScoreCountsControlHitsFalseAlarmsAndHalfAgreement']; same as the old set
+--- B6a (252f U6 at the first site, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 106b5fea5b545564, tool exe sha 23bf33751b619b12)
+tests exit 1: 50 passed, FAILED: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined', 'NoiseCostTakesTheExposureOutOfTheVerificationFramesAndRawFramesShowWhatItRemoves']
+result: red; old set: ['NoiseCostIsMeasuredNotDerivedFromTheModelAndPixelsAreUndetermined']; contains the old set
+--- B6 (252f U6 at the second site (as in the first re-run), xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 5a95b85f55740028, tool exe sha 0e6d460ffc1cc446)
+tests exit 0: 52 passed, FAILED: []
+result: GREEN; old set: []; same as the old set
+(expected green)
+--- restored: touch + rebuild
+source hash now: 8315c98eacb6cbe8 (start: 8315c98eacb6cbe8)
+build: BUILD_EXIT=0
+final baseline: tests exit 0: 52 passed, failed: []
+mutants that differ from the prediction or are invalid: none

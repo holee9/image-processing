@@ -38,7 +38,7 @@ public sealed class NonlinearityBypassedScenarios(ITestOutputHelper output)
     private const string ClampMarker = "fell outside the gain polynomial";
 
     /// <summary>The HUD line after a render whose preprocess stage ran (<c>MainWindowViewModel.CalibStageCountDisplay</c>).</summary>
-    private const string ExecutedStagesHud = "3 stages (offset · gain · defect)";
+    private const string ExecutedStagesHud = "Calib:  3 native stages (offset · gain · defect)";
 
     private const int Frames = 3;
 
@@ -91,7 +91,7 @@ public sealed class NonlinearityBypassedScenarios(ITestOutputHelper output)
         Skip.If(preprocess.Length == 0, "Preprocessing did not run, so no stage could have raised an alert.");
 
         // (1) The application says which stages ran, and the nonlinearity stage is not among them.
-        Assert.Contains(ExecutedStagesHud, hud, StringComparison.Ordinal);
+        Assert.Equal(ExecutedStagesHud, hud);
 
         // (3) The control, first: the queue is alive in this same run and delivers per frame. Without it the absence in (2) would not mean anything.
         Assert.True(clamp.Length == Frames + RenderThatOpenedTheFrame,

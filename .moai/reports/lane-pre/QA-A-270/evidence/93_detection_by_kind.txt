@@ -1,0 +1,6 @@
+kind             items    pixels   v1 flagged   v2 flagged    v1 ring (<=2 out)    v2 ring (<=2 out)
+dead                 7     16652  16652 1.000  16632 0.999                    0                   15
+efficiency_loss     18     31821  31821 1.000  31791 0.999                    0                   35
+gain_loss           18     31830  31830 1.000  31800 0.999                    0                   33
+noisy               13     27284      0 0.000  27249 0.999                    0                   23
+nonlinear           13     27245  19936 0.732  27215 0.999                    0                   28

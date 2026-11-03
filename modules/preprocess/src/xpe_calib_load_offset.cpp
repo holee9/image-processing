@@ -66,6 +66,8 @@ XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noe
         staged.height    = hdr.height;
         staged.timestamp = hdr.created_epoch_ms;
         staged.expiryMs  = hdr.expiry_epoch_ms;
+        if (!config_json.empty())
+            staged.config = std::make_shared<const std::vector<uint8_t>>(std::move(config_json));
 
         // Session id (null-terminated, up to 63 chars)
         std::memcpy(staged.sessionId, hdr.session_id,
@@ -85,6 +87,7 @@ XpeErrorCode xpe_calib_stage_offset(const char* filepath, StagedOffset* out) noe
 
 void xpe_calib_commit_offset_locked(StagedOffset& staged) noexcept {
     g_calib.offset_map       = std::move(staged.map);
+    g_calib.offset_config    = std::move(staged.config);
     g_calib.offset_width     = staged.width;
     g_calib.offset_height    = staged.height;
     g_calib.offset_timestamp = staged.timestamp;

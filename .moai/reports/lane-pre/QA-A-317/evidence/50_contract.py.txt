@@ -1,0 +1,86 @@
+"""QA-A-317: comparison contract (image-processing tools/calibration/comparison_manifest.py rev 4) on one frame, s4_csi_pre 001 (Empty).
+Copies the files into <T>/contract/ so every path resolves inside the manifest folder, writes four manifests and runs
+`validate` on each (verbatim output to contract_out.txt):
+  m1 A-B e2e-non-isolated, m2 A-C e2e-non-isolated, m3 A-B stored-array-difference, m4 B-C (B output as engine A) e2e-non-isolated.
+Fields that are not verified are declared "unverified" (never guessed as verified).
+"""
+import hashlib, json, os, shutil, subprocess
+
+T = "D:/workspace-github/xpe-data/qa-317-tmp"
+K = f"{T}/contract"
+BAT = "D:/workspace-github/xpe-2g-offline/batch-20261022-1230/"
+SID, STEM = "s4_csi_pre", "001"
+HEAD = subprocess.run(["git", "-C", "D:/workspace-github/xpe-pre", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+TOOL = "D:/workspace-github/image-processing/tools/calibration/comparison_manifest.py"
+os.makedirs(K, exist_ok=True)
+
+
+def sha(p):
+    h = hashlib.sha256()
+    with open(p, "rb") as f:
+        for c in iter(lambda: f.read(1 << 22), b""):
+            h.update(c)
+    return h.hexdigest()
+
+
+def put(src, name):
+    shutil.copyfile(src, f"{K}/{name}")
+    return {"path": name, "sha256": sha(f"{K}/{name}")}
+
+
+inp = put(f"{BAT}in/{SID}/img/{STEM}.raw", "input.raw")
+a_out = put(f"{BAT}out/{SID}/{STEM}.raw", "A_out.raw")
+b_out = put(f"{T}/out_b/{SID}/out/{STEM}.f32", "B_out.f32")
+c_out = put(f"{T}/out_c/{SID}/out/{STEM}.f32", "C_out.f32")
+a_maps = {"dark": put(f"{BAT}in/{SID}/dark.raw", "A_dark.raw"), "bright": put(f"{BAT}in/{SID}/BrightAvg.raw", "A_BrightAvg.raw"),
+          "bpm": put(f"{BAT}in/{SID}/BPMap.map", "A_BPMap.map")}
+b_maps = {k: put(f"{T}/xcal_b/{SID}/{k}.xcal", f"B_{k}.xcal") for k in ("offset", "gain", "defect")}
+c_maps = {k: put(f"{T}/xcal_c/{SID}/xcal/{k}.xcal", f"C_{k}.xcal") for k in ("offset", "gain", "defect")}
+cfg = put(f"{T}/out_b/config.json", "pre_config.json")
+LAYOUT = {"origin": "top-left", "row_order": "top-to-bottom", "column_order": "left-to-right", "value_transform": "identity",
+          "status": "verified", "source": "QA-A-296 cmp2g_out_final.txt: index-by-index normal-class match 99.963 % between A and B arrays"}
+W, H = 3072, 2560
+MODE = "2G batch-20261022-1230 s4_csi_pre"
+
+
+def out(f, dtype, item):
+    return dict(f, dtype=dtype, endian="little", width=W, height=H, stride_bytes=W * item, offset_bytes=0,
+                stage="engine-direct", units="pixel value", layout=LAYOUT)
+
+
+def eng_a():
+    return {"engine_id": "samsung-2g-x64w", "engine_identity": {"dll_sha256": "bb03a668990914827e3304774c6a08d4fd03c5b13640c7f7a682820a3e7819f0"},
+            "execution": "imported-file", "input_sha256": inp["sha256"], "mode": MODE, "maps": a_maps,
+            "applied_settings": {"offset": "applied", "gain": "applied", "defect": "applied", "status": "unverified",
+                                 "source": "run_batch.py passes DarkPath/BrightPath/BPMPath; which steps the DLL applied is not recorded"},
+            "output": out(a_out, "uint16", 2)}
+
+
+def eng_pre(o, maps):
+    return {"engine_id": "new-pre", "engine_identity": {"source_head": HEAD, "config_sha256": cfg["sha256"]},
+            "execution": "imported-file", "input_sha256": inp["sha256"], "mode": MODE, "maps": maps,
+            "applied_settings": {"offset": "not-applied", "gain": "applied", "defect": "applied", "status": "verified",
+                                 "source": "pre_config.json: bypassOffset true, gain and defect stages not bypassed"},
+            "output": out(o, "float32", 4)}
+
+
+base = {"schema": "xpe-2g-pre-comparison/4",
+        "input": dict(inp, correction_state={"value": "offset-corrected", "status": "unverified",
+                                             "source": "batch manifest.json does not record the correction state of img/*.raw"},
+                      mode=MODE, width=W, height=H),
+        "roi": {"x": 15, "y": 2, "width": 3040, "height": 2466}}
+mans = {
+    "m1_A-B_e2e": dict(base, engines={"A": eng_a(), "B": eng_pre(b_out, b_maps)}, comparison_kind="e2e-non-isolated"),
+    "m2_A-C_e2e": dict(base, engines={"A": eng_a(), "B": eng_pre(c_out, c_maps)}, comparison_kind="e2e-non-isolated"),
+    "m3_A-B_stored": dict(base, engines={"A": eng_a(), "B": eng_pre(b_out, b_maps)}, comparison_kind="stored-array-difference"),
+    "m4_B-C_e2e": dict(base, engines={"A": eng_pre(b_out, b_maps), "B": eng_pre(c_out, c_maps)}, comparison_kind="e2e-non-isolated"),
+}
+with open(f"{T}/contract_out.txt", "w", encoding="utf-8") as log:
+    log.write(f"tool {TOOL} sha256 {sha(TOOL)}\n")
+    for name, m in mans.items():
+        p = f"{K}/{name}.json"
+        json.dump(m, open(p, "w", encoding="utf-8"), indent=1)
+        r = subprocess.run(["C:/Users/drake/AppData/Local/Programs/Python/Python312/python.exe", "-I", "-X", "utf8", TOOL, "validate", p],
+                           capture_output=True, text=True, encoding="utf-8")
+        log.write(f"===== {name} exit={r.returncode}\n{r.stdout}{r.stderr}\n")
+print("done")

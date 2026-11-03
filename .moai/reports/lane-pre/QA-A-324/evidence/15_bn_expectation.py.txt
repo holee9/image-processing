@@ -1,0 +1,34 @@
+"""QA-A-324: expected bright-noise (BN, xpe_bpm_v2.cpp:1182) flags on a pixel whose gain-corrected variance is rho times its local expectation.
+Rule as coded: pooled = sum_g (m_g-1) ratioG_g / nuBright > tau5 (tau5: P(chi2_nu/nu > tau) = p, :1176, :117-127) AND 2*hits >= groups, hit = ratioG_g >= 2.0 (:1040).
+Groups as measured for this set (QA-A-314 19_bright_noise_dump: 5 dose groups, sizes 3,3,6,3,3 -> nu_g 2,2,5,2,2, nuBright 13, tau5 4.48330 printed by the code),
+p = 1 / (3065*3069) (target 1 false alarm, area after margins 6,2,1,1).
+Variance ratio of an efficiency_loss pixel after gain correction (injection xpe_bpm_eval.cpp:697-699): 1 + kappa*nn*(1-r)/(r*(kappa*nn+readout)) <= 1/r;
+the bound 1/r is used (shot-noise dominated), so the numbers below are an UPPER estimate for the model. ratioG_g ~ rho * chi2_{nu_g}/nu_g, independent groups.
+The reference ref = local median / median(chi2_nu/nu) is taken as exact (its own noise ignored). Monte Carlo, seed 324."""
+import math, numpy as np
+n = 3065 * 3069; p = 1.0 / n
+NU = np.array([2, 2, 5, 2, 2]); NUB = int(NU.sum())
+tau = 4.48330   # printed by the code for this set (QA-A-314 19_ line 7)
+rng = np.random.default_rng(324)
+B, R = 2_000_000, 10
+print('groups nu %s, nuBright %d, tau5 %.5f, p %.4g' % (NU.tolist(), NUB, tau, p))
+for rho, label in ((1.0, 'normal pixel'), (1 / 0.7, 'efficiency_loss 0.7 (1/r bound)'), (1 / 0.6, 'efficiency_loss 0.6 (1/r bound)'), (2.0, 'noise cost limit 2.0')):
+    hits = 0
+    for _ in range(R):
+        y = np.stack([rho * rng.chisquare(k, size=B) / k for k in NU], axis=1)
+        pooled = (y * NU).sum(axis=1) / NUB
+        h = (y >= 2.0).sum(axis=1)
+        hits += int(((pooled > tau) & (2 * h >= len(NU))).sum())
+    q = hits / (B * R)
+    print('%-34s rho %.3f  P(flag) %.3e  expected per 3,072-pixel line %.2f, per 6,144-pixel pair %.2f' % (label, rho, q, q * 3072, q * 6144))
+# Part 2: the separating power. rho 1.95 = the measured gain-corrected variance ratio of control 101 (16_eff_loss_variance_out, planted/clean median ratio);
+# rho 3 = the efficiency-loss defect of the unit test BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup (test_bpm_v2.cpp:961-980, "cost 3 found at 0.152").
+# Rule A = as coded (pooled > tau5); rule B = candidate "test against the cost limit" (pooled > 2.0 * tau5), persistence unchanged.
+print('-- separating power, this set (nu 2,2,5,2,2)')
+for rho in (1.95, 2.0, 3.0, 5.0):
+    a = b = 0
+    for _ in range(R):
+        y = np.stack([rho * rng.chisquare(k, size=B) / k for k in NU], axis=1)
+        pooled = (y * NU).sum(axis=1) / NUB; h = (y >= 2.0).sum(axis=1); per = 2 * h >= len(NU)
+        a += int(((pooled > tau) & per).sum()); b += int(((pooled > 2.0 * tau) & per).sum())
+    print('rho %.2f  P(flag) rule A %.3e (per 3,072-pixel line %.2f)  rule B %.3e (per line %.2f)' % (rho, a / (B * R), 3072 * a / (B * R), b / (B * R), 3072 * b / (B * R)))

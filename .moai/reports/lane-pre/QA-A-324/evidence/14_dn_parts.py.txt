@@ -1,0 +1,10 @@
+"""QA-A-324: the line parts whose |D_n / predicted sigma| > 3, per evaluation frame, from the tool's own correct json (no recomputation).
+Columns: corrected (inj set + defect correction), no fix (inj set, defect correction off), clean (clean set). Usage: python -I 14_dn_parts.py.txt <45_correct_v2.json.txt>"""
+import json, sys
+d = json.load(open(sys.argv[1], encoding='utf-8'))
+for k, f in enumerate(d['frames']):
+    print('frame %d parts_over_3_sigma %s' % (k + 1, f['parts_over_3_sigma']))
+    for x in f['line_index']:
+        rc, rn, rl = x['ratio_corrected'], x['ratio_no_fix'], x['ratio_clean']
+        if abs(rc) > 3 or abs(rl) > 3:
+            print('  %s id %4d %-40s part %d corrected %8.2f no_fix %9.2f clean %7.2f' % ('OVER ' if abs(rc) > 3 else 'clean', x['id'], x['group'], x['part'], rc, rn, rl))

@@ -1,0 +1,68 @@
+﻿{
+    "scenario":  "swapManifest",
+    "delayMs":  0,
+    "validated":  {
+                      "verdict":  "스크립트의 답: 비교 가능 — 종류 common-condition · 계약상 귀속 조건: 충족(생산 이력·품질 확인 아님)"
+                  },
+    "before":  {
+                   "roi":  "ROI(매니페스트의 정수 좌표, A·B 양쪽에 같은 좌표로 표시): x=16, y=8, 가로=48, 세로=32",
+                   "computeEnabled":  true
+               },
+    "afterSwap":  {
+                      "verdict":  "거부 — 확인한 매니페스트와 지금 파일이 다릅니다. 통과가 아닙니다.",
+                      "result":  "거부: 열 때 SHA-256 3744a1634687384bb051536faa894fb46610bdc790c69095babaffee9fe12e3a\n지금 SHA-256 3ddd9279638e49941b11833625a3e9f5202c498cc2994096c9b0fa2b49b088b3\n이전 미리보기·검증 결과를 지웠습니다. 다시 열기·검증을 누르십시오.",
+                      "roi":  "",
+                      "hint":  "",
+                      "computeEnabled":  false,
+                      "state":  "상태: 매니페스트 파일이 열 때와 다릅니다. 가져온 파일 비교이며 2G 실행이 아닙니다."
+                  },
+    "reopened":  {
+                     "verdict":  "스크립트의 답: 비교 가능 — 종류 common-condition · 계약상 귀속 조건: 충족(생산 이력·품질 확인 아님)",
+                     "roi":  "ROI(매니페스트의 정수 좌표, A·B 양쪽에 같은 좌표로 표시): x=20, y=8, 가로=48, 세로=32",
+                     "result":  "결과: computed\r\nROI 유효 화소 1536  ·  단위 pixel value  ·  차이 = A − B  ·  종류 common-condition  ·  계약상 귀속 조건: 충족(생산 이력·품질 확인 아님)\r\n평균 -8.9375  표준편차(모집단) 1.405439581  RMSE 9.047329256  평균 절댓값 8.9375  최솟값 -11  최댓값 -7\r\n원본 파일 변경 없음: 예  ·  2G 실행됨: 아니오  ·  화질 판정: 하지 않음\r\n저장 위치: D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-273b-swapManifest-20261020T234955Z\\results\\req-20261020T235008125Z-ab8b6d86\\runs\\20261020T235008Z-cf926898\r\n확인한 매니페스트 SHA-256: 3ddd9279638e49941b11833625a3e9f5202c498cc2994096c9b0fa2b49b088b3\r\n"
+                 },
+    "identity":  {
+                     "pid":  26864,
+                     "exe":  "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\builds\\gui2\\bin\\ImageProcTest\\debug\\ImageProcTest.exe",
+                     "exeSha":  "E98E66D4D7E0AE2327672DF4953C718F988A715104524992D5EA33FF3FECB0D9",
+                     "managedDll":  "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\builds\\gui2\\bin\\ImageProcTest\\debug\\ImageProcTest.dll",
+                     "managedSha":  "2EE1D15EC21602900DB0184F142C2484E62935D516F57F5335FEF3D3160EFF9C",
+                     "nativeFiles":  [
+                                         {
+                                             "name":  "fmt.dll",
+                                             "sha256":  "6841FE26693AE740D190F0FB0ED0D8AD5502BA44A0A31B9D46C63C8F869A3110"
+                                         },
+                                         {
+                                             "name":  "spdlog.dll",
+                                             "sha256":  "C372F7166D778A76A8E915A3EAA2CE5ADC7017A04BD24B5EB591414C27E48721"
+                                         },
+                                         {
+                                             "name":  "xpe_calib_fixture_gen.exe",
+                                             "sha256":  "0F391114E45C6C0EED388480441A8836A60F815C4E99A9B99E7D80F72F781AD8"
+                                         },
+                                         {
+                                             "name":  "xpe_common.dll",
+                                             "sha256":  "56BB73AFC0AF27A50471CC3148462AAA333DE94FF1636C8A3952A67427641FA4"
+                                         },
+                                         {
+                                             "name":  "xpe_display.dll",
+                                             "sha256":  "C7D6DBA80ED408F5F962EFFE7B7DD2214846EB1E9B3E1FA24A3E818719A46719"
+                                         },
+                                         {
+                                             "name":  "xpe_enhance_basic.dll",
+                                             "sha256":  "236DDC0EEAE5A24C4135AC9B2D6893FE462DDBF0AB1643FEA1495A36335FF72B"
+                                         },
+                                         {
+                                             "name":  "xpe_preprocess.dll",
+                                             "sha256":  "D404D4071BD8C9B0D799CB5E98C67512022E3F5BD0E6D0CAE192C865AFE7643D"
+                                         },
+                                         {
+                                             "name":  "xpe_pre_e2e.exe",
+                                             "sha256":  "9645A8E2FDC124BC4A14FDC3BE4A02A7449FB6144D8AF72663803FC7377E925D"
+                                         }
+                                     ],
+                     "scriptPath":  "D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-273/contract-v4/comparison_manifest.py",
+                     "scriptSha":  "86104CC6C11FD43A010A15ABE696075BDC751DB3AA0B66CF5C5925D2280DDF0C",
+                     "fixtures":  "D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-273/fixtures-v4"
+                 }
+}

@@ -1,0 +1,13 @@
+  in[7] Bright02_07.raw
+  in[8] Bright02_08.raw
+  in[9] Bright02_09.raw
+xpe_bpm_generate_v2 skip=def min_frames_dark=0 rc=0
+report pixels=7864320 dark_used=9 bright_used=10 dose_groups=1 union=1122436 weak=10558
+  feature 0 active=1 flagged=976843 threshold=5.2829 scale_median=1.4826 dof=0
+  feature 1 active=1 flagged=71 threshold=5.9283 scale_median=0.6969 dof=8
+  feature 2 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 3 active=0 flagged=0 threshold=0.0000 scale_median=0.0000 dof=0
+  feature 4 active=1 flagged=155834 threshold=0.4500 scale_median=1.0000 dof=0
+  feature 5 active=1 flagged=78465 threshold=5.5130 scale_median=243.6629 dof=9
+  group 0 signal=3143.38 frames=10
+w 3072 h 2560 win 17 block 64 lambda 5.28289745 upperOnly 0 count 976843 med 1.48259997

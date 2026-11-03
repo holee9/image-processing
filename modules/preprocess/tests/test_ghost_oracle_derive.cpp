@@ -62,7 +62,14 @@ TEST_F(GhostOracleDerive, ANegativeNoisyRemovalIsTheRectifiedDarkReferenceNotThe
             for (const auto& c : correctors(s, &fail)) {
                 if (c.control || c.uncalibrated) continue;
                 const Frames out = c.fn(y);
-                ASSERT_TRUE(allNonNegative(out)) << c.name << ": the module clamps at 0, no pixel is negative";
+                if (c.name.rfind("module:", 0) == 0) {
+                    ASSERT_FALSE(out.empty());
+                    EXPECT_EQ(y.front(), out.front()) << c.name << ": FUNC-014 initial bypass preserves signed input too";
+                    ASSERT_TRUE(allNonNegative(Frames(out.begin() + 1, out.end())))
+                        << c.name << ": active corrected frames clamp at 0; the initial bypass does not";
+                } else {
+                    ASSERT_TRUE(allNonNegative(out)) << c.name;
+                }
                 const Metrics m = measure(s, y, out);
                 ++rows;
                 if (m.k50.removalCorDark < 0.0) ++negative;

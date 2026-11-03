@@ -1,0 +1,39 @@
+"""QA-A-324: decomposition of the line parts with |D_n/sigma| > 3, from the pipeline outputs the tool scored (temporary dump 20_, json byte-identical).
+For a row line y: D = mean(row y) - (mean(row y-1) + mean(row y+1))/2 over the item extent (xpe_bpm_eval_stats.hpp:95-130). We split it by the defect plane
+of the planted set (map value of the item pixel and of the two neighbour lines) and report the mean of each piece; columns likewise.
+Usage: python -I 22_dn_dump.py.txt"""
+import numpy as np
+S = 3072; T = 'D:/workspace-github/xpe-data/qa-324-tmp/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+mp = np.fromfile(T + 'out_before/inj_v2_setmap.u8', np.uint8).reshape(S, S)
+area = np.fromfile(T + 'out_before/inj_v2_area.u8', np.uint8).reshape(S, S) != 0
+cm = np.fromfile(T + 'out_before/clean_v2_setmap.u8', np.uint8).reshape(S, S)
+items = {}
+for line in open(TR + 'truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit(): items[int(c[0])] = (c, [tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+def ld(p): return np.fromfile(p, np.float32).reshape(S, S).astype(np.float64)
+def prof(img, rect):
+    x, y, w, h = rect
+    if w > h:  # row line(s) y..y+h-1, along x
+        it = img[y:y + h, x:x + w].mean(axis=0); b = img[y - 1, x:x + w]; a = img[y + h, x:x + w]
+        m = mp[y:y + h, x:x + w].max(axis=0); mb = mp[y - 1, x:x + w]; ma = mp[y + h, x:x + w]; ar = area[y:y + h, x:x + w].min(axis=0)
+    else:
+        it = img[y:y + h, x:x + w].mean(axis=1); b = img[y:y + h, x - 1]; a = img[y:y + h, x + w]
+        m = mp[y:y + h, x:x + w].max(axis=1); mb = mp[y:y + h, x - 1]; ma = mp[y:y + h, x + w]; ar = area[y:y + h, x:x + w].min(axis=1)
+    return it, b, a, m != 0, (mb != 0) | (ma != 0), ar
+CASES = [(1, 0), (2, 0), (37, 0), (37, 1), (120, 0), (121, 0), (122, 0), (123, 0), (58, 0), (63, 0), (64, 0), (66, 0), (100, 0), (103, 0), (106, 0), (239, 0), (246, 0), (248, 0), (250, 0)]
+for f in (0, 1):
+    C, I, U = ld(T + 'dump/f%d_C.f32' % f), ld(T + 'dump/f%d_I.f32' % f), ld(T + 'dump/f%d_U.f32' % f)
+    print('== frame %d' % (f + 1))
+    for iid, part in CASES:
+        c, rects = items[iid]; rect = rects[part]
+        it, b, a, m, nb, ar = prof(I, rect)
+        d = it - 0.5 * (b + a)
+        itU, bU, aU, *_ = prof(U, rect); dU = itU - 0.5 * (bU + aU)
+        itC, bC, aC, *_ = prof(C, rect); dC = itC - 0.5 * (bC + aC)
+        L = len(d)
+        def piece(sel): return '%d px sum/L %+.3f' % (int(sel.sum()), float(d[sel].sum() / L))
+        print('  id %4d %-34s part %d L %d  D: corrected %+.3f no_fix %+.3f clean %+.3f' % (iid, '/'.join(c[1:5]), part, L, d.mean(), dU.mean(), dC.mean()))
+        print('      item px in map & area: %s | item px NOT in map, in area: %s | outside area: %s | neighbour line px in map: %d (their D sum/L %+.3f)' % (
+            piece(m & ar), piece(~m & ar), piece(~ar), int(nb.sum()), float(d[nb].sum() / L)))

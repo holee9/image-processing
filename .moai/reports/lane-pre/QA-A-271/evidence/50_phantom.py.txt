@@ -1,0 +1,73 @@
+"""QA-A-271 §2.5: phantoms. The same two library algorithms (A1 = version 1 file, A2 = version 2 file with line records) on 512 x 512 synthetic images with white Gaussian noise (sigma 30, mean 10000) and one line group per image
+(row or column, width 1 or 2, length 400). Cases: (a) flat, (b) step edge centred on the line (9000 -> 11000, transition 4 pixels), (c) linear ramp across the line (10 counts per pixel), (d) a bright parallel line (+2000, width 1) two pixels from the line.
+Per case: bias and standard deviation of (output - noise-free truth) at the line pixels, pooled over 5 seeds; the number of non-line pixels the algorithm changed (must be 0). Method and predictions: 10_method_predictions.md.txt §2.5.
+Usage: python -X utf8 50_phantom.py.txt > 51_phantom.txt"""
+src = open('D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-271/evidence/30_lib.py.txt', encoding='utf-8').read()
+exec(compile(src, '30_lib', 'exec'), globals())
+N = 512
+SIG = 30.0
+yy = np.arange(N, dtype=np.float64)[:, None] * np.ones((1, N))
+
+
+def smoothstep(t):
+    t = np.clip(t, 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def truth(case, y0, width):
+    c = y0 + (width - 1) / 2.0
+    if case == 'flat':
+        return np.full((N, N), 10000.0)
+    if case == 'step':
+        return 9000.0 + 2000.0 * smoothstep((yy - c + 2.0) / 4.0)
+    if case == 'ramp':
+        return 10000.0 + 10.0 * (yy - c)
+    if case == 'stripe':
+        T = np.full((N, N), 10000.0)
+        T[y0 + width + 1, :] += 2000.0   # the bright line two pixels beyond the line group
+        return T
+    raise ValueError(case)
+
+
+def run_one(case, width, orient, seed):
+    rng = np.random.default_rng(seed)
+    y0 = 256
+    T = truth(case, y0, width)
+    O = T + rng.normal(0.0, SIG, (N, N))
+    mask = np.zeros((N, N), dtype=np.uint8)
+    mask[y0:y0 + width, 50:450] = 1
+    O[mask == 1] = 0.0
+    seg = [(y0 + j, 50, 450) for j in range(width)]
+    line = dict(orientation=0, index=y0, width=width, start=50, end=450, causes=1, flags=0, reason=0, correction=1, strength=1.0, persistence=-1.0, segments=seg)
+    if orient == 'col':   # the same picture transposed
+        T, O, mask = T.T.copy(), O.T.copy(), mask.T.copy()
+        line = dict(orientation=1, index=y0, width=width, start=50, end=450, causes=1, flags=0, reason=0, correction=1, strength=1.0, persistence=-1.0, segments=[(y0 + j, 50, 450) for j in range(width)])
+    res = {}
+    for algo in ('A1', 'A2'):
+        p = O71 + 'ph_%s.xcal' % algo
+        if algo == 'A1':
+            write_defect(p, N, N, mask)
+        else:
+            write_defect(p, N, N, mask, None, [line])
+        load_defect(p)
+        out, rep = correct_ex(O.astype(np.float32), N, N)
+        m = mask == 1
+        e = out.astype(np.float64)[m] - T[m]
+        changed = int(((out != O.astype(np.float32)) & ~m).sum())
+        res[algo] = (e, changed)
+    return res
+
+
+print('%-7s %-5s %-4s | %-30s | %-30s | changed outside' % ('case', 'width', 'dir', 'A1 bias / sd (sigma units)', 'A2 bias / sd (sigma units)'))
+for case in ('flat', 'step', 'ramp', 'stripe'):
+    for width in (1, 2):
+        for orient in ('row', 'col'):
+            acc = {'A1': [], 'A2': []}
+            ch = {'A1': 0, 'A2': 0}
+            for seed in range(5):
+                r = run_one(case, width, orient, 271 * 100 + seed)
+                for a in acc:
+                    acc[a].append(r[a][0])
+                    ch[a] += r[a][1]
+            s = {a: np.concatenate(v) for a, v in acc.items()}
+            print('%-7s %-5d %-4s | %+8.3f / %-8.3f %12s | %+8.3f / %-8.3f %12s | A1 %d A2 %d' % (case, width, orient, s['A1'].mean() / SIG, s['A1'].std() / SIG, '', s['A2'].mean() / SIG, s['A2'].std() / SIG, '', ch['A1'], ch['A2']))

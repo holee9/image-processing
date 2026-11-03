@@ -1,0 +1,9 @@
+#!/bin/bash
+# QA-A-325 F325-1: per variant the 8 round medians (f1_24_ + f1_25_), their median/min/max, and the paired F-H per round.
+cat "$1" "$2" | sed -E 's/.*var=([HF]) .*median_excl_first=([0-9.]+).*/\1 \2/' | awk '
+{ v[$1][++n[$1]]=$2 }
+END {
+  for (k in n) { m=n[k]; for(i=1;i<=m;i++) a[i]=v[k][i]; asort(a); med=(m%2)?a[(m+1)/2]:(a[m/2]+a[m/2+1])/2;
+    printf "%s n=%d median=%.3f min=%.3f max=%.3f\n", k, m, med, a[1], a[m]; delete a }
+  for(i=1;i<=n["F"];i++){ d[i]=v["F"][i]-v["H"][i]; printf "pair %d F-H=%+.3f\n", i-1, d[i]; if(d[i]>0)p++; }
+  m=asort(d); printf "paired median F-H=%+.3f positive=%d of %d\n", (m%2)?d[(m+1)/2]:(d[m/2]+d[m/2+1])/2, p, m }'

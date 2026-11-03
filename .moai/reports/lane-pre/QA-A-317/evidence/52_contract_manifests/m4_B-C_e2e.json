@@ -1,0 +1,126 @@
+{
+ "schema": "xpe-2g-pre-comparison/4",
+ "input": {
+  "path": "input.raw",
+  "sha256": "7018ddbe02cda8c2dc52a3d068c8187211e7f733374f09f74a24816cdb276185",
+  "correction_state": {
+   "value": "offset-corrected",
+   "status": "unverified",
+   "source": "batch manifest.json does not record the correction state of img/*.raw"
+  },
+  "mode": "2G batch-20261022-1230 s4_csi_pre",
+  "width": 3072,
+  "height": 2560
+ },
+ "roi": {
+  "x": 15,
+  "y": 2,
+  "width": 3040,
+  "height": 2466
+ },
+ "engines": {
+  "A": {
+   "engine_id": "new-pre",
+   "engine_identity": {
+    "source_head": "2f7ed06b3ff4b8289cdc9b6a610fbdeda3d94241",
+    "config_sha256": "4fdf017761d29bbda091655db5fab3fa3abb1f0ef18c5943161e809ac517a167"
+   },
+   "execution": "imported-file",
+   "input_sha256": "7018ddbe02cda8c2dc52a3d068c8187211e7f733374f09f74a24816cdb276185",
+   "mode": "2G batch-20261022-1230 s4_csi_pre",
+   "maps": {
+    "offset": {
+     "path": "B_offset.xcal",
+     "sha256": "97bac341009a54fea6fe3d8d4b0f88f732b3d1f93545caa9337b37acfa2f4d04"
+    },
+    "gain": {
+     "path": "B_gain.xcal",
+     "sha256": "a5b109d03e54aa4c4c09a24b39a08a32db30771e6fbd009751cd9f21685000a8"
+    },
+    "defect": {
+     "path": "B_defect.xcal",
+     "sha256": "5a903847b1cf988d4bfe4d44eee97a230c8191814101be0a2873dcc8da4aca29"
+    }
+   },
+   "applied_settings": {
+    "offset": "not-applied",
+    "gain": "applied",
+    "defect": "applied",
+    "status": "verified",
+    "source": "pre_config.json: bypassOffset true, gain and defect stages not bypassed"
+   },
+   "output": {
+    "path": "B_out.f32",
+    "sha256": "3cafef8497790fce09d61a5a8688f26263cd3caab354ab352969929e9fcf6329",
+    "dtype": "float32",
+    "endian": "little",
+    "width": 3072,
+    "height": 2560,
+    "stride_bytes": 12288,
+    "offset_bytes": 0,
+    "stage": "engine-direct",
+    "units": "pixel value",
+    "layout": {
+     "origin": "top-left",
+     "row_order": "top-to-bottom",
+     "column_order": "left-to-right",
+     "value_transform": "identity",
+     "status": "verified",
+     "source": "QA-A-296 cmp2g_out_final.txt: index-by-index normal-class match 99.963 % between A and B arrays"
+    }
+   }
+  },
+  "B": {
+   "engine_id": "new-pre",
+   "engine_identity": {
+    "source_head": "2f7ed06b3ff4b8289cdc9b6a610fbdeda3d94241",
+    "config_sha256": "4fdf017761d29bbda091655db5fab3fa3abb1f0ef18c5943161e809ac517a167"
+   },
+   "execution": "imported-file",
+   "input_sha256": "7018ddbe02cda8c2dc52a3d068c8187211e7f733374f09f74a24816cdb276185",
+   "mode": "2G batch-20261022-1230 s4_csi_pre",
+   "maps": {
+    "offset": {
+     "path": "C_offset.xcal",
+     "sha256": "97bac341009a54fea6fe3d8d4b0f88f732b3d1f93545caa9337b37acfa2f4d04"
+    },
+    "gain": {
+     "path": "C_gain.xcal",
+     "sha256": "d8bddd76811e60a46978cdac5a7b58d7ebfb6aa08046662d7581f75350ba2e74"
+    },
+    "defect": {
+     "path": "C_defect.xcal",
+     "sha256": "5a903847b1cf988d4bfe4d44eee97a230c8191814101be0a2873dcc8da4aca29"
+    }
+   },
+   "applied_settings": {
+    "offset": "not-applied",
+    "gain": "applied",
+    "defect": "applied",
+    "status": "verified",
+    "source": "pre_config.json: bypassOffset true, gain and defect stages not bypassed"
+   },
+   "output": {
+    "path": "C_out.f32",
+    "sha256": "72b837ceaba1bdf3aaf4a699ae757f15fb49b8310c75dea6505e5f38a52cf472",
+    "dtype": "float32",
+    "endian": "little",
+    "width": 3072,
+    "height": 2560,
+    "stride_bytes": 12288,
+    "offset_bytes": 0,
+    "stage": "engine-direct",
+    "units": "pixel value",
+    "layout": {
+     "origin": "top-left",
+     "row_order": "top-to-bottom",
+     "column_order": "left-to-right",
+     "value_transform": "identity",
+     "status": "verified",
+     "source": "QA-A-296 cmp2g_out_final.txt: index-by-index normal-class match 99.963 % between A and B arrays"
+    }
+   }
+  }
+ },
+ "comparison_kind": "e2e-non-isolated"
+}

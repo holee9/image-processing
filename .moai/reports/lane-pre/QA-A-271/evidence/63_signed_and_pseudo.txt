@@ -1,0 +1,32 @@
+== Part 1: signed residual (I - Cc) / sigma_local(Cc), frame 29
+  undisturbed pixels (no truth item, in neither edition map), U vs Cc:   n  9182904  mean  -1.629  median  -1.615  sd  0.166  share negative 1.000  median |.| 1.615
+  oracle line pixels of kind gain_loss        R4 (A1, oracle mask)  n    31830  mean  -1.443  median  -1.439  sd  0.966  share negative 0.934  median |.| 1.442
+  oracle line pixels of kind gain_loss        R5 (A2, oracle mask)  n    31830  mean  -1.582  median  -1.574  sd  0.922  share negative 0.958  median |.| 1.575
+  oracle line pixels of kind efficiency_loss  R4 (A1, oracle mask)  n    31821  mean  -1.481  median  -1.481  sd  0.960  share negative 0.940  median |.| 1.483
+  oracle line pixels of kind efficiency_loss  R5 (A2, oracle mask)  n    31821  mean  -1.620  median  -1.619  sd  0.916  share negative 0.963  median |.| 1.620
+  oracle line pixels of kind dead             R4 (A1, oracle mask)  n    16652  mean  -1.435  median  -1.427  sd  0.959  share negative 0.934  median |.| 1.430
+  oracle line pixels of kind dead             R5 (A2, oracle mask)  n    16652  mean  -1.588  median  -1.584  sd  0.909  share negative 0.960  median |.| 1.584
+  oracle line pixels of kind nonlinear        R4 (A1, oracle mask)  n    27245  mean  -1.448  median  -1.433  sd  0.955  share negative 0.936  median |.| 1.437
+  oracle line pixels of kind nonlinear        R5 (A2, oracle mask)  n    27245  mean  -1.600  median  -1.589  sd  0.912  share negative 0.962  median |.| 1.589
+  oracle line pixels of kind noisy            R4 (A1, oracle mask)  n    27284  mean  -1.469  median  -1.460  sd  0.957  share negative 0.939  median |.| 1.463
+  oracle line pixels of kind noisy            R5 (A2, oracle mask)  n    27284  mean  -1.620  median  -1.602  sd  0.908  share negative 0.965  median |.| 1.602
+  U itself (no correction) at the same line pixels, gain_loss: n    31830  mean  -1.593  median  -1.582  sd  0.153  share negative 1.000  median |.| 1.582
+
+== Part 2: pseudo lines on undisturbed data
+  240 pseudo lines placed (2534 tries); pixels 36000
+  A1: report line_pixels 0 isolated 0 blob 0
+  A2: report line_pixels 36000 isolated 0 blob 0
+  group      alg    pixels       bias        sd   median |e|
+  all        A1      36000    +0.0669    0.9765       0.6578
+  all        A2      36000    +0.0022    0.9393       0.6331
+  width 1    A1      12000    +0.1716    0.8894       0.6192
+  width 1    A2      12000    -0.0169    0.8490       0.5723
+  width 2    A1      24000    +0.0146    1.0132       0.6817
+  width 2    A2      24000    +0.0117    0.9813       0.6664
+  rows       A1      18000    +0.0627    0.9768       0.6611
+  rows       A2      18000    -0.0020    0.9387       0.6353
+  columns    A1      18000    +0.0710    0.9761       0.6551
+  columns    A2      18000    +0.0063    0.9400       0.6304
+
+== the shift between the two calibration sets at undisturbed pixels (frame 29): ratio U / Cc and difference U - Cc
+  ratio U/Cc: median 0.989875  mean 0.989875  sd 0.000000  p01 0.989875  p99 0.989875   | difference U - Cc: median -93.9131  sd 0.6036   | sigma_local(Cc) median 58.1355   | median Cc 9275.29

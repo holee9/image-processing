@@ -1,0 +1,7 @@
+PASS Reload rejects bytes changed after child validation and incomplete load evidence
+PASS Stage selection does not confuse requested modes and executed evidence
+PASS Evidence export keeps the previous fixed report byte for byte and the new fixed report names this run's snapshot
+PASS Fixed copy failure keeps the snapshot and says so; snapshot failure leaves the fixed copy alone
+FAIL A failed export is judged as a failure, not as the previous export's success: A failed export was judged a success (the previous file still exists).
+PASS When only the fixed copy fails, the export is a snapshot success that says the fixed copy was not updated
+CALIBRATION_CHECKS failures=1

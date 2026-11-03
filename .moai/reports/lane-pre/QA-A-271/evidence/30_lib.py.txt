@@ -1,0 +1,200 @@
+"""QA-A-271 shared helpers (executed by the other scripts with exec(compile(...))): library loading through ctypes, XCal defect file writer (uncompressed, version 1 and version 2), correction through xpe_defect_correct_ex,
+local sigma, the 178 cells of the evaluation tool, oracle mask and oracle line records. Nothing here measures anything by itself."""
+import ctypes
+import hashlib
+import os
+import struct
+import numpy as np
+
+ROOT = 'D:/workspace-github/xpe-pre/'
+BIN = ROOT + 'build/ci-preprocess/bin/'
+CAL = 'D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/'
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+INJ = IN + 'inj_d/frames/'
+O60 = 'D:/workspace-github/xpe-data/bpm-eval-260/'
+O70 = 'D:/workspace-github/xpe-data/bpm-eval-270/'
+O71 = 'D:/workspace-github/xpe-data/bpm-eval-271/'
+EV8 = ROOT + '.moai/reports/lane-pre/QA-A-260/evidence/'
+HERE = ROOT + '.moai/reports/lane-pre/QA-A-271/evidence/'
+S = 3072
+os.makedirs(O71, exist_ok=True)
+os.add_dll_directory(os.path.abspath(BIN))
+os.environ['PATH'] = os.path.abspath(BIN) + os.pathsep + os.environ.get('PATH', '')
+common = ctypes.CDLL(os.path.abspath(BIN + 'xpe_common.dll'))
+lib = ctypes.CDLL(os.path.abspath(BIN + 'xpe_preprocess.dll'))
+
+
+class Buf(ctypes.Structure):
+    _fields_ = [('width', ctypes.c_uint32), ('height', ctypes.c_uint32), ('bitsAllocated', ctypes.c_uint32), ('bitsStored', ctypes.c_uint32), ('format', ctypes.c_int32), ('data', ctypes.c_void_p), ('dataSize', ctypes.c_size_t)]
+
+
+class Meta(ctypes.Structure):
+    _fields_ = [('bodyPart', ctypes.c_char * 64), ('kVp', ctypes.c_float), ('mAs', ctypes.c_float), ('SID_mm', ctypes.c_float), ('pixelPitch_mm', ctypes.c_float), ('acquisitionTime', ctypes.c_uint64), ('flags', ctypes.c_uint32)]
+
+
+class Rep(ctypes.Structure):
+    _fields_ = [(n, ctypes.c_uint32) for n in ('size', 'layers_used', 'isolated_pixels', 'blob_pixels', 'line_pixels', 'line_groups', 'one_sided_line_pixels', 'low_confidence_pixels', 'low_confidence_regions', 'unfilled_pixels', 'out_of_area_pixels')]
+
+
+lib.xpe_preprocess_init.argtypes = [ctypes.c_char_p]
+lib.xpe_calib_load_offset.argtypes = lib.xpe_calib_load_gain.argtypes = lib.xpe_calib_load_defect_map.argtypes = [ctypes.c_char_p]
+lib.xpe_preprocess_pipeline_out.argtypes = [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta), ctypes.c_void_p, ctypes.c_void_p, ctypes.c_char_p]
+lib.xpe_defect_correct_ex.argtypes = [ctypes.POINTER(Buf), ctypes.POINTER(Buf), ctypes.POINTER(Meta), ctypes.POINTER(Rep), ctypes.POINTER(Buf)]
+assert lib.xpe_preprocess_init(None) == 0
+CFG_FINAL = b'{"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true}'
+CFG_NODEFECT = b'{"bypassTemp":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassDefect":true}'
+
+
+def load_set(d):
+    common.xpe_clear_alerts()
+    for fn, nm in ((lib.xpe_calib_load_offset, 'offset'), (lib.xpe_calib_load_gain, 'gain'), (lib.xpe_calib_load_defect_map, 'defect')):
+        assert fn((d + '/' + nm + '.xcal').encode()) == 0, nm
+
+
+def load_defect(path):
+    common.xpe_clear_alerts()
+    r = lib.xpe_calib_load_defect_map(path.encode())
+    assert r == 0, (path, r)
+
+
+def pipeline(frame_path, cfg):
+    raw = np.fromfile(frame_path, dtype='<u2')
+    out = np.zeros(S * S, dtype=np.float32)
+    i = Buf(S, S, 16, 16, 0, raw.ctypes.data, raw.nbytes)
+    o = Buf(S, S, 32, 32, 1, out.ctypes.data, out.nbytes)
+    r = lib.xpe_preprocess_pipeline_out(ctypes.byref(i), ctypes.byref(o), ctypes.byref(Meta()), None, None, cfg)
+    common.xpe_clear_alerts()
+    assert r == 0, r
+    return out.reshape(S, S)
+
+
+def correct_ex(U, w=S, h=S):
+    """xpe_defect_correct_ex of the map that is loaded now; returns (output, report)"""
+    U = np.ascontiguousarray(U, dtype=np.float32)
+    out = np.zeros_like(U)
+    rep = Rep()
+    r = lib.xpe_defect_correct_ex(ctypes.byref(Buf(w, h, 32, 32, 1, U.ctypes.data, U.nbytes)), ctypes.byref(Buf(w, h, 32, 32, 1, out.ctypes.data, out.nbytes)), ctypes.byref(Meta()), ctypes.byref(rep), None)
+    common.xpe_clear_alerts()
+    assert r == 0, r
+    return out, rep
+
+
+# ---- XCal defect file writer (uncompressed)
+SESSION = struct.unpack_from('<64s', open(O60 + 'inj_set_v2/defect.xcal', 'rb').read(104), 40)[0]
+
+
+def put_line_rec(L, seg_first):
+    return struct.pack('<IIIIIIIIIffII', L['orientation'], L['index'], L['width'], L['start'], L['end'], L['causes'], L['flags'], L['reason'], L['correction'], L['strength'], L['persistence'], seg_first, len(L['segments']))
+
+
+def ext_bytes(lines):
+    if not lines:
+        return b''
+    segs = sum(len(L['segments']) for L in lines)
+    o = b'XDEX' + struct.pack('<IIIIIII', 1, len(lines), 0, 0, segs, 0, 0)
+    nxt = 0
+    for L in lines:
+        o += put_line_rec(L, nxt)
+        nxt += len(L['segments'])
+    for L in lines:
+        for (ln, a, b) in L['segments']:
+            o += struct.pack('<III', ln, a, b)
+    return o
+
+
+def write_defect(path, w, h, mp, area=None, lines=None):
+    """version 1 when area is None and lines is None, else version 2 (area all ones when None)"""
+    mp = np.ascontiguousarray(mp, dtype=np.uint8)
+    assert mp.shape == (h, w) and set(np.unique(mp).tolist()) <= {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+    if area is None and lines is None:
+        version, cfg, payload = 1, b'', mp.tobytes()
+    else:
+        ar = np.ones((h, w), dtype=np.uint8) if area is None else np.ascontiguousarray(area, dtype=np.uint8)
+        eb = ext_bytes(lines or [])
+        version = 2
+        cfg = ('{"defect_format":2,"defect_ext_len":%d}' % len(eb)).encode()
+        payload = mp.tobytes() + ar.tobytes() + eb
+    hdr = struct.pack('<4sIIIIIqq64sQQ', b'XCAL', version, 2, 2, w, h, 0, 4102444800000, SESSION, len(cfg), len(payload)) + hashlib.sha256(cfg + payload).digest()
+    assert len(hdr) == 152
+    tmp = path + '.tmp'
+    with open(tmp, 'wb') as f:
+        f.write(hdr + cfg + payload)
+    os.replace(tmp, path)
+
+
+def read_lines_tsv():
+    lines = []
+    for i, l in enumerate(open(EV8 + '51_lines_v2.tsv.txt', encoding='utf-8')):
+        if i == 0:
+            continue
+        c = l.rstrip('\n').split('\t')
+        st = []
+        for s in c[12].split(';'):
+            ln, rng = s.split(':')
+            a, b = rng.split('-')
+            st.append((int(ln), int(a), int(b)))
+        lines.append(dict(orientation=0 if c[1] == 'row' else 1, index=int(c[2]), width=int(c[3]), start=int(c[4]), end=int(c[5]), causes=int(c[6]), flags=int(c[7]), reason=int(c[8]), correction=int(c[9]),
+                          strength=float(c[10]), persistence=float(c[11]), segments=st))
+    return lines
+
+
+# ---- truth
+items = {}
+for line in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = dict(cls0=c[1], kind=c[2], shape=c[3], level=c[4], rects=[tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+KEYS = {k: it['cls0'] + '/' + it['kind'] + '/' + it['shape'] + '/' + it['level'] for k, it in items.items() if it['cls0'] != 'control'}
+BYKEY = {}
+for k, key in KEYS.items():
+    BYKEY.setdefault(key, []).append(k)
+CELL_PIX = {key: np.nonzero(np.isin(ids, ks).ravel())[0] for key, ks in BYKEY.items()}
+
+
+def oracle_mask_and_lines():
+    mk = np.zeros((S, S), dtype=np.uint8)
+    lines = []
+    for k, it in sorted(items.items()):
+        if it['cls0'] == 'control':
+            continue
+        for (x, y, w, h) in it['rects']:
+            mk[y:y + h, x:x + w] = 1
+            if it['cls0'] == 'line':
+                if w > h:
+                    lines.append(dict(orientation=0, index=y, width=h, start=x, end=x + w, causes=1, flags=0, reason=0, correction=1, strength=1.0, persistence=-1.0, segments=[(y + j, x, x + w) for j in range(h)]))
+                else:
+                    lines.append(dict(orientation=1, index=x, width=w, start=y, end=y + h, causes=1, flags=0, reason=0, correction=1, strength=1.0, persistence=-1.0, segments=[(x + j, y, y + h) for j in range(w)]))
+    lines.sort(key=lambda L: (L['orientation'], L['index']))
+    return mk, lines
+
+
+def sigma_local(C):
+    x = C.astype(np.float64) - float(np.median(C))
+    idx = np.arange(S)
+    lo, hi = np.maximum(idx - 5, 0), np.minimum(idx + 5, S - 1) + 1
+
+    def box(a):
+        p = np.pad(a, ((1, 0), (1, 0)))
+        cs = np.cumsum(np.cumsum(p, axis=0), axis=1)
+        return cs[hi][:, hi] - cs[lo][:, hi] - cs[hi][:, lo] + cs[lo][:, lo]
+    cnt = (hi - lo).astype(np.float64)
+    m = cnt[:, None] * cnt[None, :]
+    s1, s2 = box(x), box(x * x)
+    mean = s1 / m
+    return np.sqrt(np.maximum(0.0, s2 / m - mean * mean))
+
+
+def zmap(I, C, sl=None):
+    sl = sigma_local(C) if sl is None else sl
+    return np.abs(I.astype(np.float64) - C.astype(np.float64)) / np.where(sl > 0, sl, np.nan)
+
+
+def upper_median(a):
+    a = a[np.isfinite(a)]
+    return float(np.sort(a)[a.size // 2]) if a.size else float('nan')
+
+
+def cell_medians(z):
+    zr = z.ravel()
+    return {key: upper_median(zr[px]) for key, px in CELL_PIX.items()}

@@ -1,5 +1,6 @@
-// #182 (GUI-C-95): settings that reach no processing are shown disabled and marked, in the running app.
+// #182 / #278 (GUI-C-254): editable calibration modes must reach a processing request.
 using System;
+using System.Text.Json;
 using FlaUI.Core.AutomationElements;
 using ImageProcTest.E2ETests.Fixtures;
 using Xunit;
@@ -9,46 +10,212 @@ using static ImageProcTest.E2ETests.Scenarios.Workflows.WorkbenchObservation;
 namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 
 /// <summary>
-/// The source survey (<c>SettingsProcessingConnectionTests</c>) reads <c>IsEnabled="False"</c> in XAML.
-/// These cases read the automation tree of the running app, which is what the user gets: the controls
-/// are disabled, the "미적용" mark is on screen, and its tooltip names #182. Each case also reads a
-/// connected control in the same panel, so a whole panel that stopped responding cannot pass.
+/// These cases read the running app. Connected controls must be usable; unconnected controls must
+/// remain disabled and truthfully marked. U01 also couples each editable mode to a fresh backend
+/// result, so enabling a radio button without connecting its binding cannot satisfy the contract.
 /// </summary>
 [Collection(WorkflowApplicationCollection.Name)]
 public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, ITestOutputHelper output)
 {
-    private static readonly string[] Stages = ["Offset", "Gain", "Defect", "Ghost", "Temperature", "Nonlinearity", "Binning"];
+    private static readonly string[] ConnectedStages = ["Offset", "Gain", "Defect"];
+    private static readonly string[] UnconnectedStages = ["Ghost", "Temperature", "Nonlinearity", "Binning"];
+    private static readonly string[] ModeValues = ["Auto", "On", "Off"];
 
-    /// <summary>U-01: all 21 calibration-stage options are disabled, one per stage still shows the stored value.</summary>
+    /// <summary>U-01: nine connected options change processing requests; twelve unsupported options stay disabled.</summary>
     [SkippableFact]
-    public void U01_CalibrationStages_AreDisabledAndMarked()
+    public void U01_CalibrationStages_AreUsableExactlyWhenConnected()
     {
         var window = Ready();
-        OpenParameters(window);
+        // UIA Invoke/SelectionItem/Toggle only; do not call OpenParameters (SetForeground).
+        var parameters = window.FindFirstDescendant(cf => cf.ByName("Parameters"));
+        Assert.NotNull(parameters);
+        parameters!.AsButton().Invoke();
+        Thread.Sleep(400);
+        var stages = ConnectedStages.Concat(UnconnectedStages).ToArray();
+        var original = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var stage in stages)
+        {
+            var selected = ModeValues.Where(value => Find(window, $"Calib{stage}Mode{value}").AsRadioButton().IsChecked).ToArray();
+            Assert.Single(selected);
+            original[stage] = selected[0];
+            foreach (var value in ModeValues)
+                Assert.Equal(ConnectedStages.Contains(stage), Find(window, $"Calib{stage}Mode{value}").IsEnabled);
+        }
+
+        var preprocess = Find(window, "PreprocessInChainCheckBox").AsCheckBox();
+        var originalPreprocess = preprocess.IsChecked;
         try
         {
-            foreach (var stage in Stages)
-            {
-                var checkedCount = 0;
-                foreach (var value in new[] { "Auto", "On", "Off" })
-                {
-                    var id = $"Calib{stage}Mode{value}";
-                    var radio = Find(window, id).AsRadioButton();
-                    output.WriteLine($"U01 {id} enabled={radio.IsEnabled} checked={radio.IsChecked}");
-                    Assert.False(radio.IsEnabled, $"{id} is enabled, but no processing reads the {stage} mode (#182).");
-                    if (radio.IsChecked) checkedCount++;
-                }
-
-                Assert.True(checkedCount == 1, $"{stage}: {checkedCount} options are checked; the stored value must still be shown.");
-            }
-
-            AssertMark(window, "CalibrationStagesUnappliedMark");
+            var mark = Find(window, "CalibrationStagesUnappliedMark");
+            Assert.Equal("기본 3단계 연결", mark.Name);
+            Assert.False(mark.IsOffscreen);
+            foreach (var term in new[] { "Offset/Gain/Defect", "Auto", "On", "Off" })
+                Assert.Contains(term, mark.HelpText, StringComparison.Ordinal);
             AssertConnectedControlEnabled(window);
+
+            if (originalPreprocess != true) preprocess.Patterns.Toggle.Pattern.Toggle();
+            Assert.True(preprocess.IsChecked == true);
+            foreach (var stage in ConnectedStages) SelectCalibrationMode(window, stage, "Auto");
+
+            // A baseline render prevents an old exported result from satisfying a later edit.
+            var expected = ConnectedStages.ToDictionary(stage => stage, _ => "Auto", StringComparer.Ordinal);
+            RenderAndAssertCalibrationRequest(window, expected, original);
+            foreach (var stage in ConnectedStages)
+            {
+                foreach (var value in new[] { "Off", "On", "Auto" })
+                {
+                    SelectCalibrationMode(window, stage, value);
+                    expected[stage] = value;
+                    RenderAndAssertCalibrationRequest(window, expected, original);
+                }
+            }
         }
         finally
         {
+            foreach (var stage in ConnectedStages) SelectCalibrationMode(window, stage, original[stage]);
+            if (preprocess.IsChecked != originalPreprocess) preprocess.Patterns.Toggle.Pattern.Toggle();
+            // Restore the shared fixture's rendered state as well as its controls.
+            var version = Viewport(window).ProcessedVersion;
+            ApplyDisplayPipeline(window);
+            Assert.True(WaitForProcessedVersionAbove(window, version) > version, "U01 cleanup did not render the restored settings.");
             OpenMetrics(window);
         }
+    }
+
+    private static void SelectCalibrationMode(Window window, string stage, string value)
+    {
+        Find(window, $"Calib{stage}Mode{value}").Patterns.SelectionItem.Pattern.Select();
+        foreach (var option in ModeValues)
+            Assert.Equal(option == value, Find(window, $"Calib{stage}Mode{option}").AsRadioButton().IsChecked);
+    }
+
+    private void RenderAndAssertCalibrationRequest(Window window, IReadOnlyDictionary<string, string> expected,
+        IReadOnlyDictionary<string, string> original)
+    {
+        var before = Viewport(window);
+        ApplyDisplayPipeline(window);
+        Assert.True(WaitForProcessedVersionAbove(window, before.ProcessedVersion) > before.ProcessedVersion,
+            "The mode edit produced no fresh processed frame.");
+        Assert.Equal(before.SourceVersion, Viewport(window).SourceVersion);
+        Assert.Null(StaleIndicator(window));
+
+        var report = ExportFreshCalibrationReport(window);
+        Assert.Equal(app.BackendMode, report.GetProperty("actualBackendMode").GetString());
+        var calibration = report.GetProperty("calibrationEvaluation");
+        var requested = calibration.GetProperty("requested");
+        var display = report.GetProperty("displayPipeline");
+        Assert.True(display.GetProperty("applied").GetBoolean());
+        foreach (var stage in ConnectedStages)
+        {
+            var key = stage.ToLowerInvariant();
+            Assert.Equal(expected[stage], requested.GetProperty(key).GetString());
+            Assert.Equal(expected[stage], calibration.GetProperty(key).GetString());
+        }
+        foreach (var stage in UnconnectedStages)
+        {
+            var key = stage.ToLowerInvariant();
+            Assert.Equal(original[stage], requested.GetProperty(key).GetString());
+            Assert.Equal(original[stage], calibration.GetProperty(key).GetString());
+            foreach (var value in ModeValues)
+                Assert.False(Find(window, $"Calib{stage}Mode{value}").IsEnabled);
+        }
+
+        // The settings snapshot alone is insufficient: inspect what the backend consumed too.
+        if (app.BackendMode == "Mock")
+        {
+            var summary = display.GetProperty("summary").GetString()!;
+            foreach (var stage in ConnectedStages)
+            {
+                var disposition = expected[stage] == "Off" ? "bypassed" : "applied";
+                // Auto Defect depends on whether a directory was configured (the Mock's contract).
+                if (stage == "Defect" && expected[stage] == "Auto")
+                    disposition = string.IsNullOrWhiteSpace(report.GetProperty("settings").GetProperty("calibDefectDir").GetString())
+                        ? "bypassed" : "applied";
+                Assert.Contains($"{stage}={expected[stage]}/{disposition}", summary, StringComparison.Ordinal);
+            }
+            output.WriteLine($"U01 backend-consumed: {summary}");
+        }
+        else
+        {
+            Assert.Equal("Native", app.BackendMode);
+            var executed = calibration.GetProperty("executed");
+            Assert.Contains(executed.GetProperty("preprocess").GetString(), new[] { "Applied", "AppliedNoChange" });
+            var reason = executed.GetProperty("reason").GetString()!;
+            var modes = string.Join(",", ConnectedStages.Select(stage => $"{stage.ToLowerInvariant()}:{expected[stage]}"));
+            Assert.Contains($"requested=[{modes}]", reason, StringComparison.Ordinal);
+            Assert.Contains("unsupported ghost/temp/nonlinearity/binning bypassed", reason, StringComparison.Ordinal);
+            AssertNativeStagesExecutedPerMode(report, expected, reason, executed.GetProperty("hud").GetString());
+            output.WriteLine($"U01 backend-consumed: {reason}");
+        }
+    }
+
+    // Native stage bits of the metadata flags (GuiPreprocessRunner.RunPipelineOut): offset 0x2000, gain 0x0008, defect 0x0004. Other bits (e.g. 0x4000 bypassed) are not asserted.
+    private static readonly (string Stage, string File, string DirKey, int Bit)[] NativeStages =
+    [
+        ("Offset", "offset.xcal", "calibOffsetDir", 0x2000),
+        ("Gain", "gain.xcal", "calibGainDir", 0x0008),
+        ("Defect", "defect.xcal", "calibDefectDir", 0x0004),
+    ];
+
+    /// <summary>
+    /// F264-1 (Reviewer #264): GUI-PRE-GATE-009 / CalibrationStageSelection - Off never runs a stage, On requires its map, Auto runs it only when the map exists.
+    /// The expected set comes from the requested mode and the map files on disk, never from the reason's own <c>requested=[...]</c> echo; it is compared with the stages the
+    /// backend reports it executed, with the real stage bits of the native flags, and with the HUD text of the same render.
+    /// </summary>
+    private static void AssertNativeStagesExecutedPerMode(JsonElement report, IReadOnlyDictionary<string, string> expected, string reason, string? hud)
+    {
+        var settings = report.GetProperty("settings");
+        var wanted = new List<string>();
+        foreach (var (stage, file, dirKey, _) in NativeStages)
+        {
+            var directory = settings.GetProperty(dirKey).GetString();
+            var exists = !string.IsNullOrWhiteSpace(directory) && File.Exists(System.IO.Path.Combine(directory, file));
+            // The fixture must hold all three maps, otherwise On/Auto/Off would not be told apart by the outcome.
+            Assert.True(exists, $"U01 fixture has no {file} in '{directory}'.");
+            if (expected[stage] != "Off") wanted.Add(stage.ToLowerInvariant());
+        }
+
+        var executedMatch = System.Text.RegularExpressions.Regex.Match(reason, @"executed=\[([^\]]*)\]");
+        Assert.True(executedMatch.Success, $"The reason carries no executed=[...] list: {reason}");
+        var actual = executedMatch.Groups[1].Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        Assert.Equal(wanted.OrderBy(x => x, StringComparer.Ordinal), actual.OrderBy(x => x, StringComparer.Ordinal));
+
+        var flagsMatch = System.Text.RegularExpressions.Regex.Match(reason, @"nativeFlags=0x([0-9a-fA-F]+)");
+        Assert.True(flagsMatch.Success, $"The reason carries no nativeFlags=0x...: {reason}");
+        var flags = Convert.ToInt32(flagsMatch.Groups[1].Value, 16);
+        foreach (var (stage, _, _, bit) in NativeStages)
+            Assert.True(((flags & bit) != 0) == (expected[stage] != "Off"),
+                $"{stage}={expected[stage]}: native flag bit 0x{bit:x} is {((flags & bit) != 0 ? "set" : "clear")} (flags 0x{flags:x}); executed=[{string.Join(",", actual)}].");
+
+        Assert.Equal($"{wanted.Count} native stages ({string.Join(" · ", wanted)})", hud);
+    }
+
+    private JsonElement ExportFreshCalibrationReport(Window window)
+    {
+        var priorStatus = Find(window, "StatusBarText").Name;
+        UiaMenu.Open(window, "FileMenu");
+        Find(window, "ExportAutomationReportMenuItem").AsMenuItem().Invoke();
+        const string prefix = "Automation report exported: ";
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            var status = Find(window, "StatusBarText").Name;
+            if (status != priorStatus && status.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                // Read the newly named immutable snapshot, never delete or trust an old fixed alias.
+                var end = status.IndexOf(" (fixed copy:", StringComparison.Ordinal);
+                if (end < 0) end = status.IndexOf(". The fixed copy ", StringComparison.Ordinal);
+                Assert.True(end > prefix.Length, $"The export did not name its snapshot: {status}");
+                var path = status[prefix.Length..end];
+                Assert.True(File.Exists(path), $"The exported snapshot is missing: {path}");
+                using var document = JsonDocument.Parse(File.ReadAllText(path));
+                var root = document.RootElement;
+                Assert.Equal(Path.GetFileName(path), root.GetProperty("evidence").GetProperty("snapshotFile").GetString());
+                output.WriteLine($"U01 fresh evidence: {path}");
+                return root.Clone();
+            }
+            Thread.Sleep(250);
+        }
+        throw new InvalidOperationException("U01 did not receive a newly exported evidence snapshot.");
     }
 
     /// <summary>

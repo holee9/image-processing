@@ -1,0 +1,69 @@
+QA-A-266 mutation check (xpe_verify_offset_signed and the file variant). Source hash at the start: c6b354bbeca5160b
+PREDICTIONS (written before any run):
+  M1 the signed ROI residual is clamped at 0 before it is averaged                 -> red: ItSeesTheNegativeBiasThatTheUint16OutputHides (-4 expected, 0 read), ItMatchesTheReferenceOnAMixedFrame, TheClampRate... no
+  M2 the ROI output value is not rounded (c instead of c + 0.5f)                   -> red: ItMatchesTheReferenceOnAMixedFrame (outMean), TheOutputFiguresEqualTheOldFunction... (bit for bit), T-D keeps green only if integers: the integer residuals are exact, so T-D stays GREEN
+  M3 zeroOutputRatePct counts x <= 0 instead of the rounded zeros                  -> red: TheClampRateCountsNegativeResidualsAndTheZeroOutputRateCountsRoundedZeros (x = 0.25 expects 100, 0 read), the continuity test (zero count of the corrected image)
+  M4 clampRatePct counts x <= 0 instead of x < 0                                   -> red: TheClampRate... (x = 0 expects 0 %, 100 read)
+  M5 the ROI test is raw <= threshold instead of raw < threshold                   -> red: ARawFrameWithoutVariationOrWithoutAnROI... (the tied frame selects 90 %), ThePercentileFromTheHistogram... (roiPixels)
+  M6 validMask groups are not cleared for a short structSize                       -> red: TheStructSizeRuleWritesNothingPastTheCallersStructAndKeepsGroupsWhole
+  M7 a non-finite map value is accepted                                            -> red: EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays (INVALID_CALIB_DATA expected)
+  M8 the map hash covers one float too few                                         -> red: TheMapIdentityIsTheSha256OfItsFloatBytesAndItsSize, TheFileVariantEqualsTheBufferVariant... no: both variants share the code, so only the first test is red
+  M9 the file variant checks the expiry                                            -> red: TheFileVariantEqualsTheBufferVariantAndDoesNotCheckExpiry (the file has an expiry in the past)
+  M10 an error clears the whole struct instead of the 32-byte head                 -> red: EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays (tail_untouched)
+  M11 the ROI minimum of 1 % is not asked                                          -> red: ARawFrameWithoutVariationOrWithoutAnROI... (the tied frame has 0 ROI pixels and the ROI bits must be clear)
+  M12 the variation test needs a range of more than 50 % instead of 1 %            -> red: nearly every test that needs the ROI bits (the varied raw has a range of about 4 %)
+  every test of the filter that does not depend on the mutated line stays green in each mutant
+--- step 0: unmutated
+build: BUILD_EXIT=0
+tests exit 0: 15 passed, failed: []
+--- M1
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.1 s, dll 1.5 s after the mutant)
+tests exit 1: 11 passed, FAILED: ['ForNormalResidualsTheFloorRaisesTheMeanByTheNormalFormula', 'ItKeepsNoStateItNeedsNoInitAndTwoThreadsWithOtherMapsDoNotMixTheirValues', 'ItMatchesTheReferenceOnAMixedFrame', 'ItSeesTheNegativeBiasThatTheUint16OutputHides']
+--- M2
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.2 s, dll 1.6 s after the mutant)
+tests exit 1: 13 passed, FAILED: ['ItMatchesTheReferenceOnAMixedFrame', 'TheOutputFiguresEqualTheOldFunctionOnTheCorrectedImageBitForBit']
+--- M3
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.0 s, dll 1.5 s after the mutant)
+tests exit 1: 12 passed, FAILED: ['ItMatchesTheReferenceOnAMixedFrame', 'TheClampRateCountsNegativeResidualsAndTheZeroOutputRateCountsRoundedZeros', 'TheOutputFiguresEqualTheOldFunctionOnTheCorrectedImageBitForBit']
+--- M4
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.2 s, dll 1.6 s after the mutant)
+tests exit 1: 13 passed, FAILED: ['ARawFrameWithoutVariationOrWithoutAnROIStillGivesTheWholeFrameRates', 'TheClampRateCountsNegativeResidualsAndTheZeroOutputRateCountsRoundedZeros']
+--- M5
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.1 s, dll 1.5 s after the mutant)
+tests exit 1: 10 passed, FAILED: ['ARawFrameWithoutVariationOrWithoutAnROIStillGivesTheWholeFrameRates', 'ItMatchesTheReferenceOnAMixedFrame', 'TheOutputFiguresEqualTheOldFunctionOnTheCorrectedImageBitForBit', 'ThePercentileFromTheHistogramEqualsTheSortedCopyForAwkwardSizesAndTies', 'WithIntegerResidualsTheOutputBiasIsTheClampOnlyMeanAndAtLeastTheSignedBias']
+--- M6
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.2 s, dll 1.6 s after the mutant)
+tests exit 1: 14 passed, FAILED: ['TheStructSizeRuleWritesNothingPastTheCallersStructAndKeepsGroupsWhole']
+--- M7
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.1 s, dll 1.5 s after the mutant)
+tests exit 1: 14 passed, FAILED: ['EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays']
+--- M8
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.1 s, dll 1.6 s after the mutant)
+tests exit 1: 14 passed, FAILED: ['TheMapIdentityIsTheSha256OfItsFloatBytesAndItsSize']
+--- M9
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.0 s, dll 1.5 s after the mutant)
+tests exit 1: 14 passed, FAILED: ['TheFileVariantEqualsTheBufferVariantAndDoesNotCheckExpiry']
+--- M10
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.1 s, dll 1.5 s after the mutant)
+tests exit 1: 14 passed, FAILED: ['EveryErrorHasItsCodeAndLeavesTheCallersStructAsTheContractSays']
+--- M11
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.3 s, dll 1.7 s after the mutant)
+tests exit 1: 14 passed, FAILED: ['ARawFrameWithoutVariationOrWithoutAnROIStillGivesTheWholeFrameRates']
+--- M12
+build: BUILD_EXIT=0
+executable newer than the mutant: True (exe 3.0 s, dll 1.4 s after the mutant)
+tests exit 1: 5 passed, FAILED: ['ForNormalResidualsTheFloorRaisesTheMeanByTheNormalFormula', 'ItKeepsNoStateItNeedsNoInitAndTwoThreadsWithOtherMapsDoNotMixTheirValues', 'ItMatchesTheReferenceOnAMixedFrame', 'ItSeesTheNegativeBiasThatTheUint16OutputHides', 'TheOutputBiasCanBeBelowTheSignedBiasARoiResidualOfPointTwoRoundsToZero', 'TheOutputFiguresEqualTheOldFunctionOnTheCorrectedImageBitForBit', 'ThePercentileFromTheHistogramEqualsTheSortedCopyForAwkwardSizesAndTies', 'TheSignedAndTheOutputBiasObeyOnlyTheRelationsThatHold', 'TheStructSizeRuleWritesNothingPastTheCallersStructAndKeepsGroupsWhole', 'WithIntegerResidualsTheOutputBiasIsTheClampOnlyMeanAndAtLeastTheSignedBias']
+--- restored: touch + rebuild
+source hash now: c6b354bbeca5160b (start: c6b354bbeca5160b)
+build: BUILD_EXIT=0

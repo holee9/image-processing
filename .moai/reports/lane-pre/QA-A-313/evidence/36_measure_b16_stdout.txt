@@ -1,0 +1,19 @@
+G1_planted_v1 exit 0 seconds 329
+G2_planted_v2 exit 0 seconds 131
+G3_clean_v1 exit 0 seconds 330
+G4_clean_v2 exit 0 seconds 118
+X1_area_planted_v2 exit 0 seconds 0
+X2_info_v1 exit 0 seconds 0
+X3_clean_v2_map exit 0 seconds 0
+X5_clean_v1_map exit 0 seconds 0
+H1_v1_half_a exit 0 seconds 323
+H2_v1_half_b exit 0 seconds 324
+H3_v2_half_a exit 0 seconds 65
+H4_v2_half_b exit 0 seconds 65
+H5_v2_lines_a exit 0 seconds 29
+H6_v2_lines_b exit 0 seconds 28
+S1_score_v1 exit 0 seconds 1
+S2_score_v2 exit 0 seconds 1
+C1_correct_v1 exit 0 seconds 3
+C2_correct_v2 exit 0 seconds 2
+done

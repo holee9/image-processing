@@ -22,6 +22,7 @@
 #include "xpe/common/xpe_error.h"
 
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <string>
 #include <vector>
@@ -66,6 +67,51 @@ TEST_F(GhostTierTest, Tier2FirstFrameIsUnchanged) {
     ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &f.buf, &meta));
     for (float v : f.pixels)
         EXPECT_FLOAT_EQ(1000.0f, v) << "no history yet, so nothing to subtract";
+}
+
+TEST_F(GhostTierTest, NonuniformFirstFrameAndFirstAfterResetAreExactBypasses) {
+    for (const char* cfg : {"{\"tier\":1}", "{\"tier\":2}", "{\"tier\":3}"}) {
+        create(5, 5, cfg);
+        for (int cycle = 0; cycle < 2; ++cycle) {
+            if (cycle) ASSERT_EQ(XPE_OK, xpe_ghost_reset(handle));
+            Frame first(5, 5, 0.0f);
+            first.pixels[12] = 1000.0f;
+            const auto given = first.pixels;
+            XpeImageMetadata meta{};
+            ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &first.buf, &meta));
+            EXPECT_EQ(0, std::memcmp(given.data(), first.pixels.data(), 25 * sizeof(float))) << cfg;
+            Frame second(5, 5, 0.0f);
+            second.pixels[12] = 1000.0f;
+            ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &second.buf, &meta));
+            EXPECT_LT(second.pixels[12], 1000.0f) << "the bypass must still seed history: " << cfg;
+        }
+        xpe_ghost_destroy(handle); handle = nullptr;
+    }
+}
+
+TEST_F(GhostTierTest, AZeroValuedSuccessfulFrameStillConsumesTheFirstFrameState) {
+    create(5, 5, "{\"tier\":3}");
+    XpeImageMetadata meta{};
+    Frame zero(5, 5, 0.0f);
+    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &zero.buf, &meta));
+    Frame second(5, 5, 0.0f);
+    second.pixels[12] = 1000.0f;
+    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &second.buf, &meta));
+    EXPECT_LT(second.pixels[12], 1000.0f) << "a real prior frame exists even though its history values are zero";
+}
+
+TEST_F(GhostTierTest, ARejectedFrameDoesNotConsumeTheFirstFrameBypass) {
+    create(5, 5, "{\"tier\":3}");
+    XpeImageMetadata meta{};
+    Frame bad(5, 5, 1000.0f);
+    bad.pixels.back() = std::numeric_limits<float>::quiet_NaN();
+    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_ghost_correct(handle, &bad.buf, &meta));
+    xpe_clear_alerts();
+    Frame good(5, 5, 0.0f);
+    good.pixels[12] = 1000.0f;
+    const auto given = good.pixels;
+    ASSERT_EQ(XPE_OK, xpe_ghost_correct(handle, &good.buf, &meta));
+    EXPECT_EQ(0, std::memcmp(given.data(), good.pixels.data(), 25 * sizeof(float)));
 }
 
 // Tier 2 weights the correction by frame mean, so a second identical frame

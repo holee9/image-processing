@@ -1,0 +1,77 @@
+{
+  "schema": "xpe-2g-pre-comparison/4",
+  "input": {
+    "path": "image-processing/tests/test_data/cyan_test/Bright_Chest phantom_75kv_320ma_25.6(SID_110)_00.raw",
+    "sha256": "62f2979250d5e0a503bf59fff5775f907d750e81226815275a6c2f291e57f4be",
+    "correction_state": {
+      "value": "unknown",
+      "status": "unverified",
+      "source": "not established: qa-input-provenance.md (PRE-2G-COMPARE-20261020) lists the offset-correction state of this input as unconfirmed; file name and .raw extension do not establish it"
+    },
+    "mode": "unknown",
+    "width": 3072,
+    "height": 3072
+  },
+  "engines": {
+    "B": {
+      "engine_id": "new-pre",
+      "engine_identity": {
+        "source_head": "75c0043195e5afacf7d6b424bee32c063b9e99a0",
+        "config_sha256": "945ced65cd3b5e809b0d120d5def42d16e294607c5179e73236559f638f08a6f"
+      },
+      "execution": "imported-file",
+      "input_sha256": "62f2979250d5e0a503bf59fff5775f907d750e81226815275a6c2f291e57f4be",
+      "mode": "unknown",
+      "maps": {
+        "offset.xcal": {
+          "path": "xpe-data/bpm-eval-260/clean_set_v2/offset.xcal",
+          "sha256": "5569bacf66fb25f10b9137ebf3f466e9ce8d94857c90dc4a7340df362c290c39"
+        },
+        "gain.xcal": {
+          "path": "xpe-data/bpm-eval-260/clean_set_v2/gain.xcal",
+          "sha256": "a7ddadbd5b69a350c44c638fd8887096ca4cb448eda322e5d8976575c7520d22"
+        },
+        "defect.xcal": {
+          "path": "xpe-data/bpm-eval-260/clean_set_v2/defect.xcal",
+          "sha256": "4579e06bcf5be09828935eb48c71bd78d1f51afc9fc97f83e678158dfa2f105c"
+        }
+      },
+      "applied_settings": {
+        "offset": "applied",
+        "gain": "applied",
+        "defect": "applied",
+        "status": "verified",
+        "source": "meta.flags=0x200c returned by xpe_preprocess_pipeline_out = OFFSET_CORRECTED 0x2000 | DEFECT_CORRECTED 0x4 | GAIN_CORRECTED 0x8, CORRECTION_BYPASSED 0x4000 not set; observed by QA-A-276 (xpe-pre build/qa276_out/run.log) and independently by QA-276-INDEP (image-processing/.moai/state/reviews/QA-276-INDEP.md). Flags report stage completion, not a per-pixel audit."
+      },
+      "output": {
+        "path": "xpe-pre/build/qa276_out/chest00_pre_out.f32",
+        "sha256": "c2210d3dc5ee329bab6203435b4395eb52e1a7dad61d489530625801c2e9821a",
+        "dtype": "float32",
+        "endian": "little",
+        "width": 3072,
+        "height": 3072,
+        "stride_bytes": 12288,
+        "offset_bytes": 0,
+        "stage": "engine-direct",
+        "units": "pixel value",
+        "layout": {
+          "origin": "top-left",
+          "row_order": "top-to-bottom",
+          "column_order": "left-to-right",
+          "value_transform": "identity",
+          "status": "verified",
+          "source": "(1) written unchanged from the pipeline_out buffer; (2) grep for flip/transpose/rotate/mirror/reverse in pipeline.cpp, offset_correct.cpp, gain_correct.cpp, defect_correct.cpp finds no geometric transform; (3) 1/8-subsampled correlation with the input: identity 0.9935, flipud 0.9566, fliplr 0.4118, transpose 0.1765 (QA-A-276 report 3.4). Evidence supports identity; it is not an independent proof."
+        }
+      },
+      "note": "Detector-domain FLOAT32 output of pipeline_out, not a display (UINT16/VOI/clip/LNR/GLS) output. Exact config bytes: pre-config.json in this folder (sha256 = config_sha256). DLL and source provenance: provenance.json (not part of the contract)."
+    }
+  },
+  "roi": {
+    "x": 0,
+    "y": 0,
+    "width": 3072,
+    "height": 3072
+  },
+  "comparison_kind": "e2e-non-isolated",
+  "note": "INCOMPLETE PROVENANCE, NOT A COMPARABLE MANIFEST. PRE side only (QA-A-276/276b). engines.A is absent on purpose: no 2G output exists and none is invented. comparison_kind e2e-non-isolated is a non-attributing placeholder so no algorithm attribution is implied (the contract default common-condition would attribute); it is NOT a decision that the pair is E2E. roi = full stored array is a placeholder with no evidence-based basis (undecided). input.correction_state and input.mode are unverified/unknown. Base dir for every path: D:/workspace-github. Non-contract evidence is in provenance.json."
+}

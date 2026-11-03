@@ -1,0 +1,42 @@
+"""QA-A-267 item 6: the predictions E1..E5 of 20_remeasure_method.md.txt against the new JSON (22 = first edition, 23 = second edition).
+Usage: PYTHONIOENCODING=utf-8 python -X utf8 25_compare.py.txt > 26_compare_result.txt"""
+import json
+R = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/'
+ok = {'E1': True, 'E2': True, 'E3': True, 'E4': True, 'E5': True}
+for tag, old, prev, new in (('first edition (v1)', 'QA-A-260/evidence/44_correct_v1.json.txt', 'QA-A-265/evidence/72_correct_v1_area.json.txt', 'QA-A-267/evidence/22_correct_v1_area.json.txt'),
+                            ('second edition (v2)', 'QA-A-260/evidence/45_correct_v2.json.txt', 'QA-A-265/evidence/73_correct_v2_area.json.txt', 'QA-A-267/evidence/23_correct_v2_area.json.txt')):
+    jo, jp, jn = (json.load(open(R + p, encoding='utf-8')) for p in (old, prev, new))
+    print('=' * 100)
+    print(tag)
+    for f, (fo, fp, fn) in enumerate(zip(jo['frames'], jp['frames'], jn['frames'])):
+        for key in ('correction_error', 'line_index', 'parts_over_3_sigma', 'parts_uncomputable', 'other_rows', 'other_columns'):
+            if fo[key] != fn[key]:
+                ok['E1'] = False
+                print('  frame %d E1: old-definition field %s DIFFERS from QA-A-260' % (f + 1, key))
+        a, p = fn['area_contract'], fp['area_contract']
+        # E2: the counts of the new definition against QA-A-265
+        pairs = [('parts_over_3_sigma_measured corrected/no_fix/clean', [a['parts_over_3_sigma_measured'][k] for k in ('corrected', 'no_fix', 'clean')], [p['parts_over_3_sigma_measured'][k] for k in ('corrected', 'no_fix', 'clean')]),
+                 ('parts_over_3_sigma_fully_inside', [a['parts_over_3_sigma_fully_inside'][k] for k in ('corrected', 'no_fix', 'clean')], [p['parts_over_3_sigma_fully_inside'][k] for k in ('corrected', 'no_fix', 'clean')]),
+                 ('other_rows checked/corrected/clean', [a['other_rows'][k] for k in ('checked', 'corrected', 'clean')], [p['other_rows'][k] for k in ('checked', 'corrected', 'clean')]),
+                 ('other_columns checked/corrected/clean', [a['other_columns'][k] for k in ('checked', 'corrected', 'clean')], [p['other_columns'][k] for k in ('checked', 'corrected', 'clean')]),
+                 ('measured / fully_inside / cut_to_area', [a['measured'], a['fully_inside'], a['cut_to_area']], [p['measured'], p['fully_inside'], p['cut_to_area']])]
+        for name, now, before in pairs:
+            same = now == before
+            ok['E2'] = ok['E2'] and same
+            print('  frame %d E2 %-48s now %-22s QA-A-265 %-22s %s' % (f + 1, name, now, before, 'same' if same else 'CHANGED'))
+        nm = a['not_measurable']
+        z = all(nm[k] == 0 for k in nm)
+        ok['E3'] = ok['E3'] and z
+        print('  frame %d E3 not measurable by geometry: %s -> %s' % (f + 1, nm, 'all 0' if z else 'NOT 0'))
+        unc = [a['parts_uncomputable'][k] for k in ('corrected', 'no_fix', 'clean')]
+        rows_c = [a['other_rows'][k] for k in ('uncomputable_corrected', 'uncomputable_clean')]
+        cols_c = [a['other_columns'][k] for k in ('uncomputable_corrected', 'uncomputable_clean')]
+        valid_ok = [a['parts_valid'][k] for k in ('corrected', 'no_fix', 'clean')] == [a['geometry_measurable']] * 3
+        z4 = unc == [0, 0, 0] and rows_c == [0, 0] and cols_c == [0, 0] and valid_ok
+        ok['E4'] = ok['E4'] and z4
+        print('  frame %d E4 uncomputable parts %s rows %s columns %s; valid == geometry_measurable (%d): %s -> %s' % (f + 1, unc, rows_c, cols_c, a['geometry_measurable'], valid_ok, 'as predicted' if z4 else 'NOT as predicted'))
+        keys = {'geometry_measurable', 'parts_uncomputable', 'parts_valid'} <= set(a) and 'extent_below_thickness' in a['not_measurable'] and 'uncomputable_corrected' in a['other_rows'] and 'uncomputable_corrected' in a['other_columns']
+        ok['E5'] = ok['E5'] and keys
+        print('  frame %d E5 the new keys exist: %s' % (f + 1, keys))
+print('=' * 100)
+print('E1 %s  E2 %s  E3 %s  E4 %s  E5 %s' % tuple('holds' if ok[k] else 'FALSE' for k in ('E1', 'E2', 'E3', 'E4', 'E5')))

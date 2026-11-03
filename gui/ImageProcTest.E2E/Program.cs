@@ -574,7 +574,7 @@ static string ExpectedCalibLine(MainWindowViewModel vm)
     var stage = vm.LastChain.Stages.FirstOrDefault(st => st.StageId == ImageProcTest.Models.StageIds.Preprocess);
     return stage?.Status switch
     {
-        ImageProcTest.Models.StageStatus.Applied or ImageProcTest.Models.StageStatus.AppliedNoChange => "3 stages (offset · gain · defect)",
+        ImageProcTest.Models.StageStatus.Applied or ImageProcTest.Models.StageStatus.AppliedNoChange => "3 native stages (offset · gain · defect)",
         ImageProcTest.Models.StageStatus.RequestedNotApplied => "failed",
         ImageProcTest.Models.StageStatus.Skipped => $"not run ({(stage.Reason.Contains(':') ? stage.Reason[..stage.Reason.IndexOf(':')].Trim() : stage.Reason.Trim())})",
         _ => "not run",

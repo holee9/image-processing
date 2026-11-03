@@ -1,0 +1,17 @@
+#!/bin/bash
+# QA-A-325: QA-A-315 10_dumpall.sh with the binary directory as a parameter and one more config (sat_on_interp_off, the shipping-near one)
+# usage: dump.sh BINDIR OUTROOT
+BIN=$1; R=$2
+T=/d/workspace-github/xpe-data/qa-325-tmp
+B=D:/workspace-github/xpe-2g-offline/batch-20261022-1230/in
+X=D:/workspace-github/xpe-2g-offline/pre-w3072-20261022-1240
+BASE='"bypassReadout":true,"bypassTemp":true,"bypassOffset":true,"bypassNonlinearity":true,"bypassBinning":true,"bypassGhost":true'
+for S in s0_gf s1_um300 s6_gad_pre; do
+  mkdir -p $T/in/$S; [ -f $T/in/$S/001.raw ] || cp $B/$S/img/001.raw $T/in/$S/
+  for cfg in "default|" "on|,\"saturationLevel\":12800,\"defectLineInterpolation\":\"rows\"" "gain_only|,\"bypassDefect\":true" "defect_only|,\"bypassGain\":true" "t1|,\"maxThreads\":1" "sat_on_interp_off|,\"saturationLevel\":12800"; do
+    n="${cfg%%|*}"; a="${cfg#*|}"; o=$R/$S/$n; rm -rf $o; mkdir -p $o
+    "$BIN/qa296_run.exe" dump "$T/in/$S" "$X/$S/xcal" "$o" 3072 2560 "{$BASE$a}" >/dev/null || echo "FAIL $S $n"
+    echo "$S $n $(sha256sum $o/*.f32 | cut -c1-64)"
+    rm -rf $o
+  done
+done

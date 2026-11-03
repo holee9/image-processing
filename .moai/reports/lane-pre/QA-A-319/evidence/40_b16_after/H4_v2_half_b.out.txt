@@ -1,0 +1,11 @@
+dark_list_used: command=map-v2 given=3 used=3 first_excluded=0 list_sha256=69b7b4d3445afece9fa193a85d8375b8b98294ae2ad545ca06d4404c798f4fe4
+dark_used[0]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_09.raw 8885be1a7aaff184187bfcab3fa5532c0d119e42a477ec1e13184bf13c525f68
+dark_used[1]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_11.raw 497513998594686fc2c299315b45024c23d6839c474ff562e26d61f6dd7cc5f6
+dark_used[2]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_13.raw 1f1603d5e8f5f5be048ee114ad993b495c218644a55dc108c93053586419b0c4
+xpe_bpm_generate_v2: 3 darks used, 9 brights in 5 dose groups, 95669 defect pixels (union of the features) -> D:/workspace-github/xpe-data/qa-319-tmp/out_after/v2_half_b_pix.u8
+  dark_mean       active 1  threshold 5.3156  local scale median 2.96665  flagged 2127
+  dark_noise      active 1  threshold 16.0569  local scale median 9.51225  flagged 5731
+  dose_slope      active 0  threshold 0.0000  local scale median 0  flagged 0
+  dose_linearity  active 1  threshold 5.1880  local scale median 1.05184  flagged 4684
+  flat_field      active 1  threshold 0.4500  local scale median 0.999981  flagged 83281
+  bright_noise    active 1  threshold 9.5277  local scale median 4962.22  flagged 448

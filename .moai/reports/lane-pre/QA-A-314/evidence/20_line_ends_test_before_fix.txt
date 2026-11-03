@@ -1,0 +1,31 @@
+Note: Google Test filter = BpmV2LineEndsTest.*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from BpmV2LineEndsTest
+[ RUN      ] BpmV2LineEndsTest.AStrongLineStretchEndsWhereTheLineEndsAndLeavesTheSlightlyWeakNeighboursOut
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2_line_ends.cpp(123): error: Expected equality of these values:
+  static_cast<uint32_t>(kTo)
+    Which is: 192
+  l->end
+    Which is: 196
+the three pixels of response 0.977 after the end are normal pixels, not part of the line
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2_line_ends.cpp(124): error: Expected equality of these values:
+  kTo
+    Which is: 192
+  paintedEnd(r)
+    Which is: 196
+the mask paints the line and nothing after it
+
+[  FAILED  ] BpmV2LineEndsTest.AStrongLineStretchEndsWhereTheLineEndsAndLeavesTheSlightlyWeakNeighboursOut (282 ms)
+[ RUN      ] BpmV2LineEndsTest.WithoutTheWeakNeighboursTheSameLineEndsInTheSamePlace
+[       OK ] BpmV2LineEndsTest.WithoutTheWeakNeighboursTheSameLineEndsInTheSamePlace (275 ms)
+[----------] 2 tests from BpmV2LineEndsTest (557 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (557 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] BpmV2LineEndsTest.AStrongLineStretchEndsWhereTheLineEndsAndLeavesTheSlightlyWeakNeighboursOut
+
+ 1 FAILED TEST

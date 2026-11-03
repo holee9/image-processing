@@ -1,0 +1,11 @@
+F n=8 median=14.933 min=14.643 max=15.692
+H n=8 median=14.843 min=14.593 max=15.895
+pair 0 F-H=+0.302
+pair 1 F-H=+0.568
+pair 2 F-H=-0.212
+pair 3 F-H=-0.289
+pair 4 F-H=+0.272
+pair 5 F-H=-0.158
+pair 6 F-H=+0.224
+pair 7 F-H=-1.152
+paired median F-H=+0.033 positive=4 of 8

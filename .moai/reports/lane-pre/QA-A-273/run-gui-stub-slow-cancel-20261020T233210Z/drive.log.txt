@@ -1,0 +1,9 @@
+﻿08:32:10 started PID 2912
+08:32:15 menu item found: 2G · 신규 PRE 출력 가져오기 비교
+08:32:15 comparison window open: 2G · 신규 PRE 출력 가져오기 비교
+08:32:15 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-stub-slow-cancel-20261020T233210Z\01-opened.png
+08:32:16 noScript: 실패 — 계약 스크립트의 답을 얻지 못했습니다. 통과가 아닙니다.
+08:32:18 okValidate: 스크립트의 답: 비교 가능 — 종류 common-condition · 알고리즘 효과로 해석: 예(common-condition)  [검토 안 된 계약]
+08:32:19 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-stub-slow-cancel-20261020T233210Z\02-ok-validated.png
+08:32:20 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-stub-slow-cancel-20261020T233210Z\03-ok-wl400-lvl1500-zoom100.png
+08:32:26 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-gui-stub-slow-cancel-20261020T233210Z\07-cancelled.png

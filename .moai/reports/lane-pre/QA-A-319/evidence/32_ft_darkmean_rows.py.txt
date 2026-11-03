@@ -1,0 +1,8 @@
+import sys, numpy as np
+W, H = 3072, 2560
+for tag in ("v_a", "v_c"):
+    f = np.fromfile(sys.argv[1] + "/" + tag + ".feat.u8", dtype="u1").reshape(H, W); dm = (f & 1) != 0
+    ys, xs = np.nonzero(dm)
+    print(tag, "dark-mean n", dm.sum(), "| by row mod 32:", np.bincount(ys % 32, minlength=32).tolist(), "| col parity even/odd:", int((xs % 2 == 0).sum()), int((xs % 2 == 1).sum()))
+    rc = np.bincount(ys, minlength=H); cc = np.bincount(xs, minlength=W)
+    print("  rows with >=100 flags:", [(int(r), int(rc[r])) for r in np.nonzero(rc >= 100)[0]][:12], "| cols with >=100 flags:", [(int(c), int(cc[c])) for c in np.nonzero(cc >= 100)[0]][:12])

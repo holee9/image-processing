@@ -1,0 +1,66 @@
+QA-A-268 mutation check of the overlapped-cost and non-zero-count tests. Source hash (tool, header, tests) at the start: 9dc8b66d6c2f9861
+PREDICTIONS (written before any run):
+  O1 the overlapped-pixel cost without the division by g squared (the survivor of QA-A-267)      -> RED: only TheOverlappedPixelNoiseCostDividesTheGainFactorOut... (gain-only mean cost far above 1.5)
+  O2 the cost multiplies by g squared instead of dividing                                        -> RED: the same test (gain-only mean cost below 0.7)
+  O3 the cost without the division by the local expectation                                     -> RED: the same test
+  O4 the pooled cost sum is half of the groups sum                                              -> RED: the same test (part 4: pooled = sum of its groups)
+  O5 the pooled used-pixel count takes the group pixel count instead of the used count         -> RED: the same test (part 4)
+  O6 the group label is decided with a limit three times as high                                -> RED: the same test (part 3: the label follows the interval and the limit 2)
+  O7 the uncomputable lines of the area contract are not counted                                -> RED: only CorrectRunsOnTwoSetsAndReportsTheLineIndex (constant clean image: all lines uncomputable)
+  O8 the clean image counts its uncomputable lines in the planted image counter                 -> RED: only CorrectRunsOnTwoSetsAndReportsTheLineIndex (the images are counted apart)
+  O9 the uncomputable parts of the clean image are not counted                                  -> RED: only CorrectRunsOnTwoSetsAndReportsTheLineIndex
+  Q  the baseline (54 tests) is green and the restore comes back to the same source hash and a green run.
+--- step 0: the baseline, unmutated, with both consumers touched
+build: BUILD_EXIT=0
+tests exit 0: 53 passed, failed: []
+baseline: tests exe sha 3e07cda1d5f64502, tool exe sha 8b7ea063de7cb694
+--- O1 (QA-A-267 B6 second site, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 9c6c9ed31ab619a6, tool exe sha 6a1a5669356342e7)
+tests exit 1: 52 passed, FAILED: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']
+result: red; old set: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']; same as the old set
+--- O2 (g squared multiplies, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha cc9922f0ea7fa66f, tool exe sha a579d1d4aa8d0753)
+tests exit 1: 52 passed, FAILED: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']
+result: red; old set: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']; same as the old set
+--- O3 (no expectation, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha d1949fb9c3c120d2, tool exe sha 959d2a5b207e7310)
+tests exit 1: 52 passed, FAILED: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']
+result: red; old set: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']; same as the old set
+--- O4 (pooled sum halved, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 7f38dd796b1e8fd8, tool exe sha 6892884811baca85)
+tests exit 1: 52 passed, FAILED: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']
+result: red; old set: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']; same as the old set
+--- O5 (pooled used = pixels, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 54595fd8ac948343, tool exe sha 73ecf3dbb295960b)
+tests exit 1: 52 passed, FAILED: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']
+result: red; old set: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']; same as the old set
+--- O6 (group limit x 3, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha 465946a8fbe4f2ff, tool exe sha 9d1f52ad9f727452)
+tests exit 1: 52 passed, FAILED: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']
+result: red; old set: ['TheOverlappedPixelNoiseCostDividesTheGainFactorOutAndTheLabelsFollowTheCost']; same as the old set
+--- O7 (lines uncomputable not counted, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha bd17bc3687e5aefa, tool exe sha c45092c55e47bba8)
+tests exit 1: 52 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+result: red; old set: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']; same as the old set
+--- O8 (clean counted as planted, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha c3571e27564e2486, tool exe sha ce750de6370bf299)
+tests exit 1: 52 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+result: red; old set: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']; same as the old set
+--- O9 (parts of the clean image not counted, xpe_bpm_eval.cpp)
+build: BUILD_EXIT=0
+consumers rebuilt True (test obj True, tool obj True); executables newer and different from the baseline True (tests exe sha a692b6e76a9b0d96, tool exe sha 93c23faa9bdbfe8c)
+tests exit 1: 52 passed, FAILED: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']
+result: red; old set: ['CorrectRunsOnTwoSetsAndReportsTheLineIndex']; same as the old set
+--- restored: touch + rebuild
+source hash now: 9dc8b66d6c2f9861 (start: 9dc8b66d6c2f9861)
+build: BUILD_EXIT=0
+final baseline: tests exit 0: 53 passed, failed: []
+mutants that differ from the prediction or are invalid: none

@@ -1,0 +1,3 @@
+ImageProcTest.CalibrationChecks BUILD_EXIT=0 warnings=경고22개 errors=오류0개
+ImageProcTest.E2E BUILD_EXIT=0 warnings=경고0개 errors=오류0개
+ImageProcTest.SelfCheck BUILD_EXIT=0 warnings=경고1개 errors=오류0개

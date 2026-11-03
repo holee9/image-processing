@@ -1,0 +1,4 @@
+QA-A-273 archive (not built, not shipped): a C# port of the comparison contract xpe-2g-pre-comparison/2 (main-local 89b662a5) with 43 Python-answered parity fixtures and 6 recording-rule checks, 50/50 passing.
+It was written before the direction changed (2026-10-21 08:12, contract 3 = 99113f2d, Reviewer: do not re-implement the contract in C#; run the script as a child process and read its result.json).
+Kept only as evidence of what was done and because the parity run found one real bug (uint32 values near 4e9 lost precision in a float-typed switch expression).
+Files: ComparisonContract.cs.txt, ComparisonRunner.cs.txt, ComparisonChecks.Program.cs.txt, ImageProcTest.ComparisonChecks.csproj.txt, fixtures-v2/ (cases + make_fixtures.py), ComparisonImportWindow.v2.cs.txt (window that used the port).

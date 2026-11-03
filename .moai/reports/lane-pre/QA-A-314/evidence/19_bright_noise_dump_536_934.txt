@@ -1,0 +1,26 @@
+## planted (inj_d, Dark_07 clean + Dark_08..14 injected, bright 17..28,31..36 injected)
+BN314 g=0 mg=3 vg=10766.188 corrGain=0.99500 vgBg=376.373 plain=-1.000 mnu=0.69315 ref=542.992 ratioG=19.7284 excl=-1
+BN314 g=1 mg=3 vg=6605.855 corrGain=0.99500 vgBg=1543.502 plain=-1.000 mnu=0.69315 ref=2226.803 ratioG=2.9517 excl=-1
+BN314 g=2 mg=6 vg=5664.041 corrGain=0.99500 vgBg=2239.071 plain=-1.000 mnu=0.87029 ref=2572.781 ratioG=2.1905 excl=-1
+BN314 g=3 mg=3 vg=16698.008 corrGain=0.99500 vgBg=3490.280 plain=-1.000 mnu=0.69315 ref=5035.409 ratioG=3.2995 excl=-1
+BN314 g=4 mg=3 vg=15125.428 corrGain=0.99500 vgBg=4501.093 plain=-1.000 mnu=0.69315 ref=6493.705 ratioG=2.3176 excl=-1
+BN314 final cost=5.19593 threshold=4.48330 nu=13 persist=5 groups=5
+BN314 g=0 mg=3 vg=10766.188 corrGain=0.99500 vgBg=419.253 plain=376.373 mnu=0.69315 ref=604.854 ratioG=17.7107 excl=0
+BN314 g=1 mg=3 vg=6605.855 corrGain=0.99500 vgBg=1747.845 plain=1543.502 mnu=0.69315 ref=2521.607 ratioG=2.6066 excl=0
+BN314 g=2 mg=6 vg=5664.041 corrGain=0.99500 vgBg=2573.885 plain=2239.071 mnu=0.87029 ref=2957.496 ratioG=1.9056 excl=0
+BN314 g=3 mg=3 vg=16698.008 corrGain=0.99500 vgBg=4155.778 plain=3490.280 mnu=0.69315 ref=5995.520 ratioG=2.7712 excl=0
+BN314 g=4 mg=3 vg=15125.428 corrGain=0.99500 vgBg=6220.196 plain=4501.093 mnu=0.69315 ref=8973.846 ratioG=1.6771 excl=0
+BN314 final cost=4.54299 threshold=4.48330 nu=13 persist=3 groups=5
+## clean (calfiles, same frame numbers)
+BN314 g=0 mg=3 vg=10762.400 corrGain=0.99639 vgBg=518.194 plain=-1.000 mnu=0.69315 ref=747.596 ratioG=14.3441 excl=-1
+BN314 g=1 mg=3 vg=6600.372 corrGain=0.99639 vgBg=1727.066 plain=-1.000 mnu=0.69315 ref=2491.630 ratioG=2.6395 excl=-1
+BN314 g=2 mg=6 vg=5673.217 corrGain=0.99639 vgBg=2429.458 plain=-1.000 mnu=0.87029 ref=2791.544 ratioG=2.0250 excl=-1
+BN314 g=3 mg=3 vg=16721.141 corrGain=0.99639 vgBg=4171.714 plain=-1.000 mnu=0.69315 ref=6018.512 ratioG=2.7683 excl=-1
+BN314 g=4 mg=3 vg=15084.818 corrGain=0.99639 vgBg=6323.492 plain=-1.000 mnu=0.69315 ref=9122.871 ratioG=1.6476 excl=-1
+BN314 final cost=4.07104 threshold=4.48330 nu=13 persist=4 groups=5
+BN314 g=0 mg=3 vg=10762.400 corrGain=0.99639 vgBg=518.194 plain=-1.000 mnu=0.69315 ref=747.596 ratioG=14.3441 excl=-1
+BN314 g=1 mg=3 vg=6600.372 corrGain=0.99639 vgBg=1727.066 plain=-1.000 mnu=0.69315 ref=2491.630 ratioG=2.6395 excl=-1
+BN314 g=2 mg=6 vg=5673.217 corrGain=0.99639 vgBg=2429.458 plain=-1.000 mnu=0.87029 ref=2791.544 ratioG=2.0250 excl=-1
+BN314 g=3 mg=3 vg=16721.141 corrGain=0.99639 vgBg=4171.714 plain=-1.000 mnu=0.69315 ref=6018.512 ratioG=2.7683 excl=-1
+BN314 g=4 mg=3 vg=15084.818 corrGain=0.99639 vgBg=6323.492 plain=-1.000 mnu=0.69315 ref=9122.871 ratioG=1.6476 excl=-1
+BN314 final cost=4.07104 threshold=4.48330 nu=13 persist=4 groups=5

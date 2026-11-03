@@ -1,0 +1,42 @@
+// QA-A-317 scratch harness (not shipped): runs the EXISTING xpe_pre_e2e metric code on one image.
+//   qa317_metrics IMAGE_F32 ROI_U8 TRUTH_U8 WIDTH HEIGHT
+// IMAGE_F32: float32 image (already in the common 2G value domain, see analyze.py).
+// ROI_U8   : 1 = pixel in the common ROI. Passed to measureStripe as its "gain" (1.0f inside, 0.0f outside), so the
+//            stripe ROI rule "gain finite and > 0" (xpe_pre_stripe.hpp:34) selects exactly this ROI.
+// TRUTH_U8 : 1 = defect position for measureDefectOracle (xpe_pre_defect_metrics.hpp:17); before = after = image,
+//            no prediction, so only the residual (mean |pixel - mean of non-defect 8-neighbours|) is used.
+// Flat residual: 100 * sample std / mean of the image over the ROI, the formula of xpe_pre_e2e.cpp:411-430.
+// Prints one line: stripe_ratio row_ratio col_ratio roi_pixels flat_residual_pct flat_mean defect_residual defect_pixels
+#include "xpe_pre_stripe.hpp"
+#include "xpe_pre_defect_metrics.hpp"
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
+template <class T> static bool rd(const char* p, std::vector<T>& v) {
+    FILE* f = std::fopen(p, "rb"); if (!f) return false;
+    const bool ok = std::fread(v.data(), sizeof(T), v.size(), f) == v.size(); std::fclose(f); return ok;
+}
+int main(int argc, char** argv) {
+    if (argc != 6) return 2;
+    const uint32_t W = (uint32_t)std::strtoul(argv[4], nullptr, 10), H = (uint32_t)std::strtoul(argv[5], nullptr, 10);
+    const size_t n = (size_t)W * H;
+    std::vector<float> img(n); std::vector<uint8_t> roi(n), truth(n);
+    if (!rd(argv[1], img) || !rd(argv[2], roi) || !rd(argv[3], truth)) return 3;
+    std::vector<float> g(n);
+    for (size_t i = 0; i < n; ++i) g[i] = roi[i] ? 1.0f : 0.0f;
+    const auto s = xpe::pre::e2e::measureStripe(img, g, W, H);
+    size_t cnt = 0; double mean = 0.0, m2 = 0.0; bool finite = true;
+    for (size_t i = 0; i < n; ++i) {
+        if (!roi[i]) continue;
+        if (!std::isfinite(img[i])) { finite = false; continue; }
+        ++cnt; const double d = img[i] - mean; mean += d / (double)cnt; m2 += d * (img[i] - mean);
+    }
+    const double sd = cnt > 1 ? std::sqrt(std::max(0.0, m2 / (double)(cnt - 1))) : 0.0;
+    const double flat = (cnt > 1 && finite && mean > 0.0) ? 100.0 * sd / std::max(mean, 1e-9) : NAN;
+    const auto d = xpe::pre::e2e::measureDefectOracle(img, img, truth, {}, W, H);
+    std::printf("%.9g %.9g %.9g %zu %.9g %.9g %.9g %llu\n",
+                s.ratio ? *s.ratio : NAN, s.rowRatio ? *s.rowRatio : NAN, s.columnRatio ? *s.columnRatio : NAN, s.roiPixels,
+                flat, mean, d.residual ? *d.residual : NAN, (unsigned long long)d.residualPixels);
+    return 0;
+}

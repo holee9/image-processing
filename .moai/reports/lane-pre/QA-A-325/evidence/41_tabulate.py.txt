@@ -1,0 +1,25 @@
+"""QA-A-324: the B16 row table, QA-A-319 50_tabulate.py.txt unchanged in method (QA-A-256 21_tabulate.py, git show eaf076f3, with the same two replacements),
+run on this card's before folder and on candidate folders. First-edition json files from QA-A-313. Usage: python -I 40_tabulate.py.txt <name> <folder> [<name> <folder> ...]"""
+import io, contextlib, shutil, os, sys
+T = 'D:/workspace-github/xpe-data/qa-325-tmp/'
+E3 = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-313/evidence/'
+EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-325/evidence/'
+def table(phase, folder):
+    J = T + 'json_' + phase + '/'
+    os.makedirs(J, exist_ok=True)
+    for f in ('41_score_v1.json.txt', '44_correct_v1.json.txt'): shutil.copy(E3 + f, J + f)
+    for f in ('43_score_v2.json.txt', '45_correct_v2.json.txt'): shutil.copy(EV + folder + '/' + f, J + f)
+    code = open(T + 'ev256/21_tabulate.py.txt', encoding='utf-8').read()
+    code = code.replace("EV = 'D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-256/evidence/'", "EV = '" + J + "'")
+    assert "'2판은 다크 6장(첫 장 건너뜀)'" in code
+    code = code.replace("'2판은 다크 6장(첫 장 건너뜀)'", "'두 판 모두 다크 7장(입력 8장에서 첫 장 한 번 제외)'")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        exec(compile(code, '21_tabulate_' + phase, 'exec'), {'__name__': '__main__'})
+    shutil.rmtree(J)
+    return buf.getvalue()
+args = sys.argv[1:]
+for k in range(0, len(args), 2):
+    name, folder = args[k], args[k + 1]
+    open(EV + '42_b16_table_' + name + '.txt', 'w', encoding='utf-8', newline='\n').write(table(name, folder))
+    print('written 42_b16_table_' + name + '.txt')

@@ -1,0 +1,77 @@
+diff --git a/modules/preprocess/src/xpe_bpm_v2.cpp b/modules/preprocess/src/xpe_bpm_v2.cpp
+index 3fcf3c04..5b15f799 100644
+--- a/modules/preprocess/src/xpe_bpm_v2.cpp
++++ b/modules/preprocess/src/xpe_bpm_v2.cpp
+@@ -28,6 +28,10 @@
+ #include <limits>
+ #include <new>
+ #include <vector>
++#include <cstdio> // QA319TMP
++#include <cstdlib> // QA319TMP
++#include <string> // QA319TMP
++#pragma warning(disable : 4996) // QA319TMP
+
+ namespace {
+
+@@ -255,6 +259,7 @@ void slidingMedian(const float* in, float* out, int w, int h, int win, bool alon
+  * a fraction of the noise. Taking the median of the row itself (the first version) moved it by a fraction of the whole gradient. With @p multiplicative the
+  * component is a factor (the median of the ratio) instead of an offset. Constant over the whole line: removed. Not constant along the line: left for the later steps.
+  */
++static std::vector<float>* g319Row = nullptr; static std::vector<float>* g319Col = nullptr; static std::vector<float>* g319VRef = nullptr; static std::vector<float>* g319HRef = nullptr; // QA319TMP
+ void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplicative) {
+     std::vector<float> line(static_cast<size_t>(std::max(w, h)));
+     auto component = [&](float v, float ref) -> float { return multiplicative ? (std::fabs(ref) > 1e-30f ? v / ref : 1.0f) : v - ref; };
+@@ -266,17 +271,21 @@ void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplic
+         }
+     };
+     slidingMedian(f, tmp, w, h, win, true);
++    if (g319VRef) std::copy(tmp, tmp + static_cast<size_t>(w) * static_cast<size_t>(h), g319VRef->begin()); // QA319TMP
+     for (int y = 0; y < h; ++y) {
+         float* row = f + static_cast<size_t>(y) * static_cast<size_t>(w);
+         const float* ref = tmp + static_cast<size_t>(y) * static_cast<size_t>(w);
+         for (int x = 0; x < w; ++x) line[static_cast<size_t>(x)] = component(row[x], ref[x]);
+         const float c = medianOf(line.data(), static_cast<size_t>(w));
++        if (g319Row) (*g319Row)[static_cast<size_t>(y)] = c; // QA319TMP
+         for (int x = 0; x < w; ++x) apply(row[x], c);
+     }
+     slidingMedian(f, tmp, w, h, win, false);
++    if (g319HRef) std::copy(tmp, tmp + static_cast<size_t>(w) * static_cast<size_t>(h), g319HRef->begin()); // QA319TMP
+     for (int x = 0; x < w; ++x) {
+         for (int y = 0; y < h; ++y) line[static_cast<size_t>(y)] = component(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)], tmp[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]);
+         const float c = medianOf(line.data(), static_cast<size_t>(h));
++        if (g319Col) (*g319Col)[static_cast<size_t>(x)] = c; // QA319TMP
+         for (int y = 0; y < h; ++y) apply(f[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)], c);
+     }
+ }
+@@ -348,9 +357,14 @@ float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, doub
+
+ /** Robust z feature: subtracts rows and columns, estimates background and scale, flags |z| > lambda (z > lambda when @p upperOnly). Returns the median local scale. */
+ float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
++    const char* d319 = (bit == XPE_BPM_V2_FEATURE_DARK_MEAN) ? std::getenv("XPE319_DUMP") : nullptr; // QA319TMP
++    std::vector<float> o319, r319(static_cast<size_t>(wk.h)), c319(static_cast<size_t>(wk.w)), vr319, hr319, a319, h319, s319; // QA319TMP
++    if (d319) { o319 = wk.feat; vr319.resize(wk.n); hr319.resize(wk.n); g319Row = &r319; g319Col = &c319; g319VRef = &vr319; g319HRef = &hr319; } // QA319TMP
+     removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), multiplicative);
++    if (d319) { a319 = wk.feat; g319Row = nullptr; g319Col = nullptr; g319VRef = nullptr; g319HRef = nullptr; } // QA319TMP
+     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
+     for (size_t i = 0; i < wk.n; ++i) wk.feat[i] -= wk.bg[i];   // residual
++    if (d319) h319 = wk.tmp; // QA319TMP
+     std::vector<float> sig;
+     int nbx = 0, nby = 0;
+     const float med = blockScale(wk.feat.data(), wk.w, wk.h, static_cast<int>(st.block), &sig, &nbx, &nby);
+@@ -358,12 +372,16 @@ float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, b
+         for (int x = 0; x < wk.w; ++x) {
+             const size_t i = static_cast<size_t>(y) * static_cast<size_t>(wk.w) + static_cast<size_t>(x);
+             const double s = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), x, y)), kScaleFloor);
++            if (d319) { if (s319.empty()) s319.resize(wk.n); s319[i] = static_cast<float>(s); } // QA319TMP
+             const double r = static_cast<double>(wk.feat[i]);
+             if ((upperOnly ? r : std::fabs(r)) > lambda * s) {
+                 (*flags)[i] = static_cast<uint8_t>((*flags)[i] | bit);
+                 ++*count;
+             }
+         }
++    if (d319) { auto wr = [&](const char* nm, const std::vector<float>& v) { std::string fn = std::string(d319) + nm; FILE* fp = std::fopen(fn.c_str(), "wb"); if (fp) { std::fwrite(v.data(), sizeof(float), v.size(), fp); std::fclose(fp); } }; // QA319TMP
++        wr("_orig.f32", o319); wr("_vref.f32", vr319); wr("_hrefcol.f32", hr319); wr("_afterrc.f32", a319); wr("_hmed.f32", h319); wr("_bg.f32", wk.bg); wr("_resid.f32", wk.feat); wr("_scale.f32", s319); wr("_rowc.f32", r319); wr("_colc.f32", c319); // QA319TMP
++        FILE* fp = std::fopen((std::string(d319) + "_meta.txt").c_str(), "w"); if (fp) { std::fprintf(fp, "w %d h %d win %u block %u lambda %.9g upperOnly %d count %u med %.9g\n", wk.w, wk.h, st.window, st.block, lambda, upperOnly ? 1 : 0, *count, static_cast<double>(med)); std::fclose(fp); } } // QA319TMP
+     return med;
+ }
+

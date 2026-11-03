@@ -131,7 +131,7 @@ internal sealed class PreprocessOutcomeBackend : ScenarioBackend
             return chain;
         }
 
-        var replaced = chain.Stages.Select(st => st.StageId == StageIds.Preprocess ? st with { Status = status, Reason = status == StageStatus.Skipped ? "no calibration data: scripted" : "scripted: " + status } : st).ToList();
+        var replaced = chain.Stages.Select(st => st.StageId == StageIds.Preprocess ? st with { Status = status, Reason = status == StageStatus.Skipped ? "no calibration data: scripted" : "scripted: " + status + (status is StageStatus.Applied or StageStatus.AppliedNoChange ? "; executed=[offset,gain,defect]" : "") } : st).ToList();
         return chain with { Stages = replaced };
     }
 }
@@ -1614,15 +1614,17 @@ internal static class LifetimeScenarios
 
     private static System.Text.Json.JsonElement ReportRoot(MainWindowViewModel vm)
     {
+        var exportBefore = vm.LastEvidenceExport;
         typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
-        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+        var path = global::ImageProcTest.Services.EvidenceExportResult.RequireNewSuccess(exportBefore, vm.LastEvidenceExport);
         return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.Clone();
     }
 
     private static System.Text.Json.JsonElement ReportDisplayPipeline(MainWindowViewModel vm)
     {
+        var exportBefore = vm.LastEvidenceExport;
         typeof(MainWindowViewModel).GetMethod("ExportAutomationReport", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(vm, null);
-        var path = Path.Combine(AppContext.BaseDirectory, "menu-command-report.json");
+        var path = global::ImageProcTest.Services.EvidenceExportResult.RequireNewSuccess(exportBefore, vm.LastEvidenceExport);
         return System.Text.Json.JsonDocument.Parse(File.ReadAllText(path)).RootElement.GetProperty("displayPipeline");
     }
 
@@ -1974,7 +1976,7 @@ internal static class LifetimeScenarios
             vm.ApplyDisplayPipelineCommand.Execute(null);
             await Until(() => vm.CurrentRender is not null && !ReferenceEquals(vm.CurrentRender, before), "the render with a successful preprocess to commit");
             await FlushUi();
-            rows.Add(Cross("preprocess requested, ran", "3 stages (offset · gain · defect)", "Applied", true, "Exposure index:"));
+            rows.Add(Cross("preprocess requested, ran", "3 native stages (offset · gain · defect)", "Applied", true, "Exposure index:"));
 
             // (3b) switched off by the user: the only way the stage is NotRequested now
             vm.Settings.PreprocessInChain = false;

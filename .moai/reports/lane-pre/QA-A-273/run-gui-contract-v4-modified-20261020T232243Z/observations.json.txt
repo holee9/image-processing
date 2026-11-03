@@ -1,0 +1,94 @@
+﻿{
+    "initial":  {
+                    "state":  "상태: 매니페스트를 아직 열지 않았습니다. 가져온 파일 비교이며 2G 실행이 아닙니다.",
+                    "live2gEnabled":  false,
+                    "computeEnabled":  false,
+                    "live2gReason":  "실제 2G 실행은 막혀 있습니다 (G-2G-READY blocked): 오프라인 핸들 생성·초기화, 입출력 버퍼와 소유권, 배타 접근, 적용 가능한 사용 조건, 원본 RAW·맵의 출처가 아직 정의·허가되지 않았습니다. 이 창은 제조사 DLL을 불러오지 않습니다.",
+                    "scriptBoxDefault":  "D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-273/contract-v4/comparison_manifest.py"
+                },
+    "noScript":  {
+                     "verdict":  "실패 — 계약 스크립트의 답을 얻지 못했습니다. 통과가 아닙니다.",
+                     "reasons":  "계약 스크립트 경로가 비어 있습니다. 경로를 입력하십시오(기본값은 없습니다).",
+                     "computeEnabled":  false
+                 },
+    "okValidate":  {
+                       "verdict":  "스크립트의 답: 비교 가능 — 종류 common-condition · 알고리즘 효과로 해석: 예(common-condition)  [검토 안 된 계약]",
+                       "reasons":  "VENDOR_LIVE_BLOCKED: 실제 2G 실행은 막혀 있습니다(G-2G-READY 미충족).",
+                       "review":  "스크립트 D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\contract-v4-modified\\comparison_manifest.py\nSHA-256 ef9b6e9ecb5c9949ad8c44591b3ba6d900559be1186fdc08ecd1e6bc11597482\nPython 3.12.10 (python)\n계약 검토 상태: 검토 안 된 계약 — 이 스크립트의 SHA-256 이 검토를 통과한 값과 다릅니다. 아래 답은 비교 가능(통과)으로 보지 마십시오.",
+                       "engines":  "A: 단계 engine-direct · 자료형 uint16 · 단위 pixel value · 실행 방식 imported-file\r\nB: 단계 engine-direct · 자료형 uint16 · 단위 pixel value · 실행 방식 imported-file"
+                   },
+    "okView":  {
+                   "roi":  "ROI(매니페스트의 정수 좌표, A·B 양쪽에 같은 좌표로 표시): x=16, y=8, 가로=48, 세로=32",
+                   "hint":  "표시 전용 복사본: 원본 96×64, 줄이지 않음. 통계는 표시 배열이 아니라 계약 스크립트가 원본 파일의 ROI 행을 직접 읽어 계산합니다. W/L·확대·줄임은 숫자에 영향을 주지 않습니다. 초기 W/L = 두 영상의 유한한 값 전체의 최솟값~최댓값(임계값을 정하지 않음).",
+                   "window":  "1082",
+                   "level":  "1541",
+                   "computeEnabled":  true,
+                   "state":  "상태: 스크립트는 비교 가능이라고 답했지만 검토 안 된 계약입니다. 표시는 하되 통과로 취급하지 않습니다. 2G 실행이 아닙니다."
+               },
+    "okCompute":  {
+                      "result":  "결과: computed  [검토 안 된 계약]\r\nROI 유효 화소 1536  ·  단위 pixel value  ·  차이 = A − B  ·  종류 common-condition  ·  알고리즘 효과로 해석: 예\r\n평균 -9  표준편차(모집단) 1.38443731  RMSE 9.10585892  평균 절댓값 9  최솟값 -11  최댓값 -7\r\n원본 파일 변경 없음: 예  ·  2G 실행됨: 아니오  ·  화질 판정: 하지 않음\r\n저장 위치: D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\run-gui-contract-v4-modified-20261020T232243Z\\results\\20261020T232253Z-7ed71262\r\n",
+                      "state":  "상태: 가져온 파일의 수치 차이를 계산했습니다. 검토 안 된 계약의 답입니다. 이것은 2G 실행도 화질 판정도 아닙니다."
+                  },
+    "afterPathChange":  {
+                            "result":  "",
+                            "verdict":  "",
+                            "computeEnabled":  false,
+                            "state":  "상태: 매니페스트 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오. 가져온 파일 비교이며 2G 실행이 아닙니다."
+                        },
+    "refusedSha":  {
+                       "verdict":  "스크립트의 답: 비교 불가 — 아래 사유가 해소되기 전에는 숫자를 만들지 않습니다.  [검토 안 된 계약]",
+                       "reasons":  "SHA_MISMATCH: 파일의 SHA-256 이 매니페스트의 값과 다릅니다.\r\nVENDOR_LIVE_BLOCKED: 실제 2G 실행은 막혀 있습니다(G-2G-READY 미충족).",
+                       "computeEnabled":  false
+                   },
+    "refusedUnverified":  {
+                              "verdict":  "스크립트의 답: 비교 불가 — 아래 사유가 해소되기 전에는 숫자를 만들지 않습니다.  [검토 안 된 계약]",
+                              "reasons":  "SETTINGS_UNVERIFIED: 엔진에 적용한 offset·gain·defect 설정이 \u0027확인됨 + 출처\u0027가 아닙니다.\r\nVENDOR_LIVE_BLOCKED: 실제 2G 실행은 막혀 있습니다(G-2G-READY 미충족).",
+                              "computeEnabled":  false
+                          },
+    "identity":  {
+                     "pid":  30156,
+                     "exe":  "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\builds\\gui1\\bin\\ImageProcTest\\debug\\ImageProcTest.exe",
+                     "exeSha":  "BF940CD58F29F5501EB297BC7158A36FEBE44D347DE55D9A27D6F409BC8F436A",
+                     "managedDll":  "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\QA-A-273\\builds\\gui1\\bin\\ImageProcTest\\debug\\ImageProcTest.dll",
+                     "managedSha":  "5414CF49DF9EF21DBD516681AF3019388EDB63D238C62FC8846B7E85811AB7E8",
+                     "nativeDir":  "D:\\workspace-github\\xpe-pre\\.moai\\reports\\lane-pre\\PRE-GUI-20261019T063546Z-7f92a1\\native-gui",
+                     "nativeFiles":  [
+                                         {
+                                             "name":  "fmt.dll",
+                                             "sha256":  "6841FE26693AE740D190F0FB0ED0D8AD5502BA44A0A31B9D46C63C8F869A3110"
+                                         },
+                                         {
+                                             "name":  "spdlog.dll",
+                                             "sha256":  "C372F7166D778A76A8E915A3EAA2CE5ADC7017A04BD24B5EB591414C27E48721"
+                                         },
+                                         {
+                                             "name":  "xpe_calib_fixture_gen.exe",
+                                             "sha256":  "0F391114E45C6C0EED388480441A8836A60F815C4E99A9B99E7D80F72F781AD8"
+                                         },
+                                         {
+                                             "name":  "xpe_common.dll",
+                                             "sha256":  "56BB73AFC0AF27A50471CC3148462AAA333DE94FF1636C8A3952A67427641FA4"
+                                         },
+                                         {
+                                             "name":  "xpe_display.dll",
+                                             "sha256":  "C7D6DBA80ED408F5F962EFFE7B7DD2214846EB1E9B3E1FA24A3E818719A46719"
+                                         },
+                                         {
+                                             "name":  "xpe_enhance_basic.dll",
+                                             "sha256":  "236DDC0EEAE5A24C4135AC9B2D6893FE462DDBF0AB1643FEA1495A36335FF72B"
+                                         },
+                                         {
+                                             "name":  "xpe_preprocess.dll",
+                                             "sha256":  "D404D4071BD8C9B0D799CB5E98C67512022E3F5BD0E6D0CAE192C865AFE7643D"
+                                         },
+                                         {
+                                             "name":  "xpe_pre_e2e.exe",
+                                             "sha256":  "9645A8E2FDC124BC4A14FDC3BE4A02A7449FB6144D8AF72663803FC7377E925D"
+                                         }
+                                     ],
+                     "scriptPath":  "D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-273/contract-v4-modified/comparison_manifest.py",
+                     "scriptSha":  "EF9B6E9ECB5C9949AD8C44591B3BA6D900559BE1186FDC08ECD1E6BC11597482",
+                     "fixtures":  "D:/workspace-github/xpe-pre/.moai/reports/lane-pre/QA-A-273/fixtures-v4",
+                     "buildInputManifest":  ".moai/reports/lane-pre/QA-A-273/run-20261020T230045Z/build_inputs.sha256.txt (step 0; baseline)"
+                 }
+}

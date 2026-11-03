@@ -1,0 +1,13 @@
+## targeted local clang-tidy (checks: easily-swappable-parameters, implicit-widening-of-multiplication-result), files defect_correct.cpp saturation.cpp
+  LLVM version 19.1.5
+## before (HEAD e9289fdb source = a834f2a0)
+defect_correct.cpp:362:36: warning: performing an implicit widening conversion to type 'const size_t' (aka 'const unsigned long long') of a multiplication performed in type 'uint32_t' (aka 'unsigned int') [bugprone-implicit-widening-of-multiplication-result]
+defect_correct.cpp:773:83: warning: 2 adjacent parameters of 'acrossValid' of convertible types are easily swapped by mistake [bugprone-easily-swappable-parameters]
+saturation.cpp:17:61: warning: 2 adjacent parameters of 'xpe_sat_histogram' of similar type ('uint32_t') are easily swapped by mistake [bugprone-easily-swappable-parameters]
+saturation.cpp:198:53: warning: 3 adjacent parameters of 'xpe_sat_apply' of convertible types are easily swapped by mistake [bugprone-easily-swappable-parameters]
+## after (fix)
+(none)
+## full .clang-tidy config, after, TUs defect_correct saturation pipeline gain_correct: module-source warnings
+pipeline.cpp:264:38: warning: 2 adjacent parameters of 'frame_bytes' of convertible types are easily swapped by mistake [bugprone-easily-swappable-parameters]
+pipeline.cpp:954:43: warning: 2 adjacent parameters of 'pipeline_ex_impl' of convertible types are easily swapped by mistake [bugprone-easily-swappable-parameters]
+## note: both runs exit 1 because the ninja compdb carries the msvc_include_output.py wrapper; clang reports its cl flags as unknown files (see raw logs, not kept). The full CI gate was not reproduced locally.

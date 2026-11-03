@@ -1,0 +1,7 @@
+﻿08:49:56 started PID 26864
+08:50:01 menu item found: 2G · 신규 PRE 출력 가져오기 비교
+08:50:01 comparison window open: 2G · 신규 PRE 출력 가져오기 비교
+08:50:04 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-swapManifest-20261020T234955Z\01-validated-and-previewed.png
+08:50:05 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-swapManifest-20261020T234955Z\02-after-manifest-swap-refused.png
+08:50:08 screenshot D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\run-273b-swapManifest-20261020T234955Z\03-reopened-and-computed.png
+08:50:08 done

@@ -1,0 +1,60 @@
+== prof1_s0_gf.err
+  stage:0          n=31 median_excl_first=0.000
+  stage:1          n=31 median_excl_first=2.372
+  stage:3          n=31 median_excl_first=0.007
+  stage:40         n=31 median_excl_first=3.529
+  stage:4          n=31 median_excl_first=0.026
+  stage:5          n=31 median_excl_first=0.003
+  defect:finite    n=31 median_excl_first=0.544
+  defect:maskset   n=31 median_excl_first=1.902
+  defect:copy      n=31 median_excl_first=0.015
+  defect:list      n=31 median_excl_first=2.922
+  defect:lines     n=31 median_excl_first=0.010
+  defect:fill      n=31 median_excl_first=7.529
+  stage:6          n=31 median_excl_first=13.668
+  stage:7          n=31 median_excl_first=0.006
+  stage:9          n=31 median_excl_first=1.929
+   31 QA315 info count=236647 slots=7864320 extra=208277 layers=0
+   2 QA315 info fd_ms=5.317 cluster=230555 isolated=6092 ring=14988
+   1 QA315 info fd_ms=5.551 cluster=230555 isolated=6092 ring=14988
+   1 QA315 info fd_ms=5.512 cluster=230555 isolated=6092 ring=14988
+== prof1_s1_um300.err
+  stage:0          n=31 median_excl_first=0.000
+  stage:1          n=31 median_excl_first=2.389
+  stage:3          n=31 median_excl_first=0.010
+  stage:40         n=31 median_excl_first=3.943
+  stage:4          n=31 median_excl_first=0.027
+  stage:5          n=31 median_excl_first=0.003
+  defect:finite    n=31 median_excl_first=0.625
+  defect:maskset   n=31 median_excl_first=2.087
+  defect:copy      n=31 median_excl_first=0.018
+  defect:list      n=31 median_excl_first=2.463
+  defect:lines     n=31 median_excl_first=0.013
+  defect:fill      n=31 median_excl_first=18.000
+  stage:6          n=31 median_excl_first=24.373
+  stage:7          n=31 median_excl_first=0.008
+  stage:9          n=31 median_excl_first=2.008
+   31 QA315 info count=368710 slots=7864320 extra=367689 layers=0
+   1 QA315 info fd_ms=5.117 cluster=367706 isolated=1004 ring=356664
+   1 QA315 info fd_ms=4.923 cluster=367706 isolated=1004 ring=356664
+   1 QA315 info fd_ms=4.732 cluster=367706 isolated=1004 ring=356664
+== prof1_s6_gad_pre.err
+  stage:0          n=31 median_excl_first=0.000
+  stage:1          n=31 median_excl_first=2.314
+  stage:3          n=31 median_excl_first=0.006
+  stage:40         n=31 median_excl_first=3.852
+  stage:4          n=31 median_excl_first=0.026
+  stage:5          n=31 median_excl_first=0.003
+  defect:finite    n=31 median_excl_first=0.518
+  defect:maskset   n=31 median_excl_first=1.931
+  defect:copy      n=31 median_excl_first=0.014
+  defect:list      n=31 median_excl_first=2.353
+  defect:lines     n=31 median_excl_first=0.009
+  defect:fill      n=31 median_excl_first=17.253
+  stage:6          n=31 median_excl_first=22.961
+  stage:7          n=31 median_excl_first=0.007
+  stage:9          n=31 median_excl_first=1.730
+   31 QA315 info count=353090 slots=7864320 extra=324910 layers=0
+   3 QA315 info fd_ms=4.459 cluster=352349 isolated=741 ring=304440
+   2 QA315 info fd_ms=4.391 cluster=352349 isolated=741 ring=304440
+   1 QA315 info fd_ms=4.385 cluster=352349 isolated=741 ring=304440

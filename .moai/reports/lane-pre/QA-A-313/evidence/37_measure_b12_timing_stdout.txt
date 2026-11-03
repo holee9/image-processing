@@ -1,0 +1,5 @@
+B12_a250c_v2 exit 1 seconds 1
+B12_a250c_v1 exit 1 seconds 2
+B12_signed_offset exit 0 seconds 5
+T1_timing exit 0
+done

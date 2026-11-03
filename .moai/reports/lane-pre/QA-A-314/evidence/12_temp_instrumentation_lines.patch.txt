@@ -1,0 +1,10 @@
+Temporary instrumentation used for 12_segment_ends_dump_before.txt (never committed; removed before the fix).
+Inserted in modules/preprocess/src/xpe_bpm_v2.cpp rowStretches(), just before "a = bestA; b = bestB;" (line 519 at a448a6b9):
+#pragma warning(suppress : 4996)
+    const bool diag314 = std::getenv("XPE_DIAG314") != nullptr;
+    if (diag314) {
+        fprintf(stderr, "SEG kind=%d orient=%d idx=%d coarse=%d-%d m=%.3f fit=%d-%d", kind, orient, y, a, b, m, bestA, bestB);
+        " headZ=" : zt for t in [bestA-3, bestA+6) ; " tailZ=" : zt for t in [bestB-6, bestB+3)
+    }
+Run: XPE_DIAG314=1 xpe_bpm_eval lines --margins 6,2,1,1 --out <tmp> (dark Dark_07 calfiles + Dark_08..14 inj_d; bright 17..28,31..36 inj_d)  (the P2 command of QA-A-260)
+Coordinates are of the cropped image: frame x = crop x + 6, frame y = crop y + 2; for orient=1 idx is the column, a/b the rows.

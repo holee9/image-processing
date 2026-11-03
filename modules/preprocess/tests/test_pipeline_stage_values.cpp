@@ -22,6 +22,7 @@
 #include "xcal_writer.hpp"
 
 #include <cstring>
+#include <algorithm>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -155,7 +156,7 @@ TEST_F(PipelineStageValueTest, GhostStageReturnsTheFrameItCorrected) {
         xpe_preprocess_pipeline(&img, &meta, calib().c_str(), gh, cfg.c_str());
     xpe_ghost_destroy(gh);
     ASSERT_EQ(XPE_OK, rc);
-    EXPECT_TRUE(meta.flags & XPE_FLAG_GHOST_CORRECTED);
+    EXPECT_FALSE(meta.flags & XPE_FLAG_GHOST_CORRECTED) << "FUNC-014: first frame seeds history without correction";
     const float expected = (kRaw - kOffset) / kGain;
     for (size_t i = 0; i < N; ++i) {
         ASSERT_NEAR(expected, storage[i], 1e-3f) << "pixel " << i;
@@ -183,6 +184,27 @@ TEST_F(PipelineStageValueTest, AnUncalibratedGhostHandleLeavesTheFlagUnsetAndThe
     for (size_t i = 0; i < N; ++i) {
         ASSERT_FLOAT_EQ(expected, storage[i]) << "pixel " << i;
     }
+}
+
+TEST_F(PipelineStageValueTest, GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame) {
+    void* gh = nullptr;
+    ASSERT_EQ(XPE_OK, xpe_ghost_create(W, H, withStableLag("{\"tier\":3}").c_str(), &gh));
+    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,"
+                      "\"bypassNonlinearity\":true,\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+    for (int frame = 0; frame < 3; ++frame) {
+        if (frame == 2) ASSERT_EQ(XPE_OK, xpe_ghost_reset(gh));
+        std::fill(storage.begin(), storage.end(), 0.0f);
+        storage[3 * W + 3] = 1000.0f;
+        const auto input = storage;
+        img.format = XPE_PIXEL_FLOAT32;
+        img.bitsAllocated = img.bitsStored = 32;
+        img.dataSize = N * sizeof(float);
+        meta = {};
+        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, calib().c_str(), gh, cfg));
+        EXPECT_EQ(frame == 1, (meta.flags & XPE_FLAG_GHOST_CORRECTED) != 0);
+        if (frame != 1) EXPECT_EQ(0, std::memcmp(input.data(), storage.data(), N * sizeof(float)));
+    }
+    xpe_ghost_destroy(gh);
 }
 
 // Binning mode 2 scales float32 pixels by 1/mode^2 (binning_correct.cpp:14);
@@ -265,7 +287,7 @@ TEST_P(PipelineComboTest, OutputMatchesTheFormula) {
     if (gh) xpe_ghost_destroy(gh);
     ASSERT_EQ(XPE_OK, rc);
 
-    EXPECT_EQ(c.ghost, (meta.flags & XPE_FLAG_GHOST_CORRECTED) != 0);
+    EXPECT_FALSE(meta.flags & XPE_FLAG_GHOST_CORRECTED) << "this is the first frame of a fresh handle";
     EXPECT_TRUE(meta.flags & XPE_FLAG_DEFECT_CORRECTED);
     EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
 

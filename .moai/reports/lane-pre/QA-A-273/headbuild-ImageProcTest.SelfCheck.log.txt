@@ -1,0 +1,15 @@
+  복원할 프로젝트를 확인하는 중...
+  복원할 모든 프로젝트가 최신 상태입니다.
+  ImageProcTest -> D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\builds\hb-art\bin\ImageProcTest\debug\ImageProcTest.dll
+D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\builds\headbuild-602eff24\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs(269,64): warning CS8604: 'CorrectedImage.CorrectedImage(float[] Floats, int Width, int Height, ushort[] RawKey)'의 매개 변수 'RawKey'에 대한 가능한 null 참조 인수입니다. [D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\builds\headbuild-602eff24\gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj]
+  ImageProcTest.SelfCheck -> D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\builds\hb-art\bin\ImageProcTest.SelfCheck\debug\ImageProcTest.SelfCheck.dll
+
+빌드했습니다.
+
+D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\builds\headbuild-602eff24\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs(269,64): warning CS8604: 'CorrectedImage.CorrectedImage(float[] Floats, int Width, int Height, ushort[] RawKey)'의 매개 변수 'RawKey'에 대한 가능한 null 참조 인수입니다. [D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-273\builds\headbuild-602eff24\gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj]
+    경고 1개
+    오류 0개
+
+경과 시간: 00:00:02.99
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

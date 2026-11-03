@@ -9,6 +9,8 @@
  * is not decided here: until real-device data exists this is measurement evidence only. What IS asserted is mechanical: the
  * analytic values the preregistration computed first (the Nyquist response, the noise ratio, the ring step), that the seam
  * touches tier 3 and nothing else, and that its defaults are the shipped constants.
+ * Historical M4 measurements explicitly replay the pre-first-frame-bypass lifecycle through a TEST-ONLY seam. They do not
+ * describe the current shipped first frame. The current bypass contract is checked separately below; M4 thresholds stay fixed.
  */
 
 #include <gtest/gtest.h>
@@ -17,6 +19,7 @@
 #include "xpe/preprocess/xpe_preprocess_internal.h"
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -30,7 +33,12 @@ struct Mix {
     ~Mix() { xpe_ghost_tier3_mix = XpeGhostTier3Mix{0.7f, 0.3f}; }
 };
 
-Frames runTier(int tier, const Lag& l, const Frames& in) {
+Frames runTier(int tier, const Lag& l, const Frames& in, bool historicalLifecycle = true) {
+    struct LifecycleScope {
+        bool saved{xpe_ghost_legacy_first_frame};
+        explicit LifecycleScope(bool historical) { xpe_ghost_legacy_first_frame = historical; }
+        ~LifecycleScope() { xpe_ghost_legacy_first_frame = saved; }
+    } lifecycle(historicalLifecycle);
     int failures = 0;
     const Frames out = runModule(lagCfg(tier, l).c_str(), in, &failures);
     EXPECT_EQ(0, failures);
@@ -151,14 +159,14 @@ TEST(GhostMixCompare, TheSeamDefaultsAreTheShippedConstantsAndTouchOnlyTierThree
     const Lag l{0.02, 3.0, 0.003, 30.0};
     for (const int tier : {1, 2}) {
         Frames on, off;
-        { Mix m(true); on = runTier(tier, l, y); }
-        { Mix m(false); off = runTier(tier, l, y); }
+        { Mix m(true); on = runTier(tier, l, y, false); }
+        { Mix m(false); off = runTier(tier, l, y, false); }
         EXPECT_TRUE(sameBytes(on, off)) << "tier " << tier;
     }
     // and tier 3 does: the two runs differ
     Frames on3, off3;
-    { Mix m(true); on3 = runTier(3, l, y); }
-    { Mix m(false); off3 = runTier(3, l, y); }
+    { Mix m(true); on3 = runTier(3, l, y, false); }
+    { Mix m(false); off3 = runTier(3, l, y, false); }
     EXPECT_FALSE(sameBytes(on3, off3));
     EXPECT_EQ(d, digestOf(on3)) << "the default mix reproduces the digest";
     EXPECT_EQ(0.7f, xpe_ghost_tier3_mix.keep) << "the guard restored the defaults";
@@ -177,6 +185,18 @@ TEST(GhostMixCompare, TheAnalyticValuesOfThePreregistrationHold) {
         EXPECT_NEAR(blend ? 0.6 : 1.0, stripes, 1e-3);
         EXPECT_NEAR(blend ? 0.7333333 : 1.0, checker, 1e-3);
         EXPECT_NEAR(blend ? 0.7393691 : 1.0, noise, 0.03);
+    }
+}
+
+TEST(GhostMixCompare, TheCurrentFirstFrameBypassesBothExperimentalMixSettings) {
+    const Lag l{0.02, 3.0, 0.003, 30.0};
+    Frames input = makeFrames({10000.0}, 5.0, 7);
+    for (const bool blend : {true, false}) {
+        Mix mix(blend);
+        const Frames output = runTier(3, l, input, false);
+        ASSERT_EQ(input.size(), output.size());
+        ASSERT_EQ(input[0].size(), output[0].size());
+        EXPECT_EQ(0, std::memcmp(input[0].data(), output[0].data(), input[0].size() * sizeof(float)));
     }
 }
 
@@ -240,6 +260,7 @@ TEST(GhostMixCompare, ThePreregisteredRulesGiveTheirVerdictsOnSyntheticInputs) {
 // ---- the comparison, exactly as the preregistration fixes it (printed, none of it asserted) --------------------------
 
 TEST(GhostMixCompare, ComparesTheBlendKeptAndRemovedAsPreregistered) {
+    std::printf("[ghost-oracle-m4] scope: historical pre-bypass lifecycle, TEST-ONLY replay; not current first-frame behavior or real-device validation\n");
     const auto cfgs = configs();
     for (const auto& c : cfgs)
         std::printf("[ghost-oracle-m4] config %-24s alpha1 %.6g tau1 %.6g alpha2 %.6g tau2 %.6g S %.4f\n", c.name.c_str(), c.lag.a1, c.lag.t1, c.lag.a2, c.lag.t2, steadyGain(c.lag));

@@ -1,0 +1,165 @@
+A MasterDark == floor(mean(dark03 all10)): 100.0000 % | == rint: 55.1978 % | max|MasterDark-mean|: 0.9000
+A MasterDark == floor(mean(dark03 skip_first_9)): 69.4635 % | == rint: 25.3564 % | max|MasterDark-mean|: 21.4444
+A dark03 frame means: [2489.631, 2492.425, 2492.65, 2490.469, 2488.94, 2494.057, 2495.2, 2490.051, 2493.634, 2496.141]
+A MasterDark mean: 2491.871 min 2071 max 16383
+A 12_CalData_20\dark.raw == MasterDark: 100.0000 % mean 2491.871
+A 12_CalData_6\dark.raw == MasterDark: 100.0000 % mean 2491.871
+A images\AEDDark.raw == MasterDark: 0.0000 % mean 5888.597
+B Bright02_00: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8818 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9294 | oc int16 neg count 9294 | oc mean(int16) 3104.80
+B Bright02_01: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8675 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10424 | oc int16 neg count 10424 | oc mean(int16) 3125.45
+B Bright02_02: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8824 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9251 | oc int16 neg count 9251 | oc mean(int16) 3140.46
+B Bright02_03: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8918 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 8511 | oc int16 neg count 8511 | oc mean(int16) 3144.86
+B Bright02_04: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8768 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9689 | oc int16 neg count 9689 | oc mean(int16) 3151.64
+B Bright02_05: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8864 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 8933 | oc int16 neg count 8933 | oc mean(int16) 3157.22
+B Bright02_06: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8780 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9595 | oc int16 neg count 9595 | oc mean(int16) 3153.91
+B Bright02_07: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8793 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9489 | oc int16 neg count 9489 | oc mean(int16) 3150.00
+B Bright02_08: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8876 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 8840 | oc int16 neg count 8840 | oc mean(int16) 3152.31
+B Bright02_09: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8781 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9588 | oc int16 neg count 9588 | oc mean(int16) 3160.66
+B Dark04_00: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 92.1385 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 618250 | oc int16 neg count 618250 | oc mean(int16) 1.29
+B Bright11_00: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8265 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 13645 | oc int16 neg count 13645 | oc mean(int16) 8669.43
+B Bright12_00: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8460 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 12113 | oc int16 neg count 12113 | oc mean(int16) 8772.00
+B Bright13_00: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8335 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 13092 | oc int16 neg count 13092 | oc mean(int16) 614.55
+B Bright14_00: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8572 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11229 | oc int16 neg count 11229 | oc mean(int16) 617.81
+B bright03_00(lower raw) vs Bright03_00__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8494 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11844 | oc int16 neg count 11844 | oc mean(int16) 49.10
+B bright03_01(lower raw) vs Bright03_01__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8583 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11140 | oc int16 neg count 11140 | oc mean(int16) 72.55
+B bright03_02(lower raw) vs Bright03_02__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8511 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11707 | oc int16 neg count 11707 | oc mean(int16) 111.82
+B bright03_03(lower raw) vs Bright03_03__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8465 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 12070 | oc int16 neg count 12070 | oc mean(int16) 148.59
+B bright03_04(lower raw) vs Bright03_04__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8478 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11970 | oc int16 neg count 11970 | oc mean(int16) 191.27
+B bright03_05(lower raw) vs Bright03_05__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8504 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11768 | oc int16 neg count 11768 | oc mean(int16) 306.50
+B bright03_06(lower raw) vs Bright03_06__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8389 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 12671 | oc int16 neg count 12671 | oc mean(int16) 388.10
+B bright03_07(lower raw) vs Bright03_07__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8721 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10060 | oc int16 neg count 10060 | oc mean(int16) 783.56
+B bright03_08(lower raw) vs Bright03_08__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8744 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9875 | oc int16 neg count 9875 | oc mean(int16) 1264.28
+B bright03_09(lower raw) vs Bright03_09__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8753 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9806 | oc int16 neg count 9806 | oc mean(int16) 1967.68
+B bright03_10(lower raw) vs Bright03_10__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8941 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 8328 | oc int16 neg count 8328 | oc mean(int16) 2464.10
+B bright03_11(lower raw) vs Bright03_11__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8969 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 8111 | oc int16 neg count 8111 | oc mean(int16) 3139.76
+B bright03_12(lower raw) vs Bright03_12__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.9038 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 7562 | oc int16 neg count 7562 | oc mean(int16) 3926.12
+B bright03_13(lower raw) vs Bright03_13__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8998 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 7877 | oc int16 neg count 7877 | oc mean(int16) 4896.78
+B bright03_14(lower raw) vs Bright03_14__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8893 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 8705 | oc int16 neg count 8705 | oc mean(int16) 6241.92
+B bright03_15(lower raw) vs Bright03_15__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8302 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 13350 | oc int16 neg count 13350 | oc mean(int16) 11082.48
+B bright03_16(lower raw) vs Bright03_16__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8218 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 14017 | oc int16 neg count 14017 | oc mean(int16) 11344.12
+B bright03_17(lower raw) vs Bright03_17__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8928 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 8431 | oc int16 neg count 8431 | oc mean(int16) 2619.40
+B bright03_18(lower raw) vs Bright03_18__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8811 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9352 | oc int16 neg count 9352 | oc mean(int16) 3756.95
+B bright03_19(lower raw) vs Bright03_19__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8756 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 9787 | oc int16 neg count 9787 | oc mean(int16) 4718.88
+B bright05_00(lower raw) vs Bright05_00__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8684 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10346 | oc int16 neg count 10346 | oc mean(int16) 784.92
+B bright05_01(lower raw) vs Bright05_01__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8641 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10691 | oc int16 neg count 10691 | oc mean(int16) 791.74
+B bright05_02(lower raw) vs Bright05_02__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8642 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10681 | oc int16 neg count 10681 | oc mean(int16) 791.19
+B bright05_03(lower raw) vs Bright05_03__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 68.0004 % | oc_uint16 == raw-MD wrap16: 67.9319 % | raw-MD<0 count 10506 | oc int16 neg count 10506 | oc mean(int16) 786.83
+B bright05_04(lower raw) vs Bright05_04__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8727 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10009 | oc int16 neg count 10009 | oc mean(int16) 788.14
+B bright05_05(lower raw) vs Bright05_05__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8645 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10657 | oc int16 neg count 10657 | oc mean(int16) 789.41
+B bright05_06(lower raw) vs Bright05_06__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8612 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10912 | oc int16 neg count 10912 | oc mean(int16) 790.72
+B bright05_07(lower raw) vs Bright05_07__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8557 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11349 | oc int16 neg count 11349 | oc mean(int16) 789.72
+B bright05_08(lower raw) vs Bright05_08__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8544 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11451 | oc int16 neg count 11451 | oc mean(int16) 790.06
+B bright05_09(lower raw) vs Bright05_09__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8530 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11560 | oc int16 neg count 11560 | oc mean(int16) 780.89
+B bright05_10(lower raw) vs Bright05_10__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8684 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10346 | oc int16 neg count 10346 | oc mean(int16) 784.92
+B bright05_11(lower raw) vs Bright05_11__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8641 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10691 | oc int16 neg count 10691 | oc mean(int16) 791.74
+B bright05_12(lower raw) vs Bright05_12__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8642 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10681 | oc int16 neg count 10681 | oc mean(int16) 791.19
+B bright05_13(lower raw) vs Bright05_13__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8664 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10506 | oc int16 neg count 10506 | oc mean(int16) 786.83
+B bright05_14(lower raw) vs Bright05_14__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8727 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10009 | oc int16 neg count 10009 | oc mean(int16) 788.14
+B bright05_15(lower raw) vs Bright05_15__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8645 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10657 | oc int16 neg count 10657 | oc mean(int16) 789.41
+B bright05_16(lower raw) vs Bright05_16__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8612 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 10912 | oc int16 neg count 10912 | oc mean(int16) 790.72
+B bright05_17(lower raw) vs Bright05_17__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8557 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11349 | oc int16 neg count 11349 | oc mean(int16) 789.72
+B bright05_18(lower raw) vs Bright05_18__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8544 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11451 | oc int16 neg count 11451 | oc mean(int16) 790.06
+B bright05_19(lower raw) vs Bright05_19__OC__: oc_int16 == raw-MD: 100.0000 % | oc_uint16 == max(0,raw-MD): 99.8530 % | oc_uint16 == raw-MD wrap16: 100.0000 % | raw-MD<0 count 11560 | oc int16 neg count 11560 | oc mean(int16) 780.89
+C groups of byte-identical files (size 15728640/7864320, images+CalData_20+CalData_6):
+C    39c0af341100 ['images\\AEDBright_01.raw', 'images\\full_input.raw']
+C    39ba10e91ffe ['images\\AEDBright_01.raw.cal.raw', 'images\\full_input.cal.raw']
+C    80bc86fd858d ['images\\Bright02_00.raw__OC__.raw', '12_CalData_20\\Bright01.raw']
+C    4280c8e53395 ['images\\Bright02_01.raw__OC__.raw', '12_CalData_20\\Bright02.raw']
+C    4d1b1c6e4e75 ['images\\Bright02_02.raw__OC__.raw', '12_CalData_20\\Bright03.raw']
+C    b28906e2a6ab ['images\\Bright02_03.raw__OC__.raw', '12_CalData_20\\Bright04.raw']
+C    a583ea2aca22 ['images\\Bright02_04.raw__OC__.raw', '12_CalData_20\\Bright05.raw']
+C    3b0af5c9d900 ['images\\Bright02_05.raw__OC__.raw', '12_CalData_20\\Bright06.raw']
+C    fecafe1c8996 ['images\\Bright02_06.raw__OC__.raw', '12_CalData_20\\Bright07.raw']
+C    931a79380466 ['images\\Bright02_07.raw__OC__.raw', '12_CalData_20\\Bright08.raw', '12_CalData_6\\bright04.raw']
+C    758e6ac01985 ['images\\Bright02_08.raw__OC__.raw', '12_CalData_20\\Bright09.raw', '12_CalData_6\\bright05.raw']
+C    3f2da6b362fe ['images\\Bright02_09.raw__OC__.raw', '12_CalData_20\\Bright10.raw', '12_CalData_6\\bright06.raw']
+C    fd293b3ff130 ['images\\Bright03_00.raw__OC__.raw', '12_CalData_20\\bright11.raw']
+C    a926017d2529 ['images\\Bright03_01.raw__OC__.raw', '12_CalData_20\\bright12.raw']
+C    a66c7bad3fb9 ['images\\Bright03_03.raw__OC__.raw', '12_CalData_20\\bright13.raw']
+C    422938d21713 ['images\\Bright03_04.raw__OC__.raw', '12_CalData_20\\bright14.raw']
+C    dd2edbae57de ['images\\Bright03_05.raw__OC__.raw', '12_CalData_6\\bright03.raw']
+C    47262495aedd ['images\\Bright03_07.raw__OC__.raw', '12_CalData_20\\bright15.raw']
+C    9f914d853377 ['images\\Bright03_11.raw__OC__.raw', '12_CalData_20\\bright16.raw']
+C    585a1d76a5ad ['images\\Bright03_13.raw__OC__.raw', '12_CalData_20\\bright17.raw']
+C    62d6707d5e34 ['images\\Bright03_17.raw__OC__.raw', '12_CalData_20\\bright18.raw', '12_CalData_6\\bright01.raw']
+C    68301bcd3f88 ['images\\Bright03_18.raw__OC__.raw', '12_CalData_20\\bright19.raw']
+C    9be909239ca5 ['images\\Bright03_19.raw__OC__.raw', '12_CalData_20\\bright20.raw', '12_CalData_6\\bright02.raw']
+C    c96a1b2223d8 ['images\\Bright05_00.raw__OC__.raw', 'images\\Bright05_10.raw__OC__.raw']
+C    4f4aababecfb ['images\\Bright05_01.raw__OC__.raw', 'images\\Bright05_11.raw__OC__.raw']
+C    88451bf66db0 ['images\\Bright05_02.raw__OC__.raw', 'images\\Bright05_12.raw__OC__.raw']
+C    b3fb6f88a71f ['images\\Bright05_03.raw__OC__.raw', 'images\\Bright05_13.raw__OC__.raw']
+C    32b8c5f9502a ['images\\Bright05_04.raw__OC__.raw', 'images\\Bright05_14.raw__OC__.raw']
+C    13113b143c7b ['images\\Bright05_05.raw__OC__.raw', 'images\\Bright05_15.raw__OC__.raw']
+C    39c8b755314f ['images\\Bright05_06.raw__OC__.raw', 'images\\Bright05_16.raw__OC__.raw']
+C    42f2a9ac49d1 ['images\\Bright05_07.raw__OC__.raw', 'images\\Bright05_17.raw__OC__.raw']
+C    4edb37545534 ['images\\Bright05_08.raw__OC__.raw', 'images\\Bright05_18.raw__OC__.raw']
+C    8d9243137446 ['images\\Bright05_09.raw__OC__.raw', 'images\\Bright05_19.raw__OC__.raw']
+C    122b11bd6926 ['images\\MasterDark.raw', '12_CalData_20\\dark.raw', '12_CalData_6\\dark.raw']
+C    0fa5fb10c841 ['images\\TOTAL_BPM.raw', '12_CalData_20\\Total_Defect_Map.raw', '12_CalData_6\\Total_Defect_Map.raw']
+C    1be4b9b61f20 ['images\\bright05_00.raw', 'images\\bright05_10.raw']
+C    617d92b2b197 ['images\\bright05_01.raw', 'images\\bright05_11.raw']
+C    178eb042507d ['images\\bright05_02.raw', 'images\\bright05_12.raw']
+C    5efd089b0a6a ['images\\bright05_03.raw', 'images\\bright05_13.raw']
+C    9b8171f75eec ['images\\bright05_04.raw', 'images\\bright05_14.raw']
+C    06fdbc22e853 ['images\\bright05_05.raw', 'images\\bright05_15.raw']
+C    5aab82181a35 ['images\\bright05_06.raw', 'images\\bright05_16.raw']
+C    f86712a9a52b ['images\\bright05_07.raw', 'images\\bright05_17.raw']
+C    60d831d5dd76 ['images\\bright05_08.raw', 'images\\bright05_18.raw']
+C    1fafec12d39c ['images\\bright05_09.raw', 'images\\bright05_19.raw']
+C    702be43ce102 ['12_CalData_20\\BPMap.map', '12_CalData_6\\BPMap.map']
+C    167b76d3a8d2 ['12_CalData_20\\PositionMap.raw', '12_CalData_6\\PositionMap.raw']
+D BrightAvg == MasterBright: 0.6259 % | BrightAvg mean u16 6298.3 s16 5864.18 neg 52095 | MasterBright mean u16 3143.73 s16 3143.68 neg 5
+D BrightAvg vs mean Bright02_00..09 __OC__ (int16): rint 0.5713 % floor 0.5874 % trunc 0.6259 % max|d| 15367.400
+D MasterBright vs mean Bright02_00..09 __OC__ (int16): rint 55.4745 % floor 99.7701 % trunc 100.0000 % max|d| 0.900
+D BrightAvg vs mean CalData_20 Bright01..10 (int16): rint 0.5713 % floor 0.5874 % trunc 0.6259 % max|d| 15367.400
+D MasterBright vs mean CalData_20 Bright01..10 (int16): rint 55.4745 % floor 99.7701 % trunc 100.0000 % max|d| 0.900
+D BrightAvg vs mean CalData_6 bright01..06 (int16): rint 0.5732 % floor 0.5890 % trunc 0.6253 % max|d| 15367.500
+D MasterBright vs mean CalData_6 bright01..06 (int16): rint 2.1236 % floor 2.4287 % trunc 2.6443 % max|d| 385.667
+D BrightAvg vs mean Bright03_00..19 __OC__ (int16): rint 0.5625 % floor 0.5978 % trunc 0.6242 % max|d| 15367.450
+D MasterBright vs mean Bright03_00..19 __OC__ (int16): rint 2.0426 % floor 2.4674 % trunc 2.6468 % max|d| 270.600
+D BrightAvg vs mean Bright02_00..09 __OC__ (uint16): rint 0.3844 % floor 0.4333 % trunc 0.4333 % max|d| 65535.000
+D MasterBright vs mean Bright02_00..09 __OC__ (uint16): rint 54.7283 % floor 99.2082 % trunc 99.2082 % max|d| 58981.500
+D BrightAvg vs mean CalData_20 Bright01..10 (uint16): rint 0.3844 % floor 0.4333 % trunc 0.4333 % max|d| 65535.000
+D MasterBright vs mean CalData_20 Bright01..10 (uint16): rint 54.7283 % floor 99.2082 % trunc 99.2082 % max|d| 58981.500
+D BrightAvg vs mean CalData_6 bright01..06 (uint16): rint 0.4350 % floor 0.4806 % trunc 0.4806 % max|d| 65535.000
+D MasterBright vs mean CalData_6 bright01..06 (uint16): rint 1.5738 % floor 2.0880 % trunc 2.0880 % max|d| 65535.000
+D BrightAvg vs mean Bright03_00..19 __OC__ (uint16): rint 0.2912 % floor 0.3294 % trunc 0.3294 % max|d| 65535.000
+D MasterBright vs mean Bright03_00..19 __OC__ (uint16): rint 0.9061 % floor 1.4411 % trunc 1.4411 % max|d| 49151.200
+E 12_CalData_20 [('Bright01.raw', 3104.8), ('Bright02.raw', 3125.4), ('Bright03.raw', 3140.5), ('Bright04.raw', 3144.9), ('Bright05.raw', 3151.6), ('Bright06.raw', 3157.2), ('Bright07.raw', 3153.9), ('Bright08.raw', 3150.0), ('Bright09.raw', 3152.3), ('Bright10.raw', 3160.7), ('bright11.raw', 49.1), ('bright12.raw', 72.5), ('bright13.raw', 148.6), ('bright14.raw', 191.3), ('bright15.raw', 783.6), ('bright16.raw', 3139.8), ('bright17.raw', 4896.8), ('bright18.raw', 2619.4), ('bright19.raw', 3757.0), ('bright20.raw', 4718.9)]
+E 12_CalData_6 [('bright01.raw', 2619.4), ('bright02.raw', 4718.9), ('bright03.raw', 306.5), ('bright04.raw', 3150.0), ('bright05.raw', 3152.3), ('bright06.raw', 3160.7)]
+E Bright02 OC int16 means [3104.8, 3125.4, 3140.5, 3144.9, 3151.6, 3157.2, 3153.9, 3150.0, 3152.3, 3160.7]
+E Bright03 OC int16 means [49.1, 72.5, 111.8, 148.6, 191.3, 306.5, 388.1, 783.6, 1264.3, 1967.7, 2464.1, 3139.8, 3926.1, 4896.8, 6241.9, 11082.5, 11344.1, 2619.4, 3757.0, 4718.9]
+E bright03 raw uint16 means (_00.._19) [2541.0, 2564.4, 2603.7, 2640.5, 2683.1, 2798.4, 2880.0, 3275.4, 3756.2, 4459.6, 4956.0, 5631.6, 6418.0, 7388.7, 8733.8, 13574.3, 13836.0, 5111.3, 6248.8, 7210.8]
+E bright03 raw uint16 means (_0.._9) [2536.1, 2556.5, 2592.1, 2629.2, 2664.5, 2775.5, 2847.6, 3210.8, 3645.5, 4295.6]
+F CalData_20/BPMap.map(u8): nonzero 12898 | top (count,value) [(7851422, 0), (12898, 255)]
+F CalData_6/BPMap.map(u8): nonzero 12898 | top (count,value) [(7851422, 0), (12898, 255)]
+F 12_CalData_20/Total_Defect_Map.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F 12_CalData_6/Total_Defect_Map.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F images/TOTAL_BPM.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F images/BPM_with_Filter.raw: nonzero 12774 | top (count,value) [(7851546, 0), (12774, 16383)]
+F images/BPM_without_Filter.raw: nonzero 12458 | top (count,value) [(7851862, 0), (12458, 16383)]
+F corrected/TOTAL_BPM.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F corrected/TOTAL_BPM_original.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F corrected/Total_Defect_Map.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F corrected/BPM_with_Filter.raw: nonzero 12774 | top (count,value) [(7851546, 0), (12774, 16383)]
+F corrected/BPM_without_Filter.raw: nonzero 12458 | top (count,value) [(7851862, 0), (12458, 16383)]
+F corrected/AED_BPM.raw: nonzero 312 | top (count,value) [(7864008, 0), (312, 16383)]
+F corrected/DotDefectBPM.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F corrected/Stitch_BPM.raw: nonzero 0 | top (count,value) [(7864320, 0)]
+F corrected/Bright03_bpm_14.raw: nonzero 12898 | top (count,value) [(7851422, 0), (12898, 16383)]
+F corrected/PositionMap.raw: nonzero 0 | top (count,value) [(7864320, 0)]
+F 12_CalData_20/PositionMap.raw: nonzero 0 | top (count,value) [(7864320, 0)]
+F rel 12_CalData_20/Total_Defect_Map.raw vs corrected/Total_Defect_Map.raw: |A| 12898 |B| 12898 both 12898 A_only 0 B_only 0 equal_sets True
+F rel images/TOTAL_BPM.raw vs corrected/TOTAL_BPM.raw: |A| 12898 |B| 12898 both 12898 A_only 0 B_only 0 equal_sets True
+F rel CalData_20/BPMap.map(u8) vs 12_CalData_20/Total_Defect_Map.raw: |A| 12898 |B| 12898 both 12898 A_only 0 B_only 0 equal_sets True
+F rel CalData_20/BPMap.map(u8) vs corrected/TOTAL_BPM.raw: |A| 12898 |B| 12898 both 12898 A_only 0 B_only 0 equal_sets True
+F rel corrected/TOTAL_BPM_original.raw vs corrected/Total_Defect_Map.raw: |A| 12898 |B| 12898 both 12898 A_only 0 B_only 0 equal_sets True
+F rel corrected/Total_Defect_Map.raw vs corrected/TOTAL_BPM.raw: |A| 12898 |B| 12898 both 12898 A_only 0 B_only 0 equal_sets True
+F rel images/BPM_with_Filter.raw vs corrected/BPM_with_Filter.raw: |A| 12774 |B| 12774 both 12774 A_only 0 B_only 0 equal_sets True
+F rel images/BPM_without_Filter.raw vs corrected/BPM_without_Filter.raw: |A| 12458 |B| 12458 both 12458 A_only 0 B_only 0 equal_sets True
+F rel CalData_20/BPMap.map(u8) vs CalData_6/BPMap.map(u8): |A| 12898 |B| 12898 both 12898 A_only 0 B_only 0 equal_sets True
+F corrected Total_Defect_Map set == with|without (corrected): True | union 12898
+F corrected TOTAL_BPM_original set == with|without: True
+F corrected/TOTAL_BPM.raw: rows >50% flagged [] (n=0) | cols >50% flagged [15, 16, 17, 18, 19] (n=5)
+F CalData_20/BPMap.map(u8): rows >50% flagged [] (n=0) | cols >50% flagged [15, 16, 17, 18, 19] (n=5)
+F 12_CalData_20/Total_Defect_Map.raw: rows >50% flagged [] (n=0) | cols >50% flagged [15, 16, 17, 18, 19] (n=5)

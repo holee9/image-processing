@@ -1,0 +1,68 @@
+# Source: Z:/공통자료/개발팀 Test image/FT_20231206_2G_x64 (NAS read-only). CP949 -> UTF-8 via iconv. sha256 of original files:
+3404521db4883eecb794b43b5375429b895e1ecf4b1db6008bf1e665451115d3 *Z:/공통자료/개발팀 Test image/FT_20231206_2G_x64/CalEng.ini
+664980305c6738552a56cf06a2e121ab2a8627beabff3a27e54fbb406cc5baf4 *Z:/공통자료/개발팀 Test image/FT_20231206_2G_x64/runcal.ini
+720bb8f76f2e0fe9e849c6102a106edd2042e33a1cde879a0adba3026c846372 *Z:/공통자료/개발팀 Test image/FT_20231206_2G_x64/S4335-WS.par
+5e5eea14cb8f656c50ad67e0cef9aacfc56e661fb2d54e5b6faf1a3a51036eba *Z:/공통자료/개발팀 Test image/FT_20231206_2G_x64/run_cal.bat
+=== CalEng.ini (cat -n)
+     1	BitsPerBadPixel = 16
+     2	BadPixelMapFile = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\corrected\TOTAL_BPM.raw
+     3	DarkFile = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\images\MasterDark.raw
+     4	BrightCount = 6
+     5	Bright0 = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\images\MasterBright.raw
+     6	Bright1 = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\images\MasterBright.raw
+     7	Bright2 = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\images\MasterBright.raw
+     8	Bright3 = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\images\MasterBright.raw
+     9	Bright4 = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\images\MasterBright.raw
+    10	Bright5 = F:\Data\Inspection\FT\2g\20231120_23E21G1Y\20231120_23E21G1Y\images\MasterBright.raw
+    11	Mode.OffsetCalibration = 1
+    12	Mode.GainCalibration = 1
+    13	Mode.BadPixelRemoval = 1
+    14	ModelNumber = 2097154
+    15	Width = 3072
+    16	Height = 2560
+    17	LeftCut = 15
+    18	TopCut = 2
+    19	RightCut = 17
+    20	BottomCut = 92
+    21	BPMStep = 512
+    22	DynOffset = 0
+    23	MaxValue = 32767
+    24	CeilValueHigh = 16000
+    25	CeilValueLow = 0
+    26	AdjustLevel = 0
+    27	CalInputSave = 1
+    28	HeadDefectMargin = 0
+    29	ThumbnailType = 2
+    30	ThumbnailDisplayOrder = 0
+    31	LowDoseZero = 1
+    32	CalUnsigned = 0
+    33	UseAED = 0
+=== runcal.ini (cat -n)
+     1	UsePartialProcess = 0
+     2	LineGapThreshold = 50
+     3	ShortLineThreshold = 10
+     4	BPMCondition = 45
+     5	ParFile = C:\FT_20231206_2G_x64\S4335-WS.par
+     6	BTBPMPath =
+=== run_cal.bat (cat -n)
+     1	RunCal.exe D:\data\inspection\FT\C2\20161027_16H062(S_M)_AL_Tape\20161027_16H062(S_M)_AL_Tape=== S4335-WS.par (grep -n for Cal/Dark/BPM/Bright/Step/Gain/Offset/Defect)
+10:Settings.FrameWidth = 3072
+11:Settings.FrameHeight = 2560
+22:Model.DynamicOffset = 0
+30:BPMStep = 512
+31:UseDarkBPM = 0
+34:CalDebug = 1
+78:CalStepCount = 6
+79:CalStep0 = 550
+80:CalTolerence0 = 450
+81:CalStep1 = 10000
+82:CalTolerence1 = 1000
+83:CalStep2 = 550
+84:CalTolerence2 = 450
+85:CalStep3 = 3300
+86:CalTolerence3 = 850
+87:CalStep4 = 3300
+88:CalTolerence4 = 850
+89:CalStep5 = 3300
+90:CalTolerence5 = 850
+92:CalUnsigned = 0

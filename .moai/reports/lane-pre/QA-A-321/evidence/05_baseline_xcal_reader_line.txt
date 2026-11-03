@@ -1,0 +1,19 @@
+## tools/ci/clang_tidy_baseline_preprocess.txt: removed line 13 (63 -> 62 lines)
+-bugprone-easily-swappable-parameters	modules/preprocess/src/xcal_reader.cpp	3 adjacent parameters of 'read_compression_meta' of convertible types are easily swapped by mistake	bool& is_compressed,	1
+## why it went to 0: the flagged text 'bool& is_compressed,' is gone from xcal_reader.cpp
+$ git log --oneline -S 'bool& is_compressed' -- modules/preprocess/src/xcal_reader.cpp
+e404b70e feat(preprocess): QA-A-274 2-1 — XCal 저장 상태(offset/gain config 보존·
+9eb5c410 fix(preprocess): 설정 JSON 은 한 번 파싱해 최상위 키만 읽고, 중�
+$ git show e404b70e -- modules/preprocess/src/xcal_reader.cpp | grep -E '^[-+].*(read_compression_meta\(|bool& is_compressed,|XCalCompressionMeta& meta)'
+-static XpeErrorCode read_compression_meta(
++XpeErrorCode xcal_read_compression_meta(
+-    bool& is_compressed,
++    XCalCompressionMeta& meta)
+-            const XpeErrorCode mrc = read_compression_meta(
++            const XpeErrorCode mrc = xcal_read_compression_meta(config_doc, meta);
+$ git merge-base --is-ancestor e404b70e 42728695 (baseline source commit per 7c5b22c8)
+no -> e404b70e (2026-10-21, QA-A-274) came after the baseline was written
+$ grep -n 'xcal_read_compression_meta(' -A2 modules/preprocess/src/xcal_reader.cpp
+123:XpeErrorCode xcal_read_compression_meta(
+124-    const XpeConfigDoc& doc,
+125-    XCalCompressionMeta& meta)

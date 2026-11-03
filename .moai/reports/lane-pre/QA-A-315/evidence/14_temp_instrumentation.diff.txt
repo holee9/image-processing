@@ -1,0 +1,59 @@
+diff --git a/modules/preprocess/src/defect_correct.cpp b/modules/preprocess/src/defect_correct.cpp
+index 93b4eee6..4567023b 100644
+--- a/modules/preprocess/src/defect_correct.cpp
++++ b/modules/preprocess/src/defect_correct.cpp
+@@ -20,0 +21,8 @@
++#include <chrono> // QA315TMP
++#include <cstdio> // QA315TMP
++static thread_local std::chrono::steady_clock::time_point qa315_dl; // QA315TMP
++static double qa315_fd_ms = 0; // QA315TMP
++static std::atomic<size_t> qa315_ring{0}; // QA315TMP
++static std::atomic<size_t> qa315_rh[17]; // QA315TMP
++static void qa315_lap(const char* t) { const auto now = std::chrono::steady_clock::now(); std::fprintf(stderr, "QA315 defect %s %.3f\n", t, std::chrono::duration<double, std::milli>(now - qa315_dl).count()); qa315_dl = now; } // QA315TMP
++struct Qa315FdGuard { std::chrono::steady_clock::time_point t = std::chrono::steady_clock::now(); ~Qa315FdGuard() { qa315_fd_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t).count(); } }; // QA315TMP
+@@ -229,0 +238 @@ struct FillDistance {
++        Qa315FdGuard qa315_guard; // QA315TMP
+@@ -345,0 +355 @@ float median_filter_cluster(const float* pixels, const MaskSet& ms,
++        qa315_ring.fetch_add(1, std::memory_order_relaxed); // QA315TMP
+@@ -347,0 +358 @@ float median_filter_cluster(const float* pixels, const MaskSet& ms,
++        qa315_rh[radius].fetch_add(1, std::memory_order_relaxed); // QA315TMP
+@@ -759,0 +771 @@ XpeErrorCode xpe_defect_correct_in(
++    qa315_dl = std::chrono::steady_clock::now(); qa315_ring = 0; qa315_fd_ms = 0; // QA315TMP
+@@ -860,0 +873 @@ XpeErrorCode xpe_defect_correct_in(
++    qa315_lap("finite"); // QA315TMP
+@@ -928,0 +942 @@ XpeErrorCode xpe_defect_correct_in(
++    qa315_lap("maskset"); std::fprintf(stderr, "QA315 info count=%zu slots=%zu extra=%zu layers=%d\n", maskSet.count(), maskSet.slots(), extraCount, layers ? 1 : 0); // QA315TMP
+@@ -953,0 +968 @@ XpeErrorCode xpe_defect_correct_in(
++    qa315_lap("copy"); // QA315TMP
+@@ -1049,0 +1065 @@ XpeErrorCode xpe_defect_correct_in(
++    qa315_lap("list"); // QA315TMP
+@@ -1067,0 +1084 @@ XpeErrorCode xpe_defect_correct_in(
++    qa315_lap("lines"); std::atomic<size_t> qa315_nc{0}, qa315_ni{0}; // QA315TMP
+@@ -1073,0 +1091,2 @@ XpeErrorCode xpe_defect_correct_in(
++        size_t qa315_lc = 0, qa315_li = 0; // QA315TMP
++        const auto qa315_c0 = std::chrono::steady_clock::now(); // QA315TMP
+@@ -1084,0 +1104 @@ XpeErrorCode xpe_defect_correct_in(
++                ++qa315_lc; // QA315TMP
+@@ -1088,0 +1109 @@ XpeErrorCode xpe_defect_correct_in(
++                ++qa315_li; // QA315TMP
+@@ -1091,0 +1113,2 @@ XpeErrorCode xpe_defect_correct_in(
++        qa315_nc += qa315_lc; qa315_ni += qa315_li; // QA315TMP
++        std::fprintf(stderr, "QA315 chunk %zu %zu %.3f\n", b, e, std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - qa315_c0).count()); // QA315TMP
+@@ -1094,0 +1118,2 @@ XpeErrorCode xpe_defect_correct_in(
++    qa315_lap("fill"); std::fprintf(stderr, "QA315 info fd_ms=%.3f cluster=%zu isolated=%zu ring=%zu\n", qa315_fd_ms, qa315_nc.load(), qa315_ni.load(), qa315_ring.load()); // QA315TMP
++    for (int r = 0; r <= 16; ++r) { std::fprintf(stderr, "QA315 rh %d %zu\n", r, qa315_rh[r].load()); qa315_rh[r] = 0; } // QA315TMP
+diff --git a/modules/preprocess/src/pipeline.cpp b/modules/preprocess/src/pipeline.cpp
+index b22e54f2..295abc07 100644
+--- a/modules/preprocess/src/pipeline.cpp
++++ b/modules/preprocess/src/pipeline.cpp
+@@ -46,0 +47,6 @@ void (*xpe_pipeline_gain_frame_hook)(void*, size_t, bool) = nullptr;
++#include <chrono> // QA315TMP
++#include <cstdio> // QA315TMP
++static thread_local std::chrono::steady_clock::time_point qa315_last; // QA315TMP
++static inline void qa315_stage(int s) { const auto now = std::chrono::steady_clock::now(); std::fprintf(stderr, "QA315 stage %d %.3f\n", s, std::chrono::duration<double, std::milli>(now - qa315_last).count()); qa315_last = now; } // QA315TMP
++#undef XPE_STAGE_HOOK // QA315TMP
++#define XPE_STAGE_HOOK(n) qa315_stage(n) // QA315TMP
+@@ -397,0 +404 @@ namespace {
++        qa315_last = std::chrono::steady_clock::now(); // QA315TMP
+@@ -531,0 +539 @@ namespace {
++            qa315_stage(40); // QA315TMP

@@ -1,0 +1,16 @@
+shared pixels 1690, groups without a final class 0
+== reproduction of the tool's counts
+  items promoted to defect by noise 6 (tool: 6), made undetermined 368 (tool: 368)
+  new false alarms 40 (tool 40); on normal control items 31 (tool 31); background 9
+  reproduced exactly
+tool 40 31 repro 40 31
+area rows 2 3070 cols 6 3070
+349 199 DM lineRunRow 21 lineRunCol 17  near ['115:control/fixed_band/col_full/30 d2']
+536 934 BN lineRunRow 26 lineRunCol 27  near ['SHARED', '6:line/dead/col_pair/1 d7', '74:control/gain_loss/row_pair/0.7 d4']
+796 199 DM lineRunRow 28 lineRunCol 17  near ['115:control/fixed_band/col_full/30 d2']
+901 2185 DM lineRunRow 24 lineRunCol 26  near ['119:control/gain_band/col_full/1.2 d4']
+1023 1453 DM lineRunRow 26 lineRunCol 30  near []
+1095 454 DM lineRunRow 24 lineRunCol 20  near ['683:pixel/noisy/pixel/4 d3']
+1253 1246 DM lineRunRow 25 lineRunCol 25  near ['120:control/varying_band/row_full/20 d6', '1354:pixel/gain_loss/pixel/0.44 d9']
+1590 2707 DM lineRunRow 27 lineRunCol 19  near ['114:control/fixed_band/row_full/30 d9']
+1612 196 DM lineRunRow 27 lineRunCol 17  near ['115:control/fixed_band/col_full/30 d1', '419:pixel/hot/pixel/200 d12']

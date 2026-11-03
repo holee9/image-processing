@@ -1,0 +1,21 @@
+Running main() from D:\workspace-github\xpe-data\qa-320-tmp\wt\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from ParallelUnwind
+[ RUN      ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc
+[calibration] caller-thread allocations: 2 ranges = 3 (repeat 3), 3 ranges = 4
+D:\workspace-github\xpe-data\qa-320-tmp\wt\modules\preprocess\tests\test_parallel_unwind.cpp(182): error: Value of: clean
+  Actual: false
+Expected: true
+a running range wrote its error slot after the slots were freed (use after free)
+
+[  FAILED  ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc (214 ms)
+[----------] 1 test from ParallelUnwind (223 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (223 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc
+
+ 1 FAILED TEST

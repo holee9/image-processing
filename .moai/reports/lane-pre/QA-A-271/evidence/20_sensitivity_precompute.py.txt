@@ -1,0 +1,55 @@
+"""QA-A-271 item 3, computed BEFORE any test: how large is the injected temporal noise against the local variance of the bright evaluation frames, and what could the one independent pair (Bright_29 / Bright_30) detect?
+ - sigma_t = 2.914369 (truth.tsv), the 'noisy' injection adds level * sigma_t * N(0,1) per pixel per frame (xpe_bpm_eval.cpp plant, lines 693-694): variance (level * sigma_t)^2 per frame; a difference of two frames carries twice that, d = (B29 - B30)^2 / 2 has the mean of ONE frame's variance.
+ - bright variance: mean of d over the ring pixels (6 pixels around the item, outside every truth item) of the PLANTED pair (these ring pixels carry no injection).
+ - power of the pair test for n pixels and a true variance ratio s: the mean of n values s * chi2_1 exceeds the 95 % point of chi2_n / n (one-sided, null s = 1). Monte Carlo 400,000 draws, seeded.
+Reads files only. Usage: python -X utf8 20_sensitivity_precompute.py.txt > 21_sensitivity_precompute.txt"""
+import numpy as np
+
+IN = 'D:/workspace-github/xpe-data/bpm-eval-252f/'
+INJ = IN + 'inj_d/frames/'
+S = 3072
+SIGMA_T = 2.914369
+items = {}
+for line in open(IN + 'inj_d/truth.tsv', encoding='utf-8'):
+    c = line.rstrip('\n').split('\t')
+    if len(c) >= 6 and c[0].isdigit():
+        items[int(c[0])] = (c[1], c[2], c[3], float(c[4]), [tuple(int(v) for v in r.split(',')) for r in c[5].split(';')])
+ids = np.fromfile(IN + 'inj_d/truth_ids.u16', dtype='<u2').reshape(S, S)
+b29 = np.fromfile(INJ + 'Bright_29.raw', dtype='<u2').reshape(S, S).astype(np.float64)
+b30 = np.fromfile(INJ + 'Bright_30.raw', dtype='<u2').reshape(S, S).astype(np.float64)
+d = (b29 - b30) ** 2 / 2.0
+rng = np.random.default_rng(271)
+print('sigma_t %.6f counts; the injected variance per frame for level m: (m * sigma_t)^2 = m=2: %.1f, m=4: %.1f' % (SIGMA_T, (2 * SIGMA_T) ** 2, (4 * SIGMA_T) ** 2))
+print('== the noisy items: injected variance against the local bright variance (ring mean of d)')
+print('  %-5s %-26s %6s %8s %12s %12s %10s %10s' % ('item', 'class/shape/level', 'pixels', 'ring px', 'ring mean d', 'injected var', 'ratio s', 'z of s-1'))
+rows = []
+for k, (cls, kind, shape, level, rects) in sorted(items.items()):
+    if kind != 'noisy' or cls == 'control':
+        continue
+    m = np.zeros((S, S), dtype=bool)
+    ring = np.zeros((S, S), dtype=bool)
+    for (x, y, w, h) in rects:
+        m[y:y + h, x:x + w] = True
+        ring[max(0, y - 6):y + h + 6, max(0, x - 6):x + w + 6] = True
+    own = m & (ids == k)
+    ring &= (ids == 0)
+    n_own, n_ring = int(own.sum()), int(ring.sum())
+    if n_own == 0 or n_ring == 0:
+        continue
+    v_b = float(d[ring].mean())
+    inj = (level * SIGMA_T) ** 2
+    s = 1.0 + inj / v_b
+    se = np.sqrt(2.0 / n_own + 2.0 / n_ring)
+    rows.append((k, cls, shape, level, n_own, n_ring, v_b, inj, s, (s - 1.0) / se))
+    print('  %-5d %-26s %6d %8d %12.1f %12.1f %10.4f %10.2f' % (k, '%s/%s/%g' % (cls, shape, level), n_own, n_ring, v_b, inj, s, (s - 1.0) / se))
+zs = np.array([r[9] for r in rows])
+ss = np.array([r[8] for r in rows])
+print('  items %d; variance ratio s: min %.4f median %.4f max %.4f; the item-level test statistic (s-1)/SE: min %.2f median %.2f max %.2f' % (len(rows), ss.min(), np.median(ss), ss.max(), zs.min(), np.median(zs), zs.max()))
+print('  items with (s-1)/SE >= 2 (detectable at the item level by 2 SE): %d of %d; pixel noisy items (n=1 each) pooled: see below' % (int((zs >= 2).sum()), len(rows)))
+print('== power of the pair test for n flagged pixels against a true variance ratio s (one-sided 5 %% level, the null being s = 1)')
+print('  %-6s %s' % ('n', '  '.join('s=%-4g' % s for s in (1.1, 1.5, 2.0, 3.0, 5.0))))
+for n in (1, 2, 3, 10, 14, 31):
+    q = np.quantile(rng.chisquare(n, 400000) / n, 0.95)
+    pw = [float(np.mean(s * rng.chisquare(n, 400000) / n > q)) for s in (1.1, 1.5, 2.0, 3.0, 5.0)]
+    print('  %-6d %s' % (n, '  '.join('%.3f ' % p for p in pw)))
+print('== what the 31 would need: under the tail hypothesis the independent ratio of the flagged pixels is the band mean (s = 1 against the other band pixels); under a true anomaly of the size the P2 cost interval allows (band cost 1.35-1.81, i.e. s about 1.4-1.8 against a neighbour of cost 1) the test with n = 31 has the power above')
