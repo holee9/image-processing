@@ -103,10 +103,10 @@ IEC 62304 규제 패키지는 소프트웨어 항목별(XPE, GSVG, Ghost Correct
 | **보안 문서** ✨ NEW | **2** | [docs/security/](docs/security/), [SECURITY.md](SECURITY.md) |
 | **상호운용성 문서** ✨ NEW | **1** | [docs/interop/](docs/interop/) |
 | **운영·PMS 문서** ✨ NEW | **1** | [docs/operations/](docs/operations/) |
-| **GUI Design 문서** ✨ NEW | **12** | [docs/design/](docs/design/) — Algorithm Evaluation Workbench 프로토타입, 구현 가이드, 기존 GUI 참조 |
+| **GUI Design 문서** | **13** | [docs/design/](docs/design/) — Algorithm Evaluation Workbench 프로토타입, 구현 가이드, 기존 GUI 참조, **실영상 수동 점검 기록(2026-11-03)** |
 | Research (연구/전처리 알고리즘) | 11 | [docs/quality-eval/](docs/quality-eval/), [docs/references/](docs/references/), [docs/panel-defect-algorithm/](docs/panel-defect-algorithm/) |
 | Archive | 4 | [docs/archive/](docs/archive/) |
-| **합계** | **151** | [docs/README.md v3.6.0](docs/README.md) |
+| **합계** | **152** | [docs/README.md v3.7.0](docs/README.md) |
 
 ---
 
@@ -242,7 +242,22 @@ cmake --build --preset ci-preprocess --parallel
 ctest --test-dir build/ci-preprocess --output-on-failure --build-config RelWithDebInfo
 ```
 
-### ImageProcTest GUI fixture E2E
+### 운영자 앱(gui/ImageProcTest) 실영상 수동 점검 — 2026-11-03
+
+운영자 앱을 Native 백엔드·실제 3072×3072 손목 영상·실제 보정 세트로 직접 열어 설계 문서가 약속한 흐름과 대조했습니다. 기록: [docs/design/VERIFICATION-20261103-live-real-frame.md](docs/design/VERIFICATION-20261103-live-real-frame.md).
+
+| 확인 항목 | 결과 |
+|---|---|
+| 처리 순서 | 보정 경로가 저장돼 있으면 영상 열기만으로 전처리 → 기본 강조 → 표시가 한 번에 실행됨 (182 ms + 182 ms). 정상 |
+| 전처리 보정 세트 절차 | Tools 첫 항목 "PRE 캘리브레이션 입력·생성·재로드·평가" 창이 1→6 번호 순서의 전용 화면. 정상 |
+| 레인 A/B 알고리즘 선택 | 선택이 처리 체인을 바꾸지 않음 — 레인 태그와 실제 체인이 어긋남 → [#281](https://github.com/holee9/image-processing/issues/281) |
+| 스터디 큐·판정·Run-set | 사용자가 연 영상은 큐에 들어가지 않고 Pass → Save & Next 가 기록되지 않음 → [#280](https://github.com/holee9/image-processing/issues/280) |
+| Metrics 탭·경고 배너·상태줄 | Metrics 탭 미채움, 보정 건너뜀 경고 배너가 상태 오버레이에 가려짐, 상태줄 3칸 잘림, 한·영 혼용 → [#282](https://github.com/holee9/image-processing/issues/282) |
+| 보정 없이 기본 강조 적용 | 의도된 동작으로 내장 도움말에 명시. 표시·저장 정책은 [#274](https://github.com/holee9/image-processing/issues/274) 에서 결정 대기 |
+
+확인하지 않은 것: AI 골 억제(모델 파일 없음), 고급 강조 단독 실행(메뉴 없음), 가상 그리드 실제 적용(파라미터 표·`gsvg.dll` 없음).
+
+### clients/ImageProcTest fixture E2E (진단 앱, 구 기록)
 
 GitHub Issue #28 tracks the GUI preprocess R4 fixture acceptance gate. After local calibration raw payloads and native DLLs are staged, run:
 
