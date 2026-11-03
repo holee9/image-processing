@@ -126,6 +126,7 @@ public sealed class MainWindowViewModel : ObservableObject
         LogsView = new CollectionViewSource { Source = Logs }.View;
         LogsView.Filter = item => !ShowAlertsOnly || (item is string line && _alertLogLines.Contains(line));
         Alerts = new ObservableCollection<AlertEntry>();
+        Alerts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(FooterAlert));
         BackendModeOptions = new[] { "Mock", "Native" };
         CalibrationStageModeOptions = CalibrationStageMode.Options;
         VoiLutModeOptions = new[] { "Linear", "LinearExact", "Sigmoid" };
@@ -812,6 +813,10 @@ public sealed class MainWindowViewModel : ObservableObject
         ? rendered.ChainStatus + (rendered.LaneBFacts is { } candidate ? " | B " + candidate.Summary : string.Empty)
         : NoChainStatus;
 
+    public string DisplayChainStatus => EnglishDisplayText(ChainStatus);
+
+    private static string EnglishDisplayText(string text) => text.Replace("보정 안 된 EI", "uncalibrated measurement", StringComparison.Ordinal);
+
     /// <summary>
     /// GUI-C-248: the number of the render on screen ("render #N", 0 before the first), exposed to UI Automation as the help text of the chain status item. <see cref="ChainStatus"/> carries stage times in whole
     /// milliseconds, so two renders of one frame can print the same line; this number differs for every render, so a caller that waits for "a new render" can tell one from the last.
@@ -993,7 +998,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public string StatusText
     {
         get => _statusText;
-        private set => SetProperty(ref _statusText, value);
+        private set
+        {
+            if (SetProperty(ref _statusText, value)) OnPropertyChanged(nameof(FooterAlert));
+        }
     }
 
     public string ActiveImageSummary
@@ -1111,11 +1119,72 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     public string ExposureIndexText => _render is null ? NoExposureIndex : ExposureIndexOf(_render.Chain);
 
+    // UIA item peers must follow this snapshot's row, even when a later snapshot has equal text.
+    public sealed class MetricRow(string metric, string laneA, string laneB, string delta = "")
+    {
+        public string Metric { get; } = metric;
+        public string LaneA { get; } = laneA;
+        public string LaneB { get; } = laneB;
+        public string Delta { get; } = delta;
+    }
+
+    public string MetricMeasurementNote => _render is { LaneAFacts: { } a, LaneBFacts: { } b } && ReferenceEquals(a, b)
+        ? "Lane B reuses Lane A's measured result; this is one run. No independent delta. Measurements are not pass criteria."
+        : "Measurements describe the displayed render, not a pass criterion. Delta = B − A; shown only for two separate lane runs with measured values.";
+
+    /// <summary>GUI-C-258: measurements of the displayed lanes, never the edited request or a quality verdict.</summary>
+    public IReadOnlyList<MetricRow> MetricRows
+    {
+        get
+        {
+            if (_render is not { LaneAFacts: { } a } render) return [];
+            var b = render.LaneBFacts;
+            var separateRuns = render.LaneA is not null && render.LaneB is not null && b is not null && !ReferenceEquals(a, b);
+            static string Number(double? value) => value?.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "not measured";
+            string Delta(double? av, double? bv, string unit = "") => separateRuns && av.HasValue && bv.HasValue ? Number(bv - av) + unit : string.Empty;
+            static string Stage(LaneRenderFacts? facts, string id) => facts?.Stages.FirstOrDefault(s => s.StageId == id) is { } stage
+                ? $"{stage.Status} · {stage.ElapsedMs.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)} ms" : "not run";
+            static string Calibration(LaneRenderFacts? facts) => facts?.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess) is { } pre
+                && pre.Status is StageStatus.Applied or StageStatus.AppliedNoChange
+                ? $"{CalibrationStageSelection.ExecutedFromReason(pre.Reason).Length} stages" : "not run";
+            var rows = new List<MetricRow>();
+            foreach (var id in new[] { StageIds.Preprocess, StageIds.EnhanceBasic, StageIds.Gsvg, StageIds.AiBoneSuppression })
+            {
+                var stageA = a.Stages.FirstOrDefault(s => s.StageId == id);
+                var stageB = b?.Stages.FirstOrDefault(s => s.StageId == id);
+                var measured = stageA?.Status is StageStatus.Applied or StageStatus.AppliedNoChange && stageB?.Status is StageStatus.Applied or StageStatus.AppliedNoChange;
+                rows.Add(new(id, Stage(a, id), Stage(b, id), measured ? Delta(stageA?.ElapsedMs, stageB?.ElapsedMs, " ms") : string.Empty));
+            }
+            rows.Add(new("VOI source", a.Voi.Automatic is true ? "automatic" : a.Voi.Automatic is false ? "manual" : "not reported", b?.Voi.Automatic is true ? "automatic" : b?.Voi.Automatic is false ? "manual" : "not reported"));
+            rows.Add(new("VOI center", Number(a.Voi.Center), Number(b?.Voi.Center), Delta(a.Voi.Center, b?.Voi.Center)));
+            rows.Add(new("VOI width", Number(a.Voi.Width), Number(b?.Voi.Width), Delta(a.Voi.Width, b?.Voi.Width)));
+            rows.Add(new("Calibration stages", Calibration(a), Calibration(b)));
+            rows.Add(new("EI/DI · measured, not a pass criterion", ExposureIndexOf(a.Stages), b is null ? "not measured" : ExposureIndexOf(b.Stages)));
+            return rows;
+        }
+    }
+
+    public string FooterSummary => _render is { } render
+        ? string.Join(" · ", render.Chain.Stages.Select(s => $"{s.StageId} {s.Status switch { StageStatus.NotRequested => "off", StageStatus.Applied => "applied", StageStatus.AppliedNoChange => "unchanged", StageStatus.Skipped => "skipped", _ => "not applied" }}"))
+            + $" · {(render.Voi.Automatic is true ? "auto" : "window")} C {render.Voi.Center:0.###} / W {render.Voi.Width:0.###}"
+        : "Chain not run · window not measured";
+
+    public string FooterTimings => _render is { } render
+        ? string.Join(" · ", render.Chain.Stages.Select(s => $"{s.StageId} {s.ElapsedMs:0.###} ms"))
+        : "Stage times: not measured";
+
+    public string FooterAlert => StatusText.StartsWith("Verdict not recorded:", StringComparison.Ordinal)
+        ? StatusText
+        : Alerts.FirstOrDefault(a => a.Severity is "WARN" or "ERROR") is { } alert
+            ? $"{alert.Severity}: {alert.Message}" : "No warnings or errors.";
+
     private const string NoExposureIndex = "Exposure index: not measured yet.";
 
-    private static string ExposureIndexOf(ChainResult chain)
+    private static string ExposureIndexOf(ChainResult chain) => ExposureIndexOf(chain.Stages.Select(s => new RenderedStage(s.StageId, s.Status, s.Reason, s.ElapsedMs)).ToArray());
+
+    private static string ExposureIndexOf(IReadOnlyList<RenderedStage> stages)
     {
-        var preprocess = chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+        var preprocess = stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
         if (preprocess is null || preprocess.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange))
         {
             // GUI-C-234b: the same reason the HUD gives ("not run (no calibration data)"), so the two lines cannot disagree about why there is no value.
@@ -1131,7 +1200,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         const string Marker = "uncalibrated EI";
         var at = preprocess.Reason?.IndexOf(Marker, StringComparison.Ordinal) ?? -1;
-        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + preprocess.Reason![at..].Trim();
+        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + EnglishDisplayText(preprocess.Reason![at..].Trim());
     }
 
     /// <summary>GUI-C-233c: whether the window of the render on screen was the automatic one (true), one chosen by hand (false), or unknown / no render yet (null).</summary>
@@ -1296,6 +1365,7 @@ public sealed class MainWindowViewModel : ObservableObject
         nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
         nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(RenderIdText), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
+        nameof(MetricRows), nameof(MetricMeasurementNote), nameof(FooterSummary), nameof(FooterTimings), nameof(DisplayChainStatus),
         nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel), nameof(RenderedPreprocessWarning), nameof(HasRenderedPreprocessWarning),
     ];
 

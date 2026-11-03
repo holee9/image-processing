@@ -93,7 +93,7 @@ public sealed class DeterministicBaselineScenarios(WorkflowApplicationFixture ap
     }
 
     private static string ChainText(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"))?.Name ?? string.Empty;
+        WorkbenchObservation.FullChainText(window);
 
     private static string WaitForAnyChain(Window window)
     {
@@ -130,7 +130,7 @@ public sealed class DeterministicBaselineScenarios(WorkflowApplicationFixture ap
         var last = string.Empty;
         while (DateTime.UtcNow < deadline)
         {
-            last = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
+            last = WorkbenchObservation.FullStatusText(window);
             if (condition(last)) return last;
             Thread.Sleep(100);
         }

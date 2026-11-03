@@ -8,6 +8,7 @@
              Background="#08090c">
     <UserControl.Resources>
         <local:ZoomPercentConverter x:Key="ZoomPercentConverter" xmlns:local="clr-namespace:ImageProcTest.Views" />
+        <local:BannerBelowHudConverter x:Key="BannerBelowHud" xmlns:local="clr-namespace:ImageProcTest.Views" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     </UserControl.Resources>
     <Grid>
@@ -162,10 +163,13 @@
         </Border>
 
         <!-- GUI-C-234c (Codex #181): preprocessing is on by default; on the Native backend a skip leaves the image uncorrected, and this stays up as long as that image is on screen. -->
-        <Border x:Name="PreprocessSkippedBanner"
-                HorizontalAlignment="Center"
+        <controls:AutomationBorder x:Name="PreprocessSkippedBanner"
+                AutomationProperties.AutomationId="PreprocessSkippedBannerBorder"
+                Panel.ZIndex="100"
+                HorizontalAlignment="Stretch"
                 VerticalAlignment="Top"
-                Margin="0,100,0,0"
+                Margin="{Binding ActualHeight, ElementName=StudyHud, Converter={StaticResource BannerBelowHud}}"
+                MaxWidth="544"
                 Padding="10,6"
                 CornerRadius="6"
                 Background="#E6B91C1C"
@@ -179,10 +183,10 @@
                        FontWeight="SemiBold"
                        TextWrapping="Wrap"
                        MaxWidth="520" />
-        </Border>
+        </controls:AutomationBorder>
 
         <!-- View Toolbar (floating, top-center) -->
-        <Border HorizontalAlignment="Center"
+        <controls:AutomationBorder AutomationProperties.AutomationId="ViewportToolbar" HorizontalAlignment="Center"
                 VerticalAlignment="Top"
                 Margin="0,10,0,0"
                 CornerRadius="12"
@@ -274,18 +278,18 @@
                               BorderThickness="0"
                               Cursor="Hand" />
             </StackPanel>
-        </Border>
+        </controls:AutomationBorder>
 
         <!-- HUD: STUDY block (top-left) -->
-        <Border HorizontalAlignment="Left"
+        <controls:AutomationBorder x:Name="StudyHud" AutomationProperties.AutomationId="StudyHud" HorizontalAlignment="Left"
                 VerticalAlignment="Top"
                 Margin="10,10,0,0"
                 CornerRadius="6"
                 Padding="10,8"
                 Background="#CC14171E">
-            <Border.Effect>
+            <controls:AutomationBorder.Effect>
                 <DropShadowEffect ShadowDepth="1" BlurRadius="4" Opacity="0.3" Color="#000000" />
-            </Border.Effect>
+            </controls:AutomationBorder.Effect>
             <StackPanel>
                 <TextBlock Text="STUDY" FontSize="9" FontWeight="SemiBold" Foreground="#5a5f6a"
                            Margin="0,0,0,3" />
@@ -296,7 +300,7 @@
                            FontSize="10" FontFamily="Consolas" Foreground="#8a909c"
                            TextWrapping="Wrap" MaxWidth="220" />
             </StackPanel>
-        </Border>
+        </controls:AutomationBorder>
 
         <!-- HUD: WINDOW block (top-right) -->
         <Border HorizontalAlignment="Right"

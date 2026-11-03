@@ -349,7 +349,9 @@ public sealed class MenuBehaviorScenarios(Wrist1024SliceApplicationFixture app, 
     }
 
     private static string Text(Window window, string automationId) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.Name ?? string.Empty;
+        automationId == "StatusBarText" ? WorkbenchObservation.FullStatusText(window)
+        : automationId == "ChainStatusText" ? WorkbenchObservation.FullChainText(window)
+        : window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.Name ?? string.Empty;
 
     private static string WaitForStatus(Window window, Func<string, bool> accept)
     {

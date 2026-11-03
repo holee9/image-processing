@@ -118,12 +118,14 @@ public sealed class DetachedFailedRenderScenarios(DetachedFaultApplicationFixtur
     }
 }
 
-public sealed class DetachedFaultApplicationFixture : ApplicationFixture
+public sealed class DetachedFaultApplicationFixture : ApplicationFixture, IDisposable
 {
     public DetachedFaultApplicationFixture()
-        : base(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw", ["--automation-fault", "display-pipeline-after:1"])
+        : base(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw", ["--automation-fault", "display-pipeline-after:1", "--automation-settings", FaultSettings.Create("detached")])
     {
     }
+
+    void IDisposable.Dispose() { base.Dispose(); FaultSettings.Remove("detached"); }
 }
 
 [CollectionDefinition(Name)]
@@ -133,11 +135,40 @@ public sealed class DetachedFaultApplicationCollection : ICollectionFixture<Deta
 }
 
 /// <summary>The workflow image, launched with the display pipeline fault armed after two calls.</summary>
-public sealed class FaultInjectedApplicationFixture : ApplicationFixture
+public sealed class FaultInjectedApplicationFixture : ApplicationFixture, IDisposable
 {
     public FaultInjectedApplicationFixture()
-        : base(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw", ["--automation-fault", "display-pipeline-after:2"])
+        : base(@"fixtures\gui-s0\raw\synthetic_1024x1024.raw", ["--automation-fault", "display-pipeline-after:2", "--automation-settings", FaultSettings.Create("main")])
     {
+    }
+
+    void IDisposable.Dispose() { base.Dispose(); FaultSettings.Remove("main"); }
+}
+
+// GUI-C-258: the fault oracle assumes one display call. Pin equal effective lane settings independently of user/bin settings.
+internal static class FaultSettings
+{
+    private static string DirectoryFor(string name) => Path.Combine(AppContext.BaseDirectory, "gui-c-258-fault-" + name);
+
+    public static string Create(string name)
+    {
+        var directory = DirectoryFor(name);
+        Directory.CreateDirectory(directory);
+        var path = Path.Combine(directory, "appsettings.json");
+        if (File.Exists(path)) throw new IOException("A previous fault fixture settings file remains: " + path);
+        File.WriteAllText(path, """
+            {"settingsSchemaVersion":1,"preprocessInChain":true,"laneAAlgorithm":"No grid correction","laneBAlgorithm":"No grid correction","gsvgMode":"None","laneBVoiWindowWidth":0,"gsvgDenoiseK":2,"laneBGsvgDenoiseK":2}
+            """);
+        return path;
+    }
+
+    public static void Remove(string name)
+    {
+        var full = Path.GetFullPath(DirectoryFor(name));
+        var allowed = Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!full.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)) throw new IOException("Fault fixture cleanup escaped the runner output directory.");
+        if (Directory.Exists(full)) Directory.Delete(full, recursive: true);
+        if (Directory.Exists(full)) throw new IOException("Fault fixture settings remain after cleanup.");
     }
 }
 

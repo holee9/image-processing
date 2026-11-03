@@ -1712,6 +1712,9 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
         {
             var element = _window.FindFirstDescendant(cf => cf.ByAutomationId(automationId));
             if (element is null) return string.Empty;
+            if (automationId == "StatusBarText") return element.HelpText ?? string.Empty;
+            if (automationId == "ChainStatusText") return element.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
+            if (automationId == "FrameTimingText") return element.HelpText ?? string.Empty;
             return element.Name ?? string.Empty;
         }
 

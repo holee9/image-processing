@@ -1017,7 +1017,7 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
     }
 
     private static string ChainText(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"))?.Name ?? string.Empty;
+        WorkbenchObservation.FullChainText(window);
 
     /// <summary>
     /// One field of the viewport peer's HelpText (<c>processed</c>, <c>processedMean</c>, <c>hud</c>).

@@ -1,0 +1,9 @@
+  Candidate Virtual request observed; actual radios, stale tag, refused/PRE-skipped/AppliedNoChange/NotRequested outcomes checked
+  scenario 'GUI-C-257 lane selection and result contract': 450 ms
+  scenario '18 Lane A preset keeps main preprocessing': 63 ms
+  scenario '5b equal lanes = one AI call per Apply': 31 ms
+| lane tags after render Grid suppression (not applied)/Grid suppression (not applied) -> after unapplied change / (requested No grid correction/No grid correction, record No grid correction/No grid correction); stages not run (native backend required); Candidate failed -> lanes none/none |
+  scenario '14 lane tags, stage count, failed candidate': 348 ms
+  scenario '3 stale failing Lane B': 124 ms
+  scenario '3b stale succeeding Lane B': 119 ms
+Lifetime scenarios passed (6 scenarios).

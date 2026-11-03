@@ -93,7 +93,7 @@ public sealed class WorkflowScenarios
             initialize!.AsButton().Invoke();
             Thread.Sleep(800);
 
-            var afterInitialize = status!.Name;
+            var afterInitialize = status!.HelpText;
             Assert.DoesNotContain("Display:", afterInitialize, StringComparison.Ordinal);
 
             var pipelineMenu = window.FindFirstDescendant(cf => cf.ByAutomationId("PipelineMenu"));
@@ -115,7 +115,7 @@ public sealed class WorkflowScenarios
                 pipelineMenu.AsMenuItem().Collapse();
             }
 
-            var afterPipeline = status.Name;
+            var afterPipeline = status.HelpText;
             Assert.NotEqual(afterInitialize, afterPipeline);
             Assert.Contains("Display:", afterPipeline, StringComparison.Ordinal);
         });
@@ -184,12 +184,12 @@ public sealed class WorkflowScenarios
             var chain = WaitFor(() =>
             {
                 var item = window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"));
-                return item is not null && item.Name.Contains("preprocess=", StringComparison.Ordinal) ? item : null;
+                return item is not null && item.Properties.ItemStatus.ValueOrDefault.Contains("preprocess=", StringComparison.Ordinal) ? item : null;
             });
             Assert.True(chain is not null, "ChainStatusText does not name the preprocess stage after Run Preprocessing.");
-            Assert.Contains("preprocess=Applied", chain!.Name, StringComparison.Ordinal);
-            Assert.Contains("display input=chain", chain.Name, StringComparison.Ordinal);
-            Assert.DoesNotContain("skipped", status!.Name, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("preprocess=Applied", chain!.Properties.ItemStatus.ValueOrDefault, StringComparison.Ordinal);
+            Assert.Contains("display input=chain", chain.Properties.ItemStatus.ValueOrDefault, StringComparison.Ordinal);
+            Assert.DoesNotContain("skipped", status!.HelpText, StringComparison.OrdinalIgnoreCase);
 
             // The corrected frame must reach the viewport, not just the log.
             var viewport = WaitFor(() => window.FindFirstDescendant(cf => cf.ByAutomationId("ViewportShell")));
@@ -241,7 +241,7 @@ public sealed class WorkflowScenarios
             TypeCenter(window, "12345");
             TypeWidth(window, "4321");
             ApplyDisplayPipeline(window);
-            var moved = status!.Name;
+            var moved = status!.HelpText;
             _output.WriteLine($"W-07 before preset: '{moved}'");
             Assert.Contains("C=12345", moved, StringComparison.Ordinal);
             Assert.Contains("W=4321", moved, StringComparison.Ordinal);
@@ -258,7 +258,7 @@ public sealed class WorkflowScenarios
                 ? ("C=32768", "W=65535")    // modules/display/src/voi_lut.cpp XPE_BODY_LUNG — detector DN, provisional full range (#177, #151)
                 : ("C=25000", "W=50000");   // MockXpeBackend.cs XpeBodyPartEnum.Lung
 
-            var text = status!.Name;
+            var text = status!.HelpText;
             _output.WriteLine($"W-07 after preset: '{text}'");
             Assert.Contains(center, text, StringComparison.Ordinal);
             Assert.Contains(width, text, StringComparison.Ordinal);

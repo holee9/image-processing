@@ -118,7 +118,7 @@ public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, I
             }
 
             ApplyDisplayPipeline(window);
-            var chain = window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"))?.Name ?? string.Empty;
+            var chain = WorkbenchObservation.FullChainText(window);
             output.WriteLine($"L-06 chain after the picks: {chain}");
             Assert.DoesNotContain("preprocess=NotRequested", chain, StringComparison.Ordinal);
         }

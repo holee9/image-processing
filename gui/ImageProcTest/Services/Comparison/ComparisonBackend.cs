@@ -30,7 +30,7 @@ public sealed record ManifestSnapshot(string Path, string BaseDir, byte[] Bytes,
     {
         var full = System.IO.Path.GetFullPath(path);
         var bytes = File.ReadAllBytes(full);
-        var json = JsonNode.Parse(bytes) ?? throw new IOException("매니페스트가 비어 있습니다.");
+        var json = JsonNode.Parse(bytes) ?? throw new IOException("Manifest is empty.");
         return new ManifestSnapshot(full, System.IO.Path.GetDirectoryName(full)!, bytes, Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(), json);
     }
 
@@ -79,20 +79,20 @@ public sealed class PythonScriptComparisonBackend(string scriptPath, string pyth
 
     private async Task<(Prepared? P, string? Failure)> PrepareAsync(ManifestSnapshot manifest, CancellationToken cancel)
     {
-        if (string.IsNullOrWhiteSpace(scriptPath)) return (null, "계약 스크립트 경로가 비어 있습니다. 경로를 입력하십시오(기본값은 없습니다).");
-        if (string.IsNullOrWhiteSpace(outRoot)) return (null, "결과 폴더가 비어 있습니다.");
+        if (string.IsNullOrWhiteSpace(scriptPath)) return (null, "Contract script path is empty. Enter a path; there is no default.");
+        if (string.IsNullOrWhiteSpace(outRoot)) return (null, "Output directory is empty.");
         var script = Path.GetFullPath(scriptPath);
-        if (!File.Exists(script)) return (null, "계약 스크립트 파일이 없습니다: " + script);
+        if (!File.Exists(script)) return (null, "Contract script file not found: " + script);
         var baseDir = manifest.BaseDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var outFull = Path.GetFullPath(outRoot).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         // the script only READS the input folder; its products must not be written next to the original data
         if (string.Equals(outFull, baseDir, StringComparison.OrdinalIgnoreCase) || outFull.StartsWith(baseDir + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-            return (null, "결과 폴더가 매니페스트(원데이터) 폴더 안에 있습니다. 개발 산출물 폴더를 따로 지정하십시오.");
+            return (null, "Output directory is inside the manifest/source-data directory. Choose a separate development output directory.");
 
         // the bytes that are hashed are the bytes that are copied: one read, no second look at the original
         byte[] bytes;
         try { bytes = await File.ReadAllBytesAsync(script, cancel); }
-        catch (IOException e) { return (null, "계약 스크립트를 읽지 못했습니다: " + e.Message); }
+        catch (IOException e) { return (null, "Could not read the contract script: " + e.Message); }
         var originalSha = Hex(bytes);
 
         var python = await ResolvePythonAsync(cancel);
@@ -106,7 +106,7 @@ public sealed class PythonScriptComparisonBackend(string scriptPath, string pyth
         var manifestCopy = Path.Combine(requestDir, "manifest.snapshot.json");
         await File.WriteAllBytesAsync(manifestCopy, manifest.Bytes, cancel);
         var pinnedShaBefore = Hex(await File.ReadAllBytesAsync(pinned, cancel));
-        if (pinnedShaBefore != originalSha) return (null, "고정 사본의 SHA-256 이 원본을 읽은 바이트와 다릅니다. 실행하지 않습니다.");
+        if (pinnedShaBefore != originalSha) return (null, "Pinned SHA-256 differs from the original bytes read. Execution refused.");
         var id = new ScriptIdentity(script, originalSha, pinned, pinnedShaBefore, null, null, python.Env, requestDir);
         return (new Prepared(id, manifestCopy, Path.Combine(requestDir, "runs"), baseDir), null);
     }
@@ -115,10 +115,10 @@ public sealed class PythonScriptComparisonBackend(string scriptPath, string pyth
     {
         var exe = string.IsNullOrWhiteSpace(pythonPath) ? "python" : pythonPath.Trim();
         var probe = await RunAsync(exe, [.. Isolated, "-c", "import sys, numpy; print(sys.executable); print(sys.version.split()[0]); print(numpy.__version__)"], cancel);
-        if (probe.StartFailure is not null) return (null, "python 을 실행하지 못했습니다(" + exe + "): " + probe.StartFailure);
-        if (probe.ExitCode != 0) return (null, "python 이 종료 코드 " + probe.ExitCode + " 로 끝났습니다(NumPy 가 없을 수 있습니다): " + Tail(probe.Stderr));
+        if (probe.StartFailure is not null) return (null, "Could not start Python (" + exe + "): " + probe.StartFailure);
+        if (probe.ExitCode != 0) return (null, "Python exited with code " + probe.ExitCode + " (NumPy may be missing): " + Tail(probe.Stderr));
         var lines = probe.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (lines.Length < 3 || !Path.IsPathFullyQualified(lines[0])) return (null, "python 의 경로·버전·NumPy 버전을 읽지 못했습니다: " + Tail(probe.Stdout));
+        if (lines.Length < 3 || !Path.IsPathFullyQualified(lines[0])) return (null, "Could not read Python path/version and NumPy version: " + Tail(probe.Stdout));
         return (new PythonEnvironment(lines[0], lines[1], lines[2]), null);
     }
 
@@ -144,17 +144,17 @@ public sealed class PythonScriptComparisonBackend(string scriptPath, string pyth
             var r = await RunAsync(id.Python.ExePath, [.. Isolated, id.PinnedPath, "validate", p.ManifestCopy, "--base-dir", p.BaseDir], cancel);
             id = await SealAsync(id);
             WriteRecord(id, "validate", r, null);
-            if (r.StartFailure is not null) return new ValidateResponse(false, "스크립트를 실행하지 못했습니다: " + r.StartFailure, null, id, -1, "", "");
-            if (r.ExitCode is not (0 or 2)) return new ValidateResponse(false, $"스크립트가 예상 밖의 종료 코드 {r.ExitCode} 로 끝났습니다: {Tail(r.Stderr)}", null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
+            if (r.StartFailure is not null) return new ValidateResponse(false, "Could not start the script: " + r.StartFailure, null, id, -1, "", "");
+            if (r.ExitCode is not (0 or 2)) return new ValidateResponse(false, $"Script returned unexpected exit code {r.ExitCode}: {Tail(r.Stderr)}", null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
             JsonObject? obj;
             try { obj = JsonNode.Parse(r.Stdout) as JsonObject; }
-            catch (JsonException e) { return new ValidateResponse(false, "검증 출력이 JSON 이 아닙니다: " + e.Message, null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr)); }
+            catch (JsonException e) { return new ValidateResponse(false, "Validation output is not JSON: " + e.Message, null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr)); }
             if (obj is null || obj["comparable"] is not JsonValue c || c.GetValueKind() is not (JsonValueKind.True or JsonValueKind.False) || obj["reasons"] is not JsonArray)
-                return new ValidateResponse(false, "검증 출력에 comparable(true/false)·reasons(목록)가 없습니다.", null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
-            if (c.GetValue<bool>() != (r.ExitCode == 0)) return new ValidateResponse(false, "comparable 값과 종료 코드가 서로 맞지 않습니다.", null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
+                return new ValidateResponse(false, "Validation output lacks comparable (boolean) and reasons (list).", null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
+            if (c.GetValue<bool>() != (r.ExitCode == 0)) return new ValidateResponse(false, "The comparable value and exit code disagree.", null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
             return new ValidateResponse(true, null, obj, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
         }
-        catch (OperationCanceledException) { return new ValidateResponse(false, "취소했습니다. 실패로 기록하며 통과가 아닙니다.", null, id, -1, "", ""); }
+        catch (OperationCanceledException) { return new ValidateResponse(false, "Cancelled. Recorded as failure, not a pass.", null, id, -1, "", ""); }
     }
 
     public async Task<CompareResponse> CompareAsync(ManifestSnapshot manifest, CancellationToken cancel)
@@ -170,40 +170,40 @@ public sealed class PythonScriptComparisonBackend(string scriptPath, string pyth
             timeout.CancelAfter(TimeSpan.FromMinutes(10));
             var r = await RunAsync(id.Python.ExePath, [.. Isolated, id.PinnedPath, "compare", p.ManifestCopy, "--base-dir", p.BaseDir, "--out", p.RunsDir], timeout.Token);
             id = await SealAsync(id);
-            if (r.StartFailure is not null) { WriteRecord(id, "compare", r, null); return new CompareResponse(false, "스크립트를 실행하지 못했습니다: " + r.StartFailure, null, null, id, -1, "", ""); }
+            if (r.StartFailure is not null) { WriteRecord(id, "compare", r, null); return new CompareResponse(false, "Could not start the script: " + r.StartFailure, null, null, id, -1, "", ""); }
             var last = r.Stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).LastOrDefault() ?? "";
             var space = last.IndexOf(' ');
-            if (space <= 0) { WriteRecord(id, "compare", r, null); return new CompareResponse(false, $"스크립트 출력에서 '상태 실행폴더'를 읽지 못했습니다(종료 코드 {r.ExitCode}): {Tail(r.Stdout)} {Tail(r.Stderr)}", null, null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr)); }
+            if (space <= 0) { WriteRecord(id, "compare", r, null); return new CompareResponse(false, $"Could not read 'status run-directory' from script output (exit {r.ExitCode}): {Tail(r.Stdout)} {Tail(r.Stderr)}", null, null, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr)); }
             var statusWord = last[..space];
             var runDir = last[(space + 1)..].Trim();
             var runFull = Path.GetFullPath(runDir);
             var runsFull = Path.GetFullPath(p.RunsDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             CompareResponse Reject(string why, JsonObject? res = null) { WriteRecord(id!, "compare", r, runFull); return new CompareResponse(false, why, runFull, res, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr)); }
             if (!string.Equals(Path.GetDirectoryName(runFull.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)), runsFull, StringComparison.OrdinalIgnoreCase))
-                return Reject("스크립트가 알려 준 실행 폴더가 이번 요청의 runs 폴더 바로 아래가 아닙니다: " + runFull);
+                return Reject("Reported run directory is not directly under this request's runs directory: " + runFull);
             var resultPath = Path.Combine(runFull, "result.json");
-            if (!File.Exists(resultPath)) return Reject("result.json 이 없습니다: " + resultPath);
+            if (!File.Exists(resultPath)) return Reject("result.json not found: " + resultPath);
             JsonObject? result;
             try { result = JsonNode.Parse(File.ReadAllText(resultPath)) as JsonObject; }
-            catch (JsonException e) { return Reject("result.json 을 읽지 못했습니다: " + e.Message); }
-            if (result is null) return Reject("result.json 이 JSON 객체가 아닙니다.");
+            catch (JsonException e) { return Reject("Could not read result.json: " + e.Message); }
+            if (result is null) return Reject("result.json is not a JSON object.");
             var schema = (result["schema"] as JsonValue)?.GetValueKind() == JsonValueKind.String ? result["schema"]!.GetValue<string>() : null;
             if (schema != ComparisonContractReview.Schema)
-                return Reject($"result.json 의 schema 가 {ComparisonContractReview.Schema} 가 아닙니다({schema ?? "없음"}). 실패로 처리합니다.", result);
+                return Reject($"result.json schema is not {ComparisonContractReview.Schema} ({schema ?? "missing"}). Treated as failure.", result);
             var status = (result["status"] as JsonValue)?.GetValueKind() == JsonValueKind.String ? result["status"]!.GetValue<string>() : null;
             if (status is not ("computed" or "refused" or "failed" or "error") || status != statusWord)
-                return Reject($"result.json 의 status({status ?? "없음"})가 스크립트가 말한 상태({statusWord})와 맞지 않거나 알 수 없는 값입니다.", result);
+                return Reject($"result.json status ({status ?? "missing"}) is unknown or differs from script status ({statusWord}).", result);
             var runId = (result["run_id"] as JsonValue)?.GetValueKind() == JsonValueKind.String ? result["run_id"]!.GetValue<string>() : null;
             if (runId != Path.GetFileName(runFull.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)))
-                return Reject($"result.json 의 run_id({runId ?? "없음"})가 실행 폴더 이름과 다릅니다. 다른 실행의 결과일 수 있어 거부합니다.", result);
+                return Reject($"result.json run_id ({runId ?? "missing"}) differs from the run directory name. Rejected as possibly belonging to another run.", result);
             if (!JsonNode.DeepEquals(result["manifest"], manifest.Json))
-                return Reject("result.json 에 기록된 매니페스트가 사용자가 확인한 매니페스트 스냅샷과 다릅니다. 거부합니다.", result);
+                return Reject("The result.json manifest differs from the user-validated snapshot. Rejected.", result);
             if ((status == "computed") != (r.ExitCode == 0))
-                return Reject($"status={status} 와 종료 코드 {r.ExitCode} 가 서로 맞지 않습니다.", result);
+                return Reject($"status={status} and exit code {r.ExitCode} disagree.", result);
             WriteRecord(id, "compare", r, runFull);
             return new CompareResponse(true, null, runFull, result, id, r.ExitCode, Tail(r.Stdout), Tail(r.Stderr));
         }
-        catch (OperationCanceledException) { return new CompareResponse(false, "취소했거나 시간 제한(10분)에 걸렸습니다. 자식 프로세스를 멈췄고 실패로 기록하며 통과가 아닙니다. 다시 하려면 새 실행입니다.", null, null, id, -1, "", ""); }
+        catch (OperationCanceledException) { return new CompareResponse(false, "Cancelled or timed out (10 minutes). Child process stopped; recorded as failure, not a pass. Retry requires a new run.", null, null, id, -1, "", ""); }
     }
 
     /// <summary>A NEW file in the request folder: who ran what, with which interpreter, on which bytes (the script's own files are never edited).</summary>
