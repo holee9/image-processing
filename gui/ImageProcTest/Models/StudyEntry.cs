@@ -9,11 +9,19 @@ public sealed class StudyEntry : ObservableObject
 {
     private StudyStatus _status = StudyStatus.Queued;
     private string _deltaSummary = "—";
+    private string _verdictNotes = string.Empty;
 
     public required string Id { get; init; }
     public required string Name { get; init; }
     public required string BodyPart { get; init; }
     public required string RawPath { get; init; }
+    public string Source { get; init; } = string.Empty;
+
+    public string VerdictNotes
+    {
+        get => _verdictNotes;
+        set => SetProperty(ref _verdictNotes, value);
+    }
 
     public StudyStatus Status
     {

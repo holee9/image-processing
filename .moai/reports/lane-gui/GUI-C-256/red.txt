@@ -1,0 +1,50 @@
+Baseline: 945851b8cb4fcbb7b0cda3828ab6a81b791682bb + GUI-C-256 test-only changes.
+Command: .moai\reports\lane-gui\GUI-C-254c\env.cmd C:\Progra~1\dotnet\dotnet.exe gui\ImageProcTest.SelfCheck\bin\Debug\net8.0-windows\ImageProcTest.SelfCheck.dll --study-contract
+Exit: -532462766
+  observed queue=1; verdict replacement and ZIP ID/status/notes checked
+  scenario 'GUI-C-256 manual study contract': 262 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[GUI-C-256 manual study contract] no loaded image must explain that no verdict was recorded
+[GUI-C-256 manual study contract] no loaded image must not create verdict evidence
+[GUI-C-256 manual study contract] Save & Next without an image must explain why it did not record
+[GUI-C-256 manual study contract] manual open must add one item and Total=1; actual queue=0, total=0
+[GUI-C-256 manual study contract] manual item name must be the filename
+[GUI-C-256 manual study contract] the loaded item must be active
+[GUI-C-256 manual study contract] Pass must update item and counts immediately; actual pass=0, fail=0
+[GUI-C-256 manual study contract] final Save & Next must retain current item and verdict
+[GUI-C-256 manual study contract] Pass to Fail must replace the counts; actual pass=0, fail=0
+[GUI-C-256 manual study contract] bundle must contain the manual ID, replacement verdict and notes
+[GUI-C-256 manual study contract] opening a queued path must preserve its object and ID
+[GUI-C-256 manual study contract] reopening a normalized path must not duplicate it
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run(Boolean studyContractOnly) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 493
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 11
+Note: the first diagnostic line reports the final pre-populated queue (not the manual-open count); the failed assertion records the actual manual-open queue=0. Diagnostic wording corrected afterward. Source assertion added afterward, before implementation.
+
+Second pre-implementation run, including the Source assertion. Same commands; build exit 0, run exit -532462766:
+  observed final queue=1; assertions executed for verdict replacement and ZIP ID/status/notes
+  scenario 'GUI-C-256 manual study contract': 244 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[GUI-C-256 manual study contract] no loaded image must explain that no verdict was recorded
+[GUI-C-256 manual study contract] no loaded image must not create verdict evidence
+[GUI-C-256 manual study contract] Save & Next without an image must explain why it did not record
+[GUI-C-256 manual study contract] manual open must add one item and Total=1; actual queue=0, total=0
+[GUI-C-256 manual study contract] manual item name must be the filename
+[GUI-C-256 manual study contract] manual item source must be manual
+[GUI-C-256 manual study contract] the loaded item must be active
+[GUI-C-256 manual study contract] Pass must update item and counts immediately; actual pass=0, fail=0
+[GUI-C-256 manual study contract] final Save & Next must retain current item and verdict
+[GUI-C-256 manual study contract] Pass to Fail must replace the counts; actual pass=0, fail=0
+[GUI-C-256 manual study contract] bundle must contain the manual ID, replacement verdict and notes
+[GUI-C-256 manual study contract] opening a queued path must preserve its object and ID
+[GUI-C-256 manual study contract] reopening a normalized path must not duplicate it
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run(Boolean studyContractOnly) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 493
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 11
+
+Second RED, after core implementation, before RunSetState dependency notification fix:
+Same build/run commands. Build exit 0 (one existing CS8604 warning in LifetimeScenarios.cs:269). Run exit -532462766.
+  observed final queue=1; assertions executed for verdict replacement and ZIP ID/status/notes
+  scenario 'GUI-C-256 manual study contract': 262 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[GUI-C-256 manual study contract] the top-bar Evaluated binding must update immediately; actual '0'
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run(Boolean studyContractOnly) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 493
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 11

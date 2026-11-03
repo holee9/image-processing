@@ -407,9 +407,10 @@ internal static class LifetimeScenarios
     /// <summary>Lets everything already queued on the UI thread run (a continuation posted by a finished await included), then returns.</summary>
     private static async Task FlushUi() => await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
 
-    public static void Run()
+    public static void Run(bool studyContractOnly = false)
     {
-        var scratch = TempDirectory();
+        var scratch = studyContractOnly ? Path.Combine(AppContext.BaseDirectory, "gui-c-256-check") : TempDirectory();
+        Directory.CreateDirectory(scratch);
         var rawPath = WriteSmallRaw(scratch);
         var width = SmallSide;
         var height = SmallSide;
@@ -423,6 +424,8 @@ internal static class LifetimeScenarios
                 {
                     try
                     {
+                        await Timed(() => ManualStudyVerdictsStayWithTheLoadedImage(rawPath, scratch));
+                        if (studyContractOnly) return;
                         await Timed(() => StartedApplyIsDroppedByAShutdown(rawPath, width, height));
                         await Timed(() => StartedApplyThatFailsAfterAShutdownRaisesNothing(rawPath, width, height));
                         await Timed(() => EveryEntryPointRefusesDuringTheTransition(rawPath, width, height));
@@ -481,13 +484,100 @@ internal static class LifetimeScenarios
             throw new InvalidOperationException($"Lifetime scenarios could not run: {error.Message}", error);
         }
 
+        Directory.Delete(scratch, recursive: true);
         if (Failures.Count > 0)
         {
             throw new InvalidOperationException("Lifetime scenarios failed:" + Environment.NewLine + string.Join(Environment.NewLine, Failures));
         }
 
-        Directory.Delete(scratch, recursive: true);
         Console.WriteLine($"Lifetime scenarios passed ({_scenariosRun} scenarios).");
+    }
+
+    private static async Task ManualStudyVerdictsStayWithTheLoadedImage(string rawPath, string directory)
+    {
+        _scenario = "GUI-C-256 manual study contract";
+        var oldRoot = Environment.GetEnvironmentVariable("XPE_GUI_DATA_DIR");
+        Environment.SetEnvironmentVariable("XPE_GUI_DATA_DIR", directory);
+        var vm = NewViewModel(SmallSide, SmallSide, _ => new CandidateBackend(), directory, out _);
+        try
+        {
+            var evaluatedLabel = new System.Windows.Controls.TextBlock();
+            evaluatedLabel.SetBinding(System.Windows.Controls.TextBlock.TextProperty,
+                new System.Windows.Data.Binding("Evaluated") { Source = vm.RunSet });
+            vm.RecordVerdictCommand.Execute(Verdict.Pass);
+            Check(vm.ActiveVerdict is null && vm.RunSet.Total == 0 && vm.StatusText.Contains("not recorded", StringComparison.OrdinalIgnoreCase), "no loaded image must explain that no verdict was recorded");
+            Check(!Directory.Exists(Path.Combine(directory, "evidence")), "no loaded image must not create verdict evidence");
+            vm.SaveAndNextCommand.Execute(null);
+            Check(vm.StatusText.Contains("not recorded", StringComparison.OrdinalIgnoreCase), "Save & Next without an image must explain why it did not record");
+
+            await LoadAndDrawLanes(vm, rawPath);
+            Check(vm.Studies.Count == 1 && vm.RunSet.Total == 1, $"manual open must add one item and Total=1; actual queue={vm.Studies.Count}, total={vm.RunSet.Total}");
+            var item = vm.Studies.FirstOrDefault();
+            Check(item?.Name == Path.GetFileName(rawPath), "manual item name must be the filename");
+            Check(item?.Source == "manual", "manual item source must be manual");
+            Check(item is not null && vm.ActiveStudyId == item.Id, "the loaded item must be active");
+            vm.SaveAndNextCommand.Execute(null);
+            Check(vm.ActiveStudyId == item?.Id && vm.ActiveVerdict is null && vm.StatusText.Contains("choose Pass", StringComparison.Ordinal), "Save & Next without a verdict must retain the loaded item and explain why");
+            vm.RecordVerdictCommand.Execute(Verdict.Defer);
+            Check(item?.Status == StudyStatus.Defer && vm.RunSet.Deferred == 1 && vm.RunSet.Evaluated == 1, "Defer must update item and counts immediately");
+            vm.VerdictNotes = "manual operator note";
+            vm.RecordVerdictCommand.Execute(Verdict.Pass);
+            Check(item?.Status == StudyStatus.Pass && vm.RunSet.Passed == 1 && vm.RunSet.Failed == 0 && vm.RunSet.Deferred == 0, $"Pass must update item and counts immediately; actual pass={vm.RunSet.Passed}, fail={vm.RunSet.Failed}");
+            await FlushUi();
+            Check(evaluatedLabel.Text == "1", $"the top-bar Evaluated binding must update immediately; actual '{evaluatedLabel.Text}'");
+            Check(item?.VerdictNotes == "manual operator note", "notes must belong to the recorded item");
+            vm.VerdictNotes = "updated operator note";
+            vm.SaveAndNextCommand.Execute(null);
+            Check(item is not null && vm.ActiveStudyId == item.Id && vm.ActiveVerdict == Verdict.Pass, "final Save & Next must retain current item and verdict");
+            Check(item?.VerdictNotes == "updated operator note", "Save & Next must save notes edited after the verdict button");
+            vm.RecordVerdictCommand.Execute(Verdict.Fail);
+            Check(item?.Status == StudyStatus.Fail && vm.RunSet.Passed == 0 && vm.RunSet.Failed == 1, $"Pass to Fail must replace the counts; actual pass={vm.RunSet.Passed}, fail={vm.RunSet.Failed}");
+            vm.ExportEvidenceBundleCommand.Execute(null);
+            var zipPath = Path.Combine(directory, "evidence", "bundles", vm.RunSet.RunId + ".zip");
+            if (File.Exists(zipPath))
+            {
+                using var zip = System.IO.Compression.ZipFile.OpenRead(zipPath);
+                var entry = zip.GetEntry("verdicts.json");
+                Check(entry is not null, "bundle must contain verdicts.json");
+                if (entry is not null)
+                {
+                    using var reader = new StreamReader(entry.Open());
+                    var verdicts = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(reader.ReadToEnd());
+                    Check(item is not null && verdicts?.TryGetValue(item.Id, out var value) == true && value.StartsWith("Fail|updated operator note|", StringComparison.Ordinal), "bundle must contain the manual ID, replacement verdict and notes");
+                }
+            }
+            else Check(false, "export must create a bundle");
+
+            var load = typeof(MainWindowViewModel).GetMethod("LoadImageFromPathAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            try
+            {
+                await (Task)load.Invoke(vm, [Path.Combine(directory, "bad.raw"), "scripted failing raw"])!;
+                Check(false, "scripted failed open must throw");
+            }
+            catch (InvalidDataException)
+            {
+                Check(vm.Studies.Count == 1 && ReferenceEquals(vm.Studies[0], item) && vm.ActiveStudyId == item?.Id && vm.ActiveVerdict == Verdict.Fail && vm.RunSet.Failed == 1, "failed open must preserve the queue, active identity, verdict and counts");
+            }
+
+            await LoadAndDrawLanes(vm, Path.Combine(Path.GetDirectoryName(rawPath)!, ".", Path.GetFileName(rawPath)));
+            Check(vm.Studies.Count == 1 && ReferenceEquals(vm.Studies[0], item) && item?.Source == "manual" && vm.ActiveVerdict == Verdict.Fail && vm.VerdictNotes == "updated operator note", "manual reopen must reuse the normalized path and retain its verdict and notes");
+
+            // A pre-populated queue item models the existing manifest identity, without changing its schema.
+            vm.Studies.Clear();
+            var existing = new StudyEntry { Id = "manifest-existing", Name = "manifest name", BodyPart = "Wrist", RawPath = rawPath, Source = "existing-source" };
+            vm.Studies.Add(existing);
+            await LoadAndDrawLanes(vm, rawPath);
+            Check(vm.Studies.Count == 1 && ReferenceEquals(vm.Studies[0], existing) && vm.ActiveStudyId == existing.Id && existing.Source == "existing-source", "opening a queued path must preserve its object, ID and source");
+            await LoadAndDrawLanes(vm, Path.Combine(Path.GetDirectoryName(rawPath)!, ".", Path.GetFileName(rawPath)));
+            Check(vm.Studies.Count == 1 && vm.ActiveStudyId == existing.Id, "reopening a normalized path must not duplicate it");
+            Console.WriteLine($"  observed final queue={vm.Studies.Count}; assertions executed for verdict replacement and ZIP ID/status/notes");
+        }
+        finally
+        {
+            vm.BeginShutdown();
+            await Until(() => !vm.IsBackendTransitioning, "study backend shutdown");
+            Environment.SetEnvironmentVariable("XPE_GUI_DATA_DIR", oldRoot);
+        }
     }
 
     /// <summary>Runs one scenario and prints how long it took: the whole runner has to finish inside the app's wait for it (15 s, MainWindow), and this says where the time goes.</summary>

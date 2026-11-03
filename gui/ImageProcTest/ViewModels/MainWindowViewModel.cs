@@ -190,7 +190,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // Slice 2 — workbench commands
         Studies = new ObservableCollection<StudyEntry>();
         RunOnAllQueuedCommand = new RelayCommand(() => Log("RunOnAllQueuedCommand: not implemented (Slice 7)."));
-        RecordVerdictCommand = new RelayCommand<Verdict>(RecordVerdict);
+        RecordVerdictCommand = new RelayCommand<Verdict>(verdict => RecordVerdict(verdict));
         SaveAndNextCommand = new RelayCommand(SaveAndNext);
         ToggleFocusModeCommand = new RelayCommand(() => FocusMode = !FocusMode);
         ToggleRoiCommand = new RelayCommand(() => RoiActive = !RoiActive);
@@ -2813,6 +2813,31 @@ public sealed class MainWindowViewModel : ObservableObject
         var loadedFrame = _backend.LoadRawImage(path, Settings);
         _openReadEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
         ActiveImageSourcePath = path;   // GUI-C-232b: only after the load SUCCEEDED, so a failed open never renames the image that is still open
+        // GUI-C-256: match the path, not the selected row; a manual open can replace a different selected image.
+        var normalizedPath = Path.GetFullPath(path);
+        var study = Studies.FirstOrDefault(s => string.Equals(Path.GetFullPath(s.RawPath), normalizedPath, StringComparison.OrdinalIgnoreCase));
+        if (study is null)
+        {
+            study = new StudyEntry
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Name = Path.GetFileName(path),
+                BodyPart = Settings.SelectedBodyPart,
+                RawPath = normalizedPath,
+                Source = "manual"
+            };
+            Studies.Add(study);
+        }
+        ActiveStudyId = study.Id;
+        ActiveVerdict = study.Status switch
+        {
+            StudyStatus.Pass => Verdict.Pass,
+            StudyStatus.Fail => Verdict.Fail,
+            StudyStatus.Defer => Verdict.Defer,
+            _ => null
+        };
+        VerdictNotes = study.VerdictNotes;
+        RefreshRunSetCounts();
         DrainBackendTelemetry();
 
         // GUI-C-233g: a new frame ends whatever render stood (one call; the record and everything derived from it go with it)
@@ -3681,15 +3706,22 @@ public sealed class MainWindowViewModel : ObservableObject
             RaiseAlert(alert);
     }
 
-    private void RecordVerdict(Verdict verdict)
+    private bool RecordVerdict(Verdict verdict)
     {
-        ActiveVerdict = verdict;
+        var current = LoadedStudy();
+        if (current is null)
+        {
+            StatusText = "Verdict not recorded: no loaded study matches the current image.";
+            Log(StatusText);
+            return false;
+        }
 
         // #178: without a run id the path collapses to evidence/ itself; write nothing rather than that.
         if (string.IsNullOrWhiteSpace(RunSet.RunId))
         {
-            Log("Verdict not written to evidence: no run set has started.");
-            return;
+            StatusText = "Verdict not recorded: no run set has started.";
+            Log(StatusText);
+            return false;
         }
 
         var dir = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
@@ -3731,10 +3763,23 @@ public sealed class MainWindowViewModel : ObservableObject
         try
         {
             File.WriteAllText(path, JsonSerializer.Serialize(verdicts, new JsonSerializerOptions { WriteIndented = true }));
-            Log($"Verdict recorded: {ActiveStudyId} = {verdict}.");
+            ActiveVerdict = verdict;
+            current.Status = verdict switch
+            {
+                Verdict.Pass => StudyStatus.Pass,
+                Verdict.Defer => StudyStatus.Defer,
+                Verdict.Fail => StudyStatus.Fail,
+                _ => StudyStatus.Queued
+            };
+            current.VerdictNotes = VerdictNotes;
+            RefreshRunSetCounts();
+            StatusText = $"Verdict recorded: {ActiveStudyId} = {verdict}.";
+            Log(StatusText);
+            return true;
         }
         catch (Exception ex)
         {
+            StatusText = $"Verdict not recorded: {ex.Message}";
             Log($"Failed to write verdict file: {ex.Message}");
             RaiseAlert(new AlertEntry
             {
@@ -3743,35 +3788,47 @@ public sealed class MainWindowViewModel : ObservableObject
                 Message = ex.Message,
                 Timestamp = DateTimeOffset.Now
             });
+            return false;
         }
     }
 
     private void SaveAndNext()
     {
-        var current = Studies.FirstOrDefault(s => s.Id == ActiveStudyId);
-        if (current is not null && ActiveVerdict.HasValue)
+        var current = LoadedStudy();
+        if (current is null || !ActiveVerdict.HasValue)
         {
-            current.Status = ActiveVerdict.Value switch
-            {
-                Verdict.Pass => StudyStatus.Pass,
-                Verdict.Defer => StudyStatus.Defer,
-                Verdict.Fail => StudyStatus.Fail,
-                _ => StudyStatus.Queued
-            };
+            StatusText = current is null
+                ? "Verdict not recorded: no loaded study matches the current image."
+                : "Verdict not recorded: choose Pass, Defer or Fail first.";
+            Log(StatusText);
+            return;
         }
 
+        if (!RecordVerdict(ActiveVerdict.Value)) return;
         var next = Studies.FirstOrDefault(s => s.Status == StudyStatus.Queued);
-        ActiveStudyId = next?.Id ?? string.Empty;
-        ActiveVerdict = null;
-        VerdictNotes = string.Empty;
+        if (next is not null)
+        {
+            ActiveStudyId = next.Id;
+            ActiveVerdict = null;
+            VerdictNotes = string.Empty;
+        }
 
+        StatusText = next is not null ? $"Advanced to study '{next.Id}'." : "No more queued studies; current study retained.";
+        Log(StatusText);
+    }
+
+    private StudyEntry? LoadedStudy() => ActiveImageFrame is null || string.IsNullOrWhiteSpace(ActiveImageSourcePath)
+        ? null
+        : Studies.FirstOrDefault(s => s.Id == ActiveStudyId
+            && string.Equals(Path.GetFullPath(s.RawPath), Path.GetFullPath(ActiveImageSourcePath), StringComparison.OrdinalIgnoreCase));
+
+    private void RefreshRunSetCounts()
+    {
         RunSet.Passed = Studies.Count(s => s.Status == StudyStatus.Pass);
         RunSet.Failed = Studies.Count(s => s.Status == StudyStatus.Fail);
         RunSet.Deferred = Studies.Count(s => s.Status == StudyStatus.Defer);
         RunSet.Total = Studies.Count;
 
-        StatusText = next is not null ? $"Advanced to study '{next.Id}'." : "No more queued studies.";
-        Log(StatusText);
     }
 
     private void ResetLaneBOverrides()
