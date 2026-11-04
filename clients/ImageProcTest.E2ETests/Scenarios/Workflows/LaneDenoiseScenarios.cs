@@ -81,7 +81,7 @@ public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, I
         }
         finally
         {
-            // The app starts with both lanes on "Grid suppression" (AppSettings.LaneAAlgorithm / LaneBAlgorithm) and no Candidate override; that is the state the next scenario of the collection assumes.
+            // The app starts with both lanes on "No grid correction" (AppSettings.LaneAAlgorithm / LaneBAlgorithm) and no Candidate override; that is the state the next scenario of the collection assumes.
             ClearCandidateOverride(window);
             SelectAlgorithm(window, "A", AppDefaultLaneAlgorithm);
             SelectAlgorithm(window, "B", AppDefaultLaneAlgorithm);
@@ -131,7 +131,7 @@ public sealed class LaneDenoiseScenarios(Wrist1024SliceApplicationFixture app, I
 
     /// <summary>The value the main chain carries, so the lanes start in agreement.</summary>
     /// <summary>The lanes' algorithm in a freshly started app (<c>AppSettings._laneAAlgorithm</c> / <c>_laneBAlgorithm</c>).</summary>
-    private const string AppDefaultLaneAlgorithm = "Grid suppression";
+    private const string AppDefaultLaneAlgorithm = "No grid correction";
 
     private const string MainDenoiseK = "2.0";
 

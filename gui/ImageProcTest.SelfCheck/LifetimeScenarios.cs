@@ -2253,6 +2253,8 @@ internal static class LifetimeScenarios
         {
             var built = new List<ScenarioBackend>();
             var vm = NewViewModel(width, height, build => { var b = new VoiReportingBackend(); built.Add(b); return b; }, directory, out _);
+            vm.LaneAAlgorithm = "Grid suppression";
+            vm.LaneBAlgorithm = "Grid suppression";
 
             // before anything is rendered nothing is claimed
             Check(vm.RenderedLaneAAlgorithm is null && vm.RenderedLaneBAlgorithm is null && vm.CalibStageCountDisplay == "—" && !vm.LaneBIsStale, "start-up: the lane tags / stage count claim a render");
