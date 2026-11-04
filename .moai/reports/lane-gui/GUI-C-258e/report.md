@@ -1,7 +1,9 @@
-[2026-11-04 15:28:35 KST] GUI-C-258e · Refs #282 #281 · 원승인 3시험 수정 기술수용·별도 커밋 대상 · 카드 9건은 전체 실행에서도 통과 · 전체 Native 327/19/25, 준비 복원 후 23/0/3 · evidence 3건 미해소로 카드 전체 미완료·추가 helper 승인 대기
+[2026-11-04 15:33:27 KST] GUI-C-258e · 전체 실행 종료(14:29:31~15:09:46 KST), 원문 green-full.txt · 327 PASS / 19 FAIL / 25 SKIP · freshness 16건 후속 PASS · evidence 3건 추가 승인 대기로 카드 전체 BLOCKED · 원승인 수정 fb7ce812 미푸시
 
 ## 수신·착수
 
+- 15:14 지시의 현재 상태 회신: 필터 없는 전체 실행은 이미 종료했다. TRX의 실제 시작은 **2026-11-04 14:29:31.3492688 KST**, 종료는 **15:09:46.2720551 KST**다. 명령 한 줄: `dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj -c Debug --no-restore --logger trx;LogFileName=full-native.trx --logger console;verbosity=detailed --results-directory .moai/reports/lane-gui/GUI-C-258e/full-results --blame-hang-timeout 10m --blame-hang-dump-type none` (필터 없음; 정확한 환경은 full-command.txt).
+- 지정된 [green-full.txt](green-full.txt)는 기존 full-native.txt의 전체 원문을 복사한 것이며 **실패 실행(exit 1)을 담고 있다**. 파일명으로 GREEN을 주장하지 않는다. 두 파일의 SHA256은 모두 `FD1FA73EF9B6D83122CA6C728566263501146151365E8954CF6E3823728A4829`, 388109 bytes로 일치함을 확인했다. 현재 남은 상태는 [BLOCKED.md](BLOCKED.md) 한 줄에 기록했다.
 - 카드: `D:/workspace-github/image-processing/.moai/state/codex-msgs/20261104-1413-gui.md` (리더 표기 14:12 KST).
 - 측정 트리: `D:/workspace-github/xpe-gui`, `dev/gui`, HEAD `9374bf8ad85c0a4c58972c775463cc8cf68e7c1b`에 이번 시험 파일 3개의 working-tree 수정. 대상 파일에는 착수 전 diff가 없었다.
 - 먼저 소스만 읽고 A 선택기 연결, 각 시험의 관찰 대상, W8 reader 경로를 부모에게 보고했다. 부모가 세 파일의 최소 수정을 승인했으며, 제품 코드는 변경하지 않았다. 다른 세션의 기존 변경을 보존했다.
@@ -9,7 +11,7 @@
 
 ## Claim
 
-Parameters의 Grid correction 라디오는 승인된 UI 계약대로 B를 제어한다. 메인 화소·시간·report를 검사하는 시험은 A 선택기로 메인 grid mode를 바꾸도록 손잡이만 정정했다. W8은 기존 거부 문자열을 그대로 둔 채 이미 제공되는 `StatusBarText.HelpText` reader를 사용하도록 정정했다. 카드의 실패 대상 9개와 C03 GridSuppression 대조군 1개, 총 10개가 같은 대상 실행에서 PASS, FAIL 0, SKIP 0으로 종료했다. 커밋·푸시는 하지 않았다.
+Parameters의 Grid correction 라디오는 승인된 UI 계약대로 B를 제어한다. 메인 화소·시간·report를 검사하는 시험은 A 선택기로 메인 grid mode를 바꾸도록 손잡이만 정정했다. W8은 기존 거부 문자열을 그대로 둔 채 이미 제공되는 `StatusBarText.HelpText` reader를 사용하도록 정정했다. 카드의 실패 대상 9개와 C03 GridSuppression 대조군 1개, 총 10개가 같은 대상 실행에서 PASS, FAIL 0, SKIP 0으로 종료했다. 원승인 3시험 수정과 근거는 `fb7ce81292aed170a59a13ce53f452fee39d7ab8`로 커밋했으며 푸시는 하지 않았다. 추가 helper는 변경하지 않았고 카드 전체 완료는 아니다.
 
 ## Evidence
 
@@ -97,6 +99,7 @@ Reviewer가 두 TRX를 직접 파싱하여 371건의 327/19/25, 보완 26건의 
 - `git diff --check -- <세 대상 시험 파일>`: 출력 없음, exit `0`. 로그는 전체 도구 반환 출력에서 줄 끝 공백과 EOF 빈 줄만 제거하고 마지막 개행 하나를 유지했다. 기존 CS1717·xUnit2013/2031 경고를 끄거나 수정하지 않았다.
 - 대상 GREEN 종료 후 `Get-Process -Name ImageProcTest,testhost`에는 결과가 없었다(명령 exit 1은 대상 프로세스 없음). 부모에게 시험 독점 해제를 통보했다. 이후 추가 대상 시험을 실행하지 않았다.
 - 커밋 전 `git diff --cached --check`: 원승인 시험 3파일 및 이 카드의 md/txt 증거 14파일을 명시적으로 stage한 뒤 실행, **exit 0 / 출력 없음**. 외부 설정·문서 변경과 추가 EvidenceRoot helper는 stage하지 않았다.
+- 15:14 상태 회신 문서 커밋 전 `git diff --cached --check`: `report.md`, `BLOCKED.md`, `green-full.txt` 3파일만 stage한 상태에서 **exit 0 / 출력 없음**. fetch로 원격 main의 `7faa61f2`(원승인 `fb7ce812` 병합)를 확인했고 파일 내용 차이 없는 fast-forward를 반영했다. 위 실행을 새 main에서 재실행했다고 주장하지 않는다.
 - TRX 원본 두 개는 현재 저장소의 `.moai/reports/**` ignore 및 md/txt 예외 규칙에 따라 로컬에 보존하며 커밋에는 포함하지 않는다. 같은 실행의 전체 console 원문·모든 실패/skip 이름과 사유 표는 커밋 대상이다. 작업용 전용 userdata/evidence도 미해소 경로 대조 근거로 보존 중이다.
 
 ## Gaps
