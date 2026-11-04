@@ -19,12 +19,49 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 #include "mock_scp.hpp"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
+
+// QA-B-222: the TCP readiness probe can reach this callback after start()
+// returns. It must not change the association count or the last SCU proposal.
+TEST(MockScpAssociationTest, ReadinessProbeDoesNotChangeRecordedAssociation) {
+    class ObservableScp : public xpe_test::MockScp {
+    public:
+        using MockScp::notifyAssociationRequest;
+    } scp;
+    T_ASC_Parameters* params = nullptr;
+    ASSERT_TRUE(ASC_createAssociationParameters(&params, ASC_DEFAULTMAXPDU).good());
+    const auto destroyParams = [](T_ASC_Parameters* p) { ASC_destroyAssociationParameters(&p); };
+    std::unique_ptr<T_ASC_Parameters, decltype(destroyParams)> owned(params, destroyParams);
+    DcmSCPActionType action = DCMSCP_ACTION_UNDEFINED;
+    scp.notifyAssociationRequest(*params, action);
+    EXPECT_EQ(0, scp.associationRequests.load());
+    EXPECT_TRUE(scp.lastProposals().empty());
+
+    const char* ts = UID_LittleEndianExplicitTransferSyntax;
+    ASSERT_TRUE(ASC_addPresentationContext(params, 1,
+        UID_DigitalXRayImageStorageForPresentation, &ts, 1).good());
+    scp.notifyAssociationRequest(*params, action);
+    ASSERT_EQ(1, scp.associationRequests.load());
+    ASSERT_EQ(1u, scp.lastProposals().size());
+    owned.reset();
+
+    // A bare TCP connection supplies no presentation contexts.
+    ASSERT_TRUE(ASC_createAssociationParameters(&params, ASC_DEFAULTMAXPDU).good());
+    owned.reset(params);
+    scp.notifyAssociationRequest(*params, action);
+    EXPECT_EQ(1, scp.associationRequests.load());
+    const auto proposed = scp.lastProposals();
+    ASSERT_EQ(1u, proposed.size());
+    EXPECT_EQ(std::string(UID_DigitalXRayImageStorageForPresentation), proposed[0].abstractSyntax);
+    ASSERT_EQ(1u, proposed[0].transferSyntaxes.size());
+    EXPECT_EQ(std::string(ts), proposed[0].transferSyntaxes[0]);
+}
 
 class DicomNetworkTest : public ::testing::Test {
 protected:
