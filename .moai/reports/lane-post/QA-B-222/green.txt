@@ -85,7 +85,7 @@ Note: Google Test filter = MockScpAssociationTest.*:DicomNetworkTest.*
 I: Association Received calling Presentation Address: calling AP Title -> called AP Title
 I: Association Received calling Presentation Address: calling AP Title -> called AP Title
 I: Association Received calling Presentation Address: calling AP Title -> called AP Title
-I: Association Received dev-work:  -> 
+I: Association Received dev-work:  ->
 I: Refusing Association (bad application context)
 I: Requesting Association
 I: Association Received dev-work: TESTSCU -> ANY-SCP
@@ -232,5 +232,3 @@ I: Sending C-FIND Response (Success)
 I: Received C-FIND Response (Success)
 I: Releasing Association
 I: Received Association Release Request
-
-

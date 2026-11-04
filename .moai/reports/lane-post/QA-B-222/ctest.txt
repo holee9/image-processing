@@ -542,6 +542,3 @@ Test project D:/workspace-github/xpe-post/build/ci-dicom/modules/dicom
         Start 268: DicomFailurePaths.ACStoreToAPortNobodyServesPostsAWarningWithTheReason
 268/285 Test #268: DicomFailurePaths.ACStoreToAPortNobodyServesPostsAWarningWithTheReason ......................................   Passed    1.04 sec
         Start 269: DicomFailurePaths.ACancelDuringATransferIsReportedAsACancelAndNeverAsSuccess
-
-
-

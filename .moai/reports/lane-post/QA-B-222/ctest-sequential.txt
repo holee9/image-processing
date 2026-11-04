@@ -610,5 +610,3 @@ The following tests FAILED:
 	273 - DicomTimeout.ATimeoutIsRoundedUpToWholeSecondsAndNeverBelowTheRequest (Failed)
 
 Errors while running CTest
-
-
