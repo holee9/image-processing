@@ -1,0 +1,236 @@
+```javascript
+const cp=require('child_process');const vc='C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC/14.44.35207';const kit='C:/Program Files (x86)/Windows Kits/10';const env={...process.env,INCLUDE:[vc+'/include',kit+'/Include/10.0.26100.0/ucrt',kit+'/Include/10.0.26100.0/shared',kit+'/Include/10.0.26100.0/um',kit+'/Include/10.0.26100.0/winrt'].join(';'),LIB:[vc+'/lib/x64',kit+'/Lib/10.0.26100.0/ucrt/x64',kit+'/Lib/10.0.26100.0/um/x64'].join(';'),PATH:[vc+'/bin/Hostx64/x64',kit+'/bin/10.0.26100.0/x64','D:/workspace-github/image-processing/build/release/vcpkg_installed/x64-windows/bin',process.env.PATH].join(';')};const r=cp.spawnSync('D:/workspace-github/xpe-post/build/ci-dicom/bin/test_dicom_network_scu.exe',['--gtest_filter=MockScpAssociationTest.*:DicomNetworkTest.*'],{env,encoding:'utf8',timeout:45000});console.log('status',r.status);console.log(r.stdout);console.log(r.stderr);
+```
+
+status 0
+Running main() from D:\workspace-github\image-processing-postprocess\build\codex-session10\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-0c449efaff.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = MockScpAssociationTest.*:DicomNetworkTest.*
+[==========] Running 23 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from MockScpAssociationTest
+[ RUN      ] MockScpAssociationTest.ReadinessProbeDoesNotChangeRecordedAssociation
+[       OK ] MockScpAssociationTest.ReadinessProbeDoesNotChangeRecordedAssociation (0 ms)
+[----------] 1 test from MockScpAssociationTest (0 ms total)
+
+[----------] 22 tests from DicomNetworkTest
+[ RUN      ] DicomNetworkTest.CStoreSuccess_ReturnsOK
+[       OK ] DicomNetworkTest.CStoreSuccess_ReturnsOK (7 ms)
+[ RUN      ] DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed
+[2026-11-04 10:19:39.345] [error] [DicomNetworkSCU] negotiateAssociation failed: TCP Initialization Error: �۾��� �Ϸ��߽��ϴ�. (Timeout)
+[2026-11-04 10:19:39.345] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-10 (Network operation failed)
+[       OK ] DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed (1008 ms)
+[ RUN      ] DicomNetworkTest.CFindResults_ReturnsJsonArray
+[       OK ] DicomNetworkTest.CFindResults_ReturnsJsonArray (9 ms)
+[ RUN      ] DicomNetworkTest.CFindEmpty_ReturnsEmptyArray
+[       OK ] DicomNetworkTest.CFindEmpty_ReturnsEmptyArray (1 ms)
+[ RUN      ] DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed
+[2026-11-04 10:19:40.355] [error] [DicomNetworkSCU] cfindMwl negotiateAssociation failed: TCP Initialization Error: �۾��� �Ϸ��߽��ϴ�. (Timeout)
+[2026-11-04 10:19:40.355] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-10 (Network operation failed)
+[       OK ] DicomNetworkTest.CFindTimeout_ReturnsNetworkFailed (998 ms)
+[ RUN      ] DicomNetworkTest.CancelCStore_TerminatesOperation
+[2026-11-04 10:19:41.861] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-3 (Processing failed)
+[       OK ] DicomNetworkTest.CancelCStore_TerminatesOperation (1506 ms)
+[ RUN      ] DicomNetworkTest.CancelNoOp_WhenIdle
+[       OK ] DicomNetworkTest.CancelNoOp_WhenIdle (0 ms)
+[ RUN      ] DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput
+[2026-11-04 10:19:41.863] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[       OK ] DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput
+[2026-11-04 10:19:41.863] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[       OK ] DicomNetworkTest.CFindNullQueryJson_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed
+[2026-11-04 10:19:41.888] [error] [DicomNetworkSCU] cstore: file load failed: I/O suspension or premature end of stream
+[2026-11-04 10:19:41.888] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-9 (I/O operation failed)
+[       OK ] DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed (25 ms)
+[ RUN      ] DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed
+[2026-11-04 10:19:41.888] [error] [DicomNetworkSCU] cstore: file load failed: No such file or directory
+[2026-11-04 10:19:41.888] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-9 (I/O operation failed)
+[       OK ] DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed (0 ms)
+[ RUN      ] DicomNetworkTest.CStoreProposesOnlyTheTransferSyntaxOfAnExplicitLittleEndianFile
+[       OK ] DicomNetworkTest.CStoreProposesOnlyTheTransferSyntaxOfAnExplicitLittleEndianFile (4 ms)
+[ RUN      ] DicomNetworkTest.CStoreProposesOnlyJpeg2000LosslessForAJpeg2000File
+[       OK ] DicomNetworkTest.CStoreProposesOnlyJpeg2000LosslessForAJpeg2000File (8 ms)
+[ RUN      ] DicomNetworkTest.CStoreOfAFileInASyntaxThePeerRefusesIsNetworkFailedAndNothingIsSent
+[2026-11-04 10:19:41.907] [error] [DicomNetworkSCU] negotiateAssociation failed: DUL Association Rejected
+[2026-11-04 10:19:41.907] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-10 (Network operation failed)
+[       OK ] DicomNetworkTest.CStoreOfAFileInASyntaxThePeerRefusesIsNetworkFailedAndNothingIsSent (6 ms)
+[ RUN      ] DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault
+[2026-11-04 10:19:42.908] [error] [DicomNetworkSCU] negotiateAssociation failed: TCP Initialization Error: �۾��� �Ϸ��߽��ϴ�. (Timeout)
+[2026-11-04 10:19:42.908] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-10 (Network operation failed)
+[       OK ] DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault (1001 ms)
+[ RUN      ] DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores
+[       OK ] DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores (1 ms)
+[ RUN      ] DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed
+[2026-11-04 10:19:42.920] [error] [DicomNetworkSCU] buildFindRequest: JSON parse error: [json.exception.parse_error.101] parse error at line 1, column 3: syntax error while parsing object key - invalid literal; last read: '{no'; expected string literal
+[2026-11-04 10:19:42.920] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-3 (Processing failed)
+[       OK ] DicomNetworkTest.KnownDivergence_CFindMalformedQueryJson_ReturnsProcessingFailed (9 ms)
+[ RUN      ] DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray
+[       OK ] DicomNetworkTest.CFindQueryWithNameAndAccession_ReturnsJsonArray (1 ms)
+[ RUN      ] DicomNetworkTest.CFindQueryShape_SchedulingKeysAreInsideTheScheduledProcedureStepSequence
+[       OK ] DicomNetworkTest.CFindQueryShape_SchedulingKeysAreInsideTheScheduledProcedureStepSequence (1 ms)
+[ RUN      ] DicomNetworkTest.CFindQueryShape_AbsentSchedulingKeysAreUniversalMatchInsideTheItem
+[       OK ] DicomNetworkTest.CFindQueryShape_AbsentSchedulingKeysAreUniversalMatchInsideTheItem (1 ms)
+[ RUN      ] DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall
+[2026-11-04 10:19:42.926] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-8 (Buffer too small)
+[       OK ] DicomNetworkTest.CFindOutBufferTooSmall_ReturnsBufferTooSmall (1 ms)
+[ RUN      ] DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput
+[2026-11-04 10:19:42.926] [error] [xpe_dicom] xpe_dicom_cfind_mwl exit rc=-1 (Invalid input parameter)
+[       OK ] DicomNetworkTest.CFindOutBufferZeroLength_ReturnsInvalidInput (0 ms)
+[----------] 22 tests from DicomNetworkTest (4597 ms total)
+
+[----------] Global test environment tear-down
+[==========] 23 tests from 2 test suites ran. (6140 ms total)
+[  PASSED  ] 23 tests.
+
+I: Association Received calling Presentation Address: calling AP Title -> called AP Title
+I: Association Received calling Presentation Address: calling AP Title -> called AP Title
+I: Association Received calling Presentation Address: calling AP Title -> called AP Title
+I: Association Received dev-work:  -> 
+I: Refusing Association (bad application context)
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+W: DcmItem: Length of element (4f4e,2054) is odd
+E: DcmElement: Unknown Tag & Data (4f4e,2054) larger (1229201473) than remaining bytes in file
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: No Acceptable Presentation Contexts
+I: Refusing Association (no acceptable presentation contexts)
+I: Requesting Association
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> XPEMOCKSCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Accepted (Max Send PDV: 16372)
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-FIND Request (MsgID 1)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Pending)
+I: Received C-FIND Response (Pending)
+I: Sending C-FIND Response (Success)
+I: Received C-FIND Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+
+

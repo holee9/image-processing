@@ -219,13 +219,21 @@ bool MockScpRunner::stop(std::chrono::milliseconds timeout)
 void MockScp::notifyAssociationRequest(const T_ASC_Parameters& params,
                                        DcmSCPActionType& desiredAction)
 {
+    const int count = ASC_countPresentationContexts(OFconst_cast(T_ASC_Parameters*, &params));
+    // QA-B-222: wait_until_accepting() opens a bare TCP connection. Its
+    // callback can arrive after start() returns; do not count that probe as
+    // an SCU request or let it overwrite the last presentation contexts.
+    if (count == 0) {
+        DcmSCP::notifyAssociationRequest(params, desiredAction);
+        return;
+    }
+
     // QA-B-30 observation 2 + 3: the abstract syntaxes the SCU actually put on
     // the wire, and the role it asked for -- read from the request itself, not
     // inferred from the SCU's source.
     std::ostringstream os;
     os << "--- association request ---\n";
     std::vector<Proposal> proposals;
-    const int count = ASC_countPresentationContexts(OFconst_cast(T_ASC_Parameters*, &params));
     os << "proposed presentation contexts: " << count << "\n";
     for (int i = 0; i < count; ++i) {
         T_ASC_PresentationContext pc;
