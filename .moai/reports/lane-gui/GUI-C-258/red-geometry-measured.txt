@@ -15,7 +15,7 @@ ippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar [FAIL]
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...dToolbar [FAIL]:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 [xUnit.net 00:00:02.78]       Banner overlaps the STUDY HUD.
 [xUnit.net 00:00:02.78]       Stack Trace:
 [xUnit.net 00:00:02.78]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs(45,0): at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.<D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar>g__Measure|3_1(String size, <>c__DisplayClass3_0&)

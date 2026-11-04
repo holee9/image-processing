@@ -15,7 +15,7 @@ ailedRender_IsMarkedInTheDetachedViewer [FAIL]
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...edViewer [FAIL]:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 [xUnit.net 00:00:05.32]       The Apply did not reach the display pipeline.
 [xUnit.net 00:00:05.32]       Stack Trace:
 [xUnit.net 00:00:05.32]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\FailedRenderScenarios.cs(106,0): at ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer()

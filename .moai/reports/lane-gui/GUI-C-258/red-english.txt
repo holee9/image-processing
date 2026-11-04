@@ -16,7 +16,7 @@ brationStages_AreUsableExactlyWhenConnected [FAIL]
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...onnected [FAIL]:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 [xUnit.net 00:00:10.13]       Assert.Equal() Failure: Strings differ
 [xUnit.net 00:00:10.13]                  ??(pos 0)
 [xUnit.net 00:00:10.13]       Expected: "3 calibration stages connected"

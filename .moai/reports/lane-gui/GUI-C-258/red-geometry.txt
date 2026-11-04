@@ -15,7 +15,7 @@ ippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar [FAIL]
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...dToolbar [FAIL]:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
- 
+
 [xUnit.net 00:00:03.02]       System.InvalidOperationException : Missing PreprocessSkippedBannerBorder.
 [xUnit.net 00:00:03.03]       Stack Trace:
 [xUnit.net 00:00:03.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs(25,0): at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.<D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar>g__Find|3_0(String id, <>c__DisplayClass3_0&)
