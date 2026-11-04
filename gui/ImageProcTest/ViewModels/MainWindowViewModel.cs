@@ -809,9 +809,7 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Status bar summary of <see cref="LastChain"/>: each stage and its status, and whether the display started
     /// from the raw frame. A requested stage that did not apply says so here (HAZ-GUI-005).
     /// </summary>
-    public string ChainStatus => _render is { } rendered
-        ? rendered.ChainStatus + (rendered.LaneBFacts is { } candidate ? " | B " + candidate.Summary : string.Empty)
-        : NoChainStatus;
+    public string ChainStatus => _render?.ChainStatus ?? NoChainStatus;
 
     public string DisplayChainStatus => EnglishDisplayText(ChainStatus);
 
@@ -4274,11 +4272,11 @@ public sealed class MainWindowViewModel : ObservableObject
                     return;
                 }
 
-                UpdateRender(renderId, r => r with { LaneB = candidateResult.Image, LaneBFacts = candidateResult.Facts });
+                UpdateRender(renderId, r => r with { LaneB = candidateResult.Image, LaneBFacts = candidateResult.Facts, ChainStatus = r.ChainStatus + " | B " + candidateResult.Facts.Summary });
             }
             else
             {
-                UpdateRender(renderId, r => r with { LaneB = reference, LaneBFacts = r.LaneAFacts });
+                UpdateRender(renderId, r => r with { LaneB = reference, LaneBFacts = r.LaneAFacts, ChainStatus = r.ChainStatus + " | B " + r.LaneAFacts!.Summary });
             }
         }
         catch (Exception ex)

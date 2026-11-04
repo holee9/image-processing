@@ -55,8 +55,8 @@ public sealed class AppSettings : ObservableObject
     private double _comparisonPanY;
     private double _comparisonSwipePosition = 0.5;
     private double _comparisonOverlayOpacity = 0.5;
-    private string _laneAAlgorithm = "Grid suppression";
-    private string _laneBAlgorithm = "Grid suppression";
+    private string _laneAAlgorithm = "No grid correction";
+    private string _laneBAlgorithm = "No grid correction";
     private bool _focusMode;
     private bool _leftPanelOpen = true;
     private bool _rightPanelOpen = true;
