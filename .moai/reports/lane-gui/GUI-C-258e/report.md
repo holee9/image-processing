@@ -1,9 +1,16 @@
-[2026-11-04 15:33:27 KST] GUI-C-258e · 전체 실행 종료(14:29:31~15:09:46 KST), 원문 green-full.txt · 327 PASS / 19 FAIL / 25 SKIP · freshness 16건 후속 PASS · evidence 3건 추가 승인 대기로 카드 전체 BLOCKED · 원승인 수정 fb7ce812 미푸시
+[2026-11-04 16:38:40 KST] GUI-C-258e · 전체 Native 재검증 종료 342 PASS / 4 FAIL / 25 SKIP (371건, exit 1) · 허용 외 A06 내부 WPF E2E failed · 15:22 완료 기준 미충족, 지침대로 추가 수정·빌드·시험 중단 · 미푸시
 
 ## 수신·착수
 
-- 15:14 지시의 현재 상태 회신: 필터 없는 전체 실행은 이미 종료했다. TRX의 실제 시작은 **2026-11-04 14:29:31.3492688 KST**, 종료는 **15:09:46.2720551 KST**다. 명령 한 줄: `dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj -c Debug --no-restore --logger trx;LogFileName=full-native.trx --logger console;verbosity=detailed --results-directory .moai/reports/lane-gui/GUI-C-258e/full-results --blame-hang-timeout 10m --blame-hang-dump-type none` (필터 없음; 정확한 환경은 full-command.txt).
-- 지정된 [green-full.txt](green-full.txt)는 기존 full-native.txt의 전체 원문을 복사한 것이며 **실패 실행(exit 1)을 담고 있다**. 파일명으로 GREEN을 주장하지 않는다. 두 파일의 SHA256은 모두 `FD1FA73EF9B6D83122CA6C728566263501146151365E8954CF6E3823728A4829`, 388109 bytes로 일치함을 확인했다. 현재 남은 상태는 [BLOCKED.md](BLOCKED.md) 한 줄에 기록했다.
+- 재검증 중 허용된 evidence 3건 외에 `AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported`가 실패했다. 원문은 `GUI E2E FAILED (exit -532462766): ... WPF E2E failed.`이며, 이번에는 freshness 거절이 아니다. `AutomationReportBackendTests.cs:186`에서 앱을 통한 내부 runner 실패를 단언했다. 최신 지침에 따라 추가 source 수정·재빌드·새 시험을 중단했다. 이미 실행 중이던 전체 명령도 종료했고 원문을 보존했다. 세부 단언은 기존 로그만 읽어 확인했다.
+- 허용 외 실패 이름·원인 한 줄: **A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported — 내부 runner의 WPF E2E failed(exit -532462766); 근접 시각 동일 runner 기존 이벤트는 Program.cs:219의 `Preprocessing menu must be disabled until Phase 1a.` 단언 위반(Assert :650)과 정합하나 특정 test PID 일대일 귀속은 미입증.**
+- 기존 runtime-log는 stderr 첫 줄 요약만 남겨 inner exception을 알 수 없었다. 새 실행 없이 Windows Application의 기존 .NET Runtime Event ID 1026을 **16:22:20~16:24:10 KST / ImageProcTest.E2E 문자열**로만 좁혀 읽었다. [a06-existing-event.txt](a06-existing-event.txt)의 기존 이벤트 16:22:53.784와 16:23:27.776 둘 모두 위 inner exception/Program.cs:219 스택을 담고 있다. 접근 우회·새 제품 실행·시험·source 변경은 하지 않았다. 단언이 위반된 이유를 새로운 제품 결함이나 특정 정책의 잘못으로 더 추정하지 않는다.
+- Reviewer도 최종 TRX 342/4/25와 371개 시험·25개 SKIP 일치를 직접 대조하여 15:22 완료 기준 미충족·중단 판정을 확인했다. 기존 이벤트 스택과 외부 A06 요약의 정합성은 확인하되, 해당 이벤트를 특정 test PID에 일대일 귀속하는 새 증명까지 한 것은 아니라는 한계를 유지한다. 독립 재실행은 하지 않았다.
+- 최신 판정: `20261104-1522-gui.md`에서 EvidenceRoot helper 추가는 **불승인·범위 밖**으로 확정했다. 해당 제품·시험은 수정하지 않는다. 관리형 준비 복원 후 전체 재실행에서 실패가 IB01/IB02/EB02 세 건뿐이면 완료로 판정하고, 다른 실패가 남으면 이름·원인을 적고 추가 수정 없이 멈춘다.
+- 위 지침에 따라 필터 없는 전체 Native를 재실행했다. 명령은 `dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj -c Debug --no-restore --logger trx;LogFileName=full-native-rerun.trx --logger console;verbosity=detailed --results-directory .moai/reports/lane-gui/GUI-C-258e/full-rerun-results --blame-hang-timeout 10m --blame-hang-dump-type none`이며 필터는 없다. 환경은 full-command.txt와 같고 자체 data root만 `gui-c-258e-full-rerun`으로 분리했다. 실행 전 앱 프로세스 0개·새 data root 없음, 종료 후에도 앱 프로세스 0개를 확인했다.
+- 재검증 TRX의 실제 시각은 **2026-11-04 15:38:30.4756869~16:26:49.6236975 KST**다. 최종 **342 PASS / 4 FAIL / 25 SKIP, 총 371건, exit 1**, 원문 elapsed 48.3190 Minutes. 첫 실행과 시험 이름 집합 371개가 같고, 카드 9건은 모두 다시 PASS였다. [rerun-failures.md](rerun-failures.md)에 실패 4건의 이름·원문, [rerun-skips.md](rerun-skips.md)에 SKIP 25건의 이름·사유를 보존했다. SKIP의 이름·사유도 첫 전체 실행과 모두 일치한다.
+- 지정 [green-full.txt](green-full.txt)를 최종 `full-native-rerun.txt`의 동일 원문으로 갱신했다. 두 로컬 파일 SHA256은 `28E4C474D5F8CEE8AC24AF666B0C461260E33884F29829B0CE8EBAE51452FFE6`, 426517 bytes로 일치함을 확인했다. **실패 실행(exit 1)**을 담고 있으며 파일명으로 GREEN을 주장하지 않는다. [BLOCKED.md](BLOCKED.md)에 허용 외 이름·원인 한 줄을 남겼다.
+- 15:14 상태 회신 당시 첫 전체 실행의 시각은 **14:29:31.3492688~15:09:46.2720551 KST**였다. 당시 green-full.txt에 복사했던 최초 원문은 `full-native.txt`와 커밋 `f915d770`에 그대로 보존되어 있다(로컬 최초 SHA256 `FD1FA73EF9B6D83122CA6C728566263501146151365E8954CF6E3823728A4829`, 388109 bytes). 두 실행을 덮어쓰거나 합산하지 않는다.
 - 카드: `D:/workspace-github/image-processing/.moai/state/codex-msgs/20261104-1413-gui.md` (리더 표기 14:12 KST).
 - 측정 트리: `D:/workspace-github/xpe-gui`, `dev/gui`, HEAD `9374bf8ad85c0a4c58972c775463cc8cf68e7c1b`에 이번 시험 파일 3개의 working-tree 수정. 대상 파일에는 착수 전 diff가 없었다.
 - 먼저 소스만 읽고 A 선택기 연결, 각 시험의 관찰 대상, W8 reader 경로를 부모에게 보고했다. 부모가 세 파일의 최소 수정을 승인했으며, 제품 코드는 변경하지 않았다. 다른 세션의 기존 변경을 보존했다.
@@ -80,7 +87,7 @@ C05 `GridCorrectionChoices_AreExclusive`는 B 라디오 자체의 배타성 시�
 - 준비 복원 뒤 같은 Native/C231/global0 조건에서 `--filter 'FullyQualifiedName~ImageProcTest.E2ETests.Scenarios.Legacy|FullyQualifiedName=ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported'`로 Legacy 그룹과 A06을 실행했다. 전용 data root는 `gui-c-258e-prepare`, logger/collector는 최초 전체 실행과 같았다. [prepare-native.txt](prepare-native.txt)/`prepare-results/prepare-native.trx`: **exit 0, 23 PASS / 0 FAIL / 3 SKIP, 총 26건**. 원문과 3 SKIP의 이름·사유는 [prepare-skips.md](prepare-skips.md)에 보존했다. 최초 전체 결과를 덮어쓰지 않았다.
 - 두 TRX의 시험 이름을 교차 대조하여 최초 freshness 실패 **16건 모두** 후속 `Passed`와 일치함을 확인했다. EvidenceBundle의 IB01/IB02/EB02 3건은 이 보완 실행에 포함하지 않았고 여전히 미해소다. 서로 다른 실행·빌드 준비 상태의 숫자를 합쳐 단일 전체 GREEN으로 만들지 않는다.
 - evidence 세 건은 `EvidenceBundleScenarios.cs:209-210`이 기존 source-bin/evidence를 고정해 읽는 반면, 제품은 `GuiDataPaths.Root/evidence`에 쓰는 차이였다. 첫 실행의 해당 6개 run 모두 전용 `gui-c-258e-full/evidence/<runId>/backend.json`에는 존재했고 옛 기대 위치에는 없었다. 실제 backend 값은 IB02 Mock→Native, EB02 Native→Mock, IB01 Native→Native로 기대와 일치했다. 이는 새 제품 쓰기 결함으로 주장하지 않는다.
-- 기존 사용자 bin 설정을 건드리지 않기 위해 전용 `XPE_GUI_DATA_DIR`를 유지했다. 위 evidence 시험 helper 한 곳을 같은 env 우선/fallback 규칙으로 맞추는 추가 범위를 리더에게 요청했으나 아직 적용하지 않았다. 현재 통신 대상의 종료 세션 회신으로 현재 리더 연결을 확인 중이다. 승인 전 새 source 수정은 하지 않는다.
+- 기존 사용자 bin 설정을 건드리지 않기 위해 전용 `XPE_GUI_DATA_DIR`를 유지했다. evidence helper 추가안을 요청했던 이력은 있으나, 최신 15:22 지침에서 **불승인·범위 밖**으로 결정했다. 해당 helper는 원형을 유지하며 현재 승인 대기 사안으로 취급하지 않는다.
 
 ### 전체 SKIP과 CI 조건 차이
 
@@ -99,12 +106,13 @@ Reviewer가 두 TRX를 직접 파싱하여 371건의 327/19/25, 보완 26건의 
 - `git diff --check -- <세 대상 시험 파일>`: 출력 없음, exit `0`. 로그는 전체 도구 반환 출력에서 줄 끝 공백과 EOF 빈 줄만 제거하고 마지막 개행 하나를 유지했다. 기존 CS1717·xUnit2013/2031 경고를 끄거나 수정하지 않았다.
 - 대상 GREEN 종료 후 `Get-Process -Name ImageProcTest,testhost`에는 결과가 없었다(명령 exit 1은 대상 프로세스 없음). 부모에게 시험 독점 해제를 통보했다. 이후 추가 대상 시험을 실행하지 않았다.
 - 커밋 전 `git diff --cached --check`: 원승인 시험 3파일 및 이 카드의 md/txt 증거 14파일을 명시적으로 stage한 뒤 실행, **exit 0 / 출력 없음**. 외부 설정·문서 변경과 추가 EvidenceRoot helper는 stage하지 않았다.
+- 최종 중단 결과 문서 커밋 전 `git diff --cached --check`: report/BLOCKED/green-full 및 재검증 원문·실패/SKIP·기존 이벤트 7개 md/txt만 stage한 상태에서 **exit 0 / 출력 없음**. 새 제품·시험 source는 변경·stage하지 않았다. 최초·최종 TRX는 로컬 원본으로 보존한다.
 - 15:14 상태 회신 문서 커밋 전 `git diff --cached --check`: `report.md`, `BLOCKED.md`, `green-full.txt` 3파일만 stage한 상태에서 **exit 0 / 출력 없음**. fetch로 원격 main의 `7faa61f2`(원승인 `fb7ce812` 병합)를 확인했고 파일 내용 차이 없는 fast-forward를 반영했다. 위 실행을 새 main에서 재실행했다고 주장하지 않는다.
 - TRX 원본 두 개는 현재 저장소의 `.moai/reports/**` ignore 및 md/txt 예외 규칙에 따라 로컬에 보존하며 커밋에는 포함하지 않는다. 같은 실행의 전체 console 원문·모든 실패/skip 이름과 사유 표는 커밋 대상이다. 작업용 전용 userdata/evidence도 미해소 경로 대조 근거로 보존 중이다.
 
 ## Gaps
 
-- 첫 전체 실행은 위 327/19/25로 완료했으며 전체 통과는 아니다. 관리형 준비 복원 후 23/0/3 및 최초 실패 16건의 후속 PASS는 확인했다. evidence 3건은 미해소이며, 추가 helper 범위 판단과 그 후 검증이 남았다. 준비 복원 후 필터 없는 전체 재실행은 하지 않았다.
+- 첫 전체 실행은 327/19/25, 관리형 준비 복원 후 선택 실행은 23/0/3, 최종 전체 재검증은 **342/4/25**로 각각 구분한다. 최종에는 허용 evidence 3건 외 A06이 남았으므로 15:22 완료 기준을 충족하지 못했다. A06은 과거 freshness 거절을 통과한 뒤 다른 내부 WPF 단언에서 실패한 것이며 선택 실행 PASS와 혼합하여 해결로 판정하지 않는다. 추가 수정·빌드·시험은 중단했다.
 - CI는 global input opt-in을 사용하는 반면 로컬은 사용자 금지를 유지한 `0`이다. 대상 10개는 SKIP 없이 통과했지만 전체 프로젝트의 CI gesture 조건 동등성은 미확인이다.
 - 사용한 외부 DLL은 기존 `e2e-native-dlls`다. 최신 CI artifact와의 버전·provenance 동등성은 확인하지 않았으며, 새 Native 빌드·설치를 하지 않았다. 테스트 fixture의 기존 calibration 생성과 C231 외부 calibration 원본 읽기를 구분한다. 외부 원본 calibration/raw/baseline을 변경하지 않았다.
 - C04/C07 및 Wrist의 공통 helper sibling은 첫 전체 실행에서 통과했지만, 전체의 다른 실패를 숨기거나 대상 통과를 전체 통과로 확대하지 않는다.
