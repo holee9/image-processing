@@ -1,0 +1,113 @@
+  ImageProcTest.E2ETests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:01:44.78]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused [FAIL]
+  Failed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused [1 m 44 s]
+  Error Message:
+   timed out (90 s) waiting for: the square file is refused with the numbers
+  Stack Trace:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1824
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 864
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Standard Output Messages:
+ STEP A: started on Mock, then Backend > Backend Mode > Native
+    Run Preprocessing enabled on Mock: False
+    ok: Native
+    Run Preprocessing enabled right after the switch: True
+ STEP B: the settings say 1024x1024, the file is 3072x3072 (square)
+    dialog: 'Load Raw Image'
+    native (+4 ms): dialog 0x26A0232 open; app windows: 0x8250438 Auto-Suggest Dropdown (hidden), 0x3050D60 Auto-Suggest Dropdown (hidden), 0x239044C tooltips_class32 (hidden), 0xE30BD8 tooltips_class32 (hidden), 0x2340B6A tooltips_class32 (hidden), 0x4DD0A24 tooltips_class32 (hidden), 0x3DD0992 ComboLBox (hidden), 0xCD10CBC tooltips_class32 (hidden), 0x54D072E _SearchEditBoxFakeWindow (hidden), 0x4C00584 tooltips_class32 (hidden), 0x24209E2 tooltips_class32 (hidden), 0x8E20C80 tooltips_class32 (hidden), 0x2660672 HwndWrapper[ImageProcTest;;5dbac9be-992c-4822-87fe-107e9527ba97, 0x35707AE ComboLBox (hidden), 0x885059C ComboLBox (hidden), 0x39D0406 WorkerW (hidden), 0x6820AC0 HwndWrapper[ImageProcTest;;e264aa42-1ed9-44e0-bc84-c25ceeb20a73 (hidden), 0x529040A HwndWrapper[ImageProcTest;;0b4a712b-0c50-41b1-9668-6a6ec19722c0 (hidden), 0x2E506A6 HwndWrapper[ImageProcTest;;3f2ade6e-b7e1-4f16-aab2-e3413c4ec715 (hidden), 0x893090E HwndWrapper[ImageProcTest;;1be0b0e7-0126-4ac0-8358-faafadb648c0 (hidden), 0x2790BA4 CiceroUIWndFrame (hidden), 0xCA0B10 MSCTFIME UI (hidden), 0x49B0A2C IME (hidden), 0x3440CDE CiceroUIWndFrame (hidden)
+    native (+212 ms): dialog 0x26A0232 gone; app windows: 0x2660672 HwndWrapper[ImageProcTest;;5dbac9be-992c-4822-87fe-107e9527ba97, 0x6820AC0 HwndWrapper[ImageProcTest;;e264aa42-1ed9-44e0-bc84-c25ceeb20a73 (hidden), 0x529040A HwndWrapper[ImageProcTest;;0b4a712b-0c50-41b1-9668-6a6ec19722c0 (hidden), 0x2E506A6 HwndWrapper[ImageProcTest;;3f2ade6e-b7e1-4f16-aab2-e3413c4ec715 (hidden), 0x893090E HwndWrapper[ImageProcTest;;1be0b0e7-0126-4ac0-8358-faafadb648c0 (hidden), 0x2790BA4 CiceroUIWndFrame (hidden), 0xCA0B10 MSCTFIME UI (hidden), 0x49B0A2C IME (hidden), 0x3440CDE CiceroUIWndFrame (hidden)
+    == TIMEOUT waiting for: the square file is refused with the numbers: title='[MOCK] ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  —
+       + All
+       + B  —
+       + Body Part
+       + C  —  · W  —
+       + Calib:  —
+       + Chain not run · window not measured
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + ERROR: Raw file has 18874368 bytes, more than the 2097152 bytes of 1024x1024 16-bit. The size is set in the settings as rawWidth/rawHeight (1024x1024 now), or with --automation-width/--automation-height; the file is not opened until its length is exactly width x height x 2.
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261104-142244-a9b401
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + MOCK BACKEND — images and results are synthetic; not for clinical judgement.
+       + Measurements describe the displayed render, not a pass criterion. Delta = B − A; shown only for two separate lane runs with measured values.
+       + Metrics
+       + No applied image
+       + No raw image loaded.
+       + Not applied
+       + Overlay
+       + Parameters
+       + Processed
+       + Queued
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Recorded processing measurements
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Stage times: not measured
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI width
+       + VOI:  not applied
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Mock  |  common=unknown  |  display=v0.0.0-mock-display
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+
+
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 1 m 44 s - ImageProcTest.E2ETests.dll (net8.0)
+
+Workload updates are available. Run `dotnet workload list` for more information.

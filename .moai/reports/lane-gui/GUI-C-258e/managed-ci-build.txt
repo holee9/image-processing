@@ -1,0 +1,72 @@
+﻿COMMAND: dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug --no-restore --nologo
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,51): warning CS1573: Parameter 'input' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,62): warning CS1573: Parameter 'width' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,73): warning CS1573: Parameter 'height' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,102): warning CS1573: Parameter 'backend' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(111,21): warning CS1573: Parameter 'settings' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(112,28): warning CS1573: Parameter 'settingsService' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(113,40): warning CS1573: Parameter 'backendFactory' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(115,14): warning CS1573: Parameter 'preservedSettingsIsFromAnEarlierFailure' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(435,48): warning CS1574: XML comment has cref attribute 'RequestedBackendMode' that could not be resolved [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(441,66): warning CS1574: XML comment has cref attribute 'RequestedBackendMode' that could not be resolved [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\RawSizeRules.cs(42,33): warning CA2014: Potential stack overflow. Move the stackalloc out of the loop. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2014) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+  ImageProcTest -> D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll
+
+Build succeeded.
+
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,51): warning CS1573: Parameter 'input' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,62): warning CS1573: Parameter 'width' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,73): warning CS1573: Parameter 'height' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\EnhanceBasicStage.cs(61,102): warning CS1573: Parameter 'backend' has no matching param tag in the XML comment for 'EnhanceBasicStage.Run(ushort[], int, int, IEnhanceBasicBackend, float[]?)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(111,21): warning CS1573: Parameter 'settings' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(112,28): warning CS1573: Parameter 'settingsService' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(113,40): warning CS1573: Parameter 'backendFactory' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(115,14): warning CS1573: Parameter 'preservedSettingsIsFromAnEarlierFailure' has no matching param tag in the XML comment for 'MainWindowViewModel.MainWindowViewModel(AppSettings, AppSettingsService, Func<AppSettings, IXpeBackend>, string?, bool)' (but other parameters do) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(435,48): warning CS1574: XML comment has cref attribute 'RequestedBackendMode' that could not be resolved [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\ViewModels\MainWindowViewModel.cs(441,66): warning CS1574: XML comment has cref attribute 'RequestedBackendMode' that could not be resolved [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+D:\workspace-github\xpe-gui\gui\ImageProcTest\Services\RawSizeRules.cs(42,33): warning CA2014: Potential stack overflow. Move the stackalloc out of the loop. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2014) [D:\workspace-github\xpe-gui\gui\ImageProcTest\ImageProcTest.csproj]
+    11 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.92
+
+Workload updates are available. Run `dotnet workload list` for more information.
+EXIT: 0
+COMMAND: dotnet build clients/ImageProcTest/ImageProcTest.csproj -c Debug --no-restore --nologo
+  ImageProcTest -> D:\workspace-github\xpe-gui\clients\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.52
+
+Workload updates are available. Run `dotnet workload list` for more information.
+EXIT: 0
+COMMAND: dotnet build gui/ImageProcTest.SelfCheck/ImageProcTest.SelfCheck.csproj -c Debug --no-restore --nologo
+  ImageProcTest -> D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll
+D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs(296,64): warning CS8604: Possible null reference argument for parameter 'RawKey' in 'CorrectedImage.CorrectedImage(float[] Floats, int Width, int Height, ushort[] RawKey)'. [D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj]
+  ImageProcTest.SelfCheck -> D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\bin\Debug\net8.0-windows\ImageProcTest.SelfCheck.dll
+
+Build succeeded.
+
+D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs(296,64): warning CS8604: Possible null reference argument for parameter 'RawKey' in 'CorrectedImage.CorrectedImage(float[] Floats, int Width, int Height, ushort[] RawKey)'. [D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\ImageProcTest.SelfCheck.csproj]
+    1 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.70
+
+Workload updates are available. Run `dotnet workload list` for more information.
+EXIT: 0
+COMMAND: dotnet build gui/ImageProcTest.E2E/ImageProcTest.E2E.csproj -c Debug --no-restore --nologo
+  ImageProcTest -> D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\ImageProcTest.dll
+  ImageProcTest.E2E -> D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\bin\Debug\net8.0-windows\ImageProcTest.E2E.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.19
+
+Workload updates are available. Run `dotnet workload list` for more information.
+EXIT: 0

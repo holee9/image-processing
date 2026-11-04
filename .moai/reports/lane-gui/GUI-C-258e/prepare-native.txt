@@ -1,0 +1,789 @@
+﻿  ImageProcTest.E2ETests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.16]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:00.19]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyInputKindScenarios.K1_TheInputKindChoice_ReachesThePreview_AndChoosingAnotherKind_InvalidatesOnlyTheMeasuredRows [SKIP]
+[xUnit.net 00:00:00.19]       this xpe_preprocess.dll does not export xpe_verify_offset_signed_file (older than dev/preprocess 026ea384). XPE-SKIP-ALLOWED:273
+[2026-11-04 15:14:35.799] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:14:35.806] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.806] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.806] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.806] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.814] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:35.814] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:35.865] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.865] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.865] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.865] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.867] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:35.867] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:35.928] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.928] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.928] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.928] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:35.930] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:35.930] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:36.064] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:14:36.065] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.065] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.065] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.065] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.068] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:36.068] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:36.071] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.071] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.071] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.071] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:14:36.073] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:14:36.073] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Skipped ImageProcTest.E2ETests.Scenarios.Legacy.LegacyInputKindScenarios.K1_TheInputKindChoice_ReachesThePreview_AndChoosingAnotherKind_InvalidatesOnlyTheMeasuredRows [7 ms]
+  Error Message:
+   this xpe_preprocess.dll does not export xpe_verify_offset_signed_file (older than dev/preprocess 026ea384). XPE-SKIP-ALLOWED:273
+
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L02_WithARawLoaded_AValueOutsideTheLimitsIsRefused_NothingChanges_AndThenTheLimitItselfRuns [1 m 1 s]
+  Standard Output Messages:
+ before: preview='Native preview: stage selection changed. Run Selected to apply the checked pre/post stages.'
+ typed '8': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 8). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '7.6': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 7.6). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '100': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 100). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '0.05': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 0.05). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '0': preview='Native preview: Noise sigma_space must be between 0.1 and 7.5 (got 0). Nothing was run; change the value and run again.' status='Status: Input out of range'
+ typed '7.5': preview='Native preview: post stages=ei-whole=skipped(Skipped), log=skipped(Skipped), basic-noise=OK/8.15ms, contrast=skipped(Skipped), edge=skipped(Skipped); metrics=meanAbsDelta=31.853, rmse=37.377, maxAbsDelta=94.644, changed=1039583/1048576 (99.14%), outputWithinHalfUnitOfInput(within 0.5 of input)=False, nanInf=0; latency=9.805ms; output=2036.585..4208.244; input=raw-float-bypass; EI=n/a, DI=n/a; sigma=85.991->72.929' status='Status: native pre/post preview complete'
+
+
+[2026-11-04 15:15:37.070] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:15:37.077] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.077] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.077] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.077] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.084] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.084] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.140] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.140] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.140] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.140] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.142] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.142] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.186] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.186] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.186] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.186] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.188] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.188] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.492] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:15:37.493] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.493] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.493] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.493] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.495] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.495] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.504] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.504] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.504] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.504] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:15:37.506] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:15:37.506] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyEnhanceInputLimitScenarios.L01_ASigmaSpaceAboveTheLimit_IsKeptInTheBox_AndTheAppSaysNothing_WhileTyping [43 s]
+  Standard Output Messages:
+ start: box='3.0' preview='Native preview: load a target raw image to run pre/post algorithms.' control: help='' status='' enabled=True offscreen=False windows=1
+ typed '7.4': box shows '7.4'; preview unchanged=True; windows=1
+ typed '7.5': box shows '7.5'; preview unchanged=True; windows=1
+ typed '7.6': box shows '7.6'; preview unchanged=True; windows=1
+ typed '50': box shows '50'; preview unchanged=True; windows=1
+ typed '100': box shows '100'; preview unchanged=True; windows=1
+ typed '1e6': box shows '1e6'; preview unchanged=True; windows=1
+ typed 'abc': box shows 'abc'; preview unchanged=True; windows=1
+
+
+[xUnit.net 00:01:45.29]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation [SKIP]
+[xUnit.net 00:01:45.29]       XPE_C235_RUNS is not set (this is a measurement, not a regression test).
+[xUnit.net 00:01:45.29]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheFlaUiWindowCall_WithASlowStartUpProbe [SKIP]
+[xUnit.net 00:01:45.29]       XPE_C235_DELAYS is not set (this is a measurement, not a regression test).
+[2026-11-04 15:16:20.804] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:16:20.811] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.811] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.811] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.811] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.818] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:20.818] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:20.870] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.870] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.870] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.870] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.872] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:20.872] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:20.913] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.913] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.913] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.913] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:20.915] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:20.915] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:21.083] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:16:21.084] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.084] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.084] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.084] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.086] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:21.086] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:21.089] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.089] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.089] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.089] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:16:21.091] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:16:21.091] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_LoadsItsDependenciesFromTheSnapshotFolder_NotFromTheFolderOfItsExecutable [443 ms]
+  Standard Output Messages:
+ verdict Synthetic oracle pass: 16x16 synthetic offset->gain->defect adapter chain passed with generated and loaded calibration.
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleConfinementScenarios.TheWorker_WritesExactlyOneParsableResultLine_AsARealProcess_WhateverTheHostHasLoaded [256 ms]
+  Skipped ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheLegacyAppsStartUp_MessagePumpAndUiAutomation [< 1 ms]
+  Error Message:
+   XPE_C235_RUNS is not set (this is a measurement, not a regression test).
+
+  Skipped ImageProcTest.E2ETests.Scenarios.Legacy.LegacyStartupResponsivenessProbe.MeasureTheFlaUiWindowCall_WithASlowStartUpProbe [< 1 ms]
+  Error Message:
+   XPE_C235_DELAYS is not set (this is a measurement, not a regression test).
+
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOpenDialogMessageBoxScenarios.OpeningAFileThatDoesNotExist_RaisesTheDialogsMessageBox_AndEverythingCloses_WithoutADeadlock [6 s]
+  Standard Output Messages:
+    native +3 ms before the click: 0x7840CE8 HwndWrapper[ImageProcTest;;7968abca-3c47-41f0-9c62-6db869e2e613 'XPE Image Processing Test'; dialog open
+    native +774 ms waiting for the box: 0x1D50448 #32770 'Select Target Raw Image', 0x7840CE8 HwndWrapper[ImageProcTest;;7968abca-3c47-41f0-9c62-6db869e2e613 'XPE Image Processing Test'; dialog open
+    native +884 ms before Cancel: 0x7840CE8 HwndWrapper[ImageProcTest;;7968abca-3c47-41f0-9c62-6db869e2e613 'XPE Image Processing Test'; dialog open
+    native +995 ms end: 0x7840CE8 HwndWrapper[ImageProcTest;;7968abca-3c47-41f0-9c62-6db869e2e613 'XPE Image Processing Test'; dialog gone
+ message box: 'Select Target Raw Image', answered by WM_CLOSE; box gone: True; file dialog stayed open after it: True; file dialog open at the end: False
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Smoke.AutomationReportBackendTests.A06_GuiE2E_RunsFromTheApp_AndTheVerdictIsReported [32 s]
+  Standard Output Messages:
+ A06 exit=0 BackendMode=Mock ActualBackendMode=Mock BackendMatchesRequest=True Passed=True
+
+
+[2026-11-04 15:17:00.261] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:00.281] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.281] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.281] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.281] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.402] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.402] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.Control_TheOracleInTheSameProcess_ErasesTheOperatorsCalibration_AndTheScenarioSeesIt [35 ms]
+  Standard Output Messages:
+ in-process oracle: 17407 deviations (first: code NOT_INITIALIZED); after: code NOT_INITIALIZED
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyOracleIsolationScenarios.TheOracleInItsOwnProcess_LeavesTheOperatorsCalibration_ByteForByte [193 ms]
+  Standard Output Messages:
+ oracle verdict Synthetic oracle pass; 414752 concurrent corrections, 0 deviations; operator output unchanged
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P02_OffsetThenGain_PassesTheOffsetOutputToTheGainStage [153 ms]
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P05_TheCalibrationIsLoadedIntoTheModule_NotJustWrittenToDisk [19 ms]
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P04_TheInputIsNotModified_NeitherTheFileNorThePreviewPixels [16 ms]
+  Standard Output Messages:
+ input sha256 058af8827987ff6376a183892f39822ca9611b2fc067128e9c2be9371ac5c2df
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P03_AllThreeStages_ChainToTheExpectedImage_AndOnlyTheMarkedPixelDiffersFromTheGainOutput [18 ms]
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreviewChainScenarios.P01_OffsetOnly_SubtractsTheDarkFrame_PixelByPixel [10 ms]
+[2026-11-04 15:17:00.472] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.472] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.472] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.472] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.473] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.473] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.529] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.529] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.529] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.529] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.530] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.530] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.676] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:00.677] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.677] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.677] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.677] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.678] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.678] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.682] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.682] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.682] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.682] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:00.683] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:00.683] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:04.513] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:04.514] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.514] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.514] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.514] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.515] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:04.515] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:04.526] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.526] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.526] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.526] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:04.527] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:04.527] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:05.790] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:05.791] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.791] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.791] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.791] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.792] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:05.792] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:05.799] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.799] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.799] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.799] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:05.801] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:05.801] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:07.394] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:07.395] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.395] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.395] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.395] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.397] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:07.397] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:07.420] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.420] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.420] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.420] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:07.422] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:07.422] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:08.400] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:08.400] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.400] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.400] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.400] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.401] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:08.401] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:08.407] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.407] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.407] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.407] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:08.408] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:08.409] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:09.926] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:09.927] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.927] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.927] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.927] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.928] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:09.928] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:09.938] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.938] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.938] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.938] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:09.940] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:09.940] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R07_TheRefusalNotice_FollowsTheCheck_PassThenChangedAgainThenFailed [11 s]
+  Standard Output Messages:
+ 1 refused, check held: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are checked again automatically; press the command again once module readiness says ready. Native preview: load a target raw image to run pre/post algorithms.
+ 2 re-check passed:        Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+ 3 redeployed again, refresh, check held: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They are checked again automatically; press the command again once module readiness says ready. Native preview: load a target raw image to run pre/post algorithms.
+ 4 passed again:                          Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+ 5 broken, refresh:                       Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and that check has FINISHED without passing (Not run); the command stays blocked until the preprocess DLLs pass. Native preview: load a target raw image to run pre/post algorithms.
+
+
+[2026-11-04 15:17:11.681] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:11.702] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.702] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.702] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.702] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.825] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:11.825] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:11.896] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.896] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.896] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.896] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.898] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:11.898] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:11.953] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.953] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.953] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.953] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:11.955] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:11.955] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:12.115] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:12.115] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.115] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.115] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.115] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.117] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:12.117] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:12.121] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.121] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.121] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.121] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:12.122] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:12.122] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.ALaunchThatFailsAfterTheAppStarted_LeavesNoAppAndNoFaultFileBehind [96 ms]
+[2026-11-04 15:17:20.286] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:20.307] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.307] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.307] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.307] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.439] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.439] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.506] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.506] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.506] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.506] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.508] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.508] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.562] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.562] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.562] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.562] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.564] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.564] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.725] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:20.726] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.726] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.726] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.726] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.727] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.727] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.732] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.732] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.732] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.732] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:20.733] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:20.733] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.602] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:25.603] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.603] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.603] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.603] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.604] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.604] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.616] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.616] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.616] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.616] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.617] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.617] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.899] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:25.900] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.900] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.900] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.900] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.902] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.902] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.907] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.907] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.907] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.907] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:25.908] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:25.908] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R05_APressedButton_IsRefusedOnScreen_WhenTheDllChangedAfterTheVerdict_AndNothingRuns [17 s]
+  Standard Output Messages:
+ control: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=13.' -> 'Calibration validation: select a calibration SWU row first.'; preview text 'Native preview: load a target raw image to run pre/post algorithms.'
+ changed: command text 'Algorithm validation: 33 SWUs across 7 modules; runnable=13.' -> 'Algorithm validation: 33 SWUs across 7 modules; runnable=13.'; preview text 'Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.'
+
+
+[2026-11-04 15:17:29.104] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:29.111] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.111] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.111] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.111] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.118] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:29.118] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:29.174] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.174] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.174] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.174] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.176] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:29.176] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:29.222] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.222] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.222] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.222] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:29.224] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:29.224] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:34.887] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:34.888] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.888] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.888] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.888] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.890] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:34.890] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:34.903] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.903] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.903] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.903] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:34.906] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:34.906] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.647] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:39.648] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.648] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.648] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.648] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.649] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.649] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.657] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.657] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.657] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.657] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.659] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.659] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.862] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:39.862] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.862] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.862] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.862] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.864] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.864] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.869] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.869] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.869] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.869] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:39.871] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:39.871] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R03_WhileTheOracleRuns_EveryTabSaysChecking_AndTheWindowAnswers_ThenEveryTabSaysReady_FromOneRun [11 s]
+  Standard Output Messages:
+ while checking (4227 ms to read all three tabs): smoke='Preprocess smoke: checking in the background' | row has checking=True | NATIVE-NOT-READY=0 | NATIVE-CHECKING=3 | stage modes='Preprocess=blocked; Post basic=ready' | Offset enabled=False
+ diagnostics=True [Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.025ms; matrix level R3; summary 'Executable modules=2; levels R1=3, R2=1, R3=4; Off modules=xpe_display:R3, xpe_dicom:R3, xpe_enhance_advanced:R1, gsvg:R1, xpe_ai:R1. Missing DLLs and future modules are skipped by graceful degradation.'] | calibration=True [0 NATIVE-NOT-READY finding(s) for the preprocess stages] | evaluation=True ['Preprocess=ready; Post basic=ready'; Offset switch enabled=True]
+
+
+[2026-11-04 15:17:40.761] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:40.784] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.784] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.784] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.784] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.912] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:40.912] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:40.983] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.983] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.983] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.983] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:40.985] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:40.985] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:41.039] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.039] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.039] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.039] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.040] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:41.040] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:41.193] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:41.194] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.194] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.194] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.194] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.195] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:41.195] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:41.202] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.202] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.202] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.202] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:41.204] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:41.204] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:45.246] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:45.246] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.246] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.246] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.246] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.248] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:45.248] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:45.257] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.257] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.257] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.257] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:45.258] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:45.258] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:46.455] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:46.455] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.456] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.456] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.456] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.457] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:46.457] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:46.463] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.463] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.463] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.463] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:46.464] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:46.464] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R08_TheRefusalNotice_SaysSo_WhenTheFirstRecheckFails [7 s]
+  Standard Output Messages:
+ 1 refused, check held: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and that check has FINISHED without passing (Not run); the command stays blocked until the preprocess DLLs pass. Native preview: load a target raw image to run pre/post algorithms.
+ 2 re-check failed:        Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and that check has FINISHED without passing (Not run); the command stays blocked until the preprocess DLLs pass. Native preview: load a target raw image to run pre/post algorithms.
+
+
+[2026-11-04 15:17:48.204] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:48.225] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.225] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.225] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.225] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.359] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.359] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.441] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.441] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.441] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.441] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.443] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.443] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.504] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.504] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.504] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.504] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.505] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.505] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.665] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:48.666] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.666] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.666] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.666] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.667] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.667] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.684] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.684] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.684] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.684] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:48.686] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:48.686] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:53.801] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:53.802] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.802] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.802] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.802] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.803] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:53.803] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:53.814] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.814] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.814] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.814] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:53.815] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:53.815] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:54.115] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:54.115] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.115] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.115] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.115] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.117] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:54.117] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:54.121] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.121] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.121] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.121] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:54.123] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:54.123] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.682] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:59.683] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.683] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.683] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.683] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.684] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.684] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.695] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.695] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.695] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.695] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.697] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.697] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.911] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:17:59.912] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.912] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.912] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.912] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.913] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.913] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.917] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.917] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.917] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.917] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:17:59.918] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:17:59.918] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R06_TheRefusalText_SurvivesOtherWrites_SaysWhenTheCheckHasSucceeded_AndGoesWhenACommandRuns [19 s]
+  Standard Output Messages:
+ refused:      Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+ ready again:  Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+ after toggle: Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: stage selection changed. Run Selected to apply the checked pre/post stages.
+ after refresh:Native preview: the preprocess DLLs changed since they were checked, so nothing was run. They were checked again and are ready now; press the command again. Native preview: load a target raw image to run pre/post algorithms.
+ after run:    Native preview: load a target raw image to run pre/post algorithms.
+
+
+[2026-11-04 15:18:06.971] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:06.979] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:06.979] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:06.979] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:06.979] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:06.986] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:06.986] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:07.001] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:07.001] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.001] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.001] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.001] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.003] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:07.003] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:07.027] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.027] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.027] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.027] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.029] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:07.029] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:07.091] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.091] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.091] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.091] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:07.094] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:07.094] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R02_AllThreeTabsBlockPreprocess_WhenTheOracleCannotRun_NotJustTwoOfThem [6 s]
+  Standard Output Messages:
+ diagnostics=False [Preprocess smoke: Synthetic oracle setup failed; pass=False; latency=0ms; matrix level below R3; summary 'Executable modules=1; levels R1=3, R2=2, R3=3; Off modules=xpe_display:R3, xpe_preprocess:R2, xpe_dicom:R3, xpe_enhance_advanced:R1, gsvg:R1, xpe_ai:R1. Missing DLLs and future modules are skipped by graceful degradation.'] | calibration=False [3 NATIVE-NOT-READY finding(s) for the preprocess stages] | evaluation=False ['Preprocess=blocked; Post basic=ready'; Offset switch enabled=False]
+
+
+[2026-11-04 15:18:13.020] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:13.027] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.027] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.027] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.027] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.034] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.034] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.087] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.087] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.087] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.087] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.089] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.089] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.133] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.133] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.133] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.133] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.135] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.135] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.324] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:13.324] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.324] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.324] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.324] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.327] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.327] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.331] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.331] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.331] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.331] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:13.333] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:13.333] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:19.241] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:19.241] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.241] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.241] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.241] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.244] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:19.244] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:19.254] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.254] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.254] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.254] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:19.256] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:19.256] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:23.599] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:23.600] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.600] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.600] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.600] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.602] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:23.602] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:23.612] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.612] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.612] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.612] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:23.617] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:23.617] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R04_RefreshModules_MakesAllThreeTabsSayChecking_ThenAllThreeSayReady [14 s]
+  Standard Output Messages:
+ before the refresh: diagnostics=True [Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.215ms; matrix level R3; summary 'Executable modules=2; levels R1=3, R2=1, R3=4; Off modules=xpe_display:R3, xpe_dicom:R3, xpe_enhance_advanced:R1, gsvg:R1, xpe_ai:R1. Missing DLLs and future modules are skipped by graceful degradation.'] | calibration=True [0 NATIVE-NOT-READY finding(s) for the preprocess stages] | evaluation=True ['Preprocess=ready; Post basic=ready'; Offset switch enabled=True]
+ after the refresh, oracle held: smoke='Preprocess smoke: checking in the background' | row has checking=True | NATIVE-NOT-READY=0 | NATIVE-CHECKING=3 | stage modes='Preprocess=blocked; Post basic=ready' | Offset enabled=False
+ after the answer: diagnostics=True [Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.559ms; matrix level R3; summary 'Executable modules=2; levels R1=3, R2=1, R3=4; Off modules=xpe_display:R3, xpe_dicom:R3, xpe_enhance_advanced:R1, gsvg:R1, xpe_ai:R1. Missing DLLs and future modules are skipped by graceful degradation.'] | calibration=True [0 NATIVE-NOT-READY finding(s) for the preprocess stages] | evaluation=True ['Preprocess=ready; Post basic=ready'; Offset switch enabled=True]
+
+
+[2026-11-04 15:18:27.597] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:27.604] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.604] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.604] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.604] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.611] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:27.611] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:27.876] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:27.876] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.876] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.876] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.876] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.878] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:27.878] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:27.884] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.884] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.884] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.884] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:27.885] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:27.885] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:29.390] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:29.390] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:29.390] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:29.390] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:29.392] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:29.392] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R09_AnOvertakenStartUpProbe_NeverReplacesTheNewerReportFile [3 s]
+  Standard Output Messages:
+ 1 start-up report built (timestamp 2026-11-04T06:18:27.6158837+00:00), held, nothing published
+ 2 verdict on screen: Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.104ms
+ 3 start-up probe ended: dropped
+ 4 screen 'Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.104ms'; file timestamp 2026-11-04T06:18:27.8798391+00:00 (start-up report 2026-11-04T06:18:27.6158837+00:00), checking=False, passed=True
+
+
+[2026-11-04 15:18:30.756] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:30.763] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.763] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.763] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.763] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.770] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:30.770] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:30.823] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.823] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.823] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.823] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.824] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:30.824] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:30.867] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.867] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.867] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.867] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:30.869] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:30.869] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:31.143] [xpe_stderr] [info] xpe_init: library initialised
+[2026-11-04 15:18:31.144] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.144] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.144] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.144] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.146] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:31.146] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:31.153] [xpe_stderr] [error] [xpe_display] xpe_apply_modality_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.153] [xpe_stderr] [error] [xpe_display] xpe_apply_voi_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.153] [xpe_stderr] [error] [xpe_display] xpe_apply_presentation_lut failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.153] [xpe_stderr] [error] [xpe_display] xpe_gsdf_calibrate failed: code -1 (Invalid input parameter)
+[2026-11-04 15:18:31.155] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_open exit rc=-1 (Invalid input parameter)
+[2026-11-04 15:18:31.155] [xpe_stderr] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[xUnit.net 00:04:01.41]   Finished:    ImageProcTest.E2ETests
+Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.
+  Passed ImageProcTest.E2ETests.Scenarios.Legacy.LegacyPreprocessReadinessScenarios.R01_AllThreeTabsEnablePreprocess_WhenTheOraclePasses [6 s]
+  Standard Output Messages:
+ diagnostics=True [Preprocess smoke: Synthetic oracle pass; pass=True; latency=4.182ms; matrix level R3; summary 'Executable modules=2; levels R1=3, R2=1, R3=4; Off modules=xpe_display:R3, xpe_dicom:R3, xpe_enhance_advanced:R1, gsvg:R1, xpe_ai:R1. Missing DLLs and future modules are skipped by graceful degradation.'] | calibration=True [0 NATIVE-NOT-READY finding(s) for the preprocess stages] | evaluation=True ['Preprocess=ready; Post basic=ready'; Offset switch enabled=True]
+
+
+Results File: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-258e\prepare-results\prepare-native.trx
+
+Test Run Successful.
+Total tests: 26
+     Passed: 23
+    Skipped: 3
+ Total time: 4.0322 Minutes
+
+Workload updates are available. Run `dotnet workload list` for more information.

@@ -1,0 +1,22 @@
+[2026-11-04 14:29:10 KST] GUI-C-258e 전체 Native E2E 실행 조건
+Tree: D:/workspace-github/xpe-gui, dev/gui, HEAD 9374bf8a + 카드 시험 3파일 변경
+DOTNET_CLI_UI_LANGUAGE=en
+XPE_E2E_BACKEND=Native
+XPE_NATIVE_DIR=D:\workspace-github\image-processing\build\e2e-native-dlls
+XPE_NATIVE_DIR_EXCLUSIVE=1
+XPE_E2E_ALLOW_GLOBAL_INPUT=0
+XPE_GUI_DATA_DIR=D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\gui-c-258e-full
+XPE_C231_NATIVE_DIR=D:\workspace-github\image-processing\build\e2e-native-dlls
+XPE_C231_CALIB_DIR=D:\workspace-github\xpe-data\calib-real-v2
+XPE_C231_RAW=D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw
+XPE_C231_RAW_SIZE=3072x3072
+XPE_C231_BASELINE_F32=D:\workspace-github\xpe-data\m1-baseline-v2\wrist_lat_3072x3072_corrected_v2_f32le.raw
+
+기존 env.cmd를 통해 같은 PowerShell 호출에서 위 환경을 설정하고 실행한다.
+dotnet test clients/ImageProcTest.E2ETests/ImageProcTest.E2ETests.csproj -c Debug --no-restore --logger trx;LogFileName=full-native.trx --logger console;verbosity=detailed --results-directory D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-258e/full-results --blame-hang-timeout 10m --blame-hang-dump-type none
+
+필터 없음. CI의 Category!=Measurement 필터도 적용하지 않는다.
+전역 입력 금지를 지키기 위해 CI의 GlobalInput opt-in=1과 달리 0을 설정한다. 해당 안전장치의 SKIP은 이름·사유를 별도 보고한다.
+기존 DLL 사용이며 최신 CI 바이너리 버전 동등성은 미확인이다. 새 DLL 빌드·설치·배포 없음.
+전체 stdout/stderr를 UTF-8 full-native.txt에 저장하며 각 줄 끝 공백만 제거한다. 원문의 문장·숫자·순서는 유지한다.
+실행 전 ImageProcTest process count=0, 전용 full data 폴더 없음 확인.
