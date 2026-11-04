@@ -178,7 +178,8 @@ namespace ImageProcTest
             PreprocessStageSelection selection,
             FixtureCaseInfo? fixtureCase,
             string? preferredDllPath,
-            IReadOnlyList<string>? stageOrder = null)
+            IReadOnlyList<string>? stageOrder = null,
+            RawInputKind inputKind = RawInputKind.Unconfirmed)
         {
             if (!selection.HasAnyStage)
             {
@@ -228,7 +229,7 @@ namespace ImageProcTest
                         checkExpiry,
                         module);
 
-                    return RunChain(
+                    var chain = RunChain(
                         preview,
                         selection,
                         fixtureCase,
@@ -240,6 +241,7 @@ namespace ImageProcTest
                         offsetCorrect,
                         gainCorrect,
                         defectCorrect);
+                    return AttachOffsetQuality(chain, handle, preview, preparedCalibration.Requests, inputKind);
                 }
                 finally
                 {
@@ -250,6 +252,50 @@ namespace ImageProcTest
             {
                 NativeLibrary.Free(handle);
             }
+        }
+
+        /// <summary>
+        /// GUI-C-253 (#273): below the existing dark rows, the module's signed offset quality of the ORIGINAL-size raw frame against an original-size offset map. The existing rows, their limits and their pass column are
+        /// not touched: they stay preview-basis. When there is no original-size map (the maps this window writes are preview-size) nothing is called and the rows say "측정 안 됨" with that reason; a module that
+        /// lacks the function, a refusal and a failed read are reasons too. Nothing is added when the offset stage did not run (the existing rows already say so).
+        /// </summary>
+        private static NativePreprocessPreviewResult AttachOffsetQuality(
+            NativePreprocessPreviewResult chain,
+            IntPtr module,
+            RawPreviewResult preview,
+            IReadOnlyList<CalibrationRequest> requests,
+            RawInputKind inputKind)
+        {
+            if (!chain.Stages.Any(stage => stage.Stage == "offset" && stage.Executed))
+            {
+                return chain;
+            }
+
+            OffsetQualityOutcome outcome;
+            try
+            {
+                var request = requests.FirstOrDefault(r => r.Stage == "offset");
+                // GUI-C-253b: only a frame the user confirmed as a dark is measured as one; the plan also names the original-size map reason
+                var refusal = OffsetQualityPlan.WhyNotCalled(inputKind, preview.Width, preview.Height, request?.Width, request?.Height);
+                if (refusal is not null)
+                {
+                    outcome = refusal;
+                }
+                else
+                {
+                    var raw = OffsetQualityNative.ReadRaw(preview.FilePath, preview.Width, preview.Height, out var problem);
+                    outcome = raw is null
+                        ? OffsetQualityOutcome.NotMeasured(problem!)
+                        : OffsetQualityNative.MeasureWithFile(module, raw, preview.Width, preview.Height, request!.XCalPath);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or MarshalDirectiveException or OverflowException)
+            {
+                outcome = OffsetQualityOutcome.NotMeasured($"측정 중 {ex.GetType().Name}: {ex.Message}");
+            }
+
+            var rows = OffsetQualityRows.Append(chain.DetectorMetrics.DarkMetrics, outcome);
+            return chain with { DetectorMetrics = chain.DetectorMetrics with { DarkMetrics = rows } };
         }
 
         public static NativePreprocessPreviewResult CreateBypass(
@@ -442,37 +488,37 @@ namespace ImageProcTest
             switch (request.Stage)
             {
                 case "offset":
-                {
-                    var code = WithFrame(request.DarkPixels!, request.Width, request.Height, frame =>
-                        module.GenerateOffset([frame], 1, IntegrationTimeMs, TemperatureC, request.XCalPath, null));
-                    return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadOffset(request.XCalPath) : code;
-                }
+                    {
+                        var code = WithFrame(request.DarkPixels!, request.Width, request.Height, frame =>
+                            module.GenerateOffset([frame], 1, IntegrationTimeMs, TemperatureC, request.XCalPath, null));
+                        return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadOffset(request.XCalPath) : code;
+                    }
 
                 case "gain":
-                {
-                    var code = WithFrame(request.FlatPixels!, request.Width, request.Height, flat =>
                     {
-                        if (request.FlatDarkReference is null)
+                        var code = WithFrame(request.FlatPixels!, request.Width, request.Height, flat =>
                         {
-                            return module.GenerateGain([flat], 1, IntPtr.Zero, request.XCalPath, null);
-                        }
+                            if (request.FlatDarkReference is null)
+                            {
+                                return module.GenerateGain([flat], 1, IntPtr.Zero, request.XCalPath, null);
+                            }
 
-                        return WithFrame(request.FlatDarkReference, request.Width, request.Height, dark =>
-                        {
-                            var darkPointer = Marshal.AllocHGlobal(Marshal.SizeOf<XpeCommonApi.XpeImageBuffer>());
-                            try
+                            return WithFrame(request.FlatDarkReference, request.Width, request.Height, dark =>
                             {
-                                Marshal.StructureToPtr(dark, darkPointer, fDeleteOld: false);
-                                return module.GenerateGain([flat], 1, darkPointer, request.XCalPath, null);
-                            }
-                            finally
-                            {
-                                Marshal.FreeHGlobal(darkPointer);
-                            }
+                                var darkPointer = Marshal.AllocHGlobal(Marshal.SizeOf<XpeCommonApi.XpeImageBuffer>());
+                                try
+                                {
+                                    Marshal.StructureToPtr(dark, darkPointer, fDeleteOld: false);
+                                    return module.GenerateGain([flat], 1, darkPointer, request.XCalPath, null);
+                                }
+                                finally
+                                {
+                                    Marshal.FreeHGlobal(darkPointer);
+                                }
+                            });
                         });
-                    });
-                    return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadGain(request.XCalPath) : code;
-                }
+                        return code == XpeCommonApi.XpeErrorCode.OK ? module.LoadGain(request.XCalPath) : code;
+                    }
 
                 case "defect":
                     return module.LoadDefect(request.XCalPath);

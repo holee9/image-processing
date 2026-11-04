@@ -98,6 +98,9 @@
     <!-- #218 side finding (GUI-C-182): the defect metric pass lines, dependency-free, checked against the canonical protocol's text. -->
     <Compile Include="..\ImageProcTest\Services\DefectMetricGates.cs" Link="DefectMetricGates\Linked\DefectMetricGates.cs" />
     <Compile Include="..\ImageProcTest\Services\DefectMetricRows.cs" Link="DefectMetricGates\Linked\DefectMetricRows.cs" />
+    <!-- GUI-C-253 (#273): the signed offset quality rows and the call of xpe_verify_offset_signed(_file). Rows and struct are free of WPF; the call uses XpeCommonApi's buffer types and enums only, through delegates (see the OracleCall link below). -->
+    <Compile Include="..\ImageProcTest\Services\OffsetQualityRows.cs" Link="OffsetQuality\Linked\OffsetQualityRows.cs" />
+    <Compile Include="..\ImageProcTest\Services\OffsetQualityNative.cs" Link="OffsetQuality\Linked\OffsetQualityNative.cs" />
     <Compile Include="..\ImageProcTest\Services\EnhanceBasicInputLimits.cs" Link="EnhanceInputLimits\Linked\EnhanceBasicInputLimits.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\BenchmarkRunnerService.cs" Link="BenchmarkRunner\Linked\BenchmarkRunnerService.cs" />
     <Compile Include="..\..\gui\ImageProcTest\Services\RunnerProcess.cs" Link="BenchmarkRunner\Linked\RunnerProcess.cs" />

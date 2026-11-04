@@ -47,7 +47,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
         try
         {
             var mark = Find(window, "CalibrationStagesUnappliedMark");
-            Assert.Equal("기본 3단계 연결", mark.Name);
+            Assert.Equal("3 calibration stages connected", mark.Name);
             Assert.False(mark.IsOffscreen);
             foreach (var term in new[] { "Offset/Gain/Defect", "Auto", "On", "Off" })
                 Assert.Contains(term, mark.HelpText, StringComparison.Ordinal);
@@ -192,13 +192,13 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
 
     private JsonElement ExportFreshCalibrationReport(Window window)
     {
-        var priorStatus = Find(window, "StatusBarText").Name;
+        var priorStatus = Find(window, "StatusBarText").HelpText;
         UiaMenu.Open(window, "FileMenu");
         Find(window, "ExportAutomationReportMenuItem").AsMenuItem().Invoke();
         const string prefix = "Automation report exported: ";
         for (var attempt = 0; attempt < 20; attempt++)
         {
-            var status = Find(window, "StatusBarText").Name;
+            var status = Find(window, "StatusBarText").HelpText;
             if (status != priorStatus && status.StartsWith(prefix, StringComparison.Ordinal))
             {
                 // Read the newly named immutable snapshot, never delete or trust an old fixed alias.
@@ -354,7 +354,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
     {
         var mark = Find(window, "LaneBOverridesUnappliedMark");
         output.WriteLine($"U02 mark name='{mark.Name}' offscreen={mark.IsOffscreen} help='{mark.HelpText}'");
-        Assert.Equal("미적용", mark.Name);
+        Assert.Equal("Not applied", mark.Name);
         Assert.False(mark.IsOffscreen, "The mark is in the tree but not on screen.");
         Assert.Contains("#173", mark.HelpText, StringComparison.Ordinal);
     }
@@ -369,7 +369,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
     {
         var mark = Find(window, id);
         output.WriteLine($"{id} name='{mark.Name}' offscreen={mark.IsOffscreen} help='{mark.HelpText}'");
-        Assert.Equal("미적용", mark.Name);
+        Assert.Equal("Not applied", mark.Name);
         Assert.False(mark.IsOffscreen, $"{id} is in the tree but not on screen.");
         Assert.Contains("#182", mark.HelpText, StringComparison.Ordinal);
     }

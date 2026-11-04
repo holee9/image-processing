@@ -1,0 +1,79 @@
+﻿Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.07]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x3D0CDA pid=32024 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+dotnet.exe : [xUnit.net 00:00:05.32]     ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_F
+ailedRender_IsMarkedInTheDetachedViewer [FAIL]
+위치 줄:1 문자:170
++ ... KEND='Mock';& 'C:/Program Files/dotnet/dotnet.exe' test clients/Image ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...edViewer [FAIL]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[xUnit.net 00:00:05.32]       The Apply did not reach the display pipeline.
+[xUnit.net 00:00:05.32]       Stack Trace:
+[xUnit.net 00:00:05.32]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\FailedRenderScenarios.cs(106,0): at ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer()
+[xUnit.net 00:00:05.32]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:05.32]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:05.32]       Output:
+[xUnit.net 00:00:05.32]         W26 runtime: requested=Mock status-bar='mode=Mock  |  common=unknown  |  display=v0.0.0-mock-display'
+[xUnit.net 00:00:05.32]         W26 start: status='faultInjection=display-pipeline-after:1 calls=2' detached='source=1024x1024 v1; processed=1024x1024 v1' indicator=''
+[xUnit.net 00:00:05.32]         W26 failed apply: status='faultInjection=display-pipeline-after:1 calls=3' detached='source=1024x1024 v1; processed=1024x1024 v1' main indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' detached indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' texts=[C 30745 · W 53202  VOI: LinearExact | STALE — the display pipeline failed; the image shown is from before the failed attempt. | MOCK BACKEND — images and results are synthetic; not for clinical judgement. | Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%]
+  Failed ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer [3 s]
+  Error Message:
+   The Apply did not reach the display pipeline.
+  Stack Trace:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.DetachedFailedRenderScenarios.W26_FailedRender_IsMarkedInTheDetachedViewer() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\FailedRenderScenarios.cs:line 106
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Standard Output Messages:
+ W26 runtime: requested=Mock status-bar='mode=Mock  |  common=unknown  |  display=v0.0.0-mock-display'
+ W26 start: status='faultInjection=display-pipeline-after:1 calls=2' detached='source=1024x1024 v1; processed=1024x1024 v1' indicator=''
+ W26 failed apply: status='faultInjection=display-pipeline-after:1 calls=3' detached='source=1024x1024 v1; processed=1024x1024 v1' main indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' detached indicator='STALE — the display pipeline failed; the image shown is from before the failed attempt.' texts=[C 30745 · W 53202  VOI: LinearExact | STALE — the display pipeline failed; the image shown is from before the failed attempt. | MOCK BACKEND — images and results are synthetic; not for clinical judgement. | Mode=SwipeVertical, Zoom=Fit, Pan=(0,0), Swipe=50%, Overlay=50%]
+
+
+XPE-C56-PROBE hwnd=0x1790B56 pid=26448 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+[xUnit.net 00:00:11.79]     ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheI
+mageStale [FAIL]
+[xUnit.net 00:00:11.79]       Expected the load to be display pipeline call 1 of an armed seam, but the window reports 'faultInjection=display-pipeline-after:2 calls=2'.
+[xUnit.net 00:00:11.79]       Stack Trace:
+[xUnit.net 00:00:11.79]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\FailedRenderScenarios.cs(32,0): at ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale()
+[xUnit.net 00:00:11.79]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:11.79]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:11.79]       Output:
+[xUnit.net 00:00:11.79]         W23 start: title='[MOCK] ImageProcTest GUI-S0 — FAULT INJECTION ARMED' status='faultInjection=display-pipeline-after:2 calls=2'
+  Failed ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale [5 s]
+  Error Message:
+   Expected the load to be display pipeline call 1 of an armed seam, but the window reports 'faultInjection=display-pipeline-after:2 calls=2'.
+  Stack Trace:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.FailedRenderScenarios.W23_FailedRender_MarksTheImageStale() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\FailedRenderScenarios.cs:line 32
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Standard Output Messages:
+ W23 start: title='[MOCK] ImageProcTest GUI-S0 — FAULT INJECTION ARMED' status='faultInjection=display-pipeline-after:2 calls=2'
+
+
+XPE-C56-PROBE hwnd=0x15C05F4 pid=30328 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01b_ApplyDisplayPipeline_LeavesVoiInputsPopulated [3 s]
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W02_RunPreprocessing_MatchesTheBackendItRunsOn [220 ms]
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W07_SelectingBodyPart_AppliesThatPresetToTheVoiWindow [7 s]
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U03_AlgorithmPickers_AreUsableAndUnmarked [404 ms]
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U01_CalibrationStages_AreUsableExactlyWhenConnected [50 s]
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U05_PendingConnectionMark_IsShown [1 s]
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U02_LaneBDenoiseK_IsUsableExactlyWhenItReachesPixels [3 s]
+[xUnit.net 00:01:19.39]   Finished:    ImageProcTest.E2ETests
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.UnappliedSettingsScenarios.U04_FocusToggle_IsDisabledAndMarked [118 ms]
+
+Test Run Failed.
+Total tests: 10
+     Passed: 8
+     Failed: 2
+ Total time: 1.3281 Minutes
+
+Workload updates are available. Run `dotnet workload list` for more information.

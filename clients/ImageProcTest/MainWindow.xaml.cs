@@ -1268,6 +1268,7 @@ namespace ImageProcTest
 
                 var preview = RawPreviewService.LoadUInt16Preview(path);
                 currentPreview = preview;
+                RawInputKindComboBox.SelectedIndex = 0;   // GUI-C-253b: what a previous file was said to be does not carry over to this one
                 EvaluationViewer.LoadRawPreview(preview, IsNativePreviewReady());
                 UpdateNativePreviewControls();
                 UpdateWorkflowRunState();
@@ -1432,7 +1433,8 @@ namespace ImageProcTest
                 selection,
                 selectedCase,
                 lastPreprocessHealth?.DllPath,
-                stageOrder);
+                stageOrder,
+                SelectedRawInputKind());
             lastNativePreviewResult = result;
             lastEnhanceBasicPreviewResult = null;
             lastPresentationExportResult = null;
@@ -2142,6 +2144,36 @@ namespace ImageProcTest
                 ReportsSummaryText.Text = $"Reports: {reportArtifacts.Count} artifact(s) generated in this session.";
             }
         }
+
+        /// <summary>
+        /// GUI-C-253c (Codex #241 R241-3): choosing another input kind invalidates the measured rows of the run that is on screen, and nothing else: the picture, the four existing dark rows with their verdicts
+        /// and the rest of the result stay, and no native call is made (the user runs the preview again). Choosing "다크 프레임" again does not bring the old numbers back.
+        /// </summary>
+        private void RawInputKindComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lastNativePreviewResult is not { } result)
+            {
+                return;
+            }
+
+            var rows = OffsetQualityRows.Invalidate(result.DetectorMetrics.DarkMetrics, SelectedRawInputKind());
+            if (ReferenceEquals(rows, result.DetectorMetrics.DarkMetrics))
+            {
+                return;
+            }
+
+            lastNativePreviewResult = result with { DetectorMetrics = result.DetectorMetrics with { DarkMetrics = rows } };
+            DarkMetricsGrid.ItemsSource = rows;
+        }
+
+        /// <summary>GUI-C-253b: what the user said the opened raw image is (default "미확인"); the dark quality rows are measured only for a confirmed dark.</summary>
+        private RawInputKind SelectedRawInputKind() => RawInputKindComboBox.SelectedIndex switch
+        {
+            1 => RawInputKind.Dark,
+            2 => RawInputKind.Flat,
+            3 => RawInputKind.Clinical,
+            _ => RawInputKind.Unconfirmed,
+        };
 
         private ModuleReadinessSnapshot? GetGsvgReadiness()
         {

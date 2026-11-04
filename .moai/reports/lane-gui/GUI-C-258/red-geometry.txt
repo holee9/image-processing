@@ -1,0 +1,48 @@
+﻿D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)??????뚯뒪???ㅽ뻾
+VSTest 踰꾩쟾 17.14.1 (x64)
+
+?뚯뒪???ㅽ뻾???쒖옉?섎뒗 以묒엯?덈떎. ?좎떆 湲곕떎??二쇱꽭??..
+吏?뺣맂 ?⑦꽩怨??쇱튂??珥??뚯뒪???뚯씪 ?섎뒗 1媛쒖엯?덈떎.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.33]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.52]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.53]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x1840342 pid=32792 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+dotnet.exe : [xUnit.net 00:00:03.02]     ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_NativeSk
+ippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar [FAIL]
+위치 줄:1 문자:228
++ ... ib-real-v2';& 'C:/Program Files/dotnet/dotnet.exe' test clients/Image ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...dToolbar [FAIL]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[xUnit.net 00:00:03.02]       System.InvalidOperationException : Missing PreprocessSkippedBannerBorder.
+[xUnit.net 00:00:03.03]       Stack Trace:
+[xUnit.net 00:00:03.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs(25,0): at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.<D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar>g__Find|3_0(String id, <>c__DisplayClass3_0&)
+[xUnit.net 00:00:03.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs(37,0): at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.<D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar>g__Measure|3_1(String size, <>c__DisplayClass3_0&)
+[xUnit.net 00:00:03.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs(48,0): at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar()
+[xUnit.net 00:00:03.03]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:03.03]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:03.03]       Output:
+[xUnit.net 00:00:03.03]         D258 runtime: requested=Native status-bar='mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls'
+[xUnit.net 00:00:03.05]   Finished:    ImageProcTest.E2ETests
+  ?ㅽ뙣 ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar [995 ms]
+  ?ㅻ쪟 硫붿떆吏:
+   System.InvalidOperationException : Missing PreprocessSkippedBannerBorder.
+  ?ㅽ깮 異붿쟻:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.<D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar>g__Find|3_0(String id, <>c__DisplayClass3_0&) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs:line 25
+   at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.<D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar>g__Measure|3_1(String size, <>c__DisplayClass3_0&) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs:line 37
+   at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_NativeSkippedBanner_IsFullyInsideViewport_AndClearOfHudAndToolbar() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs:line 48
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  ?쒖? 異쒕젰 硫붿떆吏:
+ D258 runtime: requested=Native status-bar='mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls'
+
+
+
+?뚯뒪???ㅽ뻾???ㅽ뙣?덉뒿?덈떎.
+珥??뚯뒪???? 1
+     ?ㅽ뙣: 1
+ 珥??쒓컙: 4.1271 珥?
+
+?뚰겕濡쒕뱶 ?낅뜲?댄듃瑜??ъ슜?????덉뒿?덈떎. ?먯꽭???댁슜??蹂대젮硫?`dotnet workload list`???ㅽ뻾?섏꽭??

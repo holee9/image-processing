@@ -126,6 +126,7 @@ public sealed class MainWindowViewModel : ObservableObject
         LogsView = new CollectionViewSource { Source = Logs }.View;
         LogsView.Filter = item => !ShowAlertsOnly || (item is string line && _alertLogLines.Contains(line));
         Alerts = new ObservableCollection<AlertEntry>();
+        Alerts.CollectionChanged += (_, _) => OnPropertyChanged(nameof(FooterAlert));
         BackendModeOptions = new[] { "Mock", "Native" };
         CalibrationStageModeOptions = CalibrationStageMode.Options;
         VoiLutModeOptions = new[] { "Linear", "LinearExact", "Sigmoid" };
@@ -190,7 +191,7 @@ public sealed class MainWindowViewModel : ObservableObject
         // Slice 2 — workbench commands
         Studies = new ObservableCollection<StudyEntry>();
         RunOnAllQueuedCommand = new RelayCommand(() => Log("RunOnAllQueuedCommand: not implemented (Slice 7)."));
-        RecordVerdictCommand = new RelayCommand<Verdict>(RecordVerdict);
+        RecordVerdictCommand = new RelayCommand<Verdict>(verdict => RecordVerdict(verdict));
         SaveAndNextCommand = new RelayCommand(SaveAndNext);
         ToggleFocusModeCommand = new RelayCommand(() => FocusMode = !FocusMode);
         ToggleRoiCommand = new RelayCommand(() => RoiActive = !RoiActive);
@@ -808,7 +809,19 @@ public sealed class MainWindowViewModel : ObservableObject
     /// Status bar summary of <see cref="LastChain"/>: each stage and its status, and whether the display started
     /// from the raw frame. A requested stage that did not apply says so here (HAZ-GUI-005).
     /// </summary>
-    public string ChainStatus => _render?.ChainStatus ?? NoChainStatus;
+    public string ChainStatus => _render is { } rendered
+        ? rendered.ChainStatus + (rendered.LaneBFacts is { } candidate ? " | B " + candidate.Summary : string.Empty)
+        : NoChainStatus;
+
+    public string DisplayChainStatus => EnglishDisplayText(ChainStatus);
+
+    private static string EnglishDisplayText(string text) => text.Replace("보정 안 된 EI", "uncalibrated measurement", StringComparison.Ordinal);
+
+    /// <summary>
+    /// GUI-C-248: the number of the render on screen ("render #N", 0 before the first), exposed to UI Automation as the help text of the chain status item. <see cref="ChainStatus"/> carries stage times in whole
+    /// milliseconds, so two renders of one frame can print the same line; this number differs for every render, so a caller that waits for "a new render" can tell one from the last.
+    /// </summary>
+    public string RenderIdText => $"render #{_render?.Id ?? 0}";
 
     /// <summary>
     /// Where the time of the last apply went (#180, GUI-C-103): the background work, this view model's own
@@ -985,7 +998,10 @@ public sealed class MainWindowViewModel : ObservableObject
     public string StatusText
     {
         get => _statusText;
-        private set => SetProperty(ref _statusText, value);
+        private set
+        {
+            if (SetProperty(ref _statusText, value)) OnPropertyChanged(nameof(FooterAlert));
+        }
     }
 
     public string ActiveImageSummary
@@ -1066,10 +1082,10 @@ public sealed class MainWindowViewModel : ObservableObject
     private StageStatus? RenderedPreprocessStatus => _render?.Chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess)?.Status;
 
     /// <summary>GUI-C-233j/k: the algorithm the Reference lane on screen was drawn with (from the render record); null while that lane holds no picture (no render, or the lane work failed) - the screen then shows "—". The selector in the algorithm bar edits the REQUESTED one (<see cref="LaneAAlgorithm"/>).</summary>
-    public string? RenderedLaneAAlgorithm => _render is { LaneA: not null } rendered ? rendered.Inputs.LaneAAlgorithm : null;
+    public string? RenderedLaneAAlgorithm => _render is { LaneA: not null } rendered ? rendered.LaneAFacts?.AlgorithmLabel(rendered.Inputs.LaneAAlgorithm) : null;
 
     /// <summary>GUI-C-233j/k: the algorithm the Candidate lane on screen was drawn with (from the render record); null while that lane holds no picture.</summary>
-    public string? RenderedLaneBAlgorithm => _render is { LaneB: not null } rendered ? rendered.Inputs.LaneBAlgorithm : null;
+    public string? RenderedLaneBAlgorithm => _render is { LaneB: not null } rendered ? rendered.LaneBFacts?.AlgorithmLabel(rendered.Inputs.LaneBAlgorithm) : null;
 
     public string ComparisonStatus =>
         $"Mode={Settings.ComparisonMode}, Zoom={(Settings.ComparisonZoomScale <= 0.0 ? "Fit" : $"{Settings.ComparisonZoomScale * 100.0:0}%")}, " +
@@ -1103,11 +1119,72 @@ public sealed class MainWindowViewModel : ObservableObject
     /// </summary>
     public string ExposureIndexText => _render is null ? NoExposureIndex : ExposureIndexOf(_render.Chain);
 
+    // UIA item peers must follow this snapshot's row, even when a later snapshot has equal text.
+    public sealed class MetricRow(string metric, string laneA, string laneB, string delta = "")
+    {
+        public string Metric { get; } = metric;
+        public string LaneA { get; } = laneA;
+        public string LaneB { get; } = laneB;
+        public string Delta { get; } = delta;
+    }
+
+    public string MetricMeasurementNote => _render is { LaneAFacts: { } a, LaneBFacts: { } b } && ReferenceEquals(a, b)
+        ? "Lane B reuses Lane A's measured result; this is one run. No independent delta. Measurements are not pass criteria."
+        : "Measurements describe the displayed render, not a pass criterion. Delta = B − A; shown only for two separate lane runs with measured values.";
+
+    /// <summary>GUI-C-258: measurements of the displayed lanes, never the edited request or a quality verdict.</summary>
+    public IReadOnlyList<MetricRow> MetricRows
+    {
+        get
+        {
+            if (_render is not { LaneAFacts: { } a } render) return [];
+            var b = render.LaneBFacts;
+            var separateRuns = render.LaneA is not null && render.LaneB is not null && b is not null && !ReferenceEquals(a, b);
+            static string Number(double? value) => value?.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) ?? "not measured";
+            string Delta(double? av, double? bv, string unit = "") => separateRuns && av.HasValue && bv.HasValue ? Number(bv - av) + unit : string.Empty;
+            static string Stage(LaneRenderFacts? facts, string id) => facts?.Stages.FirstOrDefault(s => s.StageId == id) is { } stage
+                ? $"{stage.Status} · {stage.ElapsedMs.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)} ms" : "not run";
+            static string Calibration(LaneRenderFacts? facts) => facts?.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess) is { } pre
+                && pre.Status is StageStatus.Applied or StageStatus.AppliedNoChange
+                ? $"{CalibrationStageSelection.ExecutedFromReason(pre.Reason).Length} stages" : "not run";
+            var rows = new List<MetricRow>();
+            foreach (var id in new[] { StageIds.Preprocess, StageIds.EnhanceBasic, StageIds.Gsvg, StageIds.AiBoneSuppression })
+            {
+                var stageA = a.Stages.FirstOrDefault(s => s.StageId == id);
+                var stageB = b?.Stages.FirstOrDefault(s => s.StageId == id);
+                var measured = stageA?.Status is StageStatus.Applied or StageStatus.AppliedNoChange && stageB?.Status is StageStatus.Applied or StageStatus.AppliedNoChange;
+                rows.Add(new(id, Stage(a, id), Stage(b, id), measured ? Delta(stageA?.ElapsedMs, stageB?.ElapsedMs, " ms") : string.Empty));
+            }
+            rows.Add(new("VOI source", a.Voi.Automatic is true ? "automatic" : a.Voi.Automatic is false ? "manual" : "not reported", b?.Voi.Automatic is true ? "automatic" : b?.Voi.Automatic is false ? "manual" : "not reported"));
+            rows.Add(new("VOI center", Number(a.Voi.Center), Number(b?.Voi.Center), Delta(a.Voi.Center, b?.Voi.Center)));
+            rows.Add(new("VOI width", Number(a.Voi.Width), Number(b?.Voi.Width), Delta(a.Voi.Width, b?.Voi.Width)));
+            rows.Add(new("Calibration stages", Calibration(a), Calibration(b)));
+            rows.Add(new("EI/DI · measured, not a pass criterion", ExposureIndexOf(a.Stages), b is null ? "not measured" : ExposureIndexOf(b.Stages)));
+            return rows;
+        }
+    }
+
+    public string FooterSummary => _render is { } render
+        ? string.Join(" · ", render.Chain.Stages.Select(s => $"{s.StageId} {s.Status switch { StageStatus.NotRequested => "off", StageStatus.Applied => "applied", StageStatus.AppliedNoChange => "unchanged", StageStatus.Skipped => "skipped", _ => "not applied" }}"))
+            + $" · {(render.Voi.Automatic is true ? "auto" : "window")} C {render.Voi.Center:0.###} / W {render.Voi.Width:0.###}"
+        : "Chain not run · window not measured";
+
+    public string FooterTimings => _render is { } render
+        ? string.Join(" · ", render.Chain.Stages.Select(s => $"{s.StageId} {s.ElapsedMs:0.###} ms"))
+        : "Stage times: not measured";
+
+    public string FooterAlert => StatusText.StartsWith("Verdict not recorded:", StringComparison.Ordinal)
+        ? StatusText
+        : Alerts.FirstOrDefault(a => a.Severity is "WARN" or "ERROR") is { } alert
+            ? $"{alert.Severity}: {alert.Message}" : "No warnings or errors.";
+
     private const string NoExposureIndex = "Exposure index: not measured yet.";
 
-    private static string ExposureIndexOf(ChainResult chain)
+    private static string ExposureIndexOf(ChainResult chain) => ExposureIndexOf(chain.Stages.Select(s => new RenderedStage(s.StageId, s.Status, s.Reason, s.ElapsedMs)).ToArray());
+
+    private static string ExposureIndexOf(IReadOnlyList<RenderedStage> stages)
     {
-        var preprocess = chain.Stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
+        var preprocess = stages.FirstOrDefault(s => s.StageId == StageIds.Preprocess);
         if (preprocess is null || preprocess.Status is not (StageStatus.Applied or StageStatus.AppliedNoChange))
         {
             // GUI-C-234b: the same reason the HUD gives ("not run (no calibration data)"), so the two lines cannot disagree about why there is no value.
@@ -1123,7 +1200,7 @@ public sealed class MainWindowViewModel : ObservableObject
 
         const string Marker = "uncalibrated EI";
         var at = preprocess.Reason?.IndexOf(Marker, StringComparison.Ordinal) ?? -1;
-        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + preprocess.Reason![at..].Trim();
+        return at < 0 ? "Exposure index: not measured (the module gave no value for this image)." : "Exposure index: " + EnglishDisplayText(preprocess.Reason![at..].Trim());
     }
 
     /// <summary>GUI-C-233c: whether the window of the render on screen was the automatic one (true), one chosen by hand (false), or unknown / no render yet (null).</summary>
@@ -1286,8 +1363,9 @@ public sealed class MainWindowViewModel : ObservableObject
     private static readonly string[] RenderDerivedProperties =
     [
         nameof(LaneAImage), nameof(LaneBImage), nameof(LaneBIsStale), nameof(RenderedLaneAAlgorithm), nameof(RenderedLaneBAlgorithm), nameof(CalibStageCountDisplay),
-        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
+        nameof(CurrentRender), nameof(LastChain), nameof(HasPipelineDiagnostics), nameof(ChainStatus), nameof(RenderIdText), nameof(ExposureIndexText), nameof(PipelineTimings), nameof(DisplayPipelineSummary),
         nameof(RenderedVoiCenter), nameof(RenderedVoiWidth), nameof(RenderedVoiMode), nameof(RenderedVoiAutomatic),
+        nameof(MetricRows), nameof(MetricMeasurementNote), nameof(FooterSummary), nameof(FooterTimings), nameof(DisplayChainStatus),
         nameof(PreprocessRan), nameof(PreprocessStages), nameof(AiProcessedLabel), nameof(RenderedPreprocessWarning), nameof(HasRenderedPreprocessWarning),
     ];
 
@@ -1620,6 +1698,23 @@ public sealed class MainWindowViewModel : ObservableObject
             OnPropertyChanged(nameof(LaneBIsStale));
             OnPropertyChanged(nameof(LaneBDenoiseKApplies));
             OnPropertyChanged(nameof(LaneBDenoiseKUnapplied));
+        }
+    }
+
+    /// <summary>GUI-C-257: another control for the Candidate preset; never a second persisted grid mode.</summary>
+    public string CandidateGsvgMode
+    {
+        get => AlgorithmPreset.For(LaneBAlgorithm).GsvgMode;
+        set
+        {
+            var mode = GsvgModes.Normalize(value);
+            if (mode == CandidateGsvgMode) return;
+            LaneBAlgorithm = mode switch
+            {
+                GsvgModes.GridSuppression => "Grid suppression",
+                GsvgModes.VirtualGrid => "Virtual grid",
+                _ => "No grid correction"
+            };
         }
     }
 
@@ -2807,6 +2902,31 @@ public sealed class MainWindowViewModel : ObservableObject
         var loadedFrame = _backend.LoadRawImage(path, Settings);
         _openReadEndedAt = System.Diagnostics.Stopwatch.GetTimestamp();
         ActiveImageSourcePath = path;   // GUI-C-232b: only after the load SUCCEEDED, so a failed open never renames the image that is still open
+        // GUI-C-256: match the path, not the selected row; a manual open can replace a different selected image.
+        var normalizedPath = Path.GetFullPath(path);
+        var study = Studies.FirstOrDefault(s => string.Equals(Path.GetFullPath(s.RawPath), normalizedPath, StringComparison.OrdinalIgnoreCase));
+        if (study is null)
+        {
+            study = new StudyEntry
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Name = Path.GetFileName(path),
+                BodyPart = Settings.SelectedBodyPart,
+                RawPath = normalizedPath,
+                Source = "manual"
+            };
+            Studies.Add(study);
+        }
+        ActiveStudyId = study.Id;
+        ActiveVerdict = study.Status switch
+        {
+            StudyStatus.Pass => Verdict.Pass,
+            StudyStatus.Fail => Verdict.Fail,
+            StudyStatus.Defer => Verdict.Defer,
+            _ => null
+        };
+        VerdictNotes = study.VerdictNotes;
+        RefreshRunSetCounts();
         DrainBackendTelemetry();
 
         // GUI-C-233g: a new frame ends whatever render stood (one call; the record and everything derived from it go with it)
@@ -3584,6 +3704,11 @@ public sealed class MainWindowViewModel : ObservableObject
 
     private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(AppSettings.LaneBAlgorithm))
+        {
+            OnPropertyChanged(nameof(LaneBAlgorithm));
+            OnPropertyChanged(nameof(CandidateGsvgMode));
+        }
         RefreshParametersStale();   // #171 ①
 
         // GUI-C-234d: switching preprocessing on is the answer to the notice; the notice goes with it (and does not return if it is switched off again by hand).
@@ -3675,15 +3800,22 @@ public sealed class MainWindowViewModel : ObservableObject
             RaiseAlert(alert);
     }
 
-    private void RecordVerdict(Verdict verdict)
+    private bool RecordVerdict(Verdict verdict)
     {
-        ActiveVerdict = verdict;
+        var current = LoadedStudy();
+        if (current is null)
+        {
+            StatusText = "Verdict not recorded: no loaded study matches the current image.";
+            Log(StatusText);
+            return false;
+        }
 
         // #178: without a run id the path collapses to evidence/ itself; write nothing rather than that.
         if (string.IsNullOrWhiteSpace(RunSet.RunId))
         {
-            Log("Verdict not written to evidence: no run set has started.");
-            return;
+            StatusText = "Verdict not recorded: no run set has started.";
+            Log(StatusText);
+            return false;
         }
 
         var dir = Path.Combine(GuiDataPaths.Root, "evidence", RunSet.RunId);
@@ -3725,10 +3857,23 @@ public sealed class MainWindowViewModel : ObservableObject
         try
         {
             File.WriteAllText(path, JsonSerializer.Serialize(verdicts, new JsonSerializerOptions { WriteIndented = true }));
-            Log($"Verdict recorded: {ActiveStudyId} = {verdict}.");
+            ActiveVerdict = verdict;
+            current.Status = verdict switch
+            {
+                Verdict.Pass => StudyStatus.Pass,
+                Verdict.Defer => StudyStatus.Defer,
+                Verdict.Fail => StudyStatus.Fail,
+                _ => StudyStatus.Queued
+            };
+            current.VerdictNotes = VerdictNotes;
+            RefreshRunSetCounts();
+            StatusText = $"Verdict recorded: {ActiveStudyId} = {verdict}.";
+            Log(StatusText);
+            return true;
         }
         catch (Exception ex)
         {
+            StatusText = $"Verdict not recorded: {ex.Message}";
             Log($"Failed to write verdict file: {ex.Message}");
             RaiseAlert(new AlertEntry
             {
@@ -3737,35 +3882,47 @@ public sealed class MainWindowViewModel : ObservableObject
                 Message = ex.Message,
                 Timestamp = DateTimeOffset.Now
             });
+            return false;
         }
     }
 
     private void SaveAndNext()
     {
-        var current = Studies.FirstOrDefault(s => s.Id == ActiveStudyId);
-        if (current is not null && ActiveVerdict.HasValue)
+        var current = LoadedStudy();
+        if (current is null || !ActiveVerdict.HasValue)
         {
-            current.Status = ActiveVerdict.Value switch
-            {
-                Verdict.Pass => StudyStatus.Pass,
-                Verdict.Defer => StudyStatus.Defer,
-                Verdict.Fail => StudyStatus.Fail,
-                _ => StudyStatus.Queued
-            };
+            StatusText = current is null
+                ? "Verdict not recorded: no loaded study matches the current image."
+                : "Verdict not recorded: choose Pass, Defer or Fail first.";
+            Log(StatusText);
+            return;
         }
 
+        if (!RecordVerdict(ActiveVerdict.Value)) return;
         var next = Studies.FirstOrDefault(s => s.Status == StudyStatus.Queued);
-        ActiveStudyId = next?.Id ?? string.Empty;
-        ActiveVerdict = null;
-        VerdictNotes = string.Empty;
+        if (next is not null)
+        {
+            ActiveStudyId = next.Id;
+            ActiveVerdict = null;
+            VerdictNotes = string.Empty;
+        }
 
+        StatusText = next is not null ? $"Advanced to study '{next.Id}'." : "No more queued studies; current study retained.";
+        Log(StatusText);
+    }
+
+    private StudyEntry? LoadedStudy() => ActiveImageFrame is null || string.IsNullOrWhiteSpace(ActiveImageSourcePath)
+        ? null
+        : Studies.FirstOrDefault(s => s.Id == ActiveStudyId
+            && string.Equals(Path.GetFullPath(s.RawPath), Path.GetFullPath(ActiveImageSourcePath), StringComparison.OrdinalIgnoreCase));
+
+    private void RefreshRunSetCounts()
+    {
         RunSet.Passed = Studies.Count(s => s.Status == StudyStatus.Pass);
         RunSet.Failed = Studies.Count(s => s.Status == StudyStatus.Fail);
         RunSet.Deferred = Studies.Count(s => s.Status == StudyStatus.Defer);
         RunSet.Total = Studies.Count;
 
-        StatusText = next is not null ? $"Advanced to study '{next.Id}'." : "No more queued studies.";
-        Log(StatusText);
     }
 
     private void ResetLaneBOverrides()
@@ -4084,20 +4241,22 @@ public sealed class MainWindowViewModel : ObservableObject
             // The Reference IS what the main viewport just drew — same original, same settings. Running
             // the pipeline again for it would be a second computation of a result already in hand, and
             // it would not be the same claim either: two runs of one setting can only agree.
-            UpdateRender(renderId, r => r with { LaneA = reference });
+            UpdateRender(renderId, r => r with { LaneA = reference, LaneAFacts = LaneRenderFacts.From(r.Chain, r.Voi) });
 
             // With no override the Candidate is the Reference, so nothing is run for it either. That
             // keeps an ordinary apply at exactly one pipeline call — measured: adding a second and third
             // call broke W-23 and W-26, which count the calls an Apply makes through the fault-injection
             // seam. The cost is paid only when the user actually asks the two lanes to differ.
+            var candidate = inputs.Snapshot();
+            AlgorithmPreset.For(inputs.LaneBAlgorithm).ApplyTo(candidate);
             var differs = inputs.LaneBVoiWindowWidth > 0.0f
                 || !string.Equals(inputs.LaneBAlgorithm, inputs.LaneAAlgorithm, StringComparison.Ordinal)
+                || candidate.GsvgMode != inputs.GsvgMode
+                || candidate.PreprocessInChain != inputs.PreprocessInChain
                 || Math.Abs(inputs.LaneBGsvgDenoiseK - inputs.GsvgDenoiseK) > 0.0001;
 
             if (differs)
             {
-                var candidate = inputs.Snapshot();
-                AlgorithmPreset.For(inputs.LaneBAlgorithm).ApplyTo(candidate);
                 if (inputs.LaneBVoiWindowWidth > 0.0f)
                 {
                     candidate.VoiWindowWidth = inputs.LaneBVoiWindowWidth;
@@ -4108,18 +4267,18 @@ public sealed class MainWindowViewModel : ObservableObject
                 // it from the lane's settings without knowing a lane exists.
                 candidate.GsvgDenoiseK = inputs.LaneBGsvgDenoiseK;
 
-                var candidateImage = await Task.Run(() => RenderLane(backend, sourceFrame, candidate));
+                var candidateResult = await Task.Run(() => RenderLane(backend, sourceFrame, candidate));
                 if (!IsCurrent(ticket))
                 {
                     Log($"Lane B result dropped: {WhyStale(ticket)}");
                     return;
                 }
 
-                UpdateRender(renderId, r => r with { LaneB = candidateImage });
+                UpdateRender(renderId, r => r with { LaneB = candidateResult.Image, LaneBFacts = candidateResult.Facts });
             }
             else
             {
-                UpdateRender(renderId, r => r with { LaneB = reference });
+                UpdateRender(renderId, r => r with { LaneB = reference, LaneBFacts = r.LaneAFacts });
             }
         }
         catch (Exception ex)
@@ -4132,15 +4291,15 @@ public sealed class MainWindowViewModel : ObservableObject
             }
 
             Log($"Lane rendering failed: {ex.Message}");
-            UpdateRender(renderId, r => r with { LaneA = null, LaneB = null });
+            UpdateRender(renderId, r => r with { LaneA = null, LaneB = null, LaneAFacts = null, LaneBFacts = null });
         }
     }
 
-    private static System.Windows.Media.ImageSource? RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
+    private static (System.Windows.Media.ImageSource? Image, LaneRenderFacts Facts) RenderLane(IXpeBackend backend, LoadedImageFrame sourceFrame, AppSettings settings)
     {
         var chain = backend.RunChain(sourceFrame, ProcessingChainPlan.BuildStages(settings), settings);
         var frame = backend.ApplyDisplayPipeline(sourceFrame, chain, settings);
-        return frame.ProcessedPreview ?? frame.Preview;
+        return (frame.ProcessedPreview ?? frame.Preview, LaneRenderFacts.From(chain, RenderedVoi.From(settings, frame.AppliedVoi)));
     }
 
     /// <summary>

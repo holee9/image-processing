@@ -1,0 +1,8 @@
+fix(dicom): QA-B-210 C11 C-STORE 는 파일의 전송 구문 하나만 제안 (사용자 결정, 변환 없음)
+
+고정 목록(Explicit LE, JPEG 2000 Lossless, Implicit LE)을 제안해 피어가 파일과 다른 구문을 수락할 수 있었다. 파일 메타 (0002,0010) 하나만 제안한다(메타 없는 데이터셋은 DCMTK 가 감지한 구문, 둘 다 없으면 DICOM_INVALID). 피어가 거절하면 NETWORK_FAILED, C-STORE 미시도. MockScp 가 받은 연관 요청의 제안 목록을 구조적으로 캡처해 단언: Explicit LE 파일 -> 그 구문 하나, J2K 파일 -> J2K 하나, 진짜 Big Endian 파일(피어 미지원) -> NETWORK_FAILED + 저장 요청 0. HEAD 에서 3건 빨강, 수정 후 통과. 헤더 문서 갱신. ci-dicom 380/380.
+
+Card: QA-B-210 (C11)
+Refs #251
+
+🗿 MoAI

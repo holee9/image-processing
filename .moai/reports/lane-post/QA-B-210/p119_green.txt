@@ -1,0 +1,109 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 32 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 32 tests from DicomValidatorTest
+[ RUN      ] DicomValidatorTest.ValidateConformant_ReturnsValid
+[       OK ] DicomValidatorTest.ValidateConformant_ReturnsValid (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateMissingPatientID_ReportsError
+[       OK ] DicomValidatorTest.ValidateMissingPatientID_ReportsError (4 ms)
+[ RUN      ] DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid
+W: DcmItem: Length of element (4f4e,2054) is odd
+E: DcmElement: Unknown Tag & Data (4f4e,2054) larger (1229201473) than remaining bytes in file
+[2026-10-04 13:41:45.924] [error] [xpe_dicom] xpe_dicom_validate exit rc=-13 (Invalid or malformed DICOM file)
+[       OK ] DicomValidatorTest.ValidateNotDicom_ReturnsDicomInvalid (0 ms)
+[ RUN      ] DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall
+[2026-10-04 13:41:45.924] [error] [xpe_dicom] xpe_dicom_validate exit rc=-8 (Buffer too small)
+[       OK ] DicomValidatorTest.BufferTooSmall_ReturnsBufferTooSmall (0 ms)
+[ RUN      ] DicomValidatorTest.NullFilePath_ReturnsInvalidInput
+[2026-10-04 13:41:45.924] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[       OK ] DicomValidatorTest.NullFilePath_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomValidatorTest.NullOutBuf_ReturnsInvalidInput
+[2026-10-04 13:41:45.924] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[       OK ] DicomValidatorTest.NullOutBuf_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning
+[       OK ] DicomValidatorTest.ValidateBadUID_IsAnErrorAndNotAlsoAWarning (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall
+W: DcmItem: Length of element (4f4e,2054) is odd
+E: DcmElement: Unknown Tag & Data (4f4e,2054) larger (1229201473) than remaining bytes in file
+[2026-10-04 13:41:45.925] [error] [xpe_dicom] xpe_dicom_validate exit rc=-8 (Buffer too small)
+[       OK ] DicomValidatorTest.ValidateNotDicom_SmallBuffer_ReturnsBufferTooSmall (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall
+[2026-10-04 13:41:45.925] [error] [xpe_dicom] xpe_dicom_validate exit rc=-8 (Buffer too small)
+[       OK ] DicomValidatorTest.ValidateConformant_SmallBuffer_ReturnsBufferTooSmall (0 ms)
+[ RUN      ] DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing
+[       OK ] DicomValidatorTest.ValidateStrippedTags_ReportsAllMissing (5 ms)
+[ RUN      ] DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta
+[       OK ] DicomValidatorTest.ValidateDatasetWithoutMetaHeader_ReportsMissingMeta (5 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopClassMismatch_ReportsInconsistency (9 ms)
+[ RUN      ] DicomValidatorTest.ValidateWriterOutput_IsConformant
+[       OK ] DicomValidatorTest.ValidateWriterOutput_IsConformant (5 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopInstanceMismatch_ReportsInconsistency (6 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaMalformedTransferSyntax_ReportsInvalidUid (6 ms)
+[ RUN      ] DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant
+[       OK ] DicomValidatorTest.ValidateNonDxSopClass_RoundTripsAsConformant (6 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Invalid Element (0008,0016) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopClassEmpty_ReportsMissingMetaSopClass (6 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Invalid Element (0008,0016) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaSopInstanceEmpty_ReportsMissingMetaSopInstance (6 ms)
+[ RUN      ] DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax
+W: DcmFileFormat: Meta Information Header is not updated!
+W: DcmMetaInfo: Invalid Element (0008,0008) found in Meta Information Header
+W: DcmMetaInfo: Invalid Element (0008,0016) found in Meta Information Header
+W: DcmMetaInfo: Group Length of Meta Information Header has incorrect value
+[       OK ] DicomValidatorTest.ValidateMetaTransferSyntaxAbsent_ReportsMissingTransferSyntax (5 ms)
+[ RUN      ] DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput
+[2026-10-04 13:41:45.989] [error] [xpe_dicom] xpe_dicom_validate exit rc=-1 (Invalid input parameter)
+[       OK ] DicomValidatorTest.OutputBufferZeroLength_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow
+[2026-10-04 13:41:45.989] [error] [xpe_dicom] xpe_dicom_validate exit rc=-8 (Buffer too small)
+[       OK ] DicomValidatorTest.OutputBufferTooSmallForSizeReport_DoesNotOverflow (0 ms)
+[ RUN      ] DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize
+[2026-10-04 13:41:45.989] [error] [xpe_dicom] xpe_dicom_validate exit rc=-8 (Buffer too small)
+[       OK ] DicomValidatorTest.OutputBufferTooSmall_StillReportsRequiredSize (0 ms)
+[ RUN      ] DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag
+[       OK ] DicomValidatorTest.ARequiredTypeOneTagWithNoValueIsAnErrorWhateverTheKindOfTag (30 ms)
+[ RUN      ] DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty
+[       OK ] DicomValidatorTest.AValueThatIsPresentIsStillValidAndOnlyPaddingCountsAsEmpty (16 ms)
+[ RUN      ] DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages
+[       OK ] DicomValidatorTest.AMissingTagAndAnEmptyTagAreReportedWithDifferentMessages (11 ms)
+[ RUN      ] DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes
+[       OK ] DicomValidatorTest.PatientNameAndPatientIdWithNoValueAreConformantTypeTwoAttributes (40 ms)
+[ RUN      ] DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence
+[       OK ] DicomValidatorTest.PatientNameAndPatientIdThatAreAbsentAreStillAnErrorBecauseTypeTwoNeedsPresence (18 ms)
+[ RUN      ] DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt
+[       OK ] DicomValidatorTest.EveryRequiredAttributeIsJudgedByTheTypeTheStandardGivesIt (74 ms)
+[ RUN      ] DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData
+[       OK ] DicomValidatorTest.PixelDataProviderUrlIsJudgedByTheTransferSyntaxAndExcludesPixelData (72 ms)
+[ RUN      ] DicomValidatorTest.JpipPixelDataErrorCitesThePs35ClauseOfTheTransferSyntax
+[       OK ] DicomValidatorTest.JpipPixelDataErrorCitesThePs35ClauseOfTheTransferSyntax (9 ms)
+[ RUN      ] DicomValidatorTest.KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild
+[2026-10-04 13:41:46.269] [error] [xpe_dicom] xpe_dicom_validate exit rc=-13 (Invalid or malformed DICOM file)
+[2026-10-04 13:41:46.275] [error] [xpe_dicom] xpe_dicom_validate exit rc=-13 (Invalid or malformed DICOM file)
+[       OK ] DicomValidatorTest.KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild (11 ms)
+[ RUN      ] DicomValidatorTest.ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell
+[       OK ] DicomValidatorTest.ABlankUidIsReportedOnceAsNoValueAndItsFormatIsNotJudgedAsWell (32 ms)
+[----------] 32 tests from DicomValidatorTest (389 ms total)
+
+[----------] Global test environment tear-down
+[==========] 32 tests from 1 test suite ran. (415 ms total)
+[  PASSED  ] 32 tests.

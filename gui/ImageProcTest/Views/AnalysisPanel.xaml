@@ -3,10 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:viewModels="clr-namespace:ImageProcTest.ViewModels"
              xmlns:converters="clr-namespace:ImageProcTest.Converters"
+             xmlns:controls="clr-namespace:ImageProcTest.Controls"
              Width="380"
              Background="#14171e">
     <UserControl.Resources>
         <local:StringEqualsConverter x:Key="TabEquals" xmlns:local="clr-namespace:ImageProcTest.Views" />
+        <local:EnglishLogDisplayConverter x:Key="EnglishLogDisplay" xmlns:local="clr-namespace:ImageProcTest.Views" />
         <viewModels:StringEqualsConverter x:Key="StringEquals" />
         <converters:TabAndToggleVisibilityConverter x:Key="TabAndToggle" />
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
@@ -100,20 +102,20 @@
         <Rectangle DockPanel.Dock="Top" Height="1" Fill="#1AFFFFFF" />
 
         <!-- Tab content -->
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer AutomationProperties.AutomationId="AnalysisScroll" VerticalScrollBarVisibility="Auto">
             <Grid Margin="12">
                 <!-- Metrics tab -->
                 <StackPanel Visibility="{Binding AnalysisTab, Converter={StaticResource TabEquals}, ConverterParameter=metrics}">
-                    <TextBlock Text="Quantitative Quality" Foreground="#f0f2f5" FontSize="12"
+                    <TextBlock Text="Recorded processing measurements" Foreground="#f0f2f5" FontSize="12"
                                FontWeight="SemiBold" Margin="0,0,0,12" />
 
                     <!-- Metrics table header -->
                     <Grid Margin="0,0,0,4">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="100" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="60" />
-                            <ColumnDefinition Width="60" />
-                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="48" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Foreground="#5a5f6a" FontSize="9" Text="METRIC" />
                         <TextBlock Grid.Column="1" Foreground="#7dd3fc" FontSize="9" Text="LANE A" HorizontalAlignment="Right" />
@@ -123,30 +125,31 @@
 
                     <Rectangle Height="1" Fill="#1AFFFFFF" Margin="0,0,0,8" />
 
-                    <!-- Placeholder metrics rows -->
-                    <ItemsControl>
+                    <controls:AutomationBorder AutomationProperties.AutomationId="MetricsRows">
+                    <ItemsControl ItemsSource="{Binding MetricRows}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Grid Margin="0,0,0,6">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="60" />
-                                        <ColumnDefinition Width="60" />
-                                        <ColumnDefinition Width="50" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="48" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding Metric}" Foreground="#b0b6c0" FontSize="11" />
-                                    <TextBlock Grid.Column="1" Text="{Binding LaneA}" Foreground="#7dd3fc"
-                                               FontSize="11" HorizontalAlignment="Right" FontFamily="Consolas" />
-                                    <TextBlock Grid.Column="2" Text="{Binding LaneB}" Foreground="#c4b5fd"
-                                               FontSize="11" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                    <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricLabel:{0}}" Text="{Binding Metric}" Foreground="#b0b6c0" FontSize="10" TextWrapping="Wrap" />
+                                    <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricA:{0}}" Grid.Column="1" Text="{Binding LaneA}" Foreground="#7dd3fc"
+                                               FontSize="10" TextWrapping="Wrap" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                    <TextBlock AutomationProperties.AutomationId="{Binding Metric, StringFormat=MetricB:{0}}" Grid.Column="2" Text="{Binding LaneB}" Foreground="#c4b5fd"
+                                               FontSize="10" TextWrapping="Wrap" HorizontalAlignment="Right" FontFamily="Consolas" />
                                     <TextBlock Grid.Column="3" Text="{Binding Delta}" Foreground="#5a5f6a"
-                                               FontSize="11" HorizontalAlignment="Right" FontFamily="Consolas" />
+                                               FontSize="10" TextWrapping="Wrap" HorizontalAlignment="Right" FontFamily="Consolas" />
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                    </controls:AutomationBorder>
 
-                    <TextBlock Text="Metrics populated after pipeline run."
+                    <TextBlock Text="{Binding MetricMeasurementNote}"
                                Foreground="#5a5f6a" FontSize="10" TextWrapping="Wrap"
                                Margin="0,12,0,0" />
                 </StackPanel>
@@ -156,7 +159,7 @@
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="Calibration Stages" Foreground="#f0f2f5" FontSize="12"
                                    FontWeight="SemiBold" />
-                        <TextBlock AutomationProperties.AutomationId="CalibrationStagesUnappliedMark" Text="기본 3단계 연결" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="Offset/Gain/Defect: Auto는 존재하는 map을 loader로 검증, On은 map 필수, Off는 map을 로드하지 않습니다. Run은 요청 모드를 바꾸지 않습니다." />
+                        <TextBlock AutomationProperties.AutomationId="CalibrationStagesUnappliedMark" Text="3 calibration stages connected" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0" ToolTip="Offset/Gain/Defect: Auto validates available maps through the loader; On requires a map; Off does not load maps. Running never changes the requested mode." />
                     </StackPanel>
 
                     <StackPanel AutomationProperties.AutomationId="CalibrationStagesGroup">
@@ -186,7 +189,7 @@
                     </UniformGrid>
 
                     <!-- Ghost -->
-                    <StackPanel IsEnabled="False" ToolTip="Ghost/온도/비선형/Binning은 이 GUI 처리에 연결되지 않아 우회됩니다. 미정 계약을 자동으로 만들지 않습니다." ToolTipService.ShowOnDisabled="True">
+                    <StackPanel IsEnabled="False" ToolTip="Ghost, temperature, nonlinearity and binning are bypassed because this GUI does not connect them to processing. No undefined contract is inferred." ToolTipService.ShowOnDisabled="True">
                     <TextBlock Text="Ghost" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
                         <RadioButton AutomationProperties.AutomationId="CalibGhostModeAuto" Content="Auto" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
@@ -256,20 +259,20 @@
                              BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" Margin="0,0,0,8"
                              ToolTip="Tube voltage of the exposure. One value for every chain stage that needs it (default 70)." />
                     <TextBlock AutomationProperties.AutomationId="ExposureKvpPendingMark"
-                               Text="연결 대기 — #180"
+                               Text="Connection pending — #180"
                                Foreground="#7dd3fc" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,8"
-                               ToolTip="전처리 세 단계는 이 값을 읽지 않습니다(측정: GUI-C-100). 가상 격자를 켜면 vg_kvp 로 쓰입니다 — #180." />
+                               ToolTip="The three preprocessing stages do not read this value (GUI-C-100). Virtual grid uses it as vg_kvp when enabled — #180." />
 
                     <TextBlock Text="Grid correction" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,8">
                         <RadioButton AutomationProperties.AutomationId="GsvgModeNone" Content="None" GroupName="GsvgMode"
-                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=None}"
+                                     IsChecked="{Binding CandidateGsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=None}"
                                      Foreground="#8a909c" FontSize="10" />
                         <RadioButton AutomationProperties.AutomationId="GsvgModeGridSuppression" Content="Suppress" GroupName="GsvgMode"
-                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=GridSuppression}"
+                                     IsChecked="{Binding CandidateGsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=GridSuppression}"
                                      Foreground="#8a909c" FontSize="10" />
                         <RadioButton AutomationProperties.AutomationId="GsvgModeVirtualGrid" Content="Virtual" GroupName="GsvgMode"
-                                     IsChecked="{Binding Settings.GsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=VirtualGrid}"
+                                     IsChecked="{Binding CandidateGsvgMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=VirtualGrid}"
                                      Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
@@ -390,16 +393,16 @@
                                    FontWeight="SemiBold" />
                         <!-- #173 (GUI-C-117): shown only while the value cannot reach a pixel — the
                              Candidate is not running the virtual grid, or its pyramid is off. -->
-                        <TextBlock AutomationProperties.AutomationId="LaneBOverridesUnappliedMark" Text="미적용" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"
+                        <TextBlock AutomationProperties.AutomationId="LaneBOverridesUnappliedMark" Text="Not applied" Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" Margin="8,0,0,0"
                                    Visibility="{Binding LaneBDenoiseKUnapplied, Converter={StaticResource BoolToVisibility}}"
-                                   ToolTip="Lane B 가 가상 그리드를 돌고 피라미드 단계가 0 보다 클 때만 vg_denoise_k 가 전달됩니다 (#173)." />
+                                   ToolTip="vg_denoise_k reaches Lane B only when Virtual grid is selected and pyramid levels are greater than zero (#173)." />
                     </StackPanel>
 
                     <!-- #173 (GUI-C-117): the Candidate's own vg_denoise_k. Enabled only while it can
                          reach pixels; GuiGsvgRunner sends the key as null outside the virtual grid. -->
                     <StackPanel AutomationProperties.AutomationId="LaneBOverridesGroup"
                                 IsEnabled="{Binding LaneBDenoiseKApplies}"
-                                ToolTip="Lane B 가 가상 그리드를 돌고 피라미드 단계가 0 보다 클 때만 vg_denoise_k 가 전달됩니다 (#173)." ToolTipService.ShowOnDisabled="True">
+                                ToolTip="vg_denoise_k reaches Lane B only when Virtual grid is selected and pyramid levels are greater than zero (#173)." ToolTipService.ShowOnDisabled="True">
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -549,12 +552,13 @@
                              FontFamily="Consolas" FontSize="11">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding}" TextWrapping="Wrap"
+                                <TextBlock Text="{Binding Converter={StaticResource EnglishLogDisplay}}" TextWrapping="Wrap"
                                            Foreground="#b0b6c0" Margin="0,2" />
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
+                                <Setter Property="AutomationProperties.Name" Value="{Binding Converter={StaticResource EnglishLogDisplay}}" />
                                 <Setter Property="Padding" Value="4,2" />
                                 <Setter Property="Background" Value="Transparent" />
                             </Style>

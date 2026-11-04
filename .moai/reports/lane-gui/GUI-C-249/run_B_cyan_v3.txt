@@ -1,0 +1,61 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:13.71]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings [13 s]
+  표준 출력 메시지:
+    calibration folder: D:\workspace-github\xpe-data\calib-cyan-v3
+    raw frame: D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw (18874368 bytes)
+    dialog: 'Load Raw Image'
+    native (+4 ms): dialog 0x68068A open; app windows: 0x7071A Auto-Suggest Dropdown (hidden), 0xB404B0 Auto-Suggest Dropdown (hidden), 0x2D0718 tooltips_class32 (hidden), 0x7C05D2 tooltips_class32 (hidden), 0x707EC tooltips_class32 (hidden), 0x4079C tooltips_class32 (hidden), 0x5F090E ComboLBox (hidden), 0x707CC tooltips_class32 (hidden), 0x18208C6 _SearchEditBoxFakeWindow (hidden), 0x40862 tooltips_class32 (hidden), 0x7203F4 tooltips_class32 (hidden), 0x9D064E tooltips_class32 (hidden), 0x80734 HwndWrapper[ImageProcTest;;58495579-596b-4bd2-815d-439104feec5e, 0x40890 ComboLBox (hidden), 0x22F0696 ComboLBox (hidden), 0x300714 WorkerW (hidden), 0x1B03DC TabletPenServiceHelperClass (hidden), 0x150310 HwndWrapper[ImageProcTest;;59942f56-f11c-4a5d-bffb-e627b46f1a0e (hidden), 0x707E6 HwndWrapper[ImageProcTest;;c3f87b97-ce0c-4bdc-a5ae-da635616b3c2 (hidden), 0x50836 HwndWrapper[ImageProcTest;;d81115eb-bdeb-4259-bb74-2fec9b883a76 (hidden), 0xB3020E HwndWrapper[ImageProcTest;;fac423e4-41fb-49c1-8f02-e8ad4153e549 (hidden), 0x7B0678 CiceroUIWndFrame (hidden), 0xE30524 MSCTFIME UI (hidden), 0xC00660 IME (hidden), 0x6203C2 IME (hidden), 0x840318 CiceroUIWndFrame (hidden)
+    native (+218 ms): dialog 0x68068A gone; app windows: 0x80734 HwndWrapper[ImageProcTest;;58495579-596b-4bd2-815d-439104feec5e, 0x1B03DC TabletPenServiceHelperClass (hidden), 0x150310 HwndWrapper[ImageProcTest;;59942f56-f11c-4a5d-bffb-e627b46f1a0e (hidden), 0x707E6 HwndWrapper[ImageProcTest;;c3f87b97-ce0c-4bdc-a5ae-da635616b3c2 (hidden), 0x50836 HwndWrapper[ImageProcTest;;d81115eb-bdeb-4259-bb74-2fec9b883a76 (hidden), 0xB3020E HwndWrapper[ImageProcTest;;fac423e4-41fb-49c1-8f02-e8ad4153e549 (hidden), 0x7B0678 CiceroUIWndFrame (hidden), 0xE30524 MSCTFIME UI (hidden), 0xC00660 IME (hidden), 0x6203C2 IME (hidden), 0x840318 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    ok: preprocess=Applied
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=277 ms, enhance_basic=281 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    HUD: 'Calib:  3 stages (offset · gain · defect)'
+    status: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3667.693, W=1129.824) -> GSDF(off) | Exposure index: uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    STAGES [05:56:22.619] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    STAGES [05:56:22.491] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    log lines: 26; ALERT lines: 2
+    ALERT [05:56:22.618] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=11.00 (outside [-3.0, +3.0] range)
+    ALERT [05:56:15.448] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [05:56:22.862] open-to-2nd-tick (proxy) #1: 1301 ms = read 322 + prepare 28 + chain-and-display 707 [preprocess=277 ms, enhance_basic=281 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 242
+    LOG [05:56:22.619] Chain ai_bone_suppress: NotRequested — switched off
+    LOG [05:56:22.619] Chain gsvg: NotRequested — switched off
+    LOG [05:56:22.619] Chain enhance_basic: Applied — enhance_basic: log ok 31 ms; noise(bilateral 3/50) ok 66 ms; contrast(clahe 3 8x8) ok 73 ms; edge(usm 0.5/2/10) ok 46 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [05:56:22.619] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [05:56:22.616] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3667.693, W=1129.824) -> GSDF(off)
+    LOG [05:56:22.509] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-249-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+    LOG [05:56:22.491] ai_bone_suppress: NotRequested — switched off
+    LOG [05:56:22.491] gsvg: NotRequested — switched off
+    LOG [05:56:22.491] enhance_basic: Applied — enhance_basic: log ok 31 ms; noise(bilateral 3/50) ok 66 ms; contrast(clahe 3 8x8) ok 73 ms; edge(usm 0.5/2/10) ok 46 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [05:56:22.491] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [05:56:22.201] Drained 1 native alert(s) from the xpe_common queue.
+    LOG [05:56:21.911] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [05:56:21.884] Loaded raw image 'D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw'.
+    LOG [05:56:21.560] LoadRawImage('D:\workspace-github\image-processing\tests\test_data\cyan_test\Bright_Foot phantom_55kv_200ma_8mas(SID_110)_03.raw') invoked.
+    LOG [05:56:15.449] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [05:56:15.448] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-249-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+    LOG [05:56:15.440] Display version = 1.0.0
+    LOG [05:56:15.440] xpe_display.dll = D:\workspace-github\xpe-data\gui-249-dlls\xpe_display.dll
+    LOG [05:56:15.440] xpe_common.dll = D:\workspace-github\xpe-data\gui-249-dlls\xpe_common.dll
+    LOG [05:56:15.440] Requested backend mode = Native
+    LOG [05:56:15.440] RealXpeBackend bootstrap started.
+    LOG [05:56:15.434] --- backend re-initialised ---
+    LOG [05:56:15.431] GUI-S0 initialized.
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 14.0379 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

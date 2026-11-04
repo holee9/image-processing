@@ -1,0 +1,6 @@
+  Candidate Virtual request observed; actual radios, stale tag, refused/PRE-skipped/AppliedNoChange/NotRequested outcomes checked
+  scenario 'GUI-C-257 lane selection and result contract': 462 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[GUI-C-257 lane selection and result contract] equal picker names must still honor B preset when stored main mode differs
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run(Boolean studyContractOnly, Boolean laneContractOnly) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 512
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 16

@@ -125,11 +125,28 @@ XpeErrorCode DicomNetworkSCU::cstore(const char* host,
         scu.setDIMSETimeout(static_cast<Uint32>(timeoutSeconds(timeoutMs)));
     }
 
-    // Add presentation context for the SOP class
+    // QA-B-210 C11 (#251, user decision): propose ONE transfer syntax -- the one the file is in, (0002,0010) of its meta header --
+    // and never convert. Offering a fixed list (Explicit LE, JPEG 2000 Lossless, Implicit LE) let a peer accept a syntax the file
+    // is not in. A peer that does not support the file's syntax refuses the presentation context, no context is accepted, the
+    // association fails (negotiateAssociation below: XPE_ERR_NETWORK_FAILED) and no C-STORE is attempted.
+    // A file without the meta element (a bare dataset) is judged by the syntax DCMTK detected when it loaded it; if neither exists
+    // there is nothing honest to propose and the file is not a usable DICOM file for this call (XPE_ERR_DICOM_INVALID).
+    OFString fileTransferSyntax;
+    if (dcmff.getMetaInfo()) {
+        dcmff.getMetaInfo()->findAndGetOFString(DCM_TransferSyntaxUID, fileTransferSyntax);
+    }
+    if (fileTransferSyntax.empty()) {
+        const E_TransferSyntax detected = ds->getOriginalXfer();
+        if (detected != EXS_Unknown) {
+            fileTransferSyntax = DcmXfer(detected).getXferID();
+        }
+    }
+    if (fileTransferSyntax.empty()) {
+        spdlog::error("[DicomNetworkSCU] cstore: the file carries no transfer syntax (0002,0010) and none could be detected");
+        return XPE_ERR_DICOM_INVALID;
+    }
     OFList<OFString> transferSyntaxes;
-    transferSyntaxes.push_back(OFString(UID_LittleEndianExplicitTransferSyntax));
-    transferSyntaxes.push_back(OFString(UID_JPEG2000LosslessOnlyTransferSyntax));
-    transferSyntaxes.push_back(OFString(UID_LittleEndianImplicitTransferSyntax));
+    transferSyntaxes.push_back(fileTransferSyntax);
 
     scu.addPresentationContext(sopClassUID, transferSyntaxes);
 

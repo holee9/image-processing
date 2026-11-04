@@ -55,3 +55,11 @@ public sealed class ZoomPercentConverter : IValueConverter
         return System.Windows.Data.Binding.DoNothing;
     }
 }
+
+public sealed class BannerBelowHudConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        new Thickness(12, Math.Max(60, value is double height ? height + 20 : 60), 12, 0);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}

@@ -706,7 +706,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     }
 
     private static string StatusText(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
+        WorkbenchObservation.FullStatusText(window);
 
     /// <summary>
     /// C-10 (GUI-C-201, approved after GUI-C-200): the model directory typed again with only its CASE changed is the same directory, so the session is kept; the module compares the
@@ -1137,7 +1137,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     }
 
     private static string ChainText(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"))?.Name ?? string.Empty;
+        WorkbenchObservation.FullChainText(window);
 
     private static string WaitForChain(Window window, string expected)
     {

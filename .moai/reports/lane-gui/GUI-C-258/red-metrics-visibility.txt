@@ -1,0 +1,53 @@
+﻿Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0xC309E2 pid=7048 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+dotnet.exe : [xUnit.net 00:00:02.70]     ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_MetricsF
+ooterAndPipelineOrder_AreVisibleAndDistinct [FAIL]
+위치 줄:1 문자:330
++ ... ib-real-v2';& 'C:/Program Files/dotnet/dotnet.exe' test clients/Image ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([xUnit.net 00:0...Distinct [FAIL]:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[xUnit.net 00:00:02.70]       Assert.False() Failure
+[xUnit.net 00:00:02.70]       Expected: False
+[xUnit.net 00:00:02.70]       Actual:   True
+[xUnit.net 00:00:02.70]       Stack Trace:
+[xUnit.net 00:00:02.70]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs(75,0): at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_MetricsFooterAndPipelineOrder_AreVisibleAndDistinct()
+[xUnit.net 00:00:02.70]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:02.70]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:02.70]       Output:
+[xUnit.net 00:00:02.70]         D258 visible footer: preprocess skipped · enhance_basic applied · gsvg off · ai_bone_suppress off · auto C 4021.869 / W 1395.963 | preprocess 2.47 ms · enhance_basic 37.065 ms · gsvg 0 ms · ai_bone_suppress 0 ms | WARN: Preprocessing is on but was skipped: no selected calibration: all stages Off or Auto without maps; executed=[]; input kept The image is shown WITHOUT offset/gain/defect correction.
+[xUnit.net 00:00:02.70]         D258 actual Metrics:  | MetricRow { Metric = preprocess, LaneA = Skipped · 2.47 ms, LaneB = Skipped · 0.073 ms, Delta =  } | preprocess | preprocess | Skipped · 2.47 ms | Skipped · 0.073 ms |  | MetricRow { Metric = enhance_basic, LaneA = Applied · 37.065 ms, LaneB = Applied · 30.7 ms, Delta = -6.365 ms } | enhance_basic | enhance_basic | Applied · 37.065 ms | Applied · 30.7 ms | -6.365 ms | MetricRow { Metric = gsvg, LaneA = NotRequested · 0 ms, LaneB = AppliedNoChange · 13.236 ms, Delta =  } | gsvg | gsvg | NotRequested · 0 ms | AppliedNoChange · 13.236 ms |  | MetricRow { Metric = ai_bone_suppress, LaneA = NotRequested · 0 ms, LaneB = NotRequested · 0 ms, Delta =  } | ai_bone_suppress | ai_bone_suppress | NotRequested · 0 ms | NotRequested · 0 ms |  | MetricRow { Metric = VOI source, LaneA = automatic, LaneB = automatic, Delta =  } | VOI source | VOI source | automatic | automatic |  | MetricRow { Metric = VOI center, LaneA = 4021.869, LaneB = 4021.869, Delta = 0 } | VOI center | VOI center | 4021.869 | 4021.869 | 0 | MetricRow { Metric = VOI width, LaneA = 1395.963, LaneB = 1395.963, Delta = 0 } | VOI width | VOI width | 1395.963 | 1395.963 | 0 | MetricRow { Metric = Calibration stages, LaneA = not run, LaneB = not run, Delta =  } | Calibration stages | MetricRow { Metric = EI/DI · measured, not a pass criterion, LaneA = Exposure index: not measured (preprocessing did not run: no selected calibration)., LaneB = Exposure index: not measured (preprocessing did not run: no selected calibration)., Delta =  } | EI/DI · measured, not a pass criterion | EI/DI · measured, not a pass criterion | Exposure index: not measured (preprocessing did not run: no selected calibration). | Exposure index: not measured (preprocessing did not run: no selected calibration). | 
+[xUnit.net 00:00:02.70]         D258 calibration geometry before assertion: row={X=0,Y=0,Width=0,Height=0}; offscreen=True; scroll={X=1536,Y=596,Width=380,Height=594}; verticallyScrollable=False; percent=-1; values=A: not run; B: not run; Delta: 
+[xUnit.net 00:00:02.72]   Finished:    ImageProcTest.E2ETests
+  Failed ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_MetricsFooterAndPipelineOrder_AreVisibleAndDistinct [954 ms]
+  Error Message:
+   Assert.False() Failure
+Expected: False
+Actual:   True
+  Stack Trace:
+     at ImageProcTest.E2ETests.Scenarios.Workflows.StateDisplayScenarios.D258_MetricsFooterAndPipelineOrder_AreVisibleAndDistinct() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\StateDisplayScenarios.cs:line 75
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Standard Output Messages:
+ D258 visible footer: preprocess skipped · enhance_basic applied · gsvg off · ai_bone_suppress off · auto C 4021.869 / W 1395.963 | preprocess 2.47 ms · enhance_basic 37.065 ms · gsvg 0 ms · ai_bone_suppress 0 ms | WARN: Preprocessing is on but was skipped: no selected calibration: all stages Off or Auto without maps; executed=[]; input kept The image is shown WITHOUT offset/gain/defect correction.
+ D258 actual Metrics:  | MetricRow { Metric = preprocess, LaneA = Skipped · 2.47 ms, LaneB = Skipped · 0.073 ms, Delta =  } | preprocess | preprocess | Skipped · 2.47 ms | Skipped · 0.073 ms |  | MetricRow { Metric = enhance_basic, LaneA = Applied · 37.065 ms, LaneB = Applied · 30.7 ms, Delta = -6.365 ms } | enhance_basic | enhance_basic | Applied · 37.065 ms | Applied · 30.7 ms | -6.365 ms | MetricRow { Metric = gsvg, LaneA = NotRequested · 0 ms, LaneB = AppliedNoChange · 13.236 ms, Delta =  } | gsvg | gsvg | NotRequested · 0 ms | AppliedNoChange · 13.236 ms |  | MetricRow { Metric = ai_bone_suppress, LaneA = NotRequested · 0 ms, LaneB = NotRequested · 0 ms, Delta =  } | ai_bone_suppress | ai_bone_suppress | NotRequested · 0 ms | NotRequested · 0 ms |  | MetricRow { Metric = VOI source, LaneA = automatic, LaneB = automatic, Delta =  } | VOI source | VOI source | automatic | automatic |  | MetricRow { Metric = VOI center, LaneA = 4021.869, LaneB = 4021.869, Delta = 0 } | VOI center | VOI center | 4021.869 | 4021.869 | 0 | MetricRow { Metric = VOI width, LaneA = 1395.963, LaneB = 1395.963, Delta = 0 } | VOI width | VOI width | 1395.963 | 1395.963 | 0 | MetricRow { Metric = Calibration stages, LaneA = not run, LaneB = not run, Delta =  } | Calibration stages | MetricRow { Metric = EI/DI · measured, not a pass criterion, LaneA = Exposure index: not measured (preprocessing did not run: no selected calibration)., LaneB = Exposure index: not measured (preprocessing did not run: no selected calibration)., Delta =  } | EI/DI · measured, not a pass criterion | EI/DI · measured, not a pass criterion | Exposure index: not measured (preprocessing did not run: no selected calibration). | Exposure index: not measured (preprocessing did not run: no selected calibration). | 
+ D258 calibration geometry before assertion: row={X=0,Y=0,Width=0,Height=0}; offscreen=True; scroll={X=1536,Y=596,Width=380,Height=594}; verticallyScrollable=False; percent=-1; values=A: not run; B: not run; Delta: 
+
+
+
+Test Run Failed.
+Total tests: 1
+     Failed: 1
+ Total time: 3.0263 Seconds
+
+Workload updates are available. Run `dotnet workload list` for more information.

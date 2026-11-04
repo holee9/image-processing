@@ -6,6 +6,22 @@ using ImageProcTest.Services;
 // assembly in its own output directory, and only a build of THIS project refreshes it.
 RunnerBuildFreshness.EnsureRunnerCarriesCurrentApp("ImageProcTest.SelfCheck");
 
+if (args.Contains("--study-contract"))
+{
+    ImageProcTest.SelfCheck.LifetimeScenarios.Run(studyContractOnly: true);
+    return;
+}
+if (args.Contains("--lane-contract"))
+{
+    ImageProcTest.SelfCheck.LifetimeScenarios.Run(laneContractOnly: true);
+    return;
+}
+if (args.Contains("--display-contract"))
+{
+    ImageProcTest.SelfCheck.LifetimeScenarios.Run(displayContractOnly: true);
+    return;
+}
+
 var repoRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
 var fixtureRoot = GuiFixtureManifestService.GetRepositoryFixtureRoot(repoRoot);
 var manifest = GuiFixtureManifestService.LoadFromRepository(repoRoot);

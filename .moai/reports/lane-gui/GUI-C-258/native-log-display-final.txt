@@ -1,0 +1,8 @@
+Parent Native wrist observation; 2026-11-04 08:35-08:37 KST.
+Own Debug ImageProcTest PID1656; existing native/calibration paths as report.md.
+Method: sky.get_window_state(window=the uniquely returned own Debug GUI, include_text=true).
+Count: (accessibility.tree.match(/보정 안 된 EI/g) || []).length
+Observed output: Targeted Korean Log phrase count: 0
+Positive observed ListBoxItem and TextBlock display:
+[08:35:06.602] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out; requested=[offset:Auto,gain:Auto,defect:Auto]; executed=[offset,gain,defect]; nativeFlags=0x201c; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; 3072x3072 (Abdomen). uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+This observes displayed/accessibility text, not raw Logs storage or the actual EI clipboard operation.

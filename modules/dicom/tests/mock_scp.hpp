@@ -32,6 +32,7 @@
 #include <chrono>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace xpe_test {
 
@@ -68,6 +69,19 @@ public:
     /// QA-B-209 C8: a copy of the identifier (query dataset) of the LAST C-FIND this SCP received, so a test can assert the
     /// SHAPE of the query the SCU built (the reply is canned and does not depend on it). Written by the listener thread
     /// before it answers, so a test that has seen the SCU's call return may read it.
+    /// QA-B-210 C11: what one association REQUEST proposed -- the abstract syntax of each presentation context and the transfer
+    /// syntaxes offered for it, read from the request itself (not inferred from the SCU's source).
+    struct Proposal {
+        std::string abstractSyntax;
+        std::vector<std::string> transferSyntaxes;
+    };
+    /// Association requests received so far, and the proposals of the LAST one.
+    std::atomic<int> associationRequests{0};
+    std::vector<Proposal> lastProposals() {
+        const std::lock_guard<std::mutex> lock(m_queryMutex);
+        return m_lastProposals;
+    }
+
     DcmDataset lastFindQuery() {
         const std::lock_guard<std::mutex> lock(m_queryMutex);
         return m_lastFindQuery;
@@ -208,6 +222,7 @@ private:
     std::atomic<bool> m_stopRequested{false};
     std::mutex        m_queryMutex;
     DcmDataset        m_lastFindQuery;
+    std::vector<Proposal> m_lastProposals;
 };
 
 /**

@@ -1,0 +1,42 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+Application failed to exit
+[xUnit.net 00:00:11.79]     ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved [FAIL]
+[xUnit.net 00:00:11.80]       the dialog's confirm button (id 1) was not found
+[xUnit.net 00:00:11.80]       Stack Trace:
+[xUnit.net 00:00:11.80]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(1776,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.DriveDialog(String path, String confirmId, Action beforeConfirm)
+[xUnit.net 00:00:11.80]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(1710,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.InvokeMenuItemThenDialog(String automationId, String path, String confirmId, Action beforeConfirm)
+[xUnit.net 00:00:11.80]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\RealTestScenarios.cs(64,0): at ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved()
+[xUnit.net 00:00:11.80]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:11.80]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:11.80]       Output:
+[xUnit.net 00:00:11.80]            dialog: 'Load Raw Image'
+[xUnit.net 00:00:11.81]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved [11 s]
+  오류 메시지:
+   the dialog's confirm button (id 1) was not found
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.DriveDialog(String path, String confirmId, Action beforeConfirm) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1776
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.InvokeMenuItemThenDialog(String automationId, String path, String confirmId, Action beforeConfirm) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1710
+   at ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\RealTestScenarios.cs:line 64
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 12.1370 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

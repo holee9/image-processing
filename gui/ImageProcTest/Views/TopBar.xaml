@@ -35,6 +35,9 @@
                     <Run Text="ImageProcTest GUI" /><Run Text=" · " />
                     <Run Text="Run #" /><Run Text="{Binding RunSet.RunId, FallbackValue=—}" />
                 </TextBlock>
+                <TextBlock x:Name="RuntimeCommonVersionText" AutomationProperties.AutomationId="RuntimeCommonVersionText"
+                           Text="{Binding RuntimeVersionSummary}" ToolTip="{Binding RuntimeVersionSummary}"
+                           Foreground="#8a909c" FontSize="9" MaxWidth="280" TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </StackPanel>
 
@@ -127,10 +130,10 @@
                           IsChecked="{Binding FocusMode, Mode=OneWay}"
                           Padding="12,6" FontSize="11" FontWeight="Medium"
                           Margin="0,0,4,0" Cursor="Hand"
-                          IsEnabled="False" ToolTip="처리 연결 없음 — #182. 포커스 모드는 설계 Slice 8(좌우 패널을 36 px 레일로 접기)이 구현되지 않아 화면을 바꾸지 않습니다." ToolTipService.ShowOnDisabled="True" />
-            <TextBlock AutomationProperties.AutomationId="FocusModeUnappliedMark" Text="미적용"
+                          IsEnabled="False" ToolTip="Not connected — #182. Focus mode does not change the screen: collapsing the side panels into 36 px rails (Slice 8) is not implemented." ToolTipService.ShowOnDisabled="True" />
+            <TextBlock AutomationProperties.AutomationId="FocusModeUnappliedMark" Text="Not applied"
                        Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"
-                       Margin="0,0,8,0" ToolTip="처리 연결 없음 — #182. 포커스 모드는 설계 Slice 8(좌우 패널을 36 px 레일로 접기)이 구현되지 않아 화면을 바꾸지 않습니다." />
+                       Margin="0,0,8,0" ToolTip="Not connected — #182. Focus mode does not change the screen: collapsing the side panels into 36 px rails (Slice 8) is not implemented." />
 
             <!-- Ghost icon buttons: search, settings, help -->
             <Button Content="⌕" Width="36" Height="36" FontSize="14"

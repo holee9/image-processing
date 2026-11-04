@@ -184,7 +184,7 @@ public sealed class EvidenceBundleScenarios(ITestOutputHelper output)
         Buttons(window).First(b => b.Name == "Export bundle").AsButton().Invoke();
         Thread.Sleep(1200);
 
-        var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
+        var status = WorkbenchObservation.FullStatusText(window);
         output.WriteLine($"{scenario} status-bar='{RuntimeSummary(window)}' export='{status}'");
         if (!status.StartsWith(ExportedPrefix, StringComparison.Ordinal))
         {
