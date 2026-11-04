@@ -67,7 +67,7 @@ public sealed class WorkflowScenarios
             // it more directly, but it lives inside the Analysis panel's "log" tab and is not in the
             // UIA tree until that tab is selected — measured, same lazy-realisation trap as the menus
             // in GUI-C-29.
-            Assert.Contains("CalibrationEval", status.Name, StringComparison.Ordinal);
+            Assert.Contains("CalibrationEval", FullStatusText(window), StringComparison.Ordinal);
         });
     }
 

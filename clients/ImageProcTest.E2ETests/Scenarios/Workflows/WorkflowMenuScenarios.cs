@@ -225,7 +225,7 @@ public sealed class WorkflowMenuScenarios(WorkflowApplicationFixture app, ITestO
             });
 
             Assert.True(status is not null, "The status bar never reported a fixture-pack state.");
-            var text = status!.Name ?? string.Empty;
+            var text = status!.HelpText ?? string.Empty;
             output.WriteLine($"W-10 status: {text}");
 
             // Verified against the filesystem rather than accepting whichever line appeared: an app
