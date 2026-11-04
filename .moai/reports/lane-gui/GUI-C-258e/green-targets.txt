@@ -1,0 +1,17 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,9): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,27): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,43): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(86,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MenuBehaviorScenarios.cs(195,40): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MenuBehaviorScenarios.cs(199,39): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs(325,17): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+  ImageProcTest.E2ETests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    10, Skipped:     0, Total:    10, Duration: 3 m 19 s - ImageProcTest.E2ETests.dll (net8.0)
+
+Workload updates are available. Run `dotnet workload list` for more information.

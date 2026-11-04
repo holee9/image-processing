@@ -861,7 +861,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
             app.Menu("FileMenu");
             app.InvokeMenuItemThenDialog("OpenRawMenuItem", raw, confirmId: "1");
             var bytes = (long)width * height * 2;
-            app.WaitFor(() => app.AnyTextContains($"Load failed: Raw file has {bytes} bytes, more than the 2097152 bytes of 1024x1024"), "the square file is refused with the numbers", 90);
+            app.WaitFor(() => app.Read("StatusBarText").Contains($"Load failed: Raw file has {bytes} bytes, more than the 2097152 bytes of 1024x1024", StringComparison.Ordinal), "the square file is refused with the numbers", 90);
             foreach (var text in app.TextsContaining("Load failed")) output.WriteLine("   error: " + text);
             Assert.False(app.AnyTextContains($"RAW {width}x{height}"), "the file was opened at a guessed size");
         }
@@ -876,7 +876,7 @@ public sealed class QuickStartWalkthroughScenarios(ITestOutputHelper output)
                 app.Step($"B: a {w}x{h} file (not square, not the settings' size)");
                 app.Menu("FileMenu");
                 app.InvokeMenuItemThenDialog("OpenRawMenuItem", odd, confirmId: "1");
-                app.WaitFor(() => app.AnyTextContains(expectedText), "the refusal names the numbers", 30);
+                app.WaitFor(() => app.Read("StatusBarText").Contains(expectedText, StringComparison.Ordinal), "the refusal names the numbers", 30);
                 foreach (var text in app.TextsContaining("Load failed")) output.WriteLine("   error: " + text);
             }
             finally

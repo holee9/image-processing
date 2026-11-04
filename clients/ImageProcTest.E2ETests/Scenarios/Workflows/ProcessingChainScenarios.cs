@@ -160,13 +160,13 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
 
         try
         {
-            SetGsvgMode(window, "GsvgModeNone");
+            SetMainGsvgMode(window, "GsvgModeNone");
             ApplyDisplayPipeline(window);
             var off = WaitForChain(window, "gsvg=NotRequested");
             var offHash = DrawnHash(window);
             output.WriteLine($"C03 {mode} off: chain='{off}' hash={offHash}");
 
-            SetGsvgMode(window, radioId);
+            SetMainGsvgMode(window, radioId);
             ApplyDisplayPipeline(window);
 
             if (app.BackendMode != "Native")
@@ -195,7 +195,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         }
         finally
         {
-            SetGsvgMode(window, "GsvgModeNone");
+            SetMainGsvgMode(window, "GsvgModeNone");
             ApplyDisplayPipeline(window);
         }
     }
@@ -211,12 +211,12 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
 
         try
         {
-            SetGsvgMode(window, "GsvgModeNone");
+            SetMainGsvgMode(window, "GsvgModeNone");
             ApplyDisplayPipeline(window);
             var offHash = DrawnHash(window);
 
             SetText(window, "GsvgTablePathInput", @"D:\no\such\table.csv");
-            SetGsvgMode(window, "GsvgModeVirtualGrid");
+            SetMainGsvgMode(window, "GsvgModeVirtualGrid");
             ApplyDisplayPipeline(window);
 
             var status = WaitForChain(window, "gsvg=RequestedNotApplied");
@@ -226,7 +226,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         finally
         {
             SetText(window, "GsvgTablePathInput", string.Empty);
-            SetGsvgMode(window, "GsvgModeNone");
+            SetMainGsvgMode(window, "GsvgModeNone");
             ApplyDisplayPipeline(window);
         }
     }
@@ -246,7 +246,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         try
         {
             SetNumber(window, "GsvgGridRatioInput", "10");
-            SetGsvgMode(window, "GsvgModeVirtualGrid");
+            SetMainGsvgMode(window, "GsvgModeVirtualGrid");
             ApplyDisplayPipeline(window);
             var at10Status = WaitForChainStage(window, "gsvg");
             var at10 = DrawnHash(window);
@@ -263,7 +263,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         finally
         {
             SetNumber(window, "GsvgGridRatioInput", "10");
-            SetGsvgMode(window, "GsvgModeNone");
+            SetMainGsvgMode(window, "GsvgModeNone");
             ApplyDisplayPipeline(window);
         }
     }
@@ -283,13 +283,13 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
 
         try
         {
-            SetGsvgMode(window, "GsvgModeNone");
+            SetMainGsvgMode(window, "GsvgModeNone");
             ApplyDisplayPipeline(window);
             var offHash = DrawnHash(window);
 
             // The product table lists 6, 8, 10 and 12.
             SetNumber(window, "GsvgGridRatioInput", "7");
-            SetGsvgMode(window, "GsvgModeVirtualGrid");
+            SetMainGsvgMode(window, "GsvgModeVirtualGrid");
             ApplyDisplayPipeline(window);
 
             var status = WaitForChain(window, "gsvg=RequestedNotApplied");
@@ -299,7 +299,7 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
         finally
         {
             SetNumber(window, "GsvgGridRatioInput", "10");
-            SetGsvgMode(window, "GsvgModeNone");
+            SetMainGsvgMode(window, "GsvgModeNone");
             ApplyDisplayPipeline(window);
         }
     }
@@ -1086,6 +1086,18 @@ public sealed class ProcessingChainScenarios(WorkflowApplicationFixture app, ITe
     {
         Radio(window, radioId).IsChecked = true;
         Thread.Sleep(250);
+    }
+
+    private static void SetMainGsvgMode(Window window, string modeId)
+    {
+        var option = modeId switch
+        {
+            "GsvgModeNone" => "No grid correction",
+            "GsvgModeGridSuppression" => "Grid suppression",
+            "GsvgModeVirtualGrid" => "Virtual grid",
+            _ => throw new ArgumentOutOfRangeException(nameof(modeId), modeId, "Unknown grid mode.")
+        };
+        TwoLaneWorkbenchScenarios.SelectAlgorithm(window, "A", option);
     }
 
     private static void SetText(Window window, string automationId, string value)
