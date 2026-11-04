@@ -293,7 +293,15 @@ public sealed class SettingsProcessingConnectionTests
         // cannot drift to 40 by some other four.
         // GUI-C-184 added one: AiBoneSuppressionInChain (the AI stage's checkbox in the Parameters tab), named below.
         // GUI-C-185 added one: AiModelDirectory (the directory input beside it), named below.
-        Assert.Equal(42, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // GUI-C-257: the three grid radios now edit CandidateGsvgMode / LaneBAlgorithm, not Settings.GsvgMode.
+        Assert.Equal(41, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        Assert.DoesNotContain(survey.Bindings, b => b.Property == nameof(AppSettings.GsvgMode));
+        var analysisPanel = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Views/AnalysisPanel.xaml"));
+        Assert.Equal(3, Regex.Matches(analysisPanel, @"\{Binding CandidateGsvgMode,").Count);
+        Assert.DoesNotContain("{Binding Settings.GsvgMode", analysisPanel, StringComparison.Ordinal);
+        var viewModel = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile(ViewModelPath));
+        Assert.Contains("get => AlgorithmPreset.For(LaneBAlgorithm).GsvgMode;", viewModel, StringComparison.Ordinal);
+        Assert.Contains("LaneBAlgorithm = mode switch", viewModel, StringComparison.Ordinal);
         Assert.Contains(nameof(AppSettings.AiBoneSuppressionInChain), survey.Bindings.Select(b => b.Property));
         Assert.Contains(nameof(AppSettings.AiModelDirectory), survey.Bindings.Select(b => b.Property));
         foreach (var added in new[]
