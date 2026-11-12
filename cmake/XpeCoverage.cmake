@@ -77,6 +77,10 @@ if(MSVC)
                 -P "${CMAKE_SOURCE_DIR}/cmake/XpeCoverageRun.cmake"
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
             COMMENT "Coverage: running ctest under OpenCppCoverage -> ${_xpe_cov_dir}/coverage.xml"
+            # Ninja buffers a non-console command's output until it exits, so a CI
+            # cancel discarded every ctest line (coverage-post, 6 runs 10-05..11-09).
+            # The console pool streams progress live; tests and threshold unchanged.
+            USES_TERMINAL
             VERBATIM)
     else()
         # Fail-open at configure time (the regular build must not depend on the
