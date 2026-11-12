@@ -1,0 +1,76 @@
+dark_list_used: command=lines given=4 used=4 first_excluded=0 list_sha256=cc0201f4e9ff37d9b4c6c9d7bd1b0cbfe0f4b974fdbd8155ff4aa126cd433a95
+dark_used[0]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_08.raw c050034b6a6b3b432d0e0d1ddae55b7f922aadc418d95def09dfaabea59a4a80
+dark_used[1]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_10.raw 7a290e8ebc738f65868455dbf1efabffb5b0f2d6dd94a12598fb28fad0383481
+dark_used[2]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_12.raw 8045c3a4ea7c7afaf3b2cee6a3d9e88455c7020c5d325f7055ebe82d1d52bc60
+dark_used[3]: D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames/Dark_14.raw ac9c506c0dea65aacd64c96086c533fa8af9aa15216e89971d0ccb2b3b906e70
+xpe_bpm_find_lines: 0 unconfirmed candidates (persistence not judged); persistence frames: dark 4 of 4 raw, bright 3 of 9 raw
+xpe_bpm_find_lines: 69 groups (34 rows, 35 columns; 22 full, 47 partial, 19 double, 290 crossings), widest 2, panel reject 0
+  row 189 width 2 [1422, 2190) causes 9 flags 2 z 10.2 persistence -1.00
+  row 319 width 1 [2256, 3024) causes 13 flags 2 z 10.2 persistence 1.00
+  row 366 width 1 [1024, 1789) causes 4 flags 2 z 6.7 persistence 1.00
+  row 454 width 1 [1683, 2074) causes 4 flags 2 z 5.3 persistence 0.67
+  row 579 width 1 [6, 3071) causes 9 flags 3 z 10.2 persistence -1.00
+  row 710 width 1 [1293, 1627) causes 4 flags 0 z 5.1 persistence 0.67
+  row 710 width 1 [1748, 1956) causes 4 flags 0 z 4.7 persistence 0.67
+  row 914 width 1 [6, 3071) causes 13 flags 3 z 10.2 persistence 1.00
+  row 977 width 1 [1192, 1960) causes 9 flags 2 z 10.2 persistence -1.00
+  row 1008 width 2 [431, 1201) causes 4 flags 2 z 7.0 persistence 1.00
+  row 1043 width 2 [1407, 2175) causes 9 flags 2 z 10.2 persistence -1.00
+  row 1124 width 2 [839, 1607) causes 9 flags 2 z 10.2 persistence -1.00
+  row 1165 width 1 [6, 3071) causes 9 flags 3 z 10.2 persistence -1.00
+  row 1208 width 2 [655, 1431) causes 13 flags 2 z 10.2 persistence 1.00
+  row 1311 width 1 [6, 3071) causes 4 flags 3 z 8.0 persistence 1.00
+  row 1469 width 1 [6, 3071) causes 13 flags 3 z 10.2 persistence 1.00
+  row 1497 width 1 [147, 915) causes 9 flags 2 z 10.2 persistence -1.00
+  row 1655 width 2 [527, 1295) causes 9 flags 2 z 10.2 persistence -1.00
+  row 1703 width 1 [6, 3071) causes 9 flags 3 z 10.2 persistence -1.00
+  row 1734 width 1 [6, 3071) causes 4 flags 3 z 8.0 persistence 1.00
+  row 1802 width 2 [1719, 2487) causes 9 flags 2 z 10.2 persistence -1.00
+  row 2131 width 1 [6, 3071) causes 9 flags 3 z 10.2 persistence -1.00
+  row 2161 width 1 [6, 3071) causes 9 flags 3 z 10.2 persistence -1.00
+  row 2191 width 1 [6, 3070) causes 4 flags 3 z 7.2 persistence 1.00
+  row 2245 width 2 [2045, 2813) causes 4 flags 2 z 7.9 persistence 1.00
+  row 2306 width 1 [6, 3071) causes 13 flags 3 z 10.2 persistence 1.00
+  row 2449 width 1 [785, 1553) causes 9 flags 2 z 10.2 persistence -1.00
+  row 2551 width 2 [1742, 2510) causes 13 flags 2 z 10.2 persistence 1.00
+  row 2703 width 1 [1614, 2382) causes 9 flags 2 z 10.2 persistence -1.00
+  row 2798 width 1 [6, 460) causes 4 flags 2 z 6.7 persistence 1.00
+  row 2798 width 1 [496, 3070) causes 4 flags 2 z 6.6 persistence 1.00
+  row 2916 width 1 [194, 958) causes 4 flags 2 z 7.7 persistence 1.00
+  row 2976 width 1 [815, 1583) causes 13 flags 2 z 10.2 persistence 1.00
+  row 3025 width 1 [350, 1122) causes 13 flags 2 z 10.2 persistence 1.00
+  column 58 width 2 [2204, 2980) causes 4 flags 2 z 6.8 persistence 1.00
+  column 162 width 2 [1547, 2318) causes 4 flags 2 z 6.7 persistence 1.00
+  column 260 width 2 [351, 1119) causes 4 flags 2 z 7.9 persistence 1.00
+  column 319 width 2 [295, 1063) causes 9 flags 2 z 13.8 persistence -1.00
+  column 350 width 1 [2, 3071) causes 4 flags 3 z 7.9 persistence 1.00
+  column 480 width 1 [1452, 2227) causes 13 flags 2 z 13.8 persistence 1.00
+  column 520 width 1 [2, 3071) causes 4 flags 3 z 6.9 persistence 1.00
+  column 555 width 2 [423, 1191) causes 9 flags 2 z 13.8 persistence -1.00
+  column 630 width 1 [785, 1553) causes 13 flags 2 z 13.8 persistence 1.00
+  column 701 width 1 [2, 520) causes 4 flags 0 z 6.9 persistence 1.00
+  column 701 width 1 [730, 922) causes 4 flags 2 z 4.6 persistence 1.00
+  column 701 width 1 [1539, 1736) causes 4 flags 2 z 4.7 persistence 0.67
+  column 701 width 1 [2457, 3071) causes 4 flags 2 z 6.4 persistence 1.00
+  column 735 width 1 [2, 3071) causes 9 flags 3 z 13.8 persistence -1.00
+  column 807 width 1 [2, 3071) causes 9 flags 3 z 13.8 persistence -1.00
+  column 926 width 2 [40, 808) causes 9 flags 2 z 13.8 persistence -1.00
+  column 981 width 1 [1908, 2676) causes 9 flags 2 z 13.8 persistence -1.00
+  column 1096 width 1 [2109, 2565) causes 4 flags 2 z 6.0 persistence 1.00
+  column 1123 width 1 [2250, 3018) causes 9 flags 2 z 13.8 persistence -1.00
+  column 1192 width 1 [2, 3071) causes 13 flags 3 z 13.8 persistence 1.00
+  column 1219 width 1 [361, 1127) causes 4 flags 2 z 7.0 persistence 1.00
+  column 1283 width 1 [2, 3071) causes 9 flags 3 z 13.8 persistence -1.00
+  column 1595 width 2 [1118, 1886) causes 9 flags 2 z 13.8 persistence -1.00
+  column 1651 width 1 [962, 1730) causes 9 flags 2 z 13.8 persistence -1.00
+  column 1681 width 2 [1102, 1870) causes 9 flags 2 z 13.8 persistence -1.00
+  column 1707 width 1 [2, 3071) causes 9 flags 3 z 13.8 persistence -1.00
+  column 1813 width 1 [2118, 2886) causes 13 flags 2 z 13.8 persistence 1.00
+  column 1843 width 2 [1723, 2495) causes 13 flags 2 z 13.8 persistence 1.00
+  column 1902 width 1 [990, 1758) causes 4 flags 2 z 7.8 persistence 1.00
+  column 2111 width 1 [2, 3071) causes 9 flags 3 z 13.8 persistence -1.00
+  column 2389 width 1 [2, 3071) causes 4 flags 3 z 7.9 persistence 1.00
+  column 2510 width 1 [2, 3071) causes 13 flags 3 z 13.8 persistence 1.00
+  column 2738 width 1 [2, 3071) causes 13 flags 3 z 13.8 persistence 1.00
+  column 2811 width 1 [1523, 2291) causes 9 flags 2 z 13.8 persistence -1.00
+  column 2872 width 2 [2039, 2818) causes 13 flags 2 z 13.8 persistence 1.00

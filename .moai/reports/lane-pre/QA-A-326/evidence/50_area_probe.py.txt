@@ -1,0 +1,15 @@
+# QA-A-326: where the out-of-area end pixels of the dead lines sit, and whether the pixels across them are in the area.
+import sys
+W = H = 3072
+a = open(sys.argv[1], 'rb').read()
+assert len(a) == W * H
+def inarea(x, y): return a[y * W + x] != 0
+def row_zero(y): return [x for x in range(W) if not inarea(x, y)]
+def col_zero(x): return [y for y in range(H) if not inarea(x, y)]
+print("out-of-area total", a.count(0))
+for r in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 36, 37, 38):
+    z = row_zero(r)
+    print("row", r, "out-of-area x:", z if len(z) < 20 else (len(z), z[:5], '...', z[-5:]))
+for c in (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10):
+    z = col_zero(c)
+    print("col", c, "out-of-area y:", z if len(z) < 20 else (len(z), z[:5], '...', z[-5:]))
