@@ -121,3 +121,5 @@
 - 명령: `ctest`, 필터 없음, 직렬, `build\ci-preprocess`. 후보가 들어간 상태로 실행했어요.
 - 결과 원문: `evidence/70_ctest_full_candidate.txt` (3499줄 그대로). 핵심 줄: "100% tests passed, 0 tests failed out of 1630", Total Test time 291.83 sec.
 - 분모: 등록 1705 / 실행 1630 (통과 1627 + 건너뜀 3) / 실행 안 됨 75 (Disabled 72 + Skipped 3 — 목록은 원문 3419줄 이후; 직접 센 값 Disabled 75줄, Skipped 3줄이라 아래 "확인 필요" 참조).
+
+커밋 cff849b4 (dev/preprocess, push 안 함). 후보 소스(defect_correct.cpp)는 되돌렸고 패치는 evidence/30_candidate.patch.txt 에 있음.
