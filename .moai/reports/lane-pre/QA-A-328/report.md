@@ -70,7 +70,7 @@ ACK 착수 2026-11-13 12:50 KST
 
 ## 8. 소스 임시 계측 (리더 허가 2026-11-13 13:02 KST)
 
-선택 규칙(측정 전에 기록): (a) 새 오경보 43개 좌표 전부, (b) 잡음 검출 행 m=4 의 64개 화소 전부(`truth.tsv` 의 `pixel noisy` 행, 5번째 열이 4), (c) 대조군 영역 6개(id 100·101·103·104·106·110) 각각에서 영역 안 화소를 행 우선 순서로 세어 16번째마다 1개씩, 43개 좌표는 제외. 목록: `qa-327-tmp/dump_list.tsv` 923행(태그 FA0/FA1/NOISY4/CTRL).
+선택 규칙(측정 전에 기록 — 레인 진술, 독립 증거 없음): (a) 새 오경보 43개 좌표 전부, (b) 잡음 검출 행 m=4 의 64개 화소 전부(`truth.tsv` 의 `pixel noisy` 행, 5번째 열이 4), (c) 대조군 영역 6개(id 100·101·103·104·106·110) 각각에서 영역 안 화소를 행 우선 순서로 세어 16번째마다 1개씩, 43개 좌표는 제외. 목록: `qa-327-tmp/dump_list.tsv` 923행(태그 FA0/FA1/NOISY4/CTRL).
 계측은 값 기록 전용: 환경 변수 `XPE_F2B_LIST`·`XPE_F2B_OUT` 가 있을 때만 `noiseSum/nuBright`, `threshold[5]`, `persistHits`, `noiseGroups`, `corrGain`, 평균 `ref` 를 파일로 쓰고 판정 변수에는 쓰지 않음(`xpe_bpm_v2.cpp` F2b 반복문 직후 블록).
 확인할 것: 계측 빌드의 맵·점수 json 해시가 계측 없는 빌드와 같은지.
 
@@ -96,15 +96,17 @@ ACK 착수 2026-11-13 12:50 KST
 
 ### 식으로 설명되는 원인
 - 대조군 영역은 밝은 프레임 응답이 낮습니다(`corrGain` 중앙값 2.77, 곧 응답 `rc` ≈ 0.6; 이 값은 화소값 −4% 라는 앞 $2 의 추정을 정정합니다. 앞 추정은 틀렸습니다).
-- `corrGain = 1/rc²` (`xpe_bpm_v2.cpp:893`)는 분산이 응답의 제곱에 비례한다고 가정합니다. 그러나 이 센서 모델의 밝은 프레임 분산은 광자 잡음이 지배적이어서 응답(신호)에 **비례**합니다(`rc` 에 선형). 그러면 정상 화소의 `ratioG` 기댓값이 1 이 아니라 `1/rc` 가 됩니다. 대조군 표본 평균 1.727 은 `1/0.6` ≈ 1.67 과 맞습니다(관측).
+- `corrGain = 1/rc²` (`xpe_bpm_v2.cpp:893`): 실제 측정 응답으로 gain 보정할 때 분산이 Var(X)/r² 로 바뀌는 잡음 비용입니다. 효율 손실(분산 r)과 변환 이득 손실(분산 r²)을 가르는 계약이고 `test_bpm_v2.cpp:893~906`·`:961~978` 이 그 구별을 지킵니다. (정정 2026-11-13, Reviewer F328-1: 이전 문장 "분산이 응답 제곱에 비례한다고 가정"은 틀린 설명이었습니다.) 광자 잡음이 지배하는 밝은 프레임 분산은 응답에 선형이어서 정상 화소의 `ratioG` 기댓값이 `1/rc` 로 나오고, 대조군 표본 평균 1.727 은 `1/0.6` ≈ 1.67 과 맞습니다(관측). 이 관측은 다른 지표(`1/rc`)와 맞는다는 사실이고, 원래 식의 물리 오류를 입증한 것이 아닙니다.
 - 기댓값이 1.67배 부풀면 정상 대조군 화소가 기준 4.48 을 넘을 확률이 커집니다. 표본 813개 중 2개(0.25%), 대조군 영역 수만 개 중 31개가 넘은 것과 합치합니다.
 - m=4 화소는 `corrGain` ≈ 1 이고 `noiseSum/nuBright` 평균 1.02 라서 밝은 잡음 판정으로는 한 개도 기준에 닿지 않습니다. 곧 m=4 검출은 이 단계(밝은 잡음)에서 오지 않습니다.
 
-## 10. 후보와 사전 추정 (측정 전, 추정)
+## 10. 후보와 사전 추정 (추정; 측정 전 기록 여부는 레인 진술)
+
+> 정정 2026-11-13 (Reviewer F328-2): 이 절을 "측정 전에 기록"했다는 것은 독립 증거가 없습니다(첫 git 기록 13:39:40 은 측정 뒤). "예측 12 = 실측 12" 일치는 그대로 두되, 사전 기록 여부는 레인(xpe-pre)의 진술로만 구분합니다.
 
 **후보**: 밝은 잡음 비용 판정의 응답 보정을 `1/rc²` 에서 `1/rc` 로 바꿉니다. 곧 `xpe_bpm_v2.cpp:1039` 의 `ratioG` 에서 `corrGain[i]` 대신 `sqrt(corrGain[i])`. 응답 보정 벡터 `corrGain` 자체(`:893`)와 그것을 쓰는 다른 곳(`:1248` 라인 통계)은 건드리지 않습니다. 조건 분기·좌표·묶음 번호 없음, 임계값 불변.
 
-**이유(식)**: 광자 잡음 지배 분산은 응답에 비례하므로 응답으로 나누는 보정은 `1/rc` 가 정상 화소의 `ratioG` 기댓값을 1 로 되돌립니다. 숫자를 보고 정한 경계값이 아니라 분산-응답 관계에서 나온 지수입니다. 덤프 전에 후보를 잡은 것은 아니고(덤프를 본 뒤 정함), 지수를 2→1 로 정하는 근거는 위 식과 대조군 표본 평균 1.727 ≈ 1/rc 일치입니다.
+**이유(식, 정정 2026-11-13, F328-1)**: 1/rc 후보는 기존 계약(잡음 비용 = Var(X)/r², 효율 손실과 변환 이득 손실을 가르는 지표)과 다른 지표를 제안한 것입니다. 광자 잡음 지배 분산이 응답에 선형이라는 관측에서 나온 지수이며, 원래 식 `1/rc²` 의 물리 오류를 입증하지 않습니다. 덤프 전에 후보를 잡은 것은 아니고(덤프를 본 뒤 정함) 근거는 위 관측(대조군 표본 평균 1.727 ≈ 1/rc)뿐입니다. 패치 `evidence/72_candidate.patch.txt` 의 주석("correction is 1/rc, not 1/rc^2")도 같은 이유로 정확하지 않은 표현입니다. 패치 파일 자체는 증거라 고치지 않았습니다.
 
 **사전 추정(측정 전, 추정)**:
 1. `noiseSum` 은 `corrGain` 에 선형이고 화소마다 `corrGain` 이 그룹에 걸쳐 같으므로, 새 `noiseSum/nuBright` = 옛 값 / `sqrt(corrGain)` 입니다(식으로 정확). 새 오경보 밝음 31개: 옛 비 1.005~1.41 (기준 대비) → 새 0.60~0.85. **31개 모두 기준 아래로 내려갑니다.** 대조군 표본 813개의 새 비 최대는 0.60. 지속 조건(`persistHits`)은 `ratioG` 가 줄어 줄기만 합니다.
@@ -149,8 +151,8 @@ ACK 착수 2026-11-13 12:50 KST
 
 - 등록 1705 = 통과 1625 + 실패 2 + 건너뜀 3 + Disabled 75 (ctest 요약 "99% tests passed, 2 tests failed out of 1630" 의 1630 = 통과+실패+건너뜀). 327 기준선은 1627 + 3 + 75 = 1705, 곧 통과가 2건 줄고 그만큼 실패.
 - 실패 2건 (`evidence/77_two_failures_detail.txt`, 후보 적용 상태 재실행):
-  - `BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot` — `test_bpm_v2.cpp(978)`: 기대 eff ≥ 10, 실제 0 (효율 손실 행이 잡음 비용 비교에서 사라짐); `test_bpm_v2.cpp(904)` 도 같은 시험에서 실패.
-  - `BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup` — 이 시험의 실패 줄은 위 grep 에 잡히지 않았다(원인 줄 미확인, 상세 파일 참조).
+  - `BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot` — `test_bpm_v2.cpp(904)`: `Expected: (0u) != (eff->causes & 0x04u), actual: 0 vs 0` (효율 손실 행에서 NOISE cause 가 0). 원문 `evidence/77_two_failures_detail.txt`. (정정 F328-3: 앞 문장은 줄 번호를 서로 바꿔 적었습니다.)
+  - `BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup` — `test_bpm_v2.cpp(978)`: `Expected: (eff) >= (10), actual: 0 vs 10` (eff 0 < 10). 원문 `evidence/77_two_failures_detail.txt`.
 
 ## 12. 판정과 처분
 
@@ -176,7 +178,7 @@ ACK 착수 2026-11-13 12:50 KST
 
 - 삭제한 임시 폴더: `D:/workspace-github/xpe-data/qa-327-tmp` (약 1004 MB, 하위 `out/before328`·`out/after328`·덤프 포함). 새 폴더는 만들지 않았다.
 - 남긴 증거: `.moai/reports/lane-pre/QA-A-328/evidence/` (패치 `72_candidate.patch.txt`, 표 `41_*`, 해시 `71_*`·`73_*`, 전체 시험 `75_*`, 실패 상세 `77_*`, 화소별 전/후 `76_*`).
-- 빌드 트리(`build/ci-preprocess`)의 `xpe_bpm_eval` 은 후보를 적용해 만든 바이너리이고, 소스를 되돌린 뒤 다시 짓지 않았다(미재빌드).
+- 빌드 트리(`build/ci-preprocess`)의 `xpe_bpm_eval` 은 후보를 적용해 만든 바이너리이고, 소스를 되돌린 뒤 다시 짓지 않았다(당시 상태: 이 문장을 쓴 시점에는 미재빌드). 이후 되돌린 소스로 재빌드·검증했습니다 — §14.1, §15 참조.
 - 시험 파일 4건(`test_ghost_oracle.cpp`·`test_nonlin_lut_apply.cpp`·`test_nonlin_lut_generate.cpp`·`test_nonlin_poly_apply.cpp`)은 건드리지 않았다.
 
 ### 14.1 되돌린 소스로 재빌드 확인 (2026-11-13 13:40 KST, 리더 요청)
