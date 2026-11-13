@@ -60,6 +60,8 @@
 #include <string>
 #include <vector>
 
+#include "../../common/tests/oom_proxy_filter.hpp"  // QA-A-329 G1
+
 /* =========================================================================
  * The injecting allocator
  * ========================================================================= */
@@ -184,12 +186,14 @@ bool disarm() {
 }  // namespace
 
 void* operator new(std::size_t n) {
+    oomproxy::calibrationHook();  // QA-A-329 G1: records the stack only while a G1 test calibrates
     const long limit = g_failAt.load(std::memory_order_relaxed);
     if (limit > 0) {
         size_t cur = g_maxAlloc.load();
         while (n > cur && !g_maxAlloc.compare_exchange_weak(cur, n)) {}
     }
-    if (limit > 0 && g_count.fetch_add(1) + 1 == limit) {
+    // QA-A-329 G1: excluded() is false unless a G1 test enabled the filter, so other tests count as before.
+    if (limit > 0 && !oomproxy::excluded() && g_count.fetch_add(1) + 1 == limit) {
         g_injected.store(true);
         throw std::bad_alloc();
     }
@@ -3505,4 +3509,40 @@ TEST_F(OomInjection, APolynomialGainApplicationThatClassifiesPixelsAndFailsRepor
               if (rc == XPE_OK) return out[37] == 3000.0f ? std::string() : "the classified pixel did not carry gain 1.0";
               return rc == XPE_ERR_OUT_OF_MEMORY ? std::string() : "an allocation failure was reported as another error";
           });
+}
+
+/* =========================================================================
+ * QA-A-329 G1: Debug container-proxy filter, calibration and count-only controls
+ * (design v2 sections 2-1 and 4). Count-only: arm(kG1NoInject) cannot reach an injection. The filter is enabled
+ * only inside oomproxy::measure and disabled again before any assertion; no other test sees it. g_maxAlloc keeps
+ * its meaning (largest raw request while armed) and is not part of these controls.
+ * ========================================================================= */
+
+namespace {
+constexpr long kG1NoInject = 1000000000L;
+}  // namespace
+
+TEST(ProxyFilterG1, Calibration) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    oomproxy::printCalibration("xpe_preprocess_oom_tests");
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "reason " << oomproxy::g_reason.load();
+    } else {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Unsupported));
+    }
+}
+
+TEST(ProxyFilterG1, CountOnlyControls) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; controls not run";
+    }
+    int n = 0;
+    const oomproxy::Expect* k = oomproxy::controls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::Sample s = oomproxy::measure([] { arm(kG1NoInject); }, [] { (void)disarm(); },
+                                                     [] { return g_count.load(); }, k[i].body);
+        EXPECT_FALSE(g_injected.load()) << k[i].name << ": count-only control injected";
+        XPE_OOM_PROXY_G1_CHECK("xpe_preprocess_oom_tests", s, k[i]);
+    }
 }

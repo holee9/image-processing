@@ -1,0 +1,10 @@
+ D 드라이브의 볼륨: work
+ 볼륨 일련 번호: E216-1745
+
+ D:\workspace-github\xpe-pre\build\coverage\CMakeFiles 디렉터리
+
+파일을 찾을 수 없습니다.
+ninja: error: build.ninja:35: loading 'CMakeFiles\rules.ninja': The system cannot find the file specified.
+
+include CMakeFiles\rules.ninja
+                              ^ near here

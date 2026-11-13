@@ -28,6 +28,8 @@
 #include <stdexcept>
 #include <thread>
 
+#include "../../common/tests/oom_proxy_filter.hpp"  // QA-A-329 G1
+
 namespace {
 
 using namespace std::chrono_literals;
@@ -57,8 +59,10 @@ bool waitFor(const std::atomic<bool>& flag, std::chrono::milliseconds limit)
 
 void* operator new(std::size_t n)
 {
+    oomproxy::calibrationHook();  // QA-A-329 G1: records the stack only while a G1 test calibrates
     const bool mine = tl_caller && g_armed.load();
-    if (mine) {
+    // QA-A-329 G1: excluded() is false unless a G1 test enabled the filter, so the existing test counts as before.
+    if (mine && !oomproxy::excluded()) {
         const long k = g_count.fetch_add(1) + 1;
         if (k == g_failAt.load()) {
             g_injected.store(true);
@@ -180,4 +184,79 @@ TEST(ParallelUnwind, ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLau
     ASSERT_NE(block, nullptr) << "the error-slot block was not identified";
     EXPECT_TRUE(freed) << "the error-slot block was not released by the call";
     EXPECT_TRUE(clean) << "a running range wrote its error slot after the slots were freed (use after free)";
+}
+
+/* =========================================================================
+ * QA-A-329 G1: Debug container-proxy filter, calibration and count-only controls
+ * (design v2 sections 2-1 and 4). Count-only: g_failAt stays 0, so no allocation is injected. The counting scope is
+ * the existing one (tl_caller && g_armed) on the thread that runs the control. The filter is enabled only inside
+ * oomproxy::measure and disabled again before any assertion; the ParallelUnwind test never sees it.
+ * ========================================================================= */
+
+namespace {
+
+oomproxy::Sample measureOnThisThread(void (*body)())
+{
+    return oomproxy::measure(
+        [] {
+            g_failAt.store(0);
+            g_injected.store(false);
+            g_count.store(0);
+            tl_caller = true;
+            g_armed.store(true);
+        },
+        [] {
+            g_armed.store(false);
+            tl_caller = false;
+        },
+        [] { return g_count.load(); }, body);
+}
+
+}  // namespace
+
+TEST(ProxyFilterG1, Calibration)
+{
+    const oomproxy::Calib c = oomproxy::calibrate();
+    oomproxy::printCalibration("xpe_preprocess_parallel_unwind_tests");
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "reason " << oomproxy::g_reason.load();
+    } else {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Unsupported));
+    }
+}
+
+TEST(ProxyFilterG1, CountOnlyControls)
+{
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; controls not run";
+    }
+    int n = 0;
+    const oomproxy::Expect* k = oomproxy::controls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::Sample s = measureOnThisThread(k[i].body);
+        EXPECT_FALSE(g_injected.load()) << k[i].name << ": count-only control injected";
+        XPE_OOM_PROXY_G1_CHECK("xpe_preprocess_parallel_unwind_tests", s, k[i]);
+    }
+}
+
+// Confirmation item of design v2 section 4: the same classification on a worker thread, in that worker's own counting
+// scope (tl_caller is set on the worker only; the caller thread is not counted). P1 and N1 only.
+TEST(ProxyFilterG1, WorkerThreadControls)
+{
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; controls not run";
+    }
+    int n = 0;
+    const oomproxy::Expect* k = oomproxy::controls(n);
+    const oomproxy::Expect* pick[2] = {&k[0], &k[3]};  // P1_string, N1_vector_exception_ptr_1
+    oomproxy::Sample got[2];
+    std::thread worker([&] {
+        for (int i = 0; i < 2; ++i) got[i] = measureOnThisThread(pick[i]->body);
+    });
+    worker.join();
+    for (int i = 0; i < 2; ++i) {
+        XPE_OOM_PROXY_G1_CHECK("xpe_preprocess_parallel_unwind_tests[worker]", got[i], *pick[i]);
+    }
 }

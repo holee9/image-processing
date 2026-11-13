@@ -97,3 +97,66 @@ proxy 크기(16바이트) 필터는 MSVC 표준 라이브러리 구현에 의존
 
 - 측정: RelWithDebInfo 에서 MapLengthTest 4건 통과(`evidence/rw_maplength.txt`, 빌드 `rw_maplength_build.txt`). 이 구성은 NDEBUG 라 Debug 전용 죽음 시험은 컴파일되지 않았고, 위 4건은 Release 계열 3건과 양성 대조군이다.
 - Debug death test 실측 미확인 — main CI coverage 작업(Debug)에서 확인 예정. 추정(미측정): 자식 프로세스에서 CRT assert 문구가 stderr 로 나가는지, 정규식 `mapCount >= needed.*shorter than width` 가 한 줄에 맞는지.
+
+## §10 G1 — 중단 (Debug 빌드 디렉터리가 빌드 불가)
+
+[2026-11-13 22:30 KST]
+
+- 결과: **G1 중단.** 필터 헤더와 세 실행 파일의 연결·count-only 대조 시험은 작성했으나 build/coverage 가 빌드되지 않아 컴파일·보정·대조를 하나도 실행하지 못했다. 지시에 따라 다른 빌드 디렉터리로 옮기지 않았고, RelWithDebInfo(ci-preprocess) 회귀 실행과 커밋도 하지 않았다.
+- 관측(명령 → 종료 코드 → 원문):
+  - `cmake --build build\coverage --target xpe_common_oom_tests xpe_preprocess_oom_tests xpe_preprocess_parallel_unwind_tests` → 1 → `ninja: error: build.ninja:35: loading 'CMakeFiles\rules.ninja': The system cannot find the file specified.` (g1/build-coverage.txt)
+  - 같은 디렉터리 재생성 `cmake build\coverage`(기존 캐시, 옵션 변경 없음) → 0, "Build files have been written" 이지만 rules.ninja 는 여전히 생기지 않음(g1/regen-coverage.txt). 재생성 전후 build.ninja 차이는 `XPE_A53_BUILD_HEAD_SHA` 정의 1줄(465efd39→8c8289bf)뿐 — 컴파일·링크 옵션 변화 없음.
+  - build/coverage 상태: CMakeCache 19:46, build.ninja 19:51 생성, .ninja_deps 16바이트, bin/ 에 세 시험 exe 없음 → 19:46 구성 뒤 한 번도 빌드되지 않은 디렉터리. rules.ninja 가 생성되지 않는 원인은 **미확인**(조사 범위 밖이라 중단).
+- G0 옵션(build/coverage/build.ninja, 두 실행 파일 추가 관측, g1/g0-flags-coverage.txt): xpe_common_oom_tests·xpe_preprocess_parallel_unwind_tests 모두 컴파일 `/Od /Ob0 -MDd /RTC1 /Zi -std:c++17`, 링크 `/machine:x64 /debug /INCREMENTAL`; `/OPT:ICF|REF`·`/Gy` 명시 없음(NOICF 확정 아님). xpe_preprocess_oom_tests 도 같은 값으로 재확인.
+- 작성한 변경(미커밋, 워크트리에 남김; 패치 사본 g1/g1-uncommitted.patch):
+  - 신규 `modules/common/tests/oom_proxy_filter.hpp` — 설계 §2-1 보정(명시 멤버 주소→E9 썽크 최대 2회·FF25 실패→연결 해제 정보 주 함수 시작, 프록시 할당 캡처에서 정확히 1프레임 일치 + operator new 가 안쪽 프레임, Pod16·operator new(16) 모호성 검사, 사유 코드 14종), 필터 `excluded()`(고정 배열·원자·TLS, 재진입은 정상 계수+g_reentry), 카운터 raw/skipped/reentry/unresolved/depthCapped, P1~P3·N1·N3 count-only 대조.
+  - 세 operator new 에 `calibrationHook()` 와 계수 범위 안 `!excluded()` 연결. 기존 시험 무변경 보장 방식: `g_enabled` 기본 false 이고 G1 시험의 `measure()` 안에서만 켰다가 단언 전에 끈다; 꺼져 있으면 `excluded()` 는 원자 1회 읽기 후 false, `calibrationHook()` 은 TLS 플래그 false 로 즉시 반환. g_maxAlloc 은 기존대로 모든 할당에서 갱신.
+  - 시험: 세 exe 각각 `ProxyFilterG1.Calibration`, `ProxyFilterG1.CountOnlyControls`; parallel_unwind 에 worker 자체 계수 범위의 `ProxyFilterG1.WorkerThreadControls`(P1·N1, 확인 항목). arm(1) 주입 대조(G2)·스윕 적용(G3) 없음.
+- 미확인: 컴파일 여부, 보정 성공 여부, 모든 대조 수치, 재진입 0, raw==count+skipped, RelWithDebInfo 무회귀 — 전부 미실행.
+- 다음 행동(리더 판정 필요): build/coverage 를 새로 구성(--fresh 등)해도 되는지, 또는 다른 Debug 디렉터리 사용 허가.
+- 임시 파일: 스크래치패드의 배치 파일만 사용, 저장소 안 임시 폴더 생성 없음.
+
+### §10.1 G1 재시도 — 새 Debug 디렉터리 build/cov-g1 도 같은 원인으로 빌드 불가 (원인 확인)
+
+[2026-11-13 22:33 KST]
+
+- 리더 지시 구성(`--preset coverage -B build/cov-g1`, VS cmake·ninja·cl 14.44.35207 직접 지정, FETCHCONTENT_SOURCE_DIR 4종 = build/ci-preprocess/_deps) → 종료 코드 0, "Build files have been written", Eigen 요구 없음(g1/configure.txt). 그러나 **CMakeFiles/rules.ninja 가 생성되지 않음** — build/coverage 와 같은 증상. 빌드는 시도하지 않음(같은 오류가 확정적).
+- 원인 확인(대조 실험, 스크래치패드, 실행 후 삭제): 같은 cmake/ninja 로 최소 프로젝트 → rules.ninja 생성됨. 같은 최소 프로젝트에 `cmake/MsvcNinjaIncludePrefix.cmake` 를 include 만 추가 → rules.ninja 생성 안 됨. 즉 원인은 이 모듈이다.
+- 이 모듈은 커밋되지 않은 로컬 변경으로 들어와 있다: `cmake/Platform.cmake` 에 `include(".../MsvcNinjaIncludePrefix.cmake")` 2줄 추가(M, 10-19 01:55), `cmake/MsvcNinjaIncludePrefix.cmake`·`tools/ci/msvc_include_output.py` 미추적(??, 10-19). HEAD 8c8289bf 에는 없다. configure 원문: `-- MSVC Ninja include prefix bytes: c2fcb0ed3a20c6f7c7d420c6c4c0cf3a20`(CP949 "참고: 포함 파일:" 추정). 이 비UTF-8 접두어가 rules.ninja 기록을 실패시킨다는 세부 기전은 **미확인**.
+- cmake/ 는 리더 소유이고 커밋 안 된 기존 변경이라 손대지 않았다. → Debug 컴파일·보정·대조는 여전히 **미실행**.
+- RelWithDebInfo(build/ci-preprocess, 재구성 없이 증분 빌드 6단계: 바뀐 시험 obj 3개 + 링크 3개) → 종료 0(g1/build-ci-preprocess.txt). 세 실행 파일 전체 시험(--gtest_brief=1):
+  | exe | 종료 | 결과 | 비고 |
+  |---|---|---|---|
+  | xpe_common_oom_tests | 0 | `[  PASSED  ] 14 tests.` | G1 2건 포함 |
+  | xpe_preprocess_oom_tests | 0 | `[  PASSED  ] 102 tests.` (DISABLED 3) | G1 2건 포함 |
+  | xpe_preprocess_parallel_unwind_tests | 0 | `[  PASSED  ] 4 tests.` | 기존 `[calibration] caller-thread allocations: 2 ranges = 3 (repeat 3), 3 ranges = 4` |
+  이 구성은 IDL=0 이라 필터 미지원 경로: `calib=3`(Unsupported), 모든 대조 skipped=0·reentry=0·raw==count, P1~P3 count=0, N1·N3a·N3b count=1(worker 포함). 지원 경로(`#if XPE_OOM_PROXY_FILTER_SUPPORTED`) 코드는 이 구성에서 컴파일되지 않으므로 컴파일 여부 미확인.
+- 커밋하지 않음: Debug 지원 경로가 한 번도 컴파일되지 않아 G1 게이트(컴파일·보정·대조) 증거가 없다.
+- build/cov-g1 은 남겨 둠(rules.ninja 없는 상태 그대로, 리더 확인용). G2 에는 쓸 수 없다 — 모듈 문제 해결 뒤 재구성 필요.
+- 다음 판정(리더): Platform.cmake 의 로컬 include 2줄을 되돌리거나(또는 그 모듈 수정) Debug 구성을 허용할지.
+
+### §10.2 G1 — 깨끗한 분리 작업 트리에서 Debug 보정·count-only 대조 통과 (세 실행 파일 모두)
+
+[2026-11-13 22:35 KST]
+
+- 방법(리더 지시): `git worktree add --detach D:/workspace-github/wt-g1 8c8289bf` → G1 4개 경로만 담은 패치 적용(cmake/·tools/·10-19 시험 파일 제외, `git apply --check` 통과) → `--preset coverage -B build/cov-g1`(VS cmake·ninja·cl 14.44.35207, FETCHCONTENT 4종 = xpe-pre/build/ci-preprocess/_deps) 종료 0, `CMakeFiles/rules.ninja` 28218바이트 생성 확인, include prefix 모듈 메시지 없음(g1/configure-wt-g1.txt) → 세 대상 빌드 종료 0, 69단계, 경고 0줄(g1/build-wt-g1.txt). 첫 시도는 배치 파일 치환 실수로 xpe-pre/build/cov-g1 을 한 번 더 구성했다(같은 원인으로 rules.ninja 없음, 아래에서 삭제).
+- G0(wt-g1/build/cov-g1/build.ninja, g1/g0-flags-wt-g1.txt): 세 실행 파일 모두 컴파일 `/Od /Ob0 -MDd /RTC1 /Zi -std:c++17`, 링크 `/machine:x64 /debug /INCREMENTAL`; `/OPT:ICF|REF`·`/Gy` 명시 없음(NOICF 확정 아님).
+- 실행: 각 exe `--gtest_brief=1 --gtest_filter=ProxyFilterG1.*` → 세 exe 모두 종료 0(g1/dbg-g1-*.txt). 단언·진단은 해제 뒤 평가.
+
+| exe | 시험 | calib | image base | 명시 원주소 → 썽크 해제(1회) = P_explicit | operator new 시작 | 캡처/일치/new 프레임 |
+|---|---|---|---|---|---|---|
+| xpe_common_oom_tests | 2/2 PASS | 1(Ok) | 0x7ff7cfed0000 | 0x7ff7cfed1a78 → 0x7ff7cff04b80 | 0x7ff7cfeda700 | 8 / 4 / 1 |
+| xpe_preprocess_oom_tests | 2/2 PASS | 1(Ok) | 0x7ff7086c0000 | 0x7ff7086c319d → 0x7ff7087a3820 | 0x7ff7086e4bf0 | 8 / 4 / 1 |
+| xpe_preprocess_parallel_unwind_tests | 3/3 PASS | 1(Ok) | 0x7ff6bfb20000 | 0x7ff6bfb213f2 → 0x7ff6bfb370f0 | 0x7ff6bfb25230 | 8 / 4 / 1 |
+
+  Pod16·operator new(16) 모호성 캡처는 세 exe 모두 8프레임, P_explicit 없음.
+
+- 대조 수치(세 exe 동일, worker 포함): `count / raw / skipped / reentry / unresolved / depthCapped`
+  - P1_string 0/1/1/0/0/0, P2_vector_int 0/1/1/0/0/0, P3_fs_path 0/1/1/0/0/0
+  - N1_vector_exception_ptr_1 1/2/1/0/0/1, N3a_allocator_Pod16 1/1/0/0/0/1, N3b_operator_new_16 1/1/0/0/0/1
+  - parallel_unwind worker 스레드 자체 계수 범위: P1 0/1/1/0/0/0, N1 1/2/1/0/0/1
+  - 모든 대조 reentry 0, raw == count + skipped, 주입 없음.
+- depthCapped=1 의 뜻: 프록시가 아닌 할당은 8프레임을 다 채우고도 일치가 없다. 일치 프레임 인덱스가 4라서 여유는 3프레임이다. 8프레임 밖에서 프록시가 불리면 **세어지는** 쪽(숨기지 않는 쪽)으로 틀린다 — 확인 항목.
+- 기존 동작 무변경(Debug, 필터 꺼짐): `ParallelUnwind.*` 단독 실행 → 종료 1, `[calibration] caller-thread allocations: 2 ranges = 5 (repeat 5), 3 ranges = 6`, `:141` `c3 - c2` 단언 실패(g1/dbg-existing-parallel_unwind.txt). 설계 §6 의 기존 Debug 관측(c2=5, c3=6)과 같은 값 — 필터를 이 시험에 적용하지 않았으므로(G3 몫) 기존 실패가 그대로다. RelWithDebInfo 무회귀는 §10.1 표(14/102/4 PASS).
+- 미확인(G1 범위 밖): arm(1) 주입 대조(G2), 기존 스윕 적용(G3), move·`_Reload_proxy`·json 내부 경로 분류, 8프레임 밖 프록시, 캡처 시간 비용, Common/PRE 의 Debug 전체 suite.
+- 정리: 임시 작업 트리 `git worktree remove --force D:/workspace-github/wt-g1` 종료 0(목록에서 사라짐, 그 안의 build/cov-g1 포함 삭제). 고장 난 `xpe-pre/build/cov-g1` `rm -rf` 종료 0. G2 를 위한 Debug 빌드는 같은 방식(분리 작업 트리)으로 다시 만들어야 한다. 남긴 증거는 `g1/` 아래 작은 텍스트 파일뿐이다.
