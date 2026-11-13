@@ -1,8 +1,28 @@
-[2026-11-13 19:02 KST] 검증 종료 — A06 두 조건2P/0F·공유 설정 불변, 전체371=346P/0F/25SKIP; 전체 구간 공유 설정은 변화 있음·리더 판정 필요
+[2026-11-13 19:06 KST] 리더 수용 — 카드4(b)는 A06 두 회차 공유 불변으로 충족; 전체 설정 mtime 구간의 시험·저장 경로를 읽기 확인
+
+## 19:05 리더 판정·설정 저장 경로 후속
+
+리더는 4(b)가 내부 runner의 공유 설정 보존 기준이며 A06 두 회차 해시·mtime 동일로 충족됐다고 판정했다. 전체 suite 변화는 다른 시험이 지정 데이터 루트에 정상 저장한 것으로 수용했다. 원래 Native 설정이 쌓인 경로라는 설명은 리더의 가능성 판단이며, 과거 설정 생성 경위를 이번에 소급 증명한 것은 아니다. 기존 구현 커밋은 `3f3274cca1dbdcb9431b282013f2e067a3014ecb`이며 이번 추가 작업은 문서뿐이다.
+
+읽기 결과, 최종 공유 파일 mtime `2026-11-13T18:59:14.7146693+09:00`을 포함하는 full.trx 시험은 **`ImageProcTest.E2ETests.Scenarios.Workflows.HiddenSelectionCopyObservation.PlainCopyWorks_ThenWhatHappensWhenTheSelectedLineIsHidden`**이다. 시작 `18:59:13.981045+09:00`, 종료 `18:59:32.503442+09:00`, PASS. 바로 앞 `ClearAlerts_PressedWhileTheFilterIsOn_LeavesThisBehind`는 `18:59:13.980803`에 종료해 해당 mtime 직전이다.
+
+| 연결 | 실제 코드·읽기 근거 |
+|---|---|
+| 해당 시험이 새 앱 생성 | `clients/ImageProcTest.E2ETests/Scenarios/Workflows/HiddenSelectionCopyObservation.cs:40–46`: `using var app = new WorkflowApplicationFixture()` 후 로그 창을 연다. |
+| fixture RAW 지정 | `clients/ImageProcTest.E2ETests/Fixtures/WorkflowApplicationFixture.cs:16–19`: `fixtures\\gui-s0\\raw\\synthetic_1024x1024.raw`를 base로 전달. :9–12 및 ApplicationFixture.cs:21–23은 report 인수 없는 interactive 실행임을 설명한다. |
+| 앱 인수 전달 | `ApplicationFixture.cs:151–152,154–169`: backend와 RAW/1024×1024 인수 전달. :196–200 Native 경로 전달. 이 시험의 실행 환경은 full.result.json의 Native/공유 데이터 루트다. |
+| RAW 자동 열기 | `gui/ImageProcTest/MainWindow.xaml.cs:237–250`: IsAutomationMode=false인 상태에서 AutomationRawPath가 있으면 LoadRawImageButton 클릭. `MainWindowViewModel.cs:2851–2853`: 해당 RAW를 LoadImageFromPathAsync로 연다. |
+| 최근 파일 이력 저장 | `MainWindowViewModel.cs:2943–2946`: RAW 로드 뒤 RememberRecentRawFile(path). `:2484–2502`: 이력을 갱신하고 `_settingsService.Save(Settings)` 실행. 주석 :2480–2482는 Save Settings 메뉴를 기다리지 않고 이력을 지속화한다고 설명한다. |
+| 저장 대상 | 기본 MainWindow는 CreateSettings의 비automation 기본 서비스, AppSettingsService.cs:45 / GuiDataPaths.cs:12–15에 따라 지정 데이터 루트 appsettings를 사용한다. 이번 새 runner의 전용 설정 주입 경로와 다르다. |
+| 현재 파일의 보조 대조 | 공유 appsettings의 `recentRawFiles[0]`가 `D:\\workspace-github\\xpe-gui\\gui\\ImageProcTest\\bin\\Debug\\net8.0-windows\\fixtures\\gui-s0\\raw\\synthetic_1024x1024.raw`로 fixture RAW와 일치한다. 파일은 읽기만 했다. |
+
+**판단:** 해당 mtime을 포함하는 시험명과 그 fixture에서 appsettings를 저장하는 경로는 위 코드로 확인했다. 파일 mtime·TRX 구간·이력 첫 항목이 이 경로와 일치한다. **정확한 write syscall/PID를 계측한 것은 아니므로 OS 수준의 실제 파일 작성자 귀속은 미확인**이다. 시험이 Save Settings 버튼을 직접 누른다고 주장하지 않는다. 이 시험은 RAW 로드 시 최근 파일 이력 저장 경로를 이용한다. 추가 실행·설정 수정·복원·다른 시험 변경 없음.
+
+커밋 후 SHA 안내 기록이다. dev/gui에 승인된 소스3개·카드 문서2개만 커밋했으며 Refs #282 footer와 staged whitespace 검사 exit0를 확인했다. 훅 우회·amend·push 없음. 이 안내 줄은 커밋 후 로컬 기록으로 남긴다. 도우미·원문/TRX/JSON/ZIP은 카드 폴더에 로컬 보존했다.
 
 ## 최종 Claim
 
-runner 소유 Mock 설정 주입과 내부 관측 줄 전달을 구현했다. A06 변수 있음/없음 각1회는 모두 PASS이며, 두 회차에서 공유 설정의 해시·mtime이 동일했다. 전체 E2E도 실패0으로 종료했다. **다만 전체 suite 전후의 공유 설정은 달라졌다.** 카드4(b)를 전체 suite 구간에도 적용하면 그 범위의 불변 요건은 충족하지 않았으므로 카드 전체를 무조건 충족했다고 주장하지 않는다. 수동 복원이나 다른 시험 수정 없이 결과를 공개하고 리더/Reviewer 판단을 받는다.
+runner 소유 Mock 설정 주입과 내부 관측 줄 전달을 구현했다. A06 변수 있음/없음 각1회는 모두 PASS이며, 두 회차에서 공유 설정의 해시·mtime이 동일했다. 전체 E2E도 실패0으로 종료했다. 전체 suite 전후의 공유 설정은 달라졌으나, 리더의 19:05 판정에 따라 카드4(b)는 내부 runner의 A06 두 회차를 대상으로 하며 그 기준은 충족됐다. 전체 설정 변화의 관측값은 삭제하거나 복원하지 않고 보존한다.
 
 ## Diff와 근거
 
@@ -46,7 +66,7 @@ full appAfter=[]. full testhost37124의 A05 임시 사본은 실행 구간 생�
 
 ## Gaps / Residual-risk / 다음 행동
 
-전체 suite는 실패0이지만 SKIP25개는 미검증이고, 전체 구간 공유 설정 불변은 충족하지 않았다. 현재 카드의 격리 검증 결과를 이 한계와 함께 리더/Reviewer에게 제출한다. 기본 앱 생성 경로는 코드상 유지했고 전체 E2E를 측정했으나 별도 Integration 전체는 실행하지 않았다. 공유 파일 OS read 추적·쓰기 작성자 귀속·강제 실패 시 임시 설정 정리의 별도 재현은 수행하지 않았다. 추가 시험·다른 시험 수정·설정 복원 없이 카드 범위 변경과 문서를 dev/gui에 커밋하고 push는 하지 않는다. 병합/수용 판정은 리더가 한다.
+전체 suite는 실패0이지만 SKIP25개는 미검증이고, 전체 구간 공유 설정은 변했다. 이는 리더가 수용한 별도 시험의 저장 경로이며 4(b)는 A06 구간 보존으로 충족됐다는 판정을 따른다. 기본 앱 생성 경로는 코드상 유지했고 전체 E2E를 측정했으나 별도 Integration 전체는 실행하지 않았다. 공유 파일 OS read 추적·쓰기 작성자 직접 귀속·강제 실패 시 임시 설정 정리의 별도 재현은 수행하지 않았다. 추가 시험·다른 시험 수정·설정 복원 없이 후속 문서를 dev/gui에 커밋하고 push는 하지 않는다. 병합은 리더가 한다.
 
 리더가 GUI-C-264 제안3·4를 채택했다. 구현 담당은 runner와 꼭 필요한 주입/전달 경로만 수정하고, 루트는 빌드·A06 변수 있음/없음 각1회·전체E2E1회 및 공유 설정 전후 확인·보고·커밋을 맡는다. 기존 A06 RED(264 단일 실행 0P/1F, Event1026 Program.cs:219)를 근거로 tdd 진행한다. 단언·대기·다른 시험은 수정하지 않는다. 공유/사용자 설정 수동 변경, push, 훅 우회 없음.
 
