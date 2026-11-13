@@ -1,0 +1,15 @@
+import numpy as np
+T='D:/workspace-github/xpe-data/qa-328-tmp/'
+a=np.fromfile(T+'out_rev/inj_v2_setmap.u8',np.uint8).reshape(3072,3072)!=0
+b=np.fromfile(T+'out/inj_v2_setmap.u8',np.uint8).reshape(3072,3072)!=0
+tr=np.fromfile('D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16',np.uint16).reshape(3072,3072)!=0
+PTS=[(1925,180),(1475,440),(199,796),(1246,1253),(988,1440),(1119,1588),(2707,1590),(196,1612),(2670,1896),(2118,2672),(305,2871)]
+print('base_flagged',int(a.sum()),'cand_flagged',int(b.sum()))
+print('removed',int((a&~b).sum()),'added',int((~a&b).sum()))
+print('11 pts base',[int(a[y,x]) for x,y in PTS],'cand',[int(b[y,x]) for x,y in PTS])
+add=~a&b; rem=a&~b
+print('added in truth',int((add&tr).sum()),'added outside',int((add&~tr).sum()))
+print('removed in truth',int((rem&tr).sum()),'removed outside',int((rem&~tr).sum()))
+ys,xs=np.nonzero(add&~tr)
+edge=((ys<64)|(ys>=3008)|(xs<64)|(xs>=3008))
+print('added outside within 64px of image edge',int(edge.sum()),'of',len(ys))

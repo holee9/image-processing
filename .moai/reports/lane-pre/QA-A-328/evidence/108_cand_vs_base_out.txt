@@ -1,0 +1,6 @@
+base_flagged 149302 cand_flagged 149369
+removed 2 added 69
+11 pts base [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] cand [1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+added in truth 1 added outside 68
+removed in truth 0 removed outside 2
+added outside within 64px of image edge 10 of 68

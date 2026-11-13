@@ -1,0 +1,18 @@
+100,103c100,103
+<   "flagged": 149302,
+<   "outside_truth": 2208,
+<   "clean_flagged": 2338,
+<   "clean_outside_truth": 2186,
+---
+>   "flagged": 149369,
+>   "outside_truth": 2274,
+>   "clean_flagged": 2407,
+>   "clean_outside_truth": 2252,
+108,110c108,110
+<   "jaccard_all": 0.949825,
+<   "jaccard_inside_truth": 0.962767,
+<   "jaccard_outside_truth": 0.389565,
+---
+>   "jaccard_all": 0.949565,
+>   "jaccard_inside_truth": 0.962752,
+>   "jaccard_outside_truth": 0.389211,
