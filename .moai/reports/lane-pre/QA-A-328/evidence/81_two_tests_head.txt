@@ -1,0 +1,9 @@
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+    Start 1255: BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+1/2 Test #1255: BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup ..................   Passed    0.61 sec
+    Start 1289: BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+2/2 Test #1289: BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot ...   Passed    0.33 sec
+
+100% tests passed, 0 tests failed out of 2
+
+Total Test time (real) =   1.02 sec

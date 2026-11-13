@@ -178,3 +178,10 @@ ACK 착수 2026-11-13 12:50 KST
 - 남긴 증거: `.moai/reports/lane-pre/QA-A-328/evidence/` (패치 `72_candidate.patch.txt`, 표 `41_*`, 해시 `71_*`·`73_*`, 전체 시험 `75_*`, 실패 상세 `77_*`, 화소별 전/후 `76_*`).
 - 빌드 트리(`build/ci-preprocess`)의 `xpe_bpm_eval` 은 후보를 적용해 만든 바이너리이고, 소스를 되돌린 뒤 다시 짓지 않았다(미재빌드).
 - 시험 파일 4건(`test_ghost_oracle.cpp`·`test_nonlin_lut_apply.cpp`·`test_nonlin_lut_generate.cpp`·`test_nonlin_poly_apply.cpp`)은 건드리지 않았다.
+
+### 14.1 되돌린 소스로 재빌드 확인 (2026-11-13 13:40 KST, 리더 요청)
+
+- 소스 `xpe_bpm_v2.cpp` 수정 시각(되돌린 시각) 13:37:32. `cmake --build build/ci-preprocess --target all -v` 를 다시 돌렸다(`evidence/80_rebuild_head.txt`): `xpe_bpm_v2.cpp.obj` 가 3곳(`xpe_preprocess`·`xpe_preprocess_clock_tests`·`xpe_preprocess_oom_tests`)에서 13:40:26 에 다시 컴파일됐고, `bin/xpe_preprocess.dll` 이 13:40:27 에 다시 링크됐다. 빌드 오류 없음.
+- 주의: `xpe_bpm_eval.exe`(13:02:58)와 `xpe_preprocess_tests.exe`(10-29 18:19)는 수정 시각이 되돌린 시각보다 앞이다. 두 실행 파일은 `xpe_preprocess.dll` 을 동적으로 불러오고 `xpe_bpm_v2.cpp` 를 자기 안에 컴파일해 넣지 않아서(미확인: 링크 방식은 ninja "no work to do" 와 DLL 시각으로 추정), 다시 링크되지 않았고 `--target xpe_bpm_eval xpe_preprocess_tests` 도 "no work to do" 였다(`evidence/82_rebuild_targets.txt`). 곧 실행 파일 시각이 옛것인 것은 정상이고, 바뀐 코드는 DLL 시각(13:40:27)으로 확인한다. `xpe_bpm_eval.exe` 의 13:02 시각은 후보 적용(13:13 이후) 전이라 후보 코드는 DLL 에만 있었고 그 DLL 은 이제 되돌린 소스로 새로 만들어졌다.
+- BpmV2Test 두 시험만 재실행(`evidence/81_two_tests_head.txt`): #1255 `TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup` Passed 0.61 s, #1289 `TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot` Passed 0.33 s, "100% tests passed, 0 tests failed out of 2".
+- 미확인: 전체 시험을 되돌린 소스로 다시 돌리지는 않았다(요청 범위 밖).
