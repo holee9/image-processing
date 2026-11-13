@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using ImageProcTest;
 using ImageProcTest.Controls;
+using ImageProcTest.Models;
 using ImageProcTest.Services;
 using ImageProcTest.ViewModels;
 using ImageProcTest.Views;
@@ -20,8 +21,8 @@ using ImageProcTest.Views;
 RunnerBuildFreshness.EnsureRunnerCarriesCurrentApp("ImageProcTest.E2E");
 
 RunSelfCheck();
-RunWpfE2EOnStaThread();
-Console.WriteLine("GUI-S0 E2E passed.");
+var observation = RunWpfE2EOnStaThread();
+Console.WriteLine($"GUI-S0 E2E passed. {observation}");
 
 static void RunSelfCheck()
 {
@@ -46,14 +47,15 @@ static void RunSelfCheck()
     Assert(stdout.Contains("GUI-S0 self-check passed.", StringComparison.Ordinal), "Self-check success text missing.");
 }
 
-static void RunWpfE2EOnStaThread()
+static string RunWpfE2EOnStaThread()
 {
     Exception? capturedException = null;
+    var observation = string.Empty;
     var thread = new Thread(() =>
     {
         try
         {
-            RunWpfE2E();
+            observation = RunWpfE2E();
         }
         catch (Exception ex)
         {
@@ -69,20 +71,42 @@ static void RunWpfE2EOnStaThread()
     {
         throw new InvalidOperationException("WPF E2E failed.", capturedException);
     }
+    return observation;
 }
 
-static void RunWpfE2E()
+static string RunWpfE2E()
+{
+    // GUI-C-265: own one temporary file; never load or save the shared data-root settings.
+    var settingsPath = Path.Combine(Path.GetTempPath(), $"xpe-gui-e2e-settings-{Guid.NewGuid():N}.json");
+    try
+    {
+        var settingsService = new AppSettingsService(settingsPath);
+        settingsService.Save(new AppSettings { BackendMode = "Mock" });
+        return RunWpfE2EWithSettings(settingsService);
+    }
+    finally
+    {
+        File.Delete(settingsPath);
+        File.Delete(settingsPath + ".previous");
+    }
+}
+
+static string RunWpfE2EWithSettings(AppSettingsService settingsService)
 {
     var application = new Application
     {
         ShutdownMode = ShutdownMode.OnExplicitShutdown
     };
 
-    var window = new MainWindow();
+    var window = new MainWindow(settingsService);
     try
     {
         window.Show();
         DoEvents();
+
+        var observedBackend = (MainWindowViewModel)window.DataContext;
+        var observation = $"GUI E2E startup: ActualBackendMode={observedBackend.ActualBackendMode}; BackendName={observedBackend.RuntimeInfo.BackendName}; SettingsFile={settingsService.FilePath}";
+        Console.WriteLine(observation);
 
         // #228 (GUI-C-158): this was `window.Title == "ImageProcTest GUI-S0"` — a literal copy of a
         // title the app stopped having. bc7f2f0 (#175, HAZ-GUI-005) made the title carry the backend:
@@ -485,6 +509,7 @@ static void RunWpfE2E()
         ExecuteCommand(shutdownButton.Command, "Shutdown button command missing before shutdown invoke.");
         DoEvents();
         Assert(viewModel.RuntimeInfo.State == "Shutdown", "Runtime state should switch to Shutdown.");
+        return observation;
     }
     finally
     {

@@ -28,11 +28,16 @@ public partial class MainWindow : System.Windows.Window
     private void PipelineMenu_SubmenuOpened(object sender, System.Windows.RoutedEventArgs e) =>
         (DataContext as MainWindowViewModel)?.RefreshAiBoneSuppressionAvailability();
 
-    public MainWindow()
+    public MainWindow() : this(null)
+    {
+    }
+
+    // GUI-C-265: a runner may own its settings without reading the user's data root.
+    public MainWindow(AppSettingsService? settingsServiceOverride)
     {
         InitializeComponent();
 
-        var (settings, settingsService, preservedSettingsPath, preservedIsFromEarlier) = CreateSettings();
+        var (settings, settingsService, preservedSettingsPath, preservedIsFromEarlier) = CreateSettings(settingsServiceOverride);
         _settingsFilePath = settingsService.FilePath;
 #if XPE_TEST_FAULTS
         // #171 (GUI-C-79): Wrap returns the real backend untouched unless --automation-fault was given. Test builds only (GUI-C-193).
@@ -137,8 +142,14 @@ public partial class MainWindow : System.Windows.Window
     ///    automation (#136): settings are persisted, so a check could otherwise be decided by
     ///    whatever a previous run left behind.
     /// </summary>
-    private static (AppSettings Settings, AppSettingsService Service, string? PreservedOriginalPath, bool PreservedIsFromAnEarlierFailure) CreateSettings()
+    private static (AppSettings Settings, AppSettingsService Service, string? PreservedOriginalPath, bool PreservedIsFromAnEarlierFailure) CreateSettings(AppSettingsService? settingsServiceOverride = null)
     {
+        if (settingsServiceOverride is not null)
+        {
+            var loaded = settingsServiceOverride.Load();
+            return (loaded.Settings, settingsServiceOverride, loaded.PreservedOriginalPath, loaded.PreservedIsFromAnEarlierFailure);
+        }
+
         // #173 (GUI-C-119): --automation-settings names the file this run reads and writes, so an E2E
         // case can put a deliberately corrupt file in front of a real launch. Without it the automation
         // branch below starts from defaults in a throwaway directory and the unreadable-file path could

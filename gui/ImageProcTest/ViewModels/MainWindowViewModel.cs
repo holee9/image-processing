@@ -2172,7 +2172,10 @@ public sealed class MainWindowViewModel : ObservableObject
         try
         {
             var verdict = await RunConsoleRunnerAsync(
-                "GUI E2E", "ImageProcTest.E2E", "ImageProcTest.E2E.exe", overridePath: null);
+                "GUI E2E", "ImageProcTest.E2E", "ImageProcTest.E2E.exe", overridePath: null,
+                summarize: stdout => stdout.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(line => line.Trim())
+                    .LastOrDefault(line => line.StartsWith("GUI-S0 E2E passed.", StringComparison.Ordinal)));
             if (verdict.HasValue)
             {
                 GuiE2EPassed = verdict;
@@ -2261,7 +2264,8 @@ public sealed class MainWindowViewModel : ObservableObject
     /// — that is "did not run", which is not the same as a failure and must not be recorded as one.
     /// </summary>
     private async Task<bool?> RunConsoleRunnerAsync(
-        string label, string projectDirectory, string executableName, string? overridePath)
+        string label, string projectDirectory, string executableName, string? overridePath,
+        Func<string, string?>? summarize = null)
     {
         string exePath;
         if (!string.IsNullOrWhiteSpace(overridePath))
@@ -2296,7 +2300,7 @@ public sealed class MainWindowViewModel : ObservableObject
             return null;
         }
 
-        return await ExecuteRunnerAsync(label, exePath, arguments: null, workingDirectory: null, summarize: null);
+        return await ExecuteRunnerAsync(label, exePath, arguments: null, workingDirectory: null, summarize: summarize);
     }
 
     /// <summary>
