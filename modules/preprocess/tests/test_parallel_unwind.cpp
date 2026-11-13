@@ -260,3 +260,42 @@ TEST(ProxyFilterG1, WorkerThreadControls)
         XPE_OOM_PROXY_G1_CHECK("xpe_preprocess_parallel_unwind_tests[worker]", got[i], *pick[i]);
     }
 }
+
+// QA-A-329 G2: injection controls in the caller-thread scope (tl_caller && g_armed) with g_failAt = 1. g_task1Started is
+// set so the injecting branch does not wait for a parallel range; it is cleared again on disarm.
+TEST(ProxyFilterG2, InjectionControls)
+{
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; G2 not run";
+        int n = 0;
+        const oomproxy::Expect* k = oomproxy::controls(n);
+        const oomproxy::Sample pre = measureOnThisThread(k[0].body);
+        ASSERT_TRUE(pre.count == 0 && pre.skipped >= 1 && pre.raw == pre.count + pre.skipped)
+            << "P1 pre-check failed (count " << pre.count << ", skipped " << pre.skipped << "); G2 not run";
+    }
+    int n = 0;
+    const oomproxy::InjectExpect* k = oomproxy::injectControls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::InjectResult r = oomproxy::injectRun(
+            [] {
+                g_injectMode.store(false);
+                g_task1Started.store(true);
+                g_injected.store(false);
+                g_count.store(0);
+                g_failAt.store(1);
+                tl_caller = true;
+                g_armed.store(true);
+            },
+            [] {
+                g_armed.store(false);
+                tl_caller = false;
+                g_failAt.store(0);
+                g_task1Started.store(false);
+                return g_injected.load();
+            },
+            [] { return g_count.load(); }, [] { return g_armed.load() || tl_caller || g_failAt.load() != 0; },
+            k[i].body);
+        XPE_OOM_PROXY_G2_CHECK("xpe_preprocess_parallel_unwind_tests", r, k[i]);
+    }
+}

@@ -386,7 +386,11 @@ inline void controlP2() { std::vector<int> v; sink(&v); }
 inline void controlP3() { std::filesystem::path p; sink(&p); }
 inline void controlN1()
 {
+#if XPE_OOM_PROXY_FILTER_SUPPORTED
+    // The real 16-byte payload is the point of N1 only where the filter runs (MSVC x64); other ABIs keep compiling
+    // with the filter off (Reviewer F329f-2).
     static_assert(sizeof(std::exception_ptr) == 16, "N1 expects a 16-byte payload on x64");
+#endif
     std::vector<std::exception_ptr> v(1);
     sink(v.data());
 }
@@ -453,7 +457,135 @@ inline const Expect* controls(int& n)
     return k;
 }
 
+/* -------------------------------------------------------------------------
+ * G2: injection controls (design v2 section 4, Reviewer F329f-1)
+ * ------------------------------------------------------------------------- */
+
+/** One injection control's observations. Everything is captured before any assertion or message. */
+struct InjectResult {
+    Sample sample;
+    bool threwBadAlloc = false;
+    bool threwOther = false;
+    bool injected = false;       // the caller's injected flag, read by its disarm
+    bool restored = false;       // see injectRun
+    bool probeOk = false;        // an allocation after the scope succeeded
+    long rawAfterProbe = -1;     // filter counters must stay untouched by it (filter off)
+};
+
+/**
+ * Exception-safe injection scope. Arms the caller's allocator (arm(1) shaped) with the filter on, runs body, and on
+ * every exit path - normal return, std::bad_alloc, any other exception - first disarms, turns the filter off and clears
+ * the filter's thread-local state, and only then records anything. No allocation, message or assertion happens before
+ * the disarm. Separate from the count-only measure() on purpose.
+ */
+template <class Arm, class Disarm, class Count, class Armed, class Body>
+inline InjectResult injectRun(Arm arm, Disarm disarm, Count count, Armed armedNow, Body body)
+{
+    InjectResult r;
+    resetCounters();
+    struct Scope {
+        Disarm& disarm;
+        Count& count;
+        InjectResult& r;
+        bool open = true;
+        void close() noexcept
+        {
+            if (!open) return;
+            open = false;
+            r.sample.count = count();
+            r.injected = disarm();         // injection off before anything else
+            g_enabled.store(false);        // filter off
+            t_inFilter = false;            // filter thread-local state cleared
+            t_calibrating = false;
+            r.sample.raw = g_rawArmed.load();
+            r.sample.skipped = g_skipped.load();
+            r.sample.reentry = g_reentry.load();
+            r.sample.unresolved = g_unresolved.load();
+            r.sample.depthCapped = g_depthCapped.load();
+        }
+        ~Scope() { close(); }
+    };
+    {
+        Scope scope{disarm, count, r};
+        g_enabled.store(true);
+        arm();
+        try {
+            body();
+        } catch (const std::bad_alloc&) {
+            scope.close();
+            r.threwBadAlloc = true;
+        } catch (...) {
+            scope.close();
+            r.threwOther = true;
+        }
+        scope.close();
+    }
+    // State restore: not armed, filter off, filter thread state clear, a following allocation succeeds and is not seen
+    // by the (now off) filter.
+    resetCounters();
+    try {
+        void* p = ::operator new(16);
+        sink(p);
+        ::operator delete(p);
+        r.probeOk = true;
+    } catch (...) {
+        r.probeOk = false;
+    }
+    r.rawAfterProbe = g_rawArmed.load();
+    r.restored = !armedNow() && !g_enabled.load() && !t_inFilter && !t_calibrating && r.probeOk && r.rawAfterProbe == 0;
+    return r;
+}
+
+/** G2 controls: P4 must not be injected (its only armed allocation is the proxy); N2/N3 must be. */
+struct InjectExpect {
+    const char* name;
+    void (*body)();
+    bool badAlloc;     // supported configuration
+    long count;
+    long skipped;      // supported configuration; 0 when unsupported
+};
+
+inline void controlP4() { controlP1(); }  // std::string s; under arm(1)
+
+inline const InjectExpect* injectControls(int& n)
+{
+    static const InjectExpect k[] = {
+        {"P4_string_arm1", &controlP4, false, 0, 1},
+        {"N2_vector_exception_ptr_1_arm1", &controlN1, true, 1, 1},
+        {"N3a_allocator_Pod16_arm1", &controlN3a, true, 1, 0},
+        {"N3b_operator_new_16_arm1", &controlN3b, true, 1, 0},
+    };
+    n = static_cast<int>(sizeof k / sizeof k[0]);
+    return k;
+}
+
+inline void printInject(const char* exe, const char* name, const InjectResult& r)
+{
+    std::printf("[proxy-filter G2] exe=%s control=%s threw=%s injected=%d count=%ld raw=%ld skipped=%ld reentry=%ld "
+                "unresolved=%ld depthCapped=%ld restored=%d probeOk=%d rawAfterProbe=%ld\n",
+                exe, name, r.threwBadAlloc ? "std::bad_alloc" : (r.threwOther ? "other" : "none"),
+                r.injected ? 1 : 0, r.sample.count, r.sample.raw, r.sample.skipped, r.sample.reentry,
+                r.sample.unresolved, r.sample.depthCapped, r.restored ? 1 : 0, r.probeOk ? 1 : 0, r.rawAfterProbe);
+    std::fflush(stdout);
+}
+
 }  // namespace oomproxy
+
+/** G2 checks, evaluated after injectRun returned (state already restored). */
+#define XPE_OOM_PROXY_G2_CHECK(exe, result, expect)                                                               \
+    do {                                                                                                          \
+        const ::oomproxy::InjectResult& r_ = (result);                                                            \
+        const ::oomproxy::InjectExpect& e_ = (expect);                                                            \
+        ::oomproxy::printInject((exe), e_.name, r_);                                                              \
+        EXPECT_FALSE(r_.threwOther) << e_.name << ": an exception other than std::bad_alloc";                     \
+        EXPECT_EQ(r_.threwBadAlloc, e_.badAlloc) << e_.name << ": std::bad_alloc observed";                       \
+        EXPECT_EQ(r_.injected, e_.badAlloc) << e_.name << ": injected flag";                                      \
+        EXPECT_EQ(r_.sample.count, e_.count) << e_.name << ": counted allocations";                               \
+        EXPECT_EQ(r_.sample.skipped, XPE_OOM_PROXY_FILTER_SUPPORTED ? e_.skipped : 0L) << e_.name << ": skipped";  \
+        EXPECT_EQ(r_.sample.raw, r_.sample.count + r_.sample.skipped) << e_.name << ": raw == count + skipped";    \
+        EXPECT_EQ(r_.sample.reentry, 0) << e_.name << ": filter re-entered operator new";                          \
+        EXPECT_TRUE(r_.restored) << e_.name << ": state not restored after the scope";                             \
+    } while (0)
 
 /** gtest checks shared by the three executables; evaluated after the scope is disarmed. */
 #define XPE_OOM_PROXY_G1_CHECK(exe, sample, expect)                                                                \

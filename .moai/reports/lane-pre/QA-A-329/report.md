@@ -160,3 +160,26 @@ proxy 크기(16바이트) 필터는 MSVC 표준 라이브러리 구현에 의존
 - 기존 동작 무변경(Debug, 필터 꺼짐): `ParallelUnwind.*` 단독 실행 → 종료 1, `[calibration] caller-thread allocations: 2 ranges = 5 (repeat 5), 3 ranges = 6`, `:141` `c3 - c2` 단언 실패(g1/dbg-existing-parallel_unwind.txt). 설계 §6 의 기존 Debug 관측(c2=5, c3=6)과 같은 값 — 필터를 이 시험에 적용하지 않았으므로(G3 몫) 기존 실패가 그대로다. RelWithDebInfo 무회귀는 §10.1 표(14/102/4 PASS).
 - 미확인(G1 범위 밖): arm(1) 주입 대조(G2), 기존 스윕 적용(G3), move·`_Reload_proxy`·json 내부 경로 분류, 8프레임 밖 프록시, 캡처 시간 비용, Common/PRE 의 Debug 전체 suite.
 - 정리: 임시 작업 트리 `git worktree remove --force D:/workspace-github/wt-g1` 종료 0(목록에서 사라짐, 그 안의 build/cov-g1 포함 삭제). 고장 난 `xpe-pre/build/cov-g1` `rm -rf` 종료 0. G2 를 위한 Debug 빌드는 같은 방식(분리 작업 트리)으로 다시 만들어야 한다. 남긴 증거는 `g1/` 아래 작은 텍스트 파일뿐이다.
+
+## §11 G2 — 주입 대조(arm(1)) 통과, 세 실행 파일 모두 (Reviewer #QA-A-329f-R 조건 반영)
+
+[2026-11-13 22:43 KST]
+
+- 반영: **F329f-1** 주입 대조는 count-only `measure()` 를 쓰지 않고 별도 예외 안전 범위 `oomproxy::injectRun()` 을 쓴다. 정상 반환·`std::bad_alloc`·기타 예외 모든 경로에서 먼저 호출자 disarm(주입 해제)→필터 끔→필터 TLS(`t_inFilter`·`t_calibrating`) 정리를 하고, 그 뒤에야 수치·예외 종류를 기록한다(소멸자 RAII + catch 안 즉시 close). 단언·출력은 반환 뒤. 기타 예외는 `threw=other` 로 따로 기록하고 bad_alloc 으로 치지 않는다. 복원 확인: 무장 아님·필터 꺼짐·TLS 정리·카운터 0 으로 재설정 후 `operator new(16)` 성공 + 그 할당이 꺼진 필터 카운터에 안 잡힘(`rawAfterProbe=0`). **F329f-2** `static_assert(sizeof(std::exception_ptr)==16)` 을 `#if XPE_OOM_PROXY_FILTER_SUPPORTED` 안으로 옮겨 비지원 ABI 에서도 컴파일되게 했다(다른 컴파일러 실제 빌드는 미실행).
+- P4 는 noexcept 생성자 안 프록시 할당이라 분류가 틀리면 종료된다. 그래서 각 exe 의 G2 시험은 보정 Ok 와 P1 count-only 사전 확인을 같은 프로세스에서 먼저 ASSERT 한다.
+- 빌드: `git worktree add --detach D:/workspace-github/wt-g2 d42efcab`(소스 d42efcab33aea689e104aa4ae3815cf774c6d76b) + G2 변경 4개 파일만 적용 → wt-g1 과 같은 configure 명령(g2/commands.txt) 종료 0, `CMakeFiles/rules.ninja` 28218바이트 → 세 대상 빌드 종료 0, 69단계, 경고·오류 0줄(g2/configure.txt, g2/build.txt). G0(g2/g0-flags.txt): 세 exe 컴파일 `/Od /Ob0 -MDd /RTC1 /Zi -std:c++17`, 링크 `/machine:x64 /debug /INCREMENTAL`; `/OPT:ICF|REF`·`/Gy` 명시 없음(NOICF 확정 아님).
+- 실행: 각 exe `--gtest_brief=1 --gtest_filter=ProxyFilterG1.*:ProxyFilterG2.*` → 세 exe 모두 종료 0(g2/dbg-*.txt): common 3/3, PRE oom 3/3, parallel_unwind 4/4 PASS.
+- G1 재확인(새 이미지, 주소는 이미지별): 세 exe 모두 `calib=1 reason=0 thunks=1 captured=8 matchIndex=4 newIndex=1`, Pod16/raw new 캡처 8. image base: common 0x7ff7914c0000, PRE oom 0x7ff7a5790000, parallel 0x7ff7e18e0000. 계수 대조는 G1 과 같은 값(P1~P3 0/1/1, N1 1/2/1, N3a·N3b 1/1/0; parallel worker 포함).
+- G2 대조(세 exe 동일, `threw / injected / count / raw / skipped / reentry / restored`):
+
+| 대조 | 예외 | injected | count | raw | skipped | reentry | depthCapped | restored·probeOk·rawAfterProbe |
+|---|---|---|---|---|---|---|---|---|
+| P4_string_arm1 | none | 0 | 0 | 1 | 1 | 0 | 0 | 1·1·0 |
+| N2_vector_exception_ptr_1_arm1 | std::bad_alloc | 1 | 1 | 2 | 1 | 0 | 1 | 1·1·0 |
+| N3a_allocator_Pod16_arm1 | std::bad_alloc | 1 | 1 | 1 | 0 | 0 | 1 | 1·1·0 |
+| N3b_operator_new_16_arm1 | std::bad_alloc | 1 | 1 | 1 | 0 | 0 | 1 | 1·1·0 |
+
+  → 프록시 할당은 arm(1) 에서도 주입되지 않고, 실제 16바이트 할당(vector 버퍼·Pod16·operator new(16))은 주입된다. 예외 뒤 상태가 복원된다.
+- RelWithDebInfo(build/ci-preprocess, 재구성 없음, 바뀐 시험 obj 3·링크 3, 종료 0): 전체 시험 common `[  PASSED  ] 15 tests.`, PRE oom `[  PASSED  ] 103 tests.`, parallel_unwind `[  PASSED  ] 5 tests.` 모두 종료 0(g2/rw-full-*.txt). 필터 비지원 구성: N2 `threw=std::bad_alloc injected=1 count=1 raw=1 skipped=0`, 기존 `[calibration] caller-thread allocations: 2 ranges = 3 (repeat 3), 3 ranges = 4` 그대로.
+- 미확인(범위 밖): 스윕 적용(G3), worker 스레드에서의 주입 대조, move·`_Reload_proxy`·json 경로, 8프레임 밖 프록시, 비MSVC 실제 컴파일, Debug 전체 suite.
+- 정리: `git worktree remove --force D:/workspace-github/wt-g2` 종료 0(목록·디렉터리에서 사라짐, 안의 build 포함). 스크래치 패치 삭제. 남긴 증거는 `g2/` 텍스트뿐.

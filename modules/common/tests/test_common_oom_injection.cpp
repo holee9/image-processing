@@ -516,3 +516,26 @@ TEST(ProxyFilterG1, CountOnlyControls) {
         XPE_OOM_PROXY_G1_CHECK("xpe_common_oom_tests", s, k[i]);
     }
 }
+
+/* QA-A-329 G2: injection controls under arm(1), after re-checking calibration and the P1 count-only control in this
+ * process (a proxy misclassified under arm(1) inside a noexcept constructor would terminate instead of failing). */
+TEST(ProxyFilterG2, InjectionControls) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; G2 not run";
+        int n = 0;
+        const oomproxy::Expect* k = oomproxy::controls(n);
+        const oomproxy::Sample pre = oomproxy::measure([] { arm(kNoInject); }, [] { (void)disarm(); },
+                                                       [] { return g_count.load(); }, k[0].body);
+        ASSERT_TRUE(pre.count == 0 && pre.skipped >= 1 && pre.raw == pre.count + pre.skipped)
+            << "P1 pre-check failed (count " << pre.count << ", skipped " << pre.skipped << "); G2 not run";
+    }
+    int n = 0;
+    const oomproxy::InjectExpect* k = oomproxy::injectControls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::InjectResult r = oomproxy::injectRun(
+            [] { arm(1); }, [] { return disarm(); }, [] { return g_count.load(); },
+            [] { return g_failAt.load() != 0; }, k[i].body);
+        XPE_OOM_PROXY_G2_CHECK("xpe_common_oom_tests", r, k[i]);
+    }
+}

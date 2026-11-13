@@ -1,0 +1,16 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests calib=1 reason=0 imageBase=0x7ff7e18e0000 explicitRaw=0x7ff7e18e1415 explicitTarget=0x7ff7e18f9ba0 thunks=1 P_explicit=0x7ff7e18f9ba0 newBegin=0x7ff7e18e55d0 captured=8 matchIndex=4 newIndex=1 pod16Captured=8 rawNewCaptured=8 supported=1
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=P1_string count=0 raw=1 skipped=1 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=P2_vector_int count=0 raw=1 skipped=1 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=P3_fs_path count=0 raw=1 skipped=1 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=N1_vector_exception_ptr_1 count=1 raw=2 skipped=1 reentry=0 unresolved=0 depthCapped=1
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=N3a_allocator_Pod16 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=1
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=N3b_operator_new_16 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=1
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests[worker] control=P1_string count=0 raw=1 skipped=1 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests[worker] control=N1_vector_exception_ptr_1 count=1 raw=2 skipped=1 reentry=0 unresolved=0 depthCapped=1
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=P4_string_arm1 threw=none injected=0 count=0 raw=1 skipped=1 reentry=0 unresolved=0 depthCapped=0 restored=1 probeOk=1 rawAfterProbe=0
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=N2_vector_exception_ptr_1_arm1 threw=std::bad_alloc injected=1 count=1 raw=2 skipped=1 reentry=0 unresolved=0 depthCapped=1 restored=1 probeOk=1 rawAfterProbe=0
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=N3a_allocator_Pod16_arm1 threw=std::bad_alloc injected=1 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=1 restored=1 probeOk=1 rawAfterProbe=0
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=N3b_operator_new_16_arm1 threw=std::bad_alloc injected=1 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=1 restored=1 probeOk=1 rawAfterProbe=0
+[==========] 4 tests from 2 test suites ran. (1 ms total)
+[  PASSED  ] 4 tests.
