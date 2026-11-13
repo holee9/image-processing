@@ -170,7 +170,11 @@ jobs:
     # 30 -> 45 (2026-10-17, #273): build 5 min + ctest 6.4 min + four ordered runs of ~5.4 min each
     # (default + 3 shuffle seeds, #176) measured 33 min on run 38968908232 after the BPM v2 tests
     # (681 -> 1,178). Keeping all three shuffle seeds is the point; the budget grows instead.
-    timeout-minutes: 45
+    # 45 -> 60 (2026-11-13): three runs on the same day took 36.7 min (43363588237), 28.2 min
+    # (43372852404) and >45 min (43391146672, cancelled at the limit 16 s after the last shuffle
+    # seed printed exit=0 ran=1382 PASSED). Each ordered run took 7.3 min there against 4.5-6 min,
+    # i.e. runner speed, not a hang: every test passed before the cancel.
+    timeout-minutes: 60
 
     steps:
       - name: Checkout
