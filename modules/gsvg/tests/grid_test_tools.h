@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -69,7 +70,8 @@ inline Image MakeAnatomyBackground(int w, int h, unsigned seed, double noiseSigm
         {0.80, 0.80, 0.015, 1800.0}, {0.30, 0.85, 0.010, -2500.0},
     };
     std::mt19937 rng(seed);
-    std::normal_distribution<double> noise(0.0, noiseSigma);
+    auto noise = noiseSigma > 0.0
+        ? std::make_optional<std::normal_distribution<double>>(0.0, noiseSigma) : std::nullopt;
     for (int y = 0; y < h; ++y) {
         const double v = static_cast<double>(y) / h;
         for (int x = 0; x < w; ++x) {
@@ -82,7 +84,7 @@ inline Image MakeAnatomyBackground(int w, int h, unsigned seed, double noiseSigm
                 const double dx = (u - d.cx) * w, dy = (v - d.cy) * h;
                 if (dx * dx + dy * dy <= (d.r * w) * (d.r * w)) val += d.c;
             }
-            img.at(x, y) = val + (noiseSigma > 0.0 ? noise(rng) : 0.0);
+            img.at(x, y) = val + (noiseSigma > 0.0 ? (*noise)(rng) : 0.0);
         }
     }
     return img;

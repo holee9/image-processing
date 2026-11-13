@@ -1,0 +1,25 @@
+COMPILE 0 qa-b-224-input.cpp
+ 
+INPUT_EXIT 0 BYTES 25165824 ERROR undefined
+seed=1 sigma=0 bytes=2097152 sha256=4bf99f4238f3b4f657b5064799c5e853124866f68dd0f3bc7646beef35b9df8f
+seed=1 sigma=30 bytes=2097152 sha256=358781521c25b67dec35f2aed3ed896727bfd6787e562cbdb54412b06f272d8b
+seed=1 sigma=300 bytes=2097152 sha256=49a7f04d7b7f05376ddb50fb7d2bdbe368df24933a3f0f8268eefd228cc40678
+seed=2 sigma=0 bytes=2097152 sha256=4bf99f4238f3b4f657b5064799c5e853124866f68dd0f3bc7646beef35b9df8f
+seed=2 sigma=30 bytes=2097152 sha256=92cf509ed8607ca390fe0244d6d6be247ceac3920b7c36f26f345cb04415d93f
+seed=2 sigma=300 bytes=2097152 sha256=66373290a298e836091ab547e4833305b7606f0f858b80418992db927e1155ef
+seed=3 sigma=0 bytes=2097152 sha256=4bf99f4238f3b4f657b5064799c5e853124866f68dd0f3bc7646beef35b9df8f
+seed=3 sigma=30 bytes=2097152 sha256=d15ab6ecce190c99ee29d38994f6d2c9f59e6f91955e14b991d577d9bb00c131
+seed=3 sigma=300 bytes=2097152 sha256=444a51bbd998d8598923105fdb4f378dc42d6bd65ac1ce46301732ee8d4bb53d
+seed=180 sigma=0 bytes=2097152 sha256=4bf99f4238f3b4f657b5064799c5e853124866f68dd0f3bc7646beef35b9df8f
+seed=180 sigma=30 bytes=2097152 sha256=c48af9e038feee2846f6b826e9127ebcc816e5d81b41773405e2f6896dc9efdc
+seed=180 sigma=300 bytes=2097152 sha256=dd0fe3ceccc7ea56d4a888d2045bff250c16cf1dce044bf7bc4ed694292f4da5
+DEBUG_BEFORE_EXIT 3221226505 ERROR undefined
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GsvgGridSuppression
+[ RUN      ] GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical
+ C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.44.35207\include\random(3489) : Assertion failed: invalid sigma argument for normal_distribution
+
+

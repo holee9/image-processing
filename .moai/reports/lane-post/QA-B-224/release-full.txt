@@ -1,0 +1,1282 @@
+COMMAND D:/workspace-github/xpe-post/build/ci-post/bin/gsvg_tests.exe CWD D:/workspace-github/xpe-post/modules/gsvg TIMEOUT_MS 300000 ELAPSED_MS 73536 EXIT 0 SIGNAL null ERROR undefined
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+[==========] Running 182 tests from 36 test suites.
+[----------] Global test environment set-up.
+[----------] 1 test from BenchmarkFreeze
+[ RUN      ] BenchmarkFreeze.BP06_GsvgVersionProbeBaseline
+PERFBUDGET BP06_gsvg_version_probe_1024 median=0 min=0 max=1 us (runs=5)
+[       OK ] BenchmarkFreeze.BP06_GsvgVersionProbeBaseline (8 ms)
+[----------] 1 test from BenchmarkFreeze (8 ms total)
+
+[----------] 10 tests from GsvgExceptionGuard
+[ RUN      ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnrepresentableSizeIsInvalidInputForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnallocatableGridSuppressionSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint
+[       OK ] GsvgExceptionGuard.AnUnallocatableVirtualGridSizeIsOutOfMemoryForEveryEntryPoint (0 ms)
+[ RUN      ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall
+[       OK ] GsvgExceptionGuard.TheHandleStaysUsableAfterAFailedCall (0 ms)
+[ RUN      ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound
+[       OK ] GsvgExceptionGuard.AnOrdinaryLargeFrameIsNotRejectedBySizeBound (0 ms)
+[ RUN      ] GsvgExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow
+[       OK ] GsvgExceptionGuard.ForRowsPartitionsRowsNearIntMaxWithoutOverflow (3 ms)
+[ RUN      ] GsvgExceptionGuard.ForRowsNeverPlansMoreBandsThanRows
+[       OK ] GsvgExceptionGuard.ForRowsNeverPlansMoreBandsThanRows (0 ms)
+[ RUN      ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig
+[       OK ] GsvgExceptionGuard.AVirtualGridPyramidLevelCountBeyondIntIsRefusedByTheConfig (2 ms)
+[ RUN      ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput
+[       OK ] GsvgExceptionGuard.AVignetteGainMapWithANonFiniteElementIsInvalidInput (0 ms)
+[ RUN      ] GsvgExceptionGuard.AVirtualGridWhoseResultIsNotFiniteIsRefusedAndTheOriginalIsRestored
+[       OK ] GsvgExceptionGuard.AVirtualGridWhoseResultIsNotFiniteIsRefusedAndTheOriginalIsRestored (25 ms)
+[----------] 10 tests from GsvgExceptionGuard (34 ms total)
+
+[----------] 7 tests from GsvgDegradedMode
+[ RUN      ] GsvgDegradedMode.BP07_NullVignetteMap_IdentityOutput
+[       OK ] GsvgDegradedMode.BP07_NullVignetteMap_IdentityOutput (0 ms)
+[ RUN      ] GsvgDegradedMode.BP08_AllOnesVignetteMap_OutputEqualsInput
+[       OK ] GsvgDegradedMode.BP08_AllOnesVignetteMap_OutputEqualsInput (0 ms)
+[ RUN      ] GsvgDegradedMode.BP09_GridDisabled_VignetteOnly
+[       OK ] GsvgDegradedMode.BP09_GridDisabled_VignetteOnly (0 ms)
+[ RUN      ] GsvgDegradedMode.InitWithNullConfig_DefaultsToPassThrough
+[       OK ] GsvgDegradedMode.InitWithNullConfig_DefaultsToPassThrough (0 ms)
+[ RUN      ] GsvgDegradedMode.ProcessWithNullHandle_ReturnsInvalidInput
+[       OK ] GsvgDegradedMode.ProcessWithNullHandle_ReturnsInvalidInput (0 ms)
+[ RUN      ] GsvgDegradedMode.ShutdownNullHandle_NoOp
+[       OK ] GsvgDegradedMode.ShutdownNullHandle_NoOp (0 ms)
+[ RUN      ] GsvgDegradedMode.DegradedMode_PerformanceBudget
+[       OK ] GsvgDegradedMode.DegradedMode_PerformanceBudget (0 ms)
+[----------] 7 tests from GsvgDegradedMode (0 ms total)
+
+[----------] 3 tests from GsvgCoverage
+[ RUN      ] GsvgCoverage.VersionIsStableAndNonEmpty
+[       OK ] GsvgCoverage.VersionIsStableAndNonEmpty (0 ms)
+[ RUN      ] GsvgCoverage.GridSuppressionReducesPeriodicRowMeanDeviation
+[       OK ] GsvgCoverage.GridSuppressionReducesPeriodicRowMeanDeviation (4 ms)
+[ RUN      ] GsvgCoverage.VignetteGainRoundsAndClampsToUint16Range
+[       OK ] GsvgCoverage.VignetteGainRoundsAndClampsToUint16Range (0 ms)
+[----------] 3 tests from GsvgCoverage (4 ms total)
+
+[----------] 5 tests from GsvgEdgeCases
+[ RUN      ] GsvgEdgeCases.InitRejectsNullOutputHandle
+[       OK ] GsvgEdgeCases.InitRejectsNullOutputHandle (0 ms)
+[ RUN      ] GsvgEdgeCases.ProcessRejectsNullImagePointers
+[       OK ] GsvgEdgeCases.ProcessRejectsNullImagePointers (0 ms)
+[ RUN      ] GsvgEdgeCases.ProcessRejectsNonPositiveDimensions
+[       OK ] GsvgEdgeCases.ProcessRejectsNonPositiveDimensions (0 ms)
+[ RUN      ] GsvgEdgeCases.MalformedConfigFallsBackToPassThrough
+[       OK ] GsvgEdgeCases.MalformedConfigFallsBackToPassThrough (0 ms)
+[ RUN      ] GsvgEdgeCases.InPlaceVignetteProcessingIsSupported
+[       OK ] GsvgEdgeCases.InPlaceVignetteProcessingIsSupported (0 ms)
+[----------] 5 tests from GsvgEdgeCases (0 ms total)
+
+[----------] 3 tests from GsvgEmptyImageContract
+[ RUN      ] GsvgEmptyImageContract.ZeroAndNegativeDimensionsAreInvalidInput
+[       OK ] GsvgEmptyImageContract.ZeroAndNegativeDimensionsAreInvalidInput (0 ms)
+[ RUN      ] GsvgEmptyImageContract.NullPixelPointersAreInvalidInput
+[       OK ] GsvgEmptyImageContract.NullPixelPointersAreInvalidInput (0 ms)
+[ RUN      ] GsvgEmptyImageContract.ValidImageStillAccepted
+[       OK ] GsvgEmptyImageContract.ValidImageStillAccepted (0 ms)
+[----------] 3 tests from GsvgEmptyImageContract (0 ms total)
+
+[----------] 4 tests from GsvgExtendedCoverage
+[ RUN      ] GsvgExtendedCoverage.WhitespaceJsonBooleanParsingEnablesVignette
+[       OK ] GsvgExtendedCoverage.WhitespaceJsonBooleanParsingEnablesVignette (0 ms)
+[ RUN      ] GsvgExtendedCoverage.ExplicitFalseFlagsForcePassThroughEvenWithGainMap
+[       OK ] GsvgExtendedCoverage.ExplicitFalseFlagsForcePassThroughEvenWithGainMap (0 ms)
+[ RUN      ] GsvgExtendedCoverage.MissingGainMapDisablesOnlyVignetteStep
+[       OK ] GsvgExtendedCoverage.MissingGainMapDisablesOnlyVignetteStep (0 ms)
+[ RUN      ] GsvgExtendedCoverage.VignetteAndGridEnabledOnFlatRowsPreservesDoubledImage
+[       OK ] GsvgExtendedCoverage.VignetteAndGridEnabledOnFlatRowsPreservesDoubledImage (0 ms)
+[----------] 4 tests from GsvgExtendedCoverage (0 ms total)
+
+[----------] 7 tests from GsvgAbiSmoke
+[ RUN      ] GsvgAbiSmoke.Lifecycle3072_PassThroughIsByteEqual
+[       OK ] GsvgAbiSmoke.Lifecycle3072_PassThroughIsByteEqual (10 ms)
+[ RUN      ] GsvgAbiSmoke.Lifecycle3072_VignetteAndGrid_OutputClampedAndSourceIntact
+[       OK ] GsvgAbiSmoke.Lifecycle3072_VignetteAndGrid_OutputClampedAndSourceIntact (185 ms)
+[ RUN      ] GsvgAbiSmoke.ProcessRejectsNullHandle
+[       OK ] GsvgAbiSmoke.ProcessRejectsNullHandle (0 ms)
+[ RUN      ] GsvgAbiSmoke.InitRejectsNullHandlePointer
+[       OK ] GsvgAbiSmoke.InitRejectsNullHandlePointer (0 ms)
+[ RUN      ] GsvgAbiSmoke.RepeatedLifecycleDoesNotLeakOrCrash
+[       OK ] GsvgAbiSmoke.RepeatedLifecycleDoesNotLeakOrCrash (0 ms)
+[ RUN      ] GsvgAbiSmoke.VersionStringLooksLikeSemver
+[       OK ] GsvgAbiSmoke.VersionStringLooksLikeSemver (0 ms)
+[ RUN      ] GsvgAbiSmoke.Lifecycle3072_PerformanceBudget
+[       OK ] GsvgAbiSmoke.Lifecycle3072_PerformanceBudget (180 ms)
+[----------] 7 tests from GsvgAbiSmoke (378 ms total)
+
+[----------] 4 tests from GsvgEndurance
+[ RUN      ] GsvgEndurance.ThousandCycles_CrtHeapDoesNotGrow
+[       OK ] GsvgEndurance.ThousandCycles_CrtHeapDoesNotGrow (12334 ms)
+[ RUN      ] GsvgEndurance.ControlLeak_SmallBlockPerCycleIsCaught
+[       OK ] GsvgEndurance.ControlLeak_SmallBlockPerCycleIsCaught (12263 ms)
+[ RUN      ] GsvgEndurance.ControlLeak_LargeBlockIsCaught
+[       OK ] GsvgEndurance.ControlLeak_LargeBlockIsCaught (11608 ms)
+[ RUN      ] GsvgEndurance.ControlDllHandleIsVisibleToHeapWalk
+[       OK ] GsvgEndurance.ControlDllHandleIsVisibleToHeapWalk (0 ms)
+[----------] 4 tests from GsvgEndurance (36207 ms total)
+
+[----------] 1 test from GsvgAbiExports
+[ RUN      ] GsvgAbiExports.AllEntryPointsAreExported
+[       OK ] GsvgAbiExports.AllEntryPointsAreExported (0 ms)
+[----------] 1 test from GsvgAbiExports (0 ms total)
+
+[----------] 5 tests from GsvgDataSizeProbe
+[ RUN      ] GsvgDataSizeProbe.FullLengthBuffersProcessNormally
+[       OK ] GsvgDataSizeProbe.FullLengthBuffersProcessNormally (0 ms)
+[ RUN      ] GsvgDataSizeProbe.ShortSourceBufferIsRejectedWithoutBeingRead
+[       OK ] GsvgDataSizeProbe.ShortSourceBufferIsRejectedWithoutBeingRead (0 ms)
+[ RUN      ] GsvgDataSizeProbe.ShortGainMapIsRejectedWithoutBeingRead
+[       OK ] GsvgDataSizeProbe.ShortGainMapIsRejectedWithoutBeingRead (0 ms)
+[ RUN      ] GsvgDataSizeProbe.NullGainMapWithZeroLengthIsAccepted
+[       OK ] GsvgDataSizeProbe.NullGainMapWithZeroLengthIsAccepted (0 ms)
+[ RUN      ] GsvgDataSizeProbe.KnownDivergence_MisstatedLengthIsStillReadPastItsEnd
+[       OK ] GsvgDataSizeProbe.KnownDivergence_MisstatedLengthIsStillReadPastItsEnd (0 ms)
+[----------] 5 tests from GsvgDataSizeProbe (0 ms total)
+
+[----------] 7 tests from GsvgParameterDependency
+[ RUN      ] GsvgParameterDependency.FixtureRowsDeviateAboveTheSuppressionThreshold
+[       OK ] GsvgParameterDependency.FixtureRowsDeviateAboveTheSuppressionThreshold (0 ms)
+[ RUN      ] GsvgParameterDependency.GridSuppressionFlagReachesTheOutput
+[       OK ] GsvgParameterDependency.GridSuppressionFlagReachesTheOutput (4 ms)
+[ RUN      ] GsvgParameterDependency.VignetteFlagReachesTheOutput
+[       OK ] GsvgParameterDependency.VignetteFlagReachesTheOutput (0 ms)
+[ RUN      ] GsvgParameterDependency.GainMapContentsReachTheOutput
+[       OK ] GsvgParameterDependency.GainMapContentsReachTheOutput (0 ms)
+[ RUN      ] GsvgParameterDependency.UnknownConfigKeyLeavesTheDefaults
+[       OK ] GsvgParameterDependency.UnknownConfigKeyLeavesTheDefaults (0 ms)
+[ RUN      ] GsvgParameterDependency.KnownDivergence_VignetteFlagIsInertWithoutAGainMap
+[       OK ] GsvgParameterDependency.KnownDivergence_VignetteFlagIsInertWithoutAGainMap (0 ms)
+[ RUN      ] GsvgParameterDependency.GridSuppressionStillReachesTheOutputWithoutAGainMap
+[       OK ] GsvgParameterDependency.GridSuppressionStillReachesTheOutputWithoutAGainMap (3 ms)
+[----------] 7 tests from GsvgParameterDependency (8 ms total)
+
+[----------] 9 tests from GsvgConfigWarning
+[ RUN      ] GsvgConfigWarning.NullConfigIsSilent
+[       OK ] GsvgConfigWarning.NullConfigIsSilent (0 ms)
+[ RUN      ] GsvgConfigWarning.EmptyConfigIsSilent
+[       OK ] GsvgConfigWarning.EmptyConfigIsSilent (0 ms)
+[ RUN      ] GsvgConfigWarning.ValidConfigIsSilent
+[       OK ] GsvgConfigWarning.ValidConfigIsSilent (0 ms)
+[ RUN      ] GsvgConfigWarning.StringValuesAreNotMistakenForKeys
+[       OK ] GsvgConfigWarning.StringValuesAreNotMistakenForKeys (0 ms)
+[ RUN      ] GsvgConfigWarning.UnknownKeyIsReportedByName
+[       OK ] GsvgConfigWarning.UnknownKeyIsReportedByName (0 ms)
+[ RUN      ] GsvgConfigWarning.TypoOfAKnownKeyIsReportedByName
+[       OK ] GsvgConfigWarning.TypoOfAKnownKeyIsReportedByName (0 ms)
+[ RUN      ] GsvgConfigWarning.EveryUnknownKeyIsNamed
+[       OK ] GsvgConfigWarning.EveryUnknownKeyIsNamed (0 ms)
+[ RUN      ] GsvgConfigWarning.NestedKeysAreNotReported
+[       OK ] GsvgConfigWarning.NestedKeysAreNotReported (0 ms)
+[ RUN      ] GsvgConfigWarning.ReturnCodeIsUnchangedForUnknownKeys
+[       OK ] GsvgConfigWarning.ReturnCodeIsUnchangedForUnknownKeys (0 ms)
+[----------] 9 tests from GsvgConfigWarning (0 ms total)
+
+[----------] 10 tests from GsvgGridTools
+[ RUN      ] GsvgGridTools.AliasedFrequencyMatchesHandComputedValues
+[       OK ] GsvgGridTools.AliasedFrequencyMatchesHandComputedValues (0 ms)
+[ RUN      ] GsvgGridTools.BackgroundIsNotUniform
+[       OK ] GsvgGridTools.BackgroundIsNotUniform (26 ms)
+[ RUN      ] GsvgGridTools.GeneratedGridAppearsAtTheAliasedFrequency
+GRIDTOOL peak axis=rows lpi=60 expected=2.36220 measured=2.36218 diff_bins=-0.003
+GRIDTOOL peak axis=rows lpi=103 expected=3.08774 measured=3.08772 diff_bins=-0.003
+GRIDTOOL peak axis=rows lpi=200 expected=0.73116 measured=0.73114 diff_bins=-0.003
+GRIDTOOL peak axis=cols lpi=60 expected=2.36220 measured=2.36219 diff_bins=-0.002
+GRIDTOOL peak axis=cols lpi=103 expected=3.08774 measured=3.08772 diff_bins=-0.003
+GRIDTOOL peak axis=cols lpi=200 expected=0.73116 measured=0.73114 diff_bins=-0.002
+[       OK ] GsvgGridTools.GeneratedGridAppearsAtTheAliasedFrequency (92 ms)
+[ RUN      ] GsvgGridTools.ResidualEnergyRisesWithDepthAndReturnsToBaselineWhenRemoved
+GRIDTOOL energy lpi=60 d=0.001 ratio=4359 (baseline 1.295)
+GRIDTOOL energy lpi=60 d=0.001 ratio=1.735e+04 (baseline 1.295)
+GRIDTOOL energy lpi=60 d=0.005 ratio=4.168e+05 (baseline 1.295)
+GRIDTOOL energy lpi=60 d=0.020 ratio=4.597e+06 (baseline 1.295)
+GRIDTOOL energy lpi=60 d=0.050 ratio=1.087e+07 (baseline 1.295)
+GRIDTOOL energy lpi=60 d=0.100 ratio=1.368e+07 (baseline 1.295)
+GRIDTOOL energy lpi=60 d=0.200 ratio=1.47e+07 (baseline 1.295)
+GRIDTOOL energy lpi=103 d=0.001 ratio=5100 (baseline 0.759)
+GRIDTOOL energy lpi=103 d=0.001 ratio=2.041e+04 (baseline 0.759)
+GRIDTOOL energy lpi=103 d=0.005 ratio=5.103e+05 (baseline 0.759)
+GRIDTOOL energy lpi=103 d=0.020 ratio=5.952e+06 (baseline 0.759)
+GRIDTOOL energy lpi=103 d=0.050 ratio=1.304e+07 (baseline 0.759)
+GRIDTOOL energy lpi=103 d=0.100 ratio=1.514e+07 (baseline 0.759)
+GRIDTOOL energy lpi=103 d=0.200 ratio=1.552e+07 (baseline 0.759)
+GRIDTOOL energy lpi=200 d=0.001 ratio=353.7 (baseline 1.265)
+GRIDTOOL energy lpi=200 d=0.001 ratio=1454 (baseline 1.265)
+GRIDTOOL energy lpi=200 d=0.005 ratio=3.739e+04 (baseline 1.265)
+GRIDTOOL energy lpi=200 d=0.020 ratio=5.971e+05 (baseline 1.265)
+GRIDTOOL energy lpi=200 d=0.050 ratio=3.263e+06 (baseline 1.265)
+GRIDTOOL energy lpi=200 d=0.100 ratio=8.405e+06 (baseline 1.265)
+GRIDTOOL energy lpi=200 d=0.200 ratio=1.324e+07 (baseline 1.265)
+[       OK ] GsvgGridTools.ResidualEnergyRisesWithDepthAndReturnsToBaselineWhenRemoved (336 ms)
+[ RUN      ] GsvgGridTools.ResidualEnergyAtAWrongBandIgnoresTheGrid
+GRIDTOOL wrongband lpi=60 wrong: 5.131 -> 5.161  right: 1.295 -> 1.368e+07
+GRIDTOOL wrongband lpi=103 wrong: 0.3882 -> 0.3118  right: 0.759 -> 1.514e+07
+GRIDTOOL wrongband lpi=200 wrong: 0.7015 -> 0.7242  right: 1.265 -> 8.405e+06
+[       OK ] GsvgGridTools.ResidualEnergyAtAWrongBandIgnoresTheGrid (73 ms)
+[ RUN      ] GsvgGridTools.ResidualEnergyOnTheOtherAxisIgnoresTheGrid
+GRIDTOOL otheraxis cols: 0.3892 -> 0.2213
+[       OK ] GsvgGridTools.ResidualEnergyOnTheOtherAxisIgnoresTheGrid (26 ms)
+[ RUN      ] GsvgGridTools.EdgeFitRecoversTheTilt
+GRIDTOOL tilt set=2.0 fitted=2.0000
+GRIDTOOL tilt set=3.0 fitted=3.0000
+GRIDTOOL tilt set=5.0 fitted=5.0000
+[       OK ] GsvgGridTools.EdgeFitRecoversTheTilt (0 ms)
+[ RUN      ] GsvgGridTools.EdgeMtfMatchesTheGaussianBlurFormula
+GRIDTOOL mtf tilt=2.0 sigma=0.5 maxdev(f<=0.5)=0.00019
+GRIDTOOL mtf tilt=2.0 sigma=1.0 maxdev(f<=0.5)=0.00015
+GRIDTOOL mtf tilt=2.0 sigma=1.5 maxdev(f<=0.5)=0.00048
+GRIDTOOL mtf tilt=2.0 sigma=2.0 maxdev(f<=0.5)=0.00041
+GRIDTOOL mtf tilt=3.0 sigma=0.5 maxdev(f<=0.5)=0.00059
+GRIDTOOL mtf tilt=3.0 sigma=1.0 maxdev(f<=0.5)=0.00123
+GRIDTOOL mtf tilt=3.0 sigma=1.5 maxdev(f<=0.5)=0.00111
+GRIDTOOL mtf tilt=3.0 sigma=2.0 maxdev(f<=0.5)=0.00110
+GRIDTOOL mtf tilt=5.0 sigma=0.5 maxdev(f<=0.5)=0.00536
+GRIDTOOL mtf tilt=5.0 sigma=1.0 maxdev(f<=0.5)=0.00395
+GRIDTOOL mtf tilt=5.0 sigma=1.5 maxdev(f<=0.5)=0.00338
+GRIDTOOL mtf tilt=5.0 sigma=2.0 maxdev(f<=0.5)=0.00329
+[       OK ] GsvgGridTools.EdgeMtfMatchesTheGaussianBlurFormula (4 ms)
+[ RUN      ] GsvgGridTools.EdgeMtf50FallsAsBlurGrows
+GRIDTOOL mt
+
+f50 sigma=0.0 measured=1.0000 analytic=-1.0000
+GRIDTOOL mtf50 sigma=0.5 measured=0.3751 analytic=0.3748
+GRIDTOOL mtf50 sigma=1.0 measured=0.1875 analytic=0.1874
+GRIDTOOL mtf50 sigma=1.5 measured=0.1250 analytic=0.1249
+GRIDTOOL mtf50 sigma=2.0 measured=0.0937 analytic=0.0937
+[       OK ] GsvgGridTools.EdgeMtf50FallsAsBlurGrows (1 ms)
+[ RUN      ] GsvgGridTools.EdgeMtfWithoutTiltCorrectionMissesTheFormula
+GRIDTOOL notilt tilt=2.0 maxdev on=0.00015 off=0.66463
+GRIDTOOL notilt tilt=3.0 maxdev on=0.00123 off=0.80256
+GRIDTOOL notilt tilt=5.0 maxdev on=0.00395 off=0.88784
+[       OK ] GsvgGridTools.EdgeMtfWithoutTiltCorrectionMissesTheFormula (1 ms)
+[----------] 10 tests from GsvgGridTools (564 ms total)
+
+[----------] 18 tests from GsvgGridSuppression
+[ RUN      ] GsvgGridSuppression.FftMatchesDirectDftAndInverts
+GRIDSUP fft n=16 fwd_err=2.31e-14 (scale 12.4) inv_err=4.44e-16
+GRIDSUP fft n=64 fwd_err=9.79e-13 (scale 204) inv_err=1.88e-15
+GRIDSUP fft n=96 fwd_err=3.34e-12 (scale 461) inv_err=4.27e-15
+GRIDSUP fft n=45 fwd_err=4.27e-13 (scale 104) inv_err=5.3e-15
+GRIDSUP fft n=7 fwd_err=9.1e-15 (scale 6.89) inv_err=4.97e-16
+GRIDSUP fft n=1536 fwd_err=1.47e-08 (scale 1.18e+05) inv_err=9.25e-14
+[       OK ] GsvgGridSuppression.FftMatchesDirectDftAndInverts (31 ms)
+[ RUN      ] GsvgGridSuppression.Db4DwtReconstructsPerfectly
+GRIDSUP dwt 1024x1024 max_abs_err=7.28e-11
+GRIDSUP dwt 97x64 max_abs_err=5.46e-11
+GRIDSUP dwt 64x33 max_abs_err=5.09e-11
+GRIDSUP dwt 32x32 max_abs_err=4.73e-11
+[       OK ] GsvgGridSuppression.Db4DwtReconstructsPerfectly (61 ms)
+[ RUN      ] GsvgGridSuppression.SubbandPlacementMatchesHandValues
+[       OK ] GsvgGridSuppression.SubbandPlacementMatchesHandValues (0 ms)
+[ RUN      ] GsvgGridSuppression.GridIsSuppressedByAtLeast40dB
+GRIDSUP suppress axis=rows lpi=60 f=0.33071 prom=7.55e+07 level=1 filtered=4 baseline=1.303 before=1.088e+07 after=463.2 after/before=4.26e-05 after/baseline=355
+GRIDSUP suppress axis=rows lpi=103 f=0.43228 prom=8.65e+07 level=1 filtered=4 baseline=0.7559 before=1.304e+07 after=539.9 after/before=4.14e-05 after/baseline=714
+GRIDSUP suppress axis=rows lpi=200 f=0.10236 prom=2.55e+07 level=3 filtered=5 baseline=1.269 before=3.265e+06 after=71.66 after/before=2.2e-05 after/baseline=56.5
+GRIDSUP suppress axis=cols lpi=60 f=0.33071 prom=1.97e+07 level=1 filtered=5 baseline=19.59 before=9.831e+05 after=88.43 after/before=8.99e-05 after/baseline=4.51
+GRIDSUP suppress axis=cols lpi=103 f=0.43228 prom=1.66e+07 level=1 filtered=4 baseline=0.3904 before=1.094e+06 after=100.7 after/before=9.2e-05 after/baseline=258
+GRIDSUP suppress axis=cols lpi=200 f=0.10236 prom=7.97e+06 level=3 filtered=5 baseline=1.016 before=7.815e+05 after=65.46 after/before=8.38e-05 after/baseline=64.4
+[       OK ] GsvgGridSuppression.GridIsSuppressedByAtLeast40dB (562 ms)
+[ RUN      ] GsvgGridSuppression.ProvisionalFloor_ResidualGridEnergy_REQ_GSVG_005
+GRIDSUP floor005 axis=rows lpi=60 after/before=4.256e-05 after/baseline=355.4
+GRIDSUP floor005 axis=rows lpi=103 after/before=4.139e-05 after/baseline=714.3
+GRIDSUP floor005 axis=rows lpi=200 after/before=2.195e-05 after/baseline=56.49
+GRIDSUP floor005 axis=cols lpi=60 after/before=8.995e-05 after/baseline=4.514
+GRIDSUP floor005 axis=cols lpi=103 after/before=9.204e-05 after/baseline=257.9
+GRIDSUP floor005 axis=cols lpi=200 after/before=8.376e-05 after/baseline=64.44
+[       OK ] GsvgGridSuppression.ProvisionalFloor_ResidualGridEnergy_REQ_GSVG_005 (570 ms)
+[ RUN      ] GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical
+GRIDSUP invariant seed=1 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=1 noise=30 prom rows=266 cols=93.8 detected=0/0
+GRIDSUP invariant seed=1 noise=300 prom rows=7.07 cols=7.82 detected=0/0
+GRIDSUP invariant seed=2 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=2 noise=30 prom rows=356 cols=69 detected=0/0
+GRIDSUP invariant seed=2 noise=300 prom rows=9.16 cols=14.4 detected=0/0
+GRIDSUP invariant seed=3 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=3 noise=30 prom rows=187 cols=97.2 detected=0/0
+GRIDSUP invariant seed=3 noise=300 prom rows=6.72 cols=11.2 detected=0/0
+GRIDSUP invariant seed=180 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=180 noise=30 prom rows=299 cols=99 detected=0/0
+GRIDSUP invariant seed=180 noise=300 prom rows=8.62 cols=9.17 detected=0/0
+[       OK ] GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical (369 ms)
+[ RUN      ] GsvgGridSuppression.MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal
+GRIDSUP mtf grid=rows lpi=60 decisions=5 loss: [0.0,0.1)=0.0001 [0.1,0.2)=0.0001 [0.2,0.3)=0.0001 [0.3,0.4)=0.0001 [0.4,0.5)=0.0001
+GRIDSUP mtf grid=rows lpi=103 decisions=4 loss: [0.0,0.1)=0.0000 [0.1,0.2)=0.0000 [0.2,0.3)=0.0000 [0.3,0.4)=0.0000 [0.4,0
+
+.5)=0.0000
+GRIDSUP mtf grid=rows lpi=200 decisions=5 loss: [0.0,0.1)=0.0000 [0.1,0.2)=0.0000 [0.2,0.3)=0.0000 [0.3,0.4)=0.0000 [0.4,0.5)=0.0000
+[       OK ] GsvgGridSuppression.MtfLossStaysUnderFivePercentForLinesAlongTheEdgeNormal (393 ms)
+[ RUN      ] GsvgGridSuppression.ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006
+GRIDSUP mtf grid=cols lpi=60 decisions=3 loss: [0.0,0.1)=0.0888 [0.1,0.2)=0.1152 [0.2,0.3)=0.0129 [0.3,0.4)=0.0964 [0.4,0.5)=0.0002 naive_worst=0.9967
+GRIDSUP mtf grid=cols lpi=103 decisions=1 loss: [0.0,0.1)=0.0040 [0.1,0.2)=0.0047 [0.2,0.3)=0.0079 [0.3,0.4)=0.0129 [0.4,0.5)=0.1167 naive_worst=0.9889
+GRIDSUP mtf grid=cols lpi=200 decisions=0 loss: [0.0,0.1)=0.0000 [0.1,0.2)=0.0000 [0.2,0.3)=0.0000 [0.3,0.4)=0.0000 [0.4,0.5)=0.0000 naive_worst=0.9921
+[       OK ] GsvgGridSuppression.ProvisionalFloor_MtfLossAcrossTheEdge_REQ_GSVG_006 (450 ms)
+[ RUN      ] GsvgGridSuppression.ProvisionalFloor_SevereAliasing_REQ_GSVG_008
+GRIDSUP floor008 lpi=170 detected=1 level=3 filtered=4 after/before=0.002595
+GRIDSUP floor008 lpi=175 detected=1 level=4 filtered=5 after/before=4.153e-05
+GRIDSUP floor008 lpi=183 detected=0 level=0 filtered=0 after/before=1
+GRIDSUP floor008 lpi=186 detected=1 level=5 filtered=4 after/before=2.401e-05
+[       OK ] GsvgGridSuppression.ProvisionalFloor_SevereAliasing_REQ_GSVG_008 (314 ms)
+[ DISABLED ] GsvgGridSuppression.DISABLED_SevereAliasing180_UndecidedPendingDetectorMtf_192
+[ RUN      ] GsvgGridSuppression.ReportSigmaAndDomainSweep
+GRIDSUP sweep sigma=1.5 log=0 axis=rows lpi=60 after/before=4.26e-05 after/baseline=355 mtf_worst=0.0000
+GRIDSUP sweep sigma=1.5 log=0 axis=rows lpi=103 after/before=4.14e-05 after/baseline=714 mtf_worst=0.0000
+GRIDSUP sweep sigma=1.5 log=0 axis=rows lpi=200 after/before=2.2e-05 after/baseline=56.5 mtf_worst=0.0000
+GRIDSUP sweep sigma=1.5 log=0 axis=cols lpi=60 after/before=8.99e-05 after/baseline=4.51 mtf_worst=0.1152
+GRIDSUP sweep sigma=1.5 log=0 axis=cols lpi=103 after/before=9.2e-05 after/baseline=258 mtf_worst=0.1167
+GRIDSUP sweep sigma=1.5 log=0 axis=cols lpi=200 after/before=8.38e-05 after/baseline=64.4 mtf_worst=0.0000
+GRIDSUP sweep sigma=1.5 log=1 axis=rows lpi=60 after/before=4.92e-08 after/baseline=0.411 mtf_worst=0.0000
+GRIDSUP sweep sigma=1.5 log=1 axis=rows lpi=103 after/before=0.000126 after/baseline=2.18e+03 mtf_worst=0.0000
+GRIDSUP sweep sigma=1.5 log=1 axis=rows lpi=200 after/before=1.65e-05 after/baseline=42.5 mtf_worst=0.0000
+GRIDSUP sweep sigma=1.5 log=1 axis=cols lpi=60 after/before=5.72e-07 after/baseline=0.0287 mtf_worst=0.1361
+GRIDSUP sweep sigma=1.5 log=1 axis=cols lpi=103 after/before=0.000914 after/baseline=2.56e+03 mtf_worst=0.1175
+GRIDSUP sweep sigma=1.5 log=1 axis=cols lpi=200 after/before=2.45e-05 after/baseline=18.8 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=0 axis=rows lpi=60 after/before=7.97e-07 after/baseline=6.65 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=0 axis=rows lpi=103 after/before=8.22e-07 after/baseline=14.2 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=0 axis=rows lpi=200 after/before=5.92e-07 after/baseline=1.52 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=0 axis=cols lpi=60 after/before=9.27e-06 after/baseline=0.465 mtf_worst=0.2314
+GRIDSUP sweep sigma=3.0 log=0 axis=cols lpi=103 after/before=9.88e-06 after/baseline=27.7 mtf_worst=0.2304
+GRIDSUP sweep sigma=3.0 log=0 axis=cols lpi=200 after/before=9.62e-06 after/baseline=7.4 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=1 axis=rows lpi=60 after/before=3.83e-10 after/baseline=0.0032 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=1 axis=rows lpi=103 after/before=1.05e-06 after/baseline=18.1 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=1 axis=rows lpi=200 after/before=1.33e-07 after/baseline=0.343 mtf_worst=0.0000
+GRIDSUP sweep sigma=3.0 log=1 axis=cols lpi=60 after/before=8.38e-09 after/baseline=0.00042 mtf_worst=0.2720
+GRIDSUP sweep sigma=3.0 log=1 axis=cols lpi=103 after/before=7.67e-06 after/baseline=21.5 mtf_worst=0.2288
+GRIDSUP sweep sigma=3.0 log=1 axis=cols lpi=200 after/before=3.76e-07 after/baseline=0.29 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=0 ax
+
+is=rows lpi=60 after/before=5.92e-08 after/baseline=0.495 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=0 axis=rows lpi=103 after/before=6.24e-08 after/baseline=1.08 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=0 axis=rows lpi=200 after/before=3.48e-08 after/baseline=0.0896 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=0 axis=cols lpi=60 after/before=1.58e-06 after/baseline=0.0795 mtf_worst=0.4564
+GRIDSUP sweep sigma=6.0 log=0 axis=cols lpi=103 after/before=1.61e-06 after/baseline=4.51 mtf_worst=0.4404
+GRIDSUP sweep sigma=6.0 log=0 axis=cols lpi=200 after/before=1.47e-06 after/baseline=1.13 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=1 axis=rows lpi=60 after/before=9.05e-12 after/baseline=7.56e-05 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=1 axis=rows lpi=103 after/before=1.18e-07 after/baseline=2.03 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=1 axis=rows lpi=200 after/before=8.85e-09 after/baseline=0.0228 mtf_worst=0.0000
+GRIDSUP sweep sigma=6.0 log=1 axis=cols lpi=60 after/before=1.58e-09 after/baseline=7.95e-05 mtf_worst=0.5300
+GRIDSUP sweep sigma=6.0 log=1 axis=cols lpi=103 after/before=6.58e-07 after/baseline=1.85 mtf_worst=0.4187
+GRIDSUP sweep sigma=6.0 log=1 axis=cols lpi=200 after/before=1.2e-07 after/baseline=0.0922 mtf_worst=0.0000
+[       OK ] GsvgGridSuppression.ReportSigmaAndDomainSweep (5174 ms)
+[ RUN      ] GsvgGridSuppression.ReportDetectionDepth
+GRIDSUP depth d=0.0002 lpi=60 prom=2.38e+03 amp=4.43 detected=0 after/before=1
+GRIDSUP depth d=0.0002 lpi=103 prom=2.93e+03 amp=4.48 detected=0 after/before=1
+GRIDSUP depth d=0.0002 lpi=200 prom=354 amp=4.33 detected=0 after/before=1
+GRIDSUP depth d=0.0005 lpi=60 prom=1.56e+04 amp=11 detected=1 after/before=0.000206
+GRIDSUP depth d=0.0005 lpi=103 prom=1.8e+04 amp=11.1 detected=1 after/before=0.000191
+GRIDSUP depth d=0.0005 lpi=200 prom=2.34e+03 amp=11.2 detected=0 after/before=1
+GRIDSUP depth d=0.0010 lpi=60 prom=6.01e+04 amp=22 detected=1 after/before=7.82e-05
+GRIDSUP depth d=0.0010 lpi=103 prom=7.21e+04 amp=22.1 detected=1 after/before=8.02e-05
+GRIDSUP depth d=0.0010 lpi=200 prom=9.55e+03 amp=22.6 detected=0 after/before=1
+GRIDSUP depth d=0.0020 lpi=60 prom=2.37e+05 amp=44 detected=1 after/before=4.88e-05
+GRIDSUP depth d=0.0020 lpi=103 prom=2.82e+05 amp=44.2 detected=1 after/before=5.2e-05
+GRIDSUP depth d=0.0020 lpi=200 prom=3.88e+04 amp=45.3 detected=1 after/before=0.000158
+GRIDSUP depth d=0.0050 lpi=60 prom=1.57e+06 amp=110 detected=1 after/before=4.37e-05
+GRIDSUP depth d=0.0050 lpi=103 prom=1.78e+06 amp=110 detected=1 after/before=4.32e-05
+GRIDSUP depth d=0.0050 lpi=200 prom=2.44e+05 amp=114 detected=1 after/before=4.18e-05
+[       OK ] GsvgGridSuppression.ReportDetectionDepth (1030 ms)
+[ RUN      ] GsvgGridSuppression.WithoutBandStopOnlySuppressionFails
+GRIDSUP nobandstop lpi=60 after/before=1
+GRIDSUP nobandstop lpi=103 after/before=1
+GRIDSUP nobandstop lpi=200 after/before=1
+[       OK ] GsvgGridSuppression.WithoutBandStopOnlySuppressionFails (193 ms)
+[ RUN      ] GsvgGridSuppression.WithoutAutoStopInvarianceStillHolds
+GRIDSUP noautostop lpi=103 filtered=4 checks=6 after/before=4.14e-05
+[       OK ] GsvgGridSuppression.WithoutAutoStopInvarianceStillHolds (103 ms)
+[ RUN      ] GsvgGridSuppression.WithoutInputGateGridFreeImagesChange
+GRIDSUP noinputgate filtered rows=2 cols=4 differing=1030297
+[       OK ] GsvgGridSuppression.WithoutInputGateGridFreeImagesChange (57 ms)
+[ RUN      ] GsvgGridSuppression.ReportSevereAliasing
+GRIDSUP alias lpi=170 f_cpx=0.06299 detected=1 level=3 filtered=4 baseline=0.7068 before=8.835e+05 after=2293
+GRIDSUP alias lpi=175 f_cpx=0.03543 detected=1 level=4 filtered=5 baseline=0.8879 before=1.114e+05 after=4.628
+GRIDSUP alias lpi=180 f_cpx=0.00787 detected=0 level=0 filtered=0 baseline=4.9 before=4.418e+04 after=4.418e+04
+GRIDSUP alias lpi=183 f_cpx=0.00866 detected=0 level=0 filtered=0 baseline=6.088 before=5.579e+04 after=5.579e+04
+GRIDSUP alias lpi=186 f_cpx=0.02520 detected=1 level=5 filtered=4 baseline=0.3844 before=2.796e+04 after=0.6715
+[       OK ] GsvgGridSuppression.ReportSevereAliasing (347 ms)
+[ RUN      ] GsvgGridSu
+
+ppression.BenchmarkFreeze_Performance_REQ_GSVG_019_GridDwt3072
+PERFMEASURE REQ-GSVG-019/xpe_gsvg_process_grid 3072x3072 min=453800 med=462397 max=471862 us (runs=7)
+GRIDSUP bench3072 ratio before=1.341e+07 after=115.8
+[       OK ] GsvgGridSuppression.BenchmarkFreeze_Performance_REQ_GSVG_019_GridDwt3072 (4160 ms)
+[ RUN      ] GsvgGridSuppression.AliasContrastAtTheProductPitch_192
+GRIDSUP 192: pitch_mm, lpi, alias_lp_cm, period_cm, contrast_point_sampled, contrast_aperture, aperture/point
+GRIDSUP 192 pitch=0.139 lpi=  170 alias=5.013 lp/cm period=  0.20 cm point=0.05000 aperture=0.0037155 ratio=0.07431
+GRIDSUP 192 pitch=0.139 lpi=  180 alias=1.076 lp/cm period=  0.93 cm point=0.05000 aperture=0.0007591 ratio=0.01518
+GRIDSUP 192 pitch=0.139 lpi=  186 alias=1.286 lp/cm period=  0.78 cm point=0.05000 aperture=0.0008776 ratio=0.01755
+GRIDSUP 192 pitch=0.139 lpi=  103 alias=31.391 lp/cm period=  0.03 cm point=0.05000 aperture=0.0276733 ratio=0.55347
+GRIDSUP 192 pitch=0.140 lpi=  170 alias=4.499 lp/cm period=  0.22 cm point=0.05000 aperture=0.0033392 ratio=0.06679
+GRIDSUP 192 pitch=0.140 lpi=  180 alias=0.562 lp/cm period=  1.78 cm point=0.05000 aperture=0.0003968 ratio=0.00794
+GRIDSUP 192 pitch=0.140 lpi=  186 alias=1.800 lp/cm period=  0.56 cm point=0.05000 aperture=0.0012276 ratio=0.02455
+GRIDSUP 192 pitch=0.140 lpi=  103 alias=30.877 lp/cm period=  0.03 cm point=0.05000 aperture=0.0274025 ratio=0.54805
+[       OK ] GsvgGridSuppression.AliasContrastAtTheProductPitch_192 (67 ms)
+[ RUN      ] GsvgGridSuppression.SeedSpreadOfTheAliasingFloors_192
+GRIDSUP seed192: lpi, seed, after/before, detected
+GRIDSUP seed192 lpi=170 seed=  1 after/before=0.002584 detected=1
+GRIDSUP seed192 lpi=170 seed=  2 after/before=0.002589 detected=1
+GRIDSUP seed192 lpi=170 seed=  3 after/before=0.002582 detected=1
+GRIDSUP seed192 lpi=170 seed=180 after/before=0.002595 detected=1
+GRIDSUP seed192 lpi=170 MIN=0.002582 MAX=0.002595 spread=0.5% (max/min=1.005)
+GRIDSUP seed192 lpi=175 seed=  1 after/before=4.144e-05 detected=1
+GRIDSUP seed192 lpi=175 seed=  2 after/before=4.25e-05 detected=1
+GRIDSUP seed192 lpi=175 seed=  3 after/before=4.167e-05 detected=1
+GRIDSUP seed192 lpi=175 seed=180 after/before=4.153e-05 detected=1
+GRIDSUP seed192 lpi=175 MIN=4.144e-05 MAX=4.25e-05 spread=2.6% (max/min=1.026)
+GRIDSUP seed192 lpi=186 seed=  1 after/before=2.475e-05 detected=1
+GRIDSUP seed192 lpi=186 seed=  2 after/before=2.437e-05 detected=1
+GRIDSUP seed192 lpi=186 seed=  3 after/before=2.424e-05 detected=1
+GRIDSUP seed192 lpi=186 seed=180 after/before=2.401e-05 detected=1
+GRIDSUP seed192 lpi=186 MIN=2.401e-05 MAX=2.475e-05 spread=3.0% (max/min=1.030)
+[       OK ] GsvgGridSuppression.SeedSpreadOfTheAliasingFloors_192 (1067 ms)
+[----------] 18 tests from GsvgGridSuppression (14958 ms total)
+
+[----------] 5 tests from GridVisibility192
+[ RUN      ] GridVisibility192.ObservedAliasFrequencyMatchesTheFoldingPrediction_192
+GV192 alias: lpi pitch predicted_lp_per_cm observed_lp_per_cm cycles_across_field
+GV192 alias 170 0.139  5.013  4.988  71.0
+GV192 alias 170 0.140  4.499  4.534  65.0
+GV192 alias 180 0.139  1.076  1.054  15.0
+GV192 alias 180 0.140  0.562  0.558  8.0
+GV192 alias 186 0.139  1.286  1.265  18.0
+GV192 alias 186 0.140  1.800  1.814  26.0
+[       OK ] GridVisibility192.ObservedAliasFrequencyMatchesTheFoldingPrediction_192 (92 ms)
+[ RUN      ] GridVisibility192.AliasAmplitudeAtTheProductPitch_192
+GV192 amp: lpi pitch point_sampled_% aperture_integrated_% (input depth 5.0%)
+GV192 amp 170 0.139   10.0011   0.74308
+GV192 amp 170 0.140   10.0014   0.66784
+GV192 amp 180 0.139   10.0054   0.15182
+GV192 amp 180 0.140    9.9987   0.07935
+GV192 amp 186 0.139    9.9934   0.17551
+GV192 amp 186 0.140    9.9985   0.24552
+[       OK ] GridVisibility192.AliasAmplitudeAtTheProductPitch_192 (124 ms)
+[ RUN      ] GridVisibility192.TheAmplitudeMeasurementIsNotBlind_192
+GV192 control flat-no-grid modulation=0.000000 %
+GV192 control 60lpi-0.140 modulation=9.9987 % (input depth 5.0 %)
+GV192 control aperture 60lpi=8.2946 % 180lpi=0.07935 % ratio=104.5
+[       OK ] GridVisibility192.TheAmplitudeMeasurementIsNotBlind_192 (33 ms)
+[ RUN      ] GridVisibility192.TheVerdictTurnsOnTheApertureFillFactor_192
+GV192 fill: lpi pitch fill modulation_pct verdict (1JND=0.75 pct)
+GV192 fill 170 0.140 1.00    0.6678  below
+GV192 fill 170 0.140 0.95    1.2096  grey
+GV192 fill 170 0.140 0.90    1.7839  grey
+GV192 fill 170 0.140 0.85    2.3849  VISIBLE
+GV192 fill 170 0.140 0.80    3.0063  VISIBLE
+GV192 fill 170 0.140 0.70    4.2825  VISIBLE
+GV192 fill 180 0.140 1.00    0.0794  below
+GV192 fill 180 0.140 0.95    0.6065  below
+GV192 fill 180 0.140 0.90    1.1767  grey
+GV192 fill 180 0.140 0.85    1.7838  grey
+GV192 fill 180 0.140 0.80    2.4208  VISIBLE
+GV192 fill 180 0.140 0.70    3.7537  VISIBLE
+GV192 fill 186 0.140 1.00    0.2455  below
+GV192 fill 186 0.140 0.95    0.2673  below
+GV192 fill 186 0.140 0.90    0.8298  grey
+GV192 fill 186 0.140 0.85    1.4357  grey
+GV192 fill 186 0.140 0.80    2.0779  VISIBLE
+GV192 fill 186 0.140 0.70    3.4383  VISIBLE
+[       OK ] GridVisibility192.TheVerdictTurnsOnTheApertureFillFactor_192 (189 ms)
+[ RUN      ] GridVisibility192.HowMuchThePointSampledSceneOverstatesTheGrid_192
+GV192 overstate: lpi f*pitch point_% aperture_% ratio  (pitch 0.140)
+GV192 overstate  60  0.3307   9.9987   8.29459     1.2
+GV192 overstate 103  0.5677  10.0001   5.48047     1.8
+GV192 overstate 170  0.9370  10.0014   0.66784    15.0
+GV192 overstate 180  0.9921   9.9987   0.07935   126.0
+GV192 overstate 186  1.0252   9.9985   0.24552    40.7
+GV192 overstate 200  1.1024   9.9987   0.91258    11.0
+GV192 overstate ratio103=1.82 ratio180=126.0
+[       OK ] GridVisibility192.HowMuchThePointSampledSceneOverstatesTheGrid_192 (167 ms)
+[----------] 5 tests from GridVisibility192 (607 ms total)
+
+[----------] 5 tests from GsvgVirtualGridTable
+[ RUN      ] GsvgVirtualGridTable.SyntheticTableLoads
+[       OK ] GsvgVirtualGridTable.SyntheticTableLoads (0 ms)
+[ RUN      ] GsvgVirtualGridTable.RequiredSectionsAreRequired
+[       OK ] GsvgVirtualGridTable.RequiredSectionsAreRequired (0 ms)
+[ RUN      ] GsvgVirtualGridTable.ParserReadsCrlfAndLfAlike
+[       OK ] GsvgVirtualGridTable.ParserReadsCrlfAndLfAlike (0 ms)
+[ RUN      ] GsvgVirtualGridTable.IncompleteGridAndBadRowsAreRejected
+[       OK ] GsvgVirtualGridTable.IncompleteGridAndBadRowsAreRejected (0 ms)
+[ RUN      ] GsvgVirtualGridTable.Gauss4RowsWinOverGauss2
+[       OK ] GsvgVirtualGridTable.Gauss4RowsWinOverGauss2 (0 ms)
+[----------] 5 tests from GsvgVirtualGridTable (1 ms total)
+
+[----------] 3 tests from GsvgVirtualGridKernel
+[ RUN      ] GsvgVirtualGridKernel.NodesBlendsAndBounds
+[       OK ] GsvgVirtualGridKernel.NodesBlendsAndBounds (0 ms)
+[ RUN      ] GsvgVirtualGridKernel.ThicknessInversionRoundTrips
+[       OK ] GsvgVirtualGridKernel.ThicknessInversionRoundTrips (0 ms)
+[ RUN      ] GsvgVirtualGridKernel.ConvolutionKeepsTheTableNormalisation
+[       OK ] GsvgVirtualGridKernel.ConvolutionKeepsTheTableNormalisation (14 ms)
+[----------] 3 tests from GsvgVirtualGridKernel (14 ms total)
+
+[----------] 2 tests from GsvgVirtualGridFalsify
+[ RUN      ] GsvgVirtualGridFalsify.GlobalThicknessIsWorseAtTheStep
+VGMEASURE step.edge.indexed median=0.04250 p95=0.37655 max=0.61128
+VGMEASURE step.edge.global median=0.24954 p95=0.46615 max=0.62447
+[       OK ] GsvgVirtualGridFalsify.GlobalThicknessIsWorseAtTheStep (104 ms)
+[ RUN      ] GsvgVirtualGridFalsify.SprCapPreventsOvercorrection
+VGMEASURE overcorrect capped: err='' negative=0 capped=0.3743 high=0.0000 meanSpr=4.648
+VGMEASURE overcorrect uncapped: err='' negative=658 capped=0.0000 high=0.0063 meanSpr=5.691
+[       OK ] GsvgVirtualGridFalsify.SprCapPreventsOvercorrection (97 ms)
+[----------] 2 tests from GsvgVirtualGridFalsify (201 ms total)
+
+[----------] 2 tests from GsvgVirtualGridCap
+[ RUN      ] GsvgVirtualGridCap.KernelSumIsTheDefaultCap
+[       OK ] GsvgVirtualGridCap.KernelSumIsTheDefaultCap (0 ms)
+[ RUN      ] GsvgVirtualGridCap.LocalKernelSumCapBindsOnCorrectDataToo
+VGMEASURE kernel-sum cap: true data capped=0.0296; x3 kernels capped=0.9978 negative=0
+VGMEASURE step.after5.kernelSumCap median=0.01700 p95=0.11017 max=0.79623
+VGMEASURE step.after5.sectionCap median=0.01522 p95=0.12414 max=0.53052
+[       OK ] GsvgVirtualGridCap.LocalKernelSumCapBindsOnCorrectDataToo (143 ms)
+[----------] 2 tests from GsvgVirtualGridCap (144 ms total)
+
+[----------] 3 tests from GsvgVirtualGridRange
+[ RUN      ] GsvgVirtualGridRange.ProvisionalFloor_RecoveryAcrossTheRequiredThickness_REQ_GSVG_017
+VGRANGE t=10 cm median=0.0021 p95=0.0056 max=0.0071 aboveTable=0.0000
+VGRANGE t=15 cm median=0.0038 p95=0.0168 max=0.0220 aboveTable=0.0000
+VGRANGE t=20 cm median=0.0059 p95=0.0296 max=0.0363 aboveTable=0.0000
+VGRANGE t=25 cm median=0.0076 p95=0.0405 max=0.0485 aboveTable=0.0000
+VGRANGE t=30 cm median=0.0091 p95=0.0468 max=0.0540 aboveTable=0.3520
+[       OK ] GsvgVirtualGridRange.ProvisionalFloor_RecoveryAcrossTheRequiredThickness_REQ_GSVG_017 (3117 ms)
+[ RUN      ] GsvgVirtualGridRange.ThickRegionIsLimitedAndReported
+VGMEASURE patch.none.outside median=0.01693 p95=0.16748 max=0.61128
+VGMEASURE patch.40cm.outside median=0.01745 p95=0.18796 max=0.61305
+VGMEASURE patch area=0.0198 aboveFullRes=0.0196 clampedHigh(reduced)=0.0052 below=0.0000
+VGMEASURE no patch: aboveFullRes=0.0000 clampedHigh=0.0000
+[       OK ] GsvgVirtualGridRange.ThickRegionIsLimitedAndReported (186 ms)
+[ RUN      ] GsvgVirtualGridRange.ThinRegionIsCountedNotRefused
+VGMEASURE thin below=0.4745 high=0.0000
+[       OK ] GsvgVirtualGridRange.ThinRegionIsCountedNotRefused (78 ms)
+[----------] 3 tests from GsvgVirtualGridRange (3382 ms total)
+
+[----------] 2 tests from GsvgVirtualGridRatio
+[ RUN      ] GsvgVirtualGridRatio.ResidualSprFallsWithRatio
+VGMEASURE ratio=6 residualSpr=0.3226
+VGMEASURE ratio=8 residualSpr=0.2479
+VGMEASURE ratio=10 residualSpr=0.1904
+VGMEASURE ratio=12 residualSpr=0.1517
+[       OK ] GsvgVirtualGridRatio.ResidualSprFallsWithRatio (150 ms)
+[ RUN      ] GsvgVirtualGridRatio.UnknownRatioIsRefusedAndImageKept
+[       OK ] GsvgVirtualGridRatio.UnknownRatioIsRefusedAndImageKept (59 ms)
+[----------] 2 tests from GsvgVirtualGridRatio (210 ms total)
+
+[----------] 4 tests from GsvgVirtualGridPyramid
+[ RUN      ] GsvgVirtualGridPyramid.DefaultLevelsRestoreContrast_REQ_GSVG_013
+VGMEASURE default-levels disk contrast plain=3521.5 boosted=5252.3
+[       OK ] GsvgVirtualGridPyramid.DefaultLevelsRestoreContrast_REQ_GSVG_013 (90 ms)
+[ RUN      ] GsvgVirtualGridPyramid.UnitGainIsIdentityAndGainRaisesDetail
+VGMEASURE disk contrast plain=3531.8 boosted=5280.3
+[       OK ] GsvgVirtualGridPyramid.UnitGainIsIdentityAndGainRaisesDetail (102 ms)
+[ RUN      ] GsvgVirtualGridPyramid.DenoiseLowersFlatRegionNoise
+VGMEASURE flat noise sd input=577.4 k0=747.6 k3=141.6
+[       OK ] GsvgVirtualGridPyramid.DenoiseLowersFlatRegionNoise (56 ms)
+[ RUN      ] GsvgVirtualGridPyramid.BadPostSettingsAreRefused
+[       OK ] GsvgVirtualGridPyramid.BadPostSettingsAreRefused (16 ms)
+[----------] 4 tests from GsvgVirtualGridPyramid (265 ms total)
+
+[----------] 2 tests from GsvgVirtualGridApi
+[ RUN      ] GsvgVirtualGridApi.InitNeedsEveryValue
+[       OK ] GsvgVirtualGridApi.InitNeedsEveryValue (1 ms)
+[ RUN      ] GsvgVirtualGridApi.ProcessesAndKeepsTheOriginalOnFailure
+[       OK ] GsvgVirtualGridApi.ProcessesAndKeepsTheOriginalOnFailure (93 ms)
+[----------] 2 tests from GsvgVirtualGridApi (94 ms total)
+
+[----------] 1 test from GsvgVirtualGridBench
+[ RUN      ] GsvgVirtualGridBench.BenchmarkFreeze_Performance_REQ_GSVG_019_VirtualGrid3072
+PERFMEASURE REQ-GSVG-019/virtual_grid 3072x3072 min=452912 med=476430 max=510978 us (runs=7)
+[       OK ] GsvgVirtualGridBench.BenchmarkFreeze_Performance_REQ_GSVG_019_VirtualGrid3072 (3797 ms)
+[----------] 1 test from GsvgVirtualGridBench (3797 ms total)
+
+[----------] 1 test from GsvgVirtualGridMinFilter
+[ RUN      ] GsvgVirtualGridMinFilter.MatchesBruteForce
+[       OK ] GsvgVirtualGridMinFilter.MatchesBruteForce (0 ms)
+[----------] 1 test from GsvgVirtualGridMinFilter (0 ms total)
+
+[----------] 3 tests from GsvgVirtualGridCapChoice
+[ RUN      ] GsvgVirtualGridCapChoice.PostStepsReintroduceNearZeroPrimaries_REQ_GSVG_018
+VGMEASURE poststeps=0 nearZero=0.00000 maxOver=0.6933
+VGMEASURE poststeps=1 nearZero=0.00037 maxOver=0.9626
+[       OK ] GsvgVirtualGridCapChoice.PostStepsReintroduceNearZeroPrimaries_REQ_GSVG_018 (95 ms)
+[ RUN      ] GsvgVirtualGridCapChoice.PostGuardOptionsHoldTheFloor_REQ_GSVG_018
+VGMEASURE postguard=none nearZero=0.00037 belowFloor=0.00000 scale=1.0000
+VGMEASURE postguard=clamp nearZero=0.00000 belowFloor=0.00000 scale=1.0000
+VGMEASURE postguard=globalscale nearZero=0.00000 belowFloor=0.00000 scale=0.0000
+VGMEASURE postguard=symmetric nearZero=0.00000 belowFloor=0.00000 scale=1.0000
+[       OK ] GsvgVirtualGridCapChoice.PostGuardOptionsHoldTheFloor_REQ_GSVG_018 (141 ms)
+[ RUN      ] GsvgVirtualGridCapChoice.CompareCandidates
+VGCAP scene,factor,cand,refused,median,p95,max,capped,negative,nearZero,maxOver
+VGCAPSCENE step trueMaxSpr=3.843 globalSum=3.900
+VGCAP step,1.0,C0,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C1,0,0.01423,0.09205,0.79623,0.0296,0.00000,0.00000,0.1625
+VGCAP step,1.0,C2,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C3e0.05,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C3e0.10,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C3e0.20,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C3e0.30,0,0.01640,0.17472,0.45290,0.2408,0.00000,0.00000,0.1785
+VGCAP step,1.0,C4e0.02,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C4e0.05,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C4e0.10,0,0.01263,0.08490,0.20172,0.0000,0.00000,0.00000,0.2017
+VGCAP step,1.0,C4e0.20,0,0.01285,0.08745,0.19695,0.0374,0.00000,0.00000,0.1970
+VGCAP step,2.0,C0,0,0.52843,0.70239,1.00000,0.0000,0.01154,0.01471,1.0000
+VGCAP step,2.0,C1,0,0.52758,0.60308,0.71027,0.1675,0.00000,0.00000,0.7103
+VGCAP step,2.0,C2,0,0.52901,0.60572,0.71027,0.1675,0.00000,0.00000,0.7103
+VGCAP step,2.0,C3e0.05,0,0.52843,0.70239,0.86479,0.0000,0.00000,0.00000,0.8648
+VGCAP step,2.0,C3e0.10,0,0.52965,0.63211,0.73960,0.1143,0.00000,0.00000,0.7396
+VGCAP step,2.0,C3e0.20,0,0.46078,0.57902,0.63233,0.4937,0.00000,0.00000,0.6323
+VGCAP step,2.0,C3e0.30,0,0.33980,0.49779,0.51852,0.8506,0.00000,0.00000,0.5185
+VGCAP step,2.0,C4e0.02,0,0.52846,0.68756,0.82156,0.0688,0.00000,0.00000,0.8216
+VGCAP step,2.0,C4e0.05,0,0.52822,0.66049,0.77529,0.1165,0.00000,0.00000,0.7753
+VGCAP step,2.0,C4e0.10,0,0.51969,0.56878,0.71906,0.3476,0.00000,0.00000,0.7191
+VGCAP step,2.0,C4e0.20,0,0.35759,0.58335,0.62625,0.6254,0.00000,0.00000,0.6263
+VGCAP step,3.0,C0,0,0.72404,0.87126,1.00000,0.0000,0.01562,0.01762,1.0000
+VGCAP step,3.0,C1,0,0.70789,0.77440,0.82469,0.2334,0.00000,0.00000,0.8247
+VGCAP step,3.0,C2,0,0.70840,0.77462,0.86037,0.2330,0.00000,0.00000,0.8604
+VGCAP step,3.0,C3e0.05,0,0.72480,0.81570,0.89943,0.1013,0.00000,0.00000,0.8994
+VGCAP step,3.0,C3e0.10,0,0.68223,0.77598,0.82760,0.3528,0.00000,0.00000,0.8276
+VGCAP step,3.0,C3e0.20,0,0.54443,0.68098,0.70973,0.9257,0.00000,0.00000,0.7097
+VGCAP step,3.0,C3e0.30,0,0.34861,0.55040,0.60582,0.9941,0.00000,0.00000,0.6058
+VGCAP step,3.0,C4e0.02,0,0.72020,0.81258,0.92884,0.2163,0.00000,0.00087,0.9288
+VGCAP step,3.0,C4e0.05,0,0.69773,0.77382,0.89562,0.4279,0.00000,0.00000,0.8956
+VGCAP step,3.0,C4e0.10,0,0.58008,0.78900,0.82485,0.6453,0.00000,0.00000,0.8249
+VGCAP step,3.0,C4e0.20,0,0.37092,0.62844,0.71063,0.9675,0.00000,0.00000,0.7106
+VGCAP step,0.5,C0,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C1,0,0.49022,1.19284,2.18880,0.1420,0.00000,0.00000,0.0000
+VGCAP step,0.5,C2,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C3e0.05,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C3e0.10,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C3e0.20,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C3e0.30,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.0
+
+0000,0.0000
+VGCAP step,0.5,C4e0.02,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C4e0.05,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C4e0.10,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAP step,0.5,C4e0.20,0,0.45911,1.18833,1.77195,0.0000,0.00000,0.00000,0.0000
+VGCAPSCENE gradient trueMaxSpr=2.786 globalSum=3.900
+VGCAP gradient,1.0,C0,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C1,0,0.01727,0.07412,0.13657,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C2,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C3e0.05,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C3e0.10,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C3e0.20,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C3e0.30,0,0.01742,0.07639,0.13657,0.0340,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C4e0.02,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C4e0.05,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C4e0.10,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,1.0,C4e0.20,0,0.01725,0.07329,0.13656,0.0000,0.00000,0.00000,0.1366
+VGCAP gradient,2.0,C0,0,0.56494,0.61568,0.71135,0.0000,0.00000,0.00000,0.7114
+VGCAP gradient,2.0,C1,0,0.56494,0.61370,0.65140,0.0015,0.00000,0.00000,0.6514
+VGCAP gradient,2.0,C2,0,0.56493,0.61479,0.70862,0.0007,0.00000,0.00000,0.7086
+VGCAP gradient,2.0,C3e0.05,0,0.56494,0.61568,0.71135,0.0000,0.00000,0.00000,0.7114
+VGCAP gradient,2.0,C3e0.10,0,0.56494,0.61568,0.71130,0.0000,0.00000,0.00000,0.7113
+VGCAP gradient,2.0,C3e0.20,0,0.46107,0.57197,0.62164,0.6923,0.00000,0.00000,0.6216
+VGCAP gradient,2.0,C3e0.30,0,0.24297,0.47465,0.51758,0.8879,0.00000,0.00000,0.5176
+VGCAP gradient,2.0,C4e0.02,0,0.56494,0.61568,0.71135,0.0000,0.00000,0.00000,0.7114
+VGCAP gradient,2.0,C4e0.05,0,0.56402,0.61574,0.71148,0.0385,0.00000,0.00000,0.7115
+VGCAP gradient,2.0,C4e0.10,0,0.53617,0.61881,0.71287,0.4419,0.00000,0.00000,0.7129
+VGCAP gradient,2.0,C4e0.20,0,0.36051,0.54573,0.61818,0.8077,0.00000,0.00000,0.6182
+VGCAP gradient,3.0,C0,0,0.72528,0.78844,0.91972,0.0000,0.00000,0.00058,0.9197
+VGCAP gradient,3.0,C1,0,0.72423,0.78658,0.81963,0.0518,0.00000,0.00000,0.8196
+VGCAP gradient,3.0,C2,0,0.72419,0.78709,0.85435,0.0525,0.00000,0.00000,0.8544
+VGCAP gradient,3.0,C3e0.05,0,0.72528,0.78844,0.88562,0.0000,0.00000,0.00000,0.8856
+VGCAP gradient,3.0,C3e0.10,0,0.70465,0.77323,0.82434,0.5033,0.00000,0.00000,0.8243
+VGCAP gradient,3.0,C3e0.20,0,0.49334,0.66578,0.69702,0.9290,0.00000,0.00000,0.6970
+VGCAP gradient,3.0,C3e0.30,0,0.24320,0.54774,0.60213,0.9859,0.00000,0.00000,0.6021
+VGCAP gradient,3.0,C4e0.02,0,0.72789,0.78899,0.92050,0.1524,0.00000,0.00024,0.9205
+VGCAP gradient,3.0,C4e0.05,0,0.69894,0.79481,0.87492,0.6180,0.00000,0.00000,0.8749
+VGCAP gradient,3.0,C4e0.10,0,0.60324,0.74910,0.81995,0.8569,0.00000,0.00000,0.8199
+VGCAP gradient,3.0,C4e0.20,0,0.37028,0.62536,0.67880,0.9493,0.00000,0.00000,0.6788
+VGCAP gradient,0.5,C0,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C1,0,0.65695,0.92609,1.12343,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C2,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C3e0.05,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C3e0.10,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C3e0.20,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C3e0.30,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C4e0.02,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C4e0.05,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C4e0.10,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAP gradient,0.5,C4e0.20,0,0.65695,0.92602,1.12341,0.0000,0.00000,0.00000,0.0000
+VGCAPSCENE thick+air trueMaxSpr=2.909 globalSum=3.900
+VGCAP thick+air,1.0,C0,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.000
+
+00,0.2210
+VGCAP thick+air,1.0,C1,0,0.01903,0.09038,0.57729,0.3210,0.00000,0.00000,0.1264
+VGCAP thick+air,1.0,C2,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.00000,0.2210
+VGCAP thick+air,1.0,C3e0.05,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.00000,0.2210
+VGCAP thick+air,1.0,C3e0.10,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.00000,0.2210
+VGCAP thick+air,1.0,C3e0.20,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.00000,0.2210
+VGCAP thick+air,1.0,C3e0.30,0,0.00869,0.10174,0.21810,0.1357,0.00000,0.00000,0.2181
+VGCAP thick+air,1.0,C4e0.02,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.00000,0.2210
+VGCAP thick+air,1.0,C4e0.05,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.00000,0.2210
+VGCAP thick+air,1.0,C4e0.10,0,0.00604,0.09791,0.22096,0.0000,0.00000,0.00000,0.2210
+VGCAP thick+air,1.0,C4e0.20,0,0.00604,0.09791,0.22064,0.0000,0.00000,0.00000,0.2206
+VGCAP thick+air,2.0,C0,0,0.36920,0.64758,1.00000,0.0000,0.01018,0.01358,1.0000
+VGCAP thick+air,2.0,C1,0,0.10566,0.53566,0.65780,0.2267,0.00000,0.00000,0.6578
+VGCAP thick+air,2.0,C2,0,0.36927,0.64237,0.78093,0.0344,0.00000,0.00000,0.7809
+VGCAP thick+air,2.0,C3e0.05,0,0.36920,0.64758,0.90245,0.0000,0.00000,0.00005,0.9024
+VGCAP thick+air,2.0,C3e0.10,0,0.36920,0.64755,0.80722,0.0218,0.00000,0.00000,0.8072
+VGCAP thick+air,2.0,C3e0.20,0,0.23132,0.49987,0.61444,0.4634,0.00000,0.00000,0.6144
+VGCAP thick+air,2.0,C3e0.30,0,0.10932,0.27015,0.45880,0.5000,0.00000,0.00000,0.4588
+VGCAP thick+air,2.0,C4e0.02,0,0.36991,0.63371,0.93066,0.0377,0.00000,0.00111,0.9307
+VGCAP thick+air,2.0,C4e0.05,0,0.36998,0.62876,0.85552,0.0525,0.00000,0.00000,0.8555
+VGCAP thick+air,2.0,C4e0.10,0,0.37120,0.55966,0.79181,0.1620,0.00000,0.00000,0.7918
+VGCAP thick+air,2.0,C4e0.20,0,0.16272,0.37684,0.61444,0.5366,0.00000,0.00000,0.6144
+VGCAP thick+air,3.0,C0,0,0.48771,0.87157,1.00000,0.0000,0.01569,0.03725,1.0000
+VGCAP thick+air,3.0,C1,0,0.33839,0.71495,0.82008,0.1916,0.00000,0.00000,0.8201
+VGCAP thick+air,3.0,C2,0,0.48974,0.76877,0.84821,0.1246,0.00000,0.00000,0.8482
+VGCAP thick+air,3.0,C3e0.05,0,0.48787,0.84536,0.90361,0.0473,0.00000,0.00038,0.9036
+VGCAP thick+air,3.0,C3e0.10,0,0.49607,0.71500,0.80722,0.2441,0.00000,0.00000,0.8072
+VGCAP thick+air,3.0,C3e0.20,0,0.35218,0.51605,0.63920,0.5000,0.00000,0.00000,0.6392
+VGCAP thick+air,3.0,C3e0.30,0,0.21772,0.43969,0.65536,0.5004,0.00000,0.00000,0.6554
+VGCAP thick+air,3.0,C4e0.02,0,0.49129,0.77999,0.95849,0.1176,0.00000,0.00333,0.9585
+VGCAP thick+air,3.0,C4e0.05,0,0.49419,0.72447,0.90361,0.2082,0.00000,0.00003,0.9036
+VGCAP thick+air,3.0,C4e0.10,0,0.45548,0.62286,0.80722,0.5152,0.00000,0.00000,0.8072
+VGCAP thick+air,3.0,C4e0.20,0,0.27575,0.40551,0.63920,0.5385,0.00000,0.00000,0.6392
+VGCAP thick+air,0.5,C0,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C1,0,0.23500,0.83558,1.26876,0.3491,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C2,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C3e0.05,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C3e0.10,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C3e0.20,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C3e0.30,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C4e0.02,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C4e0.05,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C4e0.10,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAP thick+air,0.5,C4e0.20,0,0.23500,0.82880,0.99790,0.0000,0.00000,0.00000,0.0000
+VGCAPSCENE thin+thick trueMaxSpr=4.218 globalSum=3.900
+VGCAP thin+thick,1.0,C0,0,0.01157,0.08812,0.28211,0.0000,0.00000,0.00000,0.2821
+VGCAP thin+thick,1.0,C1,0,0.01508,0.09459,1.08766,0.0965,0.00000,0.00000,0.1966
+VGCAP thin+thick,1.0,C2,0,0.01157,0.08649,0.28211,0.0000,0.00000,0.00000,0.2821
+VGCAP thin+thick,1.0,C3e0.05,0,0.01157,0.08812,0.28211,0.0000,0.00000,0.00000,0.2821
+VGCAP thin+thick,1.0,C3e0.10,0,0.01157,0.08812,0.28211,0.0000,0.00000,0.00000,0.2821
+VGCAP thin+thick,1.0,C3e0.20,0,0.01157,0.08677,0.28211,0.0000,0.
+
+00000,0.00000,0.2821
+VGCAP thin+thick,1.0,C3e0.30,0,0.02273,0.23550,0.56546,0.3291,0.00000,0.00000,0.1656
+VGCAP thin+thick,1.0,C4e0.02,0,0.01157,0.08812,0.28211,0.0000,0.00000,0.00000,0.2821
+VGCAP thin+thick,1.0,C4e0.05,0,0.01157,0.08812,0.28218,0.0007,0.00000,0.00000,0.2822
+VGCAP thin+thick,1.0,C4e0.10,0,0.01146,0.08762,0.28224,0.0118,0.00000,0.00000,0.2822
+VGCAP thin+thick,1.0,C4e0.20,0,0.01094,0.09684,0.32884,0.0581,0.00000,0.00000,0.2117
+VGCAP thin+thick,2.0,C0,0,0.47486,0.75445,1.00000,0.0000,0.01550,0.01562,1.0000
+VGCAP thin+thick,2.0,C1,0,0.47658,0.58502,0.70357,0.1820,0.00000,0.00000,0.7036
+VGCAP thin+thick,2.0,C2,0,0.48016,0.58975,0.70357,0.1827,0.00000,0.00000,0.7036
+VGCAP thin+thick,2.0,C3e0.05,0,0.47486,0.75289,0.85726,0.0096,0.00000,0.00000,0.8573
+VGCAP thin+thick,2.0,C3e0.10,0,0.47780,0.62177,0.73648,0.1379,0.00000,0.00000,0.7365
+VGCAP thin+thick,2.0,C3e0.20,0,0.40862,0.52792,0.66814,0.4830,0.00000,0.00000,0.6681
+VGCAP thin+thick,2.0,C3e0.30,0,0.33526,0.53876,0.56546,0.5533,0.00000,0.00000,0.5540
+VGCAP thin+thick,2.0,C4e0.02,0,0.47173,0.69169,0.81738,0.0862,0.00000,0.00000,0.8174
+VGCAP thin+thick,2.0,C4e0.05,0,0.47102,0.65931,0.78489,0.1354,0.00000,0.00000,0.7849
+VGCAP thin+thick,2.0,C4e0.10,0,0.47302,0.53803,0.71884,0.3291,0.00000,0.00000,0.7188
+VGCAP thin+thick,2.0,C4e0.20,0,0.30774,0.52544,0.66116,0.5603,0.00000,0.00000,0.6612
+VGCAP thin+thick,3.0,C0,0,0.70299,0.92520,1.00000,0.0000,0.01587,0.07942,1.0000
+VGCAP thin+thick,3.0,C1,0,0.68752,0.75805,0.82883,0.2574,0.00000,0.00000,0.8288
+VGCAP thin+thick,3.0,C2,0,0.68847,0.75970,0.87989,0.2578,0.00000,0.00000,0.8799
+VGCAP thin+thick,3.0,C3e0.05,0,0.70538,0.81763,0.91800,0.1531,0.00000,0.00116,0.9180
+VGCAP thin+thick,3.0,C3e0.10,0,0.65673,0.75785,0.85121,0.3510,0.00000,0.00000,0.8512
+VGCAP thin+thick,3.0,C3e0.20,0,0.52017,0.71100,0.71818,0.8018,0.00000,0.00000,0.7182
+VGCAP thin+thick,3.0,C3e0.30,0,0.38283,0.59831,0.62451,0.9541,0.00000,0.00000,0.6245
+VGCAP thin+thick,3.0,C4e0.02,0,0.69458,0.81565,0.93671,0.2322,0.00000,0.00166,0.9367
+VGCAP thin+thick,3.0,C4e0.05,0,0.67621,0.75169,0.90856,0.4075,0.00000,0.00023,0.9086
+VGCAP thin+thick,3.0,C4e0.10,0,0.55155,0.75844,0.84724,0.6294,0.00000,0.00000,0.8472
+VGCAP thin+thick,3.0,C4e0.20,0,0.34663,0.69366,0.71282,0.8846,0.00000,0.00000,0.7128
+VGCAP thin+thick,0.5,C0,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C1,0,0.36090,1.14218,2.49949,0.1594,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C2,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C3e0.05,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C3e0.10,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C3e0.20,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C3e0.30,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C4e0.02,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C4e0.05,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C4e0.10,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+VGCAP thin+thick,0.5,C4e0.20,0,0.34200,1.13628,1.83205,0.0000,0.00000,0.00000,0.0000
+[       OK ] GsvgVirtualGridCapChoice.CompareCandidates (4358 ms)
+[----------] 3 tests from GsvgVirtualGridCapChoice (4594 ms total)
+
+[----------] 6 tests from GsvgVirtualGridChecked
+[ RUN      ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax
+[       OK ] GsvgVirtualGridChecked.CeilDivIntMatchesTheWideReferenceNearIntMax (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.GaussKernelRadiusRejectsWhatCannotBeAKernel
+[       OK ] GsvgVirtualGridChecked.GaussKernelRadiusRejectsWhatCannotBeAKernel (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.DerivedReductionFactorIsExactAndRejectsWhatIsNotRepresentable
+[       OK ] GsvgVirtualGridChecked.DerivedReductionFactorIsExactAndRejectsWhatIsNotRepresentable (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.ScatterEstimateRefusesAKernelWiderThanTheLimit
+[       OK ] GsvgVirtualGridChecked.ScatterEstimateRefusesAKernelWiderThanTheLimit (0 ms)
+[ RUN      ] GsvgVirtualGridChecked.AReductionFactorAboveTheLimitIsRefused
+[       OK ] GsvgVirtualGridChecked.AReductionFactorAboveTheLimitIsRefused (7 ms)
+[ RUN      ] GsvgVirtualGridChecked.ADerivedReductionFactorThatCannotBeRepresentedIsRefused
+[       OK ] GsvgVirtualGridChecked.ADerivedReductionFactorThatCannotBeRepresentedIsRefused (0 ms)
+[----------] 6 tests from GsvgVirtualGridChecked (7 ms total)
+
+[----------] 3 tests from GsvgVirtualGridMc
+[ RUN      ] GsvgVirtualGridMc.DataAndConditions
+VGMC step region max thickness=25.39 air edge/centre=0.9755
+VGMC step total outside field (row 40, col 0)=2980 DN
+[       OK ] GsvgVirtualGridMc.DataAndConditions (57 ms)
+[ RUN      ] GsvgVirtualGridMc.ProvisionalFloor_StepEdgeUnderSubtraction_REQ_GSVG_018
+VGMC floor018 step peak=1.4521 max=1.5522 |r-1| median=0.0623
+[       OK ] GsvgVirtualGridMc.ProvisionalFloor_StepEdgeUnderSubtraction_REQ_GSVG_018 (57 ms)
+[ RUN      ] GsvgVirtualGridMc.CompareToPrimary
+VGMC step none factor=0 ratio median=3.8446 min=1.3492 max=9.8285 |r-1| median=2.8446 capped=0.0000
+VGMC step bands none: 5=1.438(n256) 10=2.168(n768) 15=3.297(n896) 20=4.892(n1024) 25=6.677(n960)
+VGMC step C2.it5.g4 factor=1 ratio median=0.9689 min=0.6275 max=1.5522 |r-1| median=0.0623 capped=0.0006
+VGMC step bands C2.it5.g4: 5=1.188(n256) 10=1.017(n768) 15=0.909(n896) 20=0.946(n1024) 25=0.926(n960)
+VGMC step profile C2.it5.g4 (cols 8..71, row mean): 1.184 1.189 1.193 1.188 1.111 0.999 0.999 1.003 0.998 0.997 1.004 1.014 1.023 1.034 1.032 1.045 1.055 0.943 0.816 0.834 0.852 0.835 0.858 0.883 0.904 0.927 0.949 0.967 0.979 0.977 0.966 0.976 1.002 1.013 0.965 0.887 0.900 0.913 0.926 0.938 0.950 0.961 0.971 0.979 0.984 0.977 0.931 0.838 1.015 1.452 1.148 1.000 0.960 0.936 0.919 0.904 0.885 0.867 0.854 0.834 0.817 0.795 0.772 0.748
+VGMC step C0.it5.g4 factor=1 ratio median=0.9689 min=0.6275 max=1.5522 |r-1| median=0.0623 capped=0.0000
+VGMC step bands C0.it5.g4: 5=1.188(n256) 10=1.017(n768) 15=0.909(n896) 20=0.946(n1024) 25=0.926(n960)
+VGMC step C2.it1.g4 factor=1 ratio median=1.3677 min=0.9433 max=3.0017 |r-1| median=0.3677 capped=0.0000
+VGMC step bands C2.it1.g4: 5=1.244(n256) 10=1.240(n768) 15=1.320(n896) 20=1.594(n1024) 25=1.791(n960)
+VGMC step C2.it3.g4 factor=1 ratio median=1.0057 min=0.6307 max=1.7424 |r-1| median=0.0538 capped=0.0000
+VGMC step bands C2.it3.g4: 5=1.184(n256) 10=1.027(n768) 15=0.940(n896) 20=1.008(n1024) 25=1.023(n960)
+VGMC step C2.it10.g4 factor=1 ratio median=0.9629 min=0.5980 max=1.4629 |r-1| median=0.0798 capped=0.0116
+VGMC step bands C2.it10.g4: 5=1.189(n256) 10=1.018(n768) 15=0.906(n896) 20=0.928(n1024) 25=0.896(n960)
+VGMC step C2.it5.g2 factor=4 ratio median=0.9005 min=0.5330 max=1.5384 |r-1| median=0.1181 capped=0.1350
+VGMC step bands C2.it5.g2: 5=1.200(n256) 10=0.933(n768) 15=0.813(n896) 20=0.900(n1024) 25=0.886(n960)
+VGMC step C2.it5.g2.f1 factor=1 ratio median=0.9126 min=0.5960 max=1.5642 |r-1| median=0.1083 capped=0.0002
+VGMC step bands C2.it5.g2.f1: 5=1.195(n256) 10=0.936(n768) 15=0.842(n896) 20=0.918(n1024) 25=0.910(n960)
+VGMC step C2.it5.g4.f4 factor=4 ratio median=0.9516 min=0.6337 max=1.5310 |r-1| median=0.0791 capped=0.1350
+VGMC step bands C2.it5.g4.f4: 5=1.191(n256) 10=1.008(n768) 15=0.878(n896) 20=0.929(n1024) 25=0.896(n960)
+VGMC step C2.it5.g4.nomask factor=1 ratio median=0.9399 min=0.5330 max=1.4942 |r-1| median=0.0832 capped=0.1259
+VGMC wedge none factor=0 ratio median=3.9216 min=1.5341 max=6.5817 |r-1| median=2.9216 capped=0.0000
+VGMC wedge bands none: >=5=1.832(n320) >=10=2.609(n1088) >=15=3.889(n1152) >=20=5.158(n1344) >=25=5.572(n192)
+VGMC wedge C2.it5.g4 factor=1 ratio median=1.0389 min=0.5987 max=1.1817 |r-1| median=0.0583 capped=0.0000
+VGMC wedge bands C2.it5.g4: >=5=1.150(n320) >=10=1.064(n1088) >=15=1.024(n1152) >=20=0.987(n1344) >=25=0.802(n192)
+VGMC wedge profile C2.it5.g4 (cols 8..71, row mean): 1.158 1.162 1.154 1.142 1.135 1.124 1.111 1.096 1.087 1.099 1.084 1.066 1.064 1.063 1.047 1.026 1.039 1.047 1.029 1.018 1.043 1.038 1.041 0.995 1.008 1.006 1.036 1.027 1.007 1.042 1.036 1.042 1.003 1.004 1.014 1.046 1.022 1.033 1.042 1.021 1.077 1.034 0.996 1.029 1.007 1.054 1.020 1.023 1.029 1.011 1.044 1.014 0.972 0.962 0.971 0.968 0.939 0.937 0.891 0.901 0.844 0.863 0.803 0.742
+VGMC wedge C0.it5.g4 factor=1 ratio median=1.0389 min=0.5987 max=1.1817 |r-1| median=0.0583 capped=0.0000
+VGMC wedge bands C0.it5.g4: >=5=1.150(n320) >=10=1.064(n1088) >=15=1.024(n1152) >=20=0.987(n1344) >=25=0.802(n192)
+VGMC wedge C2.it1.g4 factor=1 ratio m
+
+edian=1.4600 min=1.0116 max=1.9121 |r-1| median=0.4600 capped=0.0000
+VGMC wedge bands C2.it1.g4: >=5=1.280(n320) >=10=1.355(n1088) >=15=1.499(n1152) >=20=1.609(n1344) >=25=1.442(n192)
+VGMC wedge C2.it3.g4 factor=1 ratio median=1.0724 min=0.6346 max=1.1988 |r-1| median=0.0817 capped=0.0000
+VGMC wedge bands C2.it3.g4: >=5=1.151(n320) >=10=1.080(n1088) >=15=1.058(n1152) >=20=1.036(n1344) >=25=0.865(n192)
+VGMC wedge C2.it10.g4 factor=1 ratio median=1.0351 min=0.5911 max=1.1829 |r-1| median=0.0542 capped=0.0000
+VGMC wedge bands C2.it10.g4: >=5=1.151(n320) >=10=1.062(n1088) >=15=1.019(n1152) >=20=0.980(n1344) >=25=0.783(n192)
+VGMC wedge C2.it5.g2 factor=4 ratio median=0.9749 min=0.6109 max=1.2324 |r-1| median=0.0461 capped=0.1400
+VGMC wedge bands C2.it5.g2: >=5=1.152(n320) >=10=0.986(n1088) >=15=0.979(n1152) >=20=0.946(n1344) >=25=0.786(n192)
+VGMC wedge C2.it5.g2.f1 factor=1 ratio median=0.9834 min=0.6174 max=1.2047 |r-1| median=0.0433 capped=0.0000
+VGMC wedge bands C2.it5.g2.f1: >=5=1.130(n320) >=10=0.985(n1088) >=15=0.988(n1152) >=20=0.960(n1344) >=25=0.803(n192)
+VGMC wedge C2.it5.g4.f4 factor=4 ratio median=1.0286 min=0.5940 max=1.2101 |r-1| median=0.0501 capped=0.1350
+VGMC wedge bands C2.it5.g4.f4: >=5=1.164(n320) >=10=1.060(n1088) >=15=1.015(n1152) >=20=0.972(n1344) >=25=0.784(n192)
+VGMC wedge C2.it5.g4.nomask factor=1 ratio median=1.0165 min=0.5221 max=1.1314 |r-1| median=0.0489 capped=0.1109
+[       OK ] GsvgVirtualGridMc.CompareToPrimary (830 ms)
+[----------] 3 tests from GsvgVirtualGridMc (946 ms total)
+
+[----------] 4 tests from GsvgVirtualGridMcMask
+[ RUN      ] GsvgVirtualGridMcMask.MaskEqualsZeroedInput
+VGMC step mask-vs-zeroed worst|rel|=0
+VGMC step mask inside=5476 outside=924 median masked=1.0591 zeroed=1.0591
+VGMC wedge mask-vs-zeroed worst|rel|=0
+VGMC wedge mask inside=5476 outside=924 median masked=1.0784 zeroed=1.0784
+[       OK ] GsvgVirtualGridMcMask.MaskEqualsZeroedInput (209 ms)
+[ RUN      ] GsvgVirtualGridMcMask.NoMaskOverSubtracts
+VGMC step nomask min=0.7275 median=1.0308
+VGMC wedge nomask min=0.7694 median=1.0526
+[       OK ] GsvgVirtualGridMcMask.NoMaskOverSubtracts (109 ms)
+[ RUN      ] GsvgVirtualGridMcMask.IgnoringTheMaskBreaksTheEquality
+VGMC step ignored-mask pixels differing from zeroed (inside field)=5178
+[       OK ] GsvgVirtualGridMcMask.IgnoringTheMaskBreaksTheEquality (169 ms)
+[ RUN      ] GsvgVirtualGridMcMask.PublicEntryPoint
+[       OK ] GsvgVirtualGridMcMask.PublicEntryPoint (450 ms)
+[----------] 4 tests from GsvgVirtualGridMcMask (937 ms total)
+
+[----------] 16 tests from GsvgVirtualGridMc512
+[ RUN      ] GsvgVirtualGridMc512.DataAndConditions
+VGMC512 field cols 77..434 (358 px) pitch=0.140 mm
+VGMC512 total zeros=0 outside mean=416.4 inside mean=2997.5 DN
+VGMC512 in-field thickness 5.00..27.01 cm
+VGMC512 air centre=50328 DN (json dn_air=50000)
+[       OK ] GsvgVirtualGridMc512.DataAndConditions (20 ms)
+[ RUN      ] GsvgVirtualGridMc512.ProvisionalFloor_StepEdgeUnderSubtraction_REQ_GSVG_018
+VGMC512 floor018 step peak=1.0504 max=1.1928 |r-1| median=0.0342
+[       OK ] GsvgVirtualGridMc512.ProvisionalFloor_StepEdgeUnderSubtraction_REQ_GSVG_018 (79 ms)
+[ RUN      ] GsvgVirtualGridMc512.NoiseSensitivityOfTheFloor
+VGMC512 noise rel=0.000% peak=1.0504 max=1.1928 |r-1| median=0.0342
+VGMC512 noise rel=0.100% peak=1.0504 max=1.1924 |r-1| median=0.0342
+VGMC512 noise rel=0.300% peak=1.0505 max=1.1917 |r-1| median=0.0342
+[       OK ] GsvgVirtualGridMc512.NoiseSensitivityOfTheFloor (210 ms)
+[ RUN      ] GsvgVirtualGridMc512.ThicknessAccuracy_REQ_GSVG_017
+VGMC512 REQ-017 (wedge, ideal-grid basis): thickness, n, median r, median |r-1|, p95 |r-1|
+VGMC512 REQ-017 t=10 cm: n=2428 median r=0.9901 median|r-1|=0.0115 p95|r-1|=0.0226
+VGMC512 REQ-017 t=15 cm: n=4998 median r=0.9874 median|r-1|=0.0138 p95|r-1|=0.0356
+VGMC512 REQ-017 t=20 cm: n=5586 median r=0.9983 median|r-1|=0.0184 p95|r-1|=0.0546
+VGMC512 REQ-017 t=25 cm: n=3584 median r=0.9950 median|r-1|=0.0315 p95|r-1|=0.0888
+VGMC512 REQ-017 t=30 cm: NOT PRESENT in the field on this phantom
+[       OK ] GsvgVirtualGridMc512.ThicknessAccuracy_REQ_GSVG_017 (88 ms)
+[ RUN      ] GsvgVirtualGridMc512.MaskOutsideVariantsWithPostStepsOn
+VGMC512 mask levels=4 Zero      step=0.6266  median r=0.9856 |r-1| median=0.0398
+VGMC512 mask levels=4 Replicate step=0.3913  median r=0.9859 |r-1| median=0.0342
+VGMC512 mask levels=4 Keep      step=0.4561  median r=0.9859 |r-1| median=0.0342
+VGMC512 mask levels=4 RectOnly  step=0.3682  median r=0.9858 |r-1| median=0.0342
+VGMC512 mask levels=6 Zero      step=0.8542  median r=0.9404 |r-1| median=0.0848
+VGMC512 mask levels=6 Replicate step=0.5449  median r=0.9014 |r-1| median=0.0986
+VGMC512 mask levels=6 Keep      step=0.6500  median r=0.9042 |r-1| median=0.1021
+VGMC512 mask levels=6 RectOnly  step=0.5035  median r=0.8889 |r-1| median=0.1111
+[       OK ] GsvgVirtualGridMc512.MaskOutsideVariantsWithPostStepsOn (501 ms)
+[ RUN      ] GsvgVirtualGridMc512.WhyTheFloorImproved_PixelSize
+VGMC512 bin: factor, pitch_mm, n, peak, worst, |r-1| median
+VGMC512 bin f=1 pitch=0.140 mm n=512 peak=1.0504 worst=1.1928 |r-1| median=0.0342
+VGMC512 bin f=2 pitch=0.280 mm n=256 peak=1.0392 worst=1.1055 |r-1| median=0.0363
+VGMC512 bin f=4 pitch=0.560 mm n=128 peak=1.0337 worst=1.0534 |r-1| median=0.1007
+VGMC512 bin f=8 pitch=1.120 mm n=64 peak=0.9765 worst=0.9783 |r-1| median=0.5012
+[       OK ] GsvgVirtualGridMc512.WhyTheFloorImproved_PixelSize (183 ms)
+[ RUN      ] GsvgVirtualGridMc512.StepAndWedgeAgreeAtTheSameThickness
+VGMC512 step-vs-wedge: thickness, step median|r-1| (n), wedge median|r-1| (n), ratio
+VGMC512 step-vs-wedge t=8.0 cm: missing (step n=7350, wedge n=0)
+VGMC512 step-vs-wedge t=10.5 cm: step=0.0367 (n=10290) wedge=0.0124 (n=1764) ratio=2.96
+VGMC512 step-vs-wedge t=13.5 cm: step=0.0327 (n=11466) wedge=0.0143 (n=2352) ratio=2.29
+VGMC512 step-vs-wedge t=16.0 cm: step=0.0338 (n=12348) wedge=0.0122 (n=4998) ratio=2.78
+VGMC512 step-vs-wedge t=19.0 cm: step=0.0336 (n=13230) wedge=0.0168 (n=2646) ratio=2.00
+VGMC512 step-vs-wedge t=21.5 cm: step=0.0361 (n=13818) wedge=0.0264 (n=294) ratio=1.37
+VGMC512 step-vs-wedge t=24.5 cm: step=0.0362 (n=14406) wedge=0.0297 (n=3234) ratio=1.22
+[       OK ] GsvgVirtualGridMc512.StepAndWedgeAgreeAtTheSameThickness (187 ms)
+[ RUN      ] GsvgVirtualGridMc512.StepErrorAgainstDistanceToTheBoundary
+VGMC125 jumps=18 in the metric region; wedge reference median|r-1|=0.0156
+VGMC125 profile: distance_px, distance_mm, n, median|r-1|, p05, p95
+VGMC125 profile d=[  0,  1) = [0.00,0.14) mm n=  5292 median=0.0311 p05=0.0029 p95=0.0719
+VGMC125 profile d=[  1,  2) = [0.14,0.28) mm n=  4116 median=0.0459 p0
+
+5=0.0045 p95=0.1118
+VGMC125 profile d=[  2,  4) = [0.28,0.56) mm n=  7644 median=0.0554 p05=0.0135 p95=0.1201
+VGMC125 profile d=[  4,  8) = [0.56,1.12) mm n= 15288 median=0.0529 p05=0.0109 p95=0.1247
+VGMC125 profile d=[  8, 16) = [1.12,2.24) mm n= 30576 median=0.0291 p05=0.0025 p95=0.0886
+VGMC125 profile d=[ 16, 32) = [2.24,4.48) mm n= 23520 median=0.0227 p05=0.0022 p95=0.0657
+VGMC125 profile d=[ 32, 64) = [4.48,8.96) mm n=     0 median=-1.0000 p05=0.0000 p95=0.0000
+VGMC125 profile d=[ 64,128) = [8.96,17.92) mm n=     0 median=-1.0000 p05=0.0000 p95=0.0000
+VGMC125 exclusion: N_px, N_mm, n_left, median|r-1| (wedge reference 0.0156)
+VGMC125 exclude N= 0 (0.00 mm) n= 81144 median=0.0344
+VGMC125 exclude N= 2 (0.28 mm) n= 73206 median=0.0328
+VGMC125 exclude N= 5 (0.70 mm) n= 61740 median=0.0285
+VGMC125 exclude N=10 (1.40 mm) n= 42630 median=0.0233
+VGMC125 exclude N=20 (2.80 mm) n=  6762 median=0.0309
+VGMC125 exclude N=40 (5.60 mm) n=     0 median=-1.0000
+VGMC125 exclude N=80 (11.20 mm) n=     0 median=-1.0000
+[       OK ] GsvgVirtualGridMc512.StepErrorAgainstDistanceToTheBoundary (219 ms)
+[ RUN      ] GsvgVirtualGridMc512.ScatterEstimateAgainstTruth_REQ_GSVG_011_025
+VGMC125 REQ-011/025: cap, capped fraction, negativePrimary, median S_est/S_true, p05, p95
+VGMC125 REQ-011 cap=None      capped=0.0000 negPrimary=0 n=86436 median=1.0075 p05=0.9637 p95=1.0459
+VGMC125 REQ-011 cap=GlobalSum capped=0.0625 negPrimary=0 n=86436 median=1.0079 p05=0.9641 p95=1.0464
+VGMC125 REQ-011 cap=LocalSum  capped=0.0625 negPrimary=0 n=86436 median=1.0079 p05=0.9641 p95=1.0464
+[       OK ] GsvgVirtualGridMc512.ScatterEstimateAgainstTruth_REQ_GSVG_011_025 (151 ms)
+[ RUN      ] GsvgVirtualGridMc512.NarrowestTermWidthVsErrorPeakLocation_191
+VGMC134 sigma1 sweep: k, sigma1_mm, factor, peak_at_mm, peak_median, peak/sigma1
+VGMC134 sigma1 k=1.0 sigma1=10.17 mm factor=32 peak_at=0.42 mm median=0.0554 peak/sigma1=0.0413
+VGMC134 sigma1 k=1.5 sigma1=15.25 mm factor=49 peak_at=0.21 mm median=0.0629 peak/sigma1=0.0138
+VGMC134 sigma1 k=2.0 sigma1=20.34 mm factor=65 peak_at=0.84 mm median=0.0702 peak/sigma1=0.0413
+VGMC134 sigma1 k=3.0 sigma1=30.50 mm factor=98 peak_at=0.42 mm median=0.0832 peak/sigma1=0.0138
+[       OK ] GsvgVirtualGridMc512.NarrowestTermWidthVsErrorPeakLocation_191 (228 ms)
+[ RUN      ] GsvgVirtualGridMc512.TurningKernelTermsOffVsErrorPeakLocation_191
+VGMC165 kernel terms=4 sigma_mm: 10.17 29.37 58.58 112.09   (the table stores cm; x10 is mm)
+VGMC165 baseline peak_at=0.42 mm median=0.0554 factor=32
+VGMC165 off: rank, variant, sigma_off_mm, peak_at_mm, median, factor
+VGMC165 off rank=0 raw  sigma_off= 10.17 mm peak_at=0.21 mm median=0.1252 factor=32
+VGMC165 off rank=0 norm sigma_off= 10.17 mm peak_at=0.42 mm median=0.0896 factor=32
+VGMC165 off rank=1 raw  sigma_off= 29.37 mm peak_at=3.36 mm median=0.4498 factor=32
+VGMC165 off rank=1 norm sigma_off= 29.37 mm peak_at=3.36 mm median=0.2579 factor=32
+VGMC165 off rank=3 raw  sigma_off=112.09 mm peak_at=0.42 mm median=0.0584 factor=32
+VGMC165 off rank=3 norm sigma_off=112.09 mm peak_at=3.36 mm median=0.1707 factor=32
+[       OK ] GsvgVirtualGridMc512.TurningKernelTermsOffVsErrorPeakLocation_191 (358 ms)
+[ RUN      ] GsvgVirtualGridMc512.CanAnyLegitimateSettingReachANegativePrimary_191
+VGMC165 cap: what, kvp, iters, air, negativePrimary, capped, median r
+VGMC165 cap iterations kvp= 80.0 iters=  1 air=   50000 negPrimary=     0 capped=0.0000 median=1.1229
+VGMC165 cap iterations kvp= 80.0 iters=  5 air=   50000 negPrimary=     0 capped=0.0000 median=0.9953
+VGMC165 cap iterations kvp= 80.0 iters= 20 air=   50000 negPrimary=     0 capped=0.0000 median=0.9930
+VGMC165 cap iterations kvp= 80.0 iters=100 air=   50000 negPrimary=     0 capped=0.0000 median=0.9931
+VGMC165 cap kvp       kvp= 60.0 iters=  5 air=   50000 negPrimary=     0 capped=0.0000 median=1.0259
+VGMC165 cap kvp       kvp= 70.0 iters=  5 air=   50000 negPrimary=     0 capped=0.0000 median=1.0091
+VGMC165 cap kvp       kvp=100.0 iters=  5 air=   50000 negPrimary=     0 capped=0.0000 median=0.9735
+VGMC165 cap kvp       kvp=120.0 iters=  5 air=   50000 
+
+negPrimary=     0 capped=0.0000 median=0.9609
+VGMC165 cap airSignal kvp= 80.0 iters=  5 air=   25000 negPrimary=     0 capped=0.0000 median=1.1264
+VGMC165 cap airSignal kvp= 80.0 iters=  5 air=   40000 negPrimary=     0 capped=0.0000 median=1.0254
+VGMC165 cap airSignal kvp= 80.0 iters=  5 air=   75000 negPrimary=     0 capped=0.0000 median=0.9241
+VGMC165 cap: 0 of 11 settings reached a negative primary
+VGMC165 cap CONTROL x3 kernels: negPrimary=7613 (a zero here would mean the probe is blind)
+[       OK ] GsvgVirtualGridMc512.CanAnyLegitimateSettingReachANegativePrimary_191 (1259 ms)
+[ RUN      ] GsvgVirtualGridMc512.OverEstimatedKernelsMakeTheCapProtect_191
+VGMC134 cap: factor, cap, negativePrimary, cappedFraction, median r
+VGMC134 cap factor=  1.0 cap=None      negativePrimary=0 capped=0.0000 median=0.9953
+VGMC134 cap factor=  1.0 cap=GlobalSum negativePrimary=0 capped=0.0625 median=0.9950
+VGMC134 cap factor=  2.0 cap=None      negativePrimary=227 capped=0.0000 median=0.5297
+VGMC134 cap factor=  2.0 cap=GlobalSum negativePrimary=0 capped=0.0859 median=0.5290
+VGMC134 cap factor=  3.0 cap=None      negativePrimary=7613 capped=0.0000 median=0.3050
+VGMC134 cap factor=  3.0 cap=GlobalSum negativePrimary=0 capped=0.1641 median=0.3124
+VGMC134 cap factor=  5.0 cap=None      negativePrimary=21521 capped=0.0000 median=0.1519
+VGMC134 cap factor=  5.0 cap=GlobalSum negativePrimary=0 capped=0.2422 median=0.1723
+VGMC134 cap factor= 10.0 cap=None      negativePrimary=34353 capped=0.0000 median=0.0696
+VGMC134 cap factor= 10.0 cap=GlobalSum negativePrimary=0 capped=0.2969 median=0.0905
+[       OK ] GsvgVirtualGridMc512.OverEstimatedKernelsMakeTheCapProtect_191 (462 ms)
+[ RUN      ] GsvgVirtualGridMc512.ErrorPeakFollowsPixelsOrMillimetres_191
+VGMC136 pixel-size sweep (post-steps ON): k, pitch_mm, N, peak_px, peak_mm
+VGMC136 --- k=1 pitch=0.140 mm N=512 jumps=18 factor=32
+VGMC136 k=1 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.0311
+VGMC136 k=1 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.0459
+VGMC136 k=1 d=[ 2, 4) px = [0.28,0.56) mm n=  7644 median=0.0554
+VGMC136 k=1 d=[ 4, 8) px = [0.56,1.12) mm n= 15288 median=0.0529
+VGMC136 k=1 d=[ 8,16) px = [1.12,2.24) mm n= 30576 median=0.0291
+VGMC136 k=1 d=[16,32) px = [2.24,4.48) mm n= 23520 median=0.0227
+VGMC136 PEAK k=1 peak_px=3.0 peak_mm=0.420 median=0.0554 far=0.0227 peak/far=2.443
+VGMC136 --- k=2 pitch=0.280 mm N=256 jumps=18 factor=16
+VGMC136 k=2 d=[ 0, 1) px = [0.00,0.28) mm n=  1911 median=0.0343
+VGMC136 k=2 d=[ 1, 2) px = [0.28,0.56) mm n=  1911 median=0.0329
+VGMC136 k=2 d=[ 2, 4) px = [0.56,1.12) mm n=  3822 median=0.0391
+VGMC136 k=2 d=[ 4, 8) px = [1.12,2.24) mm n=  7644 median=0.0326
+VGMC136 k=2 d=[ 8,16) px = [2.24,4.48) mm n=  6321 median=0.0394
+VGMC136 PEAK k=2 peak_px=12.0 peak_mm=3.360 median=0.0394 far=0.0394 peak/far=1.000
+VGMC136 --- k=4 pitch=0.560 mm N=128 jumps=18 factor=8
+VGMC136 k=4 d=[ 0, 1) px = [0.00,0.56) mm n=   657 median=0.0787
+VGMC136 k=4 d=[ 1, 2) px = [0.56,1.12) mm n=   949 median=0.0964
+VGMC136 k=4 d=[ 2, 4) px = [1.12,2.24) mm n=  1898 median=0.0940
+VGMC136 k=4 d=[ 4, 8) px = [2.24,4.48) mm n=  1825 median=0.1113
+VGMC136 PEAK k=4 peak_px=6.0 peak_mm=3.360 median=0.1113 far=0.1113 peak/far=1.000
+VGMC136 pixel-size sweep (post-steps OFF): k, pitch_mm, N, peak_px, peak_mm
+VGMC136 --- k=1 pitch=0.140 mm N=512 jumps=18 factor=32
+VGMC136 k=1 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.0090
+VGMC136 k=1 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.0123
+VGMC136 k=1 d=[ 2, 4) px = [0.28,0.56) mm n=  7644 median=0.0111
+VGMC136 k=1 d=[ 4, 8) px = [0.56,1.12) mm n= 15288 median=0.0112
+VGMC136 k=1 d=[ 8,16) px = [1.12,2.24) mm n= 30576 median=0.0111
+VGMC136 k=1 d=[16,32) px = [2.24,4.48) mm n= 23520 median=0.0148
+VGMC136 PEAK k=1 peak_px=24.0 peak_mm=3.360 median=0.0148 far=0.0148 peak/far=1.000
+VGMC136 --- k=2 pitch=0.280 mm N=256 jumps=18 factor=16
+VGMC136 k=2 d=[ 0, 1) px = [0.00,0.28) mm n=  1911 median=0.0060
+VGMC136 k=2 d=[ 1, 2) px = [0.28,0.56) mm n=  1911 median=0.0071
+VGMC136 k=2 d=[ 2, 4) px = [0.56,1.12) mm n=  3822 median=0.0071
+VGMC136 k=2 d=[
+
+ 4, 8) px = [1.12,2.24) mm n=  7644 median=0.0072
+VGMC136 k=2 d=[ 8,16) px = [2.24,4.48) mm n=  6321 median=0.0086
+VGMC136 PEAK k=2 peak_px=12.0 peak_mm=3.360 median=0.0086 far=0.0086 peak/far=1.000
+VGMC136 --- k=4 pitch=0.560 mm N=128 jumps=18 factor=8
+VGMC136 k=4 d=[ 0, 1) px = [0.00,0.56) mm n=   657 median=0.0071
+VGMC136 k=4 d=[ 1, 2) px = [0.56,1.12) mm n=   949 median=0.0087
+VGMC136 k=4 d=[ 2, 4) px = [1.12,2.24) mm n=  1898 median=0.0095
+VGMC136 k=4 d=[ 4, 8) px = [2.24,4.48) mm n=  1825 median=0.0101
+VGMC136 PEAK k=4 peak_px=6.0 peak_mm=3.360 median=0.0101 far=0.0101 peak/far=1.000
+[       OK ] GsvgVirtualGridMc512.ErrorPeakFollowsPixelsOrMillimetres_191 (264 ms)
+[ RUN      ] GsvgVirtualGridMc512.BoundaryExcessAgainstPyramidReach_191
+VGMC137 uncorrected median|total/primary-1| = 0.8146 (86436 px)
+VGMC137 jumps=18, spacing ~15.8 px
+VGMC137 levels, reach_px, reach_mm, profile..., far, peak_px, peak/far, overall, after/before
+VGMC137 --- levels=0 reach=0 px (0.00 mm) factor=32
+VGMC137 L=0 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.0090
+VGMC137 L=0 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.0123
+VGMC137 L=0 d=[ 2, 3) px = [0.28,0.42) mm n=  3822 median=0.0111
+VGMC137 L=0 d=[ 3, 4) px = [0.42,0.56) mm n=  3822 median=0.0110
+VGMC137 L=0 d=[ 4, 6) px = [0.56,0.84) mm n=  7644 median=0.0112
+VGMC137 L=0 d=[ 6, 8) px = [0.84,1.12) mm n=  7644 median=0.0111
+VGMC137 L=0 d=[ 8,12) px = [1.12,1.68) mm n= 15288 median=0.0112
+VGMC137 L=0 d=[12,16) px = [1.68,2.24) mm n= 15288 median=0.0111
+VGMC137 L=0 d=[16,24) px = [2.24,3.36) mm n= 22638 median=0.0148
+VGMC137 L=0 d=[24,32) px = [3.36,4.48) mm n=   882 median=0.0193
+VGMC137 SUMMARY levels=0 reach=0 px peak_px=28.0 peak=0.0193 far=0.0193 peak/far=1.000 excess_reaches=32 px overall=0.0120 after/before=0.015
+VGMC137 --- levels=4 reach=16 px (2.24 mm) factor=32
+VGMC137 L=4 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.0311
+VGMC137 L=4 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.0459
+VGMC137 L=4 d=[ 2, 3) px = [0.28,0.42) mm n=  3822 median=0.0524
+VGMC137 L=4 d=[ 3, 4) px = [0.42,0.56) mm n=  3822 median=0.0602
+VGMC137 L=4 d=[ 4, 6) px = [0.56,0.84) mm n=  7644 median=0.0574
+VGMC137 L=4 d=[ 6, 8) px = [0.84,1.12) mm n=  7644 median=0.0486
+VGMC137 L=4 d=[ 8,12) px = [1.12,1.68) mm n= 15288 median=0.0358
+VGMC137 L=4 d=[12,16) px = [1.68,2.24) mm n= 15288 median=0.0231
+VGMC137 L=4 d=[16,24) px = [2.24,3.36) mm n= 22638 median=0.0222
+VGMC137 L=4 d=[24,32) px = [3.36,4.48) mm n=   882 median=0.0499
+VGMC137 SUMMARY levels=4 reach=16 px peak_px=3.5 peak=0.0602 far=0.0499 peak/far=1.205 excess_reaches=6 px overall=0.0342 after/before=0.042
+VGMC137 --- levels=5 reach=32 px (4.48 mm) factor=32
+VGMC137 L=5 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.0333
+VGMC137 L=5 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.0371
+VGMC137 L=5 d=[ 2, 3) px = [0.28,0.42) mm n=  3822 median=0.0496
+VGMC137 L=5 d=[ 3, 4) px = [0.42,0.56) mm n=  3822 median=0.0594
+VGMC137 L=5 d=[ 4, 6) px = [0.56,0.84) mm n=  7644 median=0.0580
+VGMC137 L=5 d=[ 6, 8) px = [0.84,1.12) mm n=  7644 median=0.0512
+VGMC137 L=5 d=[ 8,12) px = [1.12,1.68) mm n= 15288 median=0.0441
+VGMC137 L=5 d=[12,16) px = [1.68,2.24) mm n= 15288 median=0.0365
+VGMC137 L=5 d=[16,24) px = [2.24,3.36) mm n= 22638 median=0.0385
+VGMC137 L=5 d=[24,32) px = [3.36,4.48) mm n=   882 median=0.0515
+VGMC137 SUMMARY levels=5 reach=32 px peak_px=3.5 peak=0.0594 far=0.0515 peak/far=1.154 excess_reaches=6 px overall=0.0406 after/before=0.050
+VGMC137 --- levels=6 reach=64 px (8.96 mm) factor=32
+VGMC137 L=6 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.0790
+VGMC137 L=6 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.0765
+VGMC137 L=6 d=[ 2, 3) px = [0.28,0.42) mm n=  3822 median=0.0753
+VGMC137 L=6 d=[ 3, 4) px = [0.42,0.56) mm n=  3822 median=0.0759
+VGMC137 L=6 d=[ 4, 6) px = [0.56,0.84) mm n=  7644 median=0.0797
+VGMC137 L=6 d=[ 6, 8) px = [0.84,1.12) mm n=  7644 median=0.0848
+VGMC137 L=6 d=[ 8,12) px = [1.12,1.68) mm n= 15288 median=0.0925
+VGMC137 L=6 d=[12,16) px = [1.68,2.24) mm n= 15288 median=0.0975
+VGMC137 L=6 d=[16,24) px = [2.24,3.36) mm n= 2
+
+2638 median=0.1100
+VGMC137 L=6 d=[24,32) px = [3.36,4.48) mm n=   882 median=0.0950
+VGMC137 SUMMARY levels=6 reach=64 px peak_px=20.0 peak=0.1100 far=0.0950 peak/far=1.157 excess_reaches=24 px overall=0.0986 after/before=0.121
+VGMC137 --- levels=7 reach=128 px (17.92 mm) factor=32
+VGMC137 L=7 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.3046
+VGMC137 L=7 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.3673
+VGMC137 L=7 d=[ 2, 3) px = [0.28,0.42) mm n=  3822 median=0.3341
+VGMC137 L=7 d=[ 3, 4) px = [0.42,0.56) mm n=  3822 median=0.3339
+VGMC137 L=7 d=[ 4, 6) px = [0.56,0.84) mm n=  7644 median=0.3424
+VGMC137 L=7 d=[ 6, 8) px = [0.84,1.12) mm n=  7644 median=0.3574
+VGMC137 L=7 d=[ 8,12) px = [1.12,1.68) mm n= 15288 median=0.3782
+VGMC137 L=7 d=[12,16) px = [1.68,2.24) mm n= 15288 median=0.3986
+VGMC137 L=7 d=[16,24) px = [2.24,3.36) mm n= 22638 median=0.4733
+VGMC137 L=7 d=[24,32) px = [3.36,4.48) mm n=   882 median=0.5592
+VGMC137 SUMMARY levels=7 reach=128 px peak_px=28.0 peak=0.5592 far=0.5592 peak/far=1.000 excess_reaches=32 px overall=0.3867 after/before=0.475
+VGMC137 --- levels=8 reach=256 px (35.84 mm) factor=32
+VGMC137 L=8 d=[ 0, 1) px = [0.00,0.14) mm n=  5292 median=0.5443
+VGMC137 L=8 d=[ 1, 2) px = [0.14,0.28) mm n=  4116 median=0.5894
+VGMC137 L=8 d=[ 2, 3) px = [0.28,0.42) mm n=  3822 median=0.5752
+VGMC137 L=8 d=[ 3, 4) px = [0.42,0.56) mm n=  3822 median=0.5760
+VGMC137 L=8 d=[ 4, 6) px = [0.56,0.84) mm n=  7644 median=0.5780
+VGMC137 L=8 d=[ 6, 8) px = [0.84,1.12) mm n=  7644 median=0.5808
+VGMC137 L=8 d=[ 8,12) px = [1.12,1.68) mm n= 15288 median=0.5826
+VGMC137 L=8 d=[12,16) px = [1.68,2.24) mm n= 15288 median=0.5846
+VGMC137 L=8 d=[16,24) px = [2.24,3.36) mm n= 22638 median=0.6071
+VGMC137 L=8 d=[24,32) px = [3.36,4.48) mm n=   882 median=0.5789
+VGMC137 SUMMARY levels=8 reach=256 px peak_px=20.0 peak=0.6071 far=0.5789 peak/far=1.049 excess_reaches=24 px overall=0.5901 after/before=0.724
+[       OK ] GsvgVirtualGridMc512.BoundaryExcessAgainstPyramidReach_191 (402 ms)
+[ RUN      ] GsvgVirtualGridMc512.WhatRaisingPyramidLevelsBuys_191
+VGMC138 plateaus=19 boundaries=18; interior = dist >= 4 px
+VGMC138 TRUTH   (primary) contrast=514.6 sigma=20.0 CNR=25.71
+VGMC138 TRUTH   (primary) sep=4 contrast=743.5 CNR=37.15
+VGMC138 RAW     (total)   contrast=627.4 sigma=23.7 CNR=26.50 residual=0.8146
+VGMC138 levels, reach_px, residual after/before, contrast, sigma, CNR, CNR/truth
+VGMC138 levels=0 reach=   0 px residual=0.0120 after/before=0.015 contrast=507.0 sigma=23.7 CNR=21.41 CNR/truth=0.833
+VGMC138 levels=0 sep=4 contrast=737.0 CNR=31.12 CNR/truth=0.838
+VGMC138 levels=4 reach=  16 px residual=0.0342 after/before=0.042 contrast=508.6 sigma=11.0 CNR=46.44 CNR/truth=1.806
+VGMC138 levels=4 sep=4 contrast=731.3 CNR=66.76 CNR/truth=1.797
+VGMC138 levels=5 reach=  32 px residual=0.0406 after/before=0.050 contrast=504.0 sigma=11.0 CNR=46.02 CNR/truth=1.790
+VGMC138 levels=5 sep=4 contrast=718.5 CNR=65.60 CNR/truth=1.766
+VGMC138 levels=6 reach=  64 px residual=0.0986 after/before=0.121 contrast=455.6 sigma=11.0 CNR=41.60 CNR/truth=1.618
+VGMC138 levels=6 sep=4 contrast=647.8 CNR=59.15 CNR/truth=1.592
+VGMC138 levels=7 reach= 128 px residual=0.3867 after/before=0.475 contrast=405.7 sigma=11.0 CNR=37.02 CNR/truth=1.440
+VGMC138 levels=7 sep=4 contrast=524.1 CNR=47.82 CNR/truth=1.287
+VGMC138 levels=8 reach= 256 px residual=0.5901 after/before=0.724 contrast=288.7 sigma=10.9 CNR=26.39 CNR/truth=1.027
+VGMC138 levels=8 sep=4 contrast=329.4 CNR=30.12 CNR/truth=0.811
+[       OK ] GsvgVirtualGridMc512.WhatRaisingPyramidLevelsBuys_191 (381 ms)
+[----------] 16 tests from GsvgVirtualGridMc512 (5001 ms total)
+
+[----------] 7 tests from GsvgResult
+[ RUN      ] GsvgResult.LayoutIsFixed
+[       OK ] GsvgResult.LayoutIsFixed (0 ms)
+[ RUN      ] GsvgResult.GridFreeImageIsNotSuppressed
+[       OK ] GsvgResult.GridFreeImageIsNotSuppressed (9 ms)
+[ RUN      ] GsvgResult.GriddedImageIsSuppressed
+[       OK ] GsvgResult.GriddedImageIsSuppressed (22 ms)
+[ RUN      ] GsvgResult.SmallImageIsReportedAsTooSmall
+[       OK ] GsvgResult.SmallImageIsReportedAsTooSmall (0 ms)
+[ RUN      ] GsvgResult.NothingConfiguredAndVignetteOnly
+[       OK ] GsvgResult.NothingConfiguredAndVignetteOnly (0 ms)
+[ RUN      ] GsvgResult.VirtualGridAppliedAndRefused
+[       OK ] GsvgResult.VirtualGridAppliedAndRefused (43 ms)
+[ RUN      ] GsvgResult.ResultIsRequiredAndSized
+[       OK ] GsvgResult.ResultIsRequiredAndSized (0 ms)
+[----------] 7 tests from GsvgResult (76 ms total)
+
+[----------] 7 tests from GsvgVgProductTable
+[ RUN      ] GsvgVgProductTable.LoadsWithEveryRatioOfReqGsvg016
+[       OK ] GsvgVgProductTable.LoadsWithEveryRatioOfReqGsvg016 (0 ms)
+[ RUN      ] GsvgVgProductTable.KeepsTheNotCalibratedMarks
+[       OK ] GsvgVgProductTable.KeepsTheNotCalibratedMarks (0 ms)
+[ RUN      ] GsvgVgProductTable.SelectsOneDesignAndInterpolatesKvp
+[       OK ] GsvgVgProductTable.SelectsOneDesignAndInterpolatesKvp (0 ms)
+[ RUN      ] GsvgVgProductTable.ResidualFollowsThickness
+[       OK ] GsvgVgProductTable.ResidualFollowsThickness (0 ms)
+[ RUN      ] GsvgVgProductTable.OldTableRefusesALineDensity
+[       OK ] GsvgVgProductTable.OldTableRefusesALineDensity (0 ms)
+[ RUN      ] GsvgVgProductTable.LoaderRejectsIncompleteAndDuplicateDesigns
+[       OK ] GsvgVgProductTable.LoaderRejectsIncompleteAndDuplicateDesigns (0 ms)
+[ RUN      ] GsvgVgProductTable.PublicApiRunsTheProductTable
+[       OK ] GsvgVgProductTable.PublicApiRunsTheProductTable (10 ms)
+[----------] 7 tests from GsvgVgProductTable (11 ms total)
+
+[----------] 5 tests from GsvgThreads
+[ RUN      ] GsvgThreads.SuppressionIsBitIdenticalForEveryThreadCount
+[       OK ] GsvgThreads.SuppressionIsBitIdenticalForEveryThreadCount (85 ms)
+[ RUN      ] GsvgThreads.VirtualGridIsBitIdenticalForEveryThreadCount
+[       OK ] GsvgThreads.VirtualGridIsBitIdenticalForEveryThreadCount (80 ms)
+[ RUN      ] GsvgThreads.SetterStoresTheRequest
+[       OK ] GsvgThreads.SetterStoresTheRequest (0 ms)
+[ RUN      ] GsvgThreads.MaskedPathsAreBitIdenticalForEveryThreadCount
+[       OK ] GsvgThreads.MaskedPathsAreBitIdenticalForEveryThreadCount (250 ms)
+[ RUN      ] GsvgThreads.SyntheticTableAndOtherRatioAreAlsoIdentical
+[       OK ] GsvgThreads.SyntheticTableAndOtherRatioAreAlsoIdentical (112 ms)
+[----------] 5 tests from GsvgThreads (529 ms total)
+
+[----------] 3 tests from GsvgMaskOutside
+[ RUN      ] GsvgMaskOutside.DefaultIsEdgeReplicate
+[       OK ] GsvgMaskOutside.DefaultIsEdgeReplicate (0 ms)
+[ RUN      ] GsvgMaskOutside.BoundaryStepStaysNearThePostStepBaseline
+MASKOUTSIDE boundary ring1=8821.4 deep=6883.9 step=0.2815
+[       OK ] GsvgMaskOutside.BoundaryStepStaysNearThePostStepBaseline (77 ms)
+[ RUN      ] GsvgMaskOutside.WithoutPostStepsEveryVariantIsBitIdentical
+[       OK ] GsvgMaskOutside.WithoutPostStepsEveryVariantIsBitIdentical (64 ms)
+[----------] 3 tests from GsvgMaskOutside (142 ms total)
+
+[----------] 4 tests from Shapes/GsvgVirtualGridRecovery
+[ RUN      ] Shapes/GsvgVirtualGridRecovery.RecoversThePrimary/Step
+VGMEASURE step.before median=1.01130 p95=2.91015 max=3.84301
+VGMEASURE step.after5 median=0.01529 p95=0.13958 max=0.61128
+VGMEASURE factor=5 coarse=52x52 maxT=25.98 meanSpr=1.467
+[       OK ] Shapes/GsvgVirtualGridRecovery.RecoversThePrimary/Step (89 ms)
+[ RUN      ] Shapes/GsvgVirtualGridRecovery.RecoversThePrimary/Gradient
+VGMEASURE gradient.before median=1.51714 p95=2.31021 max=2.78649
+VGMEASURE gradient.after5 median=0.01700 p95=0.08964 max=0.17976
+VGMEASURE factor=5 coarse=52x52 maxT=27.55 meanSpr=1.473
+[       OK ] Shapes/GsvgVirtualGridRecovery.RecoversThePrimary/Gradient (86 ms)
+[ RUN      ] Shapes/GsvgVirtualGridRecovery.OneIterationIsWorse/Step
+VGMEASURE step.after1 median=0.35117 p95=0.92544 max=1.09821
+[       OK ] Shapes/GsvgVirtualGridRecovery.OneIterationIsWorse/Step (98 ms)
+[ RUN      ] Shapes/GsvgVirtualGridRecovery.OneIterationIsWorse/Gradient
+VGMEASURE gradient.after1 median=0.50198 p95=0.78443 max=0.94215
+[       OK ] Shapes/GsvgVirtualGridRecovery.OneIterationIsWorse/Gradient (100 ms)
+[----------] 4 tests from Shapes/GsvgVirtualGridRecovery (375 ms total)
+
+[----------] Global test environment tear-down
+[==========] 182 tests from 36 test suites ran. (73509 ms total)
+[  PASSED  ] 182 tests.
+
+  YOU HAVE 1 DISABLED TEST
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_gsvg_abi_smoke.cpp(411):: heap growth 0 bytes / 0 blocks, working set 3805184 bytes (not asserted)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_gsvg_abi_smoke.cpp(435):: control 64 B/cycle: heap 64000 bytes / 1000 blocks, working set 28672
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_gsvg_abi_smoke.cpp(446):: control 1 MB/100 cycles: heap 10482616 bytes / 4 blocks, working set -3432448
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_gsvg_abi_smoke.cpp(465):: live handle: +1 blocks / +344 bytes; after shutdown: 0 / 0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_datasize_overread.cpp(112):: gsvg CONTROL full-length rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_datasize_overread.cpp(147):: gsvg short-src pixels_promised=4096 srcCount=2048 rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_datasize_overread.cpp(178):: gsvg short-gainMap entries_promised=4096 gainCount=2048 rc=-1 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_datasize_overread.cpp(205):: gsvg null-gainMap gainCount=0 rc=0 overread=no
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_datasize_overread.cpp(237):: gsvg misstated-length claimed=4096 actually_mapped=2048 rc=0 overread=YES
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_parameter_dependency.cpp(105):: fixture max row-mean deviation=50 (floor asserted below: 1.0)
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_parameter_dependency.cpp(117):: grid_suppression off vs on: 4096 of 4096 pixels differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_parameter_dependency.cpp(129):: vignette_correction off vs on (gain map supplied both times): 4092 of 4096 pixels differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_parameter_dependency.cpp(153):: gain map rising vs falling: 4092 of 4096 pixels differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_parameter_dependency.cpp(167):: unknown-key config vs no config: 0 of 4096 pixels differ
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_parameter_dependency.cpp(218):: vignette_correction differing pixels: with map=4092, without map=0
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_parameter_dependency.cpp(232):: grid_suppression without gain map: differing=4096
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_config_warning.cpp(106):: alert: gsvg config key 'gridFrequency_lp_per_mm' is not read by this module and has no effect
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_config_warning.cpp(116):: alert: gsvg config key 'grid_supression' is not read by this module and has no effect
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_config_warning.cpp(127):: alert: gsvg config key 'gridFrequency_lp_per_mm' is not read by this module and has no effect
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_config_warning.cpp(127):: alert: gsvg config key 'virtual_grid_enabled' is not read by this module and has no effect
+
+[  INFO ] D:\workspace-github\xpe-post\modules\gsvg\tests\test_config_warning.cpp(140):: alert: gsvg config key 'nested' is not read by this module and has no effect

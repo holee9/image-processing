@@ -1,0 +1,29 @@
+COMMAND D:/workspace-github/xpe-post/build/cov-local/bin/gsvg_tests.exe [
+  '--gtest_filter=GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical'
+] ELAPSED_MS 1868 EXIT 0 ERROR undefined
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from GsvgGridSuppression
+[ RUN      ] GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical
+GRIDSUP invariant seed=1 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=1 noise=30 prom rows=266 cols=93.8 detected=0/0
+GRIDSUP invariant seed=1 noise=300 prom rows=7.07 cols=7.82 detected=0/0
+GRIDSUP invariant seed=2 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=2 noise=30 prom rows=356 cols=69 detected=0/0
+GRIDSUP invariant seed=2 noise=300 prom rows=9.16 cols=14.4 detected=0/0
+GRIDSUP invariant seed=3 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=3 noise=30 prom rows=187 cols=97.2 detected=0/0
+GRIDSUP invariant seed=3 noise=300 prom rows=6.72 cols=11.2 detected=0/0
+GRIDSUP invariant seed=180 noise=0 prom rows=507 cols=233 detected=0/0
+GRIDSUP invariant seed=180 noise=30 prom rows=299 cols=99 detected=0/0
+GRIDSUP invariant seed=180 noise=300 prom rows=8.62 cols=9.17 detected=0/0
+[       OK ] GsvgGridSuppression.GridFreeImagesAreLeftByteIdentical (1833 ms)
+[----------] 1 test from GsvgGridSuppression (1833 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1833 ms total)
+[  PASSED  ] 1 test.
+ 
+

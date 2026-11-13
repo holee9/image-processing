@@ -1,0 +1,31 @@
+COMMAND C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe [
+  '--build',
+  'D:/workspace-github/xpe-post/build/cov-local',
+  '--target',
+  'gsvg_tests',
+  '--parallel',
+  '2'
+] EXIT 0 ERROR undefined
+[1/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_grid_tools.cpp.obj
+[2/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_grid_suppression.cpp.obj
+[3/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_grid_visibility_192.cpp.obj
+[4/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_gsvg_result.cpp.obj
+[5/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_thread_determinism.cpp.obj
+[6/6] Linking CXX executable bin\gsvg_tests.exe
+ 
+COMMAND C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe [
+  '--build',
+  'D:/workspace-github/xpe-post/build/ci-post',
+  '--target',
+  'gsvg_tests',
+  '--parallel',
+  '2'
+] EXIT 0 ERROR undefined
+[1/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_grid_tools.cpp.obj
+[2/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_grid_suppression.cpp.obj
+[3/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_grid_visibility_192.cpp.obj
+[4/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_gsvg_result.cpp.obj
+[5/6] Building CXX object modules\gsvg\CMakeFiles\gsvg_tests.dir\tests\test_thread_determinism.cpp.obj
+[6/6] Linking CXX executable bin\gsvg_tests.exe
+ 
+
