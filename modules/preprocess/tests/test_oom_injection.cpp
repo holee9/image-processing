@@ -173,6 +173,7 @@ std::atomic<size_t> g_maxAlloc{0};  // largest single request made while armed (
 std::atomic<long> g_live{0};        // operator-new blocks currently alive (leak accounting, QA-A-203)
 
 void arm(long k) {
+    oomproxy::resetCounters();  // QA-A-329 G3: per-call raw/skipped accounting starts here
     g_count.store(0);
     g_maxAlloc.store(0);
     g_injected.store(false);
@@ -181,8 +182,15 @@ void arm(long k) {
 /** Disarms and reports whether the K-th allocation was reached (and so failed). */
 bool disarm() {
     g_failAt.store(0);
+    oomproxy::auditAfterDisarm(g_count.load());  // QA-A-329 G3: atomics only, after injection is off
     return g_injected.load();
 }
+}  // namespace
+
+// QA-A-329 G3: calibrate + pre-check once per process before any test, then filter every armed sweep.
+namespace {
+::testing::Environment* const g_proxyEnv = ::testing::AddGlobalTestEnvironment(new oomproxy::SweepEnvironment(
+    "xpe_preprocess_oom_tests", &arm, &disarm, [] { return g_count.load(); }));
 }  // namespace
 
 void* operator new(std::size_t n) {
@@ -2456,6 +2464,10 @@ XpeErrorCode runCounted(uint32_t w, uint32_t h, const char* satValue, long* allo
     try { rc = xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, cfg.c_str()); } catch (...) { rc = XPE_ERR_INTERNAL; }
     *allocations = g_count.load();
     disarm();
+    // QA-A-329 G3 (design v2 section 5): the raw/count/skipped split of this call, printed after disarming.
+    std::printf("[proxy-filter G3 satorder] sat=%s count=%ld raw=%ld skipped=%ld reentry=%ld\n", satValue, *allocations,
+                oomproxy::g_rawArmed.load(), oomproxy::g_skipped.load(), oomproxy::g_reentry.load());
+    std::fflush(stdout);
     return rc;
 }
 

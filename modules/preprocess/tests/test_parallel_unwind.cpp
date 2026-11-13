@@ -111,18 +111,43 @@ long countAllocs(unsigned threads)
     g_injectMode.store(false);
     g_failAt.store(0);
     g_count.store(0);
+    oomproxy::resetCounters();  // QA-A-329 G3
     XpeParallelLimitGuard lim(threads);
     tl_caller = true;
     g_armed.store(true);
     xpe_parallel_chunks(threads, 1, rangeBody);
     g_armed.store(false);
     tl_caller = false;
+    oomproxy::auditAfterDisarm(g_count.load());  // QA-A-329 G3: atomics only, after the scope is closed
     return g_count.load();
 }
 
+// QA-A-329 G3: the Environment's count-only pre-check uses the existing caller-thread scope (failAt 0 = count only).
+void g3Arm(long)
+{
+    oomproxy::resetCounters();
+    g_injectMode.store(false);
+    g_failAt.store(0);
+    g_injected.store(false);
+    g_count.store(0);
+    tl_caller = true;
+    g_armed.store(true);
+}
+bool g3Disarm()
+{
+    g_armed.store(false);
+    tl_caller = false;
+    return g_injected.load();
+}
+long g3Count() { return g_count.load(); }
+
+// QA-A-329 G3: calibrate + pre-check once per process before any test, then filter the caller-thread counts.
+::testing::Environment* const g_proxyEnv = ::testing::AddGlobalTestEnvironment(
+    new oomproxy::SweepEnvironment("xpe_preprocess_parallel_unwind_tests", &g3Arm, &g3Disarm, &g3Count));
+
 }  // namespace
 
-TEST(ParallelUnwind, ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc)
+TEST(ParallelUnwind,ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc)
 {
     if (std::thread::hardware_concurrency() < 3) GTEST_SKIP() << "needs 3 hardware threads";
 
@@ -147,6 +172,7 @@ TEST(ParallelUnwind, ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLau
     g_watchSize.store(3 * sizeof(std::exception_ptr));
     g_injectMode.store(true);
     g_count.store(0);
+    oomproxy::resetCounters();  // QA-A-329 G3
     g_failAt.store(c2 + 1);
 
     bool threwBadAlloc = false, threwOther = false;
@@ -164,6 +190,7 @@ TEST(ParallelUnwind, ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLau
         g_armed.store(false);
         tl_caller = false;
     }
+    oomproxy::auditAfterDisarm(g_count.load());  // QA-A-329 G3: atomics only, after the scope is closed
     g_injectMode.store(false);
     std::this_thread::sleep_for(200ms);   // a write that lands late is still seen
 

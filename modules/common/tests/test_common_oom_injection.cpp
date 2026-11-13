@@ -56,14 +56,22 @@ std::atomic<long> g_count{0};
 std::atomic<bool> g_injected{false};
 
 void arm(long k) {
+    oomproxy::resetCounters();  // QA-A-329 G3: per-call raw/skipped accounting starts here
     g_count.store(0);
     g_injected.store(false);
     g_failAt.store(k);
 }
 bool disarm() {
     g_failAt.store(0);
+    oomproxy::auditAfterDisarm(g_count.load());  // QA-A-329 G3: atomics only, after injection is off
     return g_injected.load();
 }
+}  // namespace
+
+// QA-A-329 G3: calibrate + pre-check once per process before any test, then filter every armed sweep.
+namespace {
+::testing::Environment* const g_proxyEnv = ::testing::AddGlobalTestEnvironment(new oomproxy::SweepEnvironment(
+    "xpe_common_oom_tests", &arm, &disarm, [] { return g_count.load(); }));
 }  // namespace
 
 void* operator new(std::size_t n) {

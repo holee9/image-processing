@@ -1,0 +1,20 @@
+Note: Google Test filter = MapLength*
+[==========] Running 4 tests from 2 test suites.
+[----------] Global test environment set-up.
+[----------] 2 tests from MapLengthDeathTest
+[ RUN      ] MapLengthDeathTest.ShortMapTripsTheDebugAssertion
+[       OK ] MapLengthDeathTest.ShortMapTripsTheDebugAssertion (32 ms)
+[ RUN      ] MapLengthDeathTest.ShortMapTripsTheDebugAssertionOnTheThreadedPathToo
+[       OK ] MapLengthDeathTest.ShortMapTripsTheDebugAssertionOnTheThreadedPathToo (29 ms)
+[----------] 2 tests from MapLengthDeathTest (62 ms total)
+
+[----------] 2 tests from MapLengthTest
+[ RUN      ] MapLengthTest.ExactLengthMapIsFilledAndDoesNotFault
+[       OK ] MapLengthTest.ExactLengthMapIsFilledAndDoesNotFault (1 ms)
+[ RUN      ] MapLengthTest.SurplusBeyondWidthTimesHeightIsNotTouched
+[       OK ] MapLengthTest.SurplusBeyondWidthTimesHeightIsNotTouched (1 ms)
+[----------] 2 tests from MapLengthTest (3 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 2 test suites ran. (66 ms total)
+[  PASSED  ] 4 tests.

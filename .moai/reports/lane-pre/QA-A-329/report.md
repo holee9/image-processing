@@ -183,3 +183,56 @@ proxy 크기(16바이트) 필터는 MSVC 표준 라이브러리 구현에 의존
 - RelWithDebInfo(build/ci-preprocess, 재구성 없음, 바뀐 시험 obj 3·링크 3, 종료 0): 전체 시험 common `[  PASSED  ] 15 tests.`, PRE oom `[  PASSED  ] 103 tests.`, parallel_unwind `[  PASSED  ] 5 tests.` 모두 종료 0(g2/rw-full-*.txt). 필터 비지원 구성: N2 `threw=std::bad_alloc injected=1 count=1 raw=1 skipped=0`, 기존 `[calibration] caller-thread allocations: 2 ranges = 3 (repeat 3), 3 ranges = 4` 그대로.
 - 미확인(범위 밖): 스윕 적용(G3), worker 스레드에서의 주입 대조, move·`_Reload_proxy`·json 경로, 8프레임 밖 프록시, 비MSVC 실제 컴파일, Debug 전체 suite.
 - 정리: `git worktree remove --force D:/workspace-github/wt-g2` 종료 0(목록·디렉터리에서 사라짐, 안의 build 포함). 스크래치 패치 삭제. 남긴 증거는 `g2/` 텍스트뿐.
+
+## §12 G3 — 기존 스윕에 필터 적용: 원래 실패 55건 이름별 전부 Debug 통과 (Reviewer #QA-A-329g-R 조건 반영)
+
+[2026-11-13 22:58 KST]
+
+### 변경 (시험 코드만, 제품 변경 없음)
+- `oom_proxy_filter.hpp`: `g_sweepEnabled` 추가(`excluded()` 는 G1/G2 의 `g_enabled` 또는 이 값이 켜질 때만 동작). 프로세스마다 gtest 전역 Environment(`SweepEnvironment`)가 **어떤 시험보다 먼저**(필터·순서와 무관) 보정 → 그 실행 파일 자신의 arm 으로 P1·N1 count-only 사전 확인 → 통과할 때만 `g_sweepEnabled=true`. 보정·사전 확인 실패는 Environment 의 치명 실패라 gtest 가 시험을 하나도 돌리지 않는다(조용한 무필터 실행·크기 필터 대체 없음). 비지원 구성은 "unsupported" 만 출력하고 필터 꺼진 채 기존대로.
+- 회계: 각 exe 의 arm 이 `resetCounters()`, disarm 이 주입을 끈 **뒤** `auditAfterDisarm(count)`(원자 연산만, 할당·단언 없음)으로 호출별 raw/count/skipped/reentry/unresolved/depthCapped 를 누적하고 `raw != count + skipped` 또는 reentry≠0 이면 불일치 1. 감시자가 시험마다 증분을 출력하고, Environment TearDown 이 전체 불일치 0·reentry 0 을 단언한다. g_live·해제·pageguard·g_maxAlloc·기존 계수 범위(limit>0 / tl_caller&&g_armed)·단언·주입 위치는 바꾸지 않았다. worker 범위 확대 없음.
+- C: `satorder::runCounted` 가 disarm 뒤 `[proxy-filter G3 satorder] sat=.. count raw skipped reentry` 출력(설계 §5). 단언 무변경.
+
+### 빌드 (깨끗한 기준)
+- `git worktree add --detach D:/workspace-github/wt-g3 8f4e3942`(8f4e394235ff77a3ca3c91f81492f709821b090e) + G3 변경 4개 파일만 → 같은 configure 명령 종료 0, rules.ninja 있음 → 세 OOM exe + MapLength 가 든 `xpe_preprocess_tests` 빌드 종료 0(264단계, 오류·경고 0줄). 명령 원문 g3/commands.txt, G0 g3/g0-flags.txt(세 exe `/Od /Ob0 -MDd /RTC1 /Zi -std:c++17`; `/machine:x64 /debug /INCREMENTAL`; ICF/REF/Gy 명시 없음).
+- 이름별 기준선용으로 같은 방식의 `wt-g3b`(8f4e3942, G3 없음)도 빌드했다(g3/baseline-*.txt).
+
+### Debug 전체 suite (필터 없이 전체, `--gtest_brief=1`)
+| exe | 종료 | 등록(목록) | 실행 | PASSED | FAILED | SKIPPED | DISABLED | 감사 합계 |
+|---|---|---|---|---|---|---|---|---|
+| xpe_common_oom_tests | 0 | 15 | 15 | 15 | 0 | 0 | 0 | arms=68 count=354 raw=574 skipped=220 reentry=0 mismatches=0 |
+| xpe_preprocess_oom_tests | 0 | 106 | 103 | 103 | 0 | 0 | 3 | arms=1625 count=43405 raw=106467 skipped=63062 reentry=0 mismatches=0 |
+| xpe_preprocess_parallel_unwind_tests | 0 | 5 | 5 | 5 | 0 | 0 | 0 | arms=4 count=14 raw=22 skipped=8 reentry=0 mismatches=0 |
+
+분모에는 G1(2/2/3)·G2(1/1/1) 시험이 들어 있다. 원래 시험만 세면 12 / 100(+DISABLED 3) / 1. 원문: g3/dbg-full-*.txt, 목록 g3/list-*.txt. 세 exe 모두 `precheck P1 count=0 raw=1 skipped=1 reentry=0; N1 count=1 raw=2 skipped=1 reentry=0` 뒤 `sweep filter enabled`.
+- 이 수치는 이 세 exe 의 로컬 Debug 실행이다. ctest 전체·원격 CI 결과가 아니다.
+
+### 원래 실패 이름별 대조 (g3/by-name.md, 원본 g3/baseline-each.tsv · g3/g3-each.tsv)
+기준선 = 8f4e3942 Debug(G3 없음)에서 시험을 **하나씩** 실행. G3 = 같은 방식으로 하나씩 실행(전역 Environment 가 개별 실행에서도 스스로 보정함을 같이 보인다).
+| 묶음 | 건수 | 기준선 | G3 |
+|---|---|---|---|
+| A (CommonOom 10 + OomInjection/OomPipeline 34) | 44 | 조기 종료(종료 3) 44 | PASS 44 |
+| B (§7, 수정 뒤 Debug 에서 종료 3) | 7 | 조기 종료(종료 3) 7 | PASS 7 |
+| C OomPipeline.AFrameTheGainStageRefusesIsRefusedBeforeTheSaturationStepAllocates | 1 | FAIL(종료 1) | PASS |
+| E ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc | 1 | FAIL(종료 1) | PASS |
+| D MapLengthDeathTest.ShortMapTripsTheDebugAssertion · …OnTheThreadedPathToo (8c8289bf 의 죽음 시험) | 2 | — | PASS 2 (Debug 첫 실측, g3/dbg-maplength.txt: MapLength 4/4) |
+
+기준선에서 실패한 이름은 정확히 53개(A44+B7+C1+E1)이고 G3 에서 53개 모두 PASS, 남은 실패 0. D2 를 더하면 원래 55건 전부 이름별 PASS. 기준선의 통과 수(common 5, PRE oom 61, parallel 4)는 G1/G2 시험을 포함한 값이다. §2 의 "preprocess 103건 중 61 통과"와 분모 정의가 다를 수 있다(당시 목록은 보존 안 됨, 미확인).
+
+### C·E
+- C(`[proxy-filter G3 satorder]` 원문): off `count=21 raw=121 skipped=100`, on(12800) `count=21 raw=122 skipped=101` — count 같고 skipped 차이 1, 원래 단언(off==on) 통과. 설계 가설과 정합하지만 어느 컨테이너인지 직접 추적하지 않았으므로 **기전 정합까지만** 주장한다. 게인 적재 뒤 run 은 off 21 / on 23(포화 단계 실행), 기존 단언 그대로 통과.
+- E: `[calibration] caller-thread allocations: 2 ranges = 3 (repeat 3), 3 ranges = 4` — Debug 에서도 고정 비용 2(`c3-c2 == c2-2`) 성립, 단언·`g_failAt = c2 + 1` 무변경, bad_alloc·첫 range 착수·슬롯 해제 oracle 통과. 감사: arms=4 count=14 skipped=8.
+
+### 진단
+- 모든 비프록시 할당이 8프레임을 채우고도 일치가 없다(depthCapped = count, 세 exe 전부). 프록시 일치 인덱스는 4. 8프레임보다 깊은 곳의 프록시는 세어지는 쪽으로 틀리는데, 이번 전체 실행에서 그런 종료·실패는 없었다. 이것이 모든 경로의 보장은 아니다.
+
+### RelWithDebInfo (build/ci-preprocess, 재구성 없음, 6단계 증분, 종료 0)
+common `15 tests ... [  PASSED  ] 15 tests.`, PRE oom `103 tests ... [  PASSED  ] 103 tests.`(DISABLED 3), parallel `5 tests ... [  PASSED  ] 5 tests.` 모두 종료 0, 세 exe 모두 `filter unsupported in this configuration; sweeps run unfiltered`, parallel `2 ranges = 3 (repeat 3), 3 ranges = 4`(g3/rw-*.txt).
+
+### 한계·미확인
+- 필터는 Debug STL 프록시 할당을 주입 대상에서 의도적으로 뺀 시험 정의다. Debug 제품의 실제 프록시 할당 실패 안전성(noexcept 안 컨테이너 생성)이 해결된 것은 아니다.
+- worker 스레드 주입, move·`_Reload_proxy`·json 경로의 개별 분류, 8프레임 밖 프록시, 비MSVC 실제 컴파일, ctest 전체·원격 CI 는 미확인. 제품 무결함·모든 OOM 위치 전수 검증의 근거가 아니다.
+- xpe-pre 의 미커밋 cmake/·10-19 시험 변경은 이 빌드에 섞이지 않았다(깨끗한 기준 + 4개 파일만).
+
+### 정리
+`git worktree remove --force D:/workspace-github/wt-g3` 종료 0, `git worktree remove --force D:/workspace-github/wt-g3b` 종료 0(목록·디렉터리에서 사라짐, 안의 build 포함). 스크래치 패치 삭제. 남긴 것은 `g3/` 텍스트 증거뿐.

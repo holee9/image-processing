@@ -1,0 +1,25 @@
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests calib=3 reason=0 imageBase=0x0 explicitRaw=0x0 explicitTarget=0x0 thunks=0 P_explicit=0x0 newBegin=0x0 captured=0 matchIndex=-1 newIndex=-1 pod16Captured=0 rawNewCaptured=0 supported=0
+[proxy-filter G3] exe=xpe_preprocess_parallel_unwind_tests filter unsupported in this configuration; sweeps run unfiltered
+[calibration] caller-thread allocations: 2 ranges = 3 (repeat 3), 3 ranges = 4
+[proxy-filter G3 audit] exe=xpe_preprocess_parallel_unwind_tests test=ParallelUnwind.ARunningRangeFinishesBeforeItsErrorSlotIsFreedWhenALaterLaunchThrowsBadAlloc arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests calib=3 reason=0 imageBase=0x0 explicitRaw=0x0 explicitTarget=0x0 thunks=0 P_explicit=0x0 newBegin=0x0 captured=0 matchIndex=-1 newIndex=-1 pod16Captured=0 rawNewCaptured=0 supported=0
+[proxy-filter G3 audit] exe=xpe_preprocess_parallel_unwind_tests test=ProxyFilterG1.Calibration arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=P1_string count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=P2_vector_int count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=P3_fs_path count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=N1_vector_exception_ptr_1 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=N3a_allocator_Pod16 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests control=N3b_operator_new_16 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G3 audit] exe=xpe_preprocess_parallel_unwind_tests test=ProxyFilterG1.CountOnlyControls arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests[worker] control=P1_string count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G1] exe=xpe_preprocess_parallel_unwind_tests[worker] control=N1_vector_exception_ptr_1 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=0
+[proxy-filter G3 audit] exe=xpe_preprocess_parallel_unwind_tests test=ProxyFilterG1.WorkerThreadControls arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=P4_string_arm1 threw=none injected=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 restored=1 probeOk=1 rawAfterProbe=0
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=N2_vector_exception_ptr_1_arm1 threw=std::bad_alloc injected=1 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=0 restored=1 probeOk=1 rawAfterProbe=0
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=N3a_allocator_Pod16_arm1 threw=std::bad_alloc injected=1 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=0 restored=1 probeOk=1 rawAfterProbe=0
+[proxy-filter G2] exe=xpe_preprocess_parallel_unwind_tests control=N3b_operator_new_16_arm1 threw=std::bad_alloc injected=1 count=1 raw=1 skipped=0 reentry=0 unresolved=0 depthCapped=0 restored=1 probeOk=1 rawAfterProbe=0
+[proxy-filter G3 audit] exe=xpe_preprocess_parallel_unwind_tests test=ProxyFilterG2.InjectionControls arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[proxy-filter G3] exe=xpe_preprocess_parallel_unwind_tests totals arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[==========] 5 tests from 3 test suites ran. (516 ms total)
+[  PASSED  ] 5 tests.

@@ -77,6 +77,7 @@ enum Reason : int {
 constexpr int kFrames = 8;
 
 inline std::atomic<bool> g_enabled{false};        // set only by a test that exercises the filter
+inline std::atomic<bool> g_sweepEnabled{false};   // G3: set by the per-process environment after calibration + pre-checks
 inline std::atomic<std::uintptr_t> g_proxyBegin{0};
 inline std::atomic<int> g_calib{static_cast<int>(Calib::NotRun)};
 inline std::atomic<int> g_reason{kNone};
@@ -179,7 +180,7 @@ inline void calibrationHook()
  */
 inline bool excluded()
 {
-    if (!g_enabled.load(std::memory_order_relaxed)) return false;
+    if (!g_enabled.load(std::memory_order_relaxed) && !g_sweepEnabled.load(std::memory_order_relaxed)) return false;
     g_rawArmed.fetch_add(1);
     if (t_inFilter) {
         g_reentry.fetch_add(1);
@@ -329,7 +330,8 @@ inline Calib calibrate()
 inline void calibrationHook() {}
 inline bool excluded()
 {
-    if (g_enabled.load(std::memory_order_relaxed)) g_rawArmed.fetch_add(1);  // keeps raw == count + skipped
+    if (g_enabled.load(std::memory_order_relaxed) || g_sweepEnabled.load(std::memory_order_relaxed))
+        g_rawArmed.fetch_add(1);  // keeps raw == count + skipped
     return false;
 }
 inline Calib calibrate()
@@ -603,3 +605,146 @@ inline void printInject(const char* exe, const char* name, const InjectResult& r
         EXPECT_EQ(s_.raw, s_.count + s_.skipped) << e_.name << ": raw == count + skipped";                        \
         EXPECT_EQ(s_.reentry, 0) << e_.name << ": filter re-entered operator new";                                \
     } while (0)
+
+/* -------------------------------------------------------------------------
+ * G3: the filter applied to the existing sweeps (design v2 section 3, Reviewer #QA-A-329g-R section 3)
+ *
+ * A per-process gtest Environment calibrates, runs the P1/N1 count-only pre-checks with this executable's own
+ * allocator, and only then sets g_sweepEnabled. It runs before any test, whatever filter or order gtest uses, so no
+ * test depends on another test having calibrated. Calibration or pre-check failure is a fatal Environment failure:
+ * gtest then runs no test, and the sweep filter stays off (no silent run without the filter, no size fallback).
+ * Unsupported configurations (filter off by design) only print that fact.
+ *
+ * Each executable's disarm calls auditAfterDisarm() after it has stopped injecting; it accumulates the per-call
+ * raw/count/skipped/reentry/unresolved/depthCapped into totals with atomics only (no allocation, no assertion). A
+ * listener prints the per-test deltas after each test, and the Environment's TearDown asserts zero mismatches
+ * (raw != count + skipped) and zero re-entries over the whole run.
+ * ------------------------------------------------------------------------- */
+
+#include <gtest/gtest.h>
+
+namespace oomproxy {
+
+inline std::atomic<long> g_totArms{0};
+inline std::atomic<long> g_totRaw{0};
+inline std::atomic<long> g_totCount{0};
+inline std::atomic<long> g_totSkipped{0};
+inline std::atomic<long> g_totReentry{0};
+inline std::atomic<long> g_totUnresolved{0};
+inline std::atomic<long> g_totDepthCapped{0};
+inline std::atomic<long> g_totMismatch{0};
+
+/** Called by the executable's disarm after injection is off. Atomics only. */
+inline void auditAfterDisarm(long count)
+{
+    if (!g_sweepEnabled.load(std::memory_order_acquire)) return;
+    const long raw = g_rawArmed.load();
+    const long skipped = g_skipped.load();
+    const long reentry = g_reentry.load();
+    g_totArms.fetch_add(1);
+    g_totRaw.fetch_add(raw);
+    g_totCount.fetch_add(count);
+    g_totSkipped.fetch_add(skipped);
+    g_totReentry.fetch_add(reentry);
+    g_totUnresolved.fetch_add(g_unresolved.load());
+    g_totDepthCapped.fetch_add(g_depthCapped.load());
+    if (raw != count + skipped || reentry != 0) g_totMismatch.fetch_add(1);
+}
+
+struct Totals {
+    long arms, raw, count, skipped, reentry, unresolved, depthCapped, mismatch;
+};
+
+inline Totals totals()
+{
+    return Totals{g_totArms.load(),    g_totRaw.load(),        g_totCount.load(),       g_totSkipped.load(),
+                  g_totReentry.load(), g_totUnresolved.load(), g_totDepthCapped.load(), g_totMismatch.load()};
+}
+
+class AuditListener : public ::testing::EmptyTestEventListener {
+public:
+    explicit AuditListener(const char* exe) : exe_(exe) {}
+    void OnTestStart(const ::testing::TestInfo&) override { start_ = totals(); }
+    void OnTestEnd(const ::testing::TestInfo& info) override
+    {
+        const Totals e = totals();
+        std::printf("[proxy-filter G3 audit] exe=%s test=%s.%s arms=%ld count=%ld raw=%ld skipped=%ld reentry=%ld "
+                    "unresolved=%ld depthCapped=%ld mismatches=%ld\n",
+                    exe_, info.test_suite_name(), info.name(), e.arms - start_.arms, e.count - start_.count,
+                    e.raw - start_.raw, e.skipped - start_.skipped, e.reentry - start_.reentry,
+                    e.unresolved - start_.unresolved, e.depthCapped - start_.depthCapped, e.mismatch - start_.mismatch);
+        std::fflush(stdout);
+    }
+
+private:
+    const char* exe_;
+    Totals start_{};
+};
+
+class SweepEnvironment : public ::testing::Environment {
+public:
+    using ArmFn = void (*)(long);
+    using DisarmFn = bool (*)();
+    using CountFn = long (*)();
+
+    SweepEnvironment(const char* exe, ArmFn arm, DisarmFn disarm, CountFn count)
+        : exe_(exe), arm_(arm), disarm_(disarm), count_(count) {}
+
+    void SetUp() override
+    {
+        ::testing::UnitTest::GetInstance()->listeners().Append(new AuditListener(exe_));
+        const Calib c = calibrate();
+        printCalibration(exe_);
+        if (!XPE_OOM_PROXY_FILTER_SUPPORTED) {
+            std::printf("[proxy-filter G3] exe=%s filter unsupported in this configuration; sweeps run unfiltered\n", exe_);
+            std::fflush(stdout);
+            return;
+        }
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(Calib::Ok))
+            << "calibration failed (reason " << g_reason.load() << "); sweep filter not enabled";
+        int n = 0;
+        const Expect* k = controls(n);
+        const Sample p1 = runCountOnly(k[0].body);
+        const Sample n1 = runCountOnly(k[3].body);
+        std::printf("[proxy-filter G3] exe=%s precheck P1 count=%ld raw=%ld skipped=%ld reentry=%ld; N1 count=%ld raw=%ld "
+                    "skipped=%ld reentry=%ld\n",
+                    exe_, p1.count, p1.raw, p1.skipped, p1.reentry, n1.count, n1.raw, n1.skipped, n1.reentry);
+        std::fflush(stdout);
+        ASSERT_TRUE(p1.count == 0 && p1.skipped >= 1 && p1.raw == p1.count + p1.skipped && p1.reentry == 0)
+            << "P1 pre-check failed; sweep filter not enabled";
+        ASSERT_TRUE(n1.count == 1 && n1.skipped == 1 && n1.raw == n1.count + n1.skipped && n1.reentry == 0)
+            << "N1 pre-check failed; sweep filter not enabled";
+        resetCounters();
+        g_sweepEnabled.store(true, std::memory_order_release);
+        std::printf("[proxy-filter G3] exe=%s sweep filter enabled\n", exe_);
+        std::fflush(stdout);
+    }
+
+    void TearDown() override
+    {
+        g_sweepEnabled.store(false, std::memory_order_release);
+        const Totals t = totals();
+        std::printf("[proxy-filter G3] exe=%s totals arms=%ld count=%ld raw=%ld skipped=%ld reentry=%ld unresolved=%ld "
+                    "depthCapped=%ld mismatches=%ld\n",
+                    exe_, t.arms, t.count, t.raw, t.skipped, t.reentry, t.unresolved, t.depthCapped, t.mismatch);
+        std::fflush(stdout);
+        EXPECT_EQ(t.mismatch, 0) << "an armed call broke raw == count + skipped or re-entered the filter";
+        EXPECT_EQ(t.reentry, 0) << "the filter re-entered operator new";
+    }
+
+private:
+    Sample runCountOnly(void (*body)())
+    {
+        ArmFn arm = arm_;
+        DisarmFn disarm = disarm_;
+        CountFn count = count_;
+        return measure([arm] { arm(1000000000L); }, [disarm] { (void)disarm(); }, [count] { return count(); }, body);
+    }
+
+    const char* exe_;
+    ArmFn arm_;
+    DisarmFn disarm_;
+    CountFn count_;
+};
+
+}  // namespace oomproxy
