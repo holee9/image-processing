@@ -1,0 +1,20 @@
+diff --git a/modules/preprocess/tools/xpe_bpm_eval.cpp b/modules/preprocess/tools/xpe_bpm_eval.cpp
+index d6f2b6ed..8e21854b 100644
+--- a/modules/preprocess/tools/xpe_bpm_eval.cpp
++++ b/modules/preprocess/tools/xpe_bpm_eval.cpp
+@@ -2428,6 +2428,15 @@ int cmdCorrect(const Args& a) {
+         std::vector<float> C, I, U;
+         if (!loadSet(a.str("clean-set")) || !runPipeline(cleanEval[f], t.w, t.h, kCfgFinal, &C)) return 4;
+         if (!loadSet(a.str("inj-set")) || !runPipeline(injEval[f], t.w, t.h, kCfgFinal, &I) || !runPipeline(injEval[f], t.w, t.h, kCfgNoDefect, &U)) return 4;
++        char* dd = nullptr; size_t ddn = 0; _dupenv_s(&dd, &ddn, "XPE_DUMP_CORRECTED");
++        if (dd) {  // QA-A-327 temporary evidence dump (not committed)
++            const std::string fn = std::string(dd) + "/" + baseName(injEval[f]) + ".corrected.f32";
++            FILE* fp = nullptr; fopen_s(&fp, fn.c_str(), "wb");
++            if (fp) {
++                std::fwrite(I.data(), sizeof(float), I.size(), fp);
++                std::fclose(fp);
++            }
++        }
+         std::printf("== evaluation frame %s (clean) / %s (planted)\n", baseName(cleanEval[f]).c_str(), baseName(injEval[f]).c_str());
+
+         // correction error against local noise

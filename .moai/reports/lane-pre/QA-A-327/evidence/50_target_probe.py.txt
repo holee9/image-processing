@@ -1,0 +1,12 @@
+import struct,sys
+W=3072
+def ld(p):
+    import array; a=array.array('f'); a.frombytes(open(p,'rb').read()); return a
+tg=[('row1165',[(x,1165) for x in list(range(0,6))+[3071]]),('col1283',[(1283,y) for y in [0,1,3071]]),
+    ('row2131',[(x,2131) for x in list(range(0,6))+[3071]]),('col1707',[(1707,y) for y in [0,1,3071]])]
+for f in ['Bright_29.raw','Bright_30.raw']:
+    b=ld(sys.argv[1]+'/'+f+'.corrected.f32'); a=ld(sys.argv[2]+'/'+f+'.corrected.f32')
+    print('==',f,'n_pixels_differing',sum(1 for i in range(len(a)) if a[i]!=b[i]))
+    for n,pts in tg:
+        for x,y in pts:
+            i=y*W+x; print(f'{n} x={x} y={y} before={b[i]:.4f} after={a[i]:.4f}')
