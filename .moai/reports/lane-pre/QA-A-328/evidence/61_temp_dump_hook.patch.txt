@@ -1,0 +1,47 @@
+diff --git a/modules/preprocess/src/xpe_bpm_v2.cpp b/modules/preprocess/src/xpe_bpm_v2.cpp
+index 5d942383..2e1a2119 100644
+--- a/modules/preprocess/src/xpe_bpm_v2.cpp
++++ b/modules/preprocess/src/xpe_bpm_v2.cpp
+@@ -20,6 +20,8 @@
+ #include "xpe_bpm_v2_internal.hpp"
+ 
+ #include <algorithm>
++#include <cstdio>
++#include <cstdlib>
+ #include <cmath>
+ #include <cstddef>
+ #include <cstdint>
+@@ -1185,6 +1187,33 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
+             }
+             if (i % 16 == 0) sample.push_back(refSum[i] / static_cast<float>(noiseGroups));
+         }
++        {   // TEMP-DIAG QA-A-328: record-only dump of the F2b statistics
++            char* lst = nullptr; size_t lstn = 0; char* outp = nullptr; size_t outn = 0;
++            _dupenv_s(&lst, &lstn, "XPE_F2B_LIST"); _dupenv_s(&outp, &outn, "XPE_F2B_OUT");
++            if (lst && outp) {
++                FILE* fi = nullptr; FILE* fo = nullptr;
++                fopen_s(&fi, lst, "r"); fopen_s(&fo, outp, "w");
++                if (fi && fo) {
++                    std::fprintf(fo, "x\ty\ttag\tnoiseSum_over_nu\tthreshold5\tpersistHits\tnoiseGroups\tcorrGain\trefMean\tnuBright\tw\n");
++                    char ln[256];
++                    while (std::fgets(ln, sizeof ln, fi)) {
++                        unsigned x = 0, y = 0; char tag[128] = {0};
++                        if (sscanf_s(ln, "%u	%u	%127s", &x, &y, tag, 128u) < 3) continue;
++                        const size_t wd = static_cast<size_t>(width);
++                        if (x < 6u || y < 2u) continue;   // margins 6,2,1,1 of this run
++                        const size_t i = static_cast<size_t>(y - 2u) * wd + (x - 6u);
++                        if (i >= n) continue;
++                        std::fprintf(fo, "%u\t%u\t%s\t%.6f\t%.6f\t%u\t%u\t%.6f\t%.6f\t%u\t%zu\n", x, y, tag,
++                                     static_cast<double>(noiseSum[i]) / static_cast<double>(nuBright), threshold[5],
++                                     static_cast<unsigned>(persistHits[i]), noiseGroups, static_cast<double>(corrGain[i]),
++                                     static_cast<double>(refSum[i]) / static_cast<double>(noiseGroups), nuBright, wd);
++                    }
++                }
++                if (fi) std::fclose(fi);
++                if (fo) std::fclose(fo);
++            }
++            std::free(lst); std::free(outp);
++        }
+         scaleMed[5] = medianOf(sample.data(), sample.size());
+         if (job) {   // lines: the pooled variance ratio of the bright frames
+             std::vector<float> t(n);

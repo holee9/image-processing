@@ -1,0 +1,8 @@
+04b1d3d54efa0d13dffd343c3004190786371c37ea9f5261ed36046146a9b8ac *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/inj_set_v2/defect.xcal
+9bb62b78742f9fb4cb83f9411921b911f98cb43df8a215f1cd80b3e88bcf36e1 *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/inj_set_v2/offset.xcal
+e95ea9db019e46194375379fca1355c192cd7e521c65de2dbd5d316850ef14b0 *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/inj_set_v2/gain.xcal
+5c4cc2330d671fcd1f6b6d5c1876041b09f431a6ddbe005e6b733de8de227fe9 *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/inj_v2_setmap.u8
+d98a174004785b77013cfe954a37ae1c59632590cab4bd10dc32584b7af519e9 *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/v2_half_a.u8
+69f0252297371d380a122de5b0e29e12247c5d246e15906b1e684de582b88970 *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/v2_half_b.u8
+ba947dcdec9ca252faef099eb88577ebd5988a652fdb505253d732631ab07e0f *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/clean_set_v2/defect.xcal
+f620c428c9918c65ee8a2367c80543995f3116d29f91a3b8299c211cae269110 *D:/workspace-github/xpe-data/qa-327-tmp/out/before328/clean_v2_setmap.u8

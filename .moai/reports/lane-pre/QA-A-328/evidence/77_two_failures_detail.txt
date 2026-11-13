@@ -1,0 +1,52 @@
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+    Start 1255: BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+1/2 Test #1255: BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup ..................***Failed    0.58 sec
+Note: Google Test filter = BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from BpmV2Test
+[ RUN      ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(978): error: Expected: (eff) >= (10), actual: 0 vs 10
+efficiency-loss pixels of cost 3 are found at the theoretical rate 0.152 per pixel (21.8 of 144, sd 4.3)
+
+[  FAILED  ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup (562 ms)
+[----------] 1 test from BpmV2Test (562 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (562 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup
+
+ 1 FAILED TEST
+
+    Start 1289: BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+2/2 Test #1289: BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot ...***Failed    0.33 sec
+Note: Google Test filter = BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from BpmV2LinesTest
+[ RUN      ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_bpm_v2.cpp(904): error: Expected: (0u) != (eff->causes & 0x04u), actual: 0 vs 0
+the gain-corrected variance is 3.3 times the neighbours'
+
+[  FAILED  ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot (319 ms)
+[----------] 1 test from BpmV2LinesTest (319 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (319 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot
+
+ 1 FAILED TEST
+
+
+0% tests passed, 2 tests failed out of 2
+
+Total Test time (real) =   0.98 sec
+
+The following tests FAILED:
+	1255 - BpmV2Test.TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup (Failed)
+	1289 - BpmV2LinesTest.TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot (Failed)
+Errors while running CTest
