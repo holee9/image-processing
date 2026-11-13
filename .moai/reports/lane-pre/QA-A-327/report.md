@@ -127,4 +127,23 @@
 - 파일 수정 시각은 2026-10-19 01:40~01:42(+0900)이고, 이 파일들의 마지막 커밋은 그보다 앞서요(예: test_ghost_oracle.cpp 2026-10-03, test_nonlin_lut_apply.cpp 2026-09-19). 누가 만들었는지는 git 기록과 이번 세션 기록만으로는 알 수 없어서 미확인으로 남겨요.
 - 327 측정과의 관계: 전체 시험 실행 파일 `xpe_preprocess_tests.exe` 는 2026-10-29 18:19 에 빌드됐고, test_ghost_oracle.cpp 의 .obj 는 10-19 02:01 이라 수정보다 뒤예요. 그래서 §8 의 전체 시험은 이 수정본 위에서 돈 것으로 보여요(빌드 입력을 직접 대조하지는 않았어요). B16 표 측정은 `xpe_bpm_eval.exe`(2026-11-12 21:39 빌드)와 `xpe_calib_fixture_gen.exe` 를 쓰는 스크립트라서, 이 시험 파일 네 개는 그 실행 파일에 들어가지 않는 것으로 알고 있지만 CMake 로 따로 확인하지는 않았어요.
 
+### 9.1 리더 요청(2026-11-13 12:28) 읽기 전용 확인 결과 [2026-11-13 12:27 KST]
+읽기만 했고 빌드·되돌리기·수정은 하지 않았어요. 시험 파일 네 개는 그대로 뒀어요.
+
+(a) 2026-10-29 전체 시험 실행 파일이 수정된 시험 파일 네 개로 빌드됐는가 — `build/ci-preprocess/` 의 .obj·실행 파일 수정 시각과 `.ninja_log` 로 대조:
+| 시험 파일 | 소스 수정 시각 | .obj 시각 | 소스보다 뒤인가 |
+|---|---|---|---|
+| test_ghost_oracle.cpp | 2026-10-19 01:41:25 | 2026-10-19 02:01:14 | 예 |
+| test_nonlin_lut_generate.cpp | 2026-10-19 01:40:20 | 2026-10-19 02:00:28 | 예 |
+| test_nonlin_poly_apply.cpp | 2026-10-19 01:42:57 | 2026-10-19 02:00:30 | 예 |
+| test_nonlin_lut_apply.cpp | 2026-10-19 01:41:25 | 2026-10-29 18:19:02 | 예 |
+- `bin/xpe_preprocess_tests.exe` 는 2026-10-29 18:19:03 으로 네 .obj 보다 모두 뒤예요. `.ninja_log` 에 네 .obj 와 이 실행 파일의 기록 행이 모두 있고, `build.ninja` 에서 네 파일이 모두 `xpe_preprocess_tests` 의 빌드 항목으로 잡혀 있어요(`modules/preprocess/CMakeLists.txt` 의 시험 소스 목록 334행~ 안: 336·337·338·511행).
+- 결론(사실): 10-29 실행 파일은 수정 시각 이후에 컴파일된 네 .obj 로 링크됐어요.
+- 못 한 것: .obj 안에 JSON 내보내기 코드가 실제로 들어 있는지는 열어 보지 않았어요. 이 확인 시점에도 실행 파일 시각은 10-29 18:19:03 그대로라 이후 다시 링크되지 않았어요. 327 전체 시험이 이 실행 파일로 돌았다는 것은 시각 대조일 뿐, 그 실행 중에 파일이 쓰였는지는 보지 않았어요. 소스 수정 시각 이후 파일 내용이 바뀌지 않았다는 보장은 없어요(내용 해시 대조 안 함).
+
+(b) B16 측정 도구 `xpe_bpm_eval` 이 그 파일들과 독립인가 — `modules/preprocess/CMakeLists.txt`:
+- `add_executable(xpe_bpm_eval tools/xpe_bpm_eval.cpp src/xpe_sha256_backend.cpp)`(176~179행), 연결 라이브러리는 `xpe_preprocess`·`xpe_common`(187행). 소스 목록에 시험 파일 네 개가 없어요. `build.ninja` 의 `xpe_bpm_eval.exe` 링크 항목(1758행) 입력도 `xpe_bpm_eval.cpp.obj`·`xpe_sha256_backend.cpp.obj` 와 라이브러리뿐이에요. 같은 방식으로 `xpe_calib_fixture_gen` 도 시험 파일을 쓰지 않아요.
+- 의존 방향은 반대예요: `add_dependencies(xpe_preprocess_tests xpe_bpm_eval)`(625행)로 시험 실행 파일이 평가 도구에 기대지, 그 반대가 아니에요.
+- 못 한 것: `xpe_preprocess`·`xpe_common` 라이브러리의 소스 목록 전체는 대조하지 않았어요(이 둘은 `src/` 소스라서 `tests/` 파일을 포함하지 않는다고 알고 있지만 직접 확인한 건 아니에요).
+
 커밋 cff849b4 (dev/preprocess, push 안 함). 후보 소스(defect_correct.cpp)는 되돌렸고 패치는 evidence/30_candidate.patch.txt 에 있음.
