@@ -43,9 +43,11 @@
 
 #if defined(_WIN32)
 #  include <windows.h>
+#  include <crtdbg.h>
 #endif
 
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -122,6 +124,25 @@ XpeImageBuffer Wrap(std::vector<float>& px) {
     return img;
 }
 
+#ifndef NDEBUG
+// Debug builds: DetectFrame's assert(mapCount >= needed) fires BEFORE the silent
+// Release-family rejection, so a short map aborts the process. The death-test
+// child must send the CRT assertion text to stderr instead of opening a dialog,
+// otherwise there is nothing for EXPECT_DEATH to match.
+void CallShortMapInChild(size_t shortCount, uint32_t threads) {
+    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+    _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+    std::vector<float> frame = MakeFrame();
+    XpeImageBuffer img = Wrap(frame);
+    std::vector<uint8_t> map(shortCount, 0xCDu);
+    RuntimeDetectionConfig cfg = RuntimeDetection_DefaultConfig();
+    cfg.threadCount = threads;
+    DetectFrame(&img, cfg, map.data(), map.size());
+    std::exit(0);   // reaching here means the assertion did not fire
+}
+#endif  // NDEBUG
+
 #endif  // _WIN32
 
 }  // namespace
@@ -149,6 +170,21 @@ TEST(MapLengthTest, ExactLengthMapIsFilledAndDoesNotFault) {
     EXPECT_GT(flagged, 0u) << "an all-zero map would make the short case below meaningless";
 }
 
+#ifndef NDEBUG
+// QA-A-329 group D: in Debug the contract is enforced by assert(), which aborts.
+// The Release-family silent-rejection tests below are compiled only under NDEBUG;
+// the exact-length test above is the positive control (same call shape, exact
+// length, must not die).
+TEST(MapLengthDeathTest, ShortMapTripsTheDebugAssertion) {
+    EXPECT_DEATH(CallShortMapInChild(kPixels / 2u, 1u),
+                 "mapCount >= needed.*shorter than width");
+}
+
+TEST(MapLengthDeathTest, ShortMapTripsTheDebugAssertionOnTheThreadedPathToo) {
+    EXPECT_DEATH(CallShortMapInChild(kPixels - 1u, 8u),
+                 "mapCount >= needed.*shorter than width");
+}
+#else
 // The assertion this card exists for: a map shorter than width * height is left
 // untouched. A function that took mapCount and ignored it would fault here on
 // the memset; one that truncated would pass the fault check and fail the
@@ -197,6 +233,7 @@ TEST(MapLengthTest, ShortMapIsRejectedOnTheThreadedPathToo) {
     for (size_t i = 0; i < shortCount; ++i) if (map.data()[i] != 0xCDu) ++touched;
     EXPECT_EQ(0u, touched) << "truncated rather than rejected at 8 threads";
 }
+#endif  // NDEBUG
 
 // A longer-than-needed map is legitimate -- a caller reusing one buffer across
 // frame sizes -- and only the first width * height elements may be touched.

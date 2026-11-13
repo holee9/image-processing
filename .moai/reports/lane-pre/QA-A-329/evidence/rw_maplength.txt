@@ -1,0 +1,17 @@
+Note: Google Test filter = MapLengthTest.*
+[==========] Running 4 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 4 tests from MapLengthTest
+[ RUN      ] MapLengthTest.ExactLengthMapIsFilledAndDoesNotFault
+[       OK ] MapLengthTest.ExactLengthMapIsFilledAndDoesNotFault (0 ms)
+[ RUN      ] MapLengthTest.ShortMapIsRejectedWithoutBeingWritten
+[       OK ] MapLengthTest.ShortMapIsRejectedWithoutBeingWritten (0 ms)
+[ RUN      ] MapLengthTest.ShortMapIsRejectedOnTheThreadedPathToo
+[       OK ] MapLengthTest.ShortMapIsRejectedOnTheThreadedPathToo (0 ms)
+[ RUN      ] MapLengthTest.SurplusBeyondWidthTimesHeightIsNotTouched
+[       OK ] MapLengthTest.SurplusBeyondWidthTimesHeightIsNotTouched (0 ms)
+[----------] 4 tests from MapLengthTest (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 4 tests from 1 test suite ran. (0 ms total)
+[  PASSED  ] 4 tests.

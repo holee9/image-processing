@@ -92,3 +92,8 @@ proxy 크기(16바이트) 필터는 MSVC 표준 라이브러리 구현에 의존
 - 수정 없는 RelWithDebInfo 에서 7건이 원래 통과했는지는 돌려 보지 않았다(CI 가 성공이었다는 점만 근거).
 
 결론: 묶음 B 수정은 Debug 에서 수치 오류를 없앴으나, 7건이 통과로 바뀌는지는 묶음 A 설계 구현 뒤에야 볼 수 있다. 결함으로 확인된 제품 문제는 없다.
+
+## 8. 묶음 D (MapLengthTest)
+
+- 측정: RelWithDebInfo 에서 MapLengthTest 4건 통과(`evidence/rw_maplength.txt`, 빌드 `rw_maplength_build.txt`). 이 구성은 NDEBUG 라 Debug 전용 죽음 시험은 컴파일되지 않았고, 위 4건은 Release 계열 3건과 양성 대조군이다.
+- Debug death test 실측 미확인 — main CI coverage 작업(Debug)에서 확인 예정. 추정(미측정): 자식 프로세스에서 CRT assert 문구가 stderr 로 나가는지, 정규식 `mapCount >= needed.*shorter than width` 가 한 줄에 맞는지.
