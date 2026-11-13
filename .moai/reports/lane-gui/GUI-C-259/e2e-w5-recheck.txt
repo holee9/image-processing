@@ -1,0 +1,36 @@
+  ImageProcTest.E2ETests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:25.32]   Finished:    ImageProcTest.E2ETests
+Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees [25 s]
+  Standard Output Messages:
+ CASE raw file opened with rawWidth x rawHeight = 1024 x 1024
+    dialog: 'Load Raw Image'
+    native (+4 ms): dialog 0x1310AD4 open; app windows: 0x6E40342 Auto-Suggest Dropdown (hidden), 0x38D0B5E Auto-Suggest Dropdown (hidden), 0x8DC0AAC tooltips_class32 (hidden), 0x5090ACA tooltips_class32 (hidden), 0x8A9095A tooltips_class32 (hidden), 0x6A90B16 tooltips_class32 (hidden), 0x3890AB6 ComboLBox (hidden), 0x2B50724 tooltips_class32 (hidden), 0x6CC0C9C _SearchEditBoxFakeWindow (hidden), 0x7C80A0A tooltips_class32 (hidden), 0x10880CBC tooltips_class32 (hidden), 0x95D05F2 tooltips_class32 (hidden), 0x920A72 HwndWrapper[ImageProcTest;;3a1077fd-f1da-498f-b17b-1bfadf3efece, 0x4FD0B4C ComboLBox (hidden), 0x21E07DE ComboLBox (hidden), 0x7FC09D8 WorkerW (hidden), 0x2E60D08 HwndWrapper[ImageProcTest;;b0ac683a-da45-465f-8edf-edcc91f21838 (hidden), 0xE2047E HwndWrapper[ImageProcTest;;4267a988-e89e-42db-911c-2aa21b681225 (hidden), 0x2640D3A HwndWrapper[ImageProcTest;;8c39a3c0-8f9c-43c3-82fc-bb7d8bb91904 (hidden), 0x4F053A HwndWrapper[ImageProcTest;;d8596cee-eb88-4e7d-9b55-ae91b3815126 (hidden), 0xE050638 CiceroUIWndFrame (hidden), 0xD80176 MSCTFIME UI (hidden), 0xEF0726 IME (hidden), 0x4600614 CiceroUIWndFrame (hidden)
+    native (+214 ms): dialog 0x1310AD4 gone; app windows: 0x920A72 HwndWrapper[ImageProcTest;;3a1077fd-f1da-498f-b17b-1bfadf3efece, 0x2E60D08 HwndWrapper[ImageProcTest;;b0ac683a-da45-465f-8edf-edcc91f21838 (hidden), 0xE2047E HwndWrapper[ImageProcTest;;4267a988-e89e-42db-911c-2aa21b681225 (hidden), 0x2640D3A HwndWrapper[ImageProcTest;;8c39a3c0-8f9c-43c3-82fc-bb7d8bb91904 (hidden), 0x4F053A HwndWrapper[ImageProcTest;;d8596cee-eb88-4e7d-9b55-ae91b3815126 (hidden), 0xE050638 CiceroUIWndFrame (hidden), 0xD80176 MSCTFIME UI (hidden), 0xEF0726 IME (hidden), 0x4600614 CiceroUIWndFrame (hidden)
+    status bar: Load failed: Raw file has 18874368 bytes, more than the 2097152 bytes of 1024x1024 16-bit. The size is set in the settings as rawWidth/rawHeight (1024x1024 now), or with --automation-width/--automation-height; the file is not opened until its length is exactly width x height x 2.
+ CASE raw file opened with rawWidth x rawHeight = 4096 x 4096
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x3B10C00 open; app windows: 0x58505C4 Auto-Suggest Dropdown (hidden), 0x7CA0A0A Auto-Suggest Dropdown (hidden), 0x6E50342 tooltips_class32 (hidden), 0xD950CE8 tooltips_class32 (hidden), 0xCCC07F4 tooltips_class32 (hidden), 0x50053A tooltips_class32 (hidden), 0x6AB0B16 ComboLBox (hidden), 0x6D80B64 tooltips_class32 (hidden), 0x633018E _SearchEditBoxFakeWindow (hidden), 0x12BD0B7E tooltips_class32 (hidden), 0x5F60D1C tooltips_class32 (hidden), 0x8430C14 tooltips_class32 (hidden), 0x63D0978 HwndWrapper[ImageProcTest;;741ed224-908c-4352-9695-74a5cb27d2b6, 0xE060638 ComboLBox (hidden), 0x8140CA4 ComboLBox (hidden), 0xD0008E WorkerW (hidden), 0x7CA0CF8 HwndWrapper[ImageProcTest;;7cedb9f0-eff2-49ba-a931-0b3a11219b4b (hidden), 0x8650CC8 HwndWrapper[ImageProcTest;;50e54a70-6f16-405c-b174-2a172126e704 (hidden), 0xACD0AC2 HwndWrapper[ImageProcTest;;b60216bf-a46d-4287-a993-cf004af3cc30 (hidden), 0x9E10B00 HwndWrapper[ImageProcTest;;47fcbe02-46a1-477b-b979-354a50da2106 (hidden), 0x2A80234 CiceroUIWndFrame (hidden), 0x1F206EE MSCTFIME UI (hidden), 0x132C0D14 IME (hidden), 0x33C0C16 CiceroUIWndFrame (hidden)
+    native (+211 ms): dialog 0x3B10C00 gone; app windows: 0x63D0978 HwndWrapper[ImageProcTest;;741ed224-908c-4352-9695-74a5cb27d2b6, 0x7CA0CF8 HwndWrapper[ImageProcTest;;7cedb9f0-eff2-49ba-a931-0b3a11219b4b (hidden), 0x8650CC8 HwndWrapper[ImageProcTest;;50e54a70-6f16-405c-b174-2a172126e704 (hidden), 0xACD0AC2 HwndWrapper[ImageProcTest;;b60216bf-a46d-4287-a993-cf004af3cc30 (hidden), 0x9E10B00 HwndWrapper[ImageProcTest;;47fcbe02-46a1-477b-b979-354a50da2106 (hidden), 0x2A80234 CiceroUIWndFrame (hidden), 0x1F206EE MSCTFIME UI (hidden), 0x132C0D14 IME (hidden), 0x33C0C16 CiceroUIWndFrame (hidden)
+    status bar: Load failed: Raw file is too small. Expected at least 33554432 bytes, got 18874368. The size is set in the settings as rawWidth/rawHeight (4096x4096 now), or with --automation-width/--automation-height; the file is not opened until its length is exactly width x height x 2.
+    error: ERROR: Raw file is too small. Expected at least 33554432 bytes, got 18874368. The size is set in the settings as rawWidth/rawHeight (4096x4096 now), or with --automation-width/--automation-height; the file is not opened until its length is exactly width x height x 2.
+
+
+
+Test Run Successful.
+Total tests: 1
+     Passed: 1
+ Total time: 25.8123 Seconds
+Results File: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-259\e2e-w5-results\gui-c-259-w5.trx
+
+Workload updates are available. Run `dotnet workload list` for more information.

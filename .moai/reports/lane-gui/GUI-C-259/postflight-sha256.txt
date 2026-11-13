@@ -1,0 +1,10 @@
+ImageProcTest count=0
+testhost count=0
+gui/ImageProcTest/help/quick-start.html SHA256=535A3DAA532D16F69D410768FA3F1F2ED1F21C8927A890AFE48ADF732111167A
+gui/ImageProcTest/help/quick-start.ko.html SHA256=CCD946A40AEE4E9CB8F2C233B9E17CBCADDC243103CC01334FC32130A68FD985
+clients/ImageProcTest.IntegrationTests/Diagnostics/QuickStartCitationTests.cs SHA256=EAF17BFEE8E56C03B5199C2014C17B9BCCF53B0AC80659E011EB61126FCFF612
+clients/ImageProcTest.E2ETests/Scenarios/Operator/QuickStartWalkthroughScenarios.cs SHA256=EBB102BAF557D2D5BD605EB96214BF7DD4675C41548E33BF67B621097C96963D
+clients/ImageProcTest.E2ETests/Scenarios/Workflows/MenuBehaviorScenarios.cs SHA256=514E2C42E6F05A0D16E1B8D8EC68C475FF331F86B315F68415A5820717D5AC65
+owned data root D:/workspace-github/xpe-gui/clients/ImageProcTest.E2ETests/bin/Debug/net8.0-windows/gui-c-259-check exists=True
+owned data root D:/workspace-github/xpe-gui/clients/ImageProcTest.E2ETests/bin/Debug/net8.0-windows/gui-c-259-w5-recheck exists=False
+capture bytes=77386 SHA256=382BAAC123D3B4E5FBC0D74484F040CD47A9DC71E084D895A76B71EE8D708EDD
