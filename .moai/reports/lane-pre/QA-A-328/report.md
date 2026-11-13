@@ -185,3 +185,52 @@ ACK 착수 2026-11-13 12:50 KST
 - 주의: `xpe_bpm_eval.exe`(13:02:58)와 `xpe_preprocess_tests.exe`(10-29 18:19)는 수정 시각이 되돌린 시각보다 앞이다. 두 실행 파일은 `xpe_preprocess.dll` 을 동적으로 불러오고 `xpe_bpm_v2.cpp` 를 자기 안에 컴파일해 넣지 않아서(미확인: 링크 방식은 ninja "no work to do" 와 DLL 시각으로 추정), 다시 링크되지 않았고 `--target xpe_bpm_eval xpe_preprocess_tests` 도 "no work to do" 였다(`evidence/82_rebuild_targets.txt`). 곧 실행 파일 시각이 옛것인 것은 정상이고, 바뀐 코드는 DLL 시각(13:40:27)으로 확인한다. `xpe_bpm_eval.exe` 의 13:02 시각은 후보 적용(13:13 이후) 전이라 후보 코드는 DLL 에만 있었고 그 DLL 은 이제 되돌린 소스로 새로 만들어졌다.
 - BpmV2Test 두 시험만 재실행(`evidence/81_two_tests_head.txt`): #1255 `TheNoiseCostIgnoresTheExposureVariationBetweenTheFramesOfADoseGroup` Passed 0.61 s, #1289 `TheNoiseCostOfAnEfficiencyLossRowIsFoundAndAGainLossRowOfTheSameResponseIsNot` Passed 0.33 s, "100% tests passed, 0 tests failed out of 2".
 - 미확인: 전체 시험을 되돌린 소스로 다시 돌리지는 않았다(요청 범위 밖).
+
+## 15. 실행 파일이 후보 코드를 정적으로 품고 있는지 (리더 요청 1, 2026-11-13 13:42 KST)
+
+- `dumpbin /dependents` (VS 환경, `build/ci-preprocess/bin`): `xpe_bpm_eval.exe` 의 가져오는 DLL 목록에 `xpe_preprocess.dll` 이 있고, `xpe_preprocess_tests.exe` 도 `xpe_preprocess.dll` 을 가져온다. 두 실행 파일 모두 `xpe_common.dll` 도 가져온다.
+- `dumpbin /symbols xpe_bpm_eval.exe` 에서 `bpm_v2`·`BpmV2` 와 맞는 기호 줄이 없었다(출력 0줄).
+- CMake: `xpe_bpm_v2.cpp` 는 `modules/preprocess/CMakeLists.txt:35`(DLL 소스 목록)에만 있다. `xpe_bpm_eval` 의 소스는 `tools/xpe_bpm_eval.cpp` 와 `src/xpe_sha256_backend.cpp` 뿐이고(`:176-179`), 링크는 `xpe_preprocess xpe_common`(`:187`)이다. `xpe_preprocess_tests` 소스 목록(`:578` 부터)에도 `xpe_bpm_v2.cpp` 가 없다. 저장소 `tools/` 폴더 안 검색에서 `xpe_bpm_v2.cpp` 는 `xpe_bpm_eval.cpp:97` 주석 한 줄에만 나온다.
+- 결론: 두 실행 파일은 후보 코드를 안에 품지 않는다. 후보 코드는 DLL 안에만 있었고 그 DLL 은 13:40:27 에 되돌린 소스로 다시 만들어졌다. 따라서 §14.1 의 "동적으로 불러서(추정)"는 추정이 아니라 위 세 가지로 확인됐다. 두 실행 파일을 강제로 다시 링크할 필요는 없다.
+- 미확인: 실행 시점에 어느 폴더의 DLL 이 실제로 로드되는지(PATH 에 다른 `xpe_preprocess.dll` 이 있는지)는 확인하지 않았다.
+
+## 16. 남은 새 오경보 12개 중 "어두운 평균만" 11개 (읽기 전용, 리더 요청 2)
+
+후보 구현·측정은 하지 않았다. 아래는 남은 증거(`evidence/49_feat_at_43.tsv`, `46_pixel_flags.tsv`, `47_pixel_values.tsv`, `76_fa43_before_after.tsv`)와 소스 읽기만으로 적었다.
+
+### 16.1 판정식 (file:line)
+
+- 이 화소들은 특성 비트 `DARK_MEAN`(=1) 만 켜진 화소이고, 최종 맵 값은 2(어두운 쪽)다. 맵 값 조립은 `xpe_bpm_v2.cpp:1254-1258`(`darkBits = DARK_MEAN | DARK_NOISE` → 값 2).
+- 비트를 켜는 곳: `xpe_bpm_v2.cpp:1080-1082`(F1 어두운 평균: 특성 = 어두운 프레임 평균 `D`, 임계 `lambdaTwoSided = zThreshold(p)`, `p = falseAlarms / n` — `:1076-1077`) 가 `flagRobustZ` 를 부른다.
+- `flagRobustZ`(`:370-388`): `removeRowColumn` → `separableMedian`(창 17, `:51`) 으로 배경을 빼 잔차 `r` 를 만들고, 64×64 블록마다 `1.4826 × median(|r|)`(`blockScale`, `:305-320`)로 국소 척도 `s` 를 정해(`scaleAt` 쌍선형 보간, `:324`), 양쪽 검정(`upperOnly=false`) `|r| > lambda × s` 이면 비트를 켠다(`:379-381`).
+- 기본값: `falseAlarms = 1.0`(`:50`), 화소 수 `n = 3072² = 9,437,184` 이므로 `lambda = zThreshold(1/n) = 5.316`(같은 이분법을 읽기 전용으로 다시 계산한 값). 가우시안이면 이 판정은 영상당 약 1개만 오경보를 내도록 설계됐다.
+- 이 식은 밝은 잡음 후보(`:1037`)와 무관하다. 후보 적용 전·후 모두 11개가 그대로 맵 2 였다(`76_fa43_before_after.tsv`: before/after 맵 쌍이 2/2 인 행 11개; 1/0 이 31개, 1/1 이 1개).
+
+### 16.2 11개 화소 표 (모두 대조군 아님, 진실 번호 0)
+
+| x | y | 대조군 | 최종 맵 | 특성 비트 | 세트 맵 | 인접 진실 번호(5×5) | 어두운 프레임 값 | 거리 3 이웃 4개 평균 | 차이(proxy) |
+|---|---|---|---|---|---|---|---|---|---|
+| 1925 | 180 | 아니오 | 2 | 1 | 2 | 없음 | 11069 | 11083 | -14 |
+| 1475 | 440 | 아니오 | 2 | 1 | 2 | 없음 | 10957 | 10974 | -17 |
+| 199 | 796 | 아니오 | 2 | 1 | 2 | 115 | 10951 | 10972 | -21 |
+| 1246 | 1253 | 아니오 | 2 | 1 | 2 | 없음 | 11014 | 11018 | -4 |
+| 988 | 1440 | 아니오 | 2 | 1 | 2 | 없음 | 10957 | 10969 | -12 |
+| 1119 | 1588 | 아니오 | 2 | 1 | 2 | 없음 | 10991 | 11004 | -13 |
+| 2707 | 1590 | 아니오 | 2 | 1 | 2 | 없음 | 11013 | 11030 | -17 |
+| 196 | 1612 | 아니오 | 2 | 1 | 2 | 115 | 10957 | 10967 | -10 |
+| 2670 | 1896 | 아니오 | 2 | 1 | 2 | 123 | 11018 | 11031 | -13 |
+| 2118 | 2672 | 아니오 | 2 | 1 | 2 | 없음 | 11105 | 11118 | -13 |
+| 305 | 2871 | 아니오 | 2 | 1 | 2 | 없음 | 10990 | 11003 | -13 |
+
+관찰 (모두 위 표의 측정값):
+- 11개 모두 차이(proxy)가 음수이고 -4 ~ -21 범위다. 즉 이웃보다 어두운 쪽 하나뿐이다. 양쪽 검정인데 한쪽으로만 몰렸다.
+- 인접 진실 번호가 있는 것은 3개(115 ×2, 123 ×1)이고 8개는 5×5 안에 주입 결함이 없다.
+- 깨끗한 영상(`clean`) 맵에서는 이 11개 위치가 모두 0 이다(`46_pixel_flags.tsv` clean 열). 곧 주입한 영상 세트에서만 나온다.
+- 하위 단계(`haPix`·`hbPix`·`haLin`·`hbLin`)는 988,1440 의 `hbPix`·`hbMap` 만 2 이고 나머지 10개는 모두 0 이다. 곧 반쪽(절반 프레임) 확인으로는 대부분 재현되지 않는 값이다.
+
+### 16.3 미확인 (측정하지 않음)
+
+- 위 "차이(proxy)"는 검출기의 잔차 `r` 가 아니다(검출기는 행·열 제거와 17창 가변 중앙값 배경을 뺀 값이다). 각 화소의 실제 `|r|`, 실제 국소 척도 `s`, `|r|/s` 값은 이번 카드에서 계측 파일을 지운 뒤라 남아 있지 않고, 읽기 전용 범위에서는 얻지 못했다.
+- 이 11개가 가우시안 꼬리(설계 기대 영상당 약 1개)인지, 척도 `s` 가 작은 블록 때문인지, 어두운 프레임 수가 적어 평균의 분포가 가우시안이 아닌 탓인지는 확인하지 않았다. 그 어느 쪽도 이 절의 결론이 아니다.
+- 어두운 프레임 개수·`Dark_*.raw` 장수와 각 화소의 프레임별 분산은 읽지 않았다.
+- 위 사실에서 후보를 정하지 않았다. Reviewer 결과 후 리더가 정한다.
