@@ -3500,4 +3500,4 @@ The following tests FAILED:
 Errors while running CTest
 Output from these tests are in: D:/workspace-github/xpe-pre/build/ci-preprocess/Testing/Temporary/LastTest.log
 Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.
-CTEST_EXIT=8 
+CTEST_EXIT=8
