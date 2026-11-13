@@ -236,8 +236,17 @@ static XpeErrorCode apply_bilateral(XpeImageBuffer* img, float sigma_space, floa
         }
     }
 
-    float ss2_inv            = 1.0f / (sigma_space * sigma_space);
-    float minus_half_sr2_inv = -0.5f / (sigma_range * sigma_range);
+    // QA-B-226: reject unrepresentable coefficients before any pixel is written.
+    const double spatialSigma = static_cast<double>(sigma_space);
+    const double rangeSigma = static_cast<double>(sigma_range);
+    const double spatialInverse = 1.0 / (spatialSigma * spatialSigma);
+    const double rangeInverse = -0.5 / (rangeSigma * rangeSigma);
+    const double maxFloat = static_cast<double>((std::numeric_limits<float>::max)());
+    if (spatialInverse > maxFloat || rangeInverse < -maxFloat) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    const float ss2_inv = static_cast<float>(spatialInverse);
+    const float minus_half_sr2_inv = static_cast<float>(rangeInverse);
 
     // Spatial weight LUT: exp(-0.5 * d^2 / sigma_space^2) for d = 0..ksize-1
     std::vector<float> sp_w(static_cast<size_t>(ksize));

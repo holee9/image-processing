@@ -1,0 +1,32 @@
+COMPILE [
+  '/nologo',
+  '/EHsc',
+  '/std:c++17',
+  '/utf-8',
+  '/O2',
+  '/MD',
+  'qa-b-226-probe.cpp',
+  '/ID:/workspace-github/xpe-post/modules/common/include',
+  '/ID:/workspace-github/xpe-post/modules/enhance_basic/include',
+  '/Fe:qa-b-226-probe.exe'
+] EXIT 0 qa-b-226-probe.cpp
+
+COMMAND qa-b-226-probe.exe [
+  'D:/workspace-github/xpe-post/build/cov-local/bin/xpe_enhance_basic.dll',
+  'underflow'
+] TIMEOUT_MS 10000 EXIT 0 ERROR undefined
+ range=3.4028234663852886e+38 double_inverse=-4.3180847923030273e-78 float_inverse=-0x0.0000000000000p+0 finite=1 zero=1
+scene=0 spatial=2 range=3.4028234663852886e+38 rc=0 unchanged=0 finite=1
+scene=1 spatial=3 range=3.4028234663852886e+38 rc=0 unchanged=0 finite=1
+scene=2 spatial=5 range=3.4028234663852886e+38 rc=0 unchanged=0 finite=1
+
+COMMAND qa-b-226-probe.exe [
+  'D:/workspace-github/xpe-post/build/ci-post/bin/xpe_enhance_basic.dll',
+  'underflow'
+] TIMEOUT_MS 10000 EXIT 0 ERROR undefined
+ range=3.4028234663852886e+38 double_inverse=-4.3180847923030273e-78 float_inverse=-0x0.0000000000000p+0 finite=1 zero=1
+scene=0 spatial=2 range=3.4028234663852886e+38 rc=0 unchanged=0 finite=1
+scene=1 spatial=3 range=3.4028234663852886e+38 rc=0 unchanged=0 finite=1
+scene=2 spatial=5 range=3.4028234663852886e+38 rc=0 unchanged=0 finite=1
+
+

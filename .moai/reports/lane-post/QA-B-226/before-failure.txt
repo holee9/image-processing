@@ -1,0 +1,26 @@
+COMMAND D:/workspace-github/xpe-post/build/cov-local/bin/xpe_enhance_basic_tests.exe [
+  '--gtest_filter=NonFinitePixels.NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndParameters'
+] TIMEOUT_MS 10000 EXIT 1 ERROR undefined
+Running main() from D:\workspace-github\xpe-post\build\ci-post\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = NonFinitePixels.NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndParameters
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from NonFinitePixels
+[ RUN      ] NonFinitePixels.NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndParameters
+D:\workspace-github\xpe-post\modules\enhance_basic\tests\test_nonfinite_pixels.cpp(222): error: Value of: std::isfinite(v)
+  Actual: false
+Expected: true
+bilateral sigma_range = 9.9999996826552254e-21
+
+[  FAILED  ] NonFinitePixels.NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndParameters (47 ms)
+[----------] 1 test from NonFinitePixels (47 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (47 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] NonFinitePixels.NoiseReduceNeverMakesANonFinitePixelFromFiniteInputAndParameters
+
+ 1 FAILED TEST
+
+

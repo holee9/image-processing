@@ -171,6 +171,7 @@ XPE_API XpeErrorCode xpe_log_inverse(XpeImageBuffer* img, float normFactor);
  *         infinite -- QA-B-181d; sigma_space above 7.5 -- QA-B-210: 7.5 is the
  *         largest value whose 2-sigma extent fits the kernel radius cap of 15;
  *         a larger one would be cut off before 2 sigma, so it is refused;
+ *         bilateral: |1/sigma_space^2| or |0.5/sigma_range^2| > FLT_MAX (small sigma) returns XPE_ERR_INVALID_INPUT; build minima: sigma_range 3.8332338e-20, sigma_space 5.4210115e-20; subnormal/-0 range coefficients are not rejected;
  *         NLM: search_window/patch_size not odd-positive, h_param <= 0);
  *         XPE_ERR_UNSUPPORTED_FORMAT if img is not FLOAT32. (REQ-ENH-010)
  */

@@ -1,0 +1,32 @@
+COMPILE [
+  '/nologo',
+  '/EHsc',
+  '/std:c++17',
+  '/O2',
+  '/MD',
+  'qa-b-226-probe.cpp',
+  '/ID:/workspace-github/xpe-post/modules/common/include',
+  '/ID:/workspace-github/xpe-post/modules/enhance_basic/include',
+  '/Fe:qa-b-226-probe.exe'
+] EXIT 0 qa-b-226-probe.cpp
+D:/workspace-github/xpe-post/modules/enhance_basic/include\xpe/enhance_basic/enhance_basic_api.h(1): warning C4819: ���� �ڵ� ������(949)���� ǥ���� �� ���� ���ڰ� ���Ͽ� ��� �ֽ��ϴ�. �����Ͱ� �սǵ��� �ʰ� �Ϸ��� �ش� ������ �����ڵ� �������� �����Ͻʽÿ�.
+D:/workspace-github/xpe-post/modules/common/include\xpe/common/xpe_types.h(1): warning C4819: ���� �ڵ� ������(949)���� ǥ���� �� ���� ���ڰ� ���Ͽ� ��� �ֽ��ϴ�. �����Ͱ� �սǵ��� �ʰ� �Ϸ��� �ش� ������ �����ڵ� �������� �����Ͻʽÿ�.
+D:/workspace-github/xpe-post/modules/common/include\xpe/common/xpe_error.h(1): warning C4819: ���� �ڵ� ������(949)���� ǥ���� �� ���� ���ڰ� ���Ͽ� ��� �ֽ��ϴ�. �����Ͱ� �սǵ��� �ʰ� �Ϸ��� �ش� ������ �����ڵ� �������� �����Ͻʽÿ�.
+
+BUILD cov-local TIMEOUT_MS 10000 EXIT 0 BYTES 49152
+scene=0 spatial=2 range=10 rc=0 unchanged=0
+scene=1 spatial=3 range=50 rc=0 unchanged=0
+scene=2 spatial=5 range=100 rc=0 unchanged=0
+
+OUTPUT cov-local case=0 sha256=736276763cb0fd6f201d1f3f929f1b026939743930b1f84fc8f4a31edf39592a
+OUTPUT cov-local case=1 sha256=3068369e4255a7ec3fd0b36ca7de668feffbc4098bad29bad2c6eaaa1c642b66
+OUTPUT cov-local case=2 sha256=0b442f0f007edb61b419f245faa0294cd9e43e82e4b369b5928c9a63369c37c0
+BUILD ci-post TIMEOUT_MS 10000 EXIT 0 BYTES 49152
+scene=0 spatial=2 range=10 rc=0 unchanged=0
+scene=1 spatial=3 range=50 rc=0 unchanged=0
+scene=2 spatial=5 range=100 rc=0 unchanged=0
+
+OUTPUT ci-post case=0 sha256=7335bf6a27b7e323424df49f810fed7d4b51cbb31955044c0f85917bcda1246e
+OUTPUT ci-post case=1 sha256=aa98c72e45c75edf8799aec1456a206b4a4917341bc17b1d58b578aacc3819a9
+OUTPUT ci-post case=2 sha256=15678121d09e61ca6cad2a92515128d32e525f9657523853c4a40c4ff603c880
+
