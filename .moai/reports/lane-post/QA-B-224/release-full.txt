@@ -987,7 +987,7 @@ VGMC165 cap iterations kvp= 80.0 iters=100 air=   50000 negPrimary=     0 capped
 VGMC165 cap kvp       kvp= 60.0 iters=  5 air=   50000 negPrimary=     0 capped=0.0000 median=1.0259
 VGMC165 cap kvp       kvp= 70.0 iters=  5 air=   50000 negPrimary=     0 capped=0.0000 median=1.0091
 VGMC165 cap kvp       kvp=100.0 iters=  5 air=   50000 negPrimary=     0 capped=0.0000 median=0.9735
-VGMC165 cap kvp       kvp=120.0 iters=  5 air=   50000 
+VGMC165 cap kvp       kvp=120.0 iters=  5 air=   50000
 
 negPrimary=     0 capped=0.0000 median=0.9609
 VGMC165 cap airSignal kvp= 80.0 iters=  5 air=   25000 negPrimary=     0 capped=0.0000 median=1.1264

@@ -344,7 +344,7 @@ GRIDSUP sweep sigma=3.0 log=1 axis=rows lpi=200 after/before=1.33e-07 after/base
 GRIDSUP sweep sigma=3.0 log=1 axis=cols lpi=60 after/before=8.38e-09 after/baseline=0.00042 mtf_worst=0.2720
 GRIDSUP sweep sigma=3.0 log=1 axis=cols lpi=103 after/before=7.67e-06 after/baseline=21.5 mtf_worst=0.2288
 GRIDSUP sweep sigma=3.0 log=1 axis=cols lpi=200 after/before=3.76e-07 after/baseline=0.29 mtf_worst=0.0000
-GRIDSUP sweep sigma=6.0 
+GRIDSUP sweep sigma=6.0
 
 log=0 axis=rows lpi=60 after/before=5.92e-08 after/baseline=0.495 mtf_worst=0.0000
 GRIDSUP sweep sigma=6.0 log=0 axis=rows lpi=103 after/before=6.24e-08 after/baseline=1.08 mtf_worst=0.0000

@@ -25,5 +25,5 @@ GRIDSUP invariant seed=180 noise=300 prom rows=8.62 cols=9.17 detected=0/0
 [----------] Global test environment tear-down
 [==========] 1 test from 1 test suite ran. (1833 ms total)
 [  PASSED  ] 1 test.
- 
+
 
