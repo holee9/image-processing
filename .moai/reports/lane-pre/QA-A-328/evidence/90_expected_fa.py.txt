@@ -1,0 +1,19 @@
+import math
+n = 3072 * 3072          # every pixel is tested (flagRobustZ loops 0..wk.n, no mask)
+p = 1.0 / n              # design: falseAlarms=1.0 -> two-sided p = 1/n (xpe_bpm_v2.cpp:1076)
+lo, hi = 0.0, 40.0
+for _ in range(200):
+    m = (lo + hi) / 2
+    if math.erfc(m / math.sqrt(2)) > p: lo = m
+    else: hi = m
+lam = (lo + hi) / 2
+two = math.erfc(lam / math.sqrt(2))   # P(|z|>lam)
+one = two / 2                         # P(z<-lam)
+def pois_ge(k, mu): return 1 - sum(math.exp(-mu) * mu**i / math.factorial(i) for i in range(k))
+print("n", n, "lambda", lam)
+print("two-sided p", two, "expected", two * n)
+print("one-sided p", one, "expected", one * n)
+print("P(X>=11 | mu=1.0)", pois_ge(11, two * n))
+print("P(X>=11 | mu=0.5)", pois_ge(11, one * n))
+print("P(11 of 11 negative | fair coin)", 0.5 ** 11)
+print("P(X=0 | mu=1.0)", math.exp(-two * n), "P(X=0 | mu=0.5)", math.exp(-one * n))
