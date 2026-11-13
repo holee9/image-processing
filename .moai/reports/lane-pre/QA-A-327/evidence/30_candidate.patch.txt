@@ -1,0 +1,33 @@
+diff --git a/modules/preprocess/src/defect_correct.cpp b/modules/preprocess/src/defect_correct.cpp
+index 23c0bbb1..315d5160 100644
+--- a/modules/preprocess/src/defect_correct.cpp
++++ b/modules/preprocess/src/defect_correct.cpp
+@@ -605,6 +605,28 @@ void correctLines(LayerPass& c)
+                     ++c.rep->line_pixels;
+                     any = true;
+                 }
++                // QA-A-327 candidate: the pixels of this line beyond the stored segment (its ends, usually outside the imaging area) are masked
++                // too but the loop above never visits them. Give each the value written at the nearest segment end pixel.
++                const uint32_t lineLen = rowLine ? c.grid.width : c.grid.height;
++                const uint32_t fixed = sg.line;
++                if (sg.end > sg.start && sg.start < lineLen && sg.end <= lineLen && fixed < (rowLine ? c.grid.height : c.grid.width)) {
++                    auto at = [&](uint32_t p) { return rowLine ? static_cast<size_t>(fixed) * W + p : static_cast<size_t>(p) * W + fixed; };
++                    const size_t lo = at(sg.start), hi = at(sg.end - 1);
++                    if ((*c.visited)[c.ms->slot(lo)])
++                        for (uint32_t p = 0; p < sg.start; ++p) {
++                            const size_t j = at(p);
++                            if (!c.ms->test(j) || (*c.visited)[c.ms->slot(j)]) continue;
++                            c.dst[j] = c.dst[lo];
++                            (*c.visited)[c.ms->slot(j)] = true;
++                        }
++                    if ((*c.visited)[c.ms->slot(hi)])
++                        for (uint32_t p = sg.end; p < lineLen; ++p) {
++                            const size_t j = at(p);
++                            if (!c.ms->test(j) || (*c.visited)[c.ms->slot(j)]) continue;
++                            c.dst[j] = c.dst[hi];
++                            (*c.visited)[c.ms->slot(j)] = true;
++                        }
++                }
+             }
+             if (any) ++c.rep->line_groups;
+         }

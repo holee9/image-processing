@@ -1,0 +1,7 @@
+diff --git a/modules/preprocess/src/xpe_bpm_v2.cpp b/modules/preprocess/src/xpe_bpm_v2.cpp
+index 5d942383..d3373bb9 100644
+--- a/modules/preprocess/src/xpe_bpm_v2.cpp
++++ b/modules/preprocess/src/xpe_bpm_v2.cpp
+@@ -1037 +1037 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
+-                    const double ratioG = static_cast<double>(vg[i]) * static_cast<double>(corrGain[i]) / ref;   // gain-corrected variance against its local expectation (P2)
++                    const double ratioG = static_cast<double>(vg[i]) * std::sqrt(static_cast<double>(corrGain[i])) / ref;   // gain-corrected variance against its local expectation (P2); photon-noise variance scales with the response, so the correction is 1/rc, not 1/rc^2

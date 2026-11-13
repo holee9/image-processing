@@ -1,0 +1,4 @@
+a7e64dd79dc79f818a2dba0b2e7f6ae5fac40a730fa237ad5c733569de9e7764 *D:/workspace-github/xpe-data/qa-327-tmp/dump_before/Bright_29.raw.corrected.f32
+af31a0e7d19e3e576d904b3ee50ec12e1ab8c674cb3c265d45c9b563aa5a2576 *D:/workspace-github/xpe-data/qa-327-tmp/dump_before/Bright_30.raw.corrected.f32
+ef7dbcaea781501dcc513b62e31fcdaa671bd38a3f7cfb7247179038e404d20f *D:/workspace-github/xpe-data/qa-327-tmp/dump_after/Bright_29.raw.corrected.f32
+3a5f768ef161485381047dcdcdca3f082bb02fb9c286ea5d698e7fb842c5fa84 *D:/workspace-github/xpe-data/qa-327-tmp/dump_after/Bright_30.raw.corrected.f32

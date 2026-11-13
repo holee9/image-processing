@@ -1,0 +1,77 @@
+ D 드라이브의 볼륨: work
+ 볼륨 일련 번호: E216-1745
+
+ D:\workspace-github\wt-g3b\build\cov-g1\CMakeFiles 디렉터리
+
+2026-11-13  오후 10:55            28,220 rules.ninja
+               1개 파일              28,220 바이트
+               0개 디렉터리  3,046,211,526,656 바이트 남음
+[1/69] Building RC object _deps\spdlog-build\CMakeFiles\spdlog.dir\version.rc.res
+[2/69] Building CXX object modules\common\CMakeFiles\xpe_common_oom_tests.dir\src\xpe_memory.cpp.obj
+[3/69] Building CXX object modules\common\CMakeFiles\xpe_common.dir\src\xpe_memory.cpp.obj
+[4/69] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\file_sinks.cpp.obj
+[5/69] Building CXX object _deps\fmt-build\CMakeFiles\fmt.dir\src\os.cc.obj
+[6/69] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\cfg.cpp.obj
+[7/69] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\async.cpp.obj
+[8/69] Building CXX object modules\common\CMakeFiles\xpe_common.dir\src\xpe_logging.cpp.obj
+[9/69] Building CXX object _deps\fmt-build\CMakeFiles\fmt.dir\src\format.cc.obj
+[10/69] Building CXX object _deps\googletest-build\googletest\CMakeFiles\gtest_main.dir\src\gtest_main.cc.obj
+[11/69] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\bundled_fmtlib_format.cpp.obj
+[12/69] Building CXX object modules\common\CMakeFiles\xpe_common_oom_tests.dir\src\xpe_logging.cpp.obj
+[13/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\offset_correct.cpp.obj
+[14/69] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\color_sinks.cpp.obj
+[15/69] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\stdout_sinks.cpp.obj
+[16/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\readout_validate.cpp.obj
+[17/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\nonlinearity_correct.cpp.obj
+[18/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_ghost_mix_compare.cpp.obj
+[19/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\temp_compensate.cpp.obj
+[20/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\gain_correct.cpp.obj
+[21/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\binning_correct.cpp.obj
+[22/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calibration_manager.cpp.obj
+[23/69] Building CXX object modules\common\CMakeFiles\xpe_common_oom_tests.dir\src\xpe_common.cpp.obj
+[24/69] Building CXX object modules\common\CMakeFiles\xpe_common.dir\src\xpe_common.cpp.obj
+[25/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\rle_codec.cpp.obj
+[26/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\ghost_correct.cpp.obj
+[27/69] Building CXX object _deps\spdlog-build\CMakeFiles\spdlog.dir\src\spdlog.cpp.obj
+[28/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_output_unchanged_237b.cpp.obj
+[29/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_zz_a237b_mem.cpp.obj
+[30/69] Building CXX object modules\common\CMakeFiles\xpe_common_oom_tests.dir\tests\test_common_oom_injection.cpp.obj
+[31/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\runtime_detection.cpp.obj
+[32/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_defect_gen.cpp.obj
+[33/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_check_expiry.cpp.obj
+[34/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\preprocess.cpp.obj
+[35/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calib_expiry_check.cpp.obj
+[36/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\defect_correct.cpp.obj
+[37/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_gain.cpp.obj
+[38/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_offset.cpp.obj
+[39/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_defect_map.cpp.obj
+[40/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calibration.cpp.obj
+[41/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_mode.cpp.obj
+[42/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\calibration_cache.cpp.obj
+[43/69] Building CXX object _deps\googletest-build\googletest\CMakeFiles\gtest.dir\src\gtest-all.cc.obj
+[44/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\pipeline.cpp.obj
+[45/69] Linking CXX shared library bin\fmtd.dll
+[46/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_save.cpp.obj
+[47/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_bpm_v2.cpp.obj
+[48/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_offset.cpp.obj
+[49/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_offset_methods.cpp.obj
+[50/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xcal_validator.cpp.obj
+[51/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_load_nonlin_lut.cpp.obj
+[52/69] Linking CXX shared library bin\spdlogd.dll
+[53/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\saturation.cpp.obj
+[54/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_nonlin_lut.cpp.obj
+[55/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_calib_generate_gain.cpp.obj
+[56/69] Linking CXX shared library bin\gtest.dll
+[57/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xcal_reader.cpp.obj
+[58/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\defect_ext.cpp.obj
+[59/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xcal_writer.cpp.obj
+[60/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_verify_metrics.cpp.obj
+[61/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\xpe_sha256_backend.cpp.obj
+[62/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_oom_injection.cpp.obj
+[63/69] Linking CXX shared library bin\xpe_common.dll
+[64/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\src\helpers.cpp.obj
+[65/69] Linking CXX shared library bin\gtest_main.dll
+[66/69] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_parallel_unwind_tests.dir\tests\test_parallel_unwind.cpp.obj
+[67/69] Linking CXX executable bin\xpe_common_oom_tests.exe
+[68/69] Linking CXX executable bin\xpe_preprocess_parallel_unwind_tests.exe
+[69/69] Linking CXX executable bin\xpe_preprocess_oom_tests.exe

@@ -37,6 +37,8 @@
 #include <string>
 #include <vector>
 
+#include "oom_proxy_filter.hpp"
+
 /* The accessor xpe_common.cpp compiles in under XPE_COMMON_TEST_HOOKS: the exact number of alerts the
  * queue has counted as lost (the loss alert's text is only a report of it). */
 uint64_t xpe_common_alerts_dropped_for_test();
@@ -54,19 +56,29 @@ std::atomic<long> g_count{0};
 std::atomic<bool> g_injected{false};
 
 void arm(long k) {
+    oomproxy::resetCounters();  // QA-A-329 G3: per-call raw/skipped accounting starts here
     g_count.store(0);
     g_injected.store(false);
     g_failAt.store(k);
 }
 bool disarm() {
     g_failAt.store(0);
+    oomproxy::auditAfterDisarm(g_count.load());  // QA-A-329 G3: atomics only, after injection is off
     return g_injected.load();
 }
 }  // namespace
 
+// QA-A-329 G3: calibrate + pre-check once per process before any test, then filter every armed sweep.
+namespace {
+::testing::Environment* const g_proxyEnv = ::testing::AddGlobalTestEnvironment(new oomproxy::SweepEnvironment(
+    "xpe_common_oom_tests", &arm, &disarm, [] { return g_count.load(); }));
+}  // namespace
+
 void* operator new(std::size_t n) {
+    oomproxy::calibrationHook();  // QA-A-329 G1: records the stack only while a G1 test calibrates
     const long limit = g_failAt.load(std::memory_order_relaxed);
-    if (limit > 0 && g_count.fetch_add(1) + 1 == limit) {
+    // QA-A-329 G1: excluded() is false unless a G1 test enabled the filter, so other tests count as before.
+    if (limit > 0 && !oomproxy::excluded() && g_count.fetch_add(1) + 1 == limit) {
         g_injected.store(true);
         throw std::bad_alloc();
     }
@@ -476,4 +488,62 @@ TEST_F(CommonOom, NamingTheSameLogFileAgainKeepsTheLinesAlreadyThere) {
               return {};
           });
     std::remove(kLogA);
+}
+
+/* =========================================================================
+ * QA-A-329 G1: Debug container-proxy filter, calibration and count-only controls
+ * (design v2 sections 2-1 and 4). Count-only: arm(kNoInject) cannot reach an injection. The filter is enabled only
+ * inside oomproxy::measure and disabled again before any assertion; no other test sees it.
+ * ========================================================================= */
+
+namespace {
+constexpr long kNoInject = 1000000000L;
+}  // namespace
+
+TEST(ProxyFilterG1, Calibration) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    oomproxy::printCalibration("xpe_common_oom_tests");
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "reason " << oomproxy::g_reason.load();
+    } else {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Unsupported));
+    }
+}
+
+TEST(ProxyFilterG1, CountOnlyControls) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; controls not run";
+    }
+    int n = 0;
+    const oomproxy::Expect* k = oomproxy::controls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::Sample s = oomproxy::measure([] { arm(kNoInject); }, [] { (void)disarm(); },
+                                                     [] { return g_count.load(); }, k[i].body);
+        EXPECT_FALSE(g_injected.load()) << k[i].name << ": count-only control injected";
+        XPE_OOM_PROXY_G1_CHECK("xpe_common_oom_tests", s, k[i]);
+    }
+}
+
+/* QA-A-329 G2: injection controls under arm(1), after re-checking calibration and the P1 count-only control in this
+ * process (a proxy misclassified under arm(1) inside a noexcept constructor would terminate instead of failing). */
+TEST(ProxyFilterG2, InjectionControls) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; G2 not run";
+        int n = 0;
+        const oomproxy::Expect* k = oomproxy::controls(n);
+        const oomproxy::Sample pre = oomproxy::measure([] { arm(kNoInject); }, [] { (void)disarm(); },
+                                                       [] { return g_count.load(); }, k[0].body);
+        ASSERT_TRUE(pre.count == 0 && pre.skipped >= 1 && pre.raw == pre.count + pre.skipped)
+            << "P1 pre-check failed (count " << pre.count << ", skipped " << pre.skipped << "); G2 not run";
+    }
+    int n = 0;
+    const oomproxy::InjectExpect* k = oomproxy::injectControls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::InjectResult r = oomproxy::injectRun(
+            [] { arm(1); }, [] { return disarm(); }, [] { return g_count.load(); },
+            [] { return g_failAt.load() != 0; }, k[i].body);
+        XPE_OOM_PROXY_G2_CHECK("xpe_common_oom_tests", r, k[i]);
+    }
 }

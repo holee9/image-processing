@@ -1,0 +1,6 @@
+Change Dir: 'D:/workspace-github/xpe-pre/build/ci-preprocess'
+
+Run Build Command(s): C:/PROGRA~1/MICROS~1/2022/PROFES~1/Common7/IDE/COMMON~1/MICROS~1/CMake/Ninja/ninja.exe -v xpe_bpm_eval xpe_preprocess_tests
+ninja: no work to do.
+
+EXIT=0 

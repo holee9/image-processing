@@ -1,0 +1,21 @@
+-- MSVC Ninja include prefix bytes: c2fcb0ed3a20c6f7c7d420c6c4c0cf3a20
+-- Platform: x86-64, AVX2 enabled
+-- Build spdlog: 1.14.1
+-- Build type: Debug
+-- Using the multi-header code from D:/workspace-github/xpe-pre/build/coverage/_deps/nlohmann_json-src/include/
+-- {fmt} version: 11.0.2
+-- Build type: Debug
+-- Could NOT find GTest (missing: GTest_DIR)
+-- Orphan-source check: 0 unlisted sources under modules/*/src/
+-- Coverage: OpenCppCoverage found at C:/Program Files (x86)/OpenCppCoverage/OpenCppCoverage.exe
+CMake Warning at cmake/XpeCoverage.cmake:44 (message):
+  Coverage: C:/Program Files (x86)/OpenCppCoverage/OpenCppCoverage.exe looks
+  like the x86 build; it cannot cover this x64 configuration.  Install the
+  x64 build (choco install opencppcoverage) into Program Files.
+Call Stack (most recent call first):
+  CMakeLists.txt:240 (include)
+
+
+-- Configuring done (3.7s)
+-- Generating done (0.2s)
+-- Build files have been written to: D:/workspace-github/xpe-pre/build/coverage

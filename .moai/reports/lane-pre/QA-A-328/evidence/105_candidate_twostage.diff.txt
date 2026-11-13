@@ -1,0 +1,88 @@
+diff --git a/modules/preprocess/src/xpe_bpm_v2.cpp b/modules/preprocess/src/xpe_bpm_v2.cpp
+index 5d942383..1a4c3358 100644
+--- a/modules/preprocess/src/xpe_bpm_v2.cpp
++++ b/modules/preprocess/src/xpe_bpm_v2.cpp
+@@ -38,6 +38,7 @@ constexpr double kWeakResponseHigh = 0.7;   // 45 % up to 70 %: weak, counted on
+ constexpr double kNoiseCostLimit = 2.0;     // SRS FUNC-022 (leader decision, synthesis P2): a gain-corrected variance of twice the local expectation (3.01 dB) is a defect
+ constexpr double kRatioSlack = 1e-6;        // the ratio is a quotient of floats (about 6e-8 resolution): a response of exactly 0.45 or 1.5 is normal, whatever the rounding
+ constexpr double kScaleFloor = 1e-6;
++constexpr double kTwoStageExclude = 4.0;   // QA-A-328: first-pass |r| > 4.0 * s pixels are left out of the second background / scale estimate (fixed before measuring)
+ constexpr double kReferenceFloor = 1e-9;
+ 
+ struct Settings {
+@@ -302,7 +303,7 @@ void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplic
+ }
+ 
+ /** Local scale: 1.4826 * median(|r|) per block, one value per block; returns the median over the blocks as a summary. */
+-float blockScale(const float* r, int w, int h, int block, std::vector<float>* sig, int* nbx, int* nby) {
++float blockScale(const float* r, int w, int h, int block, std::vector<float>* sig, int* nbx, int* nby, const uint8_t* excl = nullptr) {
+     *nbx = (w + block - 1) / block;
+     *nby = (h + block - 1) / block;
+     sig->assign(static_cast<size_t>(*nbx) * static_cast<size_t>(*nby), 0.0f);
+@@ -312,7 +313,11 @@ float blockScale(const float* r, int w, int h, int block, std::vector<float>* si
+         for (int bx = 0; bx < *nbx; ++bx) {
+             vals.clear();
+             for (int y = by * block; y < std::min(h, (by + 1) * block); ++y)
+-                for (int x = bx * block; x < std::min(w, (bx + 1) * block); ++x) vals.push_back(std::fabs(r[static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x)]));
++                for (int x = bx * block; x < std::min(w, (bx + 1) * block); ++x) {
++                    const size_t i = static_cast<size_t>(y) * static_cast<size_t>(w) + static_cast<size_t>(x);
++                    if (excl == nullptr || !excl[i]) vals.push_back(std::fabs(r[i]));
++                }
++            if (vals.empty()) vals.push_back(0.0f);   // a block with every pixel left out: scale 0, the floor applies
+             (*sig)[static_cast<size_t>(by) * static_cast<size_t>(*nbx) + static_cast<size_t>(bx)] = static_cast<float>(kMadToSigma * medianOf(vals.data(), vals.size()));
+         }
+     std::vector<float> copy(*sig);
+@@ -367,12 +372,42 @@ float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, doub
+ }
+ 
+ /** Robust z feature: subtracts rows and columns, estimates background and scale, flags |z| > lambda (z > lambda when @p upperOnly). Returns the median local scale. */
+-float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
++// NOLINTBEGIN(bugprone-easily-swappable-parameters): twoStage is the QA-A-328 switch, appended after the existing arguments; the one call that sets it passes true
++float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count, bool twoStage = false) {
++// NOLINTEND(bugprone-easily-swappable-parameters)
+     removeRowColumn(wk.feat.data(), wk.tmp.data(), wk.w, wk.h, static_cast<int>(st.window), multiplicative);
+     separableMedian(wk.feat.data(), wk.tmp.data(), wk.bg.data(), wk.w, wk.h, static_cast<int>(st.window));
+-    for (size_t i = 0; i < wk.n; ++i) wk.feat[i] -= wk.bg[i];   // residual
+     std::vector<float> sig;
+     int nbx = 0, nby = 0;
++    if (twoStage) {
++        // QA-A-328: first pass as usual, then the pixels with |r| > kTwoStageExclude * s are left out of the background median and of the block scale, and both are estimated again
++        std::vector<float> r1(wk.n);
++        for (size_t i = 0; i < wk.n; ++i) r1[i] = wk.feat[i] - wk.bg[i];
++        blockScale(r1.data(), wk.w, wk.h, static_cast<int>(st.block), &sig, &nbx, &nby);
++        std::vector<uint8_t> excl(wk.n, 0);
++        for (int y = 0; y < wk.h; ++y)
++            for (int x = 0; x < wk.w; ++x) {
++                const size_t i = static_cast<size_t>(y) * static_cast<size_t>(wk.w) + static_cast<size_t>(x);
++                const double s1 = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), x, y)), kScaleFloor);
++                if (std::fabs(static_cast<double>(r1[i])) > kTwoStageExclude * s1) excl[i] = 1;
++            }
++        std::vector<float> bg1(wk.bg);
++        separableMedianExcluding(wk.feat.data(), wk.tmp.data(), wk.bg.data(), bg1.data(), excl.data(), wk.w, wk.h, static_cast<int>(st.window));
++        for (size_t i = 0; i < wk.n; ++i) wk.feat[i] -= wk.bg[i];   // residual
++        const float med2 = blockScale(wk.feat.data(), wk.w, wk.h, static_cast<int>(st.block), &sig, &nbx, &nby, excl.data());
++        for (int y = 0; y < wk.h; ++y)
++            for (int x = 0; x < wk.w; ++x) {
++                const size_t i = static_cast<size_t>(y) * static_cast<size_t>(wk.w) + static_cast<size_t>(x);
++                const double s = std::max(static_cast<double>(scaleAt(sig, nbx, nby, static_cast<int>(st.block), x, y)), kScaleFloor);
++                const double r = static_cast<double>(wk.feat[i]);
++                if ((upperOnly ? r : std::fabs(r)) > lambda * s) {
++                    (*flags)[i] = static_cast<uint8_t>((*flags)[i] | bit);
++                    ++*count;
++                }
++            }
++        return med2;
++    }
++    for (size_t i = 0; i < wk.n; ++i) wk.feat[i] -= wk.bg[i];   // residual
+     const float med = blockScale(wk.feat.data(), wk.w, wk.h, static_cast<int>(st.block), &sig, &nbx, &nby);
+     for (int y = 0; y < wk.h; ++y)
+         for (int x = 0; x < wk.w; ++x) {
+@@ -1079,7 +1114,7 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
+     // F1 dark mean
+     std::copy(D.begin(), D.end(), wk.feat.begin());
+     threshold[0] = lambdaTwoSided;
+-    if (!(job && job->linesOnly)) scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);
++    if (!(job && job->linesOnly)) scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0], true);
+ 
+     // F2 dark temporal noise
+     nu[1] = nd - 1;

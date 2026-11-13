@@ -1,0 +1,2 @@
+04b1d3d54efa0d13dffd343c3004190786371c37ea9f5261ed36046146a9b8ac *D:/workspace-github/xpe-data/qa-327-tmp/out/inj_set_v2/defect.xcal
+5c4cc2330d671fcd1f6b6d5c1876041b09f431a6ddbe005e6b733de8de227fe9 *D:/workspace-github/xpe-data/qa-327-tmp/out/inj_v2_setmap.u8

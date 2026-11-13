@@ -60,6 +60,8 @@
 #include <string>
 #include <vector>
 
+#include "../../common/tests/oom_proxy_filter.hpp"  // QA-A-329 G1
+
 /* =========================================================================
  * The injecting allocator
  * ========================================================================= */
@@ -171,6 +173,7 @@ std::atomic<size_t> g_maxAlloc{0};  // largest single request made while armed (
 std::atomic<long> g_live{0};        // operator-new blocks currently alive (leak accounting, QA-A-203)
 
 void arm(long k) {
+    oomproxy::resetCounters();  // QA-A-329 G3: per-call raw/skipped accounting starts here
     g_count.store(0);
     g_maxAlloc.store(0);
     g_injected.store(false);
@@ -179,17 +182,26 @@ void arm(long k) {
 /** Disarms and reports whether the K-th allocation was reached (and so failed). */
 bool disarm() {
     g_failAt.store(0);
+    oomproxy::auditAfterDisarm(g_count.load());  // QA-A-329 G3: atomics only, after injection is off
     return g_injected.load();
 }
 }  // namespace
 
+// QA-A-329 G3: calibrate + pre-check once per process before any test, then filter every armed sweep.
+namespace {
+::testing::Environment* const g_proxyEnv = ::testing::AddGlobalTestEnvironment(new oomproxy::SweepEnvironment(
+    "xpe_preprocess_oom_tests", &arm, &disarm, [] { return g_count.load(); }));
+}  // namespace
+
 void* operator new(std::size_t n) {
+    oomproxy::calibrationHook();  // QA-A-329 G1: records the stack only while a G1 test calibrates
     const long limit = g_failAt.load(std::memory_order_relaxed);
     if (limit > 0) {
         size_t cur = g_maxAlloc.load();
         while (n > cur && !g_maxAlloc.compare_exchange_weak(cur, n)) {}
     }
-    if (limit > 0 && g_count.fetch_add(1) + 1 == limit) {
+    // QA-A-329 G1: excluded() is false unless a G1 test enabled the filter, so other tests count as before.
+    if (limit > 0 && !oomproxy::excluded() && g_count.fetch_add(1) + 1 == limit) {
         g_injected.store(true);
         throw std::bad_alloc();
     }
@@ -371,7 +383,14 @@ void sweep(const char* label, const Setup& setup, const Call& call, bool unchang
         }
         const Snap after = snap();
         // An extra, call-specific check, made while the store still holds what the call left in it.
-        const std::string extraWhy = extra ? extra(rc) : std::string();
+        // The message is copied into a fixed buffer and the std::string is destroyed before the live
+        // block count is read: in a Debug standard library an empty std::string still owns a container
+        // proxy block, which would otherwise be counted as a block the product left behind.
+        char extraWhy[256] = {0};
+        {
+            const std::string why = extra ? extra(rc) : std::string();
+            std::snprintf(extraWhy, sizeof extraWhy, "%s", why.c_str());
+        }
         const bool cacheConsistent = xpe_calib_cache_is_consistent();
         resetStore(); xpe_calib_cache_clear(); xpe_clear_alerts();
         const long liveAfter = g_live.load();
@@ -379,7 +398,7 @@ void sweep(const char* label, const Setup& setup, const Call& call, bool unchang
         ASSERT_FALSE(escaped) << label << ": an exception left the C ABI function when allocation #" << k
                               << " failed" << (lockLeaked ? " (and the calibration store lock stayed held)" : "");
         ASSERT_FALSE(lockLeaked) << label << ": the calibration store lock stayed held after allocation #" << k << " failed";
-        ASSERT_TRUE(extraWhy.empty()) << label << ": allocation #" << k << " failed (rc " << rc << "): " << extraWhy;
+        ASSERT_EQ('\0', extraWhy[0]) << label << ": allocation #" << k << " failed (rc " << rc << "): " << extraWhy;
         ASSERT_TRUE(cacheConsistent) << label << ": allocation #" << k << " failed (rc " << rc
                                      << ") and the cache's list and index no longer agree";
         ASSERT_EQ(liveBase, liveAfter) << label << ": allocation #" << k << " failed (rc " << rc
@@ -2445,6 +2464,10 @@ XpeErrorCode runCounted(uint32_t w, uint32_t h, const char* satValue, long* allo
     try { rc = xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, cfg.c_str()); } catch (...) { rc = XPE_ERR_INTERNAL; }
     *allocations = g_count.load();
     disarm();
+    // QA-A-329 G3 (design v2 section 5): the raw/count/skipped split of this call, printed after disarming.
+    std::printf("[proxy-filter G3 satorder] sat=%s count=%ld raw=%ld skipped=%ld reentry=%ld\n", satValue, *allocations,
+                oomproxy::g_rawArmed.load(), oomproxy::g_skipped.load(), oomproxy::g_reentry.load());
+    std::fflush(stdout);
     return rc;
 }
 
@@ -3498,4 +3521,63 @@ TEST_F(OomInjection, APolynomialGainApplicationThatClassifiesPixelsAndFailsRepor
               if (rc == XPE_OK) return out[37] == 3000.0f ? std::string() : "the classified pixel did not carry gain 1.0";
               return rc == XPE_ERR_OUT_OF_MEMORY ? std::string() : "an allocation failure was reported as another error";
           });
+}
+
+/* =========================================================================
+ * QA-A-329 G1: Debug container-proxy filter, calibration and count-only controls
+ * (design v2 sections 2-1 and 4). Count-only: arm(kG1NoInject) cannot reach an injection. The filter is enabled
+ * only inside oomproxy::measure and disabled again before any assertion; no other test sees it. g_maxAlloc keeps
+ * its meaning (largest raw request while armed) and is not part of these controls.
+ * ========================================================================= */
+
+namespace {
+constexpr long kG1NoInject = 1000000000L;
+}  // namespace
+
+TEST(ProxyFilterG1, Calibration) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    oomproxy::printCalibration("xpe_preprocess_oom_tests");
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "reason " << oomproxy::g_reason.load();
+    } else {
+        EXPECT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Unsupported));
+    }
+}
+
+TEST(ProxyFilterG1, CountOnlyControls) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; controls not run";
+    }
+    int n = 0;
+    const oomproxy::Expect* k = oomproxy::controls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::Sample s = oomproxy::measure([] { arm(kG1NoInject); }, [] { (void)disarm(); },
+                                                     [] { return g_count.load(); }, k[i].body);
+        EXPECT_FALSE(g_injected.load()) << k[i].name << ": count-only control injected";
+        XPE_OOM_PROXY_G1_CHECK("xpe_preprocess_oom_tests", s, k[i]);
+    }
+}
+
+/* QA-A-329 G2: injection controls under arm(1), after re-checking calibration and the P1 count-only control in this
+ * process (a proxy misclassified under arm(1) inside a noexcept constructor would terminate instead of failing). */
+TEST(ProxyFilterG2, InjectionControls) {
+    const oomproxy::Calib c = oomproxy::calibrate();
+    if (XPE_OOM_PROXY_FILTER_SUPPORTED) {
+        ASSERT_EQ(static_cast<int>(c), static_cast<int>(oomproxy::Calib::Ok)) << "calibration failed; G2 not run";
+        int n = 0;
+        const oomproxy::Expect* k = oomproxy::controls(n);
+        const oomproxy::Sample pre = oomproxy::measure([] { arm(kG1NoInject); }, [] { (void)disarm(); },
+                                                       [] { return g_count.load(); }, k[0].body);
+        ASSERT_TRUE(pre.count == 0 && pre.skipped >= 1 && pre.raw == pre.count + pre.skipped)
+            << "P1 pre-check failed (count " << pre.count << ", skipped " << pre.skipped << "); G2 not run";
+    }
+    int n = 0;
+    const oomproxy::InjectExpect* k = oomproxy::injectControls(n);
+    for (int i = 0; i < n; ++i) {
+        const oomproxy::InjectResult r = oomproxy::injectRun(
+            [] { arm(1); }, [] { return disarm(); }, [] { return g_count.load(); },
+            [] { return g_failAt.load() != 0; }, k[i].body);
+        XPE_OOM_PROXY_G2_CHECK("xpe_preprocess_oom_tests", r, k[i]);
+    }
 }

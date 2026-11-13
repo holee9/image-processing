@@ -1,0 +1,14 @@
+ D 드라이브의 볼륨: work
+ 볼륨 일련 번호: E216-1745
+
+ D:\workspace-github\xpe-pre\build\ci-preprocess\CMakeFiles 디렉터리
+
+2026-10-29  오전 06:56            28,544 rules.ninja
+               1개 파일              28,544 바이트
+               0개 디렉터리  3,045,988,196,352 바이트 남음
+[1/6] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_parallel_unwind_tests.dir\tests\test_parallel_unwind.cpp.obj
+[2/6] Building CXX object modules\common\CMakeFiles\xpe_common_oom_tests.dir\tests\test_common_oom_injection.cpp.obj
+[3/6] Linking CXX executable bin\xpe_preprocess_parallel_unwind_tests.exe
+[4/6] Linking CXX executable bin\xpe_common_oom_tests.exe
+[5/6] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_oom_tests.dir\tests\test_oom_injection.cpp.obj
+[6/6] Linking CXX executable bin\xpe_preprocess_oom_tests.exe

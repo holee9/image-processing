@@ -1,0 +1,14 @@
+diff --git a/modules/preprocess/src/defect_correct.cpp b/modules/preprocess/src/defect_correct.cpp
+index 23c0bbb1..61d08f1d 100644
+--- a/modules/preprocess/src/defect_correct.cpp
++++ b/modules/preprocess/src/defect_correct.cpp
+@@ -585,7 +585,8 @@ void correctLines(LayerPass& c)
+                     const uint32_t x = rowLine ? p : sg.line, y = rowLine ? sg.line : p;
+                     if (x >= c.grid.width || y >= c.grid.height) continue;
+                     const size_t idx = static_cast<size_t>(y) * W + x;
+-                    if (!c.ms->test(idx) || !inArea(*c.layers, idx)) continue;
++                    // QA-A-326 candidate: a line pixel outside the imaging area is corrected like the ones inside (the across pixels are still valid, in-area ones only).
++                    if (!c.ms->test(idx)) continue;
+                     const size_t slot = c.ms->slot(idx);
+                     if ((*c.visited)[slot]) continue;
+                     const uint32_t fixedCoord = rowLine ? x : y;

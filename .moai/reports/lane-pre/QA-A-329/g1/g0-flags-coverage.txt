@@ -1,0 +1,12 @@
+xpe_common_oom_tests COMPILE observed: /Od /Ob0 -MDd /RTC1 /Zi -std:c++17
+    FLAGS = /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /arch:AVX2 /W4 /utf-8 /wd4251 /wd4275
+xpe_common_oom_tests COMPILE observed: /Od /Ob0 /INCREMENTAL /debug -MDd /RTC1 /Zi /machine:x64
+    FLAGS = /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -MDd LINK_FLAGS = /machine:x64 /debug /INCREMENTAL /subsystem:console
+xpe_preprocess_parallel_unwind_tests COMPILE observed: /Od /Ob0 -MDd /RTC1 /Zi -std:c++17
+    FLAGS = /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /arch:AVX2 /W4 /utf-8
+xpe_preprocess_parallel_unwind_tests COMPILE observed: /Od /Ob0 /INCREMENTAL /debug -MDd /RTC1 /Zi /machine:x64
+    FLAGS = /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -MDd LINK_FLAGS = /machine:x64 /debug /INCREMENTAL /subsystem:console
+xpe_preprocess_oom_tests COMPILE observed: /Od /Ob0 -MDd /RTC1 /Zi -std:c++17
+    FLAGS = /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -std:c++17 -MDd /arch:AVX2 /W4 /utf-8 /wd4251 /wd4275
+xpe_preprocess_oom_tests COMPILE observed: /Od /Ob0 /INCREMENTAL /debug -MDd /RTC1 /Zi /machine:x64
+    FLAGS = /DWIN32 /D_WINDOWS /EHsc /Zi /Ob0 /Od /RTC1 -MDd LINK_FLAGS = /machine:x64 /debug /INCREMENTAL /subsystem:console
