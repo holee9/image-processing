@@ -1,0 +1,35 @@
+Read-only inspection by the NLM path investigation agent. Both commands exited 0.
+
+C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe /DISASM D:/workspace-github/xpe-post/build/cov-local/modules/enhance_basic/CMakeFiles/xpe_enhance_basic.dir/src/noise_reduce.cpp.obj
+C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/dumpbin.exe /DISASM D:/workspace-github/xpe-post/build/ci-post/modules/enhance_basic/CMakeFiles/xpe_enhance_basic.dir/src/noise_reduce.cpp.obj
+
+Debug apply_nlm, noise_reduce.cpp:347-348:
+0000000000002676: C5 FA 10 84 24 AC  vmovss      xmm0,dword ptr [rsp+0ACh]
+                  00 00 00
+000000000000267F: C5 F8 2F 05 00 00  vcomiss     xmm0,dword ptr [__real@00000000]
+                  00 00
+0000000000002687: 76 1D              jbe         00000000000026A6
+0000000000002689: C5 FA 10 84 24 B0  vmovss      xmm0,dword ptr [rsp+0B0h]
+                  00 00 00
+0000000000002692: C5 FA 5E 84 24 AC  vdivss      xmm0,xmm0,dword ptr [rsp+0ACh]
+                  00 00 00
+00000000000026A4: EB 2F              jmp         00000000000026D5
+00000000000026A6: 48 63 84 24 A4 00  movsxd      rax,dword ptr [rsp+0A4h]
+
+RelWithDebInfo apply_nlm:
+0000000000000183: C4 41 30 57 C9     vxorps      xmm9,xmm9,xmm9
+...
+00000000000004FA: C5 C2 58 F8        vaddss      xmm7,xmm7,xmm0
+...
+0000000000000550: C4 C1 78 2F F9     vcomiss     xmm7,xmm9
+0000000000000555: 4C 8B 54 24 70     mov         r10,qword ptr [rsp+70h]
+000000000000055A: 76 06              jbe         0000000000000562
+000000000000055C: C5 CA 5E C7        vdivss      xmm0,xmm6,xmm7
+0000000000000560: EB 0E              jmp         0000000000000570
+0000000000000562: 48 8B 84 24 C0 00  mov         rax,qword ptr [rsp+0C0h]
+                  00 00
+000000000000056A: C4 A1 7A 10 04 10  vmovss      xmm0,dword ptr [rax+r10]
+
+Both compare wsum against zero and take jbe to the original-pixel path on an
+unordered NaN comparison. Debug uses xmm0=wsum; Rel uses xmm7=wsum, xmm9=zero.
+This records existing object instructions. Live intermediate values were not sampled.

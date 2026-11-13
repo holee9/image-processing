@@ -288,7 +288,13 @@ static XpeErrorCode apply_nlm(XpeImageBuffer* img,
     int half_search = search_window / 2;
     int half_patch = patch_size / 2;
 
-    float h2_inv = 1.0f / (h_param * h_param);
+    // QA-B-227: reject excessive inverse magnitude before any pixel is written.
+    const double strength = static_cast<double>(h_param);
+    const double inverse = 1.0 / (strength * strength);
+    if (inverse > static_cast<double>((std::numeric_limits<float>::max)())) {
+        return XPE_ERR_INVALID_INPUT;
+    }
+    const float h2_inv = static_cast<float>(inverse);
 
     std::vector<float> output(n);
 

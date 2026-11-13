@@ -1,0 +1,66 @@
+COMMAND C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe [
+  '--build',
+  'D:/workspace-github/xpe-post/build/cov-local',
+  '--target',
+  'xpe_enhance_basic_tests',
+  '--parallel',
+  '2'
+] EXIT 0 ERROR undefined
+[1/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\edge_enhance.cpp.obj
+[2/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\noise_reduce.cpp.obj
+[3/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\exposure_index.cpp.obj
+[4/22] Linking CXX shared library bin\xpe_enhance_basic.dll
+[5/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_log_transform.cpp.obj
+[6/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_noise_reduce.cpp.obj
+[7/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_thread_determinism.cpp.obj
+[8/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_contrast_enhance.cpp.obj
+[9/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_edge_enhance.cpp.obj
+[10/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_exposure_index.cpp.obj
+[11/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_enhance_integration.cpp.obj
+[12/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_enh01_log_noise.cpp.obj
+[13/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_datasize_guard.cpp.obj
+[14/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_datasize_overread.cpp.obj
+[15/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_exposure_index_contract.cpp.obj
+[16/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_parameter_dependency.cpp.obj
+[17/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_empty_image_contract.cpp.obj
+[18/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_nonfinite_pixels.cpp.obj
+[19/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_exception_guard.cpp.obj
+[20/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_edge_enhance_formula.cpp.obj
+[21/22] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_clahe_bin.cpp.obj
+[22/22] Linking CXX executable bin\xpe_enhance_basic_tests.exe
+
+COMMAND C:/Program Files/Microsoft Visual Studio/2022/Professional/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe [
+  '--build',
+  'D:/workspace-github/xpe-post/build/ci-post',
+  '--target',
+  'xpe_enhance_basic_tests',
+  '--parallel',
+  '2'
+] EXIT 0 ERROR undefined
+[1/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\enhance_basic.cpp.obj
+[2/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\log_transform.cpp.obj
+[3/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\noise_reduce.cpp.obj
+[4/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\contrast_enhance.cpp.obj
+[5/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\exposure_index.cpp.obj
+[6/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic.dir\src\edge_enhance.cpp.obj
+[7/25] Linking CXX shared library bin\xpe_enhance_basic.dll
+[8/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_log_transform.cpp.obj
+[9/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_noise_reduce.cpp.obj
+[10/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_thread_determinism.cpp.obj
+[11/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_contrast_enhance.cpp.obj
+[12/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_edge_enhance.cpp.obj
+[13/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_exposure_index.cpp.obj
+[14/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_enhance_integration.cpp.obj
+[15/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_enh01_log_noise.cpp.obj
+[16/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_datasize_guard.cpp.obj
+[17/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_datasize_overread.cpp.obj
+[18/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_exposure_index_contract.cpp.obj
+[19/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_parameter_dependency.cpp.obj
+[20/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_empty_image_contract.cpp.obj
+[21/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_nonfinite_pixels.cpp.obj
+[22/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_exception_guard.cpp.obj
+[23/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_edge_enhance_formula.cpp.obj
+[24/25] Building CXX object modules\enhance_basic\CMakeFiles\xpe_enhance_basic_tests.dir\tests\test_clahe_bin.cpp.obj
+[25/25] Linking CXX executable bin\xpe_enhance_basic_tests.exe
+
+
