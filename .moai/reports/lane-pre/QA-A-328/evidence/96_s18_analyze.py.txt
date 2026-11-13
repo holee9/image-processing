@@ -1,0 +1,117 @@
+# QA-A-328 section 18.2 analysis (read-only). Run: python -I 96_s18_analyze.py.txt
+import numpy as np, sys, os
+
+D = 'D:/workspace-github/xpe-data/qa-328-tmp/dump/'
+TR = 'D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16'
+W, H = 3065, 3069          # cropped buffer (margins left 6, top 2)
+X0, Y0 = 6, 2
+BLK, NB = 64, 48
+PTS = [(1925,180),(1475,440),(199,796),(1246,1253),(988,1440),(1119,1588),
+       (2707,1590),(196,1612),(2670,1896),(2118,2672),(305,2871)]
+
+def load(prefix):
+    r = np.fromfile(D + prefix + '_0_r.bin', dtype=np.float32)
+    bg = np.fromfile(D + prefix + '_0_bg.bin', dtype=np.float32)
+    sg = np.fromfile(D + prefix + '_0_sig.bin', dtype=np.float32)
+    assert r.size == W * H and bg.size == W * H and sg.size == NB * NB, (r.size, bg.size, sg.size)
+    return r.reshape(H, W), bg.reshape(H, W), sg.reshape(NB, NB)
+
+def scale_at(sig, x, y):   # replicates scaleAt (xpe_bpm_v2.cpp:326-334) in float32
+    f = np.float32
+    fx = min(max((f(x) + f(0.5)) / f(BLK) - f(0.5), f(0)), f(NB - 1))
+    fy = min(max((f(y) + f(0.5)) / f(BLK) - f(0.5), f(0)), f(NB - 1))
+    x0, y0 = int(fx), int(fy)
+    x1, y1 = min(x0 + 1, NB - 1), min(y0 + 1, NB - 1)
+    tx, ty = fx - f(x0), fy - f(y0)
+    a = lambda xx, yy: sig[yy, xx]
+    return (f(1) - ty) * ((f(1) - tx) * a(x0, y0) + tx * a(x1, y0)) + ty * ((f(1) - tx) * a(x0, y1) + tx * a(x1, y1))
+
+truth = np.fromfile(TR, dtype=np.uint16).reshape(3072, 3072)
+tcrop = truth[Y0:Y0 + H, X0:X0 + W]            # cropped-buffer coordinates
+nz = tcrop != 0
+
+def near_mask(rad):        # True where a defect lies within Chebyshev distance <= rad
+    m = np.zeros_like(nz)
+    p = np.pad(nz, rad)
+    for dy in range(2 * rad + 1):
+        for dx in range(2 * rad + 1):
+            m |= p[dy:dy + H, dx:dx + W]
+    return m
+near2 = near_mask(2)
+
+def cheb_to_defect(x, y):  # full-image coords -> distance to nearest nonzero truth pixel (itself excluded)
+    for d in range(1, 200):
+        ys, ye = max(0, y - d), min(3072, y + d + 1)
+        xs, xe = max(0, x - d), min(3072, x + d + 1)
+        win = truth[ys:ye, xs:xe].copy()
+        if d >= 1:
+            # keep only the ring at distance exactly d
+            ring = np.ones(win.shape, bool)
+            iy0, iy1 = (y - d) - ys + 1, (y + d) - ys
+            ix0, ix1 = (x - d) - xs + 1, (x + d) - xs
+            # inner square (distance < d) mask
+            lo_y, hi_y = (y - (d - 1)) - ys, (y + (d - 1)) - ys + 1
+            lo_x, hi_x = (x - (d - 1)) - xs, (x + (d - 1)) - xs + 1
+            ring[lo_y:hi_y, lo_x:hi_x] = False
+            if (win[ring] != 0).any():
+                return d
+    return -1
+
+def kurt(v):               # excess kurtosis
+    v = v.astype(np.float64); m = v.mean(); s2 = ((v - m) ** 2).mean()
+    return float(((v - m) ** 4).mean() / (s2 * s2) - 3.0)
+
+def block_of(x, y):
+    return (y - Y0) // BLK, (x - X0) // BLK
+
+def report(prefix, tag):
+    r, bg, sg = load(prefix)
+    allsig = np.sort(sg.ravel())
+    print('## set', tag, 'prefix', prefix)
+    print('sig all blocks: n=%d min=%.4f median=%.4f max=%.4f' % (allsig.size, allsig.min(), np.median(allsig), allsig.max()))
+    print('x\ty\tr\tbg\ts\tr/s\tblk(bx,by)\tblocksig\tpct_of_s\tn_inj_in_block\tcheb_to_defect\tkurt_same_block_normal\tn_normal')
+    rows = []
+    for (x, y) in PTS:
+        cx, cy = x - X0, y - Y0
+        by, bx = block_of(x, y)
+        rv, bgv = float(r[cy, cx]), float(bg[cy, cx])
+        s = float(scale_at(sg, cx, cy))
+        pct = 100.0 * np.searchsorted(allsig, s, side='right') / allsig.size
+        sub_t = nz[by * BLK:(by + 1) * BLK, bx * BLK:(bx + 1) * BLK]
+        ninj = int(sub_t.sum())
+        sub_r = r[by * BLK:(by + 1) * BLK, bx * BLK:(bx + 1) * BLK]
+        sub_n = ~near_mask_cache[(by, bx)]
+        normal = sub_r[sub_n]
+        k = kurt(normal)
+        d = cheb_to_defect(x, y)
+        rows.append((x, y, rv, bgv, s))
+        print('%d\t%d\t%.4f\t%.4f\t%.4f\t%.3f\t(%d,%d)\t%.4f\t%.1f\t%d\t%d\t%.3f\t%d' % (x, y, rv, bgv, s, rv / s, bx, by, float(sg[by, bx]), pct, ninj, d, k, normal.size))
+    return r, bg, sg
+
+# distance>=3 means not within 2 of a defect -> near2 False
+near_mask_cache = {}
+for (x, y) in PTS:
+    by, bx = block_of(x, y)
+    near_mask_cache[(by, bx)] = near2[by * BLK:(by + 1) * BLK, bx * BLK:(bx + 1) * BLK]
+
+if __name__ == '__main__':
+    r, bg, sg = report('inj', 'injected')
+    # comparison sample: every 16th pixel in block-local row-major order, in each of the 11's blocks, excluding the 11 and pixels within distance 2 of a defect
+    pset = set((x - X0, y - Y0) for (x, y) in PTS)
+    blocks = sorted(set(block_of(x, y) for (x, y) in PTS))
+    samp = []
+    for (by, bx) in blocks:
+        for i in range(0, BLK * BLK, 16):
+            ly, lx = divmod(i, BLK)
+            cy, cx = by * BLK + ly, bx * BLK + lx
+            if cy >= H or cx >= W: continue
+            if (cx, cy) in pset or near2[cy, cx]: continue
+            samp.append((cx, cy))
+    z = np.array([abs(float(r[cy, cx])) / float(scale_at(sg, cx, cy)) for (cx, cy) in samp])
+    print('comparison sample n=%d blocks=%d; |r|/s: median=%.3f p95=%.3f p99=%.3f max=%.3f; count >lambda(5.3156)=%d; count>4=%d; kurt(r)=%.3f' % (
+        len(samp), len(blocks), np.median(z), np.percentile(z, 95), np.percentile(z, 99), z.max(), int((z > 5.315594539).sum()), int((z > 4).sum()),
+        kurt(np.array([float(r[cy, cx]) for (cx, cy) in samp]))))
+    np.savetxt(os.path.join(os.path.dirname(os.path.abspath(__file__)), '97_s18_sample_coords.tsv'),
+               np.array([(cx + X0, cy + Y0) for (cx, cy) in samp]), fmt='%d', delimiter='\t', header='x\ty', comments='')
+    if os.path.exists(D + 'clean_0_r.bin'):
+        report('clean', 'clean')
