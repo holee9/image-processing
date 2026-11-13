@@ -1,0 +1,26 @@
+items 1979 ids in map 1980
+pixels all 251843
+pixels defect 139034
+pixels control 112809
+N 20000 seed 328, region x 6..3070 y 2..3070, non-item pixels
+## class all
+random pct 5/25/50/75/95: [2.0, 6.0, 11.0, 19.0, 35.0]
+obs distances: [4, 9, 2, 6, 15, 7, 9, 1, 2, 7, 41] median 7.0
+within 4: obs 4/11, random p=0.1999, binom P(X>=4)=0.1609
+within 9: obs 9/11, random p=0.4334, binom P(X>=9)=0.01108
+within 15: obs 10/11, random p=0.6597, binom P(X>=10)=0.06874
+obs percentile in random: [np.float64(20.0), np.float64(43.3), np.float64(10.0), np.float64(29.4), np.float64(66.0), np.float64(34.1), np.float64(43.3), np.float64(4.8), np.float64(10.0), np.float64(34.1), np.float64(97.7)]
+## class defect
+random pct 5/25/50/75/95: [2.0, 9.0, 18.0, 30.0, 53.0]
+obs distances: [9, 9, 56, 9, 29, 29, 31, 12, 11, 7, 45] median 12.0
+within 4: obs 0/11, random p=0.1129, binom P(X>=0)=1
+within 9: obs 4/11, random p=0.2673, binom P(X>=4)=0.3354
+within 15: obs 6/11, random p=0.4437, binom P(X>=6)=0.3508
+obs percentile in random: [np.float64(26.7), np.float64(26.7), np.float64(96.2), np.float64(26.7), np.float64(74.1), np.float64(74.1), np.float64(77.1), np.float64(35.9), np.float64(32.9), np.float64(20.4), np.float64(91.1)]
+## class control
+random pct 5/25/50/75/95: [3.0, 11.0, 22.0, 38.0, 66.0]
+obs distances: [4, 14, 2, 6, 15, 7, 9, 1, 2, 20, 41] median 7.0
+within 4: obs 4/11, random p=0.0946, binom P(X>=4)=0.01535
+within 9: obs 7/11, random p=0.2116, binom P(X>=7)=0.002777
+within 15: obs 9/11, random p=0.3545, binom P(X>=9)=0.002263
+obs percentile in random: [np.float64(9.5), np.float64(33.2), np.float64(4.7), np.float64(14.1), np.float64(35.5), np.float64(16.3), np.float64(21.2), np.float64(2.2), np.float64(4.7), np.float64(46.3), np.float64(78.8)]

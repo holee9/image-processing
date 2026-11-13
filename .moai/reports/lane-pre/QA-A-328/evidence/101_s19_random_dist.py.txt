@@ -1,0 +1,39 @@
+# QA-A-328 s19.1 (read-only, truth only): Chebyshev distance of random normal pixels to nearest injected item,
+# split into defect-only (class != control) / control-only / all. Run: python -I 101_s19_random_dist.py.txt
+import numpy as np
+from math import comb
+D='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/'
+t=np.fromfile(D+'truth_ids.u16',dtype=np.uint16).reshape(3072,3072)
+cls={}
+for ln in open(D+'truth.tsv'):
+    p=ln.rstrip('\n').split('\t')
+    if len(p)==6 and p[0].isdigit(): cls[int(p[0])]=p[1]
+isctrl=np.zeros(int(t.max())+1,bool)
+for i,c in cls.items(): isctrl[i]=(c=='control')
+nz=t!=0
+masks={'all':nz,'defect':nz&~isctrl[t],'control':nz&isctrl[t]}
+print('items',len(cls),'ids in map',int(len(np.unique(t))-1))
+for k,m in masks.items(): print('pixels',k,int(m.sum()))
+def dist(m,x,y,cap=400):
+    for d in range(1,cap):
+        ys,ye=max(0,y-d),min(3072,y+d+1); xs,xe=max(0,x-d),min(3072,x+d+1)
+        if m[ys:ye,xs:xe].any(): return d
+    return cap
+PTS=[(1925,180),(1475,440),(199,796),(1246,1253),(988,1440),(1119,1588),(2707,1590),(196,1612),(2670,1896),(2118,2672),(305,2871)]
+rng=np.random.default_rng(328)
+N=20000
+xs=rng.integers(6,6+3065,N*2); ys=rng.integers(2,2+3069,N*2)
+ok=~nz[ys,xs]
+xs=xs[ok][:N]; ys=ys[ok][:N]
+print('N',len(xs),'seed 328, region x 6..3070 y 2..3070, non-item pixels')
+for k,m in masks.items():
+    d=np.array([dist(m,int(x),int(y)) for x,y in zip(xs,ys)])
+    obs=np.array([dist(m,x,y) for x,y in PTS])
+    print('## class',k)
+    print('random pct 5/25/50/75/95:',[float(np.percentile(d,q)) for q in (5,25,50,75,95)])
+    print('obs distances:',obs.tolist(),'median',float(np.median(obs)))
+    for kk in (4,9,15):
+        p=(d<=kk).mean(); n=int((obs<=kk).sum())
+        tail=sum(comb(11,j)*p**j*(1-p)**(11-j) for j in range(n,12))
+        print('within %d: obs %d/11, random p=%.4f, binom P(X>=%d)=%.4g'%(kk,n,p,n,tail))
+    print('obs percentile in random:',[round(100*(d<=o).mean(),1) for o in obs])

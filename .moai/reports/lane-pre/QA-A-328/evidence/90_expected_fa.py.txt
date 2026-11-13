@@ -1,5 +1,5 @@
 import math
-n = 3072 * 3072          # every pixel is tested (flagRobustZ loops 0..wk.n, no mask)
+n = 3065 * 3069        # tested pixels = cropped buffer after margins (runWithMargins xpe_bpm_v2.cpp:1315, :1340-1365); flagRobustZ loops 0..wk.n, no mask
 p = 1.0 / n              # design: falseAlarms=1.0 -> two-sided p = 1/n (xpe_bpm_v2.cpp:1076)
 lo, hi = 0.0, 40.0
 for _ in range(200):
