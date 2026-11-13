@@ -371,7 +371,14 @@ void sweep(const char* label, const Setup& setup, const Call& call, bool unchang
         }
         const Snap after = snap();
         // An extra, call-specific check, made while the store still holds what the call left in it.
-        const std::string extraWhy = extra ? extra(rc) : std::string();
+        // The message is copied into a fixed buffer and the std::string is destroyed before the live
+        // block count is read: in a Debug standard library an empty std::string still owns a container
+        // proxy block, which would otherwise be counted as a block the product left behind.
+        char extraWhy[256] = {0};
+        {
+            const std::string why = extra ? extra(rc) : std::string();
+            std::snprintf(extraWhy, sizeof extraWhy, "%s", why.c_str());
+        }
         const bool cacheConsistent = xpe_calib_cache_is_consistent();
         resetStore(); xpe_calib_cache_clear(); xpe_clear_alerts();
         const long liveAfter = g_live.load();
@@ -379,7 +386,7 @@ void sweep(const char* label, const Setup& setup, const Call& call, bool unchang
         ASSERT_FALSE(escaped) << label << ": an exception left the C ABI function when allocation #" << k
                               << " failed" << (lockLeaked ? " (and the calibration store lock stayed held)" : "");
         ASSERT_FALSE(lockLeaked) << label << ": the calibration store lock stayed held after allocation #" << k << " failed";
-        ASSERT_TRUE(extraWhy.empty()) << label << ": allocation #" << k << " failed (rc " << rc << "): " << extraWhy;
+        ASSERT_EQ('\0', extraWhy[0]) << label << ": allocation #" << k << " failed (rc " << rc << "): " << extraWhy;
         ASSERT_TRUE(cacheConsistent) << label << ": allocation #" << k << " failed (rc " << rc
                                      << ") and the cache's list and index no longer agree";
         ASSERT_EQ(liveBase, liveAfter) << label << ": allocation #" << k << " failed (rc " << rc

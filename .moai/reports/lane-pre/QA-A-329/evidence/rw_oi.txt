@@ -1,0 +1,143 @@
+Running main() from D:\workspace-github\xpe-pre\build\coverage\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OomInjection.*
+[==========] Running 49 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 49 tests from OomInjection
+[ RUN      ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader
+[       OK ] OomInjection.TheInjectionReachesAnAllocationMadeInsideAProductLoader (1 ms)
+[ RUN      ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain                           35 allocation points covered
+[       OK ] OomInjection.APlainGainLoadThatFailsLeavesTheStoreUntouched (6 ms)
+[ RUN      ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset                         10 allocation points covered
+[       OK ] OomInjection.APlainOffsetLoadThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.OffsetConfigCommitsWithItsMapOrRemainsUnchangedOnAllocationFailure
+[sweep] offset config plain load                      20 allocation points covered
+[sweep] offset config cached hit                       4 allocation points covered
+[       OK ] OomInjection.OffsetConfigCommitsWithItsMapOrRemainsUnchangedOnAllocationFailure (5 ms)
+[ RUN      ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_map                      9 allocation points covered
+[       OK ] OomInjection.APlainDefectLoadThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ADefectV2SavePreservesItsStateAndExistingDestinationOnAllocationFailure
+[sweep] defect v2 state save                          11 allocation points covered
+[       OK ] OomInjection.ADefectV2SavePreservesItsStateAndExistingDestinationOnAllocationFailure (39 ms)
+[ RUN      ] OomInjection.ACompressedOffsetSaveKeepsThePriorFileAndMetadataOnAllocationFailure
+[sweep] compressed offset state save                  24 allocation points covered
+[       OK ] OomInjection.ACompressedOffsetSaveKeepsThePriorFileAndMetadataOnAllocationFailure (38 ms)
+[ RUN      ] OomInjection.ScalarGainStateSavePreservesClassificationMetadataAndThePriorFileOnAllocationFailure
+[sweep] scalar gain state save                        24 allocation points covered
+[sweep] compressed scalar gain state save             29 allocation points covered
+[       OK ] OomInjection.ScalarGainStateSavePreservesClassificationMetadataAndThePriorFileOnAllocationFailure (95 ms)
+[ RUN      ] OomInjection.ActivePolynomialGainSavePreservesItsStateAndThePriorFileOnAllocationFailure
+[sweep] active polynomial gain state save             29 allocation points covered
+[       OK ] OomInjection.ActivePolynomialGainSavePreservesItsStateAndThePriorFileOnAllocationFailure (48 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, range)       34 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched (5 ms)
+[ RUN      ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (polynomial, no range)    34 allocation points covered
+[       OK ] OomInjection.APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched (6 ms)
+[ RUN      ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (miss)             45 allocation points covered
+[       OK ] OomInjection.ACachedGainMissLeavesNoExceptionEscaping (9 ms)
+[ RUN      ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_gain_cached (polynomial)       36 allocation points covered
+[       OK ] OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping (9 ms)
+[ RUN      ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_offset_cached (miss)           20 allocation points covered
+[       OK ] OomInjection.ACachedOffsetMissLeavesNoExceptionEscaping (5 ms)
+[ RUN      ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping
+[sweep] xpe_calib_load_defect_cached (miss)           19 allocation points covered
+[       OK ] OomInjection.ACachedDefectMissLeavesNoExceptionEscaping (7 ms)
+[ RUN      ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit)               4 allocation points covered
+[       OK ] OomInjection.ACachedGainHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_offset_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedOffsetHitThatFailsLeavesTheStoreUntouched (2 ms)
+[ RUN      ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_defect_cached (hit)             4 allocation points covered
+[       OK ] OomInjection.ACachedDefectHitThatFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.AnOffsetCorrectionAllocatesNothing
+[       OK ] OomInjection.AnOffsetCorrectionAllocatesNothing (0 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree
+[sweep] xpe_defect_correct                            37 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatFailsLeavesTheStoreUntouchedAndTheLockFree (9 ms)
+[ RUN      ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind
+[       OK ] OomInjection.AGhostCreationThatIsRefusedLeavesNoBlocksBehind (0 ms)
+[ RUN      ] OomInjection.AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing
+[sweep] xpe_ghost_create (default config)              4 allocation points covered
+[       OK ] OomInjection.AGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing (0 ms)
+[ RUN      ] OomInjection.ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing
+[sweep] xpe_ghost_create (calibrated config)          16 allocation points covered
+[       OK ] OomInjection.ACalibratedGhostCreationWhoseAllocationFailsHandsBackNothingAndLeaksNothing (0 ms)
+[ RUN      ] OomInjection.AGhostValidationRouteUsesNoFrameAllocations
+[       OK ] OomInjection.AGhostValidationRouteUsesNoFrameAllocations (0 ms)
+[ RUN      ] OomInjection.AGhostValidationRefusalPreservesPixelsAndStateWithoutAllocating
+[       OK ] OomInjection.AGhostValidationRefusalPreservesPixelsAndStateWithoutAllocating (0 ms)
+[ RUN      ] OomInjection.AGhostValidationRouteDoesNotAllocateOrLeakAcrossOneHundredFrames
+[       OK ] OomInjection.AGhostValidationRouteDoesNotAllocateOrLeakAcrossOneHundredFrames (16 ms)
+[ RUN      ] OomInjection.FirstFrameBypassSeedsTheSameHistoryAsLegacyForAllLaterFrames
+[       OK ] OomInjection.FirstFrameBypassSeedsTheSameHistoryAsLegacyForAllLaterFrames (15 ms)
+[ RUN      ] OomInjection.AnExtremeFiniteFirstFrameIsBypassedAndStillSeedsTheNextCorrection
+[       OK ] OomInjection.AnExtremeFiniteFirstFrameIsBypassedAndStillSeedsTheNextCorrection (0 ms)
+[ RUN      ] OomInjection.ASparseBrightOutlierUsesTheActualFrameMeanBoundAndMatchesValidation
+[       OK ] OomInjection.ASparseBrightOutlierUsesTheActualFrameMeanBoundAndMatchesValidation (84 ms)
+[ RUN      ] OomInjection.ADefectCorrectionDoesNotCopyTheMap
+[       OK ] OomInjection.ADefectCorrectionDoesNotCopyTheMap (0 ms)
+[ RUN      ] OomInjection.TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSection
+[       OK ] OomInjection.TheSessionWarningStateIsSettledInTheCommitsOwnCriticalSection (9 ms)
+[ RUN      ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore
+[       OK ] OomInjection.AHitJudgesTheExpiryAfterTheOpenCheckNotBefore (14 ms)
+[ RUN      ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind
+[       OK ] OomInjection.AWriteFailureIsReportedWithItsOwnCauseNotWhatAnEarlierStepLeftBehind (2 ms)
+[ RUN      ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized
+[sweep] xpe_preprocess_init                           20 allocation points covered
+[       OK ] OomInjection.APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesTheModuleUninitialized (0 ms)
+[ RUN      ] OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes
+[sweep] xpe_nonlinearity_correct                      23 allocation points covered
+[       OK ] OomInjection.ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched
+[sweep] xpe_nonlinearity_correct (table)              16 allocation points covered
+[       OK ] OomInjection.ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched (6 ms)
+[ RUN      ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_offset                              3 allocation points covered
+[       OK ] OomInjection.AVerifyOffsetThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_gain                                3 allocation points covered
+[       OK ] OomInjection.AVerifyGainThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes
+[sweep] xpe_verify_pipeline                            4 allocation points covered
+[       OK ] OomInjection.AVerifyPipelineThatFailsLeavesTheMetricsClearedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard
+[       OK ] OomInjection.AVerifyDefectAllocatesNothingSoThereIsNothingToGuard (0 ms)
+[ RUN      ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+[sweep] xpe_bpm_generate                              24 allocation points covered
+[       OK ] OomInjection.ABpmGenerationThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (5 ms)
+[ RUN      ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes
+[sweep] xpe_defect_detect_runtime                      8 allocation points covered
+[       OK ] OomInjection.ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoExceptionEscapes (0 ms)
+[ RUN      ] OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes
+[sweep] xpe_calib_generate_nonlin_lut                 11 allocation points covered
+[       OK ] OomInjection.ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes (3 ms)
+[ RUN      ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce
+[       OK ] OomInjection.EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce (5 ms)
+[ RUN      ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched
+[       OK ] OomInjection.ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgumentUntouched (4 ms)
+[ RUN      ] OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain (classified pixels)       17 allocation points covered
+[       OK ] OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched (4 ms)
+[ RUN      ] OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+[sweep] xpe_calib_load_gain_cached (hit, classified)   4 allocation points covered
+[       OK ] OomInjection.ACachedScalarGainHitThatClassifiesPixelsAndFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched
+[sweep] xpe_defect_correct (gain-classified pixels)    8 allocation points covered
+[       OK ] OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched (3 ms)
+[ RUN      ] OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory
+[sweep] xpe_gain_correct (polynomial, classified pixels)   2 allocation points covered
+[       OK ] OomInjection.APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory (1 ms)
+[----------] 49 tests from OomInjection (489 ms total)
+
+[----------] Global test environment tear-down
+[==========] 49 tests from 1 test suite ran. (490 ms total)
+[  PASSED  ] 49 tests.

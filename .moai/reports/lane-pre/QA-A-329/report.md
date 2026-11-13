@@ -69,3 +69,26 @@ control: the two configuration texts must allocate alike when no saturation step
 proxy 크기(16바이트) 필터는 MSVC 표준 라이브러리 구현에 의존한다. 표준 라이브러리 버전이 바뀌면 크기가 달라질 수 있다.
 
 설계 커밋: (다음 단계에서 기록)
+
+## 7. 묶음 B 수정 측정 (2026-11-13 19:59 KST)
+
+빌드: HEAD(465efd39)의 `git worktree` 사본에 `test_oom_injection.cpp` 수정만 얹어 Ninja + MSVC 로 빌드했다. 대상 `xpe_preprocess_oom_tests`. 사본은 측정 뒤 지운다. 시험 이름 목록은 `--gtest_list_tests` 로 얻었고 OomInjection 은 49건이다. 실행은 Debug 에서 한 건씩(종료 코드 기록), RelWithDebInfo 에서 묶음 전체 1회.
+
+| 구성 | 수정 | 통과(종료 0) | gtest 실패(종료 1) | 비정상 종료(종료 3) |
+|---|---|---|---|---|
+| Debug | 없음 | 15 | 7 | 28 |
+| Debug | 있음 | 15 | 0 | 35 |
+| RelWithDebInfo | 있음 | 49/49 | 0 | 0 |
+
+원본 출력: `evidence/dbg_each_unfixed.txt`, `evidence/dbg_each_fixed.txt`, `evidence/rw_oi.txt` (줄마다 `종료코드 시험이름`).
+
+확인한 것 (실행 결과로 본 것):
+- 수정 없는 Debug 에서 종료 1 인 7건은 `ADefectV2Save…`, `ACompressedOffsetSave…`, `ScalarGainStateSave…`, `ActivePolynomialGainSave…`, `ACalibratedGhostCreation…`, `AVerifyOffsetThatFails…`, `ANonlinearityLutGeneration…` 이다.
+- 수정을 얹으면 이 7건은 모두 종료 3 으로 바뀐다. 개수 변화가 28 → 35 로 정확히 7건이다. 즉 살아 있는 블록 수 계산 오류는 사라졌지만, Debug 에서는 그 뒤 proxy 할당 주입(묶음 A)에서 먼저 죽어 통과로 읽을 수 없다.
+- RelWithDebInfo 에서는 수정 후 49건 전부 통과한다.
+
+추정 (측정하지 않은 것):
+- 그 7건의 종료 3 이 묶음 A 와 같은 `_Container_proxy` 할당 때문이라는 점은 스택을 보지 않았다. 종료 코드만 같다.
+- 수정 없는 RelWithDebInfo 에서 7건이 원래 통과했는지는 돌려 보지 않았다(CI 가 성공이었다는 점만 근거).
+
+결론: 묶음 B 수정은 Debug 에서 수치 오류를 없앴으나, 7건이 통과로 바뀌는지는 묶음 A 설계 구현 뒤에야 볼 수 있다. 결함으로 확인된 제품 문제는 없다.
