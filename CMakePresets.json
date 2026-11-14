@@ -157,6 +157,7 @@
                 "BUILD_AI": "OFF",
                 "BUILD_DISPLAY": "OFF",
                 "BUILD_DICOM": "OFF",
+                "XPE_COVERAGE_FAIL_ON_TEST_FAILURE": "ON",
                 "VCPKG_MANIFEST_DIR": "${sourceDir}/third_party/common"
             }
         },

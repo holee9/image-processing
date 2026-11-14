@@ -10,6 +10,13 @@
 #   -DXPE_COV_CMD=<;-separated command list>   full tool invocation
 #   -DXPE_COV_REPORT=<path>                     report that must exist afterwards
 #   -DXPE_COV_WORKDIR=<dir>
+#   -DXPE_COV_FAIL_ON_TEST_FAILURE=ON|OFF      fail after the report is written
+#                                               when the test run exited non-zero
+#
+# The coverage preset (common + preprocess) sets XPE_COV_FAIL_ON_TEST_FAILURE=ON:
+# it runs the Debug build, which is the only CI build of those modules with the
+# Debug STL, and run 43372852404 reported "success" while 55/1627 tests failed
+# there (QA-A-329). The report is still written first, so #120 holds.
 
 if(NOT XPE_COV_CMD)
     message(FATAL_ERROR "XpeCoverageRun: XPE_COV_CMD not set")
@@ -29,3 +36,8 @@ if(NOT EXISTS "${XPE_COV_REPORT}")
     message(FATAL_ERROR "Coverage: no report produced at ${XPE_COV_REPORT} (tool exit ${_rc})")
 endif()
 message(STATUS "Coverage: report written to ${XPE_COV_REPORT}")
+
+if(XPE_COV_FAIL_ON_TEST_FAILURE AND NOT _rc EQUAL 0)
+    message(FATAL_ERROR "Coverage: test run exited with ${_rc}; this preset fails on any test failure "
+                        "(see the ctest \"The following tests FAILED\" list above).")
+endif()

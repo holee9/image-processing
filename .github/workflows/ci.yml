@@ -1616,7 +1616,10 @@ jobs:
     # Dispatch-only and self-contained (own configure/build). Not gated on the
     # test jobs: a single flaky assertion there must not skip the coverage
     # measurement (#120, observed 2026-09-10 — EnduranceTest boundary failure
-    # skipped both coverage presets). Test pass/fail stays the test jobs' gate.
+    # skipped both coverage presets). Test pass/fail stays the test jobs' gate,
+    # except the `coverage` preset (common + preprocess): it is their only Debug-STL
+    # run, so it fails on any test failure after writing the report (QA-A-329:
+    # 55/1627 failed there under a green job). coverage-post/-dicom do not.
     # QA-A-234 (#253): the 85% gate runs for every push to main (common + preprocess only, about 16 min, a job of its
     # own so it delays no other job); all three presets run on the weekly schedule and on manual dispatch.
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
