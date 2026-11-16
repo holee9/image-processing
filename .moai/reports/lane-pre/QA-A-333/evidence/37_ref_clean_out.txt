@@ -1,0 +1,10 @@
+clean g 0 r0.7 vgBg/NORM 1.148  vg/NORM 1.141
+clean g 0 r0.6 vgBg/NORM 0.905  vg/NORM 0.932
+clean g 1 r0.7 vgBg/NORM 1.158  vg/NORM 1.126
+clean g 1 r0.6 vgBg/NORM 0.894  vg/NORM 0.915
+clean g 2 r0.7 vgBg/NORM 1.166  vg/NORM 1.122
+clean g 2 r0.6 vgBg/NORM 0.925  vg/NORM 0.915
+clean g 3 r0.7 vgBg/NORM 1.162  vg/NORM 1.200
+clean g 3 r0.6 vgBg/NORM 0.901  vg/NORM 0.899
+clean g 4 r0.7 vgBg/NORM 1.146  vg/NORM 1.174
+clean g 4 r0.6 vgBg/NORM 0.894  vg/NORM 0.902
