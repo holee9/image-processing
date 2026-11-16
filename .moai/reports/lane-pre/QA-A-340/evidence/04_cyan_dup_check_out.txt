@@ -1,0 +1,3 @@
+cyan_test raw files: 39
+cyan NAS row: Cyan_GT1717C\unknown\20260401_Manual_mode_ghost_test\cyan test\cyan test | serial: unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.085) | under a val panel: False
+val-panel raw files hashed: 1222 sha256 matches with cyan_test: 0
