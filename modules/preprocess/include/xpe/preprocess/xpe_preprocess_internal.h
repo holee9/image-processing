@@ -917,11 +917,8 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept;
 /**
  * @brief FUNC-031 (3)(4)(5)(8): the mode a generator runs under.
  *
- * Explicit mode: XPE_OK and that mode when num_levels and degree are within
- * its max_points / poly_degree, XPE_ERR_INVALID_INPUT otherwise.
- * AUTO: the smallest explicit mode with max_points >= num_levels and
- * poly_degree >= degree; XPE_ERR_INVALID_INPUT when none (more than 10 levels
- * or degree above 4). num_levels < 1 or degree < 0 is invalid input.
+ * QA-A-336: SINGLE_POINT is the only mode. One level and degree 0 resolve to it (XPE_OK); anything else is
+ * XPE_ERR_INVALID_INPUT.
  */
 XpeErrorCode xpe_calib_resolve_mode(int32_t num_levels, int32_t degree,
                                     XpeCalibrationMode* resolved) noexcept;

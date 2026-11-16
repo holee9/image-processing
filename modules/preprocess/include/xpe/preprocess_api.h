@@ -94,7 +94,7 @@ XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
  * releases them too (it is not a no-op).
  *
  * Clears EVERY module global: the calibration maps, the calibration mode set by
- * xpe_calib_set_mode() (back to the FUNC-031 default XPE_CALIB_MULTI_POINT_8),
+ * xpe_calib_set_mode() (back to XPE_CALIB_SINGLE_POINT, the only mode since QA-A-336),
  * and the quality metadata returned by xpe_calib_get_quality_meta().
  *
  * Until QA-A-120 (#176) it cleared only the maps and left the other two alive
@@ -515,8 +515,8 @@ XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames
  *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters
  *         XPE_ERR_IO_FAILED on file write error
  *         XPE_ERR_OUT_OF_MEMORY on allocation failure
- * @note One dose level, degree 0: accepted by every calibration mode; under
- *       XPE_CALIB_AUTO the mode recorded is XPE_CALIB_SINGLE_POINT.
+ * @note One dose level, degree 0: the file records calibration_mode 0 (XPE_CALIB_SINGLE_POINT). Until QA-A-336 it recorded
+ *       the active mode, by default 3 (MULTI_POINT_8), which was false about a single-dose file.
  * @note The frames are averaged in ADU, NOT normalised one by one first (step 2 is a plain mean of the dark-corrected frames). The
  *       map is therefore a dose-weighted mean: a frame with twice the signal counts twice as much, and when frames of different
  *       dose or of different acquisition conditions are mixed, the largest-dose frames set the large-scale shape of the map and no
@@ -1966,34 +1966,17 @@ extern "C" {
 #endif
 
 /**
- * @brief Calibration mode selection for polynomial fitting
+ * @brief Calibration mode (SRS-CALIB-FUNC-031)
  *
- * Defines the number of dose points and polynomial degree for gain calibration.
- *
- * Mode specifications:
- * - SINGLE_POINT: 1 point, degree 0 (constant)
- * - DUAL_POINT: 2 points, degree 1 (linear)
- * - MULTI_POINT_5: 5 points, degree 2 (quadratic)
- * - MULTI_POINT_8: 8 points, degree 3 (cubic) — DEFAULT per Schmidgunst 2007
- * - MULTI_POINT_10: 10 points, degree <= 4 (hard cap)
- * - AUTO: each generation uses the smallest mode above whose point count and
- *   degree accept the request (SRS-CALIB-FUNC-031 (5), issue \#169). The
- *   mode used is written to the XCal config JSON as `calibration_mode`
- *   (the requested one as `requested_calibration_mode`), to
- *   XpeCalibQualityMeta::calibration_mode, and as an XPE_ALERT_INFO entry.
- *
- * Enforcement (SRS-CALIB-FUNC-031 (3)(4)(8)): xpe_calib_generate_gain() resolves
- * the mode for its one dose level and degree 0, which every mode accepts.
- * (QA-A-336: the gain polynomial generator that used the multi-point modes was
- * removed; the modes remain as recorded metadata -- see the QA-A-336 report.)
+ * QA-A-336: SINGLE_POINT is the only mode -- one dose level, a constant (degree 0) gain map, which is what
+ * xpe_calib_generate_gain makes. The multi-point modes (1 DUAL_POINT, 2 MULTI_POINT_5, 3 MULTI_POINT_8,
+ * 4 MULTI_POINT_10) and 5 AUTO were removed with the dose-dependent gain polynomial; their numbers are retired.
+ * A gain file written before carries the mode that was active then (3, the old default, or 1, 2, 4) in its config
+ * block; such a single-map file still loads -- the value is read as a record only (XpeCalibQualityMeta::calibration_mode)
+ * and selects nothing.
  */
 typedef enum XpeCalibrationMode {
-    XPE_CALIB_SINGLE_POINT   = 0,  ///< 1 point, constant fit
-    XPE_CALIB_DUAL_POINT     = 1,  ///< 2 points, linear fit
-    XPE_CALIB_MULTI_POINT_5  = 2,  ///< 5 points, quadratic fit
-    XPE_CALIB_MULTI_POINT_8  = 3,  ///< 8 points, cubic fit (DEFAULT)
-    XPE_CALIB_MULTI_POINT_10 = 4,  ///< 10 points, degree <= 4
-    XPE_CALIB_AUTO           = 5   ///< Smallest fitting mode per generation (issue \#169)
+    XPE_CALIB_SINGLE_POINT   = 0   ///< 1 point, constant fit (the only mode)
 } XpeCalibrationMode;
 
 /**
@@ -2003,9 +1986,10 @@ typedef enum XpeCalibrationMode {
  * and historical comparison.
  *
  * Fields:
- * - calibration_mode: Active calibration mode (XpeCalibrationMode)
- * - polynomial_degree: Fitted polynomial degree (0-4; 4 is MULTI_POINT_10)
- * - num_points: Number of dose points used (1-10)
+ * - calibration_mode: the mode the file records (0 for every file generated now; an older file may record 1-4, read
+ *   as a record only -- see XpeCalibrationMode)
+ * - polynomial_degree: Fitted polynomial degree (0 for every file generated now; an older file may record up to 4)
+ * - num_points: Number of dose points used (1 for every file generated now; an older file may record up to 10)
  * - r_squared: Coefficient of determination: at most 1.0, and NEGATIVE for a fit worse than the mean (the
  *   generator reports such values). Any finite value up to 1.0 is a real one, -1.0 included; whether there
  *   is one is has_r_squared, not the value. When has_r_squared is 0, r_squared holds the fill value -1.0.
@@ -2035,8 +2019,8 @@ typedef enum XpeCalibrationMode {
  * module of unknown build.
  */
 typedef struct XpeCalibQualityMeta {
-    uint8_t  calibration_mode;      ///< XpeCalibrationMode used by the generation (never AUTO)
-    uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic, 4=quartic (MULTI_POINT_10)
+    uint8_t  calibration_mode;      ///< The mode recorded (0 = SINGLE_POINT; an older file may carry 1-4, a record only)
+    uint8_t  polynomial_degree;     ///< 0=constant (every file generated now); an older file may record up to 4
     uint8_t  num_points;            ///< Number of dose levels (1-10)
     uint8_t  valid;                 ///< 1 = describes a calibration; 0 = no quality metadata for the current one.
                                     ///< Sits in what was padding: sizeof and every other offset are unchanged.
@@ -2054,15 +2038,13 @@ typedef struct XpeCalibQualityMeta {
 } XpeCalibQualityMeta;
 
 /**
- * @brief Set calibration mode for polynomial fitting
+ * @brief Set calibration mode
  *
- * FUNC-031: Mode Selection API
- *
- * Default mode: XPE_CALIB_MULTI_POINT_8 (8 points, cubic)
+ * FUNC-031: Mode Selection API. QA-A-336: XPE_CALIB_SINGLE_POINT is the only mode and the default.
  *
  * @param mode Calibration mode to set
- * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT if mode value is invalid
+ * @return XPE_OK for XPE_CALIB_SINGLE_POINT
+ *         XPE_ERR_INVALID_INPUT for any other value (the removed modes 1-5 included); the mode is unchanged
  */
 XPE_API XpeErrorCode xpe_calib_set_mode(XpeCalibrationMode mode);
 
@@ -2071,7 +2053,7 @@ XPE_API XpeErrorCode xpe_calib_set_mode(XpeCalibrationMode mode);
  *
  * FUNC-031: Mode Selection API
  *
- * @return Current calibration mode (default: XPE_CALIB_MULTI_POINT_8)
+ * @return Current calibration mode (always XPE_CALIB_SINGLE_POINT, QA-A-336)
  */
 XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
 
@@ -2109,25 +2091,6 @@ XPE_API XpeCalibrationMode xpe_calib_get_mode(void);
  *         XPE_ERR_INVALID_INPUT if meta is NULL
  */
 XPE_API XpeErrorCode xpe_calib_get_quality_meta(XpeCalibQualityMeta* meta);
-
-/**
- * @brief Get maximum number of dose points for current mode
- *
- * FUNC-031: Mode-to-params mapping
- *
- * @return Maximum dose points (1, 2, 5, 8, or 10)
- */
-XPE_API uint32_t xpe_calib_get_max_points(void);
-
-/**
- * @brief Get polynomial degree for current mode
- *
- * FUNC-031: Mode-to-params mapping
- *
- * @return Polynomial degree ceiling (0, 1, 2, 3, or 4); for AUTO, the
- *         largest ceiling (4) -- the degree used is resolved per generation
- */
-XPE_API uint32_t xpe_calib_get_poly_degree(void);
 
 /* ---- Line and blob detection (SRS-CALIB-FUNC-023, QA-A-253, #273) ------------------------------------------------------------------------------------------ */
 

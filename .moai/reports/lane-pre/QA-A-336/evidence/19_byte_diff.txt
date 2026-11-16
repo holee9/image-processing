@@ -1,0 +1,30 @@
+== fixture_gain: sizes 37748888 / 37748888, config_json_len 0 / 0, payload_len 37748736
+   differing bytes: 0
+   payload sha256 before 65cc291e35f3ce4d9bb0e271b79078952bf2615fd4a9fb6abbf73a7b79147d05
+   payload sha256 after  65cc291e35f3ce4d9bb0e271b79078952bf2615fd4a9fb6abbf73a7b79147d05
+   created_epoch_ms: 0 / 0
+== fixture_offset: sizes 37748888 / 37748888, config_json_len 0 / 0, payload_len 37748736
+   differing bytes: 0
+   payload sha256 before fb2a46c03dd6e7c9209fe23003911aa356a26aae1a691df4510b67ce808d6b05
+   payload sha256 after  fb2a46c03dd6e7c9209fe23003911aa356a26aae1a691df4510b67ce808d6b05
+   created_epoch_ms: 0 / 0
+== fixture_defect: sizes 213120 / 213120, config_json_len 448 / 448, payload_len 212520
+   differing bytes: 0
+   config before: {"defect_format":2,"defect_ext_len":46632,"method":"bpm_v2+lines","margins_ltrb":[6,2,1,1],"skip_first_dark":false,"first_dark_excluded_by":"generator","line_pixel_bit_note":"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is contaminated by the line); do not cite it as the evidence for a line pixel","candidates_are":"diagnostic appendix, not part of the defect layer","xcal_compression":1,"xcal_raw_payload_len":18921000}
+   config after:  {"defect_format":2,"defect_ext_len":46632,"method":"bpm_v2+lines","margins_ltrb":[6,2,1,1],"skip_first_dark":false,"first_dark_excluded_by":"generator","line_pixel_bit_note":"the BRIGHT_NOISE pixel bit near a line is biased (the local expectation is contaminated by the line); do not cite it as the evidence for a line pixel","candidates_are":"diagnostic appendix, not part of the defect layer","xcal_compression":1,"xcal_raw_payload_len":18921000}
+   payload sha256 before a0946f0e9f417167cc4f120d144081b19ff79eec9682dd01c5c9ee3f647caac1
+   payload sha256 after  a0946f0e9f417167cc4f120d144081b19ff79eec9682dd01c5c9ee3f647caac1
+   created_epoch_ms: 0 / 0
+== generator_gain: sizes 37749367 / 37749367, config_json_len 479 / 479, payload_len 37748736
+   differing bytes: 39
+   header.created_epoch_ms: offsets 24..26 (3 bytes)
+   header.sha256: offsets 120..151 (32 bytes)
+   config[20]: offsets 172..172 (1 bytes)
+   config[51]: offsets 203..203 (1 bytes)
+   config[472]: offsets 624..624 (1 bytes)
+   config[474]: offsets 626..626 (1 bytes)
+   config before: {"calibration_mode":3,"requested_calibration_mode":3,"actual_dose_levels":1,"polynomial_degree":0,"fit_r_squared":1.000000000,"max_residual_pct":0.000000,"mean_residual_pct":0.000000,"calibration_pass":1,"saturation_status":"undetermined","saturation_method":"histogram_top_pile/1","saturation_min_count_frac":0.0005,"saturation_min_ratio":50,"saturation_max_above_frac":0.001,"saturation_frames_used":0,"saturation_frames_total":6,"saturation_decided_at":"2026-11-16T14:11:57Z"}
+   config after:  {"calibration_mode":0,"requested_calibration_mode":0,"actual_dose_levels":1,"polynomial_degree":0,"fit_r_squared":1.000000000,"max_residual_pct":0.000000,"mean_residual_pct":0.000000,"calibration_pass":1,"saturation_status":"undetermined","saturation_method":"histogram_top_pile/1","saturation_min_count_frac":0.0005,"saturation_min_ratio":50,"saturation_max_above_frac":0.001,"saturation_frames_used":0,"saturation_frames_total":6,"saturation_decided_at":"2026-11-16T14:17:27Z"}
+   payload sha256 before a0a4ca9901fa3efa83d2ca6e2c6cf20f4e434402eac68cf59d7cd6c41454329e
+   payload sha256 after  a0a4ca9901fa3efa83d2ca6e2c6cf20f4e434402eac68cf59d7cd6c41454329e
+   created_epoch_ms: 1794838317836 / 1794838647805

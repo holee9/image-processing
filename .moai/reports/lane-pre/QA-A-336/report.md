@@ -56,3 +56,39 @@
 
 ## 임시 폴더
 `D:/workspace-github/xpe-data/qa-336-tmp` 삭제.
+
+---
+
+[2026-11-16 23:23 KST] [xpe-pre] QA-A-336 후속 — 보정 모드를 SINGLE_POINT(0) 하나로 축소 (리더 결정)
+
+## 바꾼 것
+- `preprocess_api.h`: `XpeCalibrationMode` 를 `XPE_CALIB_SINGLE_POINT = 0` 하나로 줄임(1 DUAL_POINT, 2 MULTI_POINT_5, 3 MULTI_POINT_8, 4 MULTI_POINT_10, 5 AUTO 삭제, 번호 재사용 금지). `xpe_calib_get_max_points`·`xpe_calib_get_poly_degree` 내보내기 삭제. `xpe_calib_set_mode`/`get_mode` 는 남김: 0 만 받고 나머지는 `XPE_ERR_INVALID_INPUT`(모드 변화 없음), 기본값 0. 품질 메타 필드·종료 설명 문구 정리.
+- `xpe_calib_mode.cpp`: 모드 표·AUTO 해석 삭제, `xpe_calib_resolve_mode` 는 (1 수준, 차수 0) → SINGLE_POINT, 그 밖은 INVALID_INPUT. 기본·종료 후 값 0.
+- `xpe_calib_generate_gain.cpp`: `"calibration_mode":0,"requested_calibration_mode":0` 를 기록. AUTO 알림 삭제.
+- 시험: `test_calib_mode.cpp`(기본 0, 0 만 허용·1~5/99/-1 거부 후 모드 불변; 모드별 점수·차수·10점 상한 사례 삭제), `test_calib_mode_enforcement.cpp`(생성기가 0 을 기록, 아래 적재 시험; AUTO·전 모드 사례 삭제).
+
+## 기존 파일 적재 (요구 3)
+- 읽기 쪽은 `calibration_mode` 를 기록으로만 읽는다(무엇도 선택하지 않음). 시험 `CalibModeEnforcementTest.AScalarGainFileRecordingARemovedModeLoadsAndCorrectsLikeModeZero`: 같은 스칼라 맵(2.0)을 모드 0/3/1/2/4 로 기록한 파일이 모두 적재되고, `xpe_gain_correct` 출력이 모드 0 과 바이트 단위로 같으며(대조: 1000/2 = 500), 품질 기록에는 파일 값 그대로 남는다.
+- **판단(리더 지시와 다름)**: 허용 범위를 0..3 이 아니라 **0..4 로 유지**했다. 이전 단일 선량 생성기는 어떤 명시 모드에서도 실행됐고(`SingleDoseGeneratorIsAcceptedByEveryMode`, 2d9576de 까지), 활성 모드를 그대로 기록했으므로 MULTI_POINT_10(4) 상태에서 만든 스칼라 gain.xcal 도 존재할 수 있다. 0..3 으로 줄이면 그런 파일이 `XPE_ERR_CONFIG_INVALID` 로 거부되어 "기존 파일은 반드시 적재" 요구에 어긋난다. AUTO(5)는 이전에도 파일에 기록된 적이 없다(생성기가 해석한 모드를 기록). 0..3 을 원하면 `xpe_calib_mode.cpp` 의 범위 한 곳만 바꾸면 된다.
+
+## 바이트 비교 (요구 4) — `evidence/18_byte_diff.py.txt` → `19_byte_diff.txt`
+형식: `modules/preprocess/include/xpe/preprocess/xcal_format.h:129-142` (`XCalFileHeader`, pack 1, 152바이트; created_epoch_ms 오프셋 24..31, sha256 오프셋 120..151 = "SHA-256 of (config_json || payload)" :141; 설정 블록은 오프셋 152 부터).
+- **fixture_gen 이 만든 cyan_test gain.xcal (전: 2d9576de 빌드, 후: 새 빌드)**: 다른 바이트 **0**. fixture_gen 은 페이로드만 다시 써서 설정 블록이 없으므로(`xpe_calib_fixture_gen.cpp` `writeFixture`, config 길이 0) 모드가 파일에 들어가지 않는다. offset.xcal·defect.xcal 도 0바이트 차이, manifest 포함 세트 해시 전후 동일(`13_mode_cset_hash_before.txt` 대 `17_mode_cset_hash_after.txt`: offset `5569bacf…`, gain `a7ddadbd…`, defect `ba947dcd…`, manifest `a0fdc516…`).
+- **모드가 실제로 기록되는 파일(`xpe_calib_generate_gain` 이 직접 쓴 cyan_test Bright_23..28 게인, `14_gen_gain.py.txt`)**: 다른 바이트 39개
+  - 오프셋 172 (config[20]) 와 203 (config[51]): `"calibration_mode":3` → `0`, `"requested_calibration_mode":3` → `0` — 모드 필드.
+  - 오프셋 120..151 (header.sha256, 32바이트): 설정 블록을 덮는 해시라 모드에 종속.
+  - 오프셋 24..26 (header.created_epoch_ms) 와 624, 626 (config[472], [474], `"saturation_decided_at"` 시각 문자열): **생성 시각**. 모드와 무관하다 — 같은 이전 바이너리를 두 번 돌린 대조(`20_byte_diff_control.txt`)에서도 created_epoch_ms 24..26, saturation_decided_at(config[472],[475]), sha256 만 다르다(37바이트). 즉 이 파일은 원래 실행마다 시각 바이트가 바뀐다.
+  - 페이로드 sha256 전후 동일: `a0a4ca9901fa3efa83d2ca6e2c6cf20f4e434402eac68cf59d7cd6c41454329e`.
+
+## 출력 sha (파이프라인, Bright_29)
+- 전: `c5f458c5d2044f70f182f692f53f9357b389c7bf540b887bd4082cb01a67cfd3`, flags 0x201c (`12_mode_sha_before.txt`)
+- 후: `c5f458c5d2044f70f182f692f53f9357b389c7bf540b887bd4082cb01a67cfd3`, flags 0x201c (`16_mode_sha_after.txt`)
+
+## 빌드·시험
+- `cmake --build build/ci-preprocess` → `build_rc=0` (`21_mode_build.txt`).
+- `ctest --output-on-failure -j 1`: `100% tests passed, 0 tests failed out of 1488`, Total 301.82 sec, ctest_rc=0 (`22_mode_ctest_full_serial.txt`). 1493 → 1488 은 지운 모드 사례(8개 삭제, 3개 추가).
+
+## 참고
+- 작업 중 다른 세션이 이 브랜치에 문서 커밋 2개를 올렸다(9851206c, 7031598b — QA-A-335 보고서만). 그 위에 커밋했다.
+- 범위 밖(손대지 않음): GUI interop·clients 의 모드 사용처, tools/ci·tools/docs, docs/.
+- 임시 폴더 `D:/workspace-github/xpe-data/qa-336b-tmp` 삭제.

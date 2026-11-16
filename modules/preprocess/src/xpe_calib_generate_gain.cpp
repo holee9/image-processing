@@ -52,19 +52,12 @@ extern "C" XPE_API XpeErrorCode xpe_calib_generate_gain(
             return XPE_ERR_INVALID_INPUT;
         }
 
-        // FUNC-031 (8): the mode applies here too. This entry point acquires
-        // at one dose level with no fitted curve (degree 0), which every
-        // explicit mode accepts; AUTO resolves to SINGLE_POINT (#169).
+        // FUNC-031 (8): this entry point acquires at one dose level with no fitted curve (degree 0): SINGLE_POINT, the
+        // only mode (QA-A-336; it recorded the then default MULTI_POINT_8 = 3 before, which was false about the file).
         XpeCalibrationMode mode = XPE_CALIB_SINGLE_POINT;
         {
             const XpeErrorCode mrc = xpe_calib_resolve_mode(1, 0, &mode);
             if (mrc != XPE_OK) return mrc;
-        }
-        if (xpe_calib_get_mode() == XPE_CALIB_AUTO) {
-            char note[96];
-            std::snprintf(note, sizeof(note),
-                          "XPE_CALIB_AUTO resolved to mode %d", static_cast<int>(mode));
-            xpe_alert_push(note, XPE_ALERT_INFO);
         }
 
         // Dimensions from first frame
