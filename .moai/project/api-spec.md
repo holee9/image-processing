@@ -4,7 +4,7 @@
 **Version**: 1.4.0
 **Date**: 2026-04-22
 **Source Documents**: XPE-SRS-001, XPE-SAD-001, GSVG-SDD-001, GSVG-SRS-001, xpe_types.h, xpe_error.h, xpe_memory.h, xpe_common_api.h, SPEC-XPE-MASTER v3.0.0
-**Changelog**: v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 removed AED (Auto Exposure Detection) functions and terminology; AED is a detector-hardware function outside XPE scope. Exported function count corrected to 79. Updated SPEC-XPE-MASTER reference to v3.0.0. Added GSVG-SRS-001 to source documents. Section 6 revised 2026-09-10 per #117: documents converged on the implemented global-calibration design introduced by SPEC-XPE-P1A M2, commit e9b8ed4 — the calibration loaders take a single path and populate a module-global store, the correction functions take `(input, output, metadata)` and read that store, and `XPE_ERR_CALIB_NOT_LOADED` was added for "initialised but map not loaded".
+**Changelog**: 2026-11-17 (사용자 결정 2026-11-16): `xpe_temp_compensate`, `xpe_nonlinearity_correct`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_load_nonlin_lut`, `xpe_calib_unload_nonlin_lut`, `xpe_calib_generate_gain_polynomial`, `xpe_calib_get_max_points`, `xpe_calib_get_poly_degree` 삭제(엔진 커밋 a72d59c9·2d9576de·d3216b2a); `xpe_calib_set_mode` 는 `XPE_CALIB_SINGLE_POINT`(0)만 받는다. v1.1.0 -> v1.2.0 moved `xpe_calc_exposure_index` from `xpe_enhance_advanced.dll` to `xpe_enhance_basic.dll`. v1.2.0 -> v1.3.0 added the explicit-path management appendix and clarified that calibration paths remain caller-owned. v1.3.0 -> v1.4.0 removed AED (Auto Exposure Detection) functions and terminology; AED is a detector-hardware function outside XPE scope. Exported function count corrected to 79. Updated SPEC-XPE-MASTER reference to v3.0.0. Added GSVG-SRS-001 to source documents. Section 6 revised 2026-09-10 per #117: documents converged on the implemented global-calibration design introduced by SPEC-XPE-P1A M2, commit e9b8ed4 — the calibration loaders take a single path and populate a module-global store, the correction functions take `(input, output, metadata)` and read that store, and `XPE_ERR_CALIB_NOT_LOADED` was added for "initialised but map not loaded".
 **Reference**: For JSON configuration schemas, calibration file formats, and body-part lookup tables, see xpe-implementation-reference.md. For production software integration patterns, see production-integration-guide.md.
 
 ---
@@ -28,7 +28,7 @@ because a sweep is how the previous errors were introduced.
 | Module | Count | Exports |
 |---|---:|---|
 | `xpe_common` | 16 | `xpe_alert_push`, `xpe_alloc_image`, `xpe_clear_alerts`, `xpe_configure`, `xpe_copy_image`, `xpe_error_string`, `xpe_free_image`, `xpe_get_param_range`, `xpe_get_pending_alert`, `xpe_get_pending_alert_count`, `xpe_init`, `xpe_log_flush`, `xpe_log_set_file`, `xpe_log_set_level`, `xpe_shutdown`, `xpe_version` |
-| `xpe_preprocess` | 49 | `xpe_binning_correct`, `xpe_bpm_generate`, `xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`, `xpe_calib_check_expiry`, `xpe_calib_generate_gain`, `xpe_calib_generate_gain_polynomial`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_generate_offset`, `xpe_calib_get_max_points`, `xpe_calib_get_mode`, `xpe_calib_get_poly_degree`, `xpe_calib_get_quality_meta`, `xpe_calib_load_defect_cached`, `xpe_calib_load_defect_map`, `xpe_calib_load_gain`, `xpe_calib_load_gain_cached`, `xpe_calib_load_nonlin_lut`, `xpe_calib_load_offset`, `xpe_calib_load_offset_cached`, `xpe_calib_save`, `xpe_calib_set_mode`, `xpe_calib_state_load`, `xpe_calib_state_release`, `xpe_calib_unload_nonlin_lut`, `xpe_defect_correct`, `xpe_defect_detect_runtime`, `xpe_gain_correct`, `xpe_ghost_correct`, `xpe_ghost_create`, `xpe_ghost_destroy`, `xpe_ghost_reset`, `xpe_nonlinearity_correct`, `xpe_offset_correct`, `xpe_preprocess_get_param_range`, `xpe_preprocess_init`, `xpe_preprocess_is_initialized`, `xpe_preprocess_pipeline`, `xpe_preprocess_pipeline_batch`, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_pipeline_out`, `xpe_preprocess_shutdown`, `xpe_preprocess_version`, `xpe_temp_compensate`, `xpe_validate_readout_artifact`, `xpe_verify_defect`, `xpe_verify_gain`, `xpe_verify_offset`, `xpe_verify_pipeline` |
+| `xpe_preprocess` | 41 | `xpe_binning_correct`, `xpe_bpm_generate`, `xpe_calib_cache_clear`, `xpe_calib_cache_set_max_size`, `xpe_calib_check_expiry`, `xpe_calib_generate_gain`, `xpe_calib_generate_offset`, `xpe_calib_get_mode`, `xpe_calib_get_quality_meta`, `xpe_calib_load_defect_cached`, `xpe_calib_load_defect_map`, `xpe_calib_load_gain`, `xpe_calib_load_gain_cached`, `xpe_calib_load_offset`, `xpe_calib_load_offset_cached`, `xpe_calib_save`, `xpe_calib_set_mode`, `xpe_calib_state_load`, `xpe_calib_state_release`, `xpe_defect_correct`, `xpe_defect_detect_runtime`, `xpe_gain_correct`, `xpe_ghost_correct`, `xpe_ghost_create`, `xpe_ghost_destroy`, `xpe_ghost_reset`, `xpe_offset_correct`, `xpe_preprocess_get_param_range`, `xpe_preprocess_init`, `xpe_preprocess_is_initialized`, `xpe_preprocess_pipeline`, `xpe_preprocess_pipeline_batch`, `xpe_preprocess_pipeline_ex`, `xpe_preprocess_pipeline_out`, `xpe_preprocess_shutdown`, `xpe_preprocess_version`, `xpe_validate_readout_artifact`, `xpe_verify_defect`, `xpe_verify_gain`, `xpe_verify_offset`, `xpe_verify_pipeline` (2026-11-16 삭제 8개 제외 — 온도·비선형·다항식 게인·다점 모드, 사용자 결정) |
 | `xpe_enhance_basic` | 10 | `xpe_calc_exposure_index`, `xpe_contrast_enhance`, `xpe_edge_enhance`, `xpe_enhance_basic_get_max_threads`, `xpe_enhance_basic_set_max_threads`, `xpe_enhance_basic_version`, `xpe_log_inverse`, `xpe_log_transform`, `xpe_noise_estimate_sigma`, `xpe_noise_reduce` |
 | `xpe_enhance_advanced` | 9 | `xpe_adv_calc_exposure_index`, `xpe_detect_collimation`, `xpe_enhance_advanced_get_max_threads`, `xpe_enhance_advanced_init`, `xpe_enhance_advanced_set_max_threads`, `xpe_enhance_advanced_shutdown`, `xpe_enhance_advanced_version`, `xpe_fractional_process`, `xpe_multiscale_process` |
 | `xpe_display` | 8 | `xpe_apply_modality_lut`, `xpe_apply_presentation_lut`, `xpe_apply_presentation_lut_ex`, `xpe_apply_voi_lut`, `xpe_display_version`, `xpe_gsdf_calibrate`, `xpe_voi_auto_window`, `xpe_voi_preset_create` |
@@ -718,32 +718,11 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
 
 ---
 
-### 6.16 xpe_temp_compensate
-
-```c
-XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-                                          float detectorTempC,
-                                          const char* configJsonOrNull);
-```
-
-**Description**: Applies detector temperature compensation to `img` in-place using LUT or polynomial coefficients selected by `configJsonOrNull`. The caller passes the current detector temperature in Celsius.  
-**Traceability**: PRE-07, SRS-PERF-001  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_PROCESSING_FAILED`
+### 6.16 xpe_temp_compensate — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9)
 
 ---
 
-### 6.17 xpe_nonlinearity_correct
-
-```c
-XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
-                                               const char* configJsonOrNull);
-```
-
-**Description**: Corrects detector response nonlinearity in `img` in-place using pre-characterized calibration coefficients. `configJsonOrNull` selects detector mode and coefficient set.  
-**Traceability**: PRE-08, SRS-PERF-001  
-**Thread safety**: Reentrant.  
-**Error codes**: `XPE_OK`, `XPE_ERR_INVALID_INPUT`, `XPE_ERR_CONFIG_INVALID`, `XPE_ERR_PROCESSING_FAILED`
+### 6.17 xpe_nonlinearity_correct — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)
 
 ---
 

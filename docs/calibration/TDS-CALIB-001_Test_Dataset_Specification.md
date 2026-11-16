@@ -3,7 +3,8 @@
 **문서 ID**: TDS-CALIB-001 v1.0  
 **IEC 62304 절차**: 5.6.3 (테스트 설계 및 실행)  
 **안전 분류**: Class B  
-**작성일**: 2026-04-14  
+**작성일**: 2026-04-14 (갱신 2026-11-17)  
+**변경 2026-11-17**: 온도 보상(§4.5)·비선형 보정(§4.6)·다선량 다항식 게인 시험 데이터는 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 절 번호와 요구 ID 는 추적을 위해 남긴다.  
 **담당 부서**: XPE 캘리브레이션 개발팀  
 **승인**: __________________ 날짜: __________  
 
@@ -63,8 +64,8 @@
 - Gain (Flat-field) Correction (Stage 2)
 - Defect Pixel Correction (Stage 3)
 - Lag/Ghost Correction (Stage 4)
-- Temperature Compensation (Stage 0.7)
-- Nonlinearity Correction (Stage 1.5)
+- ~~Temperature Compensation (Stage 0.7)~~ (삭제 — 온도 보상, 사용자 결정 2026-11-16)
+- ~~Nonlinearity Correction (Stage 1.5)~~ (삭제 — 비선형 보정, 사용자 결정 2026-11-16)
 - Binning Correction (Stage 2.5)
 - Readout Artifact Validation (Stage 0.5)
 - Calibration Data I/O & Expiry Management (Stage 0)
@@ -124,8 +125,7 @@
 
 - 어두운 전류 차감 산술 연산 검증
 - 음수 값 클램핑(uint16 도메인) 동작 확인
-- 온도/PREP 시간 동적 보간 정확성 검증
-- 시계열 온도 변화에 따른 어두운 드리프트 추적
+- PREP 시간 동적 보간 정확성 검증 (온도 보간은 삭제 — 온도 보상, 사용자 결정 2026-11-16)
 
 #### 4.1.2 합성 데이터 명세
 
@@ -136,9 +136,9 @@
 | **offset_uniform** | 균일한 어두운 레벨 (5, 10, 50, 100, 500 ADU) | 어두운 레벨 D, 깨끗한 신호 I | I_corrected = max(0, I - D) |
 | **offset_nonuniform_spatial** | 공간 변화 어두운 (저주파 gradient) | D(x,y) = 50 + 0.01×x, 신호 I(x,y)=1000 | Pixel-wise 차감 후 클램핑 |
 | **offset_clamping_edge** | 경계값 테스트: I_raw=10, D=20 | D=20, I=10 | I_corrected=0 (클램핑 확인) |
-| **offset_temp_interp_2pt** | 온도 2점 보간 | T1=20°C (D1=100), T2=30°C (D2=125), interpolate at 25°C | D(25°C) = (100+125)/2 = 112.5 |
-| **offset_temp_interp_4pt** | 온도 4점 보간 (이중선형) | T={20,25,30,35}°C, PREP={10,20}ms | Bilinear interpolation 검증 |
-| **offset_time_series** | 시간 경과에 따른 드리프트 추적 | 초기 D=100, 온도 변화로 인한 지수 모델 | 드리프트 곡선이 exp(-E_g/2k_B×T) 추종 |
+| ~~**offset_temp_interp_2pt**~~ | 삭제 — 온도 보상, 사용자 결정 2026-11-16 | -- | -- |
+| ~~**offset_temp_interp_4pt**~~ | 삭제 — 온도 보상, 사용자 결정 2026-11-16 | -- | -- |
+| ~~**offset_time_series**~~ | 삭제 — 온도 보상, 사용자 결정 2026-11-16 | -- | -- |
 
 **파일 형식**:
 - `offset_uniform_5ADU_true.raw` (uint16, 3072×3072, 예상되는 "깨끗한" 입력)
@@ -148,7 +148,6 @@
 **합격 기준**:
 - 평균 오차 < 1 ADU (클램핑 적용 후)
 - 클램핑된 픽셀 비율 < 0.1%
-- 온도 보간 RMSE < 2 ADU
 
 #### 4.1.3 실제 영상 데이터 명세
 
@@ -159,9 +158,9 @@
 | 조건 | 최소 수량 | 취득 조건 |
 |------|--------|---------|
 | 온도 기준 (25°C) | 10프레임 | PREP=10s, 검출기 안정화 30분 후 |
-| 온도 20°C | 10프레임 | 실험실 냉방, 온도 센서 확인 |
-| 온도 30°C | 10프레임 | 열판 또는 환경실, ±0.5°C 안정성 |
-| 온도 35°C | 10프레임 | 극한 조건 테스트 |
+| ~~온도 20°C~~ | -- | 삭제 — 온도 보상, 사용자 결정 2026-11-16 |
+| ~~온도 30°C~~ | -- | 삭제 — 온도 보상, 사용자 결정 2026-11-16 |
+| ~~온도 35°C~~ | -- | 삭제 — 온도 보상, 사용자 결정 2026-11-16 |
 | PREP 시간 변수 | 20프레임 | PREP=1s, 5s, 10s, 30s at 25°C (7개 레벨 중 4개 대표값) |
 | 시간 드리프트 시퀀스 | 50프레임 | 4시간 연속 획득, 1시간당 1프레임 |
 
@@ -218,7 +217,7 @@
 | 요구사항 ID | 검증 항목 |
 |-----------|---------|
 | SRS-CALIB-FUNC-004 | 오프셋 차감 공식 및 클램핑 |
-| SRS-CALIB-FUNC-008 | 온도 보상 모델 (보간 일부) |
+| ~~SRS-CALIB-FUNC-008~~ | 삭제 — 온도 보상, 사용자 결정 2026-11-16 |
 | SRS-CALIB-SAFE-001 | 오프셋 필수 실행 정책 |
 
 ---
@@ -230,7 +229,7 @@
 - 게인(정규화) 연산 검증
 - uint16 → float32 형식 변환 정확성
 - 공간 비균일성(FPN) 보정 효과 검증
-- 다중 게인 다항식 (다중 에너지 모드) 지원 확인
+- ~~다중 게인 다항식 (다중 에너지 모드) 지원 확인~~ (삭제 (사용자 결정 2026-11-16 다항 게인 제거))
 - Heel effect 보상 정확성
 
 #### 4.2.2 합성 데이터 명세
@@ -243,7 +242,7 @@
 | **gain_nonuniform_10pct** | 10% FPN (Pixel Pitch 기반) | G(x,y) = 1.0 + 0.05×sin(2π×x/P) | σ/μ < 0.5% after correction |
 | **gain_nonuniform_15pct** | 15% FPN (현실적 a-Si) | G(x,y) = random(0.85, 1.15) | σ/μ < 1.0% after correction |
 | **gain_heel_effect** | Heel effect pattern | G(x,y) = 1.0 - 0.1×(x²+y²)/max² | Duo-SID 모델 검증 |
-| **gain_multi_gain_2energy** | 다중 게인 다항식 (2개 에너지) | G(E) = c0 + c1×E | E-dependent correction selection |
+| ~~**gain_multi_gain_2energy**~~ | 삭제 (사용자 결정 2026-11-16 다항 게인 제거) | -- | -- |
 | **gain_division_by_zero_edge** | 게인=0인 픽셀 처리 | G(x,y) = 0 (corrupt pixel) | Error code XPE_ERR_INVALID_CALIB_DATA |
 | **gain_range_validation** | 게인 범위 체크 | G_min=0.1, G_max=10.0 | Out-of-range 거부 |
 | **gain_format_conversion** | uint16 → float32 정확성 | I_uint16 in [0, 16383] | Bit-exact float32 변환 검증 |
@@ -270,7 +269,7 @@
 | 60% 포화도, SID 1000mm | 10프레임 | 높은 신호 품질 |
 | 40% 포화도, SID 1500mm | 10프레임 | Heel effect 검증용 |
 | 60% 포화도, SID 1500mm | 10프레임 | 다중 SID 캘리브레이션 |
-| Multi-gain 다항식 (2 에너지) | 20프레임 | 에너지별 10프레임씩 |
+| ~~Multi-gain 다항식 (2 에너지)~~ | -- | 삭제 (사용자 결정 2026-11-16 다항 게인 제거) |
 
 **파일 명명**:
 - `real/flatfield_frames/FF_SAT40_SID1000_F001.raw`
@@ -511,115 +510,15 @@ synthetic/lag/metadata_FSRF_SAT27.json
 
 ---
 
-### 4.5 Temperature Compensation 테스트 데이터
+### 4.5 Temperature Compensation 테스트 데이터 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9)
 
-#### 4.5.1 테스트 목적
-
-- 지수 온도 모델 (`I_dark(T) = I0 × exp(-Eg/2kB × T)`) 정확성
-- 온도 센서 통합 (NTC 측정값)
-- 이중선형 보간 (온도 × PREP 시간)
-- Bypass 조건 (±2°C 공차, 센서 불가용)
-
-#### 4.5.2 합성 데이터 명세
-
-**Dataset**: `synthetic/temperature/`
-
-| 테스트 케이스 | 온도 범위 | PREP 시간 | Ground Truth |
-|-------------|---------|------|-------------|
-| **temp_exponential_model** | 20, 25, 30, 35°C | 10s | 지수 곡선 추종 (E_g=1.12 eV) |
-| **temp_interp_2pt** | 20°C와 30°C 사이 | 10s | 25°C에서 쌍선형 보간 |
-| **temp_interp_4pt** | 20, 25, 30, 35°C | 1s, 5s, 10s, 30s | 이중선형 (온도 × PREP 초 단위) |
-| **temp_bypass_within_tolerance** | nominal=25°C, actual=26°C | - | Bypass (±2°C 허용) |
-| **temp_bypass_sensor_unavail** | - | - | Bypass, nominal 25°C 사용 |
-| **temp_drift_long_term** | 25°C + 0.1°C/hour drift | 4시간 | 드리프트 추적 정확성 |
-
-**파일 형식**:
-```
-synthetic/temperature/TEMP_EXP_20C_darkframe.raw    (uint16, ground truth)
-synthetic/temperature/TEMP_EXP_25C_darkframe.raw    (uint16)
-synthetic/temperature/TEMP_EXP_30C_darkframe.raw    (uint16)
-synthetic/temperature/TEMP_EXP_35C_darkframe.raw    (uint16)
-synthetic/temperature/metadata_TEMP_EXP.json
-  {
-    "test_case": "temp_exponential_model",
-    "bandgap_energy_ev": 1.12,
-    "boltzmann_constant_ev_k": 8.617e-5,
-    "temperatures_celsius": [20, 25, 30, 35],
-    "expected_dark_levels": [100, 125, 156, 195]
-  }
-```
-
-**합격 기준**:
-- 온도 보간 RMSE < 2 ADU
-- 지수 모델 R² > 0.995
-- Bypass 조건 정확한 적용 (±2°C)
-
-#### 4.5.3 실제 영상 데이터 명세
-
-**출처**: IAP-CALIB-001 **섹션 6.1** (Dark Frame 취득 — 온도 가변 조건)
-
-| 조건 | 최소 수량 | 취득 조건 |
-|------|--------|---------|
-| 온도 스캔 (20-35°C) | 각 온도 10프레임 | ±0.1°C 센서 정확도 |
-| 장기 드리프트 (4시간) | 50프레임 | 1시간당 1프레임 샘플링 |
-| 센서 보정 (NTC vs RTD) | 20프레임 | 기준 온도계 병렬 측정 |
-
-#### 4.5.4 관련 요구사항
-
-| 요구사항 ID | 검증 항목 |
-|-----------|---------|
-| SRS-CALIB-FUNC-008 | 온도 보상 지수 모델 |
+요구 SRS-CALIB-FUNC-008 이 삭제되어 이 절의 시험 사례·합성 데이터(`synthetic/temperature/`)·실제 영상 조건은 효력이 없다. 내용은 이력(git)에만 남긴다.
 
 ---
 
-### 4.6 Nonlinearity Correction 테스트 데이터
+### 4.6 Nonlinearity Correction 테스트 데이터 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)
 
-#### 4.6.1 테스트 목적
-
-- 검출기 응답 곡선 선형화 (비선형성 LUT/다항식)
-- 다항식 차수별 정확성 (degree 2-5)
-- Multi-gain 비선형성 (에너지 의존성)
-- Bypass 조건 (detector.linear = true)
-
-#### 4.6.2 합성 데이터 명세
-
-**Dataset**: `synthetic/nonlinearity/`
-
-| 테스트 케이스 | 비선형성 모델 | LUT 크기 | Ground Truth |
-|-------------|------------|---------|-------------|
-| **nonlin_quadratic** | I_nonlin = 1.2×I - 0.001×I² | 256 entries | R² > 0.999 after correction |
-| **nonlin_cubic** | I_nonlin = 0.9×I + 0.0005×I³ | 256 entries | - |
-| **nonlin_poly_degree3** | 3차 다항식 fitting | LUT 또는 poly | - |
-| **nonlin_poly_degree5** | 5차 다항식 fitting | LUT 또는 poly | - |
-| **nonlin_multi_gain_2energy** | E1, E2에서 각각 다른 곡선 | 각 256 entries | 에너지별 선택 검증 |
-| **nonlin_step_wedge** | 7-10 강도 수준 wedge | 실제 wedge 스캔 | 선형성 검증 |
-
-**파일 형식**:
-```
-synthetic/nonlinearity/NONLIN_QUAD_clean.raw       (float32, 3072×3072)
-synthetic/nonlinearity/NONLIN_QUAD_degraded.raw    (float32, 비선형성 추가)
-synthetic/nonlinearity/NONLIN_QUAD_lut.raw         (uint16, 256 entries)
-synthetic/nonlinearity/metadata_NONLIN_QUAD.json
-```
-
-**합격 기준**:
-- 보정 후 R² > 0.999
-- 보정 후 잔차 RMSE < 1% 신호
-
-#### 4.6.3 실제 영상 데이터 명세
-
-**출처**: IAP-CALIB-001 **섹션 6.4** (비선형성 측정용 영상)
-
-| 조건 | 최소 수량 | 취득 조건 |
-|------|--------|---------|
-| 단색 X-ray flat-field (7-10 노출 수준) | 70프레임 | 5%-90% saturation |
-| Multi-energy flat-field (2 에너지) | 140프레임 | 에너지당 70프레임 |
-
-#### 4.6.4 관련 요구사항
-
-| 요구사항 ID | 검증 항목 |
-|-----------|---------|
-| SRS-CALIB-FUNC-006 | 비선형성 보정 (LUT/다항식) |
+요구 SRS-CALIB-FUNC-006 이 삭제되어 이 절의 시험 사례·합성 데이터(`synthetic/nonlinearity/`)·실제 영상 조건은 효력이 없다. 내용은 이력(git)에만 남긴다.
 
 ---
 
@@ -836,15 +735,15 @@ synthetic/[algorithm]/
 
 | 알고리즘 | 어두운 프레임 | Flatfield 프레임 | 특수 시퀀스 | 총 프레임 수 |
 |---------|-------------|-----------------|-----------|-----------|
-| Offset | 40 (4 temp × 10) | - | - | 40 |
+| Offset | 10 (기준 온도) | - | - | 10 |
 | Gain | - | 40 (4 sat × 10) | - | 40 |
 | Defect | 30 (BPM 생성용) | 30 (검증용) | - | 60 |
 | Lag | - | - | FSRF 400 + RSRF 250 | 650 |
-| Temperature | 40 (temp sweep) | - | 50 (시간 시리즈) | 90 |
-| Nonlinearity | - | 70 (7 level × 10) | - | 70 |
+| ~~Temperature~~ | 삭제 — 온도 보상, 사용자 결정 2026-11-16 | - | - | 0 |
+| ~~Nonlinearity~~ | - | 삭제 — 비선형 보정, 사용자 결정 2026-11-16 | - | 0 |
 | Binning | - | 40 (1×1, 2×2, 4×4) | - | 40 |
 | Readout | 20 (known artefact) | 20 | - | 40 |
-| **합계** | | | | **1,030** |
+| **합계** | | | | **840** (온도·비선형 삭제 반영) |
 
 ### 6.2 취득 조건 참조
 
@@ -853,10 +752,10 @@ synthetic/[algorithm]/
 | IAP 섹션 | 제목 | 적용 대상 |
 |------|------|---------|
 | **5** | 일반 취득 전 조건 (General Prerequisites) | 모든 데이터 |
-| **6.1** | Dark Frame 취득 | Offset correction, Temperature |
-| **6.2** | Flat-field Frame 취득 | Gain correction, Nonlinearity, Binning |
+| **6.1** | Dark Frame 취득 | Offset correction |
+| **6.2** | Flat-field Frame 취득 | Gain correction, Binning |
 | **6.3** | BPM 생성용 영상 취득 | Defect pixel correction |
-| **6.4** | 비선형성 측정용 영상 | Nonlinearity correction |
+| ~~**6.4**~~ | ~~비선형성 측정용 영상~~ | 삭제 — 비선형 보정, 사용자 결정 2026-11-16 |
 | **6.5** | Lag/Ghost 측정용 영상 | Lag/Ghost correction |
 | *(별도 취득 없음)* | Readout Artifact — 실시간 전자회로 보정 | Dark/Flat-field 재사용 (Section 6.1/6.2) |
 
@@ -1037,20 +936,7 @@ test_data/
 │   │   │   ├── lag_tier3_nlcsc_*.raw
 │   │   │   └── metadata_LAG.json
 │   │   │
-│   │   ├── temperature/
-│   │   │   ├── TEMP_EXP_20C_darkframe.raw
-│   │   │   ├── TEMP_EXP_25C_darkframe.raw
-│   │   │   ├── TEMP_EXP_30C_darkframe.raw
-│   │   │   ├── TEMP_EXP_35C_darkframe.raw
-│   │   │   ├── temp_interp_4pt_*.raw
-│   │   │   └── metadata_TEMPERATURE.json
-│   │   │
-│   │   ├── nonlinearity/
-│   │   │   ├── NONLIN_QUAD_clean.raw
-│   │   │   ├── NONLIN_QUAD_degraded.raw
-│   │   │   ├── NONLIN_QUAD_lut.raw
-│   │   │   ├── NONLIN_POLY_degree5_*.raw
-│   │   │   └── metadata_NONLINEARITY.json
+│   │   ├── (temperature/, nonlinearity/ — 삭제, 사용자 결정 2026-11-16)
 │   │   │
 │   │   ├── binning/
 │   │   │   ├── NATIVE_1x1_3072x3072.raw
@@ -1124,11 +1010,11 @@ test_data/
 | SRS-CALIB-FUNC-001 | offset_uniform | synthetic | synthetic/dark_frames/ |
 | SRS-CALIB-FUNC-002 | gain_range_validation | synthetic | synthetic/flatfield_frames/ |
 | SRS-CALIB-FUNC-003 | defect_bpm_parsing | real | real/defects/ |
-| SRS-CALIB-FUNC-004 | offset_temp_interp | synthetic + real | synthetic/dark_frames/, real/dark_frames/ |
+| SRS-CALIB-FUNC-004 | offset_uniform, offset_clamping_edge | synthetic + real | synthetic/dark_frames/, real/dark_frames/ |
 | SRS-CALIB-FUNC-005 | gain_format_conversion | synthetic | synthetic/flatfield_frames/ |
-| SRS-CALIB-FUNC-006 | nonlin_poly_degree5 | synthetic + real | synthetic/nonlinearity/, real/ |
+| SRS-CALIB-FUNC-006 | 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a) | -- | -- |
 | SRS-CALIB-FUNC-007 | defect_mixed_0.5pct | synthetic | synthetic/defects/ |
-| SRS-CALIB-FUNC-008 | temp_exponential_model | synthetic | synthetic/temperature/ |
+| SRS-CALIB-FUNC-008 | 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9) | -- | -- |
 | SRS-CALIB-FUNC-009 | (expire check - code test) | N/A | N/A |
 | SRS-CALIB-FUNC-010 | (runtime detection - code test) | N/A | N/A |
 | SRS-CALIB-SAFE-001 | offset_mandatory + gain_mandatory | integration test | synthetic + real |
@@ -1204,7 +1090,7 @@ Required E2E modes:
 | Mode | Dataset source | Expected evidence |
 |---|---|---|
 | `PRE-E2E-0` | all local cases | file size, SHA-256, inferred dimensions, Git ignore proof |
-| `PRE-E2E-1` | generated synthetic cases | exact oracle output for offset/gain/nonlinearity/defect/lag |
+| `PRE-E2E-1` | generated synthetic cases | exact oracle output for offset/gain/defect/lag (비선형 보정은 삭제, 사용자 결정 2026-11-16) |
 | `PRE-E2E-2` | local real cases | detector-domain calibration-effect metrics |
 | `PRE-E2E-3` | cases with known outputs such as `*_oc.raw` | RMSE/PSNR reference comparison after semantics confirmation |
 | `PRE-E2E-4` | Test GUI or backend driver | same report schema as native E2E run |
@@ -1272,14 +1158,14 @@ Raw payload policy:
 | 항목 | 값 |
 |------|-----|
 | **Case ID** | `caldata_6_mc_multistep` |
-| **목적** | 다중 선량 레벨 게인 맵 생성 및 비선형성 LUT 검증 |
+| **목적** | 게인 맵 생성 검증 (비선형성 LUT 검증은 삭제, 사용자 결정 2026-11-16) |
 | **파일 수** | 11개 (dark.raw × 1, bright.raw × 6, BPMap.map, PositionMap.raw, Total_Defect_Map.raw, Cluster_position.txt) |
 | **총 용량** | 171MB (6×18.9MB + 9.4MB + 18.9MB + 18.9MB 기타) |
 | **수집 일자** | 2025-02-24 |
 | **검출기 타입** | 표준 X-ray FPD (3072×3072) |
-| **검증 대상 SRS 요구사항** | SRS-CALIB-FUNC-005 (다중 게인), SRS-CALIB-FUNC-006 (비선형성 LUT), SRS-CALIB-FUNC-007 (BPM) |
+| **검증 대상 SRS 요구사항** | SRS-CALIB-FUNC-005 (게인), SRS-CALIB-FUNC-007 (BPM) — FUNC-006 은 삭제(사용자 결정 2026-11-16) |
 | **필수 E2E 모드** | PRE-E2E-0 (데이터 검증), PRE-E2E-2 (캘리브레이션 메트릭) |
-| **합격 기준** | CES ≥ 85, FPN < 5%, 비선형성 오류 < 0.3% ADU |
+| **합격 기준** | CES ≥ 85, FPN < 5% |
 
 **파일 설명:**
 - `dark.raw`: 암전류 기준 (18.9MB)
@@ -1291,7 +1177,7 @@ Raw payload policy:
 **사용 시나리오:**
 ```
 Step 1: 6개 밝음 프레임 평균 → 게인 맵 계산
-Step 2: 선량 vs 신호 피팅 → 비선형성 LUT 생성
+Step 2: (선량 대 신호 피팅·비선형성 LUT 생성 — 삭제 — 비선형 보정, 사용자 결정 2026-11-16)
 Step 3: 생성 BPM vs 기준 BPMap 비교 → Recall/FPR 계산
 ```
 
@@ -1309,9 +1195,9 @@ Step 3: 생성 BPM vs 기준 BPMap 비교 → Recall/FPR 계산
 | **총 용량** | 919MB (20×18.9MB 다크/밝음 + 5×18.9MB CalSet + 임상 영상 포함) |
 | **수집 기간** | 2026-04-02 |
 | **검출기 타입** | Cyan 변형 X-ray FPD (3072×3072) |
-| **검증 대상 SRS 요구사항** | SRS-CALIB-FUNC-005 (다중 게인 다항식), SRS-CALIB-FUNC-008 (온도 보정), SRS-CALIB-FUNC-011 (세션 관리), SRS-CALIB-FUNC-015~021 (E2E 메트릭) |
+| **검증 대상 SRS 요구사항** | SRS-CALIB-FUNC-005 (게인), SRS-CALIB-FUNC-011 (세션 관리), SRS-CALIB-FUNC-015~021 (E2E 메트릭) — 다선량 다항식 게인과 온도 보정(FUNC-008)은 삭제(사용자 결정 2026-11-16) |
 | **필수 E2E 모드** | PRE-E2E-0 (파일 검증), PRE-E2E-2 (캘리브레이션 메트릭), PRE-E2E-3 (DICOM 기준값 비교) |
-| **합격 기준** | CES ≥ 85, 다항식 R² > 0.99, 임상 PSNR > 40 dB |
+| **합격 기준** | CES ≥ 85, 임상 PSNR > 40 dB |
 
 **파일 그룹:**
 - `Dark_07.raw ~ Dark_16.raw`: 10개 다크 프레임 (시간 드리프트, 각 18.9MB)
@@ -1325,13 +1211,13 @@ Step 3: 생성 BPM vs 기준 BPMap 비교 → Recall/FPR 계산
 **사용 시나리오:**
 ```
 Step 1: 10개 Dark 프레임 시간 드리프트 분석
-Step 2: 5개 CalSet에서 다중 게인 다항식 피팅 (dose vs signal)
+Step 2: (5개 CalSet 다중 게인 다항식 피팅 — 삭제 — 다선량 다항식 게인, 사용자 결정 2026-11-16)
 Step 3: 임상 영상(Chest/Foot phantom) 전처리
 Step 4: DICOM 출력 형식 및 메타데이터 검증
 ```
 
 **추가 검증:**
-- 온도 보정 지수 모델 검증 (tau 추정)
+- ~~온도 보정 지수 모델 검증 (tau 추정)~~ (삭제 — 온도 보상, 사용자 결정 2026-11-16)
 - 세션 상태 추적 (초기화/리셋)
 - 임상 PACS 시스템 호환성
 
@@ -1389,11 +1275,11 @@ LineArtifactScore = (중주파 에너지) / (전체 에너지) × 100%
 
 | 데이터셋 | SRS 요구사항 | 검증 방법 |
 |--------|-----------|---------|
-| **CalData_6** | SRS-CALIB-FUNC-005 (다중 게인) | 6개 선량 레벨 피팅 성능 측정 |
-| | SRS-CALIB-FUNC-006 (비선형성 LUT) | LUT 생성 후 residual < 0.3% |
+| **CalData_6** | SRS-CALIB-FUNC-005 (게인) | 게인 맵 생성 |
+| | ~~SRS-CALIB-FUNC-006 (비선형성 LUT)~~ | 삭제 — 비선형 보정, 사용자 결정 2026-11-16 |
 | | SRS-CALIB-FUNC-007 (BPM) | Recall ≥ 95%, FPR < 1% |
-| **cyan_test** | SRS-CALIB-FUNC-005 (CalSet 다항식) | 5개 선량에서 R² > 0.99 |
-| | SRS-CALIB-FUNC-008 (온도 보정) | Dark 시간 드리프트 분석 |
+| **cyan_test** | ~~SRS-CALIB-FUNC-005 (CalSet 다항식)~~ | 삭제 — 다선량 다항식 게인, 사용자 결정 2026-11-16 |
+| | ~~SRS-CALIB-FUNC-008 (온도 보정)~~ | 삭제 — 온도 보상, 사용자 결정 2026-11-16 |
 | | SRS-CALIB-FUNC-011 (세션 관리) | 세션 ID, 타임스탬프 추적 |
 | | SRS-CALIB-FUNC-015~021 (E2E 메트릭) | 전체 CES 점수 계산 |
 | **Grid_abnormal** | SRS-CALIB-FUNC-007 (BPM) | 알고리즘 비교 검증 |
@@ -1446,8 +1332,7 @@ CalData_6:
   └─ BPM Recall ≥ 95% ✓
 
 cyan_test:
-  ├─ 5개 CalSet → 다항식 피팅
-  ├─ R² > 0.99 ✓
+  ├─ (5개 CalSet 다항식 피팅 — 삭제 — 다선량 다항식 게인, 사용자 결정 2026-11-16)
   ├─ 임상 영상 PSNR > 40 dB ✓
   └─ DICOM 출력 검증 ✓
 

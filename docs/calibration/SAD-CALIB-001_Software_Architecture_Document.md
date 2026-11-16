@@ -3,7 +3,8 @@
 **Document ID:** SAD-CALIB-001 v1.0  
 **IEC 62304 Clause:** 5.3 (Software Architectural Design)  
 **Safety Classification:** Class B  
-**Date:** 2026-04-14  
+**Date:** 2026-04-14 (갱신 2026-11-17)  
+**변경 2026-11-17:** 온도 보상(SWU-1.6 TempCompensator)과 비선형 보정(SWU-1.7 NonlinearityCorrector)은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 단위 번호는 추적을 위해 남긴다.  
 **Author:** XPE Architecture Team  
 **Approval:** __________________ Date: __________  
 
@@ -30,8 +31,8 @@ This Software Architecture Document defines the structural design of the XPE Pre
 
 This architecture applies to calibration-related software units only:
 - CalibrationManager (central orchestration)
-- Five mandatory correction units (Offset, Gain, Nonlinearity, Defect, Ghost)
-- Supporting units (TempCompensator, BinningCorrector, RuntimeDefectDetector, SessionManager)
+- Correction units (Offset, Gain, Defect, Ghost) — Nonlinearity 는 삭제(사용자 결정 2026-11-16)
+- Supporting units (BinningCorrector, RuntimeDefectDetector, SessionManager)
 
 Enhancement processing (log transform, CLAHE, edge enhancement) is out of scope and handled by downstream modules. Grid processing is handled by `gsvg.dll`.
 
@@ -59,11 +60,7 @@ Raw uint16 Frame (3072×3072)
     ↓
 [CalibrationManager: Load offset/gain/BPM files]
     ↓
-[Temperature Compensation] (optional, conditional)
-    ↓
 [Offset Correction] (mandatory)
-    ↓
-[Nonlinearity Correction] (optional, conditional)
     ↓
 [Gain Correction] (mandatory) ← Format boundary: uint16 → float32
     ↓
@@ -101,7 +98,7 @@ Central orchestrator for calibration data loading, validation, and lifecycle man
 
 | SWU ID | Name | Responsibility | Dependencies | Threads |
 |--------|------|-----------------|--------------|---------|
-| **SWU-1.1** | OffsetCorrector | Apply offset (dark current) correction: `I_corr = I_raw - I_dark` | CalibFileIO (offsetMap), TempCompensator | Main thread |
+| **SWU-1.1** | OffsetCorrector | Apply offset (dark current) correction: `I_corr = I_raw - I_dark` | CalibFileIO (offsetMap) | Main thread |
 | **SWU-1.2** | GainCorrector | Apply gain normalization + uint16→float32 conversion: `I_norm = I_corr / G` | CalibFileIO (gainMap) | Main thread |
 | **SWU-1.3** | DefectCorrector | Detect and interpolate bad pixels using BPM + RMM algorithm | CalibFileIO (BPM), RuntimeDefectDetector | Main thread |
 | **SWU-1.4** | GhostCorrector | Multi-tier lag/ghosting removal (Tier 1 LTI → Tier 2 exposure-weighted → Tier 3 NLCSC) | SessionManager (frame history), CalibFileIO (NLCSC coefficients) | Per-handle mutex |
@@ -121,7 +118,7 @@ Central orchestrator for calibration data loading, validation, and lifecycle man
 - Operation: Pixel-wise division + conversion to float32
 - Output: float32 gain-normalized frame ← **FORMAT BOUNDARY**
 - Error handling: Zero/invalid gain values → `XPE_ERR_INVALID_CALIB_DATA`
-- Multi-gain support: `G(x,y,E) = Σ(c_k × E^k)` for energy-dependent correction
+- ~~Multi-gain support: `G(x,y,E) = Σ(c_k × E^k)` for energy-dependent correction~~ — 삭제 (사용자 결정 2026-11-16 다항 게인 제거; 다항 gain.xcal 형식 3 은 엔진이 거부, xpe-pre d3216b2a)
 - State: Stateless
 
 **SWU-1.3 DefectCorrector:**
@@ -149,25 +146,9 @@ Central orchestrator for calibration data loading, validation, and lifecycle man
 
 ### 3.2 Software Item 2: Supporting Units (SWI-CALIB-2)
 
-#### 3.2.1 TempCompensator (SWU-1.6)
+#### 3.2.1 TempCompensator (SWU-1.6) — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9)
 
-**Responsibility:** Temperature-dependent dark current compensation.
-
-- Input: uint16 frame + current temperature (°C) + temperature LUT/polynomial
-- Operation: Calculate `I_dark(T) = I_dark(T_ref) × exp(-(E_g/2kB) × (1/T - 1/T_ref))`
-- Output: Temperature-adjusted dark current map
-- Bypass condition: `|T - T_ref| ≤ 2°C` → skip, use nominal
-- State: Stateless (LUT loaded from config at startup)
-
-#### 3.2.2 NonlinearityCorrector (SWU-1.7)
-
-**Responsibility:** Detector response linearization.
-
-- Input: uint16 frame + nonlinearity LUT/polynomial (from detector profile)
-- Operation: LUT lookup or polynomial evaluation to linearize response
-- Output: uint16 linearized frame
-- Bypass condition: Detector profile `panel.linear = true` → skip
-- State: Stateless (LUT loaded from detector profile)
+#### 3.2.2 NonlinearityCorrector (SWU-1.7) — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)
 
 #### 3.2.3 BinningCorrector (SWU-1.8)
 
@@ -340,7 +321,6 @@ typedef struct {
 typedef struct {
     const char* detector_model;      // "Varex XRD4343N"
     float nominal_temp_celsius;      // 25.0
-    bool panel_is_linear;            // false (requires nonlinearity correction)
     uint16_t max_gray_value;         // 65535 (16-bit)
     float pixel_pitch_microns;       // 143.5
     uint16_t max_binning_mode;       // 4 (supports 1×1, 2×2, 4×4)
@@ -416,20 +396,8 @@ typedef struct {
                   │
                   v
     ┌─────────────────────────────────────────┐
-    │  TempCompensator (if sensor & |ΔT|>2°C) │
-    │  I_dark(T) = I_dark(T_ref) × exp(...) │
-    └─────────────┬───────────────────────────┘
-                  │ uint16
-                  v
-    ┌─────────────────────────────────────────┐
     │  OffsetCorrector                        │
     │  I_corr = I_raw - I_dark (MANDATORY)   │
-    └─────────────┬───────────────────────────┘
-                  │ uint16
-                  v
-    ┌─────────────────────────────────────────┐
-    │  NonlinearityCorrector (if needed)      │
-    │  I_lin = f_nonlinearity(I_corr)        │
     └─────────────┬───────────────────────────┘
                   │ uint16
                   v
@@ -480,16 +448,8 @@ START: New raw frame
        │   EXPIRED → Raise XPE_ERR_CALIBRATION_EXPIRED, ABORT
        │   OK → Continue
        │
-       ├─→ TempCompensator: Is sensor available AND |T - T_ref| > 2°C?
-       │   YES → Apply temperature correction
-       │   NO  → Skip, log bypass
-       │
        ├─→ OffsetCorrector: ALWAYS EXECUTE
        │   I_corr = I_raw - I_dark
-       │
-       ├─→ NonlinearityCorrector: Is panel.linear = false?
-       │   YES → Apply nonlinearity correction
-       │   NO  → Skip, log bypass (detector already linear)
        │
        ├─→ GainCorrector: ALWAYS EXECUTE ← FORMAT BOUNDARY
        │   I_norm = I_corr / G(x,y) → float32
@@ -613,9 +573,9 @@ Each SRS requirement shall be traced to one or more SWUs:
 | SRS-CALIB-FUNC-003 (BPM file load) | SWU-1.5 (CalibFileIO) | Unit test: RLE decompression |
 | SRS-CALIB-FUNC-004 (offset correction) | SWU-1.1 (OffsetCorrector) | Unit test: pixel arithmetic, clamp |
 | SRS-CALIB-FUNC-005 (gain correction) | SWU-1.2 (GainCorrector) | Unit test: division, float32 conversion |
-| SRS-CALIB-FUNC-006 (nonlinearity) | SWU-1.7 (NonlinearityCorrector) | Unit test: LUT lookup accuracy |
+| SRS-CALIB-FUNC-006 (nonlinearity) | 삭제 (사용자 결정 2026-11-16) | -- |
 | SRS-CALIB-FUNC-007 (defect correction) | SWU-1.3 (DefectCorrector) | Unit test: interpolation methods |
-| SRS-CALIB-FUNC-008 (temp compensation) | SWU-1.6 (TempCompensator) | Unit test: exponential model |
+| SRS-CALIB-FUNC-008 (temp compensation) | 삭제 (사용자 결정 2026-11-16) | -- |
 | SRS-CALIB-FUNC-009 (expiry check) | SWU-1.5 (CalibFileIO) | Unit test: timestamp comparison |
 | SRS-CALIB-FUNC-010 (runtime defects) | SWU-1.9 (RuntimeDefectDetector) | Integration test: SNR calculation |
 | SRS-CALIB-FUNC-011 (session management) | SWU-1.10 (SessionManager) | Unit test: handle creation/reset |
@@ -635,8 +595,6 @@ xpe_preprocess.dll/
 │   ├── calib_defect.c          → SWU-1.3 DefectCorrector
 │   ├── calib_ghost.c           → SWU-1.4 GhostCorrector
 │   ├── calib_file_io.c         → SWU-1.5 CalibFileIO
-│   ├── calib_temp.c            → SWU-1.6 TempCompensator
-│   ├── calib_nonlinearity.c    → SWU-1.7 NonlinearityCorrector
 │   ├── calib_binning.c         → SWU-1.8 BinningCorrector
 │   ├── calib_runtime_defects.c → SWU-1.9 RuntimeDefectDetector
 │   ├── calib_session.c         → SWU-1.10 SessionManager
@@ -669,9 +627,9 @@ xpe_preprocess.dll/
 
 ### 9.2 Known Limitations
 
-1. **Nonlinearity Correction:** Assumes detector-specific polynomial coefficients available in detector profile. If not provided, stage is skipped (but logged). Detector calibrator must pre-compute coefficients.
+1. ~~**Nonlinearity Correction**~~ — 삭제 (사용자 결정 2026-11-16).
 
-2. **Temperature Compensation:** Relies on accurate NTC thermistor reading. If sensor drifts or fails, system uses nominal 25°C (logged as bypass).
+2. ~~**Temperature Compensation**~~ — 삭제 (사용자 결정 2026-11-16).
 
 3. **Binning Correction:** Assumes square binning (2×2, 4×4). Non-square binning (e.g., 2×4) not supported.
 
@@ -710,7 +668,7 @@ xpe_preprocess.dll/
 
 ### Decision: Why uint16→float32 at Gain Stage?
 
-**Rationale:** Offset and nonlinearity corrections can remain in uint16 (integer math is faster). Gain correction requires division, which naturally produces floating-point results. By deferring format conversion to this stage, we minimize floating-point arithmetic in the hot path while ensuring downstream stages (defect, ghost) work with stable float32 format.
+**Rationale:** Offset correction can remain in uint16 (integer math is faster). Gain correction requires division, which naturally produces floating-point results. By deferring format conversion to this stage, we minimize floating-point arithmetic in the hot path while ensuring downstream stages (defect, ghost) work with stable float32 format.
 
 ### Decision: Why 8-Frame History Buffer for Ghost Correction?
 

@@ -1,5 +1,7 @@
 # XPE 모듈 상세 카탈로그
 
+> **2026-11-16 기능 삭제**: 온도 보상(PRE-07, `xpe_temp_compensate`)과 비선형 보정(PRE-08, `xpe_nonlinearity_correct`, 비선형 LUT 생성·적재 API), 다선량 다항식 게인(`xpe_calib_generate_gain_polynomial`)은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 아래에서 해당 줄에 삭제 표시를 붙였다.
+
 **문서 ID**: XPE-CODEMAP-002  
 **버전**: 1.1.0  
 **날짜**: 2026-04-20  
@@ -59,8 +61,8 @@ XPE 엔진은 8개의 독립적 DLL 모듈로 구성되며, 각 모듈은 명확
 | `xpe_defect_correct()` | 결함 픽셀 보정 |
 | `xpe_ghost_correct()` | 고스트/지연 보정 (Tier 1/2/3) |
 | `xpe_calib_load_*()` | 보정 데이터 로드 |
-| `xpe_temp_compensate()` | 온도 보상 |
-| `xpe_nonlinearity_correct()` | 비선형 보정 |
+| ~~`xpe_temp_compensate()`~~ (삭제 2026-11-16) | 온도 보상 |
+| ~~`xpe_nonlinearity_correct()`~~ (삭제 2026-11-16) | 비선형 보정 |
 | `xpe_binning_correct()` | 빈닝 보정 |
 | `xpe_validate_readout_artifact()` | 읽기 아티팩트 검증 |
 | `xpe_preprocess_pipeline()` | **새로 추가**: 전처리 파이프라인 통합 (REQ-P1A-041~049) |
@@ -182,8 +184,8 @@ XPE 엔진은 8개의 독립적 DLL 모듈로 구성되며, 각 모듈은 명확
 
 #### 전처리 (PRE-01~09)
 - **PRE-01**: 읽기 아티팩트 검증 (`xpe_validate_readout_artifact`)
-- **PRE-07**: 온도 보상 (`xpe_temp_compensate`)
-- **PRE-08**: 비선형성 보정 (`xpe_nonlinearity_correct`)
+- **PRE-07**: 온도 보상 (`xpe_temp_compensate`)  ← 삭제 (2026-11-16)
+- **PRE-08**: 비선형성 보정 (`xpe_nonlinearity_correct`)  ← 삭제 (2026-11-16)
 - **PRE-09**: 빈닝 보정 (`xpe_binning_correct`)
 - **PRE-02/03/06**: 오프셋/게인/결함 보정
 - **PRE-04**: 고스트 보정 (Tier 1/2/3 LTI/NLCSC) (`xpe_ghost_correct`)
@@ -230,8 +232,8 @@ xpe_preprocess.dll/
 │   ├── ghost_correct.cpp     # Tier 1/2/3 구현 (LTI/NLCSC)
 │   ├── pipeline.cpp          # **새로 추가**: 전처리 파이프라인 (REQ-P1A-041~049)
 │   ├── calibration_io.cpp
-│   ├── temp_compensate.cpp    # **새로 추가**: 온도 보상
-│   ├── nonlinearity.cpp      # **새로 추가**: 비선형 보정
+│   ├── temp_compensate.cpp    # **새로 추가**: 온도 보상  // 삭제 (2026-11-16)
+│   ├── nonlinearity.cpp      # **새로 추가**: 비선형 보정  // 삭제 (2026-11-16)
 │   ├── binning.cpp           # **새로 추가**: 빈닝 보정
 │   └── readout_validate.cpp   # **새로 추가**: 읽기 아티팩트 검증
 ```
