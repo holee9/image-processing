@@ -1,0 +1,25 @@
+# QA-A-342: degrees of freedom nu needed when the bright-noise threshold is the same false-alarm rule moved to the cost-2.0 boundary
+# (threshold = 2 * tau(nu, p), tau from varianceThreshold at xpe_bpm_v2.cpp:1178, p = 1/n). chi-square model only; the persistence
+# condition at :1040 (cost >= 2 in half the groups) is NOT modelled, so detection here is an upper bound.
+import math
+def Q(a,x):
+  if x<a+1:
+    s=t=1/a; ap=a
+    for _ in range(4000): ap+=1; t*=x/ap; s+=t
+    return 1-s*math.exp(-x+a*math.log(x)-math.lgamma(a))
+  b=x+1-a; c=1e300; d=1/b; h=d
+  for i in range(1,4000):
+    an=-i*(i-a); b+=2; d=an*d+b; d=1/d; c=b+an/c; h*=d*c
+  return math.exp(-x+a*math.log(x)-math.lgamma(a))*h
+sf=lambda r,nu: Q(nu/2, nu*r/2)
+def tau(nu,p):
+  lo,hi=1e-6,1e6
+  for _ in range(300):
+    m=(lo+hi)/2
+    lo,hi=(m,hi) if sf(m,nu)>p else (lo,m)
+  return lo
+n=3072*3072
+print("nu\tthr(2tau)\tFA_sum_31@cost1.67\tdetect@cost3\tdetect*144")
+for nu in (8,13,16,20,24,28,32,40,48,64,80,96,112,128,160):
+  t=2*tau(nu,1/n)
+  print("%d\t%.3f\t%.3g\t%.4f\t%.1f"%(nu,t,31*sf(t/1.67,nu),sf(t/3,nu),144*sf(t/3,nu)))
