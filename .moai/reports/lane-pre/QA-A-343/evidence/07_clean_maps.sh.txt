@@ -1,0 +1,15 @@
+#!/bin/bash
+# QA-A-343: regenerate ONLY the two clean sets of QA-A-313 30_measure_b16.sh.txt (G3_clean_v1, G4_clean_v2) and export their maps (X3, X5),
+# same frame lists and options; one scratch folder, deleted after the map comparison (rule section 4). Current tools (build 02:57, source 5de2aa0b).
+set -u
+BIN=D:/workspace-github/xpe-pre/build/ci-preprocess/bin; CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+OUT=D:/workspace-github/xpe-data/qa-343-tmp; EXE=$BIN/xpe_bpm_eval.exe; GEN=$BIN/xpe_calib_fixture_gen.exe
+mkdir -p "$OUT"
+GN="23 24 25 26 27 28"; BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+lst() { local flag=$1 dir=$2 pre=$3; shift 3; for k in "$@"; do printf -- "--%s\n%s/%s_%s.raw\n" "$flag" "$dir" "$pre" "$k"; done; }
+COMMON=(--width 3072 --height 3072 --expiry-ms 4102444800000); V2=(--bpm-v2 --bpm-margins 6,2,1,1)
+mapfile -t C < <(lst dark "$CAL" Dark 07 08 09 10 11 12 13 14; lst bright "$CAL" Bright $GN; lst bpm-bright "$CAL" Bright $BR)
+"$GEN" --out "$OUT/clean_set_v1" "${COMMON[@]}" "${C[@]}" > "$OUT/g3.txt" 2>&1; echo G3 $?
+"$GEN" --out "$OUT/clean_set_v2" "${COMMON[@]}" "${C[@]}" "${V2[@]}" > "$OUT/g4.txt" 2>&1; echo G4 $?
+"$EXE" defect-xcal --in "$OUT/clean_set_v1/defect.xcal" --map-out "$OUT/clean_v1_setmap.u8" > "$OUT/x5.txt" 2>&1; echo X5 $?
+"$EXE" defect-xcal --in "$OUT/clean_set_v2/defect.xcal" --map-out "$OUT/clean_v2_setmap.u8" > "$OUT/x3.txt" 2>&1; echo X3 $?
