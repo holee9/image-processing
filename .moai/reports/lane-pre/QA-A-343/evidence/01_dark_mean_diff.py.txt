@@ -1,0 +1,17 @@
+# QA-A-343 smallest diagnosis (read-only): for the 11 dark-mean false alarms of QA-A-328 s16, is the 1/7 step of r (s18.2) already in the
+# dark mean D itself, or does it come later (row/column removal, background)? D = mean of Dark_08..14 (7 frames; Dark_07 is the dropped
+# first dark, QA-A-324 10_measure_b16.sh.txt:22-23). Compares injected vs clean D at the pixel, and the injected-minus-clean D summed
+# over the pixel's full row and full column (what a row/column mean would carry).
+import numpy as np
+INJ='D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/frames'; CAL='D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles'
+W=3072
+def D(folder):
+    return np.mean([np.fromfile(f'{folder}/Dark_{k:02d}.raw',dtype=np.uint16).astype(np.float64).reshape(W,W) for k in range(8,15)],axis=0)
+di, dc = D(INJ), D(CAL)
+dd = di - dc
+px=[(1925,180,'r'),(1475,440,'s'),(199,796,'r'),(1246,1253,'r'),(988,1440,'s'),(1119,1588,'r'),(2707,1590,'r'),(196,1612,'r'),(2670,1896,'r'),(2118,2672,'s'),(305,2871,'s')]
+print('pixels differing anywhere (inj-clean D != 0):', int(np.count_nonzero(dd)), 'of', dd.size)
+print('x\ty\tpath(s18.2)\tD_inj\tD_clean\tD_diff\trow_diff_nonzero\trow_diff_mean\tcol_diff_nonzero\tcol_diff_mean')
+for x,y,pth in px:
+    r=dd[y,:]; c=dd[:,x]
+    print('%d\t%d\t%s\t%.4f\t%.4f\t%.4f\t%d\t%.5f\t%d\t%.5f'%(x,y,pth,di[y,x],dc[y,x],dd[y,x],np.count_nonzero(r),r.mean(),np.count_nonzero(c),c.mean()))
