@@ -33,3 +33,9 @@
 
 ## 임시 폴더
 `D:/workspace-github/xpe-data/qa-335-tmp` 삭제.
+
+## 기록 정정 [2026-11-16 22:34 KST] (Reviewer 수용 후 리더 요청, 커밋 재작성 없음)
+- F335-1: 위의 "기록 해시 50행 재기록"은 "검토 50사례, 실제 상수 47행 변경(legacy 25 + firstBypass 22), 기존 golden 값 재사용 3"으로 고친다 (`evidence/14_update_golden_out.txt` 의 분류: legacy 25, normal/firstBypass 22, normal/golden(same as legacy) 3).
+- F335-2: 전체 시험 상태를 둘로 나눈다.
+  - serial `ctest -j 1`: 1630 PASS (`17_ctest_full_serial.txt`).
+  - parallel `ctest -j 4`: FAIL — 1차 30개, 2차 24개 (`06_ctest_full.txt` 는 2차 실행 결과로 덮였다; 1차 목록은 `07_failed_ids.txt`). 원인 미확인. 변경 전(ea8d1f41)에서도 재현되는지 미확인 — QA-A-336 뒤 기준선 측정 예정.
