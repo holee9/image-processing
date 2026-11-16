@@ -39,3 +39,9 @@
 - F335-2: 전체 시험 상태를 둘로 나눈다.
   - serial `ctest -j 1`: 1630 PASS (`17_ctest_full_serial.txt`).
   - parallel `ctest -j 4`: FAIL — 1차 30개, 2차 24개 (`06_ctest_full.txt` 는 2차 실행 결과로 덮였다; 1차 목록은 `07_failed_ids.txt`). 원인 미확인. 변경 전(ea8d1f41)에서도 재현되는지 미확인 — QA-A-336 뒤 기준선 측정 예정.
+
+## 병렬 -j4 기준선 (변경 전 ea8d1f41) [2026-11-16 23:10 KST]
+- 방법: 저장소 밖 임시 작업 폴더 `D:/workspace-github/xpe-data/qa-base-ea8d`(git worktree --detach ea8d1f41)에서 `cmake --preset ci-preprocess` → 빌드 build_rc=0 → `ctest --output-on-failure -j 4` (`evidence/20_base_configure.txt`, `21_base_build.txt`, `22_base_ctest_j4.txt`). 이번 새 빌드 폴더에서는 rules.ninja 가 남았다(RULES_NINJA_MISSING 0건).
+- 결과: `88% tests passed, 199 tests failed out of 1640`, ctest_rc=8. 묶음별 상위: clock 24, SaturationTest 21, OomInjection 15, OomPipeline 11, ConfigStrictParse 11, XcalReplaceRetryTest 10.
+- 판정: 병렬 실행 실패는 변경 전에도 있다. 다만 이 측정은 QA-A-336 후속 빌드가 같은 기계에서 동시에 돌던 중이라 부하 조건이 QA-A-335 측정(실패 24·30)과 같지 않다 — 실패 수의 비교는 하지 않는다. 원인 미확인.
+- 임시 작업 폴더는 측정 뒤 제거(`git worktree remove`).
