@@ -1,0 +1,14 @@
+# QA-A-333 A (2): pixel-level correlation in the clean corrected frames C (dumped by the temp hook). Inside margins 6,2,1,1.
+# e = C - rowmean - colmean + mean (removes the line means themselves). Reported: acf of e along x and along y at lags 1..3,
+# and the variance of the row means of C relative to var(pixel)/L (L = 3065): 1.0 when the pixels of a row are uncorrelated.
+import sys, glob, os, numpy as np
+for fn in sorted(glob.glob(sys.argv[1] + "/*/lines*_C.f32")):
+    C = np.fromfile(fn, dtype=np.float32).reshape(3072, 3072)[2:3071, 6:3071].astype(np.float64)
+    rm = C.mean(1, keepdims=True); cm = C.mean(0, keepdims=True); e = C - rm - cm + C.mean()
+    v = (e * e).mean()
+    ax = [(e[:, :-k] * e[:, k:]).mean() / v for k in (1, 2, 3)]; ay = [(e[:-k] * e[k:]).mean() / v for k in (1, 2, 3)]
+    # row-mean variance (second difference of row means removes slow shading) vs the uncorrelated prediction
+    r = rm[:, 0]; d2r = r[1:-1] - 0.5 * (r[:-2] + r[2:]); c = cm[0]; d2c = c[1:-1] - 0.5 * (c[:-2] + c[2:])
+    pr = 1.5 * v / C.shape[1]; pc = 1.5 * v / C.shape[0]
+    print("%-18s %-14s acf x %.3f %.3f %.3f | acf y %.3f %.3f %.3f | var(d2 rowmean)/pred %.3f | var(d2 colmean)/pred %.3f" %
+          (os.path.basename(os.path.dirname(fn)), os.path.basename(fn)[:-6], *ax, *ay, d2r.var() / pr, d2c.var() / pc))

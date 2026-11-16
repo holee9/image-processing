@@ -1,0 +1,16 @@
+#!/bin/bash
+# QA-A-333 A: per set, the clean set (same options as QA-A-331 G4) then `correct` with the instrumented eval tool (XPE_ALLLINES_OUT).
+set -u
+ROOT=D:/workspace-github/xpe-pre; BIN=$ROOT/build/ci-preprocess/bin; T=D:/workspace-github/xpe-data/qa-333-tmp/a; E=$ROOT/.moai/reports/lane-pre/QA-A-333/evidence
+TRUTH=D:/workspace-github/xpe-data/bpm-eval-252f/inj_d; CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+mkdir -p $T
+COMMON=(--width 3072 --height 3072 --expiry-ms 4102444800000); V2=(--bpm-v2 --bpm-margins 6,2,1,1)
+one() {  # name dir "darks" "gains" "bpms" "evs"
+  local n=$1 d=$2; local A=(); for f in $3; do A+=(--dark "$d/$f"); done; for f in $4; do A+=(--bright "$d/$f"); done; for f in $5; do A+=(--bpm-bright "$d/$f"); done
+  local EV=(); for f in $6; do EV+=(--clean-eval "$d/$f"); done; for f in $6; do EV+=(--inj-eval "$d/$f"); done
+  s=$(date +%s); $BIN/xpe_calib_fixture_gen.exe --out $T/$n "${COMMON[@]}" "${A[@]}" "${V2[@]}" > $E/23_gen_$n.out.txt 2>&1; echo "$n gen rc=$? sec=$(( $(date +%s)-s ))"
+  s=$(date +%s); XPE_ALLLINES_OUT=$T/$n/lines $BIN/xpe_bpm_eval.exe correct --truth $TRUTH --clean-set $T/$n --inj-set $T/$n "${EV[@]}" --out $T/$n/correct.json > $E/24_correct_$n.out.txt 2>&1; echo "$n correct rc=$? sec=$(( $(date +%s)-s ))"
+}
+one cyan_test $CAL "Dark_07.raw Dark_08.raw Dark_09.raw Dark_10.raw Dark_11.raw Dark_12.raw Dark_13.raw Dark_14.raw" "Bright_23.raw Bright_24.raw Bright_25.raw Bright_26.raw Bright_27.raw Bright_28.raw" "Bright_17.raw Bright_18.raw Bright_19.raw Bright_20.raw Bright_21.raw Bright_22.raw Bright_23.raw Bright_24.raw Bright_25.raw Bright_26.raw Bright_27.raw Bright_28.raw Bright_31.raw Bright_32.raw Bright_33.raw Bright_34.raw Bright_35.raw Bright_36.raw" "Bright_29.raw Bright_30.raw"
+while IFS=$'\t' read -r n d dk gn bp ev; do one "$n" "$d" "$dk" "$gn" "$bp" "$ev"; done < $E/21_sets_args.txt
+echo ALL DONE

@@ -1,0 +1,17 @@
+G3_0428_AED_31     lines2_f0 row lines 3069 | sd 1.280 | mean 0.001 | |r|>3 2.09 % (64) | max|r| 5.2 | acf(dn) lag1..3 -0.453 -0.119 0.039 | median sigmaPred 0.8780
+G3_0428_AED_31     lines2_f0 col lines 3065 | sd 1.299 | mean -0.000 | |r|>3 2.19 % (67) | max|r| 4.7 | acf(dn) lag1..3 -0.446 -0.147 0.078 | median sigmaPred 0.8621
+G3_0428_AED_31     lines_f0 row lines 3069 | sd 1.325 | mean -0.001 | |r|>3 2.15 % (66) | max|r| 5.2 | acf(dn) lag1..3 -0.496 -0.071 0.059 | median sigmaPred 0.8749
+G3_0428_AED_31     lines_f0 col lines 3065 | sd 1.339 | mean -0.000 | |r|>3 2.74 % (84) | max|r| 4.3 | acf(dn) lag1..3 -0.480 -0.089 0.048 | median sigmaPred 0.8592
+G4_0410_plain_47   lines2_f0 row lines 3069 | sd 1.340 | mean -0.000 | |r|>3 2.38 % (73) | max|r| 4.7 | acf(dn) lag1..3 -0.451 -0.142 0.088 | median sigmaPred 0.9266
+G4_0410_plain_47   lines2_f0 col lines 3065 | sd 1.309 | mean -0.000 | |r|>3 2.15 % (66) | max|r| 4.3 | acf(dn) lag1..3 -0.469 -0.115 0.073 | median sigmaPred 0.9068
+G4_0410_plain_47   lines_f0 row lines 3069 | sd 1.318 | mean 0.001 | |r|>3 2.48 % (76) | max|r| 4.9 | acf(dn) lag1..3 -0.483 -0.102 0.089 | median sigmaPred 0.9323
+G4_0410_plain_47   lines_f0 col lines 3065 | sd 1.306 | mean 0.000 | |r|>3 2.51 % (77) | max|r| 5.4 | acf(dn) lag1..3 -0.449 -0.140 0.052 | median sigmaPred 0.9124
+J4_0410_plain_75   lines2_f0 row lines 3069 | sd 1.326 | mean 0.001 | |r|>3 2.22 % (68) | max|r| 4.8 | acf(dn) lag1..3 -0.449 -0.131 0.067 | median sigmaPred 0.9217
+J4_0410_plain_75   lines2_f0 col lines 3065 | sd 1.325 | mean -0.001 | |r|>3 2.38 % (73) | max|r| 4.4 | acf(dn) lag1..3 -0.462 -0.117 0.065 | median sigmaPred 0.9009
+J4_0410_plain_75   lines_f0 row lines 3069 | sd 1.353 | mean -0.000 | |r|>3 2.44 % (75) | max|r| 4.9 | acf(dn) lag1..3 -0.439 -0.173 0.094 | median sigmaPred 0.9292
+J4_0410_plain_75   lines_f0 col lines 3065 | sd 1.329 | mean -0.000 | |r|>3 2.28 % (70) | max|r| 5.0 | acf(dn) lag1..3 -0.475 -0.090 0.046 | median sigmaPred 0.9067
+cyan_test          lines_f0 row lines 3069 | sd 1.803 | mean 0.001 | |r|>3 10.07 % (309) | max|r| 6.9 | acf(dn) lag1..3 -0.551 0.027 -0.008 | median sigmaPred 0.9147
+cyan_test          lines_f0 col lines 3065 | sd 1.302 | mean -0.000 | |r|>3 1.99 % (61) | max|r| 5.0 | acf(dn) lag1..3 -0.449 -0.115 0.032 | median sigmaPred 0.9011
+cyan_test          lines_f1 row lines 3069 | sd 1.817 | mean 0.000 | |r|>3 10.04 % (308) | max|r| 6.9 | acf(dn) lag1..3 -0.569 0.071 -0.062 | median sigmaPred 0.9154
+cyan_test          lines_f1 col lines 3065 | sd 1.306 | mean 0.000 | |r|>3 2.09 % (64) | max|r| 5.1 | acf(dn) lag1..3 -0.449 -0.123 0.047 | median sigmaPred 0.9018
+expected for uncorrelated noise: sd 1.000, |r|>3 0.27 %

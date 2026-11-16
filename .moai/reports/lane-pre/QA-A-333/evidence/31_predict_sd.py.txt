@@ -1,0 +1,11 @@
+# QA-A-333 A (3): arithmetic from the measured values of 30_pixel_acf_out.txt only.
+# lineIndexOriented estimates sigmaPix^2 = var(d)/1.5 with d_i = e_i - (e_{i-1}+e_{i+1})/2 (xpe_bpm_eval_stats.hpp:121-129); with neighbour correlation rho1, rho2
+# var(d) = v (1.5 - 2 rho1 + 0.5 rho2), so sigmaPix^2 = v (1.5 - 2 rho1 + 0.5 rho2) / 1.5. The prediction sigmaPred^2 = sigmaPix^2 * 1.5 / L (k=1).
+# measured var(d2 line mean) = q * 1.5 v / L  (q = the "var(d2 ...)/pred" column). Hence expected sd(ratio) = sqrt(q * 1.5 / (1.5 - 2 rho1 + 0.5 rho2)).
+import re, sys
+for ln in open(sys.argv[1]):
+    f = ln.split(); n, fr = f[0], f[1]
+    ax = list(map(float, f[4:7])); ay = list(map(float, f[10:13])); qr = float(f[16]); qc = float(f[20])
+    sr = (qr * 1.5 / (1.5 - 2 * ax[0] + 0.5 * ax[1])) ** 0.5   # rows: sigmaPix from residuals along x
+    sc = (qc * 1.5 / (1.5 - 2 * ay[0] + 0.5 * ay[1])) ** 0.5   # cols: along y
+    print("%-18s %-10s expected sd(ratio) row %.3f col %.3f" % (n, fr, sr, sc))

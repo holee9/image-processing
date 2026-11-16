@@ -1,0 +1,4 @@
+offset.xcal  5e89d3f286ee2e6e1717d969b1d8ecdc1f368c6e166c5de52e0660cbe7aaf4d2
+gain.xcal    dc226977adf6505f65c9bc3b5dda08a25992840a383a71565f34929f9d8fd73f
+defect.xcal  003873a436a13b0ba89f85eede54b588c53a86e5ff45f2c84d1b392e654c7c2f  (970 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/qa-333-tmp/a/J4_0410_plain_75\manifest.json

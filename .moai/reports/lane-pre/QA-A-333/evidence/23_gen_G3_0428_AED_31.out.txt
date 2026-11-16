@@ -1,0 +1,4 @@
+offset.xcal  a3e794be9c28fa96d053e29b9b92709af7776074c81fdf7c5e16fc27dc7c34a8
+gain.xcal    39a222ae414e9664b455b8ddadf82be06084e620a4b52b194a18bfad3a287493
+defect.xcal  2d1cc2367d3c73bb2a2f1651880f4d5bcd91759b24ac773b3f928de39528d7a3  (1346 defect pixels)
+manifest.json written to D:/workspace-github/xpe-data/qa-333-tmp/a/G3_0428_AED_31\manifest.json

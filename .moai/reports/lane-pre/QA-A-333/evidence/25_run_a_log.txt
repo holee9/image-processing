@@ -1,0 +1,9 @@
+cyan_test gen rc=0 sec=148
+cyan_test correct rc=0 sec=4
+J4_0410_plain_75 gen rc=0 sec=130
+J4_0410_plain_75 correct rc=4 sec=2
+G3_0428_AED_31 gen rc=0 sec=134
+G3_0428_AED_31 correct rc=4 sec=2
+G4_0410_plain_47 gen rc=0 sec=130
+G4_0410_plain_47 correct rc=4 sec=2
+ALL DONE
