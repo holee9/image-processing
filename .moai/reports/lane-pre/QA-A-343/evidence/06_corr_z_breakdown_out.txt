@@ -1,0 +1,14 @@
+cells 178 v2 worse 117
+class/kind	cells	v2_worse	v1_z median	v2_z median	uncorrected_z median
+line/gain_loss	36	32	1.431	1.583	1.582
+line/efficiency_loss	36	30	1.490	1.586	1.622
+line/nonlinear	26	22	1.503	1.584	1.558
+line/noisy	26	14	1.597	1.623	1.598
+line/dead	14	12	1.415	1.580	155.037
+pixel/nonlinear	4	2	1.599	1.601	1.605
+pixel/hot	8	2	1.606	1.550	1.606
+block/dead	8	1	1.781	1.795	159.725
+pixel/noisy	6	1	1.594	1.589	1.594
+pixel/gain_loss	6	1	1.743	1.743	1.603
+pixel/efficiency_loss	6	0	1.698	1.698	1.621
+pixel/dead	2	0	1.621	1.621	159.259
