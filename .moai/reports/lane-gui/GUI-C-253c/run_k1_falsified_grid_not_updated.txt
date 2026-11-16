@@ -1,0 +1,48 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:15.63]     ImageProcTest.E2ETests.Scenarios.Legacy.LegacyInputKindScenarios.K1_TheInputKindChoice_ReachesThePreview_AndChoosingAnotherKind_InvalidatesOnlyTheMeasuredRows [FAIL]
+  실패 ImageProcTest.E2ETests.Scenarios.Legacy.LegacyInputKindScenarios.K1_TheInputKindChoice_ReachesThePreview_AndChoosingAnotherKind_InvalidatesOnlyTheMeasuredRows [15 s]
+  오류 메시지:
+   Assert.Contains() Failure: Filter not matched in collection
+Collection: ["DetectorMetricRow { Metric = DarkBias, Value = 945"···, "DetectorMetricRow { Metric = DSNU_ADU, Value = 28."···, "DetectorMetricRow { Metric = DarkReduction_dB, Val"···, "DetectorMetricRow { Metric = ClampRate, Value = 0 "···, "DetectorMetricRow { Metric = 측정값 기준, Value = 미측정 —"···, ···]
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Legacy.LegacyInputKindScenarios.K1_TheInputKindChoice_ReachesThePreview_AndChoosingAnotherKind_InvalidatesOnlyTheMeasuredRows() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyInputKindScenarios.cs:line 78
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ 1. preview text: Native preview: loads=offset=OK/17.678ms, expiry=OK/valid/unknown; stages=offset=OK/0.931ms, gain=skipped(Skipped), defect=skipped(Skipped); metrics=meanAbsDelta=103, rmse=103.019, maxAbsDelta=106, changed=1048576/1048576 (100.00%), outputWithinHalfUnitOfInput(within 0.5 of input)=False, nanInf=0; latency=2.284ms; output=894..996
+    1 | DetectorMetricRow { Metric = DarkBias, Value = 945 ADU, Gate = <= 5 ADU, Status = REVIEW }
+    1 | DetectorMetricRow { Metric = DSNU_ADU, Value = 28.071 ADU, Gate = <= 20 ADU, Status = REVIEW }
+    1 | DetectorMetricRow { Metric = DarkReduction_dB, Value = -0.022 dB, Gate = >= 10 dB, Status = REVIEW }
+    1 | DetectorMetricRow { Metric = ClampRate, Value = 0 %, Gate = <= 1%, Status = PASS }
+    1 | DetectorMetricRow { Metric = 측정값 기준, Value = 미측정 — 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Gate = 측정 조건: 사용자가 다크 프레임으로 선택한 원본 크기 원시 영상 + 같은 크기 offset 맵(충족하지 않으면 측정하지 않음) · 위 DarkBias·DSNU_ADU·DarkReduction_dB·ClampRate 는 미리보기 기준이라 모집단과 단계가 다르다. 한계는 그 칸에만 적용된다, Status = N/A }
+    1 | DetectorMetricRow { Metric = DarkBias 부호 있음, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    1 | DetectorMetricRow { Metric = DSNU 부호 있음, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    1 | DetectorMetricRow { Metric = DarkReduction 부호 있음, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    1 | DetectorMetricRow { Metric = DarkBias 출력, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    1 | DetectorMetricRow { Metric = DSNU 출력, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    1 | DetectorMetricRow { Metric = ClampRate x<0 원본 전체, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    1 | DetectorMetricRow { Metric = 출력 0 비율 원본 전체, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    1 | DetectorMetricRow { Metric = Offset 맵 SHA-256(payload), Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = DarkBias, Value = 945 ADU, Gate = <= 5 ADU, Status = REVIEW }
+    2 | DetectorMetricRow { Metric = DSNU_ADU, Value = 28.071 ADU, Gate = <= 20 ADU, Status = REVIEW }
+    2 | DetectorMetricRow { Metric = DarkReduction_dB, Value = -0.022 dB, Gate = >= 10 dB, Status = REVIEW }
+    2 | DetectorMetricRow { Metric = ClampRate, Value = 0 %, Gate = <= 1%, Status = PASS }
+    2 | DetectorMetricRow { Metric = 측정값 기준, Value = 미측정 — 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Gate = 측정 조건: 사용자가 다크 프레임으로 선택한 원본 크기 원시 영상 + 같은 크기 offset 맵(충족하지 않으면 측정하지 않음) · 위 DarkBias·DSNU_ADU·DarkReduction_dB·ClampRate 는 미리보기 기준이라 모집단과 단계가 다르다. 한계는 그 칸에만 적용된다, Status = N/A }
+    2 | DetectorMetricRow { Metric = DarkBias 부호 있음, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = DSNU 부호 있음, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = DarkReduction 부호 있음, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = DarkBias 출력, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = DSNU 출력, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = ClampRate x<0 원본 전체, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = 출력 0 비율 원본 전체, Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+    2 | DetectorMetricRow { Metric = Offset 맵 SHA-256(payload), Value = 측정 안 됨, Gate = 다크 프레임 미확인 — 다크 품질을 측정하지 않음, Status = N/A }
+
+
+
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 15 s - ImageProcTest.E2ETests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

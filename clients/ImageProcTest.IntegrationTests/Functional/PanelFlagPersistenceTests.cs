@@ -162,7 +162,6 @@ public sealed class PanelFlagPersistenceTests
               "calibDefectMode": "Auto",
               "calibGhostMode": "Auto",
               "calibTemperatureMode": "Auto",
-              "calibNonlinearityMode": "Auto",
               "calibBinningMode": "Auto",
               "lastRawDir": "",
               "voiWindowCenter": 32768.0,

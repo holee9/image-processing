@@ -346,16 +346,6 @@
                       AutomationProperties.AutomationId="PipelineMenu"
                       Header="_Pipeline"
                       SubmenuOpened="PipelineMenu_SubmenuOpened">
-                <MenuItem x:Name="ApplyDisplayPipelineMenuItem"
-                          AutomationProperties.AutomationId="ApplyDisplayPipelineMenuItem"
-                          Header="Apply _Display Pipeline"
-                          Command="{Binding ApplyDisplayPipelineCommand}" />
-                <Separator />
-                <MenuItem x:Name="UseAutomaticWindowMenuItem"
-                          AutomationProperties.AutomationId="UseAutomaticWindowMenuItem"
-                          Header="Use Automatic _Window"
-                          Command="{Binding UseAutomaticWindowCommand}"
-                          ToolTip="Show the image with the window the module picks from the anatomy (background excluded). Choosing a window by hand turns this off." />
                 <MenuItem x:Name="RunPreprocessingMenuItem"
                           AutomationProperties.AutomationId="RunPreprocessingMenuItem"
                           Header="Run _Preprocessing (Phase 1a)"
@@ -379,6 +369,16 @@
                           ToolTip="{Binding AiBoneSuppressionMenuToolTip}" />
                 <!-- #225 (GUI-C-154, row 11): stops the render in flight by discarding its result;
                      the native calls inside are synchronous and are not interrupted. -->
+                <Separator />
+                <MenuItem x:Name="ApplyDisplayPipelineMenuItem"
+                          AutomationProperties.AutomationId="ApplyDisplayPipelineMenuItem"
+                          Header="Apply _Display Pipeline"
+                          Command="{Binding ApplyDisplayPipelineCommand}" />
+                <MenuItem x:Name="UseAutomaticWindowMenuItem"
+                          AutomationProperties.AutomationId="UseAutomaticWindowMenuItem"
+                          Header="Use Automatic _Window"
+                          Command="{Binding UseAutomaticWindowCommand}"
+                          ToolTip="Show the image with the window the module picks from the anatomy (background excluded). Choosing a window by hand turns this off." />
                 <MenuItem x:Name="StopProcessingMenuItem"
                           AutomationProperties.AutomationId="StopProcessingMenuItem"
                           Header="_Stop Processing"
@@ -405,11 +405,11 @@
             <MenuItem x:Name="ToolsMenu"
                       AutomationProperties.AutomationId="ToolsMenu"
                       Header="_Tools">
-                <MenuItem Header="PRE 캘리브레이션 입력·생성·재로드·평가"
+                <MenuItem Header="PRE Calibration: Validate, Generate, Reload and Evaluate"
                           AutomationProperties.AutomationId="PreCalibrationWorkflowMenuItem"
                           Click="PreCalibrationWorkflow_Click" />
                 <!-- QA-A-273 (Refs #278): imports two EXISTING output files (A = official 2G X64W, B = new PRE), no vendor DLL, no engine run. -->
-                <MenuItem Header="2G · 신규 PRE 출력 가져오기 비교"
+                <MenuItem Header="Compare Imported 2G and New PRE Outputs"
                           AutomationProperties.AutomationId="PreComparisonImportMenuItem"
                           Click="PreComparisonImport_Click" />
                 <MenuItem x:Name="CalibrationSettingsMenuItem"
@@ -509,30 +509,27 @@
         </Menu>
 
         <StatusBar DockPanel.Dock="Bottom">
-            <StatusBar.ItemsPanel>
-                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-            </StatusBar.ItemsPanel>
-            <StatusBarItem AutomationProperties.AutomationId="StatusBarText"
-                           Content="{Binding StatusText}" ToolTip="{Binding StatusText}" MaxWidth="560">
-                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" MaxWidth="540" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
-            </StatusBarItem>
-            <Separator />
+            <StatusBar.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></StatusBar.ItemsPanel>
             <StatusBarItem AutomationProperties.AutomationId="ChainStatusText"
-                           Content="{Binding ChainStatus}" ToolTip="{Binding ChainStatus}" MaxWidth="560">
-                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" MaxWidth="540" TextWrapping="Wrap" /></DataTemplate></StatusBarItem.ContentTemplate>
+                           AutomationProperties.HelpText="{Binding RenderIdText}"
+                           AutomationProperties.ItemStatus="{Binding ChainStatus}"
+                           HorizontalContentAlignment="Stretch"
+                           Content="{Binding FooterSummary}" ToolTip="{Binding DisplayChainStatus}">
+                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" /></DataTemplate></StatusBarItem.ContentTemplate>
             </StatusBarItem>
-            <Separator />
-            <Separator />
-            <StatusBarItem>
+            <StatusBarItem HorizontalContentAlignment="Stretch" ToolTip="{Binding PipelineTimings}">
                 <TextBlock AutomationProperties.AutomationId="FrameTimingText"
-                           Text="{Binding FrameTimingText}"
-                           MaxWidth="420"
+                           AutomationProperties.HelpText="{Binding FrameTimingText}"
+                           Text="{Binding FooterTimings}"
                            TextTrimming="CharacterEllipsis" />
             </StatusBarItem>
-            <Separator />
-            <StatusBarItem x:Name="RuntimeCommonVersionText"
-                           AutomationProperties.AutomationId="RuntimeCommonVersionText"
-                           Content="{Binding RuntimeVersionSummary}" />
+            <StatusBarItem AutomationProperties.AutomationId="StatusBarText"
+                           AutomationProperties.HelpText="{Binding StatusText}"
+                           HorizontalContentAlignment="Stretch"
+                           Content="{Binding FooterAlert}">
+                <StatusBarItem.ToolTip><StackPanel><TextBlock Text="{Binding FooterAlert}" /><TextBlock Text="{Binding StatusText}" /></StackPanel></StatusBarItem.ToolTip>
+                <StatusBarItem.ContentTemplate><DataTemplate><TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" /></DataTemplate></StatusBarItem.ContentTemplate>
+            </StatusBarItem>
         </StatusBar>
 
         <ToolBarTray DockPanel.Dock="Top">

@@ -1,11 +1,14 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.6  
+**Document ID:** RTM-CALIB-001 v1.9  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
 **Date:** 2026-10-16 (v1.5: 2026-10-03, v1.3: 2026-04-24)  
 **Revision v1.4 (2026-10-03, `#245` / `QA-A-228`):** §3 시험 사례 ID 가 시험 소스에 없다는 주석, §4 추적 집계를 "문서상 사례"와 "실제 시험"으로 분리, 구현 없이 추적 완료로 집계되던 FUNC 7개(011·014·015·021·028·029·030)의 실제 상태 표 추가, §5.1 FUNC-034 근거 시험 보강  
 **Revision v1.5 (2026-10-03, #245 사용자 결정 / `QA-A-233` 결정 12·14):** 구현 없는 FUNC 7개 표의 비고를 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 로 통일, FUNC-014 를 △ → ✗(링 버퍼 없음)  
+**Revision v1.7 (2026-10-17, DOC-05, `#273`):** FUNC-022·023·039 상태를 "구현 대기"에서 "구현 통합, 검증 일부 수행, B16 미달"로 갱신하고 SWU-1.10·SAD §3.4 를 SWU-1.11·SAD §3.3 으로 정정했다. SRS 합격 기준은 완화하지 않았다. 시험 사례 번호는 확정되지 않은 칸을 그대로 두었다.  
+**Revision v1.9 (2026-11-17, SRS-CALIB-001 v1.6 연동):** FUNC-030 을 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거). FUNC-005 다중 게인 다항식 조항 삭제는 이 표의 FUNC-005 행(옛 판본 번호 — 온도 LUT 적재)과 무관해 행을 바꾸지 않았다.  
+**Revision v1.8 (2026-11-17, SRS-CALIB-001 v1.5 연동):** 온도 보상·비선형 보정·다선량 다항식 게인과 다점 모드를 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 해당 행은 ID 를 남기고 삭제로 표시했다. FUNC-031 은 단일점 전용으로 고쳤다.  
 **Revision v1.6 (2026-10-16, SRS-CALIB-001 v1.4 연동, `#273`):** FUNC-022·023 을 결함 화소 맵 2판 개정 문구로 바꾸고 FUNC-039(라인 기록·방향 보간)를 신설. 세 요구 모두 "구현·검증 대기"이며 시험 사례는 미정(BPM v2)이다.  
 
 **Trace Source:** XPE-SRS-001, XPE-SAD-001 (Architecture), SHA-CALIB-001 (Hazards)  
@@ -108,11 +111,11 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **SRS-CALIB-FUNC-001** | Load offset map from persistent storage | SWU-1.5 | SAD §3.1.5 | UT-1.5-001 | IT-CALIB-001 | ST-001 | HAZ-CALIB-001 | CRC + null check |
 | **SRS-CALIB-FUNC-002** | Load gain map from persistent storage | SWU-1.5 | SAD §3.1.5 | UT-1.5-002 | IT-CALIB-001 | ST-002 | HAZ-CALIB-002 | CRC + validation |
 | **SRS-CALIB-FUNC-003** | Load bad pixel map (BPM) from file | SWU-1.5 | SAD §3.1.5 | UT-1.5-003 | IT-CALIB-001 | ST-003 | HAZ-CALIB-004 | Integrity check |
-| **SRS-CALIB-FUNC-004** | Load nonlinearity correction coefficients | SWU-1.5 | SAD §3.1.5 | UT-1.5-004 | IT-CALIB-002 | ST-004 | HAZ-CALIB-005 | Profile validation |
-| **SRS-CALIB-FUNC-005** | Load temperature compensation LUT | SWU-1.5 | SAD §3.1.5 | UT-1.5-005 | IT-CALIB-002 | ST-005 | HAZ-CALIB-006 | Fallback logic |
-| **SRS-CALIB-FUNC-006** | Validate offset map dimensions (pitch, resolution) | SWU-1.5 | SAD §3.1.5 | UT-1.5-006 | IT-CALIB-001 | ST-006 | -- | Shape check |
+| **SRS-CALIB-FUNC-004** | ~~Load nonlinearity correction coefficients~~ — 옛 판본 번호. 비선형 보정은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a) | SWU-1.5 | SAD §3.1.5 | UT-1.5-004 | IT-CALIB-002 | ST-004 | HAZ-CALIB-005 | Profile validation |
+| **SRS-CALIB-FUNC-005** | ~~Load temperature compensation LUT~~ — 옛 판본 번호. 온도 보상은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9) | SWU-1.5 | SAD §3.1.5 | UT-1.5-005 | IT-CALIB-002 | ST-005 | HAZ-CALIB-006 | Fallback logic |
+| **SRS-CALIB-FUNC-006** | Validate offset map dimensions (pitch, resolution) — 옛 판본 번호, 2026-11-16 삭제된 SRS FUNC-006(비선형 보정)과 다른 요구 | SWU-1.5 | SAD §3.1.5 | UT-1.5-006 | IT-CALIB-001 | ST-006 | -- | Shape check |
 | **SRS-CALIB-FUNC-007** | Validate gain map dimensions match offset | SWU-1.5 | SAD §3.1.5 | UT-1.5-007 | IT-CALIB-001 | ST-007 | -- | Dimension check |
-| **SRS-CALIB-FUNC-008** | Validate gain map value ranges (0.5 to 2.0x typical) | SWU-1.5 | SAD §3.1.5 | UT-1.5-008 | IT-CALIB-001 | ST-008 | HAZ-CALIB-002 | Range bounds |
+| **SRS-CALIB-FUNC-008** | Validate gain map value ranges (0.5 to 2.0x typical) — 옛 판본 번호, 2026-11-16 삭제된 SRS FUNC-008(온도 보상)과 다른 요구 | SWU-1.5 | SAD §3.1.5 | UT-1.5-008 | IT-CALIB-001 | ST-008 | HAZ-CALIB-002 | Range bounds |
 | **SRS-CALIB-FUNC-009** | Reject offset map with >5% dead zones (dark) | SWU-1.5 | SAD §3.1.5 | UT-1.5-009 | IT-CALIB-003 | ST-009 | -- | QA criterion |
 | **SRS-CALIB-FUNC-010** | Apply CRC-32 checksum to all calibration maps | SWU-1.5 | SAD §3.1.5 | UT-1.5-010 | IT-CALIB-001 | ST-010 | HAZ-CALIB-001 | CRC validation |
 | **SRS-CALIB-FUNC-011** | Persist calibration timestamp (generation time) | SWU-1.5 | SAD §3.1.5 | UT-1.5-011 | IT-CALIB-002 | ST-011 | HAZ-CALIB-003 | Timestamp record |
@@ -130,18 +133,18 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **SRS-CALIB-PERF-001** | Total preprocessing ≤ 500 ms per 3072×3072 frame (per-phase budgets in SRS §4.1) — 행 문장 정정 2026-10-03 `QA-A-230`(이전 문장은 PERF-003 의 200 ms 적재를 적고 있었음) | SWU-1.5 | SAD §3.1.5 | `PipelinePerformance3072.TheWholeFrameWithCalibrationLoadedFitsSrsPerf001` (총합 500 ms 단언, 단계별 예산은 출력만) | -- | CI `preprocess-tests` 관측(main `b3458366`): 프레임 108.6~120.0 ms | -- | 대체됨: `DISABLED_PipelinePerformance3072x3072` 삭제(#245). Ghost 티어 2·3 의 +130 ms 는 단언 없음 |
 | **SRS-CALIB-PERF-002** | Peak memory ≤ 200 MB per frame pipeline; no leak over 100 frames — 행 문장 정정 2026-10-03(이전 문장 "3072×3072 지원"은 SRS 와 다름) | SWU-1.5 | SAD §3.1.5 | -- | -- | -- | -- | **미충족 관측(고스트 포함), 단언 없음** — 2026-10-04 사용자 결정 "고스트 포함·미충족, 줄일 방법 조사": SRS 내역에 고스트 이력이 있으므로 고스트 경로에 200 MB 를 적용한다. pre `QA-A-236` 측정(3072², 새 프로세스 3회, 하네스 기준선 뺌, **시험이 단계를 손으로 이은 경로**): 모듈 몫 정상 274.3 MB·최대 312.2 MB(고스트 포함), 고스트 없이 최대 약 123 MB. **출하 경로(`pipeline_ex`, 단계 버퍼 6개를 끝까지 쥠)는 실측 정상 274.2 MB·최대 444.5 MB(200 MB 의 222%)**(`QA-A-237b` M1, 새 프로세스 3회 동일, 계산 444.2 MB 와 0.3 MiB 차이). 최대는 고스트 단계에서, gain 단계의 reciprocal 평면 36.1 MiB 는 단계 경계 기록으로 확인. **2026-10-04 감축(`QA-A-237b`·`237d`, main `005a7437`, 출력 바이트 동일)**: reciprocal 평면 제거·단계 버퍼 수명 단축·고스트 next·backup 평면 제거로 출하 경로 정상 길 최대 **217.6 MB(109%)**, 정상 상태 160.7 MB. 극단 입력(큰 float·비정상 설정·극단 프레임 뒤)에서만 타는 고스트 느린 길은 일시 최대 **312.2 MB(156%)**(`QA-A-237c` M1 실측, uint16 입력 + 기본 설정에서는 이 길로 가지 않음). **정정(2026-10-04, `QA-A-237f`)**: `QA-A-237b`~`237e` 의 최대값은 하니스의 합성 결함 맵(고립 16화소)으로 쟀고 결함 단계의 거리 표(9 MiB)에 닿지 않았다 — 위 217.6·201.0·199.86 MB 는 **합성 맵에 한정된 값**이다. 실제 BPMap(23,505화소)으로 237e 빌드는 **209.6 MB(초과)**, `QA-A-237f`(결함 단계 거리 표 축소, 출력 바이트 동일, 프레임 시간 +5~7%) 뒤 **199.1 MB**(여유 0.9 MB, 같은 빌드 새 프로세스 24회 퍼짐 0.1 MiB). **아직 미측정**: 실제 이득 맵에서 결함으로 분류되는 화소가 있으면 결함 단계가 마스크를 통째 복사하는 경로(약 9 MiB) — 하니스 이득 맵은 합성 상수라 이 경로를 타지 않았다. **실제 보정 맵 세 개 전부(`QA-A-237g` M1)**: offset=dark.raw, gain=실제 평탄 영상 bright01~06 에서 제품 생성기로 만든 맵(저장소에 3072² gain 맵 파일 없음), BPM=BPMap.map → 정상 길 최대 **209.3 MB(초과)**. gain 이 [0.1, 10] 밖으로 분류한 화소 42,026개 + BPM 23,505개로 union_mask 복사(약 9.0 MiB)가 실제로 일어난다. 다항 gain(degree 2) 경로는 최대 331.7 MB(계수 평면 108 MiB, 출하에서 쓰는지 미확인). **미충족**(M1 시점). **`QA-A-237g` M2**: union_mask 복사를 2단계 블록 비트맵으로 바꿔 같은 실제 맵 입력에서 정상 길 최대 **199.6~199.9 MB**(190.4~190.6 MiB), 출력 바이트 동일. 200 MB 대비 여유 0.1~0.3 MiB 가 같은 빌드 24회 퍼짐(0.2 MiB)과 같은 크기라 **충족 미확정**. 고스트 scratch 느린 길(312.2 MB)·다항 gain(316 MiB) 미해소(Codex #154). 다음: `QA-A-239` 고스트 이력 축소 조사(출력 동일 조건). 줄일 후보: 바이트 동일 — gain 의 reciprocal 평면 제거(일시 +36.1 MiB 의 출처로 추정), 단계 버퍼 수명 단축, 고스트 next·backup 평면 제거 / 출력이 바뀜 — offset 정수화(사용자 결정 필요). SRS 와 다른 가정: offset 맵 float32 저장(36.0 MiB, SRS 18.9 MB), 고스트 평면 5장 180.4 MiB(SRS 150 MB). **요구 문구의 합계 오류**: 내역 합 253.7 MB(고스트 제외 103.7)인데 SRS 는 "max 190 MB" — 요구 수치는 바꾸지 않음. 줄일 방법은 `QA-A-237` 에서 조사. 100프레임 누수 조항은 미측정. (이전: "미검증, `PipelinePerformance3072` 약 400 MB" — 하네스 입출력 벡터를 포함한 수치) |
 | **SRS-CALIB-PERF-003** | Calibration file load (offset+gain+BPM) ≤ 200 ms on SSD — 행 문장 정정 2026-10-03(이전 문장 "4096×4096 최대"는 SRS 와 다름) | SWU-1.5 | SAD §3.1.5 | -- (적재 시간은 `PipelinePerformance3072` 가 출력만, 단언 없음) | -- | CI 관측(같은 잡의 두 실행씩, 합계 ms): `b3458366` 214.6·320.7(초과) → `061f5a66`(QA-A-235b 전) 142.6·145.9 → `793fb19d`(235b 후, 0 채움·복사 한 번 제거) 130.1·125.2. 같은 실행의 미변경 대조인 프레임 시간도 106~120 → 81~104 → 77~90 ms 로 줄어, **감소의 대부분은 러너 속도 변화**이고 235b 의 몫은 약 13~20 ms(로컬 측정 −16.7% 와 같은 규모). 러너 디스크가 SRS 의 "SSD" 조건인지 미확인 | -- | **현재 러너에서 충족 관측(125~130 ms), 단언 없음** — 러너에 따라 192~320 ms 도 관측돼 판정선을 두면 간헐 실패가 날 수 있다(#245) |
-| **SRS-CALIB-FUNC-022** | BPM 2판 (2026-10-16 개정): 특성별 합집합 검출, 데이터로 정한 임계값, 첫 다크 제외 — 구현·검증 대기(BPM v2 카드) | SWU-1.10 | SAD §3.4 | UT-BPM-001 | IT-BPM-001 | ST-BPM-001 | -- | Grid_abnormal |
-| **SRS-CALIB-FUNC-023** | BPM 2판 (2026-10-16 개정): 행·열 라인 결함(전체·일부·두 줄·교차), 덩어리, 3줄 이상 연속 = 패널 불합격 — 구현·검증 대기 | SWU-1.10 | SAD §3.4 | UT-BPM-002 | IT-BPM-001 | ST-BPM-002 | -- | CalData_6 |
-| **SRS-CALIB-FUNC-039** | 결함 맵 라인 기록·덩어리 표시, 라인 수직 방향 보간 (2026-10-16 신설) — 구현·검증 대기 | SWU-1.10 | SAD §3.4 | 미정 (BPM v2) | 미정 (BPM v2) | 미정 (BPM v2) | 미정 (BPM v2) | 미정 (BPM v2) |
+| **SRS-CALIB-FUNC-022** | BPM 2판 (2026-10-16 개정): 특성별 합집합 검출, 데이터로 정한 임계값, 첫 다크 한 번만 제외 — **구현 통합, 검증 일부 수행, B16 미달**(합격 9·불합격 6·미실시 1, QA-A-260). 구현: `xpe_bpm_generate_v2`, 생성 도구 `--bpm-v2`(dev/preprocess `b96707d5`) | SWU-1.11 | SAD §3.3 | UT-BPM-001 | IT-BPM-001 | ST-BPM-001 | -- | Grid_abnormal |
+| **SRS-CALIB-FUNC-023** | BPM 2판 (2026-10-16 개정): 행·열 라인 결함(전체·일부·두 줄·교차), 덩어리, 3줄 이상 연속 = 패널 불합격 — **구현 통합, 검증 일부 수행, B16 미달**. 구현: `xpe_bpm_find_lines`, `xpe_bpm_blobs`. 줄 기록 경로는 실세트에 줄이 없어 합성 프레임 시험(QA-A-254)만 지난다 | SWU-1.11 | SAD §3.3 | UT-BPM-002 | IT-BPM-001 | ST-BPM-002 | -- | CalData_6 |
+| **SRS-CALIB-FUNC-039** | 결함 맵 라인 기록·덩어리 표시, 라인 수직 방향 보간 (2026-10-16 신설) — **구현 통합, 검증 일부 수행**. 형식은 `defect.xcal` 판 2(확장 블록 `XDEX`, SAD §3.3), 시험 `DefectV2Test` 15건(QA-A-254). 라인 수직 방향 보간 중 촬영 영역 평면의 보간은 구현하지 않았다(적재기는 결함 평면만 판 1처럼 설치) | SWU-1.10 | SAD §3.4 | `DefectV2Test` (QA-A-254) | 미정 (BPM v2) | B16 기준표 (QA-A-260) | -- | 미정 (BPM v2) |
 | **SRS-CALIB-FUNC-024** | Multi-gain frame count: min 5~10, recommended 15~20 per dose level | SWU-1.10 | SAD §3.4 | UT-BPM-003 | IT-BPM-002 | ST-BPM-003 | -- | CalData_6 |
 | **SRS-CALIB-FUNC-025** | Grid artifact robustness: LineArtifactScore < 10% (Blue target: < 5%) | SWU-1.10 | SAD §3.4 | UT-BPM-004 | IT-BPM-002 | ST-BPM-004 | -- | Grid_abnormal |
 | **SRS-CALIB-FUNC-026** | Gain map generation from flat-field stack | SWU-1.12 | SAD §3.5 | UT-GAIN-GEN-001 | IT-GAIN-001 | ST-GAIN-001 | -- | CalData_6 |
-| **SRS-CALIB-FUNC-027** | Multi-point gain polynomial fitting (N ≥ 3 dose levels) | SWU-1.12 | SAD §3.5 | UT-GAIN-GEN-002~003 | IT-GAIN-002 | ST-GAIN-002 | -- | CalData_6, cyan_test |
+| **SRS-CALIB-FUNC-027** | ~~Multi-point gain polynomial fitting (N ≥ 3 dose levels)~~ — **삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)** | -- | -- | -- | -- | -- | -- | 해당 없음 |
 | **SRS-CALIB-FUNC-028** | Field calibration workflow (5 dark + 1 flat minimum) | SWU-1.13 | SAD §3.6 | UT-FIELD-001 | IT-FIELD-001 | ST-FIELD-001 | -- | CalData_6 subset |
 | **SRS-CALIB-FUNC-029** | Calibration drift detection (Quick Check) | SWU-1.13 | SAD §3.6 | UT-FIELD-002~003 | IT-FIELD-002 | ST-FIELD-002 | -- | Simulated drift |
-| **SRS-CALIB-FUNC-030** | Real-time offset adaptation for temperature changes | SWU-1.13 | SAD §3.6 | UT-DRIFT-001~002 | IT-FIELD-003 | ST-FIELD-003 | -- | Temp ramp simulation |
-| **SRS-CALIB-FUNC-031** | Calibration mode selection API (XpeCalibrationMode enum, 6 modes) | SWU-1.12 | SAD §3.5 | UT-MODE-001~003 | IT-MODE-001 | ST-MODE-001 | -- | Mode enforcement |
-| **SRS-CALIB-FUNC-032** | Multi-point calibration performance optimization (online fitting, SIMD, degree reduction) | SWU-1.12 | SAD §3.5 | UT-PERF-MP-001~003 | IT-MODE-002 | ST-MODE-002 | -- | Perf benchmark |
+| **SRS-CALIB-FUNC-030** | ~~Real-time offset adaptation for temperature changes~~ — **삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)** | -- | -- | -- | -- | -- | -- | 해당 없음 |
+| **SRS-CALIB-FUNC-031** | Calibration mode selection API — 단일점(`XPE_CALIB_SINGLE_POINT`=0) 전용, 그 밖의 값은 `XPE_ERR_INVALID_INPUT`; 생성기는 0 기록, 옛 기록값 0..4 적재, 다항식 게인 파일(형식 3) 거부 (2026-11-16 축소) | SWU-1.12 | SAD §3.5 | UT-MODE-001~003 | IT-MODE-001 | ST-MODE-001 | -- | Mode enforcement |
+| **SRS-CALIB-FUNC-032** | ~~Multi-point calibration performance optimization~~ — **삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)** (FUNC-027 삭제에 따름) | -- | -- | -- | -- | -- | -- | 해당 없음 |
 | **SRS-CALIB-FUNC-033** | Calibration quality metadata recording (R² gate, comparison metrics, mode-specific fields) | SWU-1.12 | SAD §3.5 | UT-META-001~003 | IT-MODE-003 | ST-MODE-003 | -- | Metadata validation |
 
 ---
@@ -150,7 +153,7 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 
 > **Test Input Data**: All test cases requiring calibration map files (`.calib`, `.raw`) must use datasets prepared according to **TDS-CALIB-001**. Synthetic datasets are defined in TDS §4–§5; real image datasets in TDS §6. Golden reference comparison uses TDS §7 criteria (SSIM > 0.999).
 >
-> **Real Image Acquisition**: Real-image test inputs (`real/` datasets) must be acquired following **IAP-CALIB-001** §6 protocols. See IAP §6.1 (Dark), §6.2 (Flat-field), §6.3 (BPM), §6.4 (Nonlinearity), §6.5 (Lag/Ghost).
+> **Real Image Acquisition**: Real-image test inputs (`real/` datasets) must be acquired following **IAP-CALIB-001** §6 protocols. See IAP §6.1 (Dark), §6.2 (Flat-field), §6.3 (BPM), ~~§6.4 (Nonlinearity)~~ (비선형 보정 삭제, 사용자 결정 2026-11-16), §6.5 (Lag/Ghost).
 
 > **[주석 2026-10-03, `#245` / `QA-A-228` — 이 절의 ID 는 문서상의 사례이며 시험 이름이 아닙니다]**
 >
@@ -165,8 +168,8 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **UT-1.5-001** | SRS-CALIB-FUNC-001 | Load valid offset map | offset.calib file | XPE_OK, buffer loaded | Map loaded correctly |
 | **UT-1.5-002** | SRS-CALIB-FUNC-002 | Load valid gain map | gain.calib file | XPE_OK, buffer loaded | Map loaded correctly |
 | **UT-1.5-003** | SRS-CALIB-FUNC-003 | Load valid BPM | defects.calib file | XPE_OK, entries loaded | BPM entries parsed |
-| **UT-1.5-004** | SRS-CALIB-FUNC-004 | Load NLCSC coefficients | nlcsc.json config | XPE_OK, poly parsed | Coefficients valid |
-| **UT-1.5-005** | SRS-CALIB-FUNC-005 | Load temp LUT | temp_lut.json | XPE_OK, LUT table loaded | Table accessible |
+| **UT-1.5-004** | SRS-CALIB-FUNC-004 | ~~Load NLCSC coefficients~~ (삭제, 사용자 결정 2026-11-16) | nlcsc.json config | XPE_OK, poly parsed | Coefficients valid |
+| **UT-1.5-005** | SRS-CALIB-FUNC-005 | ~~Load temp LUT~~ (삭제, 사용자 결정 2026-11-16) | temp_lut.json | XPE_OK, LUT table loaded | Table accessible |
 | **UT-1.5-006** | SRS-CALIB-FUNC-006 | Validate offset dimensions | offset 3072x3072 | XPE_OK | Dimensions match |
 | **UT-1.5-007** | SRS-CALIB-FUNC-007 | Gain/offset dimension match | gain 3072x3072, offset 3072x3072 | XPE_OK | Match verified |
 | **UT-1.5-008** | SRS-CALIB-FUNC-008 | Reject gain out-of-range | gain=0.1 (< 0.5 min) | XPE_ERR_INVALID_DATA | Error returned |
@@ -186,11 +189,11 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | Test ID | Requirement(s) | Case Description | Involvement |
 |:---|:---|:---|:---|
 | **IT-CALIB-001** | SRS-CALIB-FUNC-001..003, 010 | Load full calibration suite (offset, gain, BPM) at startup | SWI-1 + SWI-5 |
-| **IT-CALIB-002** | SRS-CALIB-FUNC-004..005, 011..012 | Load & check expiry with temperature fallback | SWU-1.5 + SWU-1.7 |
+| **IT-CALIB-002** | SRS-CALIB-FUNC-004..005, 011..012 | Load & check expiry (온도 대체값 부분은 삭제, 사용자 결정 2026-11-16) | SWU-1.5 + SWU-1.7 |
 | **IT-CALIB-003** | SRS-CALIB-FUNC-009 | QA validation: reject poor-quality offset | SWU-1.5 validation flow |
 | **IT-CALIB-004** | SRS-CALIB-FUNC-017, SAFE-005 | Field calibration update merge + audit log | SWU-1.5 + logging |
 | **IT-CALIB-005** | SRS-CALIB-FUNC-013..014 | Multi-session concurrent initialization (threading) | SWU-1.5 session table |
-| **IT-BPM-001** | SRS-CALIB-FUNC-022..023 | BPM generation dark+bright with Grid_abnormal dataset | SWU-1.10 + Grid_abnormal fixture |
+| **IT-BPM-001** | SRS-CALIB-FUNC-022..023 | BPM generation dark+bright with Grid_abnormal dataset | SWU-1.11 + Grid_abnormal fixture |
 | **IT-BPM-002** | SRS-CALIB-FUNC-024..025 | Multi-gain frame count + LineArtifactScore validation | SWU-1.10 + CalData_6/Grid_abnormal |
 
 ---
@@ -221,7 +224,7 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 > | FUNC-021 | Calibration Effect Score (CES) | §5.1 "Updated" | ✗ **구현 없음** — `CES` 는 `xpe_verify_metrics.cpp` 의 주석 한 줄. §5.1 의 매핑은 2026-10-03(`QA-A-223`)에 이미 "옛 매핑"으로 정정됐다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
 > | FUNC-028 | `xpe_calib_field_generate()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건. §5b 의 FUNC-017 폐기 근거("FUNC-028 과 중복")가 이 상태를 가린다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
 > | FUNC-029 | `xpe_calib_check_drift()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
-> | FUNC-030 | 실시간 오프셋 적응(`calibration.realtime_offset_adapt`) | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-030 | 실시간 오프셋 적응(`calibration.realtime_offset_adapt`) | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 | **→ 2026-11-17 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)**
 >
 > 위 7개는 2026-10-03 사용자 결정(`QA-A-233` 결정 12·14, #245 코멘트)으로 SRS 에서 지우지 않고 "미구현(요구 유지)" 로 표시했다(`SRS-CALIB-001` v1.3). 구현 여부는 기능별로 따로 정한다.
 >
@@ -248,8 +251,8 @@ All test cases (23 UT + 4 UT-BPM + 9 UT-MODE/PERF-MP/META + 5 IT + 2 IT-BPM + 3 
 | HAZ-CALIB-002 | CRC validation on gain | SRS-CALIB-SAFE-002 | UT-1.5-010, IT-CALIB-001 | CRC test + integration |
 | HAZ-CALIB-003 | Expiry enforcement | SRS-CALIB-SAFE-004 | UT-1.5-012, IT-CALIB-002 | Unit + integration |
 | HAZ-CALIB-004 | BPM validation + runtime detection | SRS-CALIB-FUNC-003, SAFE-003 | UT-1.5-003, IT-CALIB-001 | Integrity check |
-| HAZ-CALIB-005 | Profile validation | SRS-CALIB-FUNC-015 | UT-1.5-015 | Unit test |
-| HAZ-CALIB-006 | Temperature fallback | SRS-CALIB-FUNC-005 | UT-1.5-005, IT-CALIB-002 | Unit + integration |
+| HAZ-CALIB-005 | **해당 없음** — 비선형 보정 삭제(사용자 결정 2026-11-16) | SRS-CALIB-FUNC-015 | UT-1.5-015 | Unit test |
+| HAZ-CALIB-006 | **해당 없음** — 온도 보상 삭제(사용자 결정 2026-11-16) | SRS-CALIB-FUNC-005 | UT-1.5-005, IT-CALIB-002 | Unit + integration |
 | HAZ-CALIB-007 | Session ID uniqueness + isolation | SRS-CALIB-FUNC-013..014 | UT-1.5-013..014, IT-CALIB-005 | Unit + threading test |
 
 ---
@@ -287,7 +290,7 @@ Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preproces
 | SRS 서술 없음 — #216 | `xpe_verify_pipeline` | 하는 일: UINT16 원시 영상과 FLOAT32 최종 영상에서 각각 중앙값 중심·RMS 퍼짐으로 SNR(`20·log10(mean/std)`)을 구해 그 차이를 `snr_improvement_db` 에 담고, ≥ 2.0 dB 이면 `overall_pass` 를 참으로 둔다 (`xpe_verify_metrics.cpp` `verify_pipeline_impl`). 옛 매핑 FUNC-015(E2E 보고서 스키마 `xpe-pre-e2e-report-v1` 발행)와 FUNC-021(보정 효과 점수 CES)은 이 함수가 하지 않는 일이다 — 스키마 이름은 `modules/`·`clients/`·`gui/`·`tools/` 에 0건, `CES` 는 `modules/` 의 주석 한 줄뿐이다(대조: 같은 검색이 SRS 원문에서 둘 다 찾음). 옛 `REQ-P1A-041..047` 은 개번호 전 파이프라인 단계 요구로 지금의 `REQ-P1A-095..101` 이며, 이 함수를 서술하지 않는다. 2.0 dB 문턱도 근거 없음(#218·#242) (`QA-A-223`) | Corrected 2026-10-03 |
 | SRS-CALIB-FUNC-022..025 | `xpe_bpm_generate` | BPM generation tests; ctest 341/341 passed | Updated — **이전 판(1판) 기록**: 이 시험 결과는 2026-10-16 SRS v1.4 개정 이전의 1판 구현에 대한 것이다. FUNC-022·023 의 2판은 구현·검증 대기이며(위 추적 표 FUNC-022·023·039 행), 2판 측정은 QA-A-252 에서 B16 기준 불합격(#273) |
 | SRS-CALIB-FUNC-034 | `xpe_calib_generate_offset` file-writing path plus shared multi-method generation helper | `test_calib_generate_offset_multi.cpp`(내부 shim 호출); 공개 API 경유 단언은 `test_calib_generate_offset_config.cpp` (보강 2026-10-03, `#245` / `QA-A-228`); ctest 341/341 passed | Added |
-| SRS-CALIB-FUNC-006 / FUNC-006-EXT | `xpe_nonlinearity_correct`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_load_nonlin_lut`, `xpe_calib_unload_nonlin_lut` | 매핑 추가 `#216`, 2026-09-29 — **요구는 있었고 이름이 안 달려 있었습니다.** `api_requirement_census.py` 가 이 넷을 "요구 없음" 으로 세던 이유입니다(도구는 `REQ-P1A` 만 스캔하고, `SRS-CALIB-001` 은 능력으로 기술해 함수명을 쓰지 않습니다). `SRS-CALIB-001:376` 의 언급은 요구 문단이 아니라 §5.3 C ABI 서명 목록입니다 | Added |
+| SRS-CALIB-FUNC-006 / FUNC-006-EXT | ~~`xpe_nonlinearity_correct`, `xpe_calib_generate_nonlin_lut`, `xpe_calib_load_nonlin_lut`, `xpe_calib_unload_nonlin_lut`~~ | 네 함수 모두 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a). 2026-09-29 `#216` 매핑 기록은 이력(git)에만 남긴다 | Removed |
 | SRS-CALIB-NFR-003-CACHE | `CalibrationLRUCache` mutex-protected list/index access | Code review plus preprocessing ctest 341/341 passed | Added |
 
 ---
@@ -317,6 +320,8 @@ Placeholder review: no `REQ-P1A-XXX` placeholder remains in the active preproces
 ### 판정 보류 1건 — **해소됐습니다 (`#186`, 2026-09-29)**
 
 > **아래 기록은 쓰인 시점(`#203`, 2026-09-28)의 상태이고 지금은 맞지 않습니다.** `panel.linear` 를 읽는 코드가 `nonlinearity_correct.cpp:156` 에 있습니다 — `QA-A-111`·`127`·`140` 이 그 사이에 구현했습니다. `QA-A-160`(`#186`) 이 그것을 관측해 보고했습니다.
+>
+> **2026-11-16 이후**: `nonlinearity_correct.cpp` 와 `panel.linear` 처리는 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a).
 >
 > 기록을 지우지 않는 이유는 `#203` 의 판단 근거가 그 시점의 사실이었기 때문입니다. **틀린 것은 판단이 아니라 유효기간입니다.** 원문은 그대로 두고 이 문단으로 덮습니다.
 

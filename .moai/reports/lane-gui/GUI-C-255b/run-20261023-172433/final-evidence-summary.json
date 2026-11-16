@@ -1,0 +1,727 @@
+{
+  "flows": [
+    {
+      "directory": "s0_gf-uia3-173555",
+      "dpi": [
+        "96"
+      ],
+      "pngCount": 33,
+      "qualityCount": 19,
+      "guiCliEqual": true,
+      "bytes": 31457280,
+      "sha256": "F1724B40D8691F8F1B6F5B13C81B53AD1EA36E52B0CDE86D275A9C4E9190E1D5",
+      "ownPid": 26840,
+      "remaining0": true,
+      "exit0": true
+    },
+    {
+      "directory": "s0_gf-uia3-173838",
+      "dpi": [
+        "144"
+      ],
+      "pngCount": 33,
+      "qualityCount": 19,
+      "guiCliEqual": true,
+      "bytes": 31457280,
+      "sha256": "F1724B40D8691F8F1B6F5B13C81B53AD1EA36E52B0CDE86D275A9C4E9190E1D5",
+      "ownPid": 33572,
+      "remaining0": true,
+      "exit0": true
+    },
+    {
+      "directory": "s1_um300-uia3-173711",
+      "dpi": [
+        "96"
+      ],
+      "pngCount": 33,
+      "qualityCount": 19,
+      "guiCliEqual": true,
+      "bytes": 31457280,
+      "sha256": "76BD1D1CFFFB4783AB8DF821E817E18353C110B3506D28DC26F2F0B1A8487AB6",
+      "ownPid": 33716,
+      "remaining0": true,
+      "exit0": true
+    },
+    {
+      "directory": "s1_um300-uia3-173956",
+      "dpi": [
+        "144"
+      ],
+      "pngCount": 33,
+      "qualityCount": 19,
+      "guiCliEqual": true,
+      "bytes": 31457280,
+      "sha256": "76BD1D1CFFFB4783AB8DF821E817E18353C110B3506D28DC26F2F0B1A8487AB6",
+      "ownPid": 7300,
+      "remaining0": true,
+      "exit0": true
+    }
+  ],
+  "pngCount": 132,
+  "qualityCount": 76,
+  "qualityFailures": 0,
+  "imageThresholdFailures": 0,
+  "minNonWhiteRatio": 0.12352185772268091,
+  "images": [
+    {
+      "path": "s0_gf-uia3-173555/01-launch-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/01-launch-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/02-calibration-panel-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/02-calibration-panel-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/03-calibration-Defect-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/03-calibration-Defect-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/03-calibration-Gain-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/03-calibration-Gain-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/03-calibration-Offset-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/03-calibration-Offset-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/04-raw-open-18876970.window.png",
+      "nonWhiteRatio": 0.9453018146737007,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/04-raw-open-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9473146389230326,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/05-pre-result-18876970.window.png",
+      "nonWhiteRatio": 0.9453018146737007,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/05-pre-result-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9473146389230326,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/06-metrics-18876970.window.png",
+      "nonWhiteRatio": 0.9453018146737007,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/06-metrics-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9473146389230326,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/07-saved-18876970.window.png",
+      "nonWhiteRatio": 0.9453018146737007,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/07-saved-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9473146389230326,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173608-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173608-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173617-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173617-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173626-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173626-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173637-18876970.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173637-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173702-18876970.window.png",
+      "nonWhiteRatio": 0.9453018146737007,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/dialog-173702-18876970.wpf-client.png",
+      "nonWhiteRatio": 0.9473146389230326,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/native-dialog-173609765-34932518.dialog.png",
+      "nonWhiteRatio": 0.12364027243550481,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/native-dialog-173618574-36636454.dialog.png",
+      "nonWhiteRatio": 0.12425786641187087,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/native-dialog-173627308-14748358.dialog.png",
+      "nonWhiteRatio": 0.12425786641187087,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/native-dialog-173639032-26610312.dialog.png",
+      "nonWhiteRatio": 0.13666384921315464,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173555/native-dialog-173703504-34275990.dialog.png",
+      "nonWhiteRatio": 0.14017852038774695,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/01-launch-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/01-launch-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/02-calibration-panel-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/02-calibration-panel-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/03-calibration-Defect-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/03-calibration-Defect-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/03-calibration-Gain-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/03-calibration-Gain-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/03-calibration-Offset-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/03-calibration-Offset-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/04-raw-open-1510218.window.png",
+      "nonWhiteRatio": 0.9477869767845657,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/04-raw-open-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9482654465642587,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/05-pre-result-1510218.window.png",
+      "nonWhiteRatio": 0.9477869767845657,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/05-pre-result-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9482654465642587,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/06-metrics-1510218.window.png",
+      "nonWhiteRatio": 0.9477869767845657,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/06-metrics-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9482654465642587,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/07-saved-1510218.window.png",
+      "nonWhiteRatio": 0.9477869767845657,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/07-saved-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9482654465642587,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173852-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173852-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173901-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173901-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173909-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173909-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173921-1510218.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173921-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173947-1510218.window.png",
+      "nonWhiteRatio": 0.9477869767845657,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/dialog-173947-1510218.wpf-client.png",
+      "nonWhiteRatio": 0.9482654465642587,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/native-dialog-173853252-40568648.dialog.png",
+      "nonWhiteRatio": 0.1354546284398194,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/native-dialog-173902432-28510086.dialog.png",
+      "nonWhiteRatio": 0.13593913476999994,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/native-dialog-173910848-13961876.dialog.png",
+      "nonWhiteRatio": 0.13593913476999994,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/native-dialog-173922127-33949842.dialog.png",
+      "nonWhiteRatio": 0.14768665781915977,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s0_gf-uia3-173838/native-dialog-173948414-38996718.dialog.png",
+      "nonWhiteRatio": 0.1510246606700231,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/01-launch-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/01-launch-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/02-calibration-panel-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/02-calibration-panel-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/03-calibration-Defect-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/03-calibration-Defect-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/03-calibration-Gain-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/03-calibration-Gain-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/03-calibration-Offset-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/03-calibration-Offset-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/04-raw-open-13632274.window.png",
+      "nonWhiteRatio": 0.8736574650742478,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/04-raw-open-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.8783067110502079,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/05-pre-result-13632274.window.png",
+      "nonWhiteRatio": 0.8736574650742478,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/05-pre-result-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.8783067110502079,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/06-metrics-13632274.window.png",
+      "nonWhiteRatio": 0.8736574650742478,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/06-metrics-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.8783067110502079,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/07-saved-13632274.window.png",
+      "nonWhiteRatio": 0.8736574650742478,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/07-saved-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.8783067110502079,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173725-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173725-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173733-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173733-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173742-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173742-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173753-13632274.window.png",
+      "nonWhiteRatio": 0.9986330414712778,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173753-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.9986833438214935,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173819-13632274.window.png",
+      "nonWhiteRatio": 0.8736574650742478,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/dialog-173819-13632274.wpf-client.png",
+      "nonWhiteRatio": 0.8783067110502079,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/native-dialog-173726107-30083084.dialog.png",
+      "nonWhiteRatio": 0.12352185772268091,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/native-dialog-173734825-34015470.dialog.png",
+      "nonWhiteRatio": 0.12435790642787728,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/native-dialog-173743437-118294546.dialog.png",
+      "nonWhiteRatio": 0.12435790642787728,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/native-dialog-173754911-93129220.dialog.png",
+      "nonWhiteRatio": 0.13676388922916105,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173711/native-dialog-173820380-37948142.dialog.png",
+      "nonWhiteRatio": 0.14025814407395612,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/01-launch-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/01-launch-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/02-calibration-panel-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/02-calibration-panel-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/03-calibration-Defect-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/03-calibration-Defect-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/03-calibration-Gain-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/03-calibration-Gain-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/03-calibration-Offset-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/03-calibration-Offset-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/04-raw-open-7408290.window.png",
+      "nonWhiteRatio": 0.8775267124161599,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/04-raw-open-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.878649033310829,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/05-pre-result-7408290.window.png",
+      "nonWhiteRatio": 0.8775267124161599,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/05-pre-result-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.878649033310829,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/06-metrics-7408290.window.png",
+      "nonWhiteRatio": 0.8775267124161599,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/06-metrics-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.878649033310829,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/07-saved-7408290.window.png",
+      "nonWhiteRatio": 0.8775267124161599,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/07-saved-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.878649033310829,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174011-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174011-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174020-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174020-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174028-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174028-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174040-7408290.window.png",
+      "nonWhiteRatio": 0.9986842745653601,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174040-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.9986963316120523,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174105-7408290.window.png",
+      "nonWhiteRatio": 0.8775267124161599,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/dialog-174105-7408290.wpf-client.png",
+      "nonWhiteRatio": 0.878649033310829,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/native-dialog-174011986-4459158.dialog.png",
+      "nonWhiteRatio": 0.1353778271646549,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/native-dialog-174021121-92733724.dialog.png",
+      "nonWhiteRatio": 0.13600935307872175,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/native-dialog-174030107-101320508.dialog.png",
+      "nonWhiteRatio": 0.13600935307872175,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/native-dialog-174041329-101517116.dialog.png",
+      "nonWhiteRatio": 0.14775687612788158,
+      "exceeds5Percent": true
+    },
+    {
+      "path": "s1_um300-uia3-173956/native-dialog-174106709-15927878.dialog.png",
+      "nonWhiteRatio": 0.15115368681229943,
+      "exceeds5Percent": true
+    }
+  ]
+}

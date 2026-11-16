@@ -283,7 +283,7 @@ public sealed class SettingsWarningRecoveryScenarios(ITestOutputHelper output)
     }
 
     private static string StatusBar(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
+        WorkbenchObservation.FullStatusText(window);
 
     /// <summary>View ▸ Logs (off by default) and then the Log tab — two steps, left as they are.</summary>
     private static void OpenLogs(Window window)

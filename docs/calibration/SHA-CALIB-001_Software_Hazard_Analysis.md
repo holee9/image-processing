@@ -1,6 +1,6 @@
 # Software Hazard Analysis - Calibration Module
 
-> **Document ID**: SHA-CALIB-001 | **Version**: 1.1 | **Date**: 2026-04-14
+> **Document ID**: SHA-CALIB-001 | **Version**: 1.2 | **Date**: 2026-04-14 (갱신 2026-11-17: HAZ-CALIB-005·006 해당 없음 — 비선형 보정·온도 보상 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a))
 >
 > **IEC 62304 Clause**: 7 (ISO 14971 integration)
 >
@@ -14,14 +14,14 @@
 
 ## 1. Purpose & Scope
 
-This document identifies and assesses hazardous situations arising from the XPE Calibration module (`xpe_preprocess.dll`, Phase 1a) according to ISO 14971:2019 Risk Management for medical devices. The calibration module manages loading and validation of offset maps, gain maps, defect pixel maps (BPM), nonlinearity correction coefficients, and temperature compensation data from persistent storage.
+This document identifies and assesses hazardous situations arising from the XPE Calibration module (`xpe_preprocess.dll`, Phase 1a) according to ISO 14971:2019 Risk Management for medical devices. The calibration module manages loading and validation of offset maps, gain maps, defect pixel maps (BPM) from persistent storage. (Nonlinearity correction coefficients and temperature compensation data were removed with those features — user decision 2026-11-16.)
 
 Hazardous situations addressed include:
 - Corrupted or missing calibration files
 - CRC/integrity check failures
 - Expired calibration data
 - Incomplete defect pixel detection
-- Temperature sensor failures
+- ~~Temperature sensor failures~~ (해당 없음 — 온도 보상 삭제, 사용자 결정 2026-11-16)
 - Session ID collisions in multi-detector systems
 - File access race conditions
 
@@ -34,7 +34,7 @@ This document serves as the formal hazard identification source for risk control
 | **SRS-CALIB-001** | Safety requirements (SRS-CALIB-SAFE-001 through SAFE-005) implement hazard risk controls identified here |
 | **SAD-CALIB-001** | Architectural units (SWU-1.5, SWU-1.1–1.4) implementing risk controls |
 | **RTM-CALIB-001** | Bidirectional traceability: HAZ-CALIB-XXX ↔ SRS-SAFE ↔ test cases |
-| **IAP-CALIB-001** | Acquisition protocol whose adherence reduces HAZ-CALIB-004 (BPM outdated) and HAZ-CALIB-005 (Nonlinearity mismatch) probability; Section 6.3 BPM protocol and §6.4 Nonlinearity protocol are preventive controls |
+| **IAP-CALIB-001** | Acquisition protocol whose adherence reduces HAZ-CALIB-004 (BPM outdated) probability; Section 6.3 BPM protocol is a preventive control (HAZ-CALIB-005 와 §6.4 비선형 절차는 비선형 보정 삭제로 해당 없음, 사용자 결정 2026-11-16) |
 | **TDS-CALIB-001** | Test datasets used to verify effectiveness of all 7 risk controls; synthetic data covers failure injection (HAZ-CALIB-001 corrupted offset, HAZ-CALIB-003 expired timestamp); real data via IAP §6 |
 
 ---
@@ -114,7 +114,9 @@ ISO 14971 Annex C severity × probability framework:
 | **Probability (Pre-Control)** | Occasional (detector defects develop over time) |
 | **Risk Level (Pre)** | **Low** |
 
-### HAZ-CALIB-005: Nonlinearity Correction Mismatch
+### HAZ-CALIB-005: Nonlinearity Correction Mismatch — 해당 없음
+
+> **해당 없음** — 비선형 보정 기능이 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a). 이 위험을 일으킬 단계가 없다. 아래 표는 기록으로 남긴다.
 
 | Field | Value |
 |-------|-------|
@@ -128,7 +130,9 @@ ISO 14971 Annex C severity × probability framework:
 | **Probability (Pre-Control)** | Remote (calibration tool validation catches most errors) |
 | **Risk Level (Pre)** | **Low** |
 
-### HAZ-CALIB-006: Temperature Compensation Failure
+### HAZ-CALIB-006: Temperature Compensation Failure — 해당 없음
+
+> **해당 없음** — 온도 보상 기능이 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9). 이 위험을 일으킬 단계가 없다. 아래 표는 기록으로 남긴다.
 
 | Field | Value |
 |-------|-------|
@@ -168,8 +172,8 @@ ISO 14971 Annex C severity × probability framework:
 | HAZ-CALIB-002 | Serious | Improbable | Low | Low priority |
 | HAZ-CALIB-003 | Serious | Occasional | **Medium** | **Yes** |
 | HAZ-CALIB-004 | Serious | Occasional | Low | Low priority |
-| HAZ-CALIB-005 | Serious | Remote | Low | Low priority |
-| HAZ-CALIB-006 | Serious | Remote | Low | Low priority |
+| HAZ-CALIB-005 | -- | -- | 해당 없음 | 해당 없음 (비선형 보정 삭제, 2026-11-16) |
+| HAZ-CALIB-006 | -- | -- | 해당 없음 | 해당 없음 (온도 보상 삭제, 2026-11-16) |
 | HAZ-CALIB-007 | Serious | Improbable | Low | Low priority |
 
 ---
@@ -249,8 +253,8 @@ After risk controls applied:
 | HAZ-CALIB-002 | Low | CRC validation | Low | ✓ |
 | HAZ-CALIB-003 | Medium | Expiry enforcement | Low | ✓ |
 | HAZ-CALIB-004 | Low | Runtime detection + alert | Low | ✓ |
-| HAZ-CALIB-005 | Low | Profile validation | Low | ✓ |
-| HAZ-CALIB-006 | Low | Fallback to nominal | Low | ✓ |
+| HAZ-CALIB-005 | 해당 없음 | 비선형 보정 삭제(사용자 결정 2026-11-16) | 해당 없음 | -- |
+| HAZ-CALIB-006 | 해당 없음 | 온도 보상 삭제(사용자 결정 2026-11-16) | 해당 없음 | -- |
 | HAZ-CALIB-007 | Low | UUID + atomic ops | Very Low | ✓ |
 
 **Overall Assessment**: All residual risks acceptable (Low or Very Low)
@@ -265,15 +269,15 @@ After risk controls applied:
 | HAZ-CALIB-002 | SRS-SAFE-002 | XPE-RTM-001 §3 | UT-1.5-002, ST-SAFE-002 | CRC validation test |
 | HAZ-CALIB-003 | SRS-SAFE-002 | XPE-RTM-001 §3 | UT-1.5-004..005, IT-CALIB-002, ST-SAFE-002 | Integration test |
 | HAZ-CALIB-004 | SRS-SAFE-003 | XPE-RTM-001 §3 | UT-1.3-008, IT-CALIB-003, ST-SAFE-003 | Runtime detection test |
-| HAZ-CALIB-005 | SRS-SAFE-002 | XPE-RTM-001 §3 | UT-1.8-001..003 | Profile validation |
-| HAZ-CALIB-006 | SRS-SAFE-002 | XPE-RTM-001 §3 | UT-1.7-001..002 | Sensor fallback test |
+| HAZ-CALIB-005 | -- | -- | -- | 해당 없음 (비선형 보정 삭제, 사용자 결정 2026-11-16) |
+| HAZ-CALIB-006 | -- | -- | -- | 해당 없음 (온도 보상 삭제, 사용자 결정 2026-11-16) |
 | HAZ-CALIB-007 | SRS-SAFE-007 | XPE-RTM-001 §3 | UT-1.5-007..008, IT-CALIB-005 | Concurrent init test |
 
 ---
 
 ## 8. Summary
 
-The XPE Calibration module (Phase 1a preprocessing) manages critical calibration data (offset, gain, defect maps) that directly affect image quality and diagnostic accuracy. Seven hazardous situations identified; all assessed as Low or Medium pre-control risk. Seven risk control measures implemented spanning data validation, expiry enforcement, runtime detection, and unique session ID management. All residual risks assessed as acceptable (Low or Very Low).
+The XPE Calibration module (Phase 1a preprocessing) manages critical calibration data (offset, gain, defect maps) that directly affect image quality and diagnostic accuracy. Seven hazardous situations identified (HAZ-CALIB-005·006 are no longer applicable after the nonlinearity and temperature features were removed — user decision 2026-11-16, five remain active); all assessed as Low or Medium pre-control risk. Seven risk control measures implemented spanning data validation, expiry enforcement, runtime detection, and unique session ID management. All residual risks assessed as acceptable (Low or Very Low).
 
 **Document Status**: Ready for formal review and sign-off per IEC 62304 §7.4
 

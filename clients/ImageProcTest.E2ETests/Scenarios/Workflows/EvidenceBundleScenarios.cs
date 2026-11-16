@@ -184,7 +184,7 @@ public sealed class EvidenceBundleScenarios(ITestOutputHelper output)
         Buttons(window).First(b => b.Name == "Export bundle").AsButton().Invoke();
         Thread.Sleep(1200);
 
-        var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.Name ?? string.Empty;
+        var status = WorkbenchObservation.FullStatusText(window);
         output.WriteLine($"{scenario} status-bar='{RuntimeSummary(window)}' export='{status}'");
         if (!status.StartsWith(ExportedPrefix, StringComparison.Ordinal))
         {
@@ -206,8 +206,20 @@ public sealed class EvidenceBundleScenarios(ITestOutputHelper output)
         return (json.GetProperty("actualBackendMode").GetString(), json.GetProperty("requestedBackendMode").GetString());
     }
 
-    private static string EvidenceRoot(ApplicationFixture app) =>
-        Path.Combine(Path.GetDirectoryName(ApplicationFixture.ResolveApplicationExecutable()!)!, "evidence");
+    private static string EvidenceRoot(ApplicationFixture app)
+    {
+        // GUI-C-263: mirror GuiDataPaths; its AppContext.BaseDirectory here would be the test host,
+        // not the GUI executable. Keep the same override validation and use the GUI's default folder.
+        var root = Environment.GetEnvironmentVariable("XPE_GUI_DATA_DIR");
+        if (string.IsNullOrWhiteSpace(root))
+            root = Path.GetDirectoryName(ApplicationFixture.ResolveApplicationExecutable()!)!;
+        else
+        {
+            if (!Path.IsPathFullyQualified(root)) throw new InvalidOperationException("XPE_GUI_DATA_DIR must be an absolute user-data path.");
+            root = Path.GetFullPath(root);
+        }
+        return Path.Combine(root, "evidence");
+    }
 
     private static AutomationElement[] Buttons(Window window) =>
         window.FindAllDescendants(cf => cf.ByControlType(FlaUI.Core.Definitions.ControlType.Button));

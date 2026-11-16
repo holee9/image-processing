@@ -1,0 +1,7 @@
+2026-10-23T17:24:58.1074158+09:00 LAUNCH pid=6384 raw=D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-255b\run-20261023-172433\s0_gf-uia3-172458\input-001.raw cal=D:/workspace-github/xpe-2g-offline/pre-w3072-20261022-1240/s0_gf/xcal
+2026-10-23T17:25:00.3559960+09:00 PRINTWINDOW(flags=0x2)=True
+2026-10-23T17:25:00.4021242+09:00 CAPTURE_NONWHITE_RATIO=0
+2026-10-23T17:25:00.4244971+09:00 BLOCKED=System.InvalidOperationException: Capture failed: body nonwhite ratio must exceed 5%
+   at Program.Snapshot(String stage) in D:\workspace-github\xpe-gui\clients\ImageProcTest.GuiObservation\Program.cs:line 88
+   at Program.Main(String[] args) in D:\workspace-github\xpe-gui\clients\ImageProcTest.GuiObservation\Program.cs:line 196
+2026-10-23T17:25:00.4587678+09:00 OWNED_PROCESS_REMAINING=0

@@ -1,0 +1,47 @@
+COMMAND qa-b-226-probe.exe [
+  'D:/workspace-github/xpe-post/build/cov-local/bin/xpe_enhance_basic.dll',
+  'normal'
+] TIMEOUT_MS 10000 EXIT 0 BYTES 49152
+scene=0 spatial=2 range=10 rc=0 unchanged=0
+scene=1 spatial=3 range=50 rc=0 unchanged=0
+scene=2 spatial=5 range=100 rc=0 unchanged=0
+
+OUTPUT cov-local case=0 sha256=736276763cb0fd6f201d1f3f929f1b026939743930b1f84fc8f4a31edf39592a
+OUTPUT cov-local case=1 sha256=3068369e4255a7ec3fd0b36ca7de668feffbc4098bad29bad2c6eaaa1c642b66
+OUTPUT cov-local case=2 sha256=0b442f0f007edb61b419f245faa0294cd9e43e82e4b369b5928c9a63369c37c0
+BOUNDARY cov-local EXIT 0 ERROR undefined
+theoretical_range_boundary=3.8332336559477019e-20
+scene=0 spatial=2 range=3.8332334761054374e-20 rc=-1 unchanged=1
+scene=0 spatial=2 range=3.8332337992228642e-20 rc=0 unchanged=0
+scene=0 spatial=2 range=3.833234122340291e-20 rc=0 unchanged=0
+scene=0 spatial=2 range=9.9999996826552254e-21 rc=-1 unchanged=1
+theoretical_spatial_boundary=5.4210110239862428e-20
+scene=0 spatial=5.4210105393100954e-20 range=50 rc=-1 unchanged=1
+scene=0 spatial=5.4210108624275222e-20 range=50 rc=-1 unchanged=1
+scene=0 spatial=5.4210115086623757e-20 range=50 rc=0 unchanged=1
+scene=0 spatial=9.9999996826552254e-21 range=50 rc=-1 unchanged=1
+
+COMMAND qa-b-226-probe.exe [
+  'D:/workspace-github/xpe-post/build/ci-post/bin/xpe_enhance_basic.dll',
+  'normal'
+] TIMEOUT_MS 10000 EXIT 0 BYTES 49152
+scene=0 spatial=2 range=10 rc=0 unchanged=0
+scene=1 spatial=3 range=50 rc=0 unchanged=0
+scene=2 spatial=5 range=100 rc=0 unchanged=0
+
+OUTPUT ci-post case=0 sha256=7335bf6a27b7e323424df49f810fed7d4b51cbb31955044c0f85917bcda1246e
+OUTPUT ci-post case=1 sha256=aa98c72e45c75edf8799aec1456a206b4a4917341bc17b1d58b578aacc3819a9
+OUTPUT ci-post case=2 sha256=15678121d09e61ca6cad2a92515128d32e525f9657523853c4a40c4ff603c880
+BOUNDARY ci-post EXIT 0 ERROR undefined
+theoretical_range_boundary=3.8332336559477019e-20
+scene=0 spatial=2 range=3.8332334761054374e-20 rc=-1 unchanged=1
+scene=0 spatial=2 range=3.8332337992228642e-20 rc=0 unchanged=0
+scene=0 spatial=2 range=3.833234122340291e-20 rc=0 unchanged=0
+scene=0 spatial=2 range=9.9999996826552254e-21 rc=-1 unchanged=1
+theoretical_spatial_boundary=5.4210110239862428e-20
+scene=0 spatial=5.4210105393100954e-20 range=50 rc=-1 unchanged=1
+scene=0 spatial=5.4210108624275222e-20 range=50 rc=-1 unchanged=1
+scene=0 spatial=5.4210115086623757e-20 range=50 rc=0 unchanged=1
+scene=0 spatial=9.9999996826552254e-21 range=50 rc=-1 unchanged=1
+
+

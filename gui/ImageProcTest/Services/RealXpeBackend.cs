@@ -586,7 +586,7 @@ public sealed class RealXpeBackend : IXpeBackend, IAiSessionBackend, IBaselineBa
     {
         return $"Offset={settings.OffsetCorrectionMode}, Gain={settings.GainCorrectionMode}, Defect={settings.DefectCorrectionMode}, " +
                $"Ghost={settings.GhostCorrectionMode}, Temp={settings.TemperatureCompensationMode}, " +
-               $"Nonlinearity={settings.NonlinearityCorrectionMode}, Binning={settings.BinningCorrectionMode}";
+               $"Binning={settings.BinningCorrectionMode}";
     }
 
     private static XpeBodyPartEnumNative ToNativeBodyPart(XpeBodyPartEnum bodyPart) => bodyPart switch

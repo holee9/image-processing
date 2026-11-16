@@ -327,6 +327,13 @@ internal static class WorkbenchObservation
     internal static string RuntimeSummary(Window window) =>
         window.FindFirstDescendant(cf => cf.ByAutomationId("RuntimeCommonVersionText"))?.Name ?? string.Empty;
 
+    // GUI-C-258: compact visible footer text; full action/chain text stays on its standard UIA properties.
+    internal static string FullStatusText(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"))?.HelpText ?? string.Empty;
+
+    internal static string FullChainText(Window window) =>
+        window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"))?.Properties.ItemStatus.ValueOrDefault ?? string.Empty;
+
     /// <summary>
     /// GUI-C-81: under Native the fault seam must wrap the NATIVE backend. The factory falls back to Mock
     /// silently, and <c>mode=</c> is only the requested setting, so the proof is <c>src=</c> — reported by

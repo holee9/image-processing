@@ -1,0 +1,1678 @@
+{
+  "flows": [
+    {
+      "directory": "s0_gf-uia3-165520",
+      "dpi": [
+        "96"
+      ],
+      "equal": true,
+      "guiSha256": "F1724B40D8691F8F1B6F5B13C81B53AD1EA36E52B0CDE86D275A9C4E9190E1D5",
+      "bytes": 31457280,
+      "exit0": true,
+      "remaining0": true
+    },
+    {
+      "directory": "s0_gf-uia3-165753",
+      "dpi": [
+        "144"
+      ],
+      "equal": true,
+      "guiSha256": "F1724B40D8691F8F1B6F5B13C81B53AD1EA36E52B0CDE86D275A9C4E9190E1D5",
+      "bytes": 31457280,
+      "exit0": true,
+      "remaining0": true
+    },
+    {
+      "directory": "s1_um300-uia3-165633",
+      "dpi": [
+        "96"
+      ],
+      "equal": true,
+      "guiSha256": "76BD1D1CFFFB4783AB8DF821E817E18353C110B3506D28DC26F2F0B1A8487AB6",
+      "bytes": 31457280,
+      "exit0": true,
+      "remaining0": true
+    },
+    {
+      "directory": "s1_um300-uia3-165904",
+      "dpi": [
+        "144"
+      ],
+      "equal": true,
+      "guiSha256": "76BD1D1CFFFB4783AB8DF821E817E18353C110B3506D28DC26F2F0B1A8487AB6",
+      "bytes": 31457280,
+      "exit0": true,
+      "remaining0": true
+    }
+  ],
+  "pngCount": 56,
+  "screenPngCount": 0,
+  "whiteClientCount": 56,
+  "artifactsIndexed": 125,
+  "screenshots": [
+    {
+      "path": "s0_gf-uia3-165520/01-launch-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 163,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/02-calibration-panel-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/03-calibration-Defect-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/03-calibration-Gain-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/03-calibration-Offset-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/04-raw-open-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/05-pre-result-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/06-metrics-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/07-saved-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/dialog-165534-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 246,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/dialog-165542-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/dialog-165550-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/dialog-165601-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 268,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165520/dialog-165624-120457008.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 263,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/01-launch-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 163,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/02-calibration-panel-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/03-calibration-Defect-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/03-calibration-Gain-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/03-calibration-Offset-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/04-raw-open-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/05-pre-result-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/06-metrics-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/07-saved-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/dialog-165806-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 246,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/dialog-165814-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/dialog-165823-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/dialog-165833-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 268,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 1,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s0_gf-uia3-165753/dialog-165856-25299334.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 263,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 1,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/01-launch-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 163,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/02-calibration-panel-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/03-calibration-Defect-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/03-calibration-Gain-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/03-calibration-Offset-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/04-raw-open-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/05-pre-result-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/06-metrics-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/07-saved-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/dialog-165646-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 246,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/dialog-165654-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/dialog-165702-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/dialog-165712-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 268,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165633/dialog-165736-15469040.print.png",
+      "sha256": "f361229cee1521e3ff6e07617a72c4d50d36556d5a72156c2fb6426b88adedca",
+      "dpi": [
+        "96"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 263,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/01-launch-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 163,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/02-calibration-panel-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/03-calibration-Defect-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/03-calibration-Gain-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/03-calibration-Offset-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/04-raw-open-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/05-pre-result-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/06-metrics-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/07-saved-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 2,
+      "elements": 178,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/dialog-165917-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 247,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/dialog-165925-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/dialog-165933-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 255,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 0,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/dialog-165943-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 268,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 1,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    },
+    {
+      "path": "s1_um300-uia3-165904/dialog-170006-9308712.print.png",
+      "sha256": "c399d05c9262d4ebf9caeb7b5470a6c7f49f5b879f74b3e4e344953298bfcc3b",
+      "dpi": [
+        "144"
+      ],
+      "size": [
+        1560,
+        920
+      ],
+      "clientWhiteFraction": 1.0,
+      "fontsRead": 3,
+      "elements": 263,
+      "smallFonts": [
+        [
+          "LaneBVoiWidthInput",
+          8.25
+        ],
+        [
+          "VerdictNotesInput",
+          8.25
+        ]
+      ],
+      "offscreenButtonsAndMenus": 1,
+      "suspiciousGlyphNames": 0,
+      "questionMarkNames": 2,
+      "ellipsisNames": 0,
+      "mojibakeMarkerNames": 0
+    }
+  ]
+}

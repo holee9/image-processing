@@ -172,8 +172,17 @@ public class ApplicationFixture : IDisposable
 
             if (BackendMode == "Native")
             {
-                CalibrationDirectory = SharedCalibrationSet(out var calibrationNote);
-                CalibrationNote = calibrationNote;
+                var existingCalibration = Environment.GetEnvironmentVariable("XPE_E2E_EXISTING_CALIB_DIR");
+                if (!string.IsNullOrWhiteSpace(existingCalibration))
+                {
+                    CalibrationDirectory = ValidateExistingCalibrationDirectory(existingCalibration);
+                    CalibrationNote = $"Existing calibration (no generation): {CalibrationDirectory}";
+                }
+                else
+                {
+                    CalibrationDirectory = SharedCalibrationSet(out var calibrationNote);
+                    CalibrationNote = calibrationNote;
+                }
 
                 if (CalibrationDirectory is not null)
                 {
@@ -218,6 +227,15 @@ public class ApplicationFixture : IDisposable
             CleanUpAfterFailedConstruction();
             throw;
         }
+    }
+
+    internal static string ValidateExistingCalibrationDirectory(string directory)
+    {
+        var full = Path.GetFullPath(directory);
+        foreach (var name in new[] { "offset.xcal", "gain.xcal", "defect.xcal" })
+            if (!File.Exists(Path.Combine(full, name)))
+                throw new FileNotFoundException($"Existing E2E calibration requires {name}; generation is disabled when XPE_E2E_EXISTING_CALIB_DIR is set.", Path.Combine(full, name));
+        return full;
     }
 
     /// <summary>

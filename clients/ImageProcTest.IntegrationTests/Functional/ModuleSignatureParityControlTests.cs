@@ -249,4 +249,88 @@ public sealed class ModuleSignatureParityControlTests
         var withComment = Mutate(Cs, "static class N\n", "/// <summary>Declared with [DllImport(\"xpe_t.dll\")] in the old days.</summary>\nstatic class N\n".Replace("\n", "\n"));
         Assert.Empty(Run(Header, withComment.Replace("\r\n", "\n", StringComparison.Ordinal)));
     }
+
+    // GUI-C-252: a struct's array length may name a #define of the same header (preprocess_api.h: XPE_BPM_V2_FEATURE_COUNT, XPE_BPM_V2_MAX_DOSE_GROUPS). The checker reads a plain decimal integer
+    // definition and nothing else; a name it cannot resolve stays a finding.
+
+    private const string MacroHeader = """
+        #define XPE_T_COUNT 6   // features per report
+        #  define XPE_T_GROUPS 8
+        typedef struct XpeReport { float features[XPE_T_COUNT]; uint32_t groups[XPE_T_GROUPS]; int32_t n; } XpeReport;
+        XPE_API int32_t xpe_t_rep(XpeReport* r);
+        """;
+
+    private const string MacroCs = """
+        using System;
+        using System.Runtime.InteropServices;
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
+        struct XpeReport { [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)] public float[] Features; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)] public uint[] Groups; public int N; }
+        static class N
+        {
+            const string DllName = "xpe_t.dll";
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)] public static extern int xpe_t_rep(ref XpeReport r);
+        }
+        """;
+
+    private static string Lf(string text) => text.Replace("\r\n", "\n", StringComparison.Ordinal);
+
+    [Fact]
+    public void Control_AnArrayLengthThatNamesADefineOfTheSameHeader_IsReadAsItsValue_AndComparedWithTheCSharp()
+    {
+        var native = ParseHeaders([("h.h", Lf(MacroHeader))]);
+        Assert.Empty(native.Problems);
+        var fields = native.Structs["XpeReport"].Fields;
+        Assert.Equal(6, fields[0].Array);
+        Assert.Equal(8, fields[1].Array);
+        Assert.Empty(Run(Lf(MacroHeader), Lf(MacroCs)));
+        Assert.Empty(Run(Crlf(MacroHeader), Crlf(MacroCs)));   // the checkout on CI has CRLF in every header
+
+        // the resolved value is the one that is compared: the header says 7 and the C# says 6 (and the other way round)
+        Assert.Contains(Run(Mutate(MacroHeader, "XPE_T_COUNT 6", "XPE_T_COUNT 7"), Lf(MacroCs)), p => p.Contains("XpeReport", StringComparison.Ordinal));
+        Assert.Contains(Run(Lf(MacroHeader), Mutate(MacroCs, "SizeConst = 6", "SizeConst = 5")), p => p.Contains("XpeReport", StringComparison.Ordinal));
+    }
+
+    /// <summary>The refutation: a name nobody defines (or one defined only in ANOTHER header) is still "not a number", as before this change.</summary>
+    [Fact]
+    public void Control_AnArrayLengthThatNamesNothingDefined_StillFails()
+    {
+        var undefined = ParseHeaders([("h.h", Mutate(MacroHeader, "#define XPE_T_COUNT 6   // features per report\n", string.Empty))]);
+        Assert.Contains(undefined.Problems, p => p.Contains("'XPE_T_COUNT' is not a number", StringComparison.Ordinal));
+
+        var elsewhere = ParseHeaders([("a.h", "#define XPE_T_COUNT 6\n"), ("b.h", Mutate(MacroHeader, "#define XPE_T_COUNT 6   // features per report\n", string.Empty))]);
+        Assert.Contains(elsewhere.Problems, p => p.Contains("'XPE_T_COUNT' is not a number", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("a hex literal", "#define XPE_T_COUNT 0x6")]
+    [InlineData("a parenthesised number", "#define XPE_T_COUNT (6)")]
+    [InlineData("an expression", "#define XPE_T_COUNT 3 * 2")]
+    [InlineData("another name", "#define XPE_T_OTHER 6\n#define XPE_T_COUNT XPE_T_OTHER")]
+    [InlineData("a function-like macro", "#define XPE_T_COUNT(x) 6")]
+    [InlineData("a suffixed literal", "#define XPE_T_COUNT 6u")]
+    [InlineData("a definition continued on the next line", "#define XPE_T_COUNT 6 \\\n   + 0")]
+    public void Control_ADefinitionThatIsNotAPlainDecimalInteger_IsNotGuessed(string what, string definition)
+    {
+        var header = Mutate(MacroHeader, "#define XPE_T_COUNT 6   // features per report", definition);
+        var native = ParseHeaders([("h.h", header)]);
+        Assert.True(native.Problems.Any(p => p.Contains("'XPE_T_COUNT' is not a number", StringComparison.Ordinal)), $"{what}: findings were [{string.Join(" | ", native.Problems)}]");
+    }
+
+    [Theory]
+    [InlineData("zero", "#define XPE_T_COUNT 0", "not a size from 1")]
+    [InlineData("too large for an int", "#define XPE_T_COUNT 99999999999", "not a size from 1")]
+    [InlineData("two different values in one header", "#define XPE_T_COUNT 6\n#define XPE_T_COUNT 7", "more than one value")]
+    public void Control_ADecimalDefinitionThatCannotBeAnArraySize_OrIsAmbiguous_IsAFinding(string what, string definition, string expectedFragment)
+    {
+        var native = ParseHeaders([("h.h", Mutate(MacroHeader, "#define XPE_T_COUNT 6   // features per report", definition))]);
+        Assert.True(native.Problems.Any(p => p.Contains("'XPE_T_COUNT'", StringComparison.Ordinal) && p.Contains(expectedFragment, StringComparison.Ordinal)), $"{what}: findings were [{string.Join(" | ", native.Problems)}]");
+    }
+
+    /// <summary>The same definition twice with the same value is valid C and stays clean.</summary>
+    [Fact]
+    public void Control_TheSameValueDefinedTwice_IsClean()
+    {
+        var header = Mutate(MacroHeader, "#define XPE_T_COUNT 6   // features per report", "#define XPE_T_COUNT 6\n#define XPE_T_COUNT 6");
+        Assert.Empty(ParseHeaders([("h.h", header)]).Problems);
+    }
 }

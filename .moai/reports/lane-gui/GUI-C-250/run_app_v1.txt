@@ -1,0 +1,71 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:29.85]   Finished:    ImageProcTest.E2ETests
+  통과 ImageProcTest.E2ETests.Scenarios.Operator.RealTestScenarios.R1_OneFrame_CorrectedWithASet_PicturesAndDataSaved [29 s]
+  표준 출력 메시지:
+    dialog: 'Load Raw Image'
+    native (+4 ms): dialog 0x8807CE open; app windows: 0x240864 Auto-Suggest Dropdown (hidden), 0x230852 Auto-Suggest Dropdown (hidden), 0x130290 tooltips_class32 (hidden), 0x850648 tooltips_class32 (hidden), 0x5E0702 tooltips_class32 (hidden), 0x7D00CC tooltips_class32 (hidden), 0x1200DE ComboLBox (hidden), 0x2300C8 tooltips_class32 (hidden), 0x1B708C6 _SearchEditBoxFakeWindow (hidden), 0x120060 tooltips_class32 (hidden), 0x230862 tooltips_class32 (hidden), 0x160070 tooltips_class32 (hidden), 0x8508D6 HwndWrapper[ImageProcTest;;5c4760eb-6dab-4644-b9bc-b99266468dbb, 0x240770 ComboLBox (hidden), 0x1300CA ComboLBox (hidden), 0x11003E WorkerW (hidden), 0x240034 TabletPenServiceHelperClass (hidden), 0x44066A HwndWrapper[ImageProcTest;;f980d4a9-796f-4b70-964e-59e232e2f8d4 (hidden), 0x1202BA HwndWrapper[ImageProcTest;;539b7c97-4338-41d5-b5eb-3fae1b6fbc1b (hidden), 0x1500F4 HwndWrapper[ImageProcTest;;2fa8d082-5a90-4b7b-9041-a5ff0cb66af4 (hidden), 0x1B0062 HwndWrapper[ImageProcTest;;c944f73d-4f24-4fb9-a9b6-e2dabf5c7ce9 (hidden), 0x14019E CiceroUIWndFrame (hidden), 0xCF05C4 MSCTFIME UI (hidden), 0x4007D8 IME (hidden), 0xA704B4 IME (hidden), 0x220794 CiceroUIWndFrame (hidden)
+    native (+206 ms): dialog 0x8807CE gone; app windows: 0x8508D6 HwndWrapper[ImageProcTest;;5c4760eb-6dab-4644-b9bc-b99266468dbb, 0x240034 TabletPenServiceHelperClass (hidden), 0x44066A HwndWrapper[ImageProcTest;;f980d4a9-796f-4b70-964e-59e232e2f8d4 (hidden), 0x1202BA HwndWrapper[ImageProcTest;;539b7c97-4338-41d5-b5eb-3fae1b6fbc1b (hidden), 0x1500F4 HwndWrapper[ImageProcTest;;2fa8d082-5a90-4b7b-9041-a5ff0cb66af4 (hidden), 0x1B0062 HwndWrapper[ImageProcTest;;c944f73d-4f24-4fb9-a9b6-e2dabf5c7ce9 (hidden), 0x14019E CiceroUIWndFrame (hidden), 0xCF05C4 MSCTFIME UI (hidden), 0x4007D8 IME (hidden), 0xA704B4 IME (hidden), 0x220794 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    ok: preprocess=Applied
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=235 ms, enhance_basic=232 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain
+    HUD: 'Calib:  3 stages (offset · gain · defect)'
+    status: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3667.693, W=1129.824) -> GSDF(off) | Exposure index: uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    log lines: 26; ALERT lines: 2
+    LOG [16:26:26.917] open-to-2nd-tick (proxy) #1: 1192 ms = read 322 + prepare 26 + chain-and-display 605 [preprocess=235 ms, enhance_basic=232 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 237
+    LOG [16:26:26.680] Chain ai_bone_suppress: NotRequested — switched off
+    LOG [16:26:26.680] Chain gsvg: NotRequested — switched off
+    LOG [16:26:26.680] Chain enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 51 ms; contrast(clahe 3 8x8) ok 62 ms; edge(usm 0.5/2/10) ok 38 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [16:26:26.680] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [16:26:26.679] ALERT WARN NATIVE_ALERT: Exposure deviation: DI=11.00 (outside [-3.0, +3.0] range)
+    LOG [16:26:26.678] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=3667.693, W=1129.824) -> GSDF(off)
+    LOG [16:26:26.577] Native module audit (after the first chain): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+    LOG [16:26:26.559] ai_bone_suppress: NotRequested — switched off
+    LOG [16:26:26.559] gsvg: NotRequested — switched off
+    LOG [16:26:26.559] enhance_basic: Applied — enhance_basic: log ok 24 ms; noise(bilateral 3/50) ok 51 ms; contrast(clahe 3 8x8) ok 62 ms; edge(usm 0.5/2/10) ok 38 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+    LOG [16:26:26.559] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen). uncalibrated EI (보정 안 된 EI) = 3143.86, DI = 11 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [16:26:26.320] Drained 1 native alert(s) from the xpe_common queue.
+    LOG [16:26:26.073] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+    LOG [16:26:26.049] Loaded raw image 'D:\workspace-github\xpe-data\gui-250-out\v1\input.raw'.
+    LOG [16:26:25.725] LoadRawImage('D:\workspace-github\xpe-data\gui-250-out\v1\input.raw') invoked.
+    LOG [16:26:19.590] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [16:26:19.589] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [16:26:19.588] Native module audit (after initialisation): pinned folder 'D:\workspace-github\xpe-data\gui-250-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+    LOG [16:26:19.580] Display version = 1.0.0
+    LOG [16:26:19.580] xpe_display.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_display.dll
+    LOG [16:26:19.580] xpe_common.dll = D:\workspace-github\xpe-data\gui-250-dlls\xpe_common.dll
+    LOG [16:26:19.580] Requested backend mode = Native
+    LOG [16:26:19.580] RealXpeBackend bootstrap started.
+    LOG [16:26:19.572] --- backend re-initialised ---
+    LOG [16:26:19.569] GUI-S0 initialized.
+    picture source_only: D:\workspace-github\xpe-data\gui-250-out\v1\screen_source_only.png 1560x920 inside is UNIFORM | screen copy: D:\workspace-github\xpe-data\gui-250-out\v1\screencopy_source_only.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+    picture processed_only: D:\workspace-github\xpe-data\gui-250-out\v1\screen_processed_only.png 1560x920 inside is UNIFORM | screen copy: D:\workspace-github\xpe-data\gui-250-out\v1\screencopy_processed_only.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+    picture difference: D:\workspace-github\xpe-data\gui-250-out\v1\screen_difference.png 1560x920 inside is UNIFORM | screen copy: D:\workspace-github\xpe-data\gui-250-out\v1\screencopy_difference.png 1560x920 inside is UNIFORM (blank: the screen copy cannot read this window's content here)
+    dialog: 'Save Corrected Image (float32 raw)'
+    native (+1 ms): dialog 0x8907CE open; app windows: 0x4D0718 Auto-Suggest Dropdown (hidden), 0x260864 tooltips_class32 (hidden), 0x8E03CE Auto-Suggest Dropdown (hidden), 0x8803C2 tooltips_class32 (hidden), 0x1300C2 tooltips_class32 (hidden), 0x1D0604 tooltips_class32 (hidden), 0x94087E ComboLBox (hidden), 0x280826 tooltips_class32 (hidden), 0x120066 _SearchEditBoxFakeWindow (hidden), 0x210722 tooltips_class32 (hidden), 0x29C0524 tooltips_class32 (hidden), 0x540714 tooltips_class32 (hidden), 0x8508D6 HwndWrapper[ImageProcTest;;5c4760eb-6dab-4644-b9bc-b99266468dbb, 0xC6050E ComboLBox (hidden), 0x1C02AE ComboLBox (hidden), 0x1500C4 WorkerW (hidden), 0x240034 TabletPenServiceHelperClass (hidden), 0x44066A HwndWrapper[ImageProcTest;;f980d4a9-796f-4b70-964e-59e232e2f8d4 (hidden), 0x1202BA HwndWrapper[ImageProcTest;;539b7c97-4338-41d5-b5eb-3fae1b6fbc1b (hidden), 0x1500F4 HwndWrapper[ImageProcTest;;2fa8d082-5a90-4b7b-9041-a5ff0cb66af4 (hidden), 0x1B0062 HwndWrapper[ImageProcTest;;c944f73d-4f24-4fb9-a9b6-e2dabf5c7ce9 (hidden), 0x14019E CiceroUIWndFrame (hidden), 0xCF05C4 MSCTFIME UI (hidden), 0x4007D8 IME (hidden), 0xA704B4 IME (hidden), 0x220794 CiceroUIWndFrame (hidden)
+    native (+218 ms): dialog 0x8907CE gone; app windows: 0x8508D6 HwndWrapper[ImageProcTest;;5c4760eb-6dab-4644-b9bc-b99266468dbb, 0x240034 TabletPenServiceHelperClass (hidden), 0x44066A HwndWrapper[ImageProcTest;;f980d4a9-796f-4b70-964e-59e232e2f8d4 (hidden), 0x1202BA HwndWrapper[ImageProcTest;;539b7c97-4338-41d5-b5eb-3fae1b6fbc1b (hidden), 0x1500F4 HwndWrapper[ImageProcTest;;2fa8d082-5a90-4b7b-9041-a5ff0cb66af4 (hidden), 0x1B0062 HwndWrapper[ImageProcTest;;c944f73d-4f24-4fb9-a9b6-e2dabf5c7ce9 (hidden), 0x14019E CiceroUIWndFrame (hidden), 0xCF05C4 MSCTFIME UI (hidden), 0x4007D8 IME (hidden), 0xA704B4 IME (hidden), 0x220794 CiceroUIWndFrame (hidden)
+    ok: the float file is saved
+    status: Saved corrected image (float32 raw): D:\workspace-github\xpe-data\gui-250-out\v1\input_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 3071f62fed14c5582e2240017fa3ab88d82c49b3dfa77cf46849f4c7ca7f1f58
+    dialog: 'Save Corrected Image (16-bit PNG)'
+    native (+0 ms): dialog 0x8A07CE open; app windows: 0xA806E8 Auto-Suggest Dropdown (hidden), 0x600702 tooltips_class32 (hidden), 0x1BC08C6 Auto-Suggest Dropdown (hidden), 0x180060 tooltips_class32 (hidden), 0x550714 tooltips_class32 (hidden), 0x13A0650 tooltips_class32 (hidden), 0x590680 ComboLBox (hidden), 0x260852 tooltips_class32 (hidden), 0x170396 _SearchEditBoxFakeWindow (hidden), 0x1803F6 tooltips_class32 (hidden), 0x80090E tooltips_class32 (hidden), 0x2550910 tooltips_class32 (hidden), 0x8508D6 HwndWrapper[ImageProcTest;;5c4760eb-6dab-4644-b9bc-b99266468dbb, 0x13006E ComboLBox (hidden), 0x17005E ComboLBox (hidden), 0x2EE05AA WorkerW (hidden), 0x240034 TabletPenServiceHelperClass (hidden), 0x44066A HwndWrapper[ImageProcTest;;f980d4a9-796f-4b70-964e-59e232e2f8d4 (hidden), 0x1202BA HwndWrapper[ImageProcTest;;539b7c97-4338-41d5-b5eb-3fae1b6fbc1b (hidden), 0x1500F4 HwndWrapper[ImageProcTest;;2fa8d082-5a90-4b7b-9041-a5ff0cb66af4 (hidden), 0x1B0062 HwndWrapper[ImageProcTest;;c944f73d-4f24-4fb9-a9b6-e2dabf5c7ce9 (hidden), 0x14019E CiceroUIWndFrame (hidden), 0xCF05C4 MSCTFIME UI (hidden), 0x4007D8 IME (hidden), 0xA704B4 IME (hidden), 0x220794 CiceroUIWndFrame (hidden)
+    native (+207 ms): dialog 0x8A07CE gone; app windows: 0x8508D6 HwndWrapper[ImageProcTest;;5c4760eb-6dab-4644-b9bc-b99266468dbb, 0x240034 TabletPenServiceHelperClass (hidden), 0x44066A HwndWrapper[ImageProcTest;;f980d4a9-796f-4b70-964e-59e232e2f8d4 (hidden), 0x1202BA HwndWrapper[ImageProcTest;;539b7c97-4338-41d5-b5eb-3fae1b6fbc1b (hidden), 0x1500F4 HwndWrapper[ImageProcTest;;2fa8d082-5a90-4b7b-9041-a5ff0cb66af4 (hidden), 0x1B0062 HwndWrapper[ImageProcTest;;c944f73d-4f24-4fb9-a9b6-e2dabf5c7ce9 (hidden), 0x14019E CiceroUIWndFrame (hidden), 0xCF05C4 MSCTFIME UI (hidden), 0x4007D8 IME (hidden), 0xA704B4 IME (hidden), 0x220794 CiceroUIWndFrame (hidden)
+    ok: the PNG is saved
+    status: Saved corrected image (16-bit PNG): D:\workspace-github\xpe-data\gui-250-out\v1\input_3072x3072_corrected_16bit.png — 16651617 bytes, sha256 52003463aae73ac1961420fdc641e9a0967fd85e7bcce1fb8dde8c3878bb03a2
+    saved: D:\workspace-github\xpe-data\gui-250-out\v1\input_3072x3072_corrected_f32le.raw (37748736 bytes), D:\workspace-github\xpe-data\gui-250-out\v1\input_3072x3072_corrected_16bit.png (16651617 bytes)
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 30.1625 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

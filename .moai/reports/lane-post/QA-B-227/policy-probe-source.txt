@@ -1,0 +1,75 @@
+#include <windows.h>
+#include <bcrypt.h>
+#include "xpe/enhance_basic/enhance_basic_api.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <limits>
+#include <string>
+#include <vector>
+
+int main(int argc, char** argv) {
+    if (argc != 2) return 10;
+    BCRYPT_ALG_HANDLE sha = nullptr;
+    if (BCryptOpenAlgorithmProvider(&sha, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0) return 13;
+    const std::string path = argv[1];
+    SetDllDirectoryA(path.substr(0, path.find_last_of("/\\")).c_str());
+    const HMODULE dll = LoadLibraryA(argv[1]);
+    if (!dll) return 11;
+    using Reduce = XpeErrorCode (*)(XpeImageBuffer*, const XpeNoiseReduceParams*);
+    const auto reduce = reinterpret_cast<Reduce>(GetProcAddress(dll, "xpe_noise_reduce"));
+    if (!reduce) return 12;
+    const float boundary = static_cast<float>(std::sqrt(1.0 / (std::numeric_limits<float>::max)()));
+    const float hs[] = {10.0f, 1.0e-10f, 1.0e-20f, 1.0e-30f,
+        (std::numeric_limits<float>::min)(), (std::numeric_limits<float>::denorm_min)(),
+        std::nextafter(boundary, 0.0f), boundary,
+        std::nextafter(boundary, (std::numeric_limits<float>::infinity)())};
+    int calls = 0, reproduced = 0, refused = 0, changed = 0;
+    for (int scene = 0; scene < 3; ++scene) {
+        for (int config = 0; config < 3; ++config) {
+            const int search = config == 0 ? 3 : config == 1 ? 7 : 21;
+            const int patch = config == 2 ? 7 : 3;
+            for (float h : hs) {
+                std::vector<float> pixels(16 * 16);
+                uint32_t state = 17;
+                for (size_t i = 0; i < pixels.size(); ++i) {
+                    state = state * 1664525u + 1013904223u;
+                    if (scene == 0) pixels[i] = 100.0f;
+                    else if (scene == 1) pixels[i] = i % 16 < 8 ? 100.0f : 900.0f;
+                    else pixels[i] = static_cast<float>(state >> 24) + static_cast<float>(i % 13);
+                }
+                const auto before = pixels;
+                XpeImageBuffer image{};
+                image.width = 16; image.height = 16;
+                image.format = XPE_PIXEL_FLOAT32;
+                image.bitsAllocated = 32; image.bitsStored = 32;
+                image.data = pixels.data(); image.dataSize = pixels.size() * sizeof(float);
+                XpeNoiseReduceParams p{};
+                p.mode = XPE_NOISE_NLM; p.search_window = search; p.patch_size = patch; p.h_param = h;
+                const auto rc = reduce(&image, &p);
+                int nonfinite = 0;
+                for (float v : pixels) if (!std::isfinite(v)) ++nonfinite;
+                const bool same = std::memcmp(before.data(), pixels.data(), image.dataSize) == 0;
+                ++calls;
+                if (rc == XPE_OK && nonfinite) ++reproduced;
+                if (rc != XPE_OK) ++refused;
+                if (!same) ++changed;
+                std::printf("scene=%d search=%d patch=%d h=%.17g rc=%d nonfinite=%d unchanged=%d",
+                    scene, search, patch, static_cast<double>(h), static_cast<int>(rc), nonfinite, same);
+                if (h == 10.0f || h == 1.0e-10f) {
+                    unsigned char digest[32]{};
+                    if (BCryptHash(sha, nullptr, 0, reinterpret_cast<PUCHAR>(pixels.data()), static_cast<ULONG>(image.dataSize), digest, 32) < 0) return 14;
+                    std::printf(" sha256=");
+                    for (unsigned char byte : digest) std::printf("%02x", byte);
+                }
+                std::printf("\n");
+            }
+        }
+    }
+    std::printf("SUMMARY calls=%d reproduced=%d refused=%d changed=%d\n", calls, reproduced, refused, changed);
+    BCryptCloseAlgorithmProvider(sha, 0);
+    return reproduced ? 1 : 0;
+}
+
+

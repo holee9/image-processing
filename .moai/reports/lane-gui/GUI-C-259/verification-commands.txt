@@ -1,0 +1,31 @@
+작업 트리: D:/workspace-github/xpe-gui
+기준 HEAD: b9be6ae3b7f74413ccb6284d13a3220f2a8cde24
+기존 환경 helper: .moai/reports/lane-gui/GUI-C-254c/env.cmd
+아래 환경은 각 시험 프로세스에만 설정했다. 외부 Native/보정/raw/baseline 경로는 [IO.Path]::GetFullPath로 Windows 절대경로로 정규화했다.
+
+GUI 패키징(초안과 최종을 별도 실행):
+dotnet build gui/ImageProcTest/ImageProcTest.csproj -c Debug --no-restore --nologo
+Integration 프로젝트 전체(기존 문서/초안/최종을 각각 별도 실행, 필터 없음):
+dotnet test clients/ImageProcTest.IntegrationTests -c Debug
+
+지정 두 E2E 클래스 전체의 환경:
+DOTNET_CLI_UI_LANGUAGE=en
+XPE_E2E_BACKEND=Native
+XPE_NATIVE_DIR=D:/workspace-github/image-processing/build/e2e-native-dlls
+XPE_NATIVE_DIR_EXCLUSIVE=1
+XPE_E2E_ALLOW_GLOBAL_INPUT=0
+XPE_GUI_DATA_DIR=D:/workspace-github/xpe-gui/clients/ImageProcTest.E2ETests/bin/Debug/net8.0-windows/gui-c-259-check
+XPE_C231_NATIVE_DIR=D:/workspace-github/image-processing/build/e2e-native-dlls
+XPE_C231_CALIB_DIR=D:/workspace-github/xpe-data/calib-real-v2
+XPE_C231_RAW=D:/workspace-github/xpe-gui/gui/ImageProcTest/fixtures/gui-s0/raw/wrist_lat_3072x3072.raw
+XPE_C231_RAW_SIZE=3072x3072
+XPE_C231_BASELINE_F32=D:/workspace-github/xpe-data/m1-baseline-v2/wrist_lat_3072x3072_corrected_v2_f32le.raw
+XPE_E2E_HELP_CAPTURE=D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-259/quick-start-help.png
+
+지정 두 E2E 클래스 전체 명령:
+dotnet test clients/ImageProcTest.E2ETests -c Debug --no-restore --filter "FullyQualifiedName~ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios|FullyQualifiedName~ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios" --logger "console;verbosity=detailed" --logger "trx;LogFileName=gui-c-259-e2e.trx" --results-directory D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-259/e2e-results --blame-hang --blame-hang-timeout 10m
+
+W5 단독 재현 확인은 위와 같은 환경에서 XPE_GUI_DATA_DIR만 gui-c-259-w5-recheck로 바꿨다. 원형 helper/oracle/timeout은 변경하지 않았다.
+dotnet test clients/ImageProcTest.E2ETests -c Debug --no-restore --filter "FullyQualifiedName=ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees" --logger "console;verbosity=detailed" --logger "trx;LogFileName=gui-c-259-w5.trx" --results-directory D:/workspace-github/xpe-gui/.moai/reports/lane-gui/GUI-C-259/e2e-w5-results --blame-hang --blame-hang-timeout 10m
+
+정상 staged 검사와 커밋은 부모 레인 담당이며 구현 담당자는 stage/commit/push하지 않았다.

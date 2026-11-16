@@ -1,0 +1,44 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.05]   Discovering: ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.16]   Discovered:  ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.44]       Assert.Equal() Failure: Collections differ
+[xUnit.net 00:00:00.44]                  ↓ (pos 0)
+[xUnit.net 00:00:00.44]       Expected: [251, 42, 70, 192, 61, ···]
+[xUnit.net 00:00:00.44]       Actual:   [5, 90, 228, 231, 114, ···]
+[xUnit.net 00:00:00.44]                  ↑ (pos 0)
+[xUnit.net 00:00:00.44]       Stack Trace:
+[xUnit.net 00:00:00.44]         D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\OffsetQualityTests.cs(270,0): at ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRealModule_OnDark16AndTheCleanSetMap_MeasuresTheSignedBiasThePaperReports()
+[xUnit.net 00:00:00.44]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.44]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.44]       Output:
+[xUnit.net 00:00:00.44]         DLL D:\workspace-github\xpe-data\gui-253-local-dll\xpe_preprocess.dll; validMask 0x1F; roiPixels 885197; pixelCount 9437184; map 3072x3072; map sha256 fb2a46c03dd6e7c9209fe23003911aa356a26aae1a691df4510b67ce808d6b05
+[xUnit.net 00:00:00.44]         signed bias -4.054200149311749; signed DSNU 3.3816844736499916; DarkReduction 9.467839263545368 dB; clamp rate 83.10492833455403 %; zero-output rate 86.96606953938802 %; output bias 0.18748707914735363; output DSNU 0.7237585606585097
+[xUnit.net 00:00:00.45]   Finished:    ImageProcTest.IntegrationTests
+  실패 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRealModule_OnDark16AndTheCleanSetMap_MeasuresTheSignedBiasThePaperReports [226 ms]
+  오류 메시지:
+   Assert.Equal() Failure: Collections differ
+           ↓ (pos 0)
+Expected: [251, 42, 70, 192, 61, ···]
+Actual:   [5, 90, 228, 231, 114, ···]
+           ↑ (pos 0)
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRealModule_OnDark16AndTheCleanSetMap_MeasuresTheSignedBiasThePaperReports() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\OffsetQualityTests.cs:line 270
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ DLL D:\workspace-github\xpe-data\gui-253-local-dll\xpe_preprocess.dll; validMask 0x1F; roiPixels 885197; pixelCount 9437184; map 3072x3072; map sha256 fb2a46c03dd6e7c9209fe23003911aa356a26aae1a691df4510b67ce808d6b05
+ signed bias -4.054200149311749; signed DSNU 3.3816844736499916; DarkReduction 9.467839263545368 dB; clamp rate 83.10492833455403 %; zero-output rate 86.96606953938802 %; output bias 0.18748707914735363; output DSNU 0.7237585606585097
+
+
+
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 0.7697 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

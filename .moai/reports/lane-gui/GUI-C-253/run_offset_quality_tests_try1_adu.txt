@@ -1,0 +1,51 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.05]   Discovering: ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.16]   Discovered:  ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.23]     ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRows_SayThePopulationDiffers_AndDoNotPresentTheOldLimitsAsApproved [FAIL]
+[xUnit.net 00:00:00.23]       Assert.DoesNotContain() Failure: Sub-string found
+[xUnit.net 00:00:00.23]                                       ↓ (pos 45)
+[xUnit.net 00:00:00.23]       String: ···"t 맵 위 DarkBias·DSNU_ADU·DarkReduction_dB·"···
+[xUnit.net 00:00:00.23]       Found:  "ADU"
+[xUnit.net 00:00:00.23]       Stack Trace:
+[xUnit.net 00:00:00.23]         D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\OffsetQualityTests.cs(92,0): at ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRows_SayThePopulationDiffers_AndDoNotPresentTheOldLimitsAsApproved()
+[xUnit.net 00:00:00.23]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.23]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.AFullyMeasuredResult_ShowsEachValue_AsReported_WithNoVerdict [6 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.ANonFiniteValue_IsNotShownAsAMeasurement [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.AStructWrittenShortOf120Bytes_IsNotRead [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.Append_KeepsTheExistingRowsExactlyAsTheyWere_ThenAddsTheMeasuredOnes [4 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheStruct_Is120Bytes_AndEveryFieldSitsWhereTheHeaderPutsIt [1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.AGroupWhoseBitIsClear_ReadsNotMeasured_EvenWhenItsFieldHoldsAnImpressiveNumber [2 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.AFailedReturnCode_ReadsNoField_WhateverTheStructHolds [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.NothingCalled_ReadsNotMeasured_WithThePreviewReason [< 1 ms]
+  실패 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRows_SayThePopulationDiffers_AndDoNotPresentTheOldLimitsAsApproved [1 ms]
+  오류 메시지:
+   Assert.DoesNotContain() Failure: Sub-string found
+                                ↓ (pos 45)
+String: ···"t 맵 위 DarkBias·DSNU_ADU·DarkReduction_dB·"···
+Found:  "ADU"
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRows_SayThePopulationDiffers_AndDoNotPresentTheOldLimitsAsApproved() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Functional\OffsetQualityTests.cs:line 92
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.25]     ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRealModule_OnDark16AndTheCleanSetMap_MeasuresTheSignedBiasThePaperReports [SKIP]
+[xUnit.net 00:00:00.25]       XPE_C253_NATIVE_DIR/XPE_C253_DARK/XPE_C253_OFFSET not set - the dark frame and the map are not in the repository. XPE-SKIP-ALLOWED:273
+[xUnit.net 00:00:00.25]   Finished:    ImageProcTest.IntegrationTests
+  건너뜀 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRealModule_OnDark16AndTheCleanSetMap_MeasuresTheSignedBiasThePaperReports [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.AMeasuredZero_IsShownAsZero_NotAsNotMeasured [< 1 ms]
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheMaskBits_AreTheHeadersFive [< 1 ms]
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 12
+     통과: 10
+     실패: 1
+    건너뜀: 1
+ 총 시간: 0.5728 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

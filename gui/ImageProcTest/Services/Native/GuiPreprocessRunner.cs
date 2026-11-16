@@ -25,7 +25,7 @@ internal static class GuiPreprocessRunner
 
     /// <summary>
     /// GUI-C-233k: the calibration stages <c>xpe_preprocess_pipeline_out</c> runs, in order. The HUD's "Calib:" line and the result text both read this, so what the screen says ran and what the
-    /// call is are one list. (The settings also hold ghost / temperature / nonlinearity / binning modes; this call does not run them.)
+    /// call is are one list. (The settings also hold ghost / temperature / binning modes; this call does not run them.)
     /// </summary>
     internal static readonly string[] ExecutedStages = ["offset", "gain", "defect"];
 
@@ -102,7 +102,7 @@ internal static class GuiPreprocessRunner
             try
             {
                 var config = System.Text.Json.JsonSerializer.Serialize(new { bypassOffset = !applyOffset, bypassGain = !applyGain,
-                    bypassDefect = !applyDefect, bypassTemp = true, bypassNonlinearity = true, bypassBinning = true, bypassGhost = true });
+                    bypassDefect = !applyDefect, bypassTemp = true, bypassBinning = true, bypassGhost = true });
                 return RunPipelineOut(rawPixels, width, height, bodyPart, kVp, pixelPitchMm, measureExposureIndex, config,
                     $"requested=[offset:{offsetMode},gain:{gainMode},defect:{defectMode}]");
             }
@@ -119,9 +119,9 @@ internal static class GuiPreprocessRunner
 
     /// <summary>
     /// The configuration the app passes to the pipeline: the product path of the first stage, as the module's own measurements use it (modules/preprocess/tests/test_zz_a241_measure.cpp, cfgFinal).
-    /// Temperature compensation, nonlinearity and binning are bypassed because the app has no temperature, no linearity table and no binning setting to give them; ghost is off because no ghost handle is given.
+    /// Temperature compensation and binning are bypassed because the app has no temperature or binning setting to give them; ghost is off because no ghost handle is given.
     /// </summary>
-    internal const string PipelineConfigJson = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    internal const string PipelineConfigJson = "{\"bypassTemp\":true,\"bypassBinning\":true}";
 
     /// <summary>
     /// The calibration maps are already loaded by <see cref="Run"/>. The input frame goes in read-only and the corrected float32 frame comes out in a separate buffer
@@ -164,7 +164,7 @@ internal static class GuiPreprocessRunner
             var nonFinite = BaselineStageAdapters.CountPreprocessNonFinite(ReadOnlySpan<float>.Empty, floats);   // the gain stage's intermediate is internal to the pipeline: only the final image is counted
             return new PreprocessRunResult(
                 true,
-                $"Preprocess: xpe_preprocess_pipeline_out; {requested}; executed=[{string.Join(",", actual)}]; nativeFlags=0x{metadata.Flags:x}; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; {width}x{height} ({bodyPart}).{exposure}",
+                $"Preprocess: xpe_preprocess_pipeline_out; {requested}; executed=[{string.Join(",", actual)}]; nativeFlags=0x{metadata.Flags:x}; input kept; unsupported ghost/temp/binning bypassed; {width}x{height} ({bodyPart}).{exposure}",
                 ScaleToUInt16(floats),
                 nonFinite,
                 floats);

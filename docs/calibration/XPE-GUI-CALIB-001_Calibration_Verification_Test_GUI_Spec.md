@@ -133,10 +133,10 @@ DefectCorrectionDelegate  : XpeErrorCode(ref XpeImageBuffer img, ref XpeImageBuf
 
 **Goal:** Implement verification adapters for 6 currently blocked SWUs.
 
-- F3-01: SWU-1.7 NonlinearityCorrector — LUT/polynomial profile loader + residual plot
+- F3-01: ~~SWU-1.7 NonlinearityCorrector~~ — 삭제 (비선형 보정, 사용자 결정 2026-11-16)
 - F3-02: SWU-1.9 RuntimeDefectDetector — 10-frame sequence loader + runtime BPM merge view
 - F3-03: SWU-1.4 GhostCorrector — lag sequence loader + tier selection display
-- F3-04: SWU-1.6 TempCompensator — temperature metadata entry + compensation delta display
+- F3-04: ~~SWU-1.6 TempCompensator~~ — 삭제 (온도 보상, 사용자 결정 2026-11-16)
 - F3-05: SWU-1.8 BinningCorrector — binning mode selection + gain scaling evidence
 - F3-06: SWU-1.10 SessionManager — multi-session concurrent fixture runner
 
@@ -290,7 +290,7 @@ File: `tests/test_data/CalData_6/fixture.json`
 ```json
 {
   "case_id": "CalData_6",
-  "description": "Multi-step gain calibration: 6 dose levels for nonlinearity LUT generation",
+  "description": "Multi-step gain calibration: 6 dose levels (nonlinearity LUT use removed 2026-11-16)",
   "srs_refs": ["SRS-CALIB-FUNC-022", "SRS-CALIB-FUNC-023", "SRS-CALIB-FUNC-024"],
   "layout": "flat",
   "roles": {
@@ -345,7 +345,7 @@ File: `tests/test_data/cyan_test/fixture.json`
 {
   "case_id": "cyan_test",
   "description": "Cyan detector production calibration + clinical E2E verification",
-  "srs_refs": ["SRS-CALIB-FUNC-005", "SRS-CALIB-FUNC-006", "SRS-CALIB-FUNC-022"],
+  "srs_refs": ["SRS-CALIB-FUNC-005", "SRS-CALIB-FUNC-022"],
   "layout": "flat",
   "roles": {
     "Dark_07.raw":       "Offset",

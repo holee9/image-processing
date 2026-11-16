@@ -17,79 +17,79 @@ public sealed class CalibrationWorkflowWindow : Window
 
     public CalibrationWorkflowWindow(MainWindowViewModel model)
     {
-        Title = "PRE 캘리브레이션 — 입력·검사·생성·재로드·평가";
+        Title = "PRE Calibration — Validate, Generate, Reload and Evaluate";
         Width = 940; Height = 820; MinWidth = 720; MinHeight = 500;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         MaxHeight = SystemParameters.WorkArea.Height;
         Content = new ScrollViewer { Content = _form, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-        Label("이 창은 장비를 제어하지 않습니다. 원본 UINT16LE만 읽고 새 고유 폴더에 저장합니다. 생성/적용 ≠ 실영상 품질 합격.");
-        Label("1. 입력 준비: 각 목록은 파일 전체 경로 한 줄당 하나. Dark 전체 목록의 첫 장은 기본 1회 제외됩니다. Gain은 동일 선량, Defect는 별도 다선량 목록을 줄 수 있습니다.");
-        var native = Field("로컬 도구/DLL 폴더 (xpe_calib_fixture_gen.exe, xpe_pre_e2e.exe, v5 PRE/common)", Environment.GetEnvironmentVariable("XPE_NATIVE_DIR") ?? "");
-        var output = Field("새 실행들을 보관할 출력 상위 폴더 (기존 파일 덮어쓰기 없음)", "");
-        var width = Field("가로 화소", model.Settings.RawWidth.ToString());
-        var height = Field("세로 화소", model.Settings.RawHeight.ToString());
-        var dark = Field("Dark RAW 목록 (취득 순서)", "", true);
-        var gain = Field("Gain Bright RAW 목록 (동일 조건/선량)", "", true);
-        var defect = Field("Defect Bright RAW 목록 (비우면 Gain 목록 사용)", "", true);
-        var keep = new CheckBox { Content = "첫 Dark도 사용 (명시적으로 선택한 경우만 --keep-first-dark)", Margin = new Thickness(0, 4, 0, 8) };
+        Label("This window does not control acquisition hardware. It reads original UINT16LE files and saves each run in a new folder. Generation or application is not an image-quality pass.");
+        Label("1. Prepare inputs: one full file path per line. The first frame in the complete Dark list is excluded once by default. Gain uses the same dose; Defect may use a separate list with multiple doses.");
+        var native = Field("Local tools/DLL directory (xpe_calib_fixture_gen.exe, xpe_pre_e2e.exe, v5 PRE/common)", Environment.GetEnvironmentVariable("XPE_NATIVE_DIR") ?? "");
+        var output = Field("Parent output directory for new runs (existing files are not overwritten)", "");
+        var width = Field("Width (pixels)", model.Settings.RawWidth.ToString());
+        var height = Field("Height (pixels)", model.Settings.RawHeight.ToString());
+        var dark = Field("Dark RAW files (acquisition order)", "", true);
+        var gain = Field("Gain Bright RAW files (same conditions/dose)", "", true);
+        var defect = Field("Defect Bright RAW files (empty uses Gain list)", "", true);
+        var keep = new CheckBox { Content = "Include the first Dark frame (explicit --keep-first-dark)", Margin = new Thickness(0, 4, 0, 8) };
         _form.Children.Add(keep); _inputs.Add(keep);
-        var expiry = Field("명시적 XCAL 만료 Unix epoch 밀리초 (정책 자동 결정 안 함; 0=기존 생성기의 만료 미지정)", "0");
-        Label("만료 미지정/생성기 session=generated는 detector UUID 또는 임상 사용 승인 증거가 아닙니다. 기존 offset 생성기의 100ms/25°C는 템플릿이며 촬영 실측값으로 쓰지 않습니다.");
-        var rawDeclaration = new CheckBox { Content = "촬영기록을 대조했고 입력은 offset 미차감 원시 RAW입니다 (이미 보정된 CalData 등은 넣지 않음)", Margin = new Thickness(0, 6, 0, 6) };
+        var expiry = Field("Explicit XCAL expiry: Unix epoch milliseconds (no inferred policy; 0 leaves expiry unspecified in the existing generator)", "0");
+        Label("Unspecified expiry and generator session=generated do not establish detector UUID or approval for clinical use. The existing offset generator's 100 ms / 25°C are template values, not acquisition measurements.");
+        var rawDeclaration = new CheckBox { Content = "I checked the acquisition records: inputs are raw, before offset subtraction (no corrected CalData)", Margin = new Thickness(0, 6, 0, 6) };
         _form.Children.Add(rawDeclaration); _inputs.Add(rawDeclaration);
         var creationInputs = _inputs.ToArray();
-        AddButton("2. 입력 검사 (생성하지 않음)", async () =>
+        AddButton("2. Validate inputs (no generation)", async () =>
         {
             if (_workflow is null)
             {
-                if (rawDeclaration.IsChecked != true) throw new InvalidOperationException("입력 보정상태를 확인하십시오. 촬영조건/보정상태를 수치만으로 추정하지 않습니다.");
-                if (string.IsNullOrWhiteSpace(native.Text) || string.IsNullOrWhiteSpace(output.Text)) throw new InvalidOperationException("도구와 출력 폴더를 지정하십시오.");
+                if (rawDeclaration.IsChecked != true) throw new InvalidOperationException("Confirm the input correction state. Acquisition conditions and correction state are not inferred from pixel values.");
+                if (string.IsNullOrWhiteSpace(native.Text) || string.IsNullOrWhiteSpace(output.Text)) throw new InvalidOperationException("Specify the tools and output directories.");
                 _workflow = new CalibrationWorkflowService(output.Text, native.Text,
                     new CalibrationInputs(int.Parse(width.Text), int.Parse(height.Text), Lines(dark.Text), Lines(gain.Text), Lines(defect.Text), keep.IsChecked == true, ulong.Parse(expiry.Text)));
                 foreach (var control in creationInputs) control.IsEnabled = false;
             }
-            Append("검사: " + await _workflow.ValidateAsync());
+            Append("Validation: " + await _workflow.ValidateAsync());
         });
-        AddButton("3. Offset / Gain / Defect 생성·고유 경로 저장", async () =>
-            Append("생성: " + await Required().GenerateAsync() + "\n세트: " + Required().SetDirectory));
-        AddButton("4. 저장된 세트 재로드 (별도 PRE 프로세스 공개 API)", async () =>
-            Append("재로드: " + await Required().ReloadAsync() + "\n주의: 실영상 품질은 아직 미검증"));
-        AddButton("5. 이 GUI의 경로로 적용 (자동 Run 아님)", () =>
+        AddButton("3. Generate Offset / Gain / Defect and save a new set", async () =>
+            Append("Generation: " + await Required().GenerateAsync() + "\nSet: " + Required().SetDirectory));
+        AddButton("4. Reload saved set through the PRE public API in a separate process", async () =>
+            Append("Reload: " + await Required().ReloadAsync() + "\nImage quality is still unverified."));
+        AddButton("5. Apply paths to this GUI (does not run processing)", () =>
         {
             Required().VerifyReadyToApply();
-            if (model.IsBackendTransitioning) throw new InvalidOperationException("백엔드 전환 중입니다. 완료 후 적용하십시오.");
-            if (model.IsMockBackend) throw new InvalidOperationException("Mock backend는 실제 PRE 적용이 아닙니다. Native backend를 확인하십시오.");
+            if (model.IsBackendTransitioning) throw new InvalidOperationException("Wait for the backend transition to finish before applying paths.");
+            if (model.IsMockBackend) throw new InvalidOperationException("Mock is not real PRE application. Confirm the Native backend.");
             NativeRuntimeEvidence.VerifyPreCombination(Required().NativeDirectory);
             CalibrationWorkflowService.WriteNew(Path.Combine(Required().RunDirectory, "gui-apply-" + Guid.NewGuid().ToString("N") + ".json"),
                 new { native = NativeRuntimeEvidence.Capture(), set = Required().SetDirectory, quality = "경로 적용 준비 검증; 실제 Run/품질 합격 아님" });
             model.Settings.OffsetCalibrationDirectory = Required().SetDirectory;
             model.Settings.GainCalibrationDirectory = Required().SetDirectory;
             model.Settings.DefectCalibrationDirectory = Required().SetDirectory;
-            Append("경로 적용 완료. 창을 닫고 평가 RAW를 열어 Run Preprocessing 실행. 실제 Native/Applied와 경고를 확인하십시오. 품질 합격 아님.");
+            Append("Paths applied. Close this window, open the evaluation RAW and run Run Preprocessing. Check actual Native/Applied status and warnings. This is not a quality pass.");
             return Task.CompletedTask;
         });
-        Label("6. 독립영상 평가: 생성 입력(첫 제외 Dark 포함)과 SHA가 겹치면 거부. detector-domain 기본 PRE 출력 기준, enhancement/VOI 전 평가. 촬영 조건·정답 출처는 별도 기록과 대조해야 합니다.");
-        var holdout = Field("평가용 RAW 전체 경로", "");
+        Label("6. Independent evaluation: a SHA shared with any generation input, including the excluded first Dark, is rejected. Evaluation uses detector-domain PRE output before enhancement/VOI. Check acquisition conditions and ground-truth provenance against separate records.");
+        var holdout = Field("Full path to evaluation RAW", "");
         var kind = new ComboBox { ItemsSource = new[] { "image", "dark", "flat" }, SelectedIndex = 0, Margin = new Thickness(0, 4, 0, 8) };
         _form.Children.Add(kind);
-        Label("Gain 의미 (사용자 근거로 선택; 모르면 unknown 유지, 조건부 FPN 평가는 미검증)");
+        Label("Gain semantics (choose from user evidence; keep unknown if unclear; conditional FPN evaluation remains unverified)");
         var semantics = new ComboBox { ItemsSource = new[] { "unknown", "normalized_gain", "reciprocal_gain" }, SelectedIndex = 0 };
         _form.Children.Add(semantics);
-        var oracle = Field("선택: 독립 외부 defect oracle UINT8 (0 good / nonzero bad), 원본 RAW 아님", "");
-        var reference = Field("선택: 독립 reference FLOAT32LE (동일 단계·정렬·크기·ADU), 원본 RAW 아님", "");
-        AddButton("6. 독립 평가 및 보고서 저장", async () =>
+        var oracle = Field("Optional independent external defect oracle UINT8 (0 good / nonzero bad), not the source RAW", "");
+        var reference = Field("Optional independent reference FLOAT32LE (same stage, alignment, size and ADU), not the source RAW", "");
+        AddButton("6. Evaluate independently and save reports", async () =>
         {
             var result = await Required().EvaluateAsync(holdout.Text, (string)kind.SelectedItem, oracle.Text, reference.Text, (string)semantics.SelectedItem);
-            Append("평가 산출물: " + result + "\n" + CalibrationWorkflowService.QualitySummary(result)
-                + "\n종료코드 0은 실행 성공입니다. oracle/reference 미제공 항목은 미검증입니다.");
+            Append("Evaluation output: " + result + "\n" + CalibrationWorkflowService.QualitySummary(result)
+                + "\nExit code 0 means execution succeeded. Items without an oracle/reference remain unverified.");
         });
-        Label("같은 입력의 재생성/수정은 이 창을 닫고 새로 여십시오. 결과 폴더의 inputs/manifest/reload/evaluate 보고서와 원본 촬영기록을 함께 보관하십시오. 외부 oracle/ref의 독립성은 SHA 비중복만으로 증명되지 않습니다.");
+        Label("Close and reopen this window to regenerate or change inputs. Keep the output folder's inputs/manifest/reload/evaluate reports with the original acquisition records. Distinct SHA values alone do not establish external oracle/reference independence.");
         _form.Children.Add(_log);
-        Closing += (_, e) => { if (_busy) { e.Cancel = true; Append("현재 로컬 작업이 끝날 때까지 창을 유지합니다. 다른 프로세스를 중단하지 않습니다."); } };
+        Closing += (_, e) => { if (_busy) { e.Cancel = true; Append("This window stays open until its local task finishes. Other processes are not interrupted."); } };
     }
 
     private static string[] Lines(string text) => text.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    private CalibrationWorkflowService Required() => _workflow ?? throw new InvalidOperationException("먼저 입력 검사를 실행하십시오.");
+    private CalibrationWorkflowService Required() => _workflow ?? throw new InvalidOperationException("Validate inputs first.");
     private void Label(string text) => _form.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 6) });
     private TextBox Field(string label, string value, bool multiple = false)
     {
@@ -104,9 +104,9 @@ public sealed class CalibrationWorkflowWindow : Window
         {
             if (_busy) return;
             _busy = true;
-            Append("실행 중: " + title + " — 완료될 때까지 기다려 주십시오. 원본/다른 프로세스는 유지합니다.");
+            Append("Running: " + title + " — wait for completion. Source files and other processes are preserved.");
             try { await action(); }
-            catch (Exception error) { Append("실패/미완료: " + error.Message); }
+            catch (Exception error) { Append("Failed/incomplete: " + error.Message); }
             finally { _busy = false; }
         };
         _form.Children.Add(button);

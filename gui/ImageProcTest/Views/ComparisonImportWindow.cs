@@ -38,11 +38,11 @@ public sealed class ComparisonImportWindow : Window
     private readonly TextBlock _roiText = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _viewHint = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBox _result = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, MinHeight = 96, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-    private readonly Button _openButton = new() { Content = "열기·검증" };
-    private readonly Button _computeButton = new() { Content = "A−B 통계 계산·저장", IsEnabled = false };
-    private readonly Button _cancelButton = new() { Content = "취소", IsEnabled = false };
-    private readonly Button _applyWl = new() { Content = "W/L 적용", IsEnabled = false };
-    private readonly Button _fit = new() { Content = "맞춤", IsEnabled = false };
+    private readonly Button _openButton = new() { Content = "Open and validate" };
+    private readonly Button _computeButton = new() { Content = "Compute and save A−B statistics", IsEnabled = false };
+    private readonly Button _cancelButton = new() { Content = "Cancel", IsEnabled = false };
+    private readonly Button _applyWl = new() { Content = "Apply W/L", IsEnabled = false };
+    private readonly Button _fit = new() { Content = "Fit", IsEnabled = false };
     private readonly Button _actual = new() { Content = "100%", IsEnabled = false };
     private readonly Button _zoomIn = new() { Content = "+", IsEnabled = false };
     private readonly Button _zoomOut = new() { Content = "−", IsEnabled = false };
@@ -73,38 +73,38 @@ public sealed class ComparisonImportWindow : Window
     public ComparisonImportWindow(Func<string, string, string, IComparisonBackend> backendFactory)
     {
         _backendFactory = backendFactory;
-        Title = "2G · 신규 PRE 출력 가져오기 비교";
+        Title = "Compare Imported 2G and New PRE Outputs";
         Width = 1180; Height = 900; MinWidth = 820; MinHeight = 560;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         MaxHeight = SystemParameters.WorkArea.Height;
         Auto(this, "ComparisonImportWindow");
 
         var root = new StackPanel { Margin = new Thickness(14) };
-        root.Children.Add(Label("이 창은 이미 존재하는 출력 파일 두 개(A = 공식 Samsung 2G X64W, B = 신규 PRE)를 가져와 같은 조건으로 보여 주고 A−B 수치를 계산합니다. 제조사 DLL을 불러오거나 실행하지 않고, 장비를 제어하지 않으며, 화질을 판정하지 않습니다. 계산된 차이는 두 파일에 대한 수치 사실일 뿐 개선·합격의 근거가 아닙니다. 검증과 계산은 이 창이 다시 구현하지 않고 계약 스크립트(자식 프로세스)가 합니다."));
-        var provenance = new TextBlock { Text = "합성 배선 검증 / 제조사 미실측 — 이 창은 입력의 출처(실제 영상인지, 제조사 생산 결과인지)를 확인하지 않습니다. 계약에는 출처 확인 필드가 없으므로 어떤 결과도 '생산 이력 확인됨'으로 읽으면 안 됩니다.", TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.Bold, Foreground = Brushes.White, Background = Brushes.DarkOrange, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(0, 2, 0, 4) };
+        root.Children.Add(Label("This window imports two existing outputs (A = official Samsung 2G X64W, B = new PRE), displays them under the same conditions and computes A−B statistics. It does not load vendor DLLs, run an engine, control hardware or judge image quality. Differences describe these two files; they do not establish improvement or a pass. The contract script, run as a child process, performs validation and calculation."));
+        var provenance = new TextBlock { Text = "Synthetic wiring verification / no vendor measurement — this window does not verify whether inputs are real acquisitions or vendor production outputs. The contract has no provenance-verification field. No result establishes verified production history.", TextWrapping = TextWrapping.Wrap, FontWeight = FontWeights.Bold, Foreground = Brushes.White, Background = Brushes.DarkOrange, Padding = new Thickness(8, 4, 8, 4), Margin = new Thickness(0, 2, 0, 4) };
         Auto(provenance, "ComparisonProvenanceNotice");
         root.Children.Add(provenance);
         Auto(_state, "ComparisonStateText");
-        _state.Text = "상태: 매니페스트를 아직 열지 않았습니다. 가져온 파일 비교이며 2G 실행이 아닙니다.";
+        _state.Text = "Status: no manifest opened. This compares imported files; it does not run 2G.";
         root.Children.Add(_state);
 
-        root.Children.Add(Label("계약 스크립트 경로 (tools/calibration/comparison_manifest.py — 기본값 없음, 마지막에 쓴 값을 기억합니다)"));
+        root.Children.Add(Label("Contract script path (tools/calibration/comparison_manifest.py — no default; last used value is remembered)"));
         root.Children.Add(_scriptPath); Auto(_scriptPath, "ComparisonScriptPathBox");
-        root.Children.Add(Label("python 실행 파일 (비우면 PATH 의 python)"));
+        root.Children.Add(Label("Python executable (empty uses python on PATH)"));
         root.Children.Add(_pythonPath); Auto(_pythonPath, "ComparisonPythonPathBox");
         Auto(_review, "ComparisonContractReviewState");
         root.Children.Add(_review);
 
-        root.Children.Add(Label("매니페스트(JSON, 스키마 xpe-2g-pre-comparison/4). 스크립트는 이 폴더를 읽기만 합니다."));
+        root.Children.Add(Label("Manifest (JSON, schema xpe-2g-pre-comparison/4). The script only reads this directory."));
         var pathRow = new DockPanel { Margin = new Thickness(0, 2, 0, 4) };
-        var browse = new Button { Content = "찾아보기…", Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(10, 2, 10, 2) };
+        var browse = new Button { Content = "Browse…", Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(10, 2, 10, 2) };
         _openButton.Margin = new Thickness(6, 0, 0, 0); _openButton.Padding = new Thickness(10, 2, 10, 2);
         DockPanel.SetDock(_openButton, Dock.Right); DockPanel.SetDock(browse, Dock.Right);
         pathRow.Children.Add(_openButton); pathRow.Children.Add(browse); pathRow.Children.Add(_manifestPath);
         root.Children.Add(pathRow);
         Auto(_manifestPath, "ComparisonManifestPathBox"); Auto(browse, "ComparisonBrowseButton"); Auto(_openButton, "ComparisonOpenButton");
 
-        root.Children.Add(Label("결과를 저장할 개발 산출물 폴더(원데이터 폴더 밖이어야 합니다. 실행마다 새 하위 폴더가 만들어지고 기존 파일은 덮어쓰지 않습니다)"));
+        root.Children.Add(Label("Development output directory (outside the source-data directory; each run gets a new subdirectory and preserves existing files)"));
         _outputRoot.Text = System.IO.Path.Combine(ComparisonPaths.DataRoot, "comparison-runs");
         Auto(_outputRoot, "ComparisonOutputRootBox");
         root.Children.Add(_outputRoot);
@@ -114,7 +114,7 @@ public sealed class ComparisonImportWindow : Window
 
         // display controls: one window/level, one zoom, the same ROI
         var controls = new WrapPanel { Margin = new Thickness(0, 8, 0, 4) };
-        controls.Children.Add(new TextBlock { Text = "표시 W/L(두 영상 공통, 표시 전용):  Window ", VerticalAlignment = VerticalAlignment.Center });
+        controls.Children.Add(new TextBlock { Text = "Display-only W/L (shared by both images):  Window ", VerticalAlignment = VerticalAlignment.Center });
         controls.Children.Add(_window);
         controls.Children.Add(new TextBlock { Text = "  Level ", VerticalAlignment = VerticalAlignment.Center });
         controls.Children.Add(_level);
@@ -126,18 +126,18 @@ public sealed class ComparisonImportWindow : Window
         root.Children.Add(_roiText); root.Children.Add(_viewHint);
 
         var viewers = new UniformGrid { Columns = 2, Margin = new Thickness(0, 4, 0, 4) };
-        viewers.Children.Add(Viewer("A — 공식 Samsung 2G X64W (가져온 출력)", _scrollA, _hostA, _imageA, _overlayA, _scaleA, "ComparisonViewerA"));
-        viewers.Children.Add(Viewer("B — 신규 PRE (가져온 출력)", _scrollB, _hostB, _imageB, _overlayB, _scaleB, "ComparisonViewerB"));
+        viewers.Children.Add(Viewer("A — official Samsung 2G X64W (imported output)", _scrollA, _hostA, _imageA, _overlayA, _scaleA, "ComparisonViewerA"));
+        viewers.Children.Add(Viewer("B — new PRE (imported output)", _scrollB, _hostB, _imageB, _overlayB, _scaleB, "ComparisonViewerB"));
         root.Children.Add(viewers);
 
         var actions = new WrapPanel { Margin = new Thickness(0, 6, 0, 2) };
         _computeButton.Padding = new Thickness(12, 6, 12, 6);
         _cancelButton.Padding = new Thickness(12, 6, 12, 6); _cancelButton.Margin = new Thickness(8, 0, 0, 0);
-        var live = new Button { Content = "실제 2G 실행", IsEnabled = false, Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(8, 0, 0, 0) };
+        var live = new Button { Content = "Run real 2G", IsEnabled = false, Padding = new Thickness(12, 6, 12, 6), Margin = new Thickness(8, 0, 0, 0) };
         actions.Children.Add(_computeButton); actions.Children.Add(_cancelButton); actions.Children.Add(live);
         Auto(_computeButton, "ComparisonComputeButton"); Auto(_cancelButton, "ComparisonCancelButton"); Auto(live, "ComparisonLive2gButton");
         root.Children.Add(actions);
-        var liveReason = Label("실제 2G 실행은 막혀 있습니다 (G-2G-READY blocked): 오프라인 핸들 생성·초기화, 입출력 버퍼와 소유권, 배타 접근, 적용 가능한 사용 조건, 원본 RAW·맵의 출처가 아직 정의·허가되지 않았습니다. 이 창은 제조사 DLL을 불러오지 않습니다.");
+        var liveReason = Label("Live 2G execution is blocked (G-2G-READY): offline handle creation/initialization, buffer ownership, exclusive access, applicable usage conditions and source RAW/map provenance are not defined and authorized. This window does not load vendor DLLs.");
         Auto(liveReason, "ComparisonLive2gReason");
         root.Children.Add(liveReason);
         Auto(_result, "ComparisonResultBox");
@@ -149,7 +149,7 @@ public sealed class ComparisonImportWindow : Window
 
         browse.Click += (_, _) =>
         {
-            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "비교 매니페스트 (*.json)|*.json|모든 파일|*.*", CheckFileExists = true };
+            var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Comparison manifest (*.json)|*.json|All files|*.*", CheckFileExists = true };
             if (dlg.ShowDialog(this) == true) _manifestPath.Text = dlg.FileName;
         };
         _openButton.Click += async (_, _) => await OpenAsync();
@@ -162,10 +162,10 @@ public sealed class ComparisonImportWindow : Window
         _zoomOut.Click += (_, _) => SetZoom(_zoom / 1.25);
         _scrollA.ScrollChanged += (_, _) => Sync(_scrollA, _scrollB);
         _scrollB.ScrollChanged += (_, _) => Sync(_scrollB, _scrollA);
-        _manifestPath.TextChanged += (_, _) => Invalidate("매니페스트 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
-        _scriptPath.TextChanged += (_, _) => Invalidate("계약 스크립트 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
-        _pythonPath.TextChanged += (_, _) => Invalidate("python 경로가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
-        _outputRoot.TextChanged += (_, _) => Invalidate("결과 폴더가 바뀌었습니다. 다시 열기·검증을 누르십시오.");
+        _manifestPath.TextChanged += (_, _) => Invalidate("Manifest path changed. Open and validate again.");
+        _scriptPath.TextChanged += (_, _) => Invalidate("Contract script path changed. Open and validate again.");
+        _pythonPath.TextChanged += (_, _) => Invalidate("Python path changed. Open and validate again.");
+        _outputRoot.TextChanged += (_, _) => Invalidate("Output directory changed. Open and validate again.");
         Closing += (_, _) => { _closed = true; _generation++; try { _cancel?.Cancel(); } catch (ObjectDisposedException) { } };   // closing is never blocked: the child process is stopped by the token and no late result is accepted
     }
 
@@ -213,12 +213,12 @@ public sealed class ComparisonImportWindow : Window
     {
         if (id is null)
         {
-            _review.Text = "계약 검토 상태: 스크립트를 아직 실행하지 않았습니다.";
+            _review.Text = "Contract review: the script has not run yet.";
             return;
         }
-        _review.Text = $"실행한 스크립트(요청마다 고정 사본): {id.PinnedPath}\n원본 {id.OriginalPath}\n고정 사본 SHA-256 실행 전 {id.PinnedShaBefore} / 실행 후 {id.PinnedShaAfter ?? "읽지 못함"}\n원본 SHA-256 실행 후 {id.OriginalShaAfter ?? "읽지 못함"}\npython {id.Python.Version} · NumPy {id.Python.NumpyVersion} · {id.Python.ExePath}\n계약 검토 상태: "
-            + (id.Reviewed ? "검토를 통과한 스크립트와 SHA-256 이 같습니다(실행 전·후 모두)."
-               : "검토 안 된 계약 — 실행한 사본의 SHA-256 이 검토를 통과한 값과 다르거나 실행 전후가 다릅니다. 아래 답은 비교 가능(통과)으로 보지 마십시오.");
+        _review.Text = $"Executed script (pinned copy per request): {id.PinnedPath}\nOriginal {id.OriginalPath}\nPinned SHA-256 before {id.PinnedShaBefore} / after {id.PinnedShaAfter ?? "unreadable"}\nOriginal SHA-256 after {id.OriginalShaAfter ?? "unreadable"}\nPython {id.Python.Version} · NumPy {id.Python.NumpyVersion} · {id.Python.ExePath}\nContract review: "
+            + (id.Reviewed ? "SHA-256 matches the reviewed script both before and after execution."
+               : "Unreviewed contract — the executed copy differs from the reviewed SHA-256 or changed during execution. Do not treat its response as a comparability pass.");
     }
 
     private void SetBusy(bool busy)
@@ -239,7 +239,7 @@ public sealed class ComparisonImportWindow : Window
         foreach (var b in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) b.IsEnabled = false;
         _verdict.Text = ""; _reasons.Text = ""; _engines.Text = ""; _roiText.Text = ""; _viewHint.Text = "";
         _result.Text = "";
-        _state.Text = "상태: " + why + " 가져온 파일 비교이며 2G 실행이 아닙니다.";
+        _state.Text = "Status: " + why + " Imported-file comparison; no 2G execution.";
         UpdateReviewLine(null);
     }
 
@@ -247,14 +247,14 @@ public sealed class ComparisonImportWindow : Window
     {
         if (_busy) return;
         var path = _manifestPath.Text.Trim();
-        Invalidate("검증 중입니다(계약 스크립트를 자식 프로세스로 실행).");
+        Invalidate("Validating with the contract script in a child process.");
         var gen = _generation;
         SetBusy(true);
         var cts = new CancellationTokenSource();
         _cancel = cts;
         try
         {
-            if (!File.Exists(path)) throw new IOException("매니페스트 파일이 없습니다: " + path);
+            if (!File.Exists(path)) throw new IOException("Manifest file not found: " + path);
             Remember();
             var snapshot = ManifestSnapshot.Create(path);   // one read: these bytes are what is validated, previewed and computed
             var backend = _backendFactory(_scriptPath.Text.Trim(), _pythonPath.Text.Trim(), _outputRoot.Text.Trim());
@@ -268,15 +268,15 @@ public sealed class ComparisonImportWindow : Window
         catch (OperationCanceledException)
         {
             if (gen != _generation || _closed) return;
-            Invalidate("취소했습니다. 읽던 배열·화면·성공 상태를 받아들이지 않았습니다.");
-            _verdict.Text = "취소 — 통과가 아닙니다.";
+            Invalidate("Cancelled. Pending arrays, display and success state were not accepted.");
+            _verdict.Text = "Cancelled — not a pass.";
         }
         catch (Exception e)
         {
             if (gen != _generation || _closed) return;
-            _verdict.Text = "비교 불가 — 열지 못했습니다.";
+            _verdict.Text = "Not comparable — could not open.";
             _reasons.Text = e.Message;
-            _state.Text = "상태: 열기 실패. 가져온 파일 비교이며 2G 실행이 아닙니다. 실패는 통과가 아닙니다.";
+            _state.Text = "Status: open failed. Imported-file comparison, no 2G execution. Failure is not a pass.";
         }
         finally { if (ReferenceEquals(_cancel, cts)) _cancel = null; cts.Dispose(); if (!_closed) SetBusy(false); }
     }
@@ -286,9 +286,9 @@ public sealed class ComparisonImportWindow : Window
         var r = _validation!;
         if (!r.Ok)
         {
-            _verdict.Text = "실패 — 계약 스크립트의 답을 얻지 못했습니다. 통과가 아닙니다.";
+            _verdict.Text = "Failed — no response from the contract script. Not a pass.";
             _reasons.Text = r.Failure + (string.IsNullOrWhiteSpace(r.StderrTail) ? "" : Environment.NewLine + "stderr: " + r.StderrTail);
-            _state.Text = "상태: 검증 실패. 가져온 파일 비교이며 2G 실행이 아닙니다.";
+            _state.Text = "Status: validation failed. Imported-file comparison, no 2G execution.";
             return;
         }
         var v = r.Validation!;
@@ -296,9 +296,9 @@ public sealed class ComparisonImportWindow : Window
         var kind = v["comparison_kind"]?.GetValue<string>() ?? "?";
         var attribution = v["algorithm_attribution"]?.GetValue<bool>() == true;
         var reviewed = r.Script?.Reviewed == true;
-        _verdict.Text = (comparable ? $"스크립트의 답: 비교 가능 — 종류 {kind}" : "스크립트의 답: 비교 불가 — 아래 사유가 해소되기 전에는 숫자를 만들지 않습니다.")
-            + (comparable ? $" · 계약상 귀속 조건: {(attribution ? "충족(생산 이력·품질 확인 아님)" : "해당 없음(비귀속 라벨)")}" : "")
-            + (reviewed ? "" : "  [검토 안 된 계약]");
+        _verdict.Text = (comparable ? $"Script response: comparable — kind {kind}" : "Script response: not comparable — no numbers until the reasons below are resolved.")
+            + (comparable ? $" · Contract attribution conditions: {(attribution ? "satisfied (production history and quality are not verified)" : "not applicable (non-attributable label)")}" : "")
+            + (reviewed ? "" : "  [unreviewed contract]");
         var lines = ((JsonArray)v["reasons"]!).Select(x => x!.GetValue<string>()).ToList();
         var blockers = (v["blockers"] as JsonArray)?.Select(x => x!.GetValue<string>()) ?? [];
         _reasons.Text = string.Join(Environment.NewLine, lines.Concat(blockers).Select(c => $"{c}: {ComparisonReasonText.For(c)}"));
@@ -307,20 +307,20 @@ public sealed class ComparisonImportWindow : Window
             var e = _manifest?["engines"]?[key];
             var o = e?["output"];
             string S(JsonNode? n) => n is JsonValue jv && jv.GetValueKind() == JsonValueKind.String ? jv.GetValue<string>() : "?";
-            return $"{key}: 단계 {S(o?["stage"])} · 자료형 {S(o?["dtype"])} · 단위 {S(o?["units"])} · 실행 방식 {S(e?["execution"])}";
+            return $"{key}: stage {S(o?["stage"])} · dtype {S(o?["dtype"])} · units {S(o?["units"])} · execution {S(e?["execution"])}";
         }
         _engines.Text = Eng("A") + Environment.NewLine + Eng("B");
         _state.Text = comparable
-            ? (reviewed ? "상태: 스크립트가 비교 가능이라고 답했습니다. 아직 수치를 계산하지 않았습니다. 2G 실행이 아닙니다."
-                        : "상태: 스크립트는 비교 가능이라고 답했지만 검토 안 된 계약입니다. 표시는 하되 통과로 취급하지 않습니다. 2G 실행이 아닙니다.")
-            : "상태: 스크립트가 비교 불가라고 답했습니다. 가져온 파일 비교이며 2G 실행이 아닙니다.";
+            ? (reviewed ? "Status: script reports comparable. No statistics computed yet. No 2G execution."
+                        : "Status: script reports comparable under an unreviewed contract. Displayed, but not accepted as a pass. No 2G execution.")
+            : "Status: script reports not comparable. Imported-file comparison, no 2G execution.";
     }
 
     private async Task LoadDisplayAsync(int gen, CancellationToken cancel)
     {
         var a = ComparisonDisplayReader.ReadLayout(_manifest?["engines"]?["A"]?["output"], _baseDir);
         var b = ComparisonDisplayReader.ReadLayout(_manifest?["engines"]?["B"]?["output"], _baseDir);
-        if (a is null || b is null) { _viewHint.Text = "표시용 배치를 읽지 못했거나 미리보기 한도(가로·세로 각 2^24 화소)를 넘습니다. 표시하지 않았을 뿐 비교 판정과는 별개입니다."; return; }
+        if (a is null || b is null) { _viewHint.Text = "Display layout could not be read or exceeds the preview limit (2^24 pixels per dimension). No preview; comparability is a separate result."; return; }
         var step = ComparisonDisplayReader.ChooseStep(a.Width, a.Height);
         var (pa, pb, dw, dh, mismatch) = await Task.Run(async () =>
         {
@@ -336,7 +336,7 @@ public sealed class ComparisonImportWindow : Window
         }, cancel);
         cancel.ThrowIfCancellationRequested();
         if (gen != _generation || _closed) return;
-        if (mismatch is not null) { _viewHint.Text = $"{mismatch} 출력 파일이 확인한 매니페스트의 SHA-256 과 다릅니다. 미리보기를 그리지 않았습니다. 다시 열기를 누르십시오."; return; }
+        if (mismatch is not null) { _viewHint.Text = $"{mismatch} output SHA-256 differs from the validated manifest. No preview drawn. Open again."; return; }
         _pixelsA = pa; _pixelsB = pb; _displayWidth = dw; _displayHeight = dh; _step = step;
         double lo = double.PositiveInfinity, hi = double.NegativeInfinity;
         foreach (var arr in new[] { pa, pb })
@@ -348,9 +348,9 @@ public sealed class ComparisonImportWindow : Window
         _window.Text = (hi - lo).ToString("R", CultureInfo.InvariantCulture);
         _level.Text = ((hi + lo) / 2).ToString("R", CultureInfo.InvariantCulture);
         var roi = _manifest!["roi"]!;
-        _roiText.Text = $"ROI(매니페스트의 정수 좌표, A·B 양쪽에 같은 좌표로 표시): x={roi["x"]}, y={roi["y"]}, 가로={roi["width"]}, 세로={roi["height"]}";
-        _viewHint.Text = $"표시 전용 복사본: 원본 {a.Width}×{a.Height}" + (step > 1 ? $", 표시는 {step}화소마다 한 점({dw}×{dh})로 줄였습니다 — 표시 좌표 = 원본 좌표 ÷ {step}" : ", 줄이지 않음")
-            + ". 통계는 표시 배열이 아니라 계약 스크립트가 원본 파일의 ROI 행을 직접 읽어 계산합니다. W/L·확대·줄임은 숫자에 영향을 주지 않습니다. 초기 W/L = 두 영상의 유한한 값 전체의 최솟값~최댓값(임계값을 정하지 않음).";
+        _roiText.Text = $"ROI (manifest integer coordinates, shared by A and B): x={roi["x"]}, y={roi["y"]}, width={roi["width"]}, height={roi["height"]}";
+        _viewHint.Text = $"Display-only copy: source {a.Width}×{a.Height}" + (step > 1 ? $", sampled every {step} pixels ({dw}×{dh}) — display coordinate = source coordinate ÷ {step}" : ", no downsampling")
+            + ". The contract script computes statistics from source-file ROI rows, not display arrays. W/L, zoom and downsampling do not affect the numbers. Initial W/L spans all finite values in both images; no threshold is selected.";
         foreach (var btn in new[] { _applyWl, _fit, _actual, _zoomIn, _zoomOut }) btn.IsEnabled = true;
         RenderBoth(useTextWl: false);
         DrawRoi(roi);
@@ -366,7 +366,7 @@ public sealed class ComparisonImportWindow : Window
         {
             if (!double.TryParse(_window.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var ww) || !double.TryParse(_level.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var ll) || !(ww > 0) || !double.IsFinite(ll))
             {
-                _viewHint.Text = "W/L 값이 올바르지 않습니다(Window > 0 인 숫자). 표시를 바꾸지 않았습니다.";
+                _viewHint.Text = "Invalid W/L: numeric values are required and Window must be positive. Display unchanged.";
                 return;
             }
             lo = ll - ww / 2; hi = ll + ww / 2;
@@ -435,15 +435,15 @@ public sealed class ComparisonImportWindow : Window
         if (!snapshot.StillMatchesDisk(out var currentSha))
         {
             // same path, different bytes: a generation number cannot see this (Reviewer #252 F252-2)
-            Invalidate("매니페스트 파일이 열 때와 다릅니다.");
-            _verdict.Text = "거부 — 확인한 매니페스트와 지금 파일이 다릅니다. 통과가 아닙니다.";
-            _result.Text = $"거부: 열 때 SHA-256 {snapshot.Sha256}\n지금 SHA-256 {currentSha ?? "읽지 못함"}\n이전 미리보기·검증 결과를 지웠습니다. 다시 열기·검증을 누르십시오.";
+            Invalidate("Manifest file changed since opening.");
+            _verdict.Text = "Rejected — current file differs from the validated manifest. Not a pass.";
+            _result.Text = $"Rejected: SHA-256 at open {snapshot.Sha256}\nCurrent SHA-256 {currentSha ?? "unreadable"}\nPrevious preview and validation cleared. Open and validate again.";
             return;
         }
         SetBusy(true);
         var cts = new CancellationTokenSource();
         _cancel = cts;
-        _result.Text = "계산 중입니다(계약 스크립트 자식 프로세스). 원본 파일은 읽기만 합니다…";
+        _result.Text = "Computing in the contract-script child process. Source files are read only…";
         try
         {
             var response = await backend.CompareAsync(snapshot, cts.Token);
@@ -453,38 +453,38 @@ public sealed class ComparisonImportWindow : Window
             var text = new System.Text.StringBuilder();
             if (!response.Ok)
             {
-                text.AppendLine("실패 — 결과를 믿을 수 없습니다. 통과가 아닙니다.");
+                text.AppendLine("Failed — results cannot be trusted. Not a pass.");
                 text.AppendLine(response.Failure);
                 if (!string.IsNullOrWhiteSpace(response.StderrTail)) text.AppendLine("stderr: " + response.StderrTail);
-                if (response.RunDirectory is not null) text.AppendLine("스크립트가 만든 폴더(있다면): " + response.RunDirectory);
-                _state.Text = "상태: 계산 실패. 통과가 아닙니다. 2G 실행이 아닙니다.";
+                if (response.RunDirectory is not null) text.AppendLine("Script output directory (if created): " + response.RunDirectory);
+                _state.Text = "Status: calculation failed. Not a pass. No 2G execution.";
             }
             else
             {
                 var res = response.Result!;
                 var status = res["status"]!.GetValue<string>();
                 var reasons = (res["reasons"] as JsonArray)?.Select(x => x!.GetValue<string>()).ToList() ?? [];
-                text.AppendLine($"결과: {status}" + (reasons.Count > 0 ? "  사유: " + string.Join(", ", reasons) : "") + (reviewed ? "" : "  [검토 안 된 계약]"));
+                text.AppendLine($"Result: {status}" + (reasons.Count > 0 ? "  Reasons: " + string.Join(", ", reasons) : "") + (reviewed ? "" : "  [unreviewed contract]"));
                 if (status == "computed")
                 {
                     var kind = res["validation"]?["comparison_kind"]?.GetValue<string>() ?? "?";
                     var attribution = res["validation"]?["algorithm_attribution"]?.GetValue<bool>() == true;
-                    text.AppendLine($"ROI 유효 화소 {res["valid_pixels"]}  ·  단위 {res["units"]}  ·  차이 = A − B  ·  종류 {kind}  ·  계약상 귀속 조건: {(attribution ? "충족(생산 이력·품질 확인 아님)" : "해당 없음(비귀속 라벨)")}");
-                    text.AppendLine($"평균 {F(res["mean_a_minus_b"])}  표준편차(모집단) {F(res["std_a_minus_b"])}  RMSE {F(res["rmse"])}  평균 절댓값 {F(res["mean_abs"])}  최솟값 {F(res["min_a_minus_b"])}  최댓값 {F(res["max_a_minus_b"])}");
-                    _state.Text = "상태: 가져온 파일의 수치 차이를 계산했습니다." + (reviewed ? "" : " 검토 안 된 계약의 답입니다.") + " 이것은 2G 실행도 화질 판정도 아닙니다.";
+                    text.AppendLine($"Valid ROI pixels {res["valid_pixels"]}  ·  Units {res["units"]}  ·  Difference = A − B  ·  Kind {kind}  ·  Contract attribution conditions: {(attribution ? "satisfied (production history and quality are not verified)" : "not applicable (non-attributable label)")}");
+                    text.AppendLine($"Mean {F(res["mean_a_minus_b"])}  Population SD {F(res["std_a_minus_b"])}  RMSE {F(res["rmse"])}  Mean absolute difference {F(res["mean_abs"])}  Min {F(res["min_a_minus_b"])}  Max {F(res["max_a_minus_b"])}");
+                    _state.Text = "Status: computed numeric differences between imported files." + (reviewed ? "" : " Response from an unreviewed contract.") + " This is not 2G execution or an image-quality verdict.";
                 }
                 else
                 {
-                    text.AppendLine("숫자를 만들지 않았습니다. " + string.Join(" ", reasons.Select(ComparisonReasonText.For)));
-                    _state.Text = $"상태: 비교가 {status} 로 끝났습니다. 통과가 아닙니다. 2G 실행이 아닙니다.";
+                    text.AppendLine("No numbers produced. " + string.Join(" ", reasons.Select(ComparisonReasonText.For)));
+                    _state.Text = $"Status: comparison ended with {status}. Not a pass. No 2G execution.";
                 }
-                text.AppendLine($"원본 파일 변경 없음: {(res["sources_unchanged"]?.GetValue<bool>() == true ? "예" : "아니오")}  ·  2G 실행됨: {(res["actual_2g_executed"]?.GetValue<bool>() == true ? "예" : "아니오")}  ·  화질 판정: 하지 않음");
-                text.AppendLine("저장 위치: " + response.RunDirectory);
-                text.AppendLine("확인한 매니페스트 SHA-256: " + snapshot.Sha256);
+                text.AppendLine($"Sources unchanged: {(res["sources_unchanged"]?.GetValue<bool>() == true ? "yes" : "no")}  ·  2G executed: {(res["actual_2g_executed"]?.GetValue<bool>() == true ? "yes" : "no")}  ·  Image-quality verdict: none");
+                text.AppendLine("Saved to: " + response.RunDirectory);
+                text.AppendLine("Validated manifest SHA-256: " + snapshot.Sha256);
             }
             _result.Text = text.ToString();
         }
-        catch (Exception e) { if (gen == _generation) { _result.Text = "실패: " + e.Message; _state.Text = "상태: 계산 실패. 통과가 아닙니다."; } }
+        catch (Exception e) { if (gen == _generation) { _result.Text = "Failed: " + e.Message; _state.Text = "Status: calculation failed. Not a pass."; } }
         finally { if (ReferenceEquals(_cancel, cts)) _cancel = null; cts.Dispose(); if (!_closed) SetBusy(false); }
     }
 

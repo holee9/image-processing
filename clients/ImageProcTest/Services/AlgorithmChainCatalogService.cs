@@ -31,9 +31,7 @@ namespace ImageProcTest
         [
             new("calib-folder", "BOOT-0", "Calibration manifest load/audit", "xpe_preprocess", "xpe_preprocess.dll", "1a", "N/A", "detector-context", "SRS-CALIB-FUNC-001..003,009,015", "PRE-E2E-0, PRE-E2E-5", "folder context", "folder-audit", 0.0, true, false, false, false, null, "Select the acquired calibration folder and verify offset/dark, gain/flat, BPM roles, checksums, expiry, and mismatch evidence."),
             new("readout", "(0.5)", "Readout artifact validation", "xpe_preprocess", "xpe_preprocess.dll", "1a", "detector", "detector", "SRS-CALIB readout validation, ALG-SPEC 6.1", "PRE-E2E-1", "advisory", "adapter-pending", 0.5, false, false, false, false, null, "Add readout artifact validation adapter and alert-only evidence before enabling execution."),
-            new("temperature", "(0.7)", "Temperature compensation", "xpe_preprocess", "xpe_preprocess.dll", "1a", "detector", "detector", "SRS-CALIB-FUNC-008,016", "UT-1.5-005, BP-01", "conditional", "adapter-pending", 0.7, false, true, false, false, null, "Add detector temperature metadata and dark interpolation evidence before enabling execution."),
             new("offset", "(1)", "Offset correction", "xpe_preprocess", "xpe_preprocess.dll", "1a", "detector", "detector", "SRS-CALIB-FUNC-004,016,SAFE-001", "UT-1.1, PRE-E2E-1/2, BP-01", "mandatory", "native-preview", 1.0, true, false, false, false, "Offset", "Select an acquired calibration folder with offset/dark data and load a target raw image."),
-            new("nonlinearity", "(1.5)", "Nonlinearity correction", "xpe_preprocess", "xpe_preprocess.dll", "1a", "detector", "detector", "SRS-CALIB-FUNC-006, ALG-SPEC 6.2", "UT-1.5-004", "conditional", "adapter-pending", 1.5, false, true, false, false, null, "Add LUT/polynomial calibration profile input and monotonicity evidence before enabling execution."),
             new("gain", "(2)", "Gain correction", "xpe_preprocess", "xpe_preprocess.dll", "1a", "detector", "detector-float", "SRS-CALIB-FUNC-005,017,018,SAFE-001", "UT-1.2, PRE-E2E-1/2, BP-02/03", "mandatory", "native-preview", 2.0, true, false, false, false, "Gain", "Select an acquired calibration folder with offset/dark and gain/flat data and load a target raw image."),
             new("binning", "(2.5)", "Binning correction", "xpe_preprocess", "xpe_preprocess.dll", "1a", "detector-float", "detector-float", "SRS-CALIB-FUNC-012", "binning metadata tests", "conditional", "adapter-pending", 2.5, false, true, false, false, null, "Add binning-mode detector metadata and gain scaling evidence before enabling execution."),
             new("defect", "(3)", "Defect correction", "xpe_preprocess", "xpe_preprocess.dll", "1a", "detector-float", "detector-float", "SRS-CALIB-FUNC-007,010,019", "UT-1.3, PRE-E2E-1/2, BP-04", "conditional", "native-preview", 3.0, false, true, false, false, "Defect", "Select an acquired calibration folder with BPM/defect data after offset+gain are in the chain."),
@@ -62,7 +60,7 @@ namespace ImageProcTest
 
         private static readonly string[] ProductCanonicalOrder =
         [
-            "calib-folder", "readout", "temperature", "offset", "nonlinearity", "gain", "binning", "defect",
+            "calib-folder", "readout", "offset", "gain", "binning", "defect",
             "lag-ghost", "ei-whole", "log", "basic-noise", "contrast", "edge", "ai-bodypart",
             "collimation", "ai-collimation", "ei-roi", "gsvg", "multiscale", "fractional",
             "stitching", "bone-suppression", "dl-denoise", "modality-lut", "voi-lut", "presentation-lut", "dicom-write"
@@ -70,7 +68,7 @@ namespace ImageProcTest
 
         private static readonly string[] PreE2eProofOrder =
         [
-            "calib-folder", "readout", "nonlinearity", "offset", "gain", "temperature", "defect",
+            "calib-folder", "readout", "offset", "gain", "defect",
             "binning", "lag-ghost"
         ];
 
@@ -410,9 +408,6 @@ namespace ImageProcTest
             RequireBefore(steps, findings, "offset", "gain", "CAL-OFFSET-GAIN",
                 "Offset correction must run before gain correction.",
                 "pipeline-spec (1)->(2); SRS-CALIB-FUNC-004/005; SRS-CALIB-SAFE-001");
-            RequireBeforeIfBoth(steps, findings, "nonlinearity", "gain", "CAL-NONLIN-GAIN",
-                "Nonlinearity correction must run before gain correction when selected.",
-                "SRS-CALIB-FUNC-006; ALG-SPEC 6.2");
             RequireBefore(steps, findings, "gain", "defect", "CAL-GAIN-DEFECT",
                 "Defect correction needs detector-float input after gain correction.",
                 "pipeline-spec (2)->(3); SRS-CALIB-FUNC-007");
@@ -460,13 +455,6 @@ namespace ImageProcTest
                 "Log transform is selected without gain-corrected detector-float input. GUI will run it as standalone post validation on a float-cast raw buffer unless preprocess stages are selected before it.",
                 "SRS-ENHANCE-BASIC IF-200-001.");
 
-            if (Contains(steps, "offset") && Contains(steps, "nonlinearity"))
-            {
-                findings.Add(Soft(
-                    "CAL-OFFSET-NONLIN-ORDER",
-                    "Offset/nonlinearity relative order differs between product canonical and Pre-E2E proof documents; preserve the selected order in evidence.",
-                    "pipeline-spec places offset before nonlinearity; Preprocessing-E2E places nonlinearity before dark/offset. Both agree nonlinearity must precede gain."));
-            }
         }
 
         private static void AddDomainFindings(

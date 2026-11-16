@@ -1,0 +1,12 @@
+  actual Metrics ItemsControl, per-lane stage/ms/VOI/calibration/EI, delta, stale edit, footer and invalidation checked
+  scenario 'GUI-C-258 metrics and footer contract': 518 ms
+  PRE Calibration ? Validate, Generate, Reload and Evaluate: 25 actual WPF labels checked; no workflow button invoked
+  Compare Imported 2G and New PRE Outputs: 24 actual WPF labels checked; no workflow button invoked
+  actual log TextBlock/accessibility name and original Logs/SelectedLog/Copy input checked
+  scenario 'GUI-C-258 English dialog and log labels': 63 ms
+  scenario '17 skipped preprocess: Native warns, Mock informs': 128 ms
+Unhandled exception. System.InvalidOperationException: Lifetime scenarios failed:
+[GUI-C-258 English dialog and log labels] actual log TextBlock must show the English EI label
+[GUI-C-258 English dialog and log labels] log item's accessible name must match the English displayed line
+   at ImageProcTest.SelfCheck.LifetimeScenarios.Run(Boolean studyContractOnly, Boolean laneContractOnly, Boolean displayContractOnly) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\LifetimeScenarios.cs:line 536
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.SelfCheck\Program.cs:line 21

@@ -1,7 +1,7 @@
 # X-ray Image Processing Engine - Documentation System
 
-**Version**: 3.6.0
-**Last Updated**: 2026-04-28  
+**Version**: 3.7.0
+**Last Updated**: 2026-11-03  
 **Organization**: Hybrid 3-Tier (Normative/Informational/Archive) + IEC 62304 Traceability  
 
 ---
@@ -403,6 +403,7 @@ ImageProcTest GUI 리디자인을 위한 Claude Design handoff 산출물입니�
 |----------|-------------|
 | [README.md](design/README.md) | GUI 리디자인 handoff — Algorithm Evaluation Workbench 설계, 3개 핵심 아이디어(Algorithm Lane, Study Queue, Analysis Panel) |
 | [IMPLEMENTATION_GUIDE.md](design/IMPLEMENTATION_GUIDE.md) | Claude Code CLI용 단계별 구현 가이드 — Slice 0~7, 기존 MVVM 패턴 재사용 |
+| [VERIFICATION-20261103-live-real-frame.md](design/VERIFICATION-20261103-live-real-frame.md) | **실영상 수동 점검 기록 (2026-11-03)** — 설계의 세 핵심 아이디어를 실제 앱·실제 영상에서 대조. 레인 선택↔체인 불일치(#281), 사용자 영상에 판정 흐름 미동작(#280), Metrics 탭 미채움·표시 정합성(#282); 처리 순서(전처리→기본 강조→표시)는 정상 |
 
 ### 7.2 Prototype (고해상도 HTML/JSX)
 
@@ -481,6 +482,7 @@ AI 에이전트가 이 프로젝트를 이해할 때 읽어야 할 문서 순서
 
 | Date | Version | Changes |
 |------|---------|---------|
+| 2026-11-03 | 3.7.0 | **GUI 실영상 수동 점검 기록 추가** (Section 7.1): `design/VERIFICATION-20261103-live-real-frame.md`. 설계 약속 대 실제 동작 대조, 이슈 #280·#281·#282 연결, #274 재확인. `design/README.md` 에 "Status against the live build" 절 추가. |
 | 2026-04-28 | 3.6.0 | **GUI Design 섹션 신규 추가** (Section 7): ImageProcTest Algorithm Evaluation Workbench Claude Design handoff. 프로토타입(HTML/JSX 6종), 구현 가이드, 기존 GUI 참조 파일 포함. 총 ~144개 문서. |
 | 2026-04-22 | 3.5.0 | **SPEC-BENCH-PRE/POST + SPEC-XPE-GSVG v1.0.0 추가** (Section 1.4 신규). api-spec v1.4.0 (AED 제거, 79개 함수). SPEC-XPE-MASTER v3.0.0. SPEC 문서 15종 인덱스 Section 1.4 추가. |
 | 2026-04-15 | 3.4.0 | XPE-ALG-001 v1.7 반영 (80건 GAP 해소). GAP-BM~BV: DICOM GSDF, Multi-Scale Retinex, U-Net 폐 분할, DLIR CNN, 늑골 억제, Body Part CNN, Lucas-Kanade 광학 흐름, 통합 비선형성, TV-ADMM §20 신설, BMD proxy. |

@@ -1,5 +1,7 @@
 # XPE 데이터 흐름 아키텍처
 
+> **2026-11-16 기능 삭제**: 온도 보상(PRE-07, `xpe_temp_compensate`)과 비선형 보정(PRE-08, `xpe_nonlinearity_correct`, 비선형 LUT 생성·적재 API), 다선량 다항식 게인(`xpe_calib_generate_gain_polynomial`)은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 아래에서 해당 줄에 삭제 표시를 붙였다.
+
 **문서 ID**: XPE-CODEMAP-005  
 **버전**: 1.0.0  
 **날짜**: 2026-04-17  
@@ -42,9 +44,9 @@ DICOM Output [uint16]
 ```
 Raw Frame
   ↓ (0.5) Readout Validation (PRE-01) - 신규 추가
-  ↓ (0.7) Temperature Compensation (PRE-07) - 신규 추가
+  ↓ (0.7) Temperature Compensation (PRE-07) - 신규 추가  // 삭제 (2026-11-16)
   ↓ (1) Offset Correction (PRE-02) — uint16
-  ↓ (1.5) Nonlinearity Correction (PRE-08) - 신규 추가
+  ↓ (1.5) Nonlinearity Correction (PRE-08) - 신규 추가  // 삭제 (2026-11-16)
   ↓ (2) Gain Correction (PRE-03) — uint16 → float32 [FORMAT BOUNDARY]
   ↓ (2.5) Binning Correction (PRE-09) - 신규 추가
   ↓ (3) Defect Correction (PRE-06) — float32
@@ -80,11 +82,11 @@ Raw Frame
   ↓
 PRE-01: Readout Validation → uint16 (알릿 플래그 설정)
   ↓
-PRE-07: Temperature Compensation → uint16 (온도 메타데이터)
+PRE-07: Temperature Compensation → uint16 (온도 메타데이터)  // 삭제 (2026-11-16)
   ↓
 PRE-02: Offset Correction → uint16 (Dark Current 보정)
   ↓
-PRE-08: Nonlinearity Correction → uint16 (선형화)
+PRE-08: Nonlinearity Correction → uint16 (선형화)  // 삭제 (2026-11-16)
   ↓
 PRE-03: Gain Correction → float32 (Flat Field 보정 + 형식 변환)
   ↓
@@ -180,7 +182,7 @@ typedef struct XpeImageMetadata {
 ```
 Raw Frame → XPE_FLAG_READOUT_VALIDATED (PRE-01)
   ↓
-Temperature Compensation → XPE_FLAG_TEMP_COMPENSATED (PRE-07)
+Temperature Compensation → XPE_FLAG_TEMP_COMPENSATED (PRE-07)  // 삭제 (2026-11-16)
   ↓
 Gain Correction → XPE_FLAG_GAIN_CORRECTED (PRE-03)
   ↓
@@ -236,11 +238,11 @@ void ProcessFrame(XpeImageBuffer* img, XpeImageMetadata* meta) {
     // 1. 오프셋 보정 - 항상 실행 (MANDATORY)
     xpe_offset_correct(img, offsetMap);
     
-    // 2. 비선형 보정 - 조건부 실행 (CONDITIONAL)
+    // 2. 비선형 보정 - 조건부 실행 (CONDITIONAL)  // 삭제 (2026-11-16)
     //    NOTE (2026-09-17, #186): 화소 계산이 아직 없습니다. 호출은 no-op 이고
     //    플래그도 켜지지 않습니다(#184 에서 거짓 표시 수정).
-    if (!(meta->flags & XPE_FLAG_NONLINEARITY_CORRECTED)) {
-        xpe_nonlinearity_correct(img, config);
+    if (!(meta->flags & XPE_FLAG_NONLINEARITY_CORRECTED)) {  // 삭제 (2026-11-16)
+        xpe_nonlinearity_correct(img, config);  // 삭제 (2026-11-16)
     }
     
     // 3. 게인 보정 - 항상 실행 (MANDATORY) + 형식 변환
@@ -633,10 +635,10 @@ public class XPEDataFlowProcessor {
             errorHandler.ProcessWithErrorHandling(
                 () => ValidateReadoutArtifact(buffer), "Readout Validation");
             
-            // 온도 보상
-            if (acquisition.Temperature != 25.0f) {
+            // 온도 보상  // 삭제 (2026-11-16)
+            if (acquisition.Temperature != 25.0f) {  // 삭제 (2026-11-16)
                 errorHandler.ProcessWithErrorHandling(
-                    () => xpe_temp_compensate(buffer, acquisition.Temperature), "Temperature Compensation");
+                    () => xpe_temp_compensate(buffer, acquisition.Temperature), "Temperature Compensation");  // 삭제 (2026-11-16)
             }
             
             // 오프셋 보정 (MANDATORY)

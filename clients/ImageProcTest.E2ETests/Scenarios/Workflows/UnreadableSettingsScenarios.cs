@@ -237,7 +237,7 @@ public sealed class UnreadableSettingsScenarios(ITestOutputHelper output)
     {
         var element = app.MainWindow!.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
         Assert.True(element is not null, "StatusBarText is not in the automation tree.");
-        return element!.Name ?? string.Empty;
+        return element!.HelpText ?? string.Empty;
     }
 
     private static string NewSettingsPath()

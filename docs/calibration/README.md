@@ -5,7 +5,9 @@
 **의존성**: `xpe_common.dll` (Layer 0)  
 **안전 등급**: IEC 62304 Class B  
 **문서 버전**: 2.0  
-**날짜**: 2026-04-15  
+**날짜**: 2026-04-15 (갱신 2026-11-17)  
+
+> **2026-11-16 기능 삭제**: 온도 보상(0.7, `xpe_temp_compensate`), 비선형 보정(1.5, `xpe_nonlinearity_correct`), 다선량 다항식 게인(`xpe_calib_generate_gain_polynomial`)은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 아래 단계 목록·그림·표에서 해당 항목을 지웠거나 삭제로 표시했다. 보정 모드는 단일점(SINGLE_POINT) 하나만 남았다.
 **최종 갱신**: 2026-04-19 (알고리즘 검증 가이드 추가)
 **규범 사양**: [ALG-SPEC-001 v3.0.0-ds2](../../.moai/specs/xpe-algorithm-spec-deepsync.md)
 **알고리즘 검증 가이드**: [ALGORITHM-VERIFICATION-GUIDE.md](ALGORITHM-VERIFICATION-GUIDE.md)
@@ -102,7 +104,7 @@
 
 ## 1. 개요
 
-`xpe_preprocess.dll`은 X-ray Flat Panel Detector (FPD) 이미지 처리를 위한 캘리브레이션 전처리 엔진입니다. 어두운 전류, 픽셀 감도 불균일성, 불량/핫 픽셀, 전하 갇힘 래그, 온도 드리프트, 응답 비선형성 등 물리적 검출기 아티팩트를 보정하여 원본 ADC 센서 출력을 깨끗하고 캘리브레이션된 `float32` 이미지로 변환합니다.
+`xpe_preprocess.dll`은 X-ray Flat Panel Detector (FPD) 이미지 처리를 위한 캘리브레이션 전처리 엔진입니다. 어두운 전류, 픽셀 감도 불균일성, 불량/핫 픽셀, 전하 갇힘 래그 등 물리적 검출기 아티팩트를 보정하여 원본 ADC 센서 출력을 깨끗하고 캘리브레이션된 `float32` 이미지로 변환합니다.
 
 ### 주요 특성
 
@@ -151,13 +153,13 @@ Layer 0  xpe_common.dll                    타입, 메모리, 구성, 에러, �
 | SWU ID | 이름 | 단계 | 설명 |
 |--------|------|:-----:|-------------|
 | SWU-1.1 | OffsetCorrection | (1) | 동적 보간을 이용한 어두운 전류 차감 |
-| SWU-1.2 | GainCorrection | (2) | 플랫-필드 정규화 + 다중 게인 다항식 |
+| SWU-1.2 | GainCorrection | (2) | 플랫-필드 정규화 (단일 선량 게인) |
 | SWU-1.3 | DefectCorrection | (3) | 불량 픽셀 검출 및 보간 |
 | SWU-1.4 | GhostCorrection | (4) | 3단계 래그/고스팅 제거 |
 | SWU-1.5 | CalibDataManager | (0) | 캘리브레이션 파일 I/O, 만료 검증, 버전 관리 |
 | SWU-1.6 | ReadoutValidator | (0.5) | 원본 프레임 무결성 검증 |
-| SWU-1.7 | TempCompensation | (0.7) | 온도 의존 어두운 전류 보상 |
-| SWU-1.8 | NonlinearityCorrection | (1.5) | 검출기 응답 선형화 |
+| SWU-1.7 | ~~TempCompensation~~ | ~~(0.7)~~ | 삭제 (사용자 결정 2026-11-16) |
+| SWU-1.8 | ~~NonlinearityCorrection~~ | ~~(1.5)~~ | 삭제 (사용자 결정 2026-11-16) |
 | SWU-1.9 | BinningCorrection | (2.5) | 바이닝 모드 보상 |
 
 ---
@@ -187,43 +189,21 @@ Layer 0  xpe_common.dll                    타입, 메모리, 구성, 에러, �
 +----------------------------------------------------------------+
   |
   v
-+----------------------------------------------------------------+
-|  (0.7) Temperature Compensation                 [CONDITIONAL]  |
-|  Function: xpe_temp_compensate()                               |
-|  Model: I_dark(T) = I0 * exp(-Eg / 2*kB*T)                    |
-|  Input: detector temperature from NTC sensor                   |
-|  Bypass: sensor unavailable OR within +/-2C of nominal         |
-|  Flag: XPE_FLAG_TEMP_COMPENSATED                               |
-+----------------------------------------------------------------+
-  |
-  v  uint16
 +=================================================================+
 || (1) Offset Correction                          [MANDATORY]   ||
 || Function: xpe_offset_correct()                               ||
 || Formula: I_corr(x,y) = I_raw(x,y) - I_dark(x,y)            ||
-|| Dynamic: bilinear interpolation by temperature + PREP time   ||
+|| Dynamic: interpolation by PREP time                          ||
 || Bypass: NEVER (dark current corrupts all downstream)         ||
 || Hard fail: offsetMap absent -> XPE_ERR_NOT_INITIALIZED       ||
 +=================================================================+
-  |
-  v  uint16
-+----------------------------------------------------------------+
-|  (1.5) Nonlinearity Correction                  [CONDITIONAL]  |
-|  Function: xpe_nonlinearity_correct()                          |
-|  Model: LUT or monotonic polynomial linearization              |
-|  Bypass: panel.linear = true in detector profile               |
-|  Rationale: MUST precede Gain (linearize before normalize)     |
-|  Flag: XPE_FLAG_NONLINEARITY_CORRECTED                         |
-+----------------------------------------------------------------+
-
-> **현재 상태 (2026-09-17, #186)**: 이 단계는 **구현돼 있지 않습니다.** `nonlinearity_correct.cpp` 는 mode 를 검증한 뒤 화소를 바꾸지 않습니다. 실제로 보정하지 않으므로 `XPE_FLAG_NONLINEARITY_CORRECTED` 는 **켜지지 않습니다**(#184 에서 거짓 표시를 고쳤습니다). 구현 계획은 #186 입니다.
   |
   v  uint16
 +=================================================================+
 || (2) Gain Correction                            [MANDATORY]   ||
 || Function: xpe_gain_correct()                                 ||
 || Formula: I_corr(x,y) = I_off(x,y) / G(x,y)                 ||
-|| Multi-gain: G(x,y,E) = sum(c_k * E^k), internal selection   ||
+|| Multi-gain G(x,y,E) polynomial: 삭제 (2026-11-16)            ||
 || Heel effect: Duo-SID projection (Wang 2013)                  ||
 || Bypass: NEVER (format conversion + normalization)            ||
 || Hard fail: gainMap absent -> XPE_ERR_NOT_INITIALIZED         ||
@@ -275,9 +255,9 @@ Layer 0  xpe_common.dll                    타입, 메모리, 구성, 에러, �
 |---|-------|-----|:----:|:-----:|:------:|:----------:|:--------:|
 | 0 | CalibManager 로드 | 1.5 | 시작 | 파일 | 맵 | 모두 | 예 |
 | 0.5 | 리드아웃 검증 | 1.6 | 권고 | uint16 | uint16 | 없음 | 아니오 |
-| 0.7 | 온도 보상 | 1.7 | 조건부 | uint16 | uint16 | LUT/poly | 아니오 |
+| ~~0.7~~ | ~~온도 보상~~ | -- | 삭제 (사용자 결정 2026-11-16) | -- | -- | -- | -- |
 | 1 | 오프셋 보정 | 1.1 | **필수** | uint16 | uint16 | offsetMap | 예 |
-| 1.5 | 비선형성 | 1.8 | 조건부 | uint16 | uint16 | LUT/poly | 아니오 |
+| ~~1.5~~ | ~~비선형성~~ | -- | 삭제 (사용자 결정 2026-11-16) | -- | -- | -- | -- |
 | 2 | 게인 보정 | 1.2 | **필수** | uint16 | **float32** | gainMap | 예 |
 | 2.5 | 바이닝 보정 | 1.9 | 조건부 | float32 | float32 | 구성 | 아니오 |
 | 3 | 결함 보정 | 1.3 | 조건부 | float32 | float32 | BPM | 예 |
@@ -320,8 +300,8 @@ Layer 0  xpe_common.dll                    타입, 메모리, 구성, 에러, �
                        │      |      |
                 ORDER  v      |      |
           ┌────────────────┐  |      |
-          │ (1.5) Nonlin   │  |      |
-          │ Correction [C] │  |      |
+          │ (1.5) 삭제     │  |      |
+          │ (2026-11-16)   │  |      |
           └───────┬────────┘  |      |
                   │           |      |
             ORDER v      DATA v      |
@@ -373,10 +353,10 @@ Legend:
 |--|:---------:|:----------:|:----------:|:----------:|:--------:|:--------:|:---------:|:----------:|:---------:|
 | **(0) CalibManager** | -- | | | | | | | | |
 | **(0.5) Readout** | | -- | | | | | | | |
-| **(0.7) Temp** | | | -- | | | | | | |
+| **(0.7) Temp — 삭제** | | | -- | | | | | | |
 | **(1) Offset** | `DATA` | | | -- | | | | | |
-| **(1.5) Nonlin** | `DATA` | | | `ORDER` | -- | | | | |
-| **(2) Gain** | `DATA` | | | `ORDER` | `ORDER` | -- | | | |
+| **(1.5) Nonlin — 삭제** | | | | | -- | | | | |
+| **(2) Gain** | `DATA` | | | `ORDER` | | -- | | | |
 | **(2.5) Binning** | | | | | | `FMT` | -- | | |
 | **(3) Defect** | `DATA` | | | | | `FMT` | | -- | |
 | **(4) Ghost** | `DATA` | | | | | `FMT` | | `ORDER` | -- |
@@ -410,9 +390,9 @@ Legend:
  │   (원본 / 정수)               (정규화 / 부동소수점)    │
  │                                                                  │
  │   (0.5) 리드아웃      ║         (2.5) 바이닝                    │
- │   (0.7) 온도         ║         (3)   결함                     │
+ │   (0.7) 온도 (삭제)  ║         (3)   결함                     │
  │   (1)   오프셋       ║         (4)   고스트                      │
- │   (1.5) 비선형성 ║                                          │
+ │   (1.5) 비선형성(삭제) ║                                          │
  │                      ║                                          │
  │              ┌═══════╩════════════┐                              │
  │              ║  (2) 게인 보정    ║                              │
@@ -443,9 +423,9 @@ Legend:
 flags = 0x00000000  (원본 프레임)
 
 (0.5) 후:  flags |= XPE_FLAG_READOUT_VALIDATED       0x0010
-(0.7) 후:  flags |= XPE_FLAG_TEMP_COMPENSATED        0x0020
+(0.7) 삭제 (온도 보상, 사용자 결정 2026-11-16) — 이 플래그를 켜는 단계 없음
 (1) 후:    [전용 플래그 없음 - 항상 실행]
-(1.5) 후:  flags |= XPE_FLAG_NONLINEARITY_CORRECTED  0x0040   ← 미구현이라 현재는 켜지지 않음 (#184, #186)
+(1.5) 삭제 (비선형 보정, 사용자 결정 2026-11-16) — 이 플래그를 켜는 단계 없음
 (2) 후:    flags |= XPE_FLAG_GAIN_CORRECTED           0x0008
 (2.5) 후:  flags |= XPE_FLAG_BINNING_CORRECTED        0x0080
 (3) 후:    flags |= XPE_FLAG_DEFECT_CORRECTED         0x0004
@@ -476,9 +456,9 @@ flags = 0x00000000  (원본 프레임)
 |-------|:----:|:--------:|------------------|:-------------:|-------------------|
 | **(0) CalibManager** | `M` | 아니오 | -- | 치명적 | 캘리브레이션 데이터 없음 |
 | **(0.5) Readout** | `A` | 예 | 구성: `readout_validation.enabled = false` | 없음 | 무결성 검사 없음 |
-| **(0.7) Temp** | `C` | 예 | 센서 없음 또는 공칭값의 +/-2C 내 온도 | 낮음 | 미소한 어두운 드리프트 |
+| ~~**(0.7) Temp**~~ | -- | -- | 삭제 (사용자 결정 2026-11-16) | -- | -- |
 | **(1) Offset** | `M` | 아니오 | -- | 치명적 | 모든 픽셀의 어두운 바이어스 |
-| **(1.5) Nonlinearity** | `C` | 예 | 검출기 프로필에서 `panel.linear = true` | 낮음 | 미소한 응답 곡선 오류 |
+| ~~**(1.5) Nonlinearity**~~ | -- | -- | 삭제 (사용자 결정 2026-11-16) | -- | -- |
 | **(2) Gain** | `M` | 아니오 | -- | 치명적 | 정규화 없음 + float32 변환 없음 |
 | **(2.5) Binning** | `C` | 예 | `binningMode == 1` (원본) | 없음 | 적용 불가 |
 | **(3) Defect** | `C` | 예 | BPM 비어있음 또는 진단 모드 | 중간 | 결함 아티팩트 표시 |
@@ -510,21 +490,6 @@ flags = 0x00000000  (원본 프레임)
                   |
                  NO
                   v
-                +-------v--------+
-                | (0.7) Temp     |
-                | sensor avail?  |
-                +----------------+
-                  |           |
-                 YES         NO -----> [SKIP: use nominal 25C + alert]
-                  |
-            |temp - 25C| > 2.0?
-                  |           |
-                 YES         NO -----> [SKIP: within tolerance]
-                  |
-                  v
-            xpe_temp_compensate()
-                  |
-                  v
             +=========v==========+
             || (1) Offset       ||
             || ALWAYS EXECUTE   ||
@@ -535,17 +500,6 @@ flags = 0x00000000  (원본 프레임)
               |
               v
             xpe_offset_correct()
-              |
-              v
-                +-------v--------+
-                | (1.5) Nonlin   |
-                | panel.linear?  |
-                +----------------+
-                  |           |
-                 NO (apply)  YES (linear) -> [SKIP: profile says linear]
-                  |
-                  v
-            xpe_nonlinearity_correct()
               |
               v
             +=========v==========+
@@ -632,15 +586,6 @@ flags = 0x00000000  (원본 프레임)
       "critical_threshold": 500,
       "warn_threshold": 200
     },
-    "temp_compensation": {
-      "enabled": true,
-      "auto_bypass_tolerance_c": 2.0,
-      "nominal_temp_c": 25.0
-    },
-    "nonlinearity": {
-      "enabled": true,
-      "bypass_if_linear_profile": true
-    },
     "binning": {
       "enabled": true
     },
@@ -666,9 +611,7 @@ flags = 0x00000000  (원본 프레임)
 | 구성 키 | `"clinical"` | `"diagnostic"` | `"fluoro"` |
 |------------|:------------:|:--------------:|:----------:|
 | readout_validation | 켜짐 | 꺼짐 | 켜짐 |
-| temp_compensation | 켜짐 (자동) | 꺼짐 | 켜짐 |
 | offset_correction | **켜짐** | **켜짐** | **켜짐** |
-| nonlinearity | 켜짐 (프로필) | 꺼짐 | 켜짐 |
 | gain_correction | **켜짐** | **켜짐** | **켜짐** |
 | binning | 켜짐 (자동) | 꺼짐 | 켜짐 |
 | defect_correction | 켜짐 | 꺼짐 | 켜짐 |
@@ -686,8 +629,8 @@ flags = 0x00000000  (원본 프레임)
 | 게인 (플랫-필드) 맵 | `.raw` / `.dcm` | 외부 캘리브레이션 도구 | `xpe_calib_load_gain()` | 예 |
 | 불량 픽셀 맵 (BPM) | `.raw` / `.dcm` | 외부 검출 도구 | `xpe_calib_load_defect_map()` | 예 |
 | NLCSC 계수 | JSON 구성 | 캘리브레이션 세션 | `xpe_ghost_create()` 구성 | 아니오 |
-| 온도 LUT | JSON 구성 | 공장 캘리브레이션 | `xpe_configure()` | 아니오 |
-| 비선형성 곡선 | JSON 구성 | 공장 캘리브레이션 | `xpe_configure()` | 아니오 |
+| ~~온도 LUT~~ | 삭제 (사용자 결정 2026-11-16) | -- | -- | -- |
+| ~~비선형성 곡선~~ | 삭제 (사용자 결정 2026-11-16) | -- | -- | -- |
 
 ### 8.2 캘리브레이션 영상 취득 요약
 
@@ -700,7 +643,7 @@ flags = 0x00000000  (원본 프레임)
 | 오프셋 맵 (offsetMap) | Dark Frame — X선 OFF | 온도 6단계 × PREP 7단계 × 100프레임 | IAP §6.1 |
 | 게인 맵 (gainMap) | Flat-field — RQA-5 균일 조사 | 40~60% 포화도, Duo-SID (110/150 cm) | IAP §6.2 |
 | 불량 픽셀 맵 (BPM) | Dark + Flat-field 각 200프레임 | 온도 3단계, λ=8.0 임계값 | IAP §6.3 |
-| 비선형성 계수 | 다중 포화도 Flat-field | 5%~90% 범위 최소 5단계, 각 16프레임 | IAP §6.4 |
+| ~~비선형성 계수~~ | 삭제 (사용자 결정 2026-11-16) | -- | ~~IAP §6.4~~ |
 | Lag/Ghost 계수 (NLCSC) | FSRF + RSRF 시퀀스 | 9개 포화도 수준, 6,030프레임 총계 | IAP §6.5 |
 
 **공장 vs. 현장 취득 비교**:
@@ -749,9 +692,7 @@ flags = 0x00000000  (원본 프레임)
 | 함수 | 단계 | 인플레이스 | 스레드 안전 | 필수 |
 |----------|:-----:|:--------:|:-----------:|:---------:|
 | `xpe_validate_readout_artifact()` | 0.5 | 아니오 (읽기 전용) | 예 | 아니오 |
-| `xpe_temp_compensate()` | 0.7 | 예 | 예 | 아니오 |
 | `xpe_offset_correct()` | 1 | 예 | 예 | **예** |
-| `xpe_nonlinearity_correct()` | 1.5 | 예 | 예 | 아니오 |
 | `xpe_gain_correct()` | 2 | 예 | 예 | **예** |
 | `xpe_binning_correct()` | 2.5 | 예 | 예 | 아니오 |
 | `xpe_defect_correct()` | 3 | 예 | 예 | 아니오 |
@@ -788,9 +729,7 @@ flags = 0x00000000  (원본 프레임)
 |-------|:-----------:|:--------------:|-------|
 | (0) CalibManager | 200 | 200 | 시작 시만, 프레임별 제외 |
 | (0.5) 리드아웃 검증 | 15 | 10 | 읽기 전용 스캔 |
-| (0.7) 온도 보상 | 10 | 5 | LUT 조회 |
 | (1) 오프셋 보정 | 60 | 55 | 픽셀단위 차감 |
-| (1.5) 비선형성 | 25 | 20 | LUT/다항식 평가 |
 | (2) 게인 보정 | 60 | 55 | 픽셀단위 나눗셈 + 형식 변환 |
 | (2.5) 바이닝 보정 | 15 | 10 | 조건부 곱셈 |
 | (3) 결함 보정 | 110 | 95 | BPM 스캔 + 보간 |
@@ -823,7 +762,7 @@ flags = 0x00000000  (원본 프레임)
 | BYP-SAFE-003 | 우회된 단계는 `XPE_FLAG_*` 비트 설정 금지 | 다운스트림과 QA는 적용된 항목을 알아야 함 |
 | BYP-SAFE-004 | 고스트 우회는 재설정 후 첫 프레임에 자동 트리거 | 이력 없음 = 쓰레기 보정 |
 | BYP-SAFE-005 | 비어있지 않은 BPM으로 결함 우회는 경고 알림 방출 | 알려진 결함 건너뛰기는 비정상 |
-| BYP-SAFE-006 | 비선형성 우회는 명시적 `panel.linear = true` 필요 | 무음 건너뛰기는 감지되지 않은 아티팩트 위험 |
+| BYP-SAFE-006 | ~~비선형성 우회 규칙~~ — 비선형 보정 삭제로 해당 없음 (사용자 결정 2026-11-16) | -- |
 | BYP-SAFE-007 | 모든 우회 결정 진단 JSON에 로깅 | IEC 62304 추적성 |
 | BYP-SAFE-008 | 진단 모드: 필수 (0), (1), (2)만 | 유효한 float32 출력을 위한 최소 보정 |
 
@@ -871,7 +810,7 @@ flags = 0x00000000  (원본 프레임)
 | **SAD-CALIB-001** | 소프트웨어 아키텍처 문서 | `docs/calibration/SAD-CALIB-001_Software_Architecture_Document.md` | 개발자 | 9개 SWU 설계, 인터페이스, 데이터 흐름 (IEC 62304 §5.3) |
 | **SHA-CALIB-001** | 소프트웨어 위험 분석 | `docs/calibration/SHA-CALIB-001_Software_Hazard_Analysis.md` | 안전 담당자 | 7개 위험 식별 · ISO 14971 리스크 평가 · 통제 |
 | **RTM-CALIB-001** | 요건 추적 행렬 | `docs/calibration/RTM-CALIB-001_Requirements_Traceability_Matrix.md` | QA / 개발자 | SRS ↔ 아키텍처 ↔ 테스트 ↔ 위험 양방향 추적 (IEC 62304 §5.1.1c) |
-| **IAP-CALIB-001** | **영상 취득 프로토콜** | `docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md` | **캘리브레이션 엔지니어** | Dark/Flat-field/BPM/Lag/Nonlinearity 촬영 절차 · 합격 기준 · 장비 요건 |
+| **IAP-CALIB-001** | **영상 취득 프로토콜** | `docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md` | **캘리브레이션 엔지니어** | Dark/Flat-field/BPM/Lag 촬영 절차 · 합격 기준 · 장비 요건 |
 | **TDS-CALIB-001** | **테스트 데이터셋 명세서** | `docs/calibration/TDS-CALIB-001_Test_Dataset_Specification.md` | **QA / 개발자** | 알고리즘별 합성·실제 테스트 데이터 규격 · Golden Reference 관리 |
 | **PRIOR-ART-BPM-ALGORITHM** | 종래기술 분석 (2026-04-19 추가) | `docs/calibration/PRIOR-ART-BPM-ALGORITHM.md` | **개발자** | MC vs Blue BPM 알고리즘 상세 비교, 실험 결과, XPE RMM 개선 권고사항 |
 
@@ -879,8 +818,8 @@ flags = 0x00000000  (원본 프레임)
 
 | 데이터셋 ID | 제목 | 경로 | 목적 | 검증 대상 |
 |-----------|------|------|------|---------|
-| `caldata_6_mc_multistep` | **다중 단계 게인 보정 데이터** | `tests/test_data/CalData_6/README.md` | 다중 선량 레벨 게인 맵 생성 및 비선형성 LUT 검증 | SRS-CALIB-FUNC-005, 006, 007 |
-| `cyan_prod_calib_clinical` | **Cyan 검출기 생산 캘리브레이션 + 임상 E2E** | `tests/test_data/cyan_test/README.md` | 생산 환경 캘리브레이션 워크플로우 및 임상 이미지 전처리 검증 | SRS-CALIB-FUNC-005, 008, 011, 015-021 |
+| `caldata_6_mc_multistep` | **다중 단계 게인 보정 데이터** | `tests/test_data/CalData_6/README.md` | 게인 맵 생성 검증 (비선형성 LUT 검증은 삭제, 2026-11-16) | SRS-CALIB-FUNC-005, 007 |
+| `cyan_prod_calib_clinical` | **Cyan 검출기 생산 캘리브레이션 + 임상 E2E** | `tests/test_data/cyan_test/README.md` | 생산 환경 캘리브레이션 워크플로우 및 임상 이미지 전처리 검증 | SRS-CALIB-FUNC-005, 011, 015-021 (008 은 삭제, 2026-11-16) |
 | `grid_abnormal_bpm_comparison` | **그리드 아티팩트 BPM 알고리즘 비교** | `tests/test_data/Grid_abnormal/README.md` | MC vs Blue BPM 성능 비교 및 그리드 아티팩트 환경에서의 견고성 검증 | SRS-CALIB-FUNC-007, 025 (신규) |
 
 #### 규범 알고리즘 사양
@@ -911,8 +850,8 @@ PRD (원본)
 
 ### v2.0 변경 내역 (2026-04-15)
 
-**SRS-CALIB-001 주요 개선 사항** (5차 교차검증 결과):
+**SRS-CALIB-001 주요 개선 사항** (5차 교차검증 결과) — 아래 비선형성 항목 셋은 2026-11-16 사용자 결정으로 삭제됨(SRS v1.5):
 
-- **비선형성 보정 알고리즘 확장** (SRS-CALIB-FUNC-006-EXT): LUT 생성 절차 (Fritsch-Carlson 단조 스플라인), 다항식 피팅 (Horner 방법, deg ≤ 5), LUT vs 다항식 정밀도 비교표 추가
+- **비선형성 보정 알고리즘 확장** (SRS-CALIB-FUNC-006-EXT, 2026-11-16 삭제): LUT 생성 절차 (Fritsch-Carlson 단조 스플라인), 다항식 피팅 (Horner 방법, deg ≤ 5), LUT vs 다항식 정밀도 비교표 추가
 - **정밀도 기준 강화**: 비선형성 보정 최대 잔차 ≤ 0.3% ADC 전범위 (기존 미정의)
 - **플랫폼별 선택 로직**: CPU 대상 = LUT, MCU/FPGA 대상 = 다항식 (panel.target_platform 기반)

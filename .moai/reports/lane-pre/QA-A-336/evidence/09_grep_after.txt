@@ -179,7 +179,7 @@ modules/preprocess/tests/test_bpm_lines_lof.cpp:226:    EXPECT_GT(expectedMisfit
     -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
 modules/preprocess/tests/test_bpm_lines_lof.cpp:280:                    const Mod m = nonlinear(cs[ci], kms[ki]);
     -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
-modules/preprocess/tests/test_bpm_lines_lof.cpp:326:            ASSERT_GT(expectedMisfit(nonlinear(ci == 0 ? 0.4 : 0.2, kms[ki]), kDesignA), 266.0) << "the design of the control: the expected misfit exceeds 266 >> G - 2 
+modules/preprocess/tests/test_bpm_lines_lof.cpp:326:            ASSERT_GT(expectedMisfit(nonlinear(ci == 0 ? 0.4 : 0.2, kms[ki]), kDesignA), 266.0) << "the design of the control: the expected misfit exceeds 266 >> G - 2
     -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
 modules/preprocess/tests/test_bpm_lines_lof.cpp:358:TEST(BpmLinesLofSeparationTest, ALinearLineWithHighNoiseIsANoiseDefectAndANonlinearLineWithLowNoiseIsALinearityDefect) {
     -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지

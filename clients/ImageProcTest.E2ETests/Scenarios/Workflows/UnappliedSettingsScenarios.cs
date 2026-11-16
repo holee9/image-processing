@@ -18,10 +18,10 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, ITestOutputHelper output)
 {
     private static readonly string[] ConnectedStages = ["Offset", "Gain", "Defect"];
-    private static readonly string[] UnconnectedStages = ["Ghost", "Temperature", "Nonlinearity", "Binning"];
+    private static readonly string[] UnconnectedStages = ["Ghost", "Temperature", "Binning"];
     private static readonly string[] ModeValues = ["Auto", "On", "Off"];
 
-    /// <summary>U-01: nine connected options change processing requests; twelve unsupported options stay disabled.</summary>
+    /// <summary>U-01: nine connected options change processing requests; nine unsupported options stay disabled.</summary>
     [SkippableFact]
     public void U01_CalibrationStages_AreUsableExactlyWhenConnected()
     {
@@ -47,7 +47,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
         try
         {
             var mark = Find(window, "CalibrationStagesUnappliedMark");
-            Assert.Equal("기본 3단계 연결", mark.Name);
+            Assert.Equal("3 calibration stages connected", mark.Name);
             Assert.False(mark.IsOffscreen);
             foreach (var term in new[] { "Offset/Gain/Defect", "Auto", "On", "Off" })
                 Assert.Contains(term, mark.HelpText, StringComparison.Ordinal);
@@ -143,7 +143,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
             var reason = executed.GetProperty("reason").GetString()!;
             var modes = string.Join(",", ConnectedStages.Select(stage => $"{stage.ToLowerInvariant()}:{expected[stage]}"));
             Assert.Contains($"requested=[{modes}]", reason, StringComparison.Ordinal);
-            Assert.Contains("unsupported ghost/temp/nonlinearity/binning bypassed", reason, StringComparison.Ordinal);
+            Assert.Contains("unsupported ghost/temp/binning bypassed", reason, StringComparison.Ordinal);
             AssertNativeStagesExecutedPerMode(report, expected, reason, executed.GetProperty("hud").GetString());
             output.WriteLine($"U01 backend-consumed: {reason}");
         }
@@ -192,13 +192,13 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
 
     private JsonElement ExportFreshCalibrationReport(Window window)
     {
-        var priorStatus = Find(window, "StatusBarText").Name;
+        var priorStatus = Find(window, "StatusBarText").HelpText;
         UiaMenu.Open(window, "FileMenu");
         Find(window, "ExportAutomationReportMenuItem").AsMenuItem().Invoke();
         const string prefix = "Automation report exported: ";
         for (var attempt = 0; attempt < 20; attempt++)
         {
-            var status = Find(window, "StatusBarText").Name;
+            var status = Find(window, "StatusBarText").HelpText;
             if (status != priorStatus && status.StartsWith(prefix, StringComparison.Ordinal))
             {
                 // Read the newly named immutable snapshot, never delete or trust an old fixed alias.
@@ -354,7 +354,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
     {
         var mark = Find(window, "LaneBOverridesUnappliedMark");
         output.WriteLine($"U02 mark name='{mark.Name}' offscreen={mark.IsOffscreen} help='{mark.HelpText}'");
-        Assert.Equal("미적용", mark.Name);
+        Assert.Equal("Not applied", mark.Name);
         Assert.False(mark.IsOffscreen, "The mark is in the tree but not on screen.");
         Assert.Contains("#173", mark.HelpText, StringComparison.Ordinal);
     }
@@ -369,7 +369,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
     {
         var mark = Find(window, id);
         output.WriteLine($"{id} name='{mark.Name}' offscreen={mark.IsOffscreen} help='{mark.HelpText}'");
-        Assert.Equal("미적용", mark.Name);
+        Assert.Equal("Not applied", mark.Name);
         Assert.False(mark.IsOffscreen, $"{id} is in the tree but not on screen.");
         Assert.Contains("#182", mark.HelpText, StringComparison.Ordinal);
     }

@@ -1,5 +1,7 @@
 # Calibration vs Preprocessing Algorithms
 
+> **2026-11-16 기능 삭제**: 온도 보상(PRE-07, `xpe_temp_compensate`)과 비선형 보정(PRE-08, `xpe_nonlinearity_correct`, 비선형 LUT 생성·적재 API), 다선량 다항식 게인(`xpe_calib_generate_gain_polynomial`)은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 아래에서 해당 줄에 삭제 표시를 붙였다.
+
 **Version**: 1.0.0 | **Created**: 2026-04-19 | **Status**: Final
 
 **Purpose**: 명확한 기술 분류 - Calibration(보정 데이터 관리)과 Preprocessing Algorithms(전처리 알고리즘)의 차이
@@ -50,8 +52,8 @@ XPE Preprocessing Module
     ├── PRE-04: Lag Correction (SWU-1.4)
     ├── PRE-05: Ghost/Gain Ghosting Correction (SWU-1.4)
     ├── PRE-06: Defective Pixel Correction (SWU-1.3)
-    ├── PRE-07: Temperature Compensation (SWU-1.5)
-    ├── PRE-08: Non-linearity Correction (SWU-1.7)
+    ├── PRE-07: Temperature Compensation (SWU-1.5)  // 삭제 (2026-11-16)
+    ├── PRE-08: Non-linearity Correction (SWU-1.7)  // 삭제 (2026-11-16)
     └── PRE-09: Pixel Binning Correction (SWU-1.8)
 ```
 
@@ -80,8 +82,8 @@ XPE Preprocessing Module
 | `xpe_ghost_create/correct/reset/destroy()` | PRE-04/05 | SWU-1.4 | Lag/ghost 보정 | Preprocessing |
 | `xpe_defect_correct()` | PRE-06 | SWU-1.3 | Defective pixel 보정 | Preprocessing |
 | `xpe_defect_detect_runtime()` | PRE-06 | SWU-1.3 | Runtime defect 검출 | Preprocessing |
-| `xpe_temp_compensate()` | PRE-07 | SWU-1.5 | Temperature 보상 | Preprocessing |
-| `xpe_nonlinearity_correct()` | PRE-08 | SWU-1.7 | Non-linearity 보정 | Preprocessing |
+| ~~`xpe_temp_compensate()`~~ (삭제 2026-11-16) | PRE-07 | SWU-1.5 | Temperature 보상 | Preprocessing |
+| ~~`xpe_nonlinearity_correct()`~~ (삭제 2026-11-16) | PRE-08 | SWU-1.7 | Non-linearity 보정 | Preprocessing |
 | `xpe_binning_correct()` | PRE-09 | SWU-1.8 | Binning 보정 | Preprocessing |
 
 ---
@@ -131,11 +133,11 @@ Raw Detector Image (uint16)
        ↓
 PRE-01: Readout Artifact Validation
        ↓
-PRE-07: Temperature Compensation
+PRE-07: Temperature Compensation  // 삭제 (2026-11-16)
        ↓
 PRE-02: Offset Correction (uses Offset Map from Calibration)
        ↓
-PRE-08: Non-linearity Correction
+PRE-08: Non-linearity Correction  // 삭제 (2026-11-16)
        ↓
 PRE-03: Gain Correction (uses Gain Map from Calibration, uint16→float32)
        ↓
@@ -159,15 +161,15 @@ Clean Image (float32)
 | SWU-1.3 | PRE-06 | Defective Pixel Correction | xpe_preprocess | Preprocessing |
 | SWU-1.4 | PRE-04/05 | Ghost/Lag Correction | xpe_preprocess | Preprocessing |
 | **SWU-1.5** | **SUP-01** | **Calibration Manager** | **xpe_preprocess** | **Calibration** |
-| SWU-1.5 | PRE-07 | Temperature Compensation | xpe_preprocess | Preprocessing |
-| SWU-1.7 | PRE-08 | Non-linearity Correction | xpe_preprocess | Preprocessing |
+| ~~SWU-1.5~~ (삭제 2026-11-16) | PRE-07 | Temperature Compensation | xpe_preprocess | Preprocessing |
+| ~~SWU-1.7~~ (삭제 2026-11-16) | PRE-08 | Non-linearity Correction | xpe_preprocess | Preprocessing |
 | SWU-1.8 | PRE-09 | Binning Correction | xpe_preprocess | Preprocessing |
 | SWU-1.9 | PRE-01 | Readout Artifact Validation | xpe_preprocess | Preprocessing |
 | SWU-5.6 | SUP-01 | Calibration Parameter Management | xpe_preprocess | Calibration |
 
 **주의**: SWU-1.5는 두 가지 기능에 할당됨
 - SUP-01: Calibration Manager
-- PRE-07: Temperature Compensation
+- PRE-07: Temperature Compensation  ← 삭제 (2026-11-16)
 
 ---
 
@@ -197,8 +199,8 @@ Clean Image (float32)
 | `gain_correct.cpp` | PRE-03 | SWU-1.2 | Gain/flat-field 보정 |
 | `defect_correct.cpp` | PRE-06 | SWU-1.3 | Defective pixel 보정 |
 | `ghost_correct.cpp` | PRE-04/05 | SWU-1.4 | Ghost/lag 보정 |
-| `temp_compensate.cpp` | PRE-07 | SWU-1.5 | Temperature 보상 |
-| `nonlinearity_correct.cpp` | PRE-08 | SWU-1.7 | Non-linearity 보정 |
+| ~~`temp_compensate.cpp`~~ (삭제 2026-11-16) | PRE-07 | SWU-1.5 | Temperature 보상 |
+| ~~`nonlinearity_correct.cpp`~~ (삭제 2026-11-16) | PRE-08 | SWU-1.7 | Non-linearity 보정 |
 | `binning_correct.cpp` | PRE-09 | SWU-1.8 | Binning 보정 |
 
 ---
@@ -222,8 +224,8 @@ Clean Image (float32)
 | `gain_correct.h` | PRE-03 API |
 | `defect_correct.h` | PRE-06 API |
 | `ghost_correct.h` | PRE-04/05 API |
-| `temp_compensate.h` | PRE-07 API |
-| `nonlinearity_correct.h` | PRE-08 API |
+| ~~`temp_compensate.h`~~ (삭제 2026-11-16) | PRE-07 API |
+| ~~`nonlinearity_correct.h`~~ (삭제 2026-11-16) | PRE-08 API |
 | `binning_correct.h` | PRE-09 API |
 
 ---
@@ -262,8 +264,8 @@ Clean Image (float32)
 | `test_gain_correct.cpp` | PRE-03 | 8 |
 | `test_defect_correct.cpp` | PRE-06 | 15 |
 | `test_ghost_correct.cpp` | PRE-04/05 | 12 |
-| `test_temp_compensate.cpp` | PRE-07 | 6 |
-| `test_nonlinearity_correct.cpp` | PRE-08 | 6 |
+| ~~`test_temp_compensate.cpp`~~ (삭제 2026-11-16) | PRE-07 | 6 |
+| ~~`test_nonlinearity_correct.cpp`~~ (삭제 2026-11-16) | PRE-08 | 6 |
 | `test_binning_correct.cpp` | PRE-09 | 6 |
 | **Total** | **PRE-01~09** | **70** |
 

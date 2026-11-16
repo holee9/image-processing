@@ -1,0 +1,1 @@
+GUI-C-258e BLOCKED: 재검증 342 PASS / 4 FAIL / 25 SKIP, 허용 외 A06의 내부 WPF E2E failed(exit -532462766); 근접 기존 이벤트는 Program.cs:219 전처리 메뉴 disabled 단언과 정합하나 test PID 일대일 귀속은 미입증, 추가 수정·빌드·시험 중단, 원문 green-full.txt 보존.

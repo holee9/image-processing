@@ -1,0 +1,108 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:01:08.02]     ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.D1_ATruncatedDefectFile_IsRefusedWithItsReason [FAIL]
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.D1_ATruncatedDefectFile_IsRefusedWithItsReason [1 m 7 s]
+  오류 메시지:
+   timed out (60 s) waiting for: the chain line says preprocess=RequestedNotApplied_X
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.WaitFor(Func`1 condition, String what, Int32 seconds) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1668
+   at ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.Run(Damage damage, String[] reasonTokens) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\DefectMapV2Scenarios.cs:line 75
+   at ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.D1_ATruncatedDefectFile_IsRefusedWithItsReason() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\DefectMapV2Scenarios.cs:line 27
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    damage: Truncated; defect.xcal 214232 -> 100000 bytes; folder D:\workspace-github\xpe-data\gui-249-corrupt\Truncated
+    dialog: 'Load Raw Image'
+    native (+3 ms): dialog 0x150864 open; app windows: 0x11080E Auto-Suggest Dropdown (hidden), 0x1008B4 Auto-Suggest Dropdown (hidden), 0x6608DA tooltips_class32 (hidden), 0x1607DC tooltips_class32 (hidden), 0x6A03CC tooltips_class32 (hidden), 0x7F087E tooltips_class32 (hidden), 0x1008A4 ComboLBox (hidden), 0x730648 tooltips_class32 (hidden), 0x1607CC _SearchEditBoxFakeWindow (hidden), 0x350716 tooltips_class32 (hidden), 0x6B089A tooltips_class32 (hidden), 0x1006E4 tooltips_class32 (hidden), 0x1607E6 HwndWrapper[ImageProcTest;;b850729f-ac37-4556-a207-bd61aedad5d0, 0xC2011C ComboLBox (hidden), 0x6003B0 ComboLBox (hidden), 0x430680 WorkerW (hidden), 0x8F0318 TabletPenServiceHelperClass (hidden), 0x1407F2 HwndWrapper[ImageProcTest;;9a5baf04-b863-435d-8f4b-954807ff26eb (hidden), 0xB5050E HwndWrapper[ImageProcTest;;55c7bc75-5ee1-4c81-b5c3-2690cc5aa987 (hidden), 0x9404B4 HwndWrapper[ImageProcTest;;f7b7bf01-da48-402b-81b3-7749d06b56f4 (hidden), 0x120726 HwndWrapper[ImageProcTest;;163d63c5-600e-42e9-a8e3-08a6a8691042 (hidden), 0x707D6 CiceroUIWndFrame (hidden), 0x3B08C4 MSCTFIME UI (hidden), 0xC5081E IME (hidden), 0xCB0660 IME (hidden), 0x130770 CiceroUIWndFrame (hidden)
+    native (+207 ms): dialog 0x150864 gone; app windows: 0x1607E6 HwndWrapper[ImageProcTest;;b850729f-ac37-4556-a207-bd61aedad5d0, 0x8F0318 TabletPenServiceHelperClass (hidden), 0x1407F2 HwndWrapper[ImageProcTest;;9a5baf04-b863-435d-8f4b-954807ff26eb (hidden), 0xB5050E HwndWrapper[ImageProcTest;;55c7bc75-5ee1-4c81-b5c3-2690cc5aa987 (hidden), 0x9404B4 HwndWrapper[ImageProcTest;;f7b7bf01-da48-402b-81b3-7749d06b56f4 (hidden), 0x120726 HwndWrapper[ImageProcTest;;163d63c5-600e-42e9-a8e3-08a6a8691042 (hidden), 0x707D6 CiceroUIWndFrame (hidden), 0x3B08C4 MSCTFIME UI (hidden), 0xC5081E IME (hidden), 0xCB0660 IME (hidden), 0x130770 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    == TIMEOUT waiting for: the chain line says preprocess=RequestedNotApplied_X: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  Grid suppression
+       + All
+       + B  Grid suppression
+       + Body Part
+       + C  4437  · W  570
+       + Calib:  failed
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261017-060922-620112
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Metrics
+       + Metrics populated after pipeline run.
+       + Overlay
+       + Parameters
+       + Processed
+       + Quantitative Quality
+       + Queued
+       + RAW 3072x3072, min=12314, max=55172, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=4437.198, W=570.455) -> GSDF(off)
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI 폭
+       + VOI:  LinearExact
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + chain: preprocess=RequestedNotApplied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto...
+       + chain: preprocess=RequestedNotApplied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=93 ms, enhance_basic=269 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain — preprocess: Loading defect calibration failed (-9).
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=xpe_display 1.0.0  |  display=1.0.0  |  src=gui-249-dlls
+       + open-to-2nd-tick (proxy) #1: 1128 ms = read 344 + prepare 27 + chain-and-display 504 [preprocess=93 ms, enhance_basic=269 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 252
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+       + 미적용
+
+
+
+실패!  - 실패:     1, 통과:     0, 건너뜀:     0, 전체:     1, 기간: 1 m 7 s - ImageProcTest.E2ETests.dll (net8.0)
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

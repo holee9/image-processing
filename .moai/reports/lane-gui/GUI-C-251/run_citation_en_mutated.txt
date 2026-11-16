@@ -1,0 +1,276 @@
+  복원할 프로젝트를 확인하는 중...
+  복원할 모든 프로젝트가 최신 상태입니다.
+  ImageProcTest.IntegrationTests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.05]   Discovering: ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.15]   Discovered:  ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.16]   Starting:    ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.29]     ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp [FAIL]
+[xUnit.net 00:00:00.29]       strings a quick-start page quotes that the app source does not have:
+quick-start.html <code> Exposure index: uncalibratxd EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:00.29]       Stack Trace:
+[xUnit.net 00:00:00.29]         D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Diagnostics\QuickStartCitationTests.cs(187,0): at ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp()
+[xUnit.net 00:00:00.29]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:00.29]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:00.29]       Output:
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> MOCK BACKEND
+[xUnit.net 00:00:00.29]         ok words quick-start.html <em> MOCK BACKEND — Native was requested but could not be used
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Images and results are synthetic; not for clinical judgement.
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Calibration paths
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Offset
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Gain
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Defect
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Select calibration directory
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Load Raw Image
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Log
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Swipe
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Split
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Overlay
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Difference
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Source Only
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Processed Only
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Source
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Processed
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Pipeline > Run Preprocessing
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <em> Run Preprocessing
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> .raw
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> [MOCK]
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=<DLL folder name>
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> mode=Mock (requested Native)
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> (not set)
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> .xcal
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> RAW 3072x3072, min=…, max=…, bytes=18874368
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> Load failed: Raw file is too small. Expected at least … bytes, got … bytes.
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> Load failed: Raw file has … bytes, more than the … bytes of …
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> preprocess=Skipped
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> chain: not run
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=<n> ms, …; display input=chain
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> preprocess=Applied
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> display input=chain
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> enhance_basic=Applied
+[xUnit.net 00:00:00.29]         MISSING quick-start.html <code> Exposure index: uncalibratxd EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen).
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> CalibrationEval(…)
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> chain:
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> Saved corrected image (float32 raw): …\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 …
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> display input=raw
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> preprocess:
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> … was not found at '…'
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> … could not be loaded
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> … does not export …
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> (an older build than this application expects)
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> mode=Native
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> preprocess: no calibration data: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> not run (no calibration data)
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> preprocess: Loading offset calibration failed (-5)
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> preprocess: Loading gain calibration failed (-17)
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> preprocess: xpe_preprocess_pipeline_out failed (-1)
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> Load failed: Raw file is too small…
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out…
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> Load failed: The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+[xUnit.net 00:00:00.29]         ok words quick-start.html <code> VOI(auto, LinearExact, C=…, W=…)
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> preprocess=RequestedNotApplied
+[xUnit.net 00:00:00.29]         ok exact quick-start.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> MOCK BACKEND
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <em> MOCK BACKEND — Native was requested but could not be used
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Images and results are synthetic; not for clinical judgement.
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Calibration paths
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Offset
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Gain
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Defect
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Select calibration directory
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Load Raw Image
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Log
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Swipe
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Split
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Overlay
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Difference
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Source Only
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Processed Only
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Source
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Processed
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <em> Pipeline > Run Preprocessing
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> .raw
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> [MOCK]
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=<DLL folder name>
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> mode=Mock (requested Native)
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> (not set)
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> .xcal
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> RAW 3072x3072, min=…, max=…, bytes=18874368
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> Load failed: Raw file is too small. Expected at least … bytes, got … bytes.
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> Load failed: Raw file has … bytes, more than the … bytes of …
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> preprocess=Skipped
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> chain: not run
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=<n> ms, …; display input=chain
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> enhance_basic=Applied
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> Exposure index: uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> preprocess=Applied
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> display input=chain
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen).
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> CalibrationEval(…)
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> chain:
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> Saved corrected image (float32 raw): …\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 …
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> display input=raw
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> preprocess:
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> … was not found at '…'
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> … could not be loaded
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> … does not export …
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> (an older build than this application expects)
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> preprocess: no calibration data: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> not run (no calibration data)
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> preprocess: Loading offset calibration failed (-5)
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> preprocess: Loading gain calibration failed (-17)
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> preprocess: xpe_preprocess_pipeline_out failed (-1)
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> Load failed: Raw file is too small…
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out…
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> Load failed: The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+[xUnit.net 00:00:00.29]         ok words quick-start.ko.html <code> VOI(auto, LinearExact, C=…, W=…)
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> preprocess=RequestedNotApplied
+[xUnit.net 00:00:00.29]         ok exact quick-start.ko.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.
+[xUnit.net 00:00:00.29]         116 quoted strings checked in 2 pages (exact: 75, none: 1, words: 40); not app strings (by category): a heading of the page itself x2; a lead-in label of the prose x2; a word the launch script prints (tools/Start-ImageProcTestNative.ps1: the result of its DLL check), not the app x2; emphasis in the prose x1; emphasis in the prose of 'What You Need' x1; emphasis in the prose of '준비물' x1; file, flag, library or module name (not an app string) x66; launch command or flag (not an app string) x46; log line prefix written by the alert drain x4; message of the native DLLs (its text lives in the modules) x14; message of the operating system (an IOException text the app passes on) x2; the name of a GitHub release (checked against the CI step that downloads it, see TheScriptsAndCommandsTheQuickStartGives_…) x2; the page's own disclaimer x2
+[xUnit.net 00:00:00.31]   Finished:    ImageProcTest.IntegrationTests
+  실패 ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp [89 ms]
+  오류 메시지:
+   strings a quick-start page quotes that the app source does not have:
+quick-start.html <code> Exposure index: uncalibratxd EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+  스택 추적:
+     at ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryStringTheQuickStartQuotes_IsAStringOfTheApp() in D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\Diagnostics\QuickStartCitationTests.cs:line 187
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+ ok exact quick-start.html <em> MOCK BACKEND
+ ok words quick-start.html <em> MOCK BACKEND — Native was requested but could not be used
+ ok exact quick-start.html <em> Images and results are synthetic; not for clinical judgement.
+ ok exact quick-start.html <em> Calibration paths
+ ok exact quick-start.html <em> Offset
+ ok exact quick-start.html <em> Gain
+ ok exact quick-start.html <em> Defect
+ ok exact quick-start.html <em> Select calibration directory
+ ok exact quick-start.html <em> Load Raw Image
+ ok exact quick-start.html <em> Log
+ ok exact quick-start.html <em> Swipe
+ ok exact quick-start.html <em> Split
+ ok exact quick-start.html <em> Overlay
+ ok exact quick-start.html <em> Difference
+ ok exact quick-start.html <em> Source Only
+ ok exact quick-start.html <em> Processed Only
+ ok exact quick-start.html <em> Source
+ ok exact quick-start.html <em> Processed
+ ok exact quick-start.html <em> Pipeline > Run Preprocessing
+ ok exact quick-start.html <em> Run Preprocessing
+ ok exact quick-start.html <code> .raw
+ ok exact quick-start.html <code> [MOCK]
+ ok words quick-start.html <code> mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=<DLL folder name>
+ ok words quick-start.html <code> mode=Mock (requested Native)
+ ok exact quick-start.html <code> (not set)
+ ok exact quick-start.html <code> .xcal
+ ok words quick-start.html <code> RAW 3072x3072, min=…, max=…, bytes=18874368
+ ok exact quick-start.html <code> Load failed: Raw file is too small. Expected at least … bytes, got … bytes.
+ ok exact quick-start.html <code> Load failed: Raw file has … bytes, more than the … bytes of …
+ ok words quick-start.html <code> The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+ ok words quick-start.html <code> preprocess=Skipped
+ ok exact quick-start.html <code> chain: not run
+ ok words quick-start.html <code> chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=<n> ms, …; display input=chain
+ ok words quick-start.html <code> preprocess=Applied
+ ok words quick-start.html <code> display input=chain
+ ok words quick-start.html <code> enhance_basic=Applied
+ MISSING quick-start.html <code> Exposure index: uncalibratxd EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+ ok words quick-start.html <code> Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen).
+ ok exact quick-start.html <code> CalibrationEval(…)
+ ok exact quick-start.html <code> chain:
+ ok words quick-start.html <code> Saved corrected image (float32 raw): …\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 …
+ ok words quick-start.html <code> display input=raw
+ ok exact quick-start.html <code> preprocess:
+ ok exact quick-start.html <code> … was not found at '…'
+ ok exact quick-start.html <code> … could not be loaded
+ ok exact quick-start.html <code> … does not export …
+ ok exact quick-start.html <code> (an older build than this application expects)
+ ok words quick-start.html <code> mode=Native
+ ok words quick-start.html <code> preprocess: no calibration data: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal
+ ok exact quick-start.html <code> not run (no calibration data)
+ ok words quick-start.html <code> preprocess: Loading offset calibration failed (-5)
+ ok words quick-start.html <code> preprocess: Loading gain calibration failed (-17)
+ ok words quick-start.html <code> preprocess: xpe_preprocess_pipeline_out failed (-1)
+ ok exact quick-start.html <code> Load failed: Raw file is too small…
+ ok exact quick-start.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out…
+ ok words quick-start.html <code> Load failed: The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+ ok words quick-start.html <code> VOI(auto, LinearExact, C=…, W=…)
+ ok exact quick-start.html <code> preprocess=RequestedNotApplied
+ ok exact quick-start.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.
+ ok exact quick-start.ko.html <em> MOCK BACKEND
+ ok words quick-start.ko.html <em> MOCK BACKEND — Native was requested but could not be used
+ ok exact quick-start.ko.html <em> Images and results are synthetic; not for clinical judgement.
+ ok exact quick-start.ko.html <em> Calibration paths
+ ok exact quick-start.ko.html <em> Offset
+ ok exact quick-start.ko.html <em> Gain
+ ok exact quick-start.ko.html <em> Defect
+ ok exact quick-start.ko.html <em> Select calibration directory
+ ok exact quick-start.ko.html <em> Load Raw Image
+ ok exact quick-start.ko.html <em> Log
+ ok exact quick-start.ko.html <em> Swipe
+ ok exact quick-start.ko.html <em> Split
+ ok exact quick-start.ko.html <em> Overlay
+ ok exact quick-start.ko.html <em> Difference
+ ok exact quick-start.ko.html <em> Source Only
+ ok exact quick-start.ko.html <em> Processed Only
+ ok exact quick-start.ko.html <em> Source
+ ok exact quick-start.ko.html <em> Processed
+ ok exact quick-start.ko.html <em> Pipeline > Run Preprocessing
+ ok exact quick-start.ko.html <code> .raw
+ ok exact quick-start.ko.html <code> [MOCK]
+ ok words quick-start.ko.html <code> mode=Native | common=xpe_display 1.0.0 | display=1.0.0 | src=<DLL folder name>
+ ok words quick-start.ko.html <code> mode=Mock (requested Native)
+ ok exact quick-start.ko.html <code> (not set)
+ ok exact quick-start.ko.html <code> .xcal
+ ok words quick-start.ko.html <code> RAW 3072x3072, min=…, max=…, bytes=18874368
+ ok exact quick-start.ko.html <code> Load failed: Raw file is too small. Expected at least … bytes, got … bytes.
+ ok exact quick-start.ko.html <code> Load failed: Raw file has … bytes, more than the … bytes of …
+ ok words quick-start.ko.html <code> The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+ ok words quick-start.ko.html <code> preprocess=Skipped
+ ok exact quick-start.ko.html <code> chain: not run
+ ok words quick-start.ko.html <code> chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=<n> ms, …; display input=chain
+ ok words quick-start.ko.html <code> enhance_basic=Applied
+ ok words quick-start.ko.html <code> Exposure index: uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+ ok words quick-start.ko.html <code> preprocess=Applied
+ ok words quick-start.ko.html <code> display input=chain
+ ok words quick-start.ko.html <code> Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out (offset -> gain -> defect, input kept) on 3072x3072 (Abdomen).
+ ok exact quick-start.ko.html <code> CalibrationEval(…)
+ ok exact quick-start.ko.html <code> chain:
+ ok words quick-start.ko.html <code> Saved corrected image (float32 raw): …\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 …
+ ok words quick-start.ko.html <code> display input=raw
+ ok exact quick-start.ko.html <code> preprocess:
+ ok exact quick-start.ko.html <code> … was not found at '…'
+ ok exact quick-start.ko.html <code> … could not be loaded
+ ok exact quick-start.ko.html <code> … does not export …
+ ok exact quick-start.ko.html <code> (an older build than this application expects)
+ ok words quick-start.ko.html <code> preprocess: no calibration data: calibration file(s) not found — …\offset.xcal, …\gain.xcal, …\defect.xcal
+ ok exact quick-start.ko.html <code> not run (no calibration data)
+ ok words quick-start.ko.html <code> preprocess: Loading offset calibration failed (-5)
+ ok words quick-start.ko.html <code> preprocess: Loading gain calibration failed (-17)
+ ok words quick-start.ko.html <code> preprocess: xpe_preprocess_pipeline_out failed (-1)
+ ok exact quick-start.ko.html <code> Load failed: Raw file is too small…
+ ok exact quick-start.ko.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out…
+ ok words quick-start.ko.html <code> Load failed: The offset calibration map … is 1024x1024, but the raw image is 3072x3072.
+ ok words quick-start.ko.html <code> VOI(auto, LinearExact, C=…, W=…)
+ ok exact quick-start.ko.html <code> preprocess=RequestedNotApplied
+ ok exact quick-start.ko.html <code> Preprocessing not run: this xpe_preprocess.dll has no xpe_preprocess_pipeline_out (the DLL is too old). Update the native DLLs and start the app again.
+ 116 quoted strings checked in 2 pages (exact: 75, none: 1, words: 40); not app strings (by category): a heading of the page itself x2; a lead-in label of the prose x2; a word the launch script prints (tools/Start-ImageProcTestNative.ps1: the result of its DLL check), not the app x2; emphasis in the prose x1; emphasis in the prose of 'What You Need' x1; emphasis in the prose of '준비물' x1; file, flag, library or module name (not an app string) x66; launch command or flag (not an app string) x46; log line prefix written by the alert drain x4; message of the native DLLs (its text lives in the modules) x14; message of the operating system (an IOException text the app passes on) x2; the name of a GitHub release (checked against the CI step that downloads it, see TheScriptsAndCommandsTheQuickStartGives_…) x2; the page's own disclaimer x2
+
+
+  통과 ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.TheScriptsAndCommandsTheQuickStartGives_NameRealFilesParametersAndOptions [8 ms]
+  통과 ImageProcTest.IntegrationTests.Diagnostics.QuickStartCitationTests.EveryMenuPathTheQuickStartPrints_NamesMenuItemsOfTheApp [2 ms]
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 3
+     통과: 2
+     실패: 1
+ 총 시간: 0.6442 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

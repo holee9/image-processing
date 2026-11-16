@@ -326,4 +326,4 @@
 [326/328] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_bpm_eval.cpp.obj
 [327/328] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a241_measure.cpp.obj
 [328/328] Linking CXX executable bin\xpe_preprocess_tests.exe
-build_rc=0 
+build_rc=0

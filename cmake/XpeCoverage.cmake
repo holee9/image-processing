@@ -29,6 +29,9 @@ set(XPE_COVERAGE_MIN "0.85" CACHE STRING
 set(XPE_COVERAGE_EXCLUDE_TESTS "Performance|Within[0-9]+ms|PerformanceBudget|LargeImagePerformance" CACHE STRING
     "ctest -E regex of tests skipped by the coverage target (timing-budget tests)")
 
+option(XPE_COVERAGE_FAIL_ON_TEST_FAILURE
+    "Fail the coverage target (after writing the report) when any test fails" OFF)
+
 set(_xpe_cov_dir "${CMAKE_BINARY_DIR}/coverage")
 file(MAKE_DIRECTORY "${_xpe_cov_dir}")
 
@@ -74,9 +77,14 @@ if(MSVC)
                 "-DXPE_COV_CMD=${_cov_cmd}"
                 "-DXPE_COV_REPORT=${_xpe_cov_dir}/coverage.xml"
                 "-DXPE_COV_WORKDIR=${CMAKE_BINARY_DIR}"
+                "-DXPE_COV_FAIL_ON_TEST_FAILURE=${XPE_COVERAGE_FAIL_ON_TEST_FAILURE}"
                 -P "${CMAKE_SOURCE_DIR}/cmake/XpeCoverageRun.cmake"
             WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
             COMMENT "Coverage: running ctest under OpenCppCoverage -> ${_xpe_cov_dir}/coverage.xml"
+            # Ninja buffers a non-console command's output until it exits, so a CI
+            # cancel discarded every ctest line (coverage-post, 6 runs 10-05..11-09).
+            # The console pool streams progress live; tests and threshold unchanged.
+            USES_TERMINAL
             VERBATIM)
     else()
         # Fail-open at configure time (the regular build must not depend on the

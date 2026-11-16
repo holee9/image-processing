@@ -1,0 +1,25 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.IntegrationTests\bin\Debug\net8.0\ImageProcTest.IntegrationTests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.0.0+e341b939fe (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.05]   Discovering: ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.15]   Discovered:  ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.17]   Starting:    ImageProcTest.IntegrationTests
+[xUnit.net 00:00:00.41]   Finished:    ImageProcTest.IntegrationTests
+  통과 ImageProcTest.IntegrationTests.Functional.OffsetQualityTests.TheRealModule_OnDark16AndTheCleanSetMap_MeasuresTheSignedBiasThePaperReports [211 ms]
+  표준 출력 메시지:
+ DLL D:\workspace-github\xpe-data\gui-253-local-dll\xpe_preprocess.dll; validMask 0x1F; roiPixels 885197; pixelCount 9437184; map 3072x3072; map sha256 fb2a46c03dd6e7c9209fe23003911aa356a26aae1a691df4510b67ce808d6b05
+ signed bias -4.054200149311749; signed DSNU 3.3816844736499916; DarkReduction 9.467839263545368 dB; clamp rate 83.10492833455403 %; zero-output rate 86.96606953938802 %; output bias 0.18748707914735363; output DSNU 0.7237585606585097
+ in-memory map variant: signed bias -4.054200149311749, same map sha256 True
+
+
+
+테스트를 실행했습니다.
+총 테스트 수: 1
+     통과: 1
+ 총 시간: 0.7441 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

@@ -31,19 +31,28 @@ public sealed class RunSetState : ObservableObject
     public int Passed
     {
         get => _passed;
-        set => SetProperty(ref _passed, value);
+        set
+        {
+            if (SetProperty(ref _passed, value)) OnPropertyChanged(nameof(Evaluated));
+        }
     }
 
     public int Failed
     {
         get => _failed;
-        set => SetProperty(ref _failed, value);
+        set
+        {
+            if (SetProperty(ref _failed, value)) OnPropertyChanged(nameof(Evaluated));
+        }
     }
 
     public int Deferred
     {
         get => _deferred;
-        set => SetProperty(ref _deferred, value);
+        set
+        {
+            if (SetProperty(ref _deferred, value)) OnPropertyChanged(nameof(Evaluated));
+        }
     }
 
     public int Total

@@ -1,0 +1,28 @@
+COMMAND: dotnet run --project gui/ImageProcTest.SelfCheck -c Debug --no-build -- --study-contract
+EXIT: 0
+  observed final queue=1; assertions executed for verdict replacement and ZIP ID/status/notes
+  scenario 'GUI-C-256 manual study contract': 331 ms
+Lifetime scenarios passed (1 scenarios).
+
+COMMAND: dotnet run --project gui/ImageProcTest.SelfCheck -c Debug --no-build -- --lane-contract
+EXIT: 0
+  Candidate Virtual request observed; actual radios, stale tag, refused/PRE-skipped/AppliedNoChange/NotRequested outcomes checked
+  scenario 'GUI-C-257 lane selection and result contract': 457 ms
+  scenario '18 Lane A preset keeps main preprocessing': 62 ms
+  scenario '5b equal lanes = one AI call per Apply': 32 ms
+| lane tags after render Grid suppression (not applied)/Grid suppression (not applied) -> after unapplied change / (requested No grid correction/No grid correction, record No grid correction/No grid correction); stages not run (native backend required); Candidate failed -> lanes none/none |
+  scenario '14 lane tags, stage count, failed candidate': 332 ms
+  scenario '3 stale failing Lane B': 125 ms
+  scenario '3b stale succeeding Lane B': 124 ms
+Lifetime scenarios passed (6 scenarios).
+
+COMMAND: dotnet run --project gui/ImageProcTest.SelfCheck -c Debug --no-build -- --display-contract
+EXIT: 0
+  actual Metrics ItemsControl, per-lane stage/ms/VOI/calibration/EI, delta, stale edit, footer and invalidation checked
+  scenario 'GUI-C-258 metrics and footer contract': 535 ms
+  PRE Calibration — Validate, Generate, Reload and Evaluate: 25 actual WPF labels checked; no workflow button invoked
+  Compare Imported 2G and New PRE Outputs: 24 actual WPF labels checked; no workflow button invoked
+  actual log TextBlock/accessibility name and original Logs/SelectedLog/Copy input checked
+  scenario 'GUI-C-258 English dialog and log labels': 80 ms
+  scenario '17 skipped preprocess: Native warns, Mock informs': 126 ms
+Lifetime scenarios passed (3 scenarios).

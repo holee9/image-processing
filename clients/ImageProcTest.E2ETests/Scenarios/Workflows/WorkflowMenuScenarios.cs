@@ -192,7 +192,7 @@ public sealed class WorkflowMenuScenarios(WorkflowApplicationFixture app, ITestO
             var status = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
             if (status is not null)
             {
-                output.WriteLine($"W-09 status: {status.Name}");
+                output.WriteLine($"W-09 status: {status.HelpText}");
             }
         });
     }
@@ -219,13 +219,13 @@ public sealed class WorkflowMenuScenarios(WorkflowApplicationFixture app, ITestO
             var status = WaitFor(() =>
             {
                 var element = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
-                return element?.Name?.Contains("Fixture pack", StringComparison.Ordinal) == true
+                return element?.HelpText?.Contains("Fixture pack", StringComparison.Ordinal) == true
                     ? element
                     : null;
             });
 
             Assert.True(status is not null, "The status bar never reported a fixture-pack state.");
-            var text = status!.Name ?? string.Empty;
+            var text = status!.HelpText ?? string.Empty;
             output.WriteLine($"W-10 status: {text}");
 
             // Verified against the filesystem rather than accepting whichever line appeared: an app

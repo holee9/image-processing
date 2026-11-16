@@ -1,0 +1,31 @@
+  ImageProcTest.E2ETests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:48.97]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused [FAIL]
+  Failed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused [48 s]
+  Error Message:
+   the dialog (or a message box it raised) is still open after BM_CLICK on its confirm button
+  Stack Trace:
+     at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.DriveDialog(String path, String confirmId, Action beforeConfirm) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1981
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.InvokeMenuItemThenDialog(String automationId, String path, String confirmId, Action beforeConfirm) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1866
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 862
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Standard Output Messages:
+ STEP A: started on Mock, then Backend > Backend Mode > Native
+    Run Preprocessing enabled on Mock: False
+    ok: Native
+    Run Preprocessing enabled right after the switch: True
+ STEP B: the settings say 1024x1024, the file is 3072x3072 (square)
+    dialog: 'Load Raw Image'
+    native (+4 ms): dialog 0x8400CB6 open; app windows: 0xE20BD8 Auto-Suggest Dropdown (hidden), 0x1A10640 Auto-Suggest Dropdown (hidden), 0x2E20C64 tooltips_class32 (hidden), 0x6780974 tooltips_class32 (hidden), 0x884059C tooltips_class32 (hidden), 0x3DC018E tooltips_class32 (hidden), 0x1580C16 ComboLBox (hidden), 0x54C072E tooltips_class32 (hidden), 0x30A0C34 _SearchEditBoxFakeWindow (hidden), 0x33F0AAC tooltips_class32 (hidden), 0x153088C tooltips_class32 (hidden), 0x9970B66 tooltips_class32 (hidden), 0x32A0C4C HwndWrapper[ImageProcTest;;9574b17e-76ee-455c-8733-8f292d442d51, 0xA4000E8 ComboLBox (hidden), 0x60109DA ComboLBox (hidden), 0x1DF0B6C WorkerW (hidden), 0x35607AE HwndWrapper[ImageProcTest;;acb582fe-c121-4e1f-b62b-68927538f09f (hidden), 0x8E10C80 HwndWrapper[ImageProcTest;;aaae466c-c61f-4391-9798-53f127154b88 (hidden), 0x2170C10 HwndWrapper[ImageProcTest;;612d712a-a063-4029-912e-d085be9fad86 (hidden), 0x4D0444 HwndWrapper[ImageProcTest;;3d975604-3189-48af-bf1f-6686c62aa954 (hidden), 0x64708B0 CiceroUIWndFrame (hidden), 0x5A5030E MSCTFIME UI (hidden), 0x4650A76 IME (hidden), 0x6AF0C98 CiceroUIWndFrame (hidden)
+    native (+213 ms): dialog 0x8400CB6 open; app windows: 0xE20BD8 Auto-Suggest Dropdown (hidden), 0x1A10640 Auto-Suggest Dropdown (hidden), 0x2E20C64 tooltips_class32 (hidden), 0x6780974 tooltips_class32 (hidden), 0x884059C tooltips_class32 (hidden), 0x3DC018E tooltips_class32 (hidden), 0x49C0A0A #32770, 0x1580C16 ComboLBox (hidden), 0x54C072E tooltips_class32 (hidden), 0x30A0C34 _SearchEditBoxFakeWindow (hidden), 0x33F0AAC tooltips_class32 (hidden), 0x153088C tooltips_class32 (hidden), 0x9970B66 tooltips_class32 (hidden), 0x32A0C4C HwndWrapper[ImageProcTest;;9574b17e-76ee-455c-8733-8f292d442d51, 0xA4000E8 ComboLBox (hidden), 0x60109DA ComboLBox (hidden), 0x1DF0B6C WorkerW (hidden), 0x35607AE HwndWrapper[ImageProcTest;;acb582fe-c121-4e1f-b62b-68927538f09f (hidden), 0x8E10C80 HwndWrapper[ImageProcTest;;aaae466c-c61f-4391-9798-53f127154b88 (hidden), 0x2170C10 HwndWrapper[ImageProcTest;;612d712a-a063-4029-912e-d085be9fad86 (hidden), 0x4D0444 HwndWrapper[ImageProcTest;;3d975604-3189-48af-bf1f-6686c62aa954 (hidden), 0x64708B0 CiceroUIWndFrame (hidden), 0x5A5030E MSCTFIME UI (hidden), 0x4650A76 IME (hidden), 0x6AF0C98 CiceroUIWndFrame (hidden)
+
+
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 48 s - ImageProcTest.E2ETests.dll (net8.0)
+
+Workload updates are available. Run `dotnet workload list` for more information.

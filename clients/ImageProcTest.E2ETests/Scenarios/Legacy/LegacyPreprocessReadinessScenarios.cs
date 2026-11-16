@@ -944,6 +944,72 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             Assert.True(!IsWindow(dialogHandle), "the file dialog is still open after BM_CLICK on Open");
         }
 
+        /// <summary>
+        /// GUI-C-253c: selects the calibration folder through the "Select Calibration Folder" dialog the same way <see cref="LoadRawThroughDialog"/> opens a raw file: the button is invoked on a worker
+        /// thread, the dialog's name edit (id 1152 for a folder dialog, 1148 for a file one) gets the path through its ValuePattern, and the dialog's confirm button receives a posted BM_CLICK addressed to
+        /// ITS window. No key and no mouse input.
+        /// </summary>
+        public void LoadCalibrationFolderThroughDialog(string folder)
+        {
+            SelectTab("Calibration");
+            var button = _window.FindFirstDescendant(cf => cf.ByAutomationId("WorkflowBrowseCalibrationFolderButton"))?.AsButton();
+            Assert.True(button is not null && button.IsEnabled, "'Browse' of the calibration folder was not found or is not enabled");
+            _ = Task.Run(() => button!.Invoke());
+
+            Window? dialog = null;
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(20);
+            while (DateTime.UtcNow < deadline && dialog is null)
+            {
+                dialog = _window.ModalWindows.FirstOrDefault();
+                if (dialog is null) Thread.Sleep(200);
+            }
+
+            Assert.True(dialog is not null, "the folder dialog did not appear within 20 s");
+            var nameEdit = dialog!.FindFirstDescendant(cf => cf.ByControlType(ControlType.Edit).And(cf.ByAutomationId("1152").Or(cf.ByAutomationId("1148"))));
+            var nameBox = nameEdit?.Patterns.Value.PatternOrDefault;
+            Assert.True(nameBox is not null, "the folder dialog's name edit (id 1152 or 1148) has no ValuePattern");
+            nameBox!.SetValue(folder);
+            Assert.Equal(folder, nameBox.Value.ValueOrDefault);
+
+            var dialogHandle = dialog.Properties.NativeWindowHandle.ValueOrDefault;
+            Assert.True(dialogHandle != IntPtr.Zero, "the folder dialog has no window handle");
+            var confirm = dialog.FindFirstDescendant(cf => cf.ByAutomationId("1").And(cf.ByControlType(ControlType.Button)));
+            var handle = confirm is not null ? confirm.Properties.NativeWindowHandle.ValueOrDefault : GetDlgItem(dialogHandle, 1);
+            Assert.True(handle != IntPtr.Zero, "the folder dialog's confirm button (id 1) was not found");
+            PressDialogButton(handle);
+
+            var closeDeadline = DateTime.UtcNow + TimeSpan.FromSeconds(15);
+            while (DateTime.UtcNow < closeDeadline && IsWindow(dialogHandle)) Thread.Sleep(200);
+            Assert.True(!IsWindow(dialogHandle), "the folder dialog is still open after BM_CLICK on its confirm button");
+        }
+
+        /// <summary>GUI-C-253c: the input-kind combo box of the Metrics tab, chosen by item index through UI Automation (no mouse, no key): 0 미확인, 1 다크 프레임, 2 밝은 영상(평탄), 3 임상·기타 영상.</summary>
+        public void SelectInputKind(int index)
+        {
+            SelectTab("Metrics");
+            var combo = _window.FindFirstDescendant(cf => cf.ByAutomationId("RawInputKindComboBox"))?.AsComboBox();
+            Assert.True(combo is not null, "RawInputKindComboBox was not found");
+            combo!.Select(index);
+            Thread.Sleep(500);
+        }
+
+        public string SelectedInputKind()
+        {
+            SelectTab("Metrics");
+            var combo = _window.FindFirstDescendant(cf => cf.ByAutomationId("RawInputKindComboBox"))?.AsComboBox();
+            Assert.True(combo is not null, "RawInputKindComboBox was not found");
+            return combo!.SelectedItem?.Text ?? string.Empty;
+        }
+
+        /// <summary>The rows of a metrics grid as UI Automation names them: a <c>DataItem</c>'s name is the row object's text, here the record <c>DetectorMetricRow { Metric = …, Value = …, Gate = …, Status = … }</c>.</summary>
+        public List<string> ReadGridRows(string gridAutomationId)
+        {
+            SelectTab("Metrics");
+            var grid = _window.FindFirstDescendant(cf => cf.ByAutomationId(gridAutomationId));
+            Assert.True(grid is not null, $"'{gridAutomationId}' was not found");
+            return grid!.FindAllDescendants(cf => cf.ByControlType(ControlType.DataItem)).Select(e => e.Name ?? string.Empty).ToList();
+        }
+
         public bool IsChecked(string tab, string automationId)
         {
             SelectTab(tab);
@@ -1011,7 +1077,7 @@ public sealed class LegacyPreprocessReadinessScenarios(ITestOutputHelper output)
             if (_faultFile is not null) { try { File.Delete(_faultFile); } catch (IOException) { } }
         }
 
-        private static string? FindExecutable()
+        internal static string? FindExecutable()
         {
             for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
             {

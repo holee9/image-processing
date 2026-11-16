@@ -6,6 +6,22 @@ using ImageProcTest.Services;
 // assembly in its own output directory, and only a build of THIS project refreshes it.
 RunnerBuildFreshness.EnsureRunnerCarriesCurrentApp("ImageProcTest.SelfCheck");
 
+if (args.Contains("--study-contract"))
+{
+    ImageProcTest.SelfCheck.LifetimeScenarios.Run(studyContractOnly: true);
+    return;
+}
+if (args.Contains("--lane-contract"))
+{
+    ImageProcTest.SelfCheck.LifetimeScenarios.Run(laneContractOnly: true);
+    return;
+}
+if (args.Contains("--display-contract"))
+{
+    ImageProcTest.SelfCheck.LifetimeScenarios.Run(displayContractOnly: true);
+    return;
+}
+
 var repoRoot = GuiFixtureManifestService.FindRepositoryRoot(AppContext.BaseDirectory);
 var fixtureRoot = GuiFixtureManifestService.GetRepositoryFixtureRoot(repoRoot);
 var manifest = GuiFixtureManifestService.LoadFromRepository(repoRoot);
@@ -57,7 +73,6 @@ Assert(loadedSettings.GainCorrectionMode == "Auto", "Gain correction mode should
 Assert(loadedSettings.DefectCorrectionMode == "Auto", "Defect correction mode should default to Auto.");
 Assert(loadedSettings.GhostCorrectionMode == "Auto", "Ghost correction mode should default to Auto.");
 Assert(loadedSettings.TemperatureCompensationMode == "Auto", "Temperature compensation mode should default to Auto.");
-Assert(loadedSettings.NonlinearityCorrectionMode == "Auto", "Nonlinearity correction mode should default to Auto.");
 Assert(loadedSettings.BinningCorrectionMode == "Auto", "Binning correction mode should default to Auto.");
 // GUI-C-84: raw detector DN, not CT HU. The modality LUT is identity (slope 1, intercept 0), so VOI acts on
 // raw values; measured on both fixtures, C=40/W=400 saturates every pixel while 32768/65535 keeps the image.

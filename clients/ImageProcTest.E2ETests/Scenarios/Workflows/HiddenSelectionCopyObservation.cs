@@ -250,7 +250,7 @@ public sealed class HiddenSelectionCopyObservation(ITestOutputHelper output)
     private static string Status(Window window)
     {
         var element = window.FindFirstDescendant(cf => cf.ByAutomationId("StatusBarText"));
-        return element?.Name ?? "(no StatusBarText element)";
+        return element?.HelpText ?? "(no StatusBarText element)";
     }
 
     private static void Press(Window window, string automationId)

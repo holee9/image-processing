@@ -1,0 +1,47 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll(.NETCoreApp,Version=v8.0)에 대한 테스트 실행
+VSTest 버전 17.14.1 (x64)
+
+테스트 실행을 시작하는 중입니다. 잠시 기다려 주세요...
+지정된 패턴과 일치한 총 테스트 파일 수는 1개입니다.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.06]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.13]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.14]   Starting:    ImageProcTest.E2ETests
+[xUnit.net 00:00:07.51]     ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.D4_Control_TheSameLineRecordInsideTheFrame_IsAccepted [FAIL]
+[xUnit.net 00:00:07.51]       System.NullReferenceException : Object reference not set to an instance of an object.
+[xUnit.net 00:00:07.52]       Stack Trace:
+[xUnit.net 00:00:07.52]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\DefectMapV2Scenarios.cs(66,0): at ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.Run(Damage damage, String[] reasonTokens)
+[xUnit.net 00:00:07.52]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\DefectMapV2Scenarios.cs(36,0): at ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.D4_Control_TheSameLineRecordInsideTheFrame_IsAccepted()
+[xUnit.net 00:00:07.52]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:07.52]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:07.52]       Output:
+[xUnit.net 00:00:07.52]            damage: ControlLineInRange; defect.xcal 214232 -> 214357 bytes; folder D:\workspace-github\xpe-data\gui-249-corrupt\ControlLineInRange
+[xUnit.net 00:00:07.52]            dialog: 'Load Raw Image'
+[xUnit.net 00:00:07.52]            native (+3 ms): dialog 0x150734 open; app windows: 0xE08A4 Auto-Suggest Dropdown (hidden), 0x18E08C6 Auto-Suggest Dropdown (hidden), 0xBD05C4 tooltips_class32 (hidden), 0x1030498 tooltips_class32 (hidden), 0x130864 tooltips_class32 (hidden), 0xF08F8 tooltips_class32 (hidden), 0x5A08D4 ComboLBox (hidden), 0x1507EC tooltips_class32 (hidden), 0xF06E2 _SearchEditBoxFakeWindow (hidden), 0x1308AE tooltips_class32 (hidden), 0x6E0648 tooltips_class32 (hidden), 0xF084E tooltips_class32 (hidden), 0x3A06D6 HwndWrapper[ImageProcTest;;86044bc5-2d9c-4d31-b20b-e73e8c95b57d, 0xF0794 ComboLBox (hidden), 0xD0890 ComboLBox (hidden), 0xE0836 WorkerW (hidden), 0x110770 TabletPenServiceHelperClass (hidden), 0xE20652 HwndWrapper[ImageProcTest;;b347ecf6-4c7c-4868-8fb9-097cb477cf4e (hidden), 0x507D6 HwndWrapper[ImageProcTest;;eb5ff28d-f6d2-4638-a271-a13100445df3 (hidden), 0xC90660 HwndWrapper[ImageProcTest;;5045dd95-77a7-479c-a0d1-bff2d7c45122 (hidden), 0x2B07D8 HwndWrapper[ImageProcTest;;ce02d697-4efa-4d9b-9001-6e2098c7b2c9 (hidden), 0x2D605AA CiceroUIWndFrame (hidden), 0x2703DC MSCTFIME UI (hidden), 0x8D0318 IME (hidden), 0x5F0708 IME (hidden), 0x100726 CiceroUIWndFrame (hidden)
+[xUnit.net 00:00:07.52]            native (+214 ms): dialog 0x150734 gone; app windows: 0x3A06D6 HwndWrapper[ImageProcTest;;86044bc5-2d9c-4d31-b20b-e73e8c95b57d, 0x110770 TabletPenServiceHelperClass (hidden), 0xE20652 HwndWrapper[ImageProcTest;;b347ecf6-4c7c-4868-8fb9-097cb477cf4e (hidden), 0x507D6 HwndWrapper[ImageProcTest;;eb5ff28d-f6d2-4638-a271-a13100445df3 (hidden), 0xC90660 HwndWrapper[ImageProcTest;;5045dd95-77a7-479c-a0d1-bff2d7c45122 (hidden), 0x2B07D8 HwndWrapper[ImageProcTest;;ce02d697-4efa-4d9b-9001-6e2098c7b2c9 (hidden), 0x2D605AA CiceroUIWndFrame (hidden), 0x2703DC MSCTFIME UI (hidden), 0x8D0318 IME (hidden), 0x5F0708 IME (hidden), 0x100726 CiceroUIWndFrame (hidden)
+[xUnit.net 00:00:07.52]            ok: the image summary appears
+[xUnit.net 00:00:07.53]   Finished:    ImageProcTest.E2ETests
+  실패 ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.D4_Control_TheSameLineRecordInsideTheFrame_IsAccepted [7 s]
+  오류 메시지:
+   System.NullReferenceException : Object reference not set to an instance of an object.
+  스택 추적:
+     at ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.Run(Damage damage, String[] reasonTokens) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\DefectMapV2Scenarios.cs:line 66
+   at ImageProcTest.E2ETests.Scenarios.Operator.DefectMapV2Scenarios.D4_Control_TheSameLineRecordInsideTheFrame_IsAccepted() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\DefectMapV2Scenarios.cs:line 36
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  표준 출력 메시지:
+    damage: ControlLineInRange; defect.xcal 214232 -> 214357 bytes; folder D:\workspace-github\xpe-data\gui-249-corrupt\ControlLineInRange
+    dialog: 'Load Raw Image'
+    native (+3 ms): dialog 0x150734 open; app windows: 0xE08A4 Auto-Suggest Dropdown (hidden), 0x18E08C6 Auto-Suggest Dropdown (hidden), 0xBD05C4 tooltips_class32 (hidden), 0x1030498 tooltips_class32 (hidden), 0x130864 tooltips_class32 (hidden), 0xF08F8 tooltips_class32 (hidden), 0x5A08D4 ComboLBox (hidden), 0x1507EC tooltips_class32 (hidden), 0xF06E2 _SearchEditBoxFakeWindow (hidden), 0x1308AE tooltips_class32 (hidden), 0x6E0648 tooltips_class32 (hidden), 0xF084E tooltips_class32 (hidden), 0x3A06D6 HwndWrapper[ImageProcTest;;86044bc5-2d9c-4d31-b20b-e73e8c95b57d, 0xF0794 ComboLBox (hidden), 0xD0890 ComboLBox (hidden), 0xE0836 WorkerW (hidden), 0x110770 TabletPenServiceHelperClass (hidden), 0xE20652 HwndWrapper[ImageProcTest;;b347ecf6-4c7c-4868-8fb9-097cb477cf4e (hidden), 0x507D6 HwndWrapper[ImageProcTest;;eb5ff28d-f6d2-4638-a271-a13100445df3 (hidden), 0xC90660 HwndWrapper[ImageProcTest;;5045dd95-77a7-479c-a0d1-bff2d7c45122 (hidden), 0x2B07D8 HwndWrapper[ImageProcTest;;ce02d697-4efa-4d9b-9001-6e2098c7b2c9 (hidden), 0x2D605AA CiceroUIWndFrame (hidden), 0x2703DC MSCTFIME UI (hidden), 0x8D0318 IME (hidden), 0x5F0708 IME (hidden), 0x100726 CiceroUIWndFrame (hidden)
+    native (+214 ms): dialog 0x150734 gone; app windows: 0x3A06D6 HwndWrapper[ImageProcTest;;86044bc5-2d9c-4d31-b20b-e73e8c95b57d, 0x110770 TabletPenServiceHelperClass (hidden), 0xE20652 HwndWrapper[ImageProcTest;;b347ecf6-4c7c-4868-8fb9-097cb477cf4e (hidden), 0x507D6 HwndWrapper[ImageProcTest;;eb5ff28d-f6d2-4638-a271-a13100445df3 (hidden), 0xC90660 HwndWrapper[ImageProcTest;;5045dd95-77a7-479c-a0d1-bff2d7c45122 (hidden), 0x2B07D8 HwndWrapper[ImageProcTest;;ce02d697-4efa-4d9b-9001-6e2098c7b2c9 (hidden), 0x2D605AA CiceroUIWndFrame (hidden), 0x2703DC MSCTFIME UI (hidden), 0x8D0318 IME (hidden), 0x5F0708 IME (hidden), 0x100726 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+
+
+
+테스트 실행이 실패했습니다.
+총 테스트 수: 1
+     실패: 1
+ 총 시간: 7.8663 초
+
+워크로드 업데이트를 사용할 수 있습니다. 자세한 내용을 보려면 `dotnet workload list`을 실행하세요.

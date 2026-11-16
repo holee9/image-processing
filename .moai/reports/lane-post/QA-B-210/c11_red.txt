@@ -1,0 +1,130 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *CStore*
+[==========] Running 11 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 11 tests from DicomNetworkTest
+[ RUN      ] DicomNetworkTest.CStoreSuccess_ReturnsOK
+I: Association Received dev-work:  ->
+I: Requesting Association
+I: Refusing Association (bad application context)
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomNetworkTest.CStoreSuccess_ReturnsOK (2 ms)
+[ RUN      ] DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed
+I: Requesting Association
+[2026-10-04 13:40:05.177] [error] [DicomNetworkSCU] negotiateAssociation failed: TCP Initialization Error: 작업을 완료했습니다. (Timeout)
+[2026-10-04 13:40:05.177] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-10 (Network operation failed)
+[       OK ] DicomNetworkTest.CStoreTimeout_ReturnsNetworkFailed (1005 ms)
+[ RUN      ] DicomNetworkTest.CancelCStore_TerminatesOperation
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-04 13:40:06.692] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-3 (Processing failed)
+[       OK ] DicomNetworkTest.CancelCStore_TerminatesOperation (1514 ms)
+[ RUN      ] DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput
+[2026-10-04 13:40:06.692] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-1 (Invalid input parameter)
+[       OK ] DicomNetworkTest.CStoreNullHost_ReturnsInvalidInput (0 ms)
+[ RUN      ] DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed
+W: DcmItem: Length of element (4f4e,2054) is odd
+E: DcmElement: Unknown Tag & Data (4f4e,2054) larger (1229201473) than remaining bytes in file
+[2026-10-04 13:40:06.693] [error] [DicomNetworkSCU] cstore: file load failed: I/O suspension or premature end of stream
+[2026-10-04 13:40:06.693] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-9 (I/O operation failed)
+[       OK ] DicomNetworkTest.CStoreNonDicomFile_ReturnsIoFailed (1 ms)
+[ RUN      ] DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed
+[2026-10-04 13:40:06.693] [error] [DicomNetworkSCU] cstore: file load failed: No such file or directory
+[2026-10-04 13:40:06.693] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-9 (I/O operation failed)
+[       OK ] DicomNetworkTest.CStoreMissingFile_ReturnsIoFailed (0 ms)
+[ RUN      ] DicomNetworkTest.CStoreProposesOnlyTheTransferSyntaxOfAnExplicitLittleEndianFile
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(266): error: Expected equality of these values:
+  1u
+    Which is: 1
+  proposed[0].transferSyntaxes.size()
+    Which is: 3
+one transfer syntax in it
+
+[  FAILED  ] DicomNetworkTest.CStoreProposesOnlyTheTransferSyntaxOfAnExplicitLittleEndianFile (2 ms)
+[ RUN      ] DicomNetworkTest.CStoreProposesOnlyJpeg2000LosslessForAJpeg2000File
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+E: No presentation context found for sending C-STORE with SOP Class / Transfer Syntax: DigitalXRayImageStorageForPresentation / JPEG 2000 (Lossless only)
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-04 13:40:06.703] [error] [DicomNetworkSCU] sendSTORERequest failed: DIMSE No valid Presentation Context ID
+[2026-10-04 13:40:06.703] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-10 (Network operation failed)
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(281): error: Expected equality of these values:
+  0
+  xpe_dicom_cstore("localhost", s_storePort, "TESTSCU", j2k.string().c_str(), 5000)
+    Which is: -10
+
+[  FAILED  ] DicomNetworkTest.CStoreProposesOnlyJpeg2000LosslessForAJpeg2000File (7 ms)
+[ RUN      ] DicomNetworkTest.CStoreOfAFileInASyntaxThePeerRefusesIsNetworkFailedAndNothingIsSent
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> ANY-SCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+E: No presentation context found for sending C-STORE with SOP Class / Transfer Syntax: DigitalXRayImageStorageForPresentation / Big Endian Explicit
+I: Releasing Association
+I: Received Association Release Request
+[2026-10-04 13:40:06.711] [error] [DicomNetworkSCU] sendSTORERequest failed: DIMSE No valid Presentation Context ID
+[2026-10-04 13:40:06.711] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-10 (Network operation failed)
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_network_scu.cpp(313): error: Expected equality of these values:
+  1u
+    Which is: 1
+  proposed[0].transferSyntaxes.size()
+    Which is: 3
+
+[  FAILED  ] DicomNetworkTest.CStoreOfAFileInASyntaxThePeerRefusesIsNetworkFailedAndNothingIsSent (7 ms)
+[ RUN      ] DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault
+I: Requesting Association
+[2026-10-04 13:40:07.730] [error] [DicomNetworkSCU] negotiateAssociation failed: TCP Initialization Error: 작업을 완료했습니다. (Timeout)
+[2026-10-04 13:40:07.730] [error] [xpe_dicom] xpe_dicom_cstore exit rc=-10 (Network operation failed)
+[       OK ] DicomNetworkTest.CStoreFileWithoutSopUids_FallsBackToDxDefault (1019 ms)
+[ RUN      ] DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores
+I: Requesting Association
+I: Association Received dev-work: TESTSCU -> XPEMOCKSCP
+I: Association Acknowledged (Max Send PDV: 16372)
+I: Association Accepted (Max Send PDV: 16372)
+I: Sending C-STORE Request (MsgID 1, DX)
+I: Received C-STORE Request (MsgID 1)
+I: Sending C-STORE Response (Success)
+I: Received C-STORE Response (Success)
+I: Releasing Association
+I: Received Association Release Request
+[       OK ] DicomNetworkTest.CStoreCalledAeInHost_NegotiatesAndStores (2 ms)
+[----------] 11 tests from DicomNetworkTest (3564 ms total)
+
+[----------] Global test environment tear-down
+[==========] 11 tests from 1 test suite ran. (4110 ms total)
+[  PASSED  ] 8 tests.
+[  FAILED  ] 3 tests, listed below:
+[  FAILED  ] DicomNetworkTest.CStoreProposesOnlyTheTransferSyntaxOfAnExplicitLittleEndianFile
+[  FAILED  ] DicomNetworkTest.CStoreProposesOnlyJpeg2000LosslessForAJpeg2000File
+[  FAILED  ] DicomNetworkTest.CStoreOfAFileInASyntaxThePeerRefusesIsNetworkFailedAndNothingIsSent
+
+ 3 FAILED TESTS

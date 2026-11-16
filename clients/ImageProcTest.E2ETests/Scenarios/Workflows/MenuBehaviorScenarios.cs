@@ -309,6 +309,13 @@ public sealed class MenuBehaviorScenarios(Wrist1024SliceApplicationFixture app, 
                 // The window did not fall back to its error overlay.
                 var error = help.FindFirstDescendant(cf => cf.ByAutomationId("HelpErrorTextBlock"))?.Name ?? string.Empty;
                 Assert.Equal(string.Empty, error);
+                if (itemId == "OpenQuickStartHelpMenuItem" && Environment.GetEnvironmentVariable("XPE_E2E_HELP_CAPTURE") is { Length: > 0 } capturePath)
+                {
+                    Thread.Sleep(1000);
+                    using var picture = FlaUI.Core.Capturing.Capture.Element(help);
+                    picture.ToFile(capturePath);
+                    output.WriteLine($"H-01 Quick Start capture: {capturePath}");
+                }
             }
             finally
             {
@@ -349,7 +356,9 @@ public sealed class MenuBehaviorScenarios(Wrist1024SliceApplicationFixture app, 
     }
 
     private static string Text(Window window, string automationId) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.Name ?? string.Empty;
+        automationId == "StatusBarText" ? WorkbenchObservation.FullStatusText(window)
+        : automationId == "ChainStatusText" ? WorkbenchObservation.FullChainText(window)
+        : window.FindFirstDescendant(cf => cf.ByAutomationId(automationId))?.Name ?? string.Empty;
 
     private static string WaitForStatus(Window window, Func<string, bool> accept)
     {

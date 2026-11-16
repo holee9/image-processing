@@ -1,0 +1,8 @@
+  actual Metrics ItemsControl, per-lane stage/ms/VOI/calibration/EI, delta, stale edit, footer and invalidation checked
+  scenario 'GUI-C-258 metrics and footer contract': 523 ms
+  PRE Calibration ? Validate, Generate, Reload and Evaluate: 25 actual WPF labels checked; no workflow button invoked
+  Compare Imported 2G and New PRE Outputs: 24 actual WPF labels checked; no workflow button invoked
+  actual log TextBlock/accessibility name and original Logs/SelectedLog/Copy input checked
+  scenario 'GUI-C-258 English dialog and log labels': 64 ms
+  scenario '17 skipped preprocess: Native warns, Mock informs': 128 ms
+Lifetime scenarios passed (3 scenarios).

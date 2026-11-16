@@ -4,7 +4,7 @@ index 5d942383..2e1a2119 100644
 +++ b/modules/preprocess/src/xpe_bpm_v2.cpp
 @@ -20,6 +20,8 @@
  #include "xpe_bpm_v2_internal.hpp"
- 
+
  #include <algorithm>
 +#include <cstdio>
 +#include <cstdlib>

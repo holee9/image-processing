@@ -1,0 +1,28 @@
+﻿Existing Windows .NET Runtime events: ImageProcTest.E2E only, 2026-11-04 16:22:20–16:24:10 KST
+matches=2
+TimeCreated=2026-11-04T16:23:27.7768618+09:00
+Application: ImageProcTest.E2E.exe
+CoreCLR Version: 8.0.2826.26413
+.NET Version: 8.0.28
+Description: The process was terminated due to an unhandled exception.
+Exception Info: System.InvalidOperationException: WPF E2E failed.
+ ---> System.InvalidOperationException: Preprocessing menu must be disabled until Phase 1a.
+   at Program.<<Main>$>g__Assert|0_14(Boolean condition, String message) in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 650
+   at Program.<<Main>$>g__RunWpfE2E|0_2() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 219
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__15() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 56
+   --- End of inner exception stack trace ---
+   at Program.<<Main>$>g__RunWpfE2EOnStaThread|0_1() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 70
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 23
+TimeCreated=2026-11-04T16:22:53.7843096+09:00
+Application: ImageProcTest.E2E.exe
+CoreCLR Version: 8.0.2826.26413
+.NET Version: 8.0.28
+Description: The process was terminated due to an unhandled exception.
+Exception Info: System.InvalidOperationException: WPF E2E failed.
+ ---> System.InvalidOperationException: Preprocessing menu must be disabled until Phase 1a.
+   at Program.<<Main>$>g__Assert|0_14(Boolean condition, String message) in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 650
+   at Program.<<Main>$>g__RunWpfE2E|0_2() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 219
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__15() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 56
+   --- End of inner exception stack trace ---
+   at Program.<<Main>$>g__RunWpfE2EOnStaThread|0_1() in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 70
+   at Program.<Main>$(String[] args) in D:\workspace-github\xpe-gui\gui\ImageProcTest.E2E\Program.cs:line 23

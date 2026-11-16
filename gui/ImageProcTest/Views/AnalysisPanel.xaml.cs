@@ -63,3 +63,12 @@ public sealed class StringEqualsConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => Binding.DoNothing;
 }
+
+/// <summary>Display-only EI wording; the log item and selection remain the original string.</summary>
+public sealed class EnglishLogDisplayConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        (value as string ?? string.Empty).Replace("보정 안 된 EI", "uncalibrated measurement", StringComparison.Ordinal);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => Binding.DoNothing;
+}

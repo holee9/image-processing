@@ -1,0 +1,87 @@
+QA-B-227 POLICY BEFORE cov-local COMMAND D:/workspace-github/xpe-post/build/cov-local/qa-b-227-probe.exe [
+  'D:/workspace-github/xpe-post/build/cov-local/bin/xpe_enhance_basic.dll'
+] TIMEOUT_MS 120000 ELAPSED_MS 227 EXIT 0 ERROR undefined
+scene=0 search=3 patch=3 h=10 rc=0 nonfinite=0 unchanged=1 sha256=8d5812ca5a743e3a773ab4a052d6f87111da0590864ad5c10f00fba574c5d253
+scene=0 search=3 patch=3 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=8d5812ca5a743e3a773ab4a052d6f87111da0590864ad5c10f00fba574c5d253
+scene=0 search=3 patch=3 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=0 search=3 patch=3 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=0 search=3 patch=3 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=0 search=3 patch=3 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=0 search=3 patch=3 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=3 patch=3 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=3 patch=3 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=7 patch=3 h=10 rc=0 nonfinite=0 unchanged=1 sha256=8d5812ca5a743e3a773ab4a052d6f87111da0590864ad5c10f00fba574c5d253
+scene=0 search=7 patch=3 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=8d5812ca5a743e3a773ab4a052d6f87111da0590864ad5c10f00fba574c5d253
+scene=0 search=7 patch=3 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=0 search=7 patch=3 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=0 search=7 patch=3 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=0 search=7 patch=3 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=0 search=7 patch=3 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=7 patch=3 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=7 patch=3 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=21 patch=7 h=10 rc=0 nonfinite=0 unchanged=1 sha256=8d5812ca5a743e3a773ab4a052d6f87111da0590864ad5c10f00fba574c5d253
+scene=0 search=21 patch=7 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=8d5812ca5a743e3a773ab4a052d6f87111da0590864ad5c10f00fba574c5d253
+scene=0 search=21 patch=7 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=0 search=21 patch=7 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=0 search=21 patch=7 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=0 search=21 patch=7 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=0 search=21 patch=7 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=21 patch=7 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=0 search=21 patch=7 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=3 patch=3 h=10 rc=0 nonfinite=0 unchanged=1 sha256=a9e9a311c75af9a90bd653b4fead9560b5cbe9e9c1b5227147b1098572a5a19f
+scene=1 search=3 patch=3 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=a9e9a311c75af9a90bd653b4fead9560b5cbe9e9c1b5227147b1098572a5a19f
+scene=1 search=3 patch=3 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=1 search=3 patch=3 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=1 search=3 patch=3 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=1 search=3 patch=3 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=1 search=3 patch=3 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=3 patch=3 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=3 patch=3 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=7 patch=3 h=10 rc=0 nonfinite=0 unchanged=1 sha256=a9e9a311c75af9a90bd653b4fead9560b5cbe9e9c1b5227147b1098572a5a19f
+scene=1 search=7 patch=3 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=a9e9a311c75af9a90bd653b4fead9560b5cbe9e9c1b5227147b1098572a5a19f
+scene=1 search=7 patch=3 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=1 search=7 patch=3 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=1 search=7 patch=3 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=1 search=7 patch=3 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=1 search=7 patch=3 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=7 patch=3 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=7 patch=3 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=21 patch=7 h=10 rc=0 nonfinite=0 unchanged=1 sha256=a9e9a311c75af9a90bd653b4fead9560b5cbe9e9c1b5227147b1098572a5a19f
+scene=1 search=21 patch=7 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=a9e9a311c75af9a90bd653b4fead9560b5cbe9e9c1b5227147b1098572a5a19f
+scene=1 search=21 patch=7 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=1 search=21 patch=7 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=1 search=21 patch=7 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=1 search=21 patch=7 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=1 search=21 patch=7 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=21 patch=7 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=1 search=21 patch=7 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=3 patch=3 h=10 rc=0 nonfinite=0 unchanged=0 sha256=7f75ac58775aa9ab73214c73c58ac5c6947b1bb96e190d7fdb3b282fdd09a102
+scene=2 search=3 patch=3 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=752b07d99a055363aab73432841351d6ee4a41c61a4d31a57d9f30e682fdd59d
+scene=2 search=3 patch=3 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=2 search=3 patch=3 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=2 search=3 patch=3 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=2 search=3 patch=3 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=2 search=3 patch=3 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=3 patch=3 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=3 patch=3 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=7 patch=3 h=10 rc=0 nonfinite=0 unchanged=0 sha256=68293ed2d67f18d2f988a513066b40c3ab1cce4c2854196098169d69735bfa0c
+scene=2 search=7 patch=3 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=752b07d99a055363aab73432841351d6ee4a41c61a4d31a57d9f30e682fdd59d
+scene=2 search=7 patch=3 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=2 search=7 patch=3 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=2 search=7 patch=3 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=2 search=7 patch=3 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=2 search=7 patch=3 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=7 patch=3 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=7 patch=3 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=21 patch=7 h=10 rc=0 nonfinite=0 unchanged=1 sha256=752b07d99a055363aab73432841351d6ee4a41c61a4d31a57d9f30e682fdd59d
+scene=2 search=21 patch=7 h=1.000000013351432e-10 rc=0 nonfinite=0 unchanged=1 sha256=752b07d99a055363aab73432841351d6ee4a41c61a4d31a57d9f30e682fdd59d
+scene=2 search=21 patch=7 h=9.9999996826552254e-21 rc=0 nonfinite=0 unchanged=1
+scene=2 search=21 patch=7 h=1.0000000031710769e-30 rc=0 nonfinite=0 unchanged=1
+scene=2 search=21 patch=7 h=1.1754943508222875e-38 rc=0 nonfinite=0 unchanged=1
+scene=2 search=21 patch=7 h=1.4012984643248171e-45 rc=0 nonfinite=0 unchanged=1
+scene=2 search=21 patch=7 h=5.4210105393100954e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=21 patch=7 h=5.4210108624275222e-20 rc=0 nonfinite=0 unchanged=1
+scene=2 search=21 patch=7 h=5.4210115086623757e-20 rc=0 nonfinite=0 unchanged=1
+SUMMARY calls=81 reproduced=0 refused=0 changed=2
+
+

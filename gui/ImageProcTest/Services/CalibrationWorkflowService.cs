@@ -25,13 +25,13 @@ public sealed class CalibrationWorkflowService
         Inputs = inputs with { Dark = (string[])inputs.Dark.Clone(), Gain = (string[])inputs.Gain.Clone(), Defect = (string[])inputs.Defect.Clone() };
         NativeDirectory = Path.GetFullPath(nativeDirectory);
         RunDirectory = Path.Combine(Path.GetFullPath(outputRoot), $"pre-{DateTime.UtcNow:yyyyMMddTHHmmssfffZ}-{Guid.NewGuid():N}");
-        if (inputs.Width <= 0 || inputs.Height <= 0) throw new InvalidOperationException("영상 크기는 양수여야 합니다.");
+        if (inputs.Width <= 0 || inputs.Height <= 0) throw new InvalidOperationException("Image dimensions must be positive.");
         _inputHashes = new(StringComparer.OrdinalIgnoreCase);
         foreach (var path in inputs.Dark.Concat(inputs.Gain).Concat(inputs.Defect))
         {
             var full = Path.GetFullPath(path);
             if (new FileInfo(full).Length != checked((long)inputs.Width * inputs.Height * 2))
-                throw new InvalidOperationException($"UINT16LE 크기 불일치: {full}");
+                throw new InvalidOperationException($"UINT16LE size mismatch: {full}");
             _inputHashes[full] = Hash(full);
         }
         Directory.CreateDirectory(RunDirectory);
@@ -51,19 +51,19 @@ public sealed class CalibrationWorkflowService
         var result = await ToolAsync("validate", Path.Combine(NativeDirectory, "xpe_calib_fixture_gen.exe"), GeneratorArguments(true));
         VerifyInputs();
         _validated = result.ExitCode == 0;
-        if (!_validated) throw new InvalidOperationException($"입력 검사 실패 ({result.ExitCode}). {result.Evidence}");
+        if (!_validated) throw new InvalidOperationException($"Input validation failed ({result.ExitCode}). {result.Evidence}");
         return result.Evidence;
     }
 
     public async Task<string> GenerateAsync()
     {
-        if (!_validated) throw new InvalidOperationException("먼저 입력 검사를 통과하십시오.");
+        if (!_validated) throw new InvalidOperationException("Input validation must pass first.");
         VerifyInputs();
         _generated = false;
         var result = await ToolAsync("generate", Path.Combine(NativeDirectory, "xpe_calib_fixture_gen.exe"), GeneratorArguments(false));
         VerifyInputs();
         if (result.ExitCode != 0 || !MapPaths().All(File.Exists) || !File.Exists(Path.Combine(SetDirectory, "manifest.json")))
-            throw new InvalidOperationException($"생성 실패/불완전 ({result.ExitCode}); 경로를 재사용하지 마십시오. {result.Evidence}");
+            throw new InvalidOperationException($"Generation failed or is incomplete ({result.ExitCode}); do not reuse the path. {result.Evidence}");
         VerifyManifest();
         _generated = true;
         return result.Evidence;
@@ -71,7 +71,7 @@ public sealed class CalibrationWorkflowService
 
     public async Task<string> ReloadAsync()
     {
-        if (!_generated) throw new InvalidOperationException("이 실행의 생성 완료 후 재로드하십시오.");
+        if (!_generated) throw new InvalidOperationException("Complete generation for this run before reloading.");
         VerifyManifest();
         var report = Path.Combine(RunDirectory, $"reload-{Guid.NewGuid():N}.json");
         var arguments = new List<string>();
@@ -85,7 +85,7 @@ public sealed class CalibrationWorkflowService
         _reloadedHashes = null;
         var result = await ToolAsync("reload", executable, arguments);
         if (result.ExitCode != 0 || !File.Exists(report))
-            throw new InvalidOperationException($"PRE 공개 API 재로드 실패 ({result.ExitCode}). {result.Evidence}");
+            throw new InvalidOperationException($"PRE public API reload failed ({result.ExitCode}). {result.Evidence}");
         using var document = JsonDocument.Parse(File.ReadAllText(report));
         _reloadedHashes = ValidateReloadReport(document.RootElement, MapPaths().ToDictionary(p => p, Hash, StringComparer.OrdinalIgnoreCase));
         return report;
@@ -93,37 +93,37 @@ public sealed class CalibrationWorkflowService
 
     public static Dictionary<string, string> ValidateReloadReport(JsonElement root, IReadOnlyDictionary<string, string> current)
     {
-        if (!root.GetProperty("passed").GetBoolean()) throw new InvalidOperationException("재로드 보고서가 실패입니다.");
+        if (!root.GetProperty("passed").GetBoolean()) throw new InvalidOperationException("The reload report records a failure.");
         var checkedHashes = root.GetProperty("loads").EnumerateArray().ToDictionary(
             item => item.GetProperty("path").GetString()!, item => item.GetProperty("sha256").GetString()!, StringComparer.OrdinalIgnoreCase);
         if (checkedHashes.Count != 3 || current.Count != 3 || root.GetProperty("loads").EnumerateArray().Any(item => item.GetProperty("code").GetInt32() != 0))
-            throw new IOException("재로드 보고서가 정확한 3개 map 성공을 입증하지 않습니다.");
+            throw new IOException("The reload report does not establish success for exactly three maps.");
         foreach (var (path, sha) in current)
             if (!checkedHashes.TryGetValue(path, out var inspected) || inspected != sha)
-                throw new IOException("재로드 시점과 현재 map SHA가 다릅니다. 새 실행으로 검사하십시오.");
+                throw new IOException("Current map SHA differs from the reload snapshot. Validate in a new run.");
         return checkedHashes;
     }
 
     public void VerifyReadyToApply()
     {
-        if (_reloadedHashes is null) throw new InvalidOperationException("생성한 세트를 별도 PRE 프로세스에서 재로드한 뒤 적용하십시오.");
+        if (_reloadedHashes is null) throw new InvalidOperationException("Reload the generated set in a separate PRE process before applying it.");
         VerifyManifest();
         foreach (var (path, hash) in _reloadedHashes)
-            if (Hash(path) != hash) throw new InvalidOperationException($"재로드 후 파일 변경: {path}. 다시 검사하십시오.");
+            if (Hash(path) != hash) throw new InvalidOperationException($"File changed after reload: {path}. Validate again.");
     }
 
     public async Task<string> EvaluateAsync(string holdout, string inputKind, string oracle, string reference, string gainSemantics = "unknown")
     {
         VerifyReadyToApply();
         VerifyInputs();
-        if (inputKind is not ("image" or "dark" or "flat")) throw new InvalidOperationException("영상 종류를 선택하십시오.");
-        if (gainSemantics is not ("unknown" or "normalized_gain" or "reciprocal_gain")) throw new InvalidOperationException("Gain 의미를 명시하십시오.");
+        if (inputKind is not ("image" or "dark" or "flat")) throw new InvalidOperationException("Choose an image kind.");
+        if (gainSemantics is not ("unknown" or "normalized_gain" or "reciprocal_gain")) throw new InvalidOperationException("Specify gain semantics.");
         var raw = Path.GetFullPath(holdout);
         if (new FileInfo(raw).Length != checked((long)Inputs.Width * Inputs.Height * 2))
-            throw new InvalidOperationException("독립 평가 RAW 크기 불일치.");
+            throw new InvalidOperationException("Independent evaluation RAW size mismatch.");
         var before = Hash(raw);
         if (_inputHashes.Values.Contains(before, StringComparer.OrdinalIgnoreCase))
-            throw new InvalidOperationException("학습/생성 목록과 같은 내용의 영상은 독립 holdout으로 사용할 수 없습니다 (제외한 첫 Dark 포함).");
+            throw new InvalidOperationException("An image identical to a training/generation input cannot be an independent holdout (including the excluded first Dark).");
         var output = Path.Combine(RunDirectory, "evaluation-" + Guid.NewGuid().ToString("N"));
         var args = new List<string> { "--raw", raw, "--calib", SetDirectory, "--width", Inputs.Width.ToString(),
             "--height", Inputs.Height.ToString(), "--input-kind", inputKind, "--gain-semantics", gainSemantics, "--out", output };
@@ -137,8 +137,8 @@ public sealed class CalibrationWorkflowService
             reference = string.IsNullOrWhiteSpace(reference) ? "미제공 / 외부 수치 동등성 미검증" : Path.GetFullPath(reference),
             independence = "생성 입력 SHA와 불일치 확인; oracle/reference 출처 독립성은 사용자 증거 필요",
             quality = "exit 0 또는 Applied는 합격 아님. evaluation report의 phase1/release/CES 및 미평가 지표를 확인" });
-        if (before != after) throw new InvalidOperationException("평가 전후 원본 SHA가 다릅니다.");
-        if (result.ExitCode != 0) throw new InvalidOperationException($"평가 실행 실패 ({result.ExitCode}). {result.Evidence}");
+        if (before != after) throw new InvalidOperationException("Source SHA changed during evaluation.");
+        if (result.ExitCode != 0) throw new InvalidOperationException($"Evaluation execution failed ({result.ExitCode}). {result.Evidence}");
         VerifyReadyToApply();
         return output;
     }
@@ -172,18 +172,18 @@ public sealed class CalibrationWorkflowService
         {
             var path = Path.GetFullPath(item.GetProperty("path").GetString()!);
             if (!_inputHashes.TryGetValue(path, out var baseline) || item.GetProperty("sha256").GetString() != baseline)
-                throw new IOException("생성기가 실제 소비한 입력 SHA가 등록 baseline과 다릅니다: " + path);
+                throw new IOException("The generator's consumed input SHA differs from the registered baseline: " + path);
             consumed.Add(path);
         }
-        if (!consumed.SetEquals(_inputHashes.Keys)) throw new IOException("생성 manifest의 입력 목록이 등록 목록과 다릅니다.");
+        if (!consumed.SetEquals(_inputHashes.Keys)) throw new IOException("The generation manifest input list differs from the registered list.");
         foreach (var path in MapPaths())
             if (manifest.RootElement.GetProperty("files").GetProperty(Path.GetFileName(path)).GetString() != Hash(path))
-                throw new IOException($"생성 manifest와 map SHA 불일치: {path}");
+                throw new IOException($"Generation manifest and map SHA mismatch: {path}");
     }
     private void VerifyInputs()
     {
         foreach (var (path, hash) in _inputHashes)
-            if (Hash(path) != hash) throw new InvalidOperationException($"검사 후 입력 변경: {path}. 새 실행을 만드십시오.");
+            if (Hash(path) != hash) throw new InvalidOperationException($"Input changed after validation: {path}. Start a new run.");
     }
     private List<string> GeneratorArguments(bool validate)
     {
@@ -205,7 +205,7 @@ public sealed class CalibrationWorkflowService
         info.Environment["XPE_NATIVE_DIR_EXCLUSIVE"] = "1";
         info.Environment.Remove("DOTNET_STARTUP_HOOKS");
         info.RedirectStandardOutput = info.RedirectStandardError = true;
-        using var process = Process.Start(info) ?? throw new IOException("로컬 도구를 시작하지 못했습니다.");
+        using var process = Process.Start(info) ?? throw new IOException("Could not start the local tool.");
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();

@@ -1,0 +1,20 @@
+[2026-10-17 16:40 KST] [xpe-doc]
+빠른 시작 패치 초안 (gui 소유 파일 gui/ImageProcTest/help/quick-start.ko.html — 적용은 gui 가). 줄번호는 편집에 밀리니 문구로 찾을 것.
+
+[1] "네이티브 DLL 폴더" 항목 (줄 20)
+ - DLL 목록 "xpe_common.dll, xpe_display.dll, xpe_preprocess.dll" 에 xpe_enhance_basic.dll 추가
+ - "약 300 MB" → "약 734 MB" (GUI-C-250 실측)
+ - "최신 초록 main 빌드" 뒤에 추가: "Get-CiNativeDlls.ps1 은 main 에서 성공한 push 실행의 산출물만 받습니다. -Dest 폴더는 통째로 비우므로 개인 폴더를 지정하십시오."
+
+[2] "보정 폴더" 항목 (줄 21)
+ - 끝에 추가: "자세한 절차·결함 맵 2판 옵션(--bpm-v2 --bpm-margins 6,2,1,1)은 docs/calibration/IAP-CALIB-001_Image_Acquisition_Protocol.md 1부 참고. CalData_6 경로와 IAP 의 cyan_test 경로는 서로 다른 입력이다."
+
+[3] "정상 화면" 항목 (줄 54)
+ - 노출 지수 예시를 실제 출력으로: "Exposure index: uncalibrated EI (보정 안 된 EI) = 3142.71, DI = 10.99 (measured, not a pass criterion; S0 reference not verified against the gui gain scale)."
+
+[4] "볼 수 있는 경고" 항목 (줄 56)
+ - 만료일을 준 세트에서는 나열된 세 경고가 나오지 않았음을 명시
+ - "경고 없음" 표현이 있으면 → "보정 단계 경고 없음. 단 ALERT WARN NATIVE_ALERT: Exposure deviation: DI=10.99 (outside [-3.0, +3.0] range) 는 정상 처리에서도 나올 수 있는 노출 지표 알림"
+
+[5] 저장 파일 이름 (줄 60~61)
+ - 실제 이름: input_3072x3072_corrected_f32le.raw / input_3072x3072_corrected_16bit.png (예시의 wrist_lat_… 은 입력 이름에 따라 달라짐을 한 줄 덧붙임)

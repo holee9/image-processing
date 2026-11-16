@@ -1,0 +1,1090 @@
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,9): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,27): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,43): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(86,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs(325,17): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MenuBehaviorScenarios.cs(195,40): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MenuBehaviorScenarios.cs(199,39): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+  ImageProcTest.E2ETests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.08]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.15]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.17]   Starting:    ImageProcTest.E2ETests
+Application failed to exit
+[xUnit.net 00:00:23.03]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees [FAIL]
+[xUnit.net 00:00:23.03]       System.Runtime.InteropServices.COMException : Operation timed out. (0x80131505)
+[xUnit.net 00:00:23.03]       Stack Trace:
+[xUnit.net 00:00:23.03]            at Interop.UIAutomationClient.IUIAutomationElement.FindAll(TreeScope scope, IUIAutomationCondition condition)
+[xUnit.net 00:00:23.03]            at FlaUI.UIA3.UIA3FrameworkAutomationElement.FindAll(TreeScope treeScope, ConditionBase condition)
+[xUnit.net 00:00:23.03]            at FlaUI.Core.AutomationElements.AutomationElement.FindAll(TreeScope treeScope, ConditionBase condition)
+[xUnit.net 00:00:23.03]            at FlaUI.Core.AutomationElements.AutomationElement.FindAllDescendants(ConditionBase condition)
+[xUnit.net 00:00:23.03]            at FlaUI.Core.AutomationElements.AutomationElement.FindAllDescendants(Func`2 conditionFunc)
+[xUnit.net 00:00:23.03]            at FlaUI.Core.AutomationElements.Window.get_ModalWindows()
+[xUnit.net 00:00:23.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(1892,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.DriveDialog(String path, String confirmId, Action beforeConfirm)
+[xUnit.net 00:00:23.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(1866,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.InvokeMenuItemThenDialog(String automationId, String path, String confirmId, Action beforeConfirm)
+[xUnit.net 00:00:23.03]         D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(703,0): at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees()
+[xUnit.net 00:00:23.03]            at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+[xUnit.net 00:00:23.03]            at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+[xUnit.net 00:00:23.03]       Output:
+[xUnit.net 00:00:23.03]         CASE raw file opened with rawWidth x rawHeight = 1024 x 1024
+[xUnit.net 00:00:23.03]            dialog: 'Load Raw Image'
+[xUnit.net 00:00:23.03]            native (+4 ms): dialog 0x41C0B88 open; app windows: 0xADE0C80 Auto-Suggest Dropdown (hidden), 0x6260C14 Auto-Suggest Dropdown (hidden), 0x1BD0B5C tooltips_class32 (hidden), 0x6D0C1C tooltips_class32 (hidden), 0x74D0594 tooltips_class32 (hidden), 0x31A0BCA tooltips_class32 (hidden), 0x8020AAC ComboLBox (hidden), 0xC50D1A tooltips_class32 (hidden), 0x3700CF0 _SearchEditBoxFakeWindow (hidden), 0xA830186 tooltips_class32 (hidden), 0xD70994 tooltips_class32 (hidden), 0x6F008E tooltips_class32 (hidden), 0x7630406 HwndWrapper[ImageProcTest;;2fe465c0-0e61-41ea-94de-e2fe63554fe2, 0x570AC8 ComboLBox (hidden), 0xC190A6A ComboLBox (hidden), 0x4C806A6 WorkerW (hidden), 0x6B40D48 HwndWrapper[ImageProcTest;;3f48105e-8265-4e5d-bae0-09d40e59aa61 (hidden), 0x1CC06EE HwndWrapper[ImageProcTest;;81073e24-ad76-49c6-a148-30c4b53237fa (hidden), 0x89A0B82 HwndWrapper[ImageProcTest;;a837c2ef-0516-4e93-b5f6-d512cd454663 (hidden), 0x2180614 HwndWrapper[ImageProcTest;;645aea7b-a8b5-4efc-a017-8c9e2a4a29a8 (hidden), 0x7400C4 CiceroUIWndFrame (hidden), 0xDD0906 MSCTFIME UI (hidden), 0x7B40CA4 IME (hidden), 0x970B36 CiceroUIWndFrame (hidden)
+[xUnit.net 00:00:23.03]            native (+217 ms): dialog 0x41C0B88 gone; app windows: 0x7630406 HwndWrapper[ImageProcTest;;2fe465c0-0e61-41ea-94de-e2fe63554fe2, 0x6B40D48 HwndWrapper[ImageProcTest;;3f48105e-8265-4e5d-bae0-09d40e59aa61 (hidden), 0x1CC06EE HwndWrapper[ImageProcTest;;81073e24-ad76-49c6-a148-30c4b53237fa (hidden), 0x89A0B82 HwndWrapper[ImageProcTest;;a837c2ef-0516-4e93-b5f6-d512cd454663 (hidden), 0x2180614 HwndWrapper[ImageProcTest;;645aea7b-a8b5-4efc-a017-8c9e2a4a29a8 (hidden), 0x7400C4 CiceroUIWndFrame (hidden), 0xDD0906 MSCTFIME UI (hidden), 0x7B40CA4 IME (hidden), 0x970B36 CiceroUIWndFrame (hidden)
+[xUnit.net 00:00:23.03]            status bar: Load failed: Raw file has 18874368 bytes, more than the 2097152 bytes of 1024x1024 16-bit. The size is set in the settings as rawWidth/rawHeight (1024x1024 now), or with --automation-width/--automation-height; the file is not opened until its length is exactly width x height x 2.
+[xUnit.net 00:00:23.03]         CASE raw file opened with rawWidth x rawHeight = 4096 x 4096
+  Failed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees [22 s]
+  Error Message:
+   System.Runtime.InteropServices.COMException : Operation timed out. (0x80131505)
+  Stack Trace:
+     at Interop.UIAutomationClient.IUIAutomationElement.FindAll(TreeScope scope, IUIAutomationCondition condition)
+   at FlaUI.UIA3.UIA3FrameworkAutomationElement.FindAll(TreeScope treeScope, ConditionBase condition)
+   at FlaUI.Core.AutomationElements.AutomationElement.FindAll(TreeScope treeScope, ConditionBase condition)
+   at FlaUI.Core.AutomationElements.AutomationElement.FindAllDescendants(ConditionBase condition)
+   at FlaUI.Core.AutomationElements.AutomationElement.FindAllDescendants(Func`2 conditionFunc)
+   at FlaUI.Core.AutomationElements.Window.get_ModalWindows()
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.DriveDialog(String path, String confirmId, Action beforeConfirm) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1892
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.GuiApp.InvokeMenuItemThenDialog(String automationId, String path, String confirmId, Action beforeConfirm) in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 1866
+   at ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W5_WrongRawSize_WhatTheOperatorSees() in D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs:line 703
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Standard Output Messages:
+ CASE raw file opened with rawWidth x rawHeight = 1024 x 1024
+    dialog: 'Load Raw Image'
+    native (+4 ms): dialog 0x41C0B88 open; app windows: 0xADE0C80 Auto-Suggest Dropdown (hidden), 0x6260C14 Auto-Suggest Dropdown (hidden), 0x1BD0B5C tooltips_class32 (hidden), 0x6D0C1C tooltips_class32 (hidden), 0x74D0594 tooltips_class32 (hidden), 0x31A0BCA tooltips_class32 (hidden), 0x8020AAC ComboLBox (hidden), 0xC50D1A tooltips_class32 (hidden), 0x3700CF0 _SearchEditBoxFakeWindow (hidden), 0xA830186 tooltips_class32 (hidden), 0xD70994 tooltips_class32 (hidden), 0x6F008E tooltips_class32 (hidden), 0x7630406 HwndWrapper[ImageProcTest;;2fe465c0-0e61-41ea-94de-e2fe63554fe2, 0x570AC8 ComboLBox (hidden), 0xC190A6A ComboLBox (hidden), 0x4C806A6 WorkerW (hidden), 0x6B40D48 HwndWrapper[ImageProcTest;;3f48105e-8265-4e5d-bae0-09d40e59aa61 (hidden), 0x1CC06EE HwndWrapper[ImageProcTest;;81073e24-ad76-49c6-a148-30c4b53237fa (hidden), 0x89A0B82 HwndWrapper[ImageProcTest;;a837c2ef-0516-4e93-b5f6-d512cd454663 (hidden), 0x2180614 HwndWrapper[ImageProcTest;;645aea7b-a8b5-4efc-a017-8c9e2a4a29a8 (hidden), 0x7400C4 CiceroUIWndFrame (hidden), 0xDD0906 MSCTFIME UI (hidden), 0x7B40CA4 IME (hidden), 0x970B36 CiceroUIWndFrame (hidden)
+    native (+217 ms): dialog 0x41C0B88 gone; app windows: 0x7630406 HwndWrapper[ImageProcTest;;2fe465c0-0e61-41ea-94de-e2fe63554fe2, 0x6B40D48 HwndWrapper[ImageProcTest;;3f48105e-8265-4e5d-bae0-09d40e59aa61 (hidden), 0x1CC06EE HwndWrapper[ImageProcTest;;81073e24-ad76-49c6-a148-30c4b53237fa (hidden), 0x89A0B82 HwndWrapper[ImageProcTest;;a837c2ef-0516-4e93-b5f6-d512cd454663 (hidden), 0x2180614 HwndWrapper[ImageProcTest;;645aea7b-a8b5-4efc-a017-8c9e2a4a29a8 (hidden), 0x7400C4 CiceroUIWndFrame (hidden), 0xDD0906 MSCTFIME UI (hidden), 0x7B40CA4 IME (hidden), 0x970B36 CiceroUIWndFrame (hidden)
+    status bar: Load failed: Raw file has 18874368 bytes, more than the 2097152 bytes of 1024x1024 16-bit. The size is set in the settings as rawWidth/rawHeight (1024x1024 now), or with --automation-width/--automation-height; the file is not opened until its length is exactly width x height x 2.
+ CASE raw file opened with rawWidth x rawHeight = 4096 x 4096
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W2_TheLaunchScriptRoute_NativeAtStart_CalibrationFromTheCommandLine [33 s]
+  Standard Output Messages:
+ STEP 1 launched with --automation-backend Native --automation-calib <dir> --automation-width/height
+    == start: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  —
+       + All
+       + B  —
+       + Body Part
+       + C  —  · W  —
+       + Calib:  —
+       + Chain not run · window not measured
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261104-184626-bee1ce
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Measurements describe the displayed render, not a pass criterion. Delta = B − A; shown only for two separate lane runs with measured values.
+       + Metrics
+       + No applied image
+       + No raw image loaded.
+       + No warnings or errors.
+       + Not applied
+       + Overlay
+       + Parameters
+       + Processed
+       + Queued
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Recorded processing measurements
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Stage times: not measured
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI width
+       + VOI:  not applied
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+ STEP 2 View > Calibration Paths Panel: the three directories are already set
+    ok: the panel appears
+    == panel open: title='ImageProcTest GUI-S0'
+       + Browse...
+       + Calibration paths
+       + D:\workspace-github\xpe-data\calib-real-v2
+       + Defect
+       + Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.
+       + Gain
+       + Offset
+ STEP 3 File > Open Raw...
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xA1E0584 open; app windows: 0x5C1018E Auto-Suggest Dropdown (hidden), 0x1B20A18 Auto-Suggest Dropdown (hidden), 0xAD0C4A tooltips_class32 (hidden), 0x4D00A32 tooltips_class32 (hidden), 0xABA0B3E tooltips_class32 (hidden), 0x8050AAC tooltips_class32 (hidden), 0xC8F07F4 ComboLBox (hidden), 0xA3609E4 tooltips_class32 (hidden), 0x6D60430 _SearchEditBoxFakeWindow (hidden), 0x9A40B00 tooltips_class32 (hidden), 0x3F0CEE tooltips_class32 (hidden), 0x4AC0C6A tooltips_class32 (hidden), 0x7180ABE HwndWrapper[ImageProcTest;;44589a9b-9ab2-41db-845c-b252d567857e, 0x433087C ComboLBox (hidden), 0x14104EA ComboLBox (hidden), 0x47D09AC WorkerW (hidden), 0x5E70C10 HwndWrapper[ImageProcTest;;1dd5d6e2-4062-4faf-8d81-9f3ba26b7c1d (hidden), 0x590AC8 HwndWrapper[ImageProcTest;;cdb4addd-16ef-4e45-a37a-0635faa5ceac (hidden), 0x4CA0C34 HwndWrapper[ImageProcTest;;80d193bb-e55c-42f2-bd13-996df3204a42 (hidden), 0x120C6C HwndWrapper[ImageProcTest;;fecf400a-60a9-49a8-a900-8ee405608b9b (hidden), 0x5C70702 CiceroUIWndFrame (hidden), 0x6D40D62 MSCTFIME UI (hidden), 0x530CA6 IME (hidden), 0x6020978 CiceroUIWndFrame (hidden)
+    native (+217 ms): dialog 0xA1E0584 gone; app windows: 0x7180ABE HwndWrapper[ImageProcTest;;44589a9b-9ab2-41db-845c-b252d567857e, 0x5E70C10 HwndWrapper[ImageProcTest;;1dd5d6e2-4062-4faf-8d81-9f3ba26b7c1d (hidden), 0x590AC8 HwndWrapper[ImageProcTest;;cdb4addd-16ef-4e45-a37a-0635faa5ceac (hidden), 0x4CA0C34 HwndWrapper[ImageProcTest;;80d193bb-e55c-42f2-bd13-996df3204a42 (hidden), 0x120C6C HwndWrapper[ImageProcTest;;fecf400a-60a9-49a8-a900-8ee405608b9b (hidden), 0x5C70702 CiceroUIWndFrame (hidden), 0x6D40D62 MSCTFIME UI (hidden), 0x530CA6 IME (hidden), 0x6020978 CiceroUIWndFrame (hidden)
+    ok: an image summary appears
+    == raw loaded, before Run Preprocessing: title='ImageProcTest GUI-S0'
+       + 0  /  1
+       + 1
+       + 1 studies loaded
+       + 1198.496
+       + 2580.347
+       + 3 stages
+       + 3375ed3dc69247f6a8afe6756103a6de
+       + A  No grid correction
+       + Abdomen
+       + Applied · 245.604 ms
+       + Applied · 248.895 ms
+       + B  No grid correction
+       + C  2580  · W  1198
+       + Calib:  3 native stages (offset · gain · defect)
+       + Calibration stages
+       + EI/DI · measured, not a pass criterion
+       + Exposure index: uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       + Lane B reuses Lane A's measured result; this is one run. No independent delta. Measurements are not pass criteria.
+       + NotRequested · 0 ms
+       + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+       + Record result for 3375ed3dc69247f6a8afe6756103a6de
+       + VOI center
+       + VOI source
+       + VOI:  LinearExact
+       + WARN: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+       + ai_bone_suppress
+       + automatic
+       + enhance_basic
+       + gsvg
+       + manual
+       + preprocess
+       + preprocess 245.604 ms · enhance_basic 248.895 ms · gsvg 0 ms · ai_bone_suppress 0 ms
+       + preprocess applied · enhance_basic applied · gsvg off · ai_bone_suppress off · auto C 2580.347 / W 1198.496
+       + wrist_lat_3072x3072.raw
+       + —
+       + ○
+       - 0
+       - 0  /  0
+       - 0 studies loaded
+       - A  —
+       - B  —
+       - C  —  · W  —
+       - Calib:  —
+       - Chain not run · window not measured
+       - Measurements describe the displayed render, not a pass criterion. Delta = B − A; shown only for two separate lane runs with measured values.
+       - No applied image
+       - No raw image loaded.
+       - No warnings or errors.
+       - Record result for
+       - Stage times: not measured
+       - VOI:  not applied
+    chain line before the run: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=246 ms, enhance_basic=249 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+ STEP 4 Pipeline > Run Preprocessing (Phase 1a)
+    ok: the chain status changes
+    == after Run Preprocessing: title='ImageProcTest GUI-S0'
+       + Applied · 237.359 ms
+       + Applied · 245.351 ms
+       + preprocess 237.359 ms · enhance_basic 245.351 ms · gsvg 0 ms · ai_bone_suppress 0 ms
+       - Applied · 245.604 ms
+       - Applied · 248.895 ms
+       - preprocess 245.604 ms · enhance_basic 248.895 ms · gsvg 0 ms · ai_bone_suppress 0 ms
+ STEP 5 View > Logs Panel, then the Analysis panel's Log tab: what the run wrote
+    Logs Panel checked before: False
+       LOG [18:46:39.377] Chain ai_bone_suppress: NotRequested — switched off
+       LOG [18:46:39.377] Chain gsvg: NotRequested — switched off
+       LOG [18:46:39.377] Chain enhance_basic: Applied — enhance_basic: log ok 25 ms; noise(bilateral 3/50) ok 56 ms; contrast(clahe 3 8x8) ok 64 ms; edge(usm 0.5/2/10) ok 46 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+       LOG [18:46:39.377] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out; requested=[offset:Auto,gain:Auto,defect:Auto]; executed=[offset,gain,defect]; nativeFlags=0x201c; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; 3072x3072 (Abdomen). uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       LOG [18:46:39.377] ALERT WARN NATIVE_ALERT: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+       LOG [18:46:39.377] ALERT WARN NATIVE_ALERT: XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that carry one
+       LOG [18:46:39.376] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+       LOG [18:46:39.277] ai_bone_suppress: NotRequested — switched off
+       LOG [18:46:39.277] gsvg: NotRequested — switched off
+       LOG [18:46:39.277] enhance_basic: Applied — enhance_basic: log ok 25 ms; noise(bilateral 3/50) ok 56 ms; contrast(clahe 3 8x8) ok 64 ms; edge(usm 0.5/2/10) ok 46 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+       LOG [18:46:39.277] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out; requested=[offset:Auto,gain:Auto,defect:Auto]; executed=[offset,gain,defect]; nativeFlags=0x201c; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; 3072x3072 (Abdomen). uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       LOG [18:46:39.025] Drained 2 native alert(s) from the xpe_common queue.
+       LOG [18:46:38.784] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+       LOG [18:46:35.948] open-to-2nd-tick (proxy) #1: 1277 ms = read 319 + prepare 44 + chain-and-display 654 [preprocess=246 ms, enhance_basic=249 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 257
+       LOG [18:46:35.690] Chain ai_bone_suppress: NotRequested — switched off
+       LOG [18:46:35.690] Chain gsvg: NotRequested — switched off
+       LOG [18:46:35.690] Chain enhance_basic: Applied — enhance_basic: log ok 26 ms; noise(bilateral 3/50) ok 58 ms; contrast(clahe 3 8x8) ok 65 ms; edge(usm 0.5/2/10) ok 40 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+       LOG [18:46:35.690] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out; requested=[offset:Auto,gain:Auto,defect:Auto]; executed=[offset,gain,defect]; nativeFlags=0x201c; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; 3072x3072 (Abdomen). uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       LOG [18:46:35.689] ALERT WARN NATIVE_ALERT: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+       LOG [18:46:35.689] ALERT WARN NATIVE_ALERT: XPE_WARN_CALIB_SESSION_UNSPECIFIED: calibration maps are loaded together and at least one carries no session id (empty or generated); session consistency is checked only between maps that carry one
+       LOG [18:46:35.687] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+       LOG [18:46:35.576] Native module audit (after the first chain): pinned folder 'D:\workspace-github\image-processing\build\e2e-native-dlls'; 6 native module(s) loaded, 6 from the pinned folder, 0 from elsewhere.
+       LOG [18:46:35.558] ai_bone_suppress: NotRequested — switched off
+       LOG [18:46:35.558] gsvg: NotRequested — switched off
+       LOG [18:46:35.558] enhance_basic: Applied — enhance_basic: log ok 26 ms; noise(bilateral 3/50) ok 58 ms; contrast(clahe 3 8x8) ok 65 ms; edge(usm 0.5/2/10) ok 40 ms; to 16 bit: round-half-even, clamped below 0 above 0; input: the corrected float image
+       LOG [18:46:35.558] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out; requested=[offset:Auto,gain:Auto,defect:Auto]; executed=[offset,gain,defect]; nativeFlags=0x201c; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; 3072x3072 (Abdomen). uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       LOG [18:46:35.292] Drained 2 native alert(s) from the xpe_common queue.
+       LOG [18:46:35.035] Display pipeline requested: mode=Linear, bodyPart=Abdomen, center=32768, width=65535, GSDF=False, calibrationEval=[Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto].
+       LOG [18:46:35.010] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw'.
+       LOG [18:46:34.671] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\wrist_lat_3072x3072.raw') invoked.
+       LOG [18:46:26.583] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+       LOG [18:46:26.583] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+       LOG [18:46:26.582] Native module audit (after initialisation): pinned folder 'D:\workspace-github\image-processing\build\e2e-native-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+       LOG [18:46:26.574] Display version = 1.0.0
+       LOG [18:46:26.574] xpe_display.dll = D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_display.dll
+       LOG [18:46:26.574] xpe_common.dll = D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_common.dll
+       LOG [18:46:26.574] Requested backend mode = Native
+       LOG [18:46:26.574] RealXpeBackend bootstrap started.
+       LOG [18:46:26.567] --- backend re-initialised ---
+       LOG [18:46:26.564] GUI-S0 initialized.
+ STEP 6 View > Compare Mode: Difference, Processed Only, Source Only
+    CompareDifferenceMenuItem: checked=True
+    CompareProcessedOnlyMenuItem: checked=True
+    CompareSourceOnlyMenuItem: checked=True
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W12w_TheWaitForANewRender_EndsWhenTheChainLineRepeats [2 ms]
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W11_TheDefaultDisplay_UsesTheAutomaticWindow_AndShowsAirDark [16 s]
+  Standard Output Messages:
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xA50BE8 open; app windows: 0x6C09D0 Auto-Suggest Dropdown (hidden), 0x4F40D1C Auto-Suggest Dropdown (hidden), 0xE000C98 tooltips_class32 (hidden), 0x7700C4 tooltips_class32 (hidden), 0x3DD0B6A tooltips_class32 (hidden), 0x46B0750 tooltips_class32 (hidden), 0x5C80702 tooltips_class32, 0x14405EA SysShadow, 0x76C0D18 ComboLBox (hidden), 0x76D0B28 tooltips_class32 (hidden), 0x5B50306 _SearchEditBoxFakeWindow (hidden), 0xE6A0C58 tooltips_class32 (hidden), 0x6D50D62 tooltips_class32 (hidden), 0x19007D6 HwndWrapper[ImageProcTest;;44b8638e-6968-4320-a6f7-f0b7f30658c9, 0x1B50C40 ComboLBox (hidden), 0x890B6E ComboLBox (hidden), 0xC1C0A6A WorkerW (hidden), 0x89D0B82 HwndWrapper[ImageProcTest;;a6fde269-35e7-4b21-8893-d96cd4828e08 (hidden), 0x72F08E2 HwndWrapper[ImageProcTest;;562dbf4a-f87b-4709-b23f-db70c55d7d69 (hidden), 0x1140B94 HwndWrapper[ImageProcTest;;a84791e5-ffda-496b-b356-12183f261f5d (hidden), 0x41F0B88 HwndWrapper[ImageProcTest;;5ede6a82-a4ec-473a-80b5-599e08f0af7e (hidden), 0x80E014C CiceroUIWndFrame (hidden), 0xCA047E MSCTFIME UI (hidden), 0xDF708EC IME (hidden), 0x691029E CiceroUIWndFrame (hidden)
+    native (+207 ms): dialog 0xA50BE8 gone; app windows: 0x19007D6 HwndWrapper[ImageProcTest;;44b8638e-6968-4320-a6f7-f0b7f30658c9, 0x89D0B82 HwndWrapper[ImageProcTest;;a6fde269-35e7-4b21-8893-d96cd4828e08 (hidden), 0x72F08E2 HwndWrapper[ImageProcTest;;562dbf4a-f87b-4709-b23f-db70c55d7d69 (hidden), 0x1140B94 HwndWrapper[ImageProcTest;;a84791e5-ffda-496b-b356-12183f261f5d (hidden), 0x41F0B88 HwndWrapper[ImageProcTest;;5ede6a82-a4ec-473a-80b5-599e08f0af7e (hidden), 0x80E014C CiceroUIWndFrame (hidden), 0xCA047E MSCTFIME UI (hidden), 0xDF708EC IME (hidden), 0x691029E CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    ok: preprocess=Applied
+    display summary: [18:47:08.781] CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+    automatic window: C=2580.347 W=1198.496
+    drawn frame 3072x3072: share of pixels below 32/255 = 87.1%; at 255 = 0.06%; p5/p50/p95/p99 = 0/0/162/227
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=239 ms, enhance_basic=253 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    status bar: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off) | Exposure index: uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15c_SwipeVertical_TheTimeIsDisclosed_NotJudged [42 s]
+  Standard Output Messages:
+    [swipe] watched area (screen pixels): {X=678,Y=578,Width=884,Height=438}
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xE90906 open; app windows: 0x4AD0ACA Auto-Suggest Dropdown (hidden), 0x7800C4 Auto-Suggest Dropdown (hidden), 0x517037E tooltips_class32 (hidden), 0x1BF0BEC tooltips_class32 (hidden), 0x7B80A5A tooltips_class32 (hidden), 0x5BE0B4E _SearchEditBoxFakeWindow (hidden), 0x9560A24 tooltips_class32 (hidden), 0x860CAC tooltips_class32 (hidden), 0x4CB06A6 tooltips_class32 (hidden), 0xDF808EC tooltips_class32 (hidden), 0xB920CB6 tooltips_class32 (hidden), 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x76F0B28 ComboLBox (hidden), 0x6A10C60 ComboLBox (hidden), 0x4BE0B4C ComboLBox (hidden), 0x6A60D60 WorkerW (hidden), 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    native (+208 ms): dialog 0xE90906 gone; app windows: 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+    [swipe] open-to-2nd-tick (proxy) #1: 1291 ms = read 323 + prepare 41 + chain-and-display 661 [preprocess=249 ms, enhance_basic=254 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 263
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x78008E2 open; app windows: 0xB10C4A Auto-Suggest Dropdown (hidden), 0xC1A00E8 Auto-Suggest Dropdown (hidden), 0x4EF0B16 tooltips_class32 (hidden), 0x1C50C66 tooltips_class32 (hidden), 0x4450940 tooltips_class32 (hidden), 0x5480C4C _SearchEditBoxFakeWindow (hidden), 0x598044A tooltips_class32 (hidden), 0x150C6C tooltips_class32 (hidden), 0x56D0D10 tooltips_class32 (hidden), 0x6C00D48 tooltips_class32 (hidden), 0x4760BA4 tooltips_class32 (hidden), 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x1690CC2 ComboLBox (hidden), 0x4BA05C4 ComboLBox (hidden), 0x13FF05F8 ComboLBox (hidden), 0x5E00B4E WorkerW (hidden), 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    native (+208 ms): dialog 0x78008E2 gone; app windows: 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #2:'
+    [swipe] open-to-2nd-tick (proxy) #2: 1207 ms = read 317 + prepare 6 + chain-and-display 634 [preprocess=260 ms, enhance_basic=259 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 250
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x8AF0BBC open; app windows: 0x9AC0B00 Auto-Suggest Dropdown (hidden), 0x2950D0E Auto-Suggest Dropdown (hidden), 0x8420A20 tooltips_class32 (hidden), 0xDFF08EC tooltips_class32 (hidden), 0x8C40974 tooltips_class32 (hidden), 0xE40994 _SearchEditBoxFakeWindow (hidden), 0x1C10BEC tooltips_class32 (hidden), 0x77E06B8 tooltips_class32 (hidden), 0x6E10430 tooltips_class32 (hidden), 0x60C0A3C tooltips_class32 (hidden), 0x39B0CF0 tooltips_class32 (hidden), 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x48309AC ComboLBox (hidden), 0x4C00B4C ComboLBox (hidden), 0xA60B36 ComboLBox (hidden), 0x5D0C8A WorkerW (hidden), 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    native (+206 ms): dialog 0x8AF0BBC gone; app windows: 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #3:'
+    [swipe] open-to-2nd-tick (proxy) #3: 1175 ms = read 315 + prepare 6 + chain-and-display 604 [preprocess=243 ms, enhance_basic=244 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 250
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xE810C58 open; app windows: 0x9720594 Auto-Suggest Dropdown (hidden), 0x5230B64 Auto-Suggest Dropdown (hidden), 0xA4809E4 tooltips_class32 (hidden), 0x6B90CC8 tooltips_class32 (hidden), 0xDD70638 tooltips_class32 (hidden), 0x816014C _SearchEditBoxFakeWindow (hidden), 0x19507D6 tooltips_class32 (hidden), 0x77F02F4 tooltips_class32 (hidden), 0x5CD018E tooltips_class32 (hidden), 0x3A70CDA tooltips_class32 (hidden), 0x33E0B5E tooltips_class32 (hidden), 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x9AE0B00 ComboLBox (hidden), 0x4BC05C4 ComboLBox (hidden), 0x78208E2 ComboLBox (hidden), 0x7440D62 WorkerW (hidden), 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    native (+205 ms): dialog 0xE810C58 gone; app windows: 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #4:'
+    [swipe] open-to-2nd-tick (proxy) #4: 1166 ms = read 314 + prepare 6 + chain-and-display 593 [preprocess=233 ms, enhance_basic=243 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 252
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x8C30C86 open; app windows: 0xE840C58 Auto-Suggest Dropdown (hidden), 0x9740594 Auto-Suggest Dropdown (hidden), 0x3800BCA tooltips_class32 (hidden), 0x51E0BA4 tooltips_class32 (hidden), 0x8460A20 tooltips_class32 (hidden), 0xB280C80 _SearchEditBoxFakeWindow (hidden), 0x9F7032A tooltips_class32 (hidden), 0x5C70C9C tooltips_class32 (hidden), 0x5BB0306 tooltips_class32 (hidden), 0x5E70B4E tooltips_class32 (hidden), 0x78308E2 tooltips_class32 (hidden), 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x81A014C ComboLBox (hidden), 0x6450342 ComboLBox (hidden), 0x7920A0A ComboLBox (hidden), 0x15D098A WorkerW (hidden), 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    native (+217 ms): dialog 0x8C30C86 gone; app windows: 0x435087C HwndWrapper[ImageProcTest;;d73bad55-ec5c-4848-ac61-539a20321d64, 0x4780640 HwndWrapper[ImageProcTest;;391680e3-0c68-464c-b478-4e867a47ef7f (hidden), 0x4B8080A HwndWrapper[ImageProcTest;;d0a5ec9a-d035-49ea-b7c7-75411f2e8826 (hidden), 0x43D0950 HwndWrapper[ImageProcTest;;7399dd5b-3400-48d9-b813-c81f6f80c76b (hidden), 0xD00BFE HwndWrapper[ImageProcTest;;4b9e6669-d82a-484b-b9f9-cb1921821819 (hidden), 0x4FD0232 MSCTFIME UI (hidden), 0x7D609D8 IME (hidden), 0x75008E CiceroUIWndFrame (hidden), 0x2090234 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #5:'
+    [swipe] open-to-2nd-tick (proxy) #5: 1154 ms = read 316 + prepare 4 + chain-and-display 586 [preprocess=237 ms, enhance_basic=238 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 4 + render 244
+    [swipe] screen: 131 captures (every 20.2 ms); settled on the processed reference=True (ok); picture seen between 1371 and 1420 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1236 ms (66 captures)
+    [swipe] screen: open 1 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [swipe] screen: 120 captures (every 21.2 ms); settled on the processed reference=True (ok); picture seen between 1272 and 1324 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1236 ms (60 captures)
+    [swipe] screen: open 2 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [swipe] screen: 126 captures (every 20.6 ms); settled on the processed reference=True (ok); picture seen between 1259 and 1283 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1326 ms (65 captures)
+    [swipe] screen: open 3 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [swipe] screen: 126 captures (every 20.5 ms); settled on the processed reference=True (ok); picture seen between 1236 and 1264 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1328 ms (68 captures)
+    [swipe] screen: open 4 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [swipe] screen: 131 captures (every 20.2 ms); settled on the processed reference=True (ok); picture seen between 1218 and 1254 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1390 ms (71 captures)
+    [swipe] screen: open 5 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    | open | proxy ms (app: read start -> 2nd tick) | screen ms (confirmation -> processed picture seen, no later than) | not yet there at | screen - proxy |
+    | 1 | 1291 | 1420 | 1371 | +129 |
+    | 2 | 1207 | 1324 | 1272 | +117 |
+    | 3 | 1175 | 1283 | 1259 | +108 |
+    | 4 | 1166 | 1264 | 1236 | +98 |
+    | 5 | 1154 | 1254 | 1218 | +100 |
+    DISCLOSURE ONLY (SwipeVertical, the default mode; the U8 verdict is W15 in ProcessedOnly): proxy median 1175 ms; screen median 1283 ms (all 5 opens validly observed)
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W8_SwitchEnablesRunPreprocessing_AndAWrongRawSizeIsRefused [29 s]
+  Standard Output Messages:
+ STEP A: started on Mock, then Backend > Backend Mode > Native
+    Run Preprocessing enabled on Mock: False
+    ok: Native
+    Run Preprocessing enabled right after the switch: True
+ STEP B: the settings say 1024x1024, the file is 3072x3072 (square)
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x3190AB6 open; app windows: 0x4A00A82 Auto-Suggest Dropdown (hidden), 0xAFC0B3E Auto-Suggest Dropdown (hidden), 0x5C90C9C tooltips_class32 (hidden), 0x6C20D60 tooltips_class32 (hidden), 0x437087C tooltips_class32 (hidden), 0x7D809D8 tooltips_class32 (hidden), 0xFA0906 ComboLBox (hidden), 0x68E0D6C tooltips_class32 (hidden), 0x78A0254 _SearchEditBoxFakeWindow (hidden), 0x2280614 tooltips_class32 (hidden), 0x15E098A tooltips_class32 (hidden), 0x115093C tooltips_class32 (hidden), 0x8090AAC HwndWrapper[ImageProcTest;;b9e3859a-447a-4b72-a829-3840aafdb8ee, 0xDEA0AB4 ComboLBox (hidden), 0x5D0AC8 ComboLBox (hidden), 0xA4F0C76 WorkerW (hidden), 0xBA60B96 HwndWrapper[ImageProcTest;;b7a7349c-f150-4d05-9bab-f4a5e94cf9bf (hidden), 0x1D606EE HwndWrapper[ImageProcTest;;e38d9483-e784-4538-bcfa-f8fbc8892546 (hidden), 0x7B60898 HwndWrapper[ImageProcTest;;bd427488-385c-46dd-a224-1628573ff588 (hidden), 0x920C2C HwndWrapper[ImageProcTest;;cc65c7c0-38ac-4d8b-91da-34bd798eaa54 (hidden), 0x1C30B5C CiceroUIWndFrame (hidden), 0x8C0B6E MSCTFIME UI (hidden), 0x730C1C IME (hidden), 0x1B80C40 CiceroUIWndFrame (hidden)
+    native (+213 ms): dialog 0x3190AB6 gone; app windows: 0x8090AAC HwndWrapper[ImageProcTest;;b9e3859a-447a-4b72-a829-3840aafdb8ee, 0xBA60B96 HwndWrapper[ImageProcTest;;b7a7349c-f150-4d05-9bab-f4a5e94cf9bf (hidden), 0x1D606EE HwndWrapper[ImageProcTest;;e38d9483-e784-4538-bcfa-f8fbc8892546 (hidden), 0x7B60898 HwndWrapper[ImageProcTest;;bd427488-385c-46dd-a224-1628573ff588 (hidden), 0x920C2C HwndWrapper[ImageProcTest;;cc65c7c0-38ac-4d8b-91da-34bd798eaa54 (hidden), 0x1C30B5C CiceroUIWndFrame (hidden), 0x8C0B6E MSCTFIME UI (hidden), 0x730C1C IME (hidden), 0x1B80C40 CiceroUIWndFrame (hidden)
+    ok: the square file is refused with the numbers
+ STEP B: a 1000x500 file (not square, not the settings' size)
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x9760594 open; app windows: 0x2180116 Auto-Suggest Dropdown (hidden), 0x5810B16 Auto-Suggest Dropdown (hidden), 0x48B09AC tooltips_class32 (hidden), 0xC7900E8 tooltips_class32 (hidden), 0x2820724 tooltips_class32 (hidden), 0xC9F0D42 tooltips_class32 (hidden), 0x3AE0CDA ComboLBox (hidden), 0x7BD072E tooltips_class32 (hidden), 0x3C0A72 _SearchEditBoxFakeWindow (hidden), 0x930C2C tooltips_class32 (hidden), 0x1C40B5C tooltips_class32 (hidden), 0x62F0C14 tooltips_class32 (hidden), 0x6470342 HwndWrapper[ImageProcTest;;ec1d43ea-abc4-46ab-a57e-24eca5b69811, 0x370C6C ComboLBox (hidden), 0x7C00A5A ComboLBox (hidden), 0x940188 WorkerW (hidden), 0x4C50B4C HwndWrapper[ImageProcTest;;7c6d9e69-5be5-4b4a-aedf-948188b99043 (hidden), 0x4EB0A32 HwndWrapper[ImageProcTest;;07d2a25e-e0a3-4a05-baa8-43de0e78966a (hidden), 0x19A07D6 HwndWrapper[ImageProcTest;;a5009321-6d13-4026-ab9e-ce4e0a38b049 (hidden), 0x61B0A3C HwndWrapper[ImageProcTest;;fb614873-9301-44dc-bdf3-cf9c81da622e (hidden), 0xBA00C4 CiceroUIWndFrame (hidden), 0x2FC00E4 MSCTFIME UI (hidden), 0x7940A0A IME (hidden), 0x7790B28 CiceroUIWndFrame (hidden)
+    native (+217 ms): dialog 0x9760594 gone; app windows: 0x6470342 HwndWrapper[ImageProcTest;;ec1d43ea-abc4-46ab-a57e-24eca5b69811, 0x4C50B4C HwndWrapper[ImageProcTest;;7c6d9e69-5be5-4b4a-aedf-948188b99043 (hidden), 0x4EB0A32 HwndWrapper[ImageProcTest;;07d2a25e-e0a3-4a05-baa8-43de0e78966a (hidden), 0x19A07D6 HwndWrapper[ImageProcTest;;a5009321-6d13-4026-ab9e-ce4e0a38b049 (hidden), 0x61B0A3C HwndWrapper[ImageProcTest;;fb614873-9301-44dc-bdf3-cf9c81da622e (hidden), 0xBA00C4 CiceroUIWndFrame (hidden), 0x2FC00E4 MSCTFIME UI (hidden), 0x7940A0A IME (hidden), 0x7790B28 CiceroUIWndFrame (hidden)
+    ok: the refusal names the numbers
+ STEP B: a 2000x1100 file (not square, not the settings' size)
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x18C0C4A open; app windows: 0x3B20CF0 Auto-Suggest Dropdown (hidden), 0x1C60B5C Auto-Suggest Dropdown (hidden), 0x5830B16 tooltips_class32 (hidden), 0x4B40C6A tooltips_class32 (hidden), 0x6950D6C tooltips_class32 (hidden), 0xB2B0C80 tooltips_class32 (hidden), 0x3D0A72 ComboLBox (hidden), 0x27E0A96 tooltips_class32 (hidden), 0x7C10A5A _SearchEditBoxFakeWindow (hidden), 0x61C0A3C tooltips_class32 (hidden), 0xBB00C4 tooltips_class32 (hidden), 0x5F0176 tooltips_class32 (hidden), 0xDEC0AB4 HwndWrapper[ImageProcTest;;c2d63cc3-51c9-4ceb-af69-bb62f5eba73b, 0x8490A20 ComboLBox (hidden), 0xCA907F4 ComboLBox (hidden), 0xDE10638 WorkerW (hidden), 0x8430BAC HwndWrapper[ImageProcTest;;b06c911f-8980-4c6c-b9d5-652589bb91a3 (hidden), 0x3D30B58 HwndWrapper[ImageProcTest;;3d5f177e-3ad5-4b83-bb75-27145fcae014 (hidden), 0x3060C2E HwndWrapper[ImageProcTest;;28d562b6-3226-43d7-8b31-69033b37b81d (hidden), 0x4D90C96 HwndWrapper[ImageProcTest;;0a8fdbcc-7adc-4600-976d-e906f25ebcde (hidden), 0x29B0914 CiceroUIWndFrame (hidden), 0x50306A6 MSCTFIME UI (hidden), 0x660C8A IME (hidden), 0xA230584 CiceroUIWndFrame (hidden)
+    native (+203 ms): dialog 0x18C0C4A gone; app windows: 0xDEC0AB4 HwndWrapper[ImageProcTest;;c2d63cc3-51c9-4ceb-af69-bb62f5eba73b, 0x8430BAC HwndWrapper[ImageProcTest;;b06c911f-8980-4c6c-b9d5-652589bb91a3 (hidden), 0x3D30B58 HwndWrapper[ImageProcTest;;3d5f177e-3ad5-4b83-bb75-27145fcae014 (hidden), 0x3060C2E HwndWrapper[ImageProcTest;;28d562b6-3226-43d7-8b31-69033b37b81d (hidden), 0x4D90C96 HwndWrapper[ImageProcTest;;0a8fdbcc-7adc-4600-976d-e906f25ebcde (hidden), 0x29B0914 CiceroUIWndFrame (hidden), 0x50306A6 MSCTFIME UI (hidden), 0x660C8A IME (hidden), 0xA230584 CiceroUIWndFrame (hidden)
+    ok: the refusal names the numbers
+
+
+[xUnit.net 00:02:24.98]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings [SKIP]
+[xUnit.net 00:02:24.98]       XPE_C247_CALIB/XPE_C247_RAW not set - the real-frame set is not in the repository. Last run by hand on 2026-10-15 against calib-cyan-v3 (GUI-C-247 report). XPE-SKIP-ALLOWED:272
+  Skipped ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_ARealFrameCalibrationSet_IsUsedByTheApp_WithoutWarnings [< 1 ms]
+  Error Message:
+   XPE_C247_CALIB/XPE_C247_RAW not set - the real-frame set is not in the repository. Last run by hand on 2026-10-15 against calib-cyan-v3 (GUI-C-247 report). XPE-SKIP-ALLOWED:272
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15_OpenToProcessedPicture_ProxyAndScreen_FiveOpens [41 s]
+  Standard Output Messages:
+    [W15] watched area (screen pixels): {X=808,Y=708,Width=884,Height=438}
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x16905EA open; app windows: 0x2730D64 Auto-Suggest Dropdown (hidden), 0x4B50C6A Auto-Suggest Dropdown (hidden), 0xF80994 tooltips_class32 (hidden), 0x55A0C4C tooltips_class32 (hidden), 0x960188 tooltips_class32 (hidden), 0x3750448 _SearchEditBoxFakeWindow (hidden), 0xA700A24 tooltips_class32 (hidden), 0x50406A6 tooltips_class32 (hidden), 0x29C0914 tooltips_class32 (hidden), 0xBA70CB6 tooltips_class32 (hidden), 0xE60D08 tooltips_class32 (hidden), 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x7C20A5A ComboLBox (hidden), 0x454087C ComboLBox (hidden), 0x560037E ComboLBox (hidden), 0x1BC0C40 WorkerW (hidden), 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    native (+208 ms): dialog 0x16905EA gone; app windows: 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+    [W15] open-to-2nd-tick (proxy) #1: 1299 ms = read 323 + prepare 41 + chain-and-display 665 [preprocess=258 ms, enhance_basic=249 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 268
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xC00B6E open; app windows: 0x31E0AB6 Auto-Suggest Dropdown (hidden), 0x61F0A3C Auto-Suggest Dropdown (hidden), 0x3F90D66 tooltips_class32 (hidden), 0x30400E4 tooltips_class32 (hidden), 0x9390974 tooltips_class32 (hidden), 0x4FE09E2 _SearchEditBoxFakeWindow (hidden), 0x620176 tooltips_class32 (hidden), 0x3850A3E tooltips_class32 (hidden), 0x1E005BC tooltips_class32 (hidden), 0x5C0CA6 tooltips_class32 (hidden), 0x1DD0C16 tooltips_class32 (hidden), 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x1090CAC ComboLBox (hidden), 0xDB00B8 ComboLBox (hidden), 0x4E80B88 ComboLBox (hidden), 0xD40BE6 WorkerW (hidden), 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    native (+214 ms): dialog 0xC00B6E gone; app windows: 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #2:'
+    [W15] open-to-2nd-tick (proxy) #2: 1167 ms = read 310 + prepare 7 + chain-and-display 606 [preprocess=263 ms, enhance_basic=230 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 244
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x7790406 open; app windows: 0xC20B6E Auto-Suggest Dropdown (hidden), 0xFD0994 Auto-Suggest Dropdown (hidden), 0x9550B82 tooltips_class32 (hidden), 0x37C0448 tooltips_class32 (hidden), 0x6DD063A tooltips_class32 (hidden), 0xA2B0584 _SearchEditBoxFakeWindow (hidden), 0x7CB0CA4 tooltips_class32 (hidden), 0x4CC0B4C tooltips_class32 (hidden), 0x7510B2E tooltips_class32 (hidden), 0xB340C80 tooltips_class32 (hidden), 0x4E90B88 tooltips_class32 (hidden), 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x10580CBC ComboLBox (hidden), 0x1BE0C40 ComboLBox (hidden), 0x86008E ComboLBox (hidden), 0x8BA0BBC WorkerW (hidden), 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    native (+204 ms): dialog 0x7790406 gone; app windows: 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #3:'
+    [W15] open-to-2nd-tick (proxy) #3: 1142 ms = read 309 + prepare 5 + chain-and-display 581 [preprocess=241 ms, enhance_basic=224 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 246
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xEF0D08 open; app windows: 0x8470A80 Auto-Suggest Dropdown (hidden), 0x4C505C4 Auto-Suggest Dropdown (hidden), 0x5510672 tooltips_class32 (hidden), 0x5000A32 tooltips_class32 (hidden), 0x27A0D64 tooltips_class32 (hidden), 0x9E0188 _SearchEditBoxFakeWindow (hidden), 0x58A0B16 tooltips_class32 (hidden), 0x2140234 tooltips_class32 (hidden), 0x457087C tooltips_class32 (hidden), 0x7BD0898 tooltips_class32 (hidden), 0x16C05EA tooltips_class32 (hidden), 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x9570B82 ComboLBox (hidden), 0xDF10AB4 ComboLBox (hidden), 0x6D60A76 ComboLBox (hidden), 0xB1906E4 WorkerW (hidden), 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    native (+207 ms): dialog 0xEF0D08 gone; app windows: 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #4:'
+    [W15] open-to-2nd-tick (proxy) #4: 1138 ms = read 318 + prepare 4 + chain-and-display 579 [preprocess=243 ms, enhance_basic=226 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 236
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xC8000E8 open; app windows: 0x3240AB6 Auto-Suggest Dropdown (hidden), 0x7BE0898 Auto-Suggest Dropdown (hidden), 0x6380C14 tooltips_class32 (hidden), 0x7D20CA4 tooltips_class32 (hidden), 0x6080C10 tooltips_class32 (hidden), 0x50E0232 _SearchEditBoxFakeWindow (hidden), 0x2200D2A tooltips_class32 (hidden), 0x58B0D10 tooltips_class32 (hidden), 0x7CD0A5A tooltips_class32 (hidden), 0xBC0B36 tooltips_class32 (hidden), 0x12810D14 tooltips_class32 (hidden), 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x8490A80 ComboLBox (hidden), 0x50D09C4 ComboLBox (hidden), 0x3E30B58 ComboLBox (hidden), 0x77609AA WorkerW (hidden), 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    native (+214 ms): dialog 0xC8000E8 gone; app windows: 0x5220BA4 HwndWrapper[ImageProcTest;;994068f4-8f7b-45e3-9d75-ecdaefdcf863, 0x3450B5E HwndWrapper[ImageProcTest;;fbc6527c-fb8e-423e-be93-0934268d1468 (hidden), 0x8C70C86 HwndWrapper[ImageProcTest;;716d64e2-f49c-4963-859b-2719b823fef0 (hidden), 0x390C6C HwndWrapper[ImageProcTest;;d0ade185-9c3f-493b-a101-26b97fa69f93 (hidden), 0xA1F0CCE HwndWrapper[ImageProcTest;;bf6c2f0d-b08c-4e1c-b89e-0f80cb22e4d2 (hidden), 0x60C0978 MSCTFIME UI (hidden), 0x1730CC2 IME (hidden), 0x6EF05FA CiceroUIWndFrame (hidden), 0x78908E2 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #5:'
+    [W15] open-to-2nd-tick (proxy) #5: 1150 ms = read 314 + prepare 6 + chain-and-display 592 [preprocess=241 ms, enhance_basic=229 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 239
+    [W15] screen: 131 captures (every 20.2 ms); settled on the processed reference=True (ok); picture seen between 1405 and 1434 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1212 ms (62 captures)
+    [W15] screen: open 1 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [W15] screen: 123 captures (every 20.4 ms); settled on the processed reference=True (ok); picture seen between 1255 and 1279 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1248 ms (64 captures)
+    [W15] screen: open 2 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [W15] screen: 131 captures (every 20.1 ms); settled on the processed reference=True (ok); picture seen between 1230 and 1276 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1368 ms (70 captures)
+    [W15] screen: open 3 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [W15] screen: 129 captures (every 20.8 ms); settled on the processed reference=True (ok); picture seen between 1230 and 1257 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1425 ms (73 captures)
+    [W15] screen: open 4 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [W15] screen: 132 captures (every 20.3 ms); settled on the processed reference=True (ok); picture seen between 1239 and 1268 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1413 ms (71 captures)
+    [W15] screen: open 5 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    | open | proxy ms (app: read start -> 2nd tick) | screen ms (confirmation -> processed picture seen, no later than) | not yet there at | screen - proxy |
+    | 1 | 1299 | 1434 | 1405 | +135 |
+    | 2 | 1167 | 1279 | 1255 | +112 |
+    | 3 | 1142 | 1276 | 1230 | +134 |
+    | 4 | 1138 | 1257 | 1230 | +119 |
+    | 5 | 1150 | 1268 | 1239 | +118 |
+    screenshots of each open's final capture: C:\Users\drake\AppData\Local\Temp\xpe_w15_shots_184832
+    medians (ms): proxy 1150, screen 1276, screen - proxy +119   (this machine's observation, with the observer running)
+    U8 verdict BY THE SCREEN (5 of 5 opens validly observed, each shown to end on the processed picture): screen median 1276 ms, limit 3000 ms (PERF-P1-001) -> PASS.
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W12_OneFrame_RunPreprocessingToThePicture_FiveTimes [26 s]
+  Standard Output Messages:
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x1DE06EE open; app windows: 0x1D30BEC Auto-Suggest Dropdown (hidden), 0x105E0CBC Auto-Suggest Dropdown (hidden), 0x21A0234 tooltips_class32 (hidden), 0x4BF0C6A tooltips_class32 (hidden), 0x5240BA4 tooltips_class32 (hidden), 0x60D0978 tooltips_class32 (hidden), 0x17105EA ComboLBox (hidden), 0xCC0B6E tooltips_class32 (hidden), 0x4E90C34 _SearchEditBoxFakeWindow (hidden), 0xB1C06E4 tooltips_class32 (hidden), 0xC8100E8 tooltips_class32 (hidden), 0x77B09AA tooltips_class32 (hidden), 0x2B0095C HwndWrapper[ImageProcTest;;f3f08340-72e6-4b84-b25c-508cf075db3f, 0xE190C98 ComboLBox (hidden), 0x5B1044A ComboLBox (hidden), 0x9D10B04 WorkerW (hidden), 0x4580940 HwndWrapper[ImageProcTest;;defcd2ef-498e-4fc3-a063-805130ad2112 (hidden), 0x84B0A20 HwndWrapper[ImageProcTest;;69cc26f3-179f-48f9-b991-f3cafd6d8dcb (hidden), 0x7DD09D8 HwndWrapper[ImageProcTest;;5b2cbb52-c045-48fd-ba97-60d2f8d4e968 (hidden), 0xB000B3E HwndWrapper[ImageProcTest;;8d4a800b-6ece-449a-93b1-e4c2b327c595 (hidden), 0x7A70254 CiceroUIWndFrame (hidden), 0xE1208EC MSCTFIME UI (hidden), 0x4A40A82 IME (hidden), 0xCAB07F4 CiceroUIWndFrame (hidden)
+    native (+216 ms): dialog 0x1DE06EE gone; app windows: 0x2B0095C HwndWrapper[ImageProcTest;;f3f08340-72e6-4b84-b25c-508cf075db3f, 0x4580940 HwndWrapper[ImageProcTest;;defcd2ef-498e-4fc3-a063-805130ad2112 (hidden), 0x84B0A20 HwndWrapper[ImageProcTest;;69cc26f3-179f-48f9-b991-f3cafd6d8dcb (hidden), 0x7DD09D8 HwndWrapper[ImageProcTest;;5b2cbb52-c045-48fd-ba97-60d2f8d4e968 (hidden), 0xB000B3E HwndWrapper[ImageProcTest;;8d4a800b-6ece-449a-93b1-e4c2b327c595 (hidden), 0x7A70254 CiceroUIWndFrame (hidden), 0xE1208EC MSCTFIME UI (hidden), 0x4A40A82 IME (hidden), 0xCAB07F4 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    open -> summary on screen (includes the dialog driving): 3191 ms
+    ok: the chain and the picture are done
+    run 1: wall 1685 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=250 ms, enhance_basic=247 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    ok: the chain and the picture are done
+    run 2: wall 1812 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=245 ms, enhance_basic=244 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    ok: the chain and the picture are done
+    run 3: wall 1406 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=234 ms, enhance_basic=241 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    ok: the chain and the picture are done
+    run 4: wall 1387 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=233 ms, enhance_basic=236 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    ok: the chain and the picture are done
+    run 5: wall 1625 ms; chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=235 ms, enhance_basic=233 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    wall times (ms): 1685, 1812, 1406, 1387, 1625; median 1625 ms (limit 3000 ms, PERF-P1-001)
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W15b_TheScreenValue_FollowsAnArtificialRenderDelay [1 m 3 s]
+  Standard Output Messages:
+    [no-delay] watched area (screen pixels): {X=340,Y=240,Width=884,Height=438}
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x30D0C2E open; app windows: 0x63B0C14 Auto-Suggest Dropdown (hidden), 0x3470B5E Auto-Suggest Dropdown (hidden), 0x5260BA4 tooltips_class32 (hidden), 0x2850D64 tooltips_class32 (hidden), 0x1EB0C16 tooltips_class32 (hidden), 0x5130750 _SearchEditBoxFakeWindow (hidden), 0xC4E0CE8 tooltips_class32 (hidden), 0x3B50CF0 tooltips_class32 (hidden), 0x1E00C66 tooltips_class32 (hidden), 0x7D20A5A tooltips_class32 (hidden), 0xE1308EC tooltips_class32 (hidden), 0x9B008E HwndWrapper[ImageProcTest;;7c479c54-3dec-4f42-9d13-affc152b6330, 0x2B00914 ComboLBox (hidden), 0x51906A6 ComboLBox (hidden), 0x7C00898 ComboLBox (hidden), 0x40A0440 WorkerW (hidden), 0x2260116 HwndWrapper[ImageProcTest;;599a7145-14a1-4128-922a-85999fdbb5e5 (hidden), 0x670AC8 HwndWrapper[ImageProcTest;;804dac92-278b-4b25-b3af-f824bc96e8c9 (hidden), 0x6AE0C60 HwndWrapper[ImageProcTest;;8ae9a893-0814-4a56-b7eb-f8223b96790a (hidden), 0xF507C0 HwndWrapper[ImageProcTest;;ead7b9e4-06e8-425d-b0d6-a2690cbb51df (hidden), 0x26407D6 MSCTFIME UI (hidden), 0x3E50B58 IME (hidden), 0x7E808B0 CiceroUIWndFrame (hidden), 0x4BB080A CiceroUIWndFrame (hidden)
+    native (+211 ms): dialog 0x30D0C2E gone; app windows: 0x9B008E HwndWrapper[ImageProcTest;;7c479c54-3dec-4f42-9d13-affc152b6330, 0x2260116 HwndWrapper[ImageProcTest;;599a7145-14a1-4128-922a-85999fdbb5e5 (hidden), 0x670AC8 HwndWrapper[ImageProcTest;;804dac92-278b-4b25-b3af-f824bc96e8c9 (hidden), 0x6AE0C60 HwndWrapper[ImageProcTest;;8ae9a893-0814-4a56-b7eb-f8223b96790a (hidden), 0xF507C0 HwndWrapper[ImageProcTest;;ead7b9e4-06e8-425d-b0d6-a2690cbb51df (hidden), 0x26407D6 MSCTFIME UI (hidden), 0x3E50B58 IME (hidden), 0x7E808B0 CiceroUIWndFrame (hidden), 0x4BB080A CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+    [no-delay] open-to-2nd-tick (proxy) #1: 1315 ms = read 325 + prepare 60 + chain-and-display 666 [preprocess=253 ms, enhance_basic=260 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 263
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x3110C2E open; app windows: 0x6570342 Auto-Suggest Dropdown (hidden), 0xA6F032A Auto-Suggest Dropdown (hidden), 0x5180750 tooltips_class32 (hidden), 0xA260CCE tooltips_class32 (hidden), 0x90F0D62 tooltips_class32 (hidden), 0xDE50638 _SearchEditBoxFakeWindow (hidden), 0x4420CDA tooltips_class32 (hidden), 0x5F20B4E tooltips_class32 (hidden), 0x8CB0C86 tooltips_class32 (hidden), 0x7D2072E tooltips_class32 (hidden), 0x97F0594 tooltips_class32 (hidden), 0x9B008E HwndWrapper[ImageProcTest;;7c479c54-3dec-4f42-9d13-affc152b6330, 0xD100C4 ComboLBox (hidden), 0x7C10898 ComboLBox (hidden), 0x4C30C6A ComboLBox (hidden), 0x51109C4 WorkerW (hidden), 0x2260116 HwndWrapper[ImageProcTest;;599a7145-14a1-4128-922a-85999fdbb5e5 (hidden), 0x670AC8 HwndWrapper[ImageProcTest;;804dac92-278b-4b25-b3af-f824bc96e8c9 (hidden), 0x6AE0C60 HwndWrapper[ImageProcTest;;8ae9a893-0814-4a56-b7eb-f8223b96790a (hidden), 0xF507C0 HwndWrapper[ImageProcTest;;ead7b9e4-06e8-425d-b0d6-a2690cbb51df (hidden), 0x26407D6 MSCTFIME UI (hidden), 0x3E50B58 IME (hidden), 0x7E808B0 CiceroUIWndFrame (hidden), 0x4BB080A CiceroUIWndFrame (hidden)
+    native (+208 ms): dialog 0x3110C2E gone; app windows: 0x9B008E HwndWrapper[ImageProcTest;;7c479c54-3dec-4f42-9d13-affc152b6330, 0x2260116 HwndWrapper[ImageProcTest;;599a7145-14a1-4128-922a-85999fdbb5e5 (hidden), 0x670AC8 HwndWrapper[ImageProcTest;;804dac92-278b-4b25-b3af-f824bc96e8c9 (hidden), 0x6AE0C60 HwndWrapper[ImageProcTest;;8ae9a893-0814-4a56-b7eb-f8223b96790a (hidden), 0xF507C0 HwndWrapper[ImageProcTest;;ead7b9e4-06e8-425d-b0d6-a2690cbb51df (hidden), 0x26407D6 MSCTFIME UI (hidden), 0x3E50B58 IME (hidden), 0x7E808B0 CiceroUIWndFrame (hidden), 0x4BB080A CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #2:'
+    [no-delay] open-to-2nd-tick (proxy) #2: 1198 ms = read 315 + prepare 7 + chain-and-display 636 [preprocess=254 ms, enhance_basic=257 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 240
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x4350440 open; app windows: 0xC10B36 Auto-Suggest Dropdown (hidden), 0x2F00C3E Auto-Suggest Dropdown (hidden), 0x2AC044C tooltips_class32 (hidden), 0x56E0C4C tooltips_class32 (hidden), 0x2B6095C tooltips_class32 (hidden), 0x6630C96 _SearchEditBoxFakeWindow (hidden), 0x1E30C66 tooltips_class32 (hidden), 0x31400E4 tooltips_class32 (hidden), 0x78D08E2 tooltips_class32 (hidden), 0x1340B94 tooltips_class32 (hidden), 0x3AF01D0 tooltips_class32 (hidden), 0x9B008E HwndWrapper[ImageProcTest;;7c479c54-3dec-4f42-9d13-affc152b6330, 0xA80188 ComboLBox (hidden), 0x5A4037E ComboLBox (hidden), 0xA5C09E4 ComboLBox (hidden), 0xD70BE6 WorkerW (hidden), 0x2260116 HwndWrapper[ImageProcTest;;599a7145-14a1-4128-922a-85999fdbb5e5 (hidden), 0x670AC8 HwndWrapper[ImageProcTest;;804dac92-278b-4b25-b3af-f824bc96e8c9 (hidden), 0x6AE0C60 HwndWrapper[ImageProcTest;;8ae9a893-0814-4a56-b7eb-f8223b96790a (hidden), 0xF507C0 HwndWrapper[ImageProcTest;;ead7b9e4-06e8-425d-b0d6-a2690cbb51df (hidden), 0x26407D6 MSCTFIME UI (hidden), 0x3E50B58 IME (hidden), 0x7E808B0 CiceroUIWndFrame (hidden), 0x4BB080A CiceroUIWndFrame (hidden)
+    native (+205 ms): dialog 0x4350440 gone; app windows: 0x9B008E HwndWrapper[ImageProcTest;;7c479c54-3dec-4f42-9d13-affc152b6330, 0x2260116 HwndWrapper[ImageProcTest;;599a7145-14a1-4128-922a-85999fdbb5e5 (hidden), 0x670AC8 HwndWrapper[ImageProcTest;;804dac92-278b-4b25-b3af-f824bc96e8c9 (hidden), 0x6AE0C60 HwndWrapper[ImageProcTest;;8ae9a893-0814-4a56-b7eb-f8223b96790a (hidden), 0xF507C0 HwndWrapper[ImageProcTest;;ead7b9e4-06e8-425d-b0d6-a2690cbb51df (hidden), 0x26407D6 MSCTFIME UI (hidden), 0x3E50B58 IME (hidden), 0x7E808B0 CiceroUIWndFrame (hidden), 0x4BB080A CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #3:'
+    [no-delay] open-to-2nd-tick (proxy) #3: 1144 ms = read 308 + prepare 6 + chain-and-display 588 [preprocess=237 ms, enhance_basic=236 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 242
+    [no-delay] screen: 129 captures (every 20.7 ms); settled on the processed reference=True (ok); picture seen between 1416 and 1440 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1227 ms (62 captures)
+    [no-delay] screen: open 1 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [no-delay] screen: 123 captures (every 20.4 ms); settled on the processed reference=True (ok); picture seen between 1269 and 1306 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1206 ms (63 captures)
+    [no-delay] screen: open 2 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [no-delay] screen: 125 captures (every 20.2 ms); settled on the processed reference=True (ok); picture seen between 1235 and 1278 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1254 ms (64 captures)
+    [no-delay] screen: open 3 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [delay-1500] watched area (screen pixels): {X=366,Y=266,Width=884,Height=438}
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x4DA0B4C open; app windows: 0xA30C2C Auto-Suggest Dropdown (hidden), 0xC00D54 Auto-Suggest Dropdown (hidden), 0x2B9095C tooltips_class32 (hidden), 0x3510B5E tooltips_class32 (hidden), 0x1FF0694 tooltips_class32 (hidden), 0x2F90C00 _SearchEditBoxFakeWindow (hidden), 0x1D60BEC tooltips_class32 (hidden), 0x12980D14 tooltips_class32 (hidden), 0x4FA0C34 tooltips_class32 (hidden), 0x26607D6 tooltips_class32 (hidden), 0x7B0095A tooltips_class32 (hidden), 0xC20AD4 HwndWrapper[ImageProcTest;;e84f3ce0-8928-46c0-96ff-77304d6a105f, 0x6170978 ComboLBox (hidden), 0xE9A0C58 ComboLBox (hidden), 0xDF50AB4 ComboLBox (hidden), 0x6C20306 WorkerW (hidden), 0x7B00ABE HwndWrapper[ImageProcTest;;afdca635-99c4-4409-b6d2-a9cdf99c4812 (hidden), 0xE20BFE HwndWrapper[ImageProcTest;;b351b4db-04a3-4d35-8b41-dc8073ae13ec (hidden), 0x750C8A HwndWrapper[ImageProcTest;;61e88d56-747e-4695-a842-90a51f5ba1ed (hidden), 0x7DE0CA4 HwndWrapper[ImageProcTest;;e195f1e3-3c8e-40f6-8c6d-0ae59714d91b (hidden), 0x5BA09CA MSCTFIME UI (hidden), 0x1760CC2 IME (hidden), 0x6F80430 CiceroUIWndFrame (hidden), 0x3660614 CiceroUIWndFrame (hidden)
+    native (+205 ms): dialog 0x4DA0B4C gone; app windows: 0xC20AD4 HwndWrapper[ImageProcTest;;e84f3ce0-8928-46c0-96ff-77304d6a105f, 0x7B00ABE HwndWrapper[ImageProcTest;;afdca635-99c4-4409-b6d2-a9cdf99c4812 (hidden), 0xE20BFE HwndWrapper[ImageProcTest;;b351b4db-04a3-4d35-8b41-dc8073ae13ec (hidden), 0x750C8A HwndWrapper[ImageProcTest;;61e88d56-747e-4695-a842-90a51f5ba1ed (hidden), 0x7DE0CA4 HwndWrapper[ImageProcTest;;e195f1e3-3c8e-40f6-8c6d-0ae59714d91b (hidden), 0x5BA09CA MSCTFIME UI (hidden), 0x1760CC2 IME (hidden), 0x6F80430 CiceroUIWndFrame (hidden), 0x3660614 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #1:'
+    [delay-1500] open-to-2nd-tick (proxy) #1: 2798 ms = read 322 + prepare 53 + chain-and-display 2167 [preprocess=249 ms, enhance_basic=253 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 2 + render 254
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x2B40914 open; app windows: 0x510CFC Auto-Suggest Dropdown (hidden), 0x7DB0A5A Auto-Suggest Dropdown (hidden), 0x9E008E tooltips_class32 (hidden), 0xA78032A tooltips_class32 (hidden), 0x36D0D0E tooltips_class32 (hidden), 0x5610672 _SearchEditBoxFakeWindow (hidden), 0x2290116 tooltips_class32 (hidden), 0xCDB0B66 tooltips_class32 (hidden), 0x6D40D48 tooltips_class32 (hidden), 0xE9C0C58 tooltips_class32 (hidden), 0x6AF0D6C tooltips_class32 (hidden), 0xC20AD4 HwndWrapper[ImageProcTest;;e84f3ce0-8928-46c0-96ff-77304d6a105f, 0x1D80BEC ComboLBox (hidden), 0xBB80CB6 ComboLBox (hidden), 0x580C6C ComboLBox (hidden), 0x5B7044A WorkerW (hidden), 0x7B00ABE HwndWrapper[ImageProcTest;;afdca635-99c4-4409-b6d2-a9cdf99c4812 (hidden), 0xE20BFE HwndWrapper[ImageProcTest;;b351b4db-04a3-4d35-8b41-dc8073ae13ec (hidden), 0x750C8A HwndWrapper[ImageProcTest;;61e88d56-747e-4695-a842-90a51f5ba1ed (hidden), 0x7DE0CA4 HwndWrapper[ImageProcTest;;e195f1e3-3c8e-40f6-8c6d-0ae59714d91b (hidden), 0x5BA09CA MSCTFIME UI (hidden), 0x1760CC2 IME (hidden), 0x6F80430 CiceroUIWndFrame (hidden), 0x3660614 CiceroUIWndFrame (hidden)
+    native (+208 ms): dialog 0x2B40914 gone; app windows: 0xC20AD4 HwndWrapper[ImageProcTest;;e84f3ce0-8928-46c0-96ff-77304d6a105f, 0x7B00ABE HwndWrapper[ImageProcTest;;afdca635-99c4-4409-b6d2-a9cdf99c4812 (hidden), 0xE20BFE HwndWrapper[ImageProcTest;;b351b4db-04a3-4d35-8b41-dc8073ae13ec (hidden), 0x750C8A HwndWrapper[ImageProcTest;;61e88d56-747e-4695-a842-90a51f5ba1ed (hidden), 0x7DE0CA4 HwndWrapper[ImageProcTest;;e195f1e3-3c8e-40f6-8c6d-0ae59714d91b (hidden), 0x5BA09CA MSCTFIME UI (hidden), 0x1760CC2 IME (hidden), 0x6F80430 CiceroUIWndFrame (hidden), 0x3660614 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #2:'
+    [delay-1500] open-to-2nd-tick (proxy) #2: 2691 ms = read 315 + prepare 7 + chain-and-display 2117 [preprocess=248 ms, enhance_basic=247 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 251
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0xC20D54 open; app windows: 0x6F5063A Auto-Suggest Dropdown (hidden), 0x2CA0D1A Auto-Suggest Dropdown (hidden), 0x1E306EE tooltips_class32 (hidden), 0x44E0CDA tooltips_class32 (hidden), 0x4FE0C34 tooltips_class32 (hidden), 0x61C0978 _SearchEditBoxFakeWindow (hidden), 0x17E098A tooltips_class32 (hidden), 0x3160C2E tooltips_class32 (hidden), 0x7A306B8 tooltips_class32 (hidden), 0x3890A96 tooltips_class32 (hidden), 0x2260234 tooltips_class32 (hidden), 0xC20AD4 HwndWrapper[ImageProcTest;;e84f3ce0-8928-46c0-96ff-77304d6a105f, 0xA7A032A ComboLBox (hidden), 0x4030D66 ComboLBox (hidden), 0x1C40C4A ComboLBox (hidden), 0x3530B5E WorkerW (hidden), 0x7B00ABE HwndWrapper[ImageProcTest;;afdca635-99c4-4409-b6d2-a9cdf99c4812 (hidden), 0xE20BFE HwndWrapper[ImageProcTest;;b351b4db-04a3-4d35-8b41-dc8073ae13ec (hidden), 0x750C8A HwndWrapper[ImageProcTest;;61e88d56-747e-4695-a842-90a51f5ba1ed (hidden), 0x7DE0CA4 HwndWrapper[ImageProcTest;;e195f1e3-3c8e-40f6-8c6d-0ae59714d91b (hidden), 0x5BA09CA MSCTFIME UI (hidden), 0x1760CC2 IME (hidden), 0x6F80430 CiceroUIWndFrame (hidden), 0x3660614 CiceroUIWndFrame (hidden)
+    native (+216 ms): dialog 0xC20D54 gone; app windows: 0xC20AD4 HwndWrapper[ImageProcTest;;e84f3ce0-8928-46c0-96ff-77304d6a105f, 0x7B00ABE HwndWrapper[ImageProcTest;;afdca635-99c4-4409-b6d2-a9cdf99c4812 (hidden), 0xE20BFE HwndWrapper[ImageProcTest;;b351b4db-04a3-4d35-8b41-dc8073ae13ec (hidden), 0x750C8A HwndWrapper[ImageProcTest;;61e88d56-747e-4695-a842-90a51f5ba1ed (hidden), 0x7DE0CA4 HwndWrapper[ImageProcTest;;e195f1e3-3c8e-40f6-8c6d-0ae59714d91b (hidden), 0x5BA09CA MSCTFIME UI (hidden), 0x1760CC2 IME (hidden), 0x6F80430 CiceroUIWndFrame (hidden), 0x3660614 CiceroUIWndFrame (hidden)
+    ok: the app wrote 'open-to-2nd-tick (proxy) #3:'
+    [delay-1500] open-to-2nd-tick (proxy) #3: 2655 ms = read 313 + prepare 6 + chain-and-display 2094 [preprocess=239 ms, enhance_basic=233 ms, gsvg=0 ms, ai_bone_suppress=0 ms] + ui 0 + render 242
+    [delay-1500] screen: 207 captures (every 20.1 ms); settled on the processed reference=True (ok); picture seen between 2910 and 2958 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1217 ms (62 captures)
+    [delay-1500] screen: open 1 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [delay-1500] screen: 204 captures (every 20.1 ms); settled on the processed reference=True (ok); picture seen between 2788 and 2811 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1292 ms (67 captures)
+    [delay-1500] screen: open 2 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [delay-1500] screen: 198 captures (every 20.2 ms); settled on the processed reference=True (ok); picture seen between 2748 and 2775 ms after the confirmation; the picture before it differed from the final one at 40% of the points; the final picture stayed 1228 ms (62 captures)
+    [delay-1500] screen: open 3 ends on the processed picture (agrees with the processed reference at 100.0%, with the source reference at 65.2%; the two references agree with each other at 65.2%)
+    [diag] graceful close of the delayed app: the process ended
+    [obs] DISCLOSURE ONLY - the gate below is computed from the proxy medians exactly as before
+    [obs] | group | open | proxy | read | prepare | chain-and-display | ui | render | note |
+    [obs] | no-delay | 1 | 1315 | 325 | 60 | 666 | 2 | 263 | cold/first-open, included in the gate's median |
+    [obs] | no-delay | 2 | 1198 | 315 | 7 | 636 | 0 | 240 |  |
+    [obs] | no-delay | 3 | 1144 | 308 | 6 | 588 | 0 | 242 |  |
+    [obs] | delay | 1 | 2798 | 322 | 53 | 2167 | 2 | 254 | cold/first-open, included in the gate's median |
+    [obs] | delay | 2 | 2691 | 315 | 7 | 2117 | 0 | 251 |  |
+    [obs] | delay | 3 | 2655 | 313 | 6 | 2094 | 0 | 242 |  |
+    [obs] medians (second of three, as the gate): proxy no-delay 1198 / delay 2691; chain-and-display no-delay 636 / delay 2117
+    [obs] open 1: delay minus no-delay (two different processes, same open number - side by side, not causal): proxy +1483, chain-and-display +1501, prepare -7, render -9
+    [obs] open 2: delay minus no-delay (two different processes, same open number - side by side, not causal): proxy +1493, chain-and-display +1481, prepare +0, render +11
+    [obs] open 3: delay minus no-delay (two different processes, same open number - side by side, not causal): proxy +1511, chain-and-display +1506, prepare +0, render +0
+    [diag] delay log (delay-1500, pid 31636): INCOMPLETE: multiple-wrappers=2 (one file per wrapper; the attribution is ambiguous)
+    [diag] file: (none)
+    proxy medians: no delay 1198 ms, with a 1500 ms delay 2691 ms -> moved by 1493 ms
+    screen medians: no delay 1306 ms, with the delay 2811 ms -> moved by 1505 ms (proxy moved by 1493 ms)
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W9_SuggestedName_Overwrite_AndAWriteFailureKeepsThePreviousFile [22 s]
+  Standard Output Messages:
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x15F0B74 open; app windows: 0xA830584 Auto-Suggest Dropdown (hidden), 0xACA0186 Auto-Suggest Dropdown (hidden), 0xEA50C58 tooltips_class32 (hidden), 0x2FF0C00 tooltips_class32 (hidden), 0x9870594 tooltips_class32 (hidden), 0x2AE044C tooltips_class32 (hidden), 0x9F60AC2 ComboLBox (hidden), 0x6BA0C60 tooltips_class32 (hidden), 0x31800E4 _SearchEditBoxFakeWindow (hidden), 0xA2008E tooltips_class32 (hidden), 0x7DF0CA4 tooltips_class32 (hidden), 0xE30BFE tooltips_class32 (hidden), 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x1360B94 ComboLBox (hidden), 0x6CB0A7E ComboLBox (hidden), 0x6DB0A76 WorkerW (hidden), 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    native (+211 ms): dialog 0x15F0B74 gone; app windows: 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    ok: preprocess=Applied
+ STEP 1 save under the suggested name (no name typed)
+    dialog: 'Save Corrected Image (float32 raw)'
+    native (+1 ms): dialog 0x241098A open; app windows: 0x4CB080A Auto-Suggest Dropdown (hidden), 0x13300B8 tooltips_class32 (hidden), 0xCB0AD4 tooltips_class32 (hidden), 0x3EF0B58 Auto-Suggest Dropdown (hidden), 0x4410440 tooltips_class32 (hidden), 0x44E0950 tooltips_class32 (hidden), 0x2BB0914 ComboLBox (hidden), 0x6650C14 tooltips_class32 (hidden), 0x5CD0632 tooltips_class32 (hidden), 0xCC0BE8 _SearchEditBoxFakeWindow (hidden), 0x5040C34 tooltips_class32 (hidden), 0x42C0CF0 tooltips_class32 (hidden), 0x83E014C tooltips_class32 (hidden), 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x770C8A ComboLBox (hidden), 0x7F906B8 ComboLBox (hidden), 0xE240C98 WorkerW (hidden), 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    native (+203 ms): dialog 0x241098A gone; app windows: 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    ok: the file exists at the suggested name in the opened image's folder
+    status: Saved corrected image (float32 raw): C:\Users\drake\AppData\Local\Temp\xpe_c232b_w9_b6f9ce5c6c1d4d41b9e4e56b492395b1\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+    saved file == reference: True; files in the folder: wrist_lat_3072x3072.raw, wrist_lat_3072x3072_corrected_f32le.raw
+ STEP 2 save again under the same suggested name: the file is replaced whole
+    dialog: 'Save Corrected Image (float32 raw)'
+    native (+1 ms): dialog 0xEB00C4 open; app windows: 0x39E0D0E Auto-Suggest Dropdown (hidden), 0x93505F2 tooltips_class32 (hidden), 0x7E40CA4 Auto-Suggest Dropdown (hidden), 0x3C10174 tooltips_class32 (hidden), 0x6660C14 tooltips_class32 (hidden), 0xA380CCE tooltips_class32 (hidden), 0x730AC8 ComboLBox (hidden), 0x4590CDA tooltips_class32 (hidden), 0xB620C80 tooltips_class32 (hidden), 0x780C8A _SearchEditBoxFakeWindow (hidden), 0x5550C7A tooltips_class32 (hidden), 0xDFD0AB4 tooltips_class32 (hidden), 0xCB50CE8 tooltips_class32 (hidden), 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x5CE0632 ComboLBox (hidden), 0x31C00E4 ComboLBox (hidden), 0x70B0430 WorkerW (hidden), 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    native (+203 ms): dialog 0xEB00C4 open; app windows: 0x7E40CA4 Auto-Suggest Dropdown (hidden), 0x39E0D0E Auto-Suggest Dropdown (hidden), 0x93505F2 tooltips_class32 (hidden), 0x3C10174 tooltips_class32 (hidden), 0x6660C14 tooltips_class32 (hidden), 0xA380CCE tooltips_class32 (hidden), 0x2D2044C #32770 yes-button, 0x730AC8 ComboLBox (hidden), 0x4590CDA tooltips_class32 (hidden), 0xB620C80 tooltips_class32 (hidden), 0x780C8A _SearchEditBoxFakeWindow (hidden), 0x5550C7A tooltips_class32 (hidden), 0xDFD0AB4 tooltips_class32 (hidden), 0xCB50CE8 tooltips_class32 (hidden), 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x5CE0632 ComboLBox (hidden), 0x31C00E4 ComboLBox (hidden), 0x70B0430 WorkerW (hidden), 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    dialog: the file exists; answering Yes to the overwrite prompt
+    native (+409 ms): dialog 0xEB00C4 gone; app windows: 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    ok: the status line reports the second save
+    replaced: write time 2026-11-04T09:50:54.8706471Z -> 2026-11-04T09:50:59.0057877Z; identical to reference: True
+ STEP 3 the target is held open by another program: the save fails and the previous file stays
+    dialog: 'Save Corrected Image (float32 raw)'
+    native (+0 ms): dialog 0x4B40A82 open; app windows: 0xA86032A Auto-Suggest Dropdown (hidden), 0xE2308EC tooltips_class32 (hidden), 0x2D5044C Auto-Suggest Dropdown (hidden), 0x8370A5A tooltips_class32 (hidden), 0xDFE0AB4 tooltips_class32 (hidden), 0x5360750 tooltips_class32 (hidden), 0xEAD0C58 ComboLBox (hidden), 0x5FF0CDE tooltips_class32 (hidden), 0x21705BC tooltips_class32 (hidden), 0x5CF0632 _SearchEditBoxFakeWindow (hidden), 0x7FB06B8 tooltips_class32 (hidden), 0xCE90B66 tooltips_class32 (hidden), 0x7A3012A tooltips_class32 (hidden), 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0xCB60CE8 ComboLBox (hidden), 0x6DC0D48 ComboLBox (hidden), 0x4D80448 WorkerW (hidden), 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    native (+209 ms): dialog 0x4B40A82 open; app windows: 0x2D5044C Auto-Suggest Dropdown (hidden), 0xA86032A Auto-Suggest Dropdown (hidden), 0xE2308EC tooltips_class32 (hidden), 0x8370A5A tooltips_class32 (hidden), 0xDFE0AB4 tooltips_class32 (hidden), 0x5360750 tooltips_class32 (hidden), 0x3D10694 #32770 yes-button, 0xEAD0C58 ComboLBox (hidden), 0x5FF0CDE tooltips_class32 (hidden), 0x21705BC tooltips_class32 (hidden), 0x5CF0632 _SearchEditBoxFakeWindow (hidden), 0x7FB06B8 tooltips_class32 (hidden), 0xCE90B66 tooltips_class32 (hidden), 0x7A3012A tooltips_class32 (hidden), 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0xCB60CE8 ComboLBox (hidden), 0x6DC0D48 ComboLBox (hidden), 0x4D80448 WorkerW (hidden), 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    dialog: the file exists; answering Yes to the overwrite prompt
+    native (+415 ms): dialog 0x4B40A82 gone; app windows: 0x9CC0B00 HwndWrapper[ImageProcTest;;7eb33d2b-5c71-4015-9402-57688c5f91bc, 0x52309C4 HwndWrapper[ImageProcTest;;7ddc7a89-5fa5-4a94-a3b3-45b0a9ee385d (hidden), 0xA5E09E4 HwndWrapper[ImageProcTest;;015152c8-bad3-4ea3-bfde-6406ed491c8b (hidden), 0xA830A24 HwndWrapper[ImageProcTest;;814f656f-e686-4c45-9941-b98283d7bcd6 (hidden), 0x760A58 HwndWrapper[ImageProcTest;;db06f074-987d-4578-b6b0-54379d3c8aa1 (hidden), 0x5A6037E CiceroUIWndFrame (hidden), 0x7C40898 MSCTFIME UI (hidden), 0x5F20B64 IME (hidden), 0x49B09AC CiceroUIWndFrame (hidden)
+    ok: the status line says Save failed
+    status: Save failed: The process cannot access the file because it is being used by another process.
+    previous file intact after the failed save: True; files in the folder: wrist_lat_3072x3072.raw, wrist_lat_3072x3072_corrected_f32le.raw
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13b_WithoutCalibrationData_ThePreprocessIsSkippedWithItsReason_NotSilentlyAndNotAsFailed [9 s]
+  Standard Output Messages:
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x2810D34 open; app windows: 0x2310116 Auto-Suggest Dropdown (hidden), 0x4330CF0 Auto-Suggest Dropdown (hidden), 0x2660C16 tooltips_class32 (hidden), 0x6C00C60 tooltips_class32 (hidden), 0x5B20C4C tooltips_class32 (hidden), 0x76A0B2E tooltips_class32 (hidden), 0x4610D64 ComboLBox (hidden), 0x7890CF8 tooltips_class32 (hidden), 0x9FF0AC2 _SearchEditBoxFakeWindow (hidden), 0x8C90BBC tooltips_class32 (hidden), 0x51B0A32 tooltips_class32 (hidden), 0x86B0BAC tooltips_class32 (hidden), 0x85D0A80 HwndWrapper[ImageProcTest;;12f35068-6ba3-4484-a309-3d73778c35e0, 0x1E506EE ComboLBox (hidden), 0x1DE0BEC ComboLBox (hidden), 0x9890594 WorkerW (hidden), 0x70305FA HwndWrapper[ImageProcTest;;ed31fab3-ce9d-4b52-90b9-5b1f01ab3bed (hidden), 0x10507C0 HwndWrapper[ImageProcTest;;0aa75e26-503d-48a5-96b3-af9db236b5a9 (hidden), 0x4050D66 HwndWrapper[ImageProcTest;;71055d49-ed5a-4177-b6f8-848fa4a0caec (hidden), 0x74F0946 HwndWrapper[ImageProcTest;;ef613782-802e-4346-8315-c44ad4c486f0 (hidden), 0x3B401D0 CiceroUIWndFrame (hidden), 0x697029E MSCTFIME UI (hidden), 0x79208E2 IME (hidden), 0x79C02F4 CiceroUIWndFrame (hidden)
+    native (+204 ms): dialog 0x2810D34 gone; app windows: 0x85D0A80 HwndWrapper[ImageProcTest;;12f35068-6ba3-4484-a309-3d73778c35e0, 0x70305FA HwndWrapper[ImageProcTest;;ed31fab3-ce9d-4b52-90b9-5b1f01ab3bed (hidden), 0x10507C0 HwndWrapper[ImageProcTest;;0aa75e26-503d-48a5-96b3-af9db236b5a9 (hidden), 0x4050D66 HwndWrapper[ImageProcTest;;71055d49-ed5a-4177-b6f8-848fa4a0caec (hidden), 0x74F0946 HwndWrapper[ImageProcTest;;ef613782-802e-4346-8315-c44ad4c486f0 (hidden), 0x3B401D0 CiceroUIWndFrame (hidden), 0x697029E MSCTFIME UI (hidden), 0x79208E2 IME (hidden), 0x79C02F4 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    ok: preprocess=Skipped
+    chain: chain: preprocess=Skipped, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=3 ms, enhance_basic=261 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain — preprocess: no selected calibration: all stages Off or Auto without maps; executed=[]; input kept | B chain: preprocess=Skipped, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; preprocess: no selected calibration: all stages Off or Auto without maps; executed=[]; input kept
+    HUD: 'Calib:  not run (no selected calibration)'
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W7_RunPreprocessing_SaveCorrectedImage_IsByteIdenticalToTheFirstStageReference [23 s]
+  Standard Output Messages:
+    DLL: D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_preprocess.dll sha256 71403fd8e35c829ee633d27390902cbe5b71c3e3382eeaf63bdfd9098453e1fc written 2026-10-14 14:51:10; provenance.json present
+ STEP 1 started on Native; Save Corrected Image is dimmed before anything ran
+    Save float enabled: False; Save PNG enabled: False
+ STEP 2 File > Open Raw...
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x37A0614 open; app windows: 0x80B06B8 Auto-Suggest Dropdown (hidden), 0x1F50C66 Auto-Suggest Dropdown (hidden), 0x94105F2 tooltips_class32 (hidden), 0x6E40A76 tooltips_class32 (hidden), 0x1570A8E tooltips_class32 (hidden), 0x6010CDE tooltips_class32 (hidden), 0x6D10306 ComboLBox (hidden), 0x851014C tooltips_class32 (hidden), 0x6BE0D6C _SearchEditBoxFakeWindow (hidden), 0x698029E tooltips_class32 (hidden), 0x4DF0B4C tooltips_class32 (hidden), 0x4540950 tooltips_class32 (hidden), 0x11D0906 HwndWrapper[ImageProcTest;;9b1ecccd-4fce-46a8-96c9-74c258c05c47, 0xE000AB4 ComboLBox (hidden), 0xA88032A ComboLBox (hidden), 0x1B205EA WorkerW (hidden), 0xC0F07AE HwndWrapper[ImageProcTest;;7614ace2-7f85-4a61-828e-80a842c5d448 (hidden), 0x52509C4 HwndWrapper[ImageProcTest;;a2be60b0-84bd-4317-9f66-e89fe7ffb30f (hidden), 0x9CE0B00 HwndWrapper[ImageProcTest;;da51e940-0a03-4de0-be6c-262ac37a1bf6 (hidden), 0x4B60A82 HwndWrapper[ImageProcTest;;7da94cc1-1401-4230-88fc-368dbb0bb532 (hidden), 0x7E70CA4 CiceroUIWndFrame (hidden), 0x4DD0448 MSCTFIME UI (hidden), 0x780A58 IME (hidden), 0x1460432 CiceroUIWndFrame (hidden)
+    native (+209 ms): dialog 0x37A0614 gone; app windows: 0x11D0906 HwndWrapper[ImageProcTest;;9b1ecccd-4fce-46a8-96c9-74c258c05c47, 0xC0F07AE HwndWrapper[ImageProcTest;;7614ace2-7f85-4a61-828e-80a842c5d448 (hidden), 0x52509C4 HwndWrapper[ImageProcTest;;a2be60b0-84bd-4317-9f66-e89fe7ffb30f (hidden), 0x9CE0B00 HwndWrapper[ImageProcTest;;da51e940-0a03-4de0-be6c-262ac37a1bf6 (hidden), 0x4B60A82 HwndWrapper[ImageProcTest;;7da94cc1-1401-4230-88fc-368dbb0bb532 (hidden), 0x7E70CA4 CiceroUIWndFrame (hidden), 0x4DD0448 MSCTFIME UI (hidden), 0x780A58 IME (hidden), 0x1460432 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    after the load, before the run: Save float enabled: True
+ STEP 3 Pipeline > Run Preprocessing (Phase 1a)
+    ok: preprocess=Applied
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=257 ms, enhance_basic=231 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    LOG [18:51:24.061] Chain preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out; requested=[offset:Auto,gain:Auto,defect:Auto]; executed=[offset,gain,defect]; nativeFlags=0x201c; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; 3072x3072 (Abdomen). uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+    LOG [18:51:23.956] preprocess: Applied — Preprocess: xpe_preprocess_pipeline_out; requested=[offset:Auto,gain:Auto,defect:Auto]; executed=[offset,gain,defect]; nativeFlags=0x201c; input kept; unsupported ghost/temp/nonlinearity/binning bypassed; 3072x3072 (Abdomen). uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+ STEP 4 File > Save Corrected Image (float32 .raw)...
+    Save float enabled after the run: True
+    dialog: 'Save Corrected Image (float32 raw)'
+    native (+1 ms): dialog 0x6200978 open; app windows: 0x88E0A5A Auto-Suggest Dropdown (hidden), 0x53105C4 tooltips_class32 (hidden), 0x36A0AB6 tooltips_class32 (hidden), 0x59C0D10 Auto-Suggest Dropdown (hidden), 0x7280C14 tooltips_class32 (hidden), 0x86E0BAC tooltips_class32 (hidden), 0xBC90C80 ComboLBox (hidden), 0x3B901D0 tooltips_class32 (hidden), 0x8CA0AAC tooltips_class32 (hidden), 0x24D098A _SearchEditBoxFakeWindow (hidden), 0x7EA0ABE tooltips_class32 (hidden), 0xCBA0CE8 tooltips_class32 (hidden), 0xCF00B66 tooltips_class32 (hidden), 0x11D0906 HwndWrapper[ImageProcTest;;9b1ecccd-4fce-46a8-96c9-74c258c05c47, 0x5AB037E ComboLBox (hidden), 0x79408E2 ComboLBox (hidden), 0x46A0D64 WorkerW (hidden), 0xC0F07AE HwndWrapper[ImageProcTest;;7614ace2-7f85-4a61-828e-80a842c5d448 (hidden), 0x52509C4 HwndWrapper[ImageProcTest;;a2be60b0-84bd-4317-9f66-e89fe7ffb30f (hidden), 0x9CE0B00 HwndWrapper[ImageProcTest;;da51e940-0a03-4de0-be6c-262ac37a1bf6 (hidden), 0x4B60A82 HwndWrapper[ImageProcTest;;7da94cc1-1401-4230-88fc-368dbb0bb532 (hidden), 0x7E70CA4 CiceroUIWndFrame (hidden), 0x4DD0448 MSCTFIME UI (hidden), 0x780A58 IME (hidden), 0x1460432 CiceroUIWndFrame (hidden)
+    native (+203 ms): dialog 0x6200978 gone; app windows: 0x11D0906 HwndWrapper[ImageProcTest;;9b1ecccd-4fce-46a8-96c9-74c258c05c47, 0xC0F07AE HwndWrapper[ImageProcTest;;7614ace2-7f85-4a61-828e-80a842c5d448 (hidden), 0x52509C4 HwndWrapper[ImageProcTest;;a2be60b0-84bd-4317-9f66-e89fe7ffb30f (hidden), 0x9CE0B00 HwndWrapper[ImageProcTest;;da51e940-0a03-4de0-be6c-262ac37a1bf6 (hidden), 0x4B60A82 HwndWrapper[ImageProcTest;;7da94cc1-1401-4230-88fc-368dbb0bb532 (hidden), 0x7E70CA4 CiceroUIWndFrame (hidden), 0x4DD0448 MSCTFIME UI (hidden), 0x780A58 IME (hidden), 0x1460432 CiceroUIWndFrame (hidden)
+    ok: the status line reports the save
+    status: Saved corrected image (float32 raw): C:\Users\drake\AppData\Local\Temp\xpe_c232_a007402c7010466b94f4211215cd1380\wrist_lat_3072x3072_corrected_f32le.raw — 37748736 bytes, sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+ STEP 5 File > Save Corrected Image (16-bit PNG)...
+    dialog: 'Save Corrected Image (16-bit PNG)'
+    native (+1 ms): dialog 0x46B0D64 open; app windows: 0x6C30D6C Auto-Suggest Dropdown (hidden), 0x69E029E tooltips_class32 (hidden), 0x7EB0ABE tooltips_class32 (hidden), 0x3C80174 tooltips_class32 (hidden), 0x2AD0B5C tooltips_class32 (hidden), 0x70B05FA _SearchEditBoxFakeWindow (hidden), 0x5240232 tooltips_class32 (hidden), 0x127093C tooltips_class32 (hidden), 0x40A0D66 tooltips_class32 (hidden), 0x11D0906 HwndWrapper[ImageProcTest;;9b1ecccd-4fce-46a8-96c9-74c258c05c47, 0xCBB0CE8 ComboLBox (hidden), 0x5F90B64 ComboLBox (hidden), 0x5C6044A WorkerW (hidden), 0xC0F07AE HwndWrapper[ImageProcTest;;7614ace2-7f85-4a61-828e-80a842c5d448 (hidden), 0x52509C4 HwndWrapper[ImageProcTest;;a2be60b0-84bd-4317-9f66-e89fe7ffb30f (hidden), 0x9CE0B00 HwndWrapper[ImageProcTest;;da51e940-0a03-4de0-be6c-262ac37a1bf6 (hidden), 0x4B60A82 HwndWrapper[ImageProcTest;;7da94cc1-1401-4230-88fc-368dbb0bb532 (hidden), 0x7E70CA4 CiceroUIWndFrame (hidden), 0x4DD0448 MSCTFIME UI (hidden), 0x780A58 IME (hidden), 0x1460432 CiceroUIWndFrame (hidden)
+    native (+202 ms): dialog 0x46B0D64 gone; app windows: 0x11D0906 HwndWrapper[ImageProcTest;;9b1ecccd-4fce-46a8-96c9-74c258c05c47, 0xC0F07AE HwndWrapper[ImageProcTest;;7614ace2-7f85-4a61-828e-80a842c5d448 (hidden), 0x52509C4 HwndWrapper[ImageProcTest;;a2be60b0-84bd-4317-9f66-e89fe7ffb30f (hidden), 0x9CE0B00 HwndWrapper[ImageProcTest;;da51e940-0a03-4de0-be6c-262ac37a1bf6 (hidden), 0x4B60A82 HwndWrapper[ImageProcTest;;7da94cc1-1401-4230-88fc-368dbb0bb532 (hidden), 0x7E70CA4 CiceroUIWndFrame (hidden), 0x4DD0448 MSCTFIME UI (hidden), 0x780A58 IME (hidden), 0x1460432 CiceroUIWndFrame (hidden)
+    ok: the PNG is saved
+    status: Saved corrected image (16-bit PNG): C:\Users\drake\AppData\Local\Temp\xpe_c232_a007402c7010466b94f4211215cd1380\wrist_lat_3072x3072_corrected_16bit.png — 16912866 bytes, sha256 b9cfda221aa9295a24d6ce740d8bdf201bb985fb5853e0da7f1d8e5887719c92
+    saved     : 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+    reference : 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+    identical : True; first differing byte: -1
+    png       : 16912866 bytes
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W3_FailureMessages_EachProducedForReal [2 m 5 s]
+  Standard Output Messages:
+    generated map sets in C:\Users\drake\AppData\Local\Temp\xpe_c239_sets_0c51efcf30da43e2a746687a864d9eeb (78 s)
+ CASE no maps in the folder
+    title='ImageProcTest GUI-S0' runtime='mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls' banner=''
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x50D09E2 open; app windows: 0x56D0C7A Auto-Suggest Dropdown (hidden), 0x8500CC8 Auto-Suggest Dropdown (hidden), 0x3840614 tooltips_class32 (hidden), 0x6D50306 tooltips_class32 (hidden), 0x4450CF0 tooltips_class32 (hidden), 0x2680C16 tooltips_class32 (hidden), 0x9A40B82 ComboLBox (hidden), 0xE20C1C tooltips_class32 (hidden), 0x4670CDA _SearchEditBoxFakeWindow (hidden), 0x9CF0B00 tooltips_class32 (hidden), 0x7170430 tooltips_class32 (hidden), 0x1F60C4A tooltips_class32 (hidden), 0x13220D14 HwndWrapper[ImageProcTest;;9c1df130-0737-444a-876c-1f577748a66d, 0x2330116 ComboLBox (hidden), 0x6C20C60 ComboLBox (hidden), 0x2420234 WorkerW (hidden), 0x91A0D62 HwndWrapper[ImageProcTest;;00d1a8cd-2701-4c51-bf64-4c0a5f1ca9a7 (hidden), 0x84F0A20 HwndWrapper[ImageProcTest;;01fe5354-cdf9-42e0-93fd-e9db4c0d410e (hidden), 0x4DB0ACA HwndWrapper[ImageProcTest;;c5489d44-f271-412d-b750-8d053fe22fc2 (hidden), 0x7B60A0A HwndWrapper[ImageProcTest;;62287331-484a-4f52-9752-f2bcca5a090c (hidden), 0x6F9063A CiceroUIWndFrame (hidden), 0x6470A3C MSCTFIME UI (hidden), 0x6CB0342 IME (hidden), 0x1E00BEC CiceroUIWndFrame (hidden)
+    native (+206 ms): dialog 0x50D09E2 gone; app windows: 0x13220D14 HwndWrapper[ImageProcTest;;9c1df130-0737-444a-876c-1f577748a66d, 0x91A0D62 HwndWrapper[ImageProcTest;;00d1a8cd-2701-4c51-bf64-4c0a5f1ca9a7 (hidden), 0x84F0A20 HwndWrapper[ImageProcTest;;01fe5354-cdf9-42e0-93fd-e9db4c0d410e (hidden), 0x4DB0ACA HwndWrapper[ImageProcTest;;c5489d44-f271-412d-b750-8d053fe22fc2 (hidden), 0x7B60A0A HwndWrapper[ImageProcTest;;62287331-484a-4f52-9752-f2bcca5a090c (hidden), 0x6F9063A CiceroUIWndFrame (hidden), 0x6470A3C MSCTFIME UI (hidden), 0x6CB0342 IME (hidden), 0x1E00BEC CiceroUIWndFrame (hidden)
+    ok: an image summary appears
+    Run Preprocessing enabled: True
+    ok: the chain status changes
+    chain: chain: preprocess=Skipped, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=0 ms, enhance_basic=35 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain — preprocess: no selected calibration: all stages Off or Auto without maps; executed=[]; input kept | B chain: preprocess=Skipped, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; preprocess: no selected calibration: all stages Off or Auto without maps; executed=[]; input kept
+    status bar: chain: preprocess=Skipped, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=4021.869, W=1395.963) -> GSDF(off) | Exposure index: not measured (preprocessing did not run: no selected calibration).
+    LOG [18:53:00.063] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\synthetic_1024x1024.raw'.
+    LOG [18:52:59.991] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\synthetic_1024x1024.raw') invoked.
+    LOG [18:52:53.837] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [18:52:53.837] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [18:52:53.836] Native module audit (after initialisation): pinned folder 'D:\workspace-github\image-processing\build\e2e-native-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+    LOG [18:52:53.828] Display version = 1.0.0
+    LOG [18:52:53.828] xpe_display.dll = D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_display.dll
+    LOG [18:52:53.828] xpe_common.dll = D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_common.dll
+    LOG [18:52:53.828] Requested backend mode = Native
+    LOG [18:52:53.828] RealXpeBackend bootstrap started.
+    LOG [18:52:53.821] --- backend re-initialised ---
+    LOG [18:52:53.819] GUI-S0 initialized.
+ CASE expired map set
+    title='ImageProcTest GUI-S0' runtime='mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls' banner=''
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x3B30BCA open; app windows: 0x11107C0 Auto-Suggest Dropdown (hidden), 0x1F80C4A Auto-Suggest Dropdown (hidden), 0xE40C1C tooltips_class32 (hidden), 0x83D0BD0 tooltips_class32 (hidden), 0x12990B7E tooltips_class32 (hidden), 0x7740D60 tooltips_class32 (hidden), 0x9D10B00 ComboLBox (hidden), 0x29F0724 tooltips_class32 (hidden), 0x14400B8 _SearchEditBoxFakeWindow (hidden), 0x51309E2 tooltips_class32 (hidden), 0x5290232 tooltips_class32 (hidden), 0x4DC0ACA tooltips_class32 (hidden), 0xCC0D54 HwndWrapper[ImageProcTest;;4aa899da-09cc-4373-a26f-934dd84ed929, 0xEBC0C58 ComboLBox (hidden), 0x5CA09CA ComboLBox (hidden), 0x258098A WorkerW (hidden), 0x10720CBC HwndWrapper[ImageProcTest;;1c2a2634-3d11-4caf-a22c-6a61f9f9cd0b (hidden), 0x2650234 HwndWrapper[ImageProcTest;;18dd746b-c3bd-42de-968a-fab91fda3779 (hidden), 0x138093C HwndWrapper[ImageProcTest;;8e3f5d90-3930-4e88-b1e7-5a1db3562b3e (hidden), 0xBD90B96 HwndWrapper[ImageProcTest;;e452f32b-42f5-4d29-91c1-a16ac979972e (hidden), 0x5C8044A CiceroUIWndFrame (hidden), 0x3A40A3E MSCTFIME UI (hidden), 0x62D0978 IME (hidden), 0x2D70D1A CiceroUIWndFrame (hidden)
+    native (+204 ms): dialog 0x3B30BCA gone; app windows: 0xCC0D54 HwndWrapper[ImageProcTest;;4aa899da-09cc-4373-a26f-934dd84ed929, 0x10720CBC HwndWrapper[ImageProcTest;;1c2a2634-3d11-4caf-a22c-6a61f9f9cd0b (hidden), 0x2650234 HwndWrapper[ImageProcTest;;18dd746b-c3bd-42de-968a-fab91fda3779 (hidden), 0x138093C HwndWrapper[ImageProcTest;;8e3f5d90-3930-4e88-b1e7-5a1db3562b3e (hidden), 0xBD90B96 HwndWrapper[ImageProcTest;;e452f32b-42f5-4d29-91c1-a16ac979972e (hidden), 0x5C8044A CiceroUIWndFrame (hidden), 0x3A40A3E MSCTFIME UI (hidden), 0x62D0978 IME (hidden), 0x2D70D1A CiceroUIWndFrame (hidden)
+    ok: an image summary appears
+    Run Preprocessing enabled: True
+    ok: the chain status changes
+    chain: chain: preprocess=RequestedNotApplied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=6 ms, enhance_basic=35 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain — preprocess: Loading offset calibration failed (-5). | B chain: preprocess=RequestedNotApplied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; preprocess: Loading offset calibration failed (-5).
+    status bar: chain: preprocess=RequestedNotApplied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=4021.869, W=1395.963) -> GSDF(off) | Exposure index: not measured (preprocessing did not run: it failed).
+    LOG [18:53:15.113] Loaded raw image 'D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\synthetic_1024x1024.raw'.
+    LOG [18:53:15.054] LoadRawImage('D:\workspace-github\xpe-gui\gui\ImageProcTest\fixtures\gui-s0\raw\synthetic_1024x1024.raw') invoked.
+    LOG [18:53:08.860] Initialized backend 'RealXpeBackend' (xpe_display 1.0.0).
+    LOG [18:53:08.859] ALERT INFO REAL_DISPLAY_BACKEND_ACTIVE: Real display backend is active. Modality, VOI, and Presentation LUT are called through P/Invoke.
+    LOG [18:53:08.858] Native module audit (after initialisation): pinned folder 'D:\workspace-github\image-processing\build\e2e-native-dlls'; 4 native module(s) loaded, 4 from the pinned folder, 0 from elsewhere.
+    LOG [18:53:08.851] Display version = 1.0.0
+    LOG [18:53:08.851] xpe_display.dll = D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_display.dll
+    LOG [18:53:08.851] xpe_common.dll = D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_common.dll
+    LOG [18:53:08.851] Requested backend mode = Native
+    LOG [18:53:08.851] RealXpeBackend bootstrap started.
+    LOG [18:53:08.843] --- backend re-initialised ---
+    LOG [18:53:08.841] GUI-S0 initialized.
+ CASE native DLL folder has no DLLs
+    title='[MOCK] ImageProcTest GUI-S0' runtime='mode=Mock (requested Native)  |  common=unknown  |  display=v0.0.0-mock-display' banner='MOCK BACKEND — Native was requested but could not be used: xpe_common.dll was not found at 'C:\Users\drake\AppData\Local\Temp\xpe_c239_sets_0c51efcf30da43e2a746687a864d9eeb\nodll\xpe_common.dll'. Images and results are synthetic; not for clinical judgement.'
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x5FB0632 open; app windows: 0x14B0B94 Auto-Suggest Dropdown (hidden), 0x53B0952 Auto-Suggest Dropdown (hidden), 0xF2D08EC tooltips_class32 (hidden), 0xA92032A tooltips_class32 (hidden), 0x2D90D1A tooltips_class32 (hidden), 0xB1008E tooltips_class32 (hidden), 0x2900D34 ComboLBox (hidden), 0x6230C10 tooltips_class32 (hidden), 0x8540CC8 _SearchEditBoxFakeWindow (hidden), 0x3900C00 tooltips_class32 (hidden), 0x1220906 tooltips_class32 (hidden), 0x10730CBC tooltips_class32 (hidden), 0x8640A80 HwndWrapper[ImageProcTest;;4617a39e-0303-4caf-b31c-ed80aed9549b, 0x6C70C96 ComboLBox (hidden), 0x12C0CAC ComboLBox (hidden), 0x3990A96 WorkerW (hidden), 0x14B0A10 HwndWrapper[ImageProcTest;;083cf981-6f2f-450f-8df3-2acd605345ed (hidden), 0x5370D1C HwndWrapper[ImageProcTest;;da62cd89-e857-424f-a321-fbbe99ab043c (hidden), 0xD00B36 HwndWrapper[ImageProcTest;;b4938ea8-499c-4d38-93f1-9c75bcf3a59f (hidden), 0x17F0CC2 HwndWrapper[ImageProcTest;;8f5e080c-7c8d-4ba6-8fea-e3c613983e0d (hidden), 0x2350116 CiceroUIWndFrame (hidden), 0x5B5037E MSCTFIME UI (hidden), 0x5FC0C4C IME (hidden), 0x6C80D6C CiceroUIWndFrame (hidden)
+    native (+204 ms): dialog 0x5FB0632 gone; app windows: 0x8640A80 HwndWrapper[ImageProcTest;;4617a39e-0303-4caf-b31c-ed80aed9549b, 0x14B0A10 HwndWrapper[ImageProcTest;;083cf981-6f2f-450f-8df3-2acd605345ed (hidden), 0x5370D1C HwndWrapper[ImageProcTest;;da62cd89-e857-424f-a321-fbbe99ab043c (hidden), 0xD00B36 HwndWrapper[ImageProcTest;;b4938ea8-499c-4d38-93f1-9c75bcf3a59f (hidden), 0x17F0CC2 HwndWrapper[ImageProcTest;;8f5e080c-7c8d-4ba6-8fea-e3c613983e0d (hidden), 0x2350116 CiceroUIWndFrame (hidden), 0x5B5037E MSCTFIME UI (hidden), 0x5FC0C4C IME (hidden), 0x6C80D6C CiceroUIWndFrame (hidden)
+    ok: an image summary appears
+    Run Preprocessing enabled: False
+    Native DLL Diagnostics, status line: Display DLL not detected; mock display pipeline remains active.
+    LOG (list 'LogListBox' not found)
+ CASE maps are 1024x1024 but the raw image is 3072x3072
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x79F0406 open; app windows: 0x1EB06EE Auto-Suggest Dropdown (hidden), 0x61E018E Auto-Suggest Dropdown (hidden), 0x13270D14 tooltips_class32 (hidden), 0x6020B64 tooltips_class32 (hidden), 0x6CA0D6C tooltips_class32 (hidden), 0x2B10B5C tooltips_class32 (hidden), 0x8550A20 ComboLBox (hidden), 0x9D70B00 tooltips_class32 (hidden), 0x12D0CAC _SearchEditBoxFakeWindow (hidden), 0x7A0A72 tooltips_class32 (hidden), 0xADE0186 tooltips_class32 (hidden), 0x8650A80 tooltips_class32 (hidden), 0xD60B36 HwndWrapper[ImageProcTest;;7a80bc88-2435-4db0-a821-da94db28234c, 0x1E30BEC ComboLBox (hidden), 0x482087C ComboLBox (hidden), 0x10300C4 WorkerW (hidden), 0xEBE0C58 HwndWrapper[ImageProcTest;;9796a98f-73cc-4c5c-891b-4c2890718546 (hidden), 0x1000BE6 HwndWrapper[ImageProcTest;;7340a299-7a12-4d35-9a4c-06244161d8b7 (hidden), 0x2400C66 HwndWrapper[ImageProcTest;;0d1e22f3-4e93-4743-935c-dbab30a8d276 (hidden), 0x44D0CF0 HwndWrapper[ImageProcTest;;209719ac-1592-4a63-8afa-46f2cc54252b (hidden), 0x7D00898 CiceroUIWndFrame (hidden), 0x5CC09CA MSCTFIME UI (hidden), 0xCC50CE8 IME (hidden), 0x2D80914 CiceroUIWndFrame (hidden)
+    native (+212 ms): dialog 0x79F0406 gone; app windows: 0xD60B36 HwndWrapper[ImageProcTest;;7a80bc88-2435-4db0-a821-da94db28234c, 0xEBE0C58 HwndWrapper[ImageProcTest;;9796a98f-73cc-4c5c-891b-4c2890718546 (hidden), 0x1000BE6 HwndWrapper[ImageProcTest;;7340a299-7a12-4d35-9a4c-06244161d8b7 (hidden), 0x2400C66 HwndWrapper[ImageProcTest;;0d1e22f3-4e93-4743-935c-dbab30a8d276 (hidden), 0x44D0CF0 HwndWrapper[ImageProcTest;;209719ac-1592-4a63-8afa-46f2cc54252b (hidden), 0x7D00898 CiceroUIWndFrame (hidden), 0x5CC09CA MSCTFIME UI (hidden), 0xCC50CE8 IME (hidden), 0x2D80914 CiceroUIWndFrame (hidden)
+    ok: the open is refused with both sizes
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W0_EveryMenuPathInTheQuickStartExistsInTheApp [12 s]
+  Standard Output Messages:
+    ok      Backend > Backend Mode > Native
+    ok      Pipeline > Run Preprocessing (Phase 1a)
+    ok      File > Save Settings
+    ok      View > Calibration Paths Panel
+    ok      File > Open Raw...
+    ok      View > Logs Panel
+    ok      File > Save Corrected Image (float32 .raw)...
+    ok      File > Save Corrected Image (16-bit PNG)...
+    ok      View > Compare Mode
+    ok      View > Reset Comparison View
+    ok      Backend > Native DLL Diagnostics
+    ok      Pipeline > Use Automatic Window
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W1_TheMenuRoute_NativeBackend_CalibrationPanel_Raw_RunPreprocessing_Compare [33 s]
+  Standard Output Messages:
+ STEP 1 launch (no backend switch: the shipped default)
+ STEP 2 Backend > Backend Mode > Native
+    ok: the runtime line says mode=Native
+    == after Native: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0
+       + 0  /  0
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 0 studies loaded
+       + 1:1
+       + ?
+       + A  —
+       + All
+       + B  —
+       + Body Part
+       + C  —  · W  —
+       + Calib:  —
+       + Chain not run · window not measured
+       + Choose this lane's grid correction (#173). Preprocessing has its own switch in Parameters; this choice never switches it off. "Preprocess + virtual grid" switches it on. The Reference choice sets the main pipeline.
+       + Clear Alerts
+       + Clear Logs
+       + Delta
+       + Difference
+       + Done
+       + ERROR: Real DICOM loading is intentionally unavailable in GUI-S0 and remains owned by xpe_dicom.dll.
+       + Export bundle
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261104-185359-e3e464
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Measurements describe the displayed render, not a pass criterion. Delta = B − A; shown only for two separate lane runs with measured values.
+       + Metrics
+       + No applied image
+       + No raw image loaded.
+       + Not applied
+       + Overlay
+       + Parameters
+       + Processed
+       + Queued
+       + ROI
+       + RUN-SET
+       + Record result for
+       + Recorded processing measurements
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Stage times: not measured
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI width
+       + VOI:  not applied
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + fit
+       + gui-s0/golden-26.manifest
+       + mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls
+       + ⌕
+       + ⏸ Defer
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+ STEP 3 View > Calibration Paths Panel
+    ok: the panel appears
+    == panel open: title='ImageProcTest GUI-S0'
+       + Browse...
+       + Calibration paths
+       + Defect
+       + Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.
+       + Gain
+       + Offset
+       + data/calibration/defect
+       + data/calibration/gain
+       + data/calibration/offset
+ STEP 4 Offset: Browse...
+    dialog: 'Select calibration directory'
+    native (+0 ms): dialog 0x5240C34 open; app windows: 0x53E0952 Auto-Suggest Dropdown (hidden), 0x4E50448 tooltips_class32, 0xADE0CCE SysShadow, 0x5530B88 tooltips_class32 (hidden), 0x17B0B74 tooltips_class32 (hidden), 0x6130CDE tooltips_class32 (hidden), 0x11407C0 _SearchEditBoxFakeWindow (hidden), 0x44E0CF0 tooltips_class32 (hidden), 0x1010BE6 tooltips_class32 (hidden), 0x2D90914 tooltips_class32 (hidden), 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0xD90D54 WorkerW (hidden), 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    native (+208 ms): dialog 0x5240C34 gone; app windows: 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    ok: Offset path shown
+ STEP 4 Gain: Browse...
+    dialog: 'Select calibration directory'
+    native (+0 ms): dialog 0x2D50C38 open; app windows: 0x26A0234 Auto-Suggest Dropdown (hidden), 0x1C805EA tooltips_class32, 0xABC0AC2 SysShadow, 0xACB0584 tooltips_class32 (hidden), 0x4860950 tooltips_class32 (hidden), 0x5BD037E tooltips_class32 (hidden), 0x2F6044C _SearchEditBoxFakeWindow (hidden), 0x3940C00 tooltips_class32 (hidden), 0x5330232 tooltips_class32 (hidden), 0x4120D66 tooltips_class32 (hidden), 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0x8710A20 WorkerW (hidden), 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    native (+213 ms): dialog 0x2D50C38 gone; app windows: 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    ok: Gain path shown
+ STEP 4 Defect: Browse...
+    dialog: 'Select calibration directory'
+    native (+0 ms): dialog 0x21407DE open; app windows: 0xCFD0B66 Auto-Suggest Dropdown (hidden), 0x2E20D1A tooltips_class32, 0x1720A8E SysShadow, 0x4530CF0 tooltips_class32 (hidden), 0xF3308EC tooltips_class32 (hidden), 0x12B10B7E tooltips_class32 (hidden), 0x7C1012A _SearchEditBoxFakeWindow (hidden), 0x1E30C40 tooltips_class32 (hidden), 0x1910CC2 tooltips_class32 (hidden), 0x840C6C tooltips_class32 (hidden), 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0x6050B64 WorkerW (hidden), 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    native (+203 ms): dialog 0x21407DE gone; app windows: 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    ok: Defect path shown
+    == three directories set: title='ImageProcTest GUI-S0'
+       + D:\workspace-github\xpe-data\calib-real-v2
+       - Choose this lane's grid correction (#173). Preprocessing has its own switch in Parameters; this choice never switches it off. "Preprocess + virtual grid" switches it on. The Reference choice sets the ...
+       - data/calibration/defect
+       - data/calibration/gain
+       - data/calibration/offset
+ STEP 5 File > Open Raw...
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x5DC09CA open; app windows: 0x7380C14 Auto-Suggest Dropdown (hidden), 0xBDE0C80 tooltips_class32, 0x41005BC SysShadow, 0x7A60406 tooltips_class32 (hidden), 0x12C0906 tooltips_class32 (hidden), 0x82306B8 tooltips_class32 (hidden), 0x2E60D1A tooltips_class32 (hidden), 0x10D00C4 _SearchEditBoxFakeWindow (hidden), 0x1360994 tooltips_class32 (hidden), 0xD650CE8 tooltips_class32 (hidden), 0x31F095C tooltips_class32 (hidden), 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0x6390978 ComboLBox (hidden), 0x2D70C38 ComboLBox (hidden), 0x6070B64 WorkerW (hidden), 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    native (+203 ms): dialog 0x5DC09CA gone; app windows: 0x6CA0C96 HwndWrapper[ImageProcTest;;ad9e805e-31e8-4d14-92fe-6efa267868c4, 0x6EA0A76 HwndWrapper[ImageProcTest;;166c9fd3-bc0d-4d53-a589-e92223d3221a (hidden), 0x4500440 HwndWrapper[ImageProcTest;;3dc7b9d7-4b07-4fe4-822c-ca10a31756f3 (hidden), 0x6A5029E HwndWrapper[ImageProcTest;;35079026-d972-4347-99ab-4a3bca735ae0 (hidden), 0x10A0BE8 HwndWrapper[ImageProcTest;;72ab9960-7e19-4f3a-bf99-a416e331d5bb (hidden), 0xF00C2C CiceroUIWndFrame (hidden), 0x26E0AC8 MSCTFIME UI (hidden), 0x7850946 IME (hidden), 0x51709E2 CiceroUIWndFrame (hidden)
+    ok: an image summary 'RAW 3072x3072' appears
+    == raw loaded: title='ImageProcTest GUI-S0'
+       + 0  /  1
+       + 1
+       + 1 studies loaded
+       + 926cc36b76ff4c5bb32bad096ba12234
+       + A  No grid correction
+       + Abdomen
+       + B  No grid correction
+       + C  2580  · W  1198
+       + Calib:  3 native stages (offset · gain · defect)
+       + Lane B reuses Lane A's measured result; this is one run. No independent delta. Measurements are not pass criteria.
+       + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+       + Record result for 926cc36b76ff4c5bb32bad096ba12234
+       + VOI:  LinearExact
+       + WARN: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+       + manual
+       + preprocess 251.614 ms · enhance_basic 235.566 ms · gsvg 0 ms · ai_bone_suppress 0 ms
+       + preprocess applied · enhance_basic applied · gsvg off · ai_bone_suppress off · auto C 2580.347 / W 1198.496
+       + wrist_lat_3072x3072.raw
+       + —
+       + ○
+       - 0
+       - 0  /  0
+       - 0 studies loaded
+       - A  —
+       - B  —
+       - C  —  · W  —
+       - Calib:  —
+       - Chain not run · window not measured
+       - ERROR: Real DICOM loading is intentionally unavailable in GUI-S0 and remains owned by xpe_dicom.dll.
+       - Measurements describe the displayed render, not a pass criterion. Delta = B − A; shown only for two separate lane runs with measured values.
+       - No applied image
+       - No raw image loaded.
+       - Record result for
+       - Stage times: not measured
+       - VOI:  not applied
+ STEP 6 Pipeline > Run Preprocessing (Phase 1a)
+    Run Preprocessing enabled after switching to Native through the menu: True
+    ok: the chain status changes
+    == after Run Preprocessing: title='ImageProcTest GUI-S0'
+       + 1198.496
+       + 2580.347
+       + 3 stages
+       + Applied · 225.419 ms
+       + Applied · 249.21 ms
+       + Calibration stages
+       + EI/DI · measured, not a pass criterion
+       + Exposure index: uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       + NotRequested · 0 ms
+       + VOI center
+       + VOI source
+       + ai_bone_suppress
+       + automatic
+       + enhance_basic
+       + gsvg
+       + preprocess
+       + preprocess 249.21 ms · enhance_basic 225.419 ms · gsvg 0 ms · ai_bone_suppress 0 ms
+       - preprocess 251.614 ms · enhance_basic 235.566 ms · gsvg 0 ms · ai_bone_suppress 0 ms
+ STEP 7 View > Compare Mode > Difference, then Processed Only, then Source Only
+    == CompareDifferenceMenuItem: title='ImageProcTest GUI-S0'
+       - A  No grid correction
+       - B  No grid correction
+    == CompareProcessedOnlyMenuItem: title='ImageProcTest GUI-S0'
+       + A  No grid correction
+       + B  No grid correction
+    == CompareSourceOnlyMenuItem: title='ImageProcTest GUI-S0'
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W16_TheRealDataWalkthroughs_HaveTheirData [< 1 ms]
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W6_CalibrationPanel_DefaultsAndEmptyDirectories [13 s]
+  Standard Output Messages:
+ CASE no settings file (the defaults)
+    ok: the panel appears
+    Offset: path='data/calibration/offset' notSetVisible=False notSetText=''
+    Gain: path='data/calibration/gain' notSetVisible=False notSetText=''
+    Defect: path='data/calibration/defect' notSetVisible=False notSetText=''
+ CASE settings file with empty calibration directories
+    ok: the panel appears
+    Offset: path='' notSetVisible=True notSetText='(not set)'
+    Gain: path='' notSetVisible=True notSetText='(not set)'
+    Defect: path='' notSetVisible=True notSetText='(not set)'
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W4_SwitchToNative_SaveSettings_Restart_RunPreprocessingIsEnabled [17 s]
+  Standard Output Messages:
+ STEP 1 first start: [MOCK] ImageProcTest GUI-S0
+    ok: Native
+    Run Preprocessing enabled (first start, after the switch): True
+    status bar after Save Settings: Settings saved.
+    settings file backendMode:   "backendMode": "Native",
+ STEP 2 second start with the same settings file: title='ImageProcTest GUI-S0'
+    runtime: mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls
+    Run Preprocessing enabled (second start): True
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W13a_TheDefaultChain_PreprocessesAnOpenedFrame_WithoutRunPreprocessing [9 s]
+  Standard Output Messages:
+    dialog: 'Load Raw Image'
+    native (+1 ms): dialog 0x12E0AD4 open; app windows: 0x33F0C3E Auto-Suggest Dropdown (hidden), 0x1390994 Auto-Suggest Dropdown (hidden), 0x321095C tooltips_class32 (hidden), 0xA830C76 tooltips_class32 (hidden), 0x7870946 tooltips_class32 (hidden), 0x45D0614 tooltips_class32 (hidden), 0x60C0702 ComboLBox (hidden), 0x12B80B7E tooltips_class32 (hidden), 0x80808B0 _SearchEditBoxFakeWindow (hidden), 0x5E209CA tooltips_class32 (hidden), 0x657037E tooltips_class32 (hidden), 0x7CB0254 tooltips_class32 (hidden), 0x1440188 HwndWrapper[ImageProcTest;;c1337f85-180f-4750-8417-9a81efa59041, 0x6FB0D48 ComboLBox (hidden), 0x7C10A0A ComboLBox (hidden), 0x4130B58 WorkerW (hidden), 0x1E90BEC HwndWrapper[ImageProcTest;;ff675b09-a83c-4185-8736-2213766facdc (hidden), 0xBCA0CB6 HwndWrapper[ImageProcTest;;07cefd20-1586-4e42-ae93-a54295e2e9fa (hidden), 0x3840AB6 HwndWrapper[ImageProcTest;;d0d4ca14-3236-443e-9186-9bcb4ee64b68 (hidden), 0x9A70594 HwndWrapper[ImageProcTest;;9523a3b7-7470-4df1-ab4f-e258f6828fdd (hidden), 0x37E0B5E CiceroUIWndFrame (hidden), 0x77D0D60 MSCTFIME UI (hidden), 0x3B90A96 IME (hidden), 0x2AB0724 CiceroUIWndFrame (hidden)
+    native (+209 ms): dialog 0x12E0AD4 gone; app windows: 0x1440188 HwndWrapper[ImageProcTest;;c1337f85-180f-4750-8417-9a81efa59041, 0x1E90BEC HwndWrapper[ImageProcTest;;ff675b09-a83c-4185-8736-2213766facdc (hidden), 0xBCA0CB6 HwndWrapper[ImageProcTest;;07cefd20-1586-4e42-ae93-a54295e2e9fa (hidden), 0x3840AB6 HwndWrapper[ImageProcTest;;d0d4ca14-3236-443e-9186-9bcb4ee64b68 (hidden), 0x9A70594 HwndWrapper[ImageProcTest;;9523a3b7-7470-4df1-ab4f-e258f6828fdd (hidden), 0x37E0B5E CiceroUIWndFrame (hidden), 0x77D0D60 MSCTFIME UI (hidden), 0x3B90A96 IME (hidden), 0x2AB0724 CiceroUIWndFrame (hidden)
+    ok: the image summary appears
+    ok: preprocess=Applied without Run Preprocessing
+    chain: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=254 ms, enhance_basic=250 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+    HUD: 'Calib:  3 native stages (offset · gain · defect)'
+
+
+[xUnit.net 00:09:04.03]     ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing [SKIP]
+[xUnit.net 00:09:04.03]       NOT RUN: W10 needs a native DLL folder that predates xpe_preprocess_pipeline_out (XPE_C232B_OLD_NATIVE_DIR); no such old build is in the repository or in the CI artifacts. Last run by hand on 2026-10-13 (GUI-C-232b report). XPE-SKIP-ALLOWED:265
+  Skipped ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W10_AnOldDllWithoutPipelineOut_FailsWithAnUpdateInstruction_AndProcessesNothing [< 1 ms]
+  Error Message:
+   NOT RUN: W10 needs a native DLL folder that predates xpe_preprocess_pipeline_out (XPE_C232B_OLD_NATIVE_DIR); no such old build is in the repository or in the CI artifacts. Last run by hand on 2026-10-13 (GUI-C-232b report). XPE-SKIP-ALLOWED:265
+
+  Passed ImageProcTest.E2ETests.Scenarios.Operator.QuickStartWalkthroughScenarios.W14_TheQuickStartPage_Steps1To4_FollowedInThePagesOrder_OnRealData [17 s]
+  Standard Output Messages:
+    page step: Start the app on the Native backend. -> launch the app
+    page step: Open the calibration panel: -> View > Calibration Paths Panel
+    page step: Open the raw image: -> File > Open Raw...
+    page step: Run the preprocessing stages: -> Pipeline > Run Preprocessing (Phase 1a)
+ STEP 1 launch with the page's switches (--automation-backend Native ... 3072x3072)
+    ok: the bottom line says 'mode=Native'
+    bottom line: mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls
+ STEP Open the calibration panel: [View > Calibration Paths Panel]
+    ok: a panel titled 'Calibration paths' appears
+    Offset row shows: D:\workspace-github\xpe-data\calib-real-v2
+    Gain row shows: D:\workspace-github\xpe-data\calib-real-v2
+    Defect row shows: D:\workspace-github\xpe-data\calib-real-v2
+ STEP Open the raw image: [File > Open Raw...]
+    dialog: 'Load Raw Image'
+    native (+0 ms): dialog 0x5700C7A open; app windows: 0x2740AC8 Auto-Suggest Dropdown (hidden), 0xD070B66 Auto-Suggest Dropdown (hidden), 0x62B018E tooltips_class32 (hidden), 0xE10D54 tooltips_class32 (hidden), 0x1640B94 tooltips_class32 (hidden), 0x6CC0D6C tooltips_class32 (hidden), 0x7DF0B0A ComboLBox (hidden), 0x2550D2A tooltips_class32 (hidden), 0xAF10186 _SearchEditBoxFakeWindow (hidden), 0x3850AB6 tooltips_class32 (hidden), 0x37F0B5E tooltips_class32 (hidden), 0x2090C4A tooltips_class32 (hidden), 0x2B60B5C HwndWrapper[ImageProcTest;;7f7f7099-913d-4b70-8015-3125db9503a1, 0x830A58 ComboLBox (hidden), 0x6E10306 ComboLBox (hidden), 0x47E0CDA WorkerW (hidden), 0x63B0978 HwndWrapper[ImageProcTest;;87d48768-aa31-4f3c-86f6-b2c1a2334d0b (hidden), 0x9DF0B00 HwndWrapper[ImageProcTest;;20a781bf-a358-461e-9168-136947d9e80f (hidden), 0x33A0C16 HwndWrapper[ImageProcTest;;befdf731-3434-4208-ae54-4b8ba6c169f8 (hidden), 0x2D90C38 HwndWrapper[ImageProcTest;;3a483598-4ff0-4715-b5a7-7fc0f9f9dd0b (hidden), 0x5D0044A CiceroUIWndFrame (hidden), 0x1F006EE MSCTFIME UI (hidden), 0x132A0D14 IME (hidden), 0x5290C34 CiceroUIWndFrame (hidden)
+    native (+211 ms): dialog 0x5700C7A gone; app windows: 0x2B60B5C HwndWrapper[ImageProcTest;;7f7f7099-913d-4b70-8015-3125db9503a1, 0x63B0978 HwndWrapper[ImageProcTest;;87d48768-aa31-4f3c-86f6-b2c1a2334d0b (hidden), 0x9DF0B00 HwndWrapper[ImageProcTest;;20a781bf-a358-461e-9168-136947d9e80f (hidden), 0x33A0C16 HwndWrapper[ImageProcTest;;befdf731-3434-4208-ae54-4b8ba6c169f8 (hidden), 0x2D90C38 HwndWrapper[ImageProcTest;;3a483598-4ff0-4715-b5a7-7fc0f9f9dd0b (hidden), 0x5D0044A CiceroUIWndFrame (hidden), 0x1F006EE MSCTFIME UI (hidden), 0x132A0D14 IME (hidden), 0x5290C34 CiceroUIWndFrame (hidden)
+    ok: an image summary starting 'RAW 3072x3072'
+    summary: RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+    ok: opening the image already ran the preprocessing, as the page says
+    == raw opened: title='ImageProcTest GUI-S0'
+       + +
+       + -
+       + 0  /  1
+       + 0 defer
+       + 0 fail
+       + 0 pass
+       + 1
+       + 1 studies loaded
+       + 1198.496
+       + 1:1
+       + 2580.347
+       + 3 stages
+       + ?
+       + A  No grid correction
+       + Abdomen
+       + All
+       + Applied · 237.908 ms
+       + Applied · 252.575 ms
+       + B  No grid correction
+       + Body Part
+       + Browse...
+       + C  2580  · W  1198
+       + Calib:  3 native stages (offset · gain · defect)
+       + Calibration paths
+       + Calibration stages
+       + Clear Alerts
+       + Clear Logs
+       + D:\workspace-github\xpe-data\calib-real-v2
+       + Defect
+       + Delta
+       + Difference
+       + Directories the backend loads calibration from. Browse changes the setting; Save Settings stores it.
+       + Done
+       + EI/DI · measured, not a pass criterion
+       + Export bundle
+       + Exposure index: uncalibrated EI (uncalibrated measurement) = 219.82, DI = -0.56 (measured, not a pass criterion; S0 reference not verified against the gui gain scale).
+       + FIXTURE SET
+       + Fit
+       + Focus
+       + Gain
+       + Histogram
+       + ImageProcTest GUI ·  Run #20261104-185507-069816
+       + Initialize Backend
+       + LANE A
+       + LANE A — REFERENCE
+       + LANE B
+       + LANE B — CANDIDATE
+       + Lane B reuses Lane A's measured result; this is one run. No independent delta. Measurements are not pass criteria.
+       + Load Raw Image
+       + Log
+       + METRIC
+       + Metrics
+       + Not applied
+       + NotRequested · 0 ms
+       + Offset
+       + Overlay
+       + Parameters
+       + Processed
+       + Queued
+       + RAW 3072x3072, min=2481, max=15451, bytes=18874368 | CalibrationEval(Offset=Auto, Gain=Auto, Defect=Auto, Ghost=Auto, Temp=Auto, Nonlinearity=Auto, Binning=Auto; the preprocess result is the chain line) -> Display: Modality(1/0) -> VOI(auto, LinearExact, C=2580.347, W=1198.496) -> GSDF(off)
+       + ROI
+       + RUN-SET
+       + Record result for ffd90442aad9428383236d9481d0ee46
+       + Recorded processing measurements
+       + Run on all queued
+       + Run-set
+       + STUDY
+       + Save & Next →
+       + Save Settings
+       + Shutdown Backend
+       + Source
+       + Split
+       + Study queue
+       + Swipe
+       + VERDICT
+       + VOI center
+       + VOI source
+       + VOI width
+       + VOI:  LinearExact
+       + WARN: XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 44053 of 9437184 pixel(s) (0.467%) have a gain outside [0.1, 10.0] and are marked defective: gain 1.0 is used and they are listed for the defect correction stage (44051 in the outermost 64-pixel band; first: 0). Limit: 5.0%
+       + WINDOW
+       + X
+       + XPE Evaluation Workbench
+       + _Backend
+       + _File
+       + _Help
+       + _Pipeline
+       + _Tools
+       + _View
+       + ai_bone_suppress
+       + automatic
+       + enhance_basic
+       + ffd90442aad9428383236d9481d0ee46
+       + fit
+       + gsvg
+       + gui-s0/golden-26.manifest
+       + manual
+       + mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls
+       + preprocess
+       + preprocess 252.575 ms · enhance_basic 237.908 ms · gsvg 0 ms · ai_bone_suppress 0 ms
+       + preprocess applied · enhance_basic applied · gsvg off · ai_bone_suppress off · auto C 2580.347 / W 1198.496
+       + wrist_lat_3072x3072.raw
+       + —
+       + ⌕
+       + ⏸ Defer
+       + ○
+       + ⚙
+       + ✓ Pass
+       + ✗ Fail
+ STEP Run the preprocessing stages: [Pipeline > Run Preprocessing (Phase 1a)]
+    ok: the run changed the bottom line (its times)
+    ok: the status line ends with the exposure index
+    bottom line: chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested; times: preprocess=233 ms, enhance_basic=236 ms, gsvg=0 ms, ai_bone_suppress=0 ms; display input=chain | B chain: preprocess=Applied, enhance_basic=Applied, gsvg=NotRequested, ai_bone_suppress=NotRequested;
+ STEP independent evidence: File > Save Corrected Image (float32 .raw)... and its digest against the first-stage reference
+    dialog: 'Save Corrected Image (float32 raw)'
+    native (+1 ms): dialog 0xD8E0CE8 open; app windows: 0x2770AC8 Auto-Suggest Dropdown (hidden), 0x4610440 tooltips_class32 (hidden), 0x8C50A5A tooltips_class32 (hidden), 0x9AB0594 Auto-Suggest Dropdown (hidden), 0x14A0188 tooltips_class32 (hidden), 0x5720A86 tooltips_class32 (hidden), 0x4450174 ComboLBox (hidden), 0x1F30BEC tooltips_class32 (hidden), 0x19C0CC2 tooltips_class32 (hidden), 0xE00B36 _SearchEditBoxFakeWindow (hidden), 0x41305BC tooltips_class32 (hidden), 0x60F0C4C tooltips_class32 (hidden), 0x15F0A10 tooltips_class32 (hidden), 0x2B60B5C HwndWrapper[ImageProcTest;;7f7f7099-913d-4b70-8015-3125db9503a1, 0x90E0C86 ComboLBox (hidden), 0x5420694 ComboLBox (hidden), 0x2C807D6 WorkerW (hidden), 0x63B0978 HwndWrapper[ImageProcTest;;87d48768-aa31-4f3c-86f6-b2c1a2334d0b (hidden), 0x9DF0B00 HwndWrapper[ImageProcTest;;20a781bf-a358-461e-9168-136947d9e80f (hidden), 0x33A0C16 HwndWrapper[ImageProcTest;;befdf731-3434-4208-ae54-4b8ba6c169f8 (hidden), 0x2D90C38 HwndWrapper[ImageProcTest;;3a483598-4ff0-4715-b5a7-7fc0f9f9dd0b (hidden), 0x5D0044A CiceroUIWndFrame (hidden), 0x1F006EE MSCTFIME UI (hidden), 0x132A0D14 IME (hidden), 0x5290C34 CiceroUIWndFrame (hidden)
+    native (+207 ms): dialog 0xD8E0CE8 gone; app windows: 0x2B60B5C HwndWrapper[ImageProcTest;;7f7f7099-913d-4b70-8015-3125db9503a1, 0x63B0978 HwndWrapper[ImageProcTest;;87d48768-aa31-4f3c-86f6-b2c1a2334d0b (hidden), 0x9DF0B00 HwndWrapper[ImageProcTest;;20a781bf-a358-461e-9168-136947d9e80f (hidden), 0x33A0C16 HwndWrapper[ImageProcTest;;befdf731-3434-4208-ae54-4b8ba6c169f8 (hidden), 0x2D90C38 HwndWrapper[ImageProcTest;;3a483598-4ff0-4715-b5a7-7fc0f9f9dd0b (hidden), 0x5D0044A CiceroUIWndFrame (hidden), 0x1F006EE MSCTFIME UI (hidden), 0x132A0D14 IME (hidden), 0x5290C34 CiceroUIWndFrame (hidden)
+    ok: the status line reports the save
+    saved 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4; reference 37748736 bytes sha256 d152e8ebba2cba142a95ba7ba981354a393fa18551b46572d8b1c3f36e8fdfd4
+
+
+XPE-C56-PROBE hwnd=0xF590C98 pid=33308 launched=PropertyNotSupportedException fromHandle=ok fromTree=ok framework=Win32
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.Z01_ZoomIn_And_ZoomOut_MoveTheScaleBy125Percent_AndStopAtTheBounds [19 s]
+  Standard Output Messages:
+ Z-01 backend=Native
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenScopeHelpMenuItem", expectedTitle: "ImageProcTest Help - Scope and Limitations", expectedFile: "scope.html") [1 s]
+  Standard Output Messages:
+ H-01 OpenScopeHelpMenuItem backend=Native
+ H-01 OpenScopeHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\scope.html
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenQuickStartHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [3 s]
+  Standard Output Messages:
+ H-01 OpenQuickStartHelpMenuItem backend=Native
+ H-01 OpenQuickStartHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\quick-start.html
+ H-01 Quick Start capture: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-259\quick-start-help.png
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.H01_HelpItem_OpensAHelpWindowOnAPackagedPageWithContent(itemId: "OpenCurrentWorkflowHelpMenuItem", expectedTitle: "ImageProcTest Help - Quick Start", expectedFile: "quick-start.html") [1 s]
+  Standard Output Messages:
+ H-01 OpenCurrentWorkflowHelpMenuItem backend=Native
+ H-01 OpenCurrentWorkflowHelpMenuItem: path=D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\help\quick-start.html
+
+
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.D01_NativeDllDiagnostics_NamesTheDisplayLibraryTheDiskHolds_AndTheBackendThatIsRunning [3 s]
+  Standard Output Messages:
+ D-01 backend=Native
+ D-01 status: Display DLL detected at 'D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_display.dll' (1.0.0).
+ D-01 log: [18:56:33.668] Native diagnostics: backend=RealXpeBackend, version=xpe_display 1.0.0, state=Initialized, commonDetected=True, commonPath='D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_common.dll', displayDetected=True, displayPath='D:\workspace-github\image-processing\build\e2e-native-dlls\xpe_display.dll', displayVersion='1.0.0'.
+
+
+[xUnit.net 00:10:34.86]   Finished:    ImageProcTest.E2ETests
+Data collector 'Blame' message: All tests finished running, Sequence file will not be generated.
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.MenuBehaviorScenarios.A01_About_ShowsTheBackendVersionTheStatusBarShows [2 s]
+  Standard Output Messages:
+ A-01 backend=Native
+ A-01 dialog text: ImageProcTest GUI-S0 | Build: b9be6ae3b7 (Debug) | Backend: xpe_display 1.0.0 | Help bundle: packaged offline HTML
+ A-01 status runtime: mode=Native  |  common=0.1.0  |  display=1.0.0  |  src=e2e-native-dlls
+ A-01 build line: sha=b9be6ae3b7 config=Debug; exe ProductVersion='1.0.0+b9be6ae3b7'
+
+
+
+Test Run Failed.Total tests: 28
+
+     Passed: 25
+     Failed: 1
+    Skipped: 2
+ Total time: 10.5910 Minutes
+Results File: D:\workspace-github\xpe-gui\.moai\reports\lane-gui\GUI-C-259\e2e-results\gui-c-259-e2e.trx
+
+Workload updates are available. Run `dotnet workload list` for more information.

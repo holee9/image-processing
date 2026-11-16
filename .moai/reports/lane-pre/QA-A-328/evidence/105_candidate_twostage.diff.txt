@@ -8,11 +8,11 @@ index 5d942383..1a4c3358 100644
  constexpr double kScaleFloor = 1e-6;
 +constexpr double kTwoStageExclude = 4.0;   // QA-A-328: first-pass |r| > 4.0 * s pixels are left out of the second background / scale estimate (fixed before measuring)
  constexpr double kReferenceFloor = 1e-9;
- 
+
  struct Settings {
 @@ -302,7 +303,7 @@ void removeRowColumn(float* f, float* tmp, int w, int h, int win, bool multiplic
  }
- 
+
  /** Local scale: 1.4826 * median(|r|) per block, one value per block; returns the median over the blocks as a summary. */
 -float blockScale(const float* r, int w, int h, int block, std::vector<float>* sig, int* nbx, int* nby) {
 +float blockScale(const float* r, int w, int h, int block, std::vector<float>* sig, int* nbx, int* nby, const uint8_t* excl = nullptr) {
@@ -34,7 +34,7 @@ index 5d942383..1a4c3358 100644
      std::vector<float> copy(*sig);
 @@ -367,12 +372,42 @@ float flagResponseRatio(Work& wk, const Settings& st, double lo, double hi, doub
  }
- 
+
  /** Robust z feature: subtracts rows and columns, estimates background and scale, flags |z| > lambda (z > lambda when @p upperOnly). Returns the median local scale. */
 -float flagRobustZ(Work& wk, const Settings& st, double lambda, bool upperOnly, bool multiplicative, uint8_t bit, std::vector<uint8_t>* flags, uint32_t* count) {
 +// NOLINTBEGIN(bugprone-easily-swappable-parameters): twoStage is the QA-A-328 switch, appended after the existing arguments; the one call that sets it passes true
@@ -83,6 +83,6 @@ index 5d942383..1a4c3358 100644
      threshold[0] = lambdaTwoSided;
 -    if (!(job && job->linesOnly)) scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0]);
 +    if (!(job && job->linesOnly)) scaleMed[0] = flagRobustZ(wk, st, lambdaTwoSided, false, false, XPE_BPM_V2_FEATURE_DARK_MEAN, &flags, &counts[0], true);
- 
+
      // F2 dark temporal noise
      nu[1] = nd - 1;

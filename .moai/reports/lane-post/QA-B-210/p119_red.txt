@@ -1,0 +1,30 @@
+Running main() from D:\workspace-github\xpe-post\build\ci-dicom\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = *Jpip*
+[==========] Running 2 tests from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 2 tests from DicomValidatorTest
+[ RUN      ] DicomValidatorTest.JpipPixelDataErrorCitesThePs35ClauseOfTheTransferSyntax
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_validator.cpp(834): error: Expected: (std::string::npos) != (message.find(c.clause)), actual: 18446744073709551615 vs 18446744073709551615
+JPIP HTJ2K Referenced (.204): the message cites the wrong clause: Pixel Data shall not be present under a JPIP Referenced transfer syntax (PS3.5 A.6)
+
+D:\workspace-github\xpe-post\modules\dicom\tests\test_dicom_validator.cpp(836): error: Expected equality of these values:
+  std::string::npos
+    Which is: 18446744073709551615
+  message.find("A.6")
+    Which is: 79
+JPIP HTJ2K Referenced (.204): A.6 is the clause of .94/.95, not of .204: Pixel Data shall not be present under a JPIP Referenced transfer syntax (PS3.5 A.6)
+
+[  FAILED  ] DicomValidatorTest.JpipPixelDataErrorCitesThePs35ClauseOfTheTransferSyntax (13 ms)
+[ RUN      ] DicomValidatorTest.KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild
+[2026-10-04 13:41:31.712] [error] [xpe_dicom] xpe_dicom_validate exit rc=-13 (Invalid or malformed DICOM file)
+[2026-10-04 13:41:31.720] [error] [xpe_dicom] xpe_dicom_validate exit rc=-13 (Invalid or malformed DICOM file)
+[       OK ] DicomValidatorTest.KnownDivergence_JpipReferencedDeflateSyntaxesCannotBeParsedByThisDcmtkBuild (13 ms)
+[----------] 2 tests from DicomValidatorTest (27 ms total)
+
+[----------] Global test environment tear-down
+[==========] 2 tests from 1 test suite ran. (45 ms total)
+[  PASSED  ] 1 test.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] DicomValidatorTest.JpipPixelDataErrorCitesThePs35ClauseOfTheTransferSyntax
+
+ 1 FAILED TEST

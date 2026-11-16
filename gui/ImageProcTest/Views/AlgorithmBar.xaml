@@ -22,7 +22,7 @@
             <ComboBox AutomationProperties.AutomationId="LaneAAlgorithmPicker"
                       ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneAAlgorithm, Mode=TwoWay}"
-                      ToolTip="이 lane 의 격자 보정(None / Grid suppression / Virtual grid)을 고릅니다 (#173). 전처리는 Parameters 탭의 별도 스위치이며 이 선택이 끄지 않습니다; &quot;Preprocess + virtual grid&quot; 는 전처리를 켭니다. 기준 lane 의 선택은 주 파이프라인 설정이 됩니다."
+                      ToolTip="Choose this lane's grid correction (#173). Preprocessing has its own switch in Parameters; this choice never switches it off. &quot;Preprocess + virtual grid&quot; switches it on. The Reference choice sets the main pipeline."
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />
@@ -41,23 +41,23 @@
             <ComboBox AutomationProperties.AutomationId="LaneBAlgorithmPicker"
                       ItemsSource="{x:Static vm:MainWindowViewModel.AlgorithmOptions}"
                       SelectedItem="{Binding LaneBAlgorithm, Mode=TwoWay}"
-                      ToolTip="이 lane 의 격자 보정을 고릅니다 (#173). 전처리는 Parameters 탭의 별도 스위치이며 이 선택이 끄지 않습니다; &quot;Preprocess + virtual grid&quot; 는 전처리를 켭니다."
+                      ToolTip="Choose this lane's grid correction (#173). Preprocessing has its own switch in Parameters; this choice never switches it off. &quot;Preprocess + virtual grid&quot; switches it on."
                       Background="Transparent" Foreground="#f0f2f5"
                       BorderThickness="0" FontSize="14" FontWeight="SemiBold"
                       VerticalAlignment="Center" Padding="4,2" />
 
             <!-- #173 (GUI-C-113): the one setting that may differ between the lanes. 0 = follow the
                  Reference, which is how both lanes are made to draw identically. -->
-            <TextBlock Text="VOI 폭" Foreground="#5a5f6a" FontSize="9" VerticalAlignment="Center" Margin="16,0,6,0" />
+            <TextBlock Text="VOI width" Foreground="#5a5f6a" FontSize="9" VerticalAlignment="Center" Margin="16,0,6,0" />
             <TextBox AutomationProperties.AutomationId="LaneBVoiWidthInput"
                      Text="{Binding Settings.LaneBVoiWindowWidth, UpdateSourceTrigger=PropertyChanged}"
                      Width="64" Background="#0DFFFFFF" Foreground="#f0f2f5"
                      BorderBrush="#1AFFFFFF" Padding="6,4" FontSize="11" VerticalAlignment="Center" />
-            <TextBlock AutomationProperties.AutomationId="LaneBStaleMark" Text="오래됨"
+            <TextBlock AutomationProperties.AutomationId="LaneBStaleMark" Text="Stale"
                        Foreground="#f59e0b" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center"
                        Margin="8,0,0,0"
                        Visibility="{Binding LaneBIsStale, Converter={StaticResource BoolToVisibility}}"
-                       ToolTip="이 lane 의 설정이 바뀌었고 아직 적용되지 않았습니다 (#173)." />
+                       ToolTip="This lane's settings changed and have not been applied yet (#173)." />
         </StackPanel>
     </Grid>
 </UserControl>

@@ -104,9 +104,10 @@
 
                         <!-- Study info -->
                         <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding Id}" FontSize="11" FontWeight="SemiBold"
+                            <TextBlock Text="{Binding Name}" ToolTip="{Binding RawPath}" FontSize="11" FontWeight="SemiBold"
                                        Foreground="#f0f2f5" />
                             <TextBlock Text="{Binding BodyPart}" FontSize="10" Foreground="#5a5f6a" />
+                            <TextBlock Text="{Binding Source}" FontSize="10" Foreground="#5a5f6a" />
                         </StackPanel>
 
                         <!-- Status + delta -->

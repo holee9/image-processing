@@ -1,0 +1,38 @@
+﻿D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,9): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,27): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Operator\QuickStartWalkthroughScenarios.cs(489,43): warning CS1717: Assignment made to same variable; did you mean to assign something else? [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Legacy\LegacyPreprocessReadinessScenarios.cs(86,13): warning xUnit2013: Do not use Assert.Equal() to check for collection size. Use Assert.Single instead. (https://xunit.net/xunit.analyzers/rules/xUnit2013) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MenuBehaviorScenarios.cs(195,40): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\MenuBehaviorScenarios.cs(199,39): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\Scenarios\Workflows\ProcessingChainScenarios.cs(325,17): warning xUnit2031: Do not use a Where clause to filter before calling Assert.Single. Use the overload of Assert.Single that accepts a filtering function. (https://xunit.net/xunit.analyzers/rules/xUnit2031) [D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\ImageProcTest.E2ETests.csproj]
+  ImageProcTest.E2ETests -> D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+Test run for D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.14.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+D:\workspace-github\xpe-gui\clients\ImageProcTest.E2ETests\bin\Debug\net8.0-windows\ImageProcTest.E2ETests.dll
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.09]   Discovering: ImageProcTest.E2ETests
+[xUnit.net 00:00:00.16]   Discovered:  ImageProcTest.E2ETests
+[xUnit.net 00:00:00.18]   Starting:    ImageProcTest.E2ETests
+XPE-C56-PROBE hwnd=0x16B0C96 pid=25856 launched=ok fromHandle=ok fromTree=ok framework=Wpf
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowScenarios.W01_RawImageLoaded_ViewportAndStatusReflectIt [1 s]
+  Standard Output Messages:
+ W-01 elapsed 1943 ms
+
+
+[xUnit.net 00:00:03.86]   Finished:    ImageProcTest.E2ETests
+  Passed ImageProcTest.E2ETests.Scenarios.Workflows.WorkflowMenuScenarios.W10_FixtureManager_ReportsWhetherTheFixturePackIsPresent [160 ms]
+  Standard Output Messages:
+ W-10 status: Fixture pack available: D:\workspace-github\xpe-gui\gui\ImageProcTest\bin\Debug\net8.0-windows\fixtures\gui-s0
+ W-10 elapsed 159 ms (Mock)
+
+
+
+Test Run Successful.
+Total tests: 2
+     Passed: 2
+ Total time: 4.1711 Seconds
+
+Workload updates are available. Run `dotnet workload list` for more information.

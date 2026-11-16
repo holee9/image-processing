@@ -1017,7 +1017,7 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
     }
 
     private static string ChainText(Window window) =>
-        window.FindFirstDescendant(cf => cf.ByAutomationId("ChainStatusText"))?.Name ?? string.Empty;
+        WorkbenchObservation.FullChainText(window);
 
     /// <summary>
     /// One field of the viewport peer's HelpText (<c>processed</c>, <c>processedMean</c>, <c>hud</c>).
@@ -1039,11 +1039,14 @@ public sealed class GsvgWristSliceScenarios(Wrist1024SliceApplicationFixture app
 
     private static void SetMode(Window window, string radioId)
     {
-        OpenParameters(window);
-        var radio = window.FindFirstDescendant(cf => cf.ByAutomationId(radioId));
-        Assert.True(radio is not null, $"{radioId} is not in the Parameters tab.");
-        radio!.AsRadioButton().IsChecked = true;
-        Thread.Sleep(250);
+        var option = radioId switch
+        {
+            "GsvgModeNone" => "No grid correction",
+            "GsvgModeGridSuppression" => "Grid suppression",
+            "GsvgModeVirtualGrid" => "Virtual grid",
+            _ => throw new ArgumentOutOfRangeException(nameof(radioId), radioId, "Unknown grid mode.")
+        };
+        TwoLaneWorkbenchScenarios.SelectAlgorithm(window, "A", option);
     }
 
     /// <summary>

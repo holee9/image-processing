@@ -1,0 +1,12 @@
+test_bad_table_is_reported_before_loading_or_worker_start (__main__.ContractTests.test_bad_table_is_reported_before_loading_or_worker_start) ... ok
+test_explicit_default_expands_search_interval_as_before (__main__.ContractTests.test_explicit_default_expands_search_interval_as_before) ... ok
+test_invalid_integer_rejected_in_each_editable_column (__main__.ContractTests.test_invalid_integer_rejected_in_each_editable_column) ... ok
+test_nonmonotone_lut_rejected (__main__.ContractTests.test_nonmonotone_lut_rejected) ... ok
+test_rejection_does_not_partially_change_definitions (__main__.ContractTests.test_rejection_does_not_partially_change_definitions) ... ok
+test_reversed_interval_rejected (__main__.ContractTests.test_reversed_interval_rejected) ... ok
+test_valid_integer_edit_reaches_init_and_enabled (__main__.ContractTests.test_valid_integer_edit_reaches_init_and_enabled) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.000s
+
+OK

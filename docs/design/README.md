@@ -25,6 +25,22 @@ references for look, structure, and behavior — **not** code to ship. The task
 is to recreate them as WPF views and view-model changes inside the existing
 `ImageProcTest` solution.
 
+## Status against the live build (checked 2026-11-03)
+
+The three ideas above were checked on the running app (Native backend, a real
+3072 × 3072 wrist frame, a real calibration set) — see
+[VERIFICATION-20261103-live-real-frame.md](VERIFICATION-20261103-live-real-frame.md).
+
+| Idea | What the live build does today | Tracking |
+|---|---|---|
+| 1. Two algorithm lanes | Pickers exist (4 entries) and the compare modes work, but picking a lane algorithm does not change the processing chain — the lane tag updates after a run while `gsvg` stays `NotRequested`; the chain is driven by the Parameters-tab grid radio instead | #281 |
+| 2. Study queue + verdicts + run-set | A user-opened raw never enters the queue (the queue's `+` opens the same dialog, still 0 studies); Pass → Save & Next records nothing (run-set stays 0, status bar says "Settings saved.") | #280 |
+| 3. Analysis panel | Parameters / Run-set / Log tabs are populated; the **Metrics tab stays at its placeholder** after both the automatic run and an explicit Run Preprocessing | #282 |
+
+Processing order itself is right: with calibration paths saved, opening a raw
+runs `preprocess → enhance_basic → display` in one pass. The calibration
+dialog (C.2) shipped as a right-side panel rather than a modal.
+
 ## About the Design Files
 
 The design lives in `prototype/`:
