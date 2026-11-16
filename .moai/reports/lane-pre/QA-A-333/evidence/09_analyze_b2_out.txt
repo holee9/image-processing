@@ -1,0 +1,19 @@
+list rows 32858 unique 32836 duplicated coords 22
+pass 0 max |sum/13 - fdump| (dup-normalised) 1.08e-06
+pass 1 max |sum/13 - fdump| (dup-normalised) 0.935
+pass 2 max |sum/13 - fdump| (dup-normalised) 1.08e-06
+g 0 NORM median vg 659.42 median vgBg 670.23 | vg/NORM-vg 1.000 vgBg/NORM-vgBg 1.000
+g 0 r0.7 median vg 517.52 median vgBg 752.49 | vg/NORM-vg 0.785 vgBg/NORM-vgBg 1.123
+g 0 r0.6 median vg 383.38 median vgBg 582.34 | vg/NORM-vg 0.581 vgBg/NORM-vgBg 0.869
+g 1 NORM median vg 1326.27 median vgBg 1353.69 | vg/NORM-vg 1.000 vgBg/NORM-vgBg 1.000
+g 1 r0.7 median vg 1047.76 median vgBg 1536.75 | vg/NORM-vg 0.790 vgBg/NORM-vgBg 1.135
+g 1 r0.6 median vg 769.51 median vgBg 1181.68 | vg/NORM-vg 0.580 vgBg/NORM-vgBg 0.873
+g 2 NORM median vg 2603.42 median vgBg 2674.07 | vg/NORM-vg 1.000 vgBg/NORM-vgBg 1.000
+g 2 r0.7 median vg 2080.48 median vgBg 3046.13 | vg/NORM-vg 0.799 vgBg/NORM-vgBg 1.139
+g 2 r0.6 median vg 1510.83 median vgBg 2411.35 | vg/NORM-vg 0.580 vgBg/NORM-vgBg 0.902
+g 3 NORM median vg 4148.28 median vgBg 4168.42 | vg/NORM-vg 1.000 vgBg/NORM-vgBg 1.000
+g 3 r0.7 median vg 3404.61 median vgBg 4681.96 | vg/NORM-vg 0.821 vgBg/NORM-vgBg 1.123
+g 3 r0.6 median vg 2422.45 median vgBg 3641.89 | vg/NORM-vg 0.584 vgBg/NORM-vgBg 0.874
+g 4 NORM median vg 6468.74 median vgBg 6577.60 | vg/NORM-vg 1.000 vgBg/NORM-vgBg 1.000
+g 4 r0.7 median vg 5322.32 median vgBg 7380.81 | vg/NORM-vg 0.823 vgBg/NORM-vgBg 1.122
+g 4 r0.6 median vg 3677.80 median vgBg 5706.01 | vg/NORM-vg 0.569 vgBg/NORM-vgBg 0.867

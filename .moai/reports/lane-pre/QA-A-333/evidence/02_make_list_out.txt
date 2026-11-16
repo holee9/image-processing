@@ -1,0 +1,7 @@
+100 efficiency_loss row_full 0.6 rect 3072 own 3023 shared 49 other 0
+101 efficiency_loss col_full 0.6 rect 3072 own 3044 shared 28 other 0
+103 efficiency_loss col_partial 0.6 rect 768 own 754 shared 14 other 0
+104 efficiency_loss row_pair 0.6 rect 1536 own 1512 shared 24 other 0
+106 efficiency_loss row_full 0.7 rect 3072 own 3024 shared 48 other 0
+110 efficiency_loss row_pair 0.7 rect 1536 own 1516 shared 20 other 0
+rows 32873

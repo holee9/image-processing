@@ -1,0 +1,26 @@
+# QA-A-333 B: dump list = every pixel whose truth id is 100,101,103,104,106,110 (shared pixels 65535 are not included; their count is printed)
+# + a normal sample: 20000 random pixels (seed 333) with id 0 and id 0 in the whole 5x5 neighbourhood, inside x 6..3070, y 2..3070.
+import sys, numpy as np
+T, out = sys.argv[1], sys.argv[2]
+ids = np.fromfile(T + "/truth_ids.u16", dtype=np.uint16).reshape(3072, 3072)
+rects = {}
+for ln in open(T + "/truth.tsv"):
+    f = ln.rstrip("\n").split("\t")
+    if f[0].isdigit() and int(f[0]) in (100, 101, 103, 104, 106, 110): rects[int(f[0])] = f
+rows = []
+for k, f in sorted(rects.items()):
+    x, y, w, h = map(int, f[5].split(","))
+    sub = ids[y:y + h, x:x + w]
+    print(k, f[2], f[3], f[4], "rect", w * h, "own", int((sub == k).sum()), "shared", int((sub == 65535).sum()), "other", int(((sub != k) & (sub != 65535)).sum()))
+    yy, xx = np.nonzero(sub == k)
+    rows += [(x + a, y + b, "CTRL%d_r%s" % (k, f[4])) for a, b in zip(xx, yy)]
+from numpy.lib.stride_tricks import sliding_window_view
+nz = (ids != 0).astype(np.uint8)
+mx = np.zeros_like(nz); mx[2:-2, 2:-2] = sliding_window_view(nz, (5, 5)).max(axis=(2, 3))
+rng = np.random.default_rng(333); got = 0
+while got < 20000:
+    x = int(rng.integers(6, 3071)); y = int(rng.integers(2, 3071))
+    if mx[y, x] == 0: rows.append((x, y, "NORM")); got += 1
+with open(out, "w", newline="\n") as fo:
+    for x, y, t in rows: fo.write("%d\t%d\t%s\n" % (x, y, t))
+print("rows", len(rows))
