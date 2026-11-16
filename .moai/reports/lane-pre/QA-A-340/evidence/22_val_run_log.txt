@@ -1,0 +1,14 @@
+{"set": "G2_0412_plain_18", "frame": "Bright_14.raw", "C_ok": true, "C_min_pairs": 403708, "denominator": 142, "placement_impossible": 0}
+{"set": "G2_0412_plain_18", "frame": "Bright_15.raw", "C_ok": true, "C_min_pairs": 403708, "denominator": 142, "placement_impossible": 0}
+{"set": "G2_0428_AED_20", "frame": "Bright_24.raw", "C_ok": true, "C_min_pairs": 403702, "denominator": 142, "placement_impossible": 0}
+{"set": "G2_0428_AED_20", "frame": "Bright_25.raw", "C_ok": true, "C_min_pairs": 403702, "denominator": 142, "placement_impossible": 0}
+{"set": "G2_0428_AED-LR_21", "frame": "Bright_24.raw", "C_ok": true, "C_min_pairs": 403688, "denominator": 142, "placement_impossible": 0}
+{"set": "G2_0428_AED-LR_21", "frame": "Bright_25.raw", "C_ok": true, "C_min_pairs": 403688, "denominator": 142, "placement_impossible": 0}
+{"set": "G2_0429_plain_24", "frame": "Bright_25.raw", "C_ok": true, "C_min_pairs": 403688, "denominator": 142, "placement_impossible": 0}
+{"set": "G2_0429_plain_24", "frame": "Bright_26.raw", "C_ok": true, "C_min_pairs": 403688, "denominator": 142, "placement_impossible": 0}
+{"set": "G4_0410_plain_47", "frame": "Bright_14.raw", "C_ok": true, "C_min_pairs": 403750, "denominator": 142, "placement_impossible": 0}
+{"set": "G4_0410_plain_47", "frame": "Bright_15.raw", "C_ok": true, "C_min_pairs": 403750, "denominator": 142, "placement_impossible": 0}
+{"set": "F1_0410_plain_73", "frame": "Bright_14.raw", "C_ok": true, "C_min_pairs": 403733, "denominator": 142, "placement_impossible": 0}
+{"set": "F1_0410_plain_73", "frame": "Bright_15.raw", "C_ok": true, "C_min_pairs": 403733, "denominator": 142, "placement_impossible": 0}
+{"set": "I4_0426_plain_81", "frame": "Bright_14.raw", "C_ok": true, "C_min_pairs": 403670, "denominator": 142, "placement_impossible": 0}
+{"set": "I4_0426_plain_81", "frame": "Bright_15.raw", "C_ok": true, "C_min_pairs": 403670, "denominator": 142, "placement_impossible": 0}

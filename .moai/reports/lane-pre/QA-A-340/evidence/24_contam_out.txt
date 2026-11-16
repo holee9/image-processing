@@ -1,0 +1,33 @@
+sigma_ref (sigma_C2, k=1, L=3065) = 1.10998; offset rows 2..1535 (1534), N(0, (2 sigma_ref)^2), seed 339
+[before] C(dx,dy) dy=0..3 rows, dx=0..3 cols: [[3449.0083, 1442.0877, 321.2901, 59.4287], [1497.8066, 794.8323, 224.0044, 46.5295], [348.2481, 234.9567, 88.1238, 16.0366], [85.0059, 63.0048, 23.7345, -2.0414]] min pairs 403596
+## before
+frames 1 | sets 1 | C2-undeterminable frames 0
+n_eff per frame (n0 - placement impossible) distribution: {142: 1} | placement-impossible per frame: [0]
+c0: valid draws M 20, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.1338, mean 0.09261, distinct ratio values (value: draws) {0.04225: 1, 0.06338: 1, 0.07042: 2, 0.07746: 1, 0.08451: 4, 0.09155: 1, 0.09859: 4, 0.10563: 2, 0.11268: 1, 0.11972: 1, 0.12676: 1, 0.1338: 1}
+c2: valid draws M 20, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.04225, mean 0.01620, distinct ratio values (value: draws) {np.float64(0.0): 3, np.float64(0.00704): 2, np.float64(0.01408): 7, np.float64(0.02113): 5, np.float64(0.02817): 1, np.float64(0.03521): 1, np.float64(0.04225): 1}
+overlapping moved-part pairs per draw: min 1108 median 1209 max 1264
+|D|/sigma_C2 > 5 among null-draw parts (diagnostic only): 0 / 2840
+injection c0 a=2: detected 1 / valid 124 = 0.0081 | already over before injection 18, undeterminable 0, injection impossible 0
+injection c0 a=3: detected 1 / valid 124 = 0.0081 | already over before injection 18, undeterminable 0, injection impossible 0
+injection c0 a=4: detected 1 / valid 124 = 0.0081 | already over before injection 18, undeterminable 0, injection impossible 0
+injection c0 a=5: detected 1 / valid 124 = 0.0081 | already over before injection 18, undeterminable 0, injection impossible 0
+injection c2 a=2: detected 0 / valid 140 = 0.0000 | already over before injection 2, undeterminable 0, injection impossible 0
+injection c2 a=3: detected 0 / valid 140 = 0.0000 | already over before injection 2, undeterminable 0, injection impossible 0
+injection c2 a=4: detected 0 / valid 140 = 0.0000 | already over before injection 2, undeterminable 0, injection impossible 0
+injection c2 a=5: detected 0 / valid 140 = 0.0000 | already over before injection 2, undeterminable 0, injection impossible 0
+[after] C(dx,dy) dy=0..3 rows, dx=0..3 cols: [[3449.0083, 1442.0877, 321.2901, 59.4287], [1497.8066, 794.8323, 224.0044, 46.5295], [348.2481, 234.9567, 88.1238, 16.0366], [85.0059, 63.0048, 23.7345, -2.0414]] min pairs 403596
+## after
+frames 1 | sets 1 | C2-undeterminable frames 0
+n_eff per frame (n0 - placement impossible) distribution: {142: 1} | placement-impossible per frame: [0]
+c0: valid draws M 20, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.15493, mean 0.12500, distinct ratio values (value: draws) {0.07746: 1, 0.09155: 1, 0.10563: 1, 0.11268: 5, 0.11972: 3, 0.1338: 2, 0.14085: 3, 0.14789: 1, 0.15493: 3}
+c2: valid draws M 20, undeterminable draws 0, nearest-rank 99th percentile of the exceedance ratio 0.07746, mean 0.04085, distinct ratio values (value: draws) {np.float64(0.01408): 1, np.float64(0.02113): 5, np.float64(0.02817): 2, np.float64(0.03521): 1, np.float64(0.04225): 2, np.float64(0.0493): 4, np.float64(0.05634): 3, np.float64(0.07746): 2}
+overlapping moved-part pairs per draw: min 1108 median 1209 max 1264
+|D|/sigma_C2 > 5 among null-draw parts (diagnostic only): 19 / 2840
+injection c0 a=2: detected 1 / valid 123 = 0.0081 | already over before injection 19, undeterminable 0, injection impossible 0
+injection c0 a=3: detected 1 / valid 123 = 0.0081 | already over before injection 19, undeterminable 0, injection impossible 0
+injection c0 a=4: detected 1 / valid 123 = 0.0081 | already over before injection 19, undeterminable 0, injection impossible 0
+injection c0 a=5: detected 1 / valid 123 = 0.0081 | already over before injection 19, undeterminable 0, injection impossible 0
+injection c2 a=2: detected 0 / valid 139 = 0.0000 | already over before injection 3, undeterminable 0, injection impossible 0
+injection c2 a=3: detected 0 / valid 139 = 0.0000 | already over before injection 3, undeterminable 0, injection impossible 0
+injection c2 a=4: detected 0 / valid 139 = 0.0000 | already over before injection 3, undeterminable 0, injection impossible 0
+injection c2 a=5: detected 0 / valid 139 = 0.0000 | already over before injection 3, undeterminable 0, injection impossible 0
