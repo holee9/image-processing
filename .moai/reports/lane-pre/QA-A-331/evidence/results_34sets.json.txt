@@ -1,0 +1,2185 @@
+{
+ "G1_0412_plain_0": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G1",
+  "date": "0412",
+  "kind": "plain",
+  "idx": 0,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   7,
+   9
+  ],
+  "cols_clean": [
+   9,
+   9
+  ],
+  "defects": 760,
+  "secs": [
+   138,
+   2,
+   0
+  ],
+  "rel": "25L29G1/20260413_Cyan_ft/20260412_CJ518486FAAA_25L29G1/20260412_CJ518486FAAA_25L29G1"
+ },
+ "G1_0424_plain_7": {
+  "status": "fail",
+  "stage": "G4",
+  "rc": 13
+ },
+ "G1_0427_AED_2": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G1",
+  "date": "0427",
+  "kind": "AED",
+  "idx": 2,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw"
+  ],
+  "bpm": [
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw"
+  ],
+  "ev": [
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "parts_clean": [
+   10,
+   9
+  ],
+  "cols_clean": [
+   7,
+   13
+  ],
+  "defects": 1626,
+  "secs": [
+   159,
+   2,
+   0
+  ],
+  "rel": "25L29G1/20260427_2층_차폐함_cyan_검증/55_25L29G1/AED"
+ },
+ "G1_0427_MANUAL_4": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G1",
+  "date": "0427",
+  "kind": "MANUAL",
+  "idx": 4,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw"
+  ],
+  "bpm": [
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw"
+  ],
+  "ev": [
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "parts_clean": [
+   8,
+   12
+  ],
+  "cols_clean": [
+   5,
+   9
+  ],
+  "defects": 1309,
+  "secs": [
+   145,
+   2,
+   0
+  ],
+  "rel": "25L29G1/20260427_2층_차폐함_cyan_검증/55_25L29G1/MANUAL"
+ },
+ "G2_0306_plain_14": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G2",
+  "date": "0306",
+  "kind": "plain",
+  "idx": 14,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "bpm": [
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw"
+  ],
+  "ev": [
+   "Bright_26.raw",
+   "Bright_27.raw"
+  ],
+  "parts_clean": [
+   8,
+   9
+  ],
+  "cols_clean": [
+   10,
+   13
+  ],
+  "defects": 1634,
+  "secs": [
+   142,
+   2,
+   0
+  ],
+  "rel": "25L29G2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.06_CJ5180H2VAAA_25L29G2"
+ },
+ "G2_0306_AED_15": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G2",
+  "date": "0306",
+  "kind": "AED",
+  "idx": 15,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   7,
+   5
+  ],
+  "cols_clean": [
+   10,
+   12
+  ],
+  "defects": 5543,
+  "secs": [
+   124,
+   2,
+   0
+  ],
+  "rel": "25L29G2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.06_CJ5180H2VAAA_25L29G2/AED"
+ },
+ "G2_0412_plain_18": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G2",
+  "date": "0412",
+  "kind": "plain",
+  "idx": 18,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   9,
+   6
+  ],
+  "cols_clean": [
+   11,
+   10
+  ],
+  "defects": 1105,
+  "secs": [
+   155,
+   2,
+   0
+  ],
+  "rel": "25L29G2/20260413_Cyan_ft/20260412_CJ5180H2VAAA_25L29G2/20260412_CJ5180H2VAAA_25L29G2"
+ },
+ "G2_0428_AED_20": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G2",
+  "date": "0428",
+  "kind": "AED",
+  "idx": 20,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw"
+  ],
+  "bpm": [
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw"
+  ],
+  "ev": [
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "parts_clean": [
+   5,
+   5
+  ],
+  "cols_clean": [
+   14,
+   10
+  ],
+  "defects": 1362,
+  "secs": [
+   148,
+   2,
+   0
+  ],
+  "rel": "25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED"
+ },
+ "G2_0428_AED-LR_21": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G2",
+  "date": "0428",
+  "kind": "AED-LR",
+  "idx": 21,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw"
+  ],
+  "bpm": [
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw"
+  ],
+  "ev": [
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "parts_clean": [
+   7,
+   9
+  ],
+  "cols_clean": [
+   13,
+   11
+  ],
+  "defects": 1361,
+  "secs": [
+   145,
+   2,
+   0
+  ],
+  "rel": "25L29G2/20260428_20260428/25L29G2 (54)_LR 안바꿈/AED_LR로 변경"
+ },
+ "G2_0429_plain_24": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G2",
+  "date": "0429",
+  "kind": "plain",
+  "idx": 24,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw"
+  ],
+  "bpm": [
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw"
+  ],
+  "ev": [
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "parts_clean": [
+   7,
+   7
+  ],
+  "cols_clean": [
+   11,
+   12
+  ],
+  "defects": 1347,
+  "secs": [
+   149,
+   2,
+   0
+  ],
+  "rel": "25L29G2/20260429_20260429/25L29G2 (54)/Final test"
+ },
+ "G3_0309_plain_25": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G3",
+  "date": "0309",
+  "kind": "plain",
+  "idx": 25,
+  "dark": [
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw",
+   "Dark_10.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   6,
+   6
+  ],
+  "cols_clean": [
+   11,
+   11
+  ],
+  "defects": 570,
+  "secs": [
+   125,
+   2,
+   0
+  ],
+  "rel": "25L29G3/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ518485BAAA_25L29G3"
+ },
+ "G3_0309_AED_26": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G3",
+  "date": "0309",
+  "kind": "AED",
+  "idx": 26,
+  "dark": [
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw",
+   "Dark_10.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   10,
+   5
+  ],
+  "cols_clean": [
+   8,
+   9
+  ],
+  "defects": 613,
+  "secs": [
+   138,
+   2,
+   0
+  ],
+  "rel": "25L29G3/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ518485BAAA_25L29G3/AED"
+ },
+ "G3_0410_plain_29": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G3",
+  "date": "0410",
+  "kind": "plain",
+  "idx": 29,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   9,
+   8
+  ],
+  "cols_clean": [
+   10,
+   9
+  ],
+  "defects": 555,
+  "secs": [
+   153,
+   2,
+   0
+  ],
+  "rel": "25L29G3/20260413_Cyan_ft/20260410_CJ518485BAAA_25L29G3/20260410_CJ518485BAAA_25L29G3"
+ },
+ "G3_0428_AED_31": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G3",
+  "date": "0428",
+  "kind": "AED",
+  "idx": 31,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw"
+  ],
+  "bpm": [
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw"
+  ],
+  "ev": [
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "parts_clean": [
+   4,
+   5
+  ],
+  "cols_clean": [
+   13,
+   5
+  ],
+  "defects": 1346,
+  "secs": [
+   145,
+   2,
+   0
+  ],
+  "rel": "25L29G3/20260428_20260428/25L29G3 (58)/AED"
+ },
+ "G3_0428_MANUAL_32": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G3",
+  "date": "0428",
+  "kind": "MANUAL",
+  "idx": 32,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw"
+  ],
+  "bpm": [
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw"
+  ],
+  "ev": [
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "parts_clean": [
+   4,
+   5
+  ],
+  "cols_clean": [
+   9,
+   7
+  ],
+  "defects": 1074,
+  "secs": [
+   154,
+   2,
+   0
+  ],
+  "rel": "25L29G3/20260428_20260428/25L29G3 (58)/Manual"
+ },
+ "G3_0429_plain_34": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G3",
+  "date": "0429",
+  "kind": "plain",
+  "idx": 34,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw"
+  ],
+  "bpm": [
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw",
+   "Bright_31.raw"
+  ],
+  "ev": [
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "parts_clean": [
+   7,
+   3
+  ],
+  "cols_clean": [
+   11,
+   8
+  ],
+  "defects": 1070,
+  "secs": [
+   149,
+   2,
+   0
+  ],
+  "rel": "25L29G3/20260429_20260429/25L29G3 (58)/Final test"
+ },
+ "G4_0309_plain_39": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G4",
+  "date": "0309",
+  "kind": "plain",
+  "idx": 39,
+  "dark": [
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw",
+   "Dark_10.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   6,
+   8
+  ],
+  "cols_clean": [
+   5,
+   9
+  ],
+  "defects": 636,
+  "secs": [
+   134,
+   2,
+   0
+  ],
+  "rel": "25L29G4/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ518485DAAA_25L29G4"
+ },
+ "G4_0309_AED_40": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G4",
+  "date": "0309",
+  "kind": "AED",
+  "idx": 40,
+  "dark": [
+   "Dark_01.raw",
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   3,
+   6
+  ],
+  "cols_clean": [
+   7,
+   4
+  ],
+  "defects": 705,
+  "secs": [
+   137,
+   2,
+   0
+  ],
+  "rel": "25L29G4/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ518485DAAA_25L29G4/AED"
+ },
+ "G4_0309_plain-RE_43": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G4",
+  "date": "0309",
+  "kind": "plain-RE",
+  "idx": 43,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "bpm": [
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw"
+  ],
+  "ev": [
+   "Bright_26.raw",
+   "Bright_27.raw"
+  ],
+  "parts_clean": [
+   9,
+   6
+  ],
+  "cols_clean": [
+   5,
+   11
+  ],
+  "defects": 683,
+  "secs": [
+   141,
+   2,
+   0
+  ],
+  "rel": "25L29G4/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ518485DAAA_25L29G4 - RE"
+ },
+ "G4_0309_AED-RE_44": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G4",
+  "date": "0309",
+  "kind": "AED-RE",
+  "idx": 44,
+  "dark": [
+   "Dark_01.raw",
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   3,
+   6
+  ],
+  "cols_clean": [
+   7,
+   4
+  ],
+  "defects": 705,
+  "secs": [
+   137,
+   2,
+   0
+  ],
+  "rel": "25L29G4/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ518485DAAA_25L29G4 - RE/AED"
+ },
+ "G4_0410_plain_47": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "G4",
+  "date": "0410",
+  "kind": "plain",
+  "idx": 47,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   8,
+   6
+  ],
+  "cols_clean": [
+   10,
+   6
+  ],
+  "defects": 623,
+  "secs": [
+   151,
+   2,
+   0
+  ],
+  "rel": "25L29G4/20260413_Cyan_ft/20260410_CJ518485DAAA_25L29G4/20260410_CJ518485DAAA_25L29G4"
+ },
+ "I2_0309_plain_49": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "I2",
+  "date": "0309",
+  "kind": "plain",
+  "idx": 49,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw"
+  ],
+  "bpm": [
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw"
+  ],
+  "ev": [
+   "Bright_26.raw",
+   "Bright_27.raw"
+  ],
+  "parts_clean": [
+   4,
+   5
+  ],
+  "cols_clean": [
+   6,
+   4
+  ],
+  "defects": 656,
+  "secs": [
+   125,
+   2,
+   0
+  ],
+  "rel": "25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산"
+ },
+ "I2_0309_AED_50": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "I2",
+  "date": "0309",
+  "kind": "AED",
+  "idx": 50,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw"
+  ],
+  "bpm": [
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_30.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_40.raw",
+   "Bright_41.raw",
+   "Bright_42.raw",
+   "Bright_43.raw",
+   "Bright_44.raw",
+   "Bright_45.raw"
+  ],
+  "ev": [
+   "Bright_36.raw",
+   "Bright_37.raw"
+  ],
+  "parts_clean": [
+   8,
+   5
+  ],
+  "cols_clean": [
+   8,
+   5
+  ],
+  "defects": 9269,
+  "secs": [
+   141,
+   2,
+   0
+  ],
+  "rel": "25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산/AED"
+ },
+ "I2_0410_plain_53": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "I2",
+  "date": "0410",
+  "kind": "plain",
+  "idx": 53,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   10,
+   9
+  ],
+  "cols_clean": [
+   7,
+   3
+  ],
+  "defects": 711,
+  "secs": [
+   151,
+   2,
+   0
+  ],
+  "rel": "25L29I2/20260413_Cyan_ft/20260410_CJ5180H2KAAA_25L29I2/20260410_CJ5180H2KAAA_25L29I2"
+ },
+ "I2_0427_AED_55": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "I2",
+  "date": "0427",
+  "kind": "AED",
+  "idx": 55,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "bpm": [
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw"
+  ],
+  "ev": [
+   "Bright_22.raw",
+   "Bright_23.raw"
+  ],
+  "parts_clean": [
+   14,
+   6
+  ],
+  "cols_clean": [
+   14,
+   5
+  ],
+  "defects": 1662,
+  "secs": [
+   158,
+   2,
+   0
+  ],
+  "rel": "25L29I2/20260427_2층_차폐함_cyan_검증/56_25L29I2/LUT new/AED"
+ },
+ "I2_0427_MANUAL_58": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "I2",
+  "date": "0427",
+  "kind": "MANUAL",
+  "idx": 58,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_27.raw",
+   "Bright_28.raw",
+   "Bright_29.raw",
+   "Bright_30.raw"
+  ],
+  "ev": [
+   "Bright_23.raw",
+   "Bright_24.raw"
+  ],
+  "parts_clean": [
+   7,
+   6
+  ],
+  "cols_clean": [
+   15,
+   9
+  ],
+  "defects": 1159,
+  "secs": [
+   143,
+   2,
+   0
+  ],
+  "rel": "25L29I2/20260427_2층_차폐함_cyan_검증/56_25L29I2/LUT new/Manual"
+ },
+ "F1_0309_plain_65": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "F1",
+  "date": "0309",
+  "kind": "plain",
+  "idx": 65,
+  "dark": [
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw",
+   "Dark_10.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   6,
+   6
+  ],
+  "cols_clean": [
+   1,
+   4
+  ],
+  "defects": 817,
+  "secs": [
+   140,
+   2,
+   0
+  ],
+  "rel": "26A14F1/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ519119NAAA_26A14F1"
+ },
+ "F1_0309_AED_66": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "F1",
+  "date": "0309",
+  "kind": "AED",
+  "idx": 66,
+  "dark": [
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw",
+   "Dark_10.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   6,
+   8
+  ],
+  "cols_clean": [
+   5,
+   8
+  ],
+  "defects": 5672,
+  "secs": [
+   141,
+   2,
+   0
+  ],
+  "rel": "26A14F1/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ519119NAAA_26A14F1/AED"
+ },
+ "F1_0310_plain_69": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "F1",
+  "date": "0310",
+  "kind": "plain",
+  "idx": 69,
+  "dark": [
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw",
+   "Dark_10.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   10,
+   8
+  ],
+  "cols_clean": [
+   8,
+   13
+  ],
+  "defects": 676,
+  "secs": [
+   138,
+   2,
+   0
+  ],
+  "rel": "26A14F1/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.10_CJ519119NAAA_26A14F1"
+ },
+ "F1_0310_AED_70": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "F1",
+  "date": "0310",
+  "kind": "AED",
+  "idx": 70,
+  "dark": [
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw",
+   "Dark_10.raw"
+  ],
+  "gain": [
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw"
+  ],
+  "bpm": [
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_14.raw",
+   "Bright_15.raw",
+   "Bright_16.raw",
+   "Bright_21.raw",
+   "Bright_22.raw",
+   "Bright_23.raw",
+   "Bright_24.raw",
+   "Bright_25.raw",
+   "Bright_26.raw",
+   "Bright_31.raw",
+   "Bright_32.raw",
+   "Bright_33.raw",
+   "Bright_34.raw",
+   "Bright_35.raw",
+   "Bright_36.raw"
+  ],
+  "ev": [
+   "Bright_27.raw",
+   "Bright_28.raw"
+  ],
+  "parts_clean": [
+   5,
+   10
+  ],
+  "cols_clean": [
+   5,
+   4
+  ],
+  "defects": 6114,
+  "secs": [
+   137,
+   2,
+   0
+  ],
+  "rel": "26A14F1/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.10_CJ519119NAAA_26A14F1/AED"
+ },
+ "F1_0410_plain_73": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "F1",
+  "date": "0410",
+  "kind": "plain",
+  "idx": 73,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   9,
+   10
+  ],
+  "cols_clean": [
+   7,
+   12
+  ],
+  "defects": 725,
+  "secs": [
+   134,
+   2,
+   0
+  ],
+  "rel": "26A14F1/20260413_Cyan_ft/20260410_CJ519119NAAA_26A14F1/20260410_CJ519119NAAA_26A14F1"
+ },
+ "J4_0410_plain_75": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "J4",
+  "date": "0410",
+  "kind": "plain",
+  "idx": 75,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   15,
+   5
+  ],
+  "cols_clean": [
+   9,
+   10
+  ],
+  "defects": 970,
+  "secs": [
+   156,
+   2,
+   0
+  ],
+  "rel": "26A14J4/20260413_Cyan_ft/20260410_CJ519120NAAA_26A14J4/20260410_CJ519120NAAA_26A14J4"
+ },
+ "I3_0412_plain_78": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "I3",
+  "date": "0412",
+  "kind": "plain",
+  "idx": 78,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   10,
+   11
+  ],
+  "cols_clean": [
+   18,
+   9
+  ],
+  "defects": 1193,
+  "secs": [
+   139,
+   2,
+   0
+  ],
+  "rel": "26D02I3/20260413_Cyan_ft/20260412_CJ51CK9EAAA_26D02I3_500/20260412_CJ51CK9EAAA_26D02I3_500"
+ },
+ "I4_0426_plain_81": {
+  "status": "ok",
+  "rc": 0,
+  "rc3": 0,
+  "panel": "I4",
+  "date": "0426",
+  "kind": "plain",
+  "idx": 81,
+  "dark": [
+   "Dark_02.raw",
+   "Dark_03.raw",
+   "Dark_04.raw",
+   "Dark_05.raw",
+   "Dark_06.raw",
+   "Dark_07.raw",
+   "Dark_08.raw",
+   "Dark_09.raw"
+  ],
+  "gain": [
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw"
+  ],
+  "bpm": [
+   "Bright_02.raw",
+   "Bright_03.raw",
+   "Bright_04.raw",
+   "Bright_05.raw",
+   "Bright_06.raw",
+   "Bright_07.raw",
+   "Bright_08.raw",
+   "Bright_09.raw",
+   "Bright_10.raw",
+   "Bright_11.raw",
+   "Bright_12.raw",
+   "Bright_13.raw",
+   "Bright_16.raw",
+   "Bright_17.raw",
+   "Bright_18.raw",
+   "Bright_19.raw",
+   "Bright_20.raw",
+   "Bright_21.raw"
+  ],
+  "ev": [
+   "Bright_14.raw",
+   "Bright_15.raw"
+  ],
+  "parts_clean": [
+   3,
+   7
+  ],
+  "cols_clean": [
+   5,
+   13
+  ],
+  "defects": 1459,
+  "secs": [
+   134,
+   2,
+   0
+  ],
+  "rel": "26D02I4/20260427_cyan_AED_Cal/20260426_CJ51CK7VAAA_26D02I4_500/20260426_CJ51CK7VAAA_26D02I4_500"
+ }
+}
