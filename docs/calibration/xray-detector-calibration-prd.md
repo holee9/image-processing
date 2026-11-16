@@ -23,6 +23,7 @@
 | 0.1 | 2026-03-01 | 초안 작성 | Engineering Team |
 | 0.9 | 2026-03-25 | 내부 검토 반영 | Engineering Team |
 | 1.0 | 2026-04-02 | 최초 공식 릴리즈 | Engineering Team |
+| 1.0.1 | 2026-11-17 | 온도 보상(CAL-07, §5.7)·비선형 보정(CAL-09, §5.9)·다중 노출 다항식 게인(§5.2.4, REQ-GAIN-004)을 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 요구 ID 는 남기고 삭제로 표시 | Lead |
 
 ---
 
@@ -39,9 +40,9 @@
    - 5.4 [Lag (Ghosting) Correction](#54-lag-ghosting-correction)
    - 5.5 [Scatter Correction](#55-scatter-correction-grid-less-imaging)
    - 5.6 [Moiré/Aliasing Correction](#56-moiréaliasing-correction)
-   - 5.7 [Temperature Compensation (NTC)](#57-temperature-compensation-ntc)
+   - 5.7 Temperature Compensation (NTC) — 삭제 (2026-11-16)
    - 5.8 [Readout Artifact Correction](#58-readout-artifact-correction)
-   - 5.9 [Non-linearity Correction](#59-non-linearity-correction)
+   - 5.9 Non-linearity Correction — 삭제 (2026-11-16)
    - 5.10 [Pixel Binning Correction](#510-pixel-binning-correction)
 6. [Calibration Data Management](#6-calibration-data-management)
 7. [성능 요구사항](#7-성능-요구사항)
@@ -93,9 +94,9 @@ FPD 기반 X-ray 시스템의 이미지 품질은 raw sensor 신호가 가진 �
 | CAL-04 | Lag (Ghosting) Correction | 잔상, charge trapping | High |
 | CAL-05 | Scatter Correction | 산란선 아티팩트 | High |
 | CAL-06 | Moiré/Aliasing Correction | Anti-scatter grid 간섭 | Medium |
-| CAL-07 | Temperature Compensation | 온도 드리프트 | High |
+| CAL-07 | ~~Temperature Compensation~~ | 삭제 (사용자 결정 2026-11-16) | -- |
 | CAL-08 | Readout Artifact Correction | 앰프 오프셋/게인 불균일 | High |
-| CAL-09 | Non-linearity Correction | 픽셀 응답 비선형성 | Medium |
+| CAL-09 | ~~Non-linearity Correction~~ | 삭제 (사용자 결정 2026-11-16) | -- |
 | CAL-10 | Pixel Binning Correction | 빈닝 모드별 보정 | Medium |
 
 ### 1.5 적용 가능한 Detector 유형
@@ -666,7 +667,9 @@ OUTPUT: GainMap G(x,y)
 8. RETURN GainMap_clean
 ```
 
-#### 5.2.4 Multi-gain Correction (Varex 방식)
+#### 5.2.4 Multi-gain Correction (Varex 방식) — 삭제
+
+> **삭제** — 여러 노출 레벨 다항식 게인은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a). 단일 선량 게인이 다른 선량을 시간 잡음 수준까지 평탄화해 필요가 측정되지 않았다. 아래 내용은 조사 기록으로만 남는다.
 
 Varex와 같은 상용 FPD는 6~10가지 신호 레벨에서 gain calibration을 수행하여 비선형성을 보상한다. [Varex XRD 4343N 데이터시트](https://www.vareximaging.com/wp-content/uploads/2022/01/XRD-4343N_145196-000.pdf)에 따르면 이 검출기는 6가지 게인 설정을 지원한다. Multi-gain correction의 수학적 모델:
 
@@ -786,7 +789,7 @@ Gaussian kernel 저역통과 필터 (\(\sigma = 2 \sim 10\) 픽셀)를 사용하
 | REQ-GAIN-001 | 시스템은 pixelwise gain correction을 수행해야 한다: I_corr = (I_raw - I_dark) / G | Critical | Unit test |
 | REQ-GAIN-002 | Gain map 생성 시 최소 P=16 flat-field 프레임을 평균해야 한다 | Critical | 코드 검토 |
 | REQ-GAIN-003 | Gain map 저역통과 필터링을 지원해야 한다 (sigma 파라미터 구성 가능) | High | Unit test |
-| REQ-GAIN-004 | Multi-gain calibration 시 최소 5개 이상의 노출 레벨을 사용해야 한다 | High | 절차 검토 |
+| REQ-GAIN-004 | ~~Multi-gain calibration 시 최소 5개 이상의 노출 레벨을 사용해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
 | REQ-GAIN-005 | Heel effect (Duo-SID) 보상을 지원해야 한다 (수렴 기준 ε=1.5, 최대 10회 반복) | High | Unit test |
 | REQ-GAIN-006 | Gain correction 후 픽셀 균일도 σ/mean < 1% (80% FOV) 여야 한다 | Critical | 자동 QA |
 | REQ-GAIN-007 | Gain map은 온도 및 aging 보상을 위한 주기적 field update를 지원해야 한다 | High | 통합 테스트 |
@@ -1341,7 +1344,9 @@ I_combined = mean(I_registered)  // grid pattern 평균화로 제거
 
 ---
 
-### 5.7 Temperature Compensation (NTC)
+### 5.7 Temperature Compensation (NTC) — 삭제
+
+> **삭제** — 온도 보상은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9). 이 절과 REQ-TMP-001~007 은 효력이 없고 조사 기록으로만 남는다.
 
 #### 5.7.1 온도가 Dark Current에 미치는 영향
 
@@ -1399,13 +1404,13 @@ IF time_since_last_update > 5 min OR abs(T_current - T_at_last_update) > 2.0:
 
 | 요구사항 ID | 설명 | 우선순위 | 검증 방법 |
 |------------|------|----------|----------|
-| REQ-TMP-001 | NTC 온도 센서 데이터를 실시간으로 읽고 dark map 보간에 활용해야 한다 | Critical | 통합 테스트 |
-| REQ-TMP-002 | 온도 범위 15~40°C에서 5°C 간격 이하로 dark map을 보유해야 한다 | High | 절차 검토 |
-| REQ-TMP-003 | 온도 변화 > 2°C 시 자동으로 dark map을 업데이트해야 한다 | High | 자동 테스트 |
-| REQ-TMP-004 | Dynamic dark correction 후 신호 안정성 < 1% (1 SD)를 달성해야 한다 | Critical | 성능 테스트 |
-| REQ-TMP-005 | Portable detector의 power mode 전환 후 첫 촬영 전 안정화 시간을 강제해야 한다 | High | 통합 테스트 |
-| REQ-TMP-006 | 장기 암전류 드리프트를 모니터링하고 임계값 초과 시 재교정을 권고해야 한다 | Medium | 자동 QA |
-| REQ-TMP-007 | 온도 측정값 이상(센서 오류 등) 시 마지막 유효 온도값을 사용하고 경고해야 한다 | High | 오류 처리 |
+| REQ-TMP-001 | ~~NTC 온도 센서 데이터를 실시간으로 읽고 dark map 보간에 활용해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-TMP-002 | ~~온도 범위 15~40°C에서 5°C 간격 이하로 dark map을 보유해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-TMP-003 | ~~온도 변화 > 2°C 시 자동으로 dark map을 업데이트해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-TMP-004 | ~~Dynamic dark correction 후 신호 안정성 < 1% (1 SD)를 달성해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-TMP-005 | ~~Portable detector의 power mode 전환 후 첫 촬영 전 안정화 시간을 강제해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-TMP-006 | ~~장기 암전류 드리프트를 모니터링하고 임계값 초과 시 재교정을 권고해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-TMP-007 | ~~온도 측정값 이상(센서 오류 등) 시 마지막 유효 온도값을 사용하고 경고해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
 
 ---
 
@@ -1499,7 +1504,9 @@ I_gain_corrected(x,y) = I_offset_corrected(x,y) / GCI_realtime(x,y)
 
 ---
 
-### 5.9 Non-linearity Correction
+### 5.9 Non-linearity Correction — 삭제
+
+> **삭제** — 비선형 보정은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a). 이 절과 REQ-NLN-001~006 은 효력이 없고 조사 기록으로만 남는다.
 
 #### 5.9.1 개요
 
@@ -1602,12 +1609,12 @@ Dual-gain FPD는 하나의 픽셀이 두 가지 게인 모드(Low gain: 동적 �
 
 | 요구사항 ID | 설명 | 우선순위 | 검증 방법 |
 |------------|------|----------|----------|
-| REQ-NLN-001 | 픽셀별 비선형성 보정을 지원해야 한다 (Taylor 다항식, 최대 차수 G=10) | High | Unit test |
-| REQ-NLN-002 | Multi-point calibration (최소 5 강도 레벨)으로 계수를 생성해야 한다 | High | 절차 검토 |
-| REQ-NLN-003 | LUT 기반 실시간 비선형성 보정을 구현해야 한다 (< 1 ms/frame) | High | 성능 테스트 |
-| REQ-NLN-004 | Dual-gain FPD의 게인 모드별 별도 비선형성 보정을 지원해야 한다 | Medium | 통합 테스트 |
-| REQ-NLN-005 | 비선형성 보정 후 픽셀 응답의 선형성 R² > 0.999여야 한다 | High | 자동 QA |
-| REQ-NLN-006 | 비선형성 피팅 잔차가 허용 기준 초과 시 경고해야 한다 | Medium | 자동 QA |
+| REQ-NLN-001 | ~~픽셀별 비선형성 보정을 지원해야 한다 (Taylor 다항식, 최대 차수 G=10)~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-NLN-002 | ~~Multi-point calibration (최소 5 강도 레벨)으로 계수를 생성해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-NLN-003 | ~~LUT 기반 실시간 비선형성 보정을 구현해야 한다 (< 1 ms/frame)~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-NLN-004 | ~~Dual-gain FPD의 게인 모드별 별도 비선형성 보정을 지원해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-NLN-005 | ~~비선형성 보정 후 픽셀 응답의 선형성 R² > 0.999여야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
+| REQ-NLN-006 | ~~비선형성 피팅 잔차가 허용 기준 초과 시 경고해야 한다~~ — 삭제 (사용자 결정 2026-11-16) | -- | -- |
 
 ---
 
@@ -1752,7 +1759,7 @@ HDF5 형식은 대용량 수치 데이터를 효율적으로 저장하고 메타
 │   ├── exposure_coefficients  (float32[9,2]) // 9 노출 레벨 × [c1, c2]
 │   └── measurement_date       (string)
 │
-├── /nonlinearity
+├── /nonlinearity          // 삭제 (비선형 보정, 사용자 결정 2026-11-16)
 │   ├── taylor_coefficients    (float32[2880,2880,G+1])
 │   └── reference_intensity    (float32)
 │
@@ -1819,6 +1826,7 @@ HDF5 형식은 대용량 수치 데이터를 효율적으로 저장하고 메타
     <dlModelPath>models/scatter_unet_v1.onnx</dlModelPath>
   </ScatterCorrection>
   
+  <!-- 삭제 (온도 보상, 사용자 결정 2026-11-16) -->
   <TemperatureCompensation>
     <enabled>true</enabled>
     <sensorType>NTC</sensorType>
@@ -1880,7 +1888,7 @@ HDF5 형식은 대용량 수치 데이터를 효율적으로 저장하고 메타
 | Dark map (Field) | 30분 (자동 갱신) | 온도 변화 > 2°C, 경과 시간 > 30분 |
 | BPM | 3개월 | 새 결함 픽셀 발견, QA 실패 |
 | Lag 파라미터 | 1년 | a-Si 특성 변화 감지 |
-| 비선형성 계수 | 1년 | ADC 또는 픽셀 특성 변화 |
+| ~~비선형성 계수~~ | -- | 삭제 (사용자 결정 2026-11-16) |
 
 ---
 
@@ -1992,7 +2000,7 @@ Gain correction 불완전성이 DQE에 미치는 영향은 [Willis et al. (2014)
 | Lag Correction | UT-LAG-001 | LTI 4-지수 deconvolution | 잔차 < 0.001 |
 | Lag Correction | UT-LAG-002 | NLCSC 수렴 (3회 이내) | 1st frame lag < 0.3% |
 | Scatter Correction | UT-SCA-001 | Gaussian blur scatter 추정 | SPR 오차 < 10% |
-| Non-linearity | UT-NLN-001 | Taylor 피팅 잔차 | R² > 0.9999 |
+| ~~Non-linearity~~ | UT-NLN-001 | 삭제 (사용자 결정 2026-11-16) | -- |
 | Binning | UT-BIN-001 | 2×2 binning map 유도 정확도 | 오차 < 1% |
 
 ### 8.2 Phantom 기반 정량적 평가
@@ -2214,7 +2222,7 @@ private:
     std::unique_ptr<ReadoutArtifactCorrector>  readout_corrector_;
     std::unique_ptr<OffsetCorrector>           offset_corrector_;
     std::unique_ptr<GainCorrector>             gain_corrector_;
-    std::unique_ptr<NonlinearityCorrector>     nonlinearity_corrector_;
+    std::unique_ptr<NonlinearityCorrector>     nonlinearity_corrector_;  // 삭제 (2026-11-16)
     std::unique_ptr<DefectPixelCorrector>      defect_corrector_;
     std::unique_ptr<LagCorrector>              lag_corrector_;
     std::unique_ptr<ScatterCorrector>          scatter_corrector_;
@@ -2464,7 +2472,7 @@ generator.save_calibration(
 | M2-1: Lag Correction (LTI) | W21~W23 | LagCorrector LTI 모델 |
 | M2-2: Lag Correction (NLCSC) | W24~W26 | LagCorrector NLCSC 모델 |
 | M2-3: Readout Artifact | W27~W28 | ReadoutArtifactCorrector |
-| M2-4: Temperature Compensation | W29~W30 | 온도 보간, dynamic update |
+| ~~M2-4: Temperature Compensation~~ | -- | 삭제 (사용자 결정 2026-11-16) |
 | M2-5: Scatter Correction | W31~W34 | ScatterCorrector (kernel 방법) |
 | M2-6: Moiré Correction | W35~W36 | MoireCorrector (FFT) |
 | M2-7: Binning Support | W37~W38 | 빈닝별 calibration map 관리 |
@@ -2579,7 +2587,7 @@ generator.save_calibration(
 | **Grid Artifact Removal** | \(I_{out} = (I_{in} - I_{scatter}) / I_{grid ref} \times C\) | \(I_{grid ref}\): 기준 이미지 |
 | **Dynamic Dark** | \(E_D = E_c + DD_x\) | \(DD_x\): 조정 맵 |
 | **Dark Current vs T** | \(I_{dark}(T) \propto \exp(-E_g/2k_BT)\) | \(E_g\): 밴드갭 에너지 |
-| **Nonlinearity** | \(c_n(i) = \sum_{g=0}^G a_{n,g}(i-i_c)^g\) | \(G\): 다항식 차수 (5~10) |
+| ~~**Nonlinearity**~~ | 삭제 (사용자 결정 2026-11-16) | -- |
 | **DQE** | \(\text{DQE}(f) = \text{MTF}^2(f) / (\text{NPS}(f) \cdot q)\) | \(q\): 입력 광자 수 |
 | **Deviation Index** | \(\text{DI} = 10\log_{10}(\text{EI}/\text{EI}_T)\) | ±1 허용 범위 |
 | **Uniformity** | \(\text{Uniformity} = \sigma/\mu < 1\%\) | 80% FOV 기준 |
@@ -2779,8 +2787,8 @@ class XrayFPDCorrectionPipeline:
             ReadoutArtifactCorrector(config.readout),
             OffsetCorrector(config.offset, self.calib.dark_maps),
             GainCorrector(config.gain, self.calib.gain_maps),
-            NonlinearityCorrector(config.nonlinearity, 
-                                  self.calib.nonlinearity_coefficients),
+            NonlinearityCorrector(config.nonlinearity,   # 삭제 (2026-11-16)
+                                  self.calib.nonlinearity_coefficients),  # 삭제 (2026-11-16)
             DefectPixelCorrector(config.defect, self.calib.bad_pixel_map),
             LagCorrector(config.lag, self.calib.lag_parameters,
                          self.lag_states),
@@ -3461,12 +3469,12 @@ QA-MONTHLY-002: Lag 특성 확인
   □ 50th frame lag 측정
   □ 기준값 대비 허용 범위 확인
 
-QA-MONTHLY-003: 비선형성 확인
+QA-MONTHLY-003: 비선형성 확인 — 삭제 (2026-11-16)
   □ 다중 노출 레벨 flat-field 획득 (10%, 20%, ..., 90%)
   □ 노출 대 신호 선형성 분석 (R² > 0.999)
   □ 보정 전/후 비선형성 비교
 
-QA-MONTHLY-004: 온도 보상 확인
+QA-MONTHLY-004: 온도 보상 확인 — 삭제 (2026-11-16)
   □ 온도 변화 시뮬레이션 (20°C → 30°C)
   □ Dark level 변화 모니터링
   □ Dynamic dark correction 후 안정성 확인

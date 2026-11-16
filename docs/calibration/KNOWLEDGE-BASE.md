@@ -2,7 +2,9 @@
 
 **모듈**: `xpe_preprocess.dll` (Layer 1, Phase 1a)  
 **버전**: 1.0  
-**날짜**: 2026-04-19  
+**날짜**: 2026-04-19 (갱신 2026-11-17)  
+
+> **2026-11-16 기능 삭제**: 비선형 보정(§1.5)·온도 보상(§1.6)·다선량 다항식 게인은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a).
 **목적**: 캘리브레이션 관련 모든 문서, 소스 코드, 사양을 연결하는 중앙 지식 허브
 
 > **무결성 검사 정정 (2026-09-19, #188 — QA-A-106·QA-A-130 에서 실제 파일과 코드로 확인)**
@@ -107,29 +109,9 @@
 | **취득 절차** | [IAP-GHOST-001](../ghost-correction/IAP-GHOST-001_Image_Acquisition_Protocol.md) |
 | **특이사항** | **스테이트풀** — `xpe_ghost_create/correct/reset/destroy` 수명주기 관리 필수 |
 
-### 1.5 비선형성 보정 — SWU-1.7
+### 1.5 비선형성 보정 — SWU-1.7 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)
 
-| 항목 | 내용 |
-|------|------|
-| **목적** | 검출기 응답 비선형성(전하 트래핑, 필 팩터) 선형화 |
-| **알고리즘** | LUT (4096 entries, Fritsch-Carlson 스플라인) 또는 다항식 (차수 ≤5, Horner) |
-| **SRS 요건** | [SRS-CALIB-001 SRS-CALIB-FUNC-006, 006-EXT](SRS-CALIB-001_Software_Requirements_Specification.md) |
-| **개념도** | [CONCEPT-DIAGRAMS.md §6](CONCEPT-DIAGRAMS.md#6-비선형성-보정) |
-| **구현** | `modules/preprocess/src/nonlinearity_correct.cpp` (117줄) |
-| **오차 한계** | LUT: ≤0.3% ADC 풀스케일 / 다항식: ≤0.5% ADU |
-| **실행 순서** | **오프셋 보정 이후, 게인 보정 이전** (선형화 후 정규화) |
-
-### 1.6 온도 보상 — SWU-1.6
-
-| 항목 | 내용 |
-|------|------|
-| **목적** | 온도 변화에 따른 암전류 드리프트 보상 |
-| **수식** | `I_dark(T) = I₀ × exp(-Eg / 2kBT)`, Eg=1.12eV (Si) |
-| **SRS 요건** | [SRS-CALIB-001 SRS-CALIB-FUNC-009](SRS-CALIB-001_Software_Requirements_Specification.md) |
-| **개념도** | [CONCEPT-DIAGRAMS.md §9](CONCEPT-DIAGRAMS.md#9-온도-보상) |
-| **구현** | `modules/preprocess/src/xpe_offset.cpp` (온도 보상 통합) |
-| **바이패스 조건** | ΔT < 2°C → 보상 건너뜀 |
-| **센서** | NTC 서미스터 (패널 탑재) |
+### 1.6 온도 보상 — SWU-1.6 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9)
 
 ### 1.7 캘리브레이션 데이터 관리 — SWU-1.5
 
@@ -253,7 +235,7 @@
 ### 캘리브레이션/현장 엔지니어
 
 ```
-1. 취득 절차: IAP-CALIB-001 (Dark/Flat/BPM/비선형/Lag 프로토콜)
+1. 취득 절차: IAP-CALIB-001 (Dark/Flat/BPM/Lag 프로토콜)
 2. 고스트 취득: IAP-GHOST-001
 3. 결함 취득: IAP-DEFECT-001
 4. 데이터 생명주기: CONCEPT-DIAGRAMS.md §11
@@ -284,14 +266,14 @@
 
 | 소스 파일 | 줄수 | SWU | SRS 요건 | 테스트 파일 |
 |----------|-----|-----|---------|-----------|
-| `src/xpe_offset.cpp` | 253 | 1.1, 1.6 | FUNC-004, 009 | test_offset_correct.cpp |
+| `src/xpe_offset.cpp` | 253 | 1.1 | FUNC-004, 009 | test_offset_correct.cpp |
 | `src/offset_correct.cpp` | 112 | 1.1 | FUNC-004 | test_offset_correct.cpp |
 | `src/xpe_gain.cpp` | 229 | 1.2 | FUNC-005 | test_gain_correct.cpp |
 | `src/gain_correct.cpp` | 112 | 1.2 | FUNC-005 | test_gain_correct.cpp |
-| `src/nonlinearity_correct.cpp` | 117 | 1.7 | FUNC-006, 006-EXT | (테스트 필요) |
+| ~~`src/nonlinearity_correct.cpp`~~ | -- | -- | 삭제 (FUNC-006, 사용자 결정 2026-11-16, 엔진 커밋 2d9576de) | -- |
 | `src/xpe_defect.cpp` | 301 | 1.3 | FUNC-007 | test_defect_correct.cpp |
 | `src/defect_correct.cpp` | 112 | 1.3 | FUNC-007 | test_defect_correct.cpp |
-| `src/ghost_correct.cpp` | 266 | 1.4 | FUNC-008 | test_ghost_correct.cpp |
+| `src/ghost_correct.cpp` | 266 | 1.4 | FUNC-013 (옛 표기 FUNC-008 — 현행 FUNC-008 온도 보상은 2026-11-16 삭제) | test_ghost_correct.cpp |
 | `src/binning_correct.cpp` | 104 | 1.8 | FUNC-010 | (테스트 필요) |
 | `src/calibration_manager.cpp` | 250 | 1.5 | FUNC-001~003 | test_calibration_manager.cpp |
 | `src/xpe_calibration.cpp` | 112 | 1.5 | FUNC-001~003 | test_calibration_manager.cpp |
@@ -353,11 +335,8 @@ xpe_preprocess.dll (캘리브레이션 모듈)
 | 알고리즘 | 수식 | 파라미터 | SRS 위치 |
 |---------|------|---------|---------|
 | 오프셋 보정 | `I_corr = I_raw - I_dark` | I_dark: 캘리브레이션 맵 | SRS-CALIB-FUNC-004 |
-| 온도 드리프트 | `I_dark(T) = I₀ × exp(-Eg/2kBT)` | Eg=1.12eV, kB=8.617×10⁻⁵eV/K | SRS-CALIB-FUNC-009 |
 | 게인 보정 | `I_norm = I_corr / G(x,y)` | G: [0.1, 10.0] float32 맵 | SRS-CALIB-FUNC-005 |
 | 다중 SID 게인 | `G(E) = Σ cₖEᵏ, k=0..4` | cₖ: 에너지 다항식 계수 | SRS-CALIB-FUNC-005 |
-| 비선형 LUT | `I_lin = LUT[I_raw]` | 4096 or 65536 entries | SRS-CALIB-FUNC-006-EXT |
-| 비선형 다항식 | `I_lin = Σ aₖIᵏ (Horner)` | 차수 ≤5, 단조성 검증 | SRS-CALIB-FUNC-006-EXT |
 | RMM 결함 검출 | `\|σ_px - σ_med\| > λ×MAD` | λ=8.0 | SRS-CALIB-FUNC-007 |
 | 고스트 Tier 1 | `I_lag = Σᵢ αᵢ exp(-n/τᵢ)` | αᵢ, τᵢ: 패널 특성 | srs_ghost_correction.md |
 | 고스트 NLCSC | N=4 지수 상태 변수 모델 | α₁..₄, τ₁..₄ | srs_ghost_correction.md §NLCSC |
@@ -386,14 +365,12 @@ xpe_preprocess.dll (캘리브레이션 모듈)
 |------|------|-----|------|
 | `xpe_offset_correct()` | 보정 | 1.1 | 오프셋(암전류) 보정 |
 | `xpe_gain_correct()` | 보정 | 1.2 | 게인(평탄화) 보정 + uint16→float32 |
-| `xpe_nonlinearity_correct()` | 보정 | 1.7 | 비선형성 LUT/다항식 보정 |
 | `xpe_defect_correct()` | 보정 | 1.3 | 결함 픽셀 보간 보정 |
 | `xpe_defect_detect_runtime()` | 보정 | 1.3 | 런타임 SNR 기반 결함 검출 |
 | `xpe_ghost_create()` | 고스트 | 1.4 | 고스트 보정기 핸들 생성 |
 | `xpe_ghost_correct()` | 고스트 | 1.4 | 고스트/잔상 보정 적용 |
 | `xpe_ghost_reset()` | 고스트 | 1.4 | 이력 버퍼 초기화 |
 | `xpe_ghost_destroy()` | 고스트 | 1.4 | 핸들 해제 |
-| `xpe_temp_compensate()` | 온도 | 1.6 | 온도 보상 적용 |
 | `xpe_calib_load_offset()` | I/O | 1.5 | 오프셋 캘리브레이션 로드 |
 | `xpe_calib_load_gain()` | I/O | 1.5 | 게인 캘리브레이션 로드 |
 | `xpe_calib_load_defect_map()` | I/O | 1.5 | BPM 로드 |
@@ -419,12 +396,11 @@ xpe_preprocess.dll (캘리브레이션 모듈)
 | 만료 검사 | test_xpe_calib_check_expiry.cpp | ~120줄 | ✅ 정상 |
 | 내구성 테스트 | test_xpe_calib_endurance.cpp | ~180줄 | ✅ 정상 |
 | 파이프라인 통합 | test_xpe_preprocess_calibration.cpp | ~200줄 | ✅ 정상 |
-| 비선형성 보정 | ⚠️ 전용 테스트 없음 | — | ⚠️ 보강 필요 |
 | 바이닝 보정 | ⚠️ 전용 테스트 없음 | — | ⚠️ 보강 필요 |
 | Round-trip | test_calibration_roundtrip.cpp | ~200줄 | ✅ 정상 |
 
 **전체 목표**: 85% 커버리지 (TRUST 5 기준)  
-**현재 상태**: ~70-75% (비선형성/바이닝 테스트 부재)
+**현재 상태**: ~70-75% (바이닝 테스트 부재)
 
 ---
 
@@ -450,7 +426,6 @@ xpe_preprocess.dll (캘리브레이션 모듈)
 
 | 항목 | 상태 |
 |------|------|
-| nonlinearity_correct.cpp 단위 테스트 | ⚠️ 없음 |
 | binning_correct.cpp 단위 테스트 | ⚠️ 없음 |
 | xcal_reader/writer 단위 테스트 | ⚠️ 없음 |
 

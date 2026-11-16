@@ -2,7 +2,9 @@
 
 **모듈**: `xpe_preprocess.dll` (Layer 1, Phase 1a)  
 **버전**: 1.0  
-**날짜**: 2026-04-19  
+**날짜**: 2026-04-19 (갱신 2026-11-17)  
+
+> **2026-11-16 기능 삭제**: 온도 보상(§9)·비선형 보정(§6)·다선량 다항식 게인은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 그림에서 해당 단계를 지웠다.
 **목적**: 캘리브레이션 알고리즘의 개념도, 처리 메커니즘, 흐름도 시각화
 
 > **무결성 검사 정정 (2026-09-19, #188 — QA-A-106·QA-A-130 에서 실제 파일과 코드로 확인)**
@@ -36,10 +38,10 @@
 3. [CalibrationManager 초기화 시퀀스](#3-calibrationmanager-초기화-시퀀스)
 4. [오프셋(암전류) 보정](#4-오프셋암전류-보정)
 5. [게인(평탄화) 보정](#5-게인평탄화-보정)
-6. [비선형성 보정](#6-비선형성-보정)
+6. 비선형성 보정 — 삭제 (2026-11-16)
 7. [결함 픽셀 보정](#7-결함-픽셀-보정)
 8. [고스트/잔상 보정 (3-Tier)](#8-고스트잔상-보정-3-tier)
-9. [온도 보상](#9-온도-보상)
+9. 온도 보상 — 삭제 (2026-11-16)
 10. [바이패스 결정 로직](#10-바이패스-결정-로직)
 11. [캘리브레이션 데이터 생명주기](#11-캘리브레이션-데이터-생명주기)
 12. [소프트웨어 유닛 분해도](#12-소프트웨어-유닛-분해도)
@@ -53,7 +55,7 @@
 ```mermaid
 flowchart TD
     RAW["🔲 Raw Frame\nuint16 [3072×3072]\n14-16 bit ADC 출력"]
-    META["📋 Detector Metadata\n온도 · kVp · SID · 바이닝 모드"]
+    META["📋 Detector Metadata\nkVp · SID · 바이닝 모드"]
 
     subgraph CALIB_MGR["CalibrationManager (SWU-1.5)"]
         LOAD["캘리브레이션 파일 로드\n.xpe_calib (오프셋/게인/BPM)"]
@@ -62,14 +64,12 @@ flowchart TD
     end
 
     subgraph PIPELINE["보정 파이프라인"]
-        T1["① 온도 보상\nSWU-1.6\n조건부"]
         T2["② 오프셋 보정\nSWU-1.1\n필수"]
-        T3["③ 비선형성 보정\nSWU-1.7\n조건부"]
         T4["④ 게인 보정\nSWU-1.2\n필수\n⚡ uint16→float32"]
         T5["⑤ 바이닝 보정\nSWU-1.8\n조건부"]
         T6["⑥ 결함 보정\nSWU-1.3\n조건부"]
         T7["⑦ 고스트/잔상 보정\nSWU-1.4\n조건부"]
-        T1 --> T2 --> T3 --> T4 --> T5 --> T6 --> T7
+        T2 --> T4 --> T5 --> T6 --> T7
     end
 
     OUT["✅ 보정된 Frame\nfloat32 [3072×3072]\n임상 영상 품질"]
@@ -104,14 +104,11 @@ flowchart LR
     subgraph INPUT["입력 도메인 (uint16)"]
         R["Raw uint16\n0~65535 ADU\n14-16 bit"]
         OFF["오프셋 맵\nuint16\n3072×3072"]
-        NL["비선형 LUT\nuint16→uint16\n4096 entries"]
     end
 
     subgraph UINT16_OPS["uint16 연산 구간"]
         direction TB
         S1["오프셋 차감\nI_corr = I_raw - I_dark\n클램프 → 0 이상"]
-        S2["비선형성 보정\nI_lin = LUT[I_raw]\n또는 다항식 f(I)"]
-        S1 --> S2
     end
 
     BOUNDARY["⚡ 형식 경계\nuint16 → float32\n게인 보정 시"]
@@ -196,22 +193,14 @@ sequenceDiagram
 flowchart TD
     subgraph MATH["수학적 모델"]
         M1["I_corr(x,y) = I_raw(x,y) - I_dark(x,y)"]
-        M2["I_dark(T) = I₀ × exp(-Eg/2kB×T)"]
-        M1 --> M2
     end
 
     subgraph ALGO["처리 알고리즘"]
-        A1{"온도 보상\n필요?"}
-        A2["온도/PREP시간\n2D 룩업 테이블 구성"]
-        A3["쌍선형 보간\nI_dark(T_current)"]
         A4["픽셀별 차감\nI_raw - I_dark"]
         A5{"결과 < 0?"}
         A6["클램프 → 0\n(uint16 하한)"]
         A7["그대로 유지"]
 
-        A1 -->|Yes| A2
-        A1 -->|No| A4
-        A2 --> A3 --> A4
         A4 --> A5
         A5 -->|Yes| A6
         A5 -->|No| A7
@@ -219,26 +208,21 @@ flowchart TD
 
     subgraph PARAMS["보정 파라미터"]
         P1["오프셋 맵\nuint16 [3072×3072]"]
-        P2["현재 온도\nNTC 서미스터"]
         P3["PREP 시간\n마지막 방사 이후 경과"]
-        P4["Eg = 1.12 eV (실리콘)\nkB = 8.617×10⁻⁵ eV/K"]
     end
 
     P1 --> ALGO
-    P2 --> ALGO
     P3 --> ALGO
-    P4 --> MATH
 
     A6 --> OUT["오프셋 보정 완료\nuint16"]
     A7 --> OUT
 
     style M1 fill:#e8f4fd,stroke:#2196F3
-    style M2 fill:#e8f4fd,stroke:#2196F3
     style A5 fill:#fff9c4,stroke:#f9a825
     style A6 fill:#ffcdd2,stroke:#e53935
 ```
 
-**물리적 배경**: 암전류는 반도체 밴드갭(Eg)에 의한 열 여기 전자로 발생. 온도 의존적 지수 모델 적용.  
+**물리적 배경**: 암전류는 반도체 밴드갭(Eg)에 의한 열 여기 전자로 발생. (온도 의존 지수 모델 보상은 2026-11-16 사용자 결정으로 삭제)  
 **구현 파일**: `modules/preprocess/src/xpe_offset.cpp`
 
 ---
@@ -305,60 +289,7 @@ flowchart TD
 
 ---
 
-## 6. 비선형성 보정
-
-> **개념**: 검출기 응답의 비선형성을 LUT 또는 다항식으로 선형화
-
-```mermaid
-flowchart TD
-    subgraph CONCEPT["비선형성 원인"]
-        C1["전하 트래핑\n(Charge Trapping)"]
-        C2["필 팩터 효과\n(Fill Factor Effect)"]
-        C3["ADC 비선형성"]
-        C1 & C2 & C3 --> NL["비선형 검출기 응답\nS_meas ≠ k × D_ref"]
-    end
-
-    subgraph SELECTION["방법 선택"]
-        SEL{"패널 프로파일\npanel.linear?"}
-        SKIP["보정 건너뜀\n(이미 선형)"]
-        METHOD{"구현 방법\n선택"}
-        LUT_PATH["LUT 방법\n(CPU 최적화)"]
-        POLY_PATH["다항식 방법\n(MCU/FPGA)"]
-
-        SEL -->|true| SKIP
-        SEL -->|false| METHOD
-        METHOD -->|"크기 4096/65536 LUT 존재"| LUT_PATH
-        METHOD -->|"차수 ≤5 계수 존재"| POLY_PATH
-    end
-
-    subgraph LUT_METHOD["LUT 방법 (O(1) 조회)"]
-        L1["팩토리 캘리브레이션:\nN≥10 선량 수준에서 측정"]
-        L2["이상적 선형 응답 피팅:\nS_ideal = G_nominal × D"]
-        L3["단조 3차 스플라인 보간\n(Fritsch-Carlson 1980)"]
-        L4["LUT[I_raw] = I_lin\n직접 인덱스 조회"]
-        L5["오차 ≤ 0.3% ADC 풀스케일"]
-        L1 --> L2 --> L3 --> L4 --> L5
-    end
-
-    subgraph POLY_METHOD["다항식 방법 (Horner's Method)"]
-        P1["I_lin = c₀ + c₁I + c₂I² + c₃I³ + c₄I⁴ + c₅I⁵"]
-        P2["Horner 최적화:\nI_lin = c₀ + I(c₁ + I(c₂ + I(c₃ + I(c₄ + Ic₅))))"]
-        P3["단조성 검증\n(역전 금지)"]
-        P4["잔차 ≤ 0.5% ADU"]
-        P1 --> P2 --> P3 --> P4
-    end
-
-    LUT_PATH --> LUT_METHOD
-    POLY_PATH --> POLY_METHOD
-    LUT_METHOD & POLY_METHOD --> OUT["선형화된 신호\nuint16 → 게인 보정 입력"]
-
-    style LUT_PATH fill:#e8f4fd,stroke:#2196F3
-    style POLY_PATH fill:#f3e5f5,stroke:#9c27b0
-    style SKIP fill:#e0f2f1,stroke:#009688
-```
-
-**구현 파일**: `modules/preprocess/src/nonlinearity_correct.cpp`  
-**SRS 참조**: `SRS-CALIB-FUNC-006-EXT`
+## 6. 비선형성 보정 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)
 
 ---
 
@@ -516,53 +447,7 @@ stateDiagram-v2
 
 ---
 
-## 9. 온도 보상
-
-> **개념**: NTC 서미스터로 측정한 검출기 온도 변화에 따른 암전류 드리프트 보상
-
-```mermaid
-flowchart TD
-    subgraph SENSING["온도 감지"]
-        NTC["NTC 서미스터\n검출기 패널 온도 측정"]
-        T_curr["현재 온도 T_current"]
-        T_ref["기준 온도 T_ref\n(캘리브레이션 취득 시)"]
-        NTC --> T_curr
-    end
-
-    subgraph DECISION["보상 필요성 판단"]
-        DELTA["ΔT = |T_current - T_ref|"]
-        BYPASS{"ΔT < 2°C?"}
-        BYPASS_ACT["온도 보상 건너뜀\n(무시 가능한 드리프트)"]
-        APPLY["온도 보상 적용"]
-        DELTA --> BYPASS
-        BYPASS -->|Yes| BYPASS_ACT
-        BYPASS -->|No| APPLY
-    end
-
-    subgraph MODEL["지수 드리프트 모델"]
-        EQ["I_dark(T) = I₀ × exp(-Eg / (2 × kB × T))"]
-        PARAMS["물리 상수:\nEg = 1.12 eV (실리콘 밴드갭)\nkB = 8.617 × 10⁻⁵ eV/K"]
-        SCALE["스케일 팩터:\nS(T) = exp[-Eg/2kB × (1/T_curr - 1/T_ref)]"]
-        EQ -.-> SCALE
-        PARAMS -.-> SCALE
-    end
-
-    subgraph INTERP["쌍선형 보간"]
-        TABLE["2D 룩업 테이블\n축 1: 온도 (5°C 간격)\n축 2: PREP 시간 (초)"]
-        BILINEAR["쌍선형 보간\n정확한 현재 조건 추정"]
-        TABLE --> BILINEAR
-    end
-
-    T_curr & T_ref --> DELTA
-    APPLY --> MODEL
-    APPLY --> INTERP
-    MODEL & INTERP --> ADJ_MAP["보정된 오프셋 맵\n현재 온도 기준"]
-    ADJ_MAP --> OFFSET_STEP["→ 오프셋 보정 단계로"]
-
-    style BYPASS fill:#fff9c4,stroke:#f9a825
-    style BYPASS_ACT fill:#e0f2f1,stroke:#009688
-    style EQ fill:#e8f4fd,stroke:#2196F3
-```
+## 9. 온도 보상 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9)
 
 ---
 
@@ -574,33 +459,27 @@ flowchart TD
 flowchart TD
     subgraph INPUTS["입력 조건"]
         CFG["구성 파일\n활성화 플래그"]
-        PANEL["패널 프로파일\npanel.linear, panel.has_defect_map"]
-        META2["획득 메타데이터\n온도, SID, 바이닝 모드"]
+        PANEL["패널 프로파일\npanel.has_defect_map"]
+        META2["획득 메타데이터\nSID, 바이닝 모드"]
         CALIB["캘리브레이션 파일\n가용성 및 만료 상태"]
     end
 
     subgraph BYPASS_LOGIC["단계별 우회 결정"]
-        B_TEMP{"온도 보상\n필요?"}
-        B_NL{"비선형성\n보정 필요?"}
         B_BINNING{"바이닝\n보정 필요?"}
         B_DEFECT{"결함\n보정 필요?"}
         B_GHOST{"고스트\n보정 필요?"}
 
-        COND_TEMP["ΔT ≥ 2°C\n AND 온도 파일 존재"]
-        COND_NL["panel.linear = false\n AND LUT/다항식 로드됨"]
         COND_BINNING["binning_mode ≠ 1×1\n AND 바이닝 프로파일 존재"]
         COND_DEFECT["결함 맵 로드됨\n OR 런타임 검출 활성"]
         COND_GHOST["ghost_enable = true\n AND 이력 버퍼 초기화됨"]
 
-        B_TEMP -->|"조건 충족"| COND_TEMP
-        B_NL -->|"조건 충족"| COND_NL
         B_BINNING -->|"조건 충족"| COND_BINNING
         B_DEFECT -->|"조건 충족"| COND_DEFECT
         B_GHOST -->|"조건 충족"| COND_GHOST
     end
 
     subgraph STATUS["상태 플래그 출력"]
-        FLAGS["ProcessingFlags:\n• TEMP_COMPENSATED\n• NONLIN_CORRECTED\n• GAIN_APPLIED\n• BINNING_CORRECTED\n• DEFECT_CORRECTED\n• GHOST_CORRECTED"]
+        FLAGS["ProcessingFlags:\n• GAIN_APPLIED\n• BINNING_CORRECTED\n• DEFECT_CORRECTED\n• GHOST_CORRECTED"]
         LOG["진단 로그:\n• 각 단계 처리 시간\n• 우회 이유\n• 경고 메시지"]
     end
 
@@ -626,8 +505,7 @@ stateDiagram-v2
         [*] --> DARK_ACQ: 암전류 영상 취득
         DARK_ACQ --> FLAT_ACQ: 평탄 조도 영상 취득
         FLAT_ACQ --> BPM_GEN: BPM 생성 (RMM)
-        BPM_GEN --> NL_CALIB: 비선형성 LUT 생성
-        NL_CALIB --> SAVE: .xpe_calib 파일 저장\nCRC-32 + 만료 타임스탬프
+        BPM_GEN --> SAVE: .xpe_calib 파일 저장\nCRC-32 + 만료 타임스탬프
     }
 
     FACTORY_CALIB --> DEPLOYED: 현장 배포
@@ -677,13 +555,11 @@ graph TD
         subgraph CORRECTIONS["보정 유닛"]
             SWU11["SWU-1.1\n오프셋 보정\nxpe_offset.cpp"]
             SWU12["SWU-1.2\n게인 보정\nxpe_gain.cpp"]
-            SWU17["SWU-1.7\n비선형성 보정\nnonlinearity_correct.cpp"]
             SWU13["SWU-1.3\n결함 보정\nxpe_defect.cpp"]
             SWU14["SWU-1.4\n고스트 보정\nghost_correct.cpp"]
         end
 
         subgraph SUPPORT["지원 유닛"]
-            SWU16["SWU-1.6\n온도 보상\n(오프셋 내부)"]
             SWU18["SWU-1.8\n바이닝 보정\nbinning_correct.cpp"]
             SWU19["SWU-1.9\n리드아웃 검증\n(파이프라인 내부)"]
         end
@@ -697,9 +573,8 @@ graph TD
         API --> CM
         API --> PIPE
         CM --> XCAL_R & XCAL_V
-        PIPE --> SWU11 & SWU12 & SWU17 & SWU13 & SWU14
-        PIPE --> SWU16 & SWU18 & SWU19
-        SWU11 --> SWU16
+        PIPE --> SWU11 & SWU12 & SWU13 & SWU14
+        PIPE --> SWU18 & SWU19
         XCAL_W --> CM
     end
 
@@ -725,10 +600,10 @@ graph TD
 | 파이프라인 전체 | SRS-CALIB-FUNC-001~009 | SWU-1.1~1.9 | pipeline.cpp |
 | 오프셋 보정 | SRS-CALIB-FUNC-004 | SWU-1.1 | xpe_offset.cpp |
 | 게인 보정 | SRS-CALIB-FUNC-005 | SWU-1.2 | xpe_gain.cpp |
-| 비선형성 보정 | SRS-CALIB-FUNC-006, 006-EXT | SWU-1.7 | nonlinearity_correct.cpp |
+| ~~비선형성 보정~~ | SRS-CALIB-FUNC-006, 006-EXT — 삭제 (2026-11-16) | -- | -- |
 | 결함 보정 | SRS-CALIB-FUNC-007 | SWU-1.3 | xpe_defect.cpp |
-| 고스트 보정 | SRS-CALIB-FUNC-008 | SWU-1.4 | ghost_correct.cpp |
-| 온도 보상 | SRS-CALIB-FUNC-009 | SWU-1.6 | xpe_offset.cpp |
+| 고스트 보정 | SRS-CALIB-FUNC-013 (옛 표기 FUNC-008 — 현행 FUNC-008 온도 보상은 2026-11-16 삭제) | SWU-1.4 | ghost_correct.cpp |
+| ~~온도 보상~~ | SRS-CALIB-FUNC-008 — 삭제 (2026-11-16) | -- | -- |
 | 바이패스 로직 | 전 요건 | 전 SWU | pipeline.cpp |
 | 데이터 생명주기 | SRS-CALIB-FUNC-001~003 | SWU-1.5 | calibration_manager.cpp |
 | SWU 분해도 | 전체 | SAD-CALIB-001 §4 | — |

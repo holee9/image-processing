@@ -3,7 +3,8 @@
 **Document ID:** CALIB-VER-001 v1.0  
 **IEC 62304 Clause:** 5.6 (Software Verification)  
 **Safety Classification:** Class B  
-**Date:** 2026-04-19  
+**Date:** 2026-04-19 (갱신 2026-11-17)  
+**변경 2026-11-17:** 온도 보상(SWU-1.6, FUNC-008)·비선형 보정(SWU-1.8 비선형, FUNC-006)·다선량 다항식 게인은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 해당 행·절을 삭제로 표시했다.  
 **Scope:** `xpe_preprocess.dll` — 9-stage calibration preprocessing pipeline  
 **SPEC Reference:** SPEC-XPE-P1A v1.0.0, SRS-CALIB-001 v1.0, SAD-CALIB-001  
 
@@ -79,12 +80,12 @@
 | SWU-1.3 | Defect Correction | SRS-CALIB-FUNC-007 | `xpe_defect.cpp` | ✅ PASS | 에지-어웨어 보간 구현 |
 | SWU-1.4 | Ghost Correction | SRS-CALIB-FUNC-013, FUNC-014 | `ghost_correct.cpp` | ⚠️ PARTIAL | 지수 항 수 상이 (아래 §2.2 참조) |
 | SWU-1.5 | CalibManager I/O | SRS-CALIB-FUNC-001~003, PERF-003 | `calibration_manager.cpp` | ✅ PASS | 저장/불러오기 round-trip 검증 |
-| SWU-1.6 | Temperature Comp. | SRS-CALIB-FUNC-008 | `temp_compensate.cpp` | ✅ PASS | 반도체 물리 모델 정확 |
+| SWU-1.6 | ~~Temperature Comp.~~ | SRS-CALIB-FUNC-008 | ~~`temp_compensate.cpp`~~ | 삭제 | 사용자 결정 2026-11-16, 엔진 커밋 a72d59c9 |
 | SWU-1.7 | Readout Validation | SRS-CALIB-FUNC-010 (부분) | `readout_validate.cpp` | ✅ PASS | 포화/노이즈 스코어 공식 |
-| SWU-1.8 | Nonlinearity Corr. | SRS-CALIB-FUNC-006 | `nonlinearity_correct.cpp` | ✅ PASS | LUT + Horner 다항식 |
+| SWU-1.8 | ~~Nonlinearity Corr.~~ | SRS-CALIB-FUNC-006 | ~~`nonlinearity_correct.cpp`~~ | 삭제 | 사용자 결정 2026-11-16, 엔진 커밋 2d9576de |
 | SWU-1.9 | Binning Correction | SRS-CALIB-FUNC-012 | `binning_correct.cpp` | ✅ PASS | G_binned = G/factor² |
 
-**전체 적합성: 9/9 단계 구현 완료, 1단계 부분 상이 (기능 정확, 세부 파라미터 차이)**
+**전체 적합성: 7/7 단계 구현 완료(온도·비선형 2단계는 2026-11-16 삭제), 1단계 부분 상이 (기능 정확, 세부 파라미터 차이)**
 
 ---
 
@@ -155,35 +156,9 @@ Tier 2: 노출량-가중 LTI (exposureWeight = 1.0 + mean/32768 × 0.5)
 Tier 3: NLCSC — 신호-의존 계수 + 3×3 공간 컨텍스트 혼합
 ```
 
-### 3.2 온도 보상: 반도체 물리 기반 지수 모델
+### 3.2 온도 보상 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9)
 
-**적용 기법**: Shockley-Read-Hall 암전류 모델
-
-```
-scale(T) = exp(-Eg/2kB·T) / exp(-Eg/2kB·T_ref)
-  where  Eg = 1.12 eV (실리콘 밴드갭)
-         kB = 8.617×10⁻⁵ eV/K (볼츠만 상수)
-         T_ref = 298.15 K (25°C)
-```
-
-| 평가 항목 | 내용 | 점수 |
-|----------|------|:----:|
-| 물리적 정확성 | 반도체 물리 직접 도출, 이론적 근거 완전 | ✅ |
-| 기준 온도 불변 | T=25°C에서 scale=1.0, 픽셀값 불변 | ✅ |
-| 범위 검증 | -20°C 미만 / 60°C 초과 → `XPE_ERR_INVALID_INPUT` | ✅ |
-| **결론** | **최적의 물리 기반 접근법** | **A+** |
-
-### 3.3 비선형성 보정: 이중 모드 지원
-
-**적용 기법**: LUT (Fritsch-Carlson 단조 3차 스플라인) + 다항식 (Horner 방법)
-
-| 모드 | 알고리즘 | 보간 오차 | 실행 시간 | 플랫폼 |
-|------|---------|---------|---------|-------|
-| LUT 4096 | 직접 인덱스 O(1) | ≤0.30% ADU | ~5 ns | CPU/FPGA |
-| LUT 65536 | 직접 인덱스 O(1) | ≤0.01% ADU | ~5 ns | CPU |
-| 다항식 4차 | Horner's method | ≤0.50% ADU | ~30 ns | CPU/MCU/FPGA |
-
-단조성 강제(Monotonicity enforcement) 검증: `LUT[i] ≤ LUT[i+1]` for all i. **비단조 LUT → `XPE_ERR_INVALID_CALIB_DATA`**.
+### 3.3 비선형성 보정 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)
 
 ### 3.4 SIMD 최적화 (M2 SIMD — AVX2/FMA)
 
@@ -398,34 +373,7 @@ h₂[i]         = e^(-Δt/τ₂)·h₂[i] + raw[n,i]
 
 ---
 
-### 5.4 SWU-1.6: Temperature Compensation 검증
-
-**수식**:
-```
-scale(T) = exp(C/T_abs) / exp(C/T_ref)     C = -Eg/(2kB) ≈ -6498 K
-corrected[i] = round(raw[i] / scale(T))
-```
-
-**검증 절차:**
-
-```
-단계 1 — 기준 온도 불변 (REQ-P1A-005):
-  T=25.0°C → scale=1.0 → 픽셀 불변
-  → EXPECT_EQ(5000u, out[i]) 전 픽셀
-
-단계 2 — 고온 감소 (REQ-P1A-006):
-  T=37°C → scale > 1.0 (어두운 전류 증가)
-  expected ≈ round(raw / scale)
-  → EXPECT_NEAR(expected, out[i], 2) (반올림 허용 ±2 ADU)
-
-단계 3 — 스케일 방향성:
-  T > 25°C → scale > 1.0 ASSERT
-  T < 25°C → scale < 1.0 ASSERT
-
-단계 4 — 범위 검증 (REQ-P1A-008):
-  T < -20°C → XPE_ERR_INVALID_INPUT
-  T > 60°C  → XPE_ERR_INVALID_INPUT
-```
+### 5.4 SWU-1.6: Temperature Compensation 검증 — 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9)
 
 ---
 
@@ -512,9 +460,9 @@ score      = clamp((sat_frac + noise_frac) × 50, 0, 100)
 | SRS-CALIB-FUNC-003 | BPM 로드 (RLE) | `test_calibration_manager.cpp` | `LoadBPM_ValidFile` | ✅ |
 | SRS-CALIB-FUNC-004 | Offset 보정 수식 | `test_golden_reference.cpp` | `GoldenOffsetTest::*` | ✅ |
 | SRS-CALIB-FUNC-005 | Gain 보정 + float32 | `test_golden_reference.cpp` | `GoldenGainTest::*` | ✅ |
-| SRS-CALIB-FUNC-006 | 비선형성 보정 | `test_xpe_preprocess_calibration.cpp` | `Nonlinearity*` | ✅ |
+| SRS-CALIB-FUNC-006 | ~~비선형성 보정~~ | -- | -- | 삭제 (사용자 결정 2026-11-16) |
 | SRS-CALIB-FUNC-007 | Defect 보정 | `test_defect_correct.cpp` | `DefectInterp*` | ✅ |
-| SRS-CALIB-FUNC-008 | 온도 보상 | `test_golden_reference.cpp` | `GoldenTempTest::*` | ✅ |
+| SRS-CALIB-FUNC-008 | ~~온도 보상~~ | -- | -- | 삭제 (사용자 결정 2026-11-16) |
 | SRS-CALIB-FUNC-009 | 만료 검사 | `test_calibration_manager.cpp` | `ExpiryCheck*` | ✅ |
 | SRS-CALIB-FUNC-010 | 런타임 결함 검출 | `test_xpe_preprocess_calibration.cpp` | `RuntimeDefect*` | ✅ |
 | SRS-CALIB-FUNC-011 | 세션 관리 | — | — | ❌ 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
@@ -531,7 +479,9 @@ score      = clamp((sat_frac + noise_frac) × 50, 0, 100)
 | SRS-CALIB-NFR-003 | 스레드 안전성 | — | — | ❌ 미검증 |
 | SRS-CALIB-NFR-004 | 결정론 (재현성) | `test_integration.cpp` | `Determinism*` | ✅ |
 
-> **정정 메모 (2026-10-03, `QA-A-233` 결정 11·14, #245 코멘트)**: 위 표의 FUNC-008 "✅ 온도 보상"은 `xpe_temp_compensate`(시험 `GoldenTempTest`)에 대해서는 사실이지만, PRD REQ-OFF-003~005(온도별 오프셋 맵·PREP 모델)에 대해서는 사실이 아니다 — 그 둘은 미구현(요구 유지)이다. 현재 SRS 의 FUNC-028·029·030 도 미구현(요구 유지)이다(`RTM-CALIB-001` v1.5).
+> **2026-11-16 이후**: FUNC-008 온도 보상과 `GoldenTempTest` 는 삭제됐다(엔진 커밋 a72d59c9). 아래 메모는 그 이전 기록이다.
+>
+> **정정 메모 (2026-10-03, `QA-A-233` 결정 11·14, #245 코멘트 — FUNC-008 삭제 이전 기록)**: 위 표의 FUNC-008 "✅ 온도 보상"은 `xpe_temp_compensate`(시험 `GoldenTempTest`)에 대해서는 사실이지만, PRD REQ-OFF-003~005(온도별 오프셋 맵·PREP 모델)에 대해서는 사실이 아니다 — 그 둘은 미구현(요구 유지)이다. 현재 SRS 의 FUNC-028·029·030 도 미구현(요구 유지)이다(`RTM-CALIB-001` v1.5).
 
 ### 6.2 Golden Reference 테스트 26개 목록
 
@@ -546,10 +496,10 @@ score      = clamp((sat_frac + noise_frac) × 50, 0, 100)
 | 7 | `GoldenGhostTest::Frame1MatchesDualExponentialFormula` | FUNC-013 | 2지수 수식 검증 |
 | 8 | `GoldenGhostTest::AfterResetHistoryIsZero` | FUNC-013,014 | 리셋 후 제로 히스토리 |
 | 9 | `GoldenGhostTest::GhostSubtractedAfterFirstFrame` | FUNC-013 | corrected < raw 방향성 |
-| 10 | `GoldenTempTest::RefTempProducesNoChange` | FUNC-008 | T=25°C → 불변 |
-| 11 | `GoldenTempTest::Above25cReducesPixelValues` | FUNC-008 | T=37°C → 감소 |
-| 12 | `GoldenTempTest::Below25cScaleIsLessThanOne` | FUNC-008 | scale < 1 방향성 |
-| 13 | `GoldenTempTest::OutOfRangeReturnsError` | FUNC-008 | 범위 오류 |
+| 10 | ~~`GoldenTempTest::RefTempProducesNoChange`~~ | 삭제 | FUNC-008 삭제(사용자 결정 2026-11-16) |
+| 11 | ~~`GoldenTempTest::Above25cReducesPixelValues`~~ | 삭제 | FUNC-008 삭제(사용자 결정 2026-11-16) |
+| 12 | ~~`GoldenTempTest::Below25cScaleIsLessThanOne`~~ | 삭제 | FUNC-008 삭제(사용자 결정 2026-11-16) |
+| 13 | ~~`GoldenTempTest::OutOfRangeReturnsError`~~ | 삭제 | FUNC-008 삭제(사용자 결정 2026-11-16) |
 | 14 | `GoldenBinningTest::Mode1IsIdentity` | FUNC-012 | mode=1 항등 |
 | 15 | `GoldenBinningTest::Mode2DividesByFour` | FUNC-012 | mode=2 ÷4 |
 | 16 | `GoldenBinningTest::Mode4DividesBySixteen` | FUNC-012 | mode=4 ÷16 |
@@ -597,7 +547,6 @@ jobs:
 | ❌ GoldenOffset* FAIL | offset 빼기 수식 오류 | `xpe_offset.cpp` 검토 |
 | ❌ GoldenGain* FAIL | gain 곱셈 또는 float32 변환 오류 | `xpe_gain.cpp` 검토 |
 | ❌ GoldenGhost* FAIL | LTI 수식 또는 히스토리 관리 오류 | `ghost_correct.cpp` 검토 |
-| ❌ GoldenTemp* FAIL | 반도체 물리 모델 오류 | `temp_compensate.cpp` 검토 |
 | ❌ CalibRoundTrip FAIL | 저장/로드 데이터 손실 | `calibration_manager.cpp` 검토 |
 
 ### 7.3 커버리지 기준
@@ -646,8 +595,8 @@ jobs:
 | Starman et al. (2012), PMC3465354 | 신호-의존 Lag 보정 | SWU-1.4 Ghost Tier 3 NLCSC |
 | Pang et al. (2006) | 다중지수 Lag 모델 | SWU-1.4 Tier 1 LTI 이론적 근거 |
 | Wang et al. (2013) | Heel effect 이중-SID 보정 | SWU-1.2 멀티-게인 설계 |
-| Fritsch & Carlson (1980) | 단조 3차 스플라인 | SWU-1.8 LUT 비선형성 생성 |
-| Shockley & Read (1952), Hall (1952) | SRH 재결합 모델 | SWU-1.6 온도 보상 수식 |
+| Fritsch & Carlson (1980) | 단조 3차 스플라인 | ~~SWU-1.8 LUT 비선형성 생성~~ (삭제, 2026-11-16) |
+| Shockley & Read (1952), Hall (1952) | SRH 재결합 모델 | ~~SWU-1.6 온도 보상 수식~~ (삭제, 2026-11-16) |
 
 ### 프로젝트 문서
 

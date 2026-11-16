@@ -1,5 +1,7 @@
 # XPE 엔트리 포인트 카탈로그
 
+> **2026-11-16 기능 삭제**: 온도 보상(PRE-07, `xpe_temp_compensate`)과 비선형 보정(PRE-08, `xpe_nonlinearity_correct`, 비선형 LUT 생성·적재 API), 다선량 다항식 게인(`xpe_calib_generate_gain_polynomial`)은 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 아래에서 해당 줄에 삭제 표시를 붙였다.
+
 **문서 ID**: XPE-CODEMAP-004  
 **버전**: 1.1.0  
 **날짜**: 2026-04-20  
@@ -94,8 +96,8 @@ XpeErrorCode result = xpe_alloc_image(1920, 1080, XpePixelFormat.XPE_PIXEL_UINT1
 | **게인 보정** | `XpeErrorCode xpe_gain_correct(XpeImageBuffer* img, const XpeImageBuffer* gainMap)` | PRE-03 | 게인 맵 |
 | **결함 보정** | `XpeErrorCode xpe_defect_correct(XpeImageBuffer* img, const XpeImageBuffer* defectMap, const char* configJsonOrNull)` | PRE-06 | 결함 맵 |
 | **고스트 보정** | `XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img, const XpeImageMetadata* meta)` | PRE-09 | 고스트 핸들 |
-| **온도 보상** | `XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img, float detectorTempC, const char* configJsonOrNull)` | PRE-07 | 온도 값 |
-| **비선형 보정** | `XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img, const char* configJsonOrNull)` | PRE-08 | 설정 JSON |
+| ~~**온도 보상**~~ (삭제 2026-11-16) | `XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img, float detectorTempC, const char* configJsonOrNull)` | PRE-07 | 온도 값 |
+| ~~**비선형 보정**~~ (삭제 2026-11-16) | `XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img, const char* configJsonOrNull)` | PRE-08 | 설정 JSON |
 | **빈닝 보정** | `XpeErrorCode xpe_binning_correct(XpeImageBuffer* img, int32_t binningMode, const char* configJsonOrNull)` | PRE-09 | 빈닝 모드 |
 | **읽기 아티팩트 검증** | `XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* rawImg, int32_t* artifactScoreOut, char* msgOut, size_t msgLen)` | PRE-01 | 아티팩트 점수 |
 | **파이프라인 통합** | `XpeErrorCode xpe_preprocess_pipeline(XpeImageBuffer* img, XpeImageMetadata* meta, const char* calibPath, void* ghostHandle, const char* configJsonOrNull)` | **새로 추가** | 전처리 파이프라인 |
@@ -107,14 +109,14 @@ public void PreprocessPipeline(XpeImageBuffer rawImage, float temperature) {
     // 1. 읽기 아티팩트 검증 (0.5)
     xpe_validate_readout_artifact(rawImage, out int score, out string msg);
     
-    // 2. 온도 보상 (1)
-    xpe_temp_compensate(rawImage, temperature);
+    // 2. 온도 보상 (1)  // 삭제 (2026-11-16)
+    xpe_temp_compensate(rawImage, temperature);  // 삭제 (2026-11-16)
     
     // 3. 오프셋 보정 (1.5)
     xpe_offset_correct(rawImage, offsetMap);
     
-    // 4. 비선형 보정 (2)
-    xpe_nonlinearity_correct(rawImage, config);
+    // 4. 비선형 보정 (2)  // 삭제 (2026-11-16)
+    xpe_nonlinearity_correct(rawImage, config);  // 삭제 (2026-11-16)
     
     // 5. 게인 보정 (2.5) + uint16 -> float32
     xpe_gain_correct(rawImage, gainMap);

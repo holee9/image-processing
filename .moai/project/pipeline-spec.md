@@ -2,7 +2,7 @@
 
 **Document ID**: PIPE-SPEC-001  
 **Version**: 1.5.0  
-**Date**: 2026-04-14  
+**Date**: 2026-04-14 (갱신 2026-11-17: 온도 보상 (0.7)·비선형 보정 (1.5) 단계는 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a))  
 **Status**: Controlled Draft  
 **Project**: X-ray Image Processing Engine (XPE)  
 **Canonical Scope**: `docs/project/`
@@ -44,7 +44,7 @@ Normative algorithm detail is carried by `xpe-algorithm-spec-deepsync.md`. Norma
 
 | Domain | Typical stages | Allowed outputs |
 |---|---|---|
-| Detector domain | readout validation, temperature, offset, nonlinearity, gain, binning, defect, lag/ghost, EI, collimation baseline | corrected frame, detector metrics, ROI sidecar |
+| Detector domain | readout validation, offset, gain, binning, defect, lag/ghost, EI, collimation baseline | corrected frame, detector metrics, ROI sidecar |
 | Enhancement domain | log, noise, contrast, edge, multiscale, fractional, GSVG, AI enhancement | enhanced float image, AI advisory outputs |
 | Presentation domain | modality LUT, VOI LUT, presentation LUT, DICOM write | display-ready image, exported DICOM |
 
@@ -77,9 +77,9 @@ The orchestrator must not feed presentation-domain images into EI, detector QC, 
 | Label | Stage | Owner | Phase | Input domain | Output / side effect | Bypass rule |
 |---|---|:---:|:---:|---|---|---|
 | `(0.5)` | Readout artifact validation | preprocess | 1a | detector | alert only, no pixel mutation | advisory |
-| `(0.7)` | Temperature compensation | preprocess | 1a | detector | corrected detector frame | conditional |
+| ~~`(0.7)`~~ | ~~Temperature compensation~~ | -- | -- | -- | 삭제 (사용자 결정 2026-11-16) | -- |
 | `(1)` | Offset correction | preprocess | 1a | detector | corrected detector frame | mandatory |
-| `(1.5)` | Nonlinearity correction | preprocess | 1a | detector | linearized detector frame | conditional |
+| ~~`(1.5)`~~ | ~~Nonlinearity correction~~ | -- | -- | -- | 삭제 (사용자 결정 2026-11-16) | -- |
 | `(2)` | Gain correction | preprocess | 1a | detector | normalized float frame | mandatory |
 | `(2.5)` | Binning correction | preprocess | 1a | detector float | detector float | conditional |
 | `(3)` | Defect correction | preprocess | 1a | detector float | detector float | conditional |
@@ -145,7 +145,7 @@ Conditional stages may bypass only when the reason is explicit and auditable:
 
 | Condition | Metadata flag | Diagnostic channel |
 |---|---|---|
-| temperature compensation applied | `XPE_FLAG_TEMP_COMPENSATED` | optional alert |
+| ~~temperature compensation applied~~ | `XPE_FLAG_TEMP_COMPENSATED` (설정하는 단계 없음) | 삭제 (사용자 결정 2026-11-16) |
 | defect correction applied | `XPE_FLAG_DEFECT_CORRECTED` | optional alert |
 | lag/ghost correction applied | `XPE_FLAG_GHOST_CORRECTED` | optional alert |
 | GSVG skipped | `XPE_FLAG_GSVG_SKIPPED` | required alert or diagnostic JSON with error reason |
