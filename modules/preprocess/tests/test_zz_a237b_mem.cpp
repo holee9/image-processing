@@ -209,8 +209,8 @@ TEST(A237bMem, DISABLED_ShippedPath) {
         const CalibSnapshot snap = xpe_calib_snapshot();
         size_t masked = 0;
         if (snap.defect_map) for (size_t i = 0; i < N; ++i) masked += (snap.defect_map[i] != 0);
-        std::printf("[a237g] loaded maps: gain_map %s, gain_poly %s, gain-classified pixels %u, defect-map pixels %zu -> union_mask path %s\n",
-                    snap.gain_map ? "yes" : "no", snap.gain_poly_coeffs ? "yes" : "no", static_cast<unsigned>(snap.gain_defect_count), masked,
+        std::printf("[a237g] loaded maps: gain_map %s, gain-classified pixels %u, defect-map pixels %zu -> union_mask path %s\n",
+                    snap.gain_map ? "yes" : "no", static_cast<unsigned>(snap.gain_defect_count), masked,
                     snap.gain_defect_count > 0 ? "TAKEN" : "not taken");
     }
 #endif
@@ -354,26 +354,7 @@ TEST(A237gMaps, DISABLED_GenerateRealMaps) {
     const std::string gainPath = (std::filesystem::path(outDir) / "gain.xcal").string();
     ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(buffers.data(), 6, nullptr, gainPath.c_str(), nullptr));
     std::printf("[a237g] wrote %s and %s\n", offPath.c_str(), gainPath.c_str());
-    // XPE_A237G_POLY_OUT: a polynomial gain (degree 2) fitted over the six flat levels, one gain map made of each level on its own
-    // (the doses are not in the dataset, the README says so: they are 1000..6000 here, which fixes the fit, not the memory it takes).
-    const std::string polyDir = envStr("XPE_A237G_POLY_OUT");
-    if (!polyDir.empty()) {
-        std::filesystem::create_directories(polyDir);
-        std::vector<std::string> levelPaths;
-        std::vector<double> doses;
-        for (int k = 0; k < 6; ++k) {
-            const std::string lp = (std::filesystem::path(polyDir) / ("level" + std::to_string(k + 1) + ".xcal")).string();
-            ASSERT_EQ(XPE_OK, xpe_calib_generate_gain(&buffers[static_cast<size_t>(k)], 1, nullptr, lp.c_str(), nullptr)) << lp;
-            levelPaths.push_back(lp);
-            doses.push_back(1000.0 * (k + 1));
-        }
-        std::vector<const char*> pointers;
-        for (const std::string& lp : levelPaths) pointers.push_back(lp.c_str());
-        const std::string polyPath = (std::filesystem::path(polyDir) / "gain.xcal").string();
-        ASSERT_EQ(XPE_OK, xpe_calib_generate_gain_polynomial(pointers.data(), doses.data(), 6, 2, polyPath.c_str()));
-        std::filesystem::copy_file(offPath, std::filesystem::path(polyDir) / "offset.xcal", std::filesystem::copy_options::overwrite_existing);
-        std::printf("[a237g] wrote %s\n", polyPath.c_str());
-    }
+    // (XPE_A237G_POLY_OUT, which wrote a gain polynomial over the six levels, was removed with the gain polynomial, QA-A-336.)
     xpe_clear_alerts();
     xpe_preprocess_shutdown();
 }

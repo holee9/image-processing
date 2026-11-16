@@ -69,23 +69,21 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
                             sizeof(g_calib.offset_session_id));
 
             } else if (std::strcmp(calib_type, "gain") == 0) {
-                const bool polynomial = !g_calib.gain_map && g_calib.gain_poly_coeffs && g_calib.gain_poly_num_coeffs != 0;
-                const float* gain = polynomial ? g_calib.gain_poly_coeffs.get() : g_calib.gain_map.get();
+                const float* gain = g_calib.gain_map.get();
                 if (gain == nullptr) {
                     return XPE_ERR_INVALID_INPUT;
                 }
                 const uint64_t pixels = static_cast<uint64_t>(g_calib.gain_width) * g_calib.gain_height;
-                const uint64_t coefficients = polynomial ? g_calib.gain_poly_num_coeffs : 1u;
                 if (pixels == 0) return XPE_ERR_INVALID_CALIB_DATA;
-                if (pixels > static_cast<uint64_t>(std::numeric_limits<size_t>::max()) / sizeof(float) / coefficients)
+                if (pixels > static_cast<uint64_t>(std::numeric_limits<size_t>::max()) / sizeof(float))
                     return XPE_ERR_OUT_OF_MEMORY;
-                payload_bytes = pixels * coefficients * sizeof(float);
+                payload_bytes = pixels * sizeof(float);
                 payload_copy = std::make_unique<uint8_t[]>(static_cast<size_t>(payload_bytes));
                 std::memcpy(payload_copy.get(), gain, static_cast<size_t>(payload_bytes));
                 config = g_calib.gain_config;
                 // The applied map uses 1.0 at classified defects. Serialize those indices with the existing invalid
                 // scalar value 0 so the existing loader restores BOTH the neutral map and its defect classification.
-                if (!polynomial) {
+                {
                     if (g_calib.gain_defect_count != 0 && !g_calib.gain_defect_idx) return XPE_ERR_PROCESSING_FAILED;
                     for (uint32_t i = 0; i < g_calib.gain_defect_count; ++i) {
                         const uint32_t index = g_calib.gain_defect_idx[i];
@@ -97,7 +95,7 @@ extern "C" XPE_API XpeErrorCode xpe_calib_save(const char* filepath,
 
                 std::memcpy(hdr.magic, XCAL_MAGIC, 4);
                 hdr.version         = XCAL_VERSION;
-                hdr.type            = static_cast<uint32_t>(polynomial ? XCAL_TYPE_GAIN_POLY : XCAL_TYPE_GAIN);
+                hdr.type            = static_cast<uint32_t>(XCAL_TYPE_GAIN);
                 hdr.pixel_format    = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
                 hdr.width           = g_calib.gain_width;
                 hdr.height          = g_calib.gain_height;

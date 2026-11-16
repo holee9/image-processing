@@ -195,7 +195,7 @@ void recordDefectOracle(const Options& o, const std::vector<float>& before,
         {"fn", scalar ? Json(m.fn) : Json(nullptr)}, {"tn", scalar ? Json(m.tn) : Json(nullptr)},
         {"prediction_measured", scalar}, {"defect_file_version", defect.format_version},
         {"prediction_scope", scalar ? "loaded scalar gain-invalid union defect mask, inside imaging area; selection accuracy, NOT repair success" :
-                                       "polynomial per-frame prediction not measured; stage metrics only"},
+                                       "non-scalar gain: per-frame prediction not measured; stage metrics only"},
         {"population_scope", "entire external truth, including truth-positive pixels outside imaging area"},
         {"stage_scope", "actual defect stage input and output, before stateless replay"},
         {"residual_model", "GUI-C-182: oracle-good 3x3 mean, excluding centre and oracle-bad; no neighbour excluded"},

@@ -13,8 +13,8 @@
  *    multiple of 8), and the stage bypass combinations that change which stage buffer aliases which;
  *  - the ghost stage on its own, frames of rising magnitude up to a finite overflow (a failed frame: the pixels, the
  *    history and the state must come back as they were), a single huge pixel in an ordinary frame, negative values;
- *  - (hook build) the gain stage on a hand-built snapshot: a scalar map, a polynomial map, a refused map (the output
- *    buffer must not be touched when a gain value is refused).
+ *  - (hook build) the gain stage on a hand-built snapshot: a scalar map and a refused map (the output buffer must not
+ *    be touched when a gain value is refused). (The polynomial map cases were removed with the gain polynomial, QA-A-336.)
  *
  * Re-recording (only for a deliberate behaviour change): run with XPE_A237B_PRINT=1, paste the printed table.
  */
@@ -141,7 +141,6 @@ const std::map<std::string, uint64_t>& firstBypassGolden() {
         {"pipeline/float_input/tier1", 0x986b58099bf1c9a6ull},
         {"pipeline/float_input/tier3", 0xad4802f4ce76c8c6ull},
         {"pipeline/float_input/failed_frame/tier2", 0x1da83b52cfb677d9ull},
-        {"pipeline/poly_gain/tier2", 0x93b4045879e0ffd5ull},
         {"pipeline/gain_classified/203x157/tier1", 0xff8daf9376c653aaull},
         {"pipeline/gain_classified/203x157/tier2", 0x5302861288cbe215ull},
         {"pipeline/gain_classified/203x157/tier3", 0x58b2a071e3c77d80ull},
@@ -221,10 +220,9 @@ void fillRaw(uint16_t* raw, Size sz, int frame) {
 // ---------------------------------------------------------------- the shipped entry
 struct PipelineRun { uint64_t digest = kSeed; XpeErrorCode rc = XPE_OK; };
 
-// ghostExtra: members added to the ghost configuration (for example `"nlcscBeta":1e36`); polyGain: the gain map is a polynomial
-// (generated from four flat levels) instead of a scalar map.
+// ghostExtra: members added to the ghost configuration (for example `"nlcscBeta":1e36`).
 PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool ghostGiven, const char* ghostExtra = nullptr,
-                        bool polyGain = false, bool classifiedGain = false) {
+                        bool classifiedGain = false) {
     const std::filesystem::path dir = std::filesystem::temp_directory_path() / "qa_a_237b_digest";
     std::filesystem::remove_all(dir);
     std::filesystem::create_directories(dir);
@@ -249,23 +247,6 @@ PipelineRun runPipeline(Size sz, int tier, const char* cfg, int frames, bool gho
         writeMap((dir / "gain.xcal").string(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, sz.w, sz.h, gain.data(), np * sizeof(float));
         EXPECT_EQ(XPE_OK, xpe_calib_load_gain((dir / "gain.xcal").string().c_str()));
         xpe_clear_alerts();
-    }
-    if (polyGain) {
-        const size_t np = static_cast<size_t>(sz.w) * sz.h;
-        const double doses[] = {1000.0, 2000.0, 3000.0, 4000.0};
-        const float values[] = {1.00f, 1.10f, 1.18f, 1.25f};
-        std::vector<std::string> paths;
-        for (int i = 0; i < 4; ++i) {
-            std::vector<float> level(np);
-            for (size_t j = 0; j < np; ++j) level[j] = values[i] * (1.0f + 0.0005f * static_cast<float>(j % 11));
-            paths.push_back((dir / ("level" + std::to_string(i) + ".xcal")).string());
-            writeMap(paths.back(), XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, sz.w, sz.h, level.data(), np * sizeof(float));
-        }
-        std::vector<const char*> pointers;
-        for (const std::string& pth : paths) pointers.push_back(pth.c_str());
-        const std::string polyFile = (dir / "gain_poly.xcal").string();
-        EXPECT_EQ(XPE_OK, xpe_calib_generate_gain_polynomial(pointers.data(), doses, 4, 2, polyFile.c_str()));
-        EXPECT_EQ(XPE_OK, xpe_calib_load_gain(polyFile.c_str()));
     }
     void* ghost = nullptr;
     if (ghostGiven) {
@@ -406,19 +387,16 @@ TEST(OutputUnchanged237b, PipelineEntryFloatInputOnTheCallersOwnBuffer) {
     expectDigest("pipeline/float_input/failed_frame/tier2", runFloatInput(2, true));
 }
 
-// QA-A-237c: the polynomial gain keeps its own route through the pipeline, and a ghost whose frames cannot be proven safe (QA-A-237b/d)
-// takes the scratch route there. Both are recorded before the point-wise stages were merged into one working buffer. The scratch route
+// QA-A-237c: a ghost whose frames cannot be proven safe (QA-A-237b/d) takes the scratch route through the pipeline, recorded before
+// the point-wise stages were merged into one working buffer. (The polynomial gain route, recorded with it, was removed with the gain
+// polynomial, QA-A-336.) The scratch route
 // is reached through the signal-dependence beta (tier 3): 1e33 leaves the frames succeeding, 1e36 makes them fail (the call returns
 // XPE_ERR_PROCESSING_FAILED and the caller's frame is left as it was).
-TEST(OutputUnchanged237b, PipelineEntryPolynomialGainAndTheGhostScratchRoute) {
-    const PipelineRun poly = runPipeline(kSizes[0], 2, nullptr, 3, true, nullptr, true);
-    EXPECT_EQ(XPE_OK, poly.rc);
-    expectDigest("pipeline/poly_gain/tier2", poly.digest);
-
+TEST(OutputUnchanged237b, PipelineEntryTheGhostScratchRoute) {
     // QA-A-237g: the classified gain pixels reach the defect stage as the pixels added to the map (every tier).
     for (const Size sz : kSizes) {
         for (int tier = 1; tier <= 3; ++tier) {
-            const PipelineRun cl = runPipeline(sz, tier, nullptr, 2, true, nullptr, false, true);
+            const PipelineRun cl = runPipeline(sz, tier, nullptr, 2, true, nullptr, true);
             EXPECT_EQ(XPE_OK, cl.rc);
             expectDigest("pipeline/gain_classified/" + std::to_string(sz.w) + "x" + std::to_string(sz.h) + "/tier" + std::to_string(tier), cl.digest);
         }
@@ -428,11 +406,11 @@ TEST(OutputUnchanged237b, PipelineEntryPolynomialGainAndTheGhostScratchRoute) {
     xpe_ghost_in_place_frames = 0;
 #endif
     for (const Size sz : kSizes) {
-        const PipelineRun ok = runPipeline(sz, 3, nullptr, 4, true, "\"nlcscBeta\":1e33", false);
+        const PipelineRun ok = runPipeline(sz, 3, nullptr, 4, true, "\"nlcscBeta\":1e33");
         EXPECT_EQ(XPE_OK, ok.rc) << "the scratch route takes these frames";
         expectDigest("pipeline/slow_route_ok/" + std::to_string(sz.w) + "x" + std::to_string(sz.h) + "/tier3_beta1e33", ok.digest);
     }
-    const PipelineRun failing = runPipeline(kSizes[0], 3, nullptr, 4, true, "\"nlcscBeta\":1e36", false);
+    const PipelineRun failing = runPipeline(kSizes[0], 3, nullptr, 4, true, "\"nlcscBeta\":1e36");
     EXPECT_EQ(XPE_ERR_PROCESSING_FAILED, failing.rc) << "these frames fail on the scratch route";
     expectDigest("pipeline/slow_route_failing/203x157/tier3_beta1e36", failing.digest);
 #ifdef XPE_CACHE_TEST_HOOKS
@@ -784,32 +762,17 @@ std::shared_ptr<float[]> scalarGainMap(Size sz, int variant) {
 // QA-A-237c: the gain stage may write its float frame over the uint16 frame it reads (output and input the same storage, the
 // pipeline's working buffer). The result must be bit for bit what separate buffers give, at every size where the blocks (8192
 // pixels) and the vector groups (8) meet differently: below 8, a multiple of 8, one past it, one block, a block and a bit, several
-// blocks, and a count that is neither; scalar and polynomial maps.
+// blocks, and a count that is neither (scalar map; the polynomial map was removed, QA-A-336).
 TEST(OutputUnchanged237b, GainWrittenOverItsOwnInputEqualsSeparateBuffers) {
     const Size sizes[] = {{1, 1}, {7, 1}, {8, 1}, {9, 1}, {15, 1}, {16, 1}, {17, 3}, {8192, 1}, {8193, 1}, {4096, 4}, {128, 129}, {203, 157}, {256, 192}, {16387, 1}};
-    for (const bool poly : {false, true}) {
+    {
         for (const Size sz : sizes) {
             const size_t n = static_cast<size_t>(sz.w) * sz.h;
             CalibSnapshot snap;
             snap.initialized = true;
             snap.gain_width = sz.w;
             snap.gain_height = sz.h;
-            if (!poly) {
-                snap.gain_map = scalarGainMap(sz, 7);
-            } else {
-                const uint32_t coeffs = 2;
-                std::shared_ptr<float[]> pc(new float[n * coeffs]);
-                Rng rng(99u + sz.w);
-                for (size_t i = 0; i < n; ++i) {
-                    pc[i * coeffs + 0] = 0.8f + 0.4f * rng.unit();
-                    pc[i * coeffs + 1] = 2.0e-6f * rng.unit();
-                }
-                snap.gain_poly_coeffs = pc;
-                snap.gain_poly_num_coeffs = coeffs;
-                snap.gain_poly_has_range = true;
-                snap.gain_poly_dose_min = 1000.0;
-                snap.gain_poly_dose_max = 60000.0;
-            }
+            snap.gain_map = scalarGainMap(sz, 7);
             std::vector<uint16_t> in(n);
             Rng rng(0xC0FFEEu + sz.w * 31u + sz.h);
             for (size_t i = 0; i < n; ++i) in[i] = static_cast<uint16_t>(rng.next());   // the whole uint16 range
@@ -829,7 +792,7 @@ TEST(OutputUnchanged237b, GainWrittenOverItsOwnInputEqualsSeparateBuffers) {
             ob.data = separate.data();
             ob.dataSize = n * sizeof(float);
             std::vector<uint32_t> listA;
-            ASSERT_EQ(XPE_OK, xpe_gain_correct_in(snap, &ib, &ob, &meta, poly ? &listA : nullptr)) << "separate, " << sz.w << "x" << sz.h;
+            ASSERT_EQ(XPE_OK, xpe_gain_correct_in(snap, &ib, &ob, &meta, &listA)) << "separate, " << sz.w << "x" << sz.h;
 
             // the same storage: the uint16 frame in the first half of a float-sized buffer
             std::unique_ptr<unsigned char[]> shared(new unsigned char[n * sizeof(float)]);
@@ -840,9 +803,9 @@ TEST(OutputUnchanged237b, GainWrittenOverItsOwnInputEqualsSeparateBuffers) {
             sout.data = shared.get();
             sout.dataSize = n * sizeof(float);
             std::vector<uint32_t> listB;
-            ASSERT_EQ(XPE_OK, xpe_gain_correct_in(snap, &sin, &sout, &meta, poly ? &listB : nullptr)) << "over its own input, " << sz.w << "x" << sz.h;
+            ASSERT_EQ(XPE_OK, xpe_gain_correct_in(snap, &sin, &sout, &meta, &listB)) << "over its own input, " << sz.w << "x" << sz.h;
             EXPECT_EQ(0, std::memcmp(separate.data(), shared.get(), n * sizeof(float)))
-                << (poly ? "polynomial" : "scalar") << " map, " << sz.w << "x" << sz.h << ": the float frame written over its input differs";
+                << "scalar map, " << sz.w << "x" << sz.h << ": the float frame written over its input differs";
             EXPECT_TRUE(listA == listB) << "the classified pixels differ";
             xpe_clear_alerts();
         }
@@ -1009,37 +972,12 @@ TEST(OutputUnchanged237b, GainScalarMapOutputAndRefusedMaps) {
     }
 }
 
-TEST(OutputUnchanged237b, GainPolynomialMapOutputAndClassifiedPixels) {
-    const Size sz = kSizes[0];
-    const size_t n = static_cast<size_t>(sz.w) * sz.h;
-    const uint32_t coeffs = 2;
-    std::shared_ptr<float[]> poly(new float[n * coeffs]);
-    Rng rng(777u);
-    for (size_t i = 0; i < n; ++i) {
-        poly[i * coeffs + 0] = 0.8f + 0.4f * rng.unit();   // c0
-        poly[i * coeffs + 1] = 2.0e-6f * rng.unit();       // c1: gain = c0 + c1 * x
-    }
-    for (size_t i = 0; i < n; i += 997) poly[i * coeffs] = -1.0f;   // evaluates outside [0.1, 10]: classified defective
-    CalibSnapshot s;
-    s.initialized = true;
-    s.gain_poly_coeffs = poly;
-    s.gain_poly_num_coeffs = coeffs;
-    s.gain_poly_has_range = true;
-    s.gain_poly_dose_min = 1000.0;
-    s.gain_poly_dose_max = 60000.0;
-    s.gain_width = sz.w;
-    s.gain_height = sz.h;
-    const GainRun r = runGain(s, sz, 0, true);
-    EXPECT_EQ(XPE_OK, r.rc);
-    expectDigest("gain/poly/output", r.digestOut);
-    expectDigest("gain/poly/classified_list", r.digestList);
-}
 #endif  // XPE_CACHE_TEST_HOOKS
 
 namespace {
 std::map<std::string, uint64_t>& golden() {
     static std::map<std::string, uint64_t> g = {
-        // recorded on 55d781da (before any reduction); the three gain/ rows exist in the hook build only
+        // recorded on 55d781da (before any reduction); the gain/ row exists in the hook build only (QA-A-336: the two gain/poly rows were removed)
         {"ghost/overflow/tier1", 0xde044ba757ec081cull},
         {"ghost/overflow/tier2", 0xa43465e22bd4b861ull},
         {"ghost/overflow/tier3", 0xd2cb41ffe6f22464ull},
@@ -1048,8 +986,6 @@ std::map<std::string, uint64_t>& golden() {
         {"pipeline/float_input/tier3", 0x0e3ffaacec8b5233ull},
         // (the pipeline/float_input and ghost/overflow rows above were recorded on 966e0a8f with the old pipeline.cpp and ghost_correct.cpp: gain_correct.cpp is
         //  not involved in them)
-        {"gain/poly/classified_list", 0x342f59b67d3b1150ull},
-        {"gain/poly/output", 0xa2b80e46cc6b5e7bull},
         {"gain/scalar/valid", 0xcf90b52dd434a576ull},
         {"ghost/sequence/203x157/tier1", 0x222704c1a48b7a57ull},
         {"ghost/sequence/203x157/tier2", 0x0e4cb5cc730a8a29ull},
@@ -1074,8 +1010,7 @@ std::map<std::string, uint64_t>& golden() {
         {"pipeline/default/256x192/tier1", 0xc40a1e70cb5e2907ull},
         {"pipeline/default/256x192/tier2", 0x11634dc99f8bdcbaull},
         {"pipeline/default/256x192/tier3", 0x4a2b7ba7c7458314ull},
-        // recorded on 416c3e3d (before the point-wise stages were merged, QA-A-237c): the polynomial gain and the ghost scratch route through the pipeline
-        {"pipeline/poly_gain/tier2", 0x791ae73f7ecd6200ull},
+        // recorded on 416c3e3d (before the point-wise stages were merged, QA-A-237c): the ghost scratch route through the pipeline
         {"pipeline/slow_route_failing/203x157/tier3_beta1e36", 0x6f18caa694d5af98ull},
         {"pipeline/slow_route_ok/203x157/tier3_beta1e33", 0x1fdb870bb919cd34ull},
         {"pipeline/slow_route_ok/256x192/tier3_beta1e33", 0x08def2182f73348eull},

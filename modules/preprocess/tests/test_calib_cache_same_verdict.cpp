@@ -380,20 +380,23 @@ TEST_F(CacheSameVerdict, AGainHitReportsTheSameQualityMetadataAsAMiss) {
         << " vs miss r2=" << afterMiss.r_squared << " degree=" << int(afterMiss.polynomial_degree);
 }
 
-// (6) a gain polynomial file ---------------------------------------------------------------------
-TEST_F(CacheSameVerdict, AGainPolynomialFileLoadsAndTheCachedLoaderReportsSuccess) {
+// (6) a gain polynomial file: refused (QA-A-336) ------------------------------------------------
+// The gain polynomial was removed. A type-3 file is refused by the cached loader exactly as by the plain one, on every
+// call -- nothing is cached and nothing reaches the store.
+TEST_F(CacheSameVerdict, AGainPolynomialFileIsRefusedByTheCachedLoaderAsByThePlainOne) {
     std::vector<float> coeffs(N * 2);
     for (size_t p = 0; p < N; ++p) { coeffs[p * 2] = 1.0f; coeffs[p * 2 + 1] = 0.0f; }   // pixel-major, degree 1
-    writeFile("csv_poly.xcal", XCAL_TYPE_GAIN_POLY, XCAL_FMT_FLOAT32, coeffs.data(), coeffs.size() * sizeof(float));
+    writeFile("csv_poly.xcal", 3u /* the removed XCAL_TYPE_GAIN_POLY */, XCAL_FMT_FLOAT32, coeffs.data(), coeffs.size() * sizeof(float));
 
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_gain("csv_poly.xcal")) << "control: the plain loader";
     for (int call = 1; call <= 2; ++call) {
         XpeImageBuffer out{};
-        out.data = reinterpret_cast<void*>(0x1);   // must be overwritten
-        EXPECT_EQ(XPE_OK, xpe_calib_load_gain_cached("csv_poly.xcal", &out)) << "call " << call;
-        EXPECT_EQ(nullptr, out.data) << "a polynomial file has no scalar map to hand back (call " << call << ")";
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_gain_cached("csv_poly.xcal", &out)) << "call " << call;
+        EXPECT_EQ(nullptr, out.data) << "call " << call;
         float px = 0.0f;
-        EXPECT_EQ(XPE_OK, gainCorrect(&px)) << "the polynomial is in the store, so the correction works (call " << call << ")";
+        EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, gainCorrect(&px)) << "nothing reached the store (call " << call << ")";
     }
+    xpe_clear_alerts();
 }
 
 // (7) a map cached by one loader is not served to another --------------------------------------
@@ -500,31 +503,6 @@ TEST_F(CacheSameVerdict, AHeaderCorruptedAfterCachingIsRefusedLikeAMiss) {
     float g = 0.0f;
     ASSERT_EQ(XPE_OK, gainCorrect(&g));
     EXPECT_NEAR(250.0f, g, 0.01f) << "the refused call must leave the Q map in the store";
-}
-
-// What this pins: a scalar hit takes over from a polynomial in the store. It does NOT pin that the
-// hit also clears the polynomial fields (as install_gain does, mirroring the plain loader):
-// xpe_gain_correct() uses the scalar map whenever there is one, so a stale polynomial cannot be seen
-// through the public API (QA-A-197 arm B4b: removing those two lines leaves every test green).
-TEST_F(CacheSameVerdict, AScalarGainHitTakesOverFromAPolynomialInTheStore) {
-    std::vector<float> coeffs(N * 2);
-    for (size_t p = 0; p < N; ++p) { coeffs[p * 2] = 1.0f; coeffs[p * 2 + 1] = 0.0f; }
-    writeFile("csv_poly.xcal", XCAL_TYPE_GAIN_POLY, XCAL_FMT_FLOAT32, coeffs.data(), coeffs.size() * sizeof(float));
-    writeGain("csv_ge.xcal", 2.0f);
-
-    XpeImageBuffer v{};
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("csv_ge.xcal", &v));      // cached scalar map (gain 2)
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("csv_poly.xcal"));               // the store now holds the polynomial
-    float poly = 0.0f;
-    ASSERT_EQ(XPE_OK, gainCorrect(&poly));
-    ASSERT_NE(500.0f, poly) << "control: with the polynomial in the store the result is not the scalar map's";
-
-    XpeImageBuffer hit{};
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain_cached("csv_ge.xcal", &hit));
-    ASSERT_EQ(v.data, hit.data) << "precondition: this was a cache hit";
-    float g = 0.0f;
-    ASSERT_EQ(XPE_OK, gainCorrect(&g));
-    EXPECT_NEAR(500.0f, g, 0.01f) << "a scalar hit must put its map in the store, as a scalar load does (1000 / 2)";
 }
 
 // (9) a file whose attributes are visible but whose content cannot be opened ----------------------

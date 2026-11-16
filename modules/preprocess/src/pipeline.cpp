@@ -37,7 +37,7 @@ void (*xpe_pipeline_after_stage_hook)(int) = nullptr;
 void (*xpe_pipeline_gain_frame_hook)(void*, size_t, bool) = nullptr;
 #endif
 // QA-A-237b (#245): the observation point after every stage, so a test can read the process's memory at each stage
-// boundary (0 readout, 1 the working copy (the temperature stage, removed in QA-A-335), 2 offset, 3 nonlinearity, 4 gain, 5 binning, 6 defect, 7 ghost, 9 the final copy).
+// boundary (0 readout, 1 the working copy (the temperature stage, removed in QA-A-335), 2 offset, 3 the offset-to-gain boundary (the nonlinearity stage, removed in QA-A-336), 4 gain, 5 binning, 6 defect, 7 ghost, 9 the final copy).
 // Test builds only: in the shipped library the macro expands to nothing.
 #ifdef XPE_CACHE_TEST_HOOKS
 #define XPE_STAGE_HOOK(n) do { if (xpe_pipeline_after_stage_hook) xpe_pipeline_after_stage_hook(n); } while (0)
@@ -59,10 +59,8 @@ namespace {
     struct PipelineConfig {
         bool bypassReadout{false};
         bool bypassOffset{false};
-        bool bypassNonlinearity{false};
 
-        // QA-A-111 (#186): the nonlinearity stage reads `panel.*` from the caller's config, so the parsed
-        // configuration travels with the flags (QA-A-209b: parsed once, here, for the whole call).
+        // The parsed configuration travels with the flags (QA-A-209b: parsed once, here, for the whole call).
         XpeConfigDoc doc;
         bool bypassGain{false};
         bool bypassBinning{false};
@@ -91,8 +89,7 @@ namespace {
             PipelineConfig cfg;
 
             // QA-A-209 / QA-A-209b: the text is parsed ONCE into its top-level members. A text that is not one valid
-            // JSON object, or a member name given twice (any name -- including the nonlinearity stage's keys, which
-            // are read later, so a duplicate among them cannot fail the run half way), is XPE_ERR_CONFIG_INVALID; a
+            // JSON object, or a member name given twice (any name), is XPE_ERR_CONFIG_INVALID; a
             // name only inside a nested object is not given; NULL is every default; an empty text is a refusal.
             XpeErrorCode rc = xpe_config_parse(configJson, &cfg.doc);
             if (rc != XPE_OK) return rc;
@@ -100,7 +97,7 @@ namespace {
             std::string v;
             const struct { const char* key; bool* flag; } flags[] = {
                 {"bypassReadout", &cfg.bypassReadout},
-                {"bypassOffset", &cfg.bypassOffset},           {"bypassNonlinearity", &cfg.bypassNonlinearity},
+                {"bypassOffset", &cfg.bypassOffset},
                 {"bypassGain", &cfg.bypassGain},               {"bypassBinning", &cfg.bypassBinning},
                 {"bypassDefect", &cfg.bypassDefect},           {"bypassGhost", &cfg.bypassGhost},
             };
@@ -449,13 +446,13 @@ namespace {
         XPE_STAGE_HOOK(0);
 
         // QA-A-237c (#245, SRS-CALIB-PERF-002): ONE working buffer of the float frame's size for the whole chain from the
-        // first point-wise stage to the gain stage. The uint16 frame the point-wise stages (offset, nonlinearity) work on
-        // sits in its first half and each of them works on it in place (offset and nonlinearity read and write a pixel at the
+        // first point-wise stage to the gain stage. The uint16 frame the point-wise stage (offset) works on
+        // sits in its first half and it works on it in place (offset reads and writes a pixel at the
         // same index); the gain stage then writes the float frame OVER it, from the last pixel to the first, so that no float
         // pixel is written before the uint16 pixels it overlaps have been read (xpe_gain_correct_in, output aliasing input).
         // Before, each of those stages had a frame of its own: at the gain stage a uint16 frame and the float frame were alive
         // together (18.0 + 36.0 MiB at 3072x3072), now one buffer of 36.0 MiB is. Used only where the gain stage runs on a scalar
-        // map and the frame is uint16 (a polynomial gain reads the whole frame before it writes and keeps the old buffers).
+        // map and the frame is uint16.
         // The buffer is the caller's frame copied first, so a stage that fails leaves the caller's buffer as it was.
         const bool widen = !cfg.bypassGain && calib.gain_map && img->format == XPE_PIXEL_UINT16;
         std::unique_ptr<unsigned char[]> work;
@@ -498,43 +495,16 @@ namespace {
         if (xpe_pipeline_after_stage_hook) xpe_pipeline_after_stage_hook(2);
 #endif
 
-        // Stage 3: Nonlinearity Correction (PRE-08) - uint16 in/out
+        // Stage 3: the gain stage's input. QA-A-336: the nonlinearity stage that ran here is removed; what remains is exactly
+        // the path the former "bypassNonlinearity":true took (no stage, no copy of its own). XPE_STAGE_HOOK(3) still fires
+        // here, so the hook numbers the tests observe are unchanged.
         XpeImageBuffer stage3 = stage2;
-        std::vector<uint16_t> stage3Data;
-
-        if (!cfg.bypassNonlinearity) {
-            // The stage works in place on its own copy of the stage-2 frame (widening: the working buffer IS that copy).
-            // QA-A-104 (#184): the copy used to run only when stage 2 had no
-            // buffer of its own, so with offset enabled (the default) the gain
-            // stage received an all-zero frame.
-            if (!widen) {
-                stage3Data.resize(pixelCount);
-                stage3.data = stage3Data.data();
-                stage3.dataSize = stage3Data.size() * sizeof(uint16_t);
-                std::memcpy(stage3Data.data(), stage2.data, pixelCount * sizeof(uint16_t));
-                release_buffer(stage1Data);   // stage 3 holds its own copy: the frames it was made from are not read again
-                release_buffer(stage2Data);
-            }
-
-            bool applied = false;
-            // QA-A-111 (#186): the stage now reads the config -- `panel.linear`
-            // decides whether the correction applies at all, and it used to be
-            // dropped here by passing nullptr.
-            result = xpe_nonlinearity_apply_doc(&stage3, cfg.doc, &applied);
-            if (result != XPE_OK) return result;
-
-            // Set only when pixels were corrected (#184).
-            if (meta && applied) meta->flags |= XPE_FLAG_NONLINEARITY_CORRECTED;
-        }
         XPE_STAGE_HOOK(3);
 
         // Stage 4: Gain Correction (PRE-03) - uint16 in, float32 out (DOMAIN TRANSITION)
         SatNotes satNotes;   // QA-A-296: the saturation notes of this call, pushed once after the gain stage
         XpeImageBuffer stage4;
         std::vector<float> stage4Data;
-        // QA-A-211 (#233): the pixels a polynomial gain classified defective in THIS frame, handed to the defect stage
-        // (a scalar map's list travels in the snapshot).
-        std::vector<uint32_t> frameGainDefects;
 
         if (!cfg.bypassGain) {
             if (!widen) stage4Data.resize(pixelCount);
@@ -560,18 +530,17 @@ namespace {
             satHook.prepare = &prepare_saturation_hook;
             satHook.ctx = &satPrep;
             const bool satWanted = calib.gain_map && img->format == XPE_PIXEL_UINT16;
-            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, &frameGainDefects, satWanted ? &satHook : nullptr);
+            result = xpe_gain_correct_in(calib, &stage3, &stage4, meta, nullptr, satWanted ? &satHook : nullptr);
             if (result != XPE_OK) return result;
 
             if (meta) meta->flags |= XPE_FLAG_GAIN_CORRECTED;
             if (satPrep.fused) monitor_saturation(calib, img, satPrep.level, &satNotes);
             release_buffer(stage1Data);   // stage 4 holds its own float frame; the uint16 frames are not read again
             release_buffer(stage2Data);
-            release_buffer(stage3Data);
 
             // QA-A-211 (#233): pixels the gain calibration classified defective carry the uncorrected value (gain 1.0)
             // until the defect stage fills them from their neighbours.
-            const uint64_t classified = static_cast<uint64_t>(calib.gain_defect_count) + frameGainDefects.size();
+            const uint64_t classified = static_cast<uint64_t>(calib.gain_defect_count);
             if (classified > 0) {
                 if (!cfg.bypassBinning && cfg.binningMode > 1) {
                     // Binning mixes a pixel with its neighbours BEFORE the defect stage: the uncorrected value would be
@@ -613,7 +582,6 @@ namespace {
             for (size_t i = 0; i < pixelCount; ++i) stage4Data[i] = static_cast<float>(in16[i]);
             release_buffer(stage1Data);   // the converted frame is its own; the uint16 frames are not read again
             release_buffer(stage2Data);
-            release_buffer(stage3Data);
         } else {
             // No gain correction and no float stage after it: stage4 = stage3 (uint16)
             stage4 = stage3;
@@ -622,7 +590,7 @@ namespace {
         if (!cfg.saturationOff && !(!cfg.bypassGain && calib.gain_map && img->format == XPE_PIXEL_UINT16)) {
             satNotes.add(XPE_ALERT_WARNING,
                 "XPE_WARN_SATURATION_NOT_APPLIED: saturation handling applies only to a scalar gain map on a uint16 frame; this call uses "
-                "no gain, a polynomial gain or another input format, so saturated pixels are not handled (\"saturationLevel\":\"off\" silences this alert)");
+                "no gain or another input format, so saturated pixels are not handled (\"saturationLevel\":\"off\" silences this alert)");
         }
         satNotes.push();   // at most one saturation alert for the call
         XPE_STAGE_HOOK(4);
@@ -714,7 +682,7 @@ namespace {
                 // In place (QA-A-146: the stage reads only pixels it does not write, so one buffer serves as input and
                 // output; the call shape is documented and pinned by DefectCorrectTest.InPlaceMatchesOutOfPlace). No
                 // third float frame, and the copy of input to output is skipped inside the stage.
-                result = xpe_defect_correct_in(calib, &stage5, &stage5, meta, &frameGainDefects, nullptr, nullptr, &cfg.defectLines);
+                result = xpe_defect_correct_in(calib, &stage5, &stage5, meta, nullptr, nullptr, nullptr, &cfg.defectLines);
                 if (result != XPE_OK) return result;
                 stage6 = stage5;
             } else {
@@ -726,7 +694,7 @@ namespace {
                 stage6.format = XPE_PIXEL_FLOAT32;
                 stage6.data = stage6Data.data();
                 stage6.dataSize = stage6Data.size() * sizeof(float);
-                result = xpe_defect_correct_in(calib, &stage5, &stage6, meta, &frameGainDefects, nullptr, nullptr, &cfg.defectLines);
+                result = xpe_defect_correct_in(calib, &stage5, &stage6, meta, nullptr, nullptr, nullptr, &cfg.defectLines);
                 if (result != XPE_OK) return result;
                 release_buffer(stage4Data);   // stage 6 holds its own frame
                 release_buffer(stage5Data);

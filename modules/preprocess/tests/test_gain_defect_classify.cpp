@@ -10,7 +10,7 @@
  *
  * This file holds the SCALAR side and the defect stage: load-time classification, the cap, the alerts, the defect stage
  * reading the union, a cache hit installing the same classification, bypassed defect stage, binning.
- * (The polynomial side is test_gain_poly_classify.cpp.)
+ * (The polynomial side, test_gain_poly_classify.cpp, was removed with the gain polynomial, QA-A-336.)
  */
 
 #include <gtest/gtest.h>

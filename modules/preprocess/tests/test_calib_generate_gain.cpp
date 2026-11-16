@@ -1,8 +1,8 @@
 /**
  * @file test_calib_generate_gain.cpp
- * @brief Unit tests for xpe_calib_generate_gain and xpe_calib_generate_gain_polynomial
+ * @brief Unit tests for xpe_calib_generate_gain
  *
- * SPEC-XPE-P1A SWU-1.12 -- FUNC-026, FUNC-027
+ * SPEC-XPE-P1A SWU-1.12 -- FUNC-026 (the FUNC-027 polynomial cases 6-7 were removed with the generator, QA-A-336)
  *
  * Test cases:
  *  1. GenerateGain_BasicFlatField: 5 flat frames (8x8), no dark reference → generates gain map, verify output file exists
@@ -10,8 +10,6 @@
  *  3. GenerateGain_SingleFrame: 1 flat frame (FUNC-024 Tier a) → verify XPE_OK with uncertainty metadata
  *  4. GenerateGain_NullInput: null flat_frames → XPE_ERR_INVALID_INPUT
  *  5. GenerateGain_ZeroFrames: num_frames=0 → XPE_ERR_INVALID_INPUT
- *  6. GenerateGainPolynomial_ThreeLevels: generate 3 gain maps at different dose levels, fit polynomial → verify monotonicity
- *  7. GenerateGainPolynomial_NullPaths: null paths → XPE_ERR_INVALID_INPUT
  */
 
 #include <gtest/gtest.h>
@@ -235,92 +233,3 @@ TEST_F(GenerateGainTest, GenerateGain_ZeroFrames) {
     EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT) << "Zero frames should return INVALID_INPUT";
 }
 
-// =============================================================================
-// Test 6: Polynomial gain generation with 3 dose levels
-// =============================================================================
-TEST_F(GenerateGainTest, GenerateGainPolynomial_ThreeLevels) {
-    // First, create 3 gain maps at different dose levels
-    const int num_levels = 3;
-    std::vector<TempFile> gain_files;
-    gain_files.reserve(num_levels);
-    std::vector<const char*> gain_paths;
-    gain_paths.reserve(num_levels);
-    // QA-A-143 (#194 item 2): these were {10.0, 20.0, 30.0} with the comment
-    // "mGy". That comment was the only place in the repository that claimed a
-    // dose ladder could be in mGy, and it is wrong: preprocess_api.h pins
-    // dose_levels to pixel values (ADU), because the applier indexes the fitted
-    // curve with the pixel's own value. Values of 10..30 also trip the
-    // magnitude warning the loader now raises, which is the point of that
-    // warning -- it fired on the one place in the tree that disagreed.
-    //
-    // The numbers are the reference dataset's own lowest three rungs
-    // (tests/test_data/cyan_test/README.md:186), so this test now exercises a
-    // ladder of the shape the format actually takes. Nothing else about the
-    // test changes: it still asserts that three levels fit and a file appears.
-    std::vector<double> dose_levels = {14037.0, 17285.0, 20985.0};  // ADU
-
-    for (int i = 0; i < num_levels; ++i) {
-        gain_files.emplace_back("gain_poly_" + std::to_string(i) + ".xcal");
-        std::error_code ec;
-        fs::remove(gain_files.back().c_str(), ec);
-        fs::remove(std::string(gain_files.back().c_str()) + ".tmp", ec);
-
-        // Create a simple gain map
-        std::vector<float> gain_data(W * H, 1.0f + i * 0.1f);  // Increasing gain with dose
-        XpeImageBuffer gain_buf{};
-        gain_buf.width = W;
-        gain_buf.height = H;
-        gain_buf.format = XPE_PIXEL_FLOAT32;
-        gain_buf.bitsAllocated = 32;
-        gain_buf.bitsStored = 32;
-        gain_buf.data = gain_data.data();
-        gain_buf.dataSize = gain_data.size() * sizeof(float);
-
-        XCalFileHeader hdr{};
-        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-        hdr.version = XCAL_VERSION;
-        hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN);
-        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
-        hdr.width = W;
-        hdr.height = H;
-        hdr.payload_len = static_cast<uint64_t>(gain_data.size() * sizeof(float));
-        ASSERT_EQ(write_xcal_file(gain_files.back().c_str(), hdr,
-                                  nullptr, 0,
-                                  reinterpret_cast<const uint8_t*>(gain_data.data()),
-                                  hdr.payload_len),
-                  XPE_OK);
-        gain_paths.push_back(gain_files.back().c_str());
-    }
-
-    TempFile poly_output("gain_poly.xcal");
-
-    XpeErrorCode rc = xpe_calib_generate_gain_polynomial(
-        gain_paths.data(),
-        dose_levels.data(),
-        num_levels,
-        2,  // max_degree = quadratic
-        poly_output.c_str()
-    );
-
-    ASSERT_EQ(rc, XPE_OK);
-    EXPECT_TRUE(poly_output.exists()) << "Polynomial output file should exist";
-}
-
-// =============================================================================
-// Test 7: Polynomial generation with null paths
-// =============================================================================
-TEST_F(GenerateGainTest, GenerateGainPolynomial_NullPaths) {
-    // Values are never read: this asserts the null-paths rejection (QA-A-143).
-    std::vector<double> dose_levels = {14037.0, 17285.0, 20985.0};  // ADU
-    TempFile output("gain_poly_null.xcal");
-
-    XpeErrorCode rc = xpe_calib_generate_gain_polynomial(
-        nullptr,  // Null paths
-        dose_levels.data(),
-        3,
-        2,
-        output.c_str()
-    );
-
-    EXPECT_EQ(rc, XPE_ERR_INVALID_INPUT) << "Null paths should return INVALID_INPUT";
-}

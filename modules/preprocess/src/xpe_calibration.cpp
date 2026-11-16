@@ -61,7 +61,7 @@ bool xpe_calib_session_transition_locked(bool mixed) noexcept
 XpeErrorCode xpe_calib_session_check_locked(CalibMapKind kind, const char* incoming64, bool* unspecifiedMixed) noexcept
 {
     const SessionSlot off{g_calib.offset_session_id, g_calib.offset_map != nullptr};
-    const SessionSlot gain{g_calib.gain_session_id, g_calib.gain_map != nullptr || g_calib.gain_poly_coeffs != nullptr};
+    const SessionSlot gain{g_calib.gain_session_id, g_calib.gain_map != nullptr};
     const SessionSlot def{g_calib.defect_session_id, g_calib.defect_map != nullptr};
     switch (kind) {
         case CalibMapKind::Offset: { const SessionSlot o[2] = {gain, def}; return session_check(o, incoming64, unspecifiedMixed); }
@@ -136,14 +136,9 @@ CalibSnapshot xpe_calib_snapshot_locked() noexcept
     s.offset_width         = g_calib.offset_width;
     s.offset_height        = g_calib.offset_height;
     s.gain_map             = g_calib.gain_map;
-    s.gain_poly_coeffs     = g_calib.gain_poly_coeffs;
     s.gain_defect_idx      = g_calib.gain_defect_idx;
     s.gain_defect_count    = g_calib.gain_defect_count;
     s.gain_sat             = g_calib.gain_sat;
-    s.gain_poly_num_coeffs = g_calib.gain_poly_num_coeffs;
-    s.gain_poly_has_range  = g_calib.gain_poly_has_range;
-    s.gain_poly_dose_min   = g_calib.gain_poly_dose_min;
-    s.gain_poly_dose_max   = g_calib.gain_poly_dose_max;
     s.gain_width           = g_calib.gain_width;
     s.gain_height          = g_calib.gain_height;
     s.defect_map           = g_calib.defect_map;

@@ -159,7 +159,7 @@ static_assert(offsetof(XpeImageMetadata, acquisitionTime) == 80u, "XpeImageMetad
 #define XPE_FLAG_GAIN_CORRECTED          0x00000008u  /**< Flat-field gain correction applied */
 #define XPE_FLAG_READOUT_VALIDATED       0x00000010u  /**< Detector readout integrity validated */
 #define XPE_FLAG_TEMP_COMPENSATED        0x00000020u  /**< Temperature drift compensation applied */
-#define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  /**< Detector nonlinearity correction applied */
+#define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  /**< Detector nonlinearity correction applied (never set by xpe_preprocess since the stage was removed, QA-A-336; the bit stays reserved) */
 #define XPE_FLAG_BINNING_CORRECTED       0x00000080u  /**< Binning mode correction applied */
 #define XPE_FLAG_OFFSET_CORRECTED        0x00002000u  /**< Dark/offset correction applied */
 #define XPE_FLAG_COLLIMATION_DETECTED    0x00000200u  /**< Collimation region detected and masked */

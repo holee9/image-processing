@@ -15,10 +15,6 @@
  *   --seed        PRNG seed for the synthetic noise (default 0)
  *   --expiry-ms   expiry timestamp written into each file, Unix ms;
  *                 0 (default) means "never expires" (xcal_format.h 0x20)
- *   --gain-poly   also write gain_poly.xcal (XCAL_TYPE_GAIN_POLY); off by
- *                 default so the scalar set stays byte-identical (QA-A-136, #198)
- *   --poly-degree maximum fitted degree, 1-4 (default 2)
- *   --poly-levels dose levels to acquire, 3 or more (default 4)
  *   --caldata     QA-A-248 (#262): build the set from REAL calibration frames
  *                 instead of synthetic ones. <dir> holds dark.raw,
  *                 bright04.raw, bright05.raw, bright06.raw (uint16, headerless,
@@ -28,7 +24,7 @@
  *                 dark frame (100 ms, 25 C), gain from the three flats with NO
  *                 dark reference (they are already offset-corrected, CalData_6
  *                 README), defect = BPMap.map as it is. --width/--height default
- *                 to 3072 in this mode. Not combinable with --gain-poly.
+ *                 to 3072 in this mode.
  *   --dark F, --bright F   QA-A-250: build the set from any number of REAL frames
  *                 (headerless little-endian uint16, width x height, offset-
  *                 UNcorrected: the dark pedestal is still in the bright frames).
@@ -70,7 +66,7 @@
  *                 --bright frames serve both.
  *
  * Output: offset.xcal, gain.xcal, defect.xcal, manifest.json
- *         (+ gain_poly.xcal with --gain-poly)
+ *         (QA-A-336: the --gain-poly option and its gain_poly.xcal were removed with the gain polynomial)
  *
  * DETERMINISM. The same arguments produce byte-identical files. Two things make
  * that true and both are deliberate:
@@ -132,18 +128,6 @@ struct Options {
     uint32_t    seed{0};
     uint64_t    expiryMs{0};
 
-    // QA-A-136 (#198): also emit gain_poly.xcal (XCAL_TYPE_GAIN_POLY).
-    //
-    // Off by default so the existing three fixtures are byte-identical to what
-    // this tool produced before -- callers that only want the scalar set get
-    // exactly what they got yesterday. The GUI lane needs a polynomial file to
-    // exercise its load-time alert and had no way to make one: the repository
-    // holds no .xcal, this tool wrote only the scalar type, and the only
-    // callers of xpe_calib_generate_gain_polynomial() were module tests.
-    bool        gainPoly{false};
-    int32_t     polyDegree{2};
-    int32_t     polyLevels{4};
-
     // QA-A-248 (#262): real calibration frames instead of synthetic ones.
     std::string calDir;
     bool        sizeGiven{false};   // --width/--height was passed
@@ -168,7 +152,6 @@ void printUsage() {
     std::fprintf(stderr,
         "usage: xpe_calib_fixture_gen --out <dir> [--width N] [--height N]\n"
         "                             [--seed N] [--expiry-ms N]\n"
-        "                             [--gain-poly] [--poly-degree N] [--poly-levels N]\n"
         "                             [--caldata <dir>]\n"
         "                             [--dark F]... [--bright F]... [--dark-list L] [--bright-list L]\n"
         "                             [--gain-dark-ref mean|none|F] [--compare-bpm F]\n"
@@ -178,12 +161,8 @@ void printUsage() {
         "Writes offset.xcal, gain.xcal, defect.xcal and manifest.json into <dir>.\n"
         "The same arguments always produce byte-identical files.\n"
         "\n"
-        "  --gain-poly     also write gain_poly.xcal (XCAL_TYPE_GAIN_POLY), a\n"
-        "                  per-pixel dose-dependent gain polynomial\n"
-        "  --poly-degree N maximum fitted degree, 1-4 (default 2)\n"
-        "  --poly-levels N dose levels to acquire, 3 or more (default 4)\n"
         "  --caldata <dir> use real frames: dark.raw, bright04..06.raw, BPMap.map\n"
-        "                  (width/height default to 3072; not with --gain-poly)\n"
+        "                  (width/height default to 3072)\n"
         "  --dark/--bright F  one real frame per option (repeat), or --dark-list/--bright-list L\n"
         "                  (a text file, one path per line). At least 5 dark and 10 bright frames.\n"
         "  --keep-first-dark  QA-A-259: give the WHOLE dark list including the first frame (stored and marked at the\n"
@@ -265,14 +244,6 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             for (int k = 0; k < 4; ++k) opt->bpmMargin[k] = static_cast<uint32_t>(v[k]);
         } else if (arg == "--validate-only") {
             opt->validateOnly = true;
-        } else if (arg == "--gain-poly") {
-            opt->gainPoly = true;
-        } else if (arg == "--poly-degree") {
-            if (!next(&value)) return false;
-            opt->polyDegree = static_cast<int32_t>(value);
-        } else if (arg == "--poly-levels") {
-            if (!next(&value)) return false;
-            opt->polyLevels = static_cast<int32_t>(value);
         } else if (arg == "--help" || arg == "-?") {
             return false;
         } else {
@@ -291,20 +262,12 @@ bool parseArgs(int argc, char** argv, Options* opt) {
             std::fprintf(stderr, "--dark/--bright cannot be combined with --caldata\n");
             return false;
         }
-        if (opt->gainPoly) {
-            std::fprintf(stderr, "--dark/--bright cannot be combined with --gain-poly\n");
-            return false;
-        }
         if (!opt->sizeGiven) opt->width = opt->height = 3072u;
     } else if (!opt->compareBpm.empty() || opt->gainDarkRef != "mean" || !opt->bpmBrightFiles.empty() || !opt->bpmBrightList.empty() || opt->bpmV2 || opt->keepFirstDark) {
         std::fprintf(stderr, "--gain-dark-ref, --compare-bpm, --bpm-bright, --bpm-v2 and --keep-first-dark belong to the --dark/--bright mode\n");
         return false;
     }
     if (!opt->calDir.empty()) {
-        if (opt->gainPoly) {
-            std::fprintf(stderr, "--caldata cannot be combined with --gain-poly\n");
-            return false;
-        }
         if (!opt->sizeGiven) opt->width = opt->height = 3072u;
     }
     if (opt->width == 0 || opt->height == 0) {
@@ -314,29 +277,6 @@ bool parseArgs(int argc, char** argv, Options* opt) {
     if (opt->width > XCAL_MAX_DIM || opt->height > XCAL_MAX_DIM) {
         std::fprintf(stderr, "width and height must not exceed %u\n", XCAL_MAX_DIM);
         return false;
-    }
-    // Refuse here rather than letting the generator refuse later: its
-    // XPE_ERR_INVALID_INPUT does not say which argument was wrong.
-    if (opt->gainPoly) {
-        if (opt->polyDegree < 1 || opt->polyDegree > 4) {
-            std::fprintf(stderr, "--poly-degree must be 1..4\n");
-            return false;
-        }
-        if (opt->polyLevels < 3) {
-            std::fprintf(stderr, "--poly-levels must be 3 or more\n");
-            return false;
-        }
-        // Least squares needs degree+1 points; the generator drops the degree
-        // instead of failing, so a file would still be written -- just not at
-        // the degree that was asked for. Saying so here keeps the fixture
-        // honest about what it contains.
-        if (opt->polyLevels < opt->polyDegree + 1) {
-            std::fprintf(stderr,
-                         "--poly-levels %d cannot support --poly-degree %d "
-                         "(least squares needs degree+1 points)\n",
-                         opt->polyLevels, opt->polyDegree);
-            return false;
-        }
     }
     return true;
 }
@@ -1255,15 +1195,6 @@ int main(int argc, char** argv) {
         std::remove(tmp.c_str());
         std::remove((tmp + ".tmp").c_str());
     }
-    // QA-A-136 (#198): the polynomial path makes one intermediate gain map per
-    // dose level. They are collected here and removed at the end -- the caller
-    // asked for a polynomial fixture, not for the maps it was fitted from.
-    const std::string gainPolyPath = (out / "gain_poly.xcal").string();
-    std::vector<std::string> scratchFiles;
-    if (opt.gainPoly) {
-        std::remove(gainPolyPath.c_str());
-        std::remove((gainPolyPath + ".tmp").c_str());
-    }
     const size_t pixelCount = static_cast<size_t>(opt.width) * opt.height;
 
     // QA-A-248 (#262): with --caldata the frames come from files. They are all
@@ -1342,81 +1273,6 @@ int main(int argc, char** argv) {
                          payload.size() * sizeof(float), opt.expiryMs) != XPE_OK) {
             std::fprintf(stderr, "writing gain.xcal failed\n");
             return 6;
-        }
-    }
-
-    /* ------------------------------------------------- gain polynomial ---- */
-    //
-    // QA-A-136 (#198). xpe_calib_generate_gain_polynomial() takes PATHS TO GAIN
-    // FILES, not frames, so one scalar gain map is generated per dose level
-    // first and the polynomial is fitted across those.
-    //
-    // The dose levels are expressed in the same units as the pixel values, as
-    // the rest of the calibration path does (QA-A-121 note in gain_correct.cpp,
-    // cyan_test's CalSet levels named by their ADU): each level's exposure
-    // multiplies the flat-field signal, and the dose handed to the fit is that
-    // level's nominal signal. Strictly ascending, so the QA-A-124 sort guard
-    // accepts it.
-    //
-    // The file this writes is not byte-identical to a rerun of the scalar set
-    // because it is a different file; the scalar three are unaffected.
-    if (opt.gainPoly) {
-        std::vector<std::string> levelPaths;
-        std::vector<const char*> levelPtrs;
-        std::vector<double>      doses;
-
-        for (int32_t lv = 0; lv < opt.polyLevels; ++lv) {
-            // 0.40, 0.60, 0.80, 1.00, ... -- ascending, spanning a useful part
-            // of the range without clipping at the top level.
-            const double exposure = 0.40 + 0.20 * static_cast<double>(lv);
-            const std::string lvlScratch =
-                (out / ("_scratch_gain_lv" + std::to_string(lv) + ".xcal")).string();
-            const std::string lvlPath =
-                (out / ("_scratch_gainmap_lv" + std::to_string(lv) + ".xcal")).string();
-
-            auto lvlFlats = makeFlatFrames(opt, 4, exposure,
-                                           2u + static_cast<uint32_t>(lv));
-            std::vector<XpeImageBuffer> lvlBufs;
-            for (auto& f : lvlFlats) lvlBufs.push_back(u16Buffer(f, opt.width, opt.height));
-
-            auto lvlDark = makeDarkFrames(opt, 1);
-            XpeImageBuffer lvlDarkBuf = u16Buffer(lvlDark[0], opt.width, opt.height);
-
-            if (xpe_calib_generate_gain(lvlBufs.data(),
-                                        static_cast<int32_t>(lvlBufs.size()),
-                                        &lvlDarkBuf, lvlScratch.c_str(),
-                                        nullptr) != XPE_OK) {
-                std::fprintf(stderr, "generating gain map for dose level %d failed\n", lv);
-                return 7;
-            }
-            // The polynomial generator reads these back through the loader, so
-            // they have to be real XCal gain files -- rewrite with the fixed
-            // header like every other artifact here.
-            std::vector<float> lvlPayload;
-            if (!readFloatPayload(lvlScratch, pixelCount, &lvlPayload)) {
-                std::fprintf(stderr, "reading back gain map for level %d failed\n", lv);
-                return 7;
-            }
-            if (writeFixture(lvlPath, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32,
-                             opt.width, opt.height, lvlPayload.data(),
-                             lvlPayload.size() * sizeof(float), opt.expiryMs) != XPE_OK) {
-                std::fprintf(stderr, "writing gain map for level %d failed\n", lv);
-                return 7;
-            }
-
-            levelPaths.push_back(lvlPath);
-            doses.push_back(20000.0 * exposure);
-            scratchFiles.push_back(lvlScratch);
-            scratchFiles.push_back(lvlPath);
-        }
-        for (const auto& s : levelPaths) levelPtrs.push_back(s.c_str());
-
-        if (xpe_calib_generate_gain_polynomial(levelPtrs.data(), doses.data(),
-                                               static_cast<int32_t>(doses.size()),
-                                               opt.polyDegree,
-                                               gainPolyPath.c_str()) != XPE_OK) {
-            std::fprintf(stderr, "xpe_calib_generate_gain_polynomial failed\n");
-            return 7;
         }
     }
 
@@ -1517,9 +1373,7 @@ int main(int argc, char** argv) {
              << "    \"offset.xcal\": \"" << offsetSha << "\",\n"
              << "    \"gain.xcal\": \""   << gainSha   << "\",\n"
              << "    \"defect.xcal\": \"" << defectSha << "\""
-             << (opt.gainPoly
-                     ? ",\n    \"gain_poly.xcal\": \"" + sha256Hex(gainPolyPath) + "\"\n"
-                     : std::string("\n"))
+             << "\n"
              << "  }\n"
              << "}\n";
     manifest.close();
@@ -1527,16 +1381,6 @@ int main(int argc, char** argv) {
     std::printf("offset.xcal  %s\n", offsetSha.c_str());
     std::printf("gain.xcal    %s\n", gainSha.c_str());
     std::printf("defect.xcal  %s  (%zu defect pixels)\n", defectSha.c_str(), defectCount);
-    if (opt.gainPoly) {
-        std::printf("gain_poly.xcal %s  (degree<=%d, %d dose levels)\n",
-                    sha256Hex(gainPolyPath).c_str(), opt.polyDegree, opt.polyLevels);
-    }
-    // The intermediate per-level gain maps are an implementation detail of the
-    // fit; the caller asked for a polynomial fixture, not for them.
-    for (const std::string& tmp : scratchFiles) {
-        std::remove(tmp.c_str());
-        std::remove((tmp + ".tmp").c_str());
-    }
     std::printf("manifest.json written to %s\n", manifestPath.c_str());
     return 0;
 }

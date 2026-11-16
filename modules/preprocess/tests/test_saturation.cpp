@@ -549,29 +549,6 @@ TEST_F(SaturationTest, WithoutAScalarGainTheRuleIsOffAndTheCallSaysSoOnce) {
     EXPECT_EQ(0, countAlerts("XPE_WARN_SATURATION_NOT_APPLIED"));
 }
 
-TEST_F(SaturationTest, APolynomialGainIsNotCappedAndSaysSo) {
-    // coefficients (1, 0) for every pixel: gain polynomial == 1; the dose range covers the frame
-    std::vector<float> coeffs(N * 2);
-    for (size_t i = 0; i < N; ++i) { coeffs[2 * i] = 1.0f; coeffs[2 * i + 1] = 0.0f; }
-    const std::string cfgj = "{\"dose_min\":0,\"dose_max\":65535}";
-    XCalFileHeader hdr{};
-    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-    hdr.version = XCAL_VERSION;
-    hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY);
-    hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
-    hdr.width = W; hdr.height = H;
-    hdr.payload_len = coeffs.size() * sizeof(float);
-    hdr.config_json_len = cfgj.size();
-    ASSERT_EQ(XPE_OK, write_xcal_file((dir / "gain.xcal").string().c_str(), hdr,
-                                      reinterpret_cast<const uint8_t*>(cfgj.data()), cfgj.size(),
-                                      reinterpret_cast<const uint8_t*>(coeffs.data()), hdr.payload_len));
-    makeFrame(kLevel);
-    const auto rc = run(",\"saturationLevel\":12800");
-    if (rc != XPE_OK) GTEST_SKIP() << "polynomial fixture not accepted by the loader here: " << static_cast<int>(rc);
-    EXPECT_EQ(1, countAlerts("XPE_WARN_SATURATION_NOT_APPLIED"));
-    EXPECT_EQ(0, countAlerts("XPE_WARN_SATURATION_UNSET"));
-}
-
 TEST_F(SaturationTest, TheMonitorIsALimitedHeuristicItMissesAPileOutsideTheSampledRows) {
     // the pile at 40000 sits only on rows that are not a multiple of 16: the sampled rows (every 16th) never see it
     storage.assign(N, 0.0f);

@@ -204,7 +204,7 @@ bool XpeConfigDoc::getNumber(const char* key, double* value) const {
 /* =========================================================================
  * Configuration JSON (QA-A-209, QA-A-209b)
  *
- * One rule for every configuration text -- the pipeline's, the ghost corrector's, the nonlinearity stage's, the
+ * One rule for every configuration text -- the pipeline's, the ghost corrector's, the
  * offset generation's, and the config block of a calibration file -- and ONE parse of each: the text is parsed once
  * into a document of its top-level members (XpeConfigDoc), and the keys are read from that.
  *   - the text is ONE valid JSON object; a key is a TOP-LEVEL member (a name only inside a nested object or array is

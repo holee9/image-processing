@@ -523,7 +523,7 @@ XpeErrorCode publish_and_view(const std::string& path,
  *
  * A miss gets there through the plain loader. A hit has no file read to lean on, so it puts the
  * cached pixels and metadata where the loader would have put them -- the same fields, written under
- * g_calib_mutex, and for gain the same "scalar map and polynomial are alternatives" reset.
+ * g_calib_mutex.
  * What a hit re-checks instead of the file read (QA-A-196): expiry from the entry, the file's size and
  * write time against the entry's. Not repeated on a hit: the SHA-256 and session checks.
  * ----------------------------------------------------------------------- */
@@ -576,11 +576,6 @@ XpeErrorCode install_gain(std::unique_ptr<float[]> map, const XpeImageBuffer& d,
     g_calib.gain_defect_idx   = meta.gainDefects;   // a hit installs the classification the load made (QA-A-211)
     g_calib.gain_defect_count = meta.gainDefectCount;
     g_calib.gain_sat          = meta.gainSat;
-    g_calib.gain_poly_coeffs.reset();
-    g_calib.gain_poly_num_coeffs = 0;
-    g_calib.gain_poly_has_range  = false;
-    g_calib.gain_poly_dose_min   = 0.0;
-    g_calib.gain_poly_dose_max   = 0.0;
     g_calib.gain_width     = d.width;
     g_calib.gain_height    = d.height;
     g_calib.gain_timestamp = meta.timestamp;
@@ -770,13 +765,6 @@ try
     meta.header = hdrBefore;
     {
         std::lock_guard<std::mutex> lock(g_calib_mutex);
-        // A gain POLYNOMIAL file loaded: the store holds it and xpe_gain_correct() uses it, but there
-        // is no scalar map to hand back and nothing is cached (QA-A-196). The load succeeded, so the
-        // call reports success with an empty buffer rather than an error.
-        if (!g_calib.gain_map && g_calib.gain_poly_coeffs && g_calib.gain_poly_num_coeffs != 0) {
-            std::memset(gainMapOut, 0, sizeof(XpeImageBuffer));
-            return XPE_OK;
-        }
         if (!g_calib.gain_map || g_calib.gain_width == 0) return XPE_ERR_NOT_INITIALIZED;
 
         const size_t pixelCount = static_cast<size_t>(g_calib.gain_width) * g_calib.gain_height;

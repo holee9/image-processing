@@ -781,7 +781,7 @@ TEST_F(ConfigStrictParse, AQualityConfigIsParsedToItsRealLengthNotToTheFirstNulB
 // accepted. The ranges are what no generation can step outside of (xpe_calib_mode.cpp): fit_r_squared at most 1;
 // polynomial_degree 0..4; actual_dose_levels 1..10; calibration_mode 0..4.
 // fit_r_squared has no lower bound: the generator reports a NEGATIVE one when the fit is worse than the mean
-// (-0.0766 for the ladder of the poly-fixture tests), and a file it wrote must load -- exactly -1.0 included
+// (-0.0766 for the ladder of the removed gain polynomial's fixture tests), and a file it wrote must load -- exactly -1.0 included
 // (QA-A-208d: its presence is has_r_squared, not a marker value; the generator prints it as -1.000000000).
 TEST_F(ConfigStrictParse, AQualityFieldOutsideItsRangeIsRefusedAndTheEndsOfTheRangeAreAccepted) {
     writeGainWithConfig("csp_gq.xcal", 4.0f,
@@ -859,8 +859,8 @@ TEST_F(ConfigStrictParse, WellFormedQualityFieldsInAGainFileAreStillRead) {
 // QA-A-209: every configuration text is read through its TOP-LEVEL keys
 // =====================================================================================================
 //
-// The configuration readers -- the pipeline, the ghost corrector, the nonlinearity stage, the offset generation,
-// and the config block of a polynomial-gain or nonlinearity-LUT file -- looked for the first occurrence of the
+// The configuration readers -- the pipeline, the ghost corrector, the offset generation (and, until QA-A-336, the
+// nonlinearity stage and the config block of a polynomial-gain or nonlinearity-LUT file) -- looked for the first occurrence of the
 // quoted key anywhere in the text. {"nested":{"bypassGain":true}} switched the gain stage off, a key given twice
 // was whichever came first, and a text that was not JSON was read for whatever it happened to contain. They now
 // read one valid JSON object and its top-level keys (xpe_config_get_string / xpe_config_get_double), and the same
@@ -995,23 +995,6 @@ Probe ghostProbe(const std::string& key, const std::string& on, const std::strin
     return p;
 }
 
-/** The nonlinearity stage on a frame of 1000: the polynomial 2*x doubles it; no LUT is loaded, so the other path leaves it. */
-Probe nonlinProbe(const std::string& key, const std::string& on, const std::string& off, const std::string& extra,
-                  bool effectIsDoubling) {
-    Probe p;
-    p.name = "xpe_nonlinearity_correct " + key; p.key = key; p.on = on; p.off = off; p.extra = extra;
-    p.checkEffect = true;
-    p.run = [effectIsDoubling](const std::string& json) {
-        std::vector<uint16_t> px(N, 1000);
-        XpeImageBuffer img = buf(px.data(), XPE_PIXEL_UINT16, 16);
-        const XpeErrorCode rc = xpe_nonlinearity_correct(&img, json.c_str());
-        bool same = true, doubled = true;
-        for (const uint16_t v : px) { same = same && v == 1000; doubled = doubled && v == 2000; }
-        return Observation{rc, effectIsDoubling ? doubled : same, same};
-    };
-    return p;
-}
-
 }  // namespace
 
 TEST_F(ConfigStrictParse, ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOneJsonObject) {
@@ -1021,9 +1004,9 @@ TEST_F(ConfigStrictParse, ThePipelineEntryPointsReadTheirKeysFromTheTopLevelOfOn
     }
     // The numbers: `on` is a malformed number, so reading it is a refusal.
     runTopRows(pipelineProbe("pipeline", "binningMode", "\"x\"", "1", XPE_ERR_CONFIG_INVALID, XPE_OK));
-    // Keys only a LATER stage reads (the nonlinearity stage): a duplicate among them fails the call before any stage runs.
-    for (const char* key : {"panel.linear", "panel.nonlinearity_mode", "panel.target_platform", "panel.nonlin_poly_c0",
-                            "panel.nonlin_poly_c4", "panel.adc_max"}) {
+    // Keys no stage reads (QA-A-336: the nonlinearity stage that read panel.* was removed): a duplicate among them
+    // still fails the call before any stage runs -- the object is ambiguous whatever the key (QA-A-209b).
+    for (const char* key : {"future.key", "another.unknown"}) {
         runTopRows(pipelineProbe("pipeline", key, "\"true\"", "\"false\"", XPE_OK, XPE_OK));
     }
 }
@@ -1043,8 +1026,8 @@ TEST_F(ConfigStrictParse, ThePipelineWithARefusedTopLevelConfigLoadsNoCalibratio
     };
     ASSERT_FALSE(offsetLoaded()) << "precondition: no calibration is loaded";
 
-    // The duplicate is in a key only the nonlinearity stage reads: the refusal must come before the calibration is loaded.
-    const std::string dup = "{\"bypassNonlinearity\":true,\"panel.linear\":\"true\",\"panel.linear\":\"false\"}";
+    // The duplicate is in a key no stage reads: the refusal must come before the calibration is loaded.
+    const std::string dup = "{\"future.key\":\"true\",\"future.key\":\"false\"}";
     std::vector<uint16_t> p0(N, 1000), p1(N, 1000);
     XpeImageBuffer imgs[2] = {buf(p0.data(), XPE_PIXEL_UINT16, 16), buf(p1.data(), XPE_PIXEL_UINT16, 16)};
     XpeImageMetadata metas[2] = {};
@@ -1073,17 +1056,6 @@ TEST_F(ConfigStrictParse, TheGhostCorrectorReadsItsKeysFromTheTopLevelOfOneJsonO
     runTopRows(ghostProbe("nlcscBeta", "\"1.5.2\"", "0.1"));
 }
 
-TEST_F(ConfigStrictParse, TheNonlinearityStageReadsItsKeysFromTheTopLevelOfOneJsonObject) {
-    // The polynomial 2*x runs when the profile names POLY (or AUTO on an embedded target) and has coefficients.
-    runTopRows(nonlinProbe("panel.nonlinearity_mode", "\"POLY\"", "\"LUT\"", "\"panel.nonlin_poly_c1\":2.0", true));
-    runTopRows(nonlinProbe("panel.nonlin_poly_c1", "2.0", "0.0", "\"panel.nonlinearity_mode\":\"POLY\"", true));
-    runTopRows(nonlinProbe("panel.target_platform", "\"MCU\"", "\"CPU\"",
-                           "\"panel.nonlinearity_mode\":\"AUTO\",\"panel.nonlin_poly_c1\":2.0", true));
-    // panel.linear = true skips the stage: the frame stays as it was.
-    runTopRows(nonlinProbe("panel.linear", "\"true\"", "\"false\"",
-                           "\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0", false));
-}
-
 TEST_F(ConfigStrictParse, TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJsonObject) {
     const std::string out = "csp_offset_out.xcal";
     for (const auto& kv : std::vector<std::vector<std::string>>{
@@ -1107,83 +1079,6 @@ TEST_F(ConfigStrictParse, TheOffsetGenerationReadsItsKeysFromTheTopLevelOfOneJso
     }
 }
 
-namespace {
-
-/** A polynomial gain file (degree 1, gain 1 in every pixel) with `json` as its config block. */
-void writePolyGain(const char* path, const std::string& json) {
-    std::vector<float> coeffs(N * 2);
-    for (size_t i = 0; i < N; ++i) { coeffs[i * 2] = 1.0f; coeffs[i * 2 + 1] = 0.0f; }
-    XCalFileHeader hdr{};
-    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_GAIN_POLY; hdr.pixel_format = XCAL_FMT_FLOAT32;
-    hdr.width = W; hdr.height = H; hdr.payload_len = coeffs.size() * sizeof(float);
-    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
-                                      reinterpret_cast<const uint8_t*>(coeffs.data()), coeffs.size() * sizeof(float)));
-}
-
-/** A 4096-entry nonlinearity table (`entry(i)` for index i) with `json` as its config block. */
-void writeLut(const char* path, bool halving, const std::string& json) {
-    std::vector<uint16_t> lut(4096u);
-    for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(halving ? i / 2u : i);
-    XCalFileHeader hdr{};
-    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-    hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
-    hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16);
-    hdr.width = 4096; hdr.height = 1; hdr.payload_len = lut.size() * sizeof(uint16_t);
-    hdr.created_epoch_ms = 1700000000000ll;
-    ASSERT_EQ(XPE_OK, write_xcal_file(path, hdr, reinterpret_cast<const uint8_t*>(json.data()), json.size(),
-                                      reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
-}
-
-bool pendingAlertContains(const char* needle) {
-    char msg[512];
-    int32_t sev = -1;
-    const int32_t count = xpe_get_pending_alert_count();
-    for (int32_t i = 0; i < count; ++i) {
-        if (xpe_get_pending_alert(i, msg, sizeof(msg), &sev) != XPE_OK) continue;
-        if (std::string(msg).find(needle) != std::string::npos) return true;
-    }
-    return false;
-}
-
-}  // namespace
-
-TEST_F(ConfigStrictParse, TheConfigBlockOfAPolynomialGainFileIsReadFromItsTopLevelKeys) {
-    Probe p;
-    p.name = "xpe_calib_load_gain (polynomial) dose_min"; p.key = "dose_min"; p.on = "10.0";
-    p.off = "\"none\"";             // a string is not a number: the range is then not given
-    p.extra = "\"dose_max\":100.0";
-    p.checkEffect = true;                 // a polynomial file with no dose range loads, and says so in an alert
-    p.run = [](const std::string& json) {
-        writeGainWithConfig("csp_gq.xcal", 4.0f, "{}");
-        EXPECT_EQ(XPE_OK, xpe_calib_load_gain("csp_gq.xcal"));
-        writePolyGain("csp_gx.xcal", json);
-        xpe_clear_alerts();
-        const XpeErrorCode rc = xpe_calib_load_gain("csp_gx.xcal");
-        const bool rangeRead = !pendingAlertContains("without a dose range");
-        return Observation{rc, rangeRead, std::fabs(gainResult() - 250.0f) < 0.01f};   // still the plain gain 4 map
-    };
-    runTopRows(p);
-}
-
-TEST_F(ConfigStrictParse, TheConfigBlockOfANonlinearityLutFileIsReadFromItsTopLevelKeys) {
-    Probe p;
-    p.name = "xpe_calib_load_nonlin_lut xcal_nonlin_extension_start"; p.key = "xcal_nonlin_extension_start";
-    p.on = "99999"; p.off = "100";        // a start past the end of the table is a corrupt record
-    p.rcEffect = XPE_ERR_INVALID_CALIB_DATA; p.rcNoEffect = XPE_OK;
-    p.run = [](const std::string& json) {
-        writeLut("csp_gq.xcal", true, "{}");
-        EXPECT_EQ(XPE_OK, xpe_calib_load_nonlin_lut("csp_gq.xcal"));       // the table in the store: halves a frame
-        writeLut("csp_gx.xcal", false, json);
-        const XpeErrorCode rc = xpe_calib_load_nonlin_lut("csp_gx.xcal");
-        std::vector<uint16_t> px(N, 1000);
-        XpeImageBuffer img = buf(px.data(), XPE_PIXEL_UINT16, 16);
-        EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&img, nullptr));
-        return Observation{rc, false, px[0] == 500u};                      // a failed load left the halving table in place
-    };
-    runTopRows(p);
-}
-
 // QA-A-209b (Codex #49): a configuration the caller supplies is ONE valid JSON object, so a text that is empty or
 // only white space is not a configuration -- NULL is the way to say "no configuration". It used to be read as "no
 // keys" and every default applied. The config block stored in an XCal file is another thing: a block of length 0 is
@@ -1196,7 +1091,6 @@ TEST_F(ConfigStrictParse, ABlankConfigTextSuppliedByTheCallerIsRefusedAndNullSti
             v.push_back(pipelineProbe(entry, "bypassOffset", "true", "false", XPE_OK, XPE_ERR_CALIB_NOT_LOADED));
         }
         v.push_back(ghostProbe("alpha1", "\"abc\"", "0.5"));
-        v.push_back(nonlinProbe("panel.linear", "\"true\"", "\"false\"", "", false));
         Probe gen;
         gen.name = "xpe_calib_generate_offset"; gen.key = "sigma"; gen.on = "-1"; gen.off = "3.0";
         gen.run = [](const std::string& json) {
@@ -1243,11 +1137,6 @@ TEST_F(ConfigStrictParse, ABlankConfigBlockOfAFileIsRefusedButAnAbsentOneLoads) 
         EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_gain("csp_gx.xcal"));
         EXPECT_NEAR(250.0f, gainResult(), 0.01f) << "a refused file must not have replaced the gain map";
     }
-    // the same for a nonlinearity table
-    writeLut("csp_gq.xcal", true, "");
-    EXPECT_EQ(XPE_OK, xpe_calib_load_nonlin_lut("csp_gq.xcal"));
-    writeLut("csp_gx.xcal", false, "   ");
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_nonlin_lut("csp_gx.xcal"));
 }
 
 TEST_F(ConfigStrictParse, TheInitConfigFollowsTheSameRule) {

@@ -19,13 +19,10 @@
  *   3   3   MULTI_POINT_8          MULTI_POINT_5 rejects (degree 3 > 2)
  *   3   4   MULTI_POINT_10         MULTI_POINT_8 rejects (degree 4 > 3)
  *
- * The polynomial generator also requires N >= 3 (FUNC-027) and the single-dose
- * generator is N = 1, so the rows N = 0 and N = 2 are documented here but not
- * reachable through the public API.
- *
- * The AUTO results are compared with a run under the explicit mode the table
- * names: same return code, same coefficient payload, same recorded mode. The
- * explicit run is the independent reference.
+ * QA-A-336: the gain polynomial generator (FUNC-027) was removed, and with it every row of the table that a
+ * public generator could reach except N = 1: the single-dose generator (one level, degree 0) is the only one
+ * left. The table stays as the definition of the mode caps (xpe_calib_resolve_mode is unchanged); the rows
+ * with N >= 3 are no longer driven here.
  */
 
 #include <gtest/gtest.h>
@@ -116,29 +113,6 @@ protected:
         }
     }
 
-    // A smooth, increasing gain-vs-dose series with curvature, so the fitted
-    // degree matters: g(i) = 1 + 0.1 i + 0.01 i^2.
-    Generated poly(XpeCalibrationMode mode, int32_t levels, int32_t degree) {
-        EXPECT_EQ(XPE_OK, xpe_calib_set_mode(mode));
-        const std::string tag = "p" + std::to_string(generation++) + "_";
-        std::vector<std::string> paths;
-        std::vector<const char*> ptrs;
-        std::vector<double> doses;
-        for (int32_t i = 0; i < levels; ++i) {
-            const float v = 1.0f + 0.1f * static_cast<float>(i) +
-                            0.01f * static_cast<float>(i * i);
-            paths.push_back(writeGainLevel(tag + std::to_string(i) + ".xcal", v));
-            doses.push_back(static_cast<double>(i + 1));
-        }
-        for (const auto& s : paths) ptrs.push_back(s.c_str());
-        const std::string out = (tmpDir / (tag + "out.xcal")).string();
-        Generated g;
-        g.rc = xpe_calib_generate_gain_polynomial(
-            ptrs.empty() ? nullptr : ptrs.data(), doses.data(), levels, degree, out.c_str());
-        if (g.rc == XPE_OK) readBack(out, g);
-        return g;
-    }
-
     Generated single(XpeCalibrationMode mode) {
         EXPECT_EQ(XPE_OK, xpe_calib_set_mode(mode));
         const int32_t count = 4;
@@ -170,89 +144,6 @@ std::string RequestedKey(int mode) {
 
 }  // namespace
 
-// --- the table, through the public generators ---------------------------------
-//
-// xpe_calib_resolve_mode is internal and not exported from the DLL, so every row
-// is driven through xpe_calib_generate_gain_polynomial (N >= 3) or
-// xpe_calib_generate_gain (N = 1). The rows N = 0 and N = 2 cannot be reached
-// through either generator (FUNC-026 is one level, FUNC-027 needs N >= 3).
-
-TEST_F(CalibModeEnforcementTest, AutoResolvesToTheSmallestFittingMode) {
-    struct Row { int32_t n, d; XpeErrorCode rc; int mode; };
-    const Row rows[] = {
-        { 3, 2, XPE_OK, XPE_CALIB_MULTI_POINT_5},
-        { 5, 2, XPE_OK, XPE_CALIB_MULTI_POINT_5},
-        { 6, 2, XPE_OK, XPE_CALIB_MULTI_POINT_8},
-        { 8, 2, XPE_OK, XPE_CALIB_MULTI_POINT_8},
-        { 9, 2, XPE_OK, XPE_CALIB_MULTI_POINT_10},
-        {10, 2, XPE_OK, XPE_CALIB_MULTI_POINT_10},
-        {11, 2, XPE_ERR_INVALID_INPUT, -1},
-        { 3, 3, XPE_OK, XPE_CALIB_MULTI_POINT_8},
-        { 3, 4, XPE_OK, XPE_CALIB_MULTI_POINT_10},
-        { 8, 4, XPE_OK, XPE_CALIB_MULTI_POINT_10},
-    };
-    for (const Row& r : rows) {
-        const Generated g = poly(XPE_CALIB_AUTO, r.n, r.d);
-        EXPECT_EQ(r.rc, g.rc) << "N=" << r.n << " D=" << r.d;
-        if (r.rc == XPE_OK) EXPECT_EQ(r.mode, g.qualityMode) << "N=" << r.n << " D=" << r.d;
-    }
-    const Generated one = single(XPE_CALIB_AUTO);
-    EXPECT_EQ(XPE_OK, one.rc);
-    EXPECT_EQ(static_cast<int>(XPE_CALIB_SINGLE_POINT), one.qualityMode);
-}
-
-// --- through the public generators -------------------------------------------
-
-// FUNC-031 (4)(8): the cap is enforced by the polynomial generator.
-TEST_F(CalibModeEnforcementTest, PolynomialGeneratorRefusesLevelsAboveTheExplicitCap) {
-    EXPECT_EQ(XPE_OK, poly(XPE_CALIB_MULTI_POINT_5, 5, 2).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, poly(XPE_CALIB_MULTI_POINT_5, 6, 2).rc);
-    EXPECT_EQ(XPE_OK, poly(XPE_CALIB_MULTI_POINT_8, 8, 3).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, poly(XPE_CALIB_MULTI_POINT_8, 9, 3).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, poly(XPE_CALIB_MULTI_POINT_8, 3, 4).rc);
-    EXPECT_EQ(XPE_OK, poly(XPE_CALIB_MULTI_POINT_10, 10, 4).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, poly(XPE_CALIB_MULTI_POINT_10, 11, 2).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, poly(XPE_CALIB_MULTI_POINT_5, 3, 3).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, poly(XPE_CALIB_DUAL_POINT, 3, 1).rc);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, poly(XPE_CALIB_SINGLE_POINT, 3, 1).rc);
-}
-
-// FUNC-031 (5): at every boundary, AUTO does exactly what the explicit mode
-// named by the table does -- same code, same coefficients, same recorded mode.
-TEST_F(CalibModeEnforcementTest, AutoMatchesTheExplicitModeAtEveryBoundary) {
-    struct Row { int32_t n, d; XpeCalibrationMode expected; };
-    const Row rows[] = {
-        { 3, 2, XPE_CALIB_MULTI_POINT_5},
-        { 5, 2, XPE_CALIB_MULTI_POINT_5},
-        { 6, 2, XPE_CALIB_MULTI_POINT_8},
-        { 8, 2, XPE_CALIB_MULTI_POINT_8},
-        { 9, 2, XPE_CALIB_MULTI_POINT_10},
-        {10, 2, XPE_CALIB_MULTI_POINT_10},
-        { 3, 3, XPE_CALIB_MULTI_POINT_8},
-        { 4, 4, XPE_CALIB_MULTI_POINT_10},
-    };
-    for (const Row& r : rows) {
-        SCOPED_TRACE("N=" + std::to_string(r.n) + " D=" + std::to_string(r.d));
-        const Generated a = poly(XPE_CALIB_AUTO, r.n, r.d);
-        const Generated e = poly(r.expected, r.n, r.d);
-        ASSERT_EQ(XPE_OK, e.rc);
-        ASSERT_EQ(e.rc, a.rc);
-        EXPECT_EQ(e.payload, a.payload);
-        EXPECT_EQ(static_cast<int>(r.expected), a.qualityMode);
-        EXPECT_EQ(e.qualityMode, a.qualityMode);
-        EXPECT_NE(std::string::npos, a.json.find(ModeKey(r.expected))) << a.json;
-        EXPECT_NE(std::string::npos, a.json.find(RequestedKey(XPE_CALIB_AUTO))) << a.json;
-        EXPECT_NE(std::string::npos, e.json.find(RequestedKey(r.expected))) << e.json;
-    }
-}
-
-TEST_F(CalibModeEnforcementTest, AutoAboveTheHardCapFailsLikeMultiPoint10) {
-    const Generated a = poly(XPE_CALIB_AUTO, 11, 2);
-    const Generated e = poly(XPE_CALIB_MULTI_POINT_10, 11, 2);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, e.rc);
-    EXPECT_EQ(e.rc, a.rc);
-}
-
 // FUNC-031 (8) for the single-dose generator: one level, degree 0.
 TEST_F(CalibModeEnforcementTest, SingleDoseGeneratorUnderAutoRecordsSinglePoint) {
     const Generated a = single(XPE_CALIB_AUTO);
@@ -277,14 +168,14 @@ TEST_F(CalibModeEnforcementTest, SingleDoseGeneratorIsAcceptedByEveryMode) {
 // The selection is reported on the alert queue as well (card: log the mode).
 TEST_F(CalibModeEnforcementTest, AutoResolutionIsReportedOnTheAlertQueue) {
     xpe_clear_alerts();
-    ASSERT_EQ(XPE_OK, poly(XPE_CALIB_AUTO, 6, 2).rc);
+    ASSERT_EQ(XPE_OK, single(XPE_CALIB_AUTO).rc);
     bool seen = false;
     char msg[256];
     int32_t severity = -1;
     const int32_t count = xpe_get_pending_alert_count();
     for (int32_t i = 0; i < count; ++i) {
         ASSERT_EQ(XPE_OK, xpe_get_pending_alert(i, msg, sizeof(msg), &severity));
-        if (std::string(msg) == "XPE_CALIB_AUTO resolved to mode 3" &&
+        if (std::string(msg) == "XPE_CALIB_AUTO resolved to mode 0" &&
             severity == XPE_ALERT_INFO) {
             seen = true;
         }

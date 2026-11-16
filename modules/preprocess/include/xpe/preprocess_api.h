@@ -87,7 +87,7 @@ XPE_API XpeErrorCode xpe_preprocess_init(const char* config);
  * Safe to call multiple times. After shutdown, the module is in the
  * uninitialized state and can be re-initialized.
  *
- * Releases the loaded offset map, gain map or polynomial gain coefficients,
+ * Releases the loaded offset map, gain map,
  * and defect map, whether or not the module
  * was initialized. The calibration loaders do not require initialization, so
  * maps may be loaded before xpe_preprocess_init(); a shutdown at that point
@@ -158,7 +158,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * @brief Load gain calibration map from XCal file
  *
  * REQ-P1A-015: kVp-/SID-specific gain with interpolation -- NOT IMPLEMENTED (REQ-015, #245). The loader
- *              reads ONE gain map (or one gain polynomial in dose); there is no table indexed by kVp or SID.
+ *              reads ONE gain map; there is no table indexed by kVp or SID.
  * AC-CAL-002: not implemented, same reason.
  * What kVp does today: nothing. metadata.kVp and metadata.SID_mm are not read when a gain map is chosen or
  * applied, so the same frame under different kVp/SID gives identical pixels (pinned by
@@ -167,7 +167,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * Quality metadata (FUNC-033). The file's config block is read as ONE valid JSON object, to its stored length
  * (a NUL byte, a byte-order mark that is not complete, malformed UTF-8, text after the object, a key given twice at
  * the top level: all XPE_ERR_CONFIG_INVALID), and its fit_r_squared, polynomial_degree, actual_dose_levels and
- * calibration_mode are TOP-LEVEL keys (a key inside a nested object is not one; a polynomial file's dose_min and dose_max are read the same way, and
+ * calibration_mode are TOP-LEVEL keys (a key inside a nested object is not one, and
  * given twice they are refused). A key that is ABSENT means "not
  * given" (a file from before QA-A-35 has none of them; for fit_r_squared the record then has has_r_squared = 0).
  * A key that is PRESENT must hold a number in the range the field has -- fit_r_squared a finite real of at most 1.0
@@ -191,8 +191,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  * the union of the two). The count is reported on the alert queue (XPE_ALERT_WARNING,
  * "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: ..."), and a map with MORE than 5% of its pixels classified (the defect
  * density SRS-CALIB-FUNC-003 tolerates) is refused with XPE_ERR_INVALID_CALIB_DATA and an alert
- * "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: ..." (XPE_ALERT_ERROR), the store unchanged. The same range and rule apply to a
- * gain polynomial, evaluated at each pixel value when a frame is corrected (see xpe_gain_correct). Pixels classified
+ * "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: ..." (XPE_ALERT_ERROR), the store unchanged. Pixels classified
  * by the gain calibration are corrected only by a defect stage that follows: with the defect stage bypassed, or with
  * xpe_gain_correct called on its own, they carry the uncorrected value (gain 1.0) and the frame says so
  * ("XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..."); the pipeline refuses such a frame when binning is on.
@@ -207,7 +206,10 @@ XPE_API XpeErrorCode xpe_calib_load_offset(const char* filepath);
  *         XPE_ERR_IO_FAILED on file read error
  *         XPE_ERR_CALIBRATION_EXPIRED if calibration expired
  *         XPE_ERR_CONFIG_INVALID if the config block is not one valid JSON object, or a present quality field is
- *                                not a number in its range
+ *                                not a number in its range, or the file is not a gain map (XCAL_TYPE_GAIN). A gain
+ *                                POLYNOMIAL file (type 3, written by the removed xpe_calib_generate_gain_polynomial)
+ *                                is refused this way, with the alert "XPE_ERR_XCAL_TYPE: ..." naming the type, and
+ *                                nothing is loaded -- it is never read as a scalar map (QA-A-336)
  *         XPE_ERR_INVALID_CALIB_DATA if more than 5% of a scalar map's pixels are outside [0.1, 10.0]
  */
 XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath);
@@ -294,14 +296,10 @@ XPE_API XpeErrorCode xpe_offset_correct(const XpeImageBuffer* input,
  *                               map's dimensions differ from the input's (REQ-P1A-021)
  *         XPE_ERR_BUFFER_TOO_SMALL if the output's dimensions differ from the input's
  *         XPE_ERR_UNSUPPORTED_FORMAT if format mismatch
- *         XPE_ERR_CONFIG_INVALID if the gain map contains invalid values, or (polynomial gain) if more than 5% of the
- *                               frame's pixels evaluate to a gain outside [0.1, 10.0] (QA-A-211)
+ *         XPE_ERR_CONFIG_INVALID if the gain map contains invalid values
  *
- * @note A pixel whose polynomial gain, evaluated in float32 at its own value, is outside [0.1, 10.0] (or not finite) is
- *       classified defective for this frame: gain 1.0, and the pipeline hands its index to the defect stage of the same
- *       frame. Called on its own this function cannot do that -- the pixel keeps gain 1.0 and an alert
- *       "XPE_WARN_GAIN_PIXELS_UNCORRECTED: ..." says no defect stage follows. A scalar map was classified when it was
- *       loaded (see xpe_calib_load_gain), and xpe_defect_correct reads that classification from the store.
+ * @note The map was classified when it was loaded (see xpe_calib_load_gain), and xpe_defect_correct reads that
+ *       classification from the store.
  *
  * @note The map this function reads is the one in the calibration store when it is CALLED (it takes its own
  *       snapshot under the store's lock, then reads it in place; a load that lands during the call does not
@@ -523,168 +521,13 @@ XPE_API XpeErrorCode xpe_calib_generate_offset(const XpeImageBuffer* dark_frames
  *       map is therefore a dose-weighted mean: a frame with twice the signal counts twice as much, and when frames of different
  *       dose or of different acquisition conditions are mixed, the largest-dose frames set the large-scale shape of the map and no
  *       single frame is matched by it (QA-A-242: six CalData_6 flats mixed this way leave 1.2 to 3.3 % residual; one condition's
- *       frames leave 0.3 % at scales of 16 pixels and up). Give the generator frames of ONE acquisition condition; for several
- *       doses use xpe_calib_generate_gain_polynomial. This is documented behaviour, not a defect to be changed silently.
+ *       frames leave 0.3 % at scales of 16 pixels and up). Give the generator frames of ONE acquisition condition. This is documented behaviour, not a defect to be changed silently.
  */
 XPE_API XpeErrorCode xpe_calib_generate_gain(const XpeImageBuffer* flat_frames,
                                              int32_t num_frames,
                                              const XpeImageBuffer* dark_reference,
                                              const char* output_path,
                                              const char* metadata_json);
-
-/**
- * @brief Generate a nonlinearity correction LUT (SRS-CALIB-FUNC-006-EXT 6a)
- *
- * Writes an XCAL_TYPE_NONLIN_LUT file: a flat uint16 table where the index is
- * the raw ADU value and the entry is the linearized ADU value.
- *
- * Procedure, per the requirement as corrected on 2026-09-18 (#186): the mean signal
- * of each flat frame is measured in ADU, an ideal response `S_ideal = G_nominal * D`
- * is fitted through the origin, the pairs `(S_meas, S_ideal)` become knots together
- * with the boundary condition `LUT[0] = 0`, and the entries between knots are filled
- * by monotone cubic interpolation (Fritsch-Carlson 1980). There is NO upper knot: the
- * `LUT[ADC_max] = ADC_max` identity pin was withdrawn. Above the highest measured
- * signal the table continues along the last measured interval's secant, saturating at
- * 65535, and the first entry of that extension is recorded in the file
- * (`xcal_nonlin_extension_start`); the accuracy clause is judged inside the measured
- * range only.
- *
- * The flat frames are taken rather than gain maps because
- * xpe_calib_generate_gain() normalizes each map to unit mean, which discards the
- * absolute signal level the fit needs.
- *
- * @param flat_frames    Array of `num_levels` flat-field frames (UINT16), one per dose.
- * @param dose_levels    Array of `num_levels` reference doses, strictly increasing, > 0.
- * @param num_levels     Number of dose levels; the requirement asks for >= 10.
- * @param dark_reference Optional dark frame subtracted before averaging (NULL to skip).
- * @param lut_entries    4096 (12-bit) or 65536 (16-bit full scale).
- * @param output_path    Destination .xcal path.
- * @param metadata_json  Optional detector-identifying JSON object embedded in the
- *                       file's config blob (NULL for none).
- * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT for a null argument, fewer than 10 levels, an
- *                       unsupported entry count, or non-increasing dose values
- *         XPE_ERR_INVALID_CALIB_DATA when the measured response is not strictly
- *                       increasing, its lowest value is not above zero, its highest
- *                       value reaches `lut_entries - 1`, or the fit gives a table that
- *                       is not finite or not non-decreasing
- *         XPE_ERR_IO_FAILED on write failure
- */
-XPE_API XpeErrorCode xpe_calib_generate_nonlin_lut(const XpeImageBuffer* flat_frames,
-                                                   const double* dose_levels,
-                                                   int32_t num_levels,
-                                                   const XpeImageBuffer* dark_reference,
-                                                   uint32_t lut_entries,
-                                                   const char* output_path,
-                                                   const char* metadata_json);
-
-/**
- * @brief Load a nonlinearity LUT into the calibration store (FUNC-006-EXT 6a)
- *
- * Reads an XCAL_TYPE_NONLIN_LUT file and makes it the active nonlinearity
- * calibration. The pipeline's nonlinearity stage applies it when `panel.linear`
- * is not "true" in the pipeline config.
- *
- * @param filepath Path to the .xcal file written by xpe_calib_generate_nonlin_lut().
- * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT if filepath is NULL
- *         XPE_ERR_IO_FAILED / XPE_ERR_CONFIG_INVALID from the file reader; XPE_ERR_CONFIG_INVALID also when the
- *                       table's config block is not one valid JSON object or gives xcal_nonlin_extension_start
- *                       twice at the top level (a key inside a nested object is not it)
- *         XPE_ERR_INVALID_CALIB_DATA if the entry count is not 4096 or 65536,
- *                       the table is not non-decreasing, or the recorded
- *                       extension boundary lies outside the table
- */
-XPE_API XpeErrorCode xpe_calib_load_nonlin_lut(const char* filepath);
-
-/**
- * @brief Drop the loaded nonlinearity LUT (FUNC-006-EXT 6a)
- *
- * After this call the nonlinearity stage has no table to apply. Use it when
- * switching detector profiles, so a previous panel's table is never applied to
- * another detector's frames.
- */
-XPE_API void xpe_calib_unload_nonlin_lut(void);
-
-/**
- * @brief Generate dose-dependent gain polynomial (FUNC-027)
- *
- * SWU-1.12: Generate gain polynomial G(x,y,E) = c0 + c1*E + c2*E² + ...
- *
- * Algorithm:
- *   1. Load N gain maps from FUNC-026 output files
- *   2. For each pixel: fit polynomial via least-squares
- *   3. Validate monotonicity in [dose_min, dose_max]: the curve must be non-decreasing OR non-increasing
- *      (SRS-CALIB-FUNC-027 says "monotone", not "increasing"; QA-A-210c) over the WHOLE range, decided
- *      analytically -- from the real roots of the derivative's derivative -- on the coefficients as the file
- *      stores them (float32), not by sampling (QA-A-210d: a quadratic can turn between two samples)
- *   4. Reduce degree if non-monotone; degree 1 is the LEAST-SQUARES line, which is monotone whichever way it
- *      points, so the descent always ends there (min degree = 1). No pixel is stored with a worse-than-its-own-mean
- *      model: the straight line through the first and last measurement that earlier stood at the end of the
- *      descent is gone (QA-A-210c)
- *   5. Store coefficient array: (d+1) × W × H
- *
- * UNITS OF `dose_levels`: PIXEL VALUES (ADU). Not mGy.
- *
- * QA-A-141 (#194 item 2, lead decision 2026-09-26). This line used to read
- * "mGy or relative units", which permitted a unit the implementation cannot
- * accept. The applier indexes the fitted curve with the PIXEL'S OWN VALUE
- * (gain_correct.cpp), and the recorded [dose_min, dose_max] clamp is compared
- * against pixel values too, so the abscissa is in ADU by construction. The
- * reference dataset agrees -- tests/test_data/cyan_test names its CalSet
- * levels by ADU.
- *
- * WHAT THIS DOES NOT BUY. Writing "ADU" here does not make a wrong unit
- * detectable: the XCal file carries no dose-unit field, so a file fitted in
- * mGy loads, applies, and produces a WRONG IMAGE WITHOUT ANY ERROR. The
- * failure is silent. Pinning the documented unit removes the half of the
- * problem that was the documentation contradicting the code; the other half
- * needs a format change and is deferred -- see the DEBT marker below.
- *
- * @MX:DEBT: dose unit is documented, not enforced
- * @MX:CEILING: no dose-unit field exists in the XCal header; every file is
- *              assumed ADU and a mis-united file cannot be distinguished
- * @MX:UPGRADE: when #151 supplies real-detector calibration files, check what
- *              unit they actually carry; if any is not ADU, add the header
- *              dose-unit field (#194 option 1) and decide how pre-field files
- *              are read
- *
- * @param gain_file_paths Array of N gain file paths (from FUNC-026)
- * @param dose_levels Array of N dose levels, in PIXEL VALUES (ADU) -- see the
- *                    UNITS note above; not enforced, and not detectable if wrong
- * @param num_levels Number of dose levels (≥ 3)
- * @param max_degree Maximum polynomial degree (1 ≤ max_degree ≤ 4)
- * @param output_path Output XCal file path for gain polynomial
- * @return XPE_OK on success
- *         XPE_ERR_INVALID_INPUT if NULL pointers or invalid parameters (a dose level that is not finite -- NaN or
- *         +-infinity -- is one, checked before any file is read, any mode is resolved or the quality metadata can change;
- *         QA-A-210d), or
- *         XPE_ERR_INVALID_CALIB_DATA if a gain map holds a value that is not finite (QA-A-210d), or if
- *         some pixel has no polynomial the APPLIER can use (QA-A-210e): the coefficients are stored as float32 in the
- *         raw dose and applied in float32 Horner at the pixel value, and a fit whose float32 evaluation at a measured
- *         dose is more than 0.1% from the fit (typically doses so close together that the float32 intercept cannot
- *         carry the slope) lowers the degree like a non-monotone one; if even the least-squares line fails, no quality
- *         record is made and no file is written, and an alert "XPE_WARN_GAIN_POLY_NOT_APPLICABLE: ..."
- *         (XPE_ALERT_ERROR) gives the pixel count and the first pixel. A pixel whose gain is outside the gain range
- *         [0.1, 10.0] (SRS-CALIB-FUNC-002) is not refused but CLASSIFIED DEFECTIVE (QA-A-211): when a measured gain of
- *         it is outside the range, or the least-squares line leaves the range at a measured dose, its coefficients are
- *         stored as 0 (the applier classifies it again at every frame), it is not fitted and not in the quality figures
- *         below, and the count is reported ("XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: ..."); more than 5% of the frame
- *         classified refuses the generation (XPE_ERR_INVALID_CALIB_DATA, alert "XPE_WARN_GAIN_PIXELS_OVER_LIMIT: ...",
- *         nothing recorded, no file). The
- *         fit_r_squared the file records is computed in the applier's arithmetic from the stored coefficients, so it is
- *         the quality of the correction that will be performed, or
- *         when num_levels / max_degree exceed the active calibration mode
- *         (SRS-CALIB-FUNC-031 (3)(4); under AUTO, more than 10 levels)
- *         XPE_ERR_IO_FAILED on file read/write error
- *         XPE_ERR_OUT_OF_MEMORY on allocation failure
- *         XPE_ERR_PROCESSING_FAILED on polynomial fitting failure
- */
-XPE_API XpeErrorCode xpe_calib_generate_gain_polynomial(const char** gain_file_paths,
-                                                        const double* dose_levels,
-                                                        int32_t num_levels,
-                                                        int32_t max_degree,
-                                                        const char* output_path);
 
 /**
  * @brief Check calibration expiry status
@@ -715,8 +558,7 @@ XPE_API XpeErrorCode xpe_calib_check_expiry(const char* filepath,
  * expiry_epoch_ms = 0, so no API path could produce an expiring calibration file
  * and SRS-ALERT-005 / REQ-P1A-018 were unreachable. The expiry policy itself
  * (30 days, and so on) belongs to the caller; this function records the value.
- * For "gain", the active scalar or polynomial model selects the existing GAIN or GAIN_POLY file type;
- * polynomial coefficients retain their pixel-major layout. Offset/gain config bytes are retained with the model.
+ * For "gain", the scalar map is written as a GAIN file. Offset/gain config bytes are retained with the map.
  * Classified scalar gain positions are saved
  * with the existing invalid value 0 so reload restores the neutral applied map and its defect indices;
  * valid 1.0 positions stay 1.0. Original invalid numeric values are not reconstructed.
@@ -930,42 +772,11 @@ XPE_API XpeErrorCode xpe_ghost_reset(void* handle);
 XPE_API void xpe_ghost_destroy(void* handle);
 
 /* =============================================================================
- * Phase 7: Nonlinearity and Binning Correction
- * SWU-1.7: Nonlinearity Correction (PRE-08)
+ * Phase 7: Binning Correction
  * SWU-1.8: Binning Correction (PRE-09)
- * (The temperature compensation of SWU-1.6 was removed by user decision, QA-A-335.)
+ * (The temperature compensation of SWU-1.6 was removed by user decision, QA-A-335; the nonlinearity correction of
+ * SWU-1.7 by user decision, QA-A-336.)
  * ============================================================================ */
-
-/**
- * @brief Apply piecewise linear or polynomial correction to linearize detector response
- *
- * Requirement: SRS-CALIB-FUNC-006 / -006-EXT (SRS-CALIB-001), not a REQ-P1A-
- * number. SPEC-XPE-P1A puts nonlinearity out of its scope (spec.md:55, PRE-08)
- * and the SPEC-XPE-P1D it names does not exist.
- *   - Apply the loaded LUT (6a) or polynomial (6b): SRS-CALIB-FUNC-006-EXT.
- *   - No LUT and no coefficients: no-op with an alert, XPE_OK (QA-A-127,
- *     QA-A-140, #196). No requirement states this sentence; the nearest text
- *     is SRS-CALIB-FUNC-006 (the profile supplies f_nonlin) and
- *     SRS-CALIB-SAFE-001 (nonlinearity is optional and conditional).
- *   - An unrecognised "mode" is not an error: the stage reads no meaning
- *     from it (QA-A-127, #196).
- * The numbers REQ-P1A-012..015 this block used to cite are the pre-bc22093
- * ones and now name other requirements. Its "identity polynomial for
- * baseline" line has no counterpart in SRS 6b or in the implementation.
- *
- * @param img [in/out] Image to correct (uint16 format)
- * @param configJsonOrNull Optional detector mode/coefficient override JSON (reading rule: see
- *        xpe_preprocess_pipeline -- one valid JSON object, top-level keys; panel.linear, panel.nonlinearity_mode,
- *        panel.target_platform, panel.nonlin_poly_c0..c4 and panel.adc_max are the keys read)
- * @return XPE_OK on success
- *         XPE_ERR_CONFIG_INVALID if a key is given twice at the top level or the text is not one valid JSON
- *         object (the frame is untouched)
- *         XPE_ERR_CALIB_NOT_LOADED if the panel is declared non-linear and no
- *         LUT is loaded
- *         XPE_ERR_INVALID_INPUT if NULL img
- */
-XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
-                                               const char* configJsonOrNull);
 
 /**
  * @brief Apply per-mode binning correction for gain/uniformity differences
@@ -1001,7 +812,7 @@ XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
 /* =============================================================================
  * Phase 8: Full Pre-Processing Pipeline (REQ-P1A-095 to REQ-P1A-099)
  * SWU-1.9: Readout Artifact Validation (PRE-01)
- * Pipeline stages: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
+ * Pipeline stages: Readout -> Offset -> Gain -> Binning -> Defect -> Ghost
  * ============================================================================ */
 
 /**
@@ -1034,8 +845,7 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * just loaded from @p calibPath, captured in the same critical section that stored it -- and every stage runs
  * on that capture. Another thread loading a different set while the frame runs cannot give the frame an offset
  * from one set and a gain from another. Calibration loaded by other calls (xpe_calib_load_*, the cached loaders)
- * during the call takes effect from the next frame. The nonlinearity table is not part of the set: it is read
- * from the store when its stage runs.
+ * during the call takes effect from the next frame.
  *
  * A bypassed stage is skipped, with one exception that is not a skip: the gain stage is the uint16 -> float32
  * boundary, so a bypassed gain stage means "gain = 1" -- when a float stage follows (binning with binningMode > 1,
@@ -1047,7 +857,7 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  * back only after the last stage). It does not undo the stage-completion flags in the metadata: the flags of the
  * stages that finished stay set, as for every error other than XPE_ERR_OUT_OF_MEMORY. (A refusal before any stage
  * runs -- the capacity and dimension checks -- sets none.)
- * Pipeline: Readout -> Temp -> Offset -> Nonlinearity -> Gain -> Binning -> Defect -> Ghost
+ * Pipeline: Readout -> Offset -> Gain -> Binning -> Defect -> Ghost
  *
  * @warning This function RE-READS offset.xcal, gain.xcal and defect.xcal from
  *          @p calibPath on every call. At 3072x3072 that is about 475 ms per
@@ -1081,8 +891,8 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *        parameters (see xpe_ghost_create) passes the frame through: the output is still float32 (the format depends
  *        on the handle being given), but XPE_FLAG_GHOST_CORRECTED is not set (QA-A-226)
  * @param configJsonOrNull Pipeline configuration JSON (bypass flags, binning, etc.), NUL-terminated.
- *        Reading rule (every configuration text of this module -- this one, xpe_ghost_create's, the nonlinearity
- *        stage's, the offset generation's): the text is ONE valid JSON object and its keys are read from the TOP
+ *        Reading rule (every configuration text of this module -- this one, xpe_ghost_create's, the offset
+ *        generation's): the text is ONE valid JSON object and its keys are read from the TOP
  *        LEVEL. A key that appears only inside a nested object or array is not given (the default applies); a
  *        top-level key beside a nested one of the same name is the top-level one; a top-level key given twice, or
  *        a text that is not one JSON object (not closed, an array, text after the object, a raw
@@ -1094,18 +904,15 @@ XPE_API XpeErrorCode xpe_validate_readout_artifact(const XpeImageBuffer* image,
  *        one exception: a block of length 0 is a file without one and loads; a block that is there is read by this
  *        rule, so white space only is refused.) An empty string value ("") and a value that is an object or an
  *        array are "not given" (a GUI sends an unset option as ""). The text is parsed ONCE per call and every key
- *        is read from that parse, the nonlinearity stage's included (panel.linear, panel.nonlinearity_mode,
- *        panel.target_platform, panel.nonlin_poly_c0..c4, panel.adc_max), so a refusal happens before the first
+ *        is read from that parse, so a refusal happens before the first
  *        stage runs. An XCal file's config block is parsed ONCE per load, by the file reader, and the loader reads its
  *        keys from that parse (QA-A-209c); the block of a compressed DEFECT file written by an older writer, whose
  *        closing braces were doubled, is accepted after a repair with a warning alert (xcal_format.h).
  *
  *        Two ways a key's value is read, and they differ on purpose. (1) A STRING-OR-TOKEN key -- the bypass flags,
- *        binningMode, the ghost keys (tier, alpha1, ...), panel.linear, panel.nonlinearity_mode,
- *        panel.target_platform, method -- accepts a JSON string or a bare token, and its text is then converted
- *        strictly (notation as below: "25.5" and 25.5 are both 25.5). (2) A NUMBER key -- the polynomial
- *        coefficients and panel.adc_max, the offset generation's sigma / max_iter / lower_percentile /
- *        upper_percentile, an XCal config block's dose_min, dose_max, xcal_nonlin_extension_start -- is given only as
+ *        binningMode, the ghost keys (tier, alpha1, ...), method -- accepts a JSON string or a bare token, and its text is then converted
+ *        strictly (notation as below: "25.5" and 25.5 are both 25.5). (2) A NUMBER key -- the offset
+ *        generation's sigma / max_iter / lower_percentile / upper_percentile -- is given only as
  *        a BARE JSON number; a string ("2.0") is "not given", and a bare token that is not a JSON number (+2, .5, NaN)
  *        is not JSON at all and is XPE_ERR_CONFIG_INVALID. Compatibility: a text such as {"sigma":+2} used to be
  *        read as a number by strtod or silently ignored; it is now refused (QA-A-209b).
@@ -1406,10 +1213,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  *   Hit). Take a copy with xpe_copy_image() to keep it longer.
  * - Quality metadata: a hit applies the entry's stored config JSON again, so
  *   xpe_calib_get_quality_meta() reports what a miss would report.
- * - A gain POLYNOMIAL file (XCAL_TYPE_GAIN_POLY) loads into the store, where xpe_gain_correct() uses it.
- *   There is no scalar map to hand back, so this function returns XPE_OK with @p gainMapOut zeroed
- *   (data NULL, dataSize 0) and caches nothing: every call reads the file again. Use xpe_gain_correct()
- *   rather than the returned buffer for such a file.
+ * - A gain POLYNOMIAL file (type 3, removed in QA-A-336) is refused by the plain loader (XPE_ERR_CONFIG_INVALID).
  *
  * @param filePath Path to calibration file
  * @param gainMapOut Output: the cache-owned view (see Ownership)
@@ -1418,7 +1222,7 @@ XPE_API XpeErrorCode xpe_calib_load_offset_cached(const char* filePath,
  *         on a miss or a cancelled hit, the code of the plain loader (XPE_ERR_IO_FAILED,
  *                               XPE_ERR_CALIBRATION_EXPIRED, a SHA-256 failure, ...)
  *         XPE_ERR_CALIBRATION_EXPIRED on a hit whose entry has expired
- *         XPE_ERR_NOT_INITIALIZED if the load left neither a scalar gain map nor a polynomial in the store
+ *         XPE_ERR_NOT_INITIALIZED if the load left no scalar gain map in the store
  *         XPE_ERR_IO_FAILED on a hit whose file cannot be opened for reading
  *         XPE_ERR_OUT_OF_MEMORY, XPE_ERR_PROCESSING_FAILED if the entry could not be cached or an
  *                               allocation failed (no exception leaves this function). On a miss the
@@ -2178,10 +1982,10 @@ extern "C" {
  *   (the requested one as `requested_calibration_mode`), to
  *   XpeCalibQualityMeta::calibration_mode, and as an XPE_ALERT_INFO entry.
  *
- * Enforcement (SRS-CALIB-FUNC-031 (3)(4)(8)): xpe_calib_generate_gain() and
- * xpe_calib_generate_gain_polynomial() return XPE_ERR_INVALID_INPUT when the
- * dose level count exceeds the active mode's points or the requested degree
- * exceeds its degree; under AUTO, when no mode accepts the request.
+ * Enforcement (SRS-CALIB-FUNC-031 (3)(4)(8)): xpe_calib_generate_gain() resolves
+ * the mode for its one dose level and degree 0, which every mode accepts.
+ * (QA-A-336: the gain polynomial generator that used the multi-point modes was
+ * removed; the modes remain as recorded metadata -- see the QA-A-336 report.)
  */
 typedef enum XpeCalibrationMode {
     XPE_CALIB_SINGLE_POINT   = 0,  ///< 1 point, constant fit

@@ -442,7 +442,7 @@ TEST_F(XCalCompressionTest, WorstCaseInput_FallbackToUncompressed) {
  *
  * read_xcal_file found "xcal_compression": and "xcal_raw_payload_len": as the first occurrence of those strings
  * anywhere in the config block, before the hash was checked and before anything was decompressed -- in a block that
- * every loader (offset, gain, defect, nonlinearity table) reads. A key inside a nested object decided whether the
+ * every loader (offset, gain, defect; the nonlinearity table until QA-A-336) reads. A key inside a nested object decided whether the
  * payload was decompressed; a key given twice was whichever came first.
  * ============================================================================= */
 

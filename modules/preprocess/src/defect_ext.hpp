@@ -132,6 +132,8 @@ XPE_API bool defect_ext_decode(const uint8_t* data, size_t size, uint32_t width,
  * Never throws.
  */
 XPE_API void xcal_reject_reason(const char* kind, const std::string& what) noexcept;
+/** QA-A-336: the XPE_ERR_XCAL_TYPE alert for a file type above XCAL_TYPE_DEFECT (3 = the removed gain polynomial, 4 = the removed nonlinearity table). */
+XPE_API void xcal_reject_unsupported_type(uint32_t type) noexcept;
 
 /**
  * The layout rule of a version-2 DEFECT file, from the header and the config block: the config must give "defect_ext_len" as a bare unsigned integer, and the raw payload length

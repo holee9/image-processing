@@ -346,7 +346,7 @@ TEST_F(CalibFixtureGenTest, CalDataModeRefusesAMissingOrWronglySizedInputAndWrit
     }
 }
 
-// The polynomial gain has no real-frame source in this mode; asking for both is refused up front rather than ignoring one.
+// --gain-poly is refused (QA-A-336: an unknown argument since the gain polynomial was removed), and nothing is written.
 TEST_F(CalibFixtureGenTest, CalDataModeCannotBeCombinedWithAGainPolynomial) {
     writeCalData(root / "in");
     const fs::path out = caseDir("out");

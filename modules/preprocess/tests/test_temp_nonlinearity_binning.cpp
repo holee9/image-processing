@@ -1,20 +1,8 @@
 /**
  * @file test_temp_nonlinearity_binning.cpp
- * @brief TDD RED tests for SWU-1.7/1.8:
- *        xpe_nonlinearity_correct, xpe_binning_correct
- *        REQ-P1A-090/091 (binning). The temperature tests (SWU-1.6) were removed with the stage (QA-A-335).
- *
- * Nonlinearity correction is exercised here too. Its requirement is
- * SRS-CALIB-FUNC-006 / -006-EXT (SRS-CALIB-001), cited by the implementation
- * at nonlinearity_correct.cpp:4 and :37 -- NOT a REQ-P1A- number. Old
- * REQ-P1A-012~015 covered it before bc22093 and were dropped with no REQ-P1A
- * replacement, which is correct: the requirement lives in the other series.
- *
- * QA-A-150 (#211) CORRECTION: this comment first read "has NO current
- * requirement". That was an absence claim made from one table -- the REQ-P1A
- * definitions -- and stated as if it covered every series. tools/docs/
- * check_req_citations.py has the same scope, so its orphan list means "no
- * REQ-P1A requirement", never "no requirement".
+ * @brief TDD RED tests for SWU-1.8: xpe_binning_correct, REQ-P1A-090/091 (binning); runtime detection.
+ *        The temperature tests (SWU-1.6) were removed with the stage (QA-A-335), the nonlinearity tests (SWU-1.7)
+ *        with that stage (QA-A-336).
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  */
 
@@ -28,18 +16,6 @@
 #include <limits>
 
 namespace {
-
-static XpeImageBuffer make_uint16_buf(std::vector<uint16_t>& data, uint32_t w, uint32_t h) {
-    XpeImageBuffer buf{};
-    buf.data          = data.data();
-    buf.width         = w;
-    buf.height        = h;
-    buf.bitsAllocated = 16;
-    buf.bitsStored    = 16;
-    buf.format        = XPE_PIXEL_UINT16;
-    buf.dataSize      = data.size() * sizeof(uint16_t);
-    return buf;
-}
 
 static XpeImageBuffer make_float32_buf(std::vector<float>& data, uint32_t w, uint32_t h) {
     XpeImageBuffer buf{};
@@ -63,55 +39,6 @@ static XpeImageBuffer make_uint8_buf(std::vector<uint8_t>& data, uint32_t w, uin
     buf.format        = XPE_PIXEL_UINT8;
     buf.dataSize      = data.size();
     return buf;
-}
-
-/* === Nonlinearity Correction === */
-
-TEST(NonlinearityCorrect, NullImgReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_nonlinearity_correct(nullptr, nullptr));
-}
-
-// SRS-CALIB-FUNC-006 (not REQ-P1A-013; see the file header): no-op if no
-// coefficients provided (null config -> success, unchanged)
-TEST(NonlinearityCorrect, NullConfigIsNoOp) {
-    std::vector<uint16_t> data(16, 5000);
-    XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
-    EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, nullptr));
-    EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.data)); // unchanged
-
-    // QA-A-140 (#196): the stage now reports its no-op even with a null
-    // config, so this test raises one alert. Drained through the product's
-    // own path so the queue reaches the next test as this one found it
-    // (hygiene axis 4, QA-A-138).
-    xpe_clear_alerts();
-}
-
-// QA-A-127 (#196): an unrecognised "mode" no longer fails the call.
-//
-// This case used to expect XPE_ERR_CONFIG_INVALID, and that expectation was
-// correct for the code it was written against -- the stage held a hard-coded
-// list of detector modes and rejected everything else. QA-A-126 measured what
-// that cost: the repository's own operating modes ("clinical", "research",
-// "production") are carried under the same "mode" key and were rejected,
-// failing the whole pipeline. The three names in the list are defined as
-// detector modes nowhere in docs/ or .moai/specs/, and the requirement the
-// rejection cited (REQ-P1A-014) is "Calibration File Loading (Offset)".
-//
-// So the list is gone and the stage reads no meaning from "mode". The frame
-// must come back unchanged AND the call must say it did nothing -- silence
-// would be indistinguishable from a correction that ran. The alert is what
-// NonlinModeTest (test_nonlin_no_mode_rejection.cpp) pins; here the point is
-// only that an arbitrary mode is no longer an error.
-TEST(NonlinearityCorrect, UnknownModeIsNoLongerAnError) {
-    std::vector<uint16_t> data(16, 5000);
-    XpeImageBuffer buf = make_uint16_buf(data, 4, 4);
-    EXPECT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf, R"({"mode":"unknown_xyz"})"));
-    EXPECT_EQ(5000u, *static_cast<const uint16_t*>(buf.data)) << "unchanged";
-
-    // QA-A-138 (#198): the no-op path raises one alert (issue #196). This test
-    // has no fixture, so it drains the queue itself -- leaving it behind would
-    // break the next test's negative assertion in a single-process run.
-    xpe_clear_alerts();
 }
 
 /* === Binning Correction === */

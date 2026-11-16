@@ -1427,7 +1427,7 @@ TEST(A241Measure, DISABLED_A245_ExportAndAppPath) {
     std::printf("[a245] wrote %s, %s, %s (session id %.16s, expiry %lld)\n", offPath.c_str(), gainPath.c_str(), defPath.c_str(), o.hdr.session_id,
                 static_cast<long long>(expiry));
 
-    // ---- 2. the app's call order, reading the three files back: load offset, gain, defect map; offset -> nonlinearity -> gain -> defect
+    // ---- 2. the app's call order, reading the three files back: load offset, gain, defect map; offset -> gain -> defect (the nonlinearity stage was removed, QA-A-336)
     xpe_preprocess_shutdown();
     ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
     ASSERT_EQ(XPE_OK, xpe_calib_load_offset(offPath.c_str()));
@@ -1440,7 +1440,6 @@ TEST(A241Measure, DISABLED_A245_ExportAndAppPath) {
     XpeImageBuffer in = buf(input.data(), N * 2, XPE_PIXEL_UINT16), oo = buf(offsetOut.data(), N * 2, XPE_PIXEL_UINT16),
                    go = buf(gainOut.data(), N * 4, XPE_PIXEL_FLOAT32), dd = buf(defectOut.data(), N * 4, XPE_PIXEL_FLOAT32);
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&in, &oo, &meta));
-    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&oo, nullptr));
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&oo, &go, &meta));
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&go, &dd, &meta));
     std::printf("[a245] app path: input buffer %s\n", std::memcmp(input.data(), wrist.data(), N * 2) == 0 ? "unchanged" : "CHANGED");
@@ -1523,7 +1522,6 @@ TEST(A241Measure, DISABLED_A245_AlertsOfTheExportedSet) {
     XpeImageBuffer bIn = buf(input.data(), N * 2, XPE_PIXEL_UINT16), bOff = buf(offOut.data(), N * 2, XPE_PIXEL_UINT16),
                    bGain = buf(gainOut.data(), N * 4, XPE_PIXEL_FLOAT32), bDef = buf(defectOut.data(), N * 4, XPE_PIXEL_FLOAT32);
     ASSERT_EQ(XPE_OK, xpe_offset_correct(&bIn, &bOff, &meta));
-    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&bOff, nullptr));
     ASSERT_EQ(XPE_OK, xpe_gain_correct(&bOff, &bGain, &meta));
     ASSERT_EQ(XPE_OK, xpe_defect_correct(&bGain, &bDef, &meta));
     char msg[700];

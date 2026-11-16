@@ -35,7 +35,7 @@ struct PixelXY { uint32_t x; uint32_t y; };
 
 
 // QA-A-237g (#245, SRS-CALIB-PERF-002): the masked pixels of a frame -- the loaded defect map together with the pixels the gain
-// calibration classified defective (a scalar map's list in the snapshot, a polynomial map's list for this frame) -- as one set that
+// calibration classified defective (the scalar map's list in the snapshot, plus a per-frame list when a caller passes one) -- as one set that
 // answers "is this pixel masked" and "which masked pixel is this" without a frame-sized copy. The union used to be built as a plane
 // of n bytes (9 MiB at 3072x3072) whenever the gain classified a single pixel; on the real CalData_6 maps (42,026 classified pixels,
 // 23,505 in the defect map) that copy made the stage's peak.
@@ -992,7 +992,7 @@ XpeErrorCode xpe_defect_correct_in(
 
     // QA-A-211 (#233): the pixels the GAIN calibration classified defective are corrected like the map's own. The mask
     // the kernels read is the UNION of the loaded defect map, the scalar map's list kept in the snapshot and this
-    // frame's list (a polynomial gain classifies per frame). Nothing is copied unless one of the lists is non-empty, so
+    // frame's list (when a caller passes one; the pipeline passes none since the gain polynomial was removed, QA-A-336). Nothing is copied unless one of the lists is non-empty, so
     // a calibration whose gain classified nothing takes the path it always took. The map itself is never modified: it
     // is shared with the store.
     // QA-A-211 (#233): the mask the kernels read is the UNION of the loaded map, the scalar map's classified list and this frame's

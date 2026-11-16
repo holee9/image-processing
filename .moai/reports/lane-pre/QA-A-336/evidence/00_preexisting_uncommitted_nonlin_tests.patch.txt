@@ -1,0 +1,127 @@
+diff --git a/modules/preprocess/tests/test_nonlin_lut_apply.cpp b/modules/preprocess/tests/test_nonlin_lut_apply.cpp
+index fe1beb54..baf39b53 100644
+--- a/modules/preprocess/tests/test_nonlin_lut_apply.cpp
++++ b/modules/preprocess/tests/test_nonlin_lut_apply.cpp
+@@ -19,6 +19,7 @@
+ #include <gtest/gtest.h>
+ 
+ #include "xpe/preprocess_api.h"
++#include <nlohmann/json.hpp>
+ #include "xpe/preprocess/xcal_format.h"
+ #include "xpe/common/xpe_error.h"
+ #include "xpe/common/xpe_types.h"
+@@ -245,6 +246,12 @@ TEST_F(NonlinApplyTest, CorrectedPixelsFollowTheIdealLinearResponse) {
+         worst = std::max(worst, std::fabs(expected - actual));
+     }
+     EXPECT_LE(worst, tolerance) << "worst residual " << worst << " ADU";
++    RecordProperty("xpe_synthetic_metrics_v1", nlohmann::json{
++        {"kind", "nonlinearity"}, {"source", "modules/preprocess/tests/test_nonlin_lut_apply.cpp"},
++        {"scope", "existing synthetic RunStage corrected gradient, first pixel of each uniform row only; independently computed ideal, measured range; not real RAW/full pipeline"},
++        {"profile", "MakeSim/MakeGradientFrame"}, {"gamma", kGamma}, {"levels", kLevels},
++        {"width", kW}, {"height", kH}, {"evaluated_pixels", kH}, {"adc_full_scale_adu", kAdcMax},
++        {"corrected_max_error_adu", worst}, {"linearity_residual_pct", 100.0 * worst / kAdcMax}, {"existing_limit_pct", 0.3}}.dump());
+ }
+ 
+ // Without the correction the same frame is far from the ideal line -- so the
+@@ -262,6 +269,12 @@ TEST_F(NonlinApplyTest, TheUncorrectedFrameIsNowhereNearTheIdealLine) {
+     // allowed to. Measured here: about 331 ADU against a 12.3 ADU tolerance.
+     EXPECT_GT(worst, 10.0 * 0.003 * kAdcMax)
+         << "the simulated detector is too linear to test a correction";
++    RecordProperty("xpe_synthetic_metrics_v1", nlohmann::json{
++        {"kind", "nonlinearity"}, {"source", "modules/preprocess/tests/test_nonlin_lut_apply.cpp"},
++        {"scope", "existing uncorrected synthetic gradient negative control; first pixel of each uniform row only; same independent ideal"},
++        {"profile", "MakeSim/MakeGradientFrame"}, {"gamma", kGamma}, {"levels", kLevels},
++        {"width", kW}, {"height", kH}, {"evaluated_pixels", kH}, {"adc_full_scale_adu", kAdcMax},
++        {"raw_max_error_adu", worst}, {"existing_negative_control_min_error_adu", 10.0 * 0.003 * kAdcMax}}.dump());
+ }
+ 
+ // The flag means pixels changed -- both directions (#184), read where it is
+diff --git a/modules/preprocess/tests/test_nonlin_lut_generate.cpp b/modules/preprocess/tests/test_nonlin_lut_generate.cpp
+index 274edd63..9d2c7709 100644
+--- a/modules/preprocess/tests/test_nonlin_lut_generate.cpp
++++ b/modules/preprocess/tests/test_nonlin_lut_generate.cpp
+@@ -26,6 +26,7 @@
+  */
+ 
+ #include <gtest/gtest.h>
++#include <nlohmann/json.hpp>
+ 
+ #include "xpe/preprocess_api.h"
+ #include "xpe/preprocess/xcal_format.h"
+@@ -34,6 +35,7 @@
+ #include "xcal_reader.hpp"
+ 
+ #include <cmath>
++#include <algorithm>
+ #include <cstdio>
+ #include <string>
+ #include <vector>
+@@ -177,12 +179,24 @@ TEST(NonlinLutGenerateTest, InterpolationAcrossTheMeasuredRangeStaysWithinThreeT
+     const double lo = L.signal.front();
+     const double hi = L.signal.back();
+     double worst = 0.0;
++    double rawWorst = 0.0;
++    size_t evaluated = 0;
+     for (double raw = lo; raw <= hi; raw += 1.0) {
+         const double err = std::fabs(L.Expected(raw) -
+                                      static_cast<double>(lut[static_cast<size_t>(raw)]));
+         if (err > worst) worst = err;
++        rawWorst = std::max(rawWorst, std::fabs(L.Expected(raw) - raw));
++        ++evaluated;
+     }
+     EXPECT_LE(worst, tolerance) << "worst interpolation error " << worst << " ADU";
++    RecordProperty("xpe_synthetic_metrics_v1", nlohmann::json{
++        {"kind", "nonlinearity"}, {"source", "modules/preprocess/tests/test_nonlin_lut_generate.cpp"},
++        {"scope", "existing synthetic generated LUT table vs independently computed ideal; measured range only; not real RAW or full pipeline apply"},
++        {"profile", "MakeLadder power-law response"}, {"gamma", kGamma}, {"levels", kLevels},
++        {"width", Ladder::kW}, {"height", Ladder::kH}, {"adc_full_scale_adu", kAdcMax},
++        {"measured_lo_adu", lo}, {"measured_hi_adu", hi}, {"evaluated_indices", evaluated},
++        {"raw_max_error_adu", rawWorst}, {"corrected_max_error_adu", worst},
++        {"linearity_residual_pct", 100.0 * worst / kAdcMax}, {"existing_limit_pct", 0.3}}.dump());
+ }
+ 
+ /**
+@@ -256,9 +270,15 @@ TEST(NonlinLutGenerateTest, EveryEntryIsNonDecreasing) {
+     ASSERT_EQ(XPE_OK, Generate(L, path));
+     const std::vector<uint16_t> lut = ReadLut(path, nullptr);
+ 
++    size_t violations = 0;
+     for (size_t i = 0; i + 1 < lut.size(); ++i) {
+-        ASSERT_LE(lut[i], lut[i + 1]) << "fell at index " << i;
++        if (lut[i] > lut[i + 1]) ++violations;
++        EXPECT_LE(lut[i], lut[i + 1]) << "fell at index " << i;
+     }
++    RecordProperty("xpe_synthetic_metrics_v1", nlohmann::json{
++        {"kind", "nonlinearity"}, {"source", "modules/preprocess/tests/test_nonlin_lut_generate.cpp"},
++        {"scope", "existing synthetic generated LUT, all consecutive table entries including extension; no extension accuracy claim"},
++        {"entries", lut.size()}, {"evaluated_pairs", lut.size() - 1}, {"monotonic_violations", violations}, {"existing_limit", 0}}.dump());
+ }
+ 
+ // A measured response that does not rise with dose is the requirement's
+diff --git a/modules/preprocess/tests/test_nonlin_poly_apply.cpp b/modules/preprocess/tests/test_nonlin_poly_apply.cpp
+index 343f44c6..8870c98a 100644
+--- a/modules/preprocess/tests/test_nonlin_poly_apply.cpp
++++ b/modules/preprocess/tests/test_nonlin_poly_apply.cpp
+@@ -26,6 +26,7 @@
+ #include <gtest/gtest.h>
+ 
+ #include "xpe/preprocess_api.h"
++#include <nlohmann/json.hpp>
+ #include "xpe/common/xpe_error.h"
+ #include "xpe/common/xpe_types.h"
+ #include "preprocess_state_fixture.h"
+@@ -117,6 +118,14 @@ TEST_F(NonlinPolyTest, PolynomialCorrectionMeetsTheZeroPointThreePercentResidual
+     }
+     EXPECT_LE(worst_residual, kResidualBudget)
+         << "SRS-CALIB-FUNC-006: max residual <= 0.3% ADU (" << kResidualBudget << " ADU)";
++    RecordProperty("xpe_synthetic_metrics_v1", nlohmann::json{
++        {"kind", "nonlinearity"}, {"source", "modules/preprocess/tests/test_nonlin_poly_apply.cpp"},
++        {"scope", "existing synthetic standalone POLY correction, 19 samples at 5..95% ADC in 5% steps; not continuous-range or real-data validation"},
++        {"profile_coefficients", {kC0, kC1, kC2, kC3, kC4}}, {"adc_full_scale_adu", kAdcMax},
++        {"evaluated_pixels", raws.size()}, {"raw_max_error_adu", worst_uncorrected},
++        {"corrected_max_error_adu", worst_residual}, {"linearity_residual_pct", 100.0 * worst_residual / kAdcMax},
++        {"existing_test_limit_pct", 0.3}, {"protocol_poly_limit_pct", 0.5},
++        {"limit_scope", "both existing limits retained; no threshold or golden change"}}.dump());
+ }
+ 
+ // 6b step 5: non-monotone is REJECTED, and rejection means fall back to 6a.
