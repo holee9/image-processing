@@ -4157,4 +4157,4 @@ The following tests FAILED:
 	1703 - clock.A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (Failed)
 	1705 - preprocess.legacy_ghost_fingerprints (Failed)
 Errors while running CTest
-ctest_rc=8 
+ctest_rc=8

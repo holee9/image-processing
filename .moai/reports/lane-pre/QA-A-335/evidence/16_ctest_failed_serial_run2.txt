@@ -51,4 +51,4 @@ Test project D:/workspace-github/xpe-pre/build/ci-preprocess
 100% tests passed, 0 tests failed out of 24
 
 Total Test time (real) =   3.50 sec
-ctest_rc=0 
+ctest_rc=0

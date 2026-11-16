@@ -3270,4 +3270,4 @@ The following tests did not run:
 	1524 - A237bMem.ShippedPath (Disabled)
 	1525 - A237gMaps.GenerateRealMaps (Disabled)
 	1526 - A237cRoute.WhichMagnitudesTakeTheScratchRoute (Disabled)
-exit=0 
+exit=0

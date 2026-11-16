@@ -1,7 +1,7 @@
 s000 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":20,"gain_dose_ratio":1.0282366972145052}
 s002 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":7,"bpm_frames":20,"gain_dose_ratio":1.0179193293675668}
 s003 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":20,"gain_dose_ratio":1.0135042160772296}
-s007 rc=13 
+s007 rc=13
 s014 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":48,"gain_dose_ratio":1.0467180278738391}
 s018 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":20,"gain_dose_ratio":1.0341659369481471}
 s020 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":20,"gain_dose_ratio":1.0300360693635784}
@@ -20,7 +20,7 @@ s053 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":20,
 s055 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":6,"bpm_frames":18,"gain_dose_ratio":1.0106657739932063}
 s058 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":7,"bpm_frames":19,"gain_dose_ratio":1.0186025833568266}
 s065 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":48,"gain_dose_ratio":1.0304793915595607}
-s066 rc=13 
+s066 rc=13
 s069 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":48,"gain_dose_ratio":1.0397807167358493}
 s070 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":6,"bpm_frames":48,"gain_dose_ratio":1.0050795894059996}
 s073 rc=0 {"validation_only":true,"dark_used":7,"gain_frames":8,"bpm_frames":20,"gain_dose_ratio":1.0354516657231698}

@@ -4543,7 +4543,7 @@ Expected: true
 signed zeros, frame 6: in place differs
 
 D:\workspace-github\xpe-data\qa-base-ea8d\modules\preprocess\tests\test_defect_fill_equivalence.cpp(192): error: Expected: (std::string::npos) != (found.find(": " + std::to_string(ref.unfilled) + " masked pixel(s)")), actual: 18446744073709551615 vs 18446744073709551615
-signed zeros, frame 6: 
+signed zeros, frame 6:
 
 [  FAILED  ] DefectFillEquivalenceTest.WhenTheRingMixesNegativeAndPositiveZeroTheFilledValueIsTheReferenceValue (56 ms)
 [----------] 1 test from DefectFillEquivalenceTest (56 ms total)
@@ -4592,7 +4592,7 @@ D:\workspace-github\xpe-data\qa-base-ea8d\modules\preprocess\tests\test_defect_f
 40x40 blocks on a 70 grid: in place differs
 
 D:\workspace-github\xpe-data\qa-base-ea8d\modules\preprocess\tests\test_defect_fill_equivalence.cpp(192): error: Expected: (std::string::npos) != (found.find(": " + std::to_string(ref.unfilled) + " masked pixel(s)")), actual: 18446744073709551615 vs 18446744073709551615
-40x40 blocks on a 70 grid: 
+40x40 blocks on a 70 grid:
 
 [  FAILED  ] DefectFillEquivalenceTest.ABlockGridWhoseInteriorReachesTwentyPixels (24 ms)
 [----------] 1 test from DefectFillEquivalenceTest (24 ms total)
@@ -9202,4 +9202,4 @@ The following tests FAILED:
 	1713 - clock.A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities (Failed)
 	1714 - clock.A246Diagnostics.CountingDoesNotChangeAPoisonedOutputEither (Failed)
 Errors while running CTest
-ctest_rc=8 
+ctest_rc=8

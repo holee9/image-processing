@@ -232,4 +232,4 @@
 [232/234] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_zz_a241_measure.cpp.obj
 [233/234] Building CXX object modules\preprocess\CMakeFiles\xpe_preprocess_tests.dir\tests\test_bpm_eval.cpp.obj
 [234/234] Linking CXX executable bin\xpe_preprocess_tests.exe
-build_rc=0 
+build_rc=0

@@ -3216,4 +3216,4 @@ The following tests did not run:
 	1497 - A237bMem.ShippedPath (Disabled)
 	1498 - A237gMaps.GenerateRealMaps (Disabled)
 	1499 - A237cRoute.WhichMagnitudesTakeTheScratchRoute (Disabled)
-ctest_rc=0 
+ctest_rc=0
