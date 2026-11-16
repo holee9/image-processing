@@ -1,0 +1,26 @@
+{"set": "G1_0412_plain_0", "frame": "Bright_14.raw", "C_ok": true, "C_min_pairs": 403736, "denominator": 142, "placement_impossible": 0}
+Traceback (most recent call last):
+  File "D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-340\evidence\10_study.py", line 451, in <module>
+    if cmd == 'run': cmd_run(sys.argv[2], sys.argv[3], sys.argv[4])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-340\evidence\10_study.py", line 348, in cmd_run
+    json.dump(res, open(f'{outdir}/{side}_results.json.txt', 'w'), indent=0)
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\__init__.py", line 179, in dump
+    for chunk in iterable:
+                 ^^^^^^^^
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 430, in _iterencode
+    yield from _iterencode_list(o, _current_indent_level)
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 326, in _iterencode_list
+    yield from chunks
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 326, in _iterencode_list
+    yield from chunks
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 406, in _iterencode_dict
+    yield from chunks
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 439, in _iterencode
+    o = _default(o)
+        ^^^^^^^^^^^
+  File "C:\Users\drake\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type int64 is not JSON serializable

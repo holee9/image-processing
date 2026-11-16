@@ -173,10 +173,12 @@ class Meta(C.Structure):
 
 
 def pipeline(setdir, frames):
-    os.add_dll_directory(BIN)
-    pre = C.CDLL(BIN + '/xpe_preprocess.dll'); com = C.CDLL(BIN + '/xpe_common.dll')
-    pre.xpe_preprocess_init.argtypes = [C.c_char_p]
-    assert pre.xpe_preprocess_init(None) == 0
+    if 'pre' not in _G:                                              # one init per process, as xpe_bpm_eval correct does (xpe_bpm_eval.cpp:2415)
+        os.add_dll_directory(BIN)
+        _G['pre'] = C.CDLL(BIN + '/xpe_preprocess.dll'); _G['com'] = C.CDLL(BIN + '/xpe_common.dll')
+        _G['pre'].xpe_preprocess_init.argtypes = [C.c_char_p]
+        assert _G['pre'].xpe_preprocess_init(None) == 0
+    pre, com = _G['pre'], _G['com']
     for fn in ('xpe_calib_load_offset', 'xpe_calib_load_gain', 'xpe_calib_load_defect_map'): getattr(pre, fn).argtypes = [C.c_char_p]
     com.xpe_clear_alerts()
     rc = [pre.xpe_calib_load_offset(f'{setdir}/offset.xcal'.encode()), pre.xpe_calib_load_gain(f'{setdir}/gain.xcal'.encode()), pre.xpe_calib_load_defect_map(f'{setdir}/defect.xcal'.encode())]
@@ -345,7 +347,7 @@ def cmd_run(locked, side, outdir):
                       out_sha256=__import__('hashlib').sha256(S.tobytes()).hexdigest())
             res.append(fr)
             print(json.dumps({k: fr[k] for k in ('set', 'frame', 'C_ok', 'C_min_pairs', 'denominator', 'placement_impossible')}), flush=True)
-            json.dump(res, open(f'{outdir}/{side}_results.json.txt', 'w'), indent=0)
+            json.dump(res, open(f'{outdir}/{side}_results.json.txt', 'w'), indent=0, default=lambda o: o.item())
     for f in pp:
         if os.path.exists(f): os.remove(f)
 
@@ -434,7 +436,7 @@ def cmd_contam(locked, outdir):
         fr = measure_frame(img, bm, rs, cs, n0, np.random.default_rng(339), sref, (f'{TMP}/_S_c.npy', f'{TMP}/_M_c.npy'))
         fr.update(set='cyan_test', frame='Bright_29 ' + name)
         res[name] = fr
-    json.dump(dict(sigma_ref=sig, rows=[int(rows[0]), int(rows[-1])], res=res), open(f'{outdir}/contam_results.json.txt', 'w'), indent=0)
+    json.dump(dict(sigma_ref=sig, rows=[int(rows[0]), int(rows[-1])], res=res), open(f'{outdir}/contam_results.json.txt', 'w'), indent=0, default=lambda o: o.item())
     print(f"sigma_ref (sigma_C2, k=1, L={X1 - X0}) = {sig:.6g}; offset rows {rows[0]}..{rows[-1]} ({rows.size}), N(0, (2 sigma_ref)^2), seed 339")
     for name in ('before', 'after'):
         r = res[name]

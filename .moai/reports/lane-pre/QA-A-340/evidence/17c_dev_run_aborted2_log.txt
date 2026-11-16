@@ -1,0 +1,13 @@
+{"set": "G1_0412_plain_0", "frame": "Bright_14.raw", "C_ok": true, "C_min_pairs": 403736, "denominator": 142, "placement_impossible": 0}
+{"set": "G1_0412_plain_0", "frame": "Bright_15.raw", "C_ok": true, "C_min_pairs": 403736, "denominator": 142, "placement_impossible": 0}
+Traceback (most recent call last):
+  File "D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-340\evidence\10_study.py", line 451, in <module>
+    if cmd == 'run': cmd_run(sys.argv[2], sys.argv[3], sys.argv[4])
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-340\evidence\10_study.py", line 341, in cmd_run
+    outs = pipeline(f"{TMP}/{s['set']}", [f"{s['folder']}/{n}" for n, _ in s['ev']])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\workspace-github\xpe-pre\.moai\reports\lane-pre\QA-A-340\evidence\10_study.py", line 179, in pipeline
+    assert pre.xpe_preprocess_init(None) == 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
