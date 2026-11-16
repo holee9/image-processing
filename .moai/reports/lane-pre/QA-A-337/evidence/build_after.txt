@@ -1,0 +1,2 @@
+[1/2] Building CXX object modules\preprocess\CMakeFiles\xpe_calib_fixture_gen.dir\tools\xpe_calib_fixture_gen.cpp.obj
+[2/2] Linking CXX executable bin\xpe_calib_fixture_gen.exe

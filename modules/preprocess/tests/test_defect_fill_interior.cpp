@@ -275,20 +275,3 @@ TEST_F(DefectFillTest, TheLoadAlertSaysMarkedAndListedNotFilled) {
               findAlert("XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT:"));
 }
 
-TEST_F(DefectFillTest, TheApplicationAlertOfAPolynomialSaysMarkedAndListedNotFilled) {
-    constexpr uint32_t W = 20, H = 20;
-    std::vector<float> c(static_cast<size_t>(W) * H * 2, 0.0f);
-    for (size_t q = 0; q < static_cast<size_t>(W) * H; ++q) c[q * 2] = (q == 37) ? 0.0f : 2.0f;
-    XCalFileHeader hdr{};
-    std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-    hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY); hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
-    hdr.width = W; hdr.height = H; hdr.payload_len = c.size() * sizeof(float);
-    ASSERT_EQ(XPE_OK, write_xcal_file(p("poly.xcal").c_str(), hdr, nullptr, 0, reinterpret_cast<const uint8_t*>(c.data()), hdr.payload_len));
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(p("poly.xcal").c_str()));
-    loadDefects(W, H, {});
-    xpe_clear_alerts();
-    ASSERT_EQ(XPE_OK, run(kGainAndDefect, W, H, 100, {}, 100, nullptr));
-    EXPECT_EQ("XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: 1 pixel(s) of this frame evaluate to a gain outside [0.1, 10.0] and are marked defective "
-              "(gain 1.0) and listed for the defect correction stage",
-              findAlert("XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT:"));
-}

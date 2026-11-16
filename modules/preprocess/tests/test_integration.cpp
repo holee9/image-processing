@@ -16,10 +16,6 @@ extern "C" XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height
 extern "C" XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     const XpeImageMetadata* meta);
 extern "C" XPE_API void xpe_ghost_destroy(void* handle);
-extern "C" XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-    float detectorTempC, const char* configJsonOrNull);
-extern "C" XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
-    const char* configJsonOrNull);
 extern "C" XPE_API XpeErrorCode xpe_binning_correct(XpeImageBuffer* img,
     int32_t binningMode, const char* configJsonOrNull);
 
@@ -107,11 +103,7 @@ TEST(Integration, UncalibratedPipelineComposes) {
     EXPECT_EQ(XPE_OK, xpe_validate_readout_artifact(
         &buf.rawBuf, &buf.meta, &dropped, &nonuniform));
 
-    // Stage 2: Temperature compensation
-    ASSERT_EQ(XPE_OK, xpe_temp_compensate(&buf.rawBuf, 25.0f, nullptr));
-
-    // Stage 3: Nonlinearity correction
-    ASSERT_EQ(XPE_OK, xpe_nonlinearity_correct(&buf.rawBuf, nullptr));
+    // (Stage 3, the nonlinearity correction, was removed -- QA-A-336.)
 
     // Stage 4: Offset correction -- refuses; no calibration is loaded
     {
@@ -151,9 +143,7 @@ TEST(Integration, UncalibratedPipelineComposes) {
             << "pixel[" << i << "] changed; no stage in this run may write gainBuf";
     }
 
-    // QA-A-140 (#196): the nonlinearity stage above runs with no LUT loaded and
-    // now reports its no-op, so this pipeline leaves one alert behind. Drained
-    // through the product's own path (hygiene axis 4, QA-A-138).
+    // Drained through the product's own path (hygiene axis 4, QA-A-138).
     xpe_clear_alerts();
 }
 

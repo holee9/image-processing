@@ -19,8 +19,6 @@ set(XPE_PREPROCESS_SOURCES
     src/offset_correct.cpp       # SWU-1.1 REQ-P1A-010, REQ-P1A-021 (new 3-arg g_calib API)
     src/gain_correct.cpp         # SWU-1.2 REQ-P1A-011 (new 3-arg g_calib API); guards REQ-P1A-020, REQ-P1A-020a
     src/readout_validate.cpp     # SWU-1.9 REQ-P1A-041 (dropped columns, rows above 0.9 x full scale; no line-noise check)
-    src/temp_compensate.cpp      # SWU-1.6 REQ-P1A-080, REQ-P1A-081 (the flag, REQ-P1A-082, is set by the pipeline)
-    src/nonlinearity_correct.cpp # SWU-1.7 SRS-CALIB-FUNC-006 / -006-EXT (SPEC-XPE-P1A has no nonlinearity requirement)
     src/binning_correct.cpp      # SWU-1.8 REQ-P1A-090, REQ-P1A-091
     src/defect_correct.cpp       # SWU-1.3 REQ-P1A-012 (new 3-arg g_calib API); runtime detection REQ-P1A-013 is in runtime_detection.cpp
     src/ghost_correct.cpp        # SWU-1.4 REQ-P1A-085..087
@@ -43,10 +41,8 @@ set(XPE_PREPROCESS_SOURCES
     src/xpe_calib_save.cpp          # T-007: 2-arg save (XCal v1)
     src/xpe_calib_generate_offset.cpp # T-008: 5-arg generate offset (XCal v1)
     src/xpe_calib_generate_offset_methods.cpp # shared offset generation methods
-    src/xpe_calib_generate_gain.cpp  # SWU-1.12: FUNC-026/027 gain generation
+    src/xpe_calib_generate_gain.cpp  # SWU-1.12: FUNC-026 gain generation
     src/saturation.cpp               # QA-A-296 (#278): detector saturation level (pile-up detection, output rule)
-    src/xpe_calib_generate_nonlin_lut.cpp # QA-A-110 (#186): FUNC-006-EXT 6a LUT generation
-    src/xpe_calib_load_nonlin_lut.cpp     # QA-A-111 (#186): FUNC-006-EXT 6a LUT load
     # XCal v1 file format helpers (required by load/save/generate functions above)
     src/xcal_reader.cpp
     src/xcal_writer.cpp
@@ -333,9 +329,6 @@ if(_XPE_BUILD_TESTS)
 
     set(XPE_TEST_SOURCES
         tests/test_offset_correct.cpp
-        tests/test_nonlin_lut_generate.cpp   # QA-A-110 (#186)
-        tests/test_nonlin_lut_apply.cpp      # QA-A-111 (#186)
-        tests/test_nonlin_poly_apply.cpp     # QA-A-160 (#186) FUNC-006-EXT 6b/6c
         tests/test_global_state_hygiene.cpp  # QA-A-113 (#176)
         # QA-A-15 (#120): still unregistered. Not an argument-count mismatch --
         # the file is written against the SPEC signature xpe_gain_correct(img,
@@ -484,20 +477,14 @@ if(_XPE_BUILD_TESTS)
         tests/test_calib_overwrite.cpp
         # QA-A-104 (#184): pipeline stage flags and values
         tests/test_pipeline_stage_values.cpp
-        # QA-A-105 (#187): current behaviour of a loaded gain polynomial
+        # QA-A-105 (#187), QA-A-336: the scalar gain map (the polynomial cases were removed with it)
         tests/test_gain_poly_not_applied.cpp
         # QA-A-232 M2 (#245): metadata content does not change defect_correct / detect_runtime / validate_readout / verify_*
         tests/test_metadata_not_read.cpp
         # QA-A-235b (#245): a refused calibration file leaves the store as it was (payload read straight into the staged map)
         tests/test_load_failure_keeps_store.cpp
-        # QA-A-123 (#194): the fitted dose range is recorded and enforced
-        tests/test_gain_poly_dose_range.cpp
-        tests/test_nonlin_no_mode_rejection.cpp
         tests/test_fixture_gen_gain_poly.cpp
-        # QA-A-210c (#233): per-pixel degree policy of the gain polynomial (monotone either way, final line = least squares)
-        tests/test_gain_poly_policy.cpp
         tests/test_gain_defect_classify.cpp
-        tests/test_gain_poly_classify.cpp
         tests/test_saturation.cpp            # QA-A-296 (#278): detector saturation level (setting, gain-file record, pile-up, output rule)
         tests/test_defect_lines.cpp          # QA-A-296 (#278): long runs of masked pixels in a version-1 map are interpolated across the line
         tests/test_parallel_determinism.cpp  # QA-A-296 (#278): the output does not depend on the thread count
@@ -514,8 +501,6 @@ if(_XPE_BUILD_TESTS)
         tests/test_ghost_tier3_border.cpp   # QA-A-227 (#244): tier 3 blends the border pixels too (mean over the neighbours that exist); a uniform frame stays uniform
         tests/test_ghost_tier3_orientation.cpp   # QA-A-218b (#233): tier 3 3x3 mean reads the incoming frame; scan-direction independent
         tests/test_xcal_replace_retry.cpp
-        # QA-A-140 (#196): the no-op report reaches a null-config caller
-        tests/test_nonlin_noop_report.cpp
         # QA-A-35 (#140): FUNC-033 quality metadata, wired to production
         tests/test_calib_quality_meta.cpp
         # REQ-P1A-066: OOM guard / IO failure / SHA-256 mismatch / Ghost multi-handle race
@@ -531,7 +516,7 @@ if(_XPE_BUILD_TESTS)
         tests/test_bpm_v2_line_ends.cpp
         # QA-A-319 (#273 #278): a row band x column parity dark structure is not flagged by the dark-mean feature
         tests/test_bpm_v2_periodic_dark.cpp
-        # QA-A-37 (#140): XCAL_TYPE_GAIN_POLY read path
+        # QA-A-37 (#140), QA-A-336: a gain polynomial file (type 3) is refused; single-dose FUNC-033 fields
         tests/test_calib_gain_poly_load.cpp
         # QA-A-38 (#138 #97): XPE-ALG-001 9.8.2.1 N_min static-defect marking
         tests/test_sigma_clip_nmin.cpp

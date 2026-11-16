@@ -1,0 +1,8 @@
+G3_0428_AED_31     lines2_f0      acf x 0.392 0.075 0.014 | acf y 0.407 0.079 0.015 | var(d2 rowmean)/pred 0.823 | var(d2 colmean)/pred 0.819
+G3_0428_AED_31     lines_f0       acf x 0.391 0.074 0.014 | acf y 0.407 0.079 0.015 | var(d2 rowmean)/pred 0.881 | var(d2 colmean)/pred 0.870
+G4_0410_plain_47   lines2_f0      acf x 0.396 0.077 0.015 | acf y 0.411 0.081 0.015 | var(d2 rowmean)/pred 0.894 | var(d2 colmean)/pred 0.821
+G4_0410_plain_47   lines_f0       acf x 0.395 0.076 0.014 | acf y 0.411 0.081 0.016 | var(d2 rowmean)/pred 0.865 | var(d2 colmean)/pred 0.818
+J4_0410_plain_75   lines2_f0      acf x 0.410 0.087 0.018 | acf y 0.425 0.092 0.019 | var(d2 rowmean)/pred 0.847 | var(d2 colmean)/pred 0.817
+J4_0410_plain_75   lines_f0       acf x 0.411 0.088 0.018 | acf y 0.425 0.092 0.019 | var(d2 rowmean)/pred 0.883 | var(d2 colmean)/pred 0.820
+cyan_test          lines_f0       acf x 0.416 0.091 0.019 | acf y 0.431 0.096 0.020 | var(d2 rowmean)/pred 1.520 | var(d2 colmean)/pred 0.781
+cyan_test          lines_f1       acf x 0.415 0.091 0.019 | acf y 0.430 0.096 0.020 | var(d2 rowmean)/pred 1.551 | var(d2 colmean)/pred 0.779

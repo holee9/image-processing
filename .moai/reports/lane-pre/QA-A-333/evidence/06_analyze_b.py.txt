@@ -1,0 +1,35 @@
+# QA-A-333 B: compare dumped F2b statistics with the model c * chi2/nu. Inputs: gdump.tsv (per pixel per group, 3 passes appended), fdump.tsv (final).
+import sys, numpy as np, collections
+T = sys.argv[1]
+g = np.genfromtxt(T + "/gdump.tsv", dtype=None, encoding=None, delimiter="\t")
+f = np.genfromtxt(T + "/fdump.tsv", dtype=None, encoding=None, delimiter="\t", names=True)
+npx = len(f); per = len(g) // 3
+print("rows gdump", len(g), "passes", len(g) / (npx * 5), "fdump", npx)
+# per pass: rebuild noiseSum/nu per pixel and compare with fdump (pixel order of the list is identical in every pass)
+for p in range(3):
+    blk = g[p * per:(p + 1) * per]
+    s = collections.defaultdict(float)
+    for r in blk: s[(r[0], r[1])] += r[4] * r[5]
+    d = np.array([abs(s[(r[0], r[1])] / 13 - r[3]) for r in f])
+    print("pass", p, "max |sum/13 - fdump|", d.max())
+last = g[2 * per:]
+tag = np.array([str(r[2]) for r in f])
+cat = np.array([("NORM" if t == "NORM" else ("r0.6" if t.endswith("0.6") else "r0.7")) for t in tag])
+stat = np.array([r[3] for r in f]); tau = f[0][4]
+rng = np.random.default_rng(333); K = [2, 2, 5, 2, 2]
+def model(c, m=400000):
+    return c * sum(k * rng.chisquare(k, m) / k for k in K) / 13
+qs = [0.5, 0.9, 0.99, 0.999]
+print("tau", tau, "nu", f[0][9], "groups", f[0][6])
+for name, c in (("NORM", 1.0), ("r0.7", 1 / 0.7), ("r0.6", 1 / 0.6)):
+    x = stat[cat == name]; m = model(c)
+    print(name, "n", len(x), "| measured q50/90/99/99.9", np.round(np.quantile(x, qs), 3), "| model c=%.3f" % c, np.round(np.quantile(m, qs), 3),
+          "| P(>tau) meas %.4g model %.4g" % ((x > tau).mean(), (m > tau).mean()), "| flagged(persist rule) %d" % ((x > tau) & (np.array([r[5] for r in f])[cat == name] * 2 >= 5)).sum())
+# per group: mean of ratioG and the corrGain, per category
+gc = np.array([("NORM" if str(r[2]) == "NORM" else ("r0.6" if str(r[2]).endswith("0.6") else "r0.7")) for r in last])
+for name in ("NORM", "r0.7", "r0.6"):
+    for gi in range(5):
+        sel = (gc == name) & (np.array([r[3] for r in last]) == gi)
+        rr = np.array([r[5] for r in last])[sel]; vg = np.array([r[6] for r in last])[sel]; bg = np.array([r[7] for r in last])[sel]; cg = np.array([r[9] for r in last])[sel]
+        print(name, "g", gi, "nu", int(np.array([r[4] for r in last])[sel][0]), "mean ratioG %.3f" % rr.mean(), "median ratioG %.3f" % np.median(rr),
+              "mean vg/vgBg %.3f" % (vg / bg).mean(), "mean corrGain %.3f" % cg.mean(), "mnu %.4f" % last[sel][0][8])

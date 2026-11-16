@@ -4,9 +4,9 @@
  *
  * test_pipeline_stages.cpp checks that stages RUN (the flag appears). These
  * cases check what the flag and the output SAY:
- *  - XPE_FLAG_NONLINEARITY_CORRECTED is set only when pixels were corrected.
- *    xpe_nonlinearity_correct changes no pixel today (no LUT/polynomial is
- *    implemented, SRS-CALIB-FUNC-006), so the flag must stay clear (#184).
+ *  - XPE_FLAG_NONLINEARITY_CORRECTED is never set: the nonlinearity stage was
+ *    removed (QA-A-336); the bit stays reserved in xpe_types.h and must stay
+ *    clear (#184).
  *  - With offset, nonlinearity and gain enabled, the frame that reaches the
  *    gain stage is the offset-corrected frame, and the pipeline returns
  *    (raw - offset) / gain. Expected values are computed here by hand, not by
@@ -117,7 +117,7 @@ TEST_F(PipelineStageValueTest, NonlinearityWithoutCorrectionLeavesTheFlagClear) 
         ",\"bypassOffset\":true,\"bypassGain\":true}";
     ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, cfg.c_str()));
     EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED)
-        << "no pixel was corrected, so the frame must not be marked corrected (#184)";
+        << "the nonlinearity stage was removed (QA-A-336): the flag is never set";
 }
 
 TEST_F(PipelineStageValueTest, OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame) {

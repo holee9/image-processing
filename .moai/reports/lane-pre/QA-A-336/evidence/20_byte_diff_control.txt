@@ -1,0 +1,9 @@
+== control_same_binary_twice: sizes 37749367 / 37749367, config_json_len 479 / 479, payload_len 37748736
+   differing bytes: 37
+   header.created_epoch_ms: offsets 24..26 (3 bytes)
+   header.sha256: offsets 120..151 (32 bytes)
+   config[472]: offsets 624..624 (1 bytes)
+   config[475]: offsets 627..627 (1 bytes)
+   payload sha256 before a0a4ca9901fa3efa83d2ca6e2c6cf20f4e434402eac68cf59d7cd6c41454329e
+   payload sha256 after  a0a4ca9901fa3efa83d2ca6e2c6cf20f4e434402eac68cf59d7cd6c41454329e
+   created_epoch_ms: 1794838317836 / 1794838671446

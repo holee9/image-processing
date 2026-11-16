@@ -13,7 +13,7 @@
  *   - the whole frame, stages 0..binning, takes at most SRS-CALIB-PERF-001's 500 ms. The line is the SRS's, not
  *     chosen here. Both the first frame (cold: first touch of every buffer) and the second (warm) are held to it.
  * WHAT IS ONLY PRINTED
- *   - each stage's time next to its SRS budget (offset 55, nonlinearity 20, gain 55, binning 10, defect 95,
+ *   - each stage's time next to its SRS budget (offset 55, gain 55, binning 10, defect 95,
  *     ghost tier 1 140 ms), the one-time load times (PERF-003, 200 ms). They depend on the machine (the SRS names an
  *     Intel Core i7; the CI job runs an AMD EPYC), and the runtime detector already carries a machine-ratio gate.
  *
@@ -173,15 +173,11 @@ TEST_F(PipelinePerformance3072, TheWholeFrameWithCalibrationLoadedFitsSrsPerf001
         XpeImageBuffer rawBuf = u16(raw), offBuf = u16(offsetOut), gainBuf = f32(gainOut);
 
         bool dropped = false, nonuniform = false;
-        XpeErrorCode rcReadout, rcTemp, rcNonlin, rcOff, rcGain, rcDef, rcGhost, rcBin;
-        double msReadout, msTemp, msNonlin, msOff, msGain, msDef, msGhost, msBin;
+        XpeErrorCode rcReadout, rcOff, rcGain, rcDef, rcGhost, rcBin;
+        double msReadout, msOff, msGain, msDef, msGhost, msBin;
         auto a = Clock::now();
         rcReadout = xpe_validate_readout_artifact(&rawBuf, &meta, &dropped, &nonuniform);
         auto b = Clock::now(); msReadout = msBetween(a, b); a = b;
-        rcTemp = xpe_temp_compensate(&rawBuf, 25.0f, nullptr);
-        b = Clock::now(); msTemp = msBetween(a, b); a = b;
-        rcNonlin = xpe_nonlinearity_correct(&rawBuf, nullptr);
-        b = Clock::now(); msNonlin = msBetween(a, b); a = b;
         rcOff = xpe_offset_correct(&rawBuf, &offBuf, &meta);
         b = Clock::now(); msOff = msBetween(a, b); a = b;
         rcGain = xpe_gain_correct(&offBuf, &gainBuf, &meta);
@@ -197,19 +193,17 @@ TEST_F(PipelinePerformance3072, TheWholeFrameWithCalibrationLoadedFitsSrsPerf001
         rcBin = xpe_binning_correct(&gainBuf, 1, nullptr);
         b = Clock::now(); msBin = msBetween(a, b);
         // The sum of the stage times: the copy kept between defect and ghost for the checks below is not frame time.
-        const double totalMs = msReadout + msTemp + msNonlin + msOff + msGain + msDef + msGhost + msBin;
+        const double totalMs = msReadout + msOff + msGain + msDef + msGhost + msBin;
         frameMs[frame] = totalMs;
 
         std::printf("[perf-gate-pipeline] frame %d (%s) total %.1f ms (SRS-CALIB-PERF-001 limit %.0f ms, asserted) | stage ms, "
-                    "SRS budget in brackets, not asserted: readout %.1f, temp %.1f, nonlinearity %.1f [20], offset %.1f [55], "
+                    "SRS budget in brackets, not asserted: readout %.1f, offset %.1f [55], "
                     "gain %.1f [55], defect %.1f [95], ghost %.1f [140], binning %.1f [10]\n",
-                    frame, frame == 0 ? "cold" : "warm", totalMs, kSrsPerf001Ms, msReadout, msTemp, msNonlin, msOff, msGain,
+                    frame, frame == 0 ? "cold" : "warm", totalMs, kSrsPerf001Ms, msReadout, msOff, msGain,
                     msDef, msGhost, msBin);
 
         // ---- every stage returned OK ----
         EXPECT_EQ(XPE_OK, rcReadout) << "frame " << frame;
-        EXPECT_EQ(XPE_OK, rcTemp) << "frame " << frame;
-        EXPECT_EQ(XPE_OK, rcNonlin) << "frame " << frame;
         EXPECT_EQ(XPE_OK, rcOff) << "frame " << frame;
         EXPECT_EQ(XPE_OK, rcGain) << "frame " << frame;
         EXPECT_EQ(XPE_OK, rcDef) << "frame " << frame;
@@ -219,8 +213,8 @@ TEST_F(PipelinePerformance3072, TheWholeFrameWithCalibrationLoadedFitsSrsPerf001
         EXPECT_FALSE(nonuniform);
 
         // ---- and each one did its work (independent expectations, whole frame) ----
-        // Offset: out = max(in - 200, 0), measured on what the offset stage was given (temp compensation and the
-        // nonlinearity stage may touch rawBuf, so the expectation reads rawBuf as it stands after them).
+        // Offset: out = max(in - 200, 0), measured on what the offset stage was given (the expectation reads rawBuf as it
+        // stands when the offset stage runs).
         size_t offsetWrong = 0;
         for (size_t i = 0; i < N; ++i) {
             const uint16_t in = raw[i];
@@ -256,7 +250,7 @@ TEST_F(PipelinePerformance3072, TheWholeFrameWithCalibrationLoadedFitsSrsPerf001
             EXPECT_GT(changed, 0u) << "the ghost stage changed no pixel of the second frame";
             std::printf("[perf-gate-pipeline] ghost changed %zu of %zu pixels of frame 1\n", changed, N);
         }
-        xpe_clear_alerts();   // the nonlinearity stage with no LUT reports its no-op; the pipeline leaves it behind
+        xpe_clear_alerts();
     }
 
     // ---- the requirement ----

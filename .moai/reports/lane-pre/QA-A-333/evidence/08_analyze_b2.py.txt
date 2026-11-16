@@ -1,0 +1,22 @@
+# QA-A-333 B (2): (a) pass check with duplicate list rows removed; (b) per group medians of vg and vgBg per category (last pass).
+import sys, numpy as np, collections
+T = sys.argv[1]
+g = np.genfromtxt(T + "/gdump.tsv", dtype=None, encoding=None, delimiter="\t")
+f = np.genfromtxt(T + "/fdump.tsv", dtype=None, encoding=None, delimiter="\t", names=True)
+key = [(r[0], r[1]) for r in f]; cnt = collections.Counter(key)
+print("list rows", len(key), "unique", len(cnt), "duplicated coords", sum(1 for v in cnt.values() if v > 1))
+per = len(g) // 3
+for p in range(3):
+    s = collections.defaultdict(float)
+    for r in g[p * per:(p + 1) * per]: s[(r[0], r[1])] += r[4] * r[5]
+    d = np.array([abs(s[(r[0], r[1])] / cnt[(r[0], r[1])] / 13 - r[3]) for r in f])
+    print("pass", p, "max |sum/13 - fdump| (dup-normalised) %.3g" % d.max())
+last = g[2 * per:]
+cat = lambda t: "NORM" if t == "NORM" else ("r0.6" if t.endswith("0.6") else "r0.7")
+c = np.array([cat(str(r[2])) for r in last]); gi = np.array([r[3] for r in last]); vg = np.array([r[6] for r in last]); bg = np.array([r[7] for r in last])
+for k in range(5):
+    mn = np.median(vg[(c == "NORM") & (gi == k)]); mb = np.median(bg[(c == "NORM") & (gi == k)])
+    for name in ("NORM", "r0.7", "r0.6"):
+        sel = (c == name) & (gi == k)
+        print("g", k, name, "median vg %.2f" % np.median(vg[sel]), "median vgBg %.2f" % np.median(bg[sel]),
+              "| vg/NORM-vg %.3f" % (np.median(vg[sel]) / mn), "vgBg/NORM-vgBg %.3f" % (np.median(bg[sel]) / mb))

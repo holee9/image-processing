@@ -1,0 +1,5 @@
+generate rc=0
+dark-0 exit=0 raw=D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산/AED/Dark_08.raw
+dark-1 exit=0 raw=D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산/AED/Dark_09.raw
+flat-2 exit=0 raw=D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산/AED/Bright_18.raw
+flat-3 exit=0 raw=D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산/AED/Bright_19.raw

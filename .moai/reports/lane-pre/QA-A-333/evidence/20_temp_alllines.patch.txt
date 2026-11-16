@@ -1,0 +1,39 @@
+diff --git a/modules/preprocess/tools/xpe_bpm_eval.cpp b/modules/preprocess/tools/xpe_bpm_eval.cpp
+index d6f2b6ed..fb5ae593 100644
+--- a/modules/preprocess/tools/xpe_bpm_eval.cpp
++++ b/modules/preprocess/tools/xpe_bpm_eval.cpp
+@@ -2427,6 +2427,34 @@ int cmdCorrect(const Args& a) {
+     for (size_t f = 0; f < cleanEval.size(); ++f) {
+         std::vector<float> C, I, U;
+         if (!loadSet(a.str("clean-set")) || !runPipeline(cleanEval[f], t.w, t.h, kCfgFinal, &C)) return 4;
++        {   // TEMP-DIAG QA-A-333 A: lineIndexOriented on every full row and every full column of the clean corrected frame (k = 1, L = full extent), record only
++            char* outp = nullptr; size_t on = 0;
++            _dupenv_s(&outp, &on, "XPE_ALLLINES_OUT");
++            if (outp) {
++                char nm[600];
++                std::snprintf(nm, sizeof nm, "%s_f%zu.tsv", outp, f);
++                FILE* fo = nullptr;
++                fopen_s(&fo, nm, "w");
++                if (fo) {
++                    std::fprintf(fo, "orient\tindex\tskipped\tcomputable\tdn\tsigmaPix\tsigmaPred\tratio\n");
++                    for (uint32_t y = 0; y < t.h; ++y) {
++                        const LineIndex l = xpe_bpm_eval::lineIndexOriented(C.data(), t.w, t.h, Rect{0, static_cast<int>(y), static_cast<int>(t.w), 1}, true);
++                        std::fprintf(fo, "row\t%u\t%d\t%d\t%.6f\t%.6f\t%.6f\t%.6f\n", y, l.skipped ? 1 : 0, l.computable ? 1 : 0, l.dn, l.sigmaPix, l.sigmaPred, l.ratio);
++                    }
++                    for (uint32_t x = 0; x < t.w; ++x) {
++                        const LineIndex l = xpe_bpm_eval::lineIndexOriented(C.data(), t.w, t.h, Rect{static_cast<int>(x), 0, 1, static_cast<int>(t.h)}, false);
++                        std::fprintf(fo, "col\t%u\t%d\t%d\t%.6f\t%.6f\t%.6f\t%.6f\n", x, l.skipped ? 1 : 0, l.computable ? 1 : 0, l.dn, l.sigmaPix, l.sigmaPred, l.ratio);
++                    }
++                    std::fclose(fo);
++                }
++                char cn[600];
++                std::snprintf(cn, sizeof cn, "%s_f%zu_C.f32", outp, f);
++                FILE* fc = nullptr;
++                fopen_s(&fc, cn, "wb");
++                if (fc) { std::fwrite(C.data(), sizeof(float), C.size(), fc); std::fclose(fc); }
++            }
++            std::free(outp);
++        }
+         if (!loadSet(a.str("inj-set")) || !runPipeline(injEval[f], t.w, t.h, kCfgFinal, &I) || !runPipeline(injEval[f], t.w, t.h, kCfgNoDefect, &U)) return 4;
+         std::printf("== evaluation frame %s (clean) / %s (planted)\n", baseName(cleanEval[f]).c_str(), baseName(injEval[f]).c_str());
+ 

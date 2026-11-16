@@ -1,20 +1,13 @@
 /**
  * @file test_calib_gain_poly_load.cpp
- * @brief QA-A-37 (#140): XCAL_TYPE_GAIN_POLY is readable, not just writable.
+ * @brief QA-A-336: a gain POLYNOMIAL file is refused with an explicit error; the single-dose gain file's FUNC-033 fields.
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  *
- * xpe_calib_generate_gain_polynomial() writes XCAL_TYPE_GAIN_POLY (= 3) with a
- * payload of (degree+1) x W x H floats. Nothing could read it back:
- *
- *   - xcal_validator.cpp Check 3 rejected every type above XCAL_TYPE_DEFECT
- *     (= 2), so a POLY file failed validation as CONFIG_INVALID before any
- *     loader was reached;
- *   - Check 8 required payload_len == W*H*bpp exactly, which a coefficient
- *     array never satisfies;
- *   - xpe_calib_load_gain() asked the reader for XCAL_TYPE_GAIN only.
- *
- * The A-35 metadata round trip therefore only ever ran over scalar GAIN files.
- * These cases run it over the file the API actually produces.
+ * The dose-dependent gain polynomial (XCAL type 3, written by xpe_calib_generate_gain_polynomial) was removed by user
+ * decision (QA-A-336). A type-3 file that still exists on disk must not load -- and must never be read as a scalar map:
+ * the loader refuses it with XPE_ERR_CONFIG_INVALID and an alert "XPE_ERR_XCAL_TYPE: ..." naming the type, and the store
+ * keeps what it held. Until QA-A-336 this file proved the opposite (that such a file loads, QA-A-37 #140); the cases
+ * below build the file by hand the way those cases did, since no generator writes it any more.
  */
 
 #include <gtest/gtest.h>
@@ -79,33 +72,6 @@ protected:
         return path;
     }
 
-    /**
-     * Generates a polynomial gain file through the public API.
-     *
-     * Level files are tagged per invocation: write_xcal_file renames a .tmp
-     * into place and a leftover from a previous call blocks it with -9
-     * (IO_FAILED). Same hazard recorded in test_calib_quality_meta.cpp.
-     */
-    XpeErrorCode generatePoly(const std::vector<float>& values,
-                              const std::string& outName,
-                              int32_t maxDegree = 2) {
-        const std::string tag = "g" + std::to_string(generation++) + "_";
-        std::vector<std::string> paths;
-        std::vector<const char*> pathPtrs;
-        std::vector<double>      doses;
-        for (size_t i = 0; i < values.size(); ++i) {
-            paths.push_back(writeGainLevel(tag + "lvl" + std::to_string(i) + ".xcal",
-                                           values[i]));
-            doses.push_back(static_cast<double>(i + 1));
-        }
-        for (const auto& s : paths) pathPtrs.push_back(s.c_str());
-
-        return xpe_calib_generate_gain_polynomial(
-            pathPtrs.data(), doses.data(),
-            static_cast<int32_t>(values.size()), maxDegree,
-            (tmpDir / outName).string().c_str());
-    }
-
     /** Reads the config JSON block back out of an XCal file. */
     std::string readConfigJson(const std::string& path) {
         std::ifstream f(path, std::ios::binary);
@@ -137,7 +103,7 @@ protected:
     }
     std::vector<std::vector<uint16_t>> flatStore;
 
-    /** A hand-built POLY file with an arbitrary payload length. */
+    /** A hand-built file of the removed polynomial type (3) with an arbitrary payload length. */
     std::string writePolyRaw(const std::string& name, uint64_t payloadLen,
                              const std::string& json = std::string()) {
         const std::string path = (tmpDir / name).string();
@@ -145,7 +111,7 @@ protected:
         XCalFileHeader hdr{};
         std::memcpy(hdr.magic, XCAL_MAGIC, 4);
         hdr.version         = XCAL_VERSION;
-        hdr.type            = static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY);
+        hdr.type            = 3u;   // the removed XCAL_TYPE_GAIN_POLY (QA-A-336: the number stays retired)
         hdr.pixel_format    = static_cast<uint32_t>(XCAL_FMT_FLOAT32);
         hdr.width = W; hdr.height = H;
         hdr.payload_len     = payloadLen;
@@ -160,38 +126,20 @@ protected:
     }
 };
 
-// The defect this card exists for: the file the API writes must be loadable.
-TEST_F(GainPolyLoadTest, PolyFileWrittenByTheApiLoads) {
-    ASSERT_EQ(XPE_OK, generatePoly({1.0f, 2.0f, 3.0f, 4.0f}, "poly.xcal"));
-
-    EXPECT_EQ(XPE_OK, xpe_calib_load_gain((tmpDir / "poly.xcal").string().c_str()))
-        << "XCAL_TYPE_GAIN_POLY is produced by the public generator; a loader "
-           "that cannot read it makes the file unreachable";
+/** The pending alerts that contain @p needle. */
+static int countAlerts(const char* needle) {
+    int found = 0;
+    const int32_t n = xpe_get_pending_alert_count();
+    for (int32_t k = 0; k < n; ++k) {
+        char msg[512] = {};
+        int32_t severity = 0;
+        if (xpe_get_pending_alert(k, msg, sizeof(msg), &severity) == XPE_OK && std::strstr(msg, needle) != nullptr) ++found;
+    }
+    return found;
 }
 
-// The A-35 round trip, run over a POLY file instead of a scalar GAIN file.
-// A perfectly linear series fits exactly, so R2 is 1 and the gate passes.
-TEST_F(GainPolyLoadTest, PolyMetadataSurvivesTheRoundTrip) {
-    ASSERT_EQ(XPE_OK, generatePoly({1.0f, 2.0f, 3.0f, 4.0f}, "meta.xcal"));
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((tmpDir / "meta.xcal").string().c_str()));
-
-    XpeCalibQualityMeta meta{};
-    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&meta));
-    EXPECT_NEAR(1.0, meta.r_squared, 1e-6);
-    EXPECT_EQ(4u, meta.num_points);
-    EXPECT_EQ(2u, meta.polynomial_degree);
-    EXPECT_EQ(1u, meta.calibration_pass);
-}
-
-// A polynomial calibration is not a scalar map. Loading one must not leave a
-// stale scalar gain map behind for xpe_gain_correct to silently apply.
-TEST_F(GainPolyLoadTest, LoadingPolyClearsTheScalarGainMap) {
-    const std::string scalar = writeGainLevel("scalar.xcal", 2.0f);
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(scalar.c_str()));
-
-    ASSERT_EQ(XPE_OK, generatePoly({1.0f, 2.0f, 3.0f, 4.0f}, "after.xcal"));
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain((tmpDir / "after.xcal").string().c_str()));
-
+/** One frame through xpe_gain_correct with the store as it is; the code, and the first output pixel through @p first. */
+static XpeErrorCode correctOnce(float* first) {
     std::vector<uint16_t> inData(N, 1000);
     std::vector<float>    outData(N, 0.0f);
     XpeImageBuffer in{}, out{};
@@ -203,52 +151,56 @@ TEST_F(GainPolyLoadTest, LoadingPolyClearsTheScalarGainMap) {
     out.bitsAllocated = 32; out.bitsStored = 32;
     out.format = XPE_PIXEL_FLOAT32;
     out.dataSize = static_cast<uint32_t>(outData.size() * sizeof(float));
-
     XpeImageMetadata meta{};
-    // WHAT THIS CASE CHECKS HAS NOT CHANGED -- how it checks it has, twice.
-    //
-    // The claim is: the scalar map from the earlier load must not survive a
-    // POLY load. QA-A-105 read that off XPE_ERR_CALIB_NOT_LOADED, QA-A-107 off
-    // XPE_ERR_UNSUPPORTED_FORMAT, and both worked only while nothing applied
-    // the polynomial. QA-A-121 applies it, so the call now succeeds and an
-    // error code can no longer carry the claim.
-    //
-    // Asserted against the OUTPUT instead, which is what the claim was always
-    // about: a surviving scalar map of 2.0 would give 1000 / 2.0 = 500. The
-    // polynomial's own value is not asserted here -- this fixture fits its
-    // curve over dose levels 1..4 and the frame sits at 1000, far outside that
-    // range, so the extrapolated number is not a meaningful expectation. That
-    // the answer is NOT the scalar map's is the whole of this test's claim.
-    EXPECT_EQ(XPE_OK, xpe_gain_correct(&in, &out, &meta));
-    EXPECT_NE(500.0f, outData[0])
-        << "the scalar map from the earlier load survived a POLY load";
+    const XpeErrorCode rc = xpe_gain_correct(&in, &out, &meta);
+    *first = outData[0];
+    return rc;
 }
 
-// The existing type-mismatch contract is unchanged: a POLY file is still not an
-// offset map, and a defect map is still not a gain file.
-TEST_F(GainPolyLoadTest, TypeMismatchStillReportsConfigInvalid) {
-    ASSERT_EQ(XPE_OK, generatePoly({1.0f, 2.0f, 3.0f, 4.0f}, "mismatch.xcal"));
+// QA-A-336: a polynomial gain file -- one plane, three planes, with and without the dose range it used to carry -- is
+// refused with an explicit error, never loaded and never read as a scalar map. Into an empty store: nothing is loaded
+// afterwards. Over a loaded scalar map: that map stays and is the one applied.
+TEST_F(GainPolyLoadTest, APolynomialGainFileIsRefusedWithAnExplicitErrorAndNothingIsLoaded) {
+    const uint64_t plane = static_cast<uint64_t>(N) * sizeof(float);
+    const std::string onePlane = writePolyRaw("poly1.xcal", plane);
+    const std::string threePlanes = writePolyRaw("poly3.xcal", 3 * plane,
+                                                 "{\"polynomial_degree\":2,\"dose_min\":14037.0,\"dose_max\":42677.0}");
 
+    // Control: the same writer, the scalar type, loads -- so a refusal below is the type, not the file.
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(writeGainLevel("control.xcal", 1.0f).c_str()));
+    xpe_preprocess_shutdown();   // empty store again
+    ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr));
+    xpe_clear_alerts();
+
+    float first = 0.0f;
+    for (const std::string& path : {onePlane, threePlanes}) {
+        xpe_clear_alerts();
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_gain(path.c_str())) << path;
+        EXPECT_EQ(1, countAlerts("XPE_ERR_XCAL_TYPE: calibration file type 3 (gain polynomial")) << path;
+        EXPECT_EQ(XPE_ERR_CALIB_NOT_LOADED, correctOnce(&first)) << "a refused file left a gain in the store: " << path;
+    }
+
+    // Over a loaded scalar map of 2.0: refused, and the scalar map is still the one applied (1000 / 2.0 = 500).
+    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(writeGainLevel("scalar.xcal", 2.0f).c_str()));
+    for (const std::string& path : {onePlane, threePlanes}) {
+        EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_gain(path.c_str())) << path;
+        ASSERT_EQ(XPE_OK, correctOnce(&first));
+        EXPECT_FLOAT_EQ(500.0f, first) << "the refused polynomial file changed the loaded scalar map: " << path;
+    }
+
+    // The cached loader refuses it the same way.
+    XpeImageBuffer view{};
+    EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_gain_cached(threePlanes.c_str(), &view));
+}
+
+// A type-3 file is not an offset map either, and a scalar gain file is still not a defect map.
+TEST_F(GainPolyLoadTest, TypeMismatchStillReportsConfigInvalid) {
+    const uint64_t plane = static_cast<uint64_t>(N) * sizeof(float);
     EXPECT_EQ(XPE_ERR_CONFIG_INVALID,
-              xpe_calib_load_offset((tmpDir / "mismatch.xcal").string().c_str()));
+              xpe_calib_load_offset(writePolyRaw("mismatch.xcal", plane).c_str()));
 
     const std::string scalar = writeGainLevel("as_defect.xcal", 1.0f);
     EXPECT_EQ(XPE_ERR_CONFIG_INVALID, xpe_calib_load_defect_map(scalar.c_str()));
-}
-
-// The payload of a POLY file is a whole number of coefficient planes. Anything
-// else is a malformed file, not a degree the loader should guess at.
-TEST_F(GainPolyLoadTest, PayloadThatIsNotAWholeNumberOfPlanesIsRejected) {
-    const uint64_t plane = static_cast<uint64_t>(N) * sizeof(float);
-
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID,
-              xpe_calib_load_gain(writePolyRaw("ragged.xcal", plane + 4).c_str()));
-    EXPECT_EQ(XPE_ERR_CONFIG_INVALID,
-              xpe_calib_load_gain(writePolyRaw("empty.xcal", 0).c_str()));
-
-    // One plane is degree 0 -- a constant term only, which is well formed.
-    EXPECT_EQ(XPE_OK,
-              xpe_calib_load_gain(writePolyRaw("one_plane.xcal", plane).c_str()));
 }
 
 // --- FUNC-033 (1) for the single-dose generator ---------------------------
@@ -256,8 +208,7 @@ TEST_F(GainPolyLoadTest, PayloadThatIsNotAWholeNumberOfPlanesIsRejected) {
 // SRS-CALIB-FUNC-033 (1): "Every generated XCal gain file shall include:
 // calibration_mode, actual_dose_levels, polynomial_degree (0 for single-point),
 // fit_r_squared (1.0 for single-point by definition), max_residual_pct,
-// mean_residual_pct, ...". Until QA-A-37 only the polynomial generator wrote
-// them, so a scalar gain file satisfied none of it.
+// mean_residual_pct, ...".
 
 TEST_F(GainPolyLoadTest, SingleDoseGainFileCarriesTheMandatoryFields) {
     ASSERT_EQ(XPE_OK, generateSingleDose("single.xcal"));

@@ -1,0 +1,15 @@
+# QA-A-333 B (4): the same pixel positions (ids 100,101,103,104,106,110 and the NORM sample of 01) in the CLEAN cyan_test set (no injection).
+# Final pass (call 3) planes vg, vgBg; ratios of medians against the NORM sample, as in 15/17.
+import sys, numpy as np
+T = sys.argv[1]; W, H = 3065, 3069
+lst = np.genfromtxt(T + "/fdump.tsv", dtype=None, encoding=None, delimiter="\t", names=True)
+xs = np.array([r[0] for r in lst]) - 6; ys = np.array([r[1] for r in lst]) - 2; tags = np.array([str(r[2]) for r in lst])
+ok = (xs < W) & (ys < H); xs, ys, tags = xs[ok], ys[ok], tags[ok]
+cat = np.where(tags == "NORM", "NORM", np.where(np.char.endswith(tags, "0.6"), "r0.6", "r0.7"))
+for g in range(5):
+    raw = np.fromfile(f"{T}/vgc/c3_g{g}_w3065_h3069_ex0.f32", dtype=np.float32)
+    vg = raw[:W * H].reshape(H, W); bg = raw[W * H:].reshape(H, W)
+    nb = np.median(bg[ys[cat == "NORM"], xs[cat == "NORM"]]); nv = np.median(vg[ys[cat == "NORM"], xs[cat == "NORM"]])
+    for name in ("r0.7", "r0.6"):
+        s = cat == name
+        print("clean g", g, name, "vgBg/NORM %.3f  vg/NORM %.3f" % (np.median(bg[ys[s], xs[s]]) / nb, np.median(vg[ys[s], xs[s]]) / nv))

@@ -31,6 +31,7 @@
 
 #include "xpe_fixture_gen_path.h"  // generated: XPE_FIXTURE_GEN_EXE
 #include "defect_ext.hpp"
+#include "../tools/xpe_dark_selection.hpp"   // QA-A-337: the dark selection rule, unit-tested on doubles
 
 #include <chrono>
 #include <cstdint>
@@ -346,7 +347,7 @@ TEST_F(CalibFixtureGenTest, CalDataModeRefusesAMissingOrWronglySizedInputAndWrit
     }
 }
 
-// The polynomial gain has no real-frame source in this mode; asking for both is refused up front rather than ignoring one.
+// --gain-poly is refused (QA-A-336: an unknown argument since the gain polynomial was removed), and nothing is written.
 TEST_F(CalibFixtureGenTest, CalDataModeCannotBeCombinedWithAGainPolynomial) {
     writeCalData(root / "in");
     const fs::path out = caseDir("out");
@@ -1236,6 +1237,154 @@ TEST_F(CalibFixtureGenTest, TheOneListStatementIsLimitedToAMeanGainReference) {
     }
     EXPECT_NE(std::string::npos, mn.find("\"gain_dark_reference\": \"none (no dark reference"));
     EXPECT_NE(std::string::npos, mf.find("\"gain_dark_reference\": \"the file "));
+}
+
+// ---------------------------------------------------------------- QA-A-337 (#278): data-based exclusion of the unsettled leading darks
+// Expectation table B1..B16 of .moai/reports/lane-pre/QA-A-337/report.md, section "시험표 정정". Layer U: the pure rule on doubles.
+// Layer F: the tool on uint16 frames whose region mean is exactly the integer m_k.
+
+using xpe_dark_sel::Condition;
+using Conds = std::vector<Condition>;
+constexpr Condition kC = Condition::LaterHalfDeviates, kA = Condition::DeviatesAfterRun, kB = Condition::TooFewLeft;
+
+std::vector<double> rep(double v, size_t n) { return std::vector<double>(n, v); }
+std::vector<double> cat(std::initializer_list<std::vector<double>> parts) {
+    std::vector<double> out;
+    for (const auto& p : parts) out.insert(out.end(), p.begin(), p.end());
+    return out;
+}
+
+void expectSelection(const std::vector<double>& m, size_t excluded, double r, const Conds& conds) {
+    const xpe_dark_sel::Selection s = xpe_dark_sel::selectLeadingDarks(m);
+    EXPECT_DOUBLE_EQ(r, s.reference);
+    EXPECT_EQ(conds, s.conditions);
+    if (conds.empty()) EXPECT_EQ(excluded, s.excluded);
+    else if (excluded != 0) EXPECT_EQ(excluded, s.excluded);
+}
+
+TEST(DarkSelectionRule, B1_ExactlyPlus20IsKept) { expectSelection(cat({{1000, 1020}, rep(1000, 6)}), 1, 1000, {}); }
+TEST(DarkSelectionRule, B2_Plus21IsExcluded) { expectSelection(cat({{1000, 1021}, rep(1000, 6)}), 2, 1000, {}); }
+TEST(DarkSelectionRule, B2n_Minus21IsExcluded) { expectSelection(cat({{1000, 979}, rep(1000, 6)}), 2, 1000, {}); }
+TEST(DarkSelectionRule, B2m_Minus20IsKept) { expectSelection(cat({{1000, 980}, rep(1000, 6)}), 1, 1000, {}); }
+TEST(DarkSelectionRule, B3_DeviationAfterTheRunIsA) { expectSelection(cat({{1000, 1000, 1030}, rep(1000, 5)}), 1, 1000, {kA}); }
+TEST(DarkSelectionRule, B4_LaterHalfDeviationIsCAndA) { expectSelection(cat({rep(1000, 7), {1030}}), 1, 1000, {kC, kA}); }
+TEST(DarkSelectionRule, B5_FiveLeftIsEnough) { expectSelection(cat({{1000, 1100, 1100}, rep(1000, 5)}), 3, 1000, {}); }
+TEST(DarkSelectionRule, B6_FourLeftIsB) { expectSelection(cat({{1000, 1100, 1100, 1100}, rep(1000, 4)}), 4, 1000, {kB}); }
+TEST(DarkSelectionRule, B7_TwoLevelsKeepAllButTheFirst) { expectSelection({1000, 1005.8, 1005.8, 1005.6, 1000, 1005.9, 1000, 1000.1}, 1, 1000.05, {}); }
+TEST(DarkSelectionRule, B7F_TwoLevelsIntegerEdition) { expectSelection({1000, 1006, 1006, 1006, 1000, 1006, 1000, 1000}, 1, 1000, {}); }
+TEST(DarkSelectionRule, B13_N12SixLeftIsEnough) { expectSelection(cat({{1000}, rep(1100, 5), rep(1000, 6)}), 6, 1000, {}); }
+TEST(DarkSelectionRule, B14_N12FiveLeftIsCAndB) { expectSelection(cat({{1000}, rep(1100, 6), rep(1000, 5)}), 7, 1000, {kC, kB}); }
+TEST(DarkSelectionRule, B15_OddN7FiveLeftIsEnough) { expectSelection(cat({{1000, 1021}, rep(1000, 5)}), 2, 1000, {}); }
+TEST(DarkSelectionRule, B16_OddN7FourLeftIsB) { expectSelection(cat({{1000, 1021, 1021}, rep(1000, 4)}), 3, 1000, {kB}); }
+TEST(DarkSelectionRule, EvenMedianIsTheMeanOfTheMiddleTwoNotTheUpperOne) {
+    EXPECT_DOUBLE_EQ(1001.0, xpe_dark_sel::medianMeanOfMiddleTwo({1000, 1000, 1002, 1002}));
+    EXPECT_DOUBLE_EQ(1002.0, xpe_dark_sel::medianMeanOfMiddleTwo({1003, 1000, 1002}));
+}
+
+/** Darks whose region mean is exactly m[k]: every pixel m[k], except pixels 0 and 1 at m[k] + (k+1) and m[k] - (k+1), so no two darks share content (exit 13). */
+FrameSet writeLevelDarks(const fs::path& dir, const std::vector<int>& m) {
+    FrameSet     set = writeFrameSet(dir, 0, 12);
+    const size_t n = static_cast<size_t>(kW) * kH;
+    for (size_t k = 0; k < m.size(); ++k) {
+        std::vector<uint16_t> f(n, static_cast<uint16_t>(m[k]));
+        f[0] = static_cast<uint16_t>(m[k] + static_cast<int>(k) + 1);
+        f[1] = static_cast<uint16_t>(m[k] - static_cast<int>(k) - 1);
+        const fs::path path = dir / ("level_dark_" + std::to_string(k) + ".raw");
+        writeU16(path, f);
+        set.darks.push_back(path.string());
+    }
+    return set;
+}
+
+std::vector<int> repI(int v, size_t n) { return std::vector<int>(n, v); }
+std::vector<int> catI(std::initializer_list<std::vector<int>> parts) {
+    std::vector<int> out;
+    for (const auto& p : parts) out.insert(out.end(), p.begin(), p.end());
+    return out;
+}
+
+class DarkSelectionTool : public CalibFixtureGenTest {
+protected:
+    /** Accepted: exit 0, `used` darks in the set, the first `excluded` given darks named as excluded, the rest used. */
+    void expectUsed(const char* tag, const std::vector<int>& m, size_t excluded) {
+        const FrameSet set = writeLevelDarks(root / (std::string(tag) + "_in"), m);
+        const fs::path out = root / (std::string(tag) + "_out");
+        std::string    err;
+        ASSERT_EQ(0, runFrames(root, out, framesArgs(set, false), tag, &err)) << err;
+        const std::string mf = asText(readAll(out / "manifest.json"));
+        EXPECT_NE(std::string::npos, mf.find("\"frames\": {\"dark\": " + std::to_string(m.size() - excluded) + ", ")) << mf;
+        EXPECT_EQ(excluded, countIn(mf, "\"dark_selection\": {", "\"verdict\"", "\"why\"")) << mf;
+        const size_t sel = mf.find("\"dark_selection\": {");
+        for (size_t k = 0; k < m.size(); ++k) {
+            const bool inExcluded = mf.find(fs::path(set.darks[k]).generic_string(), sel) != std::string::npos;
+            EXPECT_EQ(k < excluded, inExcluded) << "dark " << k;
+        }
+        EXPECT_NE(std::string::npos, mf.find("\"T\": 20.0"));
+        EXPECT_NE(std::string::npos, mf.find("\"verdict\": \"used\""));
+        EXPECT_NE(std::string::npos, mf.find("\"dark_order\": \"as given, not checked\""));
+    }
+    /** Refused: exit 15, nothing written, the true conditions in the order (c), (a), (b). */
+    void expectUnavailable(const char* tag, const std::vector<int>& m, const std::string& conditions) {
+        const FrameSet set = writeLevelDarks(root / (std::string(tag) + "_in"), m);
+        const fs::path out = root / (std::string(tag) + "_out");
+        std::string    err;
+        EXPECT_EQ(15, runFrames(root, out, framesArgs(set, false), tag, &err)) << err;
+        EXPECT_FALSE(fs::exists(out));
+        EXPECT_FALSE(hasOwnWorkDir(root));
+        EXPECT_NE(std::string::npos, err.find("verdict unavailable " + conditions + " --")) << err;
+        EXPECT_NE(std::string::npos, err.find("T 20.0")) << err;
+        EXPECT_EQ(m.size(), countIn(err, "excluded run", "\x7f", "  m_")) << err;
+    }
+};
+
+TEST_F(DarkSelectionTool, B1_ExactlyPlus20IsKept) { expectUsed("b1", catI({{1000, 1020}, repI(1000, 6)}), 1); }
+TEST_F(DarkSelectionTool, B2_Plus21IsExcluded) { expectUsed("b2", catI({{1000, 1021}, repI(1000, 6)}), 2); }
+TEST_F(DarkSelectionTool, B2n_Minus21IsExcluded) { expectUsed("b2n", catI({{1000, 979}, repI(1000, 6)}), 2); }
+TEST_F(DarkSelectionTool, B2m_Minus20IsKept) { expectUsed("b2m", catI({{1000, 980}, repI(1000, 6)}), 1); }
+TEST_F(DarkSelectionTool, B3_DeviationAfterTheRunIsA) { expectUnavailable("b3", catI({{1000, 1000, 1030}, repI(1000, 5)}), "(a)"); }
+TEST_F(DarkSelectionTool, B4_LaterHalfDeviationIsCAndA) { expectUnavailable("b4", catI({repI(1000, 7), {1030}}), "(c) (a)"); }
+TEST_F(DarkSelectionTool, B5_FiveLeftIsEnough) { expectUsed("b5", catI({{1000, 1100, 1100}, repI(1000, 5)}), 3); }
+TEST_F(DarkSelectionTool, B6_FourLeftIsB) { expectUnavailable("b6", catI({{1000, 1100, 1100, 1100}, repI(1000, 4)}), "(b)"); }
+TEST_F(DarkSelectionTool, B7F_TwoLevelsIntegerEdition) { expectUsed("b7f", {1000, 1006, 1006, 1006, 1000, 1006, 1000, 1000}, 1); }
+TEST_F(DarkSelectionTool, B13_N12SixLeftIsEnough) { expectUsed("b13", catI({{1000}, repI(1100, 5), repI(1000, 6)}), 6); }
+TEST_F(DarkSelectionTool, B14_N12FiveLeftIsCAndB) { expectUnavailable("b14", catI({{1000}, repI(1100, 6), repI(1000, 5)}), "(c) (b)"); }
+TEST_F(DarkSelectionTool, B15_OddN7FiveLeftIsEnough) { expectUsed("b15", catI({{1000, 1021}, repI(1000, 5)}), 2); }
+TEST_F(DarkSelectionTool, B16_OddN7FourLeftIsB) { expectUnavailable("b16", catI({{1000, 1021, 1021}, repI(1000, 4)}), "(b)"); }
+
+TEST_F(DarkSelectionTool, B8_KeepFirstDarkBypassesTheWholeRule) {
+    const FrameSet set = writeLevelDarks(root / "in", catI({{1000, 1100, 1100, 1100}, repI(1000, 4)}));   // the B6 input
+    const fs::path out = root / "out";
+    std::string    err;
+    ASSERT_EQ(0, runFrames(root, out, framesArgs(set, true), "b8", &err)) << err;
+    const std::string mf = asText(readAll(out / "manifest.json"));
+    EXPECT_NE(std::string::npos, mf.find("\"frames\": {\"dark\": 8, ")) << mf;
+    EXPECT_NE(std::string::npos, mf.find("\"rule\": \"off (--keep-first-dark")) << mf;
+    EXPECT_EQ(std::string::npos, mf.find("\"verdict\""));
+}
+
+TEST_F(DarkSelectionTool, B9_FiveGivenIsTheExistingRefusal) {
+    const FrameSet set = writeLevelDarks(root / "in", repI(1000, 5));
+    std::string    err;
+    EXPECT_EQ(10, runFrames(root, root / "out", framesArgs(set, false), "b9", &err));
+    EXPECT_NE(std::string::npos, err.find("too few dark frames: 4 usable (5 given")) << err;
+    EXPECT_FALSE(fs::exists(root / "out"));
+}
+
+TEST_F(DarkSelectionTool, B10_TheSamePathTwiceIsRefused) {
+    FrameSet set = writeLevelDarks(root / "in", repI(1000, 7));
+    set.darks.push_back(set.darks[3]);
+    std::string err;
+    EXPECT_EQ(13, runFrames(root, root / "out", framesArgs(set, false), "b10", &err)) << err;
+    EXPECT_FALSE(fs::exists(root / "out"));
+}
+
+TEST_F(DarkSelectionTool, B11_AnEmptyRegionIsRefused) {
+    const FrameSet set = writeLevelDarks(root / "in", repI(1000, 8));
+    std::string    err;
+    EXPECT_EQ(16, runFrames(root, root / "out", framesArgs(set, false) + " --bpm-margins 128,0,128,0", "b11", &err)) << err;
+    EXPECT_NE(std::string::npos, err.find("is empty")) << err;
+    EXPECT_FALSE(fs::exists(root / "out"));
+    EXPECT_FALSE(hasOwnWorkDir(root));
 }
 
 }  // namespace

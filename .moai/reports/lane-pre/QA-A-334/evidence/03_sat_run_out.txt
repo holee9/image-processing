@@ -1,0 +1,9 @@
+init rc 0
+rc off 0 format 1 | rc 40000 0 format 1
+pixels raw>=40000 5723143
+run(b) values on raw>=40000: unique count 42 first [39557.934 39557.934 39557.934]
+run(a) on the same pixels: median 29469.7344 min 28860.6016 max 30208.4258
+run(a) on raw 39990..39999 (n=12513): median 29478.0469 max 29914.8008
+run(a) max over raw<40000 pixels: 30123.4336
+run(b) max over raw<40000 pixels: 39557.9336; pixels changed by clamp: 41
+rc default 0 | default vs off: pixels different 0 | default max 30208.4258

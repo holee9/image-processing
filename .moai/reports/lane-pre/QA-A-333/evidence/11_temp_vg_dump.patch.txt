@@ -1,0 +1,25 @@
+diff --git a/modules/preprocess/src/xpe_bpm_v2.cpp b/modules/preprocess/src/xpe_bpm_v2.cpp
+index 5d942383..f028585d 100644
+--- a/modules/preprocess/src/xpe_bpm_v2.cpp
++++ b/modules/preprocess/src/xpe_bpm_v2.cpp
+@@ -1029,6 +1029,20 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
+                 } else {
+                     separableMedian(vg.data(), vgTmp.data(), vgBg.data(), w, h, static_cast<int>(st.window));
+                 }
++                {   // TEMP-DIAG QA-A-333: dump vg and vgBg planes of every call and group (record only)
++                    static int diagCall = 0;
++                    char* dir = nullptr; size_t dn = 0;
++                    _dupenv_s(&dir, &dn, "XPE_VG_DIR");
++                    if (dir) {
++                        if (g == 0) ++diagCall;
++                        char nm[512];
++                        std::snprintf(nm, sizeof nm, "%s/c%d_g%u_w%d_h%d_ex%d.f32", dir, diagCall, g, w, h, refExclude != nullptr ? 1 : 0);
++                        FILE* fo = nullptr;
++                        fopen_s(&fo, nm, "wb");
++                        if (fo) { std::fwrite(vg.data(), sizeof(float), n, fo); std::fwrite(vgBg.data(), sizeof(float), n, fo); std::fclose(fo); }
++                    }
++                    std::free(dir);
++                }
+                 const double mnu = varianceMedian(mg - 1);
+                 std::vector<float> nomSample;
+                 nomSample.reserve(n / 16 + 1);

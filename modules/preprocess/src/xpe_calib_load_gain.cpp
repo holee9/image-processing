@@ -3,7 +3,8 @@
  * @brief xpe_calib_load_gain implementation (T-006)
  *
  * REQ-P1A-015: Load XCal v1 GAIN calibration map.
- * QA-A-37 (#140): also accepts XCAL_TYPE_GAIN_POLY coefficient files.
+ * QA-A-336: a gain polynomial file (type 3, the removed XCAL_TYPE_GAIN_POLY) is refused by the header check
+ *           (XPE_ERR_CONFIG_INVALID, unknown type) -- never read as a scalar map.
  * REQ-P1A-030: No C++ exceptions across C ABI boundary.
  * REQ-P1A-031: RAII for automatic cleanup on error.
  *
@@ -89,15 +90,11 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         std::vector<uint8_t> config_json;
         std::vector<uint8_t> payload;
 
-        // QA-A-37 (#140): both gain representations are accepted here --
-        // XCAL_TYPE_GAIN (one scalar plane) and XCAL_TYPE_GAIN_POLY
-        // ((degree+1) coefficient planes, written by
-        // xpe_calib_generate_gain_polynomial). The reader takes a single
-        // expected type, so the type check is done here instead; the code for
-        // a mismatch is the one the reader would have returned,
-        // XPE_ERR_CONFIG_INVALID, so the existing contract is unchanged.
+        // Only XCAL_TYPE_GAIN (one scalar plane). A file of any other type -- including the type-3 gain polynomial this
+        // module no longer has (QA-A-336) -- is refused with XPE_ERR_CONFIG_INVALID: the header check rejects a type above
+        // the highest one it knows, and the check below refuses the other known types.
         XpeConfigDoc config;   // the reader parses the config block once and hands the document over (QA-A-209c)
-        // QA-A-235b: an uncompressed scalar or polynomial gain payload is read straight into the map this function
+        // QA-A-235b: an uncompressed scalar gain payload is read straight into the map this function
         // keeps (no zero-filled vector, no second copy). The map is local until the commit below, so a refused file
         // leaves the module-global store as it was. Anything the sink does not take (another type, a ragged length,
         // a compressed file) is declined and goes the old way.
@@ -105,10 +102,9 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         XCalPayloadSink sink;
         sink.ctx = &map;
         sink.acquire = [](void* ctx, const XCalFileHeader& h, uint64_t len) -> uint8_t* {
-            const bool poly = (h.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY));
-            if (!poly && h.type != static_cast<uint32_t>(XCAL_TYPE_GAIN)) return nullptr;
+            if (h.type != static_cast<uint32_t>(XCAL_TYPE_GAIN)) return nullptr;
             const uint64_t plane = static_cast<uint64_t>(h.width) * h.height * sizeof(float);
-            if (plane == 0 || len == 0 || len % plane != 0 || (!poly && len != plane)) return nullptr;
+            if (plane == 0 || len != plane) return nullptr;
             auto* m = static_cast<std::shared_ptr<float[]>*>(ctx);
             m->reset(new float[static_cast<size_t>(len / sizeof(float))]);
             return reinterpret_cast<uint8_t*>(m->get());
@@ -122,29 +118,21 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
             return rc;
         }
 
-        const bool is_poly = (hdr.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY));
-        if (!is_poly && hdr.type != static_cast<uint32_t>(XCAL_TYPE_GAIN)) {
+        if (hdr.type != static_cast<uint32_t>(XCAL_TYPE_GAIN)) {
             return XPE_ERR_CONFIG_INVALID;
         }
 
-        // Verify payload size matches declared dimensions. A polynomial file
-        // holds a whole number of planes; validate_xcal_header already refused
-        // a ragged or empty payload, so the division here is exact.
+        // Verify payload size matches declared dimensions.
         // (the payload is in `map` when the sink took it, otherwise in `payload`)
         const size_t payload_size = sink.filled ? static_cast<size_t>(hdr.payload_len) : payload.size();
         const size_t plane = static_cast<size_t>(hdr.width) * hdr.height * sizeof(float);
         if (plane == 0) {
             return XPE_ERR_CONFIG_INVALID;
         }
-        if (is_poly) {
-            if (payload_size == 0 || payload_size % plane != 0) {
-                return XPE_ERR_CONFIG_INVALID;
-            }
-        } else if (payload_size != plane) {
+        if (payload_size != plane) {
             return XPE_ERR_CONFIG_INVALID;
         }
 
-        const size_t num_coeffs = is_poly ? (payload_size / plane) : 1;
         const size_t n_floats   = payload_size / sizeof(float);
 
         // SRS-CALIB-FUNC-002 (QA-A-211, #233): "Values shall be in range [0.1, 10.0]". A pixel outside it -- a failed
@@ -152,7 +140,7 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         // in the outer 64-pixel band, two thirds of them outside the defect map) -- no longer refuses the whole map: it is
         // CLASSIFIED DEFECTIVE, its gain is replaced by 1.0 and its index is kept for the defect stage. The count is
         // reported, and a map with more than XPE_GAIN_DEFECT_MAX_FRACTION of its pixels classified is refused as before
-        // (XPE_ERR_INVALID_CALIB_DATA). Scalar maps only: a coefficient of G(x,y,E) is not a gain value.
+        // (XPE_ERR_INVALID_CALIB_DATA).
         // Everything that allocates is done here, before the commit.
         // Overwritten by the memcpy below; no value-initialisation (QA-A-105).
         if (!sink.filled) {
@@ -161,7 +149,7 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         }
         std::shared_ptr<uint32_t[]> defect_idx;
         XpeGainScan scan;
-        if (!is_poly) {
+        {
             std::vector<uint32_t> idx;
             scan = xpe_gain_scan_scalar(map.get(), hdr.width, hdr.height, &idx);
             if (xpe_gain_scan_over_limit(scan)) {
@@ -175,10 +163,7 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
             }
         }
 
-        // Commit under mutex. The two gain models are alternatives: whichever
-        // is loaded clears the other, so a scalar map left over from an earlier
-        // file is never applied to frames the operator calibrated with a
-        // polynomial (SRS-CALIB-SAFE-003: no partial / mixed calibration).
+        // Commit under mutex.
 
         // Everything that allocates, and so can throw, is done HERE, before the commit below. The
         // commit only moves pointers and copies plain values, and nothing after it may throw: a
@@ -192,21 +177,10 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         const XpeErrorCode quality_rc = xpe_calib_parse_quality_meta(config, &quality, &quality_found);
         if (quality_rc != XPE_OK) return quality_rc;   // a malformed field: nothing has been committed
 
-        // QA-A-123 (#194): the fitted dose range, which bounds where the polynomial means anything. Present only when
-        // both are top-level bare JSON numbers.
-        double lo_a = -1.0, hi_a = -1.0;
-        bool present = false, usable = false;
-        if (is_poly) {
-            const bool has_lo = config.getNumber("dose_min", &lo_a);
-            const bool has_hi = config.getNumber("dose_max", &hi_a);
-            present = has_lo && has_hi;
-            usable  = present && (hi_a > lo_a);
-        }
-
         // QA-A-296: the saturation record in the config block (absent in a file written before it existed) and the
         // median of the scalar plane. A present but malformed record refuses the file: nothing has been committed.
         XpeGainSat sat;
-        if (!is_poly) {
+        {
             XpeSatRecord rec;
             if (!xpe_sat_record_from_config(config, &rec)) return XPE_ERR_CONFIG_INVALID;
             sat.known = rec.known;
@@ -221,18 +195,12 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
         staged.defectCount  = static_cast<uint32_t>(scan.count);
         staged.defectInBand = static_cast<uint32_t>(scan.inBand);
         staged.defectFirst  = static_cast<uint32_t>(scan.first);
-        staged.isPoly       = is_poly;
-        staged.numCoeffs    = static_cast<uint32_t>(num_coeffs);
         staged.width        = hdr.width;
         staged.height       = hdr.height;
         staged.timestamp    = hdr.created_epoch_ms;
         staged.expiryMs     = hdr.expiry_epoch_ms;
         staged.quality      = quality;
         staged.qualityFound = quality_found;
-        staged.doseLo       = lo_a;
-        staged.doseHi       = hi_a;
-        staged.rangePresent = present;
-        staged.rangeUsable  = usable;
         if (!config_json.empty())
             staged.config = std::make_shared<const std::vector<uint8_t>>(std::move(config_json));
         std::memcpy(staged.sessionId, hdr.session_id,
@@ -250,29 +218,11 @@ XpeErrorCode xpe_calib_stage_gain(const char* filepath, StagedGain* out) noexcep
     }
 }
 
-// The two gain models are alternatives: whichever is loaded clears the other, so a scalar map left over from
-// an earlier file is never applied to frames the operator calibrated with a polynomial (SRS-CALIB-SAFE-003:
-// no partial / mixed calibration).
 void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
-    if (staged.isPoly) {
-        g_calib.gain_poly_coeffs     = std::move(staged.map);
-        g_calib.gain_poly_num_coeffs = staged.numCoeffs;
-        g_calib.gain_map.reset();
-        g_calib.gain_defect_idx.reset();
-        g_calib.gain_defect_count = 0;
-    } else {
-        g_calib.gain_map = std::move(staged.map);
-        g_calib.gain_defect_idx   = std::move(staged.defectIdx);
-        g_calib.gain_defect_count = staged.defectCount;
-        g_calib.gain_poly_coeffs.reset();
-        g_calib.gain_poly_num_coeffs = 0;
-    }
-    g_calib.gain_sat = staged.isPoly ? XpeGainSat{} : staged.sat;
-    // The range belongs to whichever polynomial is current; setting it on every load keeps
-    // a previous file's bounds from surviving into the next one (QA-A-123, #194).
-    g_calib.gain_poly_has_range = (staged.isPoly && staged.rangeUsable);
-    g_calib.gain_poly_dose_min  = (staged.isPoly && staged.rangeUsable) ? staged.doseLo : 0.0;
-    g_calib.gain_poly_dose_max  = (staged.isPoly && staged.rangeUsable) ? staged.doseHi : 0.0;
+    g_calib.gain_map = std::move(staged.map);
+    g_calib.gain_defect_idx   = std::move(staged.defectIdx);
+    g_calib.gain_defect_count = staged.defectCount;
+    g_calib.gain_sat = staged.sat;
     g_calib.gain_width       = staged.width;
     g_calib.gain_height      = staged.height;
     g_calib.gain_timestamp   = staged.timestamp;
@@ -295,115 +245,12 @@ void xpe_calib_commit_gain_locked(StagedGain& staged) noexcept {
 void xpe_calib_after_gain_commit(const StagedGain& staged) noexcept {
     // Committed from here on; nothing below may fail the load. (The quality metadata was committed with the
     // maps, under the lock -- see xpe_calib_commit_gain_locked.)
-    const bool poly_loaded = staged.isPoly;
-    const bool usable      = staged.rangeUsable;
-    const bool present     = staged.rangePresent;
-    const double lo_a      = staged.doseLo;
-    const double hi_a      = staged.doseHi;
-    if (!poly_loaded && staged.defectCount > 0) {
+    if (staged.defectCount > 0) {
         XpeGainScan scan;
         scan.count = staged.defectCount; scan.inBand = staged.defectInBand; scan.first = staged.defectFirst;
         scan.total = static_cast<uint64_t>(staged.width) * staged.height;
         xpe_gain_alert_classified(scan);
     }
-
-        // The alerts are advisory: raising one allocates, and an allocation failure there must not
-        // turn a load that has succeeded and been committed into an error.
-        try {
-            if (poly_loaded) {
-                if (usable) {
-                    // QA-A-143 (#194 item 2): THE UNIT IS DOCUMENTED, SO SAY
-                    // SOMETHING WHEN THE NUMBERS DISAGREE WITH IT.
-                    //
-                    // preprocess_api.h pins dose_levels to pixel values (ADU),
-                    // but nothing enforces it: the file carries no unit field,
-                    // so a ladder fitted in mGy loads, applies, and yields a
-                    // wrong image with no error anywhere. Documentation alone
-                    // leaves that path open; this closes it as far as it can
-                    // be closed without a format change.
-                    //
-                    // IT IS A MAGNITUDE CHECK, NOT A UNIT CHECK, and the
-                    // difference matters: it cannot read a unit, only notice
-                    // that the numbers are nowhere near the pixel domain they
-                    // are supposed to index. A wrong unit whose values happen
-                    // to land in range passes silently, and that limit is why
-                    // the header DEBT marker stays.
-                    //
-                    // WHERE THE THRESHOLD COMES FROM -- measured in this
-                    // repository, not chosen for roundness:
-                    //
-                    //   smallest ADU dose the fixture generator emits   8000
-                    //     (xpe_calib_fixture_gen.cpp: 20000 * 0.40)
-                    //   smallest ADU dose in the reference dataset     14037
-                    //     (tests/test_data/cyan_test/README.md:186)
-                    //   pixel domain                              0..65535
-                    //   an mGy ladder, for contrast                  1..100
-                    //
-                    // 1000 sits 8x below the smallest real ADU ladder seen and
-                    // 10x above where an mGy ladder tops out, so both sides
-                    // have an order of magnitude of slack. A genuinely
-                    // low-dose ADU calibration would have to fall below an
-                    // eighth of anything measured here to reach it.
-                    //
-                    // ALERT, NOT REJECTION. Refusing would discard a
-                    // calibration on a heuristic; an operator who meant it can
-                    // ignore one line, and one who did not has the only clue
-                    // this format can give them.
-                    constexpr double kMinPlausibleAduDoseMax = 1000.0;
-                    if (hi_a < kMinPlausibleAduDoseMax) {
-                        char msg[320];
-                        std::snprintf(msg, sizeof(msg),
-                            "gain polynomial dose levels span [%.3f, %.3f], far "
-                            "below the pixel-value range they index (0..65535). "
-                            "CHECK THE UNIT OF THIS CALIBRATION'S dose_levels: "
-                            "they must be pixel values (ADU), and a ladder fitted "
-                            "in mGy loads without error while producing a wrong "
-                            "image. If the unit is right and the calibration is "
-                            "simply very dark, this warning can be ignored. This "
-                            "is a magnitude check, not a unit check -- the file "
-                            "carries no unit field (issue #194)",
-                            lo_a, hi_a);
-                        msg[sizeof(msg) - 1] = '\0';
-                        xpe_alert_push(msg, XPE_ALERT_WARNING);
-                    }
-                } else if (!present) {
-                    // Not rejected: refusing would retire every calibration
-                    // made before this field existed, which is the harder
-                    // thing to undo. Not silent either, or today's behaviour
-                    // stays invisible forever.
-                    xpe_alert_push(
-                        "gain polynomial loaded without a dose range: this file "
-                        "was generated before the range field existed, so the "
-                        "out-of-range clamp does not apply to it and pixel "
-                        "values beyond the fitted levels are extrapolated; "
-                        "regenerate the calibration to enable the clamp "
-                        "(issue #194)",
-                        XPE_ALERT_WARNING);
-                } else {
-                    // QA-A-124 (#194): the keys ARE there and the interval is
-                    // inverted or empty. Saying "generated before the range
-                    // field existed" here would be false, and an alert that
-                    // misdescribes the file sends the reader after the wrong
-                    // thing. Measured: a reversed dose ladder written with the
-                    // generator's sort guard disabled recorded
-                    // dose_min=42677, dose_max=14037.
-                    char msg[320];
-                    std::snprintf(msg, sizeof(msg),
-                        "gain polynomial carries an inverted dose range "
-                        "[%.1f, %.1f]: the clamp is not applied and pixel "
-                        "values are extrapolated. The file's dose levels were "
-                        "not ascending when it was generated, so its "
-                        "coefficients may be fitted against mispaired gain "
-                        "maps -- regenerate it (issue #194)",
-                        lo_a, hi_a);
-                    msg[sizeof(msg) - 1] = '\0';
-                    xpe_alert_push(msg, XPE_ALERT_WARNING);
-                }
-            }
-        } catch (...) {
-            // [no-throw-boundary] The warning is lost under memory pressure; the calibration itself is loaded.
-        }
-
 }
 
 extern "C" XPE_API XpeErrorCode xpe_calib_load_gain(const char* filepath) {

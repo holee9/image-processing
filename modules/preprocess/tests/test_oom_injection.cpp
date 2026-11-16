@@ -275,20 +275,6 @@ void writeGain(const char* path, float v, const std::string& json, int64_t expir
     std::vector<float> m(N, v);
     writeFile(path, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, m.data(), m.size() * sizeof(float), json, expiryMs);
 }
-// Polynomial gain file (degree 1: two coefficient planes, pixel-major). The config block carries a dose
-// range so the loader reads it, and is long enough that copying it allocates.
-void writeGainPoly(const char* path, const std::string& json) {
-    std::vector<float> coeffs(N * 2);
-    for (size_t p = 0; p < N; ++p) { coeffs[p * 2] = 1.0f; coeffs[p * 2 + 1] = 0.0f; }
-    writeFile(path, XCAL_TYPE_GAIN_POLY, XCAL_FMT_FLOAT32, coeffs.data(), coeffs.size() * sizeof(float), json);
-}
-const std::string kPolyJson =
-    "{\"dose_min\":10.0,\"dose_max\":100.0,\"note\":\"padding so that this config block does not fit in a "
-    "small string: 0123456789012345678901234567890123456789012345678901234567890123456789\"}";
-const std::string kPolyJsonNoRange =
-    "{\"note\":\"a polynomial file written before the range field existed, padded past the small-string "
-    "size: 0123456789012345678901234567890123456789012345678901234567890123456789\"}";
-
 void writeDefect(const char* path, bool flagged) {
     std::vector<uint8_t> m(N, 0);
     if (flagged) m[5] = 1;
@@ -299,13 +285,13 @@ void writeDefect(const char* path, bool flagged) {
 struct Snap {
     const void* om; uint32_t ow, oh; int64_t ot, oe;
     const void* oc;
-    const void* gm; const void* gp; const void* gdi; uint32_t gdc; uint32_t gnc, gw, gh; int64_t gt, ge; bool ghq; double gqr; unsigned gqd;
+    const void* gm; const void* gdi; uint32_t gdc; uint32_t gw, gh; int64_t gt, ge; bool ghq; double gqr; unsigned gqd;
     const void* dm; uint32_t dw, dh; int64_t de;
     const void* dl;
     const void* gc;
     bool operator==(const Snap& o) const {
         return om == o.om && ow == o.ow && oh == o.oh && ot == o.ot && oe == o.oe && oc == o.oc &&
-               gm == o.gm && gp == o.gp && gdi == o.gdi && gdc == o.gdc && gnc == o.gnc && gw == o.gw && gh == o.gh && gt == o.gt &&
+               gm == o.gm && gdi == o.gdi && gdc == o.gdc && gw == o.gw && gh == o.gh && gt == o.gt &&
                ge == o.ge && ghq == o.ghq && gqr == o.gqr && gqd == o.gqd && dm == o.dm && dw == o.dw && dh == o.dh && de == o.de && dl == o.dl && gc == o.gc;
     }
 };
@@ -313,8 +299,7 @@ Snap snap() {
     std::lock_guard<std::mutex> lk(g_calib_mutex);
     return Snap{g_calib.offset_map.get(), g_calib.offset_width, g_calib.offset_height, g_calib.offset_timestamp,
                 g_calib.offset_expiry_ms, g_calib.offset_config.get(),
-                g_calib.gain_map.get(), g_calib.gain_poly_coeffs.get(), g_calib.gain_defect_idx.get(), g_calib.gain_defect_count,
-                g_calib.gain_poly_num_coeffs,
+                g_calib.gain_map.get(), g_calib.gain_defect_idx.get(), g_calib.gain_defect_count,
                 g_calib.gain_width, g_calib.gain_height, g_calib.gain_timestamp, g_calib.gain_expiry_ms,
                 g_calib.gain_has_quality, g_calib.gain_quality.r_squared,
                 static_cast<unsigned>(g_calib.gain_quality.polynomial_degree),
@@ -636,54 +621,6 @@ TEST_F(OomInjection, ScalarGainStateSavePreservesClassificationMetadataAndThePri
     }
 }
 
-TEST_F(OomInjection, ActivePolynomialGainSavePreservesItsStateAndThePriorFileOnAllocationFailure) {
-    const auto bytes = [](const char* path) {
-        std::ifstream file(path, std::ios::binary);
-        return std::vector<uint8_t>(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
-    };
-    writeGainPoly("oom_long_entry_file_name.xcal", kPolyJson);
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_long_entry_file_name.xcal"));
-    writeOffset("oom_q.xcal", 300.0f);
-    const auto originalDestination = bytes("oom_q.xcal");
-    ASSERT_FALSE(originalDestination.empty());
-    std::vector<float> expected(N * 2);
-    for (size_t i = 0; i < N; ++i) { expected[2 * i] = 1.0f; expected[2 * i + 1] = 0.0f; }
-    sweep("active polynomial gain state save",
-        [&] {
-            resetStore(); xpe_calib_cache_clear();
-            ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_long_entry_file_name.xcal"));
-            writeOffset("oom_q.xcal", 300.0f);
-        },
-        [] { return xpe_calib_save("oom_q.xcal", "gain", 0); }, true,
-        [&](XpeErrorCode rc) -> std::string {
-            if (rc != XPE_OK)
-                return bytes("oom_q.xcal") == originalDestination ? std::string() : "failed save changed the prior destination";
-            XCalFileHeader header{};
-            std::vector<uint8_t> config, payload;
-            if (read_xcal_file("oom_q.xcal", header, config, payload, true, XCAL_TYPE_GAIN_POLY) != XPE_OK ||
-                std::string(config.begin(), config.end()) != kPolyJson || payload.size() != expected.size() * sizeof(float) ||
-                std::memcmp(payload.data(), expected.data(), payload.size()) != 0)
-                return "successful save lost the active polynomial model/config";
-            return {};
-        });
-}
-
-TEST_F(OomInjection, APlainPolynomialGainLoadWithADoseRangeThatFailsLeavesTheStoreUntouched) {
-    writeGain("oom_q.xcal", 4.0f, "{}");
-    writeGainPoly("oom_long_entry_file_name.xcal", kPolyJson);
-    sweep("xpe_calib_load_gain (polynomial, range)",
-          [] { resetStore(); xpe_clear_alerts(); ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal")); },
-          [] { return xpe_calib_load_gain("oom_long_entry_file_name.xcal"); }, true);
-}
-
-TEST_F(OomInjection, APlainPolynomialGainLoadWithoutADoseRangeThatFailsLeavesTheStoreUntouched) {
-    writeGain("oom_q.xcal", 4.0f, "{}");
-    writeGainPoly("oom_long_entry_file_name.xcal", kPolyJsonNoRange);
-    sweep("xpe_calib_load_gain (polynomial, no range)",
-          [] { resetStore(); xpe_clear_alerts(); ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal")); },
-          [] { return xpe_calib_load_gain("oom_long_entry_file_name.xcal"); }, true);
-}
-
 /* =========================================================================
  * Cached loaders: no exception leaves the C ABI; a failed hit leaves the store untouched
  * ========================================================================= */
@@ -693,14 +630,6 @@ TEST_F(OomInjection, ACachedGainMissLeavesNoExceptionEscaping) {
     writeGain("oom_long_entry_file_name.xcal", 2.0f, kGainJson);
     sweep("xpe_calib_load_gain_cached (miss)",
           [] { resetStore(); xpe_calib_cache_clear(); ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal")); },
-          [] { XpeImageBuffer v{}; return xpe_calib_load_gain_cached("oom_long_entry_file_name.xcal", &v); }, false);
-}
-
-TEST_F(OomInjection, ACachedPolynomialGainLoadLeavesNoExceptionEscaping) {
-    writeGain("oom_q.xcal", 4.0f, "{}");
-    writeGainPoly("oom_long_entry_file_name.xcal", kPolyJson);
-    sweep("xpe_calib_load_gain_cached (polynomial)",
-          [] { resetStore(); xpe_clear_alerts(); xpe_calib_cache_clear(); ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal")); },
           [] { XpeImageBuffer v{}; return xpe_calib_load_gain_cached("oom_long_entry_file_name.xcal", &v); }, false);
 }
 
@@ -1344,7 +1273,7 @@ std::vector<float> g_hist1_0, g_hist2_0;
 
 // Long enough that reading it allocates (std::string keeps up to 15 characters inline), and every stage on.
 const char* const kConfig =
-    "{\"detectorTempC\":\"25.5\",\"binningMode\":\"2\",\"note\":\"padding so that this configuration does "
+    "{\"binningMode\":\"2\",\"note\":\"padding so that this configuration does "
     "not fit in a small string: 0123456789012345678901234567890123456789012345678901234567890123456789\"}";
 
 uint64_t storeDigest() {
@@ -1358,7 +1287,7 @@ uint64_t storeDigest() {
     // a map was present at all, so two stores differing only in a height, or one holding a map and one holding none
     // of the same bytes, digested alike -- and a sweep that compares digests would have called them unchanged.
     // Now: for each of the three maps, whether it is present, its width, its height, and its bytes. NOT covered: the
-    // gain polynomial, the nonlinearity LUT, the quality metadata, the timestamps and expiry values.
+    // quality metadata, the timestamps and expiry values.
     const auto mixMap = [&mix](bool present, uint32_t w, uint32_t hgt, const void* data, size_t bytes) {
         const unsigned char flag = present ? 1 : 0;
         mix(&flag, 1);
@@ -1557,7 +1486,7 @@ using Entry = std::function<XpeErrorCode(Frame&, const char* config)>;
 
 // Readout validation (stage 0.5) looks at dataSize itself, so a refusal there is not the pipeline's own; this
 // configuration leaves it out.
-const char* const kNoReadout = "{\"bypassReadout\":true,\"detectorTempC\":\"25.5\",\"binningMode\":\"2\"}";
+const char* const kNoReadout = "{\"bypassReadout\":true,\"binningMode\":\"2\"}";
 
 struct Entries { const char* name; Entry call; };
 
@@ -1814,7 +1743,7 @@ namespace dcap {
 // Every stage that makes float is bypassed: what the pipeline hands back is the uint16 frame.
 const char* const kUint16Out =
     "{\"bypassReadout\":true,\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true,"
-    "\"bypassGhost\":true,\"detectorTempC\":\"25.5\"}";
+    "\"bypassGhost\":true}";
 
 // No stage runs: the final stage is the caller's own buffer, so the frame comes back as it went in and there is
 // nothing to copy (a copy of a range onto itself is undefined, which is why the product skips it).
@@ -1999,7 +1928,6 @@ uint64_t fullDigest() {
         mix(g_calib.defect_session_id, sizeof g_calib.defect_session_id);   // QA-A-229 M4
         mix(&g_calib.gain_has_quality, sizeof g_calib.gain_has_quality);
         mix(&g_calib.gain_quality.r_squared, sizeof g_calib.gain_quality.r_squared);
-        mix(&g_calib.gain_poly_num_coeffs, sizeof g_calib.gain_poly_num_coeffs);
         mix(&g_calib.defect_width, sizeof g_calib.defect_width);
         mix(&g_calib.defect_height, sizeof g_calib.defect_height);
         mix(&g_calib.defect_expiry_ms, sizeof g_calib.defect_expiry_ms);
@@ -2384,7 +2312,7 @@ namespace combo {
 struct Config { bool temp, offset, gain; int binning; bool defect, ghost; };   // binning: 0 bypassed, 1, 2
 
 std::string json(const Config& c) {
-    std::string j = "{\"bypassReadout\":true,\"bypassNonlinearity\":true,\"detectorTempC\":\"25.5\"";
+    std::string j = "{\"bypassReadout\":true,\"bypassNonlinearity\":true";
     j += c.temp ? ",\"bypassTemp\":false" : ",\"bypassTemp\":true";
     j += c.offset ? ",\"bypassOffset\":false" : ",\"bypassOffset\":true";
     j += c.gain ? ",\"bypassGain\":false" : ",\"bypassGain\":true";
@@ -2975,24 +2903,6 @@ TEST_F(OomPipeline, WithNoEarlierR2TheHistoryIsFlaggedAsNoneEvenWhenTheFirstReco
     qcur::removeAll();
 }
 
-/* =========================================================================
- * xpe_nonlinearity_correct, the stand-alone entry point (QA-A-209b, Codex #49 item 4; QA-A-201 survey)
- * ========================================================================= */
-//
-// It had no guard, and the parsing of its configuration allocates (QA-A-209): a failed allocation was an exception
-// out of a C ABI function. It now returns XPE_ERR_OUT_OF_MEMORY and leaves the frame as it found it.
-
-namespace q209b {
-
-XpeImageBuffer buf(void* d, XpePixelFormat f, uint32_t bits) {
-    XpeImageBuffer b{};
-    b.data = d; b.width = W; b.height = H; b.bitsAllocated = bits; b.bitsStored = bits; b.format = f;
-    b.dataSize = static_cast<uint32_t>(N * (bits / 8));
-    return b;
-}
-
-}  // namespace q209b
-
 // QA-A-221b (#233): xpe_preprocess_init answered an allocation failure with PROCESSING_FAILED (-3) -- 19 of 19 in the
 // QA-A-221 sweep -- where the header and every other export say OUT_OF_MEMORY. The module is initialized only by the
 // last statement, so a failed init must leave it uninitialized.
@@ -3011,66 +2921,12 @@ TEST_F(OomInjection, APreprocessInitThatRunsOutOfMemoryReportsItAsSuchAndLeavesT
     xpe_preprocess_shutdown();
 }
 
-TEST_F(OomInjection, ANonlinearityCorrectionThatFailsLeavesTheFrameUntouchedAndNoExceptionEscapes) {
-    static const std::string cfg = "{\"panel.nonlinearity_mode\":\"POLY\",\"panel.nonlin_poly_c1\":2.0,\"panel.adc_max\":65535}";
-    static std::vector<uint16_t> px(N);
-    sweep("xpe_nonlinearity_correct", [] { xpe_preprocess_init(nullptr); },
-          [&] {
-              std::fill(px.begin(), px.end(), static_cast<uint16_t>(1000));
-              XpeImageBuffer img = q209b::buf(px.data(), XPE_PIXEL_UINT16, 16);
-              return xpe_nonlinearity_correct(&img, cfg.c_str());
-          },
-          /*unchangedOnError=*/false,
-          [&](XpeErrorCode rc) -> std::string {
-              bool same = true, doubled = true;
-              for (const uint16_t v : px) { same = same && v == 1000; doubled = doubled && v == 2000; }
-              if (rc == XPE_OK) return doubled ? std::string() : "the polynomial was not applied";
-              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
-              return same ? std::string() : "the frame was changed although the call failed";
-          });
-}
-
-TEST_F(OomInjection, ANonlinearityCorrectionWithTheLutPathThatFailsLeavesTheFrameUntouched) {
-    // the configuration names no polynomial, a table is loaded: the LUT path (a clamp-free identity-halving table)
-    {
-        std::vector<uint16_t> lut(4096u);
-        for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(i / 2u);
-        XCalFileHeader hdr{};
-        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
-        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16);
-        hdr.width = 4096; hdr.height = 1; hdr.payload_len = lut.size() * sizeof(uint16_t);
-        hdr.created_epoch_ms = 1700000000000ll;
-        std::remove("oom_nlut_halving.xcal");
-        ASSERT_EQ(XPE_OK, write_xcal_file("oom_nlut_halving.xcal", hdr, reinterpret_cast<const uint8_t*>("{}"), 2,
-                                          reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
-    }
-    static const std::string cfg = "{\"panel.linear\":\"false\",\"panel.target_platform\":\"CPU\"}";
-    static std::vector<uint16_t> px(N);
-    sweep("xpe_nonlinearity_correct (table)",
-          [] { xpe_preprocess_init(nullptr); EXPECT_EQ(XPE_OK, xpe_calib_load_nonlin_lut("oom_nlut_halving.xcal")); },
-          [&] {
-              std::fill(px.begin(), px.end(), static_cast<uint16_t>(1000));
-              XpeImageBuffer img = q209b::buf(px.data(), XPE_PIXEL_UINT16, 16);
-              return xpe_nonlinearity_correct(&img, cfg.c_str());
-          },
-          /*unchangedOnError=*/false,
-          [&](XpeErrorCode rc) -> std::string {
-              bool same = true, halved = true;
-              for (const uint16_t v : px) { same = same && v == 1000; halved = halved && v == 500; }
-              if (rc == XPE_OK) return halved ? std::string() : "the table was not applied";
-              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
-              return same ? std::string() : "the frame was changed although the call failed";
-          });
-    std::remove("oom_nlut_halving.xcal");
-}
-
 /* =========================================================================
  * The exports that left an allocation failure unguarded (QA-A-204 3/3, QA-A-201 survey item 5)
  * ========================================================================= */
 //
-// xpe_verify_offset / _gain / _pipeline, xpe_bpm_generate, xpe_defect_detect_runtime,
-// xpe_calib_generate_nonlin_lut and xpe_nonlinearity_correct had no guard: a failed allocation was an exception out
+// xpe_verify_offset / _gain / _pipeline, xpe_bpm_generate, xpe_defect_detect_runtime
+// (and the since removed xpe_calib_generate_nonlin_lut and xpe_nonlinearity_correct, QA-A-336) had no guard: a failed allocation was an exception out
 // of a C ABI function. Two more things made it worse than that. Seven helpers were declared noexcept and allocate
 // (the sort copy and the histogram of the verify metrics, the five working-buffer builders of the BPM generator), so a
 // failed allocation in them is std::terminate, not an exception. And a call that dies half way leaves what it had
@@ -3232,45 +3088,12 @@ TEST_F(OomInjection, ARuntimeDetectionThatFailsLeavesTheOutputMapUntouchedAndNoE
           });
 }
 
-TEST_F(OomInjection, ANonlinearityLutGenerationThatFailsWritesNoFileAndNoExceptionEscapes) {
-    const char* path = "oom_nlut_out.xcal";
-    static const std::string tmpPath = std::string(path) + ".tmp";
-    constexpr int kLevels = 10;
-    static std::vector<std::vector<uint16_t>> flats(kLevels);
-    static std::vector<XpeImageBuffer> bufs;
-    static double doses[kLevels];
-    bufs.clear();
-    for (int l = 0; l < kLevels; ++l) {
-        doses[l] = 100.0 * (l + 1);
-        flats[l].assign(N, static_cast<uint16_t>(300 * (l + 1)));       // a linear response: gain 3
-        bufs.push_back(q204c::buf(flats[l].data(), XPE_PIXEL_UINT16, 16));
-    }
-    std::remove(path); std::remove((std::string(path) + ".tmp").c_str());
-    ASSERT_EQ(XPE_OK, xpe_calib_generate_nonlin_lut(bufs.data(), doses, kLevels, nullptr, 4096u, path, nullptr));
-    ASSERT_TRUE(std::filesystem::exists(path)) << "control: the undisturbed call wrote the table";
-    std::remove(path);
-    sweep("xpe_calib_generate_nonlin_lut", [] {},
-          [&] {
-              std::remove(path); std::remove(tmpPath.c_str());   // tmpPath is built outside: nothing in here may allocate
-              return xpe_calib_generate_nonlin_lut(bufs.data(), doses, kLevels, nullptr, 4096u, path, nullptr);
-          },
-          /*unchangedOnError=*/false,
-          [&](XpeErrorCode rc) -> std::string {
-              const bool file = std::filesystem::exists(path), tmp = std::filesystem::exists(std::string(path) + ".tmp");
-              std::remove(path); std::remove((std::string(path) + ".tmp").c_str());
-              if (rc == XPE_OK) return file ? std::string() : "the call succeeded and wrote no file";
-              if (rc != XPE_ERR_OUT_OF_MEMORY) return "an allocation failure was reported as another error";
-              return (file || tmp) ? "a failed call left a file behind" : std::string();
-          });
-}
-
 /* =========================================================================
  * An XCal config block is parsed ONCE per load (QA-A-209c, Codex #53 item 2)
  * ========================================================================= */
 //
-// read_xcal_file parsed the block to read the compression metadata and threw the document away; the gain and
-// nonlinearity-table loaders then parsed the same text again for the quality fields, the dose range and the
-// extension start. The reader now hands its document to the loader. xpe_config_parse_calls counts every parse
+// read_xcal_file parsed the block to read the compression metadata and threw the document away; the gain loader
+// then parsed the same text again for the quality fields. The reader now hands its document to the loader. xpe_config_parse_calls counts every parse
 // (compiled into this executable only, with XPE_CACHE_TEST_HOOKS).
 
 namespace q209c {
@@ -3303,25 +3126,7 @@ TEST_F(OomInjection, EveryLoaderParsesTheConfigBlockOfAFileExactlyOnce) {
     EXPECT_EQ(1ul, q209c::parsesDuring([&] { return xpe_calib_load_gain("oom_q209c_gain.xcal"); }, &rc));
     EXPECT_EQ(XPE_OK, rc);
 
-    // a nonlinearity table with the extension-start key
-    {
-        std::vector<uint16_t> lut(4096u);
-        for (uint32_t i = 0; i < 4096u; ++i) lut[i] = static_cast<uint16_t>(i);
-        XCalFileHeader hdr{};
-        std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-        hdr.version = XCAL_VERSION; hdr.type = static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT);
-        hdr.pixel_format = static_cast<uint32_t>(XCAL_FMT_UINT16); hdr.width = 4096; hdr.height = 1;
-        hdr.created_epoch_ms = 1700000000000ll;
-        const std::string cfg = "{\"xcal_nonlin_extension_start\":4000}";
-        std::remove("oom_q209c_lut.xcal");
-        ASSERT_EQ(XPE_OK, write_xcal_file("oom_q209c_lut.xcal", hdr, reinterpret_cast<const uint8_t*>(cfg.data()), cfg.size(),
-                                          reinterpret_cast<const uint8_t*>(lut.data()), lut.size() * sizeof(uint16_t)));
-    }
-    EXPECT_EQ(1ul, q209c::parsesDuring([&] { return xpe_calib_load_nonlin_lut("oom_q209c_lut.xcal"); }, &rc));
-    EXPECT_EQ(XPE_OK, rc);
-
     std::remove("oom_q209c_gain.xcal");
-    std::remove("oom_q209c_lut.xcal");
 }
 
 /* =========================================================================
@@ -3404,7 +3209,7 @@ TEST_F(OomInjection, ALegacyFileThatFailsToBuildItsWarningLeavesEveryOutputArgum
 
 /* =========================================================================
  * QA-A-211 (#233): the classification paths allocate too -- the scan's index vector, the list the store keeps, the
- * polynomial's per-frame list, the union mask of the defect stage. Each of them fails at every allocation point.
+ * union mask of the defect stage. Each of them fails at every allocation point.
  * 20x20 files: a 4x4 frame cannot hold a bad pixel under the 5% cap.
  * ========================================================================= */
 namespace q211 {
@@ -3426,12 +3231,6 @@ void writeScalarWithBad(const char* path) {
     std::vector<float> m(kN, 2.0f);
     m[37] = 0.0f; m[205] = 50.0f;
     writeBig(path, XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, m.data(), m.size() * sizeof(float));
-}
-// degree 1, gain = c0 + c1 * x: pixel 37 has all-zero coefficients (classified), the rest are the constant 2.0
-void writePolyWithBad(const char* path) {
-    std::vector<float> c(kN * 2, 0.0f);
-    for (size_t q = 0; q < kN; ++q) c[q * 2] = (q == 37) ? 0.0f : 2.0f;
-    writeBig(path, XCAL_TYPE_GAIN_POLY, XCAL_FMT_FLOAT32, c.data(), c.size() * sizeof(float));
 }
 void writeEmptyDefects(const char* path) {
     std::vector<uint8_t> m(kN, 0);
@@ -3498,28 +3297,6 @@ TEST_F(OomInjection, ADefectCorrectionThatUnitesTheGainClassificationAndFailsLea
           [](XpeErrorCode rc) -> std::string {
               if (rc != XPE_OK) return {};
               return (out[37] == 1000.0f && out[205] == 1000.0f) ? std::string() : "the classified pixels were not corrected";
-          });
-}
-
-TEST_F(OomInjection, APolynomialGainApplicationThatClassifiesPixelsAndFailsReportsOutOfMemory) {
-    using namespace q211;
-    writePolyWithBad("oom_q.xcal");
-    static std::vector<uint16_t> in(kN, 3000);
-    static std::vector<float> out(kN, 0.0f);
-    sweep("xpe_gain_correct (polynomial, classified pixels)",
-          [] { resetStore(); xpe_clear_alerts(); xpe_preprocess_init(nullptr); ASSERT_EQ(XPE_OK, xpe_calib_load_gain("oom_q.xcal")); },
-          [] {
-              XpeImageBuffer i{}, o{};
-              i.data = in.data(); i.width = kW; i.height = kH; i.bitsAllocated = 16; i.bitsStored = 16; i.format = XPE_PIXEL_UINT16;
-              i.dataSize = static_cast<uint32_t>(kN * 2);
-              o.data = out.data(); o.width = kW; o.height = kH; o.bitsAllocated = 32; o.bitsStored = 32; o.format = XPE_PIXEL_FLOAT32;
-              o.dataSize = static_cast<uint32_t>(kN * 4);
-              XpeImageMetadata meta{};
-              return xpe_gain_correct(&i, &o, &meta);
-          }, /*unchangedOnError=*/true,
-          [](XpeErrorCode rc) -> std::string {
-              if (rc == XPE_OK) return out[37] == 3000.0f ? std::string() : "the classified pixel did not carry gain 1.0";
-              return rc == XPE_ERR_OUT_OF_MEMORY ? std::string() : "an allocation failure was reported as another error";
           });
 }
 

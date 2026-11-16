@@ -13,7 +13,7 @@ struct DefectOracleMetrics {
     std::optional<double> recall, fpr, residual, p99Linear, p99Nearest;
 };
 // FUNC-019 / protocol 5.5. Prediction is mask selection, not proof of successful repair.
-// An empty prediction supports stage statistics only (e.g. unsupported polynomial selection).
+// An empty prediction supports stage statistics only (a gain file that is not a scalar map).
 inline DefectOracleMetrics measureDefectOracle(const std::vector<float>& before,
     const std::vector<float>& after, const std::vector<uint8_t>& truth,
     const std::vector<uint8_t>& prediction, uint32_t width, uint32_t height) {

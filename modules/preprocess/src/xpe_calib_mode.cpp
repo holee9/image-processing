@@ -6,7 +6,7 @@
  * IEC 62304 Class B
  *
  * Implementation:
- * - FUNC-031: Calibration mode selection (6 modes)
+ * - FUNC-031: Calibration mode selection (QA-A-336: SINGLE_POINT only)
  * - FUNC-032: Online accumulative fitting (O(W×H×degree) memory)
  * - FUNC-033: Quality metadata (8 mandatory fields)
  */
@@ -29,9 +29,9 @@
 
 namespace {
 
-// Default calibration mode: MULTI_POINT_8 (8 points, cubic)
-// Per Schmidgunst 2007 industry standard
-XpeCalibrationMode g_calib_mode = XPE_CALIB_MULTI_POINT_8;
+// The only calibration mode (QA-A-336): one dose level, a constant (degree 0) gain. The multi-point modes went with the
+// gain polynomial; the single-dose generator used to record MULTI_POINT_8 here, which said something false about its file.
+XpeCalibrationMode g_calib_mode = XPE_CALIB_SINGLE_POINT;
 
 // (The quality metadata of the last calibration is g_calib.quality_meta -- in the store, under g_calib_mutex.)
 
@@ -52,104 +52,22 @@ XpeCalibrationMode g_calib_mode = XPE_CALIB_MULTI_POINT_8;
  * with it; this runs while shutdown holds g_calib_mutex, so it must not take it.
  */
 void xpe_calib_mode_reset_globals() noexcept {
-    g_calib_mode = XPE_CALIB_MULTI_POINT_8;   // the FUNC-031 (7) default
+    g_calib_mode = XPE_CALIB_SINGLE_POINT;   // the only mode (QA-A-336)
 }
 
-namespace {
-
 /* =============================================================================
- * Mode-to-Parameters Mapping
- * ============================================================================ */
-
-/**
- * @brief Calibration mode parameters
- *
- * Maps each mode to its max_points and poly_degree values.
- */
-struct ModeParams {
-    uint32_t max_points;   ///< Maximum number of dose points
-    uint32_t poly_degree;  ///< Polynomial degree (0=constant, 1=linear, etc.)
-};
-
-// Mode-to-params mapping table
-constexpr ModeParams kModeParams[] = {
-    /* XPE_CALIB_SINGLE_POINT   */ { 1, 0 },  // Constant fit
-    /* XPE_CALIB_DUAL_POINT     */ { 2, 1 },  // Linear fit
-    /* XPE_CALIB_MULTI_POINT_5  */ { 5, 2 },  // Quadratic fit
-    /* XPE_CALIB_MULTI_POINT_8  */ { 8, 3 },  // Cubic fit (DEFAULT)
-    /* XPE_CALIB_MULTI_POINT_10 */ {10, 4 },  // Quartic ceiling (SRS FUNC-031: degree <= 4)
-    /* XPE_CALIB_AUTO           */ {10, 4 }   // Ceiling only; the mode used is resolved per call (#169)
-};
-
-static_assert(sizeof(kModeParams) / sizeof(kModeParams[0]) == 6u,
-              "Mode params table must have 6 entries");
-
-/* =============================================================================
- * Internal Helpers
- * ============================================================================ */
-
-/**
- * @brief Validate calibration mode value
- *
- * @param mode Mode to validate
- * @return true if valid, false otherwise
- */
-inline bool is_valid_mode(XpeCalibrationMode mode) noexcept {
-    return mode >= XPE_CALIB_SINGLE_POINT && mode <= XPE_CALIB_AUTO;
-}
-
-/**
- * @brief Get mode parameters for a given mode
- *
- * @param mode Calibration mode
- * @return Mode parameters (max_points, poly_degree)
- */
-inline ModeParams get_mode_params(XpeCalibrationMode mode) noexcept {
-    if (is_valid_mode(mode)) {
-        return kModeParams[static_cast<size_t>(mode)];
-    }
-    // Invalid mode: return safest defaults (1 point, constant)
-    return {1, 0};
-}
-
-} // anonymous namespace
-
-/* =============================================================================
- * FUNC-031 (3)(4)(5)(8): mode enforcement and AUTO resolution (QA-A-101, #169)
+ * FUNC-031 (QA-A-336): one mode. A generation of one dose level and degree 0 resolves to SINGLE_POINT; anything else
+ * is XPE_ERR_INVALID_INPUT (no generator of this module asks for more since the gain polynomial was removed).
  * ============================================================================ */
 
 XpeErrorCode xpe_calib_resolve_mode(int32_t num_levels, int32_t degree,
                                     XpeCalibrationMode* resolved) noexcept
 {
-    if (resolved == nullptr || num_levels < 1 || degree < 0) {
+    if (resolved == nullptr || num_levels != 1 || degree != 0) {
         return XPE_ERR_INVALID_INPUT;
     }
-    const auto fits = [&](XpeCalibrationMode m) {
-        const ModeParams p = get_mode_params(m);
-        return static_cast<uint32_t>(num_levels) <= p.max_points &&
-               static_cast<uint32_t>(degree) <= p.poly_degree;
-    };
-
-    const XpeCalibrationMode active = g_calib_mode;
-    if (active != XPE_CALIB_AUTO) {
-        // (3)(4): an explicit mode caps the level count (and its degree).
-        if (!fits(active)) {
-            return XPE_ERR_INVALID_INPUT;
-        }
-        *resolved = active;
-        return XPE_OK;
-    }
-
-    // (5): the smallest explicit mode that accepts this request. The table is
-    // ordered by max_points, so the first fit is the smallest.
-    for (int m = XPE_CALIB_SINGLE_POINT; m < XPE_CALIB_AUTO; ++m) {
-        const auto mode = static_cast<XpeCalibrationMode>(m);
-        if (fits(mode)) {
-            *resolved = mode;
-            return XPE_OK;
-        }
-    }
-    return XPE_ERR_INVALID_INPUT;   // beyond MULTI_POINT_10, the hard cap
+    *resolved = XPE_CALIB_SINGLE_POINT;
+    return XPE_OK;
 }
 
 /* =============================================================================
@@ -157,7 +75,7 @@ XpeErrorCode xpe_calib_resolve_mode(int32_t num_levels, int32_t degree,
  * ============================================================================ */
 
 /**
- * @brief Set calibration mode for polynomial fitting
+ * @brief Set calibration mode (only XPE_CALIB_SINGLE_POINT is accepted, QA-A-336)
  *
  * FUNC-031: Mode Selection API
  *
@@ -168,7 +86,7 @@ XpeErrorCode xpe_calib_resolve_mode(int32_t num_levels, int32_t degree,
  *         XPE_ERR_INVALID_INPUT if mode value is invalid
  */
 XpeErrorCode xpe_calib_set_mode(XpeCalibrationMode mode) {
-    if (!is_valid_mode(mode)) {
+    if (mode != XPE_CALIB_SINGLE_POINT) {   // QA-A-336: the multi-point modes and AUTO were removed
         return XPE_ERR_INVALID_INPUT;
     }
 
@@ -181,7 +99,7 @@ XpeErrorCode xpe_calib_set_mode(XpeCalibrationMode mode) {
  *
  * FUNC-031: Mode Selection API
  *
- * @return Current calibration mode (default: XPE_CALIB_MULTI_POINT_8)
+ * @return Current calibration mode (always XPE_CALIB_SINGLE_POINT, QA-A-336)
  */
 XpeCalibrationMode xpe_calib_get_mode(void) {
     return g_calib_mode;
@@ -216,30 +134,6 @@ XpeErrorCode xpe_calib_get_quality_meta(XpeCalibQualityMeta* meta) {
     std::lock_guard<std::mutex> lock(g_calib_mutex);
     std::memcpy(meta, &g_calib.quality_meta, sizeof(XpeCalibQualityMeta));
     return XPE_OK;
-}
-
-/**
- * @brief Get maximum number of dose points for current mode
- *
- * FUNC-031: Mode-to-params mapping
- *
- * @return Maximum dose points (1, 2, 5, 8, or 10)
- */
-uint32_t xpe_calib_get_max_points(void) {
-    ModeParams params = get_mode_params(g_calib_mode);
-    return params.max_points;
-}
-
-/**
- * @brief Get polynomial degree for current mode
- *
- * FUNC-031: Mode-to-params mapping
- *
- * @return Polynomial degree ceiling (0, 1, 2, 3, or 4)
- */
-uint32_t xpe_calib_get_poly_degree(void) {
-    ModeParams params = get_mode_params(g_calib_mode);
-    return params.poly_degree;
 }
 
 /* =============================================================================
@@ -284,8 +178,7 @@ bool xpe_calib_record_quality_meta(const XpeCalibQualityMeta& meta) noexcept
     qm = meta;
     qm.valid = 1;
     qm.has_r_squared = 1;              // a generation always produces an R2, whatever its value
-    // calibration_mode is the mode the generator resolved (never AUTO); the
-    // caller sets it from xpe_calib_resolve_mode (#169).
+    // calibration_mode is the mode the generator resolved: SINGLE_POINT (QA-A-336).
     qm.previous_r_squared = previous;
     qm.has_previous_r_squared = hasPrevious;
 
@@ -338,9 +231,11 @@ XpeErrorCode xpe_calib_parse_quality_meta(const XpeConfigDoc& doc, XpeCalibQuali
     //                             negative value when the fit is worse than the mean -- -0.0766 for the poly-fixture
     //                             ladder, and exactly -1.0 is possible -- and a file it wrote must load. Whether the
     //                             file gave one is has_r_squared (the key is there), never the value)
-    //   polynomial_degree  0..4  (the fitted degree: constant .. the quartic MULTI_POINT_10 allows)
-    //   actual_dose_levels 1..10 (the points of the mode used: SINGLE_POINT 1 .. MULTI_POINT_10 10)
-    //   calibration_mode   0..4  (SINGLE_POINT .. MULTI_POINT_10: the mode that ran, never AUTO)
+    //   polynomial_degree  0..4  (the fitted degree; files from the removed gain polynomial carried up to 4)
+    //   actual_dose_levels 1..10 (the dose points; files from the removed multi-point modes carried up to 10)
+    //   calibration_mode   0..4  (QA-A-336: read as a RECORD only. Generators write 0 now; a single-map gain file
+    //                             written before carries the mode that was active then -- 3, the old default, and
+    //                             1, 2 or 4 when set -- and must still load. The value never selects anything.)
     if (const XpeConfigEntry* r2 = doc.find(std::string("fit_r_squared"))) {
         if (!r2->scalar) return XPE_ERR_CONFIG_INVALID;
         if (!xpe_strict::parse_double(r2->text, &meta.r_squared)) return XPE_ERR_CONFIG_INVALID;
@@ -403,7 +298,6 @@ void xpe_calib_commit_no_quality_locked() noexcept
  * (`init_quality_meta`, `copy_cstr`, `log_quality_regression`,
  * `update_quality_meta`).
  *
- * The public exports `xpe_calib_get_max_points` / `xpe_calib_get_poly_degree`
- * are NOT affected: they are defined separately above and the dependency ran
- * the other way — the dead wrappers called them, not the reverse.
+ * (QA-A-336: the public exports `xpe_calib_get_max_points` / `xpe_calib_get_poly_degree` were removed with the
+ * multi-point modes.)
  * ============================================================================ */

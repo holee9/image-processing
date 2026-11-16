@@ -238,9 +238,10 @@ XpeErrorCode read_xcal_file(
                 return XPE_ERR_CONFIG_INVALID;
             }
             // (the version was checked above: 1 for every type, 2 for a DEFECT file)
-            // QA-A-37 (#140): same ceiling correction as validate_xcal_header
-            // Check 3 -- the compressed path had its own copy of it.
-            if (hdr.type > static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT)) {
+            // The same type ceiling as validate_xcal_header Check 3 -- the compressed path has its own copy of it
+            // (QA-A-336: types 3 and 4 were removed).
+            if (hdr.type > static_cast<uint32_t>(XCAL_TYPE_DEFECT)) {
+                xcal_reject_unsupported_type(hdr.type);
                 return XPE_ERR_CONFIG_INVALID;
             }
             if (hdr.pixel_format > static_cast<uint32_t>(XCAL_FMT_UINT8_MASK)) {

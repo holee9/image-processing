@@ -1,0 +1,23 @@
+rows gdump 492870 passes 3.0 fdump 32858
+pass 0 max |sum/13 - fdump| 1.8006410769230767
+pass 1 max |sum/13 - fdump| 1.7714050769230767
+pass 2 max |sum/13 - fdump| 1.8006410769230767
+tau 4.483305 nu 13 groups 5
+NORM n 20000 | measured q50/90/99/99.9 [0.963 1.55  2.198 2.661] | model c=1.000 [0.948 1.524 2.139 2.679] | P(>tau) meas 0 model 0 | flagged(persist rule) 0
+r0.7 n 4534 | measured q50/90/99/99.9 [1.407 2.273 3.2   4.124] | model c=1.429 [1.355 2.175 3.04  3.767] | P(>tau) meas 0.0004411 model 9e-05 | flagged(persist rule) 2
+r0.6 n 8324 | measured q50/90/99/99.9 [1.76  2.826 4.055 4.973] | model c=1.667 [1.583 2.537 3.554 4.435] | P(>tau) meas 0.003724 model 0.0008725 | flagged(persist rule) 31
+NORM g 0 nu 2 mean ratioG 1.017 median ratioG 0.701 mean vg/vgBg 1.467 mean corrGain 1.000 mnu 0.6931
+NORM g 1 nu 2 mean ratioG 1.023 median ratioG 0.696 mean vg/vgBg 1.475 mean corrGain 1.000 mnu 0.6931
+NORM g 2 nu 5 mean ratioG 1.009 median ratioG 0.873 mean vg/vgBg 1.160 mean corrGain 1.000 mnu 0.8703
+NORM g 3 nu 2 mean ratioG 1.021 median ratioG 0.706 mean vg/vgBg 1.473 mean corrGain 1.000 mnu 0.6931
+NORM g 4 nu 2 mean ratioG 1.012 median ratioG 0.701 mean vg/vgBg 1.460 mean corrGain 1.000 mnu 0.6931
+r0.7 g 0 nu 2 mean ratioG 1.479 median ratioG 1.005 mean vg/vgBg 1.046 mean corrGain 2.040 mnu 0.6931
+r0.7 g 1 nu 2 mean ratioG 1.437 median ratioG 0.989 mean vg/vgBg 1.017 mean corrGain 2.040 mnu 0.6931
+r0.7 g 2 nu 5 mean ratioG 1.460 median ratioG 1.249 mean vg/vgBg 0.822 mean corrGain 2.040 mnu 0.8703
+r0.7 g 3 nu 2 mean ratioG 1.513 median ratioG 1.069 mean vg/vgBg 1.070 mean corrGain 2.040 mnu 0.6931
+r0.7 g 4 nu 2 mean ratioG 1.549 median ratioG 1.041 mean vg/vgBg 1.096 mean corrGain 2.040 mnu 0.6931
+r0.6 g 0 nu 2 mean ratioG 1.870 median ratioG 1.290 mean vg/vgBg 0.971 mean corrGain 2.778 mnu 0.6931
+r0.6 g 1 nu 2 mean ratioG 1.863 median ratioG 1.273 mean vg/vgBg 0.968 mean corrGain 2.778 mnu 0.6931
+r0.6 g 2 nu 5 mean ratioG 1.836 median ratioG 1.579 mean vg/vgBg 0.759 mean corrGain 2.778 mnu 0.8703
+r0.6 g 3 nu 2 mean ratioG 1.863 median ratioG 1.304 mean vg/vgBg 0.967 mean corrGain 2.778 mnu 0.6931
+r0.6 g 4 nu 2 mean ratioG 1.849 median ratioG 1.254 mean vg/vgBg 0.960 mean corrGain 2.778 mnu 0.6931

@@ -12,7 +12,7 @@
  *   - BP-02-DEG: Gain correction    — identity semantics (no calibration)
  *   - BP-03-DEG: Defect correction  — empty defect list (clean float32 image)
  *   - BP-04-DEG: Ghost/Lag          — zero lag coefficient (alpha1=alpha2=0)
- *   - BP-05-DEG: Temp/Nonlinearity  — flat (reference) temperature, null config
+ *   - BP-05-DEG: Temp/Nonlinearity  — removed with the two stages (QA-A-335, QA-A-336)
  *
  * Each test uses a 64x64 or 128x128 synthetic image, verifies a valid error
  * code is returned (never a crash), checks output pixel statistics are within
@@ -33,10 +33,6 @@ extern "C" XPE_API XpeErrorCode xpe_ghost_create(uint32_t width, uint32_t height
 extern "C" XPE_API XpeErrorCode xpe_ghost_correct(void* handle, XpeImageBuffer* img,
     const XpeImageMetadata* meta);
 extern "C" XPE_API void xpe_ghost_destroy(void* handle);
-extern "C" XPE_API XpeErrorCode xpe_temp_compensate(XpeImageBuffer* img,
-    float detectorTempC, const char* configJsonOrNull);
-extern "C" XPE_API XpeErrorCode xpe_nonlinearity_correct(XpeImageBuffer* img,
-    const char* configJsonOrNull);
 
 #include <algorithm>
 #include <chrono>
@@ -281,66 +277,4 @@ TEST(PreprocessDegraded, BP04_GhostZeroLagCoefficientIsIdentity) {
     xpe_ghost_destroy(handle);
 }
 
-/* ==========================================================================
- * BP-05-DEG: Temperature/Nonlinearity, flat curve (identity correction)
- *
- * Expectation:
- *   - Temperature compensation at T=25C (reference, REQ-P1A-080) applies scale = 1.0,
- *     so pixel values are preserved.
- *   - Nonlinearity correction with null config is a documented no-op and
- *     must return XPE_OK with unchanged pixels. Requirement: SRS-CALIB-FUNC-006
- *     (f_nonlin is supplied by the calibration profile; the null-config
- *     sentence itself is not in the SRS). NOT REQ-P1A-013: in the current
- *     SPEC that number is runtime defect detection (QA-A-176).
- * ========================================================================== */
-
-TEST(PreprocessDegraded, BP05_TempCompensateReferenceIsIdentity) {
-    constexpr uint32_t W = 128;
-    constexpr uint32_t H = 128;
-    constexpr uint16_t kPixelValue = 2000;
-
-    std::vector<uint16_t> data(W * H, kPixelValue);
-    XpeImageBuffer buf = make_uint16_buf(data, W, H);
-
-    XpeErrorCode rc = XPE_OK;
-    const long long ms = time_ms([&] {
-        rc = xpe_temp_compensate(&buf, 25.0f, nullptr);
-    });
-
-    EXPECT_EQ(XPE_OK, rc);
-    EXPECT_LT(ms, kDegradedBudgetMs);
-
-    // At the reference temperature (25C), scale == 1.0 -> identity.
-    for (size_t i = 0; i < data.size(); ++i) {
-        EXPECT_EQ(kPixelValue, data[i])
-            << "Reference-temperature compensation must be identity at pixel " << i;
-    }
-}
-
-TEST(PreprocessDegraded, BP05_NonlinearityNullConfigIsIdentity) {
-    constexpr uint32_t W = 128;
-    constexpr uint32_t H = 128;
-    constexpr uint16_t kPixelValue = 3000;
-
-    std::vector<uint16_t> data(W * H, kPixelValue);
-    XpeImageBuffer buf = make_uint16_buf(data, W, H);
-
-    XpeErrorCode rc = XPE_OK;
-    const long long ms = time_ms([&] {
-        rc = xpe_nonlinearity_correct(&buf, nullptr);
-    });
-
-    EXPECT_EQ(XPE_OK, rc);
-    EXPECT_LT(ms, kDegradedBudgetMs);
-
-    // SRS-CALIB-FUNC-006 (not REQ-P1A-013; see the BP-05-DEG header):
-    // null-config nonlinearity correction is a no-op.
-    for (size_t i = 0; i < data.size(); ++i) {
-        EXPECT_EQ(kPixelValue, data[i])
-            << "Null-config nonlinearity correction must be identity at pixel " << i;
-    }
-    // QA-A-140 (#196): the stage now reports its no-op even with a null
-    // config, so this test raises one alert. Drained through the product's
-    // own path (hygiene axis 4, QA-A-138).
-    xpe_clear_alerts();
-}
+/* BP-05-DEG (temperature, nonlinearity): both cases were removed with their stages (QA-A-335, QA-A-336). */

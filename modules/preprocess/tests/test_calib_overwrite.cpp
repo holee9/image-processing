@@ -135,26 +135,6 @@ TEST_F(CalibOverwriteTest, GenerateGainReplacesAnExistingFile) {
     expectNoTmp(out);
 }
 
-TEST_F(CalibOverwriteTest, GenerateGainPolynomialReplacesAnExistingFile) {
-    std::vector<std::string> lv;
-    std::vector<const char*> ptrs;
-    std::vector<double> doses;
-    for (int i = 0; i < 3; ++i) {
-        lv.push_back(path("lvl" + std::to_string(i) + ".xcal"));
-        ASSERT_EQ(XPE_OK, MakeGainXCal(lv.back().c_str(), W, H, 1.0f + 0.5f * i));
-        doses.push_back(1.0 + i);
-    }
-    for (const auto& s : lv) ptrs.push_back(s.c_str());
-    const std::string out = path("poly.xcal");
-    ASSERT_EQ(XPE_OK, xpe_calib_generate_gain_polynomial(ptrs.data(), doses.data(), 3, 1, out.c_str()));
-    const size_t firstSize = payload(out).size();
-    ASSERT_EQ(XPE_OK, xpe_calib_generate_gain_polynomial(ptrs.data(), doses.data(), 3, 2, out.c_str()));
-    // degree 1 -> 2 coefficients per pixel, degree 2 -> 3.
-    EXPECT_EQ(2u * N * sizeof(float), firstSize);
-    EXPECT_EQ(3u * N * sizeof(float), payload(out).size());
-    expectNoTmp(out);
-}
-
 TEST_F(CalibOverwriteTest, CalibSaveReplacesAnExistingFile) {
     const std::string src1 = path("src1.xcal");
     const std::string src2 = path("src2.xcal");

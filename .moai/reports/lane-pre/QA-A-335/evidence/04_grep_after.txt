@@ -1,0 +1,1 @@
+clients/ImageProcTest/Services/AlgorithmValidationCatalogService.cs:27:            new("xpe_preprocess", "SWU-1.6", "TempCompensator", "SRS-CALIB-FUNC-008, SRS-CALIB-FUNC-016", "UT-1.5-005, IT-CALIB-002, BP-01", "R4", "adapter-pending", null, "Add detector temperature metadata and dark interpolation evidence before GUI execution."),

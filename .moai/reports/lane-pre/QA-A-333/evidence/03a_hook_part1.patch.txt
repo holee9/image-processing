@@ -1,0 +1,38 @@
+diff --git a/modules/preprocess/src/xpe_bpm_v2.cpp b/modules/preprocess/src/xpe_bpm_v2.cpp
+index 5d942383..b9cd58c0 100644
+--- a/modules/preprocess/src/xpe_bpm_v2.cpp
++++ b/modules/preprocess/src/xpe_bpm_v2.cpp
+@@ -1040,7 +1040,32 @@ static XpeErrorCode generateV2Core(const XpeImageBuffer* dark_frames, uint32_t n
+                     if (ratioG >= kNoiseCostLimit) ++persistHits[i];
+                     if (i % 16 == 0) nomSample.push_back(static_cast<float>(ref));
+                 }
+-                groupNom[g] = static_cast<double>(medianOf(nomSample.data(), nomSample.size()));
++                {   // TEMP-DIAG QA-A-333: per-group record-only dump of the F2b inputs
++                    char* lst = nullptr; size_t lstn = 0; char* outp = nullptr; size_t outn = 0;
++                    _dupenv_s(&lst, &lstn, "XPE_F2B_LIST"); _dupenv_s(&outp, &outn, "XPE_F2B_GOUT");
++                    if (lst && outp) {
++                        FILE* fi = nullptr; FILE* fo = nullptr;
++                        fopen_s(&fi, lst, "r"); fopen_s(&fo, outp, "a");
++                        if (fi && fo) {
++                            char ln[256];
++                            while (std::fgets(ln, sizeof ln, fi)) {
++                                unsigned x = 0, y = 0; char tag[128] = {0};
++                                if (sscanf_s(ln, "%u\t%u\t%127s", &x, &y, tag, 128u) < 3) continue;
++                                if (x < 6u || y < 2u) continue;
++                                const size_t i = static_cast<size_t>(y - 2u) * static_cast<size_t>(width) + (x - 6u);
++                                if (i >= n) continue;
++                                const double ref = std::max(static_cast<double>(vgBg[i]) / mnu, kReferenceFloor);
++                                std::fprintf(fo, "%u\t%u\t%s\t%u\t%u\t%.6f\t%.6f\t%.6f\t%.6f\t%.6f\n", x, y, tag, g, mg - 1,
++                                             static_cast<double>(vg[i]) * static_cast<double>(corrGain[i]) / ref, static_cast<double>(vg[i]),
++                                             static_cast<double>(vgBg[i]), mnu, static_cast<double>(corrGain[i]));
++                            }
++                        }
++                        if (fi) std::fclose(fi);
++                        if (fo) std::fclose(fo);
++                    }
++                    std::free(lst); std::free(outp);
++                }
++                groupNom[g] =static_cast<double>(medianOf(nomSample.data(), nomSample.size()));
+                 if (job && groupNom[g] > 0.0) {   // QA-A-258: the weighted sums of the lack of fit (the weights need the nominal variance of this group)
+                     const double wg = static_cast<double>(mg) / groupNom[g];
+                     const double nuOverV0 = static_cast<double>(mg - 1) / groupNom[g];

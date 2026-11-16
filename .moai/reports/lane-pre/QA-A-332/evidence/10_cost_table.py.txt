@@ -1,0 +1,38 @@
+# QA-A-332: tail and detection probabilities of the bright-noise rule (xpe_bpm_v2.cpp:1178-1182) under cost c.
+# Model (stated): per group ratioG = c * chi2_k/k (ref = local median / median(chi2_k/k) ~ sigma^2), groups k = 3,3,3,2,2 (nu=13, 5 groups).
+# Rule: sum/nu > tau AND persistHits (ratioG >= 2) in >= ceil(5/2)=3 groups.
+import math, random
+def gammaQ(a,x):
+    if x<a+1:
+        s=t=1.0/a; ap=a
+        for _ in range(10000):
+            ap+=1; t*=x/ap; s+=t
+            if abs(t)<abs(s)*1e-16: break
+        return 1-s*math.exp(-x+a*math.log(x)-math.lgamma(a))
+    b=x+1-a; c=1e300; d=1/b; h=d
+    for i in range(1,10000):
+        an=-i*(i-a); b+=2; d=an*d+b; d=d if abs(d)>1e-300 else 1e-300; c=b+an/c; c=c if abs(c)>1e-300 else 1e-300; d=1/d; de=d*c; h*=de
+        if abs(de-1)<1e-15: break
+    return math.exp(-x+a*math.log(x)-math.lgamma(a))*h
+def tau(nu,p):
+    lo,hi=1.0,1e6
+    for _ in range(300):
+        m=(lo+hi)/2
+        if gammaQ(nu/2,nu/2*m)>p: lo=m
+        else: hi=m
+    return (lo+hi)/2
+K=[3,3,3,2,2]; NU=13
+for n in (3072*3072, 3065*3069, 3065*3065):
+    print("n",n,"tau",round(tau(NU,1.0/n),4))
+n=3065*3069; t1=tau(NU,1.0/n); t2=2*t1
+print("tau now",round(t1,4),"tau proposed (cost-2 hypothesis)",round(t2,4))
+print("exact sum-only tail at c=2 with tau proposed:",gammaQ(NU/2,NU/2*t2/2))
+random.seed(332); N=400000
+print("cost | P(sum) now | P(rule) now | P(sum) prop | P(rule) prop")
+for c in (1.0,1.43,1.67,2.0,3.0):
+    a=b=d=e=0
+    for _ in range(N):
+        g=[c*random.gammavariate(k/2,2)/k for k in K]
+        s=sum(k*x for k,x in zip(K,g))/NU; per=sum(x>=2 for x in g)>=3
+        a+=s>t1; b+=s>t1 and per; d+=s>t2; e+=s>t2 and per
+    print(c,a/N,b/N,d/N,e/N)

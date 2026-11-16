@@ -1,0 +1,21 @@
+#!/bin/bash
+set -u
+ROOT=D:/workspace-github/xpe-pre
+BIN=$ROOT/build/ci-preprocess/bin
+CAL=D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles
+IN=D:/workspace-github/xpe-data/bpm-eval-252f
+INJ=$IN/inj_d/frames
+T=D:/workspace-github/xpe-data/qa-331-tmp
+EVD=$T/ev
+EXE=$BIN/xpe_bpm_eval.exe; GEN=$BIN/xpe_calib_fixture_gen.exe
+run() { local name=$1; shift; local s=$(date +%s); "$@" > "$EVD/$name.out.txt" 2>&1; local rc=$?; echo "$name exit $rc seconds $(( $(date +%s) - s ))"; return $rc; }
+GN="23 24 25 26 27 28"; BR="17 18 19 20 21 22 23 24 25 26 27 28 31 32 33 34 35 36"
+lst() { local flag=$1 dir=$2 pre=$3; shift 3; for k in "$@"; do printf -- "--%s\n%s/%s_%s.raw\n" "$flag" "$dir" "$pre" "$k"; done; }
+COMMON=(--width 3072 --height 3072 --expiry-ms 4102444800000)
+V2=(--bpm-v2 --bpm-margins 6,2,1,1)
+mapfile -t A < <(lst dark "$CAL" Dark 07; lst dark "$INJ" Dark 08 09 10 11 12 13 14; lst bright "$INJ" Bright $GN; lst bpm-bright "$INJ" Bright $BR)
+mapfile -t C < <(lst dark "$CAL" Dark 07 08 09 10 11 12 13 14; lst bright "$CAL" Bright $GN; lst bpm-bright "$CAL" Bright $BR)
+run G2_planted_v2 "$GEN" --out "$T/inj_set_v2" "${COMMON[@]}" "${A[@]}" "${V2[@]}" || exit 1
+run G4_ctl_clean_v2 "$GEN" --out "$T/ctl/clean_set_v2" "${COMMON[@]}" "${C[@]}" "${V2[@]}" || exit 1
+run C2_ctl_correct "$EXE" correct --truth "$IN/inj_d" --clean-set "$T/ctl/clean_set_v2" --inj-set "$T/inj_set_v2" --clean-eval "$CAL/Bright_29.raw" --clean-eval "$CAL/Bright_30.raw" --inj-eval "$INJ/Bright_29.raw" --inj-eval "$INJ/Bright_30.raw" --out "$EVD/ctl_correct.json.txt" || exit 1
+echo done

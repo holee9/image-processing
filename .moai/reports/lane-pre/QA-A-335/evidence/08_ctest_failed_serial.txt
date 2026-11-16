@@ -1,0 +1,985 @@
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+      Start  292: DefectCorrectV2Test.ATwoLineGroupIsBridgedFromItsTwoOuterNeighbours
+ 1/30 Test  #292: DefectCorrectV2Test.ATwoLineGroupIsBridgedFromItsTwoOuterNeighbours ......................   Passed    0.02 sec
+      Start  426: PipelineExTest.BatchSingleFrameWorks
+ 2/30 Test  #426: PipelineExTest.BatchSingleFrameWorks .....................................................   Passed    0.02 sec
+      Start  427: PipelineExTest.BatchContinuesOnError
+ 3/30 Test  #427: PipelineExTest.BatchContinuesOnError .....................................................   Passed    0.02 sec
+      Start  530: SessionConsistency.PipelineSetWithConflictingSessionsIsRefused
+ 4/30 Test  #530: SessionConsistency.PipelineSetWithConflictingSessionsIsRefused ...........................   Passed    0.02 sec
+      Start  534: HeaderOnHit.AnUnchangedHeaderStillHits
+ 5/30 Test  #534: HeaderOnHit.AnUnchangedHeaderStillHits ...................................................   Passed    0.02 sec
+      Start  542: SessionField.CheckExpiryJudgesTheSessionFieldLikeTheLoaders
+ 6/30 Test  #542: SessionField.CheckExpiryJudgesTheSessionFieldLikeTheLoaders ..............................   Passed    0.24 sec
+      Start  842: CalibOverwriteTest.CalibSaveReplacesAnExistingFile
+ 7/30 Test  #842: CalibOverwriteTest.CalibSaveReplacesAnExistingFile .......................................   Passed    0.02 sec
+      Start  848: PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame
+ 8/30 Test  #848: PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame .........***Failed    0.02 sec
+Note: Google Test filter = PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from PipelineStageValueTest
+[ RUN      ] PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_pipeline_stage_values.cpp(203): error: Expected equality of these values:
+  0
+  xpe_preprocess_pipeline(&img, &meta, calib().c_str(), gh, cfg)
+    Which is: -3
+
+[  FAILED  ] PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame (4 ms)
+[----------] 1 test from PipelineStageValueTest (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame
+
+ 1 FAILED TEST
+
+      Start  948: SaturationTest.FalsificationAnUndeterminedRecordIsNotALevel
+ 9/30 Test  #948: SaturationTest.FalsificationAnUndeterminedRecordIsNotALevel ..............................   Passed    0.02 sec
+      Start  956: SaturationTest.OutputNeverExceedsTheSaturatedValue
+10/30 Test  #956: SaturationTest.OutputNeverExceedsTheSaturatedValue .......................................   Passed    0.02 sec
+      Start  959: SaturationTest.AFrameThatPilesUpAtAnotherValueRaisesAMismatchAlertAndKeepsTheLevel
+11/30 Test  #959: SaturationTest.AFrameThatPilesUpAtAnotherValueRaisesAMismatchAlertAndKeepsTheLevel .......   Passed    0.02 sec
+      Start 1297: GainPolyLoadTest.CallerMetadataIsNotDiscarded
+12/30 Test #1297: GainPolyLoadTest.CallerMetadataIsNotDiscarded ............................................   Passed    0.02 sec
+      Start 1436: A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged
+13/30 Test #1436: A241Safety.ABypassedOffsetOrGainIsFlaggedAndLogged .......................................   Passed    0.03 sec
+      Start 1449: A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem
+14/30 Test #1449: A241Safety.ARefusedCacheHitOfAnOverLimitMapLeavesTheAlertQueueAndTheStoreAsItFoundThem ...   Passed    0.02 sec
+      Start 1479: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+15/30 Test #1479: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize ................................***Failed    0.08 sec
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 15683316160356337544
+  value
+    Which is: 15299107183278045512
+pipeline/default/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 7395008352760778585
+  value
+    Which is: 14371413008176057433
+pipeline/default/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 11067996883809170857
+  value
+    Which is: 1581517459952931113
+pipeline/default/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2736694478536238226
+  value
+    Which is: 16223179315102896402
+pipeline/default/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 1125739859813352531
+  value
+    Which is: 8911000518922449235
+pipeline/default/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 11281343277443136014
+  value
+    Which is: 1501389967932372046
+pipeline/default/256x192/tier3: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (66 ms)
+[----------] 1 test from OutputUnchanged237b (66 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (66 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+
+ 1 FAILED TEST
+
+      Start 1480: OutputUnchanged237b.PipelineEntryBypassCombinations
+16/30 Test #1480: OutputUnchanged237b.PipelineEntryBypassCombinations ......................................***Failed    0.11 sec
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryBypassCombinations
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 10286980413024366311
+  value
+    Which is: 13266064879369831111
+pipeline/combo/offset_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 4275144958339119079
+  value
+    Which is: 7656990424912841159
+pipeline/combo/nonlin_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 16930394491515291902
+  value
+    Which is: 8794333052684177246
+pipeline/combo/gain_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 4693822830194688281
+  value
+    Which is: 14840708421559684409
+pipeline/combo/defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 9833186168311483070
+  value
+    Which is: 7373132549012884766
+pipeline/combo/ghost_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 8852129844093953623
+  value
+    Which is: 9081595560412752119
+pipeline/combo/binning2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2089189574156825068
+  value
+    Which is: 16895089824073297932
+pipeline/combo/gain_defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17695710623936361493
+  value
+    Which is: 15807438371981955189
+pipeline/combo/uint16_out: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 15188320694194156372
+  value
+    Which is: 4227989076514963508
+pipeline/combo/gain_binning_ghost_off: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations (97 ms)
+[----------] 1 test from OutputUnchanged237b (97 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (97 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations
+
+ 1 FAILED TEST
+
+      Start 1481: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+17/30 Test #1481: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer .........................***Failed    0.04 sec
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 10982968914567350694
+  value
+    Which is: 13668902984314237537
+pipeline/float_input/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 12486233217343867078
+  value
+    Which is: 7347483916167360691
+pipeline/float_input/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 4
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2137023250045499353
+  value
+    Which is: 17158506882742047577
+pipeline/float_input/failed_frame/tier2: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (27 ms)
+[----------] 1 test from OutputUnchanged237b (27 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (27 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+
+ 1 FAILED TEST
+
+      Start 1482: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+18/30 Test #1482: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute ...................***Failed    0.22 sec
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2965372564227605685
+  value
+    Which is: 10643136597431746517
+pipeline/poly_gain/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 11187921047709063530
+  value
+    Which is: 18414567499275588522
+pipeline/gain_classified/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 1947970911923761365
+  value
+    Which is: 5981490669264036373
+pipeline/gain_classified/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 7045061333246794944
+  value
+    Which is: 6391347232205405568
+pipeline/gain_classified/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 16435792994426679962
+  value
+    Which is: 1728206356872793946
+pipeline/gain_classified/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 14017278994333810755
+  value
+    Which is: 13775624910237173315
+pipeline/gain_classified/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 5612297179592591063
+  value
+    Which is: 15475537787504939863
+pipeline/gain_classified/256x192/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 14760336749728665839
+  value
+    Which is: 11026052354887454191
+pipeline/slow_route_ok/203x157/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17439606353713507748
+  value
+    Which is: 2015254454253222372
+pipeline/slow_route_ok/256x192/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 4977787609537703938
+  value
+    Which is: 2831355032398018
+pipeline/slow_route_failing/203x157/tier3_beta1e36: the output changed
+
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (204 ms)
+[----------] 1 test from OutputUnchanged237b (204 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (204 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+
+ 1 FAILED TEST
+
+      Start 1589: OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched
+19/30 Test #1589: OomInjection.AScalarGainLoadThatClassifiesPixelsAndFailsLeavesTheStoreUntouched ..........   Passed    0.03 sec
+      Start 1594: OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas
+20/30 Test #1594: OomPipeline.PipelineThatRunsOutOfMemoryLeavesEverythingAsItWas ...........................   Passed    0.07 sec
+      Start 1595: OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+21/30 Test #1595: OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched .............   Passed    0.09 sec
+      Start 1605: OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas
+22/30 Test #1605: OomPipeline.AFileErrorInTheSecondOrThirdLoadLeavesTheWholeCalibrationSetAsItWas ..........   Passed    0.05 sec
+      Start 1636: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+23/30 Test #1636: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize ................................***Failed    0.08 sec
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[proxy-filter G1] exe=xpe_preprocess_oom_tests calib=3 reason=0 imageBase=0x0 explicitRaw=0x0 explicitTarget=0x0 thunks=0 P_explicit=0x0 newBegin=0x0 captured=0 matchIndex=-1 newIndex=-1 pod16Captured=0 rawNewCaptured=0 supported=0
+[proxy-filter G3] exe=xpe_preprocess_oom_tests filter unsupported in this configuration; sweeps run unfiltered
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 15683316160356337544
+  value
+    Which is: 15299107183278045512
+pipeline/default/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 7395008352760778585
+  value
+    Which is: 14371413008176057433
+pipeline/default/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 11067996883809170857
+  value
+    Which is: 1581517459952931113
+pipeline/default/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2736694478536238226
+  value
+    Which is: 16223179315102896402
+pipeline/default/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 1125739859813352531
+  value
+    Which is: 8911000518922449235
+pipeline/default/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 11281343277443136014
+  value
+    Which is: 1501389967932372046
+pipeline/default/256x192/tier3: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (67 ms)
+[----------] 1 test from OutputUnchanged237b (67 ms total)
+
+[----------] Global test environment tear-down
+[proxy-filter G3] exe=xpe_preprocess_oom_tests totals arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[==========] 1 test from 1 test suite ran. (67 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+
+ 1 FAILED TEST
+
+      Start 1637: OutputUnchanged237b.PipelineEntryBypassCombinations
+24/30 Test #1637: OutputUnchanged237b.PipelineEntryBypassCombinations ......................................***Failed    0.11 sec
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryBypassCombinations
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[proxy-filter G1] exe=xpe_preprocess_oom_tests calib=3 reason=0 imageBase=0x0 explicitRaw=0x0 explicitTarget=0x0 thunks=0 P_explicit=0x0 newBegin=0x0 captured=0 matchIndex=-1 newIndex=-1 pod16Captured=0 rawNewCaptured=0 supported=0
+[proxy-filter G3] exe=xpe_preprocess_oom_tests filter unsupported in this configuration; sweeps run unfiltered
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 10286980413024366311
+  value
+    Which is: 13266064879369831111
+pipeline/combo/offset_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 4275144958339119079
+  value
+    Which is: 7656990424912841159
+pipeline/combo/nonlin_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 16930394491515291902
+  value
+    Which is: 8794333052684177246
+pipeline/combo/gain_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 4693822830194688281
+  value
+    Which is: 14840708421559684409
+pipeline/combo/defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 9833186168311483070
+  value
+    Which is: 7373132549012884766
+pipeline/combo/ghost_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 8852129844093953623
+  value
+    Which is: 9081595560412752119
+pipeline/combo/binning2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2089189574156825068
+  value
+    Which is: 16895089824073297932
+pipeline/combo/gain_defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17695710623936361493
+  value
+    Which is: 15807438371981955189
+pipeline/combo/uint16_out: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 15188320694194156372
+  value
+    Which is: 4227989076514963508
+pipeline/combo/gain_binning_ghost_off: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryBypassCombinations arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations (102 ms)
+[----------] 1 test from OutputUnchanged237b (102 ms total)
+
+[----------] Global test environment tear-down
+[proxy-filter G3] exe=xpe_preprocess_oom_tests totals arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[==========] 1 test from 1 test suite ran. (102 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations
+
+ 1 FAILED TEST
+
+      Start 1638: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+25/30 Test #1638: OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer .........................***Failed    0.04 sec
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[proxy-filter G1] exe=xpe_preprocess_oom_tests calib=3 reason=0 imageBase=0x0 explicitRaw=0x0 explicitTarget=0x0 thunks=0 P_explicit=0x0 newBegin=0x0 captured=0 matchIndex=-1 newIndex=-1 pod16Captured=0 rawNewCaptured=0 supported=0
+[proxy-filter G3] exe=xpe_preprocess_oom_tests filter unsupported in this configuration; sweeps run unfiltered
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 10982968914567350694
+  value
+    Which is: 13668902984314237537
+pipeline/float_input/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 12486233217343867078
+  value
+    Which is: 7347483916167360691
+pipeline/float_input/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 4
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2137023250045499353
+  value
+    Which is: 17158506882742047577
+pipeline/float_input/failed_frame/tier2: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (29 ms)
+[----------] 1 test from OutputUnchanged237b (29 ms total)
+
+[----------] Global test environment tear-down
+[proxy-filter G3] exe=xpe_preprocess_oom_tests totals arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[==========] 1 test from 1 test suite ran. (29 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+
+ 1 FAILED TEST
+
+      Start 1639: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+26/30 Test #1639: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute ...................***Failed    0.20 sec
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[proxy-filter G1] exe=xpe_preprocess_oom_tests calib=3 reason=0 imageBase=0x0 explicitRaw=0x0 explicitTarget=0x0 thunks=0 P_explicit=0x0 newBegin=0x0 captured=0 matchIndex=-1 newIndex=-1 pod16Captured=0 rawNewCaptured=0 supported=0
+[proxy-filter G3] exe=xpe_preprocess_oom_tests filter unsupported in this configuration; sweeps run unfiltered
+[----------] 1 test from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2965372564227605685
+  value
+    Which is: 10643136597431746517
+pipeline/poly_gain/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 11187921047709063530
+  value
+    Which is: 18414567499275588522
+pipeline/gain_classified/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 1947970911923761365
+  value
+    Which is: 5981490669264036373
+pipeline/gain_classified/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 7045061333246794944
+  value
+    Which is: 6391347232205405568
+pipeline/gain_classified/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 16435792994426679962
+  value
+    Which is: 1728206356872793946
+pipeline/gain_classified/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 14017278994333810755
+  value
+    Which is: 13775624910237173315
+pipeline/gain_classified/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 5612297179592591063
+  value
+    Which is: 15475537787504939863
+pipeline/gain_classified/256x192/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 14760336749728665839
+  value
+    Which is: 11026052354887454191
+pipeline/slow_route_ok/203x157/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17439606353713507748
+  value
+    Which is: 2015254454253222372
+pipeline/slow_route_ok/256x192/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 4977787609537703938
+  value
+    Which is: 2831355032398018
+pipeline/slow_route_failing/203x157/tier3_beta1e36: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (188 ms)
+[----------] 1 test from OutputUnchanged237b (188 ms total)
+
+[----------] Global test environment tear-down
+[proxy-filter G3] exe=xpe_preprocess_oom_tests totals arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[==========] 1 test from 1 test suite ran. (188 ms total)
+[  PASSED  ] 0 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+
+ 1 FAILED TEST
+
+      Start 1659: clock.A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning
+27/30 Test #1659: clock.A241Safety.AFileWithAnExpiryRaisesNoExpiryWarning ..................................   Passed    0.03 sec
+      Start 1664: clock.A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere
+28/30 Test #1664: clock.A241Safety.PipelineOutRefusesAnyOverlapOfInputAndOutputAndLeavesBothAsTheyWere .....   Passed    0.02 sec
+      Start 1668: clock.A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing
+29/30 Test #1668: clock.A241Safety.TheThreeSingleStageFunctionsRefuseAnExpiredMapAndWriteNothing ...........   Passed    0.10 sec
+      Start 1705: preprocess.legacy_ghost_fingerprints
+30/30 Test #1705: preprocess.legacy_ghost_fingerprints .....................................................***Failed    1.38 sec
+Running main() from D:\workspace-github\xpe-pre\build\ci-preprocess\_deps\googletest-src\googletest\src\gtest_main.cc
+Note: Google Test filter = OutputUnchanged237b.*
+[==========] Running 14 tests from 1 test suite.
+[----------] Global test environment set-up.
+[proxy-filter G1] exe=xpe_preprocess_oom_tests calib=3 reason=0 imageBase=0x0 explicitRaw=0x0 explicitTarget=0x0 thunks=0 P_explicit=0x0 newBegin=0x0 captured=0 matchIndex=-1 newIndex=-1 pod16Captured=0 rawNewCaptured=0 supported=0
+[proxy-filter G3] exe=xpe_preprocess_oom_tests filter unsupported in this configuration; sweeps run unfiltered
+[----------] 14 tests from OutputUnchanged237b
+[ RUN      ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 6428790992294187841
+  value
+    Which is: 149814952046912193
+pipeline/default/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2195118020900084872
+  value
+    Which is: 14022358028441004040
+pipeline/default/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17448293165191567758
+  value
+    Which is: 9989468295167388494
+pipeline/default/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 12059687206307471431
+  value
+    Which is: 14126136650998098183
+pipeline/default/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 8632090940582685306
+  value
+    Which is: 1252930649699638458
+pipeline/default/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 11362483066415851924
+  value
+    Which is: 5344501343338201876
+pipeline/default/256x192/tier3: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (72 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryBypassCombinations
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 7069256091660319338
+  value
+    Which is: 468620020167163146
+pipeline/combo/offset_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 12946903954741450866
+  value
+    Which is: 3616629493748785938
+pipeline/combo/nonlin_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 6984182444615707463
+  value
+    Which is: 11982412452154660263
+pipeline/combo/gain_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 16928988570323552244
+  value
+    Which is: 9391758236355942036
+pipeline/combo/defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 9833186168311483070
+  value
+    Which is: 7373132549012884766
+pipeline/combo/ghost_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 8425123607288485262
+  value
+    Which is: 16856733049768360750
+pipeline/combo/binning2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 8763966434711025293
+  value
+    Which is: 15679169672286760173
+pipeline/combo/gain_defect_off: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17695710623936361493
+  value
+    Which is: 15807438371981955189
+pipeline/combo/uint16_out: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 15188320694194156372
+  value
+    Which is: 4227989076514963508
+pipeline/combo/gain_binning_ghost_off: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryBypassCombinations arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations (107 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 18350548847525495743
+  value
+    Which is: 13668902984314237537
+pipeline/float_input/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 1026814860673634867
+  value
+    Which is: 7347483916167360691
+pipeline/float_input/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 0
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 1
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 2
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(382): error: Expected equality of these values:
+  f == 3 ? -3 : 0
+    Which is: 0
+  rc
+    Which is: -3
+frame 4
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 7476309020186394476
+  value
+    Which is: 17158506882742047577
+pipeline/float_input/failed_frame/tier2: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (29 ms)
+[ RUN      ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 8740551794412805152
+  value
+    Which is: 8726541487880102400
+pipeline/poly_gain/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 8261567500933446207
+  value
+    Which is: 16192667614988543935
+pipeline/gain_classified/203x157/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 2830003555908497564
+  value
+    Which is: 15313830514695628508
+pipeline/gain_classified/203x157/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 10985814093528532417
+  value
+    Which is: 17111477945194098881
+pipeline/gain_classified/203x157/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 14568357339220045903
+  value
+    Which is: 8085167838072729103
+pipeline/gain_classified/256x192/tier1: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 10536177718799163874
+  value
+    Which is: 1973233195513535458
+pipeline/gain_classified/256x192/tier2: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 18273338687393332813
+  value
+    Which is: 1459437239254179277
+pipeline/gain_classified/256x192/tier3: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 16112504763032275252
+  value
+    Which is: 2295576919495265588
+pipeline/slow_route_ok/203x157/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17205058636046826702
+  value
+    Which is: 639214382822405262
+pipeline/slow_route_ok/256x192/tier3_beta1e33: the output changed
+
+D:\workspace-github\xpe-pre\modules\preprocess\tests\test_output_unchanged_237b.cpp(98): error: Expected equality of these values:
+  expected
+    Which is: 17949270530603334680
+  value
+    Which is: 8005371154461470616
+pipeline/slow_route_failing/203x157/tier3_beta1e36: the output changed
+
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (203 ms)
+[ RUN      ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GhostFramesOfRisingMagnitudeIncludingFailedOnes (87 ms)
+[ RUN      ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GhostFailedFrameLeavesPixelsHistoryAndStateAsTheyWere (21 ms)
+[ RUN      ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GhostCoefficientOverflowIsAFailedFrameNotAnErasedHistory (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GhostNonFiniteFramesAreRefusedAndChangeNothing (7 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow
+[a237b] ghost coefficient-overflow boundary: 122760 frames, 102934 in place, 15356 failed on the scratch route
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GhostInPlaceVerdictAroundTheCoefficientOverflow (743 ms)
+[ RUN      ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GainWrittenOverItsOwnInputEqualsSeparateBuffers (3 ms)
+[ RUN      ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.DefectStageOutputForEveryMaskShape arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.DefectStageOutputForEveryMaskShape (38 ms)
+[ RUN      ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GainScalarMapOutputAndRefusedMaps (1 ms)
+[ RUN      ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GainPolynomialMapOutputAndClassifiedPixels (0 ms)
+[ RUN      ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails
+[a237b] ghost differential: 3780 frames, 703 in place, 1824 failed on the scratch route
+[proxy-filter G3 audit] exe=xpe_preprocess_oom_tests test=OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[       OK ] OutputUnchanged237b.GhostInPlaceRouteIsNeverTakenForAFrameTheScratchRouteFails (54 ms)
+[----------] 14 tests from OutputUnchanged237b (1373 ms total)
+
+[----------] Global test environment tear-down
+[proxy-filter G3] exe=xpe_preprocess_oom_tests totals arms=0 count=0 raw=0 skipped=0 reentry=0 unresolved=0 depthCapped=0 mismatches=0
+[==========] 14 tests from 1 test suite ran. (1373 ms total)
+[  PASSED  ] 10 tests.
+[  FAILED  ] 4 tests, listed below:
+[  FAILED  ] OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+[  FAILED  ] OutputUnchanged237b.PipelineEntryBypassCombinations
+[  FAILED  ] OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer
+[  FAILED  ] OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+
+ 4 FAILED TESTS
+
+
+67% tests passed, 10 tests failed out of 30
+
+Total Test time (real) =   3.23 sec
+
+The following tests FAILED:
+	848 - PipelineStageValueTest.GhostFlagDistinguishesFirstFrameAndResetFromAnActiveFrame (Failed)
+	1479 - OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (Failed)
+	1480 - OutputUnchanged237b.PipelineEntryBypassCombinations (Failed)
+	1481 - OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (Failed)
+	1482 - OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (Failed)
+	1636 - OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize (Failed)
+	1637 - OutputUnchanged237b.PipelineEntryBypassCombinations (Failed)
+	1638 - OutputUnchanged237b.PipelineEntryFloatInputOnTheCallersOwnBuffer (Failed)
+	1639 - OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute (Failed)
+	1705 - preprocess.legacy_ghost_fingerprints (Failed)
+Errors while running CTest
+ctest_rc=8 

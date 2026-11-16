@@ -1,0 +1,15 @@
+# QA-A-333 A (4): neighbour correlation in RAW frame differences (no correction). Per set: dark pair = first two darks of the set list,
+# bright pair = first two gain (same-dose) brights. diff = a - b (uint16 -> float64), inside margins 6,2,1,1, then row and column means removed (as 29).
+import sys, numpy as np
+def acf(img):
+    C = img[2:3071, 6:3071]; e = C - C.mean(1, keepdims=True) - C.mean(0, keepdims=True) + C.mean(); v = (e * e).mean()
+    return [(e[:, :-k] * e[:, k:]).mean() / v for k in (1, 2)] + [(e[:-k] * e[k:]).mean() / v for k in (1, 2)]
+rd = lambda p: np.fromfile(p, dtype=np.uint16).reshape(3072, 3072).astype(np.float64)
+CAL = "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles"
+sets = [("cyan_test", CAL, "Dark_07.raw Dark_08.raw", "Bright_23.raw Bright_24.raw")]
+for ln in open(sys.argv[1], encoding="utf-8"):
+    f = ln.rstrip("\r\n").split("\t"); sets.append((f[0], f[1], f[2], f[3]))
+for n, d, dk, gn in sets:
+    a, b = dk.split()[:2]; c, e2 = gn.split()[:2]
+    x = acf(rd(f"{d}/{a}") - rd(f"{d}/{b}")); y = acf(rd(f"{d}/{c}") - rd(f"{d}/{e2}"))
+    print("%-18s dark %s-%s  acf x1 %.3f x2 %.3f y1 %.3f y2 %.3f | bright %s-%s  acf x1 %.3f x2 %.3f y1 %.3f y2 %.3f" % (n, a, b, *x, c, e2, *y))

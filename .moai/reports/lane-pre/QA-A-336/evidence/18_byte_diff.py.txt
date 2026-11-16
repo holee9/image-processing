@@ -1,0 +1,27 @@
+# QA-A-336 follow-up: byte comparison of two XCal files; every differing offset is mapped to the XCalFileHeader field
+# (xcal_format.h:129-142, pack 1, 152 bytes) or to the config block / payload that follows it.
+import sys, struct, hashlib
+FIELDS = [("magic",0,4),("version",4,4),("type",8,4),("pixel_format",12,4),("width",16,4),("height",20,4),
+          ("created_epoch_ms",24,8),("expiry_epoch_ms",32,8),("session_id",40,64),("config_json_len",104,8),
+          ("payload_len",112,8),("sha256",120,32)]
+def where(off, cfg_len):
+    for n,s,l in FIELDS:
+        if s <= off < s+l: return "header." + n
+    if off < 152 + cfg_len: return "config[%d]" % (off - 152)
+    return "payload[%d]" % (off - 152 - cfg_len)
+for label, a_path, b_path in [(sys.argv[i], sys.argv[i+1], sys.argv[i+2]) for i in range(1, len(sys.argv), 3)]:
+    a = open(a_path,'rb').read(); b = open(b_path,'rb').read()
+    ca = struct.unpack_from('<Q', a, 104)[0]; cb = struct.unpack_from('<Q', b, 104)[0]
+    pa = struct.unpack_from('<Q', a, 112)[0]
+    print(f"== {label}: sizes {len(a)} / {len(b)}, config_json_len {ca} / {cb}, payload_len {pa}")
+    if len(a) != len(b): print("   SIZE DIFFERS"); continue
+    diff = [i for i in range(len(a)) if a[i] != b[i]]
+    print(f"   differing bytes: {len(diff)}")
+    groups = {}
+    for i in diff: groups.setdefault(where(i, ca), []).append(i)
+    for g, offs in groups.items(): print(f"   {g}: offsets {offs[0]}..{offs[-1]} ({len(offs)} bytes)")
+    if ca:
+        print("   config before:", a[152:152+ca].decode()); print("   config after: ", b[152:152+cb].decode())
+    print("   payload sha256 before", hashlib.sha256(a[152+ca:]).hexdigest()); print("   payload sha256 after ", hashlib.sha256(b[152+cb:]).hexdigest())
+    for n in ("created_epoch_ms",):
+        s = dict((f[0], f[1]) for f in FIELDS)[n]; print(f"   {n}: {struct.unpack_from('<q',a,s)[0]} / {struct.unpack_from('<q',b,s)[0]}")

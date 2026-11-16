@@ -1,0 +1,8 @@
+G3_0428_AED_31     lines2_f0  expected sd(ratio) row 1.280 col 1.301
+G3_0428_AED_31     lines_f0   expected sd(ratio) row 1.323 col 1.341
+G4_0410_plain_47   lines2_f0  expected sd(ratio) row 1.340 col 1.309
+G4_0410_plain_47   lines_f0   expected sd(ratio) row 1.317 col 1.307
+J4_0410_plain_75   lines2_f0  expected sd(ratio) row 1.325 col 1.327
+J4_0410_plain_75   lines_f0   expected sd(ratio) row 1.354 col 1.329
+cyan_test          lines_f0   expected sd(ratio) row 1.788 col 1.307
+cyan_test          lines_f1   expected sd(ratio) row 1.803 col 1.303

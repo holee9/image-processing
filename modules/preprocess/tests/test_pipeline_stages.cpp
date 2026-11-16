@@ -4,7 +4,7 @@
  *
  * `pipeline.cpp` measured 155/216 (0.72) in coverage run 34479945843. The 61
  * uncovered lines are the stage BODIES -- readout validation (108-114), temp
- * compensation (122-131), nonlinearity (155-168), gain (201-213), defect
+ * compensation (122-131, removed in QA-A-335), nonlinearity (155-168, removed in QA-A-336), gain (201-213), defect
  * (255-267) and the metadata-flag writes that follow each. Every existing case
  * either bypasses the stages or stops at argument validation, so the bodies
  * never ran.
@@ -72,8 +72,7 @@ protected:
         img.format = XPE_PIXEL_UINT16;
         img.dataSize = N * sizeof(float);
 
-        // The pipeline reads the detector temperature from its config JSON
-        // (`detectorTempC`), not from metadata, so a zeroed metadata is enough.
+        // A zeroed metadata is enough: no stage under test reads it.
         meta = XpeImageMetadata{};
     }
 
@@ -103,33 +102,30 @@ protected:
     }
 };
 
-// Readout validation and temperature compensation need no calibration, so a
-// config that bypasses only the calibration stages runs both bodies to
-// completion and records their metadata flags.
-TEST_F(PipelineStageTest, ReadoutAndTempStagesRunAndSetFlags) {
+// Readout validation needs no calibration, so a config that bypasses only the
+// calibration stages runs its body to completion and records its metadata flag.
+// QA-A-335: the temperature stage is removed -- its flag is never set any more.
+TEST_F(PipelineStageTest, ReadoutStageRunsAndNoTemperatureFlag) {
     const char* config =
         "{\"bypassOffset\":true,\"bypassGain\":true,\"bypassDefect\":true,"
-        "\"bypassGhost\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,"
-        "\"detectorTempC\":30.0}";
+        "\"bypassGhost\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
 
     ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config));
 
     EXPECT_TRUE(meta.flags & XPE_FLAG_READOUT_VALIDATED)
         << "the readout stage body must have run";
-    EXPECT_TRUE(meta.flags & XPE_FLAG_TEMP_COMPENSATED)
-        << "the temperature stage body must have run";
+    EXPECT_FALSE(meta.flags & XPE_FLAG_TEMP_COMPENSATED)
+        << "the temperature stage is removed (QA-A-335)";
 }
 
-// The nonlinearity and binning bodies run on their own too.
+// The binning body runs on its own too. (The nonlinearity stage was removed, QA-A-336; the flag stays clear.)
 TEST_F(PipelineStageTest, NonlinearityAndBinningStagesRun) {
     const char* config =
         "{\"bypassOffset\":true,\"bypassGain\":true,\"bypassDefect\":true,"
         "\"bypassGhost\":true,\"bypassReadout\":true,\"bypassTemp\":true}";
 
     ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config));
-    // The stage body runs, but it corrects no pixel (SRS-CALIB-FUNC-006 is not
-    // implemented), so the frame is not marked corrected (QA-A-104, #184).
-    // Until then this line asserted the flag was set.
+    // The nonlinearity stage no longer exists (QA-A-336), so its flag is never set.
     EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
 }
 
@@ -198,7 +194,7 @@ TEST_F(PipelineStageTest, AllStagesEnabledRunInSequence) {
     ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline(&img, &meta, nullptr, nullptr, config));
 
     EXPECT_TRUE(meta.flags & XPE_FLAG_READOUT_VALIDATED);
-    EXPECT_TRUE(meta.flags & XPE_FLAG_TEMP_COMPENSATED);
+    EXPECT_FALSE(meta.flags & XPE_FLAG_TEMP_COMPENSATED);   // QA-A-335: stage removed
     EXPECT_TRUE(meta.flags & XPE_FLAG_OFFSET_CORRECTED);
     EXPECT_TRUE(meta.flags & XPE_FLAG_GAIN_CORRECTED);
 }

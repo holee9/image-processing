@@ -437,7 +437,9 @@ TEST_F(PreE2ERun, OraclePredictionIncludesOriginalGainClassificationRatherThanNe
     EXPECT_DOUBLE_EQ(0.0, j.at("metrics").at("defect_residual_adu").get<double>());
 }
 
-TEST_F(PreE2ERun, PolynomialOracleKeepsUnsupportedSelectionNullButMeasuresActualStageFrames) {
+// QA-A-336: a gain POLYNOMIAL file (type 3) in the calibration set is refused by the gain loader, so the run fails --
+// it is never measured as if the file were a scalar map.
+TEST_F(PreE2ERun, APolynomialGainFileFailsTheRunInsteadOfBeingMeasured) {
     options.oracleBpm = dir / "truth.mask";
     std::vector<uint8_t> truth(256, 0); truth[100] = 1;
     { std::ofstream f(options.oracleBpm, std::ios::binary); f.write(reinterpret_cast<const char*>(truth.data()), 256); }
@@ -445,18 +447,14 @@ TEST_F(PreE2ERun, PolynomialOracleKeepsUnsupportedSelectionNullButMeasuresActual
     for (size_t i = 0; i < 256; ++i) coefficients[2 * i] = 2.0f;
     const std::string config = "{\"dose_min\":0,\"dose_max\":65535,\"polynomial_degree\":1}";
     XCalFileHeader hdr{}; std::memcpy(hdr.magic, XCAL_MAGIC, 4);
-    hdr.version = XCAL_VERSION; hdr.type = XCAL_TYPE_GAIN_POLY; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    hdr.version = XCAL_VERSION; hdr.type = 3u /* the removed XCAL_TYPE_GAIN_POLY */; hdr.pixel_format = XCAL_FMT_FLOAT32;
     hdr.width = hdr.height = 16;
     ASSERT_EQ(XPE_OK, write_xcal_file((dir / "gain.xcal").string().c_str(), hdr,
         reinterpret_cast<const uint8_t*>(config.data()), config.size(),
         reinterpret_cast<const uint8_t*>(coefficients.data()), coefficients.size() * sizeof(float)));
     const auto j = evaluate(options);
-    ASSERT_TRUE(j.at("run_succeeded").get<bool>()) << j.dump();
-    EXPECT_FALSE(j.at("oracle").at("prediction_measured").get<bool>());
-    EXPECT_TRUE(j.at("metrics").at("defect_recall").is_null());
-    EXPECT_TRUE(j.at("metrics").at("defect_fpr").is_null());
-    EXPECT_DOUBLE_EQ(0.0, j.at("metrics").at("defect_residual_adu").get<double>());
-    EXPECT_DOUBLE_EQ(0.0, j.at("metrics").at("good_pixel_delta_p99_linear_adu").get<double>());
+    EXPECT_FALSE(j.at("run_succeeded").get<bool>()) << j.dump();
+    xpe_clear_alerts();
 }
 
 TEST_F(PreE2ERun, OracleValidatesLengthAndKindAndCliActuallyConnectsIt) {

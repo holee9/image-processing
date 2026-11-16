@@ -1,0 +1,797 @@
+# grep -rniE "nonlin|polynomial|gain_poly|dose_levels|FUNC-006|FUNC-027|CALIB_MULTI" modules/preprocess modules/common tools (build/.moai 제외)
+# 397 lines
+
+modules/preprocess/CMakeLists.txt:341:        tests/test_temp_nonlinearity_binning.cpp
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/CMakeLists.txt:480:        # QA-A-105 (#187), QA-A-336: the scalar gain map (the polynomial cases were removed with it)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/CMakeLists.txt:481:        tests/test_gain_poly_not_applied.cpp
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/CMakeLists.txt:486:        tests/test_fixture_gen_gain_poly.cpp
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/CMakeLists.txt:519:        # QA-A-37 (#140), QA-A-336: a gain polynomial file (type 3) is refused; single-dose FUNC-033 fields
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/CMakeLists.txt:520:        tests/test_calib_gain_poly_load.cpp
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/include/xpe/preprocess/xcal_format.h:45:     * QA-A-336: 3 (the gain polynomial) and 4 (the nonlinearity lookup table) were removed with their features. The
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h:961: * polynomial_degree 0..4; actual_dose_levels 1..10; calibration_mode 0..4) is XPE_ERR_CONFIG_INVALID (QA-A-204,
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/include/xpe/preprocess_api.h:97: * xpe_calib_set_mode() (back to the FUNC-031 default XPE_CALIB_MULTI_POINT_8),
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:169: * the top level: all XPE_ERR_CONFIG_INVALID), and its fit_r_squared, polynomial_degree, actual_dose_levels and
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/include/xpe/preprocess_api.h:174: * (negative values are real: a fit worse than the mean; exactly -1.0 included), polynomial_degree an integer in
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/include/xpe/preprocess_api.h:175: * 0..4, actual_dose_levels 1..10, calibration_mode 0..4 (notation: optional leading white space, an optional
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/include/xpe/preprocess_api.h:210: *                                POLYNOMIAL file (type 3, written by the removed xpe_calib_generate_gain_polynomial)
+    -> 제거 이력을 적은 주석
+modules/preprocess/include/xpe/preprocess_api.h:777: * (The temperature compensation of SWU-1.6 was removed by user decision, QA-A-335; the nonlinearity correction of
+    -> 제거 이력을 적은 주석
+modules/preprocess/include/xpe/preprocess_api.h:1216: * - A gain POLYNOMIAL file (type 3, removed in QA-A-336) is refused by the plain loader (XPE_ERR_CONFIG_INVALID).
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/include/xpe/preprocess_api.h:1969: * @brief Calibration mode selection for polynomial fitting
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:1971: * Defines the number of dose points and polynomial degree for gain calibration.
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/include/xpe/preprocess_api.h:1987: * (QA-A-336: the gain polynomial generator that used the multi-point modes was
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/include/xpe/preprocess_api.h:1993:    XPE_CALIB_MULTI_POINT_5  = 2,  ///< 5 points, quadratic fit
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:1994:    XPE_CALIB_MULTI_POINT_8  = 3,  ///< 8 points, cubic fit (DEFAULT)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:1995:    XPE_CALIB_MULTI_POINT_10 = 4,  ///< 10 points, degree <= 4
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:2007: * - polynomial_degree: Fitted polynomial degree (0-4; 4 is MULTI_POINT_10)
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/include/xpe/preprocess_api.h:2039:    uint8_t  polynomial_degree;     ///< 0=constant, 1=linear, 2=quadratic, 3=cubic, 4=quartic (MULTI_POINT_10)
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/include/xpe/preprocess_api.h:2057: * @brief Set calibration mode for polynomial fitting
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:2061: * Default mode: XPE_CALIB_MULTI_POINT_8 (8 points, cubic)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:2074: * @return Current calibration mode (default: XPE_CALIB_MULTI_POINT_8)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/include/xpe/preprocess_api.h:2123: * @brief Get polynomial degree for current mode
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/include/xpe/preprocess_api.h:2127: * @return Polynomial degree ceiling (0, 1, 2, 3, or 4); for AUTO, the
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/include/xpe/preprocess_api.h:2141:#define XPE_BPM_LINE_CAUSE_LINEARITY 0x02u /**< The straight-line fit over the doses fails along the line: the lack of fit of the line through the dose-group means, we
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/src/defect_correct.cpp:995:    // frame's list (when a caller passes one; the pipeline passes none since the gain polynomial was removed, QA-A-336). Nothing is copied unless one of the lists is non-emp
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/defect_ext.cpp:161:    const char* what = type == 3u ? " (gain polynomial, removed in QA-A-336)" : type == 4u ? " (nonlinearity table, removed in QA-A-336)" : "";
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/defect_ext.hpp:135:/** QA-A-336: the XPE_ERR_XCAL_TYPE alert for a file type above XCAL_TYPE_DEFECT (3 = the removed gain polynomial, 4 = the removed nonlinearity table). */
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/gain_correct.cpp:175:    // FMA is useful for polynomial: a*x² + b*x + c = fma(fma(a, x, b), x, c)
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/src/gain_correct.cpp:185: * AC-GAIN-003: FMA path for polynomial optimization
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/src/gain_correct.cpp:283:    std::vector<uint32_t>*  /*frame_defects*/,   // QA-A-336: filled only by the removed polynomial path; the list stays empty
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/gain_correct.cpp:324:            // (QA-A-336: the dose-dependent gain polynomial and its applier were removed; the scalar map is the only model.)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/ghost_correct.cpp:7: *        Tier 3: NLCSC (Nonlinear Causal Spatial Context)
+    -> 고스트 보정 Tier 3 이름(NLCSC) — 비선형 보정과 무관
+modules/preprocess/src/ghost_correct.cpp:329:    // Tier 3: NLCSC (Nonlinear Causal Spatial Context) with signal-dependent coefficients
+    -> 고스트 보정 Tier 3 이름(NLCSC) — 비선형 보정과 무관
+modules/preprocess/src/pipeline.cpp:40:// boundary (0 readout, 1 the working copy (the temperature stage, removed in QA-A-335), 2 offset, 3 the offset-to-gain boundary (the nonlinearity stage, removed in QA-A-336), 4 gai
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/pipeline.cpp:498:        // Stage 3: the gain stage's input. QA-A-336: the nonlinearity stage that ran here is removed; what remains is exactly
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/pipeline.cpp:499:        // the path the former "bypassNonlinearity":true took (no stage, no copy of its own). XPE_STAGE_HOOK(3) still fires
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/src/xcal_validator.cpp:111:    // QA-A-336: types 3 (the gain polynomial) and 4 (the nonlinearity table) were removed with their features. A file of
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/xpe_calib_generate_gain.cpp:6: * (QA-A-336: the dose-dependent gain polynomial generator, FUNC-027, was removed.)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/xpe_calib_generate_gain.cpp:155:        // shall include: calibration_mode, actual_dose_levels, polynomial_degree
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_generate_gain.cpp:156:        // (fitted polynomial degree; 0 for single-point), fit_r_squared
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/src/xpe_calib_generate_gain.cpp:161:        // same exposure are averaged), so actual_dose_levels is 1 and the degree
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_generate_gain.cpp:172:        quality.polynomial_degree  = 0;
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_generate_gain.cpp:180:            "\"actual_dose_levels\":1,"
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_generate_gain.cpp:181:            "\"polynomial_degree\":0,\"fit_r_squared\":1.000000000,"
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_load_gain.cpp:6: * QA-A-336: a gain polynomial file (type 3, the removed XCAL_TYPE_GAIN_POLY) is refused by the header check
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/src/xpe_calib_load_gain.cpp:93:        // Only XCAL_TYPE_GAIN (one scalar plane). A file of any other type -- including the type-3 gain polynomial this
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/src/xpe_calib_mode.cpp:34:XpeCalibrationMode g_calib_mode = XPE_CALIB_MULTI_POINT_8;
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:55:    g_calib_mode = XPE_CALIB_MULTI_POINT_8;   // the FUNC-031 (7) default
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:71:    uint32_t poly_degree;  ///< Polynomial degree (0=constant, 1=linear, etc.)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:78:    /* XPE_CALIB_MULTI_POINT_5  */ { 5, 2 },  // Quadratic fit
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:79:    /* XPE_CALIB_MULTI_POINT_8  */ { 8, 3 },  // Cubic fit (DEFAULT)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:80:    /* XPE_CALIB_MULTI_POINT_10 */ {10, 4 },  // Quartic ceiling (SRS FUNC-031: degree <= 4)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:160: * @brief Set calibration mode for polynomial fitting
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:184: * @return Current calibration mode (default: XPE_CALIB_MULTI_POINT_8)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:234: * @brief Get polynomial degree for current mode
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:238: * @return Polynomial degree ceiling (0, 1, 2, 3, or 4)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/src/xpe_calib_mode.cpp:341:    //   polynomial_degree  0..4  (the fitted degree: constant .. the quartic MULTI_POINT_10 allows)
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_mode.cpp:342:    //   actual_dose_levels 1..10 (the points of the mode used: SINGLE_POINT 1 .. MULTI_POINT_10 10)
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_mode.cpp:351:    if (!read_u8_field(doc, "polynomial_degree", 0, 4, &meta.polynomial_degree, &anyPresent) ||
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/src/xpe_calib_mode.cpp:352:        !read_u8_field(doc, "actual_dose_levels", 1, 10, &meta.num_points, &anyPresent) ||
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_a241_safety.cpp:30:constexpr const char* kCfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a241_safety.cpp:186:                                         "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassOffset\":true}"));
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a241_safety.cpp:240:        const std::string cfg = std::string("{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true") + c.extra + "}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a241_safety.cpp:295:    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a241_safety.cpp:330:    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a241_safety.cpp:419:    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a246_stage_diagnostics.cpp:36:constexpr const char* kCfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a246_stage_diagnostics.cpp:37:constexpr const char* kCfgNoDefect = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_a246_stage_diagnostics.cpp:38:constexpr const char* kCfgUint16 = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true,\"bypassDefect\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_bpm_eval.cpp:271:    EXPECT_EQ(69, perClass["line"]);       // dead 1.0, nonlinear x2, noisy x2 at 6 shapes = 30 + gain_loss and efficiency_loss at 0.3, 0.4 and 0.44 = 36, + 3 crossings
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_eval.cpp:273:    EXPECT_EQ(48, perClass["pixel"]);      // 16 levels x 3 (dead 1, hot x4, noisy x3, nonlinear x2, gain_loss and efficiency_loss at 0.3, 0.4 and 0.44)
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_eval.cpp:391:    const Item* nl = findItem("pixel", "nonlinear", "pixel", 0.4);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_eval.cpp:468:    EXPECT_EQ("pixel", classOf("nonlinear", "pixel", 0.4)) << "nonlinearity is judged by the linearity feature, not by a response ratio";
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:10: *   - positive controls: the injection's nonlinearity f(S) = S (1 - c S / 30000), c = 0.4 and 0.2, at three noise levels, as a full row, a full column, a partial row, a
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:11: *   - separation of the axes: linear + high noise is a NOISE defect, nonlinear + low noise is a LINEARITY defect.
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:67:Mod nonlinear(double c, double kappaMul) { Mod m; m.curve = c; m.varShot = kappaMul; return m; }
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:219:    EXPECT_NEAR(16834.9, expectedMisfit(nonlinear(0.4, 0.25), kDesignA), 1.0);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:220:    EXPECT_NEAR(4259.3, expectedMisfit(nonlinear(0.4, 1.0), kDesignA), 1.0);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:221:    EXPECT_NEAR(1068.0, expectedMisfit(nonlinear(0.4, 4.0), kDesignA), 1.0);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:222:    EXPECT_NEAR(4208.7, expectedMisfit(nonlinear(0.2, 0.25), kDesignA), 1.0);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:223:    EXPECT_NEAR(1064.8, expectedMisfit(nonlinear(0.2, 1.0), kDesignA), 1.0);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:224:    EXPECT_NEAR(267.0, expectedMisfit(nonlinear(0.2, 4.0), kDesignA), 1.0);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:226:    EXPECT_GT(expectedMisfit(nonlinear(0.2, 4.0), kDesignA), 50.0 * 3.0);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:280:                    const Mod m = nonlinear(cs[ci], kms[ki]);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:326:            ASSERT_GT(expectedMisfit(nonlinear(ci == 0 ? 0.4 : 0.2, kms[ki]), kDesignA), 266.0) << "the design of the control: the expected misfit exceeds 266 >> G - 2 
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:358:TEST(BpmLinesLofSeparationTest, ALinearLineWithHighNoiseIsANoiseDefectAndANonlinearLineWithLowNoiseIsALinearityDefect) {
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:369:            Stack st = makeStack(8100u + static_cast<uint64_t>(seed), kDesignA, {{0, 256, 100, 101, nonlinear(0.4, 0.25)}});
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:493:        Stack st = makeStack(9100u, sizes, {{0, 256, 100, 101, nonlinear(0.4, 1.0)}});
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_lines_lof.cpp:499:    Stack ok = makeStack(9100u, {3, 3, 6, 3, 3}, {{0, 256, 100, 101, nonlinear(0.4, 1.0)}});
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_v2.cpp:690:    // the burst also shifts the dose-group mean and can look like a local nonlinearity (cause linearity); the noise cause must not report it.
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_bpm_v2.cpp:758:        // with three dose groups the burst also shifts a group mean and can look like a local nonlinearity (cause linearity, a known limit that persistence does not judge);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:354:    writeGain("csv_ge.xcal", 2.0f, 0, "{\"fit_r_squared\":\"0.900000\",\"polynomial_degree\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:355:    writeGain("csv_gq.xcal", 4.0f, 0, "{\"fit_r_squared\":\"0.500000\",\"polynomial_degree\":\"1\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:377:    EXPECT_EQ(2u, afterMiss.polynomial_degree) << "control: the miss reads the file's degree";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:379:        << "hit r2=" << afterHit.r_squared << " degree=" << int(afterHit.polynomial_degree)
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:380:        << " vs miss r2=" << afterMiss.r_squared << " degree=" << int(afterMiss.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:383:// (6) a gain polynomial file: refused (QA-A-336) ------------------------------------------------
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:384:// The gain polynomial was removed. A type-3 file is refused by the cached loader exactly as by the plain one, on every
+    -> 제거 이력을 적은 주석
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:386:TEST_F(CacheSameVerdict, AGainPolynomialFileIsRefusedByTheCachedLoaderAsByThePlainOne) {
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_cache_same_verdict.cpp:389:    writeFile("csv_poly.xcal", 3u /* the removed XCAL_TYPE_GAIN_POLY */, XCAL_FMT_FLOAT32, coeffs.data(), coeffs.size() * sizeof(float));
+    -> 제거 이력을 적은 주석
+modules/preprocess/tests/test_calib_dim_mismatch.cpp:13: *   gain_correct.cpp    scalar gain map (the polynomial map case was removed with it, QA-A-336)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_fixture_gen.cpp:198:        R"({"bypassReadout":true,"bypassTemp":true,"bypassNonlinearity":true,)"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_calib_fixture_gen.cpp:349:// --gain-poly is refused (QA-A-336: an unknown argument since the gain polynomial was removed), and nothing is written.
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_fixture_gen.cpp:350:TEST_F(CalibFixtureGenTest, CalDataModeCannotBeCombinedWithAGainPolynomial) {
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_fixture_gen.cpp:638:TEST_F(CalibFixtureGenTest, FramesModeCannotBeCombinedWithCalDataOrAGainPolynomial) {
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:2: * @file test_calib_gain_poly_load.cpp
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:3: * @brief QA-A-336: a gain POLYNOMIAL file is refused with an explicit error; the single-dose gain file's FUNC-033 fields.
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:6: * The dose-dependent gain polynomial (XCAL type 3, written by xpe_calib_generate_gain_polynomial) was removed by user
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:43:        tmpDir = fs::temp_directory_path() / "xpe_gain_poly_load";
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:106:    /** A hand-built file of the removed polynomial type (3) with an arbitrary payload length. */
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:114:        hdr.type            = 3u;   // the removed XCAL_TYPE_GAIN_POLY (QA-A-336: the number stays retired)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:160:// QA-A-336: a polynomial gain file -- one plane, three planes, with and without the dose range it used to carry -- is
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:163:TEST_F(GainPolyLoadTest, APolynomialGainFileIsRefusedWithAnExplicitErrorAndNothingIsLoaded) {
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:167:                                                 "{\"polynomial_degree\":2,\"dose_min\":14037.0,\"dose_max\":42677.0}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:179:        EXPECT_EQ(1, countAlerts("XPE_ERR_XCAL_TYPE: calibration file type 3 (gain polynomial")) << path;
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:188:        EXPECT_FLOAT_EQ(500.0f, first) << "the refused polynomial file changed the loaded scalar map: " << path;
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:209:// calibration_mode, actual_dose_levels, polynomial_degree (0 for single-point),
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:217:    for (const char* key : {"calibration_mode", "actual_dose_levels",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:218:                            "polynomial_degree", "fit_r_squared",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:224:    EXPECT_NE(std::string::npos, json.find("\"polynomial_degree\":0"));
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:225:    EXPECT_NE(std::string::npos, json.find("\"actual_dose_levels\":1"));
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_gain_poly_load.cpp:236:    EXPECT_EQ(0u, meta.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_generate_gain.cpp:5: * SPEC-XPE-P1A SWU-1.12 -- FUNC-026 (the FUNC-027 polynomial cases 6-7 were removed with the generator, QA-A-336)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_mode.cpp:35:        xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_8);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:42:        xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_8);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:54:    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_8);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:68:    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_5), XPE_OK);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:69:    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_5);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:71:    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_8), XPE_OK);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:72:    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_8);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:74:    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_10), XPE_OK);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:75:    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_10);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:92:    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_8);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:111:        {XPE_CALIB_MULTI_POINT_5,  5},
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:112:        {XPE_CALIB_MULTI_POINT_8,  8},
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:113:        {XPE_CALIB_MULTI_POINT_10, 10},
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:125: * @test Polynomial degree for each mode
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:136:        {XPE_CALIB_MULTI_POINT_5,  2},  // Quadratic
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:137:        {XPE_CALIB_MULTI_POINT_8,  3},  // Cubic
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:138:        {XPE_CALIB_MULTI_POINT_10, 4},  // Quartic ceiling (SRS FUNC-031, #169)
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode.cpp:166: * calibration_mode 3, polynomial_degree 2, num_points 3). ctest runs each case
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_mode.cpp:179:                            meta.polynomial_degree == 0 &&
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_mode.cpp:192:                         static_cast<int>(meta.polynomial_degree),
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_mode.cpp:222:    xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_10);
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode_enforcement.cpp:22: * QA-A-336: the gain polynomial generator (FUNC-027) was removed, and with it every row of the table that a
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_mode_enforcement.cpp:76:        xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_8);   // module default
+    -> 보정 모드 API(XpeCalibrationMode) — 보고서의 미수행 항목(바이트 동일성과 충돌) 참조
+modules/preprocess/tests/test_calib_quality_meta.cpp:7: *       actual_dose_levels, polynomial_degree, fit_r_squared,
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_quality_meta.cpp:15: * QA-A-336: the gain polynomial generator these cases drove was removed; the generator cases went with it (see the
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_quality_meta.cpp:141:// QA-A-336: the cases that drove the gain polynomial generator (the R2 gate, R2 moving with the fit, previous_r_squared
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_calib_quality_meta.cpp:143:// the single-dose generator always records R2 = 1 (test_calib_gain_poly_load.cpp pins its fields). The load-side cases
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_calib_quality_meta.cpp:151:        "{\"calibration_mode\":3,\"actual_dose_levels\":5,"
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_quality_meta.cpp:152:        "\"polynomial_degree\":2,\"fit_r_squared\":0.99950000}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_quality_meta.cpp:160:    EXPECT_EQ(2u, meta.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_calib_quality_meta.cpp:170:        "\"actual_dose_levels\":3}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:49:    "\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_config_strict_parse.cpp:341:// A gain file's config block may carry fit_r_squared, polynomial_degree, actual_dose_levels and
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:377:        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:385:        {"fit_r_squared", "nan"},       {"polynomial_degree", "x"},  {"polynomial_degree", "2x"},
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:386:        {"polynomial_degree", "256"},   {"polynomial_degree", "-1"}, {"actual_dose_levels", "abc"},
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:387:        {"actual_dose_levels", "1e2"},  {"calibration_mode", "abc"}, {"calibration_mode", "3 "},
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:400:        EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:415:        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:423:        "{\"fit_r_squared\":\"\"}",         "{\"polynomial_degree\":\"\"}",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:424:        "{\"actual_dose_levels\":\"\"}",    "{\"calibration_mode\":\"\"}",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:426:        "{\"fit_r_squared\":\"0.9\",\"polynomial_degree\":\"\"}",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:428:        "{\"polynomial_degree\":,\"fit_r_squared\":\"0.9\"}", "{\"fit_r_squared\":}",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:430:        "{\"fit_r_squared\":{}}",           "{\"polynomial_degree\":[1]}",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:431:        "{\"calibration_mode\":{\"a\":1}}", "{\"actual_dose_levels\":[]}",
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:446:        EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:459:    writeGainWithConfig("csp_gx.xcal", 4.0f, "{\"polynomial_degree\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:463:    EXPECT_EQ(2u, m.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:468:    const char* cfg = "{\"bypassReadout\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_config_strict_parse.cpp:489:    return field == "fit_r_squared" ? "0.75" : field == "polynomial_degree" ? "3" : field == "actual_dose_levels" ? "7" : "4";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:492:    return field == "fit_r_squared" ? "0.25" : field == "polynomial_degree" ? "2" : field == "actual_dose_levels" ? "5" : "1";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:511:        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:546:    const char* fields[] = {"fit_r_squared", "polynomial_degree", "actual_dose_levels", "calibration_mode"};
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:561:                EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:573:                                     : (std::string(field) == "polynomial_degree")  ? after.polynomial_degree
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:574:                                     : (std::string(field) == "actual_dose_levels") ? after.num_points
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:580:                    EXPECT_EQ(0u, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:624:        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:662:    const char* fields[] = {"fit_r_squared", "polynomial_degree", "actual_dose_levels", "calibration_mode"};
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:677:                EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:687:                                     : (std::string(field) == "polynomial_degree")  ? after.polynomial_degree
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:688:                                     : (std::string(field) == "actual_dose_levels") ? after.num_points
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:712:        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:742:    const char* fields[] = {"fit_r_squared", "polynomial_degree", "actual_dose_levels", "calibration_mode"};
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:760:                EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:769:                                 : (std::string(field) == "polynomial_degree")  ? after.polynomial_degree
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:770:                                 : (std::string(field) == "actual_dose_levels") ? after.num_points
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:782:// polynomial_degree 0..4; actual_dose_levels 1..10; calibration_mode 0..4.
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:784:// (-0.0766 for the ladder of the removed gain polynomial's fixture tests), and a file it wrote must load -- exactly -1.0 included
+    -> 제거 이력을 적은 주석
+modules/preprocess/tests/test_config_strict_parse.cpp:788:        "{\"fit_r_squared\":\"0.5\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:800:        {"polynomial_degree", "-1", false}, {"polynomial_degree", "5", false}, {"polynomial_degree", "0", true},
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:801:        {"polynomial_degree", "4", true},
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:802:        {"actual_dose_levels", "0", false}, {"actual_dose_levels", "11", false}, {"actual_dose_levels", "1", true},
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:803:        {"actual_dose_levels", "10", true},
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:821:                EXPECT_EQ(base.polynomial_degree, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:831:                const double got = f == "fit_r_squared" ? after.r_squared : f == "polynomial_degree" ? after.polynomial_degree
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:832:                                 : f == "actual_dose_levels" ? after.num_points : after.calibration_mode;
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:844:        "{\"fit_r_squared\":\" +0.95\",\"polynomial_degree\":\"+2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\" 3\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:852:    EXPECT_EQ(2u, m.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_config_strict_parse.cpp:863:// nonlinearity stage and the config block of a polynomial-gain or nonlinearity-LUT file) -- looked for the first occurrence of the
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_config_strict_parse.cpp:954:    for (const char* k : {"bypassReadout", "bypassTemp", "bypassOffset", "bypassNonlinearity", "bypassGain",
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_config_strict_parse.cpp:1007:    // Keys no stage reads (QA-A-336: the nonlinearity stage that read panel.* was removed): a duplicate among them
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_defect_fill_equivalence.cpp:288:    const char* cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGhost\":tr
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_defect_fill_interior.cpp:52:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_defect_fill_interior.cpp:55:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_defect_fill_interior.cpp:58:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_defect_fill_interior.cpp:253:        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_defect_lines.cpp:107:                                            "\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGhost\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_fixture_gen_gain_poly.cpp:2: * @file test_fixture_gen_gain_poly.cpp
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_fixture_gen_gain_poly.cpp:5: * QA-A-136 (#198) added --gain-poly, which wrote gain_poly.xcal (XCAL type 3) so the GUI lane could reproduce the
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_fixture_gen_gain_poly.cpp:6: * polynomial alerts. The gain polynomial was removed by user decision (QA-A-336) and the option with it: the tool now
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_fixture_gen_gain_poly.cpp:91:// CONTROL: the default run produces the scalar type and no polynomial file.
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_fixture_gen_gain_poly.cpp:94:    EXPECT_FALSE(fs::exists(root / "gain_poly.xcal"));
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_fixture_gen_gain_poly.cpp:99:// no file at all, so a script that still asks for a polynomial fixture learns it instead of getting a scalar set.
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_gain_defect_classify.cpp:13: * (The polynomial side, test_gain_poly_classify.cpp, was removed with the gain polynomial, QA-A-336.)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_gain_defect_classify.cpp:43:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_gain_defect_classify.cpp:46:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_gain_defect_classify.cpp:49:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_gain_poly_not_applied.cpp:2: * @file test_gain_poly_not_applied.cpp
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_gain_poly_not_applied.cpp:5: * QA-A-336: the dose-dependent gain polynomial was removed by user decision, and with it the cases of this file that
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_gain_poly_not_applied.cpp:6: * loaded and applied one (the refusal of such a file is pinned in test_calib_gain_poly_load.cpp). The file and the
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_gain_poly_not_applied.cpp:43:        dir = fs::temp_directory_path() / "xpe_gain_poly_not_applied";
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_ghost_failed_frame.cpp:122:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_integration.cpp:106:    // (Stage 3, the nonlinearity correction, was removed -- QA-A-336.)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_json_helpers.cpp:58:        R"("bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,)"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_json_helpers.cpp:68:        R"("bypassNonlinearity":"true","bypassGain":"true","bypassBinning":"true",)"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_json_helpers.cpp:78:        R"("bypassNonlinearity" : true , "bypassGain" : true , "bypassBinning" : true ,)"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_json_helpers.cpp:89:        R"("bypassNonlinearity":true,"bypassGain":true,"bypassBinning":true,)"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_metadata_not_read.cpp:19: * test_gain_poly_not_applied.cpp.)
+    -> 파일·시험 이름 유지(헤더 문서가 GainPolyNotAppliedTest 를 인용) 또는 거부 시험 자체
+modules/preprocess/tests/test_oom_injection.cpp:255:    "{\"fit_r_squared\":\"0.900000\",\"polynomial_degree\":\"2\","
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:305:                static_cast<unsigned>(g_calib.gain_quality.polynomial_degree),
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:587:        std::string config = "{\"calibration_mode\":3,\"actual_dose_levels\":5,\"polynomial_degree\":2,\"fit_r_squared\":0.9995";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:1751:    "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_oom_injection.cpp:1946:    mixq(&q.polynomial_degree, 1);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:1954:    "{\"fit_r_squared\":\"0.97\",\"polynomial_degree\":\"2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\"3\"}";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2118:        EXPECT_EQ(2u, qmeta::g_seen.q.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2129:              "{\"fit_r_squared\":\"0.91\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2131:              "{\"fit_r_squared\":\"0.97\",\"polynomial_degree\":\"2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\"3\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2139:            const bool one = (q.r_squared == 0.91 && q.polynomial_degree == 1 && q.num_points == 3 && q.calibration_mode == 2);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2140:            const bool two = (q.r_squared == 0.97 && q.polynomial_degree == 2 && q.num_points == 4 && q.calibration_mode == 3);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2141:            const bool none = (q.r_squared == 0.0 && q.polynomial_degree == 0 && q.num_points == 0 && q.calibration_mode == 0);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2294:    EXPECT_EQ(2u, readerlock::g_q.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2315:    std::string j = "{\"bypassReadout\":true,\"bypassNonlinearity\":true";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_oom_injection.cpp:2388:        std::string("{\"bypassReadout\":\"true\",\"bypassTemp\":\"true\",\"bypassOffset\":\"true\",\"bypassNonlinearity\":\"true\","
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_oom_injection.cpp:2559:    "{\"fit_r_squared\":\"0.91\",\"polynomial_degree\":\"1\",\"actual_dose_levels\":\"3\",\"calibration_mode\":\"2\"}";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2561:    "{\"fit_r_squared\":\"0.97\",\"polynomial_degree\":\"2\",\"actual_dose_levels\":\"4\",\"calibration_mode\":\"3\"}";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2565:const char* const kDirP = "oom_pipe_calibQP";      // gain 5.0, a PARTIAL quality: polynomial_degree only, no R2
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2579:    writeSetDir(kDirP, 5.0f, "{\"polynomial_degree\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2581:    writeSetDir(kDirM1, 7.0f, "{\"fit_r_squared\":-1.000000000,\"polynomial_degree\":\"2\"}");
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2672:        EXPECT_EQ(0u, q.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2688:        EXPECT_EQ(2u, q.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2763:        EXPECT_EQ(2u, b.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2804:    g.calibration_mode = 3; g.polynomial_degree = 2; g.num_points = 4; g.r_squared = 0.99;
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2826:    g.calibration_mode = 3; g.polynomial_degree = 2; g.num_points = 4; g.r_squared = -0.25;
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2893:    g.calibration_mode = 3; g.polynomial_degree = 2; g.num_points = 4; g.r_squared = -1.0;
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_oom_injection.cpp:2929:// (and the since removed xpe_calib_generate_nonlin_lut and xpe_nonlinearity_correct, QA-A-336) had no guard: a failed allocation was an exception out
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_oom_injection.cpp:3121:        const std::string cfg = "{\"fit_r_squared\":0.9995,\"polynomial_degree\":1,\"actual_dose_levels\":4,\"calibration_mode\":1}";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_output_unchanged_237b.cpp:17: *    be touched when a gain value is refused). (The polynomial map cases were removed with the gain polynomial, QA-A-336.)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_output_unchanged_237b.cpp:135:        {"pipeline/combo/nonlin_off", 0x6a431839157f49c7ull},
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_output_unchanged_237b.cpp:136:        {"pipeline/combo/temp_offset_nonlin_off", 0xb81a87b89e1fc2c7ull},
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_output_unchanged_237b.cpp:292:    {"nonlin_off", "{\"bypassNonlinearity\":true}"},
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_output_unchanged_237b.cpp:293:    {"temp_offset_nonlin_off", "{\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true}"},
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_output_unchanged_237b.cpp:341:    const char* cfg = failing ? "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true,\"bypassDefec
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_output_unchanged_237b.cpp:342:                              : "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassGain\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_output_unchanged_237b.cpp:391:// the point-wise stages were merged into one working buffer. (The polynomial gain route, recorded with it, was removed with the gain
+    -> 제거 이력을 적은 주석
+modules/preprocess/tests/test_output_unchanged_237b.cpp:392:// polynomial, QA-A-336.) The scratch route
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_output_unchanged_237b.cpp:765:// blocks, and a count that is neither (scalar map; the polynomial map was removed, QA-A-336).
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_output_unchanged_237b.cpp:1002:        {"pipeline/combo/nonlin_off", 0x3230d95ce318e312ull},
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_output_unchanged_237b.cpp:1005:        {"pipeline/combo/temp_offset_nonlin_off", 0x0680df6cecb33d0aull},
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_parallel_determinism.cpp:103:                                            "\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGhost\":true") + extra + "}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_ex.cpp:230:                          "\"bypassNonlinearity\":true,\"bypassBinning\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_ex.cpp:267:                          "\"bypassNonlinearity\":true,\"bypassBinning\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_ex.cpp:309:                          "\"bypassNonlinearity\":true,\"bypassBinning\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_ex.cpp:367:                          "\"bypassNonlinearity\":true,\"bypassBinning\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_ex.cpp:407:                          "\"bypassNonlinearity\":true,\"bypassBinning\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stages.cpp:7: * compensation (122-131, removed in QA-A-335), nonlinearity (155-168, removed in QA-A-336), gain (201-213), defect
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_pipeline_stages.cpp:111:        "\"bypassGhost\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stages.cpp:121:// The binning body runs on its own too. (The nonlinearity stage was removed, QA-A-336; the flag stays clear.)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_pipeline_stages.cpp:122:TEST_F(PipelineStageTest, NonlinearityAndBinningStagesRun) {
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stages.cpp:128:    // The nonlinearity stage no longer exists (QA-A-336), so its flag is never set.
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_pipeline_stages.cpp:129:    EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_pipeline_stages.cpp:137:        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stages.cpp:154:        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stages.cpp:172:        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stages.cpp:213:        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stages.cpp:230:        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:7: *  - XPE_FLAG_NONLINEARITY_CORRECTED is never set: the nonlinearity stage was
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_pipeline_stage_values.cpp:10: *  - With offset, nonlinearity and gain enabled, the frame that reaches the
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:115:TEST_F(PipelineStageValueTest, NonlinearityWithoutCorrectionLeavesTheFlagClear) {
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:119:    EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED)
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_pipeline_stage_values.cpp:120:        << "the nonlinearity stage was removed (QA-A-336): the flag is never set";
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_pipeline_stage_values.cpp:123:TEST_F(PipelineStageValueTest, OffsetThenNonlinearityThenGainReturnsTheCorrectedFrame) {
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:128:    EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_pipeline_stage_values.cpp:136:TEST_F(PipelineStageValueTest, BypassingNonlinearityGivesTheSameFrame) {
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:137:    const std::string cfg = std::string(kBase) + ",\"bypassNonlinearity\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:153:        "\"bypassDefect\":true,\"bypassNonlinearity\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:174:        "\"bypassDefect\":true,\"bypassNonlinearity\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:193:                      "\"bypassNonlinearity\":true,\"bypassGain\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:214:        "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:226:// #185: every combination of nonlinearity on/off x ghost handle yes/no x defect
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:233:// look at output, and both pass "bypassNonlinearity":true and
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:244:struct Combo { bool nonlin; bool ghost; bool defect; };
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:247:    return std::string(info.param.nonlin ? "NonlinOn" : "NonlinOff") +
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:282:    if (!c.nonlin) cfg += ",\"bypassNonlinearity\":true";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_pipeline_stage_values.cpp:292:    EXPECT_FALSE(meta.flags & XPE_FLAG_NONLINEARITY_CORRECTED);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tests/test_pipeline_stage_values.cpp:325:        "\"bypassDefect\":true,\"bypassNonlinearity\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_preprocess_degraded.cpp:6: * Temp/Nonlinearity) behaves safely under degraded input conditions:
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_preprocess_degraded.cpp:15: *   - BP-05-DEG: Temp/Nonlinearity  — removed with the two stages (QA-A-335, QA-A-336)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_preprocess_degraded.cpp:48: * test_temp_nonlinearity_binning.cpp / test_boundary.cpp.
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_preprocess_degraded.cpp:280:/* BP-05-DEG (temperature, nonlinearity): both cases were removed with their stages (QA-A-335, QA-A-336). */
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_pre_e2e.cpp:440:// QA-A-336: a gain POLYNOMIAL file (type 3) in the calibration set is refused by the gain loader, so the run fails --
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_pre_e2e.cpp:442:TEST_F(PreE2ERun, APolynomialGainFileFailsTheRunInsteadOfBeingMeasured) {
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_pre_e2e.cpp:448:    const std::string config = "{\"dose_min\":0,\"dose_max\":65535,\"polynomial_degree\":1}";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_pre_e2e.cpp:450:    hdr.version = XCAL_VERSION; hdr.type = 3u /* the removed XCAL_TYPE_GAIN_POLY */; hdr.pixel_format = XCAL_FMT_FLOAT32;
+    -> 제거 이력을 적은 주석
+modules/preprocess/tests/test_pre_test_evidence.py:32:        report = evidence.build_report(fixture({'kind': 'nonlinearity'}, extra='<failure message="bad"/>'))
+    -> E2E 평가 프로토콜 점수 항목 이름(§6) — 측정 스키마, 보정 기능 아님
+modules/preprocess/tests/test_pre_test_evidence.py:47:        one = fixture({'kind': 'nonlinearity'}).decode()
+    -> E2E 평가 프로토콜 점수 항목 이름(§6) — 측정 스키마, 보정 기능 아님
+modules/preprocess/tests/test_pre_test_evidence.py:56:            original = fixture({'kind': 'nonlinearity', 'value': 0.0})
+    -> E2E 평가 프로토콜 점수 항목 이름(§6) — 측정 스키마, 보정 기능 아님
+modules/preprocess/tests/test_saturation.cpp:154:                                            "\"bypassDefect\":true,\"bypassGhost\":true,\"bypassNonlinearity\":true") +
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_saturation.cpp:819:        const std::string cfg = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_temp_nonlinearity_binning.cpp:2: * @file test_temp_nonlinearity_binning.cpp
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_temp_nonlinearity_binning.cpp:4: *        The temperature tests (SWU-1.6) were removed with the stage (QA-A-335), the nonlinearity tests (SWU-1.7)
+    -> 제거 이력을 적은 주석
+modules/preprocess/tests/test_xcal_compression.cpp:445: * every loader (offset, gain, defect; the nonlinearity table until QA-A-336) reads. A key inside a nested object decided whether the
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_xcal_validator.cpp:14: *  6b. a gain polynomial header (type 3) is refused with an alert naming it (QA-A-336)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_xcal_validator.cpp:130:    // QA-A-336: 3 (the gain polynomial) and 4 (the nonlinearity table) were removed with their features, so 0, 1 and 2
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_xcal_validator.cpp:140:// Test 6b: a gain polynomial header (type 3) is refused whatever its payload, with an alert naming the type (QA-A-336).
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_xcal_validator.cpp:155:        EXPECT_NE(nullptr, std::strstr(msg, "XPE_ERR_XCAL_TYPE: calibration file type 3 (gain polynomial")) << msg;
+    -> (분류 안 됨 — 개별 확인 필요)
+modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:350:    const std::string a = " {\"calibration_mode\":3,\"actual_dose_levels\":5,\"polynomial_degree\":2,\"fit_r_squared\":0.9995,\"extension\":{\"source\":\"A
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:351:    const std::string b = "{\"calibration_mode\":1,\"actual_dose_levels\":1,\"polynomial_degree\":0,\"fit_r_squared\":0.5}";
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:366:    EXPECT_EQ(before.num_points, after.num_points); EXPECT_EQ(before.polynomial_degree, after.polynomial_degree);
+    -> FUNC-033 품질 메타 필드(단일 선량 gain.xcal 도 polynomial_degree 0 을 기록) — 유지
+modules/preprocess/tests/test_xpe_preprocess_calibration.cpp:410:        const char* pipelineConfig = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassOffset\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a237b_mem.cpp:119:    static const char* const names[] = {"readout", "temp", "offset", "nonlinearity", "gain",
+    -> E2E 평가 프로토콜 점수 항목 이름(§6) — 측정 스키마, 보정 기능 아님
+modules/preprocess/tests/test_zz_a237b_mem.cpp:357:    // (XPE_A237G_POLY_OUT, which wrote a gain polynomial over the six levels, was removed with the gain polynomial, QA-A-336.)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_zz_a240_checklist.cpp:264:const char* kBasicCfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a240_checklist.cpp:617:        run("full set loaded, bypassOffset=true", "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassOffset\":true}");
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a240_checklist.cpp:618:        run("full set loaded, bypassGain=true", "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true}");
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a240_checklist.cpp:619:        run("full set loaded, bypassOffset and bypassGain", "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassOffset\":true,\"bypassG
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a240_checklist.cpp:707:    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&nd.img, &nd.meta, nullptr, nullptr, "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"byp
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a240_checklist.cpp:901:        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&noDefect.img, &noDefect.meta, nullptr, nullptr, "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinn
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a240_checklist.cpp:942:        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&f.img, &f.meta, nullptr, nullptr, "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"b
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a240_checklist.cpp:958:        ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_ex(&noDefect.img, &noDefect.meta, nullptr, nullptr, "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinn
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:189:    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:304:    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:458:    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:531:    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:532:    const char* cfgBeforeDefect = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:751:    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:752:    const char* cfgNoGain = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:753:    const char* cfgOffsetOnly = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true,\"bypassDefect\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1012:        "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}",
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1013:        "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true}",
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1014:        "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true,\"bypassDefect\":true}"};
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1296:    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1297:    const char* cfgNoGain = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassGain\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1430:    // ---- 2. the app's call order, reading the three files back: load offset, gain, defect map; offset -> gain -> defect (the nonlinearity stage was removed, QA-A-
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tests/test_zz_a241_measure.cpp:1458:    ASSERT_EQ(XPE_OK, xpe_preprocess_pipeline_out(&pin, &pob, &pm, nullptr, nullptr, "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}"));
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1572:    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1616:// xpe_calib_load_defect_map; xpe_preprocess_pipeline_out(input uint16, output float32, metadata, NULL, NULL, {"bypassTemp","bypassNonlinearity","bypassBinning"});
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1635:    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1804:    const char* cfg = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:1885:    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";   // what the operator app passes
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:2033:    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";   // what the operator app passes
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tests/test_zz_a241_measure.cpp:2162:    const char* cfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";   // what the operator app passes
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tools/xpe_bpm_eval.cpp:94:constexpr double   kNonlinearRef = 30000.0;   // signal at which the nonlinearity term c is defined (spec 2.1)
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:247:    std::string       kind;    // dead, hot, noisy, slope, nonlinear, fixed_band, gain_band, varying_band
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:391:    const std::pair<const char*, std::vector<double>> lineModels[3] = {{"dead", {1.0, 0.5}}, {"nonlinear", {0.4, 0.2}}, {"noisy", {4.0, 2.0}}};
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:396:    for (const auto& cr : std::vector<std::pair<const char*, double>>{{"dead", 1.0}, {"nonlinear", 0.4}, {"noisy", 4.0}})
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:452:        {"dead", {1.0, 0.5}}, {"hot", {200.0, 100.0, 50.0, 25.0}}, {"noisy", {4.0, 2.0, 1.0}}, {"slope", {0.75, 0.9, 1.1, 1.25}}, {"nonlinear", {0.4, 0.2}},
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:702:                } else if (it.kind == "nonlinear") {
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:703:                    if (bright) v = d + nn * (1.0 - it.level * nn / kNonlinearRef);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:1084:        } else if (k == "nonlinear") {
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:1086:            vb = d + nn * (1.0 - it->level * nn / kNonlinearRef);
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:1132:                if (it->cls0 != "control" && (it->kind == "hot" || it->kind == "noisy" || it->kind == "nonlinear")) g.intrinsic = true;
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:1165:            if (g.intrinsic) {   // hot, noisy and nonlinear items are defects by the injection, not by a level: the response axis, source named
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:1168:                g.response.source += (g.response.source.empty() ? "" : " + ") + std::string("injection class of a hot/noisy/nonlinear item");
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:1362:                    "  rule (one function for items and overlaps): defect when a valid response (the overlap's own measured chain, or a hot/noisy/nonlinear item by injection
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:1372:        std::printf("  response: %zu pixels have no valid measured response (not measured %zu, chain outside 0..65535 %zu; these are not judged by the nominal chain); %zu pi
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+modules/preprocess/tools/xpe_bpm_eval.cpp:2343:const char* const kCfgFinal = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tools/xpe_bpm_eval.cpp:2344:const char* const kCfgNoDefect = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true,\"bypassDefect\":true}";
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tools/xpe_calib_fixture_gen.cpp:69: *         (QA-A-336: the --gain-poly option and its gain_poly.xcal were removed with the gain polynomial)
+    -> QA-A-336 제거 사실을 적은 주석/문서
+modules/preprocess/tools/xpe_pre_e2e.cpp:308:        const char* config = "{\"bypassReadout\":true,\"bypassTemp\":true,\"bypassNonlinearity\":true,"
+    -> 설정 문자열의 bypassNonlinearity: 이제 모르는 키로 무시됨(QA-A-335 의 bypassTemp 와 같은 처리)
+modules/preprocess/tools/xpe_pre_e2e.cpp:518:    const char* componentNames[] = {"dark", "flat", "defect", "nonlinearity", "lag_ghost", "reference", "preservation", "performance"};
+    -> E2E 평가 프로토콜 점수 항목 이름(§6) — 측정 스키마, 보정 기능 아님
+modules/preprocess/tools/xpe_pre_e2e_report.hpp:18:// Protocol section 6, in order: dark, flat, defect, nonlinearity,
+    -> E2E 평가 프로토콜 점수 항목 이름(§6) — 측정 스키마, 보정 기능 아님
+modules/preprocess/tools/xpe_pre_test_evidence.py:24:            if not isinstance(payload, dict) or payload.get('kind') not in ('ghost', 'nonlinearity'):
+    -> E2E 평가 프로토콜 점수 항목 이름(§6) — 측정 스키마, 보정 기능 아님
+modules/common/include/xpe/common/xpe_types.h:162:#define XPE_FLAG_NONLINEARITY_CORRECTED  0x00000040u  /**< Detector nonlinearity correction applied (never set by xpe_preprocess since the stage was removed, QA-A-336; th
+    -> BPM 결함 검출의 선형성(LOF)·주입 결함 종류 "nonlinear" — 비선형 보정과 무관, 유지
+tools/ci/clang_tidy_baseline_preprocess.txt:5:bugprone-easily-swappable-parameters	modules/preprocess/include/xpe/preprocess/xpe_preprocess_internal.h	2 adjacent parameters of 'xpe_gain_poly_eval_f32' of convertible type
+    -> tools/ci·tools/docs (리더 소유) — 범위 밖, 보고서에 후속으로 기록
+tools/ci/clang_tidy_baseline_preprocess.txt:13:bugprone-easily-swappable-parameters	modules/preprocess/src/xpe_calib_generate_gain.cpp	2 adjacent parameters of 'fit_polynomial_ls' of similar type ('const double *') are e
+    -> tools/ci·tools/docs (리더 소유) — 범위 밖, 보고서에 후속으로 기록
+tools/ci/clang_tidy_baseline_preprocess.txt:16:bugprone-easily-swappable-parameters	modules/preprocess/src/xpe_calib_generate_nonlin_lut.cpp	2 adjacent parameters of 'generate_nonlin_lut_impl' of similar type ('const cha
+    -> tools/ci·tools/docs (리더 소유) — 범위 밖, 보고서에 후속으로 기록
+tools/ci/clang_tidy_baseline_preprocess.txt:28:bugprone-incorrect-roundings	modules/preprocess/src/nonlinearity_correct.cpp	casting (double + 0.5) to integer leads to incorrect rounding; consider using lround (#include <
+    -> tools/ci·tools/docs (리더 소유) — 범위 밖, 보고서에 후속으로 기록
+tools/docs/api_requirement_census.py:10:  xpe_nonlinearity_correct    -> SRS-CALIB-FUNC-006 + -006-EXT (#186)
+    -> tools/ci·tools/docs (리더 소유) — 범위 밖, 보고서에 후속으로 기록

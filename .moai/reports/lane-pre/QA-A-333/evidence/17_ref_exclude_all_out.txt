@@ -1,0 +1,25 @@
+listed 32858 outside the cropped area (x-6 >= 3065 or y-2 >= 3069): 2 by tag {np.str_('CTRL106_r0.7'): 1, np.str_('CTRL100_r0.6'): 1}
+g 0 replica vs dumped vgBg: max abs diff 0 (pixels 9406485)
+    NORM median vgBg/NORM-median: plain 1.000 excluded 1.000
+    r0.7 median vgBg/NORM-median: plain 1.123 excluded 1.166
+    r0.6 median vgBg/NORM-median: plain 0.869 excluded 0.929
+g 1 replica vs dumped vgBg: max abs diff 0 (pixels 9406485)
+    NORM median vgBg/NORM-median: plain 1.000 excluded 1.000
+    r0.7 median vgBg/NORM-median: plain 1.135 excluded 1.187
+    r0.6 median vgBg/NORM-median: plain 0.873 excluded 0.932
+g 2 replica vs dumped vgBg: max abs diff 0 (pixels 9406485)
+    NORM median vgBg/NORM-median: plain 1.000 excluded 1.000
+    r0.7 median vgBg/NORM-median: plain 1.139 excluded 1.175
+    r0.6 median vgBg/NORM-median: plain 0.902 excluded 0.936
+g 3 replica vs dumped vgBg: max abs diff 0 (pixels 9406485)
+    NORM median vgBg/NORM-median: plain 1.000 excluded 1.000
+    r0.7 median vgBg/NORM-median: plain 1.123 excluded 1.174
+    r0.6 median vgBg/NORM-median: plain 0.874 excluded 0.936
+g 4 replica vs dumped vgBg: max abs diff 0 (pixels 9406485)
+    NORM median vgBg/NORM-median: plain 1.000 excluded 1.000
+    r0.7 median vgBg/NORM-median: plain 1.122 excluded 1.165
+    r0.6 median vgBg/NORM-median: plain 0.867 excluded 0.924
+check: replica plain statistic vs fdump max abs diff 8.97e-05
+NORM plain [0.963 1.55  2.198 2.661] excluded [0.94  1.514 2.131 2.609] model [0.948 1.524 2.139 2.679] P>tau plain 0 excl 0 model 0
+r0.7 plain [1.407 2.273 3.2   4.125] excluded [1.325 2.151 3.051 3.906] model [1.355 2.175 3.04  3.767] P>tau plain 0.0004412 excl 0.0002206 model 9e-05
+r0.6 plain [1.761 2.827 4.055 4.973] excluded [1.613 2.605 3.717 4.613] model [1.583 2.537 3.554 4.435] P>tau plain 0.003725 excl 0.001442 model 0.0008725

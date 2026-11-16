@@ -10,7 +10,7 @@
  *
  * One test per map-versus-input return site:
  *   offset_correct.cpp  offset map
- *   gain_correct.cpp    scalar gain map, and the per-pixel polynomial map
+ *   gain_correct.cpp    scalar gain map (the polynomial map case was removed with it, QA-A-336)
  *   defect_correct.cpp  defect map
  *
  * Each test loads a 4x4 map and calls with a 5x4 input and a 5x4 output, so the output
@@ -52,7 +52,7 @@ protected:
 
     void SetUp() override { ASSERT_EQ(XPE_OK, xpe_preprocess_init(nullptr)); }
     void TearDown() override {
-        xpe_clear_alerts();   // loading a gain polynomial queues an alert; leave the queue as found
+        xpe_clear_alerts();   // leave the alert queue as found
         std::remove(path);
         std::remove("test_calib_dim_mismatch.xcal.tmp");
         xpe_preprocess_shutdown();
@@ -86,21 +86,6 @@ TEST_F(CalibDimMismatch, OffsetMapDifferentFromInputReturnsInvalidInput) {
 TEST_F(CalibDimMismatch, GainMapDifferentFromInputReturnsInvalidInput) {
     const std::vector<float> map(MW * MH, 1.5f);
     writeMap(XCAL_TYPE_GAIN, XCAL_FMT_FLOAT32, map.data(), map.size() * sizeof(float));
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain(path));
-
-    std::vector<uint16_t> in(IW * IH, 1000);
-    std::vector<float> out(IW * IH, kSentinel);
-    XpeImageBuffer i = buffer(in.data(), XPE_PIXEL_UINT16, 16), o = buffer(out.data(), XPE_PIXEL_FLOAT32, 32);
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_gain_correct(&i, &o, &meta));
-    EXPECT_TRUE(std::all_of(out.begin(), out.end(), [](float v) { return v == kSentinel; }))
-        << "the output buffer must be left untouched";
-}
-
-TEST_F(CalibDimMismatch, GainPolynomialMapDifferentFromInputReturnsInvalidInput) {
-    constexpr size_t kCoeffs = 2;   // c0 + c1*x, the same for every pixel
-    std::vector<float> payload(static_cast<size_t>(MW) * MH * kCoeffs);
-    for (size_t p = 0; p < static_cast<size_t>(MW) * MH; ++p) { payload[p * kCoeffs] = 1.0f; payload[p * kCoeffs + 1] = 0.0f; }
-    writeMap(XCAL_TYPE_GAIN_POLY, XCAL_FMT_FLOAT32, payload.data(), payload.size() * sizeof(float));
     ASSERT_EQ(XPE_OK, xpe_calib_load_gain(path));
 
     std::vector<uint16_t> in(IW * IH, 1000);

@@ -17,7 +17,7 @@ XpeErrorCode xpe_calib_snapshot_expiry_check_at(const CalibSnapshot& calib, unsi
 {
     const struct { unsigned bit; const char* name; bool loaded; int64_t expiry; } list[] = {
         {XPE_EXPIRY_OFFSET, "offset", calib.offset_map != nullptr, calib.offset_expiry_ms},
-        {XPE_EXPIRY_GAIN, "gain", calib.gain_map != nullptr || calib.gain_poly_coeffs != nullptr, calib.gain_expiry_ms},
+        {XPE_EXPIRY_GAIN, "gain", calib.gain_map != nullptr, calib.gain_expiry_ms},
         {XPE_EXPIRY_DEFECT, "defect", calib.defect_map != nullptr, calib.defect_expiry_ms},
     };
     for (const auto& m : list) {

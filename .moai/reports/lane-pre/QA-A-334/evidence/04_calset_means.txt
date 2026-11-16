@@ -1,0 +1,6 @@
+dark mean (Dark_08..16, 9 frames) 11023.9
+CalSet_14037 raw mean 13887.8  minus dark 2863.9
+CalSet_17285 raw mean 16952.1  minus dark 5928.3
+CalSet_20985 raw mean 20303.7  minus dark 9279.8
+CalSet_30868 raw mean 29506.2  minus dark 18482.3
+CalSet_42677 raw mean 40509.0  minus dark 29485.2

@@ -1,0 +1,16 @@
+offset.xcal identical
+gain.xcal identical
+defect.xcal identical
+70a71,82
+>   "dark_selection": {
+>     "rule": "first frame always; then the leading run with |m_k - R| > T; R = median of the last ceil(N/2) means (even count: mean of the middle two)",
+>     "roi_ltrb": [6, 2, 1, 1],
+>     "T": 20.0,
+>     "R": 11020.697,
+>     "m": [10929.281, 11026.573, 11026.582, 11026.363, 11020.679, 11026.506, 11020.654, 11020.716],
+>     "excluded": [
+>       {"path": "D:/workspace-github/image-processing/tests/test_data/cyan_test/calfiles/Dark_07.raw", "why": "first frame (always)"}
+>     ],
+>     "verdict": "used",
+>     "dark_order": "as given, not checked"
+>   },

@@ -37,7 +37,7 @@
 // this comment used to cite does not exist in the SPEC (searched .moai/specs
 // and docs: only AC-GAIN-001..003). Kept as a second line of defence for maps
 // that do not come through the loader (none today).
-// (the range itself lives in xpe_preprocess_internal.h: the polynomial generator checks a fit against the same guard, QA-A-210e)
+// (the range itself lives in xpe_preprocess_internal.h)
 constexpr float MIN_GAIN_VALUE = XPE_GAIN_APPLIED_MIN;
 constexpr float MAX_GAIN_VALUE = XPE_GAIN_APPLIED_MAX;
 
@@ -101,7 +101,7 @@ constexpr int32_t MAX_ULP_DIFFERENCE = 1;
  * @return true if gain is valid (finite, positive, within range)
  */
 static inline bool is_valid_gain(float gain) noexcept {
-    return xpe_gain_value_valid(gain);   // shared with the polynomial generator (QA-A-210e)
+    return xpe_gain_value_valid(gain);
 }
 
 // QA-A-72 (#160): xpe_gain_has_avx2() was here, and it was a correct probe --
@@ -280,7 +280,7 @@ XpeErrorCode xpe_gain_correct_in(
     const XpeImageBuffer*  input,
     XpeImageBuffer*         output,
     const XpeImageMetadata* metadata,
-    std::vector<uint32_t>*  frame_defects,
+    std::vector<uint32_t>*  /*frame_defects*/,   // QA-A-336: filled only by the removed polynomial path; the list stays empty
     const XpeGainSatHook*   sat)
 {
     if (!input || !output || !metadata) return XPE_ERR_INVALID_INPUT;
@@ -306,18 +306,11 @@ XpeErrorCode xpe_gain_correct_in(
     float*          dst = static_cast<float*>(output->data);
 
     try {
-        std::vector<float> evaluated;     // the polynomial path builds the per-pixel gain here
-        const float* gainmap = nullptr;   // the gain per pixel: the snapshot's scalar plane, or `evaluated`
-        const float* poly = nullptr;      // QA-A-121: per-pixel coefficients (the snapshot's, not a copy)
-        uint32_t poly_coeffs = 0;
-        bool   poly_has_range = false;    // QA-A-123 (#194): fitted dose range
-        double poly_dose_min  = 0.0;
-        double poly_dose_max  = 0.0;
+        const float* gainmap = nullptr;   // the gain per pixel: the snapshot's scalar plane
         {
-            // QA-A-202d (Codex #32): the maps, their dimensions and the polynomial's range come from `calib`,
-            // the snapshot the caller took, and are read in place through shared ownership -- no copy of a map
-            // or of the coefficients (37.7 MB and more at 3072x3072), and a load that lands during the frame
-            // cannot change them under it.
+            // QA-A-202d (Codex #32): the map and its dimensions come from `calib`, the snapshot the caller took, and are
+            // read in place through shared ownership -- no copy of the map (37.7 MB at 3072x3072), and a load that lands
+            // during the frame cannot change it under it.
             // SPEC-XPE-P1A REQ-P1A-020: while the module is not initialized, every
             // processing function returns XPE_ERR_NOT_INITIALIZED. Checked explicitly --
             // before #117 decision B the missing calibration map stood in for this, which
@@ -328,175 +321,13 @@ XpeErrorCode xpe_gain_correct_in(
             // calibration map. XPE_ERR_NOT_INITIALIZED is reserved for
             // xpe_preprocess_init() not called / after shutdown (SPEC-XPE-P1A
             // REQ-P1A-020), so the caller can tell the two apart.
-            // QA-A-107 (#187): a loaded gain POLYNOMIAL is not "no calibration".
-            // No API applies G(x,y,E) yet, so this call cannot run -- but it says
-            // so, instead of reporting the state as an empty calibration and
-            // leaving the operator to guess.
-            // QA-A-121 (#187): a loaded polynomial is now APPLIED here.
-            //
-            // FUNC-027 fits, per pixel, gain as a function of dose. At
-            // correction time the value that says where this pixel sits on its
-            // own curve is the pixel itself -- the curve is walked backwards,
-            // not handed a dose from outside. A single dose per frame would be
-            // the wrong shape anyway: pixels in one frame receive different
-            // amounts, which is the reason the fit is per pixel at all.
-            //
-            // UNITS: the abscissa is whatever `dose_levels` held when the file
-            // was generated ("mGy or relative units"). Indexing by the pixel's
-            // own value is consistent when those levels were expressed in
-            // pixel-value units, which is what the reference dataset does
-            // (tests/test_data/cyan_test: CalSet levels named by ADU).
-            if (!calib.gain_map && calib.gain_poly_coeffs) {
-                if (calib.gain_width  != input->width ||
-                    calib.gain_height != input->height) {
-                    return XPE_ERR_INVALID_INPUT;
-                }
-                poly_coeffs = calib.gain_poly_num_coeffs;
-                if (poly_coeffs == 0) return XPE_ERR_INVALID_CALIB_DATA;
-                poly = calib.gain_poly_coeffs.get();
-                poly_has_range = calib.gain_poly_has_range;
-                poly_dose_min  = calib.gain_poly_dose_min;
-                poly_dose_max  = calib.gain_poly_dose_max;
-            } else if (!calib.gain_map) {
-                return XPE_ERR_CALIB_NOT_LOADED;
+            // (QA-A-336: the dose-dependent gain polynomial and its applier were removed; the scalar map is the only model.)
+            if (!calib.gain_map) return XPE_ERR_CALIB_NOT_LOADED;
+            if (calib.gain_width  != input->width ||
+                calib.gain_height != input->height) {
+                return XPE_ERR_INVALID_INPUT;
             }
-            // The polynomial path builds the per-pixel map below, because it reads the input frame.
-            // The scalar path reads its map where it is.
-            if (poly == nullptr) {
-                if (calib.gain_width  != input->width ||
-                    calib.gain_height != input->height) {
-                    return XPE_ERR_INVALID_INPUT;
-                }
-                gainmap = calib.gain_map.get();
-            }
-        }
-
-        // QA-A-121: evaluate the per-pixel polynomial at the pixel's own value.
-        // Horner from the highest coefficient down, so the layout
-        // [p * poly_coeffs + j] is read once per pixel in order.
-        //
-        // QA-A-123 (#194): the fit says nothing outside [dose_min, dose_max],
-        // so the abscissa is clamped into it first. Measured on a steeply
-        // curved ladder, a saturated pixel (65535) was otherwise evaluated at
-        // 2.78x the top-knot gain and came out DARKER than a D_max pixel --
-        // monotonicity inverted exactly where direct-exposure, metal and
-        // saturation live. Clamping pins those pixels to the edge gain, which
-        // is the nearest value the calibration actually measured.
-        //
-        // Rejecting the frame instead was considered and declined: a handful
-        // of saturated pixels would discard the whole image, which is the
-        // heavier failure. Clamp + one alert keeps the frame and still says
-        // what happened.
-        size_t clamped_count = 0;
-        if (poly != nullptr) {
-            evaluated.resize(n);
-            gainmap = evaluated.data();
-            for (size_t i = 0; i < n; ++i) {
-                float x = static_cast<float>(src[i]);
-                if (poly_has_range) {
-                    if (x < static_cast<float>(poly_dose_min)) {
-                        x = static_cast<float>(poly_dose_min);
-                        ++clamped_count;
-                    } else if (x > static_cast<float>(poly_dose_max)) {
-                        x = static_cast<float>(poly_dose_max);
-                        ++clamped_count;
-                    }
-                }
-                // the same float32 Horner the polynomial generator scores and accepts a fit with (QA-A-210e)
-                evaluated[i] = xpe_gain_poly_eval_f32(poly + i * poly_coeffs, poly_coeffs, x);
-            }
-
-            // One alert for the frame, carrying the count. Pushing per pixel
-            // would put tens of thousands of identical lines in the queue and
-            // make the queue itself useless.
-            if (clamped_count > 0) {
-                // QA-A-141 (#194 item 2). EVERY pixel clamping is a different
-                // fact from a few saturated ones, and it is the shape a
-                // mis-united calibration makes: dose_levels fitted in mGy are
-                // orders of magnitude away from pixel values, so no pixel can
-                // land inside the range and the whole frame pins to one edge.
-                //
-                // THIS IS A COARSE MIS-LOAD CHECK, NOT A UNIT CHECK. It cannot
-                // tell mGy from ADU -- the file carries no unit field (see the
-                // DEBT marker on xpe_calib_generate_gain_polynomial). An ADU
-                // ladder legitimately narrower than the frame's content
-                // produces the same signal, and a wrong unit whose numbers
-                // happen to overlap the pixel range produces none. It says
-                // "nothing landed in range", which is worth saying, and
-                // nothing more.
-                //
-                // It costs one comparison per frame because the count is
-                // already there; a separate scan would not have been worth it.
-                char msg[320];
-                if (clamped_count == n) {
-                    std::snprintf(msg, sizeof(msg),
-                        "ALL %zu pixel(s) fell outside the gain polynomial's "
-                        "fitted dose range [%.1f, %.1f] -- the whole frame was "
-                        "evaluated at one range edge, so the gain applied is "
-                        "effectively constant. Check that the calibration's "
-                        "dose levels are in pixel values (ADU): a file fitted "
-                        "in other units loads without error and produces this "
-                        "(issue #194)",
-                        clamped_count, poly_dose_min, poly_dose_max);
-                } else {
-                    std::snprintf(msg, sizeof(msg),
-                        "%zu pixel(s) fell outside the gain polynomial's fitted "
-                        "dose range [%.1f, %.1f] and were evaluated at the range "
-                        "edge; values beyond the calibrated levels are not "
-                        "extrapolated (issue #194)",
-                        clamped_count, poly_dose_min, poly_dose_max);
-                }
-                msg[sizeof(msg) - 1] = '\0';
-                xpe_alert_push(msg, XPE_ALERT_WARNING);
-            }
-        }
-
-        // QA-A-211 (#233): a pixel whose evaluated polynomial gain is outside [0.1, 10] (or not finite) is CLASSIFIED
-        // DEFECTIVE: gain 1.0 here, its index in the frame's list for the defect stage. The same range as the scalar map's
-        // load-time classification. More than XPE_GAIN_DEFECT_MAX_FRACTION of the frame refuses it (CONFIG_INVALID),
-        // as a gain that is wrong almost everywhere is a bad calibration, not a few failed pixels. A scalar map was
-        // classified when it was loaded, so nothing here changes its path.
-        if (poly != nullptr) {
-            std::vector<uint32_t> bad;
-            XpeGainScan scan;
-            scan.total = n;
-            for (size_t i = 0; i < n; ++i) {
-                if (xpe_gain_value_valid(evaluated[i])) continue;
-                if (scan.count == 0) scan.first = i;
-                ++scan.count;
-                const size_t y = i / input->width, x = i % input->width;
-                if (y < 64 || y + 64 >= input->height || x < 64 || x + 64 >= input->width) ++scan.inBand;
-                bad.push_back(static_cast<uint32_t>(i));
-                evaluated[i] = 1.0f;
-            }
-            if (scan.count > 0) {
-                if (xpe_gain_scan_over_limit(scan)) {
-                    xpe_gain_alert_over_limit(scan, "applied");
-                    return XPE_ERR_CONFIG_INVALID;
-                }
-                {
-                    char msg[320];
-                    std::snprintf(msg, sizeof(msg),
-                        "XPE_WARN_GAIN_PIXELS_CLASSIFIED_DEFECT: %llu pixel(s) of this frame evaluate to a gain outside [%.1f, %.1f] and "
-                        "are marked defective (gain 1.0) and listed for the defect correction stage",
-                        static_cast<unsigned long long>(scan.count),
-                        static_cast<double>(XPE_GAIN_APPLIED_MIN), static_cast<double>(XPE_GAIN_APPLIED_MAX));
-                    msg[sizeof(msg) - 1] = '\0';
-                    xpe_alert_push(msg, XPE_ALERT_WARNING);
-                }
-                if (frame_defects != nullptr) {
-                    *frame_defects = std::move(bad);
-                } else {
-                    // a call on its own: no defect stage of this frame follows
-                    char msg[320];
-                    std::snprintf(msg, sizeof(msg),
-                        "XPE_WARN_GAIN_PIXELS_UNCORRECTED: %llu pixel(s) were classified defective by the gain calibration but no defect "
-                        "correction follows (the gain stage was called on its own); they carry the uncorrected value with gain 1.0",
-                        static_cast<unsigned long long>(scan.count));
-                    msg[sizeof(msg) - 1] = '\0';
-                    xpe_alert_push(msg, XPE_ALERT_WARNING);
-                }
-            }
+            gainmap = calib.gain_map.get();
         }
 
         // Validate the whole gain map BEFORE anything is written: a refused map must leave `dst` exactly as the caller

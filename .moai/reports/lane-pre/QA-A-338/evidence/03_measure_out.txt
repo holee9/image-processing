@@ -1,0 +1,28 @@
+offset.xcal sha256 bf384bcf0ee192daf1e60c9f2b26e6438399a4ae72474a08f7250cedd6a379ed bytes 37748888
+offset map ROI mean 11077.815
+== AED (s050) (D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산/AED)
+Dark_00 ROI mean 11061.725  minus offset-map mean -16.089
+Dark_01 ROI mean 15855.002  minus offset-map mean +4777.188
+Dark_02 ROI mean 11085.713  minus offset-map mean +7.898
+Dark_03 ROI mean 11081.229  minus offset-map mean +3.414
+Dark_04 ROI mean 11077.867  minus offset-map mean +0.053
+Dark_05 ROI mean 11075.263  minus offset-map mean -2.552
+Dark_06 ROI mean 11076.662  minus offset-map mean -1.152
+Dark_07 ROI mean 11070.153  minus offset-map mean -7.661
+Dark_08 ROI mean 11068.010  minus offset-map mean -9.805
+Dark_09 ROI mean 11069.345  minus offset-map mean -8.469
+mean of the used darks 02..07 ROI means 11077.815 (offset map ROI mean above)
+R as QA-A-337 defines it (median of Dark_04..07 ROI means, N=8 given) 11075.963
+Dark_08 - offset: mean -9.805 | row means: min -13.597 p5 -11.559 median -9.773 p95 -8.213 max -6.763 | col means: min -11.383 p5 -10.675 median -9.653 p95 -9.199 max -9.005 | quadrants TL TR BL BR -9.966 -9.870 -9.695 -9.688 | pixel fraction < 0: 0.9969
+Dark_09 - offset: mean -8.469 | row means: min -12.442 p5 -10.403 median -8.419 p95 -6.796 max -4.446 | col means: min -10.981 p5 -10.430 median -8.012 p95 -7.516 max -7.118 | quadrants TL TR BL BR -8.900 -8.424 -8.498 -8.055 | pixel fraction < 0: 0.9888
+== same day base set (parent folder) (D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산)
+Dark_00 ROI mean 10938.081  minus offset-map mean -139.734
+Dark_01 ROI mean 10951.148  minus offset-map mean -126.667
+Dark_02 ROI mean 10949.186  minus offset-map mean -128.628
+Dark_03 ROI mean 10950.836  minus offset-map mean -126.979
+Dark_04 ROI mean 10950.563  minus offset-map mean -127.251
+Dark_05 ROI mean 10951.091  minus offset-map mean -126.724
+Dark_06 ROI mean 10950.509  minus offset-map mean -127.306
+Dark_07 ROI mean 10948.868  minus offset-map mean -128.947
+Dark_08 ROI mean 10950.452  minus offset-map mean -127.362
+Dark_09 ROI mean 10950.366  minus offset-map mean -127.449

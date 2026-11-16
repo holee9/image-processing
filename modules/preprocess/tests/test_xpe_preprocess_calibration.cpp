@@ -418,61 +418,6 @@ TEST_F(PreprocessCalibrationTest, SavedScalarGainReplaysItsClassifiedPixelsThrou
     }
 }
 
-TEST_F(PreprocessCalibrationTest, SavedActivePolynomialGainRetainsCoefficientsRangeAndOutput) {
-    ASSERT_EQ(0, xpe_get_pending_alert_count());
-    struct OwnedAlerts { ~OwnedAlerts() { xpe_clear_alerts(); } } ownedAlerts;
-    constexpr uint32_t width = 4, height = 4;
-    constexpr size_t count = width * height;
-    std::vector<float> coefficients(count * 2), before(count), after(count);
-    std::vector<uint16_t> raw(count);
-    for (size_t i = 0; i < count; ++i) {
-        coefficients[2 * i] = 0.8f + static_cast<float>(i % 4) * 0.01f;
-        coefficients[2 * i + 1] = 0.001f;
-        raw[i] = static_cast<uint16_t>(i == 0 ? 5 : i == count - 1 ? 150 : 20 + i * 2);
-    }
-    const std::string config = " {\"dose_min\":10,\"dose_max\":100,\"calibration_mode\":3,\"actual_dose_levels\":5,\"polynomial_degree\":1,\"fit_r_squared\":1,\"extension\":{\"source\":\"poly\"}} ";
-    XCalFileHeader header{};
-    std::memcpy(header.magic, XCAL_MAGIC, 4);
-    header.version = XCAL_VERSION; header.type = XCAL_TYPE_GAIN_POLY; header.pixel_format = XCAL_FMT_FLOAT32;
-    header.width = width; header.height = height; std::memcpy(header.session_id, "poly-save-state", 15);
-    ASSERT_EQ(XPE_OK, write_xcal_file("test_gain.xcal", header,
-        reinterpret_cast<const uint8_t*>(config.data()), config.size(),
-        reinterpret_cast<const uint8_t*>(coefficients.data()), coefficients.size() * sizeof(float)));
-    const std::vector<float> scalar(count, 1.5f);
-    const std::string scalarConfig = "{\"source\":\"scalar-replacement\"}";
-    ASSERT_TRUE(WriteScalarGainWithConfig("test_check.xcal", width, height, scalar, scalarConfig));
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_check.xcal"));
-    ExpectSavedGainConfig(scalarConfig, scalar);
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_gain.xcal"));
-    XpeImageBuffer in{}, out{};
-    in.width = out.width = width; in.height = out.height = height;
-    in.bitsAllocated = in.bitsStored = 16; out.bitsAllocated = out.bitsStored = 32;
-    in.format = XPE_PIXEL_UINT16; out.format = XPE_PIXEL_FLOAT32;
-    in.data = raw.data(); in.dataSize = raw.size() * sizeof(uint16_t);
-    out.data = before.data(); out.dataSize = before.size() * sizeof(float);
-    XpeImageMetadata meta{};
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&in, &out, &meta));
-    ASSERT_EQ(XPE_OK, xpe_calib_save("test_output.xcal", "gain", 4102444800000ULL));
-    XCalFileHeader saved{};
-    std::vector<uint8_t> savedConfig, payload;
-    ASSERT_EQ(XPE_OK, read_xcal_file("test_output.xcal", saved, savedConfig, payload, true, XCAL_TYPE_GAIN_POLY));
-    EXPECT_EQ(config, std::string(savedConfig.begin(), savedConfig.end()));
-    EXPECT_STREQ("poly-save-state", saved.session_id);
-    EXPECT_EQ(4102444800000LL, saved.expiry_epoch_ms);
-    ASSERT_EQ(coefficients.size() * sizeof(float), payload.size());
-    EXPECT_EQ(0, std::memcmp(coefficients.data(), payload.data(), payload.size()));
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_output.xcal"));
-    out.data = after.data(); meta = XpeImageMetadata{};
-    ASSERT_EQ(XPE_OK, xpe_gain_correct(&in, &out, &meta));
-    EXPECT_EQ(0, std::memcmp(before.data(), after.data(), before.size() * sizeof(float)));
-    XpeCalibQualityMeta quality{};
-    ASSERT_EQ(XPE_OK, xpe_calib_get_quality_meta(&quality));
-    EXPECT_EQ(5u, quality.num_points); EXPECT_EQ(1u, quality.polynomial_degree);
-    EXPECT_DOUBLE_EQ(1.0, quality.r_squared);
-    ASSERT_EQ(XPE_OK, xpe_calib_load_gain("test_check.xcal"));
-    ExpectSavedGainConfig(scalarConfig, scalar);
-}
-
 // =============================================================================
 // Calibration Loading Tests
 // =============================================================================

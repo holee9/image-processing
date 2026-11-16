@@ -9,7 +9,7 @@
  *
  * SPEC: SPEC-XPE-P1A v1.0.0  IEC 62304 Class B
  * REQ coverage: REQ-P1A-010 (offset), REQ-P1A-011 (gain; the zero-gain case is a
- *               loader refusal, SRS-CALIB-FUNC-002), REQ-P1A-080/081 (temperature),
+ *               loader refusal, SRS-CALIB-FUNC-002), (temperature tests removed with the stage, QA-A-335),
  *               REQ-P1A-087/088 (ghost), REQ-P1A-090/091 (binning),
  *               REQ-P1A-041 (readout; only partly implemented, see #232)
  */
@@ -436,75 +436,6 @@ TEST_F(GoldenGhostTest, GhostSubtractedAfterFirstFrame) {
     const auto* out = static_cast<const float*>(img.data);
     EXPECT_LT(out[0], V)
         << "frame 1: ghost correction must reduce value below original input";
-}
-
-// ==========================================================================
-// SWU-1.6: Temperature Compensation
-// Model: I_dark(T) = I_0 * exp(-Eg / (2 * kB * T))
-// scale    = exp(constant/T_abs) / exp(constant/T_ref)
-//            where constant = -Eg/(2*kB) ≈ -6498 K
-// corrected[i] ≈ raw[i] / scale
-// REQ-P1A-080, REQ-P1A-081
-// ==========================================================================
-class GoldenTempTest : public ::testing::Test {
-protected:
-    static constexpr uint32_t W = 4, H = 4, N = W * H;
-    static constexpr double kEg  = 1.12;      // Silicon bandgap (eV)
-    static constexpr double kKB  = 8.617e-5;  // Boltzmann constant (eV/K)
-    static constexpr double kRef = 298.15;    // Reference temperature (K)
-    static constexpr double kConst = -kEg / (2.0 * kKB);
-
-    std::vector<uint16_t> pixels;
-    XpeImageBuffer img{};
-
-    void SetUp() override {
-        pixels.resize(N, 1000u);
-        img = makeU16Buf(pixels, W, H);
-    }
-
-    static double scale(double tempC) {
-        const double T = tempC + 273.15;
-        return std::exp(kConst / T) / std::exp(kConst / kRef);
-    }
-};
-
-// REQ-P1A-080: At T_ref=25°C, scale=1.0 → pixels unchanged
-TEST_F(GoldenTempTest, RefTempProducesNoChange) {
-    std::fill(pixels.begin(), pixels.end(), 5000u);
-    ASSERT_EQ(XPE_OK, xpe_temp_compensate(&img, 25.0f, nullptr));
-
-    const auto* out = static_cast<const uint16_t*>(img.data);
-    for (uint32_t i = 0; i < N; ++i)
-        EXPECT_EQ(5000u, out[i]) << "pixel[" << i << "] T=25°C must be unchanged";
-}
-
-// REQ-P1A-080: Above 25°C, dark current higher → scale > 1 → corrected < raw
-TEST_F(GoldenTempTest, Above25cReducesPixelValues) {
-    const uint16_t rawVal = 3000u;
-    std::fill(pixels.begin(), pixels.end(), rawVal);
-
-    const double s = scale(37.0);
-    ASSERT_GT(s, 1.0) << "scale must exceed 1 above reference temperature";
-
-    ASSERT_EQ(XPE_OK, xpe_temp_compensate(&img, 37.0f, nullptr));
-
-    const auto* out = static_cast<const uint16_t*>(img.data);
-    const auto expected = static_cast<uint16_t>(std::round(rawVal / s));
-    for (uint32_t i = 0; i < N; ++i)
-        EXPECT_NEAR(static_cast<int>(expected), static_cast<int>(out[i]), 2)
-            << "pixel[" << i << "] T=37°C formula mismatch (scale=" << s << ")";
-}
-
-// Below 25°C, dark current lower → scale < 1 → corrected > raw (or equal at boundary)
-TEST_F(GoldenTempTest, Below25cScaleIsLessThanOne) {
-    EXPECT_LT(scale(0.0), 1.0)  << "scale must be < 1 below reference temperature";
-    EXPECT_LT(scale(-10.0), 1.0) << "scale at -10°C must be < 1";
-}
-
-// REQ-P1A-081: Out-of-range temperature returns XPE_ERR_INVALID_INPUT
-TEST_F(GoldenTempTest, OutOfRangeReturnsError) {
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(&img, -25.0f, nullptr));
-    EXPECT_EQ(XPE_ERR_INVALID_INPUT, xpe_temp_compensate(&img,  65.0f, nullptr));
 }
 
 // ==========================================================================

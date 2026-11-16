@@ -1,0 +1,54 @@
+Test project D:/workspace-github/xpe-pre/build/ci-preprocess
+      Start  426: PipelineExTest.BatchSingleFrameWorks
+ 1/24 Test  #426: PipelineExTest.BatchSingleFrameWorks .............................................................   Passed    0.07 sec
+      Start  427: PipelineExTest.BatchContinuesOnError
+ 2/24 Test  #427: PipelineExTest.BatchContinuesOnError .............................................................   Passed    0.08 sec
+      Start  514: SessionConsistency.ConflictingGainIsRefusedAndTheOffsetStays
+ 3/24 Test  #514: SessionConsistency.ConflictingGainIsRefusedAndTheOffsetStays .....................................   Passed    0.16 sec
+      Start  528: SessionConsistency.CachedDefectHitRefusesLikeTheMiss
+ 4/24 Test  #528: SessionConsistency.CachedDefectHitRefusesLikeTheMiss .............................................   Passed    0.03 sec
+      Start  932: GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo
+ 5/24 Test  #932: GainPolyClassifyTest.APixelWhoseLeastSquaresLineLeavesTheRangeAtAMeasuredDoseIsClassifiedToo .....   Passed    0.02 sec
+      Start  958: SaturationTest.OutputIsMonotoneInTheRawValueAndTheClampIsWhatMakesItSo
+ 6/24 Test  #958: SaturationTest.OutputIsMonotoneInTheRawValueAndTheClampIsWhatMakesItSo ...........................   Passed    0.06 sec
+      Start 1089: XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever
+ 7/24 Test #1089: XcalReplaceRetryTest.AReadOnlyDestinationFailsAfterTheBudgetNotForever ...........................   Passed    0.19 sec
+      Start 1090: XcalReplaceRetryTest.ATemporaryFileHeldElsewhereIsReportedAsLeftBehindAndTheNextSaveStillWorks
+ 8/24 Test #1090: XcalReplaceRetryTest.ATemporaryFileHeldElsewhereIsReportedAsLeftBehindAndTheNextSaveStillWorks ...   Passed    0.21 sec
+      Start 1109: CalibQualityMetaTest.PreviousRSquared_Stable
+ 9/24 Test #1109: CalibQualityMetaTest.PreviousRSquared_Stable .....................................................   Passed    0.02 sec
+      Start 1112: CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped
+10/24 Test #1112: CalibQualityMetaTest.GeneratedPolyFileKeepsTheFittedDegree_WhenNoDegreeIsDropped .................   Passed    0.02 sec
+      Start 1314: GenerateOffsetConfigTest.MarksAgainstADifferentSizedDefectMapAreRefused
+11/24 Test #1314: GenerateOffsetConfigTest.MarksAgainstADifferentSizedDefectMapAreRefused ..........................   Passed    0.02 sec
+      Start 1392: A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages
+12/24 Test #1392: A246Diagnostics.AUint16FinalFrameCountsZeroForBothStages .........................................   Passed    0.02 sec
+      Start 1445: A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot
+13/24 Test #1445: A241Safety.ADefectMapAboveFivePercentIsReportedAtLoadAndTheLimitItselfIsNot ......................   Passed    0.05 sec
+      Start 1479: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+14/24 Test #1479: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize ........................................   Passed    0.08 sec
+      Start 1480: OutputUnchanged237b.PipelineEntryBypassCombinations
+15/24 Test #1480: OutputUnchanged237b.PipelineEntryBypassCombinations ..............................................   Passed    0.11 sec
+      Start 1482: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+16/24 Test #1482: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute ...........................   Passed    0.19 sec
+      Start 1556: OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping
+17/24 Test #1556: OomInjection.ACachedPolynomialGainLoadLeavesNoExceptionEscaping ..................................   Passed    0.03 sec
+      Start 1591: OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched
+18/24 Test #1591: OomInjection.ADefectCorrectionThatUnitesTheGainClassificationAndFailsLeavesTheStoreUntouched .....   Passed    0.01 sec
+      Start 1595: OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched
+19/24 Test #1595: OomPipeline.PipelineBatchThatRunsOutOfMemoryLeavesEveryFrameWholeOrUntouched .....................   Passed    0.21 sec
+      Start 1636: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize
+20/24 Test #1636: OutputUnchanged237b.PipelineEntryDefaultsEveryTierAndSize ........................................   Passed    0.07 sec
+      Start 1637: OutputUnchanged237b.PipelineEntryBypassCombinations
+21/24 Test #1637: OutputUnchanged237b.PipelineEntryBypassCombinations ..............................................   Passed    0.10 sec
+      Start 1639: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute
+22/24 Test #1639: OutputUnchanged237b.PipelineEntryPolynomialGainAndTheGhostScratchRoute ...........................   Passed    0.21 sec
+      Start 1703: clock.A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities
+23/24 Test #1703: clock.A246Diagnostics.WithTheDefectStageBypassedTheCountsSeeNaNAndBothInfinities .................   Passed    0.03 sec
+      Start 1705: preprocess.legacy_ghost_fingerprints
+24/24 Test #1705: preprocess.legacy_ghost_fingerprints .............................................................   Passed    1.41 sec
+
+100% tests passed, 0 tests failed out of 24
+
+Total Test time (real) =   3.50 sec
+ctest_rc=0 

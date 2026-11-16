@@ -156,6 +156,17 @@ void xcal_reject_reason(const char* kind, const std::string& what) noexcept {
     }
 }
 
+void xcal_reject_unsupported_type(uint32_t type) noexcept {
+    // QA-A-336: the two types this module no longer reads are named, so the refusal says what the file is.
+    const char* what = type == 3u ? " (gain polynomial, removed in QA-A-336)" : type == 4u ? " (nonlinearity table, removed in QA-A-336)" : "";
+    try {
+        xcal_reject_reason("TYPE", "calibration file type " + std::to_string(type) + what +
+                                       " is not supported: this reader reads types 0 (offset), 1 (gain) and 2 (defect)");
+    } catch (...) {
+        // [no-throw-boundary] advisory: lost under memory pressure
+    }
+}
+
 bool defect_ext_encode(const DefectExt& ext, uint32_t width, uint32_t height, std::vector<uint8_t>* out, std::string* reason) {
     std::string why;
     if (!validate_ext(ext, width, height, &why)) {

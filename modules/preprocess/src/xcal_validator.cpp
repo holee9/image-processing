@@ -108,11 +108,10 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     }
 
     // Check 3: type range
-    // QA-A-37 (#140): XCAL_TYPE_GAIN_POLY (= 3) sits above XCAL_TYPE_DEFECT
-    // (= 2), so the old ceiling rejected every polynomial gain file the public
-    // generator writes -- the file was writable and unreadable.
-    // QA-A-110 (#186): XCAL_TYPE_NONLIN_LUT (= 4) is the new ceiling.
-    if (header.type > static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT)) {
+    // QA-A-336: types 3 (the gain polynomial) and 4 (the nonlinearity table) were removed with their features. A file of
+    // either type is refused here, with a reason that names it, instead of being read as something else.
+    if (header.type > static_cast<uint32_t>(XCAL_TYPE_DEFECT)) {
+        if (std::memcmp(header.magic, XCAL_MAGIC, 4) == 0) xcal_reject_unsupported_type(header.type);
         return XPE_ERR_CONFIG_INVALID;
     }
 
@@ -134,13 +133,6 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     if (header.type == static_cast<uint32_t>(XCAL_TYPE_DEFECT) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_UINT8_MASK)) {
         return XPE_ERR_CONFIG_INVALID;
     }
-    if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_FLOAT32)) {
-        return XPE_ERR_CONFIG_INVALID;
-    }
-    //   NONLIN_LUT -> UINT16 (SRS-CALIB-FUNC-006-EXT 6a: "LUT data type: uint16")
-    if (header.type == static_cast<uint32_t>(XCAL_TYPE_NONLIN_LUT) && header.pixel_format != static_cast<uint32_t>(XCAL_FMT_UINT16)) {
-        return XPE_ERR_CONFIG_INVALID;
-    }
 
     // Check 6: width in valid range
     if (header.width == 0 || header.width > XCAL_MAX_DIM) {
@@ -160,16 +152,7 @@ XpeErrorCode validate_xcal_header(const XCalFileHeader& header,
     uint64_t expected_payload = static_cast<uint64_t>(header.width) *
                                 static_cast<uint64_t>(header.height) *
                                 static_cast<uint64_t>(bpp);
-    if (header.type == static_cast<uint32_t>(XCAL_TYPE_GAIN_POLY)) {
-        // A polynomial gain file carries (degree + 1) coefficient planes, so
-        // its payload is a whole positive multiple of one plane rather than
-        // exactly one. The degree itself is derived from that multiple.
-        if (expected_payload == 0 ||
-            header.payload_len == 0 ||
-            header.payload_len % expected_payload != 0) {
-            return XPE_ERR_CONFIG_INVALID;
-        }
-    } else if (defectV2) {
+    if (defectV2) {
         // two planes (map, imaging area) and the extension block after them; the exact length is checked against defect_ext_len by the reader
         if (header.payload_len < 2u * expected_payload) {
             xcal_reject_reason("LAYOUT", "the payload of a version-2 defect file is " + std::to_string(header.payload_len) + " bytes, less than its two planes of " +

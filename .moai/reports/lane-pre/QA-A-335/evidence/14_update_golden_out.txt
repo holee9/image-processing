@@ -1,0 +1,51 @@
+legacy pipeline/default/203x157/tier1 1070
+legacy pipeline/default/203x157/tier2 1071
+legacy pipeline/default/203x157/tier3 1072
+legacy pipeline/default/256x192/tier1 1073
+legacy pipeline/default/256x192/tier2 1074
+legacy pipeline/default/256x192/tier3 1075
+legacy pipeline/combo/offset_off 1066
+legacy pipeline/combo/nonlin_off 1065
+legacy pipeline/combo/gain_off 1063
+legacy pipeline/combo/defect_off 1060
+legacy pipeline/combo/ghost_off 1064
+legacy pipeline/combo/binning2 1059
+legacy pipeline/combo/gain_defect_off 1062
+legacy pipeline/combo/uint16_out 1069
+legacy pipeline/combo/gain_binning_ghost_off 1061
+legacy pipeline/poly_gain/tier2 1077
+legacy pipeline/gain_classified/203x157/tier1 1156
+legacy pipeline/gain_classified/203x157/tier2 1157
+legacy pipeline/gain_classified/203x157/tier3 1158
+legacy pipeline/gain_classified/256x192/tier1 1159
+legacy pipeline/gain_classified/256x192/tier2 1160
+legacy pipeline/gain_classified/256x192/tier3 1161
+legacy pipeline/slow_route_ok/203x157/tier3_beta1e33 1079
+legacy pipeline/slow_route_ok/256x192/tier3_beta1e33 1080
+legacy pipeline/slow_route_failing/203x157/tier3_beta1e36 1078
+normal/firstBypass pipeline/default/203x157/tier1 126
+normal/firstBypass pipeline/default/203x157/tier2 127
+normal/firstBypass pipeline/default/203x157/tier3 128
+normal/firstBypass pipeline/default/256x192/tier1 129
+normal/firstBypass pipeline/default/256x192/tier2 130
+normal/firstBypass pipeline/default/256x192/tier3 131
+normal/firstBypass pipeline/combo/offset_off 133
+normal/firstBypass pipeline/combo/nonlin_off 134
+normal/firstBypass pipeline/combo/gain_off 136
+normal/firstBypass pipeline/combo/defect_off 137
+normal/golden(same as legacy) pipeline/combo/ghost_off 1064
+normal/firstBypass pipeline/combo/binning2 138
+normal/firstBypass pipeline/combo/gain_defect_off 139
+normal/golden(same as legacy) pipeline/combo/uint16_out 1069
+normal/golden(same as legacy) pipeline/combo/gain_binning_ghost_off 1061
+normal/firstBypass pipeline/poly_gain/tier2 143
+normal/firstBypass pipeline/gain_classified/203x157/tier1 144
+normal/firstBypass pipeline/gain_classified/203x157/tier2 145
+normal/firstBypass pipeline/gain_classified/203x157/tier3 146
+normal/firstBypass pipeline/gain_classified/256x192/tier1 147
+normal/firstBypass pipeline/gain_classified/256x192/tier2 148
+normal/firstBypass pipeline/gain_classified/256x192/tier3 149
+normal/firstBypass pipeline/slow_route_ok/203x157/tier3_beta1e33 150
+normal/firstBypass pipeline/slow_route_ok/256x192/tier3_beta1e33 151
+normal/firstBypass pipeline/slow_route_failing/203x157/tier3_beta1e36 152
+rows 50

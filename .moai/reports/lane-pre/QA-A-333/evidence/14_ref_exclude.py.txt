@@ -1,0 +1,53 @@
+# QA-A-333 B (3): re-derive the local reference vgBg of the final F2b pass (call 3) with the six efficiency-loss line items excluded.
+# (1) control: python replica of separableMedian (xpe_bpm_v2.cpp:166-186, window 17, reflect borders) vs the dumped vgBg.
+# (2) exclusion: same two passes, excluded pixels (truth id in {100,101,103,104,106,110}) left out of the row pass, NaN skipped in the column pass,
+#     upper median buf[cnt/2] as separableMedianExcluding (:195-230). Then ratioG' = vg * corrGain / (vgBg' / mnu) and the statistic sum (nu_g * ratioG') / 13.
+import sys, numpy as np
+from numpy.lib.stride_tricks import sliding_window_view as swv
+T = sys.argv[1]; W, H, R = 3065, 3069, 8
+ids = np.fromfile("D:/workspace-github/xpe-data/bpm-eval-252f/inj_d/truth_ids.u16", dtype=np.uint16).reshape(3072, 3072)[2:2 + H, 6:6 + W]
+excl = np.isin(ids, [100, 101, 103, 104, 106, 110])
+def upper_median(a):   # a: (..., 17) with NaN = missing; returns sorted[cnt//2]
+    s = np.sort(a, axis=-1); cnt = np.sum(~np.isnan(a), axis=-1)
+    out = np.take_along_axis(s, np.minimum(cnt // 2, 16)[..., None], axis=-1)[..., 0]
+    out[cnt == 0] = np.nan; return out
+def sepmed(img, ex=None):
+    a = img.astype(np.float32).copy()
+    if ex is not None: a[ex] = np.nan
+    tmp = np.empty_like(a)
+    for y0 in range(0, H, 256):
+        p = np.pad(a[y0:y0 + 256], ((0, 0), (R, R)), mode="reflect")
+        tmp[y0:y0 + 256] = upper_median(swv(p, 17, axis=1))
+    out = np.empty_like(a)
+    for x0 in range(0, W, 256):
+        p = np.pad(tmp[:, x0:x0 + 256], ((R, R), (0, 0)), mode="reflect")
+        out[:, x0:x0 + 256] = upper_median(np.moveaxis(swv(p, 17, axis=0), -1, -1))
+    return out
+lst = np.genfromtxt(T + "/fdump.tsv", dtype=None, encoding=None, delimiter="\t", names=True)
+xs = np.array([r[0] for r in lst]) - 6; ys = np.array([r[1] for r in lst]) - 2; tags = np.array([str(r[2]) for r in lst]); cg = np.array([r[7] for r in lst])
+inside = (xs < W) & (ys < H); print("listed", len(xs), "outside the cropped area (x-6 >= 3065 or y-2 >= 3069):", int((~inside).sum()), "by tag", {t: int(((tags == t) & ~inside).sum()) for t in set(tags[~inside])})
+xs, ys, tags, cg = xs[inside], ys[inside], tags[inside], cg[inside]; lst = lst[inside]
+cat = np.where(tags == "NORM", "NORM", np.where(np.char.endswith(tags, "0.6"), "r0.6", "r0.7"))
+NU = [2, 2, 5, 2, 2]; MNU = {2: 0.693147, 5: 0.870270}
+stat_plain = np.zeros(len(xs)); stat_ex = np.zeros(len(xs))
+for g in range(5):
+    raw = np.fromfile(f"{T}/vg/c3_g{g}_w3065_h3069_ex0.f32", dtype=np.float32)
+    vg = raw[:W * H].reshape(H, W); bg = raw[W * H:].reshape(H, W)
+    rep = sepmed(vg); d = np.abs(rep - bg)
+    print("g", g, "replica vs dumped vgBg: max abs diff %.3g (pixels %d)" % (d.max(), d.size))
+    bx = sepmed(vg, excl)
+    mnu = MNU[NU[g]]
+    for name in ("NORM", "r0.7", "r0.6"):
+        s = cat == name
+        print("   ", name, "median vgBg/NORM-median: plain %.3f excluded %.3f" % (np.median(bg[ys[s], xs[s]]) / np.median(bg[ys[cat == "NORM"], xs[cat == "NORM"]]),
+              np.median(bx[ys[s], xs[s]]) / np.median(bx[ys[cat == "NORM"], xs[cat == "NORM"]])))
+    v = vg[ys, xs]
+    stat_plain += NU[g] * v * cg / np.maximum(bg[ys, xs] / mnu, 1e-12)
+    stat_ex += NU[g] * v * cg / np.maximum(bx[ys, xs] / mnu, 1e-12)
+stat_plain /= 13; stat_ex /= 13
+print("check: replica plain statistic vs fdump max abs diff %.3g" % np.max(np.abs(stat_plain - np.array([r[3] for r in lst]))))
+rng = np.random.default_rng(333); qs = [0.5, 0.9, 0.99, 0.999]; tau = 4.483305
+for name, c in (("NORM", 1.0), ("r0.7", 1 / 0.7), ("r0.6", 1 / 0.6)):
+    m = c * sum(rng.chisquare(k, 400000) for k in NU) / 13; s = cat == name
+    print(name, "plain", np.round(np.quantile(stat_plain[s], qs), 3), "excluded", np.round(np.quantile(stat_ex[s], qs), 3), "model", np.round(np.quantile(m, qs), 3),
+          "P>tau plain %.4g excl %.4g model %.4g" % ((stat_plain[s] > tau).mean(), (stat_ex[s] > tau).mean(), (m > tau).mean()))

@@ -6,14 +6,10 @@
  * IEC 62304 Class B
  *
  * Test Coverage:
- * - Default mode verification
- * - Mode set/get roundtrip
- * - Invalid mode rejection
- * - Mode-to-params mapping
+ * - Default mode verification (SINGLE_POINT, the only mode since QA-A-336)
+ * - Mode set/get: SINGLE_POINT accepted, the removed modes 1-5 refused
  * - Quality metadata initialization
- * - R² quality gate enforcement
- * - Previous calibration comparison
- * - 10-point hard cap
+ * (The mode-to-params mapping and the 10-point cap went with the multi-point modes, QA-A-336.)
  */
 
 #include "xpe/preprocess_api.h"
@@ -31,15 +27,12 @@
 class CalibModeTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // Reset to default mode before each test
-        xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_8);
+        xpe_calib_set_mode(XPE_CALIB_SINGLE_POINT);
     }
 
     void TearDown() override {
-        // Leave the module in its default mode (QA-A-89, #176). Several cases
-        // end on XPE_CALIB_AUTO, and SetUp only protected cases in THIS suite:
-        // the mode leaked into whatever ran next in the same process.
-        xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_8);
+        // Leave the module in its default mode (QA-A-89, #176).
+        xpe_calib_set_mode(XPE_CALIB_SINGLE_POINT);
     }
 };
 
@@ -48,101 +41,22 @@ protected:
  * ============================================================================ */
 
 /**
- * @test Default mode is MULTI_POINT_8 (industry standard per Schmidgunst 2007)
+ * @test The default mode is SINGLE_POINT, the only mode (QA-A-336)
  */
-TEST_F(CalibModeTest, DefaultModeIsMultiPoint8) {
-    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_8);
+TEST_F(CalibModeTest, DefaultModeIsSinglePoint) {
+    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_SINGLE_POINT);
 }
 
 /**
- * @test Set/get roundtrip for all 6 modes
+ * @test SINGLE_POINT is accepted; the removed modes (1 DUAL_POINT .. 4 MULTI_POINT_10, 5 AUTO) and any other value are
+ *       refused, and a refusal leaves the mode as it was
  */
-TEST_F(CalibModeTest, SetGetRoundtrip_AllModes) {
-    // Test all 6 modes
+TEST_F(CalibModeTest, OnlySinglePointIsAcceptedAndARefusalChangesNothing) {
     EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_SINGLE_POINT), XPE_OK);
     EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_SINGLE_POINT);
-
-    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_DUAL_POINT), XPE_OK);
-    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_DUAL_POINT);
-
-    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_5), XPE_OK);
-    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_5);
-
-    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_8), XPE_OK);
-    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_8);
-
-    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_10), XPE_OK);
-    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_10);
-
-    EXPECT_EQ(xpe_calib_set_mode(XPE_CALIB_AUTO), XPE_OK);
-    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_AUTO);
-}
-
-/**
- * @test Invalid mode value is rejected
- */
-TEST_F(CalibModeTest, SetMode_InvalidValue_Rejected) {
-    // Test invalid mode values (outside enum range)
-    EXPECT_EQ(xpe_calib_set_mode(static_cast<XpeCalibrationMode>(99)),
-              XPE_ERR_INVALID_INPUT);
-    EXPECT_EQ(xpe_calib_set_mode(static_cast<XpeCalibrationMode>(-1)),
-              XPE_ERR_INVALID_INPUT);
-
-    // Mode should remain unchanged after failed set
-    EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_MULTI_POINT_8);
-}
-
-/* =============================================================================
- * FUNC-031: Mode-to-Params Mapping Tests
- * ============================================================================ */
-
-/**
- * @test Max points for each mode
- */
-TEST_F(CalibModeTest, GetMaxPoints_PerMode) {
-    struct TestCase {
-        XpeCalibrationMode mode;
-        uint32_t expected_max_points;
-    };
-
-    TestCase test_cases[] = {
-        {XPE_CALIB_SINGLE_POINT,   1},
-        {XPE_CALIB_DUAL_POINT,     2},
-        {XPE_CALIB_MULTI_POINT_5,  5},
-        {XPE_CALIB_MULTI_POINT_8,  8},
-        {XPE_CALIB_MULTI_POINT_10, 10},
-        {XPE_CALIB_AUTO,           10}  // AUTO reports the hard cap
-    };
-
-    for (const auto& tc : test_cases) {
-        xpe_calib_set_mode(tc.mode);
-        EXPECT_EQ(xpe_calib_get_max_points(), tc.expected_max_points)
-            << "Mode: " << static_cast<int>(tc.mode);
-    }
-}
-
-/**
- * @test Polynomial degree for each mode
- */
-TEST_F(CalibModeTest, GetPolyDegree_PerMode) {
-    struct TestCase {
-        XpeCalibrationMode mode;
-        uint32_t expected_degree;
-    };
-
-    TestCase test_cases[] = {
-        {XPE_CALIB_SINGLE_POINT,   0},  // Constant
-        {XPE_CALIB_DUAL_POINT,     1},  // Linear
-        {XPE_CALIB_MULTI_POINT_5,  2},  // Quadratic
-        {XPE_CALIB_MULTI_POINT_8,  3},  // Cubic
-        {XPE_CALIB_MULTI_POINT_10, 4},  // Quartic ceiling (SRS FUNC-031, #169)
-        {XPE_CALIB_AUTO,           4}   // Largest ceiling; the mode used is resolved per generation (#169)
-    };
-
-    for (const auto& tc : test_cases) {
-        xpe_calib_set_mode(tc.mode);
-        EXPECT_EQ(xpe_calib_get_poly_degree(), tc.expected_degree)
-            << "Mode: " << static_cast<int>(tc.mode);
+    for (const int v : {1, 2, 3, 4, 5, 99, -1}) {
+        EXPECT_EQ(xpe_calib_set_mode(static_cast<XpeCalibrationMode>(v)), XPE_ERR_INVALID_INPUT) << "mode " << v;
+        EXPECT_EQ(xpe_calib_get_mode(), XPE_CALIB_SINGLE_POINT) << "mode " << v;
     }
 }
 
@@ -205,28 +119,6 @@ TEST_F(CalibModeTest, QualityMeta_InitialState) {
  */
 TEST_F(CalibModeTest, QualityMeta_NullPointer_Rejected) {
     EXPECT_EQ(xpe_calib_get_quality_meta(nullptr), XPE_ERR_INVALID_INPUT);
-}
-
-/* =============================================================================
- * FUNC-032: 10-Point Hard Cap Tests
- * ============================================================================ */
-
-/**
- * @test 10-point hard cap is enforced
- *
- * Even if mode specifies more than 10 points, the hard cap limits to 10.
- * This prevents excessive calibration points (FUNC-032 requirement).
- */
-TEST_F(CalibModeTest, MaxPoints_HardCap_10) {
-    // Set mode to MULTI_POINT_10 (max 10 points)
-    xpe_calib_set_mode(XPE_CALIB_MULTI_POINT_10);
-
-    // Verify max points does not exceed 10
-    EXPECT_LE(xpe_calib_get_max_points(), 10);
-
-    // AUTO mode also caps at 10
-    xpe_calib_set_mode(XPE_CALIB_AUTO);
-    EXPECT_LE(xpe_calib_get_max_points(), 10);
 }
 
 /* =============================================================================

@@ -1,0 +1,11 @@
+# QA-A-336 follow-up: xpe_calib_generate_gain itself (with its config block) on cyan_test Bright_23..28, no dark reference.
+# argv: dll_dir out_path calfiles_dir
+import ctypes as C, numpy as np, os, sys
+os.add_dll_directory(sys.argv[1]); dll = C.CDLL(sys.argv[1] + "/xpe_preprocess.dll")
+class Buf(C.Structure): _fields_ = [("width", C.c_uint32), ("height", C.c_uint32), ("bitsAllocated", C.c_uint32), ("bitsStored", C.c_uint32), ("format", C.c_int), ("data", C.c_void_p), ("dataSize", C.c_size_t)]
+dll.xpe_preprocess_init.argtypes = [C.c_char_p]; dll.xpe_preprocess_init(None)
+frames = [np.fromfile(f"{sys.argv[3]}/Bright_{k}.raw", dtype=np.uint16) for k in range(23, 29)]
+arr = (Buf * len(frames))(*[Buf(3072, 3072, 16, 16, 0, f.ctypes.data, f.nbytes) for f in frames])
+dll.xpe_calib_generate_gain.argtypes = [C.POINTER(Buf), C.c_int32, C.c_void_p, C.c_char_p, C.c_char_p]
+if os.path.exists(sys.argv[2]): os.remove(sys.argv[2])
+print("generate rc", dll.xpe_calib_generate_gain(arr, len(frames), None, sys.argv[2].encode(), None))
