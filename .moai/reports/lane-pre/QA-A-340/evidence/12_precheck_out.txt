@@ -1,0 +1,23 @@
+parts 142 status {'Clipped': 54, 'Full': 88} n0 142 (row 63, column 79)
+composition of the n0 used parts (direction, k, L): count -> {('column', 1, 768): 18, ('column', 1, 3069): 27, ('column', 2, 768): 18, ('column', 8, 8): 16, ('row', 1, 768): 18, ('row', 1, 3065): 27, ('row', 2, 768): 18}
+dev	G1_0412_plain_0	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	G1_0427_AED_2	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	G1_0427_MANUAL_4	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+val	G2_0412_plain_18	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+val	G2_0428_AED_20	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+val	G2_0428_AED-LR_21	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+val	G2_0429_plain_24	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	G3_0410_plain_29	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	G3_0428_AED_31	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	G3_0428_MANUAL_32	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	G3_0429_plain_34	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+val	G4_0410_plain_47	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	I2_0410_plain_53	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	I2_0427_AED_55	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	I2_0427_MANUAL_58	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+val	F1_0410_plain_73	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	J4_0410_plain_75	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	I3_0412_plain_78	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+val	I4_0426_plain_81	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+dev	cyan_test	map line 0	candidate 0	masked map rows 0 cols 0	placement-impossible 0	n_eff 142 (both frames)	admissible per part min/median/max 29/81/2230
+frames with n_eff 0: 0 of 40
