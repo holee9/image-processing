@@ -229,7 +229,7 @@
 - 게인(정규화) 연산 검증
 - uint16 → float32 형식 변환 정확성
 - 공간 비균일성(FPN) 보정 효과 검증
-- 다중 게인 다항식 (다중 에너지 모드) 지원 확인
+- ~~다중 게인 다항식 (다중 에너지 모드) 지원 확인~~ (삭제 (사용자 결정 2026-11-16 다항 게인 제거))
 - Heel effect 보상 정확성
 
 #### 4.2.2 합성 데이터 명세
@@ -242,7 +242,7 @@
 | **gain_nonuniform_10pct** | 10% FPN (Pixel Pitch 기반) | G(x,y) = 1.0 + 0.05×sin(2π×x/P) | σ/μ < 0.5% after correction |
 | **gain_nonuniform_15pct** | 15% FPN (현실적 a-Si) | G(x,y) = random(0.85, 1.15) | σ/μ < 1.0% after correction |
 | **gain_heel_effect** | Heel effect pattern | G(x,y) = 1.0 - 0.1×(x²+y²)/max² | Duo-SID 모델 검증 |
-| **gain_multi_gain_2energy** | 다중 게인 다항식 (2개 에너지) | G(E) = c0 + c1×E | E-dependent correction selection |
+| ~~**gain_multi_gain_2energy**~~ | 삭제 (사용자 결정 2026-11-16 다항 게인 제거) | -- | -- |
 | **gain_division_by_zero_edge** | 게인=0인 픽셀 처리 | G(x,y) = 0 (corrupt pixel) | Error code XPE_ERR_INVALID_CALIB_DATA |
 | **gain_range_validation** | 게인 범위 체크 | G_min=0.1, G_max=10.0 | Out-of-range 거부 |
 | **gain_format_conversion** | uint16 → float32 정확성 | I_uint16 in [0, 16383] | Bit-exact float32 변환 검증 |
@@ -269,7 +269,7 @@
 | 60% 포화도, SID 1000mm | 10프레임 | 높은 신호 품질 |
 | 40% 포화도, SID 1500mm | 10프레임 | Heel effect 검증용 |
 | 60% 포화도, SID 1500mm | 10프레임 | 다중 SID 캘리브레이션 |
-| Multi-gain 다항식 (2 에너지) | 20프레임 | 에너지별 10프레임씩 |
+| ~~Multi-gain 다항식 (2 에너지)~~ | -- | 삭제 (사용자 결정 2026-11-16 다항 게인 제거) |
 
 **파일 명명**:
 - `real/flatfield_frames/FF_SAT40_SID1000_F001.raw`

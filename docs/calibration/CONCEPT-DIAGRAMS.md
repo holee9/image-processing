@@ -115,7 +115,7 @@ flowchart LR
 
     subgraph FLOAT32_OPS["float32 연산 구간"]
         direction TB
-        S3["게인 정규화\nI_norm = I_corr / G(x,y)\n다중 SID 지원"]
+        S3["게인 정규화\nI_norm = I_corr / G(x,y)"]
         S4["바이닝 보정\n모드별 게인/균일성 조정"]
         S5["결함 보간\n이웃/쌍선형/중앙값"]
         S6["고스트 제거\nLTI 역합성곱\n또는 NLCSC"]
@@ -235,13 +235,10 @@ flowchart TD
 flowchart TD
     subgraph MATH["수학적 모델"]
         M1["I_norm(x,y) = I_corr(x,y) / G(x,y)"]
-        M2["다중 게인 모드:\nG(x,y,E) = Σ(c_k × E^k)\n(SID별 다항식)"]
         M3["힐 효과 보정:\nWang 2013 투영 모델"]
     end
 
     subgraph ALGO["처리 알고리즘"]
-        A1{"다중 게인\n모드?"}
-        A2["SID별 다항식\n게인 계산"]
         A3["단일 게인 맵\n직접 사용"]
         A4{"G(x,y) == 0?"}
         A5["XPE_ERR_INVALID_CALIB_DATA\n반환"]
@@ -250,9 +247,6 @@ flowchart TD
         A8["Wang 2013 모델\n적용"]
         A9["결과 출력"]
 
-        A1 -->|Yes| A2
-        A1 -->|No| A3
-        A2 --> A4
         A3 --> A4
         A4 -->|Yes| A5
         A4 -->|No| A6

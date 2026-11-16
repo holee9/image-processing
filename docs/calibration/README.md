@@ -203,7 +203,7 @@ Layer 0  xpe_common.dll                    타입, 메모리, 구성, 에러, �
 || (2) Gain Correction                            [MANDATORY]   ||
 || Function: xpe_gain_correct()                                 ||
 || Formula: I_corr(x,y) = I_off(x,y) / G(x,y)                 ||
-|| Multi-gain: G(x,y,E) = sum(c_k * E^k), internal selection   ||
+|| Multi-gain G(x,y,E) polynomial: 삭제 (2026-11-16)            ||
 || Heel effect: Duo-SID projection (Wang 2013)                  ||
 || Bypass: NEVER (format conversion + normalization)            ||
 || Hard fail: gainMap absent -> XPE_ERR_NOT_INITIALIZED         ||

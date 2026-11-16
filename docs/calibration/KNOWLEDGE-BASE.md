@@ -68,7 +68,7 @@
 | 항목 | 내용 |
 |------|------|
 | **목적** | 픽셀 감도 불균일성(FPN) 정규화, uint16→float32 변환 |
-| **수식** | `I_norm = I_corr / G(x,y)`, 다중 SID: `G(E) = Σ cₖEᵏ` |
+| **수식** | `I_norm = I_corr / G(x,y)` (다중 SID 다항식 `G(E)` 는 삭제, 사용자 결정 2026-11-16) |
 | **PRD 요건** | [xray-detector-calibration-prd.md §3.2](xray-detector-calibration-prd.md) |
 | **SRS 요건** | [SRS-CALIB-001 §2.2 SRS-CALIB-FUNC-005](SRS-CALIB-001_Software_Requirements_Specification.md) |
 | **SAD 설계** | [SAD-CALIB-001 §4.2 SWU-1.2](SAD-CALIB-001_Software_Architecture_Document.md) |
@@ -336,7 +336,7 @@ xpe_preprocess.dll (캘리브레이션 모듈)
 |---------|------|---------|---------|
 | 오프셋 보정 | `I_corr = I_raw - I_dark` | I_dark: 캘리브레이션 맵 | SRS-CALIB-FUNC-004 |
 | 게인 보정 | `I_norm = I_corr / G(x,y)` | G: [0.1, 10.0] float32 맵 | SRS-CALIB-FUNC-005 |
-| 다중 SID 게인 | `G(E) = Σ cₖEᵏ, k=0..4` | cₖ: 에너지 다항식 계수 | SRS-CALIB-FUNC-005 |
+| ~~다중 SID 게인~~ | -- | 삭제 (사용자 결정 2026-11-16 다항 게인 제거) | SRS-CALIB-FUNC-005 |
 | RMM 결함 검출 | `\|σ_px - σ_med\| > λ×MAD` | λ=8.0 | SRS-CALIB-FUNC-007 |
 | 고스트 Tier 1 | `I_lag = Σᵢ αᵢ exp(-n/τᵢ)` | αᵢ, τᵢ: 패널 특성 | srs_ghost_correction.md |
 | 고스트 NLCSC | N=4 지수 상태 변수 모델 | α₁..₄, τ₁..₄ | srs_ghost_correction.md §NLCSC |

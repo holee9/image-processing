@@ -471,7 +471,7 @@ I_{dark}(T) = I_0 \cdot \exp\left(-\frac{E_g}{2k_B T}\right)
 I_{corrected}(x,y) = I_{raw}(x,y) - I_{dark}(x,y)
 \]
 
-**Dynamic Offset Correction (온도 보상 포함)**:
+**Dynamic Offset Correction (온도 보상 포함)** — 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거). 아래 식과 보간은 조사 기록으로만 남는다:
 
 \[
 I_{corrected}(x,y) = I_{raw}(x,y) - I_{dark,adjusted}(x,y)
@@ -498,7 +498,7 @@ I_{dark,adjusted} = (1 - \alpha) \cdot I_{dark,k} + \alpha \cdot I_{dark,k+1}
 **Factory Dark Calibration 절차**:
 
 ```
-PROCEDURE: GenerateDarkMap_Factory
+PROCEDURE: GenerateDarkMap_Factory   // 온도·PREP 조건별 맵 매트릭스: 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거). 현행은 맵 한 장
 INPUT: temperature_range [T_min, T_max], prep_time_range [P_min, P_max]
 OUTPUT: DarkMapSet { DarkMap[T_i, P_j] | T_i ∈ T_range, P_j ∈ P_range }
 
@@ -525,7 +525,7 @@ OUTPUT: DarkMapSet { DarkMap[T_i, P_j] | T_i ∈ T_range, P_j ∈ P_range }
 
 ```
 PROCEDURE: UpdateDarkMap_Field
-INPUT: new_dark_frames[], current_temperature, current_prep_time
+INPUT: new_dark_frames[], current_temperature, current_prep_time   // 온도·PREP 입력: 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)
 OUTPUT: Updated DarkMap
 
 1. N_field = 16 장 dark frame 획득 (또는 2장 post-exposure dark)
@@ -541,7 +541,9 @@ OUTPUT: Updated DarkMap
 6. 저장 및 버전 관리
 ```
 
-#### 5.1.4 Dynamic Dark Correction (온도 드리프트 보상)
+#### 5.1.4 Dynamic Dark Correction (온도 드리프트 보상) — 삭제
+
+> **삭제** — 조건별 오프셋 맵과 온도 드리프트 보상은 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거). 이 절은 조사 기록으로만 남는다.
 
 [dark correction 특허 EP2148500A1](https://patents.google.com/patent/EP2148500A1/en)에 기술된 방법에 따라, 오프셋 조정 맵(Offset Adjustment Map, DD_x)을 사용하여 PREP time 및 온도 변화에 의한 dark signal 차이를 보상한다.
 
@@ -584,11 +586,13 @@ m(t) = x_1 \cdot e^{x_2 \cdot t + x_3}
 |------------|------|----------|----------|
 | REQ-OFF-001 | 시스템은 pixelwise offset correction을 수행해야 한다: I_corr = I_raw - I_dark | Critical | Unit test |
 | REQ-OFF-002 | Dark map은 최소 N=16 프레임 평균으로 생성해야 한다 (factory: N≥100) | Critical | 코드 검토 |
-| REQ-OFF-003 | Factory calibration 시 온도 범위 15~40°C, 간격 5°C 이하로 측정해야 한다 | High | 절차 검토<br>**상태: 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** |
-| REQ-OFF-004 | PREP time 1~30초 범위에서 dark map을 생성해야 한다 (간격: 1초 이하) | High | 절차 검토<br>**상태: 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** |
-| REQ-OFF-005 | Dynamic dark correction은 현재 온도 ±2.5°C 이내의 참조 맵을 사용해야 한다 | High | 자동 테스트<br>**상태: 미구현(요구 유지) — 사용자 결정 2026-10-03, #245** |
+| REQ-OFF-003 | ~~Factory calibration 시 온도 범위 15~40°C, 간격 5°C 이하로 측정해야 한다~~ — 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거) | -- | -- |
+| REQ-OFF-004 | ~~PREP time 1~30초 범위에서 dark map을 생성해야 한다 (간격: 1초 이하)~~ — 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거) | -- | -- |
+| REQ-OFF-005 | ~~Dynamic dark correction은 현재 온도 ±2.5°C 이내의 참조 맵을 사용해야 한다~~ — 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거) | -- | -- |
 
-> **상태 메모 (2026-10-03, `QA-A-233` 결정 11, #245 코멘트)**: REQ-OFF-003~005(온도별 오프셋 맵의 측정·선택·보간과 PREP-time dark map)는 구현되지 않았다. 오프셋 보정은 맵 한 장만 쓰고 `XpeImageMetadata` 에 온도 필드가 없다. 이와 구분해, **온도 보상 자체는 구현돼 있다** — `xpe_temp_compensate`(SPEC-XPE-P1A REQ-P1A-080, 시험 `GoldenTempTest`). 요구는 지우지 않는다.
+> **2026-11-17**: REQ-OFF-003~005 는 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거). 오프셋은 맵 한 장만 쓴다. 아래 메모는 그 이전 기록이다.
+>
+> **상태 메모 (2026-10-03, `QA-A-233` 결정 11, #245 코멘트 — 삭제 이전 기록)**: REQ-OFF-003~005(온도별 오프셋 맵의 측정·선택·보간과 PREP-time dark map)는 구현되지 않았다. 오프셋 보정은 맵 한 장만 쓰고 `XpeImageMetadata` 에 온도 필드가 없다. 이와 구분해, **온도 보상 자체는 구현돼 있다** — `xpe_temp_compensate`(SPEC-XPE-P1A REQ-P1A-080, 시험 `GoldenTempTest`). 요구는 지우지 않는다.
 | REQ-OFF-006 | Portable detector의 경우 power mode별 별도 dark map을 유지해야 한다 | High | 통합 테스트 |
 | REQ-OFF-007 | Field dark update 시 uniformity check를 수행하고 비정상 시 업데이트를 거부해야 한다 | Critical | 자동 테스트 |
 | REQ-OFF-008 | Dark map 파일은 버전 관리 및 타임스탬프 정보를 포함해야 한다 | Medium | 코드 검토 |
@@ -2779,7 +2783,7 @@ class XrayFPDCorrectionPipeline:
         self.config = config
         self.calib = CalibrationData.load(calib_file)
         self.lag_states = LagStateManager(n_exponentials=4)
-        self.temperature_history = TemperatureHistory()
+        self.temperature_history = TemperatureHistory()   # 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)
         self.qa_monitor = QualityMonitor()
         
         # 보정 모듈 초기화
@@ -2853,7 +2857,7 @@ class XrayFPDCorrectionPipeline:
         return corrected
     
     def update_dark_map(self, dark_frames: np.ndarray, 
-                         temperature: float) -> None:
+                         temperature: float) -> None:   # 온도 기반 갱신: 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)
         """
         Field dark map 업데이트 (온도 기반)
         REQ-OFF-007: uniformity check 후 업데이트
@@ -2877,7 +2881,7 @@ class XrayFPDCorrectionPipeline:
         new_dark = np.mean(dark_frames, axis=0)
         alpha = self.config.dark_update_weight  # 보수적: 0.1~0.3
         
-        existing_dark = self.calib.get_dark_map(temperature)
+        existing_dark = self.calib.get_dark_map(temperature)   # 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)
         updated_dark = (1 - alpha) * existing_dark + alpha * new_dark
         
         self.calib.store_dark_map(
@@ -2990,7 +2994,7 @@ class OffsetCorrector:
         
         return result
     
-    def _get_dark_map_for_metadata(self, 
+    def _get_dark_map_for_metadata(self,   # 온도·PREP 보간 맵 선택: 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거) 
                                     metadata: FrameMetadata) -> np.ndarray:
         """
         온도 및 PREP time 기반 dark map 보간

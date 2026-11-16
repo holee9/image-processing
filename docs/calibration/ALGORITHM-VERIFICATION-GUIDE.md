@@ -110,7 +110,7 @@
     const float* gainMap, float sid) { ... }
 ```
 
-SRS-CALIB-FUNC-005의 `G(x,y,E) = Σ(c_k × E^k)` 다항식 멀티-게인 모드는 함수가 선언되어 있으나 `[[maybe_unused]]` 태그. **기본 단일-SID 게인은 완전 동작, 멀티-SID는 향후 확장 포인트.**
+**(2026-11-16 이후: 이 다항식 멀티-게인 모드는 삭제 (사용자 결정 2026-11-16 다항 게인 제거; 다항 gain.xcal 형식 3 은 엔진이 거부, xpe-pre d3216b2a))** SRS-CALIB-FUNC-005의 `G(x,y,E) = Σ(c_k × E^k)` 다항식 멀티-게인 모드는 함수가 선언되어 있으나 `[[maybe_unused]]` 태그. **기본 단일-SID 게인은 완전 동작, 멀티-SID는 향후 확장 포인트.**
 
 #### 발견 3: Session Management API 갭
 

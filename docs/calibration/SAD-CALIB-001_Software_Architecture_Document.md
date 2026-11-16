@@ -118,7 +118,7 @@ Central orchestrator for calibration data loading, validation, and lifecycle man
 - Operation: Pixel-wise division + conversion to float32
 - Output: float32 gain-normalized frame ← **FORMAT BOUNDARY**
 - Error handling: Zero/invalid gain values → `XPE_ERR_INVALID_CALIB_DATA`
-- Multi-gain support: `G(x,y,E) = Σ(c_k × E^k)` for energy-dependent correction
+- ~~Multi-gain support: `G(x,y,E) = Σ(c_k × E^k)` for energy-dependent correction~~ — 삭제 (사용자 결정 2026-11-16 다항 게인 제거; 다항 gain.xcal 형식 3 은 엔진이 거부, xpe-pre d3216b2a)
 - State: Stateless
 
 **SWU-1.3 DefectCorrector:**

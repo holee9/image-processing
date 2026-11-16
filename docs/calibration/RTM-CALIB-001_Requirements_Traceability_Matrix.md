@@ -1,12 +1,13 @@
 # Requirements Traceability Matrix - Calibration Module
 
-**Document ID:** RTM-CALIB-001 v1.8  
+**Document ID:** RTM-CALIB-001 v1.9  
 **IEC 62304 Clause:** 5.1.1c (backward traceability), 5.3.6 (design completeness), 7.3.3 (hazard control traceability)  
 **Safety Classification:** Class B  
 **Date:** 2026-10-16 (v1.5: 2026-10-03, v1.3: 2026-04-24)  
 **Revision v1.4 (2026-10-03, `#245` / `QA-A-228`):** §3 시험 사례 ID 가 시험 소스에 없다는 주석, §4 추적 집계를 "문서상 사례"와 "실제 시험"으로 분리, 구현 없이 추적 완료로 집계되던 FUNC 7개(011·014·015·021·028·029·030)의 실제 상태 표 추가, §5.1 FUNC-034 근거 시험 보강  
 **Revision v1.5 (2026-10-03, #245 사용자 결정 / `QA-A-233` 결정 12·14):** 구현 없는 FUNC 7개 표의 비고를 "미구현(요구 유지) — 사용자 결정 2026-10-03, #245" 로 통일, FUNC-014 를 △ → ✗(링 버퍼 없음)  
 **Revision v1.7 (2026-10-17, DOC-05, `#273`):** FUNC-022·023·039 상태를 "구현 대기"에서 "구현 통합, 검증 일부 수행, B16 미달"로 갱신하고 SWU-1.10·SAD §3.4 를 SWU-1.11·SAD §3.3 으로 정정했다. SRS 합격 기준은 완화하지 않았다. 시험 사례 번호는 확정되지 않은 칸을 그대로 두었다.  
+**Revision v1.9 (2026-11-17, SRS-CALIB-001 v1.6 연동):** FUNC-030 을 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거). FUNC-005 다중 게인 다항식 조항 삭제는 이 표의 FUNC-005 행(옛 판본 번호 — 온도 LUT 적재)과 무관해 행을 바꾸지 않았다.  
 **Revision v1.8 (2026-11-17, SRS-CALIB-001 v1.5 연동):** 온도 보상·비선형 보정·다선량 다항식 게인과 다점 모드를 삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 a72d59c9·2d9576de·d3216b2a). 해당 행은 ID 를 남기고 삭제로 표시했다. FUNC-031 은 단일점 전용으로 고쳤다.  
 **Revision v1.6 (2026-10-16, SRS-CALIB-001 v1.4 연동, `#273`):** FUNC-022·023 을 결함 화소 맵 2판 개정 문구로 바꾸고 FUNC-039(라인 기록·방향 보간)를 신설. 세 요구 모두 "구현·검증 대기"이며 시험 사례는 미정(BPM v2)이다.  
 
@@ -141,7 +142,7 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 | **SRS-CALIB-FUNC-027** | ~~Multi-point gain polynomial fitting (N ≥ 3 dose levels)~~ — **삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)** | -- | -- | -- | -- | -- | -- | 해당 없음 |
 | **SRS-CALIB-FUNC-028** | Field calibration workflow (5 dark + 1 flat minimum) | SWU-1.13 | SAD §3.6 | UT-FIELD-001 | IT-FIELD-001 | ST-FIELD-001 | -- | CalData_6 subset |
 | **SRS-CALIB-FUNC-029** | Calibration drift detection (Quick Check) | SWU-1.13 | SAD §3.6 | UT-FIELD-002~003 | IT-FIELD-002 | ST-FIELD-002 | -- | Simulated drift |
-| **SRS-CALIB-FUNC-030** | Real-time offset adaptation for temperature changes | SWU-1.13 | SAD §3.6 | UT-DRIFT-001~002 | IT-FIELD-003 | ST-FIELD-003 | -- | Temp ramp simulation |
+| **SRS-CALIB-FUNC-030** | ~~Real-time offset adaptation for temperature changes~~ — **삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)** | -- | -- | -- | -- | -- | -- | 해당 없음 |
 | **SRS-CALIB-FUNC-031** | Calibration mode selection API — 단일점(`XPE_CALIB_SINGLE_POINT`=0) 전용, 그 밖의 값은 `XPE_ERR_INVALID_INPUT`; 생성기는 0 기록, 옛 기록값 0..4 적재, 다항식 게인 파일(형식 3) 거부 (2026-11-16 축소) | SWU-1.12 | SAD §3.5 | UT-MODE-001~003 | IT-MODE-001 | ST-MODE-001 | -- | Mode enforcement |
 | **SRS-CALIB-FUNC-032** | ~~Multi-point calibration performance optimization~~ — **삭제 (사용자 결정 2026-11-16, 근거: `.moai/reports/lead/nonlin-need-20261116/report.md`, 엔진 커밋 2d9576de·d3216b2a)** (FUNC-027 삭제에 따름) | -- | -- | -- | -- | -- | -- | 해당 없음 |
 | **SRS-CALIB-FUNC-033** | Calibration quality metadata recording (R² gate, comparison metrics, mode-specific fields) | SWU-1.12 | SAD §3.5 | UT-META-001~003 | IT-MODE-003 | ST-MODE-003 | -- | Metadata validation |
@@ -223,7 +224,7 @@ Ensures all requirements are designed, implemented, tested, and traceable to ris
 > | FUNC-021 | Calibration Effect Score (CES) | §5.1 "Updated" | ✗ **구현 없음** — `CES` 는 `xpe_verify_metrics.cpp` 의 주석 한 줄. §5.1 의 매핑은 2026-10-03(`QA-A-223`)에 이미 "옛 매핑"으로 정정됐다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
 > | FUNC-028 | `xpe_calib_field_generate()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건. §5b 의 FUNC-017 폐기 근거("FUNC-028 과 중복")가 이 상태를 가린다 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
 > | FUNC-029 | `xpe_calib_check_drift()` | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
-> | FUNC-030 | 실시간 오프셋 적응(`calibration.realtime_offset_adapt`) | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 |
+> | FUNC-030 | 실시간 오프셋 적응(`calibration.realtime_offset_adapt`) | 정의 행 (100% 집계에 섞였을 수 있음) | ✗ **구현 없음** — 0건 | 미구현(요구 유지) — 사용자 결정 2026-10-03, #245 | **→ 2026-11-17 삭제 (사용자 결정 2026-10-15 단일 오프셋 맵, 2026-11-16 온도 보정 제거)**
 >
 > 위 7개는 2026-10-03 사용자 결정(`QA-A-233` 결정 12·14, #245 코멘트)으로 SRS 에서 지우지 않고 "미구현(요구 유지)" 로 표시했다(`SRS-CALIB-001` v1.3). 구현 여부는 기능별로 따로 정한다.
 >
