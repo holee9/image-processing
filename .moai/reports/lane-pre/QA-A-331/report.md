@@ -85,6 +85,6 @@
 `evidence/ctl_G4.out.txt`, `evidence/ctl_X3.out.txt`, `evidence/ctl_lines.tsv.txt` (모두 이 폴더).
 
 ## 정리
-- 임시 폴더 `D:/workspace-github/xpe-data/qa-331-tmp` 는 **지우지 않았다**(정정). 지금도 `ctl/ cur/ ev/ inj_set_v2/` 가 있다. 증거 사본을 이 폴더 `evidence/` 로 옮겼으므로 리더 확인 뒤 삭제한다.
+- 임시 폴더 `D:/workspace-github/xpe-data/qa-331-tmp` 는 리더 21:03 확인 뒤 삭제했다(삭제 후 `ls xpe-data | grep -c qa-331-tmp` 출력 0).
 - 남긴 증거: `.moai/reports/lane-pre/QA-A-331/report.md`, `.moai/reports/lane-pre/QA-A-331/evidence/`.
 - 소스·기준·나스 자료 변경 없음.
