@@ -18,10 +18,10 @@ namespace ImageProcTest.E2ETests.Scenarios.Workflows;
 public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, ITestOutputHelper output)
 {
     private static readonly string[] ConnectedStages = ["Offset", "Gain", "Defect"];
-    private static readonly string[] UnconnectedStages = ["Ghost", "Temperature", "Nonlinearity", "Binning"];
+    private static readonly string[] UnconnectedStages = ["Ghost", "Temperature", "Binning"];
     private static readonly string[] ModeValues = ["Auto", "On", "Off"];
 
-    /// <summary>U-01: nine connected options change processing requests; twelve unsupported options stay disabled.</summary>
+    /// <summary>U-01: nine connected options change processing requests; nine unsupported options stay disabled.</summary>
     [SkippableFact]
     public void U01_CalibrationStages_AreUsableExactlyWhenConnected()
     {
@@ -143,7 +143,7 @@ public sealed class UnappliedSettingsScenarios(WorkflowApplicationFixture app, I
             var reason = executed.GetProperty("reason").GetString()!;
             var modes = string.Join(",", ConnectedStages.Select(stage => $"{stage.ToLowerInvariant()}:{expected[stage]}"));
             Assert.Contains($"requested=[{modes}]", reason, StringComparison.Ordinal);
-            Assert.Contains("unsupported ghost/temp/nonlinearity/binning bypassed", reason, StringComparison.Ordinal);
+            Assert.Contains("unsupported ghost/temp/binning bypassed", reason, StringComparison.Ordinal);
             AssertNativeStagesExecutedPerMode(report, expected, reason, executed.GetProperty("hud").GetString());
             output.WriteLine($"U01 backend-consumed: {reason}");
         }

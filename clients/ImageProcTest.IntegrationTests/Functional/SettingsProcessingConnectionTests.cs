@@ -45,7 +45,7 @@ namespace ImageProcTest.IntegrationTests.Functional;
 /// as processing. No such read exists in the entry points today.</para>
 ///
 /// <para><b>Mock is not a processing path here.</b> The Real backend now passes Offset/Gain/Defect
-/// modes into native map selection and bypass configuration (#278). Ghost/temperature/nonlinearity/binning
+/// modes into native map selection and bypass configuration (#278). Ghost/temperature/binning
 /// remain unconnected on the Real path, even though Mock can simulate them. Counting the simulator
 /// would incorrectly declare those four modes connected.</para>
 /// </summary>
@@ -92,7 +92,6 @@ public sealed class SettingsProcessingConnectionTests
     [
         nameof(AppSettings.GhostCorrectionMode),
         nameof(AppSettings.TemperatureCompensationMode),
-        nameof(AppSettings.NonlinearityCorrectionMode),
         nameof(AppSettings.BinningCorrectionMode),
         // GUI-C-98 판정: focus mode shows nothing until the Slice 8 rails exist; its toggle is disabled.
         // The toggle writes through a command, not a binding, so the survey sees only its display
@@ -294,7 +293,8 @@ public sealed class SettingsProcessingConnectionTests
         // GUI-C-184 added one: AiBoneSuppressionInChain (the AI stage's checkbox in the Parameters tab), named below.
         // GUI-C-185 added one: AiModelDirectory (the directory input beside it), named below.
         // GUI-C-257: the three grid radios now edit CandidateGsvgMode / LaneBAlgorithm, not Settings.GsvgMode.
-        Assert.Equal(41, survey.Bindings.Select(b => b.Property).Distinct().Count());
+        // GUI-C-267 removes one retired stage's three radios and its distinct setting binding.
+        Assert.Equal(40, survey.Bindings.Select(b => b.Property).Distinct().Count());
         Assert.DoesNotContain(survey.Bindings, b => b.Property == nameof(AppSettings.GsvgMode));
         var analysisPanel = File.ReadAllText(BenchmarkRunnerServiceTests.ResolveRepositoryFile("gui/ImageProcTest/Views/AnalysisPanel.xaml"));
         Assert.Equal(3, Regex.Matches(analysisPanel, @"\{Binding CandidateGsvgMode,").Count);
@@ -314,7 +314,7 @@ public sealed class SettingsProcessingConnectionTests
         }
 
         Assert.Equal(9, survey.Bindings.Count(b => ConnectedCalibration.Contains(b.Property)));
-        Assert.Equal(12, survey.Bindings.Count(b => Unconnected.Where(p => p != nameof(AppSettings.FocusMode)).Contains(b.Property)));
+        Assert.Equal(9, survey.Bindings.Count(b => Unconnected.Where(p => p != nameof(AppSettings.FocusMode)).Contains(b.Property)));
         foreach (var property in ConnectedCalibration)
             Assert.All(survey.Bindings.Where(b => b.Property == property), b => Assert.True(b.Writable && !b.Disabled));
         Assert.Contains(survey.Bindings, b => b.Property == nameof(AppSettings.LaneBGsvgDenoiseK) && b.Via == "LaneBGsvgDenoiseK" && b.Writable);

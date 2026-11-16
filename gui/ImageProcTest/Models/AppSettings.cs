@@ -33,7 +33,6 @@ public sealed class AppSettings : ObservableObject
     private string _defectCorrectionMode = CalibrationStageMode.Auto;
     private string _ghostCorrectionMode = CalibrationStageMode.Auto;
     private string _temperatureCompensationMode = CalibrationStageMode.Auto;
-    private string _nonlinearityCorrectionMode = CalibrationStageMode.Auto;
     private string _binningCorrectionMode = CalibrationStageMode.Auto;
     private string _lastOpenedPath = string.Empty;
     private float _voiWindowCenter = 32768.0f;
@@ -198,16 +197,6 @@ public sealed class AppSettings : ObservableObject
     {
         get => _temperatureCompensationMode;
         set => SetProperty(ref _temperatureCompensationMode, CalibrationStageMode.Normalize(value));
-    }
-
-    /// <summary>
-    /// Gets or sets the Test GUI evaluation mode for nonlinearity correction: Auto, On, or Off.
-    /// </summary>
-    [JsonPropertyName("calibNonlinearityMode")]
-    public string NonlinearityCorrectionMode
-    {
-        get => _nonlinearityCorrectionMode;
-        set => SetProperty(ref _nonlinearityCorrectionMode, CalibrationStageMode.Normalize(value));
     }
 
     /// <summary>

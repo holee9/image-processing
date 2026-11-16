@@ -189,7 +189,7 @@
                     </UniformGrid>
 
                     <!-- Ghost -->
-                    <StackPanel IsEnabled="False" ToolTip="Ghost, temperature, nonlinearity and binning are bypassed because this GUI does not connect them to processing. No undefined contract is inferred." ToolTipService.ShowOnDisabled="True">
+                    <StackPanel IsEnabled="False" ToolTip="Ghost, temperature and binning are bypassed because this GUI does not connect them to processing. No undefined contract is inferred." ToolTipService.ShowOnDisabled="True">
                     <TextBlock Text="Ghost" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Margin="0,0,0,12">
                         <RadioButton AutomationProperties.AutomationId="CalibGhostModeAuto" Content="Auto" GroupName="Ghost" IsChecked="{Binding Settings.GhostCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
@@ -203,14 +203,6 @@
                         <RadioButton AutomationProperties.AutomationId="CalibTemperatureModeAuto" Content="Auto" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
                         <RadioButton AutomationProperties.AutomationId="CalibTemperatureModeOn" Content="On" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
                         <RadioButton AutomationProperties.AutomationId="CalibTemperatureModeOff" Content="Off" GroupName="Temperature" IsChecked="{Binding Settings.TemperatureCompensationMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
-                    </UniformGrid>
-
-                    <!-- Nonlinearity -->
-                    <TextBlock Text="Nonlinearity" Foreground="#b0b6c0" FontSize="11" Margin="0,0,0,4" />
-                    <UniformGrid Columns="3" Margin="0,0,0,12">
-                        <RadioButton AutomationProperties.AutomationId="CalibNonlinearityModeAuto" Content="Auto" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Auto}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton AutomationProperties.AutomationId="CalibNonlinearityModeOn" Content="On" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=On}" Foreground="#8a909c" FontSize="10" />
-                        <RadioButton AutomationProperties.AutomationId="CalibNonlinearityModeOff" Content="Off" GroupName="Nonlinearity" IsChecked="{Binding Settings.NonlinearityCorrectionMode, Mode=TwoWay, Converter={StaticResource StringEquals}, ConverterParameter=Off}" Foreground="#8a909c" FontSize="10" />
                     </UniformGrid>
 
                     <!-- Binning -->

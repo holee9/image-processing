@@ -28,7 +28,7 @@ internal static class PreCli
             if ((ulong)bytes.Length != input.DataSize.ToUInt64()) throw new InvalidOperationException("RAW length differs from allocated image");
             Marshal.Copy(bytes, 0, input.Data, bytes.Length);
             var metadata = XpeImageMetadataNative.Create("Abdomen", 70, 2, 1000, 0.14f);
-            const string config = "{\"bypassTemp\":true,\"bypassNonlinearity\":true,\"bypassBinning\":true}";
+            const string config = "{\"bypassTemp\":true,\"bypassBinning\":true}";
             Ok(XpePreprocessNative.xpe_preprocess_pipeline_out(ref input, ref output, ref metadata, IntPtr.Zero, IntPtr.Zero, config), "pipeline_out");
             byte[] result = new byte[checked((int)output.DataSize.ToUInt64())]; Marshal.Copy(output.Data, result, 0, result.Length);
             string cli = Path.Combine(evidence, "cli-corrected.f32.raw");

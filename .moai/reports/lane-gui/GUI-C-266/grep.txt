@@ -1,0 +1,16 @@
+GUI-C-266 post-change reference scan
+cwd: D:/workspace-github/xpe-gui
+HEAD before commit: 1404272b712c150c5532c031fb93e0f277b3686c
+pattern: TempCompensat|detectorTempC|xpe_temp_compensate|FUNC-008
+
+git grep -n -I -E 'TempCompensat|detectorTempC|xpe_temp_compensate|FUNC-008' -- clients/ gui/ ':(exclude)**/bin/**' ':(exclude)**/obj/**' ':(exclude)**/TestResults/**'
+exit=1
+stdout=""
+matches=0
+
+Independent all-files scan (tracked and untracked regular text files):
+roots: clients/ gui/
+excluded directory names: bin, obj, TestResults
+binary files containing NUL skipped
+scanned=456
+matches=0

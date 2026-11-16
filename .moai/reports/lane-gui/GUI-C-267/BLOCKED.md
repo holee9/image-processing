@@ -1,0 +1,1 @@
+해소: 2026-11-17 01:05 리더가 dev/gui3d70e4e8 위에 이번 diff만 커밋하도록 지정했다. origin/main과의35/1 차이는 리더가 main 병합 때 정리한다. GUI 레인의 main merge·push는 금지 유지. 기존 보류는 시험/훅 실패가 아니었다. 원문 지시: D:/workspace-github/image-processing/.moai/state/codex-msgs/20261117-0105-gui.md.
