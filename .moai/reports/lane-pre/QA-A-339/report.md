@@ -48,3 +48,13 @@
 ## 7. 미확인 (설계 전제)
 - C1 의 "집단 과반이 결함 없음" 가정이 NAS 세트에서 성립하는지 — 4절 오염 점검이 판정 불가로만 걸러 준다.
 - 판정 불가 상수 30·2·10 %·5 는 설계 상수이며 측정으로 정한 값이 아니다.
+
+## 부록 — 1번 브랜치 맞추기 [2026-11-17 03:03 KST]
+- 첫 `git merge origin/main` 은 오래된 미커밋 수정(10-19~10-25 파일 시각, 이 레인 작업 아님) 중 10개가 main 변경과 겹쳐 거부됨(작업 트리 변화 없음, HEAD 46ff57b3).
+- 미커밋 수정 보존: `D:/workspace-github/xpe-data/qa-339-preexisting-uncommitted.patch`(git diff --binary, 2211줄, 레포 밖). 리더 결정 (가)에 따라 보고한 20개 파일만 명시 경로로 되돌림(clients 2, cmake/Platform.cmake, docs 7, gui 8, modules/preprocess/tests/test_ghost_oracle.cpp). `.claude/settings.json` 과 `.moai/` 아래 변경은 건드리지 않음.
+- 다시 merge → 충돌 없음, 머지 커밋 27ec3213.
+- 빌드: `cmake --build build/ci-preprocess` → `build_rc=0` (`evidence/01_build.txt`).
+- 전체 시험(필터 없음, 직렬) `ctest --output-on-failure -j 1` (`evidence/02_ctest_j1.txt`) 원문:
+  `100% tests passed, 0 tests failed out of 1520`
+  `Total Test time (real) = 312.37 sec`
+  `ctest_rc=0`
