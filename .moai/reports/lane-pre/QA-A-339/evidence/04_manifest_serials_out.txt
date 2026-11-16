@@ -1,0 +1,79 @@
+rows 280, distinct 시리얼 values 78
+	folders 46	dates 	dark 0	flat 0	models Blue(G1717),Cyan_GT1717C
+25L29G1 — 폴더 이름에 표기(25L29G1)	folders 7	dates 20260427,20260428,20260429	dark 10	flat 51	models Cyan_GT1717C
+25L29G1 — 폴더 이름에 표기(25L29G1); 결함 화소 맵 대조 최고 일치 25L29G1 (자카드 0.594)	folders 2	dates 20260427	dark 20	flat 54	models Cyan_GT1717C
+25L29G1 — 폴더 이름에 표기(25L29G1); 결함 화소 맵 대조 최고 일치 25L29G1 (자카드 1.0)	folders 1	dates 20260427	dark 0	flat 1	models Cyan_GT1717C
+25L29G1 — 폴더 이름에 표기(CJ518486FAAA_25L29G1); 결함 화소 맵 대조 최고 일치 25L29G1 (자카드 1.0)	folders 4	dates 20260412,20260424	dark 23	flat 57	models Cyan_GT1717C
+25L29G2 — 폴더 이름에 표기(25L29G2)	folders 2	dates 20260429	dark 10	flat 0	models Cyan_GT1717C
+25L29G2 — 폴더 이름에 표기(25L29G2); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.628)	folders 2	dates 20260428,20260429	dark 22	flat 56	models Cyan_GT1717C
+25L29G2 — 폴더 이름에 표기(25L29G2); 결함 화소 맵 대조 최고 일치 26D02I4 (자카드 0.053)	folders 1	dates 20260428	dark 10	flat 27	models Cyan_GT1717C
+25L29G2 — 폴더 이름에 표기(CJ5180H2VAAA_25L29G2); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 1.0)	folders 6	dates 20260306,20260412	dark 32	flat 142	models Cyan_GT1717C
+25L29G3 — 폴더 이름에 표기(25L29G3)	folders 5	dates 20260429	dark 0	flat 0	models Cyan_GT1717C
+25L29G3 — 폴더 이름에 표기(25L29G3); 결함 화소 맵 대조 최고 일치 25L29G3 (자카드 0.542)	folders 1	dates 20260428	dark 10	flat 27	models Cyan_GT1717C
+25L29G3 — 폴더 이름에 표기(25L29G3); 결함 화소 맵 대조 최고 일치 25L29G3 (자카드 0.572)	folders 2	dates 20260428,20260429	dark 22	flat 56	models Cyan_GT1717C
+25L29G3 — 폴더 이름에 표기(CJ518485BAAA_25L29G3); 결함 화소 맵 대조 최고 일치 25L29G3 (자카드 1.0)	folders 6	dates 20260309,20260410	dark 32	flat 143	models Cyan_GT1717C
+25L29G4 — 폴더 이름에 표기(CJ518485DAAA_25L29G4); 결함 화소 맵 대조 최고 일치 25L29G4 (자카드 1.0)	folders 10	dates 20260309,20260410	dark 51	flat 255	models Cyan_GT1717C
+25L29I2 — 폴더 이름에 표기(25L29I2)	folders 8	dates 20260427,20260428,20260429	dark 2	flat 0	models Cyan_GT1717C
+25L29I2 — 폴더 이름에 표기(25L29I2); 결함 화소 맵 대조 최고 일치 25L29I2 (자카드 0.501)	folders 2	dates 20260427	dark 20	flat 51	models Cyan_GT1717C
+25L29I2 — 폴더 이름에 표기(CJ5180H2KAAA_25L29I2); 결함 화소 맵 대조 최고 일치 25L29I2 (자카드 1.0)	folders 6	dates 20260309,20260410	dark 32	flat 142	models Cyan_GT1717C
+26A14F1 — 폴더 이름에 표기(CJ519119NAAA_26A14F1); 결함 화소 맵 대조 최고 일치 26A14F1 (자카드 1.0)	folders 10	dates 20260309,20260310,20260410	dark 53	flat 255	models Cyan_GT1717C
+26A14J4 — 폴더 이름에 표기(26A14J4); 결함 화소 맵 대조 최고 일치 26A14J4 (자카드 0.213)	folders 1	dates 20260605	dark 5	flat 5	models Cyan_GT1717C
+26A14J4 — 폴더 이름에 표기(CJ519120NAAA_26A14J4); 결함 화소 맵 대조 최고 일치 26A14J4 (자카드 1.0)	folders 2	dates 20260410	dark 11	flat 29	models Cyan_GT1717C
+26A14K1 — 폴더 이름에 표기(CJ519119GAAA_26A14K1); 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 1.0)	folders 2	dates 20260412	dark 11	flat 29	models Cyan_GT1717C
+26D02I3 — 폴더 이름에 표기(CJ51C1K9EAAA_26D02I3)	folders 1	dates 20260521	dark 2	flat 2	models Cyan_GT1717C
+26D02I3 — 폴더 이름에 표기(CJ51CK9EAAA_26D02I3); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 1.0)	folders 2	dates 20260412	dark 11	flat 29	models Cyan_GT1717C
+26D02I4 — 폴더 이름에 표기(CJ51C1K7VAAA_26D02I4)	folders 1	dates 20260521	dark 2	flat 2	models Cyan_GT1717C
+26D02I4 — 폴더 이름에 표기(CJ51CK7VAAA_26D02I4); 결함 화소 맵 대조 최고 일치 26D02I4 (자카드 1.0)	folders 2	dates 20260426	dark 10	flat 28	models Cyan_GT1717C
+26F16E6 — 폴더 이름에 표기(CJ6130V1FAAA_26F16E6)	folders 1	dates 20260702	dark 0	flat 0	models Cyan_GT1717C
+26F17F3 — 폴더 이름에 표기(CJ6131S3PAAA_26F17F3)	folders 1	dates 20260702	dark 0	flat 0	models Cyan_GT1717C
+26H26K8 — 폴더 이름에 표기(CJ6131R6VAAA_26H26K8); 결함 화소 맵 대조 최고 일치 26H26K8 (자카드 1.0)	folders 4	dates 20261102	dark 11	flat 58	models Cyan_GT1717C
+label-A2 — 폴더 표기 "A2"만 있음; 미확인	folders 1	dates 20260127	dark 11	flat 8	models Cyan_GT1717C
+label-A2 — 폴더 표기 "A2"만 있음; 미확인; 결함 화소 맵 대조 최고 일치 26H26K8 (자카드 0.155)	folders 1	dates 20260127	dark 10	flat 5	models Cyan_GT1717C
+label-A2 — 폴더 표기 "A2"만 있음; 미확인; 결함 화소 맵 대조 최고 일치 26H26K8 (자카드 0.156)	folders 1	dates 20260127	dark 12	flat 13	models Cyan_GT1717C
+label-A3 — 폴더 표기 "A3"만 있음; 미확인; 결함 화소 맵 대조 최고 일치 26H26K8 (자카드 0.097)	folders 1	dates 20260127	dark 11	flat 1	models Cyan_GT1717C
+label-A6 — 폴더 표기 "A6"만 있음; 미확인; 결함 화소 맵 대조 최고 일치 26H26K8 (자카드 0.11)	folders 1	dates 20260127	dark 10	flat 5	models Cyan_GT1717C
+label-F1 — 폴더 표기 "F1"만 있음; 26A14F1 로 추정(미확인)	folders 4	dates 20260528,20260605	dark 21	flat 5	models Cyan_GT1717C
+label-F1 — 폴더 표기 "F1"만 있음; 26A14F1 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26A14F1 (자카드 0.142)	folders 1	dates 20260528	dark 15	flat 1	models Cyan_GT1717C
+label-G2 — 폴더 표기 "G2"만 있음; 25L29G2 로 추정(미확인)	folders 1	dates 20260528	dark 15	flat 0	models Cyan_GT1717C
+label-G2 — 폴더 표기 "G2"만 있음; 25L29G2 로 추정(미확인); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.41)	folders 1	dates 20260605	dark 5	flat 5	models Cyan_GT1717C
+label-G4 — 폴더 표기 "G4"만 있음; 25L29G4 로 추정(미확인)	folders 1	dates 20260528	dark 16	flat 0	models Cyan_GT1717C
+label-I2 — 폴더 표기 "I2"만 있음; 25L29I2 로 추정(미확인)	folders 2	dates 20260528	dark 15	flat 0	models Cyan_GT1717C
+label-I2 — 폴더 표기 "I2"만 있음; 25L29I2 로 추정(미확인); 결함 화소 맵 대조 최고 일치 25L29I2 (자카드 0.492)	folders 1	dates 20260605	dark 5	flat 5	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인)	folders 2	dates 20260529,20260608	dark 15	flat 0	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 0.127)	folders 2	dates 20260522	dark 10	flat 28	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 0.161)	folders 2	dates 20260522	dark 0	flat 6	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 0.185)	folders 1	dates 20260605	dark 5	flat 5	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 0.208)	folders 1	dates 20260521	dark 10	flat 20	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 0.239)	folders 1	dates 20260521	dark 11	flat 23	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 0.269)	folders 2	dates 20260521	dark 20	flat 48	models Cyan_GT1717C
+label-I3 — 폴더 표기 "I3"만 있음; 26D02I3 로 추정(미확인); 결함 화소 맵 대조 최고 일치 26D02I3 (자카드 0.33)	folders 1	dates 20260529	dark 7	flat 29	models Cyan_GT1717C
+label-I4 — 폴더 표기 "I4"만 있음; 26D02I4 로 추정(미확인)	folders 4	dates 20260526,20260529,20260608	dark 19	flat 0	models Cyan_GT1717C
+label-I4 — 폴더 표기 "I4"만 있음; 26D02I4 로 추정(미확인); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.013)	folders 2	dates 20260522	dark 10	flat 28	models Cyan_GT1717C
+label-I4 — 폴더 표기 "I4"만 있음; 26D02I4 로 추정(미확인); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.019)	folders 1	dates 20260605	dark 5	flat 5	models Cyan_GT1717C
+label-I4 — 폴더 표기 "I4"만 있음; 26D02I4 로 추정(미확인); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.021)	folders 2	dates 20260522	dark 10	flat 28	models Cyan_GT1717C
+label-I4 — 폴더 표기 "I4"만 있음; 26D02I4 로 추정(미확인); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.024)	folders 1	dates 20260529	dark 7	flat 28	models Cyan_GT1717C
+label-I4 — 폴더 표기 "I4"만 있음; 26D02I4 로 추정(미확인); 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.026)	folders 1	dates 20260521	dark 11	flat 20	models Cyan_GT1717C
+unknown — 미확인	folders 76	dates 20250224,20250904,20251104,20251201,20260226,20260403,20260406,20260521,20260526,20260529,20260609,20260818,20260828,20260930,20261028,20261103	dark 180	flat 90	models Cyan_GT1717C,model-미확인
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.019)	folders 1	dates 20260818	dark 7	flat 29	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 25L29G2 (자카드 0.031)	folders 1	dates 20260421	dark 10	flat 27	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 25L29G4 (자카드 0.192)	folders 1	dates 20260312	dark 12	flat 5	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 25L29G4 (자카드 0.23)	folders 1	dates 20260527	dark 4	flat 1	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 25L29I2 (자카드 0.003)	folders 2	dates 20260930,20261028	dark 10	flat 29	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 25L29I2 (자카드 0.004)	folders 1	dates 20260930	dark 0	flat 5	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14F1 (자카드 0.014)	folders 1	dates 20250904	dark 0	flat 5	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14F1 (자카드 0.037)	folders 1	dates 20260421	dark 10	flat 25	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14F1 (자카드 0.067)	folders 1	dates 20260407	dark 11	flat 28	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14F1 (자카드 0.209)	folders 1	dates 20260818	dark 7	flat 29	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14J4 (자카드 0.007)	folders 1	dates 20260409	dark 10	flat 10	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14J4 (자카드 0.012)	folders 4	dates 20260407,20260409	dark 38	flat 34	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14J4 (자카드 0.207)	folders 1	dates 20261028	dark 0	flat 1	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.001)	folders 1	dates 20260417	dark 9	flat 4	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.012)	folders 1	dates 20260417	dark 11	flat 25	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.063)	folders 1	dates 20260403	dark 12	flat 24	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.072)	folders 1	dates 20260226	dark 0	flat 29	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.085)	folders 1	dates 20260401	dark 13	flat 25	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.093)	folders 1	dates 20260407	dark 11	flat 15	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.121)	folders 1	dates 20251201	dark 0	flat 5	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26A14K1 (자카드 0.29)	folders 1	dates 20260421	dark 10	flat 24	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26H26K8 (자카드 0.095)	folders 1	dates 20260408	dark 12	flat 12	models Cyan_GT1717C
+unknown — 미확인; 결함 화소 맵 대조 최고 일치 26H26K8 (자카드 0.096)	folders 1	dates 20260406	dark 10	flat 26	models Cyan_GT1717C

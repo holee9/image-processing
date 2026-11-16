@@ -1,0 +1,12 @@
+# QA-A-339 F339-3: list the serial (시리얼) values of MANIFEST.csv and the dark/flat frame counts per serial. Read only.
+import csv, collections, re, sys
+rows = list(csv.DictReader(open(sys.argv[1], encoding="utf-8-sig")))
+by = collections.defaultdict(list)
+for r in rows:
+    by[r["시리얼"]].append(r)
+out = open(sys.argv[2], "w", encoding="utf-8", newline="\n")
+out.write("rows %d, distinct 시리얼 values %d\n" % (len(rows), len(by)))
+for s, rs in sorted(by.items(), key=lambda kv: kv[0]):
+    dark = sum(int(m.group(1)) for r in rs for m in [re.search(r"다크 (\d+)", r["종류"])] if m)
+    flat = sum(int(m.group(1)) for r in rs for m in [re.search(r"밝은 균일 (\d+)", r["종류"])] if m)
+    out.write("%s\tfolders %d\tdates %s\tdark %d\tflat %d\tmodels %s\n" % (s, len(rs), ",".join(sorted(set(r["날짜"] for r in rs))), dark, flat, ",".join(sorted(set(r["모델"] for r in rs)))))

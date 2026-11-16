@@ -1,0 +1,20 @@
+# QA-A-339 F339-3: panel split table, rule fixed in report "설계 2판" 5.1. Key = confirmed panel id = leading token of 시리얼 when the
+# value says "폴더 이름에 표기" (folder name carries the id) and the token matches \d\d[A-Z]\d\d[A-Z]\d. label-* (estimated) and unknown rows
+# are not keyed and go to neither side. Eligible panel = summed dark >= 6 and summed flat >= 10 over its confirmed rows.
+import csv, collections, re, sys
+rows = list(csv.DictReader(open(sys.argv[1], encoding="utf-8-sig")))
+P = collections.defaultdict(lambda: {"folders": 0, "dark": 0, "flat": 0, "dates": set()})
+other = collections.Counter()
+for r in rows:
+    s = r["시리얼"]; m = re.match(r"(\d\d[A-Z]\d\d[A-Z]\d) — 폴더 이름에 표기", s)
+    if not m: other["label-*" if s.startswith("label-") else ("unknown" if s.startswith("unknown") else "blank/other")] += 1; continue
+    d = P[m.group(1)]; d["folders"] += 1; d["dates"].add(r["날짜"])
+    for pat, k in ((r"다크 (\d+)", "dark"), (r"밝은 균일 (\d+)", "flat")):
+        mm = re.search(pat, r["종류"]); d[k] += int(mm.group(1)) if mm else 0
+out = open(sys.argv[2], "w", encoding="utf-8", newline="\n")
+out.write("unkeyed rows: %s\n" % dict(other))
+elig = [p for p in sorted(P) if P[p]["dark"] >= 6 and P[p]["flat"] >= 10]
+out.write("panel\tfolders\tdark\tflat\tdates\teligible\tside\n")
+for p in sorted(P):
+    side = "-" if p not in elig else ("dev" if elig.index(p) % 2 == 0 else "val")
+    out.write("%s\t%d\t%d\t%d\t%s\t%s\t%s\n" % (p, P[p]["folders"], P[p]["dark"], P[p]["flat"], ",".join(sorted(P[p]["dates"])), "yes" if p in elig else "no", side))
