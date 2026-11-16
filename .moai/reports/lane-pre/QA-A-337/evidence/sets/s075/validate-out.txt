@@ -1,0 +1,1 @@
+{"validation_only":true,"dark_used":6,"gain_frames":8,"bpm_frames":20,"gain_dose_ratio":1.0281058492462924}

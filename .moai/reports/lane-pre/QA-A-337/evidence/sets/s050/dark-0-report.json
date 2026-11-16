@@ -1,0 +1,181 @@
+{
+  "calibration_files": [
+    {
+      "path": "D:/workspace-github/xpe-data/qa-337-tmp/s050/set\\offset.xcal",
+      "sha256_after": "bf384bcf0ee192daf1e60c9f2b26e6438399a4ae72474a08f7250cedd6a379ed",
+      "sha256_before": "bf384bcf0ee192daf1e60c9f2b26e6438399a4ae72474a08f7250cedd6a379ed",
+      "unchanged": true
+    },
+    {
+      "path": "D:/workspace-github/xpe-data/qa-337-tmp/s050/set\\gain.xcal",
+      "sha256_after": "c18e32f3c3f4ccabd56d6ad4e2184e66e0e1e6c7c4d3f7759e7c95db9ccf6571",
+      "sha256_before": "c18e32f3c3f4ccabd56d6ad4e2184e66e0e1e6c7c4d3f7759e7c95db9ccf6571",
+      "unchanged": true
+    },
+    {
+      "path": "D:/workspace-github/xpe-data/qa-337-tmp/s050/set\\defect.xcal",
+      "sha256_after": "9b46d313edac830fdca5abd66a09a219163e427492a4f1054e41564ead0c0b7b",
+      "sha256_before": "9b46d313edac830fdca5abd66a09a219163e427492a4f1054e41564ead0c0b7b",
+      "unchanged": true
+    }
+  ],
+  "calibration_paths": [
+    "D:/workspace-github/xpe-data/qa-337-tmp/s050/set\\offset.xcal",
+    "D:/workspace-github/xpe-data/qa-337-tmp/s050/set\\gain.xcal",
+    "D:/workspace-github/xpe-data/qa-337-tmp/s050/set\\defect.xcal"
+  ],
+  "clamp_review_required": true,
+  "clamp_review_scope": "protocol 5.2: report/review above 5%; this is not a new signed-bias acceptance limit",
+  "degraded_evidence": true,
+  "determinism": {
+    "nonfinite_comparison_pixels": 0,
+    "pipeline_runs": 2,
+    "replay_time_ms": 18.8777,
+    "scope": "same raw/maps/config; basic stateless CPU pipeline_out; stateful ghost is bypassed"
+  },
+  "evidence_scope": "basic offset/gain/defect stages, cross-checked against shipped pipeline_out",
+  "gain_semantics": "normalized_gain",
+  "gain_semantics_source": "caller-selected, not independently verified",
+  "gates": [
+    {
+      "id": "PRE-E2E-CALIBRATION-LOAD",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-STAGE-PIPELINE-PARITY",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-NO-NAN-INF",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-CPU-DETERMINISM",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-OFFSET-QUALITY",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-CLAMP-REVIEW",
+      "result": "review_required"
+    },
+    {
+      "id": "PRE-E2E-RAW-PRESERVE",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-GAIN-SEMANTICS",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-CALIBRATION-PRESERVE",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-COMPLETE",
+      "result": "unmeasured"
+    }
+  ],
+  "ghost": {
+    "bypass_reason": "configured_bypass",
+    "corrected_flag": false,
+    "history_length": null,
+    "scope": "basic runner config bypass; no ghost handle, tier or history observed",
+    "tier": null
+  },
+  "ghost_bypassed": true,
+  "git_sha": "unknown",
+  "height": 3072,
+  "image_path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/25L29I2/20260310_GT1717C__pp_정량성_평가_데이터/2026.03.09_CJ5180H2KAAA_25L29I2_양산/AED/Dark_08.raw",
+  "input_buffer_preserved": true,
+  "input_kind": "dark",
+  "input_kind_source": "caller-selected, not acquisition-verified",
+  "input_preservation_status": "pass",
+  "input_preserved": true,
+  "matches_shipped_pipeline": true,
+  "metrics": {
+    "calibration_effect_score": null,
+    "clamp_rate": 0.996915923224555,
+    "dark_bias_adu": 0.002022997363973132,
+    "dark_bias_signed_adu": -10.414066697045609,
+    "dark_reduction_db": 39.996737923999135,
+    "defect_fpr": null,
+    "defect_recall": null,
+    "defect_residual_adu": null,
+    "determinism_rmse": 0.0,
+    "dsnu_adu": 0.10019309050525993,
+    "flat_residual_pct": null,
+    "fpn_reduction_db": null,
+    "gain_coverage": null,
+    "good_pixel_delta_p99_linear_adu": null,
+    "good_pixel_delta_p99_nearest_adu": null,
+    "invalid_gain_count": null,
+    "mae_reference_adu": null,
+    "max_abs_reference_adu": null,
+    "nan_inf_count": 0,
+    "peak_memory_mb": null,
+    "pipeline_time_ms": 19.3515,
+    "psnr_reference_db": null,
+    "rmse_reference": null,
+    "zero_output_rate": 0.9980027940538194
+  },
+  "offset_measured_mask": 3,
+  "output_summary": {
+    "max": 16.64442253112793,
+    "mean": 0.0031273195394921536,
+    "min": 0.0
+  },
+  "phase1_pass": false,
+  "pixel_format": "uint16-le",
+  "raw_sha256_after": "10287370cab99c4a1fc8edd9f4e49acf611ce71e8253cb73730b16251aed0abf",
+  "raw_sha256_before": "10287370cab99c4a1fc8edd9f4e49acf611ce71e8253cb73730b16251aed0abf",
+  "release_pass": false,
+  "run_succeeded": true,
+  "schema": "xpe-pre-e2e-report-v1",
+  "score": {
+    "calibration_effect_score": null,
+    "phase1_pass": false,
+    "release_pass": false,
+    "score_cap": 100.0,
+    "score_complete": false
+  },
+  "score_components": {
+    "dark": 1.0,
+    "defect": null,
+    "flat": null,
+    "lag_ghost": null,
+    "nonlinearity": null,
+    "performance": null,
+    "preservation": 1.0,
+    "reference": null
+  },
+  "signed_offset_roi_pixels": 913496,
+  "signed_offset_valid_mask": 31,
+  "stages": [
+    {
+      "applied": true,
+      "enabled": "explicit",
+      "name": "offset",
+      "result_code": 0,
+      "time_ms": 2.8307
+    },
+    {
+      "applied": true,
+      "enabled": "explicit",
+      "name": "gain",
+      "result_code": 0,
+      "time_ms": 2.4484
+    },
+    {
+      "applied": true,
+      "enabled": "explicit",
+      "name": "defect",
+      "result_code": 0,
+      "time_ms": 13.067
+    }
+  ],
+  "timing_scope": "stage times are separate stage API calls; pipeline time is a separate shipped pipeline_out call",
+  "width": 3072
+}

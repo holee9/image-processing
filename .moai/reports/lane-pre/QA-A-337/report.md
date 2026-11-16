@@ -178,3 +178,54 @@ Reviewer 지적 F337-1·F337-2 와 표현·한계 추가를 반영한다. 규칙
 | B10 중복 경로 | F | 같은 경로 2번 | — | 오류, 파일 없음 |
 | B11 빈 ROI | F | 가로를 덮는 --bpm-margins | — | 오류, 파일 없음 |
 | B12 회귀 | F | cyan_test Dark_07~14 | — | 제외 = Dark_07 하나, offset/gain/defect.xcal 바이트 동일, 출력 sha c5f458c5… 동일 |
+
+## 구현 [2026-11-17 00:25 KST] [xpe-pre] QA-A-337 — 앞부분 다크 데이터 기반 제외 구현·확인
+
+### 바꾼 파일·심볼
+- 새 파일 `modules/preprocess/tools/xpe_dark_selection.hpp`: 순수 함수 `xpe_dark_sel::selectLeadingDarks(const std::vector<double>& m)` → `Selection{excluded, reference(R), conditions}`. 짝수 개 중앙값은 따로 만든 `medianMeanOfMiddleTwo`(가운데 두 값 평균)로 계산하고 기존 도우미는 쓰지 않았다. T = `kDeviationLimit` 20.0, 남는 장 하한 `max(kMinUsedDarks=5, ⌈N/2⌉)`. 참인 조건은 (c),(a),(b) 순서로 모두 담는다.
+- `modules/preprocess/tools/xpe_calib_fixture_gen.cpp` `runFramesMode`: 첫 장 하나를 빼던 곳(QA-A-259 단일 지점)을 바꿨다. `--keep-first-dark` 가 없으면 `--bpm-margins` 영역 안 원시 화소값 평균(double 누적)으로 m_k 를 계산하고 규칙을 적용한다. 판정 불가면 모든 m_k·R·T·참인 조건을 stderr 에 적고 아무 파일도 쓰지 않고 종료 코드 15. 영역이 비면(가로 또는 세로 0) 종료 코드 16. 빠진 장은 첫 장 `dark_excluded_first`, 추가분 `dark_excluded_unsettled` 역할로 inputs 에 남는다. 남은 같은 목록이 오프셋·게인 다크 기준·결함 맵에 그대로 들어간다(기존 구조, `darks` 하나). `--keep-first-dark` 는 목록 전체 사용·규칙 전체 우회(기존 그대로). 원래 입력 수 검사(종료 10)·같은 경로 두 번(종료 13)은 기존 코드 그대로.
+- manifest.json: `defect_pixels` 뒤에 `dark_selection` 블록 — `rule`, `roi_ltrb`, `T`, `R`, 준 다크마다 `m`, `excluded`(경로·이유), `verdict`, `"dark_order": "as given, not checked"`. 기존 `dark_policy` 블록(given/used)은 바꾸지 않았다(기존 시험이 used 목록 안에 첫 장 경로가 없음을 검사하므로 새 블록을 그 밖에 둠).
+- C ABI `xpe_calib_generate_offset`, 임계값·T 값은 바꾸지 않았다.
+
+### 시험 (modules/preprocess/tests/test_calib_fixture_gen.cpp, 기존 대상에 들어 있어 CMakeLists 변경 없음)
+- 층 U (`DarkSelectionRule.*`, double): B1_ExactlyPlus20IsKept, B2_Plus21IsExcluded, B2n_Minus21IsExcluded, B2m_Minus20IsKept, B3_DeviationAfterTheRunIsA, B4_LaterHalfDeviationIsCAndA, B5_FiveLeftIsEnough, B6_FourLeftIsB, B7_TwoLevelsKeepAllButTheFirst(R 1000.05), B7F_TwoLevelsIntegerEdition, B13_N12SixLeftIsEnough, B14_N12FiveLeftIsCAndB, B15_OddN7FiveLeftIsEnough, B16_OddN7FourLeftIsB, EvenMedianIsTheMeanOfTheMiddleTwoNotTheUpperOne.
+- 층 F (`DarkSelectionTool.*`, 256×256 uint16 합성 프레임, 도구를 하위 프로세스로 실행): B1, B2, B2n, B2m, B3, B4, B5, B6, B7F, B13, B14, B15, B16, B8_KeepFirstDarkBypassesTheWholeRule, B9_FiveGivenIsTheExistingRefusal(종료 10), B10_TheSamePathTwiceIsRefused(종료 13), B11_AnEmptyRegionIsRefused(종료 16). 판정 불가 행은 종료 15·출력 폴더 없음·작업 폴더 없음·stderr 의 "verdict unavailable <조건들> --" 문자열과 m_k 줄 수를 본다. 사용 행은 manifest 의 사용 다크 수·제외 목록·T 20.0·verdict·dark_order 를 본다.
+- 설계와 다른 점 하나(층 F 프레임 모양): 모든 화소를 m_k 로 채우면 같은 값 다크끼리 내용이 같아 기존 중복 거절(종료 13)에 걸린다. 그래서 화소 0 에 m_k+(k+1), 화소 1 에 m_k−(k+1) 을 넣었다. 영역 평균은 정확히 정수 m_k 그대로다(합이 변하지 않음). 규칙·기대값은 바꾸지 않았다.
+- B12 는 아래 실측.
+- 새 시험 실행: `xpe_preprocess_tests.exe --gtest_filter='DarkSelection*:CalibFixtureGenTest.*'` → `[  PASSED  ] 80 tests.` (evidence/new_tests.txt)
+
+### B12 회귀 (cyan_test Dark_07~14, 같은 명령, 변경 전 빌드 → 변경 후 빌드)
+- 변경 전 생성: evidence/b12_before_gen.txt (rc=0). 변경 후: evidence/b12_after_gen.txt (rc=0). 두 출력 sha 동일 — offset 5569bacf…, gain a7ddadbd…, defect ba947dcd…(2338 결함 화소).
+- `cmp`: offset.xcal / gain.xcal / defect.xcal 모두 identical. manifest 차이는 새 `dark_selection` 블록뿐(evidence/b12_compare.txt): R 11020.697, m = 10929.281, 11026.573, 11026.582, 11026.363, 11020.679, 11026.506, 11020.654, 11020.716, 제외 = Dark_07 하나.
+- 파이프라인 출력 sha(evidence/b12_out_sha.txt): `rc 0 format 1 flags 0x201c sha256 c5f458c5d2044f70f182f692f53f9357b389c7bf540b887bd4082cb01a67cfd3` — 기대값과 같다.
+
+### 전체 시험 (필터 없음, 직렬)
+`ctest --output-on-failure -j 1` (build/ci-preprocess, evidence/ctest_j1.txt):
+```
+100% tests passed, 0 tests failed out of 1520
+Total Test time (real) = 322.85 sec
+```
+(목록 1594 중 비활성 표시 시험은 Not Run (Disabled) — 이번 변경 전부터 있는 것.)
+
+### QA-B-228 세트 전/후
+1단계 — 새 도구 `--validate-only` 로 30세트 전부의 다크 선택만 계산(파일 쓰지 않음, evidence/sets/validate-summary.txt, 세트별 validate-out/err): 사용 다크 수가 바뀐 세트는 **s050, s075 두 개뿐**(7 → 6). 나머지 26세트는 7장 그대로(= 첫 장만 제외, 변경 전과 같은 목록). s007·s066 은 기존 중복 거절(종료 13)로 선택 규칙에 닿기 전에 멈춘다(변경 전과 같음).
+
+2단계 — 바뀐 두 세트만 새 생성기 + 현재 빌드 `xpe_pre_e2e` 로 같은 판정 프레임 측정(evidence/sets/s050, s075: run.txt, manifest.json, 판정 프레임별 report.json). 임시 폴더는 세트마다 지웠다.
+
+| 세트 | 제외 다크 (전 → 후) | DarkBias 화소값 전 → 후 | 부호 있는 DarkBias 전 → 후 | DarkReduction_dB 전 → 후 | FlatResidualPct % 전 → 후 |
+|---|---|---|---|---|---|
+| s050 25L29I2 03-09 AED | Dark_00 → Dark_00, Dark_01(m 15855.0, R 11075.963) | 0.000 / 0.000 → 0.002 / 0.006 | -679.199 / -677.837 → -10.414 / -9.638 | 200.01 / 200.35 → 40.00 / 38.22 | 1.355 / 1.356 → 1.121 / 1.122 |
+| s075 26A14J4 04-10 | Dark_00 → Dark_00, Dark_01(m 9497.672, R 9607.443) | 5.552 / 5.385 → 0.234 / 0.195 | 4.682 / 4.455 → -2.961 / -3.237 | 4.48 / 4.64 → 21.56 / 22.48 | 0.603 / 0.606 → 0.604 / 0.607 |
+
+- "전" 값은 QA-B-228 리더 대행 표(xpe-post `.moai/reports/lane-post/QA-B-228/report.md` 리더 대행 측정 표의 s050·s075 행)를 그대로 인용했다. 이번에 다시 돌리지 않았다.
+- s050: 노출된 Dark_01 은 판정 불가가 아니라 **둘째 장부터의 연속 제외 구간으로 빠졌다**(앞부분에 있었으므로). Dark_02~07 은 |m−R| ≤ 20 이라 (a)(c) 없음, 남는 6 ≥ max(5,4).
+- s075: Dark_01 이 빠졌다(m−R = −109.8). 설계 2판 수정본의 손계산(01 ≈ −109 → 추가 제외)과 같다.
+
+### 측정하지 않은 세트
+- 다크 선택이 바뀌지 않은 26세트(s000 s002 s003 s014 s018 s020 s021 s023 s025 s026 s029 s031 s032 s033 s047 s049 s053 s055 s058 s065 s069 s070 s073 s078 s080 s083)는 2단계 측정을 하지 않았다. 사용 다크 목록이 변경 전과 같다는 근거는 validate-only 의 dark_used 7(1단계)이며, 같은 목록이면 생성 맵이 같다는 것은 B12 에서 cyan_test 한 세트로만 바이트 비교했다 — 이 26세트에서의 바이트 동일은 미확인.
+- s007, s066: 생성 거절(종료 13, 중복 밝은 프레임) — 측정 없음(변경 전과 같음).
+
+### 한계·미확인
+- "후" 값은 현재 빌드(dev/preprocess)의 `xpe_pre_e2e` 로, "전" 값은 QA-B-228 이 쓴 main 76968ec8 빌드로 쟀다. 두 표의 차이 중 측정 도구 빌드 차이에서 온 몫은 미확인(같은 프레임으로 변경 전 생성기 + 현재 e2e 대조를 돌리지 않았다).
+- 설계 3판 한계(|차이| ≤ 20 인 둘째 장 이후 이탈, 평균은 같고 무늬만 다른 프레임 등)는 그대로다.
+- 설계에서 벗어난 점: 층 F 합성 프레임의 ±(k+1) 화소 두 개(위 설명) 외에는 없다.

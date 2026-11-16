@@ -59,6 +59,12 @@
  *                 once all four files exist. A refusal or a failure (exit 5-8)
  *                 leaves neither --out nor its own work directory, and a work
  *                 directory of another run is never touched.
+ *                 QA-A-337: the dark frames left out are chosen from the data:
+ *                 the first always, then the leading run of frames whose mean
+ *                 (inside --bpm-margins) differs from the median of the later
+ *                 half by more than 20 (xpe_dark_selection.hpp). A list the rule
+ *                 cannot judge is refused (exit 15, nothing is written); an empty
+ *                 region is refused (exit 16). --keep-first-dark turns the rule off.
  *   --bpm-bright F, --bpm-bright-list L   QA-A-250b: the bright frames of the DEFECT
  *                 map, when they are not the gain frames. The gain map needs one
  *                 dose (xpe_calib_generate_gain averages the frames); the defect
@@ -97,6 +103,7 @@
 #include "xcal_writer.hpp"
 #include "defect_ext.hpp"
 #include "xpe_sha256.hpp"
+#include "xpe_dark_selection.hpp"
 
 #ifdef _WIN32
 #include <process.h>
@@ -169,6 +176,9 @@ void printUsage() {
         "                  acquisition); by default this tool excludes the first frame ONCE and the same remaining list\n"
         "                  feeds the offset map, the gain dark reference and the defect map (both editions). The\n"
         "                  option keeps the list as given. manifest.json lists the given and the used frames.\n"
+        "                  QA-A-337: after the first, the leading darks whose mean (inside --bpm-margins) differs from the\n"
+        "                  median of the later half by more than 20 are excluded too; a list that cannot be judged is\n"
+        "                  refused (exit 15). --keep-first-dark turns this whole rule off.\n"
         "  --validate-only  frames mode only: run input checks, write no calibration files\n"
         "  --gain-dark-ref  dark reference for the gain stage: mean (default), none, or a file\n"
         "  --compare-bpm F  report agreement with someone else's defect map (not used for the set)\n"
@@ -811,16 +821,44 @@ int runFramesMode(const Options& opt) {
         }
     }
 
-    // QA-A-259: the ONE place the first dark frame leaves the list. Every stage below (offset, gain dark reference, defect map of either edition) reads `darks`, the used list.
-    InputFrame firstDark;
+    // QA-A-259: the ONE place dark frames leave the list. Every stage below (offset, gain dark reference, defect map of either edition) reads `darks`, the used list.
+    // QA-A-337: the first frame always, then the leading run the data rule picks (xpe_dark_selection.hpp); --keep-first-dark turns the rule off entirely.
+    std::vector<InputFrame> excludedDarks;
     const std::vector<std::string> givenDarkPaths = darkPaths;
     std::vector<std::string> givenDarkShas;
     for (const auto& d : darks) givenDarkShas.push_back(d.sha);
     const bool firstExcluded = !opt.keepFirstDark;
+    std::vector<double> roiMeans;
+    xpe_dark_sel::Selection selection;
     if (firstExcluded) {
-        firstDark = std::move(darks.front());
-        firstDark.role = "dark_excluded_first";
-        darks.erase(darks.begin());
+        if (static_cast<uint64_t>(opt.bpmMargin[0]) + opt.bpmMargin[2] >= opt.width || static_cast<uint64_t>(opt.bpmMargin[1]) + opt.bpmMargin[3] >= opt.height) {
+            std::fprintf(stderr, "the region inside --bpm-margins %u,%u,%u,%u is empty for %u x %u frames: the dark selection has no pixel to average; nothing was written\n", opt.bpmMargin[0],
+                         opt.bpmMargin[1], opt.bpmMargin[2], opt.bpmMargin[3], opt.width, opt.height);
+            return 16;
+        }
+        const uint32_t x0 = opt.bpmMargin[0], y0 = opt.bpmMargin[1], x1 = opt.width - opt.bpmMargin[2], y1 = opt.height - opt.bpmMargin[3];
+        for (const auto& d : darks) {
+            double sum = 0.0;
+            for (uint32_t y = y0; y < y1; ++y)
+                for (uint32_t x = x0; x < x1; ++x) sum += d.px[static_cast<size_t>(y) * opt.width + x];
+            roiMeans.push_back(sum / (static_cast<double>(x1 - x0) * static_cast<double>(y1 - y0)));
+        }
+        selection = xpe_dark_sel::selectLeadingDarks(roiMeans);
+        if (!selection.conditions.empty()) {
+            std::fprintf(stderr, "dark selection: verdict unavailable");
+            for (const auto c : selection.conditions) std::fprintf(stderr, " %s", xpe_dark_sel::conditionLabel(c));
+            std::fprintf(stderr, " -- (c) a frame of the later half deviates, (a) a frame after the excluded run deviates, (b) fewer than max(%zu, ceil(N/2)) frames remain. Nothing was written.\n",
+                         xpe_dark_sel::kMinUsedDarks);
+            std::fprintf(stderr, "dark selection: N %zu, R %.3f, T %.1f, excluded run %zu\n", roiMeans.size(), selection.reference, xpe_dark_sel::kDeviationLimit, selection.excluded);
+            for (size_t k = 0; k < roiMeans.size(); ++k)
+                std::fprintf(stderr, "  m_%zu %.3f  m-R %+.3f  %s\n", k, roiMeans[k], roiMeans[k] - selection.reference, darkPaths[k].c_str());
+            return 15;
+        }
+        for (size_t k = 0; k < selection.excluded; ++k) {
+            excludedDarks.push_back(std::move(darks[k]));
+            excludedDarks.back().role = k == 0 ? "dark_excluded_first" : "dark_excluded_unsettled";
+        }
+        darks.erase(darks.begin(), darks.begin() + static_cast<std::ptrdiff_t>(selection.excluded));
     }
 
     // The dark reference of the gain stage (read before the dose check: the check uses the same reference as the generator).
@@ -1100,7 +1138,7 @@ int runFramesMode(const Options& opt) {
     const std::string offsetSha = sha256Hex(offsetPath), gainSha = sha256Hex(gainPath), defectSha = sha256Hex(defectPath);
     std::string inputs;
     std::vector<const InputFrame*> all;
-    if (firstExcluded) all.push_back(&firstDark);
+    for (const auto& d : excludedDarks) all.push_back(&d);
     for (const auto& d : darks) all.push_back(&d);
     for (const auto& b : brights) all.push_back(&b);
     for (const auto& b : bpmOnly) all.push_back(&b);
@@ -1123,6 +1161,21 @@ int runFramesMode(const Options& opt) {
         darkPolicy += "      {\"path\": \"" + jsonText(fs::path(darks[i].path).generic_string()) + "\", \"sha256\": \"" + darks[i].sha + "\"}" + (i + 1 < darks.size() ? ",\n" : "\n");
     }
     darkPolicy += "    ]\n  },\n";
+    std::string darkSelection = "  \"dark_selection\": {\n";   // QA-A-337: written after defect_pixels, outside the given/used lists
+    if (firstExcluded) {   // QA-A-337
+        darkSelection += "    \"rule\": \"first frame always; then the leading run with |m_k - R| > T; R = median of the last ceil(N/2) means (even count: mean of the middle two)\",\n"
+                      "    \"roi_ltrb\": [" + std::to_string(opt.bpmMargin[0]) + ", " + std::to_string(opt.bpmMargin[1]) + ", " + std::to_string(opt.bpmMargin[2]) + ", " +
+                      std::to_string(opt.bpmMargin[3]) + "],\n    \"T\": " + fixed(xpe_dark_sel::kDeviationLimit, 1) + ",\n    \"R\": " + fixed(selection.reference, 3) + ",\n    \"m\": [";
+        for (size_t k = 0; k < roiMeans.size(); ++k) darkSelection += fixed(roiMeans[k], 3) + (k + 1 < roiMeans.size() ? ", " : "");
+        darkSelection += "],\n    \"excluded\": [\n";
+        for (size_t k = 0; k < excludedDarks.size(); ++k)
+            darkSelection += "      {\"path\": \"" + jsonText(fs::path(excludedDarks[k].path).generic_string()) + "\", \"why\": \"" + (k == 0 ? "first frame (always)" : "|m_k - R| > T") + "\"}" +
+                          (k + 1 < excludedDarks.size() ? ",\n" : "\n");
+        darkSelection += "    ],\n    \"verdict\": \"used\",\n";
+    } else {
+        darkSelection += "    \"rule\": \"off (--keep-first-dark: the list is used as given)\",\n";
+    }
+    darkSelection += "    \"dark_order\": \"as given, not checked\"\n  },\n";
     std::ofstream manifest((work / "manifest.json").string(), std::ios::binary);
     if (!manifest || forcedFailure("manifest")) {
         std::fprintf(stderr, "writing manifest.json failed\n");
@@ -1137,7 +1190,7 @@ int runFramesMode(const Options& opt) {
              << ",\n    \"gain_dose_ratio_limit\": " << fixed(kGainDoseRatioLimit, 2)
              << ",\n    \"gain_dose_basis\": \"mean over pixels of max(0, bright - gain dark reference); reference: " << jsonText(refLabel) << "\"\n  },\n  \"inputs\": [\n"
              << inputs << "  ],\n" << darkPolicy << "  \"defect_pixels\": " << defectCount << ",\n"
-             << v2Info << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
+             << darkSelection << v2Info << comparison << "  \"files\": {\n    \"offset.xcal\": \"" << offsetSha << "\",\n    \"gain.xcal\": \"" << gainSha << "\",\n    \"defect.xcal\": \"" << defectSha
              << "\"\n  }\n}\n";
     manifest.close();
     if (!manifest) {

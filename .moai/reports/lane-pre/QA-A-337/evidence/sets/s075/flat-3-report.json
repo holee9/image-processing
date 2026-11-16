@@ -1,0 +1,219 @@
+{
+  "calibration_files": [
+    {
+      "path": "D:/workspace-github/xpe-data/qa-337-tmp/s075/set\\offset.xcal",
+      "sha256_after": "d92586f59a0947ddb3131a6d3caea8daa16e9a12f206271a8a516e845b59da05",
+      "sha256_before": "d92586f59a0947ddb3131a6d3caea8daa16e9a12f206271a8a516e845b59da05",
+      "unchanged": true
+    },
+    {
+      "path": "D:/workspace-github/xpe-data/qa-337-tmp/s075/set\\gain.xcal",
+      "sha256_after": "4341d2fcab9f1405e4f13f0f7eb31827afe224a641c9291d2fc630c254696363",
+      "sha256_before": "4341d2fcab9f1405e4f13f0f7eb31827afe224a641c9291d2fc630c254696363",
+      "unchanged": true
+    },
+    {
+      "path": "D:/workspace-github/xpe-data/qa-337-tmp/s075/set\\defect.xcal",
+      "sha256_after": "70d2d39c40bb16fdafbb733c0b08cf331d8f2f660ddd16572187be3e0963625c",
+      "sha256_before": "70d2d39c40bb16fdafbb733c0b08cf331d8f2f660ddd16572187be3e0963625c",
+      "unchanged": true
+    }
+  ],
+  "calibration_paths": [
+    "D:/workspace-github/xpe-data/qa-337-tmp/s075/set\\offset.xcal",
+    "D:/workspace-github/xpe-data/qa-337-tmp/s075/set\\gain.xcal",
+    "D:/workspace-github/xpe-data/qa-337-tmp/s075/set\\defect.xcal"
+  ],
+  "degraded_evidence": true,
+  "determinism": {
+    "nonfinite_comparison_pixels": 0,
+    "pipeline_runs": 2,
+    "replay_time_ms": 16.1084,
+    "scope": "same raw/maps/config; basic stateless CPU pipeline_out; stateful ghost is bypassed"
+  },
+  "evidence_scope": "basic offset/gain/defect stages, cross-checked against shipped pipeline_out",
+  "flat_statistics": {
+    "count": 9437184,
+    "epsilon": 1e-09,
+    "input": "raw",
+    "minimum_signal_met": true,
+    "output": "final pipeline_out",
+    "roi": "original gain finite and positive; no spatial exclusion",
+    "std_convention": "sample N-1"
+  },
+  "gain_measured_mask": 44,
+  "gain_semantics": "normalized_gain",
+  "gain_semantics_source": "caller-selected, not independently verified",
+  "gain_validity_definitions": {
+    "application": "finite and 0.1 <= gain <= 10 (shared xpe_gain_value_valid)",
+    "verification_roi": "finite and > 0"
+  },
+  "gates": [
+    {
+      "id": "PRE-E2E-CALIBRATION-LOAD",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-STAGE-PIPELINE-PARITY",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-NO-NAN-INF",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-CPU-DETERMINISM",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-GAIN-STAGE-QUALITY",
+      "result": "fail"
+    },
+    {
+      "id": "PRE-E2E-STRIPE-QUALITY",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-FLAT-QUALITY",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-FLAT-RELEASE-QUALITY",
+      "result": "fail"
+    },
+    {
+      "id": "PRE-E2E-RAW-PRESERVE",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-GAIN-SEMANTICS",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-CALIBRATION-PRESERVE",
+      "result": "pass"
+    },
+    {
+      "id": "PRE-E2E-COMPLETE",
+      "result": "unmeasured"
+    }
+  ],
+  "ghost": {
+    "bypass_reason": "configured_bypass",
+    "corrected_flag": false,
+    "history_length": null,
+    "scope": "basic runner config bypass; no ghost handle, tier or history observed",
+    "tier": null
+  },
+  "ghost_bypassed": true,
+  "git_sha": "unknown",
+  "height": 3072,
+  "image_path": "D:/workspace-github/xpe-data/images/pre/Cyan_GT1717C/26A14J4/20260413_Cyan_ft/20260410_CJ519120NAAA_26A14J4/20260410_CJ519120NAAA_26A14J4/Bright_15.raw",
+  "input_buffer_preserved": true,
+  "input_kind": "flat",
+  "input_kind_source": "caller-selected, not acquisition-verified",
+  "input_preservation_status": "pass",
+  "input_preserved": true,
+  "matches_shipped_pipeline": true,
+  "metrics": {
+    "calibration_effect_score": null,
+    "clamp_rate": null,
+    "dark_bias_adu": null,
+    "dark_bias_signed_adu": null,
+    "dark_reduction_db": null,
+    "defect_fpr": null,
+    "defect_recall": null,
+    "defect_residual_adu": null,
+    "determinism_rmse": 0.0,
+    "dsnu_adu": null,
+    "flat_residual_pct": 0.6070641497799666,
+    "fpn_reduction_db": 20.64426468045568,
+    "gain_application_coverage": 1.0,
+    "gain_application_invalid_count": 0,
+    "gain_coverage": 1.0,
+    "gain_stage_flat_residual_pct": 0.6070808783850016,
+    "gain_stage_prnu_improvement_db": 20.602200302346333,
+    "good_pixel_delta_p99_linear_adu": null,
+    "good_pixel_delta_p99_nearest_adu": null,
+    "invalid_gain_count": 0,
+    "mae_reference_adu": null,
+    "max_abs_reference_adu": null,
+    "nan_inf_count": 0,
+    "peak_memory_mb": null,
+    "pipeline_time_ms": 16.834,
+    "psnr_reference_db": null,
+    "rmse_reference": null,
+    "stripe_noise_ratio": 1.874739071131494,
+    "zero_output_rate": null
+  },
+  "output_summary": {
+    "max": 9959.58984375,
+    "mean": 9652.03047232154,
+    "min": 9361.4541015625
+  },
+  "phase1_pass": false,
+  "pixel_format": "uint16-le",
+  "raw_sha256_after": "4c0eba783eaa8fc299eb0f22e20e539b3e1c6b89fcb707413012f99d0cbe86bc",
+  "raw_sha256_before": "4c0eba783eaa8fc299eb0f22e20e539b3e1c6b89fcb707413012f99d0cbe86bc",
+  "release_pass": false,
+  "run_succeeded": true,
+  "schema": "xpe-pre-e2e-report-v1",
+  "score": {
+    "calibration_effect_score": null,
+    "phase1_pass": false,
+    "release_pass": false,
+    "score_cap": 100.0,
+    "score_complete": false
+  },
+  "score_components": {
+    "dark": null,
+    "defect": null,
+    "flat": null,
+    "lag_ghost": null,
+    "nonlinearity": null,
+    "performance": null,
+    "preservation": 1.0,
+    "reference": null
+  },
+  "stages": [
+    {
+      "applied": true,
+      "enabled": "explicit",
+      "name": "offset",
+      "result_code": 0,
+      "time_ms": 2.9105
+    },
+    {
+      "applied": true,
+      "enabled": "explicit",
+      "name": "gain",
+      "result_code": 0,
+      "time_ms": 2.4575
+    },
+    {
+      "applied": true,
+      "enabled": "explicit",
+      "name": "defect",
+      "result_code": 0,
+      "time_ms": 10.3314
+    }
+  ],
+  "stripe_statistics": {
+    "column_expected": 0.7888398200460286,
+    "column_std": 1.4788688315046266,
+    "columns": 3072,
+    "high_pass_half_window": 16,
+    "horizontal_pairs": 9434112,
+    "roi_pixels": 9437184,
+    "row_expected": 0.7987899860647463,
+    "row_std": 1.4808947945601216,
+    "rows": 3072,
+    "sigma_horizontal": 44.96279761199636,
+    "sigma_vertical": 44.40271635320463,
+    "std_convention": "population N",
+    "undefined_ratio": "unmeasured; zero expected noise is not a pass",
+    "vertical_pairs": 9434112
+  },
+  "timing_scope": "stage times are separate stage API calls; pipeline time is a separate shipped pipeline_out call",
+  "width": 3072
+}

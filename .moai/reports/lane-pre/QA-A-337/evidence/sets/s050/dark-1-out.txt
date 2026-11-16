@@ -1,0 +1,2 @@
+Report: D:/workspace-github/xpe-data/qa-337-tmp/s050/dark-1\report.json
+Readiness: incomplete (see unmeasured components and every gate)
